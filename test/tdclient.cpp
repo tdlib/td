@@ -1090,6 +1090,87 @@ TEST(Client, ManagerClose) {
 }
 #endif
 
+TEST(Client, ManagerCloseOneThread) {
+  SET_VERBOSITY_LEVEL(2);
+  td::ClientManager client_manager;
+
+  td::uint64 request_id = 2;
+  std::map<td::uint64, td::int32> sent_requests;
+  td::uint64 sent_count = 0;
+  td::uint64 receive_count = 0;
+
+  auto send_request = [&](td::int32 client_id, td::int32 expected_error_code) {
+    sent_count++;
+    sent_requests.emplace(request_id, expected_error_code);
+    client_manager.send(client_id, request_id++, td::make_tl_object<td::td_api::testSquareInt>(3));
+  };
+
+  auto receive = [&] {
+    while (receive_count != sent_count) {
+      auto response = client_manager.receive(1.0);
+      if (response.object == nullptr) {
+        continue;
+      }
+      if (response.request_id > 0) {
+        receive_count++;
+        auto it = sent_requests.find(response.request_id);
+        CHECK(it != sent_requests.end());
+        auto expected_error_code = it->second;
+        sent_requests.erase(it);
+
+        if (expected_error_code == 0) {
+          if (response.request_id == 1) {
+            ASSERT_EQ(td::td_api::ok::ID, response.object->get_id());
+          } else {
+            ASSERT_EQ(td::td_api::testInt::ID, response.object->get_id());
+          }
+        } else {
+          ASSERT_EQ(td::td_api::error::ID, response.object->get_id());
+          ASSERT_EQ(expected_error_code, static_cast<td::td_api::error &>(*response.object).code_);
+        }
+      }
+    }
+  };
+
+  for (td::int32 i = -5; i <= 0; i++) {
+    send_request(i, 400);
+  }
+
+  receive();
+
+  auto client_id = client_manager.create_client();
+
+  for (td::int32 i = -5; i < 5; i++) {
+    send_request(i, i == client_id ? 0 : (i > 0 && i < client_id ? 500 : 400));
+  }
+
+  receive();
+
+  for (int i = 0; i < 10; i++) {
+    send_request(client_id, 0);
+  }
+
+  receive();
+
+  sent_count++;
+  sent_requests.emplace(1, 0);
+  client_manager.send(client_id, 1, td::make_tl_object<td::td_api::close>());
+
+  for (int i = 0; i < 10; i++) {
+    send_request(client_id, 500);
+  }
+
+  receive();
+
+  for (int i = 0; i < 10; i++) {
+    send_request(client_id, 500);
+  }
+
+  receive();
+
+  ASSERT_TRUE(sent_requests.empty());
+}
+
 TEST(PartsManager, hands) {
   {
     td::PartsManager pm;
