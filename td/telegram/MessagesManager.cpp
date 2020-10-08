@@ -14477,7 +14477,7 @@ void MessagesManager::load_dialogs(vector<DialogId> dialog_ids, Promise<Unit> &&
       add_dialog_dependencies(dependencies, dialog_id);
     }
   }
-  resolve_dependencies_force(td_, dependencies);
+  resolve_dependencies_force(td_, dependencies, "load_dialogs");
 
   for (auto dialog_id : dialog_ids) {
     if (dialog_id.is_valid()) {
@@ -21179,7 +21179,7 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
     is_first = false;
     pos++;
   }
-  resolve_dependencies_force(td_, dependencies);
+  resolve_dependencies_force(td_, dependencies, "get_history");
 
   if (from_the_end && !last_added_message_id.is_valid() && last_received_message_id < d->first_database_message_id &&
       !d->have_full_history) {
@@ -21494,7 +21494,7 @@ void MessagesManager::on_get_scheduled_messages_from_database(DialogId dialog_id
       added_message_ids.push_back(m->message_id);
     }
   }
-  resolve_dependencies_force(td_, dependencies);
+  resolve_dependencies_force(td_, dependencies, "get_scheduled_messages");
 
   // for (auto message_id : added_message_ids) {
   //   send_update_new_message(d, get_message(d, message_id));
@@ -30300,7 +30300,7 @@ MessagesManager::Message *MessagesManager::on_get_message_from_database(DialogId
 
   Dependencies dependencies;
   add_message_dependencies(dependencies, d->dialog_id, m.get());
-  resolve_dependencies_force(td_, dependencies);
+  resolve_dependencies_force(td_, dependencies, "get_message");
 
   m->have_previous = false;
   m->have_next = false;
@@ -33338,7 +33338,7 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
   if (d->draft_message != nullptr) {
     add_formatted_text_dependencies(dependencies, &d->draft_message->input_message_text.text);
   }
-  resolve_dependencies_force(td_, dependencies);
+  resolve_dependencies_force(td_, dependencies, "parse_dialog");
 
   return d;
 }
@@ -34530,7 +34530,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         Dependencies dependencies;
         add_dialog_dependencies(dependencies, dialog_id);
         add_message_dependencies(dependencies, dialog_id, m.get());
-        resolve_dependencies_force(td_, dependencies);
+        resolve_dependencies_force(td_, dependencies, "SendMessageLogEvent");
 
         m->content =
             dup_message_content(td_, dialog_id, m->content.get(), MessageContentDupType::Send, MessageCopyOptions());
@@ -34560,7 +34560,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         Dependencies dependencies;
         add_dialog_dependencies(dependencies, dialog_id);
         add_message_dependencies(dependencies, dialog_id, m.get());
-        resolve_dependencies_force(td_, dependencies);
+        resolve_dependencies_force(td_, dependencies, "SendBotStartMessageLogEvent");
 
         auto bot_user_id = log_event.bot_user_id;
         if (!td_->contacts_manager_->have_user_force(bot_user_id)) {
@@ -34597,7 +34597,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         Dependencies dependencies;
         add_dialog_dependencies(dependencies, dialog_id);
         add_message_dependencies(dependencies, dialog_id, m.get());
-        resolve_dependencies_force(td_, dependencies);
+        resolve_dependencies_force(td_, dependencies, "SendInlineQueryResultMessageLogEvent");
 
         m->content = dup_message_content(td_, dialog_id, m->content.get(), MessageContentDupType::SendViaBot,
                                          MessageCopyOptions());
@@ -34626,7 +34626,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         Dependencies dependencies;
         add_dialog_dependencies(dependencies, dialog_id);
         add_message_dependencies(dependencies, dialog_id, m.get());
-        resolve_dependencies_force(td_, dependencies);
+        resolve_dependencies_force(td_, dependencies, "SendScreenshotTakenNotificationMessageLogEvent");
 
         auto result_message = continue_send_message(dialog_id, std::move(m), event.id_);
         if (result_message != nullptr) {
@@ -34653,7 +34653,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         for (auto &m : messages) {
           add_message_dependencies(dependencies, to_dialog_id, m.get());
         }
-        resolve_dependencies_force(td_, dependencies);
+        resolve_dependencies_force(td_, dependencies, "ForwardMessagesLogEvent");
 
         Dialog *to_dialog = get_dialog_force(to_dialog_id);
         if (to_dialog == nullptr) {
@@ -35135,7 +35135,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         auto dialog_id = log_event.dialog_id_;
         Dependencies dependencies;
         add_dialog_dependencies(dependencies, dialog_id);
-        resolve_dependencies_force(td_, dependencies);
+        resolve_dependencies_force(td_, dependencies, "GetDialogFromServerLogEvent");
 
         get_dialog_force(dialog_id);  // load it if exists
 

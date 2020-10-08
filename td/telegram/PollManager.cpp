@@ -1653,7 +1653,7 @@ void PollManager::on_binlog_events(vector<BinlogEvent> &&events) {
 
         Dependencies dependencies;
         add_dialog_dependencies(dependencies, dialog_id);  // do not load the dialog itself
-        resolve_dependencies_force(td_, dependencies);
+        resolve_dependencies_force(td_, dependencies, "SetPollAnswerLogEvent");
 
         do_set_poll_answer(log_event.poll_id_, log_event.full_message_id_, std::move(log_event.options_), event.id_,
                            Auto());
@@ -1672,7 +1672,7 @@ void PollManager::on_binlog_events(vector<BinlogEvent> &&events) {
 
         Dependencies dependencies;
         add_dialog_dependencies(dependencies, dialog_id);  // do not load the dialog itself
-        resolve_dependencies_force(td_, dependencies);
+        resolve_dependencies_force(td_, dependencies, "StopPollLogEvent");
 
         do_stop_poll(log_event.poll_id_, log_event.full_message_id_, nullptr, event.id_, Auto());
         break;
