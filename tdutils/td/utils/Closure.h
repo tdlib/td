@@ -124,16 +124,16 @@ class DelayedClosure {
   explicit DelayedClosure(
       const DelayedClosure<FromActorT, FromFunctionT, FromArgsT...> &other,
       std::enable_if_t<!LogicAnd<std::is_copy_constructible<FromArgsT>::value...>::value, int> = 0) {
-    static_assert(std::is_same<FromActorT, FromActorT>::value, "Deleted constructor");
+    LOG(FATAL) << "Deleted constructor";
+    std::abort();
   }
 
   template <class FromActorT, class FromFunctionT, class... FromArgsT>
   std::enable_if_t<!LogicAnd<std::is_copy_constructible<FromArgsT>::value...>::value,
                    DelayedClosure<FromActorT, FromFunctionT, FromArgsT...>>
   do_clone(const DelayedClosure<FromActorT, FromFunctionT, FromArgsT...> &value) const {
-    static_assert(std::is_same<FromActorT, FromActorT>::value,
-                  "Trying to clone DelayedClosure that contains noncopyable elements");
-    UNREACHABLE();
+    LOG(FATAL) << "Trying to clone DelayedClosure that contains noncopyable elements";
+    std::abort();
   }
 
   template <class FromActorT, class FromFunctionT, class... FromArgsT>
