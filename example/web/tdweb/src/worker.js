@@ -70,7 +70,7 @@ async function loadTdlibWasm(onFS, wasmUrl) {
   if (wasmUrl) {
     td_wasm = wasmUrl;
   }
-  const module = await createTdwebModule({
+  let module = createTdwebModule({
     onRuntimeInitialized: () => {
       log.info('runtime intialized');
     },
@@ -85,8 +85,11 @@ async function loadTdlibWasm(onFS, wasmUrl) {
     },
     ENVIROMENT: 'WORKER'
   });
+  onFS(module.FS); // hack
+  log.info('Wait module');
+  module = await module;
   log.info('Got module', module);
-  onFS(module.FS);
+  //onFS(module.FS);
   return module;
 }
 
@@ -97,7 +100,7 @@ async function loadTdlibAsmjs(onFS) {
   console.log('got td_asm.js', createTdwebModule);
   const fromFile = 'td_asmjs.js.mem';
   const toFile = td_asmjs_mem_release;
-  const module = await createTdwebModule({
+  let module = createTdwebModule({
     onRuntimeInitialized: () => {
       console.log('runtime intialized');
     },
@@ -109,7 +112,11 @@ async function loadTdlibAsmjs(onFS) {
     },
     ENVIROMENT: 'WORKER'
   });
-  onFS(module.FS);
+  onFS(module.FS); // hack
+  log.info('Wait module');
+  module = await module;
+  log.info('Got module', module);
+  //onFS(module.FS);
   return module;
 }
 
@@ -608,7 +615,10 @@ class TdClient {
     log.info('got TdModule');
     this.td_functions = {
       td_create: this.TdModule.cwrap('td_emscripten_create', 'number', []),
-      td_send: this.TdModule.cwrap('td_emscripten_send', null, ['number', 'string']),
+      td_send: this.TdModule.cwrap('td_emscripten_send', null, [
+        'number',
+        'string'
+      ]),
       td_execute: this.TdModule.cwrap('td_emscripten_execute', 'string', [
         'string'
       ]),
@@ -621,7 +631,11 @@ class TdClient {
           })
         );
       },
-      td_get_timeout: this.TdModule.cwrap('td_emscripten_get_timeout', 'number', [])
+      td_get_timeout: this.TdModule.cwrap(
+        'td_emscripten_get_timeout',
+        'number',
+        []
+      )
     };
     //this.onFS(this.TdModule.FS);
     this.FS = this.TdModule.FS;

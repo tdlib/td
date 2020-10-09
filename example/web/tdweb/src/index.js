@@ -169,7 +169,7 @@ class TdClient {
       'receive from worker: ',
       JSON.parse(
         JSON.stringify(response, (key, value) => {
-          if (key === 'arr' || key == 'data') {
+          if (key === 'arr' || key === 'data') {
             return undefined;
           }
           return value;
@@ -233,7 +233,12 @@ class TdClient {
     }
     for (const key in response) {
       const field = response[key];
-      if (field && typeof field === 'object' && key != 'data' && key != 'arr') {
+      if (
+        field &&
+        typeof field === 'object' &&
+        key !== 'data' &&
+        key !== 'arr'
+      ) {
         response[key] = this.prepareResponse(field);
       }
     }
