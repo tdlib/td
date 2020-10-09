@@ -424,8 +424,12 @@ class ContactsManager : public Actor {
 
   bool is_user_deleted(UserId user_id) const;
 
+  bool is_user_support(UserId user_id) const;
+
   bool is_user_bot(UserId user_id) const;
   Result<BotData> get_bot_data(UserId user_id) const TD_WARN_UNUSED_RESULT;
+
+  bool is_user_online(UserId user_id) const;
 
   bool is_user_status_exact(UserId user_id) const;
 

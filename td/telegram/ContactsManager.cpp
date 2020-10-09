@@ -12229,6 +12229,11 @@ bool ContactsManager::is_user_deleted(UserId user_id) const {
   return u == nullptr || u->is_deleted;
 }
 
+bool ContactsManager::is_user_support(UserId user_id) const {
+  auto u = get_user(user_id);
+  return u != nullptr && !u->is_deleted && u->is_support;
+}
+
 bool ContactsManager::is_user_bot(UserId user_id) const {
   auto u = get_user(user_id);
   return u != nullptr && !u->is_deleted && u->is_bot;
@@ -12258,6 +12263,11 @@ Result<BotData> ContactsManager::get_bot_data(UserId user_id) const {
   bot_data.is_inline = bot->is_inline_bot;
   bot_data.need_location = bot->need_location_bot;
   return bot_data;
+}
+
+bool ContactsManager::is_user_online(UserId user_id) const {
+  int32 was_online = get_user_was_online(get_user(user_id), user_id);
+  return was_online > G()->unix_time();
 }
 
 bool ContactsManager::is_user_status_exact(UserId user_id) const {

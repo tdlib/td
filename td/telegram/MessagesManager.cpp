@@ -28853,10 +28853,20 @@ bool MessagesManager::is_dialog_action_unneeded(DialogId dialog_id) const {
     UserId user_id = dialog_type == DialogType::User
                          ? dialog_id.get_user_id()
                          : td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
-    if (!user_id.is_valid() || td_->contacts_manager_->is_user_bot(user_id) ||
-        td_->contacts_manager_->is_user_deleted(user_id)) {
+    if (td_->contacts_manager_->is_user_deleted(user_id)) {
       return true;
     }
+    if (td_->contacts_manager_->is_user_bot(user_id) && !td_->contacts_manager_->is_user_support(user_id)) {
+      return true;
+    }
+    if (user_id == td_->contacts_manager_->get_my_id()) {
+      return true;
+    }
+
+    if (!td_->auth_manager_->is_bot() && !td_->contacts_manager_->is_user_online(user_id)) {
+      return true;
+    }
+
     if (!td_->auth_manager_->is_bot() && !td_->contacts_manager_->is_user_status_exact(user_id)) {
       // return true;
     }
