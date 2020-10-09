@@ -1092,7 +1092,6 @@ TEST(Client, ManagerClose) {
 #endif
 
 TEST(Client, ManagerCloseOneThread) {
-  SET_VERBOSITY_LEVEL(2);
   td::ClientManager client_manager;
 
   td::uint64 request_id = 2;
@@ -1133,41 +1132,43 @@ TEST(Client, ManagerCloseOneThread) {
     }
   };
 
-  for (td::int32 i = -5; i <= 0; i++) {
-    send_request(i, 400);
+  for (int t = 0; t < 3; t++) {
+    for (td::int32 i = -5; i <= 0; i++) {
+      send_request(i, 400);
+    }
+
+    receive();
+
+    auto client_id = client_manager.create_client();
+
+    for (td::int32 i = -5; i < 5; i++) {
+      send_request(i, i == client_id ? 0 : (i > 0 && i < client_id ? 500 : 400));
+    }
+
+    receive();
+
+    for (int i = 0; i < 10; i++) {
+      send_request(client_id, 0);
+    }
+
+    receive();
+
+    sent_count++;
+    sent_requests.emplace(1, 0);
+    client_manager.send(client_id, 1, td::make_tl_object<td::td_api::close>());
+
+    for (int i = 0; i < 10; i++) {
+      send_request(client_id, 500);
+    }
+
+    receive();
+
+    for (int i = 0; i < 10; i++) {
+      send_request(client_id, 500);
+    }
+
+    receive();
   }
-
-  receive();
-
-  auto client_id = client_manager.create_client();
-
-  for (td::int32 i = -5; i < 5; i++) {
-    send_request(i, i == client_id ? 0 : (i > 0 && i < client_id ? 500 : 400));
-  }
-
-  receive();
-
-  for (int i = 0; i < 10; i++) {
-    send_request(client_id, 0);
-  }
-
-  receive();
-
-  sent_count++;
-  sent_requests.emplace(1, 0);
-  client_manager.send(client_id, 1, td::make_tl_object<td::td_api::close>());
-
-  for (int i = 0; i < 10; i++) {
-    send_request(client_id, 500);
-  }
-
-  receive();
-
-  for (int i = 0; i < 10; i++) {
-    send_request(client_id, 500);
-  }
-
-  receive();
 
   ASSERT_TRUE(sent_requests.empty());
 }

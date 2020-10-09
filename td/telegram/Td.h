@@ -260,12 +260,12 @@ class Td final : public NetQueryCallback {
 
   void dec_stop_cnt();
 
+  unique_ptr<TdCallback> callback_;
+  Options td_options_;
+
   MtprotoHeader::Options options_;
 
   TdParameters parameters_;
-
-  unique_ptr<TdCallback> callback_;
-  Options td_options_;
 
   StateManager::State connection_state_;
 
