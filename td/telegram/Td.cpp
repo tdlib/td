@@ -3412,7 +3412,6 @@ void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {
 
   request_set_.insert(id);
   if (function == nullptr) {
-    LOG(ERROR) << "Receive empty request";
     return send_error_impl(id, make_error(400, "Request is empty"));
   }
 
@@ -3511,7 +3510,6 @@ void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {
 
 td_api::object_ptr<td_api::Object> Td::static_request(td_api::object_ptr<td_api::Function> function) {
   if (function == nullptr) {
-    LOG(ERROR) << "Receive empty static request";
     return td_api::make_object<td_api::error>(400, "Request is empty");
   }
 
