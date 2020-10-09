@@ -270,6 +270,7 @@ if (TDUTILS_MIME_TYPE)
 endif()
 
 set(TDUTILS_TEST_SOURCE
+  ${CMAKE_CURRENT_SOURCE_DIR}/test/bitmask.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/buffer.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/ConcurrentHashMap.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/crypto.cpp
