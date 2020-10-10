@@ -129,14 +129,13 @@ class ClientManager::Impl final {
         response.object->get_id() == td_api::updateAuthorizationState::ID &&
         static_cast<const td_api::updateAuthorizationState *>(response.object.get())->authorization_state_->get_id() ==
             td_api::authorizationStateClosed::ID) {
+      CHECK(concurrent_scheduler_ != nullptr);
       auto guard = concurrent_scheduler_->get_main_guard();
       auto it = tds_.find(response.client_id);
       CHECK(it != tds_.end());
       it->second.reset();
     }
     if (response.object == nullptr && response.client_id != 0 && response.request_id == 0) {
-      CHECK(concurrent_scheduler_ != nullptr);
-      auto guard = concurrent_scheduler_->get_main_guard();
       auto it = tds_.find(response.client_id);
       CHECK(it != tds_.end());
       CHECK(it->second.empty());
