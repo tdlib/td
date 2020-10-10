@@ -134,13 +134,18 @@ class ClientManager::Impl final {
       auto it = tds_.find(response.client_id);
       CHECK(it != tds_.end());
       it->second.reset();
+
+      response.client_id = 0;
+      response.object = nullptr;
     }
     if (response.object == nullptr && response.client_id != 0 && response.request_id == 0) {
       auto it = tds_.find(response.client_id);
       CHECK(it != tds_.end());
       CHECK(it->second.empty());
       tds_.erase(it);
-      response.client_id = 0;
+
+      response.object = td_api::make_object<td_api::updateAuthorizationState>(
+          td_api::make_object<td_api::authorizationStateClosed>());
 
       if (tds_.empty()) {
         CHECK(options_.net_query_stats.use_count() == 1);
@@ -476,6 +481,9 @@ class ClientManager::Impl final {
             td_api::authorizationStateClosed::ID) {
       auto lock = impls_mutex_.lock_write().move_as_ok();
       close_impl(response.client_id);
+
+      response.client_id = 0;
+      response.object = nullptr;
     }
     if (response.object == nullptr && response.client_id != 0 && response.request_id == 0) {
       auto lock = impls_mutex_.lock_write().move_as_ok();
@@ -483,7 +491,9 @@ class ClientManager::Impl final {
       CHECK(it != impls_.end());
       CHECK(it->second.is_closed);
       impls_.erase(it);
-      response.client_id = 0;
+
+      response.object = td_api::make_object<td_api::updateAuthorizationState>(
+          td_api::make_object<td_api::authorizationStateClosed>());
 
       if (impls_.empty()) {
         reset_to_empty(impls_);
