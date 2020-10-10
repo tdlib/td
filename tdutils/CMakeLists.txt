@@ -87,6 +87,7 @@ set(TDUTILS_SOURCE
   td/utils/BufferedUdp.cpp
   td/utils/check.cpp
   td/utils/crypto.cpp
+  td/utils/ExitGuard.cpp
   td/utils/FileLog.cpp
   td/utils/filesystem.cpp
   td/utils/find_boundary.cpp
@@ -187,6 +188,7 @@ set(TDUTILS_SOURCE
   td/utils/Destructor.h
   td/utils/Enumerator.h
   td/utils/EpochBasedMemoryReclamation.h
+  td/utils/ExitGuard.h
   td/utils/FileLog.h
   td/utils/filesystem.h
   td/utils/find_boundary.h

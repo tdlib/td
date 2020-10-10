@@ -10,6 +10,7 @@
 #include "td/utils/bits.h"
 #include "td/utils/CancellationToken.h"
 #include "td/utils/common.h"
+#include "td/utils/ExitGuard.h"
 #include "td/utils/Hash.h"
 #include "td/utils/HashMap.h"
 #include "td/utils/HashSet.h"
@@ -49,6 +50,24 @@
 #endif
 
 using namespace td;
+
+struct CheckExitGuard {
+  explicit CheckExitGuard(bool expected_value): expected_value_(expected_value) {
+  }
+  CheckExitGuard(CheckExitGuard &&) = delete;
+  CheckExitGuard &operator=(CheckExitGuard &&) = delete;
+  CheckExitGuard(const CheckExitGuard &) = delete;
+  CheckExitGuard &operator=(const CheckExitGuard &) = delete;
+  ~CheckExitGuard() {
+    ASSERT_EQ(expected_value_, ExitGuard::is_exited());
+  }
+
+  bool expected_value_;
+};
+
+CheckExitGuard check_exit_guard_true{true};
+ExitGuard exit_guard;
+CheckExitGuard check_exit_guard_false{false};
 
 #if TD_LINUX || TD_DARWIN
 TEST(Misc, update_atime_saves_mtime) {
