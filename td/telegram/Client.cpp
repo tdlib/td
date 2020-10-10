@@ -13,6 +13,7 @@
 
 #include "td/utils/common.h"
 #include "td/utils/crypto.h"
+#include "td/utils/ExitGuard.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/MpscPollableQueue.h"
@@ -174,7 +175,7 @@ class ClientManager::Impl final {
         td.second.reset();
       }
     }
-    while (!tds_.empty()) {
+    while (!tds_.empty() && !ExitGuard::is_exited()) {
       receive(10);
     }
     concurrent_scheduler_->finish();
@@ -521,7 +522,7 @@ class ClientManager::Impl final {
     for (auto &it : impls_) {
       close_impl(it.first);
     }
-    while (!impls_.empty()) {
+    while (!impls_.empty() && !ExitGuard::is_exited()) {
       receive(10);
     }
   }
@@ -569,7 +570,7 @@ class Client::Impl final {
   Impl &operator=(Impl &&) = delete;
   ~Impl() {
     multi_impl_->close(td_id_);
-    while (true) {
+    while (!ExitGuard::is_exited()) {
       auto response = receiver_.receive(10.0);
       if (response.object == nullptr && response.client_id != 0 && response.request_id == 0) {
         break;
