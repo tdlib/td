@@ -22168,7 +22168,7 @@ MessageId MessagesManager::get_reply_to_message_id(Dialog *d, MessageId top_thre
       return message_id;
     }
     if (top_thread_message_id.is_valid() && top_thread_message_id.is_server() &&
-        get_message_force(d, top_thread_message_id, "get_reply_to_message_id 1") != nullptr) {
+        get_message_force(d, top_thread_message_id, "get_reply_to_message_id 3") != nullptr) {
       return top_thread_message_id;
     }
 

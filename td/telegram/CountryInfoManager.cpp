@@ -313,7 +313,6 @@ void CountryInfoManager::on_get_country_list(const string &language_code,
 
 void CountryInfoManager::on_get_country_list_impl(const string &language_code,
                                                   tl_object_ptr<telegram_api::help_CountriesList> country_list) {
-  LOG(ERROR) << to_string(country_list);
   CHECK(country_list != nullptr);
   auto &countries = countries_[language_code];
   switch (country_list->get_id()) {
