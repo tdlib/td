@@ -28905,7 +28905,7 @@ void MessagesManager::send_dialog_action(DialogId dialog_id, MessageId top_threa
 
   auto &query_ref = set_typing_query_[dialog_id];
   if (!query_ref.empty() && !td_->auth_manager_->is_bot()) {
-    LOG(INFO) << "Cancel previous set typing query";
+    LOG(INFO) << "Cancel previous send chat action query";
     cancel_query(query_ref);
   }
   query_ref = td_->create_handler<SetTypingQuery>(std::move(promise))
@@ -28913,7 +28913,7 @@ void MessagesManager::send_dialog_action(DialogId dialog_id, MessageId top_threa
 }
 
 void MessagesManager::on_send_dialog_action_timeout(DialogId dialog_id) {
-  LOG(INFO) << "Receive send_dialog_action timeout in " << dialog_id;
+  LOG(INFO) << "Receive send_chat_action timeout in " << dialog_id;
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
 
@@ -30749,7 +30749,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     if (queue_id & 1) {
       LOG(INFO) << "Add " << message_id << " from " << source << " to queue " << queue_id;
       yet_unsent_media_queues_[queue_id][message_id.get()];  // reserve place for promise
-      if (!td_->auth_manager_->is_bot() && !is_dialog_action_unneeded(dialog_id)) {
+      if (!td_->auth_manager_->is_bot()) {
         pending_send_dialog_action_timeout_.add_timeout_in(dialog_id.get(), 1.0);
       }
     }
