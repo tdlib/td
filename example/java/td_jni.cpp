@@ -26,31 +26,35 @@ static td::td_api::object_ptr<td::td_api::Function> fetch_function(JNIEnv *env, 
   return result;
 }
 
-static td::Client *get_client(jlong client_id) {
-  return reinterpret_cast<td::Client *>(static_cast<std::uintptr_t>(client_id));
+static td::ClientManager *get_manager() {
+  return td::ClientManager::get_manager_singleton();
 }
 
-static jlong Client_createNativeClient(JNIEnv *env, jclass clazz) {
-  return static_cast<jlong>(reinterpret_cast<std::uintptr_t>(new td::Client()));
+static jint Client_createNativeClient(JNIEnv *env, jclass clazz) {
+  return static_cast<jint>(get_manager()->create_client());
 }
 
-static void Client_nativeClientSend(JNIEnv *env, jclass clazz, jlong client_id, jlong id, jobject function) {
-  get_client(client_id)->send({static_cast<std::uint64_t>(id), fetch_function(env, function)});
+static void Client_nativeClientSend(JNIEnv *env, jclass clazz, jint client_id, jlong id, jobject function) {
+  get_manager()->send(static_cast<std::int32_t>(client_id), static_cast<std::uint64_t>(id),
+                      fetch_function(env, function));
 }
 
-static jint Client_nativeClientReceive(JNIEnv *env, jclass clazz, jlong client_id, jlongArray ids, jobjectArray events,
-                                       jdouble timeout) {
-  auto client = get_client(client_id);
-  jsize events_size = env->GetArrayLength(ids);  // ids and events size must be of equal size
+static jint Client_nativeClientReceive(JNIEnv *env, jclass clazz, jintArray client_ids, jlongArray ids,
+                                       jobjectArray events, jdouble timeout) {
+  jsize events_size = env->GetArrayLength(ids);  // client_ids, ids and events must be of equal size
   if (events_size == 0) {
     return 0;
   }
   jsize result_size = 0;
 
-  auto response = client->receive(timeout);
+  auto *manager = get_manager();
+  auto response = manager->receive(timeout);
   while (response.object) {
-    jlong result_id = static_cast<jlong>(response.id);
-    env->SetLongArrayRegion(ids, result_size, 1, &result_id);
+    jint client_id = static_cast<jint>(response.client_id);
+    env->SetIntArrayRegion(client_ids, result_size, 1, &client_id);
+
+    jlong request_id = static_cast<jlong>(response.request_id);
+    env->SetLongArrayRegion(ids, result_size, 1, &request_id);
 
     jobject object;
     response.object->store(env, object);
@@ -62,19 +66,15 @@ static jint Client_nativeClientReceive(JNIEnv *env, jclass clazz, jlong client_i
       break;
     }
 
-    response = client->receive(0);
+    response = manager->receive(0);
   }
   return result_size;
 }
 
 static jobject Client_nativeClientExecute(JNIEnv *env, jclass clazz, jobject function) {
   jobject result;
-  td::Client::execute({0, fetch_function(env, function)}).object->store(env, result);
+  td::ClientManager::execute(fetch_function(env, function))->store(env, result);
   return result;
-}
-
-static void Client_destroyNativeClient(JNIEnv *env, jclass clazz, jlong client_id) {
-  delete get_client(client_id);
 }
 
 static void Log_setVerbosityLevel(JNIEnv *env, jclass clazz, jint new_log_verbosity_level) {
@@ -136,11 +136,10 @@ static jint register_native(JavaVM *vm) {
 
 #define TD_OBJECT "L" PACKAGE_NAME "/TdApi$Object;"
 #define TD_FUNCTION "L" PACKAGE_NAME "/TdApi$Function;"
-  register_method(client_class, "createNativeClient", "()J", Client_createNativeClient);
-  register_method(client_class, "nativeClientSend", "(JJ" TD_FUNCTION ")V", Client_nativeClientSend);
-  register_method(client_class, "nativeClientReceive", "(J[J[" TD_OBJECT "D)I", Client_nativeClientReceive);
+  register_method(client_class, "createNativeClient", "()I", Client_createNativeClient);
+  register_method(client_class, "nativeClientSend", "(IJ" TD_FUNCTION ")V", Client_nativeClientSend);
+  register_method(client_class, "nativeClientReceive", "([I[J[" TD_OBJECT "D)I", Client_nativeClientReceive);
   register_method(client_class, "nativeClientExecute", "(" TD_FUNCTION ")" TD_OBJECT, Client_nativeClientExecute);
-  register_method(client_class, "destroyNativeClient", "(J)V", Client_destroyNativeClient);
 
   register_method(log_class, "setVerbosityLevel", "(I)V", Log_setVerbosityLevel);
   register_method(log_class, "setFilePath", "(Ljava/lang/String;)Z", Log_setFilePath);

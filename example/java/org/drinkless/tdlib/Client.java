@@ -8,14 +8,11 @@ package org.drinkless.tdlib;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * Main class for interaction with the TDLib.
  */
-public final class Client implements Runnable {
+public final class Client {
     /**
      * Interface for handler for results of queries to TDLib and incoming updates from TDLib.
      */
@@ -55,25 +52,11 @@ public final class Client implements Runnable {
      * @throws NullPointerException if query is null.
      */
     public void send(TdApi.Function query, ResultHandler resultHandler, ExceptionHandler exceptionHandler) {
-        if (query == null) {
-            throw new NullPointerException("query is null");
-        }
-
-        readLock.lock();
-        try {
-            if (isClientDestroyed) {
-                if (resultHandler != null) {
-                    handleResult(new TdApi.Error(500, "Client is closed"), resultHandler, exceptionHandler);
-                }
-                return;
-            }
-
-            long queryId = currentQueryId.incrementAndGet();
+        long queryId = currentQueryId.incrementAndGet();
+        if (resultHandler != null) {
             handlers.put(queryId, new Handler(resultHandler, exceptionHandler));
-            nativeClientSend(nativeClientId, queryId, query);
-        } finally {
-            readLock.unlock();
         }
+        nativeClientSend(nativeClientId, queryId, query);
     }
 
     /**
@@ -97,20 +80,7 @@ public final class Client implements Runnable {
      * @throws NullPointerException if query is null.
      */
     public static TdApi.Object execute(TdApi.Function query) {
-        if (query == null) {
-            throw new NullPointerException("query is null");
-        }
         return nativeClientExecute(query);
-    }
-
-    /**
-     * Overridden method from Runnable, do not call it directly.
-     */
-    @Override
-    public void run() {
-        while (!stopFlag) {
-            receiveQueries(300.0 /*seconds*/);
-        }
     }
 
     /**
@@ -123,54 +93,79 @@ public final class Client implements Runnable {
      */
     public static Client create(ResultHandler updateHandler, ExceptionHandler updateExceptionHandler, ExceptionHandler defaultExceptionHandler) {
         Client client = new Client(updateHandler, updateExceptionHandler, defaultExceptionHandler);
-        new Thread(client, "TDLib thread").start();
+        synchronized (responseReceiver) {
+            if (!responseReceiver.isRun) {
+                responseReceiver.isRun = true;
+
+                Thread receiverThread = new Thread(responseReceiver, "TDLib thread");
+                receiverThread.setDaemon(true);
+                receiverThread.start();
+            }
+        }
         return client;
     }
 
-    /**
-     * Closes Client.
-     */
-    public void close() {
-        writeLock.lock();
-        try {
-            if (isClientDestroyed) {
-                return;
+    private static class ResponseReceiver implements Runnable {
+        public boolean isRun = false;
+
+        @Override
+        public void run() {
+            while (true) {
+                int resultN = nativeClientReceive(clientIds, eventIds, events, 100000.0 /*seconds*/);
+                for (int i = 0; i < resultN; i++) {
+                    processResult(clientIds[i], eventIds[i], events[i]);
+                    events[i] = null;
+                }
             }
-            if (!stopFlag) {
-                send(new TdApi.Close(), null);
-            }
-            isClientDestroyed = true;
-            while (!stopFlag) {
-                Thread.yield();
-            }
-            while (!handlers.isEmpty()) {
-                receiveQueries(300.0);
-            }
-            updateHandlers.remove(nativeClientId);
-            defaultExceptionHandlers.remove(nativeClientId);
-            destroyNativeClient(nativeClientId);
-        } finally {
-            writeLock.unlock();
         }
+
+        private void processResult(int clientId, long id, TdApi.Object object) {
+            boolean isClosed = false;
+            if (id == 0 && object instanceof TdApi.UpdateAuthorizationState) {
+                TdApi.AuthorizationState authorizationState = ((TdApi.UpdateAuthorizationState) object).authorizationState;
+                if (authorizationState instanceof TdApi.AuthorizationStateClosed) {
+                    isClosed = true;
+                }
+            }
+
+            Handler handler = id == 0 ? updateHandlers.get(clientId) : handlers.remove(id);
+            if (handler != null) {
+                try {
+                    handler.resultHandler.onResult(object);
+                } catch (Throwable cause) {
+                    ExceptionHandler exceptionHandler = handler.exceptionHandler;
+                    if (exceptionHandler == null) {
+                        exceptionHandler = defaultExceptionHandlers.get(clientId);
+                    }
+                    if (exceptionHandler != null) {
+                        try {
+                            exceptionHandler.onException(cause);
+                        } catch (Throwable ignored) {
+                        }
+                    }
+                }
+            }
+
+            if (isClosed) {
+                updateHandlers.remove(clientId);           // there will be no more updates
+                defaultExceptionHandlers.remove(clientId); // ignore further exceptions
+            }
+        }
+
+        private static final int MAX_EVENTS = 1000;
+        private final int[] clientIds = new int[MAX_EVENTS];
+        private final long[] eventIds = new long[MAX_EVENTS];
+        private final TdApi.Object[] events = new TdApi.Object[MAX_EVENTS];
     }
 
-    private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
-    private final Lock readLock = readWriteLock.readLock();
-    private final Lock writeLock = readWriteLock.writeLock();
+    private final int nativeClientId;
 
-    private volatile boolean stopFlag = false;
-    private volatile boolean isClientDestroyed = false;
-    private final long nativeClientId;
+    private static final ConcurrentHashMap<Integer, ExceptionHandler> defaultExceptionHandlers = new ConcurrentHashMap<Integer, ExceptionHandler>();
+    private static final ConcurrentHashMap<Integer, Handler> updateHandlers = new ConcurrentHashMap<Integer, Handler>();
+    private static final ConcurrentHashMap<Long, Handler> handlers = new ConcurrentHashMap<Long, Handler>();
+    private static final AtomicLong currentQueryId = new AtomicLong();
 
-    private static final ConcurrentHashMap<Long, ExceptionHandler> defaultExceptionHandlers = new ConcurrentHashMap<Long, ExceptionHandler>();
-    private static final ConcurrentHashMap<Long, Handler> updateHandlers = new ConcurrentHashMap<Long, Handler>();
-
-    private final ConcurrentHashMap<Long, Handler> handlers = new ConcurrentHashMap<Long, Handler>();
-    private final AtomicLong currentQueryId = new AtomicLong();
-
-    private static final int MAX_EVENTS = 1000;
-    private final long[] eventIds = new long[MAX_EVENTS];
-    private final TdApi.Object[] events = new TdApi.Object[MAX_EVENTS];
+    private static final ResponseReceiver responseReceiver = new ResponseReceiver();
 
     private static class Handler {
         final ResultHandler resultHandler;
@@ -184,76 +179,24 @@ public final class Client implements Runnable {
 
     private Client(ResultHandler updateHandler, ExceptionHandler updateExceptionHandler, ExceptionHandler defaultExceptionHandler) {
         nativeClientId = createNativeClient();
-        updateHandlers.put(nativeClientId, new Handler(updateHandler, updateExceptionHandler));
+        if (updateHandler != null) {
+            updateHandlers.put(nativeClientId, new Handler(updateHandler, updateExceptionHandler));
+        }
         if (defaultExceptionHandler != null) {
-          defaultExceptionHandlers.put(nativeClientId, defaultExceptionHandler);
+            defaultExceptionHandlers.put(nativeClientId, defaultExceptionHandler);
         }
     }
 
     @Override
     protected void finalize() throws Throwable {
-        try {
-            close();
-        } finally {
-            super.finalize();
-        }
+        send(new TdApi.Close(), null, null);
     }
 
-    private void processResult(long id, TdApi.Object object) {
-        if (object instanceof TdApi.UpdateAuthorizationState) {
-            if (((TdApi.UpdateAuthorizationState) object).authorizationState instanceof TdApi.AuthorizationStateClosed) {
-                stopFlag = true;
-            }
-        }
-        Handler handler;
-        if (id == 0) {
-            // update handler stays forever
-            handler = updateHandlers.get(nativeClientId);
-        } else {
-            handler = handlers.remove(id);
-        }
-        if (handler == null) {
-            return;
-        }
+    private static native int createNativeClient();
 
-        handleResult(object, handler.resultHandler, handler.exceptionHandler);
-    }
+    private static native void nativeClientSend(int nativeClientId, long eventId, TdApi.Function function);
 
-    private void handleResult(TdApi.Object object, ResultHandler resultHandler, ExceptionHandler exceptionHandler) {
-        if (resultHandler == null) {
-            return;
-        }
-
-        try {
-            resultHandler.onResult(object);
-        } catch (Throwable cause) {
-            if (exceptionHandler == null) {
-                exceptionHandler = defaultExceptionHandlers.get(nativeClientId);
-            }
-            if (exceptionHandler != null) {
-                try {
-                    exceptionHandler.onException(cause);
-                } catch (Throwable ignored) {
-                }
-            }
-        }
-    }
-
-    private void receiveQueries(double timeout) {
-        int resultN = nativeClientReceive(nativeClientId, eventIds, events, timeout);
-        for (int i = 0; i < resultN; i++) {
-            processResult(eventIds[i], events[i]);
-            events[i] = null;
-        }
-    }
-
-    private static native long createNativeClient();
-
-    private static native void nativeClientSend(long nativeClientId, long eventId, TdApi.Function function);
-
-    private static native int nativeClientReceive(long nativeClientId, long[] eventIds, TdApi.Object[] events, double timeout);
+    private static native int nativeClientReceive(int[] clientIds, long[] eventIds, TdApi.Object[] events, double timeout);
 
     private static native TdApi.Object nativeClientExecute(TdApi.Function function);
-
-    private static native void destroyNativeClient(long nativeClientId);
 }
