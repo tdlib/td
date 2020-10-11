@@ -6,8 +6,15 @@
 //
 #include "td/utils/ExitGuard.h"
 
+#include "td/utils/logging.h"
+
 namespace td {
 
 std::atomic<bool> ExitGuard::is_exited_{false};
+
+ExitGuard::~ExitGuard() {
+  is_exited_.store(true, std::memory_order_relaxed);
+  set_verbosity_level(VERBOSITY_NAME(FATAL));
+}
 
 }  // namespace td

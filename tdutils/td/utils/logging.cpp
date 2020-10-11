@@ -6,6 +6,7 @@
 //
 #include "td/utils/logging.h"
 
+#include "td/utils/ExitGuard.h"
 #include "td/utils/port/Clocks.h"
 #include "td/utils/port/StdStreams.h"
 #include "td/utils/port/thread_local.h"
@@ -41,6 +42,9 @@ Logger::Logger(LogInterface &log, const LogOptions &options, int log_level, Slic
     return;
   }
   if (!options_.add_info) {
+    return;
+  }
+  if (ExitGuard::is_exited()) {
     return;
   }
 
@@ -104,6 +108,9 @@ Logger::Logger(LogInterface &log, const LogOptions &options, int log_level, Slic
 }
 
 Logger::~Logger() {
+  if (ExitGuard::is_exited()) {
+    return;
+  }
   if (options_.fix_newlines) {
     sb_ << '\n';
     auto slice = as_cslice();
@@ -152,7 +159,7 @@ TsCerr &TsCerr::operator<<(Slice slice) {
 }
 
 void TsCerr::enterCritical() {
-  while (lock_.test_and_set(std::memory_order_acquire)) {
+  while (lock_.test_and_set(std::memory_order_acquire) && !ExitGuard::is_exited()) {
     // spin
   }
 }
@@ -161,6 +168,16 @@ void TsCerr::exitCritical() {
   lock_.clear(std::memory_order_release);
 }
 TsCerr::Lock TsCerr::lock_ = ATOMIC_FLAG_INIT;
+
+void TsLog::enter_critical() {
+  while (lock_.test_and_set(std::memory_order_acquire) && !ExitGuard::is_exited()) {
+    // spin
+  }
+}
+
+void TsLog::exit_critical() {
+  lock_.clear(std::memory_order_release);
+}
 
 class DefaultLog : public LogInterface {
  public:
@@ -289,5 +306,7 @@ ScopedDisableLog::~ScopedDisableLog() {
     set_verbosity_level(sdl_verbosity);
   }
 }
+
+static ExitGuard exit_guard;
 
 }  // namespace td

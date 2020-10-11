@@ -17,9 +17,7 @@ class ExitGuard {
   ExitGuard &operator=(ExitGuard &&) = delete;
   ExitGuard(const ExitGuard &) = delete;
   ExitGuard &operator=(const ExitGuard &) = delete;
-  ~ExitGuard() {
-    is_exited_.store(true, std::memory_order_relaxed);
-  }
+  ~ExitGuard();
 
   static bool is_exited() {
     return is_exited_.load(std::memory_order_relaxed);

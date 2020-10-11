@@ -321,14 +321,8 @@ class TsLog : public LogInterface {
  private:
   LogInterface *log_ = nullptr;
   std::atomic_flag lock_ = ATOMIC_FLAG_INIT;
-  void enter_critical() {
-    while (lock_.test_and_set(std::memory_order_acquire)) {
-      // spin
-    }
-  }
-  void exit_critical() {
-    lock_.clear(std::memory_order_release);
-  }
+  void enter_critical();
+  void exit_critical();
 };
 
 }  // namespace td

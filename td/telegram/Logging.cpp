@@ -29,6 +29,7 @@
 
 #include "td/actor/actor.h"
 
+#include "td/utils/ExitGuard.h"
 #include "td/utils/FileLog.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
@@ -44,6 +45,7 @@ static std::mutex logging_mutex;
 static FileLog file_log;
 static TsLog ts_log(&file_log);
 static NullLog null_log;
+static ExitGuard exit_guard;
 
 #define ADD_TAG(tag) \
   { #tag, &VERBOSITY_NAME(tag) }
