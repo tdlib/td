@@ -103,8 +103,11 @@ static jclass log_class;
 
 static void on_fatal_error(const char *error_message) {
   auto env = td::jni::get_jni_env(java_vm, JAVA_VERSION);
+  if (env == nullptr) {
+    return;
+  }
   jmethodID on_fatal_error_method = env->GetStaticMethodID(log_class, "onFatalError", "(Ljava/lang/String;)V");
-  if (env && on_fatal_error_method) {
+  if (on_fatal_error_method) {
     jstring error_str = td::jni::to_jstring(env.get(), error_message);
     env->CallStaticVoidMethod(log_class, on_fatal_error_method, error_str);
     if (error_str) {
