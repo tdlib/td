@@ -29,7 +29,8 @@ public final class Example {
 
     private static TdApi.AuthorizationState authorizationState = null;
     private static volatile boolean haveAuthorization = false;
-    private static volatile boolean quiting = false;
+    private static volatile boolean needQuit = false;
+    private static volatile boolean canQuit = false;
 
     private static final Client.ResultHandler defaultHandler = new DefaultHandler();
 
@@ -160,8 +161,10 @@ public final class Example {
                 break;
             case TdApi.AuthorizationStateClosed.CONSTRUCTOR:
                 print("Closed");
-                if (!quiting) {
+                if (!needQuit) {
                     client = Client.create(new UpdateHandler(), null, null); // recreate client after previous has closed
+                } else {
+                    canQuit = true;
                 }
                 break;
             default:
@@ -230,7 +233,7 @@ public final class Example {
                     client.send(new TdApi.LogOut(), defaultHandler);
                     break;
                 case "q":
-                    quiting = true;
+                    needQuit = true;
                     haveAuthorization = false;
                     client.send(new TdApi.Close(), defaultHandler);
                     break;
@@ -316,7 +319,7 @@ public final class Example {
         defaultHandler.onResult(Client.execute(new TdApi.GetTextEntities("@telegram /test_command https://telegram.org telegram.me @gif @test")));
 
         // main loop
-        while (!quiting) {
+        while (!needQuit) {
             // await authorization
             authorizationLock.lock();
             try {
@@ -330,6 +333,9 @@ public final class Example {
             while (haveAuthorization) {
                 getCommand();
             }
+        }
+        while (!canQuit) {
+            Thread.sleep(1);
         }
     }
 
