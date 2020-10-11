@@ -247,6 +247,12 @@ class ClientManager final {
    */
   ClientManager &operator=(ClientManager &&other);
 
+  /**
+   * Returns a pointer to a singleton ClientManager instance.
+   * \return A unique singleton ClientManager instance.
+   */
+  static ClientManager *get_manager_singleton();
+
  private:
   friend class Client;
   class Impl;

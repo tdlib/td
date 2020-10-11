@@ -631,4 +631,10 @@ ClientManager::~ClientManager() = default;
 ClientManager::ClientManager(ClientManager &&other) = default;
 ClientManager &ClientManager::operator=(ClientManager &&other) = default;
 
+ClientManager *ClientManager::get_manager_singleton() {
+  static ClientManager client_manager;
+  static ExitGuard exit_guard;
+  return &client_manager;
+}
+
 }  // namespace td

@@ -10,7 +10,6 @@
 #include "td/telegram/td_api_json.h"
 
 #include "td/utils/common.h"
-#include "td/utils/ExitGuard.h"
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
 #include "td/utils/port/thread_local.h"
@@ -116,9 +115,7 @@ const char *ClientJson::execute(Slice request) {
 }
 
 static ClientManager *get_manager() {
-  static ClientManager client_manager;
-  static ExitGuard exit_guard;
-  return &client_manager;
+  return ClientManager::get_manager_singleton();
 }
 
 static std::mutex extra_mutex;
