@@ -23,7 +23,8 @@ namespace TdExample
 
         private static TdApi.AuthorizationState _authorizationState = null;
         private static volatile bool _haveAuthorization = false;
-        private static volatile bool _quiting = false;
+        private static volatile bool _needQuit = false;
+        private static volatile bool _canQuit = false;
 
         private static volatile AutoResetEvent _gotAuthorization = new AutoResetEvent(false);
 
@@ -133,9 +134,11 @@ namespace TdExample
             {
                 Print("Closed");
                 _client.Dispose(); // _client is closed and native resources can be disposed now
-                if (!_quiting)
+                if (!_needQuit)
                 {
                     _client = CreateTdClient(); // recreate _client after previous has closed
+                } else {
+                    _canQuit = true;
                 }
             }
             else
@@ -187,7 +190,7 @@ namespace TdExample
                         _client.Send(new TdApi.Close(), _defaultHandler);
                         break;
                     case "q":
-                        _quiting = true;
+                        _needQuit = true;
                         _haveAuthorization = false;
                         _client.Send(new TdApi.Close(), _defaultHandler);
                         break;
@@ -228,7 +231,7 @@ namespace TdExample
             _defaultHandler.OnResult(Td.Client.Execute(new TdApi.GetTextEntities("@telegram /test_command https://telegram.org telegram.me @gif @test")));
 
             // main loop
-            while (!_quiting)
+            while (!_needQuit)
             {
                 // await authorization
                 _gotAuthorization.Reset();
@@ -239,6 +242,9 @@ namespace TdExample
                 {
                     GetCommand();
                 }
+            }
+            while (!_canQuit) {
+                Thread.Sleep(1);
             }
         }
 
