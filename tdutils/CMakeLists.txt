@@ -316,6 +316,12 @@ target_include_directories(tdutils PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOUR
 if (OPENSSL_FOUND)
   target_link_libraries(tdutils PRIVATE ${OPENSSL_CRYPTO_LIBRARY} ${CMAKE_DL_LIBS} ${ZLIB_LIBRARIES})
   target_include_directories(tdutils SYSTEM PRIVATE ${OPENSSL_INCLUDE_DIR})
+
+  if (MINGW)
+    target_link_libraries(tdutils PRIVATE ws2_32 mswsock crypt32)
+  else()
+    target_link_libraries(tdutils PRIVATE ws2_32 Mswsock Crypt32)
+  endif()
 endif()
 
 if (ZLIB_FOUND)
