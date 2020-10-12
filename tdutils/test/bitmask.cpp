@@ -4,11 +4,17 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
-#include "td/utils/tests.h"
+#include "td/utils/common.h"
 #include "td/utils/misc.h"
+#include "td/utils/Slice.h"
+#include "td/utils/Status.h"
+#include "td/utils/tests.h"
 #include "td/utils/utf8.h"
 
+#include <algorithm>
+
 namespace td {
+
 class RangeSet {
   template <class T>
   static auto find(T &ranges, int64 begin) {
@@ -28,17 +34,14 @@ class RangeSet {
     int64 end;
   };
 
-  static constexpr int64 BitSize = 1024;
-  static constexpr int64 MaxPartSize = 16 * 1024 * 1024;
-
-  RangeSet() = default;
+  static constexpr int64 BIT_SIZE = 1024;
 
   static RangeSet create_one_range(int64 end, int64 begin = 0) {
     RangeSet res;
     res.ranges_.push_back({begin, end});
     return res;
   }
-  static td::Result<RangeSet> decode(CSlice data) {
+  static Result<RangeSet> decode(CSlice data) {
     if (!check_utf8(data)) {
       return Status::Error("Invalid encoding");
     }
@@ -50,7 +53,7 @@ class RangeSet {
       begin = next_utf8_unsafe(begin, &size, "RangeSet");
 
       if (!is_empty && size != 0) {
-        res.ranges_.push_back({curr * BitSize, (curr + size) * BitSize});
+        res.ranges_.push_back({curr * BIT_SIZE, (curr + size) * BIT_SIZE});
       }
       curr += size;
       is_empty = !is_empty;
@@ -58,12 +61,12 @@ class RangeSet {
     return res;
   }
 
-  std::string encode(int64 prefix_size = -1) const {
-    std::vector<uint32> sizes;
+  string encode(int64 prefix_size = -1) const {
+    vector<uint32> sizes;
     uint32 all_end = 0;
 
     if (prefix_size != -1) {
-      prefix_size = (prefix_size + BitSize - 1) / BitSize * BitSize;
+      prefix_size = (prefix_size + BIT_SIZE - 1) / BIT_SIZE * BIT_SIZE;
     }
     for (auto it : ranges_) {
       if (prefix_size != -1 && it.begin >= prefix_size) {
@@ -73,10 +76,10 @@ class RangeSet {
         it.end = prefix_size;
       }
 
-      CHECK(it.begin % BitSize == 0);
-      CHECK(it.end % BitSize == 0);
-      uint32 begin = narrow_cast<uint32>(it.begin / BitSize);
-      uint32 end = narrow_cast<uint32>(it.end / BitSize);
+      CHECK(it.begin % BIT_SIZE == 0);
+      CHECK(it.end % BIT_SIZE == 0);
+      uint32 begin = narrow_cast<uint32>(it.begin / BIT_SIZE);
+      uint32 end = narrow_cast<uint32>(it.end / BIT_SIZE);
       if (sizes.empty()) {
         if (begin != 0) {
           sizes.push_back(0);
@@ -89,7 +92,7 @@ class RangeSet {
       all_end = end;
     }
 
-    std::string res;
+    string res;
     for (auto c : sizes) {
       append_utf8_character(res, c);
     }
@@ -149,8 +152,8 @@ class RangeSet {
   }
 
   void set(int64 begin, int64 end) {
-    CHECK(begin % BitSize == 0);
-    CHECK(end % BitSize == 0);
+    CHECK(begin % BIT_SIZE == 0);
+    CHECK(end % BIT_SIZE == 0);
     // 1. skip all with r.end < begin
     auto it_begin = find(begin);
 
@@ -162,16 +165,16 @@ class RangeSet {
     if (it_begin == it_end) {
       ranges_.insert(it_begin, Range{begin, end});
     } else {
-      begin = std::min(begin, it_begin->begin);
+      begin = td::min(begin, it_begin->begin);
       --it_end;
-      end = std::max(end, it_end->end);
+      end = td::max(end, it_end->end);
       *it_end = Range{begin, end};
       ranges_.erase(it_begin, it_end);
     }
   }
 
-  std::vector<int32> as_vector(int32 part_size) const {
-    std::vector<int32> res;
+  vector<int32> as_vector(int32 part_size) const {
+    vector<int32> res;
     for (auto it : ranges_) {
       auto begin = narrow_cast<int32>((it.begin + part_size - 1) / part_size);
       auto end = narrow_cast<int32>(it.end / part_size);
@@ -183,13 +186,12 @@ class RangeSet {
   }
 
  private:
-  std::vector<Range> ranges_;
+  vector<Range> ranges_;
 };
 
 TEST(Bitmask, simple) {
   auto validate_encoding = [](auto &rs) {
     auto str = rs.encode();
-    LOG(ERROR) << str.size();
     RangeSet rs2 = RangeSet::decode(str).move_as_ok();
     auto str2 = rs2.encode();
     rs = std::move(rs2);
@@ -238,9 +240,10 @@ TEST(Bitmask, simple) {
     ASSERT_EQ(8, get(3));
 
     ASSERT_EQ(10, rs.get_ready_prefix_size(S * 3, S * 3 + 10));
-    ASSERT_TRUE(!rs.is_ready(S*11, S *12));
+    ASSERT_TRUE(!rs.is_ready(S * 11, S * 12));
     ASSERT_EQ(3, rs.get_ready_parts(2, S * 2));
-    ASSERT_EQ(std::vector<int32>({2, 3, 4, 7}), rs.as_vector(S * 2) );
+    ASSERT_EQ(vector<int32>({2, 3, 4, 7}), rs.as_vector(S * 2));
   }
 }
+
 }  // namespace td
