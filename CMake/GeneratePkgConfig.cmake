@@ -12,7 +12,7 @@ endfunction()
 
 function(generate_pkgconfig TARGET DESCRIPTION)
   # message("Generating pkg-config for ${TARGET}")
-  get_filename_component(PREFIX ${CMAKE_INSTALL_PREFIX} ABSOLUTE)
+  get_filename_component(PREFIX ${CMAKE_INSTALL_PREFIX} REALPATH)
 
   get_target_property(LIST ${TARGET} LINK_LIBRARIES)
   set(REQS "")
