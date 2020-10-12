@@ -585,6 +585,9 @@ static vector<td_api::object_ptr<td_api::photoSize>> get_photo_sizes_object(File
     return static_cast<uint32>(lhs->width_) * static_cast<uint32>(lhs->height_) <
            static_cast<uint32>(rhs->width_) * static_cast<uint32>(rhs->height_);
   });
+  td::remove_if(sizes, [](const auto &size) {
+    return !size->photo_->local_->can_be_downloaded_ && !size->photo_->local_->is_downloading_completed_;
+  });
   return sizes;
 }
 
