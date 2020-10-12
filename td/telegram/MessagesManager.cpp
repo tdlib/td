@@ -23714,6 +23714,26 @@ bool MessagesManager::is_broadcast_channel(DialogId dialog_id) const {
   return td_->contacts_manager_->get_channel_type(dialog_id.get_channel_id()) == ChannelType::Broadcast;
 }
 
+bool MessagesManager::is_deleted_secret_chat(const Dialog *d) const {
+  if (d == nullptr) {
+    return true;
+  }
+  if (d->dialog_id.get_type() != DialogType::SecretChat) {
+    return false;
+  }
+
+  if (d->order != DEFAULT_ORDER || d->messages != nullptr) {
+    return false;
+  }
+
+  auto state = td_->contacts_manager_->get_secret_chat_state(d->dialog_id.get_secret_chat_id());
+  if (state != SecretChatState::Closed) {
+    return false;
+  }
+
+  return true;
+}
+
 int32 MessagesManager::get_message_schedule_date(const Message *m) {
   if (!m->message_id.is_scheduled()) {
     return 0;
@@ -32897,11 +32917,8 @@ void MessagesManager::update_dialog_pos(Dialog *d, const char *source, bool need
       }
     }
     if (dialog_type == DialogType::SecretChat) {
-      auto secret_chat_id = d->dialog_id.get_secret_chat_id();
-      auto date = td_->contacts_manager_->get_secret_chat_date(secret_chat_id);
-      auto state = td_->contacts_manager_->get_secret_chat_state(secret_chat_id);
-      // do not return removed from the chat list closed secret chats
-      if (date != 0 && (d->order != DEFAULT_ORDER || state != SecretChatState::Closed || d->messages != nullptr)) {
+      auto date = td_->contacts_manager_->get_secret_chat_date(d->dialog_id.get_secret_chat_id());
+      if (date != 0 && !is_deleted_secret_chat(d)) {
         LOG(INFO) << "Creation of secret chat at " << date << " found";
         int64 creation_order = get_dialog_order(MessageId(), date);
         if (creation_order > new_order) {

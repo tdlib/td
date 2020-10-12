@@ -2916,6 +2916,8 @@ class MessagesManager : public Actor {
 
   bool is_broadcast_channel(DialogId dialog_id) const;
 
+  bool is_deleted_secret_chat(const Dialog *d) const;
+
   static int32 get_message_schedule_date(const Message *m);
 
   int32 recently_found_dialogs_loaded_ = 0;  // 0 - not loaded, 1 - load request was sent, 2 - loaded
