@@ -51,16 +51,12 @@ function(generate_pkgconfig TARGET DESCRIPTION)
 
   file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/pkgconfig")
   file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/pkgconfig/${TARGET}.pc" CONTENT 
-"prefix=${PREFIX}
-includedir=\${prefix}/${CMAKE_INSTALL_INCLUDEDIR}
-libdir=\${prefix}/${CMAKE_INSTALL_LIBDIR}
-
-Name: ${TARGET}
+"Name: ${TARGET}
 Description: ${DESCRIPTION}
 Version: ${PROJECT_VERSION}
 
-CFlags: -I\${includedir}
-Libs: -L\${libdir} -l${TARGET}
+CFlags: -I\"${PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}\"
+Libs: -L\"${PREFIX}/${CMAKE_INSTALL_LIBDIR}\" -l${TARGET}
 ${REQUIRES}${LIBRARIES}")
 
   install(FILES "pkgconfig/${TARGET}.pc" DESTINATION "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/pkgconfig")
