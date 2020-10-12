@@ -1,10 +1,10 @@
 function(get_relative_link OUTPUT PATH)
   get_filename_component(NAME ${PATH} NAME_WE)
-  if (${PATH} MATCHES "^[$]<[$]<CONFIG:DEBUG>:")
+  if (PATH MATCHES "^[$]<[$]<CONFIG:DEBUG>:")
     set(LINK "")
-  elseif (NOT WIN32 AND ${NAME} MATCHES "^lib")
+  elseif (NOT WIN32 AND NAME MATCHES "^lib")
     string(REGEX REPLACE "^lib" "-l" LINK ${NAME})
-  elseif (${NAME} MATCHES "^-")
+  elseif (NAME MATCHES "^-")
     set(LINK ${NAME})
   else()
     string(CONCAT LINK "-l" ${NAME})
@@ -50,7 +50,7 @@ function(generate_pkgconfig TARGET DESCRIPTION)
   endif()
 
   file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/pkgconfig")
-  file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/pkgconfig/${TARGET}.pc" CONTENT 
+  file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/pkgconfig/${TARGET}.pc" CONTENT
 "prefix=${PREFIX}
 
 Name: ${TARGET}

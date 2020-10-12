@@ -999,9 +999,9 @@ if (TD_ENABLE_DOTNET)
 endif()
 # generate_pkgconfig(tdc "Telegram Library - C interface")
 generate_pkgconfig(tdapi "Telegram Library - API")
-generate_pkgconfig(tdjson_private "Telegram Library - Json Interface (private)")
-generate_pkgconfig(tdjson "Telegram Library - Json Interface (shared)")
-generate_pkgconfig(tdjson_static "Telegram Library - Json Interface (static)")
+generate_pkgconfig(tdjson_private "Telegram Library - JSON interface (private)")
+generate_pkgconfig(tdjson "Telegram Library - JSON interface (shared)")
+generate_pkgconfig(tdjson_static "Telegram Library - JSON interface (static)")
 
 install(EXPORT TdTargets
   FILE TdTargets.cmake
