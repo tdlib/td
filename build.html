@@ -28,6 +28,7 @@ select.large { font-size: large; }
         <option>C++</option>
         <option>Swift</option>
         <option>Objective-C</option>
+        <option>Object Pascal</option>
         <option>Dart</option>
         <option>Rust</option>
         <option>Erlang</option>
@@ -202,6 +203,8 @@ function getExampleAnchor(language) {
     case 'Elixir':
     case 'C':
       return language.toLowerCase();
+    case 'Object Pascal':
+      return 'object-pascal';
     case 'C#':
       return 'csharp';
     case 'C++':

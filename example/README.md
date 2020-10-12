@@ -139,10 +139,11 @@ See [example/ios](https://github.com/tdlib/td/tree/master/example/ios) for an ex
 <a name="object-pascal"></a>
 ## Using TDLib in Object Pascal projects with Delphi and Lazarus
 
-TDLib can be used from the Object Pascal programming language.
+TDLib can be used from the Object Pascal programming language through the [JSON](https://github.com/tdlib/td#using-json).
 
-See [tdlib-delphi](https://github.com/dieletro/tdlib-delphi) or [tdlib-lazarus](https://github.com/dieletro/tdlib-lazarus) for examples of such use and a Delphi or Lazarus client for TDLib.
-This Example was developed for use and consumption of the Official [*Telegram TDLib API*](https://core.telegram.org/tdlib) for use in Delphi
+See [tdlib-delphi](https://github.com/dieletro/tdlib-delphi) for an example of TDLib usage from Delphi.
+
+See [tdlib-lazarus](https://github.com/dieletro/tdlib-lazarus) for an example of TDLib usage from Lazarus.
 
 <a name="dart"></a>
 ## Using TDLib in Dart projects
