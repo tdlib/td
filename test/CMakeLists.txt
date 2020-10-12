@@ -26,13 +26,13 @@ set(TESTS_MAIN
   main.cpp
 )
 
-add_library(all_tests STATIC ${TD_TEST_SOURCE})
-target_include_directories(all_tests PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
-target_link_libraries(all_tests PRIVATE tdcore tdclient)
+#add_library(all_tests STATIC ${TD_TEST_SOURCE})
+#target_include_directories(all_tests PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
+#target_link_libraries(all_tests PRIVATE tdcore tdclient)
 
 if (NOT CMAKE_CROSSCOMPILING OR EMSCRIPTEN)
   #Tests
-  add_executable(test-tdutils ${TESTS_MAIN} ${TDUTILS_TEST_SOURCE})
+  add_executable(test-tdutils EXCLUDE_FROM_ALL ${TESTS_MAIN} ${TDUTILS_TEST_SOURCE})
   add_executable(run_all_tests ${TESTS_MAIN} ${TD_TEST_SOURCE})
   if (CLANG AND NOT CYGWIN AND NOT EMSCRIPTEN AND NOT (CMAKE_HOST_SYSTEM_NAME MATCHES "OpenBSD"))
     target_compile_options(test-tdutils PUBLIC -fsanitize=undefined -fno-sanitize=vptr)
