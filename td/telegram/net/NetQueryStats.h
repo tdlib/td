@@ -41,7 +41,7 @@ class NetQueryStats {
   void dump_pending_network_queries();
 
  private:
-  NetQueryCounter::Counter count_;
+  NetQueryCounter::Counter count_{0};
   std::atomic<bool> use_list_{true};
   TsList<NetQueryDebug> list_;
 };
