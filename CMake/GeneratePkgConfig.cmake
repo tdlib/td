@@ -33,16 +33,20 @@ function(generate_pkgconfig TARGET DESCRIPTION)
   endforeach()
 
   if (HAS_REQS)
-    set(REQUIRES "\nRequires.private:")
+    set(REQUIRES "")
     foreach (REQ ${REQS})
       set(REQUIRES "${REQUIRES} ${REQ}")
     endforeach()
+    set(REQUIRES "Requires.private:${REQUIRES}\n")
   endif()
   if (HAS_LIBS)
-    set(LIBRARIES "\nLibs.private:")
+    set(LIBRARIES "")
+    list(REVERSE LIBS)
+    list(REMOVE_DUPLICATES LIBS)
     foreach (LIB ${LIBS})
-      set(LIBRARIES "${LIBRARIES} ${LIB}")
+      set(LIBRARIES " ${LIB}${LIBRARIES}")
     endforeach()
+    set(LIBRARIES "Libs.private:${LIBRARIES}\n")
   endif()
 
   file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/pkgconfig")
@@ -56,8 +60,8 @@ Description: ${DESCRIPTION}
 Version: ${PROJECT_VERSION}
 
 CFlags: -I\${includedir}
-Libs: -L\${libdir} -l${TARGET}${REQUIRES}${LIBRARIES}
-")
+Libs: -L\${libdir} -l${TARGET}
+${REQUIRES}${LIBRARIES}")
 
   install(FILES "pkgconfig/${TARGET}.pc" DESTINATION "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/pkgconfig")
 endfunction()
