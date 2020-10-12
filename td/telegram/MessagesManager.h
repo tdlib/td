@@ -1644,7 +1644,7 @@ class MessagesManager : public Actor {
   static constexpr int32 MIN_CHANNEL_DIFFERENCE = 10;
   static constexpr int32 MAX_CHANNEL_DIFFERENCE = 100;
   static constexpr int32 MAX_BOT_CHANNEL_DIFFERENCE = 100000;   // server side limit
-  static constexpr int32 MAX_RECENT_FOUND_DIALOGS = 20;         // some reasonable value
+  static constexpr int32 MAX_RECENTLY_FOUND_DIALOGS = 30;       // some reasonable value
   static constexpr size_t MAX_TITLE_LENGTH = 128;               // server side limit for chat title
   static constexpr size_t MAX_DESCRIPTION_LENGTH = 255;         // server side limit for chat description
   static constexpr size_t MAX_DIALOG_FILTER_TITLE_LENGTH = 12;  // server side limit for dialog filter title
@@ -2831,7 +2831,10 @@ class MessagesManager : public Actor {
 
   bool remove_recently_found_dialog_internal(DialogId dialog_id);
 
+  void update_recently_found_dialogs();
+
   void save_recently_found_dialogs();
+
   bool load_recently_found_dialogs(Promise<Unit> &promise);
 
   void reget_message_from_server_if_needed(DialogId dialog_id, const Message *m);

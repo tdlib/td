@@ -15404,6 +15404,9 @@ std::pair<int32, vector<DialogId>> MessagesManager::search_dialogs(const string 
     }
 
     promise.set_value(Unit());
+
+    update_recently_found_dialogs();
+
     size_t result_size = min(static_cast<size_t>(limit), recently_found_dialog_ids_.size());
     return {narrow_cast<int32>(recently_found_dialog_ids_.size()),
             vector<DialogId>(recently_found_dialog_ids_.begin(), recently_found_dialog_ids_.begin() + result_size)};
@@ -35219,6 +35222,7 @@ void MessagesManager::save_recently_found_dialogs() {
     }
     value += to_string(dialog_id.get());
   }
+  LOG(DEBUG) << "Save recently found chats " << value;
   G()->td_db()->get_binlog_pmc()->set("recently_found_dialog_usernames_and_ids", value);
 }
 
@@ -35237,6 +35241,7 @@ bool MessagesManager::load_recently_found_dialogs(Promise<Unit> &promise) {
     return true;
   }
 
+  LOG(DEBUG) << "Loaded recently found chats " << found_dialogs_str;
   auto found_dialogs = full_split(found_dialogs_str, ',');
   if (recently_found_dialogs_loaded_ == 1 && resolve_recently_found_dialogs_multipromise_.promise_count() == 0) {
     // queries was sent and have already been finished
@@ -35342,7 +35347,7 @@ bool MessagesManager::add_recently_found_dialog_internal(DialogId dialog_id) {
   // TODO create function
   auto it = std::find(recently_found_dialog_ids_.begin(), recently_found_dialog_ids_.end(), dialog_id);
   if (it == recently_found_dialog_ids_.end()) {
-    if (narrow_cast<int32>(recently_found_dialog_ids_.size()) == MAX_RECENT_FOUND_DIALOGS) {
+    if (narrow_cast<int32>(recently_found_dialog_ids_.size()) == MAX_RECENTLY_FOUND_DIALOGS) {
       CHECK(!recently_found_dialog_ids_.empty());
       recently_found_dialog_ids_.back() = dialog_id;
     } else {
@@ -35357,6 +35362,48 @@ bool MessagesManager::add_recently_found_dialog_internal(DialogId dialog_id) {
 bool MessagesManager::remove_recently_found_dialog_internal(DialogId dialog_id) {
   CHECK(have_dialog(dialog_id));
   return td::remove(recently_found_dialog_ids_, dialog_id);
+}
+
+void MessagesManager::update_recently_found_dialogs() {
+  vector<DialogId> dialog_ids;
+  for (auto dialog_id : recently_found_dialog_ids_) {
+    const Dialog *d = get_dialog(dialog_id);
+    if (d == nullptr) {
+      continue;
+    }
+    switch (dialog_id.get_type()) {
+      case DialogType::User:
+        // always keep
+        break;
+      case DialogType::Chat: {
+        auto channel_id = td_->contacts_manager_->get_chat_migrated_to_channel_id(dialog_id.get_chat_id());
+        if (channel_id.is_valid() && get_dialog(DialogId(channel_id)) != nullptr) {
+          dialog_id = DialogId(channel_id);
+        }
+        break;
+      }
+      case DialogType::Channel:
+        // always keep
+        break;
+      case DialogType::SecretChat:
+        if (is_deleted_secret_chat(d)) {
+          dialog_id = DialogId();
+        }
+        break;
+      case DialogType::None:
+      default:
+        UNREACHABLE();
+        break;
+    }
+    if (dialog_id.is_valid()) {
+      dialog_ids.push_back(dialog_id);
+    }
+  }
+
+  if (dialog_ids != recently_found_dialog_ids_) {
+    recently_found_dialog_ids_ = std::move(dialog_ids);
+    save_recently_found_dialogs();
+  }
 }
 
 void MessagesManager::suffix_load_loop(Dialog *d) {

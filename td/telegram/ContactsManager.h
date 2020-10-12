@@ -464,6 +464,7 @@ class ContactsManager : public Actor {
   void reload_chat_full(ChatId chat_id, Promise<Unit> &&promise);
 
   bool get_chat_is_active(ChatId chat_id) const;
+  ChannelId get_chat_migrated_to_channel_id(ChatId chat_id) const;
   DialogParticipantStatus get_chat_status(ChatId chat_id) const;
   DialogParticipantStatus get_chat_permissions(ChatId chat_id) const;
   bool is_appointed_chat_administrator(ChatId chat_id) const;

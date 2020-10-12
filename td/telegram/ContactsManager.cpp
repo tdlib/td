@@ -12815,6 +12815,14 @@ bool ContactsManager::get_chat_is_active(ChatId chat_id) const {
   return c->is_active;
 }
 
+ChannelId ContactsManager::get_chat_migrated_to_channel_id(ChatId chat_id) const {
+  auto c = get_chat(chat_id);
+  if (c == nullptr) {
+    return ChannelId();
+  }
+  return c->migrated_to_channel_id;
+}
+
 DialogParticipantStatus ContactsManager::get_chat_status(ChatId chat_id) const {
   auto c = get_chat(chat_id);
   if (c == nullptr) {
