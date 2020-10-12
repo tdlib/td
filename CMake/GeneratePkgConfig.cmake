@@ -31,16 +31,17 @@ function(generate_pkgconfig TARGET DESCRIPTION)
   if(HAS_REQS)
     set(REQUIRES "\nRequires.private:")
     foreach (REQ ${REQS})
-      string(APPEND REQUIRES " ${REQ}")
+      set(REQUIRES "${REQUIRES} ${REQ}")
     endforeach()
   endif()
   if(HAS_LIBS)
     set(LIBRARIES "\nLibs.private:")
     foreach (LIB ${LIBS})
-      string(APPEND LIBRARIES " ${LIB}")
+      set(LIBRARIES "${LIBRARIES} ${LIB}")
     endforeach()
   endif()
 
+  file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/pkgconfig")
   file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/pkgconfig/${TARGET}.pc" CONTENT 
 "prefix=${PREFIX}
 includedir=\${prefix}/${CMAKE_INSTALL_INCLUDEDIR}
