@@ -115,10 +115,10 @@ class unique_ptr {
   }
   explicit unique_ptr(T *ptr) noexcept : ptr_(ptr) {
   }
-  template <class S, class = std::enable_if_t<std::is_base_of<T, S>::value>>
+  template <class S, class = typename std::enable_if<std::is_base_of<T, S>::value>::type>
   unique_ptr(unique_ptr<S> &&other) noexcept : ptr_(static_cast<S *>(other.release())) {
   }
-  template <class S, class = std::enable_if_t<std::is_base_of<T, S>::value>>
+  template <class S, class = typename std::enable_if<std::is_base_of<T, S>::value>::type>
   unique_ptr &operator=(unique_ptr<S> &&other) noexcept {
     reset(static_cast<T *>(other.release()));
     return *this;
