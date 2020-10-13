@@ -992,7 +992,7 @@ TEST(Client, Close) {
   td::thread receive_thread([&] {
     auto max_continue_send = td::Random::fast_bool() ? 0 : 1000;
     while (true) {
-      auto response = client.receive(100.0);
+      auto response = client.receive(10.0);
       if (response.object == nullptr) {
         if (!stop_send) {
           stop_send = true;
@@ -1056,7 +1056,7 @@ TEST(Client, ManagerClose) {
     auto max_continue_send = td::Random::fast_bool() ? 0 : 1000;
     bool can_stop_send = false;
     while (true) {
-      auto response = client_manager.receive(100.0);
+      auto response = client_manager.receive(10.0);
       if (response.object == nullptr) {
         if (!stop_send) {
           can_stop_send = true;
