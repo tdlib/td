@@ -149,6 +149,7 @@ public final class Client {
             if (isClosed) {
                 updateHandlers.remove(clientId);           // there will be no more updates
                 defaultExceptionHandlers.remove(clientId); // ignore further exceptions
+                clientCount.decrementAndGet();
             }
         }
 
@@ -164,6 +165,7 @@ public final class Client {
     private static final ConcurrentHashMap<Integer, Handler> updateHandlers = new ConcurrentHashMap<Integer, Handler>();
     private static final ConcurrentHashMap<Long, Handler> handlers = new ConcurrentHashMap<Long, Handler>();
     private static final AtomicLong currentQueryId = new AtomicLong();
+    private static final AtomicLong clientCount = new AtomicLong();
 
     private static final ResponseReceiver responseReceiver = new ResponseReceiver();
 
@@ -178,6 +180,7 @@ public final class Client {
     }
 
     private Client(ResultHandler updateHandler, ExceptionHandler updateExceptionHandler, ExceptionHandler defaultExceptionHandler) {
+        clientCount.incrementAndGet();
         nativeClientId = createNativeClient();
         if (updateHandler != null) {
             updateHandlers.put(nativeClientId, new Handler(updateHandler, updateExceptionHandler));
