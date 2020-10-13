@@ -318,10 +318,10 @@ class NotificationTypePushMessage : public NotificationType {
   }
 
   td_api::object_ptr<td_api::NotificationType> get_notification_type_object(DialogId dialog_id) const override {
-    auto sender_user_id = G()->td().get_actor_unsafe()->contacts_manager_->get_user_id_object(
-        sender_user_id_, "get_notification_type_object");
+    auto sender =
+        G()->td().get_actor_unsafe()->messages_manager_->get_message_sender_object(sender_user_id_, sender_dialog_id_);
     return td_api::make_object<td_api::notificationTypeNewPushMessage>(
-        message_id_.get(), sender_user_id, sender_dialog_id_.get(), sender_name_, is_outgoing_,
+        message_id_.get(), std::move(sender), sender_name_, is_outgoing_,
         get_push_message_content_object(key_, arg_, photo_, document_));
   }
 

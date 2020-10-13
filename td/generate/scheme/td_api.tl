@@ -613,15 +613,24 @@ secretChatStateClosed = SecretChatState;
 secretChat id:int32 user_id:int32 state:SecretChatState is_outbound:Bool ttl:int32 key_hash:bytes layer:int32 = SecretChat;
 
 
+//@class MessageSender @description Contains information about the sender of a message
+
+//@description The message was sent by a known user @user_id Identifier of the user that sent the message
+messageSenderUser user_id:int32 = MessageSender;
+
+//@description The message was sent on behalf of a chat @chat_id Identifier of the chat that sent the message
+messageSenderChat chat_id:int53 = MessageSender;
+
+
 //@class MessageForwardOrigin @description Contains information about the origin of a forwarded message
 
-//@description The message was originally written by a known user @sender_user_id Identifier of the user that originally sent the message
+//@description The message was originally sent by a known user @sender_user_id Identifier of the user that originally sent the message
 messageForwardOriginUser sender_user_id:int32 = MessageForwardOrigin;
 
-//@description The message was originally written by an anonymous chat administrator on behalf of the chat @sender_chat_id Identifier of the chat that originally sent the message
+//@description The message was originally sent by an anonymous chat administrator on behalf of the chat @sender_chat_id Identifier of the chat that originally sent the message
 messageForwardOriginChat sender_chat_id:int53 = MessageForwardOrigin;
 
-//@description The message was originally written by a user, which is hidden by their privacy settings @sender_name Name of the sender
+//@description The message was originally sent by a user, which is hidden by their privacy settings @sender_name Name of the sender
 messageForwardOriginHiddenUser sender_name:string = MessageForwardOrigin;
 
 //@description The message was originally a post in a channel
@@ -666,8 +675,7 @@ messageSendingStateFailed error_code:int32 error_message:string can_retry:Bool r
 
 //@description Describes a message
 //@id Message identifier; unique for the chat to which the message belongs
-//@sender_user_id Identifier of the user who sent the message; 0 if unknown. Currently, it is unknown for channel posts, for channel posts automatically forwarded to discussion group and for anonymously sent supergroup messages
-//@sender_chat_id Identifier of the chat on behalf of which the message was sent; 0 if none
+//@sender The sender of the message
 //@chat_id Chat identifier
 //@sending_state Information about the sending state of the message; may be null
 //@scheduling_state Information about the scheduling state of the message; may be null
@@ -695,7 +703,7 @@ messageSendingStateFailed error_code:int32 error_message:string can_retry:Bool r
 //@restriction_reason If non-empty, contains a human-readable description of the reason why access to this message must be restricted
 //@content Content of the message
 //@reply_markup Reply markup for the message; may be null
-message id:int53 sender_user_id:int32 sender_chat_id:int53 chat_id:int53 sending_state:MessageSendingState scheduling_state:MessageSchedulingState is_outgoing:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_get_statistics:Bool can_get_message_thread:Bool is_channel_post:Bool contains_unread_mention:Bool date:int32 edit_date:int32 forward_info:messageForwardInfo interaction_info:messageInteractionInfo reply_in_chat_id:int53 reply_to_message_id:int53 message_thread_id:int53 ttl:int32 ttl_expires_in:double via_bot_user_id:int32 author_signature:string media_album_id:int64 restriction_reason:string content:MessageContent reply_markup:ReplyMarkup = Message;
+message id:int53 sender:MessageSender chat_id:int53 sending_state:MessageSendingState scheduling_state:MessageSchedulingState is_outgoing:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_get_statistics:Bool can_get_message_thread:Bool is_channel_post:Bool contains_unread_mention:Bool date:int32 edit_date:int32 forward_info:messageForwardInfo interaction_info:messageInteractionInfo reply_in_chat_id:int53 reply_to_message_id:int53 message_thread_id:int53 ttl:int32 ttl_expires_in:double via_bot_user_id:int32 author_signature:string media_album_id:int64 restriction_reason:string content:MessageContent reply_markup:ReplyMarkup = Message;
 
 //@description Contains a list of messages @total_count Approximate total count of messages found @messages List of messages; messages may be null
 messages total_count:int32 messages:vector<message> = Messages;
@@ -2558,12 +2566,11 @@ notificationTypeNewCall call_id:int32 = NotificationType;
 
 //@description New message was received through a push notification
 //@message_id The message identifier. The message will not be available in the chat history, but the ID can be used in viewMessages, or as reply_to_message_id
-//@sender_user_id Sender of the message; 0 if unknown. Corresponding user may be inaccessible
-//@sender_chat_id Sender chat of the message; 0 if none
+//@sender The sender of the message. Corresponding user or chat may be inaccessible
 //@sender_name Name of the sender; can be different from the name of the sender user
 //@is_outgoing True, if the message is outgoing
 //@content Push message content
-notificationTypeNewPushMessage message_id:int53 sender_user_id:int32 sender_chat_id:int53 sender_name:string is_outgoing:Bool content:PushMessageContent = NotificationType;
+notificationTypeNewPushMessage message_id:int53 sender:MessageSender sender_name:string is_outgoing:Bool content:PushMessageContent = NotificationType;
 
 
 //@class NotificationGroupType @description Describes the type of notifications in a notification group

@@ -5528,6 +5528,20 @@ void MessagesManager::on_preload_folder_dialog_list_timeout_callback(void *messa
                      FolderId(narrow_cast<int32>(folder_id_int)));
 }
 
+td_api::object_ptr<td_api::MessageSender> MessagesManager::get_message_sender_object(UserId user_id,
+                                                                                     DialogId dialog_id) const {
+  if (dialog_id.is_valid()) {
+    CHECK(have_dialog(dialog_id));
+    return td_api::make_object<td_api::messageSenderChat>(dialog_id.get());
+  }
+  if (!user_id.is_valid()) {
+    // can happen only if the server sends a message with wrong sender
+    user_id = td_->contacts_manager_->add_service_notifications_user();
+  }
+  return td_api::make_object<td_api::messageSenderUser>(
+      td_->contacts_manager_->get_user_id_object(user_id, "get_message_sender_object"));
+}
+
 BufferSlice MessagesManager::get_dialog_database_value(const Dialog *d) {
   // can't use log_event_store, because it tries to parse stored Dialog
   LogEventStorerCalcLength storer_calc_length;
@@ -21709,13 +21723,13 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   auto date = is_scheduled ? 0 : m->date;
   auto edit_date = m->hide_edit_date ? 0 : m->edit_date;
   return make_tl_object<td_api::message>(
-      m->message_id.get(), td_->contacts_manager_->get_user_id_object(m->sender_user_id, "sender_user_id"),
-      m->sender_dialog_id.get(), dialog_id.get(), std::move(sending_state), std::move(scheduling_state), is_outgoing,
-      can_be_edited, can_be_forwarded, can_delete_for_self, can_delete_for_all_users, can_get_statistics,
-      can_get_message_thread, m->is_channel_post, contains_unread_mention, date, edit_date,
-      get_message_forward_info_object(m->forward_info), get_message_interaction_info_object(dialog_id, m),
-      reply_in_dialog_id.get(), reply_to_message_id, top_thread_message_id, ttl, ttl_expires_in, via_bot_user_id,
-      m->author_signature, media_album_id, get_restriction_reason_description(m->restriction_reasons),
+      m->message_id.get(), get_message_sender_object(m->sender_user_id, m->sender_dialog_id), dialog_id.get(),
+      std::move(sending_state), std::move(scheduling_state), is_outgoing, can_be_edited, can_be_forwarded,
+      can_delete_for_self, can_delete_for_all_users, can_get_statistics, can_get_message_thread, m->is_channel_post,
+      contains_unread_mention, date, edit_date, get_message_forward_info_object(m->forward_info),
+      get_message_interaction_info_object(dialog_id, m), reply_in_dialog_id.get(), reply_to_message_id,
+      top_thread_message_id, ttl, ttl_expires_in, via_bot_user_id, m->author_signature, media_album_id,
+      get_restriction_reason_description(m->restriction_reasons),
       get_message_content_object(m->content.get(), td_, live_location_date, m->is_content_secret),
       get_reply_markup_object(m->reply_markup));
 }

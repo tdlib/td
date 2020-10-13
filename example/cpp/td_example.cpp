@@ -172,12 +172,20 @@ class TdExample {
     }
   }
 
-  std::string get_user_name(std::int32_t user_id) {
+  std::string get_user_name(std::int32_t user_id) const {
     auto it = users_.find(user_id);
     if (it == users_.end()) {
       return "unknown user";
     }
     return it->second->first_name_ + " " + it->second->last_name_;
+  }
+
+  std::string get_chat_title(std::int64_t chat_id) const {
+    auto it = chat_title_.find(chat_id);
+    if (it == chat_title_.end()) {
+      return "unknown chat";
+    }
+    return it->second;
   }
 
   void process_update(td_api::object_ptr<td_api::Object> update) {
@@ -199,13 +207,21 @@ class TdExample {
                      },
                      [this](td_api::updateNewMessage &update_new_message) {
                        auto chat_id = update_new_message.message_->chat_id_;
-                       auto sender_user_name = get_user_name(update_new_message.message_->sender_user_id_);
+                       std::string sender_name;
+                       td_api::downcast_call(*update_new_message.message_->sender_,
+                                             overloaded(
+                                                 [this, &sender_name](td_api::messageSenderUser &user) {
+                                                   sender_name = get_user_name(user.user_id_);
+                                                 },
+                                                 [this, &sender_name](td_api::messageSenderChat &chat) {
+                                                   sender_name = get_chat_title(chat.chat_id_);
+                                                 }));
                        std::string text;
                        if (update_new_message.message_->content_->get_id() == td_api::messageText::ID) {
                          text = static_cast<td_api::messageText &>(*update_new_message.message_->content_).text_->text_;
                        }
-                       std::cout << "Got message: [chat_id:" << chat_id << "] [from:" << sender_user_name << "] ["
-                                 << text << "]" << std::endl;
+                       std::cout << "Got message: [chat_id:" << chat_id << "] [from:" << sender_name << "] [" << text
+                                 << "]" << std::endl;
                      },
                      [](auto &update) {}));
   }
