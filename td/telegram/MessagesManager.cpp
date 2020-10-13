@@ -12529,9 +12529,9 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     }
     if (!is_broadcast_channel(dialog_id) && td_->auth_manager_->is_bot()) {
       if (dialog_id == sender_dialog_id) {
-        sender_user_id = td_->contacts_manager_->add_anonymous_bot_user();
+        td_->contacts_manager_->add_anonymous_bot_user();
       } else {
-        sender_user_id = td_->contacts_manager_->add_service_notifications_user();
+        td_->contacts_manager_->add_service_notifications_user();
       }
     }
   }
