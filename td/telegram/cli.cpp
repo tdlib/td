@@ -509,12 +509,12 @@ class CliClient final : public Actor {
     return as_message_id(str);
   }
 
-  td_api::object_ptr<td_api::MessageSender> as_message_sender(Slice str) const {
-    str = trim(str);
-    if (str.empty() || str[0] != '-') {
-      return td_api::make_object<td_api::messageSenderUser>(as_user_id(str));
+  td_api::object_ptr<td_api::MessageSender> as_message_sender(Slice sender_id) const {
+    sender_id = trim(sender_id);
+    if (sender_id.empty() || sender_id[0] != '-') {
+      return td_api::make_object<td_api::messageSenderUser>(as_user_id(sender_id));
     } else {
-      return td_api::make_object<td_api::messageSenderChat>(as_chat_id(str));
+      return td_api::make_object<td_api::messageSenderChat>(as_chat_id(sender_id));
     }
   }
 
@@ -3024,18 +3024,18 @@ class CliClient final : public Actor {
                    op == "sms", false, as_message_id(reply_to_message_id));
     } else if (op == "alm" || op == "almr") {
       string chat_id;
-      string user_id;
+      string sender_id;
       string reply_to_message_id;
       string message;
 
       std::tie(chat_id, args) = split(args);
-      std::tie(user_id, message) = split(args);
+      std::tie(sender_id, message) = split(args);
       if (op == "almr") {
         std::tie(reply_to_message_id, message) = split(message);
       }
 
       send_request(td_api::make_object<td_api::addLocalMessage>(
-          as_chat_id(chat_id), as_user_id(user_id), as_message_id(reply_to_message_id), false,
+          as_chat_id(chat_id), as_message_sender(sender_id), as_message_id(reply_to_message_id), false,
           td_api::make_object<td_api::inputMessageText>(as_formatted_text(message), false, true)));
     } else if (op == "smap" || op == "smapr") {
       string chat_id;

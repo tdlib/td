@@ -3785,9 +3785,13 @@ sendChatSetTtlMessage chat_id:int53 ttl:int32 = Message;
 //@description Sends a notification about a screenshot taken in a chat. Supported only in private and secret chats @chat_id Chat identifier
 sendChatScreenshotTakenNotification chat_id:int53 = Ok;
 
-//@description Adds a local message to a chat. The message is persistent across application restarts only if the message database is used. Returns the added message @chat_id Target chat @sender_user_id Identifier of the user who will be shown as the sender of the message; may be 0 for channel posts
-//@reply_to_message_id Identifier of the message to reply to or 0 @disable_notification Pass true to disable notification for the message @input_message_content The content of the message to be added
-addLocalMessage chat_id:int53 sender_user_id:int32 reply_to_message_id:int53 disable_notification:Bool input_message_content:InputMessageContent = Message;
+//@description Adds a local message to a chat. The message is persistent across application restarts only if the message database is used. Returns the added message
+//@chat_id Target chat
+//@sender The sender sender of the message
+//@reply_to_message_id Identifier of the message to reply to or 0
+//@disable_notification Pass true to disable notification for the message
+//@input_message_content The content of the message to be added
+addLocalMessage chat_id:int53 sender:MessageSender reply_to_message_id:int53 disable_notification:Bool input_message_content:InputMessageContent = Message;
 
 //@description Deletes messages @chat_id Chat identifier @message_ids Identifiers of the messages to be deleted @revoke Pass true to try to delete messages for all chat members. Always true for supergroups, channels and secret chats
 deleteMessages chat_id:int53 message_ids:vector<int53> revoke:Bool = Ok;

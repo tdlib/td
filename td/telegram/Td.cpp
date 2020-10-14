@@ -5710,8 +5710,8 @@ void Td::on_request(uint64 id, td_api::addLocalMessage &request) {
 
   DialogId dialog_id(request.chat_id_);
   auto r_new_message_id = messages_manager_->add_local_message(
-      dialog_id, UserId(request.sender_user_id_), MessageId(request.reply_to_message_id_),
-      request.disable_notification_, std::move(request.input_message_content_));
+      dialog_id, std::move(request.sender_), MessageId(request.reply_to_message_id_), request.disable_notification_,
+      std::move(request.input_message_content_));
   if (r_new_message_id.is_error()) {
     return send_closure(actor_id(this), &Td::send_error, id, r_new_message_id.move_as_error());
   }

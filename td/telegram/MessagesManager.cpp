@@ -25459,8 +25459,8 @@ void MessagesManager::do_send_screenshot_taken_notification_message(DialogId dia
 }
 
 Result<MessageId> MessagesManager::add_local_message(
-    DialogId dialog_id, UserId sender_user_id, MessageId reply_to_message_id, bool disable_notification,
-    tl_object_ptr<td_api::InputMessageContent> &&input_message_content) {
+    DialogId dialog_id, td_api::object_ptr<td_api::MessageSender> &&sender, MessageId reply_to_message_id,
+    bool disable_notification, tl_object_ptr<td_api::InputMessageContent> &&input_message_content) {
   if (input_message_content == nullptr) {
     return Status::Error(5, "Can't add local message without content");
   }
@@ -25486,8 +25486,38 @@ Result<MessageId> MessagesManager::add_local_message(
   }
 
   bool is_channel_post = is_broadcast_channel(dialog_id);
-  if (sender_user_id != UserId() && !td_->contacts_manager_->have_user_force(sender_user_id)) {
-    return Status::Error(400, "User not found");
+  UserId sender_user_id;
+  DialogId sender_dialog_id;
+  if (sender != nullptr) {
+    switch (sender->get_id()) {
+      case td_api::messageSenderUser::ID:
+        sender_user_id = UserId(static_cast<const td_api::messageSenderUser *>(sender.get())->user_id_);
+        if (!td_->contacts_manager_->have_user_force(sender_user_id)) {
+          return Status::Error(400, "Sender user not found");
+        }
+        break;
+      case td_api::messageSenderChat::ID:
+        sender_dialog_id = DialogId(static_cast<const td_api::messageSenderChat *>(sender.get())->chat_id_);
+        if (sender_dialog_id.get_type() != DialogType::Channel) {
+          return Status::Error(400, "Sender chat must be a supergroup or channel");
+        }
+        if (!have_dialog_force(sender_dialog_id)) {
+          return Status::Error(400, "Sender chat not found");
+        }
+        break;
+      default:
+        UNREACHABLE();
+    }
+  } else if (is_channel_post) {
+    sender_dialog_id = dialog_id;
+  } else {
+    return Status::Error(400, "The message must have a sender");
+  }
+  if (is_channel_post && sender_user_id.is_valid()) {
+    return Status::Error(400, "Channel post can't have a sender user");
+  }
+  if (is_channel_post && sender_dialog_id != dialog_id) {
+    return Status::Error(400, "Channel post must have the channel as a sender");
   }
 
   auto dialog_type = dialog_id.get_type();
@@ -25513,9 +25543,10 @@ Result<MessageId> MessagesManager::add_local_message(
     if (td_->contacts_manager_->get_channel_sign_messages(dialog_id.get_channel_id())) {
       m->author_signature = td_->contacts_manager_->get_user_title(sender_user_id);
     }
-    m->sender_dialog_id = dialog_id;
+    m->sender_dialog_id = sender_dialog_id;
   } else {
     m->sender_user_id = sender_user_id;
+    m->sender_dialog_id = sender_dialog_id;
   }
   m->date = G()->unix_time();
   m->reply_to_message_id = get_reply_to_message_id(d, MessageId(), reply_to_message_id);

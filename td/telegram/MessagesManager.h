@@ -425,9 +425,10 @@ class MessagesManager : public Actor {
 
   Status send_screenshot_taken_notification_message(DialogId dialog_id);
 
-  Result<MessageId> add_local_message(
-      DialogId dialog_id, UserId sender_user_id, MessageId reply_to_message_id, bool disable_notification,
-      tl_object_ptr<td_api::InputMessageContent> &&input_message_content) TD_WARN_UNUSED_RESULT;
+  Result<MessageId> add_local_message(DialogId dialog_id, td_api::object_ptr<td_api::MessageSender> &&sender,
+                                      MessageId reply_to_message_id, bool disable_notification,
+                                      tl_object_ptr<td_api::InputMessageContent> &&input_message_content)
+      TD_WARN_UNUSED_RESULT;
 
   void edit_message_text(FullMessageId full_message_id, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
                          tl_object_ptr<td_api::InputMessageContent> &&input_message_content, Promise<Unit> &&promise);
