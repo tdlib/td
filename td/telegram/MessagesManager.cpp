@@ -12485,8 +12485,8 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       }
       message_info.date = message->date_;
       message_info.flags = message->flags_;
-      auto reply_to_message_id = MessageId(
-          ServerMessageId(message_info.reply_header == nullptr ? 0 : message_info.reply_header->reply_to_msg_id_));
+      auto reply_to_message_id =
+          MessageId(ServerMessageId(message->reply_to_ == nullptr ? 0 : message->reply_to_->reply_to_msg_id_));
       message_info.content =
           get_action_message_content(td_, std::move(message->action_), message_info.dialog_id, reply_to_message_id);
       break;
