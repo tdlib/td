@@ -661,6 +661,11 @@ DialogParticipant::DialogParticipant(tl_object_ptr<telegram_api::ChannelParticip
                                              std::move(participant->rank_))};
       break;
     }
+    case telegram_api::channelParticipantLeft::ID: {
+      auto participant = move_tl_object_as<telegram_api::channelParticipantLeft>(participant_ptr);
+      *this = {UserId(participant->user_id_), UserId(), 0, DialogParticipantStatus::Left()};
+      break;
+    }
     case telegram_api::channelParticipantBanned::ID: {
       auto participant = move_tl_object_as<telegram_api::channelParticipantBanned>(participant_ptr);
       auto is_member = (participant->flags_ & telegram_api::channelParticipantBanned::LEFT_MASK) == 0;
