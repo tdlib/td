@@ -19553,7 +19553,6 @@ void MessagesManager::do_read_history_on_server(DialogId dialog_id) {
 
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
-  CHECK(!d->updated_read_history_message_ids.empty());
 
   for (auto top_thread_message_id : d->updated_read_history_message_ids) {
     if (!top_thread_message_id.is_valid()) {
