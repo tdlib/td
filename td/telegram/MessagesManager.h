@@ -239,7 +239,7 @@ class MessagesManager : public Actor {
                                            vector<tl_object_ptr<telegram_api::Peer>> &&peers);
   void on_failed_public_dialogs_search(const string &query, Status &&error);
 
-  void on_get_dialog_messages_search_result(DialogId dialog_id, const string &query, UserId sender_user_id,
+  void on_get_dialog_messages_search_result(DialogId dialog_id, const string &query, DialogId sender_dialog_id,
                                             MessageId from_message_id, int32 offset, int32 limit,
                                             MessageSearchFilter filter, MessageId top_thread_message_id,
                                             int64 random_id, int32 total_count,
@@ -709,8 +709,9 @@ class MessagesManager : public Actor {
                                                                     Promise<Unit> &&promise);
 
   std::pair<int32, vector<MessageId>> search_dialog_messages(DialogId dialog_id, const string &query,
-                                                             UserId sender_user_id, MessageId from_message_id,
-                                                             int32 offset, int32 limit, MessageSearchFilter filter,
+                                                             const td_api::object_ptr<td_api::MessageSender> &sender,
+                                                             MessageId from_message_id, int32 offset, int32 limit,
+                                                             MessageSearchFilter filter,
                                                              MessageId top_thread_message_id, int64 &random_id,
                                                              bool use_db, Promise<Unit> &&promise);
 

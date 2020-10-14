@@ -1821,7 +1821,7 @@ class SearchMessagesQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
   string query_;
-  UserId sender_user_id_;
+  DialogId sender_dialog_id_;
   MessageId from_message_id_;
   int32 offset_;
   int32 limit_;
@@ -1834,9 +1834,8 @@ class SearchMessagesQuery : public Td::ResultHandler {
   explicit SearchMessagesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, const string &query, UserId sender_user_id,
-            telegram_api::object_ptr<telegram_api::InputUser> &&sender_input_user, MessageId from_message_id,
-            int32 offset, int32 limit, MessageSearchFilter filter, MessageId top_thread_message_id, int64 random_id) {
+  void send(DialogId dialog_id, const string &query, DialogId sender_dialog_id, MessageId from_message_id, int32 offset,
+            int32 limit, MessageSearchFilter filter, MessageId top_thread_message_id, int64 random_id) {
     auto input_peer = dialog_id.is_valid() ? td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read)
                                            : make_tl_object<telegram_api::inputPeerEmpty>();
     if (input_peer == nullptr) {
@@ -1846,7 +1845,7 @@ class SearchMessagesQuery : public Td::ResultHandler {
 
     dialog_id_ = dialog_id;
     query_ = query;
-    sender_user_id_ = sender_user_id;
+    sender_dialog_id_ = sender_dialog_id;
     from_message_id_ = from_message_id;
     offset_ = offset;
     limit_ = limit;
@@ -1858,7 +1857,8 @@ class SearchMessagesQuery : public Td::ResultHandler {
       send_query(G()->net_query_creator().create(
           telegram_api::messages_getUnreadMentions(std::move(input_peer), from_message_id.get_server_message_id().get(),
                                                    offset, limit, std::numeric_limits<int32>::max(), 0)));
-    } else if (top_thread_message_id.is_valid() && !sender_user_id.is_valid() && filter == MessageSearchFilter::Empty) {
+    } else if (top_thread_message_id.is_valid() && !sender_dialog_id.is_valid() &&
+               filter == MessageSearchFilter::Empty) {
       handle_errors_ = dialog_id.get_type() != DialogType::Channel ||
                        td->contacts_manager_->get_channel_type(dialog_id.get_channel_id()) != ChannelType::Broadcast;
       send_query(G()->net_query_creator().create(telegram_api::messages_getReplies(
@@ -1866,15 +1866,18 @@ class SearchMessagesQuery : public Td::ResultHandler {
           from_message_id.get_server_message_id().get(), 0, offset, limit, std::numeric_limits<int32>::max(), 0, 0)));
     } else {
       int32 flags = 0;
-      if (sender_input_user != nullptr) {
+      tl_object_ptr<telegram_api::InputPeer> sender_input_peer;
+      if (sender_dialog_id.is_valid()) {
         flags |= telegram_api::messages_search::FROM_ID_MASK;
+        sender_input_peer = td->messages_manager_->get_input_peer(sender_dialog_id, AccessRights::Read);
+        CHECK(sender_input_peer != nullptr);
       }
       if (top_thread_message_id.is_valid()) {
         flags |= telegram_api::messages_search::TOP_MSG_ID_MASK;
       }
 
       send_query(G()->net_query_creator().create(telegram_api::messages_search(
-          flags, std::move(input_peer), query, std::move(sender_input_user),
+          flags, std::move(input_peer), query, std::move(sender_input_peer),
           top_thread_message_id.get_server_message_id().get(), get_input_messages_filter(filter), 0,
           std::numeric_limits<int32>::max(), from_message_id.get_server_message_id().get(), offset, limit,
           std::numeric_limits<int32>::max(), 0, 0)));
@@ -1894,7 +1897,7 @@ class SearchMessagesQuery : public Td::ResultHandler {
     }
 
     auto info = td->messages_manager_->on_get_messages(result_ptr.move_as_ok(), "SearchMessagesQuery");
-    td->messages_manager_->on_get_dialog_messages_search_result(dialog_id_, query_, sender_user_id_, from_message_id_,
+    td->messages_manager_->on_get_dialog_messages_search_result(dialog_id_, query_, sender_dialog_id_, from_message_id_,
                                                                 offset_, limit_, filter_, top_thread_message_id_,
                                                                 random_id_, info.total_count, std::move(info.messages));
 
@@ -9061,7 +9064,7 @@ void MessagesManager::on_failed_public_dialogs_search(const string &query, Statu
 }
 
 void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, const string &query,
-                                                           UserId sender_user_id, MessageId from_message_id,
+                                                           DialogId sender_dialog_id, MessageId from_message_id,
                                                            int32 offset, int32 limit, MessageSearchFilter filter,
                                                            MessageId top_thread_message_id, int64 random_id,
                                                            int32 total_count,
@@ -9069,7 +9072,7 @@ void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, c
   LOG(INFO) << "Receive " << messages.size() << " found messages in " << dialog_id;
   if (!dialog_id.is_valid()) {
     CHECK(query.empty());
-    CHECK(!sender_user_id.is_valid());
+    CHECK(!sender_dialog_id.is_valid());
     CHECK(!top_thread_message_id.is_valid());
     auto it = found_call_messages_.find(random_id);
     CHECK(it != found_call_messages_.end());
@@ -9190,7 +9193,7 @@ void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, c
                << " messages";
     total_count = static_cast<int32>(result.size());
   }
-  if (query.empty() && !sender_user_id.is_valid() && filter != MessageSearchFilter::Empty &&
+  if (query.empty() && !sender_dialog_id.is_valid() && filter != MessageSearchFilter::Empty &&
       !top_thread_message_id.is_valid() && G()->parameters().use_message_db) {
     bool update_dialog = false;
 
@@ -16854,7 +16857,7 @@ Result<unique_ptr<DialogFilter>> MessagesManager::create_dialog_filter(DialogFil
   }
   dialog_filter->emoji = DialogFilter::get_emoji_by_icon_name(filter->icon_name_);
   if (dialog_filter->emoji.empty() && !filter->icon_name_.empty()) {
-    return Status::Error(400, "Wrong icon name specified");
+    return Status::Error(400, "Invalid icon name specified");
   }
   dialog_filter->exclude_muted = filter->exclude_muted_;
   dialog_filter->exclude_read = filter->exclude_read_;
@@ -19858,15 +19861,15 @@ std::pair<DialogId, vector<MessageId>> MessagesManager::get_message_thread_histo
   found_dialog_messages_[random_id];  // reserve place for result
 
   td_->create_handler<SearchMessagesQuery>(std::move(promise))
-      ->send(dialog_id, string(), UserId(), nullptr, from_message_id.get_next_server_message_id(), offset, limit,
+      ->send(dialog_id, string(), DialogId(), from_message_id.get_next_server_message_id(), offset, limit,
              MessageSearchFilter::Empty, message_id, random_id);
   return {};
 }
 
 std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
-    DialogId dialog_id, const string &query, UserId sender_user_id, MessageId from_message_id, int32 offset,
-    int32 limit, MessageSearchFilter filter, MessageId top_thread_message_id, int64 &random_id, bool use_db,
-    Promise<Unit> &&promise) {
+    DialogId dialog_id, const string &query, const td_api::object_ptr<td_api::MessageSender> &sender,
+    MessageId from_message_id, int32 offset, int32 limit, MessageSearchFilter filter, MessageId top_thread_message_id,
+    int64 &random_id, bool use_db, Promise<Unit> &&promise) {
   if (random_id != 0) {
     // request has already been sent before
     auto it = found_dialog_messages_.find(random_id);
@@ -19879,9 +19882,9 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
     }
     random_id = 0;
   }
-  LOG(INFO) << "Search messages with query \"" << query << "\" in " << dialog_id << " sent by " << sender_user_id
-            << " in thread of " << top_thread_message_id << " filtered by " << filter << " from " << from_message_id
-            << " with offset " << offset << " and limit " << limit;
+  LOG(INFO) << "Search messages with query \"" << query << "\" in " << dialog_id << " sent by "
+            << oneline(to_string(sender)) << " in thread of " << top_thread_message_id << " filtered by " << filter
+            << " from " << from_message_id << " with offset " << offset << " and limit " << limit;
 
   std::pair<int32, vector<MessageId>> result;
   if (limit <= 0) {
@@ -19916,18 +19919,49 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
     return result;
   }
 
-  if (filter == MessageSearchFilter::FailedToSend && sender_user_id.is_valid()) {
-    if (sender_user_id != td_->contacts_manager_->get_my_id()) {
+  DialogId sender_dialog_id;
+  if (sender != nullptr) {
+    switch (sender->get_id()) {
+      case td_api::messageSenderUser::ID:
+        sender_dialog_id = DialogId(UserId(static_cast<const td_api::messageSenderUser *>(sender.get())->user_id_));
+        break;
+      case td_api::messageSenderChat::ID:
+        sender_dialog_id = DialogId(static_cast<const td_api::messageSenderChat *>(sender.get())->chat_id_);
+        switch (sender_dialog_id.get_type()) {
+          case DialogType::User:
+          case DialogType::Chat:
+          case DialogType::Channel:
+            // ok
+            break;
+          case DialogType::SecretChat:
+            promise.set_value(Unit());
+            return result;
+          case DialogType::None:
+            promise.set_error(Status::Error(6, "Invalid sender chat identifier specified"));
+            return result;
+          default:
+            UNREACHABLE();
+            return result;
+        }
+        break;
+      default:
+        UNREACHABLE();
+    }
+    if (!have_input_peer(sender_dialog_id, AccessRights::Read)) {
+      promise.set_error(Status::Error(6, "Invalid message sender specified"));
+      return result;
+    }
+  }
+  if (sender_dialog_id == dialog_id && is_broadcast_channel(dialog_id)) {
+    sender_dialog_id = DialogId();
+  }
+
+  if (filter == MessageSearchFilter::FailedToSend && sender_dialog_id.is_valid()) {
+    if (sender_dialog_id != get_my_dialog_id()) {
       promise.set_value(Unit());
       return result;
     }
-    sender_user_id = UserId();
-  }
-
-  auto input_user = td_->contacts_manager_->get_input_user(sender_user_id);
-  if (sender_user_id.is_valid() && input_user == nullptr) {
-    promise.set_error(Status::Error(6, "Wrong sender user identifier specified"));
-    return result;
+    sender_dialog_id = DialogId();
   }
 
   if (top_thread_message_id != MessageId()) {
@@ -19951,8 +19985,8 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
       promise.set_error(Status::Error(6, "Non-empty query is unsupported with the specified filter"));
       return result;
     }
-    if (input_user != nullptr) {
-      promise.set_error(Status::Error(6, "Filtering by sender user is unsupported with the specified filter"));
+    if (sender_dialog_id.is_valid()) {
+      promise.set_error(Status::Error(6, "Filtering by sender is unsupported with the specified filter"));
       return result;
     }
     if (top_thread_message_id != MessageId()) {
@@ -19963,7 +19997,8 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
 
   // Trying to use database
   if (use_db && query.empty() && G()->parameters().use_message_db && filter != MessageSearchFilter::Empty &&
-      input_user == nullptr && top_thread_message_id == MessageId()) {  // TODO support filter by users in the database
+      !sender_dialog_id.is_valid() &&
+      top_thread_message_id == MessageId()) {  // TODO support filter by users in the database
     MessageId first_db_message_id = get_first_database_message_id_by_index(d, filter);
     int32 message_count = d->message_count_by_index[message_search_filter_index(filter)];
     auto fixed_from_message_id = from_message_id;
@@ -19998,8 +20033,8 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
     return result;
   }
 
-  LOG(DEBUG) << "Search messages on server in " << dialog_id << " with query \"" << query << "\" from user "
-             << sender_user_id << " in thread of " << top_thread_message_id << " from " << from_message_id
+  LOG(DEBUG) << "Search messages on server in " << dialog_id << " with query \"" << query << "\" from "
+             << sender_dialog_id << " in thread of " << top_thread_message_id << " from " << from_message_id
              << " and with limit " << limit;
 
   switch (dialog_id.get_type()) {
@@ -20008,8 +20043,8 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
     case DialogType::Chat:
     case DialogType::Channel:
       td_->create_handler<SearchMessagesQuery>(std::move(promise))
-          ->send(dialog_id, query, sender_user_id, std::move(input_user), from_message_id, offset, limit, filter,
-                 top_thread_message_id, random_id);
+          ->send(dialog_id, query, sender_dialog_id, from_message_id, offset, limit, filter, top_thread_message_id,
+                 random_id);
       break;
     case DialogType::SecretChat:
       if (filter == MessageSearchFilter::UnreadMention) {
@@ -20098,7 +20133,7 @@ std::pair<int32, vector<FullMessageId>> MessagesManager::search_call_messages(Me
 
   LOG(DEBUG) << "Search call messages on server from " << from_message_id << " and with limit " << limit;
   td_->create_handler<SearchMessagesQuery>(std::move(promise))
-      ->send(DialogId(), "", UserId(), nullptr, from_message_id, 0, limit, filter, MessageId(), random_id);
+      ->send(DialogId(), "", DialogId(), from_message_id, 0, limit, filter, MessageId(), random_id);
   return result;
 }
 
@@ -20609,7 +20644,7 @@ MessagesManager::FoundMessages MessagesManager::offline_search_messages(DialogId
   if (!offset.empty()) {
     auto r_from_search_id = to_integer_safe<int64>(offset);
     if (r_from_search_id.is_error()) {
-      promise.set_error(Status::Error(400, "Wrong offset specified"));
+      promise.set_error(Status::Error(400, "Invalid offset specified"));
       return {};
     }
     fts_query.from_search_id = r_from_search_id.ok();
@@ -20974,7 +21009,7 @@ int32 MessagesManager::get_dialog_message_count(DialogId dialog_id, MessageSearc
     case DialogType::Chat:
     case DialogType::Channel:
       td_->create_handler<SearchMessagesQuery>(std::move(promise))
-          ->send(dialog_id, "", UserId(), nullptr, MessageId(), 0, 1, filter, MessageId(), random_id);
+          ->send(dialog_id, "", DialogId(), MessageId(), 0, 1, filter, MessageId(), random_id);
       break;
     case DialogType::None:
     case DialogType::SecretChat:
@@ -21561,14 +21596,14 @@ MessagesManager::FoundMessages MessagesManager::get_message_public_forwards(Full
   if (!offset.empty()) {
     auto parts = full_split(offset, ',');
     if (parts.size() != 3) {
-      promise.set_error(Status::Error(3, "Wrong offset specified"));
+      promise.set_error(Status::Error(3, "Invalid offset specified"));
       return {};
     }
     auto r_offset_date = to_integer_safe<int32>(parts[0]);
     auto r_offset_dialog_id = to_integer_safe<int64>(parts[1]);
     auto r_offset_message_id = to_integer_safe<int32>(parts[2]);
     if (r_offset_date.is_error() || r_offset_dialog_id.is_error() || r_offset_message_id.is_error()) {
-      promise.set_error(Status::Error(3, "Wrong offset specified"));
+      promise.set_error(Status::Error(3, "Invalid offset specified"));
       return {};
     }
 
@@ -22481,7 +22516,7 @@ Result<InputMessageContent> MessagesManager::process_input_message_content(
   TRY_RESULT(content, get_input_message_content(dialog_id, std::move(input_message_content), td_));
 
   if (content.ttl < 0 || content.ttl > MAX_PRIVATE_MESSAGE_TTL) {
-    return Status::Error(10, "Wrong message TTL specified");
+    return Status::Error(10, "Invalid message TTL specified");
   }
   if (content.ttl > 0 && dialog_id.get_type() != DialogType::User) {
     return Status::Error(10, "Message TTL can be specified only in private chats");
@@ -22622,7 +22657,7 @@ Result<vector<MessageId>> MessagesManager::send_message_group(
     TRY_RESULT(message_content, process_input_message_content(dialog_id, std::move(input_message_content)));
     TRY_STATUS(can_use_message_send_options(message_send_options, message_content));
     if (!is_allowed_media_group_content(message_content.content->get_type())) {
-      return Status::Error(5, "Wrong message content type");
+      return Status::Error(5, "Invalid message content type");
     }
 
     message_contents.emplace_back(std::move(message_content.content), message_content.ttl);
@@ -22821,7 +22856,7 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, const Messag
       default:
         LOG(ERROR) << "Have wrong input media " << to_string(input_media);
         send_closure_later(actor_id(this), &MessagesManager::on_upload_message_media_finished, m->media_album_id,
-                           dialog_id, message_id, Status::Error(400, "Wrong input media"));
+                           dialog_id, message_id, Status::Error(400, "Invalid input media"));
     }
   }
 }
@@ -22845,7 +22880,7 @@ void MessagesManager::on_secret_message_media_uploaded(DialogId dialog_id, const
       default:
         LOG(ERROR) << "Have wrong secret input media " << to_string(secret_input_media->input_file_);
         return send_closure_later(actor_id(this), &MessagesManager::on_upload_message_media_finished, m->media_album_id,
-                           dialog_id, m->message_id, Status::Error(400, "Wrong input media"));
+                           dialog_id, m->message_id, Status::Error(400, "Invalid input media"));
   }
   */
   // TODO use file_id, thumbnail_file_id, was_uploaded, was_thumbnail_uploaded,
@@ -23855,7 +23890,7 @@ void MessagesManager::edit_message_live_location(FullMessageId full_message_id,
 
   Location location(input_location);
   if (location.empty() && input_location != nullptr) {
-    return promise.set_error(Status::Error(400, "Wrong location specified"));
+    return promise.set_error(Status::Error(400, "Invalid location specified"));
   }
 
   auto r_new_reply_markup = get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false,
@@ -24158,7 +24193,7 @@ void MessagesManager::edit_inline_message_text(const string &inline_message_id,
 
   auto input_bot_inline_message_id = td_->inline_queries_manager_->get_input_bot_inline_message_id(inline_message_id);
   if (input_bot_inline_message_id == nullptr) {
-    return promise.set_error(Status::Error(400, "Wrong inline message identifier specified"));
+    return promise.set_error(Status::Error(400, "Invalid inline message identifier specified"));
   }
 
   int32 flags = 0;
@@ -24187,12 +24222,12 @@ void MessagesManager::edit_inline_message_live_location(const string &inline_mes
 
   auto input_bot_inline_message_id = td_->inline_queries_manager_->get_input_bot_inline_message_id(inline_message_id);
   if (input_bot_inline_message_id == nullptr) {
-    return promise.set_error(Status::Error(400, "Wrong inline message identifier specified"));
+    return promise.set_error(Status::Error(400, "Invalid inline message identifier specified"));
   }
 
   Location location(input_location);
   if (location.empty() && input_location != nullptr) {
-    return promise.set_error(Status::Error(400, "Wrong location specified"));
+    return promise.set_error(Status::Error(400, "Invalid location specified"));
   }
 
   int32 flags = 0;
@@ -24243,12 +24278,12 @@ void MessagesManager::edit_inline_message_media(const string &inline_message_id,
 
   auto input_bot_inline_message_id = td_->inline_queries_manager_->get_input_bot_inline_message_id(inline_message_id);
   if (input_bot_inline_message_id == nullptr) {
-    return promise.set_error(Status::Error(400, "Wrong inline message identifier specified"));
+    return promise.set_error(Status::Error(400, "Invalid inline message identifier specified"));
   }
 
   auto input_media = get_input_media(content.content.get(), td_, 0, true);
   if (input_media == nullptr) {
-    return promise.set_error(Status::Error(400, "Wrong message content specified"));
+    return promise.set_error(Status::Error(400, "Invalid message content specified"));
   }
 
   const FormattedText *caption = get_message_content_caption(content.content.get());
@@ -24280,7 +24315,7 @@ void MessagesManager::edit_inline_message_caption(const string &inline_message_i
 
   auto input_bot_inline_message_id = td_->inline_queries_manager_->get_input_bot_inline_message_id(inline_message_id);
   if (input_bot_inline_message_id == nullptr) {
-    return promise.set_error(Status::Error(400, "Wrong inline message identifier specified"));
+    return promise.set_error(Status::Error(400, "Invalid inline message identifier specified"));
   }
 
   td_->create_handler<EditInlineMessageQuery>(std::move(promise))
@@ -24303,7 +24338,7 @@ void MessagesManager::edit_inline_message_reply_markup(const string &inline_mess
 
   auto input_bot_inline_message_id = td_->inline_queries_manager_->get_input_bot_inline_message_id(inline_message_id);
   if (input_bot_inline_message_id == nullptr) {
-    return promise.set_error(Status::Error(400, "Wrong inline message identifier specified"));
+    return promise.set_error(Status::Error(400, "Invalid inline message identifier specified"));
   }
 
   td_->create_handler<EditInlineMessageQuery>(std::move(promise))
@@ -24519,7 +24554,7 @@ void MessagesManager::set_game_score(FullMessageId full_message_id, bool edit_me
 
   auto input_user = td_->contacts_manager_->get_input_user(user_id);
   if (input_user == nullptr) {
-    return promise.set_error(Status::Error(400, "Wrong user identifier specified"));
+    return promise.set_error(Status::Error(400, "Invalid user identifier specified"));
   }
 
   if (!can_set_game_score(dialog_id, m)) {
@@ -24539,7 +24574,7 @@ void MessagesManager::set_inline_game_score(const string &inline_message_id, boo
 
   auto input_bot_inline_message_id = td_->inline_queries_manager_->get_input_bot_inline_message_id(inline_message_id);
   if (input_bot_inline_message_id == nullptr) {
-    return promise.set_error(Status::Error(400, "Wrong inline message identifier specified"));
+    return promise.set_error(Status::Error(400, "Invalid inline message identifier specified"));
   }
 
   auto input_user = td_->contacts_manager_->get_input_user(user_id);
@@ -24606,7 +24641,7 @@ int64 MessagesManager::get_inline_game_high_scores(const string &inline_message_
 
   auto input_bot_inline_message_id = td_->inline_queries_manager_->get_input_bot_inline_message_id(inline_message_id);
   if (input_bot_inline_message_id == nullptr) {
-    promise.set_error(Status::Error(400, "Wrong inline message identifier specified"));
+    promise.set_error(Status::Error(400, "Invalid inline message identifier specified"));
     return 0;
   }
 
