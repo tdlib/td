@@ -22653,14 +22653,24 @@ Result<vector<MessageId>> MessagesManager::send_message_group(
   TRY_RESULT(message_send_options, process_message_send_options(dialog_id, std::move(options)));
 
   vector<std::pair<unique_ptr<MessageContent>, int32>> message_contents;
+  std::unordered_set<MessageContentType> message_content_types;
   for (auto &input_message_content : input_message_contents) {
     TRY_RESULT(message_content, process_input_message_content(dialog_id, std::move(input_message_content)));
     TRY_STATUS(can_use_message_send_options(message_send_options, message_content));
-    if (!is_allowed_media_group_content(message_content.content->get_type())) {
+    auto message_content_type = message_content.content->get_type();
+    if (!is_allowed_media_group_content(message_content_type)) {
       return Status::Error(5, "Invalid message content type");
     }
+    message_content_types.insert(message_content_type);
 
     message_contents.emplace_back(std::move(message_content.content), message_content.ttl);
+  }
+  if (message_content_types.size() > 1) {
+    for (auto message_content_type : message_content_types) {
+      if (is_homogenous_media_group_content(message_content_type)) {
+        return Status::Error(400, PSLICE() << message_content_type << " can't be mixed with other media types");
+      }
+    }
   }
 
   reply_to_message_id = get_reply_to_message_id(d, top_thread_message_id, reply_to_message_id);
@@ -24039,10 +24049,6 @@ void MessagesManager::edit_message_media(FullMessageId full_message_id,
       old_message_content_type != MessageContentType::Photo && old_message_content_type != MessageContentType::Video) {
     return promise.set_error(Status::Error(5, "There is no media in the message to edit"));
   }
-  if (m->media_album_id != 0 && new_message_content_type != td_api::inputMessagePhoto::ID &&
-      new_message_content_type != td_api::inputMessageVideo::ID) {
-    return promise.set_error(Status::Error(5, "Message can be edit only to Photo or Video"));
-  }
   if (m->ttl > 0) {
     return promise.set_error(Status::Error(5, "Can't edit media in self-destructing message"));
   }
@@ -24054,6 +24060,19 @@ void MessagesManager::edit_message_media(FullMessageId full_message_id,
   InputMessageContent content = r_input_message_content.move_as_ok();
   if (content.ttl > 0) {
     return promise.set_error(Status::Error(5, "Can't enable self-destruction for media"));
+  }
+
+  if (m->media_album_id != 0) {
+    auto new_content_type = content.content->get_type();
+    if (old_message_content_type != new_content_type) {
+      if (!is_allowed_media_group_content(new_content_type)) {
+        return promise.set_error(Status::Error(5, "Message content type can't be used in an album"));
+      }
+      if (is_homogenous_media_group_content(old_message_content_type) ||
+          is_homogenous_media_group_content(new_content_type)) {
+        return promise.set_error(Status::Error(5, "Can't change media type in the album"));
+      }
+    }
   }
 
   auto r_new_reply_markup = get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false,
