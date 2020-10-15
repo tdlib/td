@@ -4213,8 +4213,7 @@ RestrictedRights ContactsManager::get_user_default_permissions(UserId user_id) c
     return RestrictedRights(false, false, false, false, false, false, false, false, false, false, false);
   }
 
-  bool can_pin_messages = user_id == get_my_id(); /* TODO */
-  return RestrictedRights(true, true, true, true, true, true, true, true, false, false, can_pin_messages);
+  return RestrictedRights(true, true, true, true, true, true, true, true, false, false, true);
 }
 
 RestrictedRights ContactsManager::get_chat_default_permissions(ChatId chat_id) const {
@@ -12421,7 +12420,6 @@ ContactsManager::UserFull *ContactsManager::add_user_full(UserId user_id) {
   auto &user_full_ptr = users_full_[user_id];
   if (user_full_ptr == nullptr) {
     user_full_ptr = make_unique<UserFull>();
-    user_full_ptr->can_pin_messages = (user_id == get_my_id());
   }
   return user_full_ptr.get();
 }

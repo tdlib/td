@@ -29520,9 +29520,6 @@ void MessagesManager::pin_dialog_message(DialogId dialog_id, MessageId message_i
   Slice action = is_unpin ? Slice("unpin") : Slice("pin");
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      if (dialog_id != get_my_dialog_id()) {  // TODO
-        return promise.set_error(Status::Error(3, PSLICE() << "Can't " << action << " message in the private chat"));
-      }
       break;
     case DialogType::Chat: {
       auto chat_id = dialog_id.get_chat_id();
@@ -29542,7 +29539,7 @@ void MessagesManager::pin_dialog_message(DialogId dialog_id, MessageId message_i
       break;
     }
     case DialogType::SecretChat:
-      return promise.set_error(Status::Error(3, PSLICE() << "Can't " << action << " message in a secret chat"));
+      return promise.set_error(Status::Error(3, PSLICE() << "Can't " << action << " messages in secret chats"));
     case DialogType::None:
     default:
       UNREACHABLE();
@@ -32488,8 +32485,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
     // asynchronously get is_blocked from the server
     get_dialog_info_full(dialog_id, Auto());
   }
-  if (being_added_dialog_id_ != dialog_id && !d->is_pinned_message_id_inited &&
-      (dialog_id == get_my_dialog_id() || dialog_type != DialogType::User) && !td_->auth_manager_->is_bot()) {
+  if (being_added_dialog_id_ != dialog_id && !d->is_pinned_message_id_inited && !td_->auth_manager_->is_bot()) {
     // asynchronously get dialog pinned message from the server
     get_dialog_pinned_message(dialog_id, Auto());
   }

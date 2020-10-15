@@ -683,7 +683,7 @@ class ContactsManager : public Actor {
     bool can_be_called = false;
     bool supports_video_calls = false;
     bool has_private_calls = false;
-    bool can_pin_messages = false;
+    bool can_pin_messages = true;
     bool need_phone_number_privacy_exception = false;
 
     bool is_common_chat_count_changed = true;
