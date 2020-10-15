@@ -4539,9 +4539,9 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     }
     case MessageContentType::Dice: {
       const MessageDice *m = static_cast<const MessageDice *>(content);
-      auto initial_state = td->stickers_manager_->get_dice_sticker_object(m->emoji, 0);
+      auto initial_state = td->stickers_manager_->get_dice_stickers_object(m->emoji, 0);
       auto final_state =
-          m->dice_value == 0 ? nullptr : td->stickers_manager_->get_dice_sticker_object(m->emoji, m->dice_value);
+          m->dice_value == 0 ? nullptr : td->stickers_manager_->get_dice_stickers_object(m->emoji, m->dice_value);
       auto success_animation_frame_number =
           td->stickers_manager_->get_dice_success_animation_frame_number(m->emoji, m->dice_value);
       return make_tl_object<td_api::messageDice>(std::move(initial_state), std::move(final_state), m->emoji,

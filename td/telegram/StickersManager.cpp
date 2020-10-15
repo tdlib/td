@@ -1163,7 +1163,8 @@ void StickersManager::init() {
                                            animated_emoji_sticker_set.short_name_);
   }
 
-  dice_emojis_str_ = G()->shared_config().get_option_string("dice_emojis", "🎲\x01🎯\x01🏀\x01⚽\x01⚽️");
+  dice_emojis_str_ =
+      G()->shared_config().get_option_string("dice_emojis", "🎲\x01🎯\x01🏀\x01⚽\x01⚽️\x01🎰");
   dice_emojis_ = full_split(dice_emojis_str_, '\x01');
   for (auto &dice_emoji : dice_emojis_) {
     auto &animated_dice_sticker_set = add_special_sticker_set(SpecialStickerSetType::animated_dice(dice_emoji));
@@ -1373,7 +1374,7 @@ tl_object_ptr<td_api::stickers> StickersManager::get_stickers_object(const vecto
   return result;
 }
 
-tl_object_ptr<td_api::sticker> StickersManager::get_dice_sticker_object(const string &emoji, int32 value) const {
+tl_object_ptr<td_api::DiceStickers> StickersManager::get_dice_stickers_object(const string &emoji, int32 value) const {
   if (td_->auth_manager_->is_bot()) {
     return nullptr;
   }
@@ -1387,12 +1388,42 @@ tl_object_ptr<td_api::sticker> StickersManager::get_dice_sticker_object(const st
   }
 
   auto sticker_set_id = it->second.id_;
-  if (sticker_set_id.is_valid()) {
-    auto sticker_set = get_sticker_set(sticker_set_id);
-    CHECK(sticker_set != nullptr);
-    if (sticker_set->was_loaded && value >= 0 && value < static_cast<int32>(sticker_set->sticker_ids.size())) {
-      return get_sticker_object(sticker_set->sticker_ids[value]);
+  if (!sticker_set_id.is_valid()) {
+    return nullptr;
+  }
+
+  auto sticker_set = get_sticker_set(sticker_set_id);
+  CHECK(sticker_set != nullptr);
+  if (!sticker_set->was_loaded) {
+    return nullptr;
+  }
+
+  auto get_sticker = [&](int32 value) {
+    return get_sticker_object(sticker_set->sticker_ids[value]);
+  };
+
+  if (emoji == "🎰") {
+    if (sticker_set->sticker_ids.size() < 21 || value < 0 || value > 64) {
+      return nullptr;
     }
+
+    int32 background_id = value == 64 ? 1 : 0;
+    int32 lever_id = 2;
+    int32 left_reel_id = value == 64 ? 3 : 8;
+    int32 center_reel_id = value == 64 ? 9 : 14;
+    int32 right_reel_id = value == 64 ? 15 : 20;
+    if (value != 0 && value != 64) {
+      left_reel_id = 4 + (value % 4);
+      center_reel_id = 10 + ((value + 3) / 4 % 4);
+      right_reel_id = 16 + ((value + 15) / 16 % 4);
+    }
+    return td_api::make_object<td_api::diceStickersSlotMachine>(get_sticker(background_id), get_sticker(lever_id),
+                                                                get_sticker(left_reel_id), get_sticker(center_reel_id),
+                                                                get_sticker(right_reel_id));
+  }
+
+  if (value >= 0 && value < static_cast<int32>(sticker_set->sticker_ids.size())) {
+    return td_api::make_object<td_api::diceStickersRegular>(get_sticker(value));
   }
   return nullptr;
 }
@@ -3447,7 +3478,8 @@ void StickersManager::on_update_dice_emojis() {
     return;
   }
 
-  auto dice_emojis_str = G()->shared_config().get_option_string("dice_emojis", "🎲\x01🎯\x01🏀\x01⚽\x01⚽️");
+  auto dice_emojis_str =
+      G()->shared_config().get_option_string("dice_emojis", "🎲\x01🎯\x01🏀\x01⚽\x01⚽️\x01🎰");
   if (dice_emojis_str == dice_emojis_str_) {
     return;
   }
@@ -3482,7 +3514,7 @@ void StickersManager::on_update_dice_success_values() {
   }
 
   auto dice_success_values_str =
-      G()->shared_config().get_option_string("dice_success_values", "0,6:62,5:110,5:110,5:110");
+      G()->shared_config().get_option_string("dice_success_values", "0,6:62,5:110,5:110,5:110,64:110");
   if (dice_success_values_str == dice_success_values_str_) {
     return;
   }
