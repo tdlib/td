@@ -106,7 +106,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const Location &locatio
                         << "]";
 }
 
-Result<std::pair<Location, int32>> process_input_message_location(
+Result<InputMessageLocation> process_input_message_location(
     tl_object_ptr<td_api::InputMessageContent> &&input_message_content) {
   CHECK(input_message_content != nullptr);
   CHECK(input_message_content->get_id() == td_api::inputMessageLocation::ID);
@@ -125,7 +125,19 @@ Result<std::pair<Location, int32>> process_input_message_location(
     return Status::Error(400, "Wrong live location period specified");
   }
 
-  return std::make_pair(std::move(location), period);
+  constexpr int32 MIN_LIVE_LOCATION_HEADING = 1;    // degrees, server side limit
+  constexpr int32 MAX_LIVE_LOCATION_HEADING = 360;  // degrees, server side limit
+
+  auto heading = input_location->heading_;
+  if (heading != 0 && (heading < MIN_LIVE_LOCATION_HEADING || heading > MAX_LIVE_LOCATION_HEADING)) {
+    return Status::Error(400, "Wrong live location heading specified");
+  }
+
+  InputMessageLocation result;
+  result.location = std::move(location);
+  result.live_period = period;
+  result.heading = heading;
+  return std::move(result);
 }
 
 }  // namespace td

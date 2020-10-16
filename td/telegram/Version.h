@@ -40,6 +40,7 @@ enum class Version : int32 {
   AddAnimationStickers,
   AddDialogPhotoHasAnimation,
   AddPhotoProgressiveSizes,
+  AddLiveLocationHeading,
   Next
 };
 

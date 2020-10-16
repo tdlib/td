@@ -3128,11 +3128,14 @@ class CliClient final : public Actor {
       string message_id;
       string latitude;
       string longitude;
+      string heading;
       std::tie(chat_id, args) = split(args);
       std::tie(message_id, args) = split(args);
-      std::tie(latitude, longitude) = split(args);
+      std::tie(latitude, args) = split(args);
+      std::tie(longitude, heading) = split(args);
       send_request(td_api::make_object<td_api::editMessageLiveLocation>(as_chat_id(chat_id), as_message_id(message_id),
-                                                                        nullptr, as_location(latitude, longitude)));
+                                                                        nullptr, as_location(latitude, longitude),
+                                                                        to_integer<int32>(heading)));
     } else if (op == "emss") {
       string chat_id;
       string message_id;
@@ -3386,18 +3389,21 @@ class CliClient final : public Actor {
       string longitude;
       std::tie(latitude, longitude) = split(args);
 
-      send_message(chat_id, td_api::make_object<td_api::inputMessageLocation>(as_location(latitude, longitude), 0));
+      send_message(chat_id, td_api::make_object<td_api::inputMessageLocation>(as_location(latitude, longitude), 0, 0));
     } else if (op == "sll") {
       string chat_id;
       string period;
+      string heading;
       string latitude;
       string longitude;
       std::tie(chat_id, args) = split(args);
       std::tie(period, args) = split(args);
+      std::tie(heading, args) = split(args);
       std::tie(latitude, longitude) = split(args);
 
-      send_message(chat_id, td_api::make_object<td_api::inputMessageLocation>(as_location(latitude, longitude),
-                                                                              to_integer<int32>(period)));
+      send_message(chat_id,
+                   td_api::make_object<td_api::inputMessageLocation>(
+                       as_location(latitude, longitude), to_integer<int32>(period), to_integer<int32>(heading)));
     } else if (op == "spoll" || op == "spollm" || op == "spollp" || op == "squiz") {
       string chat_id;
       string question;

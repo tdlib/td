@@ -1578,9 +1578,10 @@ messageVideoNote video_note:videoNote is_viewed:Bool is_secret:Bool = MessageCon
 //@description A voice note message @voice_note The voice note description @caption Voice note caption @is_listened True, if at least one of the recipients has listened to the voice note
 messageVoiceNote voice_note:voiceNote caption:formattedText is_listened:Bool = MessageContent;
 
-//@description A message with a location @location The location description @live_period Time relative to the message sent date until which the location can be updated, in seconds
+//@description A message with a location @location The location description @live_period Time relative to the message send date, for which the location can be updated, in seconds
 //@expires_in Left time for which the location can be updated, in seconds. updateMessageContent is not sent when this field changes
-messageLocation location:location live_period:int32 expires_in:int32 = MessageContent;
+//@heading For live locations, a direction in which the location moves, in degrees; 0-360. If 0 the direction is unknown
+messageLocation location:location live_period:int32 expires_in:int32 heading:int32 = MessageContent;
 
 //@description A message with information about a venue @venue The venue description
 messageVenue venue:venue = MessageContent;
@@ -1796,7 +1797,8 @@ inputMessageVideoNote video_note:InputFile thumbnail:inputThumbnail duration:int
 inputMessageVoiceNote voice_note:InputFile duration:int32 waveform:bytes caption:formattedText = InputMessageContent;
 
 //@description A message with a location @location Location to be sent @live_period Period for which the location can be updated, in seconds; should be between 60 and 86400 for a live location and 0 otherwise
-inputMessageLocation location:location live_period:int32 = InputMessageContent;
+//@heading For live locations, a direction in which the location moves, in degrees; 0-360. Pass 0 if unknown
+inputMessageLocation location:location live_period:int32 heading:int32 = InputMessageContent;
 
 //@description A message with information about a venue @venue Venue to send
 inputMessageVenue venue:venue = InputMessageContent;
@@ -2126,7 +2128,9 @@ inputInlineQueryResultDocument id:string title:string description:string documen
 //@description Represents a game @id Unique identifier of the query result @game_short_name Short name of the game @reply_markup Message reply markup. Must be of type replyMarkupInlineKeyboard or null
 inputInlineQueryResultGame id:string game_short_name:string reply_markup:ReplyMarkup = InputInlineQueryResult;
 
-//@description Represents a point on the map @id Unique identifier of the query result @location Location result @live_period Amount of time relative to the message sent time until the location can be updated, in seconds @title Title of the result @thumbnail_url URL of the result thumbnail, if it exists @thumbnail_width Thumbnail width, if known @thumbnail_height Thumbnail height, if known
+//@description Represents a point on the map @id Unique identifier of the query result @location Location result
+//@live_period Amount of time relative to the message sent time until the location can be updated, in seconds
+//@title Title of the result @thumbnail_url URL of the result thumbnail, if it exists @thumbnail_width Thumbnail width, if known @thumbnail_height Thumbnail height, if known
 //@reply_markup The message reply markup. Must be of type replyMarkupInlineKeyboard or null
 //@input_message_content The content of the message to be sent. Must be one of the following types: InputMessageText, InputMessageLocation, InputMessageVenue or InputMessageContact
 inputInlineQueryResultLocation id:string location:location live_period:int32 title:string thumbnail_url:string thumbnail_width:int32 thumbnail_height:int32 reply_markup:ReplyMarkup input_message_content:InputMessageContent = InputInlineQueryResult;
@@ -3820,7 +3824,8 @@ editMessageText chat_id:int53 message_id:int53 reply_markup:ReplyMarkup input_me
 
 //@description Edits the message content of a live location. Messages can be edited for a limited period of time specified in the live location. Returns the edited message after the edit is completed on the server side
 //@chat_id The chat the message belongs to @message_id Identifier of the message @reply_markup The new message reply markup; for bots only @location New location content of the message; may be null. Pass null to stop sharing the live location
-editMessageLiveLocation chat_id:int53 message_id:int53 reply_markup:ReplyMarkup location:location = Message;
+//@heading The new direction in which the location moves, in degrees; 0-360. Pass 0 if unknown
+editMessageLiveLocation chat_id:int53 message_id:int53 reply_markup:ReplyMarkup location:location heading:int32 = Message;
 
 //@description Edits the content of a message with an animation, an audio, a document, a photo or a video. The media in the message can't be replaced if the message was set to self-destruct. Media can't be replaced by self-destructing media. Media in an album can be edited only to contain a photo or a video. Returns the edited message after the edit is completed on the server side
 //@chat_id The chat the message belongs to @message_id Identifier of the message @reply_markup The new message reply markup; for bots only @input_message_content New content of the message. Must be one of the following types: InputMessageAnimation, InputMessageAudio, InputMessageDocument, InputMessagePhoto or InputMessageVideo
@@ -3837,8 +3842,10 @@ editMessageReplyMarkup chat_id:int53 message_id:int53 reply_markup:ReplyMarkup =
 //@description Edits the text of an inline text or game message sent via a bot; for bots only @inline_message_id Inline message identifier @reply_markup The new message reply markup @input_message_content New text content of the message. Should be of type InputMessageText
 editInlineMessageText inline_message_id:string reply_markup:ReplyMarkup input_message_content:InputMessageContent = Ok;
 
-//@description Edits the content of a live location in an inline message sent via a bot; for bots only @inline_message_id Inline message identifier @reply_markup The new message reply markup @location New location content of the message; may be null. Pass null to stop sharing the live location
-editInlineMessageLiveLocation inline_message_id:string reply_markup:ReplyMarkup location:location = Ok;
+//@description Edits the content of a live location in an inline message sent via a bot; for bots only @inline_message_id Inline message identifier @reply_markup The new message reply markup
+//@location New location content of the message; may be null. Pass null to stop sharing the live location
+//@heading The new direction in which the location moves, in degrees; 0-360. Pass 0 if unknown
+editInlineMessageLiveLocation inline_message_id:string reply_markup:ReplyMarkup location:location heading:int32 = Ok;
 
 //@description Edits the content of a message with an animation, an audio, a document, a photo or a video in an inline message sent via a bot; for bots only @inline_message_id Inline message identifier
 //@reply_markup The new message reply markup; for bots only @input_message_content New content of the message. Must be one of the following types: InputMessageAnimation, InputMessageAudio, InputMessageDocument, InputMessagePhoto or InputMessageVideo

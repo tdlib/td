@@ -18,8 +18,6 @@
 #include "td/utils/StringBuilder.h"
 #include "td/utils/tl_helpers.h"
 
-#include <utility>
-
 namespace td {
 
 class Location {
@@ -111,7 +109,12 @@ bool operator!=(const Location &lhs, const Location &rhs);
 
 StringBuilder &operator<<(StringBuilder &string_builder, const Location &location);
 
-Result<std::pair<Location, int32>> process_input_message_location(
+struct InputMessageLocation {
+  Location location;
+  int32 live_period;
+  int32 heading;
+};
+Result<InputMessageLocation> process_input_message_location(
     td_api::object_ptr<td_api::InputMessageContent> &&input_message_content) TD_WARN_UNUSED_RESULT;
 
 }  // namespace td

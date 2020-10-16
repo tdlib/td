@@ -1201,10 +1201,11 @@ class EditMessageLiveLocationRequest : public RequestOnceActor {
   FullMessageId full_message_id_;
   tl_object_ptr<td_api::ReplyMarkup> reply_markup_;
   tl_object_ptr<td_api::location> location_;
+  int32 heading_;
 
   void do_run(Promise<Unit> &&promise) override {
     td->messages_manager_->edit_message_live_location(full_message_id_, std::move(reply_markup_), std::move(location_),
-                                                      std::move(promise));
+                                                      heading_, std::move(promise));
   }
 
   void do_send_result() override {
@@ -1214,11 +1215,12 @@ class EditMessageLiveLocationRequest : public RequestOnceActor {
  public:
   EditMessageLiveLocationRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, int64 message_id,
                                  tl_object_ptr<td_api::ReplyMarkup> reply_markup,
-                                 tl_object_ptr<td_api::location> location)
+                                 tl_object_ptr<td_api::location> location, int32 heading)
       : RequestOnceActor(std::move(td), request_id)
       , full_message_id_(DialogId(dialog_id), MessageId(message_id))
       , reply_markup_(std::move(reply_markup))
-      , location_(std::move(location)) {
+      , location_(std::move(location))
+      , heading_(heading) {
   }
 };
 
@@ -5728,7 +5730,7 @@ void Td::on_request(uint64 id, td_api::editMessageText &request) {
 
 void Td::on_request(uint64 id, td_api::editMessageLiveLocation &request) {
   CREATE_REQUEST(EditMessageLiveLocationRequest, request.chat_id_, request.message_id_,
-                 std::move(request.reply_markup_), std::move(request.location_));
+                 std::move(request.reply_markup_), std::move(request.location_), request.heading_);
 }
 
 void Td::on_request(uint64 id, td_api::editMessageMedia &request) {
@@ -5761,7 +5763,7 @@ void Td::on_request(uint64 id, td_api::editInlineMessageLiveLocation &request) {
   CREATE_OK_REQUEST_PROMISE();
   messages_manager_->edit_inline_message_live_location(std::move(request.inline_message_id_),
                                                        std::move(request.reply_markup_), std::move(request.location_),
-                                                       std::move(promise));
+                                                       request.heading_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::editInlineMessageMedia &request) {

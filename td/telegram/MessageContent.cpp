@@ -565,10 +565,16 @@ class MessageExpiredVideo : public MessageContent {
 class MessageLiveLocation : public MessageContent {
  public:
   Location location;
-  int32 period;
+  int32 period = 0;
+  int32 heading = 0;
 
   MessageLiveLocation() = default;
-  MessageLiveLocation(Location &&location, int32 period) : location(std::move(location)), period(period) {
+  MessageLiveLocation(Location &&location, int32 period, int32 heading)
+      : location(std::move(location)), period(period), heading(heading) {
+    if (heading < 0 || heading > 360) {
+      LOG(ERROR) << "Receive wrong heading " << heading;
+      heading = 0;
+    }
   }
 
   MessageContentType get_type() const override {
@@ -731,6 +737,7 @@ static void store(const MessageContent *content, StorerT &storer) {
       auto m = static_cast<const MessageLiveLocation *>(content);
       store(m->location, storer);
       store(m->period, storer);
+      store(m->heading, storer);
       break;
     }
     case MessageContentType::Location: {
@@ -1025,6 +1032,11 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       auto m = make_unique<MessageLiveLocation>();
       parse(m->location, parser);
       parse(m->period, parser);
+      if (parser.version() >= static_cast<int32>(Version::AddLiveLocationHeading)) {
+        parse(m->heading, parser);
+      } else {
+        m->heading = 0;
+      }
       content = std::move(m);
       break;
     }
@@ -1353,8 +1365,8 @@ InlineMessageContent create_inline_message_content(Td *td, FileId file_id,
     case telegram_api::botInlineMessageMediaGeo::ID: {
       auto inline_message_geo = move_tl_object_as<telegram_api::botInlineMessageMediaGeo>(inline_message);
       if (inline_message_geo->period_ > 0) {
-        result.message_content =
-            make_unique<MessageLiveLocation>(Location(inline_message_geo->geo_), inline_message_geo->period_);
+        result.message_content = make_unique<MessageLiveLocation>(
+            Location(inline_message_geo->geo_), inline_message_geo->period_, inline_message_geo->heading_);
       } else {
         result.message_content = make_unique<MessageLocation>(Location(inline_message_geo->geo_));
       }
@@ -1614,10 +1626,11 @@ static Result<InputMessageContent> create_input_message_content(
     }
     case td_api::inputMessageLocation::ID: {
       TRY_RESULT(location, process_input_message_location(std::move(input_message_content)));
-      if (location.second == 0) {
-        content = make_unique<MessageLocation>(std::move(location.first));
+      if (location.live_period == 0) {
+        content = make_unique<MessageLocation>(std::move(location.location));
       } else {
-        content = make_unique<MessageLiveLocation>(std::move(location.first), location.second);
+        content =
+            make_unique<MessageLiveLocation>(std::move(location.location), location.live_period, location.heading);
       }
       break;
     }
@@ -2212,7 +2225,7 @@ static tl_object_ptr<telegram_api::InputMedia> get_input_media_impl(
       auto m = static_cast<const MessageLiveLocation *>(content);
       int32 flags = telegram_api::inputMediaGeoLive::PERIOD_MASK;
       return make_tl_object<telegram_api::inputMediaGeoLive>(flags, false /*ignored*/,
-                                                             m->location.get_input_geo_point(), m->period);
+                                                             m->location.get_input_geo_point(), m->heading, m->period);
     }
     case MessageContentType::Location: {
       auto m = static_cast<const MessageLocation *>(content);
@@ -2805,7 +2818,7 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       if (old_->location != new_->location) {
         need_update = true;
       }
-      if (old_->period != new_->period) {
+      if (old_->period != new_->period || old_->heading != new_->heading) {
         need_update = true;
       }
       if (old_->location.get_access_hash() != new_->location.get_access_hash()) {
@@ -3820,17 +3833,17 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
     }
     case telegram_api::messageMediaGeoLive::ID: {
       auto message_geo_point_live = move_tl_object_as<telegram_api::messageMediaGeoLive>(media);
-      int32 period = message_geo_point_live->period_;
       auto location = Location(std::move(message_geo_point_live->geo_));
       if (location.empty()) {
         break;
       }
 
+      int32 period = message_geo_point_live->period_;
       if (period <= 0) {
         LOG(ERROR) << "Receive wrong live location period = " << period;
         return make_unique<MessageLocation>(std::move(location));
       }
-      return make_unique<MessageLiveLocation>(std::move(location), period);
+      return make_unique<MessageLiveLocation>(std::move(location), period, message_geo_point_live->heading_);
     }
     case telegram_api::messageMediaVenue::ID: {
       auto message_venue = move_tl_object_as<telegram_api::messageMediaVenue>(media);
@@ -4393,12 +4406,13 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     case MessageContentType::LiveLocation: {
       const MessageLiveLocation *m = static_cast<const MessageLiveLocation *>(content);
       auto passed = max(G()->unix_time_cached() - message_date, 0);
-      return make_tl_object<td_api::messageLocation>(m->location.get_location_object(), m->period,
-                                                     max(0, m->period - passed));
+      auto expires_in = max(0, m->period - passed);
+      auto heading = expires_in == 0 ? 0 : m->heading;
+      return make_tl_object<td_api::messageLocation>(m->location.get_location_object(), m->period, expires_in, heading);
     }
     case MessageContentType::Location: {
       const MessageLocation *m = static_cast<const MessageLocation *>(content);
-      return make_tl_object<td_api::messageLocation>(m->location.get_location_object(), 0, 0);
+      return make_tl_object<td_api::messageLocation>(m->location.get_location_object(), 0, 0, 0);
     }
     case MessageContentType::Photo: {
       const MessagePhoto *m = static_cast<const MessagePhoto *>(content);
