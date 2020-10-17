@@ -51,7 +51,7 @@ class RequestActor : public Actor {
       CHECK(future.get_state() == FutureActor<T>::State::Waiting);
       if (--tries_left_ == 0) {
         future.close();
-        do_send_error(Status::Error(400, "Requested data is inaccessible"));
+        do_send_error(Status::Error(500, "Requested data is inaccessible"));
         return stop();
       }
 
