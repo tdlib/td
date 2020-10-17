@@ -2312,7 +2312,7 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getDeepLinkInfo>(args));
     } else if (op == "tme") {
       send_request(td_api::make_object<td_api::getRecentlyVisitedTMeUrls>(args));
-    } else if (op == "gbc") {
+    } else if (op == "gbms") {
       string offset;
       string limit;
 
@@ -2323,7 +2323,8 @@ class CliClient final : public Actor {
       if (limit.empty()) {
         limit = "10";
       }
-      send_request(td_api::make_object<td_api::getBlockedChats>(to_integer<int32>(offset), to_integer<int32>(limit)));
+      send_request(
+          td_api::make_object<td_api::getBlockedMessageSenders>(to_integer<int32>(offset), to_integer<int32>(limit)));
     } else if (op == "gu") {
       send_request(td_api::make_object<td_api::getUser>(as_user_id(args)));
     } else if (op == "gsu") {

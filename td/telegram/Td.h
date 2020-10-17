@@ -789,7 +789,7 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, const td_api::blockMessageSenderFromReplies &request);
 
-  void on_request(uint64 id, const td_api::getBlockedChats &request);
+  void on_request(uint64 id, const td_api::getBlockedMessageSenders &request);
 
   void on_request(uint64 id, td_api::addContact &request);
 

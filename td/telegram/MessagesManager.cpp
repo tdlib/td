@@ -5545,6 +5545,13 @@ td_api::object_ptr<td_api::MessageSender> MessagesManager::get_message_sender_ob
       td_->contacts_manager_->get_user_id_object(user_id, "get_message_sender_object"));
 }
 
+td_api::object_ptr<td_api::MessageSender> MessagesManager::get_message_sender_object(DialogId dialog_id) const {
+  if (dialog_id.get_type() == DialogType::User) {
+    return get_message_sender_object(dialog_id.get_user_id(), DialogId());
+  }
+  return get_message_sender_object(UserId(), dialog_id);
+}
+
 BufferSlice MessagesManager::get_dialog_database_value(const Dialog *d) {
   // can't use log_event_store, because it tries to parse stored Dialog
   LogEventStorerCalcLength storer_calc_length;
@@ -15810,11 +15817,19 @@ void MessagesManager::on_get_blocked_dialogs(int32 offset, int32 limit, int64 ra
   for (auto &blocked_peer : blocked_peers) {
     CHECK(blocked_peer != nullptr);
     DialogId dialog_id(blocked_peer->peer_id_);
-    force_create_dialog(dialog_id, "on_get_blocked_dialogs");
-    if (have_dialog(dialog_id)) {
-      result.push_back(dialog_id);
+    if (dialog_id.get_type() == DialogType::User) {
+      if (td_->contacts_manager_->have_user(dialog_id.get_user_id())) {
+        result.push_back(dialog_id);
+      } else {
+        LOG(ERROR) << "Have no info about " << dialog_id.get_user_id();
+      }
     } else {
-      LOG(ERROR) << "Have no info about " << dialog_id;
+      force_create_dialog(dialog_id, "on_get_blocked_dialogs");
+      if (have_dialog(dialog_id)) {
+        result.push_back(dialog_id);
+      } else {
+        LOG(ERROR) << "Have no info about " << dialog_id;
+      }
     }
   }
   if (!result.empty() && offset + result.size() > static_cast<size_t>(total_count)) {
