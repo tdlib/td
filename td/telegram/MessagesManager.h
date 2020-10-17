@@ -646,7 +646,8 @@ class MessagesManager : public Actor {
 
   Status toggle_dialog_is_marked_as_unread(DialogId dialog_id, bool is_marked_as_unread) TD_WARN_UNUSED_RESULT;
 
-  Status toggle_dialog_is_blocked(DialogId dialog_id, bool is_blocked) TD_WARN_UNUSED_RESULT;
+  Status toggle_message_sender_is_blocked(const td_api::object_ptr<td_api::MessageSender> &sender,
+                                          bool is_blocked) TD_WARN_UNUSED_RESULT;
 
   Status toggle_dialog_silent_send_message(DialogId dialog_id, bool silent_send_message) TD_WARN_UNUSED_RESULT;
 

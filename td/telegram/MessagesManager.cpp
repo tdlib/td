@@ -17990,27 +17990,50 @@ void MessagesManager::toggle_dialog_is_marked_as_unread_on_server(DialogId dialo
       ->send(dialog_id, is_marked_as_unread);
 }
 
-Status MessagesManager::toggle_dialog_is_blocked(DialogId dialog_id, bool is_blocked) {
-  Dialog *d = get_dialog_force(dialog_id);
-  if (d == nullptr) {
-    return Status::Error(6, "Chat not found");
+Status MessagesManager::toggle_message_sender_is_blocked(const td_api::object_ptr<td_api::MessageSender> &sender,
+                                                         bool is_blocked) {
+  if (sender == nullptr) {
+    return Status::Error(400, "Message sender must be non-empty");
   }
-  if (dialog_id.get_type() == DialogType::SecretChat) {
-    auto user_id = td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
-    dialog_id = DialogId(user_id);
-    d = get_dialog_force(dialog_id);
-    if (d == nullptr) {
-      return Status::Error(6, "Chat info not found");
+
+  DialogId dialog_id;
+  switch (sender->get_id()) {
+    case td_api::messageSenderUser::ID: {
+      auto sender_user_id = UserId(static_cast<const td_api::messageSenderUser *>(sender.get())->user_id_);
+      if (!td_->contacts_manager_->have_user_force(sender_user_id)) {
+        return Status::Error(400, "Sender user not found");
+      }
+      dialog_id = DialogId(sender_user_id);
+      break;
     }
+    case td_api::messageSenderChat::ID: {
+      auto sender_dialog_id = DialogId(static_cast<const td_api::messageSenderChat *>(sender.get())->chat_id_);
+      if (!have_dialog_force(sender_dialog_id)) {
+        return Status::Error(400, "Sender chat not found");
+      }
+      if (sender_dialog_id.get_type() != DialogType::Channel) {
+        return Status::Error(400, "Sender chat must be a supergroup or channel");
+      }
+      dialog_id = sender_dialog_id;
+      break;
+    }
+    default:
+      UNREACHABLE();
   }
   if (dialog_id == get_my_dialog_id()) {
     return Status::Error(5, is_blocked ? Slice("Can't block self") : Slice("Can't unblock self"));
   }
 
-  if (is_blocked == d->is_blocked) {
-    return Status::OK();
+  Dialog *d = get_dialog_force(dialog_id);
+  if (d != nullptr) {
+    if (is_blocked == d->is_blocked) {
+      return Status::OK();
+    }
+    set_dialog_is_blocked(d, is_blocked);
+  } else {
+    CHECK(dialog_id.get_type() == DialogType::User);
+    td_->contacts_manager_->on_update_user_is_blocked(dialog_id.get_user_id(), is_blocked);
   }
-  set_dialog_is_blocked(d, is_blocked);
 
   toggle_dialog_is_blocked_on_server(dialog_id, is_blocked, 0);
   return Status::OK();
@@ -28185,6 +28208,8 @@ void MessagesManager::set_dialog_is_blocked(Dialog *d, bool is_blocked) {
                make_tl_object<td_api::updateChatIsBlocked>(d->dialog_id.get(), is_blocked));
 
   if (d->dialog_id.get_type() == DialogType::User) {
+    td_->contacts_manager_->on_update_user_is_blocked(d->dialog_id.get_user_id(), is_blocked);
+
     if (d->know_action_bar) {
       if (is_blocked) {
         if (d->can_report_spam || d->can_share_phone_number || d->can_block_user || d->can_add_contact ||
@@ -35131,8 +35156,10 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         log_event_parse(log_event, event.data_).ensure();
 
         auto dialog_id = log_event.dialog_id_;
-        Dialog *d = get_dialog_force(dialog_id);
-        if (d == nullptr || !have_input_peer(dialog_id, AccessRights::Read)) {
+        bool have_info = dialog_id.get_type() == DialogType::User
+                             ? td_->contacts_manager_->have_user_force(dialog_id.get_user_id())
+                             : have_dialog_force(dialog_id);
+        if (!have_info || !have_input_peer(dialog_id, AccessRights::Know)) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }

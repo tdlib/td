@@ -2939,11 +2939,12 @@ class CliClient final : public Actor {
       std::tie(chat_id, is_marked_as_read) = split(args);
       send_request(
           td_api::make_object<td_api::toggleChatIsMarkedAsUnread>(as_chat_id(chat_id), as_bool(is_marked_as_read)));
-    } else if (op == "tcib") {
+    } else if (op == "tmsib") {
       string chat_id;
       string is_blocked;
       std::tie(chat_id, is_blocked) = split(args);
-      send_request(td_api::make_object<td_api::toggleChatIsBlocked>(as_chat_id(chat_id), as_bool(is_blocked)));
+      send_request(
+          td_api::make_object<td_api::toggleMessageSenderIsBlocked>(as_message_sender(chat_id), as_bool(is_blocked)));
     } else if (op == "bmsfr") {
       string message_id;
       string delete_message;
