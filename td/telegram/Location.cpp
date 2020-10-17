@@ -10,22 +10,33 @@
 
 namespace td {
 
-void Location::init(double latitude, double longitude, int64 access_hash) {
+double Location::fix_accuracy(double accuracy) {
+  if (!std::isfinite(accuracy) || accuracy <= 0.0) {
+    return 0.0;
+  }
+  if (accuracy >= 1000.0) {
+    return 1000.0;
+  }
+  return accuracy;
+}
+
+void Location::init(double latitude, double longitude, double horizontal_accuracy, int64 access_hash) {
   if (std::isfinite(latitude) && std::isfinite(longitude) && std::abs(latitude) <= 90 && std::abs(longitude) <= 180) {
     is_empty_ = false;
     latitude_ = latitude;
     longitude_ = longitude;
+    horizontal_accuracy_ = fix_accuracy(horizontal_accuracy);
     access_hash_ = access_hash;
     G()->add_location_access_hash(latitude_, longitude_, access_hash_);
   }
 }
 
-Location::Location(double latitude, double longitude, int64 access_hash) {
-  init(latitude, longitude, access_hash);
+Location::Location(double latitude, double longitude, double horizontal_accuracy, int64 access_hash) {
+  init(latitude, longitude, horizontal_accuracy, access_hash);
 }
 
 Location::Location(const tl_object_ptr<secret_api::decryptedMessageMediaGeoPoint> &geo_point)
-    : Location(geo_point->lat_, geo_point->long_, 0) {
+    : Location(geo_point->lat_, geo_point->long_, 0.0, 0) {
 }
 
 Location::Location(const tl_object_ptr<telegram_api::GeoPoint> &geo_point_ptr) {
@@ -37,7 +48,7 @@ Location::Location(const tl_object_ptr<telegram_api::GeoPoint> &geo_point_ptr) {
       break;
     case telegram_api::geoPoint::ID: {
       auto geo_point = static_cast<const telegram_api::geoPoint *>(geo_point_ptr.get());
-      init(geo_point->lat_, geo_point->long_, geo_point->access_hash_);
+      init(geo_point->lat_, geo_point->long_, geo_point->accuracy_radius_, geo_point->access_hash_);
       break;
     }
     default:
@@ -51,7 +62,7 @@ Location::Location(const tl_object_ptr<td_api::location> &location) {
     return;
   }
 
-  init(location->latitude_, location->longitude_, 0);
+  init(location->latitude_, location->longitude_, location->horizontal_accuracy_, 0);
 }
 
 bool Location::empty() const {
@@ -67,7 +78,7 @@ tl_object_ptr<td_api::location> Location::get_location_object() const {
   if (empty()) {
     return nullptr;
   }
-  return make_tl_object<td_api::location>(latitude_, longitude_);
+  return make_tl_object<td_api::location>(latitude_, longitude_, horizontal_accuracy_);
 }
 
 tl_object_ptr<telegram_api::InputGeoPoint> Location::get_input_geo_point() const {
@@ -75,7 +86,13 @@ tl_object_ptr<telegram_api::InputGeoPoint> Location::get_input_geo_point() const
     return make_tl_object<telegram_api::inputGeoPointEmpty>();
   }
 
-  return make_tl_object<telegram_api::inputGeoPoint>(latitude_, longitude_);
+  int32 flags = 0;
+  if (horizontal_accuracy_ > 0) {
+    flags |= telegram_api::inputGeoPoint::ACCURACY_RADIUS_MASK;
+  }
+
+  return make_tl_object<telegram_api::inputGeoPoint>(flags, latitude_, longitude_,
+                                                     static_cast<int32>(std::ceil(horizontal_accuracy_)));
 }
 
 tl_object_ptr<telegram_api::inputMediaGeoPoint> Location::get_input_media_geo_point() const {
@@ -91,7 +108,8 @@ bool operator==(const Location &lhs, const Location &rhs) {
     return rhs.is_empty_;
   }
   return !rhs.is_empty_ && std::abs(lhs.latitude_ - rhs.latitude_) < 1e-6 &&
-         std::abs(lhs.longitude_ - rhs.longitude_) < 1e-6;
+         std::abs(lhs.longitude_ - rhs.longitude_) < 1e-6 &&
+         std::abs(lhs.horizontal_accuracy_ - rhs.horizontal_accuracy_) < 1e-6;
 }
 
 bool operator!=(const Location &lhs, const Location &rhs) {
@@ -103,7 +121,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const Location &locatio
     return string_builder << "Location[empty]";
   }
   return string_builder << "Location[latitude = " << location.latitude_ << ", longitude = " << location.longitude_
-                        << "]";
+                        << ", accuracy = " << location.horizontal_accuracy_ << "]";
 }
 
 Result<InputMessageLocation> process_input_message_location(

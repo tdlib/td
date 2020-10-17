@@ -635,11 +635,11 @@ class CliClient final : public Actor {
     return to_integer<int32>(trim(std::move(str)));
   }
 
-  static td_api::object_ptr<td_api::location> as_location(string latitude, string longitude) {
+  static td_api::object_ptr<td_api::location> as_location(string latitude, string longitude, string accuracy = "") {
     if (trim(latitude).empty() && trim(longitude).empty()) {
       return nullptr;
     }
-    return td_api::make_object<td_api::location>(to_double(latitude), to_double(longitude));
+    return td_api::make_object<td_api::location>(to_double(latitude), to_double(longitude), to_double(accuracy));
   }
 
   static bool as_bool(string str) {
@@ -3128,14 +3128,16 @@ class CliClient final : public Actor {
       string message_id;
       string latitude;
       string longitude;
+      string accuracy;
       string heading;
       std::tie(chat_id, args) = split(args);
       std::tie(message_id, args) = split(args);
       std::tie(latitude, args) = split(args);
-      std::tie(longitude, heading) = split(args);
-      send_request(td_api::make_object<td_api::editMessageLiveLocation>(as_chat_id(chat_id), as_message_id(message_id),
-                                                                        nullptr, as_location(latitude, longitude),
-                                                                        to_integer<int32>(heading)));
+      std::tie(longitude, args) = split(args);
+      std::tie(accuracy, heading) = split(args);
+      send_request(td_api::make_object<td_api::editMessageLiveLocation>(
+          as_chat_id(chat_id), as_message_id(message_id), nullptr, as_location(latitude, longitude, accuracy),
+          to_integer<int32>(heading)));
     } else if (op == "emss") {
       string chat_id;
       string message_id;
@@ -3383,27 +3385,31 @@ class CliClient final : public Actor {
       send_message(chat_id, td_api::make_object<td_api::inputMessageGame>(as_user_id(bot_user_id), game_short_name));
     } else if (op == "sl") {
       string chat_id;
-      std::tie(chat_id, args) = split(args);
-
       string latitude;
       string longitude;
-      std::tie(latitude, longitude) = split(args);
+      string accuracy;
+      std::tie(chat_id, args) = split(args);
+      std::tie(latitude, args) = split(args);
+      std::tie(longitude, accuracy) = split(args);
 
-      send_message(chat_id, td_api::make_object<td_api::inputMessageLocation>(as_location(latitude, longitude), 0, 0));
+      send_message(chat_id,
+                   td_api::make_object<td_api::inputMessageLocation>(as_location(latitude, longitude, accuracy), 0, 0));
     } else if (op == "sll") {
       string chat_id;
       string period;
-      string heading;
       string latitude;
       string longitude;
+      string accuracy;
+      string heading;
       std::tie(chat_id, args) = split(args);
       std::tie(period, args) = split(args);
-      std::tie(heading, args) = split(args);
-      std::tie(latitude, longitude) = split(args);
+      std::tie(latitude, args) = split(args);
+      std::tie(longitude, args) = split(args);
+      std::tie(accuracy, heading) = split(args);
 
-      send_message(chat_id,
-                   td_api::make_object<td_api::inputMessageLocation>(
-                       as_location(latitude, longitude), to_integer<int32>(period), to_integer<int32>(heading)));
+      send_message(chat_id, td_api::make_object<td_api::inputMessageLocation>(
+                                as_location(latitude, longitude, accuracy), to_integer<int32>(period),
+                                to_integer<int32>(heading)));
     } else if (op == "spoll" || op == "spollm" || op == "spollp" || op == "squiz") {
       string chat_id;
       string question;
@@ -3552,6 +3558,7 @@ class CliClient final : public Actor {
 
       string latitude;
       string longitude;
+      string accuracy;
       string title;
       string address;
       string provider;
@@ -3560,13 +3567,15 @@ class CliClient final : public Actor {
       std::tie(chat_id, args) = split(args);
       std::tie(latitude, args) = split(args);
       std::tie(longitude, args) = split(args);
+      std::tie(accuracy, args) = split(args);
       std::tie(title, args) = split(args);
       std::tie(address, args) = split(args);
       std::tie(provider, args) = split(args);
       std::tie(venue_id, venue_type) = split(args);
 
-      send_message(chat_id, td_api::make_object<td_api::inputMessageVenue>(td_api::make_object<td_api::venue>(
-                                as_location(latitude, longitude), title, address, provider, venue_id, venue_type)));
+      send_message(chat_id,
+                   td_api::make_object<td_api::inputMessageVenue>(td_api::make_object<td_api::venue>(
+                       as_location(latitude, longitude, accuracy), title, address, provider, venue_id, venue_type)));
     } else if (op == "test") {
       send_request(td_api::make_object<td_api::testNetwork>());
     } else if (op == "alarm") {
@@ -3597,7 +3606,7 @@ class CliClient final : public Actor {
     } else if (op == "cngc") {
       send_request(td_api::make_object<td_api::createNewSupergroupChat>(
           args, false, "Description",
-          td_api::make_object<td_api::chatLocation>(td_api::make_object<td_api::location>(40.0, 60.0), "address")));
+          td_api::make_object<td_api::chatLocation>(as_location("40.0", "60.0"), "address")));
     } else if (op == "UpgradeBasicGroupChatToSupergroupChat") {
       send_request(td_api::make_object<td_api::upgradeBasicGroupChatToSupergroupChat>(as_chat_id(args)));
     } else if (op == "DeleteSupergroup") {

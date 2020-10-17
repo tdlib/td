@@ -65,7 +65,7 @@ inputChatUploadedPhoto#c642724e flags:# file:flags.0?InputFile video:flags.1?Inp
 inputChatPhoto#8953ad37 id:InputPhoto = InputChatPhoto;
 
 inputGeoPointEmpty#e4c123d6 = InputGeoPoint;
-inputGeoPoint#f3b7acc9 lat:double long:double = InputGeoPoint;
+inputGeoPoint#48222faf flags:# lat:double long:double accuracy_radius:flags.0?int = InputGeoPoint;
 
 inputPhotoEmpty#1cd7bf0d = InputPhoto;
 inputPhoto#3bb3b94a id:long access_hash:long file_reference:bytes = InputPhoto;
@@ -182,7 +182,7 @@ photoStrippedSize#e0b0bc2e type:string bytes:bytes = PhotoSize;
 photoSizeProgressive#5aa86a51 type:string location:FileLocation w:int h:int sizes:Vector<int> = PhotoSize;
 
 geoPointEmpty#1117dd5f = GeoPoint;
-geoPoint#296f104 long:double lat:double access_hash:long = GeoPoint;
+geoPoint#b2a2f663 flags:# long:double lat:double access_hash:long accuracy_radius:flags.0?int = GeoPoint;
 
 auth.sentCode#5e002502 flags:# type:auth.SentCodeType phone_code_hash:string next_type:flags.1?auth.CodeType timeout:flags.2?int = auth.SentCode;
 

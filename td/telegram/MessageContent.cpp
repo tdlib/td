@@ -3674,7 +3674,7 @@ unique_ptr<MessageContent> get_secret_message_content(
         message_venue->venue_id_.clear();
       }
 
-      auto m = make_unique<MessageVenue>(Venue(Location(message_venue->lat_, message_venue->long_, 0),
+      auto m = make_unique<MessageVenue>(Venue(Location(message_venue->lat_, message_venue->long_, 0.0, 0),
                                                std::move(message_venue->title_), std::move(message_venue->address_),
                                                std::move(message_venue->provider_), std::move(message_venue->venue_id_),
                                                string()));

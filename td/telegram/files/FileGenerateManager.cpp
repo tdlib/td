@@ -190,7 +190,8 @@ class MapDownloadGenerateActor : public FileGenerateActor {
 
     int64 access_hash = G()->get_location_access_hash(latitude, longitude);
     return make_tl_object<telegram_api::inputWebFileGeoPointLocation>(
-        make_tl_object<telegram_api::inputGeoPoint>(latitude, longitude), access_hash, width, height, zoom, scale);
+        make_tl_object<telegram_api::inputGeoPoint>(0, latitude, longitude, 0), access_hash, width, height, zoom,
+        scale);
   }
 
   void start_up() override {

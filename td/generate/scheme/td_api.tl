@@ -293,7 +293,8 @@ voiceNote duration:int32 waveform:bytes mime_type:string voice:file = VoiceNote;
 contact phone_number:string first_name:string last_name:string vcard:string user_id:int32 = Contact;
 
 //@description Describes a location on planet Earth @latitude Latitude of the location in degrees; as defined by the sender @longitude Longitude of the location, in degrees; as defined by the sender
-location latitude:double longitude:double = Location;
+//@horizontal_accuracy The estimated horizontal accuracy of the location, in meters; as defined by the sender. 0 if unknown
+location latitude:double longitude:double horizontal_accuracy:double = Location;
 
 //@description Describes a venue @location Venue location; as defined by the sender @title Venue name; as defined by the sender @address Venue address; as defined by the sender @provider Provider of the venue database; as defined by the sender. Currently only "foursquare" and "gplaces" (Google Places) need to be supported
 //@id Identifier of the venue in the provider database; as defined by the sender @type Type of the venue in the provider database; as defined by the sender

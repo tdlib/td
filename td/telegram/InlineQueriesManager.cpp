@@ -505,7 +505,8 @@ void InlineQueriesManager::answer_inline_query(int64 inline_query_id, bool is_pe
         type = "geo";
         id = std::move(location->id_);
         title = std::move(location->title_);
-        description = PSTRING() << location->location_->latitude_ << ' ' << location->location_->longitude_;
+        description = PSTRING() << location->location_->latitude_ << ' ' << location->location_->longitude_ << ' '
+                                << location->location_->horizontal_accuracy_;
         thumbnail_url = std::move(location->thumbnail_url_);
         // duration = location->live_period_;
         if (!thumbnail_url.empty()) {
@@ -972,7 +973,7 @@ tl_object_ptr<td_api::contact> copy(const td_api::contact &obj) {
 
 template <>
 tl_object_ptr<td_api::location> copy(const td_api::location &obj) {
-  return make_tl_object<td_api::location>(obj.latitude_, obj.longitude_);
+  return make_tl_object<td_api::location>(obj.latitude_, obj.longitude_, obj.horizontal_accuracy_);
 }
 
 template <>
@@ -1381,8 +1382,12 @@ void InlineQueriesManager::on_get_inline_query_results(UserId bot_user_id, uint6
             Location l(inline_message_geo->geo_);
             location->location_ = l.get_location_object();
           } else {
-            auto coordinates = split(Slice(result->description_));
-            Location l(to_double(coordinates.first), to_double(coordinates.second), 0);
+            Slice latitude;
+            Slice longitude;
+            Slice horizontal_accuracy;
+            std::tie(latitude, longitude) = split(Slice(result->description_));
+            std::tie(longitude, horizontal_accuracy) = split(longitude);
+            Location l(to_double(latitude), to_double(longitude), to_double(horizontal_accuracy), 0);
             location->location_ = l.get_location_object();
           }
           location->thumbnail_ = register_thumbnail(std::move(result->thumb_));
