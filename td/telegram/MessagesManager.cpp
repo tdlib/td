@@ -28145,6 +28145,9 @@ void MessagesManager::on_update_dialog_is_blocked(DialogId dialog_id, bool is_bl
     LOG(ERROR) << "Receive pinned message in invalid " << dialog_id;
     return;
   }
+  if (dialog_id.get_type() == DialogType::User) {
+    td_->contacts_manager_->on_update_user_is_blocked(dialog_id.get_user_id(), is_blocked);
+  }
 
   auto d = get_dialog_force(dialog_id);
   if (d == nullptr) {
