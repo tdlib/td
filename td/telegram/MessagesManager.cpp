@@ -6518,16 +6518,16 @@ bool MessagesManager::is_active_message_reply_info(DialogId dialog_id, const Mes
     return false;
   }
 
-  auto channel_id = dialog_id.get_channel_id();
-  if (!td_->contacts_manager_->get_channel_has_linked_channel(channel_id)) {
-    return false;
-  }
-
   if (!info.is_comment) {
     return true;
   }
   if (!is_broadcast_channel(dialog_id)) {
     return true;
+  }
+
+  auto channel_id = dialog_id.get_channel_id();
+  if (!td_->contacts_manager_->get_channel_has_linked_channel(channel_id)) {
+    return false;
   }
 
   auto linked_channel_id = td_->contacts_manager_->get_channel_linked_channel_id(channel_id);
@@ -15988,9 +15988,6 @@ Result<FullMessageId> MessagesManager::get_top_thread_full_message_id(DialogId d
     if (!m->message_id.is_server()) {
       return Status::Error(400, "Message thread is unavailable for the message");
     }
-    if (!td_->contacts_manager_->get_channel_has_linked_channel(dialog_id.get_channel_id())) {
-      return Status::Error(400, "Message threads are unavailable in the chat");
-    }
     return FullMessageId{dialog_id, m->top_thread_message_id};
   }
 }
@@ -21881,8 +21878,10 @@ MessagesManager::Message *MessagesManager::get_message_to_send(
         if (td_->auth_manager_->is_bot()) {
           return false;
         }
-        return (is_channel_post || !reply_to_message_id.is_valid()) &&
-               td_->contacts_manager_->get_channel_has_linked_channel(dialog_id.get_channel_id());
+        if (is_channel_post) {
+          return td_->contacts_manager_->get_channel_has_linked_channel(dialog_id.get_channel_id());
+        }
+        return !reply_to_message_id.is_valid();
       }()) {
     m->reply_info.reply_count = 0;
     if (is_channel_post) {
