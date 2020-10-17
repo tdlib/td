@@ -7,6 +7,7 @@
 #include "td/telegram/MessageReplyInfo.h"
 
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/MessagesManager.h"
 #include "td/telegram/ServerMessageId.h"
 
 #include "td/utils/logging.h"
@@ -40,6 +41,7 @@ MessageReplyInfo::MessageReplyInfo(tl_object_ptr<telegram_api::messageReplies> &
     for (const auto &peer : reply_info->recent_repliers_) {
       DialogId dialog_id(peer);
       if (dialog_id.is_valid()) {
+        // save all valid dialog_id, despite we can have no info about some of them
         recent_replier_dialog_ids.push_back(dialog_id);
       } else {
         LOG(ERROR) << "Receive " << dialog_id << " as a recent replier";
@@ -125,20 +127,28 @@ void MessageReplyInfo::add_reply(DialogId replier_dialog_id, MessageId reply_mes
 }
 
 td_api::object_ptr<td_api::messageReplyInfo> MessageReplyInfo::get_message_reply_info_object(
-    ContactsManager *contacts_manager) const {
+    ContactsManager *contacts_manager, const MessagesManager *messages_manager) const {
   if (is_empty()) {
     return nullptr;
   }
 
-  vector<UserId> recent_replier_user_ids;
+  vector<td_api::object_ptr<td_api::MessageSender>> recent_repliers;
   for (auto recent_replier_dialog_id : recent_replier_dialog_ids) {
     if (recent_replier_dialog_id.get_type() == DialogType::User) {
-      recent_replier_user_ids.push_back(recent_replier_dialog_id.get_user_id());
+      auto user_id = recent_replier_dialog_id.get_user_id();
+      if (contacts_manager->have_min_user(user_id)) {
+        recent_repliers.push_back(td_api::make_object<td_api::messageSenderUser>(
+            contacts_manager->get_user_id_object(user_id, "get_message_reply_info_object")));
+      }
+    } else {
+      if (messages_manager->have_dialog(recent_replier_dialog_id)) {
+        recent_repliers.push_back(td_api::make_object<td_api::messageSenderChat>(recent_replier_dialog_id.get()));
+      }
     }
   }
-  return td_api::make_object<td_api::messageReplyInfo>(
-      reply_count, contacts_manager->get_user_ids_object(recent_replier_user_ids, "get_message_reply_info_object"),
-      last_read_inbox_message_id.get(), last_read_outbox_message_id.get(), max_message_id.get());
+  return td_api::make_object<td_api::messageReplyInfo>(reply_count, std::move(recent_repliers),
+                                                       last_read_inbox_message_id.get(),
+                                                       last_read_outbox_message_id.get(), max_message_id.get());
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageReplyInfo &reply_info) {

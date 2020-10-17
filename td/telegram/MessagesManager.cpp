@@ -6577,7 +6577,7 @@ td_api::object_ptr<td_api::messageInteractionInfo> MessagesManager::get_message_
 
   td_api::object_ptr<td_api::messageReplyInfo> reply_info;
   if (is_visible_reply_info) {
-    reply_info = m->reply_info.get_message_reply_info_object(td_->contacts_manager_.get());
+    reply_info = m->reply_info.get_message_reply_info_object(td_->contacts_manager_.get(), this);
     CHECK(reply_info != nullptr);
   }
 
@@ -16108,7 +16108,7 @@ td_api::object_ptr<td_api::messageThreadInfo> MessagesManager::get_message_threa
     auto message = get_message_object(d->dialog_id, m);
     if (message != nullptr) {
       if (message->interaction_info_ != nullptr && message->interaction_info_->reply_info_ != nullptr) {
-        reply_info = m->reply_info.get_message_reply_info_object(td_->contacts_manager_.get());
+        reply_info = m->reply_info.get_message_reply_info_object(td_->contacts_manager_.get(), this);
         CHECK(reply_info != nullptr);
       }
       messages.push_back(std::move(message));
@@ -22368,6 +22368,8 @@ void MessagesManager::add_message_dependencies(Dependencies &dependencies, Dialo
   for (auto recent_replier_dialog_id : m->reply_info.recent_replier_dialog_ids) {
     if (recent_replier_dialog_id.get_type() == DialogType::User) {
       dependencies.user_ids.insert(recent_replier_dialog_id.get_user_id());
+    } else {
+      add_dialog_and_dependencies(dependencies, recent_replier_dialog_id);
     }
   }
   add_message_content_dependencies(dependencies, m->content.get());

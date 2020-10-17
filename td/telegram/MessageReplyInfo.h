@@ -19,6 +19,7 @@
 namespace td {
 
 class ContactsManager;
+class MessagesManager;
 
 struct MessageReplyInfo {
   int32 reply_count = -1;
@@ -47,7 +48,8 @@ struct MessageReplyInfo {
 
   void add_reply(DialogId replier_dialog_id, MessageId reply_message_id);
 
-  td_api::object_ptr<td_api::messageReplyInfo> get_message_reply_info_object(ContactsManager *contacts_manager) const;
+  td_api::object_ptr<td_api::messageReplyInfo> get_message_reply_info_object(
+      ContactsManager *contacts_manager, const MessagesManager *messages_manager) const;
 
   template <class StorerT>
   void store(StorerT &storer) const {

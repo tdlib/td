@@ -652,11 +652,11 @@ messageForwardInfo origin:MessageForwardOrigin date:int32 public_service_announc
 
 //@description Contains information about message replies
 //@reply_count Number of times the message was directly or indirectly replied
-//@recent_replier_user_ids User identifiers of the recent repliers to the message; available in channels with a discussion supergroup
+//@recent_repliers Recent repliers to the message; available in channels with a discussion supergroup
 //@last_read_inbox_message_id Identifier of the last read incoming reply to the message
 //@last_read_outbox_message_id Identifier of the last read outgoing reply to the message
 //@last_message_id Identifier of the last reply to the message
-messageReplyInfo reply_count:int32 recent_replier_user_ids:vector<int32> last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 last_message_id:int53 = MessageReplyInfo;
+messageReplyInfo reply_count:int32 recent_repliers:vector<MessageSender> last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 last_message_id:int53 = MessageReplyInfo;
 
 //@description Contains information about interactions with a message
 //@view_count Number of times the message was viewed
