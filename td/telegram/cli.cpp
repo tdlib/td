@@ -2944,7 +2944,7 @@ class CliClient final : public Actor {
       string is_blocked;
       std::tie(chat_id, is_blocked) = split(args);
       send_request(td_api::make_object<td_api::toggleChatIsBlocked>(as_chat_id(chat_id), as_bool(is_blocked)));
-    } else if (op == "bcfr") {
+    } else if (op == "bmsfr") {
       string message_id;
       string delete_message;
       string delete_all_messages;
@@ -2952,7 +2952,7 @@ class CliClient final : public Actor {
       std::tie(message_id, args) = split(args);
       std::tie(delete_message, args) = split(args);
       std::tie(delete_all_messages, report_spam) = split(args);
-      send_request(td_api::make_object<td_api::blockChatFromReplies>(
+      send_request(td_api::make_object<td_api::blockMessageSenderFromReplies>(
           as_message_id(message_id), as_bool(delete_message), as_bool(delete_all_messages), as_bool(report_spam)));
     } else if (op == "tcddn") {
       string chat_id;

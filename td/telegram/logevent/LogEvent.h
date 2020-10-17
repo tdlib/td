@@ -98,7 +98,7 @@ class LogEvent {
     DeleteScheduledMessagesFromServer = 0x117,
     ToggleDialogIsBlockedOnServer = 0x118,
     ReadMessageThreadHistoryOnServer = 0x119,
-    BlockDialogFromRepliesOnServer = 0x120,
+    BlockMessageSenderFromRepliesOnServer = 0x120,
     GetChannelDifference = 0x140,
     AddMessagePushNotification = 0x200,
     EditMessagePushNotification = 0x201,

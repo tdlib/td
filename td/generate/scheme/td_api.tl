@@ -4244,7 +4244,7 @@ sendCallDebugInformation call_id:int32 debug_information:string = Ok;
 //@delete_message Pass true if the message must be deleted
 //@delete_all_messages Pass true if all messages from the same sender must be deleted
 //@report_spam Pass true if the sender must be reported to the Telegram moderators
-blockChatFromReplies message_id:int53 delete_message:Bool delete_all_messages:Bool report_spam:Bool = Ok;
+blockMessageSenderFromReplies message_id:int53 delete_message:Bool delete_all_messages:Bool report_spam:Bool = Ok;
 
 //@description Returns chats that were blocked by the current user @offset Number of chats to skip in the result; must be non-negative @limit The maximum number of chats to return; up to 100
 getBlockedChats offset:int32 limit:int32 = Chats;
