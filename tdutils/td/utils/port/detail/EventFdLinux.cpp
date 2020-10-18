@@ -67,7 +67,7 @@ void EventFdLinux::release() {
   auto native_fd = impl_->info.native_fd().fd();
 
   auto result = [&]() -> Result<size_t> {
-    auto write_res = detail::skip_eintr([&] { return ::write(native_fd, slice.begin(), slice.size()); });
+    auto write_res = detail::skip_eintr([&] { return write(native_fd, slice.begin(), slice.size()); });
     auto write_errno = errno;
     if (write_res >= 0) {
       return narrow_cast<size_t>(write_res);
