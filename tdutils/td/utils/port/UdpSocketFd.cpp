@@ -47,7 +47,7 @@ class UdpSocketReceiveHelper {
  public:
   void to_native(const UdpMessage &message, WSAMSG &message_header) {
     socklen_t addr_len{narrow_cast<socklen_t>(sizeof(addr_))};
-    message_header.name = reinterpret_cast<struct sockaddr *>(&addr_);
+    message_header.name = reinterpret_cast<sockaddr *>(&addr_);
     message_header.namelen = addr_len;
     buf_.buf = const_cast<char *>(message.data.as_slice().begin());
     buf_.len = narrow_cast<DWORD>(message.data.size());
@@ -59,8 +59,7 @@ class UdpSocketReceiveHelper {
   }
 
   void from_native(WSAMSG &message_header, size_t message_size, UdpMessage &message) {
-    message.address.init_sockaddr(reinterpret_cast<struct sockaddr *>(message_header.name), message_header.namelen)
-        .ignore();
+    message.address.init_sockaddr(reinterpret_cast<sockaddr *>(message_header.name), message_header.namelen).ignore();
     message.error = Status::OK();
 
     if ((message_header.dwFlags & (MSG_TRUNC | MSG_CTRUNC)) != 0) {
@@ -82,7 +81,7 @@ class UdpSocketReceiveHelper {
 class UdpSocketSendHelper {
  public:
   void to_native(const UdpMessage &message, WSAMSG &message_header) {
-    message_header.name = const_cast<struct sockaddr *>(message.address.get_sockaddr());
+    message_header.name = const_cast<sockaddr *>(message.address.get_sockaddr());
     message_header.namelen = narrow_cast<socklen_t>(message.address.get_sockaddr_len());
     buf_.buf = const_cast<char *>(message.data.as_slice().begin());
     buf_.len = narrow_cast<DWORD>(message.data.size());
@@ -373,7 +372,7 @@ void UdpSocketFdImplDeleter::operator()(UdpSocketFdImpl *impl) {
 
 class UdpSocketReceiveHelper {
  public:
-  void to_native(const UdpSocketFd::InboundMessage &message, struct msghdr &message_header) {
+  void to_native(const UdpSocketFd::InboundMessage &message, msghdr &message_header) {
     socklen_t addr_len{narrow_cast<socklen_t>(sizeof(addr_))};
 
     message_header.msg_name = &addr_;
@@ -387,22 +386,22 @@ class UdpSocketReceiveHelper {
     message_header.msg_flags = 0;
   }
 
-  void from_native(struct msghdr &message_header, size_t message_size, UdpSocketFd::InboundMessage &message) {
+  void from_native(msghdr &message_header, size_t message_size, UdpSocketFd::InboundMessage &message) {
 #if TD_LINUX
-    struct cmsghdr *cmsg;
-    struct sock_extended_err *ee = nullptr;
+    cmsghdr *cmsg;
+    sock_extended_err *ee = nullptr;
     for (cmsg = CMSG_FIRSTHDR(&message_header); cmsg != nullptr; cmsg = CMSG_NXTHDR(&message_header, cmsg)) {
       if (cmsg->cmsg_type == IP_PKTINFO && cmsg->cmsg_level == IPPROTO_IP) {
-        //auto *pi = reinterpret_cast<struct in_pktinfo *>(CMSG_DATA(cmsg));
+        //auto *pi = reinterpret_cast<in_pktinfo *>(CMSG_DATA(cmsg));
       } else if (cmsg->cmsg_type == IPV6_PKTINFO && cmsg->cmsg_level == IPPROTO_IPV6) {
-        //auto *pi = reinterpret_cast<struct in6_pktinfo *>(CMSG_DATA(cmsg));
+        //auto *pi = reinterpret_cast<in6_pktinfo *>(CMSG_DATA(cmsg));
       } else if ((cmsg->cmsg_type == IP_RECVERR && cmsg->cmsg_level == IPPROTO_IP) ||
                  (cmsg->cmsg_type == IPV6_RECVERR && cmsg->cmsg_level == IPPROTO_IPV6)) {
-        ee = reinterpret_cast<struct sock_extended_err *>(CMSG_DATA(cmsg));
+        ee = reinterpret_cast<sock_extended_err *>(CMSG_DATA(cmsg));
       }
     }
     if (ee != nullptr) {
-      auto *addr = reinterpret_cast<struct sockaddr *>(SO_EE_OFFENDER(ee));
+      auto *addr = reinterpret_cast<sockaddr *>(SO_EE_OFFENDER(ee));
       IPAddress address;
       address.init_sockaddr(addr).ignore();
       if (message.from != nullptr) {
@@ -417,8 +416,7 @@ class UdpSocketReceiveHelper {
     }
 #endif
     if (message.from != nullptr) {
-      message.from
-          ->init_sockaddr(reinterpret_cast<struct sockaddr *>(message_header.msg_name), message_header.msg_namelen)
+      message.from->init_sockaddr(reinterpret_cast<sockaddr *>(message_header.msg_name), message_header.msg_namelen)
           .ignore();
     }
     if (message.error) {
@@ -439,14 +437,14 @@ class UdpSocketReceiveHelper {
  private:
   std::array<char, 1024> control_buf_;
   sockaddr_storage addr_;
-  struct iovec io_vec_;
+  iovec io_vec_;
 };
 
 class UdpSocketSendHelper {
  public:
-  void to_native(const UdpSocketFd::OutboundMessage &message, struct msghdr &message_header) {
+  void to_native(const UdpSocketFd::OutboundMessage &message, msghdr &message_header) {
     CHECK(message.to != nullptr && message.to->is_valid());
-    message_header.msg_name = const_cast<struct sockaddr *>(message.to->get_sockaddr());
+    message_header.msg_name = const_cast<sockaddr *>(message.to->get_sockaddr());
     message_header.msg_namelen = narrow_cast<socklen_t>(message.to->get_sockaddr_len());
     io_vec_.iov_base = const_cast<char *>(message.data.begin());
     io_vec_.iov_len = message.data.size();
@@ -459,7 +457,7 @@ class UdpSocketSendHelper {
   }
 
  private:
-  struct iovec io_vec_;
+  iovec io_vec_;
 };
 
 class UdpSocketFdImpl {
@@ -495,7 +493,7 @@ class UdpSocketFdImpl {
 #endif
     }
 
-    struct msghdr message_header;
+    msghdr message_header;
     detail::UdpSocketReceiveHelper helper;
     helper.to_native(message, message_header);
 
@@ -549,7 +547,7 @@ class UdpSocketFdImpl {
 
   Status send_message(const UdpSocketFd::OutboundMessage &message, bool &is_sent) {
     is_sent = false;
-    struct msghdr message_header;
+    msghdr message_header;
     detail::UdpSocketSendHelper helper;
     helper.to_native(message, message_header);
 
@@ -651,11 +649,11 @@ class UdpSocketFdImpl {
 #if TD_HAS_MMSG
   Status send_messages_fast(Span<UdpSocketFd::OutboundMessage> messages, size_t &cnt) {
     //struct mmsghdr {
-    //  struct msghdr msg_hdr; [> Message header <]
+    //  msghdr msg_hdr;        [> Message header <]
     //  unsigned int msg_len;  [> Number of bytes transmitted <]
     //};
-    struct std::array<detail::UdpSocketSendHelper, 16> helpers;
-    struct std::array<struct mmsghdr, 16> headers;
+    std::array<detail::UdpSocketSendHelper, 16> helpers;
+    std::array<mmsghdr, 16> headers;
     size_t to_send = min(messages.size(), headers.size());
     for (size_t i = 0; i < to_send; i++) {
       helpers[i].to_native(messages[i], headers[i].msg_hdr);
@@ -702,11 +700,11 @@ class UdpSocketFdImpl {
 #endif
     }
     //struct mmsghdr {
-    //  struct msghdr msg_hdr; [> Message header <]
+    //  msghdr msg_hdr;        [> Message header <]
     //  unsigned int msg_len;  [> Number of bytes transmitted <]
     //};
-    struct std::array<detail::UdpSocketReceiveHelper, 16> helpers;
-    struct std::array<struct mmsghdr, 16> headers;
+    std::array<detail::UdpSocketReceiveHelper, 16> helpers;
+    std::array<mmsghdr, 16> headers;
     size_t to_receive = min(messages.size(), headers.size());
     for (size_t i = 0; i < to_receive; i++) {
       helpers[i].to_native(messages[i], headers[i].msg_hdr);
