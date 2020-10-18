@@ -802,24 +802,24 @@ StringBuilder &operator<<(StringBuilder &string_builder, const ChannelParticipan
 
 DialogParticipantsFilter get_dialog_participants_filter(const tl_object_ptr<td_api::ChatMembersFilter> &filter) {
   if (filter == nullptr) {
-    return DialogParticipantsFilter::Members;
+    return DialogParticipantsFilter{DialogParticipantsFilter::Type::Members};
   }
   switch (filter->get_id()) {
     case td_api::chatMembersFilterContacts::ID:
-      return DialogParticipantsFilter::Contacts;
+      return DialogParticipantsFilter{DialogParticipantsFilter::Type::Contacts};
     case td_api::chatMembersFilterAdministrators::ID:
-      return DialogParticipantsFilter::Administrators;
+      return DialogParticipantsFilter{DialogParticipantsFilter::Type::Administrators};
     case td_api::chatMembersFilterMembers::ID:
-      return DialogParticipantsFilter::Members;
+      return DialogParticipantsFilter{DialogParticipantsFilter::Type::Members};
     case td_api::chatMembersFilterRestricted::ID:
-      return DialogParticipantsFilter::Restricted;
+      return DialogParticipantsFilter{DialogParticipantsFilter::Type::Restricted};
     case td_api::chatMembersFilterBanned::ID:
-      return DialogParticipantsFilter::Banned;
+      return DialogParticipantsFilter{DialogParticipantsFilter::Type::Banned};
     case td_api::chatMembersFilterBots::ID:
-      return DialogParticipantsFilter::Bots;
+      return DialogParticipantsFilter{DialogParticipantsFilter::Type::Bots};
     default:
       UNREACHABLE();
-      return DialogParticipantsFilter::Members;
+      return DialogParticipantsFilter{DialogParticipantsFilter::Type::Members};
   }
 }
 

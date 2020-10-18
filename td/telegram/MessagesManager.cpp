@@ -29761,25 +29761,25 @@ DialogParticipant MessagesManager::get_dialog_participant(DialogId dialog_id, Us
 std::pair<int32, vector<DialogParticipant>> MessagesManager::search_private_chat_participants(
     UserId my_user_id, UserId peer_user_id, const string &query, int32 limit, DialogParticipantsFilter filter) const {
   vector<UserId> user_ids;
-  switch (filter) {
-    case DialogParticipantsFilter::Contacts:
+  switch (filter.type) {
+    case DialogParticipantsFilter::Type::Contacts:
       if (peer_user_id.is_valid() && td_->contacts_manager_->is_user_contact(peer_user_id)) {
         user_ids.push_back(peer_user_id);
       }
       break;
-    case DialogParticipantsFilter::Administrators:
+    case DialogParticipantsFilter::Type::Administrators:
       break;
-    case DialogParticipantsFilter::Members:
+    case DialogParticipantsFilter::Type::Members:
       user_ids.push_back(my_user_id);
       if (peer_user_id.is_valid() && peer_user_id != my_user_id) {
         user_ids.push_back(peer_user_id);
       }
       break;
-    case DialogParticipantsFilter::Restricted:
+    case DialogParticipantsFilter::Type::Restricted:
       break;
-    case DialogParticipantsFilter::Banned:
+    case DialogParticipantsFilter::Type::Banned:
       break;
-    case DialogParticipantsFilter::Bots:
+    case DialogParticipantsFilter::Type::Bots:
       if (td_->auth_manager_->is_bot()) {
         user_ids.push_back(my_user_id);
       }
@@ -29824,39 +29824,39 @@ std::pair<int32, vector<DialogParticipant>> MessagesManager::search_dialog_parti
       tl_object_ptr<td_api::SupergroupMembersFilter> request_filter;
       string additional_query;
       int32 additional_limit = 0;
-      switch (filter) {
-        case DialogParticipantsFilter::Contacts:
+      switch (filter.type) {
+        case DialogParticipantsFilter::Type::Contacts:
           request_filter = td_api::make_object<td_api::supergroupMembersFilterContacts>();
           break;
-        case DialogParticipantsFilter::Administrators:
+        case DialogParticipantsFilter::Type::Administrators:
           request_filter = td_api::make_object<td_api::supergroupMembersFilterAdministrators>();
           break;
-        case DialogParticipantsFilter::Members:
+        case DialogParticipantsFilter::Type::Members:
           request_filter = td_api::make_object<td_api::supergroupMembersFilterSearch>(query);
           break;
-        case DialogParticipantsFilter::Restricted:
+        case DialogParticipantsFilter::Type::Restricted:
           request_filter = td_api::make_object<td_api::supergroupMembersFilterRestricted>(query);
           break;
-        case DialogParticipantsFilter::Banned:
+        case DialogParticipantsFilter::Type::Banned:
           request_filter = td_api::make_object<td_api::supergroupMembersFilterBanned>(query);
           break;
-        case DialogParticipantsFilter::Bots:
+        case DialogParticipantsFilter::Type::Bots:
           request_filter = td_api::make_object<td_api::supergroupMembersFilterBots>();
           break;
         default:
           UNREACHABLE();
       }
-      switch (filter) {
-        case DialogParticipantsFilter::Contacts:
-        case DialogParticipantsFilter::Administrators:
-        case DialogParticipantsFilter::Bots:
+      switch (filter.type) {
+        case DialogParticipantsFilter::Type::Contacts:
+        case DialogParticipantsFilter::Type::Administrators:
+        case DialogParticipantsFilter::Type::Bots:
           additional_query = query;
           additional_limit = limit;
           limit = 100;
           break;
-        case DialogParticipantsFilter::Members:
-        case DialogParticipantsFilter::Restricted:
-        case DialogParticipantsFilter::Banned:
+        case DialogParticipantsFilter::Type::Members:
+        case DialogParticipantsFilter::Type::Restricted:
+        case DialogParticipantsFilter::Type::Banned:
           // query is passed to the server request
           break;
         default:

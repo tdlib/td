@@ -13321,18 +13321,18 @@ std::pair<int32, vector<DialogParticipant>> ContactsManager::search_chat_partici
   }
 
   auto is_dialog_participant_suitable = [this](const DialogParticipant &participant, DialogParticipantsFilter filter) {
-    switch (filter) {
-      case DialogParticipantsFilter::Contacts:
+    switch (filter.type) {
+      case DialogParticipantsFilter::Type::Contacts:
         return is_user_contact(participant.user_id);
-      case DialogParticipantsFilter::Administrators:
+      case DialogParticipantsFilter::Type::Administrators:
         return participant.status.is_administrator();
-      case DialogParticipantsFilter::Members:
+      case DialogParticipantsFilter::Type::Members:
         return participant.status.is_member();  // should be always true
-      case DialogParticipantsFilter::Restricted:
+      case DialogParticipantsFilter::Type::Restricted:
         return participant.status.is_restricted();  // should be always false
-      case DialogParticipantsFilter::Banned:
+      case DialogParticipantsFilter::Type::Banned:
         return participant.status.is_banned();  // should be always false
-      case DialogParticipantsFilter::Bots:
+      case DialogParticipantsFilter::Type::Bots:
         return is_user_bot(participant.user_id);
       default:
         UNREACHABLE();

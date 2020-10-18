@@ -443,7 +443,14 @@ class ChannelParticipantsFilter {
 
 StringBuilder &operator<<(StringBuilder &string_builder, const ChannelParticipantsFilter &filter);
 
-enum class DialogParticipantsFilter : int32 { Contacts, Administrators, Members, Restricted, Banned, Bots };
+class DialogParticipantsFilter {
+ public:
+  enum class Type : int32 { Contacts, Administrators, Members, Restricted, Banned, Bots };
+  Type type;
+
+  explicit DialogParticipantsFilter(Type type) : type(type) {
+  }
+};
 
 DialogParticipantsFilter get_dialog_participants_filter(const tl_object_ptr<td_api::ChatMembersFilter> &filter);
 
