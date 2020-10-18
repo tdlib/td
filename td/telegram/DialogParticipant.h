@@ -6,9 +6,9 @@
 //
 #pragma once
 
+#include "td/telegram/MessageId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
-
 #include "td/telegram/UserId.h"
 
 #include "td/utils/common.h"
@@ -401,8 +401,9 @@ struct DialogParticipant {
 StringBuilder &operator<<(StringBuilder &string_builder, const DialogParticipant &dialog_participant);
 
 class ChannelParticipantsFilter {
-  enum class Type : int32 { Recent, Contacts, Administrators, Search, Restricted, Banned, Bots } type;
+  enum class Type : int32 { Recent, Contacts, Administrators, Search, Mention, Restricted, Banned, Bots } type;
   string query;
+  MessageId top_thread_message_id;
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const ChannelParticipantsFilter &filter);
 

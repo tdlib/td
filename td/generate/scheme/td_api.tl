@@ -524,6 +524,9 @@ supergroupMembersFilterAdministrators = SupergroupMembersFilter;
 //@description Used to search for supergroup or channel members via a (string) query @query Query to search for
 supergroupMembersFilterSearch query:string = SupergroupMembersFilter;
 
+//@description Returns users which can be mentioned in the supergroup @query Query to search for @message_thread_id If non-zero, the identifier of the current message thread
+supergroupMembersFilterMention query:string message_thread_id:int53 = SupergroupMembersFilter;
+
 //@description Returns restricted supergroup members; can be used only by administrators @query Query to search for
 supergroupMembersFilterRestricted query:string = SupergroupMembersFilter;
 

@@ -706,6 +706,17 @@ ChannelParticipantsFilter::get_input_channel_participants_filter() const {
       return make_tl_object<telegram_api::channelParticipantsAdmins>();
     case Type::Search:
       return make_tl_object<telegram_api::channelParticipantsSearch>(query);
+    case Type::Mention: {
+      int32 flags = 0;
+      if (!query.empty()) {
+        flags |= telegram_api::channelParticipantsMentions::Q_MASK;
+      }
+      if (!top_thread_message_id.is_valid()) {
+        flags |= telegram_api::channelParticipantsMentions::TOP_MSG_ID_MASK;
+      }
+      return make_tl_object<telegram_api::channelParticipantsMentions>(
+          flags, query, top_thread_message_id.get_server_message_id().get());
+    }
     case Type::Restricted:
       return make_tl_object<telegram_api::channelParticipantsBanned>(query);
     case Type::Banned:
@@ -738,6 +749,16 @@ ChannelParticipantsFilter::ChannelParticipantsFilter(const tl_object_ptr<td_api:
       type = Type::Search;
       query = static_cast<const td_api::supergroupMembersFilterSearch *>(filter.get())->query_;
       return;
+    case td_api::supergroupMembersFilterMention::ID: {
+      auto mention_filter = static_cast<const td_api::supergroupMembersFilterMention *>(filter.get());
+      type = Type::Mention;
+      query = mention_filter->query_;
+      top_thread_message_id = MessageId(mention_filter->message_thread_id_);
+      if (!top_thread_message_id.is_valid() || !top_thread_message_id.is_server()) {
+        top_thread_message_id = MessageId();
+      }
+      return;
+    }
     case td_api::supergroupMembersFilterRestricted::ID:
       type = Type::Restricted;
       query = static_cast<const td_api::supergroupMembersFilterRestricted *>(filter.get())->query_;
@@ -765,6 +786,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, const ChannelParticipan
       return string_builder << "Administrators";
     case ChannelParticipantsFilter::Type::Search:
       return string_builder << "Search \"" << filter.query << '"';
+    case ChannelParticipantsFilter::Type::Mention:
+      return string_builder << "Mention \"" << filter.query << "\" in thread of " << filter.top_thread_message_id;
     case ChannelParticipantsFilter::Type::Restricted:
       return string_builder << "Restricted \"" << filter.query << '"';
     case ChannelParticipantsFilter::Type::Banned:

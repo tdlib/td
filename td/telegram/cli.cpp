@@ -2553,16 +2553,20 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getChatAdministrators>(as_chat_id(chat_id)));
     } else if (op == "GetSupergroupAdministrators" || op == "GetSupergroupBanned" || op == "GetSupergroupBots" ||
                op == "GetSupergroupContacts" || op == "GetSupergroupMembers" || op == "GetSupergroupRestricted" ||
-               op == "SearchSupergroupMembers") {
+               op == "SearchSupergroupMembers" || op == "SearchSupergroupMentions") {
       string supergroup_id;
       string query;
+      string message_thread_id;
       string offset;
       string limit;
 
       std::tie(supergroup_id, args) = split(args);
       if (op == "GetSupergroupBanned" || op == "GetSupergroupContacts" || op == "GetSupergroupRestricted" ||
-          op == "SearchSupergroupMembers") {
+          op == "SearchSupergroupMembers" || op == "SearchSupergroupMentions") {
         std::tie(query, args) = split(args);
+      }
+      if (op == "SearchSupergroupMentions") {
+        std::tie(message_thread_id, args) = split(args);
       }
       std::tie(offset, limit) = split(args);
       if (offset.empty()) {
@@ -2586,6 +2590,9 @@ class CliClient final : public Actor {
         filter = td_api::make_object<td_api::supergroupMembersFilterRestricted>(query);
       } else if (op == "SearchSupergroupMembers") {
         filter = td_api::make_object<td_api::supergroupMembersFilterSearch>(query);
+      } else if (op == "SearchSupergroupMentions") {
+        filter =
+            td_api::make_object<td_api::supergroupMembersFilterMention>(query, as_message_thread_id(message_thread_id));
       }
       send_request(td_api::make_object<td_api::getSupergroupMembers>(
           as_supergroup_id(supergroup_id), std::move(filter), to_integer<int32>(offset), to_integer<int32>(limit)));
