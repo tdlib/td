@@ -21774,6 +21774,10 @@ bool MessagesManager::is_anonymous_administrator(UserId sender_user_id, DialogId
   }
   CHECK(dialog_id.is_valid());
 
+  if (td_->contacts_manager_->is_user_bot(sender_user_id)) {
+    return false;
+  }
+
   if (dialog_id.get_type() != DialogType::Channel || is_broadcast_channel(dialog_id)) {
     return false;
   }
