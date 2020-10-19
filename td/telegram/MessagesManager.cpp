@@ -5569,7 +5569,7 @@ void MessagesManager::on_preload_folder_dialog_list_timeout_callback(void *messa
 td_api::object_ptr<td_api::MessageSender> MessagesManager::get_message_sender_object_const(UserId user_id,
                                                                                            DialogId dialog_id) const {
   if (dialog_id.is_valid()) {
-    CHECK(!have_dialog(dialog_id));
+    CHECK(have_dialog(dialog_id));
     return td_api::make_object<td_api::messageSenderChat>(dialog_id.get());
   }
   if (!user_id.is_valid()) {
@@ -5585,6 +5585,10 @@ td_api::object_ptr<td_api::MessageSender> MessagesManager::get_message_sender_ob
   if (dialog_id.is_valid() && !have_dialog(dialog_id)) {
     LOG(ERROR) << "Failed to find " << dialog_id;
     force_create_dialog(dialog_id, "get_message_sender_object");
+  }
+  if (!user_id.is_valid() && td_->auth_manager_->is_bot()) {
+    td_->contacts_manager_->add_anonymous_bot_user();
+    td_->contacts_manager_->add_service_notifications_user();
   }
   return get_message_sender_object_const(user_id, dialog_id);
 }
