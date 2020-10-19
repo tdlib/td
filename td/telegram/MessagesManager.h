@@ -746,6 +746,9 @@ class MessagesManager : public Actor {
 
   vector<FullMessageId> get_active_live_location_messages(Promise<Unit> &&promise);
 
+  void enable_live_location_approaching_notification(DialogId dialog_id, MessageId message_id, int32 distance,
+                                                     Promise<Unit> &&promise);
+
   int64 get_dialog_message_by_date(DialogId dialog_id, int32 date, Promise<Unit> &&promise);
 
   void on_get_dialog_message_by_date_success(DialogId dialog_id, int32 date, int64 random_id,

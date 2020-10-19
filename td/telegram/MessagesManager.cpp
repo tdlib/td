@@ -1817,6 +1817,41 @@ class ReadDiscussionQuery : public Td::ResultHandler {
   }
 };
 
+class RequestProximityNotificationQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit RequestProximityNotificationQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, MessageId message_id, int32 distance) {
+    dialog_id_ = dialog_id;
+    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+    int32 flags = 0;
+    if (distance > 0) {
+      flags |= telegram_api::messages_requestProximityNotification::MAX_DISTANCE_MASK;
+    }
+    send_query(G()->net_query_creator().create(telegram_api::messages_requestProximityNotification(
+        flags, std::move(input_peer), message_id.get_server_message_id().get(), distance)));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::messages_requestProximityNotification>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(uint64 id, Status status) override {
+    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "RequestProximityNotificationQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class SearchMessagesQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
@@ -20467,6 +20502,45 @@ void MessagesManager::on_message_live_location_viewed_on_server(int64 task_id) {
   }
 
   pending_message_live_location_view_timeout_.add_timeout_in(task_id, LIVE_LOCATION_VIEW_PERIOD);
+}
+
+void MessagesManager::enable_live_location_approaching_notification(DialogId dialog_id, MessageId message_id,
+                                                                    int32 distance, Promise<Unit> &&promise) {
+  Dialog *d = get_dialog_force(dialog_id);
+  if (d == nullptr) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+    return promise.set_error(Status::Error(400, "Can't access the chat"));
+  }
+  if (is_broadcast_channel(dialog_id)) {
+    return promise.set_error(Status::Error(400, "Can't use approaching notifications in channels"));
+  }
+  if (dialog_id.get_type() == DialogType::SecretChat) {
+    return promise.set_error(Status::Error(400, "Can't use approaching notifications in secret chats"));
+  }
+  if (dialog_id == get_my_dialog_id()) {
+    return promise.set_error(Status::Error(400, "Can't use approaching notifications in Saved Messages"));
+  }
+
+  auto m = get_message_force(d, message_id, "enable_approaching_notification");
+  if (m == nullptr) {
+    return promise.set_error(Status::Error(400, "Message not found"));
+  }
+  if (!m->is_outgoing) {
+    return promise.set_error(Status::Error(400, "Message is not outgoing"));
+  }
+  if (!m->sender_user_id.is_valid()) {
+    return promise.set_error(Status::Error(400, "Message is anonymous"));
+  }
+  if (get_message_content_live_location_period(m->content.get()) <= G()->unix_time() - m->date + 1) {
+    return promise.set_error(Status::Error(400, "Message has no active live location"));
+  }
+  if (!message_id.is_server()) {
+    return promise.set_error(Status::Error(400, "Message is not server"));
+  }
+
+  td_->create_handler<RequestProximityNotificationQuery>(std::move(promise))->send(dialog_id, message_id, distance);
 }
 
 FileSourceId MessagesManager::get_message_file_source_id(FullMessageId full_message_id) {

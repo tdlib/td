@@ -3160,6 +3160,19 @@ class CliClient final : public Actor {
           as_chat_id(chat_id), as_message_id(message_id), as_message_scheduling_state(date)));
     } else if (op == "gallm") {
       send_request(td_api::make_object<td_api::getActiveLiveLocationMessages>());
+    } else if (op == "ellan" || op == "dllan") {
+      string chat_id;
+      string message_id;
+      string distance;
+      std::tie(chat_id, args) = split(args);
+      std::tie(message_id, distance) = split(args);
+      if (op == "ellan") {
+        send_request(td_api::make_object<td_api::enableLiveLocationApproachingNotification>(
+            as_chat_id(chat_id), as_message_id(message_id), to_integer<int32>(distance)));
+      } else {
+        send_request(td_api::make_object<td_api::disableLiveLocationApproachingNotification>(
+            as_chat_id(chat_id), as_message_id(message_id)));
+      }
     } else if (op == "sbsm") {
       string bot_id;
       string chat_id;

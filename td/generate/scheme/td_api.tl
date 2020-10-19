@@ -868,7 +868,7 @@ chat id:int53 type:ChatType title:string photo:chatPhotoInfo permissions:chatPer
 chats total_count:int32 chat_ids:vector<int53> = Chats;
 
 
-//@description Describes a chat located nearby @chat_id Chat identifier @distance Distance to the chat location in meters
+//@description Describes a chat located nearby @chat_id Chat identifier @distance Distance to the chat location, in meters
 chatNearby chat_id:int53 distance:int32 = ChatNearby;
 
 //@description Represents a list of chats located nearby @users_nearby List of users nearby @supergroups_nearby List of location-based supergroups nearby
@@ -3726,6 +3726,17 @@ searchChatRecentLocationMessages chat_id:int53 limit:int32 = Messages;
 
 //@description Returns all active live locations that should be updated by the application. The list is persistent across application restarts only if the message database is used
 getActiveLiveLocationMessages = Messages;
+
+//@description Enables sending a notification when some other user in the chat approaches the current user. Both users need to send live location messages to the chat
+//@chat_id Chat identifier
+//@message_id Identifier of an outgoing successfully sent non-anonymous active live location message
+//@distance The maximum target distance for the notification, in meters; must be positive
+enableLiveLocationApproachingNotification chat_id:int53 message_id:int53 distance:int32 = Ok;
+
+//@description Disables sending a notification when some other user in the chat approaches the current user
+//@chat_id Chat identifier
+//@message_id Identifier of an outgoing successfully sent non-anonymous active live location message
+disableLiveLocationApproachingNotification chat_id:int53 message_id:int53 = Ok;
 
 //@description Returns the last message sent in a chat no later than the specified date @chat_id Chat identifier @date Point in time (Unix timestamp) relative to which to search for messages
 getChatMessageByDate chat_id:int53 date:int32 = Message;

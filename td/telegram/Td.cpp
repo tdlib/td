@@ -5583,6 +5583,23 @@ void Td::on_request(uint64 id, const td_api::getActiveLiveLocationMessages &requ
   CREATE_NO_ARGS_REQUEST(GetActiveLiveLocationMessagesRequest);
 }
 
+void Td::on_request(uint64 id, const td_api::enableLiveLocationApproachingNotification &request) {
+  CHECK_IS_USER();
+  if (request.distance_ <= 0) {
+    return send_error_raw(id, 400, "Invalid distance specified");
+  }
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->enable_live_location_approaching_notification(
+      DialogId(request.chat_id_), MessageId(request.message_id_), request.distance_, std::move(promise));
+}
+
+void Td::on_request(uint64 id, const td_api::disableLiveLocationApproachingNotification &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->enable_live_location_approaching_notification(
+      DialogId(request.chat_id_), MessageId(request.message_id_), 0, std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getChatMessageByDate &request) {
   CREATE_REQUEST(GetChatMessageByDateRequest, request.chat_id_, request.date_);
 }
