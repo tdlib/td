@@ -445,10 +445,12 @@ StringBuilder &operator<<(StringBuilder &string_builder, const ChannelParticipan
 
 class DialogParticipantsFilter {
  public:
-  enum class Type : int32 { Contacts, Administrators, Members, Restricted, Banned, Bots };
+  enum class Type : int32 { Contacts, Administrators, Members, Restricted, Banned, Mention, Bots };
   Type type;
+  MessageId top_thread_message_id;
 
-  explicit DialogParticipantsFilter(Type type) : type(type) {
+  explicit DialogParticipantsFilter(Type type, MessageId top_thread_message_id = MessageId())
+      : type(type), top_thread_message_id(top_thread_message_id) {
   }
 };
 

@@ -13332,6 +13332,8 @@ std::pair<int32, vector<DialogParticipant>> ContactsManager::search_chat_partici
         return participant.status.is_restricted();  // should be always false
       case DialogParticipantsFilter::Type::Banned:
         return participant.status.is_banned();  // should be always false
+      case DialogParticipantsFilter::Type::Mention:
+        return true;
       case DialogParticipantsFilter::Type::Bots:
         return is_user_bot(participant.user_id);
       default:

@@ -815,6 +815,14 @@ DialogParticipantsFilter get_dialog_participants_filter(const tl_object_ptr<td_a
       return DialogParticipantsFilter{DialogParticipantsFilter::Type::Restricted};
     case td_api::chatMembersFilterBanned::ID:
       return DialogParticipantsFilter{DialogParticipantsFilter::Type::Banned};
+    case td_api::chatMembersFilterMention::ID: {
+      auto mention_filter = static_cast<const td_api::chatMembersFilterMention *>(filter.get());
+      auto top_thread_message_id = MessageId(mention_filter->message_thread_id_);
+      if (!top_thread_message_id.is_valid() || !top_thread_message_id.is_server()) {
+        top_thread_message_id = MessageId();
+      }
+      return DialogParticipantsFilter{DialogParticipantsFilter::Type::Mention, top_thread_message_id};
+    }
     case td_api::chatMembersFilterBots::ID:
       return DialogParticipantsFilter{DialogParticipantsFilter::Type::Bots};
     default:

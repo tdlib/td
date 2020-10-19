@@ -29770,6 +29770,7 @@ std::pair<int32, vector<DialogParticipant>> MessagesManager::search_private_chat
     case DialogParticipantsFilter::Type::Administrators:
       break;
     case DialogParticipantsFilter::Type::Members:
+    case DialogParticipantsFilter::Type::Mention:
       user_ids.push_back(my_user_id);
       if (peer_user_id.is_valid() && peer_user_id != my_user_id) {
         user_ids.push_back(peer_user_id);
@@ -29840,6 +29841,10 @@ std::pair<int32, vector<DialogParticipant>> MessagesManager::search_dialog_parti
         case DialogParticipantsFilter::Type::Banned:
           request_filter = td_api::make_object<td_api::supergroupMembersFilterBanned>(query);
           break;
+        case DialogParticipantsFilter::Type::Mention:
+          request_filter =
+              td_api::make_object<td_api::supergroupMembersFilterMention>(query, filter.top_thread_message_id.get());
+          break;
         case DialogParticipantsFilter::Type::Bots:
           request_filter = td_api::make_object<td_api::supergroupMembersFilterBots>();
           break;
@@ -29857,6 +29862,7 @@ std::pair<int32, vector<DialogParticipant>> MessagesManager::search_dialog_parti
         case DialogParticipantsFilter::Type::Members:
         case DialogParticipantsFilter::Type::Restricted:
         case DialogParticipantsFilter::Type::Banned:
+        case DialogParticipantsFilter::Type::Mention:
           // query is passed to the server request
           break;
         default:
