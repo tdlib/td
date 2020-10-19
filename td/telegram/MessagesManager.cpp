@@ -627,7 +627,7 @@ class UpdateDialogPinnedMessageQuery : public Td::ResultHandler {
     }
 
     send_query(G()->net_query_creator().create(telegram_api::messages_updatePinnedMessage(
-        flags, false /*ignored*/, std::move(input_peer), message_id.get_server_message_id().get())));
+        flags, false /*ignored*/, false /*ignored*/, std::move(input_peer), message_id.get_server_message_id().get())));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {

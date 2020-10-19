@@ -1755,19 +1755,12 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadChannelDisc
       MessageId(), MessageId(ServerMessageId(update->read_max_id_)));
 }
 
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateUserPinnedMessage> update, bool /*force_apply*/) {
-  td_->messages_manager_->on_update_dialog_pinned_message_id(DialogId(UserId(update->user_id_)),
-                                                             MessageId(ServerMessageId(update->id_)));
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePinnedMessages> update, bool /*force_apply*/) {
+  // TODO
 }
 
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChatPinnedMessage> update, bool /*force_apply*/) {
-  td_->contacts_manager_->on_update_chat_pinned_message(ChatId(update->chat_id_),
-                                                        MessageId(ServerMessageId(update->id_)), update->version_);
-}
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelPinnedMessage> update, bool /*force_apply*/) {
-  td_->messages_manager_->on_update_dialog_pinned_message_id(DialogId(ChannelId(update->channel_id_)),
-                                                             MessageId(ServerMessageId(update->id_)));
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePinnedChannelMessages> update, bool /*force_apply*/) {
+  // TODO
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNotifySettings> update, bool /*force_apply*/) {
