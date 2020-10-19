@@ -22481,11 +22481,7 @@ void MessagesManager::add_message_dependencies(Dependencies &dependencies, Dialo
     add_dialog_and_dependencies(dependencies, m->forward_info->from_dialog_id);
   }
   for (auto recent_replier_dialog_id : m->reply_info.recent_replier_dialog_ids) {
-    if (recent_replier_dialog_id.get_type() == DialogType::User) {
-      dependencies.user_ids.insert(recent_replier_dialog_id.get_user_id());
-    } else {
-      add_dialog_and_dependencies(dependencies, recent_replier_dialog_id);
-    }
+    add_message_sender_dependencies(dependencies, recent_replier_dialog_id);
   }
   add_message_content_dependencies(dependencies, m->content.get());
 }

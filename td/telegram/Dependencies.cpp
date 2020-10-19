@@ -43,6 +43,14 @@ void add_dialog_dependencies(Dependencies &dependencies, DialogId dialog_id) {
   }
 }
 
+void add_message_sender_dependencies(Dependencies &dependencies, DialogId dialog_id) {
+  if (dialog_id.get_type() == DialogType::User) {
+    dependencies.user_ids.insert(dialog_id.get_user_id());
+  } else {
+    add_dialog_and_dependencies(dependencies, dialog_id);
+  }
+}
+
 void resolve_dependencies_force(Td *td, const Dependencies &dependencies, const char *source) {
   for (auto user_id : dependencies.user_ids) {
     if (user_id.is_valid() && !td->contacts_manager_->have_user_force(user_id)) {
