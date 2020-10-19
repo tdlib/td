@@ -167,6 +167,7 @@ class MessagesManager : public Actor {
   static constexpr int32 MESSAGE_FLAG_HIDE_EDIT_DATE = 1 << 21;
   static constexpr int32 MESSAGE_FLAG_IS_RESTRICTED = 1 << 22;
   static constexpr int32 MESSAGE_FLAG_HAS_REPLY_INFO = 1 << 23;
+  static constexpr int32 MESSAGE_FLAG_IS_PINNED = 1 << 24;
 
   static constexpr int32 SEND_MESSAGE_FLAG_IS_REPLY = 1 << 0;
   static constexpr int32 SEND_MESSAGE_FLAG_DISABLE_WEB_PAGE_PREVIEW = 1 << 1;
@@ -1072,9 +1073,10 @@ class MessagesManager : public Actor {
     bool hide_edit_date = false;
     bool had_reply_markup = false;  // had non-inline reply markup?
     bool had_forward_info = false;
-    bool is_content_secret = false;  // should be shown only while tapped
+    bool is_content_secret = false;  // must be shown only while tapped
     bool is_mention_notification_disabled = false;
     bool is_from_scheduled = false;
+    bool is_pinned = false;
 
     bool is_copy = false;                   // for send_message
     bool from_background = false;           // for send_message

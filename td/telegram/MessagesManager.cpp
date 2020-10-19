@@ -4594,6 +4594,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(has_thread_draft_message);
     STORE_FLAG(has_local_thread_message_ids);
     STORE_FLAG(has_linked_top_thread_message_id);
+    STORE_FLAG(is_pinned);
     END_STORE_FLAGS();
   }
 
@@ -4793,6 +4794,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(has_thread_draft_message);
     PARSE_FLAG(has_local_thread_message_ids);
     PARSE_FLAG(has_linked_top_thread_message_id);
+    PARSE_FLAG(is_pinned);
     END_PARSE_FLAGS();
   }
 
@@ -12603,6 +12605,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   bool is_legacy = (flags & MESSAGE_FLAG_IS_LEGACY) != 0;
   bool hide_edit_date = (flags & MESSAGE_FLAG_HIDE_EDIT_DATE) != 0;
   bool is_from_scheduled = (flags & MESSAGE_FLAG_IS_FROM_SCHEDULED) != 0;
+  bool is_pinned = (flags & MESSAGE_FLAG_IS_PINNED) != 0;
 
   LOG_IF(ERROR, is_channel_message != (dialog_type == DialogType::Channel))
       << "is_channel_message is wrong for message received in the " << dialog_id;
@@ -12748,6 +12751,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   message->is_content_secret = is_content_secret;
   message->hide_edit_date = hide_edit_date;
   message->is_from_scheduled = is_from_scheduled;
+  message->is_pinned = is_pinned;
   message->view_count = view_count;
   message->forward_count = forward_count;
   message->reply_info = std::move(reply_info);
@@ -21883,9 +21887,11 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   auto live_location_date = m->is_failed_to_send ? 0 : m->date;
   auto date = is_scheduled ? 0 : m->date;
   auto edit_date = m->hide_edit_date ? 0 : m->edit_date;
+  auto is_pinned =
+      for_event_log || is_scheduled ? false : m->is_pinned || get_dialog(dialog_id)->pinned_message_id == m->message_id;
   return make_tl_object<td_api::message>(
       m->message_id.get(), get_message_sender_object_const(m->sender_user_id, m->sender_dialog_id), dialog_id.get(),
-      std::move(sending_state), std::move(scheduling_state), is_outgoing, can_be_edited, can_be_forwarded,
+      std::move(sending_state), std::move(scheduling_state), is_outgoing, is_pinned, can_be_edited, can_be_forwarded,
       can_delete_for_self, can_delete_for_all_users, can_get_statistics, can_get_message_thread, m->is_channel_post,
       contains_unread_mention, date, edit_date, get_message_forward_info_object(m->forward_info),
       get_message_interaction_info_object(dialog_id, m), reply_in_dialog_id.get(), reply_to_message_id,
@@ -32142,6 +32148,11 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
   if (old_message->is_from_scheduled != new_message->is_from_scheduled) {
     // is_from_scheduled flag shouldn't be changed, because we are unable to show/hide message notification
     // old_message->is_from_scheduled = new_message->is_from_scheduled;
+  }
+
+  if (old_message->is_pinned != new_message->is_pinned) {
+    old_message->is_pinned = new_message->is_pinned;
+    need_send_update = true;
   }
 
   if (old_message->edit_date > 0) {

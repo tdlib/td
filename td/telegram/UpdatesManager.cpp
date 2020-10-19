@@ -714,16 +714,17 @@ void UpdatesManager::on_get_updates(tl_object_ptr<telegram_api::Updates> &&updat
       auto from_id = update->flags_ & MessagesManager::MESSAGE_FLAG_IS_OUT ? td_->contacts_manager_->get_my_id().get()
                                                                            : update->user_id_;
       update->flags_ |= MessagesManager::MESSAGE_FLAG_HAS_FROM_ID;
-      on_pending_update(make_tl_object<telegram_api::updateNewMessage>(
-                            make_tl_object<telegram_api::message>(
-                                update->flags_, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                false /*ignored*/, update->id_, make_tl_object<telegram_api::peerUser>(from_id),
-                                make_tl_object<telegram_api::peerUser>(update->user_id_), std::move(update->fwd_from_),
-                                update->via_bot_id_, std::move(update->reply_to_), update->date_, update->message_,
-                                nullptr, nullptr, std::move(update->entities_), 0, 0, nullptr, 0, string(), 0, Auto()),
-                            update->pts_, update->pts_count_),
-                        0, "telegram_api::updatesShortMessage");
+      on_pending_update(
+          make_tl_object<telegram_api::updateNewMessage>(
+              make_tl_object<telegram_api::message>(
+                  update->flags_, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+                  false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+                  update->id_, make_tl_object<telegram_api::peerUser>(from_id),
+                  make_tl_object<telegram_api::peerUser>(update->user_id_), std::move(update->fwd_from_),
+                  update->via_bot_id_, std::move(update->reply_to_), update->date_, update->message_, nullptr, nullptr,
+                  std::move(update->entities_), 0, 0, nullptr, 0, string(), 0, Auto()),
+              update->pts_, update->pts_count_),
+          0, "telegram_api::updatesShortMessage");
       break;
     }
     case telegram_api::updateShortChatMessage::ID: {
@@ -742,8 +743,8 @@ void UpdatesManager::on_get_updates(tl_object_ptr<telegram_api::Updates> &&updat
           make_tl_object<telegram_api::updateNewMessage>(
               make_tl_object<telegram_api::message>(
                   update->flags_, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                  false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, update->id_,
-                  make_tl_object<telegram_api::peerUser>(update->from_id_),
+                  false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+                  update->id_, make_tl_object<telegram_api::peerUser>(update->from_id_),
                   make_tl_object<telegram_api::peerChat>(update->chat_id_), std::move(update->fwd_from_),
                   update->via_bot_id_, std::move(update->reply_to_), update->date_, update->message_, nullptr, nullptr,
                   std::move(update->entities_), 0, 0, nullptr, 0, string(), 0, Auto()),
