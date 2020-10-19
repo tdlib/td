@@ -5753,11 +5753,16 @@ int32 MessagesManager::get_message_index_mask(DialogId dialog_id, const Message 
   if (!m->message_id.is_server() && !is_secret) {
     return 0;
   }
+
+  int32 index_mask = 0;
+  if (m->is_pinned) {
+    index_mask |= message_search_filter_index_mask(MessageSearchFilter::Pinned);
+  }
   // retain second condition just in case
   if (m->is_content_secret || (m->ttl > 0 && !is_secret)) {
-    return 0;
+    return index_mask;
   }
-  int32 index_mask = get_message_content_index_mask(m->content.get(), td_, m->is_outgoing);
+  index_mask |= get_message_content_index_mask(m->content.get(), td_, m->is_outgoing);
   if (m->contains_mention) {
     index_mask |= message_search_filter_index_mask(MessageSearchFilter::Mention);
     if (m->contains_unread_mention) {
@@ -20138,7 +20143,7 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
                  random_id);
       break;
     case DialogType::SecretChat:
-      if (filter == MessageSearchFilter::UnreadMention) {
+      if (filter == MessageSearchFilter::UnreadMention || filter == MessageSearchFilter::Pinned) {
         promise.set_value(Unit());
       } else {
         promise.set_error(Status::Error(500, "Search messages in secret chats is not supported"));
@@ -20905,7 +20910,7 @@ std::pair<int32, vector<FullMessageId>> MessagesManager::search_messages(
 
   if (filter == MessageSearchFilter::Call || filter == MessageSearchFilter::MissedCall ||
       filter == MessageSearchFilter::Mention || filter == MessageSearchFilter::UnreadMention ||
-      filter == MessageSearchFilter::FailedToSend) {
+      filter == MessageSearchFilter::FailedToSend || filter == MessageSearchFilter::Pinned) {
     promise.set_error(Status::Error(400, "The filter is not supported"));
     return {};
   }
@@ -21110,7 +21115,7 @@ int32 MessagesManager::get_dialog_message_count(DialogId dialog_id, MessageSearc
   }
 
   if (filter == MessageSearchFilter::Empty) {
-    promise.set_error(Status::Error(6, "SearchMessagesFilterEmpty is not supported"));
+    promise.set_error(Status::Error(6, "Can't use searchMessagesFilterEmpty"));
     return -1;
   }
 

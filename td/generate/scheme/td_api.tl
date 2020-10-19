@@ -1898,6 +1898,9 @@ searchMessagesFilterUnreadMention = SearchMessagesFilter;
 //@description Returns only failed to send messages. This filter can be used only if the message database is used
 searchMessagesFilterFailedToSend = SearchMessagesFilter;
 
+//@description Returns only pinned messages
+searchMessagesFilterPinned = SearchMessagesFilter;
+
 
 //@class ChatAction @description Describes the different types of activity in a chat
 
@@ -3707,7 +3710,7 @@ searchChatMessages chat_id:int53 query:string sender:MessageSender from_message_
 //@offset_chat_id The chat identifier of the last found message, or 0 for the first request
 //@offset_message_id The message identifier of the last found message, or 0 for the first request
 //@limit The maximum number of messages to be returned; up to 100. Fewer messages may be returned than specified by the limit, even if the end of the message history has not been reached
-//@filter Filter for message content in the search results; searchMessagesFilterCall, searchMessagesFilterMissedCall, searchMessagesFilterMention, searchMessagesFilterUnreadMention and searchMessagesFilterFailedToSend are unsupported in this function
+//@filter Filter for message content in the search results; searchMessagesFilterCall, searchMessagesFilterMissedCall, searchMessagesFilterMention, searchMessagesFilterUnreadMention, searchMessagesFilterFailedToSend and searchMessagesFilterPinned are unsupported in this function
 //@min_date If not 0, the minimum date of the messages to return
 //@max_date If not 0, the maximum date of the messages to return
 searchMessages chat_list:ChatList query:string offset_date:int32 offset_chat_id:int53 offset_message_id:int53 limit:int32 filter:SearchMessagesFilter min_date:int32 max_date:int32 = Messages;

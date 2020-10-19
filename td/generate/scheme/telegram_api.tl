@@ -262,6 +262,7 @@ inputMessagesFilterRoundVideo#b549da53 = MessagesFilter;
 inputMessagesFilterMyMentions#c1f8e69a = MessagesFilter;
 inputMessagesFilterGeo#e7026d0d = MessagesFilter;
 inputMessagesFilterContacts#e062db83 = MessagesFilter;
+inputMessagesFilterPinned#1bb00451 = MessagesFilter;
 
 updateNewMessage#1f2b0afd message:Message pts:int pts_count:int = Update;
 updateMessageID#4e90bfd6 id:int random_id:long = Update;

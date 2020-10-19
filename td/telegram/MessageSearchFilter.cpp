@@ -43,6 +43,8 @@ tl_object_ptr<telegram_api::MessagesFilter> get_input_messages_filter(MessageSea
       return make_tl_object<telegram_api::inputMessagesFilterRoundVoice>();
     case MessageSearchFilter::Mention:
       return make_tl_object<telegram_api::inputMessagesFilterMyMentions>();
+    case MessageSearchFilter::Pinned:
+      return make_tl_object<telegram_api::inputMessagesFilterPinned>();
     case MessageSearchFilter::UnreadMention:
     case MessageSearchFilter::FailedToSend:
     default:
@@ -90,6 +92,8 @@ MessageSearchFilter get_message_search_filter(const tl_object_ptr<td_api::Search
       return MessageSearchFilter::UnreadMention;
     case td_api::searchMessagesFilterFailedToSend::ID:
       return MessageSearchFilter::FailedToSend;
+    case td_api::searchMessagesFilterPinned::ID:
+      return MessageSearchFilter::Pinned;
     default:
       UNREACHABLE();
       return MessageSearchFilter::Empty;
@@ -132,6 +136,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, MessageSearchFilter fil
       return string_builder << "UnreadMention";
     case MessageSearchFilter::FailedToSend:
       return string_builder << "FailedToSend";
+    case MessageSearchFilter::Pinned:
+      return string_builder << "Pinned";
     default:
       UNREACHABLE();
       return string_builder;
