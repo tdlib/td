@@ -5707,7 +5707,7 @@ int32 MessagesManager::get_message_index_mask(DialogId dialog_id, const Message 
   if (m->is_content_secret || (m->ttl > 0 && !is_secret)) {
     return 0;
   }
-  int32 index_mask = get_message_content_index_mask(m->content.get(), td_, is_secret, m->is_outgoing);
+  int32 index_mask = get_message_content_index_mask(m->content.get(), td_, m->is_outgoing);
   if (m->contains_mention) {
     index_mask |= message_search_filter_index_mask(MessageSearchFilter::Mention);
     if (m->contains_unread_mention) {

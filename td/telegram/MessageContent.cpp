@@ -2466,36 +2466,23 @@ static int32 get_message_content_text_index_mask(const MessageContent *content) 
   return 0;
 }
 
-static int32 get_message_content_media_index_mask(const MessageContent *content, const Td *td, bool is_secret,
-                                                  bool is_outgoing) {
+static int32 get_message_content_media_index_mask(const MessageContent *content, const Td *td, bool is_outgoing) {
   switch (content->get_type()) {
     case MessageContentType::Animation:
       return message_search_filter_index_mask(MessageSearchFilter::Animation);
-    case MessageContentType::Audio: {
-      auto message_audio = static_cast<const MessageAudio *>(content);
-      auto duration = td->audios_manager_->get_audio_duration(message_audio->file_id);
-      return is_secret || duration > 0 ? message_search_filter_index_mask(MessageSearchFilter::Audio)
-                                       : message_search_filter_index_mask(MessageSearchFilter::Document);
-    }
+    case MessageContentType::Audio:
+      return message_search_filter_index_mask(MessageSearchFilter::Audio);
     case MessageContentType::Document:
       return message_search_filter_index_mask(MessageSearchFilter::Document);
     case MessageContentType::Photo:
       return message_search_filter_index_mask(MessageSearchFilter::Photo) |
              message_search_filter_index_mask(MessageSearchFilter::PhotoAndVideo);
-    case MessageContentType::Video: {
-      auto message_video = static_cast<const MessageVideo *>(content);
-      auto duration = td->videos_manager_->get_video_duration(message_video->file_id);
-      return is_secret || duration > 0 ? message_search_filter_index_mask(MessageSearchFilter::Video) |
-                                             message_search_filter_index_mask(MessageSearchFilter::PhotoAndVideo)
-                                       : message_search_filter_index_mask(MessageSearchFilter::Document);
-    }
-    case MessageContentType::VideoNote: {
-      auto message_video_note = static_cast<const MessageVideoNote *>(content);
-      auto duration = td->video_notes_manager_->get_video_note_duration(message_video_note->file_id);
-      return is_secret || duration > 0 ? message_search_filter_index_mask(MessageSearchFilter::VideoNote) |
-                                             message_search_filter_index_mask(MessageSearchFilter::VoiceAndVideoNote)
-                                       : message_search_filter_index_mask(MessageSearchFilter::Document);
-    }
+    case MessageContentType::Video:
+      return message_search_filter_index_mask(MessageSearchFilter::Video) |
+             message_search_filter_index_mask(MessageSearchFilter::PhotoAndVideo);
+    case MessageContentType::VideoNote:
+      return message_search_filter_index_mask(MessageSearchFilter::VideoNote) |
+             message_search_filter_index_mask(MessageSearchFilter::VoiceAndVideoNote);
     case MessageContentType::VoiceNote:
       return message_search_filter_index_mask(MessageSearchFilter::VoiceNote) |
              message_search_filter_index_mask(MessageSearchFilter::VoiceAndVideoNote);
@@ -2551,9 +2538,8 @@ static int32 get_message_content_media_index_mask(const MessageContent *content,
   return 0;
 }
 
-int32 get_message_content_index_mask(const MessageContent *content, const Td *td, bool is_secret, bool is_outgoing) {
-  return get_message_content_text_index_mask(content) |
-         get_message_content_media_index_mask(content, td, is_secret, is_outgoing);
+int32 get_message_content_index_mask(const MessageContent *content, const Td *td, bool is_outgoing) {
+  return get_message_content_text_index_mask(content) | get_message_content_media_index_mask(content, td, is_outgoing);
 }
 
 MessageId get_message_content_pinned_message_id(const MessageContent *content) {

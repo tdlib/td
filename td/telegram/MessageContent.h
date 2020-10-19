@@ -120,7 +120,7 @@ bool can_forward_message_content(const MessageContent *content);
 
 bool update_opened_message_content(MessageContent *content);
 
-int32 get_message_content_index_mask(const MessageContent *content, const Td *td, bool is_secret, bool is_outgoing);
+int32 get_message_content_index_mask(const MessageContent *content, const Td *td, bool is_outgoing);
 
 MessageId get_message_content_pinned_message_id(const MessageContent *content);
 
