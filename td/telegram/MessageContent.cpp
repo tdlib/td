@@ -33,6 +33,7 @@
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageEntity.hpp"
 #include "td/telegram/MessageId.h"
+#include "td/telegram/MessagesManager.h"
 #include "td/telegram/MessageSearchFilter.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/net/DcId.h"
@@ -677,6 +678,22 @@ class MessageDice : public MessageContent {
   }
 };
 
+class MessageLiveLocationApproached : public MessageContent {
+ public:
+  DialogId approacher_dialog_id;
+  DialogId observer_dialog_id;
+  int32 distance = 0;
+
+  MessageLiveLocationApproached() = default;
+  MessageLiveLocationApproached(DialogId approacher_dialog_id, DialogId observer_dialog_id, int32 distance)
+      : approacher_dialog_id(approacher_dialog_id), observer_dialog_id(observer_dialog_id), distance(distance) {
+  }
+
+  MessageContentType get_type() const override {
+    return MessageContentType::LiveLocationApproached;
+  }
+};
+
 constexpr const char *MessageDice::DEFAULT_EMOJI;
 
 template <class StorerT>
@@ -941,6 +958,13 @@ static void store(const MessageContent *content, StorerT &storer) {
       auto m = static_cast<const MessageDice *>(content);
       store(m->emoji, storer);
       store(m->dice_value, storer);
+      break;
+    }
+    case MessageContentType::LiveLocationApproached: {
+      auto m = static_cast<const MessageLiveLocationApproached *>(content);
+      store(m->approacher_dialog_id, storer);
+      store(m->observer_dialog_id, storer);
+      store(m->distance, storer);
       break;
     }
     default:
@@ -1301,6 +1325,14 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       }
       parse(m->dice_value, parser);
       is_bad = !m->is_valid();
+      content = std::move(m);
+      break;
+    }
+    case MessageContentType::LiveLocationApproached: {
+      auto m = make_unique<MessageLiveLocationApproached>();
+      parse(m->approacher_dialog_id, parser);
+      parse(m->observer_dialog_id, parser);
+      parse(m->distance, parser);
       content = std::move(m);
       break;
     }
@@ -1989,6 +2021,7 @@ bool can_have_input_media(const Td *td, const MessageContent *content) {
     case MessageContentType::WebsiteConnected:
     case MessageContentType::PassportDataSent:
     case MessageContentType::PassportDataReceived:
+    case MessageContentType::LiveLocationApproached:
       return false;
     case MessageContentType::Animation:
     case MessageContentType::Audio:
@@ -2101,6 +2134,7 @@ SecretInputMedia get_secret_input_media(const MessageContent *content, Td *td,
     case MessageContentType::WebsiteConnected:
     case MessageContentType::PassportDataSent:
     case MessageContentType::PassportDataReceived:
+    case MessageContentType::LiveLocationApproached:
       break;
     default:
       UNREACHABLE();
@@ -2285,6 +2319,7 @@ static tl_object_ptr<telegram_api::InputMedia> get_input_media_impl(
     case MessageContentType::WebsiteConnected:
     case MessageContentType::PassportDataSent:
     case MessageContentType::PassportDataReceived:
+    case MessageContentType::LiveLocationApproached:
       break;
     default:
       UNREACHABLE();
@@ -2407,6 +2442,7 @@ void delete_message_content_thumbnail(MessageContent *content, Td *td) {
     case MessageContentType::PassportDataSent:
     case MessageContentType::PassportDataReceived:
     case MessageContentType::Poll:
+    case MessageContentType::LiveLocationApproached:
       break;
     default:
       UNREACHABLE();
@@ -2530,6 +2566,7 @@ static int32 get_message_content_media_index_mask(const MessageContent *content,
     case MessageContentType::PassportDataReceived:
     case MessageContentType::Poll:
     case MessageContentType::Dice:
+    case MessageContentType::LiveLocationApproached:
       return 0;
     default:
       UNREACHABLE();
@@ -3141,6 +3178,15 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       }
       break;
     }
+    case MessageContentType::LiveLocationApproached: {
+      auto old_ = static_cast<const MessageLiveLocationApproached *>(old_content);
+      auto new_ = static_cast<const MessageLiveLocationApproached *>(new_content);
+      if (old_->approacher_dialog_id != new_->approacher_dialog_id ||
+          old_->observer_dialog_id != new_->observer_dialog_id || old_->distance != new_->distance) {
+        need_update = true;
+      }
+      break;
+    }
     case MessageContentType::Unsupported: {
       auto old_ = static_cast<const MessageUnsupported *>(old_content);
       auto new_ = static_cast<const MessageUnsupported *>(new_content);
@@ -3273,6 +3319,7 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
     case MessageContentType::PassportDataReceived:
     case MessageContentType::Poll:
     case MessageContentType::Dice:
+    case MessageContentType::LiveLocationApproached:
       LOG(ERROR) << "Receive new file " << new_file_id << " in a sent message of the type " << content_type;
       break;
     default:
@@ -4164,6 +4211,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
     case MessageContentType::WebsiteConnected:
     case MessageContentType::PassportDataSent:
     case MessageContentType::PassportDataReceived:
+    case MessageContentType::LiveLocationApproached:
       return nullptr;
     default:
       UNREACHABLE();
@@ -4345,6 +4393,18 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     case telegram_api::messageActionContactSignUp::ID: {
       LOG_IF(ERROR, td->auth_manager_->is_bot()) << "Receive ContactRegistered in " << owner_dialog_id;
       return td::make_unique<MessageContactRegistered>();
+    }
+    case telegram_api::messageActionGeoProximityReached::ID: {
+      auto geo_proximity_reached = move_tl_object_as<telegram_api::messageActionGeoProximityReached>(action);
+      DialogId approacher_id(geo_proximity_reached->from_id_);
+      DialogId observer_id(geo_proximity_reached->to_id_);
+      int32 distance = geo_proximity_reached->distance_;
+      if (!approacher_id.is_valid() || !observer_id.is_valid() || distance < 0) {
+        LOG(ERROR) << "Receive invalid " << oneline(to_string(geo_proximity_reached));
+        break;
+      }
+
+      return make_unique<MessageLiveLocationApproached>(approacher_id, observer_id, distance);
     }
     default:
       UNREACHABLE();
@@ -4546,6 +4606,12 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
           td->stickers_manager_->get_dice_success_animation_frame_number(m->emoji, m->dice_value);
       return make_tl_object<td_api::messageDice>(std::move(initial_state), std::move(final_state), m->emoji,
                                                  m->dice_value, success_animation_frame_number);
+    }
+    case MessageContentType::LiveLocationApproached: {
+      const MessageLiveLocationApproached *m = static_cast<const MessageLiveLocationApproached *>(content);
+      return make_tl_object<td_api::messageLiveLocationApproached>(
+          td->messages_manager_->get_message_sender_object(m->approacher_dialog_id),
+          td->messages_manager_->get_message_sender_object(m->observer_dialog_id), m->distance);
     }
     default:
       UNREACHABLE();
@@ -4858,6 +4924,7 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
     case MessageContentType::PassportDataSent:
     case MessageContentType::PassportDataReceived:
     case MessageContentType::Dice:
+    case MessageContentType::LiveLocationApproached:
       return string();
     default:
       UNREACHABLE();
@@ -5051,6 +5118,12 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
       break;
     case MessageContentType::Dice:
       break;
+    case MessageContentType::LiveLocationApproached: {
+      auto content = static_cast<const MessageLiveLocationApproached *>(message_content);
+      add_message_sender_dependencies(dependencies, content->approacher_dialog_id);
+      add_message_sender_dependencies(dependencies, content->observer_dialog_id);
+      break;
+    }
     default:
       UNREACHABLE();
       break;

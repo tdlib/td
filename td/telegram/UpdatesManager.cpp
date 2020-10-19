@@ -604,6 +604,16 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
           }
           break;
         }
+        case telegram_api::messageActionGeoProximityReached::ID: {
+          auto geo_proximity_reached = static_cast<const telegram_api::messageActionGeoProximityReached *>(action);
+          if (!is_acceptable_peer(geo_proximity_reached->from_id_)) {
+            return false;
+          }
+          if (!is_acceptable_peer(geo_proximity_reached->to_id_)) {
+            return false;
+          }
+          break;
+        }
         default:
           UNREACHABLE();
           return false;

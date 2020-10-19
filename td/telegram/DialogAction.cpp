@@ -305,6 +305,7 @@ bool DialogAction::is_cancelled_by_message_of_type(MessageContentType message_co
     case MessageContentType::PassportDataReceived:
     case MessageContentType::Poll:
     case MessageContentType::Dice:
+    case MessageContentType::LiveLocationApproached:
       return false;
     default:
       UNREACHABLE();

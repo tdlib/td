@@ -5566,10 +5566,10 @@ void MessagesManager::on_preload_folder_dialog_list_timeout_callback(void *messa
                      FolderId(narrow_cast<int32>(folder_id_int)));
 }
 
-td_api::object_ptr<td_api::MessageSender> MessagesManager::get_message_sender_object(UserId user_id,
-                                                                                     DialogId dialog_id) const {
+td_api::object_ptr<td_api::MessageSender> MessagesManager::get_message_sender_object_const(UserId user_id,
+                                                                                           DialogId dialog_id) const {
   if (dialog_id.is_valid()) {
-    CHECK(have_dialog(dialog_id));
+    CHECK(!have_dialog(dialog_id));
     return td_api::make_object<td_api::messageSenderChat>(dialog_id.get());
   }
   if (!user_id.is_valid()) {
@@ -5580,7 +5580,16 @@ td_api::object_ptr<td_api::MessageSender> MessagesManager::get_message_sender_ob
       td_->contacts_manager_->get_user_id_object(user_id, "get_message_sender_object"));
 }
 
-td_api::object_ptr<td_api::MessageSender> MessagesManager::get_message_sender_object(DialogId dialog_id) const {
+td_api::object_ptr<td_api::MessageSender> MessagesManager::get_message_sender_object(UserId user_id,
+                                                                                     DialogId dialog_id) {
+  if (dialog_id.is_valid() && !have_dialog(dialog_id)) {
+    LOG(ERROR) << "Failed to find " << dialog_id;
+    force_create_dialog(dialog_id, "get_message_sender_object");
+  }
+  return get_message_sender_object_const(user_id, dialog_id);
+}
+
+td_api::object_ptr<td_api::MessageSender> MessagesManager::get_message_sender_object(DialogId dialog_id) {
   if (dialog_id.get_type() == DialogType::User) {
     return get_message_sender_object(dialog_id.get_user_id(), DialogId());
   }
@@ -21871,7 +21880,7 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   auto date = is_scheduled ? 0 : m->date;
   auto edit_date = m->hide_edit_date ? 0 : m->edit_date;
   return make_tl_object<td_api::message>(
-      m->message_id.get(), get_message_sender_object(m->sender_user_id, m->sender_dialog_id), dialog_id.get(),
+      m->message_id.get(), get_message_sender_object_const(m->sender_user_id, m->sender_dialog_id), dialog_id.get(),
       std::move(sending_state), std::move(scheduling_state), is_outgoing, can_be_edited, can_be_forwarded,
       can_delete_for_self, can_delete_for_all_users, can_get_statistics, can_get_message_thread, m->is_channel_post,
       contains_unread_mention, date, edit_date, get_message_forward_info_object(m->forward_info),
@@ -22279,6 +22288,7 @@ Status MessagesManager::can_send_message_content(DialogId dialog_id, const Messa
     case MessageContentType::WebsiteConnected:
     case MessageContentType::PassportDataSent:
     case MessageContentType::PassportDataReceived:
+    case MessageContentType::LiveLocationApproached:
       UNREACHABLE();
   }
   return Status::OK();
@@ -23839,6 +23849,7 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
     case MessageContentType::WebsiteConnected:
     case MessageContentType::PassportDataSent:
     case MessageContentType::PassportDataReceived:
+    case MessageContentType::LiveLocationApproached:
       return false;
     default:
       UNREACHABLE();
