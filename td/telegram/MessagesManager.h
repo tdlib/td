@@ -2313,6 +2313,8 @@ class MessagesManager : public Actor {
 
   void set_dialog_pinned_message_id(Dialog *d, MessageId pinned_message_id);
 
+  void drop_dialog_pinned_message_id(Dialog *d);
+
   void repair_dialog_scheduled_messages(Dialog *d);
 
   void set_dialog_has_scheduled_server_messages(Dialog *d, bool has_scheduled_server_messages);

@@ -644,14 +644,7 @@ class UpdateDialogPinnedMessageQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    if (status.message() == "CHAT_NOT_MODIFIED") {
-      if (!td->auth_manager_->is_bot()) {
-        promise_.set_value(Unit());
-        return;
-      }
-    } else {
-      td->messages_manager_->on_get_dialog_error(dialog_id_, status, "UpdateDialogPinnedMessageQuery");
-    }
+    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "UpdateDialogPinnedMessageQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -9625,6 +9618,19 @@ bool MessagesManager::update_message_is_pinned(Dialog *d, Message *m, bool is_pi
   m->is_pinned = is_pinned;
   send_closure(G()->td(), &Td::send_update,
                make_tl_object<td_api::updateMessageIsPinned>(d->dialog_id.get(), m->message_id.get(), is_pinned));
+  if (is_pinned) {
+    if (m->message_id > d->pinned_message_id) {
+      on_update_dialog_pinned_message_id(d->dialog_id, m->message_id);
+    }
+  } else {
+    if (m->message_id == d->pinned_message_id) {
+      if (d->message_count_by_index[message_search_filter_index(MessageSearchFilter::Pinned)] == 1) {
+        set_dialog_pinned_message_id(d, MessageId());
+      } else {
+        drop_dialog_pinned_message_id(d);
+      }
+    }
+  }
   return true;
 }
 
@@ -13756,7 +13762,6 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     }
     if (!d->is_pinned_message_id_inited && !td_->auth_manager_->is_bot()) {
       // asynchronously get dialog pinned message from the server
-      // TODO add pinned_message_id to telegram_api::dialog
       get_dialog_pinned_message(dialog_id, Auto());
     }
 
@@ -28466,6 +28471,20 @@ void MessagesManager::set_dialog_pinned_message_id(Dialog *d, MessageId pinned_m
                make_tl_object<td_api::updateChatPinnedMessage>(d->dialog_id.get(), pinned_message_id.get()));
 }
 
+void MessagesManager::drop_dialog_pinned_message_id(Dialog *d) {
+  d->pinned_message_id = MessageId();
+  d->is_pinned_message_id_inited = false;
+  on_dialog_updated(d->dialog_id, "drop_dialog_pinned_message_id");
+
+  LOG(INFO) << "Drop " << d->dialog_id << " pinned message";
+  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in drop_dialog_pinned_message_id";
+  send_closure(G()->td(), &Td::send_update, make_tl_object<td_api::updateChatPinnedMessage>(d->dialog_id.get(), 0));
+
+  if (!td_->auth_manager_->is_bot()) {
+    get_dialog_info_full(d->dialog_id, Auto());
+  }
+}
+
 void MessagesManager::repair_dialog_scheduled_messages(Dialog *d) {
   if (td_->auth_manager_->is_bot() || d->dialog_id.get_type() == DialogType::SecretChat) {
     return;
@@ -31317,12 +31336,6 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   add_message_file_sources(dialog_id, m);
 
   register_message_content(td_, m->content.get(), {dialog_id, m->message_id}, "add_message_to_dialog");
-
-  if (*need_update && m->message_id.is_server() && message_content_type == MessageContentType::PinMessage) {
-    // always update pinned message from service message, even new pinned_message_id is invalid
-    auto pinned_message_id = get_message_content_pinned_message_id(m->content.get());
-    on_update_dialog_pinned_message_id(dialog_id, pinned_message_id);
-  }
 
   if (from_update) {
     speculatively_update_channel_participants(dialog_id, m);
