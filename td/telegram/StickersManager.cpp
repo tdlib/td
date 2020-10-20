@@ -1407,7 +1407,7 @@ tl_object_ptr<td_api::DiceStickers> StickersManager::get_dice_stickers_object(co
       return nullptr;
     }
 
-    int32 background_id = value == 64 ? 1 : 0;
+    int32 background_id = value == 1 || value == 22 || value == 43 || value == 64 ? 1 : 0;
     int32 lever_id = 2;
     int32 left_reel_id = value == 64 ? 3 : 8;
     int32 center_reel_id = value == 64 ? 9 : 14;
