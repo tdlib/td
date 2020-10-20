@@ -16339,6 +16339,8 @@ MessageId MessagesManager::get_dialog_pinned_message(DialogId dialog_id, Promise
       input_message = make_tl_object<telegram_api::inputMessagePinned>();
     }
     get_message_force_from_server(d, d->last_pinned_message_id, std::move(promise), std::move(input_message));
+  } else {
+    promise.set_value(Unit());
   }
 
   return d->last_pinned_message_id;
