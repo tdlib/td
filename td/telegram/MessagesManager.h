@@ -323,7 +323,7 @@ class MessagesManager : public Actor {
 
   void on_update_dialog_is_blocked(DialogId dialog_id, bool is_blocked);
 
-  void on_update_dialog_pinned_message_id(DialogId dialog_id, MessageId pinned_message_id);
+  void on_update_dialog_last_pinned_message_id(DialogId dialog_id, MessageId last_pinned_message_id);
 
   void on_update_dialog_has_scheduled_server_messages(DialogId dialog_id, bool has_scheduled_server_messages);
 
@@ -1176,7 +1176,7 @@ class MessagesManager : public Actor {
     MessageId last_read_inbox_message_id;
     int32 last_read_inbox_message_date = 0;  // secret chats only
     MessageId last_read_outbox_message_id;
-    MessageId pinned_message_id;
+    MessageId last_pinned_message_id;
     MessageId reply_markup_message_id;
     DialogNotificationSettings notification_settings;
     unique_ptr<DraftMessage> draft_message;
@@ -1242,7 +1242,7 @@ class MessagesManager : public Actor {
 
     bool is_last_read_inbox_message_id_inited = false;
     bool is_last_read_outbox_message_id_inited = false;
-    bool is_pinned_message_id_inited = false;
+    bool is_last_pinned_message_id_inited = false;
     bool is_folder_id_inited = false;
     bool need_repair_server_unread_count = false;
     bool need_repair_channel_server_unread_count = false;
@@ -2311,9 +2311,9 @@ class MessagesManager : public Actor {
 
   void set_dialog_is_blocked(Dialog *d, bool is_blocked);
 
-  void set_dialog_pinned_message_id(Dialog *d, MessageId pinned_message_id);
+  void set_dialog_last_pinned_message_id(Dialog *d, MessageId last_pinned_message_id);
 
-  void drop_dialog_pinned_message_id(Dialog *d);
+  void drop_dialog_last_pinned_message_id(Dialog *d);
 
   void repair_dialog_scheduled_messages(Dialog *d);
 

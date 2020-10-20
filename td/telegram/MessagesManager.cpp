@@ -4955,7 +4955,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
       mention_notification_group.group_id.is_valid() && !mention_notification_group.try_reuse;
   bool has_new_secret_chat_notification_id = new_secret_chat_notification_id.is_valid();
   bool has_pinned_message_notification = pinned_message_notification_message_id.is_valid();
-  bool has_pinned_message_id = pinned_message_id.is_valid();
+  bool has_last_pinned_message_id = last_pinned_message_id.is_valid();
   bool has_flags2 = true;
   bool has_max_notification_message_id =
       max_notification_message_id.is_valid() && max_notification_message_id > last_new_message_id;
@@ -4991,8 +4991,8 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   STORE_FLAG(has_mention_notification_group);
   STORE_FLAG(has_new_secret_chat_notification_id);
   STORE_FLAG(has_pinned_message_notification);
-  STORE_FLAG(has_pinned_message_id);
-  STORE_FLAG(is_pinned_message_id_inited);
+  STORE_FLAG(has_last_pinned_message_id);
+  STORE_FLAG(is_last_pinned_message_id_inited);
   STORE_FLAG(has_flags2);
   END_STORE_FLAGS();
 
@@ -5085,8 +5085,8 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   if (has_pinned_message_notification) {
     store(pinned_message_notification_message_id, storer);
   }
-  if (has_pinned_message_id) {
-    store(pinned_message_id, storer);
+  if (has_last_pinned_message_id) {
+    store(last_pinned_message_id, storer);
   }
   if (has_max_notification_message_id) {
     store(max_notification_message_id, storer);
@@ -5125,7 +5125,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   bool has_mention_notification_group;
   bool has_new_secret_chat_notification_id;
   bool has_pinned_message_notification;
-  bool has_pinned_message_id;
+  bool has_last_pinned_message_id;
   bool has_flags2;
   bool has_max_notification_message_id = false;
   bool has_folder_id = false;
@@ -5159,8 +5159,8 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   PARSE_FLAG(has_mention_notification_group);
   PARSE_FLAG(has_new_secret_chat_notification_id);
   PARSE_FLAG(has_pinned_message_notification);
-  PARSE_FLAG(has_pinned_message_id);
-  PARSE_FLAG(is_pinned_message_id_inited);
+  PARSE_FLAG(has_last_pinned_message_id);
+  PARSE_FLAG(is_last_pinned_message_id_inited);
   PARSE_FLAG(has_flags2);
   END_PARSE_FLAGS();
 
@@ -5301,8 +5301,8 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   if (has_pinned_message_notification) {
     parse(pinned_message_notification_message_id, parser);
   }
-  if (has_pinned_message_id) {
-    parse(pinned_message_id, parser);
+  if (has_last_pinned_message_id) {
+    parse(last_pinned_message_id, parser);
   }
   if (has_max_notification_message_id) {
     parse(max_notification_message_id, parser);
@@ -9619,15 +9619,15 @@ bool MessagesManager::update_message_is_pinned(Dialog *d, Message *m, bool is_pi
   send_closure(G()->td(), &Td::send_update,
                make_tl_object<td_api::updateMessageIsPinned>(d->dialog_id.get(), m->message_id.get(), is_pinned));
   if (is_pinned) {
-    if (m->message_id > d->pinned_message_id) {
-      on_update_dialog_pinned_message_id(d->dialog_id, m->message_id);
+    if (m->message_id > d->last_pinned_message_id) {
+      on_update_dialog_last_pinned_message_id(d->dialog_id, m->message_id);
     }
   } else {
-    if (m->message_id == d->pinned_message_id) {
+    if (m->message_id == d->last_pinned_message_id) {
       if (d->message_count_by_index[message_search_filter_index(MessageSearchFilter::Pinned)] == 1) {
-        set_dialog_pinned_message_id(d, MessageId());
+        set_dialog_last_pinned_message_id(d, MessageId());
       } else {
-        drop_dialog_pinned_message_id(d);
+        drop_dialog_last_pinned_message_id(d);
       }
     }
   }
@@ -13760,7 +13760,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
       // TODO add is_blocked to telegram_api::dialog
       get_dialog_info_full(dialog_id, Auto());
     }
-    if (!d->is_pinned_message_id_inited && !td_->auth_manager_->is_bot()) {
+    if (!d->is_last_pinned_message_id_inited && !td_->auth_manager_->is_bot()) {
       // asynchronously get dialog pinned message from the server
       get_dialog_pinned_message(dialog_id, Auto());
     }
@@ -14052,7 +14052,7 @@ bool MessagesManager::can_unload_message(const Dialog *d, const Message *m) cons
          !m->message_id.is_yet_unsent() && active_live_location_full_message_ids_.count(full_message_id) == 0 &&
          replied_by_yet_unsent_messages_.count(full_message_id) == 0 && m->edited_content == nullptr &&
          d->suffix_load_queries_.empty() && m->message_id != d->reply_markup_message_id &&
-         m->message_id != d->pinned_message_id && m->message_id != d->last_edited_message_id;
+         m->message_id != d->last_pinned_message_id && m->message_id != d->last_edited_message_id;
 }
 
 void MessagesManager::unload_message(Dialog *d, MessageId message_id) {
@@ -16042,7 +16042,7 @@ void MessagesManager::get_message_force_from_server(Dialog *d, MessageId message
           LOG_CHECK(input_message == nullptr || input_message->get_id() == telegram_api::inputMessagePinned::ID)
               << to_string(input_message) << " " << d->dialog_id << " " << message_id << " " << d->last_new_message_id
               << " " << d->last_message_id << " " << d->first_database_message_id << " " << d->last_database_message_id
-              << " " << d->pinned_message_id << " " << d->last_read_all_mentions_message_id << " "
+              << " " << d->last_pinned_message_id << " " << d->last_read_all_mentions_message_id << " "
               << d->max_unavailable_message_id << " " << d->last_clear_history_message_id << " " << d->order << " "
               << d->deleted_last_message_id << " " << d->max_added_message_id << " " << d->pts << " "
               << d->last_assigned_message_id << " " << d->debug_last_new_message_id << " "
@@ -16319,24 +16319,24 @@ MessageId MessagesManager::get_dialog_pinned_message(DialogId dialog_id, Promise
   }
 
   LOG(INFO) << "Get pinned message in " << dialog_id << " with "
-            << (d->is_pinned_message_id_inited ? "inited" : "unknown") << " pinned " << d->pinned_message_id;
+            << (d->is_last_pinned_message_id_inited ? "inited" : "unknown") << " pinned " << d->last_pinned_message_id;
 
-  if (!d->is_pinned_message_id_inited) {
+  if (!d->is_last_pinned_message_id_inited) {
     get_dialog_info_full(dialog_id, std::move(promise));
     return MessageId();
   }
 
   get_dialog_info_full(dialog_id, Auto());
 
-  if (d->pinned_message_id.is_valid()) {
+  if (d->last_pinned_message_id.is_valid()) {
     tl_object_ptr<telegram_api::InputMessage> input_message;
     if (dialog_id.get_type() == DialogType::Channel) {
       input_message = make_tl_object<telegram_api::inputMessagePinned>();
     }
-    get_message_force_from_server(d, d->pinned_message_id, std::move(promise), std::move(input_message));
+    get_message_force_from_server(d, d->last_pinned_message_id, std::move(promise), std::move(input_message));
   }
 
-  return d->pinned_message_id;
+  return d->last_pinned_message_id;
 }
 
 bool MessagesManager::get_messages(DialogId dialog_id, const vector<MessageId> &message_ids, Promise<Unit> &&promise) {
@@ -28429,7 +28429,7 @@ void MessagesManager::set_dialog_is_blocked(Dialog *d, bool is_blocked) {
   }
 }
 
-void MessagesManager::on_update_dialog_pinned_message_id(DialogId dialog_id, MessageId pinned_message_id) {
+void MessagesManager::on_update_dialog_last_pinned_message_id(DialogId dialog_id, MessageId pinned_message_id) {
   if (!dialog_id.is_valid()) {
     LOG(ERROR) << "Receive pinned message in invalid " << dialog_id;
     return;
@@ -28445,32 +28445,32 @@ void MessagesManager::on_update_dialog_pinned_message_id(DialogId dialog_id, Mes
     return;
   }
 
-  if (d->pinned_message_id == pinned_message_id) {
+  if (d->last_pinned_message_id == pinned_message_id) {
     LOG(INFO) << "Pinned message in " << d->dialog_id << " is still " << pinned_message_id;
-    if (!d->is_pinned_message_id_inited) {
-      d->is_pinned_message_id_inited = true;
-      on_dialog_updated(dialog_id, "on_update_dialog_pinned_message_id");
+    if (!d->is_last_pinned_message_id_inited) {
+      d->is_last_pinned_message_id_inited = true;
+      on_dialog_updated(dialog_id, "on_update_dialog_last_pinned_message_id");
     }
     return;
   }
 
-  set_dialog_pinned_message_id(d, pinned_message_id);
+  set_dialog_last_pinned_message_id(d, pinned_message_id);
 }
 
-void MessagesManager::set_dialog_pinned_message_id(Dialog *d, MessageId pinned_message_id) {
+void MessagesManager::set_dialog_last_pinned_message_id(Dialog *d, MessageId pinned_message_id) {
   CHECK(d != nullptr);
-  CHECK(d->pinned_message_id != pinned_message_id);
-  d->pinned_message_id = pinned_message_id;
-  d->is_pinned_message_id_inited = true;
-  on_dialog_updated(d->dialog_id, "set_dialog_pinned_message_id");
+  CHECK(d->last_pinned_message_id != pinned_message_id);
+  d->last_pinned_message_id = pinned_message_id;
+  d->is_last_pinned_message_id_inited = true;
+  on_dialog_updated(d->dialog_id, "set_dialog_last_pinned_message_id");
 
   LOG(INFO) << "Set " << d->dialog_id << " pinned message to " << pinned_message_id;
 }
 
-void MessagesManager::drop_dialog_pinned_message_id(Dialog *d) {
-  d->pinned_message_id = MessageId();
-  d->is_pinned_message_id_inited = false;
-  on_dialog_updated(d->dialog_id, "drop_dialog_pinned_message_id");
+void MessagesManager::drop_dialog_last_pinned_message_id(Dialog *d) {
+  d->last_pinned_message_id = MessageId();
+  d->is_last_pinned_message_id_inited = false;
+  on_dialog_updated(d->dialog_id, "drop_dialog_last_pinned_message_id");
 
   LOG(INFO) << "Drop " << d->dialog_id << " pinned message";
 }
@@ -32647,7 +32647,7 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
       d->need_restore_reply_markup = false;
       d->is_last_read_inbox_message_id_inited = true;
       d->is_last_read_outbox_message_id_inited = true;
-      d->is_pinned_message_id_inited = true;
+      d->is_last_pinned_message_id_inited = true;
       d->is_is_blocked_inited = true;
       if (!d->is_folder_id_inited && !td_->auth_manager_->is_bot()) {
         do_set_dialog_folder_id(
@@ -32733,7 +32733,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
     // asynchronously get is_blocked from the server
     get_dialog_info_full(dialog_id, Auto());
   }
-  if (being_added_dialog_id_ != dialog_id && !d->is_pinned_message_id_inited && !td_->auth_manager_->is_bot()) {
+  if (being_added_dialog_id_ != dialog_id && !d->is_last_pinned_message_id_inited && !td_->auth_manager_->is_bot()) {
     // asynchronously get dialog pinned message from the server
     get_dialog_pinned_message(dialog_id, Auto());
   }
