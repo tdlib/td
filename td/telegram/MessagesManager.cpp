@@ -19103,7 +19103,7 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
       d->server_unread_count + d->local_unread_count, d->last_read_inbox_message_id.get(),
       d->last_read_outbox_message_id.get(), d->unread_mention_count,
       get_chat_notification_settings_object(&d->notification_settings), get_chat_action_bar_object(d),
-      d->pinned_message_id.get(), d->reply_markup_message_id.get(), std::move(draft_message), d->client_data);
+      d->reply_markup_message_id.get(), std::move(draft_message), d->client_data);
 }
 
 tl_object_ptr<td_api::chat> MessagesManager::get_chat_object(DialogId dialog_id) const {
@@ -28465,9 +28465,6 @@ void MessagesManager::set_dialog_pinned_message_id(Dialog *d, MessageId pinned_m
   on_dialog_updated(d->dialog_id, "set_dialog_pinned_message_id");
 
   LOG(INFO) << "Set " << d->dialog_id << " pinned message to " << pinned_message_id;
-  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in set_dialog_pinned_message_id";
-  send_closure(G()->td(), &Td::send_update,
-               make_tl_object<td_api::updateChatPinnedMessage>(d->dialog_id.get(), d->pinned_message_id.get()));
 }
 
 void MessagesManager::drop_dialog_pinned_message_id(Dialog *d) {
@@ -28476,12 +28473,6 @@ void MessagesManager::drop_dialog_pinned_message_id(Dialog *d) {
   on_dialog_updated(d->dialog_id, "drop_dialog_pinned_message_id");
 
   LOG(INFO) << "Drop " << d->dialog_id << " pinned message";
-  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in drop_dialog_pinned_message_id";
-  send_closure(G()->td(), &Td::send_update, make_tl_object<td_api::updateChatPinnedMessage>(d->dialog_id.get(), 0));
-
-  if (!td_->auth_manager_->is_bot()) {
-    get_dialog_info_full(d->dialog_id, Auto());
-  }
 }
 
 void MessagesManager::repair_dialog_scheduled_messages(Dialog *d) {
