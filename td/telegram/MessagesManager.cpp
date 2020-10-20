@@ -14043,7 +14043,7 @@ bool MessagesManager::can_unload_message(const Dialog *d, const Message *m) cons
   // don't want to unload messages from opened dialogs
   // don't want to unload messages to which there are replies in yet unsent messages
   // don't want to unload message with active reply markup
-  // don't want to unload pinned message
+  // don't want to unload the newest pinned message
   // don't want to unload last edited message, because server can send updateEditChannelMessage again
   // can't unload from memory last dialog, last database messages, yet unsent messages, being edited media messages and active live locations
   // can't unload messages in dialog with active suffix load query
@@ -21973,8 +21973,7 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   auto live_location_date = m->is_failed_to_send ? 0 : m->date;
   auto date = is_scheduled ? 0 : m->date;
   auto edit_date = m->hide_edit_date ? 0 : m->edit_date;
-  auto is_pinned =
-      for_event_log || is_scheduled ? false : m->is_pinned || get_dialog(dialog_id)->pinned_message_id == m->message_id;
+  auto is_pinned = for_event_log || is_scheduled ? false : m->is_pinned;
   return make_tl_object<td_api::message>(
       m->message_id.get(), get_message_sender_object_const(m->sender_user_id, m->sender_dialog_id), dialog_id.get(),
       std::move(sending_state), std::move(scheduling_state), is_outgoing, is_pinned, can_be_edited, can_be_forwarded,
@@ -28468,7 +28467,7 @@ void MessagesManager::set_dialog_pinned_message_id(Dialog *d, MessageId pinned_m
   LOG(INFO) << "Set " << d->dialog_id << " pinned message to " << pinned_message_id;
   LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in set_dialog_pinned_message_id";
   send_closure(G()->td(), &Td::send_update,
-               make_tl_object<td_api::updateChatPinnedMessage>(d->dialog_id.get(), pinned_message_id.get()));
+               make_tl_object<td_api::updateChatPinnedMessage>(d->dialog_id.get(), d->pinned_message_id.get()));
 }
 
 void MessagesManager::drop_dialog_pinned_message_id(Dialog *d) {
@@ -30708,7 +30707,6 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(DialogId dialog
     return nullptr;
   }
 
-  // TODO remove creation of dialog from this function, use cgc or cpc or something else
   Dialog *d = get_dialog_force(dialog_id);
   if (d == nullptr) {
     d = add_dialog(dialog_id);
@@ -30832,7 +30830,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
     if (max_message_id != MessageId() && message_id > max_message_id) {
       if (!message->from_database) {
-        if (message_id != d->pinned_message_id) {
+        if (!message->is_pinned) {
           LOG(ERROR) << "Ignore " << message_id << " in " << dialog_id << " received not through update from " << source
                      << ". Last is " << max_message_id << ", channel difference " << debug_channel_difference_dialog_
                      << " " << to_string(get_message_object(dialog_id, message.get()));
@@ -30956,11 +30954,12 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
                                group_info.group_id, m->notification_id, create_new_message_notification(m->message_id));
           }
         }
-        if (need_send_update && m->message_id == d->pinned_message_id &&
-            d->pinned_message_notification_message_id.is_valid() && d->mention_notification_group.group_id.is_valid()) {
+        if (need_send_update && m->is_pinned && d->pinned_message_notification_message_id.is_valid() &&
+            d->mention_notification_group.group_id.is_valid()) {
           auto pinned_message = get_message_force(d, d->pinned_message_notification_message_id, "after update_message");
           if (pinned_message != nullptr && pinned_message->notification_id.is_valid() &&
-              is_message_notification_active(d, pinned_message)) {
+              is_message_notification_active(d, pinned_message) &&
+              get_message_content_pinned_message_id(pinned_message->content.get()) == message_id) {
             send_closure_later(G()->notification_manager(), &NotificationManager::edit_notification,
                                d->mention_notification_group.group_id, pinned_message->notification_id,
                                create_new_message_notification(pinned_message->message_id));
