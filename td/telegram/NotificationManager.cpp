@@ -2722,6 +2722,9 @@ string NotificationManager::convert_loc_key(const string &loc_key) {
       if (loc_key == "MESSAGE_DOC") {
         return "MESSAGE_DOCUMENT";
       }
+      if (loc_key == "MESSAGE_DOCS") {
+        return "MESSAGE_DOCUMENTS";
+      }
       if (loc_key == "ENCRYPTED_MESSAGE") {
         return "MESSAGE";
       }
@@ -2828,6 +2831,9 @@ string NotificationManager::convert_loc_key(const string &loc_key) {
       }
       if (loc_key == "MESSAGE_PHOTO_SECRET") {
         return "MESSAGE_SECRET_PHOTO";
+      }
+      if (loc_key == "MESSAGE_PLAYLIST") {
+        return "MESSAGE_AUDIOS";
       }
       if (loc_key == "MESSAGE_POLL") {
         return "MESSAGE_POLL";

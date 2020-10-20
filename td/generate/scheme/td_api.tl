@@ -2587,7 +2587,8 @@ pushMessageContentChatJoinByLink = PushMessageContent;
 pushMessageContentMessageForwards total_count:int32 = PushMessageContent;
 
 //@description A media album @total_count Number of messages in the album @has_photos True, if the album has at least one photo @has_videos True, if the album has at least one video
-pushMessageContentMediaAlbum total_count:int32 has_photos:Bool has_videos:Bool = PushMessageContent;
+//@has_audios True, if the album has at least one audio file @has_documents True, if the album has at least one document
+pushMessageContentMediaAlbum total_count:int32 has_photos:Bool has_videos:Bool has_audios:Bool has_documents:Bool = PushMessageContent;
 
 
 //@class NotificationType @description Contains detailed information about a notification

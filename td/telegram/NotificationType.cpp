@@ -156,7 +156,8 @@ class NotificationTypePushMessage : public NotificationType {
       return td_api::make_object<td_api::pushMessageContentHidden>(is_pinned);
     }
     if (key == "MESSAGES") {
-      return td_api::make_object<td_api::pushMessageContentMediaAlbum>(to_integer<int32>(arg), true, true);
+      return td_api::make_object<td_api::pushMessageContentMediaAlbum>(to_integer<int32>(arg), true, true, false,
+                                                                       false);
     }
     CHECK(key.size() > 8);
     switch (key[8]) {
@@ -170,6 +171,10 @@ class NotificationTypePushMessage : public NotificationType {
           auto audios_manager = G()->td().get_actor_unsafe()->audios_manager_.get();
           return td_api::make_object<td_api::pushMessageContentAudio>(
               audios_manager->get_audio_object(document.file_id), is_pinned);
+        }
+        if (key == "MESSAGE_AUDIOS") {
+          return td_api::make_object<td_api::pushMessageContentMediaAlbum>(to_integer<int32>(arg), false, false, true,
+                                                                           false);
         }
         break;
       case 'B':
@@ -218,6 +223,10 @@ class NotificationTypePushMessage : public NotificationType {
           return td_api::make_object<td_api::pushMessageContentDocument>(
               documents_manager->get_document_object(document.file_id, PhotoFormat::Jpeg), is_pinned);
         }
+        if (key == "MESSAGE_DOCUMENTS") {
+          return td_api::make_object<td_api::pushMessageContentMediaAlbum>(to_integer<int32>(arg), false, false, false,
+                                                                           true);
+        }
         break;
       case 'F':
         if (key == "MESSAGE_FORWARDS") {
@@ -259,7 +268,8 @@ class NotificationTypePushMessage : public NotificationType {
                                                                       is_pinned);
         }
         if (key == "MESSAGE_PHOTOS") {
-          return td_api::make_object<td_api::pushMessageContentMediaAlbum>(to_integer<int32>(arg), true, false);
+          return td_api::make_object<td_api::pushMessageContentMediaAlbum>(to_integer<int32>(arg), true, false, false,
+                                                                           false);
         }
         if (key == "MESSAGE_POLL") {
           return td_api::make_object<td_api::pushMessageContentPoll>(arg, true, is_pinned);
@@ -303,7 +313,8 @@ class NotificationTypePushMessage : public NotificationType {
               video_notes_manager->get_video_note_object(document.file_id), is_pinned);
         }
         if (key == "MESSAGE_VIDEOS") {
-          return td_api::make_object<td_api::pushMessageContentMediaAlbum>(to_integer<int32>(arg), false, true);
+          return td_api::make_object<td_api::pushMessageContentMediaAlbum>(to_integer<int32>(arg), false, true, false,
+                                                                           false);
         }
         if (key == "MESSAGE_VOICE_NOTE") {
           auto voice_notes_manager = G()->td().get_actor_unsafe()->voice_notes_manager_.get();
