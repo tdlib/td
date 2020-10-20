@@ -3972,7 +3972,11 @@ class CliClient final : public Actor {
       send_request(
           td_api::make_object<td_api::pinChatMessage>(as_chat_id(chat_id), as_message_id(message_id), op == "pcms"));
     } else if (op == "upcm") {
-      send_request(td_api::make_object<td_api::unpinChatMessage>(as_chat_id(args)));
+      string chat_id;
+      string message_id;
+
+      std::tie(chat_id, message_id) = split(args);
+      send_request(td_api::make_object<td_api::unpinChatMessage>(as_chat_id(chat_id), as_message_id(message_id)));
     } else if (op == "grib") {
       send_request(td_api::make_object<td_api::getRecentInlineBots>());
     } else if (op == "spc" || op == "su" || op == "sch") {

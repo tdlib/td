@@ -606,15 +606,13 @@ class GetScheduledMessagesQuery : public Td::ResultHandler {
 class UpdateDialogPinnedMessageQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
-  MessageId message_id_;
 
  public:
   explicit UpdateDialogPinnedMessageQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, MessageId message_id, bool disable_notification) {
+  void send(DialogId dialog_id, MessageId message_id, bool is_unpin, bool disable_notification) {
     dialog_id_ = dialog_id;
-    message_id_ = message_id;
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
       LOG(INFO) << "Can't update pinned message because have no write access to " << dialog_id;
@@ -625,7 +623,9 @@ class UpdateDialogPinnedMessageQuery : public Td::ResultHandler {
     if (disable_notification) {
       flags |= telegram_api::messages_updatePinnedMessage::SILENT_MASK;
     }
-
+    if (is_unpin) {
+      flags |= telegram_api::messages_updatePinnedMessage::UNPIN_MASK;
+    }
     send_query(G()->net_query_creator().create(telegram_api::messages_updatePinnedMessage(
         flags, false /*ignored*/, false /*ignored*/, std::move(input_peer), message_id.get_server_message_id().get())));
   }
@@ -645,7 +645,6 @@ class UpdateDialogPinnedMessageQuery : public Td::ResultHandler {
 
   void on_error(uint64 id, Status status) override {
     if (status.message() == "CHAT_NOT_MODIFIED") {
-      td->messages_manager_->on_update_dialog_pinned_message_id(dialog_id_, message_id_);
       if (!td->auth_manager_->is_bot()) {
         promise_.set_value(Unit());
         return;
@@ -29760,6 +29759,7 @@ void MessagesManager::pin_dialog_message(DialogId dialog_id, MessageId message_i
   Slice action = is_unpin ? Slice("unpin") : Slice("pin");
   switch (dialog_id.get_type()) {
     case DialogType::User:
+      // OK
       break;
     case DialogType::Chat: {
       auto chat_id = dialog_id.get_chat_id();
@@ -29785,24 +29785,19 @@ void MessagesManager::pin_dialog_message(DialogId dialog_id, MessageId message_i
       UNREACHABLE();
   }
 
-  if (is_unpin) {
-    CHECK(message_id == MessageId());
-  } else {
-    if (!have_message_force({dialog_id, message_id}, "pin_dialog_message")) {
-      return promise.set_error(Status::Error(6, "Message not found"));
-    }
-
-    if (message_id.is_scheduled()) {
-      return promise.set_error(Status::Error(6, "Scheduled message can't be pinned"));
-    }
-    if (!message_id.is_server()) {
-      return promise.set_error(Status::Error(6, "Message can't be pinned"));
-    }
+  if (!have_message_force({dialog_id, message_id}, "pin_dialog_message")) {
+    return promise.set_error(Status::Error(6, "Message not found"));
+  }
+  if (message_id.is_scheduled()) {
+    return promise.set_error(Status::Error(6, "Scheduled message can't be pinned"));
+  }
+  if (!message_id.is_server()) {
+    return promise.set_error(Status::Error(6, "Message can't be pinned"));
   }
 
   // TODO log event
   td_->create_handler<UpdateDialogPinnedMessageQuery>(std::move(promise))
-      ->send(dialog_id, message_id, disable_notification);
+      ->send(dialog_id, message_id, is_unpin, disable_notification);
 }
 
 void MessagesManager::add_dialog_participant(DialogId dialog_id, UserId user_id, int32 forward_limit,

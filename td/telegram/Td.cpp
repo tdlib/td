@@ -6164,7 +6164,8 @@ void Td::on_request(uint64 id, const td_api::pinChatMessage &request) {
 
 void Td::on_request(uint64 id, const td_api::unpinChatMessage &request) {
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->pin_dialog_message(DialogId(request.chat_id_), MessageId(), false, true, std::move(promise));
+  messages_manager_->pin_dialog_message(DialogId(request.chat_id_), MessageId(request.message_id_), false, true,
+                                        std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::joinChat &request) {
