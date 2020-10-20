@@ -1815,6 +1815,11 @@ class MessagesManager : public Actor {
   void delete_dialog_messages_from_updates(DialogId dialog_id, const vector<MessageId> &message_ids,
                                            bool skip_update_for_not_found_messages);
 
+  void update_dialog_pinned_messages_from_updates(DialogId dialog_id, const vector<MessageId> &message_ids,
+                                                  bool is_pin);
+
+  bool update_message_is_pinned(Dialog *d, Message *m, bool is_pin, const char *source);
+
   void do_forward_messages(DialogId to_dialog_id, DialogId from_dialog_id, const vector<Message *> &messages,
                            const vector<MessageId> &message_ids, uint64 log_event_id);
 

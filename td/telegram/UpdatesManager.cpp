@@ -1336,8 +1336,8 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
       if (id == telegram_api::updateNewMessage::ID || id == telegram_api::updateReadMessagesContents::ID ||
           id == telegram_api::updateEditMessage::ID || id == telegram_api::updateDeleteMessages::ID ||
           id == telegram_api::updateReadHistoryInbox::ID || id == telegram_api::updateReadHistoryOutbox::ID ||
-          id == telegram_api::updateWebPage::ID || id == telegram_api::updateNewEncryptedMessage::ID ||
-          id == telegram_api::updateChannelParticipant::ID) {
+          id == telegram_api::updateWebPage::ID || id == telegram_api::updatePinnedMessages::ID ||
+          id == telegram_api::updateNewEncryptedMessage::ID || id == telegram_api::updateChannelParticipant::ID) {
         if (!downcast_call(*update, OnUpdate(this, update, false))) {
           LOG(ERROR) << "Can't call on some update received from " << source;
         }
@@ -1755,12 +1755,25 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadChannelDisc
       MessageId(), MessageId(ServerMessageId(update->read_max_id_)));
 }
 
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePinnedMessages> update, bool /*force_apply*/) {
-  // TODO
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePinnedMessages> update, bool force_apply) {
+  CHECK(update != nullptr);
+  int new_pts = update->pts_;
+  int pts_count = update->pts_count_;
+  td_->messages_manager_->add_pending_update(std::move(update), new_pts, pts_count, force_apply,
+                                             "on_updatePinnedMessages");
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePinnedChannelMessages> update, bool /*force_apply*/) {
-  // TODO
+  ChannelId channel_id(update->channel_id_);
+  if (!channel_id.is_valid()) {
+    LOG(ERROR) << "Receive invalid " << channel_id;
+    return;
+  }
+  DialogId dialog_id(channel_id);
+  int new_pts = update->pts_;
+  int pts_count = update->pts_count_;
+  td_->messages_manager_->add_pending_channel_update(dialog_id, std::move(update), new_pts, pts_count,
+                                                     "on_updatePinnedChannelMessages");
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNotifySettings> update, bool /*force_apply*/) {

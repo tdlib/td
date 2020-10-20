@@ -250,8 +250,8 @@ class UpdatesManager : public Actor {
   void on_update(tl_object_ptr<telegram_api::updateReadChannelDiscussionInbox> update, bool /*force_apply*/);
   void on_update(tl_object_ptr<telegram_api::updateReadChannelDiscussionOutbox> update, bool /*force_apply*/);
 
-  void on_update(tl_object_ptr<telegram_api::updatePinnedMessages> update, bool /*force_apply*/);
-  void on_update(tl_object_ptr<telegram_api::updatePinnedChannelMessages> update, bool /*force_apply*/);
+  void on_update(tl_object_ptr<telegram_api::updatePinnedMessages> update, bool force_apply);
+  void on_update(tl_object_ptr<telegram_api::updatePinnedChannelMessages> update, bool force_apply);
 
   void on_update(tl_object_ptr<telegram_api::updateDraftMessage> update, bool /*force_apply*/);
 

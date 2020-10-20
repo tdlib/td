@@ -859,7 +859,7 @@ chatPosition list:ChatList order:int64 is_pinned:Bool source:ChatSource = ChatPo
 //@unread_mention_count Number of unread messages with a mention/reply in the chat
 //@notification_settings Notification settings for this chat
 //@action_bar Describes actions which should be possible to do through a chat action bar; may be null
-//@pinned_message_id Identifier of the pinned message in the chat; 0 if none
+//@pinned_message_id Identifier of the newest pinned message in the chat; 0 if none
 //@reply_markup_message_id Identifier of the message from which reply markup needs to be used; 0 if there is no default custom reply markup in the chat
 //@draft_message A draft of a message in the chat; may be null
 //@client_data Contains application-specific data associated with the chat. (For example, the chat scroll position or local chat notification settings can be stored here.) Persistent if the message database is used
@@ -3168,6 +3168,9 @@ updateMessageContent chat_id:int53 message_id:int53 new_content:MessageContent =
 //@description A message was edited. Changes in the message content will come in a separate updateMessageContent @chat_id Chat identifier @message_id Message identifier @edit_date Point in time (Unix timestamp) when the message was edited @reply_markup New message reply markup; may be null
 updateMessageEdited chat_id:int53 message_id:int53 edit_date:int32 reply_markup:ReplyMarkup = Update;
 
+//@description The message pinned state was changed @chat_id Chat identifier @message_id The message identifier @is_pinned True, if the message is pinned
+updateMessageIsPinned chat_id:int53 message_id:int53 is_pinned:Bool = Update;
+
 //@description The information about interactions with a message has changed @chat_id Chat identifier @message_id Message identifier @interaction_info New information about interactions with the message; may be null
 updateMessageInteractionInfo chat_id:int53 message_id:int53 interaction_info:messageInteractionInfo = Update;
 
@@ -3229,7 +3232,7 @@ updateScopeNotificationSettings scope:NotificationSettingsScope notification_set
 //@description The chat action bar was changed @chat_id Chat identifier @action_bar The new value of the action bar; may be null
 updateChatActionBar chat_id:int53 action_bar:ChatActionBar = Update;
 
-//@description The chat pinned message was changed @chat_id Chat identifier @pinned_message_id The new identifier of the pinned message; 0 if there is no pinned message in the chat
+//@description The chat newest pinned message was changed @chat_id Chat identifier @pinned_message_id The new identifier of the newest pinned message; 0 if there is no known pinned messages in the chat
 updateChatPinnedMessage chat_id:int53 pinned_message_id:int53 = Update;
 
 //@description The default chat reply markup was changed. Can occur because new messages with reply markup were received or because an old reply markup was hidden by the user
@@ -3595,7 +3598,7 @@ getMessageLocally chat_id:int53 message_id:int53 = Message;
 //@chat_id Identifier of the chat the message belongs to @message_id Identifier of the message reply to which to get
 getRepliedMessage chat_id:int53 message_id:int53 = Message;
 
-//@description Returns information about a pinned chat message @chat_id Identifier of the chat the message belongs to
+//@description Returns information about a newest pinned chat message @chat_id Identifier of the chat the message belongs to
 getChatPinnedMessage chat_id:int53 = Message;
 
 //@description Returns information about messages. If a message is not found, returns null on the corresponding position of the result @chat_id Identifier of the chat the messages belong to @message_ids Identifiers of the messages to get

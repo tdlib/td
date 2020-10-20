@@ -6100,6 +6100,14 @@ void MessagesManager::add_pending_update(tl_object_ptr<telegram_api::Update> &&u
       }
       break;
     }
+    case telegram_api::updatePinnedMessages::ID: {
+      auto update_pinned_messages = static_cast<const telegram_api::updatePinnedMessages *>(update.get());
+      auto dialog_id = DialogId(update_pinned_messages->peer_);
+      if (!check_update_dialog_id(update, dialog_id)) {
+        return;
+      }
+      break;
+    }
     default:
       LOG(ERROR) << "Receive unexpected update " << oneline(to_string(update)) << "from " << source;
       return;
@@ -7186,7 +7194,7 @@ void MessagesManager::process_update(tl_object_ptr<telegram_api::Update> &&updat
       auto delete_update = move_tl_object_as<telegram_api::updateDeleteMessages>(update);
       LOG(INFO) << "Process updateDeleteMessages";
       vector<MessageId> message_ids;
-      for (auto &message : delete_update->messages_) {
+      for (auto message : delete_update->messages_) {
         message_ids.push_back(MessageId(ServerMessageId(message)));
       }
       delete_messages_from_updates(message_ids);
@@ -7209,6 +7217,17 @@ void MessagesManager::process_update(tl_object_ptr<telegram_api::Update> &&updat
       auto read_update = move_tl_object_as<telegram_api::updateReadHistoryOutbox>(update);
       LOG(INFO) << "Process updateReadHistoryOutbox";
       read_history_outbox(DialogId(read_update->peer_), MessageId(ServerMessageId(read_update->max_id_)));
+      break;
+    }
+    case telegram_api::updatePinnedMessages::ID: {
+      auto pinned_messages_update = move_tl_object_as<telegram_api::updatePinnedMessages>(update);
+      LOG(INFO) << "Process updatePinnedMessages";
+      vector<MessageId> message_ids;
+      for (auto message : pinned_messages_update->messages_) {
+        message_ids.push_back(MessageId(ServerMessageId(message)));
+      }
+      update_dialog_pinned_messages_from_updates(DialogId(pinned_messages_update->peer_), message_ids,
+                                                 pinned_messages_update->pinned_);
       break;
     }
     default:
@@ -7258,6 +7277,24 @@ void MessagesManager::process_channel_update(tl_object_ptr<telegram_api::Update>
           on_get_message(std::move(move_tl_object_as<telegram_api::updateEditChannelMessage>(update)->message_), false,
                          true, false, false, false, "updateEditChannelMessage");
       on_message_edited(full_message_id);
+      break;
+    }
+    case telegram_api::updatePinnedChannelMessages::ID: {
+      auto pinned_channel_messages_update = move_tl_object_as<telegram_api::updatePinnedChannelMessages>(update);
+      LOG(INFO) << "Process updatePinnedChannelMessages";
+      ChannelId channel_id(pinned_channel_messages_update->channel_id_);
+      if (!channel_id.is_valid()) {
+        LOG(ERROR) << "Receive invalid " << channel_id;
+        break;
+      }
+
+      vector<MessageId> message_ids;
+      for (auto &message : pinned_channel_messages_update->messages_) {
+        message_ids.push_back(MessageId(ServerMessageId(message)));
+      }
+
+      update_dialog_pinned_messages_from_updates(DialogId(channel_id), message_ids,
+                                                 pinned_channel_messages_update->pinned_);
       break;
     }
     default:
@@ -9550,6 +9587,46 @@ void MessagesManager::delete_dialog_messages_from_updates(DialogId dialog_id, co
     send_update_chat_last_message(d, "delete_dialog_messages_from_updates");
   }
   send_update_delete_messages(dialog_id, std::move(deleted_message_ids), true, false);
+}
+
+void MessagesManager::update_dialog_pinned_messages_from_updates(DialogId dialog_id,
+                                                                 const vector<MessageId> &message_ids, bool is_pin) {
+  Dialog *d = get_dialog_force(dialog_id);
+  if (d == nullptr) {
+    LOG(INFO) << "Ignore updatePinnedMessages for unknown " << dialog_id;
+    return;
+  }
+
+  for (auto message_id : message_ids) {
+    if (!message_id.is_valid() || (!message_id.is_server() && dialog_id.get_type() != DialogType::SecretChat)) {
+      LOG(ERROR) << "Incoming update tries to pin/unpin " << message_id << " in " << dialog_id;
+      continue;
+    }
+
+    Message *m = get_message_force(d, message_id, "update_dialog_pinned_messages_from_updates");
+    if (m != nullptr) {
+      if (update_message_is_pinned(d, m, is_pin, "update_dialog_pinned_messages_from_updates")) {
+        on_message_changed(d, m, true, "update_dialog_pinned_messages_from_updates");
+      }
+    } else if (message_id > d->last_new_message_id) {
+      get_channel_difference(dialog_id, d->pts, true, "update_dialog_pinned_messages_from_updates");
+    }
+  }
+}
+
+bool MessagesManager::update_message_is_pinned(Dialog *d, Message *m, bool is_pinned, const char *source) {
+  CHECK(m != nullptr);
+  CHECK(!m->message_id.is_scheduled());
+  if (m->is_pinned == is_pinned) {
+    return false;
+  }
+
+  LOG(INFO) << "Update message is_pinned of " << m->message_id << " in " << d->dialog_id << " to " << is_pinned
+            << " from " << source;
+  m->is_pinned = is_pinned;
+  send_closure(G()->td(), &Td::send_update,
+               make_tl_object<td_api::updateMessageIsPinned>(d->dialog_id.get(), m->message_id.get(), is_pinned));
+  return true;
 }
 
 string MessagesManager::get_message_search_text(const Message *m) const {
@@ -32155,8 +32232,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     // old_message->is_from_scheduled = new_message->is_from_scheduled;
   }
 
-  if (old_message->is_pinned != new_message->is_pinned) {
-    old_message->is_pinned = new_message->is_pinned;
+  if (update_message_is_pinned(d, old_message, new_message->is_pinned, "update_message")) {
     need_send_update = true;
   }
 
@@ -34154,9 +34230,8 @@ void MessagesManager::process_get_channel_difference_updates(
     if (update != nullptr) {
       switch (update->get_id()) {
         case telegram_api::updateDeleteChannelMessages::ID:
-          process_channel_update(std::move(update));
-          break;
         case telegram_api::updateEditChannelMessage::ID:
+        case telegram_api::updatePinnedChannelMessages::ID:
           process_channel_update(std::move(update));
           break;
         default:
