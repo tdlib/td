@@ -9615,7 +9615,12 @@ bool MessagesManager::update_message_is_pinned(Dialog *d, Message *m, bool is_pi
 
   LOG(INFO) << "Update message is_pinned of " << m->message_id << " in " << d->dialog_id << " to " << is_pinned
             << " from " << source;
+  auto old_index_mask = get_message_index_mask(d->dialog_id, m);
   m->is_pinned = is_pinned;
+  auto new_index_mask = get_message_index_mask(d->dialog_id, m);
+  update_message_count_by_index(d, -1, old_index_mask & ~new_index_mask);
+  update_message_count_by_index(d, +1, new_index_mask & ~old_index_mask);
+
   send_closure(G()->td(), &Td::send_update,
                make_tl_object<td_api::updateMessageIsPinned>(d->dialog_id.get(), m->message_id.get(), is_pinned));
   if (is_pinned) {
