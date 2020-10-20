@@ -160,6 +160,7 @@ class ClientManager::Impl final {
     return response;
   }
 
+  Impl() = default;
   Impl(const Impl &) = delete;
   Impl &operator=(const Impl &) = delete;
   Impl(Impl &&) = delete;
