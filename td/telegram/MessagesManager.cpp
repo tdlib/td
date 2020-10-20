@@ -25729,6 +25729,9 @@ Result<MessagesManager::MessagePushNotificationInfo> MessagesManager::get_messag
   } else if (contains_mention && is_dialog_mention_notifications_disabled(d)) {
     contains_mention = false;
   }
+  if (dialog_id.get_type() == DialogType::User) {
+    contains_mention = false;
+  }
 
   DialogId settings_dialog_id = dialog_id;
   Dialog *settings_dialog = d;
