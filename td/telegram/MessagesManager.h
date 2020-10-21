@@ -1749,9 +1749,7 @@ class MessagesManager : public Actor {
 
   Status can_use_top_thread_message_id(Dialog *d, MessageId top_thread_message_id, MessageId reply_to_message_id);
 
-  bool is_anonymous_administrator(DialogId dialog_id) const;
-
-  bool is_anonymous_administrator(UserId sender_user_id, DialogId dialog_id, string *author_signature) const;
+  bool is_anonymous_administrator(DialogId dialog_id, string *author_signature) const;
 
   Message *get_message_to_send(Dialog *d, MessageId top_thread_message_id, MessageId reply_to_message_id,
                                const MessageSendOptions &options, unique_ptr<MessageContent> &&content,

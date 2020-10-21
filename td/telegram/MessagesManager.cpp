@@ -21760,25 +21760,18 @@ tl_object_ptr<td_api::messages> MessagesManager::get_messages_object(
   return td_api::make_object<td_api::messages>(total_count, std::move(messages));
 }
 
-bool MessagesManager::is_anonymous_administrator(DialogId dialog_id) const {
+bool MessagesManager::is_anonymous_administrator(DialogId dialog_id, string *author_signature) const {
+  CHECK(dialog_id.is_valid());
+
   if (is_broadcast_channel(dialog_id)) {
     return true;
   }
-  return is_anonymous_administrator(td_->contacts_manager_->get_my_id(), dialog_id, nullptr);
-}
 
-bool MessagesManager::is_anonymous_administrator(UserId sender_user_id, DialogId dialog_id,
-                                                 string *author_signature) const {
-  if (!sender_user_id.is_valid()) {
-    return false;
-  }
-  CHECK(dialog_id.is_valid());
-
-  if (td_->contacts_manager_->is_user_bot(sender_user_id)) {
+  if (td_->auth_manager_->is_bot()) {
     return false;
   }
 
-  if (dialog_id.get_type() != DialogType::Channel || is_broadcast_channel(dialog_id)) {
+  if (dialog_id.get_type() != DialogType::Channel) {
     return false;
   }
 
@@ -21820,7 +21813,7 @@ MessagesManager::Message *MessagesManager::get_message_to_send(
     }
     m->sender_dialog_id = d->dialog_id;
   } else {
-    if (is_anonymous_administrator(my_id, d->dialog_id, &m->author_signature)) {
+    if (is_anonymous_administrator(d->dialog_id, &m->author_signature)) {
       m->sender_dialog_id = d->dialog_id;
     } else {
       m->sender_user_id = my_id;
@@ -24791,7 +24784,7 @@ Result<unique_ptr<ReplyMarkup>> MessagesManager::get_dialog_reply_markup(
   }
 
   auto dialog_type = dialog_id.get_type();
-  bool is_anonymous = is_anonymous_administrator(dialog_id);
+  bool is_anonymous = is_anonymous_administrator(dialog_id, nullptr);
 
   bool only_inline_keyboard = is_anonymous;
   bool request_buttons_allowed = dialog_type == DialogType::User;
@@ -25473,11 +25466,7 @@ Result<MessageId> MessagesManager::add_local_message(
     }
     m->sender_dialog_id = dialog_id;
   } else {
-    if (is_anonymous_administrator(sender_user_id, dialog_id, &m->author_signature)) {
-      m->sender_dialog_id = dialog_id;
-    } else {
-      m->sender_user_id = sender_user_id;
-    }
+    m->sender_user_id = sender_user_id;
   }
   m->date = G()->unix_time();
   m->reply_to_message_id = get_reply_to_message_id(d, MessageId(), reply_to_message_id);
@@ -28873,7 +28862,7 @@ bool MessagesManager::get_dialog_has_scheduled_messages(const Dialog *d) const {
 }
 
 bool MessagesManager::is_dialog_action_unneeded(DialogId dialog_id) const {
-  if (is_anonymous_administrator(dialog_id)) {
+  if (is_anonymous_administrator(dialog_id, nullptr)) {
     return true;
   }
 
