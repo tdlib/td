@@ -31334,6 +31334,13 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 
   register_message_content(td_, m->content.get(), {dialog_id, m->message_id}, "add_message_to_dialog");
 
+  if (*need_update && m->message_id.is_server() && message_content_type == MessageContentType::PinMessage) {
+    auto pinned_message_id = get_message_content_pinned_message_id(m->content.get());
+    if (pinned_message_id > d->last_pinned_message_id) {
+      on_update_dialog_last_pinned_message_id(dialog_id, pinned_message_id);
+    }
+  }
+
   if (from_update) {
     speculatively_update_channel_participants(dialog_id, m);
     update_sent_message_contents(dialog_id, m);
