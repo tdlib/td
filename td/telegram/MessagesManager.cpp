@@ -33826,6 +33826,12 @@ void MessagesManager::get_channel_difference(DialogId dialog_id, int32 pts, bool
     after_get_channel_difference(dialog_id, false);
     return;
   }
+  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+    LOG(INFO) << "Skip running channels.getDifference for " << dialog_id << " from " << source
+              << " because have no read access to it";
+    after_get_channel_difference(dialog_id, false);
+    return;
+  }
 
   if (force && get_channel_difference_to_log_event_id_.count(dialog_id) == 0 && !G()->ignore_backgrond_updates()) {
     auto channel_id = dialog_id.get_channel_id();
@@ -33848,14 +33854,6 @@ void MessagesManager::do_get_channel_difference(DialogId dialog_id, int32 pts, b
   if (!inserted.second) {
     LOG(INFO) << "Skip running channels.getDifference for " << dialog_id << " from " << source
               << " because it has already been run";
-    return;
-  }
-  bool have_access = have_input_peer(dialog_id, AccessRights::Read);
-  if (!have_access) {
-    LOG(INFO) << "Skip running channels.getDifference for " << dialog_id << " from " << source
-              << " because have no read access to it";
-    active_get_channel_differencies_.erase(dialog_id);
-    after_get_channel_difference(dialog_id, false);
     return;
   }
 
