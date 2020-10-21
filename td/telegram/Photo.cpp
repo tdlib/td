@@ -342,7 +342,7 @@ PhotoSize get_secret_thumbnail_photo_size(FileManager *file_manager, BufferSlice
 
   // generate some random remote location to save
   auto dc_id = DcId::invalid();
-  auto local_id = Random::secure_int32();
+  auto local_id = -(Random::secure_int32() & 0x7FFFFFFF);
   auto volume_id = Random::secure_int64();
 
   res.file_id = file_manager->register_remote(
