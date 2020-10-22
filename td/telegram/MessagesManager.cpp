@@ -9985,6 +9985,21 @@ void MessagesManager::delete_dialog_history_from_server(DialogId dialog_id, Mess
   }
 }
 
+void MessagesManager::find_messages(const Message *m, vector<MessageId> &message_ids,
+                                    const std::function<bool(const Message *)> &condition) {
+  if (m == nullptr) {
+    return;
+  }
+
+  find_messages(m->left.get(), message_ids, condition);
+
+  if (condition(m)) {
+    message_ids.push_back(m->message_id);
+  }
+
+  find_messages(m->right.get(), message_ids, condition);
+}
+
 void MessagesManager::find_discussed_messages(const Message *m, ChannelId old_channel_id, ChannelId new_channel_id,
                                               vector<MessageId> &message_ids) {
   if (m == nullptr) {

@@ -1909,6 +1909,9 @@ class MessagesManager : public Actor {
 
   static MessageId find_message_by_date(const Message *m, int32 date);
 
+  static void find_messages(const Message *m, vector<MessageId> &message_ids,
+                            const std::function<bool(const Message *)> &condition);
+
   static void find_discussed_messages(const Message *m, ChannelId old_channel_id, ChannelId new_channel_id,
                                       vector<MessageId> &message_ids);
 
