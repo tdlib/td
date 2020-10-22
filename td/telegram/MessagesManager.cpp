@@ -29871,13 +29871,18 @@ void MessagesManager::pin_dialog_message(DialogId dialog_id, MessageId message_i
   }
   TRY_STATUS_PROMISE(promise, can_pin_messages(dialog_id));
 
-  if (!have_message_force({dialog_id, message_id}, "pin_dialog_message")) {
+  const Message *m = get_message_force(d, message_id, "pin_dialog_message");
+  if (m == nullptr) {
     return promise.set_error(Status::Error(6, "Message not found"));
   }
   if (message_id.is_scheduled()) {
     return promise.set_error(Status::Error(6, "Scheduled message can't be pinned"));
   }
   if (!message_id.is_server()) {
+    return promise.set_error(Status::Error(6, "Message can't be pinned"));
+  }
+
+  if (!is_unpin && is_service_message_content(m->content->get_type())) {
     return promise.set_error(Status::Error(6, "Message can't be pinned"));
   }
 
