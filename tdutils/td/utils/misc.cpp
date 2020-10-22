@@ -36,11 +36,15 @@ string implode(const vector<string> &v, char delimiter) {
   return result;
 }
 
-string lpad0(string str, size_t size) {
+string lpad(string str, size_t size, char c) {
   if (str.size() >= size) {
     return str;
   }
-  return string(size - str.size(), '0') + str;
+  return string(size - str.size(), c) + str;
+}
+
+string lpad0(string str, size_t size) {
+  return lpad(std::move(str), size, '0');
 }
 
 string oneline(Slice str) {
