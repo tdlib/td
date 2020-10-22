@@ -48,7 +48,7 @@ string oneline(Slice str) {
   result.reserve(str.size());
   bool after_new_line = true;
   for (auto c : str) {
-    if (c != '\n') {
+    if (c != '\n' && c != '\r') {
       if (after_new_line) {
         if (c == ' ') {
           continue;
@@ -56,7 +56,7 @@ string oneline(Slice str) {
         after_new_line = false;
       }
       result += c;
-    } else {
+    } else if (!after_new_line) {
       after_new_line = true;
       result += ' ';
     }
