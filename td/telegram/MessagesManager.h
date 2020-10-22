@@ -508,6 +508,8 @@ class MessagesManager : public Actor {
   void pin_dialog_message(DialogId dialog_id, MessageId message_id, bool disable_notification, bool is_unpin,
                           Promise<Unit> &&promise);
 
+  void unpin_all_dialog_messages(DialogId dialog_id, Promise<Unit> &&promise);
+
   void add_dialog_participant(DialogId dialog_id, UserId user_id, int32 forward_limit, Promise<Unit> &&promise);
 
   void add_dialog_participants(DialogId dialog_id, const vector<UserId> &user_ids, Promise<Unit> &&promise);
@@ -1647,6 +1649,7 @@ class MessagesManager : public Actor {
   class ToggleDialogIsBlockedOnServerLogEvent;
   class ToggleDialogIsMarkedAsUnreadOnServerLogEvent;
   class ToggleDialogIsPinnedOnServerLogEvent;
+  class UnpinAllDialogMessagesOnServerLogEvent;
   class UpdateDialogNotificationSettingsOnServerLogEvent;
   class UpdateScopeNotificationSettingsOnServerLogEvent;
 
@@ -1784,6 +1787,8 @@ class MessagesManager : public Actor {
   bool can_edit_message(DialogId dialog_id, const Message *m, bool is_editing, bool only_reply_markup = false) const;
 
   bool can_report_dialog(DialogId dialog_id) const;
+
+  Status can_pin_messages(DialogId dialog_id) const;
 
   void cancel_edit_message_media(DialogId dialog_id, Message *m, Slice error_message);
 
@@ -1927,6 +1932,8 @@ class MessagesManager : public Actor {
                                                        Promise<Unit> &&promise);
 
   void read_all_dialog_mentions_on_server(DialogId dialog_id, uint64 log_event_id, Promise<Unit> &&promise);
+
+  void unpin_all_dialog_messages_on_server(DialogId dialog_id, uint64 log_event_id, Promise<Unit> &&promise);
 
   static MessageId find_message_by_date(const Message *m, int32 date);
 
@@ -2921,6 +2928,8 @@ class MessagesManager : public Actor {
 
   uint64 save_forward_messages_log_event(DialogId to_dialog_id, DialogId from_dialog_id,
                                          const vector<Message *> &messages, const vector<MessageId> &message_ids);
+
+  uint64 save_unpin_all_dialog_messages_on_server_log_event(DialogId dialog_id);
 
   void suffix_load_loop(Dialog *d);
   void suffix_load_update_first_message_id(Dialog *d);

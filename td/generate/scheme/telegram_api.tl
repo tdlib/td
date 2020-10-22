@@ -1413,6 +1413,7 @@ messages.getReplies#24b581ba peer:InputPeer msg_id:int offset_id:int offset_date
 messages.getDiscussionMessage#446972fd peer:InputPeer msg_id:int = messages.DiscussionMessage;
 messages.readDiscussion#f731a9f4 peer:InputPeer msg_id:int read_max_id:int = Bool;
 messages.requestProximityNotification#b12ba31c flags:# peer:InputPeer msg_id:int max_distance:flags.0?int = Bool;
+messages.unpinAllMessages#f025bc8b peer:InputPeer = messages.AffectedHistory;
 
 updates.getState#edd4882a = updates.State;
 updates.getDifference#25939651 flags:# pts:int pts_total_limit:flags.0?int date:int qts:int = updates.Difference;

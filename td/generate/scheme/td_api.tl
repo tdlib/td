@@ -4126,6 +4126,9 @@ pinChatMessage chat_id:int53 message_id:int53 disable_notification:Bool = Ok;
 //@description Removes a pinned message from a chat; requires can_pin_messages rights in the group or can_edit_messages rights in the channel @chat_id Identifier of the chat @message_id Identifier of the removed pinned message
 unpinChatMessage chat_id:int53 message_id:int53 = Ok;
 
+//@description Removes all pinned messages from a chat; requires can_pin_messages rights in the group or can_edit_messages rights in the channel @chat_id Identifier of the chat
+unpinAllChatMessages chat_id:int53 = Ok;
+
 
 //@description Adds current user as a new member to a chat. Private and secret chats can't be joined using this method @chat_id Chat identifier
 joinChat chat_id:int53 = Ok;

@@ -6168,6 +6168,11 @@ void Td::on_request(uint64 id, const td_api::unpinChatMessage &request) {
                                         std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::unpinAllChatMessages &request) {
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->unpin_all_dialog_messages(DialogId(request.chat_id_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::joinChat &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

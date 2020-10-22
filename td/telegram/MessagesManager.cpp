@@ -615,7 +615,7 @@ class UpdateDialogPinnedMessageQuery : public Td::ResultHandler {
     dialog_id_ = dialog_id;
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
-      LOG(INFO) << "Can't update pinned message because have no write access to " << dialog_id;
+      LOG(INFO) << "Can't update pinned message in " << dialog_id;
       return on_error(0, Status::Error(500, "Can't update pinned message"));
     }
 
@@ -645,6 +645,65 @@ class UpdateDialogPinnedMessageQuery : public Td::ResultHandler {
 
   void on_error(uint64 id, Status status) override {
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "UpdateDialogPinnedMessageQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
+class UnpinAllMessagesQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+  void send_request() {
+    auto input_peer = td->messages_manager_->get_input_peer(dialog_id_, AccessRights::Write);
+    if (input_peer == nullptr) {
+      LOG(INFO) << "Can't unpin all messages in " << dialog_id_;
+      return on_error(0, Status::Error(500, "Can't unpin all messages"));
+    }
+
+    send_query(G()->net_query_creator().create(telegram_api::messages_unpinAllMessages(std::move(input_peer))));
+  }
+
+ public:
+  explicit UnpinAllMessagesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id) {
+    dialog_id_ = dialog_id;
+
+    send_request();
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::messages_unpinAllMessages>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto affected_history = result_ptr.move_as_ok();
+    CHECK(affected_history->get_id() == telegram_api::messages_affectedHistory::ID);
+
+    if (affected_history->pts_count_ > 0) {
+      affected_history->pts_count_ = 0;  // force receiving real updates from the server
+      if (dialog_id_.get_type() == DialogType::Channel) {
+        td->messages_manager_->add_pending_channel_update(dialog_id_, make_tl_object<dummyUpdate>(),
+                                                          affected_history->pts_, affected_history->pts_count_,
+                                                          "unpin all messages");
+      } else {
+        td->messages_manager_->add_pending_update(make_tl_object<dummyUpdate>(), affected_history->pts_,
+                                                  affected_history->pts_count_, false, "unpin all messages");
+      }
+    }
+
+    if (affected_history->offset_ > 0) {
+      send_request();
+      return;
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(uint64 id, Status status) override {
+    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "UnpinAllMessagesQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -29766,23 +29825,16 @@ void MessagesManager::set_dialog_description(DialogId dialog_id, const string &d
   }
 }
 
-void MessagesManager::pin_dialog_message(DialogId dialog_id, MessageId message_id, bool disable_notification,
-                                         bool is_unpin, Promise<Unit> &&promise) {
-  auto d = get_dialog_force(dialog_id);
-  if (d == nullptr) {
-    return promise.set_error(Status::Error(6, "Chat not found"));
-  }
-  Slice action = is_unpin ? Slice("unpin") : Slice("pin");
+Status MessagesManager::can_pin_messages(DialogId dialog_id) const {
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      // OK
       break;
     case DialogType::Chat: {
       auto chat_id = dialog_id.get_chat_id();
       auto status = td_->contacts_manager_->get_chat_permissions(chat_id);
       if (!status.can_pin_messages() ||
           (td_->auth_manager_->is_bot() && !td_->contacts_manager_->is_appointed_chat_administrator(chat_id))) {
-        return promise.set_error(Status::Error(3, PSLICE() << "Not enough rights to " << action << " a message"));
+        return Status::Error(400, "Not enough rights to manage pinned messages in the chat");
       }
       break;
     }
@@ -29790,16 +29842,30 @@ void MessagesManager::pin_dialog_message(DialogId dialog_id, MessageId message_i
       auto status = td_->contacts_manager_->get_channel_permissions(dialog_id.get_channel_id());
       bool can_pin = is_broadcast_channel(dialog_id) ? status.can_edit_messages() : status.can_pin_messages();
       if (!can_pin) {
-        return promise.set_error(Status::Error(6, PSLICE() << "Not enough rights to " << action << " a message"));
+        return Status::Error(400, "Not enough rights to manage pinned messages in the chat");
       }
       break;
     }
     case DialogType::SecretChat:
-      return promise.set_error(Status::Error(3, PSLICE() << "Can't " << action << " messages in secret chats"));
+      return Status::Error(400, "Secret chats can't have pinned messages");
     case DialogType::None:
     default:
       UNREACHABLE();
   }
+  if (!have_input_peer(dialog_id, AccessRights::Write)) {
+    return Status::Error(400, "Not enough rights");
+  }
+
+  return Status::OK();
+}
+
+void MessagesManager::pin_dialog_message(DialogId dialog_id, MessageId message_id, bool disable_notification,
+                                         bool is_unpin, Promise<Unit> &&promise) {
+  auto d = get_dialog_force(dialog_id);
+  if (d == nullptr) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+  TRY_STATUS_PROMISE(promise, can_pin_messages(dialog_id));
 
   if (!have_message_force({dialog_id, message_id}, "pin_dialog_message")) {
     return promise.set_error(Status::Error(6, "Message not found"));
@@ -29814,6 +29880,67 @@ void MessagesManager::pin_dialog_message(DialogId dialog_id, MessageId message_i
   // TODO log event
   td_->create_handler<UpdateDialogPinnedMessageQuery>(std::move(promise))
       ->send(dialog_id, message_id, is_unpin, disable_notification);
+}
+
+void MessagesManager::unpin_all_dialog_messages(DialogId dialog_id, Promise<Unit> &&promise) {
+  auto d = get_dialog_force(dialog_id);
+  if (d == nullptr) {
+    return promise.set_error(Status::Error(6, "Chat not found"));
+  }
+  TRY_STATUS_PROMISE(promise, can_pin_messages(dialog_id));
+
+  vector<MessageId> message_ids;
+  find_messages(d->messages.get(), message_ids, [](const Message *m) { return m->is_pinned; });
+
+  vector<int64> deleted_message_ids;
+  for (auto message_id : message_ids) {
+    auto m = get_message(d, message_id);
+    CHECK(m != nullptr);
+
+    m->is_pinned = false;
+    send_closure(G()->td(), &Td::send_update,
+                 make_tl_object<td_api::updateMessageIsPinned>(d->dialog_id.get(), m->message_id.get(), m->is_pinned));
+    on_message_changed(d, m, true, "unpin_all_dialog_messages");
+  }
+
+  set_dialog_last_pinned_message_id(d, MessageId());
+  if (d->message_count_by_index[message_search_filter_index(MessageSearchFilter::Pinned)] != 0) {
+    d->message_count_by_index[message_search_filter_index(MessageSearchFilter::Pinned)] = 0;
+    on_dialog_updated(dialog_id, "unpin_all_dialog_messages");
+  }
+
+  unpin_all_dialog_messages_on_server(dialog_id, 0, std::move(promise));
+}
+
+class MessagesManager::UnpinAllDialogMessagesOnServerLogEvent {
+ public:
+  DialogId dialog_id_;
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    td::store(dialog_id_, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    td::parse(dialog_id_, parser);
+  }
+};
+
+uint64 MessagesManager::save_unpin_all_dialog_messages_on_server_log_event(DialogId dialog_id) {
+  UnpinAllDialogMessagesOnServerLogEvent log_event{dialog_id};
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::UnpinAllDialogMessagesOnServer,
+                    get_log_event_storer(log_event));
+}
+
+void MessagesManager::unpin_all_dialog_messages_on_server(DialogId dialog_id, uint64 log_event_id,
+                                                          Promise<Unit> &&promise) {
+  if (log_event_id == 0 && G()->parameters().use_message_db) {
+    log_event_id = save_unpin_all_dialog_messages_on_server_log_event(dialog_id);
+  }
+
+  td_->create_handler<UnpinAllMessagesQuery>(get_erase_log_event_promise(log_event_id, std::move(promise)))
+      ->send(dialog_id);
 }
 
 void MessagesManager::add_dialog_participant(DialogId dialog_id, UserId user_id, int32 forward_limit,
@@ -35512,6 +35639,18 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         }
 
         send_get_dialog_query(dialog_id, Promise<Unit>(), event.id_);
+        break;
+      }
+      case LogEvent::HandlerType::UnpinAllDialogMessagesOnServer: {
+        if (!G()->parameters().use_message_db) {
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+
+        UnpinAllDialogMessagesOnServerLogEvent log_event;
+        log_event_parse(log_event, event.data_).ensure();
+
+        unpin_all_dialog_messages_on_server(log_event.dialog_id_, event.id_, Auto());
         break;
       }
       case LogEvent::HandlerType::GetChannelDifference: {

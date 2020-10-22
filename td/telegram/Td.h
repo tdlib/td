@@ -741,6 +741,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, const td_api::unpinChatMessage &request);
 
+  void on_request(uint64 id, const td_api::unpinAllChatMessages &request);
+
   void on_request(uint64 id, const td_api::joinChat &request);
 
   void on_request(uint64 id, const td_api::leaveChat &request);
