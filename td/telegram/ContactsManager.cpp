@@ -7571,11 +7571,17 @@ ContactsManager::User *ContactsManager::get_user_force(UserId user_id) {
       profile_photo_local_id = 13226;
     } else if (user_id == get_replies_bot_user_id()) {
       flags |= telegram_api::user::USERNAME_MASK | telegram_api::user::BOT_MASK;
+      if (!G()->is_test_dc()) {
+        flags |= telegram_api::user::BOT_NOCHATS_MASK;
+      }
       first_name = "Replies";
       username = "replies";
       bot_info_version = G()->is_test_dc() ? 1 : 3;
     } else if (user_id == get_anonymous_bot_user_id()) {
       flags |= telegram_api::user::USERNAME_MASK | telegram_api::user::BOT_MASK;
+      if (!G()->is_test_dc()) {
+        flags |= telegram_api::user::BOT_NOCHATS_MASK;
+      }
       first_name = "Group";
       username = G()->is_test_dc() ? "izgroupbot" : "GroupAnonymousBot";
       bot_info_version = G()->is_test_dc() ? 1 : 3;
