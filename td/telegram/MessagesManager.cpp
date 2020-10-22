@@ -611,7 +611,7 @@ class UpdateDialogPinnedMessageQuery : public Td::ResultHandler {
   explicit UpdateDialogPinnedMessageQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, MessageId message_id, bool is_unpin, bool disable_notification) {
+  void send(DialogId dialog_id, MessageId message_id, bool is_unpin, bool disable_notification, bool only_for_self) {
     dialog_id_ = dialog_id;
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
@@ -626,8 +626,12 @@ class UpdateDialogPinnedMessageQuery : public Td::ResultHandler {
     if (is_unpin) {
       flags |= telegram_api::messages_updatePinnedMessage::UNPIN_MASK;
     }
-    send_query(G()->net_query_creator().create(telegram_api::messages_updatePinnedMessage(
-        flags, false /*ignored*/, false /*ignored*/, std::move(input_peer), message_id.get_server_message_id().get())));
+    if (only_for_self) {
+      flags |= telegram_api::messages_updatePinnedMessage::PM_ONESIDE_MASK;
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_updatePinnedMessage(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+                                                   std::move(input_peer), message_id.get_server_message_id().get())));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -29860,7 +29864,7 @@ Status MessagesManager::can_pin_messages(DialogId dialog_id) const {
 }
 
 void MessagesManager::pin_dialog_message(DialogId dialog_id, MessageId message_id, bool disable_notification,
-                                         bool is_unpin, Promise<Unit> &&promise) {
+                                         bool only_for_self, bool is_unpin, Promise<Unit> &&promise) {
   auto d = get_dialog_force(dialog_id);
   if (d == nullptr) {
     return promise.set_error(Status::Error(400, "Chat not found"));
@@ -29877,9 +29881,13 @@ void MessagesManager::pin_dialog_message(DialogId dialog_id, MessageId message_i
     return promise.set_error(Status::Error(6, "Message can't be pinned"));
   }
 
+  if (only_for_self && dialog_id.get_type() != DialogType::User) {
+    return promise.set_error(Status::Error(6, "Messages can't be pinned only for self in the chat"));
+  }
+
   // TODO log event
   td_->create_handler<UpdateDialogPinnedMessageQuery>(std::move(promise))
-      ->send(dialog_id, message_id, is_unpin, disable_notification);
+      ->send(dialog_id, message_id, is_unpin, disable_notification, only_for_self);
 }
 
 void MessagesManager::unpin_all_dialog_messages(DialogId dialog_id, Promise<Unit> &&promise) {

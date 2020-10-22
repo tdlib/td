@@ -3964,13 +3964,13 @@ class CliClient final : public Actor {
       std::tie(chat_id, slow_mode_delay) = split(args);
       send_request(
           td_api::make_object<td_api::setChatSlowModeDelay>(as_chat_id(chat_id), to_integer<int32>(slow_mode_delay)));
-    } else if (op == "pcm" || op == "pcms") {
+    } else if (op == "pcm" || op == "pcms" || op == "pcmo") {
       string chat_id;
       string message_id;
 
       std::tie(chat_id, message_id) = split(args);
-      send_request(
-          td_api::make_object<td_api::pinChatMessage>(as_chat_id(chat_id), as_message_id(message_id), op == "pcms"));
+      send_request(td_api::make_object<td_api::pinChatMessage>(as_chat_id(chat_id), as_message_id(message_id),
+                                                               op == "pcms", op == "pcmo"));
     } else if (op == "upcm") {
       string chat_id;
       string message_id;
