@@ -10000,65 +10000,6 @@ void MessagesManager::find_messages(const Message *m, vector<MessageId> &message
   find_messages(m->right.get(), message_ids, condition);
 }
 
-void MessagesManager::find_discussed_messages(const Message *m, ChannelId old_channel_id, ChannelId new_channel_id,
-                                              vector<MessageId> &message_ids) {
-  if (m == nullptr) {
-    return;
-  }
-
-  find_discussed_messages(m->left.get(), old_channel_id, new_channel_id, message_ids);
-
-  if (!m->reply_info.is_empty() && m->reply_info.channel_id.is_valid() &&
-      (m->reply_info.channel_id == old_channel_id || m->reply_info.channel_id == new_channel_id)) {
-    message_ids.push_back(m->message_id);
-  }
-
-  find_discussed_messages(m->right.get(), old_channel_id, new_channel_id, message_ids);
-}
-
-void MessagesManager::find_messages_from_user(const Message *m, UserId user_id, vector<MessageId> &message_ids) {
-  if (m == nullptr) {
-    return;
-  }
-
-  find_messages_from_user(m->left.get(), user_id, message_ids);
-
-  if (m->sender_user_id == user_id) {
-    message_ids.push_back(m->message_id);
-  }
-
-  find_messages_from_user(m->right.get(), user_id, message_ids);
-}
-
-void MessagesManager::find_incoming_messages_forwarded_from_user(const Message *m, UserId user_id,
-                                                                 vector<MessageId> &message_ids) {
-  if (m == nullptr) {
-    return;
-  }
-
-  find_incoming_messages_forwarded_from_user(m->left.get(), user_id, message_ids);
-
-  if (!m->is_outgoing && m->forward_info != nullptr && m->forward_info->sender_user_id == user_id) {
-    message_ids.push_back(m->message_id);
-  }
-
-  find_incoming_messages_forwarded_from_user(m->right.get(), user_id, message_ids);
-}
-
-void MessagesManager::find_unread_mentions(const Message *m, vector<MessageId> &message_ids) {
-  if (m == nullptr) {
-    return;
-  }
-
-  find_unread_mentions(m->left.get(), message_ids);
-
-  if (m->contains_unread_mention) {
-    message_ids.push_back(m->message_id);
-  }
-
-  find_unread_mentions(m->right.get(), message_ids);
-}
-
 void MessagesManager::find_old_messages(const Message *m, MessageId max_message_id, vector<MessageId> &message_ids) {
   if (m == nullptr) {
     return;
@@ -10161,7 +10102,7 @@ void MessagesManager::delete_dialog_messages_from_user(DialogId dialog_id, UserI
   }
 
   vector<MessageId> message_ids;
-  find_messages_from_user(d->messages.get(), user_id, message_ids);
+  find_messages(d->messages.get(), message_ids, [user_id](const Message *m) { return m->sender_user_id == user_id; });
 
   vector<int64> deleted_message_ids;
   bool need_update_dialog_pos = false;
@@ -10395,7 +10336,7 @@ void MessagesManager::read_all_dialog_mentions(DialogId dialog_id, Promise<Unit>
   }
 
   vector<MessageId> message_ids;
-  find_unread_mentions(d->messages.get(), message_ids);
+  find_messages(d->messages.get(), message_ids, [](const Message *m) { return m->contains_unread_mention; });
 
   LOG(INFO) << "Found " << message_ids.size() << " messages with unread mentions in memory";
   bool is_update_sent = false;
@@ -13313,7 +13254,7 @@ void MessagesManager::remove_dialog_mention_notifications(Dialog *d) {
 
   vector<MessageId> message_ids;
   std::unordered_set<NotificationId, NotificationIdHash> removed_notification_ids_set;
-  find_unread_mentions(d->messages.get(), message_ids);
+  find_messages(d->messages.get(), message_ids, [](const Message *m) { return m->contains_unread_mention; });
   VLOG(notifications) << "Found unread mentions in " << message_ids;
   for (auto &message_id : message_ids) {
     auto m = get_message(d, message_id);
@@ -15706,7 +15647,9 @@ void MessagesManager::block_dialog_from_replies(MessageId message_id, bool delet
   }
   if (delete_all_messages && sender_user_id.is_valid()) {
     vector<MessageId> message_ids;
-    find_incoming_messages_forwarded_from_user(d->messages.get(), sender_user_id, message_ids);
+    find_messages(d->messages.get(), message_ids, [sender_user_id](const Message *m) {
+      return !m->is_outgoing && m->forward_info != nullptr && m->forward_info->sender_user_id == sender_user_id;
+    });
 
     for (auto user_message_id : message_ids) {
       auto p = this->delete_message(d, user_message_id, true, &need_update_dialog_pos, "block_dialog_from_replies 2");
@@ -28511,7 +28454,10 @@ void MessagesManager::on_dialog_linked_channel_updated(DialogId dialog_id, Chann
   auto d = get_dialog(dialog_id);  // no need to create the dialog
   if (d != nullptr && d->is_update_new_chat_sent) {
     vector<MessageId> message_ids;
-    find_discussed_messages(d->messages.get(), old_linked_channel_id, new_linked_channel_id, message_ids);
+    find_messages(d->messages.get(), message_ids, [old_linked_channel_id, new_linked_channel_id](const Message *m) {
+      return !m->reply_info.is_empty() && m->reply_info.channel_id.is_valid() &&
+             (m->reply_info.channel_id == old_linked_channel_id || m->reply_info.channel_id == new_linked_channel_id);
+    });
     LOG(INFO) << "Found discussion messages " << message_ids;
     for (auto message_id : message_ids) {
       send_update_message_interaction_info(dialog_id, get_message(d, message_id));
