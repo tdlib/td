@@ -3065,9 +3065,23 @@ class CliClient final : public Actor {
 
       send_request(td_api::make_object<td_api::sendMessageAlbum>(
           as_chat_id(chat_id), as_message_thread_id(message_thread_id_), as_message_id(reply_to_message_id),
-          default_message_send_options(), transform(photos, [](const string &photo_path) {
+          default_message_send_options(), transform(photos, [](const string &photo) {
             td_api::object_ptr<td_api::InputMessageContent> content = td_api::make_object<td_api::inputMessagePhoto>(
-                as_input_file(photo_path), nullptr, Auto(), 0, 0, as_caption(""), 0);
+                as_input_file(photo), nullptr, Auto(), 0, 0, as_caption(""), 0);
+            return content;
+          })));
+    } else if (op == "smad") {
+      string chat_id;
+      vector<string> documents;
+
+      std::tie(chat_id, args) = split(args);
+      documents = full_split(args);
+
+      send_request(td_api::make_object<td_api::sendMessageAlbum>(
+          as_chat_id(chat_id), as_message_thread_id(message_thread_id_), 0, default_message_send_options(),
+          transform(documents, [](const string &document) {
+            td_api::object_ptr<td_api::InputMessageContent> content = td_api::make_object<td_api::inputMessageDocument>(
+                as_input_file(document), nullptr, true, as_caption(""));
             return content;
           })));
     } else if (op == "em") {
