@@ -18219,29 +18219,44 @@ Status MessagesManager::toggle_message_sender_is_blocked(const td_api::object_pt
     return Status::Error(400, "Message sender must be non-empty");
   }
 
+  UserId sender_user_id;
   DialogId dialog_id;
   switch (sender->get_id()) {
-    case td_api::messageSenderUser::ID: {
-      auto sender_user_id = UserId(static_cast<const td_api::messageSenderUser *>(sender.get())->user_id_);
-      if (!td_->contacts_manager_->have_user_force(sender_user_id)) {
-        return Status::Error(400, "Sender user not found");
-      }
-      dialog_id = DialogId(sender_user_id);
+    case td_api::messageSenderUser::ID:
+      sender_user_id = UserId(static_cast<const td_api::messageSenderUser *>(sender.get())->user_id_);
       break;
-    }
     case td_api::messageSenderChat::ID: {
       auto sender_dialog_id = DialogId(static_cast<const td_api::messageSenderChat *>(sender.get())->chat_id_);
       if (!have_dialog_force(sender_dialog_id)) {
         return Status::Error(400, "Sender chat not found");
       }
-      if (sender_dialog_id.get_type() != DialogType::Channel) {
-        return Status::Error(400, "Sender chat must be a supergroup or channel");
+
+      switch (sender_dialog_id.get_type()) {
+        case DialogType::User:
+          sender_user_id = sender_dialog_id.get_user_id();
+          break;
+        case DialogType::Chat:
+          return Status::Error(400, "Basic group chats can't be blocked");
+        case DialogType::Channel:
+          dialog_id = sender_dialog_id;
+          break;
+        case DialogType::SecretChat:
+          sender_user_id = td_->contacts_manager_->get_secret_chat_user_id(sender_dialog_id.get_secret_chat_id());
+          break;
+        case DialogType::None:
+        default:
+          UNREACHABLE();
       }
-      dialog_id = sender_dialog_id;
       break;
     }
     default:
       UNREACHABLE();
+  }
+  if (!dialog_id.is_valid()) {
+    if (!td_->contacts_manager_->have_user_force(sender_user_id)) {
+      return Status::Error(400, "Sender user not found");
+    }
+    dialog_id = DialogId(sender_user_id);
   }
   if (dialog_id == get_my_dialog_id()) {
     return Status::Error(5, is_blocked ? Slice("Can't block self") : Slice("Can't unblock self"));
