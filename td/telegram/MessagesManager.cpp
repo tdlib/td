@@ -30468,10 +30468,15 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
           parse_telegram_api_message(std::move(action->message_), false, "channelAdminLogEventActionUpdatePinned"),
           true);
       if (message.second == nullptr) {
-        return make_tl_object<td_api::chatEventMessageUnpinned>();
+        LOG(ERROR) << "Failed to get pinned message";
+        return nullptr;
       }
-      return make_tl_object<td_api::chatEventMessagePinned>(
-          get_message_object(message.first, message.second.get(), true));
+      auto message_object = get_message_object(message.first, message.second.get(), true);
+      if (message.second->is_pinned) {
+        return make_tl_object<td_api::chatEventMessagePinned>(std::move(message_object));
+      } else {
+        return make_tl_object<td_api::chatEventMessageUnpinned>(std::move(message_object));
+      }
     }
     case telegram_api::channelAdminLogEventActionEditMessage::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionEditMessage>(action_ptr);

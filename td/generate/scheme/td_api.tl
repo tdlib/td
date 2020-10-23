@@ -2270,8 +2270,8 @@ chatEventPollStopped message:message = ChatEventAction;
 //@description A message was pinned @message Pinned message
 chatEventMessagePinned message:message = ChatEventAction;
 
-//@description A message was unpinned
-chatEventMessageUnpinned = ChatEventAction;
+//@description A message was unpinned @message Unpinned message
+chatEventMessageUnpinned message:message = ChatEventAction;
 
 //@description A new member joined the chat
 chatEventMemberJoined = ChatEventAction;
