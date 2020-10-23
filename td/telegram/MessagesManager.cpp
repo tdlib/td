@@ -23161,11 +23161,14 @@ void MessagesManager::on_yet_unsent_media_queue_updated(DialogId dialog_id) {
     }
 
     auto m = get_message({dialog_id, MessageId(first_it->first)});
+    auto promise = std::move(first_it->second);
+    queue.erase(first_it);
     if (m != nullptr) {
       LOG(INFO) << "Can send " << FullMessageId{dialog_id, m->message_id};
-      first_it->second.set_value(std::move(m));
+      promise.set_value(std::move(m));
+    } else {
+      promise.set_error(Status::Error(400, "Message not found"));
     }
-    queue.erase(first_it);
   }
   LOG(INFO) << "Queue for " << dialog_id << " now has size " << queue.size();
   if (queue.empty()) {
