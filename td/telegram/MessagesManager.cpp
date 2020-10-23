@@ -29882,8 +29882,8 @@ void MessagesManager::pin_dialog_message(DialogId dialog_id, MessageId message_i
     return promise.set_error(Status::Error(6, "Message can't be pinned"));
   }
 
-  if (!is_unpin && is_service_message_content(m->content->get_type())) {
-    return promise.set_error(Status::Error(6, "Message can't be pinned"));
+  if (is_service_message_content(m->content->get_type())) {
+    return promise.set_error(Status::Error(6, "Can't pin a service message"));
   }
 
   if (only_for_self && dialog_id.get_type() != DialogType::User) {
