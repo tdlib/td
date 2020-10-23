@@ -22964,8 +22964,10 @@ void MessagesManager::on_upload_message_media_finished(int64 media_album_id, Dia
   if (request.finished_count == request.message_ids.size() || request.results[pos].is_error()) {
     // must use send_closure_later if some messages may be being deleted now
     // but this function is called only through send_closure_later, so there should be no being deleted messages
-    // we must to use synchronous calls to keep the correct message order during copying of multiple messages
-    for (auto request_message_id : request.message_ids) {
+    // we must use synchronous calls to keep the correct message order during copying of multiple messages
+    // but "request" iterator can be invalidated by do_send_message_group, so it must not be used below
+    auto message_ids = request.message_ids;
+    for (auto request_message_id : message_ids) {
       LOG(INFO) << "Send on_media_message_ready_to_send for " << request_message_id << " in " << dialog_id;
       auto promise = PromiseCreator::lambda([this, media_album_id](Result<Message *> result) {
         if (result.is_error() || G()->close_flag()) {
@@ -23159,27 +23161,33 @@ void MessagesManager::on_media_message_ready_to_send(DialogId dialog_id, Message
 void MessagesManager::on_yet_unsent_media_queue_updated(DialogId dialog_id) {
   auto queue_id = get_sequence_dispatcher_id(dialog_id, MessageContentType::Photo);
   CHECK(queue_id & 1);
-  auto &queue = yet_unsent_media_queues_[queue_id];
-  LOG(INFO) << "Queue for " << dialog_id << " is updated to size of " << queue.size();
-  while (!queue.empty()) {
+  while (true) {
+    auto it = yet_unsent_media_queues_.find(queue_id);
+    if (it == yet_unsent_media_queues_.end()) {
+      return;
+    }
+    auto &queue = it->second;
+    if (queue.empty()) {
+      yet_unsent_media_queues_.erase(it);
+      return;
+    }
     auto first_it = queue.begin();
     if (!first_it->second) {
-      break;
+      return;
     }
 
     auto m = get_message({dialog_id, MessageId(first_it->first)});
     auto promise = std::move(first_it->second);
     queue.erase(first_it);
+    LOG(INFO) << "Queue for " << dialog_id << " now has size " << queue.size();
+
+    // don't use it/queue/first_it after promise is called
     if (m != nullptr) {
       LOG(INFO) << "Can send " << FullMessageId{dialog_id, m->message_id};
       promise.set_value(std::move(m));
     } else {
       promise.set_error(Status::Error(400, "Message not found"));
     }
-  }
-  LOG(INFO) << "Queue for " << dialog_id << " now has size " << queue.size();
-  if (queue.empty()) {
-    yet_unsent_media_queues_.erase(queue_id);
   }
 }
 
@@ -34236,7 +34244,9 @@ void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool succ
   auto it_get_message_requests = postponed_get_message_requests_.find(dialog_id);
   if (it_get_message_requests != postponed_get_message_requests_.end()) {
     CHECK(d != nullptr);
-    for (auto &request : it_get_message_requests->second) {
+    auto requests = std::move(it_get_message_requests->second);
+    postponed_get_message_requests_.erase(it_get_message_requests);
+    for (auto &request : requests) {
       auto message_id = request.message_id;
       LOG(INFO) << "Run postponed getMessage request for " << message_id << " in " << dialog_id;
       CHECK(message_id.is_valid());
@@ -34247,7 +34257,6 @@ void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool succ
         get_message_from_server({dialog_id, message_id}, std::move(request.promise), std::move(request.input_message));
       }
     }
-    postponed_get_message_requests_.erase(it_get_message_requests);
   }
 
   auto it = pending_channel_on_get_dialogs_.find(dialog_id);
