@@ -22233,7 +22233,7 @@ void MessagesManager::cancel_send_message_query(DialogId dialog_id, Message *m) 
       if (queue_it != yet_unsent_media_queues_.end()) {
         auto &queue = queue_it->second;
         LOG(INFO) << "Delete " << m->message_id << " from queue " << queue_id;
-        if (queue.erase(m->message_id.get()) != 0) {
+        if (queue.erase(m->message_id) != 0) {
           if (queue.empty()) {
             yet_unsent_media_queues_.erase(queue_it);
           } else {
@@ -23136,7 +23136,7 @@ void MessagesManager::on_media_message_ready_to_send(DialogId dialog_id, Message
   auto queue_id = get_sequence_dispatcher_id(dialog_id, MessageContentType::Photo);
   CHECK(queue_id & 1);
   auto &queue = yet_unsent_media_queues_[queue_id];
-  auto it = queue.find(message_id.get());
+  auto it = queue.find(message_id);
   if (it == queue.end()) {
     if (queue.empty()) {
       yet_unsent_media_queues_.erase(queue_id);
@@ -23176,7 +23176,7 @@ void MessagesManager::on_yet_unsent_media_queue_updated(DialogId dialog_id) {
       return;
     }
 
-    auto m = get_message({dialog_id, MessageId(first_it->first)});
+    auto m = get_message({dialog_id, first_it->first});
     auto promise = std::move(first_it->second);
     queue.erase(first_it);
     LOG(INFO) << "Queue for " << dialog_id << " now has size " << queue.size();
@@ -28929,12 +28929,11 @@ void MessagesManager::on_send_dialog_action_timeout(DialogId dialog_id) {
   pending_send_dialog_action_timeout_.add_timeout_in(dialog_id.get(), 4.0);
 
   CHECK(!queue_it->second.empty());
-  MessageId message_id(queue_it->second.begin()->first);
-  const Message *m = get_message(d, message_id);
+  const Message *m = get_message(d, queue_it->second.begin()->first);
   if (m == nullptr) {
     return;
   }
-  if (m->forward_info != nullptr || m->had_forward_info || message_id.is_scheduled()) {
+  if (m->forward_info != nullptr || m->had_forward_info || m->message_id.is_scheduled()) {
     return;
   }
 
@@ -30745,7 +30744,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     auto queue_id = get_sequence_dispatcher_id(dialog_id, message_content_type);
     if (queue_id & 1) {
       LOG(INFO) << "Add " << message_id << " from " << source << " to queue " << queue_id;
-      yet_unsent_media_queues_[queue_id][message_id.get()];  // reserve place for promise
+      yet_unsent_media_queues_[queue_id][message_id];  // reserve place for promise
       if (!td_->auth_manager_->is_bot()) {
         pending_send_dialog_action_timeout_.add_timeout_in(dialog_id.get(), 1.0);
       }

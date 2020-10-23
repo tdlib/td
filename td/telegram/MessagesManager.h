@@ -3206,7 +3206,7 @@ class MessagesManager : public Actor {
   int64 viewed_live_location_task_id_ = 0;
   std::unordered_map<int64, FullMessageId> viewed_live_location_tasks_;  // task_id -> task
 
-  std::unordered_map<uint64, std::map<int64, Promise<Message *>>> yet_unsent_media_queues_;
+  std::unordered_map<uint64, std::map<MessageId, Promise<Message *>>> yet_unsent_media_queues_;
 
   std::unordered_map<DialogId, NetQueryRef, DialogIdHash> set_typing_query_;
 
