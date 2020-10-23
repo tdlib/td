@@ -12934,6 +12934,40 @@ void MessagesManager::set_dialog_last_database_message_id(Dialog *d, MessageId l
   }
 }
 
+void MessagesManager::remove_dialog_newer_messages(Dialog *d, MessageId from_message_id, const char *source) {
+  LOG(INFO) << "Remove messages in " << d->dialog_id << " newer than " << from_message_id << " from " << source;
+  CHECK(!d->last_new_message_id.is_valid());
+
+  delete_all_dialog_messages_from_database(d, MessageId::max(), "remove_dialog_newer_messages");
+  set_dialog_first_database_message_id(d, MessageId(), "remove_dialog_newer_messages");
+  set_dialog_last_database_message_id(d, MessageId(), source);
+  if (d->dialog_id.get_type() != DialogType::SecretChat) {
+    d->have_full_history = false;
+  }
+  invalidate_message_indexes(d);
+
+  vector<MessageId> to_delete_message_ids;
+  find_newer_messages(d->messages.get(), from_message_id, to_delete_message_ids);
+  td::remove_if(to_delete_message_ids, [](MessageId message_id) { return message_id.is_yet_unsent(); });
+  if (!to_delete_message_ids.empty()) {
+    LOG(INFO) << "Delete " << format::as_array(to_delete_message_ids) << " newer than " << from_message_id << " in "
+              << d->dialog_id << " from " << source;
+
+    vector<int64> deleted_message_ids;
+    bool need_update_dialog_pos = false;
+    for (auto message_id : to_delete_message_ids) {
+      auto message = delete_message(d, message_id, false, &need_update_dialog_pos, "remove_dialog_newer_messages");
+      if (message != nullptr) {
+        deleted_message_ids.push_back(message->message_id.get());
+      }
+    }
+    if (need_update_dialog_pos) {
+      send_update_chat_last_message(d, "remove_dialog_newer_messages");
+    }
+    send_update_delete_messages(d->dialog_id, std::move(deleted_message_ids), false, false);
+  }
+}
+
 void MessagesManager::set_dialog_last_new_message_id(Dialog *d, MessageId last_new_message_id, const char *source) {
   CHECK(!last_new_message_id.is_scheduled());
 
@@ -12941,34 +12975,7 @@ void MessagesManager::set_dialog_last_new_message_id(Dialog *d, MessageId last_n
       << last_new_message_id << " " << d->last_new_message_id << " " << source;
   CHECK(d->dialog_id.get_type() == DialogType::SecretChat || last_new_message_id.is_server());
   if (!d->last_new_message_id.is_valid()) {
-    delete_all_dialog_messages_from_database(d, MessageId::max(), "set_dialog_last_new_message_id");
-    set_dialog_first_database_message_id(d, MessageId(), "set_dialog_last_new_message_id");
-    set_dialog_last_database_message_id(d, MessageId(), source);
-    if (d->dialog_id.get_type() != DialogType::SecretChat) {
-      d->have_full_history = false;
-    }
-    invalidate_message_indexes(d);
-
-    vector<MessageId> to_delete_message_ids;
-    find_newer_messages(d->messages.get(), last_new_message_id, to_delete_message_ids);
-    td::remove_if(to_delete_message_ids, [](MessageId message_id) { return message_id.is_yet_unsent(); });
-    if (!to_delete_message_ids.empty()) {
-      LOG(WARNING) << "Delete " << format::as_array(to_delete_message_ids) << " because of received last new "
-                   << last_new_message_id << " in " << d->dialog_id << " from " << source;
-
-      vector<int64> deleted_message_ids;
-      bool need_update_dialog_pos = false;
-      for (auto message_id : to_delete_message_ids) {
-        auto message = delete_message(d, message_id, false, &need_update_dialog_pos, "set_dialog_last_new_message_id");
-        if (message != nullptr) {
-          deleted_message_ids.push_back(message->message_id.get());
-        }
-      }
-      if (need_update_dialog_pos) {
-        send_update_chat_last_message(d, "set_dialog_last_new_message_id");
-      }
-      send_update_delete_messages(d->dialog_id, std::move(deleted_message_ids), false, false);
-    }
+    remove_dialog_newer_messages(d, last_new_message_id, source);
 
     auto last_new_message = get_message(d, last_new_message_id);
     if (last_new_message != nullptr) {
@@ -33947,9 +33954,8 @@ void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_m
   // TODO properly support last_message_id <= d->last_new_message_id
   if (last_message_id > d->last_new_message_id) {  // if last message is really a new message
     if (!d->last_new_message_id.is_valid() && last_message_id <= d->max_added_message_id) {
-      set_dialog_last_new_message_id(d, last_message_id, "on_get_channel_dialog 15");  // remove too new messages
-      set_dialog_first_database_message_id(d, MessageId(), "on_get_channel_dialog 16");
-      set_dialog_last_database_message_id(d, MessageId(), "on_get_channel_dialog 17");
+      auto prev_message_id = MessageId(ServerMessageId(last_message_id.get_server_message_id().get() - 1));
+      remove_dialog_newer_messages(d, prev_message_id, "on_get_channel_dialog 15");
     }
     d->last_new_message_id = MessageId();
     set_dialog_last_message_id(d, MessageId(), "on_get_channel_dialog 20");

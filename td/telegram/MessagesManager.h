@@ -2275,6 +2275,8 @@ class MessagesManager : public Actor {
 
   void set_dialog_is_empty(Dialog *d, const char *source);
 
+  void remove_dialog_newer_messages(Dialog *d, MessageId from_message_id, const char *source);
+
   static int32 get_pinned_dialogs_limit(DialogListId dialog_list_id);
 
   static vector<DialogId> remove_secret_chat_dialog_ids(vector<DialogId> dialog_ids);
