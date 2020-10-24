@@ -1753,8 +1753,8 @@ class MessagesManager : public Actor {
 
   Message *get_message_to_send(Dialog *d, MessageId top_thread_message_id, MessageId reply_to_message_id,
                                const MessageSendOptions &options, unique_ptr<MessageContent> &&content,
-                               bool *need_update_dialog_pos, unique_ptr<MessageForwardInfo> forward_info = nullptr,
-                               bool is_copy = false);
+                               bool *need_update_dialog_pos, bool suppress_reply_info = false,
+                               unique_ptr<MessageForwardInfo> forward_info = nullptr, bool is_copy = false);
 
   int64 begin_send_message(DialogId dialog_id, const Message *m);
 

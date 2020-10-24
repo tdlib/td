@@ -21753,8 +21753,8 @@ bool MessagesManager::is_anonymous_administrator(DialogId dialog_id, string *aut
 
 MessagesManager::Message *MessagesManager::get_message_to_send(
     Dialog *d, MessageId top_thread_message_id, MessageId reply_to_message_id, const MessageSendOptions &options,
-    unique_ptr<MessageContent> &&content, bool *need_update_dialog_pos, unique_ptr<MessageForwardInfo> forward_info,
-    bool is_copy) {
+    unique_ptr<MessageContent> &&content, bool *need_update_dialog_pos, bool suppress_reply_info,
+    unique_ptr<MessageForwardInfo> forward_info, bool is_copy) {
   CHECK(d != nullptr);
   CHECK(!reply_to_message_id.is_scheduled());
   CHECK(content != nullptr);
@@ -21800,6 +21800,9 @@ MessagesManager::Message *MessagesManager::get_message_to_send(
   m->view_count = is_channel_post && !is_scheduled ? 1 : 0;
   m->forward_count = 0;
   if ([&] {
+        if (suppress_reply_info) {
+          return false;
+        }
         if (is_scheduled) {
           return false;
         }
@@ -22367,7 +22370,7 @@ Result<MessageId> MessagesManager::send_message(DialogId dialog_id, MessageId to
   Message *m = get_message_to_send(d, top_thread_message_id, reply_to_message_id, message_send_options,
                                    dup_message_content(td_, dialog_id, message_content.content.get(),
                                                        MessageContentDupType::Send, MessageCopyOptions()),
-                                   &need_update_dialog_pos, nullptr, message_content.via_bot_user_id.is_valid());
+                                   &need_update_dialog_pos, false, nullptr, message_content.via_bot_user_id.is_valid());
   m->reply_markup = std::move(message_reply_markup);
   m->via_bot_user_id = message_content.via_bot_user_id;
   m->disable_web_page_preview = message_content.disable_web_page_preview;
@@ -22603,11 +22606,12 @@ Result<vector<MessageId>> MessagesManager::send_message_group(
 
   vector<MessageId> result;
   bool need_update_dialog_pos = false;
-  for (auto &message_content : message_contents) {
+  for (size_t i = 0; i < message_contents.size(); i++) {
+    auto &message_content = message_contents[i];
     Message *m = get_message_to_send(d, top_thread_message_id, reply_to_message_id, message_send_options,
                                      dup_message_content(td_, dialog_id, message_content.first.get(),
                                                          MessageContentDupType::Send, MessageCopyOptions()),
-                                     &need_update_dialog_pos);
+                                     &need_update_dialog_pos, i != 0);
     result.push_back(m->message_id);
     auto ttl = message_content.second;
     if (ttl > 0) {
@@ -23399,7 +23403,7 @@ Result<MessageId> MessagesManager::send_inline_query_result_message(DialogId dia
   Message *m = get_message_to_send(d, top_thread_message_id, reply_to_message_id, message_send_options,
                                    dup_message_content(td_, dialog_id, content->message_content.get(),
                                                        MessageContentDupType::SendViaBot, MessageCopyOptions()),
-                                   &need_update_dialog_pos, nullptr, true);
+                                   &need_update_dialog_pos, false, nullptr, true);
   m->hide_via_bot = hide_via_bot;
   if (!hide_via_bot) {
     m->via_bot_user_id = td_->inline_queries_manager_->get_inline_bot_user_id(query_id);
@@ -25050,7 +25054,7 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
     }
 
     Message *m = get_message_to_send(to_dialog, MessageId(), MessageId(), message_send_options, std::move(content),
-                                     &need_update_dialog_pos, std::move(forward_info));
+                                     &need_update_dialog_pos, i + 1 != message_ids.size(), std::move(forward_info));
     m->real_forward_from_dialog_id = from_dialog_id;
     m->real_forward_from_message_id = message_id;
     m->via_bot_user_id = forwarded_message->via_bot_user_id;
@@ -25127,9 +25131,9 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
 
   if (!copied_messages.empty()) {
     for (auto &copied_message : copied_messages) {
-      Message *m = get_message_to_send(to_dialog, copied_message.top_thread_message_id,
-                                       copied_message.reply_to_message_id, message_send_options,
-                                       std::move(copied_message.content), &need_update_dialog_pos, nullptr, true);
+      Message *m = get_message_to_send(
+          to_dialog, copied_message.top_thread_message_id, copied_message.reply_to_message_id, message_send_options,
+          std::move(copied_message.content), &need_update_dialog_pos, false, nullptr, true);
       m->disable_web_page_preview = copied_message.disable_web_page_preview;
       if (copied_message.media_album_id != 0) {
         m->media_album_id = new_media_album_ids[copied_message.media_album_id].first;
@@ -25240,10 +25244,10 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
 
     MessageSendOptions options(message->disable_notification, message->from_background,
                                get_message_schedule_date(message.get()));
-    Message *m =
-        get_message_to_send(d, message->top_thread_message_id,
-                            get_reply_to_message_id(d, message->top_thread_message_id, message->reply_to_message_id),
-                            options, std::move(new_contents[i]), &need_update_dialog_pos, nullptr, message->is_copy);
+    Message *m = get_message_to_send(
+        d, message->top_thread_message_id,
+        get_reply_to_message_id(d, message->top_thread_message_id, message->reply_to_message_id), options,
+        std::move(new_contents[i]), &need_update_dialog_pos, false, nullptr, message->is_copy);
     m->reply_markup = std::move(message->reply_markup);
     m->via_bot_user_id = message->via_bot_user_id;
     m->disable_web_page_preview = message->disable_web_page_preview;
