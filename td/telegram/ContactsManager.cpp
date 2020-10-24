@@ -14157,8 +14157,8 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
   CHECK(user_full != nullptr);
   bool is_bot = is_user_bot(user_id);
   return make_tl_object<td_api::userFullInfo>(
-      get_chat_photo_object(td_->file_manager_.get(), user_full->photo), user_full->can_be_called,
-      user_full->is_blocked, user_full->supports_video_calls, user_full->has_private_calls,
+      get_chat_photo_object(td_->file_manager_.get(), user_full->photo), user_full->is_blocked,
+      user_full->can_be_called, user_full->supports_video_calls, user_full->has_private_calls,
       user_full->need_phone_number_privacy_exception, is_bot ? string() : user_full->about,
       is_bot ? user_full->about : string(), user_full->common_chat_count,
       is_bot ? get_bot_info_object(user_id) : nullptr);
