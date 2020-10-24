@@ -440,7 +440,7 @@ class MessagesManager : public Actor {
 
   void edit_message_live_location(FullMessageId full_message_id, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
                                   tl_object_ptr<td_api::location> &&input_location, int32 heading,
-                                  Promise<Unit> &&promise);
+                                  int32 approaching_notification_distance, Promise<Unit> &&promise);
 
   void edit_message_media(FullMessageId full_message_id, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
                           tl_object_ptr<td_api::InputMessageContent> &&input_message_content, Promise<Unit> &&promise);
@@ -458,7 +458,7 @@ class MessagesManager : public Actor {
   void edit_inline_message_live_location(const string &inline_message_id,
                                          tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
                                          tl_object_ptr<td_api::location> &&input_location, int32 heading,
-                                         Promise<Unit> &&promise);
+                                         int32 approaching_notification_distance, Promise<Unit> &&promise);
 
   void edit_inline_message_media(const string &inline_message_id, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
                                  tl_object_ptr<td_api::InputMessageContent> &&input_message_content,
@@ -750,9 +750,6 @@ class MessagesManager : public Actor {
                                                                              int64 &random_id, Promise<Unit> &&promise);
 
   vector<FullMessageId> get_active_live_location_messages(Promise<Unit> &&promise);
-
-  void enable_live_location_approaching_notification(DialogId dialog_id, MessageId message_id, int32 distance,
-                                                     Promise<Unit> &&promise);
 
   int64 get_dialog_message_by_date(DialogId dialog_id, int32 date, Promise<Unit> &&promise);
 

@@ -1872,41 +1872,6 @@ class ReadDiscussionQuery : public Td::ResultHandler {
   }
 };
 
-class RequestProximityNotificationQuery : public Td::ResultHandler {
-  Promise<Unit> promise_;
-  DialogId dialog_id_;
-
- public:
-  explicit RequestProximityNotificationQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(DialogId dialog_id, MessageId message_id, int32 distance) {
-    dialog_id_ = dialog_id;
-    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
-    CHECK(input_peer != nullptr);
-    int32 flags = 0;
-    if (distance > 0) {
-      flags |= telegram_api::messages_requestProximityNotification::MAX_DISTANCE_MASK;
-    }
-    send_query(G()->net_query_creator().create(telegram_api::messages_requestProximityNotification(
-        flags, std::move(input_peer), message_id.get_server_message_id().get(), distance)));
-  }
-
-  void on_result(uint64 id, BufferSlice packet) override {
-    auto result_ptr = fetch_result<telegram_api::messages_requestProximityNotification>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
-    }
-
-    promise_.set_value(Unit());
-  }
-
-  void on_error(uint64 id, Status status) override {
-    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "RequestProximityNotificationQuery");
-    promise_.set_error(std::move(status));
-  }
-};
-
 class SearchMessagesQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
@@ -20692,45 +20657,6 @@ void MessagesManager::on_message_live_location_viewed_on_server(int64 task_id) {
   pending_message_live_location_view_timeout_.add_timeout_in(task_id, LIVE_LOCATION_VIEW_PERIOD);
 }
 
-void MessagesManager::enable_live_location_approaching_notification(DialogId dialog_id, MessageId message_id,
-                                                                    int32 distance, Promise<Unit> &&promise) {
-  Dialog *d = get_dialog_force(dialog_id);
-  if (d == nullptr) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
-  }
-  if (!have_input_peer(dialog_id, AccessRights::Read)) {
-    return promise.set_error(Status::Error(400, "Can't access the chat"));
-  }
-  if (is_broadcast_channel(dialog_id)) {
-    return promise.set_error(Status::Error(400, "Can't use approaching notifications in channels"));
-  }
-  if (dialog_id.get_type() == DialogType::SecretChat) {
-    return promise.set_error(Status::Error(400, "Can't use approaching notifications in secret chats"));
-  }
-  if (dialog_id == get_my_dialog_id()) {
-    return promise.set_error(Status::Error(400, "Can't use approaching notifications in Saved Messages"));
-  }
-
-  auto m = get_message_force(d, message_id, "enable_approaching_notification");
-  if (m == nullptr) {
-    return promise.set_error(Status::Error(400, "Message not found"));
-  }
-  if (!m->is_outgoing) {
-    return promise.set_error(Status::Error(400, "Message is not outgoing"));
-  }
-  if (!m->sender_user_id.is_valid()) {
-    return promise.set_error(Status::Error(400, "Message is anonymous"));
-  }
-  if (get_message_content_live_location_period(m->content.get()) <= G()->unix_time() - m->date + 1) {
-    return promise.set_error(Status::Error(400, "Message has no active live location"));
-  }
-  if (!message_id.is_server()) {
-    return promise.set_error(Status::Error(400, "Message is not server"));
-  }
-
-  td_->create_handler<RequestProximityNotificationQuery>(std::move(promise))->send(dialog_id, message_id, distance);
-}
-
 FileSourceId MessagesManager::get_message_file_source_id(FullMessageId full_message_id) {
   auto dialog_id = full_message_id.get_dialog_id();
   auto message_id = full_message_id.get_message_id();
@@ -24172,7 +24098,7 @@ void MessagesManager::edit_message_text(FullMessageId full_message_id,
 void MessagesManager::edit_message_live_location(FullMessageId full_message_id,
                                                  tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
                                                  tl_object_ptr<td_api::location> &&input_location, int32 heading,
-                                                 Promise<Unit> &&promise) {
+                                                 int32 approaching_notification_distance, Promise<Unit> &&promise) {
   LOG(INFO) << "Begin to edit live location of " << full_message_id;
   auto dialog_id = full_message_id.get_dialog_id();
   Dialog *d = get_dialog_force(dialog_id);
@@ -24218,8 +24144,12 @@ void MessagesManager::edit_message_live_location(FullMessageId full_message_id,
   if (location.empty()) {
     flags |= telegram_api::inputMediaGeoLive::STOPPED_MASK;
   }
+  if (heading != 0) {
+    flags |= telegram_api::inputMediaGeoLive::HEADING_MASK;
+  }
+  flags |= telegram_api::inputMediaGeoLive::PROXIMITY_NOTIFICATION_RADIUS_MASK;
   auto input_media = telegram_api::make_object<telegram_api::inputMediaGeoLive>(
-      flags, false /*ignored*/, location.get_input_geo_point(), heading, 0);
+      flags, false /*ignored*/, location.get_input_geo_point(), heading, 0, approaching_notification_distance);
   send_closure(td_->create_net_actor<EditMessageActor>(std::move(promise)), &EditMessageActor::send, 0, dialog_id,
                m->message_id, string(), vector<tl_object_ptr<telegram_api::MessageEntity>>(), std::move(input_media),
                std::move(input_reply_markup), get_message_schedule_date(m),
@@ -24533,6 +24463,7 @@ void MessagesManager::edit_inline_message_text(const string &inline_message_id,
 void MessagesManager::edit_inline_message_live_location(const string &inline_message_id,
                                                         tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
                                                         tl_object_ptr<td_api::location> &&input_location, int32 heading,
+                                                        int32 approaching_notification_distance,
                                                         Promise<Unit> &&promise) {
   if (!td_->auth_manager_->is_bot()) {
     return promise.set_error(Status::Error(3, "Method is available only for bots"));
@@ -24557,8 +24488,12 @@ void MessagesManager::edit_inline_message_live_location(const string &inline_mes
   if (location.empty()) {
     flags |= telegram_api::inputMediaGeoLive::STOPPED_MASK;
   }
+  if (heading != 0) {
+    flags |= telegram_api::inputMediaGeoLive::HEADING_MASK;
+  }
+  flags |= telegram_api::inputMediaGeoLive::PROXIMITY_NOTIFICATION_RADIUS_MASK;
   auto input_media = telegram_api::make_object<telegram_api::inputMediaGeoLive>(
-      flags, false /*ignored*/, location.get_input_geo_point(), heading, 0);
+      flags, false /*ignored*/, location.get_input_geo_point(), heading, 0, approaching_notification_distance);
   td_->create_handler<EditInlineMessageQuery>(std::move(promise))
       ->send(0, std::move(input_bot_inline_message_id), "", vector<tl_object_ptr<telegram_api::MessageEntity>>(),
              std::move(input_media), get_input_reply_markup(r_new_reply_markup.ok()));

@@ -41,6 +41,7 @@ enum class Version : int32 {
   AddDialogPhotoHasAnimation,
   AddPhotoProgressiveSizes,
   AddLiveLocationHeading,
+  AddLiveLocationApproachingNotificationDistance,  // 30
   Next
 };
 

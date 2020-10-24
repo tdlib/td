@@ -1202,10 +1202,11 @@ class EditMessageLiveLocationRequest : public RequestOnceActor {
   tl_object_ptr<td_api::ReplyMarkup> reply_markup_;
   tl_object_ptr<td_api::location> location_;
   int32 heading_;
+  int32 approaching_notification_distance_;
 
   void do_run(Promise<Unit> &&promise) override {
     td->messages_manager_->edit_message_live_location(full_message_id_, std::move(reply_markup_), std::move(location_),
-                                                      heading_, std::move(promise));
+                                                      heading_, approaching_notification_distance_, std::move(promise));
   }
 
   void do_send_result() override {
@@ -1215,12 +1216,14 @@ class EditMessageLiveLocationRequest : public RequestOnceActor {
  public:
   EditMessageLiveLocationRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, int64 message_id,
                                  tl_object_ptr<td_api::ReplyMarkup> reply_markup,
-                                 tl_object_ptr<td_api::location> location, int32 heading)
+                                 tl_object_ptr<td_api::location> location, int32 heading,
+                                 int32 approaching_notification_distance)
       : RequestOnceActor(std::move(td), request_id)
       , full_message_id_(DialogId(dialog_id), MessageId(message_id))
       , reply_markup_(std::move(reply_markup))
       , location_(std::move(location))
-      , heading_(heading) {
+      , heading_(heading)
+      , approaching_notification_distance_(approaching_notification_distance) {
   }
 };
 
@@ -5583,23 +5586,6 @@ void Td::on_request(uint64 id, const td_api::getActiveLiveLocationMessages &requ
   CREATE_NO_ARGS_REQUEST(GetActiveLiveLocationMessagesRequest);
 }
 
-void Td::on_request(uint64 id, const td_api::enableLiveLocationApproachingNotification &request) {
-  CHECK_IS_USER();
-  if (request.distance_ <= 0) {
-    return send_error_raw(id, 400, "Invalid distance specified");
-  }
-  CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->enable_live_location_approaching_notification(
-      DialogId(request.chat_id_), MessageId(request.message_id_), request.distance_, std::move(promise));
-}
-
-void Td::on_request(uint64 id, const td_api::disableLiveLocationApproachingNotification &request) {
-  CHECK_IS_USER();
-  CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->enable_live_location_approaching_notification(
-      DialogId(request.chat_id_), MessageId(request.message_id_), 0, std::move(promise));
-}
-
 void Td::on_request(uint64 id, const td_api::getChatMessageByDate &request) {
   CREATE_REQUEST(GetChatMessageByDateRequest, request.chat_id_, request.date_);
 }
@@ -5751,7 +5737,8 @@ void Td::on_request(uint64 id, td_api::editMessageText &request) {
 
 void Td::on_request(uint64 id, td_api::editMessageLiveLocation &request) {
   CREATE_REQUEST(EditMessageLiveLocationRequest, request.chat_id_, request.message_id_,
-                 std::move(request.reply_markup_), std::move(request.location_), request.heading_);
+                 std::move(request.reply_markup_), std::move(request.location_), request.heading_,
+                 request.approaching_notification_distance_);
 }
 
 void Td::on_request(uint64 id, td_api::editMessageMedia &request) {
@@ -5782,9 +5769,9 @@ void Td::on_request(uint64 id, td_api::editInlineMessageLiveLocation &request) {
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.inline_message_id_);
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->edit_inline_message_live_location(std::move(request.inline_message_id_),
-                                                       std::move(request.reply_markup_), std::move(request.location_),
-                                                       request.heading_, std::move(promise));
+  messages_manager_->edit_inline_message_live_location(
+      std::move(request.inline_message_id_), std::move(request.reply_markup_), std::move(request.location_),
+      request.heading_, request.approaching_notification_distance_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::editInlineMessageMedia &request) {

@@ -257,9 +257,16 @@ Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> InlineQueriesManager:
   }
   if (constructor_id == td_api::inputMessageLocation::ID) {
     TRY_RESULT(location, process_input_message_location(std::move(input_message_content)));
-    return make_tl_object<telegram_api::inputBotInlineMessageMediaGeo>(flags, location.location.get_input_geo_point(),
-                                                                       location.live_period, location.heading,
-                                                                       std::move(input_reply_markup));
+    if (location.heading != 0) {
+      flags |= telegram_api::inputBotInlineMessageMediaGeo::HEADING_MASK;
+    }
+    if (location.live_period != 0) {
+      flags |= telegram_api::inputBotInlineMessageMediaGeo::PERIOD_MASK;
+      flags |= telegram_api::inputBotInlineMessageMediaGeo::PROXIMITY_NOTIFICATION_RADIUS_MASK;
+    }
+    return make_tl_object<telegram_api::inputBotInlineMessageMediaGeo>(
+        flags, location.location.get_input_geo_point(), location.heading, location.live_period,
+        location.approaching_notification_distance, std::move(input_reply_markup));
   }
   if (constructor_id == td_api::inputMessageVenue::ID) {
     TRY_RESULT(venue, process_input_message_venue(std::move(input_message_content)));

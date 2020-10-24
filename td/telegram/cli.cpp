@@ -3159,14 +3159,16 @@ class CliClient final : public Actor {
       string longitude;
       string accuracy;
       string heading;
+      string approaching_notification_distance;
       std::tie(chat_id, args) = split(args);
       std::tie(message_id, args) = split(args);
       std::tie(latitude, args) = split(args);
       std::tie(longitude, args) = split(args);
-      std::tie(accuracy, heading) = split(args);
+      std::tie(accuracy, args) = split(args);
+      std::tie(heading, approaching_notification_distance) = split(args);
       send_request(td_api::make_object<td_api::editMessageLiveLocation>(
           as_chat_id(chat_id), as_message_id(message_id), nullptr, as_location(latitude, longitude, accuracy),
-          to_integer<int32>(heading)));
+          to_integer<int32>(heading), to_integer<int32>(approaching_notification_distance)));
     } else if (op == "emss") {
       string chat_id;
       string message_id;
@@ -3177,19 +3179,6 @@ class CliClient final : public Actor {
           as_chat_id(chat_id), as_message_id(message_id), as_message_scheduling_state(date)));
     } else if (op == "gallm") {
       send_request(td_api::make_object<td_api::getActiveLiveLocationMessages>());
-    } else if (op == "ellan" || op == "dllan") {
-      string chat_id;
-      string message_id;
-      string distance;
-      std::tie(chat_id, args) = split(args);
-      std::tie(message_id, distance) = split(args);
-      if (op == "ellan") {
-        send_request(td_api::make_object<td_api::enableLiveLocationApproachingNotification>(
-            as_chat_id(chat_id), as_message_id(message_id), to_integer<int32>(distance)));
-      } else {
-        send_request(td_api::make_object<td_api::disableLiveLocationApproachingNotification>(
-            as_chat_id(chat_id), as_message_id(message_id)));
-      }
     } else if (op == "sbsm") {
       string bot_id;
       string chat_id;
@@ -3434,8 +3423,8 @@ class CliClient final : public Actor {
       std::tie(latitude, args) = split(args);
       std::tie(longitude, accuracy) = split(args);
 
-      send_message(chat_id,
-                   td_api::make_object<td_api::inputMessageLocation>(as_location(latitude, longitude, accuracy), 0, 0));
+      send_message(chat_id, td_api::make_object<td_api::inputMessageLocation>(
+                                as_location(latitude, longitude, accuracy), 0, 0, 0));
     } else if (op == "sll") {
       string chat_id;
       string period;
@@ -3443,15 +3432,17 @@ class CliClient final : public Actor {
       string longitude;
       string accuracy;
       string heading;
+      string approaching_notification_distance;
       std::tie(chat_id, args) = split(args);
       std::tie(period, args) = split(args);
       std::tie(latitude, args) = split(args);
       std::tie(longitude, args) = split(args);
-      std::tie(accuracy, heading) = split(args);
+      std::tie(accuracy, args) = split(args);
+      std::tie(heading, approaching_notification_distance) = split(args);
 
       send_message(chat_id, td_api::make_object<td_api::inputMessageLocation>(
                                 as_location(latitude, longitude, accuracy), to_integer<int32>(period),
-                                to_integer<int32>(heading)));
+                                to_integer<int32>(heading), to_integer<int32>(approaching_notification_distance)));
     } else if (op == "spoll" || op == "spollm" || op == "spollp" || op == "squiz") {
       string chat_id;
       string question;

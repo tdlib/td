@@ -568,13 +568,23 @@ class MessageLiveLocation : public MessageContent {
   Location location;
   int32 period = 0;
   int32 heading = 0;
+  int32 approaching_notification_distance = 0;
 
   MessageLiveLocation() = default;
-  MessageLiveLocation(Location &&location, int32 period, int32 heading)
-      : location(std::move(location)), period(period), heading(heading) {
+  MessageLiveLocation(Location &&location, int32 period, int32 heading, int32 approaching_notification_distance)
+      : location(std::move(location))
+      , period(period)
+      , heading(heading)
+      , approaching_notification_distance(approaching_notification_distance) {
+    if (period < 0) {
+      period = 0;
+    }
     if (heading < 0 || heading > 360) {
       LOG(ERROR) << "Receive wrong heading " << heading;
       heading = 0;
+    }
+    if (approaching_notification_distance < 0) {
+      approaching_notification_distance = 0;
     }
   }
 
@@ -755,6 +765,7 @@ static void store(const MessageContent *content, StorerT &storer) {
       store(m->location, storer);
       store(m->period, storer);
       store(m->heading, storer);
+      store(m->approaching_notification_distance, storer);
       break;
     }
     case MessageContentType::Location: {
@@ -1060,6 +1071,11 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
         parse(m->heading, parser);
       } else {
         m->heading = 0;
+      }
+      if (parser.version() >= static_cast<int32>(Version::AddLiveLocationApproachingNotificationDistance)) {
+        parse(m->approaching_notification_distance, parser);
+      } else {
+        m->approaching_notification_distance = 0;
       }
       content = std::move(m);
       break;
@@ -1396,9 +1412,18 @@ InlineMessageContent create_inline_message_content(Td *td, FileId file_id,
     }
     case telegram_api::botInlineMessageMediaGeo::ID: {
       auto inline_message_geo = move_tl_object_as<telegram_api::botInlineMessageMediaGeo>(inline_message);
-      if (inline_message_geo->period_ > 0) {
+      if ((inline_message_geo->flags_ & telegram_api::botInlineMessageMediaGeo::PERIOD_MASK) != 0 &&
+          inline_message_geo->period_ > 0) {
+        auto heading = (inline_message_geo->flags_ & telegram_api::botInlineMessageMediaGeo::HEADING_MASK) != 0
+                           ? inline_message_geo->heading_
+                           : 0;
+        auto approacing_notification_distance =
+            (inline_message_geo->flags_ & telegram_api::botInlineMessageMediaGeo::PROXIMITY_NOTIFICATION_RADIUS_MASK) !=
+                    0
+                ? inline_message_geo->proximity_notification_radius_
+                : 0;
         result.message_content = make_unique<MessageLiveLocation>(
-            Location(inline_message_geo->geo_), inline_message_geo->period_, inline_message_geo->heading_);
+            Location(inline_message_geo->geo_), inline_message_geo->period_, heading, approacing_notification_distance);
       } else {
         result.message_content = make_unique<MessageLocation>(Location(inline_message_geo->geo_));
       }
@@ -1661,8 +1686,8 @@ static Result<InputMessageContent> create_input_message_content(
       if (location.live_period == 0) {
         content = make_unique<MessageLocation>(std::move(location.location));
       } else {
-        content =
-            make_unique<MessageLiveLocation>(std::move(location.location), location.live_period, location.heading);
+        content = make_unique<MessageLiveLocation>(std::move(location.location), location.live_period, location.heading,
+                                                   location.approaching_notification_distance);
       }
       break;
     }
@@ -2258,8 +2283,13 @@ static tl_object_ptr<telegram_api::InputMedia> get_input_media_impl(
     case MessageContentType::LiveLocation: {
       auto m = static_cast<const MessageLiveLocation *>(content);
       int32 flags = telegram_api::inputMediaGeoLive::PERIOD_MASK;
+      if (m->heading != 0) {
+        flags |= telegram_api::inputMediaGeoLive::HEADING_MASK;
+      }
+      flags |= telegram_api::inputMediaGeoLive::PROXIMITY_NOTIFICATION_RADIUS_MASK;
       return make_tl_object<telegram_api::inputMediaGeoLive>(flags, false /*ignored*/,
-                                                             m->location.get_input_geo_point(), m->heading, m->period);
+                                                             m->location.get_input_geo_point(), m->heading, m->period,
+                                                             m->approaching_notification_distance);
     }
     case MessageContentType::Location: {
       auto m = static_cast<const MessageLocation *>(content);
@@ -2841,7 +2871,8 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       if (old_->location != new_->location) {
         need_update = true;
       }
-      if (old_->period != new_->period || old_->heading != new_->heading) {
+      if (old_->period != new_->period || old_->heading != new_->heading ||
+          old_->approaching_notification_distance != new_->approaching_notification_distance) {
         need_update = true;
       }
       if (old_->location.get_access_hash() != new_->location.get_access_hash()) {
@@ -2929,8 +2960,8 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
             auto volume_id = -new_file_view.remote_location().get_id();
             FileId file_id = td->file_manager_->register_remote(
                 FullRemoteFileLocation({FileType::Photo, 'i'}, new_file_view.remote_location().get_id(),
-                                       new_file_view.remote_location().get_access_hash(), 0, volume_id,
-                                       DcId::invalid(), new_file_view.remote_location().get_file_reference().str()),
+                                       new_file_view.remote_location().get_access_hash(), 0, volume_id, DcId::invalid(),
+                                       new_file_view.remote_location().get_file_reference().str()),
                 FileLocationSource::FromServer, dialog_id, old_photo->photos.back().size, 0, "");
             LOG_STATUS(td->file_manager_->merge(file_id, old_file_id));
           }
@@ -3876,7 +3907,8 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
         LOG(ERROR) << "Receive wrong live location period = " << period;
         return make_unique<MessageLocation>(std::move(location));
       }
-      return make_unique<MessageLiveLocation>(std::move(location), period, message_geo_point_live->heading_);
+      return make_unique<MessageLiveLocation>(std::move(location), period, message_geo_point_live->heading_,
+                                              message_geo_point_live->proximity_notification_radius_);
     }
     case telegram_api::messageMediaVenue::ID: {
       auto message_venue = move_tl_object_as<telegram_api::messageMediaVenue>(media);
@@ -4454,11 +4486,13 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
       auto passed = max(G()->unix_time_cached() - message_date, 0);
       auto expires_in = max(0, m->period - passed);
       auto heading = expires_in == 0 ? 0 : m->heading;
-      return make_tl_object<td_api::messageLocation>(m->location.get_location_object(), m->period, expires_in, heading);
+      auto approaching_notification_distance = expires_in == 0 ? 0 : m->approaching_notification_distance;
+      return make_tl_object<td_api::messageLocation>(m->location.get_location_object(), m->period, expires_in, heading,
+                                                     approaching_notification_distance);
     }
     case MessageContentType::Location: {
       const MessageLocation *m = static_cast<const MessageLocation *>(content);
-      return make_tl_object<td_api::messageLocation>(m->location.get_location_object(), 0, 0, 0);
+      return make_tl_object<td_api::messageLocation>(m->location.get_location_object(), 0, 0, 0, 0);
     }
     case MessageContentType::Photo: {
       const MessagePhoto *m = static_cast<const MessagePhoto *>(content);

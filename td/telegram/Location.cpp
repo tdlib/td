@@ -151,10 +151,16 @@ Result<InputMessageLocation> process_input_message_location(
     return Status::Error(400, "Wrong live location heading specified");
   }
 
+  auto approaching_notification_distance = input_location->approaching_notification_distance_;
+  if (approaching_notification_distance < 0) {
+    return Status::Error(400, "Wrong live location approaching notification distance specified");
+  }
+
   InputMessageLocation result;
   result.location = std::move(location);
   result.live_period = period;
   result.heading = heading;
+  result.approaching_notification_distance = approaching_notification_distance;
   return std::move(result);
 }
 

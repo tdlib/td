@@ -56,7 +56,7 @@ inputMediaPhotoExternal#e5bbfe1a flags:# url:string ttl_seconds:flags.0?int = In
 inputMediaDocumentExternal#fb52dc99 flags:# url:string ttl_seconds:flags.0?int = InputMedia;
 inputMediaGame#d33f43f3 id:InputGame = InputMedia;
 inputMediaInvoice#f4e096c3 flags:# title:string description:string photo:flags.0?InputWebDocument invoice:Invoice payload:bytes provider:string provider_data:DataJSON start_param:string = InputMedia;
-inputMediaGeoLive#a22c410e flags:# stopped:flags.0?true geo_point:InputGeoPoint heading:int period:flags.1?int = InputMedia;
+inputMediaGeoLive#971fa843 flags:# stopped:flags.0?true geo_point:InputGeoPoint heading:flags.2?int period:flags.1?int proximity_notification_radius:flags.3?int = InputMedia;
 inputMediaPoll#f94e5f1 flags:# poll:Poll correct_answers:flags.0?Vector<bytes> solution:flags.1?string solution_entities:flags.1?Vector<MessageEntity> = InputMedia;
 inputMediaDice#e66fbf7b emoticon:string = InputMedia;
 
@@ -141,7 +141,7 @@ messageMediaWebPage#a32dd600 webpage:WebPage = MessageMedia;
 messageMediaVenue#2ec0533f geo:GeoPoint title:string address:string provider:string venue_id:string venue_type:string = MessageMedia;
 messageMediaGame#fdb19008 game:Game = MessageMedia;
 messageMediaInvoice#84551347 flags:# shipping_address_requested:flags.1?true test:flags.3?true title:string description:string photo:flags.0?WebDocument receipt_msg_id:flags.2?int currency:string total_amount:long start_param:string = MessageMedia;
-messageMediaGeoLive#c65b8990 geo:GeoPoint heading:int period:int = MessageMedia;
+messageMediaGeoLive#b940c666 flags:# geo:GeoPoint heading:flags.0?int period:int proximity_notification_radius:flags.1?int = MessageMedia;
 messageMediaPoll#4bd6e798 poll:Poll results:PollResults = MessageMedia;
 messageMediaDice#3f7ee58b value:int emoticon:string = MessageMedia;
 
@@ -618,7 +618,7 @@ messages.savedGifs#2e0709a5 hash:int gifs:Vector<Document> = messages.SavedGifs;
 
 inputBotInlineMessageMediaAuto#3380c786 flags:# message:string entities:flags.1?Vector<MessageEntity> reply_markup:flags.2?ReplyMarkup = InputBotInlineMessage;
 inputBotInlineMessageText#3dcd7a87 flags:# no_webpage:flags.0?true message:string entities:flags.1?Vector<MessageEntity> reply_markup:flags.2?ReplyMarkup = InputBotInlineMessage;
-inputBotInlineMessageMediaGeo#db94eea4 flags:# geo_point:InputGeoPoint period:int heading:int reply_markup:flags.2?ReplyMarkup = InputBotInlineMessage;
+inputBotInlineMessageMediaGeo#96929a85 flags:# geo_point:InputGeoPoint heading:flags.0?int period:flags.1?int proximity_notification_radius:flags.3?int reply_markup:flags.2?ReplyMarkup = InputBotInlineMessage;
 inputBotInlineMessageMediaVenue#417bbf11 flags:# geo_point:InputGeoPoint title:string address:string provider:string venue_id:string venue_type:string reply_markup:flags.2?ReplyMarkup = InputBotInlineMessage;
 inputBotInlineMessageMediaContact#a6edbffd flags:# phone_number:string first_name:string last_name:string vcard:string reply_markup:flags.2?ReplyMarkup = InputBotInlineMessage;
 inputBotInlineMessageGame#4b425864 flags:# reply_markup:flags.2?ReplyMarkup = InputBotInlineMessage;
@@ -630,7 +630,7 @@ inputBotInlineResultGame#4fa417f2 id:string short_name:string send_message:Input
 
 botInlineMessageMediaAuto#764cf810 flags:# message:string entities:flags.1?Vector<MessageEntity> reply_markup:flags.2?ReplyMarkup = BotInlineMessage;
 botInlineMessageText#8c7f65e2 flags:# no_webpage:flags.0?true message:string entities:flags.1?Vector<MessageEntity> reply_markup:flags.2?ReplyMarkup = BotInlineMessage;
-botInlineMessageMediaGeo#cd65660 flags:# geo:GeoPoint period:int heading:int reply_markup:flags.2?ReplyMarkup = BotInlineMessage;
+botInlineMessageMediaGeo#51846fd flags:# geo:GeoPoint heading:flags.0?int period:flags.1?int proximity_notification_radius:flags.3?int reply_markup:flags.2?ReplyMarkup = BotInlineMessage;
 botInlineMessageMediaVenue#8a86659c flags:# geo:GeoPoint title:string address:string provider:string venue_id:string venue_type:string reply_markup:flags.2?ReplyMarkup = BotInlineMessage;
 botInlineMessageMediaContact#18d1cdc2 flags:# phone_number:string first_name:string last_name:string vcard:string reply_markup:flags.2?ReplyMarkup = BotInlineMessage;
 
@@ -1412,7 +1412,6 @@ messages.getOldFeaturedStickers#5fe7025b offset:int limit:int hash:int = message
 messages.getReplies#24b581ba peer:InputPeer msg_id:int offset_id:int offset_date:int add_offset:int limit:int max_id:int min_id:int hash:int = messages.Messages;
 messages.getDiscussionMessage#446972fd peer:InputPeer msg_id:int = messages.DiscussionMessage;
 messages.readDiscussion#f731a9f4 peer:InputPeer msg_id:int read_max_id:int = Bool;
-messages.requestProximityNotification#b12ba31c flags:# peer:InputPeer msg_id:int max_distance:flags.0?int = Bool;
 messages.unpinAllMessages#f025bc8b peer:InputPeer = messages.AffectedHistory;
 
 updates.getState#edd4882a = updates.State;
