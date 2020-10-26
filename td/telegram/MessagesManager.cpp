@@ -6834,10 +6834,30 @@ void MessagesManager::on_user_dialog_action(DialogId dialog_id, MessageId top_th
   if (td_->auth_manager_->is_bot() || !user_id.is_valid() || is_broadcast_channel(dialog_id)) {
     return;
   }
+  if (!td_->messages_manager_->have_dialog(dialog_id)) {
+    LOG(DEBUG) << "Ignore typing in unknown " << dialog_id;
+    return;
+  }
+  if (!td_->contacts_manager_->have_min_user(user_id)) {
+    LOG(DEBUG) << "Ignore typing of unknown " << user_id;
+    return;
+  }
+  if (top_thread_message_id != MessageId() && !top_thread_message_id.is_valid()) {
+    LOG(ERROR) << "Ignore typing in the message thread of " << top_thread_message_id;
+    return;
+  }
 
   bool is_canceled = action == DialogAction();
   if (!is_canceled || message_content_type != MessageContentType::None) {
     td_->contacts_manager_->on_update_user_local_was_online(user_id, date);
+  }
+
+  auto dialog_type = dialog_id.get_type();
+  if (dialog_type == DialogType::User || dialog_type == DialogType::SecretChat) {
+    if (!td_->contacts_manager_->is_user_bot(user_id) && !td_->contacts_manager_->is_user_status_exact(user_id) &&
+        !get_dialog(dialog_id)->is_opened) {
+      return;
+    }
   }
 
   if (is_canceled) {
@@ -28864,12 +28884,14 @@ bool MessagesManager::is_dialog_action_unneeded(DialogId dialog_id) const {
       return true;
     }
 
-    if (!td_->auth_manager_->is_bot() && !td_->contacts_manager_->is_user_online(user_id)) {
-      return true;
-    }
-
-    if (!td_->auth_manager_->is_bot() && !td_->contacts_manager_->is_user_status_exact(user_id)) {
-      // return true;
+    if (!td_->auth_manager_->is_bot()) {
+      if (td_->contacts_manager_->is_user_status_exact(user_id)) {
+        if (!td_->contacts_manager_->is_user_online(user_id, 30)) {
+          return true;
+        }
+      } else {
+        // return true;
+      }
     }
   }
   return false;

@@ -12272,9 +12272,9 @@ Result<BotData> ContactsManager::get_bot_data(UserId user_id) const {
   return bot_data;
 }
 
-bool ContactsManager::is_user_online(UserId user_id) const {
+bool ContactsManager::is_user_online(UserId user_id, int32 tolerance) const {
   int32 was_online = get_user_was_online(get_user(user_id), user_id);
-  return was_online > G()->unix_time();
+  return was_online > G()->unix_time() - tolerance;
 }
 
 bool ContactsManager::is_user_status_exact(UserId user_id) const {

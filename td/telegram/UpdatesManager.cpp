@@ -1836,74 +1836,31 @@ int32 UpdatesManager::get_short_update_date() const {
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateUserTyping> update, bool /*force_apply*/) {
   UserId user_id(update->user_id_);
-  if (!td_->contacts_manager_->have_min_user(user_id)) {
-    LOG(DEBUG) << "Ignore user typing of unknown " << user_id;
-    return;
-  }
-  DialogId dialog_id(user_id);
-  if (!td_->messages_manager_->have_dialog(dialog_id)) {
-    LOG(DEBUG) << "Ignore user typing in unknown " << dialog_id;
-    return;
-  }
-  td_->messages_manager_->on_user_dialog_action(dialog_id, MessageId(), user_id,
+  td_->messages_manager_->on_user_dialog_action(DialogId(user_id), MessageId(), user_id,
                                                 DialogAction(std::move(update->action_)), get_short_update_date());
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChatUserTyping> update, bool /*force_apply*/) {
-  UserId user_id(update->user_id_);
-  if (!td_->contacts_manager_->have_min_user(user_id)) {
-    LOG(DEBUG) << "Ignore user chat typing of unknown " << user_id;
-    return;
-  }
-  DialogId dialog_id(ChatId(update->chat_id_));
-  if (!td_->messages_manager_->have_dialog(dialog_id)) {
-    LOG(DEBUG) << "Ignore user chat typing in unknown " << dialog_id;
-    return;
-  }
-  td_->messages_manager_->on_user_dialog_action(dialog_id, MessageId(), user_id,
-                                                DialogAction(std::move(update->action_)), get_short_update_date());
+  td_->messages_manager_->on_user_dialog_action(DialogId(ChatId(update->chat_id_)), MessageId(),
+                                                UserId(update->user_id_), DialogAction(std::move(update->action_)),
+                                                get_short_update_date());
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelUserTyping> update, bool /*force_apply*/) {
-  UserId user_id(update->user_id_);
-  if (!td_->contacts_manager_->have_min_user(user_id)) {
-    LOG(DEBUG) << "Ignore user channel typing of unknown " << user_id;
-    return;
-  }
-  DialogId dialog_id(ChannelId(update->channel_id_));
-  if (!td_->messages_manager_->have_dialog(dialog_id)) {
-    LOG(DEBUG) << "Ignore user channel typing in unknown " << dialog_id;
-    return;
-  }
   MessageId top_thread_message_id;
   if ((update->flags_ & telegram_api::updateChannelUserTyping::TOP_MSG_ID_MASK) != 0) {
     top_thread_message_id = MessageId(ServerMessageId(update->top_msg_id_));
-    if (!top_thread_message_id.is_valid() && top_thread_message_id != MessageId()) {
-      LOG(ERROR) << "Ignore user channel typing in the message thread of " << top_thread_message_id;
-      return;
-    }
   }
-  td_->messages_manager_->on_user_dialog_action(dialog_id, top_thread_message_id, user_id,
-                                                DialogAction(std::move(update->action_)), get_short_update_date());
+  td_->messages_manager_->on_user_dialog_action(DialogId(ChannelId(update->channel_id_)), top_thread_message_id,
+                                                UserId(update->user_id_), DialogAction(std::move(update->action_)),
+                                                get_short_update_date());
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateEncryptedChatTyping> update, bool /*force_apply*/) {
   SecretChatId secret_chat_id(update->chat_id_);
-  DialogId dialog_id(secret_chat_id);
-
-  if (!td_->messages_manager_->have_dialog(dialog_id)) {
-    LOG(DEBUG) << "Ignore secret chat typing in unknown " << dialog_id;
-    return;
-  }
-
   UserId user_id = td_->contacts_manager_->get_secret_chat_user_id(secret_chat_id);
-  if (!td_->contacts_manager_->have_user_force(user_id)) {
-    LOG(DEBUG) << "Ignore secret chat typing of unknown " << user_id;
-    return;
-  }
-
-  td_->messages_manager_->on_user_dialog_action(dialog_id, MessageId(), user_id, DialogAction::get_typing_action(),
-                                                get_short_update_date());
+  td_->messages_manager_->on_user_dialog_action(DialogId(secret_chat_id), MessageId(), user_id,
+                                                DialogAction::get_typing_action(), get_short_update_date());
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateUserStatus> update, bool /*force_apply*/) {
