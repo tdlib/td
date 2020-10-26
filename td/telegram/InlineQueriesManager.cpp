@@ -512,8 +512,7 @@ void InlineQueriesManager::answer_inline_query(int64 inline_query_id, bool is_pe
         type = "geo";
         id = std::move(location->id_);
         title = std::move(location->title_);
-        description = PSTRING() << location->location_->latitude_ << ' ' << location->location_->longitude_ << ' '
-                                << location->location_->horizontal_accuracy_;
+        description = PSTRING() << location->location_->latitude_ << ' ' << location->location_->longitude_;
         thumbnail_url = std::move(location->thumbnail_url_);
         // duration = location->live_period_;
         if (!thumbnail_url.empty()) {
@@ -1393,8 +1392,7 @@ void InlineQueriesManager::on_get_inline_query_results(UserId bot_user_id, uint6
             Slice longitude;
             Slice horizontal_accuracy;
             std::tie(latitude, longitude) = split(Slice(result->description_));
-            std::tie(longitude, horizontal_accuracy) = split(longitude);
-            Location l(to_double(latitude), to_double(longitude), to_double(horizontal_accuracy), 0);
+            Location l(to_double(latitude), to_double(longitude), 0.0, 0);
             location->location_ = l.get_location_object();
           }
           location->thumbnail_ = register_thumbnail(std::move(result->thumb_));
