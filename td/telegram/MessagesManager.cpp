@@ -32343,7 +32343,8 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     // old_message->is_from_scheduled = new_message->is_from_scheduled;
   }
 
-  if (update_message_is_pinned(d, old_message, new_message->is_pinned, "update_message")) {
+  if (!is_scheduled &&
+      update_message_is_pinned(d, old_message, new_message->is_pinned, "update_message")) {
     need_send_update = true;
   }
 
