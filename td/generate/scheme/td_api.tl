@@ -3599,6 +3599,9 @@ getRepliedMessage chat_id:int53 message_id:int53 = Message;
 //@description Returns information about a newest pinned chat message @chat_id Identifier of the chat the message belongs to
 getChatPinnedMessage chat_id:int53 = Message;
 
+//@description Returns information about a message with the callback button that originated a callback query; for bots only @chat_id Identifier of the chat the message belongs to @message_id Message identifier @callback_query_id Identifier of the callback query
+getCallbackQueryMessage chat_id:int53 message_id:int53 callback_query_id:int64 = Message;
+
 //@description Returns information about messages. If a message is not found, returns null on the corresponding position of the result @chat_id Identifier of the chat the messages belong to @message_ids Identifiers of the messages to get
 getMessages chat_id:int53 message_ids:vector<int53> = Messages;
 

@@ -5811,10 +5811,6 @@ vector<int32> MessagesManager::get_scheduled_server_message_ids(const vector<Mes
                    [](MessageId message_id) { return message_id.get_scheduled_server_message_id().get(); });
 }
 
-tl_object_ptr<telegram_api::InputMessage> MessagesManager::get_input_message(MessageId message_id) {
-  return make_tl_object<telegram_api::inputMessageID>(message_id.get_server_message_id().get());
-}
-
 tl_object_ptr<telegram_api::InputPeer> MessagesManager::get_input_peer(DialogId dialog_id,
                                                                        AccessRights access_rights) const {
   switch (dialog_id.get_type()) {
@@ -16396,6 +16392,23 @@ MessageId MessagesManager::get_dialog_pinned_message(DialogId dialog_id, Promise
   return d->last_pinned_message_id;
 }
 
+void MessagesManager::get_callback_query_message(DialogId dialog_id, MessageId message_id, int64 callback_query_id,
+                                                 Promise<Unit> &&promise) {
+  Dialog *d = get_dialog_force(dialog_id);
+  if (d == nullptr) {
+    return promise.set_error(Status::Error(6, "Chat not found"));
+  }
+  if (!message_id.is_valid() || !message_id.is_server()) {
+    return promise.set_error(Status::Error(6, "Invalid message identifier specified"));
+  }
+
+  LOG(INFO) << "Get callback query " << message_id << " in " << dialog_id << " for query " << callback_query_id;
+
+  auto input_message = make_tl_object<telegram_api::inputMessageCallbackQuery>(message_id.get_server_message_id().get(),
+                                                                               callback_query_id);
+  get_message_force_from_server(d, message_id, std::move(promise), std::move(input_message));
+}
+
 bool MessagesManager::get_messages(DialogId dialog_id, const vector<MessageId> &message_ids, Promise<Unit> &&promise) {
   Dialog *d = get_dialog_force(dialog_id);
   if (d == nullptr) {
@@ -16459,15 +16472,17 @@ void MessagesManager::get_messages_from_server(vector<FullMessageId> &&message_i
       continue;
     }
 
+    if (input_message == nullptr) {
+      input_message = make_tl_object<telegram_api::inputMessageID>(message_id.get_server_message_id().get());
+    }
+
     switch (dialog_id.get_type()) {
       case DialogType::User:
       case DialogType::Chat:
-        ordinary_message_ids.push_back(input_message == nullptr ? get_input_message(message_id)
-                                                                : std::move(input_message));
+        ordinary_message_ids.push_back(std::move(input_message));
         break;
       case DialogType::Channel:
-        channel_message_ids[dialog_id.get_channel_id()].push_back(
-            input_message == nullptr ? get_input_message(message_id) : std::move(input_message));
+        channel_message_ids[dialog_id.get_channel_id()].push_back(std::move(input_message));
         break;
       case DialogType::SecretChat:
         LOG(ERROR) << "Can't get secret chat message from server";

@@ -587,6 +587,19 @@ class MessagesManager : public Actor {
 
   FullMessageId get_replied_message(DialogId dialog_id, MessageId message_id, bool force, Promise<Unit> &&promise);
 
+  MessageId get_dialog_pinned_message(DialogId dialog_id, Promise<Unit> &&promise);
+
+  void get_callback_query_message(DialogId dialog_id, MessageId message_id, int64 callback_query_id,
+                                  Promise<Unit> &&promise);
+
+  bool get_messages(DialogId dialog_id, const vector<MessageId> &message_ids, Promise<Unit> &&promise);
+
+  void get_message_from_server(FullMessageId full_message_id, Promise<Unit> &&promise,
+                               tl_object_ptr<telegram_api::InputMessage> input_message = nullptr);
+
+  void get_messages_from_server(vector<FullMessageId> &&message_ids, Promise<Unit> &&promise,
+                                tl_object_ptr<telegram_api::InputMessage> input_message = nullptr);
+
   struct MessageThreadInfo {
     DialogId dialog_id;
     vector<MessageId> message_ids;
@@ -597,16 +610,6 @@ class MessagesManager : public Actor {
 
   void on_get_discussion_message(DialogId dialog_id, MessageId message_id, vector<FullMessageId> full_message_ids,
                                  Promise<MessageThreadInfo> &&promise);
-
-  MessageId get_dialog_pinned_message(DialogId dialog_id, Promise<Unit> &&promise);
-
-  bool get_messages(DialogId dialog_id, const vector<MessageId> &message_ids, Promise<Unit> &&promise);
-
-  void get_message_from_server(FullMessageId full_message_id, Promise<Unit> &&promise,
-                               tl_object_ptr<telegram_api::InputMessage> input_message = nullptr);
-
-  void get_messages_from_server(vector<FullMessageId> &&message_ids, Promise<Unit> &&promise,
-                                tl_object_ptr<telegram_api::InputMessage> input_message = nullptr);
 
   bool is_message_edited_recently(FullMessageId full_message_id, int32 seconds);
 
@@ -1709,8 +1712,6 @@ class MessagesManager : public Actor {
   static FullMessageId get_full_message_id(const tl_object_ptr<telegram_api::Message> &message_ptr, bool is_scheduled);
 
   static int32 get_message_date(const tl_object_ptr<telegram_api::Message> &message_ptr);
-
-  static tl_object_ptr<telegram_api::InputMessage> get_input_message(MessageId message_id);
 
   static bool is_dialog_inited(const Dialog *d);
 

@@ -493,6 +493,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, const td_api::getChatPinnedMessage &request);
 
+  void on_request(uint64 id, const td_api::getCallbackQueryMessage &request);
+
   void on_request(uint64 id, const td_api::getMessageThread &request);
 
   void on_request(uint64 id, const td_api::getMessages &request);

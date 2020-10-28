@@ -1102,6 +1102,29 @@ class GetChatPinnedMessageRequest : public RequestOnceActor {
   }
 };
 
+class GetCallbackQueryMessageRequest : public RequestOnceActor {
+  DialogId dialog_id_;
+  MessageId message_id_;
+  int64 callback_query_id_;
+
+  void do_run(Promise<Unit> &&promise) override {
+    td->messages_manager_->get_callback_query_message(dialog_id_, message_id_, callback_query_id_, std::move(promise));
+  }
+
+  void do_send_result() override {
+    send_result(td->messages_manager_->get_message_object({dialog_id_, message_id_}));
+  }
+
+ public:
+  GetCallbackQueryMessageRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, int64 message_id,
+                                 int64 callback_query_id)
+      : RequestOnceActor(std::move(td), request_id)
+      , dialog_id_(dialog_id)
+      , message_id_(message_id)
+      , callback_query_id_(callback_query_id) {
+  }
+};
+
 class GetMessagesRequest : public RequestOnceActor {
   DialogId dialog_id_;
   vector<MessageId> message_ids_;
@@ -5157,13 +5180,18 @@ void Td::on_request(uint64 id, const td_api::getChatPinnedMessage &request) {
   CREATE_REQUEST(GetChatPinnedMessageRequest, request.chat_id_);
 }
 
-void Td::on_request(uint64 id, const td_api::getMessageThread &request) {
-  CHECK_IS_USER();
-  CREATE_REQUEST(GetMessageThreadRequest, request.chat_id_, request.message_id_);
+void Td::on_request(uint64 id, const td_api::getCallbackQueryMessage &request) {
+  CHECK_IS_BOT();
+  CREATE_REQUEST(GetCallbackQueryMessageRequest, request.chat_id_, request.message_id_, request.callback_query_id_);
 }
 
 void Td::on_request(uint64 id, const td_api::getMessages &request) {
   CREATE_REQUEST(GetMessagesRequest, request.chat_id_, request.message_ids_);
+}
+
+void Td::on_request(uint64 id, const td_api::getMessageThread &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST(GetMessageThreadRequest, request.chat_id_, request.message_id_);
 }
 
 void Td::on_request(uint64 id, const td_api::getMessageLink &request) {
