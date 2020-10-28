@@ -29890,7 +29890,9 @@ void MessagesManager::unpin_all_dialog_messages(DialogId dialog_id, Promise<Unit
     on_message_changed(d, m, true, "unpin_all_dialog_messages");
   }
 
-  set_dialog_last_pinned_message_id(d, MessageId());
+  if (d->last_pinned_message_id != MessageId()) {
+    set_dialog_last_pinned_message_id(d, MessageId());
+  }
   if (d->message_count_by_index[message_search_filter_index(MessageSearchFilter::Pinned)] != 0) {
     d->message_count_by_index[message_search_filter_index(MessageSearchFilter::Pinned)] = 0;
     on_dialog_updated(dialog_id, "unpin_all_dialog_messages");
