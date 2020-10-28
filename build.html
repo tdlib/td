@@ -150,13 +150,13 @@ function onLoad(initial) {
     language = 'c#';
   } else if (language === 'cxx') {
     language = 'c++';
+  } else if (!language) {
+    language = '';
   }
 
   var language_options = document.getElementById('languageSelect').options;
   for (var i = 0; i < language_options.length; i++) {
-    if (language_options[i].text.toLowerCase() === language.toLowerCase()) {
-      language_options[i].selected = true;
-    }
+    language_options[i].selected = language_options[i].text.toLowerCase() === language.toLowerCase();
   }
 
   onLanguageChanged(initial || !history.state);
@@ -821,10 +821,10 @@ function onOptionsChanged() {
       build_command += ' --target install';
     }
     if (use_msvc) {
-      if (target === 'C++/CX' || target === 'C++/CLI' || !is_debug_build) {
+      if (target === 'C++/CLI' || !is_debug_build) {
         commands.push(build_command + ' --config Release');
       }
-      if (target === 'C++/CX' || target === 'C++/CLI' || is_debug_build) {
+      if (target === 'C++/CLI' || is_debug_build) {
         commands.push(build_command + ' --config Debug');
       }
     } else {
