@@ -14,34 +14,32 @@ select.large { font-size: large; }
 <body onpopstate="onLoad(false)">
 
 <div class="main">
-  <div align="center">
-    <div id="languageSelectDiv">
-      <p>Choose a programming language, from which you want to use TDLib:</p>
-      <select id="languageSelect" onchange="onLanguageChanged(false)" autofocus="true" class="large">
-        <option>Choose a programming language:</option>
-        <option>Python</option>
-        <option>JavaScript</option>
-        <option>Go</option>
-        <option>Java</option>
-        <option>Kotlin</option>
-        <option>C#</option>
-        <option>C++</option>
-        <option>Swift</option>
-        <option>Objective-C</option>
-        <option>Object Pascal</option>
-        <option>Dart</option>
-        <option>Rust</option>
-        <option>Erlang</option>
-        <option>PHP</option>
-        <option>Lua</option>
-        <option>Ruby</option>
-        <option>Clojure</option>
-        <option>D</option>
-        <option>Elixir</option>
-        <option>C</option>
-        <option>Other</option>
-      </select>
-    </div>
+  <div id="languageSelectDiv" align="center">
+    <p>Choose a programming language, from which you want to use TDLib:</p>
+    <select id="languageSelect" onchange="onLanguageChanged(false)" autofocus="true" class="large">
+      <option>Choose a programming language:</option>
+      <option>Python</option>
+      <option>JavaScript</option>
+      <option>Go</option>
+      <option>Java</option>
+      <option>Kotlin</option>
+      <option>C#</option>
+      <option>C++</option>
+      <option>Swift</option>
+      <option>Objective-C</option>
+      <option>Object Pascal</option>
+      <option>Dart</option>
+      <option>Rust</option>
+      <option>Erlang</option>
+      <option>PHP</option>
+      <option>Lua</option>
+      <option>Ruby</option>
+      <option>Clojure</option>
+      <option>D</option>
+      <option>Elixir</option>
+      <option>C</option>
+      <option>Other</option>
+    </select>
   </div>
 
   <div id="osSelectDiv" class="hide" align="center">
@@ -52,24 +50,24 @@ select.large { font-size: large; }
     <p></p>
   </div>
 
-  <div id="buildOptionsDiv" class="hide" align="center">
-    <div id="linuxSelectDiv" class="hide">
-      <p>Choose a Linux distro, on which you want to use TDLib:</p>
-      <select id="linuxSelect" onchange="onOptionsChanged()" class="large">
-        <option>Choose a Linux distro:</option>
-        <option>Alpine</option>
-        <option>Debian 8</option>
-        <option>Debian 9</option>
-        <option>Debian 10</option>
-        <option>Ubuntu 14</option>
-        <option>Ubuntu 16</option>
-        <option>Ubuntu 18</option>
-        <option>Ubuntu 20</option>
-        <option>Other</option>
-      </select>
-      <p></p>
-    </div>
+  <div id="linuxSelectDiv" class="hide" align="center">
+    <p>Choose a Linux distro, on which you want to use TDLib:</p>
+    <select id="linuxSelect" onchange="onOsChanged()" class="large">
+      <option>Choose a Linux distro:</option>
+      <option>Alpine</option>
+      <option>Debian 8</option>
+      <option>Debian 9</option>
+      <option>Debian 10</option>
+      <option>Ubuntu 14</option>
+      <option>Ubuntu 16</option>
+      <option>Ubuntu 18</option>
+      <option>Ubuntu 20</option>
+      <option>Other</option>
+    </select>
+    <p></p>
+  </div>
 
+  <div id="buildOptionsDiv" class="hide" align="center">
     <div id="buildLtoDiv" class="hide">
       <label><input type="checkbox" id="buildLtoCheckbox" onchange="onOptionsChanged()"/>Enable Link Time Optimization (requires CMake >= 3.9.0). It can significantly reduce binary size and increase performance, but sometimes it can lead to build failures.</label>
     </div>
@@ -335,9 +333,25 @@ function onOsChanged() {
   document.getElementById('buildText').innerHTML = text;
 
   if (!target) {
+    document.getElementById('linuxSelectDiv').style.display = 'none';
     document.getElementById('buildOptionsDiv').style.display = 'none';
     document.getElementById('buildCommandsDiv').style.display = 'none';
     return;
+  }
+
+  var os_linux = os.includes('Linux');
+  if (os_linux) {
+    document.getElementById('linuxSelectDiv').style.display = 'block';
+
+    var linux_distro = document.getElementById('linuxSelect').value;
+    if (linux_distro.includes('Choose ')) {
+      document.getElementById('buildTextDiv').style.display = 'none';
+      document.getElementById('buildOptionsDiv').style.display = 'none';
+      document.getElementById('buildCommandsDiv').style.display = 'none';
+      return;
+    }
+  } else {
+    document.getElementById('linuxSelectDiv').style.display = 'none';
   }
 
   document.getElementById('buildOptionsDiv').style.display = 'block';
@@ -357,18 +371,11 @@ function onOptionsChanged() {
   var os_openbsd = os.includes('OpenBSD');
   var os_netbsd = os.includes('NetBSD');
 
-  var display_commands = 'block';
   var linux_distro = 'none';
   if (os_linux) {
-    document.getElementById('linuxSelectDiv').style.display = 'block';
     linux_distro = document.getElementById('linuxSelect').value;
-    if (linux_distro.indexOf('Choose') === 0) {
-      display_commands = 'none';
-    }
-  } else {
-    document.getElementById('linuxSelectDiv').style.display = 'none';
   }
-  document.getElementById('buildCommandsDiv').style.display = display_commands;
+  document.getElementById('buildCommandsDiv').style.display = 'block';
 
   var use_clang = os_freebsd || os_openbsd;
   if (os_linux && linux_distro !== 'Alpine') {
