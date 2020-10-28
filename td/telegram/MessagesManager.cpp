@@ -9648,11 +9648,11 @@ bool MessagesManager::update_message_is_pinned(Dialog *d, Message *m, bool is_pi
   send_closure(G()->td(), &Td::send_update,
                make_tl_object<td_api::updateMessageIsPinned>(d->dialog_id.get(), m->message_id.get(), is_pinned));
   if (is_pinned) {
-    if (m->message_id > d->last_pinned_message_id) {
+    if (d->is_last_pinned_message_id_inited && m->message_id > d->last_pinned_message_id) {
       on_update_dialog_last_pinned_message_id(d->dialog_id, m->message_id);
     }
   } else {
-    if (m->message_id == d->last_pinned_message_id) {
+    if (d->is_last_pinned_message_id_inited && m->message_id == d->last_pinned_message_id) {
       if (d->message_count_by_index[message_search_filter_index(MessageSearchFilter::Pinned)] == 0) {
         set_dialog_last_pinned_message_id(d, MessageId());
       } else {
@@ -31455,7 +31455,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 
   if (*need_update && m->message_id.is_server() && message_content_type == MessageContentType::PinMessage) {
     auto pinned_message_id = get_message_content_pinned_message_id(m->content.get());
-    if (pinned_message_id > d->last_pinned_message_id) {
+    if (d->is_last_pinned_message_id_inited && pinned_message_id > d->last_pinned_message_id) {
       on_update_dialog_last_pinned_message_id(dialog_id, pinned_message_id);
     }
   }
