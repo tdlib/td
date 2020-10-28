@@ -12353,7 +12353,7 @@ void ContactsManager::reload_dialog_info(DialogId dialog_id, Promise<Unit> &&pro
     case DialogType::Channel:
       return reload_channel(dialog_id.get_channel_id(), std::move(promise));
     default:
-      promise.set_error(Status::Error("Invalid dialog ID to reload"));
+      return promise.set_error(Status::Error("Invalid dialog ID to reload"));
   }
 }
 

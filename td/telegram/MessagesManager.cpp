@@ -9657,7 +9657,7 @@ bool MessagesManager::update_message_is_pinned(Dialog *d, Message *m, bool is_pi
     }
   } else {
     if (m->message_id == d->last_pinned_message_id) {
-      if (d->message_count_by_index[message_search_filter_index(MessageSearchFilter::Pinned)] == 1) {
+      if (d->message_count_by_index[message_search_filter_index(MessageSearchFilter::Pinned)] == 0) {
         set_dialog_last_pinned_message_id(d, MessageId());
       } else {
         drop_dialog_last_pinned_message_id(d);
@@ -16345,6 +16345,28 @@ void MessagesManager::get_dialog_info_full(DialogId dialog_id, Promise<Unit> &&p
     default:
       UNREACHABLE();
       return promise.set_error(Status::Error(500, "Wrong chat type"));
+  }
+}
+
+void MessagesManager::reload_dialog_info_full(DialogId dialog_id) {
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      send_closure_later(G()->contacts_manager(), &ContactsManager::reload_user_full, dialog_id.get_user_id());
+      return;
+    case DialogType::Chat:
+      send_closure_later(G()->contacts_manager(), &ContactsManager::reload_chat_full, dialog_id.get_chat_id(),
+                         Promise<Unit>());
+      return;
+    case DialogType::Channel:
+      send_closure_later(G()->contacts_manager(), &ContactsManager::reload_channel_full, dialog_id.get_channel_id(),
+                         Promise<Unit>(), "reload_dialog_info_full");
+      return;
+    case DialogType::SecretChat:
+      return;
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+      return;
   }
 }
 
@@ -28497,6 +28519,8 @@ void MessagesManager::drop_dialog_last_pinned_message_id(Dialog *d) {
   on_dialog_updated(d->dialog_id, "drop_dialog_last_pinned_message_id");
 
   LOG(INFO) << "Drop " << d->dialog_id << " pinned message";
+
+  reload_dialog_info_full(d->dialog_id);
 }
 
 void MessagesManager::repair_dialog_scheduled_messages(Dialog *d) {
@@ -32343,8 +32367,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     // old_message->is_from_scheduled = new_message->is_from_scheduled;
   }
 
-  if (!is_scheduled &&
-      update_message_is_pinned(d, old_message, new_message->is_pinned, "update_message")) {
+  if (!is_scheduled && update_message_is_pinned(d, old_message, new_message->is_pinned, "update_message")) {
     need_send_update = true;
   }
 
