@@ -4116,7 +4116,7 @@ setChatSlowModeDelay chat_id:int53 slow_mode_delay:int32 = Ok;
 //@description Pins a message in a chat; requires can_pin_messages rights or can_edit_messages rights in the channel
 //@chat_id Identifier of the chat
 //@message_id Identifier of the new pinned message
-//@disable_notification True, if there should be no notification about the pinned message
+//@disable_notification True, if there should be no notification about the pinned message. Notifications are always disabled in channels and private chats
 //@only_for_self True, if the message needs to be pinned only for self; private chats only
 pinChatMessage chat_id:int53 message_id:int53 disable_notification:Bool only_for_self:Bool = Ok;
 
