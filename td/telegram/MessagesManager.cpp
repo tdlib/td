@@ -9624,12 +9624,8 @@ void MessagesManager::update_dialog_pinned_messages_from_updates(DialogId dialog
     }
 
     Message *m = get_message_force(d, message_id, "update_dialog_pinned_messages_from_updates");
-    if (m != nullptr) {
-      if (update_message_is_pinned(d, m, is_pin, "update_dialog_pinned_messages_from_updates")) {
-        on_message_changed(d, m, true, "update_dialog_pinned_messages_from_updates");
-      }
-    } else if (message_id > d->last_new_message_id) {
-      get_channel_difference(dialog_id, d->pts, true, "update_dialog_pinned_messages_from_updates");
+    if (m != nullptr && update_message_is_pinned(d, m, is_pin, "update_dialog_pinned_messages_from_updates")) {
+      on_message_changed(d, m, true, "update_dialog_pinned_messages_from_updates");
     }
   }
 }
@@ -29861,7 +29857,7 @@ void MessagesManager::pin_dialog_message(DialogId dialog_id, MessageId message_i
   }
 
   if (is_service_message_content(m->content->get_type())) {
-    return promise.set_error(Status::Error(6, "Can't pin a service message"));
+    return promise.set_error(Status::Error(6, "A service message can't be pinned"));
   }
 
   if (only_for_self && dialog_id.get_type() != DialogType::User) {
@@ -34272,6 +34268,7 @@ void MessagesManager::get_channel_difference(DialogId dialog_id, int32 pts, bool
               << " because it is scheduled for later time";
     return;
   }
+  LOG_CHECK(dialog_id.get_type() == DialogType::Channel) << dialog_id << " " << source;
 
   auto input_channel = td_->contacts_manager_->get_input_channel(dialog_id.get_channel_id());
   if (input_channel == nullptr) {
