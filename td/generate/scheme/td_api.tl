@@ -1593,8 +1593,8 @@ messageVoiceNote voice_note:voiceNote caption:formattedText is_listened:Bool = M
 //@description A message with a location @location The location description @live_period Time relative to the message send date, for which the location can be updated, in seconds
 //@expires_in Left time for which the location can be updated, in seconds. updateMessageContent is not sent when this field changes
 //@heading For live locations, a direction in which the location moves, in degrees; 1-360. If 0 the direction is unknown
-//@approaching_notification_distance For live locations, a maximum distance for notifications about approaching another chat member, in meters (0-100000). 0 if the notification is disabled. Available only for the message sender
-messageLocation location:location live_period:int32 expires_in:int32 heading:int32 approaching_notification_distance:int32 = MessageContent;
+//@proximity_alert_distance For live locations, a maximum distance to another chat member for proximity alerts, in meters (0-100000). 0 if the notification is disabled. Available only for the message sender
+messageLocation location:location live_period:int32 expires_in:int32 heading:int32 proximity_alert_distance:int32 = MessageContent;
 
 //@description A message with information about a venue @venue The venue description
 messageVenue venue:venue = MessageContent;
@@ -1689,8 +1689,8 @@ messagePassportDataSent types:vector<PassportElementType> = MessageContent;
 //@description Telegram Passport data has been received; for bots only @elements List of received Telegram Passport elements @credentials Encrypted data credentials
 messagePassportDataReceived elements:vector<encryptedPassportElement> credentials:encryptedCredentials = MessageContent;
 
-//@description A user in the chat approached another user @approacher The user or chat, which approached another user @observer The user which subscribed for the approaching notification @distance The distance between users 
-messageLiveLocationApproached approacher:MessageSender observer:MessageSender distance:int32 = MessageContent;
+//@description A user in the chat came within proximity alert range @approacher The user or chat, which approached another user @observer The user or chat, which subscribed for the proximity alert @distance The distance between the users
+messageProximityAlertTriggered approacher:MessageSender observer:MessageSender distance:int32 = MessageContent;
 
 //@description Message content that is not supported in the current TDLib version
 messageUnsupported = MessageContent;
@@ -1814,8 +1814,8 @@ inputMessageVoiceNote voice_note:InputFile duration:int32 waveform:bytes caption
 
 //@description A message with a location @location Location to be sent @live_period Period for which the location can be updated, in seconds; should be between 60 and 86400 for a live location and 0 otherwise
 //@heading For live locations, a direction in which the location moves, in degrees; 1-360. Pass 0 if unknown
-//@approaching_notification_distance For live locations, a maximum distance for notifications about approaching another chat member, in meters (0-100000). Pass 0 if the notification is disabled. Can't be enabled in channels and Saved Messages, or for anonymous messages
-inputMessageLocation location:location live_period:int32 heading:int32 approaching_notification_distance:int32 = InputMessageContent;
+//@proximity_alert_distance For live locations, a maximum distance to another chat member for proximity alerts, in meters (0-100000). Pass 0 if the notification is disabled. Can't be enabled in channels and Saved Messages
+inputMessageLocation location:location live_period:int32 heading:int32 proximity_alert_distance:int32 = InputMessageContent;
 
 //@description A message with information about a venue @venue Venue to send
 inputMessageVenue venue:venue = InputMessageContent;
@@ -3849,8 +3849,8 @@ editMessageText chat_id:int53 message_id:int53 reply_markup:ReplyMarkup input_me
 //@description Edits the message content of a live location. Messages can be edited for a limited period of time specified in the live location. Returns the edited message after the edit is completed on the server side
 //@chat_id The chat the message belongs to @message_id Identifier of the message @reply_markup The new message reply markup; for bots only @location New location content of the message; may be null. Pass null to stop sharing the live location
 //@heading The new direction in which the location moves, in degrees; 1-360. Pass 0 if unknown
-//@approaching_notification_distance The new maximum distance for notifications about approaching another chat member, in meters (0-100000). Pass 0 if the notification is disabled
-editMessageLiveLocation chat_id:int53 message_id:int53 reply_markup:ReplyMarkup location:location heading:int32 approaching_notification_distance:int32 = Message;
+//@proximity_alert_distance The new maximum distance for proximity alerts, in meters (0-100000). Pass 0 if the notification is disabled
+editMessageLiveLocation chat_id:int53 message_id:int53 reply_markup:ReplyMarkup location:location heading:int32 proximity_alert_distance:int32 = Message;
 
 //@description Edits the content of a message with an animation, an audio, a document, a photo or a video. The media in the message can't be replaced if the message was set to self-destruct. Media can't be replaced by self-destructing media. Media in an album can be edited only to contain a photo or a video. Returns the edited message after the edit is completed on the server side
 //@chat_id The chat the message belongs to @message_id Identifier of the message @reply_markup The new message reply markup; for bots only @input_message_content New content of the message. Must be one of the following types: InputMessageAnimation, InputMessageAudio, InputMessageDocument, InputMessagePhoto or InputMessageVideo
@@ -3870,8 +3870,8 @@ editInlineMessageText inline_message_id:string reply_markup:ReplyMarkup input_me
 //@description Edits the content of a live location in an inline message sent via a bot; for bots only @inline_message_id Inline message identifier @reply_markup The new message reply markup
 //@location New location content of the message; may be null. Pass null to stop sharing the live location
 //@heading The new direction in which the location moves, in degrees; 1-360. Pass 0 if unknown
-//@approaching_notification_distance The new maximum distance for notifications about approaching another chat member, in meters (0-100000). Pass 0 if the notification is disabled
-editInlineMessageLiveLocation inline_message_id:string reply_markup:ReplyMarkup location:location heading:int32 approaching_notification_distance:int32 = Ok;
+//@proximity_alert_distance The new maximum distance for proximity alerts, in meters (0-100000). Pass 0 if the notification is disabled
+editInlineMessageLiveLocation inline_message_id:string reply_markup:ReplyMarkup location:location heading:int32 proximity_alert_distance:int32 = Ok;
 
 //@description Edits the content of a message with an animation, an audio, a document, a photo or a video in an inline message sent via a bot; for bots only @inline_message_id Inline message identifier
 //@reply_markup The new message reply markup; for bots only @input_message_content New content of the message. Must be one of the following types: InputMessageAnimation, InputMessageAudio, InputMessageDocument, InputMessagePhoto or InputMessageVideo

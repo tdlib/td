@@ -3159,16 +3159,16 @@ class CliClient final : public Actor {
       string longitude;
       string accuracy;
       string heading;
-      string approaching_notification_distance;
+      string proximity_alert_distance;
       std::tie(chat_id, args) = split(args);
       std::tie(message_id, args) = split(args);
       std::tie(latitude, args) = split(args);
       std::tie(longitude, args) = split(args);
       std::tie(accuracy, args) = split(args);
-      std::tie(heading, approaching_notification_distance) = split(args);
+      std::tie(heading, proximity_alert_distance) = split(args);
       send_request(td_api::make_object<td_api::editMessageLiveLocation>(
           as_chat_id(chat_id), as_message_id(message_id), nullptr, as_location(latitude, longitude, accuracy),
-          to_integer<int32>(heading), to_integer<int32>(approaching_notification_distance)));
+          to_integer<int32>(heading), to_integer<int32>(proximity_alert_distance)));
     } else if (op == "emss") {
       string chat_id;
       string message_id;
@@ -3432,17 +3432,17 @@ class CliClient final : public Actor {
       string longitude;
       string accuracy;
       string heading;
-      string approaching_notification_distance;
+      string proximity_alert_distance;
       std::tie(chat_id, args) = split(args);
       std::tie(period, args) = split(args);
       std::tie(latitude, args) = split(args);
       std::tie(longitude, args) = split(args);
       std::tie(accuracy, args) = split(args);
-      std::tie(heading, approaching_notification_distance) = split(args);
+      std::tie(heading, proximity_alert_distance) = split(args);
 
       send_message(chat_id, td_api::make_object<td_api::inputMessageLocation>(
                                 as_location(latitude, longitude, accuracy), to_integer<int32>(period),
-                                to_integer<int32>(heading), to_integer<int32>(approaching_notification_distance)));
+                                to_integer<int32>(heading), to_integer<int32>(proximity_alert_distance)));
     } else if (op == "spoll" || op == "spollm" || op == "spollp" || op == "squiz") {
       string chat_id;
       string question;

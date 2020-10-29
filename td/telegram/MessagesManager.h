@@ -440,7 +440,7 @@ class MessagesManager : public Actor {
 
   void edit_message_live_location(FullMessageId full_message_id, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
                                   tl_object_ptr<td_api::location> &&input_location, int32 heading,
-                                  int32 approaching_notification_distance, Promise<Unit> &&promise);
+                                  int32 proximity_alert_distance, Promise<Unit> &&promise);
 
   void edit_message_media(FullMessageId full_message_id, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
                           tl_object_ptr<td_api::InputMessageContent> &&input_message_content, Promise<Unit> &&promise);
@@ -458,7 +458,7 @@ class MessagesManager : public Actor {
   void edit_inline_message_live_location(const string &inline_message_id,
                                          tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
                                          tl_object_ptr<td_api::location> &&input_location, int32 heading,
-                                         int32 approaching_notification_distance, Promise<Unit> &&promise);
+                                         int32 proximity_alert_distance, Promise<Unit> &&promise);
 
   void edit_inline_message_media(const string &inline_message_id, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
                                  tl_object_ptr<td_api::InputMessageContent> &&input_message_content,

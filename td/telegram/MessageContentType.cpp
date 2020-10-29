@@ -96,8 +96,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, MessageContentType cont
       return string_builder << "Poll";
     case MessageContentType::Dice:
       return string_builder << "Dice";
-    case MessageContentType::LiveLocationApproached:
-      return string_builder << "LiveLocationApproached";
+    case MessageContentType::ProximityAlertTriggered:
+      return string_builder << "ProximityAlertTriggered";
     default:
       UNREACHABLE();
       return string_builder;
@@ -149,7 +149,7 @@ bool is_allowed_media_group_content(MessageContentType content_type) {
     case MessageContentType::PassportDataReceived:
     case MessageContentType::Poll:
     case MessageContentType::Dice:
-    case MessageContentType::LiveLocationApproached:
+    case MessageContentType::ProximityAlertTriggered:
       return false;
     default:
       UNREACHABLE();
@@ -209,7 +209,7 @@ bool is_secret_message_content(int32 ttl, MessageContentType content_type) {
     case MessageContentType::PassportDataReceived:
     case MessageContentType::Poll:
     case MessageContentType::Dice:
-    case MessageContentType::LiveLocationApproached:
+    case MessageContentType::ProximityAlertTriggered:
       return false;
     default:
       UNREACHABLE();
@@ -262,7 +262,7 @@ bool is_service_message_content(MessageContentType content_type) {
     case MessageContentType::WebsiteConnected:
     case MessageContentType::PassportDataSent:
     case MessageContentType::PassportDataReceived:
-    case MessageContentType::LiveLocationApproached:
+    case MessageContentType::ProximityAlertTriggered:
       return true;
     default:
       UNREACHABLE();
@@ -315,7 +315,7 @@ bool can_have_message_content_caption(MessageContentType content_type) {
     case MessageContentType::PassportDataReceived:
     case MessageContentType::Poll:
     case MessageContentType::Dice:
-    case MessageContentType::LiveLocationApproached:
+    case MessageContentType::ProximityAlertTriggered:
       return false;
     default:
       UNREACHABLE();

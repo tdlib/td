@@ -55,7 +55,7 @@ enum class MessageContentType : int32 {
   PassportDataReceived,
   Poll,
   Dice,
-  LiveLocationApproached
+  ProximityAlertTriggered
 };
 
 StringBuilder &operator<<(StringBuilder &string_builder, MessageContentType content_type);

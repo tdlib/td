@@ -1225,11 +1225,11 @@ class EditMessageLiveLocationRequest : public RequestOnceActor {
   tl_object_ptr<td_api::ReplyMarkup> reply_markup_;
   tl_object_ptr<td_api::location> location_;
   int32 heading_;
-  int32 approaching_notification_distance_;
+  int32 proximity_alert_distance_;
 
   void do_run(Promise<Unit> &&promise) override {
     td->messages_manager_->edit_message_live_location(full_message_id_, std::move(reply_markup_), std::move(location_),
-                                                      heading_, approaching_notification_distance_, std::move(promise));
+                                                      heading_, proximity_alert_distance_, std::move(promise));
   }
 
   void do_send_result() override {
@@ -1240,13 +1240,13 @@ class EditMessageLiveLocationRequest : public RequestOnceActor {
   EditMessageLiveLocationRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, int64 message_id,
                                  tl_object_ptr<td_api::ReplyMarkup> reply_markup,
                                  tl_object_ptr<td_api::location> location, int32 heading,
-                                 int32 approaching_notification_distance)
+                                 int32 proximity_alert_distance)
       : RequestOnceActor(std::move(td), request_id)
       , full_message_id_(DialogId(dialog_id), MessageId(message_id))
       , reply_markup_(std::move(reply_markup))
       , location_(std::move(location))
       , heading_(heading)
-      , approaching_notification_distance_(approaching_notification_distance) {
+      , proximity_alert_distance_(proximity_alert_distance) {
   }
 };
 
@@ -5766,7 +5766,7 @@ void Td::on_request(uint64 id, td_api::editMessageText &request) {
 void Td::on_request(uint64 id, td_api::editMessageLiveLocation &request) {
   CREATE_REQUEST(EditMessageLiveLocationRequest, request.chat_id_, request.message_id_,
                  std::move(request.reply_markup_), std::move(request.location_), request.heading_,
-                 request.approaching_notification_distance_);
+                 request.proximity_alert_distance_);
 }
 
 void Td::on_request(uint64 id, td_api::editMessageMedia &request) {
@@ -5799,7 +5799,7 @@ void Td::on_request(uint64 id, td_api::editInlineMessageLiveLocation &request) {
   CREATE_OK_REQUEST_PROMISE();
   messages_manager_->edit_inline_message_live_location(
       std::move(request.inline_message_id_), std::move(request.reply_markup_), std::move(request.location_),
-      request.heading_, request.approaching_notification_distance_, std::move(promise));
+      request.heading_, request.proximity_alert_distance_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::editInlineMessageMedia &request) {
