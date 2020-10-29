@@ -13,6 +13,7 @@
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
 #include "td/utils/port/thread_local.h"
+#include "td/utils/StackAllocator.h"
 #include "td/utils/StringBuilder.h"
 
 #include <utility>
@@ -54,21 +55,23 @@ static std::pair<td_api::object_ptr<td_api::Function>, string> to_request(Slice 
 }
 
 static string from_response(const td_api::Object &object, const string &extra, int client_id) {
-  auto str = json_encode<string>(ToJson(object));
-  CHECK(!str.empty() && str.back() == '}');
-  str.reserve(str.size() + (extra.empty() ? 0 : 10 + extra.size()) + (client_id == 0 ? 0 : 14 + 10));
+  auto buf = StackAllocator::alloc(1 << 18);
+  JsonBuilder jb(StringBuilder(buf.as_slice(), true), -1);
+  jb.enter_value() << ToJson(object);
+  auto slice = jb.string_builder().as_cslice();
+  CHECK(!slice.empty() && slice.back() == '}');
+  string str;
+  str.reserve(slice.size() + (extra.empty() ? 0 : 10 + extra.size()) + (client_id == 0 ? 0 : 14 + 10));
+  str.append(slice.begin(), slice.size() - 1);
   if (!extra.empty()) {
-    str.pop_back();
     str += ",\"@extra\":";
     str += extra;
-    str += '}';
   }
   if (client_id != 0) {
-    str.pop_back();
     str += ",\"@client_id\":";
     str += to_string(client_id);
-    str += '}';
   }
+  str += '}';
   return str;
 }
 
