@@ -2,6 +2,11 @@ cmake_minimum_required(VERSION 3.0.2 FATAL_ERROR)
 
 project(TDLib VERSION 1.6.9 LANGUAGES CXX C)
 
+if (NOT DEFINED CMAKE_MODULE_PATH)
+  set(CMAKE_MODULE_PATH "")
+endif()
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake" "${CMAKE_MODULE_PATH}")
+
 if (NOT DEFINED CMAKE_INSTALL_LIBDIR)
   set(CMAKE_INSTALL_LIBDIR "lib")
 endif()
@@ -17,20 +22,8 @@ if (POLICY CMP0054)
   cmake_policy(SET CMP0054 NEW)
 endif()
 
-# Prevent in-source build
-get_filename_component(TD_REAL_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}" REALPATH)
-get_filename_component(TD_REAL_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}" REALPATH)
-
-if (TD_REAL_BINARY_DIR STREQUAL TD_REAL_SOURCE_DIR)
-  message("  Out-of-source build should be used to build TDLib.")
-  message("  You need to remove the files already created by CMake and")
-  message("  rerun CMake from a new directory:")
-  message("  rm -rf CMakeFiles CMakeCache.txt")
-  message("  mkdir build")
-  message("  cd build")
-  message("  cmake ..")
-  message(FATAL_ERROR "In-source build failed.")
-endif()
+include(PreventInSourceBuild)
+prevent_in_source_build()
 
 option(TD_ENABLE_JNI "Use \"ON\" to enable JNI-compatible TDLib API.")
 option(TD_ENABLE_DOTNET "Use \"ON\" to enable generation of C++/CLI or C++/CX TDLib API bindings.")
@@ -38,11 +31,6 @@ option(TD_ENABLE_DOTNET "Use \"ON\" to enable generation of C++/CLI or C++/CX TD
 if (TD_ENABLE_DOTNET AND (CMAKE_VERSION VERSION_LESS "3.1.0"))
   message(FATAL_ERROR "CMake 3.1.0 or higher is required. You are running version ${CMAKE_VERSION}.")
 endif()
-
-if (NOT DEFINED CMAKE_MODULE_PATH)
-  set(CMAKE_MODULE_PATH "")
-endif()
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake" "${CMAKE_MODULE_PATH}")
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 
