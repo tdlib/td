@@ -7289,6 +7289,12 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
         return;
       }
       break;
+    case 'r':
+      // temporary option
+      if (set_boolean_option("reuse_uploaded_photos_by_hash")) {
+        return;
+      }
+      break;
     case 's':
       if (set_integer_option("session_count", 0, 50)) {
         return;
