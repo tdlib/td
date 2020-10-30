@@ -9257,7 +9257,7 @@ void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, c
   MessageId first_added_message_id;
   if (messages.empty()) {
     // messages may be empty because there are no more messages or they can't be found due to global limit
-    // anyway pretend that there is no more messages
+    // anyway pretend that there are no more messages
     first_added_message_id = MessageId::min();
   }
   bool can_be_in_different_dialog = top_thread_message_id.is_valid() && is_broadcast_channel(dialog_id);
@@ -9309,33 +9309,40 @@ void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, c
     total_count = static_cast<int32>(result.size());
   }
   if (query.empty() && !sender_dialog_id.is_valid() && filter != MessageSearchFilter::Empty &&
-      !top_thread_message_id.is_valid() && G()->parameters().use_message_db) {
-    bool update_dialog = false;
-
-    auto &old_message_count = d->message_count_by_index[message_search_filter_index(filter)];
-    if (old_message_count != total_count) {
-      old_message_count = total_count;
-      if (filter == MessageSearchFilter::UnreadMention) {
-        d->unread_mention_count = old_message_count;
-        update_dialog_mention_notification_count(d);
-        send_update_chat_unread_mention_count(d);
-      }
-      update_dialog = true;
-    }
-
-    auto &old_first_db_message_id = d->first_database_message_id_by_index[message_search_filter_index(filter)];
+      !top_thread_message_id.is_valid()) {
     bool from_the_end = !from_message_id.is_valid() ||
                         (d->last_message_id != MessageId() && from_message_id > d->last_message_id) ||
                         from_message_id >= MessageId::max();
-    if ((from_the_end || (old_first_db_message_id.is_valid() && old_first_db_message_id <= from_message_id)) &&
-        (!old_first_db_message_id.is_valid() || first_added_message_id < old_first_db_message_id)) {
-      old_first_db_message_id = first_added_message_id;
-      update_dialog = true;
+    if (G()->parameters().use_message_db) {
+      bool update_dialog = false;
+
+      auto &old_message_count = d->message_count_by_index[message_search_filter_index(filter)];
+      if (old_message_count != total_count) {
+        old_message_count = total_count;
+        if (filter == MessageSearchFilter::UnreadMention) {
+          d->unread_mention_count = old_message_count;
+          update_dialog_mention_notification_count(d);
+          send_update_chat_unread_mention_count(d);
+        }
+        update_dialog = true;
+      }
+
+      auto &old_first_db_message_id = d->first_database_message_id_by_index[message_search_filter_index(filter)];
+      if ((from_the_end || (old_first_db_message_id.is_valid() && old_first_db_message_id <= from_message_id)) &&
+          (!old_first_db_message_id.is_valid() || first_added_message_id < old_first_db_message_id)) {
+        old_first_db_message_id = first_added_message_id;
+        update_dialog = true;
+      }
+      if (update_dialog) {
+        on_dialog_updated(dialog_id, "search results");
+      }
     }
-    if (update_dialog) {
-      on_dialog_updated(dialog_id, "search results");
+
+    if (from_the_end && filter == MessageSearchFilter::Pinned) {
+      set_dialog_last_pinned_message_id(d, result.empty() ? MessageId() : result[0]);
     }
   }
+
   it->second.first = total_count;
 }
 
@@ -20261,8 +20268,7 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
 
   // Trying to use database
   if (use_db && query.empty() && G()->parameters().use_message_db && filter != MessageSearchFilter::Empty &&
-      !sender_dialog_id.is_valid() &&
-      top_thread_message_id == MessageId()) {  // TODO support filter by users in the database
+      !sender_dialog_id.is_valid() && top_thread_message_id == MessageId()) {
     MessageId first_db_message_id = get_first_database_message_id_by_index(d, filter);
     int32 message_count = d->message_count_by_index[message_search_filter_index(filter)];
     auto fixed_from_message_id = from_message_id;
@@ -20847,6 +20853,9 @@ void MessagesManager::on_search_dialog_messages_db_result(int64 random_id, Dialo
     found_dialog_messages_.erase(it);
   } else {
     LOG(INFO) << "Found " << res.size() << " messages out of " << message_count << " in database";
+    if (from_the_end && filter == MessageSearchFilter::Pinned) {
+      set_dialog_last_pinned_message_id(d, res.empty() ? MessageId() : res[0]);
+    }
   }
   promise.set_value(Unit());
 }
