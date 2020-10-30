@@ -34523,6 +34523,30 @@ void MessagesManager::on_get_channel_difference(
     return;
   }
 
+  switch (difference_ptr->get_id()) {
+    case telegram_api::updates_channelDifferenceEmpty::ID:
+      if (d == nullptr) {
+        // no need to create the dialog
+        after_get_channel_difference(dialog_id, true);
+        return;
+      }
+      break;
+    case telegram_api::updates_channelDifference::ID: {
+      auto difference = static_cast<telegram_api::updates_channelDifference *>(difference_ptr.get());
+      td_->contacts_manager_->on_get_users(std::move(difference->users_), "updates.channelDifference");
+      td_->contacts_manager_->on_get_chats(std::move(difference->chats_), "updates.channelDifference");
+      break;
+    }
+    case telegram_api::updates_channelDifferenceTooLong::ID: {
+      auto difference = static_cast<telegram_api::updates_channelDifferenceTooLong *>(difference_ptr.get());
+      td_->contacts_manager_->on_get_users(std::move(difference->users_), "updates.channelDifferenceTooLong");
+      td_->contacts_manager_->on_get_chats(std::move(difference->chats_), "updates.channelDifferenceTooLong");
+      break;
+    }
+    default:
+      UNREACHABLE();
+  }
+
   bool need_update_dialog_pos = false;
   if (d == nullptr) {
     d = add_dialog(dialog_id);
@@ -34577,9 +34601,6 @@ void MessagesManager::on_get_channel_difference(
         new_pts = request_pts + 1;
       }
 
-      td_->contacts_manager_->on_get_users(std::move(difference->users_), "updates.channelDifference");
-      td_->contacts_manager_->on_get_chats(std::move(difference->chats_), "updates.channelDifference");
-
       process_get_channel_difference_updates(dialog_id, std::move(difference->new_messages_),
                                              std::move(difference->other_updates_));
 
@@ -34622,9 +34643,6 @@ void MessagesManager::on_get_channel_difference(
           new_pts = request_pts + 1;
         }
       }
-
-      td_->contacts_manager_->on_get_users(std::move(difference->users_), "updates.channelDifferenceTooLong");
-      td_->contacts_manager_->on_get_chats(std::move(difference->chats_), "updates.channelDifferenceTooLong");
 
       set_dialog_folder_id(d, FolderId((dialog->flags_ & DIALOG_FLAG_HAS_FOLDER_ID) != 0 ? dialog->folder_id_ : 0));
 
