@@ -47,6 +47,13 @@ string lpad0(string str, size_t size) {
   return lpad(std::move(str), size, '0');
 }
 
+string rpad(string str, size_t size, char c) {
+  if (str.size() >= size) {
+    return str;
+  }
+  return str + string(size - str.size(), c);
+}
+
 string oneline(Slice str) {
   string result;
   result.reserve(str.size());

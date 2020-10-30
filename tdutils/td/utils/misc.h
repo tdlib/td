@@ -273,6 +273,8 @@ string lpad(string str, size_t size, char c);
 
 string lpad0(const string str, size_t size);
 
+string rpad(string str, size_t size, char c);
+
 string oneline(Slice str);
 
 template <class T>
