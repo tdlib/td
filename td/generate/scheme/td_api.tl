@@ -1691,8 +1691,8 @@ messagePassportDataSent types:vector<PassportElementType> = MessageContent;
 //@description Telegram Passport data has been received; for bots only @elements List of received Telegram Passport elements @credentials Encrypted data credentials
 messagePassportDataReceived elements:vector<encryptedPassportElement> credentials:encryptedCredentials = MessageContent;
 
-//@description A user in the chat came within proximity alert range @approacher The user or chat, which approached another user @observer The user or chat, which subscribed for the proximity alert @distance The distance between the users
-messageProximityAlertTriggered approacher:MessageSender observer:MessageSender distance:int32 = MessageContent;
+//@description A user in the chat came within proximity alert range @traveler The user or chat, which triggered the proximity alert @watcher The user or chat, which subscribed for the proximity alert @distance The distance between the users
+messageProximityAlertTriggered traveler:MessageSender watcher:MessageSender distance:int32 = MessageContent;
 
 //@description Message content that is not supported in the current TDLib version
 messageUnsupported = MessageContent;

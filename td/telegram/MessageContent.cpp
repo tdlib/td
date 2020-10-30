@@ -690,13 +690,13 @@ class MessageDice : public MessageContent {
 
 class MessageProximityAlertTriggered : public MessageContent {
  public:
-  DialogId approacher_dialog_id;
-  DialogId observer_dialog_id;
+  DialogId traveler_dialog_id;
+  DialogId watcher_dialog_id;
   int32 distance = 0;
 
   MessageProximityAlertTriggered() = default;
-  MessageProximityAlertTriggered(DialogId approacher_dialog_id, DialogId observer_dialog_id, int32 distance)
-      : approacher_dialog_id(approacher_dialog_id), observer_dialog_id(observer_dialog_id), distance(distance) {
+  MessageProximityAlertTriggered(DialogId traveler_dialog_id, DialogId watcher_dialog_id, int32 distance)
+      : traveler_dialog_id(traveler_dialog_id), watcher_dialog_id(watcher_dialog_id), distance(distance) {
   }
 
   MessageContentType get_type() const override {
@@ -973,8 +973,8 @@ static void store(const MessageContent *content, StorerT &storer) {
     }
     case MessageContentType::ProximityAlertTriggered: {
       auto m = static_cast<const MessageProximityAlertTriggered *>(content);
-      store(m->approacher_dialog_id, storer);
-      store(m->observer_dialog_id, storer);
+      store(m->traveler_dialog_id, storer);
+      store(m->watcher_dialog_id, storer);
       store(m->distance, storer);
       break;
     }
@@ -1346,8 +1346,8 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
     }
     case MessageContentType::ProximityAlertTriggered: {
       auto m = make_unique<MessageProximityAlertTriggered>();
-      parse(m->approacher_dialog_id, parser);
-      parse(m->observer_dialog_id, parser);
+      parse(m->traveler_dialog_id, parser);
+      parse(m->watcher_dialog_id, parser);
       parse(m->distance, parser);
       content = std::move(m);
       break;
@@ -3212,8 +3212,8 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
     case MessageContentType::ProximityAlertTriggered: {
       auto old_ = static_cast<const MessageProximityAlertTriggered *>(old_content);
       auto new_ = static_cast<const MessageProximityAlertTriggered *>(new_content);
-      if (old_->approacher_dialog_id != new_->approacher_dialog_id ||
-          old_->observer_dialog_id != new_->observer_dialog_id || old_->distance != new_->distance) {
+      if (old_->traveler_dialog_id != new_->traveler_dialog_id || old_->watcher_dialog_id != new_->watcher_dialog_id ||
+          old_->distance != new_->distance) {
         need_update = true;
       }
       break;
@@ -4428,15 +4428,15 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     }
     case telegram_api::messageActionGeoProximityReached::ID: {
       auto geo_proximity_reached = move_tl_object_as<telegram_api::messageActionGeoProximityReached>(action);
-      DialogId approacher_id(geo_proximity_reached->from_id_);
-      DialogId observer_id(geo_proximity_reached->to_id_);
+      DialogId traveler_id(geo_proximity_reached->from_id_);
+      DialogId watcher_id(geo_proximity_reached->to_id_);
       int32 distance = geo_proximity_reached->distance_;
-      if (!approacher_id.is_valid() || !observer_id.is_valid() || distance < 0) {
+      if (!traveler_id.is_valid() || !watcher_id.is_valid() || distance < 0) {
         LOG(ERROR) << "Receive invalid " << oneline(to_string(geo_proximity_reached));
         break;
       }
 
-      return make_unique<MessageProximityAlertTriggered>(approacher_id, observer_id, distance);
+      return make_unique<MessageProximityAlertTriggered>(traveler_id, watcher_id, distance);
     }
     default:
       UNREACHABLE();
@@ -4644,8 +4644,8 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     case MessageContentType::ProximityAlertTriggered: {
       const MessageProximityAlertTriggered *m = static_cast<const MessageProximityAlertTriggered *>(content);
       return make_tl_object<td_api::messageProximityAlertTriggered>(
-          td->messages_manager_->get_message_sender_object(m->approacher_dialog_id),
-          td->messages_manager_->get_message_sender_object(m->observer_dialog_id), m->distance);
+          td->messages_manager_->get_message_sender_object(m->traveler_dialog_id),
+          td->messages_manager_->get_message_sender_object(m->watcher_dialog_id), m->distance);
     }
     default:
       UNREACHABLE();
@@ -5154,8 +5154,8 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
       break;
     case MessageContentType::ProximityAlertTriggered: {
       auto content = static_cast<const MessageProximityAlertTriggered *>(message_content);
-      add_message_sender_dependencies(dependencies, content->approacher_dialog_id);
-      add_message_sender_dependencies(dependencies, content->observer_dialog_id);
+      add_message_sender_dependencies(dependencies, content->traveler_dialog_id);
+      add_message_sender_dependencies(dependencies, content->watcher_dialog_id);
       break;
     }
     default:
