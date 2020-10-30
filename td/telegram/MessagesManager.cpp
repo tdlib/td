@@ -16063,8 +16063,8 @@ void MessagesManager::get_message_force_from_server(Dialog *d, MessageId message
         if (dialog_type == DialogType::Channel) {
           // so we try to force channel difference first
 
-          // replied message can't be older than already added original message, but pinned message can be
-          LOG_CHECK(input_message == nullptr || input_message->get_id() == telegram_api::inputMessagePinned::ID)
+          // replied message can't be older than already added original message
+          LOG_CHECK(input_message == nullptr || input_message->get_id() != telegram_api::inputMessageReplyTo::ID)
               << to_string(input_message) << " " << d->dialog_id << " " << message_id << " " << d->last_new_message_id
               << " " << d->last_message_id << " " << d->first_database_message_id << " " << d->last_database_message_id
               << " " << d->last_pinned_message_id << " " << d->last_read_all_mentions_message_id << " "
