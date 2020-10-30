@@ -639,8 +639,10 @@ messageSenders total_count:int32 senders:vector<MessageSender> = MessageSenders;
 //@description The message was originally sent by a known user @sender_user_id Identifier of the user that originally sent the message
 messageForwardOriginUser sender_user_id:int32 = MessageForwardOrigin;
 
-//@description The message was originally sent by an anonymous chat administrator on behalf of the chat @sender_chat_id Identifier of the chat that originally sent the message
-messageForwardOriginChat sender_chat_id:int53 = MessageForwardOrigin;
+//@description The message was originally sent by an anonymous chat administrator on behalf of the chat
+//@sender_chat_id Identifier of the chat that originally sent the message
+//@author_signature Original message author signature
+messageForwardOriginChat sender_chat_id:int53 author_signature:string = MessageForwardOrigin;
 
 //@description The message was originally sent by a user, which is hidden by their privacy settings @sender_name Name of the sender
 messageForwardOriginHiddenUser sender_name:string = MessageForwardOrigin;
@@ -711,7 +713,7 @@ messageSendingStateFailed error_code:int32 error_message:string can_retry:Bool r
 //@ttl For self-destructing messages, the message's TTL (Time To Live), in seconds; 0 if none. TDLib will send updateDeleteMessages or updateMessageContent once the TTL expires
 //@ttl_expires_in Time left before the message expires, in seconds
 //@via_bot_user_id If non-zero, the user identifier of the bot through which this message was sent
-//@author_signature For channel posts, optional author signature
+//@author_signature For channel posts and anonymous administrator messages, optional author signature
 //@media_album_id Unique identifier of an album this message belongs to. Only photos and videos can be grouped together in albums
 //@restriction_reason If non-empty, contains a human-readable description of the reason why access to this message must be restricted
 //@content Content of the message

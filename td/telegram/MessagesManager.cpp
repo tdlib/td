@@ -25021,10 +25021,10 @@ unique_ptr<MessagesManager::MessageForwardInfo> MessagesManager::get_message_for
   auto flags = forward_header->flags_;
   DialogId sender_dialog_id;
   MessageId message_id;
-  string author_signature;
+  string author_signature = std::move(forward_header->post_author_);
   DialogId from_dialog_id;
   MessageId from_message_id;
-  string sender_name;
+  string sender_name = std::move(forward_header->from_name_);
   if (forward_header->from_id_ != nullptr) {
     sender_dialog_id = DialogId(forward_header->from_id_);
     if (!sender_dialog_id.is_valid()) {
@@ -25032,17 +25032,12 @@ unique_ptr<MessagesManager::MessageForwardInfo> MessagesManager::get_message_for
       sender_dialog_id = DialogId();
     }
   }
-  constexpr int32 MESSAGE_FORWARD_HEADER_FLAG_HAS_MESSAGE_ID = telegram_api::messageFwdHeader::CHANNEL_POST_MASK;
-  if ((flags & MESSAGE_FORWARD_HEADER_FLAG_HAS_MESSAGE_ID) != 0) {
+  if ((flags & telegram_api::messageFwdHeader::CHANNEL_POST_MASK) != 0) {
     message_id = MessageId(ServerMessageId(forward_header->channel_post_));
     if (!message_id.is_valid()) {
       LOG(ERROR) << "Receive " << message_id << " in message forward header: " << oneline(to_string(forward_header));
       message_id = MessageId();
     }
-  }
-  constexpr int32 MESSAGE_FORWARD_HEADER_FLAG_HAS_AUTHOR_SIGNATURE = telegram_api::messageFwdHeader::POST_AUTHOR_MASK;
-  if ((flags & MESSAGE_FORWARD_HEADER_FLAG_HAS_AUTHOR_SIGNATURE) != 0) {
-    author_signature = std::move(forward_header->post_author_);
   }
   if ((flags & telegram_api::messageFwdHeader::SAVED_FROM_PEER_MASK) != 0) {
     from_dialog_id = DialogId(forward_header->saved_from_peer_);
@@ -25053,9 +25048,6 @@ unique_ptr<MessagesManager::MessageForwardInfo> MessagesManager::get_message_for
       from_dialog_id = DialogId();
       from_message_id = MessageId();
     }
-  }
-  if ((flags & telegram_api::messageFwdHeader::FROM_NAME_MASK) != 0) {
-    sender_name = std::move(forward_header->from_name_);
   }
 
   UserId sender_user_id;
@@ -25109,7 +25101,9 @@ td_api::object_ptr<td_api::messageForwardInfo> MessagesManager::get_message_forw
           forward_info->sender_dialog_id.get(), forward_info->message_id.get(), forward_info->author_signature);
     }
     if (forward_info->sender_dialog_id.is_valid()) {
-      return td_api::make_object<td_api::messageForwardOriginChat>(forward_info->sender_dialog_id.get());
+      return td_api::make_object<td_api::messageForwardOriginChat>(
+          forward_info->sender_dialog_id.get(),
+          forward_info->sender_name.empty() ? forward_info->author_signature : forward_info->sender_name);
     }
     return td_api::make_object<td_api::messageForwardOriginUser>(
         td_->contacts_manager_->get_user_id_object(forward_info->sender_user_id, "messageForwardOriginUser"));
@@ -25406,9 +25400,9 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
               LOG(ERROR) << "Don't know how to forward a channel post not from a channel";
             }
           } else if (forwarded_message->sender_user_id.is_valid() || forwarded_message->sender_dialog_id.is_valid()) {
-            forward_info = make_unique<MessageForwardInfo>(forwarded_message->sender_user_id, forwarded_message->date,
-                                                           forwarded_message->sender_dialog_id, MessageId(), "", "",
-                                                           saved_from_dialog_id, saved_from_message_id, "");
+            forward_info = td::make_unique<MessageForwardInfo>(
+                forwarded_message->sender_user_id, forwarded_message->date, forwarded_message->sender_dialog_id,
+                MessageId(), "", forwarded_message->author_signature, saved_from_dialog_id, saved_from_message_id, "");
           } else {
             LOG(ERROR) << "Don't know how to forward a non-channel post message without forward info and sender";
           }
