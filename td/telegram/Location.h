@@ -126,7 +126,7 @@ struct InputMessageLocation {
   Location location;
   int32 live_period;
   int32 heading;
-  int32 proximity_alert_distance;
+  int32 proximity_alert_radius;
 };
 Result<InputMessageLocation> process_input_message_location(
     td_api::object_ptr<td_api::InputMessageContent> &&input_message_content) TD_WARN_UNUSED_RESULT;

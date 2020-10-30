@@ -24135,7 +24135,7 @@ void MessagesManager::edit_message_text(FullMessageId full_message_id,
 void MessagesManager::edit_message_live_location(FullMessageId full_message_id,
                                                  tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
                                                  tl_object_ptr<td_api::location> &&input_location, int32 heading,
-                                                 int32 proximity_alert_distance, Promise<Unit> &&promise) {
+                                                 int32 proximity_alert_radius, Promise<Unit> &&promise) {
   LOG(INFO) << "Begin to edit live location of " << full_message_id;
   auto dialog_id = full_message_id.get_dialog_id();
   Dialog *d = get_dialog_force(dialog_id);
@@ -24186,7 +24186,7 @@ void MessagesManager::edit_message_live_location(FullMessageId full_message_id,
   }
   flags |= telegram_api::inputMediaGeoLive::PROXIMITY_NOTIFICATION_RADIUS_MASK;
   auto input_media = telegram_api::make_object<telegram_api::inputMediaGeoLive>(
-      flags, false /*ignored*/, location.get_input_geo_point(), heading, 0, proximity_alert_distance);
+      flags, false /*ignored*/, location.get_input_geo_point(), heading, 0, proximity_alert_radius);
   send_closure(td_->create_net_actor<EditMessageActor>(std::move(promise)), &EditMessageActor::send, 0, dialog_id,
                m->message_id, string(), vector<tl_object_ptr<telegram_api::MessageEntity>>(), std::move(input_media),
                std::move(input_reply_markup), get_message_schedule_date(m),
@@ -24500,7 +24500,7 @@ void MessagesManager::edit_inline_message_text(const string &inline_message_id,
 void MessagesManager::edit_inline_message_live_location(const string &inline_message_id,
                                                         tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
                                                         tl_object_ptr<td_api::location> &&input_location, int32 heading,
-                                                        int32 proximity_alert_distance, Promise<Unit> &&promise) {
+                                                        int32 proximity_alert_radius, Promise<Unit> &&promise) {
   if (!td_->auth_manager_->is_bot()) {
     return promise.set_error(Status::Error(3, "Method is available only for bots"));
   }
@@ -24529,7 +24529,7 @@ void MessagesManager::edit_inline_message_live_location(const string &inline_mes
   }
   flags |= telegram_api::inputMediaGeoLive::PROXIMITY_NOTIFICATION_RADIUS_MASK;
   auto input_media = telegram_api::make_object<telegram_api::inputMediaGeoLive>(
-      flags, false /*ignored*/, location.get_input_geo_point(), heading, 0, proximity_alert_distance);
+      flags, false /*ignored*/, location.get_input_geo_point(), heading, 0, proximity_alert_radius);
   td_->create_handler<EditInlineMessageQuery>(std::move(promise))
       ->send(0, std::move(input_bot_inline_message_id), "", vector<tl_object_ptr<telegram_api::MessageEntity>>(),
              std::move(input_media), get_input_reply_markup(r_new_reply_markup.ok()));

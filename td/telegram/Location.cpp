@@ -151,17 +151,17 @@ Result<InputMessageLocation> process_input_message_location(
     return Status::Error(400, "Wrong live location heading specified");
   }
 
-  constexpr int32 MAX_PROXIMITY_ALERT_DISTANCE = 100000;  // meters, server side limit
-  auto proximity_alert_distance = input_location->proximity_alert_distance_;
-  if (proximity_alert_distance < 0 || proximity_alert_distance > MAX_PROXIMITY_ALERT_DISTANCE) {
-    return Status::Error(400, "Wrong live location proximity alert distance specified");
+  constexpr int32 MAX_PROXIMITY_ALERT_RADIUS = 100000;  // meters, server side limit
+  auto proximity_alert_radius = input_location->proximity_alert_radius_;
+  if (proximity_alert_radius < 0 || proximity_alert_radius > MAX_PROXIMITY_ALERT_RADIUS) {
+    return Status::Error(400, "Wrong live location proximity alert radius specified");
   }
 
   InputMessageLocation result;
   result.location = std::move(location);
   result.live_period = period;
   result.heading = heading;
-  result.proximity_alert_distance = proximity_alert_distance;
+  result.proximity_alert_radius = proximity_alert_radius;
   return std::move(result);
 }
 
