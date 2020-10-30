@@ -14,8 +14,8 @@ double Location::fix_accuracy(double accuracy) {
   if (!std::isfinite(accuracy) || accuracy <= 0.0) {
     return 0.0;
   }
-  if (accuracy >= 1000.0) {
-    return 1000.0;
+  if (accuracy >= 1500.0) {
+    return 1500.0;
   }
   return accuracy;
 }
