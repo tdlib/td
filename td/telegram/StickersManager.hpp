@@ -132,6 +132,7 @@ void StickersManager::store_sticker_set(const StickerSet *sticker_set, bool with
   STORE_FLAG(has_thumbnail);
   STORE_FLAG(sticker_set->is_thumbnail_reloaded);
   STORE_FLAG(sticker_set->is_animated);
+  STORE_FLAG(sticker_set->are_legacy_thumbnails_reloaded);
   END_STORE_FLAGS();
   store(sticker_set->id.get(), storer);
   store(sticker_set->access_hash, storer);
@@ -190,6 +191,7 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
   PARSE_FLAG(has_thumbnail);
   PARSE_FLAG(sticker_set->is_thumbnail_reloaded);
   PARSE_FLAG(is_animated);
+  PARSE_FLAG(sticker_set->are_legacy_thumbnails_reloaded);
   END_PARSE_FLAGS();
   int64 sticker_set_id;
   int64 access_hash;

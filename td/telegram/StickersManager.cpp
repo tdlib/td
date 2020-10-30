@@ -2175,6 +2175,7 @@ StickerSetId StickersManager::on_get_sticker_set(tl_object_ptr<telegram_api::sti
     s->short_name = std::move(set->short_name_);
     s->thumbnail = std::move(thumbnail);
     s->is_thumbnail_reloaded = true;
+    s->are_legacy_thumbnails_reloaded = true;
     s->sticker_count = set->count_;
     s->hash = set->hash_;
     s->is_official = is_official;
@@ -2213,9 +2214,10 @@ StickerSetId StickersManager::on_get_sticker_set(tl_object_ptr<telegram_api::sti
       s->thumbnail = std::move(thumbnail);
       s->is_changed = true;
     }
-    if (!s->is_thumbnail_reloaded) {
-      LOG(INFO) << "Thumbnail of " << set_id << " was reloaded";
+    if (!s->is_thumbnail_reloaded || !s->are_legacy_thumbnails_reloaded) {
+      LOG(INFO) << "Sticker thumbnails and thumbnail of " << set_id << " was reloaded";
       s->is_thumbnail_reloaded = true;
+      s->are_legacy_thumbnails_reloaded = true;
       s->need_save_to_database = true;
     }
 
@@ -3397,7 +3399,7 @@ void StickersManager::on_load_sticker_set_from_database(StickerSetId sticker_set
                  << format::as_hex_dump<4>(Slice(value));
     }
   }
-  if (!sticker_set->is_thumbnail_reloaded) {
+  if (!sticker_set->is_thumbnail_reloaded || !sticker_set->are_legacy_thumbnails_reloaded) {
     do_reload_sticker_set(sticker_set_id, get_input_sticker_set(sticker_set), Auto());
   }
 
