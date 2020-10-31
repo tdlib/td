@@ -3750,7 +3750,7 @@ getChatMessageCount chat_id:int53 filter:SearchMessagesFilter return_local:Bool 
 //@description Returns all scheduled messages in a chat. The messages are returned in a reverse chronological order (i.e., in order of decreasing message_id) @chat_id Chat identifier
 getChatScheduledMessages chat_id:int53 = Messages;
 
-//@description Returns forwarded copies of a channel message to another public channels. For optimal performance the number of returned messages is chosen by the library. The method is under development and may or may not work
+//@description Returns forwarded copies of a channel message to another public channels. For optimal performance the number of returned messages is chosen by the library
 //@chat_id Chat identifier of the message
 //@message_id Message identifier
 //@offset Offset of the first entry to return as received from the previous request; use empty string to get first chunk of results
@@ -4637,7 +4637,7 @@ getChatStatisticsUrl chat_id:int53 parameters:string is_dark:Bool = HttpUrl;
 //@description Returns detailed statistics about a chat. Currently this method can be used only for supergroups and channels. Can be used only if SupergroupFullInfo.can_get_statistics == true @chat_id Chat identifier @is_dark Pass true if a dark theme is used by the application
 getChatStatistics chat_id:int53 is_dark:Bool = ChatStatistics;
 
-//@description Returns detailed statistics about a message. Can be used only if Message.can_get_statistics == true. The method is under development and may or may not work @chat_id Chat identifier @message_id Message identifier @is_dark Pass true if a dark theme is used by the application
+//@description Returns detailed statistics about a message. Can be used only if Message.can_get_statistics == true @chat_id Chat identifier @message_id Message identifier @is_dark Pass true if a dark theme is used by the application
 getMessageStatistics chat_id:int53 message_id:int53 is_dark:Bool = MessageStatistics;
 
 //@description Loads asynchronous or zoomed in chat or message statistics graph @chat_id Chat identifier @token The token for graph loading @x X-value for zoomed in graph or 0 otherwise
