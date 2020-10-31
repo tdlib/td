@@ -34735,9 +34735,9 @@ void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool succ
             LOG(INFO) << "Can't apply postponed channel updates";
           } else {
             // otherwise we protecting from getChannelDifference repeating calls by dropping pending updates
-            LOG(ERROR) << "Failed to apply postponed updates of type " << update_id << " in " << dialog_id
-                       << " with pts " << d->pts << ", update pts is " << update_pts << ", update pts count is "
-                       << update_pts_count;
+            LOG(WARNING) << "Failed to apply postponed updates of type " << update_id << " in " << dialog_id
+                         << " with pts " << d->pts << ", update pts is " << update_pts << ", update pts count is "
+                         << update_pts_count;
             d->postponed_channel_updates.clear();
           }
           break;
