@@ -1072,10 +1072,12 @@ void UpdatesManager::on_get_difference(tl_object_ptr<telegram_api::updates_Diffe
       set_date(difference->date_, false, "on_get_difference_empty");
       seq_ = difference->seq_;
       if (!pending_seq_updates_.empty()) {
-        LOG(ERROR) << "Drop " << pending_seq_updates_.size() << " pending seq updates after receive empty difference";
+        LOG(WARNING) << "Drop " << pending_seq_updates_.size() << " pending seq updates after receive empty difference";
+        pending_seq_updates_.clear();
       }
       if (!pending_qts_updates_.empty()) {
-        LOG(ERROR) << "Drop " << pending_qts_updates_.size() << " pending qts updates after receive empty difference";
+        LOG(WARNING) << "Drop " << pending_qts_updates_.size() << " pending qts updates after receive empty difference";
+        pending_qts_updates_.clear();
       }
       break;
     }
