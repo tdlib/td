@@ -12986,17 +12986,23 @@ bool ContactsManager::get_channel_has_linked_channel(const Channel *c) {
 }
 
 ChannelId ContactsManager::get_channel_linked_channel_id(ChannelId channel_id) {
-  auto channel_full = get_channel_full_force(channel_id, "get_channel_linked_channel_id");
+  auto channel_full = get_channel_full_const(channel_id);
   if (channel_full == nullptr) {
-    return ChannelId();
+    channel_full = get_channel_full_force(channel_id, "get_channel_linked_channel_id");
+    if (channel_full == nullptr) {
+      return ChannelId();
+    }
   }
   return channel_full->linked_channel_id;
 }
 
 int32 ContactsManager::get_channel_slow_mode_delay(ChannelId channel_id) {
-  auto channel_full = get_channel_full_force(channel_id, "get_channel_slow_mode_delay");
+  auto channel_full = get_channel_full_const(channel_id);
   if (channel_full == nullptr) {
-    return 0;
+    channel_full = get_channel_full_force(channel_id, "get_channel_slow_mode_delay");
+    if (channel_full == nullptr) {
+      return 0;
+    }
   }
   return channel_full->slow_mode_delay;
 }
@@ -13078,13 +13084,17 @@ void ContactsManager::reload_channel(ChannelId channel_id, Promise<Unit> &&promi
   td_->create_handler<GetChannelsQuery>(std::move(promise))->send(std::move(input_channel));
 }
 
-const ContactsManager::ChannelFull *ContactsManager::get_channel_full(ChannelId channel_id) const {
+const ContactsManager::ChannelFull *ContactsManager::get_channel_full_const(ChannelId channel_id) const {
   auto p = channels_full_.find(channel_id);
   if (p == channels_full_.end()) {
     return nullptr;
   } else {
     return p->second.get();
   }
+}
+
+const ContactsManager::ChannelFull *ContactsManager::get_channel_full(ChannelId channel_id) const {
+  return get_channel_full_const(channel_id);
 }
 
 ContactsManager::ChannelFull *ContactsManager::get_channel_full(ChannelId channel_id, const char *source) {
