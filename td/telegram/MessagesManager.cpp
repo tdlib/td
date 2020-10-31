@@ -5793,6 +5793,40 @@ int32 MessagesManager::get_message_index_mask(DialogId dialog_id, const Message 
   return index_mask;
 }
 
+void MessagesManager::update_reply_count_by_message(Dialog *d, int diff, const Message *m) {
+  if (td_->auth_manager_->is_bot() || !m->top_thread_message_id.is_valid() ||
+      m->top_thread_message_id == m->message_id || !m->message_id.is_server()) {
+    return;
+  }
+
+  auto replier_dialog_id =
+      has_message_sender_user_id(d->dialog_id, m) ? DialogId(m->sender_user_id) : m->sender_dialog_id;
+  update_message_reply_count(d, m->top_thread_message_id, replier_dialog_id, m->message_id, diff);
+}
+
+void MessagesManager::update_message_reply_count(Dialog *d, MessageId message_id, DialogId replier_dialog_id,
+                                                 MessageId reply_message_id, int diff, bool is_recursive) {
+  if (d == nullptr) {
+    return;
+  }
+
+  Message *m = get_message(d, message_id);
+  if (m == nullptr || !is_active_message_reply_info(d->dialog_id, m->reply_info)) {
+    return;
+  }
+  LOG(INFO) << "Update reply count to " << message_id << " in " << d->dialog_id << " by " << diff << " from "
+            << reply_message_id << " sent by " << replier_dialog_id;
+  if (m->reply_info.add_reply(replier_dialog_id, reply_message_id, diff)) {
+    on_message_reply_info_changed(d->dialog_id, m);
+    on_message_changed(d, m, true, "update_message_reply_count_by_message");
+  }
+
+  if (!is_recursive && is_discussion_message(d->dialog_id, m)) {
+    update_message_reply_count(get_dialog(m->forward_info->sender_dialog_id), m->forward_info->message_id,
+                               replier_dialog_id, reply_message_id, diff, true);
+  }
+}
+
 vector<MessageId> MessagesManager::get_message_ids(const vector<int64> &input_message_ids) {
   vector<MessageId> message_ids;
   message_ids.reserve(input_message_ids.size());
@@ -13034,6 +13068,7 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
 
       // add_message_to_dialog will not update counts, because need_update == false
       update_message_count_by_index(d, +1, new_message.get());
+      update_reply_count_by_message(d, +1, new_message.get());
     }
 
     if (!from_update) {
@@ -14522,6 +14557,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
     }
 
     update_message_count_by_index(d, -1, result.get());
+    update_reply_count_by_message(d, -1, result.get());
   }
 
   on_message_deleted(d, result.get(), is_permanently_deleted, source);
@@ -28208,6 +28244,7 @@ void MessagesManager::fail_send_message(FullMessageId full_message_id, int error
   if (!m->message_id.is_scheduled()) {
     // add_message_to_dialog will not update counts, because need_update == false
     update_message_count_by_index(d, +1, m);
+    update_reply_count_by_message(d, +1, m);
   }
   register_new_local_message_id(d, m);
 
@@ -31388,6 +31425,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
   if (*need_update) {
     update_message_count_by_index(d, +1, message.get());
+    update_reply_count_by_message(d, +1, message.get());
   }
   if (auto_attach && message_id > d->last_message_id && message_id >= d->last_new_message_id) {
     set_dialog_last_message_id(d, message_id, "add_message_to_dialog");
@@ -31508,28 +31546,6 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         case DialogType::None:
         default:
           UNREACHABLE();
-      }
-    }
-
-    if (!td_->auth_manager_->is_bot() && m->top_thread_message_id.is_valid() &&
-        m->top_thread_message_id != message_id && message_id.is_server()) {
-      Message *top_m = get_message(d, m->top_thread_message_id);
-      if (top_m != nullptr && is_active_message_reply_info(dialog_id, top_m->reply_info)) {
-        auto replier_dialog_id =
-            has_message_sender_user_id(dialog_id, m) ? DialogId(m->sender_user_id) : m->sender_dialog_id;
-        top_m->reply_info.add_reply(replier_dialog_id, message_id);
-        on_message_reply_info_changed(dialog_id, top_m);
-        on_message_changed(d, top_m, true, "update_message_reply_count 1");
-
-        if (is_discussion_message(dialog_id, top_m)) {
-          auto channel_dialog_id = top_m->forward_info->sender_dialog_id;
-          Message *channel_m = get_message({channel_dialog_id, top_m->forward_info->message_id});
-          if (channel_m != nullptr && is_active_message_reply_info(channel_dialog_id, channel_m->reply_info)) {
-            channel_m->reply_info.add_reply(replier_dialog_id, message_id);
-            on_message_reply_info_changed(channel_dialog_id, channel_m);
-            on_message_changed(get_dialog(channel_dialog_id), channel_m, true, "update_message_reply_count 2");
-          }
-        }
       }
     }
   }

@@ -108,22 +108,34 @@ bool MessageReplyInfo::update_max_message_ids(MessageId other_max_message_id,
   return result;
 }
 
-void MessageReplyInfo::add_reply(DialogId replier_dialog_id, MessageId reply_message_id) {
+bool MessageReplyInfo::add_reply(DialogId replier_dialog_id, MessageId reply_message_id, int diff) {
   CHECK(!is_empty());
+  CHECK(diff == +1 || diff == -1);
 
-  reply_count++;
-  if (is_comment && replier_dialog_id.is_valid() &&
-      (recent_replier_dialog_ids.empty() || recent_replier_dialog_ids[0] != replier_dialog_id)) {
+  if (diff == -1 && reply_count == 0) {
+    return false;
+  }
+
+  reply_count += diff;
+  if (is_comment && replier_dialog_id.is_valid()) {
     td::remove(recent_replier_dialog_ids, replier_dialog_id);
-    recent_replier_dialog_ids.insert(recent_replier_dialog_ids.begin(), replier_dialog_id);
-    if (recent_replier_dialog_ids.size() > 3) {
-      recent_replier_dialog_ids.pop_back();
+    if (diff > 0) {
+      recent_replier_dialog_ids.insert(recent_replier_dialog_ids.begin(), replier_dialog_id);
+      if (recent_replier_dialog_ids.size() > 3) {
+        recent_replier_dialog_ids.pop_back();
+      }
+    } else {
+      auto max_repliers = static_cast<size_t>(reply_count);
+      if (recent_replier_dialog_ids.size() > max_repliers) {
+        recent_replier_dialog_ids.resize(max_repliers);
+      }
     }
   }
 
-  if (reply_message_id > max_message_id) {
+  if (diff > 0 && reply_message_id > max_message_id) {
     max_message_id = reply_message_id;
   }
+  return true;
 }
 
 td_api::object_ptr<td_api::messageReplyInfo> MessageReplyInfo::get_message_reply_info_object(

@@ -2079,6 +2079,11 @@ class MessagesManager : public Actor {
 
   int32 get_message_index_mask(DialogId dialog_id, const Message *m) const;
 
+  void update_reply_count_by_message(Dialog *d, int diff, const Message *m);
+
+  void update_message_reply_count(Dialog *d, MessageId message_id, DialogId replier_dialog_id,
+                                  MessageId reply_message_id, int diff, bool is_recursive = false);
+
   Message *add_message_to_dialog(DialogId dialog_id, unique_ptr<Message> message, bool from_update, bool *need_update,
                                  bool *need_update_dialog_pos, const char *source);
 

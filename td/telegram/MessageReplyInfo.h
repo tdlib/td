@@ -46,7 +46,7 @@ struct MessageReplyInfo {
 
   bool update_max_message_ids(const MessageReplyInfo &other);
 
-  void add_reply(DialogId replier_dialog_id, MessageId reply_message_id);
+  bool add_reply(DialogId replier_dialog_id, MessageId reply_message_id, int diff);
 
   td_api::object_ptr<td_api::messageReplyInfo> get_message_reply_info_object(
       ContactsManager *contacts_manager, const MessagesManager *messages_manager) const;
