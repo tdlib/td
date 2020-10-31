@@ -28518,7 +28518,9 @@ void MessagesManager::on_update_dialog_last_pinned_message_id(DialogId dialog_id
 
 void MessagesManager::set_dialog_last_pinned_message_id(Dialog *d, MessageId pinned_message_id) {
   CHECK(d != nullptr);
-  CHECK(d->last_pinned_message_id != pinned_message_id);
+  if (d->last_pinned_message_id == pinned_message_id) {
+    return;
+  }
   d->last_pinned_message_id = pinned_message_id;
   d->is_last_pinned_message_id_inited = true;
   on_dialog_updated(d->dialog_id, "set_dialog_last_pinned_message_id");
@@ -29907,9 +29909,7 @@ void MessagesManager::unpin_all_dialog_messages(DialogId dialog_id, Promise<Unit
     on_message_changed(d, m, true, "unpin_all_dialog_messages");
   }
 
-  if (d->last_pinned_message_id != MessageId()) {
-    set_dialog_last_pinned_message_id(d, MessageId());
-  }
+  set_dialog_last_pinned_message_id(d, MessageId());
   if (d->message_count_by_index[message_search_filter_index(MessageSearchFilter::Pinned)] != 0) {
     d->message_count_by_index[message_search_filter_index(MessageSearchFilter::Pinned)] = 0;
     on_dialog_updated(dialog_id, "unpin_all_dialog_messages");
