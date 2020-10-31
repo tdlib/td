@@ -12989,7 +12989,7 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
   bool need_update_dialog_pos = false;
 
   MessageId old_message_id = find_old_message_id(dialog_id, message_id);
-  bool need_add_active_live_location = false;
+  bool is_sent_message = false;
   LOG(INFO) << "Found temporarily " << old_message_id << " for " << FullMessageId{dialog_id, message_id};
   if (old_message_id.is_valid() || old_message_id.is_valid_scheduled()) {
     Dialog *d = get_dialog(dialog_id);
@@ -13064,11 +13064,7 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
     send_update_message_send_succeeded(d, old_message_id, new_message.get());
 
     if (!message_id.is_scheduled()) {
-      need_add_active_live_location = true;
-
-      // add_message_to_dialog will not update counts, because need_update == false
-      update_message_count_by_index(d, +1, new_message.get());
-      update_reply_count_by_message(d, +1, new_message.get());
+      is_sent_message = true;
     }
 
     if (!from_update) {
@@ -13094,8 +13090,12 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
 
   CHECK(d != nullptr);
 
-  if (need_add_active_live_location) {
+  if (is_sent_message) {
     try_add_active_live_location(dialog_id, m);
+
+    // add_message_to_dialog will not update counts, because need_update == false
+    update_message_count_by_index(d, +1, m);
+    update_reply_count_by_message(d, +1, m);
   }
 
   auto pcc_it = pending_created_dialogs_.find(dialog_id);
@@ -28244,7 +28244,7 @@ void MessagesManager::fail_send_message(FullMessageId full_message_id, int error
   if (!m->message_id.is_scheduled()) {
     // add_message_to_dialog will not update counts, because need_update == false
     update_message_count_by_index(d, +1, m);
-    update_reply_count_by_message(d, +1, m);
+    update_reply_count_by_message(d, +1, m);  // no-op because the message isn't server
   }
   register_new_local_message_id(d, m);
 
