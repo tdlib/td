@@ -219,7 +219,7 @@ StringBuilder &operator<<(StringBuilder &sb, const OptionParser &o) {
       length += 4 + opt.long_key.size();
     }
     if (opt.type != OptionParser::Option::Type::NoArg) {
-      length += 5;
+      length += 6;
     }
     if (length > max_length) {
       max_length = length;
@@ -247,8 +247,8 @@ StringBuilder &operator<<(StringBuilder &sb, const OptionParser &o) {
       length -= 4 + opt.long_key.size();
     }
     if (opt.type != OptionParser::Option::Type::NoArg) {
-      sb << "<arg>";
-      length -= 5;
+      sb << "=<arg>";
+      length -= 6;
     }
     sb << string(length, ' ') << opt.description;
     sb << '\n';
