@@ -1520,6 +1520,9 @@ void UpdatesManager::process_qts_update(tl_object_ptr<telegram_api::Update> &&up
 }
 
 void UpdatesManager::process_pending_seq_updates() {
+  if (!pending_seq_updates_.empty()) {
+    LOG(DEBUG) << "Trying to process " << pending_seq_updates_.size() << " pending seq updates";
+  }
   while (!pending_seq_updates_.empty() && !running_get_difference_) {
     auto update_it = pending_seq_updates_.begin();
     auto seq_begin = update_it->second.seq_begin;
