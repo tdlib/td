@@ -14805,13 +14805,9 @@ void MessagesManager::load_dialog_filter(const DialogFilter *filter, bool force,
 
   if (!input_dialog_ids.empty() && !force) {
     const size_t MAX_SLICE_SIZE = 100;
-    if (input_dialog_ids.size() <= MAX_SLICE_SIZE) {
-      td_->create_handler<GetDialogsQuery>(std::move(promise))->send(std::move(input_dialog_ids));
-      return;
-    }
-
     MultiPromiseActorSafe mpas{"GetFilterDialogsFromServerMultiPromiseActor"};
     mpas.add_promise(std::move(promise));
+    mpas.set_ignore_errors(true);
     auto lock = mpas.get_promise();
 
     for (size_t i = 0; i < input_dialog_ids.size(); i += MAX_SLICE_SIZE) {
