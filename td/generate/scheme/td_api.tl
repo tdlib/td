@@ -3750,7 +3750,7 @@ getChatMessageCount chat_id:int53 filter:SearchMessagesFilter return_local:Bool 
 //@description Returns all scheduled messages in a chat. The messages are returned in a reverse chronological order (i.e., in order of decreasing message_id) @chat_id Chat identifier
 getChatScheduledMessages chat_id:int53 = Messages;
 
-//@description Returns forwarded copies of a channel message to another public channels. For optimal performance the number of returned messages is chosen by the library
+//@description Returns forwarded copies of a channel message to different public channels. For optimal performance the number of returned messages is chosen by the library
 //@chat_id Chat identifier of the message
 //@message_id Message identifier
 //@offset Offset of the first entry to return as received from the previous request; use empty string to get first chunk of results
