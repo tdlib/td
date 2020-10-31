@@ -4074,10 +4074,13 @@ bool ContactsManager::have_input_peer_channel(const Channel *c, ChannelId channe
     if (is_public) {
       return true;
     }
-    if (!from_linked) {
+    if (!from_linked && c->has_linked_channel) {
       auto linked_channel_id = get_linked_channel_id(channel_id);
-      if (linked_channel_id.is_valid() &&
-          have_input_peer_channel(get_channel(linked_channel_id), linked_channel_id, access_rights, true)) {
+      if (linked_channel_id.is_valid() && have_channel(linked_channel_id)) {
+        if (have_input_peer_channel(get_channel(linked_channel_id), linked_channel_id, access_rights, true)) {
+          return true;
+        }
+      } else {
         return true;
       }
     }
@@ -4085,11 +4088,13 @@ bool ContactsManager::have_input_peer_channel(const Channel *c, ChannelId channe
       return true;
     }
   } else {
-    if (!from_linked && c->is_megagroup && !td_->auth_manager_->is_bot()) {
+    if (!from_linked && c->is_megagroup && !td_->auth_manager_->is_bot() && c->has_linked_channel) {
       auto linked_channel_id = get_linked_channel_id(channel_id);
-      if (linked_channel_id.is_valid()) {
+      if (linked_channel_id.is_valid() && (is_public || have_channel(linked_channel_id))) {
         return is_public ||
                have_input_peer_channel(get_channel(linked_channel_id), linked_channel_id, AccessRights::Read, true);
+      } else {
+        return true;
       }
     }
   }
