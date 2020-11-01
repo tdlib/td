@@ -16152,6 +16152,7 @@ FullMessageId MessagesManager::get_replied_message(DialogId dialog_id, MessageId
     return FullMessageId();
   }
 
+  message_id = get_persistent_message_id(d, message_id);
   auto m = get_message_force(d, message_id, "get_replied_message");
   if (m == nullptr) {
     if (force) {
