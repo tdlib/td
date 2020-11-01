@@ -63,7 +63,8 @@ NetQueryPtr NetQueryCreator::create(uint64 id, const telegram_api::Function &fun
         total_timeout_limit = 8;
       }
       if ((auth_manager == nullptr || !auth_manager->was_authorized()) && auth_flag == NetQuery::AuthFlag::On &&
-          tl_constructor != telegram_api::auth_exportAuthorization::ID) {
+          tl_constructor != telegram_api::auth_exportAuthorization::ID &&
+          tl_constructor != telegram_api::auth_bindTempAuthKey::ID) {
         LOG(ERROR) << "Send query before authorization: " << to_string(function);
       }
     }
