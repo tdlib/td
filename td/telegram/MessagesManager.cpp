@@ -22536,7 +22536,7 @@ void MessagesManager::fix_server_reply_to_message_id(DialogId dialog_id, Message
   }
 
   if (!message_id.is_scheduled() && !reply_in_dialog_id.is_valid() && reply_to_message_id >= message_id) {
-    if (reply_to_message_id.get() - message_id.get() <= MessageId(ServerMessageId(2000000000)).get() ||
+    if (reply_to_message_id.get() - message_id.get() <= MessageId(ServerMessageId(1000000)).get() ||
         dialog_id.get_type() == DialogType::Channel) {
       LOG(ERROR) << "Receive reply to wrong " << reply_to_message_id << " in " << message_id << " in " << dialog_id;
     }
@@ -32207,9 +32207,9 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     if (new_message->forward_info != nullptr) {
       if (!replace_legacy) {
         LOG(ERROR) << message_id << " in " << dialog_id << " has received forward info " << *new_message->forward_info
-                   << ", really forwarded from " << old_message->real_forward_from_dialog_id
-                   << ", message content type is " << old_message->content->get_type() << '/'
-                   << new_message->content->get_type();
+                   << ", really forwarded from " << old_message->real_forward_from_message_id << " in "
+                   << old_message->real_forward_from_dialog_id << ", message content type is "
+                   << old_message->content->get_type() << '/' << new_message->content->get_type();
       }
       old_message->forward_info = std::move(new_message->forward_info);
       need_send_update = true;
@@ -32225,8 +32225,9 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
         if (!is_forward_info_sender_hidden(new_message->forward_info.get()) && !replace_legacy) {
           LOG(ERROR) << message_id << " in " << dialog_id << " has changed forward info from "
                      << *old_message->forward_info << " to " << *new_message->forward_info << ", really forwarded from "
-                     << old_message->real_forward_from_dialog_id << ", message content type is "
-                     << old_message->content->get_type() << '/' << new_message->content->get_type();
+                     << old_message->real_forward_from_message_id << " in " << old_message->real_forward_from_dialog_id
+                     << ", message content type is " << old_message->content->get_type() << '/'
+                     << new_message->content->get_type();
         }
         old_message->forward_info = std::move(new_message->forward_info);
         need_send_update = true;
@@ -32234,9 +32235,9 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     } else if (is_new_available) {
       LOG(ERROR) << message_id << " in " << dialog_id << " sent by " << old_message->sender_user_id << "/"
                  << old_message->sender_dialog_id << " has lost forward info " << *old_message->forward_info
-                 << ", really forwarded from " << old_message->real_forward_from_dialog_id
-                 << ", message content type is " << old_message->content->get_type() << '/'
-                 << new_message->content->get_type();
+                 << ", really forwarded from " << old_message->real_forward_from_message_id << " in "
+                 << old_message->real_forward_from_dialog_id << ", message content type is "
+                 << old_message->content->get_type() << '/' << new_message->content->get_type();
       old_message->forward_info = nullptr;
       need_send_update = true;
     }
