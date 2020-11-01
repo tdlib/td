@@ -118,6 +118,14 @@ endif()
 include(TdSetUpCompiler)
 td_set_up_compiler()
 
+if (MSVC)
+  option(TD_ENABLE_MULTI_PROCESSOR_COMPILATION "Use \"ON\" to enable multi-processor compilation.")
+
+  if (TD_ENABLE_MULTI_PROCESSOR_COMPILATION)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
+  endif()
+endif()
+
 if (CLANG OR GCC)
   if (MEMPROF)
     include(CheckCXXCompilerFlag)
