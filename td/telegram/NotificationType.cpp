@@ -8,7 +8,6 @@
 
 #include "td/telegram/AnimationsManager.h"
 #include "td/telegram/AudiosManager.h"
-#include "td/telegram/ContactsManager.h"
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessagesManager.h"

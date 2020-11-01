@@ -391,7 +391,7 @@ class SocketFdImpl {
     auto write_res = detail::skip_eintr([&] {
 #ifdef MSG_NOSIGNAL
       msghdr msg;
-      memset(&msg, 0, sizeof(msg));
+      std::memset(&msg, 0, sizeof(msg));
       msg.msg_iov = const_cast<iovec *>(slices.begin());
       msg.msg_iovlen = slices_size;
       return sendmsg(native_fd, &msg, MSG_NOSIGNAL);

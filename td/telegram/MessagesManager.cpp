@@ -6971,7 +6971,7 @@ void MessagesManager::on_user_dialog_action(DialogId dialog_id, MessageId top_th
   if (td_->auth_manager_->is_bot() || !user_id.is_valid() || is_broadcast_channel(dialog_id)) {
     return;
   }
-  if (!td_->messages_manager_->have_dialog(dialog_id)) {
+  if (!have_dialog(dialog_id)) {
     LOG(DEBUG) << "Ignore typing in unknown " << dialog_id;
     return;
   }

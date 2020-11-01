@@ -1388,11 +1388,8 @@ void InlineQueriesManager::on_get_inline_query_results(UserId bot_user_id, uint6
             Location l(inline_message_geo->geo_);
             location->location_ = l.get_location_object();
           } else {
-            Slice latitude;
-            Slice longitude;
-            Slice horizontal_accuracy;
-            std::tie(latitude, longitude) = split(Slice(result->description_));
-            Location l(to_double(latitude), to_double(longitude), 0.0, 0);
+            auto latitude_longitude = split(Slice(result->description_));
+            Location l(to_double(latitude_longitude.first), to_double(latitude_longitude.second), 0.0, 0);
             location->location_ = l.get_location_object();
           }
           location->thumbnail_ = register_thumbnail(std::move(result->thumb_));
