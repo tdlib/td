@@ -76,5 +76,5 @@ CFlags: -I\"\${prefix}/${CMAKE_INSTALL_INCLUDEDIR}\"
 Libs: -L\"\${prefix}/${CMAKE_INSTALL_LIBDIR}\" -l${TARGET}
 ${REQUIRES}${LIBRARIES}")
 
-  install(FILES "${CMAKE_CURRENT_BINARY_DIR}/pkgconfig/${TARGET}.pc" DESTINATION "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/pkgconfig")
+  install(FILES "${CMAKE_CURRENT_BINARY_DIR}/pkgconfig/${TARGET}.pc" DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
 endfunction()
