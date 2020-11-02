@@ -73,7 +73,7 @@ select.large { font-size: large; }
     </div>
 
     <div id="buildDebugDiv" class="hide">
-      <label><input type="checkbox" id="buildDebugCheckbox" onchange="onOptionsChanged()"/>Build debug binary. Debug binaries are much larger and slower than release one.</label>
+      <label><input type="checkbox" id="buildDebugCheckbox" onchange="onOptionsChanged()"/>Build the debug binary. Debug binaries are much larger and slower than the release one.</label>
     </div>
 
     <div id="buildInstallLocalDiv" class="hide">
@@ -486,7 +486,7 @@ function onOptionsChanged() {
   if (os_windows) {
     let win10_sdk = (target === 'C++/CX' ? ' and Windows 10 SDK' : '');
     if (target !== 'C++/CLI' && target !== 'C++/CX') {
-      pre_text.push('Note that Windows Subsystem for Linux (WSL) and Cygwin are not Windows environments, so you need to use instructions for Linux instead for them.');
+      pre_text.push('Note that Windows Subsystem for Linux (WSL) and Cygwin are not Windows environments, so you need to use instructions for Linux for them instead.');
     }
     pre_text.push('Download and install <a href="https://visualstudio.microsoft.com/ru/vs/community/">Microsoft Visual Studio</a>. Enable C++' + win10_sdk + ' support while installing.');
     pre_text.push('Download and install <a href="https://cmake.org/download/">CMake</a>; choose "Add CMake to the system PATH" option while installing.');
@@ -523,15 +523,15 @@ function onOptionsChanged() {
     pre_text.push('Note that for Node.js &le; 9.11.2 you must build TDLib with OpenSSL 1.0.* and for Node.js &ge; 10 with OpenSSL 1.1.* instead, so you may need to modify the following commands to install a proper OpenSSL version.');
   }
   if (os_freebsd) {
-    pre_text.push('Note that following instruction is for FreeBSD 11.');
-    pre_text.push('Note that following calls to <code>pkg</code> needs to be run as <code>root</code>.');
+    pre_text.push('Note that the following instruction is for FreeBSD 11.');
+    pre_text.push('Note that the following calls to <code>pkg</code> needs to be run as <code>root</code>.');
   }
   if (os_openbsd) {
-    pre_text.push('Note that following instruction is for OpenBSD 6.7 and default KSH shell.');
+    pre_text.push('Note that the following instruction is for OpenBSD 6.7 and default KSH shell.');
     pre_text.push('Note that building requires a lot of memory, so you may need to increase allowed per-process memory usage in /etc/login.conf or build from root.');
   }
   if (os_netbsd) {
-    pre_text.push('Note that following instruction is for NetBSD 8.0 and default SH shell.');
+    pre_text.push('Note that the following instruction is for NetBSD 8.0 and default SH shell.');
   }
 
   var terminal_name = (function () {
@@ -553,7 +553,7 @@ function onOptionsChanged() {
     return 'Bash';
   })();
   if (os_windows) {
-    pre_text.push('Close and re-open ' + terminal_name + ' if PATH environment variable was changed.');
+    pre_text.push('Close and re-open ' + terminal_name + ' if the PATH environment variable was changed.');
   }
   pre_text.push('Run these commands in ' + terminal_name + ' to build TDLib and to install it to ' + install_dir + ':');
   document.getElementById('buildPre').innerHTML = '<ul><li>' + pre_text.join('</li><li>') + '</li></ul>';
