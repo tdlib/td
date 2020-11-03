@@ -21,6 +21,10 @@ if (POLICY CMP0054)
   # do not expand quoted arguments
   cmake_policy(SET CMP0054 NEW)
 endif()
+if (POLICY CMP0060)
+  # link libraries by full path
+  cmake_policy(SET CMP0060 NEW)
+endif()
 
 include(PreventInSourceBuild)
 prevent_in_source_build()
