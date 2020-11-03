@@ -10,13 +10,12 @@ select.large { font-size: large; }
 </style>
 </head>
 
-<body onload="onLoad(true)">
-<body onpopstate="onLoad(false)">
+<body onload="onLoad(true)" onpopstate="onLoad(false)">
 
 <div class="main">
-  <div id="languageSelectDiv" align="center">
+  <div id="languageSelectDiv" style="text-align:center;">
     <p>Choose a programming language, from which you want to use TDLib:</p>
-    <select id="languageSelect" onchange="onLanguageChanged(false)" autofocus="true" class="large">
+    <select id="languageSelect" onchange="onLanguageChanged(false)" autofocus class="large">
       <option>Choose a programming language:</option>
       <option>Python</option>
       <option>JavaScript</option>
@@ -42,7 +41,7 @@ select.large { font-size: large; }
     </select>
   </div>
 
-  <div id="osSelectDiv" class="hide" align="center">
+  <div id="osSelectDiv" class="hide" style="text-align:center;">
     <p>Choose an operating system, on which you want to use TDLib:</p>
     <select id="osSelect" onchange="onOsChanged()" class="large">
       <option>Choose an operating system:</option>
@@ -50,7 +49,7 @@ select.large { font-size: large; }
     <p></p>
   </div>
 
-  <div id="linuxSelectDiv" class="hide" align="center">
+  <div id="linuxSelectDiv" class="hide" style="text-align:center;">
     <p>Choose a Linux distro, on which you want to use TDLib:</p>
     <select id="linuxSelect" onchange="onOsChanged()" class="large">
       <option>Choose a Linux distro:</option>
@@ -67,7 +66,7 @@ select.large { font-size: large; }
     <p></p>
   </div>
 
-  <div id="buildOptionsDiv" class="hide" align="center">
+  <div id="buildOptionsDiv" class="hide" style="text-align:center;">
     <div id="buildLtoDiv" class="hide">
       <label><input type="checkbox" id="buildLtoCheckbox" onchange="onOptionsChanged()"/>Enable Link Time Optimization (requires CMake >= 3.9.0). It can significantly reduce binary size and increase performance, but sometimes it can lead to build failures.</label>
     </div>
@@ -129,12 +128,12 @@ select.large { font-size: large; }
     <p></p>
   </div>
 
-  <div id="buildTextDiv" class="hide" align="center">
+  <div id="buildTextDiv" class="hide" style="text-align:center;">
     <p id="buildText">Hidden text</p>
   </div>
 
-  <div id="buildCommandsDiv" class="hide" align="left">
-    <p id="buildCommandsHeader" align="center">Here is complete instruction for TDLib binaries building:</p>
+  <div id="buildCommandsDiv" class="hide" style="text-align:left;">
+    <p id="buildCommandsHeader" style="text-align:center;">Here is complete instruction for TDLib binaries building:</p>
     <p id="buildPre">Hidden text</p>
     <code id="buildCommands">Empty commands</code>
   </div>
@@ -904,4 +903,3 @@ function onOptionsChanged() {
 
 </body>
 </html>
-
