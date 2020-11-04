@@ -273,7 +273,7 @@ class TdExample {
             [this](td_api::authorizationStateWaitPassword &) {
               std::cout << "Enter authentication password: " << std::flush;
               std::string password;
-              std::getline(std::cin, line);
+              std::getline(std::cin, password);
               send_query(td_api::make_object<td_api::checkAuthenticationPassword>(password),
                          create_authentication_query_handler());
             },
