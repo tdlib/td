@@ -22961,7 +22961,7 @@ Result<vector<MessageId>> MessagesManager::send_message_group(
   TRY_RESULT(message_send_options, process_message_send_options(dialog_id, std::move(options)));
 
   vector<std::pair<unique_ptr<MessageContent>, int32>> message_contents;
-  std::unordered_set<MessageContentType> message_content_types;
+  std::unordered_set<MessageContentType, MessageContentTypeHash> message_content_types;
   for (auto &input_message_content : input_message_contents) {
     TRY_RESULT(message_content, process_input_message_content(dialog_id, std::move(input_message_content)));
     TRY_STATUS(can_use_message_send_options(message_send_options, message_content));
