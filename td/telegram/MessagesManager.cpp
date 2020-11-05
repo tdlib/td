@@ -1912,7 +1912,7 @@ class SearchMessagesQuery : public Td::ResultHandler {
       send_query(G()->net_query_creator().create(
           telegram_api::messages_getUnreadMentions(std::move(input_peer), from_message_id.get_server_message_id().get(),
                                                    offset, limit, std::numeric_limits<int32>::max(), 0)));
-    } else if (top_thread_message_id.is_valid() && !sender_dialog_id.is_valid() &&
+    } else if (top_thread_message_id.is_valid() && query.empty() && !sender_dialog_id.is_valid() &&
                filter == MessageSearchFilter::Empty) {
       handle_errors_ = dialog_id.get_type() != DialogType::Channel ||
                        td->contacts_manager_->get_channel_type(dialog_id.get_channel_id()) != ChannelType::Broadcast;
