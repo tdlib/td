@@ -385,12 +385,15 @@ function onOptionsChanged() {
   }
 
   var low_memory = false;
-  if (os_linux || os_freebsd || os_openbsd || os_netbsd) {
+  if (os_linux || os_freebsd || os_netbsd) {
     low_memory = document.getElementById('buildLowMemoryCheckbox').checked;
     document.getElementById('buildLowMemoryText').innerHTML = 'I have less than ' + (use_clang ? '1.5' : '3.5') +' GB of RAM.' +
             (low_memory ? ' Now you will need only ' + (use_clang ? '0.5' : '1') +' GB of RAM to build TDLib.' : '');
     document.getElementById('buildLowMemoryDiv').style.display = 'block';
   } else {
+    if (os_openbsd) {
+      low_memory = true;
+    }
     document.getElementById('buildLowMemoryDiv').style.display = 'none';
   }
 
