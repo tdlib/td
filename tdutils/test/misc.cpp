@@ -52,7 +52,7 @@
 using namespace td;
 
 struct CheckExitGuard {
-  explicit CheckExitGuard(bool expected_value): expected_value_(expected_value) {
+  explicit CheckExitGuard(bool expected_value) : expected_value_(expected_value) {
   }
   CheckExitGuard(CheckExitGuard &&) = delete;
   CheckExitGuard &operator=(CheckExitGuard &&) = delete;
