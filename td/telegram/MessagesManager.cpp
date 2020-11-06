@@ -28573,7 +28573,12 @@ void MessagesManager::drop_dialog_last_pinned_message_id(Dialog *d) {
 
   LOG(INFO) << "Drop " << d->dialog_id << " pinned message";
 
-  reload_dialog_info_full(d->dialog_id);
+  create_actor<SleepActor>(
+      "ReloadDialogFullInfoActor", 1.0,
+      PromiseCreator::lambda([actor_id = actor_id(this), dialog_id = d->dialog_id](Result<Unit> result) {
+        send_closure(actor_id, &MessagesManager::reload_dialog_info_full, dialog_id);
+      }))
+      .release();
 }
 
 void MessagesManager::repair_dialog_scheduled_messages(Dialog *d) {
