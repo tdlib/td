@@ -9497,10 +9497,17 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       return promise.set_value(Unit());
     }
 
+    ChannelFull *channel = add_channel_full(channel_id);
+
     bool have_participant_count = (channel_full->flags_ & CHANNEL_FULL_FLAG_HAS_PARTICIPANT_COUNT) != 0;
     auto participant_count = have_participant_count ? channel_full->participants_count_ : 0;
-    auto administrator_count =
-        (channel_full->flags_ & CHANNEL_FULL_FLAG_HAS_ADMINISTRATOR_COUNT) != 0 ? channel_full->admins_count_ : 0;
+    auto administrator_count = 0;
+    if ((channel_full->flags_ & CHANNEL_FULL_FLAG_HAS_ADMINISTRATOR_COUNT) != 0) {
+      administrator_count = channel_full->admins_count_;
+    } else if (c->is_megagroup || c->status.is_administrator()) {
+      // in megagroups and administrated channels don't drop known number of administrators
+      administrator_count = channel->administrator_count;
+    }
     auto restricted_count =
         (channel_full->flags_ & CHANNEL_FULL_FLAG_HAS_BANNED_COUNT) != 0 ? channel_full->banned_count_ : 0;
     auto banned_count =
@@ -9525,7 +9532,6 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       can_view_statistics = false;
     }
 
-    ChannelFull *channel = add_channel_full(channel_id);
     channel->repair_request_version = 0;
     channel->expires_at = Time::now() + CHANNEL_FULL_EXPIRE_TIME;
     if (channel->description != channel_full->about_ || channel->participant_count != participant_count ||
@@ -9550,12 +9556,11 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       channel->sticker_set_id = sticker_set_id;
 
       channel->is_changed = true;
-
-      if (have_participant_count && c->participant_count != participant_count) {
-        c->participant_count = participant_count;
-        c->is_changed = true;
-        update_channel(c, channel_id);
-      }
+    }
+    if (have_participant_count && c->participant_count != participant_count) {
+      c->participant_count = participant_count;
+      c->is_changed = true;
+      update_channel(c, channel_id);
     }
     if (!channel->is_can_view_statistics_inited) {
       channel->is_can_view_statistics_inited = true;
