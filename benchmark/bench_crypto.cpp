@@ -5,7 +5,6 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/utils/benchmark.h"
-
 #include "td/utils/common.h"
 #include "td/utils/crypto.h"
 #include "td/utils/logging.h"
@@ -16,7 +15,6 @@
 
 #include <openssl/evp.h>
 #include <openssl/sha.h>
-
 #include <array>
 #include <atomic>
 #include <cstdint>
