@@ -8,6 +8,7 @@
 
 #include "td/utils/common.h"
 #include "td/utils/port/thread.h"
+#include "td/utils/type_traits.h"
 
 #include <atomic>
 #include <cstring>
@@ -21,7 +22,7 @@ class AtomicRead {
  public:
   void read(T &dest) const {
     while (true) {
-      static_assert(std::is_trivially_copyable<T>::value, "T must be trivially copyable");
+      static_assert(TD_IS_TRIVIALLY_COPYABLE(T), "T must be trivially copyable");
       auto version_before = version.load();
       if (version_before % 2 == 0) {
         std::memcpy(&dest, &value, sizeof(dest));
