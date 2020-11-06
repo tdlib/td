@@ -38,7 +38,7 @@ class ThreadLocalStorage {
 
  private:
   struct Node {
-    T value{};
+    T value;
     char padding[TD_CONCURRENCY_PAD];
   };
   static constexpr int32 MAX_THREAD_ID = 128;
