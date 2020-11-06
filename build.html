@@ -1,908 +1,883 @@
 <!DOCTYPE html>
 <html>
-
-<head>
-<title>TDLib build instructions</title>
-<style>
-.hide { display: none; }
-div.main { max-width:1200px; margin: auto; font-size: x-large; }
-select.large { font-size: large; }
-</style>
-</head>
-
-<body onload="onLoad(true)" onpopstate="onLoad(false)">
-
-<div class="main">
-  <div id="languageSelectDiv" style="text-align:center;">
-    <p>Choose a programming language, from which you want to use TDLib:</p>
-    <select id="languageSelect" onchange="onLanguageChanged(false)" autofocus class="large">
-      <option>Choose a programming language:</option>
-      <option>Python</option>
-      <option>JavaScript</option>
-      <option>Go</option>
-      <option>Java</option>
-      <option>Kotlin</option>
-      <option>C#</option>
-      <option>C++</option>
-      <option>Swift</option>
-      <option>Objective-C</option>
-      <option>Object Pascal</option>
-      <option>Dart</option>
-      <option>Rust</option>
-      <option>Erlang</option>
-      <option>PHP</option>
-      <option>Lua</option>
-      <option>Ruby</option>
-      <option>Clojure</option>
-      <option>D</option>
-      <option>Elixir</option>
-      <option>C</option>
-      <option>Other</option>
-    </select>
-  </div>
-
-  <div id="osSelectDiv" class="hide" style="text-align:center;">
-    <p>Choose an operating system, on which you want to use TDLib:</p>
-    <select id="osSelect" onchange="onOsChanged()" class="large">
-      <option>Choose an operating system:</option>
-    </select>
-    <p></p>
-  </div>
-
-  <div id="linuxSelectDiv" class="hide" style="text-align:center;">
-    <p>Choose a Linux distro, on which you want to use TDLib:</p>
-    <select id="linuxSelect" onchange="onOsChanged()" class="large">
-      <option>Choose a Linux distro:</option>
-      <option>Alpine</option>
-      <option>Debian 8</option>
-      <option>Debian 9</option>
-      <option>Debian 10</option>
-      <option>Ubuntu 14</option>
-      <option>Ubuntu 16</option>
-      <option>Ubuntu 18</option>
-      <option>Ubuntu 20</option>
-      <option>Other</option>
-    </select>
-    <p></p>
-  </div>
-
-  <div id="buildOptionsDiv" class="hide" style="text-align:center;">
-    <div id="buildLtoDiv" class="hide">
-      <label><input type="checkbox" id="buildLtoCheckbox" onchange="onOptionsChanged()"/>Enable Link Time Optimization (requires CMake >= 3.9.0). It can significantly reduce binary size and increase performance, but sometimes it can lead to build failures.</label>
+  <head>
+    <title>TDLib build instructions</title>
+    <style>
+      .hide { display: none; }
+      div.main { max-width:1200px; margin: auto; font-size: x-large; }
+      select.large { font-size: large; }
+    </style>
+  </head>
+  <body onload="onLoad(true)" onpopstate="onLoad(false)">
+    <div class="main">
+      <div id="languageSelectDiv" style="text-align:center;">
+        <p>Choose a programming language, from which you want to use TDLib:</p>
+        <select id="languageSelect" onchange="onLanguageChanged(false)" autofocus class="large">
+          <option>Choose a programming language:</option>
+          <option>Python</option>
+          <option>JavaScript</option>
+          <option>Go</option>
+          <option>Java</option>
+          <option>Kotlin</option>
+          <option>C#</option>
+          <option>C++</option>
+          <option>Swift</option>
+          <option>Objective-C</option>
+          <option>Object Pascal</option>
+          <option>Dart</option>
+          <option>Rust</option>
+          <option>Erlang</option>
+          <option>PHP</option>
+          <option>Lua</option>
+          <option>Ruby</option>
+          <option>Clojure</option>
+          <option>D</option>
+          <option>Elixir</option>
+          <option>C</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div id="osSelectDiv" class="hide" style="text-align:center;">
+        <p>Choose an operating system, on which you want to use TDLib:</p>
+        <select id="osSelect" onchange="onOsChanged()" class="large">
+          <option>Choose an operating system:</option>
+        </select>
+        <p></p>
+      </div>
+      <div id="linuxSelectDiv" class="hide" style="text-align:center;">
+        <p>Choose a Linux distro, on which you want to use TDLib:</p>
+        <select id="linuxSelect" onchange="onOsChanged()" class="large">
+          <option>Choose a Linux distro:</option>
+          <option>Alpine</option>
+          <option>Debian 8</option>
+          <option>Debian 9</option>
+          <option>Debian 10</option>
+          <option>Ubuntu 14</option>
+          <option>Ubuntu 16</option>
+          <option>Ubuntu 18</option>
+          <option>Ubuntu 20</option>
+          <option>Other</option>
+        </select>
+        <p></p>
+      </div>
+      <div id="buildOptionsDiv" class="hide" style="text-align:center;">
+        <div id="buildLtoDiv" class="hide">
+          <label><input type="checkbox" id="buildLtoCheckbox" onchange="onOptionsChanged()"/>Enable Link Time Optimization (requires CMake >= 3.9.0). It can significantly reduce binary size and increase performance, but sometimes it can lead to build failures.</label>
+        </div>
+        <div id="buildDebugDiv" class="hide">
+          <label><input type="checkbox" id="buildDebugCheckbox" onchange="onOptionsChanged()"/>Build the debug binary. Debug binaries are much larger and slower than the release one.</label>
+        </div>
+        <div id="buildInstallLocalDiv" class="hide">
+          <label><input type="checkbox" id="buildInstallLocalCheckbox" onchange="onOptionsChanged()"/>Install built TDLib to /usr/local instead of placing the files to td/tdlib.</label>
+        </div>
+        <p></p>
+        <div id="buildCompilerDiv" class="hide">
+          <span>Choose which compiler you want to use to build TDLib:</span><br>
+          <label><input type="radio" id="buildCompilerRadioGcc" name="buildCompilerRadio" onchange="onOptionsChanged()" checked/>g++</label>
+          <label><input type="radio" id="buildCompilerRadioClang" name="buildCompilerRadio" onchange="onOptionsChanged()"/>clang++ (recommended)</label>
+          <p></p>
+        </div>
+        <div id="buildArchiverDiv" class="hide">
+          <span>Choose which archiver application you want to use for VSIX creation:</span><br>
+          <label><input type="radio" id="buildArchiverRadio7Zip" name="buildArchiverRadio" onchange="onOptionsChanged()" checked/>7-Zip</label>
+          <label><input type="radio" id="buildArchiverRadioZip" name="buildArchiverRadio" onchange="onOptionsChanged()"/>zip</label>
+          <label><input type="radio" id="buildArchiverRadioWinRar" name="buildArchiverRadio" onchange="onOptionsChanged()"/>WinRAR</label>
+          <p></p>
+        </div>
+        <div id="buildShellDiv" class="hide">
+          <span>Choose which shell application you want to use for building:</span><br>
+          <label><input type="radio" id="buildShellRadioPowerShell" name="buildShellRadio" onchange="onOptionsChanged()" checked/>PowerShell</label>
+          <label><input type="radio" id="buildShellRadioBash" name="buildShellRadio" onchange="onOptionsChanged()"/>mintty/Bash</label>
+          <p></p>
+        </div>
+        <div id="buildShellBsdDiv" class="hide">
+          <span>Choose which shell application you want to use for building:</span><br>
+          <label><input type="radio" id="buildShellBsdRadioCsh" name="buildShellRadioBsd" onchange="onOptionsChanged()" checked/>tcsh/csh</label>
+          <label><input type="radio" id="buildShellBsdRadioBash" name="buildShellRadioBsd" onchange="onOptionsChanged()"/>Bash</label>
+          <p></p>
+        </div>
+        <div id="buildBitnessDiv" class="hide">
+          <span>Choose for which bitness you want to build TDLib:</span><br>
+          <label><input type="radio" id="buildBitnessRadio32" name="buildBitnessRadio" onchange="onOptionsChanged()" checked/>32</label>
+          <label><input type="radio" id="buildBitnessRadio64" name="buildBitnessRadio" onchange="onOptionsChanged()"/>64</label>
+          <p></p>
+        </div>
+        <div id="buildLowMemoryDiv" class="hide">
+          <label><input type="checkbox" id="buildLowMemoryCheckbox" onchange="onOptionsChanged()"/><span id="buildLowMemoryText">Check this if you have less than 4 GB of RAM</span></label>
+        </div>
+        <div id="buildRootDiv" class="hide">
+          <label><input type="checkbox" id="buildRootCheckbox" onchange="onOptionsChanged()"/>Build from root user (unrecommended)</label>
+        </div>
+        <p></p>
+      </div>
+      <div id="buildTextDiv" class="hide" style="text-align:center;">
+        <p id="buildText">Hidden text</p>
+      </div>
+      <div id="buildCommandsDiv" class="hide" style="text-align:left;">
+        <p id="buildCommandsHeader" style="text-align:center;">Here is complete instruction for TDLib binaries building:</p>
+        <p id="buildPre">Hidden text</p>
+        <code id="buildCommands">Empty commands</code>
+      </div>
     </div>
+    <script>
+      function onLoad(initial) {
+        var url = new URL(window.location.href);
+        var language = url.searchParams.get('language');
+        if (language === 'csharp') {
+          language = 'c#';
+        } else if (language === 'cxx') {
+          language = 'c++';
+        } else if (!language) {
+          language = '';
+        }
 
-    <div id="buildDebugDiv" class="hide">
-      <label><input type="checkbox" id="buildDebugCheckbox" onchange="onOptionsChanged()"/>Build the debug binary. Debug binaries are much larger and slower than the release one.</label>
-    </div>
+        var language_options = document.getElementById('languageSelect').options;
+        for (var i = 0; i < language_options.length; i++) {
+          language_options[i].selected = language_options[i].text.toLowerCase() === language.toLowerCase();
+        }
 
-    <div id="buildInstallLocalDiv" class="hide">
-      <label><input type="checkbox" id="buildInstallLocalCheckbox" onchange="onOptionsChanged()"/>Install built TDLib to /usr/local instead of placing the files to td/tdlib.</label>
-    </div>
-
-    <p></p>
-
-    <div id="buildCompilerDiv" class="hide">
-      <span>Choose which compiler you want to use to build TDLib:</span><br>
-      <label><input type="radio" id="buildCompilerRadioGcc" name="buildCompilerRadio" onchange="onOptionsChanged()" checked/>g++</label>
-      <label><input type="radio" id="buildCompilerRadioClang" name="buildCompilerRadio" onchange="onOptionsChanged()"/>clang++ (recommended)</label>
-      <p></p>
-    </div>
-
-    <div id="buildArchiverDiv" class="hide">
-      <span>Choose which archiver application you want to use for VSIX creation:</span><br>
-      <label><input type="radio" id="buildArchiverRadio7Zip" name="buildArchiverRadio" onchange="onOptionsChanged()" checked/>7-Zip</label>
-      <label><input type="radio" id="buildArchiverRadioZip" name="buildArchiverRadio" onchange="onOptionsChanged()"/>zip</label>
-      <label><input type="radio" id="buildArchiverRadioWinRar" name="buildArchiverRadio" onchange="onOptionsChanged()"/>WinRAR</label>
-      <p></p>
-    </div>
-
-    <div id="buildShellDiv" class="hide">
-      <span>Choose which shell application you want to use for building:</span><br>
-      <label><input type="radio" id="buildShellRadioPowerShell" name="buildShellRadio" onchange="onOptionsChanged()" checked/>PowerShell</label>
-      <label><input type="radio" id="buildShellRadioBash" name="buildShellRadio" onchange="onOptionsChanged()"/>mintty/Bash</label>
-      <p></p>
-    </div>
-
-    <div id="buildShellBsdDiv" class="hide">
-      <span>Choose which shell application you want to use for building:</span><br>
-      <label><input type="radio" id="buildShellBsdRadioCsh" name="buildShellRadioBsd" onchange="onOptionsChanged()" checked/>tcsh/csh</label>
-      <label><input type="radio" id="buildShellBsdRadioBash" name="buildShellRadioBsd" onchange="onOptionsChanged()"/>Bash</label>
-      <p></p>
-    </div>
-
-    <div id="buildBitnessDiv" class="hide">
-      <span>Choose for which bitness you want to build TDLib:</span><br>
-      <label><input type="radio" id="buildBitnessRadio32" name="buildBitnessRadio" onchange="onOptionsChanged()" checked/>32</label>
-      <label><input type="radio" id="buildBitnessRadio64" name="buildBitnessRadio" onchange="onOptionsChanged()"/>64</label>
-      <p></p>
-    </div>
-
-    <div id="buildLowMemoryDiv" class="hide">
-      <label><input type="checkbox" id="buildLowMemoryCheckbox" onchange="onOptionsChanged()"/><span id="buildLowMemoryText">Check this if you have less than 4 GB of RAM</span></label>
-    </div>
-
-    <div id="buildRootDiv" class="hide">
-      <label><input type="checkbox" id="buildRootCheckbox" onchange="onOptionsChanged()"/>Build from root user (unrecommended)</label>
-    </div>
-
-    <p></p>
-  </div>
-
-  <div id="buildTextDiv" class="hide" style="text-align:center;">
-    <p id="buildText">Hidden text</p>
-  </div>
-
-  <div id="buildCommandsDiv" class="hide" style="text-align:left;">
-    <p id="buildCommandsHeader" style="text-align:center;">Here is complete instruction for TDLib binaries building:</p>
-    <p id="buildPre">Hidden text</p>
-    <code id="buildCommands">Empty commands</code>
-  </div>
-</div>
-
-<script>
-function onLoad(initial) {
-  var url = new URL(window.location.href);
-  var language = url.searchParams.get('language');
-  if (language === 'csharp') {
-    language = 'c#';
-  } else if (language === 'cxx') {
-    language = 'c++';
-  } else if (!language) {
-    language = '';
-  }
-
-  var language_options = document.getElementById('languageSelect').options;
-  for (var i = 0; i < language_options.length; i++) {
-    language_options[i].selected = language_options[i].text.toLowerCase() === language.toLowerCase();
-  }
-
-  onLanguageChanged(initial || !history.state);
-}
-
-function getSupportedOs(language) {
-  switch (language) {
-    case 'Choose a programming language:':
-      return [];
-    case 'JavaScript':
-      return ['Windows (Node.js)', 'Linux (Node.js)', 'macOS (Node.js)', 'FreeBSD (Node.js)', 'OpenBSD (Node.js)', 'NetBSD (Node.js)', 'Browser'];
-    case 'Java':
-    case 'Kotlin':
-      return ['Android', 'Windows', 'Linux', 'macOS', 'FreeBSD', 'OpenBSD'];
-    case 'C#':
-      return ['Windows (through C++/CLI)', 'Universal Windows Platform (through C++/CX)', 'Windows (.NET Core)', 'Linux (.NET Core)', 'macOS (.NET Core)', 'FreeBSD (.NET Core)'];
-    case 'Dart':
-      return ['Android', 'iOS', 'Windows', 'Linux', 'macOS', 'tvOS', 'watchOS'];
-    case 'Swift':
-    case 'Objective-C':
-      return ['Windows', 'Linux', 'macOS', 'iOS', 'tvOS', 'watchOS'];
-    default:
-      return ['Windows', 'Linux', 'macOS', 'FreeBSD', 'OpenBSD', 'NetBSD'];
-  }
-}
-
-function getExampleAnchor(language) {
-  switch (language) {
-    case 'Python':
-    case 'JavaScript':
-    case 'Go':
-    case 'Java':
-    case 'Kotlin':
-    case 'Swift':
-    case 'Objective-C':
-    case 'Dart':
-    case 'Rust':
-    case 'Erlang':
-    case 'PHP':
-    case 'Lua':
-    case 'Ruby':
-    case 'Clojure':
-    case 'D':
-    case 'Elixir':
-    case 'C':
-      return language.toLowerCase();
-    case 'Object Pascal':
-      return 'object-pascal';
-    case 'C#':
-      return 'csharp';
-    case 'C++':
-      return 'cxx';
-    default:
-      return 'other';
-  }
-}
-
-function onLanguageChanged(initial) {
-  var language = document.getElementById('languageSelect').value;
-
-  var supported_os = getSupportedOs(language);
-
-  var os_select = document.getElementById('osSelect');
-
-  if (supported_os.length) {
-    document.getElementById('osSelectDiv').style.display = 'block';
-  } else {
-    if (history.state != '') {
-      history.pushState('', '', 'build.html');
-    }
-    document.getElementById('osSelectDiv').style.display = 'none';
-    onOsChanged();
-    return;
-  }
-
-  if (!initial && history.state !== language) {
-    history.pushState(language, '', 'build.html?language=' + encodeURIComponent(language));
-  }
-
-  var existing_options = [];
-  for (var index = 1; index < os_select.length; index++) {
-    if (!supported_os.includes(os_select.options[index].value)) {
-      os_select.remove(index);
-      index--;
-    } else {
-      existing_options.push(os_select.options[index].value);
-    }
-  }
-
-  for (os of supported_os) {
-    if (!existing_options.includes(os)) {
-      var option = document.createElement('option');
-      option.text = os;
-      os_select.add(option);
-    }
-  }
-
-  onOsChanged();
-}
-
-function getTarget(language, os) {
-  var supported_os = getSupportedOs(language);
-  if (!supported_os.includes(os)) {
-    return null;
-  }
-
-  if (os.includes('C++/CLI')) {
-    return 'C++/CLI';
-  }
-  if (os.includes('C++/CX')) {
-    return 'C++/CX';
-  }
-  if (os.includes('Browser')) {
-    return 'WebAssembly';
-  }
-  if (os.includes('Android')) {
-    return 'Android';
-  }
-  if (os.includes('iOS') || os.includes('tvOS') || os.includes('watchOS')) {
-    return 'iOS';
-  }
-
-  switch (language) {
-    case 'C++':
-      return 'tdclient';
-    case 'Java':
-    case 'Kotlin':
-      return 'JNI';
-    default:
-      return 'tdjson';
-  }
-}
-
-function getTargetName(target) {
-  switch (target) {
-    case 'tdjson':
-    case 'WebAssembly':
-    case 'iOS':
-      return '<a href="https://github.com/tdlib/td#using-json">JSON</a>';
-    case 'tdclient':
-      return '<a href="https://github.com/tdlib/td#using-cxx">a simple and convenient C++11-interface</a>';
-    case 'JNI':
-    case 'Android':
-      return '<a href="https://github.com/tdlib/td#using-java">native ' + target + '</a>';
-    default:
-      return '<a href="https://github.com/tdlib/td#using-dotnet">native ' + target + '</a>';
-  }
-}
-
-function onOsChanged() {
-  var language = document.getElementById('languageSelect').value;
-  var os = document.getElementById('osSelect').value;
-  var target = getTarget(language, os);
-
-  document.getElementById('buildTextDiv').style.display = target ? 'block' : 'none';
-
-  if (language === 'Other') {
-    language = 'any other programming language';
-  }
-  var text = 'TDLib can be used from ' + language + ' on ' + os + ' through the ' + getTargetName(target) + ' interface.<br>' +
-             'See <a href="https://github.com/tdlib/td/blob/master/example/README.md#' + getExampleAnchor(language) + '">examples</a> of such usage and already available third-party frameworks.<br>';
-
-  if (target === 'WebAssembly') {
-    text = 'TDLib is available in a prebuilt form as an <a href="https://www.npmjs.com/">NPM</a> package <a href="https://www.npmjs.com/package/tdweb">tdweb</a>.<br>' +
-           'If you want to build it manually, take a look at our <a href="https://github.com/tdlib/td/tree/master/example/web">example</a>.';
-    target = '';
-  }
-  if (target === 'Android') {
-    text = 'TDLib for Android is available in a prebuilt form and can be downloaded from <a href="https://core.telegram.org/tdlib/tdlib.zip">there</a>.<br>' +
-           'See <a href="https://github.com/tdlib/td/issues/77#issuecomment-640719893">build instructions</a> if you want to build the latest TDLib version or want to build TDLib with different interface.';
-    target = '';
-  }
-  if (target === 'iOS') {
-    target = '';
-  }
-  document.getElementById('buildText').innerHTML = text;
-
-  if (!target) {
-    document.getElementById('linuxSelectDiv').style.display = 'none';
-    document.getElementById('buildOptionsDiv').style.display = 'none';
-    document.getElementById('buildCommandsDiv').style.display = 'none';
-    return;
-  }
-
-  var os_linux = os.includes('Linux');
-  if (os_linux) {
-    document.getElementById('linuxSelectDiv').style.display = 'block';
-
-    var linux_distro = document.getElementById('linuxSelect').value;
-    if (linux_distro.includes('Choose ')) {
-      document.getElementById('buildTextDiv').style.display = 'none';
-      document.getElementById('buildOptionsDiv').style.display = 'none';
-      document.getElementById('buildCommandsDiv').style.display = 'none';
-      return;
-    }
-  } else {
-    document.getElementById('linuxSelectDiv').style.display = 'none';
-  }
-
-  document.getElementById('buildOptionsDiv').style.display = 'block';
-
-  onOptionsChanged();
-}
-
-function onOptionsChanged() {
-  var language = document.getElementById('languageSelect').value;
-  var os = document.getElementById('osSelect').value;
-  var target = getTarget(language, os);
-
-  var os_windows = os.includes('Windows');
-  var os_linux = os.includes('Linux');
-  var os_mac = os.includes('macOS');
-  var os_freebsd = os.includes('FreeBSD');
-  var os_openbsd = os.includes('OpenBSD');
-  var os_netbsd = os.includes('NetBSD');
-
-  var linux_distro = 'none';
-  if (os_linux) {
-    linux_distro = document.getElementById('linuxSelect').value;
-  }
-  document.getElementById('buildCommandsDiv').style.display = 'block';
-
-  var use_clang = os_freebsd || os_openbsd;
-  if (os_linux && linux_distro !== 'Alpine') {
-    document.getElementById('buildCompilerDiv').style.display = 'block';
-    use_clang = document.getElementById('buildCompilerRadioClang').checked;
-  } else {
-    document.getElementById('buildCompilerDiv').style.display = 'none';
-  }
-
-  var low_memory = false;
-  if (os_linux || os_freebsd || os_netbsd) {
-    low_memory = document.getElementById('buildLowMemoryCheckbox').checked;
-    document.getElementById('buildLowMemoryText').innerHTML = 'I have less than ' + (use_clang ? '1.5' : '3.5') +' GB of RAM.' +
-            (low_memory ? ' Now you will need only ' + (use_clang ? '0.5' : '1') +' GB of RAM to build TDLib.' : '');
-    document.getElementById('buildLowMemoryDiv').style.display = 'block';
-  } else {
-    if (os_openbsd) {
-      low_memory = true;
-    }
-    document.getElementById('buildLowMemoryDiv').style.display = 'none';
-  }
-
-  var use_root = false;
-  if ((os_linux && linux_distro !== 'Other') || os_openbsd || os_netbsd) {
-    use_root = document.getElementById('buildRootCheckbox').checked;
-    document.getElementById('buildRootDiv').style.display = 'block';
-  } else {
-    document.getElementById('buildRootDiv').style.display = 'none';
-  }
-
-  var use_powershell = false;
-  var use_cmd = false;
-  var use_csh = false;
-  if (os_windows) {
-    document.getElementById('buildShellDiv').style.display = 'block';
-    use_powershell = document.getElementById('buildShellRadioPowerShell').checked;
-  } else {
-    document.getElementById('buildShellDiv').style.display = 'none';
-  }
-  if (os_freebsd) {
-    document.getElementById('buildShellBsdDiv').style.display = 'block';
-    use_csh = document.getElementById('buildShellBsdRadioCsh').checked;
-  } else {
-    document.getElementById('buildShellBsdDiv').style.display = 'none';
-  }
-
-  var use_msvc = os_windows;
-  var use_vcpkg = os_windows;
-
-  var use_lto = false;
-  if (!use_msvc && language !== 'Java' && language !== 'Kotlin' && (os_mac || (os_linux && (linux_distro === 'Ubuntu 18' || linux_distro === 'Ubuntu 20' || linux_distro === 'Other')))) {
-    document.getElementById('buildLtoDiv').style.display = 'block';
-    use_lto = document.getElementById('buildLtoCheckbox').checked;
-  } else {
-    document.getElementById('buildLtoDiv').style.display = 'none';
-  }
-
-  var archiver = 'none';
-  if (target === 'C++/CX') {
-    document.getElementById('buildArchiverDiv').style.display = 'block';
-    if (document.getElementById('buildArchiverRadio7Zip').checked) {
-      archiver = '7zip';
-    } else if (document.getElementById('buildArchiverRadioZip').checked) {
-      archiver = 'zip';
-    } else if (document.getElementById('buildArchiverRadioWinRar').checked) {
-      archiver = 'WinRAR';
-    }
-  } else {
-    document.getElementById('buildArchiverDiv').style.display = 'none';
-  }
-
-  var is_debug_build = false;
-  if (target !== 'C++/CX' && target !== 'C++/CLI') {
-    document.getElementById('buildDebugDiv').style.display = 'block';
-    is_debug_build = document.getElementById('buildDebugCheckbox').checked;
-  } else {
-    document.getElementById('buildDebugDiv').style.display = 'none';
-  }
-
-  var sudo = 'sudo ';
-  if (use_root || linux_distro.includes('Debian') || os_freebsd || os_openbsd || os_netbsd) {
-    sudo = '';
-  }
-
-  var build_32bit = false;
-  var build_64bit = false;
-  if (use_msvc && target !== 'C++/CX') {
-    document.getElementById('buildBitnessDiv').style.display = 'block';
-    build_32bit = document.getElementById('buildBitnessRadio32').checked;
-    build_64bit = document.getElementById('buildBitnessRadio64').checked;
-  } else {
-    document.getElementById('buildBitnessDiv').style.display = 'none';
-  }
-
-  var local = './';
-  if (use_cmd) {
-    local = '.\\';
-  }
-
-  var install_dir = 'td/tdlib';
-  if (!os_windows) {
-    document.getElementById('buildInstallLocalDiv').style.display = 'block';
-    if (document.getElementById('buildInstallLocalCheckbox').checked) {
-      install_dir = '/usr/local';
-    }
-  } else {
-    document.getElementById('buildInstallLocalDiv').style.display = 'none';
-  }
-
-  var pre_text = [];
-  if (os_windows) {
-    let win10_sdk = (target === 'C++/CX' ? ' and Windows 10 SDK' : '');
-    if (target !== 'C++/CLI' && target !== 'C++/CX') {
-      pre_text.push('Note that Windows Subsystem for Linux (WSL) and Cygwin are not Windows environments, so you need to use instructions for Linux for them instead.');
-    }
-    pre_text.push('Download and install <a href="https://visualstudio.microsoft.com/ru/vs/community/">Microsoft Visual Studio</a>. Enable C++' + win10_sdk + ' support while installing.');
-    pre_text.push('Download and install <a href="https://cmake.org/download/">CMake</a>; choose "Add CMake to the system PATH" option while installing.');
-    pre_text.push('Download and install <a href="https://git-scm.com/download/win">Git</a>.');
-    pre_text.push('Download and install <a href="https://sourceforge.net/projects/gnuwin32/files/gperf/3.0.1/">gperf</a>. Add the path to gperf.exe to the PATH environment variable.');
-    pre_text.push('Download and unpack <a href="https://windows.php.net/download#php-7.2">PHP</a>. Add the path to php.exe to the PATH environment variable.');
-    if (target === 'C++/CX') {
-      switch (archiver) {
-        case '7zip':
-          pre_text.push('Download and install <a href="http://www.7-zip.org/download.html">7-Zip</a> archiver. Add the path to 7z.exe to the PATH environment variable.');
-          break;
-        case 'zip':
-          pre_text.push('Download and install <a href="http://gnuwin32.sourceforge.net/packages/zip.htm">zip</a> archiver. Add the path to zip.exe to the PATH environment variable.');
-          break;
-        case 'WinRAR':
-          pre_text.push('You need bought and installed <a href="https://www.win-rar.com/start.html?&L=4">WinRAR</a> archiver. Add the path to WinRAR.exe to the PATH environment variable.');
-          break;
+        onLanguageChanged(initial || !history.state);
       }
-    }
-  }
-  if (target === 'JNI') {
-    if (os_windows) {
-      pre_text.push('Download and install <a href="https://www.oracle.com/technetwork/java/javase/downloads/index.html">JDK</a>.');
-    } else if (os_linux && linux_distro === 'Alpine') {
-      pre_text.push('Add community repository for your Alpine version (not edge) in /etc/apk/repositories. For example, you can do it through vim, preliminary installing it via "apk add --update vim".');
-    }
-  }
-  if (os_linux && linux_distro === 'Other') {
-    var jdk = target === 'JNI' ? ', JDK ' : '';
-    var compiler = use_clang ? 'clang++ >= 3.4' : 'g++ >= 4.9.2';
-    pre_text.push('Install Git, ' + compiler + ', make, CMake >= 3.0.2, OpenSSL-dev, zlib-dev, gperf, PHP' + jdk + ' using your package manager.');
-  }
-  if (os_linux && os.includes('Node.js')) {
-    pre_text.push('Note that for Node.js &le; 9.11.2 you must build TDLib with OpenSSL 1.0.* and for Node.js &ge; 10 with OpenSSL 1.1.* instead, so you may need to modify the following commands to install a proper OpenSSL version.');
-  }
-  if (os_freebsd) {
-    pre_text.push('Note that the following instruction is for FreeBSD 11.');
-    pre_text.push('Note that the following calls to <code>pkg</code> needs to be run as <code>root</code>.');
-  }
-  if (os_openbsd) {
-    pre_text.push('Note that the following instruction is for OpenBSD 6.7 and default KSH shell.');
-    pre_text.push('Note that building requires a lot of memory, so you may need to increase allowed per-process memory usage in /etc/login.conf or build from root.');
-  }
-  if (os_netbsd) {
-    pre_text.push('Note that the following instruction is for NetBSD 8.0 and default SH shell.');
-  }
 
-  var terminal_name = (function () {
-    if (os_windows) {
-      return use_powershell ? 'PowerShell' : 'mintty/Bash';
-    }
-    if (os_mac) {
-      return 'Terminal';
-    }
-    if (os_openbsd) {
-      return 'ksh';
-    }
-    if (os_netbsd) {
-      return 'sh';
-    }
-    if (use_csh) {
-      return 'tcsh/csh';
-    }
-    return 'Bash';
-  })();
-  if (os_windows) {
-    pre_text.push('Close and re-open ' + terminal_name + ' if the PATH environment variable was changed.');
-  }
-  pre_text.push('Run these commands in ' + terminal_name + ' to build TDLib and to install it to ' + install_dir + ':');
-  document.getElementById('buildPre').innerHTML = '<ul><li>' + pre_text.join('</li><li>') + '</li></ul>';
-  document.getElementById('buildPre').style.display = 'block';
-
-  if (install_dir && install_dir !== '/usr/local') {
-    install_dir = '../tdlib';
-    if (target === 'JNI' || target === 'C++/CX') {
-      install_dir = '../../' + install_dir;
-    }
-  }
-  var jni_install_dir = '';
-  if (target === 'JNI') {
-    jni_install_dir = install_dir;
-    install_dir = '../example/java/td';
-  }
-
-  function getClangVersionSuffix() {
-    switch (linux_distro) {
-      case 'Ubuntu 14':
-        return '-3.9';
-      case 'Ubuntu 18':
-        return '-6.0';
-      case 'Ubuntu 20':
-        return '-10';
-      default:
-        return ''; // use default version
-    }
-  }
-
-  var commands = [];
-
-  var php = "php";
-  if (os_mac) {
-    commands.push('xcode-select --install');
-    commands.push('/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"');
-    commands.push('brew install gperf cmake openssl' + (target === 'JNI' ? ' coreutils' : ''));
-    if (target === 'JNI') {
-      commands.push('brew cask install java');
-    }
-  } else if (os_linux && linux_distro !== 'Other') {
-    switch (linux_distro) {
-      case 'Alpine':
-        commands.push(sudo + 'apk update');
-        commands.push(sudo + 'apk upgrade');
-        var packages = 'alpine-sdk linux-headers git zlib-dev openssl-dev gperf php php-ctype cmake';
-        if (target === 'JNI') {
-          packages += ' openjdk8';
+      function getSupportedOs(language) {
+        switch (language) {
+          case 'Choose a programming language:':
+          return [];
+          case 'JavaScript':
+          return ['Windows (Node.js)', 'Linux (Node.js)', 'macOS (Node.js)', 'FreeBSD (Node.js)', 'OpenBSD (Node.js)', 'NetBSD (Node.js)', 'Browser'];
+          case 'Java':
+          case 'Kotlin':
+          return ['Android', 'Windows', 'Linux', 'macOS', 'FreeBSD', 'OpenBSD'];
+          case 'C#':
+          return ['Windows (through C++/CLI)', 'Universal Windows Platform (through C++/CX)', 'Windows (.NET Core)', 'Linux (.NET Core)', 'macOS (.NET Core)', 'FreeBSD (.NET Core)'];
+          case 'Dart':
+          return ['Android', 'iOS', 'Windows', 'Linux', 'macOS', 'tvOS', 'watchOS'];
+          case 'Swift':
+          case 'Objective-C':
+          return ['Windows', 'Linux', 'macOS', 'iOS', 'tvOS', 'watchOS'];
+          default:
+          return ['Windows', 'Linux', 'macOS', 'FreeBSD', 'OpenBSD', 'NetBSD'];
         }
-        commands.push(sudo + 'apk add --update ' + packages);
-        break;
-      case 'Debian 8':
-      case 'Debian 9':
-      case 'Debian 10':
-      case 'Ubuntu 14':
-      case 'Ubuntu 16':
-      case 'Ubuntu 18':
-      case 'Ubuntu 20':
-        if (linux_distro.includes('Debian') && !use_root) {
-          commands.push('su -');
+      }
+
+      function getExampleAnchor(language) {
+        switch (language) {
+          case 'Python':
+          case 'JavaScript':
+          case 'Go':
+          case 'Java':
+          case 'Kotlin':
+          case 'Swift':
+          case 'Objective-C':
+          case 'Dart':
+          case 'Rust':
+          case 'Erlang':
+          case 'PHP':
+          case 'Lua':
+          case 'Ruby':
+          case 'Clojure':
+          case 'D':
+          case 'Elixir':
+          case 'C':
+          return language.toLowerCase();
+          case 'Object Pascal':
+          return 'object-pascal';
+          case 'C#':
+          return 'csharp';
+          case 'C++':
+          return 'cxx';
+          default:
+          return 'other';
         }
-        if (linux_distro === 'Ubuntu 14' && !use_clang) {
-          commands.push(sudo + 'add-apt-repository ppa:ubuntu-toolchain-r/test');
-        }
-        commands.push(sudo + 'apt-get update');
-        commands.push(sudo + 'apt-get upgrade');
-        var packages = 'make git zlib1g-dev libssl-dev gperf';
-        if (linux_distro === 'Ubuntu 14' || linux_distro === 'Debian 8') {
-          packages += ' php5';
+      }
+
+      function onLanguageChanged(initial) {
+        var language = document.getElementById('languageSelect').value;
+        var supported_os = getSupportedOs(language);
+        var os_select = document.getElementById('osSelect');
+
+        if (supported_os.length) {
+          document.getElementById('osSelectDiv').style.display = 'block';
         } else {
-          packages += ' php';
-        }
-        if (linux_distro === 'Ubuntu 14') {
-          packages += ' cmake3';
-        } else {
-          packages += ' cmake';
-        }
-        if (target === 'JNI') {
-          packages += ' default-jdk';
-        }
-        if (use_clang) {
-          packages += ' clang' + getClangVersionSuffix() + ' libc++-dev';
-          if (linux_distro === 'Debian 10' || linux_distro === 'Ubuntu 18' || linux_distro === 'Ubuntu 20') {
-            packages += ' libc++abi-dev';
+          if (history.state != '') {
+            history.pushState('', '', 'build.html');
           }
-        } else {
-          packages += ' g++';
-          if (linux_distro === 'Ubuntu 14') {
-            packages += '-4.9';
+          document.getElementById('osSelectDiv').style.display = 'none';
+          onOsChanged();
+          return;
+        }
+
+        if (!initial && history.state !== language) {
+          history.pushState(language, '', 'build.html?language=' + encodeURIComponent(language));
+        }
+
+        var existing_options = [];
+        for (var index = 1; index < os_select.length; index++) {
+          if (!supported_os.includes(os_select.options[index].value)) {
+            os_select.remove(index);
+            index--;
+          } else {
+            existing_options.push(os_select.options[index].value);
           }
         }
-        commands.push(sudo + 'apt-get install ' + packages);
-        if (linux_distro.includes('Debian') && !use_root) {
-          commands.push('exit');
+
+        for (os of supported_os) {
+          if (!existing_options.includes(os)) {
+            var option = document.createElement('option');
+            option.text = os;
+            os_select.add(option);
+          }
         }
-        break;
-    }
-  } else if (os_freebsd) {
-    commands.push(sudo + 'pkg upgrade');
-    var packages = 'git gperf php72 php72-ctype cmake';
-    if (target === 'JNI') {
-      packages += ' openjdk';
-    }
-    commands.push(sudo + 'pkg install ' + packages);
-  } else if (os_openbsd) {
-    if (!use_root) {
-      commands.push('su -');
-    }
-    var packages = 'git gperf php-7.2.10 cmake';
-    if (target === 'JNI') {
-      packages += ' jdk';
-    }
-    commands.push('pkg_add -z ' + packages);
-    if (!use_root) {
-      commands.push('exit');
-    }
 
-    php = "php-7.2";
-  } else if (os_netbsd) {
-    if (!use_root) {
-      commands.push('su -');
-    }
-    commands.push('export PKG_PATH=ftp://ftp.netbsd.org/pub/pkgsrc/packages/NetBSD/i386/8.0_2019Q2/All');
-    var packages = 'git gperf php-7.3.6 cmake openssl gcc5-libs';
-    commands.push('pkg_add ' + packages);
-    if (!use_root) {
-      commands.push('exit');
-    }
-  }
-  commands.push('git clone https://github.com/tdlib/td.git');
-
-  commands.push('cd td');
-  // commands.push('git checkout v1.6.0');
-
-  if (use_vcpkg) {
-    commands.push('git clone https://github.com/Microsoft/vcpkg.git');
-    commands.push('cd vcpkg');
-    commands.push(local + 'bootstrap-vcpkg.bat');
-    if (target === 'C++/CX') {
-      commands.push(local + 'vcpkg.exe install openssl-uwp:arm-uwp openssl-uwp:x64-uwp openssl-uwp:x86-uwp zlib:arm-uwp zlib:x64-uwp zlib:x86-uwp');
-    } else {
-      if (build_64bit) {
-        commands.push(local + 'vcpkg.exe install openssl:x64-windows zlib:x64-windows');
-      } else {
-        commands.push(local + 'vcpkg.exe install openssl:x86-windows zlib:x86-windows');
-      }
-    }
-    commands.push('cd ..');
-  }
-
-  function getBacicCmakeInitOptions() {
-    var options = [];
-    if (!use_msvc) {
-      options.push('-DCMAKE_BUILD_TYPE=' + (is_debug_build ? 'Debug' : 'Release'));
-    }
-    if (use_msvc) {
-      if (build_64bit) {
-        options.push('-A x64');
-      } else {
-        options.push('-A Win32');
-      }
-    }
-    return options;
-  }
-
-  if (target === 'C++/CX') {
-    commands.push('cd example/uwp');
-    var archiver_option = '';
-    switch (archiver) {
-      case 'zip':
-        archiver_option = ' -compress zip';
-        break;
-      case 'WinRAR':
-        archiver_option = ' -compress winrar';
-        break;
-    }
-
-    commands.push('powershell -ExecutionPolicy ByPass ' + local + 'build.ps1 -mode clean');
-    commands.push('powershell -ExecutionPolicy ByPass ' + local + 'build.ps1 -vcpkg_root ../../vcpkg' + archiver_option);
-    if (install_dir) {
-      commands.push('cp build-uwp/vsix/tdlib.vsix ' + install_dir);
-    }
-    commands.push('cd ../..');
-  } else {
-    commands.push(use_powershell ? 'Remove-Item build -Force -Recurse -ErrorAction SilentlyContinue' : 'rm -rf build');
-    commands.push('mkdir build');
-    commands.push('cd build');
-
-    if (!use_msvc) {
-      var c_flags = [];
-      var cxx_flags = [];
-
-      if (build_32bit) {
-        c_flags.push('-m32');
-        cxx_flags.push('-m32');
-      } else if (build_64bit) {
-        c_flags.push('-m64');
-        cxx_flags.push('-m64');
+        onOsChanged();
       }
 
-      if (os_linux) {
-        if (use_clang) {
-          cxx_flags.push('-stdlib=libc++');
+      function getTarget(language, os) {
+        var supported_os = getSupportedOs(language);
+        if (!supported_os.includes(os)) {
+          return null;
+        }
+
+        if (os.includes('C++/CLI')) {
+          return 'C++/CLI';
+        }
+        if (os.includes('C++/CX')) {
+          return 'C++/CX';
+        }
+        if (os.includes('Browser')) {
+          return 'WebAssembly';
+        }
+        if (os.includes('Android')) {
+          return 'Android';
+        }
+        if (os.includes('iOS') || os.includes('tvOS') || os.includes('watchOS')) {
+          return 'iOS';
+        }
+
+        switch (language) {
+          case 'C++':
+          return 'tdclient';
+          case 'Java':
+          case 'Kotlin':
+          return 'JNI';
+          default:
+          return 'tdjson';
+        }
+      }
+
+      function getTargetName(target) {
+        switch (target) {
+          case 'tdjson':
+          case 'WebAssembly':
+          case 'iOS':
+          return '<a href="https://github.com/tdlib/td#using-json">JSON</a>';
+          case 'tdclient':
+          return '<a href="https://github.com/tdlib/td#using-cxx">a simple and convenient C++11-interface</a>';
+          case 'JNI':
+          case 'Android':
+          return '<a href="https://github.com/tdlib/td#using-java">native ' + target + '</a>';
+          default:
+          return '<a href="https://github.com/tdlib/td#using-dotnet">native ' + target + '</a>';
+        }
+      }
+
+      function onOsChanged() {
+        var language = document.getElementById('languageSelect').value;
+        var os = document.getElementById('osSelect').value;
+        var target = getTarget(language, os);
+
+        document.getElementById('buildTextDiv').style.display = target ? 'block' : 'none';
+
+        if (language === 'Other') {
+          language = 'any other programming language';
+        }
+        var text = 'TDLib can be used from ' + language + ' on ' + os + ' through the ' + getTargetName(target) + ' interface.<br>' +
+        'See <a href="https://github.com/tdlib/td/blob/master/example/README.md#' + getExampleAnchor(language) + '">examples</a> of such usage and already available third-party frameworks.<br>';
+
+        if (target === 'WebAssembly') {
+          text = 'TDLib is available in a prebuilt form as an <a href="https://www.npmjs.com/">NPM</a> package <a href="https://www.npmjs.com/package/tdweb">tdweb</a>.<br>' +
+          'If you want to build it manually, take a look at our <a href="https://github.com/tdlib/td/tree/master/example/web">example</a>.';
+          target = '';
+        }
+        if (target === 'Android') {
+          text = 'TDLib for Android is available in a prebuilt form and can be downloaded from <a href="https://core.telegram.org/tdlib/tdlib.zip">there</a>.<br>' +
+          'See <a href="https://github.com/tdlib/td/issues/77#issuecomment-640719893">build instructions</a> if you want to build the latest TDLib version or want to build TDLib with different interface.';
+          target = '';
+        }
+        if (target === 'iOS') {
+          target = '';
+        }
+        document.getElementById('buildText').innerHTML = text;
+
+        if (!target) {
+          document.getElementById('linuxSelectDiv').style.display = 'none';
+          document.getElementById('buildOptionsDiv').style.display = 'none';
+          document.getElementById('buildCommandsDiv').style.display = 'none';
+          return;
+        }
+
+        var os_linux = os.includes('Linux');
+        if (os_linux) {
+          document.getElementById('linuxSelectDiv').style.display = 'block';
+
+          var linux_distro = document.getElementById('linuxSelect').value;
+          if (linux_distro.includes('Choose ')) {
+            document.getElementById('buildTextDiv').style.display = 'none';
+            document.getElementById('buildOptionsDiv').style.display = 'none';
+            document.getElementById('buildCommandsDiv').style.display = 'none';
+            return;
+          }
         } else {
-          cxx_flags.push('');
+          document.getElementById('linuxSelectDiv').style.display = 'none';
         }
+
+        document.getElementById('buildOptionsDiv').style.display = 'block';
+
+        onOptionsChanged();
       }
 
-      if (c_flags.length) {
-        commands.push('export CFLAGS="' + c_flags.join(' ') + '"');
-      }
-      if (cxx_flags.length) {
-        commands.push('export CXXFLAGS="' + cxx_flags.join(' ') + '"');
-      }
-    }
+      function onOptionsChanged() {
+        var language = document.getElementById('languageSelect').value;
+        var os = document.getElementById('osSelect').value;
+        var target = getTarget(language, os);
 
-    cmake_init_options = getBacicCmakeInitOptions();
-    if (os_mac) {
-      cmake_init_options.push('-DOPENSSL_ROOT_DIR=/usr/local/opt/openssl/');
-    }
-    if (install_dir) {
-      cmake_init_options.push('-DCMAKE_INSTALL_PREFIX:PATH=' + install_dir);
-    }
-    if (target === 'JNI') {
-      cmake_init_options.push('-DTD_ENABLE_JNI=ON');
-      if (linux_distro === 'Alpine') {
-        cmake_init_options.push('-DJAVA_HOME=/usr/lib/jvm/java-1.8-openjdk/');
-      }
-      if (os_freebsd) {
-        cmake_init_options.push('-DJAVA_HOME=/usr/local/openjdk7/');
-      }
-    }
-    if (target === 'C++/CX' || target === 'C++/CLI') {
-      cmake_init_options.push('-DTD_ENABLE_DOTNET=ON');
-    }
-    if (use_lto) {
-      cmake_init_options.push('-DTD_ENABLE_LTO=ON');
-    }
-    if (use_vcpkg) {
-      cmake_init_options.push('-DCMAKE_TOOLCHAIN_FILE:FILEPATH=../vcpkg/scripts/buildsystems/vcpkg.cmake');
-    }
+        var os_windows = os.includes('Windows');
+        var os_linux = os.includes('Linux');
+        var os_mac = os.includes('macOS');
+        var os_freebsd = os.includes('FreeBSD');
+        var os_openbsd = os.includes('OpenBSD');
+        var os_netbsd = os.includes('NetBSD');
 
-    function getCmakeInitCommand(options) {
-      var prefix = '';
-      if (os_linux) {
-        if (use_clang) {
-          var clang_version_suffix = getClangVersionSuffix();
-          prefix = 'CC=/usr/bin/clang' + clang_version_suffix + ' CXX=/usr/bin/clang++' + clang_version_suffix + ' ';
+        var linux_distro = 'none';
+        if (os_linux) {
+          linux_distro = document.getElementById('linuxSelect').value;
+        }
+        document.getElementById('buildCommandsDiv').style.display = 'block';
+
+        var use_clang = os_freebsd || os_openbsd;
+        if (os_linux && linux_distro !== 'Alpine') {
+          document.getElementById('buildCompilerDiv').style.display = 'block';
+          use_clang = document.getElementById('buildCompilerRadioClang').checked;
+        } else {
+          document.getElementById('buildCompilerDiv').style.display = 'none';
+        }
+
+        var low_memory = false;
+        if (os_linux || os_freebsd || os_netbsd) {
+          low_memory = document.getElementById('buildLowMemoryCheckbox').checked;
+          document.getElementById('buildLowMemoryText').innerHTML = 'I have less than ' + (use_clang ? '1.5' : '3.5') +' GB of RAM.' +
+          (low_memory ? ' Now you will need only ' + (use_clang ? '0.5' : '1') +' GB of RAM to build TDLib.' : '');
+          document.getElementById('buildLowMemoryDiv').style.display = 'block';
+        } else {
+          if (os_openbsd) {
+            low_memory = true;
+          }
+          document.getElementById('buildLowMemoryDiv').style.display = 'none';
+        }
+
+        var use_root = false;
+        if ((os_linux && linux_distro !== 'Other') || os_openbsd || os_netbsd) {
+          use_root = document.getElementById('buildRootCheckbox').checked;
+          document.getElementById('buildRootDiv').style.display = 'block';
+        } else {
+          document.getElementById('buildRootDiv').style.display = 'none';
+        }
+
+        var use_powershell = false;
+        var use_cmd = false;
+        var use_csh = false;
+        if (os_windows) {
+          document.getElementById('buildShellDiv').style.display = 'block';
+          use_powershell = document.getElementById('buildShellRadioPowerShell').checked;
+        } else {
+          document.getElementById('buildShellDiv').style.display = 'none';
+        }
+        if (os_freebsd) {
+          document.getElementById('buildShellBsdDiv').style.display = 'block';
+          use_csh = document.getElementById('buildShellBsdRadioCsh').checked;
+        } else {
+          document.getElementById('buildShellBsdDiv').style.display = 'none';
+        }
+
+        var use_msvc = os_windows;
+        var use_vcpkg = os_windows;
+
+        var use_lto = false;
+        if (!use_msvc && language !== 'Java' && language !== 'Kotlin' && (os_mac || (os_linux && (linux_distro === 'Ubuntu 18' || linux_distro === 'Ubuntu 20' || linux_distro === 'Other')))) {
+          document.getElementById('buildLtoDiv').style.display = 'block';
+          use_lto = document.getElementById('buildLtoCheckbox').checked;
+        } else {
+          document.getElementById('buildLtoDiv').style.display = 'none';
+        }
+
+        var archiver = 'none';
+        if (target === 'C++/CX') {
+          document.getElementById('buildArchiverDiv').style.display = 'block';
+          if (document.getElementById('buildArchiverRadio7Zip').checked) {
+            archiver = '7zip';
+          } else if (document.getElementById('buildArchiverRadioZip').checked) {
+            archiver = 'zip';
+          } else if (document.getElementById('buildArchiverRadioWinRar').checked) {
+            archiver = 'WinRAR';
+          }
+        } else {
+          document.getElementById('buildArchiverDiv').style.display = 'none';
+        }
+
+        var is_debug_build = false;
+        if (target !== 'C++/CX' && target !== 'C++/CLI') {
+          document.getElementById('buildDebugDiv').style.display = 'block';
+          is_debug_build = document.getElementById('buildDebugCheckbox').checked;
+        } else {
+          document.getElementById('buildDebugDiv').style.display = 'none';
+        }
+
+        var sudo = 'sudo ';
+        if (use_root || linux_distro.includes('Debian') || os_freebsd || os_openbsd || os_netbsd) {
+          sudo = '';
+        }
+
+        var build_32bit = false;
+        var build_64bit = false;
+        if (use_msvc && target !== 'C++/CX') {
+          document.getElementById('buildBitnessDiv').style.display = 'block';
+          build_32bit = document.getElementById('buildBitnessRadio32').checked;
+          build_64bit = document.getElementById('buildBitnessRadio64').checked;
+        } else {
+          document.getElementById('buildBitnessDiv').style.display = 'none';
+        }
+
+        var local = './';
+        if (use_cmd) {
+          local = '.\\';
+        }
+
+        var install_dir = 'td/tdlib';
+        if (!os_windows) {
+          document.getElementById('buildInstallLocalDiv').style.display = 'block';
+          if (document.getElementById('buildInstallLocalCheckbox').checked) {
+            install_dir = '/usr/local';
+          }
+        } else {
+          document.getElementById('buildInstallLocalDiv').style.display = 'none';
+        }
+
+        var pre_text = [];
+        if (os_windows) {
+          let win10_sdk = (target === 'C++/CX' ? ' and Windows 10 SDK' : '');
+          if (target !== 'C++/CLI' && target !== 'C++/CX') {
+            pre_text.push('Note that Windows Subsystem for Linux (WSL) and Cygwin are not Windows environments, so you need to use instructions for Linux for them instead.');
+          }
+          pre_text.push('Download and install <a href="https://visualstudio.microsoft.com/ru/vs/community/">Microsoft Visual Studio</a>. Enable C++' + win10_sdk + ' support while installing.');
+          pre_text.push('Download and install <a href="https://cmake.org/download/">CMake</a>; choose "Add CMake to the system PATH" option while installing.');
+          pre_text.push('Download and install <a href="https://git-scm.com/download/win">Git</a>.');
+          pre_text.push('Download and install <a href="https://sourceforge.net/projects/gnuwin32/files/gperf/3.0.1/">gperf</a>. Add the path to gperf.exe to the PATH environment variable.');
+          pre_text.push('Download and unpack <a href="https://windows.php.net/download#php-7.2">PHP</a>. Add the path to php.exe to the PATH environment variable.');
+          if (target === 'C++/CX') {
+            switch (archiver) {
+              case '7zip':
+              pre_text.push('Download and install <a href="http://www.7-zip.org/download.html">7-Zip</a> archiver. Add the path to 7z.exe to the PATH environment variable.');
+              break;
+              case 'zip':
+              pre_text.push('Download and install <a href="http://gnuwin32.sourceforge.net/packages/zip.htm">zip</a> archiver. Add the path to zip.exe to the PATH environment variable.');
+              break;
+              case 'WinRAR':
+              pre_text.push('You need bought and installed <a href="https://www.win-rar.com/start.html?&L=4">WinRAR</a> archiver. Add the path to WinRAR.exe to the PATH environment variable.');
+              break;
+            }
+          }
+        }
+        if (target === 'JNI') {
+          if (os_windows) {
+            pre_text.push('Download and install <a href="https://www.oracle.com/technetwork/java/javase/downloads/index.html">JDK</a>.');
+          } else if (os_linux && linux_distro === 'Alpine') {
+            pre_text.push('Add community repository for your Alpine version (not edge) in /etc/apk/repositories. For example, you can do it through vim, preliminary installing it via "apk add --update vim".');
+          }
+        }
+        if (os_linux && linux_distro === 'Other') {
+          var jdk = target === 'JNI' ? ', JDK ' : '';
+          var compiler = use_clang ? 'clang++ >= 3.4' : 'g++ >= 4.9.2';
+          pre_text.push('Install Git, ' + compiler + ', make, CMake >= 3.0.2, OpenSSL-dev, zlib-dev, gperf, PHP' + jdk + ' using your package manager.');
+        }
+        if (os_linux && os.includes('Node.js')) {
+          pre_text.push('Note that for Node.js &le; 9.11.2 you must build TDLib with OpenSSL 1.0.* and for Node.js &ge; 10 with OpenSSL 1.1.* instead, so you may need to modify the following commands to install a proper OpenSSL version.');
+        }
+        if (os_freebsd) {
+          pre_text.push('Note that the following instruction is for FreeBSD 11.');
+          pre_text.push('Note that the following calls to <code>pkg</code> needs to be run as <code>root</code>.');
+        }
+        if (os_openbsd) {
+          pre_text.push('Note that the following instruction is for OpenBSD 6.7 and default KSH shell.');
+          pre_text.push('Note that building requires a lot of memory, so you may need to increase allowed per-process memory usage in /etc/login.conf or build from root.');
+        }
+        if (os_netbsd) {
+          pre_text.push('Note that the following instruction is for NetBSD 8.0 and default SH shell.');
+        }
+
+        var terminal_name = (function () {
+          if (os_windows) {
+            return use_powershell ? 'PowerShell' : 'mintty/Bash';
+          }
+          if (os_mac) {
+            return 'Terminal';
+          }
+          if (os_openbsd) {
+            return 'ksh';
+          }
+          if (os_netbsd) {
+            return 'sh';
+          }
+          if (use_csh) {
+            return 'tcsh/csh';
+          }
+          return 'Bash';
+        })();
+        if (os_windows) {
+          pre_text.push('Close and re-open ' + terminal_name + ' if the PATH environment variable was changed.');
+        }
+        pre_text.push('Run these commands in ' + terminal_name + ' to build TDLib and to install it to ' + install_dir + ':');
+        document.getElementById('buildPre').innerHTML = '<ul><li>' + pre_text.join('</li><li>') + '</li></ul>';
+        document.getElementById('buildPre').style.display = 'block';
+
+        if (install_dir && install_dir !== '/usr/local') {
+          install_dir = '../tdlib';
+          if (target === 'JNI' || target === 'C++/CX') {
+            install_dir = '../../' + install_dir;
+          }
+        }
+        var jni_install_dir = '';
+        if (target === 'JNI') {
+          jni_install_dir = install_dir;
+          install_dir = '../example/java/td';
+        }
+
+        function getClangVersionSuffix() {
+          switch (linux_distro) {
+            case 'Ubuntu 14':
+            return '-3.9';
+            case 'Ubuntu 18':
+            return '-6.0';
+            case 'Ubuntu 20':
+            return '-10';
+            default:
+            return ''; // use default version
+          }
+        }
+
+        var commands = [];
+
+        var php = "php";
+        if (os_mac) {
+          commands.push('xcode-select --install');
+          commands.push('/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"');
+          commands.push('brew install gperf cmake openssl' + (target === 'JNI' ? ' coreutils' : ''));
+          if (target === 'JNI') {
+            commands.push('brew cask install java');
+          }
+        } else if (os_linux && linux_distro !== 'Other') {
+          switch (linux_distro) {
+            case 'Alpine':
+            commands.push(sudo + 'apk update');
+            commands.push(sudo + 'apk upgrade');
+            var packages = 'alpine-sdk linux-headers git zlib-dev openssl-dev gperf php php-ctype cmake';
+            if (target === 'JNI') {
+              packages += ' openjdk8';
+            }
+            commands.push(sudo + 'apk add --update ' + packages);
+            break;
+            case 'Debian 8':
+            case 'Debian 9':
+            case 'Debian 10':
+            case 'Ubuntu 14':
+            case 'Ubuntu 16':
+            case 'Ubuntu 18':
+            case 'Ubuntu 20':
+            if (linux_distro.includes('Debian') && !use_root) {
+              commands.push('su -');
+            }
+            if (linux_distro === 'Ubuntu 14' && !use_clang) {
+              commands.push(sudo + 'add-apt-repository ppa:ubuntu-toolchain-r/test');
+            }
+            commands.push(sudo + 'apt-get update');
+            commands.push(sudo + 'apt-get upgrade');
+            var packages = 'make git zlib1g-dev libssl-dev gperf';
+            if (linux_distro === 'Ubuntu 14' || linux_distro === 'Debian 8') {
+              packages += ' php5';
+            } else {
+              packages += ' php';
+            }
+            if (linux_distro === 'Ubuntu 14') {
+              packages += ' cmake3';
+            } else {
+              packages += ' cmake';
+            }
+            if (target === 'JNI') {
+              packages += ' default-jdk';
+            }
+            if (use_clang) {
+              packages += ' clang' + getClangVersionSuffix() + ' libc++-dev';
+              if (linux_distro === 'Debian 10' || linux_distro === 'Ubuntu 18' || linux_distro === 'Ubuntu 20') {
+                packages += ' libc++abi-dev';
+              }
+            } else {
+              packages += ' g++';
+              if (linux_distro === 'Ubuntu 14') {
+                packages += '-4.9';
+              }
+            }
+            commands.push(sudo + 'apt-get install ' + packages);
+            if (linux_distro.includes('Debian') && !use_root) {
+              commands.push('exit');
+            }
+            break;
+          }
+        } else if (os_freebsd) {
+          commands.push(sudo + 'pkg upgrade');
+          var packages = 'git gperf php72 php72-ctype cmake';
+          if (target === 'JNI') {
+            packages += ' openjdk';
+          }
+          commands.push(sudo + 'pkg install ' + packages);
+        } else if (os_openbsd) {
+          if (!use_root) {
+            commands.push('su -');
+          }
+          var packages = 'git gperf php-7.2.10 cmake';
+          if (target === 'JNI') {
+            packages += ' jdk';
+          }
+          commands.push('pkg_add -z ' + packages);
+          if (!use_root) {
+            commands.push('exit');
+          }
+
+          php = "php-7.2";
+        } else if (os_netbsd) {
+          if (!use_root) {
+            commands.push('su -');
+          }
+          commands.push('export PKG_PATH=ftp://ftp.netbsd.org/pub/pkgsrc/packages/NetBSD/i386/8.0_2019Q2/All');
+          var packages = 'git gperf php-7.3.6 cmake openssl gcc5-libs';
+          commands.push('pkg_add ' + packages);
+          if (!use_root) {
+            commands.push('exit');
+          }
+        }
+        commands.push('git clone https://github.com/tdlib/td.git');
+
+        commands.push('cd td');
+
+        if (use_vcpkg) {
+          commands.push('git clone https://github.com/Microsoft/vcpkg.git');
+          commands.push('cd vcpkg');
+          commands.push(local + 'bootstrap-vcpkg.bat');
+          if (target === 'C++/CX') {
+            commands.push(local + 'vcpkg.exe install openssl-uwp:arm-uwp openssl-uwp:x64-uwp openssl-uwp:x86-uwp zlib:arm-uwp zlib:x64-uwp zlib:x86-uwp');
+          } else {
+            if (build_64bit) {
+              commands.push(local + 'vcpkg.exe install openssl:x64-windows zlib:x64-windows');
+            } else {
+              commands.push(local + 'vcpkg.exe install openssl:x86-windows zlib:x86-windows');
+            }
+          }
+          commands.push('cd ..');
+        }
+
+        function getBacicCmakeInitOptions() {
+          var options = [];
+          if (!use_msvc) {
+            options.push('-DCMAKE_BUILD_TYPE=' + (is_debug_build ? 'Debug' : 'Release'));
+          }
+          if (use_msvc) {
+            if (build_64bit) {
+              options.push('-A x64');
+            } else {
+              options.push('-A Win32');
+            }
+          }
+          return options;
+        }
+
+        if (target === 'C++/CX') {
+          commands.push('cd example/uwp');
+          var archiver_option = '';
+          switch (archiver) {
+            case 'zip':
+            archiver_option = ' -compress zip';
+            break;
+            case 'WinRAR':
+            archiver_option = ' -compress winrar';
+            break;
+          }
+
+          commands.push('powershell -ExecutionPolicy ByPass ' + local + 'build.ps1 -mode clean');
+          commands.push('powershell -ExecutionPolicy ByPass ' + local + 'build.ps1 -vcpkg_root ../../vcpkg' + archiver_option);
+          if (install_dir) {
+            commands.push('cp build-uwp/vsix/tdlib.vsix ' + install_dir);
+          }
+          commands.push('cd ../..');
+        } else {
+          commands.push(use_powershell ? 'Remove-Item build -Force -Recurse -ErrorAction SilentlyContinue' : 'rm -rf build');
+          commands.push('mkdir build');
+          commands.push('cd build');
+
+          if (!use_msvc) {
+            var c_flags = [];
+            var cxx_flags = [];
+
+            if (build_32bit) {
+              c_flags.push('-m32');
+              cxx_flags.push('-m32');
+            } else if (build_64bit) {
+              c_flags.push('-m64');
+              cxx_flags.push('-m64');
+            }
+
+            if (os_linux) {
+              if (use_clang) {
+                cxx_flags.push('-stdlib=libc++');
+              } else {
+                cxx_flags.push('');
+              }
+            }
+
+            if (c_flags.length) {
+              commands.push('export CFLAGS="' + c_flags.join(' ') + '"');
+            }
+            if (cxx_flags.length) {
+              commands.push('export CXXFLAGS="' + cxx_flags.join(' ') + '"');
+            }
+          }
+
+          cmake_init_options = getBacicCmakeInitOptions();
+          if (os_mac) {
+            cmake_init_options.push('-DOPENSSL_ROOT_DIR=/usr/local/opt/openssl/');
+          }
+          if (install_dir) {
+            cmake_init_options.push('-DCMAKE_INSTALL_PREFIX:PATH=' + install_dir);
+          }
+          if (target === 'JNI') {
+            cmake_init_options.push('-DTD_ENABLE_JNI=ON');
+            if (linux_distro === 'Alpine') {
+              cmake_init_options.push('-DJAVA_HOME=/usr/lib/jvm/java-1.8-openjdk/');
+            }
+            if (os_freebsd) {
+              cmake_init_options.push('-DJAVA_HOME=/usr/local/openjdk7/');
+            }
+          }
+          if (target === 'C++/CX' || target === 'C++/CLI') {
+            cmake_init_options.push('-DTD_ENABLE_DOTNET=ON');
+          }
           if (use_lto) {
-            options.push('-DCMAKE_AR=/usr/bin/llvm-ar' + clang_version_suffix);
-            options.push('-DCMAKE_NM=/usr/bin/llvm-nm' + clang_version_suffix);
-            options.push('-DCMAKE_OBJDUMP=/usr/bin/llvm-objdump' + clang_version_suffix);
-            options.push('-DCMAKE_RANLIB=/usr/bin/llvm-ranlib' + clang_version_suffix);
+            cmake_init_options.push('-DTD_ENABLE_LTO=ON');
           }
-        } else if (linux_distro === 'Ubuntu 14') {
-          prefix = 'CC=/usr/bin/gcc-4.9 CXX=/usr/bin/g++-4.9 ';
+          if (use_vcpkg) {
+            cmake_init_options.push('-DCMAKE_TOOLCHAIN_FILE:FILEPATH=../vcpkg/scripts/buildsystems/vcpkg.cmake');
+          }
+
+          function getCmakeInitCommand(options) {
+            var prefix = '';
+            if (os_linux) {
+              if (use_clang) {
+                var clang_version_suffix = getClangVersionSuffix();
+                prefix = 'CC=/usr/bin/clang' + clang_version_suffix + ' CXX=/usr/bin/clang++' + clang_version_suffix + ' ';
+                if (use_lto) {
+                  options.push('-DCMAKE_AR=/usr/bin/llvm-ar' + clang_version_suffix);
+                  options.push('-DCMAKE_NM=/usr/bin/llvm-nm' + clang_version_suffix);
+                  options.push('-DCMAKE_OBJDUMP=/usr/bin/llvm-objdump' + clang_version_suffix);
+                  options.push('-DCMAKE_RANLIB=/usr/bin/llvm-ranlib' + clang_version_suffix);
+                }
+              } else if (linux_distro === 'Ubuntu 14') {
+                prefix = 'CC=/usr/bin/gcc-4.9 CXX=/usr/bin/g++-4.9 ';
+              }
+            }
+            return prefix + 'cmake ' + options.join(' ') + ' ..';
+          }
+          commands.push(getCmakeInitCommand(cmake_init_options));
+
+          if (low_memory) {
+            commands.push('cmake --build . --target prepare_cross_compiling');
+            commands.push('cd ..');
+            commands.push(php + ' SplitSource.php');
+            commands.push('cd build');
+          }
+
+          let build_command = 'cmake --build .';
+          if (install_dir) {
+            build_command += ' --target install';
+          }
+          if (use_msvc) {
+            if (target === 'C++/CLI' || !is_debug_build) {
+              commands.push(build_command + ' --config Release');
+            }
+            if (target === 'C++/CLI' || is_debug_build) {
+              commands.push(build_command + ' --config Debug');
+            }
+          } else {
+            commands.push(build_command);
+          }
+          if (install_dir && os_linux && linux_distro === 'Debian 8') {
+            commands.push('sed -i "s/LINK_ONLY:td/LINK_ONLY:Td::td/g" ' + install_dir + '/lib/cmake/Td/TdTargets.cmake');
+          }
+          commands.push('cd ..');
+          if (target === 'JNI') {
+            commands.push('cd example/java');
+            commands.push(use_powershell ? 'Remove-Item build -Force -Recurse -ErrorAction SilentlyContinue' : 'rm -rf build');
+            commands.push('mkdir build');
+            commands.push('cd build');
+
+            cmake_init_options = getBacicCmakeInitOptions();
+            if (jni_install_dir) {
+              cmake_init_options.push('-DCMAKE_INSTALL_PREFIX:PATH=' + jni_install_dir);
+            }
+            if (use_vcpkg) {
+              cmake_init_options.push('-DCMAKE_TOOLCHAIN_FILE:FILEPATH=../../../vcpkg/scripts/buildsystems/vcpkg.cmake');
+            }
+            var is_alpine = os_linux && linux_distro === 'Alpine';
+            if (is_alpine) {
+              cmake_init_options.push('-DJAVA_HOME=/usr/lib/jvm/java-1.8-openjdk/');
+            }
+            if (os_freebsd) {
+              cmake_init_options.push('-DJAVA_HOME=/usr/local/openjdk7/');
+            }
+            var resolve_path = use_powershell ? 'Resolve-Path' : (os_mac ? 'greadlink -e' : (is_alpine || os_freebsd || os_openbsd || os_netbsd ? 'readlink -f' : 'readlink -e'));
+            var resolved_path = resolve_path + ' ../td/lib/cmake/Td';
+            if (use_csh) {
+              cmake_init_options.push('-DTd_DIR:PATH=$td_dir');
+              commands.push('set td_dir=`' + resolved_path + '` ; ' + getCmakeInitCommand(cmake_init_options));
+            } else {
+              cmake_init_options.push('-DTd_DIR:PATH=$(' + resolved_path + ')');
+              commands.push(getCmakeInitCommand(cmake_init_options));
+            }
+
+            build_command = 'cmake --build .';
+            if (jni_install_dir) {
+              build_command += ' --target install';
+            }
+            if (use_msvc) {
+              build_command += (is_debug_build ? ' --config Debug' : ' --config Release');
+            }
+            commands.push(build_command);
+            commands.push('cd ../../..');
+          } else if (target === 'C++/CX' || target === 'C++/CLI') {
+            commands.push('git checkout td/telegram/Client.h td/telegram/Log.h td/tl/TlObject.h');
+          }
+          if (low_memory) {
+            commands.push(php + ' SplitSource.php --undo');
+          }
+          commands.push('cd ..');
         }
+        if (jni_install_dir) {
+          install_dir = jni_install_dir;
+        }
+        if (install_dir) {
+          if (install_dir !== '/usr/local') {
+            install_dir = 'td/tdlib';
+          }
+          commands.push((use_powershell ? 'dir ' : 'ls -l ') + install_dir);
+        }
+        document.getElementById('buildCommands').innerHTML = '<ul><li>' + commands.join('</li><li>') + '</li></ul>';
       }
-      return prefix + 'cmake ' + options.join(' ') + ' ..';
-    }
-    commands.push(getCmakeInitCommand(cmake_init_options));
-
-    if (low_memory) {
-      commands.push('cmake --build . --target prepare_cross_compiling');
-      commands.push('cd ..');
-      commands.push(php + ' SplitSource.php');
-      commands.push('cd build');
-    }
-
-    let build_command = 'cmake --build .';
-    if (install_dir) {
-      build_command += ' --target install';
-    }
-    if (use_msvc) {
-      if (target === 'C++/CLI' || !is_debug_build) {
-        commands.push(build_command + ' --config Release');
-      }
-      if (target === 'C++/CLI' || is_debug_build) {
-        commands.push(build_command + ' --config Debug');
-      }
-    } else {
-      commands.push(build_command);
-    }
-    if (install_dir && os_linux && linux_distro === 'Debian 8') {
-      commands.push('sed -i "s/LINK_ONLY:td/LINK_ONLY:Td::td/g" ' + install_dir + '/lib/cmake/Td/TdTargets.cmake');
-    }
-    commands.push('cd ..');
-    if (target === 'JNI') {
-      commands.push('cd example/java');
-      commands.push(use_powershell ? 'Remove-Item build -Force -Recurse -ErrorAction SilentlyContinue' : 'rm -rf build');
-      commands.push('mkdir build');
-      commands.push('cd build');
-
-      cmake_init_options = getBacicCmakeInitOptions();
-      if (jni_install_dir) {
-        cmake_init_options.push('-DCMAKE_INSTALL_PREFIX:PATH=' + jni_install_dir);
-      }
-      if (use_vcpkg) {
-        cmake_init_options.push('-DCMAKE_TOOLCHAIN_FILE:FILEPATH=../../../vcpkg/scripts/buildsystems/vcpkg.cmake');
-      }
-      var is_alpine = os_linux && linux_distro === 'Alpine';
-      if (is_alpine) {
-        cmake_init_options.push('-DJAVA_HOME=/usr/lib/jvm/java-1.8-openjdk/');
-      }
-      if (os_freebsd) {
-        cmake_init_options.push('-DJAVA_HOME=/usr/local/openjdk7/');
-      }
-      var resolve_path = use_powershell ? 'Resolve-Path' : (os_mac ? 'greadlink -e' : (is_alpine || os_freebsd || os_openbsd || os_netbsd ? 'readlink -f' : 'readlink -e'));
-      var resolved_path = resolve_path + ' ../td/lib/cmake/Td';
-      if (use_csh) {
-        cmake_init_options.push('-DTd_DIR:PATH=$td_dir');
-        commands.push('set td_dir=`' + resolved_path + '` ; ' + getCmakeInitCommand(cmake_init_options));
-      } else {
-        cmake_init_options.push('-DTd_DIR:PATH=$(' + resolved_path + ')');
-        commands.push(getCmakeInitCommand(cmake_init_options));
-      }
-
-      build_command = 'cmake --build .';
-      if (jni_install_dir) {
-        build_command += ' --target install';
-      }
-      if (use_msvc) {
-        build_command += (is_debug_build ? ' --config Debug' : ' --config Release');
-      }
-      commands.push(build_command);
-      commands.push('cd ../../..');
-    } else if (target === 'C++/CX' || target === 'C++/CLI') {
-      commands.push('git checkout td/telegram/Client.h td/telegram/Log.h td/tl/TlObject.h');
-    }
-    if (low_memory) {
-      commands.push(php + ' SplitSource.php --undo');
-    }
-    commands.push('cd ..');
-  }
-  if (jni_install_dir) {
-    install_dir = jni_install_dir;
-  }
-  if (install_dir) {
-    if (install_dir !== '/usr/local') {
-      install_dir = 'td/tdlib';
-    }
-    commands.push((use_powershell ? 'dir ' : 'ls -l ') + install_dir);
-  }
-  document.getElementById('buildCommands').innerHTML = '<ul><li>' + commands.join('</li><li>') + '</li></ul>';
-}
-
-</script>
-
-</body>
+    </script>
+  </body>
 </html>
