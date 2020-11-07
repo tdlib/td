@@ -424,51 +424,8 @@ class GetDiscussionMessageQuery : public Td::ResultHandler {
       return on_error(id, result_ptr.move_as_error());
     }
 
-    auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive discussion message for " << message_id_ << " in " << dialog_id_ << ": " << to_string(ptr);
-    td->contacts_manager_->on_get_users(std::move(ptr->users_), "GetDiscussionMessageQuery");
-    td->contacts_manager_->on_get_chats(std::move(ptr->chats_), "GetDiscussionMessageQuery");
-
-    MessageId max_message_id;
-    MessageId last_read_inbox_message_id;
-    MessageId last_read_outbox_message_id;
-    if ((ptr->flags_ & telegram_api::messages_discussionMessage::MAX_ID_MASK) != 0) {
-      max_message_id = MessageId(ServerMessageId(ptr->max_id_));
-    }
-    if ((ptr->flags_ & telegram_api::messages_discussionMessage::READ_INBOX_MAX_ID_MASK) != 0) {
-      last_read_inbox_message_id = MessageId(ServerMessageId(ptr->read_inbox_max_id_));
-    }
-    if ((ptr->flags_ & telegram_api::messages_discussionMessage::READ_OUTBOX_MAX_ID_MASK) != 0) {
-      last_read_outbox_message_id = MessageId(ServerMessageId(ptr->read_outbox_max_id_));
-    }
-    if (expected_dialog_id_ != dialog_id_) {
-      td->messages_manager_->on_update_read_message_comments(dialog_id_, message_id_, max_message_id,
-                                                             last_read_inbox_message_id, last_read_outbox_message_id);
-    }
-
-    vector<FullMessageId> full_message_ids;
-    MessageId top_message_id;
-    for (auto &message : ptr->messages_) {
-      auto full_message_id = td->messages_manager_->on_get_message(std::move(message), false, true, false, false, false,
-                                                                   "GetDiscussionMessageQuery");
-      if (full_message_id.get_message_id().is_valid()) {
-        full_message_ids.push_back(full_message_id);
-        if (full_message_id.get_dialog_id() != expected_dialog_id_) {
-          return on_error(id, Status::Error(500, "Expected messages in a different chat"));
-        }
-        if (full_message_id.get_message_id() == expected_message_id_) {
-          top_message_id = expected_message_id_;
-        }
-      }
-    }
-    if (!full_message_ids.empty() && !top_message_id.is_valid()) {
-      top_message_id = full_message_ids.back().get_message_id();
-    }
-    if (top_message_id.is_valid()) {
-      td->messages_manager_->on_update_read_message_comments(expected_dialog_id_, top_message_id, max_message_id,
-                                                             last_read_inbox_message_id, last_read_outbox_message_id);
-    }
-    promise_.set_value(std::move(full_message_ids));
+    td->messages_manager_->process_discussion_message(result_ptr.move_as_ok(), dialog_id_, message_id_,
+                                                      expected_dialog_id_, expected_message_id_, std::move(promise_));
   }
 
   void on_error(uint64 id, Status status) override {
@@ -16255,6 +16212,56 @@ void MessagesManager::get_message_thread(DialogId dialog_id, MessageId message_i
   td_->create_handler<GetDiscussionMessageQuery>(std::move(query_promise))
       ->send(dialog_id, message_id, top_thread_full_message_id.get_dialog_id(),
              top_thread_full_message_id.get_message_id());
+}
+
+void MessagesManager::process_discussion_message(
+    telegram_api::object_ptr<telegram_api::messages_discussionMessage> &&result, DialogId dialog_id,
+    MessageId message_id, DialogId expected_dialog_id, MessageId expected_message_id,
+    Promise<vector<FullMessageId>> promise) {
+  LOG(INFO) << "Receive discussion message for " << message_id << " in " << dialog_id << ": " << to_string(result);
+  td_->contacts_manager_->on_get_users(std::move(result->users_), "process_discussion_message");
+  td_->contacts_manager_->on_get_chats(std::move(result->chats_), "process_discussion_message");
+
+  MessageId max_message_id;
+  MessageId last_read_inbox_message_id;
+  MessageId last_read_outbox_message_id;
+  if ((result->flags_ & telegram_api::messages_discussionMessage::MAX_ID_MASK) != 0) {
+    max_message_id = MessageId(ServerMessageId(result->max_id_));
+  }
+  if ((result->flags_ & telegram_api::messages_discussionMessage::READ_INBOX_MAX_ID_MASK) != 0) {
+    last_read_inbox_message_id = MessageId(ServerMessageId(result->read_inbox_max_id_));
+  }
+  if ((result->flags_ & telegram_api::messages_discussionMessage::READ_OUTBOX_MAX_ID_MASK) != 0) {
+    last_read_outbox_message_id = MessageId(ServerMessageId(result->read_outbox_max_id_));
+  }
+
+  vector<FullMessageId> full_message_ids;
+  MessageId top_message_id;
+  for (auto &message : result->messages_) {
+    auto full_message_id =
+        on_get_message(std::move(message), false, true, false, false, false, "process_discussion_message");
+    if (full_message_id.get_message_id().is_valid()) {
+      full_message_ids.push_back(full_message_id);
+      if (full_message_id.get_dialog_id() != expected_dialog_id) {
+        return promise.set_error(Status::Error(500, "Expected messages in a different chat"));
+      }
+      if (full_message_id.get_message_id() == expected_message_id) {
+        top_message_id = expected_message_id;
+      }
+    }
+  }
+  if (!full_message_ids.empty() && !top_message_id.is_valid()) {
+    top_message_id = full_message_ids.back().get_message_id();
+  }
+  if (top_message_id.is_valid()) {
+    on_update_read_message_comments(expected_dialog_id, top_message_id, max_message_id, last_read_inbox_message_id,
+                                    last_read_outbox_message_id);
+  }
+  if (expected_dialog_id != dialog_id) {
+    on_update_read_message_comments(dialog_id, message_id, max_message_id, last_read_inbox_message_id,
+                                    last_read_outbox_message_id);
+  }
+  promise.set_value(std::move(full_message_ids));
 }
 
 void MessagesManager::on_get_discussion_message(DialogId dialog_id, MessageId message_id,
