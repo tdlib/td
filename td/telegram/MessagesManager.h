@@ -3102,8 +3102,6 @@ class MessagesManager : public Actor {
     }
   };
 
-  std::unordered_map<DialogId, vector<PendingGetMessageRequest>, DialogIdHash> postponed_get_message_requests_;
-
   std::unordered_map<string, vector<Promise<Unit>>> search_public_dialogs_queries_;
   std::unordered_map<string, vector<DialogId>> found_public_dialogs_;     // TODO time bound cache
   std::unordered_map<string, vector<DialogId>> found_on_server_dialogs_;  // TODO time bound cache

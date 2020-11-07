@@ -16121,27 +16121,10 @@ void MessagesManager::get_message_force_from_server(Dialog *d, MessageId message
   auto m = get_message_force(d, message_id, "get_message_force_from_server");
   if (m == nullptr) {
     if (message_id.is_valid() && message_id.is_server()) {
-      if (d->last_new_message_id != MessageId() && message_id > d->last_new_message_id) {
+      if (d->last_new_message_id != MessageId() && message_id > d->last_new_message_id &&
+          dialog_type != DialogType::Channel) {
         // message will not be added to the dialog anyway
-        if (dialog_type == DialogType::Channel) {
-          // so we try to force channel difference first
-
-          // replied message can't be older than already added original message
-          LOG_CHECK(input_message == nullptr || input_message->get_id() != telegram_api::inputMessageReplyTo::ID)
-              << to_string(input_message) << " " << d->dialog_id << " " << message_id << " " << d->last_new_message_id
-              << " " << d->last_message_id << " " << d->first_database_message_id << " " << d->last_database_message_id
-              << " " << d->last_pinned_message_id << " " << d->last_read_all_mentions_message_id << " "
-              << d->max_unavailable_message_id << " " << d->last_clear_history_message_id << " " << d->order << " "
-              << d->deleted_last_message_id << " " << d->max_added_message_id << " " << d->pts << " "
-              << d->last_assigned_message_id << " " << d->debug_last_new_message_id << " "
-              << d->debug_first_database_message_id << " " << d->debug_last_database_message_id;
-          postponed_get_message_requests_[d->dialog_id].emplace_back(message_id, std::move(promise),
-                                                                     std::move(input_message));
-          get_channel_difference(d->dialog_id, d->pts, true, "get_message");
-        } else {
-          promise.set_value(Unit());
-        }
-        return;
+        return promise.set_value(Unit());
       }
 
       if (d->deleted_message_ids.count(message_id) == 0 && dialog_type != DialogType::SecretChat) {
@@ -34920,24 +34903,6 @@ void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool succ
 
   if (postponed_chat_read_inbox_updates_.erase(dialog_id) > 0) {
     send_update_chat_read_inbox(d, true, "after_get_channel_difference");
-  }
-
-  auto it_get_message_requests = postponed_get_message_requests_.find(dialog_id);
-  if (it_get_message_requests != postponed_get_message_requests_.end()) {
-    CHECK(d != nullptr);
-    auto requests = std::move(it_get_message_requests->second);
-    postponed_get_message_requests_.erase(it_get_message_requests);
-    for (auto &request : requests) {
-      auto message_id = request.message_id;
-      LOG(INFO) << "Run postponed getMessage request for " << message_id << " in " << dialog_id;
-      CHECK(message_id.is_valid());
-      if (d->last_new_message_id != MessageId() && message_id > d->last_new_message_id) {
-        // message will not be added to the dialog anyway, get channel difference didn't help
-        request.promise.set_value(Unit());
-      } else {
-        get_message_from_server({dialog_id, message_id}, std::move(request.promise), std::move(request.input_message));
-      }
-    }
   }
 
   auto promise_it = run_after_get_channel_difference_.find(dialog_id);
