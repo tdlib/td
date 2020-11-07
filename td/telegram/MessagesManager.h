@@ -234,6 +234,9 @@ class MessagesManager : public Actor {
   };
   MessagesInfo on_get_messages(tl_object_ptr<telegram_api::messages_Messages> &&messages_ptr, const char *source);
 
+  void get_channel_difference_if_needed(DialogId dialog_id, MessagesInfo &&messages_info,
+                                        Promise<MessagesInfo> &&promise);
+
   void on_get_messages(vector<tl_object_ptr<telegram_api::Message>> &&messages, bool is_channel_message,
                        bool is_scheduled, const char *source);
 
@@ -806,7 +809,7 @@ class MessagesManager : public Actor {
   void on_resolved_username(const string &username, DialogId dialog_id);
   void drop_username(const string &username);
 
-  tl_object_ptr<telegram_api::InputNotifyPeer> get_input_notify_peer(DialogId dialogId) const;
+  tl_object_ptr<telegram_api::InputNotifyPeer> get_input_notify_peer(DialogId dialog_id) const;
 
   void on_update_dialog_notify_settings(DialogId dialog_id,
                                         tl_object_ptr<telegram_api::peerNotifySettings> &&peer_notify_settings,
@@ -2070,7 +2073,7 @@ class MessagesManager : public Actor {
 
   void load_folder_dialog_list_from_database(FolderId folder_id, int32 limit, Promise<Unit> &&promise);
 
-  void preload_folder_dialog_list(FolderId folderId);
+  void preload_folder_dialog_list(FolderId folder_id);
 
   static void invalidate_message_indexes(Dialog *d);
 
