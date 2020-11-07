@@ -24196,6 +24196,23 @@ int32 MessagesManager::get_message_schedule_date(const Message *m) {
   return m->date;
 }
 
+DialogId MessagesManager::get_message_original_sender(const Message *m) {
+  if (m->forward_info != nullptr) {
+    auto forward_info = m->forward_info.get();
+    if (is_forward_info_sender_hidden(forward_info)) {
+      return DialogId();
+    }
+    if (forward_info->message_id.is_valid() || forward_info->sender_dialog_id.is_valid()) {
+      return forward_info->sender_dialog_id;
+    }
+    return DialogId(forward_info->sender_user_id);
+  }
+  if (m->sender_dialog_id.is_valid()) {
+    return m->sender_dialog_id;
+  }
+  return DialogId(m->sender_user_id);
+}
+
 void MessagesManager::edit_message_text(FullMessageId full_message_id,
                                         tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
                                         tl_object_ptr<td_api::InputMessageContent> &&input_message_content,
@@ -25431,6 +25448,7 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
 
   struct ForwardedMessageContent {
     unique_ptr<MessageContent> content;
+    int64 media_album_id;
     size_t index;
   };
   vector<ForwardedMessageContent> forwarded_message_contents;
@@ -25502,13 +25520,31 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
                                  std::move(reply_markup), forwarded_message->media_album_id,
                                  get_message_disable_web_page_preview(forwarded_message), i});
     } else {
-      forwarded_message_contents.push_back({std::move(content), i});
+      forwarded_message_contents.push_back({std::move(content), forwarded_message->media_album_id, i});
+    }
+  }
+
+  if (2 <= forwarded_message_contents.size() && forwarded_message_contents.size() <= MAX_GROUPED_MESSAGES) {
+    std::unordered_set<MessageContentType, MessageContentTypeHash> message_content_types;
+    std::unordered_set<DialogId, DialogIdHash> sender_dialog_ids;
+    for (auto &message_content : forwarded_message_contents) {
+      message_content_types.insert(message_content.content->get_type());
+
+      MessageId message_id = get_persistent_message_id(from_dialog, message_ids[message_content.index]);
+      sender_dialog_ids.insert(get_message_original_sender(get_message(from_dialog, message_id)));
+    }
+    if (message_content_types.size() == 1 && is_homogenous_media_group_content(*message_content_types.begin()) &&
+        sender_dialog_ids.size() == 1 && *sender_dialog_ids.begin() != DialogId()) {
+      new_media_album_ids[0].first = generate_new_media_album_id();
+      for (auto &message : forwarded_message_contents) {
+        message.media_album_id = 0;
+      }
     }
   }
 
   for (size_t j = 0; j < forwarded_message_contents.size(); j++) {
     MessageId message_id = get_persistent_message_id(from_dialog, message_ids[forwarded_message_contents[j].index]);
-    const Message *forwarded_message = get_message_force(from_dialog, message_id, "forward_messages");
+    const Message *forwarded_message = get_message(from_dialog, message_id);
     CHECK(forwarded_message != nullptr);
 
     auto content = std::move(forwarded_message_contents[j].content);
@@ -25558,7 +25594,7 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
     m->real_forward_from_message_id = message_id;
     m->via_bot_user_id = forwarded_message->via_bot_user_id;
     m->in_game_share = in_game_share;
-    m->media_album_id = new_media_album_ids[forwarded_message->media_album_id].first;
+    m->media_album_id = new_media_album_ids[forwarded_message_contents[j].media_album_id].first;
     if (forwarded_message->view_count > 0 && m->forward_info != nullptr && m->view_count == 0 &&
         !(m->message_id.is_scheduled() && is_broadcast_channel(to_dialog_id))) {
       m->view_count = forwarded_message->view_count;
@@ -25617,15 +25653,27 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
     do_forward_messages(to_dialog_id, from_dialog_id, forwarded_messages, forwarded_message_ids, 0);
   }
 
+  new_media_album_ids.erase(0);
+  if (2 <= copied_messages.size() && copied_messages.size() <= MAX_GROUPED_MESSAGES) {
+    std::unordered_set<MessageContentType, MessageContentTypeHash> message_content_types;
+    for (auto &copied_message : copied_messages) {
+      message_content_types.insert(copied_message.content->get_type());
+    }
+    if (message_content_types.size() == 1 && is_homogenous_media_group_content(*message_content_types.begin())) {
+      new_media_album_ids[0].first = generate_new_media_album_id();
+      for (auto &message : copied_messages) {
+        message.media_album_id = 0;
+      }
+    }
+  }
+
   if (!copied_messages.empty()) {
     for (auto &copied_message : copied_messages) {
       Message *m = get_message_to_send(
           to_dialog, copied_message.top_thread_message_id, copied_message.reply_to_message_id, message_send_options,
           std::move(copied_message.content), &need_update_dialog_pos, false, nullptr, true);
       m->disable_web_page_preview = copied_message.disable_web_page_preview;
-      if (copied_message.media_album_id != 0) {
-        m->media_album_id = new_media_album_ids[copied_message.media_album_id].first;
-      }
+      m->media_album_id = new_media_album_ids[copied_message.media_album_id].first;
       m->reply_markup = std::move(copied_message.reply_markup);
 
       save_send_message_log_event(to_dialog_id, m);

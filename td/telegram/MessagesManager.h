@@ -2969,6 +2969,8 @@ class MessagesManager : public Actor {
 
   static int32 get_message_schedule_date(const Message *m);
 
+  static DialogId get_message_original_sender(const Message *m);
+
   int32 recently_found_dialogs_loaded_ = 0;  // 0 - not loaded, 1 - load request was sent, 2 - loaded
   MultiPromiseActor resolve_recently_found_dialogs_multipromise_{"ResolveRecentlyFoundDialogsMultiPromiseActor"};
 
