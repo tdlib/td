@@ -34313,6 +34313,11 @@ void MessagesManager::get_channel_difference(DialogId dialog_id, int32 pts, bool
   }
   LOG_CHECK(dialog_id.get_type() == DialogType::Channel) << dialog_id << " " << source;
 
+  if (active_get_channel_differencies_.count(dialog_id)) {
+    LOG(INFO) << "Skip running channels.getDifference for " << dialog_id << " from " << source
+              << " because it has already been run";
+    return;
+  }
   auto input_channel = td_->contacts_manager_->get_input_channel(dialog_id.get_channel_id());
   if (input_channel == nullptr) {
     LOG(ERROR) << "Skip running channels.getDifference for " << dialog_id << " from " << source
@@ -34350,6 +34355,7 @@ void MessagesManager::do_get_channel_difference(DialogId dialog_id, int32 pts, b
               << " because it has already been run";
     return;
   }
+  // must work even we know nothing about the dialog
 
   // can be called multiple times before after_get_channel_difference
   const Dialog *d = get_dialog(dialog_id);
