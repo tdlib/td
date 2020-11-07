@@ -2642,6 +2642,10 @@ class MessagesManager : public Actor {
   void on_get_message_link_discussion_message(MessageLinkInfo &&info, DialogId comment_dialog_id,
                                               Promise<MessageLinkInfo> &&promise);
 
+  void process_discussion_message_impl(telegram_api::object_ptr<telegram_api::messages_discussionMessage> &&result,
+                                       DialogId dialog_id, MessageId message_id, DialogId expected_dialog_id,
+                                       MessageId expected_message_id, Promise<vector<FullMessageId>> promise);
+
   void on_get_discussion_message(DialogId dialog_id, MessageId message_id, vector<FullMessageId> full_message_ids,
                                  Promise<MessageThreadInfo> &&promise);
 
@@ -2772,6 +2776,11 @@ class MessagesManager : public Actor {
   int32 load_channel_pts(DialogId dialog_id) const;
 
   void set_channel_pts(Dialog *d, int32 new_pts, const char *source);
+
+  bool need_channel_difference_to_add_message(DialogId dialog_id,
+                                              const tl_object_ptr<telegram_api::Message> &message_ptr);
+
+  void run_after_channel_difference(DialogId dialog_id, Promise<Unit> &&promise);
 
   bool running_get_channel_difference(DialogId dialog_id) const;
 
@@ -3223,6 +3232,8 @@ class MessagesManager : public Actor {
 
   vector<PendingOnGetDialogs> pending_on_get_dialogs_;
   std::unordered_map<DialogId, PendingOnGetDialogs, DialogIdHash> pending_channel_on_get_dialogs_;
+
+  std::unordered_map<DialogId, vector<Promise<Unit>>, DialogIdHash> run_after_get_channel_difference_;
 
   ChangesProcessor<unique_ptr<PendingSecretMessage>> pending_secret_messages_;
 

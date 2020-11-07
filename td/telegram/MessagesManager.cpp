@@ -16222,6 +16222,37 @@ void MessagesManager::process_discussion_message(
   td_->contacts_manager_->on_get_users(std::move(result->users_), "process_discussion_message");
   td_->contacts_manager_->on_get_chats(std::move(result->chats_), "process_discussion_message");
 
+  for (auto &message : result->messages_) {
+    auto message_dialog_id = get_message_dialog_id(message);
+    if (message_dialog_id != expected_dialog_id) {
+      return promise.set_error(Status::Error(500, "Expected messages in a different chat"));
+    }
+  }
+
+  for (auto &message : result->messages_) {
+    if (need_channel_difference_to_add_message(expected_dialog_id, message)) {
+      return run_after_channel_difference(
+          expected_dialog_id, PromiseCreator::lambda([actor_id = actor_id(this), result = std::move(result), dialog_id,
+                                                      message_id, expected_dialog_id, expected_message_id,
+                                                      promise = std::move(promise)](Unit ignored) mutable {
+            send_closure(actor_id, &MessagesManager::process_discussion_message_impl, std::move(result), dialog_id,
+                         message_id, expected_dialog_id, expected_message_id, std::move(promise));
+          }));
+    }
+  }
+
+  process_discussion_message_impl(std::move(result), dialog_id, message_id, expected_dialog_id, expected_message_id,
+                                  std::move(promise));
+}
+
+void MessagesManager::process_discussion_message_impl(
+    telegram_api::object_ptr<telegram_api::messages_discussionMessage> &&result, DialogId dialog_id,
+    MessageId message_id, DialogId expected_dialog_id, MessageId expected_message_id,
+    Promise<vector<FullMessageId>> promise) {
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
+
   MessageId max_message_id;
   MessageId last_read_inbox_message_id;
   MessageId last_read_outbox_message_id;
@@ -16242,9 +16273,6 @@ void MessagesManager::process_discussion_message(
         on_get_message(std::move(message), false, true, false, false, false, "process_discussion_message");
     if (full_message_id.get_message_id().is_valid()) {
       full_message_ids.push_back(full_message_id);
-      if (full_message_id.get_dialog_id() != expected_dialog_id) {
-        return promise.set_error(Status::Error(500, "Expected messages in a different chat"));
-      }
       if (full_message_id.get_message_id() == expected_message_id) {
         top_message_id = expected_message_id;
       }
@@ -31022,6 +31050,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
                      << " " << to_string(get_message_object(dialog_id, message.get()));
         }
         dump_debug_message_op(d, 3);
+
+        // keep consistent with need_channel_difference_to_add_message
         if (dialog_id.get_type() == DialogType::Channel && have_input_peer(dialog_id, AccessRights::Read) &&
             dialog_id != debug_channel_difference_dialog_) {
           LOG(INFO) << "Schedule getDifference in " << dialog_id.get_channel_id();
@@ -34272,6 +34302,33 @@ void MessagesManager::set_channel_pts(Dialog *d, int32 new_pts, const char *sour
   }
 }
 
+bool MessagesManager::need_channel_difference_to_add_message(DialogId dialog_id,
+                                                             const tl_object_ptr<telegram_api::Message> &message_ptr) {
+  if (dialog_id.get_type() != DialogType::Channel || !have_input_peer(dialog_id, AccessRights::Read) ||
+      dialog_id == debug_channel_difference_dialog_) {
+    return false;
+  }
+
+  Dialog *d = get_dialog_force(dialog_id);
+  if (d == nullptr || d->last_new_message_id == MessageId()) {
+    return false;
+  }
+
+  return get_message_id(message_ptr, false) > d->last_new_message_id;
+}
+
+void MessagesManager::run_after_channel_difference(DialogId dialog_id, Promise<Unit> &&promise) {
+  CHECK(dialog_id.get_type() == DialogType::Channel);
+  CHECK(have_input_peer(dialog_id, AccessRights::Read));
+
+  Dialog *d = get_dialog(dialog_id);
+  CHECK(d != nullptr);
+
+  run_after_get_channel_difference_[dialog_id].push_back(std::move(promise));
+
+  get_channel_difference(dialog_id, d->pts, true, "run_after_channel_difference");
+}
+
 bool MessagesManager::running_get_channel_difference(DialogId dialog_id) const {
   return active_get_channel_differencies_.count(dialog_id) > 0;
 }
@@ -34563,6 +34620,9 @@ void MessagesManager::on_get_channel_difference(
     return;
   }
 
+  LOG(INFO) << "Receive result of getChannelDifference for " << dialog_id << " with pts = " << request_pts
+            << " and limit = " << request_limit << ": " << to_string(difference_ptr);
+
   switch (difference_ptr->get_id()) {
     case telegram_api::updates_channelDifferenceEmpty::ID:
       if (d == nullptr) {
@@ -34596,9 +34656,6 @@ void MessagesManager::on_get_channel_difference(
   int32 cur_pts = d->pts <= 0 ? 1 : d->pts;
   LOG_IF(ERROR, cur_pts != request_pts) << "Channel pts has changed from " << request_pts << " to " << d->pts << " in "
                                         << dialog_id << " during getChannelDifference";
-
-  LOG(INFO) << "Receive result of getChannelDifference for " << dialog_id << " with pts = " << request_pts
-            << " and limit = " << request_limit << ": " << to_string(difference_ptr);
 
   d->retry_get_difference_timeout = 1;
 
@@ -34812,6 +34869,16 @@ void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool succ
       } else {
         get_message_from_server({dialog_id, message_id}, std::move(request.promise), std::move(request.input_message));
       }
+    }
+  }
+
+  auto promise_it = run_after_get_channel_difference_.find(dialog_id);
+  if (promise_it != run_after_get_channel_difference_.end()) {
+    vector<Promise<Unit>> promises = std::move(promise_it->second);
+    run_after_get_channel_difference_.erase(promise_it);
+
+    for (auto &promise : promises) {
+      promise.set_value(Unit());
     }
   }
 
