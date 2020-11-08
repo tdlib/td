@@ -24,20 +24,15 @@ int main(int argc, char *argv[]) {
   auto prefer_ipv6 = (argc > 2 && td::string(argv[2]) == "-6");
   auto scheduler = td::make_unique<td::ConcurrentScheduler>();
   scheduler->init(0);
-  scheduler
-      ->create_actor_unsafe<td::Wget>(0, "Client",
-                                      td::PromiseCreator::lambda([](td::Result<td::unique_ptr<td::HttpQuery>> res) {
-                                        if (res.is_error()) {
-                                          LOG(FATAL) << res.error();
-                                        }
-                                        LOG(ERROR) << *res.ok();
-                                        td::Scheduler::instance()->finish();
-                                      }),
-                                      url, td::Auto(), timeout, ttl, prefer_ipv6)
-      .release();
+  scheduler->create_actor_unsafe<td::Wget>(0, "Client",
+    td::PromiseCreator::lambda([](td::Result<td::unique_ptr<td::HttpQuery>> res) {
+      if (res.is_error()) {
+        LOG(FATAL) << res.error();
+      }
+      LOG(ERROR) << *res.ok();
+      td::Scheduler::instance()->finish();
+    }), url, td::Auto(), timeout, ttl, prefer_ipv6).release();
   scheduler->start();
-  while (scheduler->run_main(10)) {
-    // empty
-  }
+  while (scheduler->run_main(10)) { }
   scheduler->finish();
 }
