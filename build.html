@@ -54,6 +54,8 @@ select.large { font-size: large; }
     <select id="linuxSelect" onchange="onOsChanged()" class="large">
       <option>Choose a Linux distro:</option>
       <option>Alpine</option>
+      <option>CentOS 7</option>
+      <option>CentOS 8</option>
       <option>Debian 8</option>
       <option>Debian 9</option>
       <option>Debian 10</option>
@@ -377,7 +379,7 @@ function onOptionsChanged() {
   document.getElementById('buildCommandsDiv').style.display = 'block';
 
   var use_clang = os_freebsd || os_openbsd;
-  if (os_linux && linux_distro !== 'Alpine') {
+  if (os_linux && linux_distro !== 'Alpine' && !linux_distro.includes('CentOS')) {
     document.getElementById('buildCompilerDiv').style.display = 'block';
     use_clang = document.getElementById('buildCompilerRadioClang').checked;
   } else {
@@ -588,7 +590,8 @@ function onOptionsChanged() {
 
   var commands = [];
 
-  var php = "php";
+  var php = 'php';
+  var cmake = 'cmake';
   if (os_mac) {
     commands.push('xcode-select --install');
     commands.push('/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"');
@@ -606,6 +609,24 @@ function onOptionsChanged() {
           packages += ' openjdk8';
         }
         commands.push(sudo + 'apk add --update ' + packages);
+        break;
+      case 'CentOS 7':
+      case 'CentOS 8':
+        commands.push(sudo + 'yum update -y');
+        var packages = 'gcc-c++ make git zlib-devel openssl-devel php';
+        if (linux_distro === 'CentOS 7') {
+          commands.push(sudo + 'yum install -y centos-release-scl-rh epel-release');
+          commands.push(sudo + 'yum install -y devtoolset-9-gcc devtoolset-9-gcc-c++');
+          cmake = 'cmake3';
+          packages += ' gperf';
+        } else {
+          commands.push(sudo + 'dnf --enablerepo=PowerTools install gperf');
+        }
+        packages += ' ' + cmake;
+        if (target === 'JNI') {
+          packages += ' java-11-openjdk-devel';
+        }
+        commands.push(sudo + 'yum install -y ' + packages);
         break;
       case 'Debian 8':
       case 'Debian 9':
@@ -812,20 +833,22 @@ function onOptionsChanged() {
           }
         } else if (linux_distro === 'Ubuntu 14') {
           prefix = 'CC=/usr/bin/gcc-4.9 CXX=/usr/bin/g++-4.9 ';
+        } else if (linux_distro === 'CentOS 7') {
+          prefix = 'CC=/opt/rh/devtoolset-9/root/usr/bin/gcc CXX=/opt/rh/devtoolset-9/root/usr/bin/g++ ';
         }
       }
-      return prefix + 'cmake ' + options.join(' ') + ' ..';
+      return prefix + cmake + ' ' + options.join(' ') + ' ..';
     }
     commands.push(getCmakeInitCommand(cmake_init_options));
 
     if (low_memory) {
-      commands.push('cmake --build . --target prepare_cross_compiling');
+      commands.push(cmake + ' --build . --target prepare_cross_compiling');
       commands.push('cd ..');
       commands.push(php + ' SplitSource.php');
       commands.push('cd build');
     }
 
-    let build_command = 'cmake --build .';
+    let build_command = cmake + ' --build .';
     if (install_dir) {
       build_command += ' --target install';
     }
@@ -873,7 +896,7 @@ function onOptionsChanged() {
         commands.push(getCmakeInitCommand(cmake_init_options));
       }
 
-      build_command = 'cmake --build .';
+      build_command = cmake + ' --build .';
       if (jni_install_dir) {
         build_command += ' --target install';
       }
