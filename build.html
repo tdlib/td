@@ -86,7 +86,7 @@ select.large { font-size: large; }
     <div id="buildCompilerDiv" class="hide">
       <span>Choose which compiler you want to use to build TDLib:</span><br>
       <label><input type="radio" id="buildCompilerRadioGcc" name="buildCompilerRadio" onchange="onOptionsChanged()" checked/>g++</label>
-      <label><input type="radio" id="buildCompilerRadioClang" name="buildCompilerRadio" onchange="onOptionsChanged()"/>clang++ (recommended)</label>
+      <label><input type="radio" id="buildCompilerRadioClang" name="buildCompilerRadio" onchange="onOptionsChanged()"/>clang (recommended)</label>
       <p></p>
     </div>
 
@@ -520,7 +520,7 @@ function onOptionsChanged() {
   }
   if (os_linux && linux_distro === 'Other') {
     var jdk = target === 'JNI' ? ', JDK ' : '';
-    var compiler = use_clang ? 'clang++ >= 3.4' : 'g++ >= 4.9.2';
+    var compiler = use_clang ? 'clang >= 3.4' : 'g++ >= 4.9.2';
     pre_text.push('Install Git, ' + compiler + ', make, CMake >= 3.0.2, OpenSSL-dev, zlib-dev, gperf, PHP' + jdk + ' using your package manager.');
   }
   if (os_linux && os.includes('Node.js')) {
@@ -765,34 +765,6 @@ function onOptionsChanged() {
     commands.push('mkdir build');
     commands.push('cd build');
 
-    if (!use_msvc) {
-      var c_flags = [];
-      var cxx_flags = [];
-
-      if (build_32bit) {
-        c_flags.push('-m32');
-        cxx_flags.push('-m32');
-      } else if (build_64bit) {
-        c_flags.push('-m64');
-        cxx_flags.push('-m64');
-      }
-
-      if (os_linux) {
-        if (use_clang) {
-          cxx_flags.push('-stdlib=libc++');
-        } else {
-          cxx_flags.push('');
-        }
-      }
-
-      if (c_flags.length) {
-        commands.push('export CFLAGS="' + c_flags.join(' ') + '"');
-      }
-      if (cxx_flags.length) {
-        commands.push('export CXXFLAGS="' + cxx_flags.join(' ') + '"');
-      }
-    }
-
     cmake_init_options = getBacicCmakeInitOptions();
     if (os_mac) {
       cmake_init_options.push('-DOPENSSL_ROOT_DIR=/usr/local/opt/openssl/');
@@ -824,7 +796,7 @@ function onOptionsChanged() {
       if (os_linux) {
         if (use_clang) {
           var clang_version_suffix = getClangVersionSuffix();
-          prefix = 'CC=/usr/bin/clang' + clang_version_suffix + ' CXX=/usr/bin/clang++' + clang_version_suffix + ' ';
+          prefix = 'CXXFLAGS="-stdlib=libc++" CC=/usr/bin/clang' + clang_version_suffix + ' CXX=/usr/bin/clang++' + clang_version_suffix + ' ';
           if (use_lto) {
             options.push('-DCMAKE_AR=/usr/bin/llvm-ar' + clang_version_suffix);
             options.push('-DCMAKE_NM=/usr/bin/llvm-nm' + clang_version_suffix);
