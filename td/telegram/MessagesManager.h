@@ -1659,6 +1659,7 @@ class MessagesManager : public Actor {
 
   class DialogFiltersLogEvent;
 
+  static constexpr size_t MIN_GROUPED_MESSAGES = 2;                // server side limit
   static constexpr size_t MAX_GROUPED_MESSAGES = 10;               // server side limit
   static constexpr int32 MAX_GET_DIALOGS = 100;                    // server side limit
   static constexpr int32 MAX_GET_HISTORY = 100;                    // server side limit

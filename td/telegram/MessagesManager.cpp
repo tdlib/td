@@ -25524,7 +25524,7 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
     }
   }
 
-  if (2 <= forwarded_message_contents.size() && forwarded_message_contents.size() <= MAX_GROUPED_MESSAGES) {
+  if (MIN_GROUPED_MESSAGES <= forwarded_message_contents.size() && forwarded_message_contents.size() <= MAX_GROUPED_MESSAGES) {
     std::unordered_set<MessageContentType, MessageContentTypeHash> message_content_types;
     std::unordered_set<DialogId, DialogIdHash> sender_dialog_ids;
     for (auto &message_content : forwarded_message_contents) {
@@ -25654,7 +25654,7 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
   }
 
   new_media_album_ids.erase(0);
-  if (2 <= copied_messages.size() && copied_messages.size() <= MAX_GROUPED_MESSAGES) {
+  if (MIN_GROUPED_MESSAGES <= copied_messages.size() && copied_messages.size() <= MAX_GROUPED_MESSAGES) {
     std::unordered_set<MessageContentType, MessageContentTypeHash> message_content_types;
     for (auto &copied_message : copied_messages) {
       message_content_types.insert(copied_message.content->get_type());
