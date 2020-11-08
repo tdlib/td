@@ -9,6 +9,8 @@
 #include "td/utils/common.h"
 #include "td/utils/StringBuilder.h"
 
+#include <functional>
+
 namespace td {
 
 enum class MessageContentType : int32 {

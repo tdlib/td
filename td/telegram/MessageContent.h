@@ -32,7 +32,6 @@
 #include "td/utils/common.h"
 #include "td/utils/Status.h"
 
-#include <functional>
 #include <utility>
 
 namespace td {

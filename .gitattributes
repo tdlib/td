@@ -13,7 +13,6 @@
 *.cmake text whitespace=blank-at-eol,space-before-tab,blank-at-eof,tab-in-indent
 *.md text whitespace=blank-at-eol,space-before-tab,blank-at-eof,tab-in-indent
 *.in text whitespace=blank-at-eol,space-before-tab,blank-at-eof,tab-in-indent
-*.sky text whitespace=blank-at-eol,space-before-tab,blank-at-eof,tab-in-indent
 *.html text whitespace=blank-at-eol,space-before-tab,blank-at-eof,tab-in-indent
 
 *.java text whitespace=blank-at-eol,space-before-tab,blank-at-eof,tab-in-indent
