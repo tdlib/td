@@ -20,13 +20,14 @@ class TcpListener final : public Actor {
     virtual void accept(SocketFd fd) = 0;
   };
 
-  TcpListener(int port, ActorShared<Callback> callback);
+  TcpListener(int port, ActorShared<Callback> callback, Slice server_address = Slice("0.0.0.0"));
   void hangup() override;
 
  private:
   int port_;
   ServerSocketFd server_fd_;
   ActorShared<Callback> callback_;
+  const string server_address_;
   void start_up() override;
   void tear_down() override;
   void loop() override;
