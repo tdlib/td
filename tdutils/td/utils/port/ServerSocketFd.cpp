@@ -315,8 +315,13 @@ bool ServerSocketFd::empty() const {
 }
 
 Result<ServerSocketFd> ServerSocketFd::open(int32 port, CSlice addr) {
-  IPAddress address;
-  TRY_STATUS(address.init_ipv4_port(addr, port));
+  if (port <= 0 || port >= (1 << 16)) {
+    return Status::Error(PSLICE() << "Invalid server port " << port << " specified");
+  }
+
+  TRY_RESULT(address, IPAddress::get_ip_address(addr));
+  address.set_port(port);
+
   NativeFd fd{socket(address.get_address_family(), SOCK_STREAM, 0)};
   if (!fd) {
     return OS_SOCKET_ERROR("Failed to create a socket");

@@ -360,7 +360,7 @@ Result<IPAddress> IPAddress::get_ip_address(CSlice host) {
   if (r_address.is_ok()) {
     return r_address.move_as_ok();
   }
-  return Status::Error("Not a valid IP address");
+  return Status::Error(PSLICE() << '"' << host << "\" is not a valid IP address");
 }
 
 Result<IPAddress> IPAddress::get_ipv4_address(CSlice host) {
@@ -368,7 +368,7 @@ Result<IPAddress> IPAddress::get_ipv4_address(CSlice host) {
   // like 0x12.0x34.0x56.0x78, or 0x12345678, or 0x7f.001
   auto ipv4_numeric_addr = inet_addr(host.c_str());
   if (ipv4_numeric_addr == INADDR_NONE) {
-    return Status::Error("Host is not valid IPv4 address");
+    return Status::Error(PSLICE() << '"' << host << "\" is not a valid IPv4 address");
   }
 
   host = ::td::get_ip_str(AF_INET, &ipv4_numeric_addr);
@@ -384,7 +384,7 @@ Result<IPAddress> IPAddress::get_ipv6_address(CSlice host) {
   IPAddress result;
   auto status = result.init_ipv6_port(host, 1);
   if (status.is_error()) {
-    return std::move(status);
+    return Status::Error(PSLICE() << '"' << host << "\" is not a valid IPv6 address");
   }
   return std::move(result);
 }
