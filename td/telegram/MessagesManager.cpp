@@ -6999,7 +6999,7 @@ void MessagesManager::on_user_dialog_action(DialogId dialog_id, MessageId top_th
   auto dialog_type = dialog_id.get_type();
   if (dialog_type == DialogType::User || dialog_type == DialogType::SecretChat) {
     if (!td_->contacts_manager_->is_user_bot(user_id) && !td_->contacts_manager_->is_user_status_exact(user_id) &&
-        !get_dialog(dialog_id)->is_opened) {
+        !get_dialog(dialog_id)->is_opened && !is_canceled) {
       return;
     }
   }
@@ -29567,7 +29567,10 @@ void MessagesManager::on_active_dialog_action_timeout(DialogId dialog_id) {
   CHECK(!actions_it->second.empty());
 
   auto now = Time::now();
+  UserId prev_user_id;
   while (actions_it->second[0].start_time + DIALOG_ACTION_TIMEOUT < now + 0.1) {
+    CHECK(actions_it->second[0].user_id != prev_user_id);
+    prev_user_id = actions_it->second[0].user_id;
     on_user_dialog_action(dialog_id, actions_it->second[0].top_thread_message_id, actions_it->second[0].user_id,
                           DialogAction(), 0);
 
