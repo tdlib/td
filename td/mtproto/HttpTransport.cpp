@@ -4,20 +4,16 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
+#include <tuple>
+
 #include "td/mtproto/HttpTransport.h"
-
 #include "td/net/HttpHeaderCreator.h"
-
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
-
-// TODO: do I need \r\n as delimiter?
-
-#include <tuple>
 
 namespace td {
 namespace mtproto {
