@@ -13,8 +13,8 @@ namespace td {
 
 
 
-TcpListener::TcpListener(int port, ActorShared<Callback> callback, char const * server_address) :
-    port_(port), callback_(std::move(callback)), server_address_(server_address) {
+TcpListener::TcpListener(int port, ActorShared<Callback> callback, Slice server_address) :
+    port_(port), callback_(std::move(callback)), server_address_(server_address.data()) {
 }
 
 void TcpListener::hangup() {
