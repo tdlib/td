@@ -40,6 +40,9 @@ void TcpListener::tear_down() {
 void TcpListener::loop() {
   if (server_fd_.empty()) {
     start_up();
+    if (server_fd_.empty()) {
+      return;
+    }
   }
   sync_with_poll(server_fd_);
   while (can_read_local(server_fd_)) {
