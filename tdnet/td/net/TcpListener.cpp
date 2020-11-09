@@ -14,7 +14,7 @@ namespace td {
 
 
 TcpListener::TcpListener(int port, ActorShared<Callback> callback, Slice server_address) :
-    port_(port), callback_(std::move(callback)), server_address_(server_address.data()) {
+    port_(port), callback_(std::move(callback)), server_address_(server_address.str()) {
 }
 
 void TcpListener::hangup() {
@@ -22,7 +22,7 @@ void TcpListener::hangup() {
 }
 
 void TcpListener::start_up() {
-  auto r_socket = ServerSocketFd::open(port_, CSlice(server_address_));
+  auto r_socket = ServerSocketFd::open(port_, server_address_);
   if (r_socket.is_error()) {
     LOG(ERROR) << "Can't open server socket: " << r_socket.error();
     set_timeout_in(5);
