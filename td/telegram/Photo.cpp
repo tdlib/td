@@ -358,7 +358,7 @@ PhotoSize get_secret_thumbnail_photo_size(FileManager *file_manager, BufferSlice
 Variant<PhotoSize, string> get_photo_size(FileManager *file_manager, PhotoSizeSource source, int64 id,
                                           int64 access_hash, std::string file_reference, DcId dc_id,
                                           DialogId owner_dialog_id, tl_object_ptr<telegram_api::PhotoSize> &&size_ptr,
-                                          PhotoFormat format) {
+                                          PhotoFormat format, bool expect_jpeg_minithumbnail) {
   CHECK(size_ptr != nullptr);
 
   tl_object_ptr<telegram_api::fileLocationToBeDeprecated> location;
@@ -393,6 +393,10 @@ Variant<PhotoSize, string> get_photo_size(FileManager *file_manager, PhotoSizeSo
     }
     case telegram_api::photoStrippedSize::ID: {
       auto size = move_tl_object_as<telegram_api::photoStrippedSize>(size_ptr);
+      if (!expect_jpeg_minithumbnail) {
+        LOG(ERROR) << "Receive unexpected JPEG minithumbnail";
+        return std::move(res);
+      }
       return size->bytes_.as_slice().str();
     }
     case telegram_api::photoSizeProgressive::ID: {
@@ -412,6 +416,14 @@ Variant<PhotoSize, string> get_photo_size(FileManager *file_manager, PhotoSizeSo
       res.progressive_sizes = std::move(size->sizes_);
 
       break;
+    }
+    case telegram_api::photoPathSize::ID: {
+      auto size = move_tl_object_as<telegram_api::photoPathSize>(size_ptr);
+      if (expect_jpeg_minithumbnail) {
+        LOG(ERROR) << "Receive unexpected SVG minithumbnail";
+        return std::move(res);
+      }
+      return size->bytes_.as_slice().str();
     }
     default:
       UNREACHABLE();
@@ -704,7 +716,7 @@ Photo get_photo(FileManager *file_manager, tl_object_ptr<telegram_api::photo> &&
   for (auto &size_ptr : photo->sizes_) {
     auto photo_size = get_photo_size(file_manager, {FileType::Photo, 0}, photo->id_, photo->access_hash_,
                                      photo->file_reference_.as_slice().str(), dc_id, owner_dialog_id,
-                                     std::move(size_ptr), PhotoFormat::Jpeg);
+                                     std::move(size_ptr), PhotoFormat::Jpeg, true);
     if (photo_size.get_offset() == 0) {
       PhotoSize &size = photo_size.get<0>();
       if (size.type == 0 || size.type == 't' || size.type == 'i' || size.type == 'u' || size.type == 'v') {

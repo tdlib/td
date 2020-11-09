@@ -1638,8 +1638,9 @@ static Result<InputMessageContent> create_input_message_content(
     }
     case td_api::inputMessageSticker::ID: {
       auto input_sticker = static_cast<td_api::inputMessageSticker *>(input_message_content.get());
-      td->stickers_manager_->create_sticker(
-          file_id, thumbnail, get_dimensions(input_sticker->width_, input_sticker->height_), nullptr, false, nullptr);
+      td->stickers_manager_->create_sticker(file_id, string(), thumbnail,
+                                            get_dimensions(input_sticker->width_, input_sticker->height_), nullptr,
+                                            false, nullptr);
 
       content = make_unique<MessageSticker>(file_id);
       break;

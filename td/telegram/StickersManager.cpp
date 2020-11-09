@@ -1547,19 +1547,24 @@ FileId StickersManager::on_get_sticker(unique_ptr<Sticker> new_sticker, bool rep
     }
     if (s->alt != new_sticker->alt && !new_sticker->alt.empty()) {
       LOG(DEBUG) << "Sticker " << file_id << " emoji has changed";
-      s->alt = new_sticker->alt;
+      s->alt = std::move(new_sticker->alt);
+      s->is_changed = true;
+    }
+    if (s->minithumbnail != new_sticker->minithumbnail) {
+      LOG(DEBUG) << "Sticker " << file_id << " minithumbnail has changed";
+      s->minithumbnail = std::move(new_sticker->minithumbnail);
       s->is_changed = true;
     }
     if (s->s_thumbnail != new_sticker->s_thumbnail && new_sticker->s_thumbnail.file_id.is_valid()) {
       LOG_IF(INFO, s->s_thumbnail.file_id.is_valid()) << "Sticker " << file_id << " s thumbnail has changed from "
                                                       << s->s_thumbnail << " to " << new_sticker->s_thumbnail;
-      s->s_thumbnail = new_sticker->s_thumbnail;
+      s->s_thumbnail = std::move(new_sticker->s_thumbnail);
       s->is_changed = true;
     }
     if (s->m_thumbnail != new_sticker->m_thumbnail && new_sticker->m_thumbnail.file_id.is_valid()) {
       LOG_IF(INFO, s->m_thumbnail.file_id.is_valid()) << "Sticker " << file_id << " m thumbnail has changed from "
                                                       << s->m_thumbnail << " to " << new_sticker->m_thumbnail;
-      s->m_thumbnail = new_sticker->m_thumbnail;
+      s->m_thumbnail = std::move(new_sticker->m_thumbnail);
       s->is_changed = true;
     }
     if (s->is_animated != new_sticker->is_animated && new_sticker->is_animated) {
@@ -1635,20 +1640,24 @@ std::pair<int64, FileId> StickersManager::on_get_sticker_document(
                                           PSTRING() << document_id << (is_animated ? ".tgs" : ".webp"));
 
   PhotoSize thumbnail;
+  string minithumbnail;
   for (auto &thumb : document->thumbs_) {
     auto photo_size =
         get_photo_size(td_->file_manager_.get(), {FileType::Thumbnail, 0}, document_id, document->access_hash_,
                        document->file_reference_.as_slice().str(), dc_id, DialogId(), std::move(thumb),
-                       has_webp_thumbnail(sticker) ? PhotoFormat::Webp : PhotoFormat::Jpeg);
+                       has_webp_thumbnail(sticker) ? PhotoFormat::Webp : PhotoFormat::Jpeg, false);
     if (photo_size.get_offset() == 0) {
-      thumbnail = std::move(photo_size.get<0>());
+      if (!thumbnail.file_id.is_valid()) {
+        thumbnail = std::move(photo_size.get<0>());
+      }
       break;
     } else {
-      LOG(ERROR) << "Receive minithumbnail for a sticker " << sticker_id << ": " << to_string(sticker);
+      minithumbnail = std::move(photo_size.get<1>());
     }
   }
 
-  create_sticker(sticker_id, std::move(thumbnail), dimensions, std::move(sticker), is_animated, nullptr);
+  create_sticker(sticker_id, std::move(minithumbnail), std::move(thumbnail), dimensions, std::move(sticker),
+                 is_animated, nullptr);
   return {document_id, sticker_id};
 }
 
@@ -1963,7 +1972,7 @@ void StickersManager::add_sticker_thumbnail(Sticker *s, PhotoSize thumbnail) {
   LOG(ERROR) << "Receive sticker thumbnail of unsupported type " << thumbnail.type;
 }
 
-void StickersManager::create_sticker(FileId file_id, PhotoSize thumbnail, Dimensions dimensions,
+void StickersManager::create_sticker(FileId file_id, string minithumbnail, PhotoSize thumbnail, Dimensions dimensions,
                                      tl_object_ptr<telegram_api::documentAttributeSticker> sticker, bool is_animated,
                                      MultiPromiseActor *load_data_multipromise_ptr) {
   if (is_animated && dimensions.width == 0) {
@@ -1974,6 +1983,7 @@ void StickersManager::create_sticker(FileId file_id, PhotoSize thumbnail, Dimens
   auto s = make_unique<Sticker>();
   s->file_id = file_id;
   s->dimensions = dimensions;
+  s->minithumbnail = std::move(minithumbnail);
   add_sticker_thumbnail(s.get(), thumbnail);
   if (sticker != nullptr) {
     s->set_id = on_get_input_sticker_set(file_id, std::move(sticker->stickerset_), load_data_multipromise_ptr);
@@ -2158,14 +2168,17 @@ StickerSetId StickersManager::on_get_sticker_set(tl_object_ptr<telegram_api::sti
   bool is_masks = (set->flags_ & telegram_api::stickerSet::MASKS_MASK) != 0;
 
   PhotoSize thumbnail;
+  string minithumbnail;
   if (set->thumb_ != nullptr) {
     auto photo_size = get_photo_size(td_->file_manager_.get(), {set_id.get(), s->access_hash}, 0, 0, "",
                                      DcId::create(set->thumb_dc_id_), DialogId(), std::move(set->thumb_),
-                                     is_animated ? PhotoFormat::Tgs : PhotoFormat::Webp);
+                                     is_animated ? PhotoFormat::Tgs : PhotoFormat::Webp, false);
     if (photo_size.get_offset() == 0) {
-      thumbnail = std::move(photo_size.get<0>());
+      if (!thumbnail.file_id.is_valid()) {
+        thumbnail = std::move(photo_size.get<0>());
+      }
     } else {
-      LOG(ERROR) << "Receive minithumbnail for a " << set_id;
+      minithumbnail = std::move(photo_size.get<1>());
     }
   }
   if (!s->is_inited) {
@@ -2173,9 +2186,10 @@ StickerSetId StickersManager::on_get_sticker_set(tl_object_ptr<telegram_api::sti
     s->is_inited = true;
     s->title = std::move(set->title_);
     s->short_name = std::move(set->short_name_);
+    s->minithumbnail = std::move(minithumbnail);
     s->thumbnail = std::move(thumbnail);
     s->is_thumbnail_reloaded = true;
-    s->are_legacy_thumbnails_reloaded = true;
+    s->are_legacy_sticker_thumbnails_reloaded = true;
     s->sticker_count = set->count_;
     s->hash = set->hash_;
     s->is_official = is_official;
@@ -2209,15 +2223,20 @@ StickerSetId StickersManager::on_get_sticker_set(tl_object_ptr<telegram_api::sti
         installed_sticker_sets_hints_[s->is_masks].add(set_id.get(), PSLICE() << s->title << ' ' << s->short_name);
       }
     }
+    if (s->minithumbnail != minithumbnail) {
+      LOG(INFO) << "Minithumbnail of " << set_id << " has changed";
+      s->minithumbnail = std::move(minithumbnail);
+      s->is_changed = true;
+    }
     if (s->thumbnail != thumbnail) {
       LOG(INFO) << "Thumbnail of " << set_id << " has changed from " << s->thumbnail << " to " << thumbnail;
       s->thumbnail = std::move(thumbnail);
       s->is_changed = true;
     }
-    if (!s->is_thumbnail_reloaded || !s->are_legacy_thumbnails_reloaded) {
+    if (!s->is_thumbnail_reloaded || !s->are_legacy_sticker_thumbnails_reloaded) {
       LOG(INFO) << "Sticker thumbnails and thumbnail of " << set_id << " was reloaded";
       s->is_thumbnail_reloaded = true;
-      s->are_legacy_thumbnails_reloaded = true;
+      s->are_legacy_sticker_thumbnails_reloaded = true;
       s->need_save_to_database = true;
     }
 
@@ -3399,7 +3418,7 @@ void StickersManager::on_load_sticker_set_from_database(StickerSetId sticker_set
                  << format::as_hex_dump<4>(Slice(value));
     }
   }
-  if (!sticker_set->is_thumbnail_reloaded || !sticker_set->are_legacy_thumbnails_reloaded) {
+  if (!sticker_set->is_thumbnail_reloaded || !sticker_set->are_legacy_sticker_thumbnails_reloaded) {
     do_reload_sticker_set(sticker_set_id, get_input_sticker_set(sticker_set), Auto());
   }
 
@@ -4290,7 +4309,7 @@ Result<std::tuple<FileId, bool, bool, bool>> StickersManager::prepare_input_file
 
   if (is_animated) {
     int32 width = for_thumbnail ? 100 : 512;
-    create_sticker(file_id, PhotoSize(), get_dimensions(width, width), nullptr, true, nullptr);
+    create_sticker(file_id, string(), PhotoSize(), get_dimensions(width, width), nullptr, true, nullptr);
   } else {
     td_->documents_manager_->create_document(file_id, string(), PhotoSize(), "sticker.png", "image/png", false);
   }
