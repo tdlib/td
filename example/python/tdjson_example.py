@@ -61,7 +61,6 @@ td_set_log_fatal_error_callback(c_on_fatal_error_callback)
 # setting TDLib log verbosity level to 1 (errors)
 print(td_execute({'@type': 'setLogVerbosityLevel', 'new_verbosity_level': 1, '@extra': 1.01234}))
 
-
 # create client
 client = td_json_client_create()
 
