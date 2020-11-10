@@ -337,7 +337,11 @@ Result<ServerSocketFd> ServerSocketFd::open(int32 port, CSlice addr) {
   setsockopt(sock, SOL_SOCKET, SO_REUSEPORT, reinterpret_cast<const char *>(&flags), sizeof(flags));
 #endif
 #elif TD_PORT_WINDOWS
-  BOOL flags = TRUE;
+  BOOL flags = FALSE;
+  if (address.is_ipv6()) {
+    setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY, reinterpret_cast<const char *>(&flags), sizeof(flags));
+  }
+  flags = TRUE;
 #endif
   setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char *>(&flags), sizeof(flags));
   setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, reinterpret_cast<const char *>(&flags), sizeof(flags));
