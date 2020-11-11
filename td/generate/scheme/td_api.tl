@@ -1053,14 +1053,14 @@ richTextPhoneNumber text:RichText phone_number:string = RichText;
 //@height Height of a bounding box in which the image should be shown; 0 if unknown
 richTextIcon document:document width:int32 height:int32 = RichText;
 
-//@description A rich text reference of a text on the same web page @text The text @reference_text The text to show on click @url An HTTP URL, opening the reference
-richTextReference text:RichText reference_text:RichText url:string = RichText;
+//@description A reference to a richTexts object on the same web page @text The text @anchor_name The name of a richTextAnchor object, which is the first element of the target richTexts object @url An HTTP URL, opening the reference
+richTextReference text:RichText anchor_name:string url:string = RichText;
 
 //@description An anchor @name Anchor name
 richTextAnchor name:string = RichText;
 
-//@description A link to an anchor on the same web page @text The link text @name The anchor name. If the name is empty, the link should bring back to top @url An HTTP URL, opening the anchor
-richTextAnchorLink text:RichText name:string url:string = RichText;
+//@description A link to an anchor on the same web page @text The link text @anchor_name The anchor name. If the name is empty, the link should bring back to top @url An HTTP URL, opening the anchor
+richTextAnchorLink text:RichText anchor_name:string url:string = RichText;
 
 //@description A concatenation of rich texts @texts Texts
 richTexts texts:vector<RichText> = RichText;
