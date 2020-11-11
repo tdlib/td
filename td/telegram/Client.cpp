@@ -86,6 +86,7 @@ class ClientManager::Impl final {
       concurrent_scheduler_->init(0);
       concurrent_scheduler_->start();
     }
+    CHECK(client_id_ != std::numeric_limits<ClientId>::max());
     auto client_id = ++client_id_;
     tds_[client_id] =
         concurrent_scheduler_->create_actor_unsafe<Td>(0, "Td", receiver_.create_callback(client_id), options_);
@@ -362,7 +363,7 @@ class MultiImpl {
   }
 
   static bool is_valid_client_id(int32 client_id) {
-    return client_id > 0 && client_id < current_id_.load();
+    return client_id > 0 && static_cast<uint32>(client_id) < current_id_.load();
   }
 
   void send(ClientManager::ClientId client_id, ClientManager::RequestId request_id,
@@ -393,10 +394,12 @@ class MultiImpl {
   thread scheduler_thread_;
   ActorOwn<MultiTd> multi_td_;
 
-  static std::atomic<int32> current_id_;
+  static std::atomic<uint32> current_id_;
 
   static int32 create_id() {
-    return current_id_.fetch_add(1);
+    auto result = current_id_.fetch_add(1);
+    CHECK(result <= static_cast<uint32>(std::numeric_limits<int32>::max()));
+    return static_cast<int32>(result);
   }
 
   void create(int32 td_id, unique_ptr<TdCallback> callback) {
@@ -405,7 +408,7 @@ class MultiImpl {
   }
 };
 
-std::atomic<int32> MultiImpl::current_id_{1};
+std::atomic<uint32> MultiImpl::current_id_{1};
 
 class MultiImplPool {
  public:
