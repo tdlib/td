@@ -882,6 +882,9 @@ install(FILES "${TL_TD_AUTO_INCLUDE_DIR}/td/telegram/td_api.h" "${TL_TD_AUTO_INC
 if (TD_ENABLE_JNI)
   install(FILES td/tl/tl_jni_object.h DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/td/tl")
 endif()
+if (MSVC AND VCPKG_TOOLCHAIN)
+  install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/" DESTINATION "${CMAKE_INSTALL_BINDIR}" FILES_MATCHING PATTERN "*.dll")
+endif()
 
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file("TdConfigVersion.cmake"
