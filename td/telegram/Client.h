@@ -184,6 +184,7 @@ class ClientManager final {
 
   /**
    * Creates a new TDLib client and returns its opaque identifier.
+   * The client will not send updates until the first request is sent to it.
    */
   ClientId create_client();
 

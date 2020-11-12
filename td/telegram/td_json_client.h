@@ -126,8 +126,8 @@ TDJSON_EXPORT void td_json_client_destroy(void *client);
  */
 
 /**
- * Creates a new instance of TDLib.
- * \return Opaque indentifier of the created TDLib client.
+ * Creates a new instance of TDLib. The TDLib instance will not send updates until the first request is sent to it.
+ * \return Opaque indentifier of the created TDLib instance.
  */
 TDJSON_EXPORT int td_create_client();
 

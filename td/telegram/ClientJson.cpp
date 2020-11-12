@@ -125,11 +125,11 @@ static std::mutex extra_mutex;
 static std::unordered_map<int64, string> extra;
 static std::atomic<uint64> extra_id{1};
 
-int td_json_create_client() {
+int json_create_client() {
   return static_cast<int>(get_manager()->create_client());
 }
 
-void td_json_send(int client_id, Slice request) {
+void json_send(int client_id, Slice request) {
   auto parsed_request = to_request(request);
   auto request_id = extra_id.fetch_add(1, std::memory_order_relaxed);
   if (!parsed_request.second.empty()) {
@@ -139,7 +139,7 @@ void td_json_send(int client_id, Slice request) {
   get_manager()->send(client_id, request_id, std::move(parsed_request.first));
 }
 
-const char *td_json_receive(double timeout) {
+const char *json_receive(double timeout) {
   auto response = get_manager()->receive(timeout);
   if (!response.object) {
     return nullptr;
@@ -157,7 +157,7 @@ const char *td_json_receive(double timeout) {
   return store_string(from_response(*response.object, extra_str, response.client_id));
 }
 
-const char *td_json_execute(Slice request) {
+const char *json_execute(Slice request) {
   auto parsed_request = to_request(request);
   return store_string(
       from_response(*ClientManager::execute(std::move(parsed_request.first)), parsed_request.second, 0));

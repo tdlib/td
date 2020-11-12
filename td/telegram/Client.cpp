@@ -78,22 +78,25 @@ class TdReceiver {
 class ClientManager::Impl final {
  public:
   ClientId create_client() {
-    if (tds_.empty()) {
-      CHECK(concurrent_scheduler_ == nullptr);
-      CHECK(options_.net_query_stats == nullptr);
-      options_.net_query_stats = std::make_shared<NetQueryStats>();
-      concurrent_scheduler_ = make_unique<ConcurrentScheduler>();
-      concurrent_scheduler_->init(0);
-      concurrent_scheduler_->start();
-    }
     CHECK(client_id_ != std::numeric_limits<ClientId>::max());
     auto client_id = ++client_id_;
-    tds_[client_id] =
-        concurrent_scheduler_->create_actor_unsafe<Td>(0, "Td", receiver_.create_callback(client_id), options_);
+    pending_clients_.insert(client_id);
     return client_id;
   }
 
   void send(ClientId client_id, RequestId request_id, td_api::object_ptr<td_api::Function> &&request) {
+    if (pending_clients_.erase(client_id) != 0) {
+      if (tds_.empty()) {
+        CHECK(concurrent_scheduler_ == nullptr);
+        CHECK(options_.net_query_stats == nullptr);
+        options_.net_query_stats = std::make_shared<NetQueryStats>();
+        concurrent_scheduler_ = make_unique<ConcurrentScheduler>();
+        concurrent_scheduler_->init(0);
+        concurrent_scheduler_->start();
+      }
+      tds_[client_id] =
+          concurrent_scheduler_->create_actor_unsafe<Td>(0, "Td", receiver_.create_callback(client_id), options_);
+    }
     requests_.push_back({client_id, request_id, std::move(request)});
   }
 
@@ -196,6 +199,7 @@ class ClientManager::Impl final {
   unique_ptr<ConcurrentScheduler> concurrent_scheduler_;
   ClientId client_id_{0};
   Td::Options options_;
+  std::unordered_set<int32> pending_clients_;
   std::unordered_map<int32, ActorOwn<Td>> tds_;
 };
 
@@ -356,10 +360,15 @@ class MultiImpl {
   MultiImpl(MultiImpl &&) = delete;
   MultiImpl &operator=(MultiImpl &&) = delete;
 
-  int32 create(TdReceiver &receiver) {
-    auto id = create_id();
-    create(id, receiver.create_callback(id));
-    return id;
+  static int32 create_id() {
+    auto result = current_id_.fetch_add(1);
+    CHECK(result <= static_cast<uint32>(std::numeric_limits<int32>::max()));
+    return static_cast<int32>(result);
+  }
+
+  void create(int32 td_id, unique_ptr<TdCallback> callback) {
+    auto guard = concurrent_scheduler_->get_send_guard();
+    send_closure(multi_td_, &MultiTd::create, td_id, std::move(callback));
   }
 
   static bool is_valid_client_id(int32 client_id) {
@@ -395,17 +404,6 @@ class MultiImpl {
   ActorOwn<MultiTd> multi_td_;
 
   static std::atomic<uint32> current_id_;
-
-  static int32 create_id() {
-    auto result = current_id_.fetch_add(1);
-    CHECK(result <= static_cast<uint32>(std::numeric_limits<int32>::max()));
-    return static_cast<int32>(result);
-  }
-
-  void create(int32 td_id, unique_ptr<TdCallback> callback) {
-    auto guard = concurrent_scheduler_->get_send_guard();
-    send_closure(multi_td_, &MultiTd::create, td_id, std::move(callback));
-  }
 };
 
 std::atomic<uint32> MultiImpl::current_id_{1};
@@ -458,11 +456,10 @@ class MultiImplPool {
 class ClientManager::Impl final {
  public:
   ClientId create_client() {
-    auto impl = pool_.get();
-    auto client_id = impl->create(receiver_);
+    auto client_id = MultiImpl::create_id();
     {
       auto lock = impls_mutex_.lock_write().move_as_ok();
-      impls_[client_id].impl = std::move(impl);
+      impls_[client_id];  // create empty MultiImplInfo
     }
     return client_id;
   }
@@ -474,7 +471,22 @@ class ClientManager::Impl final {
                              td_api::make_object<td_api::error>(400, "Invalid TDLib instance specified"));
       return;
     }
+
     auto it = impls_.find(client_id);
+    if (it != impls_.end() && it->second.impl == nullptr) {
+      lock.reset();
+
+      auto write_lock = impls_mutex_.lock_write().move_as_ok();
+      it = impls_.find(client_id);
+      if (it != impls_.end() && it->second.impl == nullptr) {
+        it->second.impl = pool_.get();
+        it->second.impl->create(client_id, receiver_.create_callback(client_id));
+      }
+      write_lock.reset();
+
+      lock = impls_mutex_.lock_read().move_as_ok();
+      it = impls_.find(client_id);
+    }
     if (it == impls_.end() || it->second.is_closed) {
       receiver_.add_response(client_id, request_id, td_api::make_object<td_api::error>(500, "Request aborted"));
       return;
@@ -517,7 +529,11 @@ class ClientManager::Impl final {
     CHECK(it != impls_.end());
     if (!it->second.is_closed) {
       it->second.is_closed = true;
-      it->second.impl->close(client_id);
+      if (it->second.impl == nullptr) {
+        receiver_.add_response(client_id, 0, nullptr);
+      } else {
+        it->second.impl->close(client_id);
+      }
     }
   }
 
@@ -554,7 +570,8 @@ class Client::Impl final {
   Impl() {
     static MultiImplPool pool;
     multi_impl_ = pool.get();
-    td_id_ = multi_impl_->create(receiver_);
+    td_id_ = MultiImpl::create_id();
+    multi_impl_->create(td_id_, receiver_.create_callback(td_id_));
   }
 
   void send(Request request) {

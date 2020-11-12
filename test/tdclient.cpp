@@ -941,9 +941,11 @@ TEST(Client, Manager) {
   client.send(-1, 3, td::make_tl_object<td::td_api::testSquareInt>(3));
   for (int i = 0; i < threads_n; i++) {
     threads.emplace_back([&] {
-      for (int i = 0; i < clients_n; i++) {
+      for (int i = 0; i <= clients_n; i++) {
         auto id = client.create_client();
-        client.send(id, 3, td::make_tl_object<td::td_api::testSquareInt>(3));
+        if (i != 0) {
+          client.send(id, 3, td::make_tl_object<td::td_api::testSquareInt>(3));
+        }
       }
     });
   }

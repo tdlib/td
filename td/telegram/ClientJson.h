@@ -33,12 +33,12 @@ class ClientJson final {
   std::atomic<std::uint64_t> extra_id_{1};
 };
 
-int td_json_create_client();
+int json_create_client();
 
-void td_json_send(int client_id, Slice request);
+void json_send(int client_id, Slice request);
 
-const char *td_json_receive(double timeout);
+const char *json_receive(double timeout);
 
-const char *td_json_execute(Slice request);
+const char *json_execute(Slice request);
 
 }  // namespace td

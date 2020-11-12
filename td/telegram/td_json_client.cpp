@@ -31,17 +31,17 @@ const char *td_json_client_execute(void *client, const char *request) {
 }
 
 int td_create_client() {
-  return td::td_json_create_client();
+  return td::json_create_client();
 }
 
 void td_send(int client_id, const char *request) {
-  td::td_json_send(client_id, td::Slice(request == nullptr ? "" : request));
+  td::json_send(client_id, td::Slice(request == nullptr ? "" : request));
 }
 
 const char *td_receive(double timeout) {
-  return td::td_json_receive(timeout);
+  return td::json_receive(timeout);
 }
 
 const char *td_execute(const char *request) {
-  return td::td_json_execute(td::Slice(request == nullptr ? "" : request));
+  return td::json_execute(td::Slice(request == nullptr ? "" : request));
 }
