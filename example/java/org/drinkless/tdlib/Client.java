@@ -188,6 +188,7 @@ public final class Client {
         if (defaultExceptionHandler != null) {
             defaultExceptionHandlers.put(nativeClientId, defaultExceptionHandler);
         }
+        send(new TdApi.GetAuthorizationState(), null, null);
     }
 
     @Override
