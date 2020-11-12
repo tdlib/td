@@ -165,7 +165,6 @@ ios NetType
 ReachableViaWiFi,
 ReachableViaWWAN
 
-
 Mobile subtype
 2G
 NETWORK_TYPE_IDEN  ~25 kbps
