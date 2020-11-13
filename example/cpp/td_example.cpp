@@ -53,8 +53,10 @@ namespace td_api = td::td_api;
 class TdExample {
  public:
   TdExample() {
-    td::Client::execute({0, td_api::make_object<td_api::setLogVerbosityLevel>(1)});
-    client_ = std::make_unique<td::Client>();
+    td::ClientManager::execute(td_api::make_object<td_api::setLogVerbosityLevel>(1));
+    client_manager_ = std::make_unique<td::ClientManager>();
+    client_id_ = client_manager_->create_client();
+    send_query(td_api::make_object<td_api::getOption>("version"), {});
   }
 
   void loop() {
@@ -62,7 +64,7 @@ class TdExample {
       if (need_restart_) {
         restart();
       } else if (!are_authorized_) {
-        process_response(client_->receive(10));
+        process_response(client_manager_->receive(10));
       } else {
         std::cout << "Enter action [q] quit [u] check for updates and request results [c] show chats [m <id> <text>] "
                      "send message [me] show self [l] logout: "
@@ -80,7 +82,7 @@ class TdExample {
         if (action == "u") {
           std::cout << "Checking for updates..." << std::endl;
           while (true) {
-            auto response = client_->receive(0);
+            auto response = client_manager_->receive(0);
             if (response.object) {
               process_response(std::move(response));
             } else {
@@ -131,7 +133,8 @@ class TdExample {
 
  private:
   using Object = td_api::object_ptr<td_api::Object>;
-  std::unique_ptr<td::Client> client_;
+  std::unique_ptr<td::ClientManager> client_manager_;
+  std::int32_t client_id_{0};
 
   td_api::object_ptr<td_api::AuthorizationState> authorization_state_;
   bool are_authorized_{false};
@@ -146,7 +149,7 @@ class TdExample {
   std::map<std::int64_t, std::string> chat_title_;
 
   void restart() {
-    client_.reset();
+    client_manager_.reset();
     *this = TdExample();
   }
 
@@ -155,18 +158,18 @@ class TdExample {
     if (handler) {
       handlers_.emplace(query_id, std::move(handler));
     }
-    client_->send({query_id, std::move(f)});
+    client_manager_->send(client_id_, query_id, std::move(f));
   }
 
-  void process_response(td::Client::Response response) {
+  void process_response(td::ClientManager::Response response) {
     if (!response.object) {
       return;
     }
-    //std::cout << response.id << " " << to_string(response.object) << std::endl;
-    if (response.id == 0) {
+    //std::cout << response.request_id << " " << to_string(response.object) << std::endl;
+    if (response.request_id == 0) {
       return process_update(std::move(response.object));
     }
-    auto it = handlers_.find(response.id);
+    auto it = handlers_.find(response.request_id);
     if (it != handlers_.end()) {
       it->second(std::move(response.object));
     }
