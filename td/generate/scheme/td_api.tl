@@ -3790,7 +3790,7 @@ getMessageLinkInfo url:string = MessageLinkInfo;
 //@reply_markup Markup for replying to the message; for bots only @input_message_content The content of the message to be sent
 sendMessage chat_id:int53 message_thread_id:int53 reply_to_message_id:int53 options:messageSendOptions reply_markup:ReplyMarkup input_message_content:InputMessageContent = Message;
 
-//@description Sends messages grouped together into an album. Currently only audio, document, photo and video messages can be grouped into an album. Documents and audio files can be only groupув in an album with messages of the same type. Returns sent messages
+//@description Sends messages grouped together into an album. Currently only audio, document, photo and video messages can be grouped into an album. Documents and audio files can be only grouped in an album with messages of the same type. Returns sent messages
 //@chat_id Target chat
 //@message_thread_id If not 0, a message thread identifier in which the messages will be sent
 //@reply_to_message_id Identifier of a message to reply to or 0
