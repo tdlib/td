@@ -42,7 +42,7 @@ _td_set_log_fatal_error_callback.argtypes = [fatal_error_callback_type]
 
 # initialize TDLib log with desired parameters
 def on_fatal_error_callback(error_message):
-    print('TDLib fatal error: ', error_message)
+    print('TDLib fatal error: ', error_message.encode('utf-8'))
 
 def td_execute(query):
     query = json.dumps(query).encode('utf-8')
@@ -55,7 +55,7 @@ c_on_fatal_error_callback = fatal_error_callback_type(on_fatal_error_callback)
 _td_set_log_fatal_error_callback(c_on_fatal_error_callback)
 
 # setting TDLib log verbosity level to 1 (errors)
-print(td_execute({'@type': 'setLogVerbosityLevel', 'new_verbosity_level': 1, '@extra': 1.01234}))
+print(str(td_execute({'@type': 'setLogVerbosityLevel', 'new_verbosity_level': 1, '@extra': 1.01234})).encode('utf-8'))
 
 
 # create client
@@ -73,7 +73,7 @@ def td_receive():
     return result
 
 # another test for TDLib execute method
-print(td_execute({'@type': 'getTextEntities', 'text': '@telegram /test_command https://telegram.org telegram.me', '@extra': ['5', 7.0]}))
+print(str(td_execute({'@type': 'getTextEntities', 'text': '@telegram /test_command https://telegram.org telegram.me', '@extra': ['5', 7.0, 'ä']})).encode('utf-8'))
 
 # start the client by sending request to it
 td_send({'@type': 'getAuthorizationState', '@extra': 1.01234})
@@ -131,5 +131,5 @@ while True:
                 td_send({'@type': 'checkAuthenticationPassword', 'password': password})
 
         # handle an incoming update or an answer to a previously sent request
-        print(event)
+        print(str(event).encode('utf-8'))
         sys.stdout.flush()
