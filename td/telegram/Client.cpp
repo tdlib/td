@@ -372,7 +372,7 @@ class MultiImpl {
   }
 
   static bool is_valid_client_id(int32 client_id) {
-    return client_id > 0 && static_cast<uint32>(client_id) < current_id_.load();
+    return client_id > 0 && *reinterpret_cast<uint32 *>(&client_id) < current_id_.load();
   }
 
   void send(ClientManager::ClientId client_id, ClientManager::RequestId request_id,
