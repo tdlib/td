@@ -645,9 +645,9 @@ function onOptionsChanged() {
         commands.push(sudo + 'apt-get upgrade');
         var packages = 'make git zlib1g-dev libssl-dev gperf';
         if (linux_distro === 'Ubuntu 14' || linux_distro === 'Debian 8') {
-          packages += ' php5';
+          packages += ' php5-cli';
         } else {
-          packages += ' php';
+          packages += ' php-cli';
         }
         if (linux_distro === 'Ubuntu 14') {
           packages += ' cmake3';
