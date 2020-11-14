@@ -614,7 +614,7 @@ class TdClient {
     this.TdModule = await loadTdlib(mode, this.onFS, options.wasmUrl);
     log.info('got TdModule');
     this.td_functions = {
-      td_create: this.TdModule.cwrap('td_emscripten_create', 'number', []),
+      td_create: this.TdModule.cwrap('td_emscripten_create_client_id', 'number', []),
       td_send: this.TdModule.cwrap('td_emscripten_send', null, [
         'number',
         'string'
@@ -679,7 +679,7 @@ class TdClient {
       options.logVerbosityLevel = 2;
     }
     this.td_functions.td_set_verbosity(options.logVerbosityLevel);
-    this.client = this.td_functions.td_create();
+    this.client_id = this.td_functions.td_create();
 
     this.savingFiles = new Map();
     this.send({
@@ -842,7 +842,7 @@ class TdClient {
       return;
     }
     query = this.prepareQuery(query);
-    this.td_functions.td_send(this.client, JSON.stringify(query));
+    this.td_functions.td_send(this.client_id, JSON.stringify(query));
     this.scheduleReceiveSoon();
   }
 

@@ -13,8 +13,8 @@
 
 extern "C" {
 
-EMSCRIPTEN_KEEPALIVE double td_emscripten_create() {
-  return td_create_client();
+EMSCRIPTEN_KEEPALIVE double td_emscripten_create_client_id() {
+  return td_create_client_id();
 }
 
 EMSCRIPTEN_KEEPALIVE void td_emscripten_send(double client_id, const char *query) {

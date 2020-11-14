@@ -102,7 +102,7 @@ TDJSON_EXPORT void td_json_client_destroy(void *client);
  * Each returned object will have an "@client_id" field, containing and identifier of the client for which
  * a response or an update is received.
  *
- * A TDLib client instance can be created through td_create_client.
+ * A TDLib client instance can be created through td_create_client_id.
  * Requests then can be sent using td_send from any thread and the received client identifier.
  * New updates and request responses can be received through td_receive from any thread. This function
  * must not be called simultaneously from two different threads. Also note that all updates and request responses
@@ -112,7 +112,7 @@ TDJSON_EXPORT void td_json_client_destroy(void *client);
  *
  * General pattern of usage:
  * \code
- * int client_id = td_create_client();
+ * int client_id = td_create_client_id();
  * // share the client_id with other threads, which will be able to send requests via td_send
  *
  * const double WAIT_TIMEOUT = 10.0; // seconds
@@ -126,10 +126,11 @@ TDJSON_EXPORT void td_json_client_destroy(void *client);
  */
 
 /**
- * Creates a new instance of TDLib. The TDLib instance will not send updates until the first request is sent to it.
- * \return Opaque indentifier of the created TDLib instance.
+ * Returns an opaque identifier of a new TDLib instance.
+ * The TDLib instance will not send updates until the first request is sent to it.
+ * \return Opaque indentifier of a new TDLib instance.
  */
-TDJSON_EXPORT int td_create_client();
+TDJSON_EXPORT int td_create_client_id();
 
 /**
  * Sends request to the TDLib client. May be called from any thread.

@@ -30,8 +30,8 @@ const char *td_json_client_execute(void *client, const char *request) {
   return td::ClientJson::execute(td::Slice(request == nullptr ? "" : request));
 }
 
-int td_create_client() {
-  return td::json_create_client();
+int td_create_client_id() {
+  return td::json_create_client_id();
 }
 
 void td_send(int client_id, const char *request) {

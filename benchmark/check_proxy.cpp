@@ -161,7 +161,7 @@ int main(int argc, char **argv) {
   SET_VERBOSITY_LEVEL(new_verbosity_level);
 
   td::ClientManager client_manager;
-  auto client_id = client_manager.create_client();
+  auto client_id = client_manager.create_client_id();
   for (size_t i = 0; i < requests.size(); i++) {
     auto &request = requests[i].second;
     request->dc_id_ = dc_id;

@@ -125,8 +125,8 @@ static std::mutex extra_mutex;
 static std::unordered_map<int64, string> extra;
 static std::atomic<uint64> extra_id{1};
 
-int json_create_client() {
-  return static_cast<int>(get_manager()->create_client());
+int json_create_client_id() {
+  return static_cast<int>(get_manager()->create_client_id());
 }
 
 void json_send(int client_id, Slice request) {

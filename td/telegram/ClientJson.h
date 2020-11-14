@@ -33,7 +33,7 @@ class ClientJson final {
   std::atomic<std::uint64_t> extra_id_{1};
 };
 
-int json_create_client();
+int json_create_client_id();
 
 void json_send(int client_id, Slice request);
 

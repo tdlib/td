@@ -31,7 +31,7 @@ static td::ClientManager *get_manager() {
 }
 
 static jint Client_createNativeClient(JNIEnv *env, jclass clazz) {
-  return static_cast<jint>(get_manager()->create_client());
+  return static_cast<jint>(get_manager()->create_client_id());
 }
 
 static void Client_nativeClientSend(JNIEnv *env, jclass clazz, jint client_id, jlong id, jobject function) {

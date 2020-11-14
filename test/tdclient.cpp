@@ -942,7 +942,7 @@ TEST(Client, Manager) {
   for (int i = 0; i < threads_n; i++) {
     threads.emplace_back([&] {
       for (int i = 0; i <= clients_n; i++) {
-        auto id = client.create_client();
+        auto id = client.create_client_id();
         if (i != 0) {
           client.send(id, 3, td::make_tl_object<td::td_api::testSquareInt>(3));
         }
@@ -1036,7 +1036,7 @@ TEST(Client, ManagerClose) {
   std::atomic<td::int64> send_count{1};
   std::atomic<td::int64> receive_count{0};
   td::ClientManager client_manager;
-  auto client_id = client_manager.create_client();
+  auto client_id = client_manager.create_client_id();
 
   std::mutex request_ids_mutex;
   std::set<td::uint64> request_ids;
@@ -1141,7 +1141,7 @@ TEST(Client, ManagerCloseOneThread) {
 
     receive();
 
-    auto client_id = client_manager.create_client();
+    auto client_id = client_manager.create_client_id();
 
     for (td::int32 i = -5; i < 5; i++) {
       send_request(i, i == client_id ? 0 : (i > 0 && i < client_id ? 500 : 400));

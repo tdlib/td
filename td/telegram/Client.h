@@ -134,19 +134,23 @@ class Client final {
 /**
  * The future native C++ interface for interaction with TDLib.
  *
- * The TDLib client instance is created using the ClientManager::create_client method, returning a client identifier.
- * Requests to TDLib can be sent using the ClientManager::send method from any thread.
- * New updates and responses to requests can be received using the ClientManager::receive method from any thread,
- * this function must not be called simultaneously from two different threads. Also note that all updates and
- * responses to requests should be applied in the same order as they were received, to ensure consistency.
+ * The TDLib client instance is created using the ClientManager::create_client_id method, returning a client identifier.
+ * Requests to a TDLib client instance can be sent using the ClientManager::send method from any thread.
+ * New updates and responses to requests can be received using the ClientManager::receive method from any thread
+ * after a first request is sent to the client instance. ClientManager::receive must not be called simultaneously from
+ * two different threads. Also note that all updates and responses to requests should be applied in the same order as
+ * they were received, to ensure consistency.
  * Some TDLib requests can be executed synchronously from any thread by using the ClientManager::execute method.
  *
  * General pattern of usage:
  * \code
  * td::ClientManager manager;
- * auto client_id = manager.create_client();
+ * auto client_id = manager.create_client_id();
  * // somehow share the manager and the client_id with other threads,
  * // which will be able to send requests via manager.send(client_id, ...)
+ *
+ * // send some dummy requests to the new instance to activate it
+ * manager.send(client_id, ...);
  *
  * const double WAIT_TIMEOUT = 10.0;  // seconds
  * while (true) {
@@ -183,10 +187,11 @@ class ClientManager final {
   using RequestId = std::uint64_t;
 
   /**
-   * Creates a new TDLib client and returns its opaque identifier.
-   * The client will not send updates until the first request is sent to it.
+   * Returns an opaque identifier of a new TDLib instance.
+   * The TDLib instance will not send updates until the first request is sent to it.
+   * \return Opaque indentifier of a new TDLib instance.
    */
-  ClientId create_client();
+  ClientId create_client_id();
 
   /**
    * Sends request to TDLib. May be called from any thread.

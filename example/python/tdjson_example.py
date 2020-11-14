@@ -18,9 +18,9 @@ if tdjson_path is None:
 tdjson = CDLL(tdjson_path)
 
 # load TDLib functions from shared library
-_td_create_client = tdjson.td_create_client
-_td_create_client.restype = c_int
-_td_create_client.argtypes = []
+_td_create_client_id = tdjson.td_create_client_id
+_td_create_client_id.restype = c_int
+_td_create_client_id.argtypes = []
 
 _td_receive = tdjson.td_receive
 _td_receive.restype = c_char_p
@@ -60,7 +60,7 @@ print(str(td_execute({'@type': 'setLogVerbosityLevel', 'new_verbosity_level': 1,
 
 
 # create client
-client_id = _td_create_client()
+client_id = _td_create_client_id()
 
 # simple wrappers for client usage
 def td_send(query):
