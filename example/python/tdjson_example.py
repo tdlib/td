@@ -42,7 +42,8 @@ _td_set_log_fatal_error_callback.argtypes = [fatal_error_callback_type]
 
 # initialize TDLib log with desired parameters
 def on_fatal_error_callback(error_message):
-    print('TDLib fatal error: ', error_message.encode('utf-8'))
+    print('TDLib fatal error: ', error_message)
+    sys.stdout.flush()
 
 def td_execute(query):
     query = json.dumps(query).encode('utf-8')
