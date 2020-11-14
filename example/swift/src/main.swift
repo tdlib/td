@@ -9,8 +9,7 @@ import Foundation
 
 // TDLib Client Swift binding
 class TdClient {
-    typealias Client = UnsafeMutableRawPointer
-    var client = td_json_client_create()!
+    var client_id = td_create_client()!
     let tdlibMainLoop = DispatchQueue(label: "TDLib")
     let tdlibQueryQueue = DispatchQueue(label: "TDLibQuery")
     var queryF = Dictionary<Int64, (Dictionary<String,Any>)->()>()
@@ -27,7 +26,7 @@ class TdClient {
                 self.queryF[nextQueryId] = f
                 self.queryId = nextQueryId
             }
-            td_json_client_send(self.client, to_json(newQuery))
+            td_send(self.client_id, to_json(newQuery))
         }
     }
 
@@ -46,7 +45,6 @@ class TdClient {
     }
 
     deinit {
-        td_json_client_destroy(client)
     }
 
     func run(updateHandler: @escaping (Dictionary<String,Any>)->()) {
@@ -54,7 +52,7 @@ class TdClient {
         tdlibMainLoop.async { [weak self] in
             while (true) {
                 if let s = self {
-                    if let res = td_json_client_receive(s.client, 10) {
+                    if let res = td_receive(10) {
                         let event = String(cString: res)
                         s.queryResultAsync(event)
                     }
@@ -91,10 +89,10 @@ func to_json(_ obj: Any) -> String {
 }
 
 
-// An example of usage
-td_set_log_verbosity_level(1);
-
 var client = TdClient()
+
+// start the client by sending request to it
+client.queryAsync(query: ["@type":"getOption", "name":"version"])
 
 func myReadLine() -> String {
     while (true) {
@@ -159,7 +157,7 @@ func updateAuthorizationState(authorizationState: Dictionary<String, Any>) {
         case "authorizationStateClosing":
             print("Closing...")
 
-        case "authorizationStateLoggingOut":
+        case "authorizationStateClosed":
             print("Closed.")
 
         default:
