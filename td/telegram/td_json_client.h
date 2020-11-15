@@ -13,7 +13,7 @@
  * and is able to work with JSON.
  *
  * The JSON serialization of TDLib API objects is straightforward: all API objects are represented as JSON objects with
- * the same keys as the API object field names. The object type name is stored in the special field '@type' which is
+ * the same keys as the API object field names. The object type name is stored in the special field "@type" which is
  * optional in places where type is uniquely determined by the context.
  * Fields of Bool type are stored as Boolean, fields of int32, int53, and double types are stored as Number, fields of
  * int64 and string types are stored as String, fields of bytes type are base64 encoded and then stored as String,

@@ -8,10 +8,9 @@
 
 ///\file
 
-#include "td/telegram/TdCallback.h"
-
 #include "td/telegram/td_api.h"
 #include "td/telegram/td_api.hpp"
+#include "td/telegram/TdCallback.h"
 
 #include "td/actor/actor.h"
 
@@ -30,9 +29,12 @@ class Td;
  */
 class ClientActor : public Actor {
  public:
+  /// Options for ClientActor creation.
   struct Options {
+    /// NetQueryStats object for this client.
     std::shared_ptr<NetQueryStats> net_query_stats;
 
+    /// Default constructor.
     Options() {
     }
   };
@@ -40,6 +42,7 @@ class ClientActor : public Actor {
   /**
    * Creates a ClientActor using the specified callback.
    * \param[in] callback Callback for outgoing notifications from TDLib.
+   * \param[in] options Options to create the TDLib.
    */
   explicit ClientActor(unique_ptr<TdCallback> callback, Options options = {});
 
@@ -53,7 +56,7 @@ class ClientActor : public Actor {
   /**
    * Synchronously executes a TDLib request. Only a few requests can be executed synchronously.
    * May be called from any thread.
-   * \param[in] request Request to the TDLib.
+   * \param[in] request Request to the TDLib instance.
    * \return The request response.
    */
   static td_api::object_ptr<td_api::Object> execute(td_api::object_ptr<td_api::Function> request);
@@ -80,6 +83,9 @@ class ClientActor : public Actor {
   ActorOwn<Td> td_;
 };
 
+/**
+ * Creates NetQueryStats object, which can be shared between different clients.
+ */
 std::shared_ptr<NetQueryStats> create_net_query_stats();
 
 /**

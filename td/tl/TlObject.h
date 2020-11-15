@@ -87,9 +87,7 @@ class TlObject {
   virtual ~TlObject() = default;
 };
 
-/**
- * A smart wrapper to store a pointer to a TL-object.
- */
+/// @cond UNDOCUMENTED
 namespace tl {
 
 template <class T>
@@ -177,6 +175,11 @@ bool operator!=(const unique_ptr<T> &p, std::nullptr_t) {
 }
 
 }  // namespace tl
+/// @endcond
+
+/**
+ * A smart wrapper to store a pointer to a TL-object.
+ */
 template <class Type>
 using tl_object_ptr = tl::unique_ptr<Type>;
 
