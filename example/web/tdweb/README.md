@@ -15,7 +15,7 @@ The JSON representation of TDLib API objects is straightforward: all API objects
 [td_api.tl](https://github.com/tdlib/td/blob/master/td/generate/scheme/td_api.tl) scheme. Note that in the automatically generated C++ documentation all fields have an additional terminating underscore
 which shouldn't be used in the JSON interface. The object type name is stored in the special field '@type' which is optional in places where type is uniquely determined by the context.
 Fields of Bool type are stored as Boolean, fields of int32, int53, and double types are stored as Number, fields of int64 and string types are stored as String,
-fields of bytes type are base64 encoded and then stored as String, fields of vector type are stored as Array.
+fields of bytes type are base64 encoded and then stored as String, fields of array type are stored as Array.
 You can also add the field '@extra' to any query to TDLib and the response will contain the field '@extra' with exactly the same value.
 
 ## Installation

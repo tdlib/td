@@ -17,7 +17,7 @@
  * optional in places where type is uniquely determined by the context.
  * Fields of Bool type are stored as Boolean, fields of int32, int53, and double types are stored as Number, fields of
  * int64 and string types are stored as String, fields of bytes type are base64 encoded and then stored as String,
- * fields of vector type are stored as Array.
+ * fields of array type are stored as Array.
  * The main TDLib interface is asynchronous. To match requests with a corresponding response a field "@extra" can
  * be added to the request object. The corresponding response will have an "@extra" field with exactly the same value.
  *

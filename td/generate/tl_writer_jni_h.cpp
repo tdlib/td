@@ -91,6 +91,9 @@ std::string TD_TL_writer_jni_h::gen_output_begin() const {
          bytes_type +
          ";\n\n"
 
+         "template <class Type>\n"
+         "using array = std::vector<Type>;\n\n"
+
          "class " +
          gen_base_tl_class_name() +
          ";\n"

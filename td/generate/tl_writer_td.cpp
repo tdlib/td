@@ -200,7 +200,7 @@ std::string TD_TL_writer::gen_type_name(const tl::tl_tree_type *tree_type) const
     assert(tree_type->children[0]->get_type() == tl::NODE_TYPE_TYPE);
     const tl::tl_tree_type *child = static_cast<const tl::tl_tree_type *>(tree_type->children[0]);
 
-    return "std::vector<" + gen_type_name(child) + ">";
+    return "array<" + gen_type_name(child) + ">";
   }
 
   assert(!is_built_in_simple_type(name) && !is_built_in_complex_type(name));
@@ -248,7 +248,7 @@ std::string TD_TL_writer::gen_constructor_parameter(int field_num, const std::st
   } else if (field_type == "UInt128 " || field_type == "UInt256 " || field_type == "string " ||
              (string_type == bytes_type && field_type == "bytes ")) {
     res += field_type + "const &";
-  } else if (field_type.compare(0, 11, "std::vector") == 0 || field_type == "bytes ") {
+  } else if (field_type.compare(0, 5, "array") == 0 || field_type == "bytes ") {
     res += field_type + "&&";
   } else if (field_type.compare(0, 10, "object_ptr") == 0) {
     res += field_type + "&&";

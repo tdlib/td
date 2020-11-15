@@ -100,13 +100,13 @@ std::string TD_TL_writer_jni_cpp::gen_vector_fetch(std::string field_name, const
   std::string template_type;
   if (vector_type == "string") {
     template_type = "string";
-  } else if (vector_type.compare(0, 11, "std::vector") == 0) {
+  } else if (vector_type.compare(0, 5, "array") == 0) {
     const tl::tl_tree_type *child = static_cast<const tl::tl_tree_type *>(t->children[0]);
     template_type = gen_type_name(child);
     if (template_type.compare(0, 10, "object_ptr") == 0) {
       template_type = gen_main_class_name(child->type);
     }
-    template_type = "std::vector<" + template_type + ">";
+    template_type = "array<" + template_type + ">";
   } else if (vector_type == "bytes") {
     template_type = "jbyteArray";
   } else {
@@ -248,7 +248,7 @@ std::string TD_TL_writer_jni_cpp::gen_vector_store(const std::string &field_name
     assert(false);  // TODO
   }
   if (vector_type == "int32" || vector_type == "int53" || vector_type == "int64" || vector_type == "double" ||
-      vector_type == "string" || vector_type.compare(0, 11, "std::vector") == 0 ||
+      vector_type == "string" || vector_type.compare(0, 5, "array") == 0 ||
       vector_type.compare(0, 10, "object_ptr") == 0) {
     return "{ "
            "auto arr_tmp_ = jni::store_vector(env, " +

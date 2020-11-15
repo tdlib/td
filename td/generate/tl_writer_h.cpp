@@ -68,6 +68,9 @@ std::string TD_TL_writer_h::gen_output_begin() const {
          bytes_type +
          ";\n\n"
 
+         "template <class Type>\n"
+         "using array = std::vector<Type>;\n\n"
+
          "using BaseObject = ::td::TlObject;\n\n"
 
          "template <class Type>\n"
