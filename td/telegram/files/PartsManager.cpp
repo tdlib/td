@@ -285,7 +285,7 @@ Result<Part> PartsManager::start_part() {
   if (part_i == part_count_) {
     if (unknown_size_flag_) {
       part_count_++;
-      if (part_count_ > MAX_PART_COUNT) {
+      if (part_count_ > MAX_PART_COUNT + (use_part_count_limit_ ? 0 : 64)) {
         if (!is_upload_) {
           // Caller will try to increase part size if it is possible
           return Status::Error("FILE_DOWNLOAD_RESTART_INCREASE_PART_SIZE");
