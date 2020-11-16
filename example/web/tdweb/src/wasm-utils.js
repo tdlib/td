@@ -124,7 +124,7 @@ export async function instantiateAny(version, url, importObject) {
   try {
     return await instantiateStreaming(url, importObject);
   } catch (e) {
-    console.log("instantiateSteaming failed", e);
+    console.log("instantiateStreaming failed", e);
   }
   try {
     return await instantiateCachedURL(version, url, importObject);
