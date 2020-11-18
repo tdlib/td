@@ -97,18 +97,18 @@ TDJSON_EXPORT void td_json_client_destroy(void *client);
 /*
  * New TDLib JSON interface.
  *
- * The main TDLib interface is asynchronous. To match requests with a corresponding response a field "@extra" can
+ * The main TDLib interface is asynchronous. To match requests with a corresponding response, the field "@extra" can
  * be added to the request object. The corresponding response will have an "@extra" field with exactly the same value.
- * Each returned object will have an "@client_id" field, containing and identifier of the client for which
- * a response or an update is received.
+ * Each returned object will have an "@client_id" field, containing the identifier of the client for which
+ * a response or an update was received.
  *
  * A TDLib client instance can be created through td_create_client_id.
- * Requests then can be sent using td_send from any thread and the received client identifier.
- * New updates and request responses can be received through td_receive from any thread. This function
- * must not be called simultaneously from two different threads. Also note that all updates and request responses
- * must be applied in the order they were received to ensure consistency.
- * Some TDLib requests can be executed synchronously from any thread by using td_execute.
- * The TDLib client instances are destroyed automatically after they are closed.
+ * Requests can then be sent using td_send and the received client identifier.
+ * New updates and responses to requests can be received through td_receive from any thread after the first request
+ * has been sent to the client instance. This function must not be called simultaneously from two different threads.
+ * Also note that all updates and responses to requests must be applied in the order they were received for consistency.
+ * Some TDLib requests can be executed synchronously from any thread using td_execute.
+ * TDLib client instances are destroyed automatically after they are closed.
  *
  * General pattern of usage:
  * \code
@@ -119,7 +119,7 @@ TDJSON_EXPORT void td_json_client_destroy(void *client);
  * while (true) {
  *   const char *result = td_receive(WAIT_TIMEOUT);
  *   if (result) {
- *     // parse the result as JSON object and process it as an incoming update or an answer to a previously sent request
+ *     // parse the result as a JSON object and process it as an incoming update or the answer to a previously sent request
  *   }
  * }
  * \endcode
@@ -128,31 +128,29 @@ TDJSON_EXPORT void td_json_client_destroy(void *client);
 /**
  * Returns an opaque identifier of a new TDLib instance.
  * The TDLib instance will not send updates until the first request is sent to it.
- * \return Opaque indentifier of a new TDLib instance.
+ * \return Opaque identifier of a new TDLib instance.
  */
 TDJSON_EXPORT int td_create_client_id();
 
 /**
  * Sends request to the TDLib client. May be called from any thread.
- * \param[in] client_id The TDLib client identifier.
+ * \param[in] client_id TDLib client identifier.
  * \param[in] request JSON-serialized null-terminated request to TDLib.
  */
 TDJSON_EXPORT void td_send(int client_id, const char *request);
 
 /**
  * Receives incoming updates and request responses. Must not be called simultaneously from two different threads.
- * Returned pointer will be deallocated by TDLib during next call to td_receive or td_execute
- * in the same thread, so it can't be used after that.
+ * The returned pointer can be used until the next call to td_receive or td_execute, after which it will be deallocated by TDLib.
  * \param[in] timeout The maximum number of seconds allowed for this function to wait for new data.
  * \return JSON-serialized null-terminated incoming update or request response. May be NULL if the timeout expires.
  */
 TDJSON_EXPORT const char *td_receive(double timeout);
 
 /**
- * Synchronously executes TDLib request. May be called from any thread.
- * Only a few requests can be executed synchronously.
- * Returned pointer will be deallocated by TDLib during next call to td_receive or td_execute
- * in the same thread, so it can't be used after that.
+ * Synchronously executes a TDLib request.
+ * A request can be executed synchronously, only if it is documented with "Can be called synchronously".
+ * The returned pointer can be used until the next call to td_receive or td_execute, after which it will be deallocated by TDLib.
  * \param[in] request JSON-serialized null-terminated request to TDLib.
  * \return JSON-serialized null-terminated request response.
  */

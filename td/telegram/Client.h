@@ -25,7 +25,7 @@ namespace td {
  * this function must not be called simultaneously from two different threads. Also note that all updates and
  * responses to requests should be applied in the same order as they were received, to ensure consistency.
  * Given this information, it's advisable to call this function from a dedicated thread.
- * Some service TDLib requests can be executed synchronously from any thread by using the Client::execute method.
+ * Some service TDLib requests can be executed synchronously from any thread using the Client::execute method.
  *
  * General pattern of usage:
  * \code
@@ -134,13 +134,13 @@ class Client final {
 /**
  * The future native C++ interface for interaction with TDLib.
  *
- * The TDLib client instance is created using the ClientManager::create_client_id method, returning a client identifier.
- * Requests to a TDLib client instance can be sent using the ClientManager::send method from any thread.
- * New updates and responses to requests can be received using the ClientManager::receive method from any thread
- * after a first request is sent to the client instance. ClientManager::receive must not be called simultaneously from
+ * A TDLib client instance can be created through the method ClientManager::create_client_id.
+ * Requests can then be sent using the method ClientManager::send from any thread.
+ * New updates and responses to requests can be received using the method ClientManager::receive from any thread after
+ * the first request has been sent to the client instance. ClientManager::receive must not be called simultaneously from
  * two different threads. Also note that all updates and responses to requests should be applied in the same order as
  * they were received, to ensure consistency.
- * Some TDLib requests can be executed synchronously from any thread by using the ClientManager::execute method.
+ * Some TDLib requests can be executed synchronously from any thread using the method ClientManager::execute.
  *
  * General pattern of usage:
  * \code
@@ -159,8 +159,8 @@ class Client final {
  *     continue;
  *   }
  *
- *   if (response.id == 0) {
- *     // process response.object as an incoming update of type td_api::Update for the client response.client_id
+ *   if (response.request_id == 0) {
+ *     // process response.object as an incoming update of the type td_api::Update for the client response.client_id
  *   } else {
  *     // process response.object as an answer to a request response.request_id for the client response.client_id
  *   }
@@ -182,14 +182,14 @@ class ClientManager final {
   /**
    * Request identifier.
    * Responses to TDLib requests will have the same request id as the corresponding request.
-   * Updates from TDLib will have request id == 0, incoming requests are thus disallowed to have request id == 0.
+   * Updates from TDLib will have the request_id == 0, incoming requests are thus not allowed to have request_id == 0.
    */
   using RequestId = std::uint64_t;
 
   /**
    * Returns an opaque identifier of a new TDLib instance.
    * The TDLib instance will not send updates until the first request is sent to it.
-   * \return Opaque indentifier of a new TDLib instance.
+   * \return Opaque identifier of a new TDLib instance.
    */
   ClientId create_client_id();
 
@@ -206,7 +206,7 @@ class ClientManager final {
    */
   struct Response {
     /**
-     * TDLib client instance identifier, for which the response is received.
+     * TDLib client instance identifier, for which the response was received.
      */
     ClientId client_id;
 
@@ -222,24 +222,24 @@ class ClientManager final {
   };
 
   /**
-   * Receives incoming updates and request responses from TDLib. May be called from any thread, but must not be
+   * Receives incoming updates and responses to requests from TDLib. May be called from any thread, but must not be
    * called simultaneously from two different threads.
    * \param[in] timeout The maximum number of seconds allowed for this function to wait for new data.
-   * \return An incoming update or request response. The object returned in the response may be a nullptr
+   * \return An incoming update or response to a request. The object returned in the response may be a nullptr
    *         if the timeout expires.
    */
   Response receive(double timeout);
 
   /**
-   * Synchronously executes TDLib requests. Only a few requests can be executed synchronously.
-   * May be called from any thread.
+   * Synchronously executes a TDLib request.
+   * A request can be executed synchronously, only if it is documented with "Can be called synchronously".
    * \param[in] request Request to the TDLib.
    * \return The request response.
    */
   static td_api::object_ptr<td_api::Object> execute(td_api::object_ptr<td_api::Function> &&request);
 
   /**
-   * Destroys the client manager and all TDLib client instance managed by it.
+   * Destroys the client manager and all TDLib client instances managed by it.
    */
   ~ClientManager();
 
