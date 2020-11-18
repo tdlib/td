@@ -9,7 +9,7 @@ import Foundation
 
 // TDLib Client Swift binding
 class TdClient {
-    var client_id = td_create_client_id()!
+    var client_id = td_create_client_id()
     let tdlibMainLoop = DispatchQueue(label: "TDLib")
     let tdlibQueryQueue = DispatchQueue(label: "TDLibQuery")
     var queryF = Dictionary<Int64, (Dictionary<String,Any>)->()>()
