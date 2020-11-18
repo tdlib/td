@@ -19,12 +19,34 @@
 namespace td {
 
 namespace {
+string quote_string(Slice str) {
+  size_t cnt = 0;
+  for (auto &c : str) {
+    if (c == '\'') {
+      cnt++;
+    }
+  }
+  if (cnt == 0) {
+    return str.str();
+  }
+
+  string result;
+  result.reserve(str.size() + cnt);
+  for (auto &c : str) {
+    if (c == '\'') {
+      result += '\'';
+    }
+    result += c;
+  }
+  return result;
+}
+
 string db_key_to_sqlcipher_key(const DbKey &db_key) {
   if (db_key.is_empty()) {
     return "''";
   }
   if (db_key.is_password()) {
-    return PSTRING() << "'" << db_key.data().str() << "'";
+    return PSTRING() << "'" << quote_string(db_key.data()) << "'";
   }
   CHECK(db_key.is_raw_key());
   Slice raw_key = db_key.data();
@@ -223,13 +245,12 @@ Result<SqliteDb> SqliteDb::change_key(CSlice path, const DbKey &new_db_key, cons
   if (old_db_key.is_empty() && !new_db_key.is_empty()) {
     LOG(DEBUG) << "ENCRYPT";
     PerfWarningTimer timer("Encrypt SQLite database", 0.1);
-    auto tmp_path = path.str() + ".ecnrypted";
+    auto tmp_path = path.str() + ".encrypted";
     TRY_STATUS(destroy(tmp_path));
 
     // make shure that database is not empty
     TRY_STATUS(db.exec("CREATE TABLE IF NOT EXISTS encryption_dummy_table(id INT PRIMARY KEY)"));
-    //NB: not really safe
-    TRY_STATUS(db.exec(PSLICE() << "ATTACH DATABASE '" << tmp_path << "' AS encrypted KEY " << new_key));
+    TRY_STATUS(db.exec(PSLICE() << "ATTACH DATABASE '" << quote_string(tmp_path) << "' AS encrypted KEY " << new_key));
     TRY_STATUS(db.exec("SELECT sqlcipher_export('encrypted')"));
     TRY_STATUS(db.exec(PSLICE() << "PRAGMA encrypted.user_version = " << user_version));
     TRY_STATUS(db.exec("DETACH DATABASE encrypted"));
@@ -238,11 +259,10 @@ Result<SqliteDb> SqliteDb::change_key(CSlice path, const DbKey &new_db_key, cons
   } else if (!old_db_key.is_empty() && new_db_key.is_empty()) {
     LOG(DEBUG) << "DECRYPT";
     PerfWarningTimer timer("Decrypt SQLite database", 0.1);
-    auto tmp_path = path.str() + ".ecnrypted";
+    auto tmp_path = path.str() + ".encrypted";
     TRY_STATUS(destroy(tmp_path));
 
-    //NB: not really safe
-    TRY_STATUS(db.exec(PSLICE() << "ATTACH DATABASE '" << tmp_path << "' AS decrypted KEY ''"));
+    TRY_STATUS(db.exec(PSLICE() << "ATTACH DATABASE '" << quote_string(tmp_path) << "' AS decrypted KEY ''"));
     TRY_STATUS(db.exec("SELECT sqlcipher_export('decrypted')"));
     TRY_STATUS(db.exec(PSLICE() << "PRAGMA decrypted.user_version = " << user_version));
     TRY_STATUS(db.exec("DETACH DATABASE decrypted"));
