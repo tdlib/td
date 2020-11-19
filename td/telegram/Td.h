@@ -931,7 +931,7 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, const td_api::getMessageStatistics &request);
 
-  void on_request(uint64 id, td_api::getStatisticsGraph &request);
+  void on_request(uint64 id, td_api::getStatisticalGraph &request);
 
   void on_request(uint64 id, const td_api::getMapThumbnailFile &request);
 

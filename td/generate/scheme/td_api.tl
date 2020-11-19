@@ -662,7 +662,7 @@ messageForwardOriginChannel chat_id:int53 message_id:int53 author_signature:stri
 //@from_message_id For messages forwarded to the chat with the current user (Saved Messages), to the Replies bot chat, or to the channel's discussion group, the identifier of the original message from which the new message was forwarded last time; 0 if unknown
 messageForwardInfo origin:MessageForwardOrigin date:int32 public_service_announcement_type:string from_chat_id:int53 from_message_id:int53 = MessageForwardInfo;
 
-//@description Contains information about message replies
+//@description Contains information about replies to a message
 //@reply_count Number of times the message was directly or indirectly replied
 //@recent_repliers Recent repliers to the message; available in channels with a discussion supergroup
 //@last_read_inbox_message_id Identifier of the last read incoming reply to the message
@@ -713,7 +713,7 @@ messageSendingStateFailed error_code:int32 error_message:string can_retry:Bool r
 //@ttl For self-destructing messages, the message's TTL (Time To Live), in seconds; 0 if none. TDLib will send updateDeleteMessages or updateMessageContent once the TTL expires
 //@ttl_expires_in Time left before the message expires, in seconds
 //@via_bot_user_id If non-zero, the user identifier of the bot through which this message was sent
-//@author_signature For channel posts and anonymous administrator messages, optional author signature
+//@author_signature For channel posts and anonymous group messages, optional author signature
 //@media_album_id Unique identifier of an album this message belongs to. Only photos and videos can be grouped together in albums
 //@restriction_reason If non-empty, contains a human-readable description of the reason why access to this message must be restricted
 //@content Content of the message
@@ -882,7 +882,7 @@ chatInviteLink invite_link:string = ChatInviteLink;
 
 //@description Contains information about a chat invite link
 //@chat_id Chat identifier of the invite link; 0 if the user has no access to the chat before joining
-//@accessible_for If non-zero, the remaining time for which read access is granted to the chat, in seconds
+//@accessible_for If non-zero, the amount of time for which read access to the chat will remain available, in seconds
 //@type Contains information about the type of the chat
 //@title Title of the chat
 //@photo Chat photo; may be null
@@ -3061,20 +3061,20 @@ inputStickerAnimated sticker:InputFile emojis:string = InputSticker;
 dateRange start_date:int32 end_date:int32 = DateRange;
 
 
-//@description A statistics value @value The value @previous_value The value for the previous day @growth_rate_percentage The growth rate of the value, as a percentage
-statisticsValue value:double previous_value:double growth_rate_percentage:double = StatisticsValue;
+//@description A value with information about its recent changes @value The current value @previous_value The value for the previous day @growth_rate_percentage The growth rate of the value, as a percentage
+statisticalValue value:double previous_value:double growth_rate_percentage:double = StatisticalValue;
 
 
-//@class StatisticsGraph @description Describes a statistics graph
+//@class StatisticalGraph @description Describes a statistical graph
 
 //@description A graph data @json_data Graph data in JSON format @zoom_token If non-empty, a token which can be used to receive a zoomed in graph
-statisticsGraphData json_data:string zoom_token:string = StatisticsGraph;
+statisticalGraphData json_data:string zoom_token:string = StatisticalGraph;
 
-//@description The graph data to be asynchronously loaded through getStatisticsGraph @token The token to use for data loading
-statisticsGraphAsync token:string = StatisticsGraph;
+//@description The graph data to be asynchronously loaded through getStatisticalGraph @token The token to use for data loading
+statisticalGraphAsync token:string = StatisticalGraph;
 
 //@description An error message to be shown to the user instead of the graph @error_message The error message
-statisticsGraphError error_message:string = StatisticsGraph;
+statisticalGraphError error_message:string = StatisticalGraph;
 
 
 //@description Contains statistics about interactions with a message
@@ -3121,7 +3121,7 @@ chatStatisticsInviterInfo user_id:int32 added_member_count:int32 = ChatStatistic
 //@top_senders List of users sent most messages in the last week
 //@top_administrators List of most active administrators in the last week
 //@top_inviters List of most active inviters of new members in the last week
-chatStatisticsSupergroup period:dateRange member_count:statisticsValue message_count:statisticsValue viewer_count:statisticsValue sender_count:statisticsValue member_count_graph:StatisticsGraph join_graph:StatisticsGraph join_by_source_graph:StatisticsGraph language_graph:StatisticsGraph message_content_graph:StatisticsGraph action_graph:StatisticsGraph day_graph:StatisticsGraph week_graph:StatisticsGraph top_senders:vector<chatStatisticsMessageSenderInfo> top_administrators:vector<chatStatisticsAdministratorActionsInfo> top_inviters:vector<chatStatisticsInviterInfo> = ChatStatistics;
+chatStatisticsSupergroup period:dateRange member_count:statisticalValue message_count:statisticalValue viewer_count:statisticalValue sender_count:statisticalValue member_count_graph:StatisticalGraph join_graph:StatisticalGraph join_by_source_graph:StatisticalGraph language_graph:StatisticalGraph message_content_graph:StatisticalGraph action_graph:StatisticalGraph day_graph:StatisticalGraph week_graph:StatisticalGraph top_senders:vector<chatStatisticsMessageSenderInfo> top_administrators:vector<chatStatisticsAdministratorActionsInfo> top_inviters:vector<chatStatisticsInviterInfo> = ChatStatistics;
 
 //@description A detailed statistics about a channel chat
 //@period A period to which the statistics applies
@@ -3139,11 +3139,11 @@ chatStatisticsSupergroup period:dateRange member_count:statisticsValue message_c
 //@message_interaction_graph A graph containing number of chat message views and shares
 //@instant_view_interaction_graph A graph containing number of views of associated with the chat instant views
 //@recent_message_interactions Detailed statistics about number of views and shares of recently sent messages
-chatStatisticsChannel period:dateRange member_count:statisticsValue mean_view_count:statisticsValue mean_share_count:statisticsValue enabled_notifications_percentage:double member_count_graph:StatisticsGraph join_graph:StatisticsGraph mute_graph:StatisticsGraph view_count_by_hour_graph:StatisticsGraph view_count_by_source_graph:StatisticsGraph join_by_source_graph:StatisticsGraph language_graph:StatisticsGraph message_interaction_graph:StatisticsGraph instant_view_interaction_graph:StatisticsGraph recent_message_interactions:vector<chatStatisticsMessageInteractionInfo> = ChatStatistics;
+chatStatisticsChannel period:dateRange member_count:statisticalValue mean_view_count:statisticalValue mean_share_count:statisticalValue enabled_notifications_percentage:double member_count_graph:StatisticalGraph join_graph:StatisticalGraph mute_graph:StatisticalGraph view_count_by_hour_graph:StatisticalGraph view_count_by_source_graph:StatisticalGraph join_by_source_graph:StatisticalGraph language_graph:StatisticalGraph message_interaction_graph:StatisticalGraph instant_view_interaction_graph:StatisticalGraph recent_message_interactions:vector<chatStatisticsMessageInteractionInfo> = ChatStatistics;
 
 
 //@description A detailed statistics about a message @message_interaction_graph A graph containing number of message views and shares
-messageStatistics message_interaction_graph:StatisticsGraph = MessageStatistics;
+messageStatistics message_interaction_graph:StatisticalGraph = MessageStatistics;
 
 
 //@class Update @description Contains notifications about data changes
@@ -3598,7 +3598,7 @@ getMessageLocally chat_id:int53 message_id:int53 = Message;
 //@chat_id Identifier of the chat the message belongs to @message_id Identifier of the message reply to which to get
 getRepliedMessage chat_id:int53 message_id:int53 = Message;
 
-//@description Returns information about a newest pinned chat message @chat_id Identifier of the chat the message belongs to
+//@description Returns information about a newest pinned message in the chat @chat_id Identifier of the chat the message belongs to
 getChatPinnedMessage chat_id:int53 = Message;
 
 //@description Returns information about a message with the callback button that originated a callback query; for bots only @chat_id Identifier of the chat the message belongs to @message_id Message identifier @callback_query_id Identifier of the callback query
@@ -4122,7 +4122,7 @@ setChatSlowModeDelay chat_id:int53 slow_mode_delay:int32 = Ok;
 //@chat_id Identifier of the chat
 //@message_id Identifier of the new pinned message
 //@disable_notification True, if there should be no notification about the pinned message. Notifications are always disabled in channels and private chats
-//@only_for_self True, if the message needs to be pinned only for self; private chats only
+//@only_for_self True, if the message needs to be pinned for one side only; private chats only
 pinChatMessage chat_id:int53 message_id:int53 disable_notification:Bool only_for_self:Bool = Ok;
 
 //@description Removes a pinned message from a chat; requires can_pin_messages rights in the group or can_edit_messages rights in the channel @chat_id Identifier of the chat @message_id Identifier of the removed pinned message
@@ -4640,8 +4640,8 @@ getChatStatistics chat_id:int53 is_dark:Bool = ChatStatistics;
 //@description Returns detailed statistics about a message. Can be used only if Message.can_get_statistics == true @chat_id Chat identifier @message_id Message identifier @is_dark Pass true if a dark theme is used by the application
 getMessageStatistics chat_id:int53 message_id:int53 is_dark:Bool = MessageStatistics;
 
-//@description Loads asynchronous or zoomed in chat or message statistics graph @chat_id Chat identifier @token The token for graph loading @x X-value for zoomed in graph or 0 otherwise
-getStatisticsGraph chat_id:int53 token:string x:int53 = StatisticsGraph;
+//@description Loads an asynchronous or a zoomed in statistical graph @chat_id Chat identifier @token The token for graph loading @x X-value for zoomed in graph or 0 otherwise
+getStatisticalGraph chat_id:int53 token:string x:int53 = StatisticalGraph;
 
 
 //@description Returns storage usage statistics. Can be called before authorization @chat_limit The maximum number of chats with the largest storage usage for which separate statistics should be returned. All other chats will be grouped in entries with chat_id == 0. If the chat info database is not used, the chat_limit is ignored and is always set to 0
@@ -4661,7 +4661,7 @@ getDatabaseStatistics = DatabaseStatistics;
 //@file_types If not empty, only files with the given type(s) are considered. By default, all types except thumbnails, profile photos, stickers and wallpapers are deleted
 //@chat_ids If not empty, only files from the given chats are considered. Use 0 as chat identifier to delete files not belonging to any chat (e.g., profile photos)
 //@exclude_chat_ids If not empty, files from the given chats are excluded. Use 0 as chat identifier to exclude all files not belonging to any chat (e.g., profile photos)
-//@return_deleted_file_statistics Pass true if deleted file statistics must be returned instead of the whole storage usage statistics. Affects only returned statistics
+//@return_deleted_file_statistics Pass true if statistics about the files that were deleted must be returned instead of the whole storage usage statistics. Affects only returned statistics
 //@chat_limit Same as in getStorageStatistics. Affects only returned statistics
 optimizeStorage size:int53 ttl:int32 count:int32 immunity_delay:int32 file_types:vector<FileType> chat_ids:vector<int53> exclude_chat_ids:vector<int53> return_deleted_file_statistics:Bool chat_limit:int32 = StorageStatistics;
 

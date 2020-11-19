@@ -377,7 +377,7 @@ class ContactsManager : public Actor {
                                       Promise<td_api::object_ptr<td_api::messageStatistics>> &&promise);
 
   void load_statistics_graph(DialogId dialog_id, const string &token, int64 x,
-                             Promise<td_api::object_ptr<td_api::StatisticsGraph>> &&promise);
+                             Promise<td_api::object_ptr<td_api::StatisticalGraph>> &&promise);
 
   void add_chat_participant(ChatId chat_id, UserId user_id, int32 forward_limit, Promise<Unit> &&promise);
 
@@ -565,11 +565,11 @@ class ContactsManager : public Actor {
   static tl_object_ptr<td_api::dateRange> convert_date_range(
       const tl_object_ptr<telegram_api::statsDateRangeDays> &obj);
 
-  static tl_object_ptr<td_api::StatisticsGraph> convert_stats_graph(tl_object_ptr<telegram_api::StatsGraph> obj);
+  static tl_object_ptr<td_api::StatisticalGraph> convert_stats_graph(tl_object_ptr<telegram_api::StatsGraph> obj);
 
   static double get_percentage_value(double new_value, double old_value);
 
-  static tl_object_ptr<td_api::statisticsValue> convert_stats_absolute_value(
+  static tl_object_ptr<td_api::statisticalValue> convert_stats_absolute_value(
       const tl_object_ptr<telegram_api::statsAbsValueAndPrev> &obj);
 
   tl_object_ptr<td_api::chatStatisticsSupergroup> convert_megagroup_stats(
@@ -1441,7 +1441,7 @@ class ContactsManager : public Actor {
                                             Promise<td_api::object_ptr<td_api::messageStatistics>> &&promise);
 
   void send_load_async_graph_query(DcId dc_id, string token, int64 x,
-                                   Promise<td_api::object_ptr<td_api::StatisticsGraph>> &&promise);
+                                   Promise<td_api::object_ptr<td_api::StatisticalGraph>> &&promise);
 
   static void on_user_online_timeout_callback(void *contacts_manager_ptr, int64 user_id_long);
 

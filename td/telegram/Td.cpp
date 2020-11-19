@@ -6876,7 +6876,7 @@ void Td::on_request(uint64 id, const td_api::getMessageStatistics &request) {
                                                     request.is_dark_, std::move(promise));
 }
 
-void Td::on_request(uint64 id, td_api::getStatisticsGraph &request) {
+void Td::on_request(uint64 id, td_api::getStatisticalGraph &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   CLEAN_INPUT_STRING(request.token_);

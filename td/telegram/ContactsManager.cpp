@@ -2604,22 +2604,23 @@ tl_object_ptr<td_api::dateRange> ContactsManager::convert_date_range(
   return make_tl_object<td_api::dateRange>(obj->min_date_, obj->max_date_);
 }
 
-tl_object_ptr<td_api::StatisticsGraph> ContactsManager::convert_stats_graph(
+tl_object_ptr<td_api::StatisticalGraph> ContactsManager::convert_stats_graph(
     tl_object_ptr<telegram_api::StatsGraph> obj) {
   CHECK(obj != nullptr);
 
   switch (obj->get_id()) {
     case telegram_api::statsGraphAsync::ID: {
       auto graph = move_tl_object_as<telegram_api::statsGraphAsync>(obj);
-      return make_tl_object<td_api::statisticsGraphAsync>(std::move(graph->token_));
+      return make_tl_object<td_api::statisticalGraphAsync>(std::move(graph->token_));
     }
     case telegram_api::statsGraphError::ID: {
       auto graph = move_tl_object_as<telegram_api::statsGraphError>(obj);
-      return make_tl_object<td_api::statisticsGraphError>(std::move(graph->error_));
+      return make_tl_object<td_api::statisticalGraphError>(std::move(graph->error_));
     }
     case telegram_api::statsGraph::ID: {
       auto graph = move_tl_object_as<telegram_api::statsGraph>(obj);
-      return make_tl_object<td_api::statisticsGraphData>(std::move(graph->json_->data_), std::move(graph->zoom_token_));
+      return make_tl_object<td_api::statisticalGraphData>(std::move(graph->json_->data_),
+                                                          std::move(graph->zoom_token_));
     }
     default:
       UNREACHABLE();
@@ -2640,10 +2641,10 @@ double ContactsManager::get_percentage_value(double part, double total) {
   return part / total * 100;
 }
 
-tl_object_ptr<td_api::statisticsValue> ContactsManager::convert_stats_absolute_value(
+tl_object_ptr<td_api::statisticalValue> ContactsManager::convert_stats_absolute_value(
     const tl_object_ptr<telegram_api::statsAbsValueAndPrev> &obj) {
-  return make_tl_object<td_api::statisticsValue>(obj->current_, obj->previous_,
-                                                 get_percentage_value(obj->current_ - obj->previous_, obj->previous_));
+  return make_tl_object<td_api::statisticalValue>(obj->current_, obj->previous_,
+                                                  get_percentage_value(obj->current_ - obj->previous_, obj->previous_));
 }
 
 tl_object_ptr<td_api::chatStatisticsSupergroup> ContactsManager::convert_megagroup_stats(
@@ -2838,10 +2839,10 @@ class GetMessageStatsQuery : public Td::ResultHandler {
 };
 
 class LoadAsyncGraphQuery : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::StatisticsGraph>> promise_;
+  Promise<td_api::object_ptr<td_api::StatisticalGraph>> promise_;
 
  public:
-  explicit LoadAsyncGraphQuery(Promise<td_api::object_ptr<td_api::StatisticsGraph>> &&promise)
+  explicit LoadAsyncGraphQuery(Promise<td_api::object_ptr<td_api::StatisticalGraph>> &&promise)
       : promise_(std::move(promise)) {
   }
 
@@ -6035,7 +6036,7 @@ void ContactsManager::send_get_channel_message_stats_query(
 }
 
 void ContactsManager::load_statistics_graph(DialogId dialog_id, const string &token, int64 x,
-                                            Promise<td_api::object_ptr<td_api::StatisticsGraph>> &&promise) {
+                                            Promise<td_api::object_ptr<td_api::StatisticalGraph>> &&promise) {
   auto dc_id_promise = PromiseCreator::lambda(
       [actor_id = actor_id(this), token, x, promise = std::move(promise)](Result<DcId> r_dc_id) mutable {
         if (r_dc_id.is_error()) {
@@ -6048,7 +6049,7 @@ void ContactsManager::load_statistics_graph(DialogId dialog_id, const string &to
 }
 
 void ContactsManager::send_load_async_graph_query(DcId dc_id, string token, int64 x,
-                                                  Promise<td_api::object_ptr<td_api::StatisticsGraph>> &&promise) {
+                                                  Promise<td_api::object_ptr<td_api::StatisticalGraph>> &&promise) {
   if (G()->close_flag()) {
     return promise.set_error(Status::Error(500, "Request aborted"));
   }
