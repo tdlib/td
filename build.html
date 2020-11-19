@@ -594,10 +594,11 @@ function onOptionsChanged() {
   var cmake = 'cmake';
   if (os_mac) {
     commands.push('xcode-select --install');
-    commands.push('/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"');
+    commands.push('/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"');
     commands.push('brew install gperf cmake openssl' + (target === 'JNI' ? ' coreutils' : ''));
     if (target === 'JNI') {
-      commands.push('brew cask install java');
+      commands.push('brew tap adoptopenjdk/openjdk');
+      commands.push('brew cask install adoptopenjdk');
     }
   } else if (os_linux && linux_distro !== 'Other') {
     switch (linux_distro) {
