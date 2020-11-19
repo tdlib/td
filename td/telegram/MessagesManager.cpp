@@ -20326,6 +20326,9 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
             promise.set_value(Unit());
             return result;
           case DialogType::None:
+            if (sender_dialog_id == DialogId()) {
+              break;
+            }
             promise.set_error(Status::Error(6, "Invalid sender chat identifier specified"));
             return result;
           default:
@@ -20336,7 +20339,7 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
       default:
         UNREACHABLE();
     }
-    if (!have_input_peer(sender_dialog_id, AccessRights::Read)) {
+    if (sender_dialog_id != DialogId() && !have_input_peer(sender_dialog_id, AccessRights::Read)) {
       promise.set_error(Status::Error(6, "Invalid message sender specified"));
       return result;
     }
