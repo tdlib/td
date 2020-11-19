@@ -166,6 +166,7 @@ class AesCtrBench : public td::Benchmark {
   }
 };
 
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
 class AesCtrOpenSSLBench : public td::Benchmark {
  public:
   alignas(64) unsigned char data[DATA_SIZE];
@@ -200,6 +201,7 @@ class AesCtrOpenSSLBench : public td::Benchmark {
     EVP_CIPHER_CTX_free(ctx);
   }
 };
+#endif
 
 class AesCbcDecryptBench : public td::Benchmark {
  public:
@@ -410,7 +412,9 @@ class Crc64Bench : public td::Benchmark {
 int main() {
   td::init_openssl_threads();
   td::bench(AesCtrBench());
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
   td::bench(AesCtrOpenSSLBench());
+#endif
 
   td::bench(AesCbcDecryptBench());
   td::bench(AesCbcEncryptBench());

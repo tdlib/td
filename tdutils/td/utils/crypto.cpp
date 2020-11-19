@@ -341,9 +341,11 @@ class Evp {
     init(Type::Cbc, false, EVP_aes_256_cbc(), key);
   }
 
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
   void init_encrypt_ctr(Slice key) {
     init(Type::Ctr, true, EVP_aes_256_ctr(), key);
   }
+#endif
 
   void init_iv(Slice iv) {
     int res = EVP_CipherInit_ex(ctx_, nullptr, nullptr, nullptr, iv.ubegin(), -1);
@@ -615,7 +617,14 @@ void AesCbcState::decrypt(Slice from, MutableSlice to) {
 }
 
 struct AesCtrState::Impl {
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
   Evp evp_;
+#else
+  AES_KEY aes_key_;
+  uint8 counter_[AES_BLOCK_SIZE];
+  uint8 encrypted_counter_[AES_BLOCK_SIZE];
+  uint8 current_pos_;
+#endif
 };
 
 AesCtrState::AesCtrState() = default;
@@ -627,13 +636,36 @@ void AesCtrState::init(Slice key, Slice iv) {
   CHECK(key.size() == 32);
   CHECK(iv.size() == 16);
   ctx_ = make_unique<AesCtrState::Impl>();
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
   ctx_->evp_.init_encrypt_ctr(key);
   ctx_->evp_.init_iv(iv);
+#else
+  if (AES_set_encrypt_key(key.ubegin(), 256, &ctx_->aes_key_) < 0) {
+    LOG(FATAL) << "Failed to set encrypt key";
+  }
+  MutableSlice(ctx_->counter_, AES_BLOCK_SIZE).copy_from(iv);
+  ctx_->current_pos_ = 0;
+#endif
 }
 
 void AesCtrState::encrypt(Slice from, MutableSlice to) {
   CHECK(from.size() <= to.size());
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
   ctx_->evp_.encrypt(from.ubegin(), to.ubegin(), narrow_cast<int>(from.size()));
+#else
+  for (size_t i = 0; i < from.size(); i++) {
+    if (ctx_->current_pos_ == 0) {
+      AES_encrypt(ctx_->counter_, ctx_->encrypted_counter_, &ctx_->aes_key_);
+      for (int j = 15; j >= 0; j--) {
+        if (++ctx_->counter_[j] != 0) {
+          break;
+        }
+      }
+    }
+    to[i] = from[i] ^ ctx_->encrypted_counter_[ctx_->current_pos_];
+    ctx_->current_pos_ = (ctx_->current_pos_ + 1) & 15;
+  }
+#endif
 }
 
 void AesCtrState::decrypt(Slice from, MutableSlice to) {
