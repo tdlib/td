@@ -1,3 +1,348 @@
+Changes in 1.7.0:
+
+* Added a new simplified JSON interface in which updates and responses to requests from all TDLib instances
+  are received in the same thread:
+  - The TDLib instance is identified by the unique `client_id` identifier, which is returned by the method
+    `td_create_client_id`.
+  - Use the method `td_send` to send a request to a specified client. The TDLib instance is created on the first
+    request sent to it.
+  - Use the method `td_receive` to receive updates and request responses from TDLib. The response will contain
+    the identifier of the client from which the event was received in the field "@client_id".
+  - Use the method `td_execute` to synchronously execute suitable TDLib methods.
+* Added support for adding chats to more than one chat list:
+  - Added the class `chatPosition`, describing the position of the chat within a chat list.
+  - Replaced the fields `chat_list`, `order`, `is_sponsored` and `is_pinned` in the class `chat` with
+    the field `positions`, containing a list of the chat positions in various chat list.
+  - Replaced the field `order` with the field `positions` in the updates `updateChatLastMessage` and
+    `updateChatDraftMessage`.
+  - Added the update `updateChatPosition`.
+  - Removed the superfluous updates `updateChatChatList`, `updateChatIsSponsored`, `updateChatOrder` and
+    `updateChatIsPinned`.
+  - Added the parameter `chat_list` to the method `toggleChatIsPinned`.
+  - Added the class `chatLists`, containing a list of chat lists.
+  - Added the method `getChatListsToAddChat`, returning all chat lists to which a chat can be added.
+  - Added the method `addChatToList`, which can be used to add a chat to a chat list.
+  - Remove the method `setChatChatList`.
+* Added support for chat filters:
+  - Added the new chat list type `chatListFilter`.
+  - Added the classes `chatFilterInfo` and `chatFilter`, describing a filter of user chats.
+  - Added the update `updateChatFilters`, which is sent when the list of chat filters is changed.
+  - Added the methods `createChatFilter`, `editChatFilter` and `deleteChatFilter` for managing chat filters.
+  - Added the method `reorderChatFilters` for changing the order of chat filters.
+  - Added the method `getChatFilter`, returning full information about a chat filter.
+  - Added the synchronous method `getChatFilterDefaultIconName`.
+  - Added the classes `recommendedChatFilter` and `recommendedChatFilters`.
+  - Added the method `getRecommendedChatFilters`, returning a list of recommended chat filters.
+* Added support for messages sent on behalf of chats instead of users:
+  - Added the class `MessageSender`, representing a user or a chat which sent a message.
+  - Added the class `MessageSenders`, representing a list of message senders.
+  - Replaced the field `sender_user_id` with the field `sender` of the type `MessageSender` in the classes `message`
+    and `notificationTypeNewPushMessage`.
+  - Added the class `messageForwardOriginChat`, which describe a chat as the original sender of a message.
+  - Added the ability to search messages sent by a chat by replacing the parameter `sender_user_id` with
+    the parameter `sender` of the type `MessageSender` in the method `searchChatMessages`.
+  - Added the ability to specify a chat as a local message sender by replacing the parameter `sender_user_id` with
+    the parameter `sender` of the type `MessageSender` in the method `addLocalMessage`.
+* Added support for video calls:
+  - Added the class `callServer`, describing a server for relaying call data.
+  - Added the classes `callServerTypeTelegramReflector` and `callServerTypeWebrtc`, representing different types of
+    supported call servers.
+  - Replaced the field `connections` with the field `servers` in the class `callStateReady`.
+  - Removed the class `callConnection`.
+  - Added the update `updateNewCallSignalingData`.
+  - Added the method `sendCallSignalingData`.
+  - Added the field `supports_video_calls` to the class `userFullInfo`.
+  - Added the field `is_video` to the class `messageCall`.
+  - Added the field `is_video` to the class `call`.
+  - Added the parameter `is_video` to the method `createCall`.
+  - Added the parameter `is_video` to the method `discardCall`.
+  - Added two new types of call problems `callProblemDistortedVideo` and `callProblemPixelatedVideo`.
+  - Added the field `library_versions` to the class `callProtocol`, which must be used to specify all supported
+    call library versions.
+* Added support for multiple pinned messages and the ability to pin messages in private chats:
+  - Added the ability to pin messages in all private chats.
+  - Added the ability to pin mutiple messages in all chats.
+  - Added the field `is_pinned` to the class `message`.
+  - Added the update `updateMessageIsPinned`.
+  - Added the parameter `only_for_self` to the method `pinChatMessage`, allowing to pin messages in private chats for
+    one side only.
+  - Added the ability to find pinned messages in a chat using the filter `searchMessagesFilterPinned`.
+  - Added the parameter `message_id` to the method `unpinChatMessage`.
+  - Added the field `message` to the class `chatEventMessageUnpinned`.
+  - Added the method `unpinAllChatMessages`, which can be used to simultaneously unpin all pinned messages in a chat.
+  - Documented that notifications about new pinned messages are always silent in channels and private chats.
+  - The method `getChatPinnedMessage` now returns the newest pinned message in the chat.
+  - Removed the field `pinned_message_id` from the class `chat`.
+  - Removed the update `updateChatPinnedMessage`.
+* Improved thumbnail representation and added support for animated MPEG4 thumbnails:
+  - Added the class `ThumbnailFormat`, representing the various supported thumbnail formats.
+  - Added the class `thumbnail`, containing information about a thumbnail.
+  - Changed the type of all thumbnail fields from `photoSize` to `thumbnail`.
+  - Added support for thumbnails in the format `thumbnailFormatMpeg4` for some animations and videos.
+  - Replaced the classes `inputInlineQueryResultAnimatedGif` and `inputInlineQueryResultAnimatedMpeg4` with
+    the generic class `inputInlineQueryResultAnimation`.
+  - Added support for animated thumbnails in the class `inputInlineQueryResultAnimation`.
+  - The class `photoSize` is now only used for JPEG images.
+* Improved support for user profile photos and chat photos:
+  - Added the field `photo` to the class `userFullInfo`, containing full information about the user photo.
+  - Added the field `photo` to the class `basicGroupFullInfo`, containing full information about the group photo.
+  - Added the field `photo` to the class `supergroupFullInfo`, containing full information about the group photo.
+  - Renamed the class `chatPhoto` to `chatPhotoInfo`.
+  - Added the field `has_animation` to the classes `profilePhoto` and `chatPhotoInfo`, which is set to true for
+    animated chat photos.
+  - Added the classes `chatPhoto` and `chatPhotos`.
+  - Added minithumbnail support via the field `minithumbnail` in the class `chatPhoto`.
+  - Added the class `animatedChatPhoto`.
+  - Added animated chat photo support via the field `animation` in the class `chatPhoto`.
+  - Removed the classes `userProfilePhoto` and `userProfilePhotos`.
+  - Changed the type of the field `photo` in the class `messageChatChangePhoto` to `chatPhoto`.
+  - Changed the type of the fields `old_photo` and `new_photo` in the class `chatEventPhotoChanged` to `chatPhoto`.
+  - Changed the return type of the method `getUserProfilePhotos` to `chatPhotos`.
+  - Added the class `InputChatPhoto`, representing a chat or a profile photo to set.
+  - Changed the type of the parameter `photo` in the methods `setProfilePhoto` and `setChatPhoto` to
+    the `InputChatPhoto`.
+  - Added the ability to explicitly re-use previously set profile photos using the class `inputChatPhotoPrevious`.
+  - Added the ability to set animated chat photos using the class `inputChatPhotoAnimated`.
+* Added support for message threads in supergroups and channel comments:
+  - Added the field `message_thread_id` to the class `message`.
+  - Added the class `messageThreadInfo`, containing information about a message thread.
+  - Added the class `messageReplyInfo`, containing information about replies to a message.
+  - Added the field `reply_info` to the class `messageInteractionInfo`, containing information about message replies.
+  - Added the field `can_get_message_thread` to the class `message`.
+  - Added the method `getMessageThread`, returning information about the message thread to which a message belongs.
+  - Added the method `getMessageThreadHistory`, returning messages belonging to a message thread.
+  - Added the parameter `message_thread_id` to the methods `sendMessage`, `sendMessageAlbum` and
+    `sendInlineQueryResultMessage` for sending messages within a thread.
+  - Added the parameter `message_thread_id` to the method `searchChatMessages` to search messages within a thread.
+  - Added the parameter `message_thread_id` to the method `viewMessages`.
+  - Added the parameter `message_thread_id` to the method `setChatDraftMessage`.
+  - Added the parameter `message_thread_id` to the method `sendChatAction` to send chat actions to a thread.
+  - Added the field `message_thread_id` to the update `updateUserChatAction`.
+* Improved support for message albums:
+  - Added support for sending and receiving messages of the types `messageAudio` and `messageDocument` as albums.
+  - Added automatic grouping into audio or document albums in the method `forwardMessages` if all forwarded or
+    copied messages are of the same type.
+  - Removed the parameter `as_album` from the method `forwardMessages`. Forwarded message albums are now determined
+    automatically.
+* Simplified usage of methods generating an HTTP link to a message:
+  - Added the class `messageLink`, representing an HTTP link to a message.
+  - Combined the methods `getPublicMessageLink` and `getMessageLink` into the method `getMessageLink`, which
+    now returns a public link to the message if possible and a private link otherwise. The combined method is
+    an offline method now.
+  - Added the parameter `for_comment` to the method `getMessageLink`, which allows to get a message link to the message
+    that opens it in a thread.
+  - Removed the class `publicMessageLink`.
+  - Added the field `for_comment` to the class `messageLinkInfo`.
+  - Added the separate method `getMessageEmbeddingCode`, returning an HTML code for embedding a message.
+* Added the ability to block private messages sent via the @replies bot from chats:
+  - Added the field `is_blocked` to the class `chat`.
+  - Added the update `updateChatIsBlocked`.
+  - Added the method `blockMessageSenderFromReplies`.
+  - Replaced the methods `blockUser` and `unblockUser` with the method `toggleMessageSenderIsBlocked`.
+  - Replaced the method `getBlockedUsers` with the method `getBlockedMessageSenders`.
+* Added support for incoming messages which are replies to messages in different chats:
+  - Added the field `reply_in_chat_id` to the class `message`.
+  - The method `getRepliedMessage` can now return the replied message in a different chat.
+* Renamed the class `sendMessageOptions` to `messageSendOptions`.
+* Added the new `tdapi` static library, which needs to be additionally linked in when static linking is used.
+* Changed the type of the field `value` in the class `optionValueInteger` from `int32` to `int64`.
+* Changed the type of the field `description` in the class `webPage` from `string` to `formattedText`.
+* Improved Instant View support:
+  - Added the field `view_count` to the class `webPageInstantView`.
+  - Added the class `richTextAnchorLink`, containing a link to an anchor on the same page.
+  - Added the class `richTextReference`, containing a reference to a text on the same page.
+  - Removed the field `text` from the class `richTextAnchor`.
+  - Removed the field `url` which is no longer needed from the class `webPageInstantView`.
+* Allowed the update `updateServiceNotification` to be sent before authorization is completed.
+* Disallowed to pass messages in non-strictly increasing order to the method `forwardMessages`.
+* Improved sending copies of messages:
+  - Added the class `messageCopyOptions` and the field `copy_options` to the class `inputMessageForwarded`.
+  - Removed the fields `send_copy` and `remove_caption` from the class `inputMessageForwarded`.
+  - Allowed to replace captions in copied messages using the fields `replace_caption` and `new_caption` in
+    the class `messageCopyOptions`.
+  - Allowed to specify `reply_to_message_id` when sending a copy of a message.
+  - Allowed to specify `reply_markup` when sending a copy of a message.
+* Allowed passing multiple input language codes to `searchEmojis` by replacing the parameter `input_language_code` with
+  the parameter `input_language_codes`.
+* Added support for public service announcements:
+  - Added the class `ChatSource` and the field `source` to the class `chatPosition`.
+  - Added the new type of chat source `chatSourcePublicServiceAnnouncement`.
+  - Added the field `public_service_announcement_type` to the class `messageForwardInfo`.
+* Added support for previewing of private supergroups and channels by their invite link.
+  - The field `chat_id` in the class `chatInviteLinkInfo` is now non-zero for private supergroups and channels to which
+    the temporary read access is granted.
+  - Added the field `accessible_for` to the class `chatInviteLinkInfo`, containing the amount of time for which
+    read access to the chat will remain available.
+* Improved methods for message search:
+  - Replaced the field `next_from_search_id` with a string field `next_offset` in the class `foundMessages`.
+  - Added the field `total_count` to the class `foundMessages`; can be -1 if the total count of matching messages is
+    unknown.
+  - Replaced the parameter `from_search_id` with the parameter `offset` in the method `searchSecretMessages`.
+  - Added the parameter `filter` to the method `searchMessages`.
+  - Added the parameters `min_date` and `max_date` to the method `searchMessages` to search messages sent only within
+    a particular timeframe.
+* Added pkg-config file generation for all installed libraries.
+* Added automatic operating system version detection. Use an empty field `system_version` in
+  the class `tdlibParameters` for the automatic detection.
+* Increased maximum file size from 1500 MB to 2000 MB.
+* Added support for human-friendly Markdown formatting:
+  - Added the synchronous method `parseMarkdown` for human-friendly parsing of text entities.
+  - Added the synchronous method `getMarkdownText` for replacing text entities with a human-friendly
+    Markdown formatting.
+  - Added the writable option "always_parse_markdown" which enables automatic parsing of text entities in
+    all `inputMessageText` objects.
+* Added support for dice with random values in messages:
+  - Added the class `messageDice` to the types of message content; contains a dice.
+  - Added the class `DiceStickers`, containing animated stickers needed to show the dice.
+  - Added the class `inputMessageDice` to the types of new input message content; can be used to send a dice.
+  - Added the update `updateDiceEmojis`, containing information about supported dice emojis.
+* Added support for chat statistics in channels and supergroups:
+  - Added the field `can_get_statistics` to the class `supergroupFullInfo`.
+  - Added the class `ChatStatistics`, which represents a supergroup or a channel statistics.
+  - Added the method `getChatStatistics` returning detailed statistics about a chat.
+  - Added the classes `chatStatisticsMessageInteractionInfo`, `chatStatisticsAdministratorActionsInfo`, 
+    `chatStatisticsMessageSenderInfo` and `chatStatisticsInviterInfo` representing various parts of chat statistics.
+  - Added the class `statisticalValue` describing recent changes of a statistical value.
+  - Added the class `StatisticalGraph` describing a statistical graph.
+  - Added the method `getStatisticalGraph`, which can be used for loading asynchronous or zoomed in statistical graphs.
+  - Added the class `dateRange` representing a date range for which statistics are available.
+  - Removed the field `can_view_statistics` from the class `supergroupFullInfo` and marked
+    the method `getChatStatisticsUrl` as disabled and not working.
+* Added support for detailed statistics about interactions with messages:
+  - Added the class `messageInteractionInfo`, containing information about message views, forwards and replies.
+  - Added the field `interaction_info` to the class `message`.
+  - Added the update `updateMessageInteractionInfo`.
+  - Added the field `can_get_statistics` to the class `message`.
+  - Added the class `messageStatistics`.
+  - Added the method `getMessageStatistics`.
+  - Added the method `getMessagePublicForwards`, returning all forwards of a message to public channels.
+  - Removed the now superfluous field `views` from the class `message`.
+  - Removed the now superfluous update `updateMessageViews`.
+* Improved support for native polls:
+  - Added the field `explanation` to the class `pollTypeQuiz`.
+  - Added the fields `close_date` and `open_period` to the class `poll`.
+  - Added the fields `close_date` and `open_period` to the class `inputMessagePoll`; for bots only.
+  - Increased maximum poll question length to 300 characters for bots.
+* Added support for anonymous administrators in supergroups:
+  - Added the field `is_anonymous` to the classes `chatMemberStatusCreator` and `chatMemberStatusAdministrator`.
+  - The field `author_signature` in the class `message` can now contain a custom title of the anonymous administrator
+    that sent the message.
+* Added support for a new type of inline keyboard buttons, requiring user password entry:
+  - Added the class `inlineKeyboardButtonTypeCallbackWithPassword`, representing a button requiring password entry from
+    a user.
+  - Added the class `callbackQueryPayloadDataWithPassword`, representing new type of callback button payload,
+    which must be used for the buttons of the type `inlineKeyboardButtonTypeCallbackWithPassword`.
+* Added support for making the location of the user public:
+  - Added the writable option "is_location_visible" to allow other users see location of the current user.
+  - Added the method `setLocation`, which should be called if `getOption("is_location_visible")` is true and location
+    changes by more than 1 kilometer.
+* Improved Notification API:
+  - Added the field `sender_name` to the class `notificationTypeNewPushMessage`.
+  - Added the writable option "disable_sent_scheduled_message_notifications" for disabling notifications about
+    outgoing scheduled messages that were sent.
+  - Added the field `is_outgoing` to the class `notificationTypeNewPushMessage` for recognizing
+    outgoing scheduled messages that were sent.
+  - Added the fields `has_audios` and `has_documents` to the class `pushMessageContentMediaAlbum`.
+* Added the field `date` to the class `draftMessage`.
+* Added the update `updateStickerSet`, which is sent after a sticker set is changed.
+* Added support for pagination in trending sticker sets:
+  - Added the parameters `offset` and `limit` to the method `getTrendingStickerSets`.
+  - Changed the field `sticker_sets` in the update `updateTrendingStickerSets` to contain only the prefix of
+    trending sticker sets.
+* Messages that failed to send can now be found using the filter `searchMessagesFilterFailedToSend`.
+* Added the ability to disable automatic server-side file type detection using the new field
+  `disable_content_type_detection` of the class `inputMessageDocument`.
+* Improved chat action bar:
+  - Added the field `can_unarchive` to the classes `chatActionBarReportSpam` and `chatActionBarReportAddBlock`,
+    which is true whenever the chat was automatically archived.
+  - Added the field `distance` to the class `chatActionBarReportAddBlock`,
+    which denotes the distance between the users.
+* Added support for actions suggested to the user by the server:
+  - Added the class `SuggestedAction`, representing possible actions suggested by the server.
+  - Added the update `updateSuggestedActions`.
+  - Added the method `hideSuggestedAction`, which can be used to dismiss a suggested action.
+* Supported attaching stickers to animations:
+  - Added the field `has_stickers` to the class `animation`.
+  - Added the field `added_sticker_file_ids` to the class `inputMessageAnimation`.
+* Added methods for phone number formatting:
+  - Added the class `countryInfo`, describing a country.
+  - Added the class `countries`, containing a list of countries.
+  - Added the method `getCountries`, returning a list of all existing countries.
+  - Added the class `phonenumberinfo` and the method `getPhoneNumberInfo`, which can be used to format a phone number
+    according to local rules.
+* Improved location support:
+  - Added the field `horizontal_accuracy` to the class `location`.
+  - Added the field `heading` to the classes `messageLocation` and `inputMessageLocation` for live locations.
+  - Added the parameter `heading` to the methods `editMessageLiveLocation` and `editInlineMessageLiveLocation`.
+* Added support for proximity alerts in live locations:
+  - Added the field `proximity_alert_radius` to the classes `messageLocation` and `inputMessageLocation`.
+  - Added the parameter `proximity_alert_radius` to the methods `editMessageLiveLocation` and
+    `editInlineMessageLiveLocation`.
+  - Added the new message content `messageProximityAlertTriggered`, received whenever a proximity alert is triggered.
+* Added `CentOS 7` and `CentOS 8` operating systems to the
+  [TDLib build instructions generator](https://tdlib.github.io/td/build.html).
+* Added the CMake configuration option TD_ENABLE_MULTI_PROCESSOR_COMPILATION, which can be used to enable parallel
+  build with MSVC.
+* Added support for sending and receiving messages in secret chats with silent notifications.
+* Added the field `progressive_sizes` to the class `photo` to allow partial progressive JPEG photo download.
+* Added the field `redirect_stderr` to the class `logStreamFile` to allow explicit control over stderr redirection to
+  the log file.
+* Added the writable option "archive_and_mute_new_chats_from_unknown_users", which can be used to automatically archive
+  and mute new chats from non-contacts. The option can be set only if the change was suggested by the server.
+* Added the writable option "message_unload_delay", which can be used to change the minimum delay before messages are
+  unloaded from the memory.
+* Added the writable option "disable_persistent_network_statistics", which can be used to disable persistent
+  network usage statistics, significantly reducing disk usage.
+* Added the writable option "disable_time_adjustment_protection", which can be used to disable protection from
+  external time adjustment, significantly reducing disk usage.
+* Added the writable option "ignore_default_disable_notification" to allow the application to manually specify the
+  `disable_notification` option each time when sending messages instead of following the default per-chat settings.
+* Added the read-only option "telegram_service_notifications_chat_id", containing the identifier of
+  the Telegram service notifications chat.
+* Added the read-only option "replies_bot_chat_id", containing the identifier of the @replies bot.
+* Added the read-only option "group_anonymous_bot_user_id", containing the identifier of the bot which is shown as
+  the sender of anonymous group messages when viewed from an outdated client.
+* Added the new venue provider value "gplaces" for Google Places.
+* Added the parameter `return_deleted_file_statistics` to the method `optimizeStorage` to return information about
+  the files that were deleted instead of the ones that were not.
+* Added the ability to search for supergroup members to mention by their name and username:
+  - Added the new filter `supergroupMembersFilterMention` for the method `getSupergroupMembers`.
+  - Added the new filter `chatMembersFilterMention` for the method `searchChatMembers`.
+* Added support for highlighting bank card numbers:
+  - Added the new text entity `textEntityTypeBankCardNumber`.
+  - Added the classes `bankCardInfo` and `bankCardActionOpenUrl`, containing information about a bank card.
+  - Added the method `getBankCardInfo`, returning information about a bank card.
+* Improved methods for managing sticker sets by bots:
+  - Added the method `setStickerSetThumbnail`.
+  - Added the ability to create new animated sticker sets and add new stickers to them by adding
+    the class `inputStickerAnimated`.
+  - Renamed the class `inputSticker` to `inputStickerStatic`.
+  - Renamed the field `png_sticker` to `sticker` in the class `inputStickerStatic`.
+* Added the method `setCommands` for bots.
+* Added the method `getCallbackQueryMessage` for bots.
+* Added support for starting bots in private chats through `sendBotStartMessage`.
+* Added the field `total_count` to the class `chats`. The field should have a precise value for the responses of
+  the methods `getChats`, `searchChats` and `getGroupsInCommon`.
+* Added the update `updateAnimationSearchParameters`, containing information about animation search parameters.
+* Documented that `getRepliedMessage` can be used to get a pinned message, a game message, or an invoice message for
+  messages of the types `messagePinMessage`, `messageGameScore`, and `messagePaymentSuccessful` respectively.
+* Added guarantees that the field `member_count` in the class `supergroup` is known if the supergroup was received from
+  the methods `searchChatsNearby`, `getInactiveSupergroupChats`, `getSuitableDiscussionChats`, `getGroupsInCommon`, or
+  `getUserPrivacySettingRules`.
+* Updated SQLCipher to 4.4.0.
+* Updated dependencies in the prebuilt TDLib for Android:
+  - Updated SDK to SDK 30.
+  - Updated NDK to r21d, which dropped support for 32-bit ARM devices without Neon support.
+* Updated recommended `emsdk` version for `tdweb` building to the 2.0.6.
+* Removed the ability to change the update handler after client creation in native .NET binding, Java example and
+  prebuilt library for Android.
+* Removed the ability to change the default exception handler after client creation in Java example and
+  prebuilt library for Android.
+* Removed the ability to close Client using close() method in Java example and prebuilt library for Android.
+  Use the method TdApi.close() instead.
+
+-----------------------------------------------------------------------------------------------------------------------
+
 Changes in 1.6.0 (31 Jan 2020):
 
 * Added support for multiple chat lists. Currently, only two chat lists Main and Archive are supported:
