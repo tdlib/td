@@ -10,6 +10,7 @@
 
 #include "td/utils/port/ServerSocketFd.h"
 #include "td/utils/port/SocketFd.h"
+#include "td/utils/Slice.h"
 
 namespace td {
 

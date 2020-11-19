@@ -135,7 +135,7 @@ class Client final {
  * The future native C++ interface for interaction with TDLib.
  *
  * A TDLib client instance can be created through the method ClientManager::create_client_id.
- * Requests can then be sent using the method ClientManager::send from any thread.
+ * Requests can be sent using the method ClientManager::send from any thread.
  * New updates and responses to requests can be received using the method ClientManager::receive from any thread after
  * the first request has been sent to the client instance. ClientManager::receive must not be called simultaneously from
  * two different threads. Also note that all updates and responses to requests should be applied in the same order as

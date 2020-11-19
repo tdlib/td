@@ -200,7 +200,7 @@ Changes in 1.7.0:
   - Added the field `can_get_statistics` to the class `supergroupFullInfo`.
   - Added the class `ChatStatistics`, which represents a supergroup or a channel statistics.
   - Added the method `getChatStatistics` returning detailed statistics about a chat.
-  - Added the classes `chatStatisticsMessageInteractionInfo`, `chatStatisticsAdministratorActionsInfo`, 
+  - Added the classes `chatStatisticsMessageInteractionInfo`, `chatStatisticsAdministratorActionsInfo`,
     `chatStatisticsMessageSenderInfo` and `chatStatisticsInviterInfo` representing various parts of chat statistics.
   - Added the class `statisticalValue` describing recent changes of a statistical value.
   - Added the class `StatisticalGraph` describing a statistical graph.

@@ -103,7 +103,7 @@ TDJSON_EXPORT void td_json_client_destroy(void *client);
  * a response or an update was received.
  *
  * A TDLib client instance can be created through td_create_client_id.
- * Requests can then be sent using td_send and the received client identifier.
+ * Requests can be sent using td_send and the received client identifier.
  * New updates and responses to requests can be received through td_receive from any thread after the first request
  * has been sent to the client instance. This function must not be called simultaneously from two different threads.
  * Also note that all updates and responses to requests must be applied in the order they were received for consistency.

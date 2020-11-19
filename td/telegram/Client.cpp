@@ -22,10 +22,12 @@
 
 #include <algorithm>
 #include <atomic>
+#include <limits>
 #include <memory>
 #include <mutex>
 #include <queue>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace td {
 
