@@ -1334,6 +1334,40 @@ tl_object_ptr<td_api::MaskPoint> StickersManager::get_mask_point_object(int32 po
   }
 }
 
+string StickersManager::get_sticker_minithumbnail(const string &path) {
+  if (path.empty()) {
+    return string();
+  }
+
+  const auto prefix = Slice(
+      "<?xml version=\"1.0\" encoding=\"utf-8\"?><svg version=\"1.1\" id=\"Layer_1\" "
+      "xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" x=\"0px\" y=\"0px\" "
+      "viewBox=\"0 0 512 512\" style=\"enable-background:new 0 0 512 512;\" xml:space=\"preserve\"><style "
+      "type=\"text/css\">.st0{fill:#E8E8E8;}</style><path class=\"st0\" d=\"M");
+  const auto suffix = Slice("z\"/></svg>");
+
+  auto buf = StackAllocator::alloc(1 << 7);
+  StringBuilder sb(buf.as_slice(), true);
+
+  sb << prefix;
+  for (unsigned char c : path) {
+    if (c >= 128 + 64) {
+      sb << "AACAAAAHAAALMAAAQASTAVAAAZaacaaaahaaalmaaaqastava.az0123456789-,"[c - 128 - 64];
+    } else {
+      if (c >= 128) {
+        sb << ',';
+      } else if (c >= 64) {
+        sb << '-';
+      }
+      sb << (c & 63);
+    }
+  }
+  sb << suffix;
+
+  CHECK(!sb.is_error());
+  return sb.as_cslice().str();
+}
+
 tl_object_ptr<td_api::sticker> StickersManager::get_sticker_object(FileId file_id) const {
   if (!file_id.is_valid()) {
     return nullptr;
@@ -1362,7 +1396,8 @@ tl_object_ptr<td_api::sticker> StickersManager::get_sticker_object(FileId file_i
   auto thumbnail_object = get_thumbnail_object(td_->file_manager_.get(), thumbnail, thumbnail_format);
   return make_tl_object<td_api::sticker>(sticker->set_id.get(), sticker->dimensions.width, sticker->dimensions.height,
                                          sticker->alt, sticker->is_animated, sticker->is_mask, std::move(mask_position),
-                                         std::move(thumbnail_object), td_->file_manager_->get_file_object(file_id));
+                                         get_sticker_minithumbnail(sticker->minithumbnail), std::move(thumbnail_object),
+                                         td_->file_manager_->get_file_object(file_id));
 }
 
 tl_object_ptr<td_api::stickers> StickersManager::get_stickers_object(const vector<FileId> &sticker_ids) const {
