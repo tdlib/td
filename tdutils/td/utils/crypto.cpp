@@ -653,6 +653,8 @@ void AesCtrState::encrypt(Slice from, MutableSlice to) {
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
   ctx_->evp_.encrypt(from.ubegin(), to.ubegin(), narrow_cast<int>(from.size()));
 #else
+  auto from_ptr = from.ubegin();
+  auto to_ptr = to.ubegin();
   for (size_t i = 0; i < from.size(); i++) {
     if (ctx_->current_pos_ == 0) {
       AES_encrypt(ctx_->counter_, ctx_->encrypted_counter_, &ctx_->aes_key_);
@@ -662,7 +664,7 @@ void AesCtrState::encrypt(Slice from, MutableSlice to) {
         }
       }
     }
-    to[i] = from[i] ^ ctx_->encrypted_counter_[ctx_->current_pos_];
+    to_ptr[i] = static_cast<uint8>(from_ptr[i] ^ ctx_->encrypted_counter_[ctx_->current_pos_]);
     ctx_->current_pos_ = (ctx_->current_pos_ + 1) & 15;
   }
 #endif
