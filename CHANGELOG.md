@@ -340,6 +340,7 @@ Changes in 1.7.0:
   prebuilt library for Android.
 * Removed the ability to close Client using close() method in Java example and prebuilt library for Android.
   Use the method TdApi.close() instead.
+* Changed license of source code in prebuilt library for Android to Boost Software License, Version 1.0.
 
 -----------------------------------------------------------------------------------------------------------------------
 
