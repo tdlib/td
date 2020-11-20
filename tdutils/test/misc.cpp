@@ -49,8 +49,6 @@
 #include <absl/container/flat_hash_map.h>
 #endif
 
-using namespace td;
-
 struct CheckExitGuard {
   explicit CheckExitGuard(bool expected_value) : expected_value_(expected_value) {
   }
@@ -59,32 +57,32 @@ struct CheckExitGuard {
   CheckExitGuard(const CheckExitGuard &) = delete;
   CheckExitGuard &operator=(const CheckExitGuard &) = delete;
   ~CheckExitGuard() {
-    ASSERT_EQ(expected_value_, ExitGuard::is_exited());
+    ASSERT_EQ(expected_value_, td::ExitGuard::is_exited());
   }
 
   bool expected_value_;
 };
 
 CheckExitGuard check_exit_guard_true{true};
-ExitGuard exit_guard;
+td::ExitGuard exit_guard;
 CheckExitGuard check_exit_guard_false{false};
 
 #if TD_LINUX || TD_DARWIN
 TEST(Misc, update_atime_saves_mtime) {
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(ERROR));
-  std::string name = "test_file";
-  unlink(name).ignore();
-  auto r_file = FileFd::open(name, FileFd::Read | FileFd::Flags::Create | FileFd::Flags::Truncate);
+  td::string name = "test_file";
+  td::unlink(name).ignore();
+  auto r_file = td::FileFd::open(name, td::FileFd::Read | td::FileFd::Flags::Create | td::FileFd::Flags::Truncate);
   LOG_IF(ERROR, r_file.is_error()) << r_file.error();
   ASSERT_TRUE(r_file.is_ok());
   r_file.move_as_ok().close();
 
-  auto info = stat(name).ok();
-  int32 tests_ok = 0;
-  int32 tests_wa = 0;
+  auto info = td::stat(name).ok();
+  td::int32 tests_ok = 0;
+  td::int32 tests_wa = 0;
   for (int i = 0; i < 10000; i++) {
-    update_atime(name).ensure();
-    auto new_info = stat(name).ok();
+    td::update_atime(name).ensure();
+    auto new_info = td::stat(name).ok();
     if (info.mtime_nsec_ == new_info.mtime_nsec_) {
       tests_ok++;
     } else {
@@ -92,31 +90,31 @@ TEST(Misc, update_atime_saves_mtime) {
       info.mtime_nsec_ = new_info.mtime_nsec_;
     }
     ASSERT_EQ(info.mtime_nsec_, new_info.mtime_nsec_);
-    usleep_for(Random::fast(0, 1000));
+    td::usleep_for(td::Random::fast(0, 1000));
   }
   if (tests_wa > 0) {
     LOG(ERROR) << "Access time was unexpectedly updated " << tests_wa << " times";
   }
-  unlink(name).ensure();
+  td::unlink(name).ensure();
 }
 
 TEST(Misc, update_atime_change_atime) {
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(ERROR));
-  std::string name = "test_file";
-  unlink(name).ignore();
-  auto r_file = FileFd::open(name, FileFd::Read | FileFd::Flags::Create | FileFd::Flags::Truncate);
+  td::string name = "test_file";
+  td::unlink(name).ignore();
+  auto r_file = td::FileFd::open(name, td::FileFd::Read | td::FileFd::Flags::Create | td::FileFd::Flags::Truncate);
   LOG_IF(ERROR, r_file.is_error()) << r_file.error();
   ASSERT_TRUE(r_file.is_ok());
   r_file.move_as_ok().close();
-  auto info = stat(name).ok();
+  auto info = td::stat(name).ok();
   // not enough for fat and e.t.c.
-  usleep_for(5000000);
-  update_atime(name).ensure();
-  auto new_info = stat(name).ok();
+  td::usleep_for(5000000);
+  td::update_atime(name).ensure();
+  auto new_info = td::stat(name).ok();
   if (info.atime_nsec_ == new_info.atime_nsec_) {
     LOG(ERROR) << "Access time was unexpectedly not changed";
   }
-  unlink(name).ensure();
+  td::unlink(name).ensure();
 }
 #endif
 
@@ -127,7 +125,7 @@ TEST(Misc, errno_tls_bug) {
   // CHECK(errno == 0);
 
 #if !TD_THREAD_UNSUPPORTED && !TD_EVENTFD_UNSUPPORTED
-  EventFd test_event_fd;
+  td::EventFd test_event_fd;
   test_event_fd.init();
   std::atomic<int> s{0};
   s = 1;
@@ -139,8 +137,8 @@ TEST(Misc, errno_tls_bug) {
   th.join();
 
   for (int i = 0; i < 1000; i++) {
-    vector<EventFd> events(10);
-    vector<td::thread> threads;
+    td::vector<td::EventFd> events(10);
+    td::vector<td::thread> threads;
     for (auto &event : events) {
       event.init();
       event.release();
@@ -148,7 +146,7 @@ TEST(Misc, errno_tls_bug) {
     for (auto &event : events) {
       threads.emplace_back([&] {
         {
-          EventFd tmp;
+          td::EventFd tmp;
           tmp.init();
           tmp.acquire();
         }
@@ -163,11 +161,11 @@ TEST(Misc, errno_tls_bug) {
 }
 
 TEST(Misc, get_last_argument) {
-  auto a = make_unique<int>(5);
-  ASSERT_EQ(*get_last_argument(std::move(a)), 5);
-  ASSERT_EQ(*get_last_argument(1, 2, 3, 4, a), 5);
-  ASSERT_EQ(*get_last_argument(a), 5);
-  auto b = get_last_argument(1, 2, 3, std::move(a));
+  auto a = td::make_unique<int>(5);
+  ASSERT_EQ(*td::get_last_argument(std::move(a)), 5);
+  ASSERT_EQ(*td::get_last_argument(1, 2, 3, 4, a), 5);
+  ASSERT_EQ(*td::get_last_argument(a), 5);
+  auto b = td::get_last_argument(1, 2, 3, std::move(a));
   ASSERT_TRUE(!a);
   ASSERT_EQ(*b, 5);
 }
@@ -175,97 +173,97 @@ TEST(Misc, get_last_argument) {
 TEST(Misc, call_n_arguments) {
   auto f = [](int, int) {
   };
-  call_n_arguments<2>(f, 1, 3, 4);
+  td::call_n_arguments<2>(f, 1, 3, 4);
 }
 
 TEST(Misc, base64) {
-  ASSERT_TRUE(is_base64("dGVzdA==") == true);
-  ASSERT_TRUE(is_base64("dGVzdB==") == false);
-  ASSERT_TRUE(is_base64("dGVzdA=") == false);
-  ASSERT_TRUE(is_base64("dGVzdA") == false);
-  ASSERT_TRUE(is_base64("dGVzd") == false);
-  ASSERT_TRUE(is_base64("dGVz") == true);
-  ASSERT_TRUE(is_base64("dGVz====") == false);
-  ASSERT_TRUE(is_base64("") == true);
-  ASSERT_TRUE(is_base64("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/") == true);
-  ASSERT_TRUE(is_base64("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=") == false);
-  ASSERT_TRUE(is_base64("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-/") == false);
-  ASSERT_TRUE(is_base64("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_") == false);
-  ASSERT_TRUE(is_base64("====") == false);
+  ASSERT_TRUE(td::is_base64("dGVzdA==") == true);
+  ASSERT_TRUE(td::is_base64("dGVzdB==") == false);
+  ASSERT_TRUE(td::is_base64("dGVzdA=") == false);
+  ASSERT_TRUE(td::is_base64("dGVzdA") == false);
+  ASSERT_TRUE(td::is_base64("dGVzd") == false);
+  ASSERT_TRUE(td::is_base64("dGVz") == true);
+  ASSERT_TRUE(td::is_base64("dGVz====") == false);
+  ASSERT_TRUE(td::is_base64("") == true);
+  ASSERT_TRUE(td::is_base64("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/") == true);
+  ASSERT_TRUE(td::is_base64("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=") == false);
+  ASSERT_TRUE(td::is_base64("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-/") == false);
+  ASSERT_TRUE(td::is_base64("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_") == false);
+  ASSERT_TRUE(td::is_base64("====") == false);
 
-  ASSERT_TRUE(is_base64url("dGVzdA==") == true);
-  ASSERT_TRUE(is_base64url("dGVzdB==") == false);
-  ASSERT_TRUE(is_base64url("dGVzdA=") == false);
-  ASSERT_TRUE(is_base64url("dGVzdA") == true);
-  ASSERT_TRUE(is_base64url("dGVzd") == false);
-  ASSERT_TRUE(is_base64url("dGVz") == true);
-  ASSERT_TRUE(is_base64url("dGVz====") == false);
-  ASSERT_TRUE(is_base64url("") == true);
-  ASSERT_TRUE(is_base64url("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_") == true);
-  ASSERT_TRUE(is_base64url("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_=") == false);
-  ASSERT_TRUE(is_base64url("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-/") == false);
-  ASSERT_TRUE(is_base64url("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/") == false);
-  ASSERT_TRUE(is_base64url("====") == false);
+  ASSERT_TRUE(td::is_base64url("dGVzdA==") == true);
+  ASSERT_TRUE(td::is_base64url("dGVzdB==") == false);
+  ASSERT_TRUE(td::is_base64url("dGVzdA=") == false);
+  ASSERT_TRUE(td::is_base64url("dGVzdA") == true);
+  ASSERT_TRUE(td::is_base64url("dGVzd") == false);
+  ASSERT_TRUE(td::is_base64url("dGVz") == true);
+  ASSERT_TRUE(td::is_base64url("dGVz====") == false);
+  ASSERT_TRUE(td::is_base64url("") == true);
+  ASSERT_TRUE(td::is_base64url("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_") == true);
+  ASSERT_TRUE(td::is_base64url("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_=") == false);
+  ASSERT_TRUE(td::is_base64url("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-/") == false);
+  ASSERT_TRUE(td::is_base64url("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/") == false);
+  ASSERT_TRUE(td::is_base64url("====") == false);
 
-  ASSERT_TRUE(is_base64_characters("dGVzdA==") == false);
-  ASSERT_TRUE(is_base64_characters("dGVzdB==") == false);
-  ASSERT_TRUE(is_base64_characters("dGVzdA=") == false);
-  ASSERT_TRUE(is_base64_characters("dGVzdA") == true);
-  ASSERT_TRUE(is_base64_characters("dGVz") == true);
-  ASSERT_TRUE(is_base64_characters("") == true);
-  ASSERT_TRUE(is_base64_characters("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/") == true);
-  ASSERT_TRUE(is_base64_characters("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=") == false);
-  ASSERT_TRUE(is_base64_characters("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-/") == false);
-  ASSERT_TRUE(is_base64_characters("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_") == false);
-  ASSERT_TRUE(is_base64_characters("====") == false);
+  ASSERT_TRUE(td::is_base64_characters("dGVzdA==") == false);
+  ASSERT_TRUE(td::is_base64_characters("dGVzdB==") == false);
+  ASSERT_TRUE(td::is_base64_characters("dGVzdA=") == false);
+  ASSERT_TRUE(td::is_base64_characters("dGVzdA") == true);
+  ASSERT_TRUE(td::is_base64_characters("dGVz") == true);
+  ASSERT_TRUE(td::is_base64_characters("") == true);
+  ASSERT_TRUE(td::is_base64_characters("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/") == true);
+  ASSERT_TRUE(td::is_base64_characters("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=") == false);
+  ASSERT_TRUE(td::is_base64_characters("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-/") == false);
+  ASSERT_TRUE(td::is_base64_characters("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_") == false);
+  ASSERT_TRUE(td::is_base64_characters("====") == false);
 
-  ASSERT_TRUE(is_base64url_characters("dGVzdA==") == false);
-  ASSERT_TRUE(is_base64url_characters("dGVzdB==") == false);
-  ASSERT_TRUE(is_base64url_characters("dGVzdA=") == false);
-  ASSERT_TRUE(is_base64url_characters("dGVzdA") == true);
-  ASSERT_TRUE(is_base64url_characters("dGVz") == true);
-  ASSERT_TRUE(is_base64url_characters("") == true);
-  ASSERT_TRUE(is_base64url_characters("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_") == true);
-  ASSERT_TRUE(is_base64url_characters("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_=") == false);
-  ASSERT_TRUE(is_base64url_characters("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-/") == false);
-  ASSERT_TRUE(is_base64url_characters("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/") == false);
-  ASSERT_TRUE(is_base64url_characters("====") == false);
+  ASSERT_TRUE(td::is_base64url_characters("dGVzdA==") == false);
+  ASSERT_TRUE(td::is_base64url_characters("dGVzdB==") == false);
+  ASSERT_TRUE(td::is_base64url_characters("dGVzdA=") == false);
+  ASSERT_TRUE(td::is_base64url_characters("dGVzdA") == true);
+  ASSERT_TRUE(td::is_base64url_characters("dGVz") == true);
+  ASSERT_TRUE(td::is_base64url_characters("") == true);
+  ASSERT_TRUE(td::is_base64url_characters("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_") == true);
+  ASSERT_TRUE(td::is_base64url_characters("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_=") ==
+              false);
+  ASSERT_TRUE(td::is_base64url_characters("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-/") == false);
+  ASSERT_TRUE(td::is_base64url_characters("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/") == false);
+  ASSERT_TRUE(td::is_base64url_characters("====") == false);
 
   for (int l = 0; l < 300000; l += l / 20 + l / 1000 * 500 + 1) {
     for (int t = 0; t < 10; t++) {
-      string s = rand_string(std::numeric_limits<char>::min(), std::numeric_limits<char>::max(), l);
-      string encoded = base64url_encode(s);
-      auto decoded = base64url_decode(encoded);
+      auto s = td::rand_string(std::numeric_limits<char>::min(), std::numeric_limits<char>::max(), l);
+      auto encoded = td::base64url_encode(s);
+      auto decoded = td::base64url_decode(encoded);
       ASSERT_TRUE(decoded.is_ok());
       ASSERT_TRUE(decoded.ok() == s);
 
-      encoded = base64_encode(s);
-      decoded = base64_decode(encoded);
+      encoded = td::base64_encode(s);
+      decoded = td::base64_decode(encoded);
       ASSERT_TRUE(decoded.is_ok());
       ASSERT_TRUE(decoded.ok() == s);
 
-      auto decoded_secure = base64_decode_secure(encoded);
+      auto decoded_secure = td::base64_decode_secure(encoded);
       ASSERT_TRUE(decoded_secure.is_ok());
       ASSERT_TRUE(decoded_secure.ok().as_slice() == s);
     }
   }
 
-  ASSERT_TRUE(base64url_decode("dGVzdA").is_ok());
-  ASSERT_TRUE(base64url_decode("dGVzdB").is_error());
-  ASSERT_TRUE(base64_encode(base64url_decode("dGVzdA").ok()) == "dGVzdA==");
-  ASSERT_TRUE(base64_encode("any carnal pleas") == "YW55IGNhcm5hbCBwbGVhcw==");
-  ASSERT_TRUE(base64_encode("any carnal pleasu") == "YW55IGNhcm5hbCBwbGVhc3U=");
-  ASSERT_TRUE(base64_encode("any carnal pleasur") == "YW55IGNhcm5hbCBwbGVhc3Vy");
-  ASSERT_TRUE(base64_encode("      /'.;.';≤.];,].',[.;/,.;/]/..;!@#!*(%?::;!%\";") ==
-              "ICAgICAgLycuOy4nO+KJpC5dOyxdLicsWy47LywuOy9dLy4uOyFAIyEqKCU/"
-              "Ojo7ISUiOw==");
-  ASSERT_TRUE(base64url_encode("ab><") == "YWI-PA");
-  ASSERT_TRUE(base64url_encode("ab><c") == "YWI-PGM");
-  ASSERT_TRUE(base64url_encode("ab><cd") == "YWI-PGNk");
+  ASSERT_TRUE(td::base64url_decode("dGVzdA").is_ok());
+  ASSERT_TRUE(td::base64url_decode("dGVzdB").is_error());
+  ASSERT_TRUE(td::base64_encode(td::base64url_decode("dGVzdA").ok()) == "dGVzdA==");
+  ASSERT_TRUE(td::base64_encode("any carnal pleas") == "YW55IGNhcm5hbCBwbGVhcw==");
+  ASSERT_TRUE(td::base64_encode("any carnal pleasu") == "YW55IGNhcm5hbCBwbGVhc3U=");
+  ASSERT_TRUE(td::base64_encode("any carnal pleasur") == "YW55IGNhcm5hbCBwbGVhc3Vy");
+  ASSERT_TRUE(td::base64_encode("      /'.;.';≤.];,].',[.;/,.;/]/..;!@#!*(%?::;!%\";") ==
+              "ICAgICAgLycuOy4nO+KJpC5dOyxdLicsWy47LywuOy9dLy4uOyFAIyEqKCU/Ojo7ISUiOw==");
+  ASSERT_TRUE(td::base64url_encode("ab><") == "YWI-PA");
+  ASSERT_TRUE(td::base64url_encode("ab><c") == "YWI-PGM");
+  ASSERT_TRUE(td::base64url_encode("ab><cd") == "YWI-PGNk");
 }
 
 template <class T>
-static void test_remove_if(vector<int> v, const T &func, vector<int> expected) {
+static void test_remove_if(td::vector<int> v, const T &func, td::vector<int> expected) {
   td::remove_if(v, func);
   if (expected != v) {
     LOG(FATAL) << "Receive " << v << ", expected " << expected << " in remove_if";
@@ -286,13 +284,13 @@ TEST(Misc, remove_if) {
     return false;
   };
 
-  vector<int> v{1, 2, 3, 4, 5, 6};
+  td::vector<int> v{1, 2, 3, 4, 5, 6};
   test_remove_if(v, odd, {2, 4, 6});
   test_remove_if(v, even, {1, 3, 5});
   test_remove_if(v, all, {});
   test_remove_if(v, none, v);
 
-  v = vector<int>{1, 3, 5, 2, 4, 6};
+  v = td::vector<int>{1, 3, 5, 2, 4, 6};
   test_remove_if(v, odd, {2, 4, 6});
   test_remove_if(v, even, {1, 3, 5});
   test_remove_if(v, all, {});
@@ -323,7 +321,7 @@ TEST(Misc, remove_if) {
   test_remove_if(v, none, v);
 }
 
-static void test_remove(vector<int> v, int value, vector<int> expected) {
+static void test_remove(td::vector<int> v, int value, td::vector<int> expected) {
   bool is_found = expected != v;
   ASSERT_EQ(is_found, td::remove(v, value));
   if (expected != v) {
@@ -332,7 +330,7 @@ static void test_remove(vector<int> v, int value, vector<int> expected) {
 }
 
 TEST(Misc, remove) {
-  vector<int> v{1, 2, 3, 4, 5, 6};
+  td::vector<int> v{1, 2, 3, 4, 5, 6};
   test_remove(v, 0, {1, 2, 3, 4, 5, 6});
   test_remove(v, 1, {2, 3, 4, 5, 6});
   test_remove(v, 2, {1, 3, 4, 5, 6});
@@ -368,19 +366,19 @@ TEST(Misc, contains) {
 }
 
 TEST(Misc, base32) {
-  ASSERT_EQ("", base32_encode(""));
-  ASSERT_EQ("me", base32_encode("a"));
-  base32_decode("me").ensure();
-  ASSERT_EQ("mfra", base32_encode("ab"));
-  ASSERT_EQ("mfrgg", base32_encode("abc"));
-  ASSERT_EQ("mfrggza", base32_encode("abcd"));
-  ASSERT_EQ("mfrggzdg", base32_encode("abcdf"));
-  ASSERT_EQ("mfrggzdgm4", base32_encode("abcdfg"));
+  ASSERT_EQ("", td::base32_encode(""));
+  ASSERT_EQ("me", td::base32_encode("a"));
+  td::base32_decode("me").ensure();
+  ASSERT_EQ("mfra", td::base32_encode("ab"));
+  ASSERT_EQ("mfrgg", td::base32_encode("abc"));
+  ASSERT_EQ("mfrggza", td::base32_encode("abcd"));
+  ASSERT_EQ("mfrggzdg", td::base32_encode("abcdf"));
+  ASSERT_EQ("mfrggzdgm4", td::base32_encode("abcdfg"));
   for (int l = 0; l < 300000; l += l / 20 + l / 1000 * 500 + 1) {
     for (int t = 0; t < 10; t++) {
-      string s = rand_string(std::numeric_limits<char>::min(), std::numeric_limits<char>::max(), l);
-      auto encoded = base32_encode(s);
-      auto decoded = base32_decode(encoded);
+      auto s = td::rand_string(std::numeric_limits<char>::min(), std::numeric_limits<char>::max(), l);
+      auto encoded = td::base32_encode(s);
+      auto decoded = td::base32_decode(encoded);
       ASSERT_TRUE(decoded.is_ok());
       ASSERT_TRUE(decoded.ok() == s);
     }
@@ -388,29 +386,29 @@ TEST(Misc, base32) {
 }
 
 TEST(Misc, to_integer) {
-  ASSERT_EQ(to_integer<int32>("-1234567"), -1234567);
-  ASSERT_EQ(to_integer<int64>("-1234567"), -1234567);
-  ASSERT_EQ(to_integer<uint32>("-1234567"), 0u);
-  ASSERT_EQ(to_integer<int16>("-1234567"), 10617);
-  ASSERT_EQ(to_integer<uint16>("-1234567"), 0u);
-  ASSERT_EQ(to_integer<int16>("-1254567"), -9383);
-  ASSERT_EQ(to_integer<uint16>("1254567"), 9383u);
-  ASSERT_EQ(to_integer<int64>("-12345678910111213"), -12345678910111213);
-  ASSERT_EQ(to_integer<uint64>("12345678910111213"), 12345678910111213ull);
+  ASSERT_EQ(td::to_integer<td::int32>("-1234567"), -1234567);
+  ASSERT_EQ(td::to_integer<td::int64>("-1234567"), -1234567);
+  ASSERT_EQ(td::to_integer<td::uint32>("-1234567"), 0u);
+  ASSERT_EQ(td::to_integer<td::int16>("-1234567"), 10617);
+  ASSERT_EQ(td::to_integer<td::uint16>("-1234567"), 0u);
+  ASSERT_EQ(td::to_integer<td::int16>("-1254567"), -9383);
+  ASSERT_EQ(td::to_integer<td::uint16>("1254567"), 9383u);
+  ASSERT_EQ(td::to_integer<td::int64>("-12345678910111213"), -12345678910111213);
+  ASSERT_EQ(td::to_integer<td::uint64>("12345678910111213"), 12345678910111213ull);
 
-  ASSERT_EQ(to_integer_safe<int32>("-1234567").ok(), -1234567);
-  ASSERT_EQ(to_integer_safe<int64>("-1234567").ok(), -1234567);
-  ASSERT_TRUE(to_integer_safe<uint32>("-1234567").is_error());
-  ASSERT_TRUE(to_integer_safe<int16>("-1234567").is_error());
-  ASSERT_TRUE(to_integer_safe<uint16>("-1234567").is_error());
-  ASSERT_TRUE(to_integer_safe<int16>("-1254567").is_error());
-  ASSERT_TRUE(to_integer_safe<uint16>("1254567").is_error());
-  ASSERT_EQ(to_integer_safe<int64>("-12345678910111213").ok(), -12345678910111213);
-  ASSERT_EQ(to_integer_safe<uint64>("12345678910111213").ok(), 12345678910111213ull);
-  ASSERT_TRUE(to_integer_safe<uint64>("-12345678910111213").is_error());
+  ASSERT_EQ(td::to_integer_safe<td::int32>("-1234567").ok(), -1234567);
+  ASSERT_EQ(td::to_integer_safe<td::int64>("-1234567").ok(), -1234567);
+  ASSERT_TRUE(td::to_integer_safe<td::uint32>("-1234567").is_error());
+  ASSERT_TRUE(td::to_integer_safe<td::int16>("-1234567").is_error());
+  ASSERT_TRUE(td::to_integer_safe<td::uint16>("-1234567").is_error());
+  ASSERT_TRUE(td::to_integer_safe<td::int16>("-1254567").is_error());
+  ASSERT_TRUE(td::to_integer_safe<td::uint16>("1254567").is_error());
+  ASSERT_EQ(td::to_integer_safe<td::int64>("-12345678910111213").ok(), -12345678910111213);
+  ASSERT_EQ(td::to_integer_safe<td::uint64>("12345678910111213").ok(), 12345678910111213ull);
+  ASSERT_TRUE(td::to_integer_safe<td::uint64>("-12345678910111213").is_error());
 }
 
-static void test_to_double_one(CSlice str, Slice expected, int precision = 6) {
+static void test_to_double_one(td::CSlice str, td::Slice expected, int precision = 6) {
   auto result = PSTRING() << td::StringBuilder::FixedDouble(to_double(str), precision);
   if (expected != result) {
     LOG(ERROR) << "To double conversion failed: have " << str << ", expected " << expected << ", parsed "
@@ -490,11 +488,11 @@ TEST(Misc, print_uint) {
 }
 
 static void test_get_url_query_file_name_one(const char *prefix, const char *suffix, const char *file_name) {
-  auto path = string(prefix) + string(file_name) + string(suffix);
-  ASSERT_STREQ(file_name, get_url_query_file_name(path));
-  ASSERT_STREQ(file_name, get_url_file_name("http://telegram.org" + path));
-  ASSERT_STREQ(file_name, get_url_file_name("http://telegram.org:80" + path));
-  ASSERT_STREQ(file_name, get_url_file_name("telegram.org" + path));
+  auto path = td::string(prefix) + td::string(file_name) + td::string(suffix);
+  ASSERT_STREQ(file_name, td::get_url_query_file_name(path));
+  ASSERT_STREQ(file_name, td::get_url_file_name("http://telegram.org" + path));
+  ASSERT_STREQ(file_name, td::get_url_file_name("http://telegram.org:80" + path));
+  ASSERT_STREQ(file_name, td::get_url_file_name("telegram.org" + path));
 }
 
 TEST(Misc, get_url_query_file_name) {
@@ -508,9 +506,9 @@ TEST(Misc, get_url_query_file_name) {
   }
 }
 
-static void test_idn_to_ascii_one(string host, string result) {
-  if (result != idn_to_ascii(host).ok()) {
-    LOG(ERROR) << "Failed to convert " << host << " to " << result << ", got \"" << idn_to_ascii(host).ok() << "\"";
+static void test_idn_to_ascii_one(td::string host, td::string result) {
+  if (result != td::idn_to_ascii(host).ok()) {
+    LOG(ERROR) << "Failed to convert " << host << " to " << result << ", got \"" << td::idn_to_ascii(host).ok() << "\"";
   }
 }
 
@@ -545,12 +543,12 @@ TEST(Misc, idn_to_ascii) {
   //  test_idn_to_ascii_one("✌️.ws", "xn--7bi.ws"); // needs nameprep to succeed
   test_idn_to_ascii_one("⛧", "xn--59h");
   test_idn_to_ascii_one("--рф.рф", "xn-----mmcq.xn--p1ai");
-  ASSERT_TRUE(idn_to_ascii("\xc0").is_error());
+  ASSERT_TRUE(td::idn_to_ascii("\xc0").is_error());
 }
 
 #if TD_WINDOWS
-static void test_to_wstring_one(string str) {
-  ASSERT_STREQ(str, from_wstring(to_wstring(str).ok()).ok());
+static void test_to_wstring_one(td::string str) {
+  ASSERT_STREQ(str, td::from_wstring(td::to_wstring(str).ok()).ok());
 }
 
 TEST(Misc, to_wstring) {
@@ -559,30 +557,30 @@ TEST(Misc, to_wstring) {
     test_to_wstring_one("test");
     test_to_wstring_one("тест");
   }
-  string str;
-  for (uint32 i = 0; i <= 0xD7FF; i++) {
-    append_utf8_character(str, i);
+  td::string str;
+  for (td::uint32 i = 0; i <= 0xD7FF; i++) {
+    td::append_utf8_character(str, i);
   }
-  for (uint32 i = 0xE000; i <= 0x10FFFF; i++) {
-    append_utf8_character(str, i);
+  for (td::uint32 i = 0xE000; i <= 0x10FFFF; i++) {
+    td::append_utf8_character(str, i);
   }
   test_to_wstring_one(str);
-  ASSERT_TRUE(to_wstring("\xc0").is_error());
-  auto emoji = to_wstring("🏟").ok();
-  ASSERT_TRUE(from_wstring(emoji).ok() == "🏟");
+  ASSERT_TRUE(td::to_wstring("\xc0").is_error());
+  auto emoji = td::to_wstring("🏟").ok();
+  ASSERT_TRUE(td::from_wstring(emoji).ok() == "🏟");
   ASSERT_TRUE(emoji.size() == 2);
   auto emoji2 = emoji;
   emoji[0] = emoji[1];
   emoji2[1] = emoji2[0];
-  ASSERT_TRUE(from_wstring(emoji).is_error());
-  ASSERT_TRUE(from_wstring(emoji2).is_error());
+  ASSERT_TRUE(td::from_wstring(emoji).is_error());
+  ASSERT_TRUE(td::from_wstring(emoji2).is_error());
   emoji2[0] = emoji[0];
-  ASSERT_TRUE(from_wstring(emoji2).is_error());
+  ASSERT_TRUE(td::from_wstring(emoji2).is_error());
 }
 #endif
 
-static void test_translit(string word, vector<string> result, bool allow_partial = true) {
-  ASSERT_EQ(result, get_word_transliterations(word, allow_partial));
+static void test_translit(td::string word, td::vector<td::string> result, bool allow_partial = true) {
+  ASSERT_EQ(result, td::get_word_transliterations(word, allow_partial));
 }
 
 TEST(Misc, translit) {
@@ -606,57 +604,57 @@ TEST(Misc, translit) {
   test_translit("yo", {"e", "yo", "е", "ио"}, false);
 }
 
-static void test_unicode(uint32 (*func)(uint32)) {
-  for (uint32 i = 0; i <= 0x110000; i++) {
+static void test_unicode(td::uint32 (*func)(td::uint32)) {
+  for (td::uint32 i = 0; i <= 0x110000; i++) {
     auto res = func(i);
     CHECK(res <= 0x10ffff);
   }
 }
 
 TEST(Misc, unicode) {
-  test_unicode(prepare_search_character);
-  test_unicode(unicode_to_lower);
-  test_unicode(remove_diacritics);
+  test_unicode(td::prepare_search_character);
+  test_unicode(td::unicode_to_lower);
+  test_unicode(td::remove_diacritics);
 }
 
 TEST(BigNum, from_decimal) {
-  ASSERT_TRUE(BigNum::from_decimal("").is_error());
-  ASSERT_TRUE(BigNum::from_decimal("a").is_error());
-  ASSERT_TRUE(BigNum::from_decimal("123a").is_error());
-  ASSERT_TRUE(BigNum::from_decimal("-123a").is_error());
-  // ASSERT_TRUE(BigNum::from_decimal("-").is_error());
-  ASSERT_TRUE(BigNum::from_decimal("123").is_ok());
-  ASSERT_TRUE(BigNum::from_decimal("-123").is_ok());
-  ASSERT_TRUE(BigNum::from_decimal("0").is_ok());
-  ASSERT_TRUE(BigNum::from_decimal("-0").is_ok());
-  ASSERT_TRUE(BigNum::from_decimal("-999999999999999999999999999999999999999999999999").is_ok());
-  ASSERT_TRUE(BigNum::from_decimal("999999999999999999999999999999999999999999999999").is_ok());
+  ASSERT_TRUE(td::BigNum::from_decimal("").is_error());
+  ASSERT_TRUE(td::BigNum::from_decimal("a").is_error());
+  ASSERT_TRUE(td::BigNum::from_decimal("123a").is_error());
+  ASSERT_TRUE(td::BigNum::from_decimal("-123a").is_error());
+  // ASSERT_TRUE(td::BigNum::from_decimal("-").is_error());
+  ASSERT_TRUE(td::BigNum::from_decimal("123").is_ok());
+  ASSERT_TRUE(td::BigNum::from_decimal("-123").is_ok());
+  ASSERT_TRUE(td::BigNum::from_decimal("0").is_ok());
+  ASSERT_TRUE(td::BigNum::from_decimal("-0").is_ok());
+  ASSERT_TRUE(td::BigNum::from_decimal("-999999999999999999999999999999999999999999999999").is_ok());
+  ASSERT_TRUE(td::BigNum::from_decimal("999999999999999999999999999999999999999999999999").is_ok());
 }
 
 TEST(BigNum, from_binary) {
-  ASSERT_STREQ(BigNum::from_binary("").to_decimal(), "0");
-  ASSERT_STREQ(BigNum::from_binary("a").to_decimal(), "97");
-  ASSERT_STREQ(BigNum::from_binary("\x00\xff").to_decimal(), "255");
-  ASSERT_STREQ(BigNum::from_binary("\x00\x01\x00\x00").to_decimal(), "65536");
-  ASSERT_STREQ(BigNum::from_le_binary("").to_decimal(), "0");
-  ASSERT_STREQ(BigNum::from_le_binary("a").to_decimal(), "97");
-  ASSERT_STREQ(BigNum::from_le_binary("\x00\xff").to_decimal(), "65280");
-  ASSERT_STREQ(BigNum::from_le_binary("\x00\x01\x00\x00").to_decimal(), "256");
-  ASSERT_STREQ(BigNum::from_decimal("255").move_as_ok().to_binary(), "\xff");
-  ASSERT_STREQ(BigNum::from_decimal("255").move_as_ok().to_le_binary(), "\xff");
-  ASSERT_STREQ(BigNum::from_decimal("255").move_as_ok().to_binary(2), "\x00\xff");
-  ASSERT_STREQ(BigNum::from_decimal("255").move_as_ok().to_le_binary(2), "\xff\x00");
-  ASSERT_STREQ(BigNum::from_decimal("65280").move_as_ok().to_binary(), "\xff\x00");
-  ASSERT_STREQ(BigNum::from_decimal("65280").move_as_ok().to_le_binary(), "\x00\xff");
-  ASSERT_STREQ(BigNum::from_decimal("65280").move_as_ok().to_binary(2), "\xff\x00");
-  ASSERT_STREQ(BigNum::from_decimal("65280").move_as_ok().to_le_binary(2), "\x00\xff");
-  ASSERT_STREQ(BigNum::from_decimal("65536").move_as_ok().to_binary(), "\x01\x00\x00");
-  ASSERT_STREQ(BigNum::from_decimal("65536").move_as_ok().to_le_binary(), "\x00\x00\x01");
-  ASSERT_STREQ(BigNum::from_decimal("65536").move_as_ok().to_binary(4), "\x00\x01\x00\x00");
-  ASSERT_STREQ(BigNum::from_decimal("65536").move_as_ok().to_le_binary(4), "\x00\x00\x01\x00");
+  ASSERT_STREQ(td::BigNum::from_binary("").to_decimal(), "0");
+  ASSERT_STREQ(td::BigNum::from_binary("a").to_decimal(), "97");
+  ASSERT_STREQ(td::BigNum::from_binary("\x00\xff").to_decimal(), "255");
+  ASSERT_STREQ(td::BigNum::from_binary("\x00\x01\x00\x00").to_decimal(), "65536");
+  ASSERT_STREQ(td::BigNum::from_le_binary("").to_decimal(), "0");
+  ASSERT_STREQ(td::BigNum::from_le_binary("a").to_decimal(), "97");
+  ASSERT_STREQ(td::BigNum::from_le_binary("\x00\xff").to_decimal(), "65280");
+  ASSERT_STREQ(td::BigNum::from_le_binary("\x00\x01\x00\x00").to_decimal(), "256");
+  ASSERT_STREQ(td::BigNum::from_decimal("255").move_as_ok().to_binary(), "\xff");
+  ASSERT_STREQ(td::BigNum::from_decimal("255").move_as_ok().to_le_binary(), "\xff");
+  ASSERT_STREQ(td::BigNum::from_decimal("255").move_as_ok().to_binary(2), "\x00\xff");
+  ASSERT_STREQ(td::BigNum::from_decimal("255").move_as_ok().to_le_binary(2), "\xff\x00");
+  ASSERT_STREQ(td::BigNum::from_decimal("65280").move_as_ok().to_binary(), "\xff\x00");
+  ASSERT_STREQ(td::BigNum::from_decimal("65280").move_as_ok().to_le_binary(), "\x00\xff");
+  ASSERT_STREQ(td::BigNum::from_decimal("65280").move_as_ok().to_binary(2), "\xff\x00");
+  ASSERT_STREQ(td::BigNum::from_decimal("65280").move_as_ok().to_le_binary(2), "\x00\xff");
+  ASSERT_STREQ(td::BigNum::from_decimal("65536").move_as_ok().to_binary(), "\x01\x00\x00");
+  ASSERT_STREQ(td::BigNum::from_decimal("65536").move_as_ok().to_le_binary(), "\x00\x00\x01");
+  ASSERT_STREQ(td::BigNum::from_decimal("65536").move_as_ok().to_binary(4), "\x00\x01\x00\x00");
+  ASSERT_STREQ(td::BigNum::from_decimal("65536").move_as_ok().to_le_binary(4), "\x00\x00\x01\x00");
 }
 
-static void test_get_ipv4(uint32 ip) {
+static void test_get_ipv4(td::uint32 ip) {
   td::IPAddress ip_address;
   ip_address.init_ipv4_port(td::IPAddress::ipv4_to_str(ip), 80).ensure();
   ASSERT_EQ(ip_address.get_ipv4(), ip);
@@ -671,8 +669,8 @@ TEST(Misc, IPAddress_get_ipv4) {
   test_get_ipv4(0xFFFFFFFF);
 }
 
-static void test_is_reserved(string ip, bool is_reserved) {
-  IPAddress ip_address;
+static void test_is_reserved(td::string ip, bool is_reserved) {
+  td::IPAddress ip_address;
   ip_address.init_ipv4_port(ip, 80).ensure();
   ASSERT_EQ(is_reserved, ip_address.is_reserved());
 }
@@ -739,14 +737,14 @@ TEST(Misc, IPAddress_is_reserved) {
 }
 
 TEST(Misc, ipv6_clear) {
-  IPAddress ip_address;
+  td::IPAddress ip_address;
   ip_address.init_host_port("2001:0db8:85a3:0000:0000:8a2e:0370:7334", 123).ensure();
   ASSERT_EQ("2001:db8:85a3::8a2e:370:7334", ip_address.get_ip_str());
   ip_address.clear_ipv6_interface();
   ASSERT_EQ("2001:db8:85a3::", ip_address.get_ip_str());
 }
 
-static void test_split(Slice str, std::pair<Slice, Slice> expected) {
+static void test_split(td::Slice str, std::pair<td::Slice, td::Slice> expected) {
   ASSERT_EQ(expected, td::split(str));
 }
 
@@ -764,11 +762,11 @@ TEST(Misc, split) {
   test_split(" abcdef ", {"", "abcdef "});
 }
 
-static void test_full_split(Slice str, vector<Slice> expected) {
+static void test_full_split(td::Slice str, td::vector<td::Slice> expected) {
   ASSERT_EQ(expected, td::full_split(str));
 }
 
-static void test_full_split(Slice str, char c, size_t max_parts, vector<Slice> expected) {
+static void test_full_split(td::Slice str, char c, std::size_t max_parts, td::vector<td::Slice> expected) {
   ASSERT_EQ(expected, td::full_split(str, c, max_parts));
 }
 
@@ -791,15 +789,15 @@ TEST(Misc, full_split) {
 }
 
 TEST(Misc, StringBuilder) {
-  auto small_str = std::string{"abcdefghij"};
-  auto big_str = std::string(1000, 'a');
-  using V = std::vector<std::string>;
+  auto small_str = td::string{"abcdefghij"};
+  auto big_str = td::string(1000, 'a');
+  using V = td::vector<td::string>;
   for (auto use_buf : {false, true}) {
-    for (size_t initial_buffer_size : {0, 1, 5, 10, 100, 1000, 2000}) {
+    for (std::size_t initial_buffer_size : {0, 1, 5, 10, 100, 1000, 2000}) {
       for (auto test : {V{small_str}, V{small_str, big_str, big_str, small_str}, V{big_str, small_str, big_str}}) {
-        std::string buf(initial_buffer_size, '\0');
+        td::string buf(initial_buffer_size, '\0');
         td::StringBuilder sb(buf, use_buf);
-        std::string res;
+        td::string res;
         for (auto x : test) {
           res += x;
           sb << x;
@@ -818,21 +816,21 @@ TEST(Misc, StringBuilder) {
 
 TEST(Misc, As) {
   char buf[100];
-  as<int>(buf) = 123;
-  ASSERT_EQ(123, as<int>((const char *)buf));
-  ASSERT_EQ(123, as<int>((char *)buf));
+  td::as<int>(buf) = 123;
+  ASSERT_EQ(123, td::as<int>(static_cast<const char *>(buf)));
+  ASSERT_EQ(123, td::as<int>(static_cast<char *>(buf)));
   char buf2[100];
-  as<int>(buf2) = as<int>(buf);
-  ASSERT_EQ(123, as<int>((const char *)buf2));
-  ASSERT_EQ(123, as<int>((char *)buf2));
+  td::as<int>(buf2) = td::as<int>(buf);
+  ASSERT_EQ(123, td::as<int>(static_cast<const char *>(buf2)));
+  ASSERT_EQ(123, td::as<int>(static_cast<char *>(buf2)));
 }
 
 TEST(Misc, Regression) {
-  string name = "regression_db";
-  RegressionTester::destroy(name);
+  td::string name = "regression_db";
+  td::RegressionTester::destroy(name);
 
   {
-    auto tester = RegressionTester::create(name);
+    auto tester = td::RegressionTester::create(name);
     tester->save_db();
     tester->verify_test("one_plus_one", "two").ensure();
     tester->verify_test("one_plus_one", "two").ensure();
@@ -842,7 +840,7 @@ TEST(Misc, Regression) {
     tester->save_db();
   }
   {
-    auto tester = RegressionTester::create(name);
+    auto tester = td::RegressionTester::create(name);
     tester->save_db();
     tester->verify_test("one_plus_one", "two").ensure();
     tester->verify_test("one_plus_one", "two").ensure();
@@ -854,46 +852,46 @@ TEST(Misc, Regression) {
     tester->verify_test("two_plus_one", "two").ensure_error();
   }
   {
-    auto tester = RegressionTester::create(name);
+    auto tester = td::RegressionTester::create(name);
     tester->verify_test("one_plus_one", "three").ensure_error();
     tester->verify_test("two_plus_one", "two").ensure_error();
   }
 }
 
 TEST(Misc, Bits) {
-  ASSERT_EQ(32, count_leading_zeroes32(0));
-  ASSERT_EQ(64, count_leading_zeroes64(0));
-  ASSERT_EQ(32, count_trailing_zeroes32(0));
-  ASSERT_EQ(64, count_trailing_zeroes64(0));
+  ASSERT_EQ(32, td::count_leading_zeroes32(0));
+  ASSERT_EQ(64, td::count_leading_zeroes64(0));
+  ASSERT_EQ(32, td::count_trailing_zeroes32(0));
+  ASSERT_EQ(64, td::count_trailing_zeroes64(0));
 
   for (int i = 0; i < 32; i++) {
-    ASSERT_EQ(31 - i, count_leading_zeroes32(1u << i));
-    ASSERT_EQ(i, count_trailing_zeroes32(1u << i));
-    ASSERT_EQ(31 - i, count_leading_zeroes_non_zero32(1u << i));
-    ASSERT_EQ(i, count_trailing_zeroes_non_zero32(1u << i));
+    ASSERT_EQ(31 - i, td::count_leading_zeroes32(1u << i));
+    ASSERT_EQ(i, td::count_trailing_zeroes32(1u << i));
+    ASSERT_EQ(31 - i, td::count_leading_zeroes_non_zero32(1u << i));
+    ASSERT_EQ(i, td::count_trailing_zeroes_non_zero32(1u << i));
   }
   for (int i = 0; i < 64; i++) {
-    ASSERT_EQ(63 - i, count_leading_zeroes64(1ull << i));
-    ASSERT_EQ(i, count_trailing_zeroes64(1ull << i));
-    ASSERT_EQ(63 - i, count_leading_zeroes_non_zero64(1ull << i));
-    ASSERT_EQ(i, count_trailing_zeroes_non_zero64(1ull << i));
+    ASSERT_EQ(63 - i, td::count_leading_zeroes64(1ull << i));
+    ASSERT_EQ(i, td::count_trailing_zeroes64(1ull << i));
+    ASSERT_EQ(63 - i, td::count_leading_zeroes_non_zero64(1ull << i));
+    ASSERT_EQ(i, td::count_trailing_zeroes_non_zero64(1ull << i));
   }
 
   ASSERT_EQ(0x12345678u, td::bswap32(0x78563412u));
   ASSERT_EQ(0x12345678abcdef67ull, td::bswap64(0x67efcdab78563412ull));
 
-  uint8 buf[8] = {1, 90, 2, 18, 129, 255, 0, 2};
-  uint64 num2 = bswap64(as<td::uint64>(buf));
-  uint64 num = (static_cast<uint64>(buf[0]) << 56) | (static_cast<uint64>(buf[1]) << 48) |
-               (static_cast<uint64>(buf[2]) << 40) | (static_cast<uint64>(buf[3]) << 32) |
-               (static_cast<uint64>(buf[4]) << 24) | (static_cast<uint64>(buf[5]) << 16) |
-               (static_cast<uint64>(buf[6]) << 8) | (static_cast<uint64>(buf[7]));
+  td::uint8 buf[8] = {1, 90, 2, 18, 129, 255, 0, 2};
+  td::uint64 num2 = td::bswap64(td::as<td::uint64>(buf));
+  td::uint64 num = (static_cast<td::uint64>(buf[0]) << 56) | (static_cast<td::uint64>(buf[1]) << 48) |
+                   (static_cast<td::uint64>(buf[2]) << 40) | (static_cast<td::uint64>(buf[3]) << 32) |
+                   (static_cast<td::uint64>(buf[4]) << 24) | (static_cast<td::uint64>(buf[5]) << 16) |
+                   (static_cast<td::uint64>(buf[6]) << 8) | (static_cast<td::uint64>(buf[7]));
   ASSERT_EQ(num, num2);
 
-  ASSERT_EQ(0, count_bits32(0));
-  ASSERT_EQ(0, count_bits64(0));
-  ASSERT_EQ(4, count_bits32((1u << 31) | 7));
-  ASSERT_EQ(4, count_bits64((1ull << 63) | 7));
+  ASSERT_EQ(0, td::count_bits32(0));
+  ASSERT_EQ(0, td::count_bits64(0));
+  ASSERT_EQ(4, td::count_bits32((1u << 31) | 7));
+  ASSERT_EQ(4, td::count_bits64((1ull << 63) | 7));
 }
 
 TEST(Misc, BitsRange) {
@@ -935,24 +933,24 @@ TEST(Misc, BitsRange) {
 
 #if !TD_THREAD_UNSUPPORTED
 TEST(Misc, Time) {
-  Stage run;
-  Stage check;
-  Stage finish;
+  td::Stage run;
+  td::Stage check;
+  td::Stage finish;
 
-  size_t threads_n = 3;
-  std::vector<thread> threads;
-  std::vector<std::atomic<double>> ts(threads_n);
-  for (size_t i = 0; i < threads_n; i++) {
+  std::size_t threads_n = 3;
+  td::vector<td::thread> threads;
+  td::vector<std::atomic<double>> ts(threads_n);
+  for (std::size_t i = 0; i < threads_n; i++) {
     threads.emplace_back([&, thread_id = i] {
-      for (uint64 round = 1; round < 100000; round++) {
+      for (td::uint64 round = 1; round < 100000; round++) {
         ts[thread_id] = 0;
         run.wait(round * threads_n);
-        ts[thread_id] = Time::now();
+        ts[thread_id] = td::Time::now();
         check.wait(round * threads_n);
         for (auto &ts_ref : ts) {
           auto other_ts = ts_ref.load();
           if (other_ts != 0) {
-            ASSERT_TRUE(other_ts <= Time::now_cached());
+            ASSERT_TRUE(other_ts <= td::Time::now_cached());
           }
         }
 
@@ -967,52 +965,52 @@ TEST(Misc, Time) {
 #endif
 
 TEST(Misc, uint128) {
-  std::vector<uint64> parts = {0,
-                               1,
-                               2000,
-                               2001,
-                               std::numeric_limits<uint64>::max(),
-                               std::numeric_limits<uint64>::max() - 1,
-                               std::numeric_limits<uint32>::max(),
-                               static_cast<uint64>(std::numeric_limits<uint32>::max()) + 1};
-  std::vector<int64> signed_parts = {0,
-                                     1,
-                                     2000,
-                                     2001,
-                                     -1,
-                                     -2000,
-                                     -2001,
-                                     std::numeric_limits<int64>::max(),
-                                     std::numeric_limits<int64>::max() - 1,
-                                     std::numeric_limits<int64>::min(),
-                                     std::numeric_limits<int64>::min() + 1,
-                                     std::numeric_limits<int32>::max(),
-                                     static_cast<int64>(std::numeric_limits<int32>::max()) + 1,
-                                     std::numeric_limits<int32>::max() - 1,
-                                     std::numeric_limits<int32>::min(),
-                                     std::numeric_limits<int32>::min() + 1,
-                                     static_cast<int64>(std::numeric_limits<int32>::min()) - 1};
+  td::vector<td::uint64> parts = {0,
+                                  1,
+                                  2000,
+                                  2001,
+                                  std::numeric_limits<td::uint64>::max(),
+                                  std::numeric_limits<td::uint64>::max() - 1,
+                                  std::numeric_limits<td::uint32>::max(),
+                                  static_cast<td::uint64>(std::numeric_limits<td::uint32>::max()) + 1};
+  td::vector<td::int64> signed_parts = {0,
+                                        1,
+                                        2000,
+                                        2001,
+                                        -1,
+                                        -2000,
+                                        -2001,
+                                        std::numeric_limits<td::int64>::max(),
+                                        std::numeric_limits<td::int64>::max() - 1,
+                                        std::numeric_limits<td::int64>::min(),
+                                        std::numeric_limits<td::int64>::min() + 1,
+                                        std::numeric_limits<td::int32>::max(),
+                                        static_cast<td::int64>(std::numeric_limits<td::int32>::max()) + 1,
+                                        std::numeric_limits<td::int32>::max() - 1,
+                                        std::numeric_limits<td::int32>::min(),
+                                        std::numeric_limits<td::int32>::min() + 1,
+                                        static_cast<td::int64>(std::numeric_limits<td::int32>::min()) - 1};
 
 #if TD_HAVE_INT128
-  auto to_intrinsic = [](uint128_emulated num) {
-    return uint128_intrinsic(num.hi(), num.lo());
+  auto to_intrinsic = [](td::uint128_emulated num) {
+    return td::uint128_intrinsic(num.hi(), num.lo());
   };
-  auto eq = [](uint128_emulated a, uint128_intrinsic b) {
+  auto eq = [](td::uint128_emulated a, td::uint128_intrinsic b) {
     return a.hi() == b.hi() && a.lo() == b.lo();
   };
-  auto ensure_eq = [&](uint128_emulated a, uint128_intrinsic b) {
+  auto ensure_eq = [&](td::uint128_emulated a, td::uint128_intrinsic b) {
     if (!eq(a, b)) {
       LOG(FATAL) << "[" << a.hi() << ";" << a.lo() << "] vs [" << b.hi() << ";" << b.lo() << "]";
     }
   };
 #endif
 
-  std::vector<uint128_emulated> nums;
+  td::vector<td::uint128_emulated> nums;
   for (auto hi : parts) {
     for (auto lo : parts) {
-      auto a = uint128_emulated(hi, lo);
+      auto a = td::uint128_emulated(hi, lo);
 #if TD_HAVE_INT128
-      auto ia = uint128_intrinsic(hi, lo);
+      auto ia = td::uint128_intrinsic(hi, lo);
       ensure_eq(a, ia);
 #endif
       nums.push_back(a);
@@ -1038,9 +1036,9 @@ TEST(Misc, uint128) {
       if (b == 0) {
         continue;
       }
-      int64 q, r;
+      td::int64 q, r;
       a.divmod_signed(b, &q, &r);
-      int64 iq, ir;
+      td::int64 iq, ir;
       ia.divmod_signed(b, &iq, &ir);
       ASSERT_EQ(q, iq);
       ASSERT_EQ(r, ir);
@@ -1059,38 +1057,38 @@ TEST(Misc, uint128) {
   }
 
   for (auto signed_part : signed_parts) {
-    auto a = uint128_emulated::from_signed(signed_part);
-    auto ia = uint128_intrinsic::from_signed(signed_part);
+    auto a = td::uint128_emulated::from_signed(signed_part);
+    auto ia = td::uint128_intrinsic::from_signed(signed_part);
     ensure_eq(a, ia);
   }
 #endif
 }
 
 template <template <class T> class HashT, class ValueT>
-Status test_hash(const std::vector<ValueT> &values) {
-  for (size_t i = 0; i < values.size(); i++) {
-    for (size_t j = i; j < values.size(); j++) {
+td::Status test_hash(const td::vector<ValueT> &values) {
+  for (std::size_t i = 0; i < values.size(); i++) {
+    for (std::size_t j = i; j < values.size(); j++) {
       auto &a = values[i];
       auto &b = values[j];
       auto a_hash = HashT<ValueT>()(a);
       auto b_hash = HashT<ValueT>()(b);
       if (a == b) {
         if (a_hash != b_hash) {
-          return Status::Error("Hash differs for same values");
+          return td::Status::Error("Hash differs for same values");
         }
       } else {
         if (a_hash == b_hash) {
-          return Status::Error("Hash is the same for different values");
+          return td::Status::Error("Hash is the same for different values");
         }
       }
     }
   }
-  return Status::OK();
+  return td::Status::OK();
 }
 
 class BadValue {
  public:
-  explicit BadValue(size_t value) : value_(value) {
+  explicit BadValue(std::size_t value) : value_(value) {
   }
 
   template <class H>
@@ -1102,12 +1100,12 @@ class BadValue {
   }
 
  private:
-  size_t value_;
+  std::size_t value_;
 };
 
 class ValueA {
  public:
-  explicit ValueA(size_t value) : value_(value) {
+  explicit ValueA(std::size_t value) : value_(value) {
   }
   template <class H>
   friend H AbslHashValue(H hasher, ValueA value) {
@@ -1118,12 +1116,12 @@ class ValueA {
   }
 
  private:
-  size_t value_;
+  std::size_t value_;
 };
 
 class ValueB {
  public:
-  explicit ValueB(size_t value) : value_(value) {
+  explicit ValueB(std::size_t value) : value_(value) {
   }
 
   template <class H>
@@ -1135,19 +1133,19 @@ class ValueB {
   }
 
  private:
-  size_t value_;
+  std::size_t value_;
 };
 
 template <template <class T> class HashT>
 static void test_hash() {
   // Just check that the following compiles
-  AbslHashValue(Hasher(), ValueA{1});
+  AbslHashValue(td::Hasher(), ValueA{1});
   HashT<ValueA>()(ValueA{1});
   std::unordered_map<ValueA, int, HashT<ValueA>> s;
   s[ValueA{1}] = 1;
-  HashMap<ValueA, int> su;
+  td::HashMap<ValueA, int> su;
   su[ValueA{1}] = 1;
-  HashSet<ValueA> su2;
+  td::HashSet<ValueA> su2;
   su2.insert(ValueA{1});
 #if TD_HAVE_ABSL
   std::unordered_map<ValueA, int, absl::Hash<ValueA>> x;
@@ -1155,7 +1153,7 @@ static void test_hash() {
   sa[ValueA{1}] = 1;
 #endif
 
-  test_hash<HashT, size_t>({1, 2, 3, 4, 5}).ensure();
+  test_hash<HashT, std::size_t>({1, 2, 3, 4, 5}).ensure();
   test_hash<HashT, BadValue>({BadValue{1}, BadValue{2}}).ensure_error();
   test_hash<HashT, ValueA>({ValueA{1}, ValueA{2}}).ensure();
   test_hash<HashT, ValueB>({ValueB{1}, ValueB{2}}).ensure();
@@ -1165,14 +1163,14 @@ static void test_hash() {
 }
 
 TEST(Misc, Hasher) {
-  test_hash<TdHash>();
+  test_hash<td::TdHash>();
 #if TD_HAVE_ABSL
   test_hash<AbslHash>();
 #endif
 }
 
 TEST(Misc, CancellationToken) {
-  CancellationTokenSource source;
+  td::CancellationTokenSource source;
   source.cancel();
   auto token1 = source.get_cancellation_token();
   auto token2 = source.get_cancellation_token();
@@ -1187,20 +1185,20 @@ TEST(Misc, CancellationToken) {
 
   auto token4 = source.get_cancellation_token();
   CHECK(!token4);
-  source = CancellationTokenSource{};
+  source = td::CancellationTokenSource{};
   CHECK(token4);
 }
 
 TEST(Misc, Xorshift128plus) {
-  Random::Xorshift128plus rnd(123);
+  td::Random::Xorshift128plus rnd(123);
   ASSERT_EQ(11453256657207062272ull, rnd());
   ASSERT_EQ(14917490455889357332ull, rnd());
   ASSERT_EQ(5645917797309401285ull, rnd());
   ASSERT_EQ(13554822455746959330ull, rnd());
 }
 TEST(Misc, uname) {
-  auto first_version = get_operating_system_version();
-  auto second_version = get_operating_system_version();
+  auto first_version = td::get_operating_system_version();
+  auto second_version = td::get_operating_system_version();
   ASSERT_STREQ(first_version, second_version);
   ASSERT_EQ(first_version.begin(), second_version.begin());
   ASSERT_TRUE(!first_version.empty());
