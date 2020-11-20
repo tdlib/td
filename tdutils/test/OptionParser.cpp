@@ -23,7 +23,7 @@ TEST(OptionParser, run) {
     for (auto &arg : args) {
       argv.push_back(&arg[0]);
     }
-    return options.run(static_cast<int>(argv.size()), &argv[0]);
+    return options.run_impl(static_cast<int>(argv.size()), &argv[0], -1);
   };
 
   td::uint64 chosen_options = 0;

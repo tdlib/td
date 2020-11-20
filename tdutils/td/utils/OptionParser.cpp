@@ -91,6 +91,10 @@ Result<vector<char *>> OptionParser::run(int argc, char *argv[], int expected_no
 #endif
 #endif
 
+  return run_impl(argc, argv, expected_non_option_count);
+}
+
+Result<vector<char *>> OptionParser::run_impl(int argc, char *argv[], int expected_non_option_count) {
   std::unordered_map<char, const Option *> short_options;
   std::unordered_map<string, const Option *> long_options;
   for (auto &opt : options_) {
