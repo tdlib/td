@@ -63,9 +63,9 @@ struct CheckExitGuard {
   bool expected_value_;
 };
 
-CheckExitGuard check_exit_guard_true{true};
-td::ExitGuard exit_guard;
-CheckExitGuard check_exit_guard_false{false};
+static CheckExitGuard check_exit_guard_true{true};
+static td::ExitGuard exit_guard;
+static CheckExitGuard check_exit_guard_false{false};
 
 #if TD_LINUX || TD_DARWIN
 TEST(Misc, update_atime_saves_mtime) {
@@ -1065,7 +1065,7 @@ TEST(Misc, uint128) {
 }
 
 template <template <class T> class HashT, class ValueT>
-td::Status test_hash(const td::vector<ValueT> &values) {
+static td::Status test_hash(const td::vector<ValueT> &values) {
   for (std::size_t i = 0; i < values.size(); i++) {
     for (std::size_t j = i; j < values.size(); j++) {
       auto &a = values[i];
