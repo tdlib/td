@@ -498,7 +498,7 @@ function onOptionsChanged() {
     if (target !== 'C++/CLI' && target !== 'C++/CX') {
       pre_text.push('Note that Windows Subsystem for Linux (WSL) and Cygwin are not Windows environments, so you need to use instructions for Linux for them instead.');
     }
-    pre_text.push('Download and install <a href="https://visualstudio.microsoft.com/ru/vs/community/">Microsoft Visual Studio</a>. Enable C++' + win10_sdk + ' support while installing.');
+    pre_text.push('Download and install <a href="https://visualstudio.microsoft.com/vs/community/">Microsoft Visual Studio</a>. Enable C++' + win10_sdk + ' support while installing.');
     pre_text.push('Download and install <a href="https://cmake.org/download/">CMake</a>; choose "Add CMake to the system PATH" option while installing.');
     pre_text.push('Download and install <a href="https://git-scm.com/download/win">Git</a>.');
     pre_text.push('Download and install <a href="https://sourceforge.net/projects/gnuwin32/files/gperf/3.0.1/">gperf</a>. Add the path to gperf.exe to the PATH environment variable.');
@@ -600,10 +600,10 @@ function onOptionsChanged() {
   var cmake = 'cmake';
   if (os_mac) {
     commands.push('xcode-select --install');
-    commands.push('/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"');
+    commands.push('/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"');
     commands.push('brew install gperf cmake openssl' + (target === 'JNI' ? ' coreutils' : ''));
     if (target === 'JNI') {
-      commands.push('brew cask install java');
+      commands.push('brew install openjdk');
     }
   } else if (os_linux && linux_distro !== 'Other') {
     switch (linux_distro) {
