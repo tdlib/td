@@ -18,7 +18,13 @@ bool operator==(Timestamp a, Timestamp b) {
 static std::atomic<double> time_diff;
 
 double Time::now() {
-  return now_unadjusted() + time_diff.load(std::memory_order_relaxed);
+  auto result = now_unadjusted() + time_diff.load(std::memory_order_relaxed);
+  while (result < 0) {
+    auto old_time_diff = time_diff.load();
+    time_diff.compare_exchange_strong(old_time_diff, old_time_diff - result);
+    result = now_unadjusted() + time_diff.load(std::memory_order_relaxed);
+  }
+  return result;
 }
 
 double Time::now_unadjusted() {
