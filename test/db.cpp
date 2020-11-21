@@ -214,7 +214,12 @@ TEST(DB, sqlite_encryption_migrate) {
   }
   write_file(path, base64_decode(Slice(sqlite_sample_db, sqlite_sample_db_size)).move_as_ok()).ensure();
   {
-    auto db = SqliteDb::open_with_key(path, cucumber).move_as_ok();
+    auto r_db = SqliteDb::open_with_key(path, cucumber);
+    if (r_db.is_error()) {
+      LOG(ERROR) << r_db.error();
+      return;
+    }
+    auto db = r_db.move_as_ok();
     auto kv = SqliteKeyValue();
     auto status = kv.init_with_connection(db.clone(), "kv");
     if (status.is_error()) {
