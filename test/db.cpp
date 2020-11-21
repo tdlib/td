@@ -216,9 +216,13 @@ TEST(DB, sqlite_encryption_migrate) {
   {
     auto db = SqliteDb::open_with_key(path, cucumber).move_as_ok();
     auto kv = SqliteKeyValue();
-    kv.init_with_connection(db.clone(), "kv").ensure();
-    CHECK(kv.get("hello") == "world");
-    CHECK(db.user_version().ok() == 123);
+    auto status = kv.init_with_connection(db.clone(), "kv");
+    if (status.is_error()) {
+      LOG(ERROR) << status;
+    } else {
+      CHECK(kv.get("hello") == "world");
+      CHECK(db.user_version().ok() == 123);
+    }
   }
 }
 
