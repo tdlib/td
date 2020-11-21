@@ -630,10 +630,10 @@ class StickersManager : public Actor {
   vector<FileId> recent_sticker_ids_[2];
   vector<FileId> favorite_sticker_ids_;
 
-  double next_installed_sticker_sets_load_time_[2] = {0, 0};
-  double next_featured_sticker_sets_load_time_ = 0;
-  double next_recent_stickers_load_time_[2] = {0, 0};
-  double next_favorite_stickers_load_time_ = 0;
+  double next_installed_sticker_sets_load_time_[2] = {-1e10, -1e10};
+  double next_featured_sticker_sets_load_time_ = -1e10;
+  double next_recent_stickers_load_time_[2] = {-1e10, -1e10};
+  double next_favorite_stickers_load_time_ = -1e10;
 
   int32 installed_sticker_sets_hash_[2] = {0, 0};
   int32 featured_sticker_sets_hash_ = 0;

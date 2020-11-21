@@ -21,9 +21,7 @@ namespace td {
 // combines identical queries into one request
 class QueryCombiner : public Actor {
  public:
-  explicit QueryCombiner(Slice name, double min_delay = 0) : min_delay_(min_delay) {
-    register_actor(name, this).release();
-  }
+  QueryCombiner(Slice name, double min_delay);
 
   void add_query(int64 query_id, Promise<Promise<Unit>> &&send_query, Promise<Unit> &&promise);
 
@@ -36,7 +34,7 @@ class QueryCombiner : public Actor {
 
   int32 query_count_ = 0;
 
-  double next_query_time_ = 0.0;
+  double next_query_time_;
   double min_delay_;
 
   std::queue<int64> delayed_queries_;

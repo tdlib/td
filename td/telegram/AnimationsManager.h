@@ -151,6 +151,7 @@ class AnimationsManager : public Actor {
   vector<FileId> saved_animation_ids_;
   vector<FileId> saved_animation_file_ids_;
   double next_saved_animations_load_time_ = 0;
+  bool are_saved_animations_being_loaded_ = false;
   bool are_saved_animations_loaded_ = false;
   vector<Promise<Unit>> load_saved_animations_queries_;
   vector<Promise<Unit>> repair_saved_animations_queries_;

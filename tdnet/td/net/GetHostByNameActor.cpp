@@ -130,8 +130,8 @@ void GetHostByNameActor::run(string host, int port, bool prefer_ipv6, Promise<IP
   }
   auto ascii_host = r_ascii_host.move_as_ok();
 
-  auto &value = cache_[prefer_ipv6].emplace(ascii_host, Value{{}, 0}).first->second;
   auto begin_time = Time::now();
+  auto &value = cache_[prefer_ipv6].emplace(ascii_host, Value{{}, begin_time - 1.0}).first->second;
   if (value.expires_at > begin_time) {
     return promise.set_result(value.get_ip_port(port));
   }

@@ -724,8 +724,8 @@ void PasswordManager::cache_secret(secure_storage::Secret secret) {
   secret_ = std::move(secret);
 
   const int32 max_cache_time = 3600;
-  secret_expire_date_ = Time::now() + max_cache_time;
-  set_timeout_at(secret_expire_date_);
+  secret_expire_time_ = Time::now() + max_cache_time;
+  set_timeout_at(secret_expire_time_);
 }
 
 void PasswordManager::drop_cached_secret() {
@@ -734,8 +734,10 @@ void PasswordManager::drop_cached_secret() {
 }
 
 void PasswordManager::timeout_expired() {
-  if (Time::now() >= secret_expire_date_) {
+  if (Time::now() >= secret_expire_time_) {
     drop_cached_secret();
+  } else {
+    set_timeout_at(secret_expire_time_);
   }
 }
 

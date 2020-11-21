@@ -151,7 +151,7 @@ class PasswordManager : public NetQueryCallback {
   };
 
   optional<secure_storage::Secret> secret_;
-  double secret_expire_date_ = 0;
+  double secret_expire_time_ = 0;
 
   TempPasswordState temp_password_state_;
   Promise<TempState> create_temp_password_promise_;

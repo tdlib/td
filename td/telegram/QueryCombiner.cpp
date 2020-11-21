@@ -13,6 +13,10 @@
 
 namespace td {
 
+QueryCombiner::QueryCombiner(Slice name, double min_delay) : next_query_time_(Time::now()), min_delay_(min_delay) {
+  register_actor(name, this).release();
+}
+
 void QueryCombiner::add_query(int64 query_id, Promise<Promise<Unit>> &&send_query, Promise<Unit> &&promise) {
   LOG(INFO) << "Add query " << query_id;
   auto &query = queries_[query_id];

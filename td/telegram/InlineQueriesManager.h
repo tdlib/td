@@ -126,7 +126,7 @@ class InlineQueriesManager : public Actor {
     Promise<Unit> promise;
   };
 
-  double next_inline_query_time_ = -1.0;
+  double next_inline_query_time_ = 0.0;
   unique_ptr<PendingInlineQuery> pending_inline_query_;
   NetQueryRef sent_query_;
 

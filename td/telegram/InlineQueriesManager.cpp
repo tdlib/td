@@ -163,6 +163,7 @@ class SetInlineBotResultsQuery : public Td::ResultHandler {
 InlineQueriesManager::InlineQueriesManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
   drop_inline_query_result_timeout_.set_callback(on_drop_inline_query_result_timeout_callback);
   drop_inline_query_result_timeout_.set_callback_data(static_cast<void *>(this));
+  next_inline_query_time_ = Time::now();
 }
 
 void InlineQueriesManager::tear_down() {

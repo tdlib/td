@@ -138,6 +138,7 @@ AnimationsManager::AnimationsManager(Td *td, ActorShared<> parent) : td_(td), pa
       LOG(ERROR) << "Wrong saved animations limit = \"" << limit_string << "\" stored in database";
     }
   }
+  next_saved_animations_load_time_ = Time::now();
 }
 
 void AnimationsManager::tear_down() {
@@ -523,10 +524,10 @@ void AnimationsManager::reload_saved_animations(bool force) {
     return;
   }
 
-  if (!td_->auth_manager_->is_bot() && next_saved_animations_load_time_ >= 0 &&
+  if (!td_->auth_manager_->is_bot() && !are_saved_animations_being_loaded_ &&
       (next_saved_animations_load_time_ < Time::now() || force)) {
     LOG_IF(INFO, force) << "Reload saved animations";
-    next_saved_animations_load_time_ = -1;
+    are_saved_animations_being_loaded_ = true;
     td_->create_handler<GetSavedGifsQuery>()->send(false, get_saved_animations_hash("reload_saved_animations"));
   }
 }
@@ -613,6 +614,7 @@ void AnimationsManager::on_get_saved_animations(
     bool is_repair, tl_object_ptr<telegram_api::messages_SavedGifs> &&saved_animations_ptr) {
   CHECK(!td_->auth_manager_->is_bot());
   if (!is_repair) {
+    are_saved_animations_being_loaded_ = false;
     next_saved_animations_load_time_ = Time::now_cached() + Random::fast(30 * 60, 50 * 60);
   }
 
@@ -667,6 +669,7 @@ void AnimationsManager::on_get_saved_animations(
 void AnimationsManager::on_get_saved_animations_failed(bool is_repair, Status error) {
   CHECK(error.is_error());
   if (!is_repair) {
+    are_saved_animations_being_loaded_ = false;
     next_saved_animations_load_time_ = Time::now_cached() + Random::fast(5, 10);
   }
   auto &queries = is_repair ? repair_saved_animations_queries_ : load_saved_animations_queries_;
