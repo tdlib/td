@@ -44,7 +44,7 @@ class ConcurrentScheduler : private Scheduler::Callback {
 
   void test_one_thread_run();
 
-  bool is_finished() {
+  bool is_finished() const {
     return is_finished_.load(std::memory_order_relaxed);
   }
 
@@ -84,10 +84,10 @@ class ConcurrentScheduler : private Scheduler::Callback {
  private:
   enum class State { Start, Run };
   State state_ = State::Start;
+  std::mutex at_finish_mutex_;
+  std::vector<std::function<void()>> at_finish_; // can be used during destruction by Scheduler destructors
   std::vector<unique_ptr<Scheduler>> schedulers_;
   std::atomic<bool> is_finished_{false};
-  std::mutex at_finish_mutex_;
-  std::vector<std::function<void()>> at_finish_;
 #if !TD_THREAD_UNSUPPORTED && !TD_EVENTFD_UNSUPPORTED
   std::vector<thread> threads_;
 #endif
