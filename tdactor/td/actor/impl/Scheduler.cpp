@@ -242,8 +242,6 @@ void Scheduler::clear() {
     auto actor_info = ActorInfo::from_list_node(ready_actors_list_.get());
     do_stop_actor(actor_info);
   }
-  LOG_IF(FATAL, !ready_actors_list_.empty()) << ActorInfo::from_list_node(ready_actors_list_.next)->get_name();
-  CHECK(ready_actors_list_.empty());
   poll_.clear();
 
   if (callback_ && !ExitGuard::is_exited()) {
