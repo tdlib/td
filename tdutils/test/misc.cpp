@@ -942,7 +942,7 @@ TEST(Misc, Time) {
   td::vector<std::atomic<double>> ts(threads_n);
   for (std::size_t i = 0; i < threads_n; i++) {
     threads.emplace_back([&, thread_id = i] {
-      for (td::uint64 round = 1; round < 100000; round++) {
+      for (td::uint64 round = 1; round < 10000; round++) {
         ts[thread_id] = 0;
         run.wait(round * threads_n);
         ts[thread_id] = td::Time::now();
