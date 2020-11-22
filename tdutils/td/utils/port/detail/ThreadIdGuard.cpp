@@ -28,9 +28,6 @@ class ThreadIdManager {
     return result;
   }
   void unregister_thread(int32 thread_id) {
-    if (ExitGuard::is_exited()) {
-      return;
-    }
     std::lock_guard<std::mutex> guard(mutex_);
     CHECK(0 < thread_id && thread_id <= max_thread_id_);
     bool is_inserted = unused_thread_ids_.insert(thread_id).second;
@@ -50,7 +47,9 @@ ThreadIdGuard::ThreadIdGuard() {
   set_thread_id(thread_id_);
 }
 ThreadIdGuard::~ThreadIdGuard() {
-  thread_id_manager.unregister_thread(thread_id_);
+  if (!ExitGuard::is_exited()) {
+    thread_id_manager.unregister_thread(thread_id_);
+  }
   set_thread_id(0);
 }
 }  // namespace detail
