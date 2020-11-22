@@ -392,10 +392,12 @@ class MultiImpl {
       multi_td_.reset();
       Scheduler::instance()->finish();
     }
-    scheduler_thread_.join();
-    if (!ExitGuard::is_exited()) {  // prevent closing of schedulers from already killed by OS threads
-      concurrent_scheduler_->finish();
+    if (!ExitGuard::is_exited()) {
+      scheduler_thread_.join();
+    } else {
+      scheduler_thread_.detach();
     }
+    concurrent_scheduler_->finish();
   }
 
  private:
