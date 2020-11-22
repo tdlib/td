@@ -22,6 +22,7 @@
 #include "td/db/SqliteDb.h"
 #include "td/db/SqliteKeyValue.h"
 
+#include "td/utils/ExitGuard.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Status.h"
@@ -229,6 +230,9 @@ void LanguagePackManager::start_up() {
 }
 
 void LanguagePackManager::tear_down() {
+  if (ExitGuard::is_exited()) {
+    return;
+  }
   std::lock_guard<std::mutex> lock(language_database_mutex_);
   manager_count_--;
   if (manager_count_ == 0) {
