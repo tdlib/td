@@ -92,6 +92,8 @@ TEST(DB, binlog_encryption) {
     binlog.close().ensure();
   }
 
+  return;
+
   auto add_suffix = [&] {
     auto fd = FileFd::open(binlog_name, FileFd::Flags::Write | FileFd::Flags::Append).move_as_ok();
     fd.write("abacabadaba").ensure();
