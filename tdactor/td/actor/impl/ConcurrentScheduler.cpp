@@ -11,6 +11,7 @@
 #include "td/actor/impl/ActorInfo.h"
 #include "td/actor/impl/Scheduler.h"
 
+#include "td/utils/ExitGuard.h"
 #include "td/utils/MpscPollableQueue.h"
 #include "td/utils/port/thread_local.h"
 
@@ -139,6 +140,19 @@ void ConcurrentScheduler::finish() {
   };
   detail::Iocp::Guard iocp_guard(iocp_.get());
 #endif
+
+  if (ExitGuard::is_exited()) {
+    // prevent closing of schedulers from already killed by OS threads
+    for (auto &thread : threads_) {
+      thread.detach();
+    }
+
+#if TD_PORT_WINDOWS
+    iocp_->interrupt_loop();
+    iocp_thread_.detach();
+#endif
+    return;
+  }
 
 #if !TD_THREAD_UNSUPPORTED && !TD_EVENTFD_UNSUPPORTED
   for (auto &thread : threads_) {

@@ -185,9 +185,7 @@ class ClientManager::Impl final {
     while (!tds_.empty() && !ExitGuard::is_exited()) {
       receive(0.1);
     }
-    if (!ExitGuard::is_exited()) {  // prevent closing of schedulers from already killed by OS threads
-      concurrent_scheduler_->finish();
-    }
+    concurrent_scheduler_->finish();
   }
 
  private:
