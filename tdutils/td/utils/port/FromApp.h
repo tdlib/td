@@ -79,14 +79,14 @@ inline BOOL DeleteFileFromAppW(_In_ LPCWSTR lpFileName) {
 }
 
 inline BOOL MoveFileExFromAppW(_In_ LPCWSTR lpExistingFileName, _In_ LPCWSTR lpNewFileName, _In_ DWORD dwFlags) {
-  if (dwFlags == MOVEFILE_REPLACE_EXISTING) {
-    DeleteFileFromAppW(lpNewFileName);
-  }
-
   using pMoveFileFromAppW = BOOL(WINAPI *)(_In_ LPCWSTR lpExistingFileName, _In_ LPCWSTR lpNewFileName);
   static const auto moveFileFromAppW =
       reinterpret_cast<pMoveFileFromAppW>(GetProcAddress(GetFromAppModule(), "MoveFileFromAppW"));
   if (moveFileFromAppW != nullptr) {
+    if (dwFlags == MOVEFILE_REPLACE_EXISTING) {
+      DeleteFileFromAppW(lpNewFileName);
+    }
+
     return moveFileFromAppW(lpExistingFileName, lpNewFileName);
   }
 
