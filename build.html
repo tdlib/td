@@ -745,6 +745,17 @@ function onOptionsChanged() {
         options.push('-A Win32');
       }
     }
+    if (target === 'JNI') {
+      if (os_linux && linux_distro === 'Alpine') {
+        options.push('-DJAVA_HOME=/usr/lib/jvm/java-1.8-openjdk/');
+      }
+      if (os_freebsd) {
+        options.push('-DJAVA_HOME=/usr/local/openjdk7/');
+      }
+      if (os_mac) {
+        options.push('-DJAVA_HOME=/usr/local/opt/openjdk/libexec/openjdk.jdk/Contents/Home/');
+      }
+    }
     return options;
   }
 
@@ -780,12 +791,6 @@ function onOptionsChanged() {
     }
     if (target === 'JNI') {
       cmake_init_options.push('-DTD_ENABLE_JNI=ON');
-      if (linux_distro === 'Alpine') {
-        cmake_init_options.push('-DJAVA_HOME=/usr/lib/jvm/java-1.8-openjdk/');
-      }
-      if (os_freebsd) {
-        cmake_init_options.push('-DJAVA_HOME=/usr/local/openjdk7/');
-      }
     }
     if (target === 'C++/CX' || target === 'C++/CLI') {
       cmake_init_options.push('-DTD_ENABLE_DOTNET=ON');
@@ -858,12 +863,6 @@ function onOptionsChanged() {
         cmake_init_options.push('-DCMAKE_TOOLCHAIN_FILE:FILEPATH=../../../vcpkg/scripts/buildsystems/vcpkg.cmake');
       }
       var is_alpine = os_linux && linux_distro === 'Alpine';
-      if (is_alpine) {
-        cmake_init_options.push('-DJAVA_HOME=/usr/lib/jvm/java-1.8-openjdk/');
-      }
-      if (os_freebsd) {
-        cmake_init_options.push('-DJAVA_HOME=/usr/local/openjdk7/');
-      }
       var resolve_path = use_powershell ? 'Resolve-Path' : (os_mac ? 'greadlink -e' : (is_alpine || os_freebsd || os_openbsd || os_netbsd ? 'readlink -f' : 'readlink -e'));
       var resolved_path = resolve_path + ' ../td/lib/cmake/Td';
       if (use_csh) {
