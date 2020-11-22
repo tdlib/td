@@ -417,7 +417,7 @@ class MultiImplPool {
     if (impls_.empty()) {
       init_openssl_threads();
 
-      impls_.resize(clamp(thread::hardware_concurrency(), 8u, 1000u) * 5 / 4);
+      impls_.resize(clamp(thread::hardware_concurrency(), 8u, 24u) * 5 / 4);
 
       net_query_stats_ = std::make_shared<NetQueryStats>();
     }
