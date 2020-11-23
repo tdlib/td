@@ -118,6 +118,7 @@ class DialogParticipantStatus {
   static constexpr uint32 CAN_RESTRICT_MEMBERS = 1 << 6;
   static constexpr uint32 CAN_PIN_MESSAGES_ADMIN = 1 << 7;
   static constexpr uint32 CAN_PROMOTE_MEMBERS = 1 << 8;
+  static constexpr uint32 CAN_MANAGE_CALLS = 1 << 9;
 
   static constexpr uint32 CAN_BE_EDITED = 1 << 15;
 
@@ -143,7 +144,7 @@ class DialogParticipantStatus {
 
   static constexpr uint32 ALL_ADMINISTRATOR_RIGHTS =
       CAN_CHANGE_INFO_AND_SETTINGS_ADMIN | CAN_POST_MESSAGES | CAN_EDIT_MESSAGES | CAN_DELETE_MESSAGES |
-      CAN_INVITE_USERS_ADMIN | CAN_RESTRICT_MEMBERS | CAN_PIN_MESSAGES_ADMIN | CAN_PROMOTE_MEMBERS;
+      CAN_INVITE_USERS_ADMIN | CAN_RESTRICT_MEMBERS | CAN_PIN_MESSAGES_ADMIN | CAN_PROMOTE_MEMBERS | CAN_MANAGE_CALLS;
 
   static constexpr uint32 ALL_ADMIN_PERMISSION_RIGHTS =
       CAN_CHANGE_INFO_AND_SETTINGS_BANNED | CAN_INVITE_USERS_BANNED | CAN_PIN_MESSAGES_BANNED;
@@ -171,7 +172,7 @@ class DialogParticipantStatus {
   static DialogParticipantStatus Administrator(bool is_anonymous, string rank, bool can_be_edited, bool can_change_info,
                                                bool can_post_messages, bool can_edit_messages, bool can_delete_messages,
                                                bool can_invite_users, bool can_restrict_members, bool can_pin_messages,
-                                               bool can_promote_members);
+                                               bool can_promote_members, bool can_manage_calls);
 
   static DialogParticipantStatus Member();
 
@@ -235,6 +236,10 @@ class DialogParticipantStatus {
 
   bool can_promote_members() const {
     return (flags_ & CAN_PROMOTE_MEMBERS) != 0;
+  }
+
+  bool can_manage_calls() const {
+    return (flags_ & CAN_MANAGE_CALLS) != 0;
   }
 
   bool can_be_edited() const {

@@ -38,7 +38,8 @@ DialogParticipantStatus DialogParticipantStatus::Administrator(bool is_anonymous
                                                                bool can_change_info, bool can_post_messages,
                                                                bool can_edit_messages, bool can_delete_messages,
                                                                bool can_invite_users, bool can_restrict_members,
-                                                               bool can_pin_messages, bool can_promote_members) {
+                                                               bool can_pin_messages, bool can_promote_members,
+                                                               bool can_manage_calls) {
   uint32 flags = (static_cast<uint32>(can_be_edited) * CAN_BE_EDITED) |
                  (static_cast<uint32>(can_change_info) * CAN_CHANGE_INFO_AND_SETTINGS_ADMIN) |
                  (static_cast<uint32>(can_post_messages) * CAN_POST_MESSAGES) |
@@ -48,6 +49,7 @@ DialogParticipantStatus DialogParticipantStatus::Administrator(bool is_anonymous
                  (static_cast<uint32>(can_restrict_members) * CAN_RESTRICT_MEMBERS) |
                  (static_cast<uint32>(can_pin_messages) * CAN_PIN_MESSAGES_ADMIN) |
                  (static_cast<uint32>(can_promote_members) * CAN_PROMOTE_MEMBERS) |
+                 (static_cast<uint32>(can_manage_calls) * CAN_MANAGE_CALLS) |
                  (static_cast<uint32>(is_anonymous) * IS_ANONYMOUS);
   if (flags == 0 || flags == CAN_BE_EDITED) {
     return Member();
@@ -90,14 +92,14 @@ DialogParticipantStatus DialogParticipantStatus::Banned(int32 banned_until_date)
 }
 
 DialogParticipantStatus DialogParticipantStatus::GroupAdministrator(bool is_creator) {
-  return Administrator(false, string(), is_creator, true, false, false, true, true, true, true, false);
+  return Administrator(false, string(), is_creator, true, false, false, true, true, true, true, false, false);
 }
 
 DialogParticipantStatus DialogParticipantStatus::ChannelAdministrator(bool is_creator, bool is_megagroup) {
   if (is_megagroup) {
-    return Administrator(false, string(), is_creator, true, false, false, true, true, true, true, false);
+    return Administrator(false, string(), is_creator, true, false, false, true, true, true, true, false, false);
   } else {
-    return Administrator(false, string(), is_creator, false, true, true, true, false, true, false, false);
+    return Administrator(false, string(), is_creator, false, true, true, true, false, true, false, false, false);
   }
 }
 
@@ -115,7 +117,7 @@ tl_object_ptr<td_api::ChatMemberStatus> DialogParticipantStatus::get_chat_member
       return td_api::make_object<td_api::chatMemberStatusAdministrator>(
           rank_, can_be_edited(), can_change_info_and_settings(), can_post_messages(), can_edit_messages(),
           can_delete_messages(), can_invite_users(), can_restrict_members(), can_pin_messages(), can_promote_members(),
-          is_anonymous());
+          can_manage_calls(), is_anonymous());
     case Type::Member:
       return td_api::make_object<td_api::chatMemberStatusMember>();
     case Type::Restricted:
@@ -156,6 +158,9 @@ tl_object_ptr<telegram_api::chatAdminRights> DialogParticipantStatus::get_chat_a
   }
   if (can_promote_members()) {
     flags |= telegram_api::chatAdminRights::ADD_ADMINS_MASK;
+  }
+  if (can_manage_calls()) {
+    flags |= telegram_api::chatAdminRights::MANAGE_CALL_MASK;
   }
   if (is_anonymous()) {
     flags |= telegram_api::chatAdminRights::ANONYMOUS_MASK;
@@ -314,6 +319,9 @@ StringBuilder &operator<<(StringBuilder &string_builder, const DialogParticipant
       if (status.can_promote_members()) {
         string_builder << "(promote)";
       }
+      if (status.can_manage_calls()) {
+        string_builder << "(call)";
+      }
       if (!status.rank_.empty()) {
         string_builder << " [" << status.rank_ << "]";
       }
@@ -396,7 +404,7 @@ DialogParticipantStatus get_dialog_participant_status(const tl_object_ptr<td_api
       return DialogParticipantStatus::Administrator(
           st->is_anonymous_, st->custom_title_, true /*st->can_be_edited_*/, st->can_change_info_,
           st->can_post_messages_, st->can_edit_messages_, st->can_delete_messages_, st->can_invite_users_,
-          st->can_restrict_members_, st->can_pin_messages_, st->can_promote_members_);
+          st->can_restrict_members_, st->can_pin_messages_, st->can_promote_members_, st->can_manage_calls_);
     }
     case td_api::chatMemberStatusMember::ID:
       return DialogParticipantStatus::Member();
@@ -437,10 +445,12 @@ DialogParticipantStatus get_dialog_participant_status(bool can_be_edited,
   bool can_restrict_members = (admin_rights->flags_ & telegram_api::chatAdminRights::BAN_USERS_MASK) != 0;
   bool can_pin_messages = (admin_rights->flags_ & telegram_api::chatAdminRights::PIN_MESSAGES_MASK) != 0;
   bool can_promote_members = (admin_rights->flags_ & telegram_api::chatAdminRights::ADD_ADMINS_MASK) != 0;
+  bool can_manage_calls = (admin_rights->flags_ & telegram_api::chatAdminRights::MANAGE_CALL_MASK) != 0;
   bool is_anonymous = (admin_rights->flags_ & telegram_api::chatAdminRights::ANONYMOUS_MASK) != 0;
-  return DialogParticipantStatus::Administrator(
-      is_anonymous, std::move(rank), can_be_edited, can_change_info, can_post_messages, can_edit_messages,
-      can_delete_messages, can_invite_users, can_restrict_members, can_pin_messages, can_promote_members);
+  return DialogParticipantStatus::Administrator(is_anonymous, std::move(rank), can_be_edited, can_change_info,
+                                                can_post_messages, can_edit_messages, can_delete_messages,
+                                                can_invite_users, can_restrict_members, can_pin_messages,
+                                                can_promote_members, can_manage_calls);
 }
 
 DialogParticipantStatus get_dialog_participant_status(
