@@ -80,6 +80,9 @@ DialogAction::DialogAction(tl_object_ptr<td_api::ChatAction> &&action) {
       init(Type::UploadingVideoNote, uploading_action->progress_);
       break;
     }
+    case td_api::chatActionSpeakingInCall::ID:
+      init(Type::SpeakingInCall);
+      break;
     default:
       UNREACHABLE();
       break;
@@ -137,6 +140,9 @@ DialogAction::DialogAction(tl_object_ptr<telegram_api::SendMessageAction> &&acti
       init(Type::UploadingVideoNote, upload_round_action->progress_);
       break;
     }
+    case telegram_api::speakingInGroupCallAction::ID:
+      init(Type::SpeakingInCall);
+      break;
     default:
       UNREACHABLE();
       break;
@@ -171,6 +177,8 @@ tl_object_ptr<telegram_api::SendMessageAction> DialogAction::get_input_send_mess
       return make_tl_object<telegram_api::sendMessageRecordRoundAction>();
     case Type::UploadingVideoNote:
       return make_tl_object<telegram_api::sendMessageUploadRoundAction>(progress_);
+    case Type::SpeakingInCall:
+      return make_tl_object<telegram_api::speakingInGroupCallAction>();
     default:
       UNREACHABLE();
       return nullptr;
@@ -205,6 +213,8 @@ tl_object_ptr<secret_api::SendMessageAction> DialogAction::get_secret_input_send
       return make_tl_object<secret_api::sendMessageRecordRoundAction>();
     case Type::UploadingVideoNote:
       return make_tl_object<secret_api::sendMessageUploadRoundAction>();
+    case Type::SpeakingInCall:
+      return make_tl_object<secret_api::sendMessageTypingAction>();
     default:
       UNREACHABLE();
       return nullptr;
@@ -239,6 +249,8 @@ tl_object_ptr<td_api::ChatAction> DialogAction::get_chat_action_object() const {
       return td_api::make_object<td_api::chatActionRecordingVideoNote>();
     case Type::UploadingVideoNote:
       return td_api::make_object<td_api::chatActionUploadingVideoNote>(progress_);
+    case Type::SpeakingInCall:
+      return td_api::make_object<td_api::chatActionSpeakingInCall>();
     default:
       UNREACHABLE();
       return td_api::make_object<td_api::chatActionCancel>();
@@ -366,6 +378,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, const DialogAction &act
         return "RecordingVideoNote";
       case DialogAction::Type::UploadingVideoNote:
         return "UploadingVideoNote";
+      case DialogAction::Type::SpeakingInCall:
+        return "SpeakingInCall";
       default:
         UNREACHABLE();
         return "Cancel";

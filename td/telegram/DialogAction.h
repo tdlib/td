@@ -30,7 +30,8 @@ class DialogAction {
     ChoosingContact,
     StartPlayingGame,
     RecordingVideoNote,
-    UploadingVideoNote
+    UploadingVideoNote,
+    SpeakingInCall
   };
   Type type_ = Type::Cancel;
   int32 progress_ = 0;
