@@ -165,12 +165,12 @@ tl_object_ptr<telegram_api::SendMessageAction> DialogAction::get_input_send_mess
       return make_tl_object<telegram_api::sendMessageGeoLocationAction>();
     case Type::ChoosingContact:
       return make_tl_object<telegram_api::sendMessageChooseContactAction>();
+    case Type::StartPlayingGame:
+      return make_tl_object<telegram_api::sendMessageGamePlayAction>();
     case Type::RecordingVideoNote:
       return make_tl_object<telegram_api::sendMessageRecordRoundAction>();
     case Type::UploadingVideoNote:
       return make_tl_object<telegram_api::sendMessageUploadRoundAction>(progress_);
-    case Type::StartPlayingGame:
-      return make_tl_object<telegram_api::sendMessageTypingAction>();
     default:
       UNREACHABLE();
       return nullptr;
@@ -199,12 +199,12 @@ tl_object_ptr<secret_api::SendMessageAction> DialogAction::get_secret_input_send
       return make_tl_object<secret_api::sendMessageGeoLocationAction>();
     case Type::ChoosingContact:
       return make_tl_object<secret_api::sendMessageChooseContactAction>();
+    case Type::StartPlayingGame:
+      return make_tl_object<secret_api::sendMessageTypingAction>();
     case Type::RecordingVideoNote:
       return make_tl_object<secret_api::sendMessageRecordRoundAction>();
     case Type::UploadingVideoNote:
       return make_tl_object<secret_api::sendMessageUploadRoundAction>();
-    case Type::StartPlayingGame:
-      return make_tl_object<secret_api::sendMessageTypingAction>();
     default:
       UNREACHABLE();
       return nullptr;
