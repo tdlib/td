@@ -162,9 +162,9 @@ tl_object_ptr<telegram_api::chatAdminRights> DialogParticipantStatus::get_chat_a
   }
 
   LOG(INFO) << "Create chat admin rights " << flags;
-  return make_tl_object<telegram_api::chatAdminRights>(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                                       false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                                       false /*ignored*/, false /*ignored*/, false /*ignored*/);
+  return make_tl_object<telegram_api::chatAdminRights>(
+      flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+      false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/);
 }
 
 tl_object_ptr<telegram_api::chatBannedRights> DialogParticipantStatus::get_chat_banned_rights() const {

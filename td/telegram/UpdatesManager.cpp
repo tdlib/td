@@ -2173,4 +2173,10 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelParticip
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTheme> update, bool /*force_apply*/) {
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateGroupCallParticipants> update, bool /*force_apply*/) {
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateGroupCall> update, bool /*force_apply*/) {
+}
+
 }  // namespace td
