@@ -12,6 +12,7 @@
 #include "td/telegram/td_api.h"
 
 #include "td/actor/actor.h"
+#include "td/actor/ConcurrentScheduler.h"
 #include "td/actor/PromiseFuture.h"
 
 #include "td/utils/base64.h"

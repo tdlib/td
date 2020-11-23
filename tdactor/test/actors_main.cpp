@@ -7,6 +7,7 @@
 #include "td/utils/tests.h"
 
 #include "td/actor/actor.h"
+#include "td/actor/ConcurrentScheduler.h"
 #include "td/actor/PromiseFuture.h"
 
 #include "td/utils/common.h"

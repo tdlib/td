@@ -4,12 +4,7 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
-#include "td/actor/impl/ConcurrentScheduler.h"
-
-#include "td/actor/impl/Actor.h"
-#include "td/actor/impl/ActorId.h"
-#include "td/actor/impl/ActorInfo.h"
-#include "td/actor/impl/Scheduler.h"
+#include "td/actor/ConcurrentScheduler.h"
 
 #include "td/utils/ExitGuard.h"
 #include "td/utils/MpscPollableQueue.h"
@@ -173,6 +168,18 @@ void ConcurrentScheduler::finish() {
   at_finish_.clear();
 
   state_ = State::Start;
+}
+
+void ConcurrentScheduler::on_finish() {
+  is_finished_.store(true, std::memory_order_relaxed);
+  for (auto &it : schedulers_) {
+    it->wakeup();
+  }
+}
+
+void ConcurrentScheduler::register_at_finish(std::function<void()> f) {
+  std::lock_guard<std::mutex> lock(at_finish_mutex_);
+  at_finish_.push_back(std::move(f));
 }
 
 }  // namespace td

@@ -9,6 +9,5 @@
 #include "td/actor/impl/Actor.h"
 #include "td/actor/impl/ActorId.h"
 #include "td/actor/impl/ActorInfo.h"
-#include "td/actor/impl/ConcurrentScheduler.h"
 #include "td/actor/impl/EventFull.h"
 #include "td/actor/impl/Scheduler.h"

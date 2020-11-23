@@ -6,7 +6,7 @@
 //
 #pragma once
 
-#include "td/actor/impl/Scheduler-decl.h"
+#include "td/actor/actor.h"
 
 #include "td/utils/common.h"
 #include "td/utils/port/thread.h"
@@ -85,11 +85,11 @@ class ConcurrentScheduler : private Scheduler::Callback {
   enum class State { Start, Run };
   State state_ = State::Start;
   std::mutex at_finish_mutex_;
-  std::vector<std::function<void()>> at_finish_; // can be used during destruction by Scheduler destructors
-  std::vector<unique_ptr<Scheduler>> schedulers_;
+  vector<std::function<void()>> at_finish_;  // can be used during destruction by Scheduler destructors
+  vector<unique_ptr<Scheduler>> schedulers_;
   std::atomic<bool> is_finished_{false};
 #if !TD_THREAD_UNSUPPORTED && !TD_EVENTFD_UNSUPPORTED
-  std::vector<thread> threads_;
+  vector<td::thread> threads_;
 #endif
 #if TD_PORT_WINDOWS
   unique_ptr<detail::Iocp> iocp_;
@@ -97,17 +97,9 @@ class ConcurrentScheduler : private Scheduler::Callback {
 #endif
   int32 extra_scheduler_;
 
-  void on_finish() override {
-    is_finished_.store(true, std::memory_order_relaxed);
-    for (auto &it : schedulers_) {
-      it->wakeup();
-    }
-  }
+  void on_finish() override;
 
-  void register_at_finish(std::function<void()> f) override {
-    std::lock_guard<std::mutex> lock(at_finish_mutex_);
-    at_finish_.push_back(std::move(f));
-  }
+  void register_at_finish(std::function<void()> f) override;
 };
 
 }  // namespace td

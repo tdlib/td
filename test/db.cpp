@@ -18,6 +18,7 @@
 #include "td/db/TsSeqKeyValue.h"
 
 #include "td/actor/actor.h"
+#include "td/actor/ConcurrentScheduler.h"
 
 #include "td/utils/base64.h"
 #include "td/utils/common.h"

@@ -27,6 +27,7 @@
 #include "td/net/TransparentProxy.h"
 
 #include "td/actor/actor.h"
+#include "td/actor/ConcurrentScheduler.h"
 #include "td/actor/PromiseFuture.h"
 
 #include "td/utils/base64.h"

@@ -11,7 +11,7 @@
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/UserId.h"
 
-#include "td/actor/actor.h"
+#include "td/actor/ConcurrentScheduler.h"
 #include "td/actor/PromiseFuture.h"
 
 #include "td/db/SqliteConnectionSafe.h"
