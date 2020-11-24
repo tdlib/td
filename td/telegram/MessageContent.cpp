@@ -28,6 +28,7 @@
 #include "td/telegram/Game.hpp"
 #include "td/telegram/Global.h"
 #include "td/telegram/HashtagHints.h"
+#include "td/telegram/InputGroupCallId.h"
 #include "td/telegram/InputMessageText.h"
 #include "td/telegram/Location.h"
 #include "td/telegram/MessageEntity.h"
@@ -688,6 +689,8 @@ class MessageDice : public MessageContent {
   }
 };
 
+constexpr const char *MessageDice::DEFAULT_EMOJI;
+
 class MessageProximityAlertTriggered : public MessageContent {
  public:
   DialogId traveler_dialog_id;
@@ -704,7 +707,34 @@ class MessageProximityAlertTriggered : public MessageContent {
   }
 };
 
-constexpr const char *MessageDice::DEFAULT_EMOJI;
+class MessageGroupCall : public MessageContent {
+ public:
+  InputGroupCallId group_call_id;
+  int32 duration = -1;
+
+  MessageGroupCall() = default;
+  MessageGroupCall(InputGroupCallId group_call_id, int32 duration) : group_call_id(group_call_id), duration(duration) {
+  }
+
+  MessageContentType get_type() const override {
+    return MessageContentType::GroupCall;
+  }
+};
+
+class MessageInviteToGroupCall : public MessageContent {
+ public:
+  InputGroupCallId group_call_id;
+  UserId user_id;
+
+  MessageInviteToGroupCall() = default;
+  MessageInviteToGroupCall(InputGroupCallId group_call_id, UserId user_id)
+      : group_call_id(group_call_id), user_id(user_id) {
+  }
+
+  MessageContentType get_type() const override {
+    return MessageContentType::InviteToGroupCall;
+  }
+};
 
 template <class StorerT>
 static void store(const MessageContent *content, StorerT &storer) {
@@ -976,6 +1006,24 @@ static void store(const MessageContent *content, StorerT &storer) {
       store(m->traveler_dialog_id, storer);
       store(m->watcher_dialog_id, storer);
       store(m->distance, storer);
+      break;
+    }
+    case MessageContentType::GroupCall: {
+      auto m = static_cast<const MessageGroupCall *>(content);
+      bool has_duration = m->duration >= 0;
+      BEGIN_STORE_FLAGS();
+      STORE_FLAG(has_duration);
+      END_STORE_FLAGS();
+      store(m->group_call_id, storer);
+      if (has_duration) {
+        store(m->duration, storer);
+      }
+      break;
+    }
+    case MessageContentType::InviteToGroupCall: {
+      auto m = static_cast<const MessageInviteToGroupCall *>(content);
+      store(m->group_call_id, storer);
+      store(m->user_id, storer);
       break;
     }
     default:
@@ -1349,6 +1397,26 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       parse(m->traveler_dialog_id, parser);
       parse(m->watcher_dialog_id, parser);
       parse(m->distance, parser);
+      content = std::move(m);
+      break;
+    }
+    case MessageContentType::GroupCall: {
+      auto m = make_unique<MessageGroupCall>();
+      bool has_duration;
+      BEGIN_PARSE_FLAGS();
+      PARSE_FLAG(has_duration);
+      END_PARSE_FLAGS();
+      parse(m->group_call_id, parser);
+      if (has_duration) {
+        parse(m->duration, parser);
+      }
+      content = std::move(m);
+      break;
+    }
+    case MessageContentType::InviteToGroupCall: {
+      auto m = make_unique<MessageInviteToGroupCall>();
+      parse(m->group_call_id, parser);
+      parse(m->user_id, parser);
       content = std::move(m);
       break;
     }
@@ -2048,6 +2116,8 @@ bool can_have_input_media(const Td *td, const MessageContent *content) {
     case MessageContentType::PassportDataSent:
     case MessageContentType::PassportDataReceived:
     case MessageContentType::ProximityAlertTriggered:
+    case MessageContentType::GroupCall:
+    case MessageContentType::InviteToGroupCall:
       return false;
     case MessageContentType::Animation:
     case MessageContentType::Audio:
@@ -2161,6 +2231,8 @@ SecretInputMedia get_secret_input_media(const MessageContent *content, Td *td,
     case MessageContentType::PassportDataSent:
     case MessageContentType::PassportDataReceived:
     case MessageContentType::ProximityAlertTriggered:
+    case MessageContentType::GroupCall:
+    case MessageContentType::InviteToGroupCall:
       break;
     default:
       UNREACHABLE();
@@ -2351,6 +2423,8 @@ static tl_object_ptr<telegram_api::InputMedia> get_input_media_impl(
     case MessageContentType::PassportDataSent:
     case MessageContentType::PassportDataReceived:
     case MessageContentType::ProximityAlertTriggered:
+    case MessageContentType::GroupCall:
+    case MessageContentType::InviteToGroupCall:
       break;
     default:
       UNREACHABLE();
@@ -2474,6 +2548,8 @@ void delete_message_content_thumbnail(MessageContent *content, Td *td) {
     case MessageContentType::PassportDataReceived:
     case MessageContentType::Poll:
     case MessageContentType::ProximityAlertTriggered:
+    case MessageContentType::GroupCall:
+    case MessageContentType::InviteToGroupCall:
       break;
     default:
       UNREACHABLE();
@@ -2598,6 +2674,8 @@ static int32 get_message_content_media_index_mask(const MessageContent *content,
     case MessageContentType::Poll:
     case MessageContentType::Dice:
     case MessageContentType::ProximityAlertTriggered:
+    case MessageContentType::GroupCall:
+    case MessageContentType::InviteToGroupCall:
       return 0;
     default:
       UNREACHABLE();
@@ -3219,6 +3297,22 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       }
       break;
     }
+    case MessageContentType::GroupCall: {
+      auto old_ = static_cast<const MessageGroupCall *>(old_content);
+      auto new_ = static_cast<const MessageGroupCall *>(new_content);
+      if (old_->group_call_id != new_->group_call_id || old_->duration != new_->duration) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::InviteToGroupCall: {
+      auto old_ = static_cast<const MessageInviteToGroupCall *>(old_content);
+      auto new_ = static_cast<const MessageInviteToGroupCall *>(new_content);
+      if (old_->group_call_id != new_->group_call_id || old_->user_id != new_->user_id) {
+        need_update = true;
+      }
+      break;
+    }
     case MessageContentType::Unsupported: {
       auto old_ = static_cast<const MessageUnsupported *>(old_content);
       auto new_ = static_cast<const MessageUnsupported *>(new_content);
@@ -3352,6 +3446,8 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
     case MessageContentType::Poll:
     case MessageContentType::Dice:
     case MessageContentType::ProximityAlertTriggered:
+    case MessageContentType::GroupCall:
+    case MessageContentType::InviteToGroupCall:
       LOG(ERROR) << "Receive new file " << new_file_id << " in a sent message of the type " << content_type;
       break;
     default:
@@ -4245,6 +4341,8 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
     case MessageContentType::PassportDataSent:
     case MessageContentType::PassportDataReceived:
     case MessageContentType::ProximityAlertTriggered:
+    case MessageContentType::GroupCall:
+    case MessageContentType::InviteToGroupCall:
       return nullptr;
     default:
       UNREACHABLE();
@@ -4438,6 +4536,28 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       }
 
       return make_unique<MessageProximityAlertTriggered>(traveler_id, watcher_id, distance);
+    }
+    case telegram_api::messageActionGroupCall::ID: {
+      auto group_call = move_tl_object_as<telegram_api::messageActionGroupCall>(action);
+      int32 duration = -1;
+      if ((group_call->flags_ & telegram_api::messageActionGroupCall::DURATION_MASK) != 0) {
+        duration = group_call->duration_;
+        if (duration < 0) {
+          LOG(ERROR) << "Receive invalid " << oneline(to_string(group_call));
+          break;
+        }
+      }
+      return make_unique<MessageGroupCall>(InputGroupCallId(group_call->call_), duration);
+    }
+    case telegram_api::messageActionInviteToGroupCall::ID: {
+      auto invite_to_group_call = move_tl_object_as<telegram_api::messageActionInviteToGroupCall>(action);
+      UserId user_id(invite_to_group_call->user_id_);
+      if (!user_id.is_valid()) {
+        LOG(ERROR) << "Receive messageActionInviteToGroupCall with invalid " << user_id << " in " << owner_dialog_id;
+        break;
+      }
+
+      return make_unique<MessageInviteToGroupCall>(InputGroupCallId(invite_to_group_call->call_), user_id);
     }
     default:
       UNREACHABLE();
@@ -4648,6 +4768,10 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
           td->messages_manager_->get_message_sender_object(m->traveler_dialog_id),
           td->messages_manager_->get_message_sender_object(m->watcher_dialog_id), m->distance);
     }
+    case MessageContentType::GroupCall:
+      return make_tl_object<td_api::messageGroupCall>();
+    case MessageContentType::InviteToGroupCall:
+      return make_tl_object<td_api::messageInviteToGroupCall>();
     default:
       UNREACHABLE();
       return nullptr;
@@ -4960,6 +5084,8 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
     case MessageContentType::PassportDataReceived:
     case MessageContentType::Dice:
     case MessageContentType::ProximityAlertTriggered:
+    case MessageContentType::GroupCall:
+    case MessageContentType::InviteToGroupCall:
       return string();
     default:
       UNREACHABLE();
@@ -5157,6 +5283,13 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
       auto content = static_cast<const MessageProximityAlertTriggered *>(message_content);
       add_message_sender_dependencies(dependencies, content->traveler_dialog_id);
       add_message_sender_dependencies(dependencies, content->watcher_dialog_id);
+      break;
+    }
+    case MessageContentType::GroupCall:
+      break;
+    case MessageContentType::InviteToGroupCall: {
+      auto content = static_cast<const MessageInviteToGroupCall *>(message_content);
+      dependencies.user_ids.insert(content->user_id);
       break;
     }
     default:

@@ -57,7 +57,9 @@ enum class MessageContentType : int32 {
   PassportDataReceived,
   Poll,
   Dice,
-  ProximityAlertTriggered
+  ProximityAlertTriggered,
+  GroupCall,
+  InviteToGroupCall
 };
 
 StringBuilder &operator<<(StringBuilder &string_builder, MessageContentType content_type);

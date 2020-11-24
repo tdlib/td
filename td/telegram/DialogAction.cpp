@@ -318,6 +318,8 @@ bool DialogAction::is_cancelled_by_message_of_type(MessageContentType message_co
     case MessageContentType::Poll:
     case MessageContentType::Dice:
     case MessageContentType::ProximityAlertTriggered:
+    case MessageContentType::GroupCall:
+    case MessageContentType::InviteToGroupCall:
       return false;
     default:
       UNREACHABLE();
