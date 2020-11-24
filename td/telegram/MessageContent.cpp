@@ -4024,7 +4024,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
       auto message_contact = move_tl_object_as<telegram_api::messageMediaContact>(media);
       if (message_contact->user_id_ != 0) {
         td->contacts_manager_->get_user_id_object(UserId(message_contact->user_id_),
-                                                  "messageMediaContact");  // to ensure updateUser
+                                                  "MessageMediaContact");  // to ensure updateUser
       }
       return make_unique<MessageContact>(Contact(
           std::move(message_contact->phone_number_), std::move(message_contact->first_name_),
@@ -4677,12 +4677,12 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     case MessageContentType::ChatDeleteUser: {
       const MessageChatDeleteUser *m = static_cast<const MessageChatDeleteUser *>(content);
       return make_tl_object<td_api::messageChatDeleteMember>(
-          td->contacts_manager_->get_user_id_object(m->user_id, "messageChatDeleteMember"));
+          td->contacts_manager_->get_user_id_object(m->user_id, "MessageChatDeleteMember"));
     }
     case MessageContentType::ChatMigrateTo: {
       const MessageChatMigrateTo *m = static_cast<const MessageChatMigrateTo *>(content);
       return make_tl_object<td_api::messageChatUpgradeTo>(
-          td->contacts_manager_->get_supergroup_id_object(m->migrated_to_channel_id, "messageChatUpgradeTo"));
+          td->contacts_manager_->get_supergroup_id_object(m->migrated_to_channel_id, "MessageChatUpgradeTo"));
     }
     case MessageContentType::ChannelCreate: {
       const MessageChannelCreate *m = static_cast<const MessageChannelCreate *>(content);
@@ -4692,7 +4692,7 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
       const MessageChannelMigrateFrom *m = static_cast<const MessageChannelMigrateFrom *>(content);
       return make_tl_object<td_api::messageChatUpgradeFrom>(
           m->title,
-          td->contacts_manager_->get_basic_group_id_object(m->migrated_from_chat_id, "messageChatUpgradeFrom"));
+          td->contacts_manager_->get_basic_group_id_object(m->migrated_from_chat_id, "MessageChatUpgradeFrom"));
     }
     case MessageContentType::PinMessage: {
       const MessagePinMessage *m = static_cast<const MessagePinMessage *>(content);
@@ -4768,10 +4768,16 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
           td->messages_manager_->get_message_sender_object(m->traveler_dialog_id),
           td->messages_manager_->get_message_sender_object(m->watcher_dialog_id), m->distance);
     }
-    case MessageContentType::GroupCall:
-      return make_tl_object<td_api::messageGroupCall>();
-    case MessageContentType::InviteToGroupCall:
-      return make_tl_object<td_api::messageInviteToGroupCall>();
+    case MessageContentType::GroupCall: {
+      auto *m = static_cast<const MessageGroupCall *>(content);
+      return make_tl_object<td_api::messageGroupCall>(m->group_call_id.get_group_call_id());
+    }
+    case MessageContentType::InviteToGroupCall: {
+      auto *m = static_cast<const MessageInviteToGroupCall *>(content);
+      return make_tl_object<td_api::messageInviteToGroupCall>(
+          m->group_call_id.get_group_call_id(),
+          td->contacts_manager_->get_user_id_object(m->user_id, "MessageInviteToGroupCall"));
+    }
     default:
       UNREACHABLE();
       return nullptr;

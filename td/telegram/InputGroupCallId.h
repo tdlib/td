@@ -9,6 +9,7 @@
 #include "td/telegram/telegram_api.h"
 
 #include "td/utils/common.h"
+#include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 
 namespace td {
@@ -21,6 +22,10 @@ class InputGroupCallId {
   InputGroupCallId() = default;
 
   explicit InputGroupCallId(const tl_object_ptr<telegram_api::inputGroupCall> &input_group_call);
+
+  static Result<InputGroupCallId> from_group_call_id(const string &group_call_id);
+
+  string get_group_call_id() const;
 
   bool operator==(const InputGroupCallId &other) const {
     return group_call_id == other.group_call_id && access_hash == other.access_hash;
