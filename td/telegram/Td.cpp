@@ -43,6 +43,7 @@
 #include "td/telegram/FolderId.h"
 #include "td/telegram/FullMessageId.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/GroupCallManager.h"
 #include "td/telegram/HashtagHints.h"
 #include "td/telegram/InlineQueriesManager.h"
 #include "td/telegram/JsonValue.h"
@@ -3893,6 +3894,8 @@ void Td::dec_actor_refcnt() {
       LOG(DEBUG) << "FileManager was cleared" << timer;
       file_reference_manager_.reset();
       LOG(DEBUG) << "FileReferenceManager was cleared" << timer;
+      group_call_manager_.reset();
+      LOG(DEBUG) << "GroupCallManager was cleared" << timer;
       inline_queries_manager_.reset();
       LOG(DEBUG) << "InlineQueriesManager was cleared" << timer;
       messages_manager_.reset();
@@ -4077,6 +4080,8 @@ void Td::clear() {
   LOG(DEBUG) << "FileManager actor was cleared" << timer;
   file_reference_manager_actor_.reset();
   LOG(DEBUG) << "FileReferenceManager actor was cleared" << timer;
+  group_call_manager_actor_.reset();
+  LOG(DEBUG) << "GroupCallManager actor was cleared" << timer;
   inline_queries_manager_actor_.reset();
   LOG(DEBUG) << "InlineQueriesManager actor was cleared" << timer;
   messages_manager_actor_.reset();  // TODO: Stop silent
@@ -4510,6 +4515,8 @@ void Td::init_managers() {
   G()->set_contacts_manager(contacts_manager_actor_.get());
   country_info_manager_ = make_unique<CountryInfoManager>(this, create_reference());
   country_info_manager_actor_ = register_actor("CountryInfoManager", country_info_manager_.get());
+  group_call_manager_ = make_unique<GroupCallManager>(this, create_reference());
+  group_call_manager_actor_ = register_actor("GroupCallManager", group_call_manager_.get());
   inline_queries_manager_ = make_unique<InlineQueriesManager>(this, create_reference());
   inline_queries_manager_actor_ = register_actor("InlineQueriesManager", inline_queries_manager_.get());
   messages_manager_ = make_unique<MessagesManager>(this, create_reference());
@@ -4925,6 +4932,7 @@ void Td::on_request(uint64 id, const td_api::getCurrentState &request) {
 
     // TODO updateFileGenerationStart generation_id:int64 original_path:string destination_path:string conversion:string = Update;
     // TODO updateCall call:call = Update;
+    // TODO updateGroupCall call:groupCall = Update;
   }
 
   auto update_terms_of_service = get_update_terms_of_service_object();

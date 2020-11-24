@@ -319,6 +319,7 @@ set(TDLIB_SOURCE
   td/telegram/files/ResourceManager.cpp
   td/telegram/Game.cpp
   td/telegram/Global.cpp
+  td/telegram/GroupCallManager.cpp
   td/telegram/HashtagHints.cpp
   td/telegram/InlineQueriesManager.cpp
   td/telegram/InputDialogId.cpp
@@ -492,6 +493,7 @@ set(TDLIB_SOURCE
   td/telegram/FullMessageId.h
   td/telegram/Game.h
   td/telegram/Global.h
+  td/telegram/GroupCallManager.h
   td/telegram/HashtagHints.h
   td/telegram/InlineQueriesManager.h
   td/telegram/InputDialogId.h
