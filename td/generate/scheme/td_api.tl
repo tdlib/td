@@ -566,13 +566,14 @@ basicGroupFullInfo photo:chatPhoto description:string creator_user_id:int32 memb
 //@member_count Number of members in the supergroup or channel; 0 if unknown. Currently it is guaranteed to be known only if the supergroup or channel was received through searchPublicChats, searchChatsNearby, getInactiveSupergroupChats, getSuitableDiscussionChats, getGroupsInCommon, or getUserPrivacySettingRules
 //@has_linked_chat True, if the channel has a discussion group, or the supergroup is the designated discussion group for a channel
 //@has_location True, if the supergroup is connected to a location, i.e. the supergroup is a location-based supergroup
+//@has_active_call True, if the supergroup has active group call
 //@sign_messages True, if messages sent to the channel should contain information about the sender. This field is only applicable to channels
 //@is_slow_mode_enabled True, if the slow mode is enabled in the supergroup
 //@is_channel True, if the supergroup is a channel
 //@is_verified True, if the supergroup or channel is verified
 //@restriction_reason If non-empty, contains a human-readable description of the reason why access to this supergroup or channel must be restricted
 //@is_scam True, if many users reported this supergroup as a scam
-supergroup id:int32 username:string date:int32 status:ChatMemberStatus member_count:int32 has_linked_chat:Bool has_location:Bool sign_messages:Bool is_slow_mode_enabled:Bool is_channel:Bool is_verified:Bool restriction_reason:string is_scam:Bool = Supergroup;
+supergroup id:int32 username:string date:int32 status:ChatMemberStatus member_count:int32 has_linked_chat:Bool has_location:Bool has_active_call:Bool sign_messages:Bool is_slow_mode_enabled:Bool is_channel:Bool is_verified:Bool restriction_reason:string is_scam:Bool = Supergroup;
 
 //@description Contains full information about a supergroup or channel
 //@photo Chat photo; may be null
@@ -1627,8 +1628,8 @@ messageInvoice title:string description:string photo:photo currency:string total
 //@description A message with information about an ended call @is_video True, if the call was a video call @discard_reason Reason why the call was discarded @duration Call duration, in seconds
 messageCall is_video:Bool discard_reason:CallDiscardReason duration:int32 = MessageContent;
 
-//@description A message with information about a group call @group_call_id Group call identifier
-messageGroupCall group_call_id:string = MessageContent;
+//@description A message with information about a group call @group_call_id Group call identifier @duration Call duration; for finished calls only
+messageGroupCall group_call_id:string duration:int32 = MessageContent;
 
 //@description A message with information about an invite to a group call @group_call_id Group call identifier @user_id Invited user identifier
 messageInviteToGroupCall group_call_id:string user_id:int32 = MessageContent;
@@ -2055,6 +2056,10 @@ callStateDiscarded reason:CallDiscardReason need_rating:Bool need_debug_informat
 
 //@description The call has ended with an error @error Error. An error with the code 4005000 will be returned if an outgoing call is missed because of an expired timeout
 callStateError error:error = CallState;
+
+
+//@description Describes a group call @id Group call identifier @is_active True, if the call is active @member_count Number of members in the group call @duration Call duration; for ended calls only
+groupCall id:string is_active:Bool member_count:int32 duration:int32 = GroupCall;
 
 
 //@class CallProblem @description Describes the exact type of a problem with a call
@@ -3333,6 +3338,9 @@ updateFileGenerationStop generation_id:int64 = Update;
 
 //@description New call was created or information about a call was updated @call New data about a call
 updateCall call:call = Update;
+
+//@description Information about a group call was updated @group_call New data about the call
+updateGroupCall group_call:groupCall = Update;
 
 //@description New call signaling data arrived @call_id The call identifier @data The data
 updateNewCallSignalingData call_id:int32 data:bytes = Update;

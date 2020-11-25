@@ -4517,6 +4517,7 @@ void Td::init_managers() {
   country_info_manager_actor_ = register_actor("CountryInfoManager", country_info_manager_.get());
   group_call_manager_ = make_unique<GroupCallManager>(this, create_reference());
   group_call_manager_actor_ = register_actor("GroupCallManager", group_call_manager_.get());
+  G()->set_group_call_manager(group_call_manager_actor_.get());
   inline_queries_manager_ = make_unique<InlineQueriesManager>(this, create_reference());
   inline_queries_manager_actor_ = register_actor("InlineQueriesManager", inline_queries_manager_.get());
   messages_manager_ = make_unique<MessagesManager>(this, create_reference());

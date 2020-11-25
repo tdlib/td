@@ -21,6 +21,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/FolderId.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/GroupCallManager.h"
 #include "td/telegram/InlineQueriesManager.h"
 #include "td/telegram/LanguagePackManager.h"
 #include "td/telegram/Location.h"
@@ -2122,6 +2123,10 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePhoneCallSignal
                update->data_.as_slice().str());
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateGroupCall> update, bool /*force_apply*/) {
+  send_closure(G()->group_call_manager(), &GroupCallManager::on_update_group_call, std::move(update->call_));
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateContactsReset> update, bool /*force_apply*/) {
   td_->contacts_manager_->on_update_contacts_reset();
 }
@@ -2182,9 +2187,6 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTheme> update, 
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateGroupCallParticipants> update, bool /*force_apply*/) {
-}
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateGroupCall> update, bool /*force_apply*/) {
 }
 
 }  // namespace td

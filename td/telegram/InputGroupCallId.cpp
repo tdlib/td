@@ -27,10 +27,7 @@ Result<InputGroupCallId> InputGroupCallId::from_group_call_id(const string &grou
     return Status::Error("Invalid group call identifier specified");
   }
 
-  InputGroupCallId result;
-  result.group_call_id = r_group_call_id.ok();
-  result.access_hash = r_access_hash.ok();
-  return result;
+  return InputGroupCallId{r_group_call_id.ok(), r_access_hash.ok()};
 }
 
 string InputGroupCallId::get_group_call_id() const {
@@ -45,7 +42,7 @@ tl_object_ptr<telegram_api::inputGroupCall> InputGroupCallId::get_input_group_ca
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, InputGroupCallId input_group_call_id) {
-  return string_builder << "input group call " << input_group_call_id.group_call_id;
+  return string_builder << "group call " << input_group_call_id.group_call_id;
 }
 
 }  // namespace td

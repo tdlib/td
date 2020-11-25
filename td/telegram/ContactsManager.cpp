@@ -3559,6 +3559,7 @@ void ContactsManager::Channel::store(StorerT &storer) const {
   STORE_FLAG(has_location);
   STORE_FLAG(is_slow_mode_enabled);
   STORE_FLAG(has_restriction_reasons);
+  STORE_FLAG(has_active_group_call);
   END_STORE_FLAGS();
 
   store(status, storer);
@@ -3624,6 +3625,7 @@ void ContactsManager::Channel::parse(ParserT &parser) {
   PARSE_FLAG(has_location);
   PARSE_FLAG(is_slow_mode_enabled);
   PARSE_FLAG(has_restriction_reasons);
+  PARSE_FLAG(has_active_group_call);
   END_PARSE_FLAGS();
 
   if (use_new_rights) {
@@ -3691,6 +3693,7 @@ void ContactsManager::ChannelFull::store(StorerT &storer) const {
   bool is_slow_mode_delay_active = slow_mode_next_send_date != 0;
   bool has_stats_dc_id = stats_dc_id.is_exact();
   bool has_photo = !photo.is_empty();
+  bool has_active_group_call_id = active_group_call_id.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_description);
   STORE_FLAG(has_administrator_count);
@@ -3715,6 +3718,7 @@ void ContactsManager::ChannelFull::store(StorerT &storer) const {
   STORE_FLAG(has_photo);
   STORE_FLAG(is_can_view_statistics_inited);
   STORE_FLAG(can_view_statistics);
+  STORE_FLAG(has_active_group_call_id);
   END_STORE_FLAGS();
   if (has_description) {
     store(description, storer);
@@ -3763,6 +3767,9 @@ void ContactsManager::ChannelFull::store(StorerT &storer) const {
   if (has_photo) {
     store(photo, storer);
   }
+  if (has_active_group_call_id) {
+    store(active_group_call_id, storer);
+  }
 }
 
 template <class ParserT>
@@ -3784,6 +3791,7 @@ void ContactsManager::ChannelFull::parse(ParserT &parser) {
   bool is_slow_mode_delay_active;
   bool has_stats_dc_id;
   bool has_photo;
+  bool has_active_group_call_id;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_description);
   PARSE_FLAG(has_administrator_count);
@@ -3808,6 +3816,7 @@ void ContactsManager::ChannelFull::parse(ParserT &parser) {
   PARSE_FLAG(has_photo);
   PARSE_FLAG(is_can_view_statistics_inited);
   PARSE_FLAG(can_view_statistics);
+  PARSE_FLAG(has_active_group_call_id);
   END_PARSE_FLAGS();
   if (has_description) {
     parse(description, parser);
@@ -3855,6 +3864,9 @@ void ContactsManager::ChannelFull::parse(ParserT &parser) {
   }
   if (has_photo) {
     parse(photo, parser);
+  }
+  if (has_active_group_call_id) {
+    parse(active_group_call_id, parser);
   }
 
   if (legacy_can_view_statistics) {
@@ -9532,6 +9544,10 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       LOG(ERROR) << "Receive can_view_statistics == true, but invalid statistics DC ID in " << channel_id;
       can_view_statistics = false;
     }
+    InputGroupCallId group_call_id;
+    if (channel_full->call_ != nullptr) {
+      group_call_id = InputGroupCallId(channel_full->call_);
+    }
 
     channel->repair_request_version = 0;
     channel->expires_at = Time::now() + CHANNEL_FULL_EXPIRE_TIME;
@@ -9566,6 +9582,17 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     if (!channel->is_can_view_statistics_inited) {
       channel->is_can_view_statistics_inited = true;
       channel->need_save_to_database = true;
+    }
+
+    if (channel->active_group_call_id != group_call_id) {
+      channel->active_group_call_id = group_call_id;
+      bool has_active_group_call = group_call_id.is_valid();
+      if (c->has_active_group_call != has_active_group_call) {
+        LOG(ERROR) << "Receive invalid has_active_group_call flag " << c->has_active_group_call;
+        c->has_active_group_call = has_active_group_call;
+        c->is_changed = true;
+        update_channel(c, channel_id);
+      }
     }
 
     on_update_channel_full_photo(
@@ -13822,6 +13849,7 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
 
   bool has_linked_channel = (channel.flags_ & CHANNEL_FLAG_HAS_LINKED_CHAT) != 0;
   bool has_location = (channel.flags_ & CHANNEL_FLAG_HAS_LOCATION) != 0;
+  bool has_active_group_call = (channel.flags_ & CHANNEL_FLAG_HAS_ACTIVE_GROUP_CALL) != 0;
   bool sign_messages = (channel.flags_ & CHANNEL_FLAG_SIGN_MESSAGES) != 0;
   bool is_slow_mode_enabled = (channel.flags_ & CHANNEL_FLAG_IS_SLOW_MODE_ENABLED) != 0;
   bool is_megagroup = (channel.flags_ & CHANNEL_FLAG_IS_MEGAGROUP) != 0;
@@ -13926,10 +13954,12 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
 
   bool need_invalidate_channel_full = false;
   if (c->has_linked_channel != has_linked_channel || c->has_location != has_location ||
-      c->sign_messages != sign_messages || c->is_megagroup != is_megagroup || c->is_verified != is_verified ||
+      c->has_active_group_call != has_active_group_call || c->sign_messages != sign_messages ||
+      c->is_megagroup != is_megagroup || c->is_verified != is_verified ||
       c->restriction_reasons != restriction_reasons || c->is_scam != is_scam) {
     c->has_linked_channel = has_linked_channel;
     c->has_location = has_location;
+    c->has_active_group_call = has_active_group_call;
     c->sign_messages = sign_messages;
     c->is_slow_mode_enabled = is_slow_mode_enabled;
     c->is_megagroup = is_megagroup;
@@ -13990,6 +14020,7 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, co
   tl_object_ptr<telegram_api::chatBannedRights> banned_rights;  // == nullptr
   on_update_channel_default_permissions(c, channel_id, get_restricted_rights(banned_rights));
 
+  bool has_active_group_call = false;
   bool sign_messages = false;
   bool is_slow_mode_enabled = false;
   bool is_megagroup = (channel.flags_ & CHANNEL_FLAG_IS_MEGAGROUP) != 0;
@@ -14013,11 +14044,12 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, co
   }
 
   bool need_invalidate_channel_full = false;
-  if (c->sign_messages != sign_messages || c->is_slow_mode_enabled != is_slow_mode_enabled ||
-      c->is_megagroup != is_megagroup || c->is_verified != is_verified || !c->restriction_reasons.empty() ||
-      c->is_scam != is_scam) {
+  if (c->has_active_group_call != has_active_group_call || c->sign_messages != sign_messages ||
+      c->is_slow_mode_enabled != is_slow_mode_enabled || c->is_megagroup != is_megagroup ||
+      c->is_verified != is_verified || !c->restriction_reasons.empty() || c->is_scam != is_scam) {
     // c->has_linked_channel = has_linked_channel;
     // c->has_location = has_location;
+    c->has_active_group_call = has_active_group_call;
     c->sign_messages = sign_messages;
     c->is_slow_mode_enabled = is_slow_mode_enabled;
     c->is_megagroup = is_megagroup;
@@ -14243,7 +14275,7 @@ td_api::object_ptr<td_api::updateSupergroup> ContactsManager::get_update_unknown
     ChannelId channel_id) {
   return td_api::make_object<td_api::updateSupergroup>(td_api::make_object<td_api::supergroup>(
       channel_id.get(), string(), 0, DialogParticipantStatus::Banned(0).get_chat_member_status_object(), 0, false,
-      false, false, false, true, false, "", false));
+      false, false, false, false, true, false, "", false));
 }
 
 int32 ContactsManager::get_supergroup_id_object(ChannelId channel_id, const char *source) const {
@@ -14265,8 +14297,9 @@ tl_object_ptr<td_api::supergroup> ContactsManager::get_supergroup_object(Channel
   }
   return td_api::make_object<td_api::supergroup>(
       channel_id.get(), c->username, c->date, get_channel_status(c).get_chat_member_status_object(),
-      c->participant_count, c->has_linked_channel, c->has_location, c->sign_messages, c->is_slow_mode_enabled,
-      !c->is_megagroup, c->is_verified, get_restriction_reason_description(c->restriction_reasons), c->is_scam);
+      c->participant_count, c->has_linked_channel, c->has_location, c->has_active_group_call, c->sign_messages,
+      c->is_slow_mode_enabled, !c->is_megagroup, c->is_verified,
+      get_restriction_reason_description(c->restriction_reasons), c->is_scam);
 }
 
 tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_supergroup_full_info_object(ChannelId channel_id) const {

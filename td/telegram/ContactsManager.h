@@ -21,6 +21,7 @@
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/FolderId.h"
 #include "td/telegram/FullMessageId.h"
+#include "td/telegram/InputGroupCallId.h"
 #include "td/telegram/Location.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/net/DcId.h"
@@ -789,6 +790,7 @@ class ContactsManager : public Actor {
 
     bool has_linked_channel = false;
     bool has_location = false;
+    bool has_active_group_call = false;
     bool sign_messages = false;
     bool is_slow_mode_enabled = false;
 
@@ -846,6 +848,8 @@ class ContactsManager : public Actor {
     DialogLocation location;
 
     DcId stats_dc_id;
+
+    InputGroupCallId active_group_call_id;
 
     int32 slow_mode_delay = 0;
     int32 slow_mode_next_send_date = 0;
@@ -1017,6 +1021,7 @@ class ContactsManager : public Actor {
   static constexpr int32 CHANNEL_FLAG_HAS_LINKED_CHAT = 1 << 20;
   static constexpr int32 CHANNEL_FLAG_HAS_LOCATION = 1 << 21;
   static constexpr int32 CHANNEL_FLAG_IS_SLOW_MODE_ENABLED = 1 << 22;
+  static constexpr int32 CHANNEL_FLAG_HAS_ACTIVE_GROUP_CALL = 1 << 23;
 
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_PARTICIPANT_COUNT = 1 << 0;
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_ADMINISTRATOR_COUNT = 1 << 1;
@@ -1039,6 +1044,7 @@ class ContactsManager : public Actor {
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_SLOW_MODE_NEXT_SEND_DATE = 1 << 18;
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_SCHEDULED_MESSAGES = 1 << 19;
   static constexpr int32 CHANNEL_FULL_FLAG_CAN_VIEW_STATISTICS = 1 << 20;
+  static constexpr int32 CHANNEL_FULL_FLAG_HAS_ACTIVE_GROUP_CALL = 1 << 21;
   static constexpr int32 CHANNEL_FULL_FLAG_IS_BLOCKED = 1 << 22;
 
   static constexpr int32 CHAT_INVITE_FLAG_IS_CHANNEL = 1 << 0;

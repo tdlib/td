@@ -12,6 +12,8 @@
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 
+#include <functional>
+
 namespace td {
 
 class InputGroupCallId {
@@ -23,20 +25,31 @@ class InputGroupCallId {
 
   explicit InputGroupCallId(const tl_object_ptr<telegram_api::inputGroupCall> &input_group_call);
 
+  InputGroupCallId(int64 group_call_id, int64 access_hash) : group_call_id(group_call_id), access_hash(access_hash) {
+  }
+
   static Result<InputGroupCallId> from_group_call_id(const string &group_call_id);
 
   string get_group_call_id() const;
 
   bool operator==(const InputGroupCallId &other) const {
-    return group_call_id == other.group_call_id && access_hash == other.access_hash;
+    return group_call_id == other.group_call_id;
   }
 
   bool operator!=(const InputGroupCallId &other) const {
     return !(*this == other);
   }
 
+  bool is_identical(const InputGroupCallId &other) const {
+    return group_call_id == other.group_call_id && access_hash == other.access_hash;
+  }
+
   bool is_valid() const {
     return group_call_id != 0;
+  }
+
+  std::size_t get_hash() const {
+    return std::hash<int64>()(group_call_id);
   }
 
   tl_object_ptr<telegram_api::inputGroupCall> get_input_group_call() const;
@@ -54,6 +67,12 @@ class InputGroupCallId {
   }
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, InputGroupCallId input_group_call_id);
+};
+
+struct InputGroupCallIdHash {
+  std::size_t operator()(InputGroupCallId input_group_call_id) const {
+    return input_group_call_id.get_hash();
+  }
 };
 
 }  // namespace td

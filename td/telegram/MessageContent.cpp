@@ -3303,6 +3303,9 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       if (old_->group_call_id != new_->group_call_id || old_->duration != new_->duration) {
         need_update = true;
       }
+      if (!old_->group_call_id.is_identical(new_->group_call_id)) {
+        is_content_changed = true;
+      }
       break;
     }
     case MessageContentType::InviteToGroupCall: {
@@ -3310,6 +3313,9 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       auto new_ = static_cast<const MessageInviteToGroupCall *>(new_content);
       if (old_->group_call_id != new_->group_call_id || old_->user_id != new_->user_id) {
         need_update = true;
+      }
+      if (!old_->group_call_id.is_identical(new_->group_call_id)) {
+        is_content_changed = true;
       }
       break;
     }
@@ -4770,7 +4776,8 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     }
     case MessageContentType::GroupCall: {
       auto *m = static_cast<const MessageGroupCall *>(content);
-      return make_tl_object<td_api::messageGroupCall>(m->group_call_id.get_group_call_id());
+      return make_tl_object<td_api::messageGroupCall>(m->group_call_id.get_group_call_id(),
+                                                      m->duration >= 0 ? max(m->duration, 1) : 0);
     }
     case MessageContentType::InviteToGroupCall: {
       auto *m = static_cast<const MessageInviteToGroupCall *>(content);
