@@ -8707,7 +8707,13 @@ void ContactsManager::on_load_channel_full_from_database(ChannelId channel_id, s
       channel_full->expires_at = 0.0;
     }
   }
-  on_update_channel_full_photo(channel_full, channel_id, std::move(channel_full->photo));
+  auto photo = std::move(channel_full->photo);
+  on_update_channel_full_photo(channel_full, channel_id, std::move(photo));
+
+  if (!c->has_active_group_call && channel_full->active_group_call_id.is_valid()) {
+    channel_full->active_group_call_id = InputGroupCallId();
+    channel_full->expires_at = 0.0;
+  }
 
   update_channel_full(channel_full, channel_id, true);
 
@@ -9588,11 +9594,13 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       channel->active_group_call_id = group_call_id;
       bool has_active_group_call = group_call_id.is_valid();
       if (c->has_active_group_call != has_active_group_call) {
-        LOG(ERROR) << "Receive invalid has_active_group_call flag " << c->has_active_group_call;
+        LOG(ERROR) << "Receive invalid has_active_group_call flag " << c->has_active_group_call << ", but have "
+                   << group_call_id;
         c->has_active_group_call = has_active_group_call;
         c->is_changed = true;
         update_channel(c, channel_id);
       }
+      channel->is_changed = true;
     }
 
     on_update_channel_full_photo(
@@ -10966,7 +10974,8 @@ void ContactsManager::drop_channel_photos(ChannelId channel_id, bool is_empty, b
   }
 }
 
-void ContactsManager::invalidate_channel_full(ChannelId channel_id, bool drop_invite_link, bool drop_slow_mode_delay) {
+void ContactsManager::invalidate_channel_full(ChannelId channel_id, bool drop_invite_link, bool drop_slow_mode_delay,
+                                              bool drop_active_group_call_id) {
   LOG(INFO) << "Invalidate supergroup full for " << channel_id;
   // drop channel full cache
   auto channel_full = get_channel_full_force(channel_id, "invalidate_channel_full");
@@ -10979,6 +10988,10 @@ void ContactsManager::invalidate_channel_full(ChannelId channel_id, bool drop_in
       channel_full->slow_mode_delay = 0;
       channel_full->slow_mode_next_send_date = 0;
       channel_full->is_slow_mode_next_send_date_changed = true;
+      channel_full->is_changed = true;
+    }
+    if (drop_active_group_call_id && channel_full->active_group_call_id.is_valid()) {
+      channel_full->active_group_call_id = InputGroupCallId();
       channel_full->is_changed = true;
     }
     update_channel_full(channel_full, channel_id);
@@ -13953,6 +13966,7 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
   }
 
   bool need_invalidate_channel_full = false;
+  bool need_drop_active_group_call_id = c->has_active_group_call != has_active_group_call;
   if (c->has_linked_channel != has_linked_channel || c->has_location != has_location ||
       c->has_active_group_call != has_active_group_call || c->sign_messages != sign_messages ||
       c->is_megagroup != is_megagroup || c->is_verified != is_verified ||
@@ -13979,7 +13993,7 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
   update_channel(c, channel_id);
 
   if (need_invalidate_channel_full) {
-    invalidate_channel_full(channel_id, false, !c->is_slow_mode_enabled);
+    invalidate_channel_full(channel_id, false, !c->is_slow_mode_enabled, need_drop_active_group_call_id);
   }
 }
 
@@ -14316,11 +14330,11 @@ tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_supergroup_full_i
   return td_api::make_object<td_api::supergroupFullInfo>(
       get_chat_photo_object(td_->file_manager_.get(), channel_full->photo), channel_full->description,
       channel_full->participant_count, channel_full->administrator_count, channel_full->restricted_count,
-      channel_full->banned_count, DialogId(channel_full->linked_channel_id).get(), channel_full->slow_mode_delay,
-      slow_mode_delay_expires_in, channel_full->can_get_participants, channel_full->can_set_username,
-      channel_full->can_set_sticker_set, channel_full->can_set_location, channel_full->can_view_statistics,
-      channel_full->is_all_history_available, channel_full->sticker_set_id.get(),
-      channel_full->location.get_chat_location_object(), channel_full->invite_link,
+      channel_full->banned_count, DialogId(channel_full->linked_channel_id).get(),
+      channel_full->active_group_call_id.get_group_call_id(), channel_full->slow_mode_delay, slow_mode_delay_expires_in,
+      channel_full->can_get_participants, channel_full->can_set_username, channel_full->can_set_sticker_set,
+      channel_full->can_set_location, channel_full->can_view_statistics, channel_full->is_all_history_available,
+      channel_full->sticker_set_id.get(), channel_full->location.get_chat_location_object(), channel_full->invite_link,
       get_basic_group_id_object(channel_full->migrated_from_chat_id, "get_supergroup_full_info_object"),
       channel_full->migrated_from_max_message_id.get());
 }
