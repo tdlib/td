@@ -9,6 +9,7 @@
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatId.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/InputGroupCallId.h"
 #include "td/telegram/PtsManager.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
@@ -43,6 +44,8 @@ class UpdatesManager : public Actor {
 
   static vector<const tl_object_ptr<telegram_api::Message> *> get_new_messages(
       const telegram_api::Updates *updates_ptr);
+
+  static vector<InputGroupCallId> get_update_new_group_call_ids(const telegram_api::Updates *updates_ptr);
 
   static vector<DialogId> get_update_notify_settings_dialog_ids(const telegram_api::Updates *updates_ptr);
 

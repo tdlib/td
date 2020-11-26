@@ -365,6 +365,8 @@ class ContactsManager : public Actor {
 
   void set_channel_slow_mode_delay(DialogId dialog_id, int32 slow_mode_delay, Promise<Unit> &&promise);
 
+  void create_channel_group_call(DialogId dialog_id, Promise<InputGroupCallId> &&promise);
+
   void report_channel_spam(ChannelId channel_id, UserId user_id, const vector<MessageId> &message_ids,
                            Promise<Unit> &&promise);
 
@@ -1314,6 +1316,9 @@ class ContactsManager : public Actor {
   void update_channel_full(ChannelFull *channel_full, ChannelId channel_id, bool from_database = false);
 
   void update_bot_info(BotInfo *bot_info, UserId user_id, bool send_update, bool from_database);
+
+  void on_create_channel_group_call(ChannelId channel_id, InputGroupCallId group_call_id,
+                                    Promise<InputGroupCallId> &&promise);
 
   bool is_chat_full_outdated(const ChatFull *chat_full, const Chat *c, ChatId chat_id);
 

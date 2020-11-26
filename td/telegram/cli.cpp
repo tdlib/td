@@ -2834,6 +2834,8 @@ class CliClient final : public Actor {
           as_call_id(call_id), to_integer<int32>(rating), "Wow, such good call! (TDLib test)", std::move(problems)));
     } else if (op == "scdi" || op == "SendCallDebugInformation") {
       send_request(td_api::make_object<td_api::sendCallDebugInformation>(as_call_id(args), "{}"));
+    } else if (op == "ccgc") {
+      send_request(td_api::make_object<td_api::createChatGroupCall>(as_chat_id(args)));
     } else if (op == "gcil") {
       send_request(td_api::make_object<td_api::generateChatInviteLink>(as_chat_id(args)));
     } else if (op == "ccil") {

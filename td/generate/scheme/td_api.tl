@@ -4290,6 +4290,10 @@ sendCallRating call_id:int32 rating:int32 comment:string problems:vector<CallPro
 sendCallDebugInformation call_id:int32 debug_information:string = Ok;
 
 
+//@description Creates a group call in a chat. Available only for supergroups; requires can_manage_calls rights @chat_id Chat identifier
+createChatGroupCall chat_id:int53 = GroupCallId;
+
+
 //@description Changes the block state of a message sender. Currently, only users and supergroup chats can be blocked @sender Message Sender @is_blocked New value of is_blocked
 toggleMessageSenderIsBlocked sender:MessageSender is_blocked:Bool = Ok;
 

@@ -692,6 +692,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, td_api::sendCallDebugInformation &request);
 
+  void on_request(uint64 id, const td_api::createChatGroupCall &request);
+
   void on_request(uint64 id, const td_api::upgradeBasicGroupChatToSupergroupChat &request);
 
   void on_request(uint64 id, const td_api::getChatListsToAddChat &request);

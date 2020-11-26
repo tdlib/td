@@ -6027,6 +6027,20 @@ void Td::on_request(uint64 id, td_api::sendCallDebugInformation &request) {
                std::move(request.debug_information_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::createChatGroupCall &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<InputGroupCallId> result) mutable {
+    if (result.is_error()) {
+      promise.set_error(result.move_as_error());
+    } else {
+      promise.set_value(td_api::make_object<td_api::groupCallId>(result.ok().get_group_call_id()));
+    }
+  });
+
+  contacts_manager_->create_channel_group_call(DialogId(request.chat_id_), std::move(query_promise));
+}
+
 void Td::on_request(uint64 id, const td_api::upgradeBasicGroupChatToSupergroupChat &request) {
   CHECK_IS_USER();
   CREATE_REQUEST(UpgradeGroupChatToSupergroupChatRequest, request.chat_id_);
