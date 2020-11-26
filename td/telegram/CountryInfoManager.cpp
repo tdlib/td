@@ -451,7 +451,7 @@ const CountryInfoManager::CountryList *CountryInfoManager::get_country_list(cons
       it = countries_.find(language_code);
       CHECK(it != countries_.end())
       auto *country = it->second.get();
-      load_country_list(language_code, country->hash, {});
+      load_country_list(language_code, country->hash, Auto());
       return country;
     }
     return nullptr;
@@ -460,7 +460,7 @@ const CountryInfoManager::CountryList *CountryInfoManager::get_country_list(cons
   auto *country = it->second.get();
   CHECK(country != nullptr);
   if (country->next_reload_time < Time::now()) {
-    load_country_list(language_code, country->hash, {});
+    load_country_list(language_code, country->hash, Auto());
   }
 
   return country;

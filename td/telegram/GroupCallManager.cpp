@@ -181,6 +181,8 @@ struct GroupCallManager::PendingJoinRequest {
 GroupCallManager::GroupCallManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
 
+GroupCallManager::~GroupCallManager() = default;
+
 void GroupCallManager::tear_down() {
   parent_.reset();
 }

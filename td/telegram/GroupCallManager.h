@@ -23,6 +23,11 @@ class Td;
 class GroupCallManager : public Actor {
  public:
   GroupCallManager(Td *td, ActorShared<> parent);
+  GroupCallManager(const GroupCallManager &) = delete;
+  GroupCallManager &operator=(const GroupCallManager &) = delete;
+  GroupCallManager(GroupCallManager &&) = delete;
+  GroupCallManager &operator=(GroupCallManager &&) = delete;
+  ~GroupCallManager() override;
 
   void create_group_call(ChannelId channel_id, Promise<InputGroupCallId> &&promise);
 
