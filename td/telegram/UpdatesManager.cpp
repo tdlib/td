@@ -917,8 +917,6 @@ vector<InputGroupCallId> UpdatesManager::get_update_new_group_call_ids(const tel
 
       if (group_call_id.is_valid()) {
         group_call_ids.push_back(group_call_id);
-      } else {
-        LOG(ERROR) << "Receive unexpected " << to_string(update);
       }
     }
   }

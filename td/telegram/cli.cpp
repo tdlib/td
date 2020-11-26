@@ -2844,6 +2844,8 @@ class CliClient final : public Actor {
           args, td_api::make_object<td_api::groupCallPayload>("ufrag", "pwd", std::move(fingerprints)), 123, true));
     } else if (op == "jgcc") {
       send_request(td_api::make_object<td_api::joinGroupCall>(args, nullptr, 123, true));
+    } else if (op == "tgcmnm" || op == "tgcmnme") {
+      send_request(td_api::make_object<td_api::toggleGroupCallMuteNewMembers>(args, op == "tgcmnme"));
     } else if (op == "lgc") {
       send_request(td_api::make_object<td_api::leaveGroupCall>(args, 123));
     } else if (op == "dgc") {

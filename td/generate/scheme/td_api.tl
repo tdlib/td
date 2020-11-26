@@ -4316,6 +4316,10 @@ createChatGroupCall chat_id:int53 = GroupCallId;
 //@description Joins a group call @group_call_id Group call identifier @payload Group join payload, received from tgcalls @source Caller source identifier, received from tgcalls @is_muted True, if the user's microphone is muted
 joinGroupCall group_call_id:string payload:groupCallPayload source:int32 is_muted:Bool = GroupCallJoinResponse;
 
+//@description Toggles whether new members of a group call can be unmuted only by administrators of the group call. Requires can_manage_calls rights in the corresponding chat and allowed_change_mute_mew_members group call flag
+//@group_call_id Group call identifier @mute_new_members New value of the mute_new_members setting
+toggleGroupCallMuteNewMembers group_call_id:string mute_new_members:Bool = Ok;
+
 //@description Leaves a group call @group_call_id Group call identifier @source Caller source identifier
 leaveGroupCall group_call_id:string source:int32 = Ok;
 
