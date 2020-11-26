@@ -4293,6 +4293,9 @@ sendCallDebugInformation call_id:int32 debug_information:string = Ok;
 //@description Creates a group call in a chat. Available only for supergroups; requires can_manage_calls rights @chat_id Chat identifier
 createChatGroupCall chat_id:int53 = GroupCallId;
 
+//@description Leaves a group call @group_call_id Group call identifier @source Caller source identifier
+leaveGroupCall group_call_id:string source:int32 = Ok;
+
 //@description Discards a group call. Requires can_manage_calls rights in the corresponding chat @group_call_id Group call identifier
 discardGroupCall group_call_id:string = Ok;
 
