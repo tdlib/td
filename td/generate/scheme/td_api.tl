@@ -2014,7 +2014,7 @@ callDiscardReasonHungUp = CallDiscardReason;
 //@udp_reflector True, if connection through UDP reflectors is supported
 //@min_layer The minimum supported API layer; use 65
 //@max_layer The maximum supported API layer; use 65
-//@library_versions List of supported libtgvoip versions
+//@library_versions List of supported tgcalls versions
 callProtocol udp_p2p:Bool udp_reflector:Bool min_layer:int32 max_layer:int32 library_versions:vector<string> = CallProtocol;
 
 
@@ -2061,6 +2061,20 @@ callStateError error:error = CallState;
 
 //@description Describes a group call @id Group call identifier @is_active True, if the call is active @member_count Number of members in the group call @duration Call duration; for ended calls only
 groupCall id:string is_active:Bool member_count:int32 duration:int32 = GroupCall;
+
+//@description Describes a payload fingerprint for interaction with tgcalls @hash Value of the field hash @setup Value of the field setup @fingerprint Value of the field fingerprint
+groupCallPayloadFingerprint hash:string setup:string fingerprint:string = GroupCallPayloadFingerprint;
+
+//@description Describes a payload for interaction with tgcalls @ufrag Value of the field ufrag @pwd Value of the field pwd @fingerprints The list of fingerprints
+groupCallPayload ufrag:string pwd:string fingerprints:vector<groupCallPayloadFingerprint> = GroupCallPayload;
+
+//@description Describes a join response candidate for interaction with tgcalls @port Value of the field port @protocol Value of the field protocol @network Value of the field network
+//@generation Value of the field generation @id Value of the field id @component Value of the field component @foundation Value of the field foundation @priority Value of the field priority
+//@ip Value of the field ip @type Value of the field type @tcp_type Value of the field tcp_type @rel_addr Value of the field rel_addr @rel_port Value of the field rel_port
+groupCallJoinResponseCandidate port:string protocol:string network:string generation:string id:string component:string foundation:string priority:string ip:string type:string tcp_type:string rel_addr:string rel_port:string = GroupCallJoinResponseCandidate;
+
+//@description Describes a join response for interaction with tgcalls @payload Join response payload to pass to tgcalls @candidates Join response candidates to pass to tgcalls
+groupCallJoinResponse payload:groupCallPayload candidates:vector<groupCallJoinResponseCandidate> = GroupCallJoinResponse;
 
 
 //@class CallProblem @description Describes the exact type of a problem with a call
@@ -4292,6 +4306,9 @@ sendCallDebugInformation call_id:int32 debug_information:string = Ok;
 
 //@description Creates a group call in a chat. Available only for supergroups; requires can_manage_calls rights @chat_id Chat identifier
 createChatGroupCall chat_id:int53 = GroupCallId;
+
+//@description Joins a group call @group_call_id Group call identifier @payload Group join payload, received from tgcalls @source Caller source identifier, received from tgcalls @is_muted True, if the user's microphone is muted
+joinGroupCall group_call_id:string payload:groupCallPayload source:int32 is_muted:Bool = GroupCallJoinResponse;
 
 //@description Leaves a group call @group_call_id Group call identifier @source Caller source identifier
 leaveGroupCall group_call_id:string source:int32 = Ok;

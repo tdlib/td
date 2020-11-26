@@ -2836,6 +2836,12 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::sendCallDebugInformation>(as_call_id(args), "{}"));
     } else if (op == "ccgc") {
       send_request(td_api::make_object<td_api::createChatGroupCall>(as_chat_id(args)));
+    } else if (op == "jgc") {
+      vector<td_api::object_ptr<td_api::groupCallPayloadFingerprint>> fingerprints;
+      fingerprints.push_back(td_api::make_object<td_api::groupCallPayloadFingerprint>("hash", "setup", "fingerprint"));
+      fingerprints.push_back(td_api::make_object<td_api::groupCallPayloadFingerprint>("h2", "s2", "fingerprint2"));
+      send_request(td_api::make_object<td_api::joinGroupCall>(
+          args, td_api::make_object<td_api::groupCallPayload>("ufrag", "pwd", std::move(fingerprints)), 123, true));
     } else if (op == "lgc") {
       send_request(td_api::make_object<td_api::leaveGroupCall>(args, 123));
     } else if (op == "dgc") {

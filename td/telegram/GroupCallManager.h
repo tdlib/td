@@ -26,18 +26,32 @@ class GroupCallManager : public Actor {
 
   void create_group_call(ChannelId channel_id, Promise<InputGroupCallId> &&promise);
 
+  void join_group_call(InputGroupCallId group_call_id, td_api::object_ptr<td_api::groupCallPayload> &&payload,
+                       int32 source, bool is_muted,
+                       Promise<td_api::object_ptr<td_api::groupCallJoinResponse>> &&promise);
+
   void leave_group_call(InputGroupCallId group_call_id, int32 source, Promise<Unit> &&promise);
 
   void discard_group_call(InputGroupCallId group_call_id, Promise<Unit> &&promise);
 
   void on_update_group_call(tl_object_ptr<telegram_api::GroupCall> group_call_ptr);
 
+  void process_join_group_call_response(InputGroupCallId group_call_id, uint64 generation,
+                                        tl_object_ptr<telegram_api::Updates> &&updates, Promise<Unit> &&promise);
+
  private:
   struct GroupCall;
 
   void tear_down() override;
 
+  void on_join_group_call_response(InputGroupCallId group_call_id, string json_response);
+
+  void finish_join_group_call(InputGroupCallId group_call_id, uint64 generation, Status error);
+
   InputGroupCallId update_group_call(const tl_object_ptr<telegram_api::GroupCall> &group_call_ptr);
+
+  static Result<td_api::object_ptr<td_api::groupCallJoinResponse>> get_group_call_join_response_object(
+      string json_response);
 
   static tl_object_ptr<td_api::updateGroupCall> get_update_group_call_object(InputGroupCallId group_call_id,
                                                                              const GroupCall *group_call);
@@ -49,6 +63,13 @@ class GroupCallManager : public Actor {
   ActorShared<> parent_;
 
   std::unordered_map<InputGroupCallId, unique_ptr<GroupCall>, InputGroupCallIdHash> group_calls_;
+
+  struct PendingJoinRequest {
+    uint64 generation = 0;
+    Promise<td_api::object_ptr<td_api::groupCallJoinResponse>> promise;
+  };
+  std::unordered_map<InputGroupCallId, PendingJoinRequest, InputGroupCallIdHash> pending_join_requests_;
+  uint64 join_group_request_generation_ = 0;
 };
 
 }  // namespace td
