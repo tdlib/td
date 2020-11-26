@@ -15,8 +15,11 @@ InputGroupCallId::InputGroupCallId(const tl_object_ptr<telegram_api::inputGroupC
     : group_call_id(input_group_call->id_), access_hash(input_group_call->access_hash_) {
 }
 
-Result<InputGroupCallId> InputGroupCallId::from_group_call_id(const string &group_call_id) {
+Result<InputGroupCallId> InputGroupCallId::from_group_call_id(const string &group_call_id, bool allow_empty) {
   if (group_call_id.empty()) {
+    if (!allow_empty) {
+      return Status::Error(400, "Empty group call identifier specified");
+    }
     return InputGroupCallId();
   }
 

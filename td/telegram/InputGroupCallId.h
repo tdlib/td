@@ -28,7 +28,7 @@ class InputGroupCallId {
   InputGroupCallId(int64 group_call_id, int64 access_hash) : group_call_id(group_call_id), access_hash(access_hash) {
   }
 
-  static Result<InputGroupCallId> from_group_call_id(const string &group_call_id);
+  static Result<InputGroupCallId> from_group_call_id(const string &group_call_id, bool allow_empty = false);
 
   string get_group_call_id() const;
 
