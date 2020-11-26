@@ -9,6 +9,7 @@
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/misc.h"
+#include "td/telegram/net/NetQuery.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/UpdatesManager.h"
 
@@ -71,7 +72,7 @@ class JoinGroupCallQuery : public Td::ResultHandler {
   explicit JoinGroupCallQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(InputGroupCallId group_call_id, const string &payload, bool is_muted, uint64 generation) {
+  NetQueryRef send(InputGroupCallId group_call_id, const string &payload, bool is_muted, uint64 generation) {
     group_call_id_ = group_call_id;
     generation_ = generation;
 
@@ -79,9 +80,12 @@ class JoinGroupCallQuery : public Td::ResultHandler {
     if (is_muted) {
       flags |= telegram_api::phone_joinGroupCall::MUTED_MASK;
     }
-    send_query(G()->net_query_creator().create(
+    auto query = G()->net_query_creator().create(
         telegram_api::phone_joinGroupCall(flags, false /*ignored*/, group_call_id.get_input_group_call(),
-                                          make_tl_object<telegram_api::dataJSON>(payload))));
+                                          make_tl_object<telegram_api::dataJSON>(payload)));
+    auto join_query_ref = query.get_weak();
+    send_query(std::move(query));
+    return join_query_ref;
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -168,6 +172,12 @@ struct GroupCallManager::GroupCall {
   int32 duration = 0;
 };
 
+struct GroupCallManager::PendingJoinRequest {
+  NetQueryRef query_ref;
+  uint64 generation = 0;
+  Promise<td_api::object_ptr<td_api::groupCallJoinResponse>> promise;
+};
+
 GroupCallManager::GroupCallManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
 
@@ -186,7 +196,11 @@ void GroupCallManager::join_group_call(InputGroupCallId group_call_id,
   if (pending_join_requests_.count(group_call_id)) {
     auto it = pending_join_requests_.find(group_call_id);
     CHECK(it != pending_join_requests_.end());
-    it->second.promise.set_error(Status::Error(200, "Cancelled by another joinGroupCall request"));
+    CHECK(it->second != nullptr);
+    if (!it->second->query_ref.empty()) {
+      cancel_query(it->second->query_ref);
+    }
+    it->second->promise.set_error(Status::Error(200, "Cancelled by another joinGroupCall request"));
     pending_join_requests_.erase(it);
   }
 
@@ -230,8 +244,9 @@ void GroupCallManager::join_group_call(InputGroupCallId group_call_id,
 
   auto generation = join_group_request_generation_++;
   auto &request = pending_join_requests_[group_call_id];
-  request.generation = generation;
-  request.promise = std::move(promise);
+  request = make_unique<PendingJoinRequest>();
+  request->generation = generation;
+  request->promise = std::move(promise);
 
   auto query_promise =
       PromiseCreator::lambda([actor_id = actor_id(this), generation, group_call_id](Result<Unit> &&result) {
@@ -239,15 +254,15 @@ void GroupCallManager::join_group_call(InputGroupCallId group_call_id,
         send_closure(actor_id, &GroupCallManager::finish_join_group_call, group_call_id, generation,
                      result.move_as_error());
       });
-  td_->create_handler<JoinGroupCallQuery>(std::move(query_promise))
-      ->send(group_call_id, json_payload, is_muted, generation);
+  request->query_ref = td_->create_handler<JoinGroupCallQuery>(std::move(query_promise))
+                           ->send(group_call_id, json_payload, is_muted, generation);
 }
 
 void GroupCallManager::process_join_group_call_response(InputGroupCallId group_call_id, uint64 generation,
                                                         tl_object_ptr<telegram_api::Updates> &&updates,
                                                         Promise<Unit> &&promise) {
   auto it = pending_join_requests_.find(group_call_id);
-  if (it == pending_join_requests_.end() || it->second.generation != generation) {
+  if (it == pending_join_requests_.end() || it->second->generation != generation) {
     LOG(INFO) << "Ignore JoinGroupCallQuery response with " << group_call_id << " and generation " << generation;
     return;
   }
@@ -327,13 +342,14 @@ void GroupCallManager::on_join_group_call_response(InputGroupCallId group_call_i
   if (it == pending_join_requests_.end()) {
     return;
   }
+  CHECK(it->second != nullptr);
 
   auto result = get_group_call_join_response_object(std::move(json_response));
   if (result.is_error()) {
     LOG(ERROR) << "Failed to parse join response JSON object: " << result.error().message();
-    it->second.promise.set_error(Status::Error(500, "Receive invalid join group call response payload"));
+    it->second->promise.set_error(Status::Error(500, "Receive invalid join group call response payload"));
   } else {
-    it->second.promise.set_value(result.move_as_ok());
+    it->second->promise.set_value(result.move_as_ok());
   }
   pending_join_requests_.erase(it);
 }
@@ -341,10 +357,10 @@ void GroupCallManager::on_join_group_call_response(InputGroupCallId group_call_i
 void GroupCallManager::finish_join_group_call(InputGroupCallId group_call_id, uint64 generation, Status error) {
   CHECK(error.is_error());
   auto it = pending_join_requests_.find(group_call_id);
-  if (it == pending_join_requests_.end() || it->second.generation != generation) {
+  if (it == pending_join_requests_.end() || it->second->generation != generation) {
     return;
   }
-  it->second.promise.set_error(std::move(error));
+  it->second->promise.set_error(std::move(error));
   pending_join_requests_.erase(it);
 }
 

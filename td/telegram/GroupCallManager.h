@@ -41,6 +41,7 @@ class GroupCallManager : public Actor {
 
  private:
   struct GroupCall;
+  struct PendingJoinRequest;
 
   void tear_down() override;
 
@@ -64,11 +65,7 @@ class GroupCallManager : public Actor {
 
   std::unordered_map<InputGroupCallId, unique_ptr<GroupCall>, InputGroupCallIdHash> group_calls_;
 
-  struct PendingJoinRequest {
-    uint64 generation = 0;
-    Promise<td_api::object_ptr<td_api::groupCallJoinResponse>> promise;
-  };
-  std::unordered_map<InputGroupCallId, PendingJoinRequest, InputGroupCallIdHash> pending_join_requests_;
+  std::unordered_map<InputGroupCallId, unique_ptr<PendingJoinRequest>, InputGroupCallIdHash> pending_join_requests_;
   uint64 join_group_request_generation_ = 0;
 };
 
