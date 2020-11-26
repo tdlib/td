@@ -20,6 +20,7 @@
 #include <utility>
 
 namespace td {
+
 template <class T = Unit>
 class PromiseInterface {
  public:
@@ -101,6 +102,7 @@ struct Ignore {
     error.ignore();
   }
 };
+
 template <class ValueT, class FunctionOkT, class FunctionFailT = Ignore>
 class LambdaPromise : public PromiseInterface<ValueT> {
   enum class OnFail { None, Ok, Fail };
@@ -129,7 +131,8 @@ class LambdaPromise : public PromiseInterface<ValueT> {
   LambdaPromise(FromOkT &&ok, FromFailT &&fail, bool use_ok_as_fail)
       : ok_(std::forward<FromOkT>(ok))
       , fail_(std::forward<FromFailT>(fail))
-      , on_fail_(use_ok_as_fail ? OnFail::Ok : OnFail::Fail), has_lambda_(true) {
+      , on_fail_(use_ok_as_fail ? OnFail::Ok : OnFail::Fail)
+      , has_lambda_(true) {
   }
   template <class FromOkT>
   LambdaPromise(FromOkT &&ok) : LambdaPromise(std::move(ok), Ignore(), true) {
@@ -167,12 +170,12 @@ class LambdaPromise : public PromiseInterface<ValueT> {
   std::enable_if_t<is_callable<F, Result<ValueT>>::value, void> do_ok(F &&f, ValueT &&result) {
     f(Result<ValueT>(std::move(result)));
   }
-  template <class F >
+  template <class F>
   std::enable_if_t<!is_callable<F, Result<ValueT>>::value, void> do_ok(F &&f, ValueT &&result) {
     f(std::move(result));
   }
 };
-}
+}  // namespace detail
 
 template <class T>
 class SafePromise;
@@ -211,33 +214,33 @@ constexpr bool is_promise_interface_ptr() {
 }
 template <class T = void, class F = void, std::enable_if_t<std::is_same<T, void>::value, bool> has_t = false>
 auto lambda_promise(F &&f) {
-  return detail::LambdaPromise<detail::drop_result_t<detail::get_arg_t<std::decay_t<F>>>, std::decay_t<F>>(std::forward<F>(f));
+  return detail::LambdaPromise<detail::drop_result_t<detail::get_arg_t<std::decay_t<F>>>, std::decay_t<F>>(
+      std::forward<F>(f));
 }
 template <class T = void, class F = void, std::enable_if_t<!std::is_same<T, void>::value, bool> has_t = true>
 auto lambda_promise(F &&f) {
   return detail::LambdaPromise<T, std::decay_t<F>>(std::forward<F>(f));
 }
 
-template <class T, class F, std::enable_if_t<is_promise_interface<F>(), bool> from_promise_inerface = true>
+template <class T, class F, std::enable_if_t<is_promise_interface<F>(), bool> from_promise_interface = true>
 auto &&promise_interface(F &&f) {
   return std::forward<F>(f);
 }
 
-template <class T, class F, std::enable_if_t<!is_promise_interface<F>(), bool> from_promise_inerface = false>
+template <class T, class F, std::enable_if_t<!is_promise_interface<F>(), bool> from_promise_interface = false>
 auto promise_interface(F &&f) {
   return lambda_promise<T>(std::forward<F>(f));
 }
 
-template <class T, class F, std::enable_if_t<is_promise_interface_ptr<F>(), bool> from_promise_inerface = true>
+template <class T, class F, std::enable_if_t<is_promise_interface_ptr<F>(), bool> from_promise_interface = true>
 auto promise_interface_ptr(F &&f) {
   return std::forward<F>(f);
 }
-template <class T, class F, std::enable_if_t<!is_promise_interface_ptr<F>(), bool> from_promise_inerface = false>
+template <class T, class F, std::enable_if_t<!is_promise_interface_ptr<F>(), bool> from_promise_interface = false>
 auto promise_interface_ptr(F &&f) {
   return td::make_unique<std::decay_t<decltype(promise_interface<T>(std::forward<F>(f)))>>(
       promise_interface<T>(std::forward<F>(f)));
 }
-
 
 template <class T>
 class Promise {
@@ -419,7 +422,6 @@ class CancellablePromise : public PromiseT {
  private:
   CancellationToken cancellation_token_;
 };
-
 
 template <class... ArgsT>
 class JoinPromise : public PromiseInterface<Unit> {
@@ -694,8 +696,7 @@ class PromiseCreator {
 
   template <class OkT, class ArgT = detail::drop_result_t<detail::get_arg_t<OkT>>>
   static Promise<ArgT> lambda(OkT &&ok) {
-    return Promise<ArgT>(
-        td::make_unique<detail::LambdaPromise<ArgT, std::decay_t<OkT>>>(std::forward<OkT>(ok)));
+    return Promise<ArgT>(td::make_unique<detail::LambdaPromise<ArgT, std::decay_t<OkT>>>(std::forward<OkT>(ok)));
   }
 
   template <class OkT, class FailT, class ArgT = detail::get_arg_t<OkT>>
@@ -706,9 +707,8 @@ class PromiseCreator {
 
   template <class OkT, class ArgT = detail::drop_result_t<detail::get_arg_t<OkT>>>
   static auto cancellable_lambda(CancellationToken cancellation_token, OkT &&ok) {
-    return Promise<ArgT>(
-        td::make_unique<detail::CancellablePromise<detail::LambdaPromise<ArgT, std::decay_t<OkT>>>>(
-            std::move(cancellation_token), std::forward<OkT>(ok)));
+    return Promise<ArgT>(td::make_unique<detail::CancellablePromise<detail::LambdaPromise<ArgT, std::decay_t<OkT>>>>(
+        std::move(cancellation_token), std::forward<OkT>(ok)));
   }
 
   static Promise<> event(EventFull &&ok) {
