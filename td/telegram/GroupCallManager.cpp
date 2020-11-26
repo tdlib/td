@@ -167,6 +167,8 @@ class DiscardGroupCallQuery : public Td::ResultHandler {
 
 struct GroupCallManager::GroupCall {
   bool is_active = false;
+  bool mute_new_members = false;
+  bool allowed_change_mute_new_members = false;
   int32 member_count = 0;
   int32 version = -1;
   int32 duration = 0;
@@ -393,6 +395,8 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       auto group_call = static_cast<const telegram_api::groupCall *>(group_call_ptr.get());
       call_id = InputGroupCallId(group_call->id_, group_call->access_hash_);
       call.is_active = true;
+      call.mute_new_members = group_call->join_muted_;
+      call.allowed_change_mute_new_members = group_call->can_change_join_muted_;
       call.member_count = group_call->participants_count_;
       call.version = group_call->version_;
       if (group_call->params_ != nullptr) {
@@ -427,9 +431,17 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       *group_call = std::move(call);
       need_update = true;
     } else {
+      auto mute_flags_changed = call.mute_new_members != group_call->mute_new_members ||
+                                call.allowed_change_mute_new_members != group_call->allowed_change_mute_new_members;
       if (call.version > group_call->version) {
-        need_update = call.member_count != group_call->member_count;
+        need_update = call.member_count != group_call->member_count || mute_flags_changed;
         *group_call = std::move(call);
+      } else if (call.version == group_call->version) {
+        if (mute_flags_changed) {
+          group_call->mute_new_members = call.mute_new_members;
+          group_call->allowed_change_mute_new_members = call.allowed_change_mute_new_members;
+          need_update = true;
+        }
       }
     }
   }
@@ -445,7 +457,8 @@ tl_object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(InputGr
                                                                          const GroupCall *group_call) {
   CHECK(group_call != nullptr);
   return td_api::make_object<td_api::groupCall>(group_call_id.get_group_call_id(), group_call->is_active,
-                                                group_call->member_count, group_call->duration);
+                                                group_call->member_count, group_call->mute_new_members,
+                                                group_call->allowed_change_mute_new_members, group_call->duration);
 }
 
 tl_object_ptr<td_api::updateGroupCall> GroupCallManager::get_update_group_call_object(InputGroupCallId group_call_id,
