@@ -6041,6 +6041,14 @@ void Td::on_request(uint64 id, const td_api::createChatGroupCall &request) {
   contacts_manager_->create_channel_group_call(DialogId(request.chat_id_), std::move(query_promise));
 }
 
+void Td::on_request(uint64 id, const td_api::discardGroupCall &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  TRY_RESULT_PROMISE(promise, group_call_id, InputGroupCallId::from_group_call_id(request.group_call_id_));
+
+  group_call_manager_->discard_group_call(group_call_id, std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::upgradeBasicGroupChatToSupergroupChat &request) {
   CHECK_IS_USER();
   CREATE_REQUEST(UpgradeGroupChatToSupergroupChatRequest, request.chat_id_);

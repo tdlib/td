@@ -2836,6 +2836,8 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::sendCallDebugInformation>(as_call_id(args), "{}"));
     } else if (op == "ccgc") {
       send_request(td_api::make_object<td_api::createChatGroupCall>(as_chat_id(args)));
+    } else if (op == "dgc") {
+      send_request(td_api::make_object<td_api::discardGroupCall>(args));
     } else if (op == "gcil") {
       send_request(td_api::make_object<td_api::generateChatInviteLink>(as_chat_id(args)));
     } else if (op == "ccil") {
