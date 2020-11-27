@@ -632,6 +632,10 @@ class CliClient final : public Actor {
     return to_integer<int32>(trim(std::move(str)));
   }
 
+  static string as_group_call_id(string str) {
+    return trim(std::move(str));
+  }
+
   static int32 as_proxy_id(string str) {
     return to_integer<int32>(trim(std::move(str)));
   }
@@ -2841,20 +2845,22 @@ class CliClient final : public Actor {
       fingerprints.push_back(td_api::make_object<td_api::groupCallPayloadFingerprint>("hash", "setup", "fingerprint"));
       fingerprints.push_back(td_api::make_object<td_api::groupCallPayloadFingerprint>("h2", "s2", "fingerprint2"));
       send_request(td_api::make_object<td_api::joinGroupCall>(
-          args, td_api::make_object<td_api::groupCallPayload>("ufrag", "pwd", std::move(fingerprints)), 123, true));
+          as_group_call_id(args),
+          td_api::make_object<td_api::groupCallPayload>("ufrag", "pwd", std::move(fingerprints)), 123, true));
     } else if (op == "jgcc") {
-      send_request(td_api::make_object<td_api::joinGroupCall>(args, nullptr, 123, true));
+      send_request(td_api::make_object<td_api::joinGroupCall>(as_group_call_id(args), nullptr, 123, true));
     } else if (op == "tgcmnm" || op == "tgcmnme") {
-      send_request(td_api::make_object<td_api::toggleGroupCallMuteNewMembers>(args, op == "tgcmnme"));
+      send_request(td_api::make_object<td_api::toggleGroupCallMuteNewMembers>(as_group_call_id(args), op == "tgcmnme"));
     } else if (op == "igcm") {
       string group_call_id;
       string user_id;
       std::tie(group_call_id, user_id) = split(args);
-      send_request(td_api::make_object<td_api::inviteGroupCallMember>(group_call_id, as_user_id(user_id)));
+      send_request(
+          td_api::make_object<td_api::inviteGroupCallMember>(as_group_call_id(group_call_id), as_user_id(user_id)));
     } else if (op == "lgc") {
-      send_request(td_api::make_object<td_api::leaveGroupCall>(args, 123));
+      send_request(td_api::make_object<td_api::leaveGroupCall>(as_group_call_id(args), 123));
     } else if (op == "dgc") {
-      send_request(td_api::make_object<td_api::discardGroupCall>(args));
+      send_request(td_api::make_object<td_api::discardGroupCall>(as_group_call_id(args)));
     } else if (op == "gcil") {
       send_request(td_api::make_object<td_api::generateChatInviteLink>(as_chat_id(args)));
     } else if (op == "ccil") {

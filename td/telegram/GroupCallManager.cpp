@@ -311,7 +311,7 @@ void GroupCallManager::join_group_call(InputGroupCallId group_call_id,
     o("ssrc", source);
   }));
 
-  auto generation = join_group_request_generation_++;
+  auto generation = ++join_group_request_generation_;
   auto &request = pending_join_requests_[group_call_id];
   request = make_unique<PendingJoinRequest>();
   request->generation = generation;
@@ -426,7 +426,7 @@ void GroupCallManager::on_join_group_call_response(InputGroupCallId group_call_i
 void GroupCallManager::finish_join_group_call(InputGroupCallId group_call_id, uint64 generation, Status error) {
   CHECK(error.is_error());
   auto it = pending_join_requests_.find(group_call_id);
-  if (it == pending_join_requests_.end() || it->second->generation != generation) {
+  if (it == pending_join_requests_.end() || (generation != 0 && it->second->generation != generation)) {
     return;
   }
   it->second->promise.set_error(std::move(error));
@@ -487,6 +487,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       auto group_call = static_cast<const telegram_api::groupCallDiscarded *>(group_call_ptr.get());
       call_id = InputGroupCallId(group_call->id_, group_call->access_hash_);
       call.duration = group_call->duration_;
+      finish_join_group_call(call_id, 0, Status::Error(400, "Group call ended"));
       break;
     }
     default:
