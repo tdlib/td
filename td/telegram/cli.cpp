@@ -2857,6 +2857,8 @@ class CliClient final : public Actor {
       std::tie(group_call_id, user_id) = split(args);
       send_request(
           td_api::make_object<td_api::inviteGroupCallMember>(as_group_call_id(group_call_id), as_user_id(user_id)));
+    } else if (op == "cgcs") {
+      send_request(td_api::make_object<td_api::checkGroupCallSource>(as_group_call_id(args), 123));
     } else if (op == "lgc") {
       send_request(td_api::make_object<td_api::leaveGroupCall>(as_group_call_id(args), 123));
     } else if (op == "dgc") {

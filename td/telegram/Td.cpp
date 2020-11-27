@@ -6066,6 +6066,14 @@ void Td::on_request(uint64 id, const td_api::inviteGroupCallMember &request) {
   group_call_manager_->invite_group_call_member(group_call_id, UserId(request.user_id_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::checkGroupCallSource &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  TRY_RESULT_PROMISE(promise, group_call_id, InputGroupCallId::from_group_call_id(request.group_call_id_));
+
+  group_call_manager_->check_group_call_source(group_call_id, request.source_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::leaveGroupCall &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

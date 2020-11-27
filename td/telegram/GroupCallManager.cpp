@@ -168,6 +168,39 @@ class InviteToGroupCallQuery : public Td::ResultHandler {
   }
 };
 
+class CheckGroupCallQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit CheckGroupCallQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(InputGroupCallId group_call_id, int32 source) {
+    send_query(G()->net_query_creator().create(
+        telegram_api::phone_checkGroupCall(group_call_id.get_input_group_call(), source)));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::phone_checkGroupCall>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    bool success = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for CheckGroupCallQuery: " << success;
+
+    if (success) {
+      promise_.set_value(Unit());
+    } else {
+      promise_.set_error(Status::Error(200, "Group call left"));
+    }
+  }
+
+  void on_error(uint64 id, Status status) override {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class LeaveGroupCallQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -445,6 +478,10 @@ void GroupCallManager::invite_group_call_member(InputGroupCallId group_call_id, 
     return promise.set_error(Status::Error(400, "Have no access to the user"));
   }
   td_->create_handler<InviteToGroupCallQuery>(std::move(promise))->send(group_call_id, user_id);
+}
+
+void GroupCallManager::check_group_call_source(InputGroupCallId group_call_id, int32 source, Promise<Unit> &&promise) {
+  td_->create_handler<CheckGroupCallQuery>(std::move(promise))->send(group_call_id, source);
 }
 
 void GroupCallManager::leave_group_call(InputGroupCallId group_call_id, int32 source, Promise<Unit> &&promise) {

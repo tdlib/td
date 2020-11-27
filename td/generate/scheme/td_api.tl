@@ -4324,6 +4324,9 @@ toggleGroupCallMuteNewMembers group_call_id:string mute_new_members:Bool = Ok;
 //@group_call_id Group call identifier @user_id User identifier
 inviteGroupCallMember group_call_id:string user_id:int32 = Ok;
 
+//@description Checks group call source for validness. If the method returns an error with a message "GROUP_CALL_JOIN_MISSING", the call needs to be rejoined @group_call_id Group call identifier @source Caller source identifier
+checkGroupCallSource group_call_id:string source:int32 = Ok;
+
 //@description Leaves a group call @group_call_id Group call identifier @source Caller source identifier
 leaveGroupCall group_call_id:string source:int32 = Ok;
 

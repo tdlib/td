@@ -41,6 +41,8 @@ class GroupCallManager : public Actor {
 
   void invite_group_call_member(InputGroupCallId group_call_id, UserId user_id, Promise<Unit> &&promise);
 
+  void check_group_call_source(InputGroupCallId group_call_id, int32 source, Promise<Unit> &&promise);
+
   void leave_group_call(InputGroupCallId group_call_id, int32 source, Promise<Unit> &&promise);
 
   void discard_group_call(InputGroupCallId group_call_id, Promise<Unit> &&promise);
