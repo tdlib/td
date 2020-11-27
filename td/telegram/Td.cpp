@@ -6058,6 +6058,14 @@ void Td::on_request(uint64 id, const td_api::toggleGroupCallMuteNewMembers &requ
   group_call_manager_->toggle_group_call_mute_new_members(group_call_id, request.mute_new_members_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::inviteGroupCallMember &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  TRY_RESULT_PROMISE(promise, group_call_id, InputGroupCallId::from_group_call_id(request.group_call_id_));
+
+  group_call_manager_->invite_group_call_member(group_call_id, UserId(request.user_id_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::leaveGroupCall &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

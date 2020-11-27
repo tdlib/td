@@ -10,6 +10,7 @@
 #include "td/telegram/InputGroupCallId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserId.h"
 
 #include "td/actor/actor.h"
 #include "td/actor/PromiseFuture.h"
@@ -37,6 +38,8 @@ class GroupCallManager : public Actor {
 
   void toggle_group_call_mute_new_members(InputGroupCallId group_call_id, bool mute_new_members,
                                           Promise<Unit> &&promise);
+
+  void invite_group_call_member(InputGroupCallId group_call_id, UserId user_id, Promise<Unit> &&promise);
 
   void leave_group_call(InputGroupCallId group_call_id, int32 source, Promise<Unit> &&promise);
 

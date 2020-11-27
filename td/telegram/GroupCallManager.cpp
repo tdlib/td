@@ -134,6 +134,40 @@ class ToggleGroupCallSettingsQuery : public Td::ResultHandler {
   }
 };
 
+class InviteToGroupCallQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit InviteToGroupCallQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(InputGroupCallId group_call_id, UserId user_id) {
+    auto input_user = td->contacts_manager_->get_input_user(user_id);
+    CHECK(input_user != nullptr);
+
+    send_query(G()->net_query_creator().create(
+        telegram_api::phone_inviteToGroupCall(group_call_id.get_input_group_call(), std::move(input_user))));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::phone_inviteToGroupCall>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for InviteToGroupCallQuery: " << to_string(ptr);
+    td->updates_manager_->on_get_updates(std::move(ptr));
+
+    // TODO set promise after updates are processed
+    promise_.set_value(Unit());
+  }
+
+  void on_error(uint64 id, Status status) override {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class LeaveGroupCallQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -403,6 +437,14 @@ void GroupCallManager::toggle_group_call_mute_new_members(InputGroupCallId group
                                                           Promise<Unit> &&promise) {
   int32 flags = telegram_api::phone_toggleGroupCallSettings::JOIN_MUTED_MASK;
   td_->create_handler<ToggleGroupCallSettingsQuery>(std::move(promise))->send(flags, group_call_id, mute_new_members);
+}
+
+void GroupCallManager::invite_group_call_member(InputGroupCallId group_call_id, UserId user_id,
+                                                Promise<Unit> &&promise) {
+  if (!td_->contacts_manager_->have_input_user(user_id)) {
+    return promise.set_error(Status::Error(400, "Have no access to the user"));
+  }
+  td_->create_handler<InviteToGroupCallQuery>(std::move(promise))->send(group_call_id, user_id);
 }
 
 void GroupCallManager::leave_group_call(InputGroupCallId group_call_id, int32 source, Promise<Unit> &&promise) {

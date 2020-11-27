@@ -4320,6 +4320,10 @@ joinGroupCall group_call_id:string payload:groupCallPayload source:int32 is_mute
 //@group_call_id Group call identifier @mute_new_members New value of the mute_new_members setting
 toggleGroupCallMuteNewMembers group_call_id:string mute_new_members:Bool = Ok;
 
+//@description Invites a user to a chat group call by sending a service message of type messageInviteToGroupCall
+//@group_call_id Group call identifier @user_id User identifier
+inviteGroupCallMember group_call_id:string user_id:int32 = Ok;
+
 //@description Leaves a group call @group_call_id Group call identifier @source Caller source identifier
 leaveGroupCall group_call_id:string source:int32 = Ok;
 

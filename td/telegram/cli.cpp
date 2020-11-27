@@ -2846,6 +2846,11 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::joinGroupCall>(args, nullptr, 123, true));
     } else if (op == "tgcmnm" || op == "tgcmnme") {
       send_request(td_api::make_object<td_api::toggleGroupCallMuteNewMembers>(args, op == "tgcmnme"));
+    } else if (op == "igcm") {
+      string group_call_id;
+      string user_id;
+      std::tie(group_call_id, user_id) = split(args);
+      send_request(td_api::make_object<td_api::inviteGroupCallMember>(group_call_id, as_user_id(user_id)));
     } else if (op == "lgc") {
       send_request(td_api::make_object<td_api::leaveGroupCall>(args, 123));
     } else if (op == "dgc") {
