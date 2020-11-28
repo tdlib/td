@@ -649,7 +649,7 @@ messageForwardOriginHiddenUser sender_name:string = MessageForwardOrigin;
 
 //@description The message was originally a post in a channel
 //@chat_id Identifier of the chat from which the message was originally forwarded
-//@message_id Message identifier of the original message; 0 if unknown
+//@message_id Message identifier of the original message
 //@author_signature Original post author signature
 messageForwardOriginChannel chat_id:int53 message_id:int53 author_signature:string = MessageForwardOrigin;
 
