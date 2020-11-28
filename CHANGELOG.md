@@ -287,8 +287,11 @@ Changes in 1.7.0:
 * Added the field `progressive_sizes` to the class `photo` to allow partial progressive JPEG photo download.
 * Added the field `redirect_stderr` to the class `logStreamFile` to allow explicit control over stderr redirection to
   the log file.
+* Added the read-only option "can_archive_and_mute_new_chats_from_unknown_users", which can be used to check, whether
+  the option "archive_and_mute_new_chats_from_unknown_users" can be changed.
 * Added the writable option "archive_and_mute_new_chats_from_unknown_users", which can be used to automatically archive
-  and mute new chats from non-contacts. The option can be set only if the change was suggested by the server.
+  and mute new chats from non-contacts. The option can be set only if the option
+  "can_archive_and_mute_new_chats_from_unknown_users" is true.
 * Added the writable option "message_unload_delay", which can be used to change the minimum delay before messages are
   unloaded from the memory.
 * Added the writable option "disable_persistent_network_statistics", which can be used to disable persistent

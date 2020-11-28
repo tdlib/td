@@ -1483,6 +1483,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   string animation_search_provider;
   string animation_search_emojis;
   vector<SuggestedAction> suggested_actions;
+  bool can_archive_and_mute_new_chats_from_unknown_users = false;
   if (config->get_id() == telegram_api::jsonObject::ID) {
     for (auto &key_value : static_cast<telegram_api::jsonObject *>(config.get())->value_) {
       Slice key = key_value->key_;
@@ -1630,6 +1631,15 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         }
         continue;
       }
+      if (key == "autoarchive_setting_available") {
+        if (value->get_id() == telegram_api::jsonBool::ID) {
+          can_archive_and_mute_new_chats_from_unknown_users =
+              std::move(static_cast<telegram_api::jsonBool *>(value)->value_);
+        } else {
+          LOG(ERROR) << "Receive unexpected autoarchive_setting_available " << to_string(*value);
+        }
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
@@ -1676,6 +1686,12 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
     shared_config.set_option_empty("animation_search_emojis");
   } else {
     shared_config.set_option_string("animation_search_emojis", animation_search_emojis);
+  }
+  if (!can_archive_and_mute_new_chats_from_unknown_users) {
+    shared_config.set_option_empty("can_archive_and_mute_new_chats_from_unknown_users");
+  } else {
+    shared_config.set_option_boolean("can_archive_and_mute_new_chats_from_unknown_users",
+                                     can_archive_and_mute_new_chats_from_unknown_users);
   }
 
   shared_config.set_option_empty("default_ton_blockchain_config");
