@@ -1,4 +1,4 @@
-Changes in 1.7.0:
+Changes in 1.7.0 (28 Nov 2020):
 
 * Added a new simplified JSON interface in which updates and responses to requests from all TDLib instances
   are received in the same thread:
