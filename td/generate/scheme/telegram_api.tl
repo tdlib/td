@@ -353,7 +353,7 @@ updateChannelUserTyping#ff2abe9f flags:# channel_id:int top_msg_id:flags.0?int u
 updatePinnedMessages#ed85eab5 flags:# pinned:flags.0?true peer:Peer messages:Vector<int> pts:int pts_count:int = Update;
 updatePinnedChannelMessages#8588878b flags:# pinned:flags.0?true channel_id:int messages:Vector<int> pts:int pts_count:int = Update;
 updateGroupCallParticipants#f2ebdb4e call:InputGroupCall participants:Vector<GroupCallParticipant> version:int = Update;
-updateGroupCall#85fe86ed call:GroupCall = Update;
+updateGroupCall#5724806e channel_id:int call:GroupCall = Update;
 
 updates.state#a56c2a3e pts:int qts:int date:int seq:int unread_count:int = updates.State;
 
