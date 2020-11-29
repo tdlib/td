@@ -618,8 +618,10 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
         }
         case telegram_api::messageActionInviteToGroupCall::ID: {
           auto invite_to_group_call = static_cast<const telegram_api::messageActionInviteToGroupCall *>(action);
-          if (!is_acceptable_user(UserId(invite_to_group_call->user_id_))) {
-            return false;
+          for (auto &user : invite_to_group_call->users_) {
+            if (!is_acceptable_user(UserId(user))) {
+              return false;
+            }
           }
           break;
         }

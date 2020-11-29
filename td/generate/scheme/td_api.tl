@@ -1632,8 +1632,8 @@ messageCall is_video:Bool discard_reason:CallDiscardReason duration:int32 = Mess
 //@description A message with information about a group call @group_call_id Group call identifier @duration Call duration; for finished calls only
 messageGroupCall group_call_id:string duration:int32 = MessageContent;
 
-//@description A message with information about an invite to a group call @group_call_id Group call identifier @user_id Invited user identifier
-messageInviteToGroupCall group_call_id:string user_id:int32 = MessageContent;
+//@description A message with information about an invite to a group call @group_call_id Group call identifier @user_ids Invited user identifiers
+messageInviteGroupCallMembers group_call_id:string user_ids:vector<int32> = MessageContent;
 
 //@description A newly created basic group @title Title of the basic group @member_user_ids User identifiers of members in the basic group
 messageBasicGroupChatCreate title:string member_user_ids:vector<int32> = MessageContent;
@@ -4320,9 +4320,9 @@ joinGroupCall group_call_id:string payload:groupCallPayload source:int32 is_mute
 //@group_call_id Group call identifier @mute_new_members New value of the mute_new_members setting
 toggleGroupCallMuteNewMembers group_call_id:string mute_new_members:Bool = Ok;
 
-//@description Invites a user to a chat group call by sending a service message of type messageInviteToGroupCall
-//@group_call_id Group call identifier @user_id User identifier
-inviteGroupCallMember group_call_id:string user_id:int32 = Ok;
+//@description Invites users to a group call. Sends a service message of type messageInviteToGroupCall for voice chats
+//@group_call_id Group call identifier @user_ids User identifiers
+inviteGroupCallMembers group_call_id:string user_ids:vector<int32> = Ok;
 
 //@description Toggles whether a group call member is muted. Requires can_manage_calls rights to mute other group call members
 //@group_call_id Group call identifier @user_id User identifier @is_muted Pass true if the user must be muted and false otherwise

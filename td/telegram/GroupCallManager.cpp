@@ -141,12 +141,9 @@ class InviteToGroupCallQuery : public Td::ResultHandler {
   explicit InviteToGroupCallQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(InputGroupCallId group_call_id, UserId user_id) {
-    auto input_user = td->contacts_manager_->get_input_user(user_id);
-    CHECK(input_user != nullptr);
-
+  void send(InputGroupCallId group_call_id, vector<tl_object_ptr<telegram_api::InputUser>> input_users) {
     send_query(G()->net_query_creator().create(
-        telegram_api::phone_inviteToGroupCall(group_call_id.get_input_group_call(), std::move(input_user))));
+        telegram_api::phone_inviteToGroupCall(group_call_id.get_input_group_call(), std::move(input_users))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -511,16 +508,32 @@ void GroupCallManager::toggle_group_call_mute_new_members(InputGroupCallId group
   td_->create_handler<ToggleGroupCallSettingsQuery>(std::move(promise))->send(flags, group_call_id, mute_new_members);
 }
 
-void GroupCallManager::invite_group_call_member(InputGroupCallId group_call_id, UserId user_id,
-                                                Promise<Unit> &&promise) {
-  if (!td_->contacts_manager_->have_input_user(user_id)) {
-    return promise.set_error(Status::Error(400, "Have no access to the user"));
+void GroupCallManager::invite_group_call_members(InputGroupCallId group_call_id, vector<UserId> &&user_ids,
+                                                 Promise<Unit> &&promise) {
+  vector<tl_object_ptr<telegram_api::InputUser>> input_users;
+  auto my_user_id = td_->contacts_manager_->get_my_id();
+  for (auto user_id : user_ids) {
+    auto input_user = td_->contacts_manager_->get_input_user(user_id);
+    if (input_user == nullptr) {
+      return promise.set_error(Status::Error(400, "User not found"));
+    }
+
+    if (user_id == my_user_id) {
+      // can't invite self
+      continue;
+    }
+    input_users.push_back(std::move(input_user));
   }
-  td_->create_handler<InviteToGroupCallQuery>(std::move(promise))->send(group_call_id, user_id);
+
+  if (input_users.empty()) {
+    return promise.set_value(Unit());
+  }
+
+  td_->create_handler<InviteToGroupCallQuery>(std::move(promise))->send(group_call_id, std::move(input_users));
 }
 
-void GroupCallManager::toggle_group_call_member_is_muted(InputGroupCallId group_call_id, UserId user_id,
-                                                         bool is_muted, Promise<Unit> &&promise) {
+void GroupCallManager::toggle_group_call_member_is_muted(InputGroupCallId group_call_id, UserId user_id, bool is_muted,
+                                                         Promise<Unit> &&promise) {
   if (!td_->contacts_manager_->have_input_user(user_id)) {
     return promise.set_error(Status::Error(400, "Have no access to the user"));
   }

@@ -12,6 +12,7 @@
 #include "td/utils/misc.h"
 #include "td/utils/Random.h"
 #include "td/actor/actor.h"
+#include "td/actor/ConcurrentScheduler.h"
 #include "td/actor/PromiseFuture.h"
 #include "td/actor/MultiPromise.h"
 #include "td/telegram/td_api_json.h"

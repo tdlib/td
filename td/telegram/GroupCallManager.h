@@ -39,7 +39,7 @@ class GroupCallManager : public Actor {
   void toggle_group_call_mute_new_members(InputGroupCallId group_call_id, bool mute_new_members,
                                           Promise<Unit> &&promise);
 
-  void invite_group_call_member(InputGroupCallId group_call_id, UserId user_id, Promise<Unit> &&promise);
+  void invite_group_call_members(InputGroupCallId group_call_id, vector<UserId> &&user_ids, Promise<Unit> &&promise);
 
   void toggle_group_call_member_is_muted(InputGroupCallId group_call_id, UserId user_id, bool is_muted,
                                          Promise<Unit> &&promise);

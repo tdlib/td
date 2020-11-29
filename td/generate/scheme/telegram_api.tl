@@ -170,7 +170,7 @@ messageActionSecureValuesSent#d95c6154 types:Vector<SecureValueType> = MessageAc
 messageActionContactSignUp#f3f25f76 = MessageAction;
 messageActionGeoProximityReached#98e0d697 from_id:Peer to_id:Peer distance:int = MessageAction;
 messageActionGroupCall#7a0d7f42 flags:# call:InputGroupCall duration:flags.0?int = MessageAction;
-messageActionInviteToGroupCall#f25f03a call:InputGroupCall user_id:int = MessageAction;
+messageActionInviteToGroupCall#76b9f11a call:InputGroupCall users:Vector<int> = MessageAction;
 
 dialog#2c171f72 flags:# pinned:flags.2?true unread_mark:flags.3?true peer:Peer top_message:int read_inbox_max_id:int read_outbox_max_id:int unread_count:int unread_mentions_count:int notify_settings:PeerNotifySettings pts:flags.0?int draft:flags.1?DraftMessage folder_id:flags.4?int = Dialog;
 dialogFolder#71bd134c flags:# pinned:flags.2?true folder:Folder peer:Peer top_message:int unread_muted_peers_count:int unread_unmuted_peers_count:int unread_muted_messages_count:int unread_unmuted_messages_count:int = Dialog;
@@ -1178,7 +1178,7 @@ inputGroupCall#d8aa840f id:long access_hash:long = InputGroupCall;
 
 groupCallParticipant#56b087c9 flags:# muted:flags.0?true left:flags.1?true can_self_unmute:flags.2?true user_id:int date:int active_date:flags.3?int source:int = GroupCallParticipant;
 
-phone.groupCall#985c2087 call:GroupCall sources:Vector<int> participants:Vector<GroupCallParticipant> participants_next_offset:string users:Vector<User> = phone.GroupCall;
+phone.groupCall#66ab0bfc call:GroupCall participants:Vector<GroupCallParticipant> participants_next_offset:string users:Vector<User> = phone.GroupCall;
 
 phone.groupParticipants#9cfeb92d count:int participants:Vector<GroupCallParticipant> next_offset:string users:Vector<User> version:int = phone.GroupParticipants;
 
@@ -1540,11 +1540,11 @@ phone.createGroupCall#e428fa02 channel:InputChannel random_id:int = Updates;
 phone.joinGroupCall#5f9c8e62 flags:# muted:flags.0?true call:InputGroupCall params:DataJSON = Updates;
 phone.leaveGroupCall#500377f9 call:InputGroupCall source:int = Updates;
 phone.editGroupCallMember#63146ae4 flags:# muted:flags.0?true call:InputGroupCall user_id:InputUser = Updates;
-phone.inviteToGroupCall#dd698f84 call:InputGroupCall user_id:InputUser = Updates;
+phone.inviteToGroupCall#7b393160 call:InputGroupCall users:Vector<InputUser> = Updates;
 phone.discardGroupCall#7a777135 call:InputGroupCall = Updates;
 phone.toggleGroupCallSettings#74bbb43d flags:# call:InputGroupCall join_muted:flags.0?Bool = Updates;
 phone.getGroupCall#c7cb017 call:InputGroupCall = phone.GroupCall;
-phone.getGroupParticipants#ae1910a4 call:InputGroupCall offset:string limit:int = phone.GroupParticipants;
+phone.getGroupParticipants#c9f1d285 call:InputGroupCall ids:Vector<int> sources:Vector<int> offset:string limit:int = phone.GroupParticipants;
 phone.checkGroupCall#b74a7bea call:InputGroupCall source:int = Bool;
 
 langpack.getLangPack#f2f2330a lang_pack:string lang_code:string = LangPackDifference;

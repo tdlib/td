@@ -724,11 +724,11 @@ class MessageGroupCall : public MessageContent {
 class MessageInviteToGroupCall : public MessageContent {
  public:
   InputGroupCallId group_call_id;
-  UserId user_id;
+  vector<UserId> user_ids;
 
   MessageInviteToGroupCall() = default;
-  MessageInviteToGroupCall(InputGroupCallId group_call_id, UserId user_id)
-      : group_call_id(group_call_id), user_id(user_id) {
+  MessageInviteToGroupCall(InputGroupCallId group_call_id, vector<UserId> &&user_ids)
+      : group_call_id(group_call_id), user_ids(std::move(user_ids)) {
   }
 
   MessageContentType get_type() const override {
@@ -1023,7 +1023,7 @@ static void store(const MessageContent *content, StorerT &storer) {
     case MessageContentType::InviteToGroupCall: {
       auto m = static_cast<const MessageInviteToGroupCall *>(content);
       store(m->group_call_id, storer);
-      store(m->user_id, storer);
+      store(m->user_ids, storer);
       break;
     }
     default:
@@ -1416,7 +1416,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
     case MessageContentType::InviteToGroupCall: {
       auto m = make_unique<MessageInviteToGroupCall>();
       parse(m->group_call_id, parser);
-      parse(m->user_id, parser);
+      parse(m->user_ids, parser);
       content = std::move(m);
       break;
     }
@@ -3311,7 +3311,7 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
     case MessageContentType::InviteToGroupCall: {
       auto old_ = static_cast<const MessageInviteToGroupCall *>(old_content);
       auto new_ = static_cast<const MessageInviteToGroupCall *>(new_content);
-      if (old_->group_call_id != new_->group_call_id || old_->user_id != new_->user_id) {
+      if (old_->group_call_id != new_->group_call_id || old_->user_ids != new_->user_ids) {
         need_update = true;
       }
       if (!old_->group_call_id.is_identical(new_->group_call_id)) {
@@ -4557,13 +4557,20 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     }
     case telegram_api::messageActionInviteToGroupCall::ID: {
       auto invite_to_group_call = move_tl_object_as<telegram_api::messageActionInviteToGroupCall>(action);
-      UserId user_id(invite_to_group_call->user_id_);
-      if (!user_id.is_valid()) {
-        LOG(ERROR) << "Receive messageActionInviteToGroupCall with invalid " << user_id << " in " << owner_dialog_id;
-        break;
+
+      vector<UserId> user_ids;
+      user_ids.reserve(invite_to_group_call->users_.size());
+      for (auto &user : invite_to_group_call->users_) {
+        UserId user_id(user);
+        if (user_id.is_valid()) {
+          user_ids.push_back(user_id);
+        } else {
+          LOG(ERROR) << "Receive messageActionInviteToGroupCall with invalid " << user_id << " in " << owner_dialog_id;
+        }
       }
 
-      return make_unique<MessageInviteToGroupCall>(InputGroupCallId(invite_to_group_call->call_), user_id);
+      return td::make_unique<MessageInviteToGroupCall>(InputGroupCallId(invite_to_group_call->call_),
+                                                       std::move(user_ids));
     }
     default:
       UNREACHABLE();
@@ -4781,9 +4788,9 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     }
     case MessageContentType::InviteToGroupCall: {
       auto *m = static_cast<const MessageInviteToGroupCall *>(content);
-      return make_tl_object<td_api::messageInviteToGroupCall>(
+      return make_tl_object<td_api::messageInviteGroupCallMembers>(
           m->group_call_id.get_group_call_id(),
-          td->contacts_manager_->get_user_id_object(m->user_id, "MessageInviteToGroupCall"));
+          td->contacts_manager_->get_user_ids_object(m->user_ids, "MessageInviteToGroupCall"));
     }
     default:
       UNREACHABLE();
@@ -5302,7 +5309,7 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
       break;
     case MessageContentType::InviteToGroupCall: {
       auto content = static_cast<const MessageInviteToGroupCall *>(message_content);
-      dependencies.user_ids.insert(content->user_id);
+      dependencies.user_ids.insert(content->user_ids.begin(), content->user_ids.end());
       break;
     }
     default:
