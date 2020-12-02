@@ -32,6 +32,8 @@ class GroupCallManager : public Actor {
 
   void create_voice_chat(ChannelId channel_id, Promise<InputGroupCallId> &&promise);
 
+  void get_group_call(InputGroupCallId group_call_id, Promise<td_api::object_ptr<td_api::groupCall>> &&promise);
+
   void join_group_call(InputGroupCallId group_call_id, td_api::object_ptr<td_api::groupCallPayload> &&payload,
                        int32 source, bool is_muted,
                        Promise<td_api::object_ptr<td_api::groupCallJoinResponse>> &&promise);
@@ -61,6 +63,14 @@ class GroupCallManager : public Actor {
 
   void tear_down() override;
 
+  const GroupCall *get_group_call(InputGroupCallId group_call_id) const;
+  GroupCall *get_group_call(InputGroupCallId group_call_id);
+
+  void reload_group_call(InputGroupCallId group_call_id, Promise<td_api::object_ptr<td_api::groupCall>> &&promise);
+
+  void finish_get_group_call(InputGroupCallId group_call_id,
+                             Result<tl_object_ptr<telegram_api::phone_groupCall>> &&result);
+
   void on_join_group_call_response(InputGroupCallId group_call_id, string json_response);
 
   void finish_join_group_call(InputGroupCallId group_call_id, uint64 generation, Status error);
@@ -80,6 +90,9 @@ class GroupCallManager : public Actor {
   ActorShared<> parent_;
 
   std::unordered_map<InputGroupCallId, unique_ptr<GroupCall>, InputGroupCallIdHash> group_calls_;
+
+  std::unordered_map<InputGroupCallId, vector<Promise<td_api::object_ptr<td_api::groupCall>>>, InputGroupCallIdHash>
+      load_group_call_queries_;
 
   std::unordered_map<InputGroupCallId, unique_ptr<PendingJoinRequest>, InputGroupCallIdHash> pending_join_requests_;
   uint64 join_group_request_generation_ = 0;

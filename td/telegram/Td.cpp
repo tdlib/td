@@ -6041,6 +6041,14 @@ void Td::on_request(uint64 id, const td_api::createVoiceChat &request) {
   contacts_manager_->create_channel_voice_chat(DialogId(request.chat_id_), std::move(query_promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getGroupCall &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  TRY_RESULT_PROMISE(promise, group_call_id, InputGroupCallId::from_group_call_id(request.group_call_id_));
+
+  group_call_manager_->get_group_call(group_call_id, std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::joinGroupCall &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

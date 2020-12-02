@@ -2840,6 +2840,8 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::sendCallDebugInformation>(as_call_id(args), "{}"));
     } else if (op == "cvc") {
       send_request(td_api::make_object<td_api::createVoiceChat>(as_chat_id(args)));
+    } else if (op == "ggc") {
+      send_request(td_api::make_object<td_api::getGroupCall>(as_group_call_id(args)));
     } else if (op == "jgc") {
       vector<td_api::object_ptr<td_api::groupCallPayloadFingerprint>> fingerprints;
       fingerprints.push_back(td_api::make_object<td_api::groupCallPayloadFingerprint>("hash", "setup", "fingerprint"));

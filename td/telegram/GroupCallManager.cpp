@@ -63,6 +63,38 @@ class CreateGroupCallQuery : public Td::ResultHandler {
   }
 };
 
+class GetGroupCallQuery : public Td::ResultHandler {
+  Promise<tl_object_ptr<telegram_api::phone_groupCall>> promise_;
+  InputGroupCallId group_call_id_;
+
+ public:
+  explicit GetGroupCallQuery(Promise<tl_object_ptr<telegram_api::phone_groupCall>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(InputGroupCallId group_call_id) {
+    group_call_id_ = group_call_id;
+
+    send_query(G()->net_query_creator().create(telegram_api::phone_getGroupCall(group_call_id.get_input_group_call())));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::phone_getGroupCall>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetGroupCallQuery: " << to_string(ptr);
+
+    promise_.set_value(std::move(ptr));
+  }
+
+  void on_error(uint64 id, Status status) override {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class JoinGroupCallQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   InputGroupCallId group_call_id_;
@@ -325,6 +357,79 @@ void GroupCallManager::tear_down() {
 
 void GroupCallManager::create_voice_chat(ChannelId channel_id, Promise<InputGroupCallId> &&promise) {
   td_->create_handler<CreateGroupCallQuery>(std::move(promise))->send(channel_id);
+}
+
+const GroupCallManager::GroupCall *GroupCallManager::get_group_call(InputGroupCallId group_call_id) const {
+  auto it = group_calls_.find(group_call_id);
+  if (it == group_calls_.end()) {
+    return nullptr;
+  } else {
+    return it->second.get();
+  }
+}
+
+GroupCallManager::GroupCall *GroupCallManager::get_group_call(InputGroupCallId group_call_id) {
+  auto it = group_calls_.find(group_call_id);
+  if (it == group_calls_.end()) {
+    return nullptr;
+  } else {
+    return it->second.get();
+  }
+}
+
+void GroupCallManager::get_group_call(InputGroupCallId group_call_id,
+                                      Promise<td_api::object_ptr<td_api::groupCall>> &&promise) {
+  auto group_call = get_group_call(group_call_id);
+  if (group_call != nullptr) {
+    return promise.set_value(get_group_call_object(group_call_id, group_call));
+  }
+
+  reload_group_call(group_call_id, std::move(promise));
+}
+
+void GroupCallManager::reload_group_call(InputGroupCallId group_call_id,
+                                         Promise<td_api::object_ptr<td_api::groupCall>> &&promise) {
+  auto &queries = load_group_call_queries_[group_call_id];
+  queries.push_back(std::move(promise));
+  if (queries.size() == 1) {
+    auto query_promise = PromiseCreator::lambda(
+        [actor_id = actor_id(this), group_call_id](Result<tl_object_ptr<telegram_api::phone_groupCall>> &&result) {
+          send_closure(actor_id, &GroupCallManager::finish_get_group_call, group_call_id, std::move(result));
+        });
+    td_->create_handler<GetGroupCallQuery>(std::move(query_promise))->send(group_call_id);
+  }
+}
+
+void GroupCallManager::finish_get_group_call(InputGroupCallId group_call_id,
+                                             Result<tl_object_ptr<telegram_api::phone_groupCall>> &&result) {
+  auto it = load_group_call_queries_.find(group_call_id);
+  CHECK(it != load_group_call_queries_.end());
+  CHECK(!it->second.empty());
+  auto promises = std::move(it->second);
+  load_group_call_queries_.erase(it);
+
+  if (result.is_ok()) {
+    td_->contacts_manager_->on_get_users(std::move(result.ok_ref()->users_), "finish_get_group_call");
+
+    auto call_id = update_group_call(result.ok()->call_);
+    if (call_id != group_call_id) {
+      LOG(ERROR) << "Expected " << group_call_id << ", but received " << to_string(result.ok());
+      result = Status::Error(500, "Receive another group call");
+    }
+  }
+
+  if (result.is_error()) {
+    for (auto &promise : promises) {
+      promise.set_error(result.error().clone());
+    }
+    return;
+  }
+
+  auto group_call = get_group_call(group_call_id);
+  CHECK(group_call != nullptr);
+  for (auto &promise : promises) {
+    promise.set_value(get_group_call_object(group_call_id, group_call));
+  }
 }
 
 void GroupCallManager::join_group_call(InputGroupCallId group_call_id,
