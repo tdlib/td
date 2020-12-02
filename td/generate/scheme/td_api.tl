@@ -4327,8 +4327,8 @@ sendCallRating call_id:int32 rating:int32 comment:string problems:vector<CallPro
 sendCallDebugInformation call_id:int32 debug_information:string = Ok;
 
 
-//@description Creates a group call in a chat. Available only for supergroups; requires can_manage_calls rights @chat_id Chat identifier
-createChatGroupCall chat_id:int53 = GroupCallId;
+//@description Creates a voice chat (a group call bound to a chat). Available only for supergroups; requires can_manage_calls rights @chat_id Chat identifier
+createVoiceChat chat_id:int53 = GroupCallId;
 
 //@description Joins a group call @group_call_id Group call identifier @payload Group join payload, received from tgcalls @source Caller source identifier, received from tgcalls @is_muted True, if the user's microphone is muted
 joinGroupCall group_call_id:string payload:groupCallPayload source:int32 is_muted:Bool = GroupCallJoinResponse;

@@ -323,7 +323,7 @@ void GroupCallManager::tear_down() {
   parent_.reset();
 }
 
-void GroupCallManager::create_group_call(ChannelId channel_id, Promise<InputGroupCallId> &&promise) {
+void GroupCallManager::create_voice_chat(ChannelId channel_id, Promise<InputGroupCallId> &&promise) {
   td_->create_handler<CreateGroupCallQuery>(std::move(promise))->send(channel_id);
 }
 

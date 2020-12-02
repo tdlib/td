@@ -5914,7 +5914,7 @@ void ContactsManager::set_channel_slow_mode_delay(DialogId dialog_id, int32 slow
   td_->create_handler<ToggleSlowModeQuery>(std::move(promise))->send(channel_id, slow_mode_delay);
 }
 
-void ContactsManager::create_channel_group_call(DialogId dialog_id, Promise<InputGroupCallId> &&promise) {
+void ContactsManager::create_channel_voice_chat(DialogId dialog_id, Promise<InputGroupCallId> &&promise) {
   if (!dialog_id.is_valid()) {
     return promise.set_error(Status::Error(400, "Invalid chat identifier specified"));
   }
@@ -5947,7 +5947,7 @@ void ContactsManager::create_channel_group_call(DialogId dialog_id, Promise<Inpu
                        std::move(promise));
         }
       });
-  send_closure(G()->group_call_manager(), &GroupCallManager::create_group_call, channel_id, std::move(new_promise));
+  send_closure(G()->group_call_manager(), &GroupCallManager::create_voice_chat, channel_id, std::move(new_promise));
 }
 
 void ContactsManager::on_create_channel_group_call(ChannelId channel_id, InputGroupCallId group_call_id,

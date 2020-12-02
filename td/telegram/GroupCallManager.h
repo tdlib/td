@@ -30,7 +30,7 @@ class GroupCallManager : public Actor {
   GroupCallManager &operator=(GroupCallManager &&) = delete;
   ~GroupCallManager() override;
 
-  void create_group_call(ChannelId channel_id, Promise<InputGroupCallId> &&promise);
+  void create_voice_chat(ChannelId channel_id, Promise<InputGroupCallId> &&promise);
 
   void join_group_call(InputGroupCallId group_call_id, td_api::object_ptr<td_api::groupCallPayload> &&payload,
                        int32 source, bool is_muted,
