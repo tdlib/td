@@ -1334,22 +1334,15 @@ tl_object_ptr<td_api::MaskPoint> StickersManager::get_mask_point_object(int32 po
   }
 }
 
-string StickersManager::get_sticker_minithumbnail(const string &path) {
+vector<td_api::object_ptr<td_api::closedVectorPath>> StickersManager::get_sticker_minithumbnail(CSlice path) {
   if (path.empty()) {
-    return string();
+    return {};
   }
 
-  const auto prefix = Slice(
-      "<?xml version=\"1.0\" encoding=\"utf-8\"?><svg version=\"1.1\" id=\"Layer_1\" "
-      "xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" x=\"0px\" y=\"0px\" "
-      "viewBox=\"0 0 512 512\" style=\"enable-background:new 0 0 512 512;\" xml:space=\"preserve\"><style "
-      "type=\"text/css\">.st0{fill:#E8E8E8;}</style><path class=\"st0\" d=\"M");
-  const auto suffix = Slice("z\"/></svg>");
-
-  auto buf = StackAllocator::alloc(1 << 7);
+  auto buf = StackAllocator::alloc(1 << 9);
   StringBuilder sb(buf.as_slice(), true);
 
-  sb << prefix;
+  sb << 'M';
   for (unsigned char c : path) {
     if (c >= 128 + 64) {
       sb << "AACAAAAHAAALMAAAQASTAVAAAZaacaaaahaaalmaaaqastava.az0123456789-,"[c - 128 - 64];
@@ -1362,10 +1355,209 @@ string StickersManager::get_sticker_minithumbnail(const string &path) {
       sb << (c & 63);
     }
   }
-  sb << suffix;
+  sb << 'z';
 
   CHECK(!sb.is_error());
-  return sb.as_cslice().str();
+  path = sb.as_cslice();
+
+  size_t pos = 0;
+  auto skip_commas = [&path, &pos] {
+    while (path[pos] == ',') {
+      pos++;
+    }
+  };
+  auto get_number = [&] {
+    skip_commas();
+    int sign = 1;
+    if (path[pos] == '-') {
+      sign = -1;
+      pos++;
+    }
+    double res = 0;
+    while (is_digit(path[pos])) {
+      res = res * 10 + path[pos++] - '0';
+    }
+    if (path[pos] == '.') {
+      pos++;
+      double mul = 0.1;
+      while (is_digit(path[pos])) {
+        res += (path[pos] - '0') * mul;
+        mul *= 0.1;
+        pos++;
+      }
+    }
+    return sign * res;
+  };
+  auto make_point = [](double x, double y) {
+    return td_api::make_object<td_api::point>(x, y);
+  };
+
+  vector<td_api::object_ptr<td_api::closedVectorPath>> result;
+  double x = 0;
+  double y = 0;
+  while (path[pos] != '\0') {
+    skip_commas();
+    if (path[pos] == '\0') {
+      break;
+    }
+
+    if (path[pos] == 'm') {
+      pos++;
+      x += get_number();
+      y += get_number();
+    } else if (path[pos] == 'M') {
+      pos++;
+      x = get_number();
+      y = get_number();
+    }
+
+    double start_x = x;
+    double start_y = y;
+
+    vector<td_api::object_ptr<td_api::VectorPathCommand>> commands;
+    bool have_last_end_control_point = false;
+    double last_end_control_point_x = 0;
+    double last_end_control_point_y = 0;
+    bool is_closed = false;
+    char command = '\0';
+    while (!is_closed) {
+      skip_commas();
+      if (path[pos] == '\0') {
+        LOG(ERROR) << "Receive unclosed path " << path;
+        return {};
+      }
+      if (is_alpha(path[pos])) {
+        command = path[pos++];
+      }
+      switch (command) {
+        case 'l':
+        case 'L':
+        case 'h':
+        case 'H':
+        case 'v':
+        case 'V':
+          if (command == 'l' || command == 'h') {
+            x += get_number();
+          } else if (command == 'L' || command == 'H') {
+            x = get_number();
+          }
+          if (command == 'l' || command == 'v') {
+            y += get_number();
+          } else if (command == 'L' || command == 'V') {
+            y = get_number();
+          }
+          commands.push_back(td_api::make_object<td_api::vectorPathCommandLine>(make_point(x, y)));
+          have_last_end_control_point = false;
+          break;
+        case 'C':
+        case 'c':
+        case 'S':
+        case 's': {
+          double start_control_point_x;
+          double start_control_point_y;
+          if (command == 'S' || command == 's') {
+            if (have_last_end_control_point) {
+              start_control_point_x = 2 * x - last_end_control_point_x;
+              start_control_point_y = 2 * y - last_end_control_point_y;
+            } else {
+              start_control_point_x = x;
+              start_control_point_y = y;
+            }
+          } else {
+            start_control_point_x = get_number();
+            start_control_point_y = get_number();
+            if (command == 'c') {
+              start_control_point_x += x;
+              start_control_point_y += y;
+            }
+          }
+
+          last_end_control_point_x = get_number();
+          last_end_control_point_y = get_number();
+          if (command == 'c' || command == 's') {
+            last_end_control_point_x += x;
+            last_end_control_point_y += y;
+          }
+          have_last_end_control_point = true;
+
+          if (command == 'c' || command == 's') {
+            x += get_number();
+            y += get_number();
+          } else {
+            x = get_number();
+            y = get_number();
+          }
+
+          commands.push_back(td_api::make_object<td_api::vectorPathCommandCubicBezierCurve>(
+              make_point(start_control_point_x, start_control_point_y),
+              make_point(last_end_control_point_x, last_end_control_point_y), make_point(x, y)));
+          break;
+        }
+        case 'z':
+        case 'Z':
+          if (x != start_x || y != start_y) {
+            x = start_x;
+            y = start_y;
+            commands.push_back(td_api::make_object<td_api::vectorPathCommandLine>(make_point(x, y)));
+          }
+          if (!commands.empty()) {
+            result.push_back(td_api::make_object<td_api::closedVectorPath>(std::move(commands)));
+          }
+          is_closed = true;
+          break;
+        default:
+          LOG(ERROR) << "Receive invalid command " << command << " in " << path;
+          return {};
+      }
+    }
+  }
+  /*
+  string svg;
+  for (const auto &vector_path : result) {
+    CHECK(!vector_path->commands_.empty());
+    svg += 'M';
+    auto add_point = [&](const td_api::object_ptr<td_api::point> &p) {
+      svg += to_string(static_cast<int>(p->x_));
+      svg += ',';
+      svg += to_string(static_cast<int>(p->y_));
+      svg += ',';
+    };
+    auto last_command = vector_path->commands_.back().get();
+    switch (last_command->get_id()) {
+      case td_api::vectorPathCommandLine::ID:
+        add_point(static_cast<const td_api::vectorPathCommandLine *>(last_command)->end_point_);
+        break;
+      case td_api::vectorPathCommandCubicBezierCurve::ID:
+        add_point(static_cast<const td_api::vectorPathCommandCubicBezierCurve *>(last_command)->end_point_);
+        break;
+      default:
+        UNREACHABLE();
+    }
+    for (auto &command : vector_path->commands_) {
+      switch (command->get_id()) {
+        case td_api::vectorPathCommandLine::ID: {
+          auto line = static_cast<const td_api::vectorPathCommandLine *>(command.get());
+          svg += 'L';
+          add_point(line->end_point_);
+          break;
+        }
+        case td_api::vectorPathCommandCubicBezierCurve::ID: {
+          auto curve = static_cast<const td_api::vectorPathCommandCubicBezierCurve *>(command.get());
+          svg += 'C';
+          add_point(curve->start_control_point_);
+          add_point(curve->end_control_point_);
+          add_point(curve->end_point_);
+          break;
+        }
+        default:
+          UNREACHABLE();
+      }
+    }
+    svg += 'z';
+  }
+  */
+
+  return result;
 }
 
 tl_object_ptr<td_api::sticker> StickersManager::get_sticker_object(FileId file_id) const {

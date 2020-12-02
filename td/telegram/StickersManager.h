@@ -393,7 +393,7 @@ class StickersManager : public Actor {
 
   class UploadStickerFileCallback;
 
-  static string get_sticker_minithumbnail(const string &path);
+  static vector<td_api::object_ptr<td_api::closedVectorPath>> get_sticker_minithumbnail(CSlice path);
 
   static tl_object_ptr<td_api::MaskPoint> get_mask_point_object(int32 point);
 

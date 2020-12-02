@@ -877,6 +877,10 @@ tl_object_ptr<td_api::photoSize> copy(const td_api::photoSize &obj) {
                                            vector<int32>(obj.progressive_sizes_));
 }
 
+static tl_object_ptr<td_api::photoSize> copy_photo_size(const tl_object_ptr<td_api::photoSize> &obj) {
+  return copy(obj);
+}
+
 template <>
 tl_object_ptr<td_api::thumbnail> copy(const td_api::thumbnail &obj) {
   auto format = [&]() -> td_api::object_ptr<td_api::ThumbnailFormat> {
@@ -902,10 +906,6 @@ tl_object_ptr<td_api::thumbnail> copy(const td_api::thumbnail &obj) {
   return make_tl_object<td_api::thumbnail>(std::move(format), obj.width_, obj.height_, copy(obj.file_));
 }
 
-static tl_object_ptr<td_api::photoSize> copy_photo_size(const tl_object_ptr<td_api::photoSize> &obj) {
-  return copy(obj);
-}
-
 template <>
 tl_object_ptr<td_api::MaskPoint> copy(const td_api::MaskPoint &obj) {
   switch (obj.get_id()) {
@@ -926,6 +926,44 @@ tl_object_ptr<td_api::MaskPoint> copy(const td_api::MaskPoint &obj) {
 template <>
 tl_object_ptr<td_api::maskPosition> copy(const td_api::maskPosition &obj) {
   return make_tl_object<td_api::maskPosition>(copy(obj.point_), obj.x_shift_, obj.y_shift_, obj.scale_);
+}
+
+template <>
+tl_object_ptr<td_api::point> copy(const td_api::point &obj) {
+  return make_tl_object<td_api::point>(obj.x_, obj.y_);
+}
+
+template <>
+tl_object_ptr<td_api::VectorPathCommand> copy(const td_api::VectorPathCommand &obj) {
+  switch (obj.get_id()) {
+    case td_api::vectorPathCommandLine::ID: {
+      auto &command = static_cast<const td_api::vectorPathCommandLine &>(obj);
+      return make_tl_object<td_api::vectorPathCommandLine>(copy(command.end_point_));
+    }
+    case td_api::vectorPathCommandCubicBezierCurve::ID: {
+      auto &command = static_cast<const td_api::vectorPathCommandCubicBezierCurve &>(obj);
+      return make_tl_object<td_api::vectorPathCommandCubicBezierCurve>(
+          copy(command.start_control_point_), copy(command.end_control_point_), copy(command.end_point_));
+    }
+    default:
+      UNREACHABLE();
+      return nullptr;
+  }
+}
+
+static tl_object_ptr<td_api::VectorPathCommand> copy_vector_path_command(
+    const tl_object_ptr<td_api::VectorPathCommand> &obj) {
+  return copy(obj);
+}
+
+template <>
+tl_object_ptr<td_api::closedVectorPath> copy(const td_api::closedVectorPath &obj) {
+  return make_tl_object<td_api::closedVectorPath>(transform(obj.commands_, copy_vector_path_command));
+}
+
+static tl_object_ptr<td_api::closedVectorPath> copy_closed_vector_path(
+    const tl_object_ptr<td_api::closedVectorPath> &obj) {
+  return copy(obj);
 }
 
 template <>
@@ -956,9 +994,9 @@ tl_object_ptr<td_api::photo> copy(const td_api::photo &obj) {
 
 template <>
 tl_object_ptr<td_api::sticker> copy(const td_api::sticker &obj) {
-  return make_tl_object<td_api::sticker>(obj.set_id_, obj.width_, obj.height_, obj.emoji_, obj.is_animated_,
-                                         obj.is_mask_, copy(obj.mask_position_), obj.cover_, copy(obj.thumbnail_),
-                                         copy(obj.sticker_));
+  return make_tl_object<td_api::sticker>(
+      obj.set_id_, obj.width_, obj.height_, obj.emoji_, obj.is_animated_, obj.is_mask_, copy(obj.mask_position_),
+      transform(obj.contours_, copy_closed_vector_path), copy(obj.thumbnail_), copy(obj.sticker_));
 }
 
 template <>

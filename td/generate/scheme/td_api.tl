@@ -233,6 +233,10 @@ maskPointChin = MaskPoint;
 maskPosition point:MaskPoint x_shift:double y_shift:double scale:double = MaskPosition;
 
 
+//@description Represents a closed vector path. The path begins at the end point of the last command @commands List of vector path commands
+closedVectorPath commands:vector<VectorPathCommand> = ClosedVectorPath;
+
+
 //@description Describes one answer option of a poll @text Option text, 1-100 characters @voter_count Number of voters for this option, available only for closed or voted polls @vote_percentage The percentage of votes for this option, 0-100
 //@is_chosen True, if the option was chosen by the user @is_being_chosen True, if the option is being chosen by a pending setPollAnswer request
 pollOption text:string voter_count:int32 vote_percentage:int32 is_chosen:Bool is_being_chosen:Bool = PollOption;
@@ -270,8 +274,8 @@ photo has_stickers:Bool minithumbnail:minithumbnail sizes:vector<photoSize> = Ph
 
 //@description Describes a sticker @set_id The identifier of the sticker set to which the sticker belongs; 0 if none @width Sticker width; as defined by the sender @height Sticker height; as defined by the sender
 //@emoji Emoji corresponding to the sticker @is_animated True, if the sticker is an animated sticker in TGS format @is_mask True, if the sticker is a mask @mask_position Position where the mask should be placed; may be null
-//@cover Sticker cover in an SVG format; may be empty @thumbnail Sticker thumbnail in WEBP or JPEG format; may be null @sticker File containing the sticker
-sticker set_id:int64 width:int32 height:int32 emoji:string is_animated:Bool is_mask:Bool mask_position:maskPosition cover:string thumbnail:thumbnail sticker:file = Sticker;
+//@contours Sticker contours; may be empty. The coordinate system origin is in the upper-left corner @thumbnail Sticker thumbnail in WEBP or JPEG format; may be null @sticker File containing the sticker
+sticker set_id:int64 width:int32 height:int32 emoji:string is_animated:Bool is_mask:Bool mask_position:maskPosition contours:vector<closedVectorPath> thumbnail:thumbnail sticker:file = Sticker;
 
 //@description Describes a video file @duration Duration of the video, in seconds; as defined by the sender @width Video width; as defined by the sender @height Video height; as defined by the sender
 //@file_name Original name of the file; as defined by the sender @mime_type MIME type of the file; as defined by the sender
@@ -3182,6 +3186,19 @@ chatStatisticsChannel period:dateRange member_count:statisticalValue mean_view_c
 
 //@description A detailed statistics about a message @message_interaction_graph A graph containing number of message views and shares
 messageStatistics message_interaction_graph:StatisticalGraph = MessageStatistics;
+
+
+//@description A point on a Cartesian plane @x The point first coordinate @y The point second coordinate
+point x:double y:double = Point;
+
+
+//@class VectorPathCommand @description Reperesents a vector path command
+
+//@description A straight line to a given point @end_point The end point of the straight line
+vectorPathCommandLine end_point:point = VectorPathCommand;
+
+//@description A cubic Bézier curve to a given point @start_control_point The start control point of the curve @end_control_point The end control point of the curve @end_point The end point of the curve
+vectorPathCommandCubicBezierCurve start_control_point:point end_control_point:point end_point:point = VectorPathCommand;
 
 
 //@class Update @description Contains notifications about data changes
