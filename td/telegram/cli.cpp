@@ -632,8 +632,8 @@ class CliClient final : public Actor {
     return to_integer<int32>(trim(std::move(str)));
   }
 
-  static string as_group_call_id(string str) {
-    return trim(std::move(str));
+  static int32 as_group_call_id(string str) {
+    return to_integer<int32>(trim(std::move(str)));
   }
 
   static int32 as_proxy_id(string str) {

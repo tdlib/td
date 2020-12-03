@@ -601,7 +601,7 @@ supergroup id:int32 username:string date:int32 status:ChatMemberStatus member_co
 //@invite_link Invite link for this chat
 //@upgraded_from_basic_group_id Identifier of the basic group from which supergroup was upgraded; 0 if none
 //@upgraded_from_max_message_id Identifier of the last message in the basic group from which supergroup was upgraded; 0 if none
-supergroupFullInfo photo:chatPhoto description:string member_count:int32 administrator_count:int32 restricted_count:int32 banned_count:int32 linked_chat_id:int53 group_call_id:string slow_mode_delay:int32 slow_mode_delay_expires_in:double can_get_members:Bool can_set_username:Bool can_set_sticker_set:Bool can_set_location:Bool can_get_statistics:Bool is_all_history_available:Bool sticker_set_id:int64 location:chatLocation invite_link:string upgraded_from_basic_group_id:int32 upgraded_from_max_message_id:int53 = SupergroupFullInfo;
+supergroupFullInfo photo:chatPhoto description:string member_count:int32 administrator_count:int32 restricted_count:int32 banned_count:int32 linked_chat_id:int53 group_call_id:int32 slow_mode_delay:int32 slow_mode_delay_expires_in:double can_get_members:Bool can_set_username:Bool can_set_sticker_set:Bool can_set_location:Bool can_get_statistics:Bool is_all_history_available:Bool sticker_set_id:int64 location:chatLocation invite_link:string upgraded_from_basic_group_id:int32 upgraded_from_max_message_id:int53 = SupergroupFullInfo;
 
 
 //@class SecretChatState @description Describes the current secret chat state
@@ -1634,10 +1634,10 @@ messageInvoice title:string description:string photo:photo currency:string total
 messageCall is_video:Bool discard_reason:CallDiscardReason duration:int32 = MessageContent;
 
 //@description A message with information about a group call @group_call_id Group call identifier @duration Call duration; for finished calls only
-messageGroupCall group_call_id:string duration:int32 = MessageContent;
+messageGroupCall group_call_id:int32 duration:int32 = MessageContent;
 
 //@description A message with information about an invite to a group call @group_call_id Group call identifier @user_ids Invited user identifiers
-messageInviteGroupCallMembers group_call_id:string user_ids:vector<int32> = MessageContent;
+messageInviteGroupCallMembers group_call_id:int32 user_ids:vector<int32> = MessageContent;
 
 //@description A newly created basic group @title Title of the basic group @member_user_ids User identifiers of members in the basic group
 messageBasicGroupChatCreate title:string member_user_ids:vector<int32> = MessageContent;
@@ -2039,7 +2039,7 @@ callServer id:int64 ip_address:string ipv6_address:string port:int32 type:CallSe
 callId id:int32 = CallId;
 
 //@description Contains the group call identifier @id Group call identifier
-groupCallId id:string = GroupCallId;
+groupCallId id:int32 = GroupCallId;
 
 
 //@class CallState @description Describes the current call state
@@ -2070,7 +2070,7 @@ callStateError error:error = CallState;
 //@mute_new_members True, if only group call administrators can unmute new members
 //@allowed_change_mute_new_members True, if group call administrators can enable or disable mute_new_members setting
 //@duration Call duration; for ended calls only
-groupCall id:string is_active:Bool member_count:int32 mute_new_members:Bool allowed_change_mute_new_members:Bool duration:int32 = GroupCall;
+groupCall id:int32 is_active:Bool member_count:int32 mute_new_members:Bool allowed_change_mute_new_members:Bool duration:int32 = GroupCall;
 
 //@description Describes a payload fingerprint for interaction with tgcalls @hash Value of the field hash @setup Value of the field setup @fingerprint Value of the field fingerprint
 groupCallPayloadFingerprint hash:string setup:string fingerprint:string = GroupCallPayloadFingerprint;
@@ -4331,31 +4331,31 @@ sendCallDebugInformation call_id:int32 debug_information:string = Ok;
 createVoiceChat chat_id:int53 = GroupCallId;
 
 //@description Returns information about a group call @group_call_id Group call identifier
-getGroupCall group_call_id:string = GroupCall;
+getGroupCall group_call_id:int32 = GroupCall;
 
 //@description Joins a group call @group_call_id Group call identifier @payload Group join payload, received from tgcalls @source Caller synchronization source identifier; received from tgcalls @is_muted True, if the user's microphone is muted
-joinGroupCall group_call_id:string payload:groupCallPayload source:int32 is_muted:Bool = GroupCallJoinResponse;
+joinGroupCall group_call_id:int32 payload:groupCallPayload source:int32 is_muted:Bool = GroupCallJoinResponse;
 
 //@description Toggles whether new members of a group call can be unmuted only by administrators of the group call. Requires can_manage_calls rights in the corresponding chat and allowed_change_mute_mew_members group call flag
 //@group_call_id Group call identifier @mute_new_members New value of the mute_new_members setting
-toggleGroupCallMuteNewMembers group_call_id:string mute_new_members:Bool = Ok;
+toggleGroupCallMuteNewMembers group_call_id:int32 mute_new_members:Bool = Ok;
 
 //@description Invites users to a group call. Sends a service message of type messageInviteToGroupCall for voice chats
 //@group_call_id Group call identifier @user_ids User identifiers
-inviteGroupCallMembers group_call_id:string user_ids:vector<int32> = Ok;
+inviteGroupCallMembers group_call_id:int32 user_ids:vector<int32> = Ok;
 
 //@description Toggles whether a group call member is muted. Requires can_manage_calls rights to mute other group call members
 //@group_call_id Group call identifier @user_id User identifier @is_muted Pass true if the user must be muted and false otherwise
-toggleGroupCallMemberIsMuted group_call_id:string user_id:int32 is_muted:Bool = Ok;
+toggleGroupCallMemberIsMuted group_call_id:int32 user_id:int32 is_muted:Bool = Ok;
 
 //@description Checks group call source for validness. If the method returns an error with a message "GROUP_CALL_JOIN_MISSING", the call needs to be rejoined @group_call_id Group call identifier @source Caller synchronization source identifier
-checkGroupCallSource group_call_id:string source:int32 = Ok;
+checkGroupCallSource group_call_id:int32 source:int32 = Ok;
 
 //@description Leaves a group call @group_call_id Group call identifier @source Caller synchronization source identifier
-leaveGroupCall group_call_id:string source:int32 = Ok;
+leaveGroupCall group_call_id:int32 source:int32 = Ok;
 
 //@description Discards a group call. Requires can_manage_calls rights in the corresponding chat @group_call_id Group call identifier
-discardGroupCall group_call_id:string = Ok;
+discardGroupCall group_call_id:int32 = Ok;
 
 
 //@description Changes the block state of a message sender. Currently, only users and supergroup chats can be blocked @sender Message Sender @is_blocked New value of is_blocked

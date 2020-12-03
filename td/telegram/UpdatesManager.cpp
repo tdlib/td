@@ -904,25 +904,25 @@ vector<const tl_object_ptr<telegram_api::Message> *> UpdatesManager::get_new_mes
 }
 
 vector<InputGroupCallId> UpdatesManager::get_update_new_group_call_ids(const telegram_api::Updates *updates_ptr) {
-  vector<InputGroupCallId> group_call_ids;
+  vector<InputGroupCallId> input_group_call_ids;
   auto updates = get_updates(updates_ptr);
   if (updates != nullptr) {
     for (auto &update : *updates) {
-      InputGroupCallId group_call_id;
+      InputGroupCallId input_group_call_id;
       if (update->get_id() == telegram_api::updateGroupCall::ID) {
         auto group_call_ptr = static_cast<const telegram_api::updateGroupCall *>(update.get())->call_.get();
         if (group_call_ptr->get_id() == telegram_api::groupCall::ID) {
           auto group_call = static_cast<const telegram_api::groupCall *>(group_call_ptr);
-          group_call_id = InputGroupCallId(group_call->id_, group_call->access_hash_);
+          input_group_call_id = InputGroupCallId(group_call->id_, group_call->access_hash_);
         }
       }
 
-      if (group_call_id.is_valid()) {
-        group_call_ids.push_back(group_call_id);
+      if (input_group_call_id.is_valid()) {
+        input_group_call_ids.push_back(input_group_call_id);
       }
     }
   }
-  return group_call_ids;
+  return input_group_call_ids;
 }
 
 vector<DialogId> UpdatesManager::get_update_notify_settings_dialog_ids(const telegram_api::Updates *updates_ptr) {

@@ -27,6 +27,8 @@
 #include "td/telegram/Game.h"
 #include "td/telegram/Game.hpp"
 #include "td/telegram/Global.h"
+#include "td/telegram/GroupCallId.h"
+#include "td/telegram/GroupCallManager.h"
 #include "td/telegram/HashtagHints.h"
 #include "td/telegram/InputGroupCallId.h"
 #include "td/telegram/InputMessageText.h"
@@ -709,11 +711,12 @@ class MessageProximityAlertTriggered : public MessageContent {
 
 class MessageGroupCall : public MessageContent {
  public:
-  InputGroupCallId group_call_id;
+  InputGroupCallId input_group_call_id;
   int32 duration = -1;
 
   MessageGroupCall() = default;
-  MessageGroupCall(InputGroupCallId group_call_id, int32 duration) : group_call_id(group_call_id), duration(duration) {
+  MessageGroupCall(InputGroupCallId input_group_call_id, int32 duration)
+      : input_group_call_id(input_group_call_id), duration(duration) {
   }
 
   MessageContentType get_type() const override {
@@ -723,12 +726,12 @@ class MessageGroupCall : public MessageContent {
 
 class MessageInviteToGroupCall : public MessageContent {
  public:
-  InputGroupCallId group_call_id;
+  InputGroupCallId input_group_call_id;
   vector<UserId> user_ids;
 
   MessageInviteToGroupCall() = default;
-  MessageInviteToGroupCall(InputGroupCallId group_call_id, vector<UserId> &&user_ids)
-      : group_call_id(group_call_id), user_ids(std::move(user_ids)) {
+  MessageInviteToGroupCall(InputGroupCallId input_group_call_id, vector<UserId> &&user_ids)
+      : input_group_call_id(input_group_call_id), user_ids(std::move(user_ids)) {
   }
 
   MessageContentType get_type() const override {
@@ -1014,7 +1017,7 @@ static void store(const MessageContent *content, StorerT &storer) {
       BEGIN_STORE_FLAGS();
       STORE_FLAG(has_duration);
       END_STORE_FLAGS();
-      store(m->group_call_id, storer);
+      store(m->input_group_call_id, storer);
       if (has_duration) {
         store(m->duration, storer);
       }
@@ -1022,7 +1025,7 @@ static void store(const MessageContent *content, StorerT &storer) {
     }
     case MessageContentType::InviteToGroupCall: {
       auto m = static_cast<const MessageInviteToGroupCall *>(content);
-      store(m->group_call_id, storer);
+      store(m->input_group_call_id, storer);
       store(m->user_ids, storer);
       break;
     }
@@ -1406,7 +1409,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       BEGIN_PARSE_FLAGS();
       PARSE_FLAG(has_duration);
       END_PARSE_FLAGS();
-      parse(m->group_call_id, parser);
+      parse(m->input_group_call_id, parser);
       if (has_duration) {
         parse(m->duration, parser);
       }
@@ -1415,7 +1418,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
     }
     case MessageContentType::InviteToGroupCall: {
       auto m = make_unique<MessageInviteToGroupCall>();
-      parse(m->group_call_id, parser);
+      parse(m->input_group_call_id, parser);
       parse(m->user_ids, parser);
       content = std::move(m);
       break;
@@ -3300,10 +3303,10 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
     case MessageContentType::GroupCall: {
       auto old_ = static_cast<const MessageGroupCall *>(old_content);
       auto new_ = static_cast<const MessageGroupCall *>(new_content);
-      if (old_->group_call_id != new_->group_call_id || old_->duration != new_->duration) {
+      if (old_->input_group_call_id != new_->input_group_call_id || old_->duration != new_->duration) {
         need_update = true;
       }
-      if (!old_->group_call_id.is_identical(new_->group_call_id)) {
+      if (!old_->input_group_call_id.is_identical(new_->input_group_call_id)) {
         is_content_changed = true;
       }
       break;
@@ -3311,10 +3314,10 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
     case MessageContentType::InviteToGroupCall: {
       auto old_ = static_cast<const MessageInviteToGroupCall *>(old_content);
       auto new_ = static_cast<const MessageInviteToGroupCall *>(new_content);
-      if (old_->group_call_id != new_->group_call_id || old_->user_ids != new_->user_ids) {
+      if (old_->input_group_call_id != new_->input_group_call_id || old_->user_ids != new_->user_ids) {
         need_update = true;
       }
-      if (!old_->group_call_id.is_identical(new_->group_call_id)) {
+      if (!old_->input_group_call_id.is_identical(new_->input_group_call_id)) {
         is_content_changed = true;
       }
       break;
@@ -4783,13 +4786,14 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     }
     case MessageContentType::GroupCall: {
       auto *m = static_cast<const MessageGroupCall *>(content);
-      return make_tl_object<td_api::messageGroupCall>(m->group_call_id.get_group_call_id(),
-                                                      m->duration >= 0 ? max(m->duration, 1) : 0);
+      return make_tl_object<td_api::messageGroupCall>(
+          td->group_call_manager_->get_group_call_id(m->input_group_call_id).get(),
+          m->duration >= 0 ? max(m->duration, 1) : 0);
     }
     case MessageContentType::InviteToGroupCall: {
       auto *m = static_cast<const MessageInviteToGroupCall *>(content);
       return make_tl_object<td_api::messageInviteGroupCallMembers>(
-          m->group_call_id.get_group_call_id(),
+          td->group_call_manager_->get_group_call_id(m->input_group_call_id).get(),
           td->contacts_manager_->get_user_ids_object(m->user_ids, "MessageInviteToGroupCall"));
     }
     default:

@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/ChannelId.h"
+#include "td/telegram/GroupCallId.h"
 #include "td/telegram/InputGroupCallId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -14,6 +15,8 @@
 
 #include "td/actor/actor.h"
 #include "td/actor/PromiseFuture.h"
+
+#include "td/utils/Status.h"
 
 #include <unordered_map>
 
@@ -30,31 +33,31 @@ class GroupCallManager : public Actor {
   GroupCallManager &operator=(GroupCallManager &&) = delete;
   ~GroupCallManager() override;
 
+  GroupCallId get_group_call_id(InputGroupCallId input_group_call_id);
+
   void create_voice_chat(ChannelId channel_id, Promise<InputGroupCallId> &&promise);
 
-  void get_group_call(InputGroupCallId group_call_id, Promise<td_api::object_ptr<td_api::groupCall>> &&promise);
+  void get_group_call(GroupCallId group_call_id, Promise<td_api::object_ptr<td_api::groupCall>> &&promise);
 
-  void join_group_call(InputGroupCallId group_call_id, td_api::object_ptr<td_api::groupCallPayload> &&payload,
-                       int32 source, bool is_muted,
-                       Promise<td_api::object_ptr<td_api::groupCallJoinResponse>> &&promise);
+  void join_group_call(GroupCallId group_call_id, td_api::object_ptr<td_api::groupCallPayload> &&payload, int32 source,
+                       bool is_muted, Promise<td_api::object_ptr<td_api::groupCallJoinResponse>> &&promise);
 
-  void toggle_group_call_mute_new_members(InputGroupCallId group_call_id, bool mute_new_members,
-                                          Promise<Unit> &&promise);
+  void toggle_group_call_mute_new_members(GroupCallId group_call_id, bool mute_new_members, Promise<Unit> &&promise);
 
-  void invite_group_call_members(InputGroupCallId group_call_id, vector<UserId> &&user_ids, Promise<Unit> &&promise);
+  void invite_group_call_members(GroupCallId group_call_id, vector<UserId> &&user_ids, Promise<Unit> &&promise);
 
-  void toggle_group_call_member_is_muted(InputGroupCallId group_call_id, UserId user_id, bool is_muted,
+  void toggle_group_call_member_is_muted(GroupCallId group_call_id, UserId user_id, bool is_muted,
                                          Promise<Unit> &&promise);
 
-  void check_group_call_source(InputGroupCallId group_call_id, int32 source, Promise<Unit> &&promise);
+  void check_group_call_source(GroupCallId group_call_id, int32 source, Promise<Unit> &&promise);
 
-  void leave_group_call(InputGroupCallId group_call_id, int32 source, Promise<Unit> &&promise);
+  void leave_group_call(GroupCallId group_call_id, int32 source, Promise<Unit> &&promise);
 
-  void discard_group_call(InputGroupCallId group_call_id, Promise<Unit> &&promise);
+  void discard_group_call(GroupCallId group_call_id, Promise<Unit> &&promise);
 
   void on_update_group_call(tl_object_ptr<telegram_api::GroupCall> group_call_ptr);
 
-  void process_join_group_call_response(InputGroupCallId group_call_id, uint64 generation,
+  void process_join_group_call_response(InputGroupCallId input_group_call_id, uint64 generation,
                                         tl_object_ptr<telegram_api::Updates> &&updates, Promise<Unit> &&promise);
 
  private:
@@ -63,31 +66,40 @@ class GroupCallManager : public Actor {
 
   void tear_down() override;
 
-  const GroupCall *get_group_call(InputGroupCallId group_call_id) const;
-  GroupCall *get_group_call(InputGroupCallId group_call_id);
+  Result<InputGroupCallId> get_input_group_call_id(GroupCallId group_call_id);
 
-  void reload_group_call(InputGroupCallId group_call_id, Promise<td_api::object_ptr<td_api::groupCall>> &&promise);
+  GroupCallId get_next_group_call_id(InputGroupCallId input_group_call_id);
 
-  void finish_get_group_call(InputGroupCallId group_call_id,
+  GroupCall *add_group_call(InputGroupCallId input_group_call_id);
+
+  const GroupCall *get_group_call(InputGroupCallId input_group_call_id) const;
+  GroupCall *get_group_call(InputGroupCallId input_group_call_id);
+
+  void reload_group_call(InputGroupCallId input_group_call_id,
+                         Promise<td_api::object_ptr<td_api::groupCall>> &&promise);
+
+  void finish_get_group_call(InputGroupCallId input_group_call_id,
                              Result<tl_object_ptr<telegram_api::phone_groupCall>> &&result);
 
-  void on_join_group_call_response(InputGroupCallId group_call_id, string json_response);
+  void on_join_group_call_response(InputGroupCallId input_group_call_id, string json_response);
 
-  void finish_join_group_call(InputGroupCallId group_call_id, uint64 generation, Status error);
+  void finish_join_group_call(InputGroupCallId input_group_call_id, uint64 generation, Status error);
 
   InputGroupCallId update_group_call(const tl_object_ptr<telegram_api::GroupCall> &group_call_ptr);
 
   static Result<td_api::object_ptr<td_api::groupCallJoinResponse>> get_group_call_join_response_object(
       string json_response);
 
-  static tl_object_ptr<td_api::updateGroupCall> get_update_group_call_object(InputGroupCallId group_call_id,
-                                                                             const GroupCall *group_call);
+  static tl_object_ptr<td_api::updateGroupCall> get_update_group_call_object(const GroupCall *group_call);
 
-  static tl_object_ptr<td_api::groupCall> get_group_call_object(InputGroupCallId group_call_id,
-                                                                const GroupCall *group_call);
+  static tl_object_ptr<td_api::groupCall> get_group_call_object(const GroupCall *group_call);
 
   Td *td_;
   ActorShared<> parent_;
+
+  GroupCallId max_group_call_id_;
+
+  vector<InputGroupCallId> input_group_call_ids_;
 
   std::unordered_map<InputGroupCallId, unique_ptr<GroupCall>, InputGroupCallIdHash> group_calls_;
 
