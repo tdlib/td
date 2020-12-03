@@ -570,14 +570,14 @@ basicGroupFullInfo photo:chatPhoto description:string creator_user_id:int32 memb
 //@member_count Number of members in the supergroup or channel; 0 if unknown. Currently it is guaranteed to be known only if the supergroup or channel was received through searchPublicChats, searchChatsNearby, getInactiveSupergroupChats, getSuitableDiscussionChats, getGroupsInCommon, or getUserPrivacySettingRules
 //@has_linked_chat True, if the channel has a discussion group, or the supergroup is the designated discussion group for a channel
 //@has_location True, if the supergroup is connected to a location, i.e. the supergroup is a location-based supergroup
-//@has_active_call True, if the supergroup has active group call
+//@has_voice_chat True, if the supergroup has active voice chat
 //@sign_messages True, if messages sent to the channel should contain information about the sender. This field is only applicable to channels
 //@is_slow_mode_enabled True, if the slow mode is enabled in the supergroup
 //@is_channel True, if the supergroup is a channel
 //@is_verified True, if the supergroup or channel is verified
 //@restriction_reason If non-empty, contains a human-readable description of the reason why access to this supergroup or channel must be restricted
 //@is_scam True, if many users reported this supergroup as a scam
-supergroup id:int32 username:string date:int32 status:ChatMemberStatus member_count:int32 has_linked_chat:Bool has_location:Bool has_active_call:Bool sign_messages:Bool is_slow_mode_enabled:Bool is_channel:Bool is_verified:Bool restriction_reason:string is_scam:Bool = Supergroup;
+supergroup id:int32 username:string date:int32 status:ChatMemberStatus member_count:int32 has_linked_chat:Bool has_location:Bool has_voice_chat:Bool sign_messages:Bool is_slow_mode_enabled:Bool is_channel:Bool is_verified:Bool restriction_reason:string is_scam:Bool = Supergroup;
 
 //@description Contains full information about a supergroup or channel
 //@photo Chat photo; may be null
@@ -587,7 +587,7 @@ supergroup id:int32 username:string date:int32 status:ChatMemberStatus member_co
 //@restricted_count Number of restricted users in the supergroup; 0 if unknown
 //@banned_count Number of users banned from chat; 0 if unknown
 //@linked_chat_id Chat identifier of a discussion group for the channel, or a channel, for which the supergroup is the designated discussion group; 0 if none or unknown
-//@group_call_id Identifier of an active group call; empty if none or unknown
+//@group_call_id Identifier of an active voice chat; 0 if none or unknown
 //@slow_mode_delay Delay between consecutive sent messages for non-administrator supergroup members, in seconds
 //@slow_mode_delay_expires_in Time left before next message can be sent in the supergroup, in seconds. An updateSupergroupFullInfo update is not triggered when value of this field changes, but both new and old values are non-zero
 //@can_get_members True, if members of the chat can be retrieved

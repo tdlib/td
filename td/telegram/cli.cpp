@@ -3868,6 +3868,8 @@ class CliClient final : public Actor {
         status = td_api::make_object<td_api::chatMemberStatusBanned>(std::numeric_limits<int32>::max());
       } else if (status_str == "creator") {
         status = td_api::make_object<td_api::chatMemberStatusCreator>("", false, true);
+      } else if (status_str == "creatortitle") {
+        status = td_api::make_object<td_api::chatMemberStatusCreator>("owner", false, true);
       } else if (status_str == "creatoranon") {
         status = td_api::make_object<td_api::chatMemberStatusCreator>("", true, true);
       } else if (status_str == "uncreator") {
