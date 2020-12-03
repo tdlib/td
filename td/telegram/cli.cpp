@@ -2867,10 +2867,10 @@ class CliClient final : public Actor {
       std::tie(user_id, is_muted) = split(args);
       send_request(td_api::make_object<td_api::toggleGroupCallMemberIsMuted>(as_group_call_id(group_call_id),
                                                                              as_user_id(user_id), as_bool(is_muted)));
-    } else if (op == "cgcs") {
-      send_request(td_api::make_object<td_api::checkGroupCallSource>(as_group_call_id(args), 123));
+    } else if (op == "cgcij") {
+      send_request(td_api::make_object<td_api::checkGroupCallIsJoined>(as_group_call_id(args)));
     } else if (op == "lgc") {
-      send_request(td_api::make_object<td_api::leaveGroupCall>(as_group_call_id(args), 123));
+      send_request(td_api::make_object<td_api::leaveGroupCall>(as_group_call_id(args)));
     } else if (op == "dgc") {
       send_request(td_api::make_object<td_api::discardGroupCall>(as_group_call_id(args)));
     } else if (op == "gcil") {

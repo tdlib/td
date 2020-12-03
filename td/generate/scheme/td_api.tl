@@ -4348,11 +4348,11 @@ inviteGroupCallMembers group_call_id:int32 user_ids:vector<int32> = Ok;
 //@group_call_id Group call identifier @user_id User identifier @is_muted Pass true if the user must be muted and false otherwise
 toggleGroupCallMemberIsMuted group_call_id:int32 user_id:int32 is_muted:Bool = Ok;
 
-//@description Checks group call source for validness. If the method returns an error with a message "GROUP_CALL_JOIN_MISSING", the call needs to be rejoined @group_call_id Group call identifier @source Caller synchronization source identifier
-checkGroupCallSource group_call_id:int32 source:int32 = Ok;
+//@description Checks whether a group call is still joined. Should be called after connection with the server has been lost. Returns an error with a message "GROUP_CALL_JOIN_MISSING" for non-joined calls @group_call_id Group call identifier
+checkGroupCallIsJoined group_call_id:int32 = Ok;
 
-//@description Leaves a group call @group_call_id Group call identifier @source Caller synchronization source identifier
-leaveGroupCall group_call_id:int32 source:int32 = Ok;
+//@description Leaves a group call @group_call_id Group call identifier
+leaveGroupCall group_call_id:int32 = Ok;
 
 //@description Discards a group call. Requires can_manage_calls rights in the corresponding chat @group_call_id Group call identifier
 discardGroupCall group_call_id:int32 = Ok;

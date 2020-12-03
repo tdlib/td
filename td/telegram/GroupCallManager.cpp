@@ -333,16 +333,19 @@ struct GroupCallManager::GroupCall {
   GroupCallId group_call_id;
   bool is_inited = false;
   bool is_active = false;
+  bool is_joined = false;
   bool mute_new_members = false;
   bool allowed_change_mute_new_members = false;
   int32 member_count = 0;
   int32 version = -1;
   int32 duration = 0;
+  int32 source = 0;
 };
 
 struct GroupCallManager::PendingJoinRequest {
   NetQueryRef query_ref;
   uint64 generation = 0;
+  int32 source = 0;
   Promise<td_api::object_ptr<td_api::groupCallJoinResponse>> promise;
 };
 
@@ -522,6 +525,7 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id,
   auto &request = pending_join_requests_[input_group_call_id];
   request = make_unique<PendingJoinRequest>();
   request->generation = generation;
+  request->source = source;
   request->promise = std::move(promise);
 
   auto query_promise =
@@ -625,6 +629,10 @@ void GroupCallManager::on_join_group_call_response(InputGroupCallId input_group_
     LOG(ERROR) << "Failed to parse join response JSON object: " << result.error().message();
     it->second->promise.set_error(Status::Error(500, "Receive invalid join group call response payload"));
   } else {
+    auto group_call = get_group_call(input_group_call_id);
+    CHECK(group_call != nullptr);
+    group_call->is_joined = true;
+    group_call->source = it->second->source;
     it->second->promise.set_value(result.move_as_ok());
   }
   pending_join_requests_.erase(it);
@@ -685,14 +693,51 @@ void GroupCallManager::toggle_group_call_member_is_muted(GroupCallId group_call_
   td_->create_handler<EditGroupCallMemberQuery>(std::move(promise))->send(input_group_call_id, user_id, is_muted);
 }
 
-void GroupCallManager::check_group_call_source(GroupCallId group_call_id, int32 source, Promise<Unit> &&promise) {
+void GroupCallManager::check_group_call_is_joined(GroupCallId group_call_id, Promise<Unit> &&promise) {
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
-  td_->create_handler<CheckGroupCallQuery>(std::move(promise))->send(input_group_call_id, source);
+
+  auto *group_call = get_group_call(input_group_call_id);
+  if (group_call == nullptr || !group_call->is_inited || !group_call->is_active || !group_call->is_joined) {
+    return promise.set_error(Status::Error(400, "GROUP_CALL_JOIN_MISSING"));
+  }
+  auto source = group_call->source;
+
+  auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), input_group_call_id, source,
+                                               promise = std::move(promise)](Result<Unit> &&result) mutable {
+    if (result.is_error() && result.error().message() == "GROUP_CALL_JOIN_MISSING") {
+      send_closure(actor_id, &GroupCallManager::on_group_call_left, input_group_call_id, source);
+    }
+    promise.set_result(std::move(result));
+  });
+  td_->create_handler<CheckGroupCallQuery>(std::move(query_promise))->send(input_group_call_id, source);
 }
 
-void GroupCallManager::leave_group_call(GroupCallId group_call_id, int32 source, Promise<Unit> &&promise) {
+void GroupCallManager::leave_group_call(GroupCallId group_call_id, Promise<Unit> &&promise) {
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
-  td_->create_handler<LeaveGroupCallQuery>(std::move(promise))->send(input_group_call_id, source);
+
+  auto *group_call = get_group_call(input_group_call_id);
+  if (group_call == nullptr || !group_call->is_inited || !group_call->is_active || !group_call->is_joined) {
+    return promise.set_error(Status::Error(400, "GROUP_CALL_JOIN_MISSING"));
+  }
+  auto source = group_call->source;
+
+  auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), input_group_call_id, source,
+                                               promise = std::move(promise)](Result<Unit> &&result) mutable {
+    if (result.is_ok()) {
+      send_closure(actor_id, &GroupCallManager::on_group_call_left, input_group_call_id, source);
+    }
+    promise.set_result(std::move(result));
+  });
+  td_->create_handler<LeaveGroupCallQuery>(std::move(query_promise))->send(input_group_call_id, source);
+}
+
+void GroupCallManager::on_group_call_left(InputGroupCallId input_group_call_id, int32 source) {
+  auto *group_call = get_group_call(input_group_call_id);
+  CHECK(group_call != nullptr && group_call->is_inited);
+  if (group_call->is_joined && group_call->source == source) {
+    group_call->is_joined = false;
+    group_call->source = 0;
+  }
 }
 
 void GroupCallManager::discard_group_call(GroupCallId group_call_id, Promise<Unit> &&promise) {
@@ -715,6 +760,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
   InputGroupCallId call_id;
   GroupCall call;
   call.is_inited = true;
+  string join_params;
   switch (group_call_ptr->get_id()) {
     case telegram_api::groupCall::ID: {
       auto group_call = static_cast<const telegram_api::groupCall *>(group_call_ptr.get());
@@ -725,7 +771,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       call.member_count = group_call->participants_count_;
       call.version = group_call->version_;
       if (group_call->params_ != nullptr) {
-        on_join_group_call_response(call_id, std::move(group_call->params_->data_));
+        join_params = std::move(group_call->params_->data_);
       }
       break;
     }
@@ -753,7 +799,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
     if (!group_call->is_active) {
       // never update ended calls
     } else if (!call.is_active) {
-      // always update to an ended call
+      // always update to an ended call, droping also is_joined flag
       *group_call = std::move(call);
       need_update = true;
     } else {
@@ -772,10 +818,12 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
     }
   }
 
+  if (!join_params.empty()) {
+    on_join_group_call_response(call_id, std::move(join_params));
+  }
   if (need_update) {
     send_closure(G()->td(), &Td::send_update, get_update_group_call_object(group_call));
   }
-
   return call_id;
 }
 

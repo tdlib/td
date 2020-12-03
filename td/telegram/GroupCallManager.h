@@ -49,9 +49,9 @@ class GroupCallManager : public Actor {
   void toggle_group_call_member_is_muted(GroupCallId group_call_id, UserId user_id, bool is_muted,
                                          Promise<Unit> &&promise);
 
-  void check_group_call_source(GroupCallId group_call_id, int32 source, Promise<Unit> &&promise);
+  void check_group_call_is_joined(GroupCallId group_call_id, Promise<Unit> &&promise);
 
-  void leave_group_call(GroupCallId group_call_id, int32 source, Promise<Unit> &&promise);
+  void leave_group_call(GroupCallId group_call_id, Promise<Unit> &&promise);
 
   void discard_group_call(GroupCallId group_call_id, Promise<Unit> &&promise);
 
@@ -84,6 +84,8 @@ class GroupCallManager : public Actor {
   void on_join_group_call_response(InputGroupCallId input_group_call_id, string json_response);
 
   void finish_join_group_call(InputGroupCallId input_group_call_id, uint64 generation, Status error);
+
+  void on_group_call_left(InputGroupCallId input_group_call_id, int32 source);
 
   InputGroupCallId update_group_call(const tl_object_ptr<telegram_api::GroupCall> &group_call_ptr);
 
