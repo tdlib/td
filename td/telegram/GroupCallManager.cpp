@@ -331,6 +331,7 @@ class DiscardGroupCallQuery : public Td::ResultHandler {
 
 struct GroupCallManager::GroupCall {
   GroupCallId group_call_id;
+  ChannelId channel_id;
   bool is_inited = false;
   bool is_active = false;
   bool is_joined = false;
@@ -358,8 +359,8 @@ void GroupCallManager::tear_down() {
   parent_.reset();
 }
 
-GroupCallId GroupCallManager::get_group_call_id(InputGroupCallId input_group_call_id) {
-  return add_group_call(input_group_call_id)->group_call_id;
+GroupCallId GroupCallManager::get_group_call_id(InputGroupCallId input_group_call_id, ChannelId channel_id) {
+  return add_group_call(input_group_call_id, channel_id)->group_call_id;
 }
 
 Result<InputGroupCallId> GroupCallManager::get_input_group_call_id(GroupCallId group_call_id) {
@@ -379,11 +380,15 @@ GroupCallId GroupCallManager::get_next_group_call_id(InputGroupCallId input_grou
   return max_group_call_id_;
 }
 
-GroupCallManager::GroupCall *GroupCallManager::add_group_call(InputGroupCallId input_group_call_id) {
+GroupCallManager::GroupCall *GroupCallManager::add_group_call(InputGroupCallId input_group_call_id,
+                                                              ChannelId channel_id) {
   auto &group_call = group_calls_[input_group_call_id];
   if (group_call == nullptr) {
     group_call = make_unique<GroupCall>();
     group_call->group_call_id = get_next_group_call_id(input_group_call_id);
+  }
+  if (!group_call->channel_id.is_valid()) {
+    group_call->channel_id = channel_id;
   }
   return group_call.get();
 }
@@ -446,7 +451,7 @@ void GroupCallManager::finish_get_group_call(InputGroupCallId input_group_call_i
   if (result.is_ok()) {
     td_->contacts_manager_->on_get_users(std::move(result.ok_ref()->users_), "finish_get_group_call");
 
-    auto call_id = update_group_call(result.ok()->call_);
+    auto call_id = update_group_call(result.ok()->call_, ChannelId());
     if (call_id != input_group_call_id) {
       LOG(ERROR) << "Expected " << input_group_call_id << ", but received " << to_string(result.ok());
       result = Status::Error(500, "Receive another group call");
@@ -745,8 +750,13 @@ void GroupCallManager::discard_group_call(GroupCallId group_call_id, Promise<Uni
   td_->create_handler<DiscardGroupCallQuery>(std::move(promise))->send(input_group_call_id);
 }
 
-void GroupCallManager::on_update_group_call(tl_object_ptr<telegram_api::GroupCall> group_call_ptr) {
-  auto call_id = update_group_call(group_call_ptr);
+void GroupCallManager::on_update_group_call(tl_object_ptr<telegram_api::GroupCall> group_call_ptr,
+                                            ChannelId channel_id) {
+  if (!channel_id.is_valid()) {
+    LOG(ERROR) << "Receive " << to_string(group_call_ptr) << " in invalid " << channel_id;
+    channel_id = ChannelId();
+  }
+  auto call_id = update_group_call(group_call_ptr, channel_id);
   if (call_id.is_valid()) {
     LOG(INFO) << "Update " << call_id;
   } else {
@@ -754,12 +764,14 @@ void GroupCallManager::on_update_group_call(tl_object_ptr<telegram_api::GroupCal
   }
 }
 
-InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegram_api::GroupCall> &group_call_ptr) {
+InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegram_api::GroupCall> &group_call_ptr,
+                                                     ChannelId channel_id) {
   CHECK(group_call_ptr != nullptr);
 
   InputGroupCallId call_id;
   GroupCall call;
   call.is_inited = true;
+
   string join_params;
   switch (group_call_ptr->get_id()) {
     case telegram_api::groupCall::ID: {
@@ -790,7 +802,8 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
   }
 
   bool need_update = false;
-  auto *group_call = add_group_call(call_id);
+  auto *group_call = add_group_call(call_id, channel_id);
+  call.channel_id = channel_id.is_valid() ? channel_id : group_call->channel_id;
   if (!group_call->is_inited) {
     call.group_call_id = group_call->group_call_id;
     *group_call = std::move(call);
@@ -818,6 +831,9 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
     }
   }
 
+  if (!group_call->channel_id.is_valid()) {
+    group_call->channel_id = channel_id;
+  }
   if (!join_params.empty()) {
     on_join_group_call_response(call_id, std::move(join_params));
   }

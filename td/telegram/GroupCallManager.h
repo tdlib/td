@@ -33,7 +33,7 @@ class GroupCallManager : public Actor {
   GroupCallManager &operator=(GroupCallManager &&) = delete;
   ~GroupCallManager() override;
 
-  GroupCallId get_group_call_id(InputGroupCallId input_group_call_id);
+  GroupCallId get_group_call_id(InputGroupCallId input_group_call_id, ChannelId channel_id);
 
   void create_voice_chat(ChannelId channel_id, Promise<InputGroupCallId> &&promise);
 
@@ -55,7 +55,7 @@ class GroupCallManager : public Actor {
 
   void discard_group_call(GroupCallId group_call_id, Promise<Unit> &&promise);
 
-  void on_update_group_call(tl_object_ptr<telegram_api::GroupCall> group_call_ptr);
+  void on_update_group_call(tl_object_ptr<telegram_api::GroupCall> group_call_ptr, ChannelId channel_id);
 
   void process_join_group_call_response(InputGroupCallId input_group_call_id, uint64 generation,
                                         tl_object_ptr<telegram_api::Updates> &&updates, Promise<Unit> &&promise);
@@ -70,7 +70,7 @@ class GroupCallManager : public Actor {
 
   GroupCallId get_next_group_call_id(InputGroupCallId input_group_call_id);
 
-  GroupCall *add_group_call(InputGroupCallId input_group_call_id);
+  GroupCall *add_group_call(InputGroupCallId input_group_call_id, ChannelId channel_id);
 
   const GroupCall *get_group_call(InputGroupCallId input_group_call_id) const;
   GroupCall *get_group_call(InputGroupCallId input_group_call_id);
@@ -87,7 +87,8 @@ class GroupCallManager : public Actor {
 
   void on_group_call_left(InputGroupCallId input_group_call_id, int32 source);
 
-  InputGroupCallId update_group_call(const tl_object_ptr<telegram_api::GroupCall> &group_call_ptr);
+  InputGroupCallId update_group_call(const tl_object_ptr<telegram_api::GroupCall> &group_call_ptr,
+                                     ChannelId channel_id);
 
   static Result<td_api::object_ptr<td_api::groupCallJoinResponse>> get_group_call_join_response_object(
       string json_response);

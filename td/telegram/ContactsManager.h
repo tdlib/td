@@ -1411,7 +1411,8 @@ class ContactsManager : public Actor {
 
   tl_object_ptr<td_api::supergroup> get_supergroup_object(ChannelId channel_id, const Channel *c) const;
 
-  tl_object_ptr<td_api::supergroupFullInfo> get_supergroup_full_info_object(const ChannelFull *channel_full) const;
+  tl_object_ptr<td_api::supergroupFullInfo> get_supergroup_full_info_object(const ChannelFull *channel_full,
+                                                                            ChannelId channel_id) const;
 
   static tl_object_ptr<td_api::SecretChatState> get_secret_chat_state_object(SecretChatState state);
 

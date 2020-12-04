@@ -2148,7 +2148,8 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePhoneCallSignal
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateGroupCall> update, bool /*force_apply*/) {
-  send_closure(G()->group_call_manager(), &GroupCallManager::on_update_group_call, std::move(update->call_));
+  send_closure(G()->group_call_manager(), &GroupCallManager::on_update_group_call, std::move(update->call_),
+               ChannelId(update->channel_id_));
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateContactsReset> update, bool /*force_apply*/) {

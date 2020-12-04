@@ -6,8 +6,6 @@
 //
 #pragma once
 
-#include "td/telegram/td_api.h"
-
 #include "td/utils/common.h"
 #include "td/utils/StringBuilder.h"
 
@@ -32,10 +30,6 @@ class GroupCallId {
 
   int32 get() const {
     return id;
-  }
-
-  auto get_group_call_id_object() const {
-    return td_api::make_object<td_api::groupCallId>(id);
   }
 
   bool operator==(const GroupCallId &other) const {

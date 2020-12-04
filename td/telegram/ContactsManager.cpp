@@ -5973,7 +5973,7 @@ void ContactsManager::on_create_channel_group_call(ChannelId channel_id, InputGr
     channel_full->is_changed = true;
     update_channel_full(channel_full, channel_id);
   }
-  promise.set_value(td_->group_call_manager_->get_group_call_id(input_group_call_id));
+  promise.set_value(td_->group_call_manager_->get_group_call_id(input_group_call_id, channel_id));
 }
 
 void ContactsManager::get_channel_statistics_dc_id(DialogId dialog_id, bool for_full_statistics,
@@ -9218,7 +9218,7 @@ void ContactsManager::update_channel_full(ChannelFull *channel_full, ChannelId c
     send_closure(
         G()->td(), &Td::send_update,
         make_tl_object<td_api::updateSupergroupFullInfo>(get_supergroup_id_object(channel_id, "update_channel_full"),
-                                                         get_supergroup_full_info_object(channel_full)));
+                                                         get_supergroup_full_info_object(channel_full, channel_id)));
     channel_full->need_send_update = false;
   }
   if (channel_full->need_save_to_database) {
@@ -14384,11 +14384,11 @@ tl_object_ptr<td_api::supergroup> ContactsManager::get_supergroup_object(Channel
 }
 
 tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_supergroup_full_info_object(ChannelId channel_id) const {
-  return get_supergroup_full_info_object(get_channel_full(channel_id));
+  return get_supergroup_full_info_object(get_channel_full(channel_id), channel_id);
 }
 
 tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_supergroup_full_info_object(
-    const ChannelFull *channel_full) const {
+    const ChannelFull *channel_full, ChannelId channel_id) const {
   CHECK(channel_full != nullptr);
   double slow_mode_delay_expires_in = 0;
   if (channel_full->slow_mode_next_send_date != 0) {
@@ -14398,7 +14398,7 @@ tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_supergroup_full_i
       get_chat_photo_object(td_->file_manager_.get(), channel_full->photo), channel_full->description,
       channel_full->participant_count, channel_full->administrator_count, channel_full->restricted_count,
       channel_full->banned_count, DialogId(channel_full->linked_channel_id).get(),
-      td_->group_call_manager_->get_group_call_id(channel_full->active_group_call_id).get(),
+      td_->group_call_manager_->get_group_call_id(channel_full->active_group_call_id, channel_id).get(),
       channel_full->slow_mode_delay, slow_mode_delay_expires_in, channel_full->can_get_participants,
       channel_full->can_set_username, channel_full->can_set_sticker_set, channel_full->can_set_location,
       channel_full->can_view_statistics, channel_full->is_all_history_available, channel_full->sticker_set_id.get(),
@@ -14622,7 +14622,7 @@ void ContactsManager::get_current_state(vector<td_api::object_ptr<td_api::Update
   }
   for (auto &it : channels_full_) {
     updates.push_back(td_api::make_object<td_api::updateSupergroupFullInfo>(
-        it.first.get(), get_supergroup_full_info_object(it.second.get())));
+        it.first.get(), get_supergroup_full_info_object(it.second.get(), it.first)));
   }
   for (auto &it : chats_full_) {
     updates.push_back(td_api::make_object<td_api::updateBasicGroupFullInfo>(
