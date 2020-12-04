@@ -6,6 +6,7 @@
 //
 #include "td/telegram/GroupCallManager.h"
 
+#include "td/telegram/AuthManager.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/misc.h"
@@ -360,6 +361,9 @@ void GroupCallManager::tear_down() {
 }
 
 GroupCallId GroupCallManager::get_group_call_id(InputGroupCallId input_group_call_id, ChannelId channel_id) {
+  if (td_->auth_manager_->is_bot()) {
+    return GroupCallId();
+  }
   return add_group_call(input_group_call_id, channel_id)->group_call_id;
 }
 
@@ -382,6 +386,7 @@ GroupCallId GroupCallManager::get_next_group_call_id(InputGroupCallId input_grou
 
 GroupCallManager::GroupCall *GroupCallManager::add_group_call(InputGroupCallId input_group_call_id,
                                                               ChannelId channel_id) {
+  CHECK(!td_->auth_manager_->is_bot());
   auto &group_call = group_calls_[input_group_call_id];
   if (group_call == nullptr) {
     group_call = make_unique<GroupCall>();
@@ -752,6 +757,10 @@ void GroupCallManager::discard_group_call(GroupCallId group_call_id, Promise<Uni
 
 void GroupCallManager::on_update_group_call(tl_object_ptr<telegram_api::GroupCall> group_call_ptr,
                                             ChannelId channel_id) {
+  if (td_->auth_manager_->is_bot()) {
+    LOG(ERROR) << "Receive " << to_string(group_call_ptr);
+    return;
+  }
   if (!channel_id.is_valid()) {
     LOG(ERROR) << "Receive " << to_string(group_call_ptr) << " in invalid " << channel_id;
     channel_id = ChannelId();
