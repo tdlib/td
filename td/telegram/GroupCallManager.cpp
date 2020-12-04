@@ -9,6 +9,7 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/Td.h"
@@ -259,7 +260,7 @@ class CheckGroupCallQuery : public Td::ResultHandler {
     if (success) {
       promise_.set_value(Unit());
     } else {
-      promise_.set_error(Status::Error(200, "Group call left"));
+      promise_.set_error(Status::Error(400, "GROUP_CALL_JOIN_MISSING"));
     }
   }
 
@@ -336,6 +337,7 @@ struct GroupCallManager::GroupCall {
   bool is_inited = false;
   bool is_active = false;
   bool is_joined = false;
+  bool is_speaking = false;
   bool mute_new_members = false;
   bool allowed_change_mute_new_members = false;
   int32 member_count = 0;
@@ -352,6 +354,8 @@ struct GroupCallManager::PendingJoinRequest {
 };
 
 GroupCallManager::GroupCallManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
+  pending_send_speaking_action_timeout_.set_callback(on_pending_send_speaking_action_timeout_callback);
+  pending_send_speaking_action_timeout_.set_callback_data(static_cast<void *>(this));
 }
 
 GroupCallManager::~GroupCallManager() = default;
@@ -360,8 +364,36 @@ void GroupCallManager::tear_down() {
   parent_.reset();
 }
 
+void GroupCallManager::on_pending_send_speaking_action_timeout_callback(void *group_call_manager_ptr,
+                                                                        int64 group_call_id_int) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto group_call_manager = static_cast<GroupCallManager *>(group_call_manager_ptr);
+  send_closure_later(group_call_manager->actor_id(group_call_manager),
+                     &GroupCallManager::on_send_speaking_action_timeout,
+                     GroupCallId(narrow_cast<int32>(group_call_id_int)));
+}
+
+void GroupCallManager::on_send_speaking_action_timeout(GroupCallId group_call_id) {
+  LOG(INFO) << "Receive send_speaking_action timeout in " << group_call_id;
+  auto input_group_call_id = get_input_group_call_id(group_call_id).move_as_ok();
+
+  auto *group_call = get_group_call(input_group_call_id);
+  CHECK(group_call != nullptr && group_call->is_inited && group_call->channel_id.is_valid());
+  if (!group_call->is_joined || !group_call->is_speaking) {
+    return;
+  }
+
+  pending_send_speaking_action_timeout_.add_timeout_in(group_call_id.get(), 4.0);
+
+  td_->messages_manager_->send_dialog_action(DialogId(group_call->channel_id), MessageId(),
+                                             DialogAction::get_speaking_action(), Promise<Unit>());
+}
+
 GroupCallId GroupCallManager::get_group_call_id(InputGroupCallId input_group_call_id, ChannelId channel_id) {
-  if (td_->auth_manager_->is_bot()) {
+  if (td_->auth_manager_->is_bot() || !input_group_call_id.is_valid()) {
     return GroupCallId();
   }
   return add_group_call(input_group_call_id, channel_id)->group_call_id;
@@ -375,7 +407,9 @@ Result<InputGroupCallId> GroupCallManager::get_input_group_call_id(GroupCallId g
     return Status::Error(400, "Wrong group call identifier specified");
   }
   CHECK(static_cast<size_t>(group_call_id.get()) <= input_group_call_ids_.size());
-  return input_group_call_ids_[group_call_id.get() - 1];
+  auto input_group_call_id = input_group_call_ids_[group_call_id.get() - 1];
+  LOG(DEBUG) << "Found " << input_group_call_id;
+  return input_group_call_id;
 }
 
 GroupCallId GroupCallManager::get_next_group_call_id(InputGroupCallId input_group_call_id) {
@@ -391,6 +425,7 @@ GroupCallManager::GroupCall *GroupCallManager::add_group_call(InputGroupCallId i
   if (group_call == nullptr) {
     group_call = make_unique<GroupCall>();
     group_call->group_call_id = get_next_group_call_id(input_group_call_id);
+    LOG(INFO) << "Add " << input_group_call_id << " from " << channel_id << " as " << group_call->group_call_id;
   }
   if (!group_call->channel_id.is_valid()) {
     group_call->channel_id = channel_id;
@@ -693,6 +728,31 @@ void GroupCallManager::invite_group_call_members(GroupCallId group_call_id, vect
   td_->create_handler<InviteToGroupCallQuery>(std::move(promise))->send(input_group_call_id, std::move(input_users));
 }
 
+void GroupCallManager::set_group_call_member_is_speaking(GroupCallId group_call_id, int32 source, bool is_speaking,
+                                                         Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
+
+  auto *group_call = get_group_call(input_group_call_id);
+  if (group_call == nullptr || !group_call->is_inited || !group_call->is_active || !group_call->is_joined) {
+    return promise.set_value(Unit());
+  }
+  if (group_call->source == source) {
+    if (!group_call->channel_id.is_valid()) {
+      return promise.set_value(Unit());
+    }
+    if (group_call->is_speaking != is_speaking) {
+      group_call->is_speaking = is_speaking;
+      if (is_speaking) {
+        pending_send_speaking_action_timeout_.add_timeout_in(group_call_id.get(), 0.0);
+      }
+    }
+    return promise.set_value(Unit());
+  }
+
+  // TODO process others speaking actions
+  promise.set_value(Unit());
+}
+
 void GroupCallManager::toggle_group_call_member_is_muted(GroupCallId group_call_id, UserId user_id, bool is_muted,
                                                          Promise<Unit> &&promise) {
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
@@ -746,6 +806,7 @@ void GroupCallManager::on_group_call_left(InputGroupCallId input_group_call_id, 
   CHECK(group_call != nullptr && group_call->is_inited);
   if (group_call->is_joined && group_call->source == source) {
     group_call->is_joined = false;
+    group_call->is_speaking = false;
     group_call->source = 0;
   }
 }
@@ -821,7 +882,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
     if (!group_call->is_active) {
       // never update ended calls
     } else if (!call.is_active) {
-      // always update to an ended call, droping also is_joined flag
+      // always update to an ended call, droping also is_joined and is_speaking flags
       *group_call = std::move(call);
       need_update = true;
     } else {

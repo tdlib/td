@@ -4344,6 +4344,10 @@ toggleGroupCallMuteNewMembers group_call_id:int32 mute_new_members:Bool = Ok;
 //@group_call_id Group call identifier @user_ids User identifiers
 inviteGroupCallMembers group_call_id:int32 user_ids:vector<int32> = Ok;
 
+//@description Informs TDLib that a group call member speaking state has changed @group_call_id Group call identifier
+//@source Group call member's synchronization source identifier @is_speaking True, if the user is speaking
+setGroupCallMemberIsSpeaking group_call_id:int32 source:int32 is_speaking:Bool = Ok;
+
 //@description Toggles whether a group call member is muted. Requires can_manage_calls rights to mute other group call members
 //@group_call_id Group call identifier @user_id User identifier @is_muted Pass true if the user must be muted and false otherwise
 toggleGroupCallMemberIsMuted group_call_id:int32 user_id:int32 is_muted:Bool = Ok;

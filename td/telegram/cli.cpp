@@ -2853,6 +2853,14 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::joinGroupCall>(as_group_call_id(args), nullptr, 123, true));
     } else if (op == "tgcmnm" || op == "tgcmnme") {
       send_request(td_api::make_object<td_api::toggleGroupCallMuteNewMembers>(as_group_call_id(args), op == "tgcmnme"));
+    } else if (op == "sgcmis") {
+      string group_call_id;
+      string source;
+      string is_speaking;
+      std::tie(group_call_id, args) = split(args);
+      std::tie(source, is_speaking) = split(args);
+      send_request(td_api::make_object<td_api::setGroupCallMemberIsSpeaking>(
+          as_group_call_id(group_call_id), to_integer<int32>(source), as_bool(is_speaking)));
     } else if (op == "igcm") {
       string group_call_id;
       string user_ids;

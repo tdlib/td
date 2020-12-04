@@ -15,6 +15,7 @@
 
 #include "td/actor/actor.h"
 #include "td/actor/PromiseFuture.h"
+#include "td/actor/Timeout.h"
 
 #include "td/utils/Status.h"
 
@@ -46,6 +47,9 @@ class GroupCallManager : public Actor {
 
   void invite_group_call_members(GroupCallId group_call_id, vector<UserId> &&user_ids, Promise<Unit> &&promise);
 
+  void set_group_call_member_is_speaking(GroupCallId group_call_id, int32 source, bool is_speaking,
+                                         Promise<Unit> &&promise);
+
   void toggle_group_call_member_is_muted(GroupCallId group_call_id, UserId user_id, bool is_muted,
                                          Promise<Unit> &&promise);
 
@@ -65,6 +69,10 @@ class GroupCallManager : public Actor {
   struct PendingJoinRequest;
 
   void tear_down() override;
+
+  static void on_pending_send_speaking_action_timeout_callback(void *group_call_manager_ptr, int64 group_call_id_int);
+
+  void on_send_speaking_action_timeout(GroupCallId group_call_id);
 
   Result<InputGroupCallId> get_input_group_call_id(GroupCallId group_call_id);
 
@@ -111,6 +119,8 @@ class GroupCallManager : public Actor {
 
   std::unordered_map<InputGroupCallId, unique_ptr<PendingJoinRequest>, InputGroupCallIdHash> pending_join_requests_;
   uint64 join_group_request_generation_ = 0;
+
+  MultiTimeout pending_send_speaking_action_timeout_{"PendingSendSpeakingActionTimeout"};
 };
 
 }  // namespace td

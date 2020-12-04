@@ -6037,21 +6037,18 @@ void Td::on_request(uint64 id, const td_api::createVoiceChat &request) {
       promise.set_value(td_api::make_object<td_api::groupCallId>(result.ok().get()));
     }
   });
-
   contacts_manager_->create_channel_voice_chat(DialogId(request.chat_id_), std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getGroupCall &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-
   group_call_manager_->get_group_call(GroupCallId(request.group_call_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::joinGroupCall &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-
   group_call_manager_->join_group_call(GroupCallId(request.group_call_id_), std::move(request.payload_),
                                        request.source_, request.is_muted_, std::move(promise));
 }
@@ -6059,7 +6056,6 @@ void Td::on_request(uint64 id, td_api::joinGroupCall &request) {
 void Td::on_request(uint64 id, const td_api::toggleGroupCallMuteNewMembers &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-
   group_call_manager_->toggle_group_call_mute_new_members(GroupCallId(request.group_call_id_),
                                                           request.mute_new_members_, std::move(promise));
 }
@@ -6067,7 +6063,6 @@ void Td::on_request(uint64 id, const td_api::toggleGroupCallMuteNewMembers &requ
 void Td::on_request(uint64 id, const td_api::inviteGroupCallMembers &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-
   vector<UserId> user_ids;
   for (auto &user_id : request.user_ids_) {
     user_ids.emplace_back(user_id);
@@ -6076,10 +6071,16 @@ void Td::on_request(uint64 id, const td_api::inviteGroupCallMembers &request) {
                                                  std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::setGroupCallMemberIsSpeaking &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  group_call_manager_->set_group_call_member_is_speaking(GroupCallId(request.group_call_id_), request.source_,
+                                                         request.is_speaking_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::toggleGroupCallMemberIsMuted &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-
   group_call_manager_->toggle_group_call_member_is_muted(GroupCallId(request.group_call_id_), UserId(request.user_id_),
                                                          request.is_muted_, std::move(promise));
 }
@@ -6087,21 +6088,18 @@ void Td::on_request(uint64 id, const td_api::toggleGroupCallMemberIsMuted &reque
 void Td::on_request(uint64 id, const td_api::checkGroupCallIsJoined &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-
   group_call_manager_->check_group_call_is_joined(GroupCallId(request.group_call_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::leaveGroupCall &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-
   group_call_manager_->leave_group_call(GroupCallId(request.group_call_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::discardGroupCall &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-
   group_call_manager_->discard_group_call(GroupCallId(request.group_call_id_), std::move(promise));
 }
 
