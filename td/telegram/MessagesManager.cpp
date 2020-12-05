@@ -4565,6 +4565,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool has_thread_draft_message = thread_draft_message != nullptr;
   bool has_local_thread_message_ids = !local_thread_message_ids.empty();
   bool has_linked_top_thread_message_id = linked_top_thread_message_id.is_valid();
+  bool has_interaction_info_update_date = interaction_info_update_date != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_channel_post);
   STORE_FLAG(is_outgoing);
@@ -4622,6 +4623,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(has_local_thread_message_ids);
     STORE_FLAG(has_linked_top_thread_message_id);
     STORE_FLAG(is_pinned);
+    STORE_FLAG(has_interaction_info_update_date);
     END_STORE_FLAGS();
   }
 
@@ -4724,6 +4726,9 @@ void MessagesManager::Message::store(StorerT &storer) const {
   if (has_linked_top_thread_message_id) {
     store(linked_top_thread_message_id, storer);
   }
+  if (has_interaction_info_update_date) {
+    store(interaction_info_update_date, storer);
+  }
   store_message_content(content.get(), storer);
   if (has_reply_markup) {
     store(reply_markup, storer);
@@ -4765,6 +4770,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   bool has_thread_draft_message = false;
   bool has_local_thread_message_ids = false;
   bool has_linked_top_thread_message_id = false;
+  bool has_interaction_info_update_date = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_channel_post);
   PARSE_FLAG(is_outgoing);
@@ -4822,6 +4828,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(has_local_thread_message_ids);
     PARSE_FLAG(has_linked_top_thread_message_id);
     PARSE_FLAG(is_pinned);
+    PARSE_FLAG(has_interaction_info_update_date);
     END_PARSE_FLAGS();
   }
 
@@ -4929,6 +4936,9 @@ void MessagesManager::Message::parse(ParserT &parser) {
   }
   if (has_linked_top_thread_message_id) {
     parse(linked_top_thread_message_id, parser);
+  }
+  if (has_interaction_info_update_date) {
+    parse(interaction_info_update_date, parser);
   }
   parse_message_content(content, parser);
   if (has_reply_markup) {
@@ -5808,11 +5818,13 @@ void MessagesManager::update_reply_count_by_message(Dialog *d, int diff, const M
 
   auto replier_dialog_id =
       has_message_sender_user_id(d->dialog_id, m) ? DialogId(m->sender_user_id) : m->sender_dialog_id;
-  update_message_reply_count(d, m->top_thread_message_id, replier_dialog_id, m->message_id, diff);
+  update_message_reply_count(d, m->top_thread_message_id, replier_dialog_id, m->message_id,
+                             diff < 0 ? G()->unix_time() : m->date, diff);
 }
 
 void MessagesManager::update_message_reply_count(Dialog *d, MessageId message_id, DialogId replier_dialog_id,
-                                                 MessageId reply_message_id, int diff, bool is_recursive) {
+                                                 MessageId reply_message_id, int32 update_date, int diff,
+                                                 bool is_recursive) {
   if (d == nullptr) {
     return;
   }
@@ -5823,14 +5835,15 @@ void MessagesManager::update_message_reply_count(Dialog *d, MessageId message_id
   }
   LOG(INFO) << "Update reply count to " << message_id << " in " << d->dialog_id << " by " << diff << " from "
             << reply_message_id << " sent by " << replier_dialog_id;
-  if (m->reply_info.add_reply(replier_dialog_id, reply_message_id, diff)) {
+  if (m->interaction_info_update_date < update_date &&
+      m->reply_info.add_reply(replier_dialog_id, reply_message_id, diff)) {
     on_message_reply_info_changed(d->dialog_id, m);
     on_message_changed(d, m, true, "update_message_reply_count_by_message");
   }
 
   if (!is_recursive && is_discussion_message(d->dialog_id, m)) {
     update_message_reply_count(get_dialog(m->forward_info->from_dialog_id), m->forward_info->from_message_id,
-                               replier_dialog_id, reply_message_id, diff, true);
+                               replier_dialog_id, reply_message_id, update_date, diff, true);
   }
 }
 
@@ -6715,6 +6728,7 @@ bool MessagesManager::update_message_interaction_info(DialogId dialog_id, Messag
                                                       int32 forward_count, bool has_reply_info,
                                                       MessageReplyInfo &&reply_info) {
   CHECK(m != nullptr);
+  m->interaction_info_update_date = G()->unix_time();  // doesn't force message saving
   if (m->message_id.is_valid_scheduled()) {
     has_reply_info = false;
   }
@@ -25605,6 +25619,7 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
         !(m->message_id.is_scheduled() && is_broadcast_channel(to_dialog_id))) {
       m->view_count = forwarded_message->view_count;
       m->forward_count = forwarded_message->forward_count;
+      m->interaction_info_update_date = G()->unix_time();
     }
 
     if (is_game) {
@@ -31760,7 +31775,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       m->forward_info->sender_dialog_id.is_valid() && m->forward_info->message_id.is_valid() &&
       (!is_discussion_message(dialog_id, m) || m->forward_info->sender_dialog_id != m->forward_info->from_dialog_id ||
        m->forward_info->message_id != m->forward_info->from_message_id)) {
-    update_forward_count(m->forward_info->sender_dialog_id, m->forward_info->message_id);
+    update_forward_count(m->forward_info->sender_dialog_id, m->forward_info->message_id, m->date);
   }
 
   return result_message;
@@ -35105,12 +35120,13 @@ void MessagesManager::update_top_dialogs(DialogId dialog_id, const Message *m) {
   }
 }
 
-void MessagesManager::update_forward_count(DialogId dialog_id, MessageId message_id) {
+void MessagesManager::update_forward_count(DialogId dialog_id, MessageId message_id, int32 update_date) {
   CHECK(!td_->auth_manager_->is_bot());
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
   Message *m = get_message_force(d, message_id, "update_forward_count");
-  if (m != nullptr && !m->message_id.is_scheduled() && m->message_id.is_server() && m->view_count > 0) {
+  if (m != nullptr && !m->message_id.is_scheduled() && m->message_id.is_server() && m->view_count > 0 &&
+      m->interaction_info_update_date < update_date) {
     if (m->forward_count == 0) {
       m->forward_count++;
       send_update_message_interaction_info(dialog_id, m);
