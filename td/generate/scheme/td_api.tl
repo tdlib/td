@@ -3189,7 +3189,7 @@ chatStatisticsChannel period:dateRange member_count:statisticalValue mean_view_c
 messageStatistics message_interaction_graph:StatisticalGraph = MessageStatistics;
 
 
-//@description A point on a Cartesian plane @x The point first coordinate @y The point second coordinate
+//@description A point on a Cartesian plane @x The point's first coordinate @y The point's second coordinate
 point x:double y:double = Point;
 
 

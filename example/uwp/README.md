@@ -26,4 +26,4 @@ If you need to restart the build from scratch, call `.\build.ps1 -mode clean` fi
 Now `TDLib` can be freely used from any UWP project, built in Visual Studio.
 
 ## Example of usage
-The `app/` directory contains a simple example of a C# application for Universal Windows Platform. Just open it with Visual Studio 2015 or 2017 and run.
+The `app/` directory contains a simple example of a C# application for Universal Windows Platform. Just open it with Visual Studio 2015 or later and run.
