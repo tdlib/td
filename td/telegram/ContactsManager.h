@@ -201,6 +201,7 @@ class ContactsManager : public Actor {
   void on_update_channel_slow_mode_delay(ChannelId channel_id, int32 slow_mode_delay);
   void on_update_channel_slow_mode_next_send_date(ChannelId channel_id, int32 slow_mode_next_send_date);
   void on_update_channel_is_all_history_available(ChannelId channel_id, bool is_all_history_available);
+  void on_update_channel_group_call(ChannelId channel_id, bool has_active_group_call, bool is_group_call_empty);
   void on_update_channel_default_permissions(ChannelId channel_id, RestrictedRights default_permissions);
   void on_update_channel_administrator_count(ChannelId channel_id, int32 administrator_count);
   void on_update_channel_participant(ChannelId channel_id, UserId user_id, int32 date,
@@ -1027,7 +1028,7 @@ class ContactsManager : public Actor {
   static constexpr int32 CHANNEL_FLAG_HAS_LOCATION = 1 << 21;
   static constexpr int32 CHANNEL_FLAG_IS_SLOW_MODE_ENABLED = 1 << 22;
   static constexpr int32 CHANNEL_FLAG_HAS_ACTIVE_GROUP_CALL = 1 << 23;
-  static constexpr int32 CHANNEL_FLAG_IS_GROUP_CALL_EMPTY = 1 << 24;
+  static constexpr int32 CHANNEL_FLAG_IS_GROUP_CALL_NON_EMPTY = 1 << 24;
 
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_PARTICIPANT_COUNT = 1 << 0;
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_ADMINISTRATOR_COUNT = 1 << 1;

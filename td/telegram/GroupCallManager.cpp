@@ -885,10 +885,16 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       // always update to an ended call, droping also is_joined and is_speaking flags
       *group_call = std::move(call);
       need_update = true;
+      if (group_call->channel_id.is_valid()) {
+        td_->contacts_manager_->on_update_channel_group_call(group_call->channel_id, false, false);
+      }
     } else {
       auto mute_flags_changed = call.mute_new_members != group_call->mute_new_members ||
                                 call.allowed_change_mute_new_members != group_call->allowed_change_mute_new_members;
       if (call.version > group_call->version) {
+        if (group_call->channel_id.is_valid()) {
+          td_->contacts_manager_->on_update_channel_group_call(group_call->channel_id, true, call.member_count == 0);
+        }
         need_update = call.member_count != group_call->member_count || mute_flags_changed;
         *group_call = std::move(call);
       } else if (call.version == group_call->version) {

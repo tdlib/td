@@ -5963,7 +5963,7 @@ void ContactsManager::on_create_channel_group_call(ChannelId channel_id, InputGr
 
   Channel *c = get_channel(channel_id);
   CHECK(c != nullptr);
-  if (!c->has_active_group_call) {
+  if (!c->has_active_group_call || !c->is_group_call_empty) {
     c->has_active_group_call = true;
     c->is_group_call_empty = true;
     c->is_changed = true;
@@ -12285,6 +12285,36 @@ void ContactsManager::on_update_channel_is_all_history_available(ChannelId chann
   }
 }
 
+void ContactsManager::on_update_channel_group_call(ChannelId channel_id, bool has_active_group_call,
+                                                   bool is_group_call_empty) {
+  CHECK(channel_id.is_valid());
+  Channel *c = get_channel_force(channel_id);
+  if (c == nullptr) {
+    return;
+  }
+  if (c->has_active_group_call == has_active_group_call && c->is_group_call_empty == is_group_call_empty) {
+    return;
+  }
+  if (!c->has_active_group_call && !has_active_group_call) {
+    c->is_group_call_empty = false;
+    return;
+  }
+
+  if (c->has_active_group_call && !has_active_group_call) {
+    auto channel_full = get_channel_full(channel_id, "on_update_channel_group_call");
+    if (channel_full != nullptr && channel_full->active_group_call_id.is_valid()) {
+      channel_full->active_group_call_id = InputGroupCallId();
+      channel_full->is_changed = true;
+      update_channel_full(channel_full, channel_id);
+    }
+  }
+
+  c->has_active_group_call = has_active_group_call;
+  c->is_group_call_empty = is_group_call_empty;
+  c->is_changed = true;
+  update_channel(c, channel_id);
+}
+
 void ContactsManager::on_update_channel_default_permissions(ChannelId channel_id,
                                                             RestrictedRights default_permissions) {
   if (!channel_id.is_valid()) {
@@ -13936,7 +13966,7 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
   bool has_linked_channel = (channel.flags_ & CHANNEL_FLAG_HAS_LINKED_CHAT) != 0;
   bool has_location = (channel.flags_ & CHANNEL_FLAG_HAS_LOCATION) != 0;
   bool has_active_group_call = (channel.flags_ & CHANNEL_FLAG_HAS_ACTIVE_GROUP_CALL) != 0;
-  bool is_group_call_empty = (channel.flags_ & CHANNEL_FLAG_IS_GROUP_CALL_EMPTY) != 0;
+  bool is_group_call_empty = (channel.flags_ & CHANNEL_FLAG_IS_GROUP_CALL_NON_EMPTY) == 0;
   bool sign_messages = (channel.flags_ & CHANNEL_FLAG_SIGN_MESSAGES) != 0;
   bool is_slow_mode_enabled = (channel.flags_ & CHANNEL_FLAG_IS_SLOW_MODE_ENABLED) != 0;
   bool is_megagroup = (channel.flags_ & CHANNEL_FLAG_IS_MEGAGROUP) != 0;
@@ -14374,7 +14404,7 @@ td_api::object_ptr<td_api::updateSupergroup> ContactsManager::get_update_unknown
     ChannelId channel_id) {
   return td_api::make_object<td_api::updateSupergroup>(td_api::make_object<td_api::supergroup>(
       channel_id.get(), string(), 0, DialogParticipantStatus::Banned(0).get_chat_member_status_object(), 0, false,
-      false, false, false, false, false, true, false, "", false));
+      false, false, true, false, false, true, false, "", false));
 }
 
 int32 ContactsManager::get_supergroup_id_object(ChannelId channel_id, const char *source) const {
@@ -14396,9 +14426,9 @@ tl_object_ptr<td_api::supergroup> ContactsManager::get_supergroup_object(Channel
   }
   return td_api::make_object<td_api::supergroup>(
       channel_id.get(), c->username, c->date, get_channel_status(c).get_chat_member_status_object(),
-      c->participant_count, c->has_linked_channel, c->has_location, c->has_active_group_call, c->is_group_call_empty,
-      c->sign_messages, c->is_slow_mode_enabled, !c->is_megagroup, c->is_verified,
-      get_restriction_reason_description(c->restriction_reasons), c->is_scam);
+      c->participant_count, c->has_linked_channel, c->has_location, c->has_active_group_call,
+      c->has_active_group_call ? c->is_group_call_empty : true, c->sign_messages, c->is_slow_mode_enabled,
+      !c->is_megagroup, c->is_verified, get_restriction_reason_description(c->restriction_reasons), c->is_scam);
 }
 
 tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_supergroup_full_info_object(ChannelId channel_id) const {
