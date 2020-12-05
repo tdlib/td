@@ -3561,6 +3561,7 @@ void ContactsManager::Channel::store(StorerT &storer) const {
   STORE_FLAG(is_slow_mode_enabled);
   STORE_FLAG(has_restriction_reasons);
   STORE_FLAG(has_active_group_call);
+  STORE_FLAG(is_group_call_empty);
   END_STORE_FLAGS();
 
   store(status, storer);
@@ -3627,6 +3628,7 @@ void ContactsManager::Channel::parse(ParserT &parser) {
   PARSE_FLAG(is_slow_mode_enabled);
   PARSE_FLAG(has_restriction_reasons);
   PARSE_FLAG(has_active_group_call);
+  PARSE_FLAG(is_group_call_empty);
   END_PARSE_FLAGS();
 
   if (use_new_rights) {
@@ -5963,6 +5965,7 @@ void ContactsManager::on_create_channel_group_call(ChannelId channel_id, InputGr
   CHECK(c != nullptr);
   if (!c->has_active_group_call) {
     c->has_active_group_call = true;
+    c->is_group_call_empty = true;
     c->is_changed = true;
     update_channel(c, channel_id);
   }
@@ -9664,6 +9667,9 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
         LOG(ERROR) << "Receive invalid has_active_group_call flag " << c->has_active_group_call << ", but have "
                    << input_group_call_id << " in " << channel_id;
         c->has_active_group_call = has_active_group_call;
+        if (!has_active_group_call) {
+          c->is_group_call_empty = false;
+        }
         c->is_changed = true;
         update_channel(c, channel_id);
       }
@@ -13930,6 +13936,7 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
   bool has_linked_channel = (channel.flags_ & CHANNEL_FLAG_HAS_LINKED_CHAT) != 0;
   bool has_location = (channel.flags_ & CHANNEL_FLAG_HAS_LOCATION) != 0;
   bool has_active_group_call = (channel.flags_ & CHANNEL_FLAG_HAS_ACTIVE_GROUP_CALL) != 0;
+  bool is_group_call_empty = (channel.flags_ & CHANNEL_FLAG_IS_GROUP_CALL_EMPTY) != 0;
   bool sign_messages = (channel.flags_ & CHANNEL_FLAG_SIGN_MESSAGES) != 0;
   bool is_slow_mode_enabled = (channel.flags_ & CHANNEL_FLAG_IS_SLOW_MODE_ENABLED) != 0;
   bool is_megagroup = (channel.flags_ & CHANNEL_FLAG_IS_MEGAGROUP) != 0;
@@ -14035,21 +14042,26 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
   bool need_invalidate_channel_full = false;
   bool need_drop_active_group_call_id = c->has_active_group_call != has_active_group_call;
   if (c->has_linked_channel != has_linked_channel || c->has_location != has_location ||
-      c->has_active_group_call != has_active_group_call || c->sign_messages != sign_messages ||
-      c->is_megagroup != is_megagroup || c->is_verified != is_verified ||
+      c->has_active_group_call != has_active_group_call || c->is_megagroup != is_megagroup ||
       c->restriction_reasons != restriction_reasons || c->is_scam != is_scam) {
     c->has_linked_channel = has_linked_channel;
     c->has_location = has_location;
     c->has_active_group_call = has_active_group_call;
-    c->sign_messages = sign_messages;
     c->is_slow_mode_enabled = is_slow_mode_enabled;
     c->is_megagroup = is_megagroup;
-    c->is_verified = is_verified;
     c->restriction_reasons = std::move(restriction_reasons);
     c->is_scam = is_scam;
 
     c->is_changed = true;
     need_invalidate_channel_full = true;
+  }
+  if (c->is_group_call_empty != is_group_call_empty || c->sign_messages != sign_messages ||
+      c->is_verified != is_verified) {
+    c->is_group_call_empty = is_group_call_empty;
+    c->sign_messages = sign_messages;
+    c->is_verified = is_verified;
+
+    c->is_changed = true;
   }
 
   if (c->cache_version != Channel::CACHE_VERSION) {
@@ -14102,6 +14114,7 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, co
   on_update_channel_default_permissions(c, channel_id, get_restricted_rights(banned_rights));
 
   bool has_active_group_call = false;
+  bool is_group_call_empty = false;
   bool sign_messages = false;
   bool is_slow_mode_enabled = false;
   bool is_megagroup = (channel.flags_ & CHANNEL_FLAG_IS_MEGAGROUP) != 0;
@@ -14125,21 +14138,26 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, co
   }
 
   bool need_invalidate_channel_full = false;
-  if (c->has_active_group_call != has_active_group_call || c->sign_messages != sign_messages ||
-      c->is_slow_mode_enabled != is_slow_mode_enabled || c->is_megagroup != is_megagroup ||
-      c->is_verified != is_verified || !c->restriction_reasons.empty() || c->is_scam != is_scam) {
+  if (c->has_active_group_call != has_active_group_call || c->is_slow_mode_enabled != is_slow_mode_enabled ||
+      c->is_megagroup != is_megagroup || !c->restriction_reasons.empty() || c->is_scam != is_scam) {
     // c->has_linked_channel = has_linked_channel;
     // c->has_location = has_location;
     c->has_active_group_call = has_active_group_call;
-    c->sign_messages = sign_messages;
     c->is_slow_mode_enabled = is_slow_mode_enabled;
     c->is_megagroup = is_megagroup;
-    c->is_verified = is_verified;
     c->restriction_reasons.clear();
     c->is_scam = is_scam;
 
     c->is_changed = true;
     need_invalidate_channel_full = true;
+  }
+  if (c->is_group_call_empty != is_group_call_empty || c->sign_messages != sign_messages ||
+      c->is_verified != is_verified) {
+    c->is_group_call_empty = is_group_call_empty;
+    c->sign_messages = sign_messages;
+    c->is_verified = is_verified;
+
+    c->is_changed = true;
   }
 
   if (c->cache_version != Channel::CACHE_VERSION) {
@@ -14356,7 +14374,7 @@ td_api::object_ptr<td_api::updateSupergroup> ContactsManager::get_update_unknown
     ChannelId channel_id) {
   return td_api::make_object<td_api::updateSupergroup>(td_api::make_object<td_api::supergroup>(
       channel_id.get(), string(), 0, DialogParticipantStatus::Banned(0).get_chat_member_status_object(), 0, false,
-      false, false, false, false, true, false, "", false));
+      false, false, false, false, false, true, false, "", false));
 }
 
 int32 ContactsManager::get_supergroup_id_object(ChannelId channel_id, const char *source) const {
@@ -14378,8 +14396,8 @@ tl_object_ptr<td_api::supergroup> ContactsManager::get_supergroup_object(Channel
   }
   return td_api::make_object<td_api::supergroup>(
       channel_id.get(), c->username, c->date, get_channel_status(c).get_chat_member_status_object(),
-      c->participant_count, c->has_linked_channel, c->has_location, c->has_active_group_call, c->sign_messages,
-      c->is_slow_mode_enabled, !c->is_megagroup, c->is_verified,
+      c->participant_count, c->has_linked_channel, c->has_location, c->has_active_group_call, c->is_group_call_empty,
+      c->sign_messages, c->is_slow_mode_enabled, !c->is_megagroup, c->is_verified,
       get_restriction_reason_description(c->restriction_reasons), c->is_scam);
 }
 

@@ -571,13 +571,14 @@ basicGroupFullInfo photo:chatPhoto description:string creator_user_id:int32 memb
 //@has_linked_chat True, if the channel has a discussion group, or the supergroup is the designated discussion group for a channel
 //@has_location True, if the supergroup is connected to a location, i.e. the supergroup is a location-based supergroup
 //@has_voice_chat True, if the supergroup has active voice chat
+//@is_voice_chat_empty True, if the supergroup's active voice chat is empty
 //@sign_messages True, if messages sent to the channel should contain information about the sender. This field is only applicable to channels
 //@is_slow_mode_enabled True, if the slow mode is enabled in the supergroup
 //@is_channel True, if the supergroup is a channel
 //@is_verified True, if the supergroup or channel is verified
 //@restriction_reason If non-empty, contains a human-readable description of the reason why access to this supergroup or channel must be restricted
 //@is_scam True, if many users reported this supergroup as a scam
-supergroup id:int32 username:string date:int32 status:ChatMemberStatus member_count:int32 has_linked_chat:Bool has_location:Bool has_voice_chat:Bool sign_messages:Bool is_slow_mode_enabled:Bool is_channel:Bool is_verified:Bool restriction_reason:string is_scam:Bool = Supergroup;
+supergroup id:int32 username:string date:int32 status:ChatMemberStatus member_count:int32 has_linked_chat:Bool has_location:Bool has_voice_chat:Bool is_voice_chat_empty:Bool sign_messages:Bool is_slow_mode_enabled:Bool is_channel:Bool is_verified:Bool restriction_reason:string is_scam:Bool = Supergroup;
 
 //@description Contains full information about a supergroup or channel
 //@photo Chat photo; may be null
@@ -4200,8 +4201,8 @@ leaveChat chat_id:int53 = Ok;
 //@chat_id Chat identifier @user_id Identifier of the user @forward_limit The number of earlier messages from the chat to be forwarded to the new member; up to 100. Ignored for supergroups and channels
 addChatMember chat_id:int53 user_id:int32 forward_limit:int32 = Ok;
 
-//@description Adds multiple new members to a chat. Currently this option is only available for supergroups and channels. This option can't be used to join a chat. Members can't be added to a channel if it has more than 200 members. Members will not be added until the chat state has been synchronized with the server
-//@chat_id Chat identifier @user_ids Identifiers of the users to be added to the chat
+//@description Adds multiple new members to a chat. Currently this method is only available for supergroups and channels. This method can't be used to join a chat. Members can't be added to a channel if it has more than 200 members. Members will not be added until the chat state has been synchronized with the server
+//@chat_id Chat identifier @user_ids Identifiers of the users to be added to the chat. The maximum number of added users is 20 for supergroups and 100 for channels
 addChatMembers chat_id:int53 user_ids:vector<int32> = Ok;
 
 //@description Changes the status of a chat member, needs appropriate privileges. This function is currently not suitable for adding new members to the chat and transferring chat ownership; instead, use addChatMember or transferChatOwnership. The chat member status will not be changed until it has been synchronized with the server
@@ -4341,7 +4342,7 @@ joinGroupCall group_call_id:int32 payload:groupCallPayload source:int32 is_muted
 toggleGroupCallMuteNewMembers group_call_id:int32 mute_new_members:Bool = Ok;
 
 //@description Invites users to a group call. Sends a service message of type messageInviteToGroupCall for voice chats
-//@group_call_id Group call identifier @user_ids User identifiers
+//@group_call_id Group call identifier @user_ids User identifiers. At most 10 users can be invited simultaneously
 inviteGroupCallMembers group_call_id:int32 user_ids:vector<int32> = Ok;
 
 //@description Informs TDLib that a group call member speaking state has changed @group_call_id Group call identifier
