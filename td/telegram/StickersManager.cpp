@@ -1401,14 +1401,18 @@ vector<td_api::object_ptr<td_api::closedVectorPath>> StickersManager::get_sticke
       break;
     }
 
-    if (path[pos] == 'm') {
-      pos++;
-      x += get_number();
-      y += get_number();
-    } else if (path[pos] == 'M') {
-      pos++;
-      x = get_number();
-      y = get_number();
+    while (path[pos] == 'm' || path[pos] == 'M') {
+      auto command = path[pos++];
+      do {
+        if (command == 'm') {
+          x += get_number();
+          y += get_number();
+        } else {
+          x = get_number();
+          y = get_number();
+        }
+        skip_commas();
+      } while (path[pos] != '\0' && !is_alpha(path[pos]));
     }
 
     double start_x = x;
@@ -1419,7 +1423,7 @@ vector<td_api::object_ptr<td_api::closedVectorPath>> StickersManager::get_sticke
     double last_end_control_point_x = 0;
     double last_end_control_point_y = 0;
     bool is_closed = false;
-    char command = '\0';
+    char command = '-';
     while (!is_closed) {
       skip_commas();
       if (path[pos] == '\0') {
@@ -1506,7 +1510,7 @@ vector<td_api::object_ptr<td_api::closedVectorPath>> StickersManager::get_sticke
           is_closed = true;
           break;
         default:
-          LOG(ERROR) << "Receive invalid command " << command << " in " << path;
+          LOG(ERROR) << "Receive invalid command " << command << " at pos " << pos << " in " << path;
           return {};
       }
     }
