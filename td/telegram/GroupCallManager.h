@@ -77,6 +77,10 @@ class GroupCallManager : public Actor {
 
   void on_send_speaking_action_timeout(GroupCallId group_call_id);
 
+  static void on_recent_speaker_update_timeout_callback(void *group_call_manager_ptr, int64 group_call_id_int);
+
+  void on_recent_speaker_update_timeout(GroupCallId group_call_id);
+
   Result<InputGroupCallId> get_input_group_call_id(GroupCallId group_call_id);
 
   GroupCallId get_next_group_call_id(InputGroupCallId input_group_call_id);
@@ -101,14 +105,14 @@ class GroupCallManager : public Actor {
   InputGroupCallId update_group_call(const tl_object_ptr<telegram_api::GroupCall> &group_call_ptr,
                                      ChannelId channel_id);
 
-  void on_group_call_recent_speakers_updated(GroupCall *group_call);
+  void on_group_call_recent_speakers_updated(const GroupCall *group_call, GroupCallRecentSpeakers *recent_speakers);
 
   static Result<td_api::object_ptr<td_api::groupCallJoinResponse>> get_group_call_join_response_object(
       string json_response);
 
   tl_object_ptr<td_api::updateGroupCall> get_update_group_call_object(const GroupCall *group_call) const;
 
-  tl_object_ptr<td_api::groupCall> get_group_call_object(const GroupCall *group_call) const;
+  tl_object_ptr<td_api::groupCall> get_group_call_object(const GroupCall *group_call, bool for_update = false) const;
 
   Td *td_;
   ActorShared<> parent_;
@@ -128,6 +132,7 @@ class GroupCallManager : public Actor {
   uint64 join_group_request_generation_ = 0;
 
   MultiTimeout pending_send_speaking_action_timeout_{"PendingSendSpeakingActionTimeout"};
+  MultiTimeout recent_speaker_update_timeout_{"RecentSpeakerUpdateTimeout"};
 };
 
 }  // namespace td
