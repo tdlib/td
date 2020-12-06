@@ -354,6 +354,10 @@ class DialogParticipantStatus {
     }
     type_ = static_cast<Type>(stored_flags >> TYPE_SHIFT);
     flags_ = stored_flags & ((1 << TYPE_SHIFT) - 1);
+
+    if (is_creator()) {
+      flags_ |= ALL_ADMINISTRATOR_RIGHTS | ALL_PERMISSION_RIGHTS;
+    }
   }
 
   friend bool operator==(const DialogParticipantStatus &lhs, const DialogParticipantStatus &rhs);
