@@ -609,6 +609,13 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id,
                                        Promise<td_api::object_ptr<td_api::groupCallJoinResponse>> &&promise) {
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
 
+  auto *group_call = get_group_call(input_group_call_id);
+  CHECK(group_call != nullptr);
+  if (group_call->is_joined) {
+    CHECK(group_call->is_inited);
+    return promise.set_error(Status::Error(400, "Group call is already joined"));
+  }
+
   if (pending_join_requests_.count(input_group_call_id)) {
     auto it = pending_join_requests_.find(input_group_call_id);
     CHECK(it != pending_join_requests_.end());
