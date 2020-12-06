@@ -2065,12 +2065,13 @@ callStateError error:error = CallState;
 //@description Describes a group call
 //@id Group call identifier
 //@is_active True, if the call is active
+//@is_joined True, if the call is joined
 //@member_count Number of members in the group call
 //@recent_speaker_user_ids Identifiers of recently speaking users in the group call
 //@mute_new_members True, if only group call administrators can unmute new members
 //@allowed_change_mute_new_members True, if group call administrators can enable or disable mute_new_members setting
 //@duration Call duration; for ended calls only
-groupCall id:int32 is_active:Bool member_count:int32 recent_speaker_user_ids:vector<int32> mute_new_members:Bool allowed_change_mute_new_members:Bool duration:int32 = GroupCall;
+groupCall id:int32 is_active:Bool is_joined:Bool member_count:int32 recent_speaker_user_ids:vector<int32> mute_new_members:Bool allowed_change_mute_new_members:Bool duration:int32 = GroupCall;
 
 //@description Describes a payload fingerprint for interaction with tgcalls @hash Value of the field hash @setup Value of the field setup @fingerprint Value of the field fingerprint
 groupCallPayloadFingerprint hash:string setup:string fingerprint:string = GroupCallPayloadFingerprint;
@@ -4352,7 +4353,7 @@ setGroupCallMemberIsSpeaking group_call_id:int32 source:int32 is_speaking:Bool =
 //@group_call_id Group call identifier @user_id User identifier @is_muted Pass true if the user must be muted and false otherwise
 toggleGroupCallMemberIsMuted group_call_id:int32 user_id:int32 is_muted:Bool = Ok;
 
-//@description Checks whether a group call is still joined. Should be called after connection with the server has been lost. Returns an error with a message "GROUP_CALL_JOIN_MISSING" for non-joined calls @group_call_id Group call identifier
+//@description Checks whether a group call is still joined. Should be called every 10 seconds when tgcalls notifies about lost connection with the server @group_call_id Group call identifier
 checkGroupCallIsJoined group_call_id:int32 = Ok;
 
 //@description Leaves a group call @group_call_id Group call identifier

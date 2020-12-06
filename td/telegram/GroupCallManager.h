@@ -92,7 +92,7 @@ class GroupCallManager : public Actor {
   void finish_get_group_call(InputGroupCallId input_group_call_id,
                              Result<tl_object_ptr<telegram_api::phone_groupCall>> &&result);
 
-  void on_join_group_call_response(InputGroupCallId input_group_call_id, string json_response);
+  bool on_join_group_call_response(InputGroupCallId input_group_call_id, string json_response);
 
   void finish_join_group_call(InputGroupCallId input_group_call_id, uint64 generation, Status error);
 

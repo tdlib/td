@@ -670,14 +670,15 @@ Result<td_api::object_ptr<td_api::groupCallJoinResponse>> GroupCallManager::get_
   return td_api::make_object<td_api::groupCallJoinResponse>(std::move(payload), std::move(candidates_object));
 }
 
-void GroupCallManager::on_join_group_call_response(InputGroupCallId input_group_call_id, string json_response) {
+bool GroupCallManager::on_join_group_call_response(InputGroupCallId input_group_call_id, string json_response) {
   auto it = pending_join_requests_.find(input_group_call_id);
   if (it == pending_join_requests_.end()) {
-    return;
+    return false;
   }
   CHECK(it->second != nullptr);
 
   auto result = get_group_call_join_response_object(std::move(json_response));
+  bool need_update = false;
   if (result.is_error()) {
     LOG(ERROR) << "Failed to parse join response JSON object: " << result.error().message();
     it->second->promise.set_error(Status::Error(500, "Receive invalid join group call response payload"));
@@ -687,8 +688,10 @@ void GroupCallManager::on_join_group_call_response(InputGroupCallId input_group_
     group_call->is_joined = true;
     group_call->source = it->second->source;
     it->second->promise.set_value(result.move_as_ok());
+    need_update = true;
   }
   pending_join_requests_.erase(it);
+  return need_update;
 }
 
 void GroupCallManager::finish_join_group_call(InputGroupCallId input_group_call_id, uint64 generation, Status error) {
@@ -781,8 +784,11 @@ void GroupCallManager::check_group_call_is_joined(GroupCallId group_call_id, Pro
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
 
   auto *group_call = get_group_call(input_group_call_id);
-  if (group_call == nullptr || !group_call->is_inited || !group_call->is_active || !group_call->is_joined) {
+  if (group_call == nullptr || !group_call->is_inited) {
     return promise.set_error(Status::Error(400, "GROUP_CALL_JOIN_MISSING"));
+  }
+  if (!group_call->is_active || !group_call->is_joined) {
+    return promise.set_value(Unit());
   }
   auto source = group_call->source;
 
@@ -790,6 +796,7 @@ void GroupCallManager::check_group_call_is_joined(GroupCallId group_call_id, Pro
                                                promise = std::move(promise)](Result<Unit> &&result) mutable {
     if (result.is_error() && result.error().message() == "GROUP_CALL_JOIN_MISSING") {
       send_closure(actor_id, &GroupCallManager::on_group_call_left, input_group_call_id, source);
+      result = Unit();
     }
     promise.set_result(std::move(result));
   });
@@ -822,6 +829,7 @@ void GroupCallManager::on_group_call_left(InputGroupCallId input_group_call_id, 
     group_call->is_joined = false;
     group_call->is_speaking = false;
     group_call->source = 0;
+    send_closure(G()->td(), &Td::send_update, get_update_group_call_object(group_call));
   }
 }
 
@@ -927,7 +935,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
     group_call->channel_id = channel_id;
   }
   if (!join_params.empty()) {
-    on_join_group_call_response(call_id, std::move(join_params));
+    need_update |= on_join_group_call_response(call_id, std::move(join_params));
   }
   if (need_update) {
     send_closure(G()->td(), &Td::send_update, get_update_group_call_object(group_call));
@@ -1003,8 +1011,8 @@ tl_object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(const G
   }
 
   return td_api::make_object<td_api::groupCall>(group_call->group_call_id.get(), group_call->is_active,
-                                                group_call->member_count, std::move(recent_speaker_user_ids),
-                                                group_call->mute_new_members,
+                                                group_call->is_joined, group_call->member_count,
+                                                std::move(recent_speaker_user_ids), group_call->mute_new_members,
                                                 group_call->allowed_change_mute_new_members, group_call->duration);
 }
 
