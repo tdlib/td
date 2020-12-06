@@ -97,6 +97,37 @@ class GetGroupCallQuery : public Td::ResultHandler {
   }
 };
 
+class GetGroupCallParticipantQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  InputGroupCallId input_group_call_id_;
+
+ public:
+  explicit GetGroupCallParticipantQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(InputGroupCallId input_group_call_id, vector<int32> user_ids, vector<int32> sources) {
+    input_group_call_id_ = input_group_call_id;
+    auto limit = narrow_cast<int32>(max(user_ids.size(), sources.size()));
+    send_query(G()->net_query_creator().create(telegram_api::phone_getGroupParticipants(
+        input_group_call_id.get_input_group_call(), std::move(user_ids), std::move(sources), string(), limit)));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::phone_getGroupParticipants>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    td->group_call_manager_->on_get_group_call_participants(input_group_call_id_, result_ptr.move_as_ok(), false);
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(uint64 id, Status status) override {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class JoinGroupCallQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   InputGroupCallId input_group_call_id_;
@@ -552,6 +583,26 @@ void GroupCallManager::finish_get_group_call(InputGroupCallId input_group_call_i
   }
 }
 
+void GroupCallManager::on_get_group_call_participants(
+    InputGroupCallId input_group_call_id, tl_object_ptr<telegram_api::phone_groupParticipants> &&participants,
+    bool is_load) {
+  LOG(INFO) << "Receive group call members: " << to_string(participants);
+
+  CHECK(participants != nullptr);
+  td_->contacts_manager_->on_get_users(std::move(participants->users_), "on_get_group_call_participants");
+
+  process_group_call_participants(std::move(participants->participants_));
+
+  if (is_load) {
+    // TODO use count, next_offset, version
+  }
+}
+
+void GroupCallManager::process_group_call_participants(
+    vector<tl_object_ptr<telegram_api::groupCallParticipant>> &&participants) {
+  // TODO
+}
+
 void GroupCallManager::join_group_call(GroupCallId group_call_id,
                                        td_api::object_ptr<td_api::groupCallPayload> &&payload, int32 source,
                                        bool is_muted,
@@ -976,7 +1027,11 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
   return call_id;
 }
 
-void GroupCallManager::on_user_speaking_in_group_call(GroupCallId group_call_id, UserId user_id, int32 date) {
+void GroupCallManager::on_user_speaking_in_group_call(GroupCallId group_call_id, UserId user_id, int32 date,
+                                                      bool recursive) {
+  if (G()->close_flag()) {
+    return;
+  }
   if (date < G()->unix_time() - RECENT_SPEAKER_TIMEOUT) {
     return;
   }
@@ -985,6 +1040,23 @@ void GroupCallManager::on_user_speaking_in_group_call(GroupCallId group_call_id,
 
   auto *group_call = get_group_call(input_group_call_id);
   if (group_call != nullptr && group_call->is_inited && !group_call->is_active) {
+    return;
+  }
+
+  if (!td_->contacts_manager_->have_user_force(user_id)) {
+    if (recursive) {
+      LOG(ERROR) << "Failed to find speaking " << user_id << " from " << input_group_call_id << " in "
+                 << group_call->channel_id;
+    } else {
+      auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, user_id,
+                                                   date](Result<Unit> &&result) {
+        if (!G()->close_flag() && result.is_ok()) {
+          send_closure(actor_id, &GroupCallManager::on_user_speaking_in_group_call, group_call_id, user_id, date, true);
+        }
+      });
+      td_->create_handler<GetGroupCallParticipantQuery>(std::move(query_promise))
+          ->send(input_group_call_id, {user_id.get()}, {});
+    }
     return;
   }
 
@@ -1011,8 +1083,6 @@ void GroupCallManager::on_user_speaking_in_group_call(GroupCallId group_call_id,
       return;
     }
   }
-
-  td_->contacts_manager_->get_user_id_object(user_id, "on_user_speaking_in_group_call");
 
   for (size_t i = 0; i < recent_speakers->users.size(); i++) {
     if (recent_speakers->users[i].second <= date) {

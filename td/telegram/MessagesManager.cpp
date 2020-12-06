@@ -6993,10 +6993,6 @@ void MessagesManager::on_user_dialog_action(DialogId dialog_id, MessageId top_th
   if (td_->auth_manager_->is_bot() || !user_id.is_valid() || is_broadcast_channel(dialog_id)) {
     return;
   }
-  if (!td_->contacts_manager_->have_min_user(user_id)) {
-    LOG(DEBUG) << "Ignore typing of unknown " << user_id;
-    return;
-  }
   if (top_thread_message_id != MessageId() && !top_thread_message_id.is_valid()) {
     LOG(ERROR) << "Ignore typing in the message thread of " << top_thread_message_id;
     return;
@@ -7015,6 +7011,10 @@ void MessagesManager::on_user_dialog_action(DialogId dialog_id, MessageId top_th
     return;
   }
 
+  if (!td_->contacts_manager_->have_min_user(user_id)) {
+    LOG(DEBUG) << "Ignore typing of unknown " << user_id;
+    return;
+  }
   if (!have_dialog(dialog_id)) {
     LOG(DEBUG) << "Ignore typing in unknown " << dialog_id;
     return;
