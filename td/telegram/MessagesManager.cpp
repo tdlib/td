@@ -22,6 +22,7 @@
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/GroupCallManager.h"
 #include "td/telegram/InlineQueriesManager.h"
 #include "td/telegram/InputMessageText.h"
 #include "td/telegram/Location.h"
@@ -6992,16 +6993,30 @@ void MessagesManager::on_user_dialog_action(DialogId dialog_id, MessageId top_th
   if (td_->auth_manager_->is_bot() || !user_id.is_valid() || is_broadcast_channel(dialog_id)) {
     return;
   }
-  if (!have_dialog(dialog_id)) {
-    LOG(DEBUG) << "Ignore typing in unknown " << dialog_id;
-    return;
-  }
   if (!td_->contacts_manager_->have_min_user(user_id)) {
     LOG(DEBUG) << "Ignore typing of unknown " << user_id;
     return;
   }
   if (top_thread_message_id != MessageId() && !top_thread_message_id.is_valid()) {
     LOG(ERROR) << "Ignore typing in the message thread of " << top_thread_message_id;
+    return;
+  }
+
+  if (action == DialogAction::get_speaking_action()) {
+    if (dialog_id.get_type() != DialogType::Channel || top_thread_message_id.is_valid()) {
+      LOG(ERROR) << "Receive " << action << " in thread of " << top_thread_message_id << " in " << dialog_id;
+      return;
+    }
+
+    auto group_call_id = td_->contacts_manager_->get_channel_active_group_call_id(dialog_id.get_channel_id());
+    if (group_call_id.is_valid()) {
+      td_->group_call_manager_->on_user_speaking_in_group_call(group_call_id, user_id, date);
+    }
+    return;
+  }
+
+  if (!have_dialog(dialog_id)) {
+    LOG(DEBUG) << "Ignore typing in unknown " << dialog_id;
     return;
   }
 

@@ -501,6 +501,7 @@ class ContactsManager : public Actor {
   bool get_channel_has_linked_channel(ChannelId channel_id) const;
   ChannelId get_channel_linked_channel_id(ChannelId channel_id);
   int32 get_channel_slow_mode_delay(ChannelId channel_id);
+  GroupCallId get_channel_active_group_call_id(ChannelId channel_id);
 
   std::pair<int32, vector<UserId>> search_among_users(const vector<UserId> &user_ids, const string &query, int32 limit);
 

@@ -18,6 +18,8 @@
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/Random.h"
 
+#include <utility>
+
 namespace td {
 
 class CreateGroupCallQuery : public Td::ResultHandler {
@@ -346,6 +348,10 @@ struct GroupCallManager::GroupCall {
   int32 source = 0;
 };
 
+struct GroupCallManager::GroupCallRecentSpeakers {
+  vector<std::pair<UserId, int32>> users;  // user + time; sorted by time
+};
+
 struct GroupCallManager::PendingJoinRequest {
   NetQueryRef query_ref;
   uint64 generation = 0;
@@ -385,6 +391,8 @@ void GroupCallManager::on_send_speaking_action_timeout(GroupCallId group_call_id
   if (!group_call->is_joined || !group_call->is_speaking) {
     return;
   }
+
+  on_user_speaking_in_group_call(group_call_id, td_->contacts_manager_->get_my_id(), G()->unix_time());
 
   pending_send_speaking_action_timeout_.add_timeout_in(group_call_id.get(), 4.0);
 
@@ -749,7 +757,13 @@ void GroupCallManager::set_group_call_member_is_speaking(GroupCallId group_call_
     return promise.set_value(Unit());
   }
 
-  // TODO process others speaking actions
+  if (is_speaking) {
+    // TODO convert source to user_id
+    // on_user_speaking_in_group_call(group_call_id, user_id, G()->unix_time());
+  }
+
+  // TODO update member list by others speaking actions
+
   promise.set_value(Unit());
 }
 
@@ -906,7 +920,9 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       }
     }
   }
-
+  if (!group_call->is_active && group_call_recent_speakers_.erase(group_call->group_call_id) != 0) {
+    need_update = true;
+  }
   if (!group_call->channel_id.is_valid()) {
     group_call->channel_id = channel_id;
   }
@@ -919,15 +935,81 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
   return call_id;
 }
 
-tl_object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(const GroupCall *group_call) {
+void GroupCallManager::on_user_speaking_in_group_call(GroupCallId group_call_id, UserId user_id, int32 date) {
+  auto input_group_call_id = get_input_group_call_id(group_call_id).move_as_ok();
+
+  auto *group_call = get_group_call(input_group_call_id);
+  if (group_call != nullptr && group_call->is_inited && !group_call->is_active) {
+    return;
+  }
+
+  auto &recent_speakers = group_call_recent_speakers_[group_call_id];
+  if (recent_speakers == nullptr) {
+    recent_speakers = make_unique<GroupCallRecentSpeakers>();
+  }
+
+  for (size_t i = 0; i < recent_speakers->users.size(); i++) {
+    if (recent_speakers->users[i].first == user_id) {
+      if (recent_speakers->users[i].second >= date) {
+        return;
+      }
+      recent_speakers->users[i].second = date;
+      bool is_updated = false;
+      while (i > 0 && recent_speakers->users[i - 1].second < date) {
+        std::swap(recent_speakers->users[i - 1], recent_speakers->users[i]);
+        i--;
+        is_updated = true;
+      }
+      if (is_updated) {
+        on_group_call_recent_speakers_updated(group_call);
+      }
+      return;
+    }
+  }
+
+  td_->contacts_manager_->get_user_id_object(user_id, "on_user_speaking_in_group_call");
+
+  for (size_t i = 0; i < recent_speakers->users.size(); i++) {
+    if (recent_speakers->users[i].second <= date) {
+      recent_speakers->users.insert(recent_speakers->users.begin() + i, {user_id, date});
+    }
+  }
+  static constexpr size_t MAX_RECENT_SPEAKERS = 3;
+  if (recent_speakers->users.size() > MAX_RECENT_SPEAKERS) {
+    recent_speakers->users.pop_back();
+  }
+
+  on_group_call_recent_speakers_updated(group_call);
+}
+
+void GroupCallManager::on_group_call_recent_speakers_updated(GroupCall *group_call) {
+  if (group_call == nullptr || !group_call->is_inited) {
+    return;
+  }
+
+  send_closure(G()->td(), &Td::send_update, get_update_group_call_object(group_call));
+}
+
+tl_object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(const GroupCall *group_call) const {
   CHECK(group_call != nullptr);
   CHECK(group_call->is_inited);
+
+  vector<int32> recent_speaker_user_ids;
+  auto recent_speakers_it = group_call_recent_speakers_.find(group_call->group_call_id);
+  if (recent_speakers_it != group_call_recent_speakers_.end()) {
+    for (auto &recent_speaker : recent_speakers_it->second->users) {
+      recent_speaker_user_ids.push_back(recent_speaker.first.get());
+    }
+  }
+
   return td_api::make_object<td_api::groupCall>(group_call->group_call_id.get(), group_call->is_active,
-                                                group_call->member_count, group_call->mute_new_members,
+                                                group_call->member_count, std::move(recent_speaker_user_ids),
+                                                group_call->mute_new_members,
                                                 group_call->allowed_change_mute_new_members, group_call->duration);
 }
 
-tl_object_ptr<td_api::updateGroupCall> GroupCallManager::get_update_group_call_object(const GroupCall *group_call) {
+tl_object_ptr<td_api::updateGroupCall> GroupCallManager::get_update_group_call_object(
+    const GroupCall *group_call) const {
   return td_api::make_object<td_api::updateGroupCall>(get_group_call_object(group_call));
 }
 

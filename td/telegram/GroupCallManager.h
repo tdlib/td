@@ -61,11 +61,14 @@ class GroupCallManager : public Actor {
 
   void on_update_group_call(tl_object_ptr<telegram_api::GroupCall> group_call_ptr, ChannelId channel_id);
 
+  void on_user_speaking_in_group_call(GroupCallId group_call_id, UserId user_id, int32 date);
+
   void process_join_group_call_response(InputGroupCallId input_group_call_id, uint64 generation,
                                         tl_object_ptr<telegram_api::Updates> &&updates, Promise<Unit> &&promise);
 
  private:
   struct GroupCall;
+  struct GroupCallRecentSpeakers;
   struct PendingJoinRequest;
 
   void tear_down() override;
@@ -98,12 +101,14 @@ class GroupCallManager : public Actor {
   InputGroupCallId update_group_call(const tl_object_ptr<telegram_api::GroupCall> &group_call_ptr,
                                      ChannelId channel_id);
 
+  void on_group_call_recent_speakers_updated(GroupCall *group_call);
+
   static Result<td_api::object_ptr<td_api::groupCallJoinResponse>> get_group_call_join_response_object(
       string json_response);
 
-  static tl_object_ptr<td_api::updateGroupCall> get_update_group_call_object(const GroupCall *group_call);
+  tl_object_ptr<td_api::updateGroupCall> get_update_group_call_object(const GroupCall *group_call) const;
 
-  static tl_object_ptr<td_api::groupCall> get_group_call_object(const GroupCall *group_call);
+  tl_object_ptr<td_api::groupCall> get_group_call_object(const GroupCall *group_call) const;
 
   Td *td_;
   ActorShared<> parent_;
@@ -113,6 +118,8 @@ class GroupCallManager : public Actor {
   vector<InputGroupCallId> input_group_call_ids_;
 
   std::unordered_map<InputGroupCallId, unique_ptr<GroupCall>, InputGroupCallIdHash> group_calls_;
+
+  std::unordered_map<GroupCallId, unique_ptr<GroupCallRecentSpeakers>, GroupCallIdHash> group_call_recent_speakers_;
 
   std::unordered_map<InputGroupCallId, vector<Promise<td_api::object_ptr<td_api::groupCall>>>, InputGroupCallIdHash>
       load_group_call_queries_;

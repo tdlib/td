@@ -2068,10 +2068,11 @@ callStateError error:error = CallState;
 //@id Group call identifier
 //@is_active True, if the call is active
 //@member_count Number of members in the group call
+//@recent_speaker_user_ids Identifiers of recently speaking users in the group call
 //@mute_new_members True, if only group call administrators can unmute new members
 //@allowed_change_mute_new_members True, if group call administrators can enable or disable mute_new_members setting
 //@duration Call duration; for ended calls only
-groupCall id:int32 is_active:Bool member_count:int32 mute_new_members:Bool allowed_change_mute_new_members:Bool duration:int32 = GroupCall;
+groupCall id:int32 is_active:Bool member_count:int32 recent_speaker_user_ids:vector<int32> mute_new_members:Bool allowed_change_mute_new_members:Bool duration:int32 = GroupCall;
 
 //@description Describes a payload fingerprint for interaction with tgcalls @hash Value of the field hash @setup Value of the field setup @fingerprint Value of the field fingerprint
 groupCallPayloadFingerprint hash:string setup:string fingerprint:string = GroupCallPayloadFingerprint;

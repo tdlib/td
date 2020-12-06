@@ -13161,6 +13161,17 @@ int32 ContactsManager::get_channel_slow_mode_delay(ChannelId channel_id) {
   return channel_full->slow_mode_delay;
 }
 
+GroupCallId ContactsManager::get_channel_active_group_call_id(ChannelId channel_id) {
+  auto channel_full = get_channel_full_const(channel_id);
+  if (channel_full == nullptr) {
+    channel_full = get_channel_full_force(channel_id, "get_channel_active_group_call_id");
+    if (channel_full == nullptr) {
+      return GroupCallId();
+    }
+  }
+  return td_->group_call_manager_->get_group_call_id(channel_full->active_group_call_id, channel_id);
+}
+
 bool ContactsManager::have_channel(ChannelId channel_id) const {
   return channels_.count(channel_id) > 0;
 }
