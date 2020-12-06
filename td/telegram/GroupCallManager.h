@@ -116,6 +116,8 @@ class GroupCallManager : public Actor {
 
   tl_object_ptr<td_api::groupCall> get_group_call_object(const GroupCall *group_call, bool for_update = false) const;
 
+  void send_update_group_call(const GroupCall *group_call) const;
+
   Td *td_;
   ActorShared<> parent_;
 

@@ -446,7 +446,7 @@ void GroupCallManager::on_recent_speaker_update_timeout(GroupCallId group_call_i
     }
   }
 
-  send_closure(G()->td(), &Td::send_update, get_update_group_call_object(group_call));
+  send_update_group_call(group_call);
 }
 
 GroupCallId GroupCallManager::get_group_call_id(InputGroupCallId input_group_call_id, ChannelId channel_id) {
@@ -878,7 +878,7 @@ void GroupCallManager::on_group_call_left(InputGroupCallId input_group_call_id, 
     group_call->is_joined = false;
     group_call->is_speaking = false;
     group_call->source = 0;
-    send_closure(G()->td(), &Td::send_update, get_update_group_call_object(group_call));
+    send_update_group_call(group_call);
   }
 }
 
@@ -987,7 +987,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
     need_update |= on_join_group_call_response(call_id, std::move(join_params));
   }
   if (need_update) {
-    send_closure(G()->td(), &Td::send_update, get_update_group_call_object(group_call));
+    send_update_group_call(group_call);
   }
   return call_id;
 }
@@ -1088,7 +1088,7 @@ tl_object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(const G
 
       if (!for_update) {
         // the change must be received through update first
-        send_closure(G()->td(), &Td::send_update, get_update_group_call_object(group_call));
+        send_update_group_call(group_call);
       }
     }
   }
@@ -1102,6 +1102,10 @@ tl_object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(const G
 tl_object_ptr<td_api::updateGroupCall> GroupCallManager::get_update_group_call_object(
     const GroupCall *group_call) const {
   return td_api::make_object<td_api::updateGroupCall>(get_group_call_object(group_call, true));
+}
+
+void GroupCallManager::send_update_group_call(const GroupCall *group_call) const {
+  send_closure(G()->td(), &Td::send_update, get_update_group_call_object(group_call));
 }
 
 }  // namespace td
