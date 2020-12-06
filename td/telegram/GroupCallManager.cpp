@@ -855,8 +855,7 @@ void GroupCallManager::set_group_call_member_is_speaking(GroupCallId group_call_
   }
 
   if (is_speaking) {
-    // TODO convert source to user_id
-    // on_user_speaking_in_group_call(group_call_id, user_id, G()->unix_time());
+    on_source_speaking_in_group_call(group_call_id, source, G()->unix_time(), false);
   }
 
   // TODO update member list by others speaking actions
@@ -1113,6 +1112,28 @@ void GroupCallManager::on_user_speaking_in_group_call(GroupCallId group_call_id,
   on_group_call_recent_speakers_updated(group_call, recent_speakers.get());
 }
 
+void GroupCallManager::on_source_speaking_in_group_call(GroupCallId group_call_id, int32 source, int32 date,
+                                                        bool recursive) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  UserId user_id = get_group_call_member_by_source(group_call_id, source);
+  if (user_id.is_valid()) {
+    on_user_speaking_in_group_call(group_call_id, user_id, G()->unix_time());
+  } else if (!recursive) {
+    auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, source,
+                                                 date = G()->unix_time()](Result<Unit> &&result) {
+      if (!G()->close_flag() && result.is_ok()) {
+        send_closure(actor_id, &GroupCallManager::on_source_speaking_in_group_call, group_call_id, source, date, true);
+      }
+    });
+    auto input_group_call_id = get_input_group_call_id(group_call_id).move_as_ok();
+    td_->create_handler<GetGroupCallParticipantQuery>(std::move(query_promise))
+        ->send(input_group_call_id, {}, {source});
+  }
+}
+
 void GroupCallManager::on_group_call_recent_speakers_updated(const GroupCall *group_call,
                                                              GroupCallRecentSpeakers *recent_speakers) {
   if (group_call == nullptr || !group_call->is_inited || recent_speakers->is_changed) {
@@ -1125,6 +1146,11 @@ void GroupCallManager::on_group_call_recent_speakers_updated(const GroupCall *gr
   LOG(INFO) << "Schedule update of recent speakers in " << group_call->group_call_id;
   const double MAX_RECENT_SPEAKER_UPDATE_DELAY = 0.5;
   recent_speaker_update_timeout_.set_timeout_in(group_call->group_call_id.get(), MAX_RECENT_SPEAKER_UPDATE_DELAY);
+}
+
+UserId GroupCallManager::get_group_call_member_by_source(GroupCallId group_call_id, int32 source) {
+  // TODO
+  return UserId();
 }
 
 vector<int32> GroupCallManager::get_recent_speaker_user_ids(const GroupCall *group_call, bool for_update) {

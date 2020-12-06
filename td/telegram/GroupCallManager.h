@@ -113,7 +113,11 @@ class GroupCallManager : public Actor {
   InputGroupCallId update_group_call(const tl_object_ptr<telegram_api::GroupCall> &group_call_ptr,
                                      ChannelId channel_id);
 
+  void on_source_speaking_in_group_call(GroupCallId group_call_id, int32 source, int32 date, bool recursive);
+
   void on_group_call_recent_speakers_updated(const GroupCall *group_call, GroupCallRecentSpeakers *recent_speakers);
+
+  UserId get_group_call_member_by_source(GroupCallId group_call_id, int32 source);
 
   static Result<td_api::object_ptr<td_api::groupCallJoinResponse>> get_group_call_join_response_object(
       string json_response);
