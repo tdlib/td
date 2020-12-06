@@ -349,7 +349,7 @@ struct GroupCallManager::GroupCall {
 };
 
 struct GroupCallManager::GroupCallRecentSpeakers {
-  vector<std::pair<UserId, int32>> users;  // user + time; sorted by time
+  mutable vector<std::pair<UserId, int32>> users;  // user + time; sorted by time
   mutable bool is_changed = true;
   mutable vector<int32> last_sent_user_ids;
 };
@@ -435,7 +435,15 @@ void GroupCallManager::on_recent_speaker_update_timeout(GroupCallId group_call_i
   auto &recent_speakers = group_call_recent_speakers_[group_call_id];
   CHECK(recent_speakers != nullptr);
   if (!recent_speakers->is_changed) {
-    return;
+    if (recent_speakers->users.empty()) {
+      return;
+    }
+    if (recent_speakers->users.back().second >= G()->unix_time() - RECENT_SPEAKER_TIMEOUT) {
+      // reset timeout
+      auto next_timeout = recent_speakers->users.back().second + RECENT_SPEAKER_TIMEOUT - G()->unix_time() + 1;
+      recent_speaker_update_timeout_.add_timeout_in(group_call_id.get(), next_timeout);
+      return;
+    }
   }
 
   send_closure(G()->td(), &Td::send_update, get_update_group_call_object(group_call));
@@ -985,6 +993,10 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
 }
 
 void GroupCallManager::on_user_speaking_in_group_call(GroupCallId group_call_id, UserId user_id, int32 date) {
+  if (date < G()->unix_time() - RECENT_SPEAKER_TIMEOUT) {
+    return;
+  }
+
   auto input_group_call_id = get_input_group_call_id(group_call_id).move_as_ok();
 
   auto *group_call = get_group_call(input_group_call_id);
@@ -1051,20 +1063,33 @@ tl_object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(const G
   vector<int32> recent_speaker_user_ids;
   auto recent_speakers_it = group_call_recent_speakers_.find(group_call->group_call_id);
   if (recent_speakers_it != group_call_recent_speakers_.end()) {
-    for (auto &recent_speaker : recent_speakers_it->second->users) {
+    auto *recent_speakers = recent_speakers_it->second.get();
+    CHECK(recent_speakers != nullptr);
+    while (!recent_speakers->users.empty() &&
+           recent_speakers->users.back().second < G()->unix_time() - RECENT_SPEAKER_TIMEOUT) {
+      recent_speakers->users.pop_back();
+    }
+
+    for (auto &recent_speaker : recent_speakers->users) {
       recent_speaker_user_ids.push_back(recent_speaker.first.get());
     }
 
-    if (recent_speakers_it->second->is_changed) {
-      recent_speakers_it->second->is_changed = false;
+    if (recent_speakers->is_changed) {
+      recent_speakers->is_changed = false;
+      recent_speaker_update_timeout_.cancel_timeout(group_call->group_call_id.get());
+    }
 
-      if (!for_update && recent_speakers_it->second->last_sent_user_ids != recent_speaker_user_ids) {
+    if (!recent_speakers->users.empty()) {
+      auto next_timeout = recent_speakers->users.back().second + RECENT_SPEAKER_TIMEOUT - G()->unix_time() + 1;
+      recent_speaker_update_timeout_.add_timeout_in(group_call->group_call_id.get(), next_timeout);
+    }
+    if (recent_speakers->last_sent_user_ids != recent_speaker_user_ids) {
+      recent_speakers->last_sent_user_ids = recent_speaker_user_ids;
+
+      if (!for_update) {
         // the change must be received through update first
         send_closure(G()->td(), &Td::send_update, get_update_group_call_object(group_call));
       }
-    }
-    if (recent_speakers_it->second->last_sent_user_ids != recent_speaker_user_ids) {
-      recent_speakers_it->second->last_sent_user_ids = recent_speaker_user_ids;
     }
   }
 

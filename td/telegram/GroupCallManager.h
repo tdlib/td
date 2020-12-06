@@ -71,6 +71,8 @@ class GroupCallManager : public Actor {
   struct GroupCallRecentSpeakers;
   struct PendingJoinRequest;
 
+  static constexpr int32 RECENT_SPEAKER_TIMEOUT = 5 * 60;
+
   void tear_down() override;
 
   static void on_pending_send_speaking_action_timeout_callback(void *group_call_manager_ptr, int64 group_call_id_int);
@@ -132,7 +134,7 @@ class GroupCallManager : public Actor {
   uint64 join_group_request_generation_ = 0;
 
   MultiTimeout pending_send_speaking_action_timeout_{"PendingSendSpeakingActionTimeout"};
-  MultiTimeout recent_speaker_update_timeout_{"RecentSpeakerUpdateTimeout"};
+  mutable MultiTimeout recent_speaker_update_timeout_{"RecentSpeakerUpdateTimeout"};
 };
 
 }  // namespace td
