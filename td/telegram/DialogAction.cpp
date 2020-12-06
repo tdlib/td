@@ -80,9 +80,6 @@ DialogAction::DialogAction(tl_object_ptr<td_api::ChatAction> &&action) {
       init(Type::UploadingVideoNote, uploading_action->progress_);
       break;
     }
-    case td_api::chatActionSpeakingInCall::ID:
-      init(Type::SpeakingInVoiceChat);
-      break;
     default:
       UNREACHABLE();
       break;
@@ -250,7 +247,6 @@ tl_object_ptr<td_api::ChatAction> DialogAction::get_chat_action_object() const {
     case Type::UploadingVideoNote:
       return td_api::make_object<td_api::chatActionUploadingVideoNote>(progress_);
     case Type::SpeakingInVoiceChat:
-      return td_api::make_object<td_api::chatActionSpeakingInCall>();
     default:
       UNREACHABLE();
       return td_api::make_object<td_api::chatActionCancel>();

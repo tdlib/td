@@ -1945,8 +1945,6 @@ chatActionStartPlayingGame = ChatAction;
 chatActionRecordingVideoNote = ChatAction;
 //@description The user is uploading a video note @progress Upload progress, as a percentage
 chatActionUploadingVideoNote progress:int32 = ChatAction;
-//@description The user is speaking in a call; supergroups only
-chatActionSpeakingInCall = ChatAction;
 //@description The user has cancelled the previous action
 chatActionCancel = ChatAction;
 
