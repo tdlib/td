@@ -615,6 +615,9 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id,
     CHECK(group_call->is_inited);
     return promise.set_error(Status::Error(400, "Group call is already joined"));
   }
+  if (group_call->is_inited && !group_call->is_active) {
+    return promise.set_error(Status::Error(400, "Group call is finished"));
+  }
 
   if (pending_join_requests_.count(input_group_call_id)) {
     auto it = pending_join_requests_.find(input_group_call_id);
