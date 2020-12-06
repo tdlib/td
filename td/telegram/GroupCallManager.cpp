@@ -381,7 +381,7 @@ struct GroupCallManager::GroupCall {
 
 struct GroupCallManager::GroupCallRecentSpeakers {
   vector<std::pair<UserId, int32>> users;  // user + time; sorted by time
-  bool is_changed = true;
+  bool is_changed = false;
   vector<int32> last_sent_user_ids;
 };
 
@@ -989,9 +989,9 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
 
   bool need_update = false;
   auto *group_call = add_group_call(call_id, channel_id);
+  call.group_call_id = group_call->group_call_id;
   call.channel_id = channel_id.is_valid() ? channel_id : group_call->channel_id;
   if (!group_call->is_inited) {
-    call.group_call_id = group_call->group_call_id;
     *group_call = std::move(call);
     need_update = true;
   } else {
@@ -1070,6 +1070,8 @@ void GroupCallManager::on_user_speaking_in_group_call(GroupCallId group_call_id,
     return;
   }
 
+  LOG(INFO) << "Add " << user_id << " as recent speaker at " << date << " in " << input_group_call_id << " from "
+            << group_call->channel_id;
   auto &recent_speakers = group_call_recent_speakers_[group_call_id];
   if (recent_speakers == nullptr) {
     recent_speakers = make_unique<GroupCallRecentSpeakers>();
@@ -1078,6 +1080,7 @@ void GroupCallManager::on_user_speaking_in_group_call(GroupCallId group_call_id,
   for (size_t i = 0; i < recent_speakers->users.size(); i++) {
     if (recent_speakers->users[i].first == user_id) {
       if (recent_speakers->users[i].second >= date) {
+        LOG(INFO) << "Ignore outdated speaking information";
         return;
       }
       recent_speakers->users[i].second = date;
@@ -1089,14 +1092,17 @@ void GroupCallManager::on_user_speaking_in_group_call(GroupCallId group_call_id,
       }
       if (is_updated) {
         on_group_call_recent_speakers_updated(group_call, recent_speakers.get());
+      } else {
+        LOG(INFO) << "Position of " << user_id << " in recent speakers list didn't change";
       }
       return;
     }
   }
 
-  for (size_t i = 0; i < recent_speakers->users.size(); i++) {
-    if (recent_speakers->users[i].second <= date) {
+  for (size_t i = 0; i <= recent_speakers->users.size(); i++) {
+    if (i == recent_speakers->users.size() || recent_speakers->users[i].second <= date) {
       recent_speakers->users.insert(recent_speakers->users.begin() + i, {user_id, date});
+      break;
     }
   }
   static constexpr size_t MAX_RECENT_SPEAKERS = 3;
@@ -1110,11 +1116,13 @@ void GroupCallManager::on_user_speaking_in_group_call(GroupCallId group_call_id,
 void GroupCallManager::on_group_call_recent_speakers_updated(const GroupCall *group_call,
                                                              GroupCallRecentSpeakers *recent_speakers) {
   if (group_call == nullptr || !group_call->is_inited || recent_speakers->is_changed) {
+    LOG(INFO) << "Don't need to send update of recent speakers in " << group_call->group_call_id;
     return;
   }
 
   recent_speakers->is_changed = true;
 
+  LOG(INFO) << "Schedule update of recent speakers in " << group_call->group_call_id;
   const double MAX_RECENT_SPEAKER_UPDATE_DELAY = 0.5;
   recent_speaker_update_timeout_.set_timeout_in(group_call->group_call_id.get(), MAX_RECENT_SPEAKER_UPDATE_DELAY);
 }
@@ -1130,6 +1138,7 @@ vector<int32> GroupCallManager::get_recent_speaker_user_ids(const GroupCall *gro
 
   auto *recent_speakers = recent_speakers_it->second.get();
   CHECK(recent_speakers != nullptr);
+  LOG(INFO) << "Found " << recent_speakers->users.size() << " recent speakers in " << group_call->group_call_id;
   while (!recent_speakers->users.empty() &&
          recent_speakers->users.back().second < G()->unix_time() - RECENT_SPEAKER_TIMEOUT) {
     recent_speakers->users.pop_back();
