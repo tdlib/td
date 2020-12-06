@@ -112,11 +112,15 @@ class GroupCallManager : public Actor {
   static Result<td_api::object_ptr<td_api::groupCallJoinResponse>> get_group_call_join_response_object(
       string json_response);
 
-  tl_object_ptr<td_api::updateGroupCall> get_update_group_call_object(const GroupCall *group_call) const;
+  vector<int32> get_recent_speaker_user_ids(const GroupCall *group_call, bool for_update);
 
-  tl_object_ptr<td_api::groupCall> get_group_call_object(const GroupCall *group_call, bool for_update = false) const;
+  tl_object_ptr<td_api::updateGroupCall> get_update_group_call_object(const GroupCall *group_call,
+                                                                      vector<int32> recent_speaker_user_ids) const;
 
-  void send_update_group_call(const GroupCall *group_call) const;
+  tl_object_ptr<td_api::groupCall> get_group_call_object(const GroupCall *group_call,
+                                                         vector<int32> recent_speaker_user_ids) const;
+
+  void send_update_group_call(const GroupCall *group_call);
 
   Td *td_;
   ActorShared<> parent_;
@@ -136,7 +140,7 @@ class GroupCallManager : public Actor {
   uint64 join_group_request_generation_ = 0;
 
   MultiTimeout pending_send_speaking_action_timeout_{"PendingSendSpeakingActionTimeout"};
-  mutable MultiTimeout recent_speaker_update_timeout_{"RecentSpeakerUpdateTimeout"};
+  MultiTimeout recent_speaker_update_timeout_{"RecentSpeakerUpdateTimeout"};
 };
 
 }  // namespace td

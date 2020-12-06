@@ -349,9 +349,9 @@ struct GroupCallManager::GroupCall {
 };
 
 struct GroupCallManager::GroupCallRecentSpeakers {
-  mutable vector<std::pair<UserId, int32>> users;  // user + time; sorted by time
-  mutable bool is_changed = true;
-  mutable vector<int32> last_sent_user_ids;
+  vector<std::pair<UserId, int32>> users;  // user + time; sorted by time
+  bool is_changed = true;
+  vector<int32> last_sent_user_ids;
 };
 
 struct GroupCallManager::PendingJoinRequest {
@@ -429,24 +429,8 @@ void GroupCallManager::on_recent_speaker_update_timeout(GroupCallId group_call_i
   LOG(INFO) << "Receive recent speaker update timeout in " << group_call_id;
   auto input_group_call_id = get_input_group_call_id(group_call_id).move_as_ok();
 
-  auto *group_call = get_group_call(input_group_call_id);
-  CHECK(group_call != nullptr && group_call->is_inited);
-
-  auto &recent_speakers = group_call_recent_speakers_[group_call_id];
-  CHECK(recent_speakers != nullptr);
-  if (!recent_speakers->is_changed) {
-    if (recent_speakers->users.empty()) {
-      return;
-    }
-    if (recent_speakers->users.back().second >= G()->unix_time() - RECENT_SPEAKER_TIMEOUT) {
-      // reset timeout
-      auto next_timeout = recent_speakers->users.back().second + RECENT_SPEAKER_TIMEOUT - G()->unix_time() + 1;
-      recent_speaker_update_timeout_.add_timeout_in(group_call_id.get(), next_timeout);
-      return;
-    }
-  }
-
-  send_update_group_call(group_call);
+  get_recent_speaker_user_ids(get_group_call(input_group_call_id),
+                              false);  // will update the list and send updateGroupCall if needed
 }
 
 GroupCallId GroupCallManager::get_group_call_id(InputGroupCallId input_group_call_id, ChannelId channel_id) {
@@ -518,7 +502,7 @@ void GroupCallManager::get_group_call(GroupCallId group_call_id,
 
   auto group_call = get_group_call(input_group_call_id);
   if (group_call != nullptr && group_call->is_inited) {
-    return promise.set_value(get_group_call_object(group_call));
+    return promise.set_value(get_group_call_object(group_call, get_recent_speaker_user_ids(group_call, false)));
   }
 
   reload_group_call(input_group_call_id, std::move(promise));
@@ -564,7 +548,7 @@ void GroupCallManager::finish_get_group_call(InputGroupCallId input_group_call_i
 
   auto group_call = get_group_call(input_group_call_id);
   for (auto &promise : promises) {
-    promise.set_value(get_group_call_object(group_call));
+    promise.set_value(get_group_call_object(group_call, get_recent_speaker_user_ids(group_call, false)));
   }
 }
 
@@ -1055,43 +1039,50 @@ void GroupCallManager::on_group_call_recent_speakers_updated(const GroupCall *gr
   recent_speaker_update_timeout_.set_timeout_in(group_call->group_call_id.get(), MAX_RECENT_SPEAKER_UPDATE_DELAY);
 }
 
-tl_object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(const GroupCall *group_call,
-                                                                         bool for_update) const {
-  CHECK(group_call != nullptr);
-  CHECK(group_call->is_inited);
+vector<int32> GroupCallManager::get_recent_speaker_user_ids(const GroupCall *group_call, bool for_update) {
+  CHECK(group_call != nullptr && group_call->is_inited);
 
   vector<int32> recent_speaker_user_ids;
   auto recent_speakers_it = group_call_recent_speakers_.find(group_call->group_call_id);
-  if (recent_speakers_it != group_call_recent_speakers_.end()) {
-    auto *recent_speakers = recent_speakers_it->second.get();
-    CHECK(recent_speakers != nullptr);
-    while (!recent_speakers->users.empty() &&
-           recent_speakers->users.back().second < G()->unix_time() - RECENT_SPEAKER_TIMEOUT) {
-      recent_speakers->users.pop_back();
-    }
+  if (recent_speakers_it == group_call_recent_speakers_.end()) {
+    return recent_speaker_user_ids;
+  }
 
-    for (auto &recent_speaker : recent_speakers->users) {
-      recent_speaker_user_ids.push_back(recent_speaker.first.get());
-    }
+  auto *recent_speakers = recent_speakers_it->second.get();
+  CHECK(recent_speakers != nullptr);
+  while (!recent_speakers->users.empty() &&
+         recent_speakers->users.back().second < G()->unix_time() - RECENT_SPEAKER_TIMEOUT) {
+    recent_speakers->users.pop_back();
+  }
 
-    if (recent_speakers->is_changed) {
-      recent_speakers->is_changed = false;
-      recent_speaker_update_timeout_.cancel_timeout(group_call->group_call_id.get());
-    }
+  for (auto &recent_speaker : recent_speakers->users) {
+    recent_speaker_user_ids.push_back(recent_speaker.first.get());
+  }
 
-    if (!recent_speakers->users.empty()) {
-      auto next_timeout = recent_speakers->users.back().second + RECENT_SPEAKER_TIMEOUT - G()->unix_time() + 1;
-      recent_speaker_update_timeout_.add_timeout_in(group_call->group_call_id.get(), next_timeout);
-    }
-    if (recent_speakers->last_sent_user_ids != recent_speaker_user_ids) {
-      recent_speakers->last_sent_user_ids = recent_speaker_user_ids;
+  if (recent_speakers->is_changed) {
+    recent_speakers->is_changed = false;
+    recent_speaker_update_timeout_.cancel_timeout(group_call->group_call_id.get());
+  }
+  if (!recent_speakers->users.empty()) {
+    auto next_timeout = recent_speakers->users.back().second + RECENT_SPEAKER_TIMEOUT - G()->unix_time() + 1;
+    recent_speaker_update_timeout_.add_timeout_in(group_call->group_call_id.get(), next_timeout);
+  }
 
-      if (!for_update) {
-        // the change must be received through update first
-        send_update_group_call(group_call);
-      }
+  if (recent_speakers->last_sent_user_ids != recent_speaker_user_ids) {
+    recent_speakers->last_sent_user_ids = recent_speaker_user_ids;
+
+    if (!for_update) {
+      // the change must be received through update first
+      send_update_group_call(group_call);
     }
   }
+  return recent_speaker_user_ids;
+}
+
+tl_object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(const GroupCall *group_call,
+                                                                         vector<int32> recent_speaker_user_ids) const {
+  CHECK(group_call != nullptr);
+  CHECK(group_call->is_inited);
 
   return td_api::make_object<td_api::groupCall>(group_call->group_call_id.get(), group_call->is_active,
                                                 group_call->is_joined, group_call->member_count,
@@ -1100,12 +1091,14 @@ tl_object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(const G
 }
 
 tl_object_ptr<td_api::updateGroupCall> GroupCallManager::get_update_group_call_object(
-    const GroupCall *group_call) const {
-  return td_api::make_object<td_api::updateGroupCall>(get_group_call_object(group_call, true));
+    const GroupCall *group_call, vector<int32> recent_speaker_user_ids) const {
+  return td_api::make_object<td_api::updateGroupCall>(
+      get_group_call_object(group_call, std::move(recent_speaker_user_ids)));
 }
 
-void GroupCallManager::send_update_group_call(const GroupCall *group_call) const {
-  send_closure(G()->td(), &Td::send_update, get_update_group_call_object(group_call));
+void GroupCallManager::send_update_group_call(const GroupCall *group_call) {
+  send_closure(G()->td(), &Td::send_update,
+               get_update_group_call_object(group_call, get_recent_speaker_user_ids(group_call, true)));
 }
 
 }  // namespace td
