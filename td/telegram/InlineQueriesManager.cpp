@@ -66,18 +66,15 @@ class GetInlineBotResultsQuery : public Td::ResultHandler {
   explicit GetInlineBotResultsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  NetQueryRef send(UserId bot_user_id, tl_object_ptr<telegram_api::InputUser> bot_input_user, DialogId dialog_id,
-                   Location user_location, const string &query, const string &offset, uint64 query_hash) {
+  NetQueryRef send(UserId bot_user_id, tl_object_ptr<telegram_api::InputUser> bot_input_user,
+                   tl_object_ptr<telegram_api::InputPeer> input_peer, Location user_location, const string &query,
+                   const string &offset, uint64 query_hash) {
+    CHECK(input_peer != nullptr);
     bot_user_id_ = bot_user_id;
     query_hash_ = query_hash;
     int32 flags = 0;
     if (!user_location.empty()) {
       flags |= GET_INLINE_BOT_RESULTS_FLAG_HAS_LOCATION;
-    }
-
-    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
-    if (input_peer == nullptr) {
-      input_peer = make_tl_object<telegram_api::inputPeerEmpty>();
     }
 
     auto net_query = G()->net_query_creator().create(telegram_api::messages_getInlineBotResults(
@@ -760,13 +757,34 @@ uint64 InlineQueriesManager::send_inline_query(UserId bot_user_id, DialogId dial
     return 0;
   }
 
-  bool is_broadcast_channel =
-      dialog_id.get_type() == DialogType::Channel &&
-      td_->contacts_manager_->get_channel_type(dialog_id.get_channel_id()) == ChannelType::Broadcast;
+  auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+  if (input_peer == nullptr) {
+    input_peer = make_tl_object<telegram_api::inputPeerEmpty>();
+  }
+
+  auto peer_type = [&] {
+    switch (input_peer->get_id()) {
+      case telegram_api::inputPeerEmpty::ID:
+        return 0;
+      case telegram_api::inputPeerSelf::ID:
+        return 1;
+      case telegram_api::inputPeerChat::ID:
+        return 2;
+      case telegram_api::inputPeerUser::ID:
+      case telegram_api::inputPeerUserFromMessage::ID:
+        return dialog_id == DialogId(bot_user_id) ? 3 : 4;
+      case telegram_api::inputPeerChannel::ID:
+      case telegram_api::inputPeerChannelFromMessage::ID:
+        return 5 + static_cast<int>(td_->contacts_manager_->get_channel_type(dialog_id.get_channel_id()));
+      default:
+        UNREACHABLE();
+        return -1;
+    }
+  }();
 
   uint64 query_hash = std::hash<std::string>()(trim(query));
   query_hash = query_hash * 2023654985u + bot_user_id.get();
-  query_hash = query_hash * 2023654985u + static_cast<uint64>(is_broadcast_channel);
+  query_hash = query_hash * 2023654985u + static_cast<uint64>(peer_type);
   query_hash = query_hash * 2023654985u + std::hash<std::string>()(offset);
   if (r_bot_data.ok().need_location) {
     query_hash = query_hash * 2023654985u + static_cast<uint64>(user_location.get_latitude() * 1e4);
@@ -791,8 +809,8 @@ uint64 InlineQueriesManager::send_inline_query(UserId bot_user_id, DialogId dial
     pending_inline_query_->promise.set_error(Status::Error(406, "Request cancelled"));
   }
 
-  pending_inline_query_ = make_unique<PendingInlineQuery>(
-      PendingInlineQuery{query_hash, bot_user_id, dialog_id, user_location, query, offset, std::move(promise)});
+  pending_inline_query_ = make_unique<PendingInlineQuery>(PendingInlineQuery{
+      query_hash, bot_user_id, std::move(input_peer), user_location, query, offset, std::move(promise)});
 
   loop();
 
@@ -816,9 +834,9 @@ void InlineQueriesManager::loop() {
       }
       sent_query_ =
           td_->create_handler<GetInlineBotResultsQuery>(std::move(pending_inline_query_->promise))
-              ->send(pending_inline_query_->bot_user_id, std::move(bot_input_user), pending_inline_query_->dialog_id,
-                     pending_inline_query_->user_location, pending_inline_query_->query, pending_inline_query_->offset,
-                     pending_inline_query_->query_hash);
+              ->send(pending_inline_query_->bot_user_id, std::move(bot_input_user),
+                     std::move(pending_inline_query_->input_peer), pending_inline_query_->user_location,
+                     pending_inline_query_->query, pending_inline_query_->offset, pending_inline_query_->query_hash);
 
       next_inline_query_time_ = now + INLINE_QUERY_DELAY_MS * 1e-3;
     }

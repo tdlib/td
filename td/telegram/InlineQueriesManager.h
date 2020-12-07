@@ -120,7 +120,7 @@ class InlineQueriesManager : public Actor {
   struct PendingInlineQuery {
     uint64 query_hash;
     UserId bot_user_id;
-    DialogId dialog_id;
+    tl_object_ptr<telegram_api::InputPeer> input_peer;
     Location user_location;
     string query;
     string offset;
