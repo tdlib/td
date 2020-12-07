@@ -30774,6 +30774,12 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
       auto new_slow_mode_delay = clamp(action->new_value_, 0, 86400 * 366);
       return make_tl_object<td_api::chatEventSlowModeDelayChanged>(old_slow_mode_delay, new_slow_mode_delay);
     }
+    case telegram_api::channelAdminLogEventActionStartGroupCall::ID:
+    case telegram_api::channelAdminLogEventActionDiscardGroupCall::ID:
+    case telegram_api::channelAdminLogEventActionParticipantMute::ID:
+    case telegram_api::channelAdminLogEventActionParticipantUnmute::ID:
+    case telegram_api::channelAdminLogEventActionToggleGroupCallSetting::ID:
+      return nullptr;
     default:
       UNREACHABLE();
       return nullptr;
