@@ -3444,8 +3444,8 @@ updateAnimationSearchParameters provider:string emojis:vector<string> = Update;
 updateSuggestedActions added_actions:vector<SuggestedAction> removed_actions:vector<SuggestedAction> = Update;
 
 //@description A new incoming inline query; for bots only @id Unique query identifier @sender_user_id Identifier of the user who sent the query @user_location User location; may be null
-//@query Text of the query @offset Offset of the first entry to return
-updateNewInlineQuery id:int64 sender_user_id:int32 user_location:location query:string offset:string = Update;
+//@chat_type Contains information about the type of the chat, from which the query originated; may be null if unknown @query Text of the query @offset Offset of the first entry to return
+updateNewInlineQuery id:int64 sender_user_id:int32 user_location:location chat_type:ChatType query:string offset:string = Update;
 
 //@description The user has chosen a result of an inline query; for bots only @sender_user_id Identifier of the user who sent the query @user_location User location; may be null
 //@query Text of the query @result_id Identifier of the chosen result @inline_message_id Identifier of the sent inline message, if known

@@ -215,7 +215,7 @@ tl_object_ptr<telegram_api::inputBotInlineMessageID> InlineQueriesManager::get_i
 string InlineQueriesManager::get_inline_message_id(
     tl_object_ptr<telegram_api::inputBotInlineMessageID> &&input_bot_inline_message_id) {
   if (input_bot_inline_message_id == nullptr) {
-    return "";
+    return string();
   }
   LOG(INFO) << "Got inline message id: " << to_string(input_bot_inline_message_id);
 
@@ -1734,7 +1734,8 @@ tl_object_ptr<td_api::inlineQueryResults> InlineQueriesManager::get_inline_query
 }
 
 void InlineQueriesManager::on_new_query(int64 query_id, UserId sender_user_id, Location user_location,
-                                        const string &query, const string &offset) {
+                                        tl_object_ptr<telegram_api::InlineQueryPeerType> peer_type, const string &query,
+                                        const string &offset) {
   if (!sender_user_id.is_valid()) {
     LOG(ERROR) << "Receive new inline query from invalid " << sender_user_id;
     return;
@@ -1744,10 +1745,31 @@ void InlineQueriesManager::on_new_query(int64 query_id, UserId sender_user_id, L
     LOG(ERROR) << "Receive new inline query";
     return;
   }
+  auto chat_type = [&]() -> td_api::object_ptr<td_api::ChatType> {
+    if (peer_type == nullptr) {
+      return nullptr;
+    }
+
+    switch (peer_type->get_id()) {
+      case telegram_api::inlineQueryPeerTypeSameBotPM::ID:
+        return td_api::make_object<td_api::chatTypePrivate>(sender_user_id.get());
+      case telegram_api::inlineQueryPeerTypePM::ID:
+        return td_api::make_object<td_api::chatTypePrivate>(0);
+      case telegram_api::inlineQueryPeerTypeChat::ID:
+        return td_api::make_object<td_api::chatTypeBasicGroup>(0);
+      case telegram_api::inlineQueryPeerTypeMegagroup::ID:
+        return td_api::make_object<td_api::chatTypeSupergroup>(0, false);
+      case telegram_api::inlineQueryPeerTypeBroadcast::ID:
+        return td_api::make_object<td_api::chatTypeSupergroup>(0, true);
+      default:
+        UNREACHABLE();
+        return nullptr;
+    }
+  }();
   send_closure(G()->td(), &Td::send_update,
                make_tl_object<td_api::updateNewInlineQuery>(
                    query_id, td_->contacts_manager_->get_user_id_object(sender_user_id, "updateNewInlineQuery"),
-                   user_location.get_location_object(), query, offset));
+                   user_location.get_location_object(), std::move(chat_type), query, offset));
 }
 
 void InlineQueriesManager::on_chosen_result(
