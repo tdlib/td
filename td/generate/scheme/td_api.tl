@@ -2087,6 +2087,11 @@ groupCallJoinResponseCandidate port:string protocol:string network:string genera
 //@description Describes a join response for interaction with tgcalls @payload Join response payload to pass to tgcalls @candidates Join response candidates to pass to tgcalls
 groupCallJoinResponse payload:groupCallPayload candidates:vector<groupCallJoinResponseCandidate> = GroupCallJoinResponse;
 
+//@description Represents a group call participant @user_id Identifier of the user @source User's synchronization source
+//@is_speaking True, if the user is speaking as set by setGroupCallMemberIsSpeaking @is_muted True, if the user is muted @can_self_unmute True, if the user can unmute themself
+//@order User's order in the group call participant list. The bigger is order, the higher is user in the list
+groupCallParticipant user_id:int32 source:int32 is_speaking:Bool is_muted:Bool can_self_unmute:Bool order:int64 = GroupCallParticipant;
+
 
 //@class CallProblem @description Describes the exact type of a problem with a call
 
