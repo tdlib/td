@@ -371,9 +371,9 @@ struct GroupCallManager::GroupCall {
   bool is_active = false;
   bool is_joined = false;
   bool is_speaking = false;
-  bool mute_new_members = false;
-  bool allowed_change_mute_new_members = false;
-  int32 member_count = 0;
+  bool mute_new_participants = false;
+  bool allowed_change_mute_new_participants = false;
+  int32 participant_count = 0;
   int32 version = -1;
   int32 duration = 0;
   int32 source = 0;
@@ -586,7 +586,7 @@ void GroupCallManager::finish_get_group_call(InputGroupCallId input_group_call_i
 void GroupCallManager::on_get_group_call_participants(
     InputGroupCallId input_group_call_id, tl_object_ptr<telegram_api::phone_groupParticipants> &&participants,
     bool is_load) {
-  LOG(INFO) << "Receive group call members: " << to_string(participants);
+  LOG(INFO) << "Receive group call participants: " << to_string(participants);
 
   CHECK(participants != nullptr);
   td_->contacts_manager_->on_get_users(std::move(participants->users_), "on_get_group_call_participants");
@@ -798,17 +798,17 @@ void GroupCallManager::finish_join_group_call(InputGroupCallId input_group_call_
   pending_join_requests_.erase(it);
 }
 
-void GroupCallManager::toggle_group_call_mute_new_members(GroupCallId group_call_id, bool mute_new_members,
-                                                          Promise<Unit> &&promise) {
+void GroupCallManager::toggle_group_call_mute_new_participants(GroupCallId group_call_id, bool mute_new_participants,
+                                                               Promise<Unit> &&promise) {
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
 
   int32 flags = telegram_api::phone_toggleGroupCallSettings::JOIN_MUTED_MASK;
   td_->create_handler<ToggleGroupCallSettingsQuery>(std::move(promise))
-      ->send(flags, input_group_call_id, mute_new_members);
+      ->send(flags, input_group_call_id, mute_new_participants);
 }
 
-void GroupCallManager::invite_group_call_members(GroupCallId group_call_id, vector<UserId> &&user_ids,
-                                                 Promise<Unit> &&promise) {
+void GroupCallManager::invite_group_call_participants(GroupCallId group_call_id, vector<UserId> &&user_ids,
+                                                      Promise<Unit> &&promise) {
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
 
   vector<tl_object_ptr<telegram_api::InputUser>> input_users;
@@ -833,8 +833,8 @@ void GroupCallManager::invite_group_call_members(GroupCallId group_call_id, vect
   td_->create_handler<InviteToGroupCallQuery>(std::move(promise))->send(input_group_call_id, std::move(input_users));
 }
 
-void GroupCallManager::set_group_call_member_is_speaking(GroupCallId group_call_id, int32 source, bool is_speaking,
-                                                         Promise<Unit> &&promise) {
+void GroupCallManager::set_group_call_participant_is_speaking(GroupCallId group_call_id, int32 source, bool is_speaking,
+                                                              Promise<Unit> &&promise) {
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
 
   auto *group_call = get_group_call(input_group_call_id);
@@ -858,13 +858,13 @@ void GroupCallManager::set_group_call_member_is_speaking(GroupCallId group_call_
     on_source_speaking_in_group_call(group_call_id, source, G()->unix_time(), false);
   }
 
-  // TODO update member list by others speaking actions
+  // TODO update participant list by others speaking actions
 
   promise.set_value(Unit());
 }
 
-void GroupCallManager::toggle_group_call_member_is_muted(GroupCallId group_call_id, UserId user_id, bool is_muted,
-                                                         Promise<Unit> &&promise) {
+void GroupCallManager::toggle_group_call_participant_is_muted(GroupCallId group_call_id, UserId user_id, bool is_muted,
+                                                              Promise<Unit> &&promise) {
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
 
   if (!td_->contacts_manager_->have_input_user(user_id)) {
@@ -963,9 +963,9 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       auto group_call = static_cast<const telegram_api::groupCall *>(group_call_ptr.get());
       call_id = InputGroupCallId(group_call->id_, group_call->access_hash_);
       call.is_active = true;
-      call.mute_new_members = group_call->join_muted_;
-      call.allowed_change_mute_new_members = group_call->can_change_join_muted_;
-      call.member_count = group_call->participants_count_;
+      call.mute_new_participants = group_call->join_muted_;
+      call.allowed_change_mute_new_participants = group_call->can_change_join_muted_;
+      call.participant_count = group_call->participants_count_;
       call.version = group_call->version_;
       if (group_call->params_ != nullptr) {
         join_params = std::move(group_call->params_->data_);
@@ -982,7 +982,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
     default:
       UNREACHABLE();
   }
-  if (!call_id.is_valid() || call.member_count < 0) {
+  if (!call_id.is_valid() || call.participant_count < 0) {
     return {};
   }
 
@@ -1004,18 +1004,20 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
         td_->contacts_manager_->on_update_channel_group_call(group_call->channel_id, false, false);
       }
     } else {
-      auto mute_flags_changed = call.mute_new_members != group_call->mute_new_members ||
-                                call.allowed_change_mute_new_members != group_call->allowed_change_mute_new_members;
+      auto mute_flags_changed =
+          call.mute_new_participants != group_call->mute_new_participants ||
+          call.allowed_change_mute_new_participants != group_call->allowed_change_mute_new_participants;
       if (call.version > group_call->version) {
         if (group_call->channel_id.is_valid()) {
-          td_->contacts_manager_->on_update_channel_group_call(group_call->channel_id, true, call.member_count == 0);
+          td_->contacts_manager_->on_update_channel_group_call(group_call->channel_id, true,
+                                                               call.participant_count == 0);
         }
-        need_update = call.member_count != group_call->member_count || mute_flags_changed;
+        need_update = call.participant_count != group_call->participant_count || mute_flags_changed;
         *group_call = std::move(call);
       } else if (call.version == group_call->version) {
         if (mute_flags_changed) {
-          group_call->mute_new_members = call.mute_new_members;
-          group_call->allowed_change_mute_new_members = call.allowed_change_mute_new_members;
+          group_call->mute_new_participants = call.mute_new_participants;
+          group_call->allowed_change_mute_new_participants = call.allowed_change_mute_new_participants;
           need_update = true;
         }
       }
@@ -1118,7 +1120,7 @@ void GroupCallManager::on_source_speaking_in_group_call(GroupCallId group_call_i
     return;
   }
 
-  UserId user_id = get_group_call_member_by_source(group_call_id, source);
+  UserId user_id = get_group_call_participant_by_source(group_call_id, source);
   if (user_id.is_valid()) {
     on_user_speaking_in_group_call(group_call_id, user_id, G()->unix_time());
   } else if (!recursive) {
@@ -1148,7 +1150,7 @@ void GroupCallManager::on_group_call_recent_speakers_updated(const GroupCall *gr
   recent_speaker_update_timeout_.set_timeout_in(group_call->group_call_id.get(), MAX_RECENT_SPEAKER_UPDATE_DELAY);
 }
 
-UserId GroupCallManager::get_group_call_member_by_source(GroupCallId group_call_id, int32 source) {
+UserId GroupCallManager::get_group_call_participant_by_source(GroupCallId group_call_id, int32 source) {
   // TODO
   return UserId();
 }
@@ -1200,9 +1202,9 @@ tl_object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(const G
   CHECK(group_call->is_inited);
 
   return td_api::make_object<td_api::groupCall>(group_call->group_call_id.get(), group_call->is_active,
-                                                group_call->is_joined, group_call->member_count,
-                                                std::move(recent_speaker_user_ids), group_call->mute_new_members,
-                                                group_call->allowed_change_mute_new_members, group_call->duration);
+                                                group_call->is_joined, group_call->participant_count,
+                                                std::move(recent_speaker_user_ids), group_call->mute_new_participants,
+                                                group_call->allowed_change_mute_new_participants, group_call->duration);
 }
 
 tl_object_ptr<td_api::updateGroupCall> GroupCallManager::get_update_group_call_object(

@@ -6053,36 +6053,36 @@ void Td::on_request(uint64 id, td_api::joinGroupCall &request) {
                                        request.source_, request.is_muted_, std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::toggleGroupCallMuteNewMembers &request) {
+void Td::on_request(uint64 id, const td_api::toggleGroupCallMuteNewParticipants &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  group_call_manager_->toggle_group_call_mute_new_members(GroupCallId(request.group_call_id_),
-                                                          request.mute_new_members_, std::move(promise));
+  group_call_manager_->toggle_group_call_mute_new_participants(GroupCallId(request.group_call_id_),
+                                                               request.mute_new_participants_, std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::inviteGroupCallMembers &request) {
+void Td::on_request(uint64 id, const td_api::inviteGroupCallParticipants &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   vector<UserId> user_ids;
   for (auto &user_id : request.user_ids_) {
     user_ids.emplace_back(user_id);
   }
-  group_call_manager_->invite_group_call_members(GroupCallId(request.group_call_id_), std::move(user_ids),
-                                                 std::move(promise));
+  group_call_manager_->invite_group_call_participants(GroupCallId(request.group_call_id_), std::move(user_ids),
+                                                      std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::setGroupCallMemberIsSpeaking &request) {
+void Td::on_request(uint64 id, const td_api::setGroupCallParticipantIsSpeaking &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  group_call_manager_->set_group_call_member_is_speaking(GroupCallId(request.group_call_id_), request.source_,
-                                                         request.is_speaking_, std::move(promise));
+  group_call_manager_->set_group_call_participant_is_speaking(GroupCallId(request.group_call_id_), request.source_,
+                                                              request.is_speaking_, std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::toggleGroupCallMemberIsMuted &request) {
+void Td::on_request(uint64 id, const td_api::toggleGroupCallParticipantIsMuted &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  group_call_manager_->toggle_group_call_member_is_muted(GroupCallId(request.group_call_id_), UserId(request.user_id_),
-                                                         request.is_muted_, std::move(promise));
+  group_call_manager_->toggle_group_call_participant_is_muted(
+      GroupCallId(request.group_call_id_), UserId(request.user_id_), request.is_muted_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::checkGroupCallIsJoined &request) {

@@ -698,13 +698,13 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, td_api::joinGroupCall &request);
 
-  void on_request(uint64 id, const td_api::toggleGroupCallMuteNewMembers &request);
+  void on_request(uint64 id, const td_api::toggleGroupCallMuteNewParticipants &request);
 
-  void on_request(uint64 id, const td_api::inviteGroupCallMembers &request);
+  void on_request(uint64 id, const td_api::inviteGroupCallParticipants &request);
 
-  void on_request(uint64 id, const td_api::setGroupCallMemberIsSpeaking &request);
+  void on_request(uint64 id, const td_api::setGroupCallParticipantIsSpeaking &request);
 
-  void on_request(uint64 id, const td_api::toggleGroupCallMemberIsMuted &request);
+  void on_request(uint64 id, const td_api::toggleGroupCallParticipantIsMuted &request);
 
   void on_request(uint64 id, const td_api::checkGroupCallIsJoined &request);
 

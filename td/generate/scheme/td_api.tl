@@ -1638,7 +1638,7 @@ messageCall is_video:Bool discard_reason:CallDiscardReason duration:int32 = Mess
 messageGroupCall group_call_id:int32 duration:int32 = MessageContent;
 
 //@description A message with information about an invite to a group call @group_call_id Group call identifier @user_ids Invited user identifiers
-messageInviteGroupCallMembers group_call_id:int32 user_ids:vector<int32> = MessageContent;
+messageInviteGroupCallParticipants group_call_id:int32 user_ids:vector<int32> = MessageContent;
 
 //@description A newly created basic group @title Title of the basic group @member_user_ids User identifiers of members in the basic group
 messageBasicGroupChatCreate title:string member_user_ids:vector<int32> = MessageContent;
@@ -2066,12 +2066,12 @@ callStateError error:error = CallState;
 //@id Group call identifier
 //@is_active True, if the call is active
 //@is_joined True, if the call is joined
-//@member_count Number of members in the group call
+//@participant_count Number of participants in the group call
 //@recent_speaker_user_ids Identifiers of recently speaking users in the group call
-//@mute_new_members True, if only group call administrators can unmute new members
-//@allowed_change_mute_new_members True, if group call administrators can enable or disable mute_new_members setting
+//@mute_new_participants True, if only group call administrators can unmute new participants
+//@allowed_change_mute_new_participants True, if group call administrators can enable or disable mute_new_participants setting
 //@duration Call duration; for ended calls only
-groupCall id:int32 is_active:Bool is_joined:Bool member_count:int32 recent_speaker_user_ids:vector<int32> mute_new_members:Bool allowed_change_mute_new_members:Bool duration:int32 = GroupCall;
+groupCall id:int32 is_active:Bool is_joined:Bool participant_count:int32 recent_speaker_user_ids:vector<int32> mute_new_participants:Bool allowed_change_mute_new_participants:Bool duration:int32 = GroupCall;
 
 //@description Describes a payload fingerprint for interaction with tgcalls @hash Value of the field hash @setup Value of the field setup @fingerprint Value of the field fingerprint
 groupCallPayloadFingerprint hash:string setup:string fingerprint:string = GroupCallPayloadFingerprint;
@@ -2088,7 +2088,7 @@ groupCallJoinResponseCandidate port:string protocol:string network:string genera
 groupCallJoinResponse payload:groupCallPayload candidates:vector<groupCallJoinResponseCandidate> = GroupCallJoinResponse;
 
 //@description Represents a group call participant @user_id Identifier of the user @source User's synchronization source
-//@is_speaking True, if the user is speaking as set by setGroupCallMemberIsSpeaking @is_muted True, if the user is muted @can_self_unmute True, if the user can unmute themself
+//@is_speaking True, if the user is speaking as set by setGroupCallParticipantIsSpeaking @is_muted True, if the user is muted @can_self_unmute True, if the user can unmute themself
 //@order User's order in the group call participant list. The bigger is order, the higher is user in the list
 groupCallParticipant user_id:int32 source:int32 is_speaking:Bool is_muted:Bool can_self_unmute:Bool order:int64 = GroupCallParticipant;
 
@@ -4342,21 +4342,21 @@ getGroupCall group_call_id:int32 = GroupCall;
 //@description Joins a group call @group_call_id Group call identifier @payload Group join payload, received from tgcalls @source Caller synchronization source identifier; received from tgcalls @is_muted True, if the user's microphone is muted
 joinGroupCall group_call_id:int32 payload:groupCallPayload source:int32 is_muted:Bool = GroupCallJoinResponse;
 
-//@description Toggles whether new members of a group call can be unmuted only by administrators of the group call. Requires can_manage_voice_chats rights in the corresponding chat and allowed_change_mute_mew_members group call flag
-//@group_call_id Group call identifier @mute_new_members New value of the mute_new_members setting
-toggleGroupCallMuteNewMembers group_call_id:int32 mute_new_members:Bool = Ok;
+//@description Toggles whether new participants of a group call can be unmuted only by administrators of the group call. Requires can_manage_voice_chats rights in the corresponding chat and allowed_change_mute_mew_participants group call flag
+//@group_call_id Group call identifier @mute_new_participants New value of the mute_new_participants setting
+toggleGroupCallMuteNewParticipants group_call_id:int32 mute_new_participants:Bool = Ok;
 
 //@description Invites users to a group call. Sends a service message of type messageInviteToGroupCall for voice chats
 //@group_call_id Group call identifier @user_ids User identifiers. At most 10 users can be invited simultaneously
-inviteGroupCallMembers group_call_id:int32 user_ids:vector<int32> = Ok;
+inviteGroupCallParticipants group_call_id:int32 user_ids:vector<int32> = Ok;
 
-//@description Informs TDLib that a group call member speaking state has changed @group_call_id Group call identifier
-//@source Group call member's synchronization source identifier @is_speaking True, if the user is speaking
-setGroupCallMemberIsSpeaking group_call_id:int32 source:int32 is_speaking:Bool = Ok;
+//@description Informs TDLib that a group call participant speaking state has changed @group_call_id Group call identifier
+//@source Group call participant's synchronization source identifier @is_speaking True, if the user is speaking
+setGroupCallParticipantIsSpeaking group_call_id:int32 source:int32 is_speaking:Bool = Ok;
 
-//@description Toggles whether a group call member is muted. Requires can_manage_voice_chats rights to mute other group call members
+//@description Toggles whether a group call participant is muted. Requires can_manage_voice_chats rights to mute other group call participants
 //@group_call_id Group call identifier @user_id User identifier @is_muted Pass true if the user must be muted and false otherwise
-toggleGroupCallMemberIsMuted group_call_id:int32 user_id:int32 is_muted:Bool = Ok;
+toggleGroupCallParticipantIsMuted group_call_id:int32 user_id:int32 is_muted:Bool = Ok;
 
 //@description Checks whether a group call is still joined. Should be called every 10 seconds when tgcalls notifies about lost connection with the server @group_call_id Group call identifier
 checkGroupCallIsJoined group_call_id:int32 = Ok;

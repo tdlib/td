@@ -2848,30 +2848,31 @@ class CliClient final : public Actor {
           td_api::make_object<td_api::groupCallPayload>("ufrag", "pwd", std::move(fingerprints)), 123, true));
     } else if (op == "jgcc") {
       send_request(td_api::make_object<td_api::joinGroupCall>(as_group_call_id(args), nullptr, 123, true));
-    } else if (op == "tgcmnm" || op == "tgcmnme") {
-      send_request(td_api::make_object<td_api::toggleGroupCallMuteNewMembers>(as_group_call_id(args), op == "tgcmnme"));
-    } else if (op == "sgcmis") {
+    } else if (op == "tgcmnp" || op == "tgcmnpe") {
+      send_request(
+          td_api::make_object<td_api::toggleGroupCallMuteNewParticipants>(as_group_call_id(args), op == "tgcmnme"));
+    } else if (op == "sgcpis") {
       string group_call_id;
       string source;
       string is_speaking;
       std::tie(group_call_id, args) = split(args);
       std::tie(source, is_speaking) = split(args);
-      send_request(td_api::make_object<td_api::setGroupCallMemberIsSpeaking>(
+      send_request(td_api::make_object<td_api::setGroupCallParticipantIsSpeaking>(
           as_group_call_id(group_call_id), to_integer<int32>(source), as_bool(is_speaking)));
-    } else if (op == "igcm") {
+    } else if (op == "igcp") {
       string group_call_id;
       string user_ids;
       std::tie(group_call_id, user_ids) = split(args);
-      send_request(
-          td_api::make_object<td_api::inviteGroupCallMembers>(as_group_call_id(group_call_id), as_user_ids(user_ids)));
-    } else if (op == "tgcmim") {
+      send_request(td_api::make_object<td_api::inviteGroupCallParticipants>(as_group_call_id(group_call_id),
+                                                                            as_user_ids(user_ids)));
+    } else if (op == "tgcpim") {
       string group_call_id;
       string user_id;
       string is_muted;
       std::tie(group_call_id, args) = split(args);
       std::tie(user_id, is_muted) = split(args);
-      send_request(td_api::make_object<td_api::toggleGroupCallMemberIsMuted>(as_group_call_id(group_call_id),
-                                                                             as_user_id(user_id), as_bool(is_muted)));
+      send_request(td_api::make_object<td_api::toggleGroupCallParticipantIsMuted>(
+          as_group_call_id(group_call_id), as_user_id(user_id), as_bool(is_muted)));
     } else if (op == "cgcij") {
       send_request(td_api::make_object<td_api::checkGroupCallIsJoined>(as_group_call_id(args)));
     } else if (op == "lgc") {

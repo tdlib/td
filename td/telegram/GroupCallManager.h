@@ -43,15 +43,16 @@ class GroupCallManager : public Actor {
   void join_group_call(GroupCallId group_call_id, td_api::object_ptr<td_api::groupCallPayload> &&payload, int32 source,
                        bool is_muted, Promise<td_api::object_ptr<td_api::groupCallJoinResponse>> &&promise);
 
-  void toggle_group_call_mute_new_members(GroupCallId group_call_id, bool mute_new_members, Promise<Unit> &&promise);
+  void toggle_group_call_mute_new_participants(GroupCallId group_call_id, bool mute_new_participants,
+                                               Promise<Unit> &&promise);
 
-  void invite_group_call_members(GroupCallId group_call_id, vector<UserId> &&user_ids, Promise<Unit> &&promise);
+  void invite_group_call_participants(GroupCallId group_call_id, vector<UserId> &&user_ids, Promise<Unit> &&promise);
 
-  void set_group_call_member_is_speaking(GroupCallId group_call_id, int32 source, bool is_speaking,
-                                         Promise<Unit> &&promise);
+  void set_group_call_participant_is_speaking(GroupCallId group_call_id, int32 source, bool is_speaking,
+                                              Promise<Unit> &&promise);
 
-  void toggle_group_call_member_is_muted(GroupCallId group_call_id, UserId user_id, bool is_muted,
-                                         Promise<Unit> &&promise);
+  void toggle_group_call_participant_is_muted(GroupCallId group_call_id, UserId user_id, bool is_muted,
+                                              Promise<Unit> &&promise);
 
   void check_group_call_is_joined(GroupCallId group_call_id, Promise<Unit> &&promise);
 
@@ -117,7 +118,7 @@ class GroupCallManager : public Actor {
 
   void on_group_call_recent_speakers_updated(const GroupCall *group_call, GroupCallRecentSpeakers *recent_speakers);
 
-  UserId get_group_call_member_by_source(GroupCallId group_call_id, int32 source);
+  UserId get_group_call_participant_by_source(GroupCallId group_call_id, int32 source);
 
   static Result<td_api::object_ptr<td_api::groupCallJoinResponse>> get_group_call_join_response_object(
       string json_response);
