@@ -2376,6 +2376,18 @@ chatEventLocationChanged old_location:chatLocation new_location:chatLocation = C
 //@description The is_all_history_available setting of a supergroup was toggled @is_all_history_available New value of is_all_history_available
 chatEventIsAllHistoryAvailableToggled is_all_history_available:Bool = ChatEventAction;
 
+//@description A voice chat was created @group_call_id Group call identifier
+chatEventVoiceChatCreated group_call_id:int32 = ChatEventAction;
+
+//@description A voice chat was discarded @group_call_id Group call identifier
+chatEventVoiceChatDiscarded group_call_id:int32 = ChatEventAction;
+
+//@description A voice chat participant was muted or unmuted @user_id Voice chat participant user identifier @is_muted New value of is_muted
+chatEventVoiceChatParticipantIsMutedToggled user_id:int32 is_muted:Bool = ChatEventAction;
+
+//@description The mute_new_participants setting of a voice chat was toggled @mute_new_participants New value of the mute_new_participants setting
+chatEventVoiceChatMuteNewParticipantsToggled mute_new_participants:Bool = ChatEventAction;
+
 //@description Represents a chat event @id Chat event identifier @date Point in time (Unix timestamp) when the event happened @user_id Identifier of the user who performed the action that triggered the event @action Action performed by the user
 chatEvent id:int64 date:int32 user_id:int32 action:ChatEventAction = ChatEvent;
 

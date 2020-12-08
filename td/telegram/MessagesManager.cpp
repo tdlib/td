@@ -23,6 +23,7 @@
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/GroupCallManager.h"
+#include "td/telegram/GroupCallParticipant.h"
 #include "td/telegram/InlineQueriesManager.h"
 #include "td/telegram/InputMessageText.h"
 #include "td/telegram/Location.h"
@@ -30777,12 +30778,46 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
       auto new_slow_mode_delay = clamp(action->new_value_, 0, 86400 * 366);
       return make_tl_object<td_api::chatEventSlowModeDelayChanged>(old_slow_mode_delay, new_slow_mode_delay);
     }
-    case telegram_api::channelAdminLogEventActionStartGroupCall::ID:
-    case telegram_api::channelAdminLogEventActionDiscardGroupCall::ID:
-    case telegram_api::channelAdminLogEventActionParticipantMute::ID:
-    case telegram_api::channelAdminLogEventActionParticipantUnmute::ID:
-    case telegram_api::channelAdminLogEventActionToggleGroupCallSetting::ID:
-      return nullptr;
+    case telegram_api::channelAdminLogEventActionStartGroupCall::ID: {
+      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionStartGroupCall>(action_ptr);
+      auto input_group_call_id = InputGroupCallId(action->call_);
+      if (!input_group_call_id.is_valid()) {
+        return nullptr;
+      }
+      return make_tl_object<td_api::chatEventVoiceChatCreated>(
+          td_->group_call_manager_->get_group_call_id(input_group_call_id, channel_id).get());
+    }
+    case telegram_api::channelAdminLogEventActionDiscardGroupCall::ID: {
+      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionDiscardGroupCall>(action_ptr);
+      auto input_group_call_id = InputGroupCallId(action->call_);
+      if (!input_group_call_id.is_valid()) {
+        return nullptr;
+      }
+      return make_tl_object<td_api::chatEventVoiceChatDiscarded>(
+          td_->group_call_manager_->get_group_call_id(input_group_call_id, channel_id).get());
+    }
+    case telegram_api::channelAdminLogEventActionParticipantMute::ID: {
+      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantMute>(action_ptr);
+      GroupCallParticipant participant(std::move(action->participant_));
+      if (!participant.is_valid()) {
+        return nullptr;
+      }
+      return make_tl_object<td_api::chatEventVoiceChatParticipantIsMutedToggled>(
+          td_->contacts_manager_->get_user_id_object(participant.user_id, "LogEventActionParticipantMute"), true);
+    }
+    case telegram_api::channelAdminLogEventActionParticipantUnmute::ID: {
+      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantUnmute>(action_ptr);
+      GroupCallParticipant participant(std::move(action->participant_));
+      if (!participant.is_valid()) {
+        return nullptr;
+      }
+      return make_tl_object<td_api::chatEventVoiceChatParticipantIsMutedToggled>(
+          td_->contacts_manager_->get_user_id_object(participant.user_id, "LogEventActionParticipantUnmute"), false);
+    }
+    case telegram_api::channelAdminLogEventActionToggleGroupCallSetting::ID: {
+      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionToggleGroupCallSetting>(action_ptr);
+      return make_tl_object<td_api::chatEventVoiceChatMuteNewParticipantsToggled>(action->join_muted_);
+    }
     default:
       UNREACHABLE();
       return nullptr;
