@@ -462,9 +462,9 @@ chatMemberStatusCreator custom_title:string is_anonymous:Bool is_member:Bool = C
 //@can_restrict_members True, if the administrator can restrict, ban, or unban chat members
 //@can_pin_messages True, if the administrator can pin messages; applicable to groups only
 //@can_promote_members True, if the administrator can add new administrators with a subset of their own privileges or demote administrators that were directly or indirectly promoted by them
-//@can_manage_calls True, if the administrator can manage group calls; applicable to supergroups only
+//@can_manage_voice_chats True, if the administrator can manage voice chats; applicable to supergroups only
 //@is_anonymous True, if the administrator isn't shown in the chat member list and sends messages anonymously; applicable to supergroups only
-chatMemberStatusAdministrator custom_title:string can_be_edited:Bool can_change_info:Bool can_post_messages:Bool can_edit_messages:Bool can_delete_messages:Bool can_invite_users:Bool can_restrict_members:Bool can_pin_messages:Bool can_promote_members:Bool can_manage_calls:Bool is_anonymous:Bool = ChatMemberStatus;
+chatMemberStatusAdministrator custom_title:string can_be_edited:Bool can_change_info:Bool can_post_messages:Bool can_edit_messages:Bool can_delete_messages:Bool can_invite_users:Bool can_restrict_members:Bool can_pin_messages:Bool can_promote_members:Bool can_manage_voice_chats:Bool is_anonymous:Bool = ChatMemberStatus;
 
 //@description The user is a member of a chat, without any additional privileges or restrictions
 chatMemberStatusMember = ChatMemberStatus;
@@ -4328,7 +4328,7 @@ sendCallRating call_id:int32 rating:int32 comment:string problems:vector<CallPro
 sendCallDebugInformation call_id:int32 debug_information:string = Ok;
 
 
-//@description Creates a voice chat (a group call bound to a chat). Available only for supergroups; requires can_manage_calls rights @chat_id Chat identifier
+//@description Creates a voice chat (a group call bound to a chat). Available only for supergroups; requires can_manage_voice_chats rights @chat_id Chat identifier
 createVoiceChat chat_id:int53 = GroupCallId;
 
 //@description Returns information about a group call @group_call_id Group call identifier
@@ -4337,7 +4337,7 @@ getGroupCall group_call_id:int32 = GroupCall;
 //@description Joins a group call @group_call_id Group call identifier @payload Group join payload, received from tgcalls @source Caller synchronization source identifier; received from tgcalls @is_muted True, if the user's microphone is muted
 joinGroupCall group_call_id:int32 payload:groupCallPayload source:int32 is_muted:Bool = GroupCallJoinResponse;
 
-//@description Toggles whether new members of a group call can be unmuted only by administrators of the group call. Requires can_manage_calls rights in the corresponding chat and allowed_change_mute_mew_members group call flag
+//@description Toggles whether new members of a group call can be unmuted only by administrators of the group call. Requires can_manage_voice_chats rights in the corresponding chat and allowed_change_mute_mew_members group call flag
 //@group_call_id Group call identifier @mute_new_members New value of the mute_new_members setting
 toggleGroupCallMuteNewMembers group_call_id:int32 mute_new_members:Bool = Ok;
 
@@ -4349,7 +4349,7 @@ inviteGroupCallMembers group_call_id:int32 user_ids:vector<int32> = Ok;
 //@source Group call member's synchronization source identifier @is_speaking True, if the user is speaking
 setGroupCallMemberIsSpeaking group_call_id:int32 source:int32 is_speaking:Bool = Ok;
 
-//@description Toggles whether a group call member is muted. Requires can_manage_calls rights to mute other group call members
+//@description Toggles whether a group call member is muted. Requires can_manage_voice_chats rights to mute other group call members
 //@group_call_id Group call identifier @user_id User identifier @is_muted Pass true if the user must be muted and false otherwise
 toggleGroupCallMemberIsMuted group_call_id:int32 user_id:int32 is_muted:Bool = Ok;
 
@@ -4359,7 +4359,7 @@ checkGroupCallIsJoined group_call_id:int32 = Ok;
 //@description Leaves a group call @group_call_id Group call identifier
 leaveGroupCall group_call_id:int32 = Ok;
 
-//@description Discards a group call. Requires can_manage_calls rights in the corresponding chat @group_call_id Group call identifier
+//@description Discards a group call. Requires can_manage_voice_chats rights in the corresponding chat @group_call_id Group call identifier
 discardGroupCall group_call_id:int32 = Ok;
 
 
