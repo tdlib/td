@@ -588,7 +588,7 @@ supergroup id:int32 username:string date:int32 status:ChatMemberStatus member_co
 //@restricted_count Number of restricted users in the supergroup; 0 if unknown
 //@banned_count Number of users banned from chat; 0 if unknown
 //@linked_chat_id Chat identifier of a discussion group for the channel, or a channel, for which the supergroup is the designated discussion group; 0 if none or unknown
-//@group_call_id Identifier of an active voice chat; 0 if none or unknown
+//@group_call_id Identifier of an active voice chat; 0 if none or unknown. The voice chat can be received through the method getGroupCall.
 //@slow_mode_delay Delay between consecutive sent messages for non-administrator supergroup members, in seconds
 //@slow_mode_delay_expires_in Time left before next message can be sent in the supergroup, in seconds. An updateSupergroupFullInfo update is not triggered when value of this field changes, but both new and old values are non-zero
 //@can_get_members True, if members of the chat can be retrieved
@@ -1634,11 +1634,11 @@ messageInvoice title:string description:string photo:photo currency:string total
 //@description A message with information about an ended call @is_video True, if the call was a video call @discard_reason Reason why the call was discarded @duration Call duration, in seconds
 messageCall is_video:Bool discard_reason:CallDiscardReason duration:int32 = MessageContent;
 
-//@description A message with information about a group call @group_call_id Group call identifier @duration Call duration; for finished calls only
-messageGroupCall group_call_id:int32 duration:int32 = MessageContent;
+//@description A message with information about a voice chat @group_call_id Identifier of the voice chat. The voice chat can be received through the method getGroupCall @duration Call duration; for finished calls only
+messageVoiceChat group_call_id:int32 duration:int32 = MessageContent;
 
-//@description A message with information about an invite to a group call @group_call_id Group call identifier @user_ids Invited user identifiers
-messageInviteGroupCallParticipants group_call_id:int32 user_ids:vector<int32> = MessageContent;
+//@description A message with information about an invite to a voice chat @group_call_id Identifier of the voice chat. The voice chat can be received through the method getGroupCall @user_ids Invited user identifiers
+messageInviteVoiceChatParticipants group_call_id:int32 user_ids:vector<int32> = MessageContent;
 
 //@description A newly created basic group @title Title of the basic group @member_user_ids User identifiers of members in the basic group
 messageBasicGroupChatCreate title:string member_user_ids:vector<int32> = MessageContent;
@@ -2376,13 +2376,13 @@ chatEventLocationChanged old_location:chatLocation new_location:chatLocation = C
 //@description The is_all_history_available setting of a supergroup was toggled @is_all_history_available New value of is_all_history_available
 chatEventIsAllHistoryAvailableToggled is_all_history_available:Bool = ChatEventAction;
 
-//@description A voice chat was created @group_call_id Group call identifier
+//@description A voice chat was created @group_call_id Identifier of the voice chat. The voice chat can be received through the method getGroupCall
 chatEventVoiceChatCreated group_call_id:int32 = ChatEventAction;
 
-//@description A voice chat was discarded @group_call_id Group call identifier
+//@description A voice chat was discarded @group_call_id Identifier of the voice chat. The voice chat can be received through the method getGroupCall
 chatEventVoiceChatDiscarded group_call_id:int32 = ChatEventAction;
 
-//@description A voice chat participant was muted or unmuted @user_id Voice chat participant user identifier @is_muted New value of is_muted
+//@description A voice chat participant was muted or unmuted @user_id Identifier of the affected user @is_muted New value of is_muted
 chatEventVoiceChatParticipantIsMutedToggled user_id:int32 is_muted:Bool = ChatEventAction;
 
 //@description The mute_new_participants setting of a voice chat was toggled @mute_new_participants New value of the mute_new_participants setting

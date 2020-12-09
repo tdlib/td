@@ -4786,13 +4786,13 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     }
     case MessageContentType::GroupCall: {
       auto *m = static_cast<const MessageGroupCall *>(content);
-      return make_tl_object<td_api::messageGroupCall>(
+      return make_tl_object<td_api::messageVoiceChat>(
           td->group_call_manager_->get_group_call_id(m->input_group_call_id, ChannelId()).get(),
           m->duration >= 0 ? max(m->duration, 1) : 0);
     }
     case MessageContentType::InviteToGroupCall: {
       auto *m = static_cast<const MessageInviteToGroupCall *>(content);
-      return make_tl_object<td_api::messageInviteGroupCallParticipants>(
+      return make_tl_object<td_api::messageInviteVoiceChatParticipants>(
           td->group_call_manager_->get_group_call_id(m->input_group_call_id, ChannelId()).get(),
           td->contacts_manager_->get_user_ids_object(m->user_ids, "MessageInviteToGroupCall"));
     }
