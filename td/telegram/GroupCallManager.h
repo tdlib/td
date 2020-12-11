@@ -69,6 +69,10 @@ class GroupCallManager : public Actor {
                                       tl_object_ptr<telegram_api::phone_groupParticipants> &&participants,
                                       bool is_load);
 
+  void on_update_group_call_participants(InputGroupCallId input_group_call_id,
+                                         vector<tl_object_ptr<telegram_api::groupCallParticipant>> &&participants,
+                                         int32 version);
+
   void process_join_group_call_response(InputGroupCallId input_group_call_id, uint64 generation,
                                         tl_object_ptr<telegram_api::Updates> &&updates, Promise<Unit> &&promise);
 
@@ -121,6 +125,8 @@ class GroupCallManager : public Actor {
 
   InputGroupCallId update_group_call(const tl_object_ptr<telegram_api::GroupCall> &group_call_ptr,
                                      ChannelId channel_id);
+
+  void on_receive_group_call_version(InputGroupCallId input_group_call_id, int32 version);
 
   void on_source_speaking_in_group_call(GroupCallId group_call_id, int32 source, int32 date, bool recursive);
 

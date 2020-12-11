@@ -569,8 +569,7 @@ void GroupCallManager::finish_get_group_call(InputGroupCallId input_group_call_i
   if (result.is_ok()) {
     td_->contacts_manager_->on_get_users(std::move(result.ok_ref()->users_), "finish_get_group_call");
 
-    auto call_id = update_group_call(result.ok()->call_, ChannelId());
-    if (call_id != input_group_call_id) {
+    if (update_group_call(result.ok()->call_, ChannelId()) != input_group_call_id) {
       LOG(ERROR) << "Expected " << input_group_call_id << ", but received " << to_string(result.ok());
       result = Status::Error(500, "Receive another group call");
     }
@@ -613,11 +612,40 @@ void GroupCallManager::on_get_group_call_participants(
 
   process_group_call_participants(input_group_call_id, std::move(participants->participants_), false);
 
-  // TODO use version
+  on_receive_group_call_version(input_group_call_id, participants->version_);
 
   if (is_load) {
     // TODO use count, next_offset
   }
+}
+
+void GroupCallManager::on_update_group_call_participants(
+    InputGroupCallId input_group_call_id, vector<tl_object_ptr<telegram_api::groupCallParticipant>> &&participants,
+    int32 version) {
+  if (!need_group_call_participants(input_group_call_id)) {
+    LOG(INFO) << "Ignore updateGroupCallParticipants in unknown " << input_group_call_id;
+    return;
+  }
+
+  auto group_call = get_group_call(input_group_call_id);
+  CHECK(group_call != nullptr && group_call->is_inited);
+  if (group_call->version >= version) {
+    if (participants.size() == 1 && group_call->version == version) {
+      GroupCallParticipant participant(participants[0]);
+      if (participant.user_id == td_->contacts_manager_->get_my_id()) {
+        process_group_call_participant(input_group_call_id, std::move(participant));
+        return;
+      }
+    }
+    LOG(INFO) << "Ignore already applied updateGroupCallParticipants in " << input_group_call_id;
+    return;
+  }
+  if (group_call->version + static_cast<int32>(participants.size()) == version) {
+    process_group_call_participants(input_group_call_id, std::move(participants), true);
+    return;
+  }
+
+  // TODO sync group call participant list
 }
 
 void GroupCallManager::process_group_call_participants(
@@ -1064,9 +1092,9 @@ void GroupCallManager::on_update_group_call(tl_object_ptr<telegram_api::GroupCal
     LOG(ERROR) << "Receive " << to_string(group_call_ptr) << " in invalid " << channel_id;
     channel_id = ChannelId();
   }
-  auto call_id = update_group_call(group_call_ptr, channel_id);
-  if (call_id.is_valid()) {
-    LOG(INFO) << "Update " << call_id;
+  auto input_group_call_id = update_group_call(group_call_ptr, channel_id);
+  if (input_group_call_id.is_valid()) {
+    LOG(INFO) << "Update " << input_group_call_id;
   } else {
     LOG(ERROR) << "Receive invalid " << to_string(group_call_ptr);
   }
@@ -1098,7 +1126,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
                                                      ChannelId channel_id) {
   CHECK(group_call_ptr != nullptr);
 
-  InputGroupCallId call_id;
+  InputGroupCallId input_group_call_id;
   GroupCall call;
   call.is_inited = true;
 
@@ -1106,7 +1134,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
   switch (group_call_ptr->get_id()) {
     case telegram_api::groupCall::ID: {
       auto group_call = static_cast<const telegram_api::groupCall *>(group_call_ptr.get());
-      call_id = InputGroupCallId(group_call->id_, group_call->access_hash_);
+      input_group_call_id = InputGroupCallId(group_call->id_, group_call->access_hash_);
       call.is_active = true;
       call.mute_new_participants = group_call->join_muted_;
       call.allowed_change_mute_new_participants = group_call->can_change_join_muted_;
@@ -1119,20 +1147,20 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
     }
     case telegram_api::groupCallDiscarded::ID: {
       auto group_call = static_cast<const telegram_api::groupCallDiscarded *>(group_call_ptr.get());
-      call_id = InputGroupCallId(group_call->id_, group_call->access_hash_);
+      input_group_call_id = InputGroupCallId(group_call->id_, group_call->access_hash_);
       call.duration = group_call->duration_;
-      finish_join_group_call(call_id, 0, Status::Error(400, "Group call ended"));
+      finish_join_group_call(input_group_call_id, 0, Status::Error(400, "Group call ended"));
       break;
     }
     default:
       UNREACHABLE();
   }
-  if (!call_id.is_valid() || call.participant_count < 0) {
+  if (!input_group_call_id.is_valid() || call.participant_count < 0) {
     return {};
   }
 
   bool need_update = false;
-  auto *group_call = add_group_call(call_id, channel_id);
+  auto *group_call = add_group_call(input_group_call_id, channel_id);
   call.group_call_id = group_call->group_call_id;
   call.channel_id = channel_id.is_valid() ? channel_id : group_call->channel_id;
   if (!group_call->is_inited) {
@@ -1153,6 +1181,13 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
           call.mute_new_participants != group_call->mute_new_participants ||
           call.allowed_change_mute_new_participants != group_call->allowed_change_mute_new_participants;
       if (call.version > group_call->version) {
+        if (group_call->version != -1) {
+          on_receive_group_call_version(input_group_call_id, call.version);
+
+          // if we know group call version, then update participants only by corresponding updates
+          call.participant_count = group_call->participant_count;
+          call.version = group_call->version;
+        }
         if (group_call->channel_id.is_valid()) {
           td_->contacts_manager_->on_update_channel_group_call(group_call->channel_id, true,
                                                                call.participant_count == 0);
@@ -1175,13 +1210,17 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
     group_call->channel_id = channel_id;
   }
   if (!join_params.empty()) {
-    need_update |= on_join_group_call_response(call_id, std::move(join_params));
+    need_update |= on_join_group_call_response(input_group_call_id, std::move(join_params));
   }
   if (need_update) {
     send_update_group_call(group_call);
   }
-  try_clear_group_call_participants(call_id);
-  return call_id;
+  try_clear_group_call_participants(input_group_call_id);
+  return input_group_call_id;
+}
+
+void GroupCallManager::on_receive_group_call_version(InputGroupCallId input_group_call_id, int32 version) {
+  // TODO
 }
 
 void GroupCallManager::on_user_speaking_in_group_call(GroupCallId group_call_id, UserId user_id, int32 date,

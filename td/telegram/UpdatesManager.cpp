@@ -2152,6 +2152,11 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateGroupCall> upda
                ChannelId(update->channel_id_));
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateGroupCallParticipants> update, bool /*force_apply*/) {
+  send_closure(G()->group_call_manager(), &GroupCallManager::on_update_group_call_participants,
+               InputGroupCallId(update->call_), std::move(update->participants_), update->version_);
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateContactsReset> update, bool /*force_apply*/) {
   td_->contacts_manager_->on_update_contacts_reset();
 }
@@ -2209,9 +2214,6 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelParticip
 // unsupported updates
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTheme> update, bool /*force_apply*/) {
-}
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateGroupCallParticipants> update, bool /*force_apply*/) {
 }
 
 }  // namespace td
