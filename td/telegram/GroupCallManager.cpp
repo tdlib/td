@@ -405,6 +405,7 @@ struct GroupCallManager::GroupCall {
   bool is_active = false;
   bool is_joined = false;
   bool is_speaking = false;
+  bool loaded_all_participants = false;
   bool mute_new_participants = false;
   bool allowed_change_mute_new_participants = false;
   int32 participant_count = 0;
@@ -654,6 +655,11 @@ void GroupCallManager::on_get_group_call_participants(
   CHECK(participants != nullptr);
   td_->contacts_manager_->on_get_users(std::move(participants->users_), "on_get_group_call_participants");
 
+  if (!need_group_call_participants(input_group_call_id)) {
+    return;
+  }
+
+  auto is_empty = participants->participants_.empty();
   process_group_call_participants(input_group_call_id, std::move(participants->participants_), is_load);
 
   on_receive_group_call_version(input_group_call_id, participants->version_);
@@ -665,6 +671,29 @@ void GroupCallManager::on_get_group_call_participants(
       CHECK(participants_it->second != nullptr);
       if (participants_it->second->next_offset == offset) {
         participants_it->second->next_offset = std::move(participants->next_offset_);
+      }
+    }
+
+    if (is_empty) {
+      bool need_update = false;
+      auto group_call = get_group_call(input_group_call_id);
+      CHECK(group_call != nullptr && group_call->is_inited);
+      if (!group_call->loaded_all_participants) {
+        group_call->loaded_all_participants = true;
+        need_update = true;
+      }
+
+      auto real_participant_count = participants_it != group_call_participants_.end()
+                                        ? static_cast<int32>(participants_it->second->participants.size())
+                                        : 0;
+      if (real_participant_count != group_call->participant_count) {
+        LOG(ERROR) << "Have participant count " << group_call->participant_count << " instead of "
+                   << real_participant_count << " in " << input_group_call_id;
+        group_call->participant_count = real_participant_count;
+        need_update = true;
+      }
+      if (need_update) {
+        send_update_group_call(group_call);
       }
     }
   }
@@ -1228,6 +1257,13 @@ void GroupCallManager::try_clear_group_call_participants(InputGroupCallId input_
   CHECK(participants != nullptr);
   group_call_participants_.erase(participants_it);
 
+  auto group_call = get_group_call(input_group_call_id);
+  CHECK(group_call != nullptr && group_call->is_inited);
+  if (group_call->loaded_all_participants) {
+    group_call->loaded_all_participants = false;
+    send_update_group_call(group_call);
+  }
+
   for (auto &participant : participants->participants) {
     if (participant.order != 0) {
       CHECK(participant.order >= participants->min_order);
@@ -1510,10 +1546,10 @@ tl_object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(const G
   CHECK(group_call != nullptr);
   CHECK(group_call->is_inited);
 
-  return td_api::make_object<td_api::groupCall>(group_call->group_call_id.get(), group_call->is_active,
-                                                group_call->is_joined, group_call->participant_count,
-                                                std::move(recent_speaker_user_ids), group_call->mute_new_participants,
-                                                group_call->allowed_change_mute_new_participants, group_call->duration);
+  return td_api::make_object<td_api::groupCall>(
+      group_call->group_call_id.get(), group_call->is_active, group_call->is_joined, group_call->participant_count,
+      group_call->loaded_all_participants, std::move(recent_speaker_user_ids), group_call->mute_new_participants,
+      group_call->allowed_change_mute_new_participants, group_call->duration);
 }
 
 tl_object_ptr<td_api::updateGroupCall> GroupCallManager::get_update_group_call_object(
