@@ -606,6 +606,16 @@ void GroupCallManager::finish_get_group_call(InputGroupCallId input_group_call_i
     if (update_group_call(result.ok()->call_, ChannelId()) != input_group_call_id) {
       LOG(ERROR) << "Expected " << input_group_call_id << ", but received " << to_string(result.ok());
       result = Status::Error(500, "Receive another group call");
+    } else {
+      process_group_call_participants(input_group_call_id, std::move(result.ok_ref()->participants_), false);
+
+      auto participants_it = group_call_participants_.find(input_group_call_id);
+      if (participants_it != group_call_participants_.end()) {
+        CHECK(participants_it->second != nullptr);
+        if (participants_it->second->next_offset.empty()) {
+          participants_it->second->next_offset = std::move(result.ok_ref()->participants_next_offset_);
+        }
+      }
     }
   }
 
@@ -651,9 +661,11 @@ void GroupCallManager::on_get_group_call_participants(
   if (is_load) {
     // TODO use count
     auto participants_it = group_call_participants_.find(input_group_call_id);
-    if (participants_it != group_call_participants_.end() && participants_it->second->next_offset == offset) {
+    if (participants_it != group_call_participants_.end()) {
       CHECK(participants_it->second != nullptr);
-      participants_it->second->next_offset = std::move(participants->next_offset_);
+      if (participants_it->second->next_offset == offset) {
+        participants_it->second->next_offset = std::move(participants->next_offset_);
+      }
     }
   }
 }
