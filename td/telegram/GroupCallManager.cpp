@@ -607,7 +607,7 @@ void GroupCallManager::finish_get_group_call(InputGroupCallId input_group_call_i
       LOG(ERROR) << "Expected " << input_group_call_id << ", but received " << to_string(result.ok());
       result = Status::Error(500, "Receive another group call");
     } else {
-      process_group_call_participants(input_group_call_id, std::move(result.ok_ref()->participants_), false);
+      process_group_call_participants(input_group_call_id, std::move(result.ok_ref()->participants_));
 
       auto participants_it = group_call_participants_.find(input_group_call_id);
       if (participants_it != group_call_participants_.end()) {
@@ -654,7 +654,7 @@ void GroupCallManager::on_get_group_call_participants(
   CHECK(participants != nullptr);
   td_->contacts_manager_->on_get_users(std::move(participants->users_), "on_get_group_call_participants");
 
-  process_group_call_participants(input_group_call_id, std::move(participants->participants_), false);
+  process_group_call_participants(input_group_call_id, std::move(participants->participants_));
 
   on_receive_group_call_version(input_group_call_id, participants->version_);
 
@@ -692,7 +692,7 @@ void GroupCallManager::on_update_group_call_participants(
     return;
   }
   if (group_call->version + static_cast<int32>(participants.size()) == version) {
-    process_group_call_participants(input_group_call_id, std::move(participants), true);
+    process_group_call_participants_from_updates(input_group_call_id, std::move(participants));
     return;
   }
 
@@ -700,26 +700,33 @@ void GroupCallManager::on_update_group_call_participants(
 }
 
 void GroupCallManager::process_group_call_participants(
-    InputGroupCallId input_group_call_id, vector<tl_object_ptr<telegram_api::groupCallParticipant>> &&participants,
-    bool from_update) {
+    InputGroupCallId input_group_call_id, vector<tl_object_ptr<telegram_api::groupCallParticipant>> &&participants) {
+  if (!need_group_call_participants(input_group_call_id)) {
+    return;
+  }
+
+  for (auto &participant : participants) {
+    process_group_call_participant(input_group_call_id, GroupCallParticipant(participant));
+  }
+}
+
+void GroupCallManager::process_group_call_participants_from_updates(
+    InputGroupCallId input_group_call_id, vector<tl_object_ptr<telegram_api::groupCallParticipant>> &&participants) {
   if (!need_group_call_participants(input_group_call_id)) {
     return;
   }
 
   auto group_call = get_group_call(input_group_call_id);
   CHECK(group_call != nullptr && group_call->is_inited);
-  if (from_update) {
-    CHECK(group_call->version != -1);
-    group_call->version += static_cast<int32>(participants.size());
-  }
+  CHECK(group_call->version == -1);
+  group_call->version += static_cast<int32>(participants.size());
+
   auto old_participant_count = group_call->participant_count;
   for (auto &participant : participants) {
-    int diff = process_group_call_participant(input_group_call_id, GroupCallParticipant(participant));
-    if (from_update) {
-      group_call->participant_count += diff;
-    }
+    group_call->participant_count +=
+        process_group_call_participant(input_group_call_id, GroupCallParticipant(participant));
   }
-  if (group_call->participant_count) {
+  if (group_call->participant_count < 0) {
     LOG(ERROR) << "Participant count became negative in " << input_group_call_id;
     group_call->participant_count = 0;
   }

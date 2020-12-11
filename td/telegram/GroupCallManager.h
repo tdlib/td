@@ -114,8 +114,10 @@ class GroupCallManager : public Actor {
   bool need_group_call_participants(InputGroupCallId input_group_call_id) const;
 
   void process_group_call_participants(InputGroupCallId group_call_id,
-                                       vector<tl_object_ptr<telegram_api::groupCallParticipant>> &&participants,
-                                       bool from_update);
+                                       vector<tl_object_ptr<telegram_api::groupCallParticipant>> &&participants);
+
+  void process_group_call_participants_from_updates(
+      InputGroupCallId group_call_id, vector<tl_object_ptr<telegram_api::groupCallParticipant>> &&participants);
 
   int process_group_call_participant(InputGroupCallId group_call_id, GroupCallParticipant &&participant);
 
