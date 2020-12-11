@@ -607,7 +607,7 @@ void GroupCallManager::finish_get_group_call(InputGroupCallId input_group_call_i
       LOG(ERROR) << "Expected " << input_group_call_id << ", but received " << to_string(result.ok());
       result = Status::Error(500, "Receive another group call");
     } else {
-      process_group_call_participants(input_group_call_id, std::move(result.ok_ref()->participants_));
+      process_group_call_participants(input_group_call_id, std::move(result.ok_ref()->participants_), true);
 
       auto participants_it = group_call_participants_.find(input_group_call_id);
       if (participants_it != group_call_participants_.end()) {
@@ -654,7 +654,7 @@ void GroupCallManager::on_get_group_call_participants(
   CHECK(participants != nullptr);
   td_->contacts_manager_->on_get_users(std::move(participants->users_), "on_get_group_call_participants");
 
-  process_group_call_participants(input_group_call_id, std::move(participants->participants_));
+  process_group_call_participants(input_group_call_id, std::move(participants->participants_), is_load);
 
   on_receive_group_call_version(input_group_call_id, participants->version_);
 
@@ -700,13 +700,47 @@ void GroupCallManager::on_update_group_call_participants(
 }
 
 void GroupCallManager::process_group_call_participants(
-    InputGroupCallId input_group_call_id, vector<tl_object_ptr<telegram_api::groupCallParticipant>> &&participants) {
+    InputGroupCallId input_group_call_id, vector<tl_object_ptr<telegram_api::groupCallParticipant>> &&participants,
+    bool is_load) {
   if (!need_group_call_participants(input_group_call_id)) {
     return;
   }
 
+  int64 min_order = std::numeric_limits<int64>::max();
   for (auto &participant : participants) {
+    GroupCallParticipant group_call_participant(participant);
+    if (!group_call_participant.is_valid()) {
+      LOG(ERROR) << "Receive invalid " << to_string(participant);
+      continue;
+    }
+
+    auto real_order = group_call_participant.get_real_order();
+    if (real_order > min_order) {
+      LOG(ERROR) << "Receive call participant with order " << real_order << " after call participant with order "
+                 << min_order;
+    } else {
+      min_order = real_order;
+    }
     process_group_call_participant(input_group_call_id, GroupCallParticipant(participant));
+  }
+  if (is_load) {
+    auto participants_it = group_call_participants_.find(input_group_call_id);
+    if (participants_it != group_call_participants_.end()) {
+      CHECK(participants_it->second != nullptr);
+      if (participants_it->second->min_order > min_order) {
+        auto old_min_order = participants_it->second->min_order;
+        participants_it->second->min_order = min_order;
+
+        for (auto &participant : participants_it->second->participants) {
+          auto real_order = participant.get_real_order();
+          if (old_min_order > real_order && real_order >= min_order) {
+            CHECK(participant.order == 0);
+            participant.order = real_order;
+            send_update_group_call_participant(input_group_call_id, participant);
+          }
+        }
+      }
+    }
   }
 }
 
