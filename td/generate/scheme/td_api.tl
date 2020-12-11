@@ -4378,6 +4378,9 @@ toggleGroupCallParticipantIsMuted group_call_id:int32 user_id:int32 is_muted:Boo
 //@description Checks whether a group call is still joined. Should be called every 10 seconds when tgcalls notifies about lost connection with the server @group_call_id Group call identifier
 checkGroupCallIsJoined group_call_id:int32 = Ok;
 
+//@description Loads more group call participants. The loaded participants will be received through updates @group_call_id Group call identifier @limit Maximum number of participants to load
+loadGroupCallParticipants group_call_id:int32 limit:int32 = Ok;
+
 //@description Leaves a group call @group_call_id Group call identifier
 leaveGroupCall group_call_id:int32 = Ok;
 

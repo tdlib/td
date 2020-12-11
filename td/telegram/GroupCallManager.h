@@ -57,6 +57,8 @@ class GroupCallManager : public Actor {
 
   void check_group_call_is_joined(GroupCallId group_call_id, Promise<Unit> &&promise);
 
+  void load_group_call_participants(GroupCallId group_call_id, int32 limit, Promise<Unit> &&promise);
+
   void leave_group_call(GroupCallId group_call_id, Promise<Unit> &&promise);
 
   void discard_group_call(GroupCallId group_call_id, Promise<Unit> &&promise);
@@ -66,8 +68,8 @@ class GroupCallManager : public Actor {
   void on_user_speaking_in_group_call(GroupCallId group_call_id, UserId user_id, int32 date, bool recursive = false);
 
   void on_get_group_call_participants(InputGroupCallId input_group_call_id,
-                                      tl_object_ptr<telegram_api::phone_groupParticipants> &&participants,
-                                      bool is_load);
+                                      tl_object_ptr<telegram_api::phone_groupParticipants> &&participants, bool is_load,
+                                      const string &offset);
 
   void on_update_group_call_participants(InputGroupCallId input_group_call_id,
                                          vector<tl_object_ptr<telegram_api::groupCallParticipant>> &&participants,

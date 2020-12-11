@@ -708,6 +708,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, const td_api::checkGroupCallIsJoined &request);
 
+  void on_request(uint64 id, const td_api::loadGroupCallParticipants &request);
+
   void on_request(uint64 id, const td_api::leaveGroupCall &request);
 
   void on_request(uint64 id, const td_api::discardGroupCall &request);

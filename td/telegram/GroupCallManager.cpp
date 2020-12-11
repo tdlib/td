@@ -118,7 +118,41 @@ class GetGroupCallParticipantQuery : public Td::ResultHandler {
       return on_error(id, result_ptr.move_as_error());
     }
 
-    td->group_call_manager_->on_get_group_call_participants(input_group_call_id_, result_ptr.move_as_ok(), false);
+    td->group_call_manager_->on_get_group_call_participants(input_group_call_id_, result_ptr.move_as_ok(), false,
+                                                            string());
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(uint64 id, Status status) override {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class GetGroupCallParticipantsQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  InputGroupCallId input_group_call_id_;
+  string offset_;
+
+ public:
+  explicit GetGroupCallParticipantsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(InputGroupCallId input_group_call_id, string offset, int32 limit) {
+    input_group_call_id_ = input_group_call_id;
+    offset_ = std::move(offset);
+    send_query(G()->net_query_creator().create(telegram_api::phone_getGroupParticipants(
+        input_group_call_id.get_input_group_call(), vector<int32>(), vector<int32>(), offset_, limit)));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::phone_getGroupParticipants>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    td->group_call_manager_->on_get_group_call_participants(input_group_call_id_, result_ptr.move_as_ok(), true,
+                                                            offset_);
 
     promise_.set_value(Unit());
   }
@@ -604,7 +638,7 @@ bool GroupCallManager::need_group_call_participants(InputGroupCallId input_group
 
 void GroupCallManager::on_get_group_call_participants(
     InputGroupCallId input_group_call_id, tl_object_ptr<telegram_api::phone_groupParticipants> &&participants,
-    bool is_load) {
+    bool is_load, const string &offset) {
   LOG(INFO) << "Receive group call participants: " << to_string(participants);
 
   CHECK(participants != nullptr);
@@ -615,7 +649,12 @@ void GroupCallManager::on_get_group_call_participants(
   on_receive_group_call_version(input_group_call_id, participants->version_);
 
   if (is_load) {
-    // TODO use count, next_offset
+    // TODO use count
+    auto participants_it = group_call_participants_.find(input_group_call_id);
+    if (participants_it != group_call_participants_.end() && participants_it->second->next_offset == offset) {
+      CHECK(participants_it->second != nullptr);
+      participants_it->second->next_offset = std::move(participants->next_offset_);
+    }
   }
 }
 
@@ -1043,6 +1082,29 @@ void GroupCallManager::check_group_call_is_joined(GroupCallId group_call_id, Pro
     promise.set_result(std::move(result));
   });
   td_->create_handler<CheckGroupCallQuery>(std::move(query_promise))->send(input_group_call_id, source);
+}
+
+void GroupCallManager::load_group_call_participants(GroupCallId group_call_id, int32 limit, Promise<Unit> &&promise) {
+  if (limit <= 0) {
+    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
+  }
+
+  TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
+
+  if (!need_group_call_participants(input_group_call_id)) {
+    return promise.set_error(Status::Error(400, "Can't load group call participants"));
+  }
+  auto *group_call = get_group_call(input_group_call_id);
+  CHECK(group_call != nullptr && group_call->is_inited);
+
+  string next_offset;
+  auto participants_it = group_call_participants_.find(input_group_call_id);
+  if (participants_it != group_call_participants_.end()) {
+    CHECK(participants_it->second != nullptr);
+    next_offset = participants_it->second->next_offset;
+  }
+  td_->create_handler<GetGroupCallParticipantsQuery>(std::move(promise))
+      ->send(input_group_call_id, std::move(next_offset), limit);
 }
 
 void GroupCallManager::leave_group_call(GroupCallId group_call_id, Promise<Unit> &&promise) {

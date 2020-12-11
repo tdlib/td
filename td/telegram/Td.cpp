@@ -6091,6 +6091,13 @@ void Td::on_request(uint64 id, const td_api::checkGroupCallIsJoined &request) {
   group_call_manager_->check_group_call_is_joined(GroupCallId(request.group_call_id_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::loadGroupCallParticipants &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  group_call_manager_->load_group_call_participants(GroupCallId(request.group_call_id_), request.limit_,
+                                                    std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::leaveGroupCall &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
