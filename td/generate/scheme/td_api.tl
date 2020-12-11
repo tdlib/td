@@ -2089,7 +2089,7 @@ groupCallJoinResponse payload:groupCallPayload candidates:vector<groupCallJoinRe
 
 //@description Represents a group call participant @user_id Identifier of the user @source User's synchronization source
 //@is_speaking True, if the user is speaking as set by setGroupCallParticipantIsSpeaking @is_muted True, if the user is muted @can_self_unmute True, if the user can unmute themself
-//@order User's order in the group call participant list. The bigger is order, the higher is user in the list
+//@order User's order in the group call participant list. The bigger is order, the higher is user in the list. If order is 0, the user must be removed from the participant list
 groupCallParticipant user_id:int32 source:int32 is_speaking:Bool is_muted:Bool can_self_unmute:Bool order:int64 = GroupCallParticipant;
 
 
@@ -3396,8 +3396,12 @@ updateFileGenerationStop generation_id:int64 = Update;
 //@description New call was created or information about a call was updated @call New data about a call
 updateCall call:call = Update;
 
-//@description Information about a group call was updated @group_call New data about the call
+//@description Information about a group call was updated @group_call New data about a group call
 updateGroupCall group_call:groupCall = Update;
+
+//@description Information about a group call participant was changed. The updates are sent only after the group call is received through getGroupCall and only if the call is joined or being joined
+//@group_call_id Identifier of group call @participant New data about a participant
+updateGroupCallParticipant group_call_id:int32 participant:groupCallParticipant = Update;
 
 //@description New call signaling data arrived @call_id The call identifier @data The data
 updateNewCallSignalingData call_id:int32 data:bytes = Update;

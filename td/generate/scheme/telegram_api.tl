@@ -1181,7 +1181,7 @@ groupCall#55903081 flags:# join_muted:flags.1?true can_change_join_muted:flags.2
 
 inputGroupCall#d8aa840f id:long access_hash:long = InputGroupCall;
 
-groupCallParticipant#56b087c9 flags:# muted:flags.0?true left:flags.1?true can_self_unmute:flags.2?true user_id:int date:int active_date:flags.3?int source:int = GroupCallParticipant;
+groupCallParticipant#56b087c9 flags:# muted:flags.0?true left:flags.1?true can_self_unmute:flags.2?true just_joined:flags.4?true user_id:int date:int active_date:flags.3?int source:int = GroupCallParticipant;
 
 phone.groupCall#66ab0bfc call:GroupCall participants:Vector<GroupCallParticipant> participants_next_offset:string users:Vector<User> = phone.GroupCall;
 

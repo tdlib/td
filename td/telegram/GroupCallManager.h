@@ -8,6 +8,7 @@
 
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/GroupCallId.h"
+#include "td/telegram/GroupCallParticipant.h"
 #include "td/telegram/InputGroupCallId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -73,6 +74,7 @@ class GroupCallManager : public Actor {
 
  private:
   struct GroupCall;
+  struct GroupCallParticipants;
   struct GroupCallRecentSpeakers;
   struct PendingJoinRequest;
 
@@ -103,7 +105,13 @@ class GroupCallManager : public Actor {
   void finish_get_group_call(InputGroupCallId input_group_call_id,
                              Result<tl_object_ptr<telegram_api::phone_groupCall>> &&result);
 
-  void process_group_call_participants(vector<tl_object_ptr<telegram_api::groupCallParticipant>> &&participants);
+  bool need_group_call_participants(InputGroupCallId input_group_call_id) const;
+
+  void process_group_call_participants(InputGroupCallId group_call_id,
+                                       vector<tl_object_ptr<telegram_api::groupCallParticipant>> &&participants,
+                                       bool from_update);
+
+  int process_group_call_participant(InputGroupCallId group_call_id, GroupCallParticipant &&participant);
 
   bool on_join_group_call_response(InputGroupCallId input_group_call_id, string json_response);
 
@@ -118,10 +126,12 @@ class GroupCallManager : public Actor {
 
   void on_group_call_recent_speakers_updated(const GroupCall *group_call, GroupCallRecentSpeakers *recent_speakers);
 
-  UserId get_group_call_participant_by_source(GroupCallId group_call_id, int32 source);
+  UserId get_group_call_participant_by_source(InputGroupCallId input_group_call_id, int32 source);
 
   static Result<td_api::object_ptr<td_api::groupCallJoinResponse>> get_group_call_join_response_object(
       string json_response);
+
+  void try_clear_group_call_participants(InputGroupCallId input_group_call_id);
 
   vector<int32> get_recent_speaker_user_ids(const GroupCall *group_call, bool for_update);
 
@@ -131,7 +141,15 @@ class GroupCallManager : public Actor {
   tl_object_ptr<td_api::groupCall> get_group_call_object(const GroupCall *group_call,
                                                          vector<int32> recent_speaker_user_ids) const;
 
+  tl_object_ptr<td_api::updateGroupCallParticipant> get_update_group_call_participant_object(
+      GroupCallId group_call_id, const GroupCallParticipant &participant);
+
   void send_update_group_call(const GroupCall *group_call);
+
+  void send_update_group_call_participant(GroupCallId group_call_id, const GroupCallParticipant &participant);
+
+  void send_update_group_call_participant(InputGroupCallId input_group_call_id,
+                                          const GroupCallParticipant &participant);
 
   Td *td_;
   ActorShared<> parent_;
@@ -141,6 +159,9 @@ class GroupCallManager : public Actor {
   vector<InputGroupCallId> input_group_call_ids_;
 
   std::unordered_map<InputGroupCallId, unique_ptr<GroupCall>, InputGroupCallIdHash> group_calls_;
+
+  std::unordered_map<InputGroupCallId, unique_ptr<GroupCallParticipants>, InputGroupCallIdHash>
+      group_call_participants_;
 
   std::unordered_map<GroupCallId, unique_ptr<GroupCallRecentSpeakers>, GroupCallIdHash> group_call_recent_speakers_;
 
