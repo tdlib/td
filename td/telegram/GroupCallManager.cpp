@@ -755,23 +755,23 @@ void GroupCallManager::on_update_group_call_participants(
   }
   pending_updates = std::move(participants);
 
-  process_pending_group_call_participants_updates(input_group_call_id);
+  process_pending_group_call_participant_updates(input_group_call_id);
 }
 
-void GroupCallManager::process_pending_group_call_participants_updates(InputGroupCallId input_group_call_id) {
+bool GroupCallManager::process_pending_group_call_participant_updates(InputGroupCallId input_group_call_id) {
   if (!need_group_call_participants(input_group_call_id)) {
-    return;
+    return false;
   }
 
   auto participants_it = group_call_participants_.find(input_group_call_id);
   if (participants_it == group_call_participants_.end()) {
-    return;
+    return false;
   }
   auto &pending_updates = participants_it->second->pending_updates_;
   auto group_call = get_group_call(input_group_call_id);
   CHECK(group_call != nullptr && group_call->is_inited);
   if (group_call->version == -1) {
-    return;
+    return false;
   }
 
   int32 diff = 0;
@@ -816,7 +816,9 @@ void GroupCallManager::process_pending_group_call_participants_updates(InputGrou
       group_call->participant_count = 0;
     }
     send_update_group_call(group_call);
+    return true;
   }
+  return false;
 }
 
 void GroupCallManager::sync_group_call_participants(InputGroupCallId input_group_call_id) {
@@ -1441,6 +1443,9 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
           if (need_group_call_participants(input_group_call_id)) {
             // init version
             group_call->version = call.version;
+            if (process_pending_group_call_participant_updates(input_group_call_id)) {
+              need_update = false;
+            }
           }
         }
         if (group_call->channel_id.is_valid()) {
