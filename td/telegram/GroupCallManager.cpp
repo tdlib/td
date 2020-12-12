@@ -770,6 +770,9 @@ void GroupCallManager::process_pending_group_call_participants_updates(InputGrou
   auto &pending_updates = participants_it->second->pending_updates_;
   auto group_call = get_group_call(input_group_call_id);
   CHECK(group_call != nullptr && group_call->is_inited);
+  if (group_call->version == -1) {
+    return;
+  }
 
   int32 diff = 0;
   while (!pending_updates.empty()) {
@@ -1461,7 +1464,26 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
 }
 
 void GroupCallManager::on_receive_group_call_version(InputGroupCallId input_group_call_id, int32 version) {
-  // TODO
+  if (!need_group_call_participants(input_group_call_id)) {
+    return;
+  }
+
+  auto *group_call = get_group_call(input_group_call_id);
+  CHECK(group_call != nullptr && group_call->is_inited);
+  if (group_call->version == -1) {
+    return;
+  }
+  if (version <= group_call->version) {
+    return;
+  }
+
+  // found a gap
+  auto &group_call_participants = group_call_participants_[input_group_call_id];
+  if (group_call_participants == nullptr) {
+    group_call_participants = make_unique<GroupCallParticipants>();
+  }
+  group_call_participants->pending_updates_[version];  // reserve place for updates
+  sync_participants_timeout_.add_timeout_in(group_call->group_call_id.get(), 1.0);
 }
 
 void GroupCallManager::on_user_speaking_in_group_call(GroupCallId group_call_id, UserId user_id, int32 date,
