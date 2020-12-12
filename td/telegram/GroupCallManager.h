@@ -50,7 +50,7 @@ class GroupCallManager : public Actor {
   void invite_group_call_participants(GroupCallId group_call_id, vector<UserId> &&user_ids, Promise<Unit> &&promise);
 
   void set_group_call_participant_is_speaking(GroupCallId group_call_id, int32 source, bool is_speaking,
-                                              Promise<Unit> &&promise);
+                                              Promise<Unit> &&promise, int32 date = 0);
 
   void toggle_group_call_participant_is_muted(GroupCallId group_call_id, UserId user_id, bool is_muted,
                                               Promise<Unit> &&promise);
@@ -140,8 +140,6 @@ class GroupCallManager : public Actor {
                                      ChannelId channel_id);
 
   void on_receive_group_call_version(InputGroupCallId input_group_call_id, int32 version);
-
-  void on_source_speaking_in_group_call(GroupCallId group_call_id, int32 source, int32 date, bool recursive);
 
   void on_group_call_recent_speakers_updated(const GroupCall *group_call, GroupCallRecentSpeakers *recent_speakers);
 

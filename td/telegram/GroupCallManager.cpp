@@ -1195,31 +1195,62 @@ void GroupCallManager::invite_group_call_participants(GroupCallId group_call_id,
 }
 
 void GroupCallManager::set_group_call_participant_is_speaking(GroupCallId group_call_id, int32 source, bool is_speaking,
-                                                              Promise<Unit> &&promise) {
+                                                              Promise<Unit> &&promise, int32 date) {
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
+
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
 
   auto *group_call = get_group_call(input_group_call_id);
   if (group_call == nullptr || !group_call->is_inited || !group_call->is_active || !group_call->is_joined) {
     return promise.set_value(Unit());
   }
-  if (group_call->source == source) {
-    if (!group_call->channel_id.is_valid()) {
-      return promise.set_value(Unit());
+
+  bool recursive = false;
+  if (date == 0) {
+    date = G()->unix_time();
+  } else {
+    recursive = true;
+  }
+  UserId user_id = get_group_call_participant_by_source(input_group_call_id, source);
+  if (!user_id.is_valid()) {
+    if (!recursive) {
+      auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, source, is_speaking,
+                                                   promise = std::move(promise), date](Result<Unit> &&result) mutable {
+        if (G()->close_flag()) {
+          return promise.set_error(Status::Error(500, "Request aborted"));
+        }
+        if (result.is_error()) {
+          promise.set_value(Unit());
+        } else {
+          send_closure(actor_id, &GroupCallManager::set_group_call_participant_is_speaking, group_call_id, source,
+                       is_speaking, std::move(promise), date);
+        }
+      });
+      td_->create_handler<GetGroupCallParticipantQuery>(std::move(query_promise))
+          ->send(input_group_call_id, {}, {source});
+    } else {
+      LOG(INFO) << "Failed to find participant with source " << source << " in " << group_call_id;
+      promise.set_value(Unit());
     }
-    if (group_call->is_speaking != is_speaking) {
-      group_call->is_speaking = is_speaking;
-      if (is_speaking) {
-        pending_send_speaking_action_timeout_.add_timeout_in(group_call_id.get(), 0.0);
-      }
-    }
-    return promise.set_value(Unit());
+    return;
   }
 
   if (is_speaking) {
-    on_source_speaking_in_group_call(group_call_id, source, G()->unix_time(), false);
+    on_user_speaking_in_group_call(group_call_id, user_id, date, recursive);
   }
 
-  // TODO update participant list by others speaking actions
+  if (group_call->source == source && !group_call->channel_id.is_valid() && group_call->is_speaking != is_speaking) {
+    group_call->is_speaking = is_speaking;
+    if (is_speaking) {
+      pending_send_speaking_action_timeout_.add_timeout_in(group_call_id.get(), 0.0);
+    } else {
+      pending_send_speaking_action_timeout_.cancel_timeout(group_call_id.get());
+    }
+  }
+
+  // TODO update participant list by speaking actions
 
   promise.set_value(Unit());
 }
@@ -1565,28 +1596,6 @@ void GroupCallManager::on_user_speaking_in_group_call(GroupCallId group_call_id,
   }
 
   on_group_call_recent_speakers_updated(group_call, recent_speakers.get());
-}
-
-void GroupCallManager::on_source_speaking_in_group_call(GroupCallId group_call_id, int32 source, int32 date,
-                                                        bool recursive) {
-  if (G()->close_flag()) {
-    return;
-  }
-
-  auto input_group_call_id = get_input_group_call_id(group_call_id).move_as_ok();
-  UserId user_id = get_group_call_participant_by_source(input_group_call_id, source);
-  if (user_id.is_valid()) {
-    on_user_speaking_in_group_call(group_call_id, user_id, G()->unix_time());
-  } else if (!recursive) {
-    auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, source,
-                                                 date = G()->unix_time()](Result<Unit> &&result) {
-      if (!G()->close_flag() && result.is_ok()) {
-        send_closure(actor_id, &GroupCallManager::on_source_speaking_in_group_call, group_call_id, source, date, true);
-      }
-    });
-    td_->create_handler<GetGroupCallParticipantQuery>(std::move(query_promise))
-        ->send(input_group_call_id, {}, {source});
-  }
 }
 
 void GroupCallManager::on_group_call_recent_speakers_updated(const GroupCall *group_call,
