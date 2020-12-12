@@ -117,7 +117,7 @@ class GroupCallManager : public Actor {
                                        vector<tl_object_ptr<telegram_api::groupCallParticipant>> &&participants,
                                        bool is_load);
 
-  void process_group_call_participants_from_updates(
+  int32 process_group_call_participants_from_updates(
       InputGroupCallId group_call_id, vector<tl_object_ptr<telegram_api::groupCallParticipant>> &&participants);
 
   int process_group_call_participant(InputGroupCallId group_call_id, GroupCallParticipant &&participant);

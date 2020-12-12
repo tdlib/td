@@ -720,8 +720,17 @@ void GroupCallManager::on_update_group_call_participants(
     LOG(INFO) << "Ignore already applied updateGroupCallParticipants in " << input_group_call_id;
     return;
   }
-  if (group_call->version + static_cast<int32>(participants.size()) == version) {
-    process_group_call_participants_from_updates(input_group_call_id, std::move(participants));
+  if (version == group_call->version + static_cast<int32>(participants.size())) {
+    group_call->version += static_cast<int32>(participants.size());
+    auto diff = process_group_call_participants_from_updates(input_group_call_id, std::move(participants));
+    if (diff != 0 && (group_call->participant_count != 0 || diff > 0)) {
+      group_call->participant_count += diff;
+      if (group_call->participant_count < 0) {
+        LOG(ERROR) << "Participant count became negative in " << input_group_call_id;
+        group_call->participant_count = 0;
+      }
+      send_update_group_call(group_call);
+    }
     return;
   }
 
@@ -773,29 +782,13 @@ void GroupCallManager::process_group_call_participants(
   }
 }
 
-void GroupCallManager::process_group_call_participants_from_updates(
+int32 GroupCallManager::process_group_call_participants_from_updates(
     InputGroupCallId input_group_call_id, vector<tl_object_ptr<telegram_api::groupCallParticipant>> &&participants) {
-  if (!need_group_call_participants(input_group_call_id)) {
-    return;
-  }
-
-  auto group_call = get_group_call(input_group_call_id);
-  CHECK(group_call != nullptr && group_call->is_inited);
-  CHECK(group_call->version == -1);
-  group_call->version += static_cast<int32>(participants.size());
-
-  auto old_participant_count = group_call->participant_count;
+  int32 diff = 0;
   for (auto &participant : participants) {
-    group_call->participant_count +=
-        process_group_call_participant(input_group_call_id, GroupCallParticipant(participant));
+    diff += process_group_call_participant(input_group_call_id, GroupCallParticipant(participant));
   }
-  if (group_call->participant_count < 0) {
-    LOG(ERROR) << "Participant count became negative in " << input_group_call_id;
-    group_call->participant_count = 0;
-  }
-  if (group_call->participant_count != old_participant_count) {
-    send_update_group_call(group_call);
-  }
+  return diff;
 }
 
 int GroupCallManager::process_group_call_participant(InputGroupCallId input_group_call_id,
