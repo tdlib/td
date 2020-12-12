@@ -96,6 +96,10 @@ class GroupCallManager : public Actor {
 
   void on_recent_speaker_update_timeout(GroupCallId group_call_id);
 
+  static void on_sync_participants_timeout_callback(void *group_call_manager_ptr, int64 group_call_id_int);
+
+  void on_sync_participants_timeout(GroupCallId group_call_id);
+
   Result<InputGroupCallId> get_input_group_call_id(GroupCallId group_call_id);
 
   GroupCallId get_next_group_call_id(InputGroupCallId input_group_call_id);
@@ -112,6 +116,10 @@ class GroupCallManager : public Actor {
                              Result<tl_object_ptr<telegram_api::phone_groupCall>> &&result);
 
   bool need_group_call_participants(InputGroupCallId input_group_call_id) const;
+
+  void process_pending_group_call_participants_updates(InputGroupCallId input_group_call_id);
+
+  void sync_group_call_participants(InputGroupCallId input_group_call_id);
 
   void process_group_call_participants(InputGroupCallId group_call_id,
                                        vector<tl_object_ptr<telegram_api::groupCallParticipant>> &&participants,
@@ -184,6 +192,7 @@ class GroupCallManager : public Actor {
 
   MultiTimeout pending_send_speaking_action_timeout_{"PendingSendSpeakingActionTimeout"};
   MultiTimeout recent_speaker_update_timeout_{"RecentSpeakerUpdateTimeout"};
+  MultiTimeout sync_participants_timeout_{"SyncParticipantsTimeout"};
 };
 
 }  // namespace td
