@@ -6037,7 +6037,7 @@ void Td::on_request(uint64 id, const td_api::createVoiceChat &request) {
       promise.set_value(td_api::make_object<td_api::groupCallId>(result.ok().get()));
     }
   });
-  contacts_manager_->create_channel_voice_chat(DialogId(request.chat_id_), std::move(query_promise));
+  group_call_manager_->create_voice_chat(DialogId(request.chat_id_), std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getGroupCall &request) {

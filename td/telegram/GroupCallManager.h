@@ -37,7 +37,7 @@ class GroupCallManager : public Actor {
 
   GroupCallId get_group_call_id(InputGroupCallId input_group_call_id, DialogId dialog_id);
 
-  void create_voice_chat(DialogId dialog_id, Promise<InputGroupCallId> &&promise);
+  void create_voice_chat(DialogId dialog_id, Promise<GroupCallId> &&promise);
 
   void get_group_call(GroupCallId group_call_id, Promise<td_api::object_ptr<td_api::groupCall>> &&promise);
 
@@ -108,6 +108,8 @@ class GroupCallManager : public Actor {
 
   const GroupCall *get_group_call(InputGroupCallId input_group_call_id) const;
   GroupCall *get_group_call(InputGroupCallId input_group_call_id);
+
+  void on_voice_chat_created(DialogId dialog_id, InputGroupCallId input_group_call_id, Promise<GroupCallId> &&promise);
 
   void reload_group_call(InputGroupCallId input_group_call_id,
                          Promise<td_api::object_ptr<td_api::groupCall>> &&promise);

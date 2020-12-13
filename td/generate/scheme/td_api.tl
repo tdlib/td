@@ -4351,7 +4351,7 @@ sendCallRating call_id:int32 rating:int32 comment:string problems:vector<CallPro
 sendCallDebugInformation call_id:int32 debug_information:string = Ok;
 
 
-//@description Creates a voice chat (a group call bound to a chat). Available only for supergroups; requires can_manage_voice_chats rights @chat_id Chat identifier
+//@description Creates a voice chat (a group call bound to a chat). Available only for basic groups and supergroups; requires can_manage_voice_chats rights @chat_id Chat identifier
 createVoiceChat chat_id:int53 = GroupCallId;
 
 //@description Returns information about a group call @group_call_id Group call identifier

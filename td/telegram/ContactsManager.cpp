@@ -5916,69 +5916,6 @@ void ContactsManager::set_channel_slow_mode_delay(DialogId dialog_id, int32 slow
   td_->create_handler<ToggleSlowModeQuery>(std::move(promise))->send(channel_id, slow_mode_delay);
 }
 
-void ContactsManager::create_channel_voice_chat(DialogId dialog_id, Promise<GroupCallId> &&promise) {
-  if (!dialog_id.is_valid()) {
-    return promise.set_error(Status::Error(400, "Invalid chat identifier specified"));
-  }
-  if (!td_->messages_manager_->have_dialog_force(dialog_id)) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
-  }
-
-  if (dialog_id.get_type() != DialogType::Channel) {
-    return promise.set_error(Status::Error(400, "Chat is not a supergroup"));
-  }
-
-  auto channel_id = dialog_id.get_channel_id();
-  const Channel *c = get_channel(channel_id);
-  if (c == nullptr) {
-    return promise.set_error(Status::Error(400, "Chat info not found"));
-  }
-  if (!c->is_megagroup) {
-    return promise.set_error(Status::Error(400, "Chat is not a supergroup"));
-  }
-  if (!get_channel_permissions(c).can_manage_calls()) {
-    return promise.set_error(Status::Error(400, "Not enough rights in the supergroup"));
-  }
-
-  auto new_promise = PromiseCreator::lambda(
-      [actor_id = actor_id(this), channel_id, promise = std::move(promise)](Result<InputGroupCallId> result) mutable {
-        if (result.is_error()) {
-          promise.set_error(result.move_as_error());
-        } else {
-          send_closure(actor_id, &ContactsManager::on_create_channel_group_call, channel_id, result.move_as_ok(),
-                       std::move(promise));
-        }
-      });
-  send_closure(G()->group_call_manager(), &GroupCallManager::create_voice_chat, dialog_id, std::move(new_promise));
-}
-
-void ContactsManager::on_create_channel_group_call(ChannelId channel_id, InputGroupCallId input_group_call_id,
-                                                   Promise<GroupCallId> &&promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
-  if (!input_group_call_id.is_valid()) {
-    return promise.set_error(Status::Error(500, "Receive invalid group call identifier"));
-  }
-
-  Channel *c = get_channel(channel_id);
-  CHECK(c != nullptr);
-  if (!c->has_active_group_call || !c->is_group_call_empty) {
-    c->has_active_group_call = true;
-    c->is_group_call_empty = true;
-    c->is_changed = true;
-    update_channel(c, channel_id);
-  }
-
-  auto channel_full = get_channel_full_force(channel_id, "on_create_channel_group_call");
-  if (channel_full != nullptr && channel_full->active_group_call_id != input_group_call_id) {
-    channel_full->active_group_call_id = input_group_call_id;
-    channel_full->is_changed = true;
-    update_channel_full(channel_full, channel_id);
-  }
-  promise.set_value(td_->group_call_manager_->get_group_call_id(input_group_call_id, DialogId(channel_id)));
-}
-
 void ContactsManager::get_channel_statistics_dc_id(DialogId dialog_id, bool for_full_statistics,
                                                    Promise<DcId> &&promise) {
   if (!dialog_id.is_valid()) {

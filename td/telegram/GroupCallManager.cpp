@@ -590,8 +590,69 @@ GroupCallManager::GroupCall *GroupCallManager::get_group_call(InputGroupCallId i
   }
 }
 
-void GroupCallManager::create_voice_chat(DialogId dialog_id, Promise<InputGroupCallId> &&promise) {
-  td_->create_handler<CreateGroupCallQuery>(std::move(promise))->send(dialog_id);
+void GroupCallManager::create_voice_chat(DialogId dialog_id, Promise<GroupCallId> &&promise) {
+  if (!dialog_id.is_valid()) {
+    return promise.set_error(Status::Error(400, "Invalid chat identifier specified"));
+  }
+  if (!td_->messages_manager_->have_dialog_force(dialog_id)) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+
+  switch (dialog_id.get_type()) {
+    case DialogType::Channel: {
+      auto channel_id = dialog_id.get_channel_id();
+      switch (td_->contacts_manager_->get_channel_type(channel_id)) {
+        case ChannelType::Unknown:
+          return promise.set_error(Status::Error(400, "Chat info not found"));
+        case ChannelType::Megagroup:
+          // OK
+          break;
+        case ChannelType::Broadcast:
+          return promise.set_error(Status::Error(400, "Chat is not a group"));
+        default:
+          UNREACHABLE();
+          break;
+      }
+      if (!td_->contacts_manager_->get_channel_permissions(channel_id).can_manage_calls()) {
+        return promise.set_error(Status::Error(400, "Not enough rights in the chat"));
+      }
+      break;
+    }
+    case DialogType::Chat:
+    case DialogType::User:
+    case DialogType::SecretChat:
+      return promise.set_error(Status::Error(400, "Chat can't have a voice chat"));
+    default:
+      UNREACHABLE();
+  }
+
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), dialog_id, promise = std::move(promise)](Result<InputGroupCallId> result) mutable {
+        if (result.is_error()) {
+          promise.set_error(result.move_as_error());
+        } else {
+          send_closure(actor_id, &GroupCallManager::on_voice_chat_created, dialog_id, result.move_as_ok(),
+                       std::move(promise));
+        }
+      });
+  td_->create_handler<CreateGroupCallQuery>(std::move(query_promise))->send(dialog_id);
+}
+
+void GroupCallManager::on_voice_chat_created(DialogId dialog_id, InputGroupCallId input_group_call_id,
+                                             Promise<GroupCallId> &&promise) {
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
+  if (!input_group_call_id.is_valid()) {
+    return promise.set_error(Status::Error(500, "Receive invalid group call identifier"));
+  }
+
+  td_->contacts_manager_->on_update_channel_group_call(dialog_id.get_channel_id(), true, true);
+
+  // TODO
+  // td_->messages_manager_->on_update_chat_group_call(dialog_id, input_group_call_id);
+
+  promise.set_value(get_group_call_id(input_group_call_id, dialog_id));
 }
 
 void GroupCallManager::get_group_call(GroupCallId group_call_id,
