@@ -24,16 +24,16 @@ namespace td {
 
 class CreateGroupCallQuery : public Td::ResultHandler {
   Promise<InputGroupCallId> promise_;
-  ChannelId channel_id_;
+  DialogId dialog_id_;
 
  public:
   explicit CreateGroupCallQuery(Promise<InputGroupCallId> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(ChannelId channel_id) {
-    channel_id_ = channel_id;
+  void send(DialogId dialog_id) {
+    dialog_id_ = dialog_id;
 
-    auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
+    auto input_channel = td->contacts_manager_->get_input_channel(dialog_id.get_channel_id());
     CHECK(input_channel != nullptr);
 
     send_query(G()->net_query_creator().create(
@@ -62,7 +62,7 @@ class CreateGroupCallQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    td->contacts_manager_->on_get_channel_error(channel_id_, status, "CreateGroupCallQuery");
+    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "CreateGroupCallQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -400,7 +400,7 @@ class DiscardGroupCallQuery : public Td::ResultHandler {
 
 struct GroupCallManager::GroupCall {
   GroupCallId group_call_id;
-  ChannelId channel_id;
+  DialogId dialog_id;
   bool is_inited = false;
   bool is_active = false;
   bool is_joined = false;
@@ -473,7 +473,7 @@ void GroupCallManager::on_send_speaking_action_timeout(GroupCallId group_call_id
   auto input_group_call_id = get_input_group_call_id(group_call_id).move_as_ok();
 
   auto *group_call = get_group_call(input_group_call_id);
-  CHECK(group_call != nullptr && group_call->is_inited && group_call->channel_id.is_valid());
+  CHECK(group_call != nullptr && group_call->is_inited && group_call->dialog_id.is_valid());
   if (!group_call->is_joined || !group_call->is_speaking) {
     return;
   }
@@ -482,8 +482,8 @@ void GroupCallManager::on_send_speaking_action_timeout(GroupCallId group_call_id
 
   pending_send_speaking_action_timeout_.add_timeout_in(group_call_id.get(), 4.0);
 
-  td_->messages_manager_->send_dialog_action(DialogId(group_call->channel_id), MessageId(),
-                                             DialogAction::get_speaking_action(), Promise<Unit>());
+  td_->messages_manager_->send_dialog_action(group_call->dialog_id, MessageId(), DialogAction::get_speaking_action(),
+                                             Promise<Unit>());
 }
 
 void GroupCallManager::on_recent_speaker_update_timeout_callback(void *group_call_manager_ptr,
@@ -531,11 +531,11 @@ void GroupCallManager::on_sync_participants_timeout(GroupCallId group_call_id) {
   sync_group_call_participants(input_group_call_id);
 }
 
-GroupCallId GroupCallManager::get_group_call_id(InputGroupCallId input_group_call_id, ChannelId channel_id) {
+GroupCallId GroupCallManager::get_group_call_id(InputGroupCallId input_group_call_id, DialogId dialog_id) {
   if (td_->auth_manager_->is_bot() || !input_group_call_id.is_valid()) {
     return GroupCallId();
   }
-  return add_group_call(input_group_call_id, channel_id)->group_call_id;
+  return add_group_call(input_group_call_id, dialog_id)->group_call_id;
 }
 
 Result<InputGroupCallId> GroupCallManager::get_input_group_call_id(GroupCallId group_call_id) {
@@ -558,16 +558,16 @@ GroupCallId GroupCallManager::get_next_group_call_id(InputGroupCallId input_grou
 }
 
 GroupCallManager::GroupCall *GroupCallManager::add_group_call(InputGroupCallId input_group_call_id,
-                                                              ChannelId channel_id) {
+                                                              DialogId dialog_id) {
   CHECK(!td_->auth_manager_->is_bot());
   auto &group_call = group_calls_[input_group_call_id];
   if (group_call == nullptr) {
     group_call = make_unique<GroupCall>();
     group_call->group_call_id = get_next_group_call_id(input_group_call_id);
-    LOG(INFO) << "Add " << input_group_call_id << " from " << channel_id << " as " << group_call->group_call_id;
+    LOG(INFO) << "Add " << input_group_call_id << " from " << dialog_id << " as " << group_call->group_call_id;
   }
-  if (!group_call->channel_id.is_valid()) {
-    group_call->channel_id = channel_id;
+  if (!group_call->dialog_id.is_valid()) {
+    group_call->dialog_id = dialog_id;
   }
   return group_call.get();
 }
@@ -590,8 +590,8 @@ GroupCallManager::GroupCall *GroupCallManager::get_group_call(InputGroupCallId i
   }
 }
 
-void GroupCallManager::create_voice_chat(ChannelId channel_id, Promise<InputGroupCallId> &&promise) {
-  td_->create_handler<CreateGroupCallQuery>(std::move(promise))->send(channel_id);
+void GroupCallManager::create_voice_chat(DialogId dialog_id, Promise<InputGroupCallId> &&promise) {
+  td_->create_handler<CreateGroupCallQuery>(std::move(promise))->send(dialog_id);
 }
 
 void GroupCallManager::get_group_call(GroupCallId group_call_id,
@@ -630,7 +630,7 @@ void GroupCallManager::finish_get_group_call(InputGroupCallId input_group_call_i
   if (result.is_ok()) {
     td_->contacts_manager_->on_get_users(std::move(result.ok_ref()->users_), "finish_get_group_call");
 
-    if (update_group_call(result.ok()->call_, ChannelId()) != input_group_call_id) {
+    if (update_group_call(result.ok()->call_, DialogId()) != input_group_call_id) {
       LOG(ERROR) << "Expected " << input_group_call_id << ", but received " << to_string(result.ok());
       result = Status::Error(500, "Receive another group call");
     } else {
@@ -1241,7 +1241,7 @@ void GroupCallManager::set_group_call_participant_is_speaking(GroupCallId group_
     on_user_speaking_in_group_call(group_call_id, user_id, date, recursive);
   }
 
-  if (group_call->source == source && !group_call->channel_id.is_valid() && group_call->is_speaking != is_speaking) {
+  if (group_call->source == source && !group_call->dialog_id.is_valid() && group_call->is_speaking != is_speaking) {
     group_call->is_speaking = is_speaking;
     if (is_speaking) {
       pending_send_speaking_action_timeout_.add_timeout_in(group_call_id.get(), 0.0);
@@ -1348,17 +1348,16 @@ void GroupCallManager::discard_group_call(GroupCallId group_call_id, Promise<Uni
   td_->create_handler<DiscardGroupCallQuery>(std::move(promise))->send(input_group_call_id);
 }
 
-void GroupCallManager::on_update_group_call(tl_object_ptr<telegram_api::GroupCall> group_call_ptr,
-                                            ChannelId channel_id) {
+void GroupCallManager::on_update_group_call(tl_object_ptr<telegram_api::GroupCall> group_call_ptr, DialogId dialog_id) {
   if (td_->auth_manager_->is_bot()) {
     LOG(ERROR) << "Receive " << to_string(group_call_ptr);
     return;
   }
-  if (!channel_id.is_valid()) {
-    LOG(ERROR) << "Receive " << to_string(group_call_ptr) << " in invalid " << channel_id;
-    channel_id = ChannelId();
+  if (!dialog_id.is_valid()) {
+    LOG(ERROR) << "Receive " << to_string(group_call_ptr) << " in invalid " << dialog_id;
+    dialog_id = DialogId();
   }
-  auto input_group_call_id = update_group_call(group_call_ptr, channel_id);
+  auto input_group_call_id = update_group_call(group_call_ptr, dialog_id);
   if (input_group_call_id.is_valid()) {
     LOG(INFO) << "Update " << input_group_call_id;
   } else {
@@ -1397,7 +1396,7 @@ void GroupCallManager::try_clear_group_call_participants(InputGroupCallId input_
 }
 
 InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegram_api::GroupCall> &group_call_ptr,
-                                                     ChannelId channel_id) {
+                                                     DialogId dialog_id) {
   CHECK(group_call_ptr != nullptr);
 
   InputGroupCallId input_group_call_id;
@@ -1434,11 +1433,11 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
   }
 
   bool need_update = false;
-  auto *group_call = add_group_call(input_group_call_id, channel_id);
+  auto *group_call = add_group_call(input_group_call_id, dialog_id);
   call.group_call_id = group_call->group_call_id;
-  call.channel_id = channel_id.is_valid() ? channel_id : group_call->channel_id;
-  if (!group_call->channel_id.is_valid()) {
-    group_call->channel_id = channel_id;
+  call.dialog_id = dialog_id.is_valid() ? dialog_id : group_call->dialog_id;
+  if (!group_call->dialog_id.is_valid()) {
+    group_call->dialog_id = dialog_id;
   }
   if (!group_call->is_inited) {
     *group_call = std::move(call);
@@ -1450,8 +1449,8 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       // always update to an ended call, droping also is_joined and is_speaking flags
       *group_call = std::move(call);
       need_update = true;
-      if (group_call->channel_id.is_valid()) {
-        td_->contacts_manager_->on_update_channel_group_call(group_call->channel_id, false, false);
+      if (group_call->dialog_id.is_valid()) {
+        td_->contacts_manager_->on_update_channel_group_call(group_call->dialog_id.get_channel_id(), false, false);
       }
     } else {
       auto mute_flags_changed =
@@ -1479,8 +1478,8 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
             }
           }
         }
-        if (group_call->channel_id.is_valid()) {
-          td_->contacts_manager_->on_update_channel_group_call(group_call->channel_id, true,
+        if (group_call->dialog_id.is_valid()) {
+          td_->contacts_manager_->on_update_channel_group_call(group_call->dialog_id.get_channel_id(), true,
                                                                group_call->participant_count == 0);
         }
       }
@@ -1541,7 +1540,7 @@ void GroupCallManager::on_user_speaking_in_group_call(GroupCallId group_call_id,
   if (!td_->contacts_manager_->have_user_force(user_id)) {
     if (recursive) {
       LOG(ERROR) << "Failed to find speaking " << user_id << " from " << input_group_call_id << " in "
-                 << group_call->channel_id;
+                 << group_call->dialog_id;
     } else {
       auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, user_id,
                                                    date](Result<Unit> &&result) {
@@ -1556,7 +1555,7 @@ void GroupCallManager::on_user_speaking_in_group_call(GroupCallId group_call_id,
   }
 
   LOG(INFO) << "Add " << user_id << " as recent speaker at " << date << " in " << input_group_call_id << " from "
-            << group_call->channel_id;
+            << group_call->dialog_id;
   auto &recent_speakers = group_call_recent_speakers_[group_call_id];
   if (recent_speakers == nullptr) {
     recent_speakers = make_unique<GroupCallRecentSpeakers>();

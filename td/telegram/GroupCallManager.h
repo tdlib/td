@@ -6,7 +6,7 @@
 //
 #pragma once
 
-#include "td/telegram/ChannelId.h"
+#include "td/telegram/DialogId.h"
 #include "td/telegram/GroupCallId.h"
 #include "td/telegram/GroupCallParticipant.h"
 #include "td/telegram/InputGroupCallId.h"
@@ -35,9 +35,9 @@ class GroupCallManager : public Actor {
   GroupCallManager &operator=(GroupCallManager &&) = delete;
   ~GroupCallManager() override;
 
-  GroupCallId get_group_call_id(InputGroupCallId input_group_call_id, ChannelId channel_id);
+  GroupCallId get_group_call_id(InputGroupCallId input_group_call_id, DialogId dialog_id);
 
-  void create_voice_chat(ChannelId channel_id, Promise<InputGroupCallId> &&promise);
+  void create_voice_chat(DialogId dialog_id, Promise<InputGroupCallId> &&promise);
 
   void get_group_call(GroupCallId group_call_id, Promise<td_api::object_ptr<td_api::groupCall>> &&promise);
 
@@ -63,7 +63,7 @@ class GroupCallManager : public Actor {
 
   void discard_group_call(GroupCallId group_call_id, Promise<Unit> &&promise);
 
-  void on_update_group_call(tl_object_ptr<telegram_api::GroupCall> group_call_ptr, ChannelId channel_id);
+  void on_update_group_call(tl_object_ptr<telegram_api::GroupCall> group_call_ptr, DialogId dialog_id);
 
   void on_user_speaking_in_group_call(GroupCallId group_call_id, UserId user_id, int32 date, bool recursive = false);
 
@@ -104,7 +104,7 @@ class GroupCallManager : public Actor {
 
   GroupCallId get_next_group_call_id(InputGroupCallId input_group_call_id);
 
-  GroupCall *add_group_call(InputGroupCallId input_group_call_id, ChannelId channel_id);
+  GroupCall *add_group_call(InputGroupCallId input_group_call_id, DialogId dialog_id);
 
   const GroupCall *get_group_call(InputGroupCallId input_group_call_id) const;
   GroupCall *get_group_call(InputGroupCallId input_group_call_id);
@@ -136,8 +136,7 @@ class GroupCallManager : public Actor {
 
   void on_group_call_left(InputGroupCallId input_group_call_id, int32 source);
 
-  InputGroupCallId update_group_call(const tl_object_ptr<telegram_api::GroupCall> &group_call_ptr,
-                                     ChannelId channel_id);
+  InputGroupCallId update_group_call(const tl_object_ptr<telegram_api::GroupCall> &group_call_ptr, DialogId dialog_id);
 
   void on_receive_group_call_version(InputGroupCallId input_group_call_id, int32 version);
 

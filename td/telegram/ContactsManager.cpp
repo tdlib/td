@@ -5949,7 +5949,7 @@ void ContactsManager::create_channel_voice_chat(DialogId dialog_id, Promise<Grou
                        std::move(promise));
         }
       });
-  send_closure(G()->group_call_manager(), &GroupCallManager::create_voice_chat, channel_id, std::move(new_promise));
+  send_closure(G()->group_call_manager(), &GroupCallManager::create_voice_chat, dialog_id, std::move(new_promise));
 }
 
 void ContactsManager::on_create_channel_group_call(ChannelId channel_id, InputGroupCallId input_group_call_id,
@@ -5976,7 +5976,7 @@ void ContactsManager::on_create_channel_group_call(ChannelId channel_id, InputGr
     channel_full->is_changed = true;
     update_channel_full(channel_full, channel_id);
   }
-  promise.set_value(td_->group_call_manager_->get_group_call_id(input_group_call_id, channel_id));
+  promise.set_value(td_->group_call_manager_->get_group_call_id(input_group_call_id, DialogId(channel_id)));
 }
 
 void ContactsManager::get_channel_statistics_dc_id(DialogId dialog_id, bool for_full_statistics,
@@ -13169,7 +13169,7 @@ GroupCallId ContactsManager::get_channel_active_group_call_id(ChannelId channel_
       return GroupCallId();
     }
   }
-  return td_->group_call_manager_->get_group_call_id(channel_full->active_group_call_id, channel_id);
+  return td_->group_call_manager_->get_group_call_id(channel_full->active_group_call_id, DialogId(channel_id));
 }
 
 bool ContactsManager::have_channel(ChannelId channel_id) const {
@@ -14457,7 +14457,7 @@ tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_supergroup_full_i
       get_chat_photo_object(td_->file_manager_.get(), channel_full->photo), channel_full->description,
       channel_full->participant_count, channel_full->administrator_count, channel_full->restricted_count,
       channel_full->banned_count, DialogId(channel_full->linked_channel_id).get(),
-      td_->group_call_manager_->get_group_call_id(channel_full->active_group_call_id, channel_id).get(),
+      td_->group_call_manager_->get_group_call_id(channel_full->active_group_call_id, DialogId(channel_id)).get(),
       channel_full->slow_mode_delay, slow_mode_delay_expires_in, channel_full->can_get_participants,
       channel_full->can_set_username, channel_full->can_set_sticker_set, channel_full->can_set_location,
       channel_full->can_view_statistics, channel_full->is_all_history_available, channel_full->sticker_set_id.get(),
