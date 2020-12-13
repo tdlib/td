@@ -21,8 +21,6 @@
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/FolderId.h"
 #include "td/telegram/FullMessageId.h"
-#include "td/telegram/GroupCallId.h"
-#include "td/telegram/InputGroupCallId.h"
 #include "td/telegram/Location.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/net/DcId.h"
@@ -201,7 +199,6 @@ class ContactsManager : public Actor {
   void on_update_channel_slow_mode_delay(ChannelId channel_id, int32 slow_mode_delay);
   void on_update_channel_slow_mode_next_send_date(ChannelId channel_id, int32 slow_mode_next_send_date);
   void on_update_channel_is_all_history_available(ChannelId channel_id, bool is_all_history_available);
-  void on_update_channel_group_call(ChannelId channel_id, bool has_active_group_call, bool is_group_call_empty);
   void on_update_channel_default_permissions(ChannelId channel_id, RestrictedRights default_permissions);
   void on_update_channel_administrator_count(ChannelId channel_id, int32 administrator_count);
   void on_update_channel_participant(ChannelId channel_id, UserId user_id, int32 date,
@@ -218,8 +215,7 @@ class ContactsManager : public Actor {
 
   void speculative_delete_channel_participant(ChannelId channel_id, UserId deleted_user_id, bool by_me);
 
-  void invalidate_channel_full(ChannelId channel_id, bool drop_invite_link, bool drop_slow_mode_delay,
-                               bool drop_active_group_call_id = false);
+  void invalidate_channel_full(ChannelId channel_id, bool drop_invite_link, bool drop_slow_mode_delay);
 
   bool on_get_channel_error(ChannelId channel_id, const Status &status, const string &source);
 
@@ -499,7 +495,6 @@ class ContactsManager : public Actor {
   bool get_channel_has_linked_channel(ChannelId channel_id) const;
   ChannelId get_channel_linked_channel_id(ChannelId channel_id);
   int32 get_channel_slow_mode_delay(ChannelId channel_id);
-  GroupCallId get_channel_active_group_call_id(ChannelId channel_id);
 
   std::pair<int32, vector<UserId>> search_among_users(const vector<UserId> &user_ids, const string &query, int32 limit);
 
@@ -794,8 +789,6 @@ class ContactsManager : public Actor {
 
     bool has_linked_channel = false;
     bool has_location = false;
-    bool has_active_group_call = false;
-    bool is_group_call_empty = false;
     bool sign_messages = false;
     bool is_slow_mode_enabled = false;
 
@@ -853,8 +846,6 @@ class ContactsManager : public Actor {
     DialogLocation location;
 
     DcId stats_dc_id;
-
-    InputGroupCallId active_group_call_id;
 
     int32 slow_mode_delay = 0;
     int32 slow_mode_next_send_date = 0;

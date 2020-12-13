@@ -1359,6 +1359,7 @@ vector<td_api::object_ptr<td_api::closedVectorPath>> StickersManager::get_sticke
 
   CHECK(!sb.is_error());
   path = sb.as_cslice();
+  LOG(DEBUG) << "Transform SVG path " << path;
 
   size_t pos = 0;
   auto skip_commas = [&path, &pos] {

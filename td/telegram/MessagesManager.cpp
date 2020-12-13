@@ -5010,6 +5010,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   bool has_pending_read_channel_inbox = pending_read_channel_inbox_pts != 0;
   bool has_distance = distance >= 0;
   bool has_last_yet_unsent_message = last_message_id.is_valid() && last_message_id.is_yet_unsent();
+  bool has_active_group_call_id = active_group_call_id.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_draft_message);
   STORE_FLAG(has_last_database_message);
@@ -5065,6 +5066,9 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     STORE_FLAG(has_last_yet_unsent_message);
     STORE_FLAG(is_blocked);
     STORE_FLAG(is_is_blocked_inited);
+    STORE_FLAG(has_active_group_call);
+    STORE_FLAG(is_group_call_empty);
+    STORE_FLAG(has_active_group_call_id);
     END_STORE_FLAGS();
   }
 
@@ -5149,6 +5153,9 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   if (has_distance) {
     store(distance, storer);
   }
+  if (has_active_group_call_id) {
+    store(active_group_call_id, storer);
+  }
 }
 
 // do not forget to resolve dialog dependencies including dependencies of last_message
@@ -5178,6 +5185,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   bool has_folder_id = false;
   bool has_pending_read_channel_inbox = false;
   bool has_distance = false;
+  bool has_active_group_call_id = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_draft_message);
   PARSE_FLAG(has_last_database_message);
@@ -5233,6 +5241,9 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     PARSE_FLAG(had_last_yet_unsent_message);
     PARSE_FLAG(is_blocked);
     PARSE_FLAG(is_is_blocked_inited);
+    PARSE_FLAG(has_active_group_call);
+    PARSE_FLAG(is_group_call_empty);
+    PARSE_FLAG(has_active_group_call_id);
     END_PARSE_FLAGS();
   } else {
     is_folder_id_inited = false;
@@ -5249,6 +5260,8 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     had_last_yet_unsent_message = false;
     is_blocked = false;
     is_is_blocked_inited = false;
+    has_active_group_call = false;
+    is_group_call_empty = false;
   }
 
   parse(last_new_message_id, parser);
@@ -5364,6 +5377,9 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   }
   if (has_distance) {
     parse(distance, parser);
+  }
+  if (has_active_group_call_id) {
+    parse(active_group_call_id, parser);
   }
 }
 
@@ -6999,14 +7015,15 @@ void MessagesManager::on_user_dialog_action(DialogId dialog_id, MessageId top_th
     return;
   }
 
+  auto dialog_type = dialog_id.get_type();
   if (action == DialogAction::get_speaking_action()) {
-    if (dialog_id.get_type() != DialogType::Channel || top_thread_message_id.is_valid()) {
+    if ((dialog_type != DialogType::Chat && dialog_type != DialogType::Channel) || top_thread_message_id.is_valid()) {
       LOG(ERROR) << "Receive " << action << " in thread of " << top_thread_message_id << " in " << dialog_id;
       return;
     }
-
-    auto group_call_id = td_->contacts_manager_->get_channel_active_group_call_id(dialog_id.get_channel_id());
-    if (group_call_id.is_valid()) {
+    const Dialog *d = get_dialog_force(dialog_id);
+    if (d != nullptr && d->active_group_call_id.is_valid()) {
+      auto group_call_id = td_->group_call_manager_->get_group_call_id(d->active_group_call_id, dialog_id);
       td_->group_call_manager_->on_user_speaking_in_group_call(group_call_id, user_id, date);
     }
     return;
@@ -7026,7 +7043,6 @@ void MessagesManager::on_user_dialog_action(DialogId dialog_id, MessageId top_th
     td_->contacts_manager_->on_update_user_local_was_online(user_id, date);
   }
 
-  auto dialog_type = dialog_id.get_type();
   if (dialog_type == DialogType::User || dialog_type == DialogType::SecretChat) {
     if (!td_->contacts_manager_->is_user_bot(user_id) && !td_->contacts_manager_->is_user_status_exact(user_id) &&
         !get_dialog(dialog_id)->is_opened && !is_canceled) {
@@ -7950,6 +7966,30 @@ void MessagesManager::remove_dialog_action_bar(DialogId dialog_id, Promise<Unit>
   hide_dialog_action_bar(d);
 
   change_dialog_report_spam_state_on_server(dialog_id, false, 0, std::move(promise));
+}
+
+void MessagesManager::repair_dialog_active_group_call_id(DialogId dialog_id) {
+  if (have_input_peer(dialog_id, AccessRights::Read)) {
+    create_actor<SleepActor>("RepairChatActiveVoiceChatId", 1.0,
+                             PromiseCreator::lambda([actor_id = actor_id(this), dialog_id](Result<Unit> result) {
+                               send_closure(actor_id, &MessagesManager::do_repair_dialog_active_group_call_id,
+                                            dialog_id);
+                             }))
+        .release();
+  }
+}
+
+void MessagesManager::do_repair_dialog_active_group_call_id(DialogId dialog_id) {
+  Dialog *d = get_dialog(dialog_id);
+  CHECK(d != nullptr);
+  if (!d->has_active_group_call || d->active_group_call_id.is_valid()) {
+    return;
+  }
+  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+    return;
+  }
+
+  reload_dialog_info_full(dialog_id);
 }
 
 class MessagesManager::ChangeDialogReportSpamStateOnServerLogEvent {
@@ -19335,6 +19375,8 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
   // TODO hide/show draft message when can_send_message(dialog_id) changes
   auto draft_message = can_send_message(d->dialog_id).is_ok() ? get_draft_message_object(d->draft_message) : nullptr;
 
+  auto active_group_call_id = td_->group_call_manager_->get_group_call_id(d->active_group_call_id, d->dialog_id);
+
   return make_tl_object<td_api::chat>(
       d->dialog_id.get(), get_chat_type_object(d->dialog_id), get_dialog_title(d->dialog_id),
       get_chat_photo_info_object(td_->file_manager_.get(), get_dialog_photo(d->dialog_id)),
@@ -19345,6 +19387,7 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
       d->server_unread_count + d->local_unread_count, d->last_read_inbox_message_id.get(),
       d->last_read_outbox_message_id.get(), d->unread_mention_count,
       get_chat_notification_settings_object(&d->notification_settings), get_chat_action_bar_object(d),
+      active_group_call_id.get(), active_group_call_id.is_valid() ? d->is_group_call_empty : true,
       d->reply_markup_message_id.get(), std::move(draft_message), d->client_data);
 }
 
@@ -27781,6 +27824,20 @@ void MessagesManager::send_update_chat_action_bar(const Dialog *d) {
   send_update_secret_chats_with_user_action_bar(d);
 }
 
+void MessagesManager::send_update_chat_voice_chat(const Dialog *d) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  CHECK(d != nullptr);
+  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_voice_chat";
+  on_dialog_updated(d->dialog_id, "send_update_chat_voice_chat");
+  auto group_call_id = td_->group_call_manager_->get_group_call_id(d->active_group_call_id, d->dialog_id);
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateChatVoiceChat>(d->dialog_id.get(), group_call_id.get(),
+                                                                d->is_group_call_empty));
+}
+
 void MessagesManager::send_update_chat_has_scheduled_messages(Dialog *d, bool from_deletion) {
   if (td_->auth_manager_->is_bot()) {
     return;
@@ -28912,6 +28969,71 @@ void MessagesManager::do_set_dialog_folder_id(Dialog *d, FolderId folder_id) {
   }
 
   on_dialog_updated(d->dialog_id, "do_set_dialog_folder_id");
+}
+
+void MessagesManager::on_update_dialog_group_call(DialogId dialog_id, bool has_active_group_call,
+                                                  bool is_group_call_empty) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  CHECK(dialog_id.is_valid());
+  Dialog *d = get_dialog(dialog_id);  // must not create the Dialog, because is called from on_get_chat
+  if (d == nullptr) {
+    pending_dialog_group_call_updates_[dialog_id] = {has_active_group_call, is_group_call_empty};
+    return;
+  }
+
+  if (!has_active_group_call) {
+    is_group_call_empty = false;
+  }
+  if (d->has_active_group_call == has_active_group_call && d->is_group_call_empty == is_group_call_empty) {
+    return;
+  }
+
+  if (d->has_active_group_call && !has_active_group_call && d->active_group_call_id.is_valid()) {
+    d->active_group_call_id = InputGroupCallId();
+    d->has_active_group_call = false;
+    d->is_group_call_empty = false;
+    send_update_chat_voice_chat(d);
+  } else if (d->has_active_group_call && has_active_group_call) {
+    d->is_group_call_empty = is_group_call_empty;
+    send_update_chat_voice_chat(d);
+  } else {
+    d->has_active_group_call = has_active_group_call;
+    d->is_group_call_empty = is_group_call_empty;
+    on_dialog_updated(dialog_id, "on_update_dialog_group_call");
+
+    if (has_active_group_call && !d->active_group_call_id.is_valid()) {
+      repair_dialog_active_group_call_id(dialog_id);
+    }
+  }
+}
+
+void MessagesManager::on_update_dialog_group_call_id(DialogId dialog_id, InputGroupCallId input_group_call_id) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  auto d = get_dialog_force(dialog_id);
+  if (d == nullptr) {
+    // nothing to do
+    return;
+  }
+
+  if (d->active_group_call_id != input_group_call_id) {
+    d->active_group_call_id = input_group_call_id;
+    bool has_active_group_call = input_group_call_id.is_valid();
+    if (has_active_group_call != d->has_active_group_call) {
+      LOG(ERROR) << "Receive invalid has_active_group_call flag " << d->has_active_group_call << ", but have "
+                 << input_group_call_id << " in " << dialog_id;
+      d->has_active_group_call = has_active_group_call;
+      if (!has_active_group_call) {
+        d->is_group_call_empty = false;
+      }
+    }
+    send_update_chat_voice_chat(d);
+  }
 }
 
 void MessagesManager::on_update_dialog_filters() {
@@ -33074,6 +33196,20 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
   if (d->mention_notification_group.group_id.is_valid()) {
     notification_group_id_to_dialog_id_.emplace(d->mention_notification_group.group_id, d->dialog_id);
   }
+  if (pending_dialog_group_call_updates_.count(dialog_id) > 0) {
+    auto it = pending_dialog_group_call_updates_.find(dialog_id);
+    bool has_active_group_call = it->second.first;
+    bool is_group_call_empty = it->second.second;
+    pending_dialog_group_call_updates_.erase(it);
+    if (d->has_active_group_call != has_active_group_call || d->is_group_call_empty != is_group_call_empty) {
+      if (!has_active_group_call) {
+        d->active_group_call_id = InputGroupCallId();
+      }
+      d->has_active_group_call = has_active_group_call;
+      d->is_group_call_empty = is_group_call_empty;
+      on_dialog_updated(dialog_id, "pending update_dialog_group_call");
+    }
+  }
 
   if (!is_loaded_from_database) {
     CHECK(order == DEFAULT_ORDER);
@@ -33138,6 +33274,9 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
       dialog_id != get_my_dialog_id() && have_input_peer(dialog_id, AccessRights::Read)) {
     // asynchronously get action bar from the server
     reget_dialog_action_bar(dialog_id, "fix_new_dialog");
+  }
+  if (d->has_active_group_call && !d->active_group_call_id.is_valid()) {
+    repair_dialog_active_group_call_id(dialog_id);
   }
 
   if (d->notification_settings.is_synchronized && !d->notification_settings.is_use_default_fixed &&

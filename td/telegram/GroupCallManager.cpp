@@ -647,10 +647,8 @@ void GroupCallManager::on_voice_chat_created(DialogId dialog_id, InputGroupCallI
     return promise.set_error(Status::Error(500, "Receive invalid group call identifier"));
   }
 
-  td_->contacts_manager_->on_update_channel_group_call(dialog_id.get_channel_id(), true, true);
-
-  // TODO
-  // td_->messages_manager_->on_update_chat_group_call(dialog_id, input_group_call_id);
+  td_->messages_manager_->on_update_dialog_group_call(dialog_id, true, true);
+  td_->messages_manager_->on_update_dialog_group_call_id(dialog_id, input_group_call_id);
 
   promise.set_value(get_group_call_id(input_group_call_id, dialog_id));
 }
@@ -1511,7 +1509,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       *group_call = std::move(call);
       need_update = true;
       if (group_call->dialog_id.is_valid()) {
-        td_->contacts_manager_->on_update_channel_group_call(group_call->dialog_id.get_channel_id(), false, false);
+        td_->messages_manager_->on_update_dialog_group_call(group_call->dialog_id, false, false);
       }
     } else {
       auto mute_flags_changed =
@@ -1540,8 +1538,8 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
           }
         }
         if (group_call->dialog_id.is_valid()) {
-          td_->contacts_manager_->on_update_channel_group_call(group_call->dialog_id.get_channel_id(), true,
-                                                               group_call->participant_count == 0);
+          td_->messages_manager_->on_update_dialog_group_call(group_call->dialog_id, true,
+                                                              group_call->participant_count == 0);
         }
       }
     }
