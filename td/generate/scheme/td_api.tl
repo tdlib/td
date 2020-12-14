@@ -3408,7 +3408,8 @@ updateCall call:call = Update;
 updateGroupCall group_call:groupCall = Update;
 
 //@description Information about a group call participant was changed. The updates are sent only after the group call is received through getGroupCall and only if the call is joined or being joined
-//@group_call_id Identifier of group call @participant New data about a participant
+//@group_call_id Identifier of group call
+//@participant New data about a participant. If this is a current user with different source, then the current user joined the call from another device and the call must not be rejoined automatically
 updateGroupCallParticipant group_call_id:int32 participant:groupCallParticipant = Update;
 
 //@description New call signaling data arrived @call_id The call identifier @data The data
