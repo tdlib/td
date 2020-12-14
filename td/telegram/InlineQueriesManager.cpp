@@ -1014,7 +1014,7 @@ template <>
 tl_object_ptr<td_api::sticker> copy(const td_api::sticker &obj) {
   return make_tl_object<td_api::sticker>(
       obj.set_id_, obj.width_, obj.height_, obj.emoji_, obj.is_animated_, obj.is_mask_, copy(obj.mask_position_),
-      transform(obj.contours_, copy_closed_vector_path), copy(obj.thumbnail_), copy(obj.sticker_));
+      transform(obj.outline_, copy_closed_vector_path), copy(obj.thumbnail_), copy(obj.sticker_));
 }
 
 template <>
