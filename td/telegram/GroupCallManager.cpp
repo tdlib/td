@@ -33,11 +33,11 @@ class CreateGroupCallQuery : public Td::ResultHandler {
   void send(DialogId dialog_id) {
     dialog_id_ = dialog_id;
 
-    auto input_channel = td->contacts_manager_->get_input_channel(dialog_id.get_channel_id());
-    CHECK(input_channel != nullptr);
+    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    CHECK(input_peer != nullptr);
 
     send_query(G()->net_query_creator().create(
-        telegram_api::phone_createGroupCall(std::move(input_channel), Random::secure_int32())));
+        telegram_api::phone_createGroupCall(std::move(input_peer), Random::secure_int32())));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -597,8 +597,18 @@ void GroupCallManager::create_voice_chat(DialogId dialog_id, Promise<GroupCallId
   if (!td_->messages_manager_->have_dialog_force(dialog_id)) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
+  if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+    return promise.set_error(Status::Error(400, "Can't access chat"));
+  }
 
   switch (dialog_id.get_type()) {
+    case DialogType::Chat: {
+      auto chat_id = dialog_id.get_chat_id();
+      if (!td_->contacts_manager_->get_chat_permissions(chat_id).can_manage_calls()) {
+        return promise.set_error(Status::Error(400, "Not enough rights in the chat"));
+      }
+      break;
+    }
     case DialogType::Channel: {
       auto channel_id = dialog_id.get_channel_id();
       switch (td_->contacts_manager_->get_channel_type(channel_id)) {
@@ -618,7 +628,6 @@ void GroupCallManager::create_voice_chat(DialogId dialog_id, Promise<GroupCallId
       }
       break;
     }
-    case DialogType::Chat:
     case DialogType::User:
     case DialogType::SecretChat:
       return promise.set_error(Status::Error(400, "Chat can't have a voice chat"));

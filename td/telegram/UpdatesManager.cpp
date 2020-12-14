@@ -1704,6 +1704,10 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateServiceNotifica
   td_->messages_manager_->on_update_service_notification(std::move(update), true, Promise<Unit>());
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChat> update, bool /*force_apply*/) {
+  // nothing to do
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadChannelInbox> update, bool /*force_apply*/) {
   CHECK(update != nullptr);
   td_->messages_manager_->on_update_read_channel_inbox(std::move(update));
@@ -2148,8 +2152,14 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePhoneCallSignal
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateGroupCall> update, bool /*force_apply*/) {
-  send_closure(G()->group_call_manager(), &GroupCallManager::on_update_group_call, std::move(update->call_),
-               DialogId(ChannelId(update->channel_id_)));
+  DialogId dialog_id(ChatId(update->chat_id_));
+  if (!td_->messages_manager_->have_dialog(dialog_id)) {
+    dialog_id = DialogId(ChannelId(update->chat_id_));
+    if (!td_->messages_manager_->have_dialog(dialog_id)) {
+      dialog_id = DialogId();
+    }
+  }
+  send_closure(G()->group_call_manager(), &GroupCallManager::on_update_group_call, std::move(update->call_), dialog_id);
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateGroupCallParticipants> update, bool /*force_apply*/) {
