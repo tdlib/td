@@ -4786,9 +4786,12 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     }
     case MessageContentType::GroupCall: {
       auto *m = static_cast<const MessageGroupCall *>(content);
-      return make_tl_object<td_api::messageVoiceChat>(
-          td->group_call_manager_->get_group_call_id(m->input_group_call_id, DialogId()).get(),
-          m->duration >= 0 ? max(m->duration, 1) : 0);
+      if (m->duration >= 0) {
+        return make_tl_object<td_api::messageVoiceChatEnded>(m->duration);
+      } else {
+        return make_tl_object<td_api::messageVoiceChatStarted>(
+            td->group_call_manager_->get_group_call_id(m->input_group_call_id, DialogId()).get());
+      }
     }
     case MessageContentType::InviteToGroupCall: {
       auto *m = static_cast<const MessageInviteToGroupCall *>(content);

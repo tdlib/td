@@ -1633,8 +1633,11 @@ messageInvoice title:string description:string photo:photo currency:string total
 //@description A message with information about an ended call @is_video True, if the call was a video call @discard_reason Reason why the call was discarded @duration Call duration, in seconds
 messageCall is_video:Bool discard_reason:CallDiscardReason duration:int32 = MessageContent;
 
-//@description A message with information about a voice chat @group_call_id Identifier of the voice chat. The voice chat can be received through the method getGroupCall @duration Call duration; for finished calls only
-messageVoiceChat group_call_id:int32 duration:int32 = MessageContent;
+//@description A newly created voice chat @group_call_id Identifier of the voice chat. The voice chat can be received through the method getGroupCall
+messageVoiceChatStarted group_call_id:int32 = MessageContent;
+
+//@description A message with information about an ended voice chat @duration Call duration
+messageVoiceChatEnded duration:int32 = MessageContent;
 
 //@description A message with information about an invite to a voice chat @group_call_id Identifier of the voice chat. The voice chat can be received through the method getGroupCall @user_ids Invited user identifiers
 messageInviteVoiceChatParticipants group_call_id:int32 user_ids:vector<int32> = MessageContent;
