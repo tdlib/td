@@ -37,7 +37,7 @@ target_compile_definitions(tdsqlite PRIVATE
   #-DSQLITE_OMIT_DEPRECATED  # SQLCipher uses deprecated sqlite3_profile
   #-DSQLITE_OMIT_SHARED_CACHE
 )
-target_compile_definitions(tdsqlite PRIVATE -DSQLITE_HAS_CODEC -DSQLITE_TEMP_STORE=2 -DSQLITE_ENABLE_FTS5 -DSQLITE_DISABLE_LFS)
+target_compile_definitions(tdsqlite PRIVATE -DSQLITE_HAS_CODEC -DSQLITE_TEMP_STORE=2 -DSQLITE_ENABLE_FTS5 -DSQLITE_DISABLE_LFS -DOMIT_MEMLOCK)
 
 if (NOT WIN32)
   target_compile_definitions(tdsqlite PRIVATE -DHAVE_USLEEP -DNDEBUG=1)
