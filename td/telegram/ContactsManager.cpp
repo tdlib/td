@@ -9454,6 +9454,13 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     }
     td_->messages_manager_->on_update_dialog_has_scheduled_server_messages(
         DialogId(chat_id), (chat_full->flags_ & CHAT_FULL_FLAG_HAS_SCHEDULED_MESSAGES) != 0);
+    {
+      InputGroupCallId input_group_call_id;
+      if (chat_full->call_ != nullptr) {
+        input_group_call_id = InputGroupCallId(chat_full->call_);
+      }
+      td_->messages_manager_->on_update_dialog_group_call_id(DialogId(chat_id), input_group_call_id);
+    }
 
     ChatFull *chat = add_chat_full(chat_id);
     on_update_chat_full_invite_link(chat, std::move(chat_full->exported_invite_));
@@ -13795,6 +13802,10 @@ void ContactsManager::on_chat_update(telegram_api::chat &chat, const char *sourc
   }
   c->is_received_from_server = true;
   update_chat(c, chat_id);
+
+  bool has_active_group_call = (chat.flags_ & CHAT_FLAG_HAS_ACTIVE_GROUP_CALL) != 0;
+  bool is_group_call_empty = (chat.flags_ & CHAT_FLAG_IS_GROUP_CALL_NON_EMPTY) == 0;
+  td_->messages_manager_->on_update_dialog_group_call(DialogId(chat_id), has_active_group_call, is_group_call_empty);
 }
 
 void ContactsManager::on_chat_update(telegram_api::chatForbidden &chat, const char *source) {
@@ -13851,8 +13862,6 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
 
   bool has_linked_channel = (channel.flags_ & CHANNEL_FLAG_HAS_LINKED_CHAT) != 0;
   bool has_location = (channel.flags_ & CHANNEL_FLAG_HAS_LOCATION) != 0;
-  bool has_active_group_call = (channel.flags_ & CHANNEL_FLAG_HAS_ACTIVE_GROUP_CALL) != 0;
-  bool is_group_call_empty = (channel.flags_ & CHANNEL_FLAG_IS_GROUP_CALL_NON_EMPTY) == 0;
   bool sign_messages = (channel.flags_ & CHANNEL_FLAG_SIGN_MESSAGES) != 0;
   bool is_slow_mode_enabled = (channel.flags_ & CHANNEL_FLAG_IS_SLOW_MODE_ENABLED) != 0;
   bool is_megagroup = (channel.flags_ & CHANNEL_FLAG_IS_MEGAGROUP) != 0;
@@ -13949,7 +13958,6 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
   on_update_channel_username(c, channel_id, std::move(channel.username_));  // uses status, must be called after
   on_update_channel_default_permissions(c, channel_id,
                                         get_restricted_rights(std::move(channel.default_banned_rights_)));
-  td_->messages_manager_->on_update_dialog_group_call(DialogId(channel_id), has_active_group_call, is_group_call_empty);
 
   if (participant_count != 0 && participant_count != c->participant_count) {
     c->participant_count = participant_count;
@@ -13987,6 +13995,10 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
   if (need_invalidate_channel_full) {
     invalidate_channel_full(channel_id, false, !c->is_slow_mode_enabled);
   }
+
+  bool has_active_group_call = (channel.flags_ & CHANNEL_FLAG_HAS_ACTIVE_GROUP_CALL) != 0;
+  bool is_group_call_empty = (channel.flags_ & CHANNEL_FLAG_IS_GROUP_CALL_NON_EMPTY) == 0;
+  td_->messages_manager_->on_update_dialog_group_call(DialogId(channel_id), has_active_group_call, is_group_call_empty);
 }
 
 void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, const char *source) {
