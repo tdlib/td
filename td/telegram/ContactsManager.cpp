@@ -3475,6 +3475,10 @@ void ContactsManager::Chat::parse(ParserT &parser) {
   if (has_cache_version) {
     parse(cache_version, parser);
   }
+
+  if (status.is_administrator() && !status.is_creator()) {
+    status = DialogParticipantStatus::GroupAdministrator(false);
+  }
 }
 
 template <class StorerT>
