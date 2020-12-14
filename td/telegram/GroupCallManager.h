@@ -144,7 +144,8 @@ class GroupCallManager : public Actor {
 
   void on_group_call_recent_speakers_updated(const GroupCall *group_call, GroupCallRecentSpeakers *recent_speakers);
 
-  UserId get_group_call_participant_by_source(InputGroupCallId input_group_call_id, int32 source);
+  UserId set_group_call_participant_is_speaking_by_source(InputGroupCallId input_group_call_id, int32 source,
+                                                          bool is_speaking, int32 date);
 
   static Result<td_api::object_ptr<td_api::groupCallJoinResponse>> get_group_call_join_response_object(
       string json_response);

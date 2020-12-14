@@ -1281,7 +1281,7 @@ void GroupCallManager::set_group_call_participant_is_speaking(GroupCallId group_
   } else {
     recursive = true;
   }
-  UserId user_id = get_group_call_participant_by_source(input_group_call_id, source);
+  UserId user_id = set_group_call_participant_is_speaking_by_source(input_group_call_id, source, is_speaking, date);
   if (!user_id.is_valid()) {
     if (!recursive) {
       auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, source, is_speaking,
@@ -1317,8 +1317,6 @@ void GroupCallManager::set_group_call_participant_is_speaking(GroupCallId group_
       pending_send_speaking_action_timeout_.cancel_timeout(group_call_id.get());
     }
   }
-
-  // TODO update participant list by speaking actions
 
   promise.set_value(Unit());
 }
@@ -1679,7 +1677,8 @@ void GroupCallManager::on_group_call_recent_speakers_updated(const GroupCall *gr
   recent_speaker_update_timeout_.set_timeout_in(group_call->group_call_id.get(), MAX_RECENT_SPEAKER_UPDATE_DELAY);
 }
 
-UserId GroupCallManager::get_group_call_participant_by_source(InputGroupCallId input_group_call_id, int32 source) {
+UserId GroupCallManager::set_group_call_participant_is_speaking_by_source(InputGroupCallId input_group_call_id,
+                                                                          int32 source, bool is_speaking, int32 date) {
   auto participants_it = group_call_participants_.find(input_group_call_id);
   if (participants_it == group_call_participants_.end()) {
     return UserId();
@@ -1687,6 +1686,20 @@ UserId GroupCallManager::get_group_call_participant_by_source(InputGroupCallId i
 
   for (auto &participant : participants_it->second->participants) {
     if (participant.source == source) {
+      if (participant.is_speaking != is_speaking) {
+        participant.is_speaking = is_speaking;
+        if (is_speaking) {
+          participant.local_active_date = max(participant.local_active_date, date);
+        }
+        auto real_order = participant.get_real_order();
+        if (real_order >= participants_it->second->min_order) {
+          participant.order = real_order;
+        }
+        if (participant.order != 0) {
+          send_update_group_call_participant(input_group_call_id, participant);
+        }
+      }
+
       return participant.user_id;
     }
   }
