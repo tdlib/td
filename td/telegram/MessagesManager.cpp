@@ -7970,6 +7970,7 @@ void MessagesManager::remove_dialog_action_bar(DialogId dialog_id, Promise<Unit>
 
 void MessagesManager::repair_dialog_active_group_call_id(DialogId dialog_id) {
   if (have_input_peer(dialog_id, AccessRights::Read)) {
+    LOG(INFO) << "Repair active voice chat ID in " << dialog_id;
     create_actor<SleepActor>("RepairChatActiveVoiceChatId", 1.0,
                              PromiseCreator::lambda([actor_id = actor_id(this), dialog_id](Result<Unit> result) {
                                send_closure(actor_id, &MessagesManager::do_repair_dialog_active_group_call_id,
@@ -28977,9 +28978,13 @@ void MessagesManager::on_update_dialog_group_call(DialogId dialog_id, bool has_a
     return;
   }
 
+  LOG(INFO) << "Update voice chat in " << dialog_id << " with has_active_voice_chat = " << has_active_group_call
+            << " and is_voice_chat_empty = " << is_group_call_empty;
+
   CHECK(dialog_id.is_valid());
   Dialog *d = get_dialog(dialog_id);  // must not create the Dialog, because is called from on_get_chat
   if (d == nullptr) {
+    LOG(INFO) << "Can't find " << dialog_id;
     pending_dialog_group_call_updates_[dialog_id] = {has_active_group_call, is_group_call_empty};
     return;
   }
@@ -28988,6 +28993,7 @@ void MessagesManager::on_update_dialog_group_call(DialogId dialog_id, bool has_a
     is_group_call_empty = false;
   }
   if (d->has_active_group_call == has_active_group_call && d->is_group_call_empty == is_group_call_empty) {
+    LOG(INFO) << "Nothing changed in " << dialog_id;
     return;
   }
 

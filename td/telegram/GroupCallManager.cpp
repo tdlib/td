@@ -1624,6 +1624,15 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
   }
   if (!group_call->is_inited) {
     *group_call = std::move(call);
+    if (need_group_call_participants(input_group_call_id)) {
+      // init version
+      group_call->version = call.version;
+      if (process_pending_group_call_participant_updates(input_group_call_id)) {
+        need_update = false;
+      }
+    } else {
+      group_call->version = -1;
+    }
     need_update = true;
   } else {
     if (!group_call->is_active) {
