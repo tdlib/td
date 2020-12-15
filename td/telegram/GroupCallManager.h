@@ -129,9 +129,6 @@ class GroupCallManager : public Actor {
                                        vector<tl_object_ptr<telegram_api::groupCallParticipant>> &&participants,
                                        bool is_load, bool is_sync);
 
-  int32 process_group_call_participants_from_updates(
-      InputGroupCallId group_call_id, vector<tl_object_ptr<telegram_api::groupCallParticipant>> &&participants);
-
   int process_group_call_participant(InputGroupCallId group_call_id, GroupCallParticipant &&participant);
 
   bool on_join_group_call_response(InputGroupCallId input_group_call_id, string json_response);
@@ -139,6 +136,8 @@ class GroupCallManager : public Actor {
   void finish_join_group_call(InputGroupCallId input_group_call_id, uint64 generation, Status error);
 
   void on_group_call_left(InputGroupCallId input_group_call_id, int32 source);
+
+  void on_group_call_left_impl(GroupCall *group_call);
 
   InputGroupCallId update_group_call(const tl_object_ptr<telegram_api::GroupCall> &group_call_ptr, DialogId dialog_id);
 
