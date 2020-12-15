@@ -123,9 +123,11 @@ class GroupCallManager : public Actor {
 
   void sync_group_call_participants(InputGroupCallId input_group_call_id);
 
+  void on_sync_group_call_participants_failed(InputGroupCallId input_group_call_id);
+
   void process_group_call_participants(InputGroupCallId group_call_id,
                                        vector<tl_object_ptr<telegram_api::groupCallParticipant>> &&participants,
-                                       bool is_load);
+                                       bool is_load, bool is_sync);
 
   int32 process_group_call_participants_from_updates(
       InputGroupCallId group_call_id, vector<tl_object_ptr<telegram_api::groupCallParticipant>> &&participants);
