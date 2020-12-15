@@ -1648,12 +1648,12 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
             }
           }
         }
-        if (group_call->dialog_id.is_valid()) {
-          td_->messages_manager_->on_update_dialog_group_call(group_call->dialog_id, true,
-                                                              group_call->participant_count == 0);
-        }
       }
     }
+  }
+  if (group_call->is_active && group_call->dialog_id.is_valid()) {
+    td_->messages_manager_->on_update_dialog_group_call(group_call->dialog_id, true,
+                                                        group_call->participant_count == 0);
   }
   if (!group_call->is_active && group_call_recent_speakers_.erase(group_call->group_call_id) != 0) {
     need_update = true;
