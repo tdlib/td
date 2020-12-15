@@ -4365,7 +4365,7 @@ createVoiceChat chat_id:int53 = GroupCallId;
 //@description Returns information about a group call @group_call_id Group call identifier
 getGroupCall group_call_id:int32 = GroupCall;
 
-//@description Joins a group call @group_call_id Group call identifier @payload Group join payload, received from tgcalls @source Caller synchronization source identifier; received from tgcalls @is_muted True, if the user's microphone is muted
+//@description Joins a group call @group_call_id Group call identifier @payload Group join payload, received from tgcalls. Use null to cancel previous joinGroupCall request @source Caller synchronization source identifier; received from tgcalls @is_muted True, if the user's microphone is muted
 joinGroupCall group_call_id:int32 payload:groupCallPayload source:int32 is_muted:Bool = GroupCallJoinResponse;
 
 //@description Toggles whether new participants of a group call can be unmuted only by administrators of the group call. Requires can_manage_voice_chats rights in the corresponding chat and allowed_change_mute_mew_participants group call flag

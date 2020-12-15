@@ -717,7 +717,7 @@ class ContactsManager : public Actor {
     DialogParticipantStatus status = DialogParticipantStatus::Banned(0);
     RestrictedRights default_permissions{false, false, false, false, false, false, false, false, false, false, false};
 
-    static constexpr uint32 CACHE_VERSION = 2;
+    static constexpr uint32 CACHE_VERSION = 3;
     uint32 cache_version = 0;
 
     bool is_active = false;
@@ -784,7 +784,7 @@ class ContactsManager : public Actor {
     int32 date = 0;
     int32 participant_count = 0;
 
-    static constexpr uint32 CACHE_VERSION = 5;
+    static constexpr uint32 CACHE_VERSION = 6;
     uint32 cache_version = 0;
 
     bool has_linked_channel = false;
