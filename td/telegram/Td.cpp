@@ -3232,17 +3232,17 @@ void Td::on_get_promo_data(Result<telegram_api::object_ptr<telegram_api::help_Pr
   auto promo_data_ptr = r_promo_data.move_as_ok();
   CHECK(promo_data_ptr != nullptr);
   LOG(DEBUG) << "Receive " << to_string(promo_data_ptr);
-  int32 expires = 0;
+  int32 expires_at = 0;
   switch (promo_data_ptr->get_id()) {
     case telegram_api::help_promoDataEmpty::ID: {
       auto promo = telegram_api::move_object_as<telegram_api::help_promoDataEmpty>(promo_data_ptr);
-      expires = promo->expires_;
+      expires_at = promo->expires_;
       messages_manager_->remove_sponsored_dialog();
       break;
     }
     case telegram_api::help_promoData::ID: {
       auto promo = telegram_api::move_object_as<telegram_api::help_promoData>(promo_data_ptr);
-      expires = promo->expires_;
+      expires_at = promo->expires_;
       bool is_proxy = (promo->flags_ & telegram_api::help_promoData::PROXY_MASK) != 0;
       messages_manager_->on_get_sponsored_dialog(
           std::move(promo->peer_),
@@ -3254,23 +3254,11 @@ void Td::on_get_promo_data(Result<telegram_api::object_ptr<telegram_api::help_Pr
     default:
       UNREACHABLE();
   }
-  if (expires != 0) {
-    expires -= G()->unix_time();
-  }
-  schedule_get_promo_data(expires);
+  schedule_get_promo_data(expires_at == 0 ? 0 : expires_at - G()->unix_time());
 }
 
 void Td::schedule_get_promo_data(int32 expires_in) {
-  if (expires_in < 0) {
-    LOG(ERROR) << "Receive wrong expires_in: " << expires_in;
-    expires_in = 0;
-  }
-  if (expires_in != 0 && expires_in < 60) {
-    expires_in = 60;
-  }
-  if (expires_in > 86400) {
-    expires_in = 86400;
-  }
+  expires_in = clamp(expires_in, 60, 86400);
   if (!close_flag_ && auth_manager_->is_authorized() && !auth_manager_->is_bot()) {
     LOG(INFO) << "Schedule getPromoData in " << expires_in;
     alarm_timeout_.set_timeout_in(PROMO_DATA_ALARM_ID, expires_in);
