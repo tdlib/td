@@ -109,6 +109,8 @@ class GroupCallManager : public Actor {
   const GroupCall *get_group_call(InputGroupCallId input_group_call_id) const;
   GroupCall *get_group_call(InputGroupCallId input_group_call_id);
 
+  Status can_manage_group_calls(DialogId dialog_id);
+
   void on_voice_chat_created(DialogId dialog_id, InputGroupCallId input_group_call_id, Promise<GroupCallId> &&promise);
 
   void reload_group_call(InputGroupCallId input_group_call_id,

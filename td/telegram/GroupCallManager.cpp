@@ -591,6 +591,46 @@ GroupCallManager::GroupCall *GroupCallManager::get_group_call(InputGroupCallId i
   }
 }
 
+Status GroupCallManager::can_manage_group_calls(DialogId dialog_id) {
+  switch (dialog_id.get_type()) {
+    case DialogType::Chat: {
+      auto chat_id = dialog_id.get_chat_id();
+      if (!td_->contacts_manager_->get_chat_permissions(chat_id).can_manage_calls()) {
+        return Status::Error(400, "Not enough rights in the chat");
+      }
+      break;
+    }
+    case DialogType::Channel: {
+      auto channel_id = dialog_id.get_channel_id();
+      switch (td_->contacts_manager_->get_channel_type(channel_id)) {
+        case ChannelType::Unknown:
+          return Status::Error(400, "Chat info not found");
+        case ChannelType::Megagroup:
+          // OK
+          break;
+        case ChannelType::Broadcast:
+          return Status::Error(400, "Chat is not a group");
+        default:
+          UNREACHABLE();
+          break;
+      }
+      if (!td_->contacts_manager_->get_channel_permissions(channel_id).can_manage_calls()) {
+        return Status::Error(400, "Not enough rights in the chat");
+      }
+      break;
+    }
+    case DialogType::User:
+    case DialogType::SecretChat:
+      return Status::Error(400, "Chat can't have a voice chat");
+    case DialogType::None:
+      // OK
+      break;
+    default:
+      UNREACHABLE();
+  }
+  return Status::OK();
+}
+
 void GroupCallManager::create_voice_chat(DialogId dialog_id, Promise<GroupCallId> &&promise) {
   if (!dialog_id.is_valid()) {
     return promise.set_error(Status::Error(400, "Invalid chat identifier specified"));
@@ -602,39 +642,7 @@ void GroupCallManager::create_voice_chat(DialogId dialog_id, Promise<GroupCallId
     return promise.set_error(Status::Error(400, "Can't access chat"));
   }
 
-  switch (dialog_id.get_type()) {
-    case DialogType::Chat: {
-      auto chat_id = dialog_id.get_chat_id();
-      if (!td_->contacts_manager_->get_chat_permissions(chat_id).can_manage_calls()) {
-        return promise.set_error(Status::Error(400, "Not enough rights in the chat"));
-      }
-      break;
-    }
-    case DialogType::Channel: {
-      auto channel_id = dialog_id.get_channel_id();
-      switch (td_->contacts_manager_->get_channel_type(channel_id)) {
-        case ChannelType::Unknown:
-          return promise.set_error(Status::Error(400, "Chat info not found"));
-        case ChannelType::Megagroup:
-          // OK
-          break;
-        case ChannelType::Broadcast:
-          return promise.set_error(Status::Error(400, "Chat is not a group"));
-        default:
-          UNREACHABLE();
-          break;
-      }
-      if (!td_->contacts_manager_->get_channel_permissions(channel_id).can_manage_calls()) {
-        return promise.set_error(Status::Error(400, "Not enough rights in the chat"));
-      }
-      break;
-    }
-    case DialogType::User:
-    case DialogType::SecretChat:
-      return promise.set_error(Status::Error(400, "Chat can't have a voice chat"));
-    default:
-      UNREACHABLE();
-  }
+  TRY_STATUS_PROMISE(promise, can_manage_group_calls(dialog_id));
 
   auto query_promise = PromiseCreator::lambda(
       [actor_id = actor_id(this), dialog_id, promise = std::move(promise)](Result<InputGroupCallId> result) mutable {
@@ -1503,9 +1511,14 @@ void GroupCallManager::toggle_group_call_participant_is_muted(GroupCallId group_
                                                               Promise<Unit> &&promise) {
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
 
+  auto *group_call = get_group_call(input_group_call_id);
+  if (group_call == nullptr || !group_call->is_inited || !group_call->is_active || !group_call->is_joined) {
+    return promise.set_error(Status::Error(400, "GROUP_CALL_JOIN_MISSING"));
+  }
   if (!td_->contacts_manager_->have_input_user(user_id)) {
     return promise.set_error(Status::Error(400, "Have no access to the user"));
   }
+
   td_->create_handler<EditGroupCallMemberQuery>(std::move(promise))->send(input_group_call_id, user_id, is_muted);
 }
 
