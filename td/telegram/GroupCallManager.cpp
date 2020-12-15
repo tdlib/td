@@ -1465,6 +1465,9 @@ void GroupCallManager::load_group_call_participants(GroupCallId group_call_id, i
   }
   auto *group_call = get_group_call(input_group_call_id);
   CHECK(group_call != nullptr && group_call->is_inited);
+  if (group_call->loaded_all_participants) {
+    return promise.set_value(Unit());
+  }
 
   string next_offset;
   auto participants_it = group_call_participants_.find(input_group_call_id);
