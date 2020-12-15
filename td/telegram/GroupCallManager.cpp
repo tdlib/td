@@ -827,10 +827,7 @@ void GroupCallManager::on_get_group_call_participants(
         group_call->participant_count = real_participant_count;
         need_update = true;
 
-        if (group_call->dialog_id.is_valid()) {
-          td_->messages_manager_->on_update_dialog_group_call(group_call->dialog_id, group_call->is_active,
-                                                              group_call->participant_count == 0);
-        }
+        update_group_call_dialog(group_call, "on_get_group_call_participants");
       }
       if (!is_empty && is_sync && group_call->loaded_all_participants && group_call->participant_count > 50) {
         group_call->loaded_all_participants = false;
@@ -877,10 +874,7 @@ void GroupCallManager::on_update_group_call_participants(
                      << group_call->dialog_id;
           group_call->participant_count = 0;
         }
-        if (group_call->dialog_id.is_valid()) {
-          td_->messages_manager_->on_update_dialog_group_call(group_call->dialog_id, true,
-                                                              group_call->participant_count == 0);
-        }
+        update_group_call_dialog(group_call, "on_update_group_call_participants");
         need_update = true;
       }
     }
@@ -990,10 +984,7 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
       group_call->participant_count = 0;
     }
     need_update = true;
-    if (group_call->dialog_id.is_valid()) {
-      td_->messages_manager_->on_update_dialog_group_call(group_call->dialog_id, true,
-                                                          group_call->participant_count == 0);
-    }
+    update_group_call_dialog(group_call, "process_pending_group_call_participant_updates");
   }
   if (is_left && group_call->is_joined) {
     on_group_call_left_impl(group_call);
@@ -1519,6 +1510,10 @@ void GroupCallManager::toggle_group_call_participant_is_muted(GroupCallId group_
     return promise.set_error(Status::Error(400, "Have no access to the user"));
   }
 
+  if (user_id != td_->contacts_manager_->get_my_id()) {
+    TRY_STATUS_PROMISE(promise, can_manage_group_calls(group_call->dialog_id));
+  }
+
   td_->create_handler<EditGroupCallMemberQuery>(std::move(promise))->send(input_group_call_id, user_id, is_muted);
 }
 
@@ -1724,9 +1719,6 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       // always update to an ended call, droping also is_joined and is_speaking flags
       *group_call = std::move(call);
       need_update = true;
-      if (group_call->dialog_id.is_valid()) {
-        td_->messages_manager_->on_update_dialog_group_call(group_call->dialog_id, false, false);
-      }
     } else {
       auto mute_flags_changed =
           call.mute_new_participants != group_call->mute_new_participants ||
@@ -1756,10 +1748,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       }
     }
   }
-  if (group_call->is_active && group_call->dialog_id.is_valid()) {
-    td_->messages_manager_->on_update_dialog_group_call(group_call->dialog_id, true,
-                                                        group_call->participant_count == 0);
-  }
+  update_group_call_dialog(group_call, "update_group_call");
   if (!group_call->is_active && group_call_recent_speakers_.erase(group_call->group_call_id) != 0) {
     need_update = true;
   }
@@ -1955,6 +1944,15 @@ UserId GroupCallManager::set_group_call_participant_is_speaking_by_source(InputG
     }
   }
   return UserId();
+}
+
+void GroupCallManager::update_group_call_dialog(const GroupCall *group_call, const char *source) {
+  if (!group_call->dialog_id.is_valid()) {
+    return;
+  }
+
+  td_->messages_manager_->on_update_dialog_group_call(group_call->dialog_id, group_call->is_active,
+                                                      group_call->participant_count == 0);
 }
 
 vector<int32> GroupCallManager::get_recent_speaker_user_ids(const GroupCall *group_call, bool for_update) {

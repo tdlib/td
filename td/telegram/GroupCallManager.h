@@ -160,6 +160,8 @@ class GroupCallManager : public Actor {
 
   void try_clear_group_call_participants(InputGroupCallId input_group_call_id);
 
+  void update_group_call_dialog(const GroupCall *group_call, const char *source);
+
   vector<int32> get_recent_speaker_user_ids(const GroupCall *group_call, bool for_update);
 
   tl_object_ptr<td_api::updateGroupCall> get_update_group_call_object(const GroupCall *group_call,
