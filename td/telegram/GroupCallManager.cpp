@@ -702,16 +702,6 @@ void GroupCallManager::finish_get_group_call(InputGroupCallId input_group_call_i
     if (update_group_call(result.ok()->call_, DialogId()) != input_group_call_id) {
       LOG(ERROR) << "Expected " << input_group_call_id << ", but received " << to_string(result.ok());
       result = Status::Error(500, "Receive another group call");
-    } else {
-      process_group_call_participants(input_group_call_id, std::move(result.ok_ref()->participants_), true, false);
-
-      auto participants_it = group_call_participants_.find(input_group_call_id);
-      if (participants_it != group_call_participants_.end()) {
-        CHECK(participants_it->second != nullptr);
-        if (participants_it->second->next_offset.empty()) {
-          participants_it->second->next_offset = std::move(result.ok_ref()->participants_next_offset_);
-        }
-      }
     }
   }
 
@@ -720,6 +710,18 @@ void GroupCallManager::finish_get_group_call(InputGroupCallId input_group_call_i
       promise.set_error(result.error().clone());
     }
     return;
+  }
+
+  auto call = result.move_as_ok();
+  process_group_call_participants(input_group_call_id, std::move(call->participants_), true, false);
+  if (need_group_call_participants(input_group_call_id)) {
+    auto participants_it = group_call_participants_.find(input_group_call_id);
+    if (participants_it != group_call_participants_.end()) {
+      CHECK(participants_it->second != nullptr);
+      if (participants_it->second->next_offset.empty()) {
+        participants_it->second->next_offset = std::move(call->participants_next_offset_);
+      }
+    }
   }
 
   auto group_call = get_group_call(input_group_call_id);
@@ -965,6 +967,15 @@ void GroupCallManager::process_group_call_participants(
     InputGroupCallId input_group_call_id, vector<tl_object_ptr<telegram_api::groupCallParticipant>> &&participants,
     bool is_load, bool is_sync) {
   if (!need_group_call_participants(input_group_call_id)) {
+    for (auto &participant : participants) {
+      GroupCallParticipant group_call_participant(participant);
+      if (!group_call_participant.is_valid()) {
+        LOG(ERROR) << "Receive invalid " << to_string(participant);
+        continue;
+      }
+
+      on_participant_speaking_in_group_call(input_group_call_id, group_call_participant);
+    }
     return;
   }
 
