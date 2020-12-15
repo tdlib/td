@@ -28973,13 +28973,13 @@ void MessagesManager::do_set_dialog_folder_id(Dialog *d, FolderId folder_id) {
 }
 
 void MessagesManager::on_update_dialog_group_call(DialogId dialog_id, bool has_active_group_call,
-                                                  bool is_group_call_empty) {
+                                                  bool is_group_call_empty, const char *source) {
   if (td_->auth_manager_->is_bot()) {
     return;
   }
 
   LOG(INFO) << "Update voice chat in " << dialog_id << " with has_active_voice_chat = " << has_active_group_call
-            << " and is_voice_chat_empty = " << is_group_call_empty;
+            << " and is_voice_chat_empty = " << is_group_call_empty << " from " << source;
 
   CHECK(dialog_id.is_valid());
   Dialog *d = get_dialog(dialog_id);  // must not create the Dialog, because is called from on_get_chat

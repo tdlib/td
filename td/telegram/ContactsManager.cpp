@@ -13809,7 +13809,8 @@ void ContactsManager::on_chat_update(telegram_api::chat &chat, const char *sourc
 
   bool has_active_group_call = (chat.flags_ & CHAT_FLAG_HAS_ACTIVE_GROUP_CALL) != 0;
   bool is_group_call_empty = (chat.flags_ & CHAT_FLAG_IS_GROUP_CALL_NON_EMPTY) == 0;
-  td_->messages_manager_->on_update_dialog_group_call(DialogId(chat_id), has_active_group_call, is_group_call_empty);
+  td_->messages_manager_->on_update_dialog_group_call(DialogId(chat_id), has_active_group_call, is_group_call_empty,
+                                                      "receive chat");
 }
 
 void ContactsManager::on_chat_update(telegram_api::chatForbidden &chat, const char *source) {
@@ -14002,7 +14003,8 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
 
   bool has_active_group_call = (channel.flags_ & CHANNEL_FLAG_HAS_ACTIVE_GROUP_CALL) != 0;
   bool is_group_call_empty = (channel.flags_ & CHANNEL_FLAG_IS_GROUP_CALL_NON_EMPTY) == 0;
-  td_->messages_manager_->on_update_dialog_group_call(DialogId(channel_id), has_active_group_call, is_group_call_empty);
+  td_->messages_manager_->on_update_dialog_group_call(DialogId(channel_id), has_active_group_call, is_group_call_empty,
+                                                      "receive channel");
 }
 
 void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, const char *source) {
@@ -14041,7 +14043,7 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, co
   // on_update_channel_username(c, channel_id, "");  // don't know if channel username is empty, so don't update it
   tl_object_ptr<telegram_api::chatBannedRights> banned_rights;  // == nullptr
   on_update_channel_default_permissions(c, channel_id, get_restricted_rights(banned_rights));
-  td_->messages_manager_->on_update_dialog_group_call(DialogId(channel_id), false, false);
+  td_->messages_manager_->on_update_dialog_group_call(DialogId(channel_id), false, false, "receive channelForbidden");
 
   bool sign_messages = false;
   bool is_slow_mode_enabled = false;

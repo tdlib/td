@@ -665,7 +665,7 @@ void GroupCallManager::on_voice_chat_created(DialogId dialog_id, InputGroupCallI
     return promise.set_error(Status::Error(500, "Receive invalid group call identifier"));
   }
 
-  td_->messages_manager_->on_update_dialog_group_call(dialog_id, true, true);
+  td_->messages_manager_->on_update_dialog_group_call(dialog_id, true, true, "on_voice_chat_created");
   td_->messages_manager_->on_update_dialog_group_call_id(dialog_id, input_group_call_id);
 
   promise.set_value(get_group_call_id(input_group_call_id, dialog_id));
@@ -1952,7 +1952,7 @@ void GroupCallManager::update_group_call_dialog(const GroupCall *group_call, con
   }
 
   td_->messages_manager_->on_update_dialog_group_call(group_call->dialog_id, group_call->is_active,
-                                                      group_call->participant_count == 0);
+                                                      group_call->participant_count == 0, source);
 }
 
 vector<int32> GroupCallManager::get_recent_speaker_user_ids(const GroupCall *group_call, bool for_update) {
