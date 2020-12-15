@@ -144,6 +144,9 @@ class GroupCallManager : public Actor {
 
   void on_receive_group_call_version(InputGroupCallId input_group_call_id, int32 version);
 
+  void on_participant_speaking_in_group_call(InputGroupCallId input_group_call_id,
+                                             const GroupCallParticipant &participant);
+
   void remove_recent_group_call_speaker(InputGroupCallId input_group_call_id, UserId user_id);
 
   void on_group_call_recent_speakers_updated(const GroupCall *group_call, GroupCallRecentSpeakers *recent_speakers);

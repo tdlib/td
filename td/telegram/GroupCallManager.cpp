@@ -1106,6 +1106,7 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
         if (need_update) {
           send_update_group_call_participant(input_group_call_id, old_participant);
         }
+        on_participant_speaking_in_group_call(input_group_call_id, participant);
       }
       return 0;
     }
@@ -1128,6 +1129,7 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
   if (participants->participants.back().order != 0) {
     send_update_group_call_participant(input_group_call_id, participants->participants.back());
   }
+  on_participant_speaking_in_group_call(input_group_call_id, participants->participants.back());
   return diff;
 }
 
@@ -1692,6 +1694,20 @@ void GroupCallManager::on_receive_group_call_version(InputGroupCallId input_grou
   }
   group_call_participants->pending_updates_[version];  // reserve place for updates
   sync_participants_timeout_.add_timeout_in(group_call->group_call_id.get(), 1.0);
+}
+
+void GroupCallManager::on_participant_speaking_in_group_call(InputGroupCallId input_group_call_id,
+                                                             const GroupCallParticipant &participant) {
+  if (participant.active_date < G()->unix_time() - RECENT_SPEAKER_TIMEOUT) {
+    return;
+  }
+
+  auto *group_call = get_group_call(input_group_call_id);
+  if (group_call == nullptr) {
+    return;
+  }
+
+  on_user_speaking_in_group_call(group_call->group_call_id, participant.user_id, participant.active_date, true);
 }
 
 void GroupCallManager::on_user_speaking_in_group_call(GroupCallId group_call_id, UserId user_id, int32 date,
