@@ -1079,6 +1079,7 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
         if (old_participant.order != 0) {
           send_update_group_call_participant(input_group_call_id, participant);
         }
+        remove_recent_group_call_speaker(input_group_call_id, participant.user_id);
         participants->participants.erase(participants->participants.begin() + i);
         return -1;
       }
@@ -1112,6 +1113,7 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
 
   if (participant.joined_date == 0) {
     // unknown removed participant
+    remove_recent_group_call_speaker(input_group_call_id, participant.user_id);
     return -1;
   }
 
@@ -1766,6 +1768,29 @@ void GroupCallManager::on_user_speaking_in_group_call(GroupCallId group_call_id,
   }
 
   on_group_call_recent_speakers_updated(group_call, recent_speakers.get());
+}
+
+void GroupCallManager::remove_recent_group_call_speaker(InputGroupCallId input_group_call_id, UserId user_id) {
+  auto *group_call = get_group_call(input_group_call_id);
+  if (group_call != nullptr && group_call->is_inited && !group_call->is_active) {
+    return;
+  }
+
+  auto recent_speakers_it = group_call_recent_speakers_.find(group_call->group_call_id);
+  if (recent_speakers_it == group_call_recent_speakers_.end()) {
+    return;
+  }
+  auto &recent_speakers = recent_speakers_it->second;
+  CHECK(recent_speakers != nullptr);
+  for (size_t i = 0; i < recent_speakers->users.size(); i++) {
+    if (recent_speakers->users[i].first == user_id) {
+      LOG(INFO) << "Remove " << user_id << " from recent speakers in " << input_group_call_id << " from "
+                << group_call->dialog_id;
+      recent_speakers->users.erase(recent_speakers->users.begin() + i);
+      on_group_call_recent_speakers_updated(group_call, recent_speakers.get());
+      return;
+    }
+  }
 }
 
 void GroupCallManager::on_group_call_recent_speakers_updated(const GroupCall *group_call,
