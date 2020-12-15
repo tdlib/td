@@ -170,7 +170,7 @@ class GroupCallManager : public Actor {
   tl_object_ptr<td_api::updateGroupCallParticipant> get_update_group_call_participant_object(
       GroupCallId group_call_id, const GroupCallParticipant &participant);
 
-  void send_update_group_call(const GroupCall *group_call);
+  void send_update_group_call(const GroupCall *group_call, const char *source);
 
   void send_update_group_call_participant(GroupCallId group_call_id, const GroupCallParticipant &participant);
 

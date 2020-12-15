@@ -829,7 +829,7 @@ void GroupCallManager::on_get_group_call_participants(
         need_update = true;
       }
       if (need_update) {
-        send_update_group_call(group_call);
+        send_update_group_call(group_call, "on_get_group_call_participants");
       }
     }
   }
@@ -866,7 +866,7 @@ void GroupCallManager::on_update_group_call_participants(
           td_->messages_manager_->on_update_dialog_group_call(group_call->dialog_id, true,
                                                               group_call->participant_count == 0);
         }
-        send_update_group_call(group_call);
+        send_update_group_call(group_call, "on_update_group_call_participants");
       }
     }
 
@@ -934,6 +934,8 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
       continue;
     }
     if (version < group_call->version + static_cast<int32>(participants.size())) {
+      LOG(INFO) << "Receive " << participants.size() << " group call participant updates with version " << version
+                << ", but current version is " << group_call->version;
       sync_group_call_participants(input_group_call_id);
       break;
     }
@@ -944,6 +946,8 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
       pending_updates.erase(it);
     } else if (!group_call->syncing_participants) {
       // found a gap
+      LOG(INFO) << "Receive " << participants.size() << " group call participant updates with version " << version
+                << ", but current version is " << group_call->version;
       sync_participants_timeout_.add_timeout_in(group_call->group_call_id.get(), 1.0);
       break;
     }
@@ -957,7 +961,7 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
       LOG(ERROR) << "Participant count became negative in " << input_group_call_id << " from " << group_call->dialog_id;
       group_call->participant_count = 0;
     }
-    send_update_group_call(group_call);
+    send_update_group_call(group_call, "process_pending_group_call_participant_updates");
     if (group_call->dialog_id.is_valid()) {
       td_->messages_manager_->on_update_dialog_group_call(group_call->dialog_id, true,
                                                           group_call->participant_count == 0);
@@ -1562,7 +1566,7 @@ void GroupCallManager::on_group_call_left(InputGroupCallId input_group_call_id, 
     group_call->is_joined = false;
     group_call->is_speaking = false;
     group_call->source = 0;
-    send_update_group_call(group_call);
+    send_update_group_call(group_call, "on_group_call_left");
 
     try_clear_group_call_participants(input_group_call_id);
   }
@@ -1607,7 +1611,7 @@ void GroupCallManager::try_clear_group_call_participants(InputGroupCallId input_
   CHECK(group_call != nullptr && group_call->is_inited);
   if (group_call->loaded_all_participants) {
     group_call->loaded_all_participants = false;
-    send_update_group_call(group_call);
+    send_update_group_call(group_call, "try_clear_group_call_participants");
   }
   group_call->version = -1;
 
@@ -1726,7 +1730,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
     need_update |= on_join_group_call_response(input_group_call_id, std::move(join_params));
   }
   if (need_update) {
-    send_update_group_call(group_call);
+    send_update_group_call(group_call, "update_group_call");
   }
   try_clear_group_call_participants(input_group_call_id);
   return input_group_call_id;
@@ -1952,7 +1956,7 @@ vector<int32> GroupCallManager::get_recent_speaker_user_ids(const GroupCall *gro
 
     if (!for_update) {
       // the change must be received through update first
-      send_update_group_call(group_call);
+      send_update_group_call(group_call, "get_recent_speaker_user_ids");
     }
   }
   return recent_speaker_user_ids;
@@ -1981,7 +1985,8 @@ tl_object_ptr<td_api::updateGroupCallParticipant> GroupCallManager::get_update_g
       group_call_id.get(), participant.get_group_call_participant_object(td_->contacts_manager_.get()));
 }
 
-void GroupCallManager::send_update_group_call(const GroupCall *group_call) {
+void GroupCallManager::send_update_group_call(const GroupCall *group_call, const char *source) {
+  LOG(INFO) << "Send update about " << group_call->group_call_id << " from " << source;
   send_closure(G()->td(), &Td::send_update,
                get_update_group_call_object(group_call, get_recent_speaker_user_ids(group_call, true)));
 }
