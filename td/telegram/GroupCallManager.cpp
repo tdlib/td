@@ -1188,7 +1188,6 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
         return -1;
       }
 
-      LOG(INFO) << "Edit " << old_participant;
       if (participant.joined_date < old_participant.joined_date) {
         LOG(ERROR) << "Join date of " << participant.user_id << " in " << input_group_call_id << " decreased from "
                    << old_participant.joined_date << " to " << participant.joined_date;
@@ -1205,16 +1204,13 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
       }
       participant.is_just_joined = false;
 
-      if (old_participant != participant) {
-        LOG(INFO) << "Update " << old_participant << " to " << participant;
-        bool need_update =
-            old_participant.order != 0 || participant.order != 0 || old_participant.source != participant.source;
-        old_participant = std::move(participant);
-        if (need_update) {
-          send_update_group_call_participant(input_group_call_id, old_participant);
-        }
-        on_participant_speaking_in_group_call(input_group_call_id, old_participant);
+      LOG(INFO) << "Edit " << old_participant << " to " << participant;
+      if (old_participant != participant &&
+          (old_participant.order != 0 || participant.order != 0 || old_participant.source != participant.source)) {
+        send_update_group_call_participant(input_group_call_id, participant);
       }
+      on_participant_speaking_in_group_call(input_group_call_id, participant);
+      old_participant = std::move(participant);
       return 0;
     }
   }

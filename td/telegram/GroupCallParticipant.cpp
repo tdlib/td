@@ -43,9 +43,7 @@ td_api::object_ptr<td_api::groupCallParticipant> GroupCallParticipant::get_group
 
 bool operator==(const GroupCallParticipant &lhs, const GroupCallParticipant &rhs) {
   return lhs.user_id == rhs.user_id && lhs.source == rhs.source && lhs.is_muted == rhs.is_muted &&
-         lhs.can_self_unmute == rhs.can_self_unmute && lhs.joined_date == rhs.joined_date &&
-         max(lhs.active_date, lhs.local_active_date) == max(rhs.active_date, rhs.local_active_date) &&
-         lhs.is_speaking == rhs.is_speaking && lhs.order == rhs.order;
+         lhs.can_self_unmute == rhs.can_self_unmute && lhs.is_speaking == rhs.is_speaking && lhs.order == rhs.order;
 }
 
 bool operator!=(const GroupCallParticipant &lhs, const GroupCallParticipant &rhs) {
