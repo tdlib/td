@@ -8,6 +8,7 @@
 
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/DialogParticipant.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
@@ -18,6 +19,7 @@
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/Random.h"
 
+#include <unordered_set>
 #include <utility>
 
 namespace td {
@@ -422,6 +424,7 @@ struct GroupCallManager::GroupCallParticipants {
   string next_offset;
   int64 min_order = std::numeric_limits<int64>::max();
 
+  vector<UserId> administrator_user_ids;
   std::map<int32, vector<tl_object_ptr<telegram_api::groupCallParticipant>>> pending_updates_;
 };
 
@@ -687,6 +690,12 @@ void GroupCallManager::get_group_call(GroupCallId group_call_id,
 
 void GroupCallManager::reload_group_call(InputGroupCallId input_group_call_id,
                                          Promise<td_api::object_ptr<td_api::groupCall>> &&promise) {
+  if (!promise && need_group_call_participants(input_group_call_id)) {
+    auto group_call = get_group_call(input_group_call_id);
+    CHECK(group_call != nullptr && group_call->is_inited);
+    try_load_group_call_administrators(input_group_call_id, group_call->dialog_id);
+  }
+
   auto &queries = load_group_call_queries_[input_group_call_id];
   queries.push_back(std::move(promise));
   if (queries.size() == 1) {
@@ -847,6 +856,17 @@ void GroupCallManager::on_get_group_call_participants(
   }
 }
 
+GroupCallManager::GroupCallParticipants *GroupCallManager::add_group_call_participants(
+    InputGroupCallId input_group_call_id) {
+  CHECK(need_group_call_participants(input_group_call_id));
+
+  auto &participants = group_call_participants_[input_group_call_id];
+  if (participants == nullptr) {
+    participants = make_unique<GroupCallParticipants>();
+  }
+  return participants.get();
+}
+
 void GroupCallManager::on_update_group_call_participants(
     InputGroupCallId input_group_call_id, vector<tl_object_ptr<telegram_api::groupCallParticipant>> &&participants,
     int32 version) {
@@ -902,10 +922,7 @@ void GroupCallManager::on_update_group_call_participants(
     return;
   }
 
-  auto &group_call_participants = group_call_participants_[input_group_call_id];
-  if (group_call_participants == nullptr) {
-    group_call_participants = make_unique<GroupCallParticipants>();
-  }
+  auto *group_call_participants = add_group_call_participants(input_group_call_id);
   auto &pending_updates = group_call_participants->pending_updates_[version];
   if (participants.size() <= pending_updates.size()) {
     LOG(INFO) << "Receive duplicate updateGroupCallParticipants with version " << version << " in "
@@ -1157,11 +1174,7 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
     }
   }
 
-  auto &participants = group_call_participants_[input_group_call_id];
-  if (participants == nullptr) {
-    participants = make_unique<GroupCallParticipants>();
-  }
-
+  auto *participants = add_group_call_participants(input_group_call_id);
   for (size_t i = 0; i < participants->participants.size(); i++) {
     auto &old_participant = participants->participants[i];
     if (old_participant.user_id == participant.user_id) {
@@ -1309,6 +1322,82 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id,
       });
   request->query_ref = td_->create_handler<JoinGroupCallQuery>(std::move(query_promise))
                            ->send(input_group_call_id, json_payload, is_muted, generation);
+
+  try_load_group_call_administrators(input_group_call_id, group_call->dialog_id);
+}
+
+void GroupCallManager::try_load_group_call_administrators(InputGroupCallId input_group_call_id, DialogId dialog_id) {
+  if (!dialog_id.is_valid() || !need_group_call_participants(input_group_call_id) ||
+      can_manage_group_calls(dialog_id).is_error()) {
+    return;
+  }
+
+  unique_ptr<int64> random_id_ptr = td::make_unique<int64>();
+  auto random_id_raw = random_id_ptr.get();
+  auto promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), input_group_call_id, random_id = std::move(random_id_ptr)](Result<Unit> &&result) {
+        send_closure(actor_id, &GroupCallManager::finish_load_group_call_administrators, input_group_call_id,
+                     *random_id, std::move(result));
+      });
+  td_->messages_manager_->search_dialog_participants(
+      dialog_id, string(), 100, DialogParticipantsFilter(DialogParticipantsFilter::Type::Administrators),
+      *random_id_raw, true, true, std::move(promise));
+}
+
+void GroupCallManager::finish_load_group_call_administrators(InputGroupCallId input_group_call_id, int64 random_id,
+                                                             Result<Unit> &&result) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto *group_call = get_group_call(input_group_call_id);
+  CHECK(group_call != nullptr);
+  if (!group_call->dialog_id.is_valid() || !can_manage_group_calls(group_call->dialog_id).is_ok()) {
+    return;
+  }
+
+  vector<UserId> administrator_user_ids;
+  if (result.is_ok()) {
+    result = Status::Error(500, "Failed to receive result");
+    unique_ptr<bool> ignore_result = make_unique<bool>();
+    auto ignore_result_ptr = ignore_result.get();
+    auto promise = PromiseCreator::lambda([&result, ignore_result = std::move(ignore_result)](Result<Unit> new_result) {
+      if (!*ignore_result) {
+        result = std::move(new_result);
+      }
+    });
+    auto participants = td_->messages_manager_->search_dialog_participants(
+        group_call->dialog_id, string(), 100, DialogParticipantsFilter(DialogParticipantsFilter::Type::Administrators),
+        random_id, true, true, std::move(promise));
+    for (auto &administrator : participants.second) {
+      if (administrator.status.can_manage_calls()) {
+        administrator_user_ids.push_back(administrator.user_id);
+      }
+    }
+
+    *ignore_result_ptr = true;
+  }
+
+  if (result.is_error()) {
+    LOG(WARNING) << "Failed to get administrators of " << input_group_call_id << ": " << result.error();
+    return;
+  }
+
+  if (!need_group_call_participants(input_group_call_id)) {
+    return;
+  }
+
+  LOG(INFO) << "Set administrators of " << input_group_call_id << " to " << administrator_user_ids;
+  auto *group_call_participants = add_group_call_participants(input_group_call_id);
+  std::unordered_set<UserId, UserIdHash> removed_user_ids(group_call_participants->administrator_user_ids.begin(),
+                                                          group_call_participants->administrator_user_ids.end());
+  std::unordered_set<UserId, UserIdHash> added_user_ids;
+  for (auto user_id : administrator_user_ids) {
+    if (removed_user_ids.erase(user_id) == 0) {
+      added_user_ids.insert(user_id);
+    }
+  }
+  group_call_participants->administrator_user_ids = std::move(administrator_user_ids);
 }
 
 void GroupCallManager::process_join_group_call_response(InputGroupCallId input_group_call_id, uint64 generation,
@@ -1744,6 +1833,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       if (process_pending_group_call_participant_updates(input_group_call_id)) {
         need_update = false;
       }
+      try_load_group_call_administrators(input_group_call_id, group_call->dialog_id);
     } else {
       group_call->version = -1;
     }
@@ -1821,10 +1911,7 @@ void GroupCallManager::on_receive_group_call_version(InputGroupCallId input_grou
   }
 
   // found a gap
-  auto &group_call_participants = group_call_participants_[input_group_call_id];
-  if (group_call_participants == nullptr) {
-    group_call_participants = make_unique<GroupCallParticipants>();
-  }
+  auto *group_call_participants = add_group_call_participants(input_group_call_id);
   group_call_participants->pending_updates_[version];  // reserve place for updates
   sync_participants_timeout_.add_timeout_in(group_call->group_call_id.get(), 1.0);
 }
