@@ -1498,6 +1498,10 @@ vector<td_api::object_ptr<td_api::closedVectorPath>> StickersManager::get_sticke
               make_point(last_end_control_point_x, last_end_control_point_y), make_point(x, y)));
           break;
         }
+        case 'm':
+        case 'M':
+          pos--;
+          // falltrough
         case 'z':
         case 'Z':
           if (x != start_x || y != start_y) {

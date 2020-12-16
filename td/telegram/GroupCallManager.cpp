@@ -903,8 +903,8 @@ void GroupCallManager::on_update_group_call_participants(
   }
   auto &pending_updates = group_call_participants->pending_updates_[version];
   if (!pending_updates.empty()) {
-    LOG(ERROR) << "Receive duplicate updateGroupCallParticipants with version " << version << " in "
-               << input_group_call_id;
+    LOG(INFO) << "Receive duplicate updateGroupCallParticipants with version " << version << " in "
+              << input_group_call_id;
     sync_group_call_participants(input_group_call_id);
     return;
   }
