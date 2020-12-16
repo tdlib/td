@@ -2850,7 +2850,7 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::joinGroupCall>(as_group_call_id(args), nullptr, 123, true));
     } else if (op == "tgcmnp" || op == "tgcmnpe") {
       send_request(
-          td_api::make_object<td_api::toggleGroupCallMuteNewParticipants>(as_group_call_id(args), op == "tgcmnme"));
+          td_api::make_object<td_api::toggleGroupCallMuteNewParticipants>(as_group_call_id(args), op == "tgcmnpe"));
     } else if (op == "sgcpis") {
       string group_call_id;
       string source;

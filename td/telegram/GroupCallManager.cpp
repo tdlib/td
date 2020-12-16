@@ -959,10 +959,10 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
     if (version <= group_call->version) {
       for (auto &group_call_participant : participants) {
         GroupCallParticipant participant(group_call_participant);
+        on_participant_speaking_in_group_call(input_group_call_id, participant);
         if (participant.user_id == td_->contacts_manager_->get_my_id()) {
           process_group_call_participant(input_group_call_id, std::move(participant));
         }
-        on_participant_speaking_in_group_call(input_group_call_id, participant);
       }
       LOG(INFO) << "Ignore already applied updateGroupCallParticipants with version " << version << " in "
                 << input_group_call_id << " from " << group_call->dialog_id;
@@ -1167,8 +1167,8 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
   if (participant.user_id == td_->contacts_manager_->get_my_id()) {
     auto *group_call = get_group_call(input_group_call_id);
     CHECK(group_call != nullptr && group_call->is_inited);
-    if (group_call->is_joined && group_call->is_active && participant.is_muted &&
-        group_call->can_self_unmute != participant.can_self_unmute) {
+    if (group_call->is_joined && group_call->is_active && participant.source == group_call->source &&
+        participant.is_muted && group_call->can_self_unmute != participant.can_self_unmute) {
       group_call->can_self_unmute = participant.can_self_unmute;
       send_update_group_call(group_call, "process_group_call_participant");
     }
@@ -1206,12 +1206,14 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
       participant.is_just_joined = false;
 
       if (old_participant != participant) {
-        bool need_update = old_participant.order != 0 || participant.order != 0;
+        LOG(INFO) << "Update " << old_participant << " to " << participant;
+        bool need_update =
+            old_participant.order != 0 || participant.order != 0 || old_participant.source != participant.source;
         old_participant = std::move(participant);
         if (need_update) {
           send_update_group_call_participant(input_group_call_id, old_participant);
         }
-        on_participant_speaking_in_group_call(input_group_call_id, participant);
+        on_participant_speaking_in_group_call(input_group_call_id, old_participant);
       }
       return 0;
     }
