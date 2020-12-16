@@ -30478,8 +30478,8 @@ std::pair<int32, vector<DialogParticipant>> MessagesManager::search_private_chat
 }
 
 std::pair<int32, vector<DialogParticipant>> MessagesManager::search_dialog_participants(
-    DialogId dialog_id, const string &query, int32 limit, DialogParticipantsFilter filter, int64 &random_id, bool force,
-    Promise<Unit> &&promise) {
+    DialogId dialog_id, const string &query, int32 limit, DialogParticipantsFilter filter, int64 &random_id,
+    bool without_bot_info, bool force, Promise<Unit> &&promise) {
   LOG(INFO) << "Receive searchChatMembers request to search for " << query << " in " << dialog_id;
   if (!have_dialog_force(dialog_id)) {
     promise.set_error(Status::Error(3, "Chat not found"));
@@ -30548,7 +30548,7 @@ std::pair<int32, vector<DialogParticipant>> MessagesManager::search_dialog_parti
 
       return td_->contacts_manager_->get_channel_participants(dialog_id.get_channel_id(), request_filter,
                                                               additional_query, 0, limit, additional_limit, random_id,
-                                                              force, std::move(promise));
+                                                              without_bot_info, force, std::move(promise));
     }
     case DialogType::SecretChat: {
       promise.set_value(Unit());

@@ -509,8 +509,8 @@ class ContactsManager : public Actor {
 
   std::pair<int32, vector<DialogParticipant>> get_channel_participants(
       ChannelId channel_id, const tl_object_ptr<td_api::SupergroupMembersFilter> &filter,
-      const string &additional_query, int32 offset, int32 limit, int32 additional_limit, int64 &random_id, bool force,
-      Promise<Unit> &&promise);
+      const string &additional_query, int32 offset, int32 limit, int32 additional_limit, int64 &random_id,
+      bool without_bot_info, bool force, Promise<Unit> &&promise);
 
   void send_get_channel_participants_query(ChannelId channel_id, ChannelParticipantsFilter filter, int32 offset,
                                            int32 limit, int64 random_id, Promise<Unit> &&promise);

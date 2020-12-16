@@ -534,8 +534,8 @@ class MessagesManager : public Actor {
 
   std::pair<int32, vector<DialogParticipant>> search_dialog_participants(DialogId dialog_id, const string &query,
                                                                          int32 limit, DialogParticipantsFilter filter,
-                                                                         int64 &random_id, bool force,
-                                                                         Promise<Unit> &&promise);
+                                                                         int64 &random_id, bool without_bot_info,
+                                                                         bool force, Promise<Unit> &&promise);
 
   vector<DialogAdministrator> get_dialog_administrators(DialogId dialog_id, int left_tries, Promise<Unit> &&promise);
 

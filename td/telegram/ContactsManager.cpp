@@ -13492,7 +13492,8 @@ DialogParticipant ContactsManager::get_channel_participant(ChannelId channel_id,
 
 std::pair<int32, vector<DialogParticipant>> ContactsManager::get_channel_participants(
     ChannelId channel_id, const tl_object_ptr<td_api::SupergroupMembersFilter> &filter, const string &additional_query,
-    int32 offset, int32 limit, int32 additional_limit, int64 &random_id, bool force, Promise<Unit> &&promise) {
+    int32 offset, int32 limit, int32 additional_limit, int64 &random_id, bool without_bot_info, bool force,
+    Promise<Unit> &&promise) {
   if (random_id != 0) {
     // request has already been sent before
     auto it = received_channel_participants_.find(random_id);
@@ -13537,7 +13538,10 @@ std::pair<int32, vector<DialogParticipant>> ContactsManager::get_channel_partici
   }
 
   auto channel_full = get_channel_full_force(channel_id, "get_channel_participants");
-  if (channel_full == nullptr || (!force && channel_full->is_expired())) {
+  if (td_->auth_manager_->is_bot()) {
+    without_bot_info = true;
+  }
+  if (!without_bot_info && (channel_full == nullptr || (!force && channel_full->is_expired()))) {
     if (force) {
       LOG(ERROR) << "Can't find cached ChannelFull";
     } else {

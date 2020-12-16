@@ -1970,7 +1970,7 @@ class SearchChatMembersRequest : public RequestActor<> {
 
   void do_run(Promise<Unit> &&promise) override {
     participants_ = td->messages_manager_->search_dialog_participants(dialog_id_, query_, limit_, filter_, random_id_,
-                                                                      get_tries() < 3, std::move(promise));
+                                                                      false, get_tries() < 3, std::move(promise));
   }
 
   void do_send_result() override {
@@ -2286,8 +2286,8 @@ class GetSupergroupMembersRequest : public RequestActor<> {
   std::pair<int32, vector<DialogParticipant>> participants_;
 
   void do_run(Promise<Unit> &&promise) override {
-    participants_ = td->contacts_manager_->get_channel_participants(channel_id_, filter_, string(), offset_, limit_, -1,
-                                                                    random_id_, get_tries() < 3, std::move(promise));
+    participants_ = td->contacts_manager_->get_channel_participants(
+        channel_id_, filter_, string(), offset_, limit_, -1, random_id_, false, get_tries() < 3, std::move(promise));
   }
 
   void do_send_result() override {
