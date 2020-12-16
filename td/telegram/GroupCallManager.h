@@ -112,7 +112,9 @@ class GroupCallManager : public Actor {
   const GroupCall *get_group_call(InputGroupCallId input_group_call_id) const;
   GroupCall *get_group_call(InputGroupCallId input_group_call_id);
 
-  Status can_manage_group_calls(DialogId dialog_id);
+  Status can_manage_group_calls(DialogId dialog_id) const;
+
+  bool can_manage_group_call(InputGroupCallId input_group_call_id) const;
 
   void on_voice_chat_created(DialogId dialog_id, InputGroupCallId input_group_call_id, Promise<GroupCallId> &&promise);
 
@@ -130,6 +132,12 @@ class GroupCallManager : public Actor {
   void process_group_call_participants(InputGroupCallId group_call_id,
                                        vector<tl_object_ptr<telegram_api::groupCallParticipant>> &&participants,
                                        bool is_load, bool is_sync);
+
+  bool update_group_call_participant_can_be_muted(bool can_manage, const GroupCallParticipants *participants,
+                                                  GroupCallParticipant &participant);
+
+  void update_group_call_participants_can_be_muted(InputGroupCallId input_group_call_id, bool can_manage,
+                                                   GroupCallParticipants *participants);
 
   int process_group_call_participant(InputGroupCallId group_call_id, GroupCallParticipant &&participant);
 

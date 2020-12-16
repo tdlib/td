@@ -2093,10 +2093,16 @@ groupCallJoinResponseCandidate port:string protocol:string network:string genera
 //@description Describes a join response for interaction with tgcalls @payload Join response payload to pass to tgcalls @candidates Join response candidates to pass to tgcalls
 groupCallJoinResponse payload:groupCallPayload candidates:vector<groupCallJoinResponseCandidate> = GroupCallJoinResponse;
 
-//@description Represents a group call participant @user_id Identifier of the user @source User's synchronization source
-//@is_speaking True, if the user is speaking as set by setGroupCallParticipantIsSpeaking @is_muted True, if the user is muted @can_unmute_self True, if the user can unmute themself
+//@description Represents a group call participant
+//@user_id Identifier of the user
+//@source User's synchronization source
+//@is_speaking True, if the participant is speaking as set by setGroupCallParticipantIsSpeaking
+//@can_be_muted True, if current user can mute the participant
+//@can_be_unmuted True, if the current user can allow the participant to unmute themself or unmute the participant (only for self)
+//@is_muted True, if the participant is muted
+//@can_unmute_self True, if the participant can unmute themself
 //@order User's order in the group call participant list. The bigger is order, the higher is user in the list. If order is 0, the user must be removed from the participant list
-groupCallParticipant user_id:int32 source:int32 is_speaking:Bool is_muted:Bool can_unmute_self:Bool order:int64 = GroupCallParticipant;
+groupCallParticipant user_id:int32 source:int32 is_speaking:Bool can_be_muted:Bool can_be_unmuted:Bool is_muted:Bool can_unmute_self:Bool order:int64 = GroupCallParticipant;
 
 
 //@class CallProblem @description Describes the exact type of a problem with a call
@@ -4381,7 +4387,7 @@ inviteGroupCallParticipants group_call_id:int32 user_ids:vector<int32> = Ok;
 //@source Group call participant's synchronization source identifier @is_speaking True, if the user is speaking
 setGroupCallParticipantIsSpeaking group_call_id:int32 source:int32 is_speaking:Bool = Ok;
 
-//@description Toggles whether a group call participant is muted. Requires can_manage_voice_chats rights to mute other group call participants
+//@description Toggles whether a group call participant is muted, unmuted, or allowed to unmute themself
 //@group_call_id Group call identifier @user_id User identifier @is_muted Pass true if the user must be muted and false otherwise
 toggleGroupCallParticipantIsMuted group_call_id:int32 user_id:int32 is_muted:Bool = Ok;
 

@@ -25,10 +25,19 @@ struct GroupCallParticipant {
   int32 joined_date = 0;
   int32 active_date = 0;
 
+  bool can_be_muted = false;
+  bool can_be_unmuted = false;
+
   bool is_just_joined = false;
   bool is_speaking = false;
   int32 local_active_date = 0;
   int64 order = 0;
+
+  GroupCallParticipant() = default;
+
+  explicit GroupCallParticipant(const tl_object_ptr<telegram_api::groupCallParticipant> &participant);
+
+  bool update_can_be_muted(bool can_manage, bool is_self, bool is_admin);
 
   int64 get_real_order() const {
     return (static_cast<int64>(max(active_date, local_active_date)) << 32) + joined_date;
@@ -37,10 +46,6 @@ struct GroupCallParticipant {
   bool is_valid() const {
     return user_id.is_valid();
   }
-
-  GroupCallParticipant() = default;
-
-  explicit GroupCallParticipant(const tl_object_ptr<telegram_api::groupCallParticipant> &participant);
 
   td_api::object_ptr<td_api::groupCallParticipant> get_group_call_participant_object(
       ContactsManager *contacts_manager) const;

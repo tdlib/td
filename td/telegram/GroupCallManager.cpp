@@ -596,7 +596,7 @@ GroupCallManager::GroupCall *GroupCallManager::get_group_call(InputGroupCallId i
   }
 }
 
-Status GroupCallManager::can_manage_group_calls(DialogId dialog_id) {
+Status GroupCallManager::can_manage_group_calls(DialogId dialog_id) const {
   switch (dialog_id.get_type()) {
     case DialogType::Chat: {
       auto chat_id = dialog_id.get_chat_id();
@@ -634,6 +634,14 @@ Status GroupCallManager::can_manage_group_calls(DialogId dialog_id) {
       UNREACHABLE();
   }
   return Status::OK();
+}
+
+bool GroupCallManager::can_manage_group_call(InputGroupCallId input_group_call_id) const {
+  auto group_call = get_group_call(input_group_call_id);
+  if (group_call == nullptr) {
+    return false;
+  }
+  return can_manage_group_calls(group_call->dialog_id).is_ok();
 }
 
 void GroupCallManager::create_voice_chat(DialogId dialog_id, Promise<GroupCallId> &&promise) {
@@ -694,6 +702,13 @@ void GroupCallManager::reload_group_call(InputGroupCallId input_group_call_id,
     auto group_call = get_group_call(input_group_call_id);
     CHECK(group_call != nullptr && group_call->is_inited);
     try_load_group_call_administrators(input_group_call_id, group_call->dialog_id);
+
+    auto participants_it = group_call_participants_.find(input_group_call_id);
+    if (participants_it != group_call_participants_.end()) {
+      CHECK(participants_it->second != nullptr);
+      update_group_call_participants_can_be_muted(
+          input_group_call_id, can_manage_group_calls(group_call->dialog_id).is_ok(), participants_it->second.get());
+    }
   }
 
   auto &queries = load_group_call_queries_[input_group_call_id];
@@ -1152,6 +1167,25 @@ void GroupCallManager::process_group_call_participants(
   }
 }
 
+bool GroupCallManager::update_group_call_participant_can_be_muted(bool can_manage,
+                                                                  const GroupCallParticipants *participants,
+                                                                  GroupCallParticipant &participant) {
+  bool is_self = participant.user_id == td_->contacts_manager_->get_my_id();
+  bool is_admin = td::contains(participants->administrator_user_ids, participant.user_id);
+  return participant.update_can_be_muted(can_manage, is_self, is_admin);
+}
+
+void GroupCallManager::update_group_call_participants_can_be_muted(InputGroupCallId input_group_call_id,
+                                                                   bool can_manage,
+                                                                   GroupCallParticipants *participants) {
+  CHECK(participants != nullptr);
+  for (auto &participant : participants->participants) {
+    if (update_group_call_participant_can_be_muted(can_manage, participants, participant) && participant.order != 0) {
+      send_update_group_call_participant(input_group_call_id, participant);
+    }
+  }
+}
+
 int GroupCallManager::process_group_call_participant(InputGroupCallId input_group_call_id,
                                                      GroupCallParticipant &&participant) {
   if (!participant.is_valid()) {
@@ -1174,6 +1208,7 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
     }
   }
 
+  bool can_manage = can_manage_group_call(input_group_call_id);
   auto *participants = add_group_call_participants(input_group_call_id);
   for (size_t i = 0; i < participants->participants.size(); i++) {
     auto &old_participant = participants->participants[i];
@@ -1203,6 +1238,7 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
         participant.order = real_order;
       }
       participant.is_just_joined = false;
+      update_group_call_participant_can_be_muted(can_manage, participants, participant);
 
       LOG(INFO) << "Edit " << old_participant << " to " << participant;
       if (old_participant != participant &&
@@ -1368,7 +1404,7 @@ void GroupCallManager::finish_load_group_call_administrators(InputGroupCallId in
         group_call->dialog_id, string(), 100, DialogParticipantsFilter(DialogParticipantsFilter::Type::Administrators),
         random_id, true, true, std::move(promise));
     for (auto &administrator : participants.second) {
-      if (administrator.status.can_manage_calls()) {
+      if (administrator.status.can_manage_calls() && administrator.user_id != td_->contacts_manager_->get_my_id()) {
         administrator_user_ids.push_back(administrator.user_id);
       }
     }
@@ -1385,17 +1421,15 @@ void GroupCallManager::finish_load_group_call_administrators(InputGroupCallId in
     return;
   }
 
-  LOG(INFO) << "Set administrators of " << input_group_call_id << " to " << administrator_user_ids;
   auto *group_call_participants = add_group_call_participants(input_group_call_id);
-  std::unordered_set<UserId, UserIdHash> removed_user_ids(group_call_participants->administrator_user_ids.begin(),
-                                                          group_call_participants->administrator_user_ids.end());
-  std::unordered_set<UserId, UserIdHash> added_user_ids;
-  for (auto user_id : administrator_user_ids) {
-    if (removed_user_ids.erase(user_id) == 0) {
-      added_user_ids.insert(user_id);
-    }
+  if (group_call_participants->administrator_user_ids == administrator_user_ids) {
+    return;
   }
+
+  LOG(INFO) << "Set administrators of " << input_group_call_id << " to " << administrator_user_ids;
   group_call_participants->administrator_user_ids = std::move(administrator_user_ids);
+
+  update_group_call_participants_can_be_muted(input_group_call_id, true, group_call_participants);
 }
 
 void GroupCallManager::process_join_group_call_response(InputGroupCallId input_group_call_id, uint64 generation,
