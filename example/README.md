@@ -125,8 +125,8 @@ TDLib has a simple and convenient C++11-interface for sending and receiving requ
 See [example/cpp](https://github.com/tdlib/td/tree/master/example/cpp) for an example of TDLib usage from C++.
 [td_example.cpp](https://github.com/tdlib/td/tree/master/example/cpp/td_example.cpp) contains an example of authorization, processing new incoming messages, getting a list of chats and sending a text message.
 
-See also the source code of [Depecher](https://github.com/blacksailer/depecher) – a Telegram app for Sailfish OS, [TELEports](https://gitlab.com/ubports/apps/teleports) – a Qt-client for Ubuntu Touch, or
-[tdlib-purple](https://github.com/ars3niy/tdlib-purple) - Telegram plugin for Pidgin, all of which are based on TDLib.
+See also the source code of [Fernschreiber](https://github.com/Wunderfitz/harbour-fernschreiber) and [Depecher](https://github.com/blacksailer/depecher) – Telegram apps for Sailfish OS,
+[TELEports](https://gitlab.com/ubports/apps/teleports) – a Qt-client for Ubuntu Touch, or [tdlib-purple](https://github.com/ars3niy/tdlib-purple) - Telegram plugin for Pidgin, all of which are based on TDLib.
 
 <a name="swift"></a>
 ## Using TDLib in Swift projects
