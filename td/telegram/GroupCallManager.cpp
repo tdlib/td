@@ -414,6 +414,7 @@ struct GroupCallManager::GroupCall {
   int32 version = -1;
   int32 duration = 0;
   int32 source = 0;
+  int32 joined_date = 0;
 };
 
 struct GroupCallManager::GroupCallParticipants {
@@ -1403,6 +1404,7 @@ bool GroupCallManager::on_join_group_call_response(InputGroupCallId input_group_
     auto group_call = get_group_call(input_group_call_id);
     CHECK(group_call != nullptr);
     group_call->is_joined = true;
+    group_call->joined_date = G()->unix_time();
     group_call->source = it->second->source;
     it->second->promise.set_value(result.move_as_ok());
     need_update = true;
@@ -1548,7 +1550,7 @@ void GroupCallManager::check_group_call_is_joined(GroupCallId group_call_id, Pro
   if (group_call == nullptr || !group_call->is_inited) {
     return promise.set_error(Status::Error(400, "GROUP_CALL_JOIN_MISSING"));
   }
-  if (!group_call->is_active || !group_call->is_joined) {
+  if (!group_call->is_active || !group_call->is_joined || group_call->joined_date > G()->unix_time() - 10) {
     return promise.set_value(Unit());
   }
   auto source = group_call->source;
@@ -1624,6 +1626,7 @@ void GroupCallManager::on_group_call_left_impl(GroupCall *group_call) {
   group_call->is_joined = false;
   group_call->is_speaking = false;
   group_call->can_self_unmute = false;
+  group_call->joined_date = 0;
   group_call->source = 0;
   group_call->loaded_all_participants = false;
   group_call->version = -1;
