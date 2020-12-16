@@ -735,6 +735,7 @@ void GroupCallManager::finish_get_group_call(InputGroupCallId input_group_call_i
   }
 
   auto group_call = get_group_call(input_group_call_id);
+  CHECK(group_call != nullptr && group_call->is_inited);
   for (auto &promise : promises) {
     if (promise) {
       promise.set_value(get_group_call_object(group_call, get_recent_speaker_user_ids(group_call, false)));
@@ -771,6 +772,7 @@ void GroupCallManager::on_get_group_call_participants(
   bool is_sync = is_load && offset.empty();
   if (is_sync) {
     auto group_call = get_group_call(input_group_call_id);
+    CHECK(group_call != nullptr && group_call->is_inited);
     is_sync = group_call->syncing_participants;
     if (is_sync) {
       group_call->syncing_participants = false;
@@ -887,7 +889,7 @@ void GroupCallManager::on_update_group_call_participants(
       send_update_group_call(group_call, "on_update_group_call_participants");
     }
 
-    LOG(INFO) << "Ignore updateGroupCallParticipants in " << input_group_call_id << " from " << group_call->dialog_id;
+    LOG(INFO) << "Ignore updateGroupCallParticipants in " << input_group_call_id;
     return;
   }
   if (version <= 0) {
@@ -1859,8 +1861,7 @@ void GroupCallManager::on_user_speaking_in_group_call(GroupCallId group_call_id,
 
   if (!td_->contacts_manager_->have_user_force(user_id)) {
     if (recursive) {
-      LOG(ERROR) << "Failed to find speaking " << user_id << " from " << input_group_call_id << " in "
-                 << group_call->dialog_id;
+      LOG(ERROR) << "Failed to find speaking " << user_id << " from " << input_group_call_id;
     } else {
       auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, user_id,
                                                    date](Result<Unit> &&result) {
@@ -1874,8 +1875,7 @@ void GroupCallManager::on_user_speaking_in_group_call(GroupCallId group_call_id,
     return;
   }
 
-  LOG(INFO) << "Add " << user_id << " as recent speaker at " << date << " in " << input_group_call_id << " from "
-            << group_call->dialog_id;
+  LOG(INFO) << "Add " << user_id << " as recent speaker at " << date << " in " << input_group_call_id;
   auto &recent_speakers = group_call_recent_speakers_[group_call_id];
   if (recent_speakers == nullptr) {
     recent_speakers = make_unique<GroupCallRecentSpeakers>();
@@ -1919,7 +1919,7 @@ void GroupCallManager::on_user_speaking_in_group_call(GroupCallId group_call_id,
 
 void GroupCallManager::remove_recent_group_call_speaker(InputGroupCallId input_group_call_id, UserId user_id) {
   auto *group_call = get_group_call(input_group_call_id);
-  if (group_call != nullptr && group_call->is_inited && !group_call->is_active) {
+  if (group_call == nullptr) {
     return;
   }
 
