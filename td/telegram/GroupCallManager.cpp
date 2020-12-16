@@ -1139,6 +1139,7 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
     return 0;
   }
 
+  LOG(INFO) << "Process " << participant << " in " << input_group_call_id;
   auto &participants = group_call_participants_[input_group_call_id];
   if (participants == nullptr) {
     participants = make_unique<GroupCallParticipants>();
@@ -1148,7 +1149,7 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
     auto &old_participant = participants->participants[i];
     if (old_participant.user_id == participant.user_id) {
       if (participant.joined_date == 0) {
-        // removed participant
+        LOG(INFO) << "Remove " << old_participant;
         if (old_participant.order != 0) {
           send_update_group_call_participant(input_group_call_id, participant);
         }
@@ -1157,6 +1158,7 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
         return -1;
       }
 
+      LOG(INFO) << "Edit " << old_participant;
       if (participant.joined_date < old_participant.joined_date) {
         LOG(ERROR) << "Join date of " << participant.user_id << " in " << input_group_call_id << " decreased from "
                    << old_participant.joined_date << " to " << participant.joined_date;
@@ -1186,13 +1188,17 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
   }
 
   if (participant.joined_date == 0) {
-    // unknown removed participant
+    LOG(INFO) << "Remove unknown " << participant;
     remove_recent_group_call_speaker(input_group_call_id, participant.user_id);
     return -1;
   }
 
-  // unknown added or edited participant
   int diff = participant.is_just_joined ? 1 : 0;
+  if (participant.is_just_joined) {
+    LOG(INFO) << "Add new " << participant;
+  } else {
+    LOG(INFO) << "Receive new " << participant;
+  }
   auto real_order = participant.get_real_order();
   if (real_order >= participants->min_order) {
     participant.order = real_order;
@@ -1601,6 +1607,7 @@ void GroupCallManager::on_group_call_left_impl(GroupCall *group_call) {
   group_call->is_speaking = false;
   group_call->source = 0;
   group_call->loaded_all_participants = false;
+  group_call->version = -1;
   try_clear_group_call_participants(get_input_group_call_id(group_call->group_call_id).ok());
 }
 
@@ -1641,6 +1648,7 @@ void GroupCallManager::try_clear_group_call_participants(InputGroupCallId input_
 
   auto group_call = get_group_call(input_group_call_id);
   CHECK(group_call != nullptr && group_call->is_inited);
+  LOG(INFO) << "Clear participants in " << input_group_call_id << " from " << group_call->dialog_id;
   if (group_call->loaded_all_participants) {
     group_call->loaded_all_participants = false;
     send_update_group_call(group_call, "try_clear_group_call_participants");
@@ -1700,6 +1708,8 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
   if (!group_call->dialog_id.is_valid()) {
     group_call->dialog_id = dialog_id;
   }
+  LOG(INFO) << "Update " << call.group_call_id << " with " << group_call->participant_count
+            << " participants and version " << group_call->version;
   if (!group_call->is_inited) {
     *group_call = std::move(call);
     if (need_group_call_participants(input_group_call_id)) {
@@ -1734,11 +1744,12 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
           on_receive_group_call_version(input_group_call_id, call.version);
         } else {
           if (call.participant_count != group_call->participant_count) {
+            LOG(INFO) << "Set " << call.group_call_id << " participant count to " << call.participant_count;
             group_call->participant_count = call.participant_count;
             need_update = true;
           }
-          if (need_group_call_participants(input_group_call_id)) {
-            // init version
+          if (need_group_call_participants(input_group_call_id) && !join_params.empty()) {
+            LOG(INFO) << "Init " << call.group_call_id << " version to " << call.version;
             group_call->version = call.version;
             if (process_pending_group_call_participant_updates(input_group_call_id)) {
               need_update = false;
