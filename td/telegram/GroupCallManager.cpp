@@ -1149,7 +1149,8 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
   if (participant.user_id == td_->contacts_manager_->get_my_id()) {
     auto *group_call = get_group_call(input_group_call_id);
     CHECK(group_call != nullptr && group_call->is_inited);
-    if (group_call->is_joined && group_call->is_active && group_call->can_self_unmute != participant.can_self_unmute) {
+    if (group_call->is_joined && group_call->is_active && participant.is_muted &&
+        group_call->can_self_unmute != participant.can_self_unmute) {
       group_call->can_self_unmute = participant.can_self_unmute;
       send_update_group_call(group_call, "process_group_call_participant");
     }
