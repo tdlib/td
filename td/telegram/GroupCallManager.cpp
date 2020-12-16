@@ -905,10 +905,9 @@ void GroupCallManager::on_update_group_call_participants(
     group_call_participants = make_unique<GroupCallParticipants>();
   }
   auto &pending_updates = group_call_participants->pending_updates_[version];
-  if (!pending_updates.empty()) {
+  if (participants.size() <= pending_updates.size()) {
     LOG(INFO) << "Receive duplicate updateGroupCallParticipants with version " << version << " in "
               << input_group_call_id;
-    sync_group_call_participants(input_group_call_id);
     return;
   }
   pending_updates = std::move(participants);
