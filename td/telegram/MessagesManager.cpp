@@ -10651,6 +10651,22 @@ void MessagesManager::delete_dialog(DialogId dialog_id) {
   close_dialog(d);
 }
 
+void MessagesManager::reload_dialog_group_call(DialogId dialog_id) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  auto d = get_dialog(dialog_id);
+  if (d == nullptr) {
+    // nothing to do
+    return;
+  }
+
+  if (d->active_group_call_id.is_valid()) {
+    td_->group_call_manager_->reload_group_call(d->active_group_call_id, Auto());
+  }
+}
+
 void MessagesManager::read_all_dialog_mentions(DialogId dialog_id, Promise<Unit> &&promise) {
   bool is_bot = td_->auth_manager_->is_bot();
   if (is_bot) {

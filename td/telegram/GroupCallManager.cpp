@@ -735,7 +735,9 @@ void GroupCallManager::finish_get_group_call(InputGroupCallId input_group_call_i
 
   auto group_call = get_group_call(input_group_call_id);
   for (auto &promise : promises) {
-    promise.set_value(get_group_call_object(group_call, get_recent_speaker_user_ids(group_call, false)));
+    if (promise) {
+      promise.set_value(get_group_call_object(group_call, get_recent_speaker_user_ids(group_call, false)));
+    }
   }
 }
 

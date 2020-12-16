@@ -41,6 +41,9 @@ class GroupCallManager : public Actor {
 
   void get_group_call(GroupCallId group_call_id, Promise<td_api::object_ptr<td_api::groupCall>> &&promise);
 
+  void reload_group_call(InputGroupCallId input_group_call_id,
+                         Promise<td_api::object_ptr<td_api::groupCall>> &&promise);
+
   void join_group_call(GroupCallId group_call_id, td_api::object_ptr<td_api::groupCallPayload> &&payload, int32 source,
                        bool is_muted, Promise<td_api::object_ptr<td_api::groupCallJoinResponse>> &&promise);
 
@@ -112,9 +115,6 @@ class GroupCallManager : public Actor {
   Status can_manage_group_calls(DialogId dialog_id);
 
   void on_voice_chat_created(DialogId dialog_id, InputGroupCallId input_group_call_id, Promise<GroupCallId> &&promise);
-
-  void reload_group_call(InputGroupCallId input_group_call_id,
-                         Promise<td_api::object_ptr<td_api::groupCall>> &&promise);
 
   void finish_get_group_call(InputGroupCallId input_group_call_id,
                              Result<tl_object_ptr<telegram_api::phone_groupCall>> &&result);

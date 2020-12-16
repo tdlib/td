@@ -397,6 +397,8 @@ class MessagesManager : public Actor {
 
   void delete_dialog(DialogId dialog_id);
 
+  void reload_dialog_group_call(DialogId dialog_id);
+
   void read_all_dialog_mentions(DialogId dialog_id, Promise<Unit> &&promise);
 
   Status add_recently_found_dialog(DialogId dialog_id) TD_WARN_UNUSED_RESULT;
