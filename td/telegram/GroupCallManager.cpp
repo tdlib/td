@@ -405,6 +405,7 @@ struct GroupCallManager::GroupCall {
   bool is_active = false;
   bool is_joined = false;
   bool is_speaking = false;
+  bool can_self_unmute = false;
   bool syncing_participants = false;
   bool loaded_all_participants = false;
   bool mute_new_participants = false;
@@ -777,7 +778,8 @@ void GroupCallManager::on_get_group_call_participants(
                   << group_call->version;
         return;
       }
-      LOG(INFO) << "Finish syncing participants in " << input_group_call_id << " from " << group_call->dialog_id;
+      LOG(INFO) << "Finish syncing participants in " << input_group_call_id << " from " << group_call->dialog_id
+                << " with version " << participants->version_;
       group_call->version = participants->version_;
     }
   }
@@ -1140,6 +1142,16 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
   }
 
   LOG(INFO) << "Process " << participant << " in " << input_group_call_id;
+
+  if (participant.user_id == td_->contacts_manager_->get_my_id()) {
+    auto *group_call = get_group_call(input_group_call_id);
+    CHECK(group_call != nullptr && group_call->is_inited);
+    if (group_call->is_joined && group_call->is_active && group_call->can_self_unmute != participant.can_self_unmute) {
+      group_call->can_self_unmute = participant.can_self_unmute;
+      send_update_group_call(group_call, "process_group_call_participant");
+    }
+  }
+
   auto &participants = group_call_participants_[input_group_call_id];
   if (participants == nullptr) {
     participants = make_unique<GroupCallParticipants>();
@@ -1518,6 +1530,10 @@ void GroupCallManager::toggle_group_call_participant_is_muted(GroupCallId group_
 
   if (user_id != td_->contacts_manager_->get_my_id()) {
     TRY_STATUS_PROMISE(promise, can_manage_group_calls(group_call->dialog_id));
+  } else {
+    if (!is_muted && !group_call->can_self_unmute) {
+      return promise.set_error(Status::Error(400, "Can't unmute self"));
+    }
   }
 
   td_->create_handler<EditGroupCallMemberQuery>(std::move(promise))->send(input_group_call_id, user_id, is_muted);
@@ -1605,6 +1621,7 @@ void GroupCallManager::on_group_call_left_impl(GroupCall *group_call) {
   CHECK(group_call != nullptr && group_call->is_inited && group_call->is_joined);
   group_call->is_joined = false;
   group_call->is_speaking = false;
+  group_call->can_self_unmute = false;
   group_call->source = 0;
   group_call->loaded_all_participants = false;
   group_call->version = -1;
@@ -1705,6 +1722,8 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
   auto *group_call = add_group_call(input_group_call_id, dialog_id);
   call.group_call_id = group_call->group_call_id;
   call.dialog_id = dialog_id.is_valid() ? dialog_id : group_call->dialog_id;
+  call.can_self_unmute =
+      call.is_active && (!call.mute_new_participants || can_manage_group_calls(call.dialog_id).is_ok());
   if (!group_call->dialog_id.is_valid()) {
     group_call->dialog_id = dialog_id;
   }
@@ -1750,6 +1769,10 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
           }
           if (need_group_call_participants(input_group_call_id) && !join_params.empty()) {
             LOG(INFO) << "Init " << call.group_call_id << " version to " << call.version;
+            if (group_call->can_self_unmute != call.can_self_unmute) {
+              group_call->can_self_unmute = call.can_self_unmute;
+              need_update = true;
+            }
             group_call->version = call.version;
             if (process_pending_group_call_participant_updates(input_group_call_id)) {
               need_update = false;
@@ -2014,9 +2037,9 @@ tl_object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(const G
   CHECK(group_call->is_inited);
 
   return td_api::make_object<td_api::groupCall>(
-      group_call->group_call_id.get(), group_call->is_active, group_call->is_joined, group_call->participant_count,
-      group_call->loaded_all_participants, std::move(recent_speaker_user_ids), group_call->mute_new_participants,
-      group_call->allowed_change_mute_new_participants, group_call->duration);
+      group_call->group_call_id.get(), group_call->is_active, group_call->is_joined, group_call->can_self_unmute,
+      group_call->participant_count, group_call->loaded_all_participants, std::move(recent_speaker_user_ids),
+      group_call->mute_new_participants, group_call->allowed_change_mute_new_participants, group_call->duration);
 }
 
 tl_object_ptr<td_api::updateGroupCall> GroupCallManager::get_update_group_call_object(

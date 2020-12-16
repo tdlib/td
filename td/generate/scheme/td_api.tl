@@ -2070,13 +2070,14 @@ callStateError error:error = CallState;
 //@id Group call identifier
 //@is_active True, if the call is active
 //@is_joined True, if the call is joined
+//@can_unmute_self True, if the user can unmute themself
 //@participant_count Number of participants in the group call
 //@loaded_all_participants True, if all group call participants are loaded
 //@recent_speaker_user_ids Identifiers of recently speaking users in the group call
 //@mute_new_participants True, if only group call administrators can unmute new participants
 //@allowed_change_mute_new_participants True, if group call administrators can enable or disable mute_new_participants setting
 //@duration Call duration; for ended calls only
-groupCall id:int32 is_active:Bool is_joined:Bool participant_count:int32 loaded_all_participants:Bool recent_speaker_user_ids:vector<int32> mute_new_participants:Bool allowed_change_mute_new_participants:Bool duration:int32 = GroupCall;
+groupCall id:int32 is_active:Bool is_joined:Bool can_unmute_self:Bool participant_count:int32 loaded_all_participants:Bool recent_speaker_user_ids:vector<int32> mute_new_participants:Bool allowed_change_mute_new_participants:Bool duration:int32 = GroupCall;
 
 //@description Describes a payload fingerprint for interaction with tgcalls @hash Value of the field hash @setup Value of the field setup @fingerprint Value of the field fingerprint
 groupCallPayloadFingerprint hash:string setup:string fingerprint:string = GroupCallPayloadFingerprint;
@@ -2093,9 +2094,9 @@ groupCallJoinResponseCandidate port:string protocol:string network:string genera
 groupCallJoinResponse payload:groupCallPayload candidates:vector<groupCallJoinResponseCandidate> = GroupCallJoinResponse;
 
 //@description Represents a group call participant @user_id Identifier of the user @source User's synchronization source
-//@is_speaking True, if the user is speaking as set by setGroupCallParticipantIsSpeaking @is_muted True, if the user is muted @can_self_unmute True, if the user can unmute themself
+//@is_speaking True, if the user is speaking as set by setGroupCallParticipantIsSpeaking @is_muted True, if the user is muted @can_unmute_self True, if the user can unmute themself
 //@order User's order in the group call participant list. The bigger is order, the higher is user in the list. If order is 0, the user must be removed from the participant list
-groupCallParticipant user_id:int32 source:int32 is_speaking:Bool is_muted:Bool can_self_unmute:Bool order:int64 = GroupCallParticipant;
+groupCallParticipant user_id:int32 source:int32 is_speaking:Bool is_muted:Bool can_unmute_self:Bool order:int64 = GroupCallParticipant;
 
 
 //@class CallProblem @description Describes the exact type of a problem with a call
