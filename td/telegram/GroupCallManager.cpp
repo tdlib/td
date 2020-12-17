@@ -698,9 +698,8 @@ void GroupCallManager::get_group_call(GroupCallId group_call_id,
   reload_group_call(input_group_call_id, std::move(promise));
 }
 
-void GroupCallManager::reload_group_call(InputGroupCallId input_group_call_id,
-                                         Promise<td_api::object_ptr<td_api::groupCall>> &&promise) {
-  if (!promise && need_group_call_participants(input_group_call_id)) {
+void GroupCallManager::on_update_group_call_rights(InputGroupCallId input_group_call_id) {
+  if (need_group_call_participants(input_group_call_id)) {
     auto group_call = get_group_call(input_group_call_id);
     CHECK(group_call != nullptr && group_call->is_inited);
     try_load_group_call_administrators(input_group_call_id, group_call->dialog_id);
@@ -713,6 +712,11 @@ void GroupCallManager::reload_group_call(InputGroupCallId input_group_call_id,
     }
   }
 
+  reload_group_call(input_group_call_id, Auto());
+}
+
+void GroupCallManager::reload_group_call(InputGroupCallId input_group_call_id,
+                                         Promise<td_api::object_ptr<td_api::groupCall>> &&promise) {
   auto &queries = load_group_call_queries_[input_group_call_id];
   queries.push_back(std::move(promise));
   if (queries.size() == 1) {

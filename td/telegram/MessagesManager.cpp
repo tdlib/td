@@ -10663,7 +10663,7 @@ void MessagesManager::reload_dialog_group_call(DialogId dialog_id) {
   }
 
   if (d->active_group_call_id.is_valid()) {
-    td_->group_call_manager_->reload_group_call(d->active_group_call_id, Auto());
+    td_->group_call_manager_->on_update_group_call_rights(d->active_group_call_id);
   }
 }
 

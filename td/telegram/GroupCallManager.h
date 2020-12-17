@@ -41,6 +41,8 @@ class GroupCallManager : public Actor {
 
   void get_group_call(GroupCallId group_call_id, Promise<td_api::object_ptr<td_api::groupCall>> &&promise);
 
+  void on_update_group_call_rights(InputGroupCallId input_group_call_id);
+
   void reload_group_call(InputGroupCallId input_group_call_id,
                          Promise<td_api::object_ptr<td_api::groupCall>> &&promise);
 
