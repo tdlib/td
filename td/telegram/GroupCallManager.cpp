@@ -1611,6 +1611,9 @@ void GroupCallManager::set_group_call_participant_is_speaking(GroupCallId group_
   if (group_call == nullptr || !group_call->is_inited || !group_call->is_active || !group_call->is_joined) {
     return promise.set_value(Unit());
   }
+  if (source == 0) {
+    source = group_call->source;
+  }
 
   bool recursive = false;
   if (date == 0) {
