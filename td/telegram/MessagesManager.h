@@ -1675,7 +1675,7 @@ class MessagesManager : public Actor {
   static constexpr int32 MAX_GET_DIALOGS = 100;                    // server side limit
   static constexpr int32 MAX_GET_HISTORY = 100;                    // server side limit
   static constexpr int32 MAX_SEARCH_MESSAGES = 100;                // server side limit
-  static constexpr int32 MIN_SEARCH_PUBLIC_DIALOG_PREFIX_LEN = 5;  // server side limit
+  static constexpr int32 MIN_SEARCH_PUBLIC_DIALOG_PREFIX_LEN = 4;  // server side limit
   static constexpr int32 MIN_CHANNEL_DIFFERENCE = 10;
   static constexpr int32 MAX_CHANNEL_DIFFERENCE = 100;
   static constexpr int32 MAX_BOT_CHANNEL_DIFFERENCE = 100000;   // server side limit
