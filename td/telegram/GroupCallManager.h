@@ -152,9 +152,9 @@ class GroupCallManager : public Actor {
 
   GroupCallParticipants *add_group_call_participants(InputGroupCallId input_group_call_id);
 
-  void on_group_call_left(InputGroupCallId input_group_call_id, int32 source);
+  void on_group_call_left(InputGroupCallId input_group_call_id, int32 source, bool need_rejoin);
 
-  void on_group_call_left_impl(GroupCall *group_call);
+  void on_group_call_left_impl(GroupCall *group_call, bool need_rejoin);
 
   InputGroupCallId update_group_call(const tl_object_ptr<telegram_api::GroupCall> &group_call_ptr, DialogId dialog_id);
 

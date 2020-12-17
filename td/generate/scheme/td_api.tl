@@ -2070,6 +2070,7 @@ callStateError error:error = CallState;
 //@id Group call identifier
 //@is_active True, if the call is active
 //@is_joined True, if the call is joined
+//@need_rejoin True, if user was kicked from the call because of network loss and the call needs to be rejoined
 //@can_unmute_self True, if the user can unmute themself
 //@participant_count Number of participants in the group call
 //@loaded_all_participants True, if all group call participants are loaded
@@ -2077,7 +2078,7 @@ callStateError error:error = CallState;
 //@mute_new_participants True, if only group call administrators can unmute new participants
 //@allowed_change_mute_new_participants True, if group call administrators can enable or disable mute_new_participants setting
 //@duration Call duration; for ended calls only
-groupCall id:int32 is_active:Bool is_joined:Bool can_unmute_self:Bool participant_count:int32 loaded_all_participants:Bool recent_speaker_user_ids:vector<int32> mute_new_participants:Bool allowed_change_mute_new_participants:Bool duration:int32 = GroupCall;
+groupCall id:int32 is_active:Bool is_joined:Bool need_rejoin:Bool can_unmute_self:Bool participant_count:int32 loaded_all_participants:Bool recent_speaker_user_ids:vector<int32> mute_new_participants:Bool allowed_change_mute_new_participants:Bool duration:int32 = GroupCall;
 
 //@description Describes a payload fingerprint for interaction with tgcalls @hash Value of the field hash @setup Value of the field setup @fingerprint Value of the field fingerprint
 groupCallPayloadFingerprint hash:string setup:string fingerprint:string = GroupCallPayloadFingerprint;
@@ -3415,8 +3416,7 @@ updateCall call:call = Update;
 updateGroupCall group_call:groupCall = Update;
 
 //@description Information about a group call participant was changed. The updates are sent only after the group call is received through getGroupCall and only if the call is joined or being joined
-//@group_call_id Identifier of group call
-//@participant New data about a participant. If this is a current user with different source, then the current user joined the call from another device and the call must not be rejoined automatically
+//@group_call_id Identifier of group call @participant New data about a participant
 updateGroupCallParticipant group_call_id:int32 participant:groupCallParticipant = Update;
 
 //@description New call signaling data arrived @call_id The call identifier @data The data
