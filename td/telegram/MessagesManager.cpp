@@ -19122,6 +19122,10 @@ void MessagesManager::open_dialog(Dialog *d) {
 
   get_dialog_pinned_message(dialog_id, Auto());
 
+  if (d->active_group_call_id.is_valid()) {
+    td_->group_call_manager_->reload_group_call(d->active_group_call_id, Auto());
+  }
+
   switch (dialog_id.get_type()) {
     case DialogType::User:
       break;
