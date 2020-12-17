@@ -953,7 +953,7 @@ keyboardButton text:string type:KeyboardButtonType = KeyboardButton;
 //@description A button that opens a specified URL @url HTTP or tg:// URL to open
 inlineKeyboardButtonTypeUrl url:string = InlineKeyboardButtonType;
 
-//@description A button that opens a specified URL and automatically logs in in current user if they allowed to do that @url An HTTP URL to open @id Unique button identifier @forward_text If non-empty, new text of the button in forwarded messages
+//@description A button that opens a specified URL and automatically authorize the current user if allowed to do so @url An HTTP URL to open @id Unique button identifier @forward_text If non-empty, new text of the button in forwarded messages
 inlineKeyboardButtonTypeLoginUrl url:string id:int32 forward_text:string = InlineKeyboardButtonType;
 
 //@description A button that sends a callback query to a bot @data Data to be sent to the bot via a callback query
@@ -1989,7 +1989,7 @@ stickerSet id:int64 title:string name:string thumbnail:thumbnail thumbnail_outli
 //@description Represents short information about a sticker set
 //@id Identifier of the sticker set @title Title of the sticker set @name Name of the sticker set @thumbnail Sticker set thumbnail in WEBP or TGS format with width and height 100; may be null
 //@thumbnail_outline Sticker set thumbnail's outline represented as a list of closed vector paths; may be empty. The coordinate system origin is in the upper-left corner
-//@is_installed True, if the sticker set has been installed by current user @is_archived True, if the sticker set has been archived. A sticker set can't be installed and archived simultaneously
+//@is_installed True, if the sticker set has been installed by the current user @is_archived True, if the sticker set has been archived. A sticker set can't be installed and archived simultaneously
 //@is_official True, if the sticker set is official @is_animated True, is the stickers in the set are animated @is_masks True, if the stickers in the set are masks @is_viewed True for already viewed trending sticker sets
 //@size Total number of stickers in the set @covers Contains up to the first 5 stickers from the set, depending on the context. If the application needs more stickers the full set should be requested
 stickerSetInfo id:int64 title:string name:string thumbnail:thumbnail thumbnail_outline:vector<closedVectorPath> is_installed:Bool is_archived:Bool is_official:Bool is_animated:Bool is_masks:Bool is_viewed:Bool size:int32 covers:vector<sticker> = StickerSetInfo;
@@ -2098,7 +2098,7 @@ groupCallJoinResponse payload:groupCallPayload candidates:vector<groupCallJoinRe
 //@user_id Identifier of the user
 //@source User's synchronization source
 //@is_speaking True, if the participant is speaking as set by setGroupCallParticipantIsSpeaking
-//@can_be_muted True, if current user can mute the participant
+//@can_be_muted True, if the current user can mute the participant
 //@can_be_unmuted True, if the current user can allow the participant to unmute themself or unmute the participant (only for self)
 //@is_muted True, if the participant is muted
 //@can_unmute_self True, if the participant can unmute themself
@@ -4229,10 +4229,10 @@ unpinChatMessage chat_id:int53 message_id:int53 = Ok;
 unpinAllChatMessages chat_id:int53 = Ok;
 
 
-//@description Adds current user as a new member to a chat. Private and secret chats can't be joined using this method @chat_id Chat identifier
+//@description Adds the current user as a new member to a chat. Private and secret chats can't be joined using this method @chat_id Chat identifier
 joinChat chat_id:int53 = Ok;
 
-//@description Removes current user from chat members. Private and secret chats can't be left using this method @chat_id Chat identifier
+//@description Removes the current user from chat members. Private and secret chats can't be left using this method @chat_id Chat identifier
 leaveChat chat_id:int53 = Ok;
 
 //@description Adds a new member to a chat. Members can't be added to private or secret chats. Members will not be added until the chat state has been synchronized with the server
@@ -4384,7 +4384,7 @@ toggleGroupCallMuteNewParticipants group_call_id:int32 mute_new_participants:Boo
 inviteGroupCallParticipants group_call_id:int32 user_ids:vector<int32> = Ok;
 
 //@description Informs TDLib that a group call participant speaking state has changed @group_call_id Group call identifier
-//@source Group call participant's synchronization source identifier @is_speaking True, if the user is speaking
+//@source Group call participant's synchronization source identifier, or 0 for the current user @is_speaking True, if the user is speaking
 setGroupCallParticipantIsSpeaking group_call_id:int32 source:int32 is_speaking:Bool = Ok;
 
 //@description Toggles whether a group call participant is muted, unmuted, or allowed to unmute themself
@@ -4439,7 +4439,7 @@ removeContacts user_ids:vector<int32> = Ok;
 //@description Returns the total number of imported contacts
 getImportedContactCount = Count;
 
-//@description Changes imported contacts using the list of current user contacts saved on the device. Imports newly added contacts and, if at least the file database is enabled, deletes recently deleted contacts.
+//@description Changes imported contacts using the list of contacts saved on the device. Imports newly added contacts and, if at least the file database is enabled, deletes recently deleted contacts.
 //-Query result depends on the result of the previous query, so only one query is possible at the same time @contacts The new list of contacts, contact's vCard are ignored and are not imported
 changeImportedContacts contacts:vector<contact> = ImportedContacts;
 
@@ -4945,7 +4945,7 @@ setAlarm seconds:double = Ok;
 //@description Returns information about existing countries. Can be called before authorization
 getCountries = Countries;
 
-//@description Uses current user IP address to find their country. Returns two-letter ISO 3166-1 alpha-2 country code. Can be called before authorization
+//@description Uses the current IP address to find the current country. Returns two-letter ISO 3166-1 alpha-2 country code. Can be called before authorization
 getCountryCode = Text;
 
 //@description Returns information about a phone number by its prefix. Can be called before authorization @phone_number_prefix The phone number prefix
