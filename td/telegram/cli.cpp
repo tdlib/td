@@ -2845,9 +2845,9 @@ class CliClient final : public Actor {
       fingerprints.push_back(td_api::make_object<td_api::groupCallPayloadFingerprint>("h2", "s2", "fingerprint2"));
       send_request(td_api::make_object<td_api::joinGroupCall>(
           as_group_call_id(args),
-          td_api::make_object<td_api::groupCallPayload>("ufrag", "pwd", std::move(fingerprints)), 123, true));
+          td_api::make_object<td_api::groupCallPayload>("ufrag", "pwd", std::move(fingerprints)), group_call_source_, true));
     } else if (op == "jgcc") {
-      send_request(td_api::make_object<td_api::joinGroupCall>(as_group_call_id(args), nullptr, 123, true));
+      send_request(td_api::make_object<td_api::joinGroupCall>(as_group_call_id(args), nullptr, 0, true));
     } else if (op == "tgcmnp" || op == "tgcmnpe") {
       send_request(
           td_api::make_object<td_api::toggleGroupCallMuteNewParticipants>(as_group_call_id(args), op == "tgcmnpe"));
@@ -4547,6 +4547,8 @@ class CliClient final : public Actor {
   bool disable_network_ = false;
   int api_id_ = 0;
   std::string api_hash_;
+
+  int32 group_call_source_ = Random::fast(1, 1000000000);
 
   static std::atomic<uint64> cpu_counter_;
 };
