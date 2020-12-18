@@ -256,7 +256,7 @@ tl_object_ptr<telegram_api::InputMedia> VideosManager::get_input_media(
       flags |= telegram_api::inputMediaDocument::TTL_SECONDS_MASK;
     }
     return make_tl_object<telegram_api::inputMediaDocument>(flags, file_view.main_remote_location().as_input_document(),
-                                                            ttl);
+                                                            ttl, string());
   }
   if (file_view.has_url()) {
     int32 flags = 0;
