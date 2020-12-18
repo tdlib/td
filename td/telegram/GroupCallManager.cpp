@@ -426,6 +426,7 @@ struct GroupCallManager::GroupCallParticipants {
   string next_offset;
   int64 min_order = std::numeric_limits<int64>::max();
 
+  bool are_administrators_loaded = false;
   vector<UserId> administrator_user_ids;
 
   std::map<int32, vector<tl_object_ptr<telegram_api::groupCallParticipant>>> pending_version_updates_;
@@ -709,8 +710,10 @@ void GroupCallManager::on_update_group_call_rights(InputGroupCallId input_group_
     auto participants_it = group_call_participants_.find(input_group_call_id);
     if (participants_it != group_call_participants_.end()) {
       CHECK(participants_it->second != nullptr);
-      update_group_call_participants_can_be_muted(
-          input_group_call_id, can_manage_group_calls(group_call->dialog_id).is_ok(), participants_it->second.get());
+      if (participants_it->second->are_administrators_loaded) {
+        update_group_call_participants_can_be_muted(
+            input_group_call_id, can_manage_group_calls(group_call->dialog_id).is_ok(), participants_it->second.get());
+      }
     }
   }
 
@@ -1220,6 +1223,7 @@ void GroupCallManager::update_group_call_participants_can_be_muted(InputGroupCal
                                                                    bool can_manage,
                                                                    GroupCallParticipants *participants) {
   CHECK(participants != nullptr);
+  LOG(INFO) << "Update group call participants can_be_muted in " << input_group_call_id;
   for (auto &participant : participants->participants) {
     if (update_group_call_participant_can_be_muted(can_manage, participants, participant) && participant.order != 0) {
       send_update_group_call_participant(input_group_call_id, participant);
@@ -1308,6 +1312,7 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
     participant.order = real_order;
   }
   participant.is_just_joined = false;
+  update_group_call_participant_can_be_muted(can_manage, participants, participant);
   participants->participants.push_back(std::move(participant));
   if (participants->participants.back().order != 0) {
     send_update_group_call_participant(input_group_call_id, participants->participants.back());
@@ -1408,6 +1413,7 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id,
 void GroupCallManager::try_load_group_call_administrators(InputGroupCallId input_group_call_id, DialogId dialog_id) {
   if (!dialog_id.is_valid() || !need_group_call_participants(input_group_call_id) ||
       can_manage_group_calls(dialog_id).is_error()) {
+    LOG(INFO) << "Don't need to load administrators in " << input_group_call_id << " from " << dialog_id;
     return;
   }
 
@@ -1472,6 +1478,7 @@ void GroupCallManager::finish_load_group_call_administrators(InputGroupCallId in
   }
 
   LOG(INFO) << "Set administrators of " << input_group_call_id << " to " << administrator_user_ids;
+  group_call_participants->are_administrators_loaded = true;
   group_call_participants->administrator_user_ids = std::move(administrator_user_ids);
 
   update_group_call_participants_can_be_muted(input_group_call_id, true, group_call_participants);
