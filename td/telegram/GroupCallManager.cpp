@@ -427,7 +427,9 @@ struct GroupCallManager::GroupCallParticipants {
   int64 min_order = std::numeric_limits<int64>::max();
 
   vector<UserId> administrator_user_ids;
-  std::map<int32, vector<tl_object_ptr<telegram_api::groupCallParticipant>>> pending_updates_;
+
+  std::map<int32, vector<tl_object_ptr<telegram_api::groupCallParticipant>>> pending_version_updates_;
+  std::map<int32, vector<tl_object_ptr<telegram_api::groupCallParticipant>>> pending_mute_updates_;
 };
 
 struct GroupCallManager::GroupCallRecentSpeakers {
@@ -870,6 +872,9 @@ void GroupCallManager::on_get_group_call_participants(
         group_call->loaded_all_participants = false;
         need_update = true;
       }
+      if (process_pending_group_call_participant_updates(input_group_call_id)) {
+        need_update = false;
+      }
       if (need_update) {
         send_update_group_call(group_call, "on_get_group_call_participants");
       }
@@ -944,13 +949,24 @@ void GroupCallManager::on_update_group_call_participants(
   }
 
   auto *group_call_participants = add_group_call_participants(input_group_call_id);
-  auto &pending_updates = group_call_participants->pending_updates_[version];
-  if (participants.size() <= pending_updates.size()) {
-    LOG(INFO) << "Receive duplicate updateGroupCallParticipants with version " << version << " in "
-              << input_group_call_id;
-    return;
+  auto &pending_mute_updates = group_call_participants->pending_mute_updates_[version];
+  vector<tl_object_ptr<telegram_api::groupCallParticipant>> version_updates;
+  for (auto &participant : participants) {
+    if (GroupCallParticipant::is_versioned_update(participant)) {
+      version_updates.push_back(std::move(participant));
+    } else {
+      pending_mute_updates.push_back(std::move(participant));
+    }
   }
-  pending_updates = std::move(participants);
+  if (!version_updates.empty()) {
+    auto &pending_version_updates = group_call_participants->pending_version_updates_[version];
+    if (version_updates.size() <= pending_version_updates.size()) {
+      LOG(INFO) << "Receive duplicate updateGroupCallParticipants with version " << version << " in "
+                << input_group_call_id;
+      return;
+    }
+    pending_version_updates = std::move(version_updates);
+  }
 
   process_pending_group_call_participant_updates(input_group_call_id);
 }
@@ -964,7 +980,6 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
   if (participants_it == group_call_participants_.end()) {
     return false;
   }
-  auto &pending_updates = participants_it->second->pending_updates_;
   auto group_call = get_group_call(input_group_call_id);
   CHECK(group_call != nullptr && group_call->is_inited);
   if (group_call->version == -1 || !group_call->is_active) {
@@ -974,31 +989,27 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
   int32 diff = 0;
   bool is_left = false;
   bool need_rejoin = true;
-  while (!pending_updates.empty()) {
-    auto it = pending_updates.begin();
+  auto &pending_version_updates = participants_it->second->pending_version_updates_;
+  while (!pending_version_updates.empty()) {
+    auto it = pending_version_updates.begin();
     auto version = it->first;
     auto &participants = it->second;
     if (version <= group_call->version) {
       for (auto &group_call_participant : participants) {
         GroupCallParticipant participant(group_call_participant);
         on_participant_speaking_in_group_call(input_group_call_id, participant);
-        if (participant.user_id == td_->contacts_manager_->get_my_id()) {
+        if (participant.user_id == td_->contacts_manager_->get_my_id() && version == group_call->version &&
+            participant.is_just_joined) {
           process_group_call_participant(input_group_call_id, std::move(participant));
         }
       }
       LOG(INFO) << "Ignore already applied updateGroupCallParticipants with version " << version << " in "
                 << input_group_call_id << " from " << group_call->dialog_id;
-      pending_updates.erase(it);
+      pending_version_updates.erase(it);
       continue;
     }
-    if (version < group_call->version + static_cast<int32>(participants.size())) {
-      LOG(INFO) << "Receive " << participants.size() << " group call participant updates with version " << version
-                << ", but current version is " << group_call->version;
-      sync_group_call_participants(input_group_call_id);
-      break;
-    }
 
-    if (version == group_call->version + static_cast<int32>(participants.size())) {
+    if (version == group_call->version + 1) {
       group_call->version = version;
       for (auto &participant : participants) {
         GroupCallParticipant group_call_participant(participant);
@@ -1011,7 +1022,7 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
         }
         diff += process_group_call_participant(input_group_call_id, std::move(group_call_participant));
       }
-      pending_updates.erase(it);
+      pending_version_updates.erase(it);
     } else if (!group_call->syncing_participants) {
       // found a gap
       LOG(INFO) << "Receive " << participants.size() << " group call participant updates with version " << version
@@ -1020,7 +1031,27 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
       break;
     }
   }
-  if (pending_updates.empty()) {
+
+  auto &pending_mute_updates = participants_it->second->pending_mute_updates_;
+  while (!pending_mute_updates.empty()) {
+    auto it = pending_mute_updates.begin();
+    auto version = it->first;
+    if (version <= group_call->version) {
+      auto &participants = it->second;
+      for (auto &group_call_participant : participants) {
+        GroupCallParticipant participant(group_call_participant);
+        on_participant_speaking_in_group_call(input_group_call_id, participant);
+        int mute_diff = process_group_call_participant(input_group_call_id, std::move(participant));
+        CHECK(mute_diff == 0);
+      }
+      pending_mute_updates.erase(it);
+      continue;
+    }
+    on_receive_group_call_version(input_group_call_id, version);
+    break;
+  }
+
+  if (pending_version_updates.empty() && pending_mute_updates.empty()) {
     sync_participants_timeout_.cancel_timeout(group_call->group_call_id.get());
   }
 
@@ -1974,8 +2005,9 @@ void GroupCallManager::on_receive_group_call_version(InputGroupCallId input_grou
   }
 
   // found a gap
+  LOG(INFO) << "Receive version " << version << " for group call " << input_group_call_id;
   auto *group_call_participants = add_group_call_participants(input_group_call_id);
-  group_call_participants->pending_updates_[version];  // reserve place for updates
+  group_call_participants->pending_version_updates_[version];  // reserve place for updates
   sync_participants_timeout_.add_timeout_in(group_call->group_call_id.get(), 1.0);
 }
 

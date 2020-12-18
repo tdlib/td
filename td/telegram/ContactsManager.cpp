@@ -11722,7 +11722,7 @@ void ContactsManager::on_update_chat_status(Chat *c, ChatId chat_id, DialogParti
       }
     }
     if (need_reload_group_call) {
-      td_->messages_manager_->reload_dialog_group_call(DialogId(chat_id));
+      td_->messages_manager_->on_update_dialog_group_call_rights(DialogId(chat_id));
     }
 
     c->is_changed = true;
@@ -12064,7 +12064,7 @@ void ContactsManager::on_channel_status_changed(Channel *c, ChannelId channel_id
     reload_dialog_administrators(DialogId(channel_id), 0, Auto());
   }
   if (need_reload_group_call) {
-    td_->messages_manager_->reload_dialog_group_call(DialogId(channel_id));
+    td_->messages_manager_->on_update_dialog_group_call_rights(DialogId(channel_id));
   }
 }
 

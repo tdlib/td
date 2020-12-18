@@ -20,10 +20,10 @@ class ContactsManager;
 struct GroupCallParticipant {
   UserId user_id;
   int32 source = 0;
-  bool is_muted = false;
-  bool can_self_unmute = false;
   int32 joined_date = 0;
   int32 active_date = 0;
+  bool is_muted = false;
+  bool can_self_unmute = false;
 
   bool can_be_muted = false;
   bool can_be_unmuted = false;
@@ -36,6 +36,8 @@ struct GroupCallParticipant {
   GroupCallParticipant() = default;
 
   explicit GroupCallParticipant(const tl_object_ptr<telegram_api::groupCallParticipant> &participant);
+
+  static bool is_versioned_update(const tl_object_ptr<telegram_api::groupCallParticipant> &participant);
 
   bool update_can_be_muted(bool can_manage, bool is_self, bool is_admin);
 

@@ -10651,7 +10651,7 @@ void MessagesManager::delete_dialog(DialogId dialog_id) {
   close_dialog(d);
 }
 
-void MessagesManager::reload_dialog_group_call(DialogId dialog_id) {
+void MessagesManager::on_update_dialog_group_call_rights(DialogId dialog_id) {
   if (td_->auth_manager_->is_bot()) {
     return;
   }

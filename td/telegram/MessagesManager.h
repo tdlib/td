@@ -397,7 +397,7 @@ class MessagesManager : public Actor {
 
   void delete_dialog(DialogId dialog_id);
 
-  void reload_dialog_group_call(DialogId dialog_id);
+  void on_update_dialog_group_call_rights(DialogId dialog_id);
 
   void read_all_dialog_mentions(DialogId dialog_id, Promise<Unit> &&promise);
 
