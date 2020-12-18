@@ -2845,7 +2845,8 @@ class CliClient final : public Actor {
       fingerprints.push_back(td_api::make_object<td_api::groupCallPayloadFingerprint>("h2", "s2", "fingerprint2"));
       send_request(td_api::make_object<td_api::joinGroupCall>(
           as_group_call_id(args),
-          td_api::make_object<td_api::groupCallPayload>("ufrag", "pwd", std::move(fingerprints)), group_call_source_, true));
+          td_api::make_object<td_api::groupCallPayload>("ufrag", "pwd", std::move(fingerprints)), group_call_source_,
+          true));
     } else if (op == "jgcc") {
       send_request(td_api::make_object<td_api::joinGroupCall>(as_group_call_id(args), nullptr, 0, true));
     } else if (op == "tgcmnp" || op == "tgcmnpe") {
