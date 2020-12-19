@@ -2347,14 +2347,18 @@ SecretInputMedia StickersManager::get_secret_input_media(FileId sticker_file_id,
 
 tl_object_ptr<telegram_api::InputMedia> StickersManager::get_input_media(
     FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file,
-    tl_object_ptr<telegram_api::InputFile> input_thumbnail) const {
+    tl_object_ptr<telegram_api::InputFile> input_thumbnail, const string &emoji) const {
   auto file_view = td_->file_manager_->get_file_view(file_id);
   if (file_view.is_encrypted()) {
     return nullptr;
   }
   if (file_view.has_remote_location() && !file_view.main_remote_location().is_web() && input_file == nullptr) {
-    return make_tl_object<telegram_api::inputMediaDocument>(0, file_view.main_remote_location().as_input_document(), 0,
-                                                            string());
+    int32 flags = 0;
+    if (!emoji.empty()) {
+      flags |= telegram_api::inputMediaDocument::QUERY_MASK;
+    }
+    return make_tl_object<telegram_api::inputMediaDocument>(flags, file_view.main_remote_location().as_input_document(),
+                                                            0, emoji);
   }
   if (file_view.has_url()) {
     return make_tl_object<telegram_api::inputMediaDocumentExternal>(0, file_view.url(), 0);
@@ -4757,7 +4761,7 @@ void StickersManager::create_new_sticker_set(UserId user_id, string &title, stri
 void StickersManager::upload_sticker_file(UserId user_id, FileId file_id, Promise<Unit> &&promise) {
   FileId upload_file_id;
   if (td_->file_manager_->get_file_view(file_id).get_type() == FileType::Sticker) {
-    CHECK(get_input_media(file_id, nullptr, nullptr) == nullptr);
+    CHECK(get_input_media(file_id, nullptr, nullptr, string()) == nullptr);
     upload_file_id = dup_sticker(td_->file_manager_->dup_file_id(file_id), file_id);
   } else {
     CHECK(td_->documents_manager_->get_input_media(file_id, nullptr, nullptr) == nullptr);
@@ -4818,7 +4822,7 @@ void StickersManager::do_upload_sticker_file(UserId user_id, FileId file_id,
   bool is_animated = file_view.get_type() == FileType::Sticker;
 
   bool had_input_file = input_file != nullptr;
-  auto input_media = is_animated ? get_input_media(file_id, std::move(input_file), nullptr)
+  auto input_media = is_animated ? get_input_media(file_id, std::move(input_file), nullptr, string())
                                  : td_->documents_manager_->get_input_media(file_id, std::move(input_file), nullptr);
   CHECK(input_media != nullptr);
   if (had_input_file && !FileManager::extract_was_uploaded(input_media)) {

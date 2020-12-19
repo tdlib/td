@@ -4568,6 +4568,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool has_local_thread_message_ids = !local_thread_message_ids.empty();
   bool has_linked_top_thread_message_id = linked_top_thread_message_id.is_valid();
   bool has_interaction_info_update_date = interaction_info_update_date != 0;
+  bool has_send_emoji = !send_emoji.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_channel_post);
   STORE_FLAG(is_outgoing);
@@ -4626,6 +4627,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(has_linked_top_thread_message_id);
     STORE_FLAG(is_pinned);
     STORE_FLAG(has_interaction_info_update_date);
+    STORE_FLAG(has_send_emoji);
     END_STORE_FLAGS();
   }
 
@@ -4731,6 +4733,9 @@ void MessagesManager::Message::store(StorerT &storer) const {
   if (has_interaction_info_update_date) {
     store(interaction_info_update_date, storer);
   }
+  if (has_send_emoji) {
+    store(send_emoji, storer);
+  }
   store_message_content(content.get(), storer);
   if (has_reply_markup) {
     store(reply_markup, storer);
@@ -4773,6 +4778,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   bool has_local_thread_message_ids = false;
   bool has_linked_top_thread_message_id = false;
   bool has_interaction_info_update_date = false;
+  bool has_send_emoji = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_channel_post);
   PARSE_FLAG(is_outgoing);
@@ -4831,6 +4837,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(has_linked_top_thread_message_id);
     PARSE_FLAG(is_pinned);
     PARSE_FLAG(has_interaction_info_update_date);
+    PARSE_FLAG(has_send_emoji);
     END_PARSE_FLAGS();
   }
 
@@ -4941,6 +4948,9 @@ void MessagesManager::Message::parse(ParserT &parser) {
   }
   if (has_interaction_info_update_date) {
     parse(interaction_info_update_date, parser);
+  }
+  if (has_send_emoji) {
+    parse(send_emoji, parser);
   }
   parse_message_content(content, parser);
   if (has_reply_markup) {
@@ -22939,6 +22949,7 @@ Result<MessageId> MessagesManager::send_message(DialogId dialog_id, MessageId to
     m->ttl = message_content.ttl;
     m->is_content_secret = is_secret_message_content(m->ttl, m->content->get_type());
   }
+  m->send_emoji = std::move(message_content.emoji);
 
   if (message_content.clear_draft) {
     if (top_thread_message_id.is_valid()) {
@@ -23001,7 +23012,7 @@ Result<InputMessageContent> MessagesManager::process_input_message_content(
     }
 
     return InputMessageContent(std::move(content), get_message_disable_web_page_preview(copied_message), false, 0,
-                               UserId());
+                               UserId(), copied_message->send_emoji);
   }
 
   TRY_RESULT(content, get_input_message_content(dialog_id, std::move(input_message_content), td_));
@@ -23259,7 +23270,8 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, vect
       on_secret_message_media_uploaded(dialog_id, m, std::move(secret_input_media), file_id, thumbnail_file_id);
     }
   } else {
-    auto input_media = get_input_media(content, td_, m->ttl, td_->auth_manager_->is_bot() && bad_parts.empty());
+    auto input_media =
+        get_input_media(content, td_, m->ttl, m->send_emoji, td_->auth_manager_->is_bot() && bad_parts.empty());
     if (input_media == nullptr) {
       if (content_type == MessageContentType::Game || content_type == MessageContentType::Poll) {
         return;
@@ -23439,7 +23451,7 @@ void MessagesManager::on_upload_message_media_success(DialogId dialog_id, Messag
 
   update_message_content(dialog_id, m, std::move(content), true, true, true);
 
-  auto input_media = get_input_media(m->content.get(), td_, m->ttl, true);
+  auto input_media = get_input_media(m->content.get(), td_, m->ttl, m->send_emoji, true);
   Status result;
   if (input_media == nullptr) {
     result = Status::Error(400, "Failed to upload file");
@@ -23608,7 +23620,7 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
     }
 
     const FormattedText *caption = get_message_content_caption(m->content.get());
-    auto input_media = get_input_media(m->content.get(), td_, m->ttl, true);
+    auto input_media = get_input_media(m->content.get(), td_, m->ttl, m->send_emoji, true);
     if (input_media == nullptr) {
       // TODO return CHECK
       auto file_id = get_message_content_any_file_id(m->content.get());
@@ -24819,7 +24831,7 @@ void MessagesManager::edit_inline_message_media(const string &inline_message_id,
     return promise.set_error(Status::Error(400, "Invalid inline message identifier specified"));
   }
 
-  auto input_media = get_input_media(content.content.get(), td_, 0, true);
+  auto input_media = get_input_media(content.content.get(), td_, 0, string(), true);
   if (input_media == nullptr) {
     return promise.set_error(Status::Error(400, "Invalid message content specified"));
   }
@@ -25892,6 +25904,7 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
     m->ttl = message->ttl;
     m->is_content_secret = message->is_content_secret;
     m->media_album_id = new_media_album_ids[message->media_album_id].first;
+    m->send_emoji = message->send_emoji;
 
     save_send_message_log_event(dialog_id, m);
     do_send_message(dialog_id, m);
@@ -26142,6 +26155,7 @@ Result<MessageId> MessagesManager::add_local_message(
     m->ttl = message_content.ttl;
   }
   m->is_content_secret = is_secret_message_content(m->ttl, m->content->get_type());
+  m->send_emoji = std::move(message_content.emoji);
 
   m->have_previous = true;
   m->have_next = true;

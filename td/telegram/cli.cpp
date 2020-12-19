@@ -3593,8 +3593,8 @@ class CliClient final : public Actor {
       string sticker_path;
       std::tie(chat_id, sticker_path) = split(args);
 
-      send_message(chat_id,
-                   td_api::make_object<td_api::inputMessageSticker>(as_input_file(sticker_path), nullptr, 0, 0));
+      send_message(chat_id, td_api::make_object<td_api::inputMessageSticker>(as_input_file(sticker_path), nullptr, 0, 0,
+                                                                             string()));
     } else if (op == "sstt") {
       string chat_id;
       string sticker_path;
@@ -3602,14 +3602,17 @@ class CliClient final : public Actor {
       std::tie(chat_id, args) = split(args);
       std::tie(sticker_path, thumbnail_path) = split(args);
 
-      send_message(chat_id, td_api::make_object<td_api::inputMessageSticker>(as_input_file(sticker_path),
-                                                                             as_input_thumbnail(thumbnail_path), 0, 0));
+      send_message(chat_id, td_api::make_object<td_api::inputMessageSticker>(
+                                as_input_file(sticker_path), as_input_thumbnail(thumbnail_path), 0, 0, string()));
     } else if (op == "ssid") {
       string chat_id;
       string file_id;
-      std::tie(chat_id, file_id) = split(args);
+      string emoji;
+      std::tie(chat_id, args) = split(args);
+      std::tie(file_id, emoji) = split(args);
 
-      send_message(chat_id, td_api::make_object<td_api::inputMessageSticker>(as_input_file_id(file_id), nullptr, 0, 0));
+      send_message(chat_id,
+                   td_api::make_object<td_api::inputMessageSticker>(as_input_file_id(file_id), nullptr, 0, 0, emoji));
     } else if (op == "sv" || op == "svttl") {
       string chat_id;
       string video_path;

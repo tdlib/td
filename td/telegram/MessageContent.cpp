@@ -1594,6 +1594,7 @@ static Result<InputMessageContent> create_input_message_content(
   unique_ptr<MessageContent> content;
   UserId via_bot_user_id;
   int32 ttl = 0;
+  string emoji;
   bool is_bot = td->auth_manager_->is_bot();
   switch (input_message_content->get_id()) {
     case td_api::inputMessageText::ID: {
@@ -1709,6 +1710,9 @@ static Result<InputMessageContent> create_input_message_content(
     }
     case td_api::inputMessageSticker::ID: {
       auto input_sticker = static_cast<td_api::inputMessageSticker *>(input_message_content.get());
+
+      emoji = std::move(input_sticker->emoji_);
+
       td->stickers_manager_->create_sticker(file_id, string(), thumbnail,
                                             get_dimensions(input_sticker->width_, input_sticker->height_), nullptr,
                                             false, nullptr);
@@ -1967,7 +1971,8 @@ static Result<InputMessageContent> create_input_message_content(
     default:
       UNREACHABLE();
   }
-  return InputMessageContent{std::move(content), disable_web_page_preview, clear_draft, ttl, via_bot_user_id};
+  return InputMessageContent{std::move(content), disable_web_page_preview, clear_draft, ttl,
+                             via_bot_user_id,    std::move(emoji)};
 }
 
 Result<InputMessageContent> get_input_message_content(
@@ -2323,7 +2328,7 @@ static tl_object_ptr<telegram_api::inputMediaInvoice> get_input_media_invoice(co
 
 static tl_object_ptr<telegram_api::InputMedia> get_input_media_impl(
     const MessageContent *content, Td *td, tl_object_ptr<telegram_api::InputFile> input_file,
-    tl_object_ptr<telegram_api::InputFile> input_thumbnail, int32 ttl) {
+    tl_object_ptr<telegram_api::InputFile> input_thumbnail, int32 ttl, const string &emoji) {
   if (!can_have_input_media(td, content)) {
     return nullptr;
   }
@@ -2381,7 +2386,8 @@ static tl_object_ptr<telegram_api::InputMedia> get_input_media_impl(
     }
     case MessageContentType::Sticker: {
       auto m = static_cast<const MessageSticker *>(content);
-      return td->stickers_manager_->get_input_media(m->file_id, std::move(input_file), std::move(input_thumbnail));
+      return td->stickers_manager_->get_input_media(m->file_id, std::move(input_file), std::move(input_thumbnail),
+                                                    emoji);
     }
     case MessageContentType::Venue: {
       auto m = static_cast<const MessageVenue *>(content);
@@ -2442,7 +2448,8 @@ tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *co
                                                         bool force) {
   bool had_input_file = input_file != nullptr;
   bool had_input_thumbnail = input_thumbnail != nullptr;
-  auto input_media = get_input_media_impl(content, td, std::move(input_file), std::move(input_thumbnail), ttl);
+  auto input_media =
+      get_input_media_impl(content, td, std::move(input_file), std::move(input_thumbnail), ttl, string());
   auto was_uploaded = FileManager::extract_was_uploaded(input_media);
   if (had_input_file) {
     if (!was_uploaded) {
@@ -2471,8 +2478,9 @@ tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *co
   return input_media;
 }
 
-tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *content, Td *td, int32 ttl, bool force) {
-  auto input_media = get_input_media_impl(content, td, nullptr, nullptr, ttl);
+tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *content, Td *td, int32 ttl,
+                                                        const string &emoji, bool force) {
+  auto input_media = get_input_media_impl(content, td, nullptr, nullptr, ttl, emoji);
   auto file_reference = FileManager::extract_file_reference(input_media);
   if (file_reference == FileReferenceView::invalid_file_reference()) {
     auto file_id = get_message_content_any_file_id(content);

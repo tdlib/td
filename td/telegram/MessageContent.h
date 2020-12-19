@@ -61,14 +61,16 @@ struct InputMessageContent {
   bool clear_draft = false;
   int32 ttl = 0;
   UserId via_bot_user_id;
+  string emoji;
 
   InputMessageContent(unique_ptr<MessageContent> &&content, bool disable_web_page_preview, bool clear_draft, int32 ttl,
-                      UserId via_bot_user_id)
+                      UserId via_bot_user_id, string emoji)
       : content(std::move(content))
       , disable_web_page_preview(disable_web_page_preview)
       , clear_draft(clear_draft)
       , ttl(ttl)
-      , via_bot_user_id(via_bot_user_id) {
+      , via_bot_user_id(via_bot_user_id)
+      , emoji(std::move(emoji)) {
   }
 };
 
@@ -112,7 +114,8 @@ tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *co
                                                         FileId file_id, FileId thumbnail_file_id, int32 ttl,
                                                         bool force);
 
-tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *content, Td *td, int32 ttl, bool force);
+tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *content, Td *td, int32 ttl,
+                                                        const string &emoji, bool force);
 
 void delete_message_content_thumbnail(MessageContent *content, Td *td);
 

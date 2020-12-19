@@ -77,7 +77,8 @@ class StickersManager : public Actor {
 
   tl_object_ptr<telegram_api::InputMedia> get_input_media(FileId file_id,
                                                           tl_object_ptr<telegram_api::InputFile> input_file,
-                                                          tl_object_ptr<telegram_api::InputFile> input_thumbnail) const;
+                                                          tl_object_ptr<telegram_api::InputFile> input_thumbnail,
+                                                          const string &emoji) const;
 
   SecretInputMedia get_secret_input_media(FileId sticker_file_id,
                                           tl_object_ptr<telegram_api::InputEncryptedFile> input_file,

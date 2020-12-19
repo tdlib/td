@@ -1107,6 +1107,8 @@ class MessagesManager : public Actor {
     DialogId real_forward_from_dialog_id;    // for resend_message
     MessageId real_forward_from_message_id;  // for resend_message
 
+    string send_emoji;  // for send_message
+
     NotificationId notification_id;
     NotificationId removed_notification_id;
 
