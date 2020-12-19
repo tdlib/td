@@ -1688,7 +1688,7 @@ void GroupCallManager::set_group_call_participant_is_speaking(GroupCallId group_
     on_user_speaking_in_group_call(group_call_id, user_id, date, recursive);
   }
 
-  if (group_call->source == source && !group_call->dialog_id.is_valid() && group_call->is_speaking != is_speaking) {
+  if (group_call->source == source && group_call->dialog_id.is_valid() && group_call->is_speaking != is_speaking) {
     group_call->is_speaking = is_speaking;
     if (is_speaking) {
       pending_send_speaking_action_timeout_.add_timeout_in(group_call_id.get(), 0.0);
