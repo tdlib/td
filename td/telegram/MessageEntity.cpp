@@ -2797,7 +2797,7 @@ static Result<vector<MessageEntity>> do_parse_html(CSlice text, string &result) 
       while (!is_space(text[i]) && text[i] != '>') {
         i++;
       }
-      Slice end_tag_name = text.substr(begin_pos + 2, i - begin_pos - 2);
+      string end_tag_name = to_lower(text.substr(begin_pos + 2, i - begin_pos - 2));
       while (is_space(text[i]) && text[i] != 0) {
         i++;
       }
