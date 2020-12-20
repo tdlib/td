@@ -8,6 +8,7 @@
 
 #include "td/tl/TlObject.h"
 
+#include "td/utils/logging.h"
 #include "td/utils/UInt.h"
 
 #include <cstdint>
@@ -21,8 +22,10 @@ class TlFetchBoxed {
  public:
   template <class ParserT>
   static auto parse(ParserT &parser) -> decltype(Func::parse(parser)) {
-    if (parser.fetch_int() != constructor_id) {
-      parser.set_error("Wrong constructor found");
+    auto parsed_constructor_id = parser.fetch_int();
+    if (parsed_constructor_id != constructor_id) {
+      parser.set_error(PSTRING() << "Wrong constructor " << parsed_constructor_id << " found instead of "
+                                 << constructor_id);
       return decltype(Func::parse(parser))();
     }
     return Func::parse(parser);
