@@ -719,7 +719,7 @@ messageSendingStateFailed error_code:int32 error_message:string can_retry:Bool r
 //@ttl_expires_in Time left before the message expires, in seconds
 //@via_bot_user_id If non-zero, the user identifier of the bot through which this message was sent
 //@author_signature For channel posts and anonymous group messages, optional author signature
-//@media_album_id Unique identifier of an album this message belongs to. Only photos and videos can be grouped together in albums
+//@media_album_id Unique identifier of an album this message belongs to. Only audios, documents, photos and videos can be grouped together in albums
 //@restriction_reason If non-empty, contains a human-readable description of the reason why access to this message must be restricted
 //@content Content of the message
 //@reply_markup Reply markup for the message; may be null
