@@ -1135,7 +1135,7 @@ class GetMessagesRequest : public RequestOnceActor {
   }
 
   void do_send_result() override {
-    send_result(td->messages_manager_->get_messages_object(-1, dialog_id_, message_ids_));
+    send_result(td->messages_manager_->get_messages_object(-1, dialog_id_, message_ids_, false));
   }
 
  public:
@@ -1446,7 +1446,7 @@ class GetMessageThreadHistoryRequest : public RequestActor<> {
   }
 
   void do_send_result() override {
-    send_result(td->messages_manager_->get_messages_object(-1, messages_.first, messages_.second));
+    send_result(td->messages_manager_->get_messages_object(-1, messages_.first, messages_.second, true));
   }
 
  public:
@@ -1483,7 +1483,7 @@ class SearchChatMessagesRequest : public RequestActor<> {
   }
 
   void do_send_result() override {
-    send_result(td->messages_manager_->get_messages_object(messages_.first, dialog_id_, messages_.second));
+    send_result(td->messages_manager_->get_messages_object(messages_.first, dialog_id_, messages_.second, true));
   }
 
   void do_send_error(Status &&status) override {
@@ -1567,7 +1567,7 @@ class SearchMessagesRequest : public RequestActor<> {
   }
 
   void do_send_result() override {
-    send_result(td->messages_manager_->get_messages_object(messages_.first, messages_.second));
+    send_result(td->messages_manager_->get_messages_object(messages_.first, messages_.second, true));
   }
 
   void do_send_error(Status &&status) override {
@@ -1612,7 +1612,7 @@ class SearchCallMessagesRequest : public RequestActor<> {
   }
 
   void do_send_result() override {
-    send_result(td->messages_manager_->get_messages_object(messages_.first, messages_.second));
+    send_result(td->messages_manager_->get_messages_object(messages_.first, messages_.second, true));
   }
 
  public:
@@ -1639,7 +1639,7 @@ class SearchChatRecentLocationMessagesRequest : public RequestActor<> {
   }
 
   void do_send_result() override {
-    send_result(td->messages_manager_->get_messages_object(messages_.first, dialog_id_, messages_.second));
+    send_result(td->messages_manager_->get_messages_object(messages_.first, dialog_id_, messages_.second, true));
   }
 
  public:
@@ -1656,7 +1656,7 @@ class GetActiveLiveLocationMessagesRequest : public RequestActor<> {
   }
 
   void do_send_result() override {
-    send_result(td->messages_manager_->get_messages_object(-1, full_message_ids_));
+    send_result(td->messages_manager_->get_messages_object(-1, full_message_ids_, true));
   }
 
  public:
@@ -1724,7 +1724,7 @@ class GetChatScheduledMessagesRequest : public RequestActor<> {
   }
 
   void do_send_result() override {
-    send_result(td->messages_manager_->get_messages_object(-1, dialog_id_, message_ids_));
+    send_result(td->messages_manager_->get_messages_object(-1, dialog_id_, message_ids_, true));
   }
 
  public:
@@ -5690,7 +5690,7 @@ void Td::on_request(uint64 id, td_api::sendMessageAlbum &request) {
   }
 
   send_closure(actor_id(this), &Td::send_result, id,
-               messages_manager_->get_messages_object(-1, dialog_id, r_message_ids.ok()));
+               messages_manager_->get_messages_object(-1, dialog_id, r_message_ids.ok(), false));
 }
 
 void Td::on_request(uint64 id, td_api::sendBotStartMessage &request) {
@@ -5887,7 +5887,7 @@ void Td::on_request(uint64 id, td_api::forwardMessages &request) {
   }
 
   send_closure(actor_id(this), &Td::send_result, id,
-               messages_manager_->get_messages_object(-1, dialog_id, r_message_ids.ok()));
+               messages_manager_->get_messages_object(-1, dialog_id, r_message_ids.ok(), false));
 }
 
 void Td::on_request(uint64 id, const td_api::resendMessages &request) {
@@ -5899,7 +5899,7 @@ void Td::on_request(uint64 id, const td_api::resendMessages &request) {
   }
 
   send_closure(actor_id(this), &Td::send_result, id,
-               messages_manager_->get_messages_object(-1, dialog_id, r_message_ids.ok()));
+               messages_manager_->get_messages_object(-1, dialog_id, r_message_ids.ok(), false));
 }
 
 void Td::on_request(uint64 id, td_api::getWebPagePreview &request) {

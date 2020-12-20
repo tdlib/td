@@ -787,9 +787,10 @@ class MessagesManager : public Actor {
   tl_object_ptr<td_api::message> get_message_object(FullMessageId full_message_id);
 
   tl_object_ptr<td_api::messages> get_messages_object(int32 total_count, DialogId dialog_id,
-                                                      const vector<MessageId> &message_ids);
+                                                      const vector<MessageId> &message_ids, bool skip_not_found);
 
-  tl_object_ptr<td_api::messages> get_messages_object(int32 total_count, const vector<FullMessageId> &full_message_ids);
+  tl_object_ptr<td_api::messages> get_messages_object(int32 total_count, const vector<FullMessageId> &full_message_ids,
+                                                      bool skip_not_found);
 
   void add_pending_update(tl_object_ptr<telegram_api::Update> &&update, int32 new_pts, int32 pts_count,
                           bool force_apply, const char *source);
@@ -2282,7 +2283,8 @@ class MessagesManager : public Actor {
                                                     bool for_event_log = false) const;
 
   static tl_object_ptr<td_api::messages> get_messages_object(int32 total_count,
-                                                             vector<tl_object_ptr<td_api::message>> &&messages);
+                                                             vector<tl_object_ptr<td_api::message>> &&messages,
+                                                             bool skip_not_found);
 
   vector<DialogId> sort_dialogs_by_order(const vector<DialogId> &dialog_ids, int32 limit) const;
 

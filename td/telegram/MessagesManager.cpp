@@ -19910,8 +19910,8 @@ tl_object_ptr<td_api::messages> MessagesManager::get_dialog_history(DialogId dia
   }
 
   LOG(INFO) << "Return " << messages.size() << " messages in result to getChatHistory";
-  promise.set_value(Unit());                            // can return some messages
-  return get_messages_object(-1, std::move(messages));  // TODO return real total_count of messages in the dialog
+  promise.set_value(Unit());                                   // can return some messages
+  return get_messages_object(-1, std::move(messages), false);  // TODO return real total_count of messages in the dialog
 }
 
 class MessagesManager::ReadHistoryOnServerLogEvent {
@@ -22268,26 +22268,36 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
 }
 
 tl_object_ptr<td_api::messages> MessagesManager::get_messages_object(int32 total_count, DialogId dialog_id,
-                                                                     const vector<MessageId> &message_ids) {
+                                                                     const vector<MessageId> &message_ids,
+                                                                     bool skip_not_found) {
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
-  return get_messages_object(total_count, transform(message_ids, [this, dialog_id, d](MessageId message_id) {
-                               return get_message_object(dialog_id,
-                                                         get_message_force(d, message_id, "get_messages_object"));
-                             }));
+  auto message_objects = transform(message_ids, [this, dialog_id, d](MessageId message_id) {
+    return get_message_object(dialog_id, get_message_force(d, message_id, "get_messages_object"));
+  });
+  return get_messages_object(total_count, std::move(message_objects), skip_not_found);
 }
 
 tl_object_ptr<td_api::messages> MessagesManager::get_messages_object(int32 total_count,
-                                                                     const vector<FullMessageId> &full_message_ids) {
-  return get_messages_object(total_count, transform(full_message_ids, [this](FullMessageId full_message_id) {
-                               return get_message_object(full_message_id);
-                             }));
+                                                                     const vector<FullMessageId> &full_message_ids,
+                                                                     bool skip_not_found) {
+  auto message_objects = transform(
+      full_message_ids, [this](FullMessageId full_message_id) { return get_message_object(full_message_id); });
+  return get_messages_object(total_count, std::move(message_objects), skip_not_found);
 }
 
-tl_object_ptr<td_api::messages> MessagesManager::get_messages_object(
-    int32 total_count, vector<tl_object_ptr<td_api::message>> &&messages) {
-  if (total_count == -1) {
-    total_count = narrow_cast<int32>(messages.size());
+tl_object_ptr<td_api::messages> MessagesManager::get_messages_object(int32 total_count,
+                                                                     vector<tl_object_ptr<td_api::message>> &&messages,
+                                                                     bool skip_not_found) {
+  auto message_count = narrow_cast<int32>(messages.size());
+  if (total_count < message_count) {
+    if (total_count != -1) {
+      LOG(ERROR) << "Have wrong total_count = " << total_count << ", while having " << message_count << " messages";
+    }
+    total_count = message_count;
+  }
+  if (skip_not_found && td::remove(messages, nullptr)) {
+    total_count -= message_count - static_cast<int32>(messages.size());
   }
   return td_api::make_object<td_api::messages>(total_count, std::move(messages));
 }
