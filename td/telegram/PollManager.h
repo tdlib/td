@@ -186,6 +186,8 @@ class PollManager : public Actor {
 
   void on_set_poll_answer(PollId poll_id, uint64 generation, Result<tl_object_ptr<telegram_api::Updates>> &&result);
 
+  void on_set_poll_answer_finished(PollId poll_id, Result<Unit> &&result, vector<Promise<Unit>> &&promises);
+
   void invalidate_poll_voters(const Poll *poll, PollId poll_id);
 
   void invalidate_poll_option_voters(const Poll *poll, PollId poll_id, size_t option_index);

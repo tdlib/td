@@ -844,26 +844,34 @@ void PollManager::on_set_poll_answer(PollId poll_id, uint64 generation,
     poll->was_saved = false;
   }
   if (result.is_ok()) {
-    td_->updates_manager_->on_get_updates(result.move_as_ok(), Promise<Unit>());
-
-    for (auto &promise : promises) {
-      promise.set_value(Unit());
-    }
+    td_->updates_manager_->on_get_updates(
+        result.move_as_ok(), PromiseCreator::lambda([actor_id = actor_id(this), poll_id,
+                                                     promises = std::move(promises)](Result<Unit> &&result) mutable {
+          send_closure(actor_id, &PollManager::on_set_poll_answer_finished, poll_id, Unit(), std::move(promises));
+        }));
   } else {
-    for (auto &promise : promises) {
-      promise.set_error(result.error().clone());
+    on_set_poll_answer_finished(poll_id, result.move_as_error(), std::move(promises));
+  }
+}
+
+void PollManager::on_set_poll_answer_finished(PollId poll_id, Result<Unit> &&result, vector<Promise<Unit>> &&promises) {
+  if (!G()->close_flag()) {
+    auto poll = get_poll(poll_id);
+    if (poll != nullptr && !poll->was_saved) {
+      // no updates was sent during updates processing, so send them
+      // poll wasn't changed, so there is no reason to actually save it
+      if (!(poll->is_closed && poll->is_updated_after_close)) {
+        LOG(INFO) << "Schedule updating of " << poll_id << " soon";
+        update_poll_timeout_.set_timeout_in(poll_id.get(), 0.0);
+      }
+
+      notify_on_poll_update(poll_id);
+      poll->was_saved = true;
     }
   }
-  if (poll != nullptr && !poll->was_saved) {
-    // no updates was sent during updates processing, so send them
-    // poll wasn't changed, so there is no reason to actually save it
-    if (!(poll->is_closed && poll->is_updated_after_close)) {
-      LOG(INFO) << "Schedule updating of " << poll_id << " soon";
-      update_poll_timeout_.set_timeout_in(poll_id.get(), 0.0);
-    }
 
-    notify_on_poll_update(poll_id);
-    poll->was_saved = true;
+  for (auto &promise : promises) {
+    promise.set_result(result.clone());
   }
 }
 

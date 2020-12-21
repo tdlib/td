@@ -1258,7 +1258,7 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
     return promise.set_value(Unit());
   }
 
-  if (running_get_difference_) {
+  if (running_get_difference_ /*|| string(source) != string("postponed updates")*/) {
     LOG(INFO) << "Postpone " << updates.size() << " updates [" << seq_begin << ", " << seq_end
               << "] with date = " << date << " from " << source;
     postponed_updates_.emplace(seq_begin,
