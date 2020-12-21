@@ -16,6 +16,8 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/UpdatesManager.h"
 
+#include "td/actor/MultiPromise.h"
+
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/Random.h"
 
@@ -56,11 +58,12 @@ class CreateGroupCallQuery : public Td::ResultHandler {
       LOG(ERROR) << "Receive wrong CreateGroupCallQuery response " << to_string(ptr);
       return on_error(id, Status::Error(500, "Receive wrong response"));
     }
+    auto group_call_id = group_call_ids[0];
 
-    td->updates_manager_->on_get_updates(std::move(ptr));
-
-    // TODO set promise after updates are processed
-    promise_.set_value(std::move(group_call_ids[0]));
+    td->updates_manager_->on_get_updates(
+        std::move(ptr), PromiseCreator::lambda([promise = std::move(promise_), group_call_id](Unit) mutable {
+          promise.set_value(std::move(group_call_id));
+        }));
   }
 
   void on_error(uint64 id, Status status) override {
@@ -224,10 +227,7 @@ class ToggleGroupCallSettingsQuery : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for ToggleGroupCallSettingsQuery: " << to_string(ptr);
-    td->updates_manager_->on_get_updates(std::move(ptr));
-
-    // TODO set promise after updates are processed
-    promise_.set_value(Unit());
+    td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
   void on_error(uint64 id, Status status) override {
@@ -255,10 +255,7 @@ class InviteToGroupCallQuery : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for InviteToGroupCallQuery: " << to_string(ptr);
-    td->updates_manager_->on_get_updates(std::move(ptr));
-
-    // TODO set promise after updates are processed
-    promise_.set_value(Unit());
+    td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
   void on_error(uint64 id, Status status) override {
@@ -294,10 +291,7 @@ class EditGroupCallMemberQuery : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for EditGroupCallMemberQuery: " << to_string(ptr);
-    td->updates_manager_->on_get_updates(std::move(ptr));
-
-    // TODO set promise after updates are processed
-    promise_.set_value(Unit());
+    td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
   void on_error(uint64 id, Status status) override {
@@ -358,10 +352,7 @@ class LeaveGroupCallQuery : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for LeaveGroupCallQuery: " << to_string(ptr);
-    td->updates_manager_->on_get_updates(std::move(ptr));
-
-    // TODO set promise after updates are processed
-    promise_.set_value(Unit());
+    td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
   void on_error(uint64 id, Status status) override {
@@ -389,10 +380,7 @@ class DiscardGroupCallQuery : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for DiscardGroupCallQuery: " << to_string(ptr);
-    td->updates_manager_->on_get_updates(std::move(ptr));
-
-    // TODO set promise after updates are processed
-    promise_.set_value(Unit());
+    td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
   void on_error(uint64 id, Status status) override {
@@ -1503,9 +1491,10 @@ void GroupCallManager::process_join_group_call_response(InputGroupCallId input_g
   }
 
   LOG(INFO) << "Receive result for JoinGroupCallQuery: " << to_string(updates);
-  td_->updates_manager_->on_get_updates(std::move(updates));
-
-  promise.set_error(Status::Error(500, "Wrong join response received"));
+  td_->updates_manager_->on_get_updates(std::move(updates),
+                                        PromiseCreator::lambda([promise = std::move(promise)](Unit) mutable {
+                                          promise.set_error(Status::Error(500, "Wrong join response received"));
+                                        }));
 }
 
 Result<td_api::object_ptr<td_api::groupCallJoinResponse>> GroupCallManager::get_group_call_join_response_object(

@@ -310,7 +310,7 @@ void CallActor::on_set_rating_query_result(NetQueryPtr net_query) {
     return on_error(res.move_as_error());
   }
   call_state_.need_rating = false;
-  send_closure(G()->updates_manager(), &UpdatesManager::on_get_updates, res.move_as_ok());
+  send_closure(G()->updates_manager(), &UpdatesManager::on_get_updates, res.move_as_ok(), Promise<Unit>());
 }
 
 void CallActor::send_call_debug_information(string data, Promise<> promise) {
@@ -730,7 +730,7 @@ void CallActor::on_discard_query_result(NetQueryPtr net_query) {
   if (res.is_error()) {
     return on_error(res.move_as_error());
   }
-  send_closure(G()->updates_manager(), &UpdatesManager::on_get_updates, res.move_as_ok());
+  send_closure(G()->updates_manager(), &UpdatesManager::on_get_updates, res.move_as_ok(), Promise<Unit>());
 }
 
 void CallActor::flush_call_state() {

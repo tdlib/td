@@ -224,9 +224,7 @@ class StopPollActor : public NetActorOnce {
 
     auto result = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for StopPollQuery: " << to_string(result);
-    td->updates_manager_->on_get_updates(std::move(result));
-
-    promise_.set_value(Unit());
+    td->updates_manager_->on_get_updates(std::move(result), std::move(promise_));
   }
 
   void on_error(uint64 id, Status status) override {
@@ -846,7 +844,7 @@ void PollManager::on_set_poll_answer(PollId poll_id, uint64 generation,
     poll->was_saved = false;
   }
   if (result.is_ok()) {
-    td_->updates_manager_->on_get_updates(result.move_as_ok());
+    td_->updates_manager_->on_get_updates(result.move_as_ok(), Promise<Unit>());
 
     for (auto &promise : promises) {
       promise.set_value(Unit());
@@ -1220,7 +1218,7 @@ void PollManager::on_get_poll_results(PollId poll_id, uint64 generation,
     return;
   }
 
-  td_->updates_manager_->on_get_updates(result.move_as_ok());
+  td_->updates_manager_->on_get_updates(result.move_as_ok(), Promise<Unit>());
 }
 
 void PollManager::on_online() {

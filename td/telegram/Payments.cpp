@@ -361,8 +361,10 @@ class SendPaymentFormQuery : public Td::ResultHandler {
     switch (payment_result->get_id()) {
       case telegram_api::payments_paymentResult::ID: {
         auto result = move_tl_object_as<telegram_api::payments_paymentResult>(payment_result);
-        G()->td().get_actor_unsafe()->updates_manager_->on_get_updates(std::move(result->updates_));
-        promise_.set_value(make_tl_object<td_api::paymentResult>(true, string()));
+        td->updates_manager_->on_get_updates(std::move(result->updates_),
+                                             PromiseCreator::lambda([promise = std::move(promise_)](Unit) mutable {
+                                               promise.set_value(make_tl_object<td_api::paymentResult>(true, string()));
+                                             }));
         return;
       }
       case telegram_api::payments_paymentVerificationNeeded::ID: {
@@ -410,9 +412,7 @@ class GetPaymentReceiptQuery : public Td::ResultHandler {
     }
 
     promise_.set_value(make_tl_object<td_api::paymentReceipt>(
-        payment_receipt->date_,
-        G()->td().get_actor_unsafe()->contacts_manager_->get_user_id_object(payments_provider_user_id,
-                                                                            "paymentReceipt"),
+        payment_receipt->date_, td->contacts_manager_->get_user_id_object(payments_provider_user_id, "paymentReceipt"),
         convert_invoice(std::move(payment_receipt->invoice_)), convert_order_info(std::move(payment_receipt->info_)),
         convert_shipping_option(std::move(payment_receipt->shipping_)),
         std::move(payment_receipt->credentials_title_)));

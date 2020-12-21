@@ -243,7 +243,7 @@ class GetAllDraftsQuery : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetAllDraftsQuery: " << to_string(ptr);
-    td->updates_manager_->on_get_updates(std::move(ptr));
+    td->updates_manager_->on_get_updates(std::move(ptr), Promise<Unit>());
   }
 
   void on_error(uint64 id, Status status) override {
@@ -610,9 +610,7 @@ class UpdateDialogPinnedMessageQuery : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for UpdateDialogPinnedMessageQuery: " << to_string(ptr);
-    td->updates_manager_->on_get_updates(std::move(ptr));
-
-    promise_.set_value(Unit());
+    td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
   void on_error(uint64 id, Status status) override {
@@ -1058,13 +1056,12 @@ class EditDialogPhotoQuery : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for EditDialogPhotoQuery: " << to_string(ptr);
-    td->updates_manager_->on_get_updates(std::move(ptr));
 
     if (file_id_.is_valid() && was_uploaded_) {
       td->file_manager_->delete_partial_remote_location(file_id_);
     }
 
-    promise_.set_value(Unit());
+    td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
   void on_error(uint64 id, Status status) override {
@@ -1134,9 +1131,7 @@ class EditDialogTitleQuery : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for EditDialogTitleQuery: " << to_string(ptr);
-    td->updates_manager_->on_get_updates(std::move(ptr));
-
-    promise_.set_value(Unit());
+    td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
   void on_error(uint64 id, Status status) override {
@@ -1178,9 +1173,7 @@ class EditDialogDefaultBannedRightsQuery : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for EditDialogPermissionsQuery: " << to_string(ptr);
-    td->updates_manager_->on_get_updates(std::move(ptr));
-
-    promise_.set_value(Unit());
+    td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
   void on_error(uint64 id, Status status) override {
@@ -2338,9 +2331,7 @@ class BlockFromRepliesQuery : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for BlockFromRepliesQuery: " << to_string(ptr);
-    td->updates_manager_->on_get_updates(std::move(ptr));
-
-    promise_.set_value(Unit());
+    td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
   void on_error(uint64 id, Status status) override {
@@ -2570,7 +2561,7 @@ class SendMessageActor : public NetActorOnce {
     auto constructor_id = ptr->get_id();
     if (constructor_id != telegram_api::updateShortSentMessage::ID) {
       td->messages_manager_->check_send_message_result(random_id_, dialog_id_, ptr.get(), "SendMessage");
-      return td->updates_manager_->on_get_updates(std::move(ptr));
+      return td->updates_manager_->on_get_updates(std::move(ptr), Promise<Unit>());
     }
     auto sent_message = move_tl_object_as<telegram_api::updateShortSentMessage>(ptr);
     td->messages_manager_->on_update_sent_text_message(random_id_, std::move(sent_message->media_),
@@ -2636,7 +2627,7 @@ class StartBotQuery : public Td::ResultHandler {
     LOG(INFO) << "Receive result for StartBotQuery for " << random_id_ << ": " << to_string(ptr);
     // Result may contain messageActionChatAddUser
     // td->messages_manager_->check_send_message_result(random_id_, dialog_id_, ptr.get(), "StartBot");
-    td->updates_manager_->on_get_updates(std::move(ptr));
+    td->updates_manager_->on_get_updates(std::move(ptr), Promise<Unit>());
   }
 
   void on_error(uint64 id, Status status) override {
@@ -2680,7 +2671,7 @@ class SendInlineBotResultQuery : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for SendInlineBotResultQuery for " << random_id_ << ": " << to_string(ptr);
     td->messages_manager_->check_send_message_result(random_id_, dialog_id_, ptr.get(), "SendInlineBotResult");
-    td->updates_manager_->on_get_updates(std::move(ptr));
+    td->updates_manager_->on_get_updates(std::move(ptr), Promise<Unit>());
   }
 
   void on_error(uint64 id, Status status) override {
@@ -2773,7 +2764,7 @@ class SendMultiMediaActor : public NetActorOnce {
       td->updates_manager_->schedule_get_difference("Wrong sendMultiMedia result");
     }
 
-    td->updates_manager_->on_get_updates(std::move(ptr));
+    td->updates_manager_->on_get_updates(std::move(ptr), Promise<Unit>());
   }
 
   void on_error(uint64 id, Status status) override {
@@ -2867,7 +2858,7 @@ class SendMediaActor : public NetActorOnce {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for SendMediaQuery for " << random_id_ << ": " << to_string(ptr);
     td->messages_manager_->check_send_message_result(random_id_, dialog_id_, ptr.get(), "SendMedia");
-    td->updates_manager_->on_get_updates(std::move(ptr));
+    td->updates_manager_->on_get_updates(std::move(ptr), Promise<Unit>());
   }
 
   void on_error(uint64 id, Status status) override {
@@ -3026,9 +3017,7 @@ class SendScheduledMessageActor : public NetActorOnce {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for SendScheduledMessageActor: " << to_string(ptr);
-    td->updates_manager_->on_get_updates(std::move(ptr));
-
-    promise_.set_value(Unit());
+    td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
   void on_error(uint64 id, Status status) override {
@@ -3102,9 +3091,7 @@ class EditMessageActor : public NetActorOnce {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for EditMessageActor: " << to_string(ptr);
-    td->updates_manager_->on_get_updates(std::move(ptr));
-
-    promise_.set_value(Unit());
+    td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
   void on_error(uint64 id, Status status) override {
@@ -3220,9 +3207,7 @@ class SetGameScoreActor : public NetActorOnce {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for SetGameScoreActor: " << to_string(ptr);
-    td->updates_manager_->on_get_updates(std::move(ptr));
-
-    promise_.set_value(Unit());
+    td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
   void on_error(uint64 id, Status status) override {
@@ -3445,8 +3430,7 @@ class ForwardMessagesActor : public NetActorOnce {
       td->updates_manager_->schedule_get_difference("Wrong forwardMessages result");
     }
 
-    td->updates_manager_->on_get_updates(std::move(ptr));
-    promise_.set_value(Unit());
+    td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
   void on_error(uint64 id, Status status) override {
@@ -3494,8 +3478,7 @@ class SendScreenshotNotificationQuery : public Td::ResultHandler {
     LOG(INFO) << "Receive result for SendScreenshotNotificationQuery for " << random_id_ << ": " << to_string(ptr);
     td->messages_manager_->check_send_message_result(random_id_, dialog_id_, ptr.get(),
                                                      "SendScreenshotNotificationQuery");
-    td->updates_manager_->on_get_updates(std::move(ptr));
-    promise_.set_value(Unit());
+    td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
   void on_error(uint64 id, Status status) override {
@@ -3706,9 +3689,7 @@ class DeleteScheduledMessagesQuery : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for DeleteScheduledMessagesQuery: " << to_string(ptr);
-    td->updates_manager_->on_get_updates(std::move(ptr));
-
-    promise_.set_value(Unit());
+    td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
   void on_error(uint64 id, Status status) override {
@@ -3801,9 +3782,7 @@ class GetNotifySettingsExceptionsQuery : public Td::ResultHandler {
     for (auto &dialog_id : dialog_ids) {
       td->messages_manager_->force_create_dialog(dialog_id, "GetNotifySettingsExceptionsQuery");
     }
-    td->updates_manager_->on_get_updates(std::move(updates_ptr));
-
-    promise_.set_value(Unit());
+    td->updates_manager_->on_get_updates(std::move(updates_ptr), std::move(promise_));
   }
 
   void on_error(uint64 id, Status status) override {
@@ -4185,8 +4164,7 @@ class EditPeerFoldersQuery : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for EditPeerFoldersQuery: " << to_string(ptr);
-    td->updates_manager_->on_get_updates(std::move(ptr));
-    promise_.set_value(Unit());
+    td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
   void on_error(uint64 id, Status status) override {
@@ -29135,7 +29113,7 @@ void MessagesManager::on_create_new_dialog_success(int64 random_id, tl_object_pt
     return on_create_new_dialog_fail(random_id, Status::Error(500, "Chat was created earlier"), std::move(promise));
   }
 
-  td_->updates_manager_->on_get_updates(std::move(updates));
+  td_->updates_manager_->on_get_updates(std::move(updates), Promise<Unit>());
 }
 
 void MessagesManager::on_create_new_dialog_fail(int64 random_id, Status error, Promise<Unit> &&promise) {

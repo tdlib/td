@@ -3620,7 +3620,7 @@ void Td::on_result(NetQueryPtr query) {
       LOG(ERROR) << "Failed to fetch update: " << parser.get_error() << format::as_hex_dump<4>(ok.as_slice());
       updates_manager_->schedule_get_difference("failed to fetch update");
     } else {
-      updates_manager_->on_get_updates(std::move(ptr));
+      updates_manager_->on_get_updates(std::move(ptr), Promise<Unit>());
       if (auth_manager_->is_bot() && auth_manager_->is_authorized()) {
         alarm_timeout_.set_timeout_in(PING_SERVER_ALARM_ID,
                                       PING_SERVER_TIMEOUT + Random::fast(0, PING_SERVER_TIMEOUT / 5));
