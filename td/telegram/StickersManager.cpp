@@ -1501,7 +1501,7 @@ vector<td_api::object_ptr<td_api::closedVectorPath>> StickersManager::get_sticke
         case 'm':
         case 'M':
           pos--;
-          // falltrough
+          // fallthrough
         case 'z':
         case 'Z':
           if (x != start_x || y != start_y) {
