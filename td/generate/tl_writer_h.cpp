@@ -94,6 +94,20 @@ std::string TD_TL_writer_h::gen_output_begin() const {
          "  }\n"
          "\n"
          "  return to_string(*value);\n"
+         "}\n\n"
+
+         "template <class T>\n"
+         "std::string to_string(const std::vector<object_ptr<T>> &values) {\n"
+         "  std::string result = \"{\\n\";\n"
+         "  for (const auto &value : values) {\n"
+         "    if (value == nullptr) {\n"
+         "      result += \"null\\n\";\n"
+         "    } else {\n"
+         "      result += to_string(*value);\n"
+         "    }\n"
+         "  }\n"
+         "  result += \"}\\n\";\n"
+         "  return result;\n"
          "}\n\n";
 }
 

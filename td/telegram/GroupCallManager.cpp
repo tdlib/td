@@ -927,7 +927,7 @@ void GroupCallManager::on_update_group_call_participants(
         group_call->participant_count += diff;
         if (group_call->participant_count < 0) {
           LOG(ERROR) << "Participant count became negative in " << input_group_call_id << " from "
-                     << group_call->dialog_id;
+                     << group_call->dialog_id << " after applying " << to_string(participants);
           group_call->participant_count = 0;
         }
         update_group_call_dialog(group_call, "on_update_group_call_participants");

@@ -127,6 +127,7 @@ class DoxygenTlDocumentationGenerator extends TlDocumentationGenerator
         return empty($tline) || $tline[0] === '}' || $tline === 'public:' || strpos($line, '#pragma ') === 0 ||
             strpos($line, '#include <') === 0 || strpos($tline, 'return ') === 0 || strpos($tline, 'namespace') === 0 ||
             preg_match('/class [A-Za-z0-9_]*;/', $line) || $tline === 'if (value == nullptr) {' ||
+            strpos($tline, 'result += ') === 0 || strpos($tline, 'result = ') || strpos($tline, ' : values') ||
             strpos($line, 'JNIEnv') || strpos($line, 'jfieldID') || $tline === 'virtual ~Object() {' ||
             $tline === 'virtual void store(TlStorerToString &s, const char *field_name) const = 0;';
     }
@@ -294,7 +295,7 @@ EOT
 
         $this->addDocumentation('std::string to_string(const BaseObject &value);', <<<EOT
 /**
- * Returns a string representation of the TDLib API object.
+ * Returns a string representation of a TDLib API object.
  * \\param[in] value The object.
  * \\return Object string representation.
  */
@@ -303,10 +304,20 @@ EOT
 
         $this->addDocumentation('std::string to_string(const object_ptr<T> &value) {', <<<EOT
 /**
- * Returns a string representation of the TDLib API object.
+ * Returns a string representation of a TDLib API object.
  * \\tparam T Object type, auto-deduced.
  * \\param[in] value The object.
  * \\return Object string representation.
+ */
+EOT
+);
+
+        $this->addDocumentation('std::string to_string(const std::vector<object_ptr<T>> &values) {', <<<EOT
+/**
+ * Returns a string representation of a list of TDLib API objects.
+ * \\tparam T Object type, auto-deduced.
+ * \\param[in] values The objects.
+ * \\return Objects string representation.
  */
 EOT
 );
