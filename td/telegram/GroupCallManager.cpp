@@ -410,6 +410,7 @@ struct GroupCallManager::GroupCall {
   bool is_being_left = false;
   bool is_speaking = false;
   bool can_self_unmute = false;
+  bool can_be_managed = false;
   bool syncing_participants = false;
   bool loaded_all_participants = false;
   bool mute_new_participants = false;
@@ -702,8 +703,8 @@ void GroupCallManager::get_group_call(GroupCallId group_call_id,
 }
 
 void GroupCallManager::on_update_group_call_rights(InputGroupCallId input_group_call_id) {
+  auto group_call = get_group_call(input_group_call_id);
   if (need_group_call_participants(input_group_call_id)) {
-    auto group_call = get_group_call(input_group_call_id);
     CHECK(group_call != nullptr && group_call->is_inited);
     try_load_group_call_administrators(input_group_call_id, group_call->dialog_id);
 
@@ -714,6 +715,14 @@ void GroupCallManager::on_update_group_call_rights(InputGroupCallId input_group_
         update_group_call_participants_can_be_muted(
             input_group_call_id, can_manage_group_calls(group_call->dialog_id).is_ok(), participants_it->second.get());
       }
+    }
+  }
+
+  if (group_call != nullptr && group_call->is_inited) {
+    bool can_be_managed = group_call->is_active && can_manage_group_calls(group_call->dialog_id).is_ok();
+    if (can_be_managed != group_call->can_be_managed) {
+      group_call->can_be_managed = can_be_managed;
+      send_update_group_call(group_call, "on_update_group_call_rights");
     }
   }
 
@@ -1809,6 +1818,7 @@ void GroupCallManager::on_group_call_left_impl(GroupCall *group_call, bool need_
   group_call->is_being_left = false;
   group_call->is_speaking = false;
   group_call->can_self_unmute = false;
+  group_call->can_be_managed = false;
   group_call->joined_date = 0;
   group_call->source = 0;
   group_call->loaded_all_participants = false;
@@ -1910,8 +1920,8 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
   auto *group_call = add_group_call(input_group_call_id, dialog_id);
   call.group_call_id = group_call->group_call_id;
   call.dialog_id = dialog_id.is_valid() ? dialog_id : group_call->dialog_id;
-  call.can_self_unmute =
-      call.is_active && (!call.mute_new_participants || can_manage_group_calls(call.dialog_id).is_ok());
+  call.can_be_managed = call.is_active && can_manage_group_calls(call.dialog_id).is_ok();
+  call.can_self_unmute = (call.is_active && !call.mute_new_participants) || call.can_be_managed;
   if (!group_call->dialog_id.is_valid()) {
     group_call->dialog_id = dialog_id;
   }
@@ -1953,6 +1963,10 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       if (mute_flags_changed && call.version >= group_call->version) {
         group_call->mute_new_participants = call.mute_new_participants;
         group_call->allowed_change_mute_new_participants = call.allowed_change_mute_new_participants;
+        need_update = true;
+      }
+      if (call.can_be_managed != group_call->can_be_managed) {
+        group_call->can_be_managed = call.can_be_managed;
         need_update = true;
       }
       if (call.version > group_call->version) {
@@ -2232,8 +2246,8 @@ tl_object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(const G
 
   return td_api::make_object<td_api::groupCall>(
       group_call->group_call_id.get(), group_call->is_active, group_call->is_joined, group_call->need_rejoin,
-      group_call->can_self_unmute, group_call->participant_count, group_call->loaded_all_participants,
-      std::move(recent_speaker_user_ids), group_call->mute_new_participants,
+      group_call->can_self_unmute, group_call->can_be_managed, group_call->participant_count,
+      group_call->loaded_all_participants, std::move(recent_speaker_user_ids), group_call->mute_new_participants,
       group_call->allowed_change_mute_new_participants, group_call->duration);
 }
 

@@ -2071,14 +2071,15 @@ callStateError error:error = CallState;
 //@is_active True, if the call is active
 //@is_joined True, if the call is joined
 //@need_rejoin True, if user was kicked from the call because of network loss and the call needs to be rejoined
-//@can_unmute_self True, if the user can unmute themself
+//@can_unmute_self True, if the current user can unmute themself
+//@can_be_managed True, if the current user can manage the group call
 //@participant_count Number of participants in the group call
 //@loaded_all_participants True, if all group call participants are loaded
 //@recent_speaker_user_ids Identifiers of recently speaking users in the group call
 //@mute_new_participants True, if only group call administrators can unmute new participants
 //@allowed_change_mute_new_participants True, if group call administrators can enable or disable mute_new_participants setting
 //@duration Call duration; for ended calls only
-groupCall id:int32 is_active:Bool is_joined:Bool need_rejoin:Bool can_unmute_self:Bool participant_count:int32 loaded_all_participants:Bool recent_speaker_user_ids:vector<int32> mute_new_participants:Bool allowed_change_mute_new_participants:Bool duration:int32 = GroupCall;
+groupCall id:int32 is_active:Bool is_joined:Bool need_rejoin:Bool can_unmute_self:Bool can_be_managed:Bool participant_count:int32 loaded_all_participants:Bool recent_speaker_user_ids:vector<int32> mute_new_participants:Bool allowed_change_mute_new_participants:Bool duration:int32 = GroupCall;
 
 //@description Describes a payload fingerprint for interaction with tgcalls @hash Value of the field hash @setup Value of the field setup @fingerprint Value of the field fingerprint
 groupCallPayloadFingerprint hash:string setup:string fingerprint:string = GroupCallPayloadFingerprint;
