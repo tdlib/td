@@ -6,8 +6,8 @@
 //
 #pragma once
 
-#include "tl_core.h"
-#include "tl_simple_parser.h"
+#include "td/tl/tl_core.h"
+#include "td/tl/tl_simple_parser.h"
 
 #include <cstddef>
 #include <cstdint>
