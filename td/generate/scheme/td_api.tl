@@ -3888,12 +3888,12 @@ getMessageLinkInfo url:string = MessageLinkInfo;
 //@reply_markup Markup for replying to the message; for bots only @input_message_content The content of the message to be sent
 sendMessage chat_id:int53 message_thread_id:int53 reply_to_message_id:int53 options:messageSendOptions reply_markup:ReplyMarkup input_message_content:InputMessageContent = Message;
 
-//@description Sends messages grouped together into an album. Currently only audio, document, photo and video messages can be grouped into an album. Documents and audio files can be only grouped in an album with messages of the same type. Returns sent messages
+//@description Sends 2-10 messages grouped together into an album. Currently only audio, document, photo and video messages can be grouped into an album. Documents and audio files can be only grouped in an album with messages of the same type. Returns sent messages
 //@chat_id Target chat
 //@message_thread_id If not 0, a message thread identifier in which the messages will be sent
 //@reply_to_message_id Identifier of a message to reply to or 0
 //@options Options to be used to send the messages
-//@input_message_contents Contents of messages to be sent
+//@input_message_contents Contents of messages to be sent. At most 10 messages can be added to an album
 sendMessageAlbum chat_id:int53 message_thread_id:int53 reply_to_message_id:int53 options:messageSendOptions input_message_contents:vector<InputMessageContent> = Messages;
 
 //@description Invites a bot to a chat (if it is not yet a member) and sends it the /start command. Bots can't be invited to a private chat other than the chat with the bot. Bots can't be invited to channels (although they can be added as admins) and secret chats. Returns the sent message
@@ -3910,7 +3910,9 @@ sendBotStartMessage bot_user_id:int32 chat_id:int53 parameter:string = Message;
 sendInlineQueryResultMessage chat_id:int53 message_thread_id:int53 reply_to_message_id:int53 options:messageSendOptions query_id:int64 result_id:string hide_via_bot:Bool = Message;
 
 //@description Forwards previously sent messages. Returns the forwarded messages in the same order as the message identifiers passed in message_ids. If a message can't be forwarded, null will be returned instead of the message
-//@chat_id Identifier of the chat to which to forward messages @from_chat_id Identifier of the chat from which to forward messages @message_ids Identifiers of the messages to forward. Message identifiers must be in a strictly increasing order
+//@chat_id Identifier of the chat to which to forward messages
+//@from_chat_id Identifier of the chat from which to forward messages
+//@message_ids Identifiers of the messages to forward. Message identifiers must be in a strictly increasing order. At most 100 messages can be forwarded simultaneously
 //@options Options to be used to send the messages
 //@send_copy True, if content of the messages needs to be copied without links to the original messages. Always true if the messages are forwarded to a secret chat
 //@remove_caption True, if media caption of message copies needs to be removed. Ignored if send_copy is false
