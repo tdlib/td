@@ -104,6 +104,7 @@ size_t RSA::encrypt(unsigned char *from, size_t from_len, size_t max_from_len, u
   CHECK(chunks * 256 <= to_len);
   Random::secure_bytes(from + from_len, pad);
 
+  size_t result = chunks * 256;
   BigNumContext ctx;
   BigNum y;
   while (chunks-- > 0) {
@@ -112,7 +113,7 @@ size_t RSA::encrypt(unsigned char *from, size_t from_len, size_t max_from_len, u
     MutableSlice(to, 256).copy_from(y.to_binary(256));
     to += 256;
   }
-  return chunks * 256;
+  return result;
 }
 
 void RSA::decrypt_signature(Slice from, MutableSlice to) const {
