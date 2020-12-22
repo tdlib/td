@@ -147,7 +147,12 @@ bool BigNum::is_bit_set(int num) const {
 }
 
 bool BigNum::is_prime(BigNumContext &context) const {
-  int result = BN_is_prime_ex(impl_->big_num, BN_prime_checks, context.impl_->big_num_context, nullptr);
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+  int result = BN_check_prime(impl_->big_num, context.impl_->big_num_context, nullptr);
+#else
+  int result =
+      BN_is_prime_ex(impl_->big_num, get_num_bits() > 2048 ? 128 : 64, context.impl_->big_num_context, nullptr);
+#endif
   LOG_IF(FATAL, result == -1);
   return result == 1;
 }

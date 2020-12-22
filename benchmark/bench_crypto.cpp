@@ -28,6 +28,7 @@
 static constexpr int DATA_SIZE = 8 << 10;
 static constexpr int SHORT_DATA_SIZE = 64;
 
+#if OPENSSL_VERSION_NUMBER <= 0x10100000L
 class SHA1Bench : public td::Benchmark {
  public:
   alignas(64) unsigned char data[DATA_SIZE];
@@ -50,6 +51,7 @@ class SHA1Bench : public td::Benchmark {
     }
   }
 };
+#endif
 
 class AesEcbBench : public td::Benchmark {
  public:
@@ -433,7 +435,9 @@ int main() {
   td::bench(SslRandBench());
 #endif
   td::bench(SslRandBufBench());
+#if OPENSSL_VERSION_NUMBER <= 0x10100000L
   td::bench(SHA1Bench());
+#endif
   td::bench(Crc32Bench());
   td::bench(Crc64Bench());
 }
