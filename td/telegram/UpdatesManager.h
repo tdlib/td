@@ -103,7 +103,7 @@ class UpdatesManager : public Actor {
   class PendingQtsUpdate {
    public:
     tl_object_ptr<telegram_api::Update> update;
-    Promise<Unit> promise;
+    vector<Promise<Unit>> promises;
   };
 
   Td *td_;
