@@ -20,8 +20,11 @@
 
 #include <openssl/bio.h>
 #include <openssl/bn.h>
+#include <openssl/opensslv.h>
 #include <openssl/pem.h>
+#if OPENSSL_VERSION_NUMBER < 0x30000000L
 #include <openssl/rsa.h>
+#endif
 
 namespace td {
 
@@ -44,25 +47,55 @@ Result<RSA> RSA::from_pem_public_key(Slice pem) {
     BIO_free(bio);
   };
 
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+  EVP_PKEY *rsa = PEM_read_bio_PUBKEY(bio, nullptr, nullptr, nullptr);
+#else
   auto rsa = PEM_read_bio_RSAPublicKey(bio, nullptr, nullptr, nullptr);
+#endif
   if (rsa == nullptr) {
-    return Status::Error("Error while reading rsa pubkey");
+    return Status::Error("Error while reading RSA public key");
   }
   SCOPE_EXIT {
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+    EVP_PKEY_free(rsa);
+#else
     RSA_free(rsa);
+#endif
   };
 
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+  if (!EVP_PKEY_is_a(rsa, "RSA")) {
+    return Status::Error("Key is not an RSA key");
+  }
+  if (EVP_PKEY_size(rsa) != 256) {
+    return Status::Error("EVP_PKEY_size != 256");
+  }
+#else
   if (RSA_size(rsa) != 256) {
     return Status::Error("RSA_size != 256");
   }
+#endif
 
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+  BIGNUM *n_num = nullptr;
+  BIGNUM *e_num = nullptr;
+
+  int res = EVP_PKEY_get_bn_param(rsa, "n", &n_num);
+  CHECK(res == 1 && n_num != nullptr);
+  res = EVP_PKEY_get_bn_param(rsa, "e", &e_num);
+  CHECK(res == 1 && e_num != nullptr);
+
+  auto n = static_cast<void *>(n_num);
+  auto e = static_cast<void *>(e_num);
+#else
   const BIGNUM *n_num;
   const BIGNUM *e_num;
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
+
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+  RSA_get0_key(rsa, &n_num, &e_num, nullptr);
+#else
   n_num = rsa->n;
   e_num = rsa->e;
-#else
-  RSA_get0_key(rsa, &n_num, &e_num, nullptr);
 #endif
 
   auto n = static_cast<void *>(BN_dup(n_num));
@@ -70,6 +103,7 @@ Result<RSA> RSA::from_pem_public_key(Slice pem) {
   if (n == nullptr || e == nullptr) {
     return Status::Error("Cannot dup BIGNUM");
   }
+#endif
 
   return RSA(BigNum::from_raw(n), BigNum::from_raw(e));
 }
