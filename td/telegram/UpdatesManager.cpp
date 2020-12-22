@@ -1624,6 +1624,7 @@ void UpdatesManager::process_pending_seq_updates() {
       LOG_IF(ERROR, update_it->second.seq_end > seq_)
           << "Strange updates coming with seq_begin = " << seq_begin << ", seq_end = " << update_it->second.seq_end
           << ", but seq = " << seq_;
+      update_it->second.promise.set_value(Unit());
     }
     pending_seq_updates_.erase(update_it);
   }
@@ -1647,13 +1648,15 @@ void UpdatesManager::process_pending_qts_updates() {
     if (qts > get_qts() + 1) {
       break;
     }
+    auto promise = PromiseCreator::lambda([promises = std::move(update_it->second.promises)](Unit) mutable {
+      for (auto &promise : promises) {
+        promise.set_value(Unit());
+      }
+    });
     if (qts == get_qts() + 1) {
-      auto promise = PromiseCreator::lambda([promises = std::move(update_it->second.promises)](Unit) mutable {
-        for (auto &promise : promises) {
-          promise.set_value(Unit());
-        }
-      });
       process_qts_update(std::move(update_it->second.update), qts, std::move(promise));
+    } else {
+      promise.set_value(Unit());
     }
     pending_qts_updates_.erase(update_it);
   }
