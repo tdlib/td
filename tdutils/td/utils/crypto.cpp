@@ -28,9 +28,15 @@
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
 #include <openssl/md5.h>
+#include <openssl/opensslv.h>
 #include <openssl/pem.h>
 #include <openssl/rsa.h>
 #include <openssl/sha.h>
+#endif
+
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+#include <openssl/core_names.h>
+#include <openssl/params.h>
 #endif
 
 #if TD_HAVE_ZLIB
@@ -874,22 +880,58 @@ void pbkdf2_sha512(Slice password, Slice salt, int iteration_count, MutableSlice
   pbkdf2_impl(password, salt, iteration_count, dest, EVP_sha512());
 }
 
-void hmac_impl(const EVP_MD *evp_md, Slice key, Slice message, MutableSlice dest) {
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+static void hmac_impl(const char *digest, Slice key, Slice message, MutableSlice dest) {
+  EVP_MAC *hmac = EVP_MAC_fetch(nullptr, "HMAC", nullptr);
+  LOG_IF(FATAL, hmac == nullptr);
+
+  EVP_MAC_CTX *ctx = EVP_MAC_CTX_new(hmac);
+  LOG_IF(FATAL, ctx == nullptr);
+
+  OSSL_PARAM params[3];
+  params[0] = OSSL_PARAM_construct_utf8_string(OSSL_MAC_PARAM_DIGEST, const_cast<char *>(digest), 0);
+  params[1] =
+      OSSL_PARAM_construct_octet_string(OSSL_MAC_PARAM_KEY, const_cast<unsigned char *>(key.ubegin()), key.size());
+  params[2] = OSSL_PARAM_construct_end();
+
+  int res = EVP_MAC_CTX_set_params(ctx, params);
+  LOG_IF(FATAL, res != 1);
+  res = EVP_MAC_init(ctx);
+  LOG_IF(FATAL, res != 1);
+  res = EVP_MAC_update(ctx, message.ubegin(), message.size());
+  LOG_IF(FATAL, res != 1);
+  res = EVP_MAC_final(ctx, dest.ubegin(), nullptr, dest.size());
+  LOG_IF(FATAL, res != 1);
+
+  EVP_MAC_CTX_free(ctx);
+  EVP_MAC_free(hmac);
+}
+#else
+static void hmac_impl(const EVP_MD *evp_md, Slice key, Slice message, MutableSlice dest) {
   unsigned int len = 0;
   auto result = HMAC(evp_md, key.ubegin(), narrow_cast<int>(key.size()), message.ubegin(),
                      narrow_cast<int>(message.size()), dest.ubegin(), &len);
   CHECK(result == dest.ubegin());
   CHECK(len == dest.size());
 }
+#endif
 
 void hmac_sha256(Slice key, Slice message, MutableSlice dest) {
   CHECK(dest.size() == 256 / 8);
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+  hmac_impl("SHA256", key, message, dest);
+#else
   hmac_impl(EVP_sha256(), key, message, dest);
+#endif
 }
 
 void hmac_sha512(Slice key, Slice message, MutableSlice dest) {
   CHECK(dest.size() == 512 / 8);
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+  hmac_impl("SHA512", key, message, dest);
+#else
   hmac_impl(EVP_sha512(), key, message, dest);
+#endif
 }
 
 static int get_evp_pkey_type(EVP_PKEY *pkey) {
