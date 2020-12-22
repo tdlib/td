@@ -9,6 +9,7 @@
 #include "td/utils/ExitGuard.h"
 #include "td/utils/MpscPollableQueue.h"
 #include "td/utils/port/thread_local.h"
+#include "td/utils/ScopeGuard.h"
 
 #include <memory>
 

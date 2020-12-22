@@ -6,9 +6,6 @@
 //
 #include "td/telegram/InputGroupCallId.h"
 
-#include "td/utils/logging.h"
-#include "td/utils/misc.h"
-
 namespace td {
 
 InputGroupCallId::InputGroupCallId(const tl_object_ptr<telegram_api::inputGroupCall> &input_group_call)

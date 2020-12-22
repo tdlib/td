@@ -162,7 +162,7 @@ class TestClient : public td::Actor {
   td::Promise<> close_promise_;
 };
 
-class Task : public TestClient::Listener {
+class TestClinetTask : public TestClient::Listener {
  public:
   void on_update(std::shared_ptr<TestClient::Update> update) override {
     auto it = sent_queries_.find(update->id);
@@ -198,7 +198,7 @@ class Task : public TestClient::Listener {
   }
 };
 
-class DoAuthentication : public Task {
+class DoAuthentication : public TestClinetTask {
  public:
   DoAuthentication(td::string name, td::string phone, td::string code, td::Promise<> promise)
       : name_(std::move(name)), phone_(std::move(phone)), code_(std::move(code)), promise_(std::move(promise)) {
@@ -274,7 +274,7 @@ class DoAuthentication : public Task {
   }
 };
 
-class SetUsername : public Task {
+class SetUsername : public TestClinetTask {
  public:
   SetUsername(td::string username, td::Promise<> promise)
       : username_(std::move(username)), promise_(std::move(promise)) {
@@ -339,7 +339,7 @@ class SetUsername : public Task {
   }
 };
 
-class CheckTestA : public Task {
+class CheckTestA : public TestClinetTask {
  public:
   CheckTestA(td::string tag, td::Promise<> promise) : tag_(std::move(tag)), promise_(std::move(promise)) {
   }
@@ -371,7 +371,7 @@ class CheckTestA : public Task {
   }
 };
 
-class TestA : public Task {
+class TestA : public TestClinetTask {
  public:
   TestA(td::string tag, td::string username) : tag_(std::move(tag)), username_(std::move(username)) {
   }
@@ -397,7 +397,7 @@ class TestA : public Task {
   td::string username_;
 };
 
-class TestSecretChat : public Task {
+class TestSecretChat : public TestClinetTask {
  public:
   TestSecretChat(td::string tag, td::string username) : tag_(std::move(tag)), username_(std::move(username)) {
   }
@@ -448,7 +448,7 @@ class TestSecretChat : public Task {
   td::int64 chat_id_ = 0;
 };
 
-class TestFileGenerated : public Task {
+class TestFileGenerated : public TestClinetTask {
  public:
   TestFileGenerated(td::string tag, td::string username) : tag_(std::move(tag)), username_(std::move(username)) {
   }
@@ -514,7 +514,7 @@ class TestFileGenerated : public Task {
 
   class GenerateFile : public td::Actor {
    public:
-    GenerateFile(Task *parent, td::int64 id, td::string original_path, td::string destination_path,
+    GenerateFile(TestClinetTask *parent, td::int64 id, td::string original_path, td::string destination_path,
                  td::string conversion)
         : parent_(parent)
         , id_(id)
@@ -524,7 +524,7 @@ class TestFileGenerated : public Task {
     }
 
    private:
-    Task *parent_;
+    TestClinetTask *parent_;
     td::int64 id_;
     td::string original_path_;
     td::string destination_path_;
@@ -589,7 +589,7 @@ class TestFileGenerated : public Task {
   td::int64 chat_id_ = 0;
 };
 
-class CheckTestC : public Task {
+class CheckTestC : public TestClinetTask {
  public:
   CheckTestC(td::string username, td::string tag, td::Promise<> promise)
       : username_(std::move(username)), tag_(std::move(tag)), promise_(std::move(promise)) {

@@ -3225,7 +3225,7 @@ messageStatistics message_interaction_graph:StatisticalGraph = MessageStatistics
 point x:double y:double = Point;
 
 
-//@class VectorPathCommand @description Reperesents a vector path command
+//@class VectorPathCommand @description Represents a vector path command
 
 //@description A straight line to a given point @end_point The end point of the straight line
 vectorPathCommandLine end_point:point = VectorPathCommand;

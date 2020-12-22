@@ -8,6 +8,8 @@
 
 #include "td/telegram/ContactsManager.h"
 
+#include "td/utils/logging.h"
+
 namespace td {
 
 GroupCallParticipant::GroupCallParticipant(const tl_object_ptr<telegram_api::groupCallParticipant> &participant) {

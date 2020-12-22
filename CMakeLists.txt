@@ -494,6 +494,7 @@ set(TDLIB_SOURCE
   td/telegram/FullMessageId.h
   td/telegram/Game.h
   td/telegram/Global.h
+  td/telegram/GroupCallId.h
   td/telegram/GroupCallManager.h
   td/telegram/GroupCallParticipant.h
   td/telegram/HashtagHints.h

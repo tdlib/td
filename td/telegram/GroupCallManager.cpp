@@ -6,21 +6,25 @@
 //
 #include "td/telegram/GroupCallManager.h"
 
+#include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/UpdatesManager.h"
 
-#include "td/actor/MultiPromise.h"
-
+#include "td/utils/buffer.h"
 #include "td/utils/JsonBuilder.h"
+#include "td/utils/misc.h"
 #include "td/utils/Random.h"
 
+#include <limits>
+#include <map>
 #include <unordered_set>
 #include <utility>
 

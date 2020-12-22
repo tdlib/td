@@ -10,18 +10,16 @@
 #include "td/db/TQueue.h"
 
 #include "td/utils/buffer.h"
+#include "td/utils/common.h"
 #include "td/utils/int_types.h"
-#include "td/utils/misc.h"
-#include "td/utils/port/path.h"
+#include "td/utils/logging.h"
 #include "td/utils/Random.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Span.h"
-#include "td/utils/Status.h"
 #include "td/utils/tests.h"
-#include "td/utils/VectorQueue.h"
 
-#include <map>
-#include <set>
+#include <memory>
+#include <utility>
 
 TEST(TQueue, hands) {
   td::TQueue::Event events[100];
