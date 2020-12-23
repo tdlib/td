@@ -7,6 +7,7 @@
 #include "td/utils/port/FileFd.h"
 
 #if TD_PORT_WINDOWS
+#include "td/utils/port/FromApp.h"
 #include "td/utils/port/Stat.h"
 #include "td/utils/port/wstring_convert.h"
 #endif
@@ -211,7 +212,7 @@ Result<FileFd> FileFd::open(CSlice filepath, int32 flags, int32 mode) {
   extended_parameters.dwSize = sizeof(extended_parameters);
   extended_parameters.dwFileAttributes = FILE_ATTRIBUTE_NORMAL;
   extended_parameters.dwFileFlags = native_flags;
-  auto handle = CreateFile2(w_filepath.c_str(), desired_access, share_mode, creation_disposition, &extended_parameters);
+  auto handle = td::CreateFile2FromAppW(w_filepath.c_str(), desired_access, share_mode, creation_disposition, &extended_parameters);
 #endif
   if (handle == INVALID_HANDLE_VALUE) {
     return OS_ERROR(PSLICE() << "File \"" << filepath << "\" can't be " << PrintFlags{flags});
