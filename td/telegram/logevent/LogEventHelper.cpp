@@ -9,7 +9,7 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/TdDb.h"
 
-#include "tddb/td/db/binlog/BinlogHelper.h"
+#include "td/db/binlog/BinlogHelper.h"
 
 #include "td/utils/logging.h"
 #include "td/utils/Status.h"
