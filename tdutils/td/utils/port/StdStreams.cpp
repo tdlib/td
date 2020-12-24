@@ -133,6 +133,7 @@ class BufferedStdinImpl : public Iocp::Callback {
       }
     }
     if (!iocp_ref_.post(0, this, nullptr)) {
+      read_thread_.detach();
       dec_refcnt();
     }
   }
