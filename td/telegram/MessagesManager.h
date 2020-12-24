@@ -343,9 +343,11 @@ class MessagesManager : public Actor {
   void on_update_service_notification(tl_object_ptr<telegram_api::updateServiceNotification> &&update,
                                       bool skip_new_entities, Promise<Unit> &&promise);
 
-  void on_update_new_channel_message(tl_object_ptr<telegram_api::updateNewChannelMessage> &&update);
+  void on_update_new_channel_message(tl_object_ptr<telegram_api::updateNewChannelMessage> &&update,
+                                     Promise<Unit> &&promise);
 
-  void on_update_edit_channel_message(tl_object_ptr<telegram_api::updateEditChannelMessage> &&update);
+  void on_update_edit_channel_message(tl_object_ptr<telegram_api::updateEditChannelMessage> &&update,
+                                      Promise<Unit> &&promise);
 
   void on_update_read_channel_inbox(tl_object_ptr<telegram_api::updateReadChannelInbox> &&update);
 
@@ -796,7 +798,8 @@ class MessagesManager : public Actor {
                           bool force_apply, Promise<Unit> &&promise, const char *source);
 
   void add_pending_channel_update(DialogId dialog_id, tl_object_ptr<telegram_api::Update> &&update, int32 new_pts,
-                                  int32 pts_count, const char *source, bool is_postponed_update = false);
+                                  int32 pts_count, Promise<Unit> &&promise, const char *source,
+                                  bool is_postponed_update = false);
 
   bool is_old_channel_update(DialogId dialog_id, int32 new_pts);
 

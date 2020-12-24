@@ -1701,8 +1701,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewMessage> upd
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewChannelMessage> update, bool /*force_apply*/,
                                Promise<Unit> &&promise) {
-  td_->messages_manager_->on_update_new_channel_message(std::move(update));
-  promise.set_value(Unit());
+  td_->messages_manager_->on_update_new_channel_message(std::move(update), std::move(promise));
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateMessageID> update, bool force_apply,
@@ -1812,8 +1811,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannel> update
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateEditChannelMessage> update, bool /*force_apply*/,
                                Promise<Unit> &&promise) {
-  td_->messages_manager_->on_update_edit_channel_message(std::move(update));
-  promise.set_value(Unit());
+  td_->messages_manager_->on_update_edit_channel_message(std::move(update), std::move(promise));
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDeleteChannelMessages> update, bool /*force_apply*/,
@@ -1821,14 +1819,14 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDeleteChannelMe
   ChannelId channel_id(update->channel_id_);
   if (!channel_id.is_valid()) {
     LOG(ERROR) << "Receive invalid " << channel_id;
+    promise.set_value(Unit());
   } else {
     DialogId dialog_id(channel_id);
     int new_pts = update->pts_;
     int pts_count = update->pts_count_;
     td_->messages_manager_->add_pending_channel_update(dialog_id, std::move(update), new_pts, pts_count,
-                                                       "on_updateDeleteChannelMessages");
+                                                       std::move(promise), "on_updateDeleteChannelMessages");
   }
-  promise.set_value(Unit());
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelMessageViews> update, bool /*force_apply*/,
@@ -1898,14 +1896,14 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePinnedChannelMe
   ChannelId channel_id(update->channel_id_);
   if (!channel_id.is_valid()) {
     LOG(ERROR) << "Receive invalid " << channel_id;
+    promise.set_value(Unit());
   } else {
     DialogId dialog_id(channel_id);
     int new_pts = update->pts_;
     int pts_count = update->pts_count_;
     td_->messages_manager_->add_pending_channel_update(dialog_id, std::move(update), new_pts, pts_count,
-                                                       "on_updatePinnedChannelMessages");
+                                                       std::move(promise), "on_updatePinnedChannelMessages");
   }
-  promise.set_value(Unit());
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNotifySettings> update, bool /*force_apply*/,
@@ -1968,7 +1966,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelWebPage>
   } else {
     DialogId dialog_id(channel_id);
     td_->messages_manager_->add_pending_channel_update(dialog_id, make_tl_object<dummyUpdate>(), update->pts_,
-                                                       update->pts_count_, "on_updateChannelWebPage");
+                                                       update->pts_count_, Promise<Unit>(), "on_updateChannelWebPage");
   }
   promise.set_value(Unit());
 }
