@@ -6285,11 +6285,7 @@ void MessagesManager::add_pending_update(tl_object_ptr<telegram_api::Update> &&u
     return;
   }
 
-  if (pts_count > 0) {
-    pending_pts_updates_.emplace(new_pts, PendingPtsUpdate(std::move(update), new_pts, pts_count, std::move(promise)));
-  } else {
-    promise.set_value(Unit());
-  }
+  pending_pts_updates_.emplace(new_pts, PendingPtsUpdate(std::move(update), new_pts, pts_count, std::move(promise)));
 
   if (old_pts + accumulated_pts_count_ < accumulated_pts_) {
     set_get_difference_timeout(UpdatesManager::MAX_UNFILLED_GAP_TIME);
@@ -7207,11 +7203,9 @@ void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_p
     }
 
     if (running_get_channel_difference(dialog_id)) {
-      if (pts_count > 0) {
-        d->postponed_channel_updates.emplace(
-            new_pts, PendingPtsUpdate(std::move(update), new_pts, pts_count, std::move(promise)));
-      }
       LOG(INFO) << "Postpone channel update, because getChannelDifference is run";
+      d->postponed_channel_updates.emplace(new_pts,
+                                           PendingPtsUpdate(std::move(update), new_pts, pts_count, std::move(promise)));
       return;
     }
 
@@ -7219,10 +7213,8 @@ void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_p
       LOG(INFO) << "Found a gap in the " << dialog_id << " with pts = " << old_pts << ". new_pts = " << new_pts
                 << ", pts_count = " << pts_count << " in update from " << source;
 
-      if (pts_count > 0) {
-        d->postponed_channel_updates.emplace(
-            new_pts, PendingPtsUpdate(std::move(update), new_pts, pts_count, std::move(promise)));
-      }
+      d->postponed_channel_updates.emplace(new_pts,
+                                           PendingPtsUpdate(std::move(update), new_pts, pts_count, std::move(promise)));
 
       get_channel_difference(dialog_id, old_pts, true, "add_pending_channel_update pts mismatch");
       return;
@@ -7448,11 +7440,7 @@ void MessagesManager::drop_pending_updates() {
 
 void MessagesManager::postpone_pts_update(tl_object_ptr<telegram_api::Update> &&update, int32 pts, int32 pts_count,
                                           Promise<Unit> &&promise) {
-  if (pts_count > 0) {
-    postponed_pts_updates_.emplace(pts, PendingPtsUpdate(std::move(update), pts, pts_count, std::move(promise)));
-  } else {
-    promise.set_value(Unit());
-  }
+  postponed_pts_updates_.emplace(pts, PendingPtsUpdate(std::move(update), pts, pts_count, std::move(promise)));
 }
 
 string MessagesManager::get_notification_settings_scope_database_key(NotificationSettingsScope scope) {
