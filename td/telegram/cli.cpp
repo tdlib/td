@@ -3176,7 +3176,7 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::editMessageMedia>(
           as_chat_id(chat_id), as_message_id(message_id), nullptr,
           td_api::make_object<td_api::inputMessageDocument>(as_input_file(document), nullptr, false, as_caption(""))));
-    } else if (op == "emp") {
+    } else if (op == "emp" || op == "empttl") {
       string chat_id;
       string message_id;
       string photo;
@@ -3185,17 +3185,7 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::editMessageMedia>(
           as_chat_id(chat_id), as_message_id(message_id), nullptr,
           td_api::make_object<td_api::inputMessagePhoto>(as_input_file(photo), as_input_thumbnail(photo), Auto(), 0, 0,
-                                                         as_caption(""), 0)));
-    } else if (op == "empttl") {
-      string chat_id;
-      string message_id;
-      string photo;
-      std::tie(chat_id, args) = split(args);
-      std::tie(message_id, photo) = split(args);
-      send_request(td_api::make_object<td_api::editMessageMedia>(
-          as_chat_id(chat_id), as_message_id(message_id), nullptr,
-          td_api::make_object<td_api::inputMessagePhoto>(as_input_file(photo), as_input_thumbnail(photo), Auto(), 0, 0,
-                                                         as_caption(""), 10)));
+                                                         as_caption(""), op == "empttl" ? 10 : 0)));
     } else if (op == "emvt") {
       string chat_id;
       string message_id;
