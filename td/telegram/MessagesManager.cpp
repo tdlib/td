@@ -7122,7 +7122,11 @@ void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_p
                                                  const char *source, bool is_postponed_update) {
   LOG(INFO) << "Receive from " << source << " pending " << to_string(update);
   CHECK(update != nullptr);
-  CHECK(dialog_id.get_type() == DialogType::Channel);
+  if (dialog_id.get_type() != DialogType::Channel) {
+    LOG(ERROR) << "Receive update in invalid " << dialog_id << " from " << source << ": " << oneline(to_string(update));
+    promise.set_value(Unit());
+    return;
+  }
   if (pts_count < 0 || new_pts <= pts_count) {
     LOG(ERROR) << "Receive channel update from " << source << " with wrong pts = " << new_pts
                << " or pts_count = " << pts_count << ": " << oneline(to_string(update));
