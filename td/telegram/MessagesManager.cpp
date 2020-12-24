@@ -6236,15 +6236,10 @@ void MessagesManager::add_pending_update(tl_object_ptr<telegram_api::Update> &&u
     return promise.set_value(Unit());
   }
 
-  if (td_->updates_manager_->running_get_difference()) {
+  if (td_->updates_manager_->running_get_difference() || !postponed_pts_updates_.empty()) {
     LOG(INFO) << "Save pending update got while running getDifference from " << source;
     CHECK(update->get_id() == dummyUpdate::ID || update->get_id() == updateSentMessage::ID);
-    if (pts_count > 0) {
-      postponed_pts_updates_.emplace(new_pts,
-                                     PendingPtsUpdate(std::move(update), new_pts, pts_count, std::move(promise)));
-    } else {
-      promise.set_value(Unit());
-    }
+    postpone_pts_update(std::move(update), new_pts, pts_count, std::move(promise));
     return;
   }
 
@@ -6252,7 +6247,7 @@ void MessagesManager::add_pending_update(tl_object_ptr<telegram_api::Update> &&u
     LOG(WARNING) << "Have old_pts (= " << old_pts << ") + pts_count (= " << pts_count << ") > new_pts (= " << new_pts
                  << "). Logged in " << G()->shared_config().get_option_integer("authorization_date") << ". Update from "
                  << source << " = " << oneline(to_string(update));
-    promise.set_value(Unit());  // TODO postpone
+    postpone_pts_update(std::move(update), new_pts, pts_count, std::move(promise));
     set_get_difference_timeout(0.001);
     return;
   }
@@ -6268,7 +6263,7 @@ void MessagesManager::add_pending_update(tl_object_ptr<telegram_api::Update> &&u
                  << ", pts_count = " << pts_count << ". Logged in "
                  << G()->shared_config().get_option_integer("authorization_date") << ". Update from " << source << " = "
                  << oneline(to_string(update));
-    promise.set_value(Unit());  // TODO postpone
+    postpone_pts_update(std::move(update), new_pts, pts_count, std::move(promise));
     set_get_difference_timeout(0.001);
     return;
   }
@@ -6291,6 +6286,8 @@ void MessagesManager::add_pending_update(tl_object_ptr<telegram_api::Update> &&u
 
   if (pts_count > 0) {
     pending_pts_updates_.emplace(new_pts, PendingPtsUpdate(std::move(update), new_pts, pts_count, std::move(promise)));
+  } else {
+    promise.set_value(Unit());
   }
 
   if (old_pts + accumulated_pts_count_ < accumulated_pts_) {
@@ -7440,6 +7437,15 @@ void MessagesManager::drop_pending_updates() {
   accumulated_pts_ = -1;
   pts_gap_timeout_.cancel_timeout();
   pending_pts_updates_.clear();
+}
+
+void MessagesManager::postpone_pts_update(tl_object_ptr<telegram_api::Update> &&update, int32 pts, int32 pts_count,
+                                          Promise<Unit> &&promise) {
+  if (pts_count > 0) {
+    postponed_pts_updates_.emplace(pts, PendingPtsUpdate(std::move(update), pts, pts_count, std::move(promise)));
+  } else {
+    promise.set_value(Unit());
+  }
 }
 
 string MessagesManager::get_notification_settings_scope_database_key(NotificationSettingsScope scope) {

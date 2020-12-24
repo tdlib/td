@@ -2797,6 +2797,9 @@ class MessagesManager : public Actor {
 
   void drop_pending_updates();
 
+  void postpone_pts_update(tl_object_ptr<telegram_api::Update> &&update, int32 pts, int32 pts_count,
+                           Promise<Unit> &&promise);
+
   static string get_channel_pts_key(DialogId dialog_id);
 
   int32 load_channel_pts(DialogId dialog_id) const;
