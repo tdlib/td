@@ -7,7 +7,6 @@
 #pragma once
 
 #include "td/utils/common.h"
-#include "td/utils/ExitGuard.h"
 #include "td/utils/format.h"
 #include "td/utils/List.h"
 #include "td/utils/logging.h"
@@ -125,10 +124,8 @@ class PollableFdInfo : private ListNode {
 
   ~PollableFdInfo() {
     VLOG(fd) << native_fd() << " destroy PollableFdInfo";
-    if (!ExitGuard::is_exited()) {
-      bool was_locked = lock_.test_and_set(std::memory_order_acquire);
-      CHECK(!was_locked);
-    }
+    bool was_locked = lock_.test_and_set(std::memory_order_acquire);
+    CHECK(!was_locked);
   }
 
   void add_flags_from_poll(PollFlags flags) {

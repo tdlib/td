@@ -24,7 +24,6 @@ namespace td {
 template <int id>
 static FileFd &get_file_fd() {
   static FileFd result = FileFd::from_native_fd(NativeFd(id, true));
-  static ExitGuard exit_guard;
   static auto guard = ScopeExit() + [&] {
     result.move_as_native_fd().release();
   };
