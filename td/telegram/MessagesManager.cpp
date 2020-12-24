@@ -6396,80 +6396,6 @@ void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api:
   }
 }
 
-void MessagesManager::on_update_new_channel_message(tl_object_ptr<telegram_api::updateNewChannelMessage> &&update,
-                                                    Promise<Unit> &&promise) {
-  int new_pts = update->pts_;
-  int pts_count = update->pts_count_;
-  DialogId dialog_id = get_message_dialog_id(update->message_);
-  switch (dialog_id.get_type()) {
-    case DialogType::None:
-      promise.set_value(Unit());
-      return;
-    case DialogType::User:
-    case DialogType::Chat:
-    case DialogType::SecretChat:
-      LOG(ERROR) << "Receive updateNewChannelMessage in wrong " << dialog_id;
-      promise.set_value(Unit());
-      return;
-    case DialogType::Channel: {
-      auto channel_id = dialog_id.get_channel_id();
-      if (!td_->contacts_manager_->have_channel(channel_id)) {
-        // if min channel was received
-        if (td_->contacts_manager_->have_min_channel(channel_id)) {
-          td_->updates_manager_->schedule_get_difference("on_update_new_channel_message");
-          promise.set_value(Unit());  // TODO postpone
-          return;
-        }
-      }
-      // Ok
-      break;
-    }
-    default:
-      UNREACHABLE();
-      return;
-  }
-
-  add_pending_channel_update(dialog_id, std::move(update), new_pts, pts_count, std::move(promise),
-                             "on_update_new_channel_message");
-}
-
-void MessagesManager::on_update_edit_channel_message(tl_object_ptr<telegram_api::updateEditChannelMessage> &&update,
-                                                     Promise<Unit> &&promise) {
-  int new_pts = update->pts_;
-  int pts_count = update->pts_count_;
-  DialogId dialog_id = get_message_dialog_id(update->message_);
-  switch (dialog_id.get_type()) {
-    case DialogType::None:
-      promise.set_value(Unit());
-      return;
-    case DialogType::User:
-    case DialogType::Chat:
-    case DialogType::SecretChat:
-      LOG(ERROR) << "Receive updateEditChannelMessage in wrong " << dialog_id;
-      promise.set_value(Unit());
-      return;
-    case DialogType::Channel: {
-      auto channel_id = dialog_id.get_channel_id();
-      if (!td_->contacts_manager_->have_channel(channel_id)) {
-        // if min channel was received
-        if (td_->contacts_manager_->have_min_channel(channel_id)) {
-          td_->updates_manager_->schedule_get_difference("on_update_edit_channel_message");
-          promise.set_value(Unit());  // TODO postpone
-          return;
-        }
-      }
-      // Ok
-      break;
-    }
-    default:
-      UNREACHABLE();
-      return;
-  }
-
-  add_pending_channel_update(dialog_id, std::move(update), new_pts, pts_count, std::move(promise),
-                             "on_update_edit_channel_message");
-}
-
 void MessagesManager::on_update_read_channel_inbox(tl_object_ptr<telegram_api::updateReadChannelInbox> &&update) {
   ChannelId channel_id(update->channel_id_);
   if (!channel_id.is_valid()) {
@@ -7123,13 +7049,21 @@ void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_p
   LOG(INFO) << "Receive from " << source << " pending " << to_string(update);
   CHECK(update != nullptr);
   if (dialog_id.get_type() != DialogType::Channel) {
-    LOG(ERROR) << "Receive update in invalid " << dialog_id << " from " << source << ": " << oneline(to_string(update));
+    LOG(ERROR) << "Receive channel update in invalid " << dialog_id << " from " << source << ": "
+               << oneline(to_string(update));
     promise.set_value(Unit());
     return;
   }
   if (pts_count < 0 || new_pts <= pts_count) {
     LOG(ERROR) << "Receive channel update from " << source << " with wrong pts = " << new_pts
                << " or pts_count = " << pts_count << ": " << oneline(to_string(update));
+    promise.set_value(Unit());
+    return;
+  }
+
+  auto channel_id = dialog_id.get_channel_id();
+  if (!td_->contacts_manager_->have_channel(channel_id) && td_->contacts_manager_->have_min_channel(channel_id)) {
+    td_->updates_manager_->schedule_get_difference("on_update_new_channel_message");
     promise.set_value(Unit());
     return;
   }
@@ -7141,7 +7075,6 @@ void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_p
   if (d == nullptr) {
     auto pts = load_channel_pts(dialog_id);
     if (pts > 0) {
-      auto channel_id = dialog_id.get_channel_id();
       if (!td_->contacts_manager_->have_channel(channel_id)) {
         // do not create dialog if there is no info about the channel
         LOG(INFO) << "There is no info about " << channel_id << ", so ignore " << oneline(to_string(update));

@@ -1696,12 +1696,16 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewMessage> upd
   int new_pts = update->pts_;
   int pts_count = update->pts_count_;
   td_->messages_manager_->add_pending_update(std::move(update), new_pts, pts_count, force_apply, std::move(promise),
-                                             "on_updateNewMessage");
+                                             "updateNewMessage");
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewChannelMessage> update, bool /*force_apply*/,
                                Promise<Unit> &&promise) {
-  td_->messages_manager_->on_update_new_channel_message(std::move(update), std::move(promise));
+  DialogId dialog_id = MessagesManager::get_message_dialog_id(update->message_);
+  int new_pts = update->pts_;
+  int pts_count = update->pts_count_;
+  td_->messages_manager_->add_pending_channel_update(dialog_id, std::move(update), new_pts, pts_count,
+                                                     std::move(promise), "updateNewChannelMessage");
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateMessageID> update, bool force_apply,
@@ -1721,7 +1725,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadMessagesCon
   int new_pts = update->pts_;
   int pts_count = update->pts_count_;
   td_->messages_manager_->add_pending_update(std::move(update), new_pts, pts_count, force_apply, std::move(promise),
-                                             "on_updateReadMessagesContents");
+                                             "updateReadMessagesContents");
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateEditMessage> update, bool force_apply,
@@ -1729,7 +1733,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateEditMessage> up
   int new_pts = update->pts_;
   int pts_count = update->pts_count_;
   td_->messages_manager_->add_pending_update(std::move(update), new_pts, pts_count, force_apply, std::move(promise),
-                                             "on_updateEditMessage");
+                                             "updateEditMessage");
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDeleteMessages> update, bool force_apply,
@@ -1738,11 +1742,11 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDeleteMessages>
   int pts_count = update->pts_count_;
   if (update->messages_.empty()) {
     td_->messages_manager_->add_pending_update(make_tl_object<dummyUpdate>(), new_pts, pts_count, force_apply,
-                                               Promise<Unit>(), "on_updateDeleteMessages");
+                                               Promise<Unit>(), "updateDeleteMessages");
     promise.set_value(Unit());
   } else {
     td_->messages_manager_->add_pending_update(std::move(update), new_pts, pts_count, force_apply, std::move(promise),
-                                               "on_updateDeleteMessages");
+                                               "updateDeleteMessages");
   }
 }
 
@@ -1754,7 +1758,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadHistoryInbo
     update->still_unread_count_ = -1;
   }
   td_->messages_manager_->add_pending_update(std::move(update), new_pts, pts_count, force_apply, std::move(promise),
-                                             "on_updateReadHistoryInbox");
+                                             "updateReadHistoryInbox");
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadHistoryOutbox> update, bool force_apply,
@@ -1762,7 +1766,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadHistoryOutb
   int new_pts = update->pts_;
   int pts_count = update->pts_count_;
   td_->messages_manager_->add_pending_update(std::move(update), new_pts, pts_count, force_apply, std::move(promise),
-                                             "on_updateReadHistoryOutbox");
+                                             "updateReadHistoryOutbox");
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateServiceNotification> update, bool /*force_apply*/,
@@ -1811,7 +1815,11 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannel> update
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateEditChannelMessage> update, bool /*force_apply*/,
                                Promise<Unit> &&promise) {
-  td_->messages_manager_->on_update_edit_channel_message(std::move(update), std::move(promise));
+  DialogId dialog_id = MessagesManager::get_message_dialog_id(update->message_);
+  int new_pts = update->pts_;
+  int pts_count = update->pts_count_;
+  td_->messages_manager_->add_pending_channel_update(dialog_id, std::move(update), new_pts, pts_count,
+                                                     std::move(promise), "updateEditChannelMessage");
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDeleteChannelMessages> update, bool /*force_apply*/,
@@ -1820,7 +1828,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDeleteChannelMe
   int new_pts = update->pts_;
   int pts_count = update->pts_count_;
   td_->messages_manager_->add_pending_channel_update(dialog_id, std::move(update), new_pts, pts_count,
-                                                     std::move(promise), "on_updateDeleteChannelMessages");
+                                                     std::move(promise), "updateDeleteChannelMessages");
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelMessageViews> update, bool /*force_apply*/,
@@ -1882,7 +1890,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePinnedMessages>
   int new_pts = update->pts_;
   int pts_count = update->pts_count_;
   td_->messages_manager_->add_pending_update(std::move(update), new_pts, pts_count, force_apply, std::move(promise),
-                                             "on_updatePinnedMessages");
+                                             "updatePinnedMessages");
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePinnedChannelMessages> update, bool /*force_apply*/,
@@ -1891,7 +1899,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePinnedChannelMe
   int new_pts = update->pts_;
   int pts_count = update->pts_count_;
   td_->messages_manager_->add_pending_channel_update(dialog_id, std::move(update), new_pts, pts_count,
-                                                     std::move(promise), "on_updatePinnedChannelMessages");
+                                                     std::move(promise), "updatePinnedChannelMessages");
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNotifySettings> update, bool /*force_apply*/,
@@ -1941,7 +1949,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateWebPage> update
                                Promise<Unit> &&promise) {
   td_->web_pages_manager_->on_get_web_page(std::move(update->webpage_), DialogId());
   td_->messages_manager_->add_pending_update(make_tl_object<dummyUpdate>(), update->pts_, update->pts_count_,
-                                             force_apply, Promise<Unit>(), "on_updateWebPage");
+                                             force_apply, Promise<Unit>(), "updateWebPage");
   promise.set_value(Unit());
 }
 
@@ -1950,7 +1958,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelWebPage>
   td_->web_pages_manager_->on_get_web_page(std::move(update->webpage_), DialogId());
   DialogId dialog_id(ChannelId(update->channel_id_));
   td_->messages_manager_->add_pending_channel_update(dialog_id, make_tl_object<dummyUpdate>(), update->pts_,
-                                                     update->pts_count_, Promise<Unit>(), "on_updateChannelWebPage");
+                                                     update->pts_count_, Promise<Unit>(), "updateChannelWebPage");
   promise.set_value(Unit());
 }
 
@@ -1963,7 +1971,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateFolderPeers> up
   }
 
   td_->messages_manager_->add_pending_update(make_tl_object<dummyUpdate>(), update->pts_, update->pts_count_,
-                                             force_apply, Promise<Unit>(), "on_updateFolderPeers");
+                                             force_apply, Promise<Unit>(), "updateFolderPeers");
   promise.set_value(Unit());
 }
 

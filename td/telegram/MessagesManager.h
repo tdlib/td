@@ -343,12 +343,6 @@ class MessagesManager : public Actor {
   void on_update_service_notification(tl_object_ptr<telegram_api::updateServiceNotification> &&update,
                                       bool skip_new_entities, Promise<Unit> &&promise);
 
-  void on_update_new_channel_message(tl_object_ptr<telegram_api::updateNewChannelMessage> &&update,
-                                     Promise<Unit> &&promise);
-
-  void on_update_edit_channel_message(tl_object_ptr<telegram_api::updateEditChannelMessage> &&update,
-                                      Promise<Unit> &&promise);
-
   void on_update_read_channel_inbox(tl_object_ptr<telegram_api::updateReadChannelInbox> &&update);
 
   void on_update_read_channel_outbox(tl_object_ptr<telegram_api::updateReadChannelOutbox> &&update);
