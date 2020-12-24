@@ -793,7 +793,7 @@ class MessagesManager : public Actor {
                                                       bool skip_not_found);
 
   void add_pending_update(tl_object_ptr<telegram_api::Update> &&update, int32 new_pts, int32 pts_count,
-                          bool force_apply, const char *source);
+                          bool force_apply, Promise<Unit> &&promise, const char *source);
 
   void add_pending_channel_update(DialogId dialog_id, tl_object_ptr<telegram_api::Update> &&update, int32 new_pts,
                                   int32 pts_count, const char *source, bool is_postponed_update = false);
@@ -973,9 +973,10 @@ class MessagesManager : public Actor {
     tl_object_ptr<telegram_api::Update> update;
     int32 pts;
     int32 pts_count;
+    Promise<Unit> promise;
 
-    PendingPtsUpdate(tl_object_ptr<telegram_api::Update> &&update, int32 pts, int32 pts_count)
-        : update(std::move(update)), pts(pts), pts_count(pts_count) {
+    PendingPtsUpdate(tl_object_ptr<telegram_api::Update> &&update, int32 pts, int32 pts_count, Promise<Unit> &&promise)
+        : update(std::move(update)), pts(pts), pts_count(pts_count), promise(std::move(promise)) {
     }
   };
 
@@ -3107,7 +3108,7 @@ class MessagesManager : public Actor {
   bool running_get_difference_ = false;  // true after before_get_difference and false after after_get_difference
 
   std::unordered_map<DialogId, unique_ptr<Dialog>, DialogIdHash> dialogs_;
-  std::multimap<int32, PendingPtsUpdate> pending_updates_;
+  std::multimap<int32, PendingPtsUpdate> pending_pts_updates_;
   std::multimap<int32, PendingPtsUpdate> postponed_pts_updates_;
 
   std::unordered_set<DialogId, DialogIdHash>
