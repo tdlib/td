@@ -7201,11 +7201,12 @@ void MessagesManager::process_update(tl_object_ptr<telegram_api::Update> &&updat
     case dummyUpdate::ID:
       LOG(INFO) << "Process dummyUpdate";
       break;
-    case telegram_api::updateNewMessage::ID:
+    case telegram_api::updateNewMessage::ID: {
+      auto update_new_message = move_tl_object_as<telegram_api::updateNewMessage>(update);
       LOG(INFO) << "Process updateNewMessage";
-      on_get_message(std::move(move_tl_object_as<telegram_api::updateNewMessage>(update)->message_), true, false, false,
-                     true, true, "updateNewMessage");
+      on_get_message(std::move(update_new_message->message_), true, false, false, true, true, "updateNewMessage");
       break;
+    }
     case updateSentMessage::ID: {
       auto send_message_success_update = move_tl_object_as<updateSentMessage>(update);
       LOG(INFO) << "Process updateSentMessage " << send_message_success_update->random_id_;
@@ -7222,9 +7223,9 @@ void MessagesManager::process_update(tl_object_ptr<telegram_api::Update> &&updat
       break;
     }
     case telegram_api::updateEditMessage::ID: {
-      auto full_message_id =
-          on_get_message(std::move(move_tl_object_as<telegram_api::updateEditMessage>(update)->message_), false, false,
-                         false, false, false, "updateEditMessage");
+      auto update_edit_message = move_tl_object_as<telegram_api::updateEditMessage>(update);
+      auto full_message_id = on_get_message(std::move(update_edit_message->message_), false, false, false, false, false,
+                                            "updateEditMessage");
       LOG(INFO) << "Process updateEditMessage";
       on_message_edited(full_message_id);
       break;
@@ -7287,11 +7288,13 @@ void MessagesManager::process_channel_update(tl_object_ptr<telegram_api::Update>
                               send_message_success_update->date_, FileId(), "process updateSentChannelMessage");
       break;
     }
-    case telegram_api::updateNewChannelMessage::ID:
+    case telegram_api::updateNewChannelMessage::ID: {
+      auto update_new_channel_message = move_tl_object_as<telegram_api::updateNewChannelMessage>(update);
       LOG(INFO) << "Process updateNewChannelMessage";
-      on_get_message(std::move(move_tl_object_as<telegram_api::updateNewChannelMessage>(update)->message_), true, true,
-                     false, true, true, "updateNewChannelMessage");
+      on_get_message(std::move(update_new_channel_message->message_), true, true, false, true, true,
+                     "updateNewChannelMessage");
       break;
+    }
     case telegram_api::updateDeleteChannelMessages::ID: {
       auto delete_channel_messages_update = move_tl_object_as<telegram_api::updateDeleteChannelMessages>(update);
       LOG(INFO) << "Process updateDeleteChannelMessages";
@@ -7311,10 +7314,10 @@ void MessagesManager::process_channel_update(tl_object_ptr<telegram_api::Update>
       break;
     }
     case telegram_api::updateEditChannelMessage::ID: {
+      auto update_edit_channel_message = move_tl_object_as<telegram_api::updateEditChannelMessage>(update);
       LOG(INFO) << "Process updateEditChannelMessage";
-      auto full_message_id =
-          on_get_message(std::move(move_tl_object_as<telegram_api::updateEditChannelMessage>(update)->message_), false,
-                         true, false, false, false, "updateEditChannelMessage");
+      auto full_message_id = on_get_message(std::move(update_edit_channel_message->message_), false, true, false, false,
+                                            false, "updateEditChannelMessage");
       on_message_edited(full_message_id);
       break;
     }
