@@ -8706,6 +8706,18 @@ void ContactsManager::on_load_channel_full_from_database(ChannelId channel_id, s
   auto photo = std::move(channel_full->photo);
   on_update_channel_full_photo(channel_full, channel_id, std::move(photo));
 
+  if (channel_full->participant_count < channel_full->administrator_count) {
+    channel_full->participant_count = channel_full->administrator_count;
+  }
+  if (c->participant_count != channel_full->participant_count) {
+    channel_full->participant_count = c->participant_count;
+
+    if (channel_full->participant_count < channel_full->administrator_count) {
+      channel_full->participant_count = channel_full->administrator_count;
+      channel_full->expires_at = 0.0;
+    }
+  }
+
   update_channel_full(channel_full, channel_id, true);
 
   if (channel_full->expires_at == 0.0) {
@@ -9110,9 +9122,7 @@ void ContactsManager::update_channel_full(ChannelFull *channel_full, ChannelId c
   CHECK(channel_full != nullptr);
   unavailable_channel_fulls_.erase(channel_id);  // don't needed anymore
 
-  if (channel_full->participant_count < channel_full->administrator_count) {
-    channel_full->administrator_count = channel_full->participant_count;
-  }
+  CHECK(channel_full->participant_count >= channel_full->administrator_count);
 
   if (channel_full->is_slow_mode_next_send_date_changed) {
     auto now = G()->server_time();
@@ -9517,13 +9527,16 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     ChannelFull *channel = add_channel_full(channel_id);
 
     bool have_participant_count = (channel_full->flags_ & CHANNEL_FULL_FLAG_HAS_PARTICIPANT_COUNT) != 0;
-    auto participant_count = have_participant_count ? channel_full->participants_count_ : 0;
+    auto participant_count = have_participant_count ? channel_full->participants_count_ : channel->participant_count;
     auto administrator_count = 0;
     if ((channel_full->flags_ & CHANNEL_FULL_FLAG_HAS_ADMINISTRATOR_COUNT) != 0) {
       administrator_count = channel_full->admins_count_;
     } else if (c->is_megagroup || c->status.is_administrator()) {
-      // in megagroups and administrated channels don't drop known number of administrators
+      // in megagroups and administered channels don't drop known number of administrators
       administrator_count = channel->administrator_count;
+    }
+    if (participant_count < administrator_count) {
+      participant_count = administrator_count;
     }
     auto restricted_count =
         (channel_full->flags_ & CHANNEL_FULL_FLAG_HAS_BANNED_COUNT) != 0 ? channel_full->banned_count_ : 0;
@@ -10695,11 +10708,20 @@ void ContactsManager::on_get_channel_participants_success(
   if (participant_count != -1 || administrator_count != -1) {
     auto channel_full = get_channel_full_force(channel_id, "on_get_channel_participants_success");
     if (channel_full != nullptr) {
-      if (participant_count != -1 && channel_full->participant_count != participant_count) {
+      if (administrator_count == -1) {
+        administrator_count = channel_full->administrator_count;
+      }
+      if (participant_count == -1) {
+        participant_count = channel_full->participant_count;
+      }
+      if (participant_count < administrator_count) {
+        participant_count = administrator_count;
+      }
+      if (channel_full->participant_count != participant_count) {
         channel_full->participant_count = participant_count;
         channel_full->is_changed = true;
       }
-      if (administrator_count != -1 && channel_full->administrator_count != administrator_count) {
+      if (channel_full->administrator_count != administrator_count) {
         channel_full->administrator_count = administrator_count;
         channel_full->is_changed = true;
       }
@@ -13660,6 +13682,18 @@ void ContactsManager::on_update_channel_administrator_count(ChannelId channel_id
   if (channel_full != nullptr && channel_full->administrator_count != administrator_count) {
     channel_full->administrator_count = administrator_count;
     channel_full->is_changed = true;
+
+    if (channel_full->participant_count < channel_full->administrator_count) {
+      channel_full->participant_count = channel_full->administrator_count;
+
+      auto c = get_channel(channel_id);
+      if (c != nullptr && c->participant_count != channel_full->participant_count) {
+        c->participant_count = channel_full->participant_count;
+        c->is_changed = true;
+        update_channel(c, channel_id);
+      }
+    }
+
     update_channel_full(channel_full, channel_id);
   }
 }
