@@ -51,6 +51,8 @@ class UpdatesManager : public Actor {
 
   static vector<DialogId> get_chat_dialog_ids(const telegram_api::Updates *updates_ptr);
 
+  static int32 get_update_edit_message_pts(const telegram_api::Updates *updates_ptr);
+
   void get_difference(const char *source);
 
   void schedule_get_difference(const char *source);

@@ -1008,6 +1008,37 @@ vector<DialogId> UpdatesManager::get_chat_dialog_ids(const telegram_api::Updates
   return dialog_ids;
 }
 
+int32 UpdatesManager::get_update_edit_message_pts(const telegram_api::Updates *updates_ptr) {
+  int32 pts = 0;
+  auto updates = get_updates(updates_ptr);
+  if (updates != nullptr) {
+    for (auto &update : *updates) {
+      int32 update_pts = [&] {
+        switch (update->get_id()) {
+          case telegram_api::updateEditMessage::ID:
+            return static_cast<const telegram_api::updateEditMessage *>(update.get())->pts_;
+          case telegram_api::updateEditChannelMessage::ID:
+            return static_cast<const telegram_api::updateEditChannelMessage *>(update.get())->pts_;
+          default:
+            return 0;
+        }
+      }();
+      if (update_pts != 0) {
+        if (pts == 0) {
+          pts = update_pts;
+        } else {
+          pts = -1;
+        }
+      }
+    }
+  }
+  if (pts == -1) {
+    LOG(ERROR) << "Receive multiple edit message updates in " << to_string(*updates_ptr);
+    pts = 0;
+  }
+  return pts;
+}
+
 void UpdatesManager::init_state() {
   if (!td_->auth_manager_->is_authorized()) {
     return;

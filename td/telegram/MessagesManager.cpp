@@ -3034,11 +3034,20 @@ class SendScheduledMessageActor : public NetActorOnce {
 };
 
 class EditMessageActor : public NetActorOnce {
-  Promise<Unit> promise_;
+  Promise<int32> promise_;
   DialogId dialog_id_;
 
  public:
-  explicit EditMessageActor(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit EditMessageActor(Promise<Unit> &&promise) {
+    promise_ = PromiseCreator::lambda([promise = std::move(promise)](Result<int32> result) mutable {
+      if (result.is_error()) {
+        promise.set_error(result.move_as_error());
+      } else {
+        promise.set_value(Unit());
+      }
+    });
+  }
+  explicit EditMessageActor(Promise<int32> &&promise) : promise_(std::move(promise)) {
   }
 
   void send(int32 flags, DialogId dialog_id, MessageId message_id, const string &text,
@@ -3097,13 +3106,16 @@ class EditMessageActor : public NetActorOnce {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for EditMessageActor: " << to_string(ptr);
-    td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+    auto pts = td->updates_manager_->get_update_edit_message_pts(ptr.get());
+    auto promise = PromiseCreator::lambda(
+        [promise = std::move(promise_), pts](Result<Unit> result) mutable { promise.set_value(std::move(pts)); });
+    td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise));
   }
 
   void on_error(uint64 id, Status status) override {
     LOG(INFO) << "Receive error for EditMessageQuery: " << status;
     if (!td->auth_manager_->is_bot() && status.message() == "MESSAGE_NOT_MODIFIED") {
-      return promise_.set_value(Unit());
+      return promise_.set_value(0);
     }
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "EditMessageActor");
     promise_.set_error(std::move(status));
@@ -23257,7 +23269,7 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, const Messag
     auto promise = PromiseCreator::lambda(
         [actor_id = actor_id(this), dialog_id, message_id, file_id, thumbnail_file_id, schedule_date,
          generation = m->edit_generation, was_uploaded, was_thumbnail_uploaded,
-         file_reference = FileManager::extract_file_reference(input_media)](Result<Unit> result) mutable {
+         file_reference = FileManager::extract_file_reference(input_media)](Result<int32> result) mutable {
           send_closure(actor_id, &MessagesManager::on_message_media_edited, dialog_id, message_id, file_id,
                        thumbnail_file_id, was_uploaded, was_thumbnail_uploaded, std::move(file_reference),
                        schedule_date, generation, std::move(result));
@@ -24412,7 +24424,7 @@ void MessagesManager::cancel_edit_message_media(DialogId dialog_id, Message *m, 
 void MessagesManager::on_message_media_edited(DialogId dialog_id, MessageId message_id, FileId file_id,
                                               FileId thumbnail_file_id, bool was_uploaded, bool was_thumbnail_uploaded,
                                               string file_reference, int32 schedule_date, uint64 generation,
-                                              Result<Unit> &&result) {
+                                              Result<int32> &&result) {
   // must not run getDifference
 
   CHECK(message_id.is_any_server());
@@ -24425,15 +24437,20 @@ void MessagesManager::on_message_media_edited(DialogId dialog_id, MessageId mess
   CHECK(m->edited_content != nullptr);
   if (result.is_ok()) {
     // message content has already been replaced from updateEdit{Channel,}Message
-    // TODO check that it really was replaced
     // need only merge files from edited_content with their uploaded counterparts
     // updateMessageContent was already sent and needs to be sent again,
     // only if 'i' and 't' sizes from edited_content was added to the photo
+    auto pts = result.ok();
+    LOG(INFO) << "Successfully edited " << message_id << " in " << dialog_id << " with pts = " << pts
+              << " and last edit pts = " << m->last_edit_pts;
     std::swap(m->content, m->edited_content);
     bool need_send_update_message_content = m->edited_content->get_type() == MessageContentType::Photo &&
                                             m->content->get_type() == MessageContentType::Photo;
-    update_message_content(dialog_id, m, std::move(m->edited_content), need_send_update_message_content, true, true);
+    bool need_merge_files = pts != 0 && pts == m->last_edit_pts;
+    update_message_content(dialog_id, m, std::move(m->edited_content), need_send_update_message_content,
+                           need_merge_files, true);
   } else {
+    LOG(INFO) << "Failed to edit " << message_id << " in " << dialog_id << ": " << result.error();
     if (was_uploaded) {
       if (was_thumbnail_uploaded) {
         CHECK(thumbnail_file_id.is_valid());
