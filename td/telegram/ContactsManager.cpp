@@ -13919,6 +13919,13 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
   int32 participant_count =
       (channel.flags_ & CHANNEL_FLAG_HAS_PARTICIPANT_COUNT) != 0 ? channel.participants_count_ : 0;
 
+  if (participant_count != 0) {
+    auto channel_full = get_channel_full_const(channel_id);
+    if (channel_full != nullptr && channel_full->administrator_count > participant_count) {
+      participant_count = channel_full->administrator_count;
+    }
+  }
+
   {
     bool is_broadcast = (channel.flags_ & CHANNEL_FLAG_IS_BROADCAST) != 0;
     LOG_IF(ERROR, is_broadcast == is_megagroup)
@@ -14010,6 +14017,13 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
   if (participant_count != 0 && participant_count != c->participant_count) {
     c->participant_count = participant_count;
     c->is_changed = true;
+
+    auto channel_full = get_channel_full(channel_id, "on_chat_update");
+    if (channel_full != nullptr && channel_full->participant_count != participant_count) {
+      channel_full->participant_count = participant_count;
+      channel_full->is_changed = true;
+      update_channel_full(channel_full, channel_id);
+    }
   }
 
   bool need_invalidate_channel_full = false;
@@ -14105,11 +14119,6 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, co
     sign_messages = true;
   }
 
-  if (c->participant_count != 0) {
-    c->participant_count = 0;
-    c->is_changed = true;
-  }
-
   bool need_invalidate_channel_full = false;
   if (c->is_slow_mode_enabled != is_slow_mode_enabled || c->is_megagroup != is_megagroup ||
       !c->restriction_reasons.empty() || c->is_scam != is_scam) {
@@ -14128,6 +14137,19 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, co
     c->is_verified = is_verified;
 
     c->is_changed = true;
+  }
+
+  if (c->participant_count != 0) {
+    c->participant_count = 0;
+    c->is_changed = true;
+
+    auto channel_full = get_channel_full(channel_id, "on_chat_update");
+    if (channel_full != nullptr && channel_full->participant_count != 0) {
+      channel_full->participant_count = 0;
+      channel_full->administrator_count = 0;
+      channel_full->is_changed = true;
+      update_channel_full(channel_full, channel_id);
+    }
   }
 
   if (c->cache_version != Channel::CACHE_VERSION) {
