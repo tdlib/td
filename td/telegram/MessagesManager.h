@@ -1138,6 +1138,8 @@ class MessagesManager : public Actor {
     uint64 edit_generation = 0;
     Promise<Unit> edit_promise;
 
+    int32 last_edit_pts = 0;
+
     unique_ptr<Message> left;
     unique_ptr<Message> right;
 
@@ -1828,7 +1830,7 @@ class MessagesManager : public Actor {
 
   void process_channel_update(tl_object_ptr<telegram_api::Update> &&update);
 
-  void on_message_edited(FullMessageId full_message_id);
+  void on_message_edited(FullMessageId full_message_id, int32 pts);
 
   void delete_messages_from_updates(const vector<MessageId> &message_ids);
 

@@ -7227,7 +7227,7 @@ void MessagesManager::process_update(tl_object_ptr<telegram_api::Update> &&updat
       auto full_message_id = on_get_message(std::move(update_edit_message->message_), false, false, false, false, false,
                                             "updateEditMessage");
       LOG(INFO) << "Process updateEditMessage";
-      on_message_edited(full_message_id);
+      on_message_edited(full_message_id, update_edit_message->pts_);
       break;
     }
     case telegram_api::updateDeleteMessages::ID: {
@@ -7318,7 +7318,7 @@ void MessagesManager::process_channel_update(tl_object_ptr<telegram_api::Update>
       LOG(INFO) << "Process updateEditChannelMessage";
       auto full_message_id = on_get_message(std::move(update_edit_channel_message->message_), false, true, false, false,
                                             false, "updateEditChannelMessage");
-      on_message_edited(full_message_id);
+      on_message_edited(full_message_id, update_edit_channel_message->pts_);
       break;
     }
     case telegram_api::updatePinnedChannelMessages::ID: {
@@ -7344,15 +7344,16 @@ void MessagesManager::process_channel_update(tl_object_ptr<telegram_api::Update>
   }
 }
 
-void MessagesManager::on_message_edited(FullMessageId full_message_id) {
+void MessagesManager::on_message_edited(FullMessageId full_message_id, int32 pts) {
   if (full_message_id == FullMessageId()) {
     return;
   }
 
   auto dialog_id = full_message_id.get_dialog_id();
   Dialog *d = get_dialog(dialog_id);
-  const Message *m = get_message(d, full_message_id.get_message_id());
+  Message *m = get_message(d, full_message_id.get_message_id());
   CHECK(m != nullptr);
+  m->last_edit_pts = pts;
   if (td_->auth_manager_->is_bot()) {
     d->last_edited_message_id = m->message_id;
     send_update_message_edited(dialog_id, m);
@@ -32933,6 +32934,7 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
                                  "update_message_content");
     }
     old_content = std::move(new_content);
+    old_message->last_edit_pts = 0;
     update_message_content_file_id_remote(old_content.get(), old_file_id);
   } else {
     update_message_content_file_id_remote(old_content.get(), get_message_content_any_file_id(new_content.get()));
