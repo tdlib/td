@@ -28776,6 +28776,10 @@ void MessagesManager::on_update_dialog_last_pinned_message_id(DialogId dialog_id
       d->is_last_pinned_message_id_inited = true;
       on_dialog_updated(dialog_id, "on_update_dialog_last_pinned_message_id");
     }
+    Message *m = get_message_force(d, pinned_message_id, "on_update_dialog_last_pinned_message_id");
+    if (m != nullptr && update_message_is_pinned(d, m, true, "on_update_dialog_last_pinned_message_id")) {
+      on_message_changed(d, m, true, "on_update_dialog_last_pinned_message_id");
+    }
     return;
   }
 
@@ -28784,6 +28788,11 @@ void MessagesManager::on_update_dialog_last_pinned_message_id(DialogId dialog_id
 
 void MessagesManager::set_dialog_last_pinned_message_id(Dialog *d, MessageId pinned_message_id) {
   CHECK(d != nullptr);
+  Message *m = get_message_force(d, pinned_message_id, "set_dialog_last_pinned_message_id");
+  if (m != nullptr && update_message_is_pinned(d, m, true, "set_dialog_last_pinned_message_id")) {
+    on_message_changed(d, m, true, "set_dialog_last_pinned_message_id");
+  }
+
   if (d->last_pinned_message_id == pinned_message_id) {
     return;
   }
