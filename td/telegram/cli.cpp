@@ -675,9 +675,30 @@ class CliClient final : public Actor {
     arg = as_bool(args);
   }
 
-  template <class Type>
-  void get_args(string &args, Type &arg) {
-    arg = to_integer<Type>(args);
+  struct SearchQuery {
+    int32 limit;
+    string query;
+  };
+
+  void get_args(string &args, SearchQuery &arg) {
+    string limit;
+    std::tie(limit, arg.query) = split(trim(args));
+    auto r_limit = to_integer_safe<int32>(limit);
+    if (r_limit.is_ok() && r_limit.ok() > 0) {
+      arg.limit = r_limit.ok();
+    } else {
+      arg.limit = 10;
+      arg.query = std::move(args);
+    }
+    args.clear();
+  }
+
+  void get_args(string &args, int32 &arg) {
+    arg = to_integer<int32>(args);
+  }
+
+  void get_args(string &args, int64 &arg) {
+    arg = to_integer<int64>(args);
   }
 
   template <class FirstType, class SecondType, class... Types>
@@ -686,18 +707,6 @@ class CliClient final : public Actor {
     std::tie(arg, args) = split(args);
     get_args(arg, first_arg);
     get_args(args, second_arg, other_args...);
-  }
-
-  static std::pair<int32, string> get_search_query(string args) {
-    string limit;
-    string query;
-    std::tie(limit, query) = split(trim(args));
-    auto r_limit = to_integer_safe<int32>(limit);
-    if (r_limit.is_error() || r_limit.ok() <= 0) {
-      query = limit + ' ' + query;
-      r_limit = 10;
-    }
-    return {r_limit.ok(), std::move(query)};
   }
 
   void on_result(uint64 generation, uint64 id, td_api::object_ptr<td_api::Object> result) {
@@ -1848,23 +1857,21 @@ class CliClient final : public Actor {
       string thread_message_id;
       string from_message_id;
       string offset;
-      int32 limit;
+      string limit;
       std::tie(chat_id, args) = split(args);
       if (op == "gmth") {
         std::tie(thread_message_id, args) = split(args);
       }
       std::tie(from_message_id, args) = split(args);
-      std::tie(offset, args) = split(args);
-      std::tie(limit, args) = get_search_query(args);
-      if (!args.empty()) {
-        LOG(ERROR) << "Wrong parameters to function getChatHistory specified";
-      } else if (op == "gmth") {
+      std::tie(offset, limit) = split(args);
+      if (op == "gmth") {
         send_request(td_api::make_object<td_api::getMessageThreadHistory>(
             as_chat_id(chat_id), as_message_id(thread_message_id), as_message_id(from_message_id),
-            to_integer<int32>(offset), limit));
+            to_integer<int32>(offset), as_limit(limit)));
       } else {
         send_request(td_api::make_object<td_api::getChatHistory>(as_chat_id(chat_id), as_message_id(from_message_id),
-                                                                 to_integer<int32>(offset), limit, op == "ghl"));
+                                                                 to_integer<int32>(offset), as_limit(limit),
+                                                                 op == "ghl"));
       }
     } else if (op == "gcsm") {
       string chat_id = args;
@@ -1910,12 +1917,10 @@ class CliClient final : public Actor {
                                                                2147483647));
     } else if (op == "SCM") {
       string chat_id;
-      int32 limit;
-      string query;
-      get_args(args, chat_id, args);
-      std::tie(limit, query) = get_search_query(args);
-      send_request(td_api::make_object<td_api::searchChatMessages>(as_chat_id(chat_id), query, nullptr, 0, 0, limit,
-                                                                   nullptr, 0));
+      SearchQuery query;
+      get_args(args, chat_id, query);
+      send_request(td_api::make_object<td_api::searchChatMessages>(as_chat_id(chat_id), query.query, nullptr, 0, 0,
+                                                                   query.limit, nullptr, 0));
     } else if (op == "SMME") {
       string chat_id;
       string limit;
@@ -1955,48 +1960,40 @@ class CliClient final : public Actor {
     } else if (op == "SearchAudio") {
       string chat_id;
       string offset_message_id;
-      int32 limit;
-      string query;
-      get_args(args, chat_id, offset_message_id, args);
-      std::tie(limit, query) = get_search_query(args);
+      SearchQuery query;
+      get_args(args, chat_id, offset_message_id, query);
       send_request(td_api::make_object<td_api::searchChatMessages>(
-          as_chat_id(chat_id), query, nullptr, as_message_id(offset_message_id), 0, limit,
+          as_chat_id(chat_id), query.query, nullptr, as_message_id(offset_message_id), 0, query.limit,
           td_api::make_object<td_api::searchMessagesFilterAudio>(), 0));
     } else if (op == "SearchDocument") {
       string chat_id;
       int64 offset_message_id;
-      int32 limit;
-      string query;
-      get_args(args, chat_id, offset_message_id, args);
-      std::tie(limit, query) = get_search_query(args);
+      SearchQuery query;
+      get_args(args, chat_id, offset_message_id, query);
       send_request(td_api::make_object<td_api::searchChatMessages>(
-          as_chat_id(chat_id), query, nullptr, offset_message_id, 0, limit,
+          as_chat_id(chat_id), query.query, nullptr, offset_message_id, 0, query.limit,
           td_api::make_object<td_api::searchMessagesFilterDocument>(), 0));
     } else if (op == "SearchPhoto") {
       string chat_id;
       string offset_message_id;
-      int32 limit;
-      string query;
-      get_args(args, chat_id, offset_message_id, args);
+      SearchQuery query;
+      get_args(args, chat_id, offset_message_id, query);
       if (offset_message_id.empty()) {
         offset_message_id = "2000000000000000000";
       }
-      std::tie(limit, query) = get_search_query(args);
       send_request(td_api::make_object<td_api::searchChatMessages>(
-          as_chat_id(chat_id), query, nullptr, as_message_id(offset_message_id), 0, limit,
+          as_chat_id(chat_id), query.query, nullptr, as_message_id(offset_message_id), 0, query.limit,
           td_api::make_object<td_api::searchMessagesFilterPhoto>(), 0));
     } else if (op == "SearchChatPhoto") {
       string chat_id;
       string offset_message_id;
-      int32 limit;
-      string query;
-      get_args(args, chat_id, offset_message_id, args);
+      SearchQuery query;
+      get_args(args, chat_id, offset_message_id, query);
       if (offset_message_id.empty()) {
         offset_message_id = "2000000000000000000";
       }
-      std::tie(limit, query) = get_search_query(args);
       send_request(td_api::make_object<td_api::searchChatMessages>(
-          as_chat_id(chat_id), query, nullptr, as_message_id(offset_message_id), 0, limit,
+          as_chat_id(chat_id), query.query, nullptr, as_message_id(offset_message_id), 0, query.limit,
           td_api::make_object<td_api::searchMessagesFilterChatPhoto>(), 0));
     } else if (op == "gcmc") {
       string chat_id;
@@ -2008,15 +2005,9 @@ class CliClient final : public Actor {
     } else if (op == "gup" || op == "gupp") {
       string user_id;
       int32 offset;
-      int32 limit;
-
-      get_args(args, user_id, offset, args);
-      std::tie(limit, args) = get_search_query(args);
-      if (!args.empty()) {
-        LOG(ERROR) << "Wrong parameters to function getUserProfilePhotos specified";
-      } else {
-        send_request(td_api::make_object<td_api::getUserProfilePhotos>(as_user_id(user_id), offset, limit));
-      }
+      string limit;
+      get_args(args, user_id, offset, limit);
+      send_request(td_api::make_object<td_api::getUserProfilePhotos>(as_user_id(user_id), offset, as_limit(limit)));
     } else if (op == "dcrm") {
       string chat_id;
       string message_id;
@@ -2214,15 +2205,13 @@ class CliClient final : public Actor {
     } else if (op == "gsu") {
       send_request(td_api::make_object<td_api::getSupportUser>());
     } else if (op == "gs") {
-      int32 limit;
-      string emoji;
-      std::tie(limit, emoji) = get_search_query(args);
-      send_request(td_api::make_object<td_api::getStickers>(emoji, limit));
+      SearchQuery query;
+      get_args(args, query);
+      send_request(td_api::make_object<td_api::getStickers>(query.query, query.limit));
     } else if (op == "sst") {
-      int32 limit;
-      string emoji;
-      std::tie(limit, emoji) = get_search_query(args);
-      send_request(td_api::make_object<td_api::searchStickers>(emoji, limit));
+      SearchQuery query;
+      get_args(args, query);
+      send_request(td_api::make_object<td_api::searchStickers>(query.query, query.limit));
     } else if (op == "gss") {
       send_request(td_api::make_object<td_api::getStickerSet>(to_integer<int64>(args)));
     } else if (op == "giss") {
@@ -2391,11 +2380,9 @@ class CliClient final : public Actor {
     } else if (op == "scm") {
       string chat_id;
       string filter;
-      int32 limit;
-      string query;
-      get_args(args, chat_id, filter, args);
-      std::tie(limit, query) = get_search_query(args);
-      send_request(td_api::make_object<td_api::searchChatMembers>(as_chat_id(chat_id), query, limit,
+      SearchQuery query;
+      get_args(args, chat_id, filter, query);
+      send_request(td_api::make_object<td_api::searchChatMembers>(as_chat_id(chat_id), query.query, query.limit,
                                                                   get_chat_members_filter(filter)));
     } else if (op == "gcm") {
       string chat_id;
@@ -2411,36 +2398,34 @@ class CliClient final : public Actor {
       string supergroup_id;
       string message_thread_id;
       string offset;
-      int32 limit;
-      string query;
+      SearchQuery query;
 
       std::tie(supergroup_id, args) = split(args);
       if (op == "SearchSupergroupMentions") {
         std::tie(message_thread_id, args) = split(args);
       }
-      std::tie(offset, args) = split(args);
-      std::tie(limit, query) = get_search_query(args);
+      get_args(args, offset, query);
       td_api::object_ptr<td_api::SupergroupMembersFilter> filter;
       if (op == "GetSupergroupAdministrators") {
         filter = td_api::make_object<td_api::supergroupMembersFilterAdministrators>();
       } else if (op == "GetSupergroupBanned") {
-        filter = td_api::make_object<td_api::supergroupMembersFilterBanned>(query);
+        filter = td_api::make_object<td_api::supergroupMembersFilterBanned>(query.query);
       } else if (op == "GetSupergroupBots") {
         filter = td_api::make_object<td_api::supergroupMembersFilterBots>();
       } else if (op == "GetSupergroupContacts") {
-        filter = td_api::make_object<td_api::supergroupMembersFilterContacts>(query);
+        filter = td_api::make_object<td_api::supergroupMembersFilterContacts>(query.query);
       } else if (op == "GetSupergroupMembers") {
         filter = td_api::make_object<td_api::supergroupMembersFilterRecent>();
       } else if (op == "GetSupergroupRestricted") {
-        filter = td_api::make_object<td_api::supergroupMembersFilterRestricted>(query);
+        filter = td_api::make_object<td_api::supergroupMembersFilterRestricted>(query.query);
       } else if (op == "SearchSupergroupMembers") {
-        filter = td_api::make_object<td_api::supergroupMembersFilterSearch>(query);
+        filter = td_api::make_object<td_api::supergroupMembersFilterSearch>(query.query);
       } else if (op == "SearchSupergroupMentions") {
-        filter =
-            td_api::make_object<td_api::supergroupMembersFilterMention>(query, as_message_thread_id(message_thread_id));
+        filter = td_api::make_object<td_api::supergroupMembersFilterMention>(query.query,
+                                                                             as_message_thread_id(message_thread_id));
       }
       send_request(td_api::make_object<td_api::getSupergroupMembers>(as_supergroup_id(supergroup_id), std::move(filter),
-                                                                     to_integer<int32>(offset), limit));
+                                                                     to_integer<int32>(offset), query.limit));
     } else if (op == "gdialog" || op == "gd") {
       send_request(td_api::make_object<td_api::getChat>(as_chat_id(args)));
     } else if (op == "open") {
@@ -2858,12 +2843,10 @@ class CliClient final : public Actor {
       string chat_id;
       string filter;
       string offset;
-      int32 limit;
-      string query;
-      get_args(args, chat_id, filter, offset, args);
-      std::tie(limit, query) = get_search_query(args);
-      send_request(td_api::make_object<td_api::searchSecretMessages>(as_chat_id(chat_id), query, offset, limit,
-                                                                     as_search_messages_filter(filter)));
+      SearchQuery query;
+      get_args(args, chat_id, filter, offset, query);
+      send_request(td_api::make_object<td_api::searchSecretMessages>(as_chat_id(chat_id), query.query, offset,
+                                                                     query.limit, as_search_messages_filter(filter)));
     } else if (op == "ssd") {
       schedule_date_ = args;
     } else if (op == "smti") {
@@ -3707,15 +3690,13 @@ class CliClient final : public Actor {
     } else if (op == "spcs") {
       send_request(td_api::make_object<td_api::searchPublicChats>(args));
     } else if (op == "sc") {
-      int32 limit;
-      string query;
-      std::tie(limit, query) = get_search_query(args);
-      send_request(td_api::make_object<td_api::searchChats>(query, limit));
+      SearchQuery query;
+      get_args(args, query);
+      send_request(td_api::make_object<td_api::searchChats>(query.query, query.limit));
     } else if (op == "scos") {
-      int32 limit;
-      string query;
-      std::tie(limit, query) = get_search_query(args);
-      send_request(td_api::make_object<td_api::searchChatsOnServer>(query, limit));
+      SearchQuery query;
+      get_args(args, query);
+      send_request(td_api::make_object<td_api::searchChatsOnServer>(query.query, query.limit));
     } else if (op == "scn") {
       string latitude;
       string longitude;
@@ -3727,10 +3708,9 @@ class CliClient final : public Actor {
       get_args(args, latitude, longitude);
       send_request(td_api::make_object<td_api::setLocation>(as_location(latitude, longitude)));
     } else if (op == "sco") {
-      int32 limit;
-      string query;
-      std::tie(limit, query) = get_search_query(args);
-      send_request(td_api::make_object<td_api::searchContacts>(query, limit));
+      SearchQuery query;
+      get_args(args, query);
+      send_request(td_api::make_object<td_api::searchContacts>(query.query, query.limit));
     } else if (op == "arfc") {
       send_request(td_api::make_object<td_api::addRecentlyFoundChat>(as_chat_id(args)));
     } else if (op == "rrfc") {
