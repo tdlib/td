@@ -1312,6 +1312,29 @@ class CliClient final : public Actor {
     return td_api::make_object<td_api::chatActionTyping>();
   }
 
+  static td_api::object_ptr<td_api::ChatReportReason> get_chat_report_reason(MutableSlice reason) {
+    reason = trim(reason);
+    if (reason == "spam") {
+      return td_api::make_object<td_api::chatReportReasonSpam>();
+    }
+    if (reason == "violence") {
+      return td_api::make_object<td_api::chatReportReasonViolence>();
+    }
+    if (reason == "porno") {
+      return td_api::make_object<td_api::chatReportReasonPornography>();
+    }
+    if (reason == "ca") {
+      return td_api::make_object<td_api::chatReportReasonChildAbuse>();
+    }
+    if (reason == "copyright") {
+      return td_api::make_object<td_api::chatReportReasonCopyright>();
+    }
+    if (reason == "geo" || reason == "location") {
+      return td_api::make_object<td_api::chatReportReasonUnrelatedLocation>();
+    }
+    return td_api::make_object<td_api::chatReportReasonCustom>(reason.str());
+  }
+
   static td_api::object_ptr<td_api::NetworkType> get_network_type(MutableSlice type) {
     type = trim(type);
     to_lower_inplace(type);
@@ -1757,7 +1780,6 @@ class CliClient final : public Actor {
       string key;
       string secret;
       string other_user_ids_str;
-
       get_args(args, endpoint, key, secret, other_user_ids_str);
       send_request(td_api::make_object<td_api::registerDevice>(
           td_api::make_object<td_api::deviceTokenWebPush>(endpoint, key, secret), as_user_ids(other_user_ids_str)));
@@ -2055,7 +2077,6 @@ class CliClient final : public Actor {
                                                                                 "Few", "Many", "Other")));
       strings.push_back(td_api::make_object<td_api::languagePackString>(
           "DELETED", td_api::make_object<td_api::languagePackStringValueDeleted>()));
-
       send_request(td_api::make_object<td_api::setCustomLanguagePack>(
           as_language_pack_info(language_code, name, native_name), std::move(strings)));
     } else if (op == "eclpi") {
@@ -2753,7 +2774,6 @@ class CliClient final : public Actor {
         vector<td_api::object_ptr<td_api::textEntity>> entities;
         entities.push_back(
             td_api::make_object<td_api::textEntity>(0, 1, td_api::make_object<td_api::textEntityTypePre>()));
-
         draft_message = td_api::make_object<td_api::draftMessage>(
             as_message_id(reply_to_message_id), 0,
             td_api::make_object<td_api::inputMessageText>(as_formatted_text(message, std::move(entities)), true,
@@ -3062,7 +3082,6 @@ class CliClient final : public Actor {
       string chat_id;
       string voice_path;
       get_args(args, chat_id, voice_path);
-
       send_message(chat_id, td_api::make_object<td_api::inputMessageVoiceNote>(as_input_file(voice_path), 0, "abacaba",
                                                                                as_caption("voice caption")));
     } else if (op == "SendContact" || op == "scontact") {
@@ -3180,7 +3199,6 @@ class CliClient final : public Actor {
       string question;
       get_args(args, chat_id, question, args);
       auto options = full_split(args);
-
       td_api::object_ptr<td_api::PollType> poll_type;
       if (op == "squiz") {
         poll_type = td_api::make_object<td_api::pollTypeQuiz>(narrow_cast<int32>(options.size() - 1),
@@ -3201,7 +3219,6 @@ class CliClient final : public Actor {
       } else {
         sticker_file_ids = to_integers<int32>(sticker_file_ids_str);
       }
-
       send_message(chat_id, td_api::make_object<td_api::inputMessagePhoto>(
                                 as_input_file(photo_path), nullptr, std::move(sticker_file_ids), 0, 0,
                                 as_caption(op == "spcaption" ? "cap \n\n\n\n tion " : ""), op == "spttl" ? 10 : 0));
@@ -3219,7 +3236,6 @@ class CliClient final : public Actor {
       string photo_path;
       string thumbnail_path;
       get_args(args, chat_id, photo_path, thumbnail_path);
-
       send_message(chat_id, td_api::make_object<td_api::inputMessagePhoto>(as_input_file(photo_path),
                                                                            as_input_thumbnail(thumbnail_path, 90, 89),
                                                                            vector<int32>(), 0, 0, as_caption(""), 0));
@@ -3783,29 +3799,11 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::removeChatActionBar>(as_chat_id(chat_id)));
     } else if (op == "rc") {
       string chat_id;
-      string reason_str;
+      string reason;
       string message_ids;
-      get_args(args, chat_id, reason_str, message_ids);
-
-      td_api::object_ptr<td_api::ChatReportReason> reason;
-      if (reason_str == "spam") {
-        reason = td_api::make_object<td_api::chatReportReasonSpam>();
-      } else if (reason_str == "violence") {
-        reason = td_api::make_object<td_api::chatReportReasonViolence>();
-      } else if (reason_str == "porno") {
-        reason = td_api::make_object<td_api::chatReportReasonPornography>();
-      } else if (reason_str == "ca") {
-        reason = td_api::make_object<td_api::chatReportReasonChildAbuse>();
-      } else if (reason_str == "copyright") {
-        reason = td_api::make_object<td_api::chatReportReasonCopyright>();
-      } else if (reason_str == "geo" || reason_str == "location") {
-        reason = td_api::make_object<td_api::chatReportReasonUnrelatedLocation>();
-      } else {
-        reason = td_api::make_object<td_api::chatReportReasonCustom>(reason_str);
-      }
-
-      send_request(
-          td_api::make_object<td_api::reportChat>(as_chat_id(chat_id), std::move(reason), as_message_ids(message_ids)));
+      get_args(args, chat_id, reason, message_ids);
+      send_request(td_api::make_object<td_api::reportChat>(as_chat_id(chat_id), get_chat_report_reason(reason),
+                                                           as_message_ids(message_ids)));
     } else if (op == "gcsu") {
       string chat_id;
       string parameters;
@@ -3849,7 +3847,6 @@ class CliClient final : public Actor {
       string user_id;
       string message_ids;
       get_args(args, supergroup_id, user_id, message_ids);
-
       send_request(td_api::make_object<td_api::reportSupergroupSpam>(as_supergroup_id(supergroup_id),
                                                                      as_user_id(user_id), as_message_ids(message_ids)));
     } else if (op == "gdiff") {
