@@ -320,7 +320,7 @@ template <class T>
 Result<T> to_integer_safe(Slice str) {
   auto res = to_integer<T>(str);
   if ((PSLICE() << res) != str) {
-    return Status::Error(PSLICE() << "Can't parse \"" << str << "\" as number");
+    return Status::Error(PSLICE() << "Can't parse \"" << str << "\" as an integer");
   }
   return res;
 }
