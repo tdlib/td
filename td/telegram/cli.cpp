@@ -1077,6 +1077,23 @@ class CliClient final : public Actor {
     return nullptr;
   }
 
+  td_api::object_ptr<td_api::userPrivacySettingRules> get_user_privacy_setting_rules(Slice allow, Slice ids) const {
+    td::vector<td_api::object_ptr<td_api::UserPrivacySettingRule>> rules;
+    if (allow == "c" || allow == "contacts") {
+      rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleAllowContacts>());
+    } else if (allow == "users") {
+      rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleAllowUsers>(as_user_ids(ids)));
+    } else if (allow == "chats") {
+      rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleAllowChatMembers>(as_chat_ids(ids)));
+    } else if (as_bool(allow.str())) {
+      rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleAllowAll>());
+      rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleRestrictAll>());
+    } else {
+      rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleRestrictAll>());
+    }
+    return td_api::make_object<td_api::userPrivacySettingRules>(std::move(rules));
+  }
+
   static td_api::object_ptr<td_api::SearchMessagesFilter> as_search_messages_filter(Slice filter) {
     filter = trim(filter);
     string lowered_filter = to_lower(filter);
@@ -1706,7 +1723,6 @@ class CliClient final : public Actor {
     } else if (op == "gpf") {
       string chat_id;
       string message_id;
-
       get_args(args, chat_id, message_id);
       send_request(td_api::make_object<td_api::getPaymentForm>(as_chat_id(chat_id), as_message_id(message_id)));
     } else if (op == "voi") {
@@ -1758,22 +1774,8 @@ class CliClient final : public Actor {
       string allow;
       string ids;
       get_args(args, setting, allow, ids);
-
-      std::vector<td_api::object_ptr<td_api::UserPrivacySettingRule>> rules;
-      if (allow == "c" || allow == "contacts") {
-        rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleAllowContacts>());
-      } else if (allow == "users") {
-        rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleAllowUsers>(as_user_ids(ids)));
-      } else if (allow == "chats") {
-        rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleAllowChatMembers>(as_chat_ids(ids)));
-      } else if (as_bool(allow)) {
-        rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleAllowAll>());
-        rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleRestrictAll>());
-      } else {
-        rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleRestrictAll>());
-      }
-      send_request(td_api::make_object<td_api::setUserPrivacySettingRules>(
-          get_user_privacy_setting(setting), td_api::make_object<td_api::userPrivacySettingRules>(std::move(rules))));
+      send_request(td_api::make_object<td_api::setUserPrivacySettingRules>(get_user_privacy_setting(setting),
+                                                                           get_user_privacy_setting_rules(allow, ids)));
     } else if (op == "cp" || op == "ChangePhone") {
       send_request(td_api::make_object<td_api::changePhoneNumber>(args, nullptr));
     } else if (op == "ccpc" || op == "CheckChangePhoneCode") {
