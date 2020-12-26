@@ -665,13 +665,13 @@ class CliClient final : public Actor {
     return transform(transform(full_split(ids_string, get_delimiter(ids_string)), trim<Slice>), to_integer<T>);
   }
 
-  void get_args(string &args, string &arg) {
+  static void get_args(string &args, string &arg) {
     if (&args != &arg) {
       arg = std::move(args);
     }
   }
 
-  void get_args(string &args, bool &arg) {
+  static void get_args(string &args, bool &arg) {
     arg = as_bool(args);
   }
 
@@ -680,7 +680,7 @@ class CliClient final : public Actor {
     string query;
   };
 
-  void get_args(string &args, SearchQuery &arg) {
+  static void get_args(string &args, SearchQuery &arg) {
     string limit;
     std::tie(limit, arg.query) = split(trim(args));
     auto r_limit = to_integer_safe<int32>(limit);
@@ -693,16 +693,16 @@ class CliClient final : public Actor {
     args.clear();
   }
 
-  void get_args(string &args, int32 &arg) {
+  static void get_args(string &args, int32 &arg) {
     arg = to_integer<int32>(args);
   }
 
-  void get_args(string &args, int64 &arg) {
+  static void get_args(string &args, int64 &arg) {
     arg = to_integer<int64>(args);
   }
 
   template <class FirstType, class SecondType, class... Types>
-  void get_args(string &args, FirstType &first_arg, SecondType &second_arg, Types &... other_args) {
+  static void get_args(string &args, FirstType &first_arg, SecondType &second_arg, Types &... other_args) {
     string arg;
     std::tie(arg, args) = split(args);
     get_args(arg, first_arg);
@@ -1174,11 +1174,7 @@ class CliClient final : public Actor {
     string pinned_chat_ids;
     string included_chat_ids;
     string excluded_chat_ids;
-    std::tie(title, filter) = split(filter);
-    std::tie(icon_name, filter) = split(filter);
-    std::tie(pinned_chat_ids, filter) = split(filter);
-    std::tie(included_chat_ids, filter) = split(filter);
-    std::tie(excluded_chat_ids, filter) = split(filter);
+    get_args(filter, title, icon_name, pinned_chat_ids, included_chat_ids, excluded_chat_ids);
 
     auto rand_bool = [] {
       return Random::fast_bool();
@@ -1856,22 +1852,19 @@ class CliClient final : public Actor {
       string chat_id;
       string thread_message_id;
       string from_message_id;
-      string offset;
+      int32 offset;
       string limit;
-      std::tie(chat_id, args) = split(args);
       if (op == "gmth") {
-        std::tie(thread_message_id, args) = split(args);
+        get_args(args, thread_message_id, args);
       }
-      std::tie(from_message_id, args) = split(args);
-      std::tie(offset, limit) = split(args);
+      get_args(args, chat_id, from_message_id, offset, limit);
       if (op == "gmth") {
         send_request(td_api::make_object<td_api::getMessageThreadHistory>(
-            as_chat_id(chat_id), as_message_id(thread_message_id), as_message_id(from_message_id),
-            to_integer<int32>(offset), as_limit(limit)));
+            as_chat_id(chat_id), as_message_id(thread_message_id), as_message_id(from_message_id), offset,
+            as_limit(limit)));
       } else {
         send_request(td_api::make_object<td_api::getChatHistory>(as_chat_id(chat_id), as_message_id(from_message_id),
-                                                                 to_integer<int32>(offset), as_limit(limit),
-                                                                 op == "ghl"));
+                                                                 offset, as_limit(limit), op == "ghl"));
       }
     } else if (op == "gcsm") {
       string chat_id = args;
@@ -2397,14 +2390,13 @@ class CliClient final : public Actor {
                op == "SearchSupergroupMembers" || op == "SearchSupergroupMentions") {
       string supergroup_id;
       string message_thread_id;
-      string offset;
+      int32 offset;
       SearchQuery query;
 
-      std::tie(supergroup_id, args) = split(args);
       if (op == "SearchSupergroupMentions") {
-        std::tie(message_thread_id, args) = split(args);
+        get_args(args, message_thread_id, args);
       }
-      get_args(args, offset, query);
+      get_args(args, supergroup_id, offset, query);
       td_api::object_ptr<td_api::SupergroupMembersFilter> filter;
       if (op == "GetSupergroupAdministrators") {
         filter = td_api::make_object<td_api::supergroupMembersFilterAdministrators>();
@@ -2425,7 +2417,7 @@ class CliClient final : public Actor {
                                                                              as_message_thread_id(message_thread_id));
       }
       send_request(td_api::make_object<td_api::getSupergroupMembers>(as_supergroup_id(supergroup_id), std::move(filter),
-                                                                     to_integer<int32>(offset), query.limit));
+                                                                     offset, query.limit));
     } else if (op == "gdialog" || op == "gd") {
       send_request(td_api::make_object<td_api::getChat>(as_chat_id(args)));
     } else if (op == "open") {
@@ -2762,11 +2754,10 @@ class CliClient final : public Actor {
       string message_thread_id;
       string reply_to_message_id;
       string message;
-      std::tie(chat_id, args) = split(args);
       if (op == "scdmt") {
-        std::tie(message_thread_id, args) = split(args);
+        get_args(args, message_thread_id, args);
       }
-      std::tie(reply_to_message_id, message) = split(args);
+      get_args(args, chat_id, reply_to_message_id, message);
       td_api::object_ptr<td_api::draftMessage> draft_message;
       if (!reply_to_message_id.empty() || !message.empty()) {
         vector<td_api::object_ptr<td_api::textEntity>> entities;
@@ -2858,7 +2849,7 @@ class CliClient final : public Actor {
 
       get_args(args, chat_id, message);
       if (op == "smr") {
-        std::tie(reply_to_message_id, message) = split(message);
+        get_args(message, reply_to_message_id, message);
       }
       if (op == "smf") {
         message = string(5097, 'a');
@@ -2874,7 +2865,7 @@ class CliClient final : public Actor {
 
       get_args(args, chat_id, sender_id, message);
       if (op == "almr") {
-        std::tie(reply_to_message_id, message) = split(message);
+        get_args(message, reply_to_message_id, message);
       }
 
       send_request(td_api::make_object<td_api::addLocalMessage>(
