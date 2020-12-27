@@ -440,6 +440,9 @@ struct GroupCallManager::PendingJoinRequest {
 };
 
 GroupCallManager::GroupCallManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
+  check_group_call_is_joined_timeout_.set_callback(on_check_group_call_is_joined_timeout_callback);
+  check_group_call_is_joined_timeout_.set_callback_data(static_cast<void *>(this));
+
   pending_send_speaking_action_timeout_.set_callback(on_pending_send_speaking_action_timeout_callback);
   pending_send_speaking_action_timeout_.set_callback_data(static_cast<void *>(this));
 
@@ -454,6 +457,45 @@ GroupCallManager::~GroupCallManager() = default;
 
 void GroupCallManager::tear_down() {
   parent_.reset();
+}
+
+void GroupCallManager::on_check_group_call_is_joined_timeout_callback(void *group_call_manager_ptr,
+                                                                      int64 group_call_id_int) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto group_call_manager = static_cast<GroupCallManager *>(group_call_manager_ptr);
+  send_closure_later(group_call_manager->actor_id(group_call_manager),
+                     &GroupCallManager::on_check_group_call_is_joined_timeout,
+                     GroupCallId(narrow_cast<int32>(group_call_id_int)));
+}
+
+void GroupCallManager::on_check_group_call_is_joined_timeout(GroupCallId group_call_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  LOG(INFO) << "Receive check group call is_joined timeout in " << group_call_id;
+  auto input_group_call_id = get_input_group_call_id(group_call_id).move_as_ok();
+
+  auto *group_call = get_group_call(input_group_call_id);
+  CHECK(group_call != nullptr && group_call->is_inited);
+  if (!group_call->is_joined || check_group_call_is_joined_timeout_.has_timeout(group_call_id.get())) {
+    return;
+  }
+
+  auto source = group_call->source;
+  auto promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), input_group_call_id, source](Result<Unit> &&result) mutable {
+        if (result.is_error() && result.error().message() == "GROUP_CALL_JOIN_MISSING") {
+          send_closure(actor_id, &GroupCallManager::on_group_call_left, input_group_call_id, source, true);
+          result = Unit();
+        }
+        send_closure(actor_id, &GroupCallManager::finish_check_group_call_is_joined, input_group_call_id, source,
+                     std::move(result));
+      });
+  td_->create_handler<CheckGroupCallQuery>(std::move(promise))->send(input_group_call_id, source);
 }
 
 void GroupCallManager::on_pending_send_speaking_action_timeout_callback(void *group_call_manager_ptr,
@@ -777,6 +819,21 @@ void GroupCallManager::finish_get_group_call(InputGroupCallId input_group_call_i
       promise.set_value(get_group_call_object(group_call, get_recent_speaker_user_ids(group_call, false)));
     }
   }
+}
+
+void GroupCallManager::finish_check_group_call_is_joined(InputGroupCallId input_group_call_id, int32 source,
+                                                         Result<Unit> &&result) {
+  LOG(INFO) << "Finish check group call is_joined for " << input_group_call_id;
+
+  auto *group_call = get_group_call(input_group_call_id);
+  CHECK(group_call != nullptr && group_call->is_inited);
+  if (!group_call->is_joined || check_group_call_is_joined_timeout_.has_timeout(group_call->group_call_id.get()) ||
+      group_call->source != source) {
+    return;
+  }
+
+  int32 next_timeout = result.is_ok() ? CHECK_GROUP_CALL_IS_JOINED_TIMEOUT : 1;
+  check_group_call_is_joined_timeout_.set_timeout_in(group_call->group_call_id.get(), next_timeout);
 }
 
 bool GroupCallManager::need_group_call_participants(InputGroupCallId input_group_call_id) const {
@@ -1586,6 +1643,8 @@ bool GroupCallManager::on_join_group_call_response(InputGroupCallId input_group_
     group_call->joined_date = G()->unix_time();
     group_call->source = it->second->source;
     it->second->promise.set_value(result.move_as_ok());
+    check_group_call_is_joined_timeout_.set_timeout_in(group_call->group_call_id.get(),
+                                                       CHECK_GROUP_CALL_IS_JOINED_TIMEOUT);
     need_update = true;
   }
   pending_join_requests_.erase(it);
@@ -1661,6 +1720,10 @@ void GroupCallManager::set_group_call_participant_is_speaking(GroupCallId group_
   } else {
     recursive = true;
   }
+  if (source != group_call->source && !recursive && is_speaking &&
+      check_group_call_is_joined_timeout_.has_timeout(group_call_id.get())) {
+    check_group_call_is_joined_timeout_.set_timeout_in(group_call_id.get(), CHECK_GROUP_CALL_IS_JOINED_TIMEOUT);
+  }
   UserId user_id = set_group_call_participant_is_speaking_by_source(input_group_call_id, source, is_speaking, date);
   if (!user_id.is_valid()) {
     if (!recursive) {
@@ -1723,29 +1786,6 @@ void GroupCallManager::toggle_group_call_participant_is_muted(GroupCallId group_
   }
 
   td_->create_handler<EditGroupCallMemberQuery>(std::move(promise))->send(input_group_call_id, user_id, is_muted);
-}
-
-void GroupCallManager::check_group_call_is_joined(GroupCallId group_call_id, Promise<Unit> &&promise) {
-  TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
-
-  auto *group_call = get_group_call(input_group_call_id);
-  if (group_call == nullptr || !group_call->is_inited) {
-    return promise.set_error(Status::Error(400, "GROUP_CALL_JOIN_MISSING"));
-  }
-  if (!group_call->is_active || !group_call->is_joined || group_call->joined_date > G()->unix_time() - 8) {
-    return promise.set_value(Unit());
-  }
-  auto source = group_call->source;
-
-  auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), input_group_call_id, source,
-                                               promise = std::move(promise)](Result<Unit> &&result) mutable {
-    if (result.is_error() && result.error().message() == "GROUP_CALL_JOIN_MISSING") {
-      send_closure(actor_id, &GroupCallManager::on_group_call_left, input_group_call_id, source, true);
-      result = Unit();
-    }
-    promise.set_result(std::move(result));
-  });
-  td_->create_handler<CheckGroupCallQuery>(std::move(query_promise))->send(input_group_call_id, source);
 }
 
 void GroupCallManager::load_group_call_participants(GroupCallId group_call_id, int32 limit, Promise<Unit> &&promise) {
@@ -1816,6 +1856,7 @@ void GroupCallManager::on_group_call_left_impl(GroupCall *group_call, bool need_
   group_call->source = 0;
   group_call->loaded_all_participants = false;
   group_call->version = -1;
+  check_group_call_is_joined_timeout_.cancel_timeout(group_call->group_call_id.get());
   try_clear_group_call_participants(get_input_group_call_id(group_call->group_call_id).ok());
 }
 
