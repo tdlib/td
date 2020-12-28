@@ -3813,6 +3813,22 @@ class CliClient final : public Actor {
       bool is_dark;
       get_args(args, chat_id, is_dark);
       send_request(td_api::make_object<td_api::getChatStatistics>(as_chat_id(chat_id), is_dark));
+    } else if (op == "sgs") {
+      string chat_id;
+      string message_id;
+      string user_id;
+      int32 score;
+      get_args(args, chat_id, message_id, user_id, score);
+      send_request(td_api::make_object<td_api::setGameScore>(as_chat_id(chat_id), as_message_id(message_id), true,
+                                                             as_user_id(user_id), score, true));
+    } else if (op == "gghs") {
+      string chat_id;
+      string message_id;
+      string user_id;
+      int32 score;
+      get_args(args, chat_id, message_id, user_id, score);
+      send_request(td_api::make_object<td_api::getGameHighScores>(as_chat_id(chat_id), as_message_id(message_id),
+                                                                  as_user_id(user_id)));
     } else if (op == "gmst") {
       string chat_id;
       string message_id;
