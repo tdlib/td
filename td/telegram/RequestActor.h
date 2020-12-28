@@ -69,7 +69,7 @@ class RequestActor : public Actor {
         bool is_authorized = td->auth_manager_ && td->auth_manager_->is_authorized();
         if (is_authorized) {
           LOG(ERROR) << "Promise was lost";
-          do_send_error(Status::Error(500, "Query can't be answered due to bug in the TDLib"));
+          do_send_error(Status::Error(500, "Query can't be answered due to a bug in TDLib"));
         } else {
           do_send_error(Status::Error(401, "Unauthorized"));
         }
