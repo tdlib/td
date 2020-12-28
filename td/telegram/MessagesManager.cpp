@@ -13177,7 +13177,11 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
 
     // add_message_to_dialog will not update counts, because need_update == false
     update_message_count_by_index(d, +1, m);
+  }
+
+  if (is_sent_message || need_update) {
     update_reply_count_by_message(d, +1, m);
+    update_forward_count(dialog_id, m);
   }
 
   if (dialog_id.get_type() == DialogType::Channel && !have_input_peer(dialog_id, AccessRights::Read)) {
@@ -28032,6 +28036,8 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
     send_update_chat_last_message(d, "on_send_message_success");
   }
   try_add_active_live_location(dialog_id, m);
+  update_reply_count_by_message(d, +1, m);
+  update_forward_count(dialog_id, m);
   being_readded_message_id_ = FullMessageId();
   return {dialog_id, new_message_id};
 }
@@ -31788,7 +31794,6 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
   if (*need_update) {
     update_message_count_by_index(d, +1, message.get());
-    update_reply_count_by_message(d, +1, message.get());
   }
   if (auto_attach && message_id > d->last_message_id && message_id >= d->last_new_message_id) {
     set_dialog_last_message_id(d, message_id, "add_message_to_dialog");
@@ -31970,9 +31975,6 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         set_dialog_reply_markup(d, MessageId());
       }
     }
-  }
-  if (*need_update) {
-    update_forward_count(dialog_id, m);
   }
 
   return result_message;
@@ -35347,8 +35349,8 @@ void MessagesManager::update_top_dialogs(DialogId dialog_id, const Message *m) {
 }
 
 void MessagesManager::update_forward_count(DialogId dialog_id, const Message *m) {
-  if (!td_->auth_manager_->is_bot() && m->forward_info != nullptr &&
-      m->forward_info->sender_dialog_id.is_valid() && m->forward_info->message_id.is_valid() &&
+  if (!td_->auth_manager_->is_bot() && m->forward_info != nullptr && m->forward_info->sender_dialog_id.is_valid() &&
+      m->forward_info->message_id.is_valid() &&
       (!is_discussion_message(dialog_id, m) || m->forward_info->sender_dialog_id != m->forward_info->from_dialog_id ||
        m->forward_info->message_id != m->forward_info->from_message_id)) {
     update_forward_count(m->forward_info->sender_dialog_id, m->forward_info->message_id, m->date);
