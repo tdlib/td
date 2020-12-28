@@ -968,7 +968,9 @@ void WebPagesManager::on_load_web_page_instant_view_from_database(WebPageId web_
 
 void WebPagesManager::update_web_page_instant_view_load_requests(WebPageId web_page_id, bool force_update,
                                                                  Result<> result) {
-  // TODO [Error : 0 : Lost promise] on closing
+  if (G()->close_flag() && result.is_error()) {
+    result = Status::Error(500, "Request aborted");
+  }
   LOG(INFO) << "Update load requests for " << web_page_id;
   auto it = load_web_page_instant_view_queries_.find(web_page_id);
   if (it == load_web_page_instant_view_queries_.end()) {
