@@ -186,13 +186,14 @@ class GroupCallManager : public Actor {
 
   void update_group_call_dialog(const GroupCall *group_call, const char *source);
 
-  vector<int32> get_recent_speaker_user_ids(const GroupCall *group_call, bool for_update);
+  vector<td_api::object_ptr<td_api::groupCallRecentSpeaker>> get_recent_speakers(const GroupCall *group_call,
+                                                                                 bool for_update);
 
-  tl_object_ptr<td_api::updateGroupCall> get_update_group_call_object(const GroupCall *group_call,
-                                                                      vector<int32> recent_speaker_user_ids) const;
+  tl_object_ptr<td_api::updateGroupCall> get_update_group_call_object(
+      const GroupCall *group_call, vector<td_api::object_ptr<td_api::groupCallRecentSpeaker>> recent_speakers) const;
 
-  tl_object_ptr<td_api::groupCall> get_group_call_object(const GroupCall *group_call,
-                                                         vector<int32> recent_speaker_user_ids) const;
+  tl_object_ptr<td_api::groupCall> get_group_call_object(
+      const GroupCall *group_call, vector<td_api::object_ptr<td_api::groupCallRecentSpeaker>> recent_speakers) const;
 
   tl_object_ptr<td_api::updateGroupCallParticipant> get_update_group_call_participant_object(
       GroupCallId group_call_id, const GroupCallParticipant &participant);
