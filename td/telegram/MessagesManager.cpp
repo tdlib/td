@@ -6632,7 +6632,10 @@ bool MessagesManager::is_active_message_reply_info(DialogId dialog_id, const Mes
 
 bool MessagesManager::is_visible_message_reply_info(DialogId dialog_id, const Message *m) const {
   CHECK(m != nullptr);
-  if (!m->message_id.is_valid() || !m->message_id.is_server()) {
+  if (!m->message_id.is_valid()) {
+    return false;
+  }
+  if (!m->message_id.is_server() && !m->message_id.is_yet_unsent()) {
     return false;
   }
   if (is_broadcast_channel(dialog_id) && (m->had_reply_markup || m->reply_markup != nullptr)) {
@@ -16255,6 +16258,9 @@ Result<FullMessageId> MessagesManager::get_top_thread_full_message_id(DialogId d
     if (!is_visible_message_reply_info(dialog_id, m)) {
       return Status::Error(400, "Message has no comments");
     }
+    if (m->message_id.is_yet_unsent()) {
+      return Status::Error(400, "Message is not sent yet");
+    }
     return FullMessageId{DialogId(m->reply_info.channel_id), m->linked_top_thread_message_id};
   } else {
     if (!m->top_thread_message_id.is_valid()) {
@@ -16735,7 +16741,7 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(FullMessageId 
     return Status::Error(400, "Message not found");
   }
   if (m->message_id.is_yet_unsent()) {
-    return Status::Error(400, "Message is yet unsent");
+    return Status::Error(400, "Message is not sent yet");
   }
   if (m->message_id.is_scheduled()) {
     return Status::Error(400, "Message is scheduled");
@@ -16834,7 +16840,7 @@ string MessagesManager::get_message_embedding_code(FullMessageId full_message_id
     return {};
   }
   if (m->message_id.is_yet_unsent()) {
-    promise.set_error(Status::Error(400, "Message is yet unsent"));
+    promise.set_error(Status::Error(400, "Message is not sent yet"));
     return {};
   }
   if (m->message_id.is_scheduled()) {
