@@ -32358,6 +32358,7 @@ void MessagesManager::delete_message_from_database(Dialog *d, MessageId message_
     if (message_id.is_scheduled() && message_id.is_scheduled_server()) {
       d->deleted_scheduled_server_message_ids.insert(message_id.get_scheduled_server_message_id());
     } else {
+      // don't store failed to send message identifiers for bots to reduce memory usage
       if (m == nullptr || !td_->auth_manager_->is_bot() || !m->is_failed_to_send) {
         d->deleted_message_ids.insert(message_id);
       }
