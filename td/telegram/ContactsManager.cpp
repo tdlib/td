@@ -10664,7 +10664,7 @@ void ContactsManager::on_get_channel_participants_success(
     total_count = static_cast<int32>(result.size());
   }
 
-  const auto max_participant_count = get_channel_type(channel_id) == ChannelType::Megagroup ? 9750 : 195;
+  const auto max_participant_count = get_channel_type(channel_id) == ChannelType::Megagroup ? 975 : 195;
   auto participant_count =
       filter.is_recent() && total_count != 0 && total_count < max_participant_count ? total_count : -1;
   int32 administrator_count = filter.is_administrators() ? total_count : -1;
