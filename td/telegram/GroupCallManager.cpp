@@ -291,7 +291,7 @@ class EditGroupCallMemberQuery : public Td::ResultHandler {
     }
 
     send_query(G()->net_query_creator().create(telegram_api::phone_editGroupCallMember(
-        flags, false /*ignored*/, input_group_call_id.get_input_group_call(), std::move(input_user))));
+        flags, false /*ignored*/, input_group_call_id.get_input_group_call(), std::move(input_user), 0)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {

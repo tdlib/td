@@ -1290,11 +1290,11 @@ inputCredentialsSaved saved_credentials_id:string = InputCredentials;
 //@description Applies if a user enters new credentials on a payment provider website @data Contains JSON-encoded data with a credential identifier from the payment provider @allow_save True, if the credential identifier can be saved on the server side
 inputCredentialsNew data:string allow_save:Bool = InputCredentials;
 
-//@description Applies if a user enters new credentials using Android Pay @data JSON-encoded data with the credential identifier
-inputCredentialsAndroidPay data:string = InputCredentials;
-
 //@description Applies if a user enters new credentials using Apple Pay @data JSON-encoded data with the credential identifier
 inputCredentialsApplePay data:string = InputCredentials;
+
+//@description Applies if a user enters new credentials using Google Pay @data JSON-encoded data with the credential identifier
+inputCredentialsGooglePay data:string = InputCredentials;
 
 //@description Stripe payment provider @publishable_key Stripe API publishable key @need_country True, if the user country must be provided @need_postal_code True, if the user ZIP/postal code must be provided @need_cardholder_name True, if the cardholder name must be provided
 paymentsProviderStripe publishable_key:string need_country:Bool need_postal_code:Bool need_cardholder_name:Bool = PaymentsProviderStripe;

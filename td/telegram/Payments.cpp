@@ -859,10 +859,10 @@ void send_payment_form(ServerMessageId server_message_id, const string &order_in
           flags, false /*ignored*/, make_tl_object<telegram_api::dataJSON>(credentials_new->data_));
       break;
     }
-    case td_api::inputCredentialsAndroidPay::ID: {
-      auto credentials_android_pay = static_cast<const td_api::inputCredentialsAndroidPay *>(credentials.get());
-      input_credentials = make_tl_object<telegram_api::inputPaymentCredentialsAndroidPay>(
-          make_tl_object<telegram_api::dataJSON>(credentials_android_pay->data_), string());
+    case td_api::inputCredentialsGooglePay::ID: {
+      auto credentials_google_pay = static_cast<const td_api::inputCredentialsGooglePay *>(credentials.get());
+      input_credentials = make_tl_object<telegram_api::inputPaymentCredentialsGooglePay>(
+          make_tl_object<telegram_api::dataJSON>(credentials_google_pay->data_));
       break;
     }
     case td_api::inputCredentialsApplePay::ID: {
