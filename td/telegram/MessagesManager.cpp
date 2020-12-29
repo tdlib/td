@@ -496,16 +496,18 @@ class GetChannelMessagesQuery : public Td::ResultHandler {
 
     auto info = td->messages_manager_->on_get_messages(result_ptr.move_as_ok(), "GetChannelMessagesQuery");
     LOG_IF(ERROR, !info.is_channel_messages) << "Receive ordinary messages in GetChannelMessagesQuery";
-    vector<MessageId> empty_message_ids;
-    for (auto &message : info.messages) {
-      if (message->get_id() == telegram_api::messageEmpty::ID) {
-        auto message_id = MessagesManager::get_message_id(message, false);
-        if (message_id.is_valid()) {
-          empty_message_ids.push_back(message_id);
+    if (!td->auth_manager_->is_bot()) {  // bots can receive messageEmpty because of their privacy mode
+      vector<MessageId> empty_message_ids;
+      for (auto &message : info.messages) {
+        if (message->get_id() == telegram_api::messageEmpty::ID) {
+          auto message_id = MessagesManager::get_message_id(message, false);
+          if (message_id.is_valid()) {
+            empty_message_ids.push_back(message_id);
+          }
         }
       }
+      td->messages_manager_->on_get_empty_messages(DialogId(channel_id_), std::move(empty_message_ids));
     }
-    td->messages_manager_->on_get_empty_messages(DialogId(channel_id_), std::move(empty_message_ids));
     td->messages_manager_->get_channel_difference_if_needed(
         DialogId(channel_id_), std::move(info),
         PromiseCreator::lambda(
