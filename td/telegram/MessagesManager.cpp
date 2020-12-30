@@ -6226,24 +6226,25 @@ void MessagesManager::add_pending_update(tl_object_ptr<telegram_api::Update> &&u
   }
 
   int32 old_pts = td_->updates_manager_->get_pts();
-  if (new_pts < old_pts - 19999) {
-    // restore pts after delete_first_messages
-    LOG(ERROR) << "Restore pts after delete_first_messages from " << old_pts << " to " << new_pts
-               << " is temporarily disabled, pts_count = " << pts_count << ", update is from " << source << ": "
-               << oneline(to_string(update));
-    if (old_pts < 10000000 && update->get_id() == telegram_api::updateNewMessage::ID) {
-      auto update_new_message = static_cast<telegram_api::updateNewMessage *>(update.get());
-      auto dialog_id = get_message_dialog_id(update_new_message->message_);
-      dump_debug_message_op(get_dialog(dialog_id), 6);
+  if (new_pts < old_pts - 99 && Slice(source) != "after get difference") {
+    bool need_restore_pts = new_pts < old_pts - 19999;
+    auto now = Time::now();
+    if (now > last_pts_jump_warning_time_ + 1 && (need_restore_pts || now < last_pts_jump_warning_time_ + 5)) {
+      LOG(ERROR) << "Restore pts after delete_first_messages from " << old_pts << " to " << new_pts
+                 << " is disabled, pts_count = " << pts_count << ", update is from " << source << ": "
+                 << oneline(to_string(update));
+      last_pts_jump_warning_time_ = now;
     }
-    set_get_difference_timeout(0.001);
+    if (need_restore_pts) {
+      set_get_difference_timeout(0.001);
 
-    /*
-    LOG(WARNING) << "Restore pts after delete_first_messages";
-    td_->updates_manager_->set_pts(new_pts - 1, "restore pts after delete_first_messages");
-    old_pts = td_->updates_manager_->get_pts();
-    CHECK(old_pts == new_pts - 1);
-    */
+      /*
+      LOG(WARNING) << "Restore pts after delete_first_messages";
+      td_->updates_manager_->set_pts(new_pts - 1, "restore pts after delete_first_messages");
+      old_pts = td_->updates_manager_->get_pts();
+      CHECK(old_pts == new_pts - 1);
+      */
+    }
   }
 
   if (new_pts <= old_pts) {
@@ -7119,11 +7120,12 @@ void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_p
     if (new_pts <= old_pts) {  // very old or unuseful update
       if (new_pts < old_pts - 19999 && !is_postponed_update) {
         // restore channel pts after delete_first_messages
-        LOG(ERROR) << "Restore pts in " << d->dialog_id << " from " << source << " after delete_first_messages from "
-                   << old_pts << " to " << new_pts << " is temporarily disabled, pts_count = " << pts_count
-                   << ", update is from " << source << ": " << oneline(to_string(update));
-        if (old_pts < 10000000) {
-          dump_debug_message_op(d, 6);
+        auto now = Time::now();
+        if (now > last_pts_jump_warning_time_ + 1) {
+          LOG(ERROR) << "Restore pts in " << d->dialog_id << " from " << source << " after delete_first_messages from "
+                     << old_pts << " to " << new_pts << " is temporarily disabled, pts_count = " << pts_count
+                     << ", update is from " << source << ": " << oneline(to_string(update));
+          last_pts_jump_warning_time_ = now;
         }
         get_channel_difference(dialog_id, old_pts, true, "add_pending_channel_update old");
       }
@@ -11788,6 +11790,7 @@ void MessagesManager::init() {
   always_wait_for_mailbox();
 
   start_time_ = Time::now();
+  last_pts_jump_warning_time_ = start_time_ - 3600;
 
   bool is_authorized = td_->auth_manager_->is_authorized();
   bool was_authorized_user = td_->auth_manager_->was_authorized() && !td_->auth_manager_->is_bot();

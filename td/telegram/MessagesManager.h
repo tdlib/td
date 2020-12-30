@@ -3014,6 +3014,7 @@ class MessagesManager : public Actor {
   int32 accumulated_pts_count_ = 0;
   int32 accumulated_pts_ = -1;
   Timeout pts_gap_timeout_;
+  double last_pts_jump_warning_time_ = 0;
 
   std::unordered_map<FileId, std::pair<FullMessageId, FileId>, FileIdHash>
       being_uploaded_files_;  // file_id -> message, thumbnail_file_id
