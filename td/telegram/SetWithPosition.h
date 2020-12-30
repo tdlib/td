@@ -29,8 +29,7 @@ class FastSetWithPosition {
       res.push_back(*not_checked_.begin());
       res.push_back(*not_checked_.rbegin());
     }
-    std::sort(res.begin(), res.end());
-    res.erase(std::unique(res.begin(), res.end()), res.end());
+    td::unique(res);
     if (res.size() > 2) {
       res.erase(res.begin() + 1, res.end() - 1);
     }

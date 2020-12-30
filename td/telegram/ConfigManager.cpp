@@ -1699,8 +1699,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
 
   // do not update suggested actions while changing content settings or dismissing an action
   if (!is_set_content_settings_request_sent_ && dismiss_suggested_action_request_count_ == 0) {
-    std::sort(suggested_actions.begin(), suggested_actions.end());
-    suggested_actions.erase(std::unique(suggested_actions.begin(), suggested_actions.end()), suggested_actions.end());
+    td::unique(suggested_actions);
     if (suggested_actions != suggested_actions_) {
       vector<SuggestedAction> added_actions;
       vector<SuggestedAction> removed_actions;

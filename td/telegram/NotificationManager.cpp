@@ -1253,10 +1253,7 @@ void NotificationManager::flush_pending_updates(int32 group_id, const char *sour
       auto update_ptr = static_cast<td_api::updateNotificationGroup *>(update.get());
       append(update_ptr->removed_notification_ids_, std::move(moved_deleted_notification_ids));
       auto old_size = update_ptr->removed_notification_ids_.size();
-      std::sort(update_ptr->removed_notification_ids_.begin(), update_ptr->removed_notification_ids_.end());
-      update_ptr->removed_notification_ids_.erase(
-          std::unique(update_ptr->removed_notification_ids_.begin(), update_ptr->removed_notification_ids_.end()),
-          update_ptr->removed_notification_ids_.end());
+      td::unique(update_ptr->removed_notification_ids_);
       CHECK(old_size == update_ptr->removed_notification_ids_.size());
     }
 

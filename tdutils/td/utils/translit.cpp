@@ -107,8 +107,7 @@ vector<string> get_word_transliterations(Slice word, bool allow_partial) {
   add_word_transliterations(result, word, allow_partial, get_en_to_ru_simple_rules(), get_en_to_ru_complex_rules());
   add_word_transliterations(result, word, allow_partial, get_ru_to_en_simple_rules(), get_ru_to_en_complex_rules());
 
-  std::sort(result.begin(), result.end());
-  result.erase(std::unique(result.begin(), result.end()), result.end());
+  td::unique(result);
   return result;
 }
 

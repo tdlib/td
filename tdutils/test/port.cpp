@@ -210,8 +210,9 @@ TEST(Port, SignalsAndThread) {
     }
     std::sort(ptrs.begin(), ptrs.end());
     CHECK(ptrs == ans);
-    std::sort(addrs.begin(), addrs.end());
-    ASSERT_TRUE(std::unique(addrs.begin(), addrs.end()) == addrs.end());
+    auto addrs_size = addrs.size();
+    td::unique(addrs);
+    ASSERT_EQ(addrs_size, addrs.size());
     //LOG(ERROR) << addrs;
   }
 }

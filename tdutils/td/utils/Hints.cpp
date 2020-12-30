@@ -153,8 +153,7 @@ vector<Hints::KeyT> Hints::search_word(const string &word) const {
     add_search_results(results, w, word_to_keys_);
   }
 
-  std::sort(results.begin(), results.end());
-  results.erase(std::unique(results.begin(), results.end()), results.end());
+  td::unique(results);
   return results;
 }
 

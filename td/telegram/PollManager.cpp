@@ -675,8 +675,7 @@ string PollManager::get_poll_search_text(PollId poll_id) const {
 
 void PollManager::set_poll_answer(PollId poll_id, FullMessageId full_message_id, vector<int32> &&option_ids,
                                   Promise<Unit> &&promise) {
-  std::sort(option_ids.begin(), option_ids.end());
-  option_ids.erase(std::unique(option_ids.begin(), option_ids.end()), option_ids.end());
+  td::unique(option_ids);
 
   if (is_local_poll_id(poll_id)) {
     return promise.set_error(Status::Error(400, "Poll can't be answered"));

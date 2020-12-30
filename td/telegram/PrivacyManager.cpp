@@ -410,8 +410,7 @@ vector<int32> PrivacyManager::UserPrivacySettingRules::get_restricted_user_ids()
   for (auto &rule : rules_) {
     combine(result, rule.get_restricted_user_ids());
   }
-  std::sort(result.begin(), result.end());
-  result.erase(std::unique(result.begin(), result.end()), result.end());
+  td::unique(result);
   return result;
 }
 

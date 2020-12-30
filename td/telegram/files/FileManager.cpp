@@ -1231,8 +1231,7 @@ Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource fi
   if (file_view.has_generate_location()) {
     new_generate = register_location(file_view.generate_location(), generate_location_to_file_id_);
   }
-  std::sort(to_merge.begin(), to_merge.end());
-  to_merge.erase(std::unique(to_merge.begin(), to_merge.end()), to_merge.end());
+  td::unique(to_merge);
 
   int new_cnt = new_remote + new_local + new_generate;
   if (data.pmc_id_ == 0 && file_db_ && new_cnt > 0) {
