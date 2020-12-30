@@ -1817,7 +1817,7 @@ class MessagesManager : public Actor {
 
   static FullMessageId get_replied_message_id(DialogId dialog_id, const Message *m);
 
-  MessageId get_reply_to_message_id(Dialog *d, MessageId top_thread_message_id, MessageId message_id);
+  MessageId get_reply_to_message_id(Dialog *d, MessageId top_thread_message_id, MessageId message_id, bool for_draft);
 
   static void fix_server_reply_to_message_id(DialogId dialog_id, MessageId message_id, DialogId reply_in_dialog_id,
                                              MessageId &reply_to_message_id);
