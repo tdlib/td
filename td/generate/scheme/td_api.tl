@@ -2102,12 +2102,14 @@ groupCallJoinResponse payload:groupCallPayload candidates:vector<groupCallJoinRe
 //@user_id Identifier of the user
 //@source User's synchronization source
 //@is_speaking True, if the participant is speaking as set by setGroupCallParticipantIsSpeaking
-//@can_be_muted True, if the current user can mute the participant
-//@can_be_unmuted True, if the current user can allow the participant to unmute themself or unmute the participant (only for self)
+//@can_be_muted_for_all_users True, if the current user can mute the participant for all other group call participants
+//@can_be_unmuted_for_all_users True, if the current user can allow the participant to unmute themself or unmute the participant (if the participant is the current user)
+//@can_be_muted_only_for_self True, if the current user can mute the participant only for self
+//@can_be_unmuted_only_for_self True, if the current user can unmute the participant for self
 //@is_muted True, if the participant is muted
 //@can_unmute_self True, if the participant can unmute themself
 //@order User's order in the group call participant list. The bigger is order, the higher is user in the list. If order is 0, the user must be removed from the participant list
-groupCallParticipant user_id:int32 source:int32 is_speaking:Bool can_be_muted:Bool can_be_unmuted:Bool is_muted:Bool can_unmute_self:Bool order:int64 = GroupCallParticipant;
+groupCallParticipant user_id:int32 source:int32 is_speaking:Bool can_be_muted_for_all_users:Bool can_be_unmuted_for_all_users:Bool can_be_muted_only_for_self:Bool can_be_unmuted_only_for_self:Bool is_muted:Bool can_unmute_self:Bool order:int64 = GroupCallParticipant;
 
 
 //@class CallProblem @description Describes the exact type of a problem with a call

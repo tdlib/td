@@ -1768,12 +1768,8 @@ void GroupCallManager::toggle_group_call_participant_is_muted(GroupCallId group_
     return promise.set_error(Status::Error(400, "Have no access to the user"));
   }
 
-  if (user_id != td_->contacts_manager_->get_my_id()) {
-    TRY_STATUS_PROMISE(promise, can_manage_group_calls(group_call->dialog_id));
-  } else {
-    if (!is_muted && !group_call->can_self_unmute) {
-      return promise.set_error(Status::Error(400, "Can't unmute self"));
-    }
+  if (user_id == td_->contacts_manager_->get_my_id() && !is_muted && !group_call->can_self_unmute) {
+    return promise.set_error(Status::Error(400, "Can't unmute self"));
   }
 
   td_->create_handler<EditGroupCallMemberQuery>(std::move(promise))->send(input_group_call_id, user_id, is_muted);

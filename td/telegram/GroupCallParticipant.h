@@ -24,9 +24,12 @@ struct GroupCallParticipant {
   int32 active_date = 0;
   bool is_muted = false;
   bool can_self_unmute = false;
+  bool is_muted_only_for_self = false;
 
-  bool can_be_muted = false;
-  bool can_be_unmuted = false;
+  bool can_be_muted_for_all_users = false;
+  bool can_be_unmuted_for_all_users = false;
+  bool can_be_muted_only_for_self = false;
+  bool can_be_unmuted_only_for_self = false;
 
   bool is_just_joined = false;
   bool is_speaking = false;
