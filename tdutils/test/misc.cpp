@@ -38,6 +38,7 @@
 #include "td/utils/unicode.h"
 #include "td/utils/utf8.h"
 
+#include <algorithm>
 #include <atomic>
 #include <clocale>
 #include <limits>
@@ -344,6 +345,25 @@ TEST(Misc, remove) {
   test_remove(v, -1, v);
   test_remove(v, 0, v);
   test_remove(v, 1, v);
+}
+
+static void test_unique(td::vector<int> v, td::vector<int> expected) {
+  td::unique(v);
+  ASSERT_EQ(expected, v);
+}
+
+TEST(Misc, unique) {
+  test_unique({1, 2, 3, 4, 5, 6}, {1, 2, 3, 4, 5, 6});
+  test_unique({5, 2, 1, 6, 3, 4}, {1, 2, 3, 4, 5, 6});
+  test_unique({}, {});
+  test_unique({0}, {0});
+  test_unique({0, 0}, {0});
+  test_unique({0, 1}, {0, 1});
+  test_unique({1, 0}, {0, 1});
+  test_unique({1, 1}, {1});
+  test_unique({3, 3, 3, 3, 3, 2, 2, 2, 1, 1, 0}, {0, 1, 2, 3});
+  test_unique({3, 3, 3, 3, 3}, {3});
+  test_unique({3, 3, -1, 3, 3}, {-1, 3});
 }
 
 TEST(Misc, contains) {

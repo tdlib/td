@@ -124,6 +124,26 @@ bool remove(V &v, const T &value) {
   return true;
 }
 
+template <class V>
+void unique(V &v) {
+  if (v.empty()) {
+    return;
+  }
+
+  std::sort(v.begin(), v.end());  // caller will need to #include <algorithm>
+
+  size_t j = 1;
+  for (size_t i = 1; i < v.size(); i++) {
+    if (v[i] != v[i - 1]) {
+      if (i != j) {
+        v[j] = std::move(v[i]);
+      }
+      j++;
+    }
+  }
+  v.resize(j);
+}
+
 template <class V, class T>
 bool contains(const V &v, const T &value) {
   for (auto &x : v) {
