@@ -2109,8 +2109,9 @@ groupCallJoinResponse payload:groupCallPayload candidates:vector<groupCallJoinRe
 //@is_muted True, if the participant is muted
 //@can_unmute_self True, if the participant can unmute themself
 //@mute_only_for_self_count Number of times the participant is muted by other participants
+//@volume_level Participant's volume level; 1-20000 in hundreds of percents
 //@order User's order in the group call participant list. The bigger is order, the higher is user in the list. If order is 0, the user must be removed from the participant list
-groupCallParticipant user_id:int32 source:int32 is_speaking:Bool can_be_muted_for_all_users:Bool can_be_unmuted_for_all_users:Bool can_be_muted_only_for_self:Bool can_be_unmuted_only_for_self:Bool is_muted:Bool can_unmute_self:Bool mute_only_for_self_count:int32 order:int64 = GroupCallParticipant;
+groupCallParticipant user_id:int32 source:int32 is_speaking:Bool can_be_muted_for_all_users:Bool can_be_unmuted_for_all_users:Bool can_be_muted_only_for_self:Bool can_be_unmuted_only_for_self:Bool is_muted:Bool can_unmute_self:Bool mute_only_for_self_count:int32 volume_level:int32 order:int64 = GroupCallParticipant;
 
 
 //@class CallProblem @description Describes the exact type of a problem with a call
