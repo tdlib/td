@@ -161,8 +161,8 @@ See [example/java](https://github.com/tdlib/td/tree/master/example/java) for exa
 `TDLib` provides native .NET interface through `C++/CLI` and `C++/CX`. To enable it, specify option `-DTD_ENABLE_DOTNET=ON` to CMake.
 .NET Core supports `C++/CLI` only since version 3.1 and only on Windows, so if older .NET Core is used or portability is needed, then `TDLib` JSON interface should be used through P/Invoke instead.
 
-See [example/csharp](https://github.com/tdlib/td/tree/master/example/csharp) for example of using `TDLib` from C# and detailed build and usage instructions.
-See [example/uwp](https://github.com/tdlib/td/tree/master/example/uwp) for example of using `TDLib` from C# UWP application and detailed build and usage instructions for Visual Studio Extension "TDLib for Universal Windows Platform".
+See [egramtel/tdsharp](https://github.com/egramtel/tdsharp) for a complete wrapper with generated bindings.
+If you want to create your own, see [example/csharp](https://github.com/tdlib/td/tree/master/example/csharp) for an example of using `TDLib` from C# and detailed build and usage instructions, and [example/uwp](https://github.com/tdlib/td/tree/master/example/uwp) for an example of using `TDLib` from a C# UWP application and detailed build and usage instructions for Visual Studio Extension "TDLib for Universal Windows Platform".
 
 When `TDLib` is built with `TD_ENABLE_DOTNET` option enabled, `C++` documentation is removed from some files. You need to checkout these files to return `C++` documentation back:
 ```
