@@ -6254,7 +6254,9 @@ void MessagesManager::add_pending_update(tl_object_ptr<telegram_api::Update> &&u
 
   if (td_->updates_manager_->running_get_difference() || !postponed_pts_updates_.empty()) {
     LOG(INFO) << "Save pending update got while running getDifference from " << source;
-    CHECK(update->get_id() == dummyUpdate::ID || update->get_id() == updateSentMessage::ID);
+    if (td_->updates_manager_->running_get_difference()) {
+      CHECK(update->get_id() == dummyUpdate::ID || update->get_id() == updateSentMessage::ID);
+    }
     postpone_pts_update(std::move(update), new_pts, pts_count, std::move(promise));
     return;
   }
