@@ -39,6 +39,7 @@
 
 #include "td/actor/actor.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/base64.h"
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"

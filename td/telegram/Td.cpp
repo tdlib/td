@@ -116,6 +116,7 @@
 #include "td/mtproto/RSA.h"
 #include "td/mtproto/TransportType.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/filesystem.h"
 #include "td/utils/format.h"

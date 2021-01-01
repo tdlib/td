@@ -28,6 +28,7 @@
 #include "td/telegram/VoiceNotesManager.hpp"
 #include "td/telegram/WebPageId.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/common.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"

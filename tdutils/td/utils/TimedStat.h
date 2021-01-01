@@ -89,9 +89,9 @@ struct MinMaxStat {
 }  // namespace detail
 
 template <class T>
-using MinStat = detail::MinMaxStat<T, std::less<>>;
+using MinStat = detail::MinMaxStat<T, std::less<void>>;
 
 template <class T>
-using MaxStat = detail::MinMaxStat<T, std::greater<>>;
+using MaxStat = detail::MinMaxStat<T, std::greater<void>>;
 
 }  // namespace td

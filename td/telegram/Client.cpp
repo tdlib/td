@@ -12,6 +12,7 @@
 #include "td/actor/actor.h"
 #include "td/actor/ConcurrentScheduler.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/common.h"
 #include "td/utils/crypto.h"
 #include "td/utils/ExitGuard.h"

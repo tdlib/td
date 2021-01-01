@@ -20,6 +20,7 @@
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/telegram_api.hpp"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/base64.h"
 #include "td/utils/buffer.h"
 #include "td/utils/crypto.h"

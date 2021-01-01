@@ -18,6 +18,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/UpdatesManager.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"

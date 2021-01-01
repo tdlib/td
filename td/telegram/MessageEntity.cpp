@@ -10,6 +10,7 @@
 #include "td/telegram/misc.h"
 #include "td/telegram/SecretChatActor.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"

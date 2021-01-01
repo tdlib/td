@@ -165,6 +165,7 @@ set(TDUTILS_SOURCE
   td/utils/port/detail/WineventPoll.h
 
   td/utils/AesCtrByteFlow.h
+  td/utils/algorithm.h
   td/utils/as.h
   td/utils/AtomicRead.h
   td/utils/base64.h

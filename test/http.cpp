@@ -12,6 +12,7 @@
 #include "td/net/HttpReader.h"
 
 #include "td/utils/AesCtrByteFlow.h"
+#include "td/utils/algorithm.h"
 #include "td/utils/base64.h"
 #include "td/utils/buffer.h"
 #include "td/utils/BufferedFd.h"

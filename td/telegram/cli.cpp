@@ -17,6 +17,7 @@
 #include "td/telegram/Td.h"  // for VERBOSITY_NAME(td_requests)
 #include "td/telegram/td_api_json.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/base64.h"
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
@@ -1078,7 +1079,7 @@ class CliClient final : public Actor {
   }
 
   td_api::object_ptr<td_api::userPrivacySettingRules> get_user_privacy_setting_rules(Slice allow, Slice ids) const {
-    td::vector<td_api::object_ptr<td_api::UserPrivacySettingRule>> rules;
+    vector<td_api::object_ptr<td_api::UserPrivacySettingRule>> rules;
     if (allow == "c" || allow == "contacts") {
       rules.push_back(td_api::make_object<td_api::userPrivacySettingRuleAllowContacts>());
     } else if (allow == "users") {

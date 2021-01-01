@@ -6,6 +6,7 @@
 //
 #include "td/telegram/SetWithPosition.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/common.h"
 #include "td/utils/misc.h"
 #include "td/utils/Random.h"

@@ -14,7 +14,7 @@
 #include "td/telegram/VideoNotesManager.h"
 #include "td/telegram/VideosManager.h"
 
-#include "td/utils/misc.h"
+#include "td/utils/algorithm.h"
 
 namespace td {
 

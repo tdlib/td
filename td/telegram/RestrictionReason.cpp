@@ -9,6 +9,7 @@
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/Global.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/common.h"
 #include "td/utils/misc.h"
 

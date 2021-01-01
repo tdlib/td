@@ -11,9 +11,9 @@
 
 #include "td/actor/actor.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
-#include "td/utils/misc.h"
 
 #include <algorithm>
 #include <set>

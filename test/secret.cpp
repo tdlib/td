@@ -28,6 +28,7 @@
 #include "td/tl/tl_object_parse.h"
 #include "td/tl/tl_object_store.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/as.h"
 #include "td/utils/base64.h"
 #include "td/utils/buffer.h"

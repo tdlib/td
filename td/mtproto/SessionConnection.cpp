@@ -13,12 +13,12 @@
 #include "td/mtproto/Transport.h"
 #include "td/mtproto/utils.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/as.h"
 #include "td/utils/common.h"
 #include "td/utils/format.h"
 #include "td/utils/Gzip.h"
 #include "td/utils/logging.h"
-#include "td/utils/misc.h"
 #include "td/utils/Random.h"
 #include "td/utils/ScopeGuard.h"
 #include "td/utils/Time.h"

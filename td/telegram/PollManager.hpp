@@ -9,8 +9,8 @@
 #include "td/telegram/PollManager.h"
 #include "td/telegram/Version.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/common.h"
-#include "td/utils/misc.h"
 #include "td/utils/tl_helpers.h"
 
 namespace td {

@@ -8,6 +8,7 @@
 
 #include "td/telegram/misc.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"

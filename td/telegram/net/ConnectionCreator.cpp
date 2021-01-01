@@ -28,6 +28,7 @@
 #include "td/net/Socks5.h"
 #include "td/net/TransparentProxy.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/base64.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"

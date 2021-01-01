@@ -10,6 +10,7 @@
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/ServerMessageId.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 

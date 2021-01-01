@@ -16,6 +16,7 @@
 #include "td/telegram/TdDb.h"
 #include "td/telegram/Version.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/common.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"

@@ -22,6 +22,7 @@
 #include "td/db/SqliteDb.h"
 #include "td/db/SqliteKeyValue.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/ExitGuard.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"

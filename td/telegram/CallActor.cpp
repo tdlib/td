@@ -22,13 +22,13 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/UpdatesManager.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/as.h"
 #include "td/utils/bits.h"
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/crypto.h"
 #include "td/utils/logging.h"
-#include "td/utils/misc.h"
 #include "td/utils/Random.h"
 
 #include <tuple>

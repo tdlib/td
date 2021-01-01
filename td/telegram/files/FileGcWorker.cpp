@@ -11,6 +11,7 @@
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/Global.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"

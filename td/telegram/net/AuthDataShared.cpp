@@ -9,9 +9,9 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/TdDb.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
-#include "td/utils/misc.h"
 #include "td/utils/port/RwMutex.h"
 #include "td/utils/tl_helpers.h"
 

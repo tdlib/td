@@ -29,6 +29,7 @@
 
 #include "td/actor/actor.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/ExitGuard.h"
 #include "td/utils/FileLog.h"
 #include "td/utils/logging.h"

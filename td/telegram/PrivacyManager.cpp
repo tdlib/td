@@ -19,8 +19,8 @@
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/Td.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/logging.h"
-#include "td/utils/misc.h"
 
 #include <algorithm>
 #include <iterator>

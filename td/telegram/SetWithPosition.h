@@ -6,8 +6,8 @@
 //
 #pragma once
 
+#include "td/utils/algorithm.h"
 #include "td/utils/common.h"
-#include "td/utils/misc.h"
 
 #include <algorithm>
 #include <set>
