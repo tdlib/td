@@ -6876,10 +6876,8 @@ void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_p
   LOG(INFO) << "Receive from " << source << " pending " << to_string(update);
   CHECK(update != nullptr);
   if (dialog_id.get_type() != DialogType::Channel) {
-    if (dialog_id != DialogId() || !td_->auth_manager_->is_bot()) {
-      LOG(ERROR) << "Receive channel update in invalid " << dialog_id << " from " << source << ": "
-                 << oneline(to_string(update));
-    }
+    LOG(ERROR) << "Receive channel update in invalid " << dialog_id << " from " << source << ": "
+               << oneline(to_string(update));
     promise.set_value(Unit());
     return;
   }
@@ -9301,10 +9299,8 @@ void MessagesManager::on_get_scheduled_server_messages(DialogId dialog_id, uint3
   for (auto &message : messages) {
     auto message_dialog_id = get_message_dialog_id(message);
     if (message_dialog_id != dialog_id) {
-      if (dialog_id.is_valid()) {
-        LOG(ERROR) << "Receive " << get_message_id(message, true) << " in wrong " << message_dialog_id << " instead of "
-                   << dialog_id << ": " << oneline(to_string(message));
-      }
+      LOG(ERROR) << "Receive " << get_message_id(message, true) << " in wrong " << message_dialog_id << " instead of "
+                 << dialog_id << ": " << oneline(to_string(message));
       continue;
     }
 
@@ -11312,8 +11308,10 @@ MessageId MessagesManager::get_message_id(const tl_object_ptr<telegram_api::Mess
 
 DialogId MessagesManager::get_message_dialog_id(const tl_object_ptr<telegram_api::Message> &message_ptr) {
   switch (message_ptr->get_id()) {
-    case telegram_api::messageEmpty::ID:
-      return DialogId();
+    case telegram_api::messageEmpty::ID: {
+      auto message = static_cast<const telegram_api::messageEmpty *>(message_ptr.get());
+      return message->peer_id_ == nullptr ? DialogId() : DialogId(message->peer_id_);
+    }
     case telegram_api::message::ID: {
       auto message = static_cast<const telegram_api::message *>(message_ptr.get());
       return DialogId(message->peer_id_);
