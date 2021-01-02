@@ -62,6 +62,9 @@ class GroupCallManager : public Actor {
   void toggle_group_call_participant_is_muted(GroupCallId group_call_id, UserId user_id, bool is_muted,
                                               Promise<Unit> &&promise);
 
+  void set_group_call_participant_volume_level(GroupCallId group_call_id, UserId user_id, int32 volume_level,
+                                               Promise<Unit> &&promise);
+
   void load_group_call_participants(GroupCallId group_call_id, int32 limit, Promise<Unit> &&promise);
 
   void leave_group_call(GroupCallId group_call_id, Promise<Unit> &&promise);

@@ -38,6 +38,9 @@ struct GroupCallParticipant {
   int32 local_active_date = 0;
   int64 order = 0;
 
+  static constexpr int32 MIN_VOLUME_LEVEL = 1;
+  static constexpr int32 MAX_VOLUME_LEVEL = 20000;
+
   GroupCallParticipant() = default;
 
   explicit GroupCallParticipant(const tl_object_ptr<telegram_api::groupCallParticipant> &participant);

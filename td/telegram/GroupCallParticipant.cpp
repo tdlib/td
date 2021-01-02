@@ -28,7 +28,7 @@ GroupCallParticipant::GroupCallParticipant(const tl_object_ptr<telegram_api::gro
   }
   if ((participant->flags_ & telegram_api::groupCallParticipant::VOLUME_MASK) != 0) {
     volume_level = participant->volume_;
-    if (volume_level <= 0 || volume_level > 20000) {
+    if (volume_level < MIN_VOLUME_LEVEL || volume_level > MAX_VOLUME_LEVEL) {
       LOG(ERROR) << "Receive " << to_string(participant);
       volume_level = 10000;
     }

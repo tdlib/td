@@ -281,17 +281,19 @@ class EditGroupCallMemberQuery : public Td::ResultHandler {
   explicit EditGroupCallMemberQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(InputGroupCallId input_group_call_id, UserId user_id, bool is_muted) {
+  void send(InputGroupCallId input_group_call_id, UserId user_id, bool is_muted, int32 volume_level) {
     auto input_user = td->contacts_manager_->get_input_user(user_id);
     CHECK(input_user != nullptr);
 
     int32 flags = 0;
-    if (is_muted) {
+    if (volume_level) {
+      flags |= telegram_api::phone_editGroupCallMember::VOLUME_MASK;
+    } else if (is_muted) {
       flags |= telegram_api::phone_editGroupCallMember::MUTED_MASK;
     }
 
     send_query(G()->net_query_creator().create(telegram_api::phone_editGroupCallMember(
-        flags, false /*ignored*/, input_group_call_id.get_input_group_call(), std::move(input_user), 0)));
+        flags, false /*ignored*/, input_group_call_id.get_input_group_call(), std::move(input_user), volume_level)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -1772,7 +1774,30 @@ void GroupCallManager::toggle_group_call_participant_is_muted(GroupCallId group_
     return promise.set_error(Status::Error(400, "Can't unmute self"));
   }
 
-  td_->create_handler<EditGroupCallMemberQuery>(std::move(promise))->send(input_group_call_id, user_id, is_muted);
+  td_->create_handler<EditGroupCallMemberQuery>(std::move(promise))->send(input_group_call_id, user_id, is_muted, 0);
+}
+
+void GroupCallManager::set_group_call_participant_volume_level(GroupCallId group_call_id, UserId user_id,
+                                                               int32 volume_level, Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
+  if (volume_level < GroupCallParticipant::MIN_VOLUME_LEVEL || volume_level > GroupCallParticipant::MAX_VOLUME_LEVEL) {
+    return promise.set_error(Status::Error(400, "Wrong volume level specified"));
+  }
+
+  auto *group_call = get_group_call(input_group_call_id);
+  if (group_call == nullptr || !group_call->is_inited || !group_call->is_active || !group_call->is_joined) {
+    return promise.set_error(Status::Error(400, "GROUP_CALL_JOIN_MISSING"));
+  }
+  if (!td_->contacts_manager_->have_input_user(user_id)) {
+    return promise.set_error(Status::Error(400, "Have no access to the user"));
+  }
+
+  if (user_id == td_->contacts_manager_->get_my_id()) {
+    return promise.set_error(Status::Error(400, "Can't change self volume level"));
+  }
+
+  td_->create_handler<EditGroupCallMemberQuery>(std::move(promise))
+      ->send(input_group_call_id, user_id, false, volume_level);
 }
 
 void GroupCallManager::load_group_call_participants(GroupCallId group_call_id, int32 limit, Promise<Unit> &&promise) {

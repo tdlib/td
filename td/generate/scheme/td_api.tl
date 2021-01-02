@@ -4385,7 +4385,7 @@ getGroupCall group_call_id:int32 = GroupCall;
 //@description Joins a group call @group_call_id Group call identifier @payload Group join payload, received from tgcalls. Use null to cancel previous joinGroupCall request @source Caller synchronization source identifier; received from tgcalls @is_muted True, if the user's microphone is muted
 joinGroupCall group_call_id:int32 payload:groupCallPayload source:int32 is_muted:Bool = GroupCallJoinResponse;
 
-//@description Toggles whether new participants of a group call can be unmuted only by administrators of the group call. Requires can_manage_voice_chats rights in the corresponding chat and allowed_change_mute_mew_participants group call flag
+//@description Toggles whether new participants of a group call can be unmuted only by administrators of the group call. Requires groupCall.can_be_managed and allowed_change_mute_mew_participants group call flag
 //@group_call_id Group call identifier @mute_new_participants New value of the mute_new_participants setting
 toggleGroupCallMuteNewParticipants group_call_id:int32 mute_new_participants:Bool = Ok;
 
@@ -4401,6 +4401,10 @@ setGroupCallParticipantIsSpeaking group_call_id:int32 source:int32 is_speaking:B
 //@group_call_id Group call identifier @user_id User identifier @is_muted Pass true if the user must be muted and false otherwise
 toggleGroupCallParticipantIsMuted group_call_id:int32 user_id:int32 is_muted:Bool = Ok;
 
+//@description Changes a group call participant's volume level. If the current user can manage the group call, then the participant's volume level will be changed for all users with default volume level
+//@group_call_id Group call identifier @user_id User identifier @volume_level New participant's volume level; 1-20000 in hundreds of percents
+setGroupCallParticipantVolumeLevel group_call_id:int32 user_id:int32 volume_level:int32 = Ok;
+
 //@description Loads more group call participants. The loaded participants will be received through updates. Use the field groupCall.loaded_all_participants to check whether all participants has already been loaded
 //@group_call_id Group call identifier. The group call must be previously received through getGroupCall and must be joined or being joined
 //@limit Maximum number of participants to load
@@ -4409,7 +4413,7 @@ loadGroupCallParticipants group_call_id:int32 limit:int32 = Ok;
 //@description Leaves a group call @group_call_id Group call identifier
 leaveGroupCall group_call_id:int32 = Ok;
 
-//@description Discards a group call. Requires can_manage_voice_chats rights in the corresponding chat @group_call_id Group call identifier
+//@description Discards a group call. Requires groupCall.can_be_managed @group_call_id Group call identifier
 discardGroupCall group_call_id:int32 = Ok;
 
 

@@ -6001,6 +6001,13 @@ void Td::on_request(uint64 id, const td_api::toggleGroupCallParticipantIsMuted &
       GroupCallId(request.group_call_id_), UserId(request.user_id_), request.is_muted_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::setGroupCallParticipantVolumeLevel &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  group_call_manager_->set_group_call_participant_volume_level(
+      GroupCallId(request.group_call_id_), UserId(request.user_id_), request.volume_level_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::loadGroupCallParticipants &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
