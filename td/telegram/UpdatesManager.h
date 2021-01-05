@@ -133,6 +133,7 @@ class UpdatesManager : public Actor {
 
   bool running_get_difference_ = false;
   int32 last_get_difference_pts_ = 0;
+  int32 last_get_difference_qts_ = 0;
   int32 min_postponed_update_pts_ = 0;
   int32 min_postponed_update_qts_ = 0;
 

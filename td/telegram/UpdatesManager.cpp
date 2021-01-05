@@ -246,6 +246,7 @@ void UpdatesManager::run_get_difference(bool is_recursive, const char *source) {
 
   td_->create_handler<GetDifferenceQuery>()->send();
   last_get_difference_pts_ = get_pts();
+  last_get_difference_qts_ = get_qts();
 }
 
 void UpdatesManager::before_get_difference(bool is_initial) {
@@ -1080,6 +1081,7 @@ void UpdatesManager::init_state() {
   pts_manager_.init(to_integer<int32>(pts_str));
   last_get_difference_pts_ = get_pts();
   qts_manager_.init(to_integer<int32>(pmc->get("updates.qts")));
+  last_get_difference_qts_ = get_qts();
   date_ = to_integer<int32>(pmc->get("updates.date"));
   date_source_ = "database";
   LOG(DEBUG) << "Init: " << get_pts() << " " << get_qts() << " " << date_;
@@ -1562,6 +1564,7 @@ void UpdatesManager::add_pending_qts_update(tl_object_ptr<telegram_api::Update> 
     add_qts(qts - 1).set_value(Unit());
     CHECK(get_qts() == qts - 1);
     old_qts = qts - 1;
+    last_get_difference_qts_ = get_qts();
   }
 
   if (qts <= old_qts) {
@@ -1667,6 +1670,10 @@ void UpdatesManager::process_seq_updates(int32 seq_end, int32 date,
 void UpdatesManager::process_qts_update(tl_object_ptr<telegram_api::Update> &&update_ptr, int32 qts,
                                         Promise<Unit> &&promise) {
   LOG(DEBUG) << "Process " << to_string(update_ptr);
+  if (last_get_difference_qts_ + FORCED_GET_DIFFERENCE_PTS_DIFF < qts) {
+    last_get_difference_qts_ = qts;
+    schedule_get_difference("process_qts_update");
+  }
   switch (update_ptr->get_id()) {
     case telegram_api::updateNewEncryptedMessage::ID: {
       auto update = move_tl_object_as<telegram_api::updateNewEncryptedMessage>(update_ptr);
