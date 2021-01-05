@@ -133,6 +133,8 @@ class UpdatesManager : public Actor {
 
   bool running_get_difference_ = false;
   int32 last_get_difference_pts_ = 0;
+  int32 min_postponed_update_pts_ = 0;
+  int32 min_postponed_update_qts_ = 0;
 
   void tear_down() override;
 
@@ -184,11 +186,15 @@ class UpdatesManager : public Actor {
 
   void set_qts_gap_timeout(double timeout);
 
+  void run_get_difference(bool is_recursive, const char *source);
+
   void on_failed_get_difference();
 
   void before_get_difference(bool is_initial);
 
   void after_get_difference();
+
+  static bool have_update_pts_changed(const vector<tl_object_ptr<telegram_api::Update>> &updates);
 
   static int32 get_update_pts(const telegram_api::Update *update);
 
