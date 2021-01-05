@@ -88,7 +88,7 @@ class GroupCallManager : public Actor {
   struct GroupCallRecentSpeakers;
   struct PendingJoinRequest;
 
-  static constexpr int32 RECENT_SPEAKER_TIMEOUT = 5 * 60;
+  static constexpr int32 RECENT_SPEAKER_TIMEOUT = 60 * 60;
   static constexpr int32 CHECK_GROUP_CALL_IS_JOINED_TIMEOUT = 10;
 
   void tear_down() override;

@@ -2076,7 +2076,8 @@ void GroupCallManager::on_receive_group_call_version(InputGroupCallId input_grou
 
 void GroupCallManager::on_participant_speaking_in_group_call(InputGroupCallId input_group_call_id,
                                                              const GroupCallParticipant &participant) {
-  if (participant.active_date < G()->unix_time() - RECENT_SPEAKER_TIMEOUT) {
+  auto active_date = td::max(participant.active_date, participant.joined_date - 60);
+  if (active_date < G()->unix_time() - RECENT_SPEAKER_TIMEOUT) {
     return;
   }
 
@@ -2085,7 +2086,7 @@ void GroupCallManager::on_participant_speaking_in_group_call(InputGroupCallId in
     return;
   }
 
-  on_user_speaking_in_group_call(group_call->group_call_id, participant.user_id, participant.active_date, true);
+  on_user_speaking_in_group_call(group_call->group_call_id, participant.user_id, active_date, true);
 }
 
 void GroupCallManager::on_user_speaking_in_group_call(GroupCallId group_call_id, UserId user_id, int32 date,
