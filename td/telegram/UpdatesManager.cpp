@@ -1449,8 +1449,8 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
   }
 
   if (running_get_difference_) {
-    LOG(INFO) << "Postpone " << updates.size() << " updates [" << seq_begin << ", " << seq_end
-              << "] with date = " << date << " from " << source;
+    LOG(ERROR) << "Postpone " << updates.size() << " updates [" << seq_begin << ", " << seq_end
+               << "] with date = " << date << " from " << source;
     postponed_updates_.emplace(seq_begin,
                                PendingUpdates(seq_begin, seq_end, date, std::move(updates), mpas.get_promise()));
     return lock.set_value(Unit());
@@ -2013,6 +2013,40 @@ int32 UpdatesManager::get_short_update_date() const {
     return min(short_update_date_, now);
   }
   return now;
+}
+
+int32 UpdatesManager::get_update_pts(const telegram_api::Update *update) {
+  switch (update->get_id()) {
+    case telegram_api::updateNewMessage::ID:
+      return static_cast<const telegram_api::updateNewMessage *>(update)->pts_;
+    case telegram_api::updateReadMessagesContents::ID:
+      return static_cast<const telegram_api::updateReadMessagesContents *>(update)->pts_;
+    case telegram_api::updateEditMessage::ID:
+      return static_cast<const telegram_api::updateEditMessage *>(update)->pts_;
+    case telegram_api::updateDeleteMessages::ID:
+      return static_cast<const telegram_api::updateDeleteMessages *>(update)->pts_;
+    case telegram_api::updateReadHistoryInbox::ID:
+      return static_cast<const telegram_api::updateReadHistoryInbox *>(update)->pts_;
+    case telegram_api::updateReadHistoryOutbox::ID:
+      return static_cast<const telegram_api::updateReadHistoryOutbox *>(update)->pts_;
+    case telegram_api::updateWebPage::ID:
+      return static_cast<const telegram_api::updateWebPage *>(update)->pts_;
+    case telegram_api::updatePinnedMessages::ID:
+      return static_cast<const telegram_api::updatePinnedMessages *>(update)->pts_;
+    default:
+      return 0;
+  }
+}
+
+int32 UpdatesManager::get_update_qts(const telegram_api::Update *update) {
+  switch (update->get_id()) {
+    case telegram_api::updateNewEncryptedMessage::ID:
+      return static_cast<const telegram_api::updateNewEncryptedMessage *>(update)->qts_;
+    case telegram_api::updateChannelParticipant::ID:
+      return static_cast<const telegram_api::updateChannelParticipant *>(update)->qts_;
+    default:
+      return 0;
+  }
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateUserTyping> update, bool /*force_apply*/,

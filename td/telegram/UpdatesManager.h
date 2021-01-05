@@ -190,6 +190,10 @@ class UpdatesManager : public Actor {
 
   void after_get_difference();
 
+  static int32 get_update_pts(const telegram_api::Update *update);
+
+  static int32 get_update_qts(const telegram_api::Update *update);
+
   static const vector<tl_object_ptr<telegram_api::Update>> *get_updates(const telegram_api::Updates *updates_ptr);
 
   bool is_acceptable_user(UserId user_id) const;
