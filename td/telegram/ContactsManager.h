@@ -1219,9 +1219,9 @@ class ContactsManager : public Actor {
   void remove_linked_channel_id(ChannelId channel_id);
   ChannelId get_linked_channel_id(ChannelId channel_id) const;
 
-  static bool speculative_add_count(int32 &count, int32 new_count);
+  static bool speculative_add_count(int32 &count, int32 delta_count, int32 min_count = 0);
 
-  void speculative_add_channel_participants(ChannelId channel_id, int32 new_participant_count, bool by_me);
+  void speculative_add_channel_participants(ChannelId channel_id, int32 delta_participant_count, bool by_me);
 
   void speculative_add_channel_user(ChannelId channel_id, UserId user_id, DialogParticipantStatus new_status,
                                     DialogParticipantStatus old_status);

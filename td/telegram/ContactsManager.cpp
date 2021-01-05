@@ -10751,10 +10751,10 @@ void ContactsManager::on_get_channel_participants_fail(ChannelId channel_id, Cha
   }
 }
 
-bool ContactsManager::speculative_add_count(int32 &count, int32 new_count) {
-  new_count += count;
-  if (new_count < 0) {
-    new_count = 0;
+bool ContactsManager::speculative_add_count(int32 &count, int32 delta_count, int32 min_count) {
+  auto new_count = count + delta_count;
+  if (new_count < min_count) {
+    new_count = min_count;
   }
   if (new_count == count) {
     return false;
@@ -10770,13 +10770,13 @@ void ContactsManager::speculative_add_channel_participants(ChannelId channel_id,
   auto channel_full = get_channel_full_force(channel_id, "speculative_add_channel_participants");
   bool is_participants_cache_changed = false;
 
-  int32 new_participant_count = 0;
+  int32 delta_participant_count = 0;
   for (auto user_id : added_user_ids) {
     if (!user_id.is_valid()) {
       continue;
     }
 
-    new_participant_count++;
+    delta_participant_count++;
 
     if (it != cached_channel_participants_.end()) {
       auto &participants = it->second;
@@ -10804,11 +10804,11 @@ void ContactsManager::speculative_add_channel_participants(ChannelId channel_id,
   if (channel_full != nullptr) {
     update_channel_full(channel_full, channel_id);
   }
-  if (new_participant_count == 0) {
+  if (delta_participant_count == 0) {
     return;
   }
 
-  speculative_add_channel_participants(channel_id, new_participant_count, by_me);
+  speculative_add_channel_participants(channel_id, delta_participant_count, by_me);
 }
 
 void ContactsManager::speculative_delete_channel_participant(ChannelId channel_id, UserId deleted_user_id, bool by_me) {
@@ -10839,7 +10839,7 @@ void ContactsManager::speculative_delete_channel_participant(ChannelId channel_i
   speculative_add_channel_participants(channel_id, -1, by_me);
 }
 
-void ContactsManager::speculative_add_channel_participants(ChannelId channel_id, int32 new_participant_count,
+void ContactsManager::speculative_add_channel_participants(ChannelId channel_id, int32 delta_participant_count,
                                                            bool by_me) {
   if (by_me) {
     // Currently ignore all changes made by the current user, because they may be already counted
@@ -10847,18 +10847,22 @@ void ContactsManager::speculative_add_channel_participants(ChannelId channel_id,
     return;
   }
 
+  auto channel_full = get_channel_full_force(channel_id, "speculative_add_channel_participants");
+  auto min_count = channel_full == nullptr ? 0 : channel_full->administrator_count;
+
   auto c = get_channel_force(channel_id);
-  if (c != nullptr && c->participant_count != 0 && speculative_add_count(c->participant_count, new_participant_count)) {
+  if (c != nullptr && c->participant_count != 0 &&
+      speculative_add_count(c->participant_count, delta_participant_count, min_count)) {
     c->is_changed = true;
     update_channel(c, channel_id);
   }
 
-  auto channel_full = get_channel_full_force(channel_id, "speculative_add_channel_participants");
   if (channel_full == nullptr) {
     return;
   }
 
-  channel_full->is_changed |= speculative_add_count(channel_full->participant_count, new_participant_count);
+  channel_full->is_changed |=
+      speculative_add_count(channel_full->participant_count, delta_participant_count, min_count);
 
   if (channel_full->is_changed) {
     channel_full->speculative_version++;
@@ -10940,10 +10944,11 @@ void ContactsManager::speculative_add_channel_user(ChannelId channel_id, UserId 
     return;
   }
 
-  channel_full->is_changed |=
-      speculative_add_count(channel_full->participant_count, new_status.is_member() - old_status.is_member());
   channel_full->is_changed |= speculative_add_count(channel_full->administrator_count,
                                                     new_status.is_administrator() - old_status.is_administrator());
+  channel_full->is_changed |=
+      speculative_add_count(channel_full->participant_count, new_status.is_member() - old_status.is_member(),
+                            channel_full->administrator_count);
   channel_full->is_changed |=
       speculative_add_count(channel_full->restricted_count, new_status.is_restricted() - old_status.is_restricted());
   channel_full->is_changed |=
