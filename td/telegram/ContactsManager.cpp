@@ -13419,7 +13419,7 @@ std::pair<int32, vector<DialogParticipant>> ContactsManager::search_chat_partici
     return {};
   }
 
-  auto is_dialog_participant_suitable = [this](const DialogParticipant &participant, DialogParticipantsFilter filter) {
+  auto is_dialog_participant_suitable = [this, filter](const DialogParticipant &participant) {
     switch (filter.type) {
       case DialogParticipantsFilter::Type::Contacts:
         return is_user_contact(participant.user_id);
@@ -13443,7 +13443,7 @@ std::pair<int32, vector<DialogParticipant>> ContactsManager::search_chat_partici
 
   vector<UserId> user_ids;
   for (const auto &participant : chat_full->participants) {
-    if (is_dialog_participant_suitable(participant, filter)) {
+    if (is_dialog_participant_suitable(participant)) {
       user_ids.push_back(participant.user_id);
     }
   }
