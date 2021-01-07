@@ -349,8 +349,14 @@ TEST(Misc, remove) {
 }
 
 static void test_unique(td::vector<int> v, td::vector<int> expected) {
+  auto v_str = td::transform(v, &td::to_string<int>);
+  auto expected_str = td::transform(expected, &td::to_string<int>);
+
   td::unique(v);
   ASSERT_EQ(expected, v);
+
+  td::unique(v_str);
+  ASSERT_EQ(expected_str, v_str);
 }
 
 TEST(Misc, unique) {
@@ -362,6 +368,7 @@ TEST(Misc, unique) {
   test_unique({0, 1}, {0, 1});
   test_unique({1, 0}, {0, 1});
   test_unique({1, 1}, {1});
+  test_unique({1, 1, 0, 0}, {0, 1});
   test_unique({3, 3, 3, 3, 3, 2, 2, 2, 1, 1, 0}, {0, 1, 2, 3});
   test_unique({3, 3, 3, 3, 3}, {3});
   test_unique({3, 3, -1, 3, 3}, {-1, 3});

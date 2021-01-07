@@ -7,6 +7,7 @@
 #include "td/utils/translit.h"
 
 #include "td/utils/algorithm.h"
+#include "td/utils/format.h"
 #include "td/utils/misc.h"
 #include "td/utils/utf8.h"
 

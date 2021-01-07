@@ -98,7 +98,7 @@ void unique(V &v) {
 
   size_t j = 1;
   for (size_t i = 1; i < v.size(); i++) {
-    if (v[i] != v[i - 1]) {
+    if (v[i] != v[j - 1]) {
       if (i != j) {
         v[j] = std::move(v[i]);
       }
