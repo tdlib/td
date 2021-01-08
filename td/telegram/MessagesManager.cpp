@@ -6248,7 +6248,7 @@ void MessagesManager::add_pending_update(tl_object_ptr<telegram_api::Update> &&u
     }
   }
 
-  if (new_pts <= old_pts) {
+  if (new_pts <= old_pts || (old_pts >= 1 && new_pts > old_pts + 500000000)) {
     skip_old_pending_update(std::move(update), new_pts, old_pts, pts_count, source);
     return promise.set_value(Unit());
   }
