@@ -335,7 +335,7 @@ class CheckGroupCallQuery : public Td::ResultHandler {
     if (success) {
       promise_.set_value(Unit());
     } else {
-      promise_.set_error(Status::Error(400, "GROUP_CALL_JOIN_MISSING"));
+      promise_.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
     }
   }
 
@@ -496,7 +496,7 @@ void GroupCallManager::on_check_group_call_is_joined_timeout(GroupCallId group_c
   auto source = group_call->source;
   auto promise =
       PromiseCreator::lambda([actor_id = actor_id(this), input_group_call_id, source](Result<Unit> &&result) mutable {
-        if (result.is_error() && result.error().message() == "GROUP_CALL_JOIN_MISSING") {
+        if (result.is_error() && result.error().message() == "GROUPCALL_JOIN_MISSING") {
           send_closure(actor_id, &GroupCallManager::on_group_call_left, input_group_call_id, source, true);
           result = Unit();
         }
@@ -1779,7 +1779,7 @@ void GroupCallManager::toggle_group_call_participant_is_muted(GroupCallId group_
 
   auto *group_call = get_group_call(input_group_call_id);
   if (group_call == nullptr || !group_call->is_inited || !group_call->is_active || !group_call->is_joined) {
-    return promise.set_error(Status::Error(400, "GROUP_CALL_JOIN_MISSING"));
+    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
   }
   if (!td_->contacts_manager_->have_input_user(user_id)) {
     return promise.set_error(Status::Error(400, "Have no access to the user"));
@@ -1827,7 +1827,7 @@ void GroupCallManager::leave_group_call(GroupCallId group_call_id, Promise<Unit>
 
   auto *group_call = get_group_call(input_group_call_id);
   if (group_call == nullptr || !group_call->is_inited || !group_call->is_active || !group_call->is_joined) {
-    return promise.set_error(Status::Error(400, "GROUP_CALL_JOIN_MISSING"));
+    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
   }
   auto source = group_call->source;
   group_call->is_being_left = true;
