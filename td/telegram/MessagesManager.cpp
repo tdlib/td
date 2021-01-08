@@ -8741,22 +8741,18 @@ void MessagesManager::after_get_difference() {
   CHECK(!td_->updates_manager_->running_get_difference());
 
   if (postponed_pts_updates_.size()) {
-    LOG(INFO) << "Begin to apply postponed pts updates";
-    auto old_pts = td_->updates_manager_->get_pts();
-    for (auto &update : postponed_pts_updates_) {
-      auto new_pts = update.second.pts;
-      if (new_pts <= old_pts) {
-        skip_old_pending_update(std::move(update.second.update), new_pts, old_pts, update.second.pts_count,
-                                "after get difference");
-        update.second.promise.set_value(Unit());
-      } else {
-        add_pending_update(std::move(update.second.update), update.second.pts, update.second.pts_count, false,
-                           std::move(update.second.promise), "after get difference");
-      }
+    auto postponed_updates = std::move(postponed_pts_updates_);
+    postponed_pts_updates_.clear();
+
+    LOG(INFO) << "Begin to apply " << postponed_updates.size() << " postponed pts updates";
+    for (auto &postponed_update : postponed_updates) {
+      auto &update = postponed_update.second;
+      add_pending_update(std::move(update.update), update.pts, update.pts_count, false, std::move(update.promise),
+                         "after get difference");
       CHECK(!td_->updates_manager_->running_get_difference());
     }
-    postponed_pts_updates_.clear();
-    LOG(INFO) << "Finish to apply postponed pts updates";
+    LOG(INFO) << "Finish to apply postponed pts updates, have " << postponed_pts_updates_.size()
+              << " left postponed updates";
   }
 
   running_get_difference_ = false;
