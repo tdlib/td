@@ -183,11 +183,30 @@ void UpdatesManager::tear_down() {
 }
 
 void UpdatesManager::fill_pts_gap(void *td) {
-  fill_gap(td, "pts");
+  CHECK(td != nullptr);
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto td_ptr = static_cast<Td *>(td);
+  string source = PSTRING() << "pts from " << td_ptr->updates_manager_->get_pts() << " to "
+                            << td_ptr->messages_manager_->get_min_pending_pts();
+  fill_gap(td, source.c_str());
 }
 
 void UpdatesManager::fill_seq_gap(void *td) {
-  fill_gap(td, "seq");
+  CHECK(td != nullptr);
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto td_ptr = static_cast<Td *>(td);
+  auto seq = std::numeric_limits<int32>::max();
+  if (!td_ptr->updates_manager_->pending_seq_updates_.empty()) {
+    seq = td_ptr->updates_manager_->pending_seq_updates_.begin()->first;
+  }
+  string source = PSTRING() << "seq from " << td_ptr->updates_manager_->seq_ << " to " << seq;
+  fill_gap(td, source.c_str());
 }
 
 void UpdatesManager::fill_qts_gap(void *td) {

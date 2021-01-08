@@ -788,6 +788,8 @@ class MessagesManager : public Actor {
   tl_object_ptr<td_api::messages> get_messages_object(int32 total_count, const vector<FullMessageId> &full_message_ids,
                                                       bool skip_not_found);
 
+  int32 get_min_pending_pts() const;
+
   void add_pending_update(tl_object_ptr<telegram_api::Update> &&update, int32 new_pts, int32 pts_count,
                           bool force_apply, Promise<Unit> &&promise, const char *source);
 

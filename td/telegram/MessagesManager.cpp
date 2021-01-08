@@ -6143,6 +6143,23 @@ void MessagesManager::skip_old_pending_update(tl_object_ptr<telegram_api::Update
       << "Receive useless update " << oneline(to_string(update)) << " from " << source;
 }
 
+int32 MessagesManager::get_min_pending_pts() const {
+  int32 result = std::numeric_limits<int32>::max();
+  if (!pending_pts_updates_.empty()) {
+    auto pts = pending_pts_updates_.begin()->first;
+    if (pts < result) {
+      result = pts;
+    }
+  }
+  if (!postponed_pts_updates_.empty()) {
+    auto pts = postponed_pts_updates_.begin()->first;
+    if (pts < result) {
+      result = pts;
+    }
+  }
+  return result;
+}
+
 void MessagesManager::add_pending_update(tl_object_ptr<telegram_api::Update> &&update, int32 new_pts, int32 pts_count,
                                          bool force_apply, Promise<Unit> &&promise, const char *source) {
   // do not try to run getDifference from this function
