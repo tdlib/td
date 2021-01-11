@@ -4261,10 +4261,10 @@ Status Td::init(DbKey key) {
   }
 
   if (is_online_) {
-    if (auth_manager_->is_bot()) {
-      send_closure(G()->state_manager(), &StateManager::on_online, false);
-    }
     on_online_updated(true, true);
+  }
+  if (auth_manager_->is_bot()) {
+    send_closure(G()->state_manager(), &StateManager::on_online, true);
   }
 
   // Send binlog events to managers
