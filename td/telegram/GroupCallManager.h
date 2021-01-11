@@ -48,15 +48,16 @@ class GroupCallManager : public Actor {
   void reload_group_call(InputGroupCallId input_group_call_id,
                          Promise<td_api::object_ptr<td_api::groupCall>> &&promise);
 
-  void join_group_call(GroupCallId group_call_id, td_api::object_ptr<td_api::groupCallPayload> &&payload, int32 source,
-                       bool is_muted, Promise<td_api::object_ptr<td_api::groupCallJoinResponse>> &&promise);
+  void join_group_call(GroupCallId group_call_id, td_api::object_ptr<td_api::groupCallPayload> &&payload,
+                       int32 audio_source, bool is_muted,
+                       Promise<td_api::object_ptr<td_api::groupCallJoinResponse>> &&promise);
 
   void toggle_group_call_mute_new_participants(GroupCallId group_call_id, bool mute_new_participants,
                                                Promise<Unit> &&promise);
 
   void invite_group_call_participants(GroupCallId group_call_id, vector<UserId> &&user_ids, Promise<Unit> &&promise);
 
-  void set_group_call_participant_is_speaking(GroupCallId group_call_id, int32 source, bool is_speaking,
+  void set_group_call_participant_is_speaking(GroupCallId group_call_id, int32 audio_source, bool is_speaking,
                                               Promise<Unit> &&promise, int32 date = 0);
 
   void toggle_group_call_participant_is_muted(GroupCallId group_call_id, UserId user_id, bool is_muted,
@@ -131,7 +132,8 @@ class GroupCallManager : public Actor {
   void finish_get_group_call(InputGroupCallId input_group_call_id,
                              Result<tl_object_ptr<telegram_api::phone_groupCall>> &&result);
 
-  void finish_check_group_call_is_joined(InputGroupCallId input_group_call_id, int32 source, Result<Unit> &&result);
+  void finish_check_group_call_is_joined(InputGroupCallId input_group_call_id, int32 audio_source,
+                                         Result<Unit> &&result);
 
   bool need_group_call_participants(InputGroupCallId input_group_call_id) const;
 
@@ -163,7 +165,7 @@ class GroupCallManager : public Actor {
 
   GroupCallParticipants *add_group_call_participants(InputGroupCallId input_group_call_id);
 
-  void on_group_call_left(InputGroupCallId input_group_call_id, int32 source, bool need_rejoin);
+  void on_group_call_left(InputGroupCallId input_group_call_id, int32 audio_source, bool need_rejoin);
 
   void on_group_call_left_impl(GroupCall *group_call, bool need_rejoin);
 
@@ -178,7 +180,7 @@ class GroupCallManager : public Actor {
 
   void on_group_call_recent_speakers_updated(const GroupCall *group_call, GroupCallRecentSpeakers *recent_speakers);
 
-  UserId set_group_call_participant_is_speaking_by_source(InputGroupCallId input_group_call_id, int32 source,
+  UserId set_group_call_participant_is_speaking_by_source(InputGroupCallId input_group_call_id, int32 audio_source,
                                                           bool is_speaking, int32 date);
 
   static Result<td_api::object_ptr<td_api::groupCallJoinResponse>> get_group_call_join_response_object(

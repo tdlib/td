@@ -19,7 +19,7 @@ class ContactsManager;
 
 struct GroupCallParticipant {
   UserId user_id;
-  int32 source = 0;
+  int32 audio_source = 0;
   int32 joined_date = 0;
   int32 active_date = 0;
   int32 muted_count = 0;
