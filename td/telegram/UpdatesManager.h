@@ -197,7 +197,11 @@ class UpdatesManager : public Actor {
 
   static bool have_update_pts_changed(const vector<tl_object_ptr<telegram_api::Update>> &updates);
 
+  static bool is_pts_update(const telegram_api::Update *update);
+
   static int32 get_update_pts(const telegram_api::Update *update);
+
+  static bool is_qts_update(const telegram_api::Update *update);
 
   static int32 get_update_qts(const telegram_api::Update *update);
 

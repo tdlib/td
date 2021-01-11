@@ -1504,13 +1504,7 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
 
   for (auto &update : updates) {
     if (update != nullptr) {
-      int32 id = update->get_id();
-      if (id == telegram_api::updateNewMessage::ID || id == telegram_api::updateReadMessagesContents::ID ||
-          id == telegram_api::updateEditMessage::ID || id == telegram_api::updateDeleteMessages::ID ||
-          id == telegram_api::updateReadHistoryInbox::ID || id == telegram_api::updateReadHistoryOutbox::ID ||
-          id == telegram_api::updateWebPage::ID || id == telegram_api::updatePinnedMessages::ID ||
-          id == telegram_api::updateFolderPeers::ID || id == telegram_api::updateNewEncryptedMessage::ID ||
-          id == telegram_api::updateChannelParticipant::ID) {
+      if (is_pts_update(update.get()) || is_qts_update(update.get())) {
         auto update_promise = mpas.get_promise();
         if (!downcast_call(*update, OnUpdate(this, update, false, update_promise))) {
           LOG(FATAL) << "Can't call on some update received from " << source;
@@ -2103,6 +2097,23 @@ bool UpdatesManager::have_update_pts_changed(const vector<tl_object_ptr<telegram
   return false;
 }
 
+bool UpdatesManager::is_pts_update(const telegram_api::Update *update) {
+  switch (update->get_id()) {
+    case telegram_api::updateNewMessage::ID:
+    case telegram_api::updateReadMessagesContents::ID:
+    case telegram_api::updateEditMessage::ID:
+    case telegram_api::updateDeleteMessages::ID:
+    case telegram_api::updateReadHistoryInbox::ID:
+    case telegram_api::updateReadHistoryOutbox::ID:
+    case telegram_api::updateWebPage::ID:
+    case telegram_api::updatePinnedMessages::ID:
+    case telegram_api::updateFolderPeers::ID:
+      return true;
+    default:
+      return false;
+  }
+}
+
 int32 UpdatesManager::get_update_pts(const telegram_api::Update *update) {
   switch (update->get_id()) {
     case telegram_api::updateNewMessage::ID:
@@ -2125,6 +2136,16 @@ int32 UpdatesManager::get_update_pts(const telegram_api::Update *update) {
       return static_cast<const telegram_api::updateFolderPeers *>(update)->pts_;
     default:
       return 0;
+  }
+}
+
+bool UpdatesManager::is_qts_update(const telegram_api::Update *update) {
+  switch (update->get_id()) {
+    case telegram_api::updateNewEncryptedMessage::ID:
+    case telegram_api::updateChannelParticipant::ID:
+      return true;
+    default:
+      return false;
   }
 }
 
