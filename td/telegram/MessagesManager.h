@@ -790,8 +790,10 @@ class MessagesManager : public Actor {
 
   int32 get_min_pending_pts() const;
 
+  void process_pts_update(tl_object_ptr<telegram_api::Update> &&update);
+
   void add_pending_update(tl_object_ptr<telegram_api::Update> &&update, int32 new_pts, int32 pts_count,
-                          bool force_apply, Promise<Unit> &&promise, const char *source);
+                          Promise<Unit> &&promise, const char *source);
 
   void add_pending_channel_update(DialogId dialog_id, tl_object_ptr<telegram_api::Update> &&update, int32 new_pts,
                                   int32 pts_count, Promise<Unit> &&promise, const char *source,
