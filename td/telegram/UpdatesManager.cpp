@@ -1509,7 +1509,8 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
           id == telegram_api::updateEditMessage::ID || id == telegram_api::updateDeleteMessages::ID ||
           id == telegram_api::updateReadHistoryInbox::ID || id == telegram_api::updateReadHistoryOutbox::ID ||
           id == telegram_api::updateWebPage::ID || id == telegram_api::updatePinnedMessages::ID ||
-          id == telegram_api::updateNewEncryptedMessage::ID || id == telegram_api::updateChannelParticipant::ID) {
+          id == telegram_api::updateFolderPeers::ID || id == telegram_api::updateNewEncryptedMessage::ID ||
+          id == telegram_api::updateChannelParticipant::ID) {
         auto update_promise = mpas.get_promise();
         if (!downcast_call(*update, OnUpdate(this, update, false, update_promise))) {
           LOG(FATAL) << "Can't call on some update received from " << source;
@@ -2120,6 +2121,8 @@ int32 UpdatesManager::get_update_pts(const telegram_api::Update *update) {
       return static_cast<const telegram_api::updateWebPage *>(update)->pts_;
     case telegram_api::updatePinnedMessages::ID:
       return static_cast<const telegram_api::updatePinnedMessages *>(update)->pts_;
+    case telegram_api::updateFolderPeers::ID:
+      return static_cast<const telegram_api::updateFolderPeers *>(update)->pts_;
     default:
       return 0;
   }
