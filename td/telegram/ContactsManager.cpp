@@ -1536,20 +1536,30 @@ class EditChatAdminQuery : public Td::ResultHandler {
 };
 
 class ExportChatInviteLinkQuery : public Td::ResultHandler {
-  Promise<Unit> promise_;
-  ChatId chat_id_;
+  Promise<td_api::object_ptr<td_api::chatInviteLink>> promise_;
+  DialogId dialog_id_;
 
  public:
-  explicit ExportChatInviteLinkQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit ExportChatInviteLinkQuery(Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise)
+      : promise_(std::move(promise)) {
   }
 
-  void send(ChatId chat_id) {
-    chat_id_ = chat_id;
-    auto input_peer = td->messages_manager_->get_input_peer(DialogId(chat_id), AccessRights::Read);
+  void send(DialogId dialog_id, int32 expire_date, int32 usage_limit) {
+    dialog_id_ = dialog_id;
+    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
       return on_error(0, Status::Error(400, "Can't access the chat"));
     }
-    send_query(G()->net_query_creator().create(telegram_api::messages_exportChatInvite(std::move(input_peer))));
+
+    int32 flags = 0;
+    if (expire_date > 0) {
+      flags |= telegram_api::messages_exportChatInvite::EXPIRE_DATE_MASK;
+    }
+    if (usage_limit > 0) {
+      flags |= telegram_api::messages_exportChatInvite::USAGE_LIMIT_MASK;
+    }
+    send_query(G()->net_query_creator().create(telegram_api::messages_exportChatInvite(
+        flags, false /*ignored*/, std::move(input_peer), expire_date, usage_limit)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -1561,50 +1571,26 @@ class ExportChatInviteLinkQuery : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for ExportChatInviteQuery: " << to_string(ptr);
 
-    td->contacts_manager_->on_get_chat_invite_link(chat_id_, std::move(ptr));
-    promise_.set_value(Unit());
+    int32 expire_date = 0;
+    if ((ptr->flags_ & telegram_api::chatInviteExported::EXPIRE_DATE_MASK) != 0) {
+      expire_date = ptr->expire_date_;
+    }
+    int32 usage_limit = 0;
+    if ((ptr->flags_ & telegram_api::chatInviteExported::USAGE_LIMIT_MASK) != 0) {
+      usage_limit = ptr->usage_limit_;
+    }
+    int32 usage_count = 0;
+    if ((ptr->flags_ & telegram_api::chatInviteExported::USAGE_MASK) != 0) {
+      usage_count = ptr->usage_;
+    }
+    auto invite_link = td_api::make_object<td_api::chatInviteLink>(
+        ptr->link_, ptr->admin_id_, ptr->date_, expire_date, usage_limit, usage_count, ptr->expired_, ptr->revoked_);
+    promise_.set_value(std::move(invite_link));
   }
 
   void on_error(uint64 id, Status status) override {
     promise_.set_error(std::move(status));
     td->updates_manager_->get_difference("ExportChatInviteLinkQuery");
-  }
-};
-
-class ExportChannelInviteLinkQuery : public Td::ResultHandler {
-  Promise<Unit> promise_;
-  ChannelId channel_id_;
-
- public:
-  explicit ExportChannelInviteLinkQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(ChannelId channel_id) {
-    channel_id_ = channel_id;
-    auto input_peer = td->messages_manager_->get_input_peer(DialogId(channel_id), AccessRights::Read);
-    if (input_peer == nullptr) {
-      return on_error(0, Status::Error(400, "Can't access the chat"));
-    }
-    send_query(G()->net_query_creator().create(telegram_api::messages_exportChatInvite(std::move(input_peer))));
-  }
-
-  void on_result(uint64 id, BufferSlice packet) override {
-    auto result_ptr = fetch_result<telegram_api::messages_exportChatInvite>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
-    }
-
-    auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for ExportChannelInviteQuery: " << to_string(ptr);
-
-    td->contacts_manager_->on_get_channel_invite_link(channel_id_, std::move(ptr));
-    promise_.set_value(Unit());
-  }
-
-  void on_error(uint64 id, Status status) override {
-    td->contacts_manager_->on_get_channel_error(channel_id_, status, "ExportChannelInviteLinkQuery");
-    promise_.set_error(std::move(status));
-    td->updates_manager_->get_difference("ExportChannelInviteLinkQuery");
   }
 };
 
@@ -6494,33 +6480,47 @@ void ContactsManager::transfer_channel_ownership(
       ->send(channel_id, user_id, std::move(input_check_password));
 }
 
-void ContactsManager::export_chat_invite_link(ChatId chat_id, Promise<Unit> &&promise) {
-  const Chat *c = get_chat(chat_id);
-  if (c == nullptr) {
-    return promise.set_error(Status::Error(3, "Chat info not found"));
-  }
-  if (!c->is_active) {
-    return promise.set_error(Status::Error(3, "Chat is deactivated"));
+void ContactsManager::export_dialog_invite_link(DialogId dialog_id, int32 expire_date, int32 usage_limit,
+                                                Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise) {
+  LOG(INFO) << "Receive ExportDialogInviteLink request for " << dialog_id;
+  if (!td_->messages_manager_->have_dialog_force(dialog_id)) {
+    return promise.set_error(Status::Error(3, "Chat not found"));
   }
 
-  if (!get_chat_status(c).is_administrator() || !get_chat_status(c).can_invite_users()) {
-    return promise.set_error(Status::Error(3, "Not enough rights to export chat invite link"));
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      return promise.set_error(Status::Error(3, "Can't invite members to a private chat"));
+    case DialogType::Chat: {
+      const Chat *c = get_chat(dialog_id.get_chat_id());
+      if (c == nullptr) {
+        return promise.set_error(Status::Error(3, "Chat info not found"));
+      }
+      if (!c->is_active) {
+        return promise.set_error(Status::Error(3, "Chat is deactivated"));
+      }
+      if (!get_chat_status(c).is_administrator() || !get_chat_status(c).can_invite_users()) {
+        return promise.set_error(Status::Error(3, "Not enough rights to export chat invite link"));
+      }
+      break;
+    }
+    case DialogType::Channel: {
+      const Channel *c = get_channel(dialog_id.get_channel_id());
+      if (c == nullptr) {
+        return promise.set_error(Status::Error(3, "Chat info not found"));
+      }
+      if (!get_channel_status(c).is_administrator() || !get_channel_status(c).can_invite_users()) {
+        return promise.set_error(Status::Error(3, "Not enough rights to export chat invite link"));
+      }
+      break;
+    }
+    case DialogType::SecretChat:
+      return promise.set_error(Status::Error(3, "Can't invite members to a secret chat"));
+    case DialogType::None:
+    default:
+      UNREACHABLE();
   }
 
-  td_->create_handler<ExportChatInviteLinkQuery>(std::move(promise))->send(chat_id);
-}
-
-void ContactsManager::export_channel_invite_link(ChannelId channel_id, Promise<Unit> &&promise) {
-  const Channel *c = get_channel(channel_id);
-  if (c == nullptr) {
-    return promise.set_error(Status::Error(3, "Chat info not found"));
-  }
-
-  if (!get_channel_status(c).is_administrator() || !get_channel_status(c).can_invite_users()) {
-    return promise.set_error(Status::Error(3, "Not enough rights to export chat invite link"));
-  }
-
-  td_->create_handler<ExportChannelInviteLinkQuery>(std::move(promise))->send(channel_id);
+  td_->create_handler<ExportChatInviteLinkQuery>(std::move(promise))->send(dialog_id, expire_date, usage_limit);
 }
 
 void ContactsManager::check_dialog_invite_link(const string &invite_link, Promise<Unit> &&promise) const {
@@ -6541,25 +6541,6 @@ void ContactsManager::import_dialog_invite_link(const string &invite_link, Promi
   }
 
   td_->create_handler<ImportDialogInviteLinkQuery>(std::move(promise))->send(invite_link);
-}
-
-string ContactsManager::get_chat_invite_link(ChatId chat_id) const {
-  auto chat_full = get_chat_full(chat_id);
-  if (chat_full == nullptr) {
-    auto it = dialog_invite_links_.find(DialogId(chat_id));
-    return it == dialog_invite_links_.end() ? string() : it->second;
-  }
-  return chat_full->invite_link;
-}
-
-string ContactsManager::get_channel_invite_link(
-    ChannelId channel_id) {  // should be non-const to update ChannelFull cache
-  auto channel_full = get_channel_full(channel_id, "get_channel_invite_link");
-  if (channel_full == nullptr) {
-    auto it = dialog_invite_links_.find(DialogId(channel_id));
-    return it == dialog_invite_links_.end() ? string() : it->second;
-  }
-  return channel_full->invite_link;
 }
 
 void ContactsManager::delete_chat_participant(ChatId chat_id, UserId user_id, Promise<Unit> &&promise) {
@@ -11017,11 +10998,6 @@ void ContactsManager::invalidate_channel_full(ChannelId channel_id, bool need_dr
   }
   if (need_drop_invite_link) {
     remove_dialog_access_by_invite_link(DialogId(channel_id));
-
-    auto it = dialog_invite_links_.find(DialogId(channel_id));
-    if (it != dialog_invite_links_.end()) {
-      invalidate_invite_link_info(it->second);
-    }
   }
 }
 
@@ -11099,52 +11075,18 @@ void ContactsManager::on_update_channel_full_photo(ChannelFull *channel_full, Ch
   }
 }
 
-void ContactsManager::on_get_chat_invite_link(ChatId chat_id,
-                                              tl_object_ptr<telegram_api::ExportedChatInvite> &&invite_link_ptr) {
-  CHECK(chat_id.is_valid());
-  if (!have_chat_force(chat_id)) {
-    LOG(ERROR) << chat_id << " not found";
-    return;
-  }
-
-  auto chat_full = get_chat_full_force(chat_id, "on_get_chat_invite_link");
-  if (chat_full == nullptr) {
-    update_invite_link(dialog_invite_links_[DialogId(chat_id)], std::move(invite_link_ptr));
-    return;
-  }
-  on_update_chat_full_invite_link(chat_full, std::move(invite_link_ptr));
-  update_chat_full(chat_full, chat_id);
-}
-
-void ContactsManager::on_update_chat_full_invite_link(
-    ChatFull *chat_full, tl_object_ptr<telegram_api::ExportedChatInvite> &&invite_link_ptr) {
+void ContactsManager::on_update_chat_full_invite_link(ChatFull *chat_full,
+                                                      tl_object_ptr<telegram_api::chatInviteExported> &&invite_link) {
   CHECK(chat_full != nullptr);
-  if (update_invite_link(chat_full->invite_link, std::move(invite_link_ptr))) {
+  if (update_invite_link(chat_full->invite_link, std::move(invite_link))) {
     chat_full->is_changed = true;
   }
 }
 
-void ContactsManager::on_get_channel_invite_link(ChannelId channel_id,
-                                                 tl_object_ptr<telegram_api::ExportedChatInvite> &&invite_link_ptr) {
-  CHECK(channel_id.is_valid());
-  if (!have_channel(channel_id)) {
-    LOG(ERROR) << channel_id << " not found";
-    return;
-  }
-
-  auto channel_full = get_channel_full_force(channel_id, "on_get_channel_invite_link");
-  if (channel_full == nullptr) {
-    update_invite_link(dialog_invite_links_[DialogId(channel_id)], std::move(invite_link_ptr));
-    return;
-  }
-  on_update_channel_full_invite_link(channel_full, std::move(invite_link_ptr));
-  update_channel_full(channel_full, channel_id);
-}
-
 void ContactsManager::on_update_channel_full_invite_link(
-    ChannelFull *channel_full, tl_object_ptr<telegram_api::ExportedChatInvite> &&invite_link_ptr) {
+    ChannelFull *channel_full, tl_object_ptr<telegram_api::chatInviteExported> &&invite_link) {
   CHECK(channel_full != nullptr);
-  if (update_invite_link(channel_full->invite_link, std::move(invite_link_ptr))) {
+  if (update_invite_link(channel_full->invite_link, std::move(invite_link))) {
     channel_full->is_changed = true;
   }
 }
@@ -11387,13 +11329,6 @@ void ContactsManager::on_get_dialog_invite_link_info(const string &invite_link,
           invite_link_info_expire_timeout_.set_timeout_in(dialog_id.get(), expires_in);
         }
       }
-
-      if (chat_id.is_valid()) {
-        on_get_chat_invite_link(chat_id, make_tl_object<telegram_api::chatInviteExported>(invite_link));
-      }
-      if (channel_id.is_valid()) {
-        on_get_channel_invite_link(channel_id, make_tl_object<telegram_api::chatInviteExported>(invite_link));
-      }
       break;
     }
     case telegram_api::chatInvite::ID: {
@@ -11486,21 +11421,10 @@ Slice ContactsManager::get_dialog_invite_link_hash(const string &invite_link) {
 }
 
 bool ContactsManager::update_invite_link(string &invite_link,
-                                         tl_object_ptr<telegram_api::ExportedChatInvite> &&invite_link_ptr) {
+                                         tl_object_ptr<telegram_api::chatInviteExported> &&exported_chat_invite) {
   string new_invite_link;
-  if (invite_link_ptr != nullptr) {
-    switch (invite_link_ptr->get_id()) {
-      case telegram_api::chatInviteEmpty::ID:
-        // link is empty
-        break;
-      case telegram_api::chatInviteExported::ID: {
-        auto chat_invite_exported = move_tl_object_as<telegram_api::chatInviteExported>(invite_link_ptr);
-        new_invite_link = std::move(chat_invite_exported->link_);
-        break;
-      }
-      default:
-        UNREACHABLE();
-    }
+  if (exported_chat_invite != nullptr) {
+    new_invite_link = std::move(exported_chat_invite->link_);
   }
 
   if (new_invite_link != invite_link) {
@@ -11723,7 +11647,6 @@ void ContactsManager::on_update_chat_delete_user(ChatId chat_id, UserId user_id,
 void ContactsManager::on_update_chat_status(Chat *c, ChatId chat_id, DialogParticipantStatus status) {
   if (c->status != status) {
     LOG(INFO) << "Update " << chat_id << " status from " << c->status << " to " << status;
-    bool need_drop_invite_link = c->status.is_left() != status.is_left();
     bool need_reload_group_call = c->status.can_manage_calls() != status.can_manage_calls();
 
     c->status = status;
@@ -11735,12 +11658,6 @@ void ContactsManager::on_update_chat_status(Chat *c, ChatId chat_id, DialogParti
       c->pinned_message_version = -1;
 
       drop_chat_full(chat_id);
-    }
-    if (need_drop_invite_link) {
-      auto it = dialog_invite_links_.find(DialogId(chat_id));
-      if (it != dialog_invite_links_.end()) {
-        invalidate_invite_link_info(it->second);
-      }
     }
     if (need_reload_group_call) {
       send_closure_later(G()->messages_manager(), &MessagesManager::on_update_dialog_group_call_rights,
@@ -12015,11 +11932,6 @@ void ContactsManager::drop_chat_full(ChatId chat_id) {
   ChatFull *chat_full = get_chat_full_force(chat_id, "drop_chat_full");
   if (chat_full == nullptr) {
     drop_chat_photos(chat_id, false, false, "drop_chat_full");
-
-    auto it = dialog_invite_links_.find(DialogId(chat_id));
-    if (it != dialog_invite_links_.end()) {
-      invalidate_invite_link_info(it->second);
-    }
     return;
   }
 

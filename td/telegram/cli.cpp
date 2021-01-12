@@ -2683,7 +2683,11 @@ class CliClient final : public Actor {
     } else if (op == "dgc") {
       send_request(td_api::make_object<td_api::discardGroupCall>(as_group_call_id(args)));
     } else if (op == "gcil") {
-      send_request(td_api::make_object<td_api::generateChatInviteLink>(as_chat_id(args)));
+      string chat_id;
+      int32 expire_date;
+      int32 usage_limit;
+      get_args(args, chat_id, expire_date, usage_limit);
+      send_request(td_api::make_object<td_api::generateChatInviteLink>(as_chat_id(chat_id), expire_date, usage_limit));
     } else if (op == "ccil") {
       send_request(td_api::make_object<td_api::checkChatInviteLink>(args));
     } else if (op == "jcbil") {

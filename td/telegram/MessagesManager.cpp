@@ -30414,43 +30414,6 @@ vector<DialogAdministrator> MessagesManager::get_dialog_administrators(DialogId 
   return {};
 }
 
-void MessagesManager::export_dialog_invite_link(DialogId dialog_id, Promise<Unit> &&promise) {
-  LOG(INFO) << "Receive ExportDialogInviteLink request for " << dialog_id;
-  if (!have_dialog_force(dialog_id)) {
-    return promise.set_error(Status::Error(3, "Chat not found"));
-  }
-
-  switch (dialog_id.get_type()) {
-    case DialogType::User:
-      return promise.set_error(Status::Error(3, "Can't invite members to a private chat"));
-    case DialogType::Chat:
-      return td_->contacts_manager_->export_chat_invite_link(dialog_id.get_chat_id(), std::move(promise));
-    case DialogType::Channel:
-      return td_->contacts_manager_->export_channel_invite_link(dialog_id.get_channel_id(), std::move(promise));
-    case DialogType::SecretChat:
-      return promise.set_error(Status::Error(3, "Can't invite members to a secret chat"));
-    case DialogType::None:
-    default:
-      UNREACHABLE();
-  }
-}
-
-string MessagesManager::get_dialog_invite_link(DialogId dialog_id) {
-  switch (dialog_id.get_type()) {
-    case DialogType::Chat:
-      return td_->contacts_manager_->get_chat_invite_link(dialog_id.get_chat_id());
-    case DialogType::Channel:
-      return td_->contacts_manager_->get_channel_invite_link(dialog_id.get_channel_id());
-    case DialogType::User:
-    case DialogType::SecretChat:
-    case DialogType::None:
-      return string();
-    default:
-      UNREACHABLE();
-      return string();
-  }
-}
-
 tl_object_ptr<telegram_api::channelAdminLogEventsFilter> MessagesManager::get_channel_admin_log_events_filter(
     const tl_object_ptr<td_api::chatEventLogFilters> &filters) {
   if (filters == nullptr) {

@@ -222,11 +222,6 @@ class ContactsManager : public Actor {
 
   static Slice get_dialog_invite_link_hash(const string &invite_link);
 
-  void on_get_chat_invite_link(ChatId chat_id, tl_object_ptr<telegram_api::ExportedChatInvite> &&invite_link_ptr);
-
-  void on_get_channel_invite_link(ChannelId channel_id,
-                                  tl_object_ptr<telegram_api::ExportedChatInvite> &&invite_link_ptr);
-
   void on_get_dialog_invite_link_info(const string &invite_link,
                                       tl_object_ptr<telegram_api::ChatInvite> &&chat_invite_ptr,
                                       Promise<Unit> &&promise);
@@ -393,17 +388,12 @@ class ContactsManager : public Actor {
 
   void transfer_dialog_ownership(DialogId dialog_id, UserId user_id, const string &password, Promise<Unit> &&promise);
 
-  void export_chat_invite_link(ChatId chat_id, Promise<Unit> &&promise);
-
-  void export_channel_invite_link(ChannelId channel_id, Promise<Unit> &&promise);
+  void export_dialog_invite_link(DialogId dialog_id, int32 expire_date, int32 usage_limit,
+                                 Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise);
 
   void check_dialog_invite_link(const string &invite_link, Promise<Unit> &&promise) const;
 
   void import_dialog_invite_link(const string &invite_link, Promise<DialogId> &&promise);
-
-  string get_chat_invite_link(ChatId chat_id) const;
-
-  string get_channel_invite_link(ChannelId channel_id);
 
   ChannelId migrate_chat_to_megagroup(ChatId chat_id, Promise<Unit> &promise);
 
@@ -1035,6 +1025,7 @@ class ContactsManager : public Actor {
   static constexpr int32 CHANNEL_FULL_FLAG_CAN_VIEW_STATISTICS = 1 << 20;
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_ACTIVE_GROUP_CALL = 1 << 21;
   static constexpr int32 CHANNEL_FULL_FLAG_IS_BLOCKED = 1 << 22;
+  static constexpr int32 CHANNEL_FULL_FLAG_HAS_EXPORTED_INVITE = 1 << 23;
 
   static constexpr int32 CHAT_INVITE_FLAG_IS_CHANNEL = 1 << 0;
   static constexpr int32 CHAT_INVITE_FLAG_IS_BROADCAST = 1 << 1;
@@ -1176,7 +1167,7 @@ class ContactsManager : public Actor {
   void on_update_chat_full_participants(ChatFull *chat_full, ChatId chat_id, vector<DialogParticipant> participants,
                                         int32 version, bool from_update);
   void on_update_chat_full_invite_link(ChatFull *chat_full,
-                                       tl_object_ptr<telegram_api::ExportedChatInvite> &&invite_link_ptr);
+                                       tl_object_ptr<telegram_api::chatInviteExported> &&invite_link);
 
   void on_update_channel_photo(Channel *c, ChannelId channel_id,
                                tl_object_ptr<telegram_api::ChatPhoto> &&chat_photo_ptr);
@@ -1189,7 +1180,7 @@ class ContactsManager : public Actor {
 
   void on_update_channel_full_photo(ChannelFull *channel_full, ChannelId channel_id, Photo photo);
   void on_update_channel_full_invite_link(ChannelFull *channel_full,
-                                          tl_object_ptr<telegram_api::ExportedChatInvite> &&invite_link_ptr);
+                                          tl_object_ptr<telegram_api::chatInviteExported> &&invite_link);
   void on_update_channel_full_linked_channel_id(ChannelFull *channel_full, ChannelId channel_id,
                                                 ChannelId linked_channel_id);
   void on_update_channel_full_location(ChannelFull *channel_full, ChannelId channel_id, const DialogLocation &location);
@@ -1354,7 +1345,7 @@ class ContactsManager : public Actor {
 
   static bool is_valid_invite_link(const string &invite_link);
 
-  bool update_invite_link(string &invite_link, tl_object_ptr<telegram_api::ExportedChatInvite> &&invite_link_ptr);
+  bool update_invite_link(string &invite_link, tl_object_ptr<telegram_api::chatInviteExported> &&exported_chat_invite);
 
   const DialogParticipant *get_chat_participant(ChatId chat_id, UserId user_id) const;
 
@@ -1511,7 +1502,6 @@ class ContactsManager : public Actor {
     std::unordered_set<string> invite_links;
     int32 accessible_before = 0;
   };
-  std::unordered_map<DialogId, string, DialogIdHash> dialog_invite_links_;  // in-memory cache for invite links
   std::unordered_map<string, unique_ptr<InviteLinkInfo>> invite_link_infos_;
   std::unordered_map<DialogId, DialogAccessByInviteLink, DialogIdHash> dialog_access_by_invite_link_;
 

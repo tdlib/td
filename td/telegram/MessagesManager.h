@@ -482,10 +482,6 @@ class MessagesManager : public Actor {
 
   vector<DialogAdministrator> get_dialog_administrators(DialogId dialog_id, int left_tries, Promise<Unit> &&promise);
 
-  void export_dialog_invite_link(DialogId dialog_id, Promise<Unit> &&promise);
-
-  string get_dialog_invite_link(DialogId dialog_id);
-
   void get_dialog_info_full(DialogId dialog_id, Promise<Unit> &&promise);
 
   int64 get_dialog_event_log(DialogId dialog_id, const string &query, int64 from_event_id, int32 limit,

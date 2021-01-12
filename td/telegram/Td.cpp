@@ -1985,23 +1985,6 @@ class GetChatAdministratorsRequest : public RequestActor<> {
   }
 };
 
-class GenerateChatInviteLinkRequest : public RequestOnceActor {
-  DialogId dialog_id_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    td->messages_manager_->export_dialog_invite_link(dialog_id_, std::move(promise));
-  }
-
-  void do_send_result() override {
-    send_result(make_tl_object<td_api::chatInviteLink>(td->messages_manager_->get_dialog_invite_link(dialog_id_)));
-  }
-
- public:
-  GenerateChatInviteLinkRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id)
-      : RequestOnceActor(std::move(td), request_id), dialog_id_(dialog_id) {
-  }
-};
-
 class CheckChatInviteLinkRequest : public RequestActor<> {
   string invite_link_;
 
@@ -6293,7 +6276,9 @@ void Td::on_request(uint64 id, td_api::getChatAdministrators &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::generateChatInviteLink &request) {
-  CREATE_REQUEST(GenerateChatInviteLinkRequest, request.chat_id_);
+  CREATE_REQUEST_PROMISE();
+  contacts_manager_->export_dialog_invite_link(DialogId(request.chat_id_), request.expire_date_, request.usage_limit_,
+                                               std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::checkChatInviteLink &request) {
