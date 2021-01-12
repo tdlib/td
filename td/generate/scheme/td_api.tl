@@ -4349,17 +4349,25 @@ readFilePart file_id:int32 offset:int32 count:int32 = FilePart;
 deleteFile file_id:int32 = Ok;
 
 
-//@description Generates a new invite link for a chat. Available for basic groups, supergroups, and channels. Requires administrator privileges and can_invite_users right
+//@description Creates a new invite link for a chat. Available for basic groups, supergroups, and channels. Requires administrator privileges and can_invite_users right
 //@chat_id Chat identifier
 //@expire_date Point in time (Unix timestamp) when the link will expire; pass 0 if never
 //@usage_limit Maximum number of times the link can be used; pass 0 if not limited
-generateChatInviteLink chat_id:int53 expire_date:int32 usage_limit:int32 = ChatInviteLink;
+createChatInviteLink chat_id:int53 expire_date:int32 usage_limit:int32 = ChatInviteLink;
 
-//@description Checks the validity of an invite link for a chat and returns information about the corresponding chat @invite_link Invite link to be checked; should begin with "https://t.me/joinchat/", "https://telegram.me/joinchat/", or "https://telegram.dog/joinchat/"
+//@description Edits an invite link for a chat. Available for basic groups, supergroups, and channels. Requires administrator privileges and can_invite_users right
+//@chat_id Chat identifier
+//@invite_link Invite link to be edited; must begin with "https://t.me/joinchat/", "https://telegram.me/joinchat/", or "https://telegram.dog/joinchat/"
+//@expire_date Point in time (Unix timestamp) when the link will expire; pass 0 if never
+//@usage_limit Maximum number of times the link can be used; pass 0 if not limited
+//@is_revoked True, if the link is revoked
+editChatInviteLink chat_id:int53 invite_link:string expire_date:int32 usage_limit:int32 is_revoked:Bool = ChatInviteLink;
+
+//@description Checks the validity of an invite link for a chat and returns information about the corresponding chat @invite_link Invite link to be checked; must begin with "https://t.me/joinchat/", "https://telegram.me/joinchat/", or "https://telegram.dog/joinchat/"
 checkChatInviteLink invite_link:string = ChatInviteLinkInfo;
 
 //@description Uses an invite link to add the current user to the chat if possible. The new member will not be added until the chat state has been synchronized with the server
-//@invite_link Invite link to import; should begin with "https://t.me/joinchat/", "https://telegram.me/joinchat/", or "https://telegram.dog/joinchat/"
+//@invite_link Invite link to import; must begin with "https://t.me/joinchat/", "https://telegram.me/joinchat/", or "https://telegram.dog/joinchat/"
 joinChatByInviteLink invite_link:string = Chat;
 
 

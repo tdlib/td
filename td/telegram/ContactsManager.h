@@ -391,6 +391,9 @@ class ContactsManager : public Actor {
   void export_dialog_invite_link(DialogId dialog_id, int32 expire_date, int32 usage_limit,
                                  Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise);
 
+  void edit_dialog_invite_link(DialogId dialog_id, const string &link, int32 expire_date, int32 usage_limit,
+                               bool is_revoked, Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise);
+
   void check_dialog_invite_link(const string &invite_link, Promise<Unit> &&promise) const;
 
   void import_dialog_invite_link(const string &invite_link, Promise<DialogId> &&promise);
@@ -1342,6 +1345,8 @@ class ContactsManager : public Actor {
   static bool is_channel_public(const Channel *c);
 
   void remove_dialog_access_by_invite_link(DialogId dialog_id);
+
+  Status can_manage_dialog_invite_links(DialogId dialog_id);
 
   static bool is_valid_invite_link(const string &invite_link);
 

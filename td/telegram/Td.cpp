@@ -6275,10 +6275,17 @@ void Td::on_request(uint64 id, td_api::getChatAdministrators &request) {
   CREATE_REQUEST(GetChatAdministratorsRequest, request.chat_id_);
 }
 
-void Td::on_request(uint64 id, const td_api::generateChatInviteLink &request) {
+void Td::on_request(uint64 id, const td_api::createChatInviteLink &request) {
   CREATE_REQUEST_PROMISE();
   contacts_manager_->export_dialog_invite_link(DialogId(request.chat_id_), request.expire_date_, request.usage_limit_,
                                                std::move(promise));
+}
+
+void Td::on_request(uint64 id, td_api::editChatInviteLink &request) {
+  CREATE_REQUEST_PROMISE();
+  CLEAN_INPUT_STRING(request.invite_link_);
+  contacts_manager_->edit_dialog_invite_link(DialogId(request.chat_id_), request.invite_link_, request.expire_date_,
+                                             request.usage_limit_, request.is_revoked_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::checkChatInviteLink &request) {

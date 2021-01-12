@@ -2687,7 +2687,16 @@ class CliClient final : public Actor {
       int32 expire_date;
       int32 usage_limit;
       get_args(args, chat_id, expire_date, usage_limit);
-      send_request(td_api::make_object<td_api::generateChatInviteLink>(as_chat_id(chat_id), expire_date, usage_limit));
+      send_request(td_api::make_object<td_api::createChatInviteLink>(as_chat_id(chat_id), expire_date, usage_limit));
+    } else if (op == "ecil") {
+      string chat_id;
+      string invite_link;
+      int32 expire_date;
+      int32 usage_limit;
+      bool is_revoked;
+      get_args(args, chat_id, invite_link, expire_date, usage_limit, is_revoked);
+      send_request(td_api::make_object<td_api::editChatInviteLink>(as_chat_id(chat_id), invite_link, expire_date,
+                                                                   usage_limit, is_revoked));
     } else if (op == "ccil") {
       send_request(td_api::make_object<td_api::checkChatInviteLink>(args));
     } else if (op == "jcbil") {
