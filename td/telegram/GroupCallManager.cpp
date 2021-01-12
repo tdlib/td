@@ -20,7 +20,6 @@
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
-#include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Random.h"
@@ -2275,7 +2274,8 @@ void GroupCallManager::start_scheduled_group_call(GroupCallId group_call_id, Pro
 
 void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_dialog_id,
                                        td_api::object_ptr<td_api::groupCallPayload> &&payload, int32 audio_source,
-                                       bool is_muted, const string &invite_hash,
+                                       td_api::object_ptr<td_api::groupCallVideoPayload> &&video_payload, bool is_muted,
+                                       const string &invite_hash,
                                        Promise<td_api::object_ptr<td_api::GroupCallJoinResponse>> &&promise) {
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
 
@@ -2320,51 +2320,13 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
     }
   }
 
-  if (audio_source == 0) {
-    return promise.set_error(Status::Error(400, "Audio source must be non-zero"));
-  }
-  if (payload == nullptr) {
-    return promise.set_error(Status::Error(400, "Payload must be non-empty"));
-  }
-  if (!clean_input_string(payload->ufrag_)) {
-    return promise.set_error(Status::Error(400, "Payload ufrag must be encoded in UTF-8"));
-  }
-  if (!clean_input_string(payload->pwd_)) {
-    return promise.set_error(Status::Error(400, "Payload pwd must be encoded in UTF-8"));
-  }
-  for (auto &fingerprint : payload->fingerprints_) {
-    if (fingerprint == nullptr) {
-      return promise.set_error(Status::Error(400, "Payload fingerprint must be non-empty"));
-    }
-    if (!clean_input_string(fingerprint->hash_)) {
-      return promise.set_error(Status::Error(400, "Fingerprint hash must be encoded in UTF-8"));
-    }
-    if (!clean_input_string(fingerprint->setup_)) {
-      return promise.set_error(Status::Error(400, "Fingerprint setup must be encoded in UTF-8"));
-    }
-    if (!clean_input_string(fingerprint->fingerprint_)) {
-      return promise.set_error(Status::Error(400, "Fingerprint must be encoded in UTF-8"));
-    }
-  }
+  TRY_RESULT_PROMISE(promise, json_payload,
+                     encode_join_group_call_payload(std::move(payload), audio_source, std::move(video_payload)));
 
   if (group_call->is_being_left) {
     group_call->is_being_left = false;
     need_update |= group_call->is_joined;
   }
-
-  auto json_payload = json_encode<string>(json_object([&payload, audio_source](auto &o) {
-    o("ufrag", payload->ufrag_);
-    o("pwd", payload->pwd_);
-    o("fingerprints", json_array(payload->fingerprints_,
-                                 [](const td_api::object_ptr<td_api::groupCallPayloadFingerprint> &fingerprint) {
-                                   return json_object([&fingerprint](auto &o) {
-                                     o("hash", fingerprint->hash_);
-                                     o("setup", fingerprint->setup_);
-                                     o("fingerprint", fingerprint->fingerprint_);
-                                   });
-                                 }));
-    o("ssrc", audio_source);
-  }));
 
   auto generation = ++join_group_request_generation_;
   auto &request = pending_join_requests_[input_group_call_id];
@@ -2490,75 +2452,6 @@ void GroupCallManager::process_join_group_call_response(InputGroupCallId input_g
                                         PromiseCreator::lambda([promise = std::move(promise)](Unit) mutable {
                                           promise.set_error(Status::Error(500, "Wrong join response received"));
                                         }));
-}
-
-Result<td_api::object_ptr<td_api::GroupCallJoinResponse>> GroupCallManager::get_group_call_join_response_object(
-    string json_response) {
-  auto r_value = json_decode(json_response);
-  if (r_value.is_error()) {
-    return Status::Error("Can't parse JSON object");
-  }
-
-  auto value = r_value.move_as_ok();
-  if (value.type() != JsonValue::Type::Object) {
-    return Status::Error("Expected an Object");
-  }
-
-  auto &value_object = value.get_object();
-  auto r_stream = get_json_object_bool_field(value_object, "stream");
-  if (r_stream.is_ok() && r_stream.ok() == true) {
-    return td_api::make_object<td_api::groupCallJoinResponseStream>();
-  }
-
-  TRY_RESULT(transport, get_json_object_field(value_object, "transport", JsonValue::Type::Object, false));
-  CHECK(transport.type() == JsonValue::Type::Object);
-  auto &transport_object = transport.get_object();
-
-  TRY_RESULT(candidates, get_json_object_field(transport_object, "candidates", JsonValue::Type::Array, false));
-  TRY_RESULT(fingerprints, get_json_object_field(transport_object, "fingerprints", JsonValue::Type::Array, false));
-  TRY_RESULT(ufrag, get_json_object_string_field(transport_object, "ufrag", false));
-  TRY_RESULT(pwd, get_json_object_string_field(transport_object, "pwd", false));
-  // skip "xmlns", "rtcp-mux"
-
-  vector<td_api::object_ptr<td_api::groupCallPayloadFingerprint>> fingerprints_object;
-  for (auto &fingerprint : fingerprints.get_array()) {
-    if (fingerprint.type() != JsonValue::Type::Object) {
-      return Status::Error("Expected JSON object as fingerprint");
-    }
-    auto &fingerprint_object = fingerprint.get_object();
-    TRY_RESULT(hash, get_json_object_string_field(fingerprint_object, "hash", false));
-    TRY_RESULT(setup, get_json_object_string_field(fingerprint_object, "setup", false));
-    TRY_RESULT(fingerprint_value, get_json_object_string_field(fingerprint_object, "fingerprint", false));
-    fingerprints_object.push_back(
-        td_api::make_object<td_api::groupCallPayloadFingerprint>(hash, setup, fingerprint_value));
-  }
-
-  vector<td_api::object_ptr<td_api::groupCallJoinResponseCandidate>> candidates_object;
-  for (auto &candidate : candidates.get_array()) {
-    if (candidate.type() != JsonValue::Type::Object) {
-      return Status::Error("Expected JSON object as candidate");
-    }
-    auto &candidate_object = candidate.get_object();
-    TRY_RESULT(port, get_json_object_string_field(candidate_object, "port", false));
-    TRY_RESULT(protocol, get_json_object_string_field(candidate_object, "protocol", false));
-    TRY_RESULT(network, get_json_object_string_field(candidate_object, "network", false));
-    TRY_RESULT(generation, get_json_object_string_field(candidate_object, "generation", false));
-    TRY_RESULT(id, get_json_object_string_field(candidate_object, "id", false));
-    TRY_RESULT(component, get_json_object_string_field(candidate_object, "component", false));
-    TRY_RESULT(foundation, get_json_object_string_field(candidate_object, "foundation", false));
-    TRY_RESULT(priority, get_json_object_string_field(candidate_object, "priority", false));
-    TRY_RESULT(ip, get_json_object_string_field(candidate_object, "ip", false));
-    TRY_RESULT(type, get_json_object_string_field(candidate_object, "type", false));
-    TRY_RESULT(tcp_type, get_json_object_string_field(candidate_object, "tcptype"));
-    TRY_RESULT(rel_addr, get_json_object_string_field(candidate_object, "rel-addr"));
-    TRY_RESULT(rel_port, get_json_object_string_field(candidate_object, "rel-port"));
-    candidates_object.push_back(td_api::make_object<td_api::groupCallJoinResponseCandidate>(
-        port, protocol, network, generation, id, component, foundation, priority, ip, type, tcp_type, rel_addr,
-        rel_port));
-  }
-
-  auto payload = td_api::make_object<td_api::groupCallPayload>(ufrag, pwd, std::move(fingerprints_object));
-  return td_api::make_object<td_api::groupCallJoinResponseWebrtc>(std::move(payload), std::move(candidates_object));
 }
 
 bool GroupCallManager::on_join_group_call_response(InputGroupCallId input_group_call_id, string json_response) {

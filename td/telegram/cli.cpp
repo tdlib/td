@@ -2691,7 +2691,7 @@ class CliClient final : public Actor {
     } else if (op == "tgcesn" || op == "tgcesne") {
       send_request(td_api::make_object<td_api::toggleGroupCallEnabledStartNotification>(as_group_call_id(args),
                                                                                         op == "tgcesne"));
-    } else if (op == "jgc") {
+    } else if (op == "jgc" || op == "jgcv") {
       string group_call_id;
       string participant_id;
       string invite_hash;
@@ -2699,10 +2699,30 @@ class CliClient final : public Actor {
       vector<td_api::object_ptr<td_api::groupCallPayloadFingerprint>> fingerprints;
       fingerprints.push_back(td_api::make_object<td_api::groupCallPayloadFingerprint>("hash", "setup", "fingerprint"));
       fingerprints.push_back(td_api::make_object<td_api::groupCallPayloadFingerprint>("h2", "s2", "fingerprint2"));
+
+      vector<td_api::object_ptr<td_api::groupCallVideoPayloadFeedbackType>> feedback_types;
+      feedback_types.push_back(
+          td_api::make_object<td_api::groupCallVideoPayloadFeedbackType>("transport-cc", "subtype1"));
+      feedback_types.push_back(td_api::make_object<td_api::groupCallVideoPayloadFeedbackType>("type2", "subtype2"));
+
+      vector<td_api::object_ptr<td_api::groupCallVideoPayloadParameter>> parameters;
+      parameters.push_back(td_api::make_object<td_api::groupCallVideoPayloadParameter>("minptime", "10"));
+      parameters.push_back(td_api::make_object<td_api::groupCallVideoPayloadParameter>("useinbandfec", "1"));
+
+      auto video_payload = td_api::make_object<td_api::groupCallVideoPayload>();
+      video_payload->payload_types_.push_back(td_api::make_object<td_api::groupCallVideoPayloadType>(
+          12345, "opus", 48000, 2, std::move(feedback_types), std::move(parameters)));
+      video_payload->extensions_.push_back(
+          td_api::make_object<td_api::groupCallVideoExtension>(1, "urn:ietf:params:rtp-hdrext:ssrc-audio-level"));
+      video_payload->source_groups_.push_back(
+          td_api::make_object<td_api::groupCallVideoSourceGroup>(vector<int32>{1, 2}, "SIM"));
+      video_payload->source_groups_.push_back(
+          td_api::make_object<td_api::groupCallVideoSourceGroup>(vector<int32>{3, 4}, "FID"));
+
       send_request(td_api::make_object<td_api::joinGroupCall>(
           as_group_call_id(group_call_id), as_message_sender(participant_id),
           td_api::make_object<td_api::groupCallPayload>("ufrag", "pwd", std::move(fingerprints)), group_call_source_,
-          true, invite_hash));
+          op == "jgc" ? nullptr : std::move(video_payload), true, invite_hash));
     } else if (op == "sgct") {
       string chat_id;
       string title;
