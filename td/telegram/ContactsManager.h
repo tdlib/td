@@ -1345,6 +1345,9 @@ class ContactsManager : public Actor {
 
   static bool is_channel_public(const Channel *c);
 
+  void export_dialog_invite_link_impl(DialogId dialog_id, int32 expire_date, int32 usage_limit,
+                                      Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise);
+
   void remove_dialog_access_by_invite_link(DialogId dialog_id);
 
   Status can_manage_dialog_invite_links(DialogId dialog_id);

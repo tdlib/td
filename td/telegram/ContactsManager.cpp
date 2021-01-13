@@ -6571,6 +6571,23 @@ void ContactsManager::export_dialog_invite_link(DialogId dialog_id, int32 expire
                                                 Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise) {
   LOG(INFO) << "Receive CreateDialogInviteLink request for " << dialog_id;
 
+  get_me(PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, expire_date, usage_limit,
+                                 promise = std::move(promise)](Result<Unit> &&result) mutable {
+    if (result.is_error()) {
+      promise.set_error(result.move_as_error());
+    } else {
+      send_closure(actor_id, &ContactsManager::export_dialog_invite_link_impl, dialog_id, expire_date, usage_limit,
+                   std::move(promise));
+    }
+  }));
+}
+
+void ContactsManager::export_dialog_invite_link_impl(DialogId dialog_id, int32 expire_date, int32 usage_limit,
+                                                     Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise) {
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
+
   TRY_STATUS_PROMISE(promise, can_manage_dialog_invite_links(dialog_id));
 
   td_->create_handler<ExportChatInviteLinkQuery>(std::move(promise))->send(dialog_id, expire_date, usage_limit);
