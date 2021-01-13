@@ -22,7 +22,7 @@ class DialogAdministrator {
   string rank_;
   bool is_creator_ = false;
 
-  friend StringBuilder &operator<<(StringBuilder &string_builder, const DialogAdministrator &location);
+  friend StringBuilder &operator<<(StringBuilder &string_builder, const DialogAdministrator &administrator);
 
  public:
   DialogAdministrator() = default;

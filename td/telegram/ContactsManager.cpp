@@ -1571,21 +1571,8 @@ class ExportChatInviteLinkQuery : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for ExportChatInviteQuery: " << to_string(ptr);
 
-    int32 expire_date = 0;
-    if ((ptr->flags_ & telegram_api::chatInviteExported::EXPIRE_DATE_MASK) != 0) {
-      expire_date = ptr->expire_date_;
-    }
-    int32 usage_limit = 0;
-    if ((ptr->flags_ & telegram_api::chatInviteExported::USAGE_LIMIT_MASK) != 0) {
-      usage_limit = ptr->usage_limit_;
-    }
-    int32 usage_count = 0;
-    if ((ptr->flags_ & telegram_api::chatInviteExported::USAGE_MASK) != 0) {
-      usage_count = ptr->usage_;
-    }
-    auto invite_link = td_api::make_object<td_api::chatInviteLink>(
-        ptr->link_, ptr->admin_id_, ptr->date_, expire_date, usage_limit, usage_count, ptr->expired_, ptr->revoked_);
-    promise_.set_value(std::move(invite_link));
+    DialogInviteLink invite_link(std::move(ptr));
+    promise_.set_value(invite_link.get_chat_invite_link_object(td->contacts_manager_.get()));
   }
 
   void on_error(uint64 id, Status status) override {
@@ -1635,23 +1622,8 @@ class EditChatInviteLinkQuery : public Td::ResultHandler {
 
     td->contacts_manager_->on_get_users(std::move(result->users_), "EditChatInviteLinkQuery");
 
-    auto recent_importers = std::move(result->recent_importers_);
-    auto ptr = std::move(result->invite_);
-    int32 expire_date = 0;
-    if ((ptr->flags_ & telegram_api::chatInviteExported::EXPIRE_DATE_MASK) != 0) {
-      expire_date = ptr->expire_date_;
-    }
-    int32 usage_limit = 0;
-    if ((ptr->flags_ & telegram_api::chatInviteExported::USAGE_LIMIT_MASK) != 0) {
-      usage_limit = ptr->usage_limit_;
-    }
-    int32 usage_count = 0;
-    if ((ptr->flags_ & telegram_api::chatInviteExported::USAGE_MASK) != 0) {
-      usage_count = ptr->usage_;
-    }
-    auto invite_link = td_api::make_object<td_api::chatInviteLink>(
-        ptr->link_, ptr->admin_id_, ptr->date_, expire_date, usage_limit, usage_count, ptr->expired_, ptr->revoked_);
-    promise_.set_value(std::move(invite_link));
+    DialogInviteLink invite_link(std::move(result->invite_));
+    promise_.set_value(invite_link.get_chat_invite_link_object(td->contacts_manager_.get()));
   }
 
   void on_error(uint64 id, Status status) override {
@@ -6602,9 +6574,9 @@ void ContactsManager::edit_dialog_invite_link(DialogId dialog_id, const string &
 
   TRY_STATUS_PROMISE(promise, can_manage_dialog_invite_links(dialog_id));
 
-  if (!is_valid_invite_link(invite_link)) {
-    return promise.set_error(Status::Error(400, "Wrong invite link"));
-  }
+  // if (!is_valid_invite_link(invite_link)) {
+  //   return promise.set_error(Status::Error(400, "Wrong invite link"));
+  // }
 
   td_->create_handler<EditChatInviteLinkQuery>(std::move(promise))
       ->send(dialog_id, invite_link, expire_date, usage_limit, is_revoked);
