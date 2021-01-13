@@ -26,6 +26,7 @@ class DialogInviteLink {
   int32 usage_limit_ = 0;
   int32 usage_count_ = 0;
   bool is_revoked_ = false;
+  bool is_permanent_ = false;
 
   friend bool operator==(const DialogInviteLink &lhs, const DialogInviteLink &rhs);
 
@@ -58,6 +59,7 @@ class DialogInviteLink {
     bool has_usage_count = usage_count_ != 0;
     BEGIN_STORE_FLAGS();
     STORE_FLAG(is_revoked_);
+    STORE_FLAG(is_permanent_);
     STORE_FLAG(has_expire_date);
     STORE_FLAG(has_usage_limit);
     STORE_FLAG(has_usage_count);
@@ -84,6 +86,7 @@ class DialogInviteLink {
     bool has_usage_count;
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(is_revoked_);
+    PARSE_FLAG(is_permanent_);
     PARSE_FLAG(has_expire_date);
     PARSE_FLAG(has_usage_limit);
     PARSE_FLAG(has_usage_count);

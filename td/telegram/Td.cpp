@@ -6278,7 +6278,7 @@ void Td::on_request(uint64 id, td_api::getChatAdministrators &request) {
 void Td::on_request(uint64 id, const td_api::createChatInviteLink &request) {
   CREATE_REQUEST_PROMISE();
   contacts_manager_->export_dialog_invite_link(DialogId(request.chat_id_), request.expire_date_, request.usage_limit_,
-                                               std::move(promise));
+                                               request.is_permanent_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::editChatInviteLink &request) {

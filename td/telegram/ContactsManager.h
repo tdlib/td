@@ -389,7 +389,7 @@ class ContactsManager : public Actor {
 
   void transfer_dialog_ownership(DialogId dialog_id, UserId user_id, const string &password, Promise<Unit> &&promise);
 
-  void export_dialog_invite_link(DialogId dialog_id, int32 expire_date, int32 usage_limit,
+  void export_dialog_invite_link(DialogId dialog_id, int32 expire_date, int32 usage_limit, bool is_permanent,
                                  Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise);
 
   void edit_dialog_invite_link(DialogId dialog_id, const string &link, int32 expire_date, int32 usage_limit,
@@ -1345,7 +1345,7 @@ class ContactsManager : public Actor {
 
   static bool is_channel_public(const Channel *c);
 
-  void export_dialog_invite_link_impl(DialogId dialog_id, int32 expire_date, int32 usage_limit,
+  void export_dialog_invite_link_impl(DialogId dialog_id, int32 expire_date, int32 usage_limit, bool is_permanent,
                                       Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise);
 
   void remove_dialog_access_by_invite_link(DialogId dialog_id);

@@ -48,6 +48,14 @@ DialogInviteLink::DialogInviteLink(tl_object_ptr<telegram_api::chatInviteExporte
       usage_count_ = 0;
     }
   }
+  is_revoked_ = exported_invite->revoked_;
+  is_permanent_ = exported_invite->permanent_;
+
+  if (is_permanent_ && (usage_limit_ > 0 || expire_date_ > 0)) {
+    LOG(ERROR) << "Receive wron permanent " << *this;
+    expire_date_ = 0;
+    usage_limit_ = 0;
+  }
 }
 
 bool DialogInviteLink::is_expired() const {
@@ -74,13 +82,14 @@ td_api::object_ptr<td_api::chatInviteLink> DialogInviteLink::get_chat_invite_lin
 
   return td_api::make_object<td_api::chatInviteLink>(
       invite_link_, contacts_manager->get_user_id_object(administrator_user_id_, "get_chat_invite_link_object"), date_,
-      expire_date_, usage_limit_, usage_count_, is_expired(), is_revoked_);
+      expire_date_, usage_limit_, usage_count_, is_permanent_, is_expired(), is_revoked_);
 }
 
 bool operator==(const DialogInviteLink &lhs, const DialogInviteLink &rhs) {
   return lhs.invite_link_ == rhs.invite_link_ && lhs.administrator_user_id_ == rhs.administrator_user_id_ &&
          lhs.date_ == rhs.date_ && lhs.expire_date_ == rhs.expire_date_ && lhs.usage_limit_ == rhs.usage_limit_ &&
-         lhs.usage_count_ == rhs.usage_count_ && lhs.is_revoked_ == rhs.is_revoked_;
+         lhs.usage_count_ == rhs.usage_count_ && lhs.is_permanent_ == rhs.is_permanent_ &&
+         lhs.is_revoked_ == rhs.is_revoked_;
 }
 
 bool operator!=(const DialogInviteLink &lhs, const DialogInviteLink &rhs) {

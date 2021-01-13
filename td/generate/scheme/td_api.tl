@@ -887,8 +887,9 @@ chatsNearby users_nearby:vector<chatNearby> supergroups_nearby:vector<chatNearby
 //@description Contains a chat invite link @invite_link Chat invite link @administrator_user_id User identifier of an administrator created the link
 //@date Point in time (Unix timestamp) when the link was created @expire_date Point in time (Unix timestamp) when the link will expire; 0 if never
 //@usage_limit Maximum number of times the link can be used; 0 if not limited @usage_count Number of times the link has already been used
+//@is_permanent True, if the link is permanent. Permanent invite link can't have expire date or usage limit. There is exactly one permanent invite link for each administrator at any time
 //@is_expired True, if the link is already expired @is_revoked True, if the link was revoked
-chatInviteLink invite_link:string administrator_user_id:int32 date:int32 expire_date:int32 usage_limit:int32 usage_count:int32 is_expired:Bool is_revoked:Bool = ChatInviteLink;
+chatInviteLink invite_link:string administrator_user_id:int32 date:int32 expire_date:int32 usage_limit:int32 usage_count:int32 is_permanent:Bool is_expired:Bool is_revoked:Bool = ChatInviteLink;
 
 //@description Contains information about a chat invite link
 //@chat_id Chat identifier of the invite link; 0 if the user has no access to the chat before joining
@@ -4353,7 +4354,8 @@ deleteFile file_id:int32 = Ok;
 //@chat_id Chat identifier
 //@expire_date Point in time (Unix timestamp) when the link will expire; pass 0 if never
 //@usage_limit Maximum number of times the link can be used; pass 0 if not limited
-createChatInviteLink chat_id:int53 expire_date:int32 usage_limit:int32 = ChatInviteLink;
+//@is_permanent True, if new permanent chat link needs to be created instead of the previous
+createChatInviteLink chat_id:int53 expire_date:int32 usage_limit:int32 is_permanent:Bool = ChatInviteLink;
 
 //@description Edits an invite link for a chat. Available for basic groups, supergroups, and channels. Requires administrator privileges and can_invite_users right
 //@chat_id Chat identifier
