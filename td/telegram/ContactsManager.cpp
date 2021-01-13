@@ -1572,6 +1572,12 @@ class ExportChatInviteLinkQuery : public Td::ResultHandler {
     LOG(INFO) << "Receive result for ExportChatInviteQuery: " << to_string(ptr);
 
     DialogInviteLink invite_link(std::move(ptr));
+    if (!invite_link.is_valid()) {
+      return on_error(id, Status::Error(500, "Receive invalid invite link"));
+    }
+    if (invite_link.get_administrator_user_id() != td->contacts_manager_->get_my_id()) {
+      return on_error(id, Status::Error(500, "Receive invalid invite link creator"));
+    }
     promise_.set_value(invite_link.get_chat_invite_link_object(td->contacts_manager_.get()));
   }
 
@@ -1623,6 +1629,9 @@ class EditChatInviteLinkQuery : public Td::ResultHandler {
     td->contacts_manager_->on_get_users(std::move(result->users_), "EditChatInviteLinkQuery");
 
     DialogInviteLink invite_link(std::move(result->invite_));
+    if (!invite_link.is_valid()) {
+      return on_error(id, Status::Error(500, "Receive invalid invite link"));
+    }
     promise_.set_value(invite_link.get_chat_invite_link_object(td->contacts_manager_.get()));
   }
 

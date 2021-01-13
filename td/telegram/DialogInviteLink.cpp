@@ -29,12 +29,24 @@ DialogInviteLink::DialogInviteLink(tl_object_ptr<telegram_api::chatInviteExporte
   }
   if ((exported_invite->flags_ & telegram_api::chatInviteExported::EXPIRE_DATE_MASK) != 0) {
     expire_date_ = exported_invite->expire_date_;
+    if (expire_date_ < 0) {
+      LOG(ERROR) << "Receive wrong date " << expire_date_ << " as expire date of a link " << invite_link_;
+      expire_date_ = 0;
+    }
   }
   if ((exported_invite->flags_ & telegram_api::chatInviteExported::USAGE_LIMIT_MASK) != 0) {
     usage_limit_ = exported_invite->usage_limit_;
+    if (usage_limit_ < 0) {
+      LOG(ERROR) << "Receive wrong usage limit " << usage_limit_ << " for a link " << invite_link_;
+      usage_limit_ = 0;
+    }
   }
   if ((exported_invite->flags_ & telegram_api::chatInviteExported::USAGE_MASK) != 0) {
     usage_count_ = exported_invite->usage_;
+    if (usage_count_ < 0) {
+      LOG(ERROR) << "Receive wrong usage count " << usage_count_ << " for a link " << invite_link_;
+      usage_count_ = 0;
+    }
   }
 }
 
