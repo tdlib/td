@@ -3491,13 +3491,15 @@ template <class StorerT>
 void ContactsManager::ChatFull::store(StorerT &storer) const {
   using td::store;
   bool has_description = !description.empty();
-  bool has_invite_link = !invite_link.empty();
+  bool has_legacy_invite_link = false;
   bool has_photo = !photo.is_empty();
+  bool has_invite_link = invite_link.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_description);
-  STORE_FLAG(has_invite_link);
+  STORE_FLAG(has_legacy_invite_link);
   STORE_FLAG(can_set_username);
   STORE_FLAG(has_photo);
+  STORE_FLAG(has_invite_link);
   END_STORE_FLAGS();
   store(version, storer);
   store(creator_user_id, storer);
@@ -3505,11 +3507,11 @@ void ContactsManager::ChatFull::store(StorerT &storer) const {
   if (has_description) {
     store(description, storer);
   }
-  if (has_invite_link) {
-    store(invite_link, storer);
-  }
   if (has_photo) {
     store(photo, storer);
+  }
+  if (has_invite_link) {
+    store(invite_link, storer);
   }
 }
 
@@ -3517,13 +3519,15 @@ template <class ParserT>
 void ContactsManager::ChatFull::parse(ParserT &parser) {
   using td::parse;
   bool has_description;
-  bool has_invite_link;
+  bool legacy_has_invite_link;
   bool has_photo;
+  bool has_invite_link;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_description);
-  PARSE_FLAG(has_invite_link);
+  PARSE_FLAG(legacy_has_invite_link);
   PARSE_FLAG(can_set_username);
   PARSE_FLAG(has_photo);
+  PARSE_FLAG(has_invite_link);
   END_PARSE_FLAGS();
   parse(version, parser);
   parse(creator_user_id, parser);
@@ -3531,11 +3535,15 @@ void ContactsManager::ChatFull::parse(ParserT &parser) {
   if (has_description) {
     parse(description, parser);
   }
-  if (has_invite_link) {
-    parse(invite_link, parser);
+  if (legacy_has_invite_link) {
+    string legacy_invite_link;
+    parse(legacy_invite_link, parser);
   }
   if (has_photo) {
     parse(photo, parser);
+  }
+  if (has_invite_link) {
+    parse(invite_link, parser);
   }
 }
 
@@ -3699,7 +3707,7 @@ void ContactsManager::ChannelFull::store(StorerT &storer) const {
   bool has_administrator_count = administrator_count != 0;
   bool has_restricted_count = restricted_count != 0;
   bool has_banned_count = banned_count != 0;
-  bool has_invite_link = !invite_link.empty();
+  bool legacy_has_invite_link = false;
   bool has_sticker_set = sticker_set_id.is_valid();
   bool has_linked_channel_id = linked_channel_id.is_valid();
   bool has_migrated_from_max_message_id = migrated_from_max_message_id.is_valid();
@@ -3711,12 +3719,13 @@ void ContactsManager::ChannelFull::store(StorerT &storer) const {
   bool has_stats_dc_id = stats_dc_id.is_exact();
   bool has_photo = !photo.is_empty();
   bool legacy_has_active_group_call_id = false;
+  bool has_invite_link = invite_link.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_description);
   STORE_FLAG(has_administrator_count);
   STORE_FLAG(has_restricted_count);
   STORE_FLAG(has_banned_count);
-  STORE_FLAG(has_invite_link);
+  STORE_FLAG(legacy_has_invite_link);
   STORE_FLAG(has_sticker_set);
   STORE_FLAG(has_linked_channel_id);
   STORE_FLAG(has_migrated_from_max_message_id);
@@ -3736,6 +3745,7 @@ void ContactsManager::ChannelFull::store(StorerT &storer) const {
   STORE_FLAG(is_can_view_statistics_inited);
   STORE_FLAG(can_view_statistics);
   STORE_FLAG(legacy_has_active_group_call_id);
+  STORE_FLAG(has_invite_link);
   END_STORE_FLAGS();
   if (has_description) {
     store(description, storer);
@@ -3749,9 +3759,6 @@ void ContactsManager::ChannelFull::store(StorerT &storer) const {
   }
   if (has_banned_count) {
     store(banned_count, storer);
-  }
-  if (has_invite_link) {
-    store(invite_link, storer);
   }
   if (has_sticker_set) {
     store(sticker_set_id, storer);
@@ -3784,6 +3791,9 @@ void ContactsManager::ChannelFull::store(StorerT &storer) const {
   if (has_photo) {
     store(photo, storer);
   }
+  if (has_invite_link) {
+    store(invite_link, storer);
+  }
 }
 
 template <class ParserT>
@@ -3793,7 +3803,7 @@ void ContactsManager::ChannelFull::parse(ParserT &parser) {
   bool has_administrator_count;
   bool has_restricted_count;
   bool has_banned_count;
-  bool has_invite_link;
+  bool legacy_has_invite_link;
   bool has_sticker_set;
   bool has_linked_channel_id;
   bool has_migrated_from_max_message_id;
@@ -3806,12 +3816,13 @@ void ContactsManager::ChannelFull::parse(ParserT &parser) {
   bool has_stats_dc_id;
   bool has_photo;
   bool legacy_has_active_group_call_id;
+  bool has_invite_link;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_description);
   PARSE_FLAG(has_administrator_count);
   PARSE_FLAG(has_restricted_count);
   PARSE_FLAG(has_banned_count);
-  PARSE_FLAG(has_invite_link);
+  PARSE_FLAG(legacy_has_invite_link);
   PARSE_FLAG(has_sticker_set);
   PARSE_FLAG(has_linked_channel_id);
   PARSE_FLAG(has_migrated_from_max_message_id);
@@ -3831,6 +3842,7 @@ void ContactsManager::ChannelFull::parse(ParserT &parser) {
   PARSE_FLAG(is_can_view_statistics_inited);
   PARSE_FLAG(can_view_statistics);
   PARSE_FLAG(legacy_has_active_group_call_id);
+  PARSE_FLAG(has_invite_link);
   END_PARSE_FLAGS();
   if (has_description) {
     parse(description, parser);
@@ -3845,8 +3857,9 @@ void ContactsManager::ChannelFull::parse(ParserT &parser) {
   if (has_banned_count) {
     parse(banned_count, parser);
   }
-  if (has_invite_link) {
-    parse(invite_link, parser);
+  if (legacy_has_invite_link) {
+    string legacy_invite_link;
+    parse(legacy_invite_link, parser);
   }
   if (has_sticker_set) {
     parse(sticker_set_id, parser);
@@ -3882,6 +3895,9 @@ void ContactsManager::ChannelFull::parse(ParserT &parser) {
   if (legacy_has_active_group_call_id) {
     InputGroupCallId input_group_call_id;
     parse(input_group_call_id, parser);
+  }
+  if (has_invite_link) {
+    parse(invite_link, parser);
   }
 
   if (legacy_can_view_statistics) {
@@ -11166,7 +11182,7 @@ void ContactsManager::on_update_channel_full_photo(ChannelFull *channel_full, Ch
 void ContactsManager::on_update_chat_full_invite_link(ChatFull *chat_full,
                                                       tl_object_ptr<telegram_api::chatInviteExported> &&invite_link) {
   CHECK(chat_full != nullptr);
-  if (update_invite_link(chat_full->invite_link, std::move(invite_link))) {
+  if (update_persistent_invite_link(chat_full->invite_link, std::move(invite_link))) {
     chat_full->is_changed = true;
   }
 }
@@ -11174,7 +11190,7 @@ void ContactsManager::on_update_chat_full_invite_link(ChatFull *chat_full,
 void ContactsManager::on_update_channel_full_invite_link(
     ChannelFull *channel_full, tl_object_ptr<telegram_api::chatInviteExported> &&invite_link) {
   CHECK(channel_full != nullptr);
-  if (update_invite_link(channel_full->invite_link, std::move(invite_link))) {
+  if (update_persistent_invite_link(channel_full->invite_link, std::move(invite_link))) {
     channel_full->is_changed = true;
   }
 }
@@ -11482,19 +11498,14 @@ void ContactsManager::remove_dialog_access_by_invite_link(DialogId dialog_id) {
   invite_link_info_expire_timeout_.cancel_timeout(dialog_id.get());
 }
 
-bool ContactsManager::update_invite_link(string &invite_link,
-                                         tl_object_ptr<telegram_api::chatInviteExported> &&exported_chat_invite) {
-  string new_invite_link;
-  if (exported_chat_invite != nullptr) {
-    new_invite_link = std::move(exported_chat_invite->link_);
-  }
-
+bool ContactsManager::update_persistent_invite_link(
+    DialogInviteLink &invite_link, tl_object_ptr<telegram_api::chatInviteExported> &&exported_chat_invite) {
+  DialogInviteLink new_invite_link(std::move(exported_chat_invite));
   if (new_invite_link != invite_link) {
-    if (!invite_link.empty()) {
-      invite_link_infos_.erase(invite_link);
+    if (invite_link.is_valid() && invite_link.get_invite_link() != new_invite_link.get_invite_link()) {
+      // old link was invalidated
+      invite_link_infos_.erase(invite_link.get_invite_link());
     }
-    LOG_IF(ERROR, !new_invite_link.empty() && !DialogInviteLink::is_valid_invite_link(new_invite_link))
-        << "Unsupported invite link " << new_invite_link;
 
     invite_link = std::move(new_invite_link);
     return true;
@@ -12002,7 +12013,7 @@ void ContactsManager::drop_chat_full(ChatId chat_id) {
   // chat_full->creator_user_id = UserId();
   chat_full->participants.clear();
   chat_full->version = -1;
-  update_invite_link(chat_full->invite_link, nullptr);
+  on_update_chat_full_invite_link(chat_full, nullptr);
   update_chat_online_member_count(chat_full, chat_id, true);
   chat_full->is_changed = true;
   update_chat_full(chat_full, chat_id);
@@ -12850,12 +12861,18 @@ bool ContactsManager::is_chat_full_outdated(const ChatFull *chat_full, const Cha
   for (const auto &participant : chat_full->participants) {
     auto u = get_user(participant.user_id);
     if (u != nullptr && is_bot_info_expired(participant.user_id, u->bot_info_version)) {
-      LOG(INFO) << "Have outdated botInfo for " << participant.user_id << ", expected version " << u->bot_info_version;
+      LOG(INFO) << "Have outdated botInfo for " << participant.user_id << " in " << chat_id << "; expected version "
+                << u->bot_info_version;
       return true;
     }
   }
 
-  LOG(INFO) << "Full " << chat_id << " is up-to-date with version " << chat_full->version;
+  if (c->status.is_creator() && !chat_full->invite_link.is_valid()) {
+    LOG(INFO) << "Have outdated invite link in " << chat_id;
+    return true;
+  }
+
+  LOG(DEBUG) << "Full " << chat_id << " is up-to-date with version " << chat_full->version;
   return false;
 }
 
@@ -14345,7 +14362,7 @@ tl_object_ptr<td_api::basicGroupFullInfo> ContactsManager::get_basic_group_full_
       get_user_id_object(chat_full->creator_user_id, "basicGroupFullInfo"),
       transform(chat_full->participants,
                 [this](const DialogParticipant &chat_participant) { return get_chat_member_object(chat_participant); }),
-      chat_full->invite_link);
+      chat_full->invite_link.get_chat_invite_link_object(this));
 }
 
 td_api::object_ptr<td_api::updateSupergroup> ContactsManager::get_update_unknown_supergroup_object(
@@ -14396,7 +14413,7 @@ tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_supergroup_full_i
       slow_mode_delay_expires_in, channel_full->can_get_participants, channel_full->can_set_username,
       channel_full->can_set_sticker_set, channel_full->can_set_location, channel_full->can_view_statistics,
       channel_full->is_all_history_available, channel_full->sticker_set_id.get(),
-      channel_full->location.get_chat_location_object(), channel_full->invite_link,
+      channel_full->location.get_chat_location_object(), channel_full->invite_link.get_chat_invite_link_object(this),
       get_basic_group_id_object(channel_full->migrated_from_chat_id, "get_supergroup_full_info_object"),
       channel_full->migrated_from_max_message_id.get());
 }

@@ -54,6 +54,10 @@ class DialogInviteLink {
 
   int32 get_expire_time() const;
 
+  const string &get_invite_link() const {
+    return invite_link_;
+  }
+
   UserId get_administrator_user_id() const {
     return administrator_user_id_;
   }

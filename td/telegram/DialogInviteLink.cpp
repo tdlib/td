@@ -22,6 +22,7 @@ DialogInviteLink::DialogInviteLink(tl_object_ptr<telegram_api::chatInviteExporte
   }
 
   invite_link_ = std::move(exported_invite->link_);
+  LOG_IF(ERROR, !is_valid_invite_link(invite_link_)) << "Unsupported invite link " << invite_link_;
   administrator_user_id_ = UserId(exported_invite->admin_id_);
   if (!administrator_user_id_.is_valid()) {
     LOG(ERROR) << "Receive invalid " << administrator_user_id_ << " as creator of a link " << invite_link_;

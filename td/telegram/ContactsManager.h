@@ -739,7 +739,7 @@ class ContactsManager : public Actor {
 
     string description;
 
-    string invite_link;
+    DialogInviteLink invite_link;
 
     bool can_set_username = false;
 
@@ -815,7 +815,8 @@ class ContactsManager : public Actor {
     int32 administrator_count = 0;
     int32 restricted_count = 0;
     int32 banned_count = 0;
-    string invite_link;
+
+    DialogInviteLink invite_link;
 
     uint32 speculative_version = 1;
     uint32 repair_request_version = 0;
@@ -1348,7 +1349,8 @@ class ContactsManager : public Actor {
 
   Status can_manage_dialog_invite_links(DialogId dialog_id);
 
-  bool update_invite_link(string &invite_link, tl_object_ptr<telegram_api::chatInviteExported> &&exported_chat_invite);
+  bool update_persistent_invite_link(DialogInviteLink &invite_link,
+                                     tl_object_ptr<telegram_api::chatInviteExported> &&exported_chat_invite);
 
   const DialogParticipant *get_chat_participant(ChatId chat_id, UserId user_id) const;
 
