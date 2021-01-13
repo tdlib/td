@@ -9,7 +9,12 @@
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Global.h"
 
+#include "td/utils/misc.h"
+
 namespace td {
+
+const CSlice DialogInviteLink::INVITE_LINK_URLS[3] = {"t.me/joinchat/", "telegram.me/joinchat/",
+                                                      "telegram.dog/joinchat/"};
 
 DialogInviteLink::DialogInviteLink(tl_object_ptr<telegram_api::chatInviteExported> exported_invite) {
   if (exported_invite == nullptr) {
@@ -56,6 +61,32 @@ DialogInviteLink::DialogInviteLink(tl_object_ptr<telegram_api::chatInviteExporte
     expire_date_ = 0;
     usage_limit_ = 0;
   }
+}
+
+bool DialogInviteLink::is_valid_invite_link(Slice invite_link) {
+  return !get_dialog_invite_link_hash(invite_link).empty();
+}
+
+Slice DialogInviteLink::get_dialog_invite_link_hash(Slice invite_link) {
+  auto lower_cased_invite_link_str = to_lower(invite_link);
+  Slice lower_cased_invite_link = lower_cased_invite_link_str;
+  size_t offset = 0;
+  if (begins_with(lower_cased_invite_link, "https://")) {
+    offset = 8;
+  } else if (begins_with(lower_cased_invite_link, "http://")) {
+    offset = 7;
+  }
+  lower_cased_invite_link.remove_prefix(offset);
+
+  for (auto &url : INVITE_LINK_URLS) {
+    if (begins_with(lower_cased_invite_link, url)) {
+      Slice hash = invite_link.substr(url.size() + offset);
+      hash.truncate(hash.find('#'));
+      hash.truncate(hash.find('?'));
+      return hash;
+    }
+  }
+  return Slice();
 }
 
 bool DialogInviteLink::is_expired() const {

@@ -221,8 +221,6 @@ class ContactsManager : public Actor {
 
   bool on_get_channel_error(ChannelId channel_id, const Status &status, const string &source);
 
-  static Slice get_dialog_invite_link_hash(const string &invite_link);
-
   void on_get_dialog_invite_link_info(const string &invite_link,
                                       tl_object_ptr<telegram_api::ChatInvite> &&chat_invite_ptr,
                                       Promise<Unit> &&promise);
@@ -1044,8 +1042,6 @@ class ContactsManager : public Actor {
   static constexpr int32 ACCOUNT_UPDATE_LAST_NAME = 1 << 1;
   static constexpr int32 ACCOUNT_UPDATE_ABOUT = 1 << 2;
 
-  static const CSlice INVITE_LINK_URLS[3];
-
   static bool have_input_peer_user(const User *u, AccessRights access_rights);
   static bool have_input_peer_chat(const Chat *c, AccessRights access_rights);
   bool have_input_peer_channel(const Channel *c, ChannelId channel_id, AccessRights access_rights,
@@ -1351,8 +1347,6 @@ class ContactsManager : public Actor {
   void remove_dialog_access_by_invite_link(DialogId dialog_id);
 
   Status can_manage_dialog_invite_links(DialogId dialog_id);
-
-  static bool is_valid_invite_link(const string &invite_link);
 
   bool update_invite_link(string &invite_link, tl_object_ptr<telegram_api::chatInviteExported> &&exported_chat_invite);
 

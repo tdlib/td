@@ -1655,7 +1655,7 @@ class CheckDialogInviteLinkQuery : public Td::ResultHandler {
   void send(const string &invite_link) {
     invite_link_ = invite_link;
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_checkChatInvite(ContactsManager::get_dialog_invite_link_hash(invite_link_).str())));
+        telegram_api::messages_checkChatInvite(DialogInviteLink::get_dialog_invite_link_hash(invite_link_).str())));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -1687,7 +1687,7 @@ class ImportDialogInviteLinkQuery : public Td::ResultHandler {
   void send(const string &invite_link) {
     invite_link_ = invite_link;
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_importChatInvite(ContactsManager::get_dialog_invite_link_hash(invite_link).str())));
+        telegram_api::messages_importChatInvite(DialogInviteLink::get_dialog_invite_link_hash(invite_link).str())));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -2905,9 +2905,6 @@ class ContactsManager::UploadProfilePhotoCallback : public FileManager::UploadCa
                        std::move(error));
   }
 };
-
-const CSlice ContactsManager::INVITE_LINK_URLS[3] = {"t.me/joinchat/", "telegram.me/joinchat/",
-                                                     "telegram.dog/joinchat/"};
 
 ContactsManager::ContactsManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
   upload_profile_photo_callback_ = std::make_shared<UploadProfilePhotoCallback>();
@@ -6606,7 +6603,7 @@ void ContactsManager::edit_dialog_invite_link(DialogId dialog_id, const string &
 
   TRY_STATUS_PROMISE(promise, can_manage_dialog_invite_links(dialog_id));
 
-  // if (!is_valid_invite_link(invite_link)) {
+  // if (!DialogInviteLink::is_valid_invite_link(invite_link)) {
   //   return promise.set_error(Status::Error(400, "Wrong invite link"));
   // }
 
@@ -6619,7 +6616,7 @@ void ContactsManager::check_dialog_invite_link(const string &invite_link, Promis
     return promise.set_value(Unit());
   }
 
-  if (!is_valid_invite_link(invite_link)) {
+  if (!DialogInviteLink::is_valid_invite_link(invite_link)) {
     return promise.set_error(Status::Error(400, "Wrong invite link"));
   }
 
@@ -6627,7 +6624,7 @@ void ContactsManager::check_dialog_invite_link(const string &invite_link, Promis
 }
 
 void ContactsManager::import_dialog_invite_link(const string &invite_link, Promise<DialogId> &&promise) {
-  if (!is_valid_invite_link(invite_link)) {
+  if (!DialogInviteLink::is_valid_invite_link(invite_link)) {
     return promise.set_error(Status::Error(400, "Wrong invite link"));
   }
 
@@ -11485,32 +11482,6 @@ void ContactsManager::remove_dialog_access_by_invite_link(DialogId dialog_id) {
   invite_link_info_expire_timeout_.cancel_timeout(dialog_id.get());
 }
 
-bool ContactsManager::is_valid_invite_link(const string &invite_link) {
-  return !get_dialog_invite_link_hash(invite_link).empty();
-}
-
-Slice ContactsManager::get_dialog_invite_link_hash(const string &invite_link) {
-  auto lower_cased_invite_link_str = to_lower(invite_link);
-  Slice lower_cased_invite_link = lower_cased_invite_link_str;
-  size_t offset = 0;
-  if (begins_with(lower_cased_invite_link, "https://")) {
-    offset = 8;
-  } else if (begins_with(lower_cased_invite_link, "http://")) {
-    offset = 7;
-  }
-  lower_cased_invite_link.remove_prefix(offset);
-
-  for (auto &url : INVITE_LINK_URLS) {
-    if (begins_with(lower_cased_invite_link, url)) {
-      Slice hash = Slice(invite_link).substr(url.size() + offset);
-      hash.truncate(hash.find('#'));
-      hash.truncate(hash.find('?'));
-      return hash;
-    }
-  }
-  return Slice();
-}
-
 bool ContactsManager::update_invite_link(string &invite_link,
                                          tl_object_ptr<telegram_api::chatInviteExported> &&exported_chat_invite) {
   string new_invite_link;
@@ -11522,7 +11493,7 @@ bool ContactsManager::update_invite_link(string &invite_link,
     if (!invite_link.empty()) {
       invite_link_infos_.erase(invite_link);
     }
-    LOG_IF(ERROR, !new_invite_link.empty() && !is_valid_invite_link(new_invite_link))
+    LOG_IF(ERROR, !new_invite_link.empty() && !DialogInviteLink::is_valid_invite_link(new_invite_link))
         << "Unsupported invite link " << new_invite_link;
 
     invite_link = std::move(new_invite_link);
