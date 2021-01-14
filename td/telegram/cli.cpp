@@ -2706,6 +2706,16 @@ class CliClient final : public Actor {
       get_args(args, chat_id, administrator_user_id, offset_invite_link, limit);
       send_request(td_api::make_object<td_api::getChatInviteLinks>(
           as_chat_id(chat_id), as_user_id(administrator_user_id), offset_invite_link, as_limit(limit)));
+    } else if (op == "gcilu") {
+      string chat_id;
+      string invite_link;
+      string offset_user_id;
+      int32 offset_date;
+      string limit;
+      get_args(args, chat_id, invite_link, offset_user_id, offset_date, limit);
+      send_request(td_api::make_object<td_api::getChatInviteLinkUsers>(
+          as_chat_id(chat_id), invite_link,
+          td_api::make_object<td_api::chatInviteLinkUser>(as_user_id(offset_user_id), offset_date), as_limit(limit)));
     } else if (op == "ccil") {
       send_request(td_api::make_object<td_api::checkChatInviteLink>(args));
     } else if (op == "jcbil") {

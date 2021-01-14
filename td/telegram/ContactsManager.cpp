@@ -1708,6 +1708,67 @@ class GetExportedChatInvitesQuery : public Td::ResultHandler {
   }
 };
 
+class GetChatInviteImportersQuery : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::chatInviteLinkUsers>> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit GetChatInviteImportersQuery(Promise<td_api::object_ptr<td_api::chatInviteLinkUsers>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, const string &invite_link, int32 offset_date, UserId offset_user_id, int32 limit) {
+    dialog_id_ = dialog_id;
+    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    if (input_peer == nullptr) {
+      return on_error(0, Status::Error(400, "Can't access the chat"));
+    }
+
+    auto input_user = td->contacts_manager_->get_input_user(offset_user_id);
+    if (input_user == nullptr) {
+      input_user = make_tl_object<telegram_api::inputUserEmpty>();
+    }
+
+    send_query(G()->net_query_creator().create(telegram_api::messages_getChatInviteImporters(
+        std::move(input_peer), invite_link, offset_date, std::move(input_user), limit)));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::messages_getChatInviteImporters>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetChatInviteImportersQuery: " << to_string(result);
+
+    td->contacts_manager_->on_get_users(std::move(result->users_), "GetChatInviteImportersQuery");
+
+    int32 total_count = result->count_;
+    if (total_count < static_cast<int32>(result->importers_.size())) {
+      LOG(ERROR) << "Receive wrong total count of invite link users " << total_count << " in " << dialog_id_;
+      total_count = static_cast<int32>(result->importers_.size());
+    }
+    vector<td_api::object_ptr<td_api::chatInviteLinkUser>> invite_link_users;
+    for (auto &importer : result->importers_) {
+      UserId user_id(importer->user_id_);
+      if (!user_id.is_valid()) {
+        LOG(ERROR) << "Receive invalid invite link " << user_id << " in " << dialog_id_;
+        total_count--;
+        continue;
+      }
+      invite_link_users.push_back(td_api::make_object<td_api::chatInviteLinkUser>(
+          td->contacts_manager_->get_user_id_object(user_id, "chatInviteLinkUser"), importer->date_));
+    }
+    promise_.set_value(td_api::make_object<td_api::chatInviteLinkUsers>(total_count, std::move(invite_link_users)));
+  }
+
+  void on_error(uint64 id, Status status) override {
+    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetChatInviteImportersQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class CheckDialogInviteLinkQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   string invite_link_;
@@ -6702,6 +6763,27 @@ void ContactsManager::get_dialog_invite_links(DialogId dialog_id, UserId adminis
 
   td_->create_handler<GetExportedChatInvitesQuery>(std::move(promise))
       ->send(dialog_id, administrator_user_id, offset_invite_link, limit);
+}
+
+void ContactsManager::get_dialog_invite_link_users(DialogId dialog_id, const string &invite_link,
+                                                   td_api::object_ptr<td_api::chatInviteLinkUser> offset_user,
+                                                   int32 limit,
+                                                   Promise<td_api::object_ptr<td_api::chatInviteLinkUsers>> &&promise) {
+  TRY_STATUS_PROMISE(promise, can_manage_dialog_invite_links(dialog_id));
+
+  if (limit <= 0) {
+    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
+  }
+
+  UserId offset_user_id;
+  int32 offset_date = 0;
+  if (offset_user != nullptr) {
+    offset_user_id = UserId(offset_user->user_id_);
+    offset_date = offset_user->joined_chat_date_;
+  }
+
+  td_->create_handler<GetChatInviteImportersQuery>(std::move(promise))
+      ->send(dialog_id, invite_link, offset_date, offset_user_id, limit);
 }
 
 void ContactsManager::check_dialog_invite_link(const string &invite_link, Promise<Unit> &&promise) const {

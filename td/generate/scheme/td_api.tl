@@ -566,6 +566,12 @@ chatInviteLinks total_count:int32 invite_links:vector<chatInviteLink> = ChatInvi
 //@is_public True, if the chat is a public supergroup or channel, i.e. it has a username or it is a location-based supergroup
 chatInviteLinkInfo chat_id:int53 accessible_for:int32 type:ChatType title:string photo:chatPhotoInfo member_count:int32 member_user_ids:vector<int32> is_public:Bool = ChatInviteLinkInfo;
 
+//@description Describes a user joined a chat by an invite link @user_id User identifier @joined_chat_date Point in time (Unix timestamp) when the user joined the chat
+chatInviteLinkUser user_id:int32 joined_chat_date:int32 = ChatInviteLinkUser;
+
+//@description Contains a list of users joined a chat by an invite link @total_count Approximate total count of users found @users List of users, joined a chat by an invite link
+chatInviteLinkUsers total_count:int32 users:vector<chatInviteLinkUser> = ChatInviteLinkUsers;
+
 
 //@description Represents a basic group of 0-200 users (must be upgraded to a supergroup to accommodate more than 200 users)
 //@id Group identifier
@@ -4368,9 +4374,13 @@ createChatInviteLink chat_id:int53 expire_date:int32 usage_limit:int32 is_perman
 //@is_revoked True, if the link is revoked
 editChatInviteLink chat_id:int53 invite_link:string expire_date:int32 usage_limit:int32 is_revoked:Bool = ChatInviteLink;
 
-//@description Returns exported invite links for a chat @chat_id Chat identifier @administrator_user_id If not 0, only invite links created by the specified administrator will be returned
+//@description Returns exported invite links for a chat. Requires administrator privileges and can_invite_users right @chat_id Chat identifier @administrator_user_id If not 0, only invite links created by the specified administrator will be returned
 //@offset_invite_link Invite link starting after which to return invite links; use empty string to get results from the beginning @limit Maximum number of invite links to return
 getChatInviteLinks chat_id:int53 administrator_user_id:int32 offset_invite_link:string limit:int32 = ChatInviteLinks;
+
+//@description Returns users joined a chat by an invite link. Requires administrator privileges and can_invite_users right @chat_id Chat identifier @invite_link Invite link for which to return users
+//@offset_user A user from which to return next users; use null to get results from the beginning @limit Maximum number of users to return
+getChatInviteLinkUsers chat_id:int53 invite_link:string offset_user:chatInviteLinkUser limit:int32 = ChatInviteLinkUsers;
 
 //@description Checks the validity of an invite link for a chat and returns information about the corresponding chat @invite_link Invite link to be checked; must begin with "https://t.me/joinchat/", "https://telegram.me/joinchat/", or "https://telegram.dog/joinchat/"
 checkChatInviteLink invite_link:string = ChatInviteLinkInfo;
