@@ -6288,6 +6288,13 @@ void Td::on_request(uint64 id, td_api::editChatInviteLink &request) {
                                              request.usage_limit_, request.is_revoked_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::getChatInviteLinks &request) {
+  CREATE_REQUEST_PROMISE();
+  CLEAN_INPUT_STRING(request.offset_invite_link_);
+  contacts_manager_->get_dialog_invite_links(DialogId(request.chat_id_), UserId(request.administrator_user_id_),
+                                             request.offset_invite_link_, request.limit_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::checkChatInviteLink &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.invite_link_);

@@ -393,6 +393,9 @@ class ContactsManager : public Actor {
   void edit_dialog_invite_link(DialogId dialog_id, const string &link, int32 expire_date, int32 usage_limit,
                                bool is_revoked, Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise);
 
+  void get_dialog_invite_links(DialogId dialog_id, UserId administrator_user_id, const string &offset_invite_link,
+                               int32 limit, Promise<td_api::object_ptr<td_api::chatInviteLinks>> &&promise);
+
   void check_dialog_invite_link(const string &invite_link, Promise<Unit> &&promise) const;
 
   void import_dialog_invite_link(const string &invite_link, Promise<DialogId> &&promise);

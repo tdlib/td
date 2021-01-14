@@ -552,6 +552,9 @@ supergroupMembersFilterBots = SupergroupMembersFilter;
 //@is_expired True, if the link is already expired @is_revoked True, if the link was revoked
 chatInviteLink invite_link:string administrator_user_id:int32 date:int32 expire_date:int32 usage_limit:int32 usage_count:int32 is_permanent:Bool is_expired:Bool is_revoked:Bool = ChatInviteLink;
 
+//@description Contains a list of chat invite links @total_count Approximate total count of chat invite links found @invite_links List of invite links
+chatInviteLinks total_count:int32 invite_links:vector<chatInviteLink> = ChatInviteLinks;
+
 //@description Contains information about a chat invite link
 //@chat_id Chat identifier of the invite link; 0 if the user has no access to the chat before joining
 //@accessible_for If non-zero, the amount of time for which read access to the chat will remain available, in seconds
@@ -4364,6 +4367,10 @@ createChatInviteLink chat_id:int53 expire_date:int32 usage_limit:int32 is_perman
 //@usage_limit Maximum number of times the link can be used; pass 0 if not limited
 //@is_revoked True, if the link is revoked
 editChatInviteLink chat_id:int53 invite_link:string expire_date:int32 usage_limit:int32 is_revoked:Bool = ChatInviteLink;
+
+//@description Returns exported invite links for a chat @chat_id Chat identifier @administrator_user_id If not 0, only invite links created by the specified administrator will be returned
+//@offset_invite_link Invite link starting after which to return invite links; use empty string to get results from the beginning @limit Maximum number of invite links to return
+getChatInviteLinks chat_id:int53 administrator_user_id:int32 offset_invite_link:string limit:int32 = ChatInviteLinks;
 
 //@description Checks the validity of an invite link for a chat and returns information about the corresponding chat @invite_link Invite link to be checked; must begin with "https://t.me/joinchat/", "https://telegram.me/joinchat/", or "https://telegram.dog/joinchat/"
 checkChatInviteLink invite_link:string = ChatInviteLinkInfo;

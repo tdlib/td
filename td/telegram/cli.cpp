@@ -2698,6 +2698,14 @@ class CliClient final : public Actor {
       get_args(args, chat_id, invite_link, expire_date, usage_limit, is_revoked);
       send_request(td_api::make_object<td_api::editChatInviteLink>(as_chat_id(chat_id), invite_link, expire_date,
                                                                    usage_limit, is_revoked));
+    } else if (op == "gcil") {
+      string chat_id;
+      string administrator_user_id;
+      string offset_invite_link;
+      string limit;
+      get_args(args, chat_id, administrator_user_id, offset_invite_link, limit);
+      send_request(td_api::make_object<td_api::getChatInviteLinks>(
+          as_chat_id(chat_id), as_user_id(administrator_user_id), offset_invite_link, as_limit(limit)));
     } else if (op == "ccil") {
       send_request(td_api::make_object<td_api::checkChatInviteLink>(args));
     } else if (op == "jcbil") {
@@ -3691,7 +3699,7 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::unpinAllChatMessages>(as_chat_id(chat_id)));
     } else if (op == "grib") {
       send_request(td_api::make_object<td_api::getRecentInlineBots>());
-    } else if (op == "spc" || op == "su" || op == "sch") {
+    } else if (op == "spc" || op == "su") {
       send_request(td_api::make_object<td_api::searchPublicChat>(args));
     } else if (op == "spcs") {
       send_request(td_api::make_object<td_api::searchPublicChats>(args));
