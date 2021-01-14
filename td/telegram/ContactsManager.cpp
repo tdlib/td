@@ -8831,6 +8831,7 @@ void ContactsManager::on_load_chat_full_from_database(ChatId chat_id, string val
     dependencies.user_ids.insert(participant.user_id);
     dependencies.user_ids.insert(participant.inviter_user_id);
   }
+  dependencies.user_ids.insert(chat_full->invite_link.get_administrator_user_id());
   resolve_dependencies_force(td_, dependencies, "chat_full");
 
   for (auto &participant : chat_full->participants) {
@@ -8918,6 +8919,7 @@ void ContactsManager::on_load_channel_full_from_database(ChannelId channel_id, s
   add_dialog_and_dependencies(dependencies, DialogId(channel_full->linked_channel_id));
   dependencies.chat_ids.insert(channel_full->migrated_from_chat_id);
   dependencies.user_ids.insert(channel_full->bot_user_ids.begin(), channel_full->bot_user_ids.end());
+  dependencies.user_ids.insert(channel_full->invite_link.get_administrator_user_id());
   resolve_dependencies_force(td_, dependencies, "channel_full");
 
   for (auto &user_id : channel_full->bot_user_ids) {
