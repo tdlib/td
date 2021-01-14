@@ -12,6 +12,9 @@ SuggestedAction get_suggested_action(Slice action_str) {
   if (action_str == Slice("AUTOARCHIVE_POPULAR")) {
     return SuggestedAction::EnableArchiveAndMuteNewChats;
   }
+  if (action_str == Slice("NEWCOMER_TICKS")) {
+    return SuggestedAction::SeeTicksHint;
+  }
   return SuggestedAction::Empty;
 }
 
@@ -19,6 +22,8 @@ string get_suggested_action_str(SuggestedAction action) {
   switch (action) {
     case SuggestedAction::EnableArchiveAndMuteNewChats:
       return "AUTOARCHIVE_POPULAR";
+    case SuggestedAction::SeeTicksHint:
+      return "NEWCOMER_TICKS";
     default:
       return string();
   }
@@ -33,6 +38,8 @@ SuggestedAction get_suggested_action(const td_api::object_ptr<td_api::SuggestedA
       return SuggestedAction::EnableArchiveAndMuteNewChats;
     case td_api::suggestedActionCheckPhoneNumber::ID:
       return SuggestedAction::CheckPhoneNumber;
+    case td_api::suggestedActionSeeTicksHint::ID:
+      return SuggestedAction::SeeTicksHint;
     default:
       UNREACHABLE();
       return SuggestedAction::Empty;
@@ -47,6 +54,8 @@ td_api::object_ptr<td_api::SuggestedAction> get_suggested_action_object(Suggeste
       return td_api::make_object<td_api::suggestedActionEnableArchiveAndMuteNewChats>();
     case SuggestedAction::CheckPhoneNumber:
       return td_api::make_object<td_api::suggestedActionCheckPhoneNumber>();
+    case SuggestedAction::SeeTicksHint:
+      return td_api::make_object<td_api::suggestedActionSeeTicksHint>();
     default:
       UNREACHABLE();
       return nullptr;

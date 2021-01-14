@@ -1364,6 +1364,9 @@ class CliClient final : public Actor {
     if (action == "number") {
       return td_api::make_object<td_api::suggestedActionCheckPhoneNumber>();
     }
+    if (action == "ticks") {
+      return td_api::make_object<td_api::suggestedActionSeeTicksHint>();
+    }
     return nullptr;
   }
 
@@ -3882,7 +3885,7 @@ class CliClient final : public Actor {
       int64 x;
       get_args(args, chat_id, token, x);
       send_request(td_api::make_object<td_api::getStatisticalGraph>(as_chat_id(chat_id), token, x));
-    } else if (op == "hsa" || op == "glu" || op == "glua") {
+    } else if (op == "hsa") {
       send_request(td_api::make_object<td_api::hideSuggestedAction>(as_suggested_action(args)));
     } else if (op == "glui" || op == "glu" || op == "glua") {
       string chat_id;

@@ -13,7 +13,7 @@
 
 namespace td {
 
-enum class SuggestedAction : int32 { Empty, EnableArchiveAndMuteNewChats, CheckPhoneNumber };
+enum class SuggestedAction : int32 { Empty, EnableArchiveAndMuteNewChats, CheckPhoneNumber, SeeTicksHint };
 
 SuggestedAction get_suggested_action(Slice action_str);
 

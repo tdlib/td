@@ -3094,6 +3094,9 @@ suggestedActionEnableArchiveAndMuteNewChats = SuggestedAction;
 //@description Suggests the user to check authorization phone number and change the phone number if it is inaccessible
 suggestedActionCheckPhoneNumber = SuggestedAction;
 
+//@description Suggests the user to see a hint about meaning of one and two ticks on sent message
+suggestedActionSeeTicksHint = SuggestedAction;
+
 
 //@description Contains a counter @count Count
 count count:int32 = Count;
