@@ -6648,10 +6648,11 @@ bool MessagesManager::is_visible_message_reply_info(DialogId dialog_id, const Me
   if (!m->message_id.is_valid()) {
     return false;
   }
-  if (!m->message_id.is_server() && !m->message_id.is_yet_unsent()) {
+  bool is_broadcast = is_broadcast_channel(dialog_id);
+  if (!m->message_id.is_server() && !(is_broadcast && m->message_id.is_yet_unsent())) {
     return false;
   }
-  if (is_broadcast_channel(dialog_id) && (m->had_reply_markup || m->reply_markup != nullptr)) {
+  if (is_broadcast && (m->had_reply_markup || m->reply_markup != nullptr)) {
     return false;
   }
   return is_active_message_reply_info(dialog_id, m->reply_info);
