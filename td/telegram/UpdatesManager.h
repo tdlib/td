@@ -40,6 +40,9 @@ class UpdatesManager : public Actor {
 
   void on_get_difference(tl_object_ptr<telegram_api::updates_Difference> &&difference_ptr);
 
+  void add_pending_pts_update(tl_object_ptr<telegram_api::Update> &&update, int32 new_pts, int32 pts_count,
+                              Promise<Unit> &&promise, const char *source);
+
   static std::unordered_set<int64> get_sent_messages_random_ids(const telegram_api::Updates *updates_ptr);
 
   static vector<const tl_object_ptr<telegram_api::Message> *> get_new_messages(
@@ -63,8 +66,6 @@ class UpdatesManager : public Actor {
 
   void on_server_pong(tl_object_ptr<telegram_api::updates_state> &&state);
 
-  static bool check_pts_update(const tl_object_ptr<telegram_api::Update> &update);
-
   int32 get_pts() const {
     return pts_manager_.mem_pts();
   }
@@ -77,20 +78,30 @@ class UpdatesManager : public Actor {
 
   Promise<> set_pts(int32 pts, const char *source) TD_WARN_UNUSED_RESULT;
 
-  static const double MAX_UNFILLED_GAP_TIME;
-
-  static void fill_pts_gap(void *td);
-
   bool running_get_difference() const {
     return running_get_difference_;
   }
 
  private:
   static constexpr int32 FORCED_GET_DIFFERENCE_PTS_DIFF = 100000;
+  static const double MAX_UNFILLED_GAP_TIME;
+  static constexpr bool DROP_PTS_UPDATES = false;
 
   friend class OnUpdate;
 
-  class PendingUpdates {
+  class PendingPtsUpdate {
+   public:
+    tl_object_ptr<telegram_api::Update> update;
+    int32 pts;
+    int32 pts_count;
+    Promise<Unit> promise;
+
+    PendingPtsUpdate(tl_object_ptr<telegram_api::Update> &&update, int32 pts, int32 pts_count, Promise<Unit> &&promise)
+        : update(std::move(update)), pts(pts), pts_count(pts_count), promise(std::move(promise)) {
+    }
+  };
+
+  class PendingSeqUpdates {
    public:
     int32 seq_begin;
     int32 seq_end;
@@ -98,8 +109,8 @@ class UpdatesManager : public Actor {
     vector<tl_object_ptr<telegram_api::Update>> updates;
     Promise<Unit> promise;
 
-    PendingUpdates(int32 seq_begin, int32 seq_end, int32 date, vector<tl_object_ptr<telegram_api::Update>> &&updates,
-                   Promise<Unit> &&promise)
+    PendingSeqUpdates(int32 seq_begin, int32 seq_end, int32 date, vector<tl_object_ptr<telegram_api::Update>> &&updates,
+                      Promise<Unit> &&promise)
         : seq_begin(seq_begin), seq_end(seq_end), date(date), updates(std::move(updates)), promise(std::move(promise)) {
     }
   };
@@ -121,10 +132,19 @@ class UpdatesManager : public Actor {
 
   int32 short_update_date_ = 0;
 
-  std::multimap<int32, PendingUpdates> postponed_updates_;    // updates received during getDifference
-  std::multimap<int32, PendingUpdates> pending_seq_updates_;  // updates with too big seq
+  int32 accumulated_pts_count_ = 0;
+  int32 accumulated_pts_ = -1;
+  double last_pts_jump_warning_time_ = 0;
+
+  std::multimap<int32, PendingPtsUpdate> pending_pts_updates_;
+  std::multimap<int32, PendingPtsUpdate> postponed_pts_updates_;
+
+  std::multimap<int32, PendingSeqUpdates> postponed_updates_;    // updates received during getDifference
+  std::multimap<int32, PendingSeqUpdates> pending_seq_updates_;  // updates with too big seq
 
   std::map<int32, PendingQtsUpdate> pending_qts_updates_;  // updates with too big qts
+
+  Timeout pts_gap_timeout_;
 
   Timeout seq_gap_timeout_;
 
@@ -168,14 +188,25 @@ class UpdatesManager : public Actor {
   void process_updates(vector<tl_object_ptr<telegram_api::Update>> &&updates, bool force_apply,
                        Promise<Unit> &&promise);
 
+  void postpone_pts_update(tl_object_ptr<telegram_api::Update> &&update, int32 pts, int32 pts_count,
+                           Promise<Unit> &&promise);
+
+  void process_pts_update(tl_object_ptr<telegram_api::Update> &&update);
+
   void process_seq_updates(int32 seq_end, int32 date, vector<tl_object_ptr<telegram_api::Update>> &&updates,
                            Promise<Unit> &&promise);
 
   void process_qts_update(tl_object_ptr<telegram_api::Update> &&update_ptr, int32 qts, Promise<Unit> &&promise);
 
+  void process_pending_pts_updates();
+
   void process_pending_seq_updates();
 
   void process_pending_qts_updates();
+
+  void drop_pending_pts_updates();
+
+  static void fill_pts_gap(void *td);
 
   static void fill_seq_gap(void *td);
 
@@ -184,6 +215,8 @@ class UpdatesManager : public Actor {
   static void fill_get_difference_gap(void *td);
 
   static void fill_gap(void *td, const char *source);
+
+  void set_pts_gap_timeout(double timeout);
 
   void set_seq_gap_timeout(double timeout);
 
@@ -197,9 +230,13 @@ class UpdatesManager : public Actor {
 
   void after_get_difference();
 
+  int32 get_min_pending_pts() const;
+
   static bool have_update_pts_changed(const vector<tl_object_ptr<telegram_api::Update>> &updates);
 
   static bool check_pts_update_dialog_id(DialogId dialog_id);
+
+  static bool check_pts_update(const tl_object_ptr<telegram_api::Update> &update);
 
   static bool is_pts_update(const telegram_api::Update *update);
 

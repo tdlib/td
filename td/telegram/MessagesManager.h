@@ -788,12 +788,10 @@ class MessagesManager : public Actor {
   tl_object_ptr<td_api::messages> get_messages_object(int32 total_count, const vector<FullMessageId> &full_message_ids,
                                                       bool skip_not_found);
 
-  int32 get_min_pending_pts() const;
-
   void process_pts_update(tl_object_ptr<telegram_api::Update> &&update);
 
-  void add_pending_update(tl_object_ptr<telegram_api::Update> &&update, int32 new_pts, int32 pts_count,
-                          Promise<Unit> &&promise, const char *source);
+  void skip_old_pending_pts_update(tl_object_ptr<telegram_api::Update> &&update, int32 new_pts, int32 old_pts,
+                                   int32 pts_count, const char *source);
 
   void add_pending_channel_update(DialogId dialog_id, tl_object_ptr<telegram_api::Update> &&update, int32 new_pts,
                                   int32 pts_count, Promise<Unit> &&promise, const char *source,
@@ -1730,7 +1728,7 @@ class MessagesManager : public Actor {
 
   static constexpr const char *DELETE_MESSAGE_USER_REQUEST_SOURCE = "user request";
 
-  static constexpr bool DROP_UPDATES = false;
+  static constexpr bool DROP_SEND_MESSAGE_UPDATES = false;
 
   static FullMessageId get_full_message_id(const tl_object_ptr<telegram_api::Message> &message_ptr, bool is_scheduled);
 
@@ -1827,8 +1825,6 @@ class MessagesManager : public Actor {
                                              MessageId &reply_to_message_id);
 
   bool can_set_game_score(DialogId dialog_id, const Message *m) const;
-
-  void process_update(tl_object_ptr<telegram_api::Update> &&update);
 
   void process_channel_update(tl_object_ptr<telegram_api::Update> &&update);
 
@@ -2062,7 +2058,7 @@ class MessagesManager : public Actor {
 
   static void set_message_id(unique_ptr<Message> &message, MessageId message_id);
 
-  bool is_allowed_useless_update(const tl_object_ptr<telegram_api::Update> &update) const;
+  static bool is_allowed_useless_update(const tl_object_ptr<telegram_api::Update> &update);
 
   bool is_message_auto_read(DialogId dialog_id, bool is_outgoing) const;
 
@@ -2789,18 +2785,6 @@ class MessagesManager : public Actor {
 
   void load_notification_settings();
 
-  void set_get_difference_timeout(double timeout);
-
-  void skip_old_pending_update(tl_object_ptr<telegram_api::Update> &&update, int32 new_pts, int32 old_pts,
-                               int32 pts_count, const char *source);
-
-  void process_pending_updates();
-
-  void drop_pending_updates();
-
-  void postpone_pts_update(tl_object_ptr<telegram_api::Update> &&update, int32 pts, int32 pts_count,
-                           Promise<Unit> &&promise);
-
   static string get_channel_pts_key(DialogId dialog_id);
 
   int32 load_channel_pts(DialogId dialog_id) const;
@@ -3013,10 +2997,7 @@ class MessagesManager : public Actor {
   std::shared_ptr<UploadThumbnailCallback> upload_thumbnail_callback_;
   std::shared_ptr<UploadDialogPhotoCallback> upload_dialog_photo_callback_;
 
-  int32 accumulated_pts_count_ = 0;
-  int32 accumulated_pts_ = -1;
-  Timeout pts_gap_timeout_;
-  double last_pts_jump_warning_time_ = 0;
+  double last_channel_pts_jump_warning_time_ = 0;
 
   std::unordered_map<FileId, std::pair<FullMessageId, FileId>, FileIdHash>
       being_uploaded_files_;  // file_id -> message, thumbnail_file_id
@@ -3115,8 +3096,6 @@ class MessagesManager : public Actor {
   bool running_get_difference_ = false;  // true after before_get_difference and false after after_get_difference
 
   std::unordered_map<DialogId, unique_ptr<Dialog>, DialogIdHash> dialogs_;
-  std::multimap<int32, PendingPtsUpdate> pending_pts_updates_;
-  std::multimap<int32, PendingPtsUpdate> postponed_pts_updates_;
 
   std::unordered_set<DialogId, DialogIdHash>
       loaded_dialogs_;  // dialogs loaded from database, but not added to dialogs_
