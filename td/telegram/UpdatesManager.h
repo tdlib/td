@@ -10,6 +10,7 @@
 #include "td/telegram/ChatId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/InputGroupCallId.h"
+#include "td/telegram/MessageId.h"
 #include "td/telegram/PtsManager.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
@@ -20,6 +21,7 @@
 
 #include "td/utils/common.h"
 #include "td/utils/logging.h"
+#include "td/utils/tl_storers.h"
 
 #include <map>
 #include <unordered_set>
@@ -29,6 +31,59 @@ namespace td {
 extern int VERBOSITY_NAME(get_difference);
 
 class Td;
+
+class dummyUpdate : public telegram_api::Update {
+ public:
+  static constexpr int32 ID = 1234567891;
+  int32 get_id() const override {
+    return ID;
+  }
+
+  void store(TlStorerUnsafe &s) const override {
+    UNREACHABLE();
+  }
+
+  void store(TlStorerCalcLength &s) const override {
+    UNREACHABLE();
+  }
+
+  void store(TlStorerToString &s, const char *field_name) const override {
+    s.store_class_begin(field_name, "dummyUpdate");
+    s.store_class_end();
+  }
+};
+
+class updateSentMessage : public telegram_api::Update {
+ public:
+  int64 random_id_;
+  MessageId message_id_;
+  int32 date_;
+
+  updateSentMessage(int64 random_id, MessageId message_id, int32 date)
+      : random_id_(random_id), message_id_(message_id), date_(date) {
+  }
+
+  static constexpr int32 ID = 1234567890;
+  int32 get_id() const override {
+    return ID;
+  }
+
+  void store(TlStorerUnsafe &s) const override {
+    UNREACHABLE();
+  }
+
+  void store(TlStorerCalcLength &s) const override {
+    UNREACHABLE();
+  }
+
+  void store(TlStorerToString &s, const char *field_name) const override {
+    s.store_class_begin(field_name, "updateSentMessage");
+    s.store_field("random_id", random_id_);
+    s.store_field("message_id", message_id_.get());
+    s.store_field("date", date_);
+    s.store_class_end();
+  }
+};
 
 class UpdatesManager : public Actor {
  public:

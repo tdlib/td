@@ -83,11 +83,6 @@
 
 namespace td {
 
-void dummyUpdate::store(TlStorerToString &s, const char *field_name) const {
-  s.store_class_begin(field_name, "dummyUpdate");
-  s.store_class_end();
-}
-
 class GetDialogFiltersQuery : public Td::ResultHandler {
   Promise<vector<tl_object_ptr<telegram_api::dialogFilter>>> promise_;
 
