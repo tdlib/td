@@ -1678,6 +1678,9 @@ void UpdatesManager::process_updates(vector<tl_object_ptr<telegram_api::Update>>
 
         td_->messages_manager_->process_pts_update(std::move(update));
       }
+      if (update != nullptr && is_qts_update(update.get())) {
+        process_qts_update(std::move(update), 0, mpas.get_promise());
+      }
     }
   }
   for (auto &update : updates) {
@@ -2428,10 +2431,6 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateEncryption> upd
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewEncryptedMessage> update, bool force_apply,
                                Promise<Unit> &&promise) {
-  if (force_apply) {
-    return process_qts_update(std::move(update), 0, std::move(promise));
-  }
-
   auto qts = update->qts_;
   add_pending_qts_update(std::move(update), qts, std::move(promise));
 }
@@ -2626,10 +2625,6 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateLoginToken> upd
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelParticipant> update, bool force_apply,
                                Promise<Unit> &&promise) {
-  if (force_apply) {
-    return process_qts_update(std::move(update), 0, std::move(promise));
-  }
-
   auto qts = update->qts_;
   add_pending_qts_update(std::move(update), qts, std::move(promise));
 }
