@@ -66,16 +66,6 @@ class UpdatesManager : public Actor {
 
   void on_server_pong(tl_object_ptr<telegram_api::updates_state> &&state);
 
-  int32 get_pts() const {
-    return pts_manager_.mem_pts();
-  }
-  int32 get_qts() const {
-    return qts_manager_.mem_pts();
-  }
-  int32 get_date() const {
-    return date_;
-  }
-
   Promise<> set_pts(int32 pts, const char *source) TD_WARN_UNUSED_RESULT;
 
   bool running_get_difference() const {
@@ -160,6 +150,16 @@ class UpdatesManager : public Actor {
   int32 min_postponed_update_qts_ = 0;
 
   void tear_down() override;
+
+  int32 get_pts() const {
+    return pts_manager_.mem_pts();
+  }
+  int32 get_qts() const {
+    return qts_manager_.mem_pts();
+  }
+  int32 get_date() const {
+    return date_;
+  }
 
   Promise<> add_pts(int32 pts);
   void on_pts_ack(PtsManager::PtsId ack_token);

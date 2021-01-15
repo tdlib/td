@@ -135,16 +135,7 @@ class PingServerQuery : public Td::ResultHandler {
 
 class GetDifferenceQuery : public Td::ResultHandler {
  public:
-  void send() {
-    int32 pts = td->updates_manager_->get_pts();
-    int32 date = td->updates_manager_->get_date();
-    int32 qts = td->updates_manager_->get_qts();
-    if (pts < 0) {
-      pts = 0;
-    }
-
-    VLOG(get_difference) << tag("pts", pts) << tag("qts", qts) << tag("date", date);
-
+  void send(int32 pts, int32 date, int32 qts) {
     send_query(G()->net_query_creator().create(telegram_api::updates_getDifference(0, pts, 0, date, qts)));
   }
 
@@ -253,7 +244,15 @@ void UpdatesManager::run_get_difference(bool is_recursive, const char *source) {
 
   running_get_difference_ = true;
 
-  VLOG(get_difference) << "-----BEGIN GET DIFFERENCE----- from " << source;
+  int32 pts = get_pts();
+  int32 date = get_date();
+  int32 qts = get_qts();
+  if (pts < 0) {
+    pts = 0;
+  }
+
+  VLOG(get_difference) << "-----BEGIN GET DIFFERENCE----- from " << source << " with pts = " << pts << ", qts = " << qts
+                       << ", date = " << date;
 
   before_get_difference(false);
 
@@ -262,9 +261,9 @@ void UpdatesManager::run_get_difference(bool is_recursive, const char *source) {
     min_postponed_update_qts_ = 0;
   }
 
-  td_->create_handler<GetDifferenceQuery>()->send();
-  last_get_difference_pts_ = get_pts();
-  last_get_difference_qts_ = get_qts();
+  td_->create_handler<GetDifferenceQuery>()->send(pts, date, qts);
+  last_get_difference_pts_ = pts;
+  last_get_difference_qts_ = qts;
 }
 
 void UpdatesManager::before_get_difference(bool is_initial) {
