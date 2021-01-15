@@ -3057,8 +3057,9 @@ vector<FileId> StickersManager::search_stickers(string emoji, int32 limit, Promi
   auto it = found_stickers_.find(emoji);
   if (it != found_stickers_.end()) {
     promise.set_value(Unit());
-    auto result_size = min(static_cast<size_t>(limit), it->second.size());
-    return vector<FileId>(it->second.begin(), it->second.begin() + result_size);
+    const auto &sticker_ids = it->second.sticker_ids;
+    auto result_size = min(static_cast<size_t>(limit), sticker_ids.size());
+    return vector<FileId>(sticker_ids.begin(), sticker_ids.begin() + result_size);
   }
 
   auto &promises = search_stickers_queries_[emoji];
@@ -3078,7 +3079,7 @@ void StickersManager::on_find_stickers_success(const string &emoji,
       return on_find_stickers_fail(emoji, Status::Error(500, "Receive messages.stickerNotModified"));
     case telegram_api::messages_stickers::ID: {
       auto found_stickers = move_tl_object_as<telegram_api::messages_stickers>(stickers);
-      vector<FileId> &sticker_ids = found_stickers_[emoji];
+      vector<FileId> &sticker_ids = found_stickers_[emoji].sticker_ids;
       CHECK(sticker_ids.empty());
 
       for (auto &sticker : found_stickers->stickers_) {

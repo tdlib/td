@@ -678,7 +678,10 @@ class StickersManager : public Actor {
 
   Hints installed_sticker_sets_hints_[2];  // search installed sticker sets by their title and name
 
-  std::unordered_map<string, vector<FileId>> found_stickers_;
+  struct FoundStickers {
+    vector<FileId> sticker_ids;
+  };
+  std::unordered_map<string, FoundStickers> found_stickers_;
   std::unordered_map<string, vector<Promise<Unit>>> search_stickers_queries_;
 
   std::unordered_map<string, vector<StickerSetId>> found_sticker_sets_;
