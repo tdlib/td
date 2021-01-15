@@ -82,10 +82,14 @@ class OnUpdate {
 };
 
 class GetUpdatesStateQuery : public Td::ResultHandler {
+  Promise<tl_object_ptr<telegram_api::updates_state>> promise_;
+
  public:
+  explicit GetUpdatesStateQuery(Promise<tl_object_ptr<telegram_api::updates_state>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
   void send() {
-    // TODO this call must be first after client is logged in, there must be no API calls before
-    // it succeeds
     send_query(G()->net_query_creator().create(telegram_api::updates_getState()));
   }
 
@@ -95,18 +99,11 @@ class GetUpdatesStateQuery : public Td::ResultHandler {
       return on_error(id, result_ptr.move_as_error());
     }
 
-    auto state = result_ptr.move_as_ok();
-    CHECK(state->get_id() == telegram_api::updates_state::ID);
-
-    td->updates_manager_->on_get_updates_state(std::move(state), "GetUpdatesStateQuery");
+    promise_.set_value(result_ptr.move_as_ok());
   }
 
   void on_error(uint64 id, Status status) override {
-    if (status.code() != 401) {
-      LOG(ERROR) << "Receive updates.getState error: " << status;
-    }
-    status.ignore();
-    td->updates_manager_->on_get_updates_state(nullptr, "GetUpdatesStateQuery");
+    promise_.set_error(std::move(status));
   }
 };
 
@@ -856,6 +853,15 @@ void UpdatesManager::on_get_updates(tl_object_ptr<telegram_api::Updates> &&updat
   }
 }
 
+void UpdatesManager::on_failed_get_updates_state(Status &&error) {
+  if (error.code() != 401) {
+    LOG(ERROR) << "Receive updates.getState error: " << error;
+  }
+
+  running_get_difference_ = false;
+  schedule_get_difference("on_failed_get_updates_state");
+}
+
 void UpdatesManager::on_failed_get_difference(Status &&error) {
   if (error.code() != 401) {
     LOG(ERROR) << "Receive updates.getDifference error: " << error;
@@ -883,11 +889,8 @@ void UpdatesManager::schedule_get_difference(const char *source) {
 }
 
 void UpdatesManager::on_get_updates_state(tl_object_ptr<telegram_api::updates_state> &&state, const char *source) {
-  if (state == nullptr) {
-    running_get_difference_ = false;
-    schedule_get_difference("on_get_updates_state");
-    return;
-  }
+  CHECK(state != nullptr);
+
   VLOG(get_difference) << "Receive " << oneline(to_string(state)) << " from " << source;
   // TODO use state->unread_count;
 
@@ -1108,7 +1111,15 @@ void UpdatesManager::init_state() {
 
       before_get_difference(true);
 
-      td_->create_handler<GetUpdatesStateQuery>()->send();
+      auto promise = PromiseCreator::lambda([](Result<tl_object_ptr<telegram_api::updates_state>> result) {
+        if (result.is_ok()) {
+          send_closure(G()->updates_manager(), &UpdatesManager::on_get_updates_state, result.move_as_ok(),
+                       "GetUpdatesStateQuery");
+        } else {
+          send_closure(G()->updates_manager(), &UpdatesManager::on_failed_get_updates_state, result.move_as_error());
+        }
+      });
+      td_->create_handler<GetUpdatesStateQuery>(std::move(promise))->send();
     }
     return;
   }

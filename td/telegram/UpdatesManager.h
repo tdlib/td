@@ -91,8 +91,6 @@ class UpdatesManager : public Actor {
 
   void on_get_updates(tl_object_ptr<telegram_api::Updates> &&updates_ptr, Promise<Unit> &&promise);
 
-  void on_get_updates_state(tl_object_ptr<telegram_api::updates_state> &&state, const char *source);
-
   void add_pending_pts_update(tl_object_ptr<telegram_api::Update> &&update, int32 new_pts, int32 pts_count,
                               Promise<Unit> &&promise, const char *source);
 
@@ -112,8 +110,6 @@ class UpdatesManager : public Actor {
   void get_difference(const char *source);
 
   void schedule_get_difference(const char *source);
-
-  void init_state();
 
   void ping_server();
 
@@ -225,6 +221,10 @@ class UpdatesManager : public Actor {
 
   int32 get_short_update_date() const;
 
+  void init_state();
+
+  void on_get_updates_state(tl_object_ptr<telegram_api::updates_state> &&state, const char *source);
+
   void on_get_difference(tl_object_ptr<telegram_api::updates_Difference> &&difference_ptr);
 
   void process_get_difference_updates(vector<tl_object_ptr<telegram_api::Message>> &&new_messages,
@@ -277,6 +277,8 @@ class UpdatesManager : public Actor {
   void set_qts_gap_timeout(double timeout);
 
   void run_get_difference(bool is_recursive, const char *source);
+
+  void on_failed_get_updates_state(Status &&error);
 
   void on_failed_get_difference(Status &&error);
 
