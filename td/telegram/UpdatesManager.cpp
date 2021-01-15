@@ -1135,7 +1135,7 @@ void UpdatesManager::process_get_difference_updates(
     }
 
     if (constructor_id == telegram_api::updateEncryption::ID) {
-      on_update(move_tl_object_as<telegram_api::updateEncryption>(update), true, Promise<Unit>());
+      on_update(move_tl_object_as<telegram_api::updateEncryption>(update), false, Promise<Unit>());
       CHECK(!running_get_difference_);
     }
 
@@ -1143,9 +1143,10 @@ void UpdatesManager::process_get_difference_updates(
       auto update_folder_peers = move_tl_object_as<telegram_api::updateFolderPeers>(update);
       if (update_folder_peers->pts_count_ != 0) {
         LOG(ERROR) << "Receive updateFolderPeers with pts_count = " << update_folder_peers->pts_count_;
+        update_folder_peers->pts_count_ = 0;
       }
       update_folder_peers->pts_ = 0;
-      on_update(std::move(update_folder_peers), true, Promise<Unit>());
+      on_update(std::move(update_folder_peers), false, Promise<Unit>());
       CHECK(!running_get_difference_);
     }
 
@@ -1153,7 +1154,8 @@ void UpdatesManager::process_get_difference_updates(
         // TODO can't apply it here, because dialog may not be created yet
         // process updateReadHistoryInbox before new messages
         if (constructor_id == telegram_api::updateReadHistoryInbox::ID) {
-          on_update(move_tl_object_as<telegram_api::updateReadHistoryInbox>(update), true, Promise<Unit>());
+          static_cast<telegram_api::updateReadHistoryInbox *>(update.get())->still_unread_count_ = -1;
+          td_->messages_manager_->process_pts_update(std::move(update));
           CHECK(!running_get_difference_);
         }
     */
@@ -1627,7 +1629,7 @@ void UpdatesManager::process_updates(vector<tl_object_ptr<telegram_api::Update>>
         // process updateReadChannelInbox before updateNewChannelMessage
         auto constructor_id = update->get_id();
         if (constructor_id == telegram_api::updateReadChannelInbox::ID) {
-          on_update(move_tl_object_as<telegram_api::updateReadChannelInbox>(update), force_apply, mpas.get_promise());
+          on_update(move_tl_object_as<telegram_api::updateReadChannelInbox>(update), false, mpas.get_promise());
         }
       }
     }
@@ -1637,17 +1639,41 @@ void UpdatesManager::process_updates(vector<tl_object_ptr<telegram_api::Update>>
       // process updateNewChannelMessage first
       auto constructor_id = update->get_id();
       if (constructor_id == telegram_api::updateNewChannelMessage::ID) {
-        on_update(move_tl_object_as<telegram_api::updateNewChannelMessage>(update), force_apply, mpas.get_promise());
+        on_update(move_tl_object_as<telegram_api::updateNewChannelMessage>(update), false, mpas.get_promise());
+        continue;
       }
 
       // process updateNewScheduledMessage first
       if (constructor_id == telegram_api::updateNewScheduledMessage::ID) {
-        on_update(move_tl_object_as<telegram_api::updateNewScheduledMessage>(update), force_apply, mpas.get_promise());
+        on_update(move_tl_object_as<telegram_api::updateNewScheduledMessage>(update), false, mpas.get_promise());
+        continue;
       }
 
       // updatePtsChanged forces get difference, so process it last
       if (constructor_id == telegram_api::updatePtsChanged::ID) {
         update_pts_changed = move_tl_object_as<telegram_api::updatePtsChanged>(update);
+        continue;
+      }
+    }
+  }
+  if (force_apply) {
+    // forcely process pts updates
+    for (auto &update : updates) {
+      if (update != nullptr && is_pts_update(update.get())) {
+        auto constructor_id = update->get_id();
+        if (constructor_id == telegram_api::updateWebPage::ID) {
+          auto update_web_page = move_tl_object_as<telegram_api::updateWebPage>(update);
+          td_->web_pages_manager_->on_get_web_page(std::move(update_web_page->webpage_), DialogId());
+          continue;
+        }
+
+        CHECK(constructor_id != telegram_api::updateFolderPeers::ID);
+
+        if (constructor_id == telegram_api::updateReadHistoryInbox::ID) {
+          static_cast<telegram_api::updateReadHistoryInbox *>(update.get())->still_unread_count_ = -1;
+        }
+
+        td_->messages_manager_->process_pts_update(std::move(update));
       }
     }
   }
@@ -1662,7 +1688,7 @@ void UpdatesManager::process_updates(vector<tl_object_ptr<telegram_api::Update>>
     }
   }
   if (update_pts_changed != nullptr) {
-    on_update(std::move(update_pts_changed), force_apply, mpas.get_promise());
+    on_update(std::move(update_pts_changed), false, mpas.get_promise());
   }
   lock.set_value(Unit());
 }
@@ -1804,10 +1830,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewMessage> upd
                                Promise<Unit> &&promise) {
   int new_pts = update->pts_;
   int pts_count = update->pts_count_;
-  if (force_apply) {
-    td_->messages_manager_->process_pts_update(std::move(update));
-    return promise.set_value(Unit());
-  }
+  CHECK(!force_apply);
   td_->messages_manager_->add_pending_update(std::move(update), new_pts, pts_count, std::move(promise),
                                              "updateNewMessage");
 }
@@ -1837,10 +1860,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadMessagesCon
                                Promise<Unit> &&promise) {
   int new_pts = update->pts_;
   int pts_count = update->pts_count_;
-  if (force_apply) {
-    td_->messages_manager_->process_pts_update(std::move(update));
-    return promise.set_value(Unit());
-  }
+  CHECK(!force_apply);
   td_->messages_manager_->add_pending_update(std::move(update), new_pts, pts_count, std::move(promise),
                                              "updateReadMessagesContents");
 }
@@ -1849,10 +1869,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateEditMessage> up
                                Promise<Unit> &&promise) {
   int new_pts = update->pts_;
   int pts_count = update->pts_count_;
-  if (force_apply) {
-    td_->messages_manager_->process_pts_update(std::move(update));
-    return promise.set_value(Unit());
-  }
+  CHECK(!force_apply);
   td_->messages_manager_->add_pending_update(std::move(update), new_pts, pts_count, std::move(promise),
                                              "updateEditMessage");
 }
@@ -1861,10 +1878,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDeleteMessages>
                                Promise<Unit> &&promise) {
   int new_pts = update->pts_;
   int pts_count = update->pts_count_;
-  if (force_apply) {
-    td_->messages_manager_->process_pts_update(std::move(update));
-    return promise.set_value(Unit());
-  }
+  CHECK(!force_apply);
   if (update->messages_.empty()) {
     td_->messages_manager_->add_pending_update(make_tl_object<dummyUpdate>(), new_pts, pts_count, Promise<Unit>(),
                                                "updateDeleteMessages");
@@ -1879,11 +1893,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadHistoryInbo
                                Promise<Unit> &&promise) {
   int new_pts = update->pts_;
   int pts_count = update->pts_count_;
-  if (force_apply) {
-    update->still_unread_count_ = -1;
-    td_->messages_manager_->process_pts_update(std::move(update));
-    return promise.set_value(Unit());
-  }
+  CHECK(!force_apply);
   td_->messages_manager_->add_pending_update(std::move(update), new_pts, pts_count, std::move(promise),
                                              "updateReadHistoryInbox");
 }
@@ -1892,10 +1902,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadHistoryOutb
                                Promise<Unit> &&promise) {
   int new_pts = update->pts_;
   int pts_count = update->pts_count_;
-  if (force_apply) {
-    td_->messages_manager_->process_pts_update(std::move(update));
-    return promise.set_value(Unit());
-  }
+  CHECK(!force_apply);
   td_->messages_manager_->add_pending_update(std::move(update), new_pts, pts_count, std::move(promise),
                                              "updateReadHistoryOutbox");
 }
@@ -2020,10 +2027,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePinnedMessages>
                                Promise<Unit> &&promise) {
   int new_pts = update->pts_;
   int pts_count = update->pts_count_;
-  if (force_apply) {
-    td_->messages_manager_->process_pts_update(std::move(update));
-    return promise.set_value(Unit());
-  }
+  CHECK(!force_apply);
   td_->messages_manager_->add_pending_update(std::move(update), new_pts, pts_count, std::move(promise),
                                              "updatePinnedMessages");
 }
@@ -2083,10 +2087,9 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePeerLocated> up
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateWebPage> update, bool force_apply,
                                Promise<Unit> &&promise) {
   td_->web_pages_manager_->on_get_web_page(std::move(update->webpage_), DialogId());
-  if (!force_apply) {
-    td_->messages_manager_->add_pending_update(make_tl_object<dummyUpdate>(), update->pts_, update->pts_count_,
-                                               Promise<Unit>(), "updateWebPage");
-  }
+  CHECK(!force_apply);
+  td_->messages_manager_->add_pending_update(make_tl_object<dummyUpdate>(), update->pts_, update->pts_count_,
+                                             Promise<Unit>(), "updateWebPage");
   promise.set_value(Unit());
 }
 
