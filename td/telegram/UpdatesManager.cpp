@@ -2108,6 +2108,54 @@ bool UpdatesManager::have_update_pts_changed(const vector<tl_object_ptr<telegram
   return false;
 }
 
+bool UpdatesManager::check_pts_update_dialog_id(DialogId dialog_id) {
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+    case DialogType::Chat:
+      return true;
+    case DialogType::Channel:
+    case DialogType::SecretChat:
+    case DialogType::None:
+      return false;
+    default:
+      UNREACHABLE();
+      return false;
+  }
+}
+
+bool UpdatesManager::check_pts_update(const tl_object_ptr<telegram_api::Update> &update) {
+  CHECK(update != nullptr);
+  switch (update->get_id()) {
+    case dummyUpdate::ID:
+    case updateSentMessage::ID:
+    case telegram_api::updateReadMessagesContents::ID:
+    case telegram_api::updateDeleteMessages::ID:
+      return true;
+    case telegram_api::updateNewMessage::ID: {
+      auto update_new_message = static_cast<const telegram_api::updateNewMessage *>(update.get());
+      return check_pts_update_dialog_id(MessagesManager::get_message_dialog_id(update_new_message->message_));
+    }
+    case telegram_api::updateReadHistoryInbox::ID: {
+      auto update_read_history_inbox = static_cast<const telegram_api::updateReadHistoryInbox *>(update.get());
+      return check_pts_update_dialog_id(DialogId(update_read_history_inbox->peer_));
+    }
+    case telegram_api::updateReadHistoryOutbox::ID: {
+      auto update_read_history_outbox = static_cast<const telegram_api::updateReadHistoryOutbox *>(update.get());
+      return check_pts_update_dialog_id(DialogId(update_read_history_outbox->peer_));
+    }
+    case telegram_api::updateEditMessage::ID: {
+      auto update_edit_message = static_cast<const telegram_api::updateEditMessage *>(update.get());
+      return check_pts_update_dialog_id(MessagesManager::get_message_dialog_id(update_edit_message->message_));
+    }
+    case telegram_api::updatePinnedMessages::ID: {
+      auto update_pinned_messages = static_cast<const telegram_api::updatePinnedMessages *>(update.get());
+      return check_pts_update_dialog_id(DialogId(update_pinned_messages->peer_));
+    }
+    default:
+      return false;
+  }
+}
+
 bool UpdatesManager::is_pts_update(const telegram_api::Update *update) {
   switch (update->get_id()) {
     case telegram_api::updateNewMessage::ID:

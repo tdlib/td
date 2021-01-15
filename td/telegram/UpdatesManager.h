@@ -63,6 +63,8 @@ class UpdatesManager : public Actor {
 
   void on_server_pong(tl_object_ptr<telegram_api::updates_state> &&state);
 
+  static bool check_pts_update(const tl_object_ptr<telegram_api::Update> &update);
+
   int32 get_pts() const {
     return pts_manager_.mem_pts();
   }
@@ -196,6 +198,8 @@ class UpdatesManager : public Actor {
   void after_get_difference();
 
   static bool have_update_pts_changed(const vector<tl_object_ptr<telegram_api::Update>> &updates);
+
+  static bool check_pts_update_dialog_id(DialogId dialog_id);
 
   static bool is_pts_update(const telegram_api::Update *update);
 

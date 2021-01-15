@@ -6085,21 +6085,6 @@ bool MessagesManager::is_allowed_useless_update(const tl_object_ptr<telegram_api
   return false;
 }
 
-bool MessagesManager::check_pts_update_dialog_id(DialogId dialog_id) {
-  switch (dialog_id.get_type()) {
-    case DialogType::User:
-    case DialogType::Chat:
-      return true;
-    case DialogType::Channel:
-    case DialogType::SecretChat:
-    case DialogType::None:
-      return false;
-    default:
-      UNREACHABLE();
-      return false;
-  }
-}
-
 void MessagesManager::skip_old_pending_update(tl_object_ptr<telegram_api::Update> &&update, int32 new_pts,
                                               int32 old_pts, int32 pts_count, const char *source) {
   if (update->get_id() == telegram_api::updateNewMessage::ID) {
@@ -6157,46 +6142,13 @@ int32 MessagesManager::get_min_pending_pts() const {
   return result;
 }
 
-bool MessagesManager::check_pts_update(const tl_object_ptr<telegram_api::Update> &update) {
-  CHECK(update != nullptr);
-  switch (update->get_id()) {
-    case dummyUpdate::ID:
-    case updateSentMessage::ID:
-    case telegram_api::updateReadMessagesContents::ID:
-    case telegram_api::updateDeleteMessages::ID:
-      return true;
-    case telegram_api::updateNewMessage::ID: {
-      auto update_new_message = static_cast<const telegram_api::updateNewMessage *>(update.get());
-      return check_pts_update_dialog_id(get_message_dialog_id(update_new_message->message_));
-    }
-    case telegram_api::updateReadHistoryInbox::ID: {
-      auto update_read_history_inbox = static_cast<const telegram_api::updateReadHistoryInbox *>(update.get());
-      return check_pts_update_dialog_id(DialogId(update_read_history_inbox->peer_));
-    }
-    case telegram_api::updateReadHistoryOutbox::ID: {
-      auto update_read_history_outbox = static_cast<const telegram_api::updateReadHistoryOutbox *>(update.get());
-      return check_pts_update_dialog_id(DialogId(update_read_history_outbox->peer_));
-    }
-    case telegram_api::updateEditMessage::ID: {
-      auto update_edit_message = static_cast<const telegram_api::updateEditMessage *>(update.get());
-      return check_pts_update_dialog_id(get_message_dialog_id(update_edit_message->message_));
-    }
-    case telegram_api::updatePinnedMessages::ID: {
-      auto update_pinned_messages = static_cast<const telegram_api::updatePinnedMessages *>(update.get());
-      return check_pts_update_dialog_id(DialogId(update_pinned_messages->peer_));
-    }
-    default:
-      return false;
-  }
-}
-
 void MessagesManager::process_pts_update(tl_object_ptr<telegram_api::Update> &&update) {
   CHECK(update != nullptr);
 
   // TODO need to save all updates that can change result of running queries not associated with pts (for example
   // getHistory) and apply the updates to results of the queries
 
-  if (!check_pts_update(update)) {
+  if (!UpdatesManager::check_pts_update(update)) {
     LOG(ERROR) << "Receive wrong pts update: " << oneline(to_string(update));
     return;
   }
@@ -6223,7 +6175,7 @@ void MessagesManager::add_pending_update(tl_object_ptr<telegram_api::Update> &&u
   // TODO need to save all updates that can change result of running queries not associated with pts (for example
   // getHistory) and apply them to result of this queries
 
-  if (!check_pts_update(update)) {
+  if (!UpdatesManager::check_pts_update(update)) {
     LOG(ERROR) << "Receive wrong pts update from " << source << ": " << oneline(to_string(update));
     return promise.set_value(Unit());
   }

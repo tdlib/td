@@ -1828,10 +1828,6 @@ class MessagesManager : public Actor {
 
   bool can_set_game_score(DialogId dialog_id, const Message *m) const;
 
-  static bool check_pts_update_dialog_id(DialogId dialog_id);
-
-  static bool check_pts_update(const tl_object_ptr<telegram_api::Update> &update);
-
   void process_update(tl_object_ptr<telegram_api::Update> &&update);
 
   void process_channel_update(tl_object_ptr<telegram_api::Update> &&update);
