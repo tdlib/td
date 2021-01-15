@@ -108,7 +108,13 @@ class GetUpdatesStateQuery : public Td::ResultHandler {
 };
 
 class PingServerQuery : public Td::ResultHandler {
+  Promise<tl_object_ptr<telegram_api::updates_state>> promise_;
+
  public:
+  explicit PingServerQuery(Promise<tl_object_ptr<telegram_api::updates_state>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
   void send() {
     send_query(G()->net_query_creator().create(telegram_api::updates_getState()));
   }
@@ -119,14 +125,11 @@ class PingServerQuery : public Td::ResultHandler {
       return on_error(id, result_ptr.move_as_error());
     }
 
-    auto state = result_ptr.move_as_ok();
-    CHECK(state->get_id() == telegram_api::updates_state::ID);
-    td->updates_manager_->on_server_pong(std::move(state));
+    promise_.set_value(result_ptr.move_as_ok());
   }
 
   void on_error(uint64 id, Status status) override {
-    status.ignore();
-    td->updates_manager_->on_server_pong(nullptr);
+    promise_.set_error(std::move(status));
   }
 };
 
@@ -1135,7 +1138,11 @@ void UpdatesManager::init_state() {
 }
 
 void UpdatesManager::ping_server() {
-  td_->create_handler<PingServerQuery>()->send();
+  auto promise = PromiseCreator::lambda([](Result<tl_object_ptr<telegram_api::updates_state>> result) {
+    auto state = result.is_ok() ? result.move_as_ok() : nullptr;
+    send_closure(G()->updates_manager(), &UpdatesManager::on_server_pong, std::move(state));
+  });
+  td_->create_handler<PingServerQuery>(std::move(promise))->send();
 }
 
 void UpdatesManager::on_server_pong(tl_object_ptr<telegram_api::updates_state> &&state) {

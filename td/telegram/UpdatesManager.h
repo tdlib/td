@@ -113,8 +113,6 @@ class UpdatesManager : public Actor {
 
   void ping_server();
 
-  void on_server_pong(tl_object_ptr<telegram_api::updates_state> &&state);
-
   bool running_get_difference() const {
     return running_get_difference_;
   }
@@ -224,6 +222,8 @@ class UpdatesManager : public Actor {
   void init_state();
 
   void on_get_updates_state(tl_object_ptr<telegram_api::updates_state> &&state, const char *source);
+
+  void on_server_pong(tl_object_ptr<telegram_api::updates_state> &&state);
 
   void on_get_difference(tl_object_ptr<telegram_api::updates_Difference> &&difference_ptr);
 
