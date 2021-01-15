@@ -227,185 +227,133 @@ class UpdatesManager : public Actor {
 
   bool is_acceptable_update(const telegram_api::Update *update) const;
 
-  void on_update(tl_object_ptr<telegram_api::updateNewMessage> update, bool force_apply, Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updateMessageID> update, bool force_apply, Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updateReadMessagesContents> update, bool force_apply,
-                 Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updateEditMessage> update, bool force_apply, Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updateDeleteMessages> update, bool force_apply, Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updateReadHistoryInbox> update, bool force_apply, Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updateReadHistoryOutbox> update, bool force_apply,
-                 Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updateNotifySettings> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updatePeerSettings> update, bool /*force_apply*/, Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updatePeerLocated> update, bool /*force_apply*/, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateNewMessage> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateMessageID> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateReadMessagesContents> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateEditMessage> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateDeleteMessages> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateReadHistoryInbox> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateReadHistoryOutbox> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateNotifySettings> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updatePeerSettings> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updatePeerLocated> update, Promise<Unit> &&promise);
 
-  void on_update(tl_object_ptr<telegram_api::updateWebPage> update, bool force_apply, Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updateChannelWebPage> update, bool force_apply, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateWebPage> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateChannelWebPage> update, Promise<Unit> &&promise);
 
-  void on_update(tl_object_ptr<telegram_api::updateFolderPeers> update, bool /*force_apply*/, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateFolderPeers> update, Promise<Unit> &&promise);
 
-  void on_update(tl_object_ptr<telegram_api::updateUserTyping> update, bool /*force_apply*/, Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updateChatUserTyping> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updateChannelUserTyping> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updateEncryptedChatTyping> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateUserTyping> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateChatUserTyping> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateChannelUserTyping> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateEncryptedChatTyping> update, Promise<Unit> &&promise);
 
-  void on_update(tl_object_ptr<telegram_api::updateUserStatus> update, bool /*force_apply*/, Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updateUserName> update, bool /*force_apply*/, Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updateUserPhone> update, bool /*force_apply*/, Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updateUserPhoto> update, bool /*force_apply*/, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateUserStatus> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateUserName> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateUserPhone> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateUserPhoto> update, Promise<Unit> &&promise);
 
-  void on_update(tl_object_ptr<telegram_api::updatePeerBlocked> update, bool /*force_apply*/, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updatePeerBlocked> update, Promise<Unit> &&promise);
 
-  void on_update(tl_object_ptr<telegram_api::updateChatParticipants> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updateChatParticipantAdd> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updateChatParticipantAdmin> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updateChatParticipantDelete> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateChatParticipants> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateChatParticipantAdd> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateChatParticipantAdmin> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateChatParticipantDelete> update, Promise<Unit> &&promise);
 
-  void on_update(tl_object_ptr<telegram_api::updateChatDefaultBannedRights> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateChatDefaultBannedRights> update, Promise<Unit> &&promise);
 
-  void on_update(tl_object_ptr<telegram_api::updateServiceNotification> update, bool force_apply,
-                 Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateServiceNotification> update, Promise<Unit> &&promise);
 
-  void on_update(tl_object_ptr<telegram_api::updateDcOptions> update, bool /*force_apply*/, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateDcOptions> update, Promise<Unit> &&promise);
 
-  void on_update(tl_object_ptr<telegram_api::updateChat> update, bool /*force_apply*/, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateChat> update, Promise<Unit> &&promise);
 
-  void on_update(tl_object_ptr<telegram_api::updateNewChannelMessage> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updateReadChannelInbox> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updateReadChannelOutbox> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updateChannelReadMessagesContents> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updateChannelTooLong> update, bool force_apply, Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updateChannel> update, bool force_apply, Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updateEditChannelMessage> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updateDeleteChannelMessages> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updateChannelMessageViews> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updateChannelMessageForwards> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updateChannelAvailableMessages> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateNewChannelMessage> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateReadChannelInbox> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateReadChannelOutbox> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateChannelReadMessagesContents> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateChannelTooLong> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateChannel> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateEditChannelMessage> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateDeleteChannelMessages> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateChannelMessageViews> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateChannelMessageForwards> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateChannelAvailableMessages> update, Promise<Unit> &&promise);
 
-  void on_update(tl_object_ptr<telegram_api::updateReadChannelDiscussionInbox> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updateReadChannelDiscussionOutbox> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateReadChannelDiscussionInbox> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateReadChannelDiscussionOutbox> update, Promise<Unit> &&promise);
 
-  void on_update(tl_object_ptr<telegram_api::updatePinnedMessages> update, bool force_apply, Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updatePinnedChannelMessages> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updatePinnedMessages> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updatePinnedChannelMessages> update, Promise<Unit> &&promise);
 
-  void on_update(tl_object_ptr<telegram_api::updateDraftMessage> update, bool /*force_apply*/, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateDraftMessage> update, Promise<Unit> &&promise);
 
-  void on_update(tl_object_ptr<telegram_api::updateDialogPinned> update, bool /*force_apply*/, Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updatePinnedDialogs> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updateDialogUnreadMark> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateDialogPinned> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updatePinnedDialogs> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateDialogUnreadMark> update, Promise<Unit> &&promise);
 
-  void on_update(tl_object_ptr<telegram_api::updateDialogFilter> update, bool /*force_apply*/, Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updateDialogFilters> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updateDialogFilterOrder> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateDialogFilter> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateDialogFilters> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateDialogFilterOrder> update, Promise<Unit> &&promise);
 
-  void on_update(tl_object_ptr<telegram_api::updateBotInlineQuery> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updateBotInlineSend> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateBotInlineQuery> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateBotInlineSend> update, Promise<Unit> &&promise);
 
-  void on_update(tl_object_ptr<telegram_api::updateBotCallbackQuery> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updateInlineBotCallbackQuery> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateBotCallbackQuery> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateInlineBotCallbackQuery> update, Promise<Unit> &&promise);
 
-  void on_update(tl_object_ptr<telegram_api::updateFavedStickers> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateFavedStickers> update, Promise<Unit> &&promise);
 
-  void on_update(tl_object_ptr<telegram_api::updateSavedGifs> update, bool /*force_apply*/, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateSavedGifs> update, Promise<Unit> &&promise);
 
-  void on_update(tl_object_ptr<telegram_api::updateConfig> update, bool /*force_apply*/, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateConfig> update, Promise<Unit> &&promise);
 
-  void on_update(tl_object_ptr<telegram_api::updatePtsChanged> update, bool /*force_apply*/, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updatePtsChanged> update, Promise<Unit> &&promise);
 
-  void on_update(tl_object_ptr<telegram_api::updatePrivacy> update, bool /*force_apply*/, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updatePrivacy> update, Promise<Unit> &&promise);
 
-  void on_update(tl_object_ptr<telegram_api::updateEncryption> update, bool /*force_apply*/, Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updateNewEncryptedMessage> update, bool force_apply,
-                 Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updateEncryptedMessagesRead> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateEncryption> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateNewEncryptedMessage> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateEncryptedMessagesRead> update, Promise<Unit> &&promise);
 
-  void on_update(tl_object_ptr<telegram_api::updateNewStickerSet> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updateStickerSets> update, bool /*force_apply*/, Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updateStickerSetsOrder> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updateReadFeaturedStickers> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updateRecentStickers> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateNewStickerSet> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateStickerSets> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateStickerSetsOrder> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateReadFeaturedStickers> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateRecentStickers> update, Promise<Unit> &&promise);
 
-  void on_update(tl_object_ptr<telegram_api::updateBotShippingQuery> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updateBotPrecheckoutQuery> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateBotShippingQuery> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateBotPrecheckoutQuery> update, Promise<Unit> &&promise);
 
-  void on_update(tl_object_ptr<telegram_api::updateBotWebhookJSON> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updateBotWebhookJSONQuery> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateBotWebhookJSON> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateBotWebhookJSONQuery> update, Promise<Unit> &&promise);
 
-  void on_update(tl_object_ptr<telegram_api::updatePhoneCall> update, bool /*force_apply*/, Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updatePhoneCallSignalingData> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updatePhoneCall> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updatePhoneCallSignalingData> update, Promise<Unit> &&promise);
 
-  void on_update(tl_object_ptr<telegram_api::updateGroupCall> update, bool /*force_apply*/, Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updateGroupCallParticipants> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateGroupCall> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateGroupCallParticipants> update, Promise<Unit> &&promise);
 
-  void on_update(tl_object_ptr<telegram_api::updateContactsReset> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateContactsReset> update, Promise<Unit> &&promise);
 
-  void on_update(tl_object_ptr<telegram_api::updateLangPackTooLong> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updateLangPack> update, bool /*force_apply*/, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateLangPackTooLong> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateLangPack> update, Promise<Unit> &&promise);
 
-  void on_update(tl_object_ptr<telegram_api::updateGeoLiveViewed> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateGeoLiveViewed> update, Promise<Unit> &&promise);
 
-  void on_update(tl_object_ptr<telegram_api::updateMessagePoll> update, bool /*force_apply*/, Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updateMessagePollVote> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateMessagePoll> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateMessagePollVote> update, Promise<Unit> &&promise);
 
-  void on_update(tl_object_ptr<telegram_api::updateNewScheduledMessage> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
-  void on_update(tl_object_ptr<telegram_api::updateDeleteScheduledMessages> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateNewScheduledMessage> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateDeleteScheduledMessages> update, Promise<Unit> &&promise);
 
-  void on_update(tl_object_ptr<telegram_api::updateLoginToken> update, bool /*force_apply*/, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateLoginToken> update, Promise<Unit> &&promise);
 
-  void on_update(tl_object_ptr<telegram_api::updateChannelParticipant> update, bool /*force_apply*/,
-                 Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateChannelParticipant> update, Promise<Unit> &&promise);
 
   // unsupported updates
 
-  void on_update(tl_object_ptr<telegram_api::updateTheme> update, bool /*force_apply*/, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateTheme> update, Promise<Unit> &&promise);
 };
 
 }  // namespace td
