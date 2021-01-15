@@ -93,8 +93,6 @@ class UpdatesManager : public Actor {
 
   void on_get_updates_state(tl_object_ptr<telegram_api::updates_state> &&state, const char *source);
 
-  void on_get_difference(tl_object_ptr<telegram_api::updates_Difference> &&difference_ptr);
-
   void add_pending_pts_update(tl_object_ptr<telegram_api::Update> &&update, int32 new_pts, int32 pts_count,
                               Promise<Unit> &&promise, const char *source);
 
@@ -120,8 +118,6 @@ class UpdatesManager : public Actor {
   void ping_server();
 
   void on_server_pong(tl_object_ptr<telegram_api::updates_state> &&state);
-
-  Promise<> set_pts(int32 pts, const char *source) TD_WARN_UNUSED_RESULT;
 
   bool running_get_difference() const {
     return running_get_difference_;
@@ -216,6 +212,7 @@ class UpdatesManager : public Actor {
     return date_;
   }
 
+  Promise<> set_pts(int32 pts, const char *source) TD_WARN_UNUSED_RESULT;
   Promise<> add_pts(int32 pts);
   void on_pts_ack(PtsManager::PtsId ack_token);
   void save_pts(int32 pts);
@@ -227,6 +224,8 @@ class UpdatesManager : public Actor {
   void set_date(int32 date, bool from_update, string date_source);
 
   int32 get_short_update_date() const;
+
+  void on_get_difference(tl_object_ptr<telegram_api::updates_Difference> &&difference_ptr);
 
   void process_get_difference_updates(vector<tl_object_ptr<telegram_api::Message>> &&new_messages,
                                       vector<tl_object_ptr<telegram_api::EncryptedMessage>> &&new_encrypted_messages,
@@ -279,7 +278,7 @@ class UpdatesManager : public Actor {
 
   void run_get_difference(bool is_recursive, const char *source);
 
-  void on_failed_get_difference();
+  void on_failed_get_difference(Status &&error);
 
   void before_get_difference(bool is_initial);
 

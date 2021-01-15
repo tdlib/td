@@ -134,7 +134,13 @@ class PingServerQuery : public Td::ResultHandler {
 };
 
 class GetDifferenceQuery : public Td::ResultHandler {
+  Promise<tl_object_ptr<telegram_api::updates_Difference>> promise_;
+
  public:
+  explicit GetDifferenceQuery(Promise<tl_object_ptr<telegram_api::updates_Difference>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
   void send(int32 pts, int32 date, int32 qts) {
     send_query(G()->net_query_creator().create(telegram_api::updates_getDifference(0, pts, 0, date, qts)));
   }
@@ -146,19 +152,11 @@ class GetDifferenceQuery : public Td::ResultHandler {
       return on_error(id, result_ptr.move_as_error());
     }
 
-    td->updates_manager_->on_get_difference(result_ptr.move_as_ok());
+    promise_.set_value(result_ptr.move_as_ok());
   }
 
   void on_error(uint64 id, Status status) override {
-    if (status.code() != 401) {
-      LOG(ERROR) << "Receive updates.getDifference error: " << status;
-    }
-    td->updates_manager_->on_get_difference(nullptr);
-    if (status.message() == CSlice("PERSISTENT_TIMESTAMP_INVALID")) {
-      td->updates_manager_->set_pts(std::numeric_limits<int32>::max(), "PERSISTENT_TIMESTAMP_INVALID")
-          .set_value(Unit());
-    }
-    status.ignore();
+    promise_.set_error(std::move(status));
   }
 };
 
@@ -261,7 +259,14 @@ void UpdatesManager::run_get_difference(bool is_recursive, const char *source) {
     min_postponed_update_qts_ = 0;
   }
 
-  td_->create_handler<GetDifferenceQuery>()->send(pts, date, qts);
+  auto promise = PromiseCreator::lambda([](Result<tl_object_ptr<telegram_api::updates_Difference>> result) {
+    if (result.is_ok()) {
+      send_closure(G()->updates_manager(), &UpdatesManager::on_get_difference, result.move_as_ok());
+    } else {
+      send_closure(G()->updates_manager(), &UpdatesManager::on_failed_get_difference, result.move_as_error());
+    }
+  });
+  td_->create_handler<GetDifferenceQuery>(std::move(promise))->send(pts, date, qts);
   last_get_difference_pts_ = pts;
   last_get_difference_qts_ = qts;
 }
@@ -851,8 +856,17 @@ void UpdatesManager::on_get_updates(tl_object_ptr<telegram_api::Updates> &&updat
   }
 }
 
-void UpdatesManager::on_failed_get_difference() {
+void UpdatesManager::on_failed_get_difference(Status &&error) {
+  if (error.code() != 401) {
+    LOG(ERROR) << "Receive updates.getDifference error: " << error;
+  }
+
+  running_get_difference_ = false;
   schedule_get_difference("on_failed_get_difference");
+
+  if (error.message() == Slice("PERSISTENT_TIMESTAMP_INVALID")) {
+    set_pts(std::numeric_limits<int32>::max(), "PERSISTENT_TIMESTAMP_INVALID").set_value(Unit());
+  }
 }
 
 void UpdatesManager::schedule_get_difference(const char *source) {
@@ -871,7 +885,7 @@ void UpdatesManager::schedule_get_difference(const char *source) {
 void UpdatesManager::on_get_updates_state(tl_object_ptr<telegram_api::updates_state> &&state, const char *source) {
   if (state == nullptr) {
     running_get_difference_ = false;
-    on_failed_get_difference();
+    schedule_get_difference("on_get_updates_state");
     return;
   }
   VLOG(get_difference) << "Receive " << oneline(to_string(state)) << " from " << source;
@@ -1192,13 +1206,9 @@ void UpdatesManager::on_get_difference(tl_object_ptr<telegram_api::updates_Diffe
     return;
   }
 
-  if (difference_ptr == nullptr) {
-    on_failed_get_difference();
-    return;
-  }
-
   LOG(DEBUG) << "Result of get difference: " << to_string(difference_ptr);
 
+  CHECK(difference_ptr != nullptr);
   switch (difference_ptr->get_id()) {
     case telegram_api::updates_differenceEmpty::ID: {
       auto difference = move_tl_object_as<telegram_api::updates_differenceEmpty>(difference_ptr);
