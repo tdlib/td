@@ -1130,7 +1130,10 @@ void UpdatesManager::process_get_difference_updates(
     auto constructor_id = update->get_id();
     if (constructor_id == telegram_api::updateMessageID::ID) {
       // in getDifference updateMessageID can't be received for scheduled messages
-      on_update(move_tl_object_as<telegram_api::updateMessageID>(update), true, Promise<Unit>());
+      LOG(INFO) << "Receive update about sent message " << to_string(update);
+      auto update_message_id = move_tl_object_as<telegram_api::updateMessageID>(update);
+      td_->messages_manager_->on_update_message_id(update_message_id->random_id_,
+                                                   MessageId(ServerMessageId(update_message_id->id_)), "getDifference");
       CHECK(!running_get_difference_);
     }
 
@@ -1846,14 +1849,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewChannelMessa
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateMessageID> update, bool force_apply,
                                Promise<Unit> &&promise) {
-  if (!force_apply) {
-    LOG(ERROR) << "Receive updateMessageID not in getDifference";
-    return;
-  }
-  LOG(INFO) << "Receive update about sent message " << to_string(update);
-  td_->messages_manager_->on_update_message_id(update->random_id_, MessageId(ServerMessageId(update->id_)),
-                                               "getDifference");
-  promise.set_value(Unit());
+  LOG(ERROR) << "Receive not in getDifference and not in on_pending_updates " << to_string(update);
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadMessagesContents> update, bool force_apply,
