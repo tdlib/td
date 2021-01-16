@@ -13370,7 +13370,11 @@ std::pair<int32, vector<UserId>> ContactsManager::search_among_users(const vecto
     if (u == nullptr) {
       continue;
     }
-    hints.add(user_id.get(), u->first_name + " " + u->last_name + " " + u->username);
+    if (query.empty()) {
+      hints.add(user_id.get(), Slice(" "));
+    } else {
+      hints.add(user_id.get(), PSLICE() << u->first_name << ' ' << u->last_name << ' ' << u->username);
+    }
     hints.set_rating(user_id.get(), -get_user_was_online(u, user_id));
   }
 
