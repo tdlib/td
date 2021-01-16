@@ -32911,6 +32911,7 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
       }
       break;
     case DialogType::Chat:
+      d->is_is_blocked_inited = true;
       break;
     case DialogType::Channel: {
       auto channel_type = td_->contacts_manager_->get_channel_type(dialog_id.get_channel_id());
