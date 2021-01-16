@@ -732,7 +732,7 @@ class GetGroupFullInfoRequest : public RequestActor<> {
   ChatId chat_id_;
 
   void do_run(Promise<Unit> &&promise) override {
-    td->contacts_manager_->load_chat_full(chat_id_, get_tries() < 2, std::move(promise));
+    td->contacts_manager_->load_chat_full(chat_id_, get_tries() < 2, std::move(promise), "getBasicGroupFullInfo");
   }
 
   void do_send_result() override {

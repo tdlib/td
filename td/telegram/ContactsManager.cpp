@@ -8622,7 +8622,7 @@ void ContactsManager::on_load_chat_full_from_database(ChatId chat_id, string val
   update_chat_full(chat_full, chat_id, true);
 }
 
-ContactsManager::ChatFull *ContactsManager::get_chat_full_force(ChatId chat_id) {
+ContactsManager::ChatFull *ContactsManager::get_chat_full_force(ChatId chat_id, const char *source) {
   if (!have_chat_force(chat_id)) {
     return nullptr;
   }
@@ -8638,7 +8638,7 @@ ContactsManager::ChatFull *ContactsManager::get_chat_full_force(ChatId chat_id) 
     return nullptr;
   }
 
-  LOG(INFO) << "Trying to load full " << chat_id << " from database";
+  LOG(INFO) << "Trying to load full " << chat_id << " from database from " << source;
   on_load_chat_full_from_database(chat_id,
                                   G()->td_db()->get_sqlite_sync_pmc()->get(get_chat_full_database_key(chat_id)));
   return get_chat_full(chat_id);
@@ -10450,7 +10450,7 @@ void ContactsManager::on_get_chat_participants(tl_object_ptr<telegram_api::ChatP
         return;
       }
 
-      ChatFull *chat_full = get_chat_full_force(chat_id);
+      ChatFull *chat_full = get_chat_full_force(chat_id, "telegram_api::chatParticipants");
       if (chat_full == nullptr) {
         LOG(INFO) << "Ignore update of members for unknown full " << chat_id;
         return;
@@ -11104,7 +11104,7 @@ void ContactsManager::on_get_chat_invite_link(ChatId chat_id,
     return;
   }
 
-  auto chat_full = get_chat_full_force(chat_id);
+  auto chat_full = get_chat_full_force(chat_id, "on_get_chat_invite_link");
   if (chat_full == nullptr) {
     update_invite_link(dialog_invite_links_[DialogId(chat_id)], std::move(invite_link_ptr));
     return;
@@ -11536,7 +11536,7 @@ void ContactsManager::on_update_chat_add_user(ChatId chat_id, UserId inviter_use
   LOG(INFO) << "Receive updateChatParticipantAdd to " << chat_id << " with " << user_id << " invited by "
             << inviter_user_id << " at " << date << " with version " << version;
 
-  ChatFull *chat_full = get_chat_full_force(chat_id);
+  ChatFull *chat_full = get_chat_full_force(chat_id, "on_update_chat_add_user");
   if (chat_full == nullptr) {
     LOG(INFO) << "Ignoring update about members of " << chat_id;
     return;
@@ -11641,7 +11641,7 @@ void ContactsManager::on_update_chat_edit_administrator(ChatId chat_id, UserId u
     update_chat(c, chat_id);
   }
 
-  ChatFull *chat_full = get_chat_full_force(chat_id);
+  ChatFull *chat_full = get_chat_full_force(chat_id, "on_update_chat_edit_administrator");
   if (chat_full != nullptr) {
     if (chat_full->version + 1 == version) {
       for (auto &participant : chat_full->participants) {
@@ -11671,7 +11671,7 @@ void ContactsManager::on_update_chat_delete_user(ChatId chat_id, UserId user_id,
   LOG(INFO) << "Receive updateChatParticipantDelete from " << chat_id << " with " << user_id << " and version "
             << version;
 
-  ChatFull *chat_full = get_chat_full_force(chat_id);
+  ChatFull *chat_full = get_chat_full_force(chat_id, "on_update_chat_delete_user");
   if (chat_full == nullptr) {
     LOG(INFO) << "Ignoring update about members of " << chat_id;
     return;
@@ -11930,7 +11930,7 @@ void ContactsManager::on_update_chat_description(ChatId chat_id, string &&descri
     return;
   }
 
-  auto chat_full = get_chat_full_force(chat_id);
+  auto chat_full = get_chat_full_force(chat_id, "on_update_chat_description");
   if (chat_full == nullptr) {
     return;
   }
@@ -12006,7 +12006,7 @@ void ContactsManager::drop_chat_photos(ChatId chat_id, bool is_empty, bool drop_
 }
 
 void ContactsManager::drop_chat_full(ChatId chat_id) {
-  ChatFull *chat_full = get_chat_full_force(chat_id);
+  ChatFull *chat_full = get_chat_full_force(chat_id, "drop_chat_full");
   if (chat_full == nullptr) {
     drop_chat_photos(chat_id, false, false, "drop_chat_full");
 
@@ -12879,27 +12879,27 @@ bool ContactsManager::is_chat_full_outdated(const ChatFull *chat_full, const Cha
   return false;
 }
 
-bool ContactsManager::load_chat_full(ChatId chat_id, bool force, Promise<Unit> &&promise) {
+bool ContactsManager::load_chat_full(ChatId chat_id, bool force, Promise<Unit> &&promise, const char *source) {
   auto c = get_chat(chat_id);
   if (c == nullptr) {
     promise.set_error(Status::Error(6, "Group not found"));
     return false;
   }
 
-  auto chat_full = get_chat_full_force(chat_id);
+  auto chat_full = get_chat_full_force(chat_id, source);
   if (chat_full == nullptr) {
     LOG(INFO) << "Full " << chat_id << " not found";
-    send_get_chat_full_query(chat_id, std::move(promise), "load_chat_full");
+    send_get_chat_full_query(chat_id, std::move(promise), source);
     return false;
   }
 
   if (is_chat_full_outdated(chat_full, c, chat_id)) {
     LOG(INFO) << "Have outdated full " << chat_id;
     if (td_->auth_manager_->is_bot() && !force) {
-      send_get_chat_full_query(chat_id, std::move(promise), "load expired chat_full");
+      send_get_chat_full_query(chat_id, std::move(promise), source);
       return false;
     } else {
-      send_get_chat_full_query(chat_id, Auto(), "load expired chat_full");
+      send_get_chat_full_query(chat_id, Auto(), source);
     }
   }
 
@@ -13388,7 +13388,7 @@ DialogParticipant ContactsManager::get_chat_participant(ChatId chat_id, UserId u
   LOG(INFO) << "Trying to get " << user_id << " as member of " << chat_id;
   if (force) {
     promise.set_value(Unit());
-  } else if (!load_chat_full(chat_id, force, std::move(promise))) {
+  } else if (!load_chat_full(chat_id, force, std::move(promise), "get_chat_participant")) {
     return DialogParticipant();
   }
   // promise is already set
@@ -13413,7 +13413,7 @@ std::pair<int32, vector<DialogParticipant>> ContactsManager::search_chat_partici
 
   if (force) {
     promise.set_value(Unit());
-  } else if (!load_chat_full(chat_id, force, std::move(promise))) {
+  } else if (!load_chat_full(chat_id, force, std::move(promise), "search_chat_participants")) {
     return {};
   }
   // promise is already set
@@ -13743,7 +13743,7 @@ void ContactsManager::on_update_dialog_administrators(DialogId dialog_id, vector
 void ContactsManager::reload_dialog_administrators(DialogId dialog_id, int32 hash, Promise<Unit> &&promise) {
   switch (dialog_id.get_type()) {
     case DialogType::Chat:
-      load_chat_full(dialog_id.get_chat_id(), false, std::move(promise));
+      load_chat_full(dialog_id.get_chat_id(), false, std::move(promise), "reload_dialog_administrators");
       break;
     case DialogType::Channel:
       td_->create_handler<GetChannelAdministratorsQuery>(std::move(promise))->send(dialog_id.get_channel_id(), hash);

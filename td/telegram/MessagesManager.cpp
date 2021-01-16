@@ -16265,7 +16265,7 @@ void MessagesManager::get_dialog_info_full(DialogId dialog_id, Promise<Unit> &&p
       return;
     case DialogType::Chat:
       send_closure_later(G()->contacts_manager(), &ContactsManager::load_chat_full, dialog_id.get_chat_id(), false,
-                         std::move(promise));
+                         std::move(promise), "get_dialog_info_full");
       return;
     case DialogType::Channel:
       send_closure_later(G()->contacts_manager(), &ContactsManager::load_channel_full, dialog_id.get_channel_id(),

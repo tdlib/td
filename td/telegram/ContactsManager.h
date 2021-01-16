@@ -461,7 +461,7 @@ class ContactsManager : public Actor {
   bool have_chat_force(ChatId chat_id);
   bool get_chat(ChatId chat_id, int left_tries, Promise<Unit> &&promise);
   void reload_chat(ChatId chat_id, Promise<Unit> &&promise);
-  bool load_chat_full(ChatId chat_id, bool force, Promise<Unit> &&promise);
+  bool load_chat_full(ChatId chat_id, bool force, Promise<Unit> &&promise, const char *source);
   FileSourceId get_chat_full_file_source_id(ChatId chat_id);
   void reload_chat_full(ChatId chat_id, Promise<Unit> &&promise);
 
@@ -1099,7 +1099,7 @@ class ContactsManager : public Actor {
 
   const ChatFull *get_chat_full(ChatId chat_id) const;
   ChatFull *get_chat_full(ChatId chat_id);
-  ChatFull *get_chat_full_force(ChatId chat_id);
+  ChatFull *get_chat_full_force(ChatId chat_id, const char *source);
 
   ChatFull *add_chat_full(ChatId chat_id);
 
