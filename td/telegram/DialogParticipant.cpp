@@ -810,6 +810,28 @@ StringBuilder &operator<<(StringBuilder &string_builder, const ChannelParticipan
   }
 }
 
+StringBuilder &operator<<(StringBuilder &string_builder, const DialogParticipantsFilter &filter) {
+  switch (filter.type) {
+    case DialogParticipantsFilter::Type::Contacts:
+      return string_builder << "Contacts";
+    case DialogParticipantsFilter::Type::Administrators:
+      return string_builder << "Administrators";
+    case DialogParticipantsFilter::Type::Members:
+      return string_builder << "Members";
+    case DialogParticipantsFilter::Type::Restricted:
+      return string_builder << "Restricted";
+    case DialogParticipantsFilter::Type::Banned:
+      return string_builder << "Banned";
+    case DialogParticipantsFilter::Type::Mention:
+      return string_builder << "Mention";
+    case DialogParticipantsFilter::Type::Bots:
+      return string_builder << "Bots";
+    default:
+      UNREACHABLE();
+      return string_builder;
+  }
+}
+
 DialogParticipantsFilter get_dialog_participants_filter(const tl_object_ptr<td_api::ChatMembersFilter> &filter) {
   if (filter == nullptr) {
     return DialogParticipantsFilter{DialogParticipantsFilter::Type::Members};

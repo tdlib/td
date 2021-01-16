@@ -1539,7 +1539,8 @@ void GroupCallManager::finish_load_group_call_administrators(InputGroupCallId in
   }
 
   auto *group_call_participants = add_group_call_participants(input_group_call_id);
-  if (group_call_participants->administrator_user_ids == administrator_user_ids) {
+  if (group_call_participants->are_administrators_loaded &&
+      group_call_participants->administrator_user_ids == administrator_user_ids) {
     return;
   }
 

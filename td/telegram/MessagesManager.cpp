@@ -30246,7 +30246,8 @@ std::pair<int32, vector<DialogParticipant>> MessagesManager::search_private_chat
 std::pair<int32, vector<DialogParticipant>> MessagesManager::search_dialog_participants(
     DialogId dialog_id, const string &query, int32 limit, DialogParticipantsFilter filter, int64 &random_id,
     bool without_bot_info, bool force, Promise<Unit> &&promise) {
-  LOG(INFO) << "Receive searchChatMembers request to search for " << query << " in " << dialog_id;
+  LOG(INFO) << "Receive searchChatMembers request to search for \"" << query << "\" in " << dialog_id << " with filter "
+            << filter;
   if (!have_dialog_force(dialog_id)) {
     promise.set_error(Status::Error(3, "Chat not found"));
     return {};

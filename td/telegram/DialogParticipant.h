@@ -463,6 +463,8 @@ class DialogParticipantsFilter {
   }
 };
 
+StringBuilder &operator<<(StringBuilder &string_builder, const DialogParticipantsFilter &filter);
+
 DialogParticipantsFilter get_dialog_participants_filter(const tl_object_ptr<td_api::ChatMembersFilter> &filter);
 
 DialogParticipantStatus get_dialog_participant_status(const tl_object_ptr<td_api::ChatMemberStatus> &status);
