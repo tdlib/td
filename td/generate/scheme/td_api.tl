@@ -237,7 +237,7 @@ maskPosition point:MaskPoint x_shift:double y_shift:double scale:double = MaskPo
 closedVectorPath commands:vector<VectorPathCommand> = ClosedVectorPath;
 
 
-//@description Describes one answer option of a poll @text Option text, 1-100 characters @voter_count Number of voters for this option, available only for closed or voted polls @vote_percentage The percentage of votes for this option, 0-100
+//@description Describes one answer option of a poll @text Option text; 1-100 characters @voter_count Number of voters for this option, available only for closed or voted polls @vote_percentage The percentage of votes for this option; 0-100
 //@is_chosen True, if the option was chosen by the user @is_being_chosen True, if the option is being chosen by a pending setPollAnswer request
 pollOption text:string voter_count:int32 vote_percentage:int32 is_chosen:Bool is_being_chosen:Bool = PollOption;
 
@@ -249,7 +249,7 @@ pollTypeRegular allow_multiple_answers:Bool = PollType;
 
 //@description A poll in quiz mode, which has exactly one correct answer option and can be answered only once
 //@correct_option_id 0-based identifier of the correct answer option; -1 for a yet unanswered poll
-//@explanation Text that is shown when the user chooses an incorrect answer or taps on the lamp icon, 0-200 characters with at most 2 line feeds; empty for a yet unanswered poll
+//@explanation Text that is shown when the user chooses an incorrect answer or taps on the lamp icon; 0-200 characters with at most 2 line feeds; empty for a yet unanswered poll
 pollTypeQuiz correct_option_id:int32 explanation:formattedText = PollType;
 
 
@@ -308,7 +308,7 @@ venue location:location title:string address:string provider:string id:string ty
 //@param_description Game description @photo Game photo @animation Game animation; may be null
 game id:int64 short_name:string title:string text:formattedText description:string photo:photo animation:animation = Game;
 
-//@description Describes a poll @id Unique poll identifier @question Poll question, 1-300 characters @options List of poll answer options
+//@description Describes a poll @id Unique poll identifier @question Poll question; 1-300 characters @options List of poll answer options
 //@total_voter_count Total number of voters, participating in the poll @recent_voter_user_ids User identifiers of recent voters, if the poll is non-anonymous
 //@is_anonymous True, if the poll is anonymous @type Type of the poll
 //@open_period Amount of time the poll will be active after creation, in seconds @close_date Point in time (Unix timestamp) when the poll will be automatically closed @is_closed True, if the poll is closed
@@ -547,13 +547,20 @@ supergroupMembersFilterBots = SupergroupMembersFilter;
 
 //@description Contains a chat invite link @invite_link Chat invite link @administrator_user_id User identifier of an administrator created the link
 //@date Point in time (Unix timestamp) when the link was created @expire_date Point in time (Unix timestamp) when the link will expire; 0 if never
-//@usage_limit Maximum number of times the link can be used; 0 if not limited @usage_count Number of times the link has already been used
+//@member_limit Maximum number of members, which can join the chat using the link simultaneously; 0 if not limited
+//@member_count Number of chat members, which joined the chat using the link
 //@is_permanent True, if the link is permanent. Permanent invite link can't have expire date or usage limit. There is exactly one permanent invite link for each administrator at any time
 //@is_expired True, if the link is already expired @is_revoked True, if the link was revoked
-chatInviteLink invite_link:string administrator_user_id:int32 date:int32 expire_date:int32 usage_limit:int32 usage_count:int32 is_permanent:Bool is_expired:Bool is_revoked:Bool = ChatInviteLink;
+chatInviteLink invite_link:string administrator_user_id:int32 date:int32 expire_date:int32 member_limit:int32 member_count:int32 is_permanent:Bool is_expired:Bool is_revoked:Bool = ChatInviteLink;
 
 //@description Contains a list of chat invite links @total_count Approximate total count of chat invite links found @invite_links List of invite links
 chatInviteLinks total_count:int32 invite_links:vector<chatInviteLink> = ChatInviteLinks;
+
+//@description Describes a chat member joined a chat by an invite link @user_id User identifier @joined_chat_date Point in time (Unix timestamp) when the user joined the chat
+chatInviteLinkMember user_id:int32 joined_chat_date:int32 = ChatInviteLinkMember;
+
+//@description Contains a list of chat members joined a chat by an invite link @total_count Approximate total count of chat members found @members List of chat members, joined a chat by an invite link
+chatInviteLinkMembers total_count:int32 members:vector<chatInviteLinkMember> = ChatInviteLinkMembers;
 
 //@description Contains information about a chat invite link
 //@chat_id Chat identifier of the invite link; 0 if the user has no access to the chat before joining
@@ -565,12 +572,6 @@ chatInviteLinks total_count:int32 invite_links:vector<chatInviteLink> = ChatInvi
 //@member_user_ids User identifiers of some chat members that may be known to the current user
 //@is_public True, if the chat is a public supergroup or channel, i.e. it has a username or it is a location-based supergroup
 chatInviteLinkInfo chat_id:int53 accessible_for:int32 type:ChatType title:string photo:chatPhotoInfo member_count:int32 member_user_ids:vector<int32> is_public:Bool = ChatInviteLinkInfo;
-
-//@description Describes a user joined a chat by an invite link @user_id User identifier @joined_chat_date Point in time (Unix timestamp) when the user joined the chat
-chatInviteLinkUser user_id:int32 joined_chat_date:int32 = ChatInviteLinkUser;
-
-//@description Contains a list of users joined a chat by an invite link @total_count Approximate total count of users found @users List of users, joined a chat by an invite link
-chatInviteLinkUsers total_count:int32 users:vector<chatInviteLinkUser> = ChatInviteLinkUsers;
 
 
 //@description Represents a basic group of 0-200 users (must be upgraded to a supergroup to accommodate more than 200 users)
@@ -1373,7 +1374,7 @@ passportElementTypePhoneNumber = PassportElementType;
 passportElementTypeEmailAddress = PassportElementType;
 
 
-//@description Represents a date according to the Gregorian calendar @day Day of the month, 1-31 @month Month, 1-12 @year Year, 1-9999
+//@description Represents a date according to the Gregorian calendar @day Day of the month; 1-31 @month Month; 1-12 @year Year; 1-9999
 date day:int32 month:int32 year:int32 = Date;
 
 //@description Contains the user's personal details
@@ -1864,7 +1865,7 @@ inputMessageGame bot_user_id:int32 game_short_name:string = InputMessageContent;
 //@payload The invoice payload @provider_token Payment provider token @provider_data JSON-encoded data about the invoice, which will be shared with the payment provider @start_parameter Unique invoice bot start_parameter for the generation of this invoice
 inputMessageInvoice invoice:invoice title:string description:string photo_url:string photo_size:int32 photo_width:int32 photo_height:int32 payload:bytes provider_token:string provider_data:string start_parameter:string = InputMessageContent;
 
-//@description A message with a poll. Polls can't be sent to secret chats. Polls can be sent only to a private chat with a bot @question Poll question, 1-255 characters (up to 300 characters for bots) @options List of poll answer options, 2-10 strings 1-100 characters each
+//@description A message with a poll. Polls can't be sent to secret chats. Polls can be sent only to a private chat with a bot @question Poll question; 1-255 characters (up to 300 characters for bots) @options List of poll answer options, 2-10 strings 1-100 characters each
 //@is_anonymous True, if the poll voters are anonymous. Non-anonymous polls can't be sent or forwarded to channels @type Type of the poll
 //@open_period Amount of time the poll will be active after creation, in seconds; for bots only
 //@close_date Point in time (Unix timestamp) when the poll will be automatically closed; for bots only
@@ -2537,7 +2538,7 @@ backgroundTypeWallpaper is_blurred:Bool is_moving:Bool = BackgroundType;
 
 //@description A PNG or TGV (gzipped subset of SVG with MIME type "application/x-tgwallpattern") pattern to be combined with the background fill chosen by the user
 //@fill Description of the background fill
-//@intensity Intensity of the pattern when it is shown above the filled background, 0-100
+//@intensity Intensity of the pattern when it is shown above the filled background; 0-100
 //@is_moving True, if the background needs to be slightly moved when device is tilted
 backgroundTypePattern fill:BackgroundFill intensity:int32 is_moving:Bool = BackgroundType;
 
@@ -4365,25 +4366,25 @@ deleteFile file_id:int32 = Ok;
 //@description Creates a new invite link for a chat. Available for basic groups, supergroups, and channels. Requires administrator privileges and can_invite_users right
 //@chat_id Chat identifier
 //@expire_date Point in time (Unix timestamp) when the link will expire; pass 0 if never
-//@usage_limit Maximum number of times the link can be used; pass 0 if not limited
+//@member_limit Maximum number of chat members that can join the chat by the link simultaneously; 0-100000; pass 0 if not limited
 //@is_permanent True, if new permanent chat link needs to be created instead of the previous one
-createChatInviteLink chat_id:int53 expire_date:int32 usage_limit:int32 is_permanent:Bool = ChatInviteLink;
+createChatInviteLink chat_id:int53 expire_date:int32 member_limit:int32 is_permanent:Bool = ChatInviteLink;
 
 //@description Edits an invite link for a chat. Available for basic groups, supergroups, and channels. Requires administrator privileges and can_invite_users right
 //@chat_id Chat identifier
 //@invite_link Invite link to be edited; must begin with "https://t.me/joinchat/", "https://telegram.me/joinchat/", or "https://telegram.dog/joinchat/"
 //@expire_date Point in time (Unix timestamp) when the link will expire; pass 0 if never
-//@usage_limit Maximum number of times the link can be used; pass 0 if not limited
+//@member_limit Maximum number of chat members that can join the chat by the link simultaneously; 0-100000; pass 0 if not limited
 //@is_revoked True, if the link is revoked
-editChatInviteLink chat_id:int53 invite_link:string expire_date:int32 usage_limit:int32 is_revoked:Bool = ChatInviteLink;
+editChatInviteLink chat_id:int53 invite_link:string expire_date:int32 member_limit:int32 is_revoked:Bool = ChatInviteLink;
 
 //@description Returns exported invite links for a chat. Requires administrator privileges and can_invite_users right @chat_id Chat identifier @administrator_user_id If not 0, only invite links created by the specified administrator will be returned
 //@offset_invite_link Invite link starting after which to return invite links; use empty string to get results from the beginning @limit Maximum number of invite links to return
 getChatInviteLinks chat_id:int53 administrator_user_id:int32 offset_invite_link:string limit:int32 = ChatInviteLinks;
 
-//@description Returns users joined a chat by an invite link. Requires administrator privileges and can_invite_users right @chat_id Chat identifier @invite_link Invite link for which to return users
-//@offset_user A user from which to return next users; use null to get results from the beginning @limit Maximum number of users to return
-getChatInviteLinkUsers chat_id:int53 invite_link:string offset_user:chatInviteLinkUser limit:int32 = ChatInviteLinkUsers;
+//@description Returns chat members joined a chat by an invite link. Requires administrator privileges and can_invite_users right @chat_id Chat identifier @invite_link Invite link for which to return chat members
+//@offset_member A chat member from which to return next chat members; use null to get results from the beginning @limit Maximum number of chat members to return
+getChatInviteLinkMembers chat_id:int53 invite_link:string offset_member:chatInviteLinkMember limit:int32 = ChatInviteLinkMembers;
 
 //@description Checks the validity of an invite link for a chat and returns information about the corresponding chat @invite_link Invite link to be checked; must begin with "https://t.me/joinchat/", "https://telegram.me/joinchat/", or "https://telegram.dog/joinchat/"
 checkChatInviteLink invite_link:string = ChatInviteLinkInfo;
@@ -5061,7 +5062,7 @@ setLogTagVerbosityLevel tag:string new_verbosity_level:int32 = Ok;
 getLogTagVerbosityLevel tag:string = LogVerbosityLevel;
 
 //@description Adds a message to TDLib internal log. Can be called synchronously
-//@verbosity_level The minimum verbosity level needed for the message to be logged, 0-1023 @text Text of a message to log
+//@verbosity_level The minimum verbosity level needed for the message to be logged; 0-1023 @text Text of a message to log
 addLogMessage verbosity_level:int32 text:string = Ok;
 
 

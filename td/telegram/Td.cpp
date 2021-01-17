@@ -6277,7 +6277,7 @@ void Td::on_request(uint64 id, td_api::getChatAdministrators &request) {
 
 void Td::on_request(uint64 id, const td_api::createChatInviteLink &request) {
   CREATE_REQUEST_PROMISE();
-  contacts_manager_->export_dialog_invite_link(DialogId(request.chat_id_), request.expire_date_, request.usage_limit_,
+  contacts_manager_->export_dialog_invite_link(DialogId(request.chat_id_), request.expire_date_, request.member_limit_,
                                                request.is_permanent_, std::move(promise));
 }
 
@@ -6285,7 +6285,7 @@ void Td::on_request(uint64 id, td_api::editChatInviteLink &request) {
   CREATE_REQUEST_PROMISE();
   CLEAN_INPUT_STRING(request.invite_link_);
   contacts_manager_->edit_dialog_invite_link(DialogId(request.chat_id_), request.invite_link_, request.expire_date_,
-                                             request.usage_limit_, request.is_revoked_, std::move(promise));
+                                             request.member_limit_, request.is_revoked_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getChatInviteLinks &request) {
@@ -6295,11 +6295,12 @@ void Td::on_request(uint64 id, td_api::getChatInviteLinks &request) {
                                              request.offset_invite_link_, request.limit_, std::move(promise));
 }
 
-void Td::on_request(uint64 id, td_api::getChatInviteLinkUsers &request) {
+void Td::on_request(uint64 id, td_api::getChatInviteLinkMembers &request) {
   CREATE_REQUEST_PROMISE();
   CLEAN_INPUT_STRING(request.invite_link_);
   contacts_manager_->get_dialog_invite_link_users(DialogId(request.chat_id_), request.invite_link_,
-                                                  std::move(request.offset_user_), request.limit_, std::move(promise));
+                                                  std::move(request.offset_member_), request.limit_,
+                                                  std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::checkChatInviteLink &request) {
