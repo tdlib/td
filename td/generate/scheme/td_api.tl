@@ -546,12 +546,14 @@ supergroupMembersFilterBots = SupergroupMembersFilter;
 
 
 //@description Contains a chat invite link @invite_link Chat invite link @administrator_user_id User identifier of an administrator created the link
-//@date Point in time (Unix timestamp) when the link was created @expire_date Point in time (Unix timestamp) when the link will expire; 0 if never
+//@date Point in time (Unix timestamp) when the link was created
+//@edit_date Point in time (Unix timestamp) when the link was last edited; 0 if never or unknown
+//@expire_date Point in time (Unix timestamp) when the link will expire; 0 if never
 //@member_limit Maximum number of members, which can join the chat using the link simultaneously; 0 if not limited
 //@member_count Number of chat members, which joined the chat using the link
 //@is_permanent True, if the link is permanent. Permanent invite link can't have expire date or usage limit. There is exactly one permanent invite link for each administrator at any time
 //@is_expired True, if the link is already expired @is_revoked True, if the link was revoked
-chatInviteLink invite_link:string administrator_user_id:int32 date:int32 expire_date:int32 member_limit:int32 member_count:int32 is_permanent:Bool is_expired:Bool is_revoked:Bool = ChatInviteLink;
+chatInviteLink invite_link:string administrator_user_id:int32 date:int32 edit_date:int32 expire_date:int32 member_limit:int32 member_count:int32 is_permanent:Bool is_expired:Bool is_revoked:Bool = ChatInviteLink;
 
 //@description Contains a list of chat invite links @total_count Approximate total count of chat invite links found @invite_links List of invite links
 chatInviteLinks total_count:int32 invite_links:vector<chatInviteLink> = ChatInviteLinks;

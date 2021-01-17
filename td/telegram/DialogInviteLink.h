@@ -23,6 +23,7 @@ class DialogInviteLink {
   string invite_link_;
   UserId administrator_user_id_;
   int32 date_ = 0;
+  int32 edit_date_ = 0;
   int32 expire_date_ = 0;
   int32 usage_limit_ = 0;
   int32 usage_count_ = 0;
@@ -68,12 +69,14 @@ class DialogInviteLink {
     bool has_expire_date = expire_date_ != 0;
     bool has_usage_limit = usage_limit_ != 0;
     bool has_usage_count = usage_count_ != 0;
+    bool has_edit_date = edit_date_ != 0;
     BEGIN_STORE_FLAGS();
     STORE_FLAG(is_revoked_);
     STORE_FLAG(is_permanent_);
     STORE_FLAG(has_expire_date);
     STORE_FLAG(has_usage_limit);
     STORE_FLAG(has_usage_count);
+    STORE_FLAG(has_edit_date);
     END_STORE_FLAGS();
     store(invite_link_, storer);
     store(administrator_user_id_, storer);
@@ -87,6 +90,9 @@ class DialogInviteLink {
     if (has_usage_count) {
       store(usage_count_, storer);
     }
+    if (has_edit_date) {
+      store(edit_date_, storer);
+    }
   }
 
   template <class ParserT>
@@ -95,12 +101,14 @@ class DialogInviteLink {
     bool has_expire_date;
     bool has_usage_limit;
     bool has_usage_count;
+    bool has_edit_date;
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(is_revoked_);
     PARSE_FLAG(is_permanent_);
     PARSE_FLAG(has_expire_date);
     PARSE_FLAG(has_usage_limit);
     PARSE_FLAG(has_usage_count);
+    PARSE_FLAG(has_edit_date);
     END_PARSE_FLAGS();
     parse(invite_link_, parser);
     parse(administrator_user_id_, parser);
@@ -113,6 +121,9 @@ class DialogInviteLink {
     }
     if (has_usage_count) {
       parse(usage_count_, parser);
+    }
+    if (has_edit_date) {
+      parse(edit_date_, parser);
     }
   }
 };
