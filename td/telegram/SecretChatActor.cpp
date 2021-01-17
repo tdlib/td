@@ -761,7 +761,8 @@ void SecretChatActor::do_close_chat_impl(unique_ptr<log_event::CloseSecretChat> 
   context_->secret_chat_db()->erase_value(config_state_);
   context_->secret_chat_db()->erase_value(pfs_state_);
   context_->secret_chat_db()->erase_value(seq_no_state_);
-  auto query = create_net_query(QueryType::DiscardEncryption, telegram_api::messages_discardEncryption(auth_state_.id));
+  int32 flags = 0;
+  auto query = create_net_query(QueryType::DiscardEncryption, telegram_api::messages_discardEncryption(flags, false /*ignored*/, auth_state_.id));
 
   send_update_secret_chat();
 
