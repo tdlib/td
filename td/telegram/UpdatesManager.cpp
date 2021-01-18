@@ -218,6 +218,9 @@ void UpdatesManager::fill_gap(void *td, const char *source) {
 }
 
 void UpdatesManager::get_difference(const char *source) {
+  if (G()->close_flag()) {
+    return;
+  }
   if (get_pts() == -1) {
     init_state();
     return;
@@ -857,6 +860,9 @@ void UpdatesManager::on_get_updates(tl_object_ptr<telegram_api::Updates> &&updat
 }
 
 void UpdatesManager::on_failed_get_updates_state(Status &&error) {
+  if (G()->close_flag()) {
+    return;
+  }
   if (error.code() != 401) {
     LOG(ERROR) << "Receive updates.getState error: " << error;
   }
@@ -866,6 +872,9 @@ void UpdatesManager::on_failed_get_updates_state(Status &&error) {
 }
 
 void UpdatesManager::on_failed_get_difference(Status &&error) {
+  if (G()->close_flag()) {
+    return;
+  }
   if (error.code() != 401) {
     LOG(ERROR) << "Receive updates.getDifference error: " << error;
   }
