@@ -4365,14 +4365,14 @@ readFilePart file_id:int32 offset:int32 count:int32 = FilePart;
 deleteFile file_id:int32 = Ok;
 
 
-//@description Creates a new invite link for a chat. Available for basic groups, supergroups, and channels. Requires administrator privileges and can_invite_users right
+//@description Creates a new invite link for a chat. Available for basic groups, supergroups, and channels. Requires administrator privileges and can_invite_users right in the chat
 //@chat_id Chat identifier
 //@expire_date Point in time (Unix timestamp) when the link will expire; pass 0 if never
 //@member_limit Maximum number of chat members that can join the chat by the link simultaneously; 0-100000; pass 0 if not limited
 //@is_permanent True, if new permanent chat link needs to be created instead of the previous one
 createChatInviteLink chat_id:int53 expire_date:int32 member_limit:int32 is_permanent:Bool = ChatInviteLink;
 
-//@description Edits an invite link for a chat. Available for basic groups, supergroups, and channels. Requires administrator privileges and can_invite_users right
+//@description Edits an invite link for a chat. Available for basic groups, supergroups, and channels. Requires administrator privileges and can_invite_users right in the chat
 //@chat_id Chat identifier
 //@invite_link Invite link to be edited; must begin with "https://t.me/joinchat/", "https://telegram.me/joinchat/", or "https://telegram.dog/joinchat/"
 //@expire_date Point in time (Unix timestamp) when the link will expire; pass 0 if never
@@ -4380,17 +4380,20 @@ createChatInviteLink chat_id:int53 expire_date:int32 member_limit:int32 is_perma
 //@is_revoked True, if the link is revoked
 editChatInviteLink chat_id:int53 invite_link:string expire_date:int32 member_limit:int32 is_revoked:Bool = ChatInviteLink;
 
-//@description Returns exported invite links for a chat. Requires administrator privileges and can_invite_users right @chat_id Chat identifier @administrator_user_id If not 0, only invite links created by the specified administrator will be returned
+//@description Returns exported invite links for a chat. Requires administrator privileges and can_invite_users right in the chat @chat_id Chat identifier @administrator_user_id If not 0, only invite links created by the specified administrator will be returned
 //@is_revoked Pass true if revoked links needs to be returned instead of active or expired
 //@offset_invite_link Invite link starting after which to return invite links; use empty string to get results from the beginning @limit Maximum number of invite links to return
 getChatInviteLinks chat_id:int53 administrator_user_id:int32 is_revoked:Bool offset_invite_link:string limit:int32 = ChatInviteLinks;
 
-//@description Returns chat members joined a chat by an invite link. Requires administrator privileges and can_invite_users right @chat_id Chat identifier @invite_link Invite link for which to return chat members
+//@description Returns chat members joined a chat by an invite link. Requires administrator privileges and can_invite_users right in the chat @chat_id Chat identifier @invite_link Invite link for which to return chat members
 //@offset_member A chat member from which to return next chat members; use null to get results from the beginning @limit Maximum number of chat members to return
 getChatInviteLinkMembers chat_id:int53 invite_link:string offset_member:chatInviteLinkMember limit:int32 = ChatInviteLinkMembers;
 
-//@description Deletes revoked chat invite links. Requires administrator privileges and can_invite_users right @chat_id Chat identifier @invite_link Invite link to revoke
+//@description Deletes revoked chat invite links. Requires administrator privileges and can_invite_users right in the chat @chat_id Chat identifier @invite_link Invite link to revoke
 deleteRevokedChatInviteLink chat_id:int53 invite_link:string = Ok;
+
+//@description Deletes all revoked chat invite links. Requires administrator privileges and can_invite_users right in the chat @chat_id Chat identifier
+deleteAllRevokedChatInviteLinks chat_id:int53 = Ok;
 
 //@description Checks the validity of an invite link for a chat and returns information about the corresponding chat @invite_link Invite link to be checked; must begin with "https://t.me/joinchat/", "https://telegram.me/joinchat/", or "https://telegram.dog/joinchat/"
 checkChatInviteLink invite_link:string = ChatInviteLinkInfo;
