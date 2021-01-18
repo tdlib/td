@@ -790,6 +790,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, td_api::editChatInviteLink &request);
 
+  void on_request(uint64 id, td_api::revokeChatInviteLink &request);
+
   void on_request(uint64 id, td_api::getChatInviteLinks &request);
 
   void on_request(uint64 id, td_api::getChatInviteLinkMembers &request);

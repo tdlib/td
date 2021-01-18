@@ -4374,11 +4374,15 @@ createChatInviteLink chat_id:int53 expire_date:int32 member_limit:int32 is_perma
 
 //@description Edits an invite link for a chat. Available for basic groups, supergroups, and channels. Requires administrator privileges and can_invite_users right in the chat
 //@chat_id Chat identifier
-//@invite_link Invite link to be edited; must begin with "https://t.me/joinchat/", "https://telegram.me/joinchat/", or "https://telegram.dog/joinchat/"
+//@invite_link Invite link to be edited
 //@expire_date Point in time (Unix timestamp) when the link will expire; pass 0 if never
 //@member_limit Maximum number of chat members that can join the chat by the link simultaneously; 0-100000; pass 0 if not limited
-//@is_revoked True, if the link is revoked
-editChatInviteLink chat_id:int53 invite_link:string expire_date:int32 member_limit:int32 is_revoked:Bool = ChatInviteLink;
+editChatInviteLink chat_id:int53 invite_link:string expire_date:int32 member_limit:int32 = ChatInviteLink;
+
+//@description Edits an invite link for a chat. Available for basic groups, supergroups, and channels. Requires administrator privileges and can_invite_users right in the chat
+//@chat_id Chat identifier
+//@invite_link Invite link to be edited
+revokeChatInviteLink chat_id:int53 invite_link:string = ChatInviteLink;
 
 //@description Returns exported invite links for a chat. Requires administrator privileges and can_invite_users right in the chat @chat_id Chat identifier @administrator_user_id If not 0, only invite links created by the specified administrator will be returned
 //@is_revoked Pass true if revoked links needs to be returned instead of active or expired

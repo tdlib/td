@@ -1609,13 +1609,8 @@ class EditChatInviteLinkQuery : public Td::ResultHandler {
       return on_error(0, Status::Error(400, "Can't access the chat"));
     }
 
-    int32 flags = 0;
-    if (expire_date > 0) {
-      flags |= telegram_api::messages_editExportedChatInvite::EXPIRE_DATE_MASK;
-    }
-    if (usage_limit > 0) {
-      flags |= telegram_api::messages_editExportedChatInvite::USAGE_LIMIT_MASK;
-    }
+    int32 flags = telegram_api::messages_editExportedChatInvite::EXPIRE_DATE_MASK |
+                  telegram_api::messages_editExportedChatInvite::USAGE_LIMIT_MASK;
     if (is_revoked) {
       flags |= telegram_api::messages_editExportedChatInvite::REVOKED_MASK;
     }

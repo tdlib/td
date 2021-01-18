@@ -2697,10 +2697,14 @@ class CliClient final : public Actor {
       string invite_link;
       int32 expire_date;
       int32 member_limit;
-      bool is_revoked;
-      get_args(args, chat_id, invite_link, expire_date, member_limit, is_revoked);
-      send_request(td_api::make_object<td_api::editChatInviteLink>(as_chat_id(chat_id), invite_link, expire_date,
-                                                                   member_limit, is_revoked));
+      get_args(args, chat_id, invite_link, expire_date, member_limit);
+      send_request(
+          td_api::make_object<td_api::editChatInviteLink>(as_chat_id(chat_id), invite_link, expire_date, member_limit));
+    } else if (op == "rcil") {
+      string chat_id;
+      string invite_link;
+      get_args(args, chat_id, invite_link);
+      send_request(td_api::make_object<td_api::revokeChatInviteLink>(as_chat_id(chat_id), invite_link));
     } else if (op == "gcil" || op == "gcilr") {
       string chat_id;
       string administrator_user_id;
