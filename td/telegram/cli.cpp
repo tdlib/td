@@ -2685,13 +2685,15 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::leaveGroupCall>(as_group_call_id(args)));
     } else if (op == "dgc") {
       send_request(td_api::make_object<td_api::discardGroupCall>(as_group_call_id(args)));
-    } else if (op == "ccilp" || op == "ccilt") {
+    } else if (op == "rpcil") {
+      string chat_id = args;
+      send_request(td_api::make_object<td_api::replacePermanentChatInviteLink>(as_chat_id(chat_id)));
+    } else if (op == "ccilt") {
       string chat_id;
       int32 expire_date;
       int32 member_limit;
       get_args(args, chat_id, expire_date, member_limit);
-      send_request(td_api::make_object<td_api::createChatInviteLink>(as_chat_id(chat_id), expire_date, member_limit,
-                                                                     op == "ccilp"));
+      send_request(td_api::make_object<td_api::createChatInviteLink>(as_chat_id(chat_id), expire_date, member_limit));
     } else if (op == "ecil") {
       string chat_id;
       string invite_link;
