@@ -6676,7 +6676,7 @@ void Td::on_request(uint64 id, const td_api::deleteSupergroup &request) {
 
 void Td::on_request(uint64 id, td_api::closeSecretChat &request) {
   CREATE_OK_REQUEST_PROMISE();
-  send_closure(secret_chats_manager_, &SecretChatsManager::cancel_chat, SecretChatId(request.secret_chat_id_),
+  send_closure(secret_chats_manager_, &SecretChatsManager::cancel_chat, SecretChatId(request.secret_chat_id_), false,
                std::move(promise));
 }
 

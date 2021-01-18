@@ -112,10 +112,11 @@ class SecretChatActor : public NetQueryCallback {
 
   SecretChatActor(int32 id, unique_ptr<Context> context, bool can_be_empty);
 
-  // First query to new chat must be on of these two
+  // First query to new chat must be one of these two
   void update_chat(telegram_api::object_ptr<telegram_api::EncryptedChat> chat);
   void create_chat(int32 user_id, int64 user_access_hash, int32 random_id, Promise<SecretChatId> promise);
-  void cancel_chat(Promise<> promise);
+
+  void cancel_chat(bool delete_history, Promise<> promise);
 
   // Inbound messages
   // Logevent is created by SecretChatsManager, because it must contain qts
@@ -637,7 +638,7 @@ class SecretChatActor : public NetQueryCallback {
 
   // DiscardEncryption
   void on_fatal_error(Status status);
-  void do_close_chat_impl(unique_ptr<log_event::CloseSecretChat> event);
+  void do_close_chat_impl(bool delete_history, uint64 log_event_id);
   void on_discard_encryption_result(NetQueryPtr result);
 
   // Other

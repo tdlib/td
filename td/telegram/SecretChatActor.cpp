@@ -140,7 +140,7 @@ void SecretChatActor::on_result_resendable(NetQueryPtr net_query, Promise<NetQue
 }
 
 void SecretChatActor::replay_close_chat(unique_ptr<log_event::CloseSecretChat> event) {
-  do_close_chat_impl(std::move(event));
+  do_close_chat_impl(event->delete_history, event->log_event_id());
 }
 
 void SecretChatActor::replay_create_chat(unique_ptr<log_event::CreateSecretChat> event) {
@@ -709,10 +709,10 @@ void SecretChatActor::check_status(Status status) {
 
 void SecretChatActor::on_fatal_error(Status status) {
   LOG(ERROR) << "Fatal error: " << status;
-  cancel_chat(Promise<>());
+  cancel_chat(false, Promise<>());
 }
 
-void SecretChatActor::cancel_chat(Promise<> promise) {
+void SecretChatActor::cancel_chat(bool delete_history, Promise<> promise) {
   if (close_flag_) {
     promise.set_value(Unit());
     return;
@@ -735,26 +735,26 @@ void SecretChatActor::cancel_chat(Promise<> promise) {
 
   auto event = make_unique<log_event::CloseSecretChat>();
   event->chat_id = auth_state_.id;
-  event->set_log_event_id(binlog_add(context_->binlog(), LogEvent::HandlerType::SecretChats, create_storer(*event)));
+  auto log_event_id = binlog_add(context_->binlog(), LogEvent::HandlerType::SecretChats, create_storer(*event));
 
-  auto on_sync = PromiseCreator::lambda(
-      [actor_id = actor_id(this), event = std::move(event), promise = std::move(promise)](Result<Unit> result) mutable {
-        if (result.is_ok()) {
-          send_closure(actor_id, &SecretChatActor::do_close_chat_impl, std::move(event));
-          promise.set_value(Unit());
-        } else {
-          promise.set_error(result.error().clone());
-          send_closure(actor_id, &SecretChatActor::on_promise_error, result.move_as_error(), "do_close_chat_impl");
-        }
-      });
+  auto on_sync = PromiseCreator::lambda([actor_id = actor_id(this), delete_history, log_event_id,
+                                         promise = std::move(promise)](Result<Unit> result) mutable {
+    if (result.is_ok()) {
+      send_closure(actor_id, &SecretChatActor::do_close_chat_impl, delete_history, log_event_id);
+      promise.set_value(Unit());
+    } else {
+      promise.set_error(result.error().clone());
+      send_closure(actor_id, &SecretChatActor::on_promise_error, result.move_as_error(), "cancel_chat");
+    }
+  });
 
   context_->binlog()->force_sync(std::move(on_sync));
   yield();
 }
 
-void SecretChatActor::do_close_chat_impl(unique_ptr<log_event::CloseSecretChat> event) {
+void SecretChatActor::do_close_chat_impl(bool delete_history, uint64 log_event_id) {
   close_flag_ = true;
-  close_log_event_id_ = event->log_event_id();
+  close_log_event_id_ = log_event_id;
   LOG(INFO) << "Send messages.discardEncryption";
   auth_state_.state = State::Closed;
   context_->secret_chat_db()->set_value(auth_state_);
@@ -762,7 +762,11 @@ void SecretChatActor::do_close_chat_impl(unique_ptr<log_event::CloseSecretChat> 
   context_->secret_chat_db()->erase_value(pfs_state_);
   context_->secret_chat_db()->erase_value(seq_no_state_);
   int32 flags = 0;
-  auto query = create_net_query(QueryType::DiscardEncryption, telegram_api::messages_discardEncryption(flags, false /*ignored*/, auth_state_.id));
+  if (delete_history) {
+    flags |= telegram_api::messages_discardEncryption::DELETE_HISTORY_MASK;
+  }
+  auto query = create_net_query(QueryType::DiscardEncryption,
+                                telegram_api::messages_discardEncryption(flags, false /*ignored*/, auth_state_.id));
 
   send_update_secret_chat();
 

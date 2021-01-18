@@ -1643,7 +1643,7 @@ void UpdatesManager::add_pending_qts_update(tl_object_ptr<telegram_api::Update> 
 
   int32 old_qts = get_qts();
   LOG(INFO) << "Process update with qts = " << qts << ", current qts = " << old_qts;
-  if (qts < old_qts - 1000001) {
+  if (qts < old_qts - 10001) {
     LOG(WARNING) << "Restore qts after qts overflow from " << old_qts << " to " << qts << " by "
                  << oneline(to_string(update));
     add_qts(qts - 1).set_value(Unit());

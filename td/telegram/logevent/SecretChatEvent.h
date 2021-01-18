@@ -34,12 +34,8 @@ class SecretChatEvent : public LogEventBase<SecretChatEvent> {
 
   virtual Type get_type() const = 0;
 
-  static constexpr LogEvent::HandlerType get_handler_type() {
-    return LogEvent::HandlerType::SecretChats;
-  }
-
   static constexpr int32 version() {
-    return 2;
+    return 3;
   }
 
   template <class F>
@@ -354,7 +350,7 @@ class OutboundSecretMessage : public SecretChatLogEventBase<OutboundSecretMessag
     store(my_out_seq_no, storer);
     store(his_in_seq_no, storer);
 
-    bool has_action = static_cast<bool>(action);
+    bool has_action = action != nullptr;
     BEGIN_STORE_FLAGS();
     STORE_FLAG(is_sent);
     STORE_FLAG(need_notify_user);
@@ -414,21 +410,31 @@ class CloseSecretChat : public SecretChatLogEventBase<CloseSecretChat> {
  public:
   static constexpr Type type = SecretChatEvent::Type::CloseSecretChat;
   int32 chat_id = 0;
+  bool delete_history = false;
 
   template <class StorerT>
   void store(StorerT &storer) const {
     using td::store;
+    BEGIN_STORE_FLAGS();
+    STORE_FLAG(delete_history);
+    END_STORE_FLAGS();
     store(chat_id, storer);
   }
 
   template <class ParserT>
   void parse(ParserT &parser) {
     using td::parse;
+    if (parser.version() >= 3) {
+      BEGIN_PARSE_FLAGS();
+      PARSE_FLAG(delete_history);
+      END_PARSE_FLAGS();
+    }
     parse(chat_id, parser);
   }
 
   StringBuilder &print(StringBuilder &sb) const override {
-    return sb << "[Logevent CloseSecretChat " << tag("id", log_event_id()) << tag("chat_id", chat_id) << "]";
+    return sb << "[Logevent CloseSecretChat " << tag("id", log_event_id()) << tag("chat_id", chat_id)
+              << tag("delete_history", delete_history) << "]";
   }
 };
 

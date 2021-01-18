@@ -30,13 +30,12 @@ class SecretChatsManager : public Actor {
  public:
   explicit SecretChatsManager(ActorShared<> parent);
 
-  // Proxy query to corrensponding SecretChatActor.
-  // Look for more info in SecretChatActor.h
+  // Proxy query to corrensponding SecretChatActor
   void on_update_chat(tl_object_ptr<telegram_api::updateEncryption> update);
   void on_new_message(tl_object_ptr<telegram_api::EncryptedMessage> &&message_ptr, Promise<Unit> &&promise);
 
   void create_chat(int32 user_id, int64 user_access_hash, Promise<SecretChatId> promise);
-  void cancel_chat(SecretChatId, Promise<> promise);
+  void cancel_chat(SecretChatId secret_chat_id, bool delete_history, Promise<> promise);
   void send_message(SecretChatId secret_chat_id, tl_object_ptr<secret_api::decryptedMessage> message,
                     tl_object_ptr<telegram_api::InputEncryptedFile> file, Promise<> promise);
   void send_message_action(SecretChatId secret_chat_id, tl_object_ptr<secret_api::SendMessageAction> action);
