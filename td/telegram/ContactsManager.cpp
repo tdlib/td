@@ -9259,6 +9259,13 @@ void ContactsManager::on_load_chat_full_from_database(ChatId chat_id, string val
 
   Chat *c = get_chat(chat_id);
   CHECK(c != nullptr);
+
+  // ignore ChatFull without invite link
+  if (c->is_active && c->status.is_administrator() && !chat_full->invite_link.is_valid()) {
+    chats_full_.erase(chat_id);
+    return;
+  }
+
   if (td_->file_manager_->get_file_view(c->photo.small_file_id).get_unique_file_id() !=
       td_->file_manager_->get_file_view(as_fake_dialog_photo(chat_full->photo).small_file_id).get_unique_file_id()) {
     chat_full->photo = Photo();
@@ -9347,6 +9354,13 @@ void ContactsManager::on_load_channel_full_from_database(ChannelId channel_id, s
 
   Channel *c = get_channel(channel_id);
   CHECK(c != nullptr);
+
+  // ignore ChannelFull without invite link
+  if (c->status.is_administrator() && c->status.can_invite_users() && !channel_full->invite_link.is_valid()) {
+    channels_full_.erase(channel_id);
+    return;
+  }
+
   if (td_->file_manager_->get_file_view(c->photo.small_file_id).get_unique_file_id() !=
       td_->file_manager_->get_file_view(as_fake_dialog_photo(channel_full->photo).small_file_id).get_unique_file_id()) {
     channel_full->photo = Photo();
@@ -13447,7 +13461,7 @@ bool ContactsManager::is_chat_full_outdated(const ChatFull *chat_full, const Cha
     }
   }
 
-  if (c->status.is_creator() && !chat_full->invite_link.is_valid()) {
+  if (c->is_active && c->status.is_administrator() && !chat_full->invite_link.is_valid()) {
     LOG(INFO) << "Have outdated invite link in " << chat_id;
     return true;
   }
