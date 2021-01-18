@@ -2719,6 +2719,11 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getChatInviteLinkMembers>(
           as_chat_id(chat_id), invite_link,
           td_api::make_object<td_api::chatInviteLinkMember>(as_user_id(offset_user_id), offset_date), as_limit(limit)));
+    } else if (op == "drcil") {
+      string chat_id;
+      string invite_link;
+      get_args(args, chat_id, invite_link);
+      send_request(td_api::make_object<td_api::deleteRevokedChatInviteLink>(as_chat_id(chat_id), invite_link));
     } else if (op == "ccil") {
       send_request(td_api::make_object<td_api::checkChatInviteLink>(args));
     } else if (op == "jcbil") {

@@ -4389,6 +4389,9 @@ getChatInviteLinks chat_id:int53 administrator_user_id:int32 is_revoked:Bool off
 //@offset_member A chat member from which to return next chat members; use null to get results from the beginning @limit Maximum number of chat members to return
 getChatInviteLinkMembers chat_id:int53 invite_link:string offset_member:chatInviteLinkMember limit:int32 = ChatInviteLinkMembers;
 
+//@description Deletes revoked chat invite links. Requires administrator privileges and can_invite_users right @chat_id Chat identifier @invite_link Invite link to revoke
+deleteRevokedChatInviteLink chat_id:int53 invite_link:string = Ok;
+
 //@description Checks the validity of an invite link for a chat and returns information about the corresponding chat @invite_link Invite link to be checked; must begin with "https://t.me/joinchat/", "https://telegram.me/joinchat/", or "https://telegram.dog/joinchat/"
 checkChatInviteLink invite_link:string = ChatInviteLinkInfo;
 

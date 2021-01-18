@@ -6304,6 +6304,13 @@ void Td::on_request(uint64 id, td_api::getChatInviteLinkMembers &request) {
                                                   std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::deleteRevokedChatInviteLink &request) {
+  CREATE_OK_REQUEST_PROMISE();
+  CLEAN_INPUT_STRING(request.invite_link_);
+  contacts_manager_->delete_revoked_dialog_invite_link(DialogId(request.chat_id_), request.invite_link_,
+                                                       std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::checkChatInviteLink &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.invite_link_);
