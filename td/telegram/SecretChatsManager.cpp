@@ -109,7 +109,7 @@ void SecretChatsManager::create_chat(int32 user_id, int64 user_access_hash, Prom
 void SecretChatsManager::cancel_chat(SecretChatId secret_chat_id, bool delete_history, Promise<> promise) {
   auto actor = get_chat_actor(secret_chat_id.get());
   auto safe_promise = SafePromise<>(std::move(promise), Unit());
-  send_closure(actor, &SecretChatActor::cancel_chat, delete_history, std::move(safe_promise));
+  send_closure(actor, &SecretChatActor::cancel_chat, delete_history, false, std::move(safe_promise));
 }
 
 void SecretChatsManager::send_message(SecretChatId secret_chat_id, tl_object_ptr<secret_api::decryptedMessage> message,

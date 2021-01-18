@@ -411,12 +411,14 @@ class CloseSecretChat : public SecretChatLogEventBase<CloseSecretChat> {
   static constexpr Type type = SecretChatEvent::Type::CloseSecretChat;
   int32 chat_id = 0;
   bool delete_history = false;
+  bool is_already_discarded = false;
 
   template <class StorerT>
   void store(StorerT &storer) const {
     using td::store;
     BEGIN_STORE_FLAGS();
     STORE_FLAG(delete_history);
+    STORE_FLAG(is_already_discarded);
     END_STORE_FLAGS();
     store(chat_id, storer);
   }
@@ -427,6 +429,7 @@ class CloseSecretChat : public SecretChatLogEventBase<CloseSecretChat> {
     if (parser.version() >= 3) {
       BEGIN_PARSE_FLAGS();
       PARSE_FLAG(delete_history);
+      PARSE_FLAG(is_already_discarded);
       END_PARSE_FLAGS();
     }
     parse(chat_id, parser);
@@ -434,7 +437,7 @@ class CloseSecretChat : public SecretChatLogEventBase<CloseSecretChat> {
 
   StringBuilder &print(StringBuilder &sb) const override {
     return sb << "[Logevent CloseSecretChat " << tag("id", log_event_id()) << tag("chat_id", chat_id)
-              << tag("delete_history", delete_history) << "]";
+              << tag("delete_history", delete_history) << tag("is_already_discarded", is_already_discarded) << "]";
   }
 };
 

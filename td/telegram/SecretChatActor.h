@@ -116,7 +116,7 @@ class SecretChatActor : public NetQueryCallback {
   void update_chat(telegram_api::object_ptr<telegram_api::EncryptedChat> chat);
   void create_chat(int32 user_id, int64 user_access_hash, int32 random_id, Promise<SecretChatId> promise);
 
-  void cancel_chat(bool delete_history, Promise<> promise);
+  void cancel_chat(bool delete_history, bool is_already_discarded, Promise<> promise);
 
   // Inbound messages
   // Logevent is created by SecretChatsManager, because it must contain qts
@@ -462,7 +462,7 @@ class SecretChatActor : public NetQueryCallback {
 
   bool binlog_replay_finish_flag_ = false;
   bool close_flag_ = false;
-  LogEvent::Id close_log_event_id_ = 0;
+  Promise<Unit> discard_encryption_promise_;
 
   LogEvent::Id create_log_event_id_ = 0;
 
@@ -638,8 +638,8 @@ class SecretChatActor : public NetQueryCallback {
 
   // DiscardEncryption
   void on_fatal_error(Status status);
-  void do_close_chat_impl(bool delete_history, uint64 log_event_id);
-  void on_discard_encryption_result(NetQueryPtr result);
+  void do_close_chat_impl(bool delete_history, bool is_already_discarded, uint64 log_event_id, Promise<Unit> &&promise);
+  void on_closed(uint64 log_event_id, Promise<Unit> &&promise);
 
   // Other
   template <class T>

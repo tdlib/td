@@ -115,7 +115,7 @@ void SecretChatActor::on_result_resendable(NetQueryPtr net_query, Promise<NetQue
   auto key = UniqueId::extract_key(net_query->id());
   if (close_flag_) {
     if (key == static_cast<uint8>(QueryType::DiscardEncryption)) {
-      on_discard_encryption_result(std::move(net_query));
+      discard_encryption_promise_.set_value(Unit());
     }
     return;
   }
@@ -140,7 +140,7 @@ void SecretChatActor::on_result_resendable(NetQueryPtr net_query, Promise<NetQue
 }
 
 void SecretChatActor::replay_close_chat(unique_ptr<log_event::CloseSecretChat> event) {
-  do_close_chat_impl(event->delete_history, event->log_event_id());
+  do_close_chat_impl(event->delete_history, event->is_already_discarded, event->log_event_id(), Promise<Unit>());
 }
 
 void SecretChatActor::replay_create_chat(unique_ptr<log_event::CreateSecretChat> event) {
@@ -709,10 +709,10 @@ void SecretChatActor::check_status(Status status) {
 
 void SecretChatActor::on_fatal_error(Status status) {
   LOG(ERROR) << "Fatal error: " << status;
-  cancel_chat(false, Promise<>());
+  cancel_chat(false, false, Promise<>());
 }
 
-void SecretChatActor::cancel_chat(bool delete_history, Promise<> promise) {
+void SecretChatActor::cancel_chat(bool delete_history, bool is_already_discarded, Promise<> promise) {
   if (close_flag_) {
     promise.set_value(Unit());
     return;
@@ -737,11 +737,11 @@ void SecretChatActor::cancel_chat(bool delete_history, Promise<> promise) {
   event->chat_id = auth_state_.id;
   auto log_event_id = binlog_add(context_->binlog(), LogEvent::HandlerType::SecretChats, create_storer(*event));
 
-  auto on_sync = PromiseCreator::lambda([actor_id = actor_id(this), delete_history, log_event_id,
+  auto on_sync = PromiseCreator::lambda([actor_id = actor_id(this), delete_history, is_already_discarded, log_event_id,
                                          promise = std::move(promise)](Result<Unit> result) mutable {
     if (result.is_ok()) {
-      send_closure(actor_id, &SecretChatActor::do_close_chat_impl, delete_history, log_event_id);
-      promise.set_value(Unit());
+      send_closure(actor_id, &SecretChatActor::do_close_chat_impl, delete_history, is_already_discarded, log_event_id,
+                   std::move(promise));
     } else {
       promise.set_error(result.error().clone());
       send_closure(actor_id, &SecretChatActor::on_promise_error, result.move_as_error(), "cancel_chat");
@@ -752,25 +752,56 @@ void SecretChatActor::cancel_chat(bool delete_history, Promise<> promise) {
   yield();
 }
 
-void SecretChatActor::do_close_chat_impl(bool delete_history, uint64 log_event_id) {
+void SecretChatActor::do_close_chat_impl(bool delete_history, bool is_already_discarded, uint64 log_event_id,
+                                         Promise<Unit> &&promise) {
   close_flag_ = true;
-  close_log_event_id_ = log_event_id;
-  LOG(INFO) << "Send messages.discardEncryption";
   auth_state_.state = State::Closed;
   context_->secret_chat_db()->set_value(auth_state_);
   context_->secret_chat_db()->erase_value(config_state_);
   context_->secret_chat_db()->erase_value(pfs_state_);
   context_->secret_chat_db()->erase_value(seq_no_state_);
-  int32 flags = 0;
+
+  MultiPromiseActorSafe mpas{"DeleteMessagesFromServerMultiPromiseActor"};
+  mpas.add_promise(
+      PromiseCreator::lambda([actor_id = actor_id(this), log_event_id, promise = std::move(promise)](Unit) mutable {
+        send_closure(actor_id, &SecretChatActor::on_closed, log_event_id, std::move(promise));
+      }));
+
+  auto lock = mpas.get_promise();
+
   if (delete_history) {
-    flags |= telegram_api::messages_discardEncryption::DELETE_HISTORY_MASK;
+    context_->on_flush_history(MessageId::max(), mpas.get_promise());
   }
-  auto query = create_net_query(QueryType::DiscardEncryption,
-                                telegram_api::messages_discardEncryption(flags, false /*ignored*/, auth_state_.id));
 
   send_update_secret_chat();
 
-  context_->send_net_query(std::move(query), actor_shared(this), true);
+  if (!is_already_discarded) {
+    int32 flags = 0;
+    if (delete_history) {
+      flags |= telegram_api::messages_discardEncryption::DELETE_HISTORY_MASK;
+    }
+    auto query = create_net_query(QueryType::DiscardEncryption,
+                                  telegram_api::messages_discardEncryption(flags, false /*ignored*/, auth_state_.id));
+    query->total_timeout_limit_ = 60 * 60 * 24 * 365;
+    context_->send_net_query(std::move(query), actor_shared(this), true);
+    discard_encryption_promise_ = mpas.get_promise();
+  }
+
+  lock.set_value(Unit());
+}
+
+void SecretChatActor::on_closed(uint64 log_event_id, Promise<Unit> &&promise) {
+  CHECK(close_flag_);
+  if (context_->close_flag()) {
+    return;
+  }
+
+  LOG(INFO) << "Finish closing";
+  context_->secret_chat_db()->erase_value(auth_state_);
+  binlog_erase(context_->binlog(), log_event_id);
+  promise.set_value(Unit());
+  // skip flush
+  stop();
 }
 
 void SecretChatActor::do_create_chat_impl(unique_ptr<log_event::CreateSecretChat> event) {
@@ -792,18 +823,6 @@ void SecretChatActor::do_create_chat_impl(unique_ptr<log_event::CreateSecretChat
     binlog_erase(context_->binlog(), create_log_event_id_);
     create_log_event_id_ = 0;
   }
-}
-void SecretChatActor::on_discard_encryption_result(NetQueryPtr result) {
-  CHECK(close_flag_);
-  CHECK(close_log_event_id_ != 0);
-  if (context_->close_flag()) {
-    return;
-  }
-  LOG(INFO) << "Got result for messages.discardEncryption";
-  context_->secret_chat_db()->erase_value(auth_state_);
-  binlog_erase(context_->binlog(), close_log_event_id_);
-  // skip flush
-  stop();
 }
 
 telegram_api::object_ptr<telegram_api::inputUser> SecretChatActor::get_input_user() {
@@ -1904,7 +1923,8 @@ Status SecretChatActor::on_update_chat(telegram_api::encryptedChat &update) {
   return Status::OK();
 }
 Status SecretChatActor::on_update_chat(telegram_api::encryptedChatDiscarded &update) {
-  return Status::Error("Chat discarded");
+  cancel_chat(update.history_deleted_, true, Promise<Unit>());
+  return Status::OK();
 }
 
 Status SecretChatActor::on_update_chat(NetQueryPtr query) {
