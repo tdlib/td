@@ -2152,7 +2152,6 @@ class GetMessagePublicForwardsQuery : public Td::ResultHandler {
     }
 
     auto info = td->messages_manager_->on_get_messages(result_ptr.move_as_ok(), "GetMessagePublicForwardsQuery");
-    LOG_IF(ERROR, !info.is_channel_messages) << "Receive ordinary messages in GetMessagePublicForwardsQuery";
     td->messages_manager_->on_get_message_public_forwards_result(random_id_, info.total_count,
                                                                  std::move(info.messages));
 
