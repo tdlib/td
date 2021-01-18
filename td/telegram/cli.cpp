@@ -2701,14 +2701,14 @@ class CliClient final : public Actor {
       get_args(args, chat_id, invite_link, expire_date, member_limit, is_revoked);
       send_request(td_api::make_object<td_api::editChatInviteLink>(as_chat_id(chat_id), invite_link, expire_date,
                                                                    member_limit, is_revoked));
-    } else if (op == "gcil") {
+    } else if (op == "gcil" || op == "gcilr") {
       string chat_id;
       string administrator_user_id;
       string offset_invite_link;
       string limit;
       get_args(args, chat_id, administrator_user_id, offset_invite_link, limit);
       send_request(td_api::make_object<td_api::getChatInviteLinks>(
-          as_chat_id(chat_id), as_user_id(administrator_user_id), offset_invite_link, as_limit(limit)));
+          as_chat_id(chat_id), as_user_id(administrator_user_id), op == "gcilr", offset_invite_link, as_limit(limit)));
     } else if (op == "gcilm") {
       string chat_id;
       string invite_link;
