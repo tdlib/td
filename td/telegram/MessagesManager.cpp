@@ -2303,6 +2303,59 @@ class DeleteChannelHistoryQuery : public Td::ResultHandler {
   }
 };
 
+class DeletePhoneCallHistoryQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  bool revoke_;
+
+  void send_request() {
+    int32 flags = 0;
+    if (revoke_) {
+      flags |= telegram_api::messages_deletePhoneCallHistory::REVOKE_MASK;
+    }
+    send_query(
+        G()->net_query_creator().create(telegram_api::messages_deletePhoneCallHistory(flags, false /*ignored*/)));
+  }
+
+ public:
+  explicit DeletePhoneCallHistoryQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(bool revoke) {
+    revoke_ = revoke;
+
+    send_request();
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::messages_deletePhoneCallHistory>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto affected_history = result_ptr.move_as_ok();
+    CHECK(affected_history->get_id() == telegram_api::messages_affectedHistory::ID);
+
+    if (affected_history->pts_count_ > 0) {
+      affected_history->pts_count_ = 0;  // force receiving real updates from the server
+      auto promise = affected_history->offset_ > 0 ? Promise<Unit>() : std::move(promise_);
+      td->updates_manager_->add_pending_pts_update(make_tl_object<dummyUpdate>(), affected_history->pts_,
+                                                   affected_history->pts_count_, std::move(promise),
+                                                   "delete phone call history query");
+    } else if (affected_history->offset_ <= 0) {
+      promise_.set_value(Unit());
+    }
+
+    if (affected_history->offset_ > 0) {
+      send_request();
+      return;
+    }
+  }
+
+  void on_error(uint64 id, Status status) override {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class BlockFromRepliesQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -10073,6 +10126,46 @@ void MessagesManager::delete_dialog_history_from_server(DialogId dialog_id, Mess
       UNREACHABLE();
       break;
   }
+}
+
+void MessagesManager::delete_all_call_messages(bool revoke, Promise<Unit> &&promise) {
+  delete_all_call_messages_from_server(revoke, 0, std::move(promise));
+}
+
+class MessagesManager::DeleteAllCallMessagesFromServerLogEvent {
+ public:
+  bool revoke_;
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    BEGIN_STORE_FLAGS();
+    STORE_FLAG(revoke_);
+    END_STORE_FLAGS();
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    BEGIN_PARSE_FLAGS();
+    PARSE_FLAG(revoke_);
+    END_PARSE_FLAGS();
+  }
+};
+
+uint64 MessagesManager::save_delete_all_call_messages_from_server_log_event(bool revoke) {
+  DeleteAllCallMessagesFromServerLogEvent log_event{revoke};
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::DeleteAllCallMessagesFromServer,
+                    get_log_event_storer(log_event));
+}
+
+void MessagesManager::delete_all_call_messages_from_server(bool revoke, uint64 log_event_id, Promise<Unit> &&promise) {
+  if (log_event_id == 0) {
+    log_event_id = save_delete_all_call_messages_from_server_log_event(revoke);
+  }
+
+  auto new_promise = get_erase_log_event_promise(log_event_id, std::move(promise));
+  promise = std::move(new_promise);  // to prevent self-move
+
+  td_->create_handler<DeletePhoneCallHistoryQuery>(std::move(promise))->send(revoke);
 }
 
 void MessagesManager::find_messages(const Message *m, vector<MessageId> &message_ids,
@@ -35566,6 +35659,13 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
 
         delete_dialog_history_from_server(dialog_id, log_event.max_message_id_, log_event.remove_from_dialog_list_,
                                           log_event.revoke_, true, event.id_, Auto());
+        break;
+      }
+      case LogEvent::HandlerType::DeleteAllCallMessagesFromServer: {
+        DeleteAllCallMessagesFromServerLogEvent log_event;
+        log_event_parse(log_event, event.data_).ensure();
+
+        delete_all_call_messages_from_server(log_event.revoke_, event.id_, Auto());
         break;
       }
       case LogEvent::HandlerType::BlockMessageSenderFromRepliesOnServer: {

@@ -100,6 +100,7 @@ class LogEvent {
     ReadMessageThreadHistoryOnServer = 0x119,
     BlockMessageSenderFromRepliesOnServer = 0x120,
     UnpinAllDialogMessagesOnServer = 0x121,
+    DeleteAllCallMessagesFromServer = 0x122,
     GetChannelDifference = 0x140,
     AddMessagePushNotification = 0x200,
     EditMessagePushNotification = 0x201,

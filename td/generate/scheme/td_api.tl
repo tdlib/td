@@ -3859,6 +3859,9 @@ searchSecretMessages chat_id:int53 query:string offset:string limit:int32 filter
 //@limit The maximum number of messages to be returned; up to 100. Fewer messages may be returned than specified by the limit, even if the end of the message history has not been reached @only_missed If true, returns only messages with missed calls
 searchCallMessages from_message_id:int53 limit:int32 only_missed:Bool = Messages;
 
+//@description Deletes all call messages @revoke Pass true to delete the messages for all users
+deleteAllCallMessages revoke:Bool = Ok;
+
 //@description Returns information about the recent locations of chat members that were sent to the chat. Returns up to 1 location message per user @chat_id Chat identifier @limit The maximum number of messages to be returned
 searchChatRecentLocationMessages chat_id:int53 limit:int32 = Messages;
 

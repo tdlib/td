@@ -588,6 +588,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, td_api::searchCallMessages &request);
 
+  void on_request(uint64 id, const td_api::deleteAllCallMessages &request);
+
   void on_request(uint64 id, const td_api::searchChatRecentLocationMessages &request);
 
   void on_request(uint64 id, const td_api::getActiveLiveLocationMessages &request);

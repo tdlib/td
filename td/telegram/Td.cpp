@@ -5511,6 +5511,12 @@ void Td::on_request(uint64 id, td_api::searchCallMessages &request) {
   CREATE_REQUEST(SearchCallMessagesRequest, request.from_message_id_, request.limit_, request.only_missed_);
 }
 
+void Td::on_request(uint64 id, const td_api::deleteAllCallMessages &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->delete_all_call_messages(request.revoke_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::searchChatRecentLocationMessages &request) {
   CHECK_IS_USER();
   CREATE_REQUEST(SearchChatRecentLocationMessagesRequest, request.chat_id_, request.limit_);

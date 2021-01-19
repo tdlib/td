@@ -338,6 +338,8 @@ class MessagesManager : public Actor {
 
   void delete_dialog_history(DialogId dialog_id, bool remove_from_dialog_list, bool revoke, Promise<Unit> &&promise);
 
+  void delete_all_call_messages(bool revoke, Promise<Unit> &&promise);
+
   void delete_dialog_messages_from_user(DialogId dialog_id, UserId user_id, Promise<Unit> &&promise);
 
   void delete_dialog(DialogId dialog_id);
@@ -1591,6 +1593,7 @@ class MessagesManager : public Actor {
   class ChangeDialogReportSpamStateOnServerLogEvent;
   class DeleteAllChannelMessagesFromUserOnServerLogEvent;
   class DeleteDialogHistoryFromServerLogEvent;
+  class DeleteAllCallMessagesFromServerLogEvent;
   class DeleteMessageLogEvent;
   class DeleteMessagesFromServerLogEvent;
   class DeleteScheduledMessagesFromServerLogEvent;
@@ -1887,6 +1890,8 @@ class MessagesManager : public Actor {
 
   void delete_dialog_history_from_server(DialogId dialog_id, MessageId max_message_id, bool remove_from_dialog_list,
                                          bool revoke, bool allow_error, uint64 log_event_id, Promise<Unit> &&promise);
+
+  void delete_all_call_messages_from_server(bool revoke, uint64 log_event_id, Promise<Unit> &&promise);
 
   void block_message_sender_from_replies_on_server(MessageId message_id, bool delete_message, bool delete_all_messages,
                                                    bool report_spam, uint64 log_event_id, Promise<Unit> &&promise);
@@ -2883,6 +2888,8 @@ class MessagesManager : public Actor {
 
   uint64 save_delete_dialog_history_from_server_log_event(DialogId dialog_id, MessageId max_message_id,
                                                           bool remove_from_dialog_list, bool revoke);
+
+  uint64 save_delete_all_call_messages_from_server_log_event(bool revoke);
 
   uint64 save_block_message_sender_from_replies_on_server_log_event(MessageId message_id, bool delete_message,
                                                                     bool delete_all_messages, bool report_spam);

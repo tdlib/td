@@ -2013,6 +2013,9 @@ class CliClient final : public Actor {
       get_args(args, limit, offset_message_id, only_missed);
       send_request(td_api::make_object<td_api::searchCallMessages>(as_message_id(offset_message_id), as_limit(limit),
                                                                    only_missed));
+    } else if (op == "DeleteAllCallMessages") {
+      bool revoke = as_bool(args);
+      send_request(td_api::make_object<td_api::deleteAllCallMessages>(revoke));
     } else if (op == "SCRLM") {
       string chat_id;
       string limit;
