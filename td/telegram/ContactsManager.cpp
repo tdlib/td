@@ -1441,6 +1441,34 @@ class ReportChannelSpamQuery : public Td::ResultHandler {
   }
 };
 
+class DeleteChatQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit DeleteChatQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(ChatId chat_id) {
+    send_query(G()->net_query_creator().create(telegram_api::messages_deleteChat(chat_id.get())));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::messages_deleteChat>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    LOG(INFO) << "Receive result for DeleteChatQuery: " << result_ptr.ok();
+    td->updates_manager_->get_difference("DeleteChatQuery");
+    td->updates_manager_->on_get_updates(make_tl_object<telegram_api::updates>(Auto(), Auto(), Auto(), 0, 0),
+                                         std::move(promise_));
+  }
+
+  void on_error(uint64 id, Status status) override {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class DeleteChannelQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
@@ -6669,13 +6697,28 @@ void ContactsManager::report_channel_spam(ChannelId channel_id, UserId user_id, 
   td_->create_handler<ReportChannelSpamQuery>(std::move(promise))->send(channel_id, user_id, server_message_ids);
 }
 
+void ContactsManager::delete_chat(ChatId chat_id, Promise<Unit> &&promise) {
+  auto c = get_chat(chat_id);
+  if (c == nullptr) {
+    return promise.set_error(Status::Error(400, "Chat info not found"));
+  }
+  if (!get_chat_status(c).is_creator()) {
+    return promise.set_error(Status::Error(400, "Not enough rights to delete the chat"));
+  }
+  if (!c->is_active) {
+    return promise.set_error(Status::Error(400, "Chat is already deactivated"));
+  }
+
+  td_->create_handler<DeleteChatQuery>(std::move(promise))->send(chat_id);
+}
+
 void ContactsManager::delete_channel(ChannelId channel_id, Promise<Unit> &&promise) {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
-    return promise.set_error(Status::Error(6, "Supergroup not found"));
+    return promise.set_error(Status::Error(400, "Chat info not found"));
   }
   if (!get_channel_status(c).is_creator()) {
-    return promise.set_error(Status::Error(6, "Not enough rights to delete the supergroup"));
+    return promise.set_error(Status::Error(400, "Not enough rights to delete the chat"));
   }
 
   td_->create_handler<DeleteChannelQuery>(std::move(promise))->send(channel_id);

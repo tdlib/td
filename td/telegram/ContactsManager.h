@@ -379,6 +379,8 @@ class ContactsManager : public Actor {
 
   void add_channel_participants(ChannelId channel_id, const vector<UserId> &user_ids, Promise<Unit> &&promise);
 
+  void delete_chat(ChatId chat_id, Promise<Unit> &&promise);
+
   void change_chat_participant_status(ChatId chat_id, UserId user_id, DialogParticipantStatus status,
                                       Promise<Unit> &&promise);
 
