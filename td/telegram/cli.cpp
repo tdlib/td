@@ -3417,8 +3417,8 @@ class CliClient final : public Actor {
           td_api::make_object<td_api::chatLocation>(as_location("40.0", "60.0"), "address")));
     } else if (op == "UpgradeBasicGroupChatToSupergroupChat") {
       send_request(td_api::make_object<td_api::upgradeBasicGroupChatToSupergroupChat>(as_chat_id(args)));
-    } else if (op == "DeleteSupergroup") {
-      send_request(td_api::make_object<td_api::deleteSupergroup>(as_supergroup_id(args)));
+    } else if (op == "DeleteChat") {
+      send_request(td_api::make_object<td_api::deleteChat>(as_chat_id(args)));
     } else if (op == "gcpc") {
       send_request(td_api::make_object<td_api::getCreatedPublicChats>());
     } else if (op == "gcpcl") {

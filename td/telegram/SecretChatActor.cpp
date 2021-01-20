@@ -770,7 +770,7 @@ void SecretChatActor::do_close_chat_impl(bool delete_history, bool is_already_di
   auto lock = mpas.get_promise();
 
   if (delete_history) {
-    context_->on_flush_history(MessageId::max(), mpas.get_promise());
+    context_->on_flush_history(true, MessageId::max(), mpas.get_promise());
   }
 
   send_update_secret_chat();
@@ -1349,7 +1349,8 @@ Status SecretChatActor::do_inbound_message_decrypted(unique_ptr<log_event::Inbou
             std::move(save_message_finish));
         break;
       case secret_api::decryptedMessageActionFlushHistory::ID:
-        context_->on_flush_history(MessageId(ServerMessageId(message->message_id)), std::move(save_message_finish));
+        context_->on_flush_history(false, MessageId(ServerMessageId(message->message_id)),
+                                   std::move(save_message_finish));
         break;
       case secret_api::decryptedMessageActionReadMessages::ID: {
         const auto &random_ids =

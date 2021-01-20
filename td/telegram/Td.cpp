@@ -5472,6 +5472,22 @@ void Td::on_request(uint64 id, const td_api::deleteChatHistory &request) {
                                            std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::deleteChat &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  DialogId dialog_id(request.chat_id_);
+  auto query_promise = [actor_id = messages_manager_actor_.get(), dialog_id,
+                        promise = std::move(promise)](Result<Unit> &&result) mutable {
+    if (result.is_error()) {
+      promise.set_error(result.move_as_error());
+    } else {
+      send_closure(actor_id, &MessagesManager::delete_dialog, dialog_id);
+      promise.set_value(Unit());
+    }
+  };
+  contacts_manager_->delete_dialog(dialog_id, std::move(query_promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getMessageThreadHistory &request) {
   CHECK_IS_USER();
   CREATE_REQUEST(GetMessageThreadHistoryRequest, request.chat_id_, request.message_id_, request.from_message_id_,
@@ -6697,12 +6713,6 @@ void Td::on_request(uint64 id, td_api::getSupergroupMembers &request) {
       });
   contacts_manager_->get_channel_participants(ChannelId(request.supergroup_id_), std::move(request.filter_), string(),
                                               request.offset_, request.limit_, -1, false, std::move(query_promise));
-}
-
-void Td::on_request(uint64 id, const td_api::deleteSupergroup &request) {
-  CHECK_IS_USER();
-  CREATE_OK_REQUEST_PROMISE();
-  contacts_manager_->delete_channel(ChannelId(request.supergroup_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::closeSecretChat &request) {

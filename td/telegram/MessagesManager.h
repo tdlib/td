@@ -234,7 +234,8 @@ class MessagesManager : public Actor {
 
   void delete_secret_messages(SecretChatId secret_chat_id, std::vector<int64> random_ids, Promise<> promise);
 
-  void delete_secret_chat_history(SecretChatId secret_chat_id, MessageId last_message_id, Promise<> promise);
+  void delete_secret_chat_history(SecretChatId secret_chat_id, bool remove_from_dialog_list, MessageId last_message_id,
+                                  Promise<> promise);
 
   void read_secret_chat_outbox(SecretChatId secret_chat_id, int32 up_to_date, int32 read_date);
 
@@ -1574,6 +1575,7 @@ class MessagesManager : public Actor {
     DialogId dialog_id;
     vector<int64> random_ids;
     MessageId last_message_id;
+    bool remove_from_dialog_list = false;
 
     Promise<> success_promise;
   };
@@ -1709,7 +1711,8 @@ class MessagesManager : public Actor {
 
   void finish_delete_secret_messages(DialogId dialog_id, std::vector<int64> random_ids, Promise<> promise);
 
-  void finish_delete_secret_chat_history(DialogId dialog_id, MessageId last_message_id, Promise<> promise);
+  void finish_delete_secret_chat_history(DialogId dialog_id, bool remove_from_dialog_list, MessageId last_message_id,
+                                         Promise<> promise);
 
   MessageInfo parse_telegram_api_message(tl_object_ptr<telegram_api::Message> message_ptr, bool is_scheduled,
                                          const char *source) const;

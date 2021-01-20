@@ -545,7 +545,7 @@ class FakeSecretChatContext : public SecretChatActor::Context {
   void on_send_message_ok(int64 random_id, MessageId message_id, int32 date,
                           tl_object_ptr<telegram_api::EncryptedFile> file, Promise<>) override;
   void on_delete_messages(std::vector<int64> random_id, Promise<>) override;
-  void on_flush_history(MessageId, Promise<>) override;
+  void on_flush_history(bool, MessageId, Promise<>) override;
   void on_read_message(int64, Promise<>) override;
 
   void on_screenshot_taken(UserId user_id, MessageId message_id, int32 date, int64 random_id,
@@ -992,7 +992,7 @@ void FakeSecretChatContext::on_send_message_ok(int64 random_id, MessageId messag
 void FakeSecretChatContext::on_delete_messages(std::vector<int64> random_id, Promise<> promise) {
   promise.set_value(Unit());
 }
-void FakeSecretChatContext::on_flush_history(MessageId, Promise<> promise) {
+void FakeSecretChatContext::on_flush_history(bool, MessageId, Promise<> promise) {
   promise.set_error(Status::Error("Unsupported"));
 }
 void FakeSecretChatContext::on_read_message(int64, Promise<> promise) {

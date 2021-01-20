@@ -359,7 +359,7 @@ class ContactsManager : public Actor {
   void report_channel_spam(ChannelId channel_id, UserId user_id, const vector<MessageId> &message_ids,
                            Promise<Unit> &&promise);
 
-  void delete_channel(ChannelId channel_id, Promise<Unit> &&promise);
+  void delete_dialog(DialogId dialog_id, Promise<Unit> &&promise);
 
   void get_channel_statistics(DialogId dialog_id, bool is_dark,
                               Promise<td_api::object_ptr<td_api::ChatStatistics>> &&promise);
@@ -378,8 +378,6 @@ class ContactsManager : public Actor {
                                DialogParticipantStatus old_status = DialogParticipantStatus::Left());
 
   void add_channel_participants(ChannelId channel_id, const vector<UserId> &user_ids, Promise<Unit> &&promise);
-
-  void delete_chat(ChatId chat_id, Promise<Unit> &&promise);
 
   void change_chat_participant_status(ChatId chat_id, UserId user_id, DialogParticipantStatus status,
                                       Promise<Unit> &&promise);
@@ -1131,6 +1129,10 @@ class ContactsManager : public Actor {
   void transfer_channel_ownership(ChannelId channel_id, UserId user_id,
                                   tl_object_ptr<telegram_api::InputCheckPasswordSRP> input_check_password,
                                   Promise<Unit> &&promise);
+
+  void delete_chat(ChatId chat_id, Promise<Unit> &&promise);
+
+  void delete_channel(ChannelId channel_id, Promise<Unit> &&promise);
 
   void get_channel_statistics_dc_id(DialogId dialog_id, bool for_full_statistics, Promise<DcId> &&promise);
 

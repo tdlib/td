@@ -96,7 +96,7 @@ class SecretChatActor : public NetQueryCallback {
                                     tl_object_ptr<telegram_api::encryptedFile> file,
                                     tl_object_ptr<secret_api::decryptedMessage> message, Promise<> promise) = 0;
     virtual void on_delete_messages(std::vector<int64> random_id, Promise<> promise) = 0;
-    virtual void on_flush_history(MessageId message_id, Promise<> promise) = 0;
+    virtual void on_flush_history(bool remove_from_dialog_list, MessageId message_id, Promise<> promise) = 0;
     virtual void on_read_message(int64 random_id, Promise<> promise) = 0;
     virtual void on_screenshot_taken(UserId user_id, MessageId message_id, int32 date, int64 random_id,
                                      Promise<> promise) = 0;

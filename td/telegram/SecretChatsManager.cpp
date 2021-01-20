@@ -373,9 +373,9 @@ unique_ptr<SecretChatActor::Context> SecretChatsManager::make_secret_chat_contex
       send_closure(G()->messages_manager(), &MessagesManager::delete_secret_messages, secret_chat_id_,
                    std::move(random_ids), std::move(promise));
     }
-    void on_flush_history(MessageId message_id, Promise<> promise) override {
-      send_closure(G()->messages_manager(), &MessagesManager::delete_secret_chat_history, secret_chat_id_, message_id,
-                   std::move(promise));
+    void on_flush_history(bool remove_from_dialog_list, MessageId message_id, Promise<> promise) override {
+      send_closure(G()->messages_manager(), &MessagesManager::delete_secret_chat_history, secret_chat_id_,
+                   remove_from_dialog_list, message_id, std::move(promise));
     }
     void on_read_message(int64 random_id, Promise<> promise) override {
       send_closure(G()->messages_manager(), &MessagesManager::open_secret_message, secret_chat_id_, random_id,

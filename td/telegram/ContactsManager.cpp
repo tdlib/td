@@ -34,6 +34,7 @@
 #include "td/telegram/Photo.hpp"
 #include "td/telegram/RestrictionReason.h"
 #include "td/telegram/SecretChatActor.h"
+#include "td/telegram/SecretChatsManager.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/StickerSetId.hpp"
 #include "td/telegram/StickersManager.h"
@@ -6722,6 +6723,27 @@ void ContactsManager::delete_channel(ChannelId channel_id, Promise<Unit> &&promi
   }
 
   td_->create_handler<DeleteChannelQuery>(std::move(promise))->send(channel_id);
+}
+
+void ContactsManager::delete_dialog(DialogId dialog_id, Promise<Unit> &&promise) {
+  if (!td_->messages_manager_->have_dialog_force(dialog_id)) {
+    return promise.set_error(Status::Error(3, "Chat not found"));
+  }
+
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      return td_->messages_manager_->delete_dialog_history(dialog_id, true, true, std::move(promise));
+    case DialogType::Chat:
+      return delete_chat(dialog_id.get_chat_id(), std::move(promise));
+    case DialogType::Channel:
+      return delete_channel(dialog_id.get_channel_id(), std::move(promise));
+    case DialogType::SecretChat:
+      send_closure(td_->secret_chats_manager_, &SecretChatsManager::cancel_chat, dialog_id.get_secret_chat_id(), true,
+                   std::move(promise));
+      return;
+    default:
+      UNREACHABLE();
+  }
 }
 
 void ContactsManager::add_chat_participant(ChatId chat_id, UserId user_id, int32 forward_limit,
