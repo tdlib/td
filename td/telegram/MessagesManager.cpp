@@ -30234,7 +30234,6 @@ void MessagesManager::unpin_all_dialog_messages_on_server(DialogId dialog_id, ui
 
 void MessagesManager::add_dialog_participant(DialogId dialog_id, UserId user_id, int32 forward_limit,
                                              Promise<Unit> &&promise) {
-  LOG(INFO) << "Receive AddChatParticipant request to add " << user_id << " to " << dialog_id;
   if (!have_dialog_force(dialog_id)) {
     return promise.set_error(Status::Error(3, "Chat not found"));
   }
@@ -30257,7 +30256,6 @@ void MessagesManager::add_dialog_participant(DialogId dialog_id, UserId user_id,
 
 void MessagesManager::add_dialog_participants(DialogId dialog_id, const vector<UserId> &user_ids,
                                               Promise<Unit> &&promise) {
-  LOG(INFO) << "Receive AddChatParticipants request to add " << format::as_array(user_ids) << " to " << dialog_id;
   if (td_->auth_manager_->is_bot()) {
     return promise.set_error(Status::Error(3, "Method is not available for bots"));
   }
@@ -30285,7 +30283,6 @@ void MessagesManager::set_dialog_participant_status(DialogId dialog_id, UserId u
                                                     const tl_object_ptr<td_api::ChatMemberStatus> &chat_member_status,
                                                     Promise<Unit> &&promise) {
   auto status = get_dialog_participant_status(chat_member_status);
-  LOG(INFO) << "Receive setChatMemberStatus request with " << user_id << " and " << dialog_id << " to " << status;
   if (!have_dialog_force(dialog_id)) {
     return promise.set_error(Status::Error(3, "Chat not found"));
   }
@@ -30301,6 +30298,29 @@ void MessagesManager::set_dialog_participant_status(DialogId dialog_id, UserId u
                                                                        std::move(promise));
     case DialogType::SecretChat:
       return promise.set_error(Status::Error(3, "Chat member status can't be changed in secret chats"));
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+  }
+}
+
+void MessagesManager::ban_dialog_participant(DialogId dialog_id, UserId user_id, int32 banned_until_date,
+                                             bool revoke_messages, Promise<Unit> &&promise) {
+  if (!have_dialog_force(dialog_id)) {
+    return promise.set_error(Status::Error(3, "Chat not found"));
+  }
+
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      return promise.set_error(Status::Error(3, "Can't ban members in a private chat"));
+    case DialogType::Chat:
+      return td_->contacts_manager_->delete_chat_participant(dialog_id.get_chat_id(), user_id, revoke_messages,
+                                                             std::move(promise));
+    case DialogType::Channel:
+      return td_->contacts_manager_->change_channel_participant_status(
+          dialog_id.get_channel_id(), user_id, DialogParticipantStatus::Banned(banned_until_date), std::move(promise));
+    case DialogType::SecretChat:
+      return promise.set_error(Status::Error(3, "Can't ban members in a secret chat"));
     case DialogType::None:
     default:
       UNREACHABLE();

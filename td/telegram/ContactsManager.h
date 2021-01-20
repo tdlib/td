@@ -385,6 +385,8 @@ class ContactsManager : public Actor {
   void change_channel_participant_status(ChannelId channel_id, UserId user_id, DialogParticipantStatus status,
                                          Promise<Unit> &&promise);
 
+  void delete_chat_participant(ChatId chat_id, UserId user_id, bool revoke_messages, Promise<Unit> &&promise);
+
   void can_transfer_ownership(Promise<CanTransferOwnershipResult> &&promise);
 
   static td_api::object_ptr<td_api::CanTransferOwnershipResult> get_can_transfer_ownership_result_object(

@@ -3536,6 +3536,14 @@ class CliClient final : public Actor {
       string user_ids;
       get_args(args, chat_id, user_ids);
       send_request(td_api::make_object<td_api::addChatMembers>(as_chat_id(chat_id), as_user_ids(user_ids)));
+    } else if (op == "bcm") {
+      string chat_id;
+      string user_id;
+      int32 banned_until_date;
+      bool revoke_messages;
+      get_args(args, chat_id, user_id, banned_until_date, revoke_messages);
+      send_request(td_api::make_object<td_api::banChatMember>(as_chat_id(chat_id), as_user_id(user_id),
+                                                              banned_until_date, revoke_messages));
     } else if (op == "spolla") {
       string chat_id;
       string message_id;

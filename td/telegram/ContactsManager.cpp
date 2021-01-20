@@ -1952,8 +1952,11 @@ class DeleteChatUserQuery : public Td::ResultHandler {
   explicit DeleteChatUserQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(ChatId chat_id, tl_object_ptr<telegram_api::InputUser> &&input_user) {
+  void send(ChatId chat_id, tl_object_ptr<telegram_api::InputUser> &&input_user, bool revoke_messages) {
     int32 flags = 0;
+    if (revoke_messages) {
+      flags |= telegram_api::messages_deleteChatUser::REVOKE_HISTORY_MASK;
+    }
     send_query(G()->net_query_creator().create(
         telegram_api::messages_deleteChatUser(flags, false /*ignored*/, chat_id.get(), std::move(input_user))));
   }
@@ -7001,7 +7004,7 @@ void ContactsManager::promote_channel_participant(ChannelId channel_id, UserId u
 void ContactsManager::change_chat_participant_status(ChatId chat_id, UserId user_id, DialogParticipantStatus status,
                                                      Promise<Unit> &&promise) {
   if (!status.is_member()) {
-    return delete_chat_participant(chat_id, user_id, std::move(promise));
+    return delete_chat_participant(chat_id, user_id, false, std::move(promise));
   }
 
   auto c = get_chat(chat_id);
@@ -7288,7 +7291,8 @@ void ContactsManager::import_dialog_invite_link(const string &invite_link, Promi
   td_->create_handler<ImportDialogInviteLinkQuery>(std::move(promise))->send(invite_link);
 }
 
-void ContactsManager::delete_chat_participant(ChatId chat_id, UserId user_id, Promise<Unit> &&promise) {
+void ContactsManager::delete_chat_participant(ChatId chat_id, UserId user_id, bool revoke_messages,
+                                              Promise<Unit> &&promise) {
   const Chat *c = get_chat(chat_id);
   if (c == nullptr) {
     return promise.set_error(Status::Error(3, "Chat info not found"));
@@ -7299,6 +7303,7 @@ void ContactsManager::delete_chat_participant(ChatId chat_id, UserId user_id, Pr
   auto my_id = get_my_id();
   if (c->status.is_left()) {
     if (user_id == my_id) {
+      td_->messages_manager_->delete_dialog(DialogId(chat_id));
       return promise.set_value(Unit());
     } else {
       return promise.set_error(Status::Error(3, "Not in the chat"));
@@ -7337,7 +7342,7 @@ void ContactsManager::delete_chat_participant(ChatId chat_id, UserId user_id, Pr
   }
 
   // TODO invoke after
-  td_->create_handler<DeleteChatUserQuery>(std::move(promise))->send(chat_id, std::move(input_user));
+  td_->create_handler<DeleteChatUserQuery>(std::move(promise))->send(chat_id, std::move(input_user), revoke_messages);
 }
 
 void ContactsManager::restrict_channel_participant(ChannelId channel_id, UserId user_id, DialogParticipantStatus status,

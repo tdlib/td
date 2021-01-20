@@ -780,6 +780,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, td_api::setChatMemberStatus &request);
 
+  void on_request(uint64 id, const td_api::banChatMember &request);
+
   void on_request(uint64 id, const td_api::canTransferOwnership &request);
 
   void on_request(uint64 id, td_api::transferChatOwnership &request);
