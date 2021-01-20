@@ -1195,6 +1195,10 @@ void UpdatesManager::process_get_difference_updates(
       CHECK(!running_get_difference_);
     }
 
+    if (constructor_id == telegram_api::updateChat::ID) {
+      update = nullptr;
+    }
+
     if (constructor_id == telegram_api::updateChannel::ID) {
       update = nullptr;
     }
