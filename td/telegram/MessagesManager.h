@@ -2409,7 +2409,7 @@ class MessagesManager : public Actor {
   void on_get_dialogs_from_database(FolderId folder_id, int32 limit, DialogDbGetDialogsResult &&dialogs,
                                     Promise<Unit> &&promise);
 
-  void send_get_dialog_query(DialogId dialog_id, Promise<Unit> &&promise, uint64 log_event_id = 0);
+  void send_get_dialog_query(DialogId dialog_id, Promise<Unit> &&promise, uint64 log_event_id, const char *source);
 
   void send_search_public_dialogs_query(const string &query, Promise<Unit> &&promise);
 

@@ -10754,7 +10754,7 @@ void MessagesManager::repair_server_unread_count(DialogId dialog_id, int32 unrea
   create_actor<SleepActor>("RepairServerUnreadCountSleepActor", 0.2,
                            PromiseCreator::lambda([actor_id = actor_id(this), dialog_id](Result<Unit> result) {
                              send_closure(actor_id, &MessagesManager::send_get_dialog_query, dialog_id, Promise<Unit>(),
-                                          0);
+                                          0, "repair_server_unread_count");
                            }))
       .release();
 }
@@ -18566,7 +18566,7 @@ void MessagesManager::create_dialog(DialogId dialog_id, bool force, Promise<Unit
   } else {
     const Dialog *d = get_dialog_force(dialog_id);
     if (!is_dialog_inited(d)) {
-      return send_get_dialog_query(dialog_id, std::move(promise));
+      return send_get_dialog_query(dialog_id, std::move(promise), 0, "create_dialog");
     }
   }
 
@@ -27244,7 +27244,7 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
       if (settings_dialog != nullptr) {
         send_get_dialog_notification_settings_query(settings_dialog_id, std::move(promise));
       } else {
-        send_get_dialog_query(settings_dialog_id, std::move(promise));
+        send_get_dialog_query(settings_dialog_id, std::move(promise), 0, "add_new_message_notification");
       }
     }
     if (missing_pinned_message_id.is_valid()) {
@@ -28453,7 +28453,7 @@ void MessagesManager::on_update_dialog_draft_message(DialogId dialog_id,
     if (!have_input_peer(dialog_id, AccessRights::Read)) {
       LOG(ERROR) << "Have no read access to " << dialog_id << " to repair chat draft message";
     } else {
-      send_get_dialog_query(dialog_id, Promise<Unit>());
+      send_get_dialog_query(dialog_id, Promise<Unit>(), 0, "on_update_dialog_draft_message");
     }
     return;
   }
@@ -29226,7 +29226,7 @@ DialogId MessagesManager::search_public_dialog(const string &username_to_search,
       } else {
         const Dialog *d = get_dialog_force(dialog_id);
         if (!is_dialog_inited(d)) {
-          send_get_dialog_query(dialog_id, std::move(promise));
+          send_get_dialog_query(dialog_id, std::move(promise), 0, "search_public_dialog");
           return DialogId();
         }
       }
@@ -29316,7 +29316,8 @@ uint64 MessagesManager::save_get_dialog_from_server_log_event(DialogId dialog_id
                     get_log_event_storer(log_event));
 }
 
-void MessagesManager::send_get_dialog_query(DialogId dialog_id, Promise<Unit> &&promise, uint64 log_event_id) {
+void MessagesManager::send_get_dialog_query(DialogId dialog_id, Promise<Unit> &&promise, uint64 log_event_id,
+                                            const char *source) {
   if (td_->auth_manager_->is_bot() || dialog_id.get_type() == DialogType::SecretChat) {
     if (log_event_id != 0) {
       binlog_erase(G()->td_db()->get_binlog(), log_event_id);
@@ -29334,7 +29335,7 @@ void MessagesManager::send_get_dialog_query(DialogId dialog_id, Promise<Unit> &&
   promises.push_back(std::move(promise));
   if (promises.size() != 1) {
     if (log_event_id != 0) {
-      LOG(INFO) << "Duplicate getDialog query for " << dialog_id;
+      LOG(INFO) << "Duplicate getDialog query for " << dialog_id << " from " << source;
       binlog_erase(G()->td_db()->get_binlog(), log_event_id);
     }
     // query has already been sent, just wait for the result
@@ -29353,7 +29354,7 @@ void MessagesManager::send_get_dialog_query(DialogId dialog_id, Promise<Unit> &&
     return;
   }
 
-  LOG(INFO) << "Send get " << dialog_id << " query";
+  LOG(INFO) << "Send get " << dialog_id << " query from " << source;
   td_->create_handler<GetDialogQuery>()->send(dialog_id);
 }
 
@@ -29447,7 +29448,7 @@ void MessagesManager::drop_username(const string &username) {
   auto dialog_id = it->second.dialog_id;
   if (have_input_peer(dialog_id, AccessRights::Read)) {
     CHECK(dialog_id.get_type() != DialogType::SecretChat);
-    send_get_dialog_query(dialog_id, Auto());
+    send_get_dialog_query(dialog_id, Auto(), 0, "drop_username");
   }
 
   resolved_usernames_.erase(it);
@@ -33167,7 +33168,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
   if (being_added_dialog_id_ != dialog_id && !td_->auth_manager_->is_bot() && !is_dialog_inited(d) &&
       dialog_type != DialogType::SecretChat && have_input_peer(dialog_id, AccessRights::Read)) {
     // asynchronously get dialog from the server
-    send_get_dialog_query(dialog_id, Auto());
+    send_get_dialog_query(dialog_id, Auto(), 0, "fix_new_dialog 20");
   }
 
   if (being_added_dialog_id_ != dialog_id && !d->is_is_blocked_inited && !td_->auth_manager_->is_bot()) {
@@ -34119,7 +34120,7 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
     have_dialog_info_force(dialog_id);
     if (have_input_peer(dialog_id, AccessRights::Read)) {
       if (dialog_id.get_type() != DialogType::SecretChat) {
-        send_get_dialog_query(dialog_id, Auto());
+        send_get_dialog_query(dialog_id, Auto(), 0, "parse_dialog");
       }
     } else {
       LOG(ERROR) << "Have no info about " << dialog_id << " to repair it";
@@ -36019,7 +36020,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
           break;
         }
 
-        send_get_dialog_query(dialog_id, Promise<Unit>(), event.id_);
+        send_get_dialog_query(dialog_id, Promise<Unit>(), event.id_, "GetDialogFromServerLogEvent");
         break;
       }
       case LogEvent::HandlerType::UnpinAllDialogMessagesOnServer: {
