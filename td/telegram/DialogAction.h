@@ -31,7 +31,8 @@ class DialogAction {
     StartPlayingGame,
     RecordingVideoNote,
     UploadingVideoNote,
-    SpeakingInVoiceChat
+    SpeakingInVoiceChat,
+    ImportingMessages
   };
   Type type_ = Type::Cancel;
   int32 progress_ = 0;

@@ -79,6 +79,9 @@ DialogAction::DialogAction(tl_object_ptr<td_api::ChatAction> &&action) {
       init(Type::UploadingVideoNote, uploading_action->progress_);
       break;
     }
+    case td_api::chatActionImportingMessages::ID:
+      init(Type::Cancel);  // it can't be sent explicitly
+      break;
     default:
       UNREACHABLE();
       break;
@@ -139,6 +142,11 @@ DialogAction::DialogAction(tl_object_ptr<telegram_api::SendMessageAction> &&acti
     case telegram_api::speakingInGroupCallAction::ID:
       init(Type::SpeakingInVoiceChat);
       break;
+    case telegram_api::sendMessageHistoryImportAction::ID: {
+      auto history_import_action = move_tl_object_as<telegram_api::sendMessageHistoryImportAction>(action);
+      init(Type::ImportingMessages, history_import_action->progress_);
+      break;
+    }
     default:
       UNREACHABLE();
       break;
@@ -175,6 +183,8 @@ tl_object_ptr<telegram_api::SendMessageAction> DialogAction::get_input_send_mess
       return make_tl_object<telegram_api::sendMessageUploadRoundAction>(progress_);
     case Type::SpeakingInVoiceChat:
       return make_tl_object<telegram_api::speakingInGroupCallAction>();
+    case Type::ImportingMessages:
+      return make_tl_object<telegram_api::sendMessageHistoryImportAction>(progress_);
     default:
       UNREACHABLE();
       return nullptr;
@@ -211,6 +221,8 @@ tl_object_ptr<secret_api::SendMessageAction> DialogAction::get_secret_input_send
       return make_tl_object<secret_api::sendMessageUploadRoundAction>();
     case Type::SpeakingInVoiceChat:
       return make_tl_object<secret_api::sendMessageTypingAction>();
+    case Type::ImportingMessages:
+      return make_tl_object<secret_api::sendMessageTypingAction>();
     default:
       UNREACHABLE();
       return nullptr;
@@ -245,6 +257,8 @@ tl_object_ptr<td_api::ChatAction> DialogAction::get_chat_action_object() const {
       return td_api::make_object<td_api::chatActionRecordingVideoNote>();
     case Type::UploadingVideoNote:
       return td_api::make_object<td_api::chatActionUploadingVideoNote>(progress_);
+    case Type::ImportingMessages:
+      return td_api::make_object<td_api::chatActionImportingMessages>(progress_);
     case Type::SpeakingInVoiceChat:
     default:
       UNREACHABLE();
@@ -381,6 +395,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, const DialogAction &act
         return "UploadingVideoNote";
       case DialogAction::Type::SpeakingInVoiceChat:
         return "SpeakingInVoiceChat";
+      case DialogAction::Type::ImportingMessages:
+        return "ImportingMessages";
       default:
         UNREACHABLE();
         return "Cancel";

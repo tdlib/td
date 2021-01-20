@@ -1963,6 +1963,8 @@ chatActionStartPlayingGame = ChatAction;
 chatActionRecordingVideoNote = ChatAction;
 //@description The user is uploading a video note @progress Upload progress, as a percentage
 chatActionUploadingVideoNote progress:int32 = ChatAction;
+//@description The user is importing message history. This action is sent automatically and can't be explicitly sent @progress Import progress, as a percentage
+chatActionImportingMessages progress:int32 = ChatAction;
 //@description The user has cancelled the previous action
 chatActionCancel = ChatAction;
 
