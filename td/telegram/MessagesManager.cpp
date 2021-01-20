@@ -988,8 +988,8 @@ class CreateChannelQuery : public Td::ResultHandler {
 
     random_id_ = random_id;
     send_query(G()->net_query_creator().create(
-        telegram_api::channels_createChannel(flags, false /*ignored*/, false /*ignored*/, title, about,
-                                             location.get_input_geo_point(), location.get_address())));
+        telegram_api::channels_createChannel(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, title,
+                                             about, location.get_input_geo_point(), location.get_address())));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {

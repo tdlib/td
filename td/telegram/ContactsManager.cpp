@@ -1701,7 +1701,7 @@ class GetExportedChatInvitesQuery : public Td::ResultHandler {
       flags |= telegram_api::messages_getExportedChatInvites::REVOKED_MASK;
     }
     send_query(G()->net_query_creator().create(telegram_api::messages_getExportedChatInvites(
-        flags, false /*ignored*/, std::move(input_peer), std::move(input_user), offset_invite_link, limit)));
+        flags, false /*ignored*/, std::move(input_peer), std::move(input_user), 0, offset_invite_link, limit)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -1951,8 +1951,9 @@ class DeleteChatUserQuery : public Td::ResultHandler {
   }
 
   void send(ChatId chat_id, tl_object_ptr<telegram_api::InputUser> &&input_user) {
-    send_query(
-        G()->net_query_creator().create(telegram_api::messages_deleteChatUser(chat_id.get(), std::move(input_user))));
+    int32 flags = 0;
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_deleteChatUser(flags, false /*ignored*/, chat_id.get(), std::move(input_user))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -14494,7 +14495,7 @@ void ContactsManager::on_chat_update(telegram_api::chat &chat, const char *sourc
   on_update_chat_photo(c, chat_id, std::move(chat.photo_));
   on_update_chat_active(c, chat_id, is_active);
   on_update_chat_migrated_to_channel_id(c, chat_id, migrated_to_channel_id);
-  LOG_IF(INFO, !is_active && !migrated_to_channel_id.is_valid()) << chat_id << " is deactivated in " << debug_str;
+  LOG_IF(INFO, !is_active && !migrated_to_channel_id.is_valid()) << chat_id << " is deactivated" << debug_str;
   if (c->cache_version != Chat::CACHE_VERSION) {
     c->cache_version = Chat::CACHE_VERSION;
     c->need_save_to_database = true;
