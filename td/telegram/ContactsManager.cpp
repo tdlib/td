@@ -1680,8 +1680,8 @@ class GetExportedChatInvitesQuery : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, UserId administrator_user_id, bool is_revoked, const string &offset_invite_link,
-            int32 limit) {
+  void send(DialogId dialog_id, UserId administrator_user_id, bool is_revoked, int32 offset_date,
+            const string &offset_invite_link, int32 limit) {
     dialog_id_ = dialog_id;
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
@@ -1694,14 +1694,16 @@ class GetExportedChatInvitesQuery : public Td::ResultHandler {
     if (input_user != nullptr) {
       flags |= telegram_api::messages_getExportedChatInvites::ADMIN_ID_MASK;
     }
-    if (!offset_invite_link.empty()) {
+    if (!offset_invite_link.empty() || offset_date != 0) {
+      flags |= telegram_api::messages_getExportedChatInvites::OFFSET_DATE_MASK;
       flags |= telegram_api::messages_getExportedChatInvites::OFFSET_LINK_MASK;
     }
     if (is_revoked) {
       flags |= telegram_api::messages_getExportedChatInvites::REVOKED_MASK;
     }
-    send_query(G()->net_query_creator().create(telegram_api::messages_getExportedChatInvites(
-        flags, false /*ignored*/, std::move(input_peer), std::move(input_user), 0, offset_invite_link, limit)));
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_getExportedChatInvites(flags, false /*ignored*/, std::move(input_peer),
+                                                      std::move(input_user), offset_date, offset_invite_link, limit)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -7217,7 +7219,7 @@ void ContactsManager::edit_dialog_invite_link(DialogId dialog_id, const string &
 }
 
 void ContactsManager::get_dialog_invite_links(DialogId dialog_id, UserId administrator_user_id, bool is_revoked,
-                                              const string &offset_invite_link, int32 limit,
+                                              int32 offset_date, const string &offset_invite_link, int32 limit,
                                               Promise<td_api::object_ptr<td_api::chatInviteLinks>> &&promise) {
   TRY_STATUS_PROMISE(promise, can_manage_dialog_invite_links(dialog_id));
 
@@ -7230,7 +7232,7 @@ void ContactsManager::get_dialog_invite_links(DialogId dialog_id, UserId adminis
   }
 
   td_->create_handler<GetExportedChatInvitesQuery>(std::move(promise))
-      ->send(dialog_id, administrator_user_id, is_revoked, offset_invite_link, limit);
+      ->send(dialog_id, administrator_user_id, is_revoked, offset_date, offset_invite_link, limit);
 }
 
 void ContactsManager::get_dialog_invite_link_users(

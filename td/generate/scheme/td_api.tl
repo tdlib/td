@@ -4387,10 +4387,14 @@ createChatInviteLink chat_id:int53 expire_date:int32 member_limit:int32 = ChatIn
 //@member_limit Maximum number of chat members that can join the chat by the link simultaneously; 0-100000; pass 0 if not limited
 editChatInviteLink chat_id:int53 invite_link:string expire_date:int32 member_limit:int32 = ChatInviteLink;
 
-//@description Returns exported invite links for a chat. Requires administrator privileges and can_invite_users right in the chat @chat_id Chat identifier @administrator_user_id If not 0, only invite links created by the specified administrator will be returned
+//@description Returns exported invite links for a chat. Requires administrator privileges and can_invite_users right in the chat
+//@chat_id Chat identifier
+//@administrator_user_id If not 0, only invite links created by the specified administrator will be returned
 //@is_revoked Pass true if revoked links needs to be returned instead of active or expired
-//@offset_invite_link Invite link starting after which to return invite links; use empty string to get results from the beginning @limit Maximum number of invite links to return
-getChatInviteLinks chat_id:int53 administrator_user_id:int32 is_revoked:Bool offset_invite_link:string limit:int32 = ChatInviteLinks;
+//@offset_date Creation date of an invite link starting after which to return invite links; use 0 to get results from the beginning
+//@offset_invite_link Invite link starting after which to return invite links; use empty string to get results from the beginning
+//@limit Maximum number of invite links to return
+getChatInviteLinks chat_id:int53 administrator_user_id:int32 is_revoked:Bool offset_date:int32 offset_invite_link:string limit:int32 = ChatInviteLinks;
 
 //@description Returns chat members joined a chat by an invite link. Requires administrator privileges and can_invite_users right in the chat @chat_id Chat identifier @invite_link Invite link for which to return chat members
 //@offset_member A chat member from which to return next chat members; use null to get results from the beginning @limit Maximum number of chat members to return
