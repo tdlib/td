@@ -1336,6 +1336,9 @@ class CliClient final : public Actor {
     if (reason == "geo" || reason == "location") {
       return td_api::make_object<td_api::chatReportReasonUnrelatedLocation>();
     }
+    if (reason == "fake") {
+      return td_api::make_object<td_api::chatReportReasonFake>();
+    }
     return td_api::make_object<td_api::chatReportReasonCustom>(reason.str());
   }
 

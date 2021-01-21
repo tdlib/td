@@ -403,7 +403,7 @@ inputChatPhotoAnimation animation:InputFile main_frame_timestamp:double = InputC
 //@is_support True, if the user is Telegram support account
 //@restriction_reason If non-empty, it contains a human-readable description of the reason why access to this user must be restricted
 //@is_scam True, if many users reported this user as a scam
-//@is_fake True, if the user is fake as opposed to verified
+//@is_fake True, if many users reported this user as a fake account
 //@have_access If false, the user is inaccessible, and the only information known about the user is inside this class. It can't be passed to any method except GetUser
 //@type Type of the user
 //@language_code IETF language tag of the user's language; only available to bots
@@ -607,8 +607,8 @@ basicGroupFullInfo photo:chatPhoto description:string creator_user_id:int32 memb
 //@is_channel True, if the supergroup is a channel
 //@is_verified True, if the supergroup or channel is verified
 //@restriction_reason If non-empty, contains a human-readable description of the reason why access to this supergroup or channel must be restricted
-//@is_scam True, if many users reported this supergroup as a scam
-//@is_fake True, if this supergroup or channel is fake as opposed to verified
+//@is_scam True, if many users reported this supergroup or channel as a scam
+//@is_fake True, if many users reported this supergroup or channel as a fake account
 supergroup id:int32 username:string date:int32 status:ChatMemberStatus member_count:int32 has_linked_chat:Bool has_location:Bool sign_messages:Bool is_slow_mode_enabled:Bool is_channel:Bool is_verified:Bool restriction_reason:string is_scam:Bool is_fake:Bool = Supergroup;
 
 //@description Contains full information about a supergroup or channel
@@ -2893,6 +2893,9 @@ chatReportReasonCopyright = ChatReportReason;
 
 //@description The location-based chat is unrelated to its stated location
 chatReportReasonUnrelatedLocation = ChatReportReason;
+
+//@description The chat represents a fake account
+chatReportReasonFake = ChatReportReason;
 
 //@description A custom reason provided by the user @text Report text
 chatReportReasonCustom text:string = ChatReportReason;
