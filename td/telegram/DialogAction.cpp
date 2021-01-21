@@ -6,6 +6,8 @@
 //
 #include "td/telegram/DialogAction.h"
 
+#include "td/utils/misc.h"
+
 namespace td {
 
 void DialogAction::init(Type type) {
@@ -14,11 +16,8 @@ void DialogAction::init(Type type) {
 }
 
 void DialogAction::init(Type type, int32 progress) {
-  if (progress < 0 || progress > 100) {
-    progress = 0;
-  }
   type_ = type;
-  progress_ = progress;
+  progress_ = clamp(progress, 0, 100);
 }
 
 DialogAction::DialogAction(Type type, int32 progress) {
