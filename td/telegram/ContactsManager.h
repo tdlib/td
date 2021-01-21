@@ -656,6 +656,7 @@ class ContactsManager : public Actor {
   static constexpr int32 USER_FLAG_IS_SUPPORT = 1 << 23;
   static constexpr int32 USER_FLAG_IS_SCAM = 1 << 24;
   static constexpr int32 USER_FLAG_NEED_APPLY_MIN_PHOTO = 1 << 25;
+  static constexpr int32 USER_FLAG_IS_FAKE = 1 << 26;
 
   static constexpr int32 USER_FULL_FLAG_IS_BLOCKED = 1 << 0;
   static constexpr int32 USER_FULL_FLAG_HAS_ABOUT = 1 << 1;
@@ -702,6 +703,7 @@ class ContactsManager : public Actor {
   static constexpr int32 CHANNEL_FLAG_IS_SLOW_MODE_ENABLED = 1 << 22;
   static constexpr int32 CHANNEL_FLAG_HAS_ACTIVE_GROUP_CALL = 1 << 23;
   static constexpr int32 CHANNEL_FLAG_IS_GROUP_CALL_NON_EMPTY = 1 << 24;
+  static constexpr int32 CHANNEL_FLAG_IS_FAKE = 1 << 25;
 
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_PARTICIPANT_COUNT = 1 << 0;
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_ADMINISTRATOR_COUNT = 1 << 1;

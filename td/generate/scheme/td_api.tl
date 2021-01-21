@@ -403,10 +403,11 @@ inputChatPhotoAnimation animation:InputFile main_frame_timestamp:double = InputC
 //@is_support True, if the user is Telegram support account
 //@restriction_reason If non-empty, it contains a human-readable description of the reason why access to this user must be restricted
 //@is_scam True, if many users reported this user as a scam
+//@is_fake True, if the user is fake as opposed to verified
 //@have_access If false, the user is inaccessible, and the only information known about the user is inside this class. It can't be passed to any method except GetUser
 //@type Type of the user
 //@language_code IETF language tag of the user's language; only available to bots
-user id:int32 first_name:string last_name:string username:string phone_number:string status:UserStatus profile_photo:profilePhoto is_contact:Bool is_mutual_contact:Bool is_verified:Bool is_support:Bool restriction_reason:string is_scam:Bool have_access:Bool type:UserType language_code:string = User;
+user id:int32 first_name:string last_name:string username:string phone_number:string status:UserStatus profile_photo:profilePhoto is_contact:Bool is_mutual_contact:Bool is_verified:Bool is_support:Bool restriction_reason:string is_scam:Bool is_fake:Bool have_access:Bool type:UserType language_code:string = User;
 
 //@description Contains full information about a user
 //@photo User profile photo; may be null
@@ -607,7 +608,8 @@ basicGroupFullInfo photo:chatPhoto description:string creator_user_id:int32 memb
 //@is_verified True, if the supergroup or channel is verified
 //@restriction_reason If non-empty, contains a human-readable description of the reason why access to this supergroup or channel must be restricted
 //@is_scam True, if many users reported this supergroup as a scam
-supergroup id:int32 username:string date:int32 status:ChatMemberStatus member_count:int32 has_linked_chat:Bool has_location:Bool sign_messages:Bool is_slow_mode_enabled:Bool is_channel:Bool is_verified:Bool restriction_reason:string is_scam:Bool = Supergroup;
+//@is_fake True, if this supergroup or channel is fake as opposed to verified
+supergroup id:int32 username:string date:int32 status:ChatMemberStatus member_count:int32 has_linked_chat:Bool has_location:Bool sign_messages:Bool is_slow_mode_enabled:Bool is_channel:Bool is_verified:Bool restriction_reason:string is_scam:Bool is_fake:Bool = Supergroup;
 
 //@description Contains full information about a supergroup or channel
 //@photo Chat photo; may be null
