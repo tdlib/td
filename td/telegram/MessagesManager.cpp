@@ -8903,7 +8903,6 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
   }
 
   if (need_update_database_message_ids) {
-    bool is_dialog_updated = false;
     if (!d->last_database_message_id.is_valid()) {
       CHECK(d->last_message_id.is_valid());
       MessagesConstIterator it(d, d->last_message_id);
@@ -8918,7 +8917,6 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
         }
         --it;
       }
-      is_dialog_updated = true;
     } else {
       LOG_CHECK(d->last_new_message_id.is_valid())
           << dialog_id << " " << from_the_end << " " << d->first_database_message_id << " "
@@ -8933,27 +8931,33 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
       {
         MessagesConstIterator it(d, d->first_database_message_id);
         if (*it != nullptr && ((*it)->message_id == d->first_database_message_id || (*it)->have_next)) {
+          MessageId new_first_database_message_id = d->first_database_message_id;
           while (*it != nullptr) {
             auto message_id = (*it)->message_id;
-            if ((message_id.is_server() || message_id.is_local()) && message_id < d->first_database_message_id) {
-              set_dialog_first_database_message_id(d, message_id, "on_get_history 2");
+            if ((message_id.is_server() || message_id.is_local()) && message_id < new_first_database_message_id) {
+              new_first_database_message_id = message_id;
               try_restore_dialog_reply_markup(d, *it);
-              is_dialog_updated = true;
             }
             --it;
+          }
+          if (new_first_database_message_id != d->first_database_message_id) {
+            set_dialog_first_database_message_id(d, new_first_database_message_id, "on_get_history 2");
           }
         }
       }
       {
         MessagesConstIterator it(d, d->last_database_message_id);
         if (*it != nullptr && ((*it)->message_id == d->last_database_message_id || (*it)->have_next)) {
+          MessageId new_last_database_message_id = d->last_database_message_id;
           while (*it != nullptr) {
             auto message_id = (*it)->message_id;
-            if ((message_id.is_server() || message_id.is_local()) && message_id > d->last_database_message_id) {
-              set_dialog_last_database_message_id(d, message_id, "on_get_history 2");
-              is_dialog_updated = true;
+            if ((message_id.is_server() || message_id.is_local()) && message_id > new_last_database_message_id) {
+              new_last_database_message_id = message_id;
             }
             ++it;
+          }
+          if (new_last_database_message_id != d->last_database_message_id) {
+            set_dialog_last_database_message_id(d, new_last_database_message_id, "on_get_history 2");
           }
         }
       }
@@ -8973,10 +8977,6 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
       if (first_added_message_id < first_message_id && first_message_id <= last_added_message_id) {
         first_message_id = first_added_message_id;
       }
-    }
-
-    if (is_dialog_updated) {
-      on_dialog_updated(dialog_id, "on_get_history");
     }
   }
 }
