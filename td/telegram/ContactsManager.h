@@ -422,7 +422,7 @@ class ContactsManager : public Actor {
 
   vector<DialogId> get_inactive_channels(Promise<Unit> &&promise);
 
-  bool is_user_contact(UserId user_id) const;
+  bool is_user_contact(UserId user_id, bool is_mutual = false) const;
 
   bool is_user_deleted(UserId user_id) const;
 
@@ -1317,7 +1317,7 @@ class ContactsManager : public Actor {
 
   bool is_chat_full_outdated(const ChatFull *chat_full, const Chat *c, ChatId chat_id);
 
-  bool is_user_contact(const User *u, UserId user_id) const;
+  bool is_user_contact(const User *u, UserId user_id, bool is_mutual) const;
 
   int32 get_user_was_online(const User *u, UserId user_id) const;
 

@@ -8764,7 +8764,7 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
   }
   if (u->is_is_contact_changed) {
     td_->messages_manager_->on_dialog_user_is_contact_updated(DialogId(user_id), u->is_contact);
-    if (is_user_contact(u, user_id)) {
+    if (is_user_contact(u, user_id, false)) {
       auto user_full = get_user_full(user_id);
       if (user_full != nullptr && user_full->need_phone_number_privacy_exception) {
         on_update_user_full_need_phone_number_privacy_exception(user_full, user_id, false);
@@ -10619,12 +10619,12 @@ bool ContactsManager::on_get_channel_error(ChannelId channel_id, const Status &s
   return false;
 }
 
-bool ContactsManager::is_user_contact(UserId user_id) const {
-  return is_user_contact(get_user(user_id), user_id);
+bool ContactsManager::is_user_contact(UserId user_id, bool is_mutual) const {
+  return is_user_contact(get_user(user_id), user_id, is_mutual);
 }
 
-bool ContactsManager::is_user_contact(const User *u, UserId user_id) const {
-  return u != nullptr && u->is_contact && user_id != get_my_id();
+bool ContactsManager::is_user_contact(const User *u, UserId user_id, bool is_mutual) const {
+  return u != nullptr && (is_mutual ? u->is_mutual_contact : u->is_contact) && user_id != get_my_id();
 }
 
 void ContactsManager::on_get_channel_participants_success(
@@ -12299,7 +12299,7 @@ void ContactsManager::on_update_channel_participant(ChannelId channel_id, UserId
 }
 
 void ContactsManager::update_contacts_hints(const User *u, UserId user_id, bool from_database) {
-  bool is_contact = is_user_contact(u, user_id);
+  bool is_contact = is_user_contact(u, user_id, false);
   if (td_->auth_manager_->is_bot()) {
     LOG_IF(ERROR, is_contact) << "Bot has " << user_id << " in the contacts list";
     return;
