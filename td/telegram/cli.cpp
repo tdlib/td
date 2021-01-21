@@ -2968,6 +2968,15 @@ class CliClient final : public Actor {
                 as_input_file(document), nullptr, true, as_caption(""));
             return content;
           })));
+    } else if (op == "im") {
+      string chat_id;
+      string message_file;
+      vector<string> attached_files;
+      get_args(args, chat_id, message_file, args);
+      attached_files = full_split(args);
+      send_request(td_api::make_object<td_api::importMessages>(
+          as_chat_id(chat_id), as_input_file(message_file),
+          transform(attached_files, [](const string &attached_file) { return as_input_file(attached_file); })));
     } else if (op == "em") {
       string chat_id;
       string message_id;
@@ -3412,11 +3421,11 @@ class CliClient final : public Actor {
       string title;
       get_args(args, user_ids_string, title);
       send_request(td_api::make_object<td_api::createNewBasicGroupChat>(as_user_ids(user_ids_string), title));
-    } else if (op == "cnch") {
+    } else if (op == "cnchc") {
       send_request(td_api::make_object<td_api::createNewSupergroupChat>(args, true, "Description", nullptr));
-    } else if (op == "cnsg") {
+    } else if (op == "cnsgc") {
       send_request(td_api::make_object<td_api::createNewSupergroupChat>(args, false, "Description", nullptr));
-    } else if (op == "cngc") {
+    } else if (op == "cnsgcloc") {
       send_request(td_api::make_object<td_api::createNewSupergroupChat>(
           args, false, "Description",
           td_api::make_object<td_api::chatLocation>(as_location("40.0", "60.0"), "address")));

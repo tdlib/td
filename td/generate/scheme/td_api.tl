@@ -4385,6 +4385,13 @@ readFilePart file_id:int32 offset:int32 count:int32 = FilePart;
 deleteFile file_id:int32 = Ok;
 
 
+//@description Imports messages exported from another app
+//@chat_id Identifier of a chat to which the messages will be imported. It must be an identifier of a private chat with a mutual contact or an identifier of a created supergroup chat
+//@message_file File with messages to import. Only inputFileLocal and inputFileGenerated are supported. The file must not be previously uploaded
+//@attached_files Files used in the imported messages. Only inputFileLocal and inputFileGenerated are supported. The files must not be previously uploaded
+importMessages chat_id:int53 message_file:InputFile attached_files:vector<InputFile> = Ok;
+
+
 //@description Replaces current permanent invite link for a chat with a new permanent invite link. Available for basic groups, supergroups, and channels. Requires administrator privileges and can_invite_users right @chat_id Chat identifier
 replacePermanentChatInviteLink chat_id:int53 = ChatInviteLink;
 

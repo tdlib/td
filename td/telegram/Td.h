@@ -836,6 +836,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, const td_api::deleteFile &request);
 
+  void on_request(uint64 id, const td_api::importMessages &request);
+
   void on_request(uint64 id, const td_api::blockMessageSenderFromReplies &request);
 
   void on_request(uint64 id, const td_api::getBlockedMessageSenders &request);

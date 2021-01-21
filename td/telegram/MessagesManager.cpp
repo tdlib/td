@@ -1009,6 +1009,92 @@ class CreateChannelQuery : public Td::ResultHandler {
   }
 };
 
+class InitHistoryImportQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  FileId file_id_;
+  DialogId dialog_id_;
+  vector<FileId> attached_file_ids_;
+
+ public:
+  explicit InitHistoryImportQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, FileId file_id, tl_object_ptr<telegram_api::InputFile> &&input_file,
+            vector<FileId> attached_file_ids) {
+    CHECK(input_file != nullptr);
+    file_id_ = file_id;
+    dialog_id_ = dialog_id;
+    attached_file_ids_ = std::move(attached_file_ids);
+    attached_file_ids_.clear();
+
+    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    CHECK(input_peer != nullptr);
+    send_query(G()->net_query_creator().create(telegram_api::messages_initHistoryImport(
+        std::move(input_peer), std::move(input_file), narrow_cast<int32>(attached_file_ids_.size()))));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::messages_initHistoryImport>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    td->file_manager_->delete_partial_remote_location(file_id_);
+
+    auto ptr = result_ptr.move_as_ok();
+    td->messages_manager_->start_import_messages(dialog_id_, ptr->id_, std::move(attached_file_ids_),
+                                                 std::move(promise_));
+  }
+
+  void on_error(uint64 id, Status status) override {
+    td->file_manager_->delete_partial_remote_location(file_id_);
+    if (!td->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(status)) {
+      LOG(ERROR) << "Receive file reference error " << status;
+    }
+
+    // TODO support FILE_PART_*_MISSING
+
+    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "InitHistoryImportQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
+class StartImportHistoryQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit StartImportHistoryQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, int64 import_id) {
+    dialog_id_ = dialog_id;
+
+    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    CHECK(input_peer != nullptr);
+
+    send_query(
+        G()->net_query_creator().create(telegram_api::messages_startHistoryImport(std::move(input_peer), import_id)));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::messages_startHistoryImport>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    if (!result_ptr.ok()) {
+      return on_error(id, Status::Error(500, "Import history returned false"));
+    }
+    promise_.set_value(Unit());
+  }
+
+  void on_error(uint64 id, Status status) override {
+    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "StartImportHistoryQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class EditDialogPhotoQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   FileId file_id_;
@@ -4579,6 +4665,24 @@ class MessagesManager::UploadDialogPhotoCallback : public FileManager::UploadCal
   }
 };
 
+class MessagesManager::UploadImportedMessagesCallback : public FileManager::UploadCallback {
+ public:
+  void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) override {
+    send_closure_later(G()->messages_manager(), &MessagesManager::on_upload_imported_messages, file_id,
+                       std::move(input_file));
+  }
+  void on_upload_encrypted_ok(FileId file_id, tl_object_ptr<telegram_api::InputEncryptedFile> input_file) override {
+    UNREACHABLE();
+  }
+  void on_upload_secure_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file) override {
+    UNREACHABLE();
+  }
+  void on_upload_error(FileId file_id, Status error) override {
+    send_closure_later(G()->messages_manager(), &MessagesManager::on_upload_imported_messages_error, file_id,
+                       std::move(error));
+  }
+};
+
 template <class StorerT>
 void MessagesManager::Message::store(StorerT &storer) const {
   using td::store;
@@ -5513,6 +5617,7 @@ MessagesManager::MessagesManager(Td *td, ActorShared<> parent) : td_(td), parent
   upload_media_callback_ = std::make_shared<UploadMediaCallback>();
   upload_thumbnail_callback_ = std::make_shared<UploadThumbnailCallback>();
   upload_dialog_photo_callback_ = std::make_shared<UploadDialogPhotoCallback>();
+  upload_imported_messages_callback_ = std::make_shared<UploadImportedMessagesCallback>();
 
   channel_get_difference_timeout_.set_callback(on_channel_get_difference_timeout_callback);
   channel_get_difference_timeout_.set_callback_data(static_cast<void *>(this));
@@ -8551,6 +8656,70 @@ void MessagesManager::on_upload_dialog_photo_error(FileId file_id, Status status
   Promise<Unit> promise = std::move(it->second.promise);
 
   being_uploaded_dialog_photos_.erase(it);
+
+  promise.set_error(std::move(status));
+}
+
+void MessagesManager::on_upload_imported_messages(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) {
+  LOG(INFO) << "File " << file_id << " has been uploaded";
+
+  auto it = being_uploaded_imported_messages_.find(file_id);
+  if (it == being_uploaded_imported_messages_.end()) {
+    // just in case, as in on_upload_media
+    return;
+  }
+
+  CHECK(it->second != nullptr);
+  DialogId dialog_id = it->second->dialog_id;
+  vector<FileId> attached_file_ids = std::move(it->second->attached_file_ids);
+  bool is_reupload = it->second->is_reupload;
+  Promise<Unit> promise = std::move(it->second->promise);
+
+  being_uploaded_imported_messages_.erase(it);
+
+  TRY_STATUS_PROMISE(promise, can_send_message(dialog_id));
+
+  FileView file_view = td_->file_manager_->get_file_view(file_id);
+  CHECK(!file_view.is_encrypted());
+  if (input_file == nullptr && file_view.has_remote_location()) {
+    if (file_view.main_remote_location().is_web()) {
+      return promise.set_error(Status::Error(400, "Can't use web photo"));
+    }
+    if (is_reupload) {
+      return promise.set_error(Status::Error(400, "Failed to reupload the file"));
+    }
+
+    CHECK(file_view.get_type() == FileType::Document);
+    // delete file reference and forcely reupload the file
+    auto file_reference = FileManager::extract_file_reference(file_view.main_remote_location().as_input_document());
+    td_->file_manager_->delete_file_reference(file_id, file_reference);
+    upload_imported_messages(dialog_id, file_id, std::move(attached_file_ids), true, std::move(promise), {-1});
+    return;
+  }
+  CHECK(input_file != nullptr);
+
+  td_->create_handler<InitHistoryImportQuery>(std::move(promise))
+      ->send(dialog_id, file_id, std::move(input_file), std::move(attached_file_ids));
+}
+
+void MessagesManager::on_upload_imported_messages_error(FileId file_id, Status status) {
+  if (G()->close_flag()) {
+    // do not fail upload if closing
+    return;
+  }
+
+  LOG(INFO) << "File " << file_id << " has upload error " << status;
+  CHECK(status.is_error());
+
+  auto it = being_uploaded_imported_messages_.find(file_id);
+  if (it == being_uploaded_imported_messages_.end()) {
+    // just in case, as in on_upload_media_error
+    return;
+  }
+
+  Promise<Unit> promise = std::move(it->second->promise);
+
+  being_uploaded_imported_messages_.erase(it);
 
   promise.set_error(std::move(status));
 }
@@ -26092,6 +26261,85 @@ Result<MessageId> MessagesManager::add_local_message(
   }
 
   return message_id;
+}
+
+void MessagesManager::import_messages(DialogId dialog_id, const td_api::object_ptr<td_api::InputFile> &message_file,
+                                      const vector<td_api::object_ptr<td_api::InputFile>> &attached_files,
+                                      Promise<Unit> &&promise) {
+  if (!have_dialog_force(dialog_id)) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+
+  TRY_STATUS_PROMISE(promise, can_send_message(dialog_id));
+
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      if (!td_->contacts_manager_->is_user_contact(dialog_id.get_user_id(), true)) {
+        return promise.set_error(Status::Error(400, "User must be a mutual contact"));
+      }
+      break;
+    case DialogType::Chat:
+      return promise.set_error(Status::Error(400, "Basic groups must be updagraded to supergroups first"));
+    case DialogType::Channel:
+      if (is_broadcast_channel(dialog_id)) {
+        return promise.set_error(Status::Error(400, "Can't import messages to channels"));
+      }
+      if (!td_->contacts_manager_->get_channel_status(dialog_id.get_channel_id()).is_creator()) {
+        return promise.set_error(Status::Error(400, "Not enough rights to import messages"));
+      }
+      break;
+    case DialogType::SecretChat:
+      return promise.set_error(Status::Error(400, "Can't import messages to secret chats"));
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+  }
+
+  auto r_file_id = td_->file_manager_->get_input_file_id(FileType::Document, message_file, dialog_id, false, false);
+  if (r_file_id.is_error()) {
+    // TODO TRY_RESULT_PROMISE(promise, ...);
+    return promise.set_error(Status::Error(400, r_file_id.error().message()));
+  }
+  FileId file_id = r_file_id.ok();
+
+  vector<FileId> attached_file_ids;
+  attached_file_ids.reserve(attached_files.size());
+  for (auto &attached_file : attached_files) {
+    auto r_attached_file_id =
+        td_->file_manager_->get_input_file_id(FileType::Document, attached_file, dialog_id, false, false);
+    if (r_attached_file_id.is_error()) {
+      // TODO TRY_RESULT_PROMISE(promise, ...);
+      return promise.set_error(Status::Error(400, r_attached_file_id.error().message()));
+    }
+    attached_file_ids.push_back(r_attached_file_id.ok());
+  }
+
+  upload_imported_messages(dialog_id, td_->file_manager_->dup_file_id(file_id), std::move(attached_file_ids), false,
+                           std::move(promise));
+}
+
+void MessagesManager::upload_imported_messages(DialogId dialog_id, FileId file_id, vector<FileId> attached_file_ids,
+                                               bool is_reupload, Promise<Unit> &&promise, vector<int> bad_parts) {
+  CHECK(file_id.is_valid());
+  LOG(INFO) << "Ask to upload imported messages file " << file_id;
+  CHECK(being_uploaded_imported_messages_.find(file_id) == being_uploaded_imported_messages_.end());
+  being_uploaded_imported_messages_.emplace(
+      file_id, td::make_unique<UploadedImportedMessagesInfo>(dialog_id, std::move(attached_file_ids), is_reupload,
+                                                             std::move(promise)));
+  // TODO use force_reupload if is_reupload
+  td_->file_manager_->resume_upload(file_id, std::move(bad_parts), upload_imported_messages_callback_, 1, 0);
+}
+
+void MessagesManager::start_import_messages(DialogId dialog_id, int64 import_id, vector<FileId> &&attached_file_ids,
+                                            Promise<Unit> &&promise) {
+  CHECK(attached_file_ids.empty());
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
+
+  TRY_STATUS_PROMISE(promise, can_send_message(dialog_id));
+
+  td_->create_handler<StartImportHistoryQuery>(std::move(promise))->send(dialog_id, import_id);
 }
 
 bool MessagesManager::on_update_message_id(int64 random_id, MessageId new_message_id, const string &source) {

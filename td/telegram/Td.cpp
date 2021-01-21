@@ -6535,6 +6535,13 @@ void Td::on_request(uint64 id, const td_api::deleteFile &request) {
                "td_api::deleteFile");
 }
 
+void Td::on_request(uint64 id, const td_api::importMessages &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->import_messages(DialogId(request.chat_id_), request.message_file_, request.attached_files_,
+                                     std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::blockMessageSenderFromReplies &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
