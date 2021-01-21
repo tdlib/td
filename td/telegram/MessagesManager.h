@@ -963,12 +963,13 @@ class MessagesManager : public Actor {
     DialogId from_dialog_id;
     MessageId from_message_id;
     string psa_type;
+    bool is_imported = false;
 
     MessageForwardInfo() = default;
 
     MessageForwardInfo(UserId sender_user_id, int32 date, DialogId sender_dialog_id, MessageId message_id,
                        string author_signature, string sender_name, DialogId from_dialog_id, MessageId from_message_id,
-                       string psa_type)
+                       string psa_type, bool is_imported)
         : sender_user_id(sender_user_id)
         , date(date)
         , sender_dialog_id(sender_dialog_id)
@@ -977,14 +978,15 @@ class MessagesManager : public Actor {
         , sender_name(std::move(sender_name))
         , from_dialog_id(from_dialog_id)
         , from_message_id(from_message_id)
-        , psa_type(psa_type) {
+        , psa_type(psa_type)
+        , is_imported(is_imported) {
     }
 
     bool operator==(const MessageForwardInfo &rhs) const {
       return sender_user_id == rhs.sender_user_id && date == rhs.date && sender_dialog_id == rhs.sender_dialog_id &&
              message_id == rhs.message_id && author_signature == rhs.author_signature &&
              sender_name == rhs.sender_name && from_dialog_id == rhs.from_dialog_id &&
-             from_message_id == rhs.from_message_id && psa_type == rhs.psa_type;
+             from_message_id == rhs.from_message_id && psa_type == rhs.psa_type && is_imported == rhs.is_imported;
     }
 
     bool operator!=(const MessageForwardInfo &rhs) const {
@@ -992,11 +994,13 @@ class MessagesManager : public Actor {
     }
 
     friend StringBuilder &operator<<(StringBuilder &string_builder, const MessageForwardInfo &forward_info) {
-      return string_builder << "MessageForwardInfo[sender " << forward_info.sender_user_id << "("
-                            << forward_info.author_signature << "/" << forward_info.sender_name << "), psa_type "
-                            << forward_info.psa_type << ", source " << forward_info.sender_dialog_id << ", source "
-                            << forward_info.message_id << ", from " << forward_info.from_dialog_id << ", from "
-                            << forward_info.from_message_id << " at " << forward_info.date << "]";
+      return string_builder << "MessageForwardInfo[" << (forward_info.is_imported ? "imported " : "") << "sender "
+                            << forward_info.sender_user_id << "(" << forward_info.author_signature << "/"
+                            << forward_info.sender_name << "), psa_type " << forward_info.psa_type << ", source "
+                            << forward_info.sender_dialog_id << ", source " << forward_info.message_id << ", from "
+                            << forward_info.from_dialog_id << ", from " << forward_info.from_message_id << " at "
+                            << forward_info.date << " "
+                            << "]";
     }
   };
 

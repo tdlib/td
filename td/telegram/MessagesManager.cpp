@@ -4616,6 +4616,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool has_linked_top_thread_message_id = linked_top_thread_message_id.is_valid();
   bool has_interaction_info_update_date = interaction_info_update_date != 0;
   bool has_send_emoji = !send_emoji.empty();
+  bool is_imported = is_forwarded && forward_info->is_imported;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_channel_post);
   STORE_FLAG(is_outgoing);
@@ -4675,6 +4676,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(is_pinned);
     STORE_FLAG(has_interaction_info_update_date);
     STORE_FLAG(has_send_emoji);
+    STORE_FLAG(is_imported);
     END_STORE_FLAGS();
   }
 
@@ -4826,6 +4828,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   bool has_linked_top_thread_message_id = false;
   bool has_interaction_info_update_date = false;
   bool has_send_emoji = false;
+  bool is_imported = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_channel_post);
   PARSE_FLAG(is_outgoing);
@@ -4885,6 +4888,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(is_pinned);
     PARSE_FLAG(has_interaction_info_update_date);
     PARSE_FLAG(has_send_emoji);
+    PARSE_FLAG(is_imported);
     END_PARSE_FLAGS();
   }
 
@@ -4926,6 +4930,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     if (has_forward_psa_type) {
       parse(forward_info->psa_type, parser);
     }
+    forward_info->is_imported = is_imported;
   }
   if (has_real_forward_from) {
     parse(real_forward_from_dialog_id, parser);
@@ -24197,7 +24202,7 @@ int32 MessagesManager::get_message_schedule_date(const Message *m) {
 DialogId MessagesManager::get_message_original_sender(const Message *m) {
   if (m->forward_info != nullptr) {
     auto forward_info = m->forward_info.get();
-    if (is_forward_info_sender_hidden(forward_info)) {
+    if (forward_info->is_imported || is_forward_info_sender_hidden(forward_info)) {
       return DialogId();
     }
     if (forward_info->message_id.is_valid() || forward_info->sender_dialog_id.is_valid()) {
@@ -25148,10 +25153,14 @@ tl_object_ptr<td_api::gameHighScores> MessagesManager::get_game_high_scores_obje
 }
 
 bool MessagesManager::is_forward_info_sender_hidden(const MessageForwardInfo *forward_info) {
+  CHECK(forward_info != nullptr);
+  if (forward_info->is_imported) {
+    return false;
+  }
   if (!forward_info->sender_name.empty()) {
     return true;
   }
-  DialogId hidden_sender_dialog_id(static_cast<int64>(G()->is_test_dc() ? -1000010460537ll : -1001228946795ll));
+  DialogId hidden_sender_dialog_id(ChannelId(G()->is_test_dc() ? 10460537 : 1228946795));
   return forward_info->sender_dialog_id == hidden_sender_dialog_id && !forward_info->author_signature.empty() &&
          !forward_info->message_id.is_valid();
 }
@@ -25174,6 +25183,7 @@ unique_ptr<MessagesManager::MessageForwardInfo> MessagesManager::get_message_for
   DialogId from_dialog_id;
   MessageId from_message_id;
   string sender_name = std::move(forward_header->from_name_);
+  bool is_imported = forward_header->imported_;
   if (forward_header->from_id_ != nullptr) {
     sender_dialog_id = DialogId(forward_header->from_id_);
     if (!sender_dialog_id.is_valid()) {
@@ -25231,7 +25241,7 @@ unique_ptr<MessagesManager::MessageForwardInfo> MessagesManager::get_message_for
 
   return td::make_unique<MessageForwardInfo>(sender_user_id, forward_header->date_, sender_dialog_id, message_id,
                                              std::move(author_signature), std::move(sender_name), from_dialog_id,
-                                             from_message_id, std::move(forward_header->psa_type_));
+                                             from_message_id, std::move(forward_header->psa_type_), is_imported);
 }
 
 td_api::object_ptr<td_api::messageForwardInfo> MessagesManager::get_message_forward_info_object(
@@ -25241,6 +25251,9 @@ td_api::object_ptr<td_api::messageForwardInfo> MessagesManager::get_message_forw
   }
 
   auto origin = [&]() -> td_api::object_ptr<td_api::MessageForwardOrigin> {
+    if (forward_info->is_imported) {
+      return td_api::make_object<td_api::messageForwardOriginMessageImport>(forward_info->sender_name);
+    }
     if (is_forward_info_sender_hidden(forward_info.get())) {
       return td_api::make_object<td_api::messageForwardOriginHiddenUser>(
           forward_info->sender_name.empty() ? forward_info->author_signature : forward_info->sender_name);
@@ -25577,14 +25590,15 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
                                           : forwarded_message->author_signature;
               forward_info = td::make_unique<MessageForwardInfo>(
                   UserId(), forwarded_message->date, from_dialog_id, forwarded_message->message_id,
-                  std::move(author_signature), "", saved_from_dialog_id, saved_from_message_id, "");
+                  std::move(author_signature), "", saved_from_dialog_id, saved_from_message_id, "", false);
             } else {
               LOG(ERROR) << "Don't know how to forward a channel post not from a channel";
             }
           } else if (forwarded_message->sender_user_id.is_valid() || forwarded_message->sender_dialog_id.is_valid()) {
             forward_info = td::make_unique<MessageForwardInfo>(
                 forwarded_message->sender_user_id, forwarded_message->date, forwarded_message->sender_dialog_id,
-                MessageId(), "", forwarded_message->author_signature, saved_from_dialog_id, saved_from_message_id, "");
+                MessageId(), "", forwarded_message->author_signature, saved_from_dialog_id, saved_from_message_id, "",
+                false);
           } else {
             LOG(ERROR) << "Don't know how to forward a non-channel post message without forward info and sender";
           }

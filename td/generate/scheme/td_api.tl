@@ -689,6 +689,9 @@ messageForwardOriginHiddenUser sender_name:string = MessageForwardOrigin;
 //@author_signature Original post author signature
 messageForwardOriginChannel chat_id:int53 message_id:int53 author_signature:string = MessageForwardOrigin;
 
+//@description The message was imported from an exported message history @sender_name Name of the sender
+messageForwardOriginMessageImport sender_name:string = MessageForwardOrigin;
+
 
 //@description Contains information about a forwarded message
 //@origin Origin of a forwarded message
