@@ -1605,6 +1605,7 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
   }
   node->need_load_from_pmc_ |= other_node->need_load_from_pmc_;
   node->can_search_locally_ &= other_node->can_search_locally_;
+  node->upload_prefer_small_ |= other_node->upload_prefer_small_;
 
   if (drop_last_successful_force_reupload_time) {
     node->last_successful_force_reupload_time_ = -1e10;
@@ -2319,12 +2320,13 @@ void FileManager::run_download(FileNodePtr node, bool force_update_priority) {
 class FileManager::ForceUploadActor : public Actor {
  public:
   ForceUploadActor(FileManager *file_manager, FileId file_id, std::shared_ptr<FileManager::UploadCallback> callback,
-                   int32 new_priority, uint64 upload_order, ActorShared<> parent)
+                   int32 new_priority, uint64 upload_order, bool prefer_small, ActorShared<> parent)
       : file_manager_(file_manager)
       , file_id_(file_id)
       , callback_(std::move(callback))
       , new_priority_(new_priority)
       , upload_order_(upload_order)
+      , prefer_small_(prefer_small)
       , parent_(std::move(parent)) {
   }
 
@@ -2334,9 +2336,11 @@ class FileManager::ForceUploadActor : public Actor {
   std::shared_ptr<FileManager::UploadCallback> callback_;
   int32 new_priority_;
   uint64 upload_order_;
+  bool prefer_small_;
   ActorShared<> parent_;
   bool is_active_{false};
   int attempt_{0};
+
   class UploadCallback : public FileManager::UploadCallback {
    public:
     explicit UploadCallback(ActorId<ForceUploadActor> callback) : callback_(std::move(callback)) {
@@ -2433,7 +2437,7 @@ class FileManager::ForceUploadActor : public Actor {
     is_active_ = true;
     attempt_++;
     send_closure(G()->file_manager(), &FileManager::resume_upload, file_id_, std::vector<int>(), create_callback(),
-                 new_priority_, upload_order_, attempt_ == 2);
+                 new_priority_, upload_order_, attempt_ == 2, prefer_small_);
   }
 
   void tear_down() override {
@@ -2452,7 +2456,7 @@ void FileManager::on_force_reupload_success(FileId file_id) {
 }
 
 void FileManager::resume_upload(FileId file_id, std::vector<int> bad_parts, std::shared_ptr<UploadCallback> callback,
-                                int32 new_priority, uint64 upload_order, bool force) {
+                                int32 new_priority, uint64 upload_order, bool force, bool prefer_small) {
   auto node = get_sync_file_node(file_id);
   if (!node) {
     LOG(INFO) << "File " << file_id << " not found";
@@ -2472,7 +2476,7 @@ void FileManager::resume_upload(FileId file_id, std::vector<int> bad_parts, std:
     }
 
     create_actor<ForceUploadActor>("ForceUploadActor", this, file_id, std::move(callback), new_priority, upload_order,
-                                   context_->create_reference())
+                                   prefer_small, context_->create_reference())
         .release();
     return;
   }
@@ -2480,6 +2484,9 @@ void FileManager::resume_upload(FileId file_id, std::vector<int> bad_parts, std:
 
   if (force) {
     node->remote_.is_full_alive = false;
+  }
+  if (prefer_small) {
+    node->upload_prefer_small_ = true;
   }
   if (node->upload_pause_ == file_id) {
     node->set_upload_pause(FileId());
@@ -2790,10 +2797,15 @@ void FileManager::run_upload(FileNodePtr node, std::vector<int> bad_parts) {
   auto new_priority = narrow_cast<int8>(bad_parts.empty() ? -priority : priority);
   td::remove_if(bad_parts, [](auto part_id) { return part_id < 0; });
 
+  auto expected_size = file_view.expected_size(true);
+  if (node->upload_prefer_small_ && (10 << 20) < expected_size && expected_size < (30 << 20)) {
+    expected_size = 10 << 20;
+  }
+
   QueryId id = queries_container_.create(Query{file_id, Query::Type::Upload});
   node->upload_id_ = id;
   send_closure(file_load_manager_, &FileLoadManager::upload, id, node->local_, node->remote_.partial_or_empty(),
-               file_view.expected_size(true), node->encryption_key_, new_priority, std::move(bad_parts));
+               expected_size, node->encryption_key_, new_priority, std::move(bad_parts));
 
   LOG(INFO) << "File " << file_id << " upload request has sent to FileLoadManager";
 }

@@ -156,6 +156,7 @@ class FileNode {
   double last_successful_force_reupload_time_ = -1e10;
 
   FileId upload_pause_;
+
   int8 upload_priority_ = 0;
   int8 download_priority_ = 0;
   int8 generate_priority_ = 0;
@@ -182,6 +183,8 @@ class FileNode {
 
   bool upload_was_update_file_reference_{false};
   bool download_was_update_file_reference_{false};
+
+  bool upload_prefer_small_{false};
 
   void init_ready_size();
 
@@ -444,7 +447,7 @@ class FileManager : public FileLoadManager::Callback {
                 int64 limit);
   void upload(FileId file_id, std::shared_ptr<UploadCallback> callback, int32 new_priority, uint64 upload_order);
   void resume_upload(FileId file_id, std::vector<int> bad_parts, std::shared_ptr<UploadCallback> callback,
-                     int32 new_priority, uint64 upload_order, bool force = false);
+                     int32 new_priority, uint64 upload_order, bool force = false, bool prefer_small = false);
   void cancel_upload(FileId file_id);
   bool delete_partial_remote_location(FileId file_id);
   void delete_file_reference(FileId file_id, std::string file_reference);
