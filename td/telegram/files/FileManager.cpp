@@ -3162,6 +3162,70 @@ Result<FileId> FileManager::get_map_thumbnail_file_id(Location location, int32 z
       FileLocationSource::FromUser, string(), std::move(conversion), owner_dialog_id, 0);
 }
 
+FileType FileManager::guess_file_type(const tl_object_ptr<td_api::InputFile> &file) {
+  if (file == nullptr) {
+    return FileType::Temp;
+  }
+
+  auto guess_file_type_by_path = [](const string &file_path) {
+    PathView path_view(file_path);
+    auto file_name = path_view.file_name();
+    auto extension = path_view.extension();
+    if (extension == "jpg" || extension == "jpeg") {
+      return FileType::Photo;
+    }
+    if (extension == "ogg" || extension == "oga" || extension == "opus") {
+      return FileType::VoiceNote;
+    }
+    if (extension == "3gp" || extension == "mov") {
+      return FileType::Video;
+    }
+    if (extension == "mp3" || extension == "mpeg3" || extension == "m4a") {
+      return FileType::Audio;
+    }
+    if (extension == "webp" || extension == "tgs" || extension == "opus") {
+      return FileType::Sticker;
+    }
+    if (extension == "gif") {
+      return FileType::Animation;
+    }
+    if (extension == "mp4" || extension == "mpeg4") {
+      return to_lower(file_name).find("-gif-") != string::npos ? FileType::Animation : FileType::Video;
+    }
+    return FileType::Document;
+  };
+
+  switch (file->get_id()) {
+    case td_api::inputFileLocal::ID:
+      return guess_file_type_by_path(static_cast<const td_api::inputFileLocal *>(file.get())->path_);
+    case td_api::inputFileId::ID: {
+      FileId file_id(static_cast<const td_api::inputFileId *>(file.get())->id_, 0);
+      auto file_view = get_file_view(file_id);
+      if (file_view.empty()) {
+        return FileType::Temp;
+      }
+      return file_view.get_type();
+    }
+    case td_api::inputFileRemote::ID: {
+      const string &file_persistent_id = static_cast<const td_api::inputFileRemote *>(file.get())->id_;
+      Result<FileId> r_file_id = from_persistent_id(file_persistent_id, FileType::Temp);
+      if (r_file_id.is_error()) {
+        return FileType::Temp;
+      }
+      auto file_view = get_file_view(r_file_id.ok());
+      if (file_view.empty()) {
+        return FileType::Temp;
+      }
+      return file_view.get_type();
+    }
+    case td_api::inputFileGenerated::ID:
+      return guess_file_type_by_path(static_cast<const td_api::inputFileGenerated *>(file.get())->original_path_);
+    default:
+      UNREACHABLE();
+      return FileType::Temp;
+  }
+}
+
 vector<tl_object_ptr<telegram_api::InputDocument>> FileManager::get_input_documents(const vector<FileId> &file_ids) {
   vector<tl_object_ptr<telegram_api::InputDocument>> result;
   result.reserve(file_ids.size());

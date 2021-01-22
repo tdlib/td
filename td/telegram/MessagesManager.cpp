@@ -26308,8 +26308,14 @@ void MessagesManager::import_messages(DialogId dialog_id, const td_api::object_p
   vector<FileId> attached_file_ids;
   attached_file_ids.reserve(attached_files.size());
   for (auto &attached_file : attached_files) {
-    auto r_attached_file_id =
-        td_->file_manager_->get_input_file_id(FileType::Document, attached_file, dialog_id, false, false);
+    auto file_type = td_->file_manager_->guess_file_type(attached_file);
+    if (file_type != FileType::Animation && file_type != FileType::Audio && file_type != FileType::Document &&
+        file_type != FileType::Photo && file_type != FileType::Sticker && file_type != FileType::Video &&
+        file_type != FileType::VoiceNote) {
+      LOG(INFO) << "Skip attached file of type " << file_type;
+      continue;
+    }
+    auto r_attached_file_id = td_->file_manager_->get_input_file_id(file_type, attached_file, dialog_id, false, false);
     if (r_attached_file_id.is_error()) {
       // TODO TRY_RESULT_PROMISE(promise, ...);
       return promise.set_error(Status::Error(400, r_attached_file_id.error().message()));
