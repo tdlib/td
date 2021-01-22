@@ -6535,6 +6535,13 @@ void Td::on_request(uint64 id, const td_api::deleteFile &request) {
                "td_api::deleteFile");
 }
 
+void Td::on_request(uint64 id, td_api::getMessageFileType &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.message_file_head_);
+  CREATE_REQUEST_PROMISE();
+  messages_manager_->get_message_file_type(request.message_file_head_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::importMessages &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

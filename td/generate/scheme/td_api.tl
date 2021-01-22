@@ -2615,6 +2615,18 @@ checkChatUsernameResultPublicChatsTooMuch = CheckChatUsernameResult;
 checkChatUsernameResultPublicGroupsUnavailable = CheckChatUsernameResult;
 
 
+//@class MessageFileType @description Contains information about a file with messages exported from another app
+
+//@description The messages was exported from a private chat
+messageFileTypePrivate = MessageFileType;
+
+//@description The messages was exported from a group chat @title Title of the group chat
+messageFileTypeGroup title:string = MessageFileType;
+
+//@description The messages was exported from a chat of unknown type
+messageFileTypeUnknown = MessageFileType;
+
+
 //@class PushMessageContent @description Contains content of a push message notification
 
 //@description A general message with hidden content @is_pinned True, if the message is a pinned message with the specified content
@@ -4387,6 +4399,9 @@ readFilePart file_id:int32 offset:int32 count:int32 = FilePart;
 //@description Deletes a file from the TDLib file cache @file_id Identifier of the file to delete
 deleteFile file_id:int32 = Ok;
 
+
+//@description Returns information about a file with messages exported from another app @message_file_head Beginning of the message file; up to 100 first lines
+getMessageFileType message_file_head:string = MessageFileType;
 
 //@description Imports messages exported from another app
 //@chat_id Identifier of a chat to which the messages will be imported. It must be an identifier of a private chat with a mutual contact or an identifier of a created supergroup chat

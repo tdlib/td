@@ -394,6 +394,9 @@ class MessagesManager : public Actor {
                                       tl_object_ptr<td_api::InputMessageContent> &&input_message_content)
       TD_WARN_UNUSED_RESULT;
 
+  void get_message_file_type(const string &message_file_head,
+                             Promise<td_api::object_ptr<td_api::MessageFileType>> &&promise);
+
   void import_messages(DialogId dialog_id, const td_api::object_ptr<td_api::InputFile> &message_file,
                        const vector<td_api::object_ptr<td_api::InputFile>> &attached_files, Promise<Unit> &&promise);
 

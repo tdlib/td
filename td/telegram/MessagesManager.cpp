@@ -1009,6 +1009,43 @@ class CreateChannelQuery : public Td::ResultHandler {
   }
 };
 
+class CheckHistoryImportQuery : public Td::ResultHandler {
+  Promise<tl_object_ptr<td_api::MessageFileType>> promise_;
+
+ public:
+  explicit CheckHistoryImportQuery(Promise<tl_object_ptr<td_api::MessageFileType>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(const string &message_file_head) {
+    send_query(G()->net_query_creator().create(telegram_api::messages_checkHistoryImport(message_file_head)));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::messages_checkHistoryImport>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for CheckHistoryImportQuery: " << to_string(ptr);
+    auto file_type = [&]() -> td_api::object_ptr<td_api::MessageFileType> {
+      if (ptr->pm_) {
+        return td_api::make_object<td_api::messageFileTypePrivate>();
+      } else if (ptr->group_) {
+        return td_api::make_object<td_api::messageFileTypeGroup>(ptr->title_);
+      } else {
+        return td_api::make_object<td_api::messageFileTypeUnknown>();
+      }
+    }();
+    promise_.set_value(std::move(file_type));
+  }
+
+  void on_error(uint64 id, Status status) override {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class InitHistoryImportQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   FileId file_id_;
@@ -26403,6 +26440,11 @@ Result<MessageId> MessagesManager::add_local_message(
   }
 
   return message_id;
+}
+
+void MessagesManager::get_message_file_type(const string &message_file_head,
+                                            Promise<td_api::object_ptr<td_api::MessageFileType>> &&promise) {
+  td_->create_handler<CheckHistoryImportQuery>(std::move(promise))->send(message_file_head);
 }
 
 void MessagesManager::import_messages(DialogId dialog_id, const td_api::object_ptr<td_api::InputFile> &message_file,

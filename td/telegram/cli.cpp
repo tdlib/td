@@ -24,6 +24,7 @@
 #include "td/utils/crypto.h"
 #include "td/utils/ExitGuard.h"
 #include "td/utils/FileLog.h"
+#include "td/utils/filesystem.h"
 #include "td/utils/format.h"
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
@@ -41,6 +42,7 @@
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/Time.h"
+#include "td/utils/utf8.h"
 
 #ifndef USE_READLINE
 #include "td/utils/find_boundary.h"
@@ -2971,6 +2973,17 @@ class CliClient final : public Actor {
                 as_input_file(document), nullptr, true, as_caption(""));
             return content;
           })));
+    } else if (op == "gmft") {
+      auto r_message_file_head = read_file_str(args, 2 << 10);
+      if (r_message_file_head.is_error()) {
+        LOG(ERROR) << r_message_file_head.error();
+      } else {
+        auto message_file_head = r_message_file_head.move_as_ok();
+        while (!check_utf8(message_file_head)) {
+          message_file_head.pop_back();
+        }
+        send_request(td_api::make_object<td_api::getMessageFileType>(message_file_head));
+      }
     } else if (op == "im") {
       string chat_id;
       string message_file;
