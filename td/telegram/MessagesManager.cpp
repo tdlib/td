@@ -975,7 +975,7 @@ class CreateChannelQuery : public Td::ResultHandler {
   }
 
   void send(const string &title, bool is_megagroup, const string &about, const DialogLocation &location,
-            int64 random_id) {
+            bool for_import, int64 random_id) {
     int32 flags = 0;
     if (is_megagroup) {
       flags |= telegram_api::channels_createChannel::MEGAGROUP_MASK;
@@ -984,6 +984,9 @@ class CreateChannelQuery : public Td::ResultHandler {
     }
     if (!location.empty()) {
       flags |= telegram_api::channels_createChannel::GEO_POINT_MASK;
+    }
+    if (for_import) {
+      flags |= telegram_api::channels_createChannel::FOR_IMPORT_MASK;
     }
 
     random_id_ = random_id;
@@ -18979,7 +18982,7 @@ DialogId MessagesManager::create_new_group_chat(const vector<UserId> &user_ids, 
 }
 
 DialogId MessagesManager::create_new_channel_chat(const string &title, bool is_megagroup, const string &description,
-                                                  const DialogLocation &location, int64 &random_id,
+                                                  const DialogLocation &location, bool for_import, int64 &random_id,
                                                   Promise<Unit> &&promise) {
   LOG(INFO) << "Trying to create " << (is_megagroup ? "supergroup" : "broadcast") << " with title \"" << title
             << "\", description \"" << description << "\" and " << location;
@@ -19014,7 +19017,8 @@ DialogId MessagesManager::create_new_channel_chat(const string &title, bool is_m
   created_dialogs_[random_id];  // reserve place for result
 
   td_->create_handler<CreateChannelQuery>(std::move(promise))
-      ->send(new_title, is_megagroup, strip_empty_characters(description, MAX_DESCRIPTION_LENGTH), location, random_id);
+      ->send(new_title, is_megagroup, strip_empty_characters(description, MAX_DESCRIPTION_LENGTH), location, for_import,
+             random_id);
   return DialogId();
 }
 

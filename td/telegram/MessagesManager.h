@@ -637,7 +637,8 @@ class MessagesManager : public Actor {
                                  Promise<Unit> &&promise);
 
   DialogId create_new_channel_chat(const string &title, bool is_megagroup, const string &description,
-                                   const DialogLocation &location, int64 &random_id, Promise<Unit> &&promise);
+                                   const DialogLocation &location, bool for_import, int64 &random_id,
+                                   Promise<Unit> &&promise);
 
   void create_new_secret_chat(UserId user_id, Promise<SecretChatId> &&promise);
 

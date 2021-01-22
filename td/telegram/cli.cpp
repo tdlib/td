@@ -3438,13 +3438,15 @@ class CliClient final : public Actor {
       get_args(args, user_ids_string, title);
       send_request(td_api::make_object<td_api::createNewBasicGroupChat>(as_user_ids(user_ids_string), title));
     } else if (op == "cnchc") {
-      send_request(td_api::make_object<td_api::createNewSupergroupChat>(args, true, "Description", nullptr));
+      send_request(td_api::make_object<td_api::createNewSupergroupChat>(args, true, "Description", nullptr, false));
     } else if (op == "cnsgc") {
-      send_request(td_api::make_object<td_api::createNewSupergroupChat>(args, false, "Description", nullptr));
+      send_request(td_api::make_object<td_api::createNewSupergroupChat>(args, false, "Description", nullptr, false));
     } else if (op == "cnsgcloc") {
       send_request(td_api::make_object<td_api::createNewSupergroupChat>(
-          args, false, "Description",
-          td_api::make_object<td_api::chatLocation>(as_location("40.0", "60.0"), "address")));
+          args, false, "Description", td_api::make_object<td_api::chatLocation>(as_location("40.0", "60.0"), "address"),
+          false));
+    } else if (op == "cnsgcimport") {
+      send_request(td_api::make_object<td_api::createNewSupergroupChat>(args, false, "Description", nullptr, true));
     } else if (op == "UpgradeBasicGroupChatToSupergroupChat") {
       send_request(td_api::make_object<td_api::upgradeBasicGroupChatToSupergroupChat>(as_chat_id(args)));
     } else if (op == "DeleteChat") {
