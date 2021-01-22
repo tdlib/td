@@ -2617,10 +2617,10 @@ checkChatUsernameResultPublicGroupsUnavailable = CheckChatUsernameResult;
 
 //@class MessageFileType @description Contains information about a file with messages exported from another app
 
-//@description The messages was exported from a private chat
-messageFileTypePrivate = MessageFileType;
+//@description The messages was exported from a private chat @name Name of the other party; may be empty if unrecognized
+messageFileTypePrivate name:string = MessageFileType;
 
-//@description The messages was exported from a group chat @title Title of the group chat
+//@description The messages was exported from a group chat @title Title of the group chat; may be empty if unrecognized
 messageFileTypeGroup title:string = MessageFileType;
 
 //@description The messages was exported from a chat of unknown type
@@ -4878,7 +4878,7 @@ deleteAccount reason:string = Ok;
 //@description Removes a chat action bar without any other action @chat_id Chat identifier
 removeChatActionBar chat_id:int53 = Ok;
 
-//@description Reports a chat to the Telegram moderators. A chat can be reported only from the chat action bar, or if this is a private chats with a bot, a private chat with a user sharing their location, a supergroup, or a channel, since other chats can't be checked by moderators @chat_id Chat identifier @reason The reason for reporting the chat @message_ids Identifiers of reported messages, if any
+//@description Reports a chat to the Telegram moderators. A chat can be reported only from the chat action bar, or if this is a private chat with a bot, a private chat with a user sharing their location, a supergroup, or a channel, since other chats can't be checked by moderators @chat_id Chat identifier @reason The reason for reporting the chat @message_ids Identifiers of reported messages, if any
 reportChat chat_id:int53 reason:ChatReportReason message_ids:vector<int53> = Ok;
 
 

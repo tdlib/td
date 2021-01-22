@@ -1034,7 +1034,7 @@ class CheckHistoryImportQuery : public Td::ResultHandler {
     LOG(INFO) << "Receive result for CheckHistoryImportQuery: " << to_string(ptr);
     auto file_type = [&]() -> td_api::object_ptr<td_api::MessageFileType> {
       if (ptr->pm_) {
-        return td_api::make_object<td_api::messageFileTypePrivate>();
+        return td_api::make_object<td_api::messageFileTypePrivate>(ptr->title_);
       } else if (ptr->group_) {
         return td_api::make_object<td_api::messageFileTypeGroup>(ptr->title_);
       } else {
