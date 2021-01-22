@@ -26472,7 +26472,7 @@ void MessagesManager::import_messages(DialogId dialog_id, const td_api::object_p
       if (is_broadcast_channel(dialog_id)) {
         return promise.set_error(Status::Error(400, "Can't import messages to channels"));
       }
-      if (!td_->contacts_manager_->get_channel_status(dialog_id.get_channel_id()).is_creator()) {
+      if (!td_->contacts_manager_->get_channel_status(dialog_id.get_channel_id()).can_change_info_and_settings()) {
         return promise.set_error(Status::Error(400, "Not enough rights to import messages"));
       }
       break;
