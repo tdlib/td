@@ -2496,6 +2496,40 @@ tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *co
   return input_media;
 }
 
+tl_object_ptr<telegram_api::InputMedia> get_fake_input_media(Td *td, tl_object_ptr<telegram_api::InputFile> input_file,
+                                                             FileId file_id) {
+  FileView file_view = td->file_manager_->get_file_view(file_id);
+  auto file_type = file_view.get_type();
+  switch (file_type) {
+    case FileType::Animation:
+    case FileType::Audio:
+    case FileType::Document:
+    case FileType::Sticker:
+    case FileType::Video:
+    case FileType::VoiceNote: {
+      vector<tl_object_ptr<telegram_api::DocumentAttribute>> attributes;
+      auto file_name = file_view.suggested_name();
+      if (!file_name.empty()) {
+        attributes.push_back(make_tl_object<telegram_api::documentAttributeFilename>(file_name));
+      }
+      string mime_type = MimeType::from_extension(PathView(file_name).extension());
+      int32 flags = 0;
+      if (file_type == FileType::Video) {
+        flags |= telegram_api::inputMediaUploadedDocument::NOSOUND_VIDEO_MASK;
+      }
+      return make_tl_object<telegram_api::inputMediaUploadedDocument>(
+          flags, false /*ignored*/, false /*ignored*/, std::move(input_file), nullptr, mime_type, std::move(attributes),
+          vector<tl_object_ptr<telegram_api::InputDocument>>(), 0);
+    }
+    case FileType::Photo:
+      return make_tl_object<telegram_api::inputMediaUploadedPhoto>(
+          0, std::move(input_file), vector<tl_object_ptr<telegram_api::InputDocument>>(), 0);
+    default:
+      UNREACHABLE();
+  }
+  return nullptr;
+}
+
 void delete_message_content_thumbnail(MessageContent *content, Td *td) {
   switch (content->get_type()) {
     case MessageContentType::Animation: {

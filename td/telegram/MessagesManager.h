@@ -896,9 +896,6 @@ class MessagesManager : public Actor {
   void upload_dialog_photo(DialogId dialog_id, FileId file_id, bool is_animation, double main_frame_timestamp,
                            bool is_reupload, Promise<Unit> &&promise, vector<int> bad_parts = {});
 
-  void upload_imported_messages(DialogId dialog_id, FileId file_id, vector<FileId> attached_file_ids, bool is_reupload,
-                                Promise<Unit> &&promise, vector<int> bad_parts = {});
-
   void on_binlog_events(vector<BinlogEvent> &&events);
 
   void set_poll_answer(FullMessageId full_message_id, vector<int32> &&option_ids, Promise<Unit> &&promise);
@@ -2833,8 +2830,19 @@ class MessagesManager : public Actor {
                                     tl_object_ptr<telegram_api::InputChatPhoto> &&input_chat_photo,
                                     Promise<Unit> &&promise);
 
+  void upload_imported_messages(DialogId dialog_id, FileId file_id, vector<FileId> attached_file_ids, bool is_reupload,
+                                Promise<Unit> &&promise, vector<int> bad_parts = {});
+
   void on_upload_imported_messages(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file);
   void on_upload_imported_messages_error(FileId file_id, Status status);
+
+  void upload_imported_message_attachment(DialogId dialog_id, int64 import_id, FileId file_id, bool is_reupload,
+                                          Promise<Unit> &&promise, vector<int> bad_parts = {});
+
+  void on_upload_imported_message_attachment(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file);
+  void on_upload_imported_message_attachment_error(FileId file_id, Status status);
+
+  void on_imported_message_attachments_uploaded(int64 random_id, Result<Unit> &&result);
 
   void add_sponsored_dialog(const Dialog *d, DialogSource source);
 
@@ -2969,11 +2977,13 @@ class MessagesManager : public Actor {
   class UploadThumbnailCallback;
   class UploadDialogPhotoCallback;
   class UploadImportedMessagesCallback;
+  class UploadImportedMessageAttachmentCallback;
 
   std::shared_ptr<UploadMediaCallback> upload_media_callback_;
   std::shared_ptr<UploadThumbnailCallback> upload_thumbnail_callback_;
   std::shared_ptr<UploadDialogPhotoCallback> upload_dialog_photo_callback_;
   std::shared_ptr<UploadImportedMessagesCallback> upload_imported_messages_callback_;
+  std::shared_ptr<UploadImportedMessageAttachmentCallback> upload_imported_message_attachment_callback_;
 
   double last_channel_pts_jump_warning_time_ = 0;
 
@@ -3071,6 +3081,28 @@ class MessagesManager : public Actor {
     }
   };
   std::unordered_map<FileId, unique_ptr<UploadedImportedMessagesInfo>, FileIdHash> being_uploaded_imported_messages_;
+
+  struct UploadedImportedMessageAttachmentInfo {
+    DialogId dialog_id;
+    int64 import_id;
+    bool is_reupload;
+    Promise<Unit> promise;
+
+    UploadedImportedMessageAttachmentInfo(DialogId dialog_id, int64 import_id, bool is_reupload,
+                                          Promise<Unit> &&promise)
+        : dialog_id(dialog_id), import_id(import_id), is_reupload(is_reupload), promise(std::move(promise)) {
+    }
+  };
+  std::unordered_map<FileId, unique_ptr<UploadedImportedMessageAttachmentInfo>, FileIdHash>
+      being_uploaded_imported_message_attachments_;
+
+  struct PendingMessageImport {
+    MultiPromiseActor upload_files_multipromise{"UploadAttachedFilesMultiPromiseActor"};
+    DialogId dialog_id;
+    int64 import_id = 0;
+    Promise<Unit> promise;
+  };
+  std::unordered_map<int64, unique_ptr<PendingMessageImport>> pending_message_imports_;
 
   struct PendingMessageGroupSend {
     DialogId dialog_id;
