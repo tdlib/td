@@ -12302,17 +12302,14 @@ void MessagesManager::on_get_secret_message(SecretChatId secret_chat_id, UserId 
     LOG(WARNING) << "Receive invalid bot username " << message->via_bot_name_;
     message->via_bot_name_.clear();
   }
-  if ((message->flags_ & secret_api::decryptedMessage::VIA_BOT_NAME_MASK) != 0 && !message->via_bot_name_.empty()) {
-    pending_secret_message->load_data_multipromise.add_promise(
-        PromiseCreator::lambda([this, via_bot_name = message->via_bot_name_, &flags = message_info.flags,
-                                &via_bot_user_id = message_info.via_bot_user_id](Unit) mutable {
-          auto dialog_id = resolve_dialog_username(via_bot_name);
-          if (dialog_id.is_valid() && dialog_id.get_type() == DialogType::User) {
-            flags |= MESSAGE_FLAG_IS_SENT_VIA_BOT;
-            via_bot_user_id = dialog_id.get_user_id();
-          }
-        }));
-    search_public_dialog(message->via_bot_name_, false, pending_secret_message->load_data_multipromise.get_promise());
+  if (!message->via_bot_name_.empty()) {
+    auto request_promise = PromiseCreator::lambda(
+        [actor_id = actor_id(this), via_bot_username = message->via_bot_name_, message_info_ptr = &message_info,
+         promise = pending_secret_message->load_data_multipromise.get_promise()](Unit) mutable {
+          send_closure(actor_id, &MessagesManager::on_resolve_secret_chat_message_via_bot_username, via_bot_username,
+                       message_info_ptr, std::move(promise));
+        });
+    search_public_dialog(message->via_bot_name_, false, std::move(request_promise));
   }
   if ((message->flags_ & secret_api::decryptedMessage::GROUPED_ID_MASK) != 0 && message->grouped_id_ != 0) {
     message_info.media_album_id = message->grouped_id_;
@@ -12325,6 +12322,23 @@ void MessagesManager::on_get_secret_message(SecretChatId secret_chat_id, UserId 
       message_info.dialog_id, pending_secret_message->load_data_multipromise);
 
   add_secret_message(std::move(pending_secret_message), std::move(lock_promise));
+}
+
+void MessagesManager::on_resolve_secret_chat_message_via_bot_username(const string &via_bot_username,
+                                                                      MessageInfo *message_info_ptr,
+                                                                      Promise<Unit> &&promise) {
+  if (!G()->close_flag()) {
+    auto dialog_id = resolve_dialog_username(via_bot_username);
+    if (dialog_id.is_valid() && dialog_id.get_type() == DialogType::User) {
+      auto user_id = dialog_id.get_user_id();
+      auto r_bot_data = td_->contacts_manager_->get_bot_data(user_id);
+      if (r_bot_data.is_ok() && r_bot_data.ok().is_inline) {
+        message_info_ptr->flags |= MESSAGE_FLAG_IS_SENT_VIA_BOT;
+        message_info_ptr->via_bot_user_id = user_id;
+      }
+    }
+  }
+  promise.set_value(Unit());
 }
 
 void MessagesManager::on_secret_chat_screenshot_taken(SecretChatId secret_chat_id, UserId user_id, MessageId message_id,
