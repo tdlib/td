@@ -12810,6 +12810,23 @@ MessageId MessagesManager::find_old_message_id(DialogId dialog_id, MessageId mes
   return MessageId();
 }
 
+void MessagesManager::delete_update_message_id(DialogId dialog_id, MessageId message_id) {
+  if (message_id.is_scheduled()) {
+    CHECK(message_id.is_scheduled_server());
+    auto dialog_it = update_scheduled_message_ids_.find(dialog_id);
+    CHECK(dialog_it != update_scheduled_message_ids_.end());
+    auto erased_count = dialog_it->second.erase(message_id.get_scheduled_server_message_id());
+    CHECK(erased_count > 0);
+    if (dialog_it->second.empty()) {
+      update_scheduled_message_ids_.erase(dialog_it);
+    }
+  } else {
+    CHECK(message_id.is_server());
+    auto erased_count = update_message_ids_.erase(FullMessageId(dialog_id, message_id));
+    CHECK(erased_count > 0);
+  }
+}
+
 FullMessageId MessagesManager::on_get_message(tl_object_ptr<telegram_api::Message> message_ptr, bool from_update,
                                               bool is_channel_message, bool is_scheduled, bool have_previous,
                                               bool have_next, const char *source) {
@@ -12865,17 +12882,7 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
       }
     }
 
-    if (message_id.is_scheduled()) {
-      CHECK(message_id.is_scheduled_server());
-      auto dialog_it = update_scheduled_message_ids_.find(dialog_id);
-      CHECK(dialog_it != update_scheduled_message_ids_.end());
-      dialog_it->second.erase(message_id.get_scheduled_server_message_id());
-      if (dialog_it->second.empty()) {
-        update_scheduled_message_ids_.erase(dialog_it);
-      }
-    } else {
-      update_message_ids_.erase(FullMessageId(dialog_id, message_id));
-    }
+    delete_update_message_id(dialog_id, message_id);
 
     if (!new_message->is_outgoing && dialog_id != get_my_dialog_id()) {
       // sent message is not from me

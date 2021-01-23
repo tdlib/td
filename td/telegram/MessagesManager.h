@@ -1721,6 +1721,8 @@ class MessagesManager : public Actor {
 
   MessageId find_old_message_id(DialogId dialog_id, MessageId message_id) const;
 
+  void delete_update_message_id(DialogId dialog_id, MessageId message_id);
+
   FullMessageId on_get_message(MessageInfo &&message_info, bool from_update, bool is_channel_message,
                                bool have_previous, bool have_next, const char *source);
 
