@@ -9611,7 +9611,7 @@ bool MessagesManager::can_delete_message(DialogId dialog_id, const Message *m) c
   if (m == nullptr) {
     return true;
   }
-  if (m->message_id.is_local()) {
+  if (m->message_id.is_local() || m->message_id.is_yet_unsent()) {
     return true;
   }
   switch (dialog_id.get_type()) {
@@ -9688,6 +9688,9 @@ bool MessagesManager::can_revoke_message(DialogId dialog_id, const Message *m) c
 
 void MessagesManager::delete_messages(DialogId dialog_id, const vector<MessageId> &input_message_ids, bool revoke,
                                       Promise<Unit> &&promise) {
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
   Dialog *d = get_dialog_force(dialog_id);
   if (d == nullptr) {
     return promise.set_error(Status::Error(6, "Chat is not found"));
@@ -32143,6 +32146,16 @@ void MessagesManager::delete_message_from_database(Dialog *d, MessageId message_
         d->deleted_message_ids.insert(message_id);
       }
     }
+
+    if (message_id.is_any_server()) {
+      auto old_message_id = find_old_message_id(d->dialog_id, message_id);
+      if (old_message_id.is_valid()) {
+        LOG(WARNING) << "Sent " << FullMessageId{d->dialog_id, message_id} << " was deleted before it was received";
+        send_closure_later(actor_id(this), &MessagesManager::delete_messages, d->dialog_id,
+                           vector<MessageId>{old_message_id}, false, Promise<Unit>());
+        delete_update_message_id(d->dialog_id, message_id);
+      }
+    }
   }
 
   if (m != nullptr && m->random_id != 0 && (m->is_outgoing || d->dialog_id == get_my_dialog_id())) {
@@ -34427,6 +34440,7 @@ void MessagesManager::set_channel_pts(Dialog *d, int32 new_pts, const char *sour
 
 bool MessagesManager::need_channel_difference_to_add_message(DialogId dialog_id,
                                                              const tl_object_ptr<telegram_api::Message> &message_ptr) {
+  // keep consistent with add_message_to_dialog
   if (dialog_id.get_type() != DialogType::Channel || !have_input_peer(dialog_id, AccessRights::Read) ||
       dialog_id == debug_channel_difference_dialog_) {
     return false;
