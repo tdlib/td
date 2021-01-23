@@ -1855,7 +1855,7 @@ std::pair<int64, FileId> StickersManager::on_get_sticker_document(
     switch (attribute->get_id()) {
       case telegram_api::documentAttributeImageSize::ID: {
         auto image_size = move_tl_object_as<telegram_api::documentAttributeImageSize>(attribute);
-        dimensions = get_dimensions(image_size->w_, image_size->h_);
+        dimensions = get_dimensions(image_size->w_, image_size->h_, "sticker documentAttributeImageSize");
         break;
       }
       case telegram_api::documentAttributeSticker::ID:
@@ -4573,7 +4573,8 @@ Result<std::tuple<FileId, bool, bool, bool>> StickersManager::prepare_input_file
 
   if (is_animated) {
     int32 width = for_thumbnail ? 100 : 512;
-    create_sticker(file_id, string(), PhotoSize(), get_dimensions(width, width), nullptr, true, nullptr);
+    create_sticker(file_id, string(), PhotoSize(), get_dimensions(width, width, "prepare_input_file"), nullptr, true,
+                   nullptr);
   } else {
     td_->documents_manager_->create_document(file_id, string(), PhotoSize(), "sticker.png", "image/png", false);
   }

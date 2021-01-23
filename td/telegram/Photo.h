@@ -71,7 +71,7 @@ struct Photo {
   }
 };
 
-Dimensions get_dimensions(int32 width, int32 height);
+Dimensions get_dimensions(int32 width, int32 height, const char *source);
 
 bool operator==(const Dimensions &lhs, const Dimensions &rhs);
 bool operator!=(const Dimensions &lhs, const Dimensions &rhs);

@@ -485,7 +485,7 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
         page->embed_type = std::move(web_page->embed_type_);
       }
       if (web_page->flags_ & WEBPAGE_FLAG_HAS_EMBEDDED_PREVIEW_SIZE) {
-        page->embed_dimensions = get_dimensions(web_page->embed_width_, web_page->embed_height_);
+        page->embed_dimensions = get_dimensions(web_page->embed_width_, web_page->embed_height_, "webPage");
       }
       if (web_page->flags_ & WEBPAGE_FLAG_HAS_DURATION) {
         page->duration = web_page->duration_;

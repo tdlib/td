@@ -29,18 +29,18 @@
 
 namespace td {
 
-static uint16 get_dimension(int32 size) {
+static uint16 get_dimension(int32 size, const char *source) {
   if (size < 0 || size > 65535) {
-    LOG(ERROR) << "Wrong image dimension = " << size;
+    LOG(ERROR) << "Wrong image dimension = " << size << " from " << source;
     return 0;
   }
   return narrow_cast<uint16>(size);
 }
 
-Dimensions get_dimensions(int32 width, int32 height) {
+Dimensions get_dimensions(int32 width, int32 height, const char *source) {
   Dimensions result;
-  result.width = get_dimension(width);
-  result.height = get_dimension(height);
+  result.width = get_dimension(width, source);
+  result.height = get_dimension(height, source);
   if (result.width == 0 || result.height == 0) {
     result.width = 0;
     result.height = 0;
@@ -338,7 +338,7 @@ PhotoSize get_secret_thumbnail_photo_size(FileManager *file_manager, BufferSlice
   }
   PhotoSize res;
   res.type = 't';
-  res.dimensions = get_dimensions(width, height);
+  res.dimensions = get_dimensions(width, height, "get_secret_thumbnail_photo_size");
   res.size = narrow_cast<int32>(bytes.size());
 
   // generate some random remote location to save
@@ -374,7 +374,7 @@ Variant<PhotoSize, string> get_photo_size(FileManager *file_manager, PhotoSizeSo
 
       type = std::move(size->type_);
       location = std::move(size->location_);
-      res.dimensions = get_dimensions(size->w_, size->h_);
+      res.dimensions = get_dimensions(size->w_, size->h_, "photoSize");
       res.size = size->size_;
 
       break;
@@ -385,7 +385,7 @@ Variant<PhotoSize, string> get_photo_size(FileManager *file_manager, PhotoSizeSo
       type = std::move(size->type_);
       location = std::move(size->location_);
       CHECK(size->bytes_.size() <= static_cast<size_t>(std::numeric_limits<int32>::max()));
-      res.dimensions = get_dimensions(size->w_, size->h_);
+      res.dimensions = get_dimensions(size->w_, size->h_, "photoCachedSize");
       res.size = static_cast<int32>(size->bytes_.size());
 
       content = std::move(size->bytes_);
@@ -411,7 +411,7 @@ Variant<PhotoSize, string> get_photo_size(FileManager *file_manager, PhotoSizeSo
 
       type = std::move(size->type_);
       location = std::move(size->location_);
-      res.dimensions = get_dimensions(size->w_, size->h_);
+      res.dimensions = get_dimensions(size->w_, size->h_, "photoSizeProgressive");
       res.size = size->sizes_.back();
       size->sizes_.pop_back();
       res.progressive_sizes = std::move(size->sizes_);
@@ -460,7 +460,7 @@ AnimationSize get_animation_size(FileManager *file_manager, PhotoSizeSource sour
     LOG(ERROR) << "Wrong videoSize \"" << size->type_ << "\" in " << to_string(size);
   }
   res.type = static_cast<uint8>(size->type_[0]);
-  res.dimensions = get_dimensions(size->w_, size->h_);
+  res.dimensions = get_dimensions(size->w_, size->h_, "get_animation_size");
   res.size = size->size_;
   if ((size->flags_ & telegram_api::videoSize::VIDEO_START_TS_MASK) != 0) {
     res.main_frame_timestamp = size->video_start_ts_;
@@ -534,7 +534,7 @@ PhotoSize get_web_document_photo_size(FileManager *file_manager, FileType file_t
     switch (attribute->get_id()) {
       case telegram_api::documentAttributeImageSize::ID: {
         auto image_size = move_tl_object_as<telegram_api::documentAttributeImageSize>(attribute);
-        dimensions = get_dimensions(image_size->w_, image_size->h_);
+        dimensions = get_dimensions(image_size->w_, image_size->h_, "web documentAttributeImageSize");
         break;
       }
       case telegram_api::documentAttributeAnimated::ID:
@@ -684,7 +684,7 @@ Photo get_encrypted_file_photo(FileManager *file_manager, tl_object_ptr<telegram
 
   PhotoSize s;
   s.type = 'i';
-  s.dimensions = get_dimensions(photo->w_, photo->h_);
+  s.dimensions = get_dimensions(photo->w_, photo->h_, "get_encrypted_file_photo");
   s.size = photo->size_;
   s.file_id = file_id;
   res.photos.push_back(s);
