@@ -3260,7 +3260,7 @@ void Td::on_get_promo_data(Result<telegram_api::object_ptr<telegram_api::help_Pr
 }
 
 void Td::schedule_get_promo_data(int32 expires_in) {
-  expires_in = clamp(expires_in, 60, 86400);
+  expires_in = expires_in <= 0 ? 0 : clamp(expires_in, 60, 86400);
   if (!close_flag_ && auth_manager_->is_authorized() && !auth_manager_->is_bot()) {
     LOG(INFO) << "Schedule getPromoData in " << expires_in;
     alarm_timeout_.set_timeout_in(PROMO_DATA_ALARM_ID, expires_in);
