@@ -8547,6 +8547,7 @@ void MessagesManager::after_get_difference() {
     auto dialog_id = full_message_id.get_dialog_id();
     auto message_id = full_message_id.get_message_id();
     CHECK(message_id.is_valid());
+    CHECK(message_id.is_server());
     switch (dialog_id.get_type()) {
       case DialogType::Channel:
         // get channel difference may prevent updates from being applied
@@ -8559,11 +8560,14 @@ void MessagesManager::after_get_difference() {
         if (!have_message_force({dialog_id, it.second}, "after get difference")) {
           // The sent message has already been deleted by the user or sent to inaccessible channel.
           // The sent message may never be received, but we will need updateMessageId in case the message is received
-          // to delete it from the server and to not add to the chat.
-          // But if the chat is inaccessible, then likely we will be unable to delete the message from server and
-          // will delete it from the chat just after it is added. So we remove updateMessageId for such messages in
+          // to delete it from the server and not add to the chat.
+          // But if the chat is inaccessible or the message is in an inaccessible chat part, then we will not be able to
+          // add the message or delete it from the server. In this case we forget updateMessageId for such messages in
           // order to not check them over and over.
-          if (!have_input_peer(dialog_id, AccessRights::Read)) {
+          const Dialog *d = get_dialog(dialog_id);
+          if (!have_input_peer(dialog_id, AccessRights::Read) ||
+              (d != nullptr &&
+               message_id <= td::max(d->last_clear_history_message_id, d->max_unavailable_message_id))) {
             update_message_ids_to_delete.push_back(it.first);
           }
           break;
@@ -8571,16 +8575,14 @@ void MessagesManager::after_get_difference() {
 
         const Dialog *d = get_dialog(dialog_id);
         CHECK(d != nullptr);
-        if (dialog_id.get_type() == DialogType::Channel || message_id.is_scheduled() ||
-            message_id <= d->last_new_message_id) {
+        if (dialog_id.get_type() == DialogType::Channel || message_id <= d->last_new_message_id) {
           LOG(ERROR) << "Receive updateMessageId from " << it.second << " to " << full_message_id
                      << " but not receive corresponding message, last_new_message_id = " << d->last_new_message_id;
         }
-        if (dialog_id.get_type() != DialogType::Channel &&
-            (message_id.is_scheduled() || message_id <= d->last_new_message_id)) {
+        if (dialog_id.get_type() != DialogType::Channel && message_id <= d->last_new_message_id) {
           dump_debug_message_op(get_dialog(dialog_id));
         }
-        if (message_id.is_scheduled() || message_id <= d->last_new_message_id) {
+        if (message_id <= d->last_new_message_id) {
           get_message_from_server(it.first, PromiseCreator::lambda([this, full_message_id](Result<Unit> result) {
                                     if (result.is_error()) {
                                       LOG(WARNING)
@@ -25948,7 +25950,7 @@ Result<MessageId> MessagesManager::add_local_message(
 }
 
 bool MessagesManager::on_update_message_id(int64 random_id, MessageId new_message_id, const string &source) {
-  if (!new_message_id.is_valid()) {
+  if (!new_message_id.is_valid() || !new_message_id.is_server()) {
     LOG(ERROR) << "Receive " << new_message_id << " in updateMessageId with random_id " << random_id << " from "
                << source;
     return false;
@@ -25956,7 +25958,7 @@ bool MessagesManager::on_update_message_id(int64 random_id, MessageId new_messag
 
   auto it = being_sent_messages_.find(random_id);
   if (it == being_sent_messages_.end()) {
-    // update about new message sent from other device or service message
+    // update about a new message sent from other device or a service message
     LOG(INFO) << "Receive not send outgoing " << new_message_id << " with random_id = " << random_id;
     return true;
   }
