@@ -1520,7 +1520,7 @@ void GroupCallManager::finish_load_group_call_administrators(InputGroupCallId in
     auto participants = td_->messages_manager_->search_dialog_participants(
         group_call->dialog_id, string(), 100, DialogParticipantsFilter(DialogParticipantsFilter::Type::Administrators),
         random_id, true, true, std::move(promise));
-    for (auto &administrator : participants.second) {
+    for (auto &administrator : participants.participants_) {
       if (administrator.status.can_manage_calls() && administrator.user_id != td_->contacts_manager_->get_my_id()) {
         administrator_user_ids.push_back(administrator.user_id);
       }

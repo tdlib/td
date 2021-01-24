@@ -13401,11 +13401,9 @@ DialogParticipant ContactsManager::get_chat_participant(ChatId chat_id, UserId u
   return *result;
 }
 
-std::pair<int32, vector<DialogParticipant>> ContactsManager::search_chat_participants(ChatId chat_id,
-                                                                                      const string &query, int32 limit,
-                                                                                      DialogParticipantsFilter filter,
-                                                                                      bool force,
-                                                                                      Promise<Unit> &&promise) {
+DialogParticipants ContactsManager::search_chat_participants(ChatId chat_id, const string &query, int32 limit,
+                                                             DialogParticipantsFilter filter, bool force,
+                                                             Promise<Unit> &&promise) {
   if (limit < 0) {
     promise.set_error(Status::Error(3, "Parameter limit must be non-negative"));
     return {};
@@ -13518,7 +13516,7 @@ DialogParticipant ContactsManager::get_channel_participant(ChannelId channel_id,
   return DialogParticipant();
 }
 
-std::pair<int32, vector<DialogParticipant>> ContactsManager::get_channel_participants(
+DialogParticipants ContactsManager::get_channel_participants(
     ChannelId channel_id, const tl_object_ptr<td_api::SupergroupMembersFilter> &filter, const string &additional_query,
     int32 offset, int32 limit, int32 additional_limit, int64 &random_id, bool without_bot_info, bool force,
     Promise<Unit> &&promise) {
@@ -13534,24 +13532,24 @@ std::pair<int32, vector<DialogParticipant>> ContactsManager::get_channel_partici
       return result;
     }
 
-    auto user_ids = transform(result.second, [](const auto &participant) { return participant.user_id; });
+    auto user_ids = transform(result.participants_, [](const auto &participant) { return participant.user_id; });
     std::pair<int32, vector<UserId>> result_user_ids = search_among_users(user_ids, additional_query, additional_limit);
 
-    result.first = result_user_ids.first;
+    result.total_count_ = result_user_ids.first;
     std::unordered_set<UserId, UserIdHash> result_user_ids_set(result_user_ids.second.begin(),
                                                                result_user_ids.second.end());
-    auto all_participants = std::move(result.second);
-    result.second.clear();
+    auto all_participants = std::move(result.participants_);
+    result.participants_.clear();
     for (auto &participant : all_participants) {
       if (result_user_ids_set.count(participant.user_id)) {
-        result.second.push_back(std::move(participant));
+        result.participants_.push_back(std::move(participant));
         result_user_ids_set.erase(participant.user_id);
       }
     }
     return result;
   }
 
-  std::pair<int32, vector<DialogParticipant>> result;
+  DialogParticipants result;
   if (limit <= 0) {
     promise.set_error(Status::Error(3, "Parameter limit must be positive"));
     return result;

@@ -501,17 +501,17 @@ class ContactsManager : public Actor {
 
   DialogParticipant get_chat_participant(ChatId chat_id, UserId user_id, bool force, Promise<Unit> &&promise);
 
-  std::pair<int32, vector<DialogParticipant>> search_chat_participants(ChatId chat_id, const string &query, int32 limit,
-                                                                       DialogParticipantsFilter filter, bool force,
-                                                                       Promise<Unit> &&promise);
+  DialogParticipants search_chat_participants(ChatId chat_id, const string &query, int32 limit,
+                                              DialogParticipantsFilter filter, bool force, Promise<Unit> &&promise);
 
   DialogParticipant get_channel_participant(ChannelId channel_id, UserId user_id, int64 &random_id, bool force,
                                             Promise<Unit> &&promise);
 
-  std::pair<int32, vector<DialogParticipant>> get_channel_participants(
-      ChannelId channel_id, const tl_object_ptr<td_api::SupergroupMembersFilter> &filter,
-      const string &additional_query, int32 offset, int32 limit, int32 additional_limit, int64 &random_id,
-      bool without_bot_info, bool force, Promise<Unit> &&promise);
+  DialogParticipants get_channel_participants(ChannelId channel_id,
+                                              const tl_object_ptr<td_api::SupergroupMembersFilter> &filter,
+                                              const string &additional_query, int32 offset, int32 limit,
+                                              int32 additional_limit, int64 &random_id, bool without_bot_info,
+                                              bool force, Promise<Unit> &&promise);
 
   void send_get_channel_participants_query(ChannelId channel_id, ChannelParticipantsFilter filter, int32 offset,
                                            int32 limit, int64 random_id, Promise<Unit> &&promise);
@@ -1567,7 +1567,7 @@ class ContactsManager : public Actor {
   std::unordered_map<int64, std::pair<vector<UserId>, vector<int32>>> imported_contacts_;
 
   std::unordered_map<int64, DialogParticipant> received_channel_participant_;
-  std::unordered_map<int64, std::pair<int32, vector<DialogParticipant>>> received_channel_participants_;
+  std::unordered_map<int64, DialogParticipants> received_channel_participants_;
 
   std::unordered_map<ChannelId, vector<DialogParticipant>, ChannelIdHash> cached_channel_participants_;
 

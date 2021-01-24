@@ -30265,8 +30265,9 @@ DialogParticipant MessagesManager::get_dialog_participant(DialogId dialog_id, Us
   return DialogParticipant();
 }
 
-std::pair<int32, vector<DialogParticipant>> MessagesManager::search_private_chat_participants(
-    UserId my_user_id, UserId peer_user_id, const string &query, int32 limit, DialogParticipantsFilter filter) const {
+DialogParticipants MessagesManager::search_private_chat_participants(UserId my_user_id, UserId peer_user_id,
+                                                                     const string &query, int32 limit,
+                                                                     DialogParticipantsFilter filter) const {
   vector<UserId> user_ids;
   switch (filter.type) {
     case DialogParticipantsFilter::Type::Contacts:
@@ -30307,9 +30308,10 @@ std::pair<int32, vector<DialogParticipant>> MessagesManager::search_private_chat
           })};
 }
 
-std::pair<int32, vector<DialogParticipant>> MessagesManager::search_dialog_participants(
-    DialogId dialog_id, const string &query, int32 limit, DialogParticipantsFilter filter, int64 &random_id,
-    bool without_bot_info, bool force, Promise<Unit> &&promise) {
+DialogParticipants MessagesManager::search_dialog_participants(DialogId dialog_id, const string &query, int32 limit,
+                                                               DialogParticipantsFilter filter, int64 &random_id,
+                                                               bool without_bot_info, bool force,
+                                                               Promise<Unit> &&promise) {
   LOG(INFO) << "Receive searchChatMembers request to search for \"" << query << "\" in " << dialog_id << " with filter "
             << filter;
   if (!have_dialog_force(dialog_id)) {

@@ -409,6 +409,16 @@ struct DialogParticipant {
 
 StringBuilder &operator<<(StringBuilder &string_builder, const DialogParticipant &dialog_participant);
 
+struct DialogParticipants {
+  int32 total_count_ = 0;
+  vector<DialogParticipant> participants_;
+
+  DialogParticipants() = default;
+  DialogParticipants(int32 total_count, vector<DialogParticipant> &&participants)
+      : total_count_(total_count), participants_(std::move(participants)) {
+  }
+};
+
 class ChannelParticipantsFilter {
   enum class Type : int32 { Recent, Contacts, Administrators, Search, Mention, Restricted, Banned, Bots } type;
   string query;

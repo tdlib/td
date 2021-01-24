@@ -1968,7 +1968,7 @@ class SearchChatMembersRequest : public RequestActor<> {
   DialogParticipantsFilter filter_;
   int64 random_id_ = 0;
 
-  std::pair<int32, vector<DialogParticipant>> participants_;
+  DialogParticipants participants_;
 
   void do_run(Promise<Unit> &&promise) override {
     participants_ = td->messages_manager_->search_dialog_participants(dialog_id_, query_, limit_, filter_, random_id_,
@@ -1978,12 +1978,12 @@ class SearchChatMembersRequest : public RequestActor<> {
   void do_send_result() override {
     // TODO create function get_chat_members_object
     vector<tl_object_ptr<td_api::chatMember>> result;
-    result.reserve(participants_.second.size());
-    for (auto participant : participants_.second) {
+    result.reserve(participants_.participants_.size());
+    for (auto participant : participants_.participants_) {
       result.push_back(td->contacts_manager_->get_chat_member_object(participant));
     }
 
-    send_result(make_tl_object<td_api::chatMembers>(participants_.first, std::move(result)));
+    send_result(make_tl_object<td_api::chatMembers>(participants_.total_count_, std::move(result)));
   }
 
  public:
@@ -2285,7 +2285,7 @@ class GetSupergroupMembersRequest : public RequestActor<> {
   int32 limit_;
   int64 random_id_ = 0;
 
-  std::pair<int32, vector<DialogParticipant>> participants_;
+  DialogParticipants participants_;
 
   void do_run(Promise<Unit> &&promise) override {
     participants_ = td->contacts_manager_->get_channel_participants(
@@ -2295,12 +2295,12 @@ class GetSupergroupMembersRequest : public RequestActor<> {
   void do_send_result() override {
     // TODO create function get_chat_members_object
     vector<tl_object_ptr<td_api::chatMember>> result;
-    result.reserve(participants_.second.size());
-    for (auto participant : participants_.second) {
+    result.reserve(participants_.participants_.size());
+    for (auto participant : participants_.participants_) {
       result.push_back(td->contacts_manager_->get_chat_member_object(participant));
     }
 
-    send_result(make_tl_object<td_api::chatMembers>(participants_.first, std::move(result)));
+    send_result(make_tl_object<td_api::chatMembers>(participants_.total_count_, std::move(result)));
   }
 
  public:
