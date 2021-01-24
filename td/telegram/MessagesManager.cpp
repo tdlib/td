@@ -14311,11 +14311,16 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
 
       if (*it != nullptr) {
         if (!(*it)->message_id.is_yet_unsent() && (*it)->message_id != d->last_database_message_id) {
-          set_dialog_last_database_message_id(d, (*it)->message_id, "do_delete_message");
-          if (d->last_database_message_id < d->first_database_message_id) {
-            LOG(ERROR) << "Last database " << d->last_database_message_id << " became less than first database "
-                       << d->first_database_message_id << " after deletion of " << full_message_id;
-            set_dialog_first_database_message_id(d, d->last_database_message_id, "do_delete_message 2");
+          if ((*it)->message_id < d->first_database_message_id && d->dialog_id.get_type() == DialogType::Channel) {
+            // possible if messages was deleted from database, but not from memory after updateChannelTooLong
+            set_dialog_last_database_message_id(d, MessageId(), "do_delete_message");
+          } else {
+            set_dialog_last_database_message_id(d, (*it)->message_id, "do_delete_message");
+            if (d->last_database_message_id < d->first_database_message_id) {
+              LOG(ERROR) << "Last database " << d->last_database_message_id << " became less than first database "
+                         << d->first_database_message_id << " after deletion of " << full_message_id;
+              set_dialog_first_database_message_id(d, d->last_database_message_id, "do_delete_message 2");
+            }
           }
         } else {
           need_get_history = true;
@@ -34693,7 +34698,7 @@ void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_m
   //    as results of getChatHistory and (if implemented continuous ranges support for searching shared media)
   //    searchChatMessages. The messages should still be lazily checked using getHistory, but they are still available
   //    offline. It is the best way for gaps support, but it is pretty hard to implement correctly.
-  // It should be also noted that some messages like live location messages shouldn't be deleted.
+  // It should be also noted that some messages like outgoing live location messages shouldn't be deleted.
 
   if (last_message_id > d->last_new_message_id) {
     // TODO properly support last_message_id <= d->last_new_message_id
