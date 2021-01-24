@@ -8890,9 +8890,10 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
   //  LOG_IF(ERROR, d->first_message_id.is_valid() && d->first_message_id > first_received_message_id)
   //      << "Receive " << first_received_message_id << ", but first chat message is " << d->first_message_id;
 
+  bool intersect_last_database_message_ids =
+      last_added_message_id >= d->first_database_message_id && d->last_database_message_id >= first_added_message_id;
   bool need_update_database_message_ids =
-      last_added_message_id.is_valid() && (from_the_end || (last_added_message_id >= d->first_database_message_id &&
-                                                            d->last_database_message_id >= first_added_message_id));
+      last_added_message_id.is_valid() && (from_the_end || intersect_last_database_message_ids);
   if (from_the_end) {
     if (!d->last_new_message_id.is_valid()) {
       set_dialog_last_new_message_id(
@@ -8906,19 +8907,27 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
   }
 
   if (need_update_database_message_ids) {
+    if (from_the_end && !intersect_last_database_message_ids) {
+      set_dialog_first_database_message_id(d, MessageId(), "on_get_history 1");
+      set_dialog_last_database_message_id(d, MessageId(), "on_get_history 1");
+    }
     if (!d->last_database_message_id.is_valid()) {
       CHECK(d->last_message_id.is_valid());
       MessagesConstIterator it(d, d->last_message_id);
+      MessageId new_first_database_message_id;
       while (*it != nullptr) {
         auto message_id = (*it)->message_id;
         if (message_id.is_server() || message_id.is_local()) {
           if (!d->last_database_message_id.is_valid()) {
             set_dialog_last_database_message_id(d, message_id, "on_get_history");
           }
-          set_dialog_first_database_message_id(d, message_id, "on_get_history");
+          new_first_database_message_id = message_id;
           try_restore_dialog_reply_markup(d, *it);
         }
         --it;
+      }
+      if (new_first_database_message_id.is_valid()) {
+        set_dialog_first_database_message_id(d, new_first_database_message_id, "on_get_history");
       }
     } else {
       LOG_CHECK(d->last_new_message_id.is_valid())
