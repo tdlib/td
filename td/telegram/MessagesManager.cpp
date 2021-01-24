@@ -8721,8 +8721,9 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
   CHECK(offset < 0 || from_the_end);
   CHECK(!from_message_id.is_scheduled());
 
-  // it is likely that there are no more history messages on the server
-  bool have_full_history = from_the_end && narrow_cast<int32>(messages.size()) < limit;
+  // the server can return less messages than requested if some of messages are deleted during request
+  // but if it happens, it is likely that there are no more messages on the server
+  bool have_full_history = from_the_end && narrow_cast<int32>(messages.size()) < limit && messages.size() <= 1;
   Dialog *d = get_dialog(dialog_id);
 
   if (messages.empty()) {
@@ -8772,7 +8773,7 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
   MessageId last_added_message_id;
   bool have_next = false;
 
-  if (narrow_cast<int32>(messages.size()) < limit + offset && d != nullptr) {
+  if (narrow_cast<int32>(messages.size()) < limit + offset && messages.size() <= 1 && d != nullptr) {
     MessageId first_received_message_id = get_message_id(messages.back(), false);
     if (first_received_message_id >= from_message_id && d->first_database_message_id.is_valid() &&
         first_received_message_id >= d->first_database_message_id) {
