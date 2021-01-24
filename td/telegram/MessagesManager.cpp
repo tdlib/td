@@ -9752,8 +9752,10 @@ void MessagesManager::delete_messages(DialogId dialog_id, const vector<MessageId
   lock.set_value(Unit());
 
   bool need_update_dialog_pos = false;
+  bool need_update_chat_has_scheduled_messages = false;
   vector<int64> deleted_message_ids;
   for (auto message_id : message_ids) {
+    need_update_chat_has_scheduled_messages |= message_id.is_scheduled();
     auto m = delete_message(d, message_id, true, &need_update_dialog_pos, DELETE_MESSAGE_USER_REQUEST_SOURCE);
     if (m == nullptr) {
       LOG(INFO) << "Can't delete " << message_id << " because it is not found";
@@ -9767,7 +9769,9 @@ void MessagesManager::delete_messages(DialogId dialog_id, const vector<MessageId
   }
   send_update_delete_messages(dialog_id, std::move(deleted_message_ids), true, false);
 
-  send_update_chat_has_scheduled_messages(d, true);
+  if (need_update_chat_has_scheduled_messages) {
+    send_update_chat_has_scheduled_messages(d, true);
+  }
 }
 
 void MessagesManager::delete_message_from_server(DialogId dialog_id, MessageId message_id, bool revoke) {
@@ -12979,7 +12983,9 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
     return FullMessageId();
   }
 
-  send_update_chat_has_scheduled_messages(d, false);
+  if (m->message_id.is_scheduled()) {
+    send_update_chat_has_scheduled_messages(d, false);
+  }
 
   if (need_update_dialog_pos) {
     send_update_chat_last_message(d, "on_get_message");
@@ -22188,7 +22194,9 @@ MessagesManager::Message *MessagesManager::get_message_to_send(
   CHECK(have_input_peer(dialog_id, AccessRights::Read));
   auto result = add_message_to_dialog(d, std::move(m), true, &need_update, need_update_dialog_pos, "send message");
   LOG_CHECK(result != nullptr) << message_id << " " << debug_add_message_to_dialog_fail_reason_;
-  send_update_chat_has_scheduled_messages(d, false);
+  if (result->message_id.is_scheduled()) {
+    send_update_chat_has_scheduled_messages(d, false);
+  }
   return result;
 }
 
@@ -35252,7 +35260,9 @@ MessagesManager::Message *MessagesManager::continue_send_message(DialogId dialog
       add_message_to_dialog(d, std::move(m), true, &need_update, &need_update_dialog_pos, "continue_send_message");
   CHECK(result_message != nullptr);
 
-  send_update_chat_has_scheduled_messages(d, false);
+  if (result_message->message_id.is_scheduled()) {
+    send_update_chat_has_scheduled_messages(d, false);
+  }
 
   send_update_new_message(d, result_message);
   if (need_update_dialog_pos) {
