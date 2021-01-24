@@ -12871,7 +12871,9 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
 
   MessageId old_message_id = find_old_message_id(dialog_id, message_id);
   bool is_sent_message = false;
-  LOG(INFO) << "Found temporarily " << old_message_id << " for " << FullMessageId{dialog_id, message_id};
+  if (old_message_id.is_valid()) {
+    LOG(INFO) << "Found temporary " << old_message_id << " for " << FullMessageId{dialog_id, message_id};
+  }
   if (old_message_id.is_valid() || old_message_id.is_valid_scheduled()) {
     Dialog *d = get_dialog(dialog_id);
     CHECK(d != nullptr);
@@ -31514,7 +31516,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
           }
         }
 
-        LOG(INFO) << "Attach " << message_id << " to the previous " << previous_message_id;
+        LOG(INFO) << "Attach " << message_id << " to the previous " << previous_message_id << " in " << dialog_id;
         message->have_previous = true;
         message->have_next = previous_message->have_next;
         previous_message->have_next = true;
@@ -31535,7 +31537,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       }
       if (next_message != nullptr) {
         CHECK(!next_message->have_previous);
-        LOG(INFO) << "Attach " << message_id << " to the next " << next_message->message_id;
+        LOG(INFO) << "Attach " << message_id << " to the next " << next_message->message_id << " in " << dialog_id;
         if (from_update && !next_message->message_id.is_yet_unsent()) {
           LOG(ERROR) << "Attach " << message_id << " from " << source << " to the next " << next_message->message_id
                      << " in " << dialog_id;
@@ -31547,7 +31549,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       }
     }
     if (!is_attached) {
-      LOG(INFO) << "Can't auto-attach " << message_id;
+      LOG(INFO) << "Can't auto-attach " << message_id << " in " << dialog_id;
       message->have_previous = false;
       message->have_next = false;
     }
@@ -32274,7 +32276,7 @@ void MessagesManager::attach_message_to_previous(Dialog *d, MessageId message_id
   LOG_CHECK(m->have_previous) << d->dialog_id << " " << message_id << " " << source;
   --it;
   LOG_CHECK(*it != nullptr) << d->dialog_id << " " << message_id << " " << source;
-  LOG(INFO) << "Attach " << message_id << " to the previous " << (*it)->message_id;
+  LOG(INFO) << "Attach " << message_id << " to the previous " << (*it)->message_id << " in " << d->dialog_id;
   if ((*it)->have_next) {
     m->have_next = true;
   } else {
@@ -32292,7 +32294,7 @@ void MessagesManager::attach_message_to_next(Dialog *d, MessageId message_id, co
   LOG_CHECK(m->have_next) << d->dialog_id << " " << message_id << " " << source;
   ++it;
   LOG_CHECK(*it != nullptr) << d->dialog_id << " " << message_id << " " << source;
-  LOG(INFO) << "Attach " << message_id << " to the next " << (*it)->message_id;
+  LOG(INFO) << "Attach " << message_id << " to the next " << (*it)->message_id << " in " << d->dialog_id;
   if ((*it)->have_previous) {
     m->have_previous = true;
   } else {
