@@ -22,7 +22,7 @@
 #include <openssl/bn.h>
 #include <openssl/opensslv.h>
 #include <openssl/pem.h>
-#if OPENSSL_VERSION_NUMBER < 0x30000000L
+#if OPENSSL_VERSION_NUMBER < 0x30000000L || defined(LIBRESSL_VERSION_NUMBER)
 #include <openssl/rsa.h>
 #endif
 
@@ -47,7 +47,7 @@ Result<RSA> RSA::from_pem_public_key(Slice pem) {
     BIO_free(bio);
   };
 
-#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L && !defined(LIBRESSL_VERSION_NUMBER)
   EVP_PKEY *rsa = PEM_read_bio_PUBKEY(bio, nullptr, nullptr, nullptr);
 #else
   auto rsa = PEM_read_bio_RSAPublicKey(bio, nullptr, nullptr, nullptr);
@@ -56,14 +56,14 @@ Result<RSA> RSA::from_pem_public_key(Slice pem) {
     return Status::Error("Error while reading RSA public key");
   }
   SCOPE_EXIT {
-#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L && !defined(LIBRESSL_VERSION_NUMBER)
     EVP_PKEY_free(rsa);
 #else
     RSA_free(rsa);
 #endif
   };
 
-#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L && !defined(LIBRESSL_VERSION_NUMBER)
   if (!EVP_PKEY_is_a(rsa, "RSA")) {
     return Status::Error("Key is not an RSA key");
   }
@@ -76,7 +76,7 @@ Result<RSA> RSA::from_pem_public_key(Slice pem) {
   }
 #endif
 
-#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L && !defined(LIBRESSL_VERSION_NUMBER)
   BIGNUM *n_num = nullptr;
   BIGNUM *e_num = nullptr;
 

@@ -147,7 +147,7 @@ bool BigNum::is_bit_set(int num) const {
 }
 
 bool BigNum::is_prime(BigNumContext &context) const {
-#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L && !defined(LIBRESSL_VERSION_NUMBER)
   int result = BN_check_prime(impl_->big_num, context.impl_->big_num_context, nullptr);
 #else
   int result =
