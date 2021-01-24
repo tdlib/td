@@ -1976,14 +1976,7 @@ class SearchChatMembersRequest : public RequestActor<> {
   }
 
   void do_send_result() override {
-    // TODO create function get_chat_members_object
-    vector<tl_object_ptr<td_api::chatMember>> result;
-    result.reserve(participants_.participants_.size());
-    for (auto participant : participants_.participants_) {
-      result.push_back(td->contacts_manager_->get_chat_member_object(participant));
-    }
-
-    send_result(make_tl_object<td_api::chatMembers>(participants_.total_count_, std::move(result)));
+    send_result(participants_.get_chat_members_object(td));
   }
 
  public:
@@ -2293,14 +2286,7 @@ class GetSupergroupMembersRequest : public RequestActor<> {
   }
 
   void do_send_result() override {
-    // TODO create function get_chat_members_object
-    vector<tl_object_ptr<td_api::chatMember>> result;
-    result.reserve(participants_.participants_.size());
-    for (auto participant : participants_.participants_) {
-      result.push_back(td->contacts_manager_->get_chat_member_object(participant));
-    }
-
-    send_result(make_tl_object<td_api::chatMembers>(participants_.total_count_, std::move(result)));
+    send_result(participants_.get_chat_members_object(td));
   }
 
  public:

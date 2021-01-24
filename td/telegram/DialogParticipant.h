@@ -17,6 +17,8 @@
 
 namespace td {
 
+class Td;
+
 class RestrictedRights {
   static constexpr uint32 CAN_SEND_MESSAGES = 1 << 16;
   static constexpr uint32 CAN_SEND_MEDIA = 1 << 17;
@@ -417,6 +419,8 @@ struct DialogParticipants {
   DialogParticipants(int32 total_count, vector<DialogParticipant> &&participants)
       : total_count_(total_count), participants_(std::move(participants)) {
   }
+
+  td_api::object_ptr<td_api::chatMembers> get_chat_members_object(Td *td) const;
 };
 
 class ChannelParticipantsFilter {

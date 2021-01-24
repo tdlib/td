@@ -6,8 +6,10 @@
 //
 #include "td/telegram/DialogParticipant.h"
 
+#include "td/telegram/ContactsManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/misc.h"
+#include "td/telegram/Td.h"
 
 #include "td/utils/common.h"
 #include "td/utils/logging.h"
@@ -703,6 +705,16 @@ StringBuilder &operator<<(StringBuilder &string_builder, const DialogParticipant
   return string_builder << '[' << dialog_participant.user_id << " invited by " << dialog_participant.inviter_user_id
                         << " at " << dialog_participant.joined_date << " with status " << dialog_participant.status
                         << ']';
+}
+
+td_api::object_ptr<td_api::chatMembers> DialogParticipants::get_chat_members_object(Td *td) const {
+  vector<tl_object_ptr<td_api::chatMember>> chat_members;
+  chat_members.reserve(participants_.size());
+  for (auto &participant : participants_) {
+    chat_members.push_back(td->contacts_manager_->get_chat_member_object(participant));
+  }
+
+  return td_api::make_object<td_api::chatMembers>(total_count_, std::move(chat_members));
 }
 
 tl_object_ptr<telegram_api::ChannelParticipantsFilter>
