@@ -8907,9 +8907,23 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
   }
 
   if (need_update_database_message_ids) {
-    if (from_the_end && !intersect_last_database_message_ids) {
-      set_dialog_first_database_message_id(d, MessageId(), "on_get_history 1");
-      set_dialog_last_database_message_id(d, MessageId(), "on_get_history 1");
+    if (from_the_end && !intersect_last_database_message_ids && d->last_database_message_id.is_valid()) {
+      if (d->last_database_message_id < first_added_message_id || last_added_message_id == d->last_message_id) {
+        set_dialog_first_database_message_id(d, MessageId(), "on_get_history 1");
+        set_dialog_last_database_message_id(d, MessageId(), "on_get_history 1");
+      } else {
+        auto min_message_id = td::min(d->first_database_message_id, d->last_message_id);
+        CHECK(last_added_message_id < min_message_id);
+        if (min_message_id <= last_added_message_id.get_next_message_id(MessageType::Server)) {
+          // connect local messages with last received server message
+          set_dialog_first_database_message_id(d, last_added_message_id, "on_get_history 2");
+        } else {
+          LOG(WARNING) << "Have last " << d->last_message_id << " and first database " << d->first_database_message_id
+                       << " in " << dialog_id << ", but received history from the end only up to "
+                       << last_added_message_id;
+          // can't connect messages, because there can be unknown server messages after last_added_message_id
+        }
+      }
     }
     if (!d->last_database_message_id.is_valid()) {
       CHECK(d->last_message_id.is_valid());
