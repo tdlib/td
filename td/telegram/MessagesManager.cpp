@@ -11275,9 +11275,9 @@ void MessagesManager::on_update_dialog_online_member_count_timeout(DialogId dial
     if (participant_count == 0 || participant_count >= 195) {
       td_->create_handler<GetOnlinesQuery>()->send(dialog_id);
     } else {
-      td_->contacts_manager_->send_get_channel_participants_query(
-          dialog_id.get_channel_id(),
-          ChannelParticipantsFilter(td_api::make_object<td_api::supergroupMembersFilterRecent>()), 0, 200, 0, Auto());
+      td_->contacts_manager_->get_channel_participants(dialog_id.get_channel_id(),
+                                                       td_api::make_object<td_api::supergroupMembersFilterRecent>(),
+                                                       string(), 0, 200, 200, true, Auto());
     }
     return;
   }
@@ -18927,10 +18927,9 @@ void MessagesManager::open_dialog(Dialog *d) {
       if (!is_broadcast_channel(dialog_id)) {
         auto participant_count = td_->contacts_manager_->get_channel_participant_count(dialog_id.get_channel_id());
         if (participant_count < 195) {  // include unknown participant_count
-          td_->contacts_manager_->send_get_channel_participants_query(
-              dialog_id.get_channel_id(),
-              ChannelParticipantsFilter(td_api::make_object<td_api::supergroupMembersFilterRecent>()), 0, 200, 0,
-              Auto());
+          td_->contacts_manager_->get_channel_participants(dialog_id.get_channel_id(),
+                                                           td_api::make_object<td_api::supergroupMembersFilterRecent>(),
+                                                           string(), 0, 200, 200, true, Auto());
         }
       }
       get_channel_difference(dialog_id, d->pts, true, "open_dialog");
@@ -30308,28 +30307,25 @@ DialogParticipants MessagesManager::search_private_chat_participants(UserId my_u
           })};
 }
 
-DialogParticipants MessagesManager::search_dialog_participants(DialogId dialog_id, const string &query, int32 limit,
-                                                               DialogParticipantsFilter filter, int64 &random_id,
-                                                               bool without_bot_info, bool force,
-                                                               Promise<Unit> &&promise) {
+void MessagesManager::search_dialog_participants(DialogId dialog_id, const string &query, int32 limit,
+                                                 DialogParticipantsFilter filter, bool without_bot_info,
+                                                 Promise<DialogParticipants> &&promise) {
   LOG(INFO) << "Receive searchChatMembers request to search for \"" << query << "\" in " << dialog_id << " with filter "
             << filter;
   if (!have_dialog_force(dialog_id)) {
-    promise.set_error(Status::Error(3, "Chat not found"));
-    return {};
+    return promise.set_error(Status::Error(3, "Chat not found"));
   }
   if (limit < 0) {
-    promise.set_error(Status::Error(3, "Parameter limit must be non-negative"));
-    return {};
+    return promise.set_error(Status::Error(3, "Parameter limit must be non-negative"));
   }
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      promise.set_value(Unit());
-      return search_private_chat_participants(td_->contacts_manager_->get_my_id(), dialog_id.get_user_id(), query,
-                                              limit, filter);
+      promise.set_value(search_private_chat_participants(td_->contacts_manager_->get_my_id(), dialog_id.get_user_id(),
+                                                         query, limit, filter));
+      return;
     case DialogType::Chat:
-      return td_->contacts_manager_->search_chat_participants(dialog_id.get_chat_id(), query, limit, filter, force,
+      return td_->contacts_manager_->search_chat_participants(dialog_id.get_chat_id(), query, limit, filter,
                                                               std::move(promise));
     case DialogType::Channel: {
       tl_object_ptr<td_api::SupergroupMembersFilter> request_filter;
@@ -30379,21 +30375,21 @@ DialogParticipants MessagesManager::search_dialog_participants(DialogId dialog_i
           UNREACHABLE();
       }
 
-      return td_->contacts_manager_->get_channel_participants(dialog_id.get_channel_id(), request_filter,
-                                                              additional_query, 0, limit, additional_limit, random_id,
-                                                              without_bot_info, force, std::move(promise));
+      return td_->contacts_manager_->get_channel_participants(dialog_id.get_channel_id(), std::move(request_filter),
+                                                              std::move(additional_query), 0, limit, additional_limit,
+                                                              without_bot_info, std::move(promise));
     }
     case DialogType::SecretChat: {
-      promise.set_value(Unit());
       auto peer_user_id = td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
-      return search_private_chat_participants(td_->contacts_manager_->get_my_id(), peer_user_id, query, limit, filter);
+      promise.set_value(
+          search_private_chat_participants(td_->contacts_manager_->get_my_id(), peer_user_id, query, limit, filter));
+      return;
     }
     case DialogType::None:
     default:
       UNREACHABLE();
       promise.set_error(Status::Error(500, "Wrong chat type"));
   }
-  return {};
 }
 
 vector<DialogAdministrator> MessagesManager::get_dialog_administrators(DialogId dialog_id, int left_tries,

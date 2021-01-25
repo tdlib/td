@@ -9,7 +9,6 @@
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ContactsManager.h"
-#include "td/telegram/DialogParticipant.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesManager.h"
@@ -1483,21 +1482,27 @@ void GroupCallManager::try_load_group_call_administrators(InputGroupCallId input
     return;
   }
 
-  unique_ptr<int64> random_id_ptr = td::make_unique<int64>();
-  auto random_id_raw = random_id_ptr.get();
-  auto promise = PromiseCreator::lambda(
-      [actor_id = actor_id(this), input_group_call_id, random_id = std::move(random_id_ptr)](Result<Unit> &&result) {
+  auto promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), input_group_call_id](Result<DialogParticipants> &&result) {
         send_closure(actor_id, &GroupCallManager::finish_load_group_call_administrators, input_group_call_id,
-                     *random_id, std::move(result));
+                     std::move(result));
       });
   td_->messages_manager_->search_dialog_participants(
-      dialog_id, string(), 100, DialogParticipantsFilter(DialogParticipantsFilter::Type::Administrators),
-      *random_id_raw, true, true, std::move(promise));
+      dialog_id, string(), 100, DialogParticipantsFilter(DialogParticipantsFilter::Type::Administrators), true,
+      std::move(promise));
 }
 
-void GroupCallManager::finish_load_group_call_administrators(InputGroupCallId input_group_call_id, int64 random_id,
-                                                             Result<Unit> &&result) {
+void GroupCallManager::finish_load_group_call_administrators(InputGroupCallId input_group_call_id,
+                                                             Result<DialogParticipants> &&result) {
   if (G()->close_flag()) {
+    return;
+  }
+  if (result.is_error()) {
+    LOG(WARNING) << "Failed to get administrators of " << input_group_call_id << ": " << result.error();
+    return;
+  }
+
+  if (!need_group_call_participants(input_group_call_id)) {
     return;
   }
 
@@ -1508,34 +1513,11 @@ void GroupCallManager::finish_load_group_call_administrators(InputGroupCallId in
   }
 
   vector<UserId> administrator_user_ids;
-  if (result.is_ok()) {
-    result = Status::Error(500, "Failed to receive result");
-    unique_ptr<bool> ignore_result = make_unique<bool>();
-    auto ignore_result_ptr = ignore_result.get();
-    auto promise = PromiseCreator::lambda([&result, ignore_result = std::move(ignore_result)](Result<Unit> new_result) {
-      if (!*ignore_result) {
-        result = std::move(new_result);
-      }
-    });
-    auto participants = td_->messages_manager_->search_dialog_participants(
-        group_call->dialog_id, string(), 100, DialogParticipantsFilter(DialogParticipantsFilter::Type::Administrators),
-        random_id, true, true, std::move(promise));
-    for (auto &administrator : participants.participants_) {
-      if (administrator.status.can_manage_calls() && administrator.user_id != td_->contacts_manager_->get_my_id()) {
-        administrator_user_ids.push_back(administrator.user_id);
-      }
+  auto participants = result.move_as_ok();
+  for (auto &administrator : participants.participants_) {
+    if (administrator.status.can_manage_calls() && administrator.user_id != td_->contacts_manager_->get_my_id()) {
+      administrator_user_ids.push_back(administrator.user_id);
     }
-
-    *ignore_result_ptr = true;
-  }
-
-  if (result.is_error()) {
-    LOG(WARNING) << "Failed to get administrators of " << input_group_call_id << ": " << result.error();
-    return;
-  }
-
-  if (!need_group_call_participants(input_group_call_id)) {
-    return;
   }
 
   auto *group_call_participants = add_group_call_participants(input_group_call_id);

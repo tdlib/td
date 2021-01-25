@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/DialogId.h"
+#include "td/telegram/DialogParticipant.h"
 #include "td/telegram/GroupCallId.h"
 #include "td/telegram/GroupCallParticipant.h"
 #include "td/telegram/InputGroupCallId.h"
@@ -151,8 +152,7 @@ class GroupCallManager : public Actor {
 
   void try_load_group_call_administrators(InputGroupCallId input_group_call_id, DialogId dialog_id);
 
-  void finish_load_group_call_administrators(InputGroupCallId input_group_call_id, int64 random_id,
-                                             Result<Unit> &&result);
+  void finish_load_group_call_administrators(InputGroupCallId input_group_call_id, Result<DialogParticipants> &&result);
 
   bool on_join_group_call_response(InputGroupCallId input_group_call_id, string json_response);
 

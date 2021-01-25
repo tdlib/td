@@ -477,9 +477,8 @@ class MessagesManager : public Actor {
   DialogParticipant get_dialog_participant(DialogId dialog_id, UserId user_id, int64 &random_id, bool force,
                                            Promise<Unit> &&promise);
 
-  DialogParticipants search_dialog_participants(DialogId dialog_id, const string &query, int32 limit,
-                                                DialogParticipantsFilter filter, int64 &random_id,
-                                                bool without_bot_info, bool force, Promise<Unit> &&promise);
+  void search_dialog_participants(DialogId dialog_id, const string &query, int32 limit, DialogParticipantsFilter filter,
+                                  bool without_bot_info, Promise<DialogParticipants> &&promise);
 
   vector<DialogAdministrator> get_dialog_administrators(DialogId dialog_id, int left_tries, Promise<Unit> &&promise);
 
