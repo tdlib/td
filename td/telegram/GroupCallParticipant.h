@@ -22,7 +22,6 @@ struct GroupCallParticipant {
   int32 audio_source = 0;
   int32 joined_date = 0;
   int32 active_date = 0;
-  int32 muted_count = 0;
   int32 volume_level = 10000;
   bool is_muted = false;
   bool can_self_unmute = false;

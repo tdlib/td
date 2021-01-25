@@ -19,13 +19,6 @@ GroupCallParticipant::GroupCallParticipant(const tl_object_ptr<telegram_api::gro
   is_muted = participant->muted_;
   can_self_unmute = participant->can_self_unmute_;
   is_muted_only_for_self = participant->muted_by_you_;
-  if ((participant->flags_ & telegram_api::groupCallParticipant::MUTED_CNT_MASK) != 0) {
-    muted_count = participant->muted_cnt_;
-    if (muted_count < 0) {
-      LOG(ERROR) << "Receive " << to_string(participant);
-      muted_count = 0;
-    }
-  }
   if ((participant->flags_ & telegram_api::groupCallParticipant::VOLUME_MASK) != 0) {
     volume_level = participant->volume_;
     if (volume_level < MIN_VOLUME_LEVEL || volume_level > MAX_VOLUME_LEVEL) {
@@ -95,11 +88,11 @@ td_api::object_ptr<td_api::groupCallParticipant> GroupCallParticipant::get_group
   return td_api::make_object<td_api::groupCallParticipant>(
       contacts_manager->get_user_id_object(user_id, "get_group_call_participant_object"), audio_source, is_speaking,
       can_be_muted_for_all_users, can_be_unmuted_for_all_users, can_be_muted_only_for_self,
-      can_be_unmuted_only_for_self, is_muted, can_self_unmute, muted_count, volume_level, order);
+      can_be_unmuted_only_for_self, is_muted, can_self_unmute, volume_level, order);
 }
 
 bool operator==(const GroupCallParticipant &lhs, const GroupCallParticipant &rhs) {
-  return lhs.user_id == rhs.user_id && lhs.audio_source == rhs.audio_source && lhs.muted_count == rhs.muted_count &&
+  return lhs.user_id == rhs.user_id && lhs.audio_source == rhs.audio_source &&
          lhs.can_be_muted_for_all_users == rhs.can_be_muted_for_all_users &&
          lhs.can_be_unmuted_for_all_users == rhs.can_be_unmuted_for_all_users &&
          lhs.can_be_muted_only_for_self == rhs.can_be_muted_only_for_self &&

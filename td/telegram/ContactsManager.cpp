@@ -1582,7 +1582,9 @@ class ExportChatInviteLinkQuery : public Td::ResultHandler {
     if (input_peer == nullptr) {
       return on_error(0, Status::Error(400, "Can't access the chat"));
     }
+    CHECK(is_permanent);
 
+    /*
     int32 flags = 0;
     if (expire_date > 0) {
       flags |= telegram_api::messages_exportChatInvite::EXPIRE_DATE_MASK;
@@ -1593,8 +1595,11 @@ class ExportChatInviteLinkQuery : public Td::ResultHandler {
     if (is_permanent) {
       flags |= telegram_api::messages_exportChatInvite::LEGACY_REVOKE_PERMANENT_MASK;
     }
-    send_query(G()->net_query_creator().create(telegram_api::messages_exportChatInvite(
-        flags, false /*ignored*/, std::move(input_peer), expire_date, usage_limit)));
+    */
+
+    send_query(G()->net_query_creator().create(telegram_api::messages_exportChatInvite(std::move(input_peer))));
+    // send_query(G()->net_query_creator().create(telegram_api::messages_exportChatInvite(
+    //     flags, false /*ignored*/, std::move(input_peer), expire_date, usage_limit)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {

@@ -2512,20 +2512,22 @@ class DeletePhoneCallHistoryQuery : public Td::ResultHandler {
       return on_error(id, result_ptr.move_as_error());
     }
 
-    auto affected_history = result_ptr.move_as_ok();
-    CHECK(affected_history->get_id() == telegram_api::messages_affectedHistory::ID);
+    auto affected_messages = result_ptr.move_as_ok();
+    CHECK(affected_messages->get_id() == telegram_api::messages_affectedFoundMessages::ID);
 
-    if (affected_history->pts_count_ > 0) {
-      affected_history->pts_count_ = 0;  // force receiving real updates from the server
-      auto promise = affected_history->offset_ > 0 ? Promise<Unit>() : std::move(promise_);
-      td->updates_manager_->add_pending_pts_update(make_tl_object<dummyUpdate>(), affected_history->pts_,
-                                                   affected_history->pts_count_, std::move(promise),
+    if (affected_messages->pts_count_ > 0) {
+      auto promise = affected_messages->offset_ > 0 ? Promise<Unit>() : std::move(promise_);
+      auto pts = affected_messages->pts_;
+      auto pts_count = affected_messages->pts_count_;
+      auto update =
+          make_tl_object<telegram_api::updateDeleteMessages>(std::move(affected_messages->messages_), pts, pts_count);
+      td->updates_manager_->add_pending_pts_update(std::move(update), pts, pts_count, std::move(promise),
                                                    "delete phone call history query");
-    } else if (affected_history->offset_ <= 0) {
+    } else if (affected_messages->offset_ <= 0) {
       promise_.set_value(Unit());
     }
 
-    if (affected_history->offset_ > 0) {
+    if (affected_messages->offset_ > 0) {
       send_request();
       return;
     }
@@ -4278,7 +4280,7 @@ class UpdatePeerSettingsQuery : public Td::ResultHandler {
         dialog_id_,
         make_tl_object<telegram_api::peerSettings>(0, false /*ignored*/, false /*ignored*/, false /*ignored*/,
                                                    false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                                   false /*ignored*/, 0),
+                                                   false /*ignored*/, false /*ignored*/, 0),
         true);
 
     promise_.set_value(Unit());
@@ -4320,7 +4322,7 @@ class ReportEncryptedSpamQuery : public Td::ResultHandler {
         dialog_id_,
         make_tl_object<telegram_api::peerSettings>(0, false /*ignored*/, false /*ignored*/, false /*ignored*/,
                                                    false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                                   false /*ignored*/, 0),
+                                                   false /*ignored*/, false /*ignored*/, 0),
         true);
 
     promise_.set_value(Unit());
