@@ -209,7 +209,7 @@ class ContactsManager : public Actor {
   int32 on_update_peer_located(vector<tl_object_ptr<telegram_api::PeerLocated>> &&peers, bool from_update);
 
   void on_update_dialog_administrators(DialogId dialog_id, vector<DialogAdministrator> &&administrators,
-                                       bool have_access);
+                                       bool have_access, bool from_database);
 
   void speculative_add_channel_participants(ChannelId channel_id, const vector<UserId> &added_user_ids,
                                             UserId inviter_user_id, int32 date, bool by_me);

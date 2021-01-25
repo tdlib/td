@@ -2524,7 +2524,8 @@ class GetChannelAdministratorsQuery : public Td::ResultHandler {
 
         td->contacts_manager_->on_update_channel_administrator_count(channel_id_,
                                                                      narrow_cast<int32>(administrators.size()));
-        td->contacts_manager_->on_update_dialog_administrators(DialogId(channel_id_), std::move(administrators), true);
+        td->contacts_manager_->on_update_dialog_administrators(DialogId(channel_id_), std::move(administrators), true,
+                                                               false);
 
         break;
       }
@@ -9082,7 +9083,8 @@ void ContactsManager::update_chat_full(ChatFull *chat_full, ChatId chat_id, bool
         bot_user_ids.push_back(user_id);
       }
     }
-    on_update_dialog_administrators(DialogId(chat_id), std::move(administrators), chat_full->version != -1);
+    on_update_dialog_administrators(DialogId(chat_id), std::move(administrators), chat_full->version != -1,
+                                    from_database);
     td_->messages_manager_->on_dialog_bots_updated(DialogId(chat_id), std::move(bot_user_ids));
 
     {
@@ -10691,7 +10693,7 @@ void ContactsManager::on_get_channel_participants(
       }
     }
     if (filter.is_administrators() || filter.is_recent()) {
-      on_update_dialog_administrators(DialogId(channel_id), std::move(administrators), true);
+      on_update_dialog_administrators(DialogId(channel_id), std::move(administrators), true, false);
     }
     if (filter.is_bots() || filter.is_recent()) {
       on_update_channel_bot_user_ids(channel_id, std::move(bot_user_ids));
@@ -10894,14 +10896,14 @@ void ContactsManager::speculative_add_channel_user(ChannelId channel_id, UserId 
             if (administrator.get_rank() != new_status.get_rank() ||
                 administrator.is_creator() != new_status.is_creator()) {
               administrator = DialogAdministrator(user_id, new_status.get_rank(), new_status.is_creator());
-              on_update_dialog_administrators(dialog_id, std::move(administrators), true);
+              on_update_dialog_administrators(dialog_id, std::move(administrators), true, false);
             }
             break;
           }
         }
         if (!is_found) {
           administrators.emplace_back(user_id, new_status.get_rank(), new_status.is_creator());
-          on_update_dialog_administrators(dialog_id, std::move(administrators), true);
+          on_update_dialog_administrators(dialog_id, std::move(administrators), true, false);
         }
       } else {
         size_t i = 0;
@@ -10910,7 +10912,7 @@ void ContactsManager::speculative_add_channel_user(ChannelId channel_id, UserId 
         }
         if (i != administrators.size()) {
           administrators.erase(administrators.begin() + i);
-          on_update_dialog_administrators(dialog_id, std::move(administrators), true);
+          on_update_dialog_administrators(dialog_id, std::move(administrators), true, false);
         }
       }
     }
@@ -13702,7 +13704,7 @@ void ContactsManager::on_update_channel_administrator_count(ChannelId channel_id
 }
 
 void ContactsManager::on_update_dialog_administrators(DialogId dialog_id, vector<DialogAdministrator> &&administrators,
-                                                      bool have_access) {
+                                                      bool have_access, bool from_database) {
   LOG(INFO) << "Update administrators in " << dialog_id << " to " << format::as_array(administrators);
   if (have_access) {
     std::sort(administrators.begin(), administrators.end(),
@@ -13720,7 +13722,7 @@ void ContactsManager::on_update_dialog_administrators(DialogId dialog_id, vector
       it = dialog_administrators_.emplace(dialog_id, std::move(administrators)).first;
     }
 
-    if (G()->parameters().use_chat_info_db) {
+    if (G()->parameters().use_chat_info_db && !from_database) {
       LOG(INFO) << "Save administrators of " << dialog_id << " to database";
       G()->td_db()->get_sqlite_pmc()->set(get_dialog_administrators_database_key(dialog_id),
                                           log_event_store(it->second).as_slice().str(), Auto());
