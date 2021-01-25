@@ -938,6 +938,9 @@ chatActionBarReportSpam can_unarchive:Bool = ChatActionBar;
 //@description The chat is a location-based supergroup, which can be reported as having unrelated location using the method reportChat with the reason chatReportReasonUnrelatedLocation
 chatActionBarReportUnrelatedLocation = ChatActionBar;
 
+//@description The chat is a recently created group chat, to which new members can be invited
+chatActionBarInviteMembers = ChatActionBar;
+
 //@description The chat is a private or secret chat, which can be reported using the method reportChat, or the other user can be blocked using the method blockUser, or the other user can be added to the contact list using the method addContact
 //@can_unarchive If true, the chat was automatically archived and can be moved back to the main chat list using addChatToList simultaneously with setting chat notification settings to default using setChatNotificationSettings
 //@distance If non-negative, the current user was found by the peer through searchChatsNearby and this is the distance between the users

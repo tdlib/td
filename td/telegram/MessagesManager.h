@@ -1216,6 +1216,7 @@ class MessagesManager : public Actor {
     bool can_report_location = false;
     bool can_unarchive = false;
     bool hide_distance = false;
+    bool can_invite_members = false;
 
     bool is_opened = false;
 
