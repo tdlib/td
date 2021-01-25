@@ -28953,12 +28953,12 @@ void MessagesManager::on_create_new_dialog_fail(int64 random_id, Status error, P
   td_->updates_manager_->get_difference("on_create_new_dialog_fail");
 }
 
-void MessagesManager::on_dialog_bots_updated(DialogId dialog_id, vector<UserId> bot_user_ids) {
+void MessagesManager::on_dialog_bots_updated(DialogId dialog_id, vector<UserId> bot_user_ids, bool from_database) {
   if (td_->auth_manager_->is_bot()) {
     return;
   }
 
-  auto d = get_dialog_force(dialog_id);
+  auto d = from_database ? get_dialog(dialog_id) : get_dialog_force(dialog_id);
   if (d == nullptr || d->reply_markup_message_id == MessageId()) {
     return;
   }
