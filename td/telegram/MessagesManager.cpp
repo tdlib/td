@@ -64,6 +64,7 @@
 #include "td/utils/algorithm.h"
 #include "td/utils/format.h"
 #include "td/utils/misc.h"
+#include "td/utils/PathView.h"
 #include "td/utils/Random.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Time.h"
@@ -8909,8 +8910,10 @@ void MessagesManager::on_upload_imported_message_attachment(FileId file_id,
   }
   CHECK(input_file != nullptr);
 
+  auto suggested_path = file_view.suggested_path();
+  const PathView path_view(suggested_path);
   td_->create_handler<UploadImportedMediaQuery>(std::move(promise))
-      ->send(dialog_id, import_id, file_view.suggested_path(), file_id,
+      ->send(dialog_id, import_id, path_view.file_name().str(), file_id,
              get_fake_input_media(td_, std::move(input_file), file_id));
 }
 
