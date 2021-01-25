@@ -462,7 +462,7 @@ void FileNode::on_info_flushed() {
   info_changed_flag_ = false;
 }
 
-string FileNode::suggested_name() const {
+string FileNode::suggested_path() const {
   if (!remote_name_.empty()) {
     return remote_name_;
   }
@@ -681,8 +681,8 @@ const string &FileView::remote_name() const {
   return node_->remote_name_;
 }
 
-string FileView::suggested_name() const {
-  return node_->suggested_name();
+string FileView::suggested_path() const {
+  return node_->suggested_path();
 }
 
 DialogId FileView::owner_dialog_id() const {
@@ -1985,7 +1985,7 @@ bool FileManager::set_content(FileId file_id, BufferSlice bytes) {
   node->download_id_ = id;
   node->is_download_started_ = true;
   send_closure(file_load_manager_, &FileLoadManager::from_bytes, id, node->remote_.full.value().file_type_,
-               std::move(bytes), node->suggested_name());
+               std::move(bytes), node->suggested_path());
   return true;
 }
 
@@ -2302,7 +2302,7 @@ void FileManager::run_download(FileNodePtr node, bool force_update_priority) {
   node->download_id_ = id;
   node->is_download_started_ = false;
   LOG(INFO) << "Run download of file " << file_id << " of size " << node->size_ << " from "
-            << node->remote_.full.value() << " with suggested name " << node->suggested_name() << " and encyption key "
+            << node->remote_.full.value() << " with suggested name " << node->suggested_path() << " and encyption key "
             << node->encryption_key_;
   auto download_offset = node->download_offset_;
   auto download_limit = node->download_limit_;
@@ -2313,7 +2313,7 @@ void FileManager::run_download(FileNodePtr node, bool force_update_priority) {
     download_offset = 0;
   }
   send_closure(file_load_manager_, &FileLoadManager::download, id, node->remote_.full.value(), node->local_,
-               node->size_, node->suggested_name(), node->encryption_key_, node->can_search_locally_, download_offset,
+               node->size_, node->suggested_path(), node->encryption_key_, node->can_search_locally_, download_offset,
                download_limit, priority);
 }
 
@@ -2667,7 +2667,7 @@ void FileManager::run_generate(FileNodePtr node) {
   QueryId id = queries_container_.create(Query{file_id, Query::Type::Generate});
   node->generate_id_ = id;
   send_closure(file_generate_manager_, &FileGenerateManager::generate_file, id, *node->generate_, node->local_,
-               node->suggested_name(), [file_manager = this, id] {
+               node->suggested_path(), [file_manager = this, id] {
                  class Callback : public FileGenerateCallback {
                    ActorId<FileManager> actor_;
                    uint64 query_id_;
@@ -3490,7 +3490,7 @@ void FileManager::on_upload_ok(QueryId query_id, FileType file_type, const Parti
   file_info->download_priority_ = 0;
 
   FileView file_view(file_node);
-  string file_name = get_file_name(file_type, file_view.suggested_name());
+  string file_name = get_file_name(file_type, file_view.suggested_path());
 
   if (file_view.is_encrypted_secret()) {
     tl_object_ptr<telegram_api::InputEncryptedFile> input_file;

@@ -434,7 +434,7 @@ static td_api::object_ptr<td_api::datedFile> get_dated_file_object(FileManager *
                                                            file_view.remote_location().get_access_hash(),
                                                            file_view.remote_location().get_dc_id(), ""),
                                     FileLocationSource::FromServer, DialogId(), file_view.size(),
-                                    file_view.expected_size(), file_view.suggested_name());
+                                    file_view.expected_size(), file_view.suggested_path());
   return get_dated_file_object(file_manager, dated_file);
 }
 

@@ -2385,8 +2385,8 @@ tl_object_ptr<telegram_api::InputMedia> StickersManager::get_input_media(
     }
     auto mime_type = get_sticker_mime_type(s);
     if (!s->is_animated && !s->set_id.is_valid()) {
-      auto suggested_name = file_view.suggested_name();
-      const PathView path_view(suggested_name);
+      auto suggested_path = file_view.suggested_path();
+      const PathView path_view(suggested_path);
       if (path_view.extension() == "tgs") {
         mime_type = "application/x-tgsticker";
       }

@@ -1583,8 +1583,8 @@ static Result<InputMessageContent> create_input_message_content(
   string mime_type;
   if (file_id.is_valid()) {
     file_view = td->file_manager_->get_file_view(file_id);
-    auto suggested_name = file_view.suggested_name();
-    const PathView path_view(suggested_name);
+    auto suggested_path = file_view.suggested_path();
+    const PathView path_view(suggested_path);
     file_name = path_view.file_name().str();
     mime_type = MimeType::from_extension(path_view.extension());
   }
@@ -2508,11 +2508,13 @@ tl_object_ptr<telegram_api::InputMedia> get_fake_input_media(Td *td, tl_object_p
     case FileType::Video:
     case FileType::VoiceNote: {
       vector<tl_object_ptr<telegram_api::DocumentAttribute>> attributes;
-      auto file_name = file_view.suggested_name();
+      auto file_path = file_view.suggested_path();
+      const PathView path_view(file_path);
+      Slice file_name = path_view.file_name();
       if (!file_name.empty()) {
-        attributes.push_back(make_tl_object<telegram_api::documentAttributeFilename>(file_name));
+        attributes.push_back(make_tl_object<telegram_api::documentAttributeFilename>(file_name.str()));
       }
-      string mime_type = MimeType::from_extension(PathView(file_name).extension());
+      string mime_type = MimeType::from_extension(path_view.extension());
       int32 flags = 0;
       if (file_type == FileType::Video) {
         flags |= telegram_api::inputMediaUploadedDocument::NOSOUND_VIDEO_MASK;
@@ -4183,7 +4185,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
     if (to_secret && !file_view.is_encrypted_secret()) {
       auto download_file_id = file_manager->dup_file_id(file_id);
       file_id = file_manager
-                    ->register_generate(FileType::Encrypted, FileLocationSource::FromServer, file_view.suggested_name(),
+                    ->register_generate(FileType::Encrypted, FileLocationSource::FromServer, file_view.suggested_path(),
                                         PSTRING() << "#file_id#" << download_file_id.get(), dialog_id, file_view.size())
                     .ok();
     }

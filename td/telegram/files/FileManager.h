@@ -118,7 +118,7 @@ class FileNode {
   void on_pmc_flushed();
   void on_info_flushed();
 
-  string suggested_name() const;
+  string suggested_path() const;
 
  private:
   friend class FileView;
@@ -258,7 +258,7 @@ class FileView {
 
   const string &remote_name() const;
 
-  string suggested_name() const;
+  string suggested_path() const;
 
   DialogId owner_dialog_id() const;
 

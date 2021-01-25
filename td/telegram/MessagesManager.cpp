@@ -8910,7 +8910,7 @@ void MessagesManager::on_upload_imported_message_attachment(FileId file_id,
   CHECK(input_file != nullptr);
 
   td_->create_handler<UploadImportedMediaQuery>(std::move(promise))
-      ->send(dialog_id, import_id, file_view.suggested_name(), file_id,
+      ->send(dialog_id, import_id, file_view.suggested_path(), file_id,
              get_fake_input_media(td_, std::move(input_file), file_id));
 }
 
