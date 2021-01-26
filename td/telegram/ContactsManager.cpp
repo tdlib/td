@@ -1618,6 +1618,9 @@ class ExportChatInviteLinkQuery : public Td::ResultHandler {
     if (invite_link.get_administrator_user_id() != td->contacts_manager_->get_my_id()) {
       return on_error(id, Status::Error(500, "Receive invalid invite link creator"));
     }
+    if (invite_link.is_permanent()) {
+      td->contacts_manager_->on_get_permanent_dialog_invite_link(dialog_id_, invite_link);
+    }
     promise_.set_value(invite_link.get_chat_invite_link_object(td->contacts_manager_.get()));
   }
 
@@ -11855,10 +11858,38 @@ void ContactsManager::on_update_channel_full_photo(ChannelFull *channel_full, Ch
   }
 }
 
+void ContactsManager::on_get_permanent_dialog_invite_link(DialogId dialog_id, const DialogInviteLink &invite_link) {
+  switch (dialog_id.get_type()) {
+    case DialogType::Chat: {
+      auto chat_id = dialog_id.get_chat_id();
+      auto chat_full = get_chat_full_force(chat_id, "on_get_permanent_dialog_invite_link");
+      if (chat_full != nullptr && update_permanent_invite_link(chat_full->invite_link, invite_link)) {
+        chat_full->is_changed = true;
+        update_chat_full(chat_full, chat_id);
+      }
+      break;
+    }
+    case DialogType::Channel: {
+      auto channel_id = dialog_id.get_channel_id();
+      auto channel_full = get_channel_full_force(channel_id, "on_get_permanent_dialog_invite_link");
+      if (channel_full != nullptr && update_permanent_invite_link(channel_full->invite_link, invite_link)) {
+        channel_full->is_changed = true;
+        update_channel_full(channel_full, channel_id);
+      }
+      break;
+    }
+    case DialogType::User:
+    case DialogType::SecretChat:
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+  }
+}
+
 void ContactsManager::on_update_chat_full_invite_link(ChatFull *chat_full,
                                                       tl_object_ptr<telegram_api::chatInviteExported> &&invite_link) {
   CHECK(chat_full != nullptr);
-  if (update_permanent_invite_link(chat_full->invite_link, std::move(invite_link))) {
+  if (update_permanent_invite_link(chat_full->invite_link, DialogInviteLink(std::move(invite_link)))) {
     chat_full->is_changed = true;
   }
 }
@@ -11866,7 +11897,7 @@ void ContactsManager::on_update_chat_full_invite_link(ChatFull *chat_full,
 void ContactsManager::on_update_channel_full_invite_link(
     ChannelFull *channel_full, tl_object_ptr<telegram_api::chatInviteExported> &&invite_link) {
   CHECK(channel_full != nullptr);
-  if (update_permanent_invite_link(channel_full->invite_link, std::move(invite_link))) {
+  if (update_permanent_invite_link(channel_full->invite_link, DialogInviteLink(std::move(invite_link)))) {
     channel_full->is_changed = true;
   }
 }
@@ -12174,9 +12205,7 @@ void ContactsManager::remove_dialog_access_by_invite_link(DialogId dialog_id) {
   invite_link_info_expire_timeout_.cancel_timeout(dialog_id.get());
 }
 
-bool ContactsManager::update_permanent_invite_link(
-    DialogInviteLink &invite_link, tl_object_ptr<telegram_api::chatInviteExported> &&exported_chat_invite) {
-  DialogInviteLink new_invite_link(std::move(exported_chat_invite));
+bool ContactsManager::update_permanent_invite_link(DialogInviteLink &invite_link, DialogInviteLink new_invite_link) {
   if (new_invite_link != invite_link) {
     if (invite_link.is_valid() && invite_link.get_invite_link() != new_invite_link.get_invite_link()) {
       // old link was invalidated

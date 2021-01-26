@@ -226,6 +226,8 @@ class ContactsManager : public Actor {
 
   bool on_get_channel_error(ChannelId channel_id, const Status &status, const string &source);
 
+  void on_get_permanent_dialog_invite_link(DialogId dialog_id, const DialogInviteLink &invite_link);
+
   void on_get_dialog_invite_link_info(const string &invite_link,
                                       tl_object_ptr<telegram_api::ChatInvite> &&chat_invite_ptr,
                                       Promise<Unit> &&promise);
@@ -1049,8 +1051,7 @@ class ContactsManager : public Actor {
 
   Status can_manage_dialog_invite_links(DialogId dialog_id);
 
-  bool update_permanent_invite_link(DialogInviteLink &invite_link,
-                                    tl_object_ptr<telegram_api::chatInviteExported> &&exported_chat_invite);
+  bool update_permanent_invite_link(DialogInviteLink &invite_link, DialogInviteLink new_invite_link);
 
   const DialogParticipant *get_chat_participant(ChatId chat_id, UserId user_id) const;
 

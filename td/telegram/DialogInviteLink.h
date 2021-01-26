@@ -51,6 +51,10 @@ class DialogInviteLink {
     return !invite_link_.empty() && administrator_user_id_.is_valid() && date_ > 0;
   }
 
+  bool is_permanent() const {
+    return is_permanent_;
+  }
+
   bool is_expired() const;
 
   int32 get_expire_time() const;
