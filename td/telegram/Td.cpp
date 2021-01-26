@@ -1946,7 +1946,7 @@ class GetChatMemberRequest : public RequestActor<> {
   DialogParticipant dialog_participant_;
 
   void do_run(Promise<Unit> &&promise) override {
-    dialog_participant_ = td->messages_manager_->get_dialog_participant(dialog_id_, user_id_, random_id_,
+    dialog_participant_ = td->contacts_manager_->get_dialog_participant(dialog_id_, user_id_, random_id_,
                                                                         get_tries() < 3, std::move(promise));
   }
 
@@ -1970,7 +1970,7 @@ class GetChatAdministratorsRequest : public RequestActor<> {
   vector<DialogAdministrator> administrators_;
 
   void do_run(Promise<Unit> &&promise) override {
-    administrators_ = td->messages_manager_->get_dialog_administrators(dialog_id_, get_tries(), std::move(promise));
+    administrators_ = td->contacts_manager_->get_dialog_administrators(dialog_id_, get_tries(), std::move(promise));
   }
 
   void do_send_result() override {
@@ -6208,7 +6208,7 @@ void Td::on_request(uint64 id, const td_api::unpinAllChatMessages &request) {
 void Td::on_request(uint64 id, const td_api::joinChat &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->add_dialog_participant(DialogId(request.chat_id_), contacts_manager_->get_my_id(), 0,
+  contacts_manager_->add_dialog_participant(DialogId(request.chat_id_), contacts_manager_->get_my_id(), 0,
                                             std::move(promise));
 }
 
@@ -6227,14 +6227,14 @@ void Td::on_request(uint64 id, const td_api::leaveChat &request) {
           td_api::make_object<td_api::chatMemberStatusCreator>(status.get_rank(), status.is_anonymous(), false);
     }
   }
-  messages_manager_->set_dialog_participant_status(dialog_id, contacts_manager_->get_my_id(), std::move(new_status),
+  contacts_manager_->set_dialog_participant_status(dialog_id, contacts_manager_->get_my_id(), std::move(new_status),
                                                    std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::addChatMember &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->add_dialog_participant(DialogId(request.chat_id_), UserId(request.user_id_),
+  contacts_manager_->add_dialog_participant(DialogId(request.chat_id_), UserId(request.user_id_),
                                             request.forward_limit_, std::move(promise));
 }
 
@@ -6245,19 +6245,19 @@ void Td::on_request(uint64 id, const td_api::addChatMembers &request) {
   for (auto &user_id : request.user_ids_) {
     user_ids.emplace_back(user_id);
   }
-  messages_manager_->add_dialog_participants(DialogId(request.chat_id_), user_ids, std::move(promise));
+  contacts_manager_->add_dialog_participants(DialogId(request.chat_id_), user_ids, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setChatMemberStatus &request) {
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->set_dialog_participant_status(DialogId(request.chat_id_), UserId(request.user_id_),
+  contacts_manager_->set_dialog_participant_status(DialogId(request.chat_id_), UserId(request.user_id_),
                                                    request.status_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::banChatMember &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->ban_dialog_participant(DialogId(request.chat_id_), UserId(request.user_id_),
+  contacts_manager_->ban_dialog_participant(DialogId(request.chat_id_), UserId(request.user_id_),
                                             request.banned_until_date_, request.revoke_messages_, std::move(promise));
 }
 
@@ -6298,7 +6298,7 @@ void Td::on_request(uint64 id, td_api::searchChatMembers &request) {
           promise.set_value(result.ok().get_chat_members_object(td));
         }
       });
-  messages_manager_->search_dialog_participants(DialogId(request.chat_id_), request.query_, request.limit_,
+  contacts_manager_->search_dialog_participants(DialogId(request.chat_id_), request.query_, request.limit_,
                                                 get_dialog_participants_filter(request.filter_), false,
                                                 std::move(query_promise));
 }

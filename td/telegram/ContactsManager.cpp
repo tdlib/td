@@ -14064,7 +14064,7 @@ void ContactsManager::on_update_secret_chat(SecretChatId secret_chat_id, int64 a
 }
 
 std::pair<int32, vector<UserId>> ContactsManager::search_among_users(const vector<UserId> &user_ids,
-                                                                     const string &query, int32 limit) {
+                                                                     const string &query, int32 limit) const {
   Hints hints;  // TODO cache Hints
 
   for (auto user_id : user_ids) {
@@ -14083,6 +14083,272 @@ std::pair<int32, vector<UserId>> ContactsManager::search_among_users(const vecto
   auto result = hints.search(query, limit, true);
   return {narrow_cast<int32>(result.first),
           transform(result.second, [](int64 key) { return UserId(narrow_cast<int32>(key)); })};
+}
+
+void ContactsManager::add_dialog_participant(DialogId dialog_id, UserId user_id, int32 forward_limit,
+                                             Promise<Unit> &&promise) {
+  if (!td_->messages_manager_->have_dialog_force(dialog_id)) {
+    return promise.set_error(Status::Error(3, "Chat not found"));
+  }
+
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      return promise.set_error(Status::Error(3, "Can't add members to a private chat"));
+    case DialogType::Chat:
+      return add_chat_participant(dialog_id.get_chat_id(), user_id, forward_limit, std::move(promise));
+    case DialogType::Channel:
+      return add_channel_participant(dialog_id.get_channel_id(), user_id, std::move(promise));
+    case DialogType::SecretChat:
+      return promise.set_error(Status::Error(3, "Can't add members to a secret chat"));
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+  }
+}
+
+void ContactsManager::add_dialog_participants(DialogId dialog_id, const vector<UserId> &user_ids,
+                                              Promise<Unit> &&promise) {
+  if (td_->auth_manager_->is_bot()) {
+    return promise.set_error(Status::Error(3, "Method is not available for bots"));
+  }
+
+  if (!td_->messages_manager_->have_dialog_force(dialog_id)) {
+    return promise.set_error(Status::Error(3, "Chat not found"));
+  }
+
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      return promise.set_error(Status::Error(3, "Can't add members to a private chat"));
+    case DialogType::Chat:
+      return promise.set_error(Status::Error(3, "Can't add many members at once to a basic group chat"));
+    case DialogType::Channel:
+      return add_channel_participants(dialog_id.get_channel_id(), user_ids, std::move(promise));
+    case DialogType::SecretChat:
+      return promise.set_error(Status::Error(3, "Can't add members to a secret chat"));
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+  }
+}
+
+void ContactsManager::set_dialog_participant_status(DialogId dialog_id, UserId user_id,
+                                                    const tl_object_ptr<td_api::ChatMemberStatus> &chat_member_status,
+                                                    Promise<Unit> &&promise) {
+  auto status = get_dialog_participant_status(chat_member_status);
+  if (!td_->messages_manager_->have_dialog_force(dialog_id)) {
+    return promise.set_error(Status::Error(3, "Chat not found"));
+  }
+
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      return promise.set_error(Status::Error(3, "Chat member status can't be changed in private chats"));
+    case DialogType::Chat:
+      return change_chat_participant_status(dialog_id.get_chat_id(), user_id, status, std::move(promise));
+    case DialogType::Channel:
+      return change_channel_participant_status(dialog_id.get_channel_id(), user_id, status, std::move(promise));
+    case DialogType::SecretChat:
+      return promise.set_error(Status::Error(3, "Chat member status can't be changed in secret chats"));
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+  }
+}
+
+void ContactsManager::ban_dialog_participant(DialogId dialog_id, UserId user_id, int32 banned_until_date,
+                                             bool revoke_messages, Promise<Unit> &&promise) {
+  if (!td_->messages_manager_->have_dialog_force(dialog_id)) {
+    return promise.set_error(Status::Error(3, "Chat not found"));
+  }
+
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      return promise.set_error(Status::Error(3, "Can't ban members in a private chat"));
+    case DialogType::Chat:
+      return delete_chat_participant(dialog_id.get_chat_id(), user_id, revoke_messages, std::move(promise));
+    case DialogType::Channel:
+      return change_channel_participant_status(dialog_id.get_channel_id(), user_id,
+                                               DialogParticipantStatus::Banned(banned_until_date), std::move(promise));
+    case DialogType::SecretChat:
+      return promise.set_error(Status::Error(3, "Can't ban members in a secret chat"));
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+  }
+}
+
+DialogParticipant ContactsManager::get_dialog_participant(DialogId dialog_id, UserId user_id, int64 &random_id,
+                                                          bool force, Promise<Unit> &&promise) {
+  LOG(INFO) << "Receive GetChatMember request to get " << user_id << " in " << dialog_id << " with random_id "
+            << random_id;
+  if (!td_->messages_manager_->have_dialog_force(dialog_id)) {
+    promise.set_error(Status::Error(3, "Chat not found"));
+    return DialogParticipant();
+  }
+
+  switch (dialog_id.get_type()) {
+    case DialogType::User: {
+      auto peer_user_id = dialog_id.get_user_id();
+      if (user_id == get_my_id()) {
+        promise.set_value(Unit());
+        return {user_id, peer_user_id, 0, DialogParticipantStatus::Member()};
+      }
+      if (user_id == peer_user_id) {
+        promise.set_value(Unit());
+        return {peer_user_id, user_id, 0, DialogParticipantStatus::Member()};
+      }
+
+      promise.set_error(Status::Error(3, "User is not a member of the private chat"));
+      break;
+    }
+    case DialogType::Chat:
+      return get_chat_participant(dialog_id.get_chat_id(), user_id, force, std::move(promise));
+    case DialogType::Channel:
+      return get_channel_participant(dialog_id.get_channel_id(), user_id, random_id, force, std::move(promise));
+    case DialogType::SecretChat: {
+      auto peer_user_id = get_secret_chat_user_id(dialog_id.get_secret_chat_id());
+      if (user_id == get_my_id()) {
+        promise.set_value(Unit());
+        return {user_id, peer_user_id.is_valid() ? peer_user_id : user_id, 0, DialogParticipantStatus::Member()};
+      }
+      if (peer_user_id.is_valid() && user_id == peer_user_id) {
+        promise.set_value(Unit());
+        return {peer_user_id, user_id, 0, DialogParticipantStatus::Member()};
+      }
+
+      promise.set_error(Status::Error(3, "User is not a member of the secret chat"));
+      break;
+    }
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+      promise.set_error(Status::Error(500, "Wrong chat type"));
+  }
+  return DialogParticipant();
+}
+
+DialogParticipants ContactsManager::search_private_chat_participants(UserId my_user_id, UserId peer_user_id,
+                                                                     const string &query, int32 limit,
+                                                                     DialogParticipantsFilter filter) const {
+  vector<UserId> user_ids;
+  switch (filter.type) {
+    case DialogParticipantsFilter::Type::Contacts:
+      if (peer_user_id.is_valid() && is_user_contact(peer_user_id)) {
+        user_ids.push_back(peer_user_id);
+      }
+      break;
+    case DialogParticipantsFilter::Type::Administrators:
+      break;
+    case DialogParticipantsFilter::Type::Members:
+    case DialogParticipantsFilter::Type::Mention:
+      user_ids.push_back(my_user_id);
+      if (peer_user_id.is_valid() && peer_user_id != my_user_id) {
+        user_ids.push_back(peer_user_id);
+      }
+      break;
+    case DialogParticipantsFilter::Type::Restricted:
+      break;
+    case DialogParticipantsFilter::Type::Banned:
+      break;
+    case DialogParticipantsFilter::Type::Bots:
+      if (td_->auth_manager_->is_bot()) {
+        user_ids.push_back(my_user_id);
+      }
+      if (peer_user_id.is_valid() && is_user_bot(peer_user_id) && peer_user_id != my_user_id) {
+        user_ids.push_back(peer_user_id);
+      }
+      break;
+    default:
+      UNREACHABLE();
+  }
+
+  auto result = search_among_users(user_ids, query, limit);
+  return {result.first, transform(result.second, [&](UserId user_id) {
+            return DialogParticipant(user_id,
+                                     user_id == my_user_id && peer_user_id.is_valid() ? peer_user_id : my_user_id, 0,
+                                     DialogParticipantStatus::Member());
+          })};
+}
+
+void ContactsManager::search_dialog_participants(DialogId dialog_id, const string &query, int32 limit,
+                                                 DialogParticipantsFilter filter, bool without_bot_info,
+                                                 Promise<DialogParticipants> &&promise) {
+  LOG(INFO) << "Receive searchChatMembers request to search for \"" << query << "\" in " << dialog_id << " with filter "
+            << filter;
+  if (!td_->messages_manager_->have_dialog_force(dialog_id)) {
+    return promise.set_error(Status::Error(3, "Chat not found"));
+  }
+  if (limit < 0) {
+    return promise.set_error(Status::Error(3, "Parameter limit must be non-negative"));
+  }
+
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      promise.set_value(search_private_chat_participants(get_my_id(), dialog_id.get_user_id(), query, limit, filter));
+      return;
+    case DialogType::Chat:
+      return search_chat_participants(dialog_id.get_chat_id(), query, limit, filter, std::move(promise));
+    case DialogType::Channel: {
+      td_api::object_ptr<td_api::SupergroupMembersFilter> request_filter;
+      string additional_query;
+      int32 additional_limit = 0;
+      switch (filter.type) {
+        case DialogParticipantsFilter::Type::Contacts:
+          request_filter = td_api::make_object<td_api::supergroupMembersFilterContacts>();
+          break;
+        case DialogParticipantsFilter::Type::Administrators:
+          request_filter = td_api::make_object<td_api::supergroupMembersFilterAdministrators>();
+          break;
+        case DialogParticipantsFilter::Type::Members:
+          request_filter = td_api::make_object<td_api::supergroupMembersFilterSearch>(query);
+          break;
+        case DialogParticipantsFilter::Type::Restricted:
+          request_filter = td_api::make_object<td_api::supergroupMembersFilterRestricted>(query);
+          break;
+        case DialogParticipantsFilter::Type::Banned:
+          request_filter = td_api::make_object<td_api::supergroupMembersFilterBanned>(query);
+          break;
+        case DialogParticipantsFilter::Type::Mention:
+          request_filter =
+              td_api::make_object<td_api::supergroupMembersFilterMention>(query, filter.top_thread_message_id.get());
+          break;
+        case DialogParticipantsFilter::Type::Bots:
+          request_filter = td_api::make_object<td_api::supergroupMembersFilterBots>();
+          break;
+        default:
+          UNREACHABLE();
+      }
+      switch (filter.type) {
+        case DialogParticipantsFilter::Type::Contacts:
+        case DialogParticipantsFilter::Type::Administrators:
+        case DialogParticipantsFilter::Type::Bots:
+          additional_query = query;
+          additional_limit = limit;
+          limit = 100;
+          break;
+        case DialogParticipantsFilter::Type::Members:
+        case DialogParticipantsFilter::Type::Restricted:
+        case DialogParticipantsFilter::Type::Banned:
+        case DialogParticipantsFilter::Type::Mention:
+          // query is passed to the server request
+          break;
+        default:
+          UNREACHABLE();
+      }
+
+      return get_channel_participants(dialog_id.get_channel_id(), std::move(request_filter),
+                                      std::move(additional_query), 0, limit, additional_limit, without_bot_info,
+                                      std::move(promise));
+    }
+    case DialogType::SecretChat: {
+      auto peer_user_id = get_secret_chat_user_id(dialog_id.get_secret_chat_id());
+      promise.set_value(search_private_chat_participants(get_my_id(), peer_user_id, query, limit, filter));
+      return;
+    }
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+      promise.set_error(Status::Error(500, "Wrong chat type"));
+  }
 }
 
 DialogParticipant ContactsManager::get_chat_participant(ChatId chat_id, UserId user_id, bool force,
@@ -14297,6 +14563,26 @@ void ContactsManager::do_get_channel_participants(ChannelId channel_id, ChannelP
 
 vector<DialogAdministrator> ContactsManager::get_dialog_administrators(DialogId dialog_id, int left_tries,
                                                                        Promise<Unit> &&promise) {
+  LOG(INFO) << "Receive GetChatAdministrators request in " << dialog_id << " with " << left_tries << " left tries";
+  if (!td_->messages_manager_->have_dialog_force(dialog_id)) {
+    promise.set_error(Status::Error(3, "Chat not found"));
+    return {};
+  }
+
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+    case DialogType::SecretChat:
+      promise.set_value(Unit());
+      return {};
+    case DialogType::Chat:
+    case DialogType::Channel:
+      break;
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+      return {};
+  }
+
   auto it = dialog_administrators_.find(dialog_id);
   if (it != dialog_administrators_.end()) {
     promise.set_value(Unit());

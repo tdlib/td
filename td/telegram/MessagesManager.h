@@ -10,7 +10,6 @@
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogAction.h"
-#include "td/telegram/DialogAdministrator.h"
 #include "td/telegram/DialogDate.h"
 #include "td/telegram/DialogDb.h"
 #include "td/telegram/DialogFilterId.h"
@@ -477,25 +476,6 @@ class MessagesManager : public Actor {
                           bool is_unpin, Promise<Unit> &&promise);
 
   void unpin_all_dialog_messages(DialogId dialog_id, Promise<Unit> &&promise);
-
-  void add_dialog_participant(DialogId dialog_id, UserId user_id, int32 forward_limit, Promise<Unit> &&promise);
-
-  void add_dialog_participants(DialogId dialog_id, const vector<UserId> &user_ids, Promise<Unit> &&promise);
-
-  void set_dialog_participant_status(DialogId dialog_id, UserId user_id,
-                                     const tl_object_ptr<td_api::ChatMemberStatus> &chat_member_status,
-                                     Promise<Unit> &&promise);
-
-  void ban_dialog_participant(DialogId dialog_id, UserId user_id, int32 banned_until_date, bool revoke_messages,
-                              Promise<Unit> &&promise);
-
-  DialogParticipant get_dialog_participant(DialogId dialog_id, UserId user_id, int64 &random_id, bool force,
-                                           Promise<Unit> &&promise);
-
-  void search_dialog_participants(DialogId dialog_id, const string &query, int32 limit, DialogParticipantsFilter filter,
-                                  bool without_bot_info, Promise<DialogParticipants> &&promise);
-
-  vector<DialogAdministrator> get_dialog_administrators(DialogId dialog_id, int left_tries, Promise<Unit> &&promise);
 
   void get_dialog_info_full(DialogId dialog_id, Promise<Unit> &&promise);
 
@@ -2534,9 +2514,6 @@ class MessagesManager : public Actor {
 
   DialogFolder *get_dialog_folder(FolderId folder_id);
   const DialogFolder *get_dialog_folder(FolderId folder_id) const;
-
-  DialogParticipants search_private_chat_participants(UserId my_user_id, UserId peer_user_id, const string &query,
-                                                      int32 limit, DialogParticipantsFilter filter) const;
 
   static unique_ptr<Message> *treap_find_message(unique_ptr<Message> *v, MessageId message_id);
   static const unique_ptr<Message> *treap_find_message(const unique_ptr<Message> *v, MessageId message_id);

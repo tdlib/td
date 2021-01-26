@@ -374,21 +374,6 @@ class ContactsManager : public Actor {
   void load_statistics_graph(DialogId dialog_id, const string &token, int64 x,
                              Promise<td_api::object_ptr<td_api::StatisticalGraph>> &&promise);
 
-  void add_chat_participant(ChatId chat_id, UserId user_id, int32 forward_limit, Promise<Unit> &&promise);
-
-  void add_channel_participant(ChannelId channel_id, UserId user_id, Promise<Unit> &&promise,
-                               DialogParticipantStatus old_status = DialogParticipantStatus::Left());
-
-  void add_channel_participants(ChannelId channel_id, const vector<UserId> &user_ids, Promise<Unit> &&promise);
-
-  void change_chat_participant_status(ChatId chat_id, UserId user_id, DialogParticipantStatus status,
-                                      Promise<Unit> &&promise);
-
-  void change_channel_participant_status(ChannelId channel_id, UserId user_id, DialogParticipantStatus status,
-                                         Promise<Unit> &&promise);
-
-  void delete_chat_participant(ChatId chat_id, UserId user_id, bool revoke_messages, Promise<Unit> &&promise);
-
   void can_transfer_ownership(Promise<CanTransferOwnershipResult> &&promise);
 
   static td_api::object_ptr<td_api::CanTransferOwnershipResult> get_can_transfer_ownership_result_object(
@@ -503,24 +488,31 @@ class ContactsManager : public Actor {
   ChannelId get_channel_linked_channel_id(ChannelId channel_id);
   int32 get_channel_slow_mode_delay(ChannelId channel_id);
 
-  std::pair<int32, vector<UserId>> search_among_users(const vector<UserId> &user_ids, const string &query, int32 limit);
+  void add_dialog_participant(DialogId dialog_id, UserId user_id, int32 forward_limit, Promise<Unit> &&promise);
 
-  DialogParticipant get_chat_participant(ChatId chat_id, UserId user_id, bool force, Promise<Unit> &&promise);
+  void add_dialog_participants(DialogId dialog_id, const vector<UserId> &user_ids, Promise<Unit> &&promise);
 
-  void search_chat_participants(ChatId chat_id, const string &query, int32 limit, DialogParticipantsFilter filter,
-                                Promise<DialogParticipants> &&promise);
+  void set_dialog_participant_status(DialogId dialog_id, UserId user_id,
+                                     const tl_object_ptr<td_api::ChatMemberStatus> &chat_member_status,
+                                     Promise<Unit> &&promise);
 
-  DialogParticipant get_channel_participant(ChannelId channel_id, UserId user_id, int64 &random_id, bool force,
-                                            Promise<Unit> &&promise);
-
-  void get_channel_participants(ChannelId channel_id, tl_object_ptr<td_api::SupergroupMembersFilter> &&filter,
-                                string additional_query, int32 offset, int32 limit, int32 additional_limit,
-                                bool without_bot_info, Promise<DialogParticipants> &&promise);
+  void ban_dialog_participant(DialogId dialog_id, UserId user_id, int32 banned_until_date, bool revoke_messages,
+                              Promise<Unit> &&promise);
 
   DialogParticipant get_dialog_participant(ChannelId channel_id,
                                            tl_object_ptr<telegram_api::ChannelParticipant> &&participant_ptr) const;
 
-  vector<DialogAdministrator> get_dialog_administrators(DialogId chat_id, int left_tries, Promise<Unit> &&promise);
+  DialogParticipant get_dialog_participant(DialogId dialog_id, UserId user_id, int64 &random_id, bool force,
+                                           Promise<Unit> &&promise);
+
+  void search_dialog_participants(DialogId dialog_id, const string &query, int32 limit, DialogParticipantsFilter filter,
+                                  bool without_bot_info, Promise<DialogParticipants> &&promise);
+
+  vector<DialogAdministrator> get_dialog_administrators(DialogId dialog_id, int left_tries, Promise<Unit> &&promise);
+
+  void get_channel_participants(ChannelId channel_id, tl_object_ptr<td_api::SupergroupMembersFilter> &&filter,
+                                string additional_query, int32 offset, int32 limit, int32 additional_limit,
+                                bool without_bot_info, Promise<DialogParticipants> &&promise);
 
   int32 get_user_id_object(UserId user_id, const char *source) const;
 
@@ -1053,9 +1045,27 @@ class ContactsManager : public Actor {
 
   bool update_permanent_invite_link(DialogInviteLink &invite_link, DialogInviteLink new_invite_link);
 
+  void add_chat_participant(ChatId chat_id, UserId user_id, int32 forward_limit, Promise<Unit> &&promise);
+
+  void add_channel_participant(ChannelId channel_id, UserId user_id, Promise<Unit> &&promise,
+                               DialogParticipantStatus old_status = DialogParticipantStatus::Left());
+
+  void add_channel_participants(ChannelId channel_id, const vector<UserId> &user_ids, Promise<Unit> &&promise);
+
   const DialogParticipant *get_chat_participant(ChatId chat_id, UserId user_id) const;
 
   static const DialogParticipant *get_chat_participant(const ChatFull *chat_full, UserId user_id);
+
+  std::pair<int32, vector<UserId>> search_among_users(const vector<UserId> &user_ids, const string &query,
+                                                      int32 limit) const;
+
+  DialogParticipants search_private_chat_participants(UserId my_user_id, UserId peer_user_id, const string &query,
+                                                      int32 limit, DialogParticipantsFilter filter) const;
+
+  DialogParticipant get_chat_participant(ChatId chat_id, UserId user_id, bool force, Promise<Unit> &&promise);
+
+  DialogParticipant get_channel_participant(ChannelId channel_id, UserId user_id, int64 &random_id, bool force,
+                                            Promise<Unit> &&promise);
 
   static string get_dialog_administrators_database_key(DialogId dialog_id);
 
@@ -1108,7 +1118,16 @@ class ContactsManager : public Actor {
 
   void update_dialogs_for_discussion(DialogId dialog_id, bool is_suitable);
 
-  void delete_chat_participant(ChatId chat_id, UserId user_id, Promise<Unit> &&promise);
+  void change_chat_participant_status(ChatId chat_id, UserId user_id, DialogParticipantStatus status,
+                                      Promise<Unit> &&promise);
+
+  void change_channel_participant_status(ChannelId channel_id, UserId user_id, DialogParticipantStatus status,
+                                         Promise<Unit> &&promise);
+
+  void delete_chat_participant(ChatId chat_id, UserId user_id, bool revoke_messages, Promise<Unit> &&promise);
+
+  void search_chat_participants(ChatId chat_id, const string &query, int32 limit, DialogParticipantsFilter filter,
+                                Promise<DialogParticipants> &&promise);
 
   void do_search_chat_participants(ChatId chat_id, const string &query, int32 limit, DialogParticipantsFilter filter,
                                    Promise<DialogParticipants> &&promise);

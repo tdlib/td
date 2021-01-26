@@ -1490,7 +1490,7 @@ void GroupCallManager::try_load_group_call_administrators(InputGroupCallId input
         send_closure(actor_id, &GroupCallManager::finish_load_group_call_administrators, input_group_call_id,
                      std::move(result));
       });
-  td_->messages_manager_->search_dialog_participants(
+  td_->contacts_manager_->search_dialog_participants(
       dialog_id, string(), 100, DialogParticipantsFilter(DialogParticipantsFilter::Type::Administrators), true,
       std::move(promise));
 }
