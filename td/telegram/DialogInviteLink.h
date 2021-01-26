@@ -39,7 +39,7 @@ class DialogInviteLink {
  public:
   DialogInviteLink() = default;
 
-  DialogInviteLink(tl_object_ptr<telegram_api::chatInviteExported> exported_invite);
+  explicit DialogInviteLink(tl_object_ptr<telegram_api::chatInviteExported> exported_invite);
 
   static bool is_valid_invite_link(Slice invite_link);
 
