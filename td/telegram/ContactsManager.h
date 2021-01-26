@@ -1049,8 +1049,8 @@ class ContactsManager : public Actor {
 
   Status can_manage_dialog_invite_links(DialogId dialog_id);
 
-  bool update_persistent_invite_link(DialogInviteLink &invite_link,
-                                     tl_object_ptr<telegram_api::chatInviteExported> &&exported_chat_invite);
+  bool update_permanent_invite_link(DialogInviteLink &invite_link,
+                                    tl_object_ptr<telegram_api::chatInviteExported> &&exported_chat_invite);
 
   const DialogParticipant *get_chat_participant(ChatId chat_id, UserId user_id) const;
 

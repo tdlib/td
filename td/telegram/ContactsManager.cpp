@@ -11858,7 +11858,7 @@ void ContactsManager::on_update_channel_full_photo(ChannelFull *channel_full, Ch
 void ContactsManager::on_update_chat_full_invite_link(ChatFull *chat_full,
                                                       tl_object_ptr<telegram_api::chatInviteExported> &&invite_link) {
   CHECK(chat_full != nullptr);
-  if (update_persistent_invite_link(chat_full->invite_link, std::move(invite_link))) {
+  if (update_permanent_invite_link(chat_full->invite_link, std::move(invite_link))) {
     chat_full->is_changed = true;
   }
 }
@@ -11866,7 +11866,7 @@ void ContactsManager::on_update_chat_full_invite_link(ChatFull *chat_full,
 void ContactsManager::on_update_channel_full_invite_link(
     ChannelFull *channel_full, tl_object_ptr<telegram_api::chatInviteExported> &&invite_link) {
   CHECK(channel_full != nullptr);
-  if (update_persistent_invite_link(channel_full->invite_link, std::move(invite_link))) {
+  if (update_permanent_invite_link(channel_full->invite_link, std::move(invite_link))) {
     channel_full->is_changed = true;
   }
 }
@@ -12174,7 +12174,7 @@ void ContactsManager::remove_dialog_access_by_invite_link(DialogId dialog_id) {
   invite_link_info_expire_timeout_.cancel_timeout(dialog_id.get());
 }
 
-bool ContactsManager::update_persistent_invite_link(
+bool ContactsManager::update_permanent_invite_link(
     DialogInviteLink &invite_link, tl_object_ptr<telegram_api::chatInviteExported> &&exported_chat_invite) {
   DialogInviteLink new_invite_link(std::move(exported_chat_invite));
   if (new_invite_link != invite_link) {
