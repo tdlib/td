@@ -7056,6 +7056,13 @@ void MessagesManager::on_user_dialog_action(DialogId dialog_id, MessageId top_th
     }
     return;
   }
+  {
+    auto message_import_progress = action.get_importing_messages_action_progress();
+    if (message_import_progress >= 0) {
+      // TODO
+      return;
+    }
+  }
 
   if (!td_->contacts_manager_->have_min_user(user_id)) {
     LOG(DEBUG) << "Ignore typing of unknown " << user_id;

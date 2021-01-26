@@ -1312,9 +1312,6 @@ class CliClient final : public Actor {
     if (action == "uvn" || action == "upload_video_note") {
       return td_api::make_object<td_api::chatActionUploadingVideoNote>(50);
     }
-    if (action == "im" || action == "import_messages") {
-      return td_api::make_object<td_api::chatActionImportingMessages>(50);
-    }
     return td_api::make_object<td_api::chatActionTyping>();
   }
 

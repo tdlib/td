@@ -64,6 +64,8 @@ class DialogAction {
 
   static DialogAction get_speaking_action();
 
+  int32 get_importing_messages_action_progress() const;
+
   friend bool operator==(const DialogAction &lhs, const DialogAction &rhs) {
     return lhs.type_ == rhs.type_ && lhs.progress_ == rhs.progress_;
   }

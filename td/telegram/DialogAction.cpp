@@ -79,9 +79,6 @@ DialogAction::DialogAction(tl_object_ptr<td_api::ChatAction> &&action) {
       init(Type::UploadingVideoNote, uploading_action->progress_);
       break;
     }
-    case td_api::chatActionImportingMessages::ID:
-      init(Type::Cancel);  // it can't be sent explicitly
-      break;
     default:
       UNREACHABLE();
       break;
@@ -258,7 +255,6 @@ tl_object_ptr<td_api::ChatAction> DialogAction::get_chat_action_object() const {
     case Type::UploadingVideoNote:
       return td_api::make_object<td_api::chatActionUploadingVideoNote>(progress_);
     case Type::ImportingMessages:
-      return td_api::make_object<td_api::chatActionImportingMessages>(progress_);
     case Type::SpeakingInVoiceChat:
     default:
       UNREACHABLE();
@@ -361,6 +357,13 @@ DialogAction DialogAction::get_typing_action() {
 
 DialogAction DialogAction::get_speaking_action() {
   return DialogAction(Type::SpeakingInVoiceChat, 0);
+}
+
+int32 DialogAction::get_importing_messages_action_progress() const {
+  if (type_ != Type::ImportingMessages) {
+    return -1;
+  }
+  return progress_;
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const DialogAction &action) {
