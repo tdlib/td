@@ -295,6 +295,7 @@ bool AnimationsManager::merge_animations(FileId new_id, FileId old_id, bool can_
     return old_->is_changed;
   }
 
+  bool need_merge = true;
   auto new_it = animations_.find(new_id);
   if (new_it == animations_.end()) {
     auto &old = animations_[old_id];
@@ -313,8 +314,13 @@ bool AnimationsManager::merge_animations(FileId new_id, FileId old_id, bool can_
     if (old_->thumbnail != new_->thumbnail) {
       //    LOG_STATUS(td_->file_manager_->merge(new_->thumbnail.file_id, old_->thumbnail.file_id));
     }
+    if (old_->mime_type == "image/gif" && new_->mime_type == "video/mp4") {
+      need_merge = false;
+    }
   }
-  LOG_STATUS(td_->file_manager_->merge(new_id, old_id));
+  if (need_merge) {
+    LOG_STATUS(td_->file_manager_->merge(new_id, old_id));
+  }
   if (can_delete_old) {
     animations_.erase(old_id);
   }
