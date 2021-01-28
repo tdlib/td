@@ -27629,6 +27629,9 @@ bool MessagesManager::is_message_notification_disabled(const Dialog *d, const Me
       G()->shared_config().get_option_boolean("disable_sent_scheduled_message_notifications")) {
     return true;
   }
+  if (m->forward_info != nullptr && m->forward_info->is_imported) {
+    return true;
+  }
 
   switch (m->content->get_type()) {
     case MessageContentType::ChatDeleteHistory:
