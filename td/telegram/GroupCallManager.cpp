@@ -747,7 +747,7 @@ void GroupCallManager::get_group_call(GroupCallId group_call_id,
 
 void GroupCallManager::on_update_group_call_rights(InputGroupCallId input_group_call_id) {
   auto group_call = get_group_call(input_group_call_id);
-  if (need_group_call_participants(input_group_call_id)) {
+  if (need_group_call_participants(input_group_call_id, group_call)) {
     CHECK(group_call != nullptr && group_call->is_inited);
     try_load_group_call_administrators(input_group_call_id, group_call->dialog_id);
 
@@ -846,7 +846,11 @@ void GroupCallManager::finish_check_group_call_is_joined(InputGroupCallId input_
 }
 
 bool GroupCallManager::need_group_call_participants(InputGroupCallId input_group_call_id) const {
-  auto *group_call = get_group_call(input_group_call_id);
+  return need_group_call_participants(input_group_call_id, get_group_call(input_group_call_id));
+}
+
+bool GroupCallManager::need_group_call_participants(InputGroupCallId input_group_call_id,
+                                                    const GroupCall *group_call) const {
   if (group_call == nullptr || !group_call->is_inited || !group_call->is_active) {
     return false;
   }
@@ -1505,11 +1509,10 @@ void GroupCallManager::finish_load_group_call_administrators(InputGroupCallId in
     return;
   }
 
-  if (!need_group_call_participants(input_group_call_id)) {
+  auto *group_call = get_group_call(input_group_call_id);
+  if (!need_group_call_participants(input_group_call_id, group_call)) {
     return;
   }
-
-  auto *group_call = get_group_call(input_group_call_id);
   CHECK(group_call != nullptr);
   if (!group_call->dialog_id.is_valid() || !can_manage_group_calls(group_call->dialog_id).is_ok()) {
     return;
@@ -1810,10 +1813,10 @@ void GroupCallManager::load_group_call_participants(GroupCallId group_call_id, i
 
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
 
-  if (!need_group_call_participants(input_group_call_id)) {
+  auto *group_call = get_group_call(input_group_call_id);
+  if (!need_group_call_participants(input_group_call_id, group_call)) {
     return promise.set_error(Status::Error(400, "Can't load group call participants"));
   }
-  auto *group_call = get_group_call(input_group_call_id);
   CHECK(group_call != nullptr && group_call->is_inited);
   if (group_call->loaded_all_participants) {
     return promise.set_value(Unit());
@@ -1987,7 +1990,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
     call.audio_source = group_call->audio_source;
     *group_call = std::move(call);
 
-    if (need_group_call_participants(input_group_call_id)) {
+    if (need_group_call_participants(input_group_call_id, group_call)) {
       // init version
       group_call->version = call.version;
       if (process_pending_group_call_participant_updates(input_group_call_id)) {
@@ -2028,7 +2031,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
             group_call->participant_count = call.participant_count;
             need_update = true;
           }
-          if (need_group_call_participants(input_group_call_id) && !join_params.empty()) {
+          if (need_group_call_participants(input_group_call_id, group_call) && !join_params.empty()) {
             LOG(INFO) << "Init " << call.group_call_id << " version to " << call.version;
             if (group_call->can_self_unmute != call.can_self_unmute) {
               group_call->can_self_unmute = call.can_self_unmute;
@@ -2058,11 +2061,10 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
 }
 
 void GroupCallManager::on_receive_group_call_version(InputGroupCallId input_group_call_id, int32 version) {
-  if (!need_group_call_participants(input_group_call_id)) {
+  auto *group_call = get_group_call(input_group_call_id);
+  if (!need_group_call_participants(input_group_call_id, group_call)) {
     return;
   }
-
-  auto *group_call = get_group_call(input_group_call_id);
   CHECK(group_call != nullptr && group_call->is_inited);
   if (group_call->version == -1) {
     return;
