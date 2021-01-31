@@ -967,6 +967,16 @@ GroupCallManager::GroupCallParticipants *GroupCallManager::add_group_call_partic
   return participants.get();
 }
 
+const GroupCallParticipant *GroupCallManager::get_group_call_participant(
+    const GroupCallParticipants *group_call_participants, UserId user_id) {
+  for (auto &group_call_participant : group_call_participants->participants) {
+    if (group_call_participant.user_id == user_id) {
+      return &group_call_participant;
+    }
+  }
+  return nullptr;
+}
+
 void GroupCallManager::on_update_group_call_participants(
     InputGroupCallId input_group_call_id, vector<tl_object_ptr<telegram_api::groupCallParticipant>> &&participants,
     int32 version) {
@@ -2114,7 +2124,9 @@ void GroupCallManager::on_user_speaking_in_group_call(GroupCallId group_call_id,
     return;
   }
 
-  if (!td_->contacts_manager_->have_user_force(user_id)) {
+  if (!td_->contacts_manager_->have_user_force(user_id) ||
+      (!recursive && need_group_call_participants(input_group_call_id, group_call) &&
+       get_group_call_participant(add_group_call_participants(input_group_call_id), user_id) == nullptr)) {
     if (recursive) {
       LOG(ERROR) << "Failed to find speaking " << user_id << " from " << input_group_call_id;
     } else {

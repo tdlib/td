@@ -167,6 +167,9 @@ class GroupCallManager : public Actor {
 
   GroupCallParticipants *add_group_call_participants(InputGroupCallId input_group_call_id);
 
+  const GroupCallParticipant *get_group_call_participant(const GroupCallParticipants *group_call_participants,
+                                                         UserId user_id);
+
   void on_group_call_left(InputGroupCallId input_group_call_id, int32 audio_source, bool need_rejoin);
 
   void on_group_call_left_impl(GroupCall *group_call, bool need_rejoin);
