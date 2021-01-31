@@ -733,7 +733,7 @@ ChannelParticipantsFilter::get_input_channel_participants_filter() const {
       if (!query.empty()) {
         flags |= telegram_api::channelParticipantsMentions::Q_MASK;
       }
-      if (!top_thread_message_id.is_valid()) {
+      if (top_thread_message_id.is_valid()) {
         flags |= telegram_api::channelParticipantsMentions::TOP_MSG_ID_MASK;
       }
       return make_tl_object<telegram_api::channelParticipantsMentions>(
