@@ -8572,7 +8572,7 @@ void MessagesManager::do_send_media(DialogId dialog_id, Message *m, FileId file_
   bool have_input_thumbnail = input_thumbnail != nullptr;
   LOG(INFO) << "Do send media file " << file_id << " with thumbnail " << thumbnail_file_id
             << ", have_input_file = " << have_input_file << ", have_input_thumbnail = " << have_input_thumbnail
-            << ", ttl = " << m->ttl;
+            << ", TTL = " << m->ttl;
 
   MessageContent *content = nullptr;
   if (m->message_id.is_any_server()) {
@@ -12906,13 +12906,13 @@ void MessagesManager::on_secret_chat_screenshot_taken(SecretChatId secret_chat_i
 
 void MessagesManager::on_secret_chat_ttl_changed(SecretChatId secret_chat_id, UserId user_id, MessageId message_id,
                                                  int32 date, int32 ttl, int64 random_id, Promise<> promise) {
-  LOG(DEBUG) << "On ttl set in " << secret_chat_id << " to " << ttl;
+  LOG(DEBUG) << "On TTL set in " << secret_chat_id << " to " << ttl;
   CHECK(secret_chat_id.is_valid());
   CHECK(user_id.is_valid());
   CHECK(message_id.is_valid());
   CHECK(date > 0);
   if (ttl < 0) {
-    LOG(WARNING) << "Receive wrong ttl = " << ttl;
+    LOG(WARNING) << "Receive wrong TTL = " << ttl;
     promise.set_value(Unit());
     return;
   }
@@ -13227,7 +13227,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   int32 ttl = message_info.ttl;
   bool is_content_secret = is_secret_message_content(ttl, content_type);  // should be calculated before TTL is adjusted
   if (ttl < 0) {
-    LOG(ERROR) << "Wrong ttl = " << ttl << " received in " << message_id << " in " << dialog_id;
+    LOG(ERROR) << "Wrong TTL = " << ttl << " received in " << message_id << " in " << dialog_id;
     ttl = 0;
   } else if (ttl > 0) {
     ttl = max(ttl, get_message_content_duration(message_info.content.get(), td_) + 1);
@@ -25146,7 +25146,7 @@ void MessagesManager::edit_inline_message_media(const string &inline_message_id,
   }
   InputMessageContent content = r_input_message_content.move_as_ok();
   if (content.ttl > 0) {
-    LOG(ERROR) << "Have message content with ttl " << content.ttl;
+    LOG(ERROR) << "Have message content with TTL " << content.ttl;
     return promise.set_error(Status::Error(5, "Can't enable self-destruction for media"));
   }
 
@@ -26262,14 +26262,14 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
 
 Result<MessageId> MessagesManager::send_dialog_set_ttl_message(DialogId dialog_id, int32 ttl) {
   if (dialog_id.get_type() != DialogType::SecretChat) {
-    return Status::Error(5, "Can't set chat ttl in non-secret chat");
+    return Status::Error(5, "Can't set message TTL in non-secret chat");
   }
 
   if (ttl < 0) {
-    return Status::Error(5, "Message ttl can't be negative");
+    return Status::Error(5, "Message TTL can't be negative");
   }
 
-  LOG(INFO) << "Begin to set ttl in " << dialog_id << " to " << ttl;
+  LOG(INFO) << "Begin to set message TTL in " << dialog_id << " to " << ttl;
 
   Dialog *d = get_dialog_force(dialog_id);
   if (d == nullptr) {
@@ -32223,7 +32223,7 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
     return nullptr;
   }
   if (message->ttl != 0 || message->ttl_expires_at != 0) {
-    LOG(ERROR) << "Tried to add " << message_id << " with ttl " << message->ttl << "/" << message->ttl_expires_at
+    LOG(ERROR) << "Tried to add " << message_id << " with TTL " << message->ttl << "/" << message->ttl_expires_at
                << " to " << dialog_id << " from " << source;
     debug_add_message_to_dialog_fail_reason_ = "skip adding secret scheduled message";
     return nullptr;
