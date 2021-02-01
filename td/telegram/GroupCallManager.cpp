@@ -1366,6 +1366,11 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
       }
       participant.is_just_joined = false;
       update_group_call_participant_can_be_muted(can_manage, participants, participant);
+      if (old_participant.is_volume_level_local && !participant.is_volume_level_local) {
+        participant.is_volume_level_local = true;
+        participant.volume_level = old_participant.volume_level;
+      }
+      participant.is_min = false;
 
       LOG(INFO) << "Edit " << old_participant << " to " << participant;
       if (old_participant != participant && (old_participant.order != 0 || participant.order != 0)) {
@@ -1383,6 +1388,7 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
     return -1;
   }
 
+  // CHECK(!participant.is_min);
   int diff = participant.is_just_joined ? 1 : 0;
   if (participant.is_just_joined) {
     LOG(INFO) << "Add new " << participant;

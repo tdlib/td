@@ -25,6 +25,7 @@ GroupCallParticipant::GroupCallParticipant(const tl_object_ptr<telegram_api::gro
       LOG(ERROR) << "Receive " << to_string(participant);
       volume_level = 10000;
     }
+    is_volume_level_local = (participant->flags_ & telegram_api::groupCallParticipant::VOLUME_BY_ADMIN_MASK) == 0;
   }
   if (!participant->left_) {
     joined_date = participant->date_;
@@ -38,6 +39,7 @@ GroupCallParticipant::GroupCallParticipant(const tl_object_ptr<telegram_api::gro
     }
   }
   is_just_joined = participant->just_joined_;
+  is_min = (participant->flags_ & telegram_api::groupCallParticipant::MIN_MASK) != 0;
 }
 
 bool GroupCallParticipant::is_versioned_update(const tl_object_ptr<telegram_api::groupCallParticipant> &participant) {
