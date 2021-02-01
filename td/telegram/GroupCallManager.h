@@ -179,7 +179,7 @@ class GroupCallManager : public Actor {
 
   InputGroupCallId update_group_call(const tl_object_ptr<telegram_api::GroupCall> &group_call_ptr, DialogId dialog_id);
 
-  void on_receive_group_call_version(InputGroupCallId input_group_call_id, int32 version);
+  void on_receive_group_call_version(InputGroupCallId input_group_call_id, int32 version, bool immediate_sync = false);
 
   void on_participant_speaking_in_group_call(InputGroupCallId input_group_call_id,
                                              const GroupCallParticipant &participant);

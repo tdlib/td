@@ -431,8 +431,8 @@ struct GroupCallManager::GroupCallParticipants {
   bool are_administrators_loaded = false;
   vector<UserId> administrator_user_ids;
 
-  std::map<int32, vector<tl_object_ptr<telegram_api::groupCallParticipant>>> pending_version_updates_;
-  std::map<int32, vector<tl_object_ptr<telegram_api::groupCallParticipant>>> pending_mute_updates_;
+  std::map<int32, vector<GroupCallParticipant>> pending_version_updates_;
+  std::map<int32, vector<GroupCallParticipant>> pending_mute_updates_;
 };
 
 struct GroupCallManager::GroupCallRecentSpeakers {
@@ -1034,9 +1034,23 @@ void GroupCallManager::on_update_group_call_participants(
 
   auto *group_call_participants = add_group_call_participants(input_group_call_id);
   auto &pending_mute_updates = group_call_participants->pending_mute_updates_[version];
-  vector<tl_object_ptr<telegram_api::groupCallParticipant>> version_updates;
-  for (auto &participant : participants) {
-    if (GroupCallParticipant::is_versioned_update(participant)) {
+  vector<GroupCallParticipant> version_updates;
+  for (auto &group_call_participant : participants) {
+    GroupCallParticipant participant(group_call_participant);
+    if (participant.is_min && participant.joined_date != 0) {
+      auto old_participant = get_group_call_participant(group_call_participants, participant.user_id);
+      if (old_participant == nullptr) {
+        LOG(INFO) << "Can't apply min update about " << participant.user_id << " in " << input_group_call_id;
+        // TODO instead of synchronization, such participants can be received through GetGroupCallParticipantQuery
+        on_receive_group_call_version(input_group_call_id, version, true);
+        return;
+      }
+
+      participant.update_from(*old_participant);
+      CHECK(!participant.is_min);
+    }
+
+    if (GroupCallParticipant::is_versioned_update(group_call_participant)) {
       version_updates.push_back(std::move(participant));
     } else {
       pending_mute_updates.push_back(std::move(participant));
@@ -1079,8 +1093,7 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
     auto version = it->first;
     auto &participants = it->second;
     if (version <= group_call->version) {
-      for (auto &group_call_participant : participants) {
-        GroupCallParticipant participant(group_call_participant);
+      for (auto &participant : participants) {
         on_participant_speaking_in_group_call(input_group_call_id, participant);
         if (participant.user_id == td_->contacts_manager_->get_my_id() && version == group_call->version &&
             participant.is_just_joined) {
@@ -1123,8 +1136,7 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
     auto version = it->first;
     if (version <= group_call->version) {
       auto &participants = it->second;
-      for (auto &group_call_participant : participants) {
-        GroupCallParticipant participant(group_call_participant);
+      for (auto &participant : participants) {
         on_participant_speaking_in_group_call(input_group_call_id, participant);
         int mute_diff = process_group_call_participant(input_group_call_id, std::move(participant));
         CHECK(mute_diff == 0);
@@ -1230,6 +1242,10 @@ void GroupCallManager::process_group_call_participants(
     GroupCallParticipant group_call_participant(participant);
     if (!group_call_participant.is_valid()) {
       LOG(ERROR) << "Receive invalid " << to_string(participant);
+      continue;
+    }
+    if (group_call_participant.is_min) {
+      LOG(ERROR) << "Receive unexpected min " << to_string(participant);
       continue;
     }
 
@@ -1375,7 +1391,7 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
     return -1;
   }
 
-  // CHECK(!participant.is_min);
+  CHECK(!participant.is_min);
   int diff = participant.is_just_joined ? 1 : 0;
   if (participant.is_just_joined) {
     LOG(INFO) << "Add new " << participant;
@@ -2112,7 +2128,8 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
   return input_group_call_id;
 }
 
-void GroupCallManager::on_receive_group_call_version(InputGroupCallId input_group_call_id, int32 version) {
+void GroupCallManager::on_receive_group_call_version(InputGroupCallId input_group_call_id, int32 version,
+                                                     bool immediate_sync) {
   auto *group_call = get_group_call(input_group_call_id);
   if (!need_group_call_participants(input_group_call_id, group_call)) {
     return;
@@ -2132,7 +2149,11 @@ void GroupCallManager::on_receive_group_call_version(InputGroupCallId input_grou
   LOG(INFO) << "Receive version " << version << " for group call " << input_group_call_id;
   auto *group_call_participants = add_group_call_participants(input_group_call_id);
   group_call_participants->pending_version_updates_[version];  // reserve place for updates
-  sync_participants_timeout_.add_timeout_in(group_call->group_call_id.get(), 1.0);
+  if (immediate_sync) {
+    sync_participants_timeout_.set_timeout_in(group_call->group_call_id.get(), 0.0);
+  } else {
+    sync_participants_timeout_.add_timeout_in(group_call->group_call_id.get(), 1.0);
+  }
 }
 
 void GroupCallManager::on_participant_speaking_in_group_call(InputGroupCallId input_group_call_id,
