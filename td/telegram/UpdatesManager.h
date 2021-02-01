@@ -171,6 +171,7 @@ class UpdatesManager : public Actor {
   int32 accumulated_pts_count_ = 0;
   int32 accumulated_pts_ = -1;
   double last_pts_jump_warning_time_ = 0;
+  double last_pts_gap_time_ = 0;
 
   std::multimap<int32, PendingPtsUpdate> pending_pts_updates_;
   std::multimap<int32, PendingPtsUpdate> postponed_pts_updates_;

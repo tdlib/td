@@ -1905,13 +1905,12 @@ void UpdatesManager::add_pending_pts_update(tl_object_ptr<telegram_api::Update> 
 
   if (old_pts + accumulated_pts_count_ < accumulated_pts_) {
     set_pts_gap_timeout(MAX_UNFILLED_GAP_TIME);
+    last_pts_gap_time_ = Time::now();
     return;
   }
 
   CHECK(old_pts + accumulated_pts_count_ == accumulated_pts_);
-  if (!pending_pts_updates_.empty()) {
-    process_pending_pts_updates();
-  }
+  process_pending_pts_updates();
 }
 
 void UpdatesManager::postpone_pts_update(tl_object_ptr<telegram_api::Update> &&update, int32 pts, int32 pts_count,
@@ -1972,8 +1971,17 @@ void UpdatesManager::process_pending_pts_updates() {
     update.second.promise.set_value(Unit());
   }
 
-  set_pts(accumulated_pts_, "process pending updates")
-      .set_value(Unit());  // TODO can't set until get messages really stored on persistent storage
+  if (last_pts_gap_time_ != 0) {
+    auto diff = Time::now() - last_pts_gap_time_;
+    last_pts_gap_time_ = 0;
+    if (diff > 0.1) {
+      VLOG(get_difference) << "Gap in pts from " << accumulated_pts_ - accumulated_pts_count_ << " to "
+                           << accumulated_pts_ << " has been filled in " << diff << " seconds";
+    }
+  }
+
+  set_pts(accumulated_pts_, "postpone_pending_pts_update")
+      .set_value(Unit());  // TODO can't set until updates are stored on persistent storage
   drop_pending_pts_updates();
 }
 
