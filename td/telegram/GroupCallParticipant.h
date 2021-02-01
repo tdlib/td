@@ -51,6 +51,8 @@ struct GroupCallParticipant {
 
   static bool is_versioned_update(const tl_object_ptr<telegram_api::groupCallParticipant> &participant);
 
+  void update_from(const GroupCallParticipant &old_participant);
+
   bool update_can_be_muted(bool can_manage, bool is_self, bool is_admin);
 
   int64 get_real_order() const {

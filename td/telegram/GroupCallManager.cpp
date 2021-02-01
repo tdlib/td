@@ -1350,32 +1350,14 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
         return -1;
       }
 
-      if (participant.joined_date < old_participant.joined_date) {
-        LOG(ERROR) << "Join date of " << participant.user_id << " in " << input_group_call_id << " decreased from "
-                   << old_participant.joined_date << " to " << participant.joined_date;
-        participant.joined_date = old_participant.joined_date;
-      }
-      if (participant.active_date < old_participant.active_date) {
-        participant.active_date = old_participant.active_date;
-      }
-      participant.local_active_date = old_participant.local_active_date;
-      participant.is_speaking = old_participant.is_speaking;
+      participant.update_from(old_participant);
+
+      participant.is_just_joined = false;
       auto real_order = participant.get_real_order();
       if (real_order >= participants->min_order) {
         participant.order = real_order;
       }
-      participant.is_just_joined = false;
-      if (participant.is_min) {
-        participant.is_muted_only_for_self = old_participant.is_muted_only_for_self;
-      }
       update_group_call_participant_can_be_muted(can_manage, participants, participant);
-      if (old_participant.is_volume_level_local && !participant.is_volume_level_local) {
-        participant.is_volume_level_local = true;
-        participant.volume_level = old_participant.volume_level;
-      }
-      participant.pending_volume_level = old_participant.pending_volume_level;
-      participant.pending_volume_level_generation = old_participant.pending_volume_level_generation;
-      participant.is_min = false;
 
       LOG(INFO) << "Edit " << old_participant << " to " << participant;
       if (old_participant != participant && (old_participant.order != 0 || participant.order != 0)) {

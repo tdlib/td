@@ -50,6 +50,29 @@ int32 GroupCallParticipant::get_volume_level() const {
   return pending_volume_level != 0 ? pending_volume_level : volume_level;
 }
 
+void GroupCallParticipant::update_from(const GroupCallParticipant &old_participant) {
+  CHECK(!old_participant.is_min);
+  if (joined_date < old_participant.joined_date) {
+    LOG(ERROR) << "Join date decreased from " << old_participant.joined_date << " to " << joined_date;
+    joined_date = old_participant.joined_date;
+  }
+  if (active_date < old_participant.active_date) {
+    active_date = old_participant.active_date;
+  }
+  local_active_date = old_participant.local_active_date;
+  is_speaking = old_participant.is_speaking;
+  if (is_min) {
+    is_muted_only_for_self = old_participant.is_muted_only_for_self;
+  }
+  if (old_participant.is_volume_level_local && !is_volume_level_local) {
+    is_volume_level_local = true;
+    volume_level = old_participant.volume_level;
+  }
+  pending_volume_level = old_participant.pending_volume_level;
+  pending_volume_level_generation = old_participant.pending_volume_level_generation;
+  is_min = false;
+}
+
 bool GroupCallParticipant::update_can_be_muted(bool can_manage, bool is_self, bool is_admin) {
   bool new_can_be_muted_for_all_users = false;
   bool new_can_be_unmuted_for_all_users = false;
