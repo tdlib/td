@@ -1365,6 +1365,9 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
         participant.order = real_order;
       }
       participant.is_just_joined = false;
+      if (participant.is_min) {
+        participant.is_muted_only_for_self = old_participant.is_muted_only_for_self;
+      }
       update_group_call_participant_can_be_muted(can_manage, participants, participant);
       if (old_participant.is_volume_level_local && !participant.is_volume_level_local) {
         participant.is_volume_level_local = true;
