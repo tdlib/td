@@ -63,8 +63,7 @@ void DcAuthManager::add_dc(std::shared_ptr<AuthDataShared> auth_data) {
   info.dc_id = auth_data->dc_id();
   CHECK(info.dc_id.is_exact());
   info.shared_auth_data = std::move(auth_data);
-  auto state_was_auth = info.shared_auth_data->get_auth_key_state();
-  info.auth_key_state = state_was_auth.first;
+  info.auth_key_state = info.shared_auth_data->get_auth_key_state();
   VLOG(dc) << "Add " << info.dc_id << " with auth key state " << info.auth_key_state;
   if (!main_dc_id_.is_exact()) {
     main_dc_id_ = info.dc_id;
@@ -97,9 +96,8 @@ DcAuthManager::DcInfo *DcAuthManager::find_dc(int32 dc_id) {
 void DcAuthManager::update_auth_key_state() {
   int32 dc_id = narrow_cast<int32>(get_link_token());
   auto &dc = get_dc(dc_id);
-  auto state_was_auth = dc.shared_auth_data->get_auth_key_state();
-  VLOG(dc) << "Update " << dc_id << " auth key state from " << dc.auth_key_state << " to " << state_was_auth.first;
-  dc.auth_key_state = state_was_auth.first;
+  dc.auth_key_state = dc.shared_auth_data->get_auth_key_state();
+  VLOG(dc) << "Update " << dc_id << " auth key state from " << dc.auth_key_state << " to " << dc.auth_key_state;
 
   loop();
 }

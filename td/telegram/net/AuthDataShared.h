@@ -51,7 +51,7 @@ class AuthDataShared {
   virtual DcId dc_id() const = 0;
   virtual const std::shared_ptr<PublicRsaKeyShared> &public_rsa_key() = 0;
   virtual mtproto::AuthKey get_auth_key() = 0;
-  virtual std::pair<AuthKeyState, bool> get_auth_key_state() = 0;
+  virtual AuthKeyState get_auth_key_state() = 0;
   virtual void set_auth_key(const mtproto::AuthKey &auth_key) = 0;
   virtual void update_server_time_difference(double diff) = 0;
   virtual double get_server_time_difference() = 0;

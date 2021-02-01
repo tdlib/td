@@ -434,10 +434,8 @@ ActorOwn<> get_full_config(DcOption option, Promise<FullConfig> promise, ActorSh
       }
       return res;
     }
-    std::pair<AuthKeyState, bool> get_auth_key_state() override {
-      auto auth_key = get_auth_key();
-      AuthKeyState state = AuthDataShared::get_auth_key_state(auth_key);
-      return std::make_pair(state, auth_key.was_auth_flag());
+    AuthKeyState get_auth_key_state() override {
+      return AuthDataShared::get_auth_key_state(get_auth_key());
     }
     void set_auth_key(const mtproto::AuthKey &auth_key) override {
       G()->td_db()->get_binlog_pmc()->set(auth_key_key(), serialize(auth_key));
