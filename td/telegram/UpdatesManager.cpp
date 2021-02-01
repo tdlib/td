@@ -788,7 +788,8 @@ void UpdatesManager::on_get_updates(tl_object_ptr<telegram_api::Updates> &&updat
           false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, update->id_,
           make_tl_object<telegram_api::peerUser>(from_id), make_tl_object<telegram_api::peerUser>(update->user_id_),
           std::move(update->fwd_from_), update->via_bot_id_, std::move(update->reply_to_), update->date_,
-          update->message_, nullptr, nullptr, std::move(update->entities_), 0, 0, nullptr, 0, string(), 0, Auto());
+          update->message_, nullptr, nullptr, std::move(update->entities_), 0, 0, nullptr, 0, string(), 0, Auto(),
+          update->ttl_period_);
       on_pending_update(
           make_tl_object<telegram_api::updateNewMessage>(std::move(message), update->pts_, update->pts_count_), 0,
           std::move(promise), "telegram_api::updatesShortMessage");
@@ -812,7 +813,7 @@ void UpdatesManager::on_get_updates(tl_object_ptr<telegram_api::Updates> &&updat
           make_tl_object<telegram_api::peerUser>(update->from_id_),
           make_tl_object<telegram_api::peerChat>(update->chat_id_), std::move(update->fwd_from_), update->via_bot_id_,
           std::move(update->reply_to_), update->date_, update->message_, nullptr, nullptr, std::move(update->entities_),
-          0, 0, nullptr, 0, string(), 0, Auto());
+          0, 0, nullptr, 0, string(), 0, Auto(), update->ttl_period_);
       on_pending_update(
           make_tl_object<telegram_api::updateNewMessage>(std::move(message), update->pts_, update->pts_count_), 0,
           std::move(promise), "telegram_api::updatesShortChatMessage");
@@ -2845,7 +2846,19 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelParticip
 
 // unsupported updates
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotStopped> update, Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChatParticipant> update, Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTheme> update, Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePeerHistoryTTL> update, Promise<Unit> &&promise) {
   promise.set_value(Unit());
 }
 

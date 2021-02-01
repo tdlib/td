@@ -799,8 +799,8 @@ class MessagesManager : public Actor {
   void check_send_message_result(int64 random_id, DialogId dialog_id, const telegram_api::Updates *updates_ptr,
                                  const char *source);
 
-  FullMessageId on_send_message_success(int64 random_id, MessageId new_message_id, int32 date, FileId new_file_id,
-                                        const char *source);
+  FullMessageId on_send_message_success(int64 random_id, MessageId new_message_id, int32 date, int32 ttl_period,
+                                        FileId new_file_id, const char *source);
 
   void on_send_message_file_part_missing(int64 random_id, int bad_part);
 

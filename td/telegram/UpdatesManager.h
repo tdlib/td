@@ -59,9 +59,10 @@ class updateSentMessage : public telegram_api::Update {
   int64 random_id_;
   MessageId message_id_;
   int32 date_;
+  int32 ttl_period_;
 
-  updateSentMessage(int64 random_id, MessageId message_id, int32 date)
-      : random_id_(random_id), message_id_(message_id), date_(date) {
+  updateSentMessage(int64 random_id, MessageId message_id, int32 date, int32 ttl_period)
+      : random_id_(random_id), message_id_(message_id), date_(date), ttl_period_(ttl_period) {
   }
 
   static constexpr int32 ID = 1234567890;
@@ -82,6 +83,7 @@ class updateSentMessage : public telegram_api::Update {
     s.store_field("random_id", random_id_);
     s.store_field("message_id", message_id_.get());
     s.store_field("date", date_);
+    s.store_field("ttl_period", ttl_period_);
     s.store_class_end();
   }
 };
@@ -452,7 +454,13 @@ class UpdatesManager : public Actor {
 
   // unsupported updates
 
+  void on_update(tl_object_ptr<telegram_api::updateBotStopped> update, Promise<Unit> &&promise);
+
+  void on_update(tl_object_ptr<telegram_api::updateChatParticipant> update, Promise<Unit> &&promise);
+
   void on_update(tl_object_ptr<telegram_api::updateTheme> update, Promise<Unit> &&promise);
+
+  void on_update(tl_object_ptr<telegram_api::updatePeerHistoryTTL> update, Promise<Unit> &&promise);
 };
 
 }  // namespace td

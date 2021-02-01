@@ -6308,7 +6308,7 @@ void Td::on_request(uint64 id, const td_api::replacePermanentChatInviteLink &req
   CREATE_REQUEST_PROMISE();
   contacts_manager_->export_dialog_invite_link(DialogId(request.chat_id_), 0, 0, true, std::move(promise));
 }
-/*
+
 void Td::on_request(uint64 id, const td_api::createChatInviteLink &request) {
   CREATE_REQUEST_PROMISE();
   contacts_manager_->export_dialog_invite_link(DialogId(request.chat_id_), request.expire_date_, request.member_limit_,
@@ -6356,7 +6356,7 @@ void Td::on_request(uint64 id, const td_api::deleteAllRevokedChatInviteLinks &re
   CREATE_OK_REQUEST_PROMISE();
   contacts_manager_->delete_all_revoked_dialog_invite_links(DialogId(request.chat_id_), std::move(promise));
 }
-*/
+
 void Td::on_request(uint64 id, td_api::checkChatInviteLink &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.invite_link_);

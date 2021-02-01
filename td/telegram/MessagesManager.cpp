@@ -2805,16 +2805,19 @@ class SendMessageActor : public NetActorOnce {
                                                        std::move(sent_message->entities_));
 
     auto message_id = MessageId(ServerMessageId(sent_message->id_));
+    auto ttl_period = (sent_message->flags_ & telegram_api::updateShortSentMessage::TTL_PERIOD_MASK) != 0
+                          ? sent_message->ttl_period_
+                          : 0;
+    auto update = make_tl_object<updateSentMessage>(random_id_, message_id, sent_message->date_, ttl_period);
     if (dialog_id_.get_type() == DialogType::Channel) {
-      td->messages_manager_->add_pending_channel_update(
-          dialog_id_, make_tl_object<updateSentMessage>(random_id_, message_id, sent_message->date_),
-          sent_message->pts_, sent_message->pts_count_, Promise<Unit>(), "send message actor");
+      td->messages_manager_->add_pending_channel_update(dialog_id_, std::move(update), sent_message->pts_,
+                                                        sent_message->pts_count_, Promise<Unit>(),
+                                                        "send message actor");
       return;
     }
 
-    td->updates_manager_->add_pending_pts_update(
-        make_tl_object<updateSentMessage>(random_id_, message_id, sent_message->date_), sent_message->pts_,
-        sent_message->pts_count_, Promise<Unit>(), "send message actor");
+    td->updates_manager_->add_pending_pts_update(std::move(update), sent_message->pts_, sent_message->pts_count_,
+                                                 Promise<Unit>(), "send message actor");
   }
 
   void on_error(uint64 id, Status status) override {
@@ -4354,10 +4357,11 @@ class ReportPeerQuery : public Td::ResultHandler {
 
     if (message_ids.empty()) {
       send_query(G()->net_query_creator().create(
-          telegram_api::account_reportPeer(std::move(input_peer), std::move(report_reason))));
+          telegram_api::account_reportPeer(std::move(input_peer), std::move(report_reason), string())));
     } else {
-      send_query(G()->net_query_creator().create(telegram_api::messages_report(
-          std::move(input_peer), MessagesManager::get_server_message_ids(message_ids), std::move(report_reason))));
+      send_query(G()->net_query_creator().create(
+          telegram_api::messages_report(std::move(input_peer), MessagesManager::get_server_message_ids(message_ids),
+                                        std::move(report_reason), string())));
     }
   }
 
@@ -6385,7 +6389,8 @@ void MessagesManager::skip_old_pending_pts_update(tl_object_ptr<telegram_api::Up
       if (new_pts == old_pts) {  // otherwise message can be already deleted
         // apply sent message anyway
         on_send_message_success(update_sent_message->random_id_, update_sent_message->message_id_,
-                                update_sent_message->date_, FileId(), "process old updateSentMessage");
+                                update_sent_message->date_, update_sent_message->ttl_period_, FileId(),
+                                "process old updateSentMessage");
         return;
       } else {
         LOG(ERROR) << "Receive awaited sent " << update_sent_message->message_id_ << " from " << source << " with pts "
@@ -7241,7 +7246,8 @@ void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_p
         if (being_sent_messages_.count(update_sent_message->random_id_) > 0) {
           // apply sent channel message
           on_send_message_success(update_sent_message->random_id_, update_sent_message->message_id_,
-                                  update_sent_message->date_, FileId(), "process old updateSentChannelMessage");
+                                  update_sent_message->date_, update_sent_message->ttl_period_, FileId(),
+                                  "process old updateSentChannelMessage");
           promise.set_value(Unit());
           return;
         }
@@ -7314,10 +7320,11 @@ void MessagesManager::process_pts_update(tl_object_ptr<telegram_api::Update> &&u
       break;
     }
     case updateSentMessage::ID: {
-      auto send_message_success_update = move_tl_object_as<updateSentMessage>(update);
-      LOG(INFO) << "Process updateSentMessage " << send_message_success_update->random_id_;
-      on_send_message_success(send_message_success_update->random_id_, send_message_success_update->message_id_,
-                              send_message_success_update->date_, FileId(), "process updateSentMessage");
+      auto update_sent_message = move_tl_object_as<updateSentMessage>(update);
+      LOG(INFO) << "Process updateSentMessage " << update_sent_message->random_id_;
+      on_send_message_success(update_sent_message->random_id_, update_sent_message->message_id_,
+                              update_sent_message->date_, update_sent_message->ttl_period_, FileId(),
+                              "process updateSentMessage");
       break;
     }
     case telegram_api::updateReadMessagesContents::ID: {
@@ -7388,10 +7395,11 @@ void MessagesManager::process_channel_update(tl_object_ptr<telegram_api::Update>
       LOG(INFO) << "Process dummyUpdate";
       break;
     case updateSentMessage::ID: {
-      auto send_message_success_update = move_tl_object_as<updateSentMessage>(update);
-      LOG(INFO) << "Process updateSentMessage " << send_message_success_update->random_id_;
-      on_send_message_success(send_message_success_update->random_id_, send_message_success_update->message_id_,
-                              send_message_success_update->date_, FileId(), "process updateSentChannelMessage");
+      auto update_sent_message = move_tl_object_as<updateSentMessage>(update);
+      LOG(INFO) << "Process updateSentMessage " << update_sent_message->random_id_;
+      on_send_message_success(update_sent_message->random_id_, update_sent_message->message_id_,
+                              update_sent_message->date_, update_sent_message->ttl_period_, FileId(),
+                              "process updateSentChannelMessage");
       break;
     }
     case telegram_api::updateNewChannelMessage::ID: {
@@ -8187,7 +8195,7 @@ void MessagesManager::report_dialog(DialogId dialog_id, const tl_object_ptr<td_a
         return promise.set_error(Status::Error(400, "Text must be encoded in UTF-8"));
       }
 
-      report_reason = make_tl_object<telegram_api::inputReportReasonOther>(text);
+      report_reason = make_tl_object<telegram_api::inputReportReasonOther>();
       break;
     }
     default:
@@ -12607,7 +12615,7 @@ void MessagesManager::on_send_secret_message_success(int64 random_id, MessageId 
     }
   }
 
-  on_send_message_success(random_id, message_id, date, new_file_id, "process send_secret_message_success");
+  on_send_message_success(random_id, message_id, date, 0, new_file_id, "process send_secret_message_success");
 }
 
 void MessagesManager::delete_secret_messages(SecretChatId secret_chat_id, std::vector<int64> random_ids,
@@ -28453,7 +28461,7 @@ void MessagesManager::check_send_message_result(int64 random_id, DialogId dialog
 }
 
 FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageId new_message_id, int32 date,
-                                                       FileId new_file_id, const char *source) {
+                                                       int32 ttl_period, FileId new_file_id, const char *source) {
   CHECK(source != nullptr);
   // do not try to run getDifference from this function
   if (DROP_SEND_MESSAGE_UPDATES) {
@@ -30876,7 +30884,7 @@ tl_object_ptr<telegram_api::channelAdminLogEventsFilter> MessagesManager::get_ch
   return make_tl_object<telegram_api::channelAdminLogEventsFilter>(
       flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
       false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-      false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/);
+      false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/);
 }
 
 int64 MessagesManager::get_dialog_event_log(DialogId dialog_id, const string &query, int64 from_event_id, int32 limit,

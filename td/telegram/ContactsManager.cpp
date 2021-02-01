@@ -1582,9 +1582,7 @@ class ExportChatInviteLinkQuery : public Td::ResultHandler {
     if (input_peer == nullptr) {
       return on_error(0, Status::Error(400, "Can't access the chat"));
     }
-    CHECK(is_permanent);
 
-    /*
     int32 flags = 0;
     if (expire_date > 0) {
       flags |= telegram_api::messages_exportChatInvite::EXPIRE_DATE_MASK;
@@ -1595,11 +1593,9 @@ class ExportChatInviteLinkQuery : public Td::ResultHandler {
     if (is_permanent) {
       flags |= telegram_api::messages_exportChatInvite::LEGACY_REVOKE_PERMANENT_MASK;
     }
-    */
 
-    send_query(G()->net_query_creator().create(telegram_api::messages_exportChatInvite(std::move(input_peer))));
-    // send_query(G()->net_query_creator().create(telegram_api::messages_exportChatInvite(
-    //     flags, false /*ignored*/, std::move(input_peer), expire_date, usage_limit)));
+    send_query(G()->net_query_creator().create(telegram_api::messages_exportChatInvite(
+        flags, false /*ignored*/, std::move(input_peer), expire_date, usage_limit)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -1629,7 +1625,7 @@ class ExportChatInviteLinkQuery : public Td::ResultHandler {
     promise_.set_error(std::move(status));
   }
 };
-/*
+
 class EditChatInviteLinkQuery : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::chatInviteLink>> promise_;
   DialogId dialog_id_;
@@ -1652,7 +1648,7 @@ class EditChatInviteLinkQuery : public Td::ResultHandler {
       flags |= telegram_api::messages_editExportedChatInvite::REVOKED_MASK;
     }
     send_query(G()->net_query_creator().create(telegram_api::messages_editExportedChatInvite(
-        flags, false / *ignored* /, std::move(input_peer), invite_link, expire_date, usage_limit)));
+        flags, false /*ignored*/, std::move(input_peer), invite_link, expire_date, usage_limit)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -1661,7 +1657,7 @@ class EditChatInviteLinkQuery : public Td::ResultHandler {
       return on_error(id, result_ptr.move_as_error());
     }
 
-    auto result = result_ptr.move_as_ok();
+    auto result = move_tl_object_as<telegram_api::messages_exportedChatInvite>(result_ptr.move_as_ok());
     LOG(INFO) << "Receive result for ExportChatInviteQuery: " << to_string(result);
 
     td->contacts_manager_->on_get_users(std::move(result->users_), "EditChatInviteLinkQuery");
@@ -1697,11 +1693,9 @@ class GetExportedChatInvitesQuery : public Td::ResultHandler {
     }
 
     auto input_user = td->contacts_manager_->get_input_user(administrator_user_id);
+    CHECK(input_user != nullptr);
 
     int32 flags = 0;
-    if (input_user != nullptr) {
-      flags |= telegram_api::messages_getExportedChatInvites::ADMIN_ID_MASK;
-    }
     if (!offset_invite_link.empty() || offset_date != 0) {
       flags |= telegram_api::messages_getExportedChatInvites::OFFSET_DATE_MASK;
       flags |= telegram_api::messages_getExportedChatInvites::OFFSET_LINK_MASK;
@@ -1710,7 +1704,7 @@ class GetExportedChatInvitesQuery : public Td::ResultHandler {
       flags |= telegram_api::messages_getExportedChatInvites::REVOKED_MASK;
     }
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_getExportedChatInvites(flags, false / *ignored* /, std::move(input_peer),
+        telegram_api::messages_getExportedChatInvites(flags, false /*ignored*/, std::move(input_peer),
                                                       std::move(input_user), offset_date, offset_invite_link, limit)));
   }
 
@@ -1859,8 +1853,8 @@ class DeleteRevokedExportedChatInvitesQuery : public Td::ResultHandler {
       return on_error(0, Status::Error(400, "Can't access the chat"));
     }
 
-    send_query(G()->net_query_creator().create(
-        telegram_api::messages_deleteRevokedExportedChatInvites(std::move(input_peer))));
+    send_query(G()->net_query_creator().create(telegram_api::messages_deleteRevokedExportedChatInvites(
+        std::move(input_peer), make_tl_object<telegram_api::inputUserSelf>())));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -1877,7 +1871,7 @@ class DeleteRevokedExportedChatInvitesQuery : public Td::ResultHandler {
     promise_.set_error(std::move(status));
   }
 };
-*/
+
 class CheckDialogInviteLinkQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   string invite_link_;
@@ -6881,7 +6875,7 @@ void ContactsManager::export_dialog_invite_link_impl(DialogId dialog_id, int32 e
   td_->create_handler<ExportChatInviteLinkQuery>(std::move(promise))
       ->send(dialog_id, expire_date, usage_limit, is_permanent);
 }
-/*
+
 void ContactsManager::edit_dialog_invite_link(DialogId dialog_id, const string &invite_link, int32 expire_date,
                                               int32 usage_limit, bool is_revoked,
                                               Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise) {
@@ -6900,7 +6894,7 @@ void ContactsManager::get_dialog_invite_links(DialogId dialog_id, UserId adminis
                                               Promise<td_api::object_ptr<td_api::chatInviteLinks>> &&promise) {
   TRY_STATUS_PROMISE(promise, can_manage_dialog_invite_links(dialog_id));
 
-  if (administrator_user_id != UserId() && !have_input_user(administrator_user_id)) {
+  if (!have_input_user(administrator_user_id)) {
     return promise.set_error(Status::Error(400, "Administrator user not found"));
   }
 
@@ -6944,7 +6938,7 @@ void ContactsManager::delete_all_revoked_dialog_invite_links(DialogId dialog_id,
 
   td_->create_handler<DeleteRevokedExportedChatInvitesQuery>(std::move(promise))->send(dialog_id);
 }
-*/
+
 void ContactsManager::check_dialog_invite_link(const string &invite_link, Promise<Unit> &&promise) const {
   if (invite_link_infos_.count(invite_link) > 0) {
     return promise.set_value(Unit());

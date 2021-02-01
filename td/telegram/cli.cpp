@@ -2696,7 +2696,6 @@ class CliClient final : public Actor {
     } else if (op == "rpcil") {
       string chat_id = args;
       send_request(td_api::make_object<td_api::replacePermanentChatInviteLink>(as_chat_id(chat_id)));
-      /*
     } else if (op == "ccilt") {
       string chat_id;
       int32 expire_date;
@@ -2744,7 +2743,6 @@ class CliClient final : public Actor {
     } else if (op == "darcil") {
       string chat_id = args;
       send_request(td_api::make_object<td_api::deleteAllRevokedChatInviteLinks>(as_chat_id(chat_id)));
-    */
     } else if (op == "ccil") {
       send_request(td_api::make_object<td_api::checkChatInviteLink>(args));
     } else if (op == "jcbil") {

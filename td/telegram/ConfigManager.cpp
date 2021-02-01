@@ -1097,7 +1097,8 @@ void ConfigManager::dismiss_suggested_action(SuggestedAction suggested_action, P
   queries.push_back(std::move(promise));
   if (queries.size() == 1) {
     G()->net_query_dispatcher().dispatch_with_callback(
-        G()->net_query_creator().create(telegram_api::help_dismissSuggestion(action_str)),
+        G()->net_query_creator().create(
+            telegram_api::help_dismissSuggestion(make_tl_object<telegram_api::inputPeerEmpty>(), action_str)),
         actor_shared(this, 100 + static_cast<int32>(suggested_action)));
   }
 }

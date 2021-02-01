@@ -385,7 +385,7 @@ class ContactsManager : public Actor {
 
   void export_dialog_invite_link(DialogId dialog_id, int32 expire_date, int32 usage_limit, bool is_permanent,
                                  Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise);
-  /*
+
   void edit_dialog_invite_link(DialogId dialog_id, const string &link, int32 expire_date, int32 usage_limit,
                                bool is_revoked, Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise);
 
@@ -400,7 +400,7 @@ class ContactsManager : public Actor {
   void delete_revoked_dialog_invite_link(DialogId dialog_id, const string &invite_link, Promise<Unit> &&promise);
 
   void delete_all_revoked_dialog_invite_links(DialogId dialog_id, Promise<Unit> &&promise);
-  */
+
   void check_dialog_invite_link(const string &invite_link, Promise<Unit> &&promise) const;
 
   void import_dialog_invite_link(const string &invite_link, Promise<DialogId> &&promise);
