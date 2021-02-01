@@ -167,8 +167,11 @@ class GroupCallManager : public Actor {
 
   GroupCallParticipants *add_group_call_participants(InputGroupCallId input_group_call_id);
 
-  const GroupCallParticipant *get_group_call_participant(const GroupCallParticipants *group_call_participants,
-                                                         UserId user_id);
+  static GroupCallParticipant *get_group_call_participant(GroupCallParticipants *group_call_participants,
+                                                          UserId user_id);
+
+  void on_set_group_call_participant_volume_level(InputGroupCallId input_group_call_id, UserId user_id,
+                                                  uint64 generation, Promise<Unit> &&promise);
 
   void on_group_call_left(InputGroupCallId input_group_call_id, int32 audio_source, bool need_rejoin);
 
@@ -233,6 +236,8 @@ class GroupCallManager : public Actor {
 
   std::unordered_map<InputGroupCallId, unique_ptr<PendingJoinRequest>, InputGroupCallIdHash> pending_join_requests_;
   uint64 join_group_request_generation_ = 0;
+
+  uint64 set_volume_level_generation_ = 0;
 
   MultiTimeout check_group_call_is_joined_timeout_{"CheckGroupCallIsJoinedTimeout"};
   MultiTimeout pending_send_speaking_action_timeout_{"PendingSendSpeakingActionTimeout"};

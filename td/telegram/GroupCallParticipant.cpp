@@ -46,6 +46,10 @@ bool GroupCallParticipant::is_versioned_update(const tl_object_ptr<telegram_api:
   return participant->just_joined_ || participant->left_ || participant->versioned_;
 }
 
+int32 GroupCallParticipant::get_volume_level() const {
+  return pending_volume_level != 0 ? pending_volume_level : volume_level;
+}
+
 bool GroupCallParticipant::update_can_be_muted(bool can_manage, bool is_self, bool is_admin) {
   bool new_can_be_muted_for_all_users = false;
   bool new_can_be_unmuted_for_all_users = false;
@@ -90,7 +94,7 @@ td_api::object_ptr<td_api::groupCallParticipant> GroupCallParticipant::get_group
   return td_api::make_object<td_api::groupCallParticipant>(
       contacts_manager->get_user_id_object(user_id, "get_group_call_participant_object"), audio_source, is_speaking,
       can_be_muted_for_all_users, can_be_unmuted_for_all_users, can_be_muted_only_for_self,
-      can_be_unmuted_only_for_self, is_muted, can_self_unmute, volume_level, order);
+      can_be_unmuted_only_for_self, is_muted, can_self_unmute, get_volume_level(), order);
 }
 
 bool operator==(const GroupCallParticipant &lhs, const GroupCallParticipant &rhs) {
@@ -100,7 +104,7 @@ bool operator==(const GroupCallParticipant &lhs, const GroupCallParticipant &rhs
          lhs.can_be_muted_only_for_self == rhs.can_be_muted_only_for_self &&
          lhs.can_be_unmuted_only_for_self == rhs.can_be_unmuted_only_for_self && lhs.is_muted == rhs.is_muted &&
          lhs.can_self_unmute == rhs.can_self_unmute && lhs.is_speaking == rhs.is_speaking &&
-         lhs.volume_level == rhs.volume_level && lhs.order == rhs.order;
+         lhs.get_volume_level() == rhs.get_volume_level() && lhs.order == rhs.order;
 }
 
 bool operator!=(const GroupCallParticipant &lhs, const GroupCallParticipant &rhs) {

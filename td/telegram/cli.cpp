@@ -2676,7 +2676,7 @@ class CliClient final : public Actor {
       get_args(args, group_call_id, user_id, is_muted);
       send_request(td_api::make_object<td_api::toggleGroupCallParticipantIsMuted>(as_group_call_id(group_call_id),
                                                                                   as_user_id(user_id), is_muted));
-    } else if (op == "tgcpvl") {
+    } else if (op == "sgcpvl") {
       string group_call_id;
       string user_id;
       int32 volume_level;

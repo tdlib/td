@@ -967,8 +967,8 @@ GroupCallManager::GroupCallParticipants *GroupCallManager::add_group_call_partic
   return participants.get();
 }
 
-const GroupCallParticipant *GroupCallManager::get_group_call_participant(
-    const GroupCallParticipants *group_call_participants, UserId user_id) {
+GroupCallParticipant *GroupCallManager::get_group_call_participant(GroupCallParticipants *group_call_participants,
+                                                                   UserId user_id) {
   for (auto &group_call_participant : group_call_participants->participants) {
     if (group_call_participant.user_id == user_id) {
       return &group_call_participant;
@@ -1373,6 +1373,8 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
         participant.is_volume_level_local = true;
         participant.volume_level = old_participant.volume_level;
       }
+      participant.pending_volume_level = old_participant.pending_volume_level;
+      participant.pending_volume_level_generation = old_participant.pending_volume_level_generation;
       participant.is_min = false;
 
       LOG(INFO) << "Edit " << old_participant << " to " << participant;
@@ -1821,8 +1823,57 @@ void GroupCallManager::set_group_call_participant_volume_level(GroupCallId group
     return promise.set_error(Status::Error(400, "Can't change self volume level"));
   }
 
-  td_->create_handler<EditGroupCallMemberQuery>(std::move(promise))
+  auto participant = get_group_call_participant(add_group_call_participants(input_group_call_id), user_id);
+  if (participant == nullptr) {
+    return promise.set_error(Status::Error(400, "Can't find group call participant"));
+  }
+
+  if (participant->get_volume_level() == volume_level) {
+    return promise.set_value(Unit());
+  }
+
+  participant->pending_volume_level = volume_level;
+  participant->pending_volume_level_generation = ++set_volume_level_generation_;
+  send_update_group_call_participant(input_group_call_id, *participant);
+
+  auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), input_group_call_id, user_id,
+                                               generation = participant->pending_volume_level_generation,
+                                               promise = std::move(promise)](Result<Unit> &&result) mutable {
+    if (result.is_error()) {
+      promise.set_error(result.move_as_error());
+    } else {
+      send_closure(actor_id, &GroupCallManager::on_set_group_call_participant_volume_level, input_group_call_id,
+                   user_id, generation, std::move(promise));
+    }
+  });
+  td_->create_handler<EditGroupCallMemberQuery>(std::move(query_promise))
       ->send(input_group_call_id, user_id, false, volume_level);
+}
+
+void GroupCallManager::on_set_group_call_participant_volume_level(InputGroupCallId input_group_call_id, UserId user_id,
+                                                                  uint64 generation, Promise<Unit> &&promise) {
+  if (G()->close_flag()) {
+    return promise.set_value(Unit());
+  }
+
+  auto *group_call = get_group_call(input_group_call_id);
+  if (group_call == nullptr || !group_call->is_inited || !group_call->is_active || !group_call->is_joined) {
+    return promise.set_value(Unit());
+  }
+
+  auto participant = get_group_call_participant(add_group_call_participants(input_group_call_id), user_id);
+  if (participant == nullptr || participant->pending_volume_level_generation != generation) {
+    return promise.set_value(Unit());
+  }
+
+  if (participant->volume_level != participant->pending_volume_level || !participant->is_volume_level_local) {
+    LOG(ERROR) << "Failed to set volume level of " << user_id << " in " << input_group_call_id;
+    participant->pending_volume_level = 0;
+    send_update_group_call_participant(input_group_call_id, *participant);
+  } else {
+    participant->pending_volume_level = 0;
+  }
+  promise.set_value(Unit());
 }
 
 void GroupCallManager::load_group_call_participants(GroupCallId group_call_id, int32 limit, Promise<Unit> &&promise) {

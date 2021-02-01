@@ -39,6 +39,9 @@ struct GroupCallParticipant {
   int32 local_active_date = 0;
   int64 order = 0;
 
+  int32 pending_volume_level = 0;
+  uint64 pending_volume_level_generation = 0;
+
   static constexpr int32 MIN_VOLUME_LEVEL = 1;
   static constexpr int32 MAX_VOLUME_LEVEL = 20000;
 
@@ -57,6 +60,8 @@ struct GroupCallParticipant {
   bool is_valid() const {
     return user_id.is_valid();
   }
+
+  int32 get_volume_level() const;
 
   td_api::object_ptr<td_api::groupCallParticipant> get_group_call_participant_object(
       ContactsManager *contacts_manager) const;
