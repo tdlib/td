@@ -47,7 +47,6 @@ class DcAuthManager : public NetQueryCallback {
   ActorShared<> parent_;
 
   std::vector<DcInfo> dcs_;
-  bool was_auth_{false};
   DcId main_dc_id_;
   bool close_flag_{false};
   Promise<> destroy_promise_;

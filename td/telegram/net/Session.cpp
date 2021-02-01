@@ -8,6 +8,7 @@
 
 #include "td/telegram/telegram_api.h"
 
+#include "td/telegram/ConfigShared.h"
 #include "td/telegram/DhCache.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/net/DcAuthManager.h"
@@ -778,6 +779,7 @@ void Session::on_message_result_error(uint64 id, int error_code, BufferSlice mes
         LOG(WARNING) << "Lost authorization due to " << tag("msg", message.as_slice());
       }
       auth_data_.set_auth_flag(false);
+      G()->shared_config().set_option_boolean("auth", false);
       shared_auth_data_->set_auth_key(auth_data_.get_main_auth_key());
       on_session_failed(Status::OK());
     }
