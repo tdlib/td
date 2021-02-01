@@ -10801,10 +10801,10 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
     MessageId max_message_id =
         d->last_database_message_id.is_valid() ? d->last_database_message_id : d->last_new_message_id;
     if (max_message_id.is_valid()) {
-      read_history_inbox(d->dialog_id, max_message_id, -1, "delete_all_dialog_messages");
+      read_history_inbox(d->dialog_id, max_message_id, -1, "delete_all_dialog_messages 1");
     }
     if (d->server_unread_count != 0 || d->local_unread_count != 0) {
-      set_dialog_last_read_inbox_message_id(d, MessageId::min(), 0, 0, true, "delete_all_dialog_messages");
+      set_dialog_last_read_inbox_message_id(d, MessageId::min(), 0, 0, true, "delete_all_dialog_messages 2");
     }
   }
 
@@ -10830,7 +10830,7 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
 
   vector<int64> deleted_message_ids;
   do_delete_all_dialog_messages(d, d->messages, is_permanently_deleted, deleted_message_ids);
-  delete_all_dialog_messages_from_database(d, MessageId::max(), "delete_all_dialog_messages");
+  delete_all_dialog_messages_from_database(d, MessageId::max(), "delete_all_dialog_messages 3");
   if (is_permanently_deleted) {
     for (auto id : deleted_message_ids) {
       d->deleted_message_ids.insert(MessageId{id});
@@ -10841,9 +10841,10 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
     set_dialog_reply_markup(d, MessageId());
   }
 
-  set_dialog_first_database_message_id(d, MessageId(), "delete_all_dialog_messages");
-  set_dialog_last_database_message_id(d, MessageId(), "delete_all_dialog_messages");
-  set_dialog_last_clear_history_date(d, last_message_date, last_clear_history_message_id, "delete_all_dialog_messages");
+  set_dialog_first_database_message_id(d, MessageId(), "delete_all_dialog_messages 4");
+  set_dialog_last_database_message_id(d, MessageId(), "delete_all_dialog_messages 5");
+  set_dialog_last_clear_history_date(d, last_message_date, last_clear_history_message_id,
+                                     "delete_all_dialog_messages 6");
   d->last_read_all_mentions_message_id = MessageId();                            // it is not needed anymore
   d->message_notification_group.max_removed_notification_id = NotificationId();  // it is not needed anymore
   d->message_notification_group.max_removed_message_id = MessageId();            // it is not needed anymore
@@ -10853,16 +10854,16 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
   d->notification_id_to_message_id.clear();
 
   if (has_last_message_id) {
-    set_dialog_last_message_id(d, MessageId(), "delete_all_dialog_messages");
-    send_update_chat_last_message(d, "delete_all_dialog_messages");
+    set_dialog_last_message_id(d, MessageId(), "delete_all_dialog_messages 7");
+    send_update_chat_last_message(d, "delete_all_dialog_messages 8");
   }
   if (remove_from_dialog_list) {
-    set_dialog_order(d, DEFAULT_ORDER, true, false, "delete_all_dialog_messages 1");
+    set_dialog_order(d, DEFAULT_ORDER, true, false, "delete_all_dialog_messages 9");
   } else {
-    update_dialog_pos(d, "delete_all_dialog_messages 2");
+    update_dialog_pos(d, "delete_all_dialog_messages 10");
   }
 
-  on_dialog_updated(d->dialog_id, "delete_all_dialog_messages");
+  on_dialog_updated(d->dialog_id, "delete_all_dialog_messages 11");
 
   send_update_delete_messages(d->dialog_id, std::move(deleted_message_ids), is_permanently_deleted, false);
 }
@@ -13624,6 +13625,10 @@ void MessagesManager::set_dialog_last_new_message_id(Dialog *d, MessageId last_n
 void MessagesManager::set_dialog_last_clear_history_date(Dialog *d, int32 date, MessageId last_clear_history_message_id,
                                                          const char *source, bool is_loaded_from_database) {
   CHECK(!last_clear_history_message_id.is_scheduled());
+
+  if (d->last_clear_history_message_id == last_clear_history_message_id && d->last_clear_history_date == date) {
+    return;
+  }
 
   LOG(INFO) << "Set " << d->dialog_id << " last clear history date to " << date << " of "
             << last_clear_history_message_id << " from " << source;

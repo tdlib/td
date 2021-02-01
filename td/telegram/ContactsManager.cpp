@@ -7317,7 +7317,9 @@ void ContactsManager::delete_chat_participant(ChatId chat_id, UserId user_id, bo
   auto my_id = get_my_id();
   if (c->status.is_left()) {
     if (user_id == my_id) {
-      td_->messages_manager_->delete_dialog(DialogId(chat_id));
+      if (revoke_messages) {
+        td_->messages_manager_->delete_dialog(DialogId(chat_id));
+      }
       return promise.set_value(Unit());
     } else {
       return promise.set_error(Status::Error(3, "Not in the chat"));
