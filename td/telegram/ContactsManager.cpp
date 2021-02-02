@@ -1578,7 +1578,7 @@ class ExportChatInviteLinkQuery : public Td::ResultHandler {
 
   void send(DialogId dialog_id, int32 expire_date, int32 usage_limit, bool is_permanent) {
     dialog_id_ = dialog_id;
-    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
       return on_error(0, Status::Error(400, "Can't access the chat"));
     }
@@ -1637,7 +1637,7 @@ class EditChatInviteLinkQuery : public Td::ResultHandler {
 
   void send(DialogId dialog_id, const string &invite_link, int32 expire_date, int32 usage_limit, bool is_revoked) {
     dialog_id_ = dialog_id;
-    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
       return on_error(0, Status::Error(400, "Can't access the chat"));
     }
@@ -1687,7 +1687,7 @@ class GetExportedChatInvitesQuery : public Td::ResultHandler {
   void send(DialogId dialog_id, UserId administrator_user_id, bool is_revoked, int32 offset_date,
             const string &offset_invite_link, int32 limit) {
     dialog_id_ = dialog_id;
-    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
       return on_error(0, Status::Error(400, "Can't access the chat"));
     }
@@ -1743,6 +1743,55 @@ class GetExportedChatInvitesQuery : public Td::ResultHandler {
   }
 };
 
+class GetChatAdminWithInvitesQuery : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::chatInviteLinkCounts>> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit GetChatAdminWithInvitesQuery(Promise<td_api::object_ptr<td_api::chatInviteLinkCounts>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id) {
+    dialog_id_ = dialog_id;
+    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    if (input_peer == nullptr) {
+      return on_error(0, Status::Error(400, "Can't access the chat"));
+    }
+
+    send_query(G()->net_query_creator().create(telegram_api::messages_getAdminsWithInvites(std::move(input_peer))));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::messages_getAdminsWithInvites>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetChatAdminWithInvitesQuery: " << to_string(result);
+
+    td->contacts_manager_->on_get_users(std::move(result->users_), "GetChatAdminWithInvitesQuery");
+
+    vector<td_api::object_ptr<td_api::chatInviteLinkCount>> invite_link_counts;
+    for (auto &admin : result->admins_) {
+      UserId user_id(admin->admin_id_);
+      if (!user_id.is_valid()) {
+        LOG(ERROR) << "Receive invalid invite link creator " << user_id << " in " << dialog_id_;
+        continue;
+      }
+      invite_link_counts.push_back(td_api::make_object<td_api::chatInviteLinkCount>(
+          td->contacts_manager_->get_user_id_object(user_id, "chatInviteLinkCount"), admin->invites_count_));
+    }
+    promise_.set_value(td_api::make_object<td_api::chatInviteLinkCounts>(std::move(invite_link_counts)));
+  }
+
+  void on_error(uint64 id, Status status) override {
+    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetChatAdminWithInvitesQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetChatInviteImportersQuery : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::chatInviteLinkMembers>> promise_;
   DialogId dialog_id_;
@@ -1754,7 +1803,7 @@ class GetChatInviteImportersQuery : public Td::ResultHandler {
 
   void send(DialogId dialog_id, const string &invite_link, int32 offset_date, UserId offset_user_id, int32 limit) {
     dialog_id_ = dialog_id;
-    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
       return on_error(0, Status::Error(400, "Can't access the chat"));
     }
@@ -1814,7 +1863,7 @@ class DeleteExportedChatInviteQuery : public Td::ResultHandler {
 
   void send(DialogId dialog_id, const string &invite_link) {
     dialog_id_ = dialog_id;
-    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
       return on_error(0, Status::Error(400, "Can't access the chat"));
     }
@@ -1848,7 +1897,7 @@ class DeleteRevokedExportedChatInvitesQuery : public Td::ResultHandler {
 
   void send(DialogId dialog_id) {
     dialog_id_ = dialog_id;
-    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
       return on_error(0, Status::Error(400, "Can't access the chat"));
     }
@@ -6809,7 +6858,7 @@ void ContactsManager::transfer_channel_ownership(
       ->send(channel_id, user_id, std::move(input_check_password));
 }
 
-Status ContactsManager::can_manage_dialog_invite_links(DialogId dialog_id) {
+Status ContactsManager::can_manage_dialog_invite_links(DialogId dialog_id, bool creator_only) {
   if (!td_->messages_manager_->have_dialog_force(dialog_id)) {
     return Status::Error(3, "Chat not found");
   }
@@ -6825,7 +6874,9 @@ Status ContactsManager::can_manage_dialog_invite_links(DialogId dialog_id) {
       if (!c->is_active) {
         return Status::Error(3, "Chat is deactivated");
       }
-      if (!get_chat_status(c).is_administrator() || !get_chat_status(c).can_invite_users()) {
+      auto status = get_chat_status(c);
+      bool have_rights = creator_only ? status.is_creator() : status.is_administrator() && status.can_invite_users();
+      if (!have_rights) {
         return Status::Error(3, "Not enough rights to manage chat invite link");
       }
       break;
@@ -6835,7 +6886,9 @@ Status ContactsManager::can_manage_dialog_invite_links(DialogId dialog_id) {
       if (c == nullptr) {
         return Status::Error(3, "Chat info not found");
       }
-      if (!get_channel_status(c).is_administrator() || !get_channel_status(c).can_invite_users()) {
+      auto status = get_channel_status(c);
+      bool have_rights = creator_only ? status.is_creator() : status.is_administrator() && status.can_invite_users();
+      if (!have_rights) {
         return Status::Error(3, "Not enough rights to manage chat invite link");
       }
       break;
@@ -6889,10 +6942,17 @@ void ContactsManager::edit_dialog_invite_link(DialogId dialog_id, const string &
       ->send(dialog_id, invite_link, expire_date, usage_limit, is_revoked);
 }
 
+void ContactsManager::get_dialog_invite_link_counts(
+    DialogId dialog_id, Promise<td_api::object_ptr<td_api::chatInviteLinkCounts>> &&promise) {
+  TRY_STATUS_PROMISE(promise, can_manage_dialog_invite_links(dialog_id, true));
+
+  td_->create_handler<GetChatAdminWithInvitesQuery>(std::move(promise))->send(dialog_id);
+}
+
 void ContactsManager::get_dialog_invite_links(DialogId dialog_id, UserId administrator_user_id, bool is_revoked,
                                               int32 offset_date, const string &offset_invite_link, int32 limit,
                                               Promise<td_api::object_ptr<td_api::chatInviteLinks>> &&promise) {
-  TRY_STATUS_PROMISE(promise, can_manage_dialog_invite_links(dialog_id));
+  TRY_STATUS_PROMISE(promise, can_manage_dialog_invite_links(dialog_id, administrator_user_id != get_my_id()));
 
   if (!have_input_user(administrator_user_id)) {
     return promise.set_error(Status::Error(400, "Administrator user not found"));

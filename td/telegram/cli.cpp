@@ -2715,6 +2715,9 @@ class CliClient final : public Actor {
       string invite_link;
       get_args(args, chat_id, invite_link);
       send_request(td_api::make_object<td_api::revokeChatInviteLink>(as_chat_id(chat_id), invite_link));
+    } else if (op == "gcilc") {
+      string chat_id = args;
+      send_request(td_api::make_object<td_api::getChatInviteLinkCounts>(as_chat_id(chat_id)));
     } else if (op == "gcil" || op == "gcilr") {
       string chat_id;
       string administrator_user_id;

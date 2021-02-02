@@ -6322,14 +6322,14 @@ void Td::on_request(uint64 id, td_api::editChatInviteLink &request) {
                                              request.member_limit_, false, std::move(promise));
 }
 
-void Td::on_request(uint64 id, td_api::revokeChatInviteLink &request) {
-  CLEAN_INPUT_STRING(request.invite_link_);
+void Td::on_request(uint64 id, const td_api::getChatInviteLinkCounts &request) {
+  CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  contacts_manager_->edit_dialog_invite_link(DialogId(request.chat_id_), request.invite_link_, 0, 0, true,
-                                             std::move(promise));
+  contacts_manager_->get_dialog_invite_link_counts(DialogId(request.chat_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getChatInviteLinks &request) {
+  CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.offset_invite_link_);
   CREATE_REQUEST_PROMISE();
   contacts_manager_->get_dialog_invite_links(DialogId(request.chat_id_), UserId(request.administrator_user_id_),
@@ -6338,11 +6338,19 @@ void Td::on_request(uint64 id, td_api::getChatInviteLinks &request) {
 }
 
 void Td::on_request(uint64 id, td_api::getChatInviteLinkMembers &request) {
+  CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.invite_link_);
   CREATE_REQUEST_PROMISE();
   contacts_manager_->get_dialog_invite_link_users(DialogId(request.chat_id_), request.invite_link_,
                                                   std::move(request.offset_member_), request.limit_,
                                                   std::move(promise));
+}
+
+void Td::on_request(uint64 id, td_api::revokeChatInviteLink &request) {
+  CLEAN_INPUT_STRING(request.invite_link_);
+  CREATE_REQUEST_PROMISE();
+  contacts_manager_->edit_dialog_invite_link(DialogId(request.chat_id_), request.invite_link_, 0, 0, true,
+                                             std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::deleteRevokedChatInviteLink &request) {

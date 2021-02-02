@@ -559,6 +559,12 @@ chatInviteLink invite_link:string administrator_user_id:int32 date:int32 edit_da
 //@description Contains a list of chat invite links @total_count Approximate total count of chat invite links found @invite_links List of invite links
 chatInviteLinks total_count:int32 invite_links:vector<chatInviteLink> = ChatInviteLinks;
 
+//@description Describes a chat administrator with a number of active chat invite links @user_id Administrator's user identifier @invite_link_count Number of active invite links
+chatInviteLinkCount user_id:int32 invite_link_count:int32 = ChatInviteLinkCount;
+
+//@description Contains a list of chat invite link counts @invite_link_counts List of invite linkcounts
+chatInviteLinkCounts invite_link_counts:vector<chatInviteLinkCount> = ChatInviteLinkCounts;
+
 //@description Describes a chat member joined a chat by an invite link @user_id User identifier @joined_chat_date Point in time (Unix timestamp) when the user joined the chat
 chatInviteLinkMember user_id:int32 joined_chat_date:int32 = ChatInviteLinkMember;
 
@@ -4425,35 +4431,38 @@ replacePermanentChatInviteLink chat_id:int53 = ChatInviteLink;
 //@member_limit Maximum number of chat members that can join the chat by the link simultaneously; 0-100000; pass 0 if not limited
 createChatInviteLink chat_id:int53 expire_date:int32 member_limit:int32 = ChatInviteLink;
 
-//@description Edits a non-permanent invite link for a chat. Available for basic groups, supergroups, and channels. Requires administrator privileges and can_invite_users right in the chat
+//@description Edits a non-permanent invite link for a chat. Available for basic groups, supergroups, and channels. Requires administrator privileges and can_invite_users right in the chat for own links and owner privileges for other links
 //@chat_id Chat identifier
 //@invite_link Invite link to be edited
 //@expire_date Point in time (Unix timestamp) when the link will expire; pass 0 if never
 //@member_limit Maximum number of chat members that can join the chat by the link simultaneously; 0-100000; pass 0 if not limited
 editChatInviteLink chat_id:int53 invite_link:string expire_date:int32 member_limit:int32 = ChatInviteLink;
 
-//@description Returns invite links for a chat created by specified administrator. Requires administrator privileges and can_invite_users right in the chat
+//@description Returns list of chat administrators with number of active invite links. Requires owner privileges in the chat @chat_id Chat identifier
+getChatInviteLinkCounts chat_id:int53 = ChatInviteLinkCounts;
+
+//@description Returns invite links for a chat created by specified administrator. Requires administrator privileges and can_invite_users right in the chat to get own links and owner privileges to get other links
 //@chat_id Chat identifier
-//@administrator_user_id User identifier of a chat administrator
+//@administrator_user_id User identifier of a chat administrator. Must be an identifier of the current user for non-owner
 //@is_revoked Pass true if revoked links needs to be returned instead of active or expired
 //@offset_date Creation date of an invite link starting after which to return invite links; use 0 to get results from the beginning
 //@offset_invite_link Invite link starting after which to return invite links; use empty string to get results from the beginning
 //@limit Maximum number of invite links to return
 getChatInviteLinks chat_id:int53 administrator_user_id:int32 is_revoked:Bool offset_date:int32 offset_invite_link:string limit:int32 = ChatInviteLinks;
 
-//@description Returns chat members joined a chat by an invite link. Requires administrator privileges and can_invite_users right in the chat @chat_id Chat identifier @invite_link Invite link for which to return chat members
+//@description Returns chat members joined a chat by an invite link. Requires administrator privileges and can_invite_users right in the chat for own links and owner privileges for other links @chat_id Chat identifier @invite_link Invite link for which to return chat members
 //@offset_member A chat member from which to return next chat members; use null to get results from the beginning @limit Maximum number of chat members to return
 getChatInviteLinkMembers chat_id:int53 invite_link:string offset_member:chatInviteLinkMember limit:int32 = ChatInviteLinkMembers;
 
-//@description Revokes a non-permanent invite link for a chat. Available for basic groups, supergroups, and channels. Requires administrator privileges and can_invite_users right in the chat
+//@description Revokes a non-permanent invite link for a chat. Available for basic groups, supergroups, and channels. Requires administrator privileges and can_invite_users right in the chat for own links and owner privileges for other links
 //@chat_id Chat identifier
 //@invite_link Invite link to be revoked
 revokeChatInviteLink chat_id:int53 invite_link:string = ChatInviteLink;
 
-//@description Deletes revoked chat invite links. Requires administrator privileges and can_invite_users right in the chat @chat_id Chat identifier @invite_link Invite link to revoke
+//@description Deletes revoked chat invite links. Requires administrator privileges and can_invite_users right in the chat for own links and owner privileges for other links @chat_id Chat identifier @invite_link Invite link to revoke
 deleteRevokedChatInviteLink chat_id:int53 invite_link:string = Ok;
 
-//@description Deletes all revoked chat invite links. Requires administrator privileges and can_invite_users right in the chat @chat_id Chat identifier
+//@description Deletes all revoked chat invite links. Requires administrator privileges and can_invite_users right in the chat for own links and owner privileges for other links @chat_id Chat identifier
 deleteAllRevokedChatInviteLinks chat_id:int53 = Ok;
 
 //@description Checks the validity of an invite link for a chat and returns information about the corresponding chat @invite_link Invite link to be checked; must begin with "https://t.me/joinchat/", "https://telegram.me/joinchat/", or "https://telegram.dog/joinchat/"
