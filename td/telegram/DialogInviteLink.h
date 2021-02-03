@@ -34,7 +34,7 @@ class DialogInviteLink {
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const DialogInviteLink &invite_link);
 
-  static const CSlice INVITE_LINK_URLS[3];
+  static const CSlice INVITE_LINK_URLS[12];
 
  public:
   DialogInviteLink() = default;

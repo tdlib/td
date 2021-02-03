@@ -4465,11 +4465,11 @@ deleteRevokedChatInviteLink chat_id:int53 invite_link:string = Ok;
 //@description Deletes all revoked chat invite links. Requires administrator privileges and can_invite_users right in the chat for own links and owner privileges for other links @chat_id Chat identifier
 deleteAllRevokedChatInviteLinks chat_id:int53 = Ok;
 
-//@description Checks the validity of an invite link for a chat and returns information about the corresponding chat @invite_link Invite link to be checked; must begin with "https://t.me/joinchat/", "https://telegram.me/joinchat/", or "https://telegram.dog/joinchat/"
+//@description Checks the validity of an invite link for a chat and returns information about the corresponding chat @invite_link Invite link to be checked; must have URL "t.me", "telegram.me", or "telegram.dog" and query beginning with "/joinchat/" or "/+"
 checkChatInviteLink invite_link:string = ChatInviteLinkInfo;
 
 //@description Uses an invite link to add the current user to the chat if possible
-//@invite_link Invite link to import; must begin with "https://t.me/joinchat/", "https://telegram.me/joinchat/", or "https://telegram.dog/joinchat/"
+//@invite_link Invite link to import; must have URL "t.me", "telegram.me", or "telegram.dog" and query beginning with "/joinchat/" or "/+"
 joinChatByInviteLink invite_link:string = Chat;
 
 

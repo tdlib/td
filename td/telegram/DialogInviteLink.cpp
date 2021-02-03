@@ -14,8 +14,11 @@
 
 namespace td {
 
-const CSlice DialogInviteLink::INVITE_LINK_URLS[3] = {"t.me/joinchat/", "telegram.me/joinchat/",
-                                                      "telegram.dog/joinchat/"};
+const CSlice DialogInviteLink::INVITE_LINK_URLS[12] = {
+    "t.me/joinchat/", "telegram.me/joinchat/", "telegram.dog/joinchat/",
+    "t.me/+",         "telegram.me/+",         "telegram.dog/+",
+    "t.me/ ",         "telegram.me/ ",         "telegram.dog/ ",
+    "t.me/%20",       "telegram.me/%20",       "telegram.dog/%20"};
 
 DialogInviteLink::DialogInviteLink(tl_object_ptr<telegram_api::chatInviteExported> exported_invite) {
   if (exported_invite == nullptr) {
