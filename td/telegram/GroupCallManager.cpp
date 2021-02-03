@@ -854,7 +854,7 @@ bool GroupCallManager::need_group_call_participants(InputGroupCallId input_group
   if (group_call == nullptr || !group_call->is_inited || !group_call->is_active) {
     return false;
   }
-  if (group_call->is_joined) {
+  if (group_call->is_joined || group_call->need_rejoin) {
     return true;
   }
   if (pending_join_requests_.count(input_group_call_id) != 0) {
@@ -1169,6 +1169,7 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
   if (need_update) {
     send_update_group_call(group_call, "process_pending_group_call_participant_updates");
   }
+  try_clear_group_call_participants(input_group_call_id);
 
   return need_update;
 }
