@@ -1880,7 +1880,7 @@ void GroupCallManager::on_set_group_call_participant_volume_level(InputGroupCall
     return promise.set_value(Unit());
   }
 
-  if (participant->volume_level != participant->pending_volume_level || !participant->is_volume_level_local) {
+  if (participant->volume_level != participant->pending_volume_level) {
     LOG(ERROR) << "Failed to set volume level of " << user_id << " in " << input_group_call_id;
     participant->pending_volume_level = 0;
     if (participant->order != 0) {
