@@ -677,9 +677,7 @@ static vector<Slice> match_urls(Slice str) {
           url_begin_ptr = url_begin_ptr - 7;
         } else if (ends_with(protocol, "https")) {
           url_begin_ptr = url_begin_ptr - 8;
-        } else if (ends_with(protocol, "sftp")) {
-          url_begin_ptr = url_begin_ptr - 7;
-        } else if (ends_with(protocol, "ftp") && protocol != "tftp") {
+        } else if (ends_with(protocol, "ftp") && protocol != "tftp" && protocol != "sftp") {
           url_begin_ptr = url_begin_ptr - 6;
         } else {
           is_bad = true;
@@ -983,8 +981,7 @@ Slice fix_url(Slice str) {
 
   bool has_protocol = false;
   auto str_begin = to_lower(str.substr(0, 8));
-  if (begins_with(str_begin, "http://") || begins_with(str_begin, "https://") || begins_with(str_begin, "sftp://") ||
-      begins_with(str_begin, "ftp://")) {
+  if (begins_with(str_begin, "http://") || begins_with(str_begin, "https://") || begins_with(str_begin, "ftp://")) {
     auto pos = str.find(':');
     str = str.substr(pos + 3);
     has_protocol = true;

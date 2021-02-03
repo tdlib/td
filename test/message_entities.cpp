@@ -381,7 +381,7 @@ TEST(MessageEntities, url) {
   check_url("http://telegram.org", {"http://telegram.org"});
   check_url("ftp://telegram.org", {"ftp://telegram.org"});
   check_url("ftps://telegram.org", {});
-  check_url("sftp://telegram.org", {"sftp://telegram.org"});
+  check_url("sftp://telegram.org", {});
   check_url("hTtPs://telegram.org", {"hTtPs://telegram.org"});
   check_url("HTTP://telegram.org", {"HTTP://telegram.org"});
   check_url("аHTTP://telegram.org", {"HTTP://telegram.org"});
