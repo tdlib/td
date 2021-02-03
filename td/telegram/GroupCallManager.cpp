@@ -1093,10 +1093,11 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
     auto version = it->first;
     auto &participants = it->second;
     if (version <= group_call->version) {
+      auto my_user_id = td_->contacts_manager_->get_my_id();
+      auto my_participant = get_group_call_participant(participants_it->second.get(), my_user_id);
       for (auto &participant : participants) {
         on_participant_speaking_in_group_call(input_group_call_id, participant);
-        if (participant.user_id == td_->contacts_manager_->get_my_id() && version == group_call->version &&
-            participant.is_just_joined) {
+        if (my_participant == nullptr && participant.user_id == my_user_id) {
           process_group_call_participant(input_group_call_id, std::move(participant));
         }
       }
