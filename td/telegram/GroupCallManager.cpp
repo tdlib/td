@@ -1824,7 +1824,7 @@ void GroupCallManager::set_group_call_participant_volume_level(GroupCallId group
 
   auto *group_call = get_group_call(input_group_call_id);
   if (group_call == nullptr || !group_call->is_inited || !group_call->is_active || !group_call->is_joined) {
-    return promise.set_error(Status::Error(400, "GROUP_CALL_JOIN_MISSING"));
+    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
   }
   if (!td_->contacts_manager_->have_input_user(user_id)) {
     return promise.set_error(Status::Error(400, "Have no access to the user"));
@@ -1922,6 +1922,12 @@ void GroupCallManager::leave_group_call(GroupCallId group_call_id, Promise<Unit>
 
   auto *group_call = get_group_call(input_group_call_id);
   if (group_call == nullptr || !group_call->is_inited || !group_call->is_active || !group_call->is_joined) {
+    if (group_call->need_rejoin) {
+      group_call->need_rejoin = false;
+      send_update_group_call(group_call, "leave_group_call");
+      try_clear_group_call_participants(input_group_call_id);
+      promise.set_value(Unit());
+    }
     return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
   }
   auto audio_source = group_call->audio_source;
