@@ -1211,6 +1211,17 @@ void GroupCallManager::on_sync_group_call_participants_failed(InputGroupCallId i
   sync_participants_timeout_.add_timeout_in(group_call->group_call_id.get(), 1.0);
 }
 
+int64 GroupCallManager::get_real_participant_order(const GroupCallParticipant &participant, int64 min_order) const {
+  auto real_order = participant.get_real_order();
+  if (real_order < min_order && participant.user_id == td_->contacts_manager_->get_my_id()) {
+    return min_order;
+  }
+  if (real_order >= min_order) {
+    return real_order;
+  }
+  return 0;
+}
+
 void GroupCallManager::process_group_call_participants(
     InputGroupCallId input_group_call_id, vector<tl_object_ptr<telegram_api::groupCallParticipant>> &&participants,
     bool is_load, bool is_sync) {
@@ -1278,8 +1289,15 @@ void GroupCallManager::process_group_call_participants(
         // not synced user, needs to be deleted
         if (participant.order != 0) {
           CHECK(participant.order >= participants_it->second->min_order);
-          participant.order = 0;
-          send_update_group_call_participant(input_group_call_id, participant);
+          if (participant.user_id == td_->contacts_manager_->get_my_id()) {
+            if (participant.order != min_order) {
+              participant.order = min_order;
+              send_update_group_call_participant(input_group_call_id, participant);
+            }
+          } else {
+            participant.order = 0;
+            send_update_group_call_participant(input_group_call_id, participant);
+          }
         }
         participant_it = group_participants.erase(participant_it);
       }
@@ -1298,9 +1316,9 @@ void GroupCallManager::process_group_call_participants(
         participants_it->second->min_order = min_order;
 
         for (auto &participant : participants_it->second->participants) {
-          auto real_order = participant.get_real_order();
+          auto real_order = get_real_participant_order(participant, min_order);
           if (old_min_order > real_order && real_order >= min_order) {
-            CHECK(participant.order == 0);
+            CHECK(participant.order == 0 || participant.order == old_min_order);
             participant.order = real_order;
             send_update_group_call_participant(input_group_call_id, participant);
           }
@@ -1370,10 +1388,7 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
       participant.update_from(old_participant);
 
       participant.is_just_joined = false;
-      auto real_order = participant.get_real_order();
-      if (real_order >= participants->min_order) {
-        participant.order = real_order;
-      }
+      participant.order = get_real_participant_order(participant, participants->min_order);
       update_group_call_participant_can_be_muted(can_manage, participants, participant);
 
       LOG(INFO) << "Edit " << old_participant << " to " << participant;
@@ -1399,10 +1414,7 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
   } else {
     LOG(INFO) << "Receive new " << participant;
   }
-  auto real_order = participant.get_real_order();
-  if (real_order >= participants->min_order) {
-    participant.order = real_order;
-  }
+  participant.order = get_real_participant_order(participant, participants->min_order);
   participant.is_just_joined = false;
   update_group_call_participant_can_be_muted(can_manage, participants, participant);
   participants->participants.push_back(std::move(participant));
@@ -1833,7 +1845,9 @@ void GroupCallManager::set_group_call_participant_volume_level(GroupCallId group
 
   participant->pending_volume_level = volume_level;
   participant->pending_volume_level_generation = ++set_volume_level_generation_;
-  send_update_group_call_participant(input_group_call_id, *participant);
+  if (participant->order != 0) {
+    send_update_group_call_participant(input_group_call_id, *participant);
+  }
 
   auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), input_group_call_id, user_id,
                                                generation = participant->pending_volume_level_generation,
@@ -1868,7 +1882,9 @@ void GroupCallManager::on_set_group_call_participant_volume_level(InputGroupCall
   if (participant->volume_level != participant->pending_volume_level || !participant->is_volume_level_local) {
     LOG(ERROR) << "Failed to set volume level of " << user_id << " in " << input_group_call_id;
     participant->pending_volume_level = 0;
-    send_update_group_call_participant(input_group_call_id, *participant);
+    if (participant->order != 0) {
+      send_update_group_call_participant(input_group_call_id, *participant);
+    }
   } else {
     participant->pending_volume_level = 0;
   }
@@ -2302,10 +2318,7 @@ UserId GroupCallManager::set_group_call_participant_is_speaking_by_source(InputG
         if (is_speaking) {
           participant.local_active_date = max(participant.local_active_date, date);
         }
-        auto real_order = participant.get_real_order();
-        if (real_order >= participants_it->second->min_order) {
-          participant.order = real_order;
-        }
+        participant.order = get_real_participant_order(participant, participants_it->second->min_order);
         if (participant.order != 0) {
           send_update_group_call_participant(input_group_call_id, participant);
         }
