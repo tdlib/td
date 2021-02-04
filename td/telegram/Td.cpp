@@ -8014,7 +8014,7 @@ void Td::on_request(uint64 id, const td_api::getProxyLink &request) {
     if (result.is_error()) {
       promise.set_error(result.move_as_error());
     } else {
-      promise.set_value(make_tl_object<td_api::text>(result.move_as_ok()));
+      promise.set_value(make_tl_object<td_api::httpUrl>(result.move_as_ok()));
     }
   });
   send_closure(G()->connection_creator(), &ConnectionCreator::get_proxy_link, request.proxy_id_,
