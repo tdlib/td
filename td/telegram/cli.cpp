@@ -3841,6 +3841,9 @@ class CliClient final : public Actor {
       string message_id;
       get_args(args, chat_id, message_id);
       send_request(td_api::make_object<td_api::openMessageContent>(as_chat_id(chat_id), as_message_id(message_id)));
+    } else if (op == "gel") {
+      string link = args;
+      send_request(td_api::make_object<td_api::getExternalLink>(link));
     } else if (op == "racm") {
       string chat_id = args;
       send_request(td_api::make_object<td_api::readAllChatMentions>(as_chat_id(chat_id)));

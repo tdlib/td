@@ -45,6 +45,7 @@
 #include "td/utils/common.h"
 #include "td/utils/crypto.h"
 #include "td/utils/format.h"
+#include "td/utils/HttpUrl.h"
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
@@ -888,6 +889,8 @@ void ConfigManager::start_up() {
     expire_time_ = expire_time;
     set_timeout_in(expire_time_.in());
   }
+
+  autologin_update_time_ = Time::now() - 365 * 86400;
 }
 
 ActorShared<> ConfigManager::create_reference() {
@@ -962,6 +965,59 @@ void ConfigManager::get_app_config(Promise<td_api::object_ptr<td_api::JsonValue>
     query->total_timeout_limit_ = 60 * 60 * 24;
     G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this, 1));
   }
+}
+
+void ConfigManager::get_external_link(string &&link, Promise<string> &&promise) {
+  if (G()->close_flag()) {
+    return promise.set_value(std::move(link));
+  }
+
+  auto r_url = parse_url(link);
+  if (r_url.is_error()) {
+    return promise.set_value(std::move(link));
+  }
+
+  if (!td::contains(autologin_domains_, r_url.ok().host_)) {
+    return promise.set_value(std::move(link));
+  }
+
+  if (autologin_update_time_ < Time::now() - 10000) {
+    auto query_promise = PromiseCreator::lambda([link = std::move(link), promise = std::move(promise)](
+                                                    Result<td_api::object_ptr<td_api::JsonValue>> &&result) mutable {
+      if (result.is_error()) {
+        return promise.set_value(std::move(link));
+      }
+      send_closure(G()->config_manager(), &ConfigManager::get_external_link, std::move(link), std::move(promise));
+    });
+    return get_app_config(std::move(query_promise));
+  }
+
+  if (autologin_token_.empty()) {
+    return promise.set_value(std::move(link));
+  }
+
+  auto url = r_url.move_as_ok();
+  url.protocol_ = HttpUrl::Protocol::Https;
+  Slice path = Slice(url.query_).truncate(url.query_.find_first_of("?#"));
+  Slice parameters_hash = Slice(url.query_).substr(path.size());
+  Slice parameters = parameters_hash;
+  parameters.truncate(parameters.find('#'));
+  Slice hash = parameters_hash.substr(parameters.size());
+
+  string added_parameter;
+  if (parameters.empty()) {
+    added_parameter = '?';
+  } else if (parameters.size() == 1) {
+    CHECK(parameters == "?");
+  } else {
+    added_parameter = '&';
+  }
+  added_parameter += "autologin_token=";
+  added_parameter += autologin_token_;
+
+  url.query_ = PSTRING() << path << parameters << added_parameter << hash;
+
+  promise.set_value(url.get_url());
 }
 
 void ConfigManager::get_content_settings(Promise<Unit> &&promise) {
@@ -1475,6 +1531,10 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   const bool archive_and_mute =
       G()->shared_config().get_option_boolean("archive_and_mute_new_chats_from_unknown_users");
 
+  autologin_token_.clear();
+  autologin_domains_.clear();
+  autologin_update_time_ = Time::now();
+
   vector<tl_object_ptr<telegram_api::jsonObjectValue>> new_values;
   string ignored_restriction_reasons;
   vector<string> dice_emojis;
@@ -1637,6 +1697,30 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
               std::move(static_cast<telegram_api::jsonBool *>(value)->value_);
         } else {
           LOG(ERROR) << "Receive unexpected autoarchive_setting_available " << to_string(*value);
+        }
+        continue;
+      }
+      if (key == "autologin_token") {
+        if (value->get_id() == telegram_api::jsonString::ID) {
+          autologin_token_ = url_encode(static_cast<telegram_api::jsonString *>(value)->value_);
+        } else {
+          LOG(ERROR) << "Receive unexpected autologin_token " << to_string(*value);
+        }
+        continue;
+      }
+      if (key == "autologin_domains") {
+        if (value->get_id() == telegram_api::jsonArray::ID) {
+          auto domains = std::move(static_cast<telegram_api::jsonArray *>(value)->value_);
+          for (auto &domain : domains) {
+            CHECK(domain != nullptr);
+            if (domain->get_id() == telegram_api::jsonString::ID) {
+              autologin_domains_.push_back(std::move(static_cast<telegram_api::jsonString *>(domain.get())->value_));
+            } else {
+              LOG(ERROR) << "Receive unexpected autologin domain " << to_string(domain);
+            }
+          }
+        } else {
+          LOG(ERROR) << "Receive unexpected autologin_domains " << to_string(*value);
         }
         continue;
       }
