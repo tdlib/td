@@ -1098,7 +1098,9 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
       for (auto &participant : participants) {
         on_participant_speaking_in_group_call(input_group_call_id, participant);
         if (participant.user_id == my_user_id &&
-            (my_participant == nullptr || my_participant->audio_source != participant.audio_source)) {
+            (my_participant == nullptr || my_participant->joined_date < participant.joined_date ||
+             (my_participant->joined_date <= participant.joined_date &&
+              my_participant->audio_source != participant.audio_source))) {
           process_group_call_participant(input_group_call_id, std::move(participant));
         }
       }
