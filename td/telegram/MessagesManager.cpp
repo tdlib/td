@@ -10868,11 +10868,11 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
   send_update_delete_messages(d->dialog_id, std::move(deleted_message_ids), is_permanently_deleted, false);
 }
 
-void MessagesManager::delete_dialog(DialogId dialog_id) {
+void MessagesManager::on_dialog_deleted(DialogId dialog_id, Promise<Unit> &&promise) {
   LOG(INFO) << "Delete " << dialog_id;
   Dialog *d = get_dialog_force(dialog_id);
   if (d == nullptr) {
-    return;
+    return promise.set_value(Unit());
   }
 
   delete_all_dialog_messages(d, true, false);
@@ -10885,6 +10885,7 @@ void MessagesManager::delete_dialog(DialogId dialog_id) {
   }
 
   close_dialog(d);
+  promise.set_value(Unit());
 }
 
 void MessagesManager::on_update_dialog_group_call_rights(DialogId dialog_id) {

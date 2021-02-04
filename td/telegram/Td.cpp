@@ -5484,8 +5484,7 @@ void Td::on_request(uint64 id, const td_api::deleteChat &request) {
     if (result.is_error()) {
       promise.set_error(result.move_as_error());
     } else {
-      send_closure(actor_id, &MessagesManager::delete_dialog, dialog_id);
-      promise.set_value(Unit());
+      send_closure(actor_id, &MessagesManager::on_dialog_deleted, dialog_id, std::move(promise));
     }
   };
   contacts_manager_->delete_dialog(dialog_id, std::move(query_promise));

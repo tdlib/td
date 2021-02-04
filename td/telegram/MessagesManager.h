@@ -342,7 +342,7 @@ class MessagesManager : public Actor {
 
   void delete_dialog_messages_from_user(DialogId dialog_id, UserId user_id, Promise<Unit> &&promise);
 
-  void delete_dialog(DialogId dialog_id);
+  void on_dialog_deleted(DialogId dialog_id, Promise<Unit> &&promise);
 
   void on_update_dialog_group_call_rights(DialogId dialog_id);
 
