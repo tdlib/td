@@ -2379,6 +2379,9 @@ chatEventMessageUnpinned message:message = ChatEventAction;
 //@description A new member joined the chat
 chatEventMemberJoined = ChatEventAction;
 
+//@description A new member joined the chat by an invite link @invite_link Invite link used to join the chat
+chatEventMemberJoinedByInviteLink invite_link:chatInviteLink = ChatEventAction;
+
 //@description A member left the chat
 chatEventMemberLeft = ChatEventAction;
 
@@ -2426,6 +2429,15 @@ chatEventLocationChanged old_location:chatLocation new_location:chatLocation = C
 
 //@description The is_all_history_available setting of a supergroup was toggled @is_all_history_available New value of is_all_history_available
 chatEventIsAllHistoryAvailableToggled is_all_history_available:Bool = ChatEventAction;
+
+//@description A chat invite link was edited @old_invite_link Previous information about the invite link @new_invite_link New information about the invite link
+chatEventInviteLinkEdited old_invite_link:chatInviteLink new_invite_link:chatInviteLink = ChatEventAction;
+
+//@description A chat invite link was revoked @invite_link The invite link
+chatEventInviteLinkRevoked invite_link:chatInviteLink = ChatEventAction;
+
+//@description A revoked chat invite link was deleted @invite_link The invite link
+chatEventInviteLinkDeleted invite_link:chatInviteLink = ChatEventAction;
 
 //@description A voice chat was created @group_call_id Identifier of the voice chat. The voice chat can be received through the method getGroupCall
 chatEventVoiceChatCreated group_call_id:int32 = ChatEventAction;

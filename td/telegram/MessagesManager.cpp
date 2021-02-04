@@ -13,6 +13,7 @@
 #include "td/telegram/DialogDb.h"
 #include "td/telegram/DialogFilter.h"
 #include "td/telegram/DialogFilter.hpp"
+#include "td/telegram/DialogInviteLink.h"
 #include "td/telegram/DialogLocation.h"
 #include "td/telegram/DraftMessage.h"
 #include "td/telegram/DraftMessage.hpp"
@@ -30945,6 +30946,16 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
   switch (action_ptr->get_id()) {
     case telegram_api::channelAdminLogEventActionParticipantJoin::ID:
       return make_tl_object<td_api::chatEventMemberJoined>();
+    case telegram_api::channelAdminLogEventActionParticipantJoinByInvite::ID: {
+      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantJoinByInvite>(action_ptr);
+      DialogInviteLink invite_link(std::move(action->invite_));
+      if (!invite_link.is_valid()) {
+        LOG(ERROR) << "Wrong invite link: " << invite_link;
+        return nullptr;
+      }
+      return make_tl_object<td_api::chatEventMemberJoinedByInviteLink>(
+          invite_link.get_chat_invite_link_object(td_->contacts_manager_.get()));
+    }
     case telegram_api::channelAdminLogEventActionParticipantLeave::ID:
       return make_tl_object<td_api::chatEventMemberLeft>();
     case telegram_api::channelAdminLogEventActionParticipantInvite::ID: {
@@ -31134,6 +31145,38 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
       auto new_slow_mode_delay = clamp(action->new_value_, 0, 86400 * 366);
       return make_tl_object<td_api::chatEventSlowModeDelayChanged>(old_slow_mode_delay, new_slow_mode_delay);
     }
+    case telegram_api::channelAdminLogEventActionExportedInviteEdit::ID: {
+      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionExportedInviteEdit>(action_ptr);
+      DialogInviteLink old_invite_link(std::move(action->prev_invite_));
+      DialogInviteLink new_invite_link(std::move(action->new_invite_));
+      if (!old_invite_link.is_valid() || !new_invite_link.is_valid()) {
+        LOG(ERROR) << "Wrong edited invite link: " << old_invite_link << " -> " << new_invite_link;
+        return nullptr;
+      }
+      return make_tl_object<td_api::chatEventInviteLinkEdited>(
+          old_invite_link.get_chat_invite_link_object(td_->contacts_manager_.get()),
+          new_invite_link.get_chat_invite_link_object(td_->contacts_manager_.get()));
+    }
+    case telegram_api::channelAdminLogEventActionExportedInviteRevoke::ID: {
+      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionExportedInviteRevoke>(action_ptr);
+      DialogInviteLink invite_link(std::move(action->invite_));
+      if (!invite_link.is_valid()) {
+        LOG(ERROR) << "Wrong revoked invite link: " << invite_link;
+        return nullptr;
+      }
+      return make_tl_object<td_api::chatEventInviteLinkRevoked>(
+          invite_link.get_chat_invite_link_object(td_->contacts_manager_.get()));
+    }
+    case telegram_api::channelAdminLogEventActionExportedInviteDelete::ID: {
+      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionExportedInviteDelete>(action_ptr);
+      DialogInviteLink invite_link(std::move(action->invite_));
+      if (!invite_link.is_valid()) {
+        LOG(ERROR) << "Wrong deleted invite link: " << invite_link;
+        return nullptr;
+      }
+      return make_tl_object<td_api::chatEventInviteLinkDeleted>(
+          invite_link.get_chat_invite_link_object(td_->contacts_manager_.get()));
+    }
     case telegram_api::channelAdminLogEventActionStartGroupCall::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionStartGroupCall>(action_ptr);
       auto input_group_call_id = InputGroupCallId(action->call_);
@@ -31170,10 +31213,14 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
       return make_tl_object<td_api::chatEventVoiceChatParticipantIsMutedToggled>(
           td_->contacts_manager_->get_user_id_object(participant.user_id, "LogEventActionParticipantUnmute"), false);
     }
+    case telegram_api::channelAdminLogEventActionParticipantVolume::ID:
+      return nullptr;
     case telegram_api::channelAdminLogEventActionToggleGroupCallSetting::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionToggleGroupCallSetting>(action_ptr);
       return make_tl_object<td_api::chatEventVoiceChatMuteNewParticipantsToggled>(action->join_muted_);
     }
+    case telegram_api::channelAdminLogEventActionChangeHistoryTTL::ID:
+      return nullptr;
     default:
       UNREACHABLE();
       return nullptr;
