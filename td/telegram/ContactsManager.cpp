@@ -7318,7 +7318,7 @@ void ContactsManager::delete_chat_participant(ChatId chat_id, UserId user_id, bo
   if (c->status.is_left()) {
     if (user_id == my_id) {
       if (revoke_messages) {
-        return td_->messages_manager_->delete_dialog_history(dialog_id, true, true, std::move(promise));
+        return td_->messages_manager_->delete_dialog_history(DialogId(chat_id), true, true, std::move(promise));
       }
       return promise.set_value(Unit());
     } else {
