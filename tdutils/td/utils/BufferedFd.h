@@ -101,7 +101,8 @@ Result<size_t> BufferedFdBase<FdT>::flush_read(size_t max_read) {
   CHECK(read_);
   size_t result = 0;
   while (::td::can_read_local(*this) && max_read) {
-    MutableSlice slice = read_->prepare_append().truncate(max_read);
+    MutableSlice slice = read_->prepare_append();
+    slice.truncate(max_read);
     TRY_RESULT(x, FdT::read(slice));
     slice.truncate(x);
     read_->confirm_append(x);

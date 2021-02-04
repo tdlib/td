@@ -32,9 +32,9 @@ class ProxySecret {
   }
 
   Slice get_proxy_secret() const {
-    auto proxy_secret = Slice(secret_).truncate(17);
-    if (proxy_secret.size() == 17) {
-      proxy_secret.remove_prefix(1);
+    Slice proxy_secret(secret_);
+    if (proxy_secret.size() >= 17) {
+      return proxy_secret.substr(1, 16);
     }
     return proxy_secret;
   }

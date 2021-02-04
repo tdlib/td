@@ -201,7 +201,8 @@ class BufferedStdinImpl {
     size_t result = 0;
     ::td::sync_with_poll(*this);
     while (::td::can_read_local(*this) && max_read) {
-      MutableSlice slice = writer_.prepare_append().truncate(max_read);
+      MutableSlice slice = writer_.prepare_append();
+      slice.truncate(max_read);
       TRY_RESULT(x, file_fd_.read(slice));
       slice.truncate(x);
       writer_.confirm_append(x);

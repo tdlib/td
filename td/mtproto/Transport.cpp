@@ -226,7 +226,7 @@ Status Transport::read_crypto_impl(int X, MutableSlice message, const AuthKey &a
   auto *header = reinterpret_cast<HeaderT *>(message.begin());
   *header_ptr = header;
   auto to_decrypt = MutableSlice(header->encrypt_begin(), message.uend());
-  to_decrypt = to_decrypt.truncate(to_decrypt.size() & ~15);
+  to_decrypt.truncate(to_decrypt.size() & ~15);
   if (to_decrypt.size() % 16 != 0) {
     return Status::Error(PSLICE() << "Invalid mtproto message: size of encrypted part is not multiple of 16 [size = "
                                   << to_decrypt.size() << "]");

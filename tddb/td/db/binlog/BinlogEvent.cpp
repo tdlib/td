@@ -28,8 +28,7 @@ Status BinlogEvent::init(BufferSlice &&raw_event, bool check_crc) {
   data_ = MutableSlice(const_cast<char *>(slice_data.begin()), slice_data.size());
   crc32_ = static_cast<uint32>(parser.fetch_int());
   if (check_crc) {
-    CHECK(size_ >= TAIL_SIZE);
-    auto calculated_crc = crc32(raw_event.as_slice().truncate(size_ - TAIL_SIZE));
+    auto calculated_crc = crc32(raw_event.as_slice().substr(0, size_ - TAIL_SIZE));
     if (calculated_crc != crc32_) {
       return Status::Error(PSLICE() << "crc mismatch " << tag("actual", format::as_hex(calculated_crc))
                                     << tag("expected", format::as_hex(crc32_)) << public_to_string());
@@ -44,7 +43,7 @@ Status BinlogEvent::validate() const {
   if (raw_event_.size() < 4) {
     return Status::Error("Too small event");
   }
-  uint32 size = TlParser(raw_event_.as_slice().truncate(4)).fetch_int();
+  uint32 size = TlParser(raw_event_.as_slice().substr(0, 4)).fetch_int();
   if (size_ != size) {
     return Status::Error(PSLICE() << "Size of event changed: " << tag("was", size_) << tag("now", size));
   }

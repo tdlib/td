@@ -63,7 +63,7 @@ void IntermediateTransport::write_prepare_inplace(BufferWriter *message, bool qu
   size_t append_size = 0;
   if (with_padding()) {
     append_size = Random::secure_uint32() % 16;
-    MutableSlice append = message->prepare_append().truncate(append_size);
+    MutableSlice append = message->prepare_append().substr(0, append_size);
     CHECK(append.size() == append_size);
     Random::secure_bytes(append);
     message->confirm_append(append.size());

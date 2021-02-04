@@ -2041,7 +2041,7 @@ void SecretChatActor::calc_key_hash() {
   auto sha256_slice = MutableSlice(sha256_buf, 32);
   sha256(pfs_state_.auth_key.key(), sha256_slice);
 
-  auth_state_.key_hash = sha1_slice.truncate(16).str() + sha256_slice.truncate(20).str();
+  auth_state_.key_hash = PSTRING() << sha1_slice.substr(0, 16) << sha256_slice.substr(0, 20);
 }
 
 void SecretChatActor::send_update_secret_chat() {

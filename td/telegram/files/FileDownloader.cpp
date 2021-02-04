@@ -367,7 +367,7 @@ Result<size_t> FileDownloader::process_part(Part part, NetQueryPtr net_query) {
                     bytes.as_slice());
   }
 
-  auto slice = bytes.as_slice().truncate(part.size);
+  auto slice = bytes.as_slice().substr(0, part.size);
   TRY_STATUS(acquire_fd());
   LOG(INFO) << "Got " << slice.size() << " bytes at offset " << part.offset << " for \"" << path_ << '"';
   TRY_RESULT(written, fd_.pwrite(slice, part.offset));
