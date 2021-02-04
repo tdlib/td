@@ -891,6 +891,7 @@ void ConfigManager::start_up() {
   }
 
   autologin_update_time_ = Time::now() - 365 * 86400;
+  autologin_domains_ = full_split(G()->td_db()->get_binlog_pmc()->get("autologin_domains"), '\xFF');
 }
 
 ActorShared<> ConfigManager::create_reference() {
@@ -1532,6 +1533,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       G()->shared_config().get_option_boolean("archive_and_mute_new_chats_from_unknown_users");
 
   autologin_token_.clear();
+  auto old_autologin_domains = std::move(autologin_domains_);
   autologin_domains_.clear();
   autologin_update_time_ = Time::now();
 
@@ -1731,6 +1733,10 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
     LOG(ERROR) << "Receive wrong app config " << to_string(config);
   }
   config = make_tl_object<telegram_api::jsonObject>(std::move(new_values));
+
+  if (autologin_domains_ != old_autologin_domains) {
+    G()->td_db()->get_binlog_pmc()->set("autologin_domains", implode(autologin_domains_, '\xFF'));
+  }
 
   ConfigShared &shared_config = G()->shared_config();
 
