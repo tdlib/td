@@ -2744,8 +2744,10 @@ class CliClient final : public Actor {
       get_args(args, chat_id, invite_link);
       send_request(td_api::make_object<td_api::deleteRevokedChatInviteLink>(as_chat_id(chat_id), invite_link));
     } else if (op == "darcil") {
-      string chat_id = args;
-      send_request(td_api::make_object<td_api::deleteAllRevokedChatInviteLinks>(as_chat_id(chat_id)));
+      string chat_id;
+      string administrator_user_id;
+      get_args(args, chat_id, administrator_user_id);
+      send_request(td_api::make_object<td_api::deleteAllRevokedChatInviteLinks>(as_chat_id(chat_id), as_user_id(administrator_user_id)));
     } else if (op == "ccil") {
       send_request(td_api::make_object<td_api::checkChatInviteLink>(args));
     } else if (op == "jcbil") {

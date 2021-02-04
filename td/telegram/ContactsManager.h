@@ -402,7 +402,8 @@ class ContactsManager : public Actor {
 
   void delete_revoked_dialog_invite_link(DialogId dialog_id, const string &invite_link, Promise<Unit> &&promise);
 
-  void delete_all_revoked_dialog_invite_links(DialogId dialog_id, Promise<Unit> &&promise);
+  void delete_all_revoked_dialog_invite_links(DialogId dialog_id, UserId administrator_user_id,
+                                              Promise<Unit> &&promise);
 
   void check_dialog_invite_link(const string &invite_link, Promise<Unit> &&promise) const;
 

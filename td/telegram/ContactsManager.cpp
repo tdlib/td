@@ -1895,15 +1895,18 @@ class DeleteRevokedExportedChatInvitesQuery : public Td::ResultHandler {
   explicit DeleteRevokedExportedChatInvitesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id) {
+  void send(DialogId dialog_id, UserId administrator_user_id) {
     dialog_id_ = dialog_id;
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
       return on_error(0, Status::Error(400, "Can't access the chat"));
     }
 
-    send_query(G()->net_query_creator().create(telegram_api::messages_deleteRevokedExportedChatInvites(
-        std::move(input_peer), make_tl_object<telegram_api::inputUserSelf>())));
+    auto input_user = td->contacts_manager_->get_input_user(administrator_user_id);
+    CHECK(input_user != nullptr);
+
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_deleteRevokedExportedChatInvites(std::move(input_peer), std::move(input_user))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -6993,10 +6996,16 @@ void ContactsManager::delete_revoked_dialog_invite_link(DialogId dialog_id, cons
   td_->create_handler<DeleteExportedChatInviteQuery>(std::move(promise))->send(dialog_id, invite_link);
 }
 
-void ContactsManager::delete_all_revoked_dialog_invite_links(DialogId dialog_id, Promise<Unit> &&promise) {
-  TRY_STATUS_PROMISE(promise, can_manage_dialog_invite_links(dialog_id));
+void ContactsManager::delete_all_revoked_dialog_invite_links(DialogId dialog_id, UserId administrator_user_id,
+                                                             Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, can_manage_dialog_invite_links(dialog_id, administrator_user_id != get_my_id()));
 
-  td_->create_handler<DeleteRevokedExportedChatInvitesQuery>(std::move(promise))->send(dialog_id);
+  if (!have_input_user(administrator_user_id)) {
+    return promise.set_error(Status::Error(400, "Administrator user not found"));
+  }
+
+  td_->create_handler<DeleteRevokedExportedChatInvitesQuery>(std::move(promise))
+      ->send(dialog_id, administrator_user_id);
 }
 
 void ContactsManager::check_dialog_invite_link(const string &invite_link, Promise<Unit> &&promise) const {
