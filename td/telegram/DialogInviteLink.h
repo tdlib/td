@@ -55,10 +55,6 @@ class DialogInviteLink {
     return is_permanent_;
   }
 
-  bool is_expired() const;
-
-  int32 get_expire_time() const;
-
   const string &get_invite_link() const {
     return invite_link_;
   }

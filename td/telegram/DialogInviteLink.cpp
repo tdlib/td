@@ -102,21 +102,6 @@ Slice DialogInviteLink::get_dialog_invite_link_hash(Slice invite_link) {
   return Slice();
 }
 
-bool DialogInviteLink::is_expired() const {
-  return (expire_date_ != 0 && G()->unix_time() >= expire_date_) || (usage_limit_ != 0 && usage_count_ >= usage_limit_);
-}
-
-int32 DialogInviteLink::get_expire_time() const {
-  if (expire_date_ == 0) {
-    return 0;
-  }
-  if (usage_limit_ != 0 && usage_count_ >= usage_limit_) {
-    // already expired
-    return 0;
-  }
-  return td::max(expire_date_ - G()->unix_time(), 0);
-}
-
 td_api::object_ptr<td_api::chatInviteLink> DialogInviteLink::get_chat_invite_link_object(
     const ContactsManager *contacts_manager) const {
   CHECK(contacts_manager != nullptr);
@@ -126,7 +111,7 @@ td_api::object_ptr<td_api::chatInviteLink> DialogInviteLink::get_chat_invite_lin
 
   return td_api::make_object<td_api::chatInviteLink>(
       invite_link_, contacts_manager->get_user_id_object(administrator_user_id_, "get_chat_invite_link_object"), date_,
-      edit_date_, expire_date_, usage_limit_, usage_count_, is_permanent_, is_expired(), is_revoked_);
+      edit_date_, expire_date_, usage_limit_, usage_count_, is_permanent_, is_revoked_);
 }
 
 bool operator==(const DialogInviteLink &lhs, const DialogInviteLink &rhs) {
