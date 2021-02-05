@@ -384,7 +384,7 @@ class MessagesManager : public Actor {
 
   Result<vector<MessageId>> resend_messages(DialogId dialog_id, vector<MessageId> message_ids) TD_WARN_UNUSED_RESULT;
 
-  Result<MessageId> send_dialog_set_ttl_message(DialogId dialog_id, int32 ttl);
+  void set_dialog_message_ttl(DialogId dialog_id, int32 ttl, Promise<Unit> &&promise);
 
   Status send_screenshot_taken_notification_message(DialogId dialog_id);
 

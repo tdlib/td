@@ -26261,40 +26261,6 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
   return result;
 }
 
-Result<MessageId> MessagesManager::send_dialog_set_ttl_message(DialogId dialog_id, int32 ttl) {
-  if (dialog_id.get_type() != DialogType::SecretChat) {
-    return Status::Error(5, "Can't set message TTL in non-secret chat");
-  }
-
-  if (ttl < 0) {
-    return Status::Error(5, "Message TTL can't be negative");
-  }
-
-  LOG(INFO) << "Begin to set message TTL in " << dialog_id << " to " << ttl;
-
-  Dialog *d = get_dialog_force(dialog_id);
-  if (d == nullptr) {
-    return Status::Error(5, "Chat not found");
-  }
-
-  TRY_STATUS(can_send_message(dialog_id));
-  bool need_update_dialog_pos = false;
-  Message *m = get_message_to_send(d, MessageId(), MessageId(), MessageSendOptions(),
-                                   create_chat_set_ttl_message_content(ttl), &need_update_dialog_pos);
-
-  send_update_new_message(d, m);
-  if (need_update_dialog_pos) {
-    send_update_chat_last_message(d, "send_dialog_set_ttl_message");
-  }
-
-  int64 random_id = begin_send_message(dialog_id, m);
-
-  send_closure(td_->secret_chats_manager_, &SecretChatsManager::send_set_ttl_message, dialog_id.get_secret_chat_id(),
-               ttl, random_id, Promise<>());  // TODO Promise
-
-  return m->message_id;
-}
-
 Status MessagesManager::send_screenshot_taken_notification_message(DialogId dialog_id) {
   auto dialog_type = dialog_id.get_type();
   if (dialog_type != DialogType::User && dialog_type != DialogType::SecretChat) {
@@ -30628,6 +30594,64 @@ void MessagesManager::set_dialog_title(DialogId dialog_id, const string &title, 
 
   // TODO invoke after
   td_->create_handler<EditDialogTitleQuery>(std::move(promise))->send(dialog_id, new_title);
+}
+
+void MessagesManager::set_dialog_message_ttl(DialogId dialog_id, int32 ttl, Promise<Unit> &&promise) {
+  if (ttl < 0) {
+    return promise.set_error(Status::Error(400, "Message TTL can't be negative"));
+  }
+
+  Dialog *d = get_dialog_force(dialog_id);
+  if (d == nullptr) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+
+  LOG(INFO) << "Begin to set message TTL in " << dialog_id << " to " << ttl;
+
+  TRY_STATUS_PROMISE(promise, can_send_message(dialog_id));
+
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      break;
+    case DialogType::Chat: {
+      auto chat_id = dialog_id.get_chat_id();
+      auto status = td_->contacts_manager_->get_chat_permissions(chat_id);
+      if (!status.can_delete_messages()) {
+        return promise.set_error(Status::Error(400, "Not enough rights to set message TTL in the chat"));
+      }
+      break;
+    }
+    case DialogType::Channel: {
+      auto status = td_->contacts_manager_->get_channel_permissions(dialog_id.get_channel_id());
+      if (!status.can_change_info_and_settings()) {
+        return promise.set_error(Status::Error(400, "Not enough rights to set message TTL in the chat"));
+      }
+      break;
+    }
+    case DialogType::SecretChat:
+      break;
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+  }
+
+  if (dialog_id.get_type() != DialogType::SecretChat) {
+    promise.set_error(Status::Error(5, "Can't set message TTL in non-secret chat"));
+  } else {
+    bool need_update_dialog_pos = false;
+    Message *m = get_message_to_send(d, MessageId(), MessageId(), MessageSendOptions(),
+                                     create_chat_set_ttl_message_content(ttl), &need_update_dialog_pos);
+
+    send_update_new_message(d, m);
+    if (need_update_dialog_pos) {
+      send_update_chat_last_message(d, "send_dialog_set_ttl_message");
+    }
+
+    int64 random_id = begin_send_message(dialog_id, m);
+
+    send_closure(td_->secret_chats_manager_, &SecretChatsManager::send_set_ttl_message, dialog_id.get_secret_chat_id(),
+                 ttl, random_id, std::move(promise));
+  }
 }
 
 void MessagesManager::set_dialog_permissions(DialogId dialog_id,

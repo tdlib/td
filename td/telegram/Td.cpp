@@ -5674,18 +5674,6 @@ void Td::on_request(uint64 id, td_api::sendInlineQueryResultMessage &request) {
                messages_manager_->get_message_object({dialog_id, r_new_message_id.ok()}));
 }
 
-void Td::on_request(uint64 id, const td_api::sendChatSetTtlMessage &request) {
-  DialogId dialog_id(request.chat_id_);
-  auto r_new_message_id = messages_manager_->send_dialog_set_ttl_message(dialog_id, request.ttl_);
-  if (r_new_message_id.is_error()) {
-    return send_closure(actor_id(this), &Td::send_error, id, r_new_message_id.move_as_error());
-  }
-
-  CHECK(r_new_message_id.ok().is_valid());
-  send_closure(actor_id(this), &Td::send_result, id,
-               messages_manager_->get_message_object({dialog_id, r_new_message_id.ok()}));
-}
-
 void Td::on_request(uint64 id, td_api::addLocalMessage &request) {
   CHECK_IS_USER();
 
@@ -6123,6 +6111,12 @@ void Td::on_request(uint64 id, td_api::setChatTitle &request) {
 void Td::on_request(uint64 id, const td_api::setChatPhoto &request) {
   CREATE_OK_REQUEST_PROMISE();
   messages_manager_->set_dialog_photo(DialogId(request.chat_id_), request.photo_, std::move(promise));
+}
+
+void Td::on_request(uint64 id, const td_api::setChatMessageTtl &request) {
+  DialogId dialog_id(request.chat_id_);
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->set_dialog_message_ttl(dialog_id, request.ttl_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::setChatPermissions &request) {

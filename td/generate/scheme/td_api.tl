@@ -3996,9 +3996,6 @@ forwardMessages chat_id:int53 from_chat_id:int53 message_ids:vector<int53> optio
 //@chat_id Identifier of the chat to send messages @message_ids Identifiers of the messages to resend. Message identifiers must be in a strictly increasing order
 resendMessages chat_id:int53 message_ids:vector<int53> = Messages;
 
-//@description Changes the current TTL setting (sets a new self-destruct timer) in a secret chat and sends the corresponding message @chat_id Chat identifier @ttl New TTL value, in seconds
-sendChatSetTtlMessage chat_id:int53 ttl:int32 = Message;
-
 //@description Sends a notification about a screenshot taken in a chat. Supported only in private and secret chats @chat_id Chat identifier
 sendChatScreenshotTakenNotification chat_id:int53 = Ok;
 
@@ -4265,6 +4262,9 @@ setChatTitle chat_id:int53 title:string = Ok;
 //@description Changes the photo of a chat. Supported only for basic groups, supergroups and channels. Requires can_change_info administrator right
 //@chat_id Chat identifier @photo New chat photo. Pass null to delete the chat photo
 setChatPhoto chat_id:int53 photo:InputChatPhoto = Ok;
+
+//@description Changes the message TTL setting (sets a new self-destruct timer) in a chat. Requires can_delete_messages administrator right in basic groups, supergroups and channels @chat_id Chat identifier @ttl New TTL value, in seconds
+setChatMessageTtl chat_id:int53 ttl:int32 = Ok;
 
 //@description Changes the chat members permissions. Supported only for basic groups and supergroups. Requires can_restrict_members administrator right
 //@chat_id Chat identifier @permissions New non-administrator members permissions in the chat

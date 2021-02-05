@@ -2600,11 +2600,6 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::createNewSecretChat>(as_user_id(args)));
     } else if (op == "scstn") {
       send_request(td_api::make_object<td_api::sendChatScreenshotTakenNotification>(as_chat_id(args)));
-    } else if (op == "sscttl" || op == "setSecretChatTtl") {
-      string chat_id;
-      int32 ttl;
-      get_args(args, chat_id, ttl);
-      send_request(td_api::make_object<td_api::sendChatSetTtlMessage>(as_chat_id(chat_id), ttl));
     } else if (op == "closeSC" || op == "cancelSC") {
       send_request(td_api::make_object<td_api::closeSecretChat>(as_secret_chat_id(args)));
     } else if (op == "cc" || op == "CreateCall") {
@@ -2747,7 +2742,8 @@ class CliClient final : public Actor {
       string chat_id;
       string administrator_user_id;
       get_args(args, chat_id, administrator_user_id);
-      send_request(td_api::make_object<td_api::deleteAllRevokedChatInviteLinks>(as_chat_id(chat_id), as_user_id(administrator_user_id)));
+      send_request(td_api::make_object<td_api::deleteAllRevokedChatInviteLinks>(as_chat_id(chat_id),
+                                                                                as_user_id(administrator_user_id)));
     } else if (op == "ccil") {
       send_request(td_api::make_object<td_api::checkChatInviteLink>(args));
     } else if (op == "jcbil") {
@@ -3539,6 +3535,11 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::setChatPhoto>(
           as_chat_id(chat_id), td_api::make_object<td_api::inputChatPhotoAnimation>(as_input_file(animation),
                                                                                     to_double(main_frame_timestamp))));
+    } else if (op == "scmt") {
+      string chat_id;
+      int32 ttl;
+      get_args(args, chat_id, ttl);
+      send_request(td_api::make_object<td_api::setChatMessageTtl>(as_chat_id(chat_id), ttl));
     } else if (op == "scperm") {
       string chat_id;
       string permissions;
