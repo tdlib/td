@@ -4469,10 +4469,11 @@ getChatInviteLinks chat_id:int53 administrator_user_id:int32 is_revoked:Bool off
 //@offset_member A chat member from which to return next chat members; use null to get results from the beginning @limit Maximum number of chat members to return
 getChatInviteLinkMembers chat_id:int53 invite_link:string offset_member:chatInviteLinkMember limit:int32 = ChatInviteLinkMembers;
 
-//@description Revokes a non-permanent invite link for a chat. Available for basic groups, supergroups, and channels. Requires administrator privileges and can_invite_users right in the chat for own links and owner privileges for other links
+//@description Revokes invite link for a chat. Available for basic groups, supergroups, and channels. Requires administrator privileges and can_invite_users right in the chat for own links and owner privileges for other links.
+//-If a permanent link is revoked, then additionally to the revoked link returns new permanent link
 //@chat_id Chat identifier
 //@invite_link Invite link to be revoked
-revokeChatInviteLink chat_id:int53 invite_link:string = ChatInviteLink;
+revokeChatInviteLink chat_id:int53 invite_link:string = ChatInviteLinks;
 
 //@description Deletes revoked chat invite links. Requires administrator privileges and can_invite_users right in the chat for own links and owner privileges for other links @chat_id Chat identifier @invite_link Invite link to revoke
 deleteRevokedChatInviteLink chat_id:int53 invite_link:string = Ok;
