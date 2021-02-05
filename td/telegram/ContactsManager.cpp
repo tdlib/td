@@ -1910,6 +1910,10 @@ class RevokeChatInviteLinkQuery : public Td::ResultHandler {
         if (!invite_link.is_valid() || !new_invite_link.is_valid()) {
           return on_error(id, Status::Error(500, "Receive invalid invite link"));
         }
+        if (new_invite_link.get_administrator_user_id() == td->contacts_manager_->get_my_id() &&
+            new_invite_link.is_permanent()) {
+          td->contacts_manager_->on_get_permanent_dialog_invite_link(dialog_id_, new_invite_link);
+        }
         links.push_back(invite_link.get_chat_invite_link_object(td->contacts_manager_.get()));
         links.push_back(new_invite_link.get_chat_invite_link_object(td->contacts_manager_.get()));
         break;
