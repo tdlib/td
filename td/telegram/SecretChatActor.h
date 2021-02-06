@@ -55,7 +55,8 @@ class SecretChatActor : public NetQueryCallback {
     VIDEO_NOTES_LAYER = 66,
     MTPROTO_2_LAYER = 73,
     NEW_ENTITIES_LAYER = 101,
-    MY_LAYER = NEW_ENTITIES_LAYER
+    DELETE_MESSAGES_ON_CLOSE_LAYER = 123,
+    MY_LAYER = DELETE_MESSAGES_ON_CLOSE_LAYER
   };
 
   class Context {
