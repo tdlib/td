@@ -1154,13 +1154,13 @@ class ToggleChannelSignaturesQuery : public Td::ResultHandler {
   }
 };
 
-class ToggleChannelIsAllHistoryAvailableQuery : public Td::ResultHandler {
+class TogglePrehistoryHiddenQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
   bool is_all_history_available_;
 
  public:
-  explicit ToggleChannelIsAllHistoryAvailableQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit TogglePrehistoryHiddenQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
   void send(ChannelId channel_id, bool is_all_history_available) {
@@ -1180,7 +1180,7 @@ class ToggleChannelIsAllHistoryAvailableQuery : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for TogglePreHistoryHiddenQuery: " << to_string(ptr);
+    LOG(INFO) << "Receive result for TogglePrehistoryHiddenQuery: " << to_string(ptr);
 
     td->updates_manager_->on_get_updates(
         std::move(ptr),
@@ -1201,7 +1201,7 @@ class ToggleChannelIsAllHistoryAvailableQuery : public Td::ResultHandler {
         return;
       }
     } else {
-      td->contacts_manager_->on_get_channel_error(channel_id_, status, "ToggleChannelIsAllHistoryAvailableQuery");
+      td->contacts_manager_->on_get_channel_error(channel_id_, status, "TogglePrehistoryHiddenQuery");
     }
     promise_.set_error(std::move(status));
   }
@@ -1567,12 +1567,12 @@ class EditChatAdminQuery : public Td::ResultHandler {
   }
 };
 
-class ExportChatInviteLinkQuery : public Td::ResultHandler {
+class ExportChatInviteQuery : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::chatInviteLink>> promise_;
   DialogId dialog_id_;
 
  public:
-  explicit ExportChatInviteLinkQuery(Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise)
+  explicit ExportChatInviteQuery(Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise)
       : promise_(std::move(promise)) {
   }
 
@@ -1621,7 +1621,7 @@ class ExportChatInviteLinkQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "ExportChatInviteLinkQuery");
+    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "ExportChatInviteQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -1884,7 +1884,7 @@ class RevokeChatInviteLinkQuery : public Td::ResultHandler {
     }
 
     auto result = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for ExportChatInviteQuery: " << to_string(result);
+    LOG(INFO) << "Receive result for RevokeChatInviteLinkQuery: " << to_string(result);
 
     vector<td_api::object_ptr<td_api::chatInviteLink>> links;
     switch (result->get_id()) {
@@ -2002,12 +2002,12 @@ class DeleteRevokedExportedChatInvitesQuery : public Td::ResultHandler {
   }
 };
 
-class CheckDialogInviteLinkQuery : public Td::ResultHandler {
+class CheckChatInviteQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   string invite_link_;
 
  public:
-  explicit CheckDialogInviteLinkQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit CheckChatInviteQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
   void send(const string &invite_link) {
@@ -2033,13 +2033,13 @@ class CheckDialogInviteLinkQuery : public Td::ResultHandler {
   }
 };
 
-class ImportDialogInviteLinkQuery : public Td::ResultHandler {
+class ImportChatInviteQuery : public Td::ResultHandler {
   Promise<DialogId> promise_;
 
   string invite_link_;
 
  public:
-  explicit ImportDialogInviteLinkQuery(Promise<DialogId> &&promise) : promise_(std::move(promise)) {
+  explicit ImportChatInviteQuery(Promise<DialogId> &&promise) : promise_(std::move(promise)) {
   }
 
   void send(const string &invite_link) {
@@ -2059,7 +2059,7 @@ class ImportDialogInviteLinkQuery : public Td::ResultHandler {
 
     auto dialog_ids = UpdatesManager::get_chat_dialog_ids(ptr.get());
     if (dialog_ids.size() != 1u) {
-      LOG(ERROR) << "Receive wrong result for ImportDialogInviteLinkQuery: " << to_string(ptr);
+      LOG(ERROR) << "Receive wrong result for ImportChatInviteQuery: " << to_string(ptr);
       return on_error(id, Status::Error(500, "Internal Server Error"));
     }
     auto dialog_id = dialog_ids[0];
@@ -6152,8 +6152,7 @@ void ContactsManager::toggle_channel_is_all_history_available(ChannelId channel_
   }
   // it can be toggled in public chats, but will not affect them
 
-  td_->create_handler<ToggleChannelIsAllHistoryAvailableQuery>(std::move(promise))
-      ->send(channel_id, is_all_history_available);
+  td_->create_handler<TogglePrehistoryHiddenQuery>(std::move(promise))->send(channel_id, is_all_history_available);
 }
 
 void ContactsManager::set_channel_description(ChannelId channel_id, const string &description,
@@ -7006,7 +7005,7 @@ void ContactsManager::export_dialog_invite_link_impl(DialogId dialog_id, int32 e
 
   TRY_STATUS_PROMISE(promise, can_manage_dialog_invite_links(dialog_id));
 
-  td_->create_handler<ExportChatInviteLinkQuery>(std::move(promise))
+  td_->create_handler<ExportChatInviteQuery>(std::move(promise))
       ->send(dialog_id, expire_date, usage_limit, is_permanent);
 }
 
@@ -7102,7 +7101,7 @@ void ContactsManager::check_dialog_invite_link(const string &invite_link, Promis
     return promise.set_error(Status::Error(400, "Wrong invite link"));
   }
 
-  td_->create_handler<CheckDialogInviteLinkQuery>(std::move(promise))->send(invite_link);
+  td_->create_handler<CheckChatInviteQuery>(std::move(promise))->send(invite_link);
 }
 
 void ContactsManager::import_dialog_invite_link(const string &invite_link, Promise<DialogId> &&promise) {
@@ -7110,7 +7109,7 @@ void ContactsManager::import_dialog_invite_link(const string &invite_link, Promi
     return promise.set_error(Status::Error(400, "Wrong invite link"));
   }
 
-  td_->create_handler<ImportDialogInviteLinkQuery>(std::move(promise))->send(invite_link);
+  td_->create_handler<ImportChatInviteQuery>(std::move(promise))->send(invite_link);
 }
 
 void ContactsManager::delete_chat_participant(ChatId chat_id, UserId user_id, bool revoke_messages,
@@ -11931,7 +11930,7 @@ void ContactsManager::on_get_dialog_invite_link_info(const string &invite_link,
 
       // the access is already expired, reget the info
       if (accessible_before != 0 && accessible_before <= G()->unix_time() + 1) {
-        td_->create_handler<CheckDialogInviteLinkQuery>(std::move(promise))->send(invite_link);
+        td_->create_handler<CheckChatInviteQuery>(std::move(promise))->send(invite_link);
         return;
       }
 

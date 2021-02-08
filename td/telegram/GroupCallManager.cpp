@@ -209,8 +209,10 @@ class JoinGroupCallQuery : public Td::ResultHandler {
       return on_error(id, result_ptr.move_as_error());
     }
 
-    td->group_call_manager_->process_join_group_call_response(input_group_call_id_, generation_,
-                                                              result_ptr.move_as_ok(), std::move(promise_));
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for JoinGroupCallQuery with generation " << generation_ << ": " << to_string(ptr);
+    td->group_call_manager_->process_join_group_call_response(input_group_call_id_, generation_, std::move(ptr),
+                                                              std::move(promise_));
   }
 
   void on_error(uint64 id, Status status) override {
@@ -1642,7 +1644,6 @@ void GroupCallManager::process_join_group_call_response(InputGroupCallId input_g
     return;
   }
 
-  LOG(INFO) << "Receive result for JoinGroupCallQuery: " << to_string(updates);
   td_->updates_manager_->on_get_updates(std::move(updates),
                                         PromiseCreator::lambda([promise = std::move(promise)](Unit) mutable {
                                           promise.set_error(Status::Error(500, "Wrong join response received"));

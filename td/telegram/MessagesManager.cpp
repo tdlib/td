@@ -141,11 +141,11 @@ class UpdateDialogFilterQuery : public Td::ResultHandler {
   }
 };
 
-class ReorderDialogFiltersQuery : public Td::ResultHandler {
+class UpdateDialogFiltersOrderQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
-  explicit ReorderDialogFiltersQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit UpdateDialogFiltersOrderQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
   void send(vector<DialogFilterId> dialog_filter_ids) {
@@ -1329,12 +1329,12 @@ class EditDialogTitleQuery : public Td::ResultHandler {
   }
 };
 
-class EditDialogDefaultBannedRightsQuery : public Td::ResultHandler {
+class EditChatDefaultBannedRightsQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
 
  public:
-  explicit EditDialogDefaultBannedRightsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit EditChatDefaultBannedRightsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
   void send(DialogId dialog_id, RestrictedRights permissions) {
@@ -1352,7 +1352,7 @@ class EditDialogDefaultBannedRightsQuery : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for EditDialogPermissionsQuery: " << to_string(ptr);
+    LOG(INFO) << "Receive result for EditChatDefaultBannedRightsQuery: " << to_string(ptr);
     td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
@@ -1363,7 +1363,7 @@ class EditDialogDefaultBannedRightsQuery : public Td::ResultHandler {
         return;
       }
     } else {
-      td->messages_manager_->on_get_dialog_error(dialog_id_, status, "EditDialogDefaultBannedRightsQuery");
+      td->messages_manager_->on_get_dialog_error(dialog_id_, status, "EditChatDefaultBannedRightsQuery");
     }
     promise_.set_error(std::move(status));
   }
@@ -2637,7 +2637,7 @@ class DeleteUserHistoryQuery : public Td::ResultHandler {
   }
 };
 
-class ReadAllMentionsQuery : public Td::ResultHandler {
+class ReadMentionsQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
 
@@ -2653,7 +2653,7 @@ class ReadAllMentionsQuery : public Td::ResultHandler {
   }
 
  public:
-  explicit ReadAllMentionsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit ReadMentionsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
   void send(DialogId dialog_id) {
@@ -2673,7 +2673,7 @@ class ReadAllMentionsQuery : public Td::ResultHandler {
 
     if (affected_history->pts_count_ > 0) {
       if (dialog_id_.get_type() == DialogType::Channel) {
-        LOG(ERROR) << "Receive pts_count " << affected_history->pts_count_ << " in result of ReadAllMentionsQuery in "
+        LOG(ERROR) << "Receive pts_count " << affected_history->pts_count_ << " in result of ReadMentionsQuery in "
                    << dialog_id_;
         td->updates_manager_->get_difference("Wrong messages_readMentions result");
       } else {
@@ -2692,7 +2692,7 @@ class ReadAllMentionsQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "ReadAllMentionsQuery");
+    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "ReadMentionsQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -2794,7 +2794,7 @@ class SendMessageActor : public NetActorOnce {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for SendMessageQuery for " << random_id_ << ": " << to_string(ptr);
+    LOG(INFO) << "Receive result for SendMessage for " << random_id_ << ": " << to_string(ptr);
 
     auto constructor_id = ptr->get_id();
     if (constructor_id != telegram_api::updateShortSentMessage::ID) {
@@ -2822,7 +2822,7 @@ class SendMessageActor : public NetActorOnce {
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(INFO) << "Receive error for SendMessageQuery: " << status;
+    LOG(INFO) << "Receive error for SendMessage: " << status;
     if (G()->close_flag() && G()->parameters().use_message_db) {
       // do not send error, message will be re-sent
       return;
@@ -2968,8 +2968,7 @@ class SendMultiMediaActor : public NetActorOnce {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for SendMultiMediaQuery for " << format::as_array(random_ids_) << ": "
-              << to_string(ptr);
+    LOG(INFO) << "Receive result for SendMultiMedia for " << format::as_array(random_ids_) << ": " << to_string(ptr);
 
     auto sent_random_ids = UpdatesManager::get_sent_messages_random_ids(ptr.get());
     bool is_result_wrong = false;
@@ -3000,7 +2999,7 @@ class SendMultiMediaActor : public NetActorOnce {
       }
     }
     if (is_result_wrong) {
-      LOG(ERROR) << "Receive wrong result for SendMultiMediaQuery with random_ids " << format::as_array(random_ids_)
+      LOG(ERROR) << "Receive wrong result for SendMultiMedia with random_ids " << format::as_array(random_ids_)
                  << " to " << dialog_id_ << ": " << oneline(to_string(ptr));
       td->updates_manager_->schedule_get_difference("Wrong sendMultiMedia result");
     }
@@ -3009,7 +3008,7 @@ class SendMultiMediaActor : public NetActorOnce {
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(INFO) << "Receive error for SendMultiMediaQuery: " << status;
+    LOG(INFO) << "Receive error for SendMultiMedia: " << status;
     if (G()->close_flag() && G()->parameters().use_message_db) {
       // do not send error, message will be re-sent
       return;
@@ -3097,13 +3096,13 @@ class SendMediaActor : public NetActorOnce {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for SendMediaQuery for " << random_id_ << ": " << to_string(ptr);
+    LOG(INFO) << "Receive result for SendMedia for " << random_id_ << ": " << to_string(ptr);
     td->messages_manager_->check_send_message_result(random_id_, dialog_id_, ptr.get(), "SendMedia");
     td->updates_manager_->on_get_updates(std::move(ptr), Promise<Unit>());
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(INFO) << "Receive error for SendMediaQuery: " << status;
+    LOG(INFO) << "Receive error for SendMedia: " << status;
     if (G()->close_flag() && G()->parameters().use_message_db) {
       // do not send error, message will be re-sent
       return;
@@ -3348,7 +3347,7 @@ class EditMessageActor : public NetActorOnce {
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(INFO) << "Receive error for EditMessageQuery: " << status;
+    LOG(INFO) << "Receive error for EditMessage: " << status;
     if (!td->auth_manager_->is_bot() && status.message() == "MESSAGE_NOT_MODIFIED") {
       return promise_.set_value(0);
     }
@@ -3459,12 +3458,12 @@ class SetGameScoreActor : public NetActorOnce {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for SetGameScoreActor: " << to_string(ptr);
+    LOG(INFO) << "Receive result for SetGameScore: " << to_string(ptr);
     td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(INFO) << "Receive error for SetGameScoreQuery: " << status;
+    LOG(INFO) << "Receive error for SetGameScore: " << status;
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "SetGameScoreActor");
     promise_.set_error(std::move(status));
   }
@@ -3647,8 +3646,7 @@ class ForwardMessagesActor : public NetActorOnce {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for ForwardMessagesQuery for " << format::as_array(random_ids_) << ": "
-              << to_string(ptr);
+    LOG(INFO) << "Receive result for ForwardMessages for " << format::as_array(random_ids_) << ": " << to_string(ptr);
     auto sent_random_ids = UpdatesManager::get_sent_messages_random_ids(ptr.get());
     bool is_result_wrong = false;
     auto sent_random_ids_size = sent_random_ids.size();
@@ -11006,7 +11004,7 @@ void MessagesManager::read_all_dialog_mentions_on_server(DialogId dialog_id, uin
   }
 
   LOG(INFO) << "Read all mentions on server in " << dialog_id;
-  td_->create_handler<ReadAllMentionsQuery>(get_erase_log_event_promise(log_event_id, std::move(promise)))
+  td_->create_handler<ReadMentionsQuery>(get_erase_log_event_promise(log_event_id, std::move(promise)))
       ->send(dialog_id);
 }
 
@@ -17795,7 +17793,7 @@ void MessagesManager::reorder_dialog_filters_on_server(vector<DialogFilterId> di
     send_closure(actor_id, &MessagesManager::on_reorder_dialog_filters, std::move(dialog_filter_ids),
                  result.is_error() ? result.move_as_error() : Status::OK());
   });
-  td_->create_handler<ReorderDialogFiltersQuery>(std::move(promise))->send(std::move(dialog_filter_ids));
+  td_->create_handler<UpdateDialogFiltersOrderQuery>(std::move(promise))->send(std::move(dialog_filter_ids));
 }
 
 void MessagesManager::on_reorder_dialog_filters(vector<DialogFilterId> dialog_filter_ids, Status result) {
@@ -30707,7 +30705,7 @@ void MessagesManager::set_dialog_permissions(DialogId dialog_id,
   }
 
   // TODO invoke after
-  td_->create_handler<EditDialogDefaultBannedRightsQuery>(std::move(promise))->send(dialog_id, new_permissions);
+  td_->create_handler<EditChatDefaultBannedRightsQuery>(std::move(promise))->send(dialog_id, new_permissions);
 }
 
 void MessagesManager::set_dialog_description(DialogId dialog_id, const string &description, Promise<Unit> &&promise) {

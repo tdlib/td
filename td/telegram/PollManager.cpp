@@ -224,7 +224,7 @@ class StopPollActor : public NetActorOnce {
     }
 
     auto result = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for StopPollQuery: " << to_string(result);
+    LOG(INFO) << "Receive result for StopPoll: " << to_string(result);
     td->updates_manager_->on_get_updates(std::move(result), std::move(promise_));
   }
 

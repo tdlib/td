@@ -3137,7 +3137,7 @@ void Td::on_get_promo_data(Result<telegram_api::object_ptr<telegram_api::help_Pr
   }
 
   if (r_promo_data.is_error()) {
-    LOG(ERROR) << "Receive error for GetPromoDataQuery: " << r_promo_data.error();
+    LOG(ERROR) << "Receive error for GetPromoData: " << r_promo_data.error();
     return schedule_get_promo_data(60);
   }
 
