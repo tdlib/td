@@ -11943,7 +11943,7 @@ void MessagesManager::ttl_register_message(DialogId dialog_id, const Message *m,
   ttl_update_timeout(now);
 }
 
-void MessagesManager::ttl_period_register_message(DialogId dialog_id, const Message *m, int32 unix_time) {
+void MessagesManager::ttl_period_register_message(DialogId dialog_id, const Message *m, double server_time) {
   CHECK(m != nullptr);
   CHECK(m->ttl_period != 0);
   CHECK(!m->message_id.is_scheduled());
@@ -11953,7 +11953,7 @@ void MessagesManager::ttl_period_register_message(DialogId dialog_id, const Mess
   auto it = it_flag.first;
 
   auto now = Time::now();
-  ttl_heap_.insert(now + (m->date + m->ttl_period - unix_time), it->as_heap_node());
+  ttl_heap_.insert(now + (m->date + m->ttl_period - server_time), it->as_heap_node());
   ttl_update_timeout(now);
 }
 
@@ -22613,6 +22613,10 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
     } else {
       ttl_expires_in = m->ttl;
     }
+    if (ttl == 0 && m->ttl_period != 0) {
+      ttl = m->ttl_period;
+      ttl_expires_in = max(m->date + m->ttl_period - G()->server_time(), 1e-3);
+    }
   } else {
     ttl = 0;
   }
@@ -31996,15 +32000,15 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
   if (message->ttl_period > 0) {
     CHECK(dialog_id.get_type() != DialogType::SecretChat);
-    auto unix_time = G()->unix_time();
-    if (message->date + message->ttl_period <= unix_time) {
+    auto server_time = G()->server_time();
+    if (message->date + message->ttl_period <= server_time) {
       LOG(INFO) << "Can't add " << message_id << " with expired TTL period to " << dialog_id << " from " << source;
       delete_message_from_database(d, message_id, message.get(), true);
       debug_add_message_to_dialog_fail_reason_ = "delete expired by TTL period message";
       d->being_added_message_id = MessageId();
       return nullptr;
     } else {
-      ttl_period_register_message(dialog_id, message.get(), unix_time);
+      ttl_period_register_message(dialog_id, message.get(), server_time);
     }
   }
 

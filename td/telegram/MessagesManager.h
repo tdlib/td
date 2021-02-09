@@ -2600,7 +2600,7 @@ class MessagesManager : public Actor {
   bool ttl_on_open(Dialog *d, Message *m, double now, bool is_local_read);
   void ttl_register_message(DialogId dialog_id, const Message *m, double now);
   void ttl_unregister_message(DialogId dialog_id, const Message *m, const char *source);
-  void ttl_period_register_message(DialogId dialog_id, const Message *m, int32 unix_time);
+  void ttl_period_register_message(DialogId dialog_id, const Message *m, double server_time);
   void ttl_period_unregister_message(DialogId dialog_id, const Message *m);
   void ttl_loop(double now);
   void ttl_update_timeout(double now);
