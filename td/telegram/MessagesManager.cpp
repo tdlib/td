@@ -1329,6 +1329,47 @@ class EditDialogTitleQuery : public Td::ResultHandler {
   }
 };
 
+class SetHistoryTtlQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit SetHistoryTtlQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, int32 period) {
+    dialog_id_ = dialog_id;
+
+    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    CHECK(input_peer != nullptr);
+
+    send_query(G()->net_query_creator().create(telegram_api::messages_setHistoryTTL(std::move(input_peer), period)));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::messages_setHistoryTTL>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for SetHistoryTtlQuery: " << to_string(ptr);
+    td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(uint64 id, Status status) override {
+    if (status.message() == "CHAT_NOT_MODIFIED") {
+      if (!td->auth_manager_->is_bot()) {
+        promise_.set_value(Unit());
+        return;
+      }
+    } else {
+      td->messages_manager_->on_get_dialog_error(dialog_id_, status, "SetHistoryTtlQuery");
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
 class EditChatDefaultBannedRightsQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
@@ -30685,7 +30726,7 @@ void MessagesManager::set_dialog_title(DialogId dialog_id, const string &title, 
   td_->create_handler<EditDialogTitleQuery>(std::move(promise))->send(dialog_id, new_title);
 }
 
-void MessagesManager::set_dialog_message_ttl(DialogId dialog_id, int32 ttl, Promise<Unit> &&promise) {
+void MessagesManager::set_dialog_message_ttl_setting(DialogId dialog_id, int32 ttl, Promise<Unit> &&promise) {
   if (ttl < 0) {
     return promise.set_error(Status::Error(400, "Message TTL can't be negative"));
   }
@@ -30694,10 +30735,11 @@ void MessagesManager::set_dialog_message_ttl(DialogId dialog_id, int32 ttl, Prom
   if (d == nullptr) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
+  if (!have_input_peer(dialog_id, AccessRights::Write)) {
+    return promise.set_error(Status::Error(400, "Have no write access to the chat"));
+  }
 
   LOG(INFO) << "Begin to set message TTL in " << dialog_id << " to " << ttl;
-
-  TRY_STATUS_PROMISE(promise, can_send_message(dialog_id));
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
@@ -30725,7 +30767,8 @@ void MessagesManager::set_dialog_message_ttl(DialogId dialog_id, int32 ttl, Prom
   }
 
   if (dialog_id.get_type() != DialogType::SecretChat) {
-    promise.set_error(Status::Error(5, "Can't set message TTL in non-secret chat"));
+    // TODO invoke after
+    td_->create_handler<SetHistoryTtlQuery>(std::move(promise))->send(dialog_id, ttl);
   } else {
     bool need_update_dialog_pos = false;
     Message *m = get_message_to_send(d, MessageId(), MessageId(), MessageSendOptions(),

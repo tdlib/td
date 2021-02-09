@@ -4270,8 +4270,9 @@ setChatTitle chat_id:int53 title:string = Ok;
 //@chat_id Chat identifier @photo New chat photo. Pass null to delete the chat photo
 setChatPhoto chat_id:int53 photo:InputChatPhoto = Ok;
 
-//@description Changes the message TTL setting (sets a new self-destruct timer) in a chat. Requires can_delete_messages administrator right in basic groups, supergroups and channels @chat_id Chat identifier @ttl New TTL value, in seconds
-setChatMessageTtl chat_id:int53 ttl:int32 = Ok;
+//@description Changes the message TTL setting (sets a new self-destruct timer) in a chat. Requires can_delete_messages administrator right in basic groups, supergroups and channels
+//@chat_id Chat identifier @ttl New TTL value, in seconds; must be one of 0, 86400, 604800 unless chat is secret
+setChatMessageTtlSetting chat_id:int53 ttl:int32 = Ok;
 
 //@description Changes the chat members permissions. Supported only for basic groups and supergroups. Requires can_restrict_members administrator right
 //@chat_id Chat identifier @permissions New non-administrator members permissions in the chat

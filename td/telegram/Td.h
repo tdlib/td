@@ -740,7 +740,7 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, const td_api::setChatPhoto &request);
 
-  void on_request(uint64 id, const td_api::setChatMessageTtl &request);
+  void on_request(uint64 id, const td_api::setChatMessageTtlSetting &request);
 
   void on_request(uint64 id, const td_api::setChatPermissions &request);
 

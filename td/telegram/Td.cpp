@@ -6113,10 +6113,9 @@ void Td::on_request(uint64 id, const td_api::setChatPhoto &request) {
   messages_manager_->set_dialog_photo(DialogId(request.chat_id_), request.photo_, std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::setChatMessageTtl &request) {
-  DialogId dialog_id(request.chat_id_);
+void Td::on_request(uint64 id, const td_api::setChatMessageTtlSetting &request) {
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->set_dialog_message_ttl(dialog_id, request.ttl_, std::move(promise));
+  messages_manager_->set_dialog_message_ttl_setting(DialogId(request.chat_id_), request.ttl_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::setChatPermissions &request) {
