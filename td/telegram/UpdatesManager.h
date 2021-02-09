@@ -337,6 +337,8 @@ class UpdatesManager : public Actor {
   void on_update(tl_object_ptr<telegram_api::updateReadHistoryOutbox> update, Promise<Unit> &&promise);
   void on_update(tl_object_ptr<telegram_api::updateNotifySettings> update, Promise<Unit> &&promise);
   void on_update(tl_object_ptr<telegram_api::updatePeerSettings> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updatePeerHistoryTTL> update, Promise<Unit> &&promise);
+
   void on_update(tl_object_ptr<telegram_api::updatePeerLocated> update, Promise<Unit> &&promise);
 
   void on_update(tl_object_ptr<telegram_api::updateWebPage> update, Promise<Unit> &&promise);
@@ -459,8 +461,6 @@ class UpdatesManager : public Actor {
   void on_update(tl_object_ptr<telegram_api::updateChatParticipant> update, Promise<Unit> &&promise);
 
   void on_update(tl_object_ptr<telegram_api::updateTheme> update, Promise<Unit> &&promise);
-
-  void on_update(tl_object_ptr<telegram_api::updatePeerHistoryTTL> update, Promise<Unit> &&promise);
 };
 
 }  // namespace td

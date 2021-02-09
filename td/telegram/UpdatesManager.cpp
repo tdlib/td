@@ -28,6 +28,7 @@
 #include "td/telegram/Location.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/MessageTtlSetting.h"
 #include "td/telegram/net/DcOptions.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/NotificationManager.h"
@@ -2297,6 +2298,15 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePeerSettings> u
   promise.set_value(Unit());
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePeerHistoryTTL> update, Promise<Unit> &&promise) {
+  MessageTtlSetting message_ttl_setting;
+  if ((update->flags_ & telegram_api::updatePeerHistoryTTL::TTL_PERIOD_MASK) != 0) {
+    message_ttl_setting = MessageTtlSetting(update->ttl_period_);
+  }
+  td_->messages_manager_->on_update_dialog_message_ttl_setting(DialogId(update->peer_), message_ttl_setting);
+  promise.set_value(Unit());
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePeerLocated> update, Promise<Unit> &&promise) {
   td_->contacts_manager_->on_update_peer_located(std::move(update->peers_), true);
   promise.set_value(Unit());
@@ -2855,10 +2865,6 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChatParticipant
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTheme> update, Promise<Unit> &&promise) {
-  promise.set_value(Unit());
-}
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePeerHistoryTTL> update, Promise<Unit> &&promise) {
   promise.set_value(Unit());
 }
 

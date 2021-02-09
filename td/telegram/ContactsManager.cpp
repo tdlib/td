@@ -26,6 +26,7 @@
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/logevent/LogEventHelper.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/MessageTtlSetting.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/NotificationManager.h"
@@ -9599,6 +9600,11 @@ void ContactsManager::update_secret_chat(SecretChat *c, SecretChatId secret_chat
                          c->state);
       c->is_state_changed = false;
     }
+    if (c->is_ttl_changed) {
+      send_closure_later(G()->messages_manager(), &MessagesManager::on_update_dialog_message_ttl_setting,
+                         DialogId(secret_chat_id), MessageTtlSetting(c->ttl));
+      c->is_ttl_changed = false;
+    }
   }
   if (c->is_changed) {
     send_closure(G()->td(), &Td::send_update,
@@ -9768,6 +9774,13 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
   }
   td_->messages_manager_->on_update_dialog_has_scheduled_server_messages(
       DialogId(user_id), (user_full->flags_ & USER_FULL_FLAG_HAS_SCHEDULED_MESSAGES) != 0);
+  {
+    MessageTtlSetting message_ttl_setting;
+    if ((user_full->flags_ & USER_FULL_FLAG_HAS_MESSAGE_TTL) != 0) {
+      message_ttl_setting = MessageTtlSetting(user_full->ttl_period_);
+    }
+    td_->messages_manager_->on_update_dialog_message_ttl_setting(DialogId(user_id), message_ttl_setting);
+  }
 
   UserFull *user = add_user_full(user_id);
   user->expires_at = Time::now() + USER_FULL_EXPIRE_TIME;
@@ -10025,6 +10038,13 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       }
       td_->messages_manager_->on_update_dialog_group_call_id(DialogId(chat_id), input_group_call_id);
     }
+    {
+      MessageTtlSetting message_ttl_setting;
+      if ((chat_full->flags_ & CHAT_FULL_FLAG_HAS_MESSAGE_TTL) != 0) {
+        message_ttl_setting = MessageTtlSetting(chat_full->ttl_period_);
+      }
+      td_->messages_manager_->on_update_dialog_message_ttl_setting(DialogId(chat_id), message_ttl_setting);
+    }
 
     ChatFull *chat = add_chat_full(chat_id);
     on_update_chat_full_invite_link(chat, std::move(chat_full->exported_invite_));
@@ -10080,6 +10100,13 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
 
     td_->messages_manager_->on_update_dialog_notify_settings(
         DialogId(channel_id), std::move(channel_full->notify_settings_), "on_get_channel_full");
+    {
+      MessageTtlSetting message_ttl_setting;
+      if ((channel_full->flags_ & CHANNEL_FULL_FLAG_HAS_MESSAGE_TTL) != 0) {
+        message_ttl_setting = MessageTtlSetting(channel_full->ttl_period_);
+      }
+      td_->messages_manager_->on_update_dialog_message_ttl_setting(DialogId(channel_id), message_ttl_setting);
+    }
 
     auto c = get_channel(channel_id);
     if (c == nullptr) {
@@ -13851,7 +13878,8 @@ void ContactsManager::on_update_secret_chat(SecretChatId secret_chat_id, int64 a
 
   if (ttl != -1 && ttl != secret_chat->ttl) {
     secret_chat->ttl = ttl;
-    secret_chat->is_changed = true;
+    secret_chat->need_save_to_database = true;
+    secret_chat->is_ttl_changed = true;
   }
   if (date != 0 && date != secret_chat->date) {
     secret_chat->date = date;
@@ -15242,7 +15270,7 @@ tl_object_ptr<td_api::SecretChatState> ContactsManager::get_secret_chat_state_ob
 td_api::object_ptr<td_api::updateSecretChat> ContactsManager::get_update_unknown_secret_chat_object(
     SecretChatId secret_chat_id) {
   return td_api::make_object<td_api::updateSecretChat>(td_api::make_object<td_api::secretChat>(
-      secret_chat_id.get(), 0, get_secret_chat_state_object(SecretChatState::Unknown), false, 0, string(), 0));
+      secret_chat_id.get(), 0, get_secret_chat_state_object(SecretChatState::Unknown), false, string(), 0));
 }
 
 int32 ContactsManager::get_secret_chat_id_object(SecretChatId secret_chat_id, const char *source) const {
@@ -15270,10 +15298,10 @@ tl_object_ptr<td_api::secretChat> ContactsManager::get_secret_chat_object(Secret
 
 tl_object_ptr<td_api::secretChat> ContactsManager::get_secret_chat_object_const(SecretChatId secret_chat_id,
                                                                                 const SecretChat *secret_chat) const {
-  return td_api::make_object<td_api::secretChat>(
-      secret_chat_id.get(), get_user_id_object(secret_chat->user_id, "secretChat"),
-      get_secret_chat_state_object(secret_chat->state), secret_chat->is_outbound, secret_chat->ttl,
-      secret_chat->key_hash, secret_chat->layer);
+  return td_api::make_object<td_api::secretChat>(secret_chat_id.get(),
+                                                 get_user_id_object(secret_chat->user_id, "secretChat"),
+                                                 get_secret_chat_state_object(secret_chat->state),
+                                                 secret_chat->is_outbound, secret_chat->key_hash, secret_chat->layer);
 }
 
 td_api::object_ptr<td_api::botInfo> ContactsManager::get_bot_info_object(UserId user_id) const {

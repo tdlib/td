@@ -881,6 +881,7 @@ class ContactsManager : public Actor {
 
     bool is_outbound = false;
 
+    bool is_ttl_changed = true;
     bool is_state_changed = true;
     bool is_changed = true;             // have new changes that need to be sent to the client and database
     bool need_save_to_database = true;  // have new changes that need only to be saved to the database
@@ -997,6 +998,7 @@ class ContactsManager : public Actor {
   static constexpr int32 USER_FULL_FLAG_CAN_PIN_MESSAGE = 1 << 7;
   static constexpr int32 USER_FULL_FLAG_HAS_FOLDER_ID = 1 << 11;
   static constexpr int32 USER_FULL_FLAG_HAS_SCHEDULED_MESSAGES = 1 << 12;
+  static constexpr int32 USER_FULL_FLAG_HAS_MESSAGE_TTL = 1 << 14;
 
   static constexpr int32 CHAT_FLAG_USER_IS_CREATOR = 1 << 0;
   static constexpr int32 CHAT_FLAG_USER_WAS_KICKED = 1 << 1;
@@ -1012,6 +1014,7 @@ class ContactsManager : public Actor {
   static constexpr int32 CHAT_FULL_FLAG_HAS_SCHEDULED_MESSAGES = 1 << 8;
   static constexpr int32 CHAT_FULL_FLAG_HAS_FOLDER_ID = 1 << 11;
   static constexpr int32 CHAT_FULL_FLAG_HAS_ACTIVE_GROUP_CALL = 1 << 12;
+  static constexpr int32 CHAT_FULL_FLAG_HAS_MESSAGE_TTL = 1 << 14;
 
   static constexpr int32 CHANNEL_FLAG_USER_IS_CREATOR = 1 << 0;
   static constexpr int32 CHANNEL_FLAG_USER_HAS_LEFT = 1 << 2;
@@ -1060,6 +1063,7 @@ class ContactsManager : public Actor {
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_ACTIVE_GROUP_CALL = 1 << 21;
   static constexpr int32 CHANNEL_FULL_FLAG_IS_BLOCKED = 1 << 22;
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_EXPORTED_INVITE = 1 << 23;
+  static constexpr int32 CHANNEL_FULL_FLAG_HAS_MESSAGE_TTL = 1 << 24;
 
   static constexpr int32 CHAT_INVITE_FLAG_IS_CHANNEL = 1 << 0;
   static constexpr int32 CHAT_INVITE_FLAG_IS_BROADCAST = 1 << 1;

@@ -658,11 +658,10 @@ secretChatStateClosed = SecretChatState;
 //@user_id Identifier of the chat partner
 //@state State of the secret chat
 //@is_outbound True, if the chat was created by the current user; otherwise false
-//@ttl Current message Time To Live setting (self-destruct timer) for the chat, in seconds
 //@key_hash Hash of the currently used key for comparison with the hash of the chat partner's key. This is a string of 36 little-endian bytes, which must be split into groups of 2 bits, each denoting a pixel of one of 4 colors FFFFFF, D5E6F3, 2D5775, and 2F99C9.
 //-The pixels must be used to make a 12x12 square image filled from left to right, top to bottom. Alternatively, the first 32 bytes of the hash can be converted to the hexadecimal format and printed as 32 2-digit hex numbers
 //@layer Secret chat layer; determines features supported by the chat partner's application. Video notes are supported if the layer >= 66; nested text entities and underline and strikethrough entities are supported if the layer >= 101
-secretChat id:int32 user_id:int32 state:SecretChatState is_outbound:Bool ttl:int32 key_hash:bytes layer:int32 = SecretChat;
+secretChat id:int32 user_id:int32 state:SecretChatState is_outbound:Bool key_hash:bytes layer:int32 = SecretChat;
 
 
 //@class MessageSender @description Contains information about the sender of a message
@@ -907,13 +906,14 @@ chatPosition list:ChatList order:int64 is_pinned:Bool source:ChatSource = ChatPo
 //@last_read_outbox_message_id Identifier of the last read outgoing message
 //@unread_mention_count Number of unread messages with a mention/reply in the chat
 //@notification_settings Notification settings for this chat
+//@message_ttl_setting Current message Time To Live setting (self-destruct timer) for the chat; 0 if not defined. TTL is counted from the time message or its content is viewed in secret chats and from the send date in other chats
 //@action_bar Describes actions which should be possible to do through a chat action bar; may be null
 //@voice_chat_group_call_id Group call identifier of an active voice chat; 0 if none or unknown. The voice chat can be received through the method getGroupCall
 //@is_voice_chat_empty True, if an active voice chat is empty
 //@reply_markup_message_id Identifier of the message from which reply markup needs to be used; 0 if there is no default custom reply markup in the chat
 //@draft_message A draft of a message in the chat; may be null
 //@client_data Contains application-specific data associated with the chat. (For example, the chat scroll position or local chat notification settings can be stored here.) Persistent if the message database is used
-chat id:int53 type:ChatType title:string photo:chatPhotoInfo permissions:chatPermissions last_message:message positions:vector<chatPosition> is_marked_as_unread:Bool is_blocked:Bool has_scheduled_messages:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_reported:Bool default_disable_notification:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 notification_settings:chatNotificationSettings action_bar:ChatActionBar voice_chat_group_call_id:int32 is_voice_chat_empty:Bool reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
+chat id:int53 type:ChatType title:string photo:chatPhotoInfo permissions:chatPermissions last_message:message positions:vector<chatPosition> is_marked_as_unread:Bool is_blocked:Bool has_scheduled_messages:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_reported:Bool default_disable_notification:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 notification_settings:chatNotificationSettings message_ttl_setting:int32 action_bar:ChatActionBar voice_chat_group_call_id:int32 is_voice_chat_empty:Bool reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
 
 //@description Represents a list of chats @total_count Approximate total count of chats found @chat_ids List of chat identifiers
 chats total_count:int32 chat_ids:vector<int53> = Chats;
@@ -3389,6 +3389,9 @@ updateChatNotificationSettings chat_id:int53 notification_settings:chatNotificat
 
 //@description Notification settings for some type of chats were updated @scope Types of chats for which notification settings were updated @notification_settings The new notification settings
 updateScopeNotificationSettings scope:NotificationSettingsScope notification_settings:scopeNotificationSettings = Update;
+
+//@description The message Time To Live setting for a chat was changed @chat_id Chat identifier @message_ttl_setting New value of message_ttl_setting
+updateChatMessageTtlSetting chat_id:int53 message_ttl_setting:int32 = Update;
 
 //@description The chat action bar was changed @chat_id Chat identifier @action_bar The new value of the action bar; may be null
 updateChatActionBar chat_id:int53 action_bar:ChatActionBar = Update;

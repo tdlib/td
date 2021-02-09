@@ -5303,6 +5303,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   bool has_distance = distance >= 0;
   bool has_last_yet_unsent_message = last_message_id.is_valid() && last_message_id.is_yet_unsent();
   bool has_active_group_call_id = active_group_call_id.is_valid();
+  bool has_message_ttl_setting = !message_ttl_setting.is_empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_draft_message);
   STORE_FLAG(has_last_database_message);
@@ -5362,6 +5363,8 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     STORE_FLAG(is_group_call_empty);
     STORE_FLAG(has_active_group_call_id);
     STORE_FLAG(can_invite_members);
+    STORE_FLAG(has_message_ttl_setting);
+    STORE_FLAG(is_message_ttl_setting_inited);
     END_STORE_FLAGS();
   }
 
@@ -5449,6 +5452,9 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   if (has_active_group_call_id) {
     store(active_group_call_id, storer);
   }
+  if (has_message_ttl_setting) {
+    store(message_ttl_setting, storer);
+  }
 }
 
 // do not forget to resolve dialog dependencies including dependencies of last_message
@@ -5479,6 +5485,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   bool has_pending_read_channel_inbox = false;
   bool has_distance = false;
   bool has_active_group_call_id = false;
+  bool has_message_ttl_setting = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_draft_message);
   PARSE_FLAG(has_last_database_message);
@@ -5538,6 +5545,8 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     PARSE_FLAG(is_group_call_empty);
     PARSE_FLAG(has_active_group_call_id);
     PARSE_FLAG(can_invite_members);
+    PARSE_FLAG(has_message_ttl_setting);
+    PARSE_FLAG(is_message_ttl_setting_inited);
     END_PARSE_FLAGS();
   } else {
     is_folder_id_inited = false;
@@ -5557,6 +5566,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     has_active_group_call = false;
     is_group_call_empty = false;
     can_invite_members = false;
+    is_message_ttl_setting_inited = false;
   }
 
   parse(last_new_message_id, parser);
@@ -5675,6 +5685,9 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   }
   if (has_active_group_call_id) {
     parse(active_group_call_id, parser);
+  }
+  if (has_message_ttl_setting) {
+    parse(message_ttl_setting, parser);
   }
 }
 
@@ -19768,7 +19781,8 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
       can_delete_for_all_users, can_report_dialog(d->dialog_id), d->notification_settings.silent_send_message,
       d->server_unread_count + d->local_unread_count, d->last_read_inbox_message_id.get(),
       d->last_read_outbox_message_id.get(), d->unread_mention_count,
-      get_chat_notification_settings_object(&d->notification_settings), get_chat_action_bar_object(d),
+      get_chat_notification_settings_object(&d->notification_settings),
+      d->message_ttl_setting.get_message_ttl_setting_object(), get_chat_action_bar_object(d),
       active_group_call_id.get(), active_group_call_id.is_valid() ? d->is_group_call_empty : true,
       d->reply_markup_message_id.get(), std::move(draft_message), d->client_data);
 }
@@ -28379,10 +28393,6 @@ void MessagesManager::send_update_chat_action_bar(const Dialog *d) {
 }
 
 void MessagesManager::send_update_chat_voice_chat(const Dialog *d) {
-  if (td_->auth_manager_->is_bot()) {
-    return;
-  }
-
   CHECK(d != nullptr);
   LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_voice_chat";
   on_dialog_updated(d->dialog_id, "send_update_chat_voice_chat");
@@ -28390,6 +28400,15 @@ void MessagesManager::send_update_chat_voice_chat(const Dialog *d) {
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateChatVoiceChat>(d->dialog_id.get(), group_call_id.get(),
                                                                 d->is_group_call_empty));
+}
+
+void MessagesManager::send_update_chat_message_ttl_setting(const Dialog *d) {
+  CHECK(d != nullptr);
+  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_message_ttl_setting";
+  on_dialog_updated(d->dialog_id, "send_update_chat_message_ttl_setting");
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateChatMessageTtlSetting>(
+                   d->dialog_id.get(), d->message_ttl_setting.get_message_ttl_setting_object()));
 }
 
 void MessagesManager::send_update_chat_has_scheduled_messages(Dialog *d, bool from_deletion) {
@@ -29540,10 +29559,6 @@ void MessagesManager::do_set_dialog_folder_id(Dialog *d, FolderId folder_id) {
 
 void MessagesManager::on_update_dialog_group_call(DialogId dialog_id, bool has_active_group_call,
                                                   bool is_group_call_empty, const char *source) {
-  if (td_->auth_manager_->is_bot()) {
-    return;
-  }
-
   LOG(INFO) << "Update voice chat in " << dialog_id << " with has_active_voice_chat = " << has_active_group_call
             << " and is_voice_chat_empty = " << is_group_call_empty << " from " << source;
 
@@ -29582,10 +29597,6 @@ void MessagesManager::on_update_dialog_group_call(DialogId dialog_id, bool has_a
 }
 
 void MessagesManager::on_update_dialog_group_call_id(DialogId dialog_id, InputGroupCallId input_group_call_id) {
-  if (td_->auth_manager_->is_bot()) {
-    return;
-  }
-
   auto d = get_dialog_force(dialog_id);
   if (d == nullptr) {
     // nothing to do
@@ -29604,6 +29615,24 @@ void MessagesManager::on_update_dialog_group_call_id(DialogId dialog_id, InputGr
       }
     }
     send_update_chat_voice_chat(d);
+  }
+}
+
+void MessagesManager::on_update_dialog_message_ttl_setting(DialogId dialog_id, MessageTtlSetting message_ttl_setting) {
+  auto d = get_dialog_force(dialog_id);
+  if (d == nullptr) {
+    // nothing to do
+    return;
+  }
+
+  if (d->message_ttl_setting != message_ttl_setting) {
+    d->message_ttl_setting = message_ttl_setting;
+    d->is_message_ttl_setting_inited = true;
+    send_update_chat_message_ttl_setting(d);
+  }
+  if (!d->is_message_ttl_setting_inited) {
+    d->is_message_ttl_setting_inited = true;
+    on_dialog_updated(dialog_id, "on_update_dialog_message_ttl_setting");
   }
 }
 
@@ -33568,6 +33597,9 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
         do_set_dialog_folder_id(
             d.get(), td_->contacts_manager_->get_secret_chat_initial_folder_id(dialog_id.get_secret_chat_id()));
       }
+      d->message_ttl_setting =
+          MessageTtlSetting(td_->contacts_manager_->get_secret_chat_ttl(dialog_id.get_secret_chat_id()));
+      d->is_message_ttl_setting_inited = true;
 
       break;
     case DialogType::None:
@@ -33669,6 +33701,10 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
   if (being_added_dialog_id_ != dialog_id && !d->is_folder_id_inited && !td_->auth_manager_->is_bot() &&
       order != DEFAULT_ORDER) {
     // asynchronously get dialog folder id from the server
+    get_dialog_info_full(dialog_id, Auto());
+  }
+  if (!d->is_message_ttl_setting_inited && !td_->auth_manager_->is_bot() && order != DEFAULT_ORDER) {
+    // asynchronously get dialog message ttl setting from the server
     get_dialog_info_full(dialog_id, Auto());
   }
   if (!d->know_action_bar && !td_->auth_manager_->is_bot() && dialog_type != DialogType::SecretChat &&

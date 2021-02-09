@@ -32,6 +32,7 @@
 #include "td/telegram/MessageReplyInfo.h"
 #include "td/telegram/MessagesDb.h"
 #include "td/telegram/MessageSearchFilter.h"
+#include "td/telegram/MessageTtlSetting.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/Notification.h"
 #include "td/telegram/NotificationGroupId.h"
@@ -287,6 +288,8 @@ class MessagesManager : public Actor {
                                    const char *source);
 
   void on_update_dialog_group_call_id(DialogId dialog_id, InputGroupCallId input_group_call_id);
+
+  void on_update_dialog_message_ttl_setting(DialogId dialog_id, MessageTtlSetting message_ttl_setting);
 
   void on_update_dialog_filters();
 
@@ -1070,9 +1073,9 @@ class MessagesManager : public Actor {
     string send_error_message;
     double try_resend_at = 0;
 
-    int32 ttl_period = 0;
-    int32 ttl = 0;
-    double ttl_expires_at = 0;
+    int32 ttl_period = 0;       // counted from message send date
+    int32 ttl = 0;              // counted from message content view date
+    double ttl_expires_at = 0;  // only for ttl
 
     int64 media_album_id = 0;
 
@@ -1145,6 +1148,7 @@ class MessagesManager : public Actor {
     MessageId last_pinned_message_id;
     MessageId reply_markup_message_id;
     DialogNotificationSettings notification_settings;
+    MessageTtlSetting message_ttl_setting;
     unique_ptr<DraftMessage> draft_message;
     LogEventIdWithGeneration save_draft_message_log_event_id;
     LogEventIdWithGeneration save_notification_settings_log_event_id;
@@ -1226,6 +1230,7 @@ class MessagesManager : public Actor {
     bool had_last_yet_unsent_message = false;  // whether the dialog was stored to database without last message
     bool has_active_group_call = false;
     bool is_group_call_empty = false;
+    bool is_message_ttl_setting_inited = false;
 
     bool increment_view_counter = false;
 
@@ -2215,6 +2220,8 @@ class MessagesManager : public Actor {
   void send_update_chat_action_bar(const Dialog *d);
 
   void send_update_chat_voice_chat(const Dialog *d);
+
+  void send_update_chat_message_ttl_setting(const Dialog *d);
 
   void send_update_chat_has_scheduled_messages(Dialog *d, bool from_deletion);
 
