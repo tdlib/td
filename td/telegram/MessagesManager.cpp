@@ -31335,8 +31335,13 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionToggleGroupCallSetting>(action_ptr);
       return make_tl_object<td_api::chatEventVoiceChatMuteNewParticipantsToggled>(action->join_muted_);
     }
-    case telegram_api::channelAdminLogEventActionChangeHistoryTTL::ID:
-      return nullptr;
+    case telegram_api::channelAdminLogEventActionChangeHistoryTTL::ID: {
+      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeHistoryTTL>(action_ptr);
+      auto old_value = MessageTtlSetting(clamp(action->prev_value_, 0, 86400 * 366));
+      auto new_value = MessageTtlSetting(clamp(action->new_value_, 0, 86400 * 366));
+      return make_tl_object<td_api::chatEventMessageTtlSettingChanged>(old_value.get_message_ttl_setting_object(),
+                                                                       new_value.get_message_ttl_setting_object());
+    }
     default:
       UNREACHABLE();
       return nullptr;

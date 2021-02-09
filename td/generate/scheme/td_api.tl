@@ -2418,6 +2418,9 @@ chatEventLinkedChatChanged old_linked_chat_id:int53 new_linked_chat_id:int53 = C
 //@description The slow_mode_delay setting of a supergroup was changed @old_slow_mode_delay Previous value of slow_mode_delay @new_slow_mode_delay New value of slow_mode_delay
 chatEventSlowModeDelayChanged old_slow_mode_delay:int32 new_slow_mode_delay:int32 = ChatEventAction;
 
+//@description The message TTL setting was changed @old_message_ttl_setting Previous value of message_ttl_setting @new_message_ttl_setting New value of message_ttl_setting
+chatEventMessageTtlSettingChanged old_message_ttl_setting:int32 new_message_ttl_setting:int32 = ChatEventAction;
+
 //@description The sign_messages setting of a channel was toggled @sign_messages New value of sign_messages
 chatEventSignMessagesToggled sign_messages:Bool = ChatEventAction;
 
