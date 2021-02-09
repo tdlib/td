@@ -2468,8 +2468,9 @@ chatEvents events:vector<chatEvent> = ChatEvents;
 //@member_restrictions True, if member restricted/unrestricted/banned/unbanned events should be returned
 //@info_changes True, if changes in chat information should be returned
 //@setting_changes True, if changes in chat settings should be returned
+//@invite_link_changes True, if changes to invite links should be returned
 //@voice_chat_changes True, if voice chat actions should be returned
-chatEventLogFilters message_edits:Bool message_deletions:Bool message_pins:Bool member_joins:Bool member_leaves:Bool member_invites:Bool member_promotions:Bool member_restrictions:Bool info_changes:Bool setting_changes:Bool voice_chat_changes:Bool = ChatEventLogFilters;
+chatEventLogFilters message_edits:Bool message_deletions:Bool message_pins:Bool member_joins:Bool member_leaves:Bool member_invites:Bool member_promotions:Bool member_restrictions:Bool info_changes:Bool setting_changes:Bool invite_link_changes:Bool voice_chat_changes:Bool = ChatEventLogFilters;
 
 
 //@class LanguagePackStringValue @description Represents the value of a string in a language pack
