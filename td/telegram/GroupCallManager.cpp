@@ -1429,6 +1429,21 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
   return diff;
 }
 
+bool GroupCallManager::cancel_join_group_call_request(InputGroupCallId input_group_call_id) {
+  auto it = pending_join_requests_.find(input_group_call_id);
+  if (it == pending_join_requests_.end()) {
+    return false;
+  }
+
+  CHECK(it->second != nullptr);
+  if (!it->second->query_ref.empty()) {
+    cancel_query(it->second->query_ref);
+  }
+  it->second->promise.set_error(Status::Error(200, "Cancelled"));
+  pending_join_requests_.erase(it);
+  return true;
+}
+
 void GroupCallManager::join_group_call(GroupCallId group_call_id,
                                        td_api::object_ptr<td_api::groupCallPayload> &&payload, int32 audio_source,
                                        bool is_muted,
@@ -1450,16 +1465,7 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id,
   }
   group_call->is_being_left = false;
 
-  if (pending_join_requests_.count(input_group_call_id)) {
-    auto it = pending_join_requests_.find(input_group_call_id);
-    CHECK(it != pending_join_requests_.end());
-    CHECK(it->second != nullptr);
-    if (!it->second->query_ref.empty()) {
-      cancel_query(it->second->query_ref);
-    }
-    it->second->promise.set_error(Status::Error(200, "Cancelled by another joinGroupCall request"));
-    pending_join_requests_.erase(it);
-  }
+  cancel_join_group_call_request(input_group_call_id);
 
   if (payload == nullptr) {
     return promise.set_error(Status::Error(400, "Payload must be non-empty"));
@@ -1941,7 +1947,7 @@ void GroupCallManager::leave_group_call(GroupCallId group_call_id, Promise<Unit>
       group_call->need_rejoin = false;
       send_update_group_call(group_call, "leave_group_call");
       try_clear_group_call_participants(input_group_call_id);
-      promise.set_value(Unit());
+      return promise.set_value(Unit());
     }
     return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
   }

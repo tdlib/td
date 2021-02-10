@@ -163,6 +163,8 @@ class GroupCallManager : public Actor {
 
   void finish_load_group_call_administrators(InputGroupCallId input_group_call_id, Result<DialogParticipants> &&result);
 
+  bool cancel_join_group_call_request(InputGroupCallId input_group_call_id);
+
   bool on_join_group_call_response(InputGroupCallId input_group_call_id, string json_response);
 
   void finish_join_group_call(InputGroupCallId input_group_call_id, uint64 generation, Status error);
