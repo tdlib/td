@@ -854,10 +854,7 @@ bool GroupCallManager::need_group_call_participants(InputGroupCallId input_group
   if (group_call == nullptr || !group_call->is_inited || !group_call->is_active) {
     return false;
   }
-  if (group_call->is_joined || group_call->need_rejoin) {
-    return true;
-  }
-  if (pending_join_requests_.count(input_group_call_id) != 0) {
+  if (group_call->is_joined || group_call->need_rejoin || pending_join_requests_.count(input_group_call_id) != 0) {
     return true;
   }
   return false;
@@ -1943,6 +1940,10 @@ void GroupCallManager::leave_group_call(GroupCallId group_call_id, Promise<Unit>
 
   auto *group_call = get_group_call(input_group_call_id);
   if (group_call == nullptr || !group_call->is_inited || !group_call->is_active || !group_call->is_joined) {
+    if (cancel_join_group_call_request(input_group_call_id)) {
+      try_clear_group_call_participants(input_group_call_id);
+      return promise.set_value(Unit());
+    }
     if (group_call->need_rejoin) {
       group_call->need_rejoin = false;
       send_update_group_call(group_call, "leave_group_call");
@@ -2013,11 +2014,14 @@ void GroupCallManager::on_update_group_call(tl_object_ptr<telegram_api::GroupCal
 }
 
 void GroupCallManager::try_clear_group_call_participants(InputGroupCallId input_group_call_id) {
-  auto participants_it = group_call_participants_.find(input_group_call_id);
-  if (participants_it == group_call_participants_.end()) {
+  if (need_group_call_participants(input_group_call_id)) {
     return;
   }
-  if (need_group_call_participants(input_group_call_id)) {
+
+  remove_recent_group_call_speaker(input_group_call_id, td_->contacts_manager_->get_my_id());
+
+  auto participants_it = group_call_participants_.find(input_group_call_id);
+  if (participants_it == group_call_participants_.end()) {
     return;
   }
 
