@@ -33769,33 +33769,34 @@ void MessagesManager::add_dialog_last_database_message(Dialog *d, unique_ptr<Mes
   LOG_CHECK(d->last_database_message_id == message_id)
       << message_id << " " << d->last_database_message_id << " " << d->debug_set_dialog_last_database_message_id;
 
-  if (!have_input_peer(d->dialog_id, AccessRights::Read)) {
-    // do not add last message to inaccessible dialog
+  bool need_update_dialog_pos = false;
+  const Message *m = nullptr;
+  if (have_input_peer(d->dialog_id, AccessRights::Read)) {
+    bool need_update = false;
+    last_database_message->have_previous = false;
+    last_database_message->have_next = false;
+    last_database_message->from_database = true;
+    m = add_message_to_dialog(d, std::move(last_database_message), false, &need_update, &need_update_dialog_pos,
+                              "add_dialog_last_database_message 1");
+    if (need_update_dialog_pos) {
+      LOG(ERROR) << "Need to update pos in " << d->dialog_id;
+    }
+  }
+  if (m != nullptr) {
+    set_dialog_last_message_id(d, m->message_id, "add_dialog_last_database_message 2");
+    send_update_chat_last_message(d, "add_dialog_last_database_message 3");
+  } else {
     if (d->pending_last_message_date != 0) {
       d->pending_last_message_date = 0;
       d->pending_last_message_id = MessageId();
-      update_dialog_pos(d, "add_dialog_last_database_message 1");
+      need_update_dialog_pos = true;
     }
-    return;
-  }
+    on_dialog_updated(d->dialog_id, "add_dialog_last_database_message 4");  // resave without last database message
 
-  bool need_update = false;
-  bool need_update_dialog_pos = false;
-  last_database_message->have_previous = false;
-  last_database_message->have_next = false;
-  last_database_message->from_database = true;
-  Message *m = add_message_to_dialog(d, std::move(last_database_message), false, &need_update, &need_update_dialog_pos,
-                                     "add_dialog_last_database_message 2");
-  if (need_update_dialog_pos) {
-    LOG(ERROR) << "Need to update pos in " << d->dialog_id;
-  }
-  if (m != nullptr) {
-    set_dialog_last_message_id(d, message_id, "add_dialog_last_database_message 3");
-    send_update_chat_last_message(d, "add_dialog_last_database_message 4");
-  } else if (d->pending_last_message_date != 0) {
-    d->pending_last_message_date = 0;
-    d->pending_last_message_id = MessageId();
-    need_update_dialog_pos = true;
+    if (!td_->auth_manager_->is_bot() && d->dialog_id != being_added_dialog_id_ &&
+        have_input_peer(d->dialog_id, AccessRights::Read) && (d->order != DEFAULT_ORDER || is_dialog_sponsored(d))) {
+      get_history_from_the_end(d->dialog_id, true, false, Auto());
+    }
   }
 
   if (need_update_dialog_pos) {
