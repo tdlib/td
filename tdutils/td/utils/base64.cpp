@@ -156,6 +156,9 @@ Result<SecureString> base64_decode_secure(Slice base64) {
 Result<string> base64url_decode(Slice base64) {
   return base64_decode_impl<true, string>(base64);
 }
+Result<SecureString> base64url_decode_secure(Slice base64) {
+  return base64_decode_impl<true, SecureString>(base64);
+}
 
 template <bool is_url>
 static bool is_base64_impl(Slice input) {

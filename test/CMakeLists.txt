@@ -32,6 +32,9 @@ set(TESTS_MAIN
 
 if (NOT CMAKE_CROSSCOMPILING OR EMSCRIPTEN)
   #Tests
+  add_executable(test-crypto EXCLUDE_FROM_ALL ${CMAKE_CURRENT_SOURCE_DIR}/crypto.cpp)
+  target_include_directories(test-crypto PUBLIC ${OPENSSL_INCLUDE_DIR})
+  target_link_libraries(test-crypto ${OPENSSL_LIBRARIES} tdutils tdcore)
   add_executable(test-tdutils EXCLUDE_FROM_ALL ${TESTS_MAIN} ${TDUTILS_TEST_SOURCE})
   add_executable(test-online EXCLUDE_FROM_ALL online.cpp)
   add_executable(run_all_tests ${TESTS_MAIN} ${TD_TEST_SOURCE})
