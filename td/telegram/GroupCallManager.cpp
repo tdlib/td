@@ -1426,10 +1426,10 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
   return diff;
 }
 
-bool GroupCallManager::cancel_join_group_call_request(InputGroupCallId input_group_call_id) {
+int32 GroupCallManager::cancel_join_group_call_request(InputGroupCallId input_group_call_id) {
   auto it = pending_join_requests_.find(input_group_call_id);
   if (it == pending_join_requests_.end()) {
-    return false;
+    return 0;
   }
 
   CHECK(it->second != nullptr);
@@ -1437,8 +1437,9 @@ bool GroupCallManager::cancel_join_group_call_request(InputGroupCallId input_gro
     cancel_query(it->second->query_ref);
   }
   it->second->promise.set_error(Status::Error(200, "Cancelled"));
+  auto audio_source = it->second->audio_source;
   pending_join_requests_.erase(it);
-  return true;
+  return audio_source;
 }
 
 void GroupCallManager::join_group_call(GroupCallId group_call_id,
@@ -1449,7 +1450,7 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id,
 
   auto *group_call = get_group_call(input_group_call_id);
   CHECK(group_call != nullptr);
-  if (group_call->is_joined) {
+  if (group_call->is_joined && !group_call->is_being_left) {
     CHECK(group_call->is_inited);
     return promise.set_error(Status::Error(400, "Group call is already joined"));
   }
@@ -1460,10 +1461,12 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id,
     group_call->need_rejoin = false;
     send_update_group_call(group_call, "join_group_call");
   }
-  group_call->is_being_left = false;
 
   cancel_join_group_call_request(input_group_call_id);
 
+  if (audio_source == 0) {
+    return promise.set_error(Status::Error(400, "Audio source must be non-zero"));
+  }
   if (payload == nullptr) {
     return promise.set_error(Status::Error(400, "Payload must be non-empty"));
   }
@@ -1485,6 +1488,13 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id,
     }
     if (!clean_input_string(fingerprint->fingerprint_)) {
       return promise.set_error(Status::Error(400, "Fingerprint must be encoded in UTF-8"));
+    }
+  }
+
+  if (group_call->is_being_left) {
+    group_call->is_being_left = false;
+    if (group_call->is_inited) {
+      send_update_group_call(group_call, "join_group_call");
     }
   }
 
@@ -1939,8 +1949,9 @@ void GroupCallManager::leave_group_call(GroupCallId group_call_id, Promise<Unit>
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
 
   auto *group_call = get_group_call(input_group_call_id);
-  if (group_call == nullptr || !group_call->is_inited || !group_call->is_active || !group_call->is_joined) {
-    if (cancel_join_group_call_request(input_group_call_id)) {
+  if (group_call == nullptr || !group_call->is_inited || !group_call->is_active || !group_call->is_joined ||
+      group_call->is_being_left) {
+    if (cancel_join_group_call_request(input_group_call_id) != 0) {
       try_clear_group_call_participants(input_group_call_id);
       return promise.set_value(Unit());
     }
@@ -1952,8 +1963,13 @@ void GroupCallManager::leave_group_call(GroupCallId group_call_id, Promise<Unit>
     }
     return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
   }
-  auto audio_source = group_call->audio_source;
+  auto audio_source = cancel_join_group_call_request(input_group_call_id);
+  if (audio_source == 0) {
+    audio_source = group_call->audio_source;
+  }
   group_call->is_being_left = true;
+  group_call->need_rejoin = false;
+  send_update_group_call(group_call, "leave_group_call");
 
   auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), input_group_call_id, audio_source,
                                                promise = std::move(promise)](Result<Unit> &&result) mutable {
@@ -2422,8 +2438,9 @@ tl_object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(
   CHECK(group_call != nullptr);
   CHECK(group_call->is_inited);
 
+  bool is_joined = group_call->is_joined && !group_call->is_being_left;
   return td_api::make_object<td_api::groupCall>(
-      group_call->group_call_id.get(), group_call->is_active, group_call->is_joined, group_call->need_rejoin,
+      group_call->group_call_id.get(), group_call->is_active, is_joined, group_call->need_rejoin,
       group_call->can_self_unmute, group_call->can_be_managed, group_call->participant_count,
       group_call->loaded_all_participants, std::move(recent_speakers), group_call->mute_new_participants,
       group_call->allowed_change_mute_new_participants, group_call->duration);

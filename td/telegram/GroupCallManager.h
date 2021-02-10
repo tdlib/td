@@ -163,7 +163,7 @@ class GroupCallManager : public Actor {
 
   void finish_load_group_call_administrators(InputGroupCallId input_group_call_id, Result<DialogParticipants> &&result);
 
-  bool cancel_join_group_call_request(InputGroupCallId input_group_call_id);
+  int32 cancel_join_group_call_request(InputGroupCallId input_group_call_id);
 
   bool on_join_group_call_response(InputGroupCallId input_group_call_id, string json_response);
 
