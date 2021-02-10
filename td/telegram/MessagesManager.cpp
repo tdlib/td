@@ -9980,6 +9980,7 @@ void MessagesManager::delete_dialog_messages(DialogId dialog_id, const vector<Me
   vector<int64> deleted_message_ids;
   bool need_update_dialog_pos = false;
   for (auto message_id : message_ids) {
+    CHECK(!message_id.is_scheduled());
     if (from_updates) {
       if (!message_id.is_valid() || (!message_id.is_server() && dialog_id.get_type() != DialogType::SecretChat)) {
         LOG(ERROR) << "Incoming update tries to delete " << message_id;
@@ -9989,9 +9990,10 @@ void MessagesManager::delete_dialog_messages(DialogId dialog_id, const vector<Me
       CHECK(message_id.is_valid());
     }
 
+    bool was_already_deleted = d->deleted_message_ids.count(message_id) != 0;
     auto message = delete_message(d, message_id, true, &need_update_dialog_pos, "delete_dialog_messages");
     if (message == nullptr) {
-      if (!skip_update_for_not_found_messages) {
+      if (!skip_update_for_not_found_messages && !was_already_deleted) {
         deleted_message_ids.push_back(message_id.get());
       }
     } else {
