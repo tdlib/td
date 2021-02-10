@@ -2245,17 +2245,11 @@ void GroupCallManager::on_user_speaking_in_group_call(GroupCallId group_call_id,
         return;
       }
       recent_speakers->users[i].second = date;
-      bool is_updated = false;
       while (i > 0 && recent_speakers->users[i - 1].second < date) {
         std::swap(recent_speakers->users[i - 1], recent_speakers->users[i]);
         i--;
-        is_updated = true;
       }
-      if (is_updated) {
-        on_group_call_recent_speakers_updated(group_call, recent_speakers.get());
-      } else {
-        LOG(INFO) << "Position of " << user_id << " in recent speakers list didn't change";
-      }
+      on_group_call_recent_speakers_updated(group_call, recent_speakers.get());
       return;
     }
   }
@@ -2369,7 +2363,7 @@ vector<td_api::object_ptr<td_api::groupCallRecentSpeaker>> GroupCallManager::get
 
   vector<std::pair<UserId, bool>> recent_speaker_users;
   for (auto &recent_speaker : recent_speakers->users) {
-    recent_speaker_users.emplace_back(recent_speaker.first, recent_speaker.second > now - 5);
+    recent_speaker_users.emplace_back(recent_speaker.first, recent_speaker.second > now - 8);
   }
 
   if (recent_speakers->is_changed) {
