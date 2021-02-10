@@ -1097,10 +1097,10 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
       auto my_participant = get_group_call_participant(participants_it->second.get(), my_user_id);
       for (auto &participant : participants) {
         on_participant_speaking_in_group_call(input_group_call_id, participant);
-        if (participant.user_id == my_user_id &&
-            (my_participant == nullptr || my_participant->joined_date < participant.joined_date ||
-             (my_participant->joined_date <= participant.joined_date &&
-              my_participant->audio_source != participant.audio_source))) {
+        if (participant.user_id == my_user_id && (my_participant == nullptr || my_participant->is_fake ||
+                                                  my_participant->joined_date < participant.joined_date ||
+                                                  (my_participant->joined_date <= participant.joined_date &&
+                                                   my_participant->audio_source != participant.audio_source))) {
           process_group_call_participant(input_group_call_id, std::move(participant));
         }
       }
@@ -1514,6 +1514,17 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id,
       });
   request->query_ref = td_->create_handler<JoinGroupCallQuery>(std::move(query_promise))
                            ->send(input_group_call_id, json_payload, is_muted, generation);
+
+  if (group_call->is_inited) {
+    GroupCallParticipant group_call_participant;
+    group_call_participant.user_id = td_->contacts_manager_->get_my_id();
+    group_call_participant.audio_source = audio_source;
+    group_call_participant.joined_date = G()->unix_time();
+    group_call_participant.is_muted = is_muted;
+    group_call_participant.can_self_unmute = group_call->can_self_unmute || can_manage_group_call(input_group_call_id);
+    group_call_participant.is_fake = true;
+    process_group_call_participant(input_group_call_id, std::move(group_call_participant));
+  }
 
   try_load_group_call_administrators(input_group_call_id, group_call->dialog_id);
 }

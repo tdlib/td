@@ -34,6 +34,7 @@ struct GroupCallParticipant {
   bool can_be_unmuted_only_for_self = false;
 
   bool is_min = false;
+  bool is_fake = false;
   bool is_just_joined = false;
   bool is_speaking = false;
   int32 local_active_date = 0;
