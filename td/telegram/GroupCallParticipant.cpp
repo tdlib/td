@@ -128,7 +128,8 @@ td_api::object_ptr<td_api::groupCallParticipant> GroupCallParticipant::get_group
   return td_api::make_object<td_api::groupCallParticipant>(
       contacts_manager->get_user_id_object(user_id, "get_group_call_participant_object"), audio_source, is_speaking,
       can_be_muted_for_all_users, can_be_unmuted_for_all_users, can_be_muted_only_for_self,
-      can_be_unmuted_only_for_self, get_is_muted(), server_is_muted_by_themselves, get_volume_level(), order);
+      can_be_unmuted_only_for_self, server_is_muted_by_admin, server_is_muted_locally, server_is_muted_by_themselves,
+      get_volume_level(), order);
 }
 
 bool operator==(const GroupCallParticipant &lhs, const GroupCallParticipant &rhs) {
@@ -137,7 +138,8 @@ bool operator==(const GroupCallParticipant &lhs, const GroupCallParticipant &rhs
          lhs.can_be_unmuted_for_all_users == rhs.can_be_unmuted_for_all_users &&
          lhs.can_be_muted_only_for_self == rhs.can_be_muted_only_for_self &&
          lhs.can_be_unmuted_only_for_self == rhs.can_be_unmuted_only_for_self &&
-         lhs.get_is_muted() == rhs.get_is_muted() &&
+         lhs.server_is_muted_by_admin == rhs.server_is_muted_by_admin &&
+         lhs.server_is_muted_locally == rhs.server_is_muted_locally &&
          lhs.server_is_muted_by_themselves == rhs.server_is_muted_by_themselves && lhs.is_speaking == rhs.is_speaking &&
          lhs.get_volume_level() == rhs.get_volume_level() && lhs.order == rhs.order;
 }
