@@ -16,9 +16,9 @@ GroupCallParticipant::GroupCallParticipant(const tl_object_ptr<telegram_api::gro
   CHECK(participant != nullptr);
   user_id = UserId(participant->user_id_);
   audio_source = participant->source_;
-  is_muted = participant->muted_;
-  can_self_unmute = participant->can_self_unmute_;
-  is_muted_only_for_self = participant->muted_by_you_;
+  server_is_muted_by_themselves = participant->can_self_unmute_;
+  server_is_muted_by_admin = participant->muted_ && !participant->can_self_unmute_;
+  server_is_muted_locally = participant->muted_by_you_;
   if ((participant->flags_ & telegram_api::groupCallParticipant::VOLUME_MASK) != 0) {
     volume_level = participant->volume_;
     if (volume_level < MIN_VOLUME_LEVEL || volume_level > MAX_VOLUME_LEVEL) {
@@ -46,6 +46,10 @@ bool GroupCallParticipant::is_versioned_update(const tl_object_ptr<telegram_api:
   return participant->just_joined_ || participant->left_ || participant->versioned_;
 }
 
+bool GroupCallParticipant::get_is_muted() const {
+  return server_is_muted_by_themselves || server_is_muted_by_admin || server_is_muted_locally;
+}
+
 int32 GroupCallParticipant::get_volume_level() const {
   return pending_volume_level != 0 ? pending_volume_level : volume_level;
 }
@@ -62,38 +66,45 @@ void GroupCallParticipant::update_from(const GroupCallParticipant &old_participa
   local_active_date = old_participant.local_active_date;
   is_speaking = old_participant.is_speaking;
   if (is_min) {
-    is_muted_only_for_self = old_participant.is_muted_only_for_self;
+    server_is_muted_locally = old_participant.server_is_muted_locally;
+
+    if (old_participant.is_volume_level_local && !is_volume_level_local) {
+      is_volume_level_local = true;
+      volume_level = old_participant.volume_level;
+    }
   }
-  if (old_participant.is_volume_level_local && !is_volume_level_local) {
-    is_volume_level_local = true;
-    volume_level = old_participant.volume_level;
-  }
+  is_min = false;
+
   pending_volume_level = old_participant.pending_volume_level;
   pending_volume_level_generation = old_participant.pending_volume_level_generation;
-  is_min = false;
 }
 
 bool GroupCallParticipant::update_can_be_muted(bool can_manage, bool is_self, bool is_admin) {
+  bool is_muted = get_is_muted();
+  bool is_muted_by_admin = server_is_muted_by_admin;
+  bool is_muted_by_themselves = server_is_muted_by_themselves;
+  bool is_muted_locally = server_is_muted_locally;
+
   bool new_can_be_muted_for_all_users = false;
   bool new_can_be_unmuted_for_all_users = false;
-  bool new_can_be_muted_only_for_self = !can_manage && !is_muted_only_for_self;
-  bool new_can_be_unmuted_only_for_self = !can_manage && is_muted_only_for_self;
+  bool new_can_be_muted_only_for_self = !can_manage && !is_muted_locally;
+  bool new_can_be_unmuted_only_for_self = !can_manage && is_muted_locally;
   if (is_self) {
-    // current user can be muted if !is_muted; after that is_muted && can_self_unmute
-    // current user can be unmuted if is_muted && can_self_unmute; after that !is_muted
+    // current user can be muted if !is_muted; after that is_muted_by_themselves
+    // current user can be unmuted if is_muted_by_themselves; after that !is_muted
     new_can_be_muted_for_all_users = !is_muted;
-    new_can_be_unmuted_for_all_users = is_muted && can_self_unmute;
+    new_can_be_unmuted_for_all_users = is_muted_by_themselves;
     new_can_be_muted_only_for_self = false;
     new_can_be_unmuted_only_for_self = false;
   } else if (is_admin) {
-    // admin user can be muted if can_manage && !is_muted; after that is_muted && can_self_unmute
+    // admin user can be muted if can_manage && !is_muted; after that is_muted_by_themselves
     // admin user can't be unmuted
     new_can_be_muted_for_all_users = can_manage && !is_muted;
   } else {
-    // other users can be muted if can_manage; after that is_muted && !can_self_unmute
-    // other users can be unmuted if can_manage && is_muted && !can_self_unmute; after that is_muted && can_self_unmute
-    new_can_be_muted_for_all_users = can_manage && (!is_muted || can_self_unmute);
-    new_can_be_unmuted_for_all_users = can_manage && is_muted && !can_self_unmute;
+    // other users can be muted if can_manage && !is_muted_by_admin; after that is_muted_by_admin
+    // other users can be unmuted if can_manage && is_muted_by_admin; after that is_muted_by_themselves
+    new_can_be_muted_for_all_users = can_manage && !is_muted_by_admin;
+    new_can_be_unmuted_for_all_users = can_manage && is_muted_by_admin;
   }
   if (new_can_be_muted_for_all_users != can_be_muted_for_all_users ||
       new_can_be_unmuted_for_all_users != can_be_unmuted_for_all_users ||
@@ -117,7 +128,7 @@ td_api::object_ptr<td_api::groupCallParticipant> GroupCallParticipant::get_group
   return td_api::make_object<td_api::groupCallParticipant>(
       contacts_manager->get_user_id_object(user_id, "get_group_call_participant_object"), audio_source, is_speaking,
       can_be_muted_for_all_users, can_be_unmuted_for_all_users, can_be_muted_only_for_self,
-      can_be_unmuted_only_for_self, is_muted, can_self_unmute, get_volume_level(), order);
+      can_be_unmuted_only_for_self, get_is_muted(), server_is_muted_by_themselves, get_volume_level(), order);
 }
 
 bool operator==(const GroupCallParticipant &lhs, const GroupCallParticipant &rhs) {
@@ -125,8 +136,9 @@ bool operator==(const GroupCallParticipant &lhs, const GroupCallParticipant &rhs
          lhs.can_be_muted_for_all_users == rhs.can_be_muted_for_all_users &&
          lhs.can_be_unmuted_for_all_users == rhs.can_be_unmuted_for_all_users &&
          lhs.can_be_muted_only_for_self == rhs.can_be_muted_only_for_self &&
-         lhs.can_be_unmuted_only_for_self == rhs.can_be_unmuted_only_for_self && lhs.is_muted == rhs.is_muted &&
-         lhs.can_self_unmute == rhs.can_self_unmute && lhs.is_speaking == rhs.is_speaking &&
+         lhs.can_be_unmuted_only_for_self == rhs.can_be_unmuted_only_for_self &&
+         lhs.get_is_muted() == rhs.get_is_muted() &&
+         lhs.server_is_muted_by_themselves == rhs.server_is_muted_by_themselves && lhs.is_speaking == rhs.is_speaking &&
          lhs.get_volume_level() == rhs.get_volume_level() && lhs.order == rhs.order;
 }
 

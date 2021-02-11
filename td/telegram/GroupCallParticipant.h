@@ -24,9 +24,9 @@ struct GroupCallParticipant {
   int32 active_date = 0;
   int32 volume_level = 10000;
   bool is_volume_level_local = false;
-  bool is_muted = false;
-  bool can_self_unmute = false;
-  bool is_muted_only_for_self = false;
+  bool server_is_muted_by_themselves = false;
+  bool server_is_muted_by_admin = false;
+  bool server_is_muted_locally = false;
 
   bool can_be_muted_for_all_users = false;
   bool can_be_unmuted_for_all_users = false;
@@ -63,6 +63,8 @@ struct GroupCallParticipant {
   bool is_valid() const {
     return user_id.is_valid();
   }
+
+  bool get_is_muted() const;
 
   int32 get_volume_level() const;
 

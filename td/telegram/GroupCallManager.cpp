@@ -1365,7 +1365,7 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
     auto *group_call = get_group_call(input_group_call_id);
     CHECK(group_call != nullptr && group_call->is_inited);
     if (group_call->is_joined && group_call->is_active) {
-      auto can_self_unmute = !participant.is_muted || participant.can_self_unmute;
+      auto can_self_unmute = !participant.server_is_muted_by_admin;
       if (can_self_unmute != group_call->can_self_unmute) {
         group_call->can_self_unmute = can_self_unmute;
         send_update_group_call(group_call, "process_group_call_participant");
@@ -1535,10 +1535,11 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id,
     group_call_participant.user_id = td_->contacts_manager_->get_my_id();
     group_call_participant.audio_source = audio_source;
     group_call_participant.joined_date = G()->unix_time();
-    group_call_participant.is_muted = is_muted;
     // if can_self_unmute has never been inited from self-participant,
     // it contains reasonable default "!call.mute_new_participants || call.can_be_managed"
-    group_call_participant.can_self_unmute = group_call->can_self_unmute || can_manage_group_call(input_group_call_id);
+    group_call_participant.server_is_muted_by_admin =
+        !group_call->can_self_unmute && !can_manage_group_call(input_group_call_id);
+    group_call_participant.server_is_muted_by_themselves = is_muted && !group_call_participant.server_is_muted_by_admin;
     group_call_participant.is_fake = true;
     process_group_call_participant(input_group_call_id, std::move(group_call_participant));
   }
