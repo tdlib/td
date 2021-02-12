@@ -2068,8 +2068,6 @@ void GroupCallManager::on_group_call_left_impl(GroupCall *group_call, bool need_
   group_call->can_be_managed = false;
   group_call->joined_date = 0;
   group_call->audio_source = 0;
-  group_call->loaded_all_participants = false;
-  group_call->version = -1;
   check_group_call_is_joined_timeout_.cancel_timeout(group_call->group_call_id.get());
   try_clear_group_call_participants(get_input_group_call_id(group_call->group_call_id).ok());
 }
@@ -2191,7 +2189,6 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
     need_update = true;
     if (need_group_call_participants(input_group_call_id, group_call)) {
       // init version
-      group_call->version = call.version;
       if (process_pending_group_call_participant_updates(input_group_call_id)) {
         need_update = false;
       }
@@ -2229,7 +2226,8 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
             group_call->participant_count = call.participant_count;
             need_update = true;
           }
-          if (need_group_call_participants(input_group_call_id, group_call) && !join_params.empty()) {
+          if (need_group_call_participants(input_group_call_id, group_call) && !join_params.empty() &&
+              group_call->version == -1) {
             LOG(INFO) << "Init " << call.group_call_id << " version to " << call.version;
             group_call->version = call.version;
             if (process_pending_group_call_participant_updates(input_group_call_id)) {
