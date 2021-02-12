@@ -174,6 +174,9 @@ class GroupCallManager : public Actor {
   static GroupCallParticipant *get_group_call_participant(GroupCallParticipants *group_call_participants,
                                                           UserId user_id);
 
+  void on_toggle_group_call_participant_is_muted(InputGroupCallId input_group_call_id, UserId user_id,
+                                                 uint64 generation, Promise<Unit> &&promise);
+
   void on_set_group_call_participant_volume_level(InputGroupCallId input_group_call_id, UserId user_id,
                                                   uint64 generation, Promise<Unit> &&promise);
 
@@ -242,6 +245,8 @@ class GroupCallManager : public Actor {
   uint64 join_group_request_generation_ = 0;
 
   uint64 set_volume_level_generation_ = 0;
+
+  uint64 toggle_is_muted_generation_ = 0;
 
   MultiTimeout check_group_call_is_joined_timeout_{"CheckGroupCallIsJoinedTimeout"};
   MultiTimeout pending_send_speaking_action_timeout_{"PendingSendSpeakingActionTimeout"};

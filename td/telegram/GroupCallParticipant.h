@@ -43,6 +43,12 @@ struct GroupCallParticipant {
   int32 pending_volume_level = 0;
   uint64 pending_volume_level_generation = 0;
 
+  bool have_pending_is_muted = false;
+  bool pending_is_muted_by_themselves = false;
+  bool pending_is_muted_by_admin = false;
+  bool pending_is_muted_locally = false;
+  uint64 pending_is_muted_generation = 0;
+
   static constexpr int32 MIN_VOLUME_LEVEL = 1;
   static constexpr int32 MAX_VOLUME_LEVEL = 20000;
 
@@ -56,6 +62,8 @@ struct GroupCallParticipant {
 
   bool update_can_be_muted(bool can_manage, bool is_self, bool is_admin);
 
+  bool set_pending_is_muted(bool is_muted, bool can_manage, bool is_self, bool is_admin);
+
   int64 get_real_order() const {
     return (static_cast<int64>(max(active_date, local_active_date)) << 32) + joined_date;
   }
@@ -64,7 +72,13 @@ struct GroupCallParticipant {
     return user_id.is_valid();
   }
 
-  bool get_is_muted() const;
+  bool get_is_muted_by_themselves() const;
+
+  bool get_is_muted_by_admin() const;
+
+  bool get_is_muted_locally() const;
+
+  bool get_is_muted_for_all_users() const;
 
   int32 get_volume_level() const;
 

@@ -1365,7 +1365,7 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
     auto *group_call = get_group_call(input_group_call_id);
     CHECK(group_call != nullptr && group_call->is_inited);
     if (group_call->is_joined && group_call->is_active) {
-      auto can_self_unmute = !participant.server_is_muted_by_admin;
+      auto can_self_unmute = !participant.get_is_muted_by_admin();
       if (can_self_unmute != group_call->can_self_unmute) {
         group_call->can_self_unmute = can_self_unmute;
         send_update_group_call(group_call, "process_group_call_participant");
@@ -1841,11 +1841,73 @@ void GroupCallManager::toggle_group_call_participant_is_muted(GroupCallId group_
     return promise.set_error(Status::Error(400, "Have no access to the user"));
   }
 
-  if (user_id == td_->contacts_manager_->get_my_id() && !is_muted && !group_call->can_self_unmute) {
-    return promise.set_error(Status::Error(400, "Can't unmute self"));
+  auto participants = add_group_call_participants(input_group_call_id);
+  auto participant = get_group_call_participant(participants, user_id);
+  if (participant == nullptr) {
+    return promise.set_error(Status::Error(400, "Can't find group call participant"));
   }
 
-  td_->create_handler<EditGroupCallMemberQuery>(std::move(promise))->send(input_group_call_id, user_id, is_muted, 0);
+  bool is_self = user_id == td_->contacts_manager_->get_my_id();
+  bool can_manage = can_manage_group_call(input_group_call_id);
+  bool is_admin = td::contains(participants->administrator_user_ids, user_id);
+
+  auto participant_copy = *participant;
+  if (!participant_copy.set_pending_is_muted(is_muted, can_manage, is_self, is_admin)) {
+    return promise.set_error(Status::Error(400, PSLICE() << "Can't " << (is_muted ? "" : "un") << "mute user"));
+  }
+  if (participant_copy == *participant) {
+    return promise.set_value(Unit());
+  }
+  *participant = std::move(participant_copy);
+
+  participant->pending_is_muted_generation = ++toggle_is_muted_generation_;
+  if (participant->order != 0) {
+    send_update_group_call_participant(input_group_call_id, *participant);
+  }
+
+  auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), input_group_call_id, user_id,
+                                               generation = participant->pending_is_muted_generation,
+                                               promise = std::move(promise)](Result<Unit> &&result) mutable {
+    if (result.is_error()) {
+      promise.set_error(result.move_as_error());
+    } else {
+      send_closure(actor_id, &GroupCallManager::on_toggle_group_call_participant_is_muted, input_group_call_id, user_id,
+                   generation, std::move(promise));
+    }
+  });
+  td_->create_handler<EditGroupCallMemberQuery>(std::move(query_promise))
+      ->send(input_group_call_id, user_id, is_muted, 0);
+}
+
+void GroupCallManager::on_toggle_group_call_participant_is_muted(InputGroupCallId input_group_call_id, UserId user_id,
+                                                                 uint64 generation, Promise<Unit> &&promise) {
+  if (G()->close_flag()) {
+    return promise.set_value(Unit());
+  }
+
+  auto *group_call = get_group_call(input_group_call_id);
+  if (group_call == nullptr || !group_call->is_inited || !group_call->is_active || !group_call->is_joined) {
+    return promise.set_value(Unit());
+  }
+
+  auto participant = get_group_call_participant(add_group_call_participants(input_group_call_id), user_id);
+  if (participant == nullptr || participant->pending_is_muted_generation != generation) {
+    return promise.set_value(Unit());
+  }
+
+  CHECK(participant->have_pending_is_muted);
+  if (participant->server_is_muted_by_themselves != participant->pending_is_muted_by_themselves ||
+      participant->server_is_muted_by_admin != participant->pending_is_muted_by_admin ||
+      participant->server_is_muted_locally != participant->pending_is_muted_locally) {
+    LOG(ERROR) << "Failed to mute/unmute " << user_id << " in " << input_group_call_id;
+    participant->have_pending_is_muted = false;
+    if (participant->order != 0) {
+      send_update_group_call_participant(input_group_call_id, *participant);
+    }
+  } else {
+    participant->have_pending_is_muted = false;
+  }
+  promise.set_value(Unit());
 }
 
 void GroupCallManager::set_group_call_participant_volume_level(GroupCallId group_call_id, UserId user_id,
@@ -1912,6 +1974,7 @@ void GroupCallManager::on_set_group_call_participant_volume_level(InputGroupCall
     return promise.set_value(Unit());
   }
 
+  CHECK(participant->pending_volume_level != 0);
   if (participant->volume_level != participant->pending_volume_level) {
     LOG(ERROR) << "Failed to set volume level of " << user_id << " in " << input_group_call_id;
     participant->pending_volume_level = 0;
