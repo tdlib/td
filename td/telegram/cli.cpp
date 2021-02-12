@@ -1338,7 +1338,7 @@ class CliClient final : public Actor {
     if (reason == "fake") {
       return td_api::make_object<td_api::chatReportReasonFake>();
     }
-    return td_api::make_object<td_api::chatReportReasonCustom>(reason.str());
+    return td_api::make_object<td_api::chatReportReasonCustom>();
   }
 
   static td_api::object_ptr<td_api::NetworkType> get_network_type(MutableSlice type) {
@@ -3905,9 +3905,10 @@ class CliClient final : public Actor {
       string chat_id;
       string reason;
       string message_ids;
-      get_args(args, chat_id, reason, message_ids);
+      string text;
+      get_args(args, chat_id, reason, message_ids, text);
       send_request(td_api::make_object<td_api::reportChat>(as_chat_id(chat_id), get_chat_report_reason(reason),
-                                                           as_message_ids(message_ids)));
+                                                           as_message_ids(message_ids), text));
     } else if (op == "gcsu") {
       string chat_id;
       string parameters;

@@ -2932,8 +2932,8 @@ chatReportReasonUnrelatedLocation = ChatReportReason;
 //@description The chat represents a fake account
 chatReportReasonFake = ChatReportReason;
 
-//@description A custom reason provided by the user @text Report text
-chatReportReasonCustom text:string = ChatReportReason;
+//@description A custom reason provided by the user
+chatReportReasonCustom = ChatReportReason;
 
 
 //@description Contains an HTTPS link to a message in a supergroup or channel @link Message link @is_public True, if the link will work for non-members of the chat
@@ -4914,8 +4914,9 @@ deleteAccount reason:string = Ok;
 //@description Removes a chat action bar without any other action @chat_id Chat identifier
 removeChatActionBar chat_id:int53 = Ok;
 
-//@description Reports a chat to the Telegram moderators. A chat can be reported only from the chat action bar, or if this is a private chat with a bot, a private chat with a user sharing their location, a supergroup, or a channel, since other chats can't be checked by moderators @chat_id Chat identifier @reason The reason for reporting the chat @message_ids Identifiers of reported messages, if any
-reportChat chat_id:int53 reason:ChatReportReason message_ids:vector<int53> = Ok;
+//@description Reports a chat to the Telegram moderators. A chat can be reported only from the chat action bar, or if this is a private chat with a bot, a private chat with a user sharing their location, a supergroup, or a channel, since other chats can't be checked by moderators
+//@chat_id Chat identifier @reason The reason for reporting the chat @message_ids Identifiers of reported messages, if any @text Additional report details; 0-1024 characters
+reportChat chat_id:int53 reason:ChatReportReason message_ids:vector<int53> text:string = Ok;
 
 
 //@description Returns an HTTP URL with the chat statistics. Currently this method of getting the statistics are disabled and can be deleted in the future @chat_id Chat identifier @parameters Parameters from "tg://statsrefresh?params=******" link @is_dark Pass true if a URL with the dark theme must be returned

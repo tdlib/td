@@ -4389,7 +4389,7 @@ class ReportPeerQuery : public Td::ResultHandler {
   }
 
   void send(DialogId dialog_id, tl_object_ptr<telegram_api::ReportReason> &&report_reason,
-            const vector<MessageId> &message_ids) {
+            const vector<MessageId> &message_ids, const string &message) {
     dialog_id_ = dialog_id;
 
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
@@ -4397,11 +4397,11 @@ class ReportPeerQuery : public Td::ResultHandler {
 
     if (message_ids.empty()) {
       send_query(G()->net_query_creator().create(
-          telegram_api::account_reportPeer(std::move(input_peer), std::move(report_reason), string())));
+          telegram_api::account_reportPeer(std::move(input_peer), std::move(report_reason), message)));
     } else {
       send_query(G()->net_query_creator().create(
           telegram_api::messages_report(std::move(input_peer), MessagesManager::get_server_message_ids(message_ids),
-                                        std::move(report_reason), string())));
+                                        std::move(report_reason), message)));
     }
   }
 
@@ -8169,7 +8169,8 @@ bool MessagesManager::can_report_dialog(DialogId dialog_id) const {
 }
 
 void MessagesManager::report_dialog(DialogId dialog_id, const tl_object_ptr<td_api::ChatReportReason> &reason,
-                                    const vector<MessageId> &message_ids, Promise<Unit> &&promise) {
+                                    const vector<MessageId> &message_ids, const string &message,
+                                    Promise<Unit> &&promise) {
   Dialog *d = get_dialog_force(dialog_id);
   if (d == nullptr) {
     return promise.set_error(Status::Error(3, "Chat not found"));
@@ -8251,23 +8252,16 @@ void MessagesManager::report_dialog(DialogId dialog_id, const tl_object_ptr<td_a
         hide_dialog_action_bar(d);
       }
       break;
-    case td_api::chatReportReasonCustom::ID: {
-      auto other_reason = static_cast<const td_api::chatReportReasonCustom *>(reason.get());
-      auto text = other_reason->text_;
-      if (!clean_input_string(text)) {
-        return promise.set_error(Status::Error(400, "Text must be encoded in UTF-8"));
-      }
-
+    case td_api::chatReportReasonCustom::ID:
       report_reason = make_tl_object<telegram_api::inputReportReasonOther>();
       break;
-    }
     default:
       UNREACHABLE();
   }
   CHECK(report_reason != nullptr);
 
   td_->create_handler<ReportPeerQuery>(std::move(promise))
-      ->send(dialog_id, std::move(report_reason), server_message_ids);
+      ->send(dialog_id, std::move(report_reason), server_message_ids, message);
 }
 
 void MessagesManager::on_get_peer_settings(DialogId dialog_id,
