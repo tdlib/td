@@ -2061,6 +2061,10 @@ void GroupCallManager::on_group_call_left_impl(GroupCall *group_call, bool need_
   CHECK(group_call != nullptr && group_call->is_inited && group_call->is_joined);
   group_call->is_joined = false;
   group_call->need_rejoin = need_rejoin && !group_call->is_being_left;
+  if (need_rejoin && group_call->dialog_id.is_valid() &&
+      !td_->messages_manager_->have_input_peer(group_call->dialog_id, AccessRights::Read)) {
+    need_rejoin = false;
+  }
   group_call->is_being_left = false;
   group_call->is_speaking = false;
   group_call->can_be_managed = false;
