@@ -1821,8 +1821,6 @@ void GroupCallManager::set_group_call_participant_is_speaking(GroupCallId group_
     group_call->is_speaking = is_speaking;
     if (is_speaking) {
       pending_send_speaking_action_timeout_.add_timeout_in(group_call_id.get(), 0.0);
-    } else {
-      pending_send_speaking_action_timeout_.cancel_timeout(group_call_id.get());
     }
   }
 
