@@ -75,6 +75,7 @@ function split_file($file, $chunks, $undo) {
     $target_depth = 1 + $is_generated;
     $is_static = false;
     $in_define = false;
+    $in_comment = false;
     $current = '';
     $common = '';
     $functions = array();
@@ -110,6 +111,17 @@ function split_file($file, $chunks, $undo) {
         }
 
         if (strpos($line, '#undef') === 0 && !trim($current)) {
+            continue;
+        }
+
+        if ($in_comment && strpos($line, '*/') === 0) {
+            $in_comment = false;
+            continue;
+        }
+        if (strpos($line, '/*') === 0) {
+            $in_comment = true;
+        }
+        if ($in_comment) {
             continue;
         }
 
@@ -285,7 +297,7 @@ function split_file($file, $chunks, $undo) {
                 '[>](td_db[(][)]|get_td_db_impl[(])|TdDb[^A-Za-z]' => 'TdDb',
                 'TopDialogCategory|get_top_dialog_category' => 'TopDialogCategory',
                 'top_dialog_manager[_(-][^.]|TopDialogManager' => 'TopDialogManager',
-                'updates_manager[_(-][^.]|UpdatesManager|get_difference[)]' => 'UpdatesManager',
+                'updates_manager[_(-][^.]|UpdatesManager|get_difference[)]|updateSentMessage|dummyUpdate' => 'UpdatesManager',
                 'WebPageId(Hash)?' => 'WebPageId',
                 'web_pages_manager[_(-][^.]|WebPagesManager' => 'WebPagesManager');
 

@@ -522,8 +522,6 @@ class SaveAppLogQuery : public Td::ResultHandler {
   }
 };
 
-/*** Td ***/
-/** Td queries **/
 class TestQuery : public Td::ResultHandler {
  public:
   explicit TestQuery(uint64 request_id) : request_id_(request_id) {
