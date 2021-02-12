@@ -15,6 +15,8 @@
 #include "td/telegram/Contact.h"
 #include "td/telegram/DialogAdministrator.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/DialogInviteLink.h"
+#include "td/telegram/DialogLocation.h"
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
@@ -26,6 +28,7 @@
 #include "td/telegram/Photo.h"
 #include "td/telegram/PublicDialogType.h"
 #include "td/telegram/QueryCombiner.h"
+#include "td/telegram/RestrictionReason.h"
 #include "td/telegram/SecretChatId.h"
 #include "td/telegram/StickerSetId.h"
 #include "td/telegram/UserId.h"
@@ -575,17 +578,345 @@ class ContactsManager : public Actor {
       tl_object_ptr<telegram_api::stats_messageStats> obj);
 
  private:
-  struct User;
-  struct UserFull;
-  struct Chat;
-  struct ChatFull;
-  struct Channel;
-  struct ChannelFull;
-  struct SecretChat;
+  struct User {
+    string first_name;
+    string last_name;
+    string username;
+    string phone_number;
+    int64 access_hash = -1;
 
-  struct BotInfo;
+    ProfilePhoto photo;
 
-  struct InviteLinkInfo;
+    vector<RestrictionReason> restriction_reasons;
+    string inline_query_placeholder;
+    int32 bot_info_version = -1;
+
+    int32 was_online = 0;
+    int32 local_was_online = 0;
+
+    string language_code;
+
+    std::unordered_set<int64> photo_ids;
+
+    std::unordered_map<DialogId, int32, DialogIdHash> online_member_dialogs;  // id -> time
+
+    static constexpr uint32 CACHE_VERSION = 4;
+    uint32 cache_version = 0;
+
+    bool is_min_access_hash = true;
+    bool is_received = false;
+    bool is_verified = false;
+    bool is_support = false;
+    bool is_deleted = true;
+    bool is_bot = true;
+    bool can_join_groups = true;
+    bool can_read_all_group_messages = true;
+    bool is_inline_bot = false;
+    bool need_location_bot = false;
+    bool is_scam = false;
+    bool is_fake = false;
+    bool is_contact = false;
+    bool is_mutual_contact = false;
+    bool need_apply_min_photo = false;
+
+    bool is_photo_inited = false;
+
+    bool is_repaired = false;  // whether cached value is rechecked
+
+    bool is_name_changed = true;
+    bool is_username_changed = true;
+    bool is_photo_changed = true;
+    bool is_is_contact_changed = true;
+    bool is_is_deleted_changed = true;
+    bool is_default_permissions_changed = true;
+    bool is_changed = true;             // have new changes that need to be sent to the client and database
+    bool need_save_to_database = true;  // have new changes that need only to be saved to the database
+    bool is_status_changed = true;
+    bool is_online_status_changed = true;  // whether online/offline has changed
+    bool is_update_user_sent = false;
+
+    bool is_saved = false;         // is current user version being saved/is saved to the database
+    bool is_being_saved = false;   // is current user being saved to the database
+    bool is_status_saved = false;  // is current user status being saved/is saved to the database
+
+    bool is_received_from_server = false;  // true, if the user was received from the server and not the database
+
+    uint64 log_event_id = 0;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
+  };
+
+  // do not forget to update drop_user_full and on_get_user_full
+  struct UserFull {
+    Photo photo;
+
+    string about;
+
+    int32 common_chat_count = 0;
+
+    bool is_blocked = false;
+    bool can_be_called = false;
+    bool supports_video_calls = false;
+    bool has_private_calls = false;
+    bool can_pin_messages = true;
+    bool need_phone_number_privacy_exception = false;
+
+    bool is_common_chat_count_changed = true;
+    bool is_changed = true;             // have new changes that need to be sent to the client and database
+    bool need_send_update = true;       // have new changes that need only to be sent to the client
+    bool need_save_to_database = true;  // have new changes that need only to be saved to the database
+
+    double expires_at = 0.0;
+
+    bool is_expired() const {
+      return expires_at < Time::now();
+    }
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
+  };
+
+  struct Chat {
+    string title;
+    DialogPhoto photo;
+    int32 participant_count = 0;
+    int32 date = 0;
+    int32 version = -1;
+    int32 default_permissions_version = -1;
+    int32 pinned_message_version = -1;
+    ChannelId migrated_to_channel_id;
+
+    DialogParticipantStatus status = DialogParticipantStatus::Banned(0);
+    RestrictedRights default_permissions{false, false, false, false, false, false, false, false, false, false, false};
+
+    static constexpr uint32 CACHE_VERSION = 3;
+    uint32 cache_version = 0;
+
+    bool is_active = false;
+
+    bool is_title_changed = true;
+    bool is_photo_changed = true;
+    bool is_default_permissions_changed = true;
+    bool is_is_active_changed = true;
+    bool is_changed = true;             // have new changes that need to be sent to the client and database
+    bool need_save_to_database = true;  // have new changes that need only to be saved to the database
+    bool is_update_basic_group_sent = false;
+
+    bool is_repaired = false;  // whether cached value is rechecked
+
+    bool is_saved = false;        // is current chat version being saved/is saved to the database
+    bool is_being_saved = false;  // is current chat being saved to the database
+
+    bool is_received_from_server = false;  // true, if the chat was received from the server and not the database
+
+    uint64 log_event_id = 0;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
+  };
+
+  // do not forget to update drop_chat_full and on_get_chat_full
+  struct ChatFull {
+    int32 version = -1;
+    UserId creator_user_id;
+    vector<DialogParticipant> participants;
+
+    Photo photo;
+    vector<FileId> registered_photo_file_ids;
+    FileSourceId file_source_id;
+
+    string description;
+
+    DialogInviteLink invite_link;
+
+    bool can_set_username = false;
+
+    bool is_changed = true;             // have new changes that need to be sent to the client and database
+    bool need_send_update = true;       // have new changes that need only to be sent to the client
+    bool need_save_to_database = true;  // have new changes that need only to be saved to the database
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
+  };
+
+  struct Channel {
+    int64 access_hash = 0;
+    string title;
+    DialogPhoto photo;
+    string username;
+    vector<RestrictionReason> restriction_reasons;
+    DialogParticipantStatus status = DialogParticipantStatus::Banned(0);
+    RestrictedRights default_permissions{false, false, false, false, false, false, false, false, false, false, false};
+    int32 date = 0;
+    int32 participant_count = 0;
+
+    static constexpr uint32 CACHE_VERSION = 7;
+    uint32 cache_version = 0;
+
+    bool has_linked_channel = false;
+    bool has_location = false;
+    bool sign_messages = false;
+    bool is_slow_mode_enabled = false;
+
+    bool is_megagroup = false;
+    bool is_verified = false;
+    bool is_scam = false;
+    bool is_fake = false;
+
+    bool is_title_changed = true;
+    bool is_username_changed = true;
+    bool is_photo_changed = true;
+    bool is_default_permissions_changed = true;
+    bool is_status_changed = true;
+    bool had_read_access = true;
+    bool was_member = false;
+    bool is_changed = true;             // have new changes that need to be sent to the client and database
+    bool need_save_to_database = true;  // have new changes that need only to be saved to the database
+    bool is_update_supergroup_sent = false;
+
+    bool is_repaired = false;  // whether cached value is rechecked
+
+    bool is_saved = false;        // is current channel version being saved/is saved to the database
+    bool is_being_saved = false;  // is current channel being saved to the database
+
+    bool is_received_from_server = false;  // true, if the channel was received from the server and not the database
+
+    uint64 log_event_id = 0;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
+  };
+
+  // do not forget to update invalidate_channel_full and on_get_chat_full
+  struct ChannelFull {
+    Photo photo;
+    vector<FileId> registered_photo_file_ids;
+    FileSourceId file_source_id;
+
+    string description;
+    int32 participant_count = 0;
+    int32 administrator_count = 0;
+    int32 restricted_count = 0;
+    int32 banned_count = 0;
+
+    DialogInviteLink invite_link;
+
+    uint32 speculative_version = 1;
+    uint32 repair_request_version = 0;
+
+    StickerSetId sticker_set_id;
+
+    ChannelId linked_channel_id;
+
+    DialogLocation location;
+
+    DcId stats_dc_id;
+
+    int32 slow_mode_delay = 0;
+    int32 slow_mode_next_send_date = 0;
+
+    MessageId migrated_from_max_message_id;
+    ChatId migrated_from_chat_id;
+
+    vector<UserId> bot_user_ids;
+
+    bool can_get_participants = false;
+    bool can_set_username = false;
+    bool can_set_sticker_set = false;
+    bool can_set_location = false;
+    bool can_view_statistics = false;
+    bool is_can_view_statistics_inited = false;
+    bool is_all_history_available = true;
+
+    bool is_slow_mode_next_send_date_changed = true;
+    bool is_changed = true;             // have new changes that need to be sent to the client and database
+    bool need_send_update = true;       // have new changes that need only to be sent to the client
+    bool need_save_to_database = true;  // have new changes that need only to be saved to the database
+
+    double expires_at = 0.0;
+
+    bool is_expired() const {
+      return expires_at < Time::now();
+    }
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
+  };
+
+  struct SecretChat {
+    int64 access_hash = 0;
+    UserId user_id;
+    SecretChatState state;
+    string key_hash;
+    int32 ttl = 0;
+    int32 date = 0;
+    int32 layer = 0;
+    FolderId initial_folder_id;
+
+    bool is_outbound = false;
+
+    bool is_state_changed = true;
+    bool is_changed = true;             // have new changes that need to be sent to the client and database
+    bool need_save_to_database = true;  // have new changes that need only to be saved to the database
+
+    bool is_saved = false;        // is current secret chat version being saved/is saved to the database
+    bool is_being_saved = false;  // is current secret chat being saved to the database
+
+    uint64 log_event_id = 0;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
+  };
+
+  struct BotInfo {
+    int32 version = -1;
+    string description;
+    vector<std::pair<string, string>> commands;
+    bool is_changed = true;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
+  };
+
+  struct InviteLinkInfo {
+    // known dialog
+    DialogId dialog_id;
+
+    // unknown dialog
+    string title;
+    Photo photo;
+    int32 participant_count = 0;
+    vector<UserId> participant_user_ids;
+    bool is_chat = false;
+    bool is_channel = false;
+    bool is_public = false;
+    bool is_megagroup = false;
+  };
 
   struct UserPhotos {
     vector<Photo> photos;
