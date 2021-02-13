@@ -1085,7 +1085,7 @@ class InitHistoryImportQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    if (!td->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(status)) {
+    if (FileReferenceManager::is_file_reference_error(status)) {
       LOG(ERROR) << "Receive file reference error " << status;
     }
     if (begins_with(status.message(), "FILE_PART_") && ends_with(status.message(), "_MISSING")) {
@@ -21214,6 +21214,10 @@ void MessagesManager::on_message_live_location_viewed_on_server(int64 task_id) {
 }
 
 FileSourceId MessagesManager::get_message_file_source_id(FullMessageId full_message_id) {
+  if (td_->auth_manager_->is_bot()) {
+    return FileSourceId();
+  }
+
   auto dialog_id = full_message_id.get_dialog_id();
   auto message_id = full_message_id.get_message_id();
   if (!dialog_id.is_valid() || !(message_id.is_valid() || message_id.is_valid_scheduled()) ||
@@ -21229,6 +21233,10 @@ FileSourceId MessagesManager::get_message_file_source_id(FullMessageId full_mess
 }
 
 void MessagesManager::add_message_file_sources(DialogId dialog_id, const Message *m) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
   if (dialog_id.get_type() != DialogType::SecretChat && m->is_content_secret) {
     // return;
   }
@@ -21248,6 +21256,10 @@ void MessagesManager::add_message_file_sources(DialogId dialog_id, const Message
 }
 
 void MessagesManager::remove_message_file_sources(DialogId dialog_id, const Message *m) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
   auto file_ids = get_message_content_file_ids(m->content.get(), td_);
   if (file_ids.empty()) {
     return;
