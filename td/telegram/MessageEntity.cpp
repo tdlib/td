@@ -3753,23 +3753,32 @@ static void merge_new_entities(vector<MessageEntity> &entities, vector<MessageEn
 
 Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool allow_empty, bool skip_new_entities,
                           bool skip_bot_commands, bool for_draft) {
-  if (!check_utf8(text)) {
-    return Status::Error(400, "Strings must be encoded in UTF-8");
-  }
-
-  for (auto &entity : entities) {
-    if (entity.offset < 0 || entity.offset > 1000000) {
-      return Status::Error(400, PSLICE() << "Receive an entity with incorrect offset " << entity.offset);
+  string result;
+  if (entities.empty()) {
+    // fast path
+    if (!clean_input_string(text)) {
+      return Status::Error(400, "Strings must be encoded in UTF-8");
     }
-    if (entity.length < 0 || entity.length > 1000000) {
-      return Status::Error(400, PSLICE() << "Receive an entity with incorrect length " << entity.length);
+    result = std::move(text);
+  } else {
+    if (!check_utf8(text)) {
+      return Status::Error(400, "Strings must be encoded in UTF-8");
     }
+
+    for (auto &entity : entities) {
+      if (entity.offset < 0 || entity.offset > 1000000) {
+        return Status::Error(400, PSLICE() << "Receive an entity with incorrect offset " << entity.offset);
+      }
+      if (entity.length < 0 || entity.length > 1000000) {
+        return Status::Error(400, PSLICE() << "Receive an entity with incorrect length " << entity.length);
+      }
+    }
+    td::remove_if(entities, [](const MessageEntity &entity) { return entity.length == 0; });
+
+    fix_entities(entities);
+
+    TRY_RESULT_ASSIGN(result, clean_input_string_with_entities(text, entities));
   }
-  td::remove_if(entities, [](const MessageEntity &entity) { return entity.length == 0; });
-
-  fix_entities(entities);
-
-  TRY_RESULT(result, clean_input_string_with_entities(text, entities));
 
   // now entities are still sorted by offset and length, but not type,
   // because some characters could be deleted and after that some entities begin to share a common end
