@@ -5216,10 +5216,10 @@ void Td::on_request(uint64 id, td_api::optimizeStorage &request) {
 }
 
 void Td::on_request(uint64 id, td_api::getNetworkStatistics &request) {
-  CREATE_REQUEST_PROMISE();
   if (!request.only_current_ && G()->shared_config().get_option_boolean("disable_persistent_network_statistics")) {
     return send_error_raw(id, 400, "Persistent network statistics is disabled");
   }
+  CREATE_REQUEST_PROMISE();
   auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<NetworkStats> result) mutable {
     if (result.is_error()) {
       promise.set_error(result.move_as_error());
@@ -5302,23 +5302,23 @@ void Td::on_request(uint64 id, const td_api::getAutoDownloadSettingsPresets &req
 
 void Td::on_request(uint64 id, const td_api::setAutoDownloadSettings &request) {
   CHECK_IS_USER();
-  CREATE_OK_REQUEST_PROMISE();
   if (request.settings_ == nullptr) {
     return send_error_raw(id, 400, "New settings must be non-empty");
   }
+  CREATE_OK_REQUEST_PROMISE();
   set_auto_download_settings(this, get_net_type(request.type_), get_auto_download_settings(request.settings_),
                              std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getTopChats &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST_PROMISE();
   if (request.category_ == nullptr) {
-    return promise.set_error(Status::Error(400, "Top chat category must be non-empty"));
+    return send_error_raw(id, 400, "Top chat category must be non-empty");
   }
   if (request.limit_ <= 0) {
-    return promise.set_error(Status::Error(400, "Limit must be positive"));
+    return send_error_raw(id, 400, "Limit must be positive");
   }
+  CREATE_REQUEST_PROMISE();
   auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<vector<DialogId>> result) mutable {
     if (result.is_error()) {
       promise.set_error(result.move_as_error());
@@ -5881,6 +5881,21 @@ void Td::on_request(uint64 id, td_api::createNewSecretChat &request) {
 
 void Td::on_request(uint64 id, const td_api::createCall &request) {
   CHECK_IS_USER();
+
+  if (request.protocol_ == nullptr) {
+    return send_error_raw(id, 400, "Call protocol must be non-empty");
+  }
+
+  UserId user_id(request.user_id_);
+  auto input_user = contacts_manager_->get_input_user(user_id);
+  if (input_user == nullptr) {
+    return send_error_raw(id, 400, "User not found");
+  }
+
+  if (!G()->shared_config().get_option_boolean("calls_enabled")) {
+    return send_error_raw(id, 400, "Calls are not enabled for the current user");
+  }
+
   CREATE_REQUEST_PROMISE();
   auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<CallId> result) mutable {
     if (result.is_error()) {
@@ -5889,31 +5904,16 @@ void Td::on_request(uint64 id, const td_api::createCall &request) {
       promise.set_value(result.ok().get_call_id_object());
     }
   });
-
-  if (!request.protocol_) {
-    return query_promise.set_error(Status::Error(5, "Call protocol must be non-empty"));
-  }
-
-  UserId user_id(request.user_id_);
-  auto input_user = contacts_manager_->get_input_user(user_id);
-  if (input_user == nullptr) {
-    return query_promise.set_error(Status::Error(6, "User not found"));
-  }
-
-  if (!G()->shared_config().get_option_boolean("calls_enabled")) {
-    return query_promise.set_error(Status::Error(7, "Calls are not enabled for the current user"));
-  }
-
   send_closure(G()->call_manager(), &CallManager::create_call, user_id, std::move(input_user),
                CallProtocol(*request.protocol_), request.is_video_, std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, const td_api::acceptCall &request) {
   CHECK_IS_USER();
-  CREATE_OK_REQUEST_PROMISE();
-  if (!request.protocol_) {
-    return promise.set_error(Status::Error(5, "Call protocol must be non-empty"));
+  if (request.protocol_ == nullptr) {
+    return send_error_raw(id, 400, "Call protocol must be non-empty");
   }
+  CREATE_OK_REQUEST_PROMISE();
   send_closure(G()->call_manager(), &CallManager::accept_call, CallId(request.call_id_),
                CallProtocol(*request.protocol_), std::move(promise));
 }
@@ -6274,8 +6274,8 @@ void Td::on_request(uint64 id, const td_api::canTransferOwnership &request) {
 
 void Td::on_request(uint64 id, td_api::transferChatOwnership &request) {
   CHECK_IS_USER();
-  CREATE_OK_REQUEST_PROMISE();
   CLEAN_INPUT_STRING(request.password_);
+  CREATE_OK_REQUEST_PROMISE();
   contacts_manager_->transfer_dialog_ownership(DialogId(request.chat_id_), UserId(request.user_id_), request.password_,
                                                std::move(promise));
 }
@@ -6316,38 +6316,38 @@ void Td::on_request(uint64 id, const td_api::createChatInviteLink &request) {
 }
 
 void Td::on_request(uint64 id, td_api::editChatInviteLink &request) {
-  CREATE_REQUEST_PROMISE();
   CLEAN_INPUT_STRING(request.invite_link_);
+  CREATE_REQUEST_PROMISE();
   contacts_manager_->edit_dialog_invite_link(DialogId(request.chat_id_), request.invite_link_, request.expire_date_,
                                              request.member_limit_, false, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::revokeChatInviteLink &request) {
-  CREATE_REQUEST_PROMISE();
   CLEAN_INPUT_STRING(request.invite_link_);
+  CREATE_REQUEST_PROMISE();
   contacts_manager_->edit_dialog_invite_link(DialogId(request.chat_id_), request.invite_link_, 0, 0, true,
                                              std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getChatInviteLinks &request) {
-  CREATE_REQUEST_PROMISE();
   CLEAN_INPUT_STRING(request.offset_invite_link_);
+  CREATE_REQUEST_PROMISE();
   contacts_manager_->get_dialog_invite_links(DialogId(request.chat_id_), UserId(request.administrator_user_id_),
                                              request.is_revoked_, request.offset_date_, request.offset_invite_link_,
                                              request.limit_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getChatInviteLinkMembers &request) {
-  CREATE_REQUEST_PROMISE();
   CLEAN_INPUT_STRING(request.invite_link_);
+  CREATE_REQUEST_PROMISE();
   contacts_manager_->get_dialog_invite_link_users(DialogId(request.chat_id_), request.invite_link_,
                                                   std::move(request.offset_member_), request.limit_,
                                                   std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::deleteRevokedChatInviteLink &request) {
-  CREATE_OK_REQUEST_PROMISE();
   CLEAN_INPUT_STRING(request.invite_link_);
+  CREATE_OK_REQUEST_PROMISE();
   contacts_manager_->delete_revoked_dialog_invite_link(DialogId(request.chat_id_), request.invite_link_,
                                                        std::move(promise));
 }
@@ -6954,8 +6954,8 @@ void Td::on_request(uint64 id, td_api::reportChat &request) {
 
 void Td::on_request(uint64 id, td_api::getChatStatisticsUrl &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST_PROMISE();
   CLEAN_INPUT_STRING(request.parameters_);
+  CREATE_REQUEST_PROMISE();
   messages_manager_->get_dialog_statistics_url(DialogId(request.chat_id_), request.parameters_, request.is_dark_,
                                                std::move(promise));
 }
@@ -6975,8 +6975,8 @@ void Td::on_request(uint64 id, const td_api::getMessageStatistics &request) {
 
 void Td::on_request(uint64 id, td_api::getStatisticalGraph &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST_PROMISE();
   CLEAN_INPUT_STRING(request.token_);
+  CREATE_REQUEST_PROMISE();
   contacts_manager_->load_statistics_graph(DialogId(request.chat_id_), request.token_, request.x_, std::move(promise));
 }
 
@@ -7636,11 +7636,11 @@ void Td::on_request(uint64 id, td_api::getAllPassportElements &request) {
 void Td::on_request(uint64 id, td_api::setPassportElement &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.password_);
-  CREATE_REQUEST_PROMISE();
   auto r_secure_value = get_secure_value(file_manager_.get(), std::move(request.element_));
   if (r_secure_value.is_error()) {
-    return promise.set_error(r_secure_value.move_as_error());
+    return send_error_raw(id, 400, r_secure_value.error().message());
   }
+  CREATE_REQUEST_PROMISE();
   send_closure(secure_manager_, &SecureManager::set_secure_value, std::move(request.password_),
                r_secure_value.move_as_ok(), std::move(promise));
 }
