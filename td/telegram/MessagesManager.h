@@ -1227,6 +1227,7 @@ class MessagesManager : public Actor {
     bool increment_view_counter = false;
 
     bool is_update_new_chat_sent = false;
+    bool has_unload_timeout = false;
 
     int32 pts = 0;                                                     // for channels only
     std::multimap<int32, PendingPtsUpdate> postponed_channel_updates;  // for channels only

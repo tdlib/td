@@ -3029,6 +3029,7 @@ Result<vector<MessageEntity>> get_message_entities(const ContactsManager *contac
                                                    vector<tl_object_ptr<td_api::textEntity>> &&input_entities,
                                                    bool allow_all) {
   vector<MessageEntity> entities;
+  entities.reserve(input_entities.size());
   for (auto &entity : input_entities) {
     if (entity == nullptr || entity->type_ == nullptr) {
       continue;
