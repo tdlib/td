@@ -1476,9 +1476,11 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id,
   if (group_call->is_inited && !group_call->is_active) {
     return promise.set_error(Status::Error(400, "Group call is finished"));
   }
+  bool need_update = false;
+  bool is_rejoin = group_call->need_rejoin;
   if (group_call->need_rejoin) {
     group_call->need_rejoin = false;
-    send_update_group_call(group_call, "join_group_call");
+    need_update = true;
   }
 
   cancel_join_group_call_request(input_group_call_id);
@@ -1512,9 +1514,7 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id,
 
   if (group_call->is_being_left) {
     group_call->is_being_left = false;
-    if (group_call->is_inited) {
-      send_update_group_call(group_call, "join_group_call");
-    }
+    need_update |= group_call->is_joined;
   }
 
   auto json_payload = json_encode<string>(json_object([&payload, audio_source](auto &o) {
@@ -1557,8 +1557,19 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id,
     group_call_participant.server_is_muted_by_admin =
         !group_call->can_self_unmute && !can_manage_group_call(input_group_call_id);
     group_call_participant.server_is_muted_by_themselves = is_muted && !group_call_participant.server_is_muted_by_admin;
+    group_call_participant.is_just_joined = !is_rejoin;
     group_call_participant.is_fake = true;
-    process_group_call_participant(input_group_call_id, std::move(group_call_participant));
+    int diff = process_group_call_participant(input_group_call_id, std::move(group_call_participant));
+    if (diff != 0) {
+      CHECK(diff == 1);
+      group_call->participant_count++;
+      need_update = true;
+      update_group_call_dialog(group_call, "join_group_call");
+    }
+
+    if (need_update) {
+      send_update_group_call(group_call, "join_group_call");
+    }
   }
 
   try_load_group_call_administrators(input_group_call_id, group_call->dialog_id);
