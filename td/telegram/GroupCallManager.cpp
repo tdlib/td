@@ -1878,10 +1878,9 @@ void GroupCallManager::toggle_group_call_participant_is_muted(GroupCallId group_
                                                promise = std::move(promise)](Result<Unit> &&result) mutable {
     if (result.is_error()) {
       promise.set_error(result.move_as_error());
-    } else {
-      send_closure(actor_id, &GroupCallManager::on_toggle_group_call_participant_is_muted, input_group_call_id, user_id,
-                   generation, std::move(promise));
     }
+    send_closure(actor_id, &GroupCallManager::on_toggle_group_call_participant_is_muted, input_group_call_id, user_id,
+                 generation, std::move(promise));
   });
   td_->create_handler<EditGroupCallMemberQuery>(std::move(query_promise))
       ->send(input_group_call_id, user_id, is_muted, 0);
@@ -1957,10 +1956,9 @@ void GroupCallManager::set_group_call_participant_volume_level(GroupCallId group
                                                promise = std::move(promise)](Result<Unit> &&result) mutable {
     if (result.is_error()) {
       promise.set_error(result.move_as_error());
-    } else {
-      send_closure(actor_id, &GroupCallManager::on_set_group_call_participant_volume_level, input_group_call_id,
-                   user_id, generation, std::move(promise));
     }
+    send_closure(actor_id, &GroupCallManager::on_set_group_call_participant_volume_level, input_group_call_id, user_id,
+                 generation, std::move(promise));
   });
   td_->create_handler<EditGroupCallMemberQuery>(std::move(query_promise))
       ->send(input_group_call_id, user_id, false, volume_level);
