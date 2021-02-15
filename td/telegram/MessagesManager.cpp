@@ -29528,7 +29528,6 @@ void MessagesManager::on_update_dialog_group_call(DialogId dialog_id, bool has_a
     is_group_call_empty = false;
   }
   if (d->has_active_group_call == has_active_group_call && d->is_group_call_empty == is_group_call_empty) {
-    LOG(INFO) << "Nothing changed in " << dialog_id;
     return;
   }
 
