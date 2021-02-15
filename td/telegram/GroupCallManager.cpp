@@ -976,6 +976,11 @@ GroupCallManager::GroupCallParticipants *GroupCallManager::add_group_call_partic
   return participants.get();
 }
 
+GroupCallParticipant *GroupCallManager::get_group_call_participant(InputGroupCallId input_group_call_id,
+                                                                   UserId user_id) {
+  return get_group_call_participant(add_group_call_participants(input_group_call_id), user_id);
+}
+
 GroupCallParticipant *GroupCallManager::get_group_call_participant(GroupCallParticipants *group_call_participants,
                                                                    UserId user_id) {
   for (auto &group_call_participant : group_call_participants->participants) {
@@ -1965,7 +1970,7 @@ void GroupCallManager::on_toggle_group_call_participant_is_muted(InputGroupCallI
     return promise.set_value(Unit());
   }
 
-  auto participant = get_group_call_participant(add_group_call_participants(input_group_call_id), user_id);
+  auto participant = get_group_call_participant(input_group_call_id, user_id);
   if (participant == nullptr || participant->pending_is_muted_generation != generation) {
     return promise.set_value(Unit());
   }
@@ -2002,7 +2007,7 @@ void GroupCallManager::set_group_call_participant_volume_level(GroupCallId group
     return promise.set_error(Status::Error(400, "Can't change self volume level"));
   }
 
-  auto participant = get_group_call_participant(add_group_call_participants(input_group_call_id), user_id);
+  auto participant = get_group_call_participant(input_group_call_id, user_id);
   if (participant == nullptr) {
     return promise.set_error(Status::Error(400, "Can't find group call participant"));
   }
@@ -2041,7 +2046,7 @@ void GroupCallManager::on_set_group_call_participant_volume_level(InputGroupCall
     return promise.set_value(Unit());
   }
 
-  auto participant = get_group_call_participant(add_group_call_participants(input_group_call_id), user_id);
+  auto participant = get_group_call_participant(input_group_call_id, user_id);
   if (participant == nullptr || participant->pending_volume_level_generation != generation) {
     return promise.set_value(Unit());
   }
@@ -2394,7 +2399,7 @@ void GroupCallManager::on_user_speaking_in_group_call(GroupCallId group_call_id,
 
   if (!td_->contacts_manager_->have_user_force(user_id) ||
       (!recursive && need_group_call_participants(input_group_call_id, group_call) &&
-       get_group_call_participant(add_group_call_participants(input_group_call_id), user_id) == nullptr)) {
+       get_group_call_participant(input_group_call_id, user_id) == nullptr)) {
     if (recursive) {
       LOG(ERROR) << "Failed to find speaking " << user_id << " from " << input_group_call_id;
     } else {

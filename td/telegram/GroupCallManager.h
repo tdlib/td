@@ -173,6 +173,8 @@ class GroupCallManager : public Actor {
 
   GroupCallParticipants *add_group_call_participants(InputGroupCallId input_group_call_id);
 
+  GroupCallParticipant *get_group_call_participant(InputGroupCallId input_group_call_id, UserId user_id);
+
   static GroupCallParticipant *get_group_call_participant(GroupCallParticipants *group_call_participants,
                                                           UserId user_id);
 
