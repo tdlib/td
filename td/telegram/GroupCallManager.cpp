@@ -1547,7 +1547,7 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id,
   request->query_ref = td_->create_handler<JoinGroupCallQuery>(std::move(query_promise))
                            ->send(input_group_call_id, json_payload, is_muted, generation);
 
-  if (group_call->is_inited) {
+  if (group_call->is_inited && td_->contacts_manager_->have_user_force(td_->contacts_manager_->get_my_id())) {
     GroupCallParticipant group_call_participant;
     group_call_participant.user_id = td_->contacts_manager_->get_my_id();
     group_call_participant.audio_source = audio_source;
@@ -1566,10 +1566,10 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id,
       need_update = true;
       update_group_call_dialog(group_call, "join_group_call");
     }
+  }
 
-    if (need_update) {
-      send_update_group_call(group_call, "join_group_call");
-    }
+  if (group_call->is_inited && need_update) {
+    send_update_group_call(group_call, "join_group_call");
   }
 
   try_load_group_call_administrators(input_group_call_id, group_call->dialog_id);
