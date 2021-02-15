@@ -1729,6 +1729,12 @@ void GroupCallManager::toggle_group_call_mute_new_participants(GroupCallId group
                                                                Promise<Unit> &&promise) {
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
 
+  auto *group_call = get_group_call(input_group_call_id);
+  if (group_call == nullptr || !group_call->is_inited || !group_call->is_active || !group_call->can_be_managed ||
+      !group_call->allowed_change_mute_new_participants) {
+    return promise.set_error(Status::Error(400, "Can't change mute_new_participant setting"));
+  }
+
   int32 flags = telegram_api::phone_toggleGroupCallSettings::JOIN_MUTED_MASK;
   td_->create_handler<ToggleGroupCallSettingsQuery>(std::move(promise))
       ->send(flags, input_group_call_id, mute_new_participants);
@@ -2502,11 +2508,13 @@ tl_object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(
 
   bool is_joined = group_call->is_joined && !group_call->is_being_left;
   bool can_self_unmute = is_joined && group_call->can_self_unmute;
+  bool can_change_mute_new_participants =
+      group_call->is_active && group_call->can_be_managed && group_call->allowed_change_mute_new_participants;
   return td_api::make_object<td_api::groupCall>(group_call->group_call_id.get(), group_call->is_active, is_joined,
                                                 group_call->need_rejoin, can_self_unmute, group_call->can_be_managed,
                                                 group_call->participant_count, group_call->loaded_all_participants,
                                                 std::move(recent_speakers), group_call->mute_new_participants,
-                                                group_call->allowed_change_mute_new_participants, group_call->duration);
+                                                can_change_mute_new_participants, group_call->duration);
 }
 
 tl_object_ptr<td_api::updateGroupCall> GroupCallManager::get_update_group_call_object(
