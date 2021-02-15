@@ -242,6 +242,10 @@ class ToggleGroupCallSettingsQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
+    if (status.message() == "GROUPCALL_NOT_MODIFIED") {
+      promise_.set_value(Unit());
+      return;
+    }
     promise_.set_error(std::move(status));
   }
 };
