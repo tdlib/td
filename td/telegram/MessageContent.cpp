@@ -4525,6 +4525,10 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       auto duration =
           (phone_call->flags_ & telegram_api::messageActionPhoneCall::DURATION_MASK) != 0 ? phone_call->duration_ : 0;
       auto is_video = (phone_call->flags_ & telegram_api::messageActionPhoneCall::VIDEO_MASK) != 0;
+      if (duration < 0) {
+        LOG(ERROR) << "Receive invalid " << oneline(to_string(phone_call));
+        break;
+      }
       return make_unique<MessageCall>(phone_call->call_id_, duration, get_call_discard_reason(phone_call->reason_),
                                       is_video);
     }
@@ -4621,6 +4625,14 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
 
       return td::make_unique<MessageInviteToGroupCall>(InputGroupCallId(invite_to_group_call->call_),
                                                        std::move(user_ids));
+    }
+    case telegram_api::messageActionSetMessagesTTL::ID: {
+      auto set_messages_ttl = move_tl_object_as<telegram_api::messageActionSetMessagesTTL>(action);
+      if (set_messages_ttl->period_ < 0) {
+        LOG(ERROR) << "Receive wrong ttl = " << set_messages_ttl->period_;
+        break;
+      }
+      return td::make_unique<MessageChatSetTtl>(set_messages_ttl->period_);
     }
     default:
       UNREACHABLE();

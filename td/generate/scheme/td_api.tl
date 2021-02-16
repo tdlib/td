@@ -1708,7 +1708,7 @@ messagePinMessage message_id:int53 = MessageContent;
 //@description A screenshot of a message in the chat has been taken
 messageScreenshotTaken = MessageContent;
 
-//@description The TTL (Time To Live) setting messages in a secret chat has been changed @ttl New TTL
+//@description The TTL (Time To Live) setting for messages in the chat has been changed @ttl New message TTL setting
 messageChatSetTtl ttl:int32 = MessageContent;
 
 //@description A non-standard action has happened in the chat @text Message text to be shown in the chat
