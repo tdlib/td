@@ -13164,6 +13164,9 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
         message_info.sender_dialog_id = message_info.dialog_id;
       }
       message_info.date = message->date_;
+      if (message->flags_ & MESSAGE_FLAG_HAS_TTL_PERIOD) {
+        message_info.ttl_period = message->ttl_period_;
+      }
       message_info.flags = message->flags_;
       auto reply_to_message_id =
           MessageId(ServerMessageId(message->reply_to_ == nullptr ? 0 : message->reply_to_->reply_to_msg_id_));
