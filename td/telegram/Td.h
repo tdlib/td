@@ -892,6 +892,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, const td_api::toggleSupergroupIsAllHistoryAvailable &request);
 
+  void on_request(uint64 id, const td_api::toggleSupergroupIsBroadcastGroup &request);
+
   void on_request(uint64 id, const td_api::reportSupergroupSpam &request);
 
   void on_request(uint64 id, td_api::getSupergroupMembers &request);

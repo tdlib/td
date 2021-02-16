@@ -352,6 +352,8 @@ class ContactsManager : public Actor {
   void toggle_channel_is_all_history_available(ChannelId channel_id, bool is_all_history_available,
                                                Promise<Unit> &&promise);
 
+  void convert_channel_to_gigagroup(ChannelId channel_id, Promise<Unit> &&promise);
+
   void set_channel_description(ChannelId channel_id, const string &description, Promise<Unit> &&promise);
 
   void set_channel_discussion_group(DialogId dialog_id, DialogId discussion_dialog_id, Promise<Unit> &&promise);

@@ -6733,6 +6733,12 @@ void Td::on_request(uint64 id, const td_api::toggleSupergroupIsAllHistoryAvailab
                                                              request.is_all_history_available_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::toggleSupergroupIsBroadcastGroup &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->convert_channel_to_gigagroup(ChannelId(request.supergroup_id_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::reportSupergroupSpam &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

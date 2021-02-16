@@ -3728,6 +3728,10 @@ class CliClient final : public Actor {
       get_args(args, supergroup_id, is_all_history_available);
       send_request(td_api::make_object<td_api::toggleSupergroupIsAllHistoryAvailable>(as_supergroup_id(supergroup_id),
                                                                                       is_all_history_available));
+    } else if (op == "ToggleSupergroupIsBroadcastGroup") {
+      string supergroup_id;
+      get_args(args, supergroup_id);
+      send_request(td_api::make_object<td_api::toggleSupergroupIsBroadcastGroup>(as_supergroup_id(supergroup_id)));
     } else if (op == "tsgsm") {
       string supergroup_id;
       bool sign_messages;

@@ -1208,6 +1208,45 @@ class TogglePrehistoryHiddenQuery : public Td::ResultHandler {
   }
 };
 
+class ConvertToGigagroupQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  ChannelId channel_id_;
+
+ public:
+  explicit ConvertToGigagroupQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(ChannelId channel_id) {
+    channel_id_ = channel_id;
+
+    auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
+    CHECK(input_channel != nullptr);
+    send_query(G()->net_query_creator().create(telegram_api::channels_convertToGigagroup(std::move(input_channel))));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::channels_convertToGigagroup>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for ConvertToGigagroupQuery: " << to_string(ptr);
+
+    td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(uint64 id, Status status) override {
+    if (status.message() == "CHAT_NOT_MODIFIED") {
+      promise_.set_value(Unit());
+      return;
+    } else {
+      td->contacts_manager_->on_get_channel_error(channel_id_, status, "ConvertToGigagroupQuery");
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
 class EditChatAboutQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
@@ -6157,6 +6196,21 @@ void ContactsManager::toggle_channel_is_all_history_available(ChannelId channel_
   // it can be toggled in public chats, but will not affect them
 
   td_->create_handler<TogglePrehistoryHiddenQuery>(std::move(promise))->send(channel_id, is_all_history_available);
+}
+
+void ContactsManager::convert_channel_to_gigagroup(ChannelId channel_id, Promise<Unit> &&promise) {
+  auto c = get_channel(channel_id);
+  if (c == nullptr) {
+    return promise.set_error(Status::Error(6, "Supergroup not found"));
+  }
+  if (!get_channel_permissions(c).is_creator()) {
+    return promise.set_error(Status::Error(6, "Not enough rights to convert group to broadcast group"));
+  }
+  if (get_channel_type(c) != ChannelType::Megagroup) {
+    return promise.set_error(Status::Error(6, "Chat must be a supergroup"));
+  }
+
+  td_->create_handler<ConvertToGigagroupQuery>(std::move(promise))->send(channel_id);
 }
 
 void ContactsManager::set_channel_description(ChannelId channel_id, const string &description,

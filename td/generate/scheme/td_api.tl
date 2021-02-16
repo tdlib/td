@@ -4779,6 +4779,9 @@ toggleSupergroupSignMessages supergroup_id:int32 sign_messages:Bool = Ok;
 //@description Toggles whether the message history of a supergroup is available to new members; requires can_change_info administrator right @supergroup_id The identifier of the supergroup @is_all_history_available The new value of is_all_history_available
 toggleSupergroupIsAllHistoryAvailable supergroup_id:int32 is_all_history_available:Bool = Ok;
 
+//@description Upgrades supergroup to a broadcast group; requires owner privileges in the supergroup @supergroup_id Identifier of the supergroup
+toggleSupergroupIsBroadcastGroup supergroup_id:int32 = Ok;
+
 //@description Reports some messages from a user in a supergroup as spam; requires administrator rights in the supergroup @supergroup_id Supergroup identifier @user_id User identifier @message_ids Identifiers of messages sent in the supergroup by the user. This list must be non-empty
 reportSupergroupSpam supergroup_id:int32 user_id:int32 message_ids:vector<int53> = Ok;
 
