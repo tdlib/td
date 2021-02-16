@@ -1785,7 +1785,8 @@ class GetChatAdminWithInvitesQuery : public Td::ResultHandler {
         continue;
       }
       invite_link_counts.push_back(td_api::make_object<td_api::chatInviteLinkCount>(
-          td->contacts_manager_->get_user_id_object(user_id, "chatInviteLinkCount"), admin->invites_count_));
+          td->contacts_manager_->get_user_id_object(user_id, "chatInviteLinkCount"), admin->invites_count_,
+          admin->revoked_invites_count_));
     }
     promise_.set_value(td_api::make_object<td_api::chatInviteLinkCounts>(std::move(invite_link_counts)));
   }

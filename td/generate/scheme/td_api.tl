@@ -559,8 +559,11 @@ chatInviteLink invite_link:string administrator_user_id:int32 date:int32 edit_da
 //@description Contains a list of chat invite links @total_count Approximate total count of chat invite links found @invite_links List of invite links
 chatInviteLinks total_count:int32 invite_links:vector<chatInviteLink> = ChatInviteLinks;
 
-//@description Describes a chat administrator with a number of active chat invite links @user_id Administrator's user identifier @invite_link_count Number of active invite links
-chatInviteLinkCount user_id:int32 invite_link_count:int32 = ChatInviteLinkCount;
+//@description Describes a chat administrator with a number of active and revoked chat invite links
+//@user_id Administrator's user identifier
+//@invite_link_count Number of active invite links
+//@revoked_invite_link_count Number of revoked invite links
+chatInviteLinkCount user_id:int32 invite_link_count:int32 revoked_invite_link_count:int32 = ChatInviteLinkCount;
 
 //@description Contains a list of chat invite link counts @invite_link_counts List of invite linkcounts
 chatInviteLinkCounts invite_link_counts:vector<chatInviteLinkCount> = ChatInviteLinkCounts;
@@ -4461,7 +4464,7 @@ createChatInviteLink chat_id:int53 expire_date:int32 member_limit:int32 = ChatIn
 //@member_limit Maximum number of chat members that can join the chat by the link simultaneously; 0-100000; pass 0 if not limited
 editChatInviteLink chat_id:int53 invite_link:string expire_date:int32 member_limit:int32 = ChatInviteLink;
 
-//@description Returns list of chat administrators with number of active invite links. Requires owner privileges in the chat @chat_id Chat identifier
+//@description Returns list of chat administrators with number of their invite links. Requires owner privileges in the chat @chat_id Chat identifier
 getChatInviteLinkCounts chat_id:int53 = ChatInviteLinkCounts;
 
 //@description Returns invite links for a chat created by specified administrator. Requires administrator privileges and can_invite_users right in the chat to get own links and owner privileges to get other links
