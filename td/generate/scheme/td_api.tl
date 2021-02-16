@@ -614,11 +614,12 @@ basicGroupFullInfo photo:chatPhoto description:string creator_user_id:int32 memb
 //@sign_messages True, if messages sent to the channel should contain information about the sender. This field is only applicable to channels
 //@is_slow_mode_enabled True, if the slow mode is enabled in the supergroup
 //@is_channel True, if the supergroup is a channel
+//@is_broadcast_group True, if the supergroup is a broadcast group, i.e. only administrators can send messages and there is no limit on number of members
 //@is_verified True, if the supergroup or channel is verified
 //@restriction_reason If non-empty, contains a human-readable description of the reason why access to this supergroup or channel must be restricted
 //@is_scam True, if many users reported this supergroup or channel as a scam
 //@is_fake True, if many users reported this supergroup or channel as a fake account
-supergroup id:int32 username:string date:int32 status:ChatMemberStatus member_count:int32 has_linked_chat:Bool has_location:Bool sign_messages:Bool is_slow_mode_enabled:Bool is_channel:Bool is_verified:Bool restriction_reason:string is_scam:Bool is_fake:Bool = Supergroup;
+supergroup id:int32 username:string date:int32 status:ChatMemberStatus member_count:int32 has_linked_chat:Bool has_location:Bool sign_messages:Bool is_slow_mode_enabled:Bool is_channel:Bool is_broadcast_group:Bool is_verified:Bool restriction_reason:string is_scam:Bool is_fake:Bool = Supergroup;
 
 //@description Contains full information about a supergroup or channel
 //@photo Chat photo; may be null

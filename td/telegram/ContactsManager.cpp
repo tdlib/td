@@ -3942,6 +3942,7 @@ void ContactsManager::Channel::store(StorerT &storer) const {
   STORE_FLAG(has_restriction_reasons);
   STORE_FLAG(legacy_has_active_group_call);
   STORE_FLAG(is_fake);
+  STORE_FLAG(is_gigagroup);
   END_STORE_FLAGS();
 
   store(status, storer);
@@ -4010,6 +4011,7 @@ void ContactsManager::Channel::parse(ParserT &parser) {
   PARSE_FLAG(has_restriction_reasons);
   PARSE_FLAG(legacy_has_active_group_call);
   PARSE_FLAG(is_fake);
+  PARSE_FLAG(is_gigagroup);
   END_PARSE_FLAGS();
 
   if (use_new_rights) {
@@ -14745,6 +14747,7 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
   auto restriction_reasons = get_restriction_reasons(std::move(channel.restriction_reason_));
   bool is_scam = (channel.flags_ & CHANNEL_FLAG_IS_SCAM) != 0;
   bool is_fake = (channel.flags_ & CHANNEL_FLAG_IS_FAKE) != 0;
+  bool is_gigagroup = (channel.flags_ & CHANNEL_FLAG_IS_GIGAGROUP) != 0;
   bool have_participant_count = (channel.flags_ & CHANNEL_FLAG_HAS_PARTICIPANT_COUNT) != 0;
   int32 participant_count = have_participant_count ? channel.participants_count_ : 0;
 
@@ -14767,7 +14770,9 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
     sign_messages = true;
   } else {
     LOG_IF(ERROR, is_slow_mode_enabled) << "Slow mode enabled in the " << channel_id << " from " << source;
+    LOG_IF(ERROR, is_gigagroup) << "Receive broadcast group as channel " << channel_id << " from " << source;
     is_slow_mode_enabled = false;
+    is_gigagroup = false;
   }
 
   DialogParticipantStatus status = [&] {
@@ -14800,12 +14805,27 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
       on_update_channel_default_permissions(c, channel_id,
                                             get_restricted_rights(std::move(channel.default_banned_rights_)));
 
-      if (c->is_megagroup != is_megagroup || c->is_verified != is_verified) {
+      if (c->has_linked_channel != has_linked_channel || c->has_location != has_location ||
+          c->is_slow_mode_enabled != is_slow_mode_enabled || c->is_megagroup != is_megagroup ||
+          c->restriction_reasons != restriction_reasons || c->is_scam != is_scam || c->is_fake != is_fake ||
+          c->is_gigagroup != is_gigagroup) {
+        c->has_linked_channel = has_linked_channel;
+        c->has_location = has_location;
+        c->is_slow_mode_enabled = is_slow_mode_enabled;
         c->is_megagroup = is_megagroup;
-        c->is_verified = is_verified;
+        c->restriction_reasons = std::move(restriction_reasons);
+        c->is_scam = is_scam;
+        c->is_fake = is_fake;
+        c->is_gigagroup = is_gigagroup;
 
         c->is_changed = true;
         invalidate_channel_full(channel_id, false, !c->is_slow_mode_enabled);
+      }
+      if (c->is_verified != is_verified || c->sign_messages != sign_messages) {
+        c->is_verified = is_verified;
+        c->sign_messages = sign_messages;
+
+        c->is_changed = true;
       }
 
       update_channel(c, channel_id);
@@ -14852,7 +14872,8 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
   bool need_invalidate_channel_full = false;
   if (c->has_linked_channel != has_linked_channel || c->has_location != has_location ||
       c->is_slow_mode_enabled != is_slow_mode_enabled || c->is_megagroup != is_megagroup ||
-      c->restriction_reasons != restriction_reasons || c->is_scam != is_scam || c->is_fake != is_fake) {
+      c->restriction_reasons != restriction_reasons || c->is_scam != is_scam || c->is_fake != is_fake ||
+      c->is_gigagroup != is_gigagroup) {
     c->has_linked_channel = has_linked_channel;
     c->has_location = has_location;
     c->is_slow_mode_enabled = is_slow_mode_enabled;
@@ -14860,6 +14881,7 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
     c->restriction_reasons = std::move(restriction_reasons);
     c->is_scam = is_scam;
     c->is_fake = is_fake;
+    c->is_gigagroup = is_gigagroup;
 
     c->is_changed = true;
     need_invalidate_channel_full = true;
@@ -15203,7 +15225,7 @@ td_api::object_ptr<td_api::updateSupergroup> ContactsManager::get_update_unknown
     ChannelId channel_id) {
   return td_api::make_object<td_api::updateSupergroup>(td_api::make_object<td_api::supergroup>(
       channel_id.get(), string(), 0, DialogParticipantStatus::Banned(0).get_chat_member_status_object(), 0, false,
-      false, false, false, true, false, "", false, false));
+      false, false, false, true, false, false, string(), false, false));
 }
 
 int32 ContactsManager::get_supergroup_id_object(ChannelId channel_id, const char *source) const {
@@ -15226,8 +15248,8 @@ tl_object_ptr<td_api::supergroup> ContactsManager::get_supergroup_object(Channel
   return td_api::make_object<td_api::supergroup>(
       channel_id.get(), c->username, c->date, get_channel_status(c).get_chat_member_status_object(),
       c->participant_count, c->has_linked_channel, c->has_location, c->sign_messages, c->is_slow_mode_enabled,
-      !c->is_megagroup, c->is_verified, get_restriction_reason_description(c->restriction_reasons), c->is_scam,
-      c->is_fake);
+      !c->is_megagroup, c->is_gigagroup, c->is_verified, get_restriction_reason_description(c->restriction_reasons),
+      c->is_scam, c->is_fake);
 }
 
 tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_supergroup_full_info_object(ChannelId channel_id) const {

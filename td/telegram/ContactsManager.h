@@ -779,6 +779,7 @@ class ContactsManager : public Actor {
     bool is_slow_mode_enabled = false;
 
     bool is_megagroup = false;
+    bool is_gigagroup = false;
     bool is_verified = false;
     bool is_scam = false;
     bool is_fake = false;
@@ -1038,6 +1039,7 @@ class ContactsManager : public Actor {
   static constexpr int32 CHANNEL_FLAG_HAS_ACTIVE_GROUP_CALL = 1 << 23;
   static constexpr int32 CHANNEL_FLAG_IS_GROUP_CALL_NON_EMPTY = 1 << 24;
   static constexpr int32 CHANNEL_FLAG_IS_FAKE = 1 << 25;
+  static constexpr int32 CHANNEL_FLAG_IS_GIGAGROUP = 1 << 26;
 
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_PARTICIPANT_COUNT = 1 << 0;
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_ADMINISTRATOR_COUNT = 1 << 1;
