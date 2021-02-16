@@ -4455,14 +4455,14 @@ replacePermanentChatInviteLink chat_id:int53 = ChatInviteLink;
 //@description Creates a new invite link for a chat. Available for basic groups, supergroups, and channels. Requires administrator privileges and can_invite_users right in the chat
 //@chat_id Chat identifier
 //@expire_date Point in time (Unix timestamp) when the link will expire; pass 0 if never
-//@member_limit Maximum number of chat members that can join the chat by the link simultaneously; 0-100000; pass 0 if not limited
+//@member_limit Maximum number of chat members that can join the chat by the link simultaneously; 0-99999; pass 0 if not limited
 createChatInviteLink chat_id:int53 expire_date:int32 member_limit:int32 = ChatInviteLink;
 
 //@description Edits a non-permanent invite link for a chat. Available for basic groups, supergroups, and channels. Requires administrator privileges and can_invite_users right in the chat for own links and owner privileges for other links
 //@chat_id Chat identifier
 //@invite_link Invite link to be edited
 //@expire_date Point in time (Unix timestamp) when the link will expire; pass 0 if never
-//@member_limit Maximum number of chat members that can join the chat by the link simultaneously; 0-100000; pass 0 if not limited
+//@member_limit Maximum number of chat members that can join the chat by the link simultaneously; 0-99999; pass 0 if not limited
 editChatInviteLink chat_id:int53 invite_link:string expire_date:int32 member_limit:int32 = ChatInviteLink;
 
 //@description Returns list of chat administrators with number of their invite links. Requires owner privileges in the chat @chat_id Chat identifier
