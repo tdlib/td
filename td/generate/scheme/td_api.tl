@@ -2455,6 +2455,9 @@ chatEventVoiceChatDiscarded group_call_id:int32 = ChatEventAction;
 //@description A voice chat participant was muted or unmuted @user_id Identifier of the affected user @is_muted New value of is_muted
 chatEventVoiceChatParticipantIsMutedToggled user_id:int32 is_muted:Bool = ChatEventAction;
 
+//@description A voice chat participant volume level was changed @user_id Identifier of the affected user @volume_level New value of volume_level; 1-20000 in hundreds of percents
+chatEventVoiceChatParticipantVolumeLevelChanged user_id:int32 volume_level:int32 = ChatEventAction;
+
 //@description The mute_new_participants setting of a voice chat was toggled @mute_new_participants New value of the mute_new_participants setting
 chatEventVoiceChatMuteNewParticipantsToggled mute_new_participants:Bool = ChatEventAction;
 

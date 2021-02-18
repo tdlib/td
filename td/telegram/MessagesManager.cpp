@@ -31371,8 +31371,16 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
       return make_tl_object<td_api::chatEventVoiceChatParticipantIsMutedToggled>(
           td_->contacts_manager_->get_user_id_object(participant.user_id, "LogEventActionParticipantUnmute"), false);
     }
-    case telegram_api::channelAdminLogEventActionParticipantVolume::ID:
-      return nullptr;
+    case telegram_api::channelAdminLogEventActionParticipantVolume::ID: {
+      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantVolume>(action_ptr);
+      GroupCallParticipant participant(std::move(action->participant_));
+      if (!participant.is_valid()) {
+        return nullptr;
+      }
+      return make_tl_object<td_api::chatEventVoiceChatParticipantVolumeLevelChanged>(
+          td_->contacts_manager_->get_user_id_object(participant.user_id, "LogEventActionParticipantVolume"),
+          participant.volume_level);
+    }
     case telegram_api::channelAdminLogEventActionToggleGroupCallSetting::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionToggleGroupCallSetting>(action_ptr);
       return make_tl_object<td_api::chatEventVoiceChatMuteNewParticipantsToggled>(action->join_muted_);
