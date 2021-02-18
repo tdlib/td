@@ -643,6 +643,32 @@ DialogParticipant::DialogParticipant(UserId user_id, UserId inviter_user_id, int
   }
 }
 
+DialogParticipant::DialogParticipant(tl_object_ptr<telegram_api::ChatParticipant> &&participant_ptr,
+                                     int32 chat_creation_date, bool is_creator) {
+  switch (participant_ptr->get_id()) {
+    case telegram_api::chatParticipant::ID: {
+      auto participant = move_tl_object_as<telegram_api::chatParticipant>(participant_ptr);
+      *this = {UserId(participant->user_id_), UserId(participant->inviter_id_), participant->date_,
+               DialogParticipantStatus::Member()};
+      break;
+    }
+    case telegram_api::chatParticipantCreator::ID: {
+      auto participant = move_tl_object_as<telegram_api::chatParticipantCreator>(participant_ptr);
+      *this = {UserId(participant->user_id_), UserId(participant->user_id_), chat_creation_date,
+               DialogParticipantStatus::Creator(true, false, string())};
+      break;
+    }
+    case telegram_api::chatParticipantAdmin::ID: {
+      auto participant = move_tl_object_as<telegram_api::chatParticipantAdmin>(participant_ptr);
+      *this = {UserId(participant->user_id_), UserId(participant->inviter_id_), participant->date_,
+               DialogParticipantStatus::GroupAdministrator(is_creator)};
+      break;
+    }
+    default:
+      UNREACHABLE();
+  }
+}
+
 DialogParticipant::DialogParticipant(tl_object_ptr<telegram_api::ChannelParticipant> &&participant_ptr,
                                      DialogParticipantStatus my_status) {
   CHECK(participant_ptr != nullptr);

@@ -11108,29 +11108,10 @@ void ContactsManager::on_get_chat_participants(tl_object_ptr<telegram_api::ChatP
       new_participants.reserve(participants->participants_.size());
 
       for (auto &participant_ptr : participants->participants_) {
-        DialogParticipant dialog_participant;
-        switch (participant_ptr->get_id()) {
-          case telegram_api::chatParticipant::ID: {
-            auto participant = move_tl_object_as<telegram_api::chatParticipant>(participant_ptr);
-            dialog_participant = {UserId(participant->user_id_), UserId(participant->inviter_id_), participant->date_,
-                                  DialogParticipantStatus::Member()};
-            break;
-          }
-          case telegram_api::chatParticipantCreator::ID: {
-            auto participant = move_tl_object_as<telegram_api::chatParticipantCreator>(participant_ptr);
-            new_creator_user_id = UserId(participant->user_id_);
-            dialog_participant = {new_creator_user_id, new_creator_user_id, c->date,
-                                  DialogParticipantStatus::Creator(true, false, string())};
-            break;
-          }
-          case telegram_api::chatParticipantAdmin::ID: {
-            auto participant = move_tl_object_as<telegram_api::chatParticipantAdmin>(participant_ptr);
-            dialog_participant = {UserId(participant->user_id_), UserId(participant->inviter_id_), participant->date_,
-                                  DialogParticipantStatus::GroupAdministrator(c->status.is_creator())};
-            break;
-          }
-          default:
-            UNREACHABLE();
+        DialogParticipant dialog_participant(std::move(participant_ptr), c->date, c->status.is_creator());
+        if (!dialog_participant.is_valid()) {
+          LOG(ERROR) << "Receive invalid " << dialog_participant;
+          continue;
         }
 
         LOG_IF(ERROR, !have_user(dialog_participant.user_id))
@@ -11143,18 +11124,17 @@ void ContactsManager::on_get_chat_participants(tl_object_ptr<telegram_api::ChatP
               << chat_id << " was created at " << c->date;
           dialog_participant.joined_date = c->date;
         }
+        if (dialog_participant.status.is_creator()) {
+          new_creator_user_id = dialog_participant.user_id;
+        }
         new_participants.push_back(std::move(dialog_participant));
       }
 
-      if (new_creator_user_id.is_valid()) {
-        LOG_IF(ERROR, !have_user(new_creator_user_id))
-            << "Have no information about group creator " << new_creator_user_id << " in " << chat_id;
-        if (chat_full->creator_user_id.is_valid() && chat_full->creator_user_id != new_creator_user_id) {
+      if (chat_full->creator_user_id != new_creator_user_id) {
+        if (new_creator_user_id.is_valid() && chat_full->creator_user_id.is_valid()) {
           LOG(ERROR) << "Group creator has changed from " << chat_full->creator_user_id << " to " << new_creator_user_id
                      << " in " << chat_id;
         }
-      }
-      if (chat_full->creator_user_id != new_creator_user_id) {
         chat_full->creator_user_id = new_creator_user_id;
         chat_full->is_changed = true;
       }

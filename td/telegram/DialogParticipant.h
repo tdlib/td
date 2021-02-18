@@ -383,6 +383,9 @@ struct DialogParticipant {
 
   DialogParticipant(UserId user_id, UserId inviter_user_id, int32 joined_date, DialogParticipantStatus status);
 
+  DialogParticipant(tl_object_ptr<telegram_api::ChatParticipant> &&participant_ptr, int32 chat_creation_date,
+                    bool is_creator);
+
   DialogParticipant(tl_object_ptr<telegram_api::ChannelParticipant> &&participant_ptr,
                     DialogParticipantStatus my_status);
 
