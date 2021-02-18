@@ -4278,6 +4278,7 @@ setChatTitle chat_id:int53 title:string = Ok;
 setChatPhoto chat_id:int53 photo:InputChatPhoto = Ok;
 
 //@description Changes the message TTL setting (sets a new self-destruct timer) in a chat. Requires can_delete_messages administrator right in basic groups, supergroups and channels
+//-Message TTL setting of a chat with the current user (Saved Messages) and the chat 777000 (Telegram) can't be changed
 //@chat_id Chat identifier @ttl New TTL value, in seconds; must be one of 0, 86400, 604800 unless chat is secret
 setChatMessageTtlSetting chat_id:int53 ttl:int32 = Ok;
 

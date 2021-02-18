@@ -30727,7 +30727,7 @@ void MessagesManager::set_dialog_title(DialogId dialog_id, const string &title, 
 
 void MessagesManager::set_dialog_message_ttl_setting(DialogId dialog_id, int32 ttl, Promise<Unit> &&promise) {
   if (ttl < 0) {
-    return promise.set_error(Status::Error(400, "Message TTL can't be negative"));
+    return promise.set_error(Status::Error(400, "Message auto-delete time can't be negative"));
   }
 
   Dialog *d = get_dialog_force(dialog_id);
@@ -30742,19 +30742,25 @@ void MessagesManager::set_dialog_message_ttl_setting(DialogId dialog_id, int32 t
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
+      if (dialog_id == get_my_dialog_id() ||
+          dialog_id == DialogId(ContactsManager::get_service_notifications_user_id())) {
+        return promise.set_error(Status::Error(400, "Message auto-delete time in the chat can't be changed"));
+      }
       break;
     case DialogType::Chat: {
       auto chat_id = dialog_id.get_chat_id();
       auto status = td_->contacts_manager_->get_chat_permissions(chat_id);
       if (!status.can_delete_messages()) {
-        return promise.set_error(Status::Error(400, "Not enough rights to set message TTL in the chat"));
+        return promise.set_error(
+            Status::Error(400, "Not enough rights to change message auto-delete time in the chat"));
       }
       break;
     }
     case DialogType::Channel: {
       auto status = td_->contacts_manager_->get_channel_permissions(dialog_id.get_channel_id());
       if (!status.can_change_info_and_settings()) {
-        return promise.set_error(Status::Error(400, "Not enough rights to set message TTL in the chat"));
+        return promise.set_error(
+            Status::Error(400, "Not enough rights to change message auto-delete time in the chat"));
       }
       break;
     }
@@ -30775,7 +30781,7 @@ void MessagesManager::set_dialog_message_ttl_setting(DialogId dialog_id, int32 t
 
     send_update_new_message(d, m);
     if (need_update_dialog_pos) {
-      send_update_chat_last_message(d, "send_dialog_set_ttl_message");
+      send_update_chat_last_message(d, "set_dialog_message_ttl_setting");
     }
 
     int64 random_id = begin_send_message(dialog_id, m);
