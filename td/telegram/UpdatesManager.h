@@ -452,13 +452,11 @@ class UpdatesManager : public Actor {
 
   void on_update(tl_object_ptr<telegram_api::updateLoginToken> update, Promise<Unit> &&promise);
 
+  void on_update(tl_object_ptr<telegram_api::updateBotStopped> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateChatParticipant> update, Promise<Unit> &&promise);
   void on_update(tl_object_ptr<telegram_api::updateChannelParticipant> update, Promise<Unit> &&promise);
 
   // unsupported updates
-
-  void on_update(tl_object_ptr<telegram_api::updateBotStopped> update, Promise<Unit> &&promise);
-
-  void on_update(tl_object_ptr<telegram_api::updateChatParticipant> update, Promise<Unit> &&promise);
 
   void on_update(tl_object_ptr<telegram_api::updateTheme> update, Promise<Unit> &&promise);
 };

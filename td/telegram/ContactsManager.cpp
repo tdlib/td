@@ -12832,6 +12832,72 @@ void ContactsManager::on_update_channel_default_permissions(ChannelId channel_id
   }
 }
 
+void ContactsManager::on_update_bot_stopped(UserId user_id, int32 date, bool is_stopped) {
+  if (!td_->auth_manager_->is_bot()) {
+    LOG(ERROR) << "Receive updateBotStopped by non-bot";
+    return;
+  }
+  if (!user_id.is_valid() || date <= 0) {
+    LOG(ERROR) << "Receive invalid updateBotStopped by " << user_id << " at " << date;
+    return;
+  }
+  if (!have_user_force(user_id)) {
+    LOG(ERROR) << "Receive updateBotStopped by unknown " << user_id;
+    return;
+  }
+
+  DialogParticipant old_dialog_participant(get_my_id(), user_id, date, DialogParticipantStatus::Banned(0));
+  DialogParticipant new_dialog_participant(get_my_id(), user_id, date, DialogParticipantStatus::Member());
+  if (is_stopped) {
+    std::swap(old_dialog_participant.status, new_dialog_participant.status);
+  }
+
+  // TODO send update
+}
+
+void ContactsManager::on_update_chat_participant(ChatId chat_id, UserId user_id, int32 date,
+                                                 tl_object_ptr<telegram_api::ChatParticipant> old_participant,
+                                                 tl_object_ptr<telegram_api::ChatParticipant> new_participant) {
+  if (!td_->auth_manager_->is_bot()) {
+    LOG(ERROR) << "Receive updateChatParticipant by non-bot";
+    return;
+  }
+  if (!chat_id.is_valid() || !user_id.is_valid() || date <= 0 ||
+      (old_participant == nullptr && new_participant == nullptr)) {
+    LOG(ERROR) << "Receive invalid updateChatParticipant in " << chat_id << " for " << user_id << " at " << date << ": "
+               << to_string(old_participant) << " -> " << to_string(new_participant);
+    return;
+  }
+
+  const Chat *c = get_chat(chat_id);
+  if (c == nullptr) {
+    LOG(ERROR) << "Receive updateChatParticipant in unknown " << chat_id;
+    return;
+  }
+
+  DialogParticipant old_dialog_participant;
+  DialogParticipant new_dialog_participant;
+  if (old_participant != nullptr) {
+    old_dialog_participant = DialogParticipant(std::move(old_participant), c->date, c->status.is_creator());
+    if (new_participant == nullptr) {
+      new_dialog_participant = DialogParticipant::left(old_dialog_participant.user_id);
+    } else {
+      new_dialog_participant = DialogParticipant(std::move(new_participant), c->date, c->status.is_creator());
+    }
+  } else {
+    new_dialog_participant = DialogParticipant(std::move(new_participant), c->date, c->status.is_creator());
+    old_dialog_participant = DialogParticipant::left(new_dialog_participant.user_id);
+  }
+  if (old_dialog_participant.user_id != new_dialog_participant.user_id || !old_dialog_participant.is_valid() ||
+      !new_dialog_participant.is_valid()) {
+    LOG(ERROR) << "Receive wrong updateChannelParticipant: " << old_dialog_participant << " -> "
+               << new_dialog_participant;
+    return;
+  }
+
+  // TODO send update
+}
+
 void ContactsManager::on_update_channel_participant(ChannelId channel_id, UserId user_id, int32 date,
                                                     tl_object_ptr<telegram_api::ChannelParticipant> old_participant,
                                                     tl_object_ptr<telegram_api::ChannelParticipant> new_participant) {

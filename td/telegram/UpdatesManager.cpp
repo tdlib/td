@@ -1954,6 +1954,19 @@ void UpdatesManager::process_qts_update(tl_object_ptr<telegram_api::Update> &&up
                    add_qts(qts));
       break;
     }
+    case telegram_api::updateBotStopped::ID: {
+      auto update = move_tl_object_as<telegram_api::updateBotStopped>(update_ptr);
+      td_->contacts_manager_->on_update_bot_stopped(UserId(update->user_id_), update->date_,
+                                                    std::move(update->stopped_));
+      break;
+    }
+    case telegram_api::updateChatParticipant::ID: {
+      auto update = move_tl_object_as<telegram_api::updateChatParticipant>(update_ptr);
+      td_->contacts_manager_->on_update_chat_participant(ChatId(update->chat_id_), UserId(update->user_id_),
+                                                         update->date_, std::move(update->prev_participant_),
+                                                         std::move(update->new_participant_));
+      break;
+    }
     case telegram_api::updateChannelParticipant::ID: {
       auto update = move_tl_object_as<telegram_api::updateChannelParticipant>(update_ptr);
       td_->contacts_manager_->on_update_channel_participant(ChannelId(update->channel_id_), UserId(update->user_id_),
@@ -2453,6 +2466,8 @@ int32 UpdatesManager::get_update_pts(const telegram_api::Update *update) {
 bool UpdatesManager::is_qts_update(const telegram_api::Update *update) {
   switch (update->get_id()) {
     case telegram_api::updateNewEncryptedMessage::ID:
+    case telegram_api::updateBotStopped::ID:
+    case telegram_api::updateChatParticipant::ID:
     case telegram_api::updateChannelParticipant::ID:
       return true;
     default:
@@ -2464,6 +2479,10 @@ int32 UpdatesManager::get_update_qts(const telegram_api::Update *update) {
   switch (update->get_id()) {
     case telegram_api::updateNewEncryptedMessage::ID:
       return static_cast<const telegram_api::updateNewEncryptedMessage *>(update)->qts_;
+    case telegram_api::updateBotStopped::ID:
+      return static_cast<const telegram_api::updateBotStopped *>(update)->qts_;
+    case telegram_api::updateChatParticipant::ID:
+      return static_cast<const telegram_api::updateChatParticipant *>(update)->qts_;
     case telegram_api::updateChannelParticipant::ID:
       return static_cast<const telegram_api::updateChannelParticipant *>(update)->qts_;
     default:
@@ -2850,20 +2869,22 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateLoginToken> upd
   promise.set_value(Unit());
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotStopped> update, Promise<Unit> &&promise) {
+  auto qts = update->qts_;
+  add_pending_qts_update(std::move(update), qts, std::move(promise));
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChatParticipant> update, Promise<Unit> &&promise) {
+  auto qts = update->qts_;
+  add_pending_qts_update(std::move(update), qts, std::move(promise));
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelParticipant> update, Promise<Unit> &&promise) {
   auto qts = update->qts_;
   add_pending_qts_update(std::move(update), qts, std::move(promise));
 }
 
 // unsupported updates
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotStopped> update, Promise<Unit> &&promise) {
-  promise.set_value(Unit());
-}
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChatParticipant> update, Promise<Unit> &&promise) {
-  promise.set_value(Unit());
-}
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTheme> update, Promise<Unit> &&promise) {
   promise.set_value(Unit());
