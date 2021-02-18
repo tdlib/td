@@ -169,13 +169,11 @@ See [project.scarlet](https://github.com/aaugmentum/project.scarlet), [tdlib](ht
 
 TDLib can be used from the Rust programming language through the [JSON](https://github.com/tdlib/td#using-json) interface.
 
-See [tdlib-rs](https://github.com/agnipau/tdlib-rs), which contains automatically generated classes for all TDLib API methods and objects.
+See [rust-tdlib](https://github.com/aCLr/rust-tdlib) or [tdlib-rs](https://github.com/agnipau/tdlib-rs), which provide convenient TDLib clients with automatically generated and fully-documented classes for all TDLib API methods and objects.
 
 See [rtdlib](https://github.com/fewensa/rtdlib), [tdlib-rs](https://github.com/d653/tdlib-rs), [tdlib-futures](https://github.com/yuri91/tdlib-futures),
 [tdlib-sys](https://github.com/nuxeh/tdlib-sys), or
 [tdjson-rs](https://github.com/mersinvald/tdjson-rs) for examples of TDLib Rust bindings.
-
-You can use [rust-tdlib](https://github.com/aCLr/rust-tdlib) if you need high-level client implementation.
 
 <a name="erlang"></a>
 ## Using TDLib in Erlang projects
