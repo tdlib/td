@@ -9213,7 +9213,8 @@ void ContactsManager::on_load_chat_full_from_database(ChatId chat_id, string val
   CHECK(c != nullptr);
 
   // ignore ChatFull without invite link
-  if (c->is_active && c->status.is_administrator() && !chat_full->invite_link.is_valid()) {
+  if (c->is_active && c->status.is_administrator() && c->status.can_invite_users() &&
+      !chat_full->invite_link.is_valid()) {
     chats_full_.erase(chat_id);
     return;
   }
@@ -13466,7 +13467,8 @@ bool ContactsManager::is_chat_full_outdated(const ChatFull *chat_full, const Cha
     }
   }
 
-  if (c->is_active && c->status.is_administrator() && !chat_full->invite_link.is_valid()) {
+  if (c->is_active && c->status.is_administrator() && c->status.can_invite_users() &&
+      !chat_full->invite_link.is_valid()) {
     LOG(INFO) << "Have outdated invite link in " << chat_id;
     return true;
   }
