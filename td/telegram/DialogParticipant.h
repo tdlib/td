@@ -121,6 +121,7 @@ class DialogParticipantStatus {
   static constexpr uint32 CAN_PIN_MESSAGES_ADMIN = 1 << 7;
   static constexpr uint32 CAN_PROMOTE_MEMBERS = 1 << 8;
   static constexpr uint32 CAN_MANAGE_CALLS = 1 << 9;
+  static constexpr uint32 CAN_MANAGE_DIALOG = 1 << 10;
 
   static constexpr uint32 CAN_BE_EDITED = 1 << 15;
 
@@ -144,9 +145,10 @@ class DialogParticipantStatus {
   static constexpr int TYPE_SHIFT = 28;
   static constexpr uint32 HAS_UNTIL_DATE = 1u << 31;
 
-  static constexpr uint32 ALL_ADMINISTRATOR_RIGHTS =
-      CAN_CHANGE_INFO_AND_SETTINGS_ADMIN | CAN_POST_MESSAGES | CAN_EDIT_MESSAGES | CAN_DELETE_MESSAGES |
-      CAN_INVITE_USERS_ADMIN | CAN_RESTRICT_MEMBERS | CAN_PIN_MESSAGES_ADMIN | CAN_PROMOTE_MEMBERS | CAN_MANAGE_CALLS;
+  static constexpr uint32 ALL_ADMINISTRATOR_RIGHTS = CAN_CHANGE_INFO_AND_SETTINGS_ADMIN | CAN_POST_MESSAGES |
+                                                     CAN_EDIT_MESSAGES | CAN_DELETE_MESSAGES | CAN_INVITE_USERS_ADMIN |
+                                                     CAN_RESTRICT_MEMBERS | CAN_PIN_MESSAGES_ADMIN |
+                                                     CAN_PROMOTE_MEMBERS | CAN_MANAGE_CALLS | CAN_MANAGE_DIALOG;
 
   static constexpr uint32 ALL_ADMIN_PERMISSION_RIGHTS =
       CAN_CHANGE_INFO_AND_SETTINGS_BANNED | CAN_INVITE_USERS_BANNED | CAN_PIN_MESSAGES_BANNED;
@@ -171,9 +173,10 @@ class DialogParticipantStatus {
  public:
   static DialogParticipantStatus Creator(bool is_member, bool is_anonymous, string rank);
 
-  static DialogParticipantStatus Administrator(bool is_anonymous, string rank, bool can_be_edited, bool can_change_info,
-                                               bool can_post_messages, bool can_edit_messages, bool can_delete_messages,
-                                               bool can_invite_users, bool can_restrict_members, bool can_pin_messages,
+  static DialogParticipantStatus Administrator(bool is_anonymous, string rank, bool can_be_edited,
+                                               bool can_manage_dialog, bool can_change_info, bool can_post_messages,
+                                               bool can_edit_messages, bool can_delete_messages, bool can_invite_users,
+                                               bool can_restrict_members, bool can_pin_messages,
                                                bool can_promote_members, bool can_manage_calls);
 
   static DialogParticipantStatus Member();
@@ -207,6 +210,10 @@ class DialogParticipantStatus {
 
   // unrestricts user if restriction time expired. Should be called before all privileges checks
   void update_restrictions() const;
+
+  bool can_manage_dialog() const {
+    return (flags_ & CAN_MANAGE_DIALOG) != 0;
+  }
 
   bool can_change_info_and_settings() const {
     return (flags_ & CAN_CHANGE_INFO_AND_SETTINGS_ADMIN) != 0 || (flags_ & CAN_CHANGE_INFO_AND_SETTINGS_BANNED) != 0;
@@ -359,6 +366,8 @@ class DialogParticipantStatus {
 
     if (is_creator()) {
       flags_ |= ALL_ADMINISTRATOR_RIGHTS | ALL_PERMISSION_RIGHTS;
+    } else if (is_administrator()) {
+      flags_ |= CAN_MANAGE_DIALOG;
     }
   }
 
