@@ -199,11 +199,22 @@ void UpdatesManager::fill_seq_gap(void *td) {
 }
 
 void UpdatesManager::fill_qts_gap(void *td) {
-  fill_gap(td, "qts");
+  CHECK(td != nullptr);
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto td_ptr = static_cast<Td *>(td);
+  auto qts = std::numeric_limits<int32>::max();
+  if (!td_ptr->updates_manager_->pending_qts_updates_.empty()) {
+    qts = td_ptr->updates_manager_->pending_qts_updates_.begin()->first;
+  }
+  string source = PSTRING() << "qts from " << td_ptr->updates_manager_->get_qts() << " to " << qts;
+  fill_gap(td, source.c_str());
 }
 
 void UpdatesManager::fill_get_difference_gap(void *td) {
-  fill_gap(td, "getDifference");
+  fill_gap(td, "rare getDifference calls");
 }
 
 void UpdatesManager::fill_gap(void *td, const char *source) {
