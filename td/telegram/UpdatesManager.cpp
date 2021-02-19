@@ -1657,7 +1657,7 @@ void UpdatesManager::add_pending_qts_update(tl_object_ptr<telegram_api::Update> 
 
   int32 old_qts = get_qts();
   LOG(INFO) << "Process update with qts = " << qts << ", current qts = " << old_qts;
-  if (qts < old_qts - 10001) {
+  if (qts < old_qts - 100001) {
     LOG(WARNING) << "Restore qts after qts overflow from " << old_qts << " to " << qts << " by "
                  << oneline(to_string(update));
     add_qts(qts - 1).set_value(Unit());
@@ -1674,7 +1674,7 @@ void UpdatesManager::add_pending_qts_update(tl_object_ptr<telegram_api::Update> 
 
   CHECK(!running_get_difference_);
 
-  if (qts > old_qts + 1) {
+  if (qts > old_qts + 1 && old_qts > 0) {
     LOG(INFO) << "Postpone update with qts = " << qts;
     if (pending_qts_updates_.empty()) {
       set_qts_gap_timeout(MAX_UNFILLED_GAP_TIME);
@@ -1955,8 +1955,10 @@ void UpdatesManager::process_qts_update(tl_object_ptr<telegram_api::Update> &&up
                                         Promise<Unit> &&promise) {
   LOG(DEBUG) << "Process " << to_string(update_ptr);
   if (last_get_difference_qts_ + FORCED_GET_DIFFERENCE_PTS_DIFF < qts) {
+    if (last_get_difference_qts_ != 0) {
+      schedule_get_difference("process_qts_update");
+    }
     last_get_difference_qts_ = qts;
-    schedule_get_difference("process_qts_update");
   }
   switch (update_ptr->get_id()) {
     case telegram_api::updateNewEncryptedMessage::ID: {
@@ -1969,6 +1971,7 @@ void UpdatesManager::process_qts_update(tl_object_ptr<telegram_api::Update> &&up
       auto update = move_tl_object_as<telegram_api::updateBotStopped>(update_ptr);
       td_->contacts_manager_->on_update_bot_stopped(UserId(update->user_id_), update->date_,
                                                     std::move(update->stopped_));
+      add_qts(qts).set_value(Unit());
       break;
     }
     case telegram_api::updateChatParticipant::ID: {
@@ -1977,6 +1980,7 @@ void UpdatesManager::process_qts_update(tl_object_ptr<telegram_api::Update> &&up
                                                          update->date_, DialogInviteLink(std::move(update->invite_)),
                                                          std::move(update->prev_participant_),
                                                          std::move(update->new_participant_));
+      add_qts(qts).set_value(Unit());
       break;
     }
     case telegram_api::updateChannelParticipant::ID: {
@@ -1985,6 +1989,7 @@ void UpdatesManager::process_qts_update(tl_object_ptr<telegram_api::Update> &&up
                                                             update->date_, DialogInviteLink(std::move(update->invite_)),
                                                             std::move(update->prev_participant_),
                                                             std::move(update->new_participant_));
+      add_qts(qts).set_value(Unit());
       break;
     }
     default:
