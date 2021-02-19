@@ -2860,10 +2860,10 @@ class CliClient final : public Actor {
       get_args(args, chat_id, is_marked_as_read);
       send_request(td_api::make_object<td_api::toggleChatIsMarkedAsUnread>(as_chat_id(chat_id), is_marked_as_read));
     } else if (op == "tmsib") {
-      string chat_id;
+      string sender_id;
       bool is_blocked;
-      get_args(args, chat_id, is_blocked);
-      send_request(td_api::make_object<td_api::toggleMessageSenderIsBlocked>(as_message_sender(chat_id), is_blocked));
+      get_args(args, sender_id, is_blocked);
+      send_request(td_api::make_object<td_api::toggleMessageSenderIsBlocked>(as_message_sender(sender_id), is_blocked));
     } else if (op == "bmsfr") {
       string message_id;
       bool delete_message;
