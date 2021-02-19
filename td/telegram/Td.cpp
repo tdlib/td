@@ -6973,9 +6973,16 @@ void Td::on_request(uint64 id, td_api::reportChat &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.text_);
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->report_dialog(DialogId(request.chat_id_), request.reason_,
-                                   MessagesManager::get_message_ids(request.message_ids_), request.text_,
-                                   std::move(promise));
+  messages_manager_->report_dialog(DialogId(request.chat_id_), MessagesManager::get_message_ids(request.message_ids_),
+                                   request.reason_, request.text_, std::move(promise));
+}
+
+void Td::on_request(uint64 id, td_api::reportChatPhoto &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.text_);
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->report_dialog_photo(DialogId(request.chat_id_), FileId(request.file_id_, 0), request.reason_,
+                                         request.text_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getChatStatisticsUrl &request) {

@@ -775,8 +775,12 @@ class MessagesManager : public Actor {
 
   void reget_dialog_action_bar(DialogId dialog_id, const char *source);
 
-  void report_dialog(DialogId dialog_id, const tl_object_ptr<td_api::ChatReportReason> &reason,
-                     const vector<MessageId> &message_ids, const string &message, Promise<Unit> &&promise);
+  void report_dialog(DialogId dialog_id, const vector<MessageId> &message_ids,
+                     const tl_object_ptr<td_api::ChatReportReason> &reason, const string &message,
+                     Promise<Unit> &&promise);
+
+  void report_dialog_photo(DialogId dialog_id, FileId file_id, const tl_object_ptr<td_api::ChatReportReason> &reason,
+                           const string &message, Promise<Unit> &&promise);
 
   void on_get_peer_settings(DialogId dialog_id, tl_object_ptr<telegram_api::peerSettings> &&peer_settings,
                             bool ignore_privacy_exception = false);

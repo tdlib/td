@@ -9883,10 +9883,8 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
     register_user_photo(u, user_id, user->photo);
   }
 
-  if (user_full->bot_info_ != nullptr) {
-    if (on_update_bot_info(std::move(user_full->bot_info_), false)) {
-      user->need_send_update = true;
-    }
+  if (user_full->bot_info_ != nullptr && on_update_bot_info(std::move(user_full->bot_info_), false)) {
+    user->need_send_update = true;
   }
   update_user_full(user, user_id);
 

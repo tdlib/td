@@ -377,7 +377,7 @@ chatPhotos total_count:int32 photos:vector<chatPhoto> = ChatPhotos;
 
 //@class InputChatPhoto @description Describes a photo to be set as a user profile or chat photo
 
-//@description A previously used profile photo of the current user @chat_photo_id Identifier of the profile photo to reuse
+//@description A previously used profile photo of the current user @chat_photo_id Identifier of the current user's profile photo to reuse
 inputChatPhotoPrevious chat_photo_id:int64 = InputChatPhoto;
 
 //@description A static photo in JPEG format @photo Photo to be set as profile photo. Only inputFileLocal and inputFileGenerated are allowed
@@ -904,7 +904,7 @@ chatPosition list:ChatList order:int64 is_pinned:Bool source:ChatSource = ChatPo
 //@has_scheduled_messages True, if the chat has scheduled messages
 //@can_be_deleted_only_for_self True, if the chat messages can be deleted only for the current user while other users will continue to see the messages
 //@can_be_deleted_for_all_users True, if the chat messages can be deleted for all users
-//@can_be_reported True, if the chat can be reported to Telegram moderators through reportChat
+//@can_be_reported True, if the chat can be reported to Telegram moderators through reportChat or reportChatPhoto
 //@default_disable_notification Default value of the disable_notification parameter, used when a message is sent to the chat
 //@unread_count Number of unread messages in the chat
 //@last_read_inbox_message_id Identifier of the last read incoming message
@@ -4932,9 +4932,12 @@ deleteAccount reason:string = Ok;
 removeChatActionBar chat_id:int53 = Ok;
 
 //@description Reports a chat to the Telegram moderators. A chat can be reported only from the chat action bar, or if this is a private chat with a bot, a private chat with a user sharing their location, a supergroup, or a channel, since other chats can't be checked by moderators
-//@chat_id Chat identifier @reason The reason for reporting the chat @message_ids Identifiers of reported messages, if any @text Additional report details; 0-1024 characters
-reportChat chat_id:int53 reason:ChatReportReason message_ids:vector<int53> text:string = Ok;
+//@chat_id Chat identifier @message_ids Identifiers of reported messages, if any @reason The reason for reporting the chat @text Additional report details; 0-1024 characters
+reportChat chat_id:int53 message_ids:vector<int53> reason:ChatReportReason text:string = Ok;
 
+//@description Reports a chat photo to the Telegram moderators. A chat photo can be reported only if this is a private chat with a bot, a private chat with a user sharing their location, a supergroup, or a channel, since other chats can't be checked by moderators
+//@chat_id Chat identifier @file_id Identifier of the photo to report. Only full photos from chatPhoto can be reported @reason The reason for reporting the chat photo @text Additional report details; 0-1024 characters
+reportChatPhoto chat_id:int53 file_id:int32 reason:ChatReportReason text:string = Ok;
 
 //@description Returns an HTTP URL with the chat statistics. Currently this method of getting the statistics are disabled and can be deleted in the future @chat_id Chat identifier @parameters Parameters from "tg://statsrefresh?params=******" link @is_dark Pass true if a URL with the dark theme must be returned
 getChatStatisticsUrl chat_id:int53 parameters:string is_dark:Bool = HttpUrl;

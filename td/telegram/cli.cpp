@@ -2267,7 +2267,7 @@ class CliClient final : public Actor {
     } else if (op == "gatss") {
       send_request(td_api::make_object<td_api::getAttachedStickerSets>(as_file_id(args)));
     } else if (op == "storage") {
-      send_request(td_api::make_object<td_api::getStorageStatistics>(as_limit(args)));
+      send_request(td_api::make_object<td_api::getStorageStatistics>(to_integer<int32>(args)));
     } else if (op == "storage_fast") {
       send_request(td_api::make_object<td_api::getStorageStatisticsFast>());
     } else if (op == "database") {
@@ -2544,7 +2544,7 @@ class CliClient final : public Actor {
       int32 max_file_id = as_file_id(file_id);
       int32 min_file_id = (op == "dff" ? 1 : max_file_id);
       for (int32 i = min_file_id; i <= max_file_id; i++) {
-        send_request(td_api::make_object<td_api::downloadFile>(i, priority, offset, as_limit(limit), op == "dfs"));
+        send_request(td_api::make_object<td_api::downloadFile>(i, priority, offset, to_integer<int32>(limit), op == "dfs"));
       }
     } else if (op == "cdf") {
       send_request(td_api::make_object<td_api::cancelDownloadFile>(as_file_id(args), false));
@@ -3907,12 +3907,20 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::removeChatActionBar>(as_chat_id(chat_id)));
     } else if (op == "rc") {
       string chat_id;
-      string reason;
       string message_ids;
+      string reason;
       string text;
-      get_args(args, chat_id, reason, message_ids, text);
-      send_request(td_api::make_object<td_api::reportChat>(as_chat_id(chat_id), get_chat_report_reason(reason),
-                                                           as_message_ids(message_ids), text));
+      get_args(args, chat_id, message_ids, reason, text);
+      send_request(td_api::make_object<td_api::reportChat>(as_chat_id(chat_id), as_message_ids(message_ids),
+                                                           get_chat_report_reason(reason), text));
+    } else if (op == "rcp") {
+      string chat_id;
+      string file_id;
+      string reason;
+      string text;
+      get_args(args, chat_id, file_id, reason, text);
+      send_request(td_api::make_object<td_api::reportChatPhoto>(as_chat_id(chat_id), as_file_id(file_id),
+                                                                get_chat_report_reason(reason), text));
     } else if (op == "gcsu") {
       string chat_id;
       string parameters;
