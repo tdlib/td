@@ -212,10 +212,10 @@ class ContactsManager : public Actor {
   void on_update_channel_administrator_count(ChannelId channel_id, int32 administrator_count);
 
   void on_update_bot_stopped(UserId user_id, int32 date, bool is_stopped);
-  void on_update_chat_participant(ChatId chat_id, UserId user_id, int32 date,
+  void on_update_chat_participant(ChatId chat_id, UserId user_id, int32 date, DialogInviteLink invite_link,
                                   tl_object_ptr<telegram_api::ChatParticipant> old_participant,
                                   tl_object_ptr<telegram_api::ChatParticipant> new_participant);
-  void on_update_channel_participant(ChannelId channel_id, UserId user_id, int32 date,
+  void on_update_channel_participant(ChannelId channel_id, UserId user_id, int32 date, DialogInviteLink invite_link,
                                      tl_object_ptr<telegram_api::ChannelParticipant> old_participant,
                                      tl_object_ptr<telegram_api::ChannelParticipant> new_participant);
 
@@ -1367,6 +1367,10 @@ class ContactsManager : public Actor {
 
   void on_clear_imported_contacts(vector<Contact> &&contacts, vector<size_t> contacts_unique_id,
                                   std::pair<vector<size_t>, vector<Contact>> &&to_add, Promise<Unit> &&promise);
+
+  void send_update_chat_member(DialogId dialog_id, UserId agent_user_id, int32 date, DialogInviteLink invite_link,
+                               const DialogParticipant &old_dialog_participant,
+                               const DialogParticipant &new_dialog_participant);
 
   static vector<td_api::object_ptr<td_api::chatNearby>> get_chats_nearby_object(
       const vector<DialogNearby> &dialogs_nearby);

@@ -3599,6 +3599,11 @@ updatePoll poll:poll = Update;
 //@description A user changed the answer to a poll; for bots only @poll_id Unique poll identifier @user_id The user, who changed the answer to the poll @option_ids 0-based identifiers of answer options, chosen by the user
 updatePollAnswer poll_id:int64 user_id:int32 option_ids:vector<int32> = Update;
 
+//@description User rights changed in a chat; for bots only @chat_id Chat identifier @actor_user_id Identifier of the user, changing the rights
+//@date Point in time (Unix timestamp) when the user rights was changed @invite_link If user has joined the chat using an invite link, the invite link; may be null
+//@old_chat_member Previous chat member @new_chat_member New chat member
+updateChatMember chat_id:int53 actor_user_id:int32 date:int32 invite_link:chatInviteLink old_chat_member:chatMember new_chat_member:chatMember = Update;
+
 
 //@description Contains a list of updates @updates List of updates
 updates updates:vector<Update> = Updates;

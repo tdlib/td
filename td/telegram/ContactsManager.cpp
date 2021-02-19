@@ -12832,6 +12832,19 @@ void ContactsManager::on_update_channel_default_permissions(ChannelId channel_id
   }
 }
 
+void ContactsManager::send_update_chat_member(DialogId dialog_id, UserId agent_user_id, int32 date,
+                                              DialogInviteLink invite_link,
+                                              const DialogParticipant &old_dialog_participant,
+                                              const DialogParticipant &new_dialog_participant) {
+  CHECK(td_->auth_manager_->is_bot());
+  td_->messages_manager_->force_create_dialog(dialog_id, "send_update_chat_member", true);
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateChatMember>(
+                   dialog_id.get(), get_user_id_object(agent_user_id, "send_update_chat_member"), date,
+                   invite_link.get_chat_invite_link_object(this), get_chat_member_object(old_dialog_participant),
+                   get_chat_member_object(new_dialog_participant)));
+}
+
 void ContactsManager::on_update_bot_stopped(UserId user_id, int32 date, bool is_stopped) {
   if (!td_->auth_manager_->is_bot()) {
     LOG(ERROR) << "Receive updateBotStopped by non-bot";
@@ -12852,10 +12865,12 @@ void ContactsManager::on_update_bot_stopped(UserId user_id, int32 date, bool is_
     std::swap(old_dialog_participant.status, new_dialog_participant.status);
   }
 
-  // TODO send update
+  send_update_chat_member(DialogId(user_id), user_id, date, DialogInviteLink(), old_dialog_participant,
+                          new_dialog_participant);
 }
 
 void ContactsManager::on_update_chat_participant(ChatId chat_id, UserId user_id, int32 date,
+                                                 DialogInviteLink invite_link,
                                                  tl_object_ptr<telegram_api::ChatParticipant> old_participant,
                                                  tl_object_ptr<telegram_api::ChatParticipant> new_participant) {
   if (!td_->auth_manager_->is_bot()) {
@@ -12895,10 +12910,12 @@ void ContactsManager::on_update_chat_participant(ChatId chat_id, UserId user_id,
     return;
   }
 
-  // TODO send update
+  send_update_chat_member(DialogId(chat_id), user_id, date, invite_link, old_dialog_participant,
+                          new_dialog_participant);
 }
 
 void ContactsManager::on_update_channel_participant(ChannelId channel_id, UserId user_id, int32 date,
+                                                    DialogInviteLink invite_link,
                                                     tl_object_ptr<telegram_api::ChannelParticipant> old_participant,
                                                     tl_object_ptr<telegram_api::ChannelParticipant> new_participant) {
   if (!td_->auth_manager_->is_bot()) {
@@ -12932,7 +12949,8 @@ void ContactsManager::on_update_channel_participant(ChannelId channel_id, UserId
     return;
   }
 
-  // TODO send update
+  send_update_chat_member(DialogId(channel_id), user_id, date, invite_link, old_dialog_participant,
+                          new_dialog_participant);
 }
 
 void ContactsManager::update_contacts_hints(const User *u, UserId user_id, bool from_database) {
