@@ -100,7 +100,7 @@ class Global : public ActorContext {
     return parameters_.use_test_dc;
   }
 
-  bool ignore_backgrond_updates() const;
+  bool ignore_background_updates() const;
 
   NetQueryCreator &net_query_creator() {
     return *net_query_creator_.get();
