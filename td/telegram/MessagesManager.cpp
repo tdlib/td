@@ -4432,20 +4432,27 @@ class ReportPeerQuery : public Td::ResultHandler {
 class ReportProfilePhotoQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
+  FileId file_id_;
+  string file_reference_;
+  ReportReason report_reason_;
 
  public:
   explicit ReportProfilePhotoQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, tl_object_ptr<telegram_api::InputPhoto> &&input_photo, ReportReason &&report_reason) {
+  void send(DialogId dialog_id, FileId file_id, tl_object_ptr<telegram_api::InputPhoto> &&input_photo,
+            ReportReason &&report_reason) {
     dialog_id_ = dialog_id;
+    file_id_ = file_id;
+    file_reference_ = FileManager::extract_file_reference(input_photo);
+    report_reason_ = std::move(report_reason);
 
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
 
     send_query(G()->net_query_creator().create(telegram_api::account_reportProfilePhoto(
-        std::move(input_peer), std::move(input_photo), report_reason.get_input_report_reason(),
-        report_reason.get_message())));
+        std::move(input_peer), std::move(input_photo), report_reason_.get_input_report_reason(),
+        report_reason_.get_message())));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -4464,7 +4471,23 @@ class ReportProfilePhotoQuery : public Td::ResultHandler {
 
   void on_error(uint64 id, Status status) override {
     LOG(INFO) << "Receive error for report chat photo: " << status;
-    // TODO support FILE_REFERENCE errors
+    if (!td->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(status)) {
+      VLOG(file_references) << "Receive " << status << " for " << file_id_;
+      td->file_manager_->delete_file_reference(file_id_, file_reference_);
+      td->file_reference_manager_->repair_file_reference(
+          file_id_,
+          PromiseCreator::lambda([dialog_id = dialog_id_, file_id = file_id_, report_reason = std::move(report_reason_),
+                                  promise = std::move(promise_)](Result<Unit> result) mutable {
+            if (result.is_error()) {
+              LOG(INFO) << "Reported photo " << file_id << " is likely to be deleted";
+              return promise.set_value(Unit());
+            }
+            send_closure(G()->messages_manager(), &MessagesManager::report_dialog_photo, dialog_id, file_id,
+                         std::move(report_reason), std::move(promise));
+          }));
+      return;
+    }
+
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "ReportProfilePhotoQuery");
     promise_.set_error(std::move(status));
   }
@@ -8293,7 +8316,7 @@ void MessagesManager::report_dialog_photo(DialogId dialog_id, FileId file_id, Re
   }
 
   td_->create_handler<ReportProfilePhotoQuery>(std::move(promise))
-      ->send(dialog_id, file_view.remote_location().as_input_photo(), std::move(reason));
+      ->send(dialog_id, file_id, file_view.remote_location().as_input_photo(), std::move(reason));
 }
 
 void MessagesManager::on_get_peer_settings(DialogId dialog_id,
