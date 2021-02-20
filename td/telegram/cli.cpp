@@ -454,21 +454,24 @@ class CliClient final : public Actor {
 
   int64 as_chat_id(Slice str) const {
     str = trim(str);
+    if (str == "me") {
+      return my_id_;
+    }
     if (str[0] == '@') {
-      auto it = username_to_user_id_.find(to_lower(str.substr(1)));
+      str.remove_prefix(1);
+    }
+    if (is_alpha(str[0])) {
+      auto it = username_to_user_id_.find(to_lower(str));
       if (it != username_to_user_id_.end()) {
         return it->second;
       }
-      auto it2 = username_to_supergroup_id_.find(to_lower(str.substr(1)));
+      auto it2 = username_to_supergroup_id_.find(to_lower(str));
       if (it2 != username_to_supergroup_id_.end()) {
         auto supergroup_id = it2->second;
         return static_cast<int64>(-1000'000'000'000ll) - supergroup_id;
       }
       LOG(ERROR) << "Can't resolve " << str;
       return 0;
-    }
-    if (str == "me") {
-      return my_id_;
     }
     return to_integer<int64>(str);
   }
@@ -535,16 +538,19 @@ class CliClient final : public Actor {
 
   int32 as_user_id(Slice str) const {
     str = trim(str);
+    if (str == "me") {
+      return my_id_;
+    }
     if (str[0] == '@') {
-      auto it = username_to_user_id_.find(to_lower(str.substr(1)));
+      str.remove_prefix(1);
+    }
+    if (is_alpha(str[0])) {
+      auto it = username_to_user_id_.find(to_lower(str));
       if (it != username_to_user_id_.end()) {
         return it->second;
       }
       LOG(ERROR) << "Can't find user " << str;
       return 0;
-    }
-    if (str == "me") {
-      return my_id_;
     }
     return to_integer<int32>(str);
   }
@@ -565,7 +571,10 @@ class CliClient final : public Actor {
   int32 as_supergroup_id(Slice str) {
     str = trim(str);
     if (str[0] == '@') {
-      return username_to_supergroup_id_[to_lower(str.substr(1))];
+      str.remove_prefix(1);
+    }
+    if (is_alpha(str[0])) {
+      return username_to_supergroup_id_[to_lower(str)];
     }
     auto result = to_integer<int64>(str);
     int64 shift = static_cast<int64>(-1000000000000ll);
