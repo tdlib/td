@@ -13,15 +13,37 @@
 
 namespace td {
 
-enum class SuggestedAction : int32 { Empty, EnableArchiveAndMuteNewChats, CheckPhoneNumber, SeeTicksHint };
+struct SuggestedAction {
+  enum class Type : int32 { Empty, EnableArchiveAndMuteNewChats, CheckPhoneNumber, SeeTicksHint };
+  Type type_ = Type::Empty;
 
-SuggestedAction get_suggested_action(Slice action_str);
+  void init(Type type);
 
-string get_suggested_action_str(SuggestedAction action);
+  SuggestedAction() = default;
 
-SuggestedAction get_suggested_action(const td_api::object_ptr<td_api::SuggestedAction> &action_object);
+  explicit SuggestedAction(Type type) : type_(type) {
+  }
 
-td_api::object_ptr<td_api::SuggestedAction> get_suggested_action_object(SuggestedAction action);
+  explicit SuggestedAction(Slice action_str);
+
+  explicit SuggestedAction(const td_api::object_ptr<td_api::SuggestedAction> &action_object);
+
+  string get_suggested_action_str() const;
+
+  td_api::object_ptr<td_api::SuggestedAction> get_suggested_action_object() const;
+};
+
+inline bool operator==(const SuggestedAction &lhs, const SuggestedAction &rhs) {
+  return lhs.type_ == rhs.type_;
+}
+
+inline bool operator!=(const SuggestedAction &lhs, const SuggestedAction &rhs) {
+  return !(lhs == rhs);
+}
+
+inline bool operator<(const SuggestedAction &lhs, const SuggestedAction &rhs) {
+  return static_cast<int32>(lhs.type_) < static_cast<int32>(rhs.type_);
+}
 
 td_api::object_ptr<td_api::updateSuggestedActions> get_update_suggested_actions_object(
     const vector<SuggestedAction> &added_actions, const vector<SuggestedAction> &removed_actions);

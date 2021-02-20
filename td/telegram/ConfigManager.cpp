@@ -58,7 +58,6 @@
 #include "td/utils/UInt.h"
 
 #include <algorithm>
-#include <functional>
 #include <memory>
 #include <unordered_map>
 #include <utility>
@@ -1080,7 +1079,7 @@ void ConfigManager::set_archive_and_mute(bool archive_and_mute, Promise<Unit> &&
     return promise.set_error(Status::Error(500, "Request aborted"));
   }
   if (archive_and_mute) {
-    do_dismiss_suggested_action(SuggestedAction::EnableArchiveAndMuteNewChats);
+    do_dismiss_suggested_action(SuggestedAction{SuggestedAction::Type::EnableArchiveAndMuteNewChats});
   }
 
   last_set_archive_and_mute_ = archive_and_mute;
@@ -1125,16 +1124,16 @@ void ConfigManager::do_set_ignore_sensitive_content_restrictions(bool ignore_sen
 
 void ConfigManager::do_set_archive_and_mute(bool archive_and_mute) {
   if (archive_and_mute) {
-    do_dismiss_suggested_action(SuggestedAction::EnableArchiveAndMuteNewChats);
+    do_dismiss_suggested_action(SuggestedAction{SuggestedAction::Type::EnableArchiveAndMuteNewChats});
   }
   G()->shared_config().set_option_boolean("archive_and_mute_new_chats_from_unknown_users", archive_and_mute);
 }
 
 void ConfigManager::dismiss_suggested_action(SuggestedAction suggested_action, Promise<Unit> &&promise) {
-  if (suggested_action == SuggestedAction::Empty) {
+  if (suggested_action == SuggestedAction()) {
     return promise.set_error(Status::Error(400, "Action must be non-empty"));
   }
-  auto action_str = get_suggested_action_str(suggested_action);
+  auto action_str = suggested_action.get_suggested_action_str();
   if (action_str.empty()) {
     return promise.set_value(Unit());
   }
@@ -1144,13 +1143,14 @@ void ConfigManager::dismiss_suggested_action(SuggestedAction suggested_action, P
   }
 
   dismiss_suggested_action_request_count_++;
-  auto &queries = dismiss_suggested_action_queries_[suggested_action];
+  auto type = static_cast<int32>(suggested_action.type_);
+  auto &queries = dismiss_suggested_action_queries_[type];
   queries.push_back(std::move(promise));
   if (queries.size() == 1) {
     G()->net_query_dispatcher().dispatch_with_callback(
         G()->net_query_creator().create(
             telegram_api::help_dismissSuggestion(make_tl_object<telegram_api::inputPeerEmpty>(), action_str)),
-        actor_shared(this, 100 + static_cast<int32>(suggested_action)));
+        actor_shared(this, 100 + type));
   }
 }
 
@@ -1163,9 +1163,10 @@ void ConfigManager::do_dismiss_suggested_action(SuggestedAction suggested_action
 void ConfigManager::on_result(NetQueryPtr res) {
   auto token = get_link_token();
   if (token >= 100 && token <= 200) {
-    SuggestedAction suggested_action = static_cast<SuggestedAction>(static_cast<int32>(token - 100));
-    auto promises = std::move(dismiss_suggested_action_queries_[suggested_action]);
-    dismiss_suggested_action_queries_.erase(suggested_action);
+    auto type = static_cast<int32>(token - 100);
+    SuggestedAction suggested_action{static_cast<SuggestedAction::Type>(type)};
+    auto promises = std::move(dismiss_suggested_action_queries_[type]);
+    dismiss_suggested_action_queries_.erase(type);
     CHECK(!promises.empty());
     CHECK(dismiss_suggested_action_request_count_ >= promises.size());
     dismiss_suggested_action_request_count_ -= promises.size();
@@ -1668,10 +1669,11 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
             CHECK(action != nullptr);
             if (action->get_id() == telegram_api::jsonString::ID) {
               Slice action_str = static_cast<telegram_api::jsonString *>(action.get())->value_;
-              auto suggested_action = get_suggested_action(action_str);
-              if (suggested_action != SuggestedAction::Empty) {
-                if (archive_and_mute && suggested_action == SuggestedAction::EnableArchiveAndMuteNewChats) {
-                  LOG(INFO) << "Skip SuggestedAction::EnableArchiveAndMuteNewChats";
+              SuggestedAction suggested_action(action_str);
+              if (suggested_action != SuggestedAction()) {
+                if (archive_and_mute &&
+                    suggested_action == SuggestedAction{SuggestedAction::Type::EnableArchiveAndMuteNewChats}) {
+                  LOG(INFO) << "Skip EnableArchiveAndMuteNewChats suggested action";
                 } else {
                   suggested_actions.push_back(suggested_action);
                 }
@@ -1790,10 +1792,9 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       auto old_it = suggested_actions_.begin();
       auto new_it = suggested_actions.begin();
       while (old_it != suggested_actions_.end() || new_it != suggested_actions.end()) {
-        if (old_it != suggested_actions_.end() &&
-            (new_it == suggested_actions.end() || std::less<SuggestedAction>()(*old_it, *new_it))) {
+        if (old_it != suggested_actions_.end() && (new_it == suggested_actions.end() || *old_it < *new_it)) {
           removed_actions.push_back(*old_it++);
-        } else if (old_it == suggested_actions_.end() || std::less<SuggestedAction>()(*new_it, *old_it)) {
+        } else if (old_it == suggested_actions_.end() || *new_it < *old_it) {
           added_actions.push_back(*new_it++);
         } else {
           old_it++;

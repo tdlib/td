@@ -136,7 +136,7 @@ class ConfigManager : public NetQueryCallback {
 
   vector<SuggestedAction> suggested_actions_;
   size_t dismiss_suggested_action_request_count_ = 0;
-  std::map<SuggestedAction, vector<Promise<Unit>>> dismiss_suggested_action_queries_;
+  std::map<int32, vector<Promise<Unit>>> dismiss_suggested_action_queries_;
 
   static constexpr uint64 REFCNT_TOKEN = std::numeric_limits<uint64>::max() - 2;
 

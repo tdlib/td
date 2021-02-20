@@ -10,53 +10,57 @@
 
 namespace td {
 
-SuggestedAction get_suggested_action(Slice action_str) {
-  if (action_str == Slice("AUTOARCHIVE_POPULAR")) {
-    return SuggestedAction::EnableArchiveAndMuteNewChats;
-  }
-  if (action_str == Slice("NEWCOMER_TICKS")) {
-    return SuggestedAction::SeeTicksHint;
-  }
-  return SuggestedAction::Empty;
+void SuggestedAction::init(Type type) {
+  type_ = type;
 }
 
-string get_suggested_action_str(SuggestedAction action) {
-  switch (action) {
-    case SuggestedAction::EnableArchiveAndMuteNewChats:
+SuggestedAction::SuggestedAction(Slice action_str) {
+  if (action_str == Slice("AUTOARCHIVE_POPULAR")) {
+    init(Type::EnableArchiveAndMuteNewChats);
+  } else if (action_str == Slice("NEWCOMER_TICKS")) {
+    init(Type::SeeTicksHint);
+  }
+}
+
+SuggestedAction::SuggestedAction(const td_api::object_ptr<td_api::SuggestedAction> &action_object) {
+  if (action_object == nullptr) {
+    return;
+  }
+  switch (action_object->get_id()) {
+    case td_api::suggestedActionEnableArchiveAndMuteNewChats::ID:
+      init(Type::EnableArchiveAndMuteNewChats);
+      break;
+    case td_api::suggestedActionCheckPhoneNumber::ID:
+      init(Type::CheckPhoneNumber);
+      break;
+    case td_api::suggestedActionSeeTicksHint::ID:
+      init(Type::SeeTicksHint);
+      break;
+    default:
+      UNREACHABLE();
+  }
+}
+
+string SuggestedAction::get_suggested_action_str() const {
+  switch (type_) {
+    case Type::EnableArchiveAndMuteNewChats:
       return "AUTOARCHIVE_POPULAR";
-    case SuggestedAction::SeeTicksHint:
+    case Type::SeeTicksHint:
       return "NEWCOMER_TICKS";
     default:
       return string();
   }
 }
 
-SuggestedAction get_suggested_action(const td_api::object_ptr<td_api::SuggestedAction> &action_object) {
-  if (action_object == nullptr) {
-    return SuggestedAction::Empty;
-  }
-  switch (action_object->get_id()) {
-    case td_api::suggestedActionEnableArchiveAndMuteNewChats::ID:
-      return SuggestedAction::EnableArchiveAndMuteNewChats;
-    case td_api::suggestedActionCheckPhoneNumber::ID:
-      return SuggestedAction::CheckPhoneNumber;
-    case td_api::suggestedActionSeeTicksHint::ID:
-      return SuggestedAction::SeeTicksHint;
-    default:
-      UNREACHABLE();
-      return SuggestedAction::Empty;
-  }
-}
-
-td_api::object_ptr<td_api::SuggestedAction> get_suggested_action_object(SuggestedAction action) {
-  switch (action) {
-    case SuggestedAction::Empty:
+td_api::object_ptr<td_api::SuggestedAction> SuggestedAction::get_suggested_action_object() const {
+  switch (type_) {
+    case Type::Empty:
       return nullptr;
-    case SuggestedAction::EnableArchiveAndMuteNewChats:
+    case Type::EnableArchiveAndMuteNewChats:
       return td_api::make_object<td_api::suggestedActionEnableArchiveAndMuteNewChats>();
-    case SuggestedAction::CheckPhoneNumber:
+    case Type::CheckPhoneNumber:
       return td_api::make_object<td_api::suggestedActionCheckPhoneNumber>();
-    case SuggestedAction::SeeTicksHint:
+    case Type::SeeTicksHint:
       return td_api::make_object<td_api::suggestedActionSeeTicksHint>();
     default:
       UNREACHABLE();
@@ -66,8 +70,11 @@ td_api::object_ptr<td_api::SuggestedAction> get_suggested_action_object(Suggeste
 
 td_api::object_ptr<td_api::updateSuggestedActions> get_update_suggested_actions_object(
     const vector<SuggestedAction> &added_actions, const vector<SuggestedAction> &removed_actions) {
-  return td_api::make_object<td_api::updateSuggestedActions>(transform(added_actions, get_suggested_action_object),
-                                                             transform(removed_actions, get_suggested_action_object));
+  auto get_object = [](const SuggestedAction &action) {
+    return action.get_suggested_action_object();
+  };
+  return td_api::make_object<td_api::updateSuggestedActions>(transform(added_actions, get_object),
+                                                             transform(removed_actions, get_object));
 }
 
 }  // namespace td
