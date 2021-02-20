@@ -1317,6 +1317,9 @@ class CliClient final : public Actor {
 
   static td_api::object_ptr<td_api::ChatReportReason> get_chat_report_reason(MutableSlice reason) {
     reason = trim(reason);
+    if (reason == "null") {
+      return nullptr;
+    }
     if (reason == "spam") {
       return td_api::make_object<td_api::chatReportReasonSpam>();
     }
@@ -2544,7 +2547,8 @@ class CliClient final : public Actor {
       int32 max_file_id = as_file_id(file_id);
       int32 min_file_id = (op == "dff" ? 1 : max_file_id);
       for (int32 i = min_file_id; i <= max_file_id; i++) {
-        send_request(td_api::make_object<td_api::downloadFile>(i, priority, offset, to_integer<int32>(limit), op == "dfs"));
+        send_request(
+            td_api::make_object<td_api::downloadFile>(i, priority, offset, to_integer<int32>(limit), op == "dfs"));
       }
     } else if (op == "cdf") {
       send_request(td_api::make_object<td_api::cancelDownloadFile>(as_file_id(args), false));

@@ -80,6 +80,7 @@
 #include "td/telegram/PollManager.h"
 #include "td/telegram/PrivacyManager.h"
 #include "td/telegram/PublicDialogType.h"
+#include "td/telegram/ReportReason.h"
 #include "td/telegram/RequestActor.h"
 #include "td/telegram/SecretChatId.h"
 #include "td/telegram/SecretChatsManager.h"
@@ -6971,18 +6972,24 @@ void Td::on_request(uint64 id, const td_api::removeChatActionBar &request) {
 
 void Td::on_request(uint64 id, td_api::reportChat &request) {
   CHECK_IS_USER();
-  CLEAN_INPUT_STRING(request.text_);
+  auto r_report_reason = ReportReason::get_report_reason(std::move(request.reason_), std::move(request.text_));
+  if (r_report_reason.is_error()) {
+    return send_error_raw(id, r_report_reason.error().code(), r_report_reason.error().message());
+  }
   CREATE_OK_REQUEST_PROMISE();
   messages_manager_->report_dialog(DialogId(request.chat_id_), MessagesManager::get_message_ids(request.message_ids_),
-                                   request.reason_, request.text_, std::move(promise));
+                                   r_report_reason.move_as_ok(), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::reportChatPhoto &request) {
   CHECK_IS_USER();
-  CLEAN_INPUT_STRING(request.text_);
+  auto r_report_reason = ReportReason::get_report_reason(std::move(request.reason_), std::move(request.text_));
+  if (r_report_reason.is_error()) {
+    return send_error_raw(id, r_report_reason.error().code(), r_report_reason.error().message());
+  }
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->report_dialog_photo(DialogId(request.chat_id_), FileId(request.file_id_, 0), request.reason_,
-                                         request.text_, std::move(promise));
+  messages_manager_->report_dialog_photo(DialogId(request.chat_id_), FileId(request.file_id_, 0),
+                                         r_report_reason.move_as_ok(), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getChatStatisticsUrl &request) {

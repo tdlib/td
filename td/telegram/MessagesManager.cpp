@@ -4388,20 +4388,19 @@ class ReportPeerQuery : public Td::ResultHandler {
   explicit ReportPeerQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, const vector<MessageId> &message_ids,
-            tl_object_ptr<telegram_api::ReportReason> &&report_reason, const string &message) {
+  void send(DialogId dialog_id, const vector<MessageId> &message_ids, ReportReason &&report_reason) {
     dialog_id_ = dialog_id;
 
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
 
     if (message_ids.empty()) {
-      send_query(G()->net_query_creator().create(
-          telegram_api::account_reportPeer(std::move(input_peer), std::move(report_reason), message)));
+      send_query(G()->net_query_creator().create(telegram_api::account_reportPeer(
+          std::move(input_peer), report_reason.get_input_report_reason(), report_reason.get_message())));
     } else {
       send_query(G()->net_query_creator().create(
           telegram_api::messages_report(std::move(input_peer), MessagesManager::get_server_message_ids(message_ids),
-                                        std::move(report_reason), message)));
+                                        report_reason.get_input_report_reason(), report_reason.get_message())));
     }
   }
 
@@ -4438,15 +4437,15 @@ class ReportProfilePhotoQuery : public Td::ResultHandler {
   explicit ReportProfilePhotoQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, tl_object_ptr<telegram_api::InputPhoto> &&input_photo,
-            tl_object_ptr<telegram_api::ReportReason> &&report_reason, const string &message) {
+  void send(DialogId dialog_id, tl_object_ptr<telegram_api::InputPhoto> &&input_photo, ReportReason &&report_reason) {
     dialog_id_ = dialog_id;
 
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
 
     send_query(G()->net_query_creator().create(telegram_api::account_reportProfilePhoto(
-        std::move(input_peer), std::move(input_photo), std::move(report_reason), message)));
+        std::move(input_peer), std::move(input_photo), report_reason.get_input_report_reason(),
+        report_reason.get_message())));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -8209,8 +8208,7 @@ bool MessagesManager::can_report_dialog(DialogId dialog_id) const {
   }
 }
 
-void MessagesManager::report_dialog(DialogId dialog_id, const vector<MessageId> &message_ids,
-                                    const tl_object_ptr<td_api::ChatReportReason> &reason, const string &message,
+void MessagesManager::report_dialog(DialogId dialog_id, const vector<MessageId> &message_ids, ReportReason &&reason,
                                     Promise<Unit> &&promise) {
   Dialog *d = get_dialog_force(dialog_id);
   if (d == nullptr) {
@@ -8221,14 +8219,10 @@ void MessagesManager::report_dialog(DialogId dialog_id, const vector<MessageId> 
     return promise.set_error(Status::Error(3, "Can't access the chat"));
   }
 
-  if (reason == nullptr) {
-    return promise.set_error(Status::Error(3, "Reason must be non-empty"));
-  }
-
   Dialog *user_d = d;
   bool is_dialog_spam_report = false;
   bool can_report_spam = d->can_report_spam;
-  if (reason->get_id() == td_api::chatReportReasonSpam::ID && message_ids.empty()) {
+  if (reason.is_spam() && message_ids.empty()) {
     // report from action bar
     if (dialog_id.get_type() == DialogType::SecretChat) {
       auto user_dialog_id = DialogId(td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id()));
@@ -8267,46 +8261,14 @@ void MessagesManager::report_dialog(DialogId dialog_id, const vector<MessageId> 
     }
   }
 
-  tl_object_ptr<telegram_api::ReportReason> report_reason;
-  switch (reason->get_id()) {
-    case td_api::chatReportReasonSpam::ID:
-      report_reason = make_tl_object<telegram_api::inputReportReasonSpam>();
-      break;
-    case td_api::chatReportReasonViolence::ID:
-      report_reason = make_tl_object<telegram_api::inputReportReasonViolence>();
-      break;
-    case td_api::chatReportReasonPornography::ID:
-      report_reason = make_tl_object<telegram_api::inputReportReasonPornography>();
-      break;
-    case td_api::chatReportReasonChildAbuse::ID:
-      report_reason = make_tl_object<telegram_api::inputReportReasonChildAbuse>();
-      break;
-    case td_api::chatReportReasonCopyright::ID:
-      report_reason = make_tl_object<telegram_api::inputReportReasonCopyright>();
-      break;
-    case td_api::chatReportReasonFake::ID:
-      report_reason = make_tl_object<telegram_api::inputReportReasonFake>();
-      break;
-    case td_api::chatReportReasonUnrelatedLocation::ID:
-      report_reason = make_tl_object<telegram_api::inputReportReasonGeoIrrelevant>();
-      if (dialog_id.get_type() == DialogType::Channel) {
-        hide_dialog_action_bar(d);
-      }
-      break;
-    case td_api::chatReportReasonCustom::ID:
-      report_reason = make_tl_object<telegram_api::inputReportReasonOther>();
-      break;
-    default:
-      UNREACHABLE();
+  if (dialog_id.get_type() == DialogType::Channel && reason.is_unrelated_location()) {
+    hide_dialog_action_bar(d);
   }
-  CHECK(report_reason != nullptr);
 
-  td_->create_handler<ReportPeerQuery>(std::move(promise))
-      ->send(dialog_id, server_message_ids, std::move(report_reason), message);
+  td_->create_handler<ReportPeerQuery>(std::move(promise))->send(dialog_id, server_message_ids, std::move(reason));
 }
 
-void MessagesManager::report_dialog_photo(DialogId dialog_id, FileId file_id,
-                                          const tl_object_ptr<td_api::ChatReportReason> &reason, const string &message,
+void MessagesManager::report_dialog_photo(DialogId dialog_id, FileId file_id, ReportReason &&reason,
                                           Promise<Unit> &&promise) {
   Dialog *d = get_dialog_force(dialog_id);
   if (d == nullptr) {
@@ -8315,10 +8277,6 @@ void MessagesManager::report_dialog_photo(DialogId dialog_id, FileId file_id,
 
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
     return promise.set_error(Status::Error(3, "Can't access the chat"));
-  }
-
-  if (reason == nullptr) {
-    return promise.set_error(Status::Error(3, "Reason must be non-empty"));
   }
 
   if (!can_report_dialog(dialog_id)) {
@@ -8334,42 +8292,8 @@ void MessagesManager::report_dialog_photo(DialogId dialog_id, FileId file_id,
     return promise.set_error(Status::Error(400, "Only full chat photos can be reported"));
   }
 
-  tl_object_ptr<telegram_api::ReportReason> report_reason;
-  switch (reason->get_id()) {
-    case td_api::chatReportReasonSpam::ID:
-      report_reason = make_tl_object<telegram_api::inputReportReasonSpam>();
-      break;
-    case td_api::chatReportReasonViolence::ID:
-      report_reason = make_tl_object<telegram_api::inputReportReasonViolence>();
-      break;
-    case td_api::chatReportReasonPornography::ID:
-      report_reason = make_tl_object<telegram_api::inputReportReasonPornography>();
-      break;
-    case td_api::chatReportReasonChildAbuse::ID:
-      report_reason = make_tl_object<telegram_api::inputReportReasonChildAbuse>();
-      break;
-    case td_api::chatReportReasonCopyright::ID:
-      report_reason = make_tl_object<telegram_api::inputReportReasonCopyright>();
-      break;
-    case td_api::chatReportReasonFake::ID:
-      report_reason = make_tl_object<telegram_api::inputReportReasonFake>();
-      break;
-    case td_api::chatReportReasonUnrelatedLocation::ID:
-      report_reason = make_tl_object<telegram_api::inputReportReasonGeoIrrelevant>();
-      if (dialog_id.get_type() == DialogType::Channel) {
-        hide_dialog_action_bar(d);
-      }
-      break;
-    case td_api::chatReportReasonCustom::ID:
-      report_reason = make_tl_object<telegram_api::inputReportReasonOther>();
-      break;
-    default:
-      UNREACHABLE();
-  }
-  CHECK(report_reason != nullptr);
-
   td_->create_handler<ReportProfilePhotoQuery>(std::move(promise))
-      ->send(dialog_id, file_view.remote_location().as_input_photo(), std::move(report_reason), message);
+      ->send(dialog_id, file_view.remote_location().as_input_photo(), std::move(reason));
 }
 
 void MessagesManager::on_get_peer_settings(DialogId dialog_id,
