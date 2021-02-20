@@ -33021,9 +33021,14 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
   bool was_visible_message_reply_info = is_visible_message_reply_info(dialog_id, old_message);
   if (old_message->date != new_message->date) {
     if (new_message->date > 0) {
-      LOG_IF(ERROR, !is_scheduled && !new_message->is_outgoing && dialog_id != get_my_dialog_id())
-          << "Date has changed for incoming " << message_id << " in " << dialog_id << " from " << old_message->date
-          << " to " << new_message->date << ", message content type is " << old_content_type << '/' << new_content_type;
+      if (!(is_scheduled || message_id.is_yet_unsent() ||
+            (message_id.is_server() && message_id.get_server_message_id().get() == 1) ||
+            old_content_type == MessageContentType::ChannelMigrateFrom ||
+            old_content_type == MessageContentType::ChannelCreate)) {
+        LOG(ERROR) << "Date has changed for " << message_id << " in " << dialog_id << " from " << old_message->date
+                   << " to " << new_message->date << ", message content type is " << old_content_type << '/'
+                   << new_content_type;
+      }
       CHECK(old_message->date > 0);
       LOG(DEBUG) << "Message date has changed from " << old_message->date << " to " << new_message->date;
       old_message->date = new_message->date;
