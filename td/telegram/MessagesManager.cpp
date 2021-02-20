@@ -33010,19 +33010,20 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
 
   DialogId dialog_id = d->dialog_id;
   MessageId message_id = old_message->message_id;
+  auto old_content_type = old_message->content->get_type();
+  auto new_content_type = new_message->content->get_type();
   bool is_scheduled = message_id.is_scheduled();
   bool need_send_update = false;
-  bool is_new_available = new_message->content->get_type() != MessageContentType::ChatDeleteHistory;
+  bool is_new_available = new_content_type != MessageContentType::ChatDeleteHistory;
   bool replace_legacy = (old_message->legacy_layer != 0 &&
                          (new_message->legacy_layer == 0 || old_message->legacy_layer < new_message->legacy_layer)) ||
-                        old_message->content->get_type() == MessageContentType::Unsupported;
+                        old_content_type == MessageContentType::Unsupported;
   bool was_visible_message_reply_info = is_visible_message_reply_info(dialog_id, old_message);
   if (old_message->date != new_message->date) {
     if (new_message->date > 0) {
       LOG_IF(ERROR, !is_scheduled && !new_message->is_outgoing && dialog_id != get_my_dialog_id())
           << "Date has changed for incoming " << message_id << " in " << dialog_id << " from " << old_message->date
-          << " to " << new_message->date << ", message content type is " << old_message->content->get_type() << '/'
-          << new_message->content->get_type();
+          << " to " << new_message->date << ", message content type is " << old_content_type << '/' << new_content_type;
       CHECK(old_message->date > 0);
       LOG(DEBUG) << "Message date has changed from " << old_message->date << " to " << new_message->date;
       old_message->date = new_message->date;
@@ -33032,8 +33033,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
       need_send_update = true;
     } else {
       LOG(ERROR) << "Receive " << message_id << " in " << dialog_id << " with wrong date " << new_message->date
-                 << ", message content type is " << old_message->content->get_type() << '/'
-                 << new_message->content->get_type();
+                 << ", message content type is " << old_content_type << '/' << new_content_type;
     }
   }
   if (old_message->date == old_message->edited_schedule_date) {
@@ -33051,8 +33051,8 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
         need_send_update = true;
       }
     } else {
-      LOG(ERROR) << "Receive " << message_id << " in " << dialog_id << " of type " << old_message->content->get_type()
-                 << "/" << new_message->content->get_type() << " with wrong edit date " << new_message->edit_date
+      LOG(ERROR) << "Receive " << message_id << " in " << dialog_id << " of type " << old_content_type << "/"
+                 << new_content_type << " with wrong edit date " << new_message->edit_date
                  << ", old edit date = " << old_message->edit_date;
     }
   }
@@ -33069,8 +33069,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     // there can be race for sent signed posts or changed anonymous flag
     LOG_IF(ERROR, old_message->sender_user_id != UserId() && new_message->sender_user_id != UserId())
         << message_id << " in " << dialog_id << " has changed sender from " << old_message->sender_user_id << " to "
-        << new_message->sender_user_id << ", message content type is " << old_message->content->get_type() << '/'
-        << new_message->content->get_type();
+        << new_message->sender_user_id << ", message content type is " << old_content_type << '/' << new_content_type;
 
     LOG_IF(WARNING, (new_message->sender_user_id.is_valid() || old_message->author_signature.empty()) &&
                         !old_message->sender_dialog_id.is_valid() && !new_message->sender_dialog_id.is_valid())
@@ -33084,8 +33083,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     // there can be race for changed anonymous flag
     LOG_IF(ERROR, old_message->sender_dialog_id != DialogId() && new_message->sender_dialog_id != DialogId())
         << message_id << " in " << dialog_id << " has changed sender from " << old_message->sender_dialog_id << " to "
-        << new_message->sender_dialog_id << ", message content type is " << old_message->content->get_type() << '/'
-        << new_message->content->get_type();
+        << new_message->sender_dialog_id << ", message content type is " << old_content_type << '/' << new_content_type;
 
     LOG(DEBUG) << "Change message sender";
     old_message->sender_dialog_id = new_message->sender_dialog_id;
@@ -33096,8 +33094,8 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
       if (!replace_legacy) {
         LOG(ERROR) << message_id << " in " << dialog_id << " has received forward info " << *new_message->forward_info
                    << ", really forwarded from " << old_message->real_forward_from_message_id << " in "
-                   << old_message->real_forward_from_dialog_id << ", message content type is "
-                   << old_message->content->get_type() << '/' << new_message->content->get_type();
+                   << old_message->real_forward_from_dialog_id << ", message content type is " << old_content_type
+                   << '/' << new_content_type;
       }
       old_message->forward_info = std::move(new_message->forward_info);
       need_send_update = true;
@@ -33114,8 +33112,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
           LOG(ERROR) << message_id << " in " << dialog_id << " has changed forward info from "
                      << *old_message->forward_info << " to " << *new_message->forward_info << ", really forwarded from "
                      << old_message->real_forward_from_message_id << " in " << old_message->real_forward_from_dialog_id
-                     << ", message content type is " << old_message->content->get_type() << '/'
-                     << new_message->content->get_type();
+                     << ", message content type is " << old_content_type << '/' << new_content_type;
         }
         old_message->forward_info = std::move(new_message->forward_info);
         need_send_update = true;
@@ -33124,8 +33121,8 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
       LOG(ERROR) << message_id << " in " << dialog_id << " sent by " << old_message->sender_user_id << "/"
                  << old_message->sender_dialog_id << " has lost forward info " << *old_message->forward_info
                  << ", really forwarded from " << old_message->real_forward_from_message_id << " in "
-                 << old_message->real_forward_from_dialog_id << ", message content type is "
-                 << old_message->content->get_type() << '/' << new_message->content->get_type();
+                 << old_message->real_forward_from_dialog_id << ", message content type is " << old_content_type << '/'
+                 << new_content_type;
       old_message->forward_info = nullptr;
       need_send_update = true;
     }
@@ -33140,8 +33137,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
       if (new_message->notification_id.is_valid()) {
         LOG(ERROR) << "Notification id for " << message_id << " in " << dialog_id << " has tried to change from "
                    << old_message->notification_id << " to " << new_message->notification_id
-                   << ", message content type is " << old_message->content->get_type() << '/'
-                   << new_message->content->get_type();
+                   << ", message content type is " << old_content_type << '/' << new_content_type;
       }
     } else {
       CHECK(new_message->notification_id.is_valid());
@@ -33174,8 +33170,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     } else if (is_new_available) {
       LOG(ERROR) << message_id << " in " << dialog_id << " has changed message it is reply to from "
                  << old_message->reply_to_message_id << " to " << new_message->reply_to_message_id
-                 << ", message content type is " << old_message->content->get_type() << '/'
-                 << new_message->content->get_type();
+                 << ", message content type is " << old_content_type << '/' << new_content_type;
     }
   }
   if (old_message->reply_in_dialog_id != new_message->reply_in_dialog_id) {
@@ -33186,8 +33181,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     } else if (is_new_available && old_message->reply_in_dialog_id.is_valid()) {
       LOG(ERROR) << message_id << " in " << dialog_id << " has changed dialog it is reply in from "
                  << old_message->reply_in_dialog_id << " to " << new_message->reply_in_dialog_id
-                 << ", message content type is " << old_message->content->get_type() << '/'
-                 << new_message->content->get_type();
+                 << ", message content type is " << old_content_type << '/' << new_content_type;
     }
   }
   if (old_message->top_thread_message_id != new_message->top_thread_message_id) {
@@ -33199,8 +33193,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     } else if (is_new_available) {
       LOG(ERROR) << message_id << " in " << dialog_id << " has changed message thread from "
                  << old_message->top_thread_message_id << " to " << new_message->top_thread_message_id
-                 << ", message content type is " << old_message->content->get_type() << '/'
-                 << new_message->content->get_type();
+                 << ", message content type is " << old_content_type << '/' << new_content_type;
     }
   }
   if (old_message->via_bot_user_id != new_message->via_bot_user_id) {
@@ -33208,8 +33201,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
         !replace_legacy) {
       LOG(ERROR) << message_id << " in " << dialog_id << " has changed bot via it is sent from "
                  << old_message->via_bot_user_id << " to " << new_message->via_bot_user_id
-                 << ", message content type is " << old_message->content->get_type() << '/'
-                 << new_message->content->get_type();
+                 << ", message content type is " << old_content_type << '/' << new_content_type;
     }
     LOG(DEBUG) << "Change message via_bot from " << old_message->via_bot_user_id << " to "
                << new_message->via_bot_user_id;
@@ -33224,25 +33216,24 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
   if (old_message->is_outgoing != new_message->is_outgoing && is_new_available) {
     if (!replace_legacy && !(message_id.is_scheduled() && dialog_id == get_my_dialog_id())) {
       LOG(ERROR) << message_id << " in " << dialog_id << " has changed is_outgoing from " << old_message->is_outgoing
-                 << " to " << new_message->is_outgoing << ", message content type is "
-                 << old_message->content->get_type() << '/' << new_message->content->get_type();
+                 << " to " << new_message->is_outgoing << ", message content type is " << old_content_type << '/'
+                 << new_content_type;
     }
     old_message->is_outgoing = new_message->is_outgoing;
     need_send_update = true;
   }
   LOG_IF(ERROR, old_message->is_channel_post != new_message->is_channel_post)
       << message_id << " in " << dialog_id << " has changed is_channel_post from " << old_message->is_channel_post
-      << " to " << new_message->is_channel_post << ", message content type is " << old_message->content->get_type()
-      << '/' << new_message->content->get_type();
+      << " to " << new_message->is_channel_post << ", message content type is " << old_content_type << '/'
+      << new_content_type;
   if (old_message->contains_mention != new_message->contains_mention) {
-    auto old_type = old_message->content->get_type();
-    if (old_message->edit_date == 0 && is_new_available && old_type != MessageContentType::PinMessage &&
-        old_type != MessageContentType::ExpiredPhoto && old_type != MessageContentType::ExpiredVideo &&
+    if (old_message->edit_date == 0 && is_new_available && old_content_type != MessageContentType::PinMessage &&
+        old_content_type != MessageContentType::ExpiredPhoto && old_content_type != MessageContentType::ExpiredVideo &&
         !replace_legacy) {
       LOG(ERROR) << message_id << " in " << dialog_id << " has changed contains_mention from "
                  << old_message->contains_mention << " to " << new_message->contains_mention
-                 << ", is_outgoing = " << old_message->is_outgoing << ", message content type is " << old_type << '/'
-                 << new_message->content->get_type();
+                 << ", is_outgoing = " << old_message->is_outgoing << ", message content type is " << old_content_type
+                 << '/' << new_content_type;
     }
     // contains_mention flag shouldn't be changed, because the message will not be added to unread mention list
     // and we are unable to show/hide message notification
@@ -33318,14 +33309,12 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
   } else {
     if (old_message->reply_markup == nullptr) {
       if (new_message->reply_markup != nullptr) {
-        auto content_type = old_message->content->get_type();
         // MessageGame and MessageInvoice reply markup can be generated server side
         // some forwards retain their reply markup
-        if (content_type != MessageContentType::Game && content_type != MessageContentType::Invoice &&
+        if (old_content_type != MessageContentType::Game && old_content_type != MessageContentType::Invoice &&
             need_message_changed_warning(old_message) && !replace_legacy) {
           LOG(ERROR) << message_id << " in " << dialog_id << " has received reply markup " << *new_message->reply_markup
-                     << ", message content type is " << old_message->content->get_type() << '/'
-                     << new_message->content->get_type();
+                     << ", message content type is " << old_content_type << '/' << new_content_type;
         } else {
           LOG(DEBUG) << "Add message reply keyboard";
         }
