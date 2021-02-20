@@ -1130,12 +1130,6 @@ void ConfigManager::do_set_archive_and_mute(bool archive_and_mute) {
   G()->shared_config().set_option_boolean("archive_and_mute_new_chats_from_unknown_users", archive_and_mute);
 }
 
-td_api::object_ptr<td_api::updateSuggestedActions> ConfigManager::get_update_suggested_actions(
-    const vector<SuggestedAction> &added_actions, const vector<SuggestedAction> &removed_actions) {
-  return td_api::make_object<td_api::updateSuggestedActions>(transform(added_actions, get_suggested_action_object),
-                                                             transform(removed_actions, get_suggested_action_object));
-}
-
 void ConfigManager::dismiss_suggested_action(SuggestedAction suggested_action, Promise<Unit> &&promise) {
   if (suggested_action == SuggestedAction::Empty) {
     return promise.set_error(Status::Error(400, "Action must be non-empty"));
@@ -1162,7 +1156,7 @@ void ConfigManager::dismiss_suggested_action(SuggestedAction suggested_action, P
 
 void ConfigManager::do_dismiss_suggested_action(SuggestedAction suggested_action) {
   if (td::remove(suggested_actions_, suggested_action)) {
-    send_closure(G()->td(), &Td::send_update, get_update_suggested_actions({}, {suggested_action}));
+    send_closure(G()->td(), &Td::send_update, get_update_suggested_actions_object({}, {suggested_action}));
   }
 }
 
@@ -1809,14 +1803,14 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       CHECK(!added_actions.empty() || !removed_actions.empty());
       suggested_actions_ = std::move(suggested_actions);
       send_closure(G()->td(), &Td::send_update,
-                   get_update_suggested_actions(std::move(added_actions), std::move(removed_actions)));
+                   get_update_suggested_actions_object(std::move(added_actions), std::move(removed_actions)));
     }
   }
 }
 
 void ConfigManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
   if (!suggested_actions_.empty()) {
-    updates.push_back(get_update_suggested_actions(suggested_actions_, {}));
+    updates.push_back(get_update_suggested_actions_object(suggested_actions_, {}));
   }
 }
 

@@ -157,9 +157,6 @@ class ConfigManager : public NetQueryCallback {
 
   void do_set_archive_and_mute(bool archive_and_mute);
 
-  static td_api::object_ptr<td_api::updateSuggestedActions> get_update_suggested_actions(
-      const vector<SuggestedAction> &added_actions, const vector<SuggestedAction> &removed_actions);
-
   void do_dismiss_suggested_action(SuggestedAction suggested_action);
 
   static Timestamp load_config_expire_time();

@@ -23,4 +23,7 @@ SuggestedAction get_suggested_action(const td_api::object_ptr<td_api::SuggestedA
 
 td_api::object_ptr<td_api::SuggestedAction> get_suggested_action_object(SuggestedAction action);
 
+td_api::object_ptr<td_api::updateSuggestedActions> get_update_suggested_actions_object(
+    const vector<SuggestedAction> &added_actions, const vector<SuggestedAction> &removed_actions);
+
 }  // namespace td

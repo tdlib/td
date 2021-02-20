@@ -6,6 +6,8 @@
 //
 #include "td/telegram/SuggestedAction.h"
 
+#include "td/utils/algorithm.h"
+
 namespace td {
 
 SuggestedAction get_suggested_action(Slice action_str) {
@@ -60,6 +62,12 @@ td_api::object_ptr<td_api::SuggestedAction> get_suggested_action_object(Suggeste
       UNREACHABLE();
       return nullptr;
   }
+}
+
+td_api::object_ptr<td_api::updateSuggestedActions> get_update_suggested_actions_object(
+    const vector<SuggestedAction> &added_actions, const vector<SuggestedAction> &removed_actions) {
+  return td_api::make_object<td_api::updateSuggestedActions>(transform(added_actions, get_suggested_action_object),
+                                                             transform(removed_actions, get_suggested_action_object));
 }
 
 }  // namespace td
