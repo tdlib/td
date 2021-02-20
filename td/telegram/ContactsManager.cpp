@@ -9800,96 +9800,96 @@ void ContactsManager::on_get_users(vector<tl_object_ptr<telegram_api::User>> &&u
   }
 }
 
-void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&user_full) {
-  UserId user_id = get_user_id(user_full->user_);
+void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&user) {
+  UserId user_id = get_user_id(user->user_);
   if (!user_id.is_valid()) {
     LOG(ERROR) << "Receive invalid " << user_id;
     return;
   }
 
-  on_get_user(std::move(user_full->user_), "on_get_user_full");
+  on_get_user(std::move(user->user_), "on_get_user_full");
   User *u = get_user(user_id);
   if (u == nullptr) {
     return;
   }
 
-  td_->messages_manager_->on_update_dialog_notify_settings(DialogId(user_id), std::move(user_full->notify_settings_),
+  td_->messages_manager_->on_update_dialog_notify_settings(DialogId(user_id), std::move(user->notify_settings_),
                                                            "on_get_user_full");
 
   {
     MessageId pinned_message_id;
-    if ((user_full->flags_ & USER_FULL_FLAG_HAS_PINNED_MESSAGE) != 0) {
-      pinned_message_id = MessageId(ServerMessageId(user_full->pinned_msg_id_));
+    if ((user->flags_ & USER_FULL_FLAG_HAS_PINNED_MESSAGE) != 0) {
+      pinned_message_id = MessageId(ServerMessageId(user->pinned_msg_id_));
     }
     td_->messages_manager_->on_update_dialog_last_pinned_message_id(DialogId(user_id), pinned_message_id);
   }
   {
     FolderId folder_id;
-    if ((user_full->flags_ & USER_FULL_FLAG_HAS_FOLDER_ID) != 0) {
-      folder_id = FolderId(user_full->folder_id_);
+    if ((user->flags_ & USER_FULL_FLAG_HAS_FOLDER_ID) != 0) {
+      folder_id = FolderId(user->folder_id_);
     }
     td_->messages_manager_->on_update_dialog_folder_id(DialogId(user_id), folder_id);
   }
   td_->messages_manager_->on_update_dialog_has_scheduled_server_messages(
-      DialogId(user_id), (user_full->flags_ & USER_FULL_FLAG_HAS_SCHEDULED_MESSAGES) != 0);
+      DialogId(user_id), (user->flags_ & USER_FULL_FLAG_HAS_SCHEDULED_MESSAGES) != 0);
   {
     MessageTtlSetting message_ttl_setting;
-    if ((user_full->flags_ & USER_FULL_FLAG_HAS_MESSAGE_TTL) != 0) {
-      message_ttl_setting = MessageTtlSetting(user_full->ttl_period_);
+    if ((user->flags_ & USER_FULL_FLAG_HAS_MESSAGE_TTL) != 0) {
+      message_ttl_setting = MessageTtlSetting(user->ttl_period_);
     }
     td_->messages_manager_->on_update_dialog_message_ttl_setting(DialogId(user_id), message_ttl_setting);
   }
 
-  UserFull *user = add_user_full(user_id);
-  user->expires_at = Time::now() + USER_FULL_EXPIRE_TIME;
+  UserFull *user_full = add_user_full(user_id);
+  user_full->expires_at = Time::now() + USER_FULL_EXPIRE_TIME;
 
   {
-    bool is_blocked = (user_full->flags_ & USER_FULL_FLAG_IS_BLOCKED) != 0;
-    on_update_user_full_is_blocked(user, user_id, is_blocked);
+    bool is_blocked = (user->flags_ & USER_FULL_FLAG_IS_BLOCKED) != 0;
+    on_update_user_full_is_blocked(user_full, user_id, is_blocked);
     td_->messages_manager_->on_update_dialog_is_blocked(DialogId(user_id), is_blocked);
   }
 
-  on_update_user_full_common_chat_count(user, user_id, user_full->common_chats_count_);
+  on_update_user_full_common_chat_count(user_full, user_id, user->common_chats_count_);
   on_update_user_full_need_phone_number_privacy_exception(
-      user, user_id, (user_full->settings_->flags_ & telegram_api::peerSettings::NEED_CONTACTS_EXCEPTION_MASK) != 0);
+      user_full, user_id, (user->settings_->flags_ & telegram_api::peerSettings::NEED_CONTACTS_EXCEPTION_MASK) != 0);
 
-  bool can_pin_messages = user_full->can_pin_message_;
-  if (user->can_pin_messages != can_pin_messages) {
-    user->can_pin_messages = can_pin_messages;
-    user->is_changed = true;
+  bool can_pin_messages = user->can_pin_message_;
+  if (user_full->can_pin_messages != can_pin_messages) {
+    user_full->can_pin_messages = can_pin_messages;
+    user_full->is_changed = true;
   }
 
-  bool can_be_called = user_full->phone_calls_available_ && !user_full->phone_calls_private_;
-  bool supports_video_calls = user_full->video_calls_available_ && !user_full->phone_calls_private_;
-  bool has_private_calls = user_full->phone_calls_private_;
-  if (user->can_be_called != can_be_called || user->supports_video_calls != supports_video_calls ||
-      user->has_private_calls != has_private_calls || user->about != user_full->about_) {
-    user->can_be_called = can_be_called;
-    user->supports_video_calls = supports_video_calls;
-    user->has_private_calls = has_private_calls;
-    user->about = std::move(user_full->about_);
+  bool can_be_called = user->phone_calls_available_ && !user->phone_calls_private_;
+  bool supports_video_calls = user->video_calls_available_ && !user->phone_calls_private_;
+  bool has_private_calls = user->phone_calls_private_;
+  if (user_full->can_be_called != can_be_called || user_full->supports_video_calls != supports_video_calls ||
+      user_full->has_private_calls != has_private_calls || user_full->about != user->about_) {
+    user_full->can_be_called = can_be_called;
+    user_full->supports_video_calls = supports_video_calls;
+    user_full->has_private_calls = has_private_calls;
+    user_full->about = std::move(user->about_);
 
-    user->is_changed = true;
+    user_full->is_changed = true;
   }
 
-  auto photo = get_photo(td_->file_manager_.get(), std::move(user_full->profile_photo_), DialogId(user_id));
-  if (photo != user->photo) {
-    user->photo = std::move(photo);
-    user->is_changed = true;
+  auto photo = get_photo(td_->file_manager_.get(), std::move(user->profile_photo_), DialogId(user_id));
+  if (photo != user_full->photo) {
+    user_full->photo = std::move(photo);
+    user_full->is_changed = true;
   }
-  if (user->photo.is_empty()) {
+  if (user_full->photo.is_empty()) {
     drop_user_photos(user_id, true, false, "on_get_user_full");
   } else {
-    register_user_photo(u, user_id, user->photo);
+    register_user_photo(u, user_id, user_full->photo);
   }
 
-  if (user_full->bot_info_ != nullptr && on_update_bot_info(std::move(user_full->bot_info_), false)) {
-    user->need_send_update = true;
+  if (user->bot_info_ != nullptr && on_update_bot_info(std::move(user->bot_info_), false)) {
+    user_full->need_send_update = true;
   }
-  update_user_full(user, user_id);
+  update_user_full(user_full, user_id);
 
   // update peer settings after UserFull is created and updated to not update twice need_phone_number_privacy_exception
-  td_->messages_manager_->on_get_peer_settings(DialogId(user_id), std::move(user_full->settings_));
+  td_->messages_manager_->on_get_peer_settings(DialogId(user_id), std::move(user->settings_));
 }
 
 void ContactsManager::on_get_user_photos(UserId user_id, int32 offset, int32 limit, int32 total_count,
@@ -10051,8 +10051,8 @@ void ContactsManager::on_get_chats(vector<tl_object_ptr<telegram_api::Chat>> &&c
 void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_full_ptr, Promise<Unit> &&promise) {
   LOG(INFO) << "Receive " << to_string(chat_full_ptr);
   if (chat_full_ptr->get_id() == telegram_api::chatFull::ID) {
-    auto chat_full = move_tl_object_as<telegram_api::chatFull>(chat_full_ptr);
-    ChatId chat_id(chat_full->id_);
+    auto chat = move_tl_object_as<telegram_api::chatFull>(chat_full_ptr);
+    ChatId chat_id(chat->id_);
     if (!chat_id.is_valid()) {
       LOG(ERROR) << "Receive invalid " << chat_id;
       return promise.set_value(Unit());
@@ -10060,8 +10060,8 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
 
     {
       MessageId pinned_message_id;
-      if ((chat_full->flags_ & CHAT_FULL_FLAG_HAS_PINNED_MESSAGE) != 0) {
-        pinned_message_id = MessageId(ServerMessageId(chat_full->pinned_msg_id_));
+      if ((chat->flags_ & CHAT_FULL_FLAG_HAS_PINNED_MESSAGE) != 0) {
+        pinned_message_id = MessageId(ServerMessageId(chat->pinned_msg_id_));
       }
       Chat *c = get_chat(chat_id);
       if (c == nullptr) {
@@ -10080,86 +10080,87 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     }
     {
       FolderId folder_id;
-      if ((chat_full->flags_ & CHAT_FULL_FLAG_HAS_FOLDER_ID) != 0) {
-        folder_id = FolderId(chat_full->folder_id_);
+      if ((chat->flags_ & CHAT_FULL_FLAG_HAS_FOLDER_ID) != 0) {
+        folder_id = FolderId(chat->folder_id_);
       }
       td_->messages_manager_->on_update_dialog_folder_id(DialogId(chat_id), folder_id);
     }
     td_->messages_manager_->on_update_dialog_has_scheduled_server_messages(
-        DialogId(chat_id), (chat_full->flags_ & CHAT_FULL_FLAG_HAS_SCHEDULED_MESSAGES) != 0);
+        DialogId(chat_id), (chat->flags_ & CHAT_FULL_FLAG_HAS_SCHEDULED_MESSAGES) != 0);
     {
       InputGroupCallId input_group_call_id;
-      if (chat_full->call_ != nullptr) {
-        input_group_call_id = InputGroupCallId(chat_full->call_);
+      if (chat->call_ != nullptr) {
+        input_group_call_id = InputGroupCallId(chat->call_);
       }
       td_->messages_manager_->on_update_dialog_group_call_id(DialogId(chat_id), input_group_call_id);
     }
     {
       MessageTtlSetting message_ttl_setting;
-      if ((chat_full->flags_ & CHAT_FULL_FLAG_HAS_MESSAGE_TTL) != 0) {
-        message_ttl_setting = MessageTtlSetting(chat_full->ttl_period_);
+      if ((chat->flags_ & CHAT_FULL_FLAG_HAS_MESSAGE_TTL) != 0) {
+        message_ttl_setting = MessageTtlSetting(chat->ttl_period_);
       }
       td_->messages_manager_->on_update_dialog_message_ttl_setting(DialogId(chat_id), message_ttl_setting);
     }
 
-    ChatFull *chat = add_chat_full(chat_id);
-    on_update_chat_full_invite_link(chat, std::move(chat_full->exported_invite_));
-    on_update_chat_full_photo(
-        chat, chat_id, get_photo(td_->file_manager_.get(), std::move(chat_full->chat_photo_), DialogId(chat_id)));
+    ChatFull *chat_full = add_chat_full(chat_id);
+    on_update_chat_full_invite_link(chat_full, std::move(chat->exported_invite_));
+    on_update_chat_full_photo(chat_full, chat_id,
+                              get_photo(td_->file_manager_.get(), std::move(chat->chat_photo_), DialogId(chat_id)));
 
-    for (auto &bot_info : chat_full->bot_info_) {
+    for (auto &bot_info : chat->bot_info_) {
       if (on_update_bot_info(std::move(bot_info))) {
-        chat->need_send_update = true;
+        chat_full->need_send_update = true;
       }
     }
 
-    if (chat->description != chat_full->about_) {
-      chat->description = std::move(chat_full->about_);
-      chat->is_changed = true;
+    if (chat_full->description != chat->about_) {
+      chat_full->description = std::move(chat->about_);
+      chat_full->is_changed = true;
     }
-    if (chat->can_set_username != chat_full->can_set_username_) {
-      chat->can_set_username = chat_full->can_set_username_;
-      chat->is_changed = true;
+    if (chat_full->can_set_username != chat->can_set_username_) {
+      chat_full->can_set_username = chat->can_set_username_;
+      chat_full->is_changed = true;
     }
 
-    on_get_chat_participants(std::move(chat_full->participants_), false);
-    td_->messages_manager_->on_update_dialog_notify_settings(DialogId(chat_id), std::move(chat_full->notify_settings_),
+    on_get_chat_participants(std::move(chat->participants_), false);
+    td_->messages_manager_->on_update_dialog_notify_settings(DialogId(chat_id), std::move(chat->notify_settings_),
                                                              "on_get_chat_full");
 
-    update_chat_full(chat, chat_id);
+    update_chat_full(chat_full, chat_id);
   } else {
     CHECK(chat_full_ptr->get_id() == telegram_api::channelFull::ID);
-    auto channel_full = move_tl_object_as<telegram_api::channelFull>(chat_full_ptr);
-    ChannelId channel_id(channel_full->id_);
+    auto channel = move_tl_object_as<telegram_api::channelFull>(chat_full_ptr);
+    ChannelId channel_id(channel->id_);
     if (!channel_id.is_valid()) {
       LOG(ERROR) << "Receive invalid " << channel_id;
       return promise.set_value(Unit());
     }
 
     if (!G()->close_flag()) {
-      auto channel = get_channel_full(channel_id, "on_get_channel_full");
-      if (channel != nullptr) {
-        if (channel->repair_request_version != 0 && channel->repair_request_version < channel->speculative_version) {
-          LOG(INFO) << "Receive ChannelFull with request version " << channel->repair_request_version
-                    << ", but current speculative version is " << channel->speculative_version;
+      auto channel_full = get_channel_full(channel_id, "on_get_channel_full");
+      if (channel_full != nullptr) {
+        if (channel_full->repair_request_version != 0 &&
+            channel_full->repair_request_version < channel_full->speculative_version) {
+          LOG(INFO) << "Receive ChannelFull with request version " << channel_full->repair_request_version
+                    << ", but current speculative version is " << channel_full->speculative_version;
 
-          channel->repair_request_version = channel->speculative_version;
+          channel_full->repair_request_version = channel_full->speculative_version;
 
           auto input_channel = get_input_channel(channel_id);
           CHECK(input_channel != nullptr);
           td_->create_handler<GetFullChannelQuery>(std::move(promise))->send(channel_id, std::move(input_channel));
           return;
         }
-        channel->repair_request_version = 0;
+        channel_full->repair_request_version = 0;
       }
     }
 
-    td_->messages_manager_->on_update_dialog_notify_settings(
-        DialogId(channel_id), std::move(channel_full->notify_settings_), "on_get_channel_full");
+    td_->messages_manager_->on_update_dialog_notify_settings(DialogId(channel_id), std::move(channel->notify_settings_),
+                                                             "on_get_channel_full");
     {
       MessageTtlSetting message_ttl_setting;
-      if ((channel_full->flags_ & CHANNEL_FULL_FLAG_HAS_MESSAGE_TTL) != 0) {
-        message_ttl_setting = MessageTtlSetting(channel_full->ttl_period_);
+      if ((channel->flags_ & CHANNEL_FULL_FLAG_HAS_MESSAGE_TTL) != 0) {
+        message_ttl_setting = MessageTtlSetting(channel->ttl_period_);
       }
       td_->messages_manager_->on_update_dialog_message_ttl_setting(DialogId(channel_id), message_ttl_setting);
     }
@@ -10170,119 +10171,119 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       return promise.set_value(Unit());
     }
 
-    ChannelFull *channel = add_channel_full(channel_id);
+    ChannelFull *channel_full = add_channel_full(channel_id);
 
-    bool have_participant_count = (channel_full->flags_ & CHANNEL_FULL_FLAG_HAS_PARTICIPANT_COUNT) != 0;
-    auto participant_count = have_participant_count ? channel_full->participants_count_ : channel->participant_count;
+    bool have_participant_count = (channel->flags_ & CHANNEL_FULL_FLAG_HAS_PARTICIPANT_COUNT) != 0;
+    auto participant_count = have_participant_count ? channel->participants_count_ : channel_full->participant_count;
     auto administrator_count = 0;
-    if ((channel_full->flags_ & CHANNEL_FULL_FLAG_HAS_ADMINISTRATOR_COUNT) != 0) {
-      administrator_count = channel_full->admins_count_;
+    if ((channel->flags_ & CHANNEL_FULL_FLAG_HAS_ADMINISTRATOR_COUNT) != 0) {
+      administrator_count = channel->admins_count_;
     } else if (c->is_megagroup || c->status.is_administrator()) {
       // in megagroups and administered channels don't drop known number of administrators
-      administrator_count = channel->administrator_count;
+      administrator_count = channel_full->administrator_count;
     }
     if (participant_count < administrator_count) {
       participant_count = administrator_count;
     }
-    auto restricted_count =
-        (channel_full->flags_ & CHANNEL_FULL_FLAG_HAS_BANNED_COUNT) != 0 ? channel_full->banned_count_ : 0;
-    auto banned_count =
-        (channel_full->flags_ & CHANNEL_FULL_FLAG_HAS_BANNED_COUNT) != 0 ? channel_full->kicked_count_ : 0;
-    auto can_get_participants = (channel_full->flags_ & CHANNEL_FULL_FLAG_CAN_GET_PARTICIPANTS) != 0;
-    auto can_set_username = (channel_full->flags_ & CHANNEL_FULL_FLAG_CAN_SET_USERNAME) != 0;
-    auto can_set_sticker_set = (channel_full->flags_ & CHANNEL_FULL_FLAG_CAN_SET_STICKER_SET) != 0;
-    auto can_set_location = (channel_full->flags_ & CHANNEL_FULL_FLAG_CAN_SET_LOCATION) != 0;
-    auto is_all_history_available = (channel_full->flags_ & CHANNEL_FULL_FLAG_IS_ALL_HISTORY_HIDDEN) == 0;
-    auto can_view_statistics = (channel_full->flags_ & CHANNEL_FULL_FLAG_CAN_VIEW_STATISTICS) != 0;
+    auto restricted_count = (channel->flags_ & CHANNEL_FULL_FLAG_HAS_BANNED_COUNT) != 0 ? channel->banned_count_ : 0;
+    auto banned_count = (channel->flags_ & CHANNEL_FULL_FLAG_HAS_BANNED_COUNT) != 0 ? channel->kicked_count_ : 0;
+    auto can_get_participants = (channel->flags_ & CHANNEL_FULL_FLAG_CAN_GET_PARTICIPANTS) != 0;
+    auto can_set_username = (channel->flags_ & CHANNEL_FULL_FLAG_CAN_SET_USERNAME) != 0;
+    auto can_set_sticker_set = (channel->flags_ & CHANNEL_FULL_FLAG_CAN_SET_STICKER_SET) != 0;
+    auto can_set_location = (channel->flags_ & CHANNEL_FULL_FLAG_CAN_SET_LOCATION) != 0;
+    auto is_all_history_available = (channel->flags_ & CHANNEL_FULL_FLAG_IS_ALL_HISTORY_HIDDEN) == 0;
+    auto can_view_statistics = (channel->flags_ & CHANNEL_FULL_FLAG_CAN_VIEW_STATISTICS) != 0;
     StickerSetId sticker_set_id;
-    if (channel_full->stickerset_ != nullptr) {
+    if (channel->stickerset_ != nullptr) {
       sticker_set_id =
-          td_->stickers_manager_->on_get_sticker_set(std::move(channel_full->stickerset_), true, "on_get_channel_full");
+          td_->stickers_manager_->on_get_sticker_set(std::move(channel->stickerset_), true, "on_get_channel_full");
     }
     DcId stats_dc_id;
-    if ((channel_full->flags_ & CHANNEL_FULL_FLAG_HAS_STATISTICS_DC_ID) != 0) {
-      stats_dc_id = DcId::create(channel_full->stats_dc_);
+    if ((channel->flags_ & CHANNEL_FULL_FLAG_HAS_STATISTICS_DC_ID) != 0) {
+      stats_dc_id = DcId::create(channel->stats_dc_);
     }
     if (!stats_dc_id.is_exact() && can_view_statistics) {
       LOG(ERROR) << "Receive can_view_statistics == true, but invalid statistics DC ID in " << channel_id;
       can_view_statistics = false;
     }
 
-    channel->repair_request_version = 0;
-    channel->expires_at = Time::now() + CHANNEL_FULL_EXPIRE_TIME;
-    if (channel->description != channel_full->about_ || channel->participant_count != participant_count ||
-        channel->administrator_count != administrator_count || channel->restricted_count != restricted_count ||
-        channel->banned_count != banned_count || channel->can_get_participants != can_get_participants ||
-        channel->can_set_username != can_set_username || channel->can_set_sticker_set != can_set_sticker_set ||
-        channel->can_set_location != can_set_location || channel->can_view_statistics != can_view_statistics ||
-        channel->stats_dc_id != stats_dc_id || channel->sticker_set_id != sticker_set_id ||
-        channel->is_all_history_available != is_all_history_available) {
-      channel->description = std::move(channel_full->about_);
-      channel->participant_count = participant_count;
-      channel->administrator_count = administrator_count;
-      channel->restricted_count = restricted_count;
-      channel->banned_count = banned_count;
-      channel->can_get_participants = can_get_participants;
-      channel->can_set_username = can_set_username;
-      channel->can_set_sticker_set = can_set_sticker_set;
-      channel->can_set_location = can_set_location;
-      channel->can_view_statistics = can_view_statistics;
-      channel->stats_dc_id = stats_dc_id;
-      channel->is_all_history_available = is_all_history_available;
-      channel->sticker_set_id = sticker_set_id;
+    channel_full->repair_request_version = 0;
+    channel_full->expires_at = Time::now() + CHANNEL_FULL_EXPIRE_TIME;
+    if (channel_full->description != channel->about_ || channel_full->participant_count != participant_count ||
+        channel_full->administrator_count != administrator_count ||
+        channel_full->restricted_count != restricted_count || channel_full->banned_count != banned_count ||
+        channel_full->can_get_participants != can_get_participants ||
+        channel_full->can_set_username != can_set_username ||
+        channel_full->can_set_sticker_set != can_set_sticker_set ||
+        channel_full->can_set_location != can_set_location ||
+        channel_full->can_view_statistics != can_view_statistics || channel_full->stats_dc_id != stats_dc_id ||
+        channel_full->sticker_set_id != sticker_set_id ||
+        channel_full->is_all_history_available != is_all_history_available) {
+      channel_full->description = std::move(channel->about_);
+      channel_full->participant_count = participant_count;
+      channel_full->administrator_count = administrator_count;
+      channel_full->restricted_count = restricted_count;
+      channel_full->banned_count = banned_count;
+      channel_full->can_get_participants = can_get_participants;
+      channel_full->can_set_username = can_set_username;
+      channel_full->can_set_sticker_set = can_set_sticker_set;
+      channel_full->can_set_location = can_set_location;
+      channel_full->can_view_statistics = can_view_statistics;
+      channel_full->stats_dc_id = stats_dc_id;
+      channel_full->is_all_history_available = is_all_history_available;
+      channel_full->sticker_set_id = sticker_set_id;
 
-      channel->is_changed = true;
+      channel_full->is_changed = true;
     }
     if (have_participant_count && c->participant_count != participant_count) {
       c->participant_count = participant_count;
       c->is_changed = true;
       update_channel(c, channel_id);
     }
-    if (!channel->is_can_view_statistics_inited) {
-      channel->is_can_view_statistics_inited = true;
-      channel->need_save_to_database = true;
+    if (!channel_full->is_can_view_statistics_inited) {
+      channel_full->is_can_view_statistics_inited = true;
+      channel_full->need_save_to_database = true;
     }
 
     on_update_channel_full_photo(
-        channel, channel_id,
-        get_photo(td_->file_manager_.get(), std::move(channel_full->chat_photo_), DialogId(channel_id)));
+        channel_full, channel_id,
+        get_photo(td_->file_manager_.get(), std::move(channel->chat_photo_), DialogId(channel_id)));
 
     td_->messages_manager_->on_read_channel_outbox(channel_id,
-                                                   MessageId(ServerMessageId(channel_full->read_outbox_max_id_)));
-    if ((channel_full->flags_ & CHANNEL_FULL_FLAG_HAS_AVAILABLE_MIN_MESSAGE_ID) != 0) {
+                                                   MessageId(ServerMessageId(channel->read_outbox_max_id_)));
+    if ((channel->flags_ & CHANNEL_FULL_FLAG_HAS_AVAILABLE_MIN_MESSAGE_ID) != 0) {
       td_->messages_manager_->on_update_channel_max_unavailable_message_id(
-          channel_id, MessageId(ServerMessageId(channel_full->available_min_id_)));
+          channel_id, MessageId(ServerMessageId(channel->available_min_id_)));
     }
-    td_->messages_manager_->on_read_channel_inbox(channel_id,
-                                                  MessageId(ServerMessageId(channel_full->read_inbox_max_id_)),
-                                                  channel_full->unread_count_, channel_full->pts_, "ChannelFull");
+    td_->messages_manager_->on_read_channel_inbox(channel_id, MessageId(ServerMessageId(channel->read_inbox_max_id_)),
+                                                  channel->unread_count_, channel->pts_, "ChannelFull");
 
-    on_update_channel_full_invite_link(channel, std::move(channel_full->exported_invite_));
+    on_update_channel_full_invite_link(channel_full, std::move(channel->exported_invite_));
 
     {
-      auto is_blocked = (channel_full->flags_ & CHANNEL_FULL_FLAG_IS_BLOCKED) != 0;
+      auto is_blocked = (channel->flags_ & CHANNEL_FULL_FLAG_IS_BLOCKED) != 0;
       td_->messages_manager_->on_update_dialog_is_blocked(DialogId(channel_id), is_blocked);
     }
     {
       MessageId pinned_message_id;
-      if ((channel_full->flags_ & CHANNEL_FULL_FLAG_HAS_PINNED_MESSAGE) != 0) {
-        pinned_message_id = MessageId(ServerMessageId(channel_full->pinned_msg_id_));
+      if ((channel->flags_ & CHANNEL_FULL_FLAG_HAS_PINNED_MESSAGE) != 0) {
+        pinned_message_id = MessageId(ServerMessageId(channel->pinned_msg_id_));
       }
       td_->messages_manager_->on_update_dialog_last_pinned_message_id(DialogId(channel_id), pinned_message_id);
     }
     {
       FolderId folder_id;
-      if ((channel_full->flags_ & CHANNEL_FULL_FLAG_HAS_FOLDER_ID) != 0) {
-        folder_id = FolderId(channel_full->folder_id_);
+      if ((channel->flags_ & CHANNEL_FULL_FLAG_HAS_FOLDER_ID) != 0) {
+        folder_id = FolderId(channel->folder_id_);
       }
       td_->messages_manager_->on_update_dialog_folder_id(DialogId(channel_id), folder_id);
     }
     td_->messages_manager_->on_update_dialog_has_scheduled_server_messages(
-        DialogId(channel_id), (channel_full->flags_ & CHANNEL_FULL_FLAG_HAS_SCHEDULED_MESSAGES) != 0);
+        DialogId(channel_id), (channel->flags_ & CHANNEL_FULL_FLAG_HAS_SCHEDULED_MESSAGES) != 0);
     {
       InputGroupCallId input_group_call_id;
-      if (channel_full->call_ != nullptr) {
-        input_group_call_id = InputGroupCallId(channel_full->call_);
+      if (channel->call_ != nullptr) {
+        input_group_call_id = InputGroupCallId(channel->call_);
         if (input_group_call_id.is_valid() && !c->is_megagroup) {
           LOG(ERROR) << "Receive " << input_group_call_id << " in " << channel_id;
           input_group_call_id = InputGroupCallId();
@@ -10293,14 +10294,14 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
 
     if (participant_count >= 190) {
       int32 online_member_count = 0;
-      if ((channel_full->flags_ & CHANNEL_FULL_FLAG_HAS_ONLINE_MEMBER_COUNT) != 0) {
-        online_member_count = channel_full->online_count_;
+      if ((channel->flags_ & CHANNEL_FULL_FLAG_HAS_ONLINE_MEMBER_COUNT) != 0) {
+        online_member_count = channel->online_count_;
       }
       td_->messages_manager_->on_update_dialog_online_member_count(DialogId(channel_id), online_member_count, true);
     }
 
     vector<UserId> bot_user_ids;
-    for (auto &bot_info : channel_full->bot_info_) {
+    for (auto &bot_info : channel->bot_info_) {
       UserId user_id(bot_info->user_id_);
       if (!is_user_bot(user_id)) {
         continue;
@@ -10309,11 +10310,11 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       bot_user_ids.push_back(user_id);
       on_update_bot_info(std::move(bot_info));
     }
-    on_update_channel_full_bot_user_ids(channel, channel_id, std::move(bot_user_ids));
+    on_update_channel_full_bot_user_ids(channel_full, channel_id, std::move(bot_user_ids));
 
     ChannelId linked_channel_id;
-    if ((channel_full->flags_ & CHANNEL_FULL_FLAG_HAS_LINKED_CHANNEL_ID) != 0) {
-      linked_channel_id = ChannelId(channel_full->linked_chat_id_);
+    if ((channel->flags_ & CHANNEL_FULL_FLAG_HAS_LINKED_CHANNEL_ID) != 0) {
+      linked_channel_id = ChannelId(channel->linked_chat_id_);
       auto linked_channel = get_channel_force(linked_channel_id);
       if (linked_channel == nullptr || c->is_megagroup == linked_channel->is_megagroup ||
           channel_id == linked_channel_id) {
@@ -10321,38 +10322,38 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
         linked_channel_id = ChannelId();
       }
     }
-    on_update_channel_full_linked_channel_id(channel, channel_id, linked_channel_id);
+    on_update_channel_full_linked_channel_id(channel_full, channel_id, linked_channel_id);
 
-    on_update_channel_full_location(channel, channel_id, DialogLocation(std::move(channel_full->location_)));
+    on_update_channel_full_location(channel_full, channel_id, DialogLocation(std::move(channel->location_)));
 
     if (c->is_megagroup) {
       int32 slow_mode_delay = 0;
       int32 slow_mode_next_send_date = 0;
-      if ((channel_full->flags_ & CHANNEL_FULL_FLAG_HAS_SLOW_MODE_DELAY) != 0) {
-        slow_mode_delay = channel_full->slowmode_seconds_;
+      if ((channel->flags_ & CHANNEL_FULL_FLAG_HAS_SLOW_MODE_DELAY) != 0) {
+        slow_mode_delay = channel->slowmode_seconds_;
       }
-      if ((channel_full->flags_ & CHANNEL_FULL_FLAG_HAS_SLOW_MODE_NEXT_SEND_DATE) != 0) {
-        slow_mode_next_send_date = channel_full->slowmode_next_send_date_;
+      if ((channel->flags_ & CHANNEL_FULL_FLAG_HAS_SLOW_MODE_NEXT_SEND_DATE) != 0) {
+        slow_mode_next_send_date = channel->slowmode_next_send_date_;
       }
-      on_update_channel_full_slow_mode_delay(channel, channel_id, slow_mode_delay, slow_mode_next_send_date);
+      on_update_channel_full_slow_mode_delay(channel_full, channel_id, slow_mode_delay, slow_mode_next_send_date);
     }
 
     ChatId migrated_from_chat_id;
     MessageId migrated_from_max_message_id;
 
-    if ((channel_full->flags_ & CHANNEL_FULL_FLAG_MIGRATED_FROM) != 0) {
-      migrated_from_chat_id = ChatId(channel_full->migrated_from_chat_id_);
-      migrated_from_max_message_id = MessageId(ServerMessageId(channel_full->migrated_from_max_id_));
+    if ((channel->flags_ & CHANNEL_FULL_FLAG_MIGRATED_FROM) != 0) {
+      migrated_from_chat_id = ChatId(channel->migrated_from_chat_id_);
+      migrated_from_max_message_id = MessageId(ServerMessageId(channel->migrated_from_max_id_));
     }
 
-    if (channel->migrated_from_chat_id != migrated_from_chat_id ||
-        channel->migrated_from_max_message_id != migrated_from_max_message_id) {
-      channel->migrated_from_chat_id = migrated_from_chat_id;
-      channel->migrated_from_max_message_id = migrated_from_max_message_id;
-      channel->is_changed = true;
+    if (channel_full->migrated_from_chat_id != migrated_from_chat_id ||
+        channel_full->migrated_from_max_message_id != migrated_from_max_message_id) {
+      channel_full->migrated_from_chat_id = migrated_from_chat_id;
+      channel_full->migrated_from_max_message_id = migrated_from_max_message_id;
+      channel_full->is_changed = true;
     }
 
-    update_channel_full(channel, channel_id);
+    update_channel_full(channel_full, channel_id);
 
     if (linked_channel_id.is_valid()) {
       auto linked_channel_full = get_channel_full_force(linked_channel_id, "on_get_chat_full");

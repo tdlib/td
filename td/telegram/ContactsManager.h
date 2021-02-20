@@ -164,7 +164,7 @@ class ContactsManager : public Actor {
   void on_binlog_channel_event(BinlogEvent &&event);
   void on_binlog_secret_chat_event(BinlogEvent &&event);
 
-  void on_get_user_full(tl_object_ptr<telegram_api::userFull> &&user_full);
+  void on_get_user_full(tl_object_ptr<telegram_api::userFull> &&user);
 
   void on_get_user_photos(UserId user_id, int32 offset, int32 limit, int32 total_count,
                           vector<tl_object_ptr<telegram_api::Photo>> photos);
