@@ -157,8 +157,6 @@ class ConfigManager : public NetQueryCallback {
 
   void do_set_archive_and_mute(bool archive_and_mute);
 
-  void do_dismiss_suggested_action(SuggestedAction suggested_action);
-
   static Timestamp load_config_expire_time();
   static void save_config_expire(Timestamp timestamp);
   static void save_dc_options_update(DcOptions dc_options);

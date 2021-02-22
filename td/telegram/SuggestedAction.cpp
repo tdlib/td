@@ -7,8 +7,12 @@
 #include "td/telegram/SuggestedAction.h"
 
 #include "td/telegram/ChannelId.h"
+#include "td/telegram/Global.h"
+#include "td/telegram/Td.h"
 
 #include "td/utils/algorithm.h"
+
+#include <algorithm>
 
 namespace td {
 
@@ -95,6 +99,39 @@ td_api::object_ptr<td_api::updateSuggestedActions> get_update_suggested_actions_
   };
   return td_api::make_object<td_api::updateSuggestedActions>(transform(added_actions, get_object),
                                                              transform(removed_actions, get_object));
+}
+
+void update_suggested_actions(vector<SuggestedAction> &suggested_actions,
+                              vector<SuggestedAction> &&new_suggested_actions) {
+  td::unique(new_suggested_actions);
+  if (new_suggested_actions == suggested_actions) {
+    return;
+  }
+
+  vector<SuggestedAction> added_actions;
+  vector<SuggestedAction> removed_actions;
+  auto old_it = suggested_actions.begin();
+  auto new_it = new_suggested_actions.begin();
+  while (old_it != suggested_actions.end() || new_it != new_suggested_actions.end()) {
+    if (old_it != suggested_actions.end() && (new_it == new_suggested_actions.end() || *old_it < *new_it)) {
+      removed_actions.push_back(*old_it++);
+    } else if (old_it == suggested_actions.end() || *new_it < *old_it) {
+      added_actions.push_back(*new_it++);
+    } else {
+      old_it++;
+      new_it++;
+    }
+  }
+  CHECK(!added_actions.empty() || !removed_actions.empty());
+  suggested_actions = std::move(new_suggested_actions);
+  send_closure(G()->td(), &Td::send_update,
+               get_update_suggested_actions_object(std::move(added_actions), std::move(removed_actions)));
+}
+
+void remove_suggested_action(vector<SuggestedAction> &suggested_actions, SuggestedAction suggested_action) {
+  if (td::remove(suggested_actions, suggested_action)) {
+    send_closure(G()->td(), &Td::send_update, get_update_suggested_actions_object({}, {suggested_action}));
+  }
 }
 
 }  // namespace td

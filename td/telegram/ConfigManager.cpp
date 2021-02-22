@@ -57,7 +57,6 @@
 #include "td/utils/tl_parsers.h"
 #include "td/utils/UInt.h"
 
-#include <algorithm>
 #include <memory>
 #include <unordered_map>
 #include <utility>
@@ -100,7 +99,7 @@ Result<int32> HttpDate::to_unix_time(int32 year, int32 month, int32 day, int32 h
   return res;
 }
 
-Result<int32> HttpDate::parse_http_date(std::string slice) {
+Result<int32> HttpDate::parse_http_date(string slice) {
   Parser p(slice);
   p.read_till(',');  // ignore week day
   p.skip(',');
@@ -1079,7 +1078,7 @@ void ConfigManager::set_archive_and_mute(bool archive_and_mute, Promise<Unit> &&
     return promise.set_error(Status::Error(500, "Request aborted"));
   }
   if (archive_and_mute) {
-    do_dismiss_suggested_action(SuggestedAction{SuggestedAction::Type::EnableArchiveAndMuteNewChats});
+    remove_suggested_action(suggested_actions_, SuggestedAction{SuggestedAction::Type::EnableArchiveAndMuteNewChats});
   }
 
   last_set_archive_and_mute_ = archive_and_mute;
@@ -1124,7 +1123,7 @@ void ConfigManager::do_set_ignore_sensitive_content_restrictions(bool ignore_sen
 
 void ConfigManager::do_set_archive_and_mute(bool archive_and_mute) {
   if (archive_and_mute) {
-    do_dismiss_suggested_action(SuggestedAction{SuggestedAction::Type::EnableArchiveAndMuteNewChats});
+    remove_suggested_action(suggested_actions_, SuggestedAction{SuggestedAction::Type::EnableArchiveAndMuteNewChats});
   }
   G()->shared_config().set_option_boolean("archive_and_mute_new_chats_from_unknown_users", archive_and_mute);
 }
@@ -1154,12 +1153,6 @@ void ConfigManager::dismiss_suggested_action(SuggestedAction suggested_action, P
   }
 }
 
-void ConfigManager::do_dismiss_suggested_action(SuggestedAction suggested_action) {
-  if (td::remove(suggested_actions_, suggested_action)) {
-    send_closure(G()->td(), &Td::send_update, get_update_suggested_actions_object({}, {suggested_action}));
-  }
-}
-
 void ConfigManager::on_result(NetQueryPtr res) {
   auto token = get_link_token();
   if (token >= 100 && token <= 200) {
@@ -1178,7 +1171,7 @@ void ConfigManager::on_result(NetQueryPtr res) {
       }
       return;
     }
-    do_dismiss_suggested_action(suggested_action);
+    remove_suggested_action(suggested_actions_, suggested_action);
     get_app_config(Auto());
 
     for (auto &promise : promises) {
@@ -1785,27 +1778,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
 
   // do not update suggested actions while changing content settings or dismissing an action
   if (!is_set_content_settings_request_sent_ && dismiss_suggested_action_request_count_ == 0) {
-    td::unique(suggested_actions);
-    if (suggested_actions != suggested_actions_) {
-      vector<SuggestedAction> added_actions;
-      vector<SuggestedAction> removed_actions;
-      auto old_it = suggested_actions_.begin();
-      auto new_it = suggested_actions.begin();
-      while (old_it != suggested_actions_.end() || new_it != suggested_actions.end()) {
-        if (old_it != suggested_actions_.end() && (new_it == suggested_actions.end() || *old_it < *new_it)) {
-          removed_actions.push_back(*old_it++);
-        } else if (old_it == suggested_actions_.end() || *new_it < *old_it) {
-          added_actions.push_back(*new_it++);
-        } else {
-          old_it++;
-          new_it++;
-        }
-      }
-      CHECK(!added_actions.empty() || !removed_actions.empty());
-      suggested_actions_ = std::move(suggested_actions);
-      send_closure(G()->td(), &Td::send_update,
-                   get_update_suggested_actions_object(std::move(added_actions), std::move(removed_actions)));
-    }
+    update_suggested_actions(suggested_actions_, std::move(suggested_actions));
   }
 }
 
