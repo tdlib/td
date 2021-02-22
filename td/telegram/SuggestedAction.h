@@ -32,6 +32,10 @@ struct SuggestedAction {
 
   explicit SuggestedAction(const td_api::object_ptr<td_api::SuggestedAction> &suggested_action);
 
+  bool is_empty() const {
+    return type_ == Type::Empty;
+  }
+
   string get_suggested_action_str() const;
 
   td_api::object_ptr<td_api::SuggestedAction> get_suggested_action_object() const;

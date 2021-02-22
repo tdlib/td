@@ -52,8 +52,11 @@ SuggestedAction::SuggestedAction(const td_api::object_ptr<td_api::SuggestedActio
       break;
     case td_api::suggestedActionConvertToBroadcastGroup::ID: {
       auto action = static_cast<const td_api::suggestedActionConvertToBroadcastGroup *>(suggested_action.get());
-      type_ = Type::ConvertToGigagroup;
-      dialog_id_ = DialogId(ChannelId(action->supergroup_id_));
+      ChannelId channel_id(action->supergroup_id_);
+      if (channel_id.is_valid()) {
+        type_ = Type::ConvertToGigagroup;
+        dialog_id_ = DialogId(channel_id);
+      }
       break;
     }
     default:

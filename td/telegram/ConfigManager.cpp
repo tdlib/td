@@ -1660,7 +1660,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
             if (action->get_id() == telegram_api::jsonString::ID) {
               Slice action_str = static_cast<telegram_api::jsonString *>(action.get())->value_;
               SuggestedAction suggested_action(action_str);
-              if (suggested_action != SuggestedAction()) {
+              if (!suggested_action.is_empty()) {
                 if (archive_and_mute &&
                     suggested_action == SuggestedAction{SuggestedAction::Type::EnableArchiveAndMuteNewChats}) {
                   LOG(INFO) << "Skip EnableArchiveAndMuteNewChats suggested action";

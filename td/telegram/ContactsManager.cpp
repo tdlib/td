@@ -7485,11 +7485,11 @@ void ContactsManager::remove_dialog_suggested_action(SuggestedAction action) {
 }
 
 void ContactsManager::dismiss_suggested_action(SuggestedAction action, Promise<Unit> &&promise) {
-  if (action == SuggestedAction()) {
+  if (action.is_empty()) {
     return promise.set_error(Status::Error(400, "Action must be non-empty"));
   }
   auto dialog_id = action.dialog_id_;
-  if (!dialog_id.is_valid()) {
+  if (dialog_id == DialogId()) {
     send_closure_later(G()->config_manager(), &ConfigManager::dismiss_suggested_action, std::move(action),
                        std::move(promise));
     return;
@@ -9685,6 +9685,10 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
   }
   if (c->is_default_permissions_changed) {
     td_->messages_manager_->on_dialog_permissions_updated(DialogId(channel_id));
+    if (c->default_permissions !=
+        RestrictedRights(false, false, false, false, false, false, false, false, false, false, false)) {
+      remove_dialog_suggested_action(SuggestedAction{SuggestedAction::Type::ConvertToGigagroup, DialogId(channel_id)});
+    }
   }
   if (!td_->auth_manager_->is_bot()) {
     if (c->restriction_reasons.empty()) {
@@ -10464,6 +10468,32 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       on_update_channel_full_linked_channel_id(linked_channel_full, linked_channel_id, channel_id);
       if (linked_channel_full != nullptr) {
         update_channel_full(linked_channel_full, linked_channel_id);
+      }
+    }
+
+    if (dismiss_suggested_action_queries_.count(DialogId(channel_id)) == 0) {
+      auto it = dialog_suggested_actions_.find(DialogId(channel_id));
+      if (it != dialog_suggested_actions_.end() || !channel->pending_suggestions_.empty()) {
+        vector<SuggestedAction> suggested_actions;
+        for (auto &action_str : channel->pending_suggestions_) {
+          SuggestedAction suggested_action(action_str, DialogId(channel_id));
+          if (!suggested_action.is_empty()) {
+            if (suggested_action == SuggestedAction{SuggestedAction::Type::ConvertToGigagroup, DialogId(channel_id)} &&
+                (c->is_gigagroup || c->default_permissions != RestrictedRights(false, false, false, false, false, false,
+                                                                               false, false, false, false, false))) {
+              LOG(INFO) << "Skip ConvertToGigagroup suggested action";
+            } else {
+              suggested_actions.push_back(suggested_action);
+            }
+          }
+        }
+        if (it == dialog_suggested_actions_.end()) {
+          it = dialog_suggested_actions_.emplace(DialogId(channel_id), vector<SuggestedAction>()).first;
+        }
+        update_suggested_actions(it->second, std::move(suggested_actions));
+        if (it->second.empty()) {
+          dialog_suggested_actions_.erase(it);
+        }
       }
     }
   }
@@ -12752,6 +12782,7 @@ void ContactsManager::on_channel_status_changed(Channel *c, ChannelId channel_id
 
     send_get_channel_full_query(nullptr, channel_id, Auto(), "update channel owner");
     reload_dialog_administrators(DialogId(channel_id), 0, Auto());
+    remove_dialog_suggested_action(SuggestedAction{SuggestedAction::Type::ConvertToGigagroup, DialogId(channel_id)});
   }
   if (need_reload_group_call) {
     send_closure_later(G()->messages_manager(), &MessagesManager::on_update_dialog_group_call_rights,
@@ -14996,6 +15027,9 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
     LOG_IF(ERROR, is_gigagroup) << "Receive broadcast group as channel " << channel_id << " from " << source;
     is_slow_mode_enabled = false;
     is_gigagroup = false;
+  }
+  if (is_gigagroup) {
+    remove_dialog_suggested_action(SuggestedAction{SuggestedAction::Type::ConvertToGigagroup, DialogId(channel_id)});
   }
 
   DialogParticipantStatus status = [&] {
