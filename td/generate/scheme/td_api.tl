@@ -4455,6 +4455,10 @@ deleteFile file_id:int32 = Ok;
 //@description Returns information about a file with messages exported from another app @message_file_head Beginning of the message file; up to 100 first lines
 getMessageFileType message_file_head:string = MessageFileType;
 
+//@description Returns a confirmation text to be shown to the user before starting message import
+//@chat_id Identifier of a chat to which the messages will be imported. It must be an identifier of a private chat with a mutual contact or an identifier of a supergroup chat with can_change_info administrator right
+getMessageImportConfirmationText chat_id:int53 = Text;
+
 //@description Imports messages exported from another app
 //@chat_id Identifier of a chat to which the messages will be imported. It must be an identifier of a private chat with a mutual contact or an identifier of a supergroup chat with can_change_info administrator right
 //@message_file File with messages to import. Only inputFileLocal and inputFileGenerated are supported. The file must not be previously uploaded

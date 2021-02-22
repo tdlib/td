@@ -401,6 +401,8 @@ class MessagesManager : public Actor {
   void get_message_file_type(const string &message_file_head,
                              Promise<td_api::object_ptr<td_api::MessageFileType>> &&promise);
 
+  void get_message_import_confirmation_text(DialogId dialog_id, Promise<string> &&promise);
+
   void import_messages(DialogId dialog_id, const td_api::object_ptr<td_api::InputFile> &message_file,
                        const vector<td_api::object_ptr<td_api::InputFile>> &attached_files, Promise<Unit> &&promise);
 
@@ -2841,6 +2843,8 @@ class MessagesManager : public Actor {
   void on_upload_imported_message_attachment_error(FileId file_id, Status status);
 
   void on_imported_message_attachments_uploaded(int64 random_id, Result<Unit> &&result);
+
+  Status can_import_messages(DialogId dialog_id);
 
   void add_sponsored_dialog(const Dialog *d, DialogSource source);
 

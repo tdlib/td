@@ -6561,6 +6561,19 @@ void Td::on_request(uint64 id, td_api::getMessageFileType &request) {
   messages_manager_->get_message_file_type(request.message_file_head_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getMessageImportConfirmationText &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<string> result) mutable {
+    if (result.is_error()) {
+      promise.set_error(result.move_as_error());
+    } else {
+      promise.set_value(make_tl_object<td_api::text>(result.move_as_ok()));
+    }
+  });
+  messages_manager_->get_message_import_confirmation_text(DialogId(request.chat_id_), std::move(query_promise));
+}
+
 void Td::on_request(uint64 id, const td_api::importMessages &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

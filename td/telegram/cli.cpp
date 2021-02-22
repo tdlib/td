@@ -3002,6 +3002,10 @@ class CliClient final : public Actor {
         }
         send_request(td_api::make_object<td_api::getMessageFileType>(message_file_head));
       }
+    } else if (op == "gmict") {
+      string chat_id;
+      get_args(args, chat_id);
+      send_request(td_api::make_object<td_api::getMessageImportConfirmationText>(as_chat_id(chat_id)));
     } else if (op == "im") {
       string chat_id;
       string message_file;

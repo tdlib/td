@@ -1049,6 +1049,38 @@ class CheckHistoryImportQuery : public Td::ResultHandler {
   }
 };
 
+class CheckHistoryImportPeerQuery : public Td::ResultHandler {
+  Promise<string> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit CheckHistoryImportPeerQuery(Promise<string> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id) {
+    dialog_id_ = dialog_id;
+    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    CHECK(input_peer != nullptr);
+    send_query(G()->net_query_creator().create(telegram_api::messages_checkHistoryImportPeer(std::move(input_peer))));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::messages_checkHistoryImportPeer>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for CheckHistoryImportPeerQuery: " << to_string(ptr);
+    promise_.set_value(std::move(ptr->confirm_text_));
+  }
+
+  void on_error(uint64 id, Status status) override {
+    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "CheckHistoryImportPeerQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class InitHistoryImportQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   FileId file_id_;
@@ -26664,37 +26696,49 @@ void MessagesManager::get_message_file_type(const string &message_file_head,
   td_->create_handler<CheckHistoryImportQuery>(std::move(promise))->send(message_file_head);
 }
 
-void MessagesManager::import_messages(DialogId dialog_id, const td_api::object_ptr<td_api::InputFile> &message_file,
-                                      const vector<td_api::object_ptr<td_api::InputFile>> &attached_files,
-                                      Promise<Unit> &&promise) {
+Status MessagesManager::can_import_messages(DialogId dialog_id) {
   if (!have_dialog_force(dialog_id)) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
+    return Status::Error(400, "Chat not found");
   }
 
-  TRY_STATUS_PROMISE(promise, can_send_message(dialog_id));
+  TRY_STATUS(can_send_message(dialog_id));
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
       if (!td_->contacts_manager_->is_user_contact(dialog_id.get_user_id(), true)) {
-        return promise.set_error(Status::Error(400, "User must be a mutual contact"));
+        return Status::Error(400, "User must be a mutual contact");
       }
       break;
     case DialogType::Chat:
-      return promise.set_error(Status::Error(400, "Basic groups must be updagraded to supergroups first"));
+      return Status::Error(400, "Basic groups must be updagraded to supergroups first");
     case DialogType::Channel:
       if (is_broadcast_channel(dialog_id)) {
-        return promise.set_error(Status::Error(400, "Can't import messages to channels"));
+        return Status::Error(400, "Can't import messages to channels");
       }
       if (!td_->contacts_manager_->get_channel_status(dialog_id.get_channel_id()).can_change_info_and_settings()) {
-        return promise.set_error(Status::Error(400, "Not enough rights to import messages"));
+        return Status::Error(400, "Not enough rights to import messages");
       }
       break;
     case DialogType::SecretChat:
-      return promise.set_error(Status::Error(400, "Can't import messages to secret chats"));
+      return Status::Error(400, "Can't import messages to secret chats");
     case DialogType::None:
     default:
       UNREACHABLE();
   }
+
+  return Status::OK();
+}
+
+void MessagesManager::get_message_import_confirmation_text(DialogId dialog_id, Promise<string> &&promise) {
+  TRY_STATUS_PROMISE(promise, can_import_messages(dialog_id));
+
+  td_->create_handler<CheckHistoryImportPeerQuery>(std::move(promise))->send(dialog_id);
+}
+
+void MessagesManager::import_messages(DialogId dialog_id, const td_api::object_ptr<td_api::InputFile> &message_file,
+                                      const vector<td_api::object_ptr<td_api::InputFile>> &attached_files,
+                                      Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, can_import_messages(dialog_id));
 
   auto r_file_id = td_->file_manager_->get_input_file_id(FileType::Document, message_file, dialog_id, false, false);
   if (r_file_id.is_error()) {

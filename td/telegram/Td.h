@@ -842,6 +842,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, td_api::getMessageFileType &request);
 
+  void on_request(uint64 id, const td_api::getMessageImportConfirmationText &request);
+
   void on_request(uint64 id, const td_api::importMessages &request);
 
   void on_request(uint64 id, const td_api::blockMessageSenderFromReplies &request);
