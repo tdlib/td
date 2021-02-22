@@ -1129,9 +1129,6 @@ void ConfigManager::do_set_archive_and_mute(bool archive_and_mute) {
 }
 
 void ConfigManager::dismiss_suggested_action(SuggestedAction suggested_action, Promise<Unit> &&promise) {
-  if (suggested_action == SuggestedAction()) {
-    return promise.set_error(Status::Error(400, "Action must be non-empty"));
-  }
   auto action_str = suggested_action.get_suggested_action_str();
   if (action_str.empty()) {
     return promise.set_value(Unit());

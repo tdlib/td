@@ -23,7 +23,7 @@ struct SuggestedAction {
 
   SuggestedAction() = default;
 
-  explicit SuggestedAction(Type type) : type_(type) {
+  explicit SuggestedAction(Type type, DialogId dialog_id = DialogId()) : type_(type), dialog_id_(dialog_id) {
   }
 
   explicit SuggestedAction(Slice action_str);
@@ -38,6 +38,7 @@ struct SuggestedAction {
 };
 
 inline bool operator==(const SuggestedAction &lhs, const SuggestedAction &rhs) {
+  CHECK(lhs.dialog_id_ == rhs.dialog_id_);
   return lhs.type_ == rhs.type_;
 }
 
@@ -46,6 +47,7 @@ inline bool operator!=(const SuggestedAction &lhs, const SuggestedAction &rhs) {
 }
 
 inline bool operator<(const SuggestedAction &lhs, const SuggestedAction &rhs) {
+  CHECK(lhs.dialog_id_ == rhs.dialog_id_);
   return static_cast<int32>(lhs.type_) < static_cast<int32>(rhs.type_);
 }
 

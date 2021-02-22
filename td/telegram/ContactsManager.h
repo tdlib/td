@@ -1435,6 +1435,10 @@ class ContactsManager : public Actor {
 
   void reload_dialog_administrators(DialogId dialog_id, int32 hash, Promise<Unit> &&promise);
 
+  void remove_dialog_suggested_action(SuggestedAction action);
+
+  void on_dismiss_suggested_action(SuggestedAction action, Result<Unit> &&result);
+
   static td_api::object_ptr<td_api::updateUser> get_update_unknown_user_object(UserId user_id);
 
   td_api::object_ptr<td_api::UserStatus> get_user_status_object(UserId user_id, const User *u) const;
@@ -1621,6 +1625,9 @@ class ContactsManager : public Actor {
   QueryCombiner get_channel_full_queries_{"GetChannelFullCombiner", 2.0};
 
   std::unordered_map<DialogId, vector<DialogAdministrator>, DialogIdHash> dialog_administrators_;
+
+  std::unordered_map<DialogId, vector<SuggestedAction>, DialogIdHash> dialog_suggested_actions_;
+  std::unordered_map<DialogId, vector<Promise<Unit>>, DialogIdHash> dismiss_suggested_action_queries_;
 
   class UploadProfilePhotoCallback;
   std::shared_ptr<UploadProfilePhotoCallback> upload_profile_photo_callback_;

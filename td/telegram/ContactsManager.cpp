@@ -72,6 +72,38 @@
 
 namespace td {
 
+class DismissSuggestionQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit DismissSuggestionQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(SuggestedAction action) {
+    dialog_id_ = action.dialog_id_;
+    auto input_peer = td->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+
+    send_query(G()->net_query_creator().create(
+        telegram_api::help_dismissSuggestion(std::move(input_peer), action.get_suggested_action_str())));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::help_dismissSuggestion>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(uint64 id, Status status) override {
+    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "DismissSuggestionQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class SetAccountTtlQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -6211,6 +6243,8 @@ void ContactsManager::convert_channel_to_gigagroup(ChannelId channel_id, Promise
     return promise.set_error(Status::Error(6, "Chat must be a supergroup"));
   }
 
+  remove_dialog_suggested_action(SuggestedAction{SuggestedAction::Type::ConvertToGigagroup, DialogId(channel_id)});
+
   td_->create_handler<ConvertToGigagroupQuery>(std::move(promise))->send(channel_id);
 }
 
@@ -7439,11 +7473,72 @@ void ContactsManager::remove_inactive_channel(ChannelId channel_id) {
   }
 }
 
+void ContactsManager::remove_dialog_suggested_action(SuggestedAction action) {
+  auto it = dialog_suggested_actions_.find(action.dialog_id_);
+  if (it == dialog_suggested_actions_.end()) {
+    return;
+  }
+  remove_suggested_action(it->second, action);
+  if (it->second.empty()) {
+    dialog_suggested_actions_.erase(it);
+  }
+}
+
 void ContactsManager::dismiss_suggested_action(SuggestedAction action, Promise<Unit> &&promise) {
-  if (!action.dialog_id_.is_valid()) {
+  if (action == SuggestedAction()) {
+    return promise.set_error(Status::Error(400, "Action must be non-empty"));
+  }
+  auto dialog_id = action.dialog_id_;
+  if (!dialog_id.is_valid()) {
     send_closure_later(G()->config_manager(), &ConfigManager::dismiss_suggested_action, std::move(action),
                        std::move(promise));
     return;
+  }
+
+  if (!td_->messages_manager_->have_dialog(dialog_id)) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+  if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+    return promise.set_error(Status::Error(400, "Can't access the chat"));
+  }
+
+  auto it = dialog_suggested_actions_.find(dialog_id);
+  if (it == dialog_suggested_actions_.end() || !td::contains(it->second, action)) {
+    return promise.set_value(Unit());
+  }
+
+  auto action_str = action.get_suggested_action_str();
+  if (action_str.empty()) {
+    return promise.set_value(Unit());
+  }
+
+  auto &queries = dismiss_suggested_action_queries_[dialog_id];
+  queries.push_back(std::move(promise));
+  if (queries.size() == 1) {
+    auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), action](Result<Unit> &&result) {
+      send_closure(actor_id, &ContactsManager::on_dismiss_suggested_action, action, std::move(result));
+    });
+    td_->create_handler<DismissSuggestionQuery>(std::move(query_promise))->send(std::move(action));
+  }
+}
+
+void ContactsManager::on_dismiss_suggested_action(SuggestedAction action, Result<Unit> &&result) {
+  auto it = dismiss_suggested_action_queries_.find(action.dialog_id_);
+  CHECK(it != dismiss_suggested_action_queries_.end());
+  auto promises = std::move(it->second);
+  dismiss_suggested_action_queries_.erase(it);
+
+  if (result.is_error()) {
+    for (auto &promise : promises) {
+      promise.set_error(result.error().clone());
+    }
+    return;
+  }
+
+  remove_dialog_suggested_action(action);
+
+  for (auto &promise : promises) {
+    promise.set_value(Unit());
   }
 }
 
