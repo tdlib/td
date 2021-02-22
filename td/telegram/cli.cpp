@@ -568,13 +568,17 @@ class CliClient final : public Actor {
     return result;
   }
 
-  int32 as_supergroup_id(Slice str) {
+  int32 as_supergroup_id(Slice str) const {
     str = trim(str);
     if (str[0] == '@') {
       str.remove_prefix(1);
     }
     if (is_alpha(str[0])) {
-      return username_to_supergroup_id_[to_lower(str)];
+      auto it = username_to_supergroup_id_.find(to_lower(str));
+      if (it == username_to_supergroup_id_.end()) {
+        return 0;
+      }
+      return it->second;
     }
     auto result = to_integer<int64>(str);
     int64 shift = static_cast<int64>(-1000000000000ll);
@@ -1374,7 +1378,7 @@ class CliClient final : public Actor {
     return nullptr;
   }
 
-  static td_api::object_ptr<td_api::SuggestedAction> as_suggested_action(Slice action) {
+  td_api::object_ptr<td_api::SuggestedAction> as_suggested_action(Slice action) const {
     if (action == "unarchive") {
       return td_api::make_object<td_api::suggestedActionEnableArchiveAndMuteNewChats>();
     }
@@ -1383,6 +1387,9 @@ class CliClient final : public Actor {
     }
     if (action == "ticks") {
       return td_api::make_object<td_api::suggestedActionSeeTicksHint>();
+    }
+    if (begins_with(action, "giga")) {
+      return td_api::make_object<td_api::suggestedActionConvertToBroadcastGroup>(as_supergroup_id(action.substr(4)));
     }
     return nullptr;
   }

@@ -7530,8 +7530,7 @@ void Td::on_request(uint64 id, td_api::stopPoll &request) {
 void Td::on_request(uint64 id, const td_api::hideSuggestedAction &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  send_closure_later(config_manager_, &ConfigManager::dismiss_suggested_action, SuggestedAction(request.action_),
-                     std::move(promise));
+  contacts_manager_->dismiss_suggested_action(SuggestedAction(request.action_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getLoginUrlInfo &request) {

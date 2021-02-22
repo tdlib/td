@@ -11,6 +11,7 @@
 #include "td/telegram/telegram_api.hpp"
 
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/ConfigManager.h"
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DeviceTokenManager.h"
@@ -7435,6 +7436,14 @@ void ContactsManager::on_get_inactive_channels(vector<tl_object_ptr<telegram_api
 void ContactsManager::remove_inactive_channel(ChannelId channel_id) {
   if (inactive_channels_inited_ && td::remove(inactive_channels_, channel_id)) {
     LOG(DEBUG) << "Remove " << channel_id << " from list of inactive channels";
+  }
+}
+
+void ContactsManager::dismiss_suggested_action(SuggestedAction action, Promise<Unit> &&promise) {
+  if (!action.dialog_id_.is_valid()) {
+    send_closure_later(G()->config_manager(), &ConfigManager::dismiss_suggested_action, std::move(action),
+                       std::move(promise));
+    return;
   }
 }
 

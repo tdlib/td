@@ -31,6 +31,7 @@
 #include "td/telegram/RestrictionReason.h"
 #include "td/telegram/SecretChatId.h"
 #include "td/telegram/StickerSetId.h"
+#include "td/telegram/SuggestedAction.h"
 #include "td/telegram/UserId.h"
 
 #include "td/actor/actor.h"
@@ -428,6 +429,8 @@ class ContactsManager : public Actor {
   vector<DialogId> get_dialogs_for_discussion(Promise<Unit> &&promise);
 
   vector<DialogId> get_inactive_channels(Promise<Unit> &&promise);
+
+  void dismiss_suggested_action(SuggestedAction action, Promise<Unit> &&promise);
 
   bool is_user_contact(UserId user_id, bool is_mutual = false) const;
 

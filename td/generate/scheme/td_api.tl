@@ -3153,6 +3153,9 @@ suggestedActionCheckPhoneNumber = SuggestedAction;
 //@description Suggests the user to see a hint about meaning of one and two ticks on sent message
 suggestedActionSeeTicksHint = SuggestedAction;
 
+//@description Suggests the user to convert specified supergroup to a broadcast group @supergroup_id Supergroup identifier
+suggestedActionConvertToBroadcastGroup supergroup_id:int32 = SuggestedAction;
+
 
 //@description Contains a counter @count Count
 count count:int32 = Count;

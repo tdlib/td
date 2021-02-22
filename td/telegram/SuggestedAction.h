@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/DialogId.h"
 #include "td/telegram/td_api.h"
 
 #include "td/utils/common.h"
@@ -14,8 +15,9 @@
 namespace td {
 
 struct SuggestedAction {
-  enum class Type : int32 { Empty, EnableArchiveAndMuteNewChats, CheckPhoneNumber, SeeTicksHint };
+  enum class Type : int32 { Empty, EnableArchiveAndMuteNewChats, CheckPhoneNumber, SeeTicksHint, ConvertToGigagroup };
   Type type_ = Type::Empty;
+  DialogId dialog_id_;
 
   void init(Type type);
 
@@ -26,7 +28,9 @@ struct SuggestedAction {
 
   explicit SuggestedAction(Slice action_str);
 
-  explicit SuggestedAction(const td_api::object_ptr<td_api::SuggestedAction> &action_object);
+  SuggestedAction(Slice action_str, DialogId dialog_id);
+
+  explicit SuggestedAction(const td_api::object_ptr<td_api::SuggestedAction> &suggested_action);
 
   string get_suggested_action_str() const;
 
