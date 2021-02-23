@@ -151,7 +151,8 @@ function split_file($file, $chunks, $undo) {
             $in_define = false;
         }
     }
-    if (!empty(trim($current))) {
+    $current = trim($current);
+    if (!empty($current)) {
         fwrite(STDERR, "ERROR: $current".PHP_EOL);
         exit();
     }
