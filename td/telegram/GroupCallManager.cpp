@@ -500,7 +500,8 @@ void GroupCallManager::on_check_group_call_is_joined_timeout(GroupCallId group_c
 
   auto *group_call = get_group_call(input_group_call_id);
   CHECK(group_call != nullptr && group_call->is_inited);
-  if (!group_call->is_joined || check_group_call_is_joined_timeout_.has_timeout(group_call_id.get())) {
+  if (!group_call->is_joined || pending_join_requests_.count(input_group_call_id) != 0 ||
+      check_group_call_is_joined_timeout_.has_timeout(group_call_id.get())) {
     return;
   }
 
@@ -846,7 +847,8 @@ void GroupCallManager::finish_check_group_call_is_joined(InputGroupCallId input_
 
   auto *group_call = get_group_call(input_group_call_id);
   CHECK(group_call != nullptr && group_call->is_inited);
-  if (!group_call->is_joined || check_group_call_is_joined_timeout_.has_timeout(group_call->group_call_id.get()) ||
+  if (!group_call->is_joined || pending_join_requests_.count(input_group_call_id) != 0 ||
+      check_group_call_is_joined_timeout_.has_timeout(group_call->group_call_id.get()) ||
       group_call->audio_source != audio_source) {
     return;
   }
@@ -1472,10 +1474,6 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id,
 
   auto *group_call = get_group_call(input_group_call_id);
   CHECK(group_call != nullptr);
-  if (group_call->is_joined && !group_call->is_being_left) {
-    CHECK(group_call->is_inited);
-    return promise.set_error(Status::Error(400, "Group call is already joined"));
-  }
   if (group_call->is_inited && !group_call->is_active) {
     return promise.set_error(Status::Error(400, "Group call is finished"));
   }
