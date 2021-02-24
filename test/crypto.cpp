@@ -15,7 +15,6 @@
 #include "td/mtproto/KDF.h"
 #include "td/mtproto/Transport.h"
 
-
 class Handshake {
  public:
   struct KeyPair {
@@ -184,18 +183,24 @@ void KDF2(Slice auth_key, const UInt128 &msg_key, int X, UInt256 *aes_key, UInt1
   aes_iv_slice.substr(4).copy_from(sha256_a.substr(8, 8));
   aes_iv_slice.substr(12).copy_from(sha256_b.substr(24, 4));
 }
-}
+}  // namespace td
 
-td::SecureString  encrypt(td::Slice key, td::Slice data, td::int32 seqno, int X) {
+td::SecureString encrypt(td::Slice key, td::Slice data, td::int32 seqno, int X) {
   td::SecureString res(data.size() + 4 + 16);
   res.as_mutable_slice().substr(20).copy_from(data);
-  td::TlStorerUnsafe storer(res.as_mutable_slice().substr(16).ubegin());
-  storer.store_int(seqno);
+
+  // big endian
+  td::uint8 *ptr = res.as_mutable_slice().substr(16).ubegin();
+  ptr[0] = (seqno >> 24) & 255;
+  ptr[1] = (seqno >> 16) & 255;
+  ptr[2] = (seqno >> 8) & 255;
+  ptr[3] = (seqno)&255;
+
   td::mtproto::AuthKey auth_key(0, key.str());
   auto payload = res.as_mutable_slice().substr(16);
-  td::UInt128  msg_key = td::mtproto::Transport::calc_message_key2(auth_key, X, payload).second;
-  td::UInt256  aes_key;
-  td::UInt128  aes_iv;
+  td::UInt128 msg_key = td::mtproto::Transport::calc_message_key2(auth_key, X, payload).second;
+  td::UInt256 aes_key;
+  td::UInt128 aes_iv;
   td::KDF2(key, msg_key, X, &aes_key, &aes_iv);
   td::AesCtrState aes;
   aes.init(aes_key.as_slice(), aes_iv.as_slice());
@@ -213,7 +218,6 @@ HandshakeTest gen_test() {
   res.key = Handshake::expand_secret(res.shared_secret);
   return res;
 }
-
 
 void run_test(const HandshakeTest &test) {
   auto alice_secret = Handshake::calc_shared_secret(test.alice.private_key, test.bob.public_key).move_as_ok();
@@ -254,7 +258,6 @@ HandshakeTest pregenerated_test() {
                  "JHmD-XW9j-13G6KP0tArIhQNDRVbRkKxx0MG0pa2nOgwJHNfiggM0I0RiNIr23-1wRboRtan4WvqOHsxAt_cngYX15_"
                  "HYe8tJdEwHcmlnXq7LtprigzExaNJS7skfOo2irClj-7EL06-jMrhfwngSJFsak8JFSw8s6R4fwCsr50")
                  .move_as_ok();
-
 
   return test;
 }
