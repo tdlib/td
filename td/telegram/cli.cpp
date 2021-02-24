@@ -2744,7 +2744,12 @@ class CliClient final : public Actor {
     } else if (op == "gcilc") {
       string chat_id = args;
       send_request(td_api::make_object<td_api::getChatInviteLinkCounts>(as_chat_id(chat_id)));
-    } else if (op == "gcil" || op == "gcilr") {
+    } else if (op == "gcil") {
+      string chat_id;
+      string invite_link;
+      get_args(args, chat_id, invite_link);
+      send_request(td_api::make_object<td_api::getChatInviteLink>(as_chat_id(chat_id), invite_link));
+    } else if (op == "gcils" || op == "gcilr") {
       string chat_id;
       string administrator_user_id;
       int32 offset_date;

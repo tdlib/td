@@ -4482,6 +4482,11 @@ createChatInviteLink chat_id:int53 expire_date:int32 member_limit:int32 = ChatIn
 //@member_limit Maximum number of chat members that can join the chat by the link simultaneously; 0-99999; pass 0 if not limited
 editChatInviteLink chat_id:int53 invite_link:string expire_date:int32 member_limit:int32 = ChatInviteLink;
 
+//@description Returns information about an invite link. Requires administrator privileges and can_invite_users right in the chat to get own links and owner privileges to get other links
+//@chat_id Chat identifier
+//@invite_link Invite link to get
+getChatInviteLink chat_id:int53 invite_link:string = ChatInviteLink;
+
 //@description Returns list of chat administrators with number of their invite links. Requires owner privileges in the chat @chat_id Chat identifier
 getChatInviteLinkCounts chat_id:int53 = ChatInviteLinkCounts;
 
