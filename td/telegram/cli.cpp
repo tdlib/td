@@ -2721,7 +2721,7 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::discardGroupCall>(as_group_call_id(args)));
     } else if (op == "rpcil") {
       string chat_id = args;
-      send_request(td_api::make_object<td_api::replacePermanentChatInviteLink>(as_chat_id(chat_id)));
+      send_request(td_api::make_object<td_api::replacePrimaryChatInviteLink>(as_chat_id(chat_id)));
     } else if (op == "ccilt") {
       string chat_id;
       int32 expire_date;

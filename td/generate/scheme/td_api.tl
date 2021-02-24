@@ -553,9 +553,9 @@ supergroupMembersFilterBots = SupergroupMembersFilter;
 //@expire_date Point in time (Unix timestamp) when the link will expire; 0 if never
 //@member_limit Maximum number of members, which can join the chat using the link simultaneously; 0 if not limited
 //@member_count Number of chat members, which joined the chat using the link
-//@is_permanent True, if the link is permanent. Permanent invite link can't have expire date or usage limit. There is exactly one permanent invite link for each administrator with can_invite_users right at a given time
+//@is_primary True, if the link is primary. Primary invite link can't have expire date or usage limit. There is exactly one primary invite link for each administrator with can_invite_users right at a given time
 //@is_revoked True, if the link was revoked
-chatInviteLink invite_link:string administrator_user_id:int32 date:int32 edit_date:int32 expire_date:int32 member_limit:int32 member_count:int32 is_permanent:Bool is_revoked:Bool = ChatInviteLink;
+chatInviteLink invite_link:string administrator_user_id:int32 date:int32 edit_date:int32 expire_date:int32 member_limit:int32 member_count:int32 is_primary:Bool is_revoked:Bool = ChatInviteLink;
 
 //@description Contains a list of chat invite links @total_count Approximate total count of chat invite links found @invite_links List of invite links
 chatInviteLinks total_count:int32 invite_links:vector<chatInviteLink> = ChatInviteLinks;
@@ -600,7 +600,7 @@ basicGroup id:int32 member_count:int32 status:ChatMemberStatus is_active:Bool up
 //@param_description Group description. Updated only after the basic group is opened
 //@creator_user_id User identifier of the creator of the group; 0 if unknown
 //@members Group members
-//@invite_link Permanent invite link for this group; may be null. For chat administrators with can_invite_users right only. Updated only after the basic group is opened
+//@invite_link Primary invite link for this group; may be null. For chat administrators with can_invite_users right only. Updated only after the basic group is opened
 basicGroupFullInfo photo:chatPhoto description:string creator_user_id:int32 members:vector<chatMember> invite_link:chatInviteLink = BasicGroupFullInfo;
 
 
@@ -640,7 +640,7 @@ supergroup id:int32 username:string date:int32 status:ChatMemberStatus member_co
 //@is_all_history_available True, if new chat members will have access to old messages. In public or discussion groups and both public and private channels, old messages are always available, so this option affects only private supergroups without a linked chat. The value of this field is only available for chat administrators
 //@sticker_set_id Identifier of the supergroup sticker set; 0 if none
 //@location Location to which the supergroup is connected; may be null
-//@invite_link Permanent invite link for this chat; may be null. For chat administrators with can_invite_users right only
+//@invite_link Primary invite link for this chat; may be null. For chat administrators with can_invite_users right only
 //@upgraded_from_basic_group_id Identifier of the basic group from which supergroup was upgraded; 0 if none
 //@upgraded_from_max_message_id Identifier of the last message in the basic group from which supergroup was upgraded; 0 if none
 supergroupFullInfo photo:chatPhoto description:string member_count:int32 administrator_count:int32 restricted_count:int32 banned_count:int32 linked_chat_id:int53 slow_mode_delay:int32 slow_mode_delay_expires_in:double can_get_members:Bool can_set_username:Bool can_set_sticker_set:Bool can_set_location:Bool can_get_statistics:Bool is_all_history_available:Bool sticker_set_id:int64 location:chatLocation invite_link:chatInviteLink upgraded_from_basic_group_id:int32 upgraded_from_max_message_id:int53 = SupergroupFullInfo;
@@ -4466,8 +4466,8 @@ getMessageImportConfirmationText chat_id:int53 = Text;
 importMessages chat_id:int53 message_file:InputFile attached_files:vector<InputFile> = Ok;
 
 
-//@description Replaces current permanent invite link for a chat with a new permanent invite link. Available for basic groups, supergroups, and channels. Requires administrator privileges and can_invite_users right @chat_id Chat identifier
-replacePermanentChatInviteLink chat_id:int53 = ChatInviteLink;
+//@description Replaces current primary invite link for a chat with a new primary invite link. Available for basic groups, supergroups, and channels. Requires administrator privileges and can_invite_users right @chat_id Chat identifier
+replacePrimaryChatInviteLink chat_id:int53 = ChatInviteLink;
 
 //@description Creates a new invite link for a chat. Available for basic groups, supergroups, and channels. Requires administrator privileges and can_invite_users right in the chat
 //@chat_id Chat identifier
@@ -4475,7 +4475,7 @@ replacePermanentChatInviteLink chat_id:int53 = ChatInviteLink;
 //@member_limit Maximum number of chat members that can join the chat by the link simultaneously; 0-99999; pass 0 if not limited
 createChatInviteLink chat_id:int53 expire_date:int32 member_limit:int32 = ChatInviteLink;
 
-//@description Edits a non-permanent invite link for a chat. Available for basic groups, supergroups, and channels. Requires administrator privileges and can_invite_users right in the chat for own links and owner privileges for other links
+//@description Edits a non-primary invite link for a chat. Available for basic groups, supergroups, and channels. Requires administrator privileges and can_invite_users right in the chat for own links and owner privileges for other links
 //@chat_id Chat identifier
 //@invite_link Invite link to be edited
 //@expire_date Point in time (Unix timestamp) when the link will expire; pass 0 if never
@@ -4499,7 +4499,7 @@ getChatInviteLinks chat_id:int53 administrator_user_id:int32 is_revoked:Bool off
 getChatInviteLinkMembers chat_id:int53 invite_link:string offset_member:chatInviteLinkMember limit:int32 = ChatInviteLinkMembers;
 
 //@description Revokes invite link for a chat. Available for basic groups, supergroups, and channels. Requires administrator privileges and can_invite_users right in the chat for own links and owner privileges for other links.
-//-If a permanent link is revoked, then additionally to the revoked link returns new permanent link
+//-If a primary link is revoked, then additionally to the revoked link returns new primary link
 //@chat_id Chat identifier
 //@invite_link Invite link to be revoked
 revokeChatInviteLink chat_id:int53 invite_link:string = ChatInviteLinks;
