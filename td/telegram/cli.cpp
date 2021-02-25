@@ -2751,14 +2751,14 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getChatInviteLink>(as_chat_id(chat_id), invite_link));
     } else if (op == "gcils" || op == "gcilr") {
       string chat_id;
-      string administrator_user_id;
+      string creator_user_id;
       int32 offset_date;
       string offset_invite_link;
       string limit;
-      get_args(args, chat_id, administrator_user_id, offset_date, offset_invite_link, limit);
-      send_request(td_api::make_object<td_api::getChatInviteLinks>(as_chat_id(chat_id),
-                                                                   as_user_id(administrator_user_id), op == "gcilr",
-                                                                   offset_date, offset_invite_link, as_limit(limit)));
+      get_args(args, chat_id, creator_user_id, offset_date, offset_invite_link, limit);
+      send_request(td_api::make_object<td_api::getChatInviteLinks>(as_chat_id(chat_id), as_user_id(creator_user_id),
+                                                                   op == "gcilr", offset_date, offset_invite_link,
+                                                                   as_limit(limit)));
     } else if (op == "gcilm") {
       string chat_id;
       string invite_link;
@@ -2776,10 +2776,10 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::deleteRevokedChatInviteLink>(as_chat_id(chat_id), invite_link));
     } else if (op == "darcil") {
       string chat_id;
-      string administrator_user_id;
-      get_args(args, chat_id, administrator_user_id);
+      string creator_user_id;
+      get_args(args, chat_id, creator_user_id);
       send_request(td_api::make_object<td_api::deleteAllRevokedChatInviteLinks>(as_chat_id(chat_id),
-                                                                                as_user_id(administrator_user_id)));
+                                                                                as_user_id(creator_user_id)));
     } else if (op == "ccil") {
       send_request(td_api::make_object<td_api::checkChatInviteLink>(args));
     } else if (op == "jcbil") {

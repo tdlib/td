@@ -26,10 +26,10 @@ DialogInviteLink::DialogInviteLink(tl_object_ptr<telegram_api::chatInviteExporte
 
   invite_link_ = std::move(exported_invite->link_);
   LOG_IF(ERROR, !is_valid_invite_link(invite_link_)) << "Unsupported invite link " << invite_link_;
-  administrator_user_id_ = UserId(exported_invite->admin_id_);
-  if (!administrator_user_id_.is_valid()) {
-    LOG(ERROR) << "Receive invalid " << administrator_user_id_ << " as creator of a link " << invite_link_;
-    administrator_user_id_ = UserId();
+  creator_user_id_ = UserId(exported_invite->admin_id_);
+  if (!creator_user_id_.is_valid()) {
+    LOG(ERROR) << "Receive invalid " << creator_user_id_ << " as creator of a link " << invite_link_;
+    creator_user_id_ = UserId();
   }
   date_ = exported_invite->date_;
   if (date_ < 1000000000) {
@@ -109,12 +109,12 @@ td_api::object_ptr<td_api::chatInviteLink> DialogInviteLink::get_chat_invite_lin
   }
 
   return td_api::make_object<td_api::chatInviteLink>(
-      invite_link_, contacts_manager->get_user_id_object(administrator_user_id_, "get_chat_invite_link_object"), date_,
+      invite_link_, contacts_manager->get_user_id_object(creator_user_id_, "get_chat_invite_link_object"), date_,
       edit_date_, expire_date_, usage_limit_, usage_count_, is_permanent_, is_revoked_);
 }
 
 bool operator==(const DialogInviteLink &lhs, const DialogInviteLink &rhs) {
-  return lhs.invite_link_ == rhs.invite_link_ && lhs.administrator_user_id_ == rhs.administrator_user_id_ &&
+  return lhs.invite_link_ == rhs.invite_link_ && lhs.creator_user_id_ == rhs.creator_user_id_ &&
          lhs.date_ == rhs.date_ && lhs.edit_date_ == rhs.edit_date_ && lhs.expire_date_ == rhs.expire_date_ &&
          lhs.usage_limit_ == rhs.usage_limit_ && lhs.usage_count_ == rhs.usage_count_ &&
          lhs.is_permanent_ == rhs.is_permanent_ && lhs.is_revoked_ == rhs.is_revoked_;
@@ -125,7 +125,7 @@ bool operator!=(const DialogInviteLink &lhs, const DialogInviteLink &rhs) {
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const DialogInviteLink &invite_link) {
-  return string_builder << "ChatInviteLink[" << invite_link.invite_link_ << " by " << invite_link.administrator_user_id_
+  return string_builder << "ChatInviteLink[" << invite_link.invite_link_ << " by " << invite_link.creator_user_id_
                         << " created at " << invite_link.date_ << " edited at " << invite_link.edit_date_
                         << " expiring at " << invite_link.expire_date_ << " used by " << invite_link.usage_count_
                         << " with usage limit " << invite_link.usage_limit_ << "]";

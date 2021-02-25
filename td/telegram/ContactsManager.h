@@ -404,7 +404,7 @@ class ContactsManager : public Actor {
   void get_dialog_invite_link_counts(DialogId dialog_id,
                                      Promise<td_api::object_ptr<td_api::chatInviteLinkCounts>> &&promise);
 
-  void get_dialog_invite_links(DialogId dialog_id, UserId administrator_user_id, bool is_revoked, int32 offset_date,
+  void get_dialog_invite_links(DialogId dialog_id, UserId creator_user_id, bool is_revoked, int32 offset_date,
                                const string &offset_invite_link, int32 limit,
                                Promise<td_api::object_ptr<td_api::chatInviteLinks>> &&promise);
 
@@ -417,8 +417,7 @@ class ContactsManager : public Actor {
 
   void delete_revoked_dialog_invite_link(DialogId dialog_id, const string &invite_link, Promise<Unit> &&promise);
 
-  void delete_all_revoked_dialog_invite_links(DialogId dialog_id, UserId administrator_user_id,
-                                              Promise<Unit> &&promise);
+  void delete_all_revoked_dialog_invite_links(DialogId dialog_id, UserId creator_user_id, Promise<Unit> &&promise);
 
   void check_dialog_invite_link(const string &invite_link, Promise<Unit> &&promise) const;
 

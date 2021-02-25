@@ -21,7 +21,7 @@ class ContactsManager;
 
 class DialogInviteLink {
   string invite_link_;
-  UserId administrator_user_id_;
+  UserId creator_user_id_;
   int32 date_ = 0;
   int32 edit_date_ = 0;
   int32 expire_date_ = 0;
@@ -48,7 +48,7 @@ class DialogInviteLink {
   td_api::object_ptr<td_api::chatInviteLink> get_chat_invite_link_object(const ContactsManager *contacts_manager) const;
 
   bool is_valid() const {
-    return !invite_link_.empty() && administrator_user_id_.is_valid() && date_ > 0;
+    return !invite_link_.empty() && creator_user_id_.is_valid() && date_ > 0;
   }
 
   bool is_permanent() const {
@@ -59,8 +59,8 @@ class DialogInviteLink {
     return invite_link_;
   }
 
-  UserId get_administrator_user_id() const {
-    return administrator_user_id_;
+  UserId get_creator_user_id() const {
+    return creator_user_id_;
   }
 
   template <class StorerT>
@@ -79,7 +79,7 @@ class DialogInviteLink {
     STORE_FLAG(has_edit_date);
     END_STORE_FLAGS();
     store(invite_link_, storer);
-    store(administrator_user_id_, storer);
+    store(creator_user_id_, storer);
     store(date_, storer);
     if (has_expire_date) {
       store(expire_date_, storer);
@@ -111,7 +111,7 @@ class DialogInviteLink {
     PARSE_FLAG(has_edit_date);
     END_PARSE_FLAGS();
     parse(invite_link_, parser);
-    parse(administrator_user_id_, parser);
+    parse(creator_user_id_, parser);
     parse(date_, parser);
     if (has_expire_date) {
       parse(expire_date_, parser);

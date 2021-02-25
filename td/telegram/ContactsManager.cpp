@@ -1684,7 +1684,7 @@ class ExportChatInviteQuery : public Td::ResultHandler {
     if (!invite_link.is_valid()) {
       return on_error(id, Status::Error(500, "Receive invalid invite link"));
     }
-    if (invite_link.get_administrator_user_id() != td->contacts_manager_->get_my_id()) {
+    if (invite_link.get_creator_user_id() != td->contacts_manager_->get_my_id()) {
       return on_error(id, Status::Error(500, "Receive invalid invite link creator"));
     }
     if (invite_link.is_permanent()) {
@@ -1810,7 +1810,7 @@ class GetExportedChatInvitesQuery : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, UserId administrator_user_id, bool is_revoked, int32 offset_date,
+  void send(DialogId dialog_id, UserId creator_user_id, bool is_revoked, int32 offset_date,
             const string &offset_invite_link, int32 limit) {
     dialog_id_ = dialog_id;
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
@@ -1818,7 +1818,7 @@ class GetExportedChatInvitesQuery : public Td::ResultHandler {
       return on_error(0, Status::Error(400, "Can't access the chat"));
     }
 
-    auto input_user = td->contacts_manager_->get_input_user(administrator_user_id);
+    auto input_user = td->contacts_manager_->get_input_user(creator_user_id);
     CHECK(input_user != nullptr);
 
     int32 flags = 0;
@@ -2034,7 +2034,7 @@ class RevokeChatInviteLinkQuery : public Td::ResultHandler {
         if (!invite_link.is_valid() || !new_invite_link.is_valid()) {
           return on_error(id, Status::Error(500, "Receive invalid invite link"));
         }
-        if (new_invite_link.get_administrator_user_id() == td->contacts_manager_->get_my_id() &&
+        if (new_invite_link.get_creator_user_id() == td->contacts_manager_->get_my_id() &&
             new_invite_link.is_permanent()) {
           td->contacts_manager_->on_get_permanent_dialog_invite_link(dialog_id_, new_invite_link);
         }
@@ -2097,14 +2097,14 @@ class DeleteRevokedExportedChatInvitesQuery : public Td::ResultHandler {
   explicit DeleteRevokedExportedChatInvitesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, UserId administrator_user_id) {
+  void send(DialogId dialog_id, UserId creator_user_id) {
     dialog_id_ = dialog_id;
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
       return on_error(0, Status::Error(400, "Can't access the chat"));
     }
 
-    auto input_user = td->contacts_manager_->get_input_user(administrator_user_id);
+    auto input_user = td->contacts_manager_->get_input_user(creator_user_id);
     CHECK(input_user != nullptr);
 
     send_query(G()->net_query_creator().create(
@@ -7179,12 +7179,12 @@ void ContactsManager::get_dialog_invite_link_counts(
   td_->create_handler<GetChatAdminWithInvitesQuery>(std::move(promise))->send(dialog_id);
 }
 
-void ContactsManager::get_dialog_invite_links(DialogId dialog_id, UserId administrator_user_id, bool is_revoked,
+void ContactsManager::get_dialog_invite_links(DialogId dialog_id, UserId creator_user_id, bool is_revoked,
                                               int32 offset_date, const string &offset_invite_link, int32 limit,
                                               Promise<td_api::object_ptr<td_api::chatInviteLinks>> &&promise) {
-  TRY_STATUS_PROMISE(promise, can_manage_dialog_invite_links(dialog_id, administrator_user_id != get_my_id()));
+  TRY_STATUS_PROMISE(promise, can_manage_dialog_invite_links(dialog_id, creator_user_id != get_my_id()));
 
-  if (!have_input_user(administrator_user_id)) {
+  if (!have_input_user(creator_user_id)) {
     return promise.set_error(Status::Error(400, "Administrator user not found"));
   }
 
@@ -7193,7 +7193,7 @@ void ContactsManager::get_dialog_invite_links(DialogId dialog_id, UserId adminis
   }
 
   td_->create_handler<GetExportedChatInvitesQuery>(std::move(promise))
-      ->send(dialog_id, administrator_user_id, is_revoked, offset_date, offset_invite_link, limit);
+      ->send(dialog_id, creator_user_id, is_revoked, offset_date, offset_invite_link, limit);
 }
 
 void ContactsManager::get_dialog_invite_link_users(
@@ -7230,16 +7230,15 @@ void ContactsManager::delete_revoked_dialog_invite_link(DialogId dialog_id, cons
   td_->create_handler<DeleteExportedChatInviteQuery>(std::move(promise))->send(dialog_id, invite_link);
 }
 
-void ContactsManager::delete_all_revoked_dialog_invite_links(DialogId dialog_id, UserId administrator_user_id,
+void ContactsManager::delete_all_revoked_dialog_invite_links(DialogId dialog_id, UserId creator_user_id,
                                                              Promise<Unit> &&promise) {
-  TRY_STATUS_PROMISE(promise, can_manage_dialog_invite_links(dialog_id, administrator_user_id != get_my_id()));
+  TRY_STATUS_PROMISE(promise, can_manage_dialog_invite_links(dialog_id, creator_user_id != get_my_id()));
 
-  if (!have_input_user(administrator_user_id)) {
+  if (!have_input_user(creator_user_id)) {
     return promise.set_error(Status::Error(400, "Administrator user not found"));
   }
 
-  td_->create_handler<DeleteRevokedExportedChatInvitesQuery>(std::move(promise))
-      ->send(dialog_id, administrator_user_id);
+  td_->create_handler<DeleteRevokedExportedChatInvitesQuery>(std::move(promise))->send(dialog_id, creator_user_id);
 }
 
 void ContactsManager::check_dialog_invite_link(const string &invite_link, Promise<Unit> &&promise) const {
@@ -9363,7 +9362,7 @@ void ContactsManager::on_load_chat_full_from_database(ChatId chat_id, string val
     dependencies.user_ids.insert(participant.user_id);
     dependencies.user_ids.insert(participant.inviter_user_id);
   }
-  dependencies.user_ids.insert(chat_full->invite_link.get_administrator_user_id());
+  dependencies.user_ids.insert(chat_full->invite_link.get_creator_user_id());
   resolve_dependencies_force(td_, dependencies, "chat_full");
 
   for (auto &participant : chat_full->participants) {
@@ -9459,7 +9458,7 @@ void ContactsManager::on_load_channel_full_from_database(ChannelId channel_id, s
   add_dialog_and_dependencies(dependencies, DialogId(channel_full->linked_channel_id));
   dependencies.chat_ids.insert(channel_full->migrated_from_chat_id);
   dependencies.user_ids.insert(channel_full->bot_user_ids.begin(), channel_full->bot_user_ids.end());
-  dependencies.user_ids.insert(channel_full->invite_link.get_administrator_user_id());
+  dependencies.user_ids.insert(channel_full->invite_link.get_creator_user_id());
   resolve_dependencies_force(td_, dependencies, "channel_full");
 
   for (auto &user_id : channel_full->bot_user_ids) {

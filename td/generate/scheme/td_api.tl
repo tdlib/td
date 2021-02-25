@@ -547,7 +547,7 @@ supergroupMembersFilterMention query:string message_thread_id:int53 = Supergroup
 supergroupMembersFilterBots = SupergroupMembersFilter;
 
 
-//@description Contains a chat invite link @invite_link Chat invite link @administrator_user_id User identifier of an administrator created the link
+//@description Contains a chat invite link @invite_link Chat invite link @creator_user_id User identifier of an administrator created the link
 //@date Point in time (Unix timestamp) when the link was created
 //@edit_date Point in time (Unix timestamp) when the link was last edited; 0 if never or unknown
 //@expire_date Point in time (Unix timestamp) when the link will expire; 0 if never
@@ -555,7 +555,7 @@ supergroupMembersFilterBots = SupergroupMembersFilter;
 //@member_count Number of chat members, which joined the chat using the link
 //@is_primary True, if the link is primary. Primary invite link can't have expire date or usage limit. There is exactly one primary invite link for each administrator with can_invite_users right at a given time
 //@is_revoked True, if the link was revoked
-chatInviteLink invite_link:string administrator_user_id:int32 date:int32 edit_date:int32 expire_date:int32 member_limit:int32 member_count:int32 is_primary:Bool is_revoked:Bool = ChatInviteLink;
+chatInviteLink invite_link:string creator_user_id:int32 date:int32 edit_date:int32 expire_date:int32 member_limit:int32 member_count:int32 is_primary:Bool is_revoked:Bool = ChatInviteLink;
 
 //@description Contains a list of chat invite links @total_count Approximate total count of chat invite links found @invite_links List of invite links
 chatInviteLinks total_count:int32 invite_links:vector<chatInviteLink> = ChatInviteLinks;
@@ -4492,12 +4492,12 @@ getChatInviteLinkCounts chat_id:int53 = ChatInviteLinkCounts;
 
 //@description Returns invite links for a chat created by specified administrator. Requires administrator privileges and can_invite_users right in the chat to get own links and owner privileges to get other links
 //@chat_id Chat identifier
-//@administrator_user_id User identifier of a chat administrator. Must be an identifier of the current user for non-owner
+//@creator_user_id User identifier of a chat administrator. Must be an identifier of the current user for non-owner
 //@is_revoked Pass true if revoked links needs to be returned instead of active or expired
 //@offset_date Creation date of an invite link starting after which to return invite links; use 0 to get results from the beginning
 //@offset_invite_link Invite link starting after which to return invite links; use empty string to get results from the beginning
 //@limit Maximum number of invite links to return
-getChatInviteLinks chat_id:int53 administrator_user_id:int32 is_revoked:Bool offset_date:int32 offset_invite_link:string limit:int32 = ChatInviteLinks;
+getChatInviteLinks chat_id:int53 creator_user_id:int32 is_revoked:Bool offset_date:int32 offset_invite_link:string limit:int32 = ChatInviteLinks;
 
 //@description Returns chat members joined a chat by an invite link. Requires administrator privileges and can_invite_users right in the chat for own links and owner privileges for other links @chat_id Chat identifier @invite_link Invite link for which to return chat members
 //@offset_member A chat member from which to return next chat members; use null to get results from the beginning @limit Maximum number of chat members to return
@@ -4514,8 +4514,8 @@ deleteRevokedChatInviteLink chat_id:int53 invite_link:string = Ok;
 
 //@description Deletes all revoked chat invite links created by a given chat administrator. Requires administrator privileges and can_invite_users right in the chat for own links and owner privileges for other links
 //@chat_id Chat identifier
-//@administrator_user_id User identifier of a chat administrator, which links will be deleted. Must be an identifier of the current user for non-owner
-deleteAllRevokedChatInviteLinks chat_id:int53 administrator_user_id:int32 = Ok;
+//@creator_user_id User identifier of a chat administrator, which links will be deleted. Must be an identifier of the current user for non-owner
+deleteAllRevokedChatInviteLinks chat_id:int53 creator_user_id:int32 = Ok;
 
 //@description Checks the validity of an invite link for a chat and returns information about the corresponding chat @invite_link Invite link to be checked; must have URL "t.me", "telegram.me", or "telegram.dog" and query beginning with "/joinchat/" or "/+"
 checkChatInviteLink invite_link:string = ChatInviteLinkInfo;
