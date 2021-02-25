@@ -1,19 +1,26 @@
-
-#include <stdio.h>
-#include <openssl/evp.h>
-#include <openssl/bio.h>
-#include <openssl/pem.h>
-
-#include "td/utils/Status.h"
-#include "td/utils/SharedSlice.h"
-#include "td/utils/base64.h"
-#include "td/utils/tl_storers.h"
-
-#include "td/utils/crypto.h"
-
+//
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2021
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
 #include "td/mtproto/AuthKey.h"
-#include "td/mtproto/KDF.h"
 #include "td/mtproto/Transport.h"
+
+#include "td/utils/base64.h"
+#include "td/utils/common.h"
+#include "td/utils/crypto.h"
+#include "td/utils/logging.h"
+#include "td/utils/ScopeGuard.h"
+#include "td/utils/SharedSlice.h"
+#include "td/utils/Slice.h"
+#include "td/utils/Status.h"
+#include "td/utils/StringBuilder.h"
+#include "td/utils/UInt.h"
+
+#include <openssl/bio.h>
+#include <openssl/evp.h>
+#include <openssl/pem.h>
 
 class Handshake {
  public:
@@ -23,17 +30,18 @@ class Handshake {
   };
 
   static td::Result<KeyPair> generate_key_pair() {
-    EVP_PKEY *pkey = NULL;
-    EVP_PKEY_CTX *pctx = EVP_PKEY_CTX_new_id(NID_X25519, NULL);
-    SCOPE_EXIT {
-      EVP_PKEY_CTX_free(pctx);
-    };
+    EVP_PKEY_CTX *pctx = EVP_PKEY_CTX_new_id(NID_X25519, nullptr);
     if (pctx == nullptr) {
       return td::Status::Error("Can't create EXP_PKEY_CTX");
     }
+    SCOPE_EXIT {
+      EVP_PKEY_CTX_free(pctx);
+    };
     if (EVP_PKEY_keygen_init(pctx) <= 0) {
       return td::Status::Error("Can't init keygen");
     }
+
+    EVP_PKEY *pkey = nullptr;
     if (EVP_PKEY_keygen(pctx, &pkey) <= 0) {
       return td::Status::Error("Can't generate key");
     }
@@ -138,7 +146,7 @@ class Handshake {
     }
     char *data_ptr = nullptr;
     auto data_size = BIO_get_mem_data(mem_bio, &data_ptr);
-    return std::string(data_ptr, data_size);
+    return td::SecureString(data_ptr, data_size);
   }
 };
 
@@ -152,7 +160,7 @@ struct HandshakeTest {
 
 namespace td {
 
-void KDF2(Slice auth_key, const UInt128 &msg_key, int X, UInt256 *aes_key, UInt128 *aes_iv) {
+static void KDF3(Slice auth_key, const UInt128 &msg_key, int X, UInt256 *aes_key, UInt128 *aes_iv) {
   uint8 buf_raw[36 + 16];
   MutableSlice buf(buf_raw, 36 + 16);
   Slice msg_key_slice = as_slice(msg_key);
@@ -183,9 +191,10 @@ void KDF2(Slice auth_key, const UInt128 &msg_key, int X, UInt256 *aes_key, UInt1
   aes_iv_slice.substr(4).copy_from(sha256_a.substr(8, 8));
   aes_iv_slice.substr(12).copy_from(sha256_b.substr(24, 4));
 }
+
 }  // namespace td
 
-td::SecureString encrypt(td::Slice key, td::Slice data, td::int32 seqno, int X) {
+static td::SecureString encrypt(td::Slice key, td::Slice data, td::int32 seqno, int X) {
   td::SecureString res(data.size() + 4 + 16);
   res.as_mutable_slice().substr(20).copy_from(data);
 
@@ -201,7 +210,7 @@ td::SecureString encrypt(td::Slice key, td::Slice data, td::int32 seqno, int X) 
   td::UInt128 msg_key = td::mtproto::Transport::calc_message_key2(auth_key, X, payload).second;
   td::UInt256 aes_key;
   td::UInt128 aes_iv;
-  td::KDF2(key, msg_key, X, &aes_key, &aes_iv);
+  td::KDF3(key, msg_key, X, &aes_key, &aes_iv);
   td::AesCtrState aes;
   aes.init(aes_key.as_slice(), aes_iv.as_slice());
   aes.encrypt(payload, payload);
@@ -209,7 +218,7 @@ td::SecureString encrypt(td::Slice key, td::Slice data, td::int32 seqno, int X) 
   return res;
 }
 
-HandshakeTest gen_test() {
+static HandshakeTest gen_test() {
   HandshakeTest res;
   res.alice = Handshake::generate_key_pair().move_as_ok();
 
@@ -219,7 +228,7 @@ HandshakeTest gen_test() {
   return res;
 }
 
-void run_test(const HandshakeTest &test) {
+static void run_test(const HandshakeTest &test) {
   auto alice_secret = Handshake::calc_shared_secret(test.alice.private_key, test.bob.public_key).move_as_ok();
   auto bob_secret = Handshake::calc_shared_secret(test.bob.private_key, test.alice.public_key).move_as_ok();
   auto key = Handshake::expand_secret(alice_secret);
@@ -229,13 +238,14 @@ void run_test(const HandshakeTest &test) {
   CHECK(key == test.key);
 }
 
-td::StringBuilder &operator<<(td::StringBuilder &sb, const Handshake::KeyPair &key_pair) {
+static td::StringBuilder &operator<<(td::StringBuilder &sb, const Handshake::KeyPair &key_pair) {
   sb << "\tpublic_key (base64url) = " << td::base64url_encode(key_pair.public_key) << "\n";
   sb << "\tprivate_key (base64url) = " << td::base64url_encode(key_pair.private_key) << "\n";
   sb << "\tprivate_key (pem) = \n" << Handshake::privateKeyToPem(key_pair.private_key).ok() << "\n";
   return sb;
 }
-td::StringBuilder &operator<<(td::StringBuilder &sb, const HandshakeTest &test) {
+
+static td::StringBuilder &operator<<(td::StringBuilder &sb, const HandshakeTest &test) {
   sb << "Alice\n" << test.alice;
   sb << "Bob\n" << test.bob;
   sb << "SharedSecret\n\t" << td::base64url_encode(test.shared_secret) << "\n";
@@ -247,7 +257,7 @@ td::StringBuilder &operator<<(td::StringBuilder &sb, const HandshakeTest &test) 
   return sb;
 }
 
-HandshakeTest pregenerated_test() {
+static HandshakeTest pregenerated_test() {
   HandshakeTest test;
   test.alice.public_key = td::base64url_decode_secure("QlCME5fXLyyQQWeYnBiGAZbmzuD4ayOuADCFgmioOBY").move_as_ok();
   test.alice.private_key = td::base64url_decode_secure("8NZGWKfRCJfiks74RG9_xHmYydarLiRsoq8VcJGPglg").move_as_ok();
