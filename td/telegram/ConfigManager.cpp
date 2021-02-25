@@ -57,6 +57,7 @@
 #include "td/utils/tl_parsers.h"
 #include "td/utils/UInt.h"
 
+#include <functional>
 #include <memory>
 #include <unordered_map>
 #include <utility>
@@ -997,7 +998,8 @@ void ConfigManager::get_external_link(string &&link, Promise<string> &&promise) 
 
   auto url = r_url.move_as_ok();
   url.protocol_ = HttpUrl::Protocol::Https;
-  Slice path = Slice(url.query_).truncate(url.query_.find_first_of("?#"));
+  Slice path = url.query_;
+  path.truncate(url.query_.find_first_of("?#"));
   Slice parameters_hash = Slice(url.query_).substr(path.size());
   Slice parameters = parameters_hash;
   parameters.truncate(parameters.find('#'));

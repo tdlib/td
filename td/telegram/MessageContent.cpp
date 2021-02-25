@@ -4629,7 +4629,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     case telegram_api::messageActionSetMessagesTTL::ID: {
       auto set_messages_ttl = move_tl_object_as<telegram_api::messageActionSetMessagesTTL>(action);
       if (set_messages_ttl->period_ < 0) {
-        LOG(ERROR) << "Receive wrong ttl = " << set_messages_ttl->period_;
+        LOG(ERROR) << "Receive wrong TTL = " << set_messages_ttl->period_;
         break;
       }
       return td::make_unique<MessageChatSetTtl>(set_messages_ttl->period_);

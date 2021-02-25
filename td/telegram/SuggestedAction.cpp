@@ -10,6 +10,8 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/Td.h"
 
+#include "td/actor/actor.h"
+
 #include "td/utils/algorithm.h"
 
 #include <algorithm>

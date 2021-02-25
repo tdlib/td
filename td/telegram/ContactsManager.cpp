@@ -34,7 +34,6 @@
 #include "td/telegram/PasswordManager.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/Photo.hpp"
-#include "td/telegram/RestrictionReason.h"
 #include "td/telegram/SecretChatActor.h"
 #include "td/telegram/SecretChatsManager.h"
 #include "td/telegram/ServerMessageId.h"
@@ -60,6 +59,7 @@
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Random.h"
+#include "td/utils/Slice.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/Time.h"
 #include "td/utils/tl_helpers.h"
@@ -1778,7 +1778,7 @@ class GetExportedChatInviteQuery : public Td::ResultHandler {
     }
 
     if (result_ptr.ok()->get_id() != telegram_api::messages_exportedChatInvite::ID) {
-      LOG(ERROR) << "Receive result for GetExportedChatInviteQuery: " << to_string(result_ptr.ok());
+      LOG(ERROR) << "Receive wrong result for GetExportedChatInviteQuery: " << to_string(result_ptr.ok());
       return on_error(id, Status::Error(500, "Receive unexpected response"));
     }
 
@@ -10048,7 +10048,7 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
     register_user_photo(u, user_id, user_full->photo);
   }
 
-  if (user->bot_info_ != nullptr && on_update_bot_info(std::move(user->bot_info_), false)) {
+  if (on_update_bot_info(std::move(user->bot_info_), false)) {
     user_full->need_send_update = true;
   }
   update_user_full(user_full, user_id);
@@ -10143,7 +10143,10 @@ void ContactsManager::on_get_user_photos(UserId user_id, int32 offset, int32 lim
 }
 
 bool ContactsManager::on_update_bot_info(tl_object_ptr<telegram_api::botInfo> &&new_bot_info, bool send_update) {
-  CHECK(new_bot_info != nullptr);
+  if (new_bot_info == nullptr) {
+    return false;
+  }
+
   UserId user_id(new_bot_info->user_id_);
   if (!user_id.is_valid()) {
     LOG(ERROR) << "Receive invalid " << user_id;

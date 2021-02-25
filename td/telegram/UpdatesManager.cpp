@@ -20,6 +20,7 @@
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogAction.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/DialogInviteLink.h"
 #include "td/telegram/FolderId.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/GroupCallManager.h"
@@ -57,6 +58,7 @@
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
+#include "td/utils/Time.h"
 
 #include <iterator>
 #include <limits>

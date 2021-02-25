@@ -6,12 +6,11 @@
 //
 #pragma once
 
-#include "td/telegram/td_api.h"
-#include "td/telegram/telegram_api.h"
-
 #include "td/utils/common.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/tl_helpers.h"
+
+#include <type_traits>
 
 namespace td {
 
