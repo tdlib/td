@@ -7156,9 +7156,9 @@ void ContactsManager::edit_dialog_invite_link(DialogId dialog_id, const string &
                                               Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise) {
   TRY_STATUS_PROMISE(promise, can_manage_dialog_invite_links(dialog_id));
 
-  // if (!DialogInviteLink::is_valid_invite_link(invite_link)) {
-  //   return promise.set_error(Status::Error(400, "Wrong invite link"));
-  // }
+  if (invite_link.empty()) {
+    return promise.set_error(Status::Error(400, "Invite link must be non-empty"));
+  }
 
   td_->create_handler<EditChatInviteLinkQuery>(std::move(promise))
       ->send(dialog_id, invite_link, expire_date, usage_limit);
@@ -7167,6 +7167,10 @@ void ContactsManager::edit_dialog_invite_link(DialogId dialog_id, const string &
 void ContactsManager::get_dialog_invite_link(DialogId dialog_id, const string &invite_link,
                                              Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise) {
   TRY_STATUS_PROMISE(promise, can_manage_dialog_invite_links(dialog_id, false));
+
+  if (invite_link.empty()) {
+    return promise.set_error(Status::Error(400, "Invite link must be non-empty"));
+  }
 
   td_->create_handler<GetExportedChatInviteQuery>(std::move(promise))->send(dialog_id, invite_link);
 }
@@ -7204,6 +7208,10 @@ void ContactsManager::get_dialog_invite_link_users(
     return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
   }
 
+  if (invite_link.empty()) {
+    return promise.set_error(Status::Error(400, "Invite link must be non-empty"));
+  }
+
   UserId offset_user_id;
   int32 offset_date = 0;
   if (offset_member != nullptr) {
@@ -7219,12 +7227,20 @@ void ContactsManager::revoke_dialog_invite_link(DialogId dialog_id, const string
                                                 Promise<td_api::object_ptr<td_api::chatInviteLinks>> &&promise) {
   TRY_STATUS_PROMISE(promise, can_manage_dialog_invite_links(dialog_id));
 
+  if (invite_link.empty()) {
+    return promise.set_error(Status::Error(400, "Invite link must be non-empty"));
+  }
+
   td_->create_handler<RevokeChatInviteLinkQuery>(std::move(promise))->send(dialog_id, invite_link);
 }
 
 void ContactsManager::delete_revoked_dialog_invite_link(DialogId dialog_id, const string &invite_link,
                                                         Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, can_manage_dialog_invite_links(dialog_id));
+
+  if (invite_link.empty()) {
+    return promise.set_error(Status::Error(400, "Invite link must be non-empty"));
+  }
 
   td_->create_handler<DeleteExportedChatInviteQuery>(std::move(promise))->send(dialog_id, invite_link);
 }
