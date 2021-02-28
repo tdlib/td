@@ -521,9 +521,6 @@ class ContactsManager : public Actor {
   void ban_dialog_participant(DialogId dialog_id, UserId user_id, int32 banned_until_date, bool revoke_messages,
                               Promise<Unit> &&promise);
 
-  DialogParticipant get_dialog_participant(ChannelId channel_id,
-                                           tl_object_ptr<telegram_api::ChannelParticipant> &&participant_ptr) const;
-
   DialogParticipant get_dialog_participant(DialogId dialog_id, UserId user_id, int64 &random_id, bool force,
                                            Promise<Unit> &&promise);
 

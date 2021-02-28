@@ -2931,7 +2931,7 @@ class GetChannelParticipantQuery : public Td::ResultHandler {
     LOG(INFO) << "Receive result for GetChannelParticipantQuery: " << to_string(participant);
 
     td->contacts_manager_->on_get_users(std::move(participant->users_), "GetChannelParticipantQuery");
-    auto result = td->contacts_manager_->get_dialog_participant(channel_id_, std::move(participant->participant_));
+    DialogParticipant result(std::move(participant->participant_));
     if (!result.is_valid()) {
       LOG(ERROR) << "Receive invalid " << result;
       return promise_.set_error(Status::Error(500, "Receive invalid chat member"));
@@ -3034,8 +3034,7 @@ class GetChannelAdministratorsQuery : public Td::ResultHandler {
         vector<DialogAdministrator> administrators;
         administrators.reserve(participants->participants_.size());
         for (auto &participant : participants->participants_) {
-          DialogParticipant dialog_participant =
-              td->contacts_manager_->get_dialog_participant(channel_id_, std::move(participant));
+          DialogParticipant dialog_participant(std::move(participant));
           if (!dialog_participant.is_valid() || !dialog_participant.status.is_administrator()) {
             LOG(ERROR) << "Receive " << dialog_participant << " as an administrator of " << channel_id_;
             continue;
@@ -11358,11 +11357,6 @@ const DialogParticipant *ContactsManager::get_chat_participant(const ChatFull *c
   return nullptr;
 }
 
-DialogParticipant ContactsManager::get_dialog_participant(
-    ChannelId channel_id, tl_object_ptr<telegram_api::ChannelParticipant> &&participant_ptr) const {
-  return DialogParticipant(std::move(participant_ptr), get_channel_status(channel_id));
-}
-
 tl_object_ptr<td_api::chatMember> ContactsManager::get_chat_member_object(
     const DialogParticipant &dialog_participant) const {
   UserId participant_user_id = dialog_participant.user_id;
@@ -11464,7 +11458,7 @@ void ContactsManager::on_get_channel_participants(
   vector<DialogParticipant> result;
   for (auto &participant_ptr : participants) {
     auto debug_participant = to_string(participant_ptr);
-    result.push_back(get_dialog_participant(channel_id, std::move(participant_ptr)));
+    result.emplace_back(std::move(participant_ptr));
     const auto &participant = result.back();
     if (!participant.is_valid() || (filter.is_bots() && !is_user_bot(participant.user_id)) ||
         (filter.is_administrators() && !participant.status.is_administrator()) ||
@@ -13125,14 +13119,14 @@ void ContactsManager::on_update_channel_participant(ChannelId channel_id, UserId
   DialogParticipant old_dialog_participant;
   DialogParticipant new_dialog_participant;
   if (old_participant != nullptr) {
-    old_dialog_participant = get_dialog_participant(channel_id, std::move(old_participant));
+    old_dialog_participant = DialogParticipant(std::move(old_participant));
     if (new_participant == nullptr) {
       new_dialog_participant = DialogParticipant::left(old_dialog_participant.user_id);
     } else {
-      new_dialog_participant = get_dialog_participant(channel_id, std::move(new_participant));
+      new_dialog_participant = DialogParticipant(std::move(new_participant));
     }
   } else {
-    new_dialog_participant = get_dialog_participant(channel_id, std::move(new_participant));
+    new_dialog_participant = DialogParticipant(std::move(new_participant));
     old_dialog_participant = DialogParticipant::left(new_dialog_participant.user_id);
   }
   if (old_dialog_participant.user_id != new_dialog_participant.user_id || !old_dialog_participant.is_valid() ||

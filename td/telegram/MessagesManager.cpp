@@ -31223,48 +31223,48 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
       return make_tl_object<td_api::chatEventMemberLeft>();
     case telegram_api::channelAdminLogEventActionParticipantInvite::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantInvite>(action_ptr);
-      auto member = td_->contacts_manager_->get_dialog_participant(channel_id, std::move(action->participant_));
-      if (!member.is_valid()) {
-        LOG(ERROR) << "Wrong invite: " << member;
+      DialogParticipant dialog_participant(std::move(action->participant_));
+      if (!dialog_participant.is_valid()) {
+        LOG(ERROR) << "Wrong invite: " << dialog_participant;
         return nullptr;
       }
       return make_tl_object<td_api::chatEventMemberInvited>(
-          td_->contacts_manager_->get_user_id_object(member.user_id, "chatEventMemberInvited"),
-          member.status.get_chat_member_status_object());
+          td_->contacts_manager_->get_user_id_object(dialog_participant.user_id, "chatEventMemberInvited"),
+          dialog_participant.status.get_chat_member_status_object());
     }
     case telegram_api::channelAdminLogEventActionParticipantToggleBan::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantToggleBan>(action_ptr);
-      auto old_member =
-          td_->contacts_manager_->get_dialog_participant(channel_id, std::move(action->prev_participant_));
-      auto new_member = td_->contacts_manager_->get_dialog_participant(channel_id, std::move(action->new_participant_));
-      if (old_member.user_id != new_member.user_id) {
-        LOG(ERROR) << old_member.user_id << " VS " << new_member.user_id;
+      DialogParticipant old_dialog_participant(std::move(action->prev_participant_));
+      DialogParticipant new_dialog_participant(std::move(action->new_participant_));
+      if (old_dialog_participant.user_id != new_dialog_participant.user_id) {
+        LOG(ERROR) << old_dialog_participant.user_id << " VS " << new_dialog_participant.user_id;
         return nullptr;
       }
-      if (!old_member.is_valid() || !new_member.is_valid()) {
-        LOG(ERROR) << "Wrong restrict: " << old_member << " -> " << new_member;
+      if (!old_dialog_participant.is_valid() || !new_dialog_participant.is_valid()) {
+        LOG(ERROR) << "Wrong restrict: " << old_dialog_participant << " -> " << new_dialog_participant;
         return nullptr;
       }
       return make_tl_object<td_api::chatEventMemberRestricted>(
-          td_->contacts_manager_->get_user_id_object(old_member.user_id, "chatEventMemberRestricted"),
-          old_member.status.get_chat_member_status_object(), new_member.status.get_chat_member_status_object());
+          td_->contacts_manager_->get_user_id_object(old_dialog_participant.user_id, "chatEventMemberRestricted"),
+          old_dialog_participant.status.get_chat_member_status_object(),
+          new_dialog_participant.status.get_chat_member_status_object());
     }
     case telegram_api::channelAdminLogEventActionParticipantToggleAdmin::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantToggleAdmin>(action_ptr);
-      auto old_member =
-          td_->contacts_manager_->get_dialog_participant(channel_id, std::move(action->prev_participant_));
-      auto new_member = td_->contacts_manager_->get_dialog_participant(channel_id, std::move(action->new_participant_));
-      if (old_member.user_id != new_member.user_id) {
-        LOG(ERROR) << old_member.user_id << " VS " << new_member.user_id;
+      DialogParticipant old_dialog_participant(std::move(action->prev_participant_));
+      DialogParticipant new_dialog_participant(std::move(action->new_participant_));
+      if (old_dialog_participant.user_id != new_dialog_participant.user_id) {
+        LOG(ERROR) << old_dialog_participant.user_id << " VS " << new_dialog_participant.user_id;
         return nullptr;
       }
-      if (!old_member.is_valid() || !new_member.is_valid()) {
-        LOG(ERROR) << "Wrong edit administrator: " << old_member << " -> " << new_member;
+      if (!old_dialog_participant.is_valid() || !new_dialog_participant.is_valid()) {
+        LOG(ERROR) << "Wrong edit administrator: " << old_dialog_participant << " -> " << new_dialog_participant;
         return nullptr;
       }
       return make_tl_object<td_api::chatEventMemberPromoted>(
-          td_->contacts_manager_->get_user_id_object(old_member.user_id, "chatEventMemberPromoted"),
-          old_member.status.get_chat_member_status_object(), new_member.status.get_chat_member_status_object());
+          td_->contacts_manager_->get_user_id_object(old_dialog_participant.user_id, "chatEventMemberPromoted"),
+          old_dialog_participant.status.get_chat_member_status_object(),
+          new_dialog_participant.status.get_chat_member_status_object());
     }
     case telegram_api::channelAdminLogEventActionChangeTitle::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeTitle>(action_ptr);

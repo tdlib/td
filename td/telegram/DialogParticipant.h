@@ -395,8 +395,7 @@ struct DialogParticipant {
   DialogParticipant(tl_object_ptr<telegram_api::ChatParticipant> &&participant_ptr, int32 chat_creation_date,
                     bool is_creator);
 
-  DialogParticipant(tl_object_ptr<telegram_api::ChannelParticipant> &&participant_ptr,
-                    DialogParticipantStatus my_status);
+  explicit DialogParticipant(tl_object_ptr<telegram_api::ChannelParticipant> &&participant_ptr);
 
   static DialogParticipant left(UserId user_id) {
     return {user_id, UserId(), 0, DialogParticipantStatus::Left()};

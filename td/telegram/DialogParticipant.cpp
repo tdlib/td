@@ -681,8 +681,7 @@ DialogParticipant::DialogParticipant(tl_object_ptr<telegram_api::ChatParticipant
   }
 }
 
-DialogParticipant::DialogParticipant(tl_object_ptr<telegram_api::ChannelParticipant> &&participant_ptr,
-                                     DialogParticipantStatus my_status) {
+DialogParticipant::DialogParticipant(tl_object_ptr<telegram_api::ChannelParticipant> &&participant_ptr) {
   CHECK(participant_ptr != nullptr);
   switch (participant_ptr->get_id()) {
     case telegram_api::channelParticipant::ID: {
@@ -693,7 +692,7 @@ DialogParticipant::DialogParticipant(tl_object_ptr<telegram_api::ChannelParticip
     case telegram_api::channelParticipantSelf::ID: {
       auto participant = move_tl_object_as<telegram_api::channelParticipantSelf>(participant_ptr);
       *this = {UserId(participant->user_id_), UserId(participant->inviter_id_), participant->date_,
-               std::move(my_status)};
+               DialogParticipantStatus::Member()};
       break;
     }
     case telegram_api::channelParticipantCreator::ID: {
