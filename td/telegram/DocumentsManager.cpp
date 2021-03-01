@@ -265,9 +265,9 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
 
     if (document_type != Document::Type::VoiceNote) {
       for (auto &thumb : document->thumbs_) {
-        auto photo_size = get_photo_size(td_->file_manager_.get(), {FileType::Thumbnail, 0}, id, access_hash,
-                                         file_reference, DcId::create(dc_id), owner_dialog_id, std::move(thumb),
-                                         thumbnail_format, document_type != Document::Type::Sticker);
+        auto photo_size =
+            get_photo_size(td_->file_manager_.get(), {FileType::Thumbnail, 0}, id, access_hash, file_reference,
+                           DcId::create(dc_id), owner_dialog_id, std::move(thumb), thumbnail_format);
         if (photo_size.get_offset() == 0) {
           if (!thumbnail.file_id.is_valid()) {
             thumbnail = std::move(photo_size.get<0>());

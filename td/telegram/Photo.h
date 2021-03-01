@@ -113,7 +113,7 @@ PhotoSize get_secret_thumbnail_photo_size(FileManager *file_manager, BufferSlice
 Variant<PhotoSize, string> get_photo_size(FileManager *file_manager, PhotoSizeSource source, int64 id,
                                           int64 access_hash, string file_reference, DcId dc_id,
                                           DialogId owner_dialog_id, tl_object_ptr<telegram_api::PhotoSize> &&size_ptr,
-                                          PhotoFormat format, bool expect_jpeg_minithumbnail);
+                                          PhotoFormat format);
 AnimationSize get_animation_size(FileManager *file_manager, PhotoSizeSource source, int64 id, int64 access_hash,
                                  string file_reference, DcId dc_id, DialogId owner_dialog_id,
                                  tl_object_ptr<telegram_api::videoSize> &&size);
