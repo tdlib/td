@@ -2258,7 +2258,6 @@ void GroupCallManager::discard_group_call(GroupCallId group_call_id, Promise<Uni
 
 void GroupCallManager::on_update_group_call(tl_object_ptr<telegram_api::GroupCall> group_call_ptr, DialogId dialog_id) {
   if (td_->auth_manager_->is_bot()) {
-    LOG(ERROR) << "Receive " << to_string(group_call_ptr);
     return;
   }
   if (dialog_id != DialogId() && !dialog_id.is_valid()) {
