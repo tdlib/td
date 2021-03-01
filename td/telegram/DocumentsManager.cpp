@@ -167,9 +167,6 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
       default_extension = Slice("webp");
       owner_dialog_id = DialogId();
       file_name.clear();
-      if (td_->stickers_manager_->has_webp_thumbnail(sticker) && remote_document.secret_file == nullptr) {
-        thumbnail_format = PhotoFormat::Webp;
-      }
     } else if (video != nullptr || default_document_type == Document::Type::Video ||
                default_document_type == Document::Type::VideoNote) {
       bool is_video_note = default_document_type == Document::Type::VideoNote;
@@ -252,6 +249,9 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
     mime_type = std::move(document->mime_type_);
     file_reference = document->file_reference_.as_slice().str();
 
+    if (document_type == Document::Type::Sticker && StickersManager::has_webp_thumbnail(document->thumbs_)) {
+      thumbnail_format = PhotoFormat::Webp;
+    }
     fix_animated_sticker_type();
 
     if (owner_dialog_id.get_type() == DialogType::SecretChat) {

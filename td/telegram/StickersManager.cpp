@@ -1830,8 +1830,19 @@ FileId StickersManager::on_get_sticker(unique_ptr<Sticker> new_sticker, bool rep
   return file_id;
 }
 
-bool StickersManager::has_webp_thumbnail(const tl_object_ptr<telegram_api::documentAttributeSticker> &sticker) {
-  // server tries to always replace user-provided thumbnail with server-side webp thumbnail
+bool StickersManager::has_webp_thumbnail(const vector<tl_object_ptr<telegram_api::PhotoSize>> &thumbnails) {
+  // server tries to always replace user-provided thumbnail with server-side WEBP thumbnail
+  // but there can be some old sticker documents or some big stickers
+  for (auto &size : thumbnails) {
+    switch (size->get_id()) {
+      case telegram_api::photoStrippedSize::ID:
+      case telegram_api::photoSizeProgressive::ID:
+        // WEBP thumbnail can't have stripped size or be progressive
+        return false;
+      default:
+        break;
+    }
+  }
   return true;
 }
 
@@ -1884,11 +1895,11 @@ std::pair<int64, FileId> StickersManager::on_get_sticker_document(
 
   PhotoSize thumbnail;
   string minithumbnail;
+  auto thumbnail_format = has_webp_thumbnail(document->thumbs_) ? PhotoFormat::Webp : PhotoFormat::Jpeg;
   for (auto &thumb : document->thumbs_) {
-    auto photo_size =
-        get_photo_size(td_->file_manager_.get(), {FileType::Thumbnail, 0}, document_id, document->access_hash_,
-                       document->file_reference_.as_slice().str(), dc_id, DialogId(), std::move(thumb),
-                       has_webp_thumbnail(sticker) ? PhotoFormat::Webp : PhotoFormat::Jpeg);
+    auto photo_size = get_photo_size(td_->file_manager_.get(), {FileType::Thumbnail, 0}, document_id,
+                                     document->access_hash_, document->file_reference_.as_slice().str(), dc_id,
+                                     DialogId(), std::move(thumb), thumbnail_format);
     if (photo_size.get_offset() == 0) {
       if (!thumbnail.file_id.is_valid()) {
         thumbnail = std::move(photo_size.get<0>());
