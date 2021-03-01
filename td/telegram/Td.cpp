@@ -3031,6 +3031,7 @@ void Td::on_alarm_timeout(int64 alarm_id) {
       updates_manager_->ping_server();
       alarm_timeout_.set_timeout_in(PING_SERVER_ALARM_ID,
                                     PING_SERVER_TIMEOUT + Random::fast(0, PING_SERVER_TIMEOUT / 5));
+      send_closure(G()->state_manager(), &StateManager::on_online, false);
     }
     return;
   }
@@ -3537,6 +3538,7 @@ void Td::on_result(NetQueryPtr query) {
       if (auth_manager_->is_bot() && auth_manager_->is_authorized()) {
         alarm_timeout_.set_timeout_in(PING_SERVER_ALARM_ID,
                                       PING_SERVER_TIMEOUT + Random::fast(0, PING_SERVER_TIMEOUT / 5));
+        send_closure(G()->state_manager(), &StateManager::on_online, true);
       }
     }
     return;
