@@ -1338,7 +1338,7 @@ tl_object_ptr<td_api::MaskPoint> StickersManager::get_mask_point_object(int32 po
 }
 
 vector<td_api::object_ptr<td_api::closedVectorPath>> StickersManager::get_sticker_minithumbnail(
-    CSlice path, StickerSetId sticker_set_id) {
+    CSlice path, StickerSetId sticker_set_id, int64 document_id) {
   if (path.empty()) {
     return {};
   }
@@ -1432,7 +1432,7 @@ vector<td_api::object_ptr<td_api::closedVectorPath>> StickersManager::get_sticke
     while (!is_closed) {
       skip_commas();
       if (path[pos] == '\0') {
-        LOG(ERROR) << "Receive unclosed path " << path << " in a sticker from " << sticker_set_id;
+        LOG(ERROR) << "Receive unclosed path " << path << " in a sticker " << document_id << " from " << sticker_set_id;
         return {};
       }
       if (is_alpha(path[pos])) {
@@ -1519,8 +1519,8 @@ vector<td_api::object_ptr<td_api::closedVectorPath>> StickersManager::get_sticke
           is_closed = true;
           break;
         default:
-          LOG(ERROR) << "Receive invalid command " << command << " at pos " << pos << " in a sticker from "
-                     << sticker_set_id << ": " << path;
+          LOG(ERROR) << "Receive invalid command " << command << " at pos " << pos << " in a sticker " << document_id
+                     << " from " << sticker_set_id << ": " << path;
           return {};
       }
     }
@@ -1592,12 +1592,16 @@ tl_object_ptr<td_api::sticker> StickersManager::get_sticker_object(FileId file_i
 
   const PhotoSize &thumbnail = sticker->m_thumbnail.file_id.is_valid() ? sticker->m_thumbnail : sticker->s_thumbnail;
   auto thumbnail_format = PhotoFormat::Webp;
+  int64 document_id = -1;
   if (!sticker->set_id.is_valid()) {
     auto sticker_file_view = td_->file_manager_->get_file_view(sticker->file_id);
     if (sticker_file_view.is_encrypted()) {
       // uploaded to secret chats stickers have JPEG thumbnail instead of server-generated WEBP
       thumbnail_format = PhotoFormat::Jpeg;
     } else {
+      if (sticker_file_view.has_remote_location() && sticker_file_view.remote_location().is_document()) {
+        document_id = sticker_file_view.remote_location().get_id();
+      }
       auto thumbnail_file_view = td_->file_manager_->get_file_view(thumbnail.file_id);
       if (ends_with(thumbnail_file_view.suggested_path(), ".jpg")) {
         thumbnail_format = PhotoFormat::Jpeg;
@@ -1605,10 +1609,11 @@ tl_object_ptr<td_api::sticker> StickersManager::get_sticker_object(FileId file_i
     }
   }
   auto thumbnail_object = get_thumbnail_object(td_->file_manager_.get(), thumbnail, thumbnail_format);
-  return make_tl_object<td_api::sticker>(sticker->set_id.get(), sticker->dimensions.width, sticker->dimensions.height,
-                                         sticker->alt, sticker->is_animated, sticker->is_mask, std::move(mask_position),
-                                         get_sticker_minithumbnail(sticker->minithumbnail, sticker->set_id),
-                                         std::move(thumbnail_object), td_->file_manager_->get_file_object(file_id));
+  return make_tl_object<td_api::sticker>(
+      sticker->set_id.get(), sticker->dimensions.width, sticker->dimensions.height, sticker->alt, sticker->is_animated,
+      sticker->is_mask, std::move(mask_position),
+      get_sticker_minithumbnail(sticker->minithumbnail, sticker->set_id, document_id), std::move(thumbnail_object),
+      td_->file_manager_->get_file_object(file_id));
 }
 
 tl_object_ptr<td_api::stickers> StickersManager::get_stickers_object(const vector<FileId> &sticker_ids) const {
@@ -1712,7 +1717,7 @@ tl_object_ptr<td_api::stickerSet> StickersManager::get_sticker_set_object(Sticke
                                         sticker_set->is_animated ? PhotoFormat::Tgs : PhotoFormat::Webp);
   return make_tl_object<td_api::stickerSet>(
       sticker_set->id.get(), sticker_set->title, sticker_set->short_name, std::move(thumbnail),
-      get_sticker_minithumbnail(sticker_set->minithumbnail, sticker_set->id),
+      get_sticker_minithumbnail(sticker_set->minithumbnail, sticker_set->id, -2),
       sticker_set->is_installed && !sticker_set->is_archived, sticker_set->is_archived, sticker_set->is_official,
       sticker_set->is_animated, sticker_set->is_masks, sticker_set->is_viewed, std::move(stickers), std::move(emojis));
 }
@@ -1758,7 +1763,7 @@ tl_object_ptr<td_api::stickerSetInfo> StickersManager::get_sticker_set_info_obje
                                         sticker_set->is_animated ? PhotoFormat::Tgs : PhotoFormat::Webp);
   return make_tl_object<td_api::stickerSetInfo>(
       sticker_set->id.get(), sticker_set->title, sticker_set->short_name, std::move(thumbnail),
-      get_sticker_minithumbnail(sticker_set->minithumbnail, sticker_set->id),
+      get_sticker_minithumbnail(sticker_set->minithumbnail, sticker_set->id, -3),
       sticker_set->is_installed && !sticker_set->is_archived, sticker_set->is_archived, sticker_set->is_official,
       sticker_set->is_animated, sticker_set->is_masks, sticker_set->is_viewed,
       sticker_set->was_loaded ? narrow_cast<int32>(sticker_set->sticker_ids.size()) : sticker_set->sticker_count,
