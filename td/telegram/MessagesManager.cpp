@@ -4619,8 +4619,9 @@ class RequestUrlAuthQuery : public Td::ResultHandler {
     dialog_id_ = dialog_id;
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
+    int32 flags = telegram_api::messages_requestUrlAuth::PEER_MASK;
     send_query(G()->net_query_creator().create(telegram_api::messages_requestUrlAuth(
-        std::move(input_peer), message_id.get_server_message_id().get(), button_id)));
+        flags, std::move(input_peer), message_id.get_server_message_id().get(), button_id, string())));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -4679,12 +4680,13 @@ class AcceptUrlAuthQuery : public Td::ResultHandler {
     dialog_id_ = dialog_id;
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
-    int32 flags = 0;
+    int32 flags = telegram_api::messages_acceptUrlAuth::PEER_MASK;
     if (allow_write_access) {
       flags |= telegram_api::messages_acceptUrlAuth::WRITE_ALLOWED_MASK;
     }
-    send_query(G()->net_query_creator().create(telegram_api::messages_acceptUrlAuth(
-        flags, false /*ignored*/, std::move(input_peer), message_id.get_server_message_id().get(), button_id)));
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_acceptUrlAuth(flags, false /*ignored*/, std::move(input_peer),
+                                             message_id.get_server_message_id().get(), button_id, string())));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -7194,15 +7196,21 @@ void MessagesManager::on_update_delete_scheduled_messages(DialogId dialog_id,
   send_update_chat_has_scheduled_messages(d, true);
 }
 
-void MessagesManager::on_user_dialog_action(DialogId dialog_id, MessageId top_thread_message_id, UserId user_id,
-                                            DialogAction action, int32 date, MessageContentType message_content_type) {
-  if (td_->auth_manager_->is_bot() || !user_id.is_valid() || is_broadcast_channel(dialog_id)) {
+void MessagesManager::on_user_dialog_action(DialogId dialog_id, MessageId top_thread_message_id,
+                                            DialogId typing_dialog_id, DialogAction action, int32 date,
+                                            MessageContentType message_content_type) {
+  if (td_->auth_manager_->is_bot() || !typing_dialog_id.is_valid() || is_broadcast_channel(dialog_id)) {
     return;
   }
   if (top_thread_message_id != MessageId() && !top_thread_message_id.is_valid()) {
     LOG(ERROR) << "Ignore typing in the message thread of " << top_thread_message_id;
     return;
   }
+
+  if (typing_dialog_id.get_type() != DialogType::User) {
+    return;
+  }
+  auto user_id = typing_dialog_id.get_user_id();
 
   auto dialog_type = dialog_id.get_type();
   if (action == DialogAction::get_speaking_action()) {
@@ -7317,7 +7325,8 @@ void MessagesManager::cancel_user_dialog_action(DialogId dialog_id, const Messag
     return;
   }
 
-  on_user_dialog_action(dialog_id, MessageId(), m->sender_user_id, DialogAction(), m->date, m->content->get_type());
+  on_user_dialog_action(dialog_id, MessageId(), DialogId(m->sender_user_id), DialogAction(), m->date,
+                        m->content->get_type());
 }
 
 void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_ptr<telegram_api::Update> &&update,
@@ -30474,8 +30483,8 @@ void MessagesManager::on_active_dialog_action_timeout(DialogId dialog_id) {
   while (actions_it->second[0].start_time + DIALOG_ACTION_TIMEOUT < now + 0.1) {
     CHECK(actions_it->second[0].user_id != prev_user_id);
     prev_user_id = actions_it->second[0].user_id;
-    on_user_dialog_action(dialog_id, actions_it->second[0].top_thread_message_id, actions_it->second[0].user_id,
-                          DialogAction(), 0);
+    on_user_dialog_action(dialog_id, actions_it->second[0].top_thread_message_id,
+                          DialogId(actions_it->second[0].user_id), DialogAction(), 0);
 
     actions_it = active_dialog_actions_.find(dialog_id);
     if (actions_it == active_dialog_actions_.end()) {
@@ -30494,8 +30503,8 @@ void MessagesManager::clear_active_dialog_actions(DialogId dialog_id) {
   auto actions_it = active_dialog_actions_.find(dialog_id);
   while (actions_it != active_dialog_actions_.end()) {
     CHECK(!actions_it->second.empty());
-    on_user_dialog_action(dialog_id, actions_it->second[0].top_thread_message_id, actions_it->second[0].user_id,
-                          DialogAction(), 0);
+    on_user_dialog_action(dialog_id, actions_it->second[0].top_thread_message_id,
+                          DialogId(actions_it->second[0].user_id), DialogAction(), 0);
     actions_it = active_dialog_actions_.find(dialog_id);
   }
 }

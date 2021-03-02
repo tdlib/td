@@ -14,7 +14,11 @@ namespace td {
 
 GroupCallParticipant::GroupCallParticipant(const tl_object_ptr<telegram_api::groupCallParticipant> &participant) {
   CHECK(participant != nullptr);
-  user_id = UserId(participant->user_id_);
+  DialogId dialog_id(participant->peer_);
+  if (dialog_id.get_type() != DialogType::User) {
+    return;
+  }
+  user_id = dialog_id.get_user_id();
   audio_source = participant->source_;
   server_is_muted_by_themselves = participant->can_self_unmute_;
   server_is_muted_by_admin = participant->muted_ && !participant->can_self_unmute_;
