@@ -418,6 +418,7 @@ class DiscardGroupCallQuery : public Td::ResultHandler {
 struct GroupCallManager::GroupCall {
   GroupCallId group_call_id;
   DialogId dialog_id;
+  string title;
   bool is_inited = false;
   bool is_active = false;
   bool is_joined = false;
@@ -2330,6 +2331,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       auto group_call = static_cast<const telegram_api::groupCall *>(group_call_ptr.get());
       input_group_call_id = InputGroupCallId(group_call->id_, group_call->access_hash_);
       call.is_active = true;
+      call.title = std::move(group_call->title_);
       call.mute_new_participants = group_call->join_muted_;
       call.allowed_change_mute_new_participants = group_call->can_change_join_muted_;
       call.participant_count = group_call->participants_count_;
@@ -2408,6 +2410,10 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
         if (old_mute_new_participants != get_group_call_mute_new_participants(group_call)) {
           need_update = true;
         }
+      }
+      if (call.title != group_call->title && call.version >= group_call->version) {
+        group_call->title = std::move(call.title);
+        need_update = true;
       }
       if (call.can_be_managed != group_call->can_be_managed) {
         group_call->can_be_managed = call.can_be_managed;
@@ -2703,8 +2709,8 @@ tl_object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(
   bool can_change_mute_new_participants =
       group_call->is_active && group_call->can_be_managed && group_call->allowed_change_mute_new_participants;
   return td_api::make_object<td_api::groupCall>(
-      group_call->group_call_id.get(), group_call->is_active, is_joined, group_call->need_rejoin, can_self_unmute,
-      group_call->can_be_managed, group_call->participant_count, group_call->loaded_all_participants,
+      group_call->group_call_id.get(), group_call->title, group_call->is_active, is_joined, group_call->need_rejoin,
+      can_self_unmute, group_call->can_be_managed, group_call->participant_count, group_call->loaded_all_participants,
       std::move(recent_speakers), mute_new_participants, can_change_mute_new_participants, group_call->duration);
 }
 
