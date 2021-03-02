@@ -1602,9 +1602,12 @@ tl_object_ptr<td_api::sticker> StickersManager::get_sticker_object(FileId file_i
       if (sticker_file_view.has_remote_location() && sticker_file_view.remote_location().is_document()) {
         document_id = sticker_file_view.remote_location().get_id();
       }
-      auto thumbnail_file_view = td_->file_manager_->get_file_view(thumbnail.file_id);
-      if (ends_with(thumbnail_file_view.suggested_path(), ".jpg")) {
-        thumbnail_format = PhotoFormat::Jpeg;
+
+      if (thumbnail.file_id.is_valid()) {
+        auto thumbnail_file_view = td_->file_manager_->get_file_view(thumbnail.file_id);
+        if (ends_with(thumbnail_file_view.suggested_path(), ".jpg")) {
+          thumbnail_format = PhotoFormat::Jpeg;
+        }
       }
     }
   }
