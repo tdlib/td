@@ -1593,10 +1593,15 @@ tl_object_ptr<td_api::sticker> StickersManager::get_sticker_object(FileId file_i
   const PhotoSize &thumbnail = sticker->m_thumbnail.file_id.is_valid() ? sticker->m_thumbnail : sticker->s_thumbnail;
   auto thumbnail_format = PhotoFormat::Webp;
   if (!sticker->set_id.is_valid()) {
-    auto file_view = td_->file_manager_->get_file_view(sticker->file_id);
-    if (file_view.is_encrypted()) {
+    auto sticker_file_view = td_->file_manager_->get_file_view(sticker->file_id);
+    if (sticker_file_view.is_encrypted()) {
       // uploaded to secret chats stickers have JPEG thumbnail instead of server-generated WEBP
       thumbnail_format = PhotoFormat::Jpeg;
+    } else {
+      auto thumbnail_file_view = td_->file_manager_->get_file_view(thumbnail.file_id);
+      if (ends_with(thumbnail_file_view.suggested_path(), ".jpg")) {
+        thumbnail_format = PhotoFormat::Jpeg;
+      }
     }
   }
   auto thumbnail_object = get_thumbnail_object(td_->file_manager_.get(), thumbnail, thumbnail_format);
