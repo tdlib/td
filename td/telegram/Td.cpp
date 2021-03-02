@@ -5989,6 +5989,14 @@ void Td::on_request(uint64 id, td_api::joinGroupCall &request) {
                                        request.source_, request.is_muted_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::setGroupCallTitle &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.title_);
+  CREATE_OK_REQUEST_PROMISE();
+  group_call_manager_->set_group_call_title(GroupCallId(request.group_call_id_), std::move(request.title_),
+                                            std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::toggleGroupCallMuteNewParticipants &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

@@ -227,6 +227,38 @@ class JoinGroupCallQuery : public Td::ResultHandler {
   }
 };
 
+class EditGroupCallTitleQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit EditGroupCallTitleQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(InputGroupCallId input_group_call_id, const string &title) {
+    send_query(G()->net_query_creator().create(
+        telegram_api::phone_editGroupCallTitle(input_group_call_id.get_input_group_call(), title)));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::phone_editGroupCallTitle>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for EditGroupCallTitleQuery: " << to_string(ptr);
+    td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(uint64 id, Status status) override {
+    if (status.message() == "GROUPCALL_NOT_MODIFIED") {
+      promise_.set_value(Unit());
+      return;
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
 class ToggleGroupCallSettingsQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -440,6 +472,7 @@ struct GroupCallManager::GroupCall {
 
   bool have_pending_mute_new_participants = false;
   bool pending_mute_new_participants = false;
+  string pending_title;
 };
 
 struct GroupCallManager::GroupCallParticipants {
@@ -867,7 +900,13 @@ void GroupCallManager::finish_check_group_call_is_joined(InputGroupCallId input_
   check_group_call_is_joined_timeout_.set_timeout_in(group_call->group_call_id.get(), next_timeout);
 }
 
+const string &GroupCallManager::get_group_call_title(const GroupCall *group_call) {
+  CHECK(group_call != nullptr);
+  return group_call->pending_title.empty() ? group_call->title : group_call->pending_title;
+}
+
 bool GroupCallManager::get_group_call_mute_new_participants(const GroupCall *group_call) {
+  CHECK(group_call != nullptr);
   return group_call->have_pending_mute_new_participants ? group_call->pending_mute_new_participants
                                                         : group_call->mute_new_participants;
 }
@@ -1793,6 +1832,63 @@ void GroupCallManager::process_group_call_after_join_requests(InputGroupCallId i
   }
 }
 
+void GroupCallManager::set_group_call_title(GroupCallId group_call_id, string title, Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
+
+  auto *group_call = get_group_call(input_group_call_id);
+  if (group_call == nullptr || !group_call->is_inited || !group_call->is_active || !group_call->can_be_managed) {
+    return promise.set_error(Status::Error(400, "Can't change group call title"));
+  }
+
+  if (title == get_group_call_title(group_call)) {
+    return promise.set_value(Unit());
+  }
+
+  // there is no reason to save promise; we will send an update with actual value anyway
+
+  if (group_call->pending_title.empty()) {
+    send_edit_group_call_title_query(input_group_call_id, title);
+  }
+  group_call->pending_title = std::move(title);
+  send_update_group_call(group_call, "set_group_call_title");
+  promise.set_value(Unit());
+}
+
+void GroupCallManager::send_edit_group_call_title_query(InputGroupCallId input_group_call_id, const string &title) {
+  auto promise = PromiseCreator::lambda([actor_id = actor_id(this), input_group_call_id, title](Result<Unit> result) {
+    send_closure(actor_id, &GroupCallManager::on_edit_group_call_title, input_group_call_id, title, std::move(result));
+  });
+  td_->create_handler<EditGroupCallTitleQuery>(std::move(promise))->send(input_group_call_id, title);
+}
+
+void GroupCallManager::on_edit_group_call_title(InputGroupCallId input_group_call_id, const string &title,
+                                                Result<Unit> &&result) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto *group_call = get_group_call(input_group_call_id);
+  if (group_call == nullptr || !group_call->is_inited || !group_call->is_active) {
+    return;
+  }
+
+  if (group_call->pending_title != title && group_call->can_be_managed) {
+    // need to send another request
+    send_edit_group_call_title_query(input_group_call_id, group_call->pending_title);
+    return;
+  }
+
+  bool is_different = group_call->pending_title != group_call->title;
+  if (is_different && group_call->can_be_managed) {
+    LOG(ERROR) << "Failed to set title to " << group_call->pending_title << " in " << input_group_call_id << ": "
+               << result.error();
+  }
+  group_call->pending_title.clear();
+  if (is_different) {
+    send_update_group_call(group_call, "on_set_group_call_title failed");
+  }
+}
+
 void GroupCallManager::toggle_group_call_mute_new_participants(GroupCallId group_call_id, bool mute_new_participants,
                                                                Promise<Unit> &&promise) {
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
@@ -1837,18 +1933,17 @@ void GroupCallManager::on_toggle_group_call_mute_new_participants(InputGroupCall
   }
 
   auto *group_call = get_group_call(input_group_call_id);
-  if (group_call == nullptr || !group_call->is_inited || !group_call->is_active) {
+  if (group_call == nullptr || !group_call->is_inited || !group_call->is_active ||
+      !group_call->have_pending_mute_new_participants) {
     return;
   }
 
-  CHECK(group_call->have_pending_mute_new_participants);
   if (result.is_error()) {
     group_call->have_pending_mute_new_participants = false;
     if (group_call->can_be_managed && group_call->allowed_change_mute_new_participants) {
       LOG(ERROR) << "Failed to set mute_new_participants to " << mute_new_participants << " in " << input_group_call_id
                  << ": " << result.error();
     }
-    group_call->have_pending_mute_new_participants = false;
     if (group_call->pending_mute_new_participants != group_call->mute_new_participants) {
       send_update_group_call(group_call, "on_toggle_group_call_mute_new_participants failed");
     }
@@ -2412,8 +2507,11 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
         }
       }
       if (call.title != group_call->title && call.version >= group_call->version) {
+        string old_group_call_title = get_group_call_title(group_call);
         group_call->title = std::move(call.title);
-        need_update = true;
+        if (old_group_call_title != get_group_call_title(group_call)) {
+          need_update = true;
+        }
       }
       if (call.can_be_managed != group_call->can_be_managed) {
         group_call->can_be_managed = call.can_be_managed;
@@ -2709,9 +2807,10 @@ tl_object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(
   bool can_change_mute_new_participants =
       group_call->is_active && group_call->can_be_managed && group_call->allowed_change_mute_new_participants;
   return td_api::make_object<td_api::groupCall>(
-      group_call->group_call_id.get(), group_call->title, group_call->is_active, is_joined, group_call->need_rejoin,
-      can_self_unmute, group_call->can_be_managed, group_call->participant_count, group_call->loaded_all_participants,
-      std::move(recent_speakers), mute_new_participants, can_change_mute_new_participants, group_call->duration);
+      group_call->group_call_id.get(), get_group_call_title(group_call), group_call->is_active, is_joined,
+      group_call->need_rejoin, can_self_unmute, group_call->can_be_managed, group_call->participant_count,
+      group_call->loaded_all_participants, std::move(recent_speakers), mute_new_participants,
+      can_change_mute_new_participants, group_call->duration);
 }
 
 tl_object_ptr<td_api::updateGroupCall> GroupCallManager::get_update_group_call_object(

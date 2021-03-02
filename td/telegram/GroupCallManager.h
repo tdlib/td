@@ -52,6 +52,8 @@ class GroupCallManager : public Actor {
                        int32 audio_source, bool is_muted,
                        Promise<td_api::object_ptr<td_api::groupCallJoinResponse>> &&promise);
 
+  void set_group_call_title(GroupCallId group_call_id, string title, Promise<Unit> &&promise);
+
   void toggle_group_call_mute_new_participants(GroupCallId group_call_id, bool mute_new_participants,
                                                Promise<Unit> &&promise);
 
@@ -135,6 +137,8 @@ class GroupCallManager : public Actor {
   void finish_check_group_call_is_joined(InputGroupCallId input_group_call_id, int32 audio_source,
                                          Result<Unit> &&result);
 
+  static const string &get_group_call_title(const GroupCall *group_call);
+
   static bool get_group_call_mute_new_participants(const GroupCall *group_call);
 
   bool need_group_call_participants(InputGroupCallId input_group_call_id) const;
@@ -179,6 +183,10 @@ class GroupCallManager : public Actor {
 
   static GroupCallParticipant *get_group_call_participant(GroupCallParticipants *group_call_participants,
                                                           UserId user_id);
+
+  void send_edit_group_call_title_query(InputGroupCallId input_group_call_id, const string &title);
+
+  void on_edit_group_call_title(InputGroupCallId input_group_call_id, const string &title, Result<Unit> &&result);
 
   void send_toggle_group_call_mute_new_participants_query(InputGroupCallId input_group_call_id,
                                                           bool mute_new_participants);

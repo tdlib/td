@@ -2679,6 +2679,11 @@ class CliClient final : public Actor {
           true));
     } else if (op == "jgcc") {
       send_request(td_api::make_object<td_api::joinGroupCall>(as_group_call_id(args), nullptr, 0, true));
+    } else if (op == "sgct") {
+      string chat_id;
+      string title;
+      get_args(args, chat_id, title);
+      send_request(td_api::make_object<td_api::setGroupCallTitle>(as_group_call_id(chat_id), title));
     } else if (op == "tgcmnp" || op == "tgcmnpe") {
       send_request(
           td_api::make_object<td_api::toggleGroupCallMuteNewParticipants>(as_group_call_id(args), op == "tgcmnpe"));

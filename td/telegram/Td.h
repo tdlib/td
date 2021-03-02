@@ -705,6 +705,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, td_api::joinGroupCall &request);
 
+  void on_request(uint64 id, td_api::setGroupCallTitle &request);
+
   void on_request(uint64 id, const td_api::toggleGroupCallMuteNewParticipants &request);
 
   void on_request(uint64 id, const td_api::inviteGroupCallParticipants &request);
