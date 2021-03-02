@@ -729,7 +729,7 @@ void AuthManager::on_get_authorization(tl_object_ptr<telegram_api::auth_Authoriz
     td->schedule_get_promo_data(0);
     G()->td_db()->get_binlog_pmc()->set("fetched_marks_as_unread", "1");
   } else {
-    send_closure(G()->state_manager(), &StateManager::on_online, true);
+    td->set_is_bot_online(true);
   }
   send_closure(G()->config_manager(), &ConfigManager::request_config);
   if (query_id_ != 0) {

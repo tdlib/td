@@ -124,6 +124,8 @@ class Td final : public NetQueryCallback {
 
   bool is_online() const;
 
+  void set_is_bot_online(bool is_bot_online);
+
   template <class ActorT, class... ArgsT>
   ActorId<ActorT> create_net_actor(ArgsT &&... args) {
     auto slot_id = request_actors_.create(ActorOwn<>(), RequestActorIdType);
@@ -287,6 +289,7 @@ class Td final : public NetQueryCallback {
   Container<ActorOwn<Actor>> request_actors_;
 
   bool is_online_ = false;
+  bool is_bot_online_ = false;
   NetQueryRef update_status_query_;
 
   int64 alarm_id_ = 1;
