@@ -6272,7 +6272,6 @@ void Td::on_request(uint64 id, td_api::setChatMemberStatus &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::banChatMember &request) {
-  CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   contacts_manager_->ban_dialog_participant(DialogId(request.chat_id_), UserId(request.user_id_),
                                             request.banned_until_date_, request.revoke_messages_, std::move(promise));
