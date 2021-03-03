@@ -357,7 +357,7 @@ Promise<> UpdatesManager::set_pts(int32 pts, const char *source) {
     }
 
     result = add_pts(pts);
-    if (last_get_difference_pts_ + FORCED_GET_DIFFERENCE_PTS_DIFF < get_pts()) {
+    if (last_get_difference_pts_ < get_pts() - FORCED_GET_DIFFERENCE_PTS_DIFF) {
       last_get_difference_pts_ = get_pts();
       schedule_get_difference("set_pts");
     }
@@ -1330,9 +1330,9 @@ void UpdatesManager::on_get_difference(tl_object_ptr<telegram_api::updates_Diffe
       auto state = std::move(difference->intermediate_state_);
       if (get_pts() != std::numeric_limits<int32>::max() && state->date_ == get_date() &&
           (state->pts_ == get_pts() ||
-           (min_postponed_update_pts_ != 0 && state->pts_ >= min_postponed_update_pts_ + 1000)) &&
+           (min_postponed_update_pts_ != 0 && state->pts_ - 1000 >= min_postponed_update_pts_)) &&
           (state->qts_ == get_qts() ||
-           (min_postponed_update_qts_ != 0 && state->qts_ >= min_postponed_update_qts_ + 1000))) {
+           (min_postponed_update_qts_ != 0 && state->qts_ - 1000 >= min_postponed_update_qts_))) {
         on_get_updates_state(std::move(state), "get difference final slice");
         VLOG(get_difference) << "Trying to switch back from getDifference to update processing";
         break;
@@ -1676,7 +1676,7 @@ void UpdatesManager::add_pending_qts_update(tl_object_ptr<telegram_api::Update> 
 
   CHECK(!running_get_difference_);
 
-  if (qts > old_qts + 1 && old_qts > 0) {
+  if (qts - 1 > old_qts && old_qts > 0) {
     LOG(INFO) << "Postpone update with qts = " << qts;
     if (pending_qts_updates_.empty()) {
       set_qts_gap_timeout(MAX_UNFILLED_GAP_TIME);
@@ -1862,7 +1862,7 @@ void UpdatesManager::add_pending_pts_update(tl_object_ptr<telegram_api::Update> 
     }
   }
 
-  if (new_pts <= old_pts || (old_pts >= 1 && new_pts > old_pts + 500000000)) {
+  if (new_pts <= old_pts || (old_pts >= 1 && new_pts - 500000000 > old_pts)) {
     td_->messages_manager_->skip_old_pending_pts_update(std::move(update), new_pts, old_pts, pts_count, source);
     return promise.set_value(Unit());
   }
@@ -1876,7 +1876,7 @@ void UpdatesManager::add_pending_pts_update(tl_object_ptr<telegram_api::Update> 
     return;
   }
 
-  if (old_pts + pts_count > new_pts) {
+  if (old_pts > new_pts - pts_count) {
     LOG(WARNING) << "Have old_pts (= " << old_pts << ") + pts_count (= " << pts_count << ") > new_pts (= " << new_pts
                  << "). Logged in " << G()->shared_config().get_option_integer("authorization_date") << ". Update from "
                  << source << " = " << oneline(to_string(update));
@@ -1890,7 +1890,7 @@ void UpdatesManager::add_pending_pts_update(tl_object_ptr<telegram_api::Update> 
     accumulated_pts_ = new_pts;
   }
 
-  if (old_pts + accumulated_pts_count_ > accumulated_pts_) {
+  if (old_pts > accumulated_pts_ - accumulated_pts_count_) {
     LOG(WARNING) << "Have old_pts (= " << old_pts << ") + accumulated_pts_count (= " << accumulated_pts_count_
                  << ") > accumulated_pts (= " << accumulated_pts_ << "). new_pts = " << new_pts
                  << ", pts_count = " << pts_count << ". Logged in "
@@ -1903,7 +1903,7 @@ void UpdatesManager::add_pending_pts_update(tl_object_ptr<telegram_api::Update> 
 
   LOG_IF(INFO, pts_count == 0 && update->get_id() != dummyUpdate::ID) << "Skip useless update " << to_string(update);
 
-  if (pending_pts_updates_.empty() && old_pts + accumulated_pts_count_ == accumulated_pts_ &&
+  if (pending_pts_updates_.empty() && old_pts == accumulated_pts_ - accumulated_pts_count_ &&
       !pts_gap_timeout_.has_timeout()) {
     if (pts_count > 0) {
       td_->messages_manager_->process_pts_update(std::move(update));
@@ -1919,13 +1919,13 @@ void UpdatesManager::add_pending_pts_update(tl_object_ptr<telegram_api::Update> 
 
   pending_pts_updates_.emplace(new_pts, PendingPtsUpdate(std::move(update), new_pts, pts_count, std::move(promise)));
 
-  if (old_pts + accumulated_pts_count_ < accumulated_pts_) {
+  if (old_pts < accumulated_pts_ - accumulated_pts_count_) {
     set_pts_gap_timeout(MAX_UNFILLED_GAP_TIME);
     last_pts_gap_time_ = Time::now();
     return;
   }
 
-  CHECK(old_pts + accumulated_pts_count_ == accumulated_pts_);
+  CHECK(old_pts == accumulated_pts_ - accumulated_pts_count_);
   process_pending_pts_updates();
 }
 
@@ -1956,7 +1956,7 @@ void UpdatesManager::process_seq_updates(int32 seq_end, int32 date,
 void UpdatesManager::process_qts_update(tl_object_ptr<telegram_api::Update> &&update_ptr, int32 qts,
                                         Promise<Unit> &&promise) {
   LOG(DEBUG) << "Process " << to_string(update_ptr);
-  if (last_get_difference_qts_ + FORCED_GET_DIFFERENCE_PTS_DIFF < qts) {
+  if (last_get_difference_qts_ < qts - FORCED_GET_DIFFERENCE_PTS_DIFF) {
     if (last_get_difference_qts_ != 0) {
       schedule_get_difference("process_qts_update");
     }

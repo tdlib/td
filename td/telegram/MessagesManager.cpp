@@ -7425,7 +7425,7 @@ void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_p
       return;
     }
 
-    if (old_pts + pts_count != new_pts) {
+    if (old_pts != new_pts - pts_count) {
       LOG(INFO) << "Found a gap in the " << dialog_id << " with pts = " << old_pts << ". new_pts = " << new_pts
                 << ", pts_count = " << pts_count << " in update from " << source;
 
@@ -35653,7 +35653,7 @@ void MessagesManager::on_get_channel_difference(
       }
 
       auto new_pts = dialog->pts_;
-      if (request_pts + request_limit > new_pts) {
+      if (request_pts > new_pts - request_limit) {
         LOG(ERROR) << "Receive channelDifferenceTooLong as result of getChannelDifference with pts = " << request_pts
                    << " and limit = " << request_limit << " in " << dialog_id << ", but pts has changed from " << d->pts
                    << " to " << new_pts << ". Difference: " << oneline(to_string(difference));
@@ -35748,7 +35748,7 @@ void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool succ
           promise.set_value(Unit());
         }
         if (d->postponed_channel_updates.size() != old_size || running_get_channel_difference(dialog_id)) {
-          if (success && update_pts < d->pts + 10000 && update_pts_count == 1) {
+          if (success && update_pts - 10000 < d->pts && update_pts_count == 1) {
             // if getChannelDifference was successful and update pts is near channel pts,
             // we hope that the update eventually can be applied
             LOG(INFO) << "Can't apply postponed channel updates";
