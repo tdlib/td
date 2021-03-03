@@ -22,7 +22,7 @@ static void generate_cpp(const std::string &directory, const std::string &tl_nam
                          const std::string &bytes_type, const std::vector<std::string> &ext_cpp_includes,
                          const std::vector<std::string> &ext_h_includes) {
   std::string path = directory + "/" + tl_name;
-  td::tl::tl_config config = td::tl::read_tl_config_from_file("scheme/" + tl_name + ".tlo");
+  td::tl::tl_config config = td::tl::read_tl_config_from_file("auto/tlo/" + tl_name + ".tlo");
   td::tl::write_tl_to_file(config, path + ".cpp", WriterCpp(tl_name, string_type, bytes_type, ext_cpp_includes));
   td::tl::write_tl_to_file(config, path + ".h", WriterH(tl_name, string_type, bytes_type, ext_h_includes));
   td::tl::write_tl_to_file(config, path + ".hpp", WriterHpp(tl_name, string_type, bytes_type));

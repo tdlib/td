@@ -10,6 +10,6 @@
 #include "td/tl/tl_generate.h"
 
 int main() {
-  td::gen_json_converter(td::tl::read_tl_config_from_file("scheme/td_api.tlo"), "td/telegram/td_api_json",
+  td::gen_json_converter(td::tl::read_tl_config_from_file("auto/tlo/td_api.tlo"), "td/telegram/td_api_json",
                          td::tl::TL_writer::Server);
 }
