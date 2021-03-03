@@ -1919,7 +1919,9 @@ std::pair<int64, FileId> StickersManager::on_get_sticker_document(
       }
       break;
     } else {
-      minithumbnail = std::move(photo_size.get<1>());
+      if (thumbnail_format == PhotoFormat::Webp) {
+        minithumbnail = std::move(photo_size.get<1>());
+      }
     }
   }
 
