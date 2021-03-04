@@ -8,7 +8,7 @@ if (WIN32)
   add_definitions("-D_CRT_SECURE_NO_WARNINGS")
   list(APPEND SOURCES wgetopt.c wgetopt.h)
   if (MSVC)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /utf-8 /wd4101 /wd4244")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /utf-8 /wd4101 /wd4244 /wd4267")
   endif()
 endif()
 
