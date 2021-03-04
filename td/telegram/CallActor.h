@@ -164,28 +164,28 @@ class CallActor : public NetQueryCallback {
   Status do_update_call(telegram_api::phoneCallDiscarded &call);
 
   void send_received_query();
-  void on_received_query_result(NetQueryPtr net_query);
+  void on_received_query_result(Result<NetQueryPtr> r_net_query);
 
   void try_send_request_query();
-  void on_request_query_result(NetQueryPtr net_query);
+  void on_request_query_result(Result<NetQueryPtr> r_net_query);
 
   void try_send_accept_query();
-  void on_accept_query_result(NetQueryPtr net_query);
+  void on_accept_query_result(Result<NetQueryPtr> r_net_query);
 
   void try_send_confirm_query();
-  void on_confirm_query_result(NetQueryPtr net_query);
+  void on_confirm_query_result(Result<NetQueryPtr> r_net_query);
 
   void try_send_discard_query();
-  void on_discard_query_result(NetQueryPtr net_query);
+  void on_discard_query_result(Result<NetQueryPtr> r_net_query);
 
   void on_begin_exchanging_key();
 
   void on_call_discarded(CallDiscardReason reason, bool need_rating, bool need_debug, bool is_video);
 
-  void on_set_rating_query_result(NetQueryPtr net_query);
-  void on_set_debug_query_result(NetQueryPtr net_query);
+  void on_set_rating_query_result(Result<NetQueryPtr> r_net_query);
+  void on_set_debug_query_result(Result<NetQueryPtr> r_net_query);
 
-  void on_get_call_config_result(NetQueryPtr net_query);
+  void on_get_call_config_result(Result<NetQueryPtr> r_net_query);
 
   void flush_call_state();
 
