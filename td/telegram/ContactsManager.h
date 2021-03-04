@@ -1411,7 +1411,7 @@ class ContactsManager : public Actor {
 
   const DialogParticipant *get_chat_participant(ChatId chat_id, UserId user_id) const;
 
-  static const DialogParticipant *get_chat_participant(const ChatFull *chat_full, UserId user_id);
+  static const DialogParticipant *get_chat_full_participant(const ChatFull *chat_full, UserId user_id);
 
   std::pair<int32, vector<UserId>> search_among_users(const vector<UserId> &user_ids, const string &query,
                                                       int32 limit) const;

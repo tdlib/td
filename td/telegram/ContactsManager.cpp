@@ -11361,10 +11361,10 @@ const DialogParticipant *ContactsManager::get_chat_participant(ChatId chat_id, U
   if (chat_full == nullptr) {
     return nullptr;
   }
-  return get_chat_participant(chat_full, user_id);
+  return get_chat_full_participant(chat_full, user_id);
 }
 
-const DialogParticipant *ContactsManager::get_chat_participant(const ChatFull *chat_full, UserId user_id) {
+const DialogParticipant *ContactsManager::get_chat_full_participant(const ChatFull *chat_full, UserId user_id) {
   for (const auto &dialog_participant : chat_full->participants) {
     if (dialog_participant.user_id == user_id) {
       return &dialog_participant;
@@ -14594,8 +14594,8 @@ void ContactsManager::do_search_chat_participants(ChatId chat_id, const string &
 
   int32 total_count;
   std::tie(total_count, user_ids) = search_among_users(user_ids, query, limit);
-  promise.set_value(DialogParticipants{total_count, transform(user_ids, [this, chat_full](UserId user_id) {
-                                         return *get_chat_participant(chat_full, user_id);
+  promise.set_value(DialogParticipants{total_count, transform(user_ids, [chat_full](UserId user_id) {
+                                         return *ContactsManager::get_chat_full_participant(chat_full, user_id);
                                        })});
 }
 
