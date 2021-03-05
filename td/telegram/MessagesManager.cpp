@@ -7203,14 +7203,9 @@ void MessagesManager::on_user_dialog_action(DialogId dialog_id, MessageId top_th
     return;
   }
   if (top_thread_message_id != MessageId() && !top_thread_message_id.is_valid()) {
-    LOG(ERROR) << "Ignore typing in the message thread of " << top_thread_message_id;
+    LOG(ERROR) << "Ignore " << action << " in the message thread of " << top_thread_message_id;
     return;
   }
-
-  if (typing_dialog_id.get_type() != DialogType::User) {
-    return;
-  }
-  auto user_id = typing_dialog_id.get_user_id();
 
   auto dialog_type = dialog_id.get_type();
   if (action == DialogAction::get_speaking_action()) {
@@ -7221,10 +7216,17 @@ void MessagesManager::on_user_dialog_action(DialogId dialog_id, MessageId top_th
     const Dialog *d = get_dialog_force(dialog_id);
     if (d != nullptr && d->active_group_call_id.is_valid()) {
       auto group_call_id = td_->group_call_manager_->get_group_call_id(d->active_group_call_id, dialog_id);
-      td_->group_call_manager_->on_user_speaking_in_group_call(group_call_id, DialogId(user_id), date);
+      td_->group_call_manager_->on_user_speaking_in_group_call(group_call_id, dialog_id, date);
     }
     return;
   }
+
+  if (typing_dialog_id.get_type() != DialogType::User) {
+    LOG(ERROR) << "Ignore " << action << " of " << typing_dialog_id << " in " << dialog_id;
+    return;
+  }
+  auto user_id = typing_dialog_id.get_user_id();
+
   {
     auto message_import_progress = action.get_importing_messages_action_progress();
     if (message_import_progress >= 0) {
@@ -7234,11 +7236,11 @@ void MessagesManager::on_user_dialog_action(DialogId dialog_id, MessageId top_th
   }
 
   if (!td_->contacts_manager_->have_min_user(user_id)) {
-    LOG(DEBUG) << "Ignore typing of unknown " << user_id;
+    LOG(DEBUG) << "Ignore " << action << " of unknown " << user_id;
     return;
   }
   if (!have_dialog(dialog_id)) {
-    LOG(DEBUG) << "Ignore typing in unknown " << dialog_id;
+    LOG(DEBUG) << "Ignore " << action << " in unknown " << dialog_id;
     return;
   }
 
