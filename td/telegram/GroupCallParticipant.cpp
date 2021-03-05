@@ -40,6 +40,9 @@ GroupCallParticipant::GroupCallParticipant(const tl_object_ptr<telegram_api::gro
       joined_date = 0;
       active_date = 0;
     }
+    if ((participant->flags_ & telegram_api::groupCallParticipant::RAISE_HAND_RATING_MASK) != 0) {
+      raise_hand_rating = participant->raise_hand_rating_;
+    }
   }
   is_just_joined = participant->just_joined_;
   is_min = participant->min_;
@@ -67,6 +70,10 @@ bool GroupCallParticipant::get_is_muted_for_all_users() const {
 
 int32 GroupCallParticipant::get_volume_level() const {
   return pending_volume_level != 0 ? pending_volume_level : volume_level;
+}
+
+bool GroupCallParticipant::get_is_hand_raised() const {
+  return have_pending_is_hand_raised ? pending_is_hand_raised : raise_hand_rating != 0;
 }
 
 void GroupCallParticipant::update_from(const GroupCallParticipant &old_participant) {
@@ -102,6 +109,10 @@ void GroupCallParticipant::update_from(const GroupCallParticipant &old_participa
   pending_is_muted_by_admin = old_participant.pending_is_muted_by_admin;
   pending_is_muted_locally = old_participant.pending_is_muted_locally;
   pending_is_muted_generation = old_participant.pending_is_muted_generation;
+
+  have_pending_is_hand_raised = old_participant.have_pending_is_hand_raised;
+  pending_is_hand_raised = old_participant.pending_is_hand_raised;
+  pending_is_hand_raised_generation = old_participant.pending_is_hand_raised_generation;
 }
 
 bool GroupCallParticipant::update_can_be_muted(bool can_manage, bool is_admin) {
@@ -215,20 +226,21 @@ td_api::object_ptr<td_api::groupCallParticipant> GroupCallParticipant::get_group
 
   return td_api::make_object<td_api::groupCallParticipant>(
       td->messages_manager_->get_message_sender_object(dialog_id), audio_source, about, is_speaking,
-      can_be_muted_for_all_users, can_be_unmuted_for_all_users, can_be_muted_only_for_self,
+      get_is_hand_raised(), can_be_muted_for_all_users, can_be_unmuted_for_all_users, can_be_muted_only_for_self,
       can_be_unmuted_only_for_self, get_is_muted_for_all_users(), get_is_muted_locally(), get_is_muted_by_themselves(),
       get_volume_level(), order);
 }
 
 bool operator==(const GroupCallParticipant &lhs, const GroupCallParticipant &rhs) {
   return lhs.dialog_id == rhs.dialog_id && lhs.audio_source == rhs.audio_source && lhs.about == rhs.about &&
+         lhs.is_speaking == rhs.is_speaking && lhs.get_is_hand_raised() == rhs.get_is_hand_raised() &&
          lhs.can_be_muted_for_all_users == rhs.can_be_muted_for_all_users &&
          lhs.can_be_unmuted_for_all_users == rhs.can_be_unmuted_for_all_users &&
          lhs.can_be_muted_only_for_self == rhs.can_be_muted_only_for_self &&
          lhs.can_be_unmuted_only_for_self == rhs.can_be_unmuted_only_for_self &&
          lhs.get_is_muted_for_all_users() == rhs.get_is_muted_for_all_users() &&
          lhs.get_is_muted_locally() == rhs.get_is_muted_locally() &&
-         lhs.get_is_muted_by_themselves() == rhs.get_is_muted_by_themselves() && lhs.is_speaking == rhs.is_speaking &&
+         lhs.get_is_muted_by_themselves() == rhs.get_is_muted_by_themselves() &&
          lhs.get_volume_level() == rhs.get_volume_level() && lhs.order == rhs.order;
 }
 

@@ -24,6 +24,7 @@ struct GroupCallParticipant {
   int32 joined_date = 0;
   int32 active_date = 0;
   int32 volume_level = 10000;
+  int64 raise_hand_rating = 0;
   bool is_volume_level_local = false;
   bool server_is_muted_by_themselves = false;
   bool server_is_muted_by_admin = false;
@@ -50,6 +51,10 @@ struct GroupCallParticipant {
   bool pending_is_muted_by_admin = false;
   bool pending_is_muted_locally = false;
   uint64 pending_is_muted_generation = 0;
+
+  bool have_pending_is_hand_raised = false;
+  bool pending_is_hand_raised = false;
+  uint64 pending_is_hand_raised_generation = 0;
 
   static constexpr int32 MIN_VOLUME_LEVEL = 1;
   static constexpr int32 MAX_VOLUME_LEVEL = 20000;
@@ -83,6 +88,8 @@ struct GroupCallParticipant {
   bool get_is_muted_for_all_users() const;
 
   int32 get_volume_level() const;
+
+  bool get_is_hand_raised() const;
 
   td_api::object_ptr<td_api::groupCallParticipant> get_group_call_participant_object(Td *td) const;
 };

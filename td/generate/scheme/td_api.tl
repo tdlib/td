@@ -2139,6 +2139,7 @@ groupCallJoinResponse payload:groupCallPayload candidates:vector<groupCallJoinRe
 //@source User's synchronization source
 //@bio The participant user's bio or the participant chat's description
 //@is_speaking True, if the participant is speaking as set by setGroupCallParticipantIsSpeaking
+//@is_hand_raised True, if the participant hand is raised
 //@can_be_muted_for_all_users True, if the current user can mute the participant for all other group call participants
 //@can_be_unmuted_for_all_users True, if the current user can allow the participant to unmute themself or unmute the participant (if the participant is the current user)
 //@can_be_muted_for_current_user True, if the current user can mute the participant only for self
@@ -2148,7 +2149,7 @@ groupCallJoinResponse payload:groupCallPayload candidates:vector<groupCallJoinRe
 //@can_unmute_self True, if the participant is muted for all users, but can unmute themself
 //@volume_level Participant's volume level; 1-20000 in hundreds of percents
 //@order User's order in the group call participant list. The bigger is order, the higher is user in the list. If order is 0, the user must be removed from the participant list
-groupCallParticipant participant:MessageSender source:int32 bio:string is_speaking:Bool can_be_muted_for_all_users:Bool can_be_unmuted_for_all_users:Bool can_be_muted_for_current_user:Bool can_be_unmuted_for_current_user:Bool is_muted_for_all_users:Bool is_muted_for_current_user:Bool can_unmute_self:Bool volume_level:int32 order:int64 = GroupCallParticipant;
+groupCallParticipant participant:MessageSender source:int32 bio:string is_speaking:Bool is_hand_raised:Bool can_be_muted_for_all_users:Bool can_be_unmuted_for_all_users:Bool can_be_muted_for_current_user:Bool can_be_unmuted_for_current_user:Bool is_muted_for_all_users:Bool is_muted_for_current_user:Bool can_unmute_self:Bool volume_level:int32 order:int64 = GroupCallParticipant;
 
 
 //@class CallProblem @description Describes the exact type of a problem with a call
