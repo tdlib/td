@@ -2821,8 +2821,8 @@ tl_object_ptr<td_api::updateGroupCall> GroupCallManager::get_update_group_call_o
 
 tl_object_ptr<td_api::updateGroupCallParticipant> GroupCallManager::get_update_group_call_participant_object(
     GroupCallId group_call_id, const GroupCallParticipant &participant) {
-  return td_api::make_object<td_api::updateGroupCallParticipant>(
-      group_call_id.get(), participant.get_group_call_participant_object(td_->contacts_manager_.get()));
+  return td_api::make_object<td_api::updateGroupCallParticipant>(group_call_id.get(),
+                                                                 participant.get_group_call_participant_object(td_));
 }
 
 void GroupCallManager::send_update_group_call(const GroupCall *group_call, const char *source) {

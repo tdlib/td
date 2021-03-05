@@ -15,7 +15,7 @@
 
 namespace td {
 
-class ContactsManager;
+class Td;
 
 struct GroupCallParticipant {
   UserId user_id;
@@ -83,8 +83,7 @@ struct GroupCallParticipant {
 
   int32 get_volume_level() const;
 
-  td_api::object_ptr<td_api::groupCallParticipant> get_group_call_participant_object(
-      ContactsManager *contacts_manager) const;
+  td_api::object_ptr<td_api::groupCallParticipant> get_group_call_participant_object(Td *td) const;
 };
 
 bool operator==(const GroupCallParticipant &lhs, const GroupCallParticipant &rhs);

@@ -7,6 +7,7 @@
 #include "td/telegram/GroupCallParticipant.h"
 
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/Td.h"
 
 #include "td/utils/logging.h"
 
@@ -210,15 +211,14 @@ bool GroupCallParticipant::set_pending_is_muted(bool is_muted, bool can_manage, 
   return true;
 }
 
-td_api::object_ptr<td_api::groupCallParticipant> GroupCallParticipant::get_group_call_participant_object(
-    ContactsManager *contacts_manager) const {
+td_api::object_ptr<td_api::groupCallParticipant> GroupCallParticipant::get_group_call_participant_object(Td *td) const {
   if (!is_valid()) {
     return nullptr;
   }
 
   return td_api::make_object<td_api::groupCallParticipant>(
-      contacts_manager->get_user_id_object(user_id, "get_group_call_participant_object"), audio_source, is_speaking,
-      can_be_muted_for_all_users, can_be_unmuted_for_all_users, can_be_muted_only_for_self,
+      td->contacts_manager_->get_user_id_object(user_id, "get_group_call_participant_object"), audio_source,
+      is_speaking, can_be_muted_for_all_users, can_be_unmuted_for_all_users, can_be_muted_only_for_self,
       can_be_unmuted_only_for_self, get_is_muted_for_all_users(), get_is_muted_locally(), get_is_muted_by_themselves(),
       get_volume_level(), order);
 }
