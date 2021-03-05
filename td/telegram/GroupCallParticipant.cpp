@@ -23,6 +23,7 @@ GroupCallParticipant::GroupCallParticipant(const tl_object_ptr<telegram_api::gro
   server_is_muted_by_themselves = participant->can_self_unmute_;
   server_is_muted_by_admin = participant->muted_ && !participant->can_self_unmute_;
   server_is_muted_locally = participant->muted_by_you_;
+  is_self = participant->self_;
   if ((participant->flags_ & telegram_api::groupCallParticipant::VOLUME_MASK) != 0) {
     volume_level = participant->volume_;
     if (volume_level < MIN_VOLUME_LEVEL || volume_level > MAX_VOLUME_LEVEL) {
@@ -43,7 +44,7 @@ GroupCallParticipant::GroupCallParticipant(const tl_object_ptr<telegram_api::gro
     }
   }
   is_just_joined = participant->just_joined_;
-  is_min = (participant->flags_ & telegram_api::groupCallParticipant::MIN_MASK) != 0;
+  is_min = participant->min_;
 }
 
 bool GroupCallParticipant::is_versioned_update(const tl_object_ptr<telegram_api::groupCallParticipant> &participant) {
@@ -88,6 +89,10 @@ void GroupCallParticipant::update_from(const GroupCallParticipant &old_participa
       is_volume_level_local = true;
       volume_level = old_participant.volume_level;
     }
+
+    if (audio_source == old_participant.audio_source) {
+      is_self = old_participant.is_self;
+    }
   }
   is_min = false;
 
@@ -101,7 +106,7 @@ void GroupCallParticipant::update_from(const GroupCallParticipant &old_participa
   pending_is_muted_generation = old_participant.pending_is_muted_generation;
 }
 
-bool GroupCallParticipant::update_can_be_muted(bool can_manage, bool is_self, bool is_admin) {
+bool GroupCallParticipant::update_can_be_muted(bool can_manage, bool is_admin) {
   bool is_muted_by_admin = get_is_muted_by_admin();
   bool is_muted_by_themselves = get_is_muted_by_themselves();
   bool is_muted_locally = get_is_muted_locally();
@@ -145,8 +150,8 @@ bool GroupCallParticipant::update_can_be_muted(bool can_manage, bool is_self, bo
   return false;
 }
 
-bool GroupCallParticipant::set_pending_is_muted(bool is_muted, bool can_manage, bool is_self, bool is_admin) {
-  update_can_be_muted(can_manage, is_self, is_admin);
+bool GroupCallParticipant::set_pending_is_muted(bool is_muted, bool can_manage, bool is_admin) {
+  update_can_be_muted(can_manage, is_admin);
   if (is_muted) {
     if (!can_be_muted_for_all_users && !can_be_muted_only_for_self) {
       return false;
@@ -201,7 +206,7 @@ bool GroupCallParticipant::set_pending_is_muted(bool is_muted, bool can_manage, 
   }
 
   have_pending_is_muted = true;
-  update_can_be_muted(can_manage, is_self, is_admin);
+  update_can_be_muted(can_manage, is_admin);
   return true;
 }
 

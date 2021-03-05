@@ -1162,10 +1162,10 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
       auto my_participant = get_group_call_participant(participants_it->second.get(), my_user_id);
       for (auto &participant : participants) {
         on_participant_speaking_in_group_call(input_group_call_id, participant);
-        if (participant.user_id == my_user_id && (my_participant == nullptr || my_participant->is_fake ||
-                                                  my_participant->joined_date < participant.joined_date ||
-                                                  (my_participant->joined_date <= participant.joined_date &&
-                                                   my_participant->audio_source != participant.audio_source))) {
+        if (participant.is_self && (my_participant == nullptr || my_participant->is_fake ||
+                                    my_participant->joined_date < participant.joined_date ||
+                                    (my_participant->joined_date <= participant.joined_date &&
+                                     my_participant->audio_source != participant.audio_source))) {
           process_group_call_participant(input_group_call_id, std::move(participant));
         }
       }
@@ -1179,7 +1179,7 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
       group_call->version = version;
       for (auto &participant : participants) {
         GroupCallParticipant group_call_participant(participant);
-        if (group_call_participant.user_id == td_->contacts_manager_->get_my_id() && group_call->is_joined &&
+        if (group_call_participant.is_self && group_call->is_joined &&
             (group_call_participant.joined_date == 0) ==
                 (group_call_participant.audio_source == group_call->audio_source)) {
           is_left = true;
@@ -1282,7 +1282,7 @@ void GroupCallManager::on_sync_group_call_participants_failed(InputGroupCallId i
 
 int64 GroupCallManager::get_real_participant_order(const GroupCallParticipant &participant, int64 min_order) const {
   auto real_order = participant.get_real_order();
-  if (real_order < min_order && participant.user_id == td_->contacts_manager_->get_my_id()) {
+  if (real_order < min_order && participant.is_self) {
     return min_order;
   }
   if (real_order >= min_order) {
@@ -1358,7 +1358,7 @@ void GroupCallManager::process_group_call_participants(
         // not synced user, needs to be deleted
         if (participant.order != 0) {
           CHECK(participant.order >= participants_it->second->min_order);
-          if (participant.user_id == td_->contacts_manager_->get_my_id()) {
+          if (participant.is_self) {
             if (participant.order != min_order) {
               participant.order = min_order;
               send_update_group_call_participant(input_group_call_id, participant);
@@ -1400,9 +1400,8 @@ void GroupCallManager::process_group_call_participants(
 bool GroupCallManager::update_group_call_participant_can_be_muted(bool can_manage,
                                                                   const GroupCallParticipants *participants,
                                                                   GroupCallParticipant &participant) {
-  bool is_self = participant.user_id == td_->contacts_manager_->get_my_id();
   bool is_admin = td::contains(participants->administrator_user_ids, participant.user_id);
-  return participant.update_can_be_muted(can_manage, is_self, is_admin);
+  return participant.update_can_be_muted(can_manage, is_admin);
 }
 
 void GroupCallManager::update_group_call_participants_can_be_muted(InputGroupCallId input_group_call_id,
@@ -1429,7 +1428,7 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
 
   LOG(INFO) << "Process " << participant << " in " << input_group_call_id;
 
-  if (participant.user_id == td_->contacts_manager_->get_my_id()) {
+  if (participant.is_self) {
     auto *group_call = get_group_call(input_group_call_id);
     CHECK(group_call != nullptr && group_call->is_inited);
     if (group_call->is_joined && group_call->is_active) {
@@ -1596,6 +1595,7 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id,
 
   if (group_call->is_inited && td_->contacts_manager_->have_user_force(td_->contacts_manager_->get_my_id())) {
     GroupCallParticipant group_call_participant;
+    group_call_participant.is_self = true;
     group_call_participant.user_id = td_->contacts_manager_->get_my_id();
     group_call_participant.audio_source = audio_source;
     group_call_participant.joined_date = G()->unix_time();
@@ -2107,12 +2107,11 @@ void GroupCallManager::toggle_group_call_participant_is_muted(GroupCallId group_
     return promise.set_error(Status::Error(400, "Can't find group call participant"));
   }
 
-  bool is_self = user_id == td_->contacts_manager_->get_my_id();
   bool can_manage = can_manage_group_call(input_group_call_id);
   bool is_admin = td::contains(participants->administrator_user_ids, user_id);
 
   auto participant_copy = *participant;
-  if (!participant_copy.set_pending_is_muted(is_muted, can_manage, is_self, is_admin)) {
+  if (!participant_copy.set_pending_is_muted(is_muted, can_manage, is_admin)) {
     return promise.set_error(Status::Error(400, PSLICE() << "Can't " << (is_muted ? "" : "un") << "mute user"));
   }
   if (participant_copy == *participant) {

@@ -27,6 +27,7 @@ struct GroupCallParticipant {
   bool server_is_muted_by_themselves = false;
   bool server_is_muted_by_admin = false;
   bool server_is_muted_locally = false;
+  bool is_self = false;
 
   bool can_be_muted_for_all_users = false;
   bool can_be_unmuted_for_all_users = false;
@@ -60,9 +61,9 @@ struct GroupCallParticipant {
 
   void update_from(const GroupCallParticipant &old_participant);
 
-  bool update_can_be_muted(bool can_manage, bool is_self, bool is_admin);
+  bool update_can_be_muted(bool can_manage, bool is_admin);
 
-  bool set_pending_is_muted(bool is_muted, bool can_manage, bool is_self, bool is_admin);
+  bool set_pending_is_muted(bool is_muted, bool can_manage, bool is_admin);
 
   int64 get_real_order() const {
     return (static_cast<int64>(max(active_date, local_active_date)) << 32) + joined_date;
