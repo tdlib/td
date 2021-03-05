@@ -1158,8 +1158,8 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
     auto version = it->first;
     auto &participants = it->second;
     if (version <= group_call->version) {
-      auto my_user_id = td_->contacts_manager_->get_my_id();
-      auto my_participant = get_group_call_participant(participants_it->second.get(), my_user_id);
+      auto my_participant =
+          get_group_call_participant(participants_it->second.get(), td_->contacts_manager_->get_my_id());
       for (auto &participant : participants) {
         on_participant_speaking_in_group_call(input_group_call_id, participant);
         if (participant.is_self && (my_participant == nullptr || my_participant->is_fake ||
@@ -2197,13 +2197,13 @@ void GroupCallManager::set_group_call_participant_volume_level(GroupCallId group
     return promise.set_error(Status::Error(400, "Have no access to the user"));
   }
 
-  if (user_id == td_->contacts_manager_->get_my_id()) {
-    return promise.set_error(Status::Error(400, "Can't change self volume level"));
-  }
-
   auto participant = get_group_call_participant(input_group_call_id, user_id);
   if (participant == nullptr) {
     return promise.set_error(Status::Error(400, "Can't find group call participant"));
+  }
+
+  if (participant->is_self) {
+    return promise.set_error(Status::Error(400, "Can't change self volume level"));
   }
 
   if (participant->get_volume_level() == volume_level) {
