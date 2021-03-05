@@ -6,9 +6,9 @@
 //
 #pragma once
 
+#include "td/telegram/DialogId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
-#include "td/telegram/UserId.h"
 
 #include "td/utils/common.h"
 #include "td/utils/StringBuilder.h"
@@ -18,7 +18,7 @@ namespace td {
 class Td;
 
 struct GroupCallParticipant {
-  UserId user_id;
+  DialogId dialog_id;
   int32 audio_source = 0;
   int32 joined_date = 0;
   int32 active_date = 0;
@@ -70,7 +70,7 @@ struct GroupCallParticipant {
   }
 
   bool is_valid() const {
-    return user_id.is_valid();
+    return dialog_id.is_valid();
   }
 
   bool get_is_muted_by_themselves() const;

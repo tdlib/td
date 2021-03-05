@@ -499,6 +499,9 @@ class MessagesManager : public Actor {
   bool have_dialog(DialogId dialog_id) const;
   bool have_dialog_force(DialogId dialog_id);
 
+  bool have_dialog_info(DialogId dialog_id) const;
+  bool have_dialog_info_force(DialogId dialog_id) const;
+
   bool load_dialog(DialogId dialog_id, int left_tries, Promise<Unit> &&promise);
 
   void load_dialogs(vector<DialogId> dialog_ids, Promise<Unit> &&promise);
@@ -2410,9 +2413,6 @@ class MessagesManager : public Actor {
                                                                        bool hide_unarchive = false) const;
 
   td_api::object_ptr<td_api::chat> get_chat_object(const Dialog *d) const;
-
-  bool have_dialog_info(DialogId dialog_id) const;
-  bool have_dialog_info_force(DialogId dialog_id) const;
 
   Dialog *get_dialog(DialogId dialog_id);
   const Dialog *get_dialog(DialogId dialog_id) const;

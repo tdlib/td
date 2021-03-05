@@ -62,10 +62,10 @@ class GroupCallManager : public Actor {
   void set_group_call_participant_is_speaking(GroupCallId group_call_id, int32 audio_source, bool is_speaking,
                                               Promise<Unit> &&promise, int32 date = 0);
 
-  void toggle_group_call_participant_is_muted(GroupCallId group_call_id, UserId user_id, bool is_muted,
+  void toggle_group_call_participant_is_muted(GroupCallId group_call_id, DialogId dialog_id, bool is_muted,
                                               Promise<Unit> &&promise);
 
-  void set_group_call_participant_volume_level(GroupCallId group_call_id, UserId user_id, int32 volume_level,
+  void set_group_call_participant_volume_level(GroupCallId group_call_id, DialogId dialog_id, int32 volume_level,
                                                Promise<Unit> &&promise);
 
   void load_group_call_participants(GroupCallId group_call_id, int32 limit, Promise<Unit> &&promise);
@@ -76,7 +76,8 @@ class GroupCallManager : public Actor {
 
   void on_update_group_call(tl_object_ptr<telegram_api::GroupCall> group_call_ptr, DialogId dialog_id);
 
-  void on_user_speaking_in_group_call(GroupCallId group_call_id, UserId user_id, int32 date, bool recursive = false);
+  void on_user_speaking_in_group_call(GroupCallId group_call_id, DialogId dialog_id, int32 date,
+                                      bool recursive = false);
 
   void on_get_group_call_participants(InputGroupCallId input_group_call_id,
                                       tl_object_ptr<telegram_api::phone_groupParticipants> &&participants, bool is_load,
@@ -179,10 +180,10 @@ class GroupCallManager : public Actor {
 
   GroupCallParticipants *add_group_call_participants(InputGroupCallId input_group_call_id);
 
-  GroupCallParticipant *get_group_call_participant(InputGroupCallId input_group_call_id, UserId user_id);
+  GroupCallParticipant *get_group_call_participant(InputGroupCallId input_group_call_id, DialogId dialog_id);
 
   static GroupCallParticipant *get_group_call_participant(GroupCallParticipants *group_call_participants,
-                                                          UserId user_id);
+                                                          DialogId dialog_id);
 
   void send_edit_group_call_title_query(InputGroupCallId input_group_call_id, const string &title);
 
@@ -194,10 +195,10 @@ class GroupCallManager : public Actor {
   void on_toggle_group_call_mute_new_participants(InputGroupCallId input_group_call_id, bool mute_new_participants,
                                                   Result<Unit> &&result);
 
-  void on_toggle_group_call_participant_is_muted(InputGroupCallId input_group_call_id, UserId user_id,
+  void on_toggle_group_call_participant_is_muted(InputGroupCallId input_group_call_id, DialogId dialog_id,
                                                  uint64 generation, Promise<Unit> &&promise);
 
-  void on_set_group_call_participant_volume_level(InputGroupCallId input_group_call_id, UserId user_id,
+  void on_set_group_call_participant_volume_level(InputGroupCallId input_group_call_id, DialogId dialog_id,
                                                   uint64 generation, Promise<Unit> &&promise);
 
   void on_group_call_left(InputGroupCallId input_group_call_id, int32 audio_source, bool need_rejoin);
@@ -211,12 +212,12 @@ class GroupCallManager : public Actor {
   void on_participant_speaking_in_group_call(InputGroupCallId input_group_call_id,
                                              const GroupCallParticipant &participant);
 
-  void remove_recent_group_call_speaker(InputGroupCallId input_group_call_id, UserId user_id);
+  void remove_recent_group_call_speaker(InputGroupCallId input_group_call_id, DialogId dialog_id);
 
   void on_group_call_recent_speakers_updated(const GroupCall *group_call, GroupCallRecentSpeakers *recent_speakers);
 
-  UserId set_group_call_participant_is_speaking_by_source(InputGroupCallId input_group_call_id, int32 audio_source,
-                                                          bool is_speaking, int32 date);
+  DialogId set_group_call_participant_is_speaking_by_source(InputGroupCallId input_group_call_id, int32 audio_source,
+                                                            bool is_speaking, int32 date);
 
   static Result<td_api::object_ptr<td_api::groupCallJoinResponse>> get_group_call_join_response_object(
       string json_response);

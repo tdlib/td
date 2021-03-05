@@ -2101,8 +2101,8 @@ callStateDiscarded reason:CallDiscardReason need_rating:Bool need_debug_informat
 callStateError error:error = CallState;
 
 
-//@description Describes a recently speaking user in a group call @user_id User identifier @is_speaking True, is the user has spoken recently
-groupCallRecentSpeaker user_id:int32 is_speaking:Bool = GroupCallRecentSpeaker;
+//@description Describes a recently speaking participant in a group call @speaker Speaking participantt @is_speaking True, is the user has spoken recently
+groupCallRecentSpeaker speaker:MessageSender is_speaking:Bool = GroupCallRecentSpeaker;
 
 //@description Describes a group call
 //@id Group call identifier
@@ -2135,7 +2135,7 @@ groupCallJoinResponseCandidate port:string protocol:string network:string genera
 groupCallJoinResponse payload:groupCallPayload candidates:vector<groupCallJoinResponseCandidate> = GroupCallJoinResponse;
 
 //@description Represents a group call participant
-//@user_id Identifier of the user
+//@participant Identifier of the group call participant
 //@source User's synchronization source
 //@is_speaking True, if the participant is speaking as set by setGroupCallParticipantIsSpeaking
 //@can_be_muted_for_all_users True, if the current user can mute the participant for all other group call participants
@@ -2147,7 +2147,7 @@ groupCallJoinResponse payload:groupCallPayload candidates:vector<groupCallJoinRe
 //@can_unmute_self True, if the participant is muted for all users, but can unmute themself
 //@volume_level Participant's volume level; 1-20000 in hundreds of percents
 //@order User's order in the group call participant list. The bigger is order, the higher is user in the list. If order is 0, the user must be removed from the participant list
-groupCallParticipant user_id:int32 source:int32 is_speaking:Bool can_be_muted_for_all_users:Bool can_be_unmuted_for_all_users:Bool can_be_muted_for_current_user:Bool can_be_unmuted_for_current_user:Bool is_muted_for_all_users:Bool is_muted_for_current_user:Bool can_unmute_self:Bool volume_level:int32 order:int64 = GroupCallParticipant;
+groupCallParticipant participant:MessageSender source:int32 is_speaking:Bool can_be_muted_for_all_users:Bool can_be_unmuted_for_all_users:Bool can_be_muted_for_current_user:Bool can_be_unmuted_for_current_user:Bool is_muted_for_all_users:Bool is_muted_for_current_user:Bool can_unmute_self:Bool volume_level:int32 order:int64 = GroupCallParticipant;
 
 
 //@class CallProblem @description Describes the exact type of a problem with a call
@@ -2454,11 +2454,11 @@ chatEventVoiceChatCreated group_call_id:int32 = ChatEventAction;
 //@description A voice chat was discarded @group_call_id Identifier of the voice chat. The voice chat can be received through the method getGroupCall
 chatEventVoiceChatDiscarded group_call_id:int32 = ChatEventAction;
 
-//@description A voice chat participant was muted or unmuted @user_id Identifier of the affected user @is_muted New value of is_muted
-chatEventVoiceChatParticipantIsMutedToggled user_id:int32 is_muted:Bool = ChatEventAction;
+//@description A voice chat participant was muted or unmuted @participant Identifier of the affected group call participant @is_muted New value of is_muted
+chatEventVoiceChatParticipantIsMutedToggled participant:MessageSender is_muted:Bool = ChatEventAction;
 
-//@description A voice chat participant volume level was changed @user_id Identifier of the affected user @volume_level New value of volume_level; 1-20000 in hundreds of percents
-chatEventVoiceChatParticipantVolumeLevelChanged user_id:int32 volume_level:int32 = ChatEventAction;
+//@description A voice chat participant volume level was changed @participant Identifier of the affected group call participant @volume_level New value of volume_level; 1-20000 in hundreds of percents
+chatEventVoiceChatParticipantVolumeLevelChanged participant:MessageSender volume_level:int32 = ChatEventAction;
 
 //@description The mute_new_participants setting of a voice chat was toggled @mute_new_participants New value of the mute_new_participants setting
 chatEventVoiceChatMuteNewParticipantsToggled mute_new_participants:Bool = ChatEventAction;

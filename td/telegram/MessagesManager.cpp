@@ -7221,7 +7221,7 @@ void MessagesManager::on_user_dialog_action(DialogId dialog_id, MessageId top_th
     const Dialog *d = get_dialog_force(dialog_id);
     if (d != nullptr && d->active_group_call_id.is_valid()) {
       auto group_call_id = td_->group_call_manager_->get_group_call_id(d->active_group_call_id, dialog_id);
-      td_->group_call_manager_->on_user_speaking_in_group_call(group_call_id, user_id, date);
+      td_->group_call_manager_->on_user_speaking_in_group_call(group_call_id, DialogId(user_id), date);
     }
     return;
   }
@@ -31474,7 +31474,7 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
         return nullptr;
       }
       return make_tl_object<td_api::chatEventVoiceChatParticipantIsMutedToggled>(
-          td_->contacts_manager_->get_user_id_object(participant.user_id, "LogEventActionParticipantMute"), true);
+          get_message_sender_object(participant.dialog_id), true);
     }
     case telegram_api::channelAdminLogEventActionParticipantUnmute::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantUnmute>(action_ptr);
@@ -31483,7 +31483,7 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
         return nullptr;
       }
       return make_tl_object<td_api::chatEventVoiceChatParticipantIsMutedToggled>(
-          td_->contacts_manager_->get_user_id_object(participant.user_id, "LogEventActionParticipantUnmute"), false);
+          get_message_sender_object(participant.dialog_id), false);
     }
     case telegram_api::channelAdminLogEventActionParticipantVolume::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantVolume>(action_ptr);
@@ -31492,8 +31492,7 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
         return nullptr;
       }
       return make_tl_object<td_api::chatEventVoiceChatParticipantVolumeLevelChanged>(
-          td_->contacts_manager_->get_user_id_object(participant.user_id, "LogEventActionParticipantVolume"),
-          participant.volume_level);
+          get_message_sender_object(participant.dialog_id), participant.volume_level);
     }
     case telegram_api::channelAdminLogEventActionToggleGroupCallSetting::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionToggleGroupCallSetting>(action_ptr);
