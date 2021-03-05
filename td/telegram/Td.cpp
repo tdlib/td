@@ -6026,15 +6026,16 @@ void Td::on_request(uint64 id, const td_api::toggleGroupCallParticipantIsMuted &
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   group_call_manager_->toggle_group_call_participant_is_muted(
-      GroupCallId(request.group_call_id_), DialogId(UserId(request.user_id_)), request.is_muted_, std::move(promise));
+      GroupCallId(request.group_call_id_), group_call_manager_->get_group_call_participant_id(request.participant_),
+      request.is_muted_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::setGroupCallParticipantVolumeLevel &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  group_call_manager_->set_group_call_participant_volume_level(GroupCallId(request.group_call_id_),
-                                                               DialogId(UserId(request.user_id_)),
-                                                               request.volume_level_, std::move(promise));
+  group_call_manager_->set_group_call_participant_volume_level(
+      GroupCallId(request.group_call_id_), group_call_manager_->get_group_call_participant_id(request.participant_),
+      request.volume_level_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::loadGroupCallParticipants &request) {

@@ -4571,12 +4571,12 @@ inviteGroupCallParticipants group_call_id:int32 user_ids:vector<int32> = Ok;
 setGroupCallParticipantIsSpeaking group_call_id:int32 source:int32 is_speaking:Bool = Ok;
 
 //@description Toggles whether a group call participant is muted, unmuted, or allowed to unmute themself
-//@group_call_id Group call identifier @user_id User identifier @is_muted Pass true if the user must be muted and false otherwise
-toggleGroupCallParticipantIsMuted group_call_id:int32 user_id:int32 is_muted:Bool = Ok;
+//@group_call_id Group call identifier @participant Participant identifier @is_muted Pass true if the user must be muted and false otherwise
+toggleGroupCallParticipantIsMuted group_call_id:int32 participant:MessageSender is_muted:Bool = Ok;
 
 //@description Changes a group call participant's volume level. If the current user can manage the group call, then the participant's volume level will be changed for all users with default volume level
-//@group_call_id Group call identifier @user_id User identifier @volume_level New participant's volume level; 1-20000 in hundreds of percents
-setGroupCallParticipantVolumeLevel group_call_id:int32 user_id:int32 volume_level:int32 = Ok;
+//@group_call_id Group call identifier @participant Participant identifier @volume_level New participant's volume level; 1-20000 in hundreds of percents
+setGroupCallParticipantVolumeLevel group_call_id:int32 participant:MessageSender volume_level:int32 = Ok;
 
 //@description Loads more group call participants. The loaded participants will be received through updates. Use the field groupCall.loaded_all_participants to check whether all participants has already been loaded
 //@group_call_id Group call identifier. The group call must be previously received through getGroupCall and must be joined or being joined

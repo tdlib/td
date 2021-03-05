@@ -2702,18 +2702,18 @@ class CliClient final : public Actor {
                                                                             as_user_ids(user_ids)));
     } else if (op == "tgcpim") {
       string group_call_id;
-      string user_id;
+      string participant_id;
       bool is_muted;
-      get_args(args, group_call_id, user_id, is_muted);
-      send_request(td_api::make_object<td_api::toggleGroupCallParticipantIsMuted>(as_group_call_id(group_call_id),
-                                                                                  as_user_id(user_id), is_muted));
+      get_args(args, group_call_id, participant_id, is_muted);
+      send_request(td_api::make_object<td_api::toggleGroupCallParticipantIsMuted>(
+          as_group_call_id(group_call_id), as_message_sender(participant_id), is_muted));
     } else if (op == "sgcpvl") {
       string group_call_id;
-      string user_id;
+      string participant_id;
       int32 volume_level;
-      get_args(args, group_call_id, user_id, volume_level);
-      send_request(td_api::make_object<td_api::setGroupCallParticipantVolumeLevel>(as_group_call_id(group_call_id),
-                                                                                   as_user_id(user_id), volume_level));
+      get_args(args, group_call_id, participant_id, volume_level);
+      send_request(td_api::make_object<td_api::setGroupCallParticipantVolumeLevel>(
+          as_group_call_id(group_call_id), as_message_sender(participant_id), volume_level));
     } else if (op == "lgcp") {
       string group_call_id;
       string limit;

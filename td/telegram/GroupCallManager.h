@@ -37,6 +37,8 @@ class GroupCallManager : public Actor {
   GroupCallManager &operator=(GroupCallManager &&) = delete;
   ~GroupCallManager() override;
 
+  DialogId get_group_call_participant_id(const td_api::object_ptr<td_api::MessageSender> &message_sender);
+
   GroupCallId get_group_call_id(InputGroupCallId input_group_call_id, DialogId dialog_id);
 
   void create_voice_chat(DialogId dialog_id, Promise<GroupCallId> &&promise);
