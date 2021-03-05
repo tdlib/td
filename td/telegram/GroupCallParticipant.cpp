@@ -16,6 +16,7 @@ namespace td {
 GroupCallParticipant::GroupCallParticipant(const tl_object_ptr<telegram_api::groupCallParticipant> &participant) {
   CHECK(participant != nullptr);
   dialog_id = DialogId(participant->peer_);
+  about = std::move(participant->about_);
   audio_source = participant->source_;
   server_is_muted_by_themselves = participant->can_self_unmute_;
   server_is_muted_by_admin = participant->muted_ && !participant->can_self_unmute_;
@@ -213,14 +214,14 @@ td_api::object_ptr<td_api::groupCallParticipant> GroupCallParticipant::get_group
   }
 
   return td_api::make_object<td_api::groupCallParticipant>(
-      td->messages_manager_->get_message_sender_object(dialog_id), audio_source, is_speaking,
+      td->messages_manager_->get_message_sender_object(dialog_id), audio_source, about, is_speaking,
       can_be_muted_for_all_users, can_be_unmuted_for_all_users, can_be_muted_only_for_self,
       can_be_unmuted_only_for_self, get_is_muted_for_all_users(), get_is_muted_locally(), get_is_muted_by_themselves(),
       get_volume_level(), order);
 }
 
 bool operator==(const GroupCallParticipant &lhs, const GroupCallParticipant &rhs) {
-  return lhs.dialog_id == rhs.dialog_id && lhs.audio_source == rhs.audio_source &&
+  return lhs.dialog_id == rhs.dialog_id && lhs.audio_source == rhs.audio_source && lhs.about == rhs.about &&
          lhs.can_be_muted_for_all_users == rhs.can_be_muted_for_all_users &&
          lhs.can_be_unmuted_for_all_users == rhs.can_be_unmuted_for_all_users &&
          lhs.can_be_muted_only_for_self == rhs.can_be_muted_only_for_self &&

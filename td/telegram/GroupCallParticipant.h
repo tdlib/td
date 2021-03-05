@@ -19,6 +19,7 @@ class Td;
 
 struct GroupCallParticipant {
   DialogId dialog_id;
+  string about;
   int32 audio_source = 0;
   int32 joined_date = 0;
   int32 active_date = 0;
