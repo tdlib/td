@@ -3825,9 +3825,9 @@ class SetTypingQuery : public Td::ResultHandler {
   explicit SetTypingQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  NetQueryRef send(DialogId dialog_id, MessageId message_id, tl_object_ptr<telegram_api::SendMessageAction> &&action) {
+  NetQueryRef send(DialogId dialog_id, tl_object_ptr<telegram_api::InputPeer> &&input_peer, MessageId message_id,
+                   tl_object_ptr<telegram_api::SendMessageAction> &&action) {
     dialog_id_ = dialog_id;
-    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
     CHECK(input_peer != nullptr);
 
     int32 flags = 0;
@@ -30388,16 +30388,26 @@ void MessagesManager::send_dialog_action(DialogId dialog_id, MessageId top_threa
     return promise.set_error(Status::Error(5, "Invalid message thread specified"));
   }
 
-  auto can_send_status = can_send_message(dialog_id);
-  if (can_send_status.is_error()) {
-    if (td_->auth_manager_->is_bot()) {
-      return promise.set_error(can_send_status.move_as_error());
+  tl_object_ptr<telegram_api::InputPeer> input_peer;
+  if (action == DialogAction::get_speaking_action()) {
+    input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    if (input_peer == nullptr) {
+      return promise.set_error(Status::Error(400, "Have no access to the chat"));
     }
-    return promise.set_value(Unit());
-  }
+  } else {
+    auto can_send_status = can_send_message(dialog_id);
+    if (can_send_status.is_error()) {
+      if (td_->auth_manager_->is_bot()) {
+        return promise.set_error(can_send_status.move_as_error());
+      }
+      return promise.set_value(Unit());
+    }
 
-  if (is_dialog_action_unneeded(dialog_id)) {
-    return promise.set_value(Unit());
+    if (is_dialog_action_unneeded(dialog_id)) {
+      return promise.set_value(Unit());
+    }
+
+    input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
   }
 
   if (dialog_id.get_type() == DialogType::SecretChat) {
@@ -30412,8 +30422,9 @@ void MessagesManager::send_dialog_action(DialogId dialog_id, MessageId top_threa
     LOG(INFO) << "Cancel previous send chat action query";
     cancel_query(query_ref);
   }
-  query_ref = td_->create_handler<SetTypingQuery>(std::move(promise))
-                  ->send(dialog_id, top_thread_message_id, action.get_input_send_message_action());
+  query_ref =
+      td_->create_handler<SetTypingQuery>(std::move(promise))
+          ->send(dialog_id, std::move(input_peer), top_thread_message_id, action.get_input_send_message_action());
 }
 
 void MessagesManager::on_send_dialog_action_timeout(DialogId dialog_id) {
