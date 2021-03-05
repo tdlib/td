@@ -10466,10 +10466,6 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       InputGroupCallId input_group_call_id;
       if (channel->call_ != nullptr) {
         input_group_call_id = InputGroupCallId(channel->call_);
-        if (input_group_call_id.is_valid() && !c->is_megagroup) {
-          LOG(ERROR) << "Receive " << input_group_call_id << " in " << channel_id;
-          input_group_call_id = InputGroupCallId();
-        }
       }
       td_->messages_manager_->on_update_dialog_group_call_id(DialogId(channel_id), input_group_call_id);
     }

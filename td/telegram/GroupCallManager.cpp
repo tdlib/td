@@ -736,18 +736,6 @@ Status GroupCallManager::can_manage_group_calls(DialogId dialog_id) const {
     }
     case DialogType::Channel: {
       auto channel_id = dialog_id.get_channel_id();
-      switch (td_->contacts_manager_->get_channel_type(channel_id)) {
-        case ChannelType::Unknown:
-          return Status::Error(400, "Chat info not found");
-        case ChannelType::Megagroup:
-          // OK
-          break;
-        case ChannelType::Broadcast:
-          return Status::Error(400, "Chat is not a group");
-        default:
-          UNREACHABLE();
-          break;
-      }
       if (!td_->contacts_manager_->get_channel_permissions(channel_id).can_manage_calls()) {
         return Status::Error(400, "Not enough rights in the chat");
       }
