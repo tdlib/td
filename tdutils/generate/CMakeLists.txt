@@ -51,7 +51,7 @@ if (NOT CMAKE_CROSSCOMPILING)
     OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/auto/mime_type_to_extension.cpp
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     COMMAND ${MIME_TYPE_TO_EXTENSION_CMD}
-    DEPENDS auto/mime_type_to_extension.gperf
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/auto/mime_type_to_extension.gperf
   )
 
   if (CMAKE_HOST_WIN32)
@@ -63,6 +63,6 @@ if (NOT CMAKE_CROSSCOMPILING)
     OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/auto/extension_to_mime_type.cpp
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     COMMAND ${EXTENSION_TO_MIME_TYPE_CMD}
-    DEPENDS auto/extension_to_mime_type.gperf
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/auto/extension_to_mime_type.gperf
   )
 endif()
