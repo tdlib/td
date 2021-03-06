@@ -5985,8 +5985,9 @@ void Td::on_request(uint64 id, const td_api::getGroupCall &request) {
 void Td::on_request(uint64 id, td_api::joinGroupCall &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  group_call_manager_->join_group_call(GroupCallId(request.group_call_id_), std::move(request.payload_),
-                                       request.source_, request.is_muted_, std::move(promise));
+  group_call_manager_->join_group_call(GroupCallId(request.group_call_id_), DialogId(request.as_chat_id_),
+                                       std::move(request.payload_), request.source_, request.is_muted_,
+                                       std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setGroupCallTitle &request) {

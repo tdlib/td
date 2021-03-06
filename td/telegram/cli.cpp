@@ -2670,15 +2670,18 @@ class CliClient final : public Actor {
     } else if (op == "ggc") {
       send_request(td_api::make_object<td_api::getGroupCall>(as_group_call_id(args)));
     } else if (op == "jgc") {
+      string group_call_id;
+      string chat_id;
+      get_args(args, group_call_id, chat_id);
       vector<td_api::object_ptr<td_api::groupCallPayloadFingerprint>> fingerprints;
       fingerprints.push_back(td_api::make_object<td_api::groupCallPayloadFingerprint>("hash", "setup", "fingerprint"));
       fingerprints.push_back(td_api::make_object<td_api::groupCallPayloadFingerprint>("h2", "s2", "fingerprint2"));
       send_request(td_api::make_object<td_api::joinGroupCall>(
-          as_group_call_id(args),
+          as_group_call_id(group_call_id), as_chat_id(chat_id),
           td_api::make_object<td_api::groupCallPayload>("ufrag", "pwd", std::move(fingerprints)), group_call_source_,
           true));
     } else if (op == "jgcc") {
-      send_request(td_api::make_object<td_api::joinGroupCall>(as_group_call_id(args), nullptr, 0, true));
+      send_request(td_api::make_object<td_api::joinGroupCall>(as_group_call_id(args), 0, nullptr, 0, true));
     } else if (op == "sgct") {
       string chat_id;
       string title;

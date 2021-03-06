@@ -50,8 +50,8 @@ class GroupCallManager : public Actor {
   void reload_group_call(InputGroupCallId input_group_call_id,
                          Promise<td_api::object_ptr<td_api::groupCall>> &&promise);
 
-  void join_group_call(GroupCallId group_call_id, td_api::object_ptr<td_api::groupCallPayload> &&payload,
-                       int32 audio_source, bool is_muted,
+  void join_group_call(GroupCallId group_call_id, DialogId as_dialog_id,
+                       td_api::object_ptr<td_api::groupCallPayload> &&payload, int32 audio_source, bool is_muted,
                        Promise<td_api::object_ptr<td_api::groupCallJoinResponse>> &&promise);
 
   void set_group_call_title(GroupCallId group_call_id, string title, Promise<Unit> &&promise);

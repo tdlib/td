@@ -184,18 +184,25 @@ class GetGroupCallParticipantsQuery : public Td::ResultHandler {
 class JoinGroupCallQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   InputGroupCallId input_group_call_id_;
+  DialogId as_dialog_id_;
   uint64 generation_ = 0;
 
  public:
   explicit JoinGroupCallQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  NetQueryRef send(InputGroupCallId input_group_call_id, const string &payload, bool is_muted, uint64 generation) {
+  NetQueryRef send(InputGroupCallId input_group_call_id, DialogId as_dialog_id, const string &payload, bool is_muted,
+                   uint64 generation) {
     input_group_call_id_ = input_group_call_id;
+    as_dialog_id_ = as_dialog_id;
     generation_ = generation;
 
-    auto join_as_input_peer =
-        td->messages_manager_->get_input_peer(DialogId(td->contacts_manager_->get_my_id()), AccessRights::Read);
+    tl_object_ptr<telegram_api::InputPeer> join_as_input_peer;
+    if (as_dialog_id.is_valid()) {
+      join_as_input_peer = td->messages_manager_->get_input_peer(as_dialog_id, AccessRights::Read);
+    } else {
+      join_as_input_peer = make_tl_object<telegram_api::inputPeerSelf>();
+    }
     CHECK(join_as_input_peer != nullptr);
 
     int32 flags = 0;
@@ -1526,7 +1533,7 @@ int32 GroupCallManager::cancel_join_group_call_request(InputGroupCallId input_gr
   return audio_source;
 }
 
-void GroupCallManager::join_group_call(GroupCallId group_call_id,
+void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_dialog_id,
                                        td_api::object_ptr<td_api::groupCallPayload> &&payload, int32 audio_source,
                                        bool is_muted,
                                        Promise<td_api::object_ptr<td_api::groupCallJoinResponse>> &&promise) {
@@ -1545,6 +1552,15 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id,
   }
 
   cancel_join_group_call_request(input_group_call_id);
+
+  if (as_dialog_id != DialogId()) {
+    if (!td_->messages_manager_->have_dialog_force(as_dialog_id)) {
+      return promise.set_error(Status::Error(400, "Chat not found"));
+    }
+    if (!td_->messages_manager_->have_input_peer(as_dialog_id, AccessRights::Read)) {
+      return promise.set_error(Status::Error(400, "Can't access the chat"));
+    }
+  }
 
   if (audio_source == 0) {
     return promise.set_error(Status::Error(400, "Audio source must be non-zero"));
@@ -1606,12 +1622,20 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id,
                      result.move_as_error());
       });
   request->query_ref = td_->create_handler<JoinGroupCallQuery>(std::move(query_promise))
-                           ->send(input_group_call_id, json_payload, is_muted, generation);
+                           ->send(input_group_call_id, as_dialog_id, json_payload, is_muted, generation);
 
-  if (group_call->is_inited && td_->contacts_manager_->have_user_force(td_->contacts_manager_->get_my_id())) {
+  if (group_call->is_inited) {
     GroupCallParticipant group_call_participant;
     group_call_participant.is_self = true;
-    group_call_participant.dialog_id = DialogId(td_->contacts_manager_->get_my_id());
+    if (as_dialog_id.is_valid()) {
+      // dialog already exists
+      group_call_participant.dialog_id = as_dialog_id;
+    } else {
+      // create dialog with self
+      DialogId my_dialog_id(td_->contacts_manager_->get_my_id());
+      td_->messages_manager_->force_create_dialog(my_dialog_id, "join_group_call");
+      group_call_participant.dialog_id = my_dialog_id;
+    }
     group_call_participant.audio_source = audio_source;
     group_call_participant.joined_date = G()->unix_time();
     // if can_self_unmute has never been inited from self-participant,
