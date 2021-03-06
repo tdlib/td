@@ -128,6 +128,8 @@ class ContactsManager : public Actor {
   RestrictedRights get_channel_default_permissions(ChannelId channel_id) const;
   RestrictedRights get_secret_chat_default_permissions(SecretChatId secret_chat_id) const;
 
+  string get_dialog_about(DialogId dialog_id);
+
   bool is_update_about_username_change_received(UserId user_id) const;
 
   void for_each_secret_chat_with_user(UserId user_id, std::function<void(SecretChatId)> f);

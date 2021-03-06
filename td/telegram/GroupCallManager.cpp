@@ -1564,6 +1564,9 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
     if (!td_->messages_manager_->have_input_peer(as_dialog_id, AccessRights::Read)) {
       return promise.set_error(Status::Error(400, "Can't access the chat"));
     }
+    if (as_dialog_id.get_type() == DialogType::SecretChat) {
+      return promise.set_error(Status::Error(400, "Can't join voice chat as a secret chat"));
+    }
   }
 
   if (audio_source == 0) {
@@ -1640,6 +1643,7 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
       td_->messages_manager_->force_create_dialog(my_dialog_id, "join_group_call");
       group_call_participant.dialog_id = my_dialog_id;
     }
+    group_call_participant.about = td_->contacts_manager_->get_dialog_about(group_call_participant.dialog_id);
     group_call_participant.audio_source = audio_source;
     group_call_participant.joined_date = G()->unix_time();
     // if can_self_unmute has never been inited from self-participant,

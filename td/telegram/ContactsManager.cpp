@@ -4769,6 +4769,43 @@ RestrictedRights ContactsManager::get_secret_chat_default_permissions(SecretChat
   return RestrictedRights(true, true, true, true, true, true, true, true, false, false, false);
 }
 
+string ContactsManager::get_dialog_about(DialogId dialog_id) {
+  switch (dialog_id.get_type()) {
+    case DialogType::User: {
+      auto user_full = get_user_full_force(dialog_id.get_user_id());
+      if (user_full != nullptr) {
+        return user_full->about;
+      }
+      break;
+    }
+    case DialogType::Chat: {
+      auto chat_full = get_chat_full_force(dialog_id.get_chat_id(), "get_dialog_about");
+      if (chat_full != nullptr) {
+        return chat_full->description;
+      }
+      break;
+    }
+    case DialogType::Channel: {
+      auto channel_full = get_channel_full_force(dialog_id.get_channel_id(), "get_dialog_about");
+      if (channel_full != nullptr) {
+        return channel_full->description;
+      }
+      break;
+    }
+    case DialogType::SecretChat: {
+      auto user_full = get_user_full_force(get_secret_chat_user_id(dialog_id.get_secret_chat_id()));
+      if (user_full != nullptr) {
+        return user_full->about;
+      }
+      break;
+    }
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+  }
+  return string();
+}
+
 int32 ContactsManager::get_secret_chat_date(SecretChatId secret_chat_id) const {
   auto c = get_secret_chat(secret_chat_id);
   if (c == nullptr) {
