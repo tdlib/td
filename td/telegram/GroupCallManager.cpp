@@ -677,6 +677,14 @@ bool GroupCallManager::is_group_call_being_joined(InputGroupCallId input_group_c
   return pending_join_requests_.count(input_group_call_id) != 0;
 }
 
+bool GroupCallManager::is_group_call_joined(InputGroupCallId input_group_call_id) const {
+  auto group_call = get_group_call(input_group_call_id);
+  if (group_call == nullptr) {
+    return false;
+  }
+  return group_call->is_joined && !group_call->is_being_left;
+}
+
 GroupCallId GroupCallManager::get_group_call_id(InputGroupCallId input_group_call_id, DialogId dialog_id) {
   if (td_->auth_manager_->is_bot() || !input_group_call_id.is_valid()) {
     return GroupCallId();

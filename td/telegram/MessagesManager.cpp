@@ -29722,11 +29722,18 @@ void MessagesManager::on_update_dialog_group_call(DialogId dialog_id, bool has_a
   if (!has_active_group_call) {
     is_group_call_empty = false;
   }
+  if (d->active_group_call_id.is_valid() && has_active_group_call && is_group_call_empty &&
+      (td_->group_call_manager_->is_group_call_being_joined(d->active_group_call_id) ||
+       td_->group_call_manager_->is_group_call_joined(d->active_group_call_id))) {
+    LOG(INFO) << "Fix is_group_call_empty to false";
+    is_group_call_empty = false;
+  }
   if (d->has_active_group_call == has_active_group_call && d->is_group_call_empty == is_group_call_empty) {
     return;
   }
   if (!force && d->active_group_call_id.is_valid() &&
       td_->group_call_manager_->is_group_call_being_joined(d->active_group_call_id)) {
+    LOG(INFO) << "Ignore update in a being joined group call";
     return;
   }
 

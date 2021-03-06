@@ -41,6 +41,8 @@ class GroupCallManager : public Actor {
 
   bool is_group_call_being_joined(InputGroupCallId input_group_call_id) const;
 
+  bool is_group_call_joined(InputGroupCallId input_group_call_id) const;
+
   GroupCallId get_group_call_id(InputGroupCallId input_group_call_id, DialogId dialog_id);
 
   void create_voice_chat(DialogId dialog_id, Promise<GroupCallId> &&promise);
