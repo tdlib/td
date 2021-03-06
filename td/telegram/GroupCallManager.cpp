@@ -551,7 +551,7 @@ void GroupCallManager::on_check_group_call_is_joined_timeout(GroupCallId group_c
   auto *group_call = get_group_call(input_group_call_id);
   CHECK(group_call != nullptr && group_call->is_inited);
   auto audio_source = group_call->audio_source;
-  if (!group_call->is_joined || pending_join_requests_.count(input_group_call_id) != 0 ||
+  if (!group_call->is_joined || is_group_call_being_joined(input_group_call_id) ||
       check_group_call_is_joined_timeout_.has_timeout(group_call_id.get()) || audio_source == 0) {
     return;
   }
@@ -671,6 +671,10 @@ DialogId GroupCallManager::get_group_call_participant_id(
       UNREACHABLE();
   }
   return DialogId();
+}
+
+bool GroupCallManager::is_group_call_being_joined(InputGroupCallId input_group_call_id) const {
+  return pending_join_requests_.count(input_group_call_id) != 0;
 }
 
 GroupCallId GroupCallManager::get_group_call_id(InputGroupCallId input_group_call_id, DialogId dialog_id) {
@@ -913,7 +917,7 @@ void GroupCallManager::finish_check_group_call_is_joined(InputGroupCallId input_
   auto *group_call = get_group_call(input_group_call_id);
   CHECK(group_call != nullptr && group_call->is_inited);
   CHECK(audio_source != 0);
-  if (!group_call->is_joined || pending_join_requests_.count(input_group_call_id) != 0 ||
+  if (!group_call->is_joined || is_group_call_being_joined(input_group_call_id) ||
       check_group_call_is_joined_timeout_.has_timeout(group_call->group_call_id.get()) ||
       group_call->audio_source != audio_source) {
     return;
@@ -943,7 +947,7 @@ bool GroupCallManager::need_group_call_participants(InputGroupCallId input_group
   if (group_call == nullptr || !group_call->is_inited || !group_call->is_active) {
     return false;
   }
-  if (group_call->is_joined || group_call->need_rejoin || pending_join_requests_.count(input_group_call_id) != 0) {
+  if (group_call->is_joined || group_call->need_rejoin || is_group_call_being_joined(input_group_call_id)) {
     return true;
   }
   return false;
@@ -1650,7 +1654,7 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
       CHECK(diff == 1);
       group_call->participant_count++;
       need_update = true;
-      update_group_call_dialog(group_call, "join_group_call");
+      update_group_call_dialog(group_call, "join_group_call", true);
     }
   }
 
@@ -1847,8 +1851,8 @@ void GroupCallManager::process_group_call_after_join_requests(InputGroupCallId i
   if (group_call == nullptr || !group_call->is_inited) {
     return;
   }
-  if (pending_join_requests_.count(input_group_call_id) != 0 || group_call->need_rejoin) {
-    LOG(ERROR) << "Failed to process after-join requests: " << pending_join_requests_.count(input_group_call_id) << " "
+  if (is_group_call_being_joined(input_group_call_id) || group_call->need_rejoin) {
+    LOG(ERROR) << "Failed to process after-join requests: " << is_group_call_being_joined(input_group_call_id) << " "
                << group_call->need_rejoin;
     return;
   }
@@ -2039,7 +2043,7 @@ void GroupCallManager::set_group_call_participant_is_speaking(GroupCallId group_
     return promise.set_value(Unit());
   }
   if (!group_call->is_joined) {
-    if (pending_join_requests_.count(input_group_call_id) || group_call->need_rejoin) {
+    if (is_group_call_being_joined(input_group_call_id) || group_call->need_rejoin) {
       group_call->after_join.push_back(
           PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, audio_source, is_speaking,
                                   promise = std::move(promise), date](Result<Unit> &&result) mutable {
@@ -2121,7 +2125,7 @@ void GroupCallManager::toggle_group_call_participant_is_muted(GroupCallId group_
     return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
   }
   if (!group_call->is_joined) {
-    if (pending_join_requests_.count(input_group_call_id) || group_call->need_rejoin) {
+    if (is_group_call_being_joined(input_group_call_id) || group_call->need_rejoin) {
       group_call->after_join.push_back(
           PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, dialog_id, is_muted,
                                   promise = std::move(promise)](Result<Unit> &&result) mutable {
@@ -2216,7 +2220,7 @@ void GroupCallManager::set_group_call_participant_volume_level(GroupCallId group
     return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
   }
   if (!group_call->is_joined) {
-    if (pending_join_requests_.count(input_group_call_id) || group_call->need_rejoin) {
+    if (is_group_call_being_joined(input_group_call_id) || group_call->need_rejoin) {
       group_call->after_join.push_back(
           PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, dialog_id, volume_level,
                                   promise = std::move(promise)](Result<Unit> &&result) mutable {
@@ -2575,13 +2579,13 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       }
     }
   }
-  update_group_call_dialog(group_call, "update_group_call");
   if (!group_call->is_active && group_call_recent_speakers_.erase(group_call->group_call_id) != 0) {
     need_update = true;
   }
   if (!join_params.empty()) {
     need_update |= on_join_group_call_response(input_group_call_id, std::move(join_params));
   }
+  update_group_call_dialog(group_call, "update_group_call");  // must be after join response is processed
   if (need_update) {
     send_update_group_call(group_call, "update_group_call");
   }
@@ -2772,13 +2776,13 @@ DialogId GroupCallManager::set_group_call_participant_is_speaking_by_source(Inpu
   return DialogId();
 }
 
-void GroupCallManager::update_group_call_dialog(const GroupCall *group_call, const char *source) {
+void GroupCallManager::update_group_call_dialog(const GroupCall *group_call, const char *source, bool force) {
   if (!group_call->dialog_id.is_valid()) {
     return;
   }
 
   td_->messages_manager_->on_update_dialog_group_call(group_call->dialog_id, group_call->is_active,
-                                                      group_call->participant_count == 0, source);
+                                                      group_call->participant_count == 0, source, force);
 }
 
 vector<td_api::object_ptr<td_api::groupCallRecentSpeaker>> GroupCallManager::get_recent_speakers(

@@ -11063,10 +11063,6 @@ void MessagesManager::on_dialog_deleted(DialogId dialog_id, Promise<Unit> &&prom
 }
 
 void MessagesManager::on_update_dialog_group_call_rights(DialogId dialog_id) {
-  if (td_->auth_manager_->is_bot()) {
-    return;
-  }
-
   auto d = get_dialog(dialog_id);
   if (d == nullptr) {
     // nothing to do
@@ -29712,12 +29708,11 @@ void MessagesManager::do_set_dialog_folder_id(Dialog *d, FolderId folder_id) {
 }
 
 void MessagesManager::on_update_dialog_group_call(DialogId dialog_id, bool has_active_group_call,
-                                                  bool is_group_call_empty, const char *source) {
+                                                  bool is_group_call_empty, const char *source, bool force) {
   LOG(INFO) << "Update voice chat in " << dialog_id << " with has_active_voice_chat = " << has_active_group_call
             << " and is_voice_chat_empty = " << is_group_call_empty << " from " << source;
-
   CHECK(dialog_id.is_valid());
-  Dialog *d = get_dialog(dialog_id);  // must not create the Dialog, because is called from on_get_chat
+  Dialog *d = get_dialog(dialog_id);  // must not create the Dialog, because it is called from on_get_chat
   if (d == nullptr) {
     LOG(INFO) << "Can't find " << dialog_id;
     pending_dialog_group_call_updates_[dialog_id] = {has_active_group_call, is_group_call_empty};
@@ -29728,6 +29723,10 @@ void MessagesManager::on_update_dialog_group_call(DialogId dialog_id, bool has_a
     is_group_call_empty = false;
   }
   if (d->has_active_group_call == has_active_group_call && d->is_group_call_empty == is_group_call_empty) {
+    return;
+  }
+  if (!force && d->active_group_call_id.is_valid() &&
+      td_->group_call_manager_->is_group_call_being_joined(d->active_group_call_id)) {
     return;
   }
 

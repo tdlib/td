@@ -39,6 +39,8 @@ class GroupCallManager : public Actor {
 
   DialogId get_group_call_participant_id(const td_api::object_ptr<td_api::MessageSender> &message_sender);
 
+  bool is_group_call_being_joined(InputGroupCallId input_group_call_id) const;
+
   GroupCallId get_group_call_id(InputGroupCallId input_group_call_id, DialogId dialog_id);
 
   void create_voice_chat(DialogId dialog_id, Promise<GroupCallId> &&promise);
@@ -226,7 +228,7 @@ class GroupCallManager : public Actor {
 
   void try_clear_group_call_participants(InputGroupCallId input_group_call_id);
 
-  void update_group_call_dialog(const GroupCall *group_call, const char *source);
+  void update_group_call_dialog(const GroupCall *group_call, const char *source, bool force = false);
 
   vector<td_api::object_ptr<td_api::groupCallRecentSpeaker>> get_recent_speakers(const GroupCall *group_call,
                                                                                  bool for_update);
