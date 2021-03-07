@@ -80,6 +80,8 @@ class GroupCallManager : public Actor {
 
   void discard_group_call(GroupCallId group_call_id, Promise<Unit> &&promise);
 
+  void on_update_dialog_about(DialogId dialog_id, const string &about, bool from_server);
+
   void on_update_group_call(tl_object_ptr<telegram_api::GroupCall> group_call_ptr, DialogId dialog_id);
 
   void on_user_speaking_in_group_call(GroupCallId group_call_id, DialogId dialog_id, int32 date,
@@ -172,6 +174,10 @@ class GroupCallManager : public Actor {
 
   int process_group_call_participant(InputGroupCallId group_call_id, GroupCallParticipant &&participant);
 
+  void on_add_group_call_participant(InputGroupCallId input_group_call_id, DialogId participant_dialog_id);
+
+  void on_remove_group_call_participant(InputGroupCallId input_group_call_id, DialogId participant_dialog_id);
+
   void try_load_group_call_administrators(InputGroupCallId input_group_call_id, DialogId dialog_id);
 
   void finish_load_group_call_administrators(InputGroupCallId input_group_call_id, Result<DialogParticipants> &&result);
@@ -262,6 +268,7 @@ class GroupCallManager : public Actor {
 
   std::unordered_map<InputGroupCallId, unique_ptr<GroupCallParticipants>, InputGroupCallIdHash>
       group_call_participants_;
+  std::unordered_map<DialogId, vector<InputGroupCallId>, DialogIdHash> participant_id_to_group_call_id_;
 
   std::unordered_map<GroupCallId, unique_ptr<GroupCallRecentSpeakers>, GroupCallIdHash> group_call_recent_speakers_;
 
