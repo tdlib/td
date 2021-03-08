@@ -2665,6 +2665,8 @@ class CliClient final : public Actor {
           as_call_id(call_id), rating, "Wow, such good call! (TDLib test)", std::move(problems)));
     } else if (op == "scdi" || op == "SendCallDebugInformation") {
       send_request(td_api::make_object<td_api::sendCallDebugInformation>(as_call_id(args), "{}"));
+    } else if (op == "gavca") {
+      send_request(td_api::make_object<td_api::getAvailableVoiceChatAliases>(as_chat_id(args)));
     } else if (op == "cvc") {
       send_request(td_api::make_object<td_api::createVoiceChat>(as_chat_id(args)));
     } else if (op == "ggc") {

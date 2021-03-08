@@ -699,6 +699,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, td_api::sendCallDebugInformation &request);
 
+  void on_request(uint64 id, const td_api::getAvailableVoiceChatAliases &request);
+
   void on_request(uint64 id, const td_api::createVoiceChat &request);
 
   void on_request(uint64 id, const td_api::getGroupCall &request);

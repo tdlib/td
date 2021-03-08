@@ -4553,6 +4553,9 @@ sendCallRating call_id:int32 rating:int32 comment:string problems:vector<CallPro
 sendCallDebugInformation call_id:int32 debug_information:string = Ok;
 
 
+//@description Returns list of user and chat, which can be used as aliases to join a voice chat in the chat @chat_id Chat identifier
+getAvailableVoiceChatAliases chat_id:int53 = MessageSenders;
+
 //@description Creates a voice chat (a group call bound to a chat). Available only for basic groups, supergroups and channels; requires can_manage_voice_chats rights @chat_id Chat identifier
 createVoiceChat chat_id:int53 = GroupCallId;
 
@@ -4561,7 +4564,7 @@ getGroupCall group_call_id:int32 = GroupCall;
 
 //@description Joins a group call
 //@group_call_id Group call identifier
-//@participant_alias Identifier of the group call participant, which will be used to join the call
+//@participant_alias Identifier of the group call participant, which will be used to join the call; voice chats only
 //@payload Group join payload; received from tgcalls
 //@source Caller synchronization source identifier; received from tgcalls
 //@is_muted True, if the user's microphone is muted

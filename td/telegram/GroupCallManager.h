@@ -45,6 +45,8 @@ class GroupCallManager : public Actor {
 
   GroupCallId get_group_call_id(InputGroupCallId input_group_call_id, DialogId dialog_id);
 
+  void get_group_call_join_as(DialogId dialog_id, Promise<td_api::object_ptr<td_api::messageSenders>> &&promise);
+
   void create_voice_chat(DialogId dialog_id, Promise<GroupCallId> &&promise);
 
   void get_group_call(GroupCallId group_call_id, Promise<td_api::object_ptr<td_api::groupCall>> &&promise);

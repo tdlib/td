@@ -31,6 +31,60 @@
 
 namespace td {
 
+class GetGroupCallJoinAsQuery : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::messageSenders>> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit GetGroupCallJoinAsQuery(Promise<td_api::object_ptr<td_api::messageSenders>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id) {
+    dialog_id_ = dialog_id;
+
+    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+
+    send_query(G()->net_query_creator().create(telegram_api::phone_getGroupCallJoinAs(std::move(input_peer))));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::phone_getGroupCallJoinAs>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetGroupCallJoinAsQuery: " << to_string(ptr);
+
+    td->contacts_manager_->on_get_users(std::move(ptr->users_), "GetGroupCallJoinAsQuery");
+    td->contacts_manager_->on_get_chats(std::move(ptr->chats_), "GetGroupCallJoinAsQuery");
+
+    vector<td_api::object_ptr<td_api::MessageSender>> participant_aliaces;
+    for (auto &peer : ptr->peers_) {
+      DialogId dialog_id(peer);
+      if (!dialog_id.is_valid()) {
+        LOG(ERROR) << "Receive invalid " << dialog_id << " as join as peer for " << dialog_id_;
+        continue;
+      }
+      if (dialog_id.get_type() != DialogType::User) {
+        td->messages_manager_->force_create_dialog(dialog_id, "GetGroupCallJoinAsQuery");
+      }
+
+      participant_aliaces.push_back(td->messages_manager_->get_message_sender_object(dialog_id));
+    }
+
+    promise_.set_value(td_api::make_object<td_api::messageSenders>(static_cast<int32>(participant_aliaces.size()),
+                                                                   std::move(participant_aliaces)));
+  }
+
+  void on_error(uint64 id, Status status) override {
+    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetGroupCallJoinAsQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class CreateGroupCallQuery : public Td::ResultHandler {
   Promise<InputGroupCallId> promise_;
   DialogId dialog_id_;
@@ -778,6 +832,21 @@ bool GroupCallManager::can_manage_group_call(InputGroupCallId input_group_call_i
     return false;
   }
   return can_manage_group_calls(group_call->dialog_id).is_ok();
+}
+
+void GroupCallManager::get_group_call_join_as(DialogId dialog_id,
+                                              Promise<td_api::object_ptr<td_api::messageSenders>> &&promise) {
+  if (!dialog_id.is_valid()) {
+    return promise.set_error(Status::Error(400, "Invalid chat identifier specified"));
+  }
+  if (!td_->messages_manager_->have_dialog_force(dialog_id)) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+  if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+    return promise.set_error(Status::Error(400, "Can't access chat"));
+  }
+
+  td_->create_handler<GetGroupCallJoinAsQuery>(std::move(promise))->send(dialog_id);
 }
 
 void GroupCallManager::create_voice_chat(DialogId dialog_id, Promise<GroupCallId> &&promise) {
