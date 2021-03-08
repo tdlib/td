@@ -85,6 +85,8 @@ class HttpHeaderCreator {
         return CSlice("Not Modified");
       case 307:
         return CSlice("Temporary Redirect");
+      case 308:
+        return CSlice("Permanent Redirect");
       case 400:
         return CSlice("Bad Request");
       case 401:
@@ -101,16 +103,28 @@ class HttpHeaderCreator {
         return CSlice("Request Timeout");
       case 409:
         return CSlice("Conflict");
+      case 410:
+        return CSlice("Gone");
       case 411:
         return CSlice("Length Required");
+      case 412:
+        return CSlice("Precondition Failed");
       case 413:
         return CSlice("Request Entity Too Large");
       case 414:
         return CSlice("Request-URI Too Long");
       case 415:
         return CSlice("Unsupported Media Type");
+      case 416:
+        return CSlice("Range Not Satisfiable");
+      case 417:
+        return CSlice("Expectation Failed");
       case 418:
         return CSlice("I'm a teapot");
+      case 421:
+        return CSlice("Misdirected Request");
+      case 426:
+        return CSlice("Upgrade Required");
       case 429:
         return CSlice("Too Many Requests");
       case 431:
