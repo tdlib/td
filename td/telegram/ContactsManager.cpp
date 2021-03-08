@@ -13082,7 +13082,7 @@ void ContactsManager::on_update_chat_participant(ChatId chat_id, UserId user_id,
   }
   if (!chat_id.is_valid() || !user_id.is_valid() || date <= 0 ||
       (old_participant == nullptr && new_participant == nullptr)) {
-    LOG(ERROR) << "Receive invalid updateChatParticipant in " << chat_id << " for " << user_id << " at " << date << ": "
+    LOG(ERROR) << "Receive invalid updateChatParticipant in " << chat_id << " by " << user_id << " at " << date << ": "
                << to_string(old_participant) << " -> " << to_string(new_participant);
     return;
   }
@@ -13127,7 +13127,7 @@ void ContactsManager::on_update_channel_participant(ChannelId channel_id, UserId
   }
   if (!channel_id.is_valid() || !user_id.is_valid() || date <= 0 ||
       (old_participant == nullptr && new_participant == nullptr)) {
-    LOG(ERROR) << "Receive invalid updateChannelParticipant in " << channel_id << " for " << user_id << " at " << date
+    LOG(ERROR) << "Receive invalid updateChannelParticipant in " << channel_id << " by " << user_id << " at " << date
                << ": " << to_string(old_participant) << " -> " << to_string(new_participant);
     return;
   }
