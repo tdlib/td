@@ -13328,9 +13328,9 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   bool is_pinned = (flags & MESSAGE_FLAG_IS_PINNED) != 0;
 
   LOG_IF(ERROR, is_channel_message != (dialog_type == DialogType::Channel))
-      << "is_channel_message is wrong for message received in the " << dialog_id;
+      << "is_channel_message is wrong for " << message_id << " received in the " << dialog_id;
   LOG_IF(ERROR, is_channel_post && !is_broadcast_channel(dialog_id))
-      << "is_channel_post is true for message received in the " << dialog_id;
+      << "is_channel_post is true for " << message_id << " received in the " << dialog_id;
 
   UserId my_id = td_->contacts_manager_->get_my_id();
   DialogId my_dialog_id = DialogId(my_id);
