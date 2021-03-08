@@ -894,8 +894,8 @@ chatPosition list:ChatList order:int64 is_pinned:Bool source:ChatSource = ChatPo
 //@description Describes a voice chat
 //@group_call_id Group call identifier of an active voice chat; 0 if none. Full informationa about the voice chat can be received through the method getGroupCall
 //@has_participants True, if the voice chat has participants
-//@default_join_as_chat_id Chat identifier of a chat, under which name to join voice chat by default; 0 if none or unknown
-voiceChat group_call_id:int32 has_participants:Bool default_join_as_chat_id:int53 = VoiceChat;
+//@default_participant_alias Default group call participant identifier to join the voice chat; may be null
+voiceChat group_call_id:int32 has_participants:Bool default_participant_alias:MessageSender = VoiceChat;
 
 
 //@description A chat. (Can be a private chat, basic group, supergroup, or secret chat)
@@ -4559,8 +4559,13 @@ createVoiceChat chat_id:int53 = GroupCallId;
 //@description Returns information about a group call @group_call_id Group call identifier
 getGroupCall group_call_id:int32 = GroupCall;
 
-//@description Joins a group call @group_call_id Group call identifier @as_chat_id If not 0, identifier of the chat, which will be used to join the call @payload Group join payload, received from tgcalls. Use null to cancel previous joinGroupCall request @source Caller synchronization source identifier; received from tgcalls @is_muted True, if the user's microphone is muted
-joinGroupCall group_call_id:int32 as_chat_id:int53 payload:groupCallPayload source:int32 is_muted:Bool = GroupCallJoinResponse;
+//@description Joins a group call
+//@group_call_id Group call identifier
+//@participant_alias Identifier of the group call participant, which will be used to join the call
+//@payload Group join payload; received from tgcalls
+//@source Caller synchronization source identifier; received from tgcalls
+//@is_muted True, if the user's microphone is muted
+joinGroupCall group_call_id:int32 participant_alias:MessageSender payload:groupCallPayload source:int32 is_muted:Bool = GroupCallJoinResponse;
 
 //@description Sets group call title. Requires groupCall.can_be_managed group call flag @group_call_id Group call identifier @title New group call title; 1-128 characters
 setGroupCallTitle group_call_id:int32 title:string = Ok;

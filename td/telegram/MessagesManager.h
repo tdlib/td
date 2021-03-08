@@ -147,6 +147,8 @@ class MessagesManager : public Actor {
 
   td_api::object_ptr<td_api::MessageSender> get_message_sender_object(UserId user_id, DialogId dialog_id);
 
+  td_api::object_ptr<td_api::MessageSender> get_message_sender_object_const(DialogId dialog_id) const;
+
   td_api::object_ptr<td_api::MessageSender> get_message_sender_object(DialogId dialog_id);
 
   static vector<MessageId> get_message_ids(const vector<int64> &input_message_ids);

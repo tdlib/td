@@ -6108,6 +6108,13 @@ td_api::object_ptr<td_api::MessageSender> MessagesManager::get_message_sender_ob
   return get_message_sender_object_const(user_id, dialog_id);
 }
 
+td_api::object_ptr<td_api::MessageSender> MessagesManager::get_message_sender_object_const(DialogId dialog_id) const {
+  if (dialog_id.get_type() == DialogType::User) {
+    return get_message_sender_object_const(dialog_id.get_user_id(), DialogId());
+  }
+  return get_message_sender_object_const(UserId(), dialog_id);
+}
+
 td_api::object_ptr<td_api::MessageSender> MessagesManager::get_message_sender_object(DialogId dialog_id) {
   if (dialog_id.get_type() == DialogType::User) {
     return get_message_sender_object(dialog_id.get_user_id(), DialogId());
@@ -19857,9 +19864,12 @@ td_api::object_ptr<td_api::ChatActionBar> MessagesManager::get_chat_action_bar_o
 
 td_api::object_ptr<td_api::voiceChat> MessagesManager::get_voice_chat_object(const Dialog *d) const {
   auto active_group_call_id = td_->group_call_manager_->get_group_call_id(d->active_group_call_id, d->dialog_id);
+  auto default_participant_alias = d->default_join_group_call_as_dialog_id.is_valid()
+                                       ? get_message_sender_object_const(d->default_join_group_call_as_dialog_id)
+                                       : nullptr;
   return make_tl_object<td_api::voiceChat>(active_group_call_id.get(),
                                            active_group_call_id.is_valid() ? !d->is_group_call_empty : false,
-                                           d->default_join_group_call_as_dialog_id.get());
+                                           std::move(default_participant_alias));
 }
 
 td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *d) const {
@@ -29806,7 +29816,12 @@ void MessagesManager::on_update_dialog_default_join_group_call_as_dialog_id(Dial
   }
 
   if (default_join_as_dialog_id.is_valid()) {
-    force_create_dialog(default_join_as_dialog_id, "on_update_dialog_default_join_group_call_as_dialog_id");
+    if (default_join_as_dialog_id.get_type() != DialogType::User) {
+      force_create_dialog(default_join_as_dialog_id, "on_update_dialog_default_join_group_call_as_dialog_id");
+    } else if (!td_->contacts_manager_->have_user_force(default_join_as_dialog_id.get_user_id()) ||
+               default_join_as_dialog_id != get_my_dialog_id()) {
+      default_join_as_dialog_id = DialogId();
+    }
   }
 
   if (d->default_join_group_call_as_dialog_id != default_join_as_dialog_id) {

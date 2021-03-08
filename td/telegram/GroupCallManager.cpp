@@ -1602,14 +1602,29 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
 
   cancel_join_group_call_request(input_group_call_id);
 
-  if (as_dialog_id != DialogId()) {
-    if (!td_->messages_manager_->have_dialog_force(as_dialog_id)) {
-      return promise.set_error(Status::Error(400, "Chat not found"));
+  bool have_as_dialog_id = true;
+  {
+    auto my_dialog_id = DialogId(td_->contacts_manager_->get_my_id());
+    if (!as_dialog_id.is_valid()) {
+      as_dialog_id = my_dialog_id;
+    }
+    auto dialog_type = as_dialog_id.get_type();
+    if (dialog_type == DialogType::User) {
+      if (as_dialog_id != my_dialog_id) {
+        return promise.set_error(Status::Error(400, "Can't join voice chat as another user"));
+      }
+      if (!td_->contacts_manager_->have_user_force(as_dialog_id.get_user_id())) {
+        have_as_dialog_id = false;
+      }
+    } else {
+      if (!td_->messages_manager_->have_dialog_force(as_dialog_id)) {
+        return promise.set_error(Status::Error(400, "Alias chat not found"));
+      }
     }
     if (!td_->messages_manager_->have_input_peer(as_dialog_id, AccessRights::Read)) {
-      return promise.set_error(Status::Error(400, "Can't access the chat"));
+      return promise.set_error(Status::Error(400, "Can't access the alias participant"));
     }
-    if (as_dialog_id.get_type() == DialogType::SecretChat) {
+    if (dialog_type == DialogType::SecretChat) {
       return promise.set_error(Status::Error(400, "Can't join voice chat as a secret chat"));
     }
   }
@@ -1676,16 +1691,15 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
   request->query_ref = td_->create_handler<JoinGroupCallQuery>(std::move(query_promise))
                            ->send(input_group_call_id, as_dialog_id, json_payload, is_muted, generation);
 
-  if (!as_dialog_id.is_valid()) {
-    as_dialog_id = DialogId(td_->contacts_manager_->get_my_id());
-  }
   if (group_call->dialog_id.is_valid()) {
     td_->messages_manager_->on_update_dialog_default_join_group_call_as_dialog_id(group_call->dialog_id, as_dialog_id,
                                                                                   true);
   } else {
-    td_->messages_manager_->force_create_dialog(as_dialog_id, "join_group_call");
+    if (as_dialog_id.get_type() != DialogType::User) {
+      td_->messages_manager_->force_create_dialog(as_dialog_id, "join_group_call");
+    }
   }
-  if (group_call->is_inited) {
+  if (group_call->is_inited && have_as_dialog_id) {
     GroupCallParticipant group_call_participant;
     group_call_participant.is_self = true;
     group_call_participant.dialog_id = as_dialog_id;
