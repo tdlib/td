@@ -891,6 +891,13 @@ chatSourcePublicServiceAnnouncement type:string text:string = ChatSource;
 chatPosition list:ChatList order:int64 is_pinned:Bool source:ChatSource = ChatPosition;
 
 
+//@description Describes a voice chat
+//@group_call_id Group call identifier of an active voice chat; 0 if none. Full informationa about the voice chat can be received through the method getGroupCall
+//@has_participants True, if the voice chat has participants
+//@default_join_as_chat_id Chat identifier of a chat, under which name to join voice chat by default; 0 if none or unknown
+voiceChat group_call_id:int32 has_participants:Bool default_join_as_chat_id:int53 = VoiceChat;
+
+
 //@description A chat. (Can be a private chat, basic group, supergroup, or secret chat)
 //@id Chat unique identifier
 //@type Type of the chat
@@ -913,13 +920,11 @@ chatPosition list:ChatList order:int64 is_pinned:Bool source:ChatSource = ChatPo
 //@notification_settings Notification settings for this chat
 //@message_ttl_setting Current message Time To Live setting (self-destruct timer) for the chat; 0 if not defined. TTL is counted from the time message or its content is viewed in secret chats and from the send date in other chats
 //@action_bar Describes actions which should be possible to do through a chat action bar; may be null
-//@voice_chat_group_call_id Group call identifier of an active voice chat; 0 if none or unknown. The voice chat can be received through the method getGroupCall
-//@is_voice_chat_empty True, if an active voice chat is empty
-//@default_join_voice_chat_as_chat_id Chat identifier of a chat, under which name to join voice chat by default; 0 if none or unknown
+//@voice_chat Contains information about voice chat of the chat
 //@reply_markup_message_id Identifier of the message from which reply markup needs to be used; 0 if there is no default custom reply markup in the chat
 //@draft_message A draft of a message in the chat; may be null
 //@client_data Contains application-specific data associated with the chat. (For example, the chat scroll position or local chat notification settings can be stored here.) Persistent if the message database is used
-chat id:int53 type:ChatType title:string photo:chatPhotoInfo permissions:chatPermissions last_message:message positions:vector<chatPosition> is_marked_as_unread:Bool is_blocked:Bool has_scheduled_messages:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_reported:Bool default_disable_notification:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 notification_settings:chatNotificationSettings message_ttl_setting:int32 action_bar:ChatActionBar voice_chat_group_call_id:int32 is_voice_chat_empty:Bool default_join_voice_chat_as_chat_id:int53 reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
+chat id:int53 type:ChatType title:string photo:chatPhotoInfo permissions:chatPermissions last_message:message positions:vector<chatPosition> is_marked_as_unread:Bool is_blocked:Bool has_scheduled_messages:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_reported:Bool default_disable_notification:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 notification_settings:chatNotificationSettings message_ttl_setting:int32 action_bar:ChatActionBar voice_chat:voiceChat reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
 
 //@description Represents a list of chats @total_count Approximate total count of chats found @chat_ids List of chat identifiers
 chats total_count:int32 chat_ids:vector<int53> = Chats;
@@ -3388,8 +3393,8 @@ updateChatIsBlocked chat_id:int53 is_blocked:Bool = Update;
 //@description A chat's has_scheduled_messages field has changed @chat_id Chat identifier @has_scheduled_messages New value of has_scheduled_messages
 updateChatHasScheduledMessages chat_id:int53 has_scheduled_messages:Bool = Update;
 
-//@description A chat voice chat state has changed @chat_id Chat identifier @voice_chat_group_call_id New value of voice_chat_group_call_id @is_voice_chat_empty New value of is_voice_chat_empty @default_join_voice_chat_as_chat_id Chat identifier of a chat, under which name to join voice chat by default; 0 if none or unknown
-updateChatVoiceChat chat_id:int53 voice_chat_group_call_id:int32 is_voice_chat_empty:Bool default_join_voice_chat_as_chat_id:int53 = Update;
+//@description A chat voice chat state has changed @chat_id Chat identifier @voice_chat New value of voice_chat
+updateChatVoiceChat chat_id:int53 voice_chat:voiceChat = Update;
 
 //@description The value of the default disable_notification parameter, used when a message is sent to the chat, was changed @chat_id Chat identifier @default_disable_notification The new default_disable_notification value
 updateChatDefaultDisableNotification chat_id:int53 default_disable_notification:Bool = Update;

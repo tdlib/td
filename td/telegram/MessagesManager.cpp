@@ -19855,6 +19855,13 @@ td_api::object_ptr<td_api::ChatActionBar> MessagesManager::get_chat_action_bar_o
   return nullptr;
 }
 
+td_api::object_ptr<td_api::voiceChat> MessagesManager::get_voice_chat_object(const Dialog *d) const {
+  auto active_group_call_id = td_->group_call_manager_->get_group_call_id(d->active_group_call_id, d->dialog_id);
+  return make_tl_object<td_api::voiceChat>(active_group_call_id.get(),
+                                           active_group_call_id.is_valid() ? !d->is_group_call_empty : false,
+                                           d->default_join_group_call_as_dialog_id.get());
+}
+
 td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *d) const {
   CHECK(d != nullptr);
 
@@ -19914,8 +19921,6 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
   // TODO hide/show draft message when can_send_message(dialog_id) changes
   auto draft_message = can_send_message(d->dialog_id).is_ok() ? get_draft_message_object(d->draft_message) : nullptr;
 
-  auto active_group_call_id = td_->group_call_manager_->get_group_call_id(d->active_group_call_id, d->dialog_id);
-
   return make_tl_object<td_api::chat>(
       d->dialog_id.get(), get_chat_type_object(d->dialog_id), get_dialog_title(d->dialog_id),
       get_chat_photo_info_object(td_->file_manager_.get(), get_dialog_photo(d->dialog_id)),
@@ -19926,10 +19931,8 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
       d->server_unread_count + d->local_unread_count, d->last_read_inbox_message_id.get(),
       d->last_read_outbox_message_id.get(), d->unread_mention_count,
       get_chat_notification_settings_object(&d->notification_settings),
-      d->message_ttl_setting.get_message_ttl_setting_object(), get_chat_action_bar_object(d),
-      active_group_call_id.get(), active_group_call_id.is_valid() ? d->is_group_call_empty : true,
-      d->default_join_group_call_as_dialog_id.get(), d->reply_markup_message_id.get(), std::move(draft_message),
-      d->client_data);
+      d->message_ttl_setting.get_message_ttl_setting_object(), get_chat_action_bar_object(d), get_voice_chat_object(d),
+      d->reply_markup_message_id.get(), std::move(draft_message), d->client_data);
 }
 
 tl_object_ptr<td_api::chat> MessagesManager::get_chat_object(DialogId dialog_id) const {
@@ -28557,11 +28560,8 @@ void MessagesManager::send_update_chat_voice_chat(const Dialog *d) {
   CHECK(d != nullptr);
   LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_voice_chat";
   on_dialog_updated(d->dialog_id, "send_update_chat_voice_chat");
-  auto group_call_id = td_->group_call_manager_->get_group_call_id(d->active_group_call_id, d->dialog_id);
-  send_closure(
-      G()->td(), &Td::send_update,
-      td_api::make_object<td_api::updateChatVoiceChat>(d->dialog_id.get(), group_call_id.get(), d->is_group_call_empty,
-                                                       d->default_join_group_call_as_dialog_id.get()));
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateChatVoiceChat>(d->dialog_id.get(), get_voice_chat_object(d)));
 }
 
 void MessagesManager::send_update_chat_message_ttl_setting(const Dialog *d) {

@@ -2418,6 +2418,8 @@ class MessagesManager : public Actor {
   td_api::object_ptr<td_api::ChatActionBar> get_chat_action_bar_object(const Dialog *d,
                                                                        bool hide_unarchive = false) const;
 
+  td_api::object_ptr<td_api::voiceChat> get_voice_chat_object(const Dialog *d) const;
+
   td_api::object_ptr<td_api::chat> get_chat_object(const Dialog *d) const;
 
   Dialog *get_dialog(DialogId dialog_id);
