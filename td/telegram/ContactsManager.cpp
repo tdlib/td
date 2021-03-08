@@ -10327,6 +10327,16 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       td_->messages_manager_->on_update_dialog_group_call_id(DialogId(chat_id), input_group_call_id);
     }
     {
+      DialogId default_join_group_call_as_dialog_id;
+      if (chat->groupcall_default_join_as_ != nullptr) {
+        default_join_group_call_as_dialog_id = DialogId(chat->groupcall_default_join_as_);
+      }
+      // use send closure later to not crete synchronously default_join_group_call_as_dialog_id
+      send_closure_later(G()->messages_manager(),
+                         &MessagesManager::on_update_dialog_default_join_group_call_as_dialog_id, DialogId(chat_id),
+                         default_join_group_call_as_dialog_id);
+    }
+    {
       MessageTtlSetting message_ttl_setting;
       if ((chat->flags_ & CHAT_FULL_FLAG_HAS_MESSAGE_TTL) != 0) {
         message_ttl_setting = MessageTtlSetting(chat->ttl_period_);
@@ -10524,6 +10534,16 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
         input_group_call_id = InputGroupCallId(channel->call_);
       }
       td_->messages_manager_->on_update_dialog_group_call_id(DialogId(channel_id), input_group_call_id);
+    }
+    {
+      DialogId default_join_group_call_as_dialog_id;
+      if (channel->groupcall_default_join_as_ != nullptr) {
+        default_join_group_call_as_dialog_id = DialogId(channel->groupcall_default_join_as_);
+      }
+      // use send closure later to not crete synchronously default_join_group_call_as_dialog_id
+      send_closure_later(G()->messages_manager(),
+                         &MessagesManager::on_update_dialog_default_join_group_call_as_dialog_id, DialogId(channel_id),
+                         default_join_group_call_as_dialog_id);
     }
 
     if (participant_count >= 190) {

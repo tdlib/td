@@ -1676,18 +1676,18 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
   request->query_ref = td_->create_handler<JoinGroupCallQuery>(std::move(query_promise))
                            ->send(input_group_call_id, as_dialog_id, json_payload, is_muted, generation);
 
+  if (!as_dialog_id.is_valid()) {
+    as_dialog_id = DialogId(td_->contacts_manager_->get_my_id());
+  }
+  if (group_call->dialog_id.is_valid()) {
+    td_->messages_manager_->on_update_dialog_default_join_group_call_as_dialog_id(group_call->dialog_id, as_dialog_id);
+  } else {
+    td_->messages_manager_->force_create_dialog(as_dialog_id, "join_group_call");
+  }
   if (group_call->is_inited) {
     GroupCallParticipant group_call_participant;
     group_call_participant.is_self = true;
-    if (as_dialog_id.is_valid()) {
-      // dialog already exists
-      group_call_participant.dialog_id = as_dialog_id;
-    } else {
-      // create dialog with self
-      DialogId my_dialog_id(td_->contacts_manager_->get_my_id());
-      td_->messages_manager_->force_create_dialog(my_dialog_id, "join_group_call");
-      group_call_participant.dialog_id = my_dialog_id;
-    }
+    group_call_participant.dialog_id = as_dialog_id;
     group_call_participant.about = td_->contacts_manager_->get_dialog_about(group_call_participant.dialog_id);
     group_call_participant.audio_source = audio_source;
     group_call_participant.joined_date = G()->unix_time();
@@ -1893,6 +1893,12 @@ void GroupCallManager::finish_join_group_call(InputGroupCallId input_group_call_
   pending_join_requests_.erase(it);
   try_clear_group_call_participants(input_group_call_id);
   process_group_call_after_join_requests(input_group_call_id);
+
+  GroupCall *group_call = get_group_call(input_group_call_id);
+  CHECK(group_call != nullptr);
+  if (group_call->dialog_id.is_valid()) {
+    td_->messages_manager_->reload_dialog_info_full(group_call->dialog_id);
+  }
 }
 
 void GroupCallManager::process_group_call_after_join_requests(InputGroupCallId input_group_call_id) {

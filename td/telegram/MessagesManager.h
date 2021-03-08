@@ -290,6 +290,8 @@ class MessagesManager : public Actor {
 
   void on_update_dialog_group_call_id(DialogId dialog_id, InputGroupCallId input_group_call_id);
 
+  void on_update_dialog_default_join_group_call_as_dialog_id(DialogId dialog_id, DialogId default_join_as_dialog_id);
+
   void on_update_dialog_message_ttl_setting(DialogId dialog_id, MessageTtlSetting message_ttl_setting);
 
   void on_update_dialog_filters();
@@ -501,6 +503,8 @@ class MessagesManager : public Actor {
 
   bool have_dialog_info(DialogId dialog_id) const;
   bool have_dialog_info_force(DialogId dialog_id) const;
+
+  void reload_dialog_info_full(DialogId dialog_id);
 
   bool load_dialog(DialogId dialog_id, int left_tries, Promise<Unit> &&promise);
 
@@ -1165,6 +1169,7 @@ class MessagesManager : public Actor {
     std::unordered_set<MessageId, MessageIdHash> updated_read_history_message_ids;
     LogEventIdWithGeneration set_folder_id_log_event_id;
     InputGroupCallId active_group_call_id;
+    DialogId default_join_group_call_as_dialog_id;
 
     FolderId folder_id;
     vector<DialogListId> dialog_list_ids;  // TODO replace with mask
@@ -2401,7 +2406,7 @@ class MessagesManager : public Actor {
 
   void fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_database_message, MessageId last_database_message_id,
                       int64 order, int32 last_clear_history_date, MessageId last_clear_history_message_id,
-                      bool is_loaded_from_database);
+                      DialogId default_join_group_call_as_dialog_id, bool is_loaded_from_database);
 
   void add_dialog_last_database_message(Dialog *d, unique_ptr<Message> &&last_database_message);
 
@@ -2427,8 +2432,6 @@ class MessagesManager : public Actor {
   void send_get_dialog_query(DialogId dialog_id, Promise<Unit> &&promise, uint64 log_event_id, const char *source);
 
   void send_search_public_dialogs_query(const string &query, Promise<Unit> &&promise);
-
-  void reload_dialog_info_full(DialogId dialog_id);
 
   vector<DialogId> get_pinned_dialog_ids(DialogListId dialog_list_id) const;
 
@@ -3284,6 +3287,9 @@ class MessagesManager : public Actor {
       pending_add_dialog_last_database_message_dependent_dialogs_;
   std::unordered_map<DialogId, std::pair<int32, unique_ptr<Message>>, DialogIdHash>
       pending_add_dialog_last_database_message_;  // dialog -> dependency counter + message
+
+  std::unordered_map<DialogId, vector<DialogId>, DialogIdHash>
+      pending_add_default_join_group_call_as_dialog_id_;  // dialog_id -> dependent dialogs
 
   struct CallsDbState {
     std::array<MessageId, 2> first_calls_database_message_id_by_index;
