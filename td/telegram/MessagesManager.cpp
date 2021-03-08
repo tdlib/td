@@ -29791,12 +29791,20 @@ void MessagesManager::on_update_dialog_group_call_id(DialogId dialog_id, InputGr
 }
 
 void MessagesManager::on_update_dialog_default_join_group_call_as_dialog_id(DialogId dialog_id,
-                                                                            DialogId default_join_as_dialog_id) {
+                                                                            DialogId default_join_as_dialog_id,
+                                                                            bool force) {
   auto d = get_dialog_force(dialog_id);
   if (d == nullptr) {
     // nothing to do
     return;
   }
+
+  if (!force && d->active_group_call_id.is_valid() &&
+      td_->group_call_manager_->is_group_call_being_joined(d->active_group_call_id)) {
+    LOG(INFO) << "Ignore default_join_as_dialog_id update in a being joined group call";
+    return;
+  }
+
   if (default_join_as_dialog_id.is_valid()) {
     force_create_dialog(default_join_as_dialog_id, "on_update_dialog_default_join_group_call_as_dialog_id");
   }
@@ -34018,7 +34026,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
       pending_add_default_join_group_call_as_dialog_id_.erase(it);
 
       for (auto &pending_dialog_id : pending_dialog_ids) {
-        on_update_dialog_default_join_group_call_as_dialog_id(pending_dialog_id, dialog_id);
+        on_update_dialog_default_join_group_call_as_dialog_id(pending_dialog_id, dialog_id, false);
       }
     }
   }
@@ -34124,7 +34132,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
                 << dialog_id;
       pending_add_default_join_group_call_as_dialog_id_[default_join_group_call_as_dialog_id].push_back(dialog_id);
     } else {
-      on_update_dialog_default_join_group_call_as_dialog_id(dialog_id, default_join_group_call_as_dialog_id);
+      on_update_dialog_default_join_group_call_as_dialog_id(dialog_id, default_join_group_call_as_dialog_id, false);
     }
   }
 

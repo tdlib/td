@@ -1680,7 +1680,8 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
     as_dialog_id = DialogId(td_->contacts_manager_->get_my_id());
   }
   if (group_call->dialog_id.is_valid()) {
-    td_->messages_manager_->on_update_dialog_default_join_group_call_as_dialog_id(group_call->dialog_id, as_dialog_id);
+    td_->messages_manager_->on_update_dialog_default_join_group_call_as_dialog_id(group_call->dialog_id, as_dialog_id,
+                                                                                  true);
   } else {
     td_->messages_manager_->force_create_dialog(as_dialog_id, "join_group_call");
   }

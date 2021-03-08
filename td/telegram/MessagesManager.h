@@ -290,7 +290,8 @@ class MessagesManager : public Actor {
 
   void on_update_dialog_group_call_id(DialogId dialog_id, InputGroupCallId input_group_call_id);
 
-  void on_update_dialog_default_join_group_call_as_dialog_id(DialogId dialog_id, DialogId default_join_as_dialog_id);
+  void on_update_dialog_default_join_group_call_as_dialog_id(DialogId dialog_id, DialogId default_join_as_dialog_id,
+                                                             bool force);
 
   void on_update_dialog_message_ttl_setting(DialogId dialog_id, MessageTtlSetting message_ttl_setting);
 

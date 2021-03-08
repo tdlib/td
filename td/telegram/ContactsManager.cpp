@@ -10334,7 +10334,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       // use send closure later to not crete synchronously default_join_group_call_as_dialog_id
       send_closure_later(G()->messages_manager(),
                          &MessagesManager::on_update_dialog_default_join_group_call_as_dialog_id, DialogId(chat_id),
-                         default_join_group_call_as_dialog_id);
+                         default_join_group_call_as_dialog_id, false);
     }
     {
       MessageTtlSetting message_ttl_setting;
@@ -10543,7 +10543,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       // use send closure later to not crete synchronously default_join_group_call_as_dialog_id
       send_closure_later(G()->messages_manager(),
                          &MessagesManager::on_update_dialog_default_join_group_call_as_dialog_id, DialogId(channel_id),
-                         default_join_group_call_as_dialog_id);
+                         default_join_group_call_as_dialog_id, false);
     }
 
     if (participant_count >= 190) {
