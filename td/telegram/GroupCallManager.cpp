@@ -13,6 +13,7 @@
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
+#include "td/telegram/net/DcId.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/UpdatesManager.h"
@@ -530,8 +531,9 @@ struct GroupCallManager::GroupCall {
   int32 duration = 0;
   int32 audio_source = 0;
   int32 joined_date = 0;
-  vector<Promise<Unit>> after_join;
+  DcId stream_dc_id;
 
+  vector<Promise<Unit>> after_join;
   bool have_pending_mute_new_participants = false;
   bool pending_mute_new_participants = false;
   string pending_title;
@@ -2614,6 +2616,13 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       call.mute_new_participants = group_call->join_muted_;
       call.allowed_change_mute_new_participants = group_call->can_change_join_muted_;
       call.participant_count = group_call->participants_count_;
+      if ((group_call->flags_ & telegram_api::groupCall::STREAM_DC_ID_MASK) != 0) {
+        call.stream_dc_id = DcId::create(group_call->stream_dc_id_);
+        if (!call.stream_dc_id.is_exact()) {
+          LOG(ERROR) << "Receive invalid stream DC ID in " << input_group_call_id;
+          call.stream_dc_id = DcId();
+        }
+      }
       call.version = group_call->version_;
       if (group_call->params_ != nullptr) {
         join_params = std::move(group_call->params_->data_);
@@ -2700,6 +2709,9 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       if (call.can_be_managed != group_call->can_be_managed) {
         group_call->can_be_managed = call.can_be_managed;
         need_update = true;
+      }
+      if (call.stream_dc_id != group_call->stream_dc_id) {
+        group_call->stream_dc_id = call.stream_dc_id;
       }
       if (call.version > group_call->version) {
         if (group_call->version != -1) {
