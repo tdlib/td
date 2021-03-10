@@ -566,12 +566,14 @@ struct GroupCallManager::GroupCall {
   int32 duration = 0;
   int32 audio_source = 0;
   int32 joined_date = 0;
+  int32 record_start_date = 0;
   DcId stream_dc_id;
 
   int32 version = -1;
   int32 title_version = -1;
   int32 mute_version = -1;
   int32 stream_dc_id_version = -1;
+  int32 record_start_date_version = -1;
 
   vector<Promise<Unit>> after_join;
   bool have_pending_mute_new_participants = false;
@@ -2674,14 +2676,23 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       if ((group_call->flags_ & telegram_api::groupCall::STREAM_DC_ID_MASK) != 0) {
         call.stream_dc_id = DcId::create(group_call->stream_dc_id_);
         if (!call.stream_dc_id.is_exact()) {
-          LOG(ERROR) << "Receive invalid stream DC ID in " << input_group_call_id;
+          LOG(ERROR) << "Receive invalid stream DC ID " << call.stream_dc_id << " in " << input_group_call_id;
           call.stream_dc_id = DcId();
+        }
+      }
+      if ((group_call->flags_ & telegram_api::groupCall::RECORD_START_DATE_MASK) != 0) {
+        call.record_start_date = group_call->record_start_date_;
+        if (call.record_start_date <= 0) {
+          LOG(ERROR) << "Receive invalid record start date " << group_call->record_start_date_ << " in "
+                     << input_group_call_id;
+          call.record_start_date = 0;
         }
       }
       call.version = group_call->version_;
       call.title_version = group_call->version_;
       call.mute_version = group_call->version_;
       call.stream_dc_id_version = group_call->version_;
+      call.record_start_date_version = group_call->version_;
       if (group_call->params_ != nullptr) {
         join_params = std::move(group_call->params_->data_);
       }
@@ -2773,6 +2784,12 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
           call.stream_dc_id_version >= group_call->stream_dc_id_version) {
         group_call->stream_dc_id = call.stream_dc_id;
         group_call->stream_dc_id_version = call.stream_dc_id_version;
+      }
+      if (call.record_start_date != group_call->record_start_date &&
+          call.record_start_date_version >= group_call->record_start_date_version) {
+        group_call->record_start_date = call.record_start_date;
+        group_call->record_start_date_version = call.record_start_date_version;
+        need_update = true;
       }
       if (call.version > group_call->version) {
         if (group_call->version != -1) {
@@ -3065,11 +3082,13 @@ tl_object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(
   bool mute_new_participants = get_group_call_mute_new_participants(group_call);
   bool can_change_mute_new_participants =
       group_call->is_active && group_call->can_be_managed && group_call->allowed_change_mute_new_participants;
+  int32 record_duration =
+      group_call->record_start_date == 0 ? 0 : max(G()->unix_time() - group_call->record_start_date + 1, 1);
   return td_api::make_object<td_api::groupCall>(
       group_call->group_call_id.get(), get_group_call_title(group_call), group_call->is_active, is_joined,
       group_call->need_rejoin, can_self_unmute, group_call->can_be_managed, group_call->participant_count,
       group_call->loaded_all_participants, std::move(recent_speakers), mute_new_participants,
-      can_change_mute_new_participants, group_call->duration);
+      can_change_mute_new_participants, record_duration, group_call->duration);
 }
 
 tl_object_ptr<td_api::updateGroupCall> GroupCallManager::get_update_group_call_object(

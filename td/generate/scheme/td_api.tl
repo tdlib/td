@@ -2123,8 +2123,9 @@ groupCallRecentSpeaker speaker:MessageSender is_speaking:Bool = GroupCallRecentS
 //@recent_speakers Recently speaking users in the group call
 //@mute_new_participants True, if only group call administrators can unmute new participants
 //@can_change_mute_new_participants True, if the current user can enable or disable mute_new_participants setting
+//@record_duration Duration of the ongoing group call recording, in seconds; 0 if none. An updateGroupCall update is not triggered when value of this field changes, but the same recording goes on
 //@duration Call duration; for ended calls only
-groupCall id:int32 title:string is_active:Bool is_joined:Bool need_rejoin:Bool can_unmute_self:Bool can_be_managed:Bool participant_count:int32 loaded_all_participants:Bool recent_speakers:vector<groupCallRecentSpeaker> mute_new_participants:Bool can_change_mute_new_participants:Bool duration:int32 = GroupCall;
+groupCall id:int32 title:string is_active:Bool is_joined:Bool need_rejoin:Bool can_unmute_self:Bool can_be_managed:Bool participant_count:int32 loaded_all_participants:Bool recent_speakers:vector<groupCallRecentSpeaker> mute_new_participants:Bool can_change_mute_new_participants:Bool record_duration:int32 duration:int32 = GroupCall;
 
 //@description Describes a payload fingerprint for interaction with tgcalls @hash Value of the field hash @setup Value of the field setup @fingerprint Value of the field fingerprint
 groupCallPayloadFingerprint hash:string setup:string fingerprint:string = GroupCallPayloadFingerprint;
