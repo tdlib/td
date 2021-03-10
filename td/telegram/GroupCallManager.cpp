@@ -32,6 +32,42 @@
 
 namespace td {
 
+class GetGroupCallStreamQuery : public Td::ResultHandler {
+  Promise<string> promise_;
+
+ public:
+  explicit GetGroupCallStreamQuery(Promise<string> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(InputGroupCallId input_group_call_id, DcId stream_dc_id, int64 time_offset, int32 scale) {
+    auto input_stream = make_tl_object<telegram_api::inputGroupCallStream>(input_group_call_id.get_input_group_call(),
+                                                                           time_offset, scale);
+    int32 flags = 0;
+    send_query(G()->net_query_creator().create(
+        telegram_api::upload_getFile(flags, false /*ignored*/, false /*ignored*/, std::move(input_stream), 0, 1 << 20),
+        stream_dc_id, NetQuery::Type::DownloadSmall));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::upload_getFile>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    if (ptr->get_id() != telegram_api::upload_file::ID) {
+      return on_error(id, Status::Error(500, "Receive unexpected server response"));
+    }
+
+    auto file = move_tl_object_as<telegram_api::upload_file>(ptr);
+    promise_.set_value(file->bytes_.as_slice().str());
+  }
+
+  void on_error(uint64 id, Status status) override {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetGroupCallJoinAsQuery : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::messageSenders>> promise_;
   DialogId dialog_id_;
@@ -1651,6 +1687,21 @@ int32 GroupCallManager::cancel_join_group_call_request(InputGroupCallId input_gr
   auto audio_source = it->second->audio_source;
   pending_join_requests_.erase(it);
   return audio_source;
+}
+
+void GroupCallManager::get_group_call_stream_segment(GroupCallId group_call_id, int64 time_offset, int32 scale,
+                                                     Promise<string> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
+
+  auto *group_call = get_group_call(input_group_call_id);
+  CHECK(group_call != nullptr);
+
+  if (!group_call->stream_dc_id.is_exact()) {
+    return promise.set_error(Status::Error(400, "Group call can't be streamed"));
+  }
+
+  td_->create_handler<GetGroupCallStreamQuery>(std::move(promise))
+      ->send(input_group_call_id, group_call->stream_dc_id, time_offset, scale);
 }
 
 void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_dialog_id,

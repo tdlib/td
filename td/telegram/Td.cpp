@@ -6065,6 +6065,22 @@ void Td::on_request(uint64 id, const td_api::discardGroupCall &request) {
   group_call_manager_->discard_group_call(GroupCallId(request.group_call_id_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getGroupCallStreamSegment &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<string> result) mutable {
+    if (result.is_error()) {
+      promise.set_error(result.move_as_error());
+    } else {
+      td_api::object_ptr<td_api::filePart> file_part;
+      file_part->data_ = result.move_as_ok();
+      promise.set_value(std::move(file_part));
+    }
+  });
+  group_call_manager_->get_group_call_stream_segment(GroupCallId(request.group_call_id_), request.time_offset_,
+                                                     request.scale_, std::move(query_promise));
+}
+
 void Td::on_request(uint64 id, const td_api::upgradeBasicGroupChatToSupergroupChat &request) {
   CHECK_IS_USER();
   CREATE_REQUEST(UpgradeGroupChatToSupergroupChatRequest, request.chat_id_);

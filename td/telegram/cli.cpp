@@ -2671,6 +2671,9 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::createVoiceChat>(as_chat_id(args)));
     } else if (op == "ggc") {
       send_request(td_api::make_object<td_api::getGroupCall>(as_group_call_id(args)));
+    } else if (op == "ggcss") {
+      send_request(td_api::make_object<td_api::getGroupCallStreamSegment>(as_group_call_id(args),
+                                                                          (std::time(nullptr) - 5) * 1000, 0));
     } else if (op == "jgc") {
       string group_call_id;
       string participant_alias;
