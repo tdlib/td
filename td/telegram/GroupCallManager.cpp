@@ -563,11 +563,15 @@ struct GroupCallManager::GroupCall {
   bool mute_new_participants = false;
   bool allowed_change_mute_new_participants = false;
   int32 participant_count = 0;
-  int32 version = -1;
   int32 duration = 0;
   int32 audio_source = 0;
   int32 joined_date = 0;
   DcId stream_dc_id;
+
+  int32 version = -1;
+  int32 title_version = -1;
+  int32 mute_version = -1;
+  int32 stream_dc_id_version = -1;
 
   vector<Promise<Unit>> after_join;
   bool have_pending_mute_new_participants = false;
@@ -2675,6 +2679,9 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
         }
       }
       call.version = group_call->version_;
+      call.title_version = group_call->version_;
+      call.mute_version = group_call->version_;
+      call.stream_dc_id_version = group_call->version_;
       if (group_call->params_ != nullptr) {
         join_params = std::move(group_call->params_->data_);
       }
@@ -2717,7 +2724,6 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
 
     need_update = true;
     if (need_group_call_participants(input_group_call_id, group_call)) {
-      // init version
       if (process_pending_group_call_participant_updates(input_group_call_id)) {
         need_update = false;
       }
@@ -2740,19 +2746,21 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       auto mute_flags_changed =
           call.mute_new_participants != group_call->mute_new_participants ||
           call.allowed_change_mute_new_participants != group_call->allowed_change_mute_new_participants;
-      if (mute_flags_changed && call.version >= group_call->version) {
+      if (mute_flags_changed && call.mute_version >= group_call->mute_version) {
         auto old_mute_new_participants = get_group_call_mute_new_participants(group_call);
         need_update |= (call.allowed_change_mute_new_participants && call.can_be_managed) !=
                        (group_call->allowed_change_mute_new_participants && group_call->can_be_managed);
         group_call->mute_new_participants = call.mute_new_participants;
         group_call->allowed_change_mute_new_participants = call.allowed_change_mute_new_participants;
+        group_call->mute_version = call.mute_version;
         if (old_mute_new_participants != get_group_call_mute_new_participants(group_call)) {
           need_update = true;
         }
       }
-      if (call.title != group_call->title && call.version >= group_call->version) {
+      if (call.title != group_call->title && call.title_version >= group_call->title_version) {
         string old_group_call_title = get_group_call_title(group_call);
         group_call->title = std::move(call.title);
+        group_call->title_version = call.title_version;
         if (old_group_call_title != get_group_call_title(group_call)) {
           need_update = true;
         }
@@ -2761,8 +2769,10 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
         group_call->can_be_managed = call.can_be_managed;
         need_update = true;
       }
-      if (call.stream_dc_id != group_call->stream_dc_id) {
+      if (call.stream_dc_id != group_call->stream_dc_id &&
+          call.stream_dc_id_version >= group_call->stream_dc_id_version) {
         group_call->stream_dc_id = call.stream_dc_id;
+        group_call->stream_dc_id_version = call.stream_dc_id_version;
       }
       if (call.version > group_call->version) {
         if (group_call->version != -1) {
