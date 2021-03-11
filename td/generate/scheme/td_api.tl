@@ -4582,6 +4582,12 @@ toggleGroupCallMuteNewParticipants group_call_id:int32 mute_new_participants:Boo
 //@group_call_id Group call identifier @user_ids User identifiers. At most 10 users can be invited simultaneously
 inviteGroupCallParticipants group_call_id:int32 user_ids:vector<int32> = Ok;
 
+//@description Starts recording of a group call. Requires groupCall.can_be_managed group call flag @group_call_id Group call identifier @title Group call recording title; 0-128 characters
+startGroupCallRecording group_call_id:int32 title:string = Ok;
+
+//@description Ends recording of a group call. Requires groupCall.can_be_managed group call flag @group_call_id Group call identifier
+endGroupCallRecording group_call_id:int32 = Ok;
+
 //@description Informs TDLib that a group call participant speaking state has changed @group_call_id Group call identifier
 //@source Group call participant's synchronization source identifier, or 0 for the current user @is_speaking True, if the user is speaking
 setGroupCallParticipantIsSpeaking group_call_id:int32 source:int32 is_speaking:Bool = Ok;

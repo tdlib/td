@@ -2708,6 +2708,14 @@ class CliClient final : public Actor {
       get_args(args, group_call_id, user_ids);
       send_request(td_api::make_object<td_api::inviteGroupCallParticipants>(as_group_call_id(group_call_id),
                                                                             as_user_ids(user_ids)));
+    } else if (op == "sgcr") {
+      string chat_id;
+      string title;
+      get_args(args, chat_id, title);
+      send_request(td_api::make_object<td_api::startGroupCallRecording>(as_group_call_id(chat_id), title));
+    } else if (op == "egcr") {
+      string chat_id = args;
+      send_request(td_api::make_object<td_api::endGroupCallRecording>(as_group_call_id(chat_id)));
     } else if (op == "tgcpim") {
       string group_call_id;
       string participant_id;

@@ -70,6 +70,8 @@ class GroupCallManager : public Actor {
 
   void invite_group_call_participants(GroupCallId group_call_id, vector<UserId> &&user_ids, Promise<Unit> &&promise);
 
+  void toggle_group_call_recording(GroupCallId group_call_id, bool is_enabled, string title, Promise<Unit> &&promise);
+
   void set_group_call_participant_is_speaking(GroupCallId group_call_id, int32 audio_source, bool is_speaking,
                                               Promise<Unit> &&promise, int32 date = 0);
 
@@ -155,6 +157,10 @@ class GroupCallManager : public Actor {
 
   static bool get_group_call_mute_new_participants(const GroupCall *group_call);
 
+  static int32 get_group_call_record_start_date(const GroupCall *group_call);
+
+  static bool get_group_call_has_recording(const GroupCall *group_call);
+
   bool need_group_call_participants(InputGroupCallId input_group_call_id) const;
 
   bool need_group_call_participants(InputGroupCallId input_group_call_id, const GroupCall *group_call) const;
@@ -211,6 +217,11 @@ class GroupCallManager : public Actor {
 
   void on_toggle_group_call_mute_new_participants(InputGroupCallId input_group_call_id, bool mute_new_participants,
                                                   Result<Unit> &&result);
+
+  void send_toggle_group_call_recording_query(InputGroupCallId input_group_call_id, bool is_enabled,
+                                              const string &title, uint64 generation);
+
+  void on_toggle_group_call_recording(InputGroupCallId input_group_call_id, uint64 generation, Result<Unit> &&result);
 
   void on_toggle_group_call_participant_is_muted(InputGroupCallId input_group_call_id, DialogId dialog_id,
                                                  uint64 generation, Promise<Unit> &&promise);
@@ -282,6 +293,8 @@ class GroupCallManager : public Actor {
 
   std::unordered_map<InputGroupCallId, unique_ptr<PendingJoinRequest>, InputGroupCallIdHash> pending_join_requests_;
   uint64 join_group_request_generation_ = 0;
+
+  uint64 toggle_recording_generation_ = 0;
 
   uint64 set_volume_level_generation_ = 0;
 
