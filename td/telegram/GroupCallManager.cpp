@@ -2363,7 +2363,7 @@ void GroupCallManager::toggle_group_call_recording(GroupCallId group_call_id, bo
     return promise.set_error(Status::Error(400, "Can't manage group call recording"));
   }
 
-  title = clean_name(title, MAX_TITLE_LENGTH);
+  title = clean_name(title, MAX_RECORD_TITLE_LENGTH);
 
   if (is_enabled == get_group_call_has_recording(group_call)) {
     return promise.set_value(Unit());

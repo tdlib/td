@@ -117,7 +117,8 @@ class GroupCallManager : public Actor {
 
   static constexpr int32 RECENT_SPEAKER_TIMEOUT = 60 * 60;
   static constexpr int32 CHECK_GROUP_CALL_IS_JOINED_TIMEOUT = 10;
-  static constexpr size_t MAX_TITLE_LENGTH = 128;  // server side limit for group call/group call record title
+  static constexpr size_t MAX_TITLE_LENGTH = 64;  // server side limit for group call title length
+  static constexpr size_t MAX_RECORD_TITLE_LENGTH = 128;  // server side limit for group call record title length
 
   void tear_down() override;
 

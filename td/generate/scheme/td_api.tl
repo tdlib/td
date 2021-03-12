@@ -4579,7 +4579,7 @@ getGroupCall group_call_id:int32 = GroupCall;
 //@invite_hash If non-empty, invite hash to be used to join the group call without being muted by administrators
 joinGroupCall group_call_id:int32 participant_alias:MessageSender payload:groupCallPayload source:int32 is_muted:Bool invite_hash:string = GroupCallJoinResponse;
 
-//@description Sets group call title. Requires groupCall.can_be_managed group call flag @group_call_id Group call identifier @title New group call title; 1-128 characters
+//@description Sets group call title. Requires groupCall.can_be_managed group call flag @group_call_id Group call identifier @title New group call title; 1-64 characters
 setGroupCallTitle group_call_id:int32 title:string = Ok;
 
 //@description Toggles whether new participants of a group call can be unmuted only by administrators of the group call. Requires groupCall.can_change_mute_new_participants group call flag
