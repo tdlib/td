@@ -2138,8 +2138,15 @@ groupCallPayload ufrag:string pwd:string fingerprints:vector<groupCallPayloadFin
 //@ip Value of the field ip @type Value of the field type @tcp_type Value of the field tcp_type @rel_addr Value of the field rel_addr @rel_port Value of the field rel_port
 groupCallJoinResponseCandidate port:string protocol:string network:string generation:string id:string component:string foundation:string priority:string ip:string type:string tcp_type:string rel_addr:string rel_port:string = GroupCallJoinResponseCandidate;
 
-//@description Describes a join response for interaction with tgcalls @payload Join response payload to pass to tgcalls @candidates Join response candidates to pass to tgcalls
-groupCallJoinResponse payload:groupCallPayload candidates:vector<groupCallJoinResponseCandidate> = GroupCallJoinResponse;
+
+//@class GroupCallJoinResponse @description Describes a group call join response
+
+//@description Contains data needed to join the group call with WebRTC @payload Group call payload to pass to tgcalls @candidates Join response candidates to pass to tgcalls
+groupCallJoinResponseWebrtc payload:groupCallPayload candidates:vector<groupCallJoinResponseCandidate> = GroupCallJoinResponse;
+
+//@description Describes that group call needs to be joined as a stream
+groupCallJoinResponseStream = GroupCallJoinResponse;
+
 
 //@description Represents a group call participant
 //@participant Identifier of the group call participant

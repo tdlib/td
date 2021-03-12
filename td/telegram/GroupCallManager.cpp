@@ -680,7 +680,7 @@ struct GroupCallManager::PendingJoinRequest {
   NetQueryRef query_ref;
   uint64 generation = 0;
   int32 audio_source = 0;
-  Promise<td_api::object_ptr<td_api::groupCallJoinResponse>> promise;
+  Promise<td_api::object_ptr<td_api::GroupCallJoinResponse>> promise;
 };
 
 GroupCallManager::GroupCallManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
@@ -1801,7 +1801,7 @@ void GroupCallManager::get_group_call_stream_segment(GroupCallId group_call_id, 
 void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_dialog_id,
                                        td_api::object_ptr<td_api::groupCallPayload> &&payload, int32 audio_source,
                                        bool is_muted, const string &invite_hash,
-                                       Promise<td_api::object_ptr<td_api::groupCallJoinResponse>> &&promise) {
+                                       Promise<td_api::object_ptr<td_api::GroupCallJoinResponse>> &&promise) {
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
 
   auto *group_call = get_group_call(input_group_call_id);
@@ -2017,7 +2017,7 @@ void GroupCallManager::process_join_group_call_response(InputGroupCallId input_g
                                         }));
 }
 
-Result<td_api::object_ptr<td_api::groupCallJoinResponse>> GroupCallManager::get_group_call_join_response_object(
+Result<td_api::object_ptr<td_api::GroupCallJoinResponse>> GroupCallManager::get_group_call_join_response_object(
     string json_response) {
   auto r_value = json_decode(json_response);
   if (r_value.is_error()) {
@@ -2030,6 +2030,11 @@ Result<td_api::object_ptr<td_api::groupCallJoinResponse>> GroupCallManager::get_
   }
 
   auto &value_object = value.get_object();
+  auto r_stream = get_json_object_bool_field(value_object, "stream");
+  if (r_stream.is_ok() && r_stream.ok() == true) {
+    return td_api::make_object<td_api::groupCallJoinResponseStream>();
+  }
+
   TRY_RESULT(transport, get_json_object_field(value_object, "transport", JsonValue::Type::Object, false));
   CHECK(transport.type() == JsonValue::Type::Object);
   auto &transport_object = transport.get_object();
@@ -2078,7 +2083,7 @@ Result<td_api::object_ptr<td_api::groupCallJoinResponse>> GroupCallManager::get_
   }
 
   auto payload = td_api::make_object<td_api::groupCallPayload>(ufrag, pwd, std::move(fingerprints_object));
-  return td_api::make_object<td_api::groupCallJoinResponse>(std::move(payload), std::move(candidates_object));
+  return td_api::make_object<td_api::groupCallJoinResponseWebrtc>(std::move(payload), std::move(candidates_object));
 }
 
 bool GroupCallManager::on_join_group_call_response(InputGroupCallId input_group_call_id, string json_response) {

@@ -61,7 +61,7 @@ class GroupCallManager : public Actor {
 
   void join_group_call(GroupCallId group_call_id, DialogId as_dialog_id,
                        td_api::object_ptr<td_api::groupCallPayload> &&payload, int32 audio_source, bool is_muted,
-                       const string &invite_hash, Promise<td_api::object_ptr<td_api::groupCallJoinResponse>> &&promise);
+                       const string &invite_hash, Promise<td_api::object_ptr<td_api::GroupCallJoinResponse>> &&promise);
 
   void set_group_call_title(GroupCallId group_call_id, string title, Promise<Unit> &&promise);
 
@@ -252,7 +252,7 @@ class GroupCallManager : public Actor {
   DialogId set_group_call_participant_is_speaking_by_source(InputGroupCallId input_group_call_id, int32 audio_source,
                                                             bool is_speaking, int32 date);
 
-  static Result<td_api::object_ptr<td_api::groupCallJoinResponse>> get_group_call_join_response_object(
+  static Result<td_api::object_ptr<td_api::GroupCallJoinResponse>> get_group_call_join_response_object(
       string json_response);
 
   void try_clear_group_call_participants(InputGroupCallId input_group_call_id);
