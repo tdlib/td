@@ -2295,7 +2295,7 @@ void GroupCallManager::on_toggle_group_call_mute_new_participants(InputGroupCall
   }
 }
 
-void GroupCallManager::reset_group_call_invite_hash(GroupCallId group_call_id, Promise<Unit> &&promise) {
+void GroupCallManager::revoke_group_call_invite_link(GroupCallId group_call_id, Promise<Unit> &&promise) {
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
 
   auto *group_call = get_group_call(input_group_call_id);

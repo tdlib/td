@@ -711,7 +711,7 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, const td_api::toggleGroupCallMuteNewParticipants &request);
 
-  void on_request(uint64 id, const td_api::resetGroupCallInviteHash &request);
+  void on_request(uint64 id, const td_api::revokeGroupCallInviteLink &request);
 
   void on_request(uint64 id, const td_api::inviteGroupCallParticipants &request);
 

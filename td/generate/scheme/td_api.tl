@@ -4579,9 +4579,8 @@ setGroupCallTitle group_call_id:int32 title:string = Ok;
 //@group_call_id Group call identifier @mute_new_participants New value of the mute_new_participants setting
 toggleGroupCallMuteNewParticipants group_call_id:int32 mute_new_participants:Bool = Ok;
 
-//@description Resets group call invite hash. Requires groupCall.can_be_managed group call flag
-//@group_call_id Group call identifier
-resetGroupCallInviteHash group_call_id:int32 = Ok;
+//@description Revokes invite link for a group call. Requires groupCall.can_be_managed group call flag @group_call_id Group call identifier
+revokeGroupCallInviteLink group_call_id:int32 = Ok;
 
 //@description Invites users to a group call. Sends a service message of type messageInviteToGroupCall for voice chats
 //@group_call_id Group call identifier @user_ids User identifiers. At most 10 users can be invited simultaneously

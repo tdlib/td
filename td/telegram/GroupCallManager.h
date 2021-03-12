@@ -68,7 +68,7 @@ class GroupCallManager : public Actor {
   void toggle_group_call_mute_new_participants(GroupCallId group_call_id, bool mute_new_participants,
                                                Promise<Unit> &&promise);
 
-  void reset_group_call_invite_hash(GroupCallId group_call_id, Promise<Unit> &&promise);
+  void revoke_group_call_invite_link(GroupCallId group_call_id, Promise<Unit> &&promise);
 
   void invite_group_call_participants(GroupCallId group_call_id, vector<UserId> &&user_ids, Promise<Unit> &&promise);
 

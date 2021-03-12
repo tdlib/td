@@ -2694,8 +2694,8 @@ class CliClient final : public Actor {
     } else if (op == "tgcmnp" || op == "tgcmnpe") {
       send_request(
           td_api::make_object<td_api::toggleGroupCallMuteNewParticipants>(as_group_call_id(args), op == "tgcmnpe"));
-    } else if (op == "rgcih") {
-      send_request(td_api::make_object<td_api::resetGroupCallInviteHash>(as_group_call_id(args)));
+    } else if (op == "rgcil") {
+      send_request(td_api::make_object<td_api::revokeGroupCallInviteLink>(as_group_call_id(args)));
     } else if (op == "sgcpis") {
       string group_call_id;
       int32 source;
