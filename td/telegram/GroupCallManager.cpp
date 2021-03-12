@@ -2264,6 +2264,18 @@ void GroupCallManager::on_toggle_group_call_mute_new_participants(InputGroupCall
   }
 }
 
+void GroupCallManager::reset_group_call_invite_hash(GroupCallId group_call_id, Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
+
+  auto *group_call = get_group_call(input_group_call_id);
+  if (group_call == nullptr || !group_call->is_inited || !group_call->is_active || !group_call->can_be_managed) {
+    return promise.set_error(Status::Error(400, "Can't reset invite hash in the group call"));
+  }
+
+  int32 flags = telegram_api::phone_toggleGroupCallSettings::RESET_INVITE_HASH_MASK;
+  td_->create_handler<ToggleGroupCallSettingsQuery>(std::move(promise))->send(flags, input_group_call_id, false);
+}
+
 void GroupCallManager::invite_group_call_participants(GroupCallId group_call_id, vector<UserId> &&user_ids,
                                                       Promise<Unit> &&promise) {
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));

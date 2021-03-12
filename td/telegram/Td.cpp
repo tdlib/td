@@ -6013,6 +6013,12 @@ void Td::on_request(uint64 id, const td_api::toggleGroupCallMuteNewParticipants 
                                                                request.mute_new_participants_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::resetGroupCallInviteHash &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  group_call_manager_->reset_group_call_invite_hash(GroupCallId(request.group_call_id_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::inviteGroupCallParticipants &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
