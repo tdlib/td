@@ -61,7 +61,7 @@ class GroupCallManager : public Actor {
 
   void join_group_call(GroupCallId group_call_id, DialogId as_dialog_id,
                        td_api::object_ptr<td_api::groupCallPayload> &&payload, int32 audio_source, bool is_muted,
-                       Promise<td_api::object_ptr<td_api::groupCallJoinResponse>> &&promise);
+                       const string &invite_hash, Promise<td_api::object_ptr<td_api::groupCallJoinResponse>> &&promise);
 
   void set_group_call_title(GroupCallId group_call_id, string title, Promise<Unit> &&promise);
 
@@ -113,6 +113,7 @@ class GroupCallManager : public Actor {
 
   static constexpr int32 RECENT_SPEAKER_TIMEOUT = 60 * 60;
   static constexpr int32 CHECK_GROUP_CALL_IS_JOINED_TIMEOUT = 10;
+  static constexpr size_t MAX_TITLE_LENGTH = 128;  // server side limit for group call/group call record title
 
   void tear_down() override;
 

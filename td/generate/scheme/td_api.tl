@@ -4569,7 +4569,8 @@ getGroupCall group_call_id:int32 = GroupCall;
 //@payload Group join payload; received from tgcalls
 //@source Caller synchronization source identifier; received from tgcalls
 //@is_muted True, if the user's microphone is muted
-joinGroupCall group_call_id:int32 participant_alias:MessageSender payload:groupCallPayload source:int32 is_muted:Bool = GroupCallJoinResponse;
+//@invite_hash If non-empty, invite hash to be used to join the group call without being muted by administrators
+joinGroupCall group_call_id:int32 participant_alias:MessageSender payload:groupCallPayload source:int32 is_muted:Bool invite_hash:string = GroupCallJoinResponse;
 
 //@description Sets group call title. Requires groupCall.can_be_managed group call flag @group_call_id Group call identifier @title New group call title; 1-128 characters
 setGroupCallTitle group_call_id:int32 title:string = Ok;

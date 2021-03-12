@@ -283,7 +283,7 @@ class JoinGroupCallQuery : public Td::ResultHandler {
   }
 
   NetQueryRef send(InputGroupCallId input_group_call_id, DialogId as_dialog_id, const string &payload, bool is_muted,
-                   uint64 generation) {
+                   const string &invite_hash, uint64 generation) {
     input_group_call_id_ = input_group_call_id;
     as_dialog_id_ = as_dialog_id;
     generation_ = generation;
@@ -300,9 +300,12 @@ class JoinGroupCallQuery : public Td::ResultHandler {
     if (is_muted) {
       flags |= telegram_api::phone_joinGroupCall::MUTED_MASK;
     }
+    if (!invite_hash.empty()) {
+      flags |= telegram_api::phone_joinGroupCall::INVITE_HASH_MASK;
+    }
     auto query = G()->net_query_creator().create(telegram_api::phone_joinGroupCall(
-        flags, false /*ignored*/, input_group_call_id.get_input_group_call(), std::move(join_as_input_peer), string(),
-        make_tl_object<telegram_api::dataJSON>(payload)));
+        flags, false /*ignored*/, input_group_call_id.get_input_group_call(), std::move(join_as_input_peer),
+        invite_hash, make_tl_object<telegram_api::dataJSON>(payload)));
     auto join_query_ref = query.get_weak();
     send_query(std::move(query));
     return join_query_ref;
@@ -1766,7 +1769,7 @@ void GroupCallManager::get_group_call_stream_segment(GroupCallId group_call_id, 
 
 void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_dialog_id,
                                        td_api::object_ptr<td_api::groupCallPayload> &&payload, int32 audio_source,
-                                       bool is_muted,
+                                       bool is_muted, const string &invite_hash,
                                        Promise<td_api::object_ptr<td_api::groupCallJoinResponse>> &&promise) {
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
 
@@ -1871,7 +1874,7 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
                      result.move_as_error());
       });
   request->query_ref = td_->create_handler<JoinGroupCallQuery>(std::move(query_promise))
-                           ->send(input_group_call_id, as_dialog_id, json_payload, is_muted, generation);
+                           ->send(input_group_call_id, as_dialog_id, json_payload, is_muted, invite_hash, generation);
 
   if (group_call->dialog_id.is_valid()) {
     td_->messages_manager_->on_update_dialog_default_join_group_call_as_dialog_id(group_call->dialog_id, as_dialog_id,
@@ -2133,6 +2136,11 @@ void GroupCallManager::set_group_call_title(GroupCallId group_call_id, string ti
     return promise.set_error(Status::Error(400, "Can't change group call title"));
   }
 
+  title = clean_name(title, MAX_TITLE_LENGTH);
+  if (title.empty()) {
+    return promise.set_error(Status::Error(3, "Title can't be empty"));
+  }
+
   if (title == get_group_call_title(group_call)) {
     return promise.set_value(Unit());
   }
@@ -2290,6 +2298,8 @@ void GroupCallManager::toggle_group_call_recording(GroupCallId group_call_id, bo
   if (group_call == nullptr || !group_call->is_inited || !group_call->is_active || !group_call->can_be_managed) {
     return promise.set_error(Status::Error(400, "Can't manage group call recording"));
   }
+
+  title = clean_name(title, MAX_TITLE_LENGTH);
 
   if (is_enabled == get_group_call_has_recording(group_call)) {
     return promise.set_value(Unit());
