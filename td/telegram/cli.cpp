@@ -2709,6 +2709,12 @@ class CliClient final : public Actor {
       get_args(args, group_call_id, user_ids);
       send_request(td_api::make_object<td_api::inviteGroupCallParticipants>(as_group_call_id(group_call_id),
                                                                             as_user_ids(user_ids)));
+    } else if (op == "ggcil") {
+      string group_call_id;
+      bool can_self_unmute;
+      get_args(args, group_call_id, can_self_unmute);
+      send_request(
+          td_api::make_object<td_api::getGroupCallInviteLink>(as_group_call_id(group_call_id), can_self_unmute));
     } else if (op == "sgcr") {
       string chat_id;
       string title;

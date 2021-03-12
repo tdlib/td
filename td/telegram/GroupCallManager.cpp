@@ -420,6 +420,37 @@ class InviteToGroupCallQuery : public Td::ResultHandler {
   }
 };
 
+class ExportGroupCallInviteQuery : public Td::ResultHandler {
+  Promise<string> promise_;
+
+ public:
+  explicit ExportGroupCallInviteQuery(Promise<string> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(InputGroupCallId input_group_call_id, bool can_self_unmute) {
+    int32 flags = 0;
+    if (can_self_unmute) {
+      flags |= telegram_api::phone_exportGroupCallInvite::CAN_SELF_UNMUTE_MASK;
+    }
+    send_query(G()->net_query_creator().create(telegram_api::phone_exportGroupCallInvite(
+        flags, false /*ignored*/, input_group_call_id.get_input_group_call())));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::phone_exportGroupCallInvite>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    promise_.set_value(std::move(ptr->link_));
+  }
+
+  void on_error(uint64 id, Status status) override {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class ToggleGroupCallRecordQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -2300,6 +2331,22 @@ void GroupCallManager::invite_group_call_participants(GroupCallId group_call_id,
   }
 
   td_->create_handler<InviteToGroupCallQuery>(std::move(promise))->send(input_group_call_id, std::move(input_users));
+}
+
+void GroupCallManager::get_group_call_invite_link(GroupCallId group_call_id, bool can_self_unmute,
+                                                  Promise<string> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
+
+  auto *group_call = get_group_call(input_group_call_id);
+  if (group_call == nullptr || !group_call->is_inited || !group_call->is_active) {
+    return promise.set_error(Status::Error(400, "Can't get group call invite link"));
+  }
+
+  if (can_self_unmute && !group_call->can_be_managed) {
+    return promise.set_error(Status::Error(400, "Not enough rights in the group call"));
+  }
+
+  td_->create_handler<ExportGroupCallInviteQuery>(std::move(promise))->send(input_group_call_id, can_self_unmute);
 }
 
 void GroupCallManager::toggle_group_call_recording(GroupCallId group_call_id, bool is_enabled, string title,

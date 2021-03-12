@@ -6030,6 +6030,20 @@ void Td::on_request(uint64 id, const td_api::inviteGroupCallParticipants &reques
                                                       std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getGroupCallInviteLink &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<string> result) mutable {
+    if (result.is_error()) {
+      promise.set_error(result.move_as_error());
+    } else {
+      promise.set_value(td_api::make_object<td_api::httpUrl>(result.move_as_ok()));
+    }
+  });
+  group_call_manager_->get_group_call_invite_link(GroupCallId(request.group_call_id_), request.can_self_unmute_,
+                                                  std::move(query_promise));
+}
+
 void Td::on_request(uint64 id, td_api::startGroupCallRecording &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.title_);

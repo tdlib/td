@@ -4587,6 +4587,11 @@ resetGroupCallInviteHash group_call_id:int32 = Ok;
 //@group_call_id Group call identifier @user_ids User identifiers. At most 10 users can be invited simultaneously
 inviteGroupCallParticipants group_call_id:int32 user_ids:vector<int32> = Ok;
 
+//@description Returns invite link to a voice chat in a public chat
+//@group_call_id Group call identifier
+//@can_self_unmute Pass true if the invite_link should contain an invite hash, passing which to joinGroupCall would allow the invited user to unmute themself. Requires groupCall.can_be_managed group call flag
+getGroupCallInviteLink group_call_id:int32 can_self_unmute:Bool = HttpUrl;
+
 //@description Starts recording of a group call. Requires groupCall.can_be_managed group call flag @group_call_id Group call identifier @title Group call recording title; 0-128 characters
 startGroupCallRecording group_call_id:int32 title:string = Ok;
 

@@ -72,6 +72,8 @@ class GroupCallManager : public Actor {
 
   void invite_group_call_participants(GroupCallId group_call_id, vector<UserId> &&user_ids, Promise<Unit> &&promise);
 
+  void get_group_call_invite_link(GroupCallId group_call_id, bool can_self_unmute, Promise<string> &&promise);
+
   void toggle_group_call_recording(GroupCallId group_call_id, bool is_enabled, string title, Promise<Unit> &&promise);
 
   void set_group_call_participant_is_speaking(GroupCallId group_call_id, int32 audio_source, bool is_speaking,
