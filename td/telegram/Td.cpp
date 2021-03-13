@@ -6108,7 +6108,7 @@ void Td::on_request(uint64 id, const td_api::getGroupCallStreamSegment &request)
     if (result.is_error()) {
       promise.set_error(result.move_as_error());
     } else {
-      td_api::object_ptr<td_api::filePart> file_part;
+      auto file_part = td_api::make_object<td_api::filePart>();
       file_part->data_ = result.move_as_ok();
       promise.set_value(std::move(file_part));
     }
