@@ -1276,10 +1276,18 @@ GroupCallParticipant *GroupCallManager::get_group_call_participant(InputGroupCal
 }
 
 GroupCallParticipant *GroupCallManager::get_group_call_participant(GroupCallParticipants *group_call_participants,
-                                                                   DialogId dialog_id) {
-  for (auto &group_call_participant : group_call_participants->participants) {
-    if (group_call_participant.dialog_id == dialog_id) {
-      return &group_call_participant;
+                                                                   DialogId dialog_id) const {
+  if (dialog_id == DialogId(td_->contacts_manager_->get_my_id())) {
+    for (auto &group_call_participant : group_call_participants->participants) {
+      if (group_call_participant.is_self) {
+        return &group_call_participant;
+      }
+    }
+  } else {
+    for (auto &group_call_participant : group_call_participants->participants) {
+      if (group_call_participant.dialog_id == dialog_id) {
+        return &group_call_participant;
+      }
     }
   }
   return nullptr;
@@ -1395,15 +1403,17 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
     auto version = it->first;
     auto &participants = it->second;
     if (version <= group_call->version) {
-      auto my_participant =
-          get_group_call_participant(participants_it->second.get(), DialogId(td_->contacts_manager_->get_my_id()));
       for (auto &participant : participants) {
         on_participant_speaking_in_group_call(input_group_call_id, participant);
-        if (participant.is_self && (my_participant == nullptr || my_participant->is_fake ||
-                                    my_participant->joined_date < participant.joined_date ||
-                                    (my_participant->joined_date <= participant.joined_date &&
-                                     my_participant->audio_source != participant.audio_source))) {
-          process_group_call_participant(input_group_call_id, std::move(participant));
+        if (participant.is_self) {
+          auto my_participant =
+              get_group_call_participant(participants_it->second.get(), DialogId(td_->contacts_manager_->get_my_id()));
+          if (my_participant == nullptr || my_participant->is_fake ||
+              my_participant->joined_date < participant.joined_date ||
+              (my_participant->joined_date <= participant.joined_date &&
+               my_participant->audio_source != participant.audio_source)) {
+            process_group_call_participant(input_group_call_id, std::move(participant));
+          }
         }
       }
       LOG(INFO) << "Ignore already applied updateGroupCallParticipants with version " << version << " in "
@@ -1682,7 +1692,7 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
   auto *participants = add_group_call_participants(input_group_call_id);
   for (size_t i = 0; i < participants->participants.size(); i++) {
     auto &old_participant = participants->participants[i];
-    if (old_participant.dialog_id == participant.dialog_id) {
+    if (old_participant.dialog_id == participant.dialog_id || (old_participant.is_self && participant.is_self)) {
       if (participant.joined_date == 0) {
         LOG(INFO) << "Remove " << old_participant;
         if (old_participant.order != 0) {
@@ -3180,7 +3190,7 @@ void GroupCallManager::on_user_speaking_in_group_call(GroupCallId group_call_id,
   if (!td_->messages_manager_->have_dialog_info_force(dialog_id) ||
       (!recursive && need_group_call_participants(input_group_call_id, group_call) &&
        get_group_call_participant(input_group_call_id, dialog_id) == nullptr)) {
-    if (recursive || dialog_id.get_type() != DialogType::User) {
+    if (recursive) {
       LOG(ERROR) << "Failed to find speaking " << dialog_id << " from " << input_group_call_id;
     } else {
       auto query_promise =

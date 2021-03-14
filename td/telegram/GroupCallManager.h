@@ -214,8 +214,8 @@ class GroupCallManager : public Actor {
 
   GroupCallParticipant *get_group_call_participant(InputGroupCallId input_group_call_id, DialogId dialog_id);
 
-  static GroupCallParticipant *get_group_call_participant(GroupCallParticipants *group_call_participants,
-                                                          DialogId dialog_id);
+  GroupCallParticipant *get_group_call_participant(GroupCallParticipants *group_call_participants,
+                                                   DialogId dialog_id) const;
 
   void send_edit_group_call_title_query(InputGroupCallId input_group_call_id, const string &title);
 
