@@ -3187,6 +3187,10 @@ DialogId GroupCallManager::set_group_call_participant_is_speaking_by_source(Inpu
 
   for (auto &participant : participants_it->second->participants) {
     if (participant.audio_source == audio_source) {
+      if (is_speaking && participant.get_is_muted_by_admin()) {
+        // don't allow to show as speaking muted by admin participants
+        return DialogId();
+      }
       if (participant.is_speaking != is_speaking) {
         participant.is_speaking = is_speaking;
         if (is_speaking) {
