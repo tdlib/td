@@ -85,6 +85,9 @@ class GroupCallManager : public Actor {
   void set_group_call_participant_volume_level(GroupCallId group_call_id, DialogId dialog_id, int32 volume_level,
                                                Promise<Unit> &&promise);
 
+  void toggle_group_call_participant_is_hand_raised(GroupCallId group_call_id, DialogId dialog_id, bool is_hand_raised,
+                                                    Promise<Unit> &&promise);
+
   void load_group_call_participants(GroupCallId group_call_id, int32 limit, Promise<Unit> &&promise);
 
   void leave_group_call(GroupCallId group_call_id, Promise<Unit> &&promise);
@@ -117,7 +120,7 @@ class GroupCallManager : public Actor {
 
   static constexpr int32 RECENT_SPEAKER_TIMEOUT = 60 * 60;
   static constexpr int32 CHECK_GROUP_CALL_IS_JOINED_TIMEOUT = 10;
-  static constexpr size_t MAX_TITLE_LENGTH = 64;  // server side limit for group call title length
+  static constexpr size_t MAX_TITLE_LENGTH = 64;          // server side limit for group call title length
   static constexpr size_t MAX_RECORD_TITLE_LENGTH = 128;  // server side limit for group call record title length
 
   void tear_down() override;
@@ -235,6 +238,9 @@ class GroupCallManager : public Actor {
   void on_set_group_call_participant_volume_level(InputGroupCallId input_group_call_id, DialogId dialog_id,
                                                   uint64 generation, Promise<Unit> &&promise);
 
+  void on_toggle_group_call_participant_is_hand_raised(InputGroupCallId input_group_call_id, DialogId dialog_id,
+                                                       uint64 generation, Promise<Unit> &&promise);
+
   void on_group_call_left(InputGroupCallId input_group_call_id, int32 audio_source, bool need_rejoin);
 
   void on_group_call_left_impl(GroupCall *group_call, bool need_rejoin);
@@ -302,9 +308,11 @@ class GroupCallManager : public Actor {
 
   uint64 toggle_recording_generation_ = 0;
 
+  uint64 toggle_is_muted_generation_ = 0;
+
   uint64 set_volume_level_generation_ = 0;
 
-  uint64 toggle_is_muted_generation_ = 0;
+  uint64 toggle_is_hand_raised_generation_ = 0;
 
   MultiTimeout check_group_call_is_joined_timeout_{"CheckGroupCallIsJoinedTimeout"};
   MultiTimeout pending_send_speaking_action_timeout_{"PendingSendSpeakingActionTimeout"};

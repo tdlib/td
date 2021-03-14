@@ -497,12 +497,15 @@ class EditGroupCallParticipantQuery : public Td::ResultHandler {
   explicit EditGroupCallParticipantQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(InputGroupCallId input_group_call_id, DialogId dialog_id, bool is_muted, int32 volume_level) {
+  void send(InputGroupCallId input_group_call_id, DialogId dialog_id, bool is_muted, int32 volume_level,
+            bool set_raise_hand, bool raise_hand) {
     auto input_peer = MessagesManager::get_input_peer_force(dialog_id);
     CHECK(input_peer != nullptr);
 
     int32 flags = 0;
-    if (volume_level) {
+    if (set_raise_hand) {
+      flags |= telegram_api::phone_editGroupCallParticipant::RAISE_HAND_MASK;
+    } else if (volume_level) {
       flags |= telegram_api::phone_editGroupCallParticipant::VOLUME_MASK;
     } else if (is_muted) {
       flags |= telegram_api::phone_editGroupCallParticipant::MUTED_MASK;
@@ -510,7 +513,7 @@ class EditGroupCallParticipantQuery : public Td::ResultHandler {
 
     send_query(G()->net_query_creator().create(telegram_api::phone_editGroupCallParticipant(
         flags, false /*ignored*/, input_group_call_id.get_input_group_call(), std::move(input_peer), volume_level,
-        false)));
+        raise_hand)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -2564,7 +2567,7 @@ void GroupCallManager::toggle_group_call_participant_is_muted(GroupCallId group_
                  generation, std::move(promise));
   });
   td_->create_handler<EditGroupCallParticipantQuery>(std::move(query_promise))
-      ->send(input_group_call_id, dialog_id, is_muted, 0);
+      ->send(input_group_call_id, dialog_id, is_muted, 0, false, false);
 }
 
 void GroupCallManager::on_toggle_group_call_participant_is_muted(InputGroupCallId input_group_call_id,
@@ -2654,7 +2657,7 @@ void GroupCallManager::set_group_call_participant_volume_level(GroupCallId group
                  dialog_id, generation, std::move(promise));
   });
   td_->create_handler<EditGroupCallParticipantQuery>(std::move(query_promise))
-      ->send(input_group_call_id, dialog_id, false, volume_level);
+      ->send(input_group_call_id, dialog_id, false, volume_level, false, false);
 }
 
 void GroupCallManager::on_set_group_call_participant_volume_level(InputGroupCallId input_group_call_id,
@@ -2683,6 +2686,99 @@ void GroupCallManager::on_set_group_call_participant_volume_level(InputGroupCall
     }
   } else {
     participant->pending_volume_level = 0;
+  }
+  promise.set_value(Unit());
+}
+
+void GroupCallManager::toggle_group_call_participant_is_hand_raised(GroupCallId group_call_id, DialogId dialog_id,
+                                                                    bool is_hand_raised, Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
+
+  auto *group_call = get_group_call(input_group_call_id);
+  if (group_call == nullptr || !group_call->is_inited || !group_call->is_active) {
+    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+  }
+  if (!group_call->is_joined) {
+    if (is_group_call_being_joined(input_group_call_id) || group_call->need_rejoin) {
+      group_call->after_join.push_back(
+          PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, dialog_id, is_hand_raised,
+                                  promise = std::move(promise)](Result<Unit> &&result) mutable {
+            if (result.is_error()) {
+              promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+            } else {
+              send_closure(actor_id, &GroupCallManager::toggle_group_call_participant_is_hand_raised, group_call_id,
+                           dialog_id, is_hand_raised, std::move(promise));
+            }
+          }));
+      return;
+    }
+    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+  }
+
+  auto participants = add_group_call_participants(input_group_call_id);
+  auto participant = get_group_call_participant(participants, dialog_id);
+  if (participant == nullptr) {
+    return promise.set_error(Status::Error(400, "Can't find group call participant"));
+  }
+
+  if (is_hand_raised == participant->get_is_hand_raised()) {
+    return promise.set_value(Unit());
+  }
+
+  if (is_hand_raised) {
+    if (!participant->is_self) {
+      return promise.set_error(Status::Error(400, "Can't raise others hand"));
+    }
+  } else {
+    if (!can_manage_group_call(input_group_call_id)) {
+      return promise.set_error(Status::Error(400, "Have not enough rights in the group call"));
+    }
+  }
+
+  participant->have_pending_is_hand_raised = true;
+  participant->pending_is_hand_raised = is_hand_raised;
+  participant->pending_is_hand_raised_generation = ++toggle_is_hand_raised_generation_;
+  if (participant->order != 0) {
+    send_update_group_call_participant(input_group_call_id, *participant);
+  }
+
+  auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), input_group_call_id, dialog_id,
+                                               generation = participant->pending_is_hand_raised_generation,
+                                               promise = std::move(promise)](Result<Unit> &&result) mutable {
+    if (result.is_error()) {
+      promise.set_error(result.move_as_error());
+    }
+    send_closure(actor_id, &GroupCallManager::on_toggle_group_call_participant_is_hand_raised, input_group_call_id,
+                 dialog_id, generation, std::move(promise));
+  });
+  td_->create_handler<EditGroupCallParticipantQuery>(std::move(query_promise))
+      ->send(input_group_call_id, dialog_id, false, 0, true, is_hand_raised);
+}
+
+void GroupCallManager::on_toggle_group_call_participant_is_hand_raised(InputGroupCallId input_group_call_id,
+                                                                       DialogId dialog_id, uint64 generation,
+                                                                       Promise<Unit> &&promise) {
+  if (G()->close_flag()) {
+    return promise.set_value(Unit());
+  }
+
+  auto *group_call = get_group_call(input_group_call_id);
+  if (group_call == nullptr || !group_call->is_inited || !group_call->is_active || !group_call->is_joined) {
+    return promise.set_value(Unit());
+  }
+
+  auto participant = get_group_call_participant(input_group_call_id, dialog_id);
+  if (participant == nullptr || participant->pending_is_hand_raised_generation != generation) {
+    return promise.set_value(Unit());
+  }
+
+  CHECK(participant->have_pending_is_hand_raised);
+  participant->have_pending_is_hand_raised = false;
+  if (participant->get_is_hand_raised() != participant->pending_is_hand_raised) {
+    LOG(ERROR) << "Failed to change raised hand state for " << dialog_id << " in " << input_group_call_id;
+    if (participant->order != 0) {
+      send_update_group_call_participant(input_group_call_id, *participant);
+    }
   }
   promise.set_value(Unit());
 }

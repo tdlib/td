@@ -2737,6 +2737,13 @@ class CliClient final : public Actor {
       get_args(args, group_call_id, participant_id, volume_level);
       send_request(td_api::make_object<td_api::setGroupCallParticipantVolumeLevel>(
           as_group_call_id(group_call_id), as_message_sender(participant_id), volume_level));
+    } else if (op == "tgcpihr") {
+      string group_call_id;
+      string participant_id;
+      bool is_hand_raised;
+      get_args(args, group_call_id, participant_id, is_hand_raised);
+      send_request(td_api::make_object<td_api::toggleGroupCallParticipantIsHandRaised>(
+          as_group_call_id(group_call_id), as_message_sender(participant_id), is_hand_raised));
     } else if (op == "lgcp") {
       string group_call_id;
       string limit;

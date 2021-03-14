@@ -727,6 +727,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, const td_api::setGroupCallParticipantVolumeLevel &request);
 
+  void on_request(uint64 id, const td_api::toggleGroupCallParticipantIsHandRaised &request);
+
   void on_request(uint64 id, const td_api::loadGroupCallParticipants &request);
 
   void on_request(uint64 id, const td_api::leaveGroupCall &request);

@@ -4616,6 +4616,11 @@ toggleGroupCallParticipantIsMuted group_call_id:int32 participant:MessageSender 
 //@group_call_id Group call identifier @participant Participant identifier @volume_level New participant's volume level; 1-20000 in hundreds of percents
 setGroupCallParticipantVolumeLevel group_call_id:int32 participant:MessageSender volume_level:int32 = Ok;
 
+//@description Toggles whether a group call participant hand is rased
+//@group_call_id Group call identifier @participant Participant identifier
+//@is_hand_raised Pass true if the user's hand should be raised. Only self hand can be raised. Requires groupCall.can_be_managed group call flag to lower other's hand
+toggleGroupCallParticipantIsHandRaised group_call_id:int32 participant:MessageSender is_hand_raised:Bool = Ok;
+
 //@description Loads more group call participants. The loaded participants will be received through updates. Use the field groupCall.loaded_all_participants to check whether all participants has already been loaded
 //@group_call_id Group call identifier. The group call must be previously received through getGroupCall and must be joined or being joined
 //@limit Maximum number of participants to load

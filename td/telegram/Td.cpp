@@ -6082,6 +6082,14 @@ void Td::on_request(uint64 id, const td_api::setGroupCallParticipantVolumeLevel 
       request.volume_level_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::toggleGroupCallParticipantIsHandRaised &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  group_call_manager_->toggle_group_call_participant_is_hand_raised(
+      GroupCallId(request.group_call_id_), group_call_manager_->get_group_call_participant_id(request.participant_),
+      request.is_hand_raised_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::loadGroupCallParticipants &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
