@@ -1653,6 +1653,7 @@ void UpdatesManager::add_pending_qts_update(tl_object_ptr<telegram_api::Update> 
   CHECK(update != nullptr);
   if (qts <= 1) {
     LOG(ERROR) << "Receive wrong qts " << qts << " in " << oneline(to_string(update));
+    schedule_get_difference("add_pending_qts_update");
     promise.set_value(Unit());
     return;
   }
