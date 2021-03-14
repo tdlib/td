@@ -2118,7 +2118,7 @@ bool GroupCallManager::on_join_group_call_response(InputGroupCallId input_group_
   }
   pending_join_requests_.erase(it);
   try_clear_group_call_participants(input_group_call_id);
-  process_group_call_after_join_requests(input_group_call_id);
+  process_group_call_after_join_requests(input_group_call_id, "on_join_group_call_response");
   return need_update;
 }
 
@@ -2131,7 +2131,7 @@ void GroupCallManager::finish_join_group_call(InputGroupCallId input_group_call_
   it->second->promise.set_error(std::move(error));
   pending_join_requests_.erase(it);
   try_clear_group_call_participants(input_group_call_id);
-  process_group_call_after_join_requests(input_group_call_id);
+  process_group_call_after_join_requests(input_group_call_id, "finish_join_group_call");
 
   GroupCall *group_call = get_group_call(input_group_call_id);
   CHECK(group_call != nullptr);
@@ -2140,14 +2140,15 @@ void GroupCallManager::finish_join_group_call(InputGroupCallId input_group_call_
   }
 }
 
-void GroupCallManager::process_group_call_after_join_requests(InputGroupCallId input_group_call_id) {
+void GroupCallManager::process_group_call_after_join_requests(InputGroupCallId input_group_call_id,
+                                                              const char *source) {
   GroupCall *group_call = get_group_call(input_group_call_id);
   if (group_call == nullptr || !group_call->is_inited) {
     return;
   }
   if (is_group_call_being_joined(input_group_call_id) || group_call->need_rejoin) {
-    LOG(ERROR) << "Failed to process after-join requests: " << is_group_call_being_joined(input_group_call_id) << " "
-               << group_call->need_rejoin;
+    LOG(ERROR) << "Failed to process after-join requests from " << source << ": "
+               << is_group_call_being_joined(input_group_call_id) << " " << group_call->need_rejoin;
     return;
   }
   if (group_call->after_join.empty()) {
@@ -2817,14 +2818,14 @@ void GroupCallManager::leave_group_call(GroupCallId group_call_id, Promise<Unit>
       group_call->is_being_left) {
     if (cancel_join_group_call_request(input_group_call_id) != 0) {
       try_clear_group_call_participants(input_group_call_id);
-      process_group_call_after_join_requests(input_group_call_id);
+      process_group_call_after_join_requests(input_group_call_id, "leave_group_call 1");
       return promise.set_value(Unit());
     }
     if (group_call->need_rejoin) {
       group_call->need_rejoin = false;
       send_update_group_call(group_call, "leave_group_call");
       try_clear_group_call_participants(input_group_call_id);
-      process_group_call_after_join_requests(input_group_call_id);
+      process_group_call_after_join_requests(input_group_call_id, "leave_group_call 2");
       return promise.set_value(Unit());
     }
     return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
@@ -2837,7 +2838,7 @@ void GroupCallManager::leave_group_call(GroupCallId group_call_id, Promise<Unit>
   group_call->need_rejoin = false;
   send_update_group_call(group_call, "leave_group_call");
 
-  process_group_call_after_join_requests(input_group_call_id);
+  process_group_call_after_join_requests(input_group_call_id, "leave_group_call 3");
 
   auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), input_group_call_id, audio_source,
                                                promise = std::move(promise)](Result<Unit> &&result) mutable {
@@ -2879,7 +2880,7 @@ void GroupCallManager::on_group_call_left_impl(GroupCall *group_call, bool need_
   check_group_call_is_joined_timeout_.cancel_timeout(group_call->group_call_id.get());
   auto input_group_call_id = get_input_group_call_id(group_call->group_call_id).ok();
   try_clear_group_call_participants(input_group_call_id);
-  process_group_call_after_join_requests(input_group_call_id);
+  process_group_call_after_join_requests(input_group_call_id, "on_group_call_left_impl");
 }
 
 void GroupCallManager::discard_group_call(GroupCallId group_call_id, Promise<Unit> &&promise) {

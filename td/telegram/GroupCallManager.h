@@ -208,7 +208,7 @@ class GroupCallManager : public Actor {
 
   void finish_join_group_call(InputGroupCallId input_group_call_id, uint64 generation, Status error);
 
-  void process_group_call_after_join_requests(InputGroupCallId input_group_call_id);
+  void process_group_call_after_join_requests(InputGroupCallId input_group_call_id, const char *source);
 
   GroupCallParticipants *add_group_call_participants(InputGroupCallId input_group_call_id);
 
