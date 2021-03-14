@@ -107,6 +107,15 @@ if (NOT CMAKE_CROSSCOMPILING)
   add_subdirectory(tl-parser)
 
   set(TLO_AUTO_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/auto/tlo)
+  set(TLO_FILES ${TLO_AUTO_INCLUDE_DIR}/mtproto_api.tlo ${TLO_AUTO_INCLUDE_DIR}/secret_api.tlo ${TLO_AUTO_INCLUDE_DIR}/td_api.tlo ${TLO_AUTO_INCLUDE_DIR}/telegram_api.tlo)
+  set(TD_API_TLO_FILE ${TLO_AUTO_INCLUDE_DIR}/td_api.tlo)
+
+  # Ninja generator uses relative paths and can't correctly handle these dependencies
+  # See https://gitlab.kitware.com/cmake/cmake/-/issues/13894
+  if (CMAKE_GENERATOR STREQUAL "Ninja")
+    set(TLO_FILES)
+    set(TD_API_TLO_FILE)
+  endif()
 
   add_custom_target(tl_generate_tlo
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
@@ -124,7 +133,7 @@ if (NOT CMAKE_CROSSCOMPILING)
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     COMMAND ${GENERATE_COMMON_CMD}
     COMMENT "Generate common TL source files"
-    DEPENDS generate_common tl_generate_tlo ${TLO_AUTO_INCLUDE_DIR}/mtproto_api.tlo ${TLO_AUTO_INCLUDE_DIR}/secret_api.tlo ${TLO_AUTO_INCLUDE_DIR}/td_api.tlo ${TLO_AUTO_INCLUDE_DIR}/telegram_api.tlo ${CMAKE_CURRENT_SOURCE_DIR}/scheme/td_api.tl ${CMAKE_CURRENT_SOURCE_DIR}/DoxygenTlDocumentationGenerator.php
+    DEPENDS generate_common tl_generate_tlo ${TLO_FILES} ${CMAKE_CURRENT_SOURCE_DIR}/scheme/td_api.tl ${CMAKE_CURRENT_SOURCE_DIR}/DoxygenTlDocumentationGenerator.php
   )
   if (TD_ENABLE_JNI)
     target_compile_definitions(generate_common PRIVATE TD_ENABLE_JNI=1)
@@ -139,7 +148,7 @@ if (NOT CMAKE_CROSSCOMPILING)
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     COMMAND generate_c
     COMMENT "Generate C TL source files"
-    DEPENDS generate_c tl_generate_tlo ${TLO_AUTO_INCLUDE_DIR}/td_api.tlo ${CMAKE_CURRENT_SOURCE_DIR}/scheme/td_api.tl
+    DEPENDS generate_c tl_generate_tlo ${TD_API_TLO_FILE} ${CMAKE_CURRENT_SOURCE_DIR}/scheme/td_api.tl
   )
 
   add_executable(td_generate_java_api ${TL_GENERATE_JAVA_SOURCE})
@@ -151,7 +160,7 @@ if (NOT CMAKE_CROSSCOMPILING)
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     COMMAND generate_json
     COMMENT "Generate JSON TL source files"
-    DEPENDS generate_json tl_generate_tlo ${TLO_AUTO_INCLUDE_DIR}/td_api.tlo ${CMAKE_CURRENT_SOURCE_DIR}/scheme/td_api.tl
+    DEPENDS generate_json tl_generate_tlo ${TD_API_TLO_FILE} ${CMAKE_CURRENT_SOURCE_DIR}/scheme/td_api.tl
   )
 
   if (TD_ENABLE_JNI)
@@ -162,9 +171,9 @@ if (NOT CMAKE_CROSSCOMPILING)
 
   if (TD_ENABLE_DOTNET)
     if (PHP_EXECUTABLE)
-      set(GENERATE_DOTNET_API_CMD td_generate_dotnet_api ${TLO_AUTO_INCLUDE_DIR}/td_api.tlo && ${PHP_EXECUTABLE} DotnetTlDocumentationGenerator.php scheme/td_api.tl auto/td/telegram/TdDotNetApi.h)
+      set(GENERATE_DOTNET_API_CMD td_generate_dotnet_api ${TD_API_TLO_FILE} && ${PHP_EXECUTABLE} DotnetTlDocumentationGenerator.php scheme/td_api.tl auto/td/telegram/TdDotNetApi.h)
     else()
-      set(GENERATE_DOTNET_API_CMD td_generate_dotnet_api ${TLO_AUTO_INCLUDE_DIR}/td_api.tlo)
+      set(GENERATE_DOTNET_API_CMD td_generate_dotnet_api ${TD_API_TLO_FILE})
     endif()
 
     add_executable(td_generate_dotnet_api generate_dotnet.cpp tl_writer_dotnet.h)
@@ -173,7 +182,7 @@ if (NOT CMAKE_CROSSCOMPILING)
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
       COMMAND ${GENERATE_DOTNET_API_CMD}
       COMMENT "Generate .NET API files"
-      DEPENDS td_generate_dotnet_api tl_generate_tlo ${TLO_AUTO_INCLUDE_DIR}/td_api.tlo ${CMAKE_CURRENT_SOURCE_DIR}/scheme/td_api.tl ${CMAKE_CURRENT_SOURCE_DIR}/DotnetTlDocumentationGenerator.php
+      DEPENDS td_generate_dotnet_api tl_generate_tlo ${TD_API_TLO_FILE} ${CMAKE_CURRENT_SOURCE_DIR}/scheme/td_api.tl ${CMAKE_CURRENT_SOURCE_DIR}/DotnetTlDocumentationGenerator.php
     )
   endif()
 
