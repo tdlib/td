@@ -3919,7 +3919,7 @@ searchChatMessages chat_id:int53 query:string sender:MessageSender from_message_
 
 //@description Searches for messages in all chats except secret chats. Returns the results in reverse chronological order (i.e., in order of decreasing (date, chat_id, message_id)).
 //-For optimal performance the number of returned messages is chosen by the library
-//@chat_list Chat list in which to search messages; pass null to search in all chats regardless of their chat list
+//@chat_list Chat list in which to search messages; pass null to search in all chats regardless of their chat list. Only Main and Archive chat lists are supported
 //@query Query to search for
 //@offset_date The date of the message starting from which the results should be fetched. Use 0 or any date in the future to get results from the last message
 //@offset_chat_id The chat identifier of the last found message, or 0 for the first request
