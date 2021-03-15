@@ -634,6 +634,7 @@ struct GroupCallManager::GroupCall {
   bool can_self_unmute = false;
   bool can_be_managed = false;
   bool syncing_participants = false;
+  bool need_syncing_participants = false;
   bool loaded_all_participants = false;
   bool mute_new_participants = false;
   bool allowed_change_mute_new_participants = false;
@@ -1255,6 +1256,11 @@ void GroupCallManager::on_get_group_call_participants(
       if (need_update) {
         send_update_group_call(group_call, "on_get_group_call_participants");
       }
+
+      if (is_sync && group_call->need_syncing_participants) {
+        group_call->need_syncing_participants = false;
+        sync_group_call_participants(input_group_call_id);
+      }
     }
   }
 }
@@ -1501,9 +1507,11 @@ void GroupCallManager::sync_group_call_participants(InputGroupCallId input_group
   sync_participants_timeout_.cancel_timeout(group_call->group_call_id.get());
 
   if (group_call->syncing_participants) {
+    group_call->need_syncing_participants = true;
     return;
   }
   group_call->syncing_participants = true;
+  group_call->need_syncing_participants = false;
 
   LOG(INFO) << "Force participants synchronization in " << input_group_call_id << " from " << group_call->dialog_id;
   auto promise = PromiseCreator::lambda([actor_id = actor_id(this), input_group_call_id](Result<Unit> &&result) {
@@ -1524,7 +1532,8 @@ void GroupCallManager::on_sync_group_call_participants_failed(InputGroupCallId i
   CHECK(group_call->syncing_participants);
   group_call->syncing_participants = false;
 
-  sync_participants_timeout_.add_timeout_in(group_call->group_call_id.get(), 1.0);
+  sync_participants_timeout_.add_timeout_in(group_call->group_call_id.get(),
+                                            group_call->need_syncing_participants ? 0.0 : 1.0);
 }
 
 GroupCallParticipantOrder GroupCallManager::get_real_participant_order(
@@ -3029,6 +3038,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
     call.is_being_left = group_call->is_being_left;
     call.is_speaking = group_call->is_speaking;
     call.syncing_participants = group_call->syncing_participants;
+    call.need_syncing_participants = group_call->need_syncing_participants;
     call.loaded_all_participants = group_call->loaded_all_participants;
     call.audio_source = group_call->audio_source;
     *group_call = std::move(call);
