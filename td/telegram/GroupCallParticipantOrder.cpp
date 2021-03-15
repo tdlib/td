@@ -6,6 +6,9 @@
 //
 #include "td/telegram/GroupCallParticipantOrder.h"
 
+#include "td/utils/logging.h"
+#include "td/utils/misc.h"
+
 #include <limits>
 #include <tuple>
 
@@ -20,8 +23,9 @@ bool GroupCallParticipantOrder::is_valid() const {
   return *this != GroupCallParticipantOrder();
 }
 
-int64 GroupCallParticipantOrder::get_group_call_participant_order_object() const {
-  return (static_cast<int64>(active_date) << 32) + joined_date;
+string GroupCallParticipantOrder::get_group_call_participant_order_object() const {
+  return PSTRING() << lpad0(to_string(active_date), 10) << lpad0(to_string(raise_hand_rating), 19)
+                   << lpad0(to_string(joined_date), 10);
 }
 
 bool operator==(const GroupCallParticipantOrder &lhs, const GroupCallParticipantOrder &rhs) {

@@ -34,7 +34,7 @@ class GroupCallParticipantOrder {
 
   bool is_valid() const;
 
-  int64 get_group_call_participant_order_object() const;
+  string get_group_call_participant_order_object() const;
 };
 
 bool operator==(const GroupCallParticipantOrder &lhs, const GroupCallParticipantOrder &rhs);

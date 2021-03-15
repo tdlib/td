@@ -2162,8 +2162,8 @@ groupCallJoinResponseStream = GroupCallJoinResponse;
 //@is_muted_for_current_user True, if the participant is muted for the current user
 //@can_unmute_self True, if the participant is muted for all users, but can unmute themself
 //@volume_level Participant's volume level; 1-20000 in hundreds of percents
-//@order User's order in the group call participant list. The bigger is order, the higher is user in the list. If order is 0, the user must be removed from the participant list
-groupCallParticipant participant:MessageSender source:int32 bio:string is_speaking:Bool is_hand_raised:Bool can_be_muted_for_all_users:Bool can_be_unmuted_for_all_users:Bool can_be_muted_for_current_user:Bool can_be_unmuted_for_current_user:Bool is_muted_for_all_users:Bool is_muted_for_current_user:Bool can_unmute_self:Bool volume_level:int32 order:int64 = GroupCallParticipant;
+//@order User's order in the group call participant list. Orders must be compared lexicographically. The bigger is order, the higher is user in the list. If order is empty, the user must be removed from the participant list
+groupCallParticipant participant:MessageSender source:int32 bio:string is_speaking:Bool is_hand_raised:Bool can_be_muted_for_all_users:Bool can_be_unmuted_for_all_users:Bool can_be_muted_for_current_user:Bool can_be_unmuted_for_current_user:Bool is_muted_for_all_users:Bool is_muted_for_current_user:Bool can_unmute_self:Bool volume_level:int32 order:string = GroupCallParticipant;
 
 
 //@class CallProblem @description Describes the exact type of a problem with a call

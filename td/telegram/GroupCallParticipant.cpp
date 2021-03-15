@@ -36,12 +36,16 @@ GroupCallParticipant::GroupCallParticipant(const tl_object_ptr<telegram_api::gro
       active_date = participant->active_date_;
     }
     if (joined_date < 0 || active_date < 0) {
-      LOG(ERROR) << "Receive invalid " << to_string(participant);
+      LOG(ERROR) << "Receive invalid active_date/joined_date in " << to_string(participant);
       joined_date = 0;
       active_date = 0;
     }
     if ((participant->flags_ & telegram_api::groupCallParticipant::RAISE_HAND_RATING_MASK) != 0) {
       raise_hand_rating = participant->raise_hand_rating_;
+      if (raise_hand_rating < 0) {
+        LOG(ERROR) << "Receive invalid raise_hand_rating in " << to_string(participant);
+        raise_hand_rating = 0;
+      }
     }
   }
   is_just_joined = participant->just_joined_;
