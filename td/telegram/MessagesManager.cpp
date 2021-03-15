@@ -6867,7 +6867,7 @@ void MessagesManager::update_message_interaction_info(FullMessageId full_message
   }
 
   if (update_message_interaction_info(dialog_id, m, view_count, forward_count, has_reply_info,
-                                      std::move(new_reply_info))) {
+                                      std::move(new_reply_info), "update_message_interaction_info")) {
     on_message_changed(d, m, true, "update_message_interaction_info");
   }
 }
@@ -6952,7 +6952,7 @@ td_api::object_ptr<td_api::messageInteractionInfo> MessagesManager::get_message_
 
 bool MessagesManager::update_message_interaction_info(DialogId dialog_id, Message *m, int32 view_count,
                                                       int32 forward_count, bool has_reply_info,
-                                                      MessageReplyInfo &&reply_info) {
+                                                      MessageReplyInfo &&reply_info, const char *source) {
   CHECK(m != nullptr);
   m->interaction_info_update_date = G()->unix_time();  // doesn't force message saving
   if (m->message_id.is_valid_scheduled()) {
@@ -6986,7 +6986,8 @@ bool MessagesManager::update_message_interaction_info(DialogId dialog_id, Messag
     if (need_update_reply_info) {
       if (m->reply_info.channel_id != reply_info.channel_id) {
         if (m->reply_info.channel_id.is_valid() && reply_info.channel_id.is_valid() && m->message_id.is_server()) {
-          LOG(ERROR) << "Reply info changed from " << m->reply_info << " to " << reply_info;
+          LOG(ERROR) << "Reply info of " << FullMessageId{dialog_id, m->message_id} << " changed from " << m->reply_info
+                     << " to " << reply_info << " from " << source;
         }
       }
       m->reply_info = std::move(reply_info);
@@ -11408,7 +11409,7 @@ void MessagesManager::read_history_inbox(DialogId dialog_id, MessageId max_messa
         LOG(ERROR) << "Have unknown " << unread_count << " unread messages up to " << max_message_id << " in "
                    << dialog_id << " with last_new_message_id = " << d->last_new_message_id
                    << ", last_message_id = " << d->last_message_id
-                   << ", last_database_message_id = " << d->last_database_message_id;
+                   << ", last_database_message_id = " << d->last_database_message_id << " from " << source;
       }
       unread_count = 0;
     }
@@ -27249,7 +27250,8 @@ MessagesManager::MessageNotificationGroup MessagesManager::get_message_notificat
       last_notification_id != group_info.last_notification_id) {
     LOG(ERROR) << "Fix last notification date in " << d->dialog_id << " from " << group_info.last_notification_date
                << " to " << last_notification_date << " and last notification identifier from "
-               << group_info.last_notification_id << " to " << last_notification_id;
+               << group_info.last_notification_id << " to " << last_notification_id << " in " << group_id << " of type "
+               << result.type;
     set_dialog_last_notification(d->dialog_id, group_info, last_notification_date, last_notification_id,
                                  "get_message_notification_group_force");
   }
@@ -27355,7 +27357,8 @@ vector<Notification> MessagesManager::get_message_notifications_from_database_fo
 
       auto notification_id = m->notification_id.is_valid() ? m->notification_id : m->removed_notification_id;
       if (!notification_id.is_valid()) {
-        VLOG(ERROR) << "Can't find notification identifier for " << m->message_id << " in " << d->dialog_id;
+        LOG(ERROR) << "Can't find notification identifier for " << m->message_id << " in " << d->dialog_id
+                   << " with from_mentions = " << from_mentions;
         continue;
       }
       CHECK(m->message_id.is_valid());
@@ -27611,7 +27614,8 @@ void MessagesManager::on_get_message_notifications_from_database(DialogId dialog
 
     auto notification_id = m->notification_id.is_valid() ? m->notification_id : m->removed_notification_id;
     if (!notification_id.is_valid()) {
-      VLOG(ERROR) << "Can't find notification identifier for " << m->message_id << " in " << d->dialog_id;
+      LOG(ERROR) << "Can't find notification identifier for " << m->message_id << " in " << d->dialog_id
+                 << " with from_mentions = " << from_mentions;
       continue;
     }
     CHECK(m->message_id.is_valid());
@@ -32478,7 +32482,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       if (next_message != nullptr) {
         if (next_message->message_id.is_server() &&
             !(td_->auth_manager_->is_bot() && Slice(source) == Slice("GetChannelMessagesQuery"))) {
-          LOG(ERROR) << "Can't attach " << m->message_id << " from " << source << " before " << next_message->message_id
+          LOG(ERROR) << "Can't attach " << m->message_id << " from " << source << " from "
+                     << (m->from_database ? "database" : "server") << " before " << next_message->message_id
                      << " and after " << previous_message->message_id << " in " << dialog_id;
           dump_debug_message_op(d);
         }
@@ -33386,7 +33391,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     need_send_update = true;
   }
   if (update_message_interaction_info(dialog_id, old_message, new_message->view_count, new_message->forward_count, true,
-                                      std::move(new_message->reply_info))) {
+                                      std::move(new_message->reply_info), "update_message")) {
     need_send_update = true;
   }
   if (old_message->restriction_reasons != new_message->restriction_reasons) {

@@ -1959,7 +1959,7 @@ class MessagesManager : public Actor {
                                                                                          const Message *m) const;
 
   bool update_message_interaction_info(DialogId dialog_id, Message *m, int32 view_count, int32 forward_count,
-                                       bool has_reply_info, MessageReplyInfo &&reply_info);
+                                       bool has_reply_info, MessageReplyInfo &&reply_info, const char *source);
 
   bool update_message_contains_unread_mention(Dialog *d, Message *m, bool contains_unread_mention, const char *source);
 
