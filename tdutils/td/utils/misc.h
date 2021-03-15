@@ -144,7 +144,7 @@ T trim(T str) {
 
 string lpad(string str, size_t size, char c);
 
-string lpad0(const string str, size_t size);
+string lpad0(string str, size_t size);
 
 string rpad(string str, size_t size, char c);
 
