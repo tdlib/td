@@ -88,7 +88,7 @@ FileId VoiceNotesManager::dup_voice_note(FileId new_id, FileId old_id) {
 
 bool VoiceNotesManager::merge_voice_notes(FileId new_id, FileId old_id, bool can_delete_old) {
   if (!old_id.is_valid()) {
-    LOG(ERROR) << "Old file id is invalid";
+    LOG(ERROR) << "Old file identifier is invalid";
     return true;
   }
 

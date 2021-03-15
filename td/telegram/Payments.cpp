@@ -746,7 +746,7 @@ void answer_shipping_query(int64 shipping_query_id, vector<tl_object_ptr<td_api:
       return promise.set_error(Status::Error(400, "Shipping option must be non-empty"));
     }
     if (!clean_input_string(option->id_)) {
-      return promise.set_error(Status::Error(400, "Shipping option id must be encoded in UTF-8"));
+      return promise.set_error(Status::Error(400, "Shipping option identifier must be encoded in UTF-8"));
     }
     if (!clean_input_string(option->title_)) {
       return promise.set_error(Status::Error(400, "Shipping option title must be encoded in UTF-8"));
@@ -836,7 +836,7 @@ void send_payment_form(ServerMessageId server_message_id, const string &order_in
       auto credentials_saved = static_cast<const td_api::inputCredentialsSaved *>(credentials.get());
       auto credentials_id = credentials_saved->saved_credentials_id_;
       if (!clean_input_string(credentials_id)) {
-        return promise.set_error(Status::Error(400, "Credentials id must be encoded in UTF-8"));
+        return promise.set_error(Status::Error(400, "Credentials identifier must be encoded in UTF-8"));
       }
       auto temp_password_state =
           G()->td().get_actor_unsafe()->password_manager_->get_actor_unsafe()->get_temp_password_state_sync();

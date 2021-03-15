@@ -1091,7 +1091,7 @@ class MessagesManager : public Actor {
 
     int32 ttl_period = 0;       // counted from message send date
     int32 ttl = 0;              // counted from message content view date
-    double ttl_expires_at = 0;  // only for ttl
+    double ttl_expires_at = 0;  // only for TTL
 
     int64 media_album_id = 0;
 

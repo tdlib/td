@@ -110,7 +110,7 @@ struct PhotoRemoteFileLocation {
 };
 
 inline StringBuilder &operator<<(StringBuilder &string_builder, const PhotoRemoteFileLocation &location) {
-  return string_builder << "[id = " << location.id_ << ", access_hash = " << location.access_hash_
+  return string_builder << "[ID = " << location.id_ << ", access_hash = " << location.access_hash_
                         << ", volume_id = " << location.volume_id_ << ", local_id = " << location.local_id_ << "]";
 }
 
@@ -173,7 +173,7 @@ struct CommonRemoteFileLocation {
 };
 
 inline StringBuilder &operator<<(StringBuilder &string_builder, const CommonRemoteFileLocation &location) {
-  return string_builder << "[id = " << location.id_ << ", access_hash = " << location.access_hash_ << "]";
+  return string_builder << "[ID = " << location.id_ << ", access_hash = " << location.access_hash_ << "]";
 }
 
 class FullRemoteFileLocation {

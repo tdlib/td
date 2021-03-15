@@ -413,7 +413,7 @@ void FileGenerateManager::generate_file(uint64 query_id, FullGenerateFileLocatio
 
   CHECK(query_id != 0);
   auto it_flag = query_id_to_query_.emplace(query_id, Query{});
-  LOG_CHECK(it_flag.second) << "Query id must be unique";
+  LOG_CHECK(it_flag.second) << "Query identifier must be unique";
   auto parent = actor_shared(this, query_id);
 
   Slice file_id_query = "#file_id#";

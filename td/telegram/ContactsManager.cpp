@@ -3467,7 +3467,7 @@ UserId ContactsManager::load_my_id() {
       return my_id;
     }
 
-    LOG(ERROR) << "Wrong my id = \"" << id_string << "\" stored in database";
+    LOG(ERROR) << "Wrong my ID = \"" << id_string << "\" stored in database";
   }
   return UserId();
 }
@@ -4891,7 +4891,7 @@ FolderId ContactsManager::get_secret_chat_initial_folder_id(SecretChatId secret_
 }
 
 UserId ContactsManager::get_my_id() const {
-  LOG_IF(ERROR, !my_id_.is_valid()) << "Wrong or unknown my id returned";
+  LOG_IF(ERROR, !my_id_.is_valid()) << "Wrong or unknown my ID returned";
   return my_id_;
 }
 
@@ -4901,7 +4901,7 @@ void ContactsManager::set_my_id(UserId my_id) {
     LOG(ERROR) << "Already know that me is " << my_old_id << " but received userSelf with " << my_id;
   }
   if (!my_id.is_valid()) {
-    LOG(ERROR) << "Receive invalid my id " << my_id;
+    LOG(ERROR) << "Receive invalid my ID " << my_id;
     return;
   }
   if (my_old_id != my_id) {

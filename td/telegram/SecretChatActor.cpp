@@ -646,7 +646,7 @@ void SecretChatActor::run_fill_gaps() {
 
 void SecretChatActor::run_pfs() {
   while (true) {
-    LOG(INFO) << "Run pfs loop: " << pfs_state_;
+    LOG(INFO) << "Run PFS loop: " << pfs_state_;
     if (pfs_state_.state == PfsState::Empty &&
         (pfs_state_.last_message_id + 100 < seq_no_state_.message_id ||
          pfs_state_.last_timestamp + 60 * 60 * 24 * 7 < Time::now()) &&
@@ -1078,7 +1078,7 @@ void SecretChatActor::do_outbound_message_impl(unique_ptr<log_event::OutboundSec
   binlog_event->crc = crc64(binlog_event->encrypted_message.as_slice());
   LOG(INFO) << "Do outbound message: " << *binlog_event << tag("crc", binlog_event->crc);
   auto &state_id_ref = random_id_to_outbound_message_state_token_[binlog_event->random_id];
-  LOG_CHECK(state_id_ref == 0) << "Random id collision";
+  LOG_CHECK(state_id_ref == 0) << "Random ID collision";
   state_id_ref = outbound_message_states_.create();
   const uint64 state_id = state_id_ref;
   auto *state = outbound_message_states_.get(state_id);
@@ -2283,9 +2283,9 @@ Status SecretChatActor::on_inbound_action(secret_api::DecryptedMessageAction &ac
   // Also, if SeqNoState with message_id greater than current message_id is not saved, then corresponding action will be
   // replayed.
   //
-  // This works only for ttl, not for pfs. Same ttl action may be processed twice.
+  // This works only for TTL, not for PFS. Same TTL action may be processed twice.
   if (message_id < seq_no_state_.message_id) {
-    LOG(INFO) << "Drop old inbound DecryptedMessageAction (non-pfs action): " << to_string(action);
+    LOG(INFO) << "Drop old inbound DecryptedMessageAction (non-PFS action): " << to_string(action);
     return Status::OK();
   }
   pfs_state_.message_id = message_id;  // replay protection
@@ -2305,7 +2305,7 @@ void SecretChatActor::on_outbound_action(secret_api::DecryptedMessageAction &act
 
   // see comment in on_inbound_action
   if (message_id < seq_no_state_.message_id) {
-    LOG(INFO) << "Drop old outbound DecryptedMessageAction (non-pfs action): " << to_string(action);
+    LOG(INFO) << "Drop old outbound DecryptedMessageAction (non-PFS action): " << to_string(action);
     return;
   }
   pfs_state_.message_id = message_id;  // replay protection

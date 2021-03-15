@@ -152,7 +152,7 @@ FileId VideosManager::dup_video(FileId new_id, FileId old_id) {
 
 bool VideosManager::merge_videos(FileId new_id, FileId old_id, bool can_delete_old) {
   if (!old_id.is_valid()) {
-    LOG(ERROR) << "Old file id is invalid";
+    LOG(ERROR) << "Old file identifier is invalid";
     return true;
   }
 

@@ -3349,7 +3349,7 @@ DbKey Td::as_db_key(string key) {
 
 void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {
   if (id == 0) {
-    LOG(ERROR) << "Ignore request with id == 0: " << to_string(function);
+    LOG(ERROR) << "Ignore request with ID == 0: " << to_string(function);
     return;
   }
 

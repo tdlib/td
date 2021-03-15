@@ -217,7 +217,7 @@ bool operator!=(const ProfilePhoto &lhs, const ProfilePhoto &rhs) {
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const ProfilePhoto &profile_photo) {
-  return string_builder << "<id = " << profile_photo.id << ", small_file_id = " << profile_photo.small_file_id
+  return string_builder << "<ID = " << profile_photo.id << ", small_file_id = " << profile_photo.small_file_id
                         << ", big_file_id = " << profile_photo.big_file_id
                         << ", has_animation = " << profile_photo.has_animation << ">";
 }
@@ -709,7 +709,7 @@ Photo get_photo(FileManager *file_manager, tl_object_ptr<telegram_api::photo> &&
   res.has_stickers = (photo->flags_ & telegram_api::photo::HAS_STICKERS_MASK) != 0;
 
   if (res.is_empty()) {
-    LOG(ERROR) << "Receive photo with id " << res.id.get();
+    LOG(ERROR) << "Receive photo with identifier " << res.id.get();
     res.id = -3;
   }
 
@@ -925,11 +925,11 @@ bool operator!=(const Photo &lhs, const Photo &rhs) {
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const Photo &photo) {
-  string_builder << "[id = " << photo.id.get() << ", photos = " << format::as_array(photo.photos);
+  string_builder << "[ID = " << photo.id.get() << ", photos = " << format::as_array(photo.photos);
   if (!photo.animations.empty()) {
     string_builder << ", animations = " << format::as_array(photo.animations);
   }
-  return string_builder << "]";
+  return string_builder << ']';
 }
 
 static tl_object_ptr<telegram_api::fileLocationToBeDeprecated> copy_location(

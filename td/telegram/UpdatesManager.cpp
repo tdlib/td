@@ -1088,7 +1088,7 @@ vector<DialogId> UpdatesManager::get_chat_dialog_ids(const telegram_api::Updates
       continue;
     }
 
-    LOG(ERROR) << "Can't find id of " << oneline(to_string(chat));
+    LOG(ERROR) << "Can't find identifier of " << oneline(to_string(chat));
   }
   return dialog_ids;
 }

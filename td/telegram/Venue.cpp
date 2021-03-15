@@ -84,7 +84,7 @@ bool operator!=(const Venue &lhs, const Venue &rhs) {
 StringBuilder &operator<<(StringBuilder &string_builder, const Venue &venue) {
   return string_builder << "Venue[location = " << venue.location_ << ", title = " << venue.title_
                         << ", address = " << venue.address_ << ", provider = " << venue.provider_
-                        << ", id = " << venue.id_ << ", type = " << venue.type_ << "]";
+                        << ", ID = " << venue.id_ << ", type = " << venue.type_ << "]";
 }
 
 Result<Venue> process_input_message_venue(tl_object_ptr<td_api::InputMessageContent> &&input_message_content) {

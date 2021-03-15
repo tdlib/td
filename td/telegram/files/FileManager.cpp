@@ -1422,7 +1422,8 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
   }
   FileNodePtr x_node = no_sync ? get_file_node(x_file_id) : get_sync_file_node(x_file_id);
   if (!x_node) {
-    return Status::Error(PSLICE() << "Can't merge files. First id is invalid: " << x_file_id << " and " << y_file_id);
+    return Status::Error(PSLICE() << "Can't merge files. First identifier is invalid: " << x_file_id << " and "
+                                  << y_file_id);
   }
 
   if (!y_file_id.is_valid()) {
@@ -1431,7 +1432,8 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
   }
   FileNodePtr y_node = get_file_node(y_file_id);
   if (!y_node) {
-    return Status::Error(PSLICE() << "Can't merge files. Second id is invalid: " << x_file_id << " and " << y_file_id);
+    return Status::Error(PSLICE() << "Can't merge files. Second identifier is invalid: " << x_file_id << " and "
+                                  << y_file_id);
   }
 
   if (x_file_id == x_node->upload_pause_) {

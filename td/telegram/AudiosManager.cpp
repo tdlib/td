@@ -111,7 +111,7 @@ FileId AudiosManager::dup_audio(FileId new_id, FileId old_id) {
 
 bool AudiosManager::merge_audios(FileId new_id, FileId old_id, bool can_delete_old) {
   if (!old_id.is_valid()) {
-    LOG(ERROR) << "Old file id is invalid";
+    LOG(ERROR) << "Old file identifier is invalid";
     return true;
   }
 

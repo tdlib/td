@@ -249,7 +249,8 @@ void NotificationManager::init() {
     VLOG(notifications) << "Load call_notification_group_ids = " << call_notification_group_ids;
     for (auto &group_id : call_notification_group_ids) {
       if (group_id.get() > current_notification_group_id_.get()) {
-        LOG(ERROR) << "Fix current notification group id from " << current_notification_group_id_ << " to " << group_id;
+        LOG(ERROR) << "Fix current notification group identifier from " << current_notification_group_id_ << " to "
+                   << group_id;
         current_notification_group_id_ = group_id;
         G()->td_db()->get_binlog_pmc()->set("notification_group_id_current",
                                             to_string(current_notification_group_id_.get()));
@@ -413,14 +414,15 @@ NotificationManager::NotificationGroups::iterator NotificationManager::get_group
       group_key.last_notification_date = notification.date;
     }
     if (notification.notification_id.get() > current_notification_id_.get()) {
-      LOG(ERROR) << "Fix current notification id from " << current_notification_id_ << " to "
+      LOG(ERROR) << "Fix current notification identifier from " << current_notification_id_ << " to "
                  << notification.notification_id;
       current_notification_id_ = notification.notification_id;
       G()->td_db()->get_binlog_pmc()->set("notification_id_current", to_string(current_notification_id_.get()));
     }
   }
   if (group_id.get() > current_notification_group_id_.get()) {
-    LOG(ERROR) << "Fix current notification group id from " << current_notification_group_id_ << " to " << group_id;
+    LOG(ERROR) << "Fix current notification group identifier from " << current_notification_group_id_ << " to "
+               << group_id;
     current_notification_group_id_ = group_id;
     G()->td_db()->get_binlog_pmc()->set("notification_group_id_current",
                                         to_string(current_notification_group_id_.get()));
@@ -735,7 +737,7 @@ NotificationId NotificationManager::get_next_notification_id() {
     return NotificationId();
   }
   if (current_notification_id_.get() == std::numeric_limits<int32>::max()) {
-    LOG(ERROR) << "Notification id overflowed";
+    LOG(ERROR) << "Notification identifier overflowed";
     return NotificationId();
   }
 
@@ -749,7 +751,7 @@ NotificationGroupId NotificationManager::get_next_notification_group_id() {
     return NotificationGroupId();
   }
   if (current_notification_group_id_.get() == std::numeric_limits<int32>::max()) {
-    LOG(ERROR) << "Notification group id overflowed";
+    LOG(ERROR) << "Notification group identifier overflowed";
     return NotificationGroupId();
   }
 

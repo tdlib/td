@@ -82,7 +82,7 @@ static StringBuilder &operator<<(StringBuilder &string_builder, const InlineKeyb
       string_builder << "Buy";
       break;
     case InlineKeyboardButton::Type::UrlAuth:
-      string_builder << "UrlAuth, id = " << keyboard_button.id;
+      string_builder << "UrlAuth, ID = " << keyboard_button.id;
       break;
     case InlineKeyboardButton::Type::CallbackWithPassword:
       string_builder << "CallbackWithPassword";

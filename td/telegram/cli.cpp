@@ -295,7 +295,7 @@ class CliClient final : public Actor {
   void update_option(const td_api::updateOption &option) {
     if (option.name_ == "my_id" && option.value_->get_id() == td_api::optionValueInteger::ID) {
       my_id_ = static_cast<int32>(static_cast<const td_api::optionValueInteger *>(option.value_.get())->value_);
-      LOG(INFO) << "Set my id to " << my_id_;
+      LOG(INFO) << "Set my user identifier to " << my_id_;
     }
   }
 

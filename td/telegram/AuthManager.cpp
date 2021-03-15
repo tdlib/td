@@ -308,7 +308,7 @@ void AuthManager::check_password(uint64 query_id, string password) {
     return on_query_error(query_id, Status::Error(8, "Call to checkAuthenticationPassword unexpected"));
   }
 
-  LOG(INFO) << "Have SRP id " << wait_password_state_.srp_id_;
+  LOG(INFO) << "Have SRP ID " << wait_password_state_.srp_id_;
   on_new_query(query_id);
   password_ = std::move(password);
   start_net_query(NetQueryType::GetPassword,
@@ -569,7 +569,7 @@ void AuthManager::on_get_password_result(NetQueryPtr &result) {
   }
 
   if (state_ == State::WaitPassword) {
-    LOG(INFO) << "Have SRP id " << wait_password_state_.srp_id_;
+    LOG(INFO) << "Have SRP ID " << wait_password_state_.srp_id_;
     auto hash = PasswordManager::get_input_check_password(password_, wait_password_state_.current_client_salt_,
                                                           wait_password_state_.current_server_salt_,
                                                           wait_password_state_.srp_g_, wait_password_state_.srp_p_,

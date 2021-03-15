@@ -120,7 +120,7 @@ bool operator!=(const Game &lhs, const Game &rhs) {
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const Game &game) {
-  return string_builder << "Game[id = " << game.id_ << ", access_hash = " << game.access_hash_
+  return string_builder << "Game[ID = " << game.id_ << ", access_hash = " << game.access_hash_
                         << ", bot = " << game.bot_user_id_ << ", short_name = " << game.short_name_
                         << ", title = " << game.title_ << ", description = " << game.description_
                         << ", photo = " << game.photo_ << ", animation_file_id = " << game.animation_file_id_ << "]";

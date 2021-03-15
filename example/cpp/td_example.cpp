@@ -66,8 +66,8 @@ class TdExample {
       } else if (!are_authorized_) {
         process_response(client_manager_->receive(10));
       } else {
-        std::cout << "Enter action [q] quit [u] check for updates and request results [c] show chats [m <id> <text>] "
-                     "send message [me] show self [l] logout: "
+        std::cout << "Enter action [q] quit [u] check for updates and request results [c] show chats [m <chat_id> "
+                     "<text>] send message [me] show self [l] logout: "
                   << std::endl;
         std::string line;
         std::getline(std::cin, line);
@@ -123,7 +123,7 @@ class TdExample {
                        }
                        auto chats = td::move_tl_object_as<td_api::chats>(object);
                        for (auto chat_id : chats->chat_ids_) {
-                         std::cout << "[id:" << chat_id << "] [title:" << chat_title_[chat_id] << "]" << std::endl;
+                         std::cout << "[chat_id:" << chat_id << "] [title:" << chat_title_[chat_id] << "]" << std::endl;
                        }
                      });
         }

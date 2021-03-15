@@ -275,7 +275,7 @@ class FileDb : public FileDbInterface {
     if (ids.size() > 1) {
       send_closure(file_db_actor_id, &FileDbActor::optimize_refs, std::move(ids), id);
     }
-    //LOG(DEBUG) << "By id " << id.get() << " found data " << format::as_hex_dump<4>(Slice(data_str));
+    //LOG(DEBUG) << "By ID " << id.get() << " found data " << format::as_hex_dump<4>(Slice(data_str));
     //LOG(INFO) << attempt_count;
 
     log_event::WithVersion<TlParser> parser(data_str);
@@ -292,7 +292,7 @@ class FileDb : public FileDbInterface {
 
   static Result<FileDbId> get_id(SqliteKeyValue &pmc, const string &key) TD_WARN_UNUSED_RESULT {
     auto id_str = pmc.get(key);
-    //LOG(DEBUG) << "Found id " << id_str << " by key " << format::as_hex_dump<4>(Slice(key));
+    //LOG(DEBUG) << "Found ID " << id_str << " by key " << format::as_hex_dump<4>(Slice(key));
     if (id_str.empty()) {
       return Status::Error("There is no such a key in database");
     }

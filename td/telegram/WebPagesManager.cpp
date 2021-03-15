@@ -1037,7 +1037,7 @@ WebPageId WebPagesManager::get_web_page_by_url(const string &url) const {
     return WebPageId();
   }
 
-  LOG(INFO) << "Get web page id for the url \"" << url << '"';
+  LOG(INFO) << "Get web page identifier for the url \"" << url << '"';
 
   auto it = url_to_web_page_id_.find(url);
   if (it != url_to_web_page_id_.end()) {
@@ -1048,7 +1048,7 @@ WebPageId WebPagesManager::get_web_page_by_url(const string &url) const {
 }
 
 WebPageId WebPagesManager::get_web_page_by_url(const string &url, Promise<Unit> &&promise) {
-  LOG(INFO) << "Trying to get web page id for the url \"" << url << '"';
+  LOG(INFO) << "Trying to get web page identifier for the url \"" << url << '"';
 
   auto it = url_to_web_page_id_.find(url);
   if (it != url_to_web_page_id_.end()) {

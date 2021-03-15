@@ -364,7 +364,7 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
     // fix_animated_sticker_type();
   }
 
-  LOG(DEBUG) << "Receive document with id = " << id << " of type " << document_type;
+  LOG(DEBUG) << "Receive document with ID = " << id << " of type " << document_type;
   if (!is_web && !DcId::is_valid(dc_id)) {
     LOG(ERROR) << "Wrong dc_id = " << dc_id;
     return {};
@@ -646,7 +646,7 @@ FileId DocumentsManager::dup_document(FileId new_id, FileId old_id) {
 
 bool DocumentsManager::merge_documents(FileId new_id, FileId old_id, bool can_delete_old) {
   if (!old_id.is_valid()) {
-    LOG(ERROR) << "Old file id is invalid";
+    LOG(ERROR) << "Old file identifier is invalid";
     return true;
   }
 

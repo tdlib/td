@@ -12606,7 +12606,7 @@ void MessagesManager::init() {
       } else if (begins_with(log_string, " local message ")) {
         log_string.remove_prefix(15);
       } else {
-        LOG(ERROR) << "Message id expected, found " << log_string;
+        LOG(ERROR) << "Message identifier expected, found " << log_string;
         continue;
       }
 
@@ -13512,7 +13512,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
                                            message->contains_mention || dialog_type == DialogType::User);
 
   if (content_type == MessageContentType::ExpiredPhoto || content_type == MessageContentType::ExpiredVideo) {
-    CHECK(message->ttl == 0);  // ttl is ignored/set to 0 if the message has already been expired
+    CHECK(message->ttl == 0);  // TTL is ignored/set to 0 if the message has already been expired
     if (message->reply_markup != nullptr) {
       if (message->reply_markup->type != ReplyMarkup::Type::InlineKeyboard) {
         message->had_reply_markup = true;
@@ -13527,7 +13527,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
 
   if (message_info.media_album_id != 0) {
     if (!is_allowed_media_group_content(content_type)) {
-      LOG(ERROR) << "Receive media group id " << message_info.media_album_id << " in " << message_id << " from "
+      LOG(ERROR) << "Receive media group identifier " << message_info.media_album_id << " in " << message_id << " from "
                  << dialog_id << " with content "
                  << oneline(to_string(
                         get_message_content_object(message->content.get(), td_, message->date, is_content_secret)));
@@ -13616,14 +13616,14 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
       if (message_id <= d->last_new_message_id) {
         if (get_message_force(d, message_id, "receive missed unsent message not from update") != nullptr) {
           LOG(ERROR) << "New " << old_message_id << "/" << message_id << " in " << dialog_id << " from " << source
-                     << " has id less than last_new_message_id = " << d->last_new_message_id;
+                     << " has identifier less than last_new_message_id = " << d->last_new_message_id;
           return FullMessageId();
         }
         // if there is no message yet, then it is likely was missed because of a server bug and is being repaired via
         // get_message_from_server from after_get_difference
         // TODO move to INFO
         LOG(ERROR) << "Receive " << old_message_id << "/" << message_id << " in " << dialog_id << " from " << source
-                   << " with id less than last_new_message_id = " << d->last_new_message_id
+                   << " with identifier less than last_new_message_id = " << d->last_new_message_id
                    << " and trying to add it anyway";
       } else {
         LOG(ERROR) << "Ignore " << old_message_id << "/" << message_id << " received not through update from " << source
@@ -14880,8 +14880,8 @@ void MessagesManager::fix_dialog_last_notification_id(Dialog *d, bool from_menti
   CHECK(!message_id.is_scheduled());
   MessagesConstIterator it(d, message_id);
   auto &group_info = from_mentions ? d->mention_notification_group : d->message_notification_group;
-  VLOG(notifications) << "Trying to fix last notification id in " << group_info.group_id << " from " << d->dialog_id
-                      << " from " << message_id << "/" << group_info.last_notification_id;
+  VLOG(notifications) << "Trying to fix last notification identifier in " << group_info.group_id << " from "
+                      << d->dialog_id << " from " << message_id << "/" << group_info.last_notification_id;
   if (*it != nullptr && ((*it)->message_id == message_id || (*it)->have_next)) {
     while (*it != nullptr) {
       const Message *m = *it;
@@ -25849,7 +25849,8 @@ unique_ptr<MessagesManager::MessageForwardInfo> MessagesManager::get_message_for
   if (forward_header->from_id_ != nullptr) {
     sender_dialog_id = DialogId(forward_header->from_id_);
     if (!sender_dialog_id.is_valid()) {
-      LOG(ERROR) << "Receive invalid sender id in message forward header: " << oneline(to_string(forward_header));
+      LOG(ERROR) << "Receive invalid sender identifier in message forward header: "
+                 << oneline(to_string(forward_header));
       sender_dialog_id = DialogId();
     }
   }
@@ -27247,7 +27248,7 @@ MessagesManager::MessageNotificationGroup MessagesManager::get_message_notificat
   if (last_notification_date != group_info.last_notification_date ||
       last_notification_id != group_info.last_notification_id) {
     LOG(ERROR) << "Fix last notification date in " << d->dialog_id << " from " << group_info.last_notification_date
-               << " to " << last_notification_date << " and last notification id from "
+               << " to " << last_notification_date << " and last notification identifier from "
                << group_info.last_notification_id << " to " << last_notification_id;
     set_dialog_last_notification(d->dialog_id, group_info, last_notification_date, last_notification_id,
                                  "get_message_notification_group_force");
@@ -27354,7 +27355,7 @@ vector<Notification> MessagesManager::get_message_notifications_from_database_fo
 
       auto notification_id = m->notification_id.is_valid() ? m->notification_id : m->removed_notification_id;
       if (!notification_id.is_valid()) {
-        VLOG(ERROR) << "Can't find notification ID for " << m->message_id << " in " << d->dialog_id;
+        VLOG(ERROR) << "Can't find notification identifier for " << m->message_id << " in " << d->dialog_id;
         continue;
       }
       CHECK(m->message_id.is_valid());
@@ -27362,7 +27363,7 @@ vector<Notification> MessagesManager::get_message_notifications_from_database_fo
       bool is_correct = true;
       if (notification_id.get() >= from_notification_id.get()) {
         // possible if two messages has the same notification_id
-        LOG(ERROR) << "Have nonmonotoic notification ids: " << d->dialog_id << " " << m->message_id << " "
+        LOG(ERROR) << "Have nonmonotonic notification identifiers: " << d->dialog_id << " " << m->message_id << " "
                    << notification_id << " " << from_message_id << " " << from_notification_id;
         is_correct = false;
       } else {
@@ -27370,8 +27371,8 @@ vector<Notification> MessagesManager::get_message_notifications_from_database_fo
         is_found = true;
       }
       if (m->message_id >= from_message_id) {
-        LOG(ERROR) << "Have nonmonotoic message ids: " << d->dialog_id << " " << m->message_id << " " << notification_id
-                   << " " << from_message_id << " " << from_notification_id;
+        LOG(ERROR) << "Have nonmonotonic message identifiers: " << d->dialog_id << " " << m->message_id << " "
+                   << notification_id << " " << from_message_id << " " << from_notification_id;
         is_correct = false;
       } else {
         from_message_id = m->message_id;
@@ -27610,7 +27611,7 @@ void MessagesManager::on_get_message_notifications_from_database(DialogId dialog
 
     auto notification_id = m->notification_id.is_valid() ? m->notification_id : m->removed_notification_id;
     if (!notification_id.is_valid()) {
-      VLOG(ERROR) << "Can't find notification ID for " << m->message_id << " in " << d->dialog_id;
+      VLOG(ERROR) << "Can't find notification identifier for " << m->message_id << " in " << d->dialog_id;
       continue;
     }
     CHECK(m->message_id.is_valid());
@@ -31958,7 +31959,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
                      << d->last_new_message_id << " to " << message_id;
         }
         LOG(ERROR) << "New " << message_id << " in " << dialog_id << " from " << source
-                   << " has id less than last_new_message_id = " << d->last_new_message_id;
+                   << " has identifier less than last_new_message_id = " << d->last_new_message_id;
         dump_debug_message_op(d);
       }
     }
@@ -32404,7 +32405,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       set_dialog_last_read_inbox_message_id(d, MessageId::min(), server_unread_count, local_unread_count, false,
                                             source);
     } else {
-      // if non-scheduled outgoing message has id one greater than last_read_inbox_message_id,
+      // if non-scheduled outgoing message has identifier one greater than last_read_inbox_message_id,
       // then definitely there are no unread incoming messages before it
       if (message_id.is_server() && d->last_read_inbox_message_id.is_valid() &&
           d->last_read_inbox_message_id.is_server() &&
@@ -33263,9 +33264,10 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     CHECK(!is_scheduled);
     if (old_message->notification_id.is_valid()) {
       if (new_message->notification_id.is_valid()) {
-        LOG(ERROR) << "Notification id for " << message_id << " in " << dialog_id << " has tried to change from "
-                   << old_message->notification_id << " to " << new_message->notification_id
-                   << ", message content type is " << old_content_type << '/' << new_content_type;
+        LOG(ERROR) << "Notification identifier for " << message_id << " in " << dialog_id
+                   << " has tried to change from " << old_message->notification_id << " to "
+                   << new_message->notification_id << ", message content type is " << old_content_type << '/'
+                   << new_content_type;
       }
     } else {
       CHECK(new_message->notification_id.is_valid());
@@ -33945,11 +33947,11 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
   }
   if (being_added_dialog_id_ != dialog_id && !d->is_folder_id_inited && !td_->auth_manager_->is_bot() &&
       order != DEFAULT_ORDER) {
-    // asynchronously get dialog folder id from the server
+    // asynchronously get dialog folder identifier from the server
     get_dialog_info_full(dialog_id, Auto());
   }
   if (!d->is_message_ttl_setting_inited && !td_->auth_manager_->is_bot() && order != DEFAULT_ORDER) {
-    // asynchronously get dialog message ttl setting from the server
+    // asynchronously get dialog message TTL setting from the server
     get_dialog_info_full(dialog_id, Auto());
   }
   if (!d->know_action_bar && !td_->auth_manager_->is_bot() && dialog_type != DialogType::SecretChat &&

@@ -2079,7 +2079,7 @@ FileId StickersManager::dup_sticker(FileId new_id, FileId old_id) {
 
 bool StickersManager::merge_stickers(FileId new_id, FileId old_id, bool can_delete_old) {
   if (!old_id.is_valid()) {
-    LOG(ERROR) << "Old file id is invalid";
+    LOG(ERROR) << "Old file identifier is invalid";
     return true;
   }
 
@@ -2674,7 +2674,7 @@ StickerSetId StickersManager::on_get_messages_sticker_set(StickerSetId sticker_s
       for (int64 document_id : pack->documents_) {
         auto it = document_id_to_sticker_id.find(document_id);
         if (it == document_id_to_sticker_id.end()) {
-          LOG(ERROR) << "Can't find document with id " << document_id << " in " << set_id << "/" << s->short_name
+          LOG(ERROR) << "Can't find document with ID " << document_id << " in " << set_id << "/" << s->short_name
                      << " from " << source;
           continue;
         }
