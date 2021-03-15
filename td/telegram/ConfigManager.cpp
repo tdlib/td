@@ -967,33 +967,34 @@ void ConfigManager::get_app_config(Promise<td_api::object_ptr<td_api::JsonValue>
   }
 }
 
-void ConfigManager::get_external_link(string &&link, Promise<string> &&promise) {
+void ConfigManager::get_external_link_info(string &&link, Promise<td_api::object_ptr<td_api::LoginUrlInfo>> &&promise) {
+  auto default_result = td_api::make_object<td_api::loginUrlInfoOpen>(link, false);
   if (G()->close_flag()) {
-    return promise.set_value(std::move(link));
+    return promise.set_value(std::move(default_result));
   }
 
   auto r_url = parse_url(link);
   if (r_url.is_error()) {
-    return promise.set_value(std::move(link));
+    return promise.set_value(std::move(default_result));
   }
 
   if (!td::contains(autologin_domains_, r_url.ok().host_)) {
-    return promise.set_value(std::move(link));
+    return promise.set_value(std::move(default_result));
   }
 
   if (autologin_update_time_ < Time::now() - 10000) {
     auto query_promise = PromiseCreator::lambda([link = std::move(link), promise = std::move(promise)](
                                                     Result<td_api::object_ptr<td_api::JsonValue>> &&result) mutable {
       if (result.is_error()) {
-        return promise.set_value(std::move(link));
+        return promise.set_value(td_api::make_object<td_api::loginUrlInfoOpen>(link, false));
       }
-      send_closure(G()->config_manager(), &ConfigManager::get_external_link, std::move(link), std::move(promise));
+      send_closure(G()->config_manager(), &ConfigManager::get_external_link_info, std::move(link), std::move(promise));
     });
     return get_app_config(std::move(query_promise));
   }
 
   if (autologin_token_.empty()) {
-    return promise.set_value(std::move(link));
+    return promise.set_value(std::move(default_result));
   }
 
   auto url = r_url.move_as_ok();
@@ -1018,7 +1019,7 @@ void ConfigManager::get_external_link(string &&link, Promise<string> &&promise) 
 
   url.query_ = PSTRING() << path << parameters << added_parameter << hash;
 
-  promise.set_value(url.get_url());
+  promise.set_value(td_api::make_object<td_api::loginUrlInfoOpen>(url.get_url(), false));
 }
 
 void ConfigManager::get_content_settings(Promise<Unit> &&promise) {

@@ -3923,9 +3923,12 @@ class CliClient final : public Actor {
       string message_id;
       get_args(args, chat_id, message_id);
       send_request(td_api::make_object<td_api::openMessageContent>(as_chat_id(chat_id), as_message_id(message_id)));
-    } else if (op == "gel") {
+    } else if (op == "geli") {
       string link = args;
-      send_request(td_api::make_object<td_api::getExternalLink>(link));
+      send_request(td_api::make_object<td_api::getExternalLinkInfo>(link));
+    } else if (op == "gel" || op == "gelw") {
+      string link = args;
+      send_request(td_api::make_object<td_api::getExternalLink>(link, op == "gelw"));
     } else if (op == "racm") {
       string chat_id = args;
       send_request(td_api::make_object<td_api::readAllChatMentions>(as_chat_id(chat_id)));

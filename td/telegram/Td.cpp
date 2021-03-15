@@ -5472,19 +5472,19 @@ void Td::on_request(uint64 id, const td_api::openMessageContent &request) {
       id, messages_manager_->open_message_content({DialogId(request.chat_id_), MessageId(request.message_id_)}));
 }
 
+void Td::on_request(uint64 id, td_api::getExternalLinkInfo &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.link_);
+  CREATE_REQUEST_PROMISE();
+  send_closure_later(G()->config_manager(), &ConfigManager::get_external_link_info, std::move(request.link_),
+                     std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::getExternalLink &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.link_);
   CREATE_REQUEST_PROMISE();
-  auto query_promise = [promise = std::move(promise)](Result<string> &&result) mutable {
-    if (result.is_error()) {
-      promise.set_error(result.move_as_error());
-    } else {
-      promise.set_value(td_api::make_object<td_api::httpUrl>(result.ok()));
-    }
-  };
-  send_closure_later(G()->config_manager(), &ConfigManager::get_external_link, std::move(request.link_),
-                     std::move(query_promise));
+  promise.set_value(td_api::make_object<td_api::httpUrl>(request.link_));
 }
 
 void Td::on_request(uint64 id, const td_api::getChatHistory &request) {
