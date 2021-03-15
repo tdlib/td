@@ -6,6 +6,7 @@
 //
 #include "td/telegram/GroupCallParticipant.h"
 
+#include "td/telegram/Global.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/Td.h"
 
@@ -56,8 +57,12 @@ bool GroupCallParticipant::is_versioned_update(const tl_object_ptr<telegram_api:
   return participant->just_joined_ || participant->left_ || participant->versioned_;
 }
 
-GroupCallParticipantOrder GroupCallParticipant::get_real_order() const {
-  return GroupCallParticipantOrder(max(active_date, local_active_date), 0, joined_date);
+GroupCallParticipantOrder GroupCallParticipant::get_real_order(bool can_manage) const {
+  auto date = td::max(active_date, local_active_date);
+  if (date < G()->unix_time() - 300) {
+    date = 0;
+  }
+  return GroupCallParticipantOrder(date, can_manage ? raise_hand_rating : 0, joined_date);
 }
 
 bool GroupCallParticipant::get_is_muted_by_themselves() const {
