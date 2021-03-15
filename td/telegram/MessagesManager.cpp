@@ -4616,12 +4616,18 @@ class RequestUrlAuthQuery : public Td::ResultHandler {
 
   void send(string url, DialogId dialog_id, MessageId message_id, int32 button_id) {
     url_ = std::move(url);
-    dialog_id_ = dialog_id;
-    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
-    CHECK(input_peer != nullptr);
-    int32 flags = telegram_api::messages_requestUrlAuth::PEER_MASK;
+    int32 flags = 0;
+    tl_object_ptr<telegram_api::InputPeer> input_peer;
+    if (dialog_id.is_valid()) {
+      dialog_id_ = dialog_id;
+      input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+      CHECK(input_peer != nullptr);
+      flags |= telegram_api::messages_requestUrlAuth::PEER_MASK;
+    } else {
+      flags |= telegram_api::messages_requestUrlAuth::URL_MASK;
+    }
     send_query(G()->net_query_creator().create(telegram_api::messages_requestUrlAuth(
-        flags, std::move(input_peer), message_id.get_server_message_id().get(), button_id, string())));
+        flags, std::move(input_peer), message_id.get_server_message_id().get(), button_id, url_)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -4659,7 +4665,8 @@ class RequestUrlAuthQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    if (!td->messages_manager_->on_get_dialog_error(dialog_id_, status, "RequestUrlAuthQuery")) {
+    if (!dialog_id_.is_valid() ||
+        !td->messages_manager_->on_get_dialog_error(dialog_id_, status, "RequestUrlAuthQuery")) {
       LOG(INFO) << "RequestUrlAuthQuery returned " << status;
     }
     promise_.set_value(td_api::make_object<td_api::loginUrlInfoOpen>(url_, false));
@@ -4677,16 +4684,21 @@ class AcceptUrlAuthQuery : public Td::ResultHandler {
 
   void send(string url, DialogId dialog_id, MessageId message_id, int32 button_id, bool allow_write_access) {
     url_ = std::move(url);
-    dialog_id_ = dialog_id;
-    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
-    CHECK(input_peer != nullptr);
-    int32 flags = telegram_api::messages_acceptUrlAuth::PEER_MASK;
+    int32 flags = 0;
+    tl_object_ptr<telegram_api::InputPeer> input_peer;
+    if (dialog_id.is_valid()) {
+      dialog_id_ = dialog_id;
+      input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+      CHECK(input_peer != nullptr);
+      flags |= telegram_api::messages_acceptUrlAuth::PEER_MASK;
+    } else {
+      flags |= telegram_api::messages_acceptUrlAuth::URL_MASK;
+    }
     if (allow_write_access) {
       flags |= telegram_api::messages_acceptUrlAuth::WRITE_ALLOWED_MASK;
     }
-    send_query(G()->net_query_creator().create(
-        telegram_api::messages_acceptUrlAuth(flags, false /*ignored*/, std::move(input_peer),
-                                             message_id.get_server_message_id().get(), button_id, string())));
+    send_query(G()->net_query_creator().create(telegram_api::messages_acceptUrlAuth(
+        flags, false /*ignored*/, std::move(input_peer), message_id.get_server_message_id().get(), button_id, url_)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -4713,7 +4725,8 @@ class AcceptUrlAuthQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    if (!td->messages_manager_->on_get_dialog_error(dialog_id_, status, "AcceptUrlAuthQuery")) {
+    if (!dialog_id_.is_valid() ||
+        !td->messages_manager_->on_get_dialog_error(dialog_id_, status, "AcceptUrlAuthQuery")) {
       LOG(INFO) << "AcceptUrlAuthQuery returned " << status;
     }
     promise_.set_error(std::move(status));
@@ -8628,6 +8641,21 @@ void MessagesManager::get_login_url(DialogId dialog_id, MessageId message_id, in
 
   td_->create_handler<AcceptUrlAuthQuery>(std::move(promise))
       ->send(r_url.move_as_ok(), dialog_id, message_id, button_id, allow_write_access);
+}
+
+void MessagesManager::get_link_login_url_info(const string &url,
+                                              Promise<td_api::object_ptr<td_api::LoginUrlInfo>> &&promise) {
+  if (G()->close_flag()) {
+    return promise.set_value(td_api::make_object<td_api::loginUrlInfoOpen>(url, false));
+  }
+
+  td_->create_handler<RequestUrlAuthQuery>(std::move(promise))->send(url, DialogId(), MessageId(), 0);
+}
+
+void MessagesManager::get_link_login_url(const string &url, bool allow_write_access,
+                                         Promise<td_api::object_ptr<td_api::httpUrl>> &&promise) {
+  td_->create_handler<AcceptUrlAuthQuery>(std::move(promise))
+      ->send(url, DialogId(), MessageId(), 0, allow_write_access);
 }
 
 void MessagesManager::load_secret_thumbnail(FileId thumbnail_file_id) {

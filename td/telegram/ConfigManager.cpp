@@ -11,6 +11,7 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/JsonValue.h"
 #include "td/telegram/logevent/LogEvent.h"
+#include "td/telegram/MessagesManager.h"
 #include "td/telegram/net/AuthDataShared.h"
 #include "td/telegram/net/ConnectionCreator.h"
 #include "td/telegram/net/DcId.h"
@@ -891,6 +892,8 @@ void ConfigManager::start_up() {
 
   autologin_update_time_ = Time::now() - 365 * 86400;
   autologin_domains_ = full_split(G()->td_db()->get_binlog_pmc()->get("autologin_domains"), '\xFF');
+
+  url_auth_domains_ = full_split(G()->td_db()->get_binlog_pmc()->get("url_auth_domains"), '\xFF');
 }
 
 ActorShared<> ConfigManager::create_reference() {
@@ -979,6 +982,10 @@ void ConfigManager::get_external_link_info(string &&link, Promise<td_api::object
   }
 
   if (!td::contains(autologin_domains_, r_url.ok().host_)) {
+    if (td::contains(url_auth_domains_, r_url.ok().host_)) {
+      send_closure(G()->messages_manager(), &MessagesManager::get_link_login_url_info, link, std::move(promise));
+      return;
+    }
     return promise.set_value(std::move(default_result));
   }
 
@@ -1525,6 +1532,9 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   autologin_domains_.clear();
   autologin_update_time_ = Time::now();
 
+  auto old_url_auth_domains = std::move(url_auth_domains_);
+  url_auth_domains_.clear();
+
   vector<tl_object_ptr<telegram_api::jsonObjectValue>> new_values;
   string ignored_restriction_reasons;
   vector<string> dice_emojis;
@@ -1715,6 +1725,22 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         }
         continue;
       }
+      if (key == "url_auth_domains") {
+        if (value->get_id() == telegram_api::jsonArray::ID) {
+          auto domains = std::move(static_cast<telegram_api::jsonArray *>(value)->value_);
+          for (auto &domain : domains) {
+            CHECK(domain != nullptr);
+            if (domain->get_id() == telegram_api::jsonString::ID) {
+              url_auth_domains_.push_back(std::move(static_cast<telegram_api::jsonString *>(domain.get())->value_));
+            } else {
+              LOG(ERROR) << "Receive unexpected url auth domain " << to_string(domain);
+            }
+          }
+        } else {
+          LOG(ERROR) << "Receive unexpected url_auth_domains " << to_string(*value);
+        }
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
@@ -1725,6 +1751,9 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
 
   if (autologin_domains_ != old_autologin_domains) {
     G()->td_db()->get_binlog_pmc()->set("autologin_domains", implode(autologin_domains_, '\xFF'));
+  }
+  if (url_auth_domains_ != old_url_auth_domains) {
+    G()->td_db()->get_binlog_pmc()->set("url_auth_domains", implode(url_auth_domains_, '\xFF'));
   }
 
   ConfigShared &shared_config = G()->shared_config();

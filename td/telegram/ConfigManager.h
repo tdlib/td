@@ -119,6 +119,7 @@ class ConfigManager : public NetQueryCallback {
   string autologin_token_;
   vector<string> autologin_domains_;
   double autologin_update_time_ = 0.0;
+  vector<string> url_auth_domains_;
 
   FloodControlStrict lazy_request_flood_control_;
 

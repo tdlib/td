@@ -806,6 +806,11 @@ class MessagesManager : public Actor {
   void get_login_url(DialogId dialog_id, MessageId message_id, int32 button_id, bool allow_write_access,
                      Promise<td_api::object_ptr<td_api::httpUrl>> &&promise);
 
+  void get_link_login_url_info(const string &url, Promise<td_api::object_ptr<td_api::LoginUrlInfo>> &&promise);
+
+  void get_link_login_url(const string &url, bool allow_write_access,
+                          Promise<td_api::object_ptr<td_api::httpUrl>> &&promise);
+
   void on_authorization_success();
 
   void before_get_difference();

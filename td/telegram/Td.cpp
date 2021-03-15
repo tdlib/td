@@ -5484,7 +5484,7 @@ void Td::on_request(uint64 id, td_api::getExternalLink &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.link_);
   CREATE_REQUEST_PROMISE();
-  promise.set_value(td_api::make_object<td_api::httpUrl>(request.link_));
+  messages_manager_->get_link_login_url(request.link_, request.allow_write_access_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getChatHistory &request) {
