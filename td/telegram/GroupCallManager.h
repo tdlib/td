@@ -119,11 +119,17 @@ class GroupCallManager : public Actor {
   struct PendingJoinRequest;
 
   static constexpr int32 RECENT_SPEAKER_TIMEOUT = 60 * 60;
+  static constexpr int32 UPDATE_GROUP_CALL_PARTICIPANT_ORDER_TIMEOUT = 10;
   static constexpr int32 CHECK_GROUP_CALL_IS_JOINED_TIMEOUT = 10;
   static constexpr size_t MAX_TITLE_LENGTH = 64;          // server side limit for group call title length
   static constexpr size_t MAX_RECORD_TITLE_LENGTH = 128;  // server side limit for group call record title length
 
   void tear_down() override;
+
+  static void on_update_group_call_participant_order_timeout_callback(void *group_call_manager_ptr,
+                                                                      int64 group_call_id_int);
+
+  void on_update_group_call_participant_order_timeout(GroupCallId group_call_id);
 
   static void on_check_group_call_is_joined_timeout_callback(void *group_call_manager_ptr, int64 group_call_id_int);
 
@@ -315,6 +321,7 @@ class GroupCallManager : public Actor {
 
   uint64 toggle_is_hand_raised_generation_ = 0;
 
+  MultiTimeout update_group_call_participant_order_timeout_{"UpdateGroupCallParticipantOrderTimeout"};
   MultiTimeout check_group_call_is_joined_timeout_{"CheckGroupCallIsJoinedTimeout"};
   MultiTimeout pending_send_speaking_action_timeout_{"PendingSendSpeakingActionTimeout"};
   MultiTimeout recent_speaker_update_timeout_{"RecentSpeakerUpdateTimeout"};

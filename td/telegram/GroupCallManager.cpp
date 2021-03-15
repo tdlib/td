@@ -687,6 +687,9 @@ struct GroupCallManager::PendingJoinRequest {
 };
 
 GroupCallManager::GroupCallManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
+  update_group_call_participant_order_timeout_.set_callback(on_update_group_call_participant_order_timeout_callback);
+  update_group_call_participant_order_timeout_.set_callback_data(static_cast<void *>(this));
+
   check_group_call_is_joined_timeout_.set_callback(on_check_group_call_is_joined_timeout_callback);
   check_group_call_is_joined_timeout_.set_callback_data(static_cast<void *>(this));
 
@@ -704,6 +707,43 @@ GroupCallManager::~GroupCallManager() = default;
 
 void GroupCallManager::tear_down() {
   parent_.reset();
+}
+
+void GroupCallManager::on_update_group_call_participant_order_timeout_callback(void *group_call_manager_ptr,
+                                                                               int64 group_call_id_int) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto group_call_manager = static_cast<GroupCallManager *>(group_call_manager_ptr);
+  send_closure_later(group_call_manager->actor_id(group_call_manager),
+                     &GroupCallManager::on_update_group_call_participant_order_timeout,
+                     GroupCallId(narrow_cast<int32>(group_call_id_int)));
+}
+
+void GroupCallManager::on_update_group_call_participant_order_timeout(GroupCallId group_call_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  LOG(INFO) << "Receive update group call participant order timeout in " << group_call_id;
+  auto input_group_call_id = get_input_group_call_id(group_call_id).move_as_ok();
+
+  if (!need_group_call_participants(input_group_call_id)) {
+    return;
+  }
+
+  bool can_manage = can_manage_group_call(input_group_call_id);
+  auto *participants = add_group_call_participants(input_group_call_id);
+  for (auto &participant : participants->participants) {
+    auto new_order = get_real_participant_order(can_manage, participant, participants->min_order);
+    if (new_order != participant.order) {
+      participant.order = new_order;
+      send_update_group_call_participant(input_group_call_id, participant);
+    }
+  }
+  update_group_call_participant_order_timeout_.set_timeout_in(group_call_id.get(),
+                                                              UPDATE_GROUP_CALL_PARTICIPANT_ORDER_TIMEOUT);
 }
 
 void GroupCallManager::on_check_group_call_is_joined_timeout_callback(void *group_call_manager_ptr,
@@ -1650,6 +1690,11 @@ void GroupCallManager::process_group_call_participants(
             send_update_group_call_participant(input_group_call_id, participant);
           }
         }
+
+        auto *group_call = get_group_call(input_group_call_id);
+        CHECK(group_call != nullptr && group_call->is_inited);
+        update_group_call_participant_order_timeout_.add_timeout_in(group_call->group_call_id.get(),
+                                                                    UPDATE_GROUP_CALL_PARTICIPANT_ORDER_TIMEOUT);
       }
     }
   }
@@ -2931,6 +2976,10 @@ void GroupCallManager::try_clear_group_call_participants(InputGroupCallId input_
     return;
   }
 
+  auto group_call = get_group_call(input_group_call_id);
+  if (group_call != nullptr) {
+    update_group_call_participant_order_timeout_.cancel_timeout(group_call->group_call_id.get());
+  }
   remove_recent_group_call_speaker(input_group_call_id, DialogId(td_->contacts_manager_->get_my_id()));
 
   auto participants_it = group_call_participants_.find(input_group_call_id);
@@ -2942,7 +2991,6 @@ void GroupCallManager::try_clear_group_call_participants(InputGroupCallId input_
   CHECK(participants != nullptr);
   group_call_participants_.erase(participants_it);
 
-  auto group_call = get_group_call(input_group_call_id);
   CHECK(group_call != nullptr && group_call->is_inited);
   LOG(INFO) << "Clear participants in " << input_group_call_id << " from " << group_call->dialog_id;
   if (group_call->loaded_all_participants) {
