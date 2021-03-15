@@ -25,7 +25,6 @@
 #include "td/utils/misc.h"
 #include "td/utils/Random.h"
 
-#include <limits>
 #include <map>
 #include <unordered_set>
 #include <utility>
@@ -664,7 +663,7 @@ struct GroupCallManager::GroupCall {
 struct GroupCallManager::GroupCallParticipants {
   vector<GroupCallParticipant> participants;
   string next_offset;
-  int64 min_order = std::numeric_limits<int64>::max();
+  GroupCallParticipantOrder min_order = GroupCallParticipantOrder::max();
 
   bool are_administrators_loaded = false;
   vector<UserId> administrator_user_ids;
@@ -1050,7 +1049,7 @@ void GroupCallManager::on_update_group_call_rights(InputGroupCallId input_group_
   }
 
   reload_group_call(input_group_call_id, Auto());
-  sync_group_call_participants(input_group_call_id); // participant order is different for administrators
+  sync_group_call_participants(input_group_call_id);  // participant order is different for administrators
 }
 
 void GroupCallManager::reload_group_call(InputGroupCallId input_group_call_id,
@@ -1528,7 +1527,8 @@ void GroupCallManager::on_sync_group_call_participants_failed(InputGroupCallId i
   sync_participants_timeout_.add_timeout_in(group_call->group_call_id.get(), 1.0);
 }
 
-int64 GroupCallManager::get_real_participant_order(const GroupCallParticipant &participant, int64 min_order) const {
+GroupCallParticipantOrder GroupCallManager::get_real_participant_order(const GroupCallParticipant &participant,
+                                                                       GroupCallParticipantOrder min_order) const {
   auto real_order = participant.get_real_order();
   if (real_order < min_order && participant.is_self) {
     return min_order;
@@ -1536,7 +1536,7 @@ int64 GroupCallManager::get_real_participant_order(const GroupCallParticipant &p
   if (real_order >= min_order) {
     return real_order;
   }
-  return 0;
+  return GroupCallParticipantOrder();
 }
 
 void GroupCallManager::process_group_call_participants(
@@ -1566,7 +1566,7 @@ void GroupCallManager::process_group_call_participants(
     }
   }
 
-  int64 min_order = std::numeric_limits<int64>::max();
+  auto min_order = GroupCallParticipantOrder::max();
   for (auto &participant : participants) {
     GroupCallParticipant group_call_participant(participant);
     if (!group_call_participant.is_valid()) {
@@ -1598,13 +1598,13 @@ void GroupCallManager::process_group_call_participants(
       for (auto participant_it = group_participants.begin(); participant_it != group_participants.end();) {
         auto &participant = *participant_it;
         if (old_participant_dialog_ids.count(participant.dialog_id) == 0) {
-          CHECK(participant.order == 0 || participant.order >= min_order);
+          CHECK(!participant.order.is_valid() || participant.order >= min_order);
           ++participant_it;
           continue;
         }
 
         // not synced user, needs to be deleted
-        if (participant.order != 0) {
+        if (participant.order.is_valid()) {
           CHECK(participant.order >= participants_it->second->min_order);
           if (participant.is_self) {
             if (participant.order != min_order) {
@@ -1612,7 +1612,7 @@ void GroupCallManager::process_group_call_participants(
               send_update_group_call_participant(input_group_call_id, participant);
             }
           } else {
-            participant.order = 0;
+            participant.order = GroupCallParticipantOrder();
             send_update_group_call_participant(input_group_call_id, participant);
           }
         }
@@ -1635,7 +1635,7 @@ void GroupCallManager::process_group_call_participants(
         for (auto &participant : participants_it->second->participants) {
           auto real_order = get_real_participant_order(participant, min_order);
           if (old_min_order > real_order && real_order >= min_order) {
-            CHECK(participant.order == 0 || participant.order == old_min_order);
+            CHECK(!participant.order.is_valid() || participant.order == old_min_order);
             participant.order = real_order;
             send_update_group_call_participant(input_group_call_id, participant);
           }
@@ -1659,7 +1659,8 @@ void GroupCallManager::update_group_call_participants_can_be_muted(InputGroupCal
   CHECK(participants != nullptr);
   LOG(INFO) << "Update group call participants can_be_muted in " << input_group_call_id;
   for (auto &participant : participants->participants) {
-    if (update_group_call_participant_can_be_muted(can_manage, participants, participant) && participant.order != 0) {
+    if (update_group_call_participant_can_be_muted(can_manage, participants, participant) &&
+        participant.order.is_valid()) {
       send_update_group_call_participant(input_group_call_id, participant);
     }
   }
@@ -1696,7 +1697,7 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
     if (old_participant.dialog_id == participant.dialog_id || (old_participant.is_self && participant.is_self)) {
       if (participant.joined_date == 0) {
         LOG(INFO) << "Remove " << old_participant;
-        if (old_participant.order != 0) {
+        if (old_participant.order.is_valid()) {
           send_update_group_call_participant(input_group_call_id, participant);
         }
         on_remove_group_call_participant(input_group_call_id, participant.dialog_id);
@@ -1712,7 +1713,7 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
       update_group_call_participant_can_be_muted(can_manage, participants, participant);
 
       LOG(INFO) << "Edit " << old_participant << " to " << participant;
-      if (old_participant != participant && (old_participant.order != 0 || participant.order != 0)) {
+      if (old_participant != participant && (old_participant.order.is_valid() || participant.order.is_valid())) {
         send_update_group_call_participant(input_group_call_id, participant);
       }
       on_participant_speaking_in_group_call(input_group_call_id, participant);
@@ -1738,7 +1739,7 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
   participant.is_just_joined = false;
   update_group_call_participant_can_be_muted(can_manage, participants, participant);
   participants->participants.push_back(std::move(participant));
-  if (participants->participants.back().order != 0) {
+  if (participants->participants.back().order.is_valid()) {
     send_update_group_call_participant(input_group_call_id, participants->participants.back());
   }
   on_add_group_call_participant(input_group_call_id, participants->participants.back().dialog_id);
@@ -1774,7 +1775,7 @@ void GroupCallManager::on_update_dialog_about(DialogId dialog_id, const string &
     CHECK(participant != nullptr);
     if ((from_server || participant->is_fake) && participant->about != about) {
       participant->about = about;
-      if (participant->order != 0) {
+      if (participant->order.is_valid()) {
         send_update_group_call_participant(input_group_call_id, *participant);
       }
     }
@@ -2565,7 +2566,7 @@ void GroupCallManager::toggle_group_call_participant_is_muted(GroupCallId group_
   *participant = std::move(participant_copy);
 
   participant->pending_is_muted_generation = ++toggle_is_muted_generation_;
-  if (participant->order != 0) {
+  if (participant->order.is_valid()) {
     send_update_group_call_participant(input_group_call_id, *participant);
   }
 
@@ -2605,7 +2606,7 @@ void GroupCallManager::on_toggle_group_call_participant_is_muted(InputGroupCallI
       participant->server_is_muted_by_admin != participant->pending_is_muted_by_admin ||
       participant->server_is_muted_locally != participant->pending_is_muted_locally) {
     LOG(ERROR) << "Failed to mute/unmute " << dialog_id << " in " << input_group_call_id;
-    if (participant->order != 0) {
+    if (participant->order.is_valid()) {
       send_update_group_call_participant(input_group_call_id, *participant);
     }
   }
@@ -2655,7 +2656,7 @@ void GroupCallManager::set_group_call_participant_volume_level(GroupCallId group
 
   participant->pending_volume_level = volume_level;
   participant->pending_volume_level_generation = ++set_volume_level_generation_;
-  if (participant->order != 0) {
+  if (participant->order.is_valid()) {
     send_update_group_call_participant(input_group_call_id, *participant);
   }
 
@@ -2693,7 +2694,7 @@ void GroupCallManager::on_set_group_call_participant_volume_level(InputGroupCall
   if (participant->volume_level != participant->pending_volume_level) {
     LOG(ERROR) << "Failed to set volume level of " << dialog_id << " in " << input_group_call_id;
     participant->pending_volume_level = 0;
-    if (participant->order != 0) {
+    if (participant->order.is_valid()) {
       send_update_group_call_participant(input_group_call_id, *participant);
     }
   } else {
@@ -2750,7 +2751,7 @@ void GroupCallManager::toggle_group_call_participant_is_hand_raised(GroupCallId 
   participant->have_pending_is_hand_raised = true;
   participant->pending_is_hand_raised = is_hand_raised;
   participant->pending_is_hand_raised_generation = ++toggle_is_hand_raised_generation_;
-  if (participant->order != 0) {
+  if (participant->order.is_valid()) {
     send_update_group_call_participant(input_group_call_id, *participant);
   }
 
@@ -2788,7 +2789,7 @@ void GroupCallManager::on_toggle_group_call_participant_is_hand_raised(InputGrou
   participant->have_pending_is_hand_raised = false;
   if (participant->get_is_hand_raised() != participant->pending_is_hand_raised) {
     LOG(ERROR) << "Failed to change raised hand state for " << dialog_id << " in " << input_group_call_id;
-    if (participant->order != 0) {
+    if (participant->order.is_valid()) {
       send_update_group_call_participant(input_group_call_id, *participant);
     }
   }
@@ -2941,9 +2942,9 @@ void GroupCallManager::try_clear_group_call_participants(InputGroupCallId input_
   group_call->version = -1;
 
   for (auto &participant : participants->participants) {
-    if (participant.order != 0) {
+    if (participant.order.is_valid()) {
       CHECK(participant.order >= participants->min_order);
-      participant.order = 0;
+      participant.order = GroupCallParticipantOrder();
       send_update_group_call_participant(input_group_call_id, participant);
     }
     on_remove_group_call_participant(input_group_call_id, participant.dialog_id);
@@ -3305,7 +3306,7 @@ DialogId GroupCallManager::set_group_call_participant_is_speaking_by_source(Inpu
           participant.local_active_date = max(participant.local_active_date, date);
         }
         participant.order = get_real_participant_order(participant, participants_it->second->min_order);
-        if (participant.order != 0) {
+        if (participant.order.is_valid()) {
           send_update_group_call_participant(input_group_call_id, participant);
         }
       }

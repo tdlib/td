@@ -52,6 +52,10 @@ bool GroupCallParticipant::is_versioned_update(const tl_object_ptr<telegram_api:
   return participant->just_joined_ || participant->left_ || participant->versioned_;
 }
 
+GroupCallParticipantOrder GroupCallParticipant::get_real_order() const {
+  return GroupCallParticipantOrder(max(active_date, local_active_date), 0, joined_date);
+}
+
 bool GroupCallParticipant::get_is_muted_by_themselves() const {
   return have_pending_is_muted ? pending_is_muted_by_themselves : server_is_muted_by_themselves;
 }
@@ -228,7 +232,7 @@ td_api::object_ptr<td_api::groupCallParticipant> GroupCallParticipant::get_group
       td->messages_manager_->get_message_sender_object(dialog_id), audio_source, about, is_speaking,
       get_is_hand_raised(), can_be_muted_for_all_users, can_be_unmuted_for_all_users, can_be_muted_only_for_self,
       can_be_unmuted_only_for_self, get_is_muted_for_all_users(), get_is_muted_locally(), get_is_muted_by_themselves(),
-      get_volume_level(), order);
+      get_volume_level(), order.get_group_call_participant_order_object());
 }
 
 bool operator==(const GroupCallParticipant &lhs, const GroupCallParticipant &rhs) {

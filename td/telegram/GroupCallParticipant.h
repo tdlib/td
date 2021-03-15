@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/DialogId.h"
+#include "td/telegram/GroupCallParticipantOrder.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -41,7 +42,7 @@ struct GroupCallParticipant {
   bool is_just_joined = false;
   bool is_speaking = false;
   int32 local_active_date = 0;
-  int64 order = 0;
+  GroupCallParticipantOrder order;
 
   int32 pending_volume_level = 0;
   uint64 pending_volume_level_generation = 0;
@@ -71,9 +72,7 @@ struct GroupCallParticipant {
 
   bool set_pending_is_muted(bool is_muted, bool can_manage, bool is_admin);
 
-  int64 get_real_order() const {
-    return (static_cast<int64>(max(active_date, local_active_date)) << 32) + joined_date;
-  }
+  GroupCallParticipantOrder get_real_order() const;
 
   bool is_valid() const {
     return dialog_id.is_valid();
