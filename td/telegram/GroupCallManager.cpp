@@ -1527,14 +1527,14 @@ void GroupCallManager::on_sync_group_call_participants_failed(InputGroupCallId i
   sync_participants_timeout_.add_timeout_in(group_call->group_call_id.get(), 1.0);
 }
 
-GroupCallParticipantOrder GroupCallManager::get_real_participant_order(const GroupCallParticipant &participant,
-                                                                       GroupCallParticipantOrder min_order) const {
+GroupCallParticipantOrder GroupCallManager::get_real_participant_order(
+    const GroupCallParticipant &participant, const GroupCallParticipantOrder &min_order) const {
   auto real_order = participant.get_real_order();
-  if (real_order < min_order && participant.is_self) {
-    return min_order;
-  }
   if (real_order >= min_order) {
     return real_order;
+  }
+  if (participant.is_self) {
+    return min_order;
   }
   return GroupCallParticipantOrder();
 }
