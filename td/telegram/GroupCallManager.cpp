@@ -1050,6 +1050,7 @@ void GroupCallManager::on_update_group_call_rights(InputGroupCallId input_group_
   }
 
   reload_group_call(input_group_call_id, Auto());
+  sync_group_call_participants(input_group_call_id); // participant order is different for administrators
 }
 
 void GroupCallManager::reload_group_call(InputGroupCallId input_group_call_id,
