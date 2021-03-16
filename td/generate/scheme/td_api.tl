@@ -4602,7 +4602,7 @@ inviteGroupCallParticipants group_call_id:int32 user_ids:vector<int32> = Ok;
 //@can_self_unmute Pass true if the invite_link should contain an invite hash, passing which to joinGroupCall would allow the invited user to unmute themself. Requires groupCall.can_be_managed group call flag
 getGroupCallInviteLink group_call_id:int32 can_self_unmute:Bool = HttpUrl;
 
-//@description Starts recording of a group call. Requires groupCall.can_be_managed group call flag @group_call_id Group call identifier @title Group call recording title; 0-128 characters
+//@description Starts recording of a group call. Requires groupCall.can_be_managed group call flag @group_call_id Group call identifier @title Group call recording title; 0-64 characters
 startGroupCallRecording group_call_id:int32 title:string = Ok;
 
 //@description Ends recording of a group call. Requires groupCall.can_be_managed group call flag @group_call_id Group call identifier
