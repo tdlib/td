@@ -2898,13 +2898,13 @@ void GroupCallManager::toggle_group_call_participant_is_hand_raised(GroupCallId 
     return promise.set_value(Unit());
   }
 
-  if (is_hand_raised) {
-    if (!participant->is_self) {
+  if (!participant->is_self) {
+    if (is_hand_raised) {
       return promise.set_error(Status::Error(400, "Can't raise others hand"));
-    }
-  } else {
-    if (!can_manage_group_call(input_group_call_id)) {
-      return promise.set_error(Status::Error(400, "Have not enough rights in the group call"));
+    } else {
+      if (!can_manage_group_call(input_group_call_id)) {
+        return promise.set_error(Status::Error(400, "Have not enough rights in the group call"));
+      }
     }
   }
 
@@ -3052,7 +3052,9 @@ void GroupCallManager::on_group_call_left_impl(GroupCall *group_call, bool need_
   check_group_call_is_joined_timeout_.cancel_timeout(group_call->group_call_id.get());
   auto input_group_call_id = get_input_group_call_id(group_call->group_call_id).ok();
   try_clear_group_call_participants(input_group_call_id);
-  process_group_call_after_join_requests(input_group_call_id, "on_group_call_left_impl");
+  if (!group_call->need_rejoin) {
+    process_group_call_after_join_requests(input_group_call_id, "on_group_call_left_impl");
+  }
 }
 
 void GroupCallManager::discard_group_call(GroupCallId group_call_id, Promise<Unit> &&promise) {
