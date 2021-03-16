@@ -1671,19 +1671,22 @@ void GroupCallManager::process_group_call_participants(
           continue;
         }
 
-        // not synced user, needs to be deleted
-        if (participant.order.is_valid()) {
-          CHECK(participant.order >= participants_it->second->min_order);
-          if (participant.is_self) {
-            if (participant.order != min_order) {
-              participant.order = min_order;
-              send_update_group_call_participant(input_group_call_id, participant);
-            }
-          } else {
-            participant.order = GroupCallParticipantOrder();
+        if (participant.is_self) {
+          if (participant.order != min_order) {
+            participant.order = min_order;
             send_update_group_call_participant(input_group_call_id, participant);
           }
+          ++participant_it;
+          continue;
         }
+
+        // not synced user and not self, needs to be deleted
+        if (participant.order.is_valid()) {
+          CHECK(participant.order >= participants_it->second->min_order);
+          participant.order = GroupCallParticipantOrder();
+          send_update_group_call_participant(input_group_call_id, participant);
+        }
+        on_remove_group_call_participant(input_group_call_id, participant.dialog_id);
         participant_it = group_participants.erase(participant_it);
       }
       if (participants_it->second->min_order < min_order) {
@@ -1773,10 +1776,15 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
         if (old_participant.order.is_valid()) {
           send_update_group_call_participant(input_group_call_id, participant);
         }
-        on_remove_group_call_participant(input_group_call_id, participant.dialog_id);
-        remove_recent_group_call_speaker(input_group_call_id, participant.dialog_id);
+        on_remove_group_call_participant(input_group_call_id, old_participant.dialog_id);
+        remove_recent_group_call_speaker(input_group_call_id, old_participant.dialog_id);
         participants->participants.erase(participants->participants.begin() + i);
         return -1;
+      }
+
+      if (old_participant.dialog_id != participant.dialog_id) {
+        on_remove_group_call_participant(input_group_call_id, old_participant.dialog_id);
+        on_add_group_call_participant(input_group_call_id, participant.dialog_id);
       }
 
       participant.update_from(old_participant);
@@ -1822,7 +1830,9 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
 
 void GroupCallManager::on_add_group_call_participant(InputGroupCallId input_group_call_id,
                                                      DialogId participant_dialog_id) {
-  participant_id_to_group_call_id_[participant_dialog_id].push_back(input_group_call_id);
+  auto &participants = participant_id_to_group_call_id_[participant_dialog_id];
+  CHECK(!td::contains(participants, input_group_call_id));
+  participants.push_back(input_group_call_id);
 }
 
 void GroupCallManager::on_remove_group_call_participant(InputGroupCallId input_group_call_id,
