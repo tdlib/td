@@ -1348,6 +1348,13 @@ void GroupCallManager::on_update_group_call_participants(
     auto group_call = get_group_call(input_group_call_id);
     for (auto &group_call_participant : participants) {
       GroupCallParticipant participant(group_call_participant);
+      if (!participant.is_valid()) {
+        LOG(ERROR) << "Receive invalid " << to_string(group_call_participant);
+        continue;
+      }
+      if (participant.dialog_id.get_type() != DialogType::User) {
+        td_->messages_manager_->force_create_dialog(participant.dialog_id, "on_update_group_call_participants 1");
+      }
       if (participant.joined_date == 0) {
         diff--;
         remove_recent_group_call_speaker(input_group_call_id, participant.dialog_id);
@@ -1393,6 +1400,13 @@ void GroupCallManager::on_update_group_call_participants(
   vector<GroupCallParticipant> version_updates;
   for (auto &group_call_participant : participants) {
     GroupCallParticipant participant(group_call_participant);
+    if (!participant.is_valid()) {
+      LOG(ERROR) << "Receive invalid " << to_string(group_call_participant);
+      continue;
+    }
+    if (participant.dialog_id.get_type() != DialogType::User) {
+      td_->messages_manager_->force_create_dialog(participant.dialog_id, "on_update_group_call_participants 2");
+    }
     if (participant.is_min && participant.joined_date != 0) {
       auto old_participant = get_group_call_participant(group_call_participants, participant.dialog_id);
       if (old_participant == nullptr) {
@@ -1471,16 +1485,14 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
     if (version == group_call->version + 1) {
       group_call->version = version;
       for (auto &participant : participants) {
-        GroupCallParticipant group_call_participant(participant);
-        if (group_call_participant.is_self && group_call->is_joined &&
-            (group_call_participant.joined_date == 0) ==
-                (group_call_participant.audio_source == group_call->audio_source)) {
+        if (participant.is_self && group_call->is_joined &&
+            (participant.joined_date == 0) == (participant.audio_source == group_call->audio_source)) {
           is_left = true;
-          if (group_call_participant.joined_date != 0) {
+          if (participant.joined_date != 0) {
             need_rejoin = false;
           }
         }
-        diff += process_group_call_participant(input_group_call_id, std::move(group_call_participant));
+        diff += process_group_call_participant(input_group_call_id, std::move(participant));
       }
       pending_version_updates.erase(it);
     } else if (!group_call->syncing_participants) {
@@ -1592,14 +1604,17 @@ void GroupCallManager::process_group_call_participants(
     InputGroupCallId input_group_call_id, vector<tl_object_ptr<telegram_api::groupCallParticipant>> &&participants,
     bool is_load, bool is_sync) {
   if (!need_group_call_participants(input_group_call_id)) {
-    for (auto &participant : participants) {
-      GroupCallParticipant group_call_participant(participant);
-      if (!group_call_participant.is_valid()) {
-        LOG(ERROR) << "Receive invalid " << to_string(participant);
+    for (auto &group_call_participant : participants) {
+      GroupCallParticipant participant(group_call_participant);
+      if (!participant.is_valid()) {
+        LOG(ERROR) << "Receive invalid " << to_string(group_call_participant);
         continue;
       }
+      if (participant.dialog_id.get_type() != DialogType::User) {
+        td_->messages_manager_->force_create_dialog(participant.dialog_id, "process_group_call_participants");
+      }
 
-      on_participant_speaking_in_group_call(input_group_call_id, group_call_participant);
+      on_participant_speaking_in_group_call(input_group_call_id, participant);
     }
     return;
   }
@@ -1617,18 +1632,21 @@ void GroupCallManager::process_group_call_participants(
 
   auto min_order = GroupCallParticipantOrder::max();
   bool can_manage = can_manage_group_call(input_group_call_id);
-  for (auto &participant : participants) {
-    GroupCallParticipant group_call_participant(participant);
-    if (!group_call_participant.is_valid()) {
-      LOG(ERROR) << "Receive invalid " << to_string(participant);
+  for (auto &group_call_participant : participants) {
+    GroupCallParticipant participant(group_call_participant);
+    if (!participant.is_valid()) {
+      LOG(ERROR) << "Receive invalid " << to_string(group_call_participant);
       continue;
     }
-    if (group_call_participant.is_min) {
-      LOG(ERROR) << "Receive unexpected min " << to_string(participant);
+    if (participant.is_min) {
+      LOG(ERROR) << "Receive unexpected min " << to_string(group_call_participant);
       continue;
+    }
+    if (participant.dialog_id.get_type() != DialogType::User) {
+      td_->messages_manager_->force_create_dialog(participant.dialog_id, "process_group_call_participants");
     }
 
-    auto real_order = group_call_participant.get_real_order(can_manage);
+    auto real_order = participant.get_real_order(can_manage);
     if (real_order > min_order) {
       LOG(ERROR) << "Receive call participant with order " << real_order << " after call participant with order "
                  << min_order;
@@ -1636,9 +1654,9 @@ void GroupCallManager::process_group_call_participants(
       min_order = real_order;
     }
     if (is_sync) {
-      old_participant_dialog_ids.erase(group_call_participant.dialog_id);
+      old_participant_dialog_ids.erase(participant.dialog_id);
     }
-    process_group_call_participant(input_group_call_id, std::move(group_call_participant));
+    process_group_call_participant(input_group_call_id, std::move(participant));
   }
   if (is_sync) {
     auto participants_it = group_call_participants_.find(input_group_call_id);
@@ -1986,20 +2004,19 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
     }
   }
   if (group_call->is_inited && have_as_dialog_id) {
-    GroupCallParticipant group_call_participant;
-    group_call_participant.is_self = true;
-    group_call_participant.dialog_id = as_dialog_id;
-    group_call_participant.about = td_->contacts_manager_->get_dialog_about(group_call_participant.dialog_id);
-    group_call_participant.audio_source = audio_source;
-    group_call_participant.joined_date = G()->unix_time();
+    GroupCallParticipant participant;
+    participant.is_self = true;
+    participant.dialog_id = as_dialog_id;
+    participant.about = td_->contacts_manager_->get_dialog_about(participant.dialog_id);
+    participant.audio_source = audio_source;
+    participant.joined_date = G()->unix_time();
     // if can_self_unmute has never been inited from self-participant,
     // it contains reasonable default "!call.mute_new_participants || call.can_be_managed"
-    group_call_participant.server_is_muted_by_admin =
-        !group_call->can_self_unmute && !can_manage_group_call(input_group_call_id);
-    group_call_participant.server_is_muted_by_themselves = is_muted && !group_call_participant.server_is_muted_by_admin;
-    group_call_participant.is_just_joined = !is_rejoin;
-    group_call_participant.is_fake = true;
-    int diff = process_group_call_participant(input_group_call_id, std::move(group_call_participant));
+    participant.server_is_muted_by_admin = !group_call->can_self_unmute && !can_manage_group_call(input_group_call_id);
+    participant.server_is_muted_by_themselves = is_muted && !participant.server_is_muted_by_admin;
+    participant.is_just_joined = !is_rejoin;
+    participant.is_fake = true;
+    int diff = process_group_call_participant(input_group_call_id, std::move(participant));
     if (diff != 0) {
       CHECK(diff == 1);
       group_call->participant_count++;
