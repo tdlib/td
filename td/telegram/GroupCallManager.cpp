@@ -2236,10 +2236,28 @@ void GroupCallManager::process_group_call_after_join_requests(InputGroupCallId i
 }
 
 void GroupCallManager::set_group_call_title(GroupCallId group_call_id, string title, Promise<Unit> &&promise) {
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
+
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
 
   auto *group_call = get_group_call(input_group_call_id);
-  if (group_call == nullptr || !group_call->is_inited || !group_call->is_active || !group_call->can_be_managed) {
+  if (group_call == nullptr || !group_call->is_inited) {
+    reload_group_call(
+        input_group_call_id,
+        PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, title, promise = std::move(promise)](
+                                   Result<td_api::object_ptr<td_api::groupCall>> &&result) mutable {
+          if (result.is_error()) {
+            promise.set_error(result.move_as_error());
+          } else {
+            send_closure(actor_id, &GroupCallManager::set_group_call_title, group_call_id, std::move(title),
+                         std::move(promise));
+          }
+        }));
+    return;
+  }
+  if (!group_call->is_active || !group_call->can_be_managed) {
     return promise.set_error(Status::Error(400, "Can't change group call title"));
   }
 
@@ -2299,11 +2317,28 @@ void GroupCallManager::on_edit_group_call_title(InputGroupCallId input_group_cal
 
 void GroupCallManager::toggle_group_call_mute_new_participants(GroupCallId group_call_id, bool mute_new_participants,
                                                                Promise<Unit> &&promise) {
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
+
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
 
   auto *group_call = get_group_call(input_group_call_id);
-  if (group_call == nullptr || !group_call->is_inited || !group_call->is_active || !group_call->can_be_managed ||
-      !group_call->allowed_change_mute_new_participants) {
+  if (group_call == nullptr || !group_call->is_inited) {
+    reload_group_call(input_group_call_id,
+                      PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, mute_new_participants,
+                                              promise = std::move(promise)](
+                                                 Result<td_api::object_ptr<td_api::groupCall>> &&result) mutable {
+                        if (result.is_error()) {
+                          promise.set_error(result.move_as_error());
+                        } else {
+                          send_closure(actor_id, &GroupCallManager::toggle_group_call_mute_new_participants,
+                                       group_call_id, mute_new_participants, std::move(promise));
+                        }
+                      }));
+    return;
+  }
+  if (!group_call->is_active || !group_call->can_be_managed || !group_call->allowed_change_mute_new_participants) {
     return promise.set_error(Status::Error(400, "Can't change mute_new_participant setting"));
   }
 
@@ -2372,10 +2407,27 @@ void GroupCallManager::on_toggle_group_call_mute_new_participants(InputGroupCall
 }
 
 void GroupCallManager::revoke_group_call_invite_link(GroupCallId group_call_id, Promise<Unit> &&promise) {
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
+
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
 
   auto *group_call = get_group_call(input_group_call_id);
-  if (group_call == nullptr || !group_call->is_inited || !group_call->is_active || !group_call->can_be_managed) {
+  if (group_call == nullptr || !group_call->is_inited) {
+    reload_group_call(input_group_call_id,
+                      PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, promise = std::move(promise)](
+                                                 Result<td_api::object_ptr<td_api::groupCall>> &&result) mutable {
+                        if (result.is_error()) {
+                          promise.set_error(result.move_as_error());
+                        } else {
+                          send_closure(actor_id, &GroupCallManager::revoke_group_call_invite_link, group_call_id,
+                                       std::move(promise));
+                        }
+                      }));
+    return;
+  }
+  if (!group_call->is_active || !group_call->can_be_managed) {
     return promise.set_error(Status::Error(400, "Can't reset invite hash in the group call"));
   }
 
@@ -2411,10 +2463,28 @@ void GroupCallManager::invite_group_call_participants(GroupCallId group_call_id,
 
 void GroupCallManager::get_group_call_invite_link(GroupCallId group_call_id, bool can_self_unmute,
                                                   Promise<string> &&promise) {
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
+
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
 
   auto *group_call = get_group_call(input_group_call_id);
-  if (group_call == nullptr || !group_call->is_inited || !group_call->is_active) {
+  if (group_call == nullptr || !group_call->is_inited) {
+    reload_group_call(input_group_call_id,
+                      PromiseCreator::lambda(
+                          [actor_id = actor_id(this), group_call_id, can_self_unmute, promise = std::move(promise)](
+                              Result<td_api::object_ptr<td_api::groupCall>> &&result) mutable {
+                            if (result.is_error()) {
+                              promise.set_error(result.move_as_error());
+                            } else {
+                              send_closure(actor_id, &GroupCallManager::get_group_call_invite_link, group_call_id,
+                                           can_self_unmute, std::move(promise));
+                            }
+                          }));
+    return;
+  }
+  if (!group_call->is_active) {
     return promise.set_error(Status::Error(400, "Can't get group call invite link"));
   }
 
@@ -2427,10 +2497,28 @@ void GroupCallManager::get_group_call_invite_link(GroupCallId group_call_id, boo
 
 void GroupCallManager::toggle_group_call_recording(GroupCallId group_call_id, bool is_enabled, string title,
                                                    Promise<Unit> &&promise) {
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
+
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
 
   auto *group_call = get_group_call(input_group_call_id);
-  if (group_call == nullptr || !group_call->is_inited || !group_call->is_active || !group_call->can_be_managed) {
+  if (group_call == nullptr || !group_call->is_inited) {
+    reload_group_call(input_group_call_id,
+                      PromiseCreator::lambda(
+                          [actor_id = actor_id(this), group_call_id, is_enabled, title, promise = std::move(promise)](
+                              Result<td_api::object_ptr<td_api::groupCall>> &&result) mutable {
+                            if (result.is_error()) {
+                              promise.set_error(result.move_as_error());
+                            } else {
+                              send_closure(actor_id, &GroupCallManager::toggle_group_call_recording, group_call_id,
+                                           is_enabled, std::move(title), std::move(promise));
+                            }
+                          }));
+    return;
+  }
+  if (!group_call->is_active || !group_call->can_be_managed) {
     return promise.set_error(Status::Error(400, "Can't manage group call recording"));
   }
 
