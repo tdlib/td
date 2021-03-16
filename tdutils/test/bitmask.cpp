@@ -131,7 +131,7 @@ class RangeSet {
     }
     return res;
   }
-  int64 get_ready_parts(int64 offset_part, int64 part_size) const {
+  int64 get_ready_parts(int64 offset_part, int32 part_size) const {
     auto offset = offset_part * part_size;
     auto it = find(offset);
     if (it == ranges_.end()) {
