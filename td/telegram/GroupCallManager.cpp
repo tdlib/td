@@ -644,6 +644,7 @@ struct GroupCallManager::GroupCall {
   int32 joined_date = 0;
   int32 record_start_date = 0;
   DcId stream_dc_id;
+  DialogId as_dialog_id;
 
   int32 version = -1;
   int32 title_version = -1;
@@ -683,6 +684,7 @@ struct GroupCallManager::PendingJoinRequest {
   NetQueryRef query_ref;
   uint64 generation = 0;
   int32 audio_source = 0;
+  DialogId as_dialog_id;
   Promise<td_api::object_ptr<td_api::GroupCallJoinResponse>> promise;
 };
 
@@ -812,7 +814,8 @@ void GroupCallManager::on_send_speaking_action_timeout(GroupCallId group_call_id
     return;
   }
 
-  on_user_speaking_in_group_call(group_call_id, DialogId(td_->contacts_manager_->get_my_id()), G()->unix_time());
+  CHECK(group_call->as_dialog_id.is_valid());
+  on_user_speaking_in_group_call(group_call_id, group_call->as_dialog_id, G()->unix_time());
 
   pending_send_speaking_action_timeout_.add_timeout_in(group_call_id.get(), 4.0);
 
@@ -1994,6 +1997,7 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
   request = make_unique<PendingJoinRequest>();
   request->generation = generation;
   request->audio_source = audio_source;
+  request->as_dialog_id = as_dialog_id;
   request->promise = std::move(promise);
 
   auto query_promise =
@@ -2203,6 +2207,7 @@ bool GroupCallManager::on_join_group_call_response(InputGroupCallId input_group_
     group_call->is_being_left = false;
     group_call->joined_date = G()->unix_time();
     group_call->audio_source = it->second->audio_source;
+    group_call->as_dialog_id = it->second->as_dialog_id;
     it->second->promise.set_value(result.move_as_ok());
     if (group_call->audio_source != 0) {
       check_group_call_is_joined_timeout_.set_timeout_in(group_call->group_call_id.get(),
@@ -3097,7 +3102,7 @@ void GroupCallManager::try_clear_group_call_participants(InputGroupCallId input_
   if (group_call != nullptr) {
     update_group_call_participant_order_timeout_.cancel_timeout(group_call->group_call_id.get());
   }
-  remove_recent_group_call_speaker(input_group_call_id, DialogId(td_->contacts_manager_->get_my_id()));
+  remove_recent_group_call_speaker(input_group_call_id, group_call->as_dialog_id);
 
   auto participants_it = group_call_participants_.find(input_group_call_id);
   if (participants_it == group_call_participants_.end()) {
@@ -3207,6 +3212,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
     call.need_syncing_participants = group_call->need_syncing_participants;
     call.loaded_all_participants = group_call->loaded_all_participants;
     call.audio_source = group_call->audio_source;
+    call.as_dialog_id = group_call->as_dialog_id;
     *group_call = std::move(call);
 
     need_update = true;
