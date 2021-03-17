@@ -164,8 +164,8 @@ class GroupCallManager : public Actor {
   void finish_get_group_call(InputGroupCallId input_group_call_id,
                              Result<tl_object_ptr<telegram_api::phone_groupCall>> &&result);
 
-  void finish_get_group_call_stream_segment(InputGroupCallId input_group_call_id, Result<string> &&result,
-                                            Promise<string> &&promise);
+  void finish_get_group_call_stream_segment(InputGroupCallId input_group_call_id, int32 audio_source,
+                                            Result<string> &&result, Promise<string> &&promise);
 
   void finish_check_group_call_is_joined(InputGroupCallId input_group_call_id, int32 audio_source,
                                          Result<Unit> &&result);

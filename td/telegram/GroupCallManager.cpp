@@ -1166,8 +1166,7 @@ void GroupCallManager::finish_check_group_call_is_joined(InputGroupCallId input_
   if (result.is_error()) {
     auto message = result.error().message();
     if (message == "GROUPCALL_JOIN_MISSING" || message == "GROUPCALL_FORBIDDEN" || message == "GROUPCALL_INVALID") {
-      on_group_call_left(input_group_call_id, audio_source, true);
-      result = Unit();
+      on_group_call_left(input_group_call_id, audio_source, message == "GROUPCALL_JOIN_MISSING");
     }
   }
 
@@ -1898,32 +1897,72 @@ int32 GroupCallManager::cancel_join_group_call_request(InputGroupCallId input_gr
 
 void GroupCallManager::get_group_call_stream_segment(GroupCallId group_call_id, int64 time_offset, int32 scale,
                                                      Promise<string> &&promise) {
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
+
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
 
   auto *group_call = get_group_call(input_group_call_id);
-  CHECK(group_call != nullptr);
-
-  if (!group_call->stream_dc_id.is_exact()) {
+  if (group_call == nullptr || !group_call->is_inited) {
+    reload_group_call(input_group_call_id,
+                      PromiseCreator::lambda(
+                          [actor_id = actor_id(this), group_call_id, time_offset, scale, promise = std::move(promise)](
+                              Result<td_api::object_ptr<td_api::groupCall>> &&result) mutable {
+                            if (result.is_error()) {
+                              promise.set_error(result.move_as_error());
+                            } else {
+                              send_closure(actor_id, &GroupCallManager::get_group_call_stream_segment, group_call_id,
+                                           time_offset, scale, std::move(promise));
+                            }
+                          }));
+    return;
+  }
+  if (!group_call->is_active || !group_call->stream_dc_id.is_exact()) {
     return promise.set_error(Status::Error(400, "Group call can't be streamed"));
   }
+  if (!group_call->is_joined) {
+    if (is_group_call_being_joined(input_group_call_id) || group_call->need_rejoin) {
+      group_call->after_join.push_back(
+          PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, time_offset, scale,
+                                  promise = std::move(promise)](Result<Unit> &&result) mutable {
+            if (result.is_error()) {
+              promise.set_error(result.move_as_error());
+            } else {
+              send_closure(actor_id, &GroupCallManager::get_group_call_stream_segment, group_call_id, time_offset,
+                           scale, std::move(promise));
+            }
+          }));
+      return;
+    }
+    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+  }
 
-  auto query_promise = PromiseCreator::lambda(
-      [actor_id = actor_id(this), input_group_call_id, promise = std::move(promise)](Result<string> &&result) mutable {
+  auto query_promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), input_group_call_id, audio_source = group_call->audio_source,
+                              promise = std::move(promise)](Result<string> &&result) mutable {
         send_closure(actor_id, &GroupCallManager::finish_get_group_call_stream_segment, input_group_call_id,
-                     std::move(result), std::move(promise));
+                     audio_source, std::move(result), std::move(promise));
       });
   td_->create_handler<GetGroupCallStreamQuery>(std::move(query_promise))
       ->send(input_group_call_id, group_call->stream_dc_id, time_offset, scale);
 }
 
-void GroupCallManager::finish_get_group_call_stream_segment(InputGroupCallId input_group_call_id,
+void GroupCallManager::finish_get_group_call_stream_segment(InputGroupCallId input_group_call_id, int32 audio_source,
                                                             Result<string> &&result, Promise<string> &&promise) {
   if (!G()->close_flag()) {
-    auto *group_call = get_group_call(input_group_call_id);
-    CHECK(group_call != nullptr);
-    if (group_call->is_inited && check_group_call_is_joined_timeout_.has_timeout(group_call->group_call_id.get())) {
-      check_group_call_is_joined_timeout_.set_timeout_in(group_call->group_call_id.get(),
-                                                         CHECK_GROUP_CALL_IS_JOINED_TIMEOUT);
+    if (result.is_ok()) {
+      auto *group_call = get_group_call(input_group_call_id);
+      CHECK(group_call != nullptr);
+      if (group_call->is_inited && check_group_call_is_joined_timeout_.has_timeout(group_call->group_call_id.get())) {
+        check_group_call_is_joined_timeout_.set_timeout_in(group_call->group_call_id.get(),
+                                                           CHECK_GROUP_CALL_IS_JOINED_TIMEOUT);
+      }
+    } else {
+      auto message = result.error().message();
+      if (message == "GROUPCALL_JOIN_MISSING" || message == "GROUPCALL_FORBIDDEN" || message == "GROUPCALL_INVALID") {
+        on_group_call_left(input_group_call_id, audio_source, message == "GROUPCALL_JOIN_MISSING");
+      }
     }
   }
 
