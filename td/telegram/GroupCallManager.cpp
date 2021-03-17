@@ -738,7 +738,7 @@ void GroupCallManager::on_update_group_call_participant_order_timeout(GroupCallI
   bool can_manage = can_manage_group_call(input_group_call_id);
   auto *participants = add_group_call_participants(input_group_call_id);
   for (auto &participant : participants->participants) {
-    auto new_order = get_real_participant_order(can_manage, participant, participants->min_order);
+    auto new_order = get_real_participant_order(can_manage, participant, participants);
     if (new_order != participant.order) {
       participant.order = new_order;
       send_update_group_call_participant(input_group_call_id, participant);
@@ -1603,13 +1603,13 @@ void GroupCallManager::on_sync_group_call_participants_failed(InputGroupCallId i
 }
 
 GroupCallParticipantOrder GroupCallManager::get_real_participant_order(
-    bool can_manage, const GroupCallParticipant &participant, const GroupCallParticipantOrder &min_order) const {
+    bool can_manage, const GroupCallParticipant &participant, const GroupCallParticipants *participants) const {
   auto real_order = participant.get_real_order(can_manage);
-  if (real_order >= min_order) {
+  if (real_order >= participants->min_order) {
     return real_order;
   }
   if (participant.is_self) {
-    return min_order;
+    return participants->min_order;
   }
   return GroupCallParticipantOrder();
 }
@@ -1718,7 +1718,7 @@ void GroupCallManager::process_group_call_participants(
         participants_it->second->min_order = min_order;
 
         for (auto &participant : participants_it->second->participants) {
-          auto real_order = get_real_participant_order(can_manage, participant, min_order);
+          auto real_order = get_real_participant_order(can_manage, participant, participants_it->second.get());
           if (old_min_order > real_order && real_order >= min_order) {
             CHECK(!participant.order.is_valid() || participant.order == old_min_order);
             participant.order = real_order;
@@ -1804,7 +1804,7 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
       participant.update_from(old_participant);
 
       participant.is_just_joined = false;
-      participant.order = get_real_participant_order(can_manage, participant, participants->min_order);
+      participant.order = get_real_participant_order(can_manage, participant, participants);
       update_group_call_participant_can_be_muted(can_manage, participants, participant);
 
       LOG(INFO) << "Edit " << old_participant << " to " << participant;
@@ -1830,7 +1830,7 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
   } else {
     LOG(INFO) << "Receive new " << participant;
   }
-  participant.order = get_real_participant_order(can_manage, participant, participants->min_order);
+  participant.order = get_real_participant_order(can_manage, participant, participants);
   participant.is_just_joined = false;
   update_group_call_participant_can_be_muted(can_manage, participants, participant);
   participants->participants.push_back(std::move(participant));
@@ -3567,7 +3567,7 @@ DialogId GroupCallManager::set_group_call_participant_is_speaking_by_source(Inpu
           participant.local_active_date = max(participant.local_active_date, date);
         }
         bool can_manage = can_manage_group_call(input_group_call_id);
-        participant.order = get_real_participant_order(can_manage, participant, participants_it->second->min_order);
+        participant.order = get_real_participant_order(can_manage, participant, participants_it->second.get());
         if (participant.order.is_valid()) {
           send_update_group_call_participant(input_group_call_id, participant);
         }

@@ -189,7 +189,7 @@ class GroupCallManager : public Actor {
   void on_sync_group_call_participants_failed(InputGroupCallId input_group_call_id);
 
   GroupCallParticipantOrder get_real_participant_order(bool can_manage, const GroupCallParticipant &participant,
-                                                       const GroupCallParticipantOrder &min_order) const;
+                                                       const GroupCallParticipants *participants) const;
 
   void process_group_call_participants(InputGroupCallId group_call_id,
                                        vector<tl_object_ptr<telegram_api::groupCallParticipant>> &&participants,
