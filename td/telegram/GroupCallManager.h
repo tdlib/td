@@ -159,6 +159,8 @@ class GroupCallManager : public Actor {
 
   bool can_manage_group_call(InputGroupCallId input_group_call_id) const;
 
+  bool get_group_call_joined_date_asc(InputGroupCallId input_group_call_id) const;
+
   void on_voice_chat_created(DialogId dialog_id, InputGroupCallId input_group_call_id, Promise<GroupCallId> &&promise);
 
   void finish_get_group_call(InputGroupCallId input_group_call_id,

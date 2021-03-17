@@ -638,6 +638,7 @@ struct GroupCallManager::GroupCall {
   bool loaded_all_participants = false;
   bool mute_new_participants = false;
   bool allowed_change_mute_new_participants = false;
+  bool joined_date_asc = false;
   int32 participant_count = 0;
   int32 duration = 0;
   int32 audio_source = 0;
@@ -666,6 +667,7 @@ struct GroupCallManager::GroupCallParticipants {
   vector<GroupCallParticipant> participants;
   string next_offset;
   GroupCallParticipantOrder min_order = GroupCallParticipantOrder::max();
+  bool joined_date_asc = false;
 
   bool are_administrators_loaded = false;
   vector<UserId> administrator_user_ids;
@@ -997,6 +999,12 @@ bool GroupCallManager::can_manage_group_call(InputGroupCallId input_group_call_i
   return can_manage_group_calls(group_call->dialog_id).is_ok();
 }
 
+bool GroupCallManager::get_group_call_joined_date_asc(InputGroupCallId input_group_call_id) const {
+  auto group_call = get_group_call(input_group_call_id);
+  CHECK(group_call != nullptr && group_call->is_inited);
+  return group_call->joined_date_asc;
+}
+
 void GroupCallManager::get_group_call_join_as(DialogId dialog_id,
                                               Promise<td_api::object_ptr<td_api::messageSenders>> &&promise) {
   if (!dialog_id.is_valid()) {
@@ -1326,6 +1334,7 @@ GroupCallManager::GroupCallParticipants *GroupCallManager::add_group_call_partic
   auto &participants = group_call_participants_[input_group_call_id];
   if (participants == nullptr) {
     participants = make_unique<GroupCallParticipants>();
+    participants->joined_date_asc = get_group_call_joined_date_asc(input_group_call_id);
   }
   return participants.get();
 }
@@ -1604,7 +1613,7 @@ void GroupCallManager::on_sync_group_call_participants_failed(InputGroupCallId i
 
 GroupCallParticipantOrder GroupCallManager::get_real_participant_order(
     bool can_manage, const GroupCallParticipant &participant, const GroupCallParticipants *participants) const {
-  auto real_order = participant.get_real_order(can_manage);
+  auto real_order = participant.get_real_order(can_manage, participants->joined_date_asc);
   if (real_order >= participants->min_order) {
     return real_order;
   }
@@ -1646,6 +1655,7 @@ void GroupCallManager::process_group_call_participants(
 
   auto min_order = GroupCallParticipantOrder::max();
   bool can_manage = can_manage_group_call(input_group_call_id);
+  bool joined_date_asc = get_group_call_joined_date_asc(input_group_call_id);
   for (auto &group_call_participant : participants) {
     GroupCallParticipant participant(group_call_participant);
     if (!participant.is_valid()) {
@@ -1660,7 +1670,7 @@ void GroupCallManager::process_group_call_participants(
       td_->messages_manager_->force_create_dialog(participant.dialog_id, "process_group_call_participants");
     }
 
-    auto real_order = participant.get_real_order(can_manage);
+    auto real_order = participant.get_real_order(can_manage, joined_date_asc);
     if (real_order > min_order) {
       LOG(ERROR) << "Receive call participant with order " << real_order << " after call participant with order "
                  << min_order;
@@ -3230,6 +3240,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       call.is_active = true;
       call.title = std::move(group_call->title_);
       call.mute_new_participants = group_call->join_muted_;
+      call.joined_date_asc = group_call->join_date_asc_;
       call.allowed_change_mute_new_participants = group_call->can_change_join_muted_;
       call.participant_count = group_call->participants_count_;
       if ((group_call->flags_ & telegram_api::groupCall::STREAM_DC_ID_MASK) != 0) {
@@ -3346,6 +3357,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
         group_call->stream_dc_id = call.stream_dc_id;
         group_call->stream_dc_id_version = call.stream_dc_id_version;
       }
+      // flag call.joined_date_asc must not change
       if (call.record_start_date != group_call->record_start_date &&
           call.record_start_date_version >= group_call->record_start_date_version) {
         int32 old_record_start_date = get_group_call_record_start_date(group_call);

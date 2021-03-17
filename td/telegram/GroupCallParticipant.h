@@ -72,7 +72,7 @@ struct GroupCallParticipant {
 
   bool set_pending_is_muted(bool is_muted, bool can_manage, bool is_admin);
 
-  GroupCallParticipantOrder get_real_order(bool can_manage) const;
+  GroupCallParticipantOrder get_real_order(bool can_manage, bool joined_date_asc) const;
 
   bool is_valid() const {
     return dialog_id.is_valid();
