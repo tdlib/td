@@ -778,10 +778,6 @@ void GroupCallManager::on_check_group_call_is_joined_timeout(GroupCallId group_c
 
   auto promise = PromiseCreator::lambda(
       [actor_id = actor_id(this), input_group_call_id, audio_source](Result<Unit> &&result) mutable {
-        if (result.is_error() && result.error().message() == "GROUPCALL_JOIN_MISSING") {
-          send_closure(actor_id, &GroupCallManager::on_group_call_left, input_group_call_id, audio_source, true);
-          result = Unit();
-        }
         send_closure(actor_id, &GroupCallManager::finish_check_group_call_is_joined, input_group_call_id, audio_source,
                      std::move(result));
       });
@@ -1117,6 +1113,10 @@ void GroupCallManager::finish_get_group_call(InputGroupCallId input_group_call_i
   auto promises = std::move(it->second);
   load_group_call_queries_.erase(it);
 
+  if (G()->close_flag()) {
+    result = Status::Error(500, "Request aborted");
+  }
+
   if (result.is_ok()) {
     td_->contacts_manager_->on_get_users(std::move(result.ok_ref()->users_), "finish_get_group_call");
     td_->contacts_manager_->on_get_chats(std::move(result.ok_ref()->chats_), "finish_get_group_call");
@@ -1157,7 +1157,19 @@ void GroupCallManager::finish_get_group_call(InputGroupCallId input_group_call_i
 
 void GroupCallManager::finish_check_group_call_is_joined(InputGroupCallId input_group_call_id, int32 audio_source,
                                                          Result<Unit> &&result) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   LOG(INFO) << "Finish check group call is_joined for " << input_group_call_id;
+
+  if (result.is_error()) {
+    auto message = result.error().message();
+    if (message == "GROUPCALL_JOIN_MISSING" || message == "GROUPCALL_FORBIDDEN" || message == "GROUPCALL_INVALID") {
+      on_group_call_left(input_group_call_id, audio_source, true);
+      result = Unit();
+    }
+  }
 
   auto *group_call = get_group_call(input_group_call_id);
   CHECK(group_call != nullptr && group_call->is_inited);
@@ -1906,11 +1918,13 @@ void GroupCallManager::get_group_call_stream_segment(GroupCallId group_call_id, 
 
 void GroupCallManager::finish_get_group_call_stream_segment(InputGroupCallId input_group_call_id,
                                                             Result<string> &&result, Promise<string> &&promise) {
-  auto *group_call = get_group_call(input_group_call_id);
-  CHECK(group_call != nullptr);
-  if (group_call->is_inited && check_group_call_is_joined_timeout_.has_timeout(group_call->group_call_id.get())) {
-    check_group_call_is_joined_timeout_.set_timeout_in(group_call->group_call_id.get(),
-                                                       CHECK_GROUP_CALL_IS_JOINED_TIMEOUT);
+  if (!G()->close_flag()) {
+    auto *group_call = get_group_call(input_group_call_id);
+    CHECK(group_call != nullptr);
+    if (group_call->is_inited && check_group_call_is_joined_timeout_.has_timeout(group_call->group_call_id.get())) {
+      check_group_call_is_joined_timeout_.set_timeout_in(group_call->group_call_id.get(),
+                                                         CHECK_GROUP_CALL_IS_JOINED_TIMEOUT);
+    }
   }
 
   promise.set_result(std::move(result));
@@ -2246,6 +2260,11 @@ void GroupCallManager::finish_join_group_call(InputGroupCallId input_group_call_
   }
   it->second->promise.set_error(std::move(error));
   pending_join_requests_.erase(it);
+
+  if (G()->close_flag()) {
+    return;
+  }
+
   try_clear_group_call_participants(input_group_call_id);
   process_group_call_after_join_requests(input_group_call_id, "finish_join_group_call");
 
@@ -3056,6 +3075,10 @@ void GroupCallManager::leave_group_call(GroupCallId group_call_id, Promise<Unit>
 }
 
 void GroupCallManager::on_group_call_left(InputGroupCallId input_group_call_id, int32 audio_source, bool need_rejoin) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   auto *group_call = get_group_call(input_group_call_id);
   CHECK(group_call != nullptr && group_call->is_inited);
   if (group_call->is_joined && group_call->audio_source == audio_source) {
