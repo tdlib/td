@@ -1418,9 +1418,6 @@ void GroupCallManager::on_update_group_call_participants(
       LOG(ERROR) << "Receive invalid " << to_string(group_call_participant);
       continue;
     }
-    if (participant.dialog_id.get_type() != DialogType::User) {
-      td_->messages_manager_->force_create_dialog(participant.dialog_id, "on_update_group_call_participants 2");
-    }
     if (participant.is_min && participant.joined_date != 0) {
       auto old_participant = get_group_call_participant(group_call_participants, participant.dialog_id);
       if (old_participant == nullptr) {
@@ -1432,6 +1429,9 @@ void GroupCallManager::on_update_group_call_participants(
 
       participant.update_from(*old_participant);
       CHECK(!participant.is_min);
+    }
+    if (participant.dialog_id.get_type() != DialogType::User && participant.joined_date != 0) {
+      td_->messages_manager_->force_create_dialog(participant.dialog_id, "on_update_group_call_participants 2");
     }
 
     if (GroupCallParticipant::is_versioned_update(group_call_participant)) {
