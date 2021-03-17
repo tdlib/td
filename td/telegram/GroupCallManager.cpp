@@ -1895,8 +1895,25 @@ void GroupCallManager::get_group_call_stream_segment(GroupCallId group_call_id, 
     return promise.set_error(Status::Error(400, "Group call can't be streamed"));
   }
 
-  td_->create_handler<GetGroupCallStreamQuery>(std::move(promise))
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), input_group_call_id, promise = std::move(promise)](Result<string> &&result) mutable {
+        send_closure(actor_id, &GroupCallManager::finish_get_group_call_stream_segment, input_group_call_id,
+                     std::move(result), std::move(promise));
+      });
+  td_->create_handler<GetGroupCallStreamQuery>(std::move(query_promise))
       ->send(input_group_call_id, group_call->stream_dc_id, time_offset, scale);
+}
+
+void GroupCallManager::finish_get_group_call_stream_segment(InputGroupCallId input_group_call_id,
+                                                            Result<string> &&result, Promise<string> &&promise) {
+  auto *group_call = get_group_call(input_group_call_id);
+  CHECK(group_call != nullptr);
+  if (group_call->is_inited && check_group_call_is_joined_timeout_.has_timeout(group_call->group_call_id.get())) {
+    check_group_call_is_joined_timeout_.set_timeout_in(group_call->group_call_id.get(),
+                                                       CHECK_GROUP_CALL_IS_JOINED_TIMEOUT);
+  }
+
+  promise.set_result(std::move(result));
 }
 
 void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_dialog_id,
