@@ -673,7 +673,7 @@ struct GroupCallManager::GroupCallParticipants {
   vector<UserId> administrator_user_ids;
 
   struct PendingUpdates {
-    std::vector<GroupCallParticipant> updates;
+    std::unordered_map<DialogId, GroupCallParticipant, DialogIdHash> updates;
   };
   std::map<int32, PendingUpdates> pending_version_updates_;
   std::map<int32, PendingUpdates> pending_mute_updates_;
@@ -1422,8 +1422,8 @@ void GroupCallManager::on_update_group_call_participants(
   }
 
   auto *group_call_participants = add_group_call_participants(input_group_call_id);
+  auto &pending_version_updates = group_call_participants->pending_version_updates_[version].updates;
   auto &pending_mute_updates = group_call_participants->pending_mute_updates_[version].updates;
-  vector<GroupCallParticipant> version_updates;
   for (auto &group_call_participant : participants) {
     GroupCallParticipant participant(group_call_participant);
     if (!participant.is_valid()) {
@@ -1442,24 +1442,16 @@ void GroupCallManager::on_update_group_call_participants(
       participant.update_from(*old_participant);
       CHECK(!participant.is_min);
     }
-    if (participant.dialog_id.get_type() != DialogType::User && participant.joined_date != 0) {
-      td_->messages_manager_->force_create_dialog(participant.dialog_id, "on_update_group_call_participants 2");
+    auto dialog_id = participant.dialog_id;
+    if (dialog_id.get_type() != DialogType::User && participant.joined_date != 0) {
+      td_->messages_manager_->force_create_dialog(dialog_id, "on_update_group_call_participants 2");
     }
 
     if (GroupCallParticipant::is_versioned_update(group_call_participant)) {
-      version_updates.push_back(std::move(participant));
+      pending_version_updates[dialog_id] = std::move(participant);
     } else {
-      pending_mute_updates.push_back(std::move(participant));
+      pending_mute_updates[dialog_id] = std::move(participant);
     }
-  }
-  if (!version_updates.empty()) {
-    auto &pending_version_updates = group_call_participants->pending_version_updates_[version].updates;
-    if (version_updates.size() <= pending_version_updates.size()) {
-      LOG(INFO) << "Receive duplicate updateGroupCallParticipants with version " << version << " in "
-                << input_group_call_id;
-      return;
-    }
-    pending_version_updates = std::move(version_updates);
   }
 
   process_pending_group_call_participant_updates(input_group_call_id);
@@ -1489,7 +1481,8 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
     auto version = it->first;
     auto &participants = it->second.updates;
     if (version <= group_call->version) {
-      for (auto &participant : participants) {
+      for (auto &participant_it : participants) {
+        auto &participant = participant_it.second;
         on_participant_speaking_in_group_call(input_group_call_id, participant);
         if (participant.is_self) {
           auto my_participant =
@@ -1510,7 +1503,8 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
 
     if (version == group_call->version + 1) {
       group_call->version = version;
-      for (auto &participant : participants) {
+      for (auto &participant_it : participants) {
+        auto &participant = participant_it.second;
         if (participant.is_self && group_call->is_joined &&
             (participant.joined_date == 0) == (participant.audio_source == group_call->audio_source)) {
           is_left = true;
@@ -1536,7 +1530,8 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
     auto version = it->first;
     if (version <= group_call->version) {
       auto &participants = it->second.updates;
-      for (auto &participant : participants) {
+      for (auto &participant_it : participants) {
+        auto &participant = participant_it.second;
         on_participant_speaking_in_group_call(input_group_call_id, participant);
         int mute_diff = process_group_call_participant(input_group_call_id, std::move(participant));
         CHECK(mute_diff == 0);
