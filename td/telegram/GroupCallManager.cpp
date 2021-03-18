@@ -672,8 +672,11 @@ struct GroupCallManager::GroupCallParticipants {
   bool are_administrators_loaded = false;
   vector<UserId> administrator_user_ids;
 
-  std::map<int32, vector<GroupCallParticipant>> pending_version_updates_;
-  std::map<int32, vector<GroupCallParticipant>> pending_mute_updates_;
+  struct PendingUpdates {
+    std::vector<GroupCallParticipant> updates;
+  };
+  std::map<int32, PendingUpdates> pending_version_updates_;
+  std::map<int32, PendingUpdates> pending_mute_updates_;
 };
 
 struct GroupCallManager::GroupCallRecentSpeakers {
@@ -1419,7 +1422,7 @@ void GroupCallManager::on_update_group_call_participants(
   }
 
   auto *group_call_participants = add_group_call_participants(input_group_call_id);
-  auto &pending_mute_updates = group_call_participants->pending_mute_updates_[version];
+  auto &pending_mute_updates = group_call_participants->pending_mute_updates_[version].updates;
   vector<GroupCallParticipant> version_updates;
   for (auto &group_call_participant : participants) {
     GroupCallParticipant participant(group_call_participant);
@@ -1450,7 +1453,7 @@ void GroupCallManager::on_update_group_call_participants(
     }
   }
   if (!version_updates.empty()) {
-    auto &pending_version_updates = group_call_participants->pending_version_updates_[version];
+    auto &pending_version_updates = group_call_participants->pending_version_updates_[version].updates;
     if (version_updates.size() <= pending_version_updates.size()) {
       LOG(INFO) << "Receive duplicate updateGroupCallParticipants with version " << version << " in "
                 << input_group_call_id;
@@ -1484,7 +1487,7 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
   while (!pending_version_updates.empty()) {
     auto it = pending_version_updates.begin();
     auto version = it->first;
-    auto &participants = it->second;
+    auto &participants = it->second.updates;
     if (version <= group_call->version) {
       for (auto &participant : participants) {
         on_participant_speaking_in_group_call(input_group_call_id, participant);
@@ -1532,7 +1535,7 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
     auto it = pending_mute_updates.begin();
     auto version = it->first;
     if (version <= group_call->version) {
-      auto &participants = it->second;
+      auto &participants = it->second.updates;
       for (auto &participant : participants) {
         on_participant_speaking_in_group_call(input_group_call_id, participant);
         int mute_diff = process_group_call_participant(input_group_call_id, std::move(participant));
