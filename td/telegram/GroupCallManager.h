@@ -193,9 +193,11 @@ class GroupCallManager : public Actor {
   GroupCallParticipantOrder get_real_participant_order(bool can_manage, const GroupCallParticipant &participant,
                                                        const GroupCallParticipants *participants) const;
 
+  void process_my_group_call_participant(InputGroupCallId input_group_call_id, GroupCallParticipant &&participant);
+
   void process_group_call_participants(InputGroupCallId group_call_id,
                                        vector<tl_object_ptr<telegram_api::groupCallParticipant>> &&participants,
-                                       bool is_load, bool is_sync);
+                                       const string &offset, bool is_load, bool is_sync);
 
   bool update_group_call_participant_can_be_muted(bool can_manage, const GroupCallParticipants *participants,
                                                   GroupCallParticipant &participant);

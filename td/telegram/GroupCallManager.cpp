@@ -1146,7 +1146,7 @@ void GroupCallManager::finish_get_group_call(InputGroupCallId input_group_call_i
   }
 
   auto call = result.move_as_ok();
-  process_group_call_participants(input_group_call_id, std::move(call->participants_), true, false);
+  process_group_call_participants(input_group_call_id, std::move(call->participants_), string(), true, false);
   if (need_group_call_participants(input_group_call_id)) {
     auto participants_it = group_call_participants_.find(input_group_call_id);
     if (participants_it != group_call_participants_.end()) {
@@ -1265,7 +1265,8 @@ void GroupCallManager::on_get_group_call_participants(
   }
 
   auto is_empty = participants->participants_.empty();
-  process_group_call_participants(input_group_call_id, std::move(participants->participants_), is_load, is_sync);
+  process_group_call_participants(input_group_call_id, std::move(participants->participants_), offset, is_load,
+                                  is_sync);
 
   if (!is_sync) {
     on_receive_group_call_version(input_group_call_id, participants->version_);
@@ -1485,14 +1486,7 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
         auto &participant = participant_it.second;
         on_participant_speaking_in_group_call(input_group_call_id, participant);
         if (participant.is_self) {
-          auto my_participant =
-              get_group_call_participant(participants_it->second.get(), DialogId(td_->contacts_manager_->get_my_id()));
-          if (my_participant == nullptr || my_participant->is_fake ||
-              my_participant->joined_date < participant.joined_date ||
-              (my_participant->joined_date <= participant.joined_date &&
-               my_participant->audio_source != participant.audio_source)) {
-            process_group_call_participant(input_group_call_id, std::move(participant));
-          }
+          process_my_group_call_participant(input_group_call_id, std::move(participant));
         }
       }
       LOG(INFO) << "Ignore already applied updateGroupCallParticipants with version " << version << " in "
@@ -1623,7 +1617,14 @@ GroupCallParticipantOrder GroupCallManager::get_real_participant_order(
 
 void GroupCallManager::process_group_call_participants(
     InputGroupCallId input_group_call_id, vector<tl_object_ptr<telegram_api::groupCallParticipant>> &&participants,
-    bool is_load, bool is_sync) {
+    const string &offset, bool is_load, bool is_sync) {
+  if (offset.empty() && is_load && !participants.empty() && participants[0]->self_) {
+    GroupCallParticipant participant(participants[0]);
+    if (participant.is_valid()) {
+      process_my_group_call_participant(input_group_call_id, std::move(participant));
+    }
+    participants.erase(participants.begin());
+  }
   if (!need_group_call_participants(input_group_call_id)) {
     for (auto &group_call_participant : participants) {
       GroupCallParticipant participant(group_call_participant);
@@ -1761,6 +1762,22 @@ void GroupCallManager::update_group_call_participants_can_be_muted(InputGroupCal
         participant.order.is_valid()) {
       send_update_group_call_participant(input_group_call_id, participant);
     }
+  }
+}
+
+void GroupCallManager::process_my_group_call_participant(InputGroupCallId input_group_call_id,
+                                                         GroupCallParticipant &&participant) {
+  CHECK(participant.is_valid());
+  CHECK(participant.is_self);
+  if (!need_group_call_participants(input_group_call_id)) {
+    return;
+  }
+  auto my_participant = get_group_call_participant(add_group_call_participants(input_group_call_id),
+                                                   DialogId(td_->contacts_manager_->get_my_id()));
+  if (my_participant == nullptr || my_participant->is_fake || my_participant->joined_date < participant.joined_date ||
+      (my_participant->joined_date <= participant.joined_date &&
+       my_participant->audio_source != participant.audio_source)) {
+    process_group_call_participant(input_group_call_id, std::move(participant));
   }
 }
 
