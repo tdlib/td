@@ -1532,8 +1532,8 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
       for (auto &participant_it : participants) {
         auto &participant = participant_it.second;
         on_participant_speaking_in_group_call(input_group_call_id, participant);
-        if (participant.is_self) {
-          process_my_group_call_participant(input_group_call_id, std::move(participant));
+        if (participant.is_self || participant.joined_date != 0) {
+          diff += process_group_call_participant(input_group_call_id, std::move(participant));
         }
       }
       LOG(INFO) << "Ignore already applied updateGroupCallParticipants with version " << version << " in "
@@ -1854,6 +1854,11 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
         remove_recent_group_call_speaker(input_group_call_id, old_participant.dialog_id);
         participants->participants.erase(participants->participants.begin() + i);
         return -1;
+      }
+
+      if (old_participant.version > participant.version) {
+        LOG(INFO) << "Ignore outdated update of " << old_participant.dialog_id;
+        return 0;
       }
 
       if (old_participant.dialog_id != participant.dialog_id) {
