@@ -1307,7 +1307,7 @@ void GroupCallManager::on_get_group_call_participants(
           LOG(ERROR) << "Have participant count " << group_call->participant_count << " instead of "
                      << real_participant_count << " in " << input_group_call_id << " from " << group_call->dialog_id;
         }
-        group_call->participant_count = real_participant_count;
+        set_group_call_participant_count(group_call, real_participant_count, "on_get_group_call_participants");
         need_update = true;
 
         update_group_call_dialog(group_call, "on_get_group_call_participants");
@@ -1396,12 +1396,8 @@ void GroupCallManager::on_update_group_call_participants(
 
     if (group_call != nullptr && group_call->is_inited && group_call->is_active && group_call->version == -1) {
       if (diff != 0 && (group_call->participant_count != 0 || diff > 0)) {
-        group_call->participant_count += diff;
-        if (group_call->participant_count < 0) {
-          LOG(ERROR) << "Participant count became negative in " << input_group_call_id << " from "
-                     << group_call->dialog_id << " after applying " << to_string(participants);
-          group_call->participant_count = 0;
-        }
+        set_group_call_participant_count(group_call, group_call->participant_count + diff,
+                                         "on_update_group_call_participants");
         update_group_call_dialog(group_call, "on_update_group_call_participants");
         need_update = true;
       }
@@ -1566,11 +1562,8 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
 
   bool need_update = false;
   if (diff != 0 && (group_call->participant_count != 0 || diff > 0)) {
-    group_call->participant_count += diff;
-    if (group_call->participant_count < 0) {
-      LOG(ERROR) << "Participant count became negative in " << input_group_call_id << " from " << group_call->dialog_id;
-      group_call->participant_count = 0;
-    }
+    set_group_call_participant_count(group_call, group_call->participant_count + diff,
+                                     "process_pending_group_call_participant_updates");
     need_update = true;
     update_group_call_dialog(group_call, "process_pending_group_call_participant_updates");
   }
@@ -2151,7 +2144,7 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
     int diff = process_group_call_participant(input_group_call_id, std::move(participant));
     if (diff != 0) {
       CHECK(diff == 1);
-      group_call->participant_count++;
+      set_group_call_participant_count(group_call, group_call->participant_count + diff, "join_group_call");
       need_update = true;
       update_group_call_dialog(group_call, "join_group_call", true);
     }
@@ -3411,8 +3404,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
           on_receive_group_call_version(input_group_call_id, call.version);
         } else {
           if (call.participant_count != group_call->participant_count) {
-            LOG(INFO) << "Set " << call.group_call_id << " participant count to " << call.participant_count;
-            group_call->participant_count = call.participant_count;
+            set_group_call_participant_count(group_call, call.participant_count, "update_group_call");
             need_update = true;
           }
           if (need_group_call_participants(input_group_call_id, group_call) && !join_params.empty() &&
@@ -3425,8 +3417,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
           }
         }
       } else if (call.version == group_call->version && call.participant_count != group_call->participant_count) {
-        LOG(INFO) << "Fix " << call.group_call_id << " participant count to " << call.participant_count;
-        group_call->participant_count = call.participant_count;
+        set_group_call_participant_count(group_call, call.participant_count, "update_group_call fix");
         need_update = true;
       }
     }
@@ -3631,6 +3622,18 @@ DialogId GroupCallManager::set_group_call_participant_is_speaking_by_source(Inpu
     }
   }
   return DialogId();
+}
+
+void GroupCallManager::set_group_call_participant_count(GroupCall *group_call, int32 count, const char *source) {
+  CHECK(group_call != nullptr);
+  LOG(DEBUG) << "Set " << group_call->group_call_id << " participant count to " << count << " from " << source;
+  if (count < 0) {
+    LOG(ERROR) << "Participant count became negative in " << group_call->group_call_id << " in "
+               << group_call->dialog_id << " from " << source;
+    group_call->participant_count = 0;
+  } else {
+    group_call->participant_count = count;
+  }
 }
 
 void GroupCallManager::update_group_call_dialog(const GroupCall *group_call, const char *source, bool force) {

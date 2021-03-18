@@ -277,6 +277,8 @@ class GroupCallManager : public Actor {
 
   void try_clear_group_call_participants(InputGroupCallId input_group_call_id);
 
+  static void set_group_call_participant_count(GroupCall *group_call, int32 count, const char *source);
+
   void update_group_call_dialog(const GroupCall *group_call, const char *source, bool force = false);
 
   vector<td_api::object_ptr<td_api::groupCallRecentSpeaker>> get_recent_speakers(const GroupCall *group_call,
