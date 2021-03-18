@@ -3427,6 +3427,10 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
             }
           }
         }
+      } else if (call.version == group_call->version && call.participant_count != group_call->participant_count) {
+        LOG(INFO) << "Fix " << call.group_call_id << " participant count to " << call.participant_count;
+        group_call->participant_count = call.participant_count;
+        need_update = true;
       }
     }
   }
