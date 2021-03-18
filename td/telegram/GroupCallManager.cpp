@@ -1383,9 +1383,6 @@ void GroupCallManager::on_update_group_call_participants(
         LOG(ERROR) << "Receive invalid " << to_string(group_call_participant);
         continue;
       }
-      if (participant.dialog_id.get_type() != DialogType::User) {
-        td_->messages_manager_->force_create_dialog(participant.dialog_id, "on_update_group_call_participants 1");
-      }
       if (participant.joined_date == 0) {
         diff--;
         remove_recent_group_call_speaker(input_group_call_id, participant.dialog_id);
@@ -1631,7 +1628,7 @@ void GroupCallManager::on_sync_group_call_participants_failed(InputGroupCallId i
 
 GroupCallParticipantOrder GroupCallManager::get_real_participant_order(
     bool can_manage, const GroupCallParticipant &participant, const GroupCallParticipants *participants) const {
-  auto real_order = participant.get_real_order(can_manage, participants->joined_date_asc);
+  auto real_order = participant.get_real_order(can_manage, participants->joined_date_asc, false);
   if (real_order >= participants->min_order) {
     return real_order;
   }
@@ -1695,7 +1692,7 @@ void GroupCallManager::process_group_call_participants(
       td_->messages_manager_->force_create_dialog(participant.dialog_id, "process_group_call_participants");
     }
 
-    auto real_order = participant.get_real_order(can_manage, joined_date_asc);
+    auto real_order = participant.get_real_order(can_manage, joined_date_asc, true);
     if (real_order > min_order) {
       LOG(ERROR) << "Receive call participant with order " << real_order << " after call participant with order "
                  << min_order;
@@ -3488,7 +3485,7 @@ void GroupCallManager::on_participant_speaking_in_group_call(InputGroupCallId in
     return;
   }
 
-  on_user_speaking_in_group_call(group_call->group_call_id, participant.dialog_id, active_date, true);
+  on_user_speaking_in_group_call(group_call->group_call_id, participant.dialog_id, active_date, !participant.is_min);
 }
 
 void GroupCallManager::on_user_speaking_in_group_call(GroupCallId group_call_id, DialogId dialog_id, int32 date,
