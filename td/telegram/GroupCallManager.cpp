@@ -1755,7 +1755,7 @@ void GroupCallManager::process_group_call_participants(
         for (auto &participant : participants_it->second->participants) {
           auto real_order = get_real_participant_order(can_manage, participant, participants_it->second.get());
           if (old_min_order > real_order && real_order >= min_order) {
-            CHECK(!participant.order.is_valid() || participant.order == old_min_order);
+            CHECK(!participant.order.is_valid() || participant.is_self);
             participant.order = real_order;
             send_update_group_call_participant(input_group_call_id, participant);
           }
