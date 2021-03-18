@@ -1669,6 +1669,7 @@ void GroupCallManager::process_group_call_participants(
   }
 
   auto min_order = GroupCallParticipantOrder::max();
+  DialogId min_order_dialog_id;
   bool can_manage = can_manage_group_call(input_group_call_id);
   bool joined_date_asc = get_group_call_joined_date_asc(input_group_call_id);
   for (auto &group_call_participant : participants) {
@@ -1685,12 +1686,15 @@ void GroupCallManager::process_group_call_participants(
       td_->messages_manager_->force_create_dialog(participant.dialog_id, "process_group_call_participants");
     }
 
-    auto real_order = participant.get_real_order(can_manage, joined_date_asc, true);
-    if (real_order > min_order) {
-      LOG(ERROR) << "Receive call participant with order " << real_order << " after call participant with order "
-                 << min_order;
-    } else {
-      min_order = real_order;
+    if (is_load) {
+      auto real_order = participant.get_real_order(can_manage, joined_date_asc, true);
+      if (real_order > min_order) {
+        LOG(ERROR) << "Receive call participant " << participant.dialog_id << " with order " << real_order
+                   << " after call participant " << min_order_dialog_id << " with order " << min_order;
+      } else {
+        min_order = real_order;
+        min_order_dialog_id = participant.dialog_id;
+      }
     }
     if (is_sync) {
       old_participant_dialog_ids.erase(participant.dialog_id);
