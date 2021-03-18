@@ -1368,7 +1368,11 @@ GroupCallParticipant *GroupCallManager::get_group_call_participant(GroupCallPart
 
 void GroupCallManager::on_update_group_call_participants(
     InputGroupCallId input_group_call_id, vector<tl_object_ptr<telegram_api::groupCallParticipant>> &&participants,
-    int32 version) {
+    int32 version, bool is_recursive) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   if (!need_group_call_participants(input_group_call_id)) {
     int32 diff = 0;
     bool need_update = false;
@@ -1423,6 +1427,29 @@ void GroupCallManager::on_update_group_call_participants(
   }
 
   auto *group_call_participants = add_group_call_participants(input_group_call_id);
+  if (!is_recursive) {
+    vector<DialogId> missing_participants;
+    for (auto &group_call_participant : participants) {
+      GroupCallParticipant participant(group_call_participant);
+      if (participant.is_valid() && participant.is_min && participant.joined_date != 0 &&
+          get_group_call_participant(group_call_participants, participant.dialog_id) == nullptr) {
+        missing_participants.push_back(participant.dialog_id);
+      }
+    }
+    if (!missing_participants.empty()) {
+      LOG(INFO) << "Can't apply min updates about " << missing_participants << " in " << input_group_call_id;
+      auto input_peers = transform(missing_participants, &MessagesManager::get_input_peer_force);
+      auto query_promise =
+          PromiseCreator::lambda([actor_id = actor_id(this), input_group_call_id,
+                                  participants = std::move(participants), version](Result<Unit> &&result) mutable {
+            send_closure(actor_id, &GroupCallManager::on_update_group_call_participants, input_group_call_id,
+                         std::move(participants), version, true);
+          });
+      td_->create_handler<GetGroupCallParticipantQuery>(std::move(query_promise))
+          ->send(input_group_call_id, std::move(input_peers), {});
+    }
+  }
+
   auto &pending_version_updates = group_call_participants->pending_version_updates_[version].updates;
   auto &pending_mute_updates = group_call_participants->pending_mute_updates_[version].updates;
   for (auto &group_call_participant : participants) {
@@ -1434,8 +1461,7 @@ void GroupCallManager::on_update_group_call_participants(
     if (participant.is_min && participant.joined_date != 0) {
       auto old_participant = get_group_call_participant(group_call_participants, participant.dialog_id);
       if (old_participant == nullptr) {
-        LOG(INFO) << "Can't apply min update about " << participant.dialog_id << " in " << input_group_call_id;
-        // TODO instead of synchronization, such participants can be received through GetGroupCallParticipantQuery
+        LOG(ERROR) << "Can't apply min update about " << participant.dialog_id << " in " << input_group_call_id;
         on_receive_group_call_version(input_group_call_id, version, true);
         return;
       }
@@ -2745,20 +2771,20 @@ void GroupCallManager::set_group_call_participant_is_speaking(GroupCallId group_
     }
   }
 
-  bool recursive = false;
+  bool is_recursive = false;
   if (date == 0) {
     date = G()->unix_time();
   } else {
-    recursive = true;
+    is_recursive = true;
   }
-  if (group_call->audio_source != 0 && audio_source != group_call->audio_source && !recursive && is_speaking &&
+  if (group_call->audio_source != 0 && audio_source != group_call->audio_source && !is_recursive && is_speaking &&
       check_group_call_is_joined_timeout_.has_timeout(group_call_id.get())) {
     check_group_call_is_joined_timeout_.set_timeout_in(group_call_id.get(), CHECK_GROUP_CALL_IS_JOINED_TIMEOUT);
   }
   DialogId dialog_id =
       set_group_call_participant_is_speaking_by_source(input_group_call_id, audio_source, is_speaking, date);
   if (!dialog_id.is_valid()) {
-    if (!recursive) {
+    if (!is_recursive) {
       auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, audio_source, is_speaking,
                                                    promise = std::move(promise), date](Result<Unit> &&result) mutable {
         if (G()->close_flag()) {
@@ -2782,7 +2808,7 @@ void GroupCallManager::set_group_call_participant_is_speaking(GroupCallId group_
   }
 
   if (is_speaking) {
-    on_user_speaking_in_group_call(group_call_id, dialog_id, date, recursive);
+    on_user_speaking_in_group_call(group_call_id, dialog_id, date, is_recursive);
   }
 
   if (group_call->audio_source == audio_source && group_call->dialog_id.is_valid() &&
@@ -3462,7 +3488,7 @@ void GroupCallManager::on_participant_speaking_in_group_call(InputGroupCallId in
 }
 
 void GroupCallManager::on_user_speaking_in_group_call(GroupCallId group_call_id, DialogId dialog_id, int32 date,
-                                                      bool recursive) {
+                                                      bool is_recursive) {
   if (G()->close_flag()) {
     return;
   }
@@ -3478,9 +3504,9 @@ void GroupCallManager::on_user_speaking_in_group_call(GroupCallId group_call_id,
   }
 
   if (!td_->messages_manager_->have_dialog_info_force(dialog_id) ||
-      (!recursive && need_group_call_participants(input_group_call_id, group_call) &&
+      (!is_recursive && need_group_call_participants(input_group_call_id, group_call) &&
        get_group_call_participant(input_group_call_id, dialog_id) == nullptr)) {
-    if (recursive) {
+    if (is_recursive) {
       LOG(ERROR) << "Failed to find speaking " << dialog_id << " from " << input_group_call_id;
     } else {
       auto query_promise =

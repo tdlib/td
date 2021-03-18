@@ -99,7 +99,7 @@ class GroupCallManager : public Actor {
   void on_update_group_call(tl_object_ptr<telegram_api::GroupCall> group_call_ptr, DialogId dialog_id);
 
   void on_user_speaking_in_group_call(GroupCallId group_call_id, DialogId dialog_id, int32 date,
-                                      bool recursive = false);
+                                      bool is_recursive = false);
 
   void on_get_group_call_participants(InputGroupCallId input_group_call_id,
                                       tl_object_ptr<telegram_api::phone_groupParticipants> &&participants, bool is_load,
@@ -107,7 +107,7 @@ class GroupCallManager : public Actor {
 
   void on_update_group_call_participants(InputGroupCallId input_group_call_id,
                                          vector<tl_object_ptr<telegram_api::groupCallParticipant>> &&participants,
-                                         int32 version);
+                                         int32 version, bool is_recursive = false);
 
   void process_join_group_call_response(InputGroupCallId input_group_call_id, uint64 generation,
                                         tl_object_ptr<telegram_api::Updates> &&updates, Promise<Unit> &&promise);

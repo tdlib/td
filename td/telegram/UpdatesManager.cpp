@@ -2836,7 +2836,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateGroupCall> upda
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateGroupCallParticipants> update,
                                Promise<Unit> &&promise) {
   send_closure(G()->group_call_manager(), &GroupCallManager::on_update_group_call_participants,
-               InputGroupCallId(update->call_), std::move(update->participants_), update->version_);
+               InputGroupCallId(update->call_), std::move(update->participants_), update->version_, false);
   promise.set_value(Unit());
 }
 
