@@ -1543,19 +1543,20 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
   while (!pending_mute_updates.empty()) {
     auto it = pending_mute_updates.begin();
     auto version = it->first;
-    if (version <= group_call->version) {
-      auto &participants = it->second.updates;
-      for (auto &participant_it : participants) {
-        auto &participant = participant_it.second;
-        on_participant_speaking_in_group_call(input_group_call_id, participant);
-        int mute_diff = process_group_call_participant(input_group_call_id, std::move(participant));
-        CHECK(mute_diff == 0);
-      }
-      pending_mute_updates.erase(it);
-      continue;
+    if (version > group_call->version) {
+      break;
     }
-    on_receive_group_call_version(input_group_call_id, version);
-    break;
+    auto &participants = it->second.updates;
+    for (auto &participant_it : participants) {
+      auto &participant = participant_it.second;
+      on_participant_speaking_in_group_call(input_group_call_id, participant);
+      int mute_diff = process_group_call_participant(input_group_call_id, std::move(participant));
+      CHECK(mute_diff == 0);
+    }
+    pending_mute_updates.erase(it);
+  }
+  if (!pending_mute_updates.empty()) {
+    on_receive_group_call_version(input_group_call_id, pending_mute_updates.begin()->first);
   }
 
   if (pending_version_updates.empty() && pending_mute_updates.empty()) {
