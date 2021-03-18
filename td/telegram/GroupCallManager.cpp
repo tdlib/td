@@ -42,9 +42,11 @@ class GetGroupCallStreamQuery : public Td::ResultHandler {
     auto input_stream = make_tl_object<telegram_api::inputGroupCallStream>(input_group_call_id.get_input_group_call(),
                                                                            time_offset, scale);
     int32 flags = 0;
-    send_query(G()->net_query_creator().create(
+    auto query = G()->net_query_creator().create(
         telegram_api::upload_getFile(flags, false /*ignored*/, false /*ignored*/, std::move(input_stream), 0, 1 << 20),
-        stream_dc_id, NetQuery::Type::DownloadSmall));
+        stream_dc_id, NetQuery::Type::DownloadSmall);
+    query->total_timeout_limit_ = 0;
+    send_query(std::move(query));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
