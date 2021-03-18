@@ -14,7 +14,8 @@
 
 namespace td {
 
-GroupCallParticipant::GroupCallParticipant(const tl_object_ptr<telegram_api::groupCallParticipant> &participant) {
+GroupCallParticipant::GroupCallParticipant(const tl_object_ptr<telegram_api::groupCallParticipant> &participant,
+                                           int32 call_version) {
   CHECK(participant != nullptr);
   dialog_id = DialogId(participant->peer_);
   about = std::move(participant->about_);
@@ -51,6 +52,7 @@ GroupCallParticipant::GroupCallParticipant(const tl_object_ptr<telegram_api::gro
   }
   is_just_joined = participant->just_joined_;
   is_min = participant->min_;
+  version = call_version;
 }
 
 bool GroupCallParticipant::is_versioned_update(const tl_object_ptr<telegram_api::groupCallParticipant> &participant) {

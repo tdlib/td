@@ -1148,7 +1148,11 @@ void GroupCallManager::finish_get_group_call(InputGroupCallId input_group_call_i
   }
 
   auto call = result.move_as_ok();
-  process_group_call_participants(input_group_call_id, std::move(call->participants_), string(), true, false);
+  int32 version = 0;
+  if (call->call_->get_id() == telegram_api::groupCall::ID) {
+    version = static_cast<const telegram_api::groupCall *>(call->call_.get())->version_;
+  }
+  process_group_call_participants(input_group_call_id, std::move(call->participants_), version, string(), true, false);
   if (need_group_call_participants(input_group_call_id)) {
     auto participants_it = group_call_participants_.find(input_group_call_id);
     if (participants_it != group_call_participants_.end()) {
@@ -1267,8 +1271,8 @@ void GroupCallManager::on_get_group_call_participants(
   }
 
   auto is_empty = participants->participants_.empty();
-  process_group_call_participants(input_group_call_id, std::move(participants->participants_), offset, is_load,
-                                  is_sync);
+  process_group_call_participants(input_group_call_id, std::move(participants->participants_), participants->version_,
+                                  offset, is_load, is_sync);
 
   if (!is_sync) {
     on_receive_group_call_version(input_group_call_id, participants->version_);
@@ -1380,7 +1384,7 @@ void GroupCallManager::on_update_group_call_participants(
     bool need_update = false;
     auto group_call = get_group_call(input_group_call_id);
     for (auto &group_call_participant : participants) {
-      GroupCallParticipant participant(group_call_participant);
+      GroupCallParticipant participant(group_call_participant, version);
       if (!participant.is_valid()) {
         LOG(ERROR) << "Receive invalid " << to_string(group_call_participant);
         continue;
@@ -1425,7 +1429,7 @@ void GroupCallManager::on_update_group_call_participants(
   if (!is_recursive) {
     vector<DialogId> missing_participants;
     for (auto &group_call_participant : participants) {
-      GroupCallParticipant participant(group_call_participant);
+      GroupCallParticipant participant(group_call_participant, version);
       if (participant.is_valid() && participant.is_min && participant.joined_date != 0 &&
           get_group_call_participant(group_call_participants, participant.dialog_id) == nullptr) {
         missing_participants.push_back(participant.dialog_id);
@@ -1448,7 +1452,7 @@ void GroupCallManager::on_update_group_call_participants(
   auto &pending_version_updates = group_call_participants->pending_version_updates_[version].updates;
   auto &pending_mute_updates = group_call_participants->pending_mute_updates_[version].updates;
   for (auto &group_call_participant : participants) {
-    GroupCallParticipant participant(group_call_participant);
+    GroupCallParticipant participant(group_call_participant, version);
     if (!participant.is_valid()) {
       LOG(ERROR) << "Receive invalid " << to_string(group_call_participant);
       continue;
@@ -1644,9 +1648,9 @@ GroupCallParticipantOrder GroupCallManager::get_real_participant_order(
 
 void GroupCallManager::process_group_call_participants(
     InputGroupCallId input_group_call_id, vector<tl_object_ptr<telegram_api::groupCallParticipant>> &&participants,
-    const string &offset, bool is_load, bool is_sync) {
+    int32 version, const string &offset, bool is_load, bool is_sync) {
   if (offset.empty() && is_load && !participants.empty() && participants[0]->self_) {
-    GroupCallParticipant participant(participants[0]);
+    GroupCallParticipant participant(participants[0], version);
     if (participant.is_valid()) {
       process_my_group_call_participant(input_group_call_id, std::move(participant));
     }
@@ -1654,7 +1658,7 @@ void GroupCallManager::process_group_call_participants(
   }
   if (!need_group_call_participants(input_group_call_id)) {
     for (auto &group_call_participant : participants) {
-      GroupCallParticipant participant(group_call_participant);
+      GroupCallParticipant participant(group_call_participant, version);
       if (!participant.is_valid()) {
         LOG(ERROR) << "Receive invalid " << to_string(group_call_participant);
         continue;
@@ -1684,7 +1688,7 @@ void GroupCallManager::process_group_call_participants(
   bool can_manage = can_manage_group_call(input_group_call_id);
   bool joined_date_asc = get_group_call_joined_date_asc(input_group_call_id);
   for (auto &group_call_participant : participants) {
-    GroupCallParticipant participant(group_call_participant);
+    GroupCallParticipant participant(group_call_participant, version);
     if (!participant.is_valid()) {
       LOG(ERROR) << "Receive invalid " << to_string(group_call_participant);
       continue;

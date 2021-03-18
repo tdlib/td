@@ -43,6 +43,7 @@ struct GroupCallParticipant {
   bool is_speaking = false;
   int32 local_active_date = 0;
   GroupCallParticipantOrder order;
+  int32 version = 0;
 
   int32 pending_volume_level = 0;
   uint64 pending_volume_level_generation = 0;
@@ -62,7 +63,7 @@ struct GroupCallParticipant {
 
   GroupCallParticipant() = default;
 
-  explicit GroupCallParticipant(const tl_object_ptr<telegram_api::groupCallParticipant> &participant);
+  GroupCallParticipant(const tl_object_ptr<telegram_api::groupCallParticipant> &participant, int32 call_version);
 
   static bool is_versioned_update(const tl_object_ptr<telegram_api::groupCallParticipant> &participant);
 

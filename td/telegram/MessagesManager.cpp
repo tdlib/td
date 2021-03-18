@@ -31573,7 +31573,7 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
     }
     case telegram_api::channelAdminLogEventActionParticipantMute::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantMute>(action_ptr);
-      GroupCallParticipant participant(std::move(action->participant_));
+      GroupCallParticipant participant(std::move(action->participant_), 0);
       if (!participant.is_valid()) {
         return nullptr;
       }
@@ -31582,7 +31582,7 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
     }
     case telegram_api::channelAdminLogEventActionParticipantUnmute::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantUnmute>(action_ptr);
-      GroupCallParticipant participant(std::move(action->participant_));
+      GroupCallParticipant participant(std::move(action->participant_), 0);
       if (!participant.is_valid()) {
         return nullptr;
       }
@@ -31591,7 +31591,7 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
     }
     case telegram_api::channelAdminLogEventActionParticipantVolume::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantVolume>(action_ptr);
-      GroupCallParticipant participant(std::move(action->participant_));
+      GroupCallParticipant participant(std::move(action->participant_), 0);
       if (!participant.is_valid()) {
         return nullptr;
       }
