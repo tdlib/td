@@ -1498,7 +1498,29 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
   bool is_left = false;
   bool need_rejoin = true;
   auto &pending_version_updates = participants_it->second->pending_version_updates_;
+  auto &pending_mute_updates = participants_it->second->pending_mute_updates_;
+
+  auto process_mute_updates = [&] {
+    while (!pending_mute_updates.empty()) {
+      auto it = pending_mute_updates.begin();
+      auto version = it->first;
+      if (version > group_call->version) {
+        return;
+      }
+      auto &participants = it->second.updates;
+      for (auto &participant_it : participants) {
+        auto &participant = participant_it.second;
+        on_participant_speaking_in_group_call(input_group_call_id, participant);
+        int mute_diff = process_group_call_participant(input_group_call_id, std::move(participant));
+        CHECK(mute_diff == 0);
+      }
+      pending_mute_updates.erase(it);
+    }
+  };
+
   while (!pending_version_updates.empty()) {
+    process_mute_updates();
+
     auto it = pending_version_updates.begin();
     auto version = it->first;
     auto &participants = it->second.updates;
@@ -1539,22 +1561,8 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
     }
   }
 
-  auto &pending_mute_updates = participants_it->second->pending_mute_updates_;
-  while (!pending_mute_updates.empty()) {
-    auto it = pending_mute_updates.begin();
-    auto version = it->first;
-    if (version > group_call->version) {
-      break;
-    }
-    auto &participants = it->second.updates;
-    for (auto &participant_it : participants) {
-      auto &participant = participant_it.second;
-      on_participant_speaking_in_group_call(input_group_call_id, participant);
-      int mute_diff = process_group_call_participant(input_group_call_id, std::move(participant));
-      CHECK(mute_diff == 0);
-    }
-    pending_mute_updates.erase(it);
-  }
+  process_mute_updates();
+
   if (!pending_mute_updates.empty()) {
     on_receive_group_call_version(input_group_call_id, pending_mute_updates.begin()->first);
   }
