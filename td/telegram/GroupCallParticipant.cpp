@@ -95,7 +95,8 @@ bool GroupCallParticipant::get_is_hand_raised() const {
 void GroupCallParticipant::update_from(const GroupCallParticipant &old_participant) {
   CHECK(!old_participant.is_min);
   if (joined_date < old_participant.joined_date) {
-    LOG(ERROR) << "Join date decreased from " << old_participant.joined_date << " to " << joined_date;
+    LOG(ERROR) << "Join date of " << old_participant.dialog_id << " decreased from " << old_participant.joined_date
+               << " to " << joined_date;
     joined_date = old_participant.joined_date;
   }
   if (active_date < old_participant.active_date) {
