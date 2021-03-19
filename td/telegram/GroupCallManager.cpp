@@ -1315,8 +1315,6 @@ void GroupCallManager::on_get_group_call_participants(
         }
         set_group_call_participant_count(group_call, real_participant_count, "on_get_group_call_participants");
         need_update = true;
-
-        update_group_call_dialog(group_call, "on_get_group_call_participants");
       }
       if (!is_empty && is_sync && group_call->loaded_all_participants && group_call->participant_count > 50) {
         group_call->loaded_all_participants = false;
@@ -1404,7 +1402,6 @@ void GroupCallManager::on_update_group_call_participants(
       if (diff != 0 && (group_call->participant_count != 0 || diff > 0)) {
         set_group_call_participant_count(group_call, group_call->participant_count + diff,
                                          "on_update_group_call_participants");
-        update_group_call_dialog(group_call, "on_update_group_call_participants");
         need_update = true;
       }
     }
@@ -1580,7 +1577,6 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
     set_group_call_participant_count(group_call, group_call->participant_count + diff,
                                      "process_pending_group_call_participant_updates");
     need_update = true;
-    update_group_call_dialog(group_call, "process_pending_group_call_participant_updates");
   }
   if (is_left && group_call->is_joined) {
     on_group_call_left_impl(group_call, need_rejoin);
@@ -2168,9 +2164,8 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
     int diff = process_group_call_participant(input_group_call_id, std::move(participant));
     if (diff != 0) {
       CHECK(diff == 1);
-      set_group_call_participant_count(group_call, group_call->participant_count + diff, "join_group_call");
+      set_group_call_participant_count(group_call, group_call->participant_count + diff, "join_group_call", true);
       need_update = true;
-      update_group_call_dialog(group_call, "join_group_call", true);
     }
   }
 
@@ -3452,7 +3447,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
   if (!join_params.empty()) {
     need_update |= on_join_group_call_response(input_group_call_id, std::move(join_params));
   }
-  update_group_call_dialog(group_call, "update_group_call");  // must be after join response is processed
+  update_group_call_dialog(group_call, "update_group_call", false);  // must be after join response is processed
   if (need_update) {
     send_update_group_call(group_call, "update_group_call");
   }
@@ -3648,7 +3643,8 @@ DialogId GroupCallManager::set_group_call_participant_is_speaking_by_source(Inpu
   return DialogId();
 }
 
-void GroupCallManager::set_group_call_participant_count(GroupCall *group_call, int32 count, const char *source) {
+void GroupCallManager::set_group_call_participant_count(GroupCall *group_call, int32 count, const char *source,
+                                                        bool force_update) {
   CHECK(group_call != nullptr);
   LOG(DEBUG) << "Set " << group_call->group_call_id << " participant count to " << count << " from " << source;
   if (count < 0) {
@@ -3658,6 +3654,7 @@ void GroupCallManager::set_group_call_participant_count(GroupCall *group_call, i
   } else {
     group_call->participant_count = count;
   }
+  update_group_call_dialog(group_call, source, force_update);
 }
 
 void GroupCallManager::update_group_call_dialog(const GroupCall *group_call, const char *source, bool force) {
