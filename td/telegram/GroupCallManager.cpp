@@ -500,8 +500,10 @@ class EditGroupCallParticipantQuery : public Td::ResultHandler {
 
   void send(InputGroupCallId input_group_call_id, DialogId dialog_id, bool is_muted, int32 volume_level,
             bool set_raise_hand, bool raise_hand) {
-    auto input_peer = MessagesManager::get_input_peer_force(dialog_id);
-    CHECK(input_peer != nullptr);
+    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Know);
+    if (input_peer == nullptr) {
+      return on_error(0, Status::Error(400, "Can't access the chat"));
+    }
 
     int32 flags = 0;
     if (set_raise_hand) {
