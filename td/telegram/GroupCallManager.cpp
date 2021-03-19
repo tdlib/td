@@ -3549,6 +3549,9 @@ void GroupCallManager::on_user_speaking_in_group_call(GroupCallId group_call_id,
 
   for (size_t i = 0; i <= recent_speakers->users.size(); i++) {
     if (i == recent_speakers->users.size() || recent_speakers->users[i].second <= date) {
+      if (dialog_id.get_type() != DialogType::User) {
+        td_->messages_manager_->force_create_dialog(dialog_id, "on_user_speaking_in_group_call");
+      }
       recent_speakers->users.insert(recent_speakers->users.begin() + i, {dialog_id, date});
       break;
     }
