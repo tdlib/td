@@ -14,6 +14,9 @@ extern const size_t thumbnail_size;
 extern const char *gzip_bomb;
 extern const size_t gzip_bomb_size;
 
+extern const char *gzip;
+extern const size_t gzip_size;
+
 extern const char *sqlite_sample_db_v3;
 extern const size_t sqlite_sample_db_v3_size;
 
