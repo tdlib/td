@@ -277,7 +277,7 @@ class GroupCallManager : public Actor {
 
   void try_clear_group_call_participants(InputGroupCallId input_group_call_id);
 
-  void set_group_call_participant_count(GroupCall *group_call, int32 count, const char *source,
+  bool set_group_call_participant_count(GroupCall *group_call, int32 count, const char *source,
                                         bool force_update = false);
 
   void update_group_call_dialog(const GroupCall *group_call, const char *source, bool force);
