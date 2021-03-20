@@ -87,7 +87,7 @@ Result<size_t> HttpReader::read_next(HttpQuery *query, bool can_be_slow) {
           gzip_flow_ = GzipByteFlow(Gzip::Mode::Decode);
           GzipByteFlow::Options options;
           options.write_watermark.low = 0;
-          options.write_watermark.high = max(max_post_size_, static_cast<size_t>(1 << 16));
+          options.write_watermark.high = max(max_post_size_, MAX_TOTAL_PARAMETERS_LENGTH + 1);
           gzip_flow_.set_options(options);
           gzip_flow_.set_max_output_size(MAX_CONTENT_SIZE);
           *source >> gzip_flow_;
