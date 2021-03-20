@@ -270,7 +270,7 @@ Result<bool> HttpReader::parse_multipart_form_data(bool can_be_slow) {
             return Status::Error(431, "Request Header Fields Too Large: total headers size exceeded");
           }
           if (form_data_read_length_ == 0) {
-            // there is no headers at all
+            // there are no headers at all
             return Status::Error(400, "Bad Request: headers in multipart/form-data are empty");
           }
 
@@ -324,24 +324,58 @@ Result<bool> HttpReader::parse_multipart_form_data(bool can_be_slow) {
                   break;
                 }
                 size_t key_size = key_end - header_value.data();
-                auto key = header_value.substr(0, key_size);
-                key = trim(key);
+                auto key = trim(header_value.substr(0, key_size));
 
                 header_value.remove_prefix(key_size + 1);
-                const char *value_end =
-                    static_cast<const char *>(std::memchr(header_value.data(), ';', header_value.size()));
-                size_t value_size;
-                if (value_end == nullptr) {
-                  value_size = header_value.size();
-                } else {
-                  value_size = value_end - header_value.data();
+
+                while (!header_value.empty() && is_space(header_value[0])) {
+                  header_value.remove_prefix(1);
                 }
-                auto value = header_value.substr(0, value_size);
-                value = trim(value);
-                if (value.size() > 1u && value[0] == '"' && value.back() == '"') {
-                  value = {value.data() + 1, value.size() - 2};
+
+                MutableSlice value;
+                if (!header_value.empty() && header_value[0] == '"') {  // quoted-string
+                  char *value_end = header_value.data() + 1;
+                  const char *pos = value_end;
+                  while (true) {
+                    if (pos == header_value.data() + header_value.size()) {
+                      return Status::Error(400, "Bad Request: unclosed quoted string in Content-Disposition header");
+                    }
+                    char c = *pos++;
+                    if (c == '"') {
+                      break;
+                    }
+                    if (c == '\\') {
+                      if (pos == header_value.data() + header_value.size()) {
+                        return Status::Error(400, "Bad Request: wrong escape sequence in Content-Disposition header");
+                      }
+                      c = *pos++;
+                    }
+                    *value_end++ = c;
+                  }
+                  value = header_value.substr(1, value_end - header_value.data() - 1);
+                  header_value.remove_prefix(pos - header_value.data());
+
+                  while (!header_value.empty() && is_space(header_value[0])) {
+                    header_value.remove_prefix(1);
+                  }
+                  if (!header_value.empty()) {
+                    if (header_value[0] != ';') {
+                      return Status::Error(400, "Bad Request: expected ';' in Content-Disposition header");
+                    }
+                    header_value.remove_prefix(1);
+                  }
+                } else {  // token
+                  auto value_end =
+                      static_cast<const char *>(std::memchr(header_value.data(), ';', header_value.size()));
+                  if (value_end != nullptr) {
+                    auto value_size = static_cast<size_t>(value_end - header_value.data());
+                    value = trim(header_value.substr(0, value_size));
+                    header_value.remove_prefix(value_size + 1);
+                  } else {
+                    value = trim(header_value);
+                    header_value = MutableSlice();
+                  }
                 }
-                header_value.remove_prefix(value_size + (header_value.size() > value_size));
 
                 if (key == "name") {
                   field_name_ = value;
