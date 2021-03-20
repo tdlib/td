@@ -1126,7 +1126,8 @@ vector<Slice> find_mentions(Slice str) {
     if (mention.size() >= 5) {
       return false;
     }
-    return get_valid_short_usernames().count(mention) == 0;
+    auto lowered_mention = to_lower(mention);
+    return get_valid_short_usernames().count(lowered_mention) == 0;
   });
   return mentions;
 }
