@@ -2346,12 +2346,12 @@ class EditChannelBannedQuery : public Td::ResultHandler {
   explicit EditChannelBannedQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(ChannelId channel_id, tl_object_ptr<telegram_api::InputUser> &&input_user, DialogParticipantStatus status) {
+  void send(ChannelId channel_id, tl_object_ptr<telegram_api::InputPeer> &&input_peer, DialogParticipantStatus status) {
     channel_id_ = channel_id;
     auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
     send_query(G()->net_query_creator().create(telegram_api::channels_editBanned(
-        std::move(input_channel), std::move(input_user), status.get_chat_banned_rights())));
+        std::move(input_channel), std::move(input_peer), status.get_chat_banned_rights())));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -2911,18 +2911,18 @@ class GetChannelParticipantQuery : public Td::ResultHandler {
   explicit GetChannelParticipantQuery(Promise<DialogParticipant> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(ChannelId channel_id, UserId user_id, tl_object_ptr<telegram_api::InputUser> &&input_user) {
+  void send(ChannelId channel_id, UserId user_id, tl_object_ptr<telegram_api::InputPeer> &&input_peer) {
     auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
     if (input_channel == nullptr) {
       return promise_.set_error(Status::Error(3, "Supergroup not found"));
     }
 
-    CHECK(input_user != nullptr);
+    CHECK(input_peer != nullptr);
 
     channel_id_ = channel_id;
     user_id_ = user_id;
     send_query(G()->net_query_creator().create(
-        telegram_api::channels_getParticipant(std::move(input_channel), std::move(input_user))));
+        telegram_api::channels_getParticipant(std::move(input_channel), std::move(input_peer))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -2935,6 +2935,7 @@ class GetChannelParticipantQuery : public Td::ResultHandler {
     LOG(INFO) << "Receive result for GetChannelParticipantQuery: " << to_string(participant);
 
     td->contacts_manager_->on_get_users(std::move(participant->users_), "GetChannelParticipantQuery");
+    td->contacts_manager_->on_get_chats(std::move(participant->chats_), "GetChannelParticipantQuery");
     DialogParticipant result(std::move(participant->participant_));
     if (!result.is_valid()) {
       LOG(ERROR) << "Receive invalid " << result;
@@ -3035,6 +3036,7 @@ class GetChannelAdministratorsQuery : public Td::ResultHandler {
       case telegram_api::channels_channelParticipants::ID: {
         auto participants = telegram_api::move_object_as<telegram_api::channels_channelParticipants>(participants_ptr);
         td->contacts_manager_->on_get_users(std::move(participants->users_), "GetChannelAdministratorsQuery");
+        td->contacts_manager_->on_get_chats(std::move(participants->chats_), "GetChannelAdministratorsQuery");
         vector<DialogAdministrator> administrators;
         administrators.reserve(participants->participants_.size());
         for (auto &participant : participants->participants_) {
@@ -4530,6 +4532,10 @@ tl_object_ptr<telegram_api::InputPeer> ContactsManager::get_input_peer_user(User
   }
   const User *u = get_user(user_id);
   if (!have_input_peer_user(u, access_rights)) {
+    if ((u == nullptr || u->access_hash == -1 || u->is_min_access_hash) && td_->auth_manager_->is_bot() &&
+        user_id.is_valid()) {
+      return make_tl_object<telegram_api::inputPeerUser>(user_id.get(), 0);
+    }
     return nullptr;
   }
 
@@ -6842,8 +6848,8 @@ void ContactsManager::change_channel_participant_status(ChannelId channel_id, Us
     return promise.set_error(Status::Error(6, "Chat info not found"));
   }
 
-  auto input_user = get_input_user(user_id);
-  if (input_user == nullptr) {
+  auto input_peer = get_input_peer_user(user_id, AccessRights::Read);
+  if (input_peer == nullptr) {
     return promise.set_error(Status::Error(6, "User not found"));
   }
 
@@ -6866,7 +6872,7 @@ void ContactsManager::change_channel_participant_status(ChannelId channel_id, Us
       });
 
   td_->create_handler<GetChannelParticipantQuery>(std::move(on_result_promise))
-      ->send(channel_id, user_id, std::move(input_user));
+      ->send(channel_id, user_id, std::move(input_peer));
 }
 
 void ContactsManager::change_channel_participant_status_impl(ChannelId channel_id, UserId user_id,
@@ -7390,8 +7396,8 @@ void ContactsManager::restrict_channel_participant(ChannelId channel_id, UserId 
       return promise.set_error(Status::Error(3, "Not in the chat"));
     }
   }
-  auto input_user = get_input_user(user_id);
-  if (input_user == nullptr) {
+  auto input_peer = get_input_peer_user(user_id, AccessRights::Read);
+  if (input_peer == nullptr) {
     return promise.set_error(Status::Error(3, "User not found"));
   }
 
@@ -7442,7 +7448,7 @@ void ContactsManager::restrict_channel_participant(ChannelId channel_id, UserId 
   }
 
   speculative_add_channel_user(channel_id, user_id, status, old_status);
-  td_->create_handler<EditChannelBannedQuery>(std::move(promise))->send(channel_id, std::move(input_user), status);
+  td_->create_handler<EditChannelBannedQuery>(std::move(promise))->send(channel_id, std::move(input_peer), status);
 }
 
 ChannelId ContactsManager::migrate_chat_to_megagroup(ChatId chat_id, Promise<Unit> &promise) {
@@ -11591,6 +11597,7 @@ void ContactsManager::on_get_channel_participants(
   }
 
   on_get_users(std::move(channel_participants->users_), "on_get_channel_participants");
+  on_get_chats(std::move(channel_participants->chats_), "on_get_channel_participants");
   int32 total_count = channel_participants->count_;
   auto participants = std::move(channel_participants->participants_);
   LOG(INFO) << "Receive " << participants.size() << " members in " << channel_id;
@@ -14763,8 +14770,8 @@ DialogParticipant ContactsManager::get_channel_participant(ChannelId channel_id,
     return result;
   }
 
-  auto input_user = get_input_user(user_id);
-  if (input_user == nullptr) {
+  auto input_peer = get_input_peer_user(user_id, AccessRights::Read);
+  if (input_peer == nullptr) {
     promise.set_error(Status::Error(6, "User not found"));
     return DialogParticipant();
   }
@@ -14776,7 +14783,7 @@ DialogParticipant ContactsManager::get_channel_participant(ChannelId channel_id,
       if (force) {
         LOG(ERROR) << "Can't find cached BotInfo";
       } else {
-        send_get_user_full_query(user_id, std::move(input_user), std::move(promise), "get_channel_participant");
+        send_get_user_full_query(user_id, get_input_user(user_id), std::move(promise), "get_channel_participant");
         return DialogParticipant();
       }
     }
@@ -14807,7 +14814,7 @@ DialogParticipant ContactsManager::get_channel_participant(ChannelId channel_id,
       });
 
   td_->create_handler<GetChannelParticipantQuery>(std::move(on_result_promise))
-      ->send(channel_id, user_id, std::move(input_user));
+      ->send(channel_id, user_id, std::move(input_peer));
   return DialogParticipant();
 }
 

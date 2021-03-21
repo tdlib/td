@@ -683,6 +683,15 @@ DialogParticipant::DialogParticipant(tl_object_ptr<telegram_api::ChatParticipant
 
 DialogParticipant::DialogParticipant(tl_object_ptr<telegram_api::ChannelParticipant> &&participant_ptr) {
   CHECK(participant_ptr != nullptr);
+
+  auto get_peer_user_id = [](const tl_object_ptr<telegram_api::Peer> &peer) {
+    DialogId dialog_id(peer);
+    if (dialog_id.get_type() == DialogType::User) {
+      return dialog_id.get_user_id();
+    }
+    return UserId();
+  };
+
   switch (participant_ptr->get_id()) {
     case telegram_api::channelParticipant::ID: {
       auto participant = move_tl_object_as<telegram_api::channelParticipant>(participant_ptr);
@@ -712,13 +721,13 @@ DialogParticipant::DialogParticipant(tl_object_ptr<telegram_api::ChannelParticip
     }
     case telegram_api::channelParticipantLeft::ID: {
       auto participant = move_tl_object_as<telegram_api::channelParticipantLeft>(participant_ptr);
-      *this = {UserId(participant->user_id_), UserId(), 0, DialogParticipantStatus::Left()};
+      *this = {get_peer_user_id(participant->peer_), UserId(), 0, DialogParticipantStatus::Left()};
       break;
     }
     case telegram_api::channelParticipantBanned::ID: {
       auto participant = move_tl_object_as<telegram_api::channelParticipantBanned>(participant_ptr);
       auto is_member = (participant->flags_ & telegram_api::channelParticipantBanned::LEFT_MASK) == 0;
-      *this = {UserId(participant->user_id_), UserId(participant->kicked_by_), participant->date_,
+      *this = {get_peer_user_id(participant->peer_), UserId(participant->kicked_by_), participant->date_,
                get_dialog_participant_status(is_member, std::move(participant->banned_rights_))};
       break;
     }
