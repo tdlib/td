@@ -477,20 +477,21 @@ chatMemberStatusMember = ChatMemberStatus;
 //@permissions User permissions in the chat
 chatMemberStatusRestricted is_member:Bool restricted_until_date:int32 permissions:chatPermissions = ChatMemberStatus;
 
-//@description The user is not a chat member
+//@description The user or the chat is not a chat member
 chatMemberStatusLeft = ChatMemberStatus;
 
-//@description The user was banned (and hence is not a member of the chat). Implies the user can't return to the chat or view messages
+//@description The user or the chat was banned (and hence is not a member of the chat). Implies the user can't return to the chat, view messages, or be used as an alias to join a voice chat of the chat
 //@banned_until_date Point in time (Unix timestamp) when the user will be unbanned; 0 if never. If the user is banned for more than 366 days or for less than 30 seconds from the current time, the user is considered to be banned forever. Always 0 in basic groups
 chatMemberStatusBanned banned_until_date:int32 = ChatMemberStatus;
 
 
-//@description A user with information about joining/leaving a chat @user_id User identifier of the chat member
+//@description Information about a user or a chat as a member of another chat
+//@member_id Identifier of the chat member. Currently, other chats can be only Left or Banned. Only supergroups and channels can have other chats as Left or Banned members and these chats must be supergroups or channels
 //@inviter_user_id Identifier of a user that invited/promoted/banned this member in the chat; 0 if unknown
 //@joined_chat_date Point in time (Unix timestamp) when the user joined the chat
 //@status Status of the member in the chat
 //@bot_info If the user is a bot, information about the bot; may be null. Can be null even for a bot if the bot is not the chat member
-chatMember user_id:int32 inviter_user_id:int32 joined_chat_date:int32 status:ChatMemberStatus bot_info:botInfo = ChatMember;
+chatMember member_id:MessageSender inviter_user_id:int32 joined_chat_date:int32 status:ChatMemberStatus bot_info:botInfo = ChatMember;
 
 //@description Contains a list of chat members @total_count Approximate total count of chat members found @members A list of chat members
 chatMembers total_count:int32 members:vector<chatMember> = ChatMembers;
@@ -2411,11 +2412,11 @@ chatEventMemberLeft = ChatEventAction;
 //@description A new chat member was invited @user_id New member user identifier @status New member status
 chatEventMemberInvited user_id:int32 status:ChatMemberStatus = ChatEventAction;
 
-//@description A chat member has gained/lost administrator status, or the list of their administrator privileges has changed @user_id Chat member user identifier @old_status Previous status of the chat member @new_status New status of the chat member
+//@description A chat member has gained/lost administrator status, or the list of their administrator privileges has changed @user_id Affected chat member user identifier @old_status Previous status of the chat member @new_status New status of the chat member
 chatEventMemberPromoted user_id:int32 old_status:ChatMemberStatus new_status:ChatMemberStatus = ChatEventAction;
 
-//@description A chat member was restricted/unrestricted or banned/unbanned, or the list of their restrictions has changed @user_id Chat member user identifier @old_status Previous status of the chat member @new_status New status of the chat member
-chatEventMemberRestricted user_id:int32 old_status:ChatMemberStatus new_status:ChatMemberStatus = ChatEventAction;
+//@description A chat member was restricted/unrestricted or banned/unbanned, or the list of their restrictions has changed @member_id Affected chat member identifier @old_status Previous status of the chat member @new_status New status of the chat member
+chatEventMemberRestricted member_id:MessageSender old_status:ChatMemberStatus new_status:ChatMemberStatus = ChatEventAction;
 
 //@description The chat title was changed @old_title Previous chat title @new_title New chat title
 chatEventTitleChanged old_title:string new_title:string = ChatEventAction;

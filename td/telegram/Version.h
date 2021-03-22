@@ -42,6 +42,7 @@ enum class Version : int32 {
   AddPhotoProgressiveSizes,
   AddLiveLocationHeading,
   AddLiveLocationProximityAlertDistance,  // 30
+  SupportBannedChannels,
   Next
 };
 

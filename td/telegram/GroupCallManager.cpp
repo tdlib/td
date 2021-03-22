@@ -675,7 +675,7 @@ struct GroupCallManager::GroupCallParticipants {
   bool joined_date_asc = false;
 
   bool are_administrators_loaded = false;
-  vector<UserId> administrator_user_ids;
+  vector<DialogId> administrator_dialog_ids;
 
   struct PendingUpdates {
     std::unordered_map<DialogId, GroupCallParticipant, DialogIdHash> updates;
@@ -1790,8 +1790,7 @@ void GroupCallManager::process_group_call_participants(
 bool GroupCallManager::update_group_call_participant_can_be_muted(bool can_manage,
                                                                   const GroupCallParticipants *participants,
                                                                   GroupCallParticipant &participant) {
-  bool is_admin = participant.dialog_id.get_type() == DialogType::User &&
-                  td::contains(participants->administrator_user_ids, participant.dialog_id.get_user_id());
+  bool is_admin = td::contains(participants->administrator_dialog_ids, participant.dialog_id);
   return participant.update_can_be_muted(can_manage, is_admin);
 }
 
@@ -2233,23 +2232,24 @@ void GroupCallManager::finish_load_group_call_administrators(InputGroupCallId in
     return;
   }
 
-  vector<UserId> administrator_user_ids;
+  vector<DialogId> administrator_dialog_ids;
   auto participants = result.move_as_ok();
   for (auto &administrator : participants.participants_) {
-    if (administrator.status.can_manage_calls() && administrator.user_id != td_->contacts_manager_->get_my_id()) {
-      administrator_user_ids.push_back(administrator.user_id);
+    if (administrator.status.can_manage_calls() &&
+        administrator.dialog_id != DialogId(td_->contacts_manager_->get_my_id())) {
+      administrator_dialog_ids.push_back(administrator.dialog_id);
     }
   }
 
   auto *group_call_participants = add_group_call_participants(input_group_call_id);
   if (group_call_participants->are_administrators_loaded &&
-      group_call_participants->administrator_user_ids == administrator_user_ids) {
+      group_call_participants->administrator_dialog_ids == administrator_dialog_ids) {
     return;
   }
 
-  LOG(INFO) << "Set administrators of " << input_group_call_id << " to " << administrator_user_ids;
+  LOG(INFO) << "Set administrators of " << input_group_call_id << " to " << administrator_dialog_ids;
   group_call_participants->are_administrators_loaded = true;
-  group_call_participants->administrator_user_ids = std::move(administrator_user_ids);
+  group_call_participants->administrator_dialog_ids = std::move(administrator_dialog_ids);
 
   update_group_call_participants_can_be_muted(input_group_call_id, true, group_call_participants);
 }
@@ -2884,8 +2884,7 @@ void GroupCallManager::toggle_group_call_participant_is_muted(GroupCallId group_
   }
 
   bool can_manage = can_manage_group_call(input_group_call_id);
-  bool is_admin = dialog_id.get_type() == DialogType::User &&
-                  td::contains(participants->administrator_user_ids, dialog_id.get_user_id());
+  bool is_admin = td::contains(participants->administrator_dialog_ids, dialog_id);
 
   auto participant_copy = *participant;
   if (!participant_copy.set_pending_is_muted(is_muted, can_manage, is_admin)) {

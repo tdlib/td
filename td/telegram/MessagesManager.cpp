@@ -31369,20 +31369,21 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
     case telegram_api::channelAdminLogEventActionParticipantInvite::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantInvite>(action_ptr);
       DialogParticipant dialog_participant(std::move(action->participant_));
-      if (!dialog_participant.is_valid()) {
+      if (!dialog_participant.is_valid() || dialog_participant.dialog_id.get_type() != DialogType::User) {
         LOG(ERROR) << "Wrong invite: " << dialog_participant;
         return nullptr;
       }
       return make_tl_object<td_api::chatEventMemberInvited>(
-          td_->contacts_manager_->get_user_id_object(dialog_participant.user_id, "chatEventMemberInvited"),
+          td_->contacts_manager_->get_user_id_object(dialog_participant.dialog_id.get_user_id(),
+                                                     "chatEventMemberInvited"),
           dialog_participant.status.get_chat_member_status_object());
     }
     case telegram_api::channelAdminLogEventActionParticipantToggleBan::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantToggleBan>(action_ptr);
       DialogParticipant old_dialog_participant(std::move(action->prev_participant_));
       DialogParticipant new_dialog_participant(std::move(action->new_participant_));
-      if (old_dialog_participant.user_id != new_dialog_participant.user_id) {
-        LOG(ERROR) << old_dialog_participant.user_id << " VS " << new_dialog_participant.user_id;
+      if (old_dialog_participant.dialog_id != new_dialog_participant.dialog_id) {
+        LOG(ERROR) << old_dialog_participant.dialog_id << " VS " << new_dialog_participant.dialog_id;
         return nullptr;
       }
       if (!old_dialog_participant.is_valid() || !new_dialog_participant.is_valid()) {
@@ -31390,7 +31391,7 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
         return nullptr;
       }
       return make_tl_object<td_api::chatEventMemberRestricted>(
-          td_->contacts_manager_->get_user_id_object(old_dialog_participant.user_id, "chatEventMemberRestricted"),
+          get_message_sender_object(old_dialog_participant.dialog_id),
           old_dialog_participant.status.get_chat_member_status_object(),
           new_dialog_participant.status.get_chat_member_status_object());
     }
@@ -31398,16 +31399,18 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantToggleAdmin>(action_ptr);
       DialogParticipant old_dialog_participant(std::move(action->prev_participant_));
       DialogParticipant new_dialog_participant(std::move(action->new_participant_));
-      if (old_dialog_participant.user_id != new_dialog_participant.user_id) {
-        LOG(ERROR) << old_dialog_participant.user_id << " VS " << new_dialog_participant.user_id;
+      if (old_dialog_participant.dialog_id != new_dialog_participant.dialog_id) {
+        LOG(ERROR) << old_dialog_participant.dialog_id << " VS " << new_dialog_participant.dialog_id;
         return nullptr;
       }
-      if (!old_dialog_participant.is_valid() || !new_dialog_participant.is_valid()) {
+      if (!old_dialog_participant.is_valid() || !new_dialog_participant.is_valid() ||
+          old_dialog_participant.dialog_id.get_type() != DialogType::User) {
         LOG(ERROR) << "Wrong edit administrator: " << old_dialog_participant << " -> " << new_dialog_participant;
         return nullptr;
       }
       return make_tl_object<td_api::chatEventMemberPromoted>(
-          td_->contacts_manager_->get_user_id_object(old_dialog_participant.user_id, "chatEventMemberPromoted"),
+          td_->contacts_manager_->get_user_id_object(old_dialog_participant.dialog_id.get_user_id(),
+                                                     "chatEventMemberPromoted"),
           old_dialog_participant.status.get_chat_member_status_object(),
           new_dialog_participant.status.get_chat_member_status_object());
     }
