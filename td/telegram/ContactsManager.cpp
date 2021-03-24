@@ -4585,6 +4585,9 @@ tl_object_ptr<telegram_api::InputPeer> ContactsManager::get_input_peer_channel(C
                                                                                AccessRights access_rights) const {
   const Channel *c = get_channel(channel_id);
   if (!have_input_peer_channel(c, channel_id, access_rights)) {
+    if (c == nullptr && td_->auth_manager_->is_bot() && channel_id.is_valid()) {
+      return make_tl_object<telegram_api::inputPeerChannel>(channel_id.get(), 0);
+    }
     return nullptr;
   }
 
