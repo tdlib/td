@@ -525,8 +525,9 @@ class ContactsManager : public Actor {
   void ban_dialog_participant(DialogId dialog_id, UserId user_id, int32 banned_until_date, bool revoke_messages,
                               Promise<Unit> &&promise);
 
-  DialogParticipant get_dialog_participant(DialogId dialog_id, UserId user_id, int64 &random_id, bool force,
-                                           Promise<Unit> &&promise);
+  DialogParticipant get_dialog_participant(DialogId dialog_id,
+                                           const td_api::object_ptr<td_api::MessageSender> &member_id, int64 &random_id,
+                                           bool force, Promise<Unit> &&promise);
 
   void search_dialog_participants(DialogId dialog_id, const string &query, int32 limit, DialogParticipantsFilter filter,
                                   bool without_bot_info, Promise<DialogParticipants> &&promise);
@@ -1425,8 +1426,8 @@ class ContactsManager : public Actor {
 
   DialogParticipant get_chat_participant(ChatId chat_id, UserId user_id, bool force, Promise<Unit> &&promise);
 
-  DialogParticipant get_channel_participant(ChannelId channel_id, UserId user_id, int64 &random_id, bool force,
-                                            Promise<Unit> &&promise);
+  DialogParticipant get_channel_participant(ChannelId channel_id, DialogId participant_dialog_id, int64 &random_id,
+                                            bool force, Promise<Unit> &&promise);
 
   static string get_dialog_administrators_database_key(DialogId dialog_id);
 

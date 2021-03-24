@@ -2452,9 +2452,9 @@ class CliClient final : public Actor {
                                                                   get_chat_members_filter(filter)));
     } else if (op == "gcm") {
       string chat_id;
-      string user_id;
-      get_args(args, chat_id, user_id);
-      send_request(td_api::make_object<td_api::getChatMember>(as_chat_id(chat_id), as_user_id(user_id)));
+      string member_id;
+      get_args(args, chat_id, member_id);
+      send_request(td_api::make_object<td_api::getChatMember>(as_chat_id(chat_id), as_message_sender(member_id)));
     } else if (op == "GetChatAdministrators") {
       string chat_id = args;
       send_request(td_api::make_object<td_api::getChatAdministrators>(as_chat_id(chat_id)));

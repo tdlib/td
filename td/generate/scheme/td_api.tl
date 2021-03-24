@@ -4393,8 +4393,8 @@ canTransferOwnership = CanTransferOwnershipResult;
 //@chat_id Chat identifier @user_id Identifier of the user to which transfer the ownership. The ownership can't be transferred to a bot or to a deleted user @password The password of the current user
 transferChatOwnership chat_id:int53 user_id:int32 password:string = Ok;
 
-//@description Returns information about a single member of a chat @chat_id Chat identifier @user_id User identifier
-getChatMember chat_id:int53 user_id:int32 = ChatMember;
+//@description Returns information about a single member of a chat @chat_id Chat identifier @member_id Member identifier
+getChatMember chat_id:int53 member_id:MessageSender = ChatMember;
 
 //@description Searches for a specified query in the first name, last name and username of the members of a specified chat. Requires administrator rights in channels @chat_id Chat identifier @query Query to search for @limit The maximum number of users to be returned @filter The type of users to return. By default, chatMembersFilterMembers
 searchChatMembers chat_id:int53 query:string limit:int32 filter:ChatMembersFilter = ChatMembers;

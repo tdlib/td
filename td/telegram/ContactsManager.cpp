@@ -2905,13 +2905,13 @@ class GetFullChannelQuery : public Td::ResultHandler {
 class GetChannelParticipantQuery : public Td::ResultHandler {
   Promise<DialogParticipant> promise_;
   ChannelId channel_id_;
-  UserId user_id_;
+  DialogId participant_dialog_id_;
 
  public:
   explicit GetChannelParticipantQuery(Promise<DialogParticipant> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(ChannelId channel_id, UserId user_id, tl_object_ptr<telegram_api::InputPeer> &&input_peer) {
+  void send(ChannelId channel_id, DialogId participant_dialog_id, tl_object_ptr<telegram_api::InputPeer> &&input_peer) {
     auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
     if (input_channel == nullptr) {
       return promise_.set_error(Status::Error(3, "Supergroup not found"));
@@ -2920,7 +2920,7 @@ class GetChannelParticipantQuery : public Td::ResultHandler {
     CHECK(input_peer != nullptr);
 
     channel_id_ = channel_id;
-    user_id_ = user_id;
+    participant_dialog_id_ = participant_dialog_id;
     send_query(G()->net_query_creator().create(
         telegram_api::channels_getParticipant(std::move(input_channel), std::move(input_peer))));
   }
@@ -2946,11 +2946,11 @@ class GetChannelParticipantQuery : public Td::ResultHandler {
 
   void on_error(uint64 id, Status status) override {
     if (status.message() == "USER_NOT_PARTICIPANT") {
-      promise_.set_value(DialogParticipant::left(DialogId(user_id_)));
+      promise_.set_value(DialogParticipant::left(participant_dialog_id_));
       return;
     }
 
-    td->contacts_manager_->on_get_channel_error(channel_id_, status, "GetChannelParticipantQuery");
+    // td->contacts_manager_->on_get_channel_error(channel_id_, status, "GetChannelParticipantQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -6873,7 +6873,7 @@ void ContactsManager::change_channel_participant_status(ChannelId channel_id, Us
       });
 
   td_->create_handler<GetChannelParticipantQuery>(std::move(on_result_promise))
-      ->send(channel_id, user_id, std::move(input_peer));
+      ->send(channel_id, DialogId(user_id), std::move(input_peer));
 }
 
 void ContactsManager::change_channel_participant_status_impl(ChannelId channel_id, UserId user_id,
@@ -14531,47 +14531,73 @@ void ContactsManager::ban_dialog_participant(DialogId dialog_id, UserId user_id,
   }
 }
 
-DialogParticipant ContactsManager::get_dialog_participant(DialogId dialog_id, UserId user_id, int64 &random_id,
-                                                          bool force, Promise<Unit> &&promise) {
-  LOG(INFO) << "Receive GetChatMember request to get " << user_id << " in " << dialog_id << " with random_id "
-            << random_id;
+DialogParticipant ContactsManager::get_dialog_participant(DialogId dialog_id,
+                                                          const td_api::object_ptr<td_api::MessageSender> &member_id,
+                                                          int64 &random_id, bool force, Promise<Unit> &&promise) {
+  LOG(INFO) << "Receive GetChatMember request to get " << to_string(member_id) << " in " << dialog_id
+            << " with random_id " << random_id;
   if (!td_->messages_manager_->have_dialog_force(dialog_id, "get_dialog_participant")) {
     promise.set_error(Status::Error(3, "Chat not found"));
     return DialogParticipant();
   }
 
+  if (member_id == nullptr) {
+    promise.set_error(Status::Error(3, "Member must be non-empty"));
+    return DialogParticipant();
+  }
+  DialogId participant_dialog_id;
+  switch (member_id->get_id()) {
+    case td_api::messageSenderUser::ID:
+      participant_dialog_id =
+          DialogId(UserId(static_cast<const td_api::messageSenderUser *>(member_id.get())->user_id_));
+      break;
+    case td_api::messageSenderChat::ID:
+      participant_dialog_id = DialogId(static_cast<const td_api::messageSenderChat *>(member_id.get())->chat_id_);
+      break;
+    default:
+      UNREACHABLE();
+  }
+  if (!participant_dialog_id.is_valid()) {
+    promise.set_error(Status::Error(3, "Invalid member identifier specified"));
+    return DialogParticipant();
+  }
+
   switch (dialog_id.get_type()) {
-    case DialogType::User: {
-      auto peer_user_id = dialog_id.get_user_id();
-      if (user_id == get_my_id()) {
+    case DialogType::User:
+      if (participant_dialog_id == DialogId(get_my_id())) {
         promise.set_value(Unit());
-        return {DialogId(user_id), peer_user_id, 0, DialogParticipantStatus::Member()};
+        return {participant_dialog_id, dialog_id.get_user_id(), 0, DialogParticipantStatus::Member()};
       }
-      if (user_id == peer_user_id) {
+      if (participant_dialog_id == dialog_id) {
         promise.set_value(Unit());
-        return {DialogId(peer_user_id), user_id, 0, DialogParticipantStatus::Member()};
+        return {participant_dialog_id, get_my_id(), 0, DialogParticipantStatus::Member()};
       }
 
-      promise.set_error(Status::Error(3, "User is not a member of the private chat"));
+      promise.set_error(Status::Error(3, "Member not found"));
       break;
-    }
     case DialogType::Chat:
-      return get_chat_participant(dialog_id.get_chat_id(), user_id, force, std::move(promise));
+      if (participant_dialog_id.get_type() != DialogType::User) {
+        promise.set_value(Unit());
+        return DialogParticipant::left(participant_dialog_id);
+      }
+      return get_chat_participant(dialog_id.get_chat_id(), participant_dialog_id.get_user_id(), force,
+                                  std::move(promise));
     case DialogType::Channel:
-      return get_channel_participant(dialog_id.get_channel_id(), user_id, random_id, force, std::move(promise));
+      return get_channel_participant(dialog_id.get_channel_id(), participant_dialog_id, random_id, force,
+                                     std::move(promise));
     case DialogType::SecretChat: {
       auto peer_user_id = get_secret_chat_user_id(dialog_id.get_secret_chat_id());
-      if (user_id == get_my_id()) {
+      if (participant_dialog_id == DialogId(get_my_id())) {
         promise.set_value(Unit());
-        return {DialogId(user_id), peer_user_id.is_valid() ? peer_user_id : user_id, 0,
+        return {participant_dialog_id, peer_user_id.is_valid() ? peer_user_id : get_my_id(), 0,
                 DialogParticipantStatus::Member()};
       }
-      if (peer_user_id.is_valid() && user_id == peer_user_id) {
+      if (participant_dialog_id == DialogId(peer_user_id)) {
         promise.set_value(Unit());
-        return {DialogId(peer_user_id), user_id, 0, DialogParticipantStatus::Member()};
+        return {participant_dialog_id, get_my_id(), 0, DialogParticipantStatus::Member()};
       }
 
-      promise.set_error(Status::Error(3, "User is not a member of the secret chat"));
+      promise.set_error(Status::Error(3, "Member not found"));
       break;
     }
     case DialogType::None:
@@ -14794,9 +14820,10 @@ void ContactsManager::do_search_chat_participants(ChatId chat_id, const string &
                                        })});
 }
 
-DialogParticipant ContactsManager::get_channel_participant(ChannelId channel_id, UserId user_id, int64 &random_id,
-                                                           bool force, Promise<Unit> &&promise) {
-  LOG(INFO) << "Trying to get " << user_id << " as member of " << channel_id << " with random_id " << random_id;
+DialogParticipant ContactsManager::get_channel_participant(ChannelId channel_id, DialogId participant_dialog_id,
+                                                           int64 &random_id, bool force, Promise<Unit> &&promise) {
+  LOG(INFO) << "Trying to get " << participant_dialog_id << " as member of " << channel_id << " with random_id "
+            << random_id;
   if (random_id != 0) {
     // request has already been sent before
     auto it = received_channel_participant_.find(random_id);
@@ -14807,13 +14834,15 @@ DialogParticipant ContactsManager::get_channel_participant(ChannelId channel_id,
     return result;
   }
 
-  auto input_peer = get_input_peer_user(user_id, AccessRights::Read);
+  auto input_peer = td_->messages_manager_->get_input_peer(participant_dialog_id, AccessRights::Read);
   if (input_peer == nullptr) {
     promise.set_error(Status::Error(6, "User not found"));
     return DialogParticipant();
   }
 
-  if (!td_->auth_manager_->is_bot() && is_user_bot(user_id)) {
+  if (!td_->auth_manager_->is_bot() && participant_dialog_id.get_type() == DialogType::User &&
+      is_user_bot(participant_dialog_id.get_user_id())) {
+    auto user_id = participant_dialog_id.get_user_id();
     auto u = get_user(user_id);
     CHECK(u != nullptr);
     if (is_bot_info_expired(user_id, u->bot_info_version)) {
@@ -14831,7 +14860,8 @@ DialogParticipant ContactsManager::get_channel_participant(ChannelId channel_id,
   } while (random_id == 0 || received_channel_participant_.find(random_id) != received_channel_participant_.end());
   received_channel_participant_[random_id];  // reserve place for result
 
-  LOG(DEBUG) << "Get info about " << user_id << " membership in the " << channel_id << " with random_id " << random_id;
+  LOG(DEBUG) << "Get info about " << participant_dialog_id << " membership in the " << channel_id << " with random_id "
+             << random_id;
 
   auto on_result_promise = PromiseCreator::lambda(
       [this, random_id, promise = std::move(promise)](Result<DialogParticipant> r_dialog_participant) mutable {
@@ -14851,7 +14881,7 @@ DialogParticipant ContactsManager::get_channel_participant(ChannelId channel_id,
       });
 
   td_->create_handler<GetChannelParticipantQuery>(std::move(on_result_promise))
-      ->send(channel_id, user_id, std::move(input_peer));
+      ->send(channel_id, participant_dialog_id, std::move(input_peer));
   return DialogParticipant();
 }
 
