@@ -495,6 +495,8 @@ class MessagesManager : public Actor {
 
   tl_object_ptr<td_api::chatEvents> get_chat_events_object(int64 random_id);
 
+  string get_dialog_title(DialogId dialog_id) const;
+
   bool have_dialog(DialogId dialog_id) const;
   bool have_dialog_force(DialogId dialog_id, const char *source = "have_dialog_force");
 
@@ -2692,8 +2694,6 @@ class MessagesManager : public Actor {
       DialogId dialog_id, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup_ptr) const TD_WARN_UNUSED_RESULT;
 
   const DialogPhoto *get_dialog_photo(DialogId dialog_id) const;
-
-  string get_dialog_title(DialogId dialog_id) const;
 
   string get_dialog_username(DialogId dialog_id) const;
 

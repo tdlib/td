@@ -1416,10 +1416,10 @@ class ContactsManager : public Actor {
 
   const DialogParticipant *get_chat_participant(ChatId chat_id, UserId user_id) const;
 
-  static const DialogParticipant *get_chat_full_participant(const ChatFull *chat_full, UserId user_id);
+  static const DialogParticipant *get_chat_full_participant(const ChatFull *chat_full, DialogId dialog_id);
 
-  std::pair<int32, vector<UserId>> search_among_users(const vector<UserId> &user_ids, const string &query,
-                                                      int32 limit) const;
+  std::pair<int32, vector<DialogId>> search_among_dialogs(const vector<DialogId> &dialog_ids, const string &query,
+                                                          int32 limit) const;
 
   DialogParticipants search_private_chat_participants(UserId my_user_id, UserId peer_user_id, const string &query,
                                                       int32 limit, DialogParticipantsFilter filter) const;
