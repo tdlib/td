@@ -514,6 +514,8 @@ class ContactsManager : public Actor {
   ChannelId get_channel_linked_channel_id(ChannelId channel_id);
   int32 get_channel_slow_mode_delay(ChannelId channel_id);
 
+  static DialogId get_participant_dialog_id(const td_api::object_ptr<td_api::MessageSender> &participant_id);
+
   void add_dialog_participant(DialogId dialog_id, UserId user_id, int32 forward_limit, Promise<Unit> &&promise);
 
   void add_dialog_participants(DialogId dialog_id, const vector<UserId> &user_ids, Promise<Unit> &&promise);
@@ -525,8 +527,7 @@ class ContactsManager : public Actor {
   void ban_dialog_participant(DialogId dialog_id, UserId user_id, int32 banned_until_date, bool revoke_messages,
                               Promise<Unit> &&promise);
 
-  DialogParticipant get_dialog_participant(DialogId dialog_id,
-                                           const td_api::object_ptr<td_api::MessageSender> &member_id, int64 &random_id,
+  DialogParticipant get_dialog_participant(DialogId dialog_id, DialogId participant_dialog_id, int64 &random_id,
                                            bool force, Promise<Unit> &&promise);
 
   void search_dialog_participants(DialogId dialog_id, const string &query, int32 limit, DialogParticipantsFilter filter,

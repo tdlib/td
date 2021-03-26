@@ -14451,6 +14451,21 @@ std::pair<int32, vector<DialogId>> ContactsManager::search_among_dialogs(const v
   return {narrow_cast<int32>(result.first), transform(result.second, [](int64 key) { return DialogId(key); })};
 }
 
+DialogId ContactsManager::get_participant_dialog_id(const td_api::object_ptr<td_api::MessageSender> &participant_id) {
+  if (participant_id == nullptr) {
+    return DialogId();
+  }
+  switch (participant_id->get_id()) {
+    case td_api::messageSenderUser::ID:
+      return DialogId(UserId(static_cast<const td_api::messageSenderUser *>(participant_id.get())->user_id_));
+    case td_api::messageSenderChat::ID:
+      return DialogId(static_cast<const td_api::messageSenderChat *>(participant_id.get())->chat_id_);
+    default:
+      UNREACHABLE();
+      return DialogId();
+  }
+}
+
 void ContactsManager::add_dialog_participant(DialogId dialog_id, UserId user_id, int32 forward_limit,
                                              Promise<Unit> &&promise) {
   if (!td_->messages_manager_->have_dialog_force(dialog_id, "add_dialog_participant")) {
@@ -14543,32 +14558,15 @@ void ContactsManager::ban_dialog_participant(DialogId dialog_id, UserId user_id,
   }
 }
 
-DialogParticipant ContactsManager::get_dialog_participant(DialogId dialog_id,
-                                                          const td_api::object_ptr<td_api::MessageSender> &member_id,
+DialogParticipant ContactsManager::get_dialog_participant(DialogId dialog_id, DialogId participant_dialog_id,
                                                           int64 &random_id, bool force, Promise<Unit> &&promise) {
-  LOG(INFO) << "Receive GetChatMember request to get " << to_string(member_id) << " in " << dialog_id
+  LOG(INFO) << "Receive GetChatMember request to get " << participant_dialog_id << " in " << dialog_id
             << " with random_id " << random_id;
   if (!td_->messages_manager_->have_dialog_force(dialog_id, "get_dialog_participant")) {
     promise.set_error(Status::Error(3, "Chat not found"));
     return DialogParticipant();
   }
 
-  if (member_id == nullptr) {
-    promise.set_error(Status::Error(3, "Member must be non-empty"));
-    return DialogParticipant();
-  }
-  DialogId participant_dialog_id;
-  switch (member_id->get_id()) {
-    case td_api::messageSenderUser::ID:
-      participant_dialog_id =
-          DialogId(UserId(static_cast<const td_api::messageSenderUser *>(member_id.get())->user_id_));
-      break;
-    case td_api::messageSenderChat::ID:
-      participant_dialog_id = DialogId(static_cast<const td_api::messageSenderChat *>(member_id.get())->chat_id_);
-      break;
-    default:
-      UNREACHABLE();
-  }
   if (!participant_dialog_id.is_valid()) {
     promise.set_error(Status::Error(3, "Invalid member identifier specified"));
     return DialogParticipant();
