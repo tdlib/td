@@ -137,8 +137,9 @@ class CreateGroupCallQuery : public Td::ResultHandler {
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
 
+    int32 flags = 0;
     send_query(G()->net_query_creator().create(
-        telegram_api::phone_createGroupCall(std::move(input_peer), Random::secure_int32())));
+        telegram_api::phone_createGroupCall(flags, std::move(input_peer), Random::secure_int32(), string(), 0)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {

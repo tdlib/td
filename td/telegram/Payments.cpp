@@ -6,14 +6,14 @@
 //
 #include "td/telegram/Payments.h"
 
-#include "td/telegram/td_api.h"
-#include "td/telegram/telegram_api.h"
-
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/PasswordManager.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/td_api.h"
+#include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
 
 #include "td/utils/algorithm.h"
@@ -255,13 +255,22 @@ static tl_object_ptr<td_api::savedCredentials> convert_saved_credentials(
 
 class GetPaymentFormQuery : public Td::ResultHandler {
   Promise<tl_object_ptr<td_api::paymentForm>> promise_;
+  DialogId dialog_id_;
 
  public:
   explicit GetPaymentFormQuery(Promise<tl_object_ptr<td_api::paymentForm>> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(ServerMessageId server_message_id) {
-    send_query(G()->net_query_creator().create(telegram_api::payments_getPaymentForm(server_message_id.get())));
+  void send(DialogId dialog_id, ServerMessageId server_message_id) {
+    dialog_id_ = dialog_id;
+    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    if (input_peer == nullptr) {
+      return on_error(0, Status::Error(400, "Can't access the chat"));
+    }
+
+    int32 flags = 0;
+    send_query(G()->net_query_creator().create(
+        telegram_api::payments_getPaymentForm(flags, std::move(input_peer), server_message_id.get(), nullptr)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -286,20 +295,28 @@ class GetPaymentFormQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
+    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetPaymentFormQuery");
     promise_.set_error(std::move(status));
   }
 };
 
 class ValidateRequestedInfoQuery : public Td::ResultHandler {
   Promise<tl_object_ptr<td_api::validatedOrderInfo>> promise_;
+  DialogId dialog_id_;
 
  public:
   explicit ValidateRequestedInfoQuery(Promise<tl_object_ptr<td_api::validatedOrderInfo>> &&promise)
       : promise_(std::move(promise)) {
   }
 
-  void send(ServerMessageId server_message_id, tl_object_ptr<telegram_api::paymentRequestedInfo> requested_info,
-            bool allow_save) {
+  void send(DialogId dialog_id, ServerMessageId server_message_id,
+            tl_object_ptr<telegram_api::paymentRequestedInfo> requested_info, bool allow_save) {
+    dialog_id_ = dialog_id;
+    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    if (input_peer == nullptr) {
+      return on_error(0, Status::Error(400, "Can't access the chat"));
+    }
+
     int32 flags = 0;
     if (allow_save) {
       flags |= telegram_api::payments_validateRequestedInfo::SAVE_MASK;
@@ -309,7 +326,7 @@ class ValidateRequestedInfoQuery : public Td::ResultHandler {
       requested_info->flags_ = 0;
     }
     send_query(G()->net_query_creator().create(telegram_api::payments_validateRequestedInfo(
-        flags, false /*ignored*/, server_message_id.get(), std::move(requested_info))));
+        flags, false /*ignored*/, std::move(input_peer), server_message_id.get(), std::move(requested_info))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -327,21 +344,30 @@ class ValidateRequestedInfoQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
+    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "ValidateRequestedInfoQuery");
     promise_.set_error(std::move(status));
   }
 };
 
 class SendPaymentFormQuery : public Td::ResultHandler {
   Promise<tl_object_ptr<td_api::paymentResult>> promise_;
+  DialogId dialog_id_;
 
  public:
   explicit SendPaymentFormQuery(Promise<tl_object_ptr<td_api::paymentResult>> &&promise)
       : promise_(std::move(promise)) {
   }
 
-  void send(ServerMessageId server_message_id, const string &order_info_id, const string &shipping_option_id,
-            tl_object_ptr<telegram_api::InputPaymentCredentials> input_credentials) {
+  void send(DialogId dialog_id, ServerMessageId server_message_id, const string &order_info_id,
+            const string &shipping_option_id, tl_object_ptr<telegram_api::InputPaymentCredentials> input_credentials) {
     CHECK(input_credentials != nullptr);
+
+    dialog_id_ = dialog_id;
+    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    if (input_peer == nullptr) {
+      return on_error(0, Status::Error(400, "Can't access the chat"));
+    }
+
     int32 flags = 0;
     if (!order_info_id.empty()) {
       flags |= telegram_api::payments_sendPaymentForm::REQUESTED_INFO_ID_MASK;
@@ -349,8 +375,9 @@ class SendPaymentFormQuery : public Td::ResultHandler {
     if (!shipping_option_id.empty()) {
       flags |= telegram_api::payments_sendPaymentForm::SHIPPING_OPTION_ID_MASK;
     }
-    send_query(G()->net_query_creator().create(telegram_api::payments_sendPaymentForm(
-        flags, server_message_id.get(), order_info_id, shipping_option_id, std::move(input_credentials))));
+    send_query(G()->net_query_creator().create(
+        telegram_api::payments_sendPaymentForm(flags, 0, std::move(input_peer), server_message_id.get(), order_info_id,
+                                               shipping_option_id, std::move(input_credentials), 0)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -382,20 +409,29 @@ class SendPaymentFormQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
+    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "SendPaymentFormQuery");
     promise_.set_error(std::move(status));
   }
 };
 
 class GetPaymentReceiptQuery : public Td::ResultHandler {
   Promise<tl_object_ptr<td_api::paymentReceipt>> promise_;
+  DialogId dialog_id_;
 
  public:
   explicit GetPaymentReceiptQuery(Promise<tl_object_ptr<td_api::paymentReceipt>> &&promise)
       : promise_(std::move(promise)) {
   }
 
-  void send(ServerMessageId server_message_id) {
-    send_query(G()->net_query_creator().create(telegram_api::payments_getPaymentReceipt(server_message_id.get())));
+  void send(DialogId dialog_id, ServerMessageId server_message_id) {
+    dialog_id_ = dialog_id;
+    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    if (input_peer == nullptr) {
+      return on_error(0, Status::Error(400, "Can't access the chat"));
+    }
+
+    send_query(G()->net_query_creator().create(
+        telegram_api::payments_getPaymentReceipt(std::move(input_peer), server_message_id.get())));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -423,6 +459,7 @@ class GetPaymentReceiptQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
+    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetPaymentReceiptQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -785,12 +822,17 @@ void answer_pre_checkout_query(int64 pre_checkout_query_id, const string &error_
       ->send(pre_checkout_query_id, error_message);
 }
 
-void get_payment_form(ServerMessageId server_message_id, Promise<tl_object_ptr<td_api::paymentForm>> &&promise) {
-  G()->td().get_actor_unsafe()->create_handler<GetPaymentFormQuery>(std::move(promise))->send(server_message_id);
+void get_payment_form(DialogId dialog_id, ServerMessageId server_message_id,
+                      Promise<tl_object_ptr<td_api::paymentForm>> &&promise) {
+  G()->td()
+      .get_actor_unsafe()
+      ->create_handler<GetPaymentFormQuery>(std::move(promise))
+      ->send(dialog_id, server_message_id);
 }
 
-void validate_order_info(ServerMessageId server_message_id, tl_object_ptr<td_api::orderInfo> order_info,
-                         bool allow_save, Promise<tl_object_ptr<td_api::validatedOrderInfo>> &&promise) {
+void validate_order_info(DialogId dialog_id, ServerMessageId server_message_id,
+                         tl_object_ptr<td_api::orderInfo> order_info, bool allow_save,
+                         Promise<tl_object_ptr<td_api::validatedOrderInfo>> &&promise) {
   if (order_info != nullptr) {
     if (!clean_input_string(order_info->name_)) {
       return promise.set_error(Status::Error(400, "Name must be encoded in UTF-8"));
@@ -826,11 +868,11 @@ void validate_order_info(ServerMessageId server_message_id, tl_object_ptr<td_api
   G()->td()
       .get_actor_unsafe()
       ->create_handler<ValidateRequestedInfoQuery>(std::move(promise))
-      ->send(server_message_id, convert_order_info(std::move(order_info)), allow_save);
+      ->send(dialog_id, server_message_id, convert_order_info(std::move(order_info)), allow_save);
 }
 
-void send_payment_form(ServerMessageId server_message_id, const string &order_info_id, const string &shipping_option_id,
-                       const tl_object_ptr<td_api::InputCredentials> &credentials,
+void send_payment_form(DialogId dialog_id, ServerMessageId server_message_id, const string &order_info_id,
+                       const string &shipping_option_id, const tl_object_ptr<td_api::InputCredentials> &credentials,
                        Promise<tl_object_ptr<td_api::paymentResult>> &&promise) {
   CHECK(credentials != nullptr);
 
@@ -882,11 +924,15 @@ void send_payment_form(ServerMessageId server_message_id, const string &order_in
   G()->td()
       .get_actor_unsafe()
       ->create_handler<SendPaymentFormQuery>(std::move(promise))
-      ->send(server_message_id, order_info_id, shipping_option_id, std::move(input_credentials));
+      ->send(dialog_id, server_message_id, order_info_id, shipping_option_id, std::move(input_credentials));
 }
 
-void get_payment_receipt(ServerMessageId server_message_id, Promise<tl_object_ptr<td_api::paymentReceipt>> &&promise) {
-  G()->td().get_actor_unsafe()->create_handler<GetPaymentReceiptQuery>(std::move(promise))->send(server_message_id);
+void get_payment_receipt(DialogId dialog_id, ServerMessageId server_message_id,
+                         Promise<tl_object_ptr<td_api::paymentReceipt>> &&promise) {
+  G()->td()
+      .get_actor_unsafe()
+      ->create_handler<GetPaymentReceiptQuery>(std::move(promise))
+      ->send(dialog_id, server_message_id);
 }
 
 void get_saved_order_info(Promise<tl_object_ptr<td_api::orderInfo>> &&promise) {

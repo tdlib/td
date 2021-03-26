@@ -992,7 +992,7 @@ tl_object_ptr<telegram_api::userProfilePhoto> convert_photo_to_profile_photo(
     flags |= telegram_api::userProfilePhoto::HAS_VIDEO_MASK;
   }
   return make_tl_object<telegram_api::userProfilePhoto>(flags, false /*ignored*/, photo->id_, std::move(photo_small),
-                                                        std::move(photo_big), photo->dc_id_);
+                                                        std::move(photo_big), BufferSlice(), photo->dc_id_);
 }
 
 }  // namespace td

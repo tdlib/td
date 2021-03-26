@@ -8459,7 +8459,7 @@ ContactsManager::User *ContactsManager::get_user_force(UserId user_id) {
                                                                               profile_photo_local_id),
           telegram_api::make_object<telegram_api::fileLocationToBeDeprecated>(profile_photo_volume_id,
                                                                               profile_photo_local_id + 2),
-          profile_photo_dc_id);
+          BufferSlice(), profile_photo_dc_id);
     }
 
     auto user = telegram_api::make_object<telegram_api::user>(

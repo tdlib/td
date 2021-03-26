@@ -37374,7 +37374,7 @@ void MessagesManager::get_payment_form(FullMessageId full_message_id,
     return promise.set_error(r_message_id.move_as_error());
   }
 
-  ::td::get_payment_form(r_message_id.ok(), std::move(promise));
+  ::td::get_payment_form(full_message_id.get_dialog_id(), r_message_id.ok(), std::move(promise));
 }
 
 void MessagesManager::validate_order_info(FullMessageId full_message_id, tl_object_ptr<td_api::orderInfo> order_info,
@@ -37385,7 +37385,8 @@ void MessagesManager::validate_order_info(FullMessageId full_message_id, tl_obje
     return promise.set_error(r_message_id.move_as_error());
   }
 
-  ::td::validate_order_info(r_message_id.ok(), std::move(order_info), allow_save, std::move(promise));
+  ::td::validate_order_info(full_message_id.get_dialog_id(), r_message_id.ok(), std::move(order_info), allow_save,
+                            std::move(promise));
 }
 
 void MessagesManager::send_payment_form(FullMessageId full_message_id, const string &order_info_id,
@@ -37397,7 +37398,8 @@ void MessagesManager::send_payment_form(FullMessageId full_message_id, const str
     return promise.set_error(r_message_id.move_as_error());
   }
 
-  ::td::send_payment_form(r_message_id.ok(), order_info_id, shipping_option_id, credentials, std::move(promise));
+  ::td::send_payment_form(full_message_id.get_dialog_id(), r_message_id.ok(), order_info_id, shipping_option_id,
+                          credentials, std::move(promise));
 }
 
 void MessagesManager::get_payment_receipt(FullMessageId full_message_id,
@@ -37416,7 +37418,7 @@ void MessagesManager::get_payment_receipt(FullMessageId full_message_id,
     return promise.set_error(Status::Error(5, "Wrong message identifier"));
   }
 
-  ::td::get_payment_receipt(m->message_id.get_server_message_id(), std::move(promise));
+  ::td::get_payment_receipt(full_message_id.get_dialog_id(), m->message_id.get_server_message_id(), std::move(promise));
 }
 
 void MessagesManager::remove_sponsored_dialog() {

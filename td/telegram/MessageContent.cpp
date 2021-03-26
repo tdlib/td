@@ -2301,7 +2301,7 @@ static tl_object_ptr<telegram_api::invoice> get_input_invoice(const Invoice &inv
   });
   return make_tl_object<telegram_api::invoice>(
       flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-      false /*ignored*/, false /*ignored*/, false /*ignored*/, invoice.currency, std::move(prices));
+      false /*ignored*/, false /*ignored*/, false /*ignored*/, invoice.currency, std::move(prices), 0, vector<int64>());
 }
 
 static tl_object_ptr<telegram_api::inputWebDocument> get_input_web_document(const FileManager *file_manager,
@@ -2332,7 +2332,7 @@ static tl_object_ptr<telegram_api::inputWebDocument> get_input_web_document(cons
 static tl_object_ptr<telegram_api::inputMediaInvoice> get_input_media_invoice(const FileManager *file_manager,
                                                                               const MessageInvoice *message_invoice) {
   CHECK(message_invoice != nullptr);
-  int32 flags = 0;
+  int32 flags = telegram_api::inputMediaInvoice::START_PARAM_MASK;
   auto input_web_document = get_input_web_document(file_manager, message_invoice->photo);
   if (input_web_document != nullptr) {
     flags |= telegram_api::inputMediaInvoice::PHOTO_MASK;
@@ -4652,6 +4652,10 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
         break;
       }
       return td::make_unique<MessageChatSetTtl>(set_messages_ttl->period_);
+    }
+    case telegram_api::messageActionGroupCallScheduled::ID: {
+      auto scheduled_group_call = move_tl_object_as<telegram_api::messageActionGroupCallScheduled>(action);
+      break;
     }
     default:
       UNREACHABLE();

@@ -8,6 +8,7 @@
 
 #include "td/actor/PromiseFuture.h"
 
+#include "td/telegram/DialogId.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/ServerMessageId.h"
 
@@ -137,16 +138,19 @@ void answer_shipping_query(int64 shipping_query_id, vector<tl_object_ptr<td_api:
 
 void answer_pre_checkout_query(int64 pre_checkout_query_id, const string &error_message, Promise<Unit> &&promise);
 
-void get_payment_form(ServerMessageId server_message_id, Promise<tl_object_ptr<td_api::paymentForm>> &&promise);
+void get_payment_form(DialogId dialog_id, ServerMessageId server_message_id,
+                      Promise<tl_object_ptr<td_api::paymentForm>> &&promise);
 
-void validate_order_info(ServerMessageId server_message_id, tl_object_ptr<td_api::orderInfo> order_info,
-                         bool allow_save, Promise<tl_object_ptr<td_api::validatedOrderInfo>> &&promise);
+void validate_order_info(DialogId dialog_id, ServerMessageId server_message_id,
+                         tl_object_ptr<td_api::orderInfo> order_info, bool allow_save,
+                         Promise<tl_object_ptr<td_api::validatedOrderInfo>> &&promise);
 
-void send_payment_form(ServerMessageId server_message_id, const string &order_info_id, const string &shipping_option_id,
-                       const tl_object_ptr<td_api::InputCredentials> &credentials,
+void send_payment_form(DialogId dialog_id, ServerMessageId server_message_id, const string &order_info_id,
+                       const string &shipping_option_id, const tl_object_ptr<td_api::InputCredentials> &credentials,
                        Promise<tl_object_ptr<td_api::paymentResult>> &&promise);
 
-void get_payment_receipt(ServerMessageId server_message_id, Promise<tl_object_ptr<td_api::paymentReceipt>> &&promise);
+void get_payment_receipt(DialogId dialog_id, ServerMessageId server_message_id,
+                         Promise<tl_object_ptr<td_api::paymentReceipt>> &&promise);
 
 void get_saved_order_info(Promise<tl_object_ptr<td_api::orderInfo>> &&promise);
 
