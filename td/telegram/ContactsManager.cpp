@@ -7422,6 +7422,19 @@ void ContactsManager::restrict_channel_participant(ChannelId channel_id, DialogI
     return;
   }
 
+  switch (participant_dialog_id.get_type()) {
+    case DialogType::User:
+      // ok;
+      break;
+    case DialogType::Channel:
+      if (!status.is_banned() && !status.is_left()) {
+        return promise.set_error(Status::Error(400, "Other chats can be only banned or unbanned"));
+      }
+      break;
+    default:
+      return promise.set_error(Status::Error(400, "Can't restrict the chat"));
+  }
+
   CHECK(!old_status.is_creator());
   CHECK(!status.is_creator());
 
