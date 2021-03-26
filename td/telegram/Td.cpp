@@ -6323,8 +6323,8 @@ void Td::on_request(uint64 id, const td_api::leaveChat &request) {
           td_api::make_object<td_api::chatMemberStatusCreator>(status.get_rank(), status.is_anonymous(), false);
     }
   }
-  contacts_manager_->set_dialog_participant_status(dialog_id, contacts_manager_->get_my_id(), std::move(new_status),
-                                                   std::move(promise));
+  contacts_manager_->set_dialog_participant_status(dialog_id, DialogId(contacts_manager_->get_my_id()),
+                                                   std::move(new_status), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::addChatMember &request) {
@@ -6343,13 +6343,15 @@ void Td::on_request(uint64 id, const td_api::addChatMembers &request) {
 
 void Td::on_request(uint64 id, td_api::setChatMemberStatus &request) {
   CREATE_OK_REQUEST_PROMISE();
-  contacts_manager_->set_dialog_participant_status(DialogId(request.chat_id_), UserId(request.user_id_),
+  contacts_manager_->set_dialog_participant_status(DialogId(request.chat_id_),
+                                                   ContactsManager::get_participant_dialog_id(request.member_id_),
                                                    request.status_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::banChatMember &request) {
   CREATE_OK_REQUEST_PROMISE();
-  contacts_manager_->ban_dialog_participant(DialogId(request.chat_id_), UserId(request.user_id_),
+  contacts_manager_->ban_dialog_participant(DialogId(request.chat_id_),
+                                            ContactsManager::get_participant_dialog_id(request.member_id_),
                                             request.banned_until_date_, request.revoke_messages_, std::move(promise));
 }
 

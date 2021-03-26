@@ -6845,41 +6845,41 @@ void ContactsManager::add_channel_participants(ChannelId channel_id, const vecto
   td_->create_handler<InviteToChannelQuery>(std::move(promise))->send(channel_id, std::move(input_users));
 }
 
-void ContactsManager::change_channel_participant_status(ChannelId channel_id, UserId user_id,
+void ContactsManager::change_channel_participant_status(ChannelId channel_id, DialogId participant_dialog_id,
                                                         DialogParticipantStatus status, Promise<Unit> &&promise) {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
     return promise.set_error(Status::Error(6, "Chat info not found"));
   }
 
-  auto input_peer = get_input_peer_user(user_id, AccessRights::Read);
+  auto input_peer = td_->messages_manager_->get_input_peer(participant_dialog_id, AccessRights::Read);
   if (input_peer == nullptr) {
-    return promise.set_error(Status::Error(6, "User not found"));
+    return promise.set_error(Status::Error(6, "Member not found"));
   }
 
-  if (user_id == get_my_id()) {
+  if (participant_dialog_id == DialogId(get_my_id())) {
     // fast path is needed, because get_channel_status may return Creator, while GetChannelParticipantQuery returning Left
-    return change_channel_participant_status_impl(channel_id, user_id, std::move(status), get_channel_status(c),
-                                                  std::move(promise));
+    return change_channel_participant_status_impl(channel_id, participant_dialog_id, std::move(status),
+                                                  get_channel_status(c), std::move(promise));
   }
 
   auto on_result_promise =
-      PromiseCreator::lambda([actor_id = actor_id(this), channel_id, user_id, status,
+      PromiseCreator::lambda([actor_id = actor_id(this), channel_id, participant_dialog_id, status,
                               promise = std::move(promise)](Result<DialogParticipant> r_dialog_participant) mutable {
         // ResultHandlers are cleared before managers, so it is safe to capture this
         if (r_dialog_participant.is_error()) {
           return promise.set_error(r_dialog_participant.move_as_error());
         }
 
-        send_closure(actor_id, &ContactsManager::change_channel_participant_status_impl, channel_id, user_id,
-                     std::move(status), r_dialog_participant.ok().status, std::move(promise));
+        send_closure(actor_id, &ContactsManager::change_channel_participant_status_impl, channel_id,
+                     participant_dialog_id, std::move(status), r_dialog_participant.ok().status, std::move(promise));
       });
 
   td_->create_handler<GetChannelParticipantQuery>(std::move(on_result_promise))
-      ->send(channel_id, DialogId(user_id), std::move(input_peer));
+      ->send(channel_id, participant_dialog_id, std::move(input_peer));
 }
 
-void ContactsManager::change_channel_participant_status_impl(ChannelId channel_id, UserId user_id,
+void ContactsManager::change_channel_participant_status_impl(ChannelId channel_id, DialogId participant_dialog_id,
                                                              DialogParticipantStatus status,
                                                              DialogParticipantStatus old_status,
                                                              Promise<Unit> &&promise) {
@@ -6887,7 +6887,8 @@ void ContactsManager::change_channel_participant_status_impl(ChannelId channel_i
     return promise.set_value(Unit());
   }
 
-  LOG(INFO) << "Change status of " << user_id << " in " << channel_id << " from " << old_status << " to " << status;
+  LOG(INFO) << "Change status of " << participant_dialog_id << " in " << channel_id << " from " << old_status << " to "
+            << status;
   bool need_add = false;
   bool need_promote = false;
   bool need_restrict = false;
@@ -6898,22 +6899,15 @@ void ContactsManager::change_channel_participant_status_impl(ChannelId channel_i
     if (!status.is_creator()) {
       return promise.set_error(Status::Error(3, "Can't remove chat owner"));
     }
+    if (participant_dialog_id != DialogId(get_my_id())) {
+      return promise.set_error(Status::Error(3, "Not enough rights to edit chat owner rights"));
+    }
     if (status.is_member() == old_status.is_member()) {
       // change rank and is_anonymous
-      if (user_id != get_my_id()) {
-        return promise.set_error(Status::Error(3, "Not enough rights to change chat owner rights"));
-      }
-
-      auto input_user = get_input_user(user_id);
-      if (input_user == nullptr) {
-        return promise.set_error(Status::Error(3, "User not found"));
-      }
-
+      auto input_user = get_input_user(get_my_id());
+      CHECK(input_user != nullptr);
       td_->create_handler<EditChannelAdminQuery>(std::move(promise))->send(channel_id, std::move(input_user), status);
       return;
-    }
-    if (user_id != get_my_id()) {
-      return promise.set_error(Status::Error(3, "Not enough rights to edit chat owner membership"));
     }
     if (status.is_member()) {
       // creator not member -> creator member
@@ -6952,14 +6946,21 @@ void ContactsManager::change_channel_participant_status_impl(ChannelId channel_i
   }
 
   if (need_promote) {
-    return promote_channel_participant(channel_id, user_id, std::move(status), std::move(old_status),
-                                       std::move(promise));
+    if (participant_dialog_id.get_type() != DialogType::User) {
+      return promise.set_error(Status::Error(400, "Can't promote chats to chat administrators"));
+    }
+    return promote_channel_participant(channel_id, participant_dialog_id.get_user_id(), std::move(status),
+                                       std::move(old_status), std::move(promise));
   } else if (need_restrict) {
-    return restrict_channel_participant(channel_id, user_id, std::move(status), std::move(old_status),
+    return restrict_channel_participant(channel_id, participant_dialog_id, std::move(status), std::move(old_status),
                                         std::move(promise));
   } else {
     CHECK(need_add);
-    return add_channel_participant(channel_id, user_id, std::move(promise), std::move(old_status));
+    if (participant_dialog_id.get_type() != DialogType::User) {
+      return promise.set_error(Status::Error(400, "Can't add chats as chat members"));
+    }
+    return add_channel_participant(channel_id, participant_dialog_id.get_user_id(), std::move(promise),
+                                   std::move(old_status));
   }
 }
 
@@ -7383,15 +7384,17 @@ void ContactsManager::delete_chat_participant(ChatId chat_id, UserId user_id, bo
   td_->create_handler<DeleteChatUserQuery>(std::move(promise))->send(chat_id, std::move(input_user), revoke_messages);
 }
 
-void ContactsManager::restrict_channel_participant(ChannelId channel_id, UserId user_id, DialogParticipantStatus status,
-                                                   DialogParticipantStatus old_status, Promise<Unit> &&promise) {
-  LOG(INFO) << "Restrict " << user_id << " in " << channel_id << " from " << old_status << " to " << status;
+void ContactsManager::restrict_channel_participant(ChannelId channel_id, DialogId participant_dialog_id,
+                                                   DialogParticipantStatus status, DialogParticipantStatus old_status,
+                                                   Promise<Unit> &&promise) {
+  LOG(INFO) << "Restrict " << participant_dialog_id << " in " << channel_id << " from " << old_status << " to "
+            << status;
   const Channel *c = get_channel(channel_id);
   if (c == nullptr) {
     return promise.set_error(Status::Error(3, "Chat info not found"));
   }
   if (!c->status.is_member() && !c->status.is_creator()) {
-    if (user_id == get_my_id()) {
+    if (participant_dialog_id == DialogId(get_my_id())) {
       if (status.is_member()) {
         return promise.set_error(Status::Error(3, "Can't unrestrict self"));
       }
@@ -7400,12 +7403,12 @@ void ContactsManager::restrict_channel_participant(ChannelId channel_id, UserId 
       return promise.set_error(Status::Error(3, "Not in the chat"));
     }
   }
-  auto input_peer = get_input_peer_user(user_id, AccessRights::Read);
+  auto input_peer = td_->messages_manager_->get_input_peer(participant_dialog_id, AccessRights::Read);
   if (input_peer == nullptr) {
-    return promise.set_error(Status::Error(3, "User not found"));
+    return promise.set_error(Status::Error(3, "Member not found"));
   }
 
-  if (user_id == get_my_id()) {
+  if (participant_dialog_id == DialogId(get_my_id())) {
     if (status.is_restricted() || status.is_banned()) {
       return promise.set_error(Status::Error(3, "Can't restrict self"));
     }
@@ -7414,7 +7417,7 @@ void ContactsManager::restrict_channel_participant(ChannelId channel_id, UserId 
     }
 
     // leave the channel
-    speculative_add_channel_user(channel_id, user_id, status, c->status);
+    speculative_add_channel_user(channel_id, participant_dialog_id.get_user_id(), status, c->status);
     td_->create_handler<LeaveChannelQuery>(std::move(promise))->send(channel_id);
     return;
   }
@@ -7428,22 +7431,23 @@ void ContactsManager::restrict_channel_participant(ChannelId channel_id, UserId 
 
   if (old_status.is_member() && !status.is_member() && !status.is_banned()) {
     // we can't make participant Left without kicking it first
-    auto on_result_promise = PromiseCreator::lambda([channel_id, user_id, status,
+    auto on_result_promise = PromiseCreator::lambda([channel_id, participant_dialog_id, status,
                                                      promise = std::move(promise)](Result<> result) mutable {
       if (result.is_error()) {
         return promise.set_error(result.move_as_error());
       }
 
-      create_actor<SleepActor>(
-          "RestrictChannelParticipantSleepActor", 1.0,
-          PromiseCreator::lambda([channel_id, user_id, status, promise = std::move(promise)](Result<> result) mutable {
-            if (result.is_error()) {
-              return promise.set_error(result.move_as_error());
-            }
+      create_actor<SleepActor>("RestrictChannelParticipantSleepActor", 1.0,
+                               PromiseCreator::lambda([channel_id, participant_dialog_id, status,
+                                                       promise = std::move(promise)](Result<> result) mutable {
+                                 if (result.is_error()) {
+                                   return promise.set_error(result.move_as_error());
+                                 }
 
-            send_closure(G()->contacts_manager(), &ContactsManager::restrict_channel_participant, channel_id, user_id,
-                         status, DialogParticipantStatus::Banned(0), std::move(promise));
-          }))
+                                 send_closure(G()->contacts_manager(), &ContactsManager::restrict_channel_participant,
+                                              channel_id, participant_dialog_id, status,
+                                              DialogParticipantStatus::Banned(0), std::move(promise));
+                               }))
           .release();
     });
 
@@ -7451,7 +7455,9 @@ void ContactsManager::restrict_channel_participant(ChannelId channel_id, UserId 
     status = DialogParticipantStatus::Banned(0);
   }
 
-  speculative_add_channel_user(channel_id, user_id, status, old_status);
+  if (participant_dialog_id.get_type() == DialogType::User) {
+    speculative_add_channel_user(channel_id, participant_dialog_id.get_user_id(), status, old_status);
+  }
   td_->create_handler<EditChannelBannedQuery>(std::move(promise))->send(channel_id, std::move(input_peer), status);
 }
 
@@ -14513,7 +14519,7 @@ void ContactsManager::add_dialog_participants(DialogId dialog_id, const vector<U
   }
 }
 
-void ContactsManager::set_dialog_participant_status(DialogId dialog_id, UserId user_id,
+void ContactsManager::set_dialog_participant_status(DialogId dialog_id, DialogId participant_dialog_id,
                                                     const tl_object_ptr<td_api::ChatMemberStatus> &chat_member_status,
                                                     Promise<Unit> &&promise) {
   auto status = get_dialog_participant_status(chat_member_status);
@@ -14525,9 +14531,18 @@ void ContactsManager::set_dialog_participant_status(DialogId dialog_id, UserId u
     case DialogType::User:
       return promise.set_error(Status::Error(3, "Chat member status can't be changed in private chats"));
     case DialogType::Chat:
-      return change_chat_participant_status(dialog_id.get_chat_id(), user_id, status, std::move(promise));
+      if (participant_dialog_id.get_type() != DialogType::User) {
+        if (status == DialogParticipantStatus::Left()) {
+          return promise.set_value(Unit());
+        } else {
+          return promise.set_error(Status::Error(3, "Chats can't be members of basic groups"));
+        }
+      }
+      return change_chat_participant_status(dialog_id.get_chat_id(), participant_dialog_id.get_user_id(), status,
+                                            std::move(promise));
     case DialogType::Channel:
-      return change_channel_participant_status(dialog_id.get_channel_id(), user_id, status, std::move(promise));
+      return change_channel_participant_status(dialog_id.get_channel_id(), participant_dialog_id, status,
+                                               std::move(promise));
     case DialogType::SecretChat:
       return promise.set_error(Status::Error(3, "Chat member status can't be changed in secret chats"));
     case DialogType::None:
@@ -14536,22 +14551,26 @@ void ContactsManager::set_dialog_participant_status(DialogId dialog_id, UserId u
   }
 }
 
-void ContactsManager::ban_dialog_participant(DialogId dialog_id, UserId user_id, int32 banned_until_date,
-                                             bool revoke_messages, Promise<Unit> &&promise) {
+void ContactsManager::ban_dialog_participant(DialogId dialog_id, DialogId participant_dialog_id,
+                                             int32 banned_until_date, bool revoke_messages, Promise<Unit> &&promise) {
   if (!td_->messages_manager_->have_dialog_force(dialog_id, "ban_dialog_participant")) {
     return promise.set_error(Status::Error(3, "Chat not found"));
   }
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      return promise.set_error(Status::Error(3, "Can't ban members in a private chat"));
+      return promise.set_error(Status::Error(3, "Can't ban members in private chats"));
     case DialogType::Chat:
-      return delete_chat_participant(dialog_id.get_chat_id(), user_id, revoke_messages, std::move(promise));
+      if (participant_dialog_id.get_type() != DialogType::User) {
+        return promise.set_error(Status::Error(3, "Can't ban chats in basic groups"));
+      }
+      return delete_chat_participant(dialog_id.get_chat_id(), participant_dialog_id.get_user_id(), revoke_messages,
+                                     std::move(promise));
     case DialogType::Channel:
-      return change_channel_participant_status(dialog_id.get_channel_id(), user_id,
+      return change_channel_participant_status(dialog_id.get_channel_id(), participant_dialog_id,
                                                DialogParticipantStatus::Banned(banned_until_date), std::move(promise));
     case DialogType::SecretChat:
-      return promise.set_error(Status::Error(3, "Can't ban members in a secret chat"));
+      return promise.set_error(Status::Error(3, "Can't ban members in secret chats"));
     case DialogType::None:
     default:
       UNREACHABLE();

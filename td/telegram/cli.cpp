@@ -3646,11 +3646,11 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::addChatMembers>(as_chat_id(chat_id), as_user_ids(user_ids)));
     } else if (op == "bcm") {
       string chat_id;
-      string user_id;
+      string member_id;
       int32 banned_until_date;
       bool revoke_messages;
-      get_args(args, chat_id, user_id, banned_until_date, revoke_messages);
-      send_request(td_api::make_object<td_api::banChatMember>(as_chat_id(chat_id), as_user_id(user_id),
+      get_args(args, chat_id, member_id, banned_until_date, revoke_messages);
+      send_request(td_api::make_object<td_api::banChatMember>(as_chat_id(chat_id), as_message_sender(member_id),
                                                               banned_until_date, revoke_messages));
     } else if (op == "spolla") {
       string chat_id;
@@ -3679,10 +3679,10 @@ class CliClient final : public Actor {
 
     if (op == "scms") {
       string chat_id;
-      string user_id;
+      string member_id;
       string status_str;
       td_api::object_ptr<td_api::ChatMemberStatus> status;
-      get_args(args, chat_id, user_id, status_str);
+      get_args(args, chat_id, member_id, status_str);
       if (status_str == "member") {
         status = td_api::make_object<td_api::chatMemberStatusMember>();
       } else if (status_str == "left") {
@@ -3738,7 +3738,7 @@ class CliClient final : public Actor {
             true, 0, td_api::make_object<td_api::chatPermissions>(true, true, true, true, true, true, true, true));
       }
       if (status != nullptr) {
-        send_request(td_api::make_object<td_api::setChatMemberStatus>(as_chat_id(chat_id), as_user_id(user_id),
+        send_request(td_api::make_object<td_api::setChatMemberStatus>(as_chat_id(chat_id), as_message_sender(member_id),
                                                                       std::move(status)));
       } else {
         LOG(ERROR) << "Unknown status \"" << status_str << "\"";
@@ -3764,14 +3764,14 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::leaveChat>(as_chat_id(args)));
     } else if (op == "dcm") {
       string chat_id;
-      string user_id_str;
-      get_args(args, chat_id, user_id_str);
-      auto user_id = as_user_id(user_id_str);
+      string member_id;
+      get_args(args, chat_id, member_id);
       td_api::object_ptr<td_api::ChatMemberStatus> status = td_api::make_object<td_api::chatMemberStatusBanned>();
-      if (user_id == my_id_) {
+      if (as_user_id(member_id) == my_id_) {
         status = td_api::make_object<td_api::chatMemberStatusLeft>();
       }
-      send_request(td_api::make_object<td_api::setChatMemberStatus>(as_chat_id(chat_id), user_id, std::move(status)));
+      send_request(td_api::make_object<td_api::setChatMemberStatus>(as_chat_id(chat_id), as_message_sender(member_id),
+                                                                    std::move(status)));
     } else if (op == "sn") {
       string first_name;
       string last_name;

@@ -4376,15 +4376,15 @@ addChatMember chat_id:int53 user_id:int32 forward_limit:int32 = Ok;
 addChatMembers chat_id:int53 user_ids:vector<int32> = Ok;
 
 //@description Changes the status of a chat member, needs appropriate privileges. This function is currently not suitable for adding new members to the chat and transferring chat ownership; instead, use addChatMember or transferChatOwnership
-//@chat_id Chat identifier @user_id User identifier @status The new status of the member in the chat
-setChatMemberStatus chat_id:int53 user_id:int32 status:ChatMemberStatus = Ok;
+//@chat_id Chat identifier @member_id Member identifier. Chats can be only banned and unbanned in supergroups and channels @status The new status of the member in the chat
+setChatMemberStatus chat_id:int53 member_id:MessageSender status:ChatMemberStatus = Ok;
 
 //@description Bans a member in a chat. Members can't be banned in private or secret chats. In supergroups and channels, the user will not be able to return to the group on their own using invite links, etc., unless unbanned first
 //@chat_id Chat identifier
-//@user_id Identifier of the user
+//@member_id Member identifier
 //@banned_until_date Point in time (Unix timestamp) when the user will be unbanned; 0 if never. If the user is banned for more than 366 days or for less than 30 seconds from the current time, the user is considered to be banned forever. Ignored in basic groups
 //@revoke_messages Pass true to delete all messages in the chat for the user. Always true for supergroups and channels
-banChatMember chat_id:int53 user_id:int32 banned_until_date:int32 revoke_messages:Bool = Ok;
+banChatMember chat_id:int53 member_id:MessageSender banned_until_date:int32 revoke_messages:Bool = Ok;
 
 //@description Checks whether the current session can be used to transfer a chat ownership to another user
 canTransferOwnership = CanTransferOwnershipResult;
