@@ -46,8 +46,10 @@ do
       else
         ios_platform="OS"
       fi
+      watchos=""
       if [[ $platform = "watchOS" ]]; then
         ios_platform="WATCH${ios_platform}"
+        watchos="-DTD_EXPERIMENTAL_WATCH_OS=ON"
       fi
       if [[ $platform = "tvOS" ]]; then
         ios_platform="TV${ios_platform}"
@@ -57,7 +59,7 @@ do
       mkdir -p $build
       mkdir -p $install
       cd $build
-      cmake $td_path $options -DIOS_PLATFORM=${ios_platform} -DCMAKE_TOOLCHAIN_FILE=${td_path}/CMake/iOS.cmake -DCMAKE_INSTALL_PREFIX=../${install}
+      cmake $td_path $options $watchos -DIOS_PLATFORM=${ios_platform} -DCMAKE_TOOLCHAIN_FILE=${td_path}/CMake/iOS.cmake -DCMAKE_INSTALL_PREFIX=../${install}
       make -j3 install || exit
       cd ..
     done
