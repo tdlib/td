@@ -1,8 +1,15 @@
+//
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2021
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
 #include "td/net/DarwinHttp.h"
 
 #import <Foundation/Foundation.h>
 
 namespace td {
+
 namespace {
 NSString *to_ns_string(CSlice slice) {
   return [NSString stringWithUTF8String:slice.c_str()];
@@ -45,7 +52,7 @@ void http_send(NSURLRequest *request, Promise<BufferSlice> promise) {
         }];
   [dataTask resume];
 }
-}
+}  // namespace
 
 void DarwinHttp::get(CSlice url, Promise<BufferSlice> promise) {
   return http_send(http_get(url), std::move(promise));
@@ -54,4 +61,5 @@ void DarwinHttp::get(CSlice url, Promise<BufferSlice> promise) {
 void DarwinHttp::post(CSlice url, Slice data, Promise<BufferSlice> promise) {
   return http_send(http_post(url, data), std::move(promise));
 }
-}
+
+}  // namespace td

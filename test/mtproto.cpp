@@ -216,9 +216,9 @@ class TestPingActor : public Actor {
     }
 
     ping_connection_ = mtproto::PingConnection::create_req_pq(
-        mtproto::RawConnection::create(
-            ip_address_, r_socket.move_as_ok(), mtproto::TransportType{mtproto::TransportType::Tcp, 0, mtproto::ProxySecret()},
-            nullptr),
+        mtproto::RawConnection::create(ip_address_, r_socket.move_as_ok(),
+                                       mtproto::TransportType{mtproto::TransportType::Tcp, 0, mtproto::ProxySecret()},
+                                       nullptr),
         3);
 
     Scheduler::subscribe(ping_connection_->get_poll_info().extract_pollable_fd(this));
@@ -338,9 +338,8 @@ class HandshakeTestActor : public Actor {
       }
 
       raw_connection_ = mtproto::RawConnection::create(
-          ip_address,
-          r_socket.move_as_ok(), mtproto::TransportType{mtproto::TransportType::Tcp, 0, mtproto::ProxySecret()},
-          nullptr);
+          ip_address, r_socket.move_as_ok(),
+          mtproto::TransportType{mtproto::TransportType::Tcp, 0, mtproto::ProxySecret()}, nullptr);
     }
     if (!wait_for_handshake_ && !handshake_) {
       handshake_ = make_unique<mtproto::AuthKeyHandshake>(dc_id_, 3600);
@@ -545,8 +544,8 @@ class FastPingTestActor : public Actor {
     }
 
     auto raw_connection = mtproto::RawConnection::create(
-        ip_address,
-        r_socket.move_as_ok(), mtproto::TransportType{mtproto::TransportType::Tcp, 0, mtproto::ProxySecret()}, nullptr);
+        ip_address, r_socket.move_as_ok(),
+        mtproto::TransportType{mtproto::TransportType::Tcp, 0, mtproto::ProxySecret()}, nullptr);
     auto handshake = make_unique<mtproto::AuthKeyHandshake>(get_default_dc_id(), 60 * 100 /*temp*/);
     create_actor<mtproto::HandshakeActor>(
         "HandshakeActor", std::move(handshake), std::move(raw_connection), make_unique<HandshakeContext>(), 10.0,

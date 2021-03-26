@@ -613,7 +613,8 @@ class TestProxyRequest : public RequestOnceActor {
     };
     auto handshake = make_unique<mtproto::AuthKeyHandshake>(dc_id_, 3600);
     auto data = r_data.move_as_ok();
-    auto raw_connection = mtproto::RawConnection::create(data.ip_address, std::move(data.socket_fd), get_transport(), nullptr);
+    auto raw_connection =
+        mtproto::RawConnection::create(data.ip_address, std::move(data.socket_fd), get_transport(), nullptr);
     child_ = create_actor<mtproto::HandshakeActor>(
         "HandshakeActor", std::move(handshake), std::move(raw_connection), make_unique<HandshakeContext>(), 10.0,
         PromiseCreator::lambda([actor_id = actor_id(this)](Result<unique_ptr<mtproto::RawConnection>> raw_connection) {

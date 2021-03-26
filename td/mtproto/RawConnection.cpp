@@ -9,15 +9,15 @@
 #include "td/mtproto/AuthKey.h"
 #include "td/mtproto/Transport.h"
 
+#if TD_EXPERIMENTAL_WATCH_OS
+#include "td/net/DarwinHttp.h"
+#endif
+
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Status.h"
 #include "td/utils/StorerBase.h"
-
-#if TD_EXPERIMENTAL_WATCH_OS
-#include "td/net/DarwinHttp.h"
-#endif
 
 #include <utility>
 

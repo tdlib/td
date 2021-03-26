@@ -92,10 +92,10 @@ class Transport {
                       MutableSlice dest = MutableSlice());
 
   static std::pair<uint32, UInt128> calc_message_key2(const AuthKey &auth_key, int X, Slice to_encrypt);
+
  private:
   template <class HeaderT>
   static std::pair<uint32, UInt128> calc_message_ack_and_key(const HeaderT &head, size_t data_size);
-
 
   template <class HeaderT>
   static size_t calc_crypto_size(size_t data_size);

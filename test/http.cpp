@@ -6,12 +6,14 @@
 //
 #include "data.h"
 
+#if TD_EXPERIMENTAL_WATCH_OS
+#include "td/net/DarwinHttp.h"
+#endif
+
 #include "td/net/HttpChunkedByteFlow.h"
 #include "td/net/HttpHeaderCreator.h"
 #include "td/net/HttpQuery.h"
 #include "td/net/HttpReader.h"
-
-#include "td/net/DarwinHttp.h"
 
 #include "td/utils/AesCtrByteFlow.h"
 #include "td/utils/algorithm.h"
@@ -468,6 +470,7 @@ TEST(Http, gzip_bomb_with_limit) {
   ASSERT_TRUE(ok);
 }
 
+#if TD_EXPERIMENTAL_WATCH_OS
 struct Baton {
   std::mutex mutex;
   std::condition_variable cond;
@@ -501,3 +504,4 @@ TEST(Http, Darwin) {
   //LOG(ERROR) << "!!!";
   baton.wait();
 }
+#endif
