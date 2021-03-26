@@ -11539,12 +11539,15 @@ const DialogParticipant *ContactsManager::get_chat_full_participant(const ChatFu
 
 tl_object_ptr<td_api::chatMember> ContactsManager::get_chat_member_object(
     const DialogParticipant &dialog_participant) const {
+  DialogId dialog_id = dialog_participant.dialog_id;
   UserId participant_user_id;
-  if (dialog_participant.dialog_id.get_type() == DialogType::User) {
-    participant_user_id = dialog_participant.dialog_id.get_user_id();
+  if (dialog_id.get_type() == DialogType::User) {
+    participant_user_id = dialog_id.get_user_id();
+  } else {
+    td_->messages_manager_->force_create_dialog(dialog_id, "get_chat_member_object", true);
   }
   return td_api::make_object<td_api::chatMember>(
-      td_->messages_manager_->get_message_sender_object_const(dialog_participant.dialog_id),
+      td_->messages_manager_->get_message_sender_object_const(dialog_id),
       get_user_id_object(dialog_participant.inviter_user_id, "chatMember.inviter_user_id"),
       dialog_participant.joined_date, dialog_participant.status.get_chat_member_status_object(),
       get_bot_info_object(participant_user_id));
