@@ -6,6 +6,7 @@ mkdir -p build
 cd build
 
 platforms="macOS iOS watchOS tvOS"
+#platforms="watchOS"
 for platform in $platforms;
 do
   echo "Platform = ${platform} Simulator = ${simulator}"

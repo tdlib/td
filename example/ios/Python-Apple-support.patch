@@ -1,0 +1,16 @@
+diff --git a/Makefile b/Makefile
+index 695be54..bce31b9 100644
+--- a/Makefile
++++ b/Makefile
+@@ -56,9 +56,10 @@ CFLAGS-appletvos.arm64=-fembed-bitcode
+ PYTHON_CONFIGURE-tvOS=ac_cv_func_sigaltstack=no
+ 
+ # watchOS targets
+-TARGETS-watchOS=watchsimulator.i386 watchos.armv7k
++TARGETS-watchOS=watchsimulator.i386 watchsimulator.x86_64 watchos.armv7k watchos.arm64_32
+ CFLAGS-watchOS=-mwatchos-version-min=4.0
+ CFLAGS-watchos.armv7k=-fembed-bitcode
++CFLAGS-watchos.arm64_32=-fembed-bitcode
+ PYTHON_CONFIGURE-watchOS=ac_cv_func_sigaltstack=no
+ 
+ # override machine types for arm64
