@@ -39,34 +39,20 @@ class RawConnection {
     virtual void on_error() = 0;  // called on RawConnection error. Such error should be very rare on good connections.
     virtual void on_mtproto_error() = 0;
   };
-  RawConnection() = default;
-  RawConnection(SocketFd socket_fd, TransportType transport_type, unique_ptr<StatsCallback> stats_callback)
-      : socket_fd_(std::move(socket_fd))
-      , transport_(create_transport(transport_type))
-      , stats_callback_(std::move(stats_callback)) {
-    transport_->init(&socket_fd_.input_buffer(), &socket_fd_.output_buffer());
-  }
+  virtual ~RawConnection() = default;
+  static td::unique_ptr<RawConnection> create(IPAddress ip_address, SocketFd socket_fd, TransportType transport_type,
+                                              unique_ptr<StatsCallback> stats_callback);
 
-  void set_connection_token(StateManager::ConnectionToken connection_token) {
-    connection_token_ = std::move(connection_token);
-  }
+  virtual void set_connection_token(StateManager::ConnectionToken connection_token) = 0;
 
-  bool can_send() const {
-    return transport_->can_write();
-  }
-  TransportType get_transport_type() const {
-    return transport_->get_type();
-  }
-  void send_crypto(const Storer &storer, int64 session_id, int64 salt, const AuthKey &auth_key,
-                   uint64 quick_ack_token = 0);
-  uint64 send_no_crypto(const Storer &storer);
+  virtual bool can_send() const = 0;
+  virtual TransportType get_transport_type() const = 0;
+  virtual void send_crypto(const Storer &storer, int64 session_id, int64 salt, const AuthKey &auth_key,
+                           uint64 quick_ack_token = 0) = 0;
+  virtual uint64 send_no_crypto(const Storer &storer) = 0;
 
-  PollableFdInfo &get_poll_info() {
-    return socket_fd_.get_poll_info();
-  }
-  StatsCallback *stats_callback() {
-    return stats_callback_.get();
-  }
+  virtual PollableFdInfo &get_poll_info() = 0;
+  virtual StatsCallback *stats_callback() = 0;
 
   class Callback {
    public:
@@ -86,65 +72,19 @@ class RawConnection {
   };
 
   // NB: After first returned error, all subsequent calls will return error too.
-  Status flush(const AuthKey &auth_key, Callback &callback) TD_WARN_UNUSED_RESULT {
-    auto status = do_flush(auth_key, callback);
-    if (status.is_error()) {
-      if (stats_callback_ && status.code() != 2) {
-        stats_callback_->on_error();
-      }
-      has_error_ = true;
-    }
-    return status;
-  }
+  virtual Status flush(const AuthKey &auth_key, Callback &callback) TD_WARN_UNUSED_RESULT = 0;
+  virtual bool has_error() const = 0;
 
-  bool has_error() const {
-    return has_error_;
-  }
+  virtual void close() = 0;
 
-  void close() {
-    transport_.reset();
-    socket_fd_.close();
-  }
+  struct PublicFields {
+    uint32 extra{0};
+    string debug_str;
+    double rtt{0};
+  };
 
-  uint32 extra_{0};
-  string debug_str_;
-  double rtt_{0};
-
- private:
-  BufferedFd<SocketFd> socket_fd_;
-  unique_ptr<IStreamTransport> transport_;
-  std::map<uint32, uint64> quick_ack_to_token_;
-  bool has_error_{false};
-
-  unique_ptr<StatsCallback> stats_callback_;
-
-  StateManager::ConnectionToken connection_token_;
-
-  Status flush_read(const AuthKey &auth_key, Callback &callback);
-  Status flush_write();
-
-  Status on_quick_ack(uint32 quick_ack, Callback &callback);
-  Status on_read_mtproto_error(int32 error_code);
-
-  Status do_flush(const AuthKey &auth_key, Callback &callback) TD_WARN_UNUSED_RESULT {
-    if (has_error_) {
-      return Status::Error("Connection has already failed");
-    }
-    sync_with_poll(socket_fd_);
-
-    // read/write
-    // EINVAL may be returned in linux kernel < 2.6.28. And on some new kernels too.
-    // just close connection and hope that read or write will not return this error too.
-    TRY_STATUS(socket_fd_.get_pending_error());
-
-    TRY_STATUS(flush_read(auth_key, callback));
-    TRY_STATUS(callback.before_write());
-    TRY_STATUS(flush_write());
-    if (can_close_local(socket_fd_)) {
-      return Status::Error("Connection closed");
-    }
-    return Status::OK();
-  }
+  virtual PublicFields &extra() = 0;
+  virtual const PublicFields &extra() const = 0;
 };
 
 }  // namespace mtproto

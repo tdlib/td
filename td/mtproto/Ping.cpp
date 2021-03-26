@@ -85,7 +85,7 @@ ActorOwn<> create_ping_actor(string debug, unique_ptr<RawConnection> raw_connect
           raw_connection->close();
           promise_.set_error(std::move(status));
         } else {
-          raw_connection->rtt_ = ping_connection_->rtt();
+          raw_connection->extra().rtt = ping_connection_->rtt();
           if (raw_connection->stats_callback()) {
             raw_connection->stats_callback()->on_pong();
           }

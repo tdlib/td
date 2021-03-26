@@ -590,6 +590,10 @@ Result<SocketFd> SocketFd::from_native_fd(NativeFd fd) {
 }
 
 Result<SocketFd> SocketFd::open(const IPAddress &address) {
+#if TD_EXPERIMENTAL_WATCH_OS
+  return SocketFd{};
+#endif
+
   NativeFd native_fd{socket(address.get_address_family(), SOCK_STREAM, IPPROTO_TCP)};
   if (!native_fd) {
     return OS_SOCKET_ERROR("Failed to create a socket");

@@ -11,6 +11,8 @@
 #include "td/net/HttpQuery.h"
 #include "td/net/HttpReader.h"
 
+#include "td/net/DarwinHttp.h"
+
 #include "td/utils/AesCtrByteFlow.h"
 #include "td/utils/algorithm.h"
 #include "td/utils/base64.h"
@@ -37,6 +39,9 @@
 
 #include <algorithm>
 #include <limits>
+
+#include <mutex>
+#include <condition_variable>
 
 REGISTER_TESTS(http)
 
@@ -461,4 +466,38 @@ TEST(Http, gzip_bomb_with_limit) {
     }
   }
   ASSERT_TRUE(ok);
+}
+
+struct Baton {
+  std::mutex mutex;
+  std::condition_variable cond;
+  bool is_ready{false};
+
+  void wait() {
+    std::unique_lock<std::mutex> lock(mutex);
+    cond.wait(lock, [&] { return is_ready; });
+  }
+
+  void post() {
+    {
+      std::unique_lock<std::mutex> lock(mutex);
+      is_ready = true;
+    }
+    cond.notify_all();
+  }
+
+  void reset() {
+    is_ready = false;
+  }
+};
+
+TEST(Http, Darwin) {
+  Baton baton;
+  //LOG(ERROR) << "???";
+  td::DarwinHttp::get("http://example.com", [&](td::BufferSlice data) {
+    LOG(ERROR) << data.as_slice();
+    baton.post();
+  });
+  //LOG(ERROR) << "!!!";
+  baton.wait();
 }

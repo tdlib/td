@@ -44,7 +44,19 @@ set(TDNET_SOURCE
   td/net/TcpListener.h
   td/net/TransparentProxy.h
   td/net/Wget.h
+
+  td/net/DarwinHttp.mm
+  td/net/DarwinHttp.h
 )
+
+if (TD_EXPERIMENTAL_WATCH_OS)
+set (TDNET_SOURCE
+  ${TDNET_SOURCE}
+  td/net/DarwinHttp.mm
+  td/net/DarwinHttp.h
+)
+set_source_files_properties(td/net/DarwinHttp.mm PROPERTIES COMPILE_FLAGS -fobjc-arc)
+endif()
 
 #RULES
 #LIBRARIES
@@ -65,6 +77,9 @@ if (WIN32)
     target_link_libraries(tdnet PRIVATE ws2_32 Mswsock Crypt32)
   endif()
 endif()
+
+find_library(FOUNDATION_LIBRARY Foundation REQUIRED)
+target_link_libraries(tdnet PRIVATE ${FOUNDATION_LIBRARY})
 
 install(TARGETS tdnet EXPORT TdTargets
   LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"

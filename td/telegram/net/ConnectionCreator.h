@@ -84,6 +84,7 @@ class ConnectionCreator : public NetQueryCallback {
   void ping_proxy(int32 proxy_id, Promise<double> promise);
 
   struct ConnectionData {
+    IPAddress ip_address;
     SocketFd socket_fd;
     StateManager::ConnectionToken connection_token;
     unique_ptr<mtproto::RawConnection::StatsCallback> stats_callback;
@@ -91,7 +92,7 @@ class ConnectionCreator : public NetQueryCallback {
 
   static DcOptions get_default_dc_options(bool is_test);
 
-  static ActorOwn<> prepare_connection(SocketFd socket_fd, const Proxy &proxy, const IPAddress &mtproto_ip_address,
+  static ActorOwn<> prepare_connection(IPAddress ip_address, SocketFd socket_fd, const Proxy &proxy, const IPAddress &mtproto_ip_address,
                                        mtproto::TransportType transport_type, Slice actor_name_prefix, Slice debug_str,
                                        unique_ptr<mtproto::RawConnection::StatsCallback> stats_callback,
                                        ActorShared<> parent, bool use_connection_token,
@@ -232,6 +233,7 @@ class ConnectionCreator : public NetQueryCallback {
     DcOptionsSet::Stat *stat{nullptr};
     mtproto::TransportType transport_type;
     string debug_str;
+    IPAddress ip_address;
     IPAddress mtproto_ip_address;
     bool check_mode{false};
   };
@@ -246,7 +248,7 @@ class ConnectionCreator : public NetQueryCallback {
 
   void ping_proxy_resolved(int32 proxy_id, IPAddress ip_address, Promise<double> promise);
 
-  void ping_proxy_socket_fd(SocketFd socket_fd, mtproto::TransportType transport_type, string debug_str,
+  void ping_proxy_socket_fd(IPAddress ip_address, SocketFd socket_fd, mtproto::TransportType transport_type, string debug_str,
                             Promise<double> promise);
 
   void on_ping_main_dc_result(uint64 token, Result<double> result);

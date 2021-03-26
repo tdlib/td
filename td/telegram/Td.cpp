@@ -591,7 +591,7 @@ class TestProxyRequest : public RequestOnceActor {
         });
 
     child_ =
-        ConnectionCreator::prepare_connection(r_socket_fd.move_as_ok(), proxy_, mtproto_ip_address, get_transport(),
+        ConnectionCreator::prepare_connection(ip, r_socket_fd.move_as_ok(), proxy_, mtproto_ip_address, get_transport(),
                                               "Test", "TestPingDC2", nullptr, {}, false, std::move(connection_promise));
   }
 
@@ -613,7 +613,7 @@ class TestProxyRequest : public RequestOnceActor {
     };
     auto handshake = make_unique<mtproto::AuthKeyHandshake>(dc_id_, 3600);
     auto data = r_data.move_as_ok();
-    auto raw_connection = make_unique<mtproto::RawConnection>(std::move(data.socket_fd), get_transport(), nullptr);
+    auto raw_connection = mtproto::RawConnection::create(data.ip_address, std::move(data.socket_fd), get_transport(), nullptr);
     child_ = create_actor<mtproto::HandshakeActor>(
         "HandshakeActor", std::move(handshake), std::move(raw_connection), make_unique<HandshakeContext>(), 10.0,
         PromiseCreator::lambda([actor_id = actor_id(this)](Result<unique_ptr<mtproto::RawConnection>> raw_connection) {

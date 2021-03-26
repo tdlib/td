@@ -216,8 +216,8 @@ class TestPingActor : public Actor {
     }
 
     ping_connection_ = mtproto::PingConnection::create_req_pq(
-        make_unique<mtproto::RawConnection>(
-            r_socket.move_as_ok(), mtproto::TransportType{mtproto::TransportType::Tcp, 0, mtproto::ProxySecret()},
+        mtproto::RawConnection::create(
+            ip_address_, r_socket.move_as_ok(), mtproto::TransportType{mtproto::TransportType::Tcp, 0, mtproto::ProxySecret()},
             nullptr),
         3);
 
@@ -330,13 +330,15 @@ class HandshakeTestActor : public Actor {
   }
   void loop() override {
     if (!wait_for_raw_connection_ && !raw_connection_) {
-      auto r_socket = SocketFd::open(get_default_ip_address());
+      auto ip_address = get_default_ip_address();
+      auto r_socket = SocketFd::open(ip_address);
       if (r_socket.is_error()) {
         finish(Status::Error(PSTRING() << "Failed to open socket: " << r_socket.error()));
         return stop();
       }
 
-      raw_connection_ = make_unique<mtproto::RawConnection>(
+      raw_connection_ = mtproto::RawConnection::create(
+          ip_address,
           r_socket.move_as_ok(), mtproto::TransportType{mtproto::TransportType::Tcp, 0, mtproto::ProxySecret()},
           nullptr);
     }
@@ -535,13 +537,15 @@ class FastPingTestActor : public Actor {
 
   void start_up() override {
     // Run handshake to create key and salt
-    auto r_socket = SocketFd::open(get_default_ip_address());
+    auto ip_address = get_default_ip_address();
+    auto r_socket = SocketFd::open(ip_address);
     if (r_socket.is_error()) {
       *result_ = Status::Error(PSTRING() << "Failed to open socket: " << r_socket.error());
       return stop();
     }
 
-    auto raw_connection = make_unique<mtproto::RawConnection>(
+    auto raw_connection = mtproto::RawConnection::create(
+        ip_address,
         r_socket.move_as_ok(), mtproto::TransportType{mtproto::TransportType::Tcp, 0, mtproto::ProxySecret()}, nullptr);
     auto handshake = make_unique<mtproto::AuthKeyHandshake>(get_default_dc_id(), 60 * 100 /*temp*/);
     create_actor<mtproto::HandshakeActor>(
@@ -581,8 +585,8 @@ class FastPingTestActor : public Actor {
       return stop();
     }
     connection_ = r_connection.move_as_ok();
-    LOG(INFO) << "RTT: " << connection_->rtt_;
-    connection_->rtt_ = 0;
+    LOG(INFO) << "RTT: " << connection_->extra().rtt;
+    connection_->extra().rtt = 0;
     loop();
   }
 

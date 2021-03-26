@@ -132,7 +132,7 @@ class SessionConnection
   bool is_main_ = false;
 
   int rtt() const {
-    return max(2, static_cast<int>(raw_connection_->rtt_ * 1.5 + 1));
+    return max(2, static_cast<int>(raw_connection_->extra().rtt * 1.5 + 1));
   }
 
   int32 read_disconnect_delay() const {

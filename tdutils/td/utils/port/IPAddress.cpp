@@ -499,6 +499,9 @@ Status IPAddress::init_sockaddr(sockaddr *addr, socklen_t len) {
 
 Status IPAddress::init_socket_address(const SocketFd &socket_fd) {
   is_valid_ = false;
+  if (socket_fd.empty()) {
+    return Status::Error("Socket is empty");
+  }
   auto socket = socket_fd.get_native_fd().socket();
   socklen_t len = storage_size();
   int ret = getsockname(socket, &sockaddr_, &len);
@@ -511,6 +514,9 @@ Status IPAddress::init_socket_address(const SocketFd &socket_fd) {
 
 Status IPAddress::init_peer_address(const SocketFd &socket_fd) {
   is_valid_ = false;
+  if (socket_fd.empty()) {
+    return Status::Error("Socket is empty");
+  }
   auto socket = socket_fd.get_native_fd().socket();
   socklen_t len = storage_size();
   int ret = getpeername(socket, &sockaddr_, &len);

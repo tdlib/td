@@ -110,7 +110,7 @@ class GenAuthKeyActor : public Actor {
 
     auto raw_connection = r_raw_connection.move_as_ok();
     VLOG(dc) << "Receive raw connection " << raw_connection.get();
-    network_generation_ = raw_connection->extra_;
+    network_generation_ = raw_connection->extra().extra;
     child_ = create_actor_on_scheduler<mtproto::HandshakeActor>(
         PSLICE() << name_ + "::HandshakeActor", G()->get_slow_net_scheduler_id(), std::move(handshake_),
         std::move(raw_connection), std::move(context_), 10, std::move(connection_promise_),
@@ -1052,7 +1052,7 @@ void Session::connection_open_finish(ConnectionInfo *info,
 
   auto raw_connection = r_raw_connection.move_as_ok();
   VLOG(dc) << "Receive raw connection " << raw_connection.get();
-  if (raw_connection->extra_ != network_generation_) {
+  if (raw_connection->extra().extra != network_generation_) {
     LOG(WARNING) << "Got RawConnection with old network_generation";
     info->state = ConnectionInfo::State::Empty;
     yield();
@@ -1087,7 +1087,7 @@ void Session::connection_open_finish(ConnectionInfo *info,
       mode_name = Slice("HttpLongPoll");
     }
   }
-  auto name = PSTRING() << get_name() << "::Connect::" << mode_name << "::" << raw_connection->debug_str_;
+  auto name = PSTRING() << get_name() << "::Connect::" << mode_name << "::" << raw_connection->extra().debug_str;
   LOG(INFO) << "Finished to open connection " << name;
   info->connection = make_unique<mtproto::SessionConnection>(mode, std::move(raw_connection), &auth_data_);
   if (can_destroy_auth_key()) {
