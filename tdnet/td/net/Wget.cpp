@@ -74,6 +74,9 @@ Status Wget::try_init() {
   TRY_STATUS(addr.init_host_port(url.host_, url.port_, prefer_ipv6_));
 
   TRY_RESULT(fd, SocketFd::open(addr));
+  if (fd.empty()) {
+    return td::Status::Error("Sockets are not supported");
+  }
   if (url.protocol_ == HttpUrl::Protocol::Http) {
     connection_ = create_actor<HttpOutboundConnection>("Connect", std::move(fd), SslStream{},
                                                        std::numeric_limits<std::size_t>::max(), 0, 0,

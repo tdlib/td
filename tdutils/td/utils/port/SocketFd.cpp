@@ -629,29 +629,36 @@ bool SocketFd::empty() const {
 }
 
 PollableFdInfo &SocketFd::get_poll_info() {
+  CHECK(!empty());
   return impl_->get_poll_info();
 }
 const PollableFdInfo &SocketFd::get_poll_info() const {
+  CHECK(!empty());
   return impl_->get_poll_info();
 }
 
 const NativeFd &SocketFd::get_native_fd() const {
+  CHECK(!empty());
   return impl_->get_native_fd();
 }
 
 Status SocketFd::get_pending_error() {
+  CHECK(!empty());
   return impl_->get_pending_error();
 }
 
 Result<size_t> SocketFd::write(Slice slice) {
+  CHECK(!empty());
   return impl_->write(slice);
 }
 
 Result<size_t> SocketFd::writev(Span<IoSlice> slices) {
+  CHECK(!empty());
   return impl_->writev(slices);
 }
 
 Result<size_t> SocketFd::read(MutableSlice slice) {
+  CHECK(!empty());
   return impl_->read(slice);
 }
 
