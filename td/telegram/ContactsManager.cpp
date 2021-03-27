@@ -11929,9 +11929,6 @@ void ContactsManager::invalidate_channel_full(ChannelId channel_id, bool need_dr
     }
     update_channel_full(channel_full, channel_id);
   }
-  if (need_drop_invite_link) {
-    remove_dialog_access_by_invite_link(DialogId(channel_id));
-  }
 }
 
 void ContactsManager::on_update_chat_full_photo(ChatFull *chat_full, ChatId chat_id, Photo photo) {
@@ -12926,6 +12923,9 @@ void ContactsManager::on_channel_status_changed(Channel *c, ChannelId channel_id
     send_get_channel_full_query(nullptr, channel_id, Auto(), "update channel owner");
     reload_dialog_administrators(DialogId(channel_id), 0, Auto());
     remove_dialog_suggested_action(SuggestedAction{SuggestedAction::Type::ConvertToGigagroup, DialogId(channel_id)});
+  }
+  if (old_status.is_member() != new_status.is_member() || new_status.is_banned()) {
+    remove_dialog_access_by_invite_link(DialogId(channel_id));
   }
   if (need_reload_group_call) {
     send_closure_later(G()->messages_manager(), &MessagesManager::on_update_dialog_group_call_rights,
