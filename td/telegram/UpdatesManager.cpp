@@ -2213,7 +2213,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelTooLong>
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannel> update, Promise<Unit> &&promise) {
-  td_->contacts_manager_->invalidate_channel_full(ChannelId(update->channel_id_), false, false);
+  td_->contacts_manager_->invalidate_channel_full(ChannelId(update->channel_id_), false);
   promise.set_value(Unit());
 }
 

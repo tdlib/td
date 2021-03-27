@@ -235,6 +235,11 @@ class DialogParticipantStatus {
     return (flags_ & CAN_INVITE_USERS_ADMIN) != 0 || (flags_ & CAN_INVITE_USERS_BANNED) != 0;
   }
 
+  bool can_manage_invite_links() const {
+    // invite links can be managed, only if administrator was explicitly granted the right
+    return (flags_ & CAN_INVITE_USERS_ADMIN) != 0;
+  }
+
   bool can_restrict_members() const {
     return (flags_ & CAN_RESTRICT_MEMBERS) != 0;
   }
