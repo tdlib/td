@@ -30481,7 +30481,7 @@ void MessagesManager::send_dialog_action(DialogId dialog_id, MessageId top_threa
 
   tl_object_ptr<telegram_api::InputPeer> input_peer;
   if (action == DialogAction::get_speaking_action()) {
-    input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    input_peer = get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
       return promise.set_error(Status::Error(400, "Have no access to the chat"));
     }
@@ -30498,7 +30498,7 @@ void MessagesManager::send_dialog_action(DialogId dialog_id, MessageId top_threa
       return promise.set_value(Unit());
     }
 
-    input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    input_peer = get_input_peer(dialog_id, AccessRights::Write);
   }
 
   if (dialog_id.get_type() == DialogType::SecretChat) {

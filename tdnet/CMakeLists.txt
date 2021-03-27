@@ -47,7 +47,7 @@ set(TDNET_SOURCE
 )
 
 if (TD_EXPERIMENTAL_WATCH_OS)
-  set (TDNET_SOURCE
+  set(TDNET_SOURCE
     ${TDNET_SOURCE}
     td/net/DarwinHttp.mm
     td/net/DarwinHttp.h

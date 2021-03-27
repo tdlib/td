@@ -323,19 +323,20 @@ void ConnectionCreator::ping_proxy(int32 proxy_id, Promise<double> promise) {
         continue;
       }
 
-      auto ip = info.option->get_ip_address();
-      auto r_socket_fd = SocketFd::open(ip);
+      auto ip_address = info.option->get_ip_address();
+      auto r_socket_fd = SocketFd::open(ip_address);
       if (r_socket_fd.is_error()) {
         LOG(DEBUG) << "Failed to open socket: " << r_socket_fd.error();
         on_ping_main_dc_result(token, r_socket_fd.move_as_error());
         continue;
       }
 
-      ping_proxy_socket_fd(
-          ip, r_socket_fd.move_as_ok(), r_transport_type.move_as_ok(), PSTRING() << info.option->get_ip_address(),
-          PromiseCreator::lambda([actor_id = actor_id(this), token](Result<double> result) {
-            send_closure(actor_id, &ConnectionCreator::on_ping_main_dc_result, token, std::move(result));
-          }));
+      ping_proxy_socket_fd(std::move(ip_address), r_socket_fd.move_as_ok(), r_transport_type.move_as_ok(),
+                           PSTRING() << info.option->get_ip_address(),
+                           PromiseCreator::lambda([actor_id = actor_id(this), token](Result<double> result) {
+                             send_closure(actor_id, &ConnectionCreator::on_ping_main_dc_result, token,
+                                          std::move(result));
+                           }));
     }
     return;
   }

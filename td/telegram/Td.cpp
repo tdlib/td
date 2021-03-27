@@ -566,12 +566,12 @@ class TestProxyRequest : public RequestOnceActor {
     set_timeout_in(timeout_);
 
     promise_ = std::move(promise);
-    IPAddress ip;
-    auto status = ip.init_host_port(proxy_.server(), proxy_.port());
+    IPAddress ip_address;
+    auto status = ip_address.init_host_port(proxy_.server(), proxy_.port());
     if (status.is_error()) {
       return promise_.set_error(Status::Error(400, status.public_message()));
     }
-    auto r_socket_fd = SocketFd::open(ip);
+    auto r_socket_fd = SocketFd::open(ip_address);
     if (r_socket_fd.is_error()) {
       return promise_.set_error(Status::Error(400, r_socket_fd.error().public_message()));
     }
@@ -590,9 +590,9 @@ class TestProxyRequest : public RequestOnceActor {
           send_closure(actor_id, &TestProxyRequest::on_connection_data, std::move(r_data));
         });
 
-    child_ =
-        ConnectionCreator::prepare_connection(ip, r_socket_fd.move_as_ok(), proxy_, mtproto_ip_address, get_transport(),
-                                              "Test", "TestPingDC2", nullptr, {}, false, std::move(connection_promise));
+    child_ = ConnectionCreator::prepare_connection(ip_address, r_socket_fd.move_as_ok(), proxy_, mtproto_ip_address,
+                                                   get_transport(), "Test", "TestPingDC2", nullptr, {}, false,
+                                                   std::move(connection_promise));
   }
 
   void on_connection_data(Result<ConnectionCreator::ConnectionData> r_data) {

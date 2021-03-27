@@ -6,6 +6,8 @@
 //
 #include "td/net/DarwinHttp.h"
 
+#include "td/utils/logging.h"
+
 #import <Foundation/Foundation.h>
 
 namespace td {
@@ -16,7 +18,7 @@ NSString *to_ns_string(CSlice slice) {
 }
 
 NSData *to_ns_data(Slice data) {
-  return [NSData dataWithBytes:static_cast<const void*>(data.data()) length:data.size()];
+  return [NSData dataWithBytes:static_cast<const void *>(data.data()) length:data.size()];
 }
 
 auto http_get(CSlice url) {
@@ -37,17 +39,17 @@ auto http_post(CSlice url, Slice data) {
   return request;
 }
 
-void http_send(NSURLRequest *request, Promise<BufferSlice> promise) { 
+void http_send(NSURLRequest *request, Promise<BufferSlice> promise) {
   __block auto callback = std::move(promise);
-  NSURLSessionDataTask* dataTask = 
+  NSURLSessionDataTask *dataTask =
     [NSURLSession.sharedSession
       dataTaskWithRequest:request
       completionHandler:
         ^(NSData *data, NSURLResponse *response, NSError *error) {
-          if(error == nil) {
-             callback(BufferSlice(Slice((const char *)([data bytes]), [data length])));
+          if (error == nil) {
+            callback(BufferSlice(Slice((const char *)([data bytes]), [data length])));
           } else {
-             callback(Status::Error(static_cast<int32>([error code])));
+            callback(Status::Error(static_cast<int32>([error code]), "HTTP request failed"));
           }
         }];
   [dataTask resume];

@@ -10,6 +10,7 @@
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/GroupCallId.h"
 #include "td/telegram/GroupCallParticipant.h"
+#include "td/telegram/GroupCallParticipantOrder.h"
 #include "td/telegram/InputGroupCallId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"

@@ -7,18 +7,26 @@
 #include "td/mtproto/RawConnection.h"
 
 #include "td/mtproto/AuthKey.h"
+#include "td/mtproto/IStreamTransport.h"
+#include "td/mtproto/ProxySecret.h"
 #include "td/mtproto/Transport.h"
 
 #if TD_EXPERIMENTAL_WATCH_OS
 #include "td/net/DarwinHttp.h"
 #endif
 
+#include "td/utils/BufferedFd.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/MpscPollableQueue.h"
+#include "td/utils/port/EventFd.h"
+#include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 #include "td/utils/StorerBase.h"
 
+#include <map>
+#include <memory>
 #include <utility>
 
 namespace td {
@@ -441,9 +449,8 @@ class RawConnectionHttp : public RawConnection {
 };
 #endif
 
-td::unique_ptr<RawConnection> RawConnection::create(IPAddress ip_address, SocketFd socket_fd,
-                                                    TransportType transport_type,
-                                                    unique_ptr<StatsCallback> stats_callback) {
+unique_ptr<RawConnection> RawConnection::create(IPAddress ip_address, SocketFd socket_fd, TransportType transport_type,
+                                                unique_ptr<StatsCallback> stats_callback) {
 #if TD_EXPERIMENTAL_WATCH_OS
   return td::make_unique<RawConnectionHttp>(ip_address, std::move(stats_callback));
 #else

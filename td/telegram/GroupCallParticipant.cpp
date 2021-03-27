@@ -12,6 +12,8 @@
 
 #include "td/utils/logging.h"
 
+#include <limits>
+
 namespace td {
 
 GroupCallParticipant::GroupCallParticipant(const tl_object_ptr<telegram_api::groupCallParticipant> &participant,

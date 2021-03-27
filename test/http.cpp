@@ -42,8 +42,8 @@
 #include <algorithm>
 #include <limits>
 
-#include <mutex>
 #include <condition_variable>
+#include <mutex>
 
 REGISTER_TESTS(http)
 
@@ -498,7 +498,7 @@ TEST(Http, Darwin) {
   Baton baton;
   //LOG(ERROR) << "???";
   td::DarwinHttp::get("http://example.com", [&](td::BufferSlice data) {
-    LOG(ERROR) << data.as_slice();
+    //LOG(ERROR) << data.as_slice();
     baton.post();
   });
   //LOG(ERROR) << "!!!";

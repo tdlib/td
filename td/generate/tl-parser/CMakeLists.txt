@@ -15,5 +15,5 @@ endif()
 add_executable(${PROJECT_NAME} ${SOURCES})
 
 if (NOT WIN32)
-  target_link_libraries(${PROJECT_NAME} m)
+  target_link_libraries(${PROJECT_NAME} PRIVATE m)
 endif()

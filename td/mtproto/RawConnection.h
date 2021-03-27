@@ -6,21 +6,18 @@
 //
 #pragma once
 
-#include "td/mtproto/IStreamTransport.h"
+#include "td/telegram/StateManager.h"
+
 #include "td/mtproto/PacketInfo.h"
 #include "td/mtproto/TransportType.h"
 
 #include "td/utils/buffer.h"
-#include "td/utils/BufferedFd.h"
 #include "td/utils/common.h"
 #include "td/utils/port/detail/PollableFd.h"
+#include "td/utils/port/IPAddress.h"
 #include "td/utils/port/SocketFd.h"
 #include "td/utils/Status.h"
 #include "td/utils/StorerBase.h"
-
-#include "td/telegram/StateManager.h"
-
-#include <map>
 
 namespace td {
 namespace mtproto {
@@ -39,9 +36,13 @@ class RawConnection {
     virtual void on_error() = 0;  // called on RawConnection error. Such error should be very rare on good connections.
     virtual void on_mtproto_error() = 0;
   };
+  RawConnection() = default;
+  RawConnection(const RawConnection &) = delete;
+  RawConnection &operator=(const RawConnection &) = delete;
   virtual ~RawConnection() = default;
-  static td::unique_ptr<RawConnection> create(IPAddress ip_address, SocketFd socket_fd, TransportType transport_type,
-                                              unique_ptr<StatsCallback> stats_callback);
+
+  static unique_ptr<RawConnection> create(IPAddress ip_address, SocketFd socket_fd, TransportType transport_type,
+                                          unique_ptr<StatsCallback> stats_callback);
 
   virtual void set_connection_token(StateManager::ConnectionToken connection_token) = 0;
 
