@@ -69,8 +69,7 @@ function build {
   ForEach($arch in $arch_list) {
     echo "Build Arch = [$arch]"
     cd $arch
-    cmake --build . --config Release --target tddotnet
-    cmake --build . --config Debug --target tddotnet
+    cmake --build . --config RelWithDebInfo --target tddotnet
     cd ..
   }
   cd ..
@@ -86,22 +85,17 @@ function export {
   cp ../LICENSE_1_0.txt vsix
 
   ForEach($arch in $arch_list) {
-    New-Item -ItemType Directory -Force -Path vsix/DesignTime/Debug/${arch}
-    New-Item -ItemType Directory -Force -Path vsix/DesignTime/Retail/${arch}
-    New-Item -ItemType Directory -Force -Path vsix/Redist/Debug/${arch}
-    New-Item -ItemType Directory -Force -Path vsix/Redist/Retail/${arch}
+    New-Item -ItemType Directory -Force -Path vsix/DesignTime/CommonConfiguration/${arch}
+    New-Item -ItemType Directory -Force -Path vsix/Redist/CommonConfiguration/${arch}
     New-Item -ItemType Directory -Force -Path vsix/References/CommonConfiguration/${arch}
 
-    cp ${arch}/Debug/* -include "SSLEAY*","LIBEAY*","libcrypto*","libssl*","zlib*" vsix/Redist/Debug/${arch}/
-    cp ${arch}/Release/* -include "SSLEAY*","LIBEAY*","libcrypto*","libssl*","zlib*" vsix/Redist/Retail/${arch}/
+    cp ${arch}/RelWithDebInfo/* -include "SSLEAY*","LIBEAY*","libcrypto*","libssl*","zlib*" vsix/Redist/CommonConfiguration/${arch}/
 
-    cp ${arch}/Debug/* -filter "Telegram.Td.*" -include "*.lib" vsix/DesignTime/Debug/${arch}/
-    cp ${arch}/Release/*  -filter "Telegram.Td.*" -include "*.lib" vsix/DesignTime/Retail/${arch}/
+    cp ${arch}/RelWithDebInfo/*  -filter "Telegram.Td.*" -include "*.lib" vsix/DesignTime/CommonConfiguration/${arch}/
 
-    cp ${arch}/Debug/*  -filter "Telegram.Td.*" -include "*.pdb","*.dll" vsix/Redist/Debug/${arch}/
-    cp ${arch}/Release/*  -filter "Telegram.Td.*" -include "*.pdb","*.dll" vsix/Redist/Retail/${arch}/
+    cp ${arch}/RelWithDebInfo/*  -filter "Telegram.Td.*" -include "*.pdb","*.dll" vsix/Redist/CommonConfiguration/${arch}/
 
-    cp ${arch}/Release/* -filter "Telegram.Td.*" -include "*.pri","*.winmd","*.xml" vsix/References/CommonConfiguration/${arch}/
+    cp ${arch}/RelWithDebInfo/* -filter "Telegram.Td.*" -include "*.pri","*.winmd","*.xml" vsix/References/CommonConfiguration/${arch}/
   }
 
   cd vsix
