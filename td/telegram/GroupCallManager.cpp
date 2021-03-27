@@ -1466,7 +1466,7 @@ void GroupCallManager::on_update_group_call_participants(
     }
     auto dialog_id = participant.dialog_id;
     if (dialog_id.get_type() != DialogType::User && participant.joined_date != 0) {
-      td_->messages_manager_->force_create_dialog(dialog_id, "on_update_group_call_participants 2");
+      td_->messages_manager_->force_create_dialog(dialog_id, "on_update_group_call_participants 2", true);
     }
 
     if (GroupCallParticipant::is_versioned_update(group_call_participant)) {
@@ -1655,7 +1655,7 @@ void GroupCallManager::process_group_call_participants(
         continue;
       }
       if (participant.dialog_id.get_type() != DialogType::User) {
-        td_->messages_manager_->force_create_dialog(participant.dialog_id, "process_group_call_participants");
+        td_->messages_manager_->force_create_dialog(participant.dialog_id, "process_group_call_participants", true);
       }
 
       on_participant_speaking_in_group_call(input_group_call_id, participant);
@@ -1689,7 +1689,7 @@ void GroupCallManager::process_group_call_participants(
       continue;
     }
     if (participant.dialog_id.get_type() != DialogType::User) {
-      td_->messages_manager_->force_create_dialog(participant.dialog_id, "process_group_call_participants");
+      td_->messages_manager_->force_create_dialog(participant.dialog_id, "process_group_call_participants", true);
     }
 
     if (is_load) {
@@ -3552,7 +3552,7 @@ void GroupCallManager::on_user_speaking_in_group_call(GroupCallId group_call_id,
   for (size_t i = 0; i <= recent_speakers->users.size(); i++) {
     if (i == recent_speakers->users.size() || recent_speakers->users[i].second <= date) {
       if (dialog_id.get_type() != DialogType::User) {
-        td_->messages_manager_->force_create_dialog(dialog_id, "on_user_speaking_in_group_call");
+        td_->messages_manager_->force_create_dialog(dialog_id, "on_user_speaking_in_group_call", true);
       }
       recent_speakers->users.insert(recent_speakers->users.begin() + i, {dialog_id, date});
       break;
