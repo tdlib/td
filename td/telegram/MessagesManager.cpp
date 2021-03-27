@@ -34960,7 +34960,7 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
   Dependencies dependencies;
   add_dialog_dependencies(dependencies, dialog_id);
   if (d->default_join_group_call_as_dialog_id != dialog_id) {
-    add_dialog_and_dependencies(dependencies, d->default_join_group_call_as_dialog_id);
+    add_message_sender_dependencies(dependencies, d->default_join_group_call_as_dialog_id);
   }
   if (d->messages != nullptr) {
     add_message_dependencies(dependencies, dialog_id, d->messages.get());
