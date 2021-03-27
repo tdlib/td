@@ -246,7 +246,6 @@ TEST(Http, gzip_bomb) {
 }
 
 TEST(Http, gzip) {
-  return;
   auto gzip_str = gzdecode(base64url_decode(Slice(gzip, gzip_size)).ok()).as_slice().str();
 
   td::ChainBufferWriter input_writer;
