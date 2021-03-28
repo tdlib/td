@@ -9,10 +9,10 @@
 #include "td/telegram/net/NetActor.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/SendCodeHelper.h"
-#include "td/telegram/TermsOfService.h"
-
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/TermsOfService.h"
+#include "td/telegram/UserId.h"
 
 #include "td/actor/actor.h"
 #include "td/actor/Timeout.h"
@@ -38,7 +38,7 @@ class AuthManager : public NetActor {
   void resend_authentication_code(uint64 query_id);
   void check_code(uint64 query_id, string code);
   void register_user(uint64 query_id, string first_name, string last_name);
-  void request_qr_code_authentication(uint64 query_id, vector<int32> other_user_ids);
+  void request_qr_code_authentication(uint64 query_id, vector<UserId> other_user_ids);
   void check_bot_token(uint64 query_id, string bot_token);
   void check_password(uint64 query_id, string password);
   void request_password_recovery(uint64 query_id);
@@ -113,7 +113,7 @@ class AuthManager : public NetActor {
     SendCodeHelper send_code_helper_;
 
     // WaitQrCodeConfirmation
-    vector<int32> other_user_ids_;
+    vector<UserId> other_user_ids_;
     string login_token_;
     double login_token_expires_at_ = 0;
 
@@ -130,7 +130,7 @@ class AuthManager : public NetActor {
       return state;
     }
 
-    static DbState wait_qr_code_confirmation(int32 api_id, string api_hash, vector<int32> other_user_ids,
+    static DbState wait_qr_code_confirmation(int32 api_id, string api_hash, vector<UserId> other_user_ids,
                                              string login_token, double login_token_expires_at) {
       DbState state(State::WaitQrCodeConfirmation, api_id, api_hash);
       state.other_user_ids_ = std::move(other_user_ids);
@@ -179,7 +179,7 @@ class AuthManager : public NetActor {
   string code_;
 
   // State::WaitQrCodeConfirmation
-  vector<int32> other_user_ids_;
+  vector<UserId> other_user_ids_;
   string login_token_;
   double login_token_expires_at_ = 0.0;
   int32 imported_dc_id_ = -1;

@@ -120,7 +120,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const DeviceTokenManage
 }
 
 void DeviceTokenManager::register_device(tl_object_ptr<td_api::DeviceToken> device_token_ptr,
-                                         vector<int32> other_user_ids,
+                                         vector<UserId> other_user_ids,
                                          Promise<td_api::object_ptr<td_api::pushReceiverId>> promise) {
   CHECK(device_token_ptr != nullptr);
   TokenType token_type;
@@ -227,8 +227,7 @@ void DeviceTokenManager::register_device(tl_object_ptr<td_api::DeviceToken> devi
     return promise.set_error(Status::Error(400, "Device token must be encoded in UTF-8"));
   }
   for (auto &other_user_id : other_user_ids) {
-    UserId user_id(other_user_id);
-    if (!user_id.is_valid()) {
+    if (!other_user_id.is_valid()) {
       return promise.set_error(Status::Error(400, "Invalid user_id among other user_ids"));
     }
   }
@@ -373,12 +372,12 @@ void DeviceTokenManager::loop() {
     auto other_user_ids = info.other_user_ids;
     if (info.state == TokenInfo::State::Unregister) {
       net_query = G()->net_query_creator().create(
-          telegram_api::account_unregisterDevice(token_type, info.token, std::move(other_user_ids)));
+          telegram_api::account_unregisterDevice(token_type, info.token, UserId::get_input_user_ids(other_user_ids)));
     } else {
       int32 flags = telegram_api::account_registerDevice::NO_MUTED_MASK;
-      net_query = G()->net_query_creator().create(
-          telegram_api::account_registerDevice(flags, false /*ignored*/, token_type, info.token, info.is_app_sandbox,
-                                               BufferSlice(info.encryption_key), std::move(other_user_ids)));
+      net_query = G()->net_query_creator().create(telegram_api::account_registerDevice(
+          flags, false /*ignored*/, token_type, info.token, info.is_app_sandbox, BufferSlice(info.encryption_key),
+          UserId::get_input_user_ids(other_user_ids)));
     }
     info.net_query_id = net_query->id();
     G()->net_query_dispatcher().dispatch_with_callback(std::move(net_query), actor_shared(this, token_type));

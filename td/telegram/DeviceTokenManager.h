@@ -10,8 +10,8 @@
 #include "td/actor/PromiseFuture.h"
 
 #include "td/telegram/net/NetQuery.h"
-
 #include "td/telegram/td_api.h"
+#include "td/telegram/UserId.h"
 
 #include "td/utils/common.h"
 #include "td/utils/Slice.h"
@@ -26,7 +26,7 @@ class DeviceTokenManager : public NetQueryCallback {
  public:
   explicit DeviceTokenManager(ActorShared<> parent) : parent_(std::move(parent)) {
   }
-  void register_device(tl_object_ptr<td_api::DeviceToken> device_token_ptr, vector<int32> other_user_ids,
+  void register_device(tl_object_ptr<td_api::DeviceToken> device_token_ptr, vector<UserId> other_user_ids,
                        Promise<td_api::object_ptr<td_api::pushReceiverId>> promise);
 
   void reregister_device();
@@ -55,7 +55,7 @@ class DeviceTokenManager : public NetQueryCallback {
     State state = State::Sync;
     string token;
     uint64 net_query_id = 0;
-    vector<int32> other_user_ids;
+    vector<UserId> other_user_ids;
     bool is_app_sandbox = false;
     bool encrypt = false;
     string encryption_key;

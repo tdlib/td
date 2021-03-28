@@ -1840,11 +1840,11 @@ class CreateNewGroupChatRequest : public RequestActor<> {
   }
 
  public:
-  CreateNewGroupChatRequest(ActorShared<Td> td, uint64 request_id, vector<int32> user_ids, string title)
-      : RequestActor(std::move(td), request_id), title_(std::move(title)), random_id_(0) {
-    for (auto user_id : user_ids) {
-      user_ids_.emplace_back(user_id);
-    }
+  CreateNewGroupChatRequest(ActorShared<Td> td, uint64 request_id, vector<UserId> user_ids, string title)
+      : RequestActor(std::move(td), request_id)
+      , user_ids_(std::move(user_ids))
+      , title_(std::move(title))
+      , random_id_(0) {
   }
 };
 
@@ -2058,16 +2058,14 @@ class GetChatEventLogRequest : public RequestOnceActor {
 
  public:
   GetChatEventLogRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, string &&query, int64 from_event_id,
-                         int32 limit, tl_object_ptr<td_api::chatEventLogFilters> &&filters, vector<int32> user_ids)
+                         int32 limit, tl_object_ptr<td_api::chatEventLogFilters> &&filters, vector<UserId> user_ids)
       : RequestOnceActor(std::move(td), request_id)
       , dialog_id_(dialog_id)
       , query_(std::move(query))
       , from_event_id_(from_event_id)
       , limit_(limit)
-      , filters_(std::move(filters)) {
-    for (auto user_id : user_ids) {
-      user_ids_.emplace_back(user_id);
-    }
+      , filters_(std::move(filters))
+      , user_ids_(std::move(user_ids)) {
   }
 };
 
@@ -2152,11 +2150,8 @@ class RemoveContactsRequest : public RequestActor<> {
   }
 
  public:
-  RemoveContactsRequest(ActorShared<Td> td, uint64 request_id, vector<int32> &&user_ids)
-      : RequestActor(std::move(td), request_id) {
-    for (auto user_id : user_ids) {
-      user_ids_.emplace_back(user_id);
-    }
+  RemoveContactsRequest(ActorShared<Td> td, uint64 request_id, vector<UserId> &&user_ids)
+      : RequestActor(std::move(td), request_id), user_ids_(std::move(user_ids)) {
     set_tries(3);  // load_contacts + delete_contacts
   }
 };
@@ -4761,7 +4756,7 @@ void Td::on_request(uint64 id, td_api::registerUser &request) {
 
 void Td::on_request(uint64 id, td_api::requestQrCodeAuthentication &request) {
   send_closure(auth_manager_actor_, &AuthManager::request_qr_code_authentication, id,
-               std::move(request.other_user_ids_));
+               UserId::get_user_ids(request.other_user_ids_));
 }
 
 void Td::on_request(uint64 id, td_api::checkAuthenticationPassword &request) {
@@ -4950,7 +4945,7 @@ void Td::on_request(uint64 id, td_api::registerDevice &request) {
   }
   CREATE_REQUEST_PROMISE();
   send_closure(device_token_manager_, &DeviceTokenManager::register_device, std::move(request.device_token_),
-               std::move(request.other_user_ids_), std::move(promise));
+               UserId::get_user_ids(request.other_user_ids_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getUserPrivacySettingRules &request) {
@@ -5881,7 +5876,7 @@ void Td::on_request(uint64 id, td_api::createSecretChat &request) {
 void Td::on_request(uint64 id, td_api::createNewBasicGroupChat &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.title_);
-  CREATE_REQUEST(CreateNewGroupChatRequest, request.user_ids_, std::move(request.title_));
+  CREATE_REQUEST(CreateNewGroupChatRequest, UserId::get_user_ids(request.user_ids_), std::move(request.title_));
 }
 
 void Td::on_request(uint64 id, td_api::createNewSupergroupChat &request) {
@@ -6023,12 +6018,8 @@ void Td::on_request(uint64 id, const td_api::revokeGroupCallInviteLink &request)
 void Td::on_request(uint64 id, const td_api::inviteGroupCallParticipants &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  vector<UserId> user_ids;
-  for (auto &user_id : request.user_ids_) {
-    user_ids.emplace_back(user_id);
-  }
-  group_call_manager_->invite_group_call_participants(GroupCallId(request.group_call_id_), std::move(user_ids),
-                                                      std::move(promise));
+  group_call_manager_->invite_group_call_participants(GroupCallId(request.group_call_id_),
+                                                      UserId::get_user_ids(request.user_ids_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getGroupCallInviteLink &request) {
@@ -6337,11 +6328,8 @@ void Td::on_request(uint64 id, const td_api::addChatMember &request) {
 void Td::on_request(uint64 id, const td_api::addChatMembers &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  vector<UserId> user_ids;
-  for (auto &user_id : request.user_ids_) {
-    user_ids.emplace_back(user_id);
-  }
-  contacts_manager_->add_dialog_participants(DialogId(request.chat_id_), user_ids, std::move(promise));
+  contacts_manager_->add_dialog_participants(DialogId(request.chat_id_), UserId::get_user_ids(request.user_ids_),
+                                             std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setChatMemberStatus &request) {
@@ -6488,7 +6476,7 @@ void Td::on_request(uint64 id, td_api::getChatEventLog &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.query_);
   CREATE_REQUEST(GetChatEventLogRequest, request.chat_id_, std::move(request.query_), request.from_event_id_,
-                 request.limit_, std::move(request.filters_), std::move(request.user_ids_));
+                 request.limit_, std::move(request.filters_), UserId::get_user_ids(request.user_ids_));
 }
 
 void Td::on_request(uint64 id, const td_api::clearAllDraftMessages &request) {
@@ -6728,7 +6716,7 @@ void Td::on_request(uint64 id, td_api::searchContacts &request) {
 
 void Td::on_request(uint64 id, td_api::removeContacts &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST(RemoveContactsRequest, std::move(request.user_ids_));
+  CREATE_REQUEST(RemoveContactsRequest, UserId::get_user_ids(request.user_ids_));
 }
 
 void Td::on_request(uint64 id, const td_api::getImportedContactCount &request) {
