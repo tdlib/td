@@ -652,6 +652,7 @@ struct GroupCallManager::GroupCall {
   DialogId as_dialog_id;
 
   int32 version = -1;
+  int32 leave_version = -1;
   int32 title_version = -1;
   int32 mute_version = -1;
   int32 stream_dc_id_version = -1;
@@ -1390,10 +1391,12 @@ void GroupCallManager::on_update_group_call_participants(
         continue;
       }
       if (participant.joined_date == 0) {
-        diff--;
+        if (version > group_call->leave_version) {
+          diff--;
+        }
         remove_recent_group_call_speaker(input_group_call_id, participant.dialog_id);
       } else {
-        if (participant.is_just_joined) {
+        if (participant.is_just_joined && version >= group_call->leave_version) {
           diff++;
         }
         on_participant_speaking_in_group_call(input_group_call_id, participant);
@@ -3253,6 +3256,7 @@ void GroupCallManager::try_clear_group_call_participants(InputGroupCallId input_
     group_call->loaded_all_participants = false;
     send_update_group_call(group_call, "try_clear_group_call_participants");
   }
+  group_call->leave_version = group_call->version;
   group_call->version = -1;
 
   for (auto &participant : participants->participants) {
