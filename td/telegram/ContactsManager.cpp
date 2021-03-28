@@ -12567,6 +12567,7 @@ void ContactsManager::on_update_chat_status(Chat *c, ChatId chat_id, DialogParti
   if (c->status != status) {
     LOG(INFO) << "Update " << chat_id << " status from " << c->status << " to " << status;
     bool need_reload_group_call = c->status.can_manage_calls() != status.can_manage_calls();
+    bool need_drop_invite_link = c->status.can_manage_invite_links() && !status.can_manage_invite_links();
 
     c->status = status;
 
@@ -12577,6 +12578,12 @@ void ContactsManager::on_update_chat_status(Chat *c, ChatId chat_id, DialogParti
       c->pinned_message_version = -1;
 
       drop_chat_full(chat_id);
+    } else if (need_drop_invite_link) {
+      ChatFull *chat_full = get_chat_full_force(chat_id, "on_update_chat_status");
+      if (chat_full != nullptr) {
+        on_update_chat_full_invite_link(chat_full, nullptr);
+        update_chat_full(chat_full, chat_id);
+      }
     }
     if (need_reload_group_call) {
       send_closure_later(G()->messages_manager(), &MessagesManager::on_update_dialog_group_call_rights,
