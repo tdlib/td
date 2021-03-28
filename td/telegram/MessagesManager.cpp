@@ -33744,7 +33744,8 @@ void MessagesManager::force_create_dialog(DialogId dialog_id, const char *source
     d = add_dialog(dialog_id);
     update_dialog_pos(d, "force_create_dialog");
 
-    if (dialog_id.get_type() == DialogType::SecretChat && !d->notification_settings.is_synchronized) {
+    if (dialog_id.get_type() == DialogType::SecretChat && !d->notification_settings.is_synchronized &&
+        td_->contacts_manager_->get_secret_chat_state(dialog_id.get_secret_chat_id()) != SecretChatState::Closed) {
       // secret chat is being created
       // let's copy notification settings from main chat if available
       VLOG(notifications) << "Create new secret " << dialog_id << " from " << source;
