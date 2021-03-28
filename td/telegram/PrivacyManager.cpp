@@ -185,7 +185,7 @@ PrivacyManager::UserPrivacySettingRule::UserPrivacySettingRule(const td_api::Use
       break;
     case td_api::userPrivacySettingRuleAllowUsers::ID:
       type_ = Type::AllowUsers;
-      user_ids_ = static_cast<const td_api::userPrivacySettingRuleAllowUsers &>(rule).user_ids_;
+      user_ids_ = UserId::get_user_ids(static_cast<const td_api::userPrivacySettingRuleAllowUsers &>(rule).user_ids_);
       break;
     case td_api::userPrivacySettingRuleAllowChatMembers::ID:
       type_ = Type::AllowChatParticipants;
@@ -199,7 +199,8 @@ PrivacyManager::UserPrivacySettingRule::UserPrivacySettingRule(const td_api::Use
       break;
     case td_api::userPrivacySettingRuleRestrictUsers::ID:
       type_ = Type::RestrictUsers;
-      user_ids_ = static_cast<const td_api::userPrivacySettingRuleRestrictUsers &>(rule).user_ids_;
+      user_ids_ =
+          UserId::get_user_ids(static_cast<const td_api::userPrivacySettingRuleRestrictUsers &>(rule).user_ids_);
       break;
     case td_api::userPrivacySettingRuleRestrictChatMembers::ID:
       type_ = Type::RestrictChatParticipants;
@@ -220,7 +221,7 @@ PrivacyManager::UserPrivacySettingRule::UserPrivacySettingRule(const telegram_ap
       break;
     case telegram_api::privacyValueAllowUsers::ID:
       type_ = Type::AllowUsers;
-      user_ids_ = static_cast<const telegram_api::privacyValueAllowUsers &>(rule).users_;
+      user_ids_ = UserId::get_user_ids(static_cast<const telegram_api::privacyValueAllowUsers &>(rule).users_);
       break;
     case telegram_api::privacyValueAllowChatParticipants::ID:
       type_ = Type::AllowChatParticipants;
@@ -234,7 +235,7 @@ PrivacyManager::UserPrivacySettingRule::UserPrivacySettingRule(const telegram_ap
       break;
     case telegram_api::privacyValueDisallowUsers::ID:
       type_ = Type::RestrictUsers;
-      user_ids_ = static_cast<const telegram_api::privacyValueDisallowUsers &>(rule).users_;
+      user_ids_ = UserId::get_user_ids(static_cast<const telegram_api::privacyValueDisallowUsers &>(rule).users_);
       break;
     case telegram_api::privacyValueDisallowChatParticipants::ID:
       type_ = Type::RestrictChatParticipants;
@@ -253,7 +254,7 @@ PrivacyManager::UserPrivacySettingRule::get_user_privacy_setting_rule_object() c
     case Type::AllowAll:
       return make_tl_object<td_api::userPrivacySettingRuleAllowAll>();
     case Type::AllowUsers:
-      return make_tl_object<td_api::userPrivacySettingRuleAllowUsers>(vector<int32>{user_ids_});
+      return make_tl_object<td_api::userPrivacySettingRuleAllowUsers>(UserId::get_input_user_ids(user_ids_));
     case Type::AllowChatParticipants:
       return make_tl_object<td_api::userPrivacySettingRuleAllowChatMembers>(chat_ids_as_dialog_ids());
     case Type::RestrictContacts:
@@ -261,7 +262,7 @@ PrivacyManager::UserPrivacySettingRule::get_user_privacy_setting_rule_object() c
     case Type::RestrictAll:
       return make_tl_object<td_api::userPrivacySettingRuleRestrictAll>();
     case Type::RestrictUsers:
-      return make_tl_object<td_api::userPrivacySettingRuleRestrictUsers>(vector<int32>{user_ids_});
+      return make_tl_object<td_api::userPrivacySettingRuleRestrictUsers>(UserId::get_input_user_ids(user_ids_));
     case Type::RestrictChatParticipants:
       return make_tl_object<td_api::userPrivacySettingRuleRestrictChatMembers>(chat_ids_as_dialog_ids());
     default:
@@ -298,7 +299,7 @@ Result<PrivacyManager::UserPrivacySettingRule> PrivacyManager::UserPrivacySettin
   UserPrivacySettingRule result(*rule);
   auto td = G()->td().get_actor_unsafe();
   for (auto user_id : result.user_ids_) {
-    if (!td->contacts_manager_->have_user(UserId(user_id))) {
+    if (!td->contacts_manager_->have_user(user_id)) {
       return Status::Error(500, "Got inaccessible user from the server");
     }
   }
@@ -320,7 +321,7 @@ Result<PrivacyManager::UserPrivacySettingRule> PrivacyManager::UserPrivacySettin
 vector<tl_object_ptr<telegram_api::InputUser>> PrivacyManager::UserPrivacySettingRule::get_input_users() const {
   vector<tl_object_ptr<telegram_api::InputUser>> result;
   for (auto user_id : user_ids_) {
-    auto input_user = G()->td().get_actor_unsafe()->contacts_manager_->get_input_user(UserId(user_id));
+    auto input_user = G()->td().get_actor_unsafe()->contacts_manager_->get_input_user(user_id);
     if (input_user != nullptr) {
       result.push_back(std::move(input_user));
     } else {
@@ -347,7 +348,7 @@ vector<int64> PrivacyManager::UserPrivacySettingRule::chat_ids_as_dialog_ids() c
   return result;
 }
 
-vector<int32> PrivacyManager::UserPrivacySettingRule::get_restricted_user_ids() const {
+vector<UserId> PrivacyManager::UserPrivacySettingRule::get_restricted_user_ids() const {
   if (type_ == Type::RestrictUsers) {
     return user_ids_;
   }
@@ -405,12 +406,13 @@ vector<tl_object_ptr<telegram_api::InputPrivacyRule>> PrivacyManager::UserPrivac
   return result;
 }
 
-vector<int32> PrivacyManager::UserPrivacySettingRules::get_restricted_user_ids() const {
-  vector<int32> result;
+vector<UserId> PrivacyManager::UserPrivacySettingRules::get_restricted_user_ids() const {
+  vector<UserId> result;
   for (auto &rule : rules_) {
     combine(result, rule.get_restricted_user_ids());
   }
-  td::unique(result);
+  std::sort(result.begin(), result.end(), [](UserId lhs, UserId rhs) { return lhs.get() < rhs.get(); });
+  result.erase(std::unique(result.begin(), result.end()), result.end());
   return result;
 }
 
@@ -530,12 +532,12 @@ void PrivacyManager::do_update_privacy(UserPrivacySetting user_privacy_setting, 
           if (old_restricted != new_restricted) {
             // if a user was unrestricted, it is not received from the server anymore
             // we need to reget their online status manually
-            std::vector<int32> unrestricted;
+            std::vector<UserId> unrestricted;
             std::set_difference(old_restricted.begin(), old_restricted.end(), new_restricted.begin(),
-                                new_restricted.end(), std::back_inserter(unrestricted));
+                                new_restricted.end(), std::back_inserter(unrestricted),
+                                [](UserId lhs, UserId rhs) { return lhs.get() < rhs.get(); });
             for (auto &user_id : unrestricted) {
-              send_closure_later(G()->contacts_manager(), &ContactsManager::reload_user, UserId(user_id),
-                                 Promise<Unit>());
+              send_closure_later(G()->contacts_manager(), &ContactsManager::reload_user, user_id, Promise<Unit>());
             }
           }
           break;

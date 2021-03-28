@@ -9,6 +9,7 @@
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserId.h"
 
 #include "td/actor/actor.h"
 #include "td/actor/PromiseFuture.h"
@@ -83,7 +84,7 @@ class PrivacyManager : public NetQueryCallback {
       return type_ == other.type_ && user_ids_ == other.user_ids_ && chat_ids_ == other.chat_ids_;
     }
 
-    vector<int32> get_restricted_user_ids() const;
+    vector<UserId> get_restricted_user_ids() const;
 
    private:
     enum class Type : int32 {
@@ -97,7 +98,7 @@ class PrivacyManager : public NetQueryCallback {
       RestrictChatParticipants
     } type_ = Type::RestrictAll;
 
-    vector<int32> user_ids_;
+    vector<UserId> user_ids_;
     vector<int32> chat_ids_;
 
     vector<tl_object_ptr<telegram_api::InputUser>> get_input_users() const;
@@ -130,7 +131,7 @@ class PrivacyManager : public NetQueryCallback {
       return rules_ == other.rules_;
     }
 
-    vector<int32> get_restricted_user_ids() const;
+    vector<UserId> get_restricted_user_ids() const;
 
    private:
     vector<UserPrivacySettingRule> rules_;
