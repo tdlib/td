@@ -53,7 +53,7 @@ auto skip_eintr_timeout(F &&f, int32 timeout_ms) {
       break;
     }
     left_timeout_ms =
-        td::max(static_cast<int32>((start.at() - Timestamp::now().at()) * 1000 + timeout_ms + 1 - 1e-9), 0);
+        static_cast<int32>(td::max((start.at() - Timestamp::now().at()) * 1000 + timeout_ms + 1 - 1e-9, 0.0));
   }
   return res;
 }

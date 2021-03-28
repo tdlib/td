@@ -151,8 +151,8 @@ class SessionConnection
     return online_flag_ ? rtt() : 60;
   }
 
-  int http_max_wait() const {
-    return 25 * 1000;  // 25s. Longer could be closed by proxy
+  double http_max_wait() const {
+    return 25.0;  // 25s. Longer could be closed by proxy
   }
   static constexpr int HTTP_MAX_AFTER = 10;              // 0.01s
   static constexpr int HTTP_MAX_DELAY = 30;              // 0.03s

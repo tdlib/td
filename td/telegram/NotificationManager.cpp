@@ -845,7 +845,8 @@ int32 NotificationManager::get_notification_delay_ms(DialogId dialog_id, const P
     return 0;
   }();
 
-  auto passed_time_ms = max(0, static_cast<int32>((G()->server_time_cached() - notification.date - 1) * 1000));
+  auto passed_time_ms =
+      static_cast<int32>(clamp(G()->server_time_cached() - notification.date - 1, 0.0, 1000000.0) * 1000);
   return max(max(min_delay_ms, delay_ms) - passed_time_ms, MIN_NOTIFICATION_DELAY_MS);
 }
 

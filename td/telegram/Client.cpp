@@ -277,7 +277,7 @@ class TdReceiver {
     if (is_locked) {
       LOG(FATAL) << "Receive is called after Client destroy, or simultaneously from different threads";
     }
-    auto response = receive_unlocked(timeout);
+    auto response = receive_unlocked(clamp(timeout, 0.0, 1000000.0));
     is_locked = receive_lock_.exchange(false);
     CHECK(is_locked);
     VLOG(td_requests) << "End to wait for updates, returning object " << response.request_id << ' '
