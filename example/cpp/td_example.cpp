@@ -172,6 +172,7 @@ class TdExample {
     auto it = handlers_.find(response.request_id);
     if (it != handlers_.end()) {
       it->second(std::move(response.object));
+      handlers_.erase(it);
     }
   }
 
