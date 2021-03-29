@@ -31854,7 +31854,7 @@ MessagesManager::Message *MessagesManager::on_get_message_from_database(DialogId
 
   Dependencies dependencies;
   add_message_dependencies(dependencies, d->dialog_id, m.get());
-  resolve_dependencies_force(td_, dependencies, "get_message");
+  resolve_dependencies_force(td_, dependencies, "on_get_message_from_database");
 
   m->have_previous = false;
   m->have_next = false;
@@ -34558,7 +34558,8 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
   }
 
   auto folder_ptr = get_dialog_folder(d->folder_id);
-  CHECK(folder_ptr != nullptr);
+  LOG_CHECK(folder_ptr != nullptr) << dialog_id << ' ' << d->folder_id << ' ' << is_loaded_from_database << ' '
+                                   << source;
   auto &folder = *folder_ptr;
   if (old_date == new_date) {
     if (new_order == DEFAULT_ORDER) {
