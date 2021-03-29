@@ -1963,7 +1963,7 @@ void SecretChatActor::start_up() {
     auth_state_ = r_auth_state.move_as_ok();
   }
   if (!can_be_empty_ && auth_state_.state == State::Empty) {
-    LOG(WARNING) << "Close Secret chat because it is empty";
+    LOG(INFO) << "Skip creation of empty secret chat " << auth_state_.id;
     return stop();
   }
   if (auth_state_.state == State::Closed) {
