@@ -40,7 +40,7 @@ class Contact {
  public:
   Contact() = default;
 
-  Contact(string phone_number, string first_name, string last_name, string vcard, int32 user_id);
+  Contact(string phone_number, string first_name, string last_name, string vcard, UserId user_id);
 
   void set_user_id(UserId user_id);
 

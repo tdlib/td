@@ -1514,7 +1514,7 @@ InlineMessageContent create_inline_message_content(Td *td, FileId file_id,
       auto inline_message_contact = move_tl_object_as<telegram_api::botInlineMessageMediaContact>(inline_message);
       result.message_content = make_unique<MessageContact>(
           Contact(std::move(inline_message_contact->phone_number_), std::move(inline_message_contact->first_name_),
-                  std::move(inline_message_contact->last_name_), std::move(inline_message_contact->vcard_), 0));
+                  std::move(inline_message_contact->last_name_), std::move(inline_message_contact->vcard_), UserId()));
       reply_markup = std::move(inline_message_contact->reply_markup_);
       break;
     }
@@ -3915,7 +3915,7 @@ unique_ptr<MessageContent> get_secret_message_content(
       }
       return make_unique<MessageContact>(
           Contact(std::move(message_contact->phone_number_), std::move(message_contact->first_name_),
-                  std::move(message_contact->last_name_), string(), message_contact->user_id_));
+                  std::move(message_contact->last_name_), string(), UserId(message_contact->user_id_)));
     }
     case secret_api::decryptedMessageMediaWebPage::ID: {
       auto media_web_page = move_tl_object_as<secret_api::decryptedMessageMediaWebPage>(media);
@@ -4082,9 +4082,10 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
         td->contacts_manager_->get_user_id_object(UserId(message_contact->user_id_),
                                                   "MessageMediaContact");  // to ensure updateUser
       }
-      return make_unique<MessageContact>(Contact(
-          std::move(message_contact->phone_number_), std::move(message_contact->first_name_),
-          std::move(message_contact->last_name_), std::move(message_contact->vcard_), message_contact->user_id_));
+      return make_unique<MessageContact>(
+          Contact(std::move(message_contact->phone_number_), std::move(message_contact->first_name_),
+                  std::move(message_contact->last_name_), std::move(message_contact->vcard_),
+                  UserId(message_contact->user_id_)));
     }
     case telegram_api::messageMediaDocument::ID: {
       auto message_document = move_tl_object_as<telegram_api::messageMediaDocument>(media);

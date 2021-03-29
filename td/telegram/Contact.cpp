@@ -17,7 +17,7 @@
 
 namespace td {
 
-Contact::Contact(string phone_number, string first_name, string last_name, string vcard, int32 user_id)
+Contact::Contact(string phone_number, string first_name, string last_name, string vcard, UserId user_id)
     : phone_number_(std::move(phone_number))
     , first_name_(std::move(first_name))
     , last_name_(std::move(last_name))
@@ -96,7 +96,8 @@ Result<Contact> process_input_message_contact(tl_object_ptr<td_api::InputMessage
     return Status::Error(400, "vCard must be encoded in UTF-8");
   }
 
-  return Contact(contact->phone_number_, contact->first_name_, contact->last_name_, contact->vcard_, contact->user_id_);
+  return Contact(contact->phone_number_, contact->first_name_, contact->last_name_, contact->vcard_,
+                 UserId(contact->user_id_));
 }
 
 }  // namespace td

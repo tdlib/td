@@ -1423,10 +1423,10 @@ void InlineQueriesManager::on_get_inline_query_results(UserId bot_user_id, uint6
             auto inline_message_contact =
                 static_cast<const telegram_api::botInlineMessageMediaContact *>(result->send_message_.get());
             Contact c(inline_message_contact->phone_number_, inline_message_contact->first_name_,
-                      inline_message_contact->last_name_, inline_message_contact->vcard_, 0);
+                      inline_message_contact->last_name_, inline_message_contact->vcard_, UserId());
             contact->contact_ = c.get_contact_object();
           } else {
-            Contact c(std::move(result->description_), std::move(result->title_), string(), string(), 0);
+            Contact c(std::move(result->description_), std::move(result->title_), string(), string(), UserId());
             contact->contact_ = c.get_contact_object();
           }
           contact->thumbnail_ = register_thumbnail(std::move(result->thumb_));
