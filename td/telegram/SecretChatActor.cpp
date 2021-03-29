@@ -83,7 +83,7 @@ void SecretChatActor::update_chat(telegram_api::object_ptr<telegram_api::Encrypt
   loop();
 }
 
-void SecretChatActor::create_chat(int32 user_id, int64 user_access_hash, int32 random_id,
+void SecretChatActor::create_chat(UserId user_id, int64 user_access_hash, int32 random_id,
                                   Promise<SecretChatId> promise) {
   if (close_flag_) {
     promise.set_error(Status::Error(400, "Chat is closed"));
@@ -826,7 +826,7 @@ void SecretChatActor::do_create_chat_impl(unique_ptr<log_event::CreateSecretChat
 }
 
 telegram_api::object_ptr<telegram_api::inputUser> SecretChatActor::get_input_user() {
-  return telegram_api::make_object<telegram_api::inputUser>(auth_state_.user_id, auth_state_.user_access_hash);
+  return telegram_api::make_object<telegram_api::inputUser>(auth_state_.user_id.get(), auth_state_.user_access_hash);
 }
 telegram_api::object_ptr<telegram_api::inputEncryptedChat> SecretChatActor::get_input_chat() {
   return telegram_api::make_object<telegram_api::inputEncryptedChat>(auth_state_.id, auth_state_.access_hash);
@@ -1869,7 +1869,7 @@ Status SecretChatActor::on_update_chat(telegram_api::encryptedChatRequested &upd
   }
   auth_state_.state = State::SendAccept;
   auth_state_.x = 1;
-  auth_state_.user_id = update.admin_id_;
+  auth_state_.user_id = UserId(update.admin_id_);
   auth_state_.date = context_->unix_time();
   TRY_STATUS(save_common_info(update));
   auth_state_.handshake.set_g_a(update.g_a_.as_slice());

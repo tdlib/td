@@ -19334,8 +19334,8 @@ void MessagesManager::create_new_secret_chat(UserId user_id, Promise<SecretChatI
   }
   auto user = move_tl_object_as<telegram_api::inputUser>(user_base);
 
-  send_closure(G()->secret_chats_manager(), &SecretChatsManager::create_chat, user->user_id_, user->access_hash_,
-               std::move(promise));
+  send_closure(G()->secret_chats_manager(), &SecretChatsManager::create_chat, UserId(user->user_id_),
+               user->access_hash_, std::move(promise));
 }
 
 DialogId MessagesManager::migrate_dialog_to_megagroup(DialogId dialog_id, Promise<Unit> &&promise) {

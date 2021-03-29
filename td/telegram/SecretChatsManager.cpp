@@ -96,7 +96,7 @@ void SecretChatsManager::start_up() {
   send_closure(G()->state_manager(), &StateManager::add_callback, make_unique<StateCallback>(actor_id(this)));
 }
 
-void SecretChatsManager::create_chat(int32 user_id, int64 user_access_hash, Promise<SecretChatId> promise) {
+void SecretChatsManager::create_chat(UserId user_id, int64 user_access_hash, Promise<SecretChatId> promise) {
   int32 random_id;
   ActorId<SecretChatActor> actor;
   do {

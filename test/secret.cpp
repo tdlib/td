@@ -765,7 +765,7 @@ class Master : public Actor {
     auto old_context = set_context(std::make_shared<Global>());
     alice_ = create_actor<SecretChatProxy>("SecretChatProxy alice", "alice", actor_shared(this, 1));
     bob_ = create_actor<SecretChatProxy>("SecretChatProxy bob", "bob", actor_shared(this, 2));
-    send_closure(alice_->get_actor_unsafe()->actor_, &SecretChatActor::create_chat, 2, 0, 123,
+    send_closure(alice_->get_actor_unsafe()->actor_, &SecretChatActor::create_chat, UserId(2), 0, 123,
                  PromiseCreator::lambda([actor_id = actor_id(this)](Result<SecretChatId> res) {
                    send_closure(actor_id, &Master::got_secret_chat_id, std::move(res), 0);
                  }));

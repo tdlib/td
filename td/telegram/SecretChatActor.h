@@ -6,15 +6,6 @@
 //
 #pragma once
 
-#include "td/telegram/secret_api.h"
-#include "td/telegram/telegram_api.h"
-
-#include "td/actor/actor.h"
-#include "td/actor/PromiseFuture.h"
-
-#include "td/mtproto/AuthKey.h"
-#include "td/mtproto/DhHandshake.h"
-
 #include "td/telegram/DhConfig.h"
 #include "td/telegram/FolderId.h"
 #include "td/telegram/logevent/SecretChatEvent.h"
@@ -22,7 +13,15 @@
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/SecretChatDb.h"
 #include "td/telegram/SecretChatId.h"
+#include "td/telegram/secret_api.h"
+#include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
+
+#include "td/mtproto/AuthKey.h"
+#include "td/mtproto/DhHandshake.h"
+
+#include "td/actor/actor.h"
+#include "td/actor/PromiseFuture.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/ChangesProcessor.h"
@@ -115,7 +114,7 @@ class SecretChatActor : public NetQueryCallback {
 
   // First query to new chat must be one of these two
   void update_chat(telegram_api::object_ptr<telegram_api::EncryptedChat> chat);
-  void create_chat(int32 user_id, int64 user_access_hash, int32 random_id, Promise<SecretChatId> promise);
+  void create_chat(UserId user_id, int64 user_access_hash, int32 random_id, Promise<SecretChatId> promise);
 
   void cancel_chat(bool delete_history, bool is_already_discarded, Promise<> promise);
 
@@ -374,7 +373,7 @@ class SecretChatActor : public NetQueryCallback {
     int32 id = 0;
     int64 access_hash = 0;
 
-    int32 user_id = 0;
+    UserId user_id;
     int64 user_access_hash = 0;
     int32 random_id = 0;
 
@@ -408,7 +407,7 @@ class SecretChatActor : public NetQueryCallback {
 
       storer.store_int(id);
       storer.store_long(access_hash);
-      storer.store_int(user_id);
+      storer.store_int(user_id.get());
       storer.store_long(user_access_hash);
       storer.store_int(random_id);
       if (has_date) {
@@ -439,7 +438,7 @@ class SecretChatActor : public NetQueryCallback {
 
       id = parser.fetch_int();
       access_hash = parser.fetch_long();
-      user_id = parser.fetch_int();
+      user_id = UserId(parser.fetch_int());
       user_access_hash = parser.fetch_long();
       random_id = parser.fetch_int();
       if (has_date) {
@@ -701,7 +700,7 @@ class SecretChatActor : public NetQueryCallback {
     return SecretChatId(auth_state_.id);
   }
   UserId get_user_id() {
-    return UserId(auth_state_.user_id);
+    return auth_state_.user_id;
   }
   void send_update_ttl(int32 ttl);
   void send_update_secret_chat();

@@ -18,6 +18,7 @@
 
 #include "td/telegram/secret_api.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserId.h"
 
 namespace td {
 namespace log_event {
@@ -445,14 +446,14 @@ class CreateSecretChat : public SecretChatLogEventBase<CreateSecretChat> {
  public:
   static constexpr Type type = SecretChatEvent::Type::CreateSecretChat;
   int32 random_id = 0;
-  int32 user_id = 0;
+  UserId user_id;
   int64 user_access_hash = 0;
 
   template <class StorerT>
   void store(StorerT &storer) const {
     using td::store;
     store(random_id, storer);
-    store(user_id, storer);
+    store(user_id.get(), storer);
     store(user_access_hash, storer);
   }
 
@@ -460,13 +461,15 @@ class CreateSecretChat : public SecretChatLogEventBase<CreateSecretChat> {
   void parse(ParserT &parser) {
     using td::parse;
     parse(random_id, parser);
-    parse(user_id, parser);
+    int32 legacy_user_id;
+    parse(legacy_user_id, parser);
+    user_id = UserId(legacy_user_id);
     parse(user_access_hash, parser);
   }
 
   StringBuilder &print(StringBuilder &sb) const override {
-    return sb << "[Logevent CreateSecretChat " << tag("id", log_event_id()) << tag("chat_id", random_id)
-              << tag("user_id", user_id) << "]";
+    return sb << "[Logevent CreateSecretChat " << tag("id", log_event_id()) << tag("chat_id", random_id) << user_id
+              << "]";
   }
 };
 

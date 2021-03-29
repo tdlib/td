@@ -9,6 +9,7 @@
 #include "td/telegram/logevent/SecretChatEvent.h"
 #include "td/telegram/SecretChatActor.h"
 #include "td/telegram/SecretChatId.h"
+#include "td/telegram/UserId.h"
 
 #include "td/telegram/secret_api.h"
 #include "td/telegram/telegram_api.h"
@@ -34,7 +35,7 @@ class SecretChatsManager : public Actor {
   void on_update_chat(tl_object_ptr<telegram_api::updateEncryption> update);
   void on_new_message(tl_object_ptr<telegram_api::EncryptedMessage> &&message_ptr, Promise<Unit> &&promise);
 
-  void create_chat(int32 user_id, int64 user_access_hash, Promise<SecretChatId> promise);
+  void create_chat(UserId user_id, int64 user_access_hash, Promise<SecretChatId> promise);
   void cancel_chat(SecretChatId secret_chat_id, bool delete_history, Promise<> promise);
   void send_message(SecretChatId secret_chat_id, tl_object_ptr<secret_api::decryptedMessage> message,
                     tl_object_ptr<telegram_api::InputEncryptedFile> file, Promise<> promise);
