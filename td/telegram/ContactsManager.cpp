@@ -9567,7 +9567,8 @@ void ContactsManager::on_load_channel_full_from_database(ChannelId channel_id, s
 
   td_->group_call_manager_->on_update_dialog_about(DialogId(channel_id), channel_full->description, false);
 
-  td_->messages_manager_->on_dialog_bots_updated(DialogId(channel_id), channel_full->bot_user_ids, true);
+  send_closure_later(G()->messages_manager(), &MessagesManager::on_dialog_bots_updated, DialogId(channel_id),
+                     channel_full->bot_user_ids, true);
 
   update_channel_full(channel_full, channel_id, true);
 
@@ -9960,7 +9961,8 @@ void ContactsManager::update_chat_full(ChatFull *chat_full, ChatId chat_id, bool
     }
     on_update_dialog_administrators(DialogId(chat_id), std::move(administrators), chat_full->version != -1,
                                     from_database);
-    td_->messages_manager_->on_dialog_bots_updated(DialogId(chat_id), std::move(bot_user_ids), from_database);
+    send_closure_later(G()->messages_manager(), &MessagesManager::on_dialog_bots_updated, DialogId(chat_id),
+                       std::move(bot_user_ids), from_database);
 
     {
       Chat *c = get_chat(chat_id);
@@ -11735,7 +11737,7 @@ void ContactsManager::speculative_add_channel_participants(ChannelId channel_id,
     return;
   }
 
-  speculative_add_channel_participants(channel_id, delta_participant_count, by_me);
+  speculative_add_channel_participant_count(channel_id, delta_participant_count, by_me);
 }
 
 void ContactsManager::speculative_delete_channel_participant(ChannelId channel_id, UserId deleted_user_id, bool by_me) {
@@ -11763,18 +11765,18 @@ void ContactsManager::speculative_delete_channel_participant(ChannelId channel_i
     }
   }
 
-  speculative_add_channel_participants(channel_id, -1, by_me);
+  speculative_add_channel_participant_count(channel_id, -1, by_me);
 }
 
-void ContactsManager::speculative_add_channel_participants(ChannelId channel_id, int32 delta_participant_count,
-                                                           bool by_me) {
+void ContactsManager::speculative_add_channel_participant_count(ChannelId channel_id, int32 delta_participant_count,
+                                                                bool by_me) {
   if (by_me) {
     // Currently ignore all changes made by the current user, because they may be already counted
     invalidate_channel_full(channel_id, false);  // just in case
     return;
   }
 
-  auto channel_full = get_channel_full_force(channel_id, "speculative_add_channel_participants");
+  auto channel_full = get_channel_full_force(channel_id, "speculative_add_channel_participant_count");
   auto min_count = channel_full == nullptr ? 0 : channel_full->administrator_count;
 
   auto c = get_channel_force(channel_id);
@@ -13083,7 +13085,8 @@ void ContactsManager::on_update_channel_bot_user_ids(ChannelId channel_id, vecto
 
   auto channel_full = get_channel_full_force(channel_id, "on_update_channel_bot_user_ids");
   if (channel_full == nullptr) {
-    td_->messages_manager_->on_dialog_bots_updated(DialogId(channel_id), std::move(bot_user_ids), false);
+    send_closure_later(G()->messages_manager(), &MessagesManager::on_dialog_bots_updated, DialogId(channel_id),
+                       std::move(bot_user_ids), false);
     return;
   }
   on_update_channel_full_bot_user_ids(channel_full, channel_id, std::move(bot_user_ids));
@@ -13094,7 +13097,8 @@ void ContactsManager::on_update_channel_full_bot_user_ids(ChannelFull *channel_f
                                                           vector<UserId> &&bot_user_ids) {
   CHECK(channel_full != nullptr);
   if (channel_full->bot_user_ids != bot_user_ids) {
-    td_->messages_manager_->on_dialog_bots_updated(DialogId(channel_id), bot_user_ids, false);
+    send_closure_later(G()->messages_manager(), &MessagesManager::on_dialog_bots_updated, DialogId(channel_id),
+                       bot_user_ids, false);
     channel_full->bot_user_ids = std::move(bot_user_ids);
     channel_full->need_save_to_database = true;
   }

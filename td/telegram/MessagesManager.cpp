@@ -35979,16 +35979,16 @@ void MessagesManager::speculatively_update_channel_participants(DialogId dialog_
   bool by_me = m->sender_user_id == my_user_id;
   switch (m->content->get_type()) {
     case MessageContentType::ChatAddUsers:
-      td_->contacts_manager_->speculative_add_channel_participants(
-          channel_id, get_message_content_added_user_ids(m->content.get()), m->sender_user_id, m->date, by_me);
+      send_closure_later(G()->contacts_manager(), &ContactsManager::speculative_add_channel_participants, channel_id,
+                         get_message_content_added_user_ids(m->content.get()), m->sender_user_id, m->date, by_me);
       break;
     case MessageContentType::ChatJoinedByLink:
-      td_->contacts_manager_->speculative_add_channel_participants(channel_id, {m->sender_user_id}, m->sender_user_id,
-                                                                   m->date, by_me);
+      send_closure_later(G()->contacts_manager(), &ContactsManager::speculative_add_channel_participants, channel_id,
+                         vector<UserId>{m->sender_user_id}, m->sender_user_id, m->date, by_me);
       break;
     case MessageContentType::ChatDeleteUser:
-      td_->contacts_manager_->speculative_delete_channel_participant(
-          channel_id, get_message_content_deleted_user_id(m->content.get()), by_me);
+      send_closure_later(G()->contacts_manager(), &ContactsManager::speculative_delete_channel_participant, channel_id,
+                         get_message_content_deleted_user_id(m->content.get()), by_me);
       break;
     default:
       break;

@@ -1250,7 +1250,7 @@ class ContactsManager : public Actor {
 
   static bool speculative_add_count(int32 &count, int32 delta_count, int32 min_count = 0);
 
-  void speculative_add_channel_participants(ChannelId channel_id, int32 delta_participant_count, bool by_me);
+  void speculative_add_channel_participant_count(ChannelId channel_id, int32 delta_participant_count, bool by_me);
 
   void speculative_add_channel_user(ChannelId channel_id, UserId user_id, DialogParticipantStatus new_status,
                                     DialogParticipantStatus old_status);
