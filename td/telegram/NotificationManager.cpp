@@ -1858,7 +1858,9 @@ void NotificationManager::remove_notification(NotificationGroupId group_id, Noti
   bool is_total_count_changed = false;
   if ((!have_all_notifications && is_permanent) || (have_all_notifications && is_found)) {
     if (group_it->second.total_count == 0) {
-      LOG(ERROR) << "Total notification count became negative in " << group_id << " after removing " << notification_id;
+      LOG(ERROR) << "Total notification count became negative in " << group_it->second << " after removing "
+                 << notification_id << " with is_permanent = " << is_permanent << ", is_found = " << is_found
+                 << ", force_update = " << force_update << " from " << source;
     } else {
       group_it->second.total_count--;
       is_total_count_changed = true;
