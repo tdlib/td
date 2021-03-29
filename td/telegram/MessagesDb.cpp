@@ -114,7 +114,7 @@ Status init_messages_db(SqliteDb &db, int32 version) {
     LOG(INFO) << "Create new message database";
     TRY_STATUS(
         db.exec("CREATE TABLE IF NOT EXISTS messages (dialog_id INT8, message_id INT8, unique_message_id INT4, "
-                "sender_user_id INT4, random_id INT8, data BLOB, ttl_expires_at INT4, index_mask INT4, search_id INT8, "
+                "sender_user_id INT8, random_id INT8, data BLOB, ttl_expires_at INT4, index_mask INT4, search_id INT8, "
                 "text STRING, notification_id INT4, top_thread_message_id INT8, PRIMARY KEY (dialog_id, message_id))"));
 
     TRY_STATUS(
@@ -297,7 +297,7 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
     }
 
     if (sender_user_id.is_valid()) {
-      add_message_stmt_.bind_int32(4, sender_user_id.get()).ensure();
+      add_message_stmt_.bind_int64(4, sender_user_id.get()).ensure();
     } else {
       add_message_stmt_.bind_null(4).ensure();
     }
@@ -430,7 +430,7 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
       delete_dialog_messages_from_user_stmt_.reset();
     };
     delete_dialog_messages_from_user_stmt_.bind_int64(1, dialog_id.get()).ensure();
-    delete_dialog_messages_from_user_stmt_.bind_int32(2, sender_user_id.get()).ensure();
+    delete_dialog_messages_from_user_stmt_.bind_int64(2, sender_user_id.get()).ensure();
     delete_dialog_messages_from_user_stmt_.step().ensure();
     return Status::OK();
   }
