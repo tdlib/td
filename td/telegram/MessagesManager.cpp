@@ -33851,9 +33851,9 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
       break;
     }
     case DialogType::SecretChat:
-      if (!d->last_new_message_id.is_valid()) {
+      if (d->last_new_message_id.get() <= MessageId::min().get()) {
         LOG(INFO) << "Set " << d->dialog_id << " last new message in add_new_dialog";
-        d->last_new_message_id = MessageId::min();
+        d->last_new_message_id = MessageId::min().get_next_message_id(MessageType::Local);
       }
 
       if (!d->notification_settings.is_secret_chat_show_preview_fixed) {
