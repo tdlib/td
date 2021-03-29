@@ -3821,7 +3821,7 @@ Result<int64> NotificationManager::get_push_receiver_id(string payload) {
         return Status::Error(400, "Expected user_id as a String or a Number");
       }
       Slice user_id_str = user_id.type() == JsonValue::Type::String ? user_id.get_string() : user_id.get_number();
-      auto r_user_id = to_integer_safe<int32>(user_id_str);
+      auto r_user_id = to_integer_safe<int64>(user_id_str);
       if (r_user_id.is_error()) {
         return Status::Error(400, PSLICE() << "Failed to get user_id from " << user_id_str);
       }
