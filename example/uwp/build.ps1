@@ -2,7 +2,8 @@ param (
   [string]$vcpkg_root = $(throw "-vcpkg_root=<path to vcpkg> is required"),
   [string]$arch = "",
   [string]$mode = "all",
-  [string]$compress = "7z"
+  [string]$compress = "7z",
+  [switch]$release_only = $false
 )
 $ErrorActionPreference = "Stop"
 
@@ -69,10 +70,25 @@ function build {
   ForEach($arch in $arch_list) {
     echo "Build Arch = [$arch]"
     cd $arch
-    cmake --build . --config RelWithDebInfo --target tddotnet
+    if ($release_only) {
+      cmake --build . --config RelWithDebInfo --target tddotnet
+    } else {
+      cmake --build . --config Release --target tddotnet
+      cmake --build . --config Debug --target tddotnet
+    }
     cd ..
   }
   cd ..
+}
+
+function export-architecture($arch, $config, $target) {
+  New-Item -ItemType Directory -Force -Path vsix/DesignTime/${target}/${arch}
+  New-Item -ItemType Directory -Force -Path vsix/Redist/${target}/${arch}
+  New-Item -ItemType Directory -Force -Path vsix/References/${target}/${arch}
+
+  cp ${arch}/${config}/* -include "SSLEAY*","LIBEAY*","libcrypto*","libssl*","zlib*" vsix/Redist/${target}/${arch}/
+  cp ${arch}/${config}/* -filter "Telegram.Td.*" -include "*.lib" vsix/DesignTime/${target}/${arch}/
+  cp ${arch}/${config}/* -filter "Telegram.Td.*" -include "*.pdb","*.dll" vsix/Redist/${target}/${arch}/
 }
 
 function export {
@@ -85,17 +101,16 @@ function export {
   cp ../LICENSE_1_0.txt vsix
 
   ForEach($arch in $arch_list) {
-    New-Item -ItemType Directory -Force -Path vsix/DesignTime/CommonConfiguration/${arch}
-    New-Item -ItemType Directory -Force -Path vsix/Redist/CommonConfiguration/${arch}
-    New-Item -ItemType Directory -Force -Path vsix/References/CommonConfiguration/${arch}
-
-    cp ${arch}/RelWithDebInfo/* -include "SSLEAY*","LIBEAY*","libcrypto*","libssl*","zlib*" vsix/Redist/CommonConfiguration/${arch}/
-
-    cp ${arch}/RelWithDebInfo/*  -filter "Telegram.Td.*" -include "*.lib" vsix/DesignTime/CommonConfiguration/${arch}/
-
-    cp ${arch}/RelWithDebInfo/*  -filter "Telegram.Td.*" -include "*.pdb","*.dll" vsix/Redist/CommonConfiguration/${arch}/
-
-    cp ${arch}/RelWithDebInfo/* -filter "Telegram.Td.*" -include "*.pri","*.winmd","*.xml" vsix/References/CommonConfiguration/${arch}/
+    if ($release_only) {
+      New-Item -ItemType Directory -Force -Path vsix/References/CommonConfiguration/${arch}
+      export-architecture -arch $arch -config "RelWithDebInfo" -target "CommonConfiguration"
+      cp ${arch}/RelWithDebInfo/* -filter "Telegram.Td.*" -include "*.pri","*.winmd","*.xml" vsix/References/CommonConfiguration/${arch}/
+    } else {
+      New-Item -ItemType Directory -Force -Path vsix/References/CommonConfiguration/${arch}
+      export-architecture -arch $arch -config "Debug" -target "Debug"
+      export-architecture -arch $arch -config "Release" -target "Retail"
+      cp ${arch}/Release/* -filter "Telegram.Td.*" -include "*.pri","*.winmd","*.xml" vsix/References/CommonConfiguration/${arch}/
+    }
   }
 
   cd vsix
