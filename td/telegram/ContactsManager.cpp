@@ -11565,7 +11565,7 @@ void ContactsManager::on_get_channel_participants(
         (filter.is_contacts() && !is_user_contact(participant.user_id)) ||
         (filter.is_restricted() && !participant.status.is_restricted()) ||
         (filter.is_banned() && !participant.status.is_banned())) {
-      bool skip_error = (filter.is_administrators() && is_user_deleted(participant.user_id)) ||
+      bool skip_error = ((filter.is_administrators() || filter.is_bots()) && is_user_deleted(participant.user_id)) ||
                         (filter.is_contacts() && participant.user_id == get_my_id());
       if (!skip_error) {
         LOG(ERROR) << "Receive " << participant << ", while searching for " << filter << " in " << channel_id
