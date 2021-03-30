@@ -1451,6 +1451,13 @@ InlineMessageContent create_inline_message_content(Td *td, FileId file_id,
       reply_markup = std::move(inline_message->reply_markup_);
       break;
     }
+    case telegram_api::botInlineMessageMediaInvoice::ID: {
+      auto inline_message = move_tl_object_as<telegram_api::botInlineMessageMediaInvoice>(bot_inline_message);
+      reply_markup = std::move(inline_message->reply_markup_);
+      result.message_content =
+          make_unique<MessageInvoice>(get_input_invoice(std::move(inline_message), td, DialogId()));
+      break;
+    }
     case telegram_api::botInlineMessageMediaGeo::ID: {
       auto inline_message = move_tl_object_as<telegram_api::botInlineMessageMediaGeo>(bot_inline_message);
       if ((inline_message->flags_ & telegram_api::botInlineMessageMediaGeo::PERIOD_MASK) != 0 &&

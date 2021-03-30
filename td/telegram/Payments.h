@@ -124,6 +124,9 @@ bool operator!=(const InputInvoice &lhs, const InputInvoice &rhs);
 InputInvoice get_input_invoice(tl_object_ptr<telegram_api::messageMediaInvoice> &&message_invoice, Td *td,
                                DialogId owner_dialog_id);
 
+InputInvoice get_input_invoice(tl_object_ptr<telegram_api::botInlineMessageMediaInvoice> &&message_invoice, Td *td,
+                               DialogId owner_dialog_id);
+
 Result<InputInvoice> process_input_message_invoice(
     td_api::object_ptr<td_api::InputMessageContent> &&input_message_content, Td *td);
 

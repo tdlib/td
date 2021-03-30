@@ -1309,13 +1309,18 @@ address country_code:string state:string city:string street_line1:string street_
 //@description Portion of the price of a product (e.g., "delivery cost", "tax amount") @label Label for this portion of the product price @amount Currency amount in the smallest units of the currency
 labeledPricePart label:string amount:int53 = LabeledPricePart;
 
-//@description Product invoice @currency ISO 4217 currency code @price_parts A list of objects used to calculate the total price of the product
+//@description Product invoice @currency ISO 4217 currency code
+//@price_parts A list of objects used to calculate the total price of the product
 //@max_tip_amount The maximum allowed amount of tip in the smallest units of the currency
 //@suggested_tip_amounts Suggested amounts of tip in the smallest units of the currency
 //@is_test True, if the payment is a test payment
-//@need_name True, if the user's name is needed for payment @need_phone_number True, if the user's phone number is needed for payment @need_email_address True, if the user's email address is needed for payment
-//@need_shipping_address True, if the user's shipping address is needed for payment @send_phone_number_to_provider True, if the user's phone number will be sent to the provider
-//@send_email_address_to_provider True, if the user's email address will be sent to the provider @is_flexible True, if the total price depends on the shipping method
+//@need_name True, if the user's name is needed for payment
+//@need_phone_number True, if the user's phone number is needed for payment
+//@need_email_address True, if the user's email address is needed for payment
+//@need_shipping_address True, if the user's shipping address is needed for payment
+//@send_phone_number_to_provider True, if the user's phone number will be sent to the provider
+//@send_email_address_to_provider True, if the user's email address will be sent to the provider
+//@is_flexible True, if the total price depends on the shipping method
 invoice currency:string price_parts:vector<labeledPricePart> max_tip_amount:int53 suggested_tip_amounts:vector<int53> is_test:Bool need_name:Bool need_phone_number:Bool need_email_address:Bool need_shipping_address:Bool send_phone_number_to_provider:Bool send_email_address_to_provider:Bool is_flexible:Bool = Invoice;
 
 //@description Order information @name Name of the user @phone_number Phone number of the user @email_address Email address of the user @shipping_address Shipping address for this order; may be null

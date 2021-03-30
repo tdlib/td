@@ -640,6 +640,25 @@ InputInvoice get_input_invoice(tl_object_ptr<telegram_api::messageMediaInvoice> 
   return result;
 }
 
+InputInvoice get_input_invoice(tl_object_ptr<telegram_api::botInlineMessageMediaInvoice> &&message_invoice, Td *td,
+                               DialogId owner_dialog_id) {
+  InputInvoice result;
+  result.title = std::move(message_invoice->title_);
+  result.description = std::move(message_invoice->description_);
+  result.photo = get_web_document_photo(td->file_manager_.get(), std::move(message_invoice->photo_), owner_dialog_id);
+  // result.start_parameter = string();
+  result.invoice.currency = std::move(message_invoice->currency_);
+  result.invoice.is_test = (message_invoice->flags_ & telegram_api::messageMediaInvoice::TEST_MASK) != 0;
+  result.invoice.need_shipping_address =
+      (message_invoice->flags_ & telegram_api::messageMediaInvoice::SHIPPING_ADDRESS_REQUESTED_MASK) != 0;
+  // result.payload = string();
+  // result.provider_token = string();
+  // result.provider_data = string();
+  result.total_amount = message_invoice->total_amount_;
+  // result.receipt_message_id = MessageId();
+  return result;
+}
+
 Result<InputInvoice> process_input_message_invoice(
     td_api::object_ptr<td_api::InputMessageContent> &&input_message_content, Td *td) {
   CHECK(input_message_content != nullptr);
@@ -849,12 +868,11 @@ tl_object_ptr<telegram_api::inputBotInlineMessageMediaInvoice> get_input_bot_inl
     flags |= telegram_api::inputMediaInvoice::PHOTO_MASK;
   }
   return make_tl_object<telegram_api::inputBotInlineMessageMediaInvoice>(
-      flags, false /*ignored*/, false /*ignored*/, input_invoice.title, input_invoice.description,
-      std::move(input_web_document), get_input_invoice(input_invoice.invoice), BufferSlice(input_invoice.payload),
-      input_invoice.provider_token,
+      flags, input_invoice.title, input_invoice.description, std::move(input_web_document),
+      get_input_invoice(input_invoice.invoice), BufferSlice(input_invoice.payload), input_invoice.provider_token,
       telegram_api::make_object<telegram_api::dataJSON>(
           input_invoice.provider_data.empty() ? "null" : input_invoice.provider_data),
-      input_invoice.start_parameter, std::move(reply_markup));
+      std::move(reply_markup));
 }
 
 vector<FileId> get_input_invoice_file_ids(const InputInvoice &input_invoice) {
