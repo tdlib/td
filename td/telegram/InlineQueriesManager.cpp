@@ -1754,6 +1754,7 @@ bool InlineQueriesManager::load_recently_used_bots(Promise<Unit> &promise) {
 
 tl_object_ptr<td_api::inlineQueryResults> InlineQueriesManager::get_inline_query_results_object(uint64 query_hash) {
   // TODO filter out games if request is sent in a broadcast channel or in a secret chat
+  // TODO filter out invoice messages if request is sent in a secret chat
   return decrease_pending_request_count(query_hash);
 }
 

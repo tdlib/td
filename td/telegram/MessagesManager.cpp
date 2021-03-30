@@ -23134,7 +23134,7 @@ Status MessagesManager::can_send_message_content(DialogId dialog_id, const Messa
       break;
     case MessageContentType::Audio:
       if (!permissions.can_send_media()) {
-        return Status::Error(400, "Not enough rights to send audios to the chat");
+        return Status::Error(400, "Not enough rights to send music to the chat");
       }
       break;
     case MessageContentType::Contact:
@@ -23167,19 +23167,11 @@ Status MessagesManager::can_send_message_content(DialogId dialog_id, const Messa
       }
       break;
     case MessageContentType::Invoice:
-      if (!is_forward) {
-        switch (dialog_type) {
-          case DialogType::User:
-            // ok
-            break;
-          case DialogType::Chat:
-          case DialogType::Channel:
-          case DialogType::SecretChat:
-            return Status::Error(400, "Invoices can be sent only to private chats");
-          case DialogType::None:
-          default:
-            UNREACHABLE();
-        }
+      if (!permissions.can_send_messages()) {
+        return Status::Error(400, "Not enough rights to send invoice messages to the chat");
+      }
+      if (dialog_type == DialogType::SecretChat) {
+        return Status::Error(400, "Invoice messages can't be sent to secret chats");
       }
       break;
     case MessageContentType::LiveLocation:
