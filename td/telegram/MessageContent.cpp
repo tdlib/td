@@ -1766,8 +1766,7 @@ static Result<InputMessageContent> create_input_message_content(
         return Status::Error(400, "Invoices can be sent only by bots");
       }
 
-      TRY_RESULT(input_invoice, process_input_message_invoice(
-                                    move_tl_object_as<td_api::inputMessageInvoice>(input_message_content), td));
+      TRY_RESULT(input_invoice, process_input_message_invoice(std::move(input_message_content), td));
       content = make_unique<MessageInvoice>(std::move(input_invoice));
       break;
     }

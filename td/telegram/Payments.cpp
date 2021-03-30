@@ -640,8 +640,12 @@ InputInvoice get_input_invoice(tl_object_ptr<telegram_api::messageMediaInvoice> 
   return result;
 }
 
-Result<InputInvoice> process_input_message_invoice(td_api::object_ptr<td_api::inputMessageInvoice> &&input_invoice,
-                                                   Td *td) {
+Result<InputInvoice> process_input_message_invoice(
+    td_api::object_ptr<td_api::InputMessageContent> &&input_message_content, Td *td) {
+  CHECK(input_message_content != nullptr);
+  CHECK(input_message_content->get_id() == td_api::inputMessageInvoice::ID);
+  auto input_invoice = move_tl_object_as<td_api::inputMessageInvoice>(input_message_content);
+
   if (!clean_input_string(input_invoice->title_)) {
     return Status::Error(400, "Invoice title must be encoded in UTF-8");
   }
@@ -836,6 +840,21 @@ tl_object_ptr<telegram_api::inputMediaInvoice> get_input_media_invoice(const Inp
       telegram_api::make_object<telegram_api::dataJSON>(
           input_invoice.provider_data.empty() ? "null" : input_invoice.provider_data),
       input_invoice.start_parameter);
+}
+
+tl_object_ptr<telegram_api::inputBotInlineMessageMediaInvoice> get_input_bot_inline_message_media_invoice(
+    const InputInvoice &input_invoice, int32 flags, tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup, Td *td) {
+  auto input_web_document = get_input_web_document(td->file_manager_.get(), input_invoice.photo);
+  if (input_web_document != nullptr) {
+    flags |= telegram_api::inputMediaInvoice::PHOTO_MASK;
+  }
+  return make_tl_object<telegram_api::inputBotInlineMessageMediaInvoice>(
+      flags, false /*ignored*/, false /*ignored*/, input_invoice.title, input_invoice.description,
+      std::move(input_web_document), get_input_invoice(input_invoice.invoice), BufferSlice(input_invoice.payload),
+      input_invoice.provider_token,
+      telegram_api::make_object<telegram_api::dataJSON>(
+          input_invoice.provider_data.empty() ? "null" : input_invoice.provider_data),
+      input_invoice.start_parameter, std::move(reply_markup));
 }
 
 vector<FileId> get_input_invoice_file_ids(const InputInvoice &input_invoice) {

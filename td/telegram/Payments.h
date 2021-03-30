@@ -124,12 +124,15 @@ bool operator!=(const InputInvoice &lhs, const InputInvoice &rhs);
 InputInvoice get_input_invoice(tl_object_ptr<telegram_api::messageMediaInvoice> &&message_invoice, Td *td,
                                DialogId owner_dialog_id);
 
-Result<InputInvoice> process_input_message_invoice(td_api::object_ptr<td_api::inputMessageInvoice> &&input_invoice,
-                                                   Td *td);
+Result<InputInvoice> process_input_message_invoice(
+    td_api::object_ptr<td_api::InputMessageContent> &&input_message_content, Td *td);
 
 tl_object_ptr<td_api::messageInvoice> get_message_invoice_object(const InputInvoice &input_invoice, Td *td);
 
 tl_object_ptr<telegram_api::inputMediaInvoice> get_input_media_invoice(const InputInvoice &input_invoice, Td *td);
+
+tl_object_ptr<telegram_api::inputBotInlineMessageMediaInvoice> get_input_bot_inline_message_media_invoice(
+    const InputInvoice &input_invoice, int32 flags, tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup, Td *td);
 
 vector<FileId> get_input_invoice_file_ids(const InputInvoice &input_invoice);
 

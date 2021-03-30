@@ -29,6 +29,7 @@
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
+#include "td/telegram/Payments.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/StickersManager.h"
@@ -253,6 +254,10 @@ Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> InlineQueriesManager:
   if (constructor_id == td_api::inputMessageContact::ID) {
     TRY_RESULT(contact, process_input_message_contact(std::move(input_message_content)));
     return contact.get_input_bot_inline_message_media_contact(flags, std::move(input_reply_markup));
+  }
+  if (constructor_id == td_api::inputMessageInvoice::ID) {
+    TRY_RESULT(input_invoice, process_input_message_invoice(std::move(input_message_content), td_));
+    return get_input_bot_inline_message_media_invoice(input_invoice, flags, std::move(input_reply_markup), td_);
   }
   if (constructor_id == td_api::inputMessageLocation::ID) {
     TRY_RESULT(location, process_input_message_location(std::move(input_message_content)));
