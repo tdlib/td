@@ -145,8 +145,9 @@ void validate_order_info(DialogId dialog_id, ServerMessageId server_message_id,
                          tl_object_ptr<td_api::orderInfo> order_info, bool allow_save,
                          Promise<tl_object_ptr<td_api::validatedOrderInfo>> &&promise);
 
-void send_payment_form(DialogId dialog_id, ServerMessageId server_message_id, const string &order_info_id,
-                       const string &shipping_option_id, const tl_object_ptr<td_api::InputCredentials> &credentials,
+void send_payment_form(DialogId dialog_id, ServerMessageId server_message_id, int64 payment_form_id,
+                       const string &order_info_id, const string &shipping_option_id,
+                       const tl_object_ptr<td_api::InputCredentials> &credentials,
                        Promise<tl_object_ptr<td_api::paymentResult>> &&promise);
 
 void get_payment_receipt(DialogId dialog_id, ServerMessageId server_message_id,

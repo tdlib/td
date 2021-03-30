@@ -1839,22 +1839,24 @@ class CliClient final : public Actor {
     } else if (op == "spfs") {
       string chat_id;
       string message_id;
+      int64 payment_form_id;
       string order_info_id;
       string shipping_option_id;
       string saved_credentials_id;
-      get_args(args, chat_id, message_id, order_info_id, shipping_option_id, saved_credentials_id);
+      get_args(args, chat_id, message_id, payment_form_id, order_info_id, shipping_option_id, saved_credentials_id);
       send_request(td_api::make_object<td_api::sendPaymentForm>(
-          as_chat_id(chat_id), as_message_id(message_id), order_info_id, shipping_option_id,
+          as_chat_id(chat_id), as_message_id(message_id), payment_form_id, order_info_id, shipping_option_id,
           td_api::make_object<td_api::inputCredentialsSaved>(saved_credentials_id)));
     } else if (op == "spfn") {
       string chat_id;
       string message_id;
+      int64 payment_form_id;
       string order_info_id;
       string shipping_option_id;
       string data;
-      get_args(args, chat_id, message_id, order_info_id, shipping_option_id, data);
+      get_args(args, chat_id, message_id, payment_form_id, order_info_id, shipping_option_id, data);
       send_request(td_api::make_object<td_api::sendPaymentForm>(
-          as_chat_id(chat_id), as_message_id(message_id), order_info_id, shipping_option_id,
+          as_chat_id(chat_id), as_message_id(message_id), payment_form_id, order_info_id, shipping_option_id,
           td_api::make_object<td_api::inputCredentialsNew>(data, true)));
     } else if (op == "gpre") {
       string chat_id;

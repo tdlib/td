@@ -288,7 +288,7 @@ class GetPaymentFormQuery : public Td::ResultHandler {
         (payment_form->flags_ & telegram_api::payments_paymentForm::CAN_SAVE_CREDENTIALS_MASK) != 0;
     bool need_password = (payment_form->flags_ & telegram_api::payments_paymentForm::PASSWORD_MISSING_MASK) != 0;
     promise_.set_value(make_tl_object<td_api::paymentForm>(
-        convert_invoice(std::move(payment_form->invoice_)), std::move(payment_form->url_),
+        payment_form->form_id_, convert_invoice(std::move(payment_form->invoice_)), std::move(payment_form->url_),
         convert_payment_provider(payment_form->native_provider_, std::move(payment_form->native_params_)),
         convert_order_info(std::move(payment_form->saved_info_)),
         convert_saved_credentials(std::move(payment_form->saved_credentials_)), can_save_credentials, need_password));
@@ -358,7 +358,7 @@ class SendPaymentFormQuery : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, ServerMessageId server_message_id, const string &order_info_id,
+  void send(DialogId dialog_id, ServerMessageId server_message_id, int64 payment_form_id, const string &order_info_id,
             const string &shipping_option_id, tl_object_ptr<telegram_api::InputPaymentCredentials> input_credentials) {
     CHECK(input_credentials != nullptr);
 
@@ -376,8 +376,8 @@ class SendPaymentFormQuery : public Td::ResultHandler {
       flags |= telegram_api::payments_sendPaymentForm::SHIPPING_OPTION_ID_MASK;
     }
     send_query(G()->net_query_creator().create(
-        telegram_api::payments_sendPaymentForm(flags, 0, std::move(input_peer), server_message_id.get(), order_info_id,
-                                               shipping_option_id, std::move(input_credentials), 0)));
+        telegram_api::payments_sendPaymentForm(flags, payment_form_id, std::move(input_peer), server_message_id.get(),
+                                               order_info_id, shipping_option_id, std::move(input_credentials), 0)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -871,8 +871,9 @@ void validate_order_info(DialogId dialog_id, ServerMessageId server_message_id,
       ->send(dialog_id, server_message_id, convert_order_info(std::move(order_info)), allow_save);
 }
 
-void send_payment_form(DialogId dialog_id, ServerMessageId server_message_id, const string &order_info_id,
-                       const string &shipping_option_id, const tl_object_ptr<td_api::InputCredentials> &credentials,
+void send_payment_form(DialogId dialog_id, ServerMessageId server_message_id, int64 payment_form_id,
+                       const string &order_info_id, const string &shipping_option_id,
+                       const tl_object_ptr<td_api::InputCredentials> &credentials,
                        Promise<tl_object_ptr<td_api::paymentResult>> &&promise) {
   CHECK(credentials != nullptr);
 
@@ -924,7 +925,8 @@ void send_payment_form(DialogId dialog_id, ServerMessageId server_message_id, co
   G()->td()
       .get_actor_unsafe()
       ->create_handler<SendPaymentFormQuery>(std::move(promise))
-      ->send(dialog_id, server_message_id, order_info_id, shipping_option_id, std::move(input_credentials));
+      ->send(dialog_id, server_message_id, payment_form_id, order_info_id, shipping_option_id,
+             std::move(input_credentials));
 }
 
 void get_payment_receipt(DialogId dialog_id, ServerMessageId server_message_id,
