@@ -7734,7 +7734,7 @@ void Td::on_request(uint64 id, td_api::sendPaymentForm &request) {
   CREATE_REQUEST_PROMISE();
   messages_manager_->send_payment_form({DialogId(request.chat_id_), MessageId(request.message_id_)},
                                        request.payment_form_id_, request.order_info_id_, request.shipping_option_id_,
-                                       request.credentials_, std::move(promise));
+                                       request.credentials_, request.tip_amount_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getPaymentReceipt &request) {

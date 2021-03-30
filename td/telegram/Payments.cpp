@@ -360,7 +360,8 @@ class SendPaymentFormQuery : public Td::ResultHandler {
   }
 
   void send(DialogId dialog_id, ServerMessageId server_message_id, int64 payment_form_id, const string &order_info_id,
-            const string &shipping_option_id, tl_object_ptr<telegram_api::InputPaymentCredentials> input_credentials) {
+            const string &shipping_option_id, tl_object_ptr<telegram_api::InputPaymentCredentials> input_credentials,
+            int64 tip_amount) {
     CHECK(input_credentials != nullptr);
 
     dialog_id_ = dialog_id;
@@ -376,9 +377,12 @@ class SendPaymentFormQuery : public Td::ResultHandler {
     if (!shipping_option_id.empty()) {
       flags |= telegram_api::payments_sendPaymentForm::SHIPPING_OPTION_ID_MASK;
     }
-    send_query(G()->net_query_creator().create(
-        telegram_api::payments_sendPaymentForm(flags, payment_form_id, std::move(input_peer), server_message_id.get(),
-                                               order_info_id, shipping_option_id, std::move(input_credentials), 0)));
+    if (tip_amount != 0) {
+      flags |= telegram_api::payments_sendPaymentForm::TIP_AMOUNT_MASK;
+    }
+    send_query(G()->net_query_creator().create(telegram_api::payments_sendPaymentForm(
+        flags, payment_form_id, std::move(input_peer), server_message_id.get(), order_info_id, shipping_option_id,
+        std::move(input_credentials), tip_amount)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -877,7 +881,7 @@ void validate_order_info(DialogId dialog_id, ServerMessageId server_message_id,
 
 void send_payment_form(DialogId dialog_id, ServerMessageId server_message_id, int64 payment_form_id,
                        const string &order_info_id, const string &shipping_option_id,
-                       const tl_object_ptr<td_api::InputCredentials> &credentials,
+                       const tl_object_ptr<td_api::InputCredentials> &credentials, int64 tip_amount,
                        Promise<tl_object_ptr<td_api::paymentResult>> &&promise) {
   CHECK(credentials != nullptr);
 
@@ -930,7 +934,7 @@ void send_payment_form(DialogId dialog_id, ServerMessageId server_message_id, in
       .get_actor_unsafe()
       ->create_handler<SendPaymentFormQuery>(std::move(promise))
       ->send(dialog_id, server_message_id, payment_form_id, order_info_id, shipping_option_id,
-             std::move(input_credentials));
+             std::move(input_credentials), tip_amount);
 }
 
 void get_payment_receipt(DialogId dialog_id, ServerMessageId server_message_id,

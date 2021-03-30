@@ -37391,7 +37391,7 @@ void MessagesManager::validate_order_info(FullMessageId full_message_id, tl_obje
 
 void MessagesManager::send_payment_form(FullMessageId full_message_id, int64 payment_form_id,
                                         const string &order_info_id, const string &shipping_option_id,
-                                        const tl_object_ptr<td_api::InputCredentials> &credentials,
+                                        const tl_object_ptr<td_api::InputCredentials> &credentials, int64 tip_amount,
                                         Promise<tl_object_ptr<td_api::paymentResult>> &&promise) {
   auto r_message_id = get_invoice_message_id(full_message_id);
   if (r_message_id.is_error()) {
@@ -37399,7 +37399,7 @@ void MessagesManager::send_payment_form(FullMessageId full_message_id, int64 pay
   }
 
   ::td::send_payment_form(full_message_id.get_dialog_id(), r_message_id.ok(), payment_form_id, order_info_id,
-                          shipping_option_id, credentials, std::move(promise));
+                          shipping_option_id, credentials, tip_amount, std::move(promise));
 }
 
 void MessagesManager::get_payment_receipt(FullMessageId full_message_id,

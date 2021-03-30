@@ -918,7 +918,7 @@ class MessagesManager : public Actor {
 
   void send_payment_form(FullMessageId full_message_id, int64 payment_form_id, const string &order_info_id,
                          const string &shipping_option_id, const tl_object_ptr<td_api::InputCredentials> &credentials,
-                         Promise<tl_object_ptr<td_api::paymentResult>> &&promise);
+                         int64 tip_amount, Promise<tl_object_ptr<td_api::paymentResult>> &&promise);
 
   void get_payment_receipt(FullMessageId full_message_id, Promise<tl_object_ptr<td_api::paymentReceipt>> &&promise);
 
