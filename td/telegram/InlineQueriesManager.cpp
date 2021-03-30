@@ -229,16 +229,15 @@ Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> InlineQueriesManager:
   }
   TRY_RESULT(reply_markup, get_reply_markup(std::move(reply_markup_ptr), true, true, false, true));
   auto input_reply_markup = get_input_reply_markup(reply_markup);
-  int32 flags = 0;
-  if (input_reply_markup != nullptr) {
-    flags |= telegram_api::inputBotInlineMessageText::REPLY_MARKUP_MASK;
-  }
 
   auto constructor_id = input_message_content->get_id();
   if (constructor_id == td_api::inputMessageText::ID) {
     TRY_RESULT(input_message_text, process_input_message_text(td_->contacts_manager_.get(), DialogId(),
                                                               std::move(input_message_content), true));
-
+    int32 flags = 0;
+    if (input_reply_markup != nullptr) {
+      flags |= telegram_api::inputBotInlineMessageText::REPLY_MARKUP_MASK;
+    }
     if (input_message_text.disable_web_page_preview) {
       flags |= telegram_api::inputBotInlineMessageText::NO_WEBPAGE_MASK;
     }
@@ -253,14 +252,18 @@ Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> InlineQueriesManager:
   }
   if (constructor_id == td_api::inputMessageContact::ID) {
     TRY_RESULT(contact, process_input_message_contact(std::move(input_message_content)));
-    return contact.get_input_bot_inline_message_media_contact(flags, std::move(input_reply_markup));
+    return contact.get_input_bot_inline_message_media_contact(std::move(input_reply_markup));
   }
   if (constructor_id == td_api::inputMessageInvoice::ID) {
     TRY_RESULT(input_invoice, process_input_message_invoice(std::move(input_message_content), td_));
-    return get_input_bot_inline_message_media_invoice(input_invoice, flags, std::move(input_reply_markup), td_);
+    return get_input_bot_inline_message_media_invoice(input_invoice, std::move(input_reply_markup), td_);
   }
   if (constructor_id == td_api::inputMessageLocation::ID) {
     TRY_RESULT(location, process_input_message_location(std::move(input_message_content)));
+    int32 flags = 0;
+    if (input_reply_markup != nullptr) {
+      flags |= telegram_api::inputBotInlineMessageMediaGeo::REPLY_MARKUP_MASK;
+    }
     if (location.heading != 0) {
       flags |= telegram_api::inputBotInlineMessageMediaGeo::HEADING_MASK;
     }
@@ -274,16 +277,19 @@ Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> InlineQueriesManager:
   }
   if (constructor_id == td_api::inputMessageVenue::ID) {
     TRY_RESULT(venue, process_input_message_venue(std::move(input_message_content)));
-    return venue.get_input_bot_inline_message_media_venue(flags, std::move(input_reply_markup));
+    return venue.get_input_bot_inline_message_media_venue(std::move(input_reply_markup));
   }
   if (constructor_id == allowed_media_content_id) {
     TRY_RESULT(caption, process_input_caption(td_->contacts_manager_.get(), DialogId(),
                                               extract_input_caption(input_message_content), true));
+    int32 flags = 0;
+    if (input_reply_markup != nullptr) {
+      flags |= telegram_api::inputBotInlineMessageMediaAuto::REPLY_MARKUP_MASK;
+    }
     auto entities = get_input_message_entities(td_->contacts_manager_.get(), caption.entities, "get_inline_message");
     if (!entities.empty()) {
-      flags |= telegram_api::inputBotInlineMessageText::ENTITIES_MASK;
+      flags |= telegram_api::inputBotInlineMessageMediaAuto::ENTITIES_MASK;
     }
-
     return make_tl_object<telegram_api::inputBotInlineMessageMediaAuto>(flags, caption.text, std::move(entities),
                                                                         std::move(input_reply_markup));
   }

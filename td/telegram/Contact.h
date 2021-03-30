@@ -57,7 +57,7 @@ class Contact {
   tl_object_ptr<telegram_api::inputPhoneContact> get_input_phone_contact(int64 client_id) const;
 
   tl_object_ptr<telegram_api::inputBotInlineMessageMediaContact> get_input_bot_inline_message_media_contact(
-      int32 flags, tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup) const;
+      tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup) const;
 
   template <class StorerT>
   void store(StorerT &storer) const {

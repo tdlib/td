@@ -58,7 +58,11 @@ tl_object_ptr<telegram_api::inputPhoneContact> Contact::get_input_phone_contact(
 }
 
 tl_object_ptr<telegram_api::inputBotInlineMessageMediaContact> Contact::get_input_bot_inline_message_media_contact(
-    int32 flags, tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup) const {
+    tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup) const {
+  int32 flags = 0;
+  if (reply_markup != nullptr) {
+    flags |= telegram_api::inputBotInlineMessageMediaContact::REPLY_MARKUP_MASK;
+  }
   return make_tl_object<telegram_api::inputBotInlineMessageMediaContact>(flags, phone_number_, first_name_, last_name_,
                                                                          vcard_, std::move(reply_markup));
 }

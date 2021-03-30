@@ -862,10 +862,14 @@ tl_object_ptr<telegram_api::inputMediaInvoice> get_input_media_invoice(const Inp
 }
 
 tl_object_ptr<telegram_api::inputBotInlineMessageMediaInvoice> get_input_bot_inline_message_media_invoice(
-    const InputInvoice &input_invoice, int32 flags, tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup, Td *td) {
+    const InputInvoice &input_invoice, tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup, Td *td) {
+  int32 flags = 0;
+  if (reply_markup != nullptr) {
+    flags |= telegram_api::inputBotInlineMessageMediaInvoice::REPLY_MARKUP_MASK;
+  }
   auto input_web_document = get_input_web_document(td->file_manager_.get(), input_invoice.photo);
   if (input_web_document != nullptr) {
-    flags |= telegram_api::inputMediaInvoice::PHOTO_MASK;
+    flags |= telegram_api::inputBotInlineMessageMediaInvoice::PHOTO_MASK;
   }
   return make_tl_object<telegram_api::inputBotInlineMessageMediaInvoice>(
       flags, input_invoice.title, input_invoice.description, std::move(input_web_document),

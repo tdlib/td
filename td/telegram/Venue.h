@@ -54,9 +54,8 @@ class Venue {
 
   SecretInputMedia get_secret_input_media_venue() const;
 
-  // TODO very strange function
   tl_object_ptr<telegram_api::inputBotInlineMessageMediaVenue> get_input_bot_inline_message_media_venue(
-      int32 flags, tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup) const;
+      tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup) const;
 
   template <class StorerT>
   void store(StorerT &storer) const {
