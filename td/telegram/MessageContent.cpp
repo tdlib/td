@@ -469,34 +469,10 @@ class MessageCall : public MessageContent {
 
 class MessageInvoice : public MessageContent {
  public:
-  string title;
-  string description;
-  Photo photo;
-  string start_parameter;
-
-  // InputMessageInvoice
-  Invoice invoice;
-  string payload;
-  string provider_token;
-  string provider_data;
-
-  // MessageInvoice
-  int64 total_amount = 0;
-  MessageId receipt_message_id;
+  InputInvoice input_invoice;
 
   MessageInvoice() = default;
-  MessageInvoice(string &&title, string &&description, Photo &&photo, string &&start_parameter, int64 total_amount,
-                 string &&currency, bool is_test, bool need_shipping_address, MessageId receipt_message_id)
-      : title(std::move(title))
-      , description(std::move(description))
-      , photo(std::move(photo))
-      , start_parameter(std::move(start_parameter))
-      , invoice(std::move(currency), is_test, need_shipping_address)
-      , payload()
-      , provider_token()
-      , provider_data()
-      , total_amount(total_amount)
-      , receipt_message_id(receipt_message_id) {
+  explicit MessageInvoice(InputInvoice &&input_invoice) : input_invoice(std::move(input_invoice)) {
   }
 
   MessageContentType get_type() const override {
@@ -782,16 +758,7 @@ static void store(const MessageContent *content, StorerT &storer) {
     }
     case MessageContentType::Invoice: {
       auto m = static_cast<const MessageInvoice *>(content);
-      store(m->title, storer);
-      store(m->description, storer);
-      store(m->photo, storer);
-      store(m->start_parameter, storer);
-      store(m->invoice, storer);
-      store(m->payload, storer);
-      store(m->provider_token, storer);
-      store(m->provider_data, storer);
-      store(m->total_amount, storer);
-      store(m->receipt_message_id, storer);
+      store(m->input_invoice, storer);
       break;
     }
     case MessageContentType::LiveLocation: {
@@ -1100,20 +1067,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
     }
     case MessageContentType::Invoice: {
       auto m = make_unique<MessageInvoice>();
-      parse(m->title, parser);
-      parse(m->description, parser);
-      parse(m->photo, parser);
-      parse(m->start_parameter, parser);
-      parse(m->invoice, parser);
-      parse(m->payload, parser);
-      parse(m->provider_token, parser);
-      if (parser.version() >= static_cast<int32>(Version::AddMessageInvoiceProviderData)) {
-        parse(m->provider_data, parser);
-      } else {
-        m->provider_data.clear();
-      }
-      parse(m->total_amount, parser);
-      parse(m->receipt_message_id, parser);
+      parse(m->input_invoice, parser);
       content = std::move(m);
       break;
     }
@@ -1812,116 +1766,9 @@ static Result<InputMessageContent> create_input_message_content(
         return Status::Error(400, "Invoices can be sent only by bots");
       }
 
-      auto input_invoice = move_tl_object_as<td_api::inputMessageInvoice>(input_message_content);
-      if (!clean_input_string(input_invoice->title_)) {
-        return Status::Error(400, "Invoice title must be encoded in UTF-8");
-      }
-      if (!clean_input_string(input_invoice->description_)) {
-        return Status::Error(400, "Invoice description must be encoded in UTF-8");
-      }
-      if (!clean_input_string(input_invoice->photo_url_)) {
-        return Status::Error(400, "Invoice photo URL must be encoded in UTF-8");
-      }
-      if (!clean_input_string(input_invoice->start_parameter_)) {
-        return Status::Error(400, "Invoice bot start parameter must be encoded in UTF-8");
-      }
-      if (!clean_input_string(input_invoice->provider_token_)) {
-        return Status::Error(400, "Invoice provider token must be encoded in UTF-8");
-      }
-      if (!clean_input_string(input_invoice->provider_data_)) {
-        return Status::Error(400, "Invoice provider data must be encoded in UTF-8");
-      }
-      if (!clean_input_string(input_invoice->invoice_->currency_)) {
-        return Status::Error(400, "Invoice currency must be encoded in UTF-8");
-      }
-
-      auto message_invoice = make_unique<MessageInvoice>();
-      message_invoice->title = std::move(input_invoice->title_);
-      message_invoice->description = std::move(input_invoice->description_);
-
-      auto r_http_url = parse_url(input_invoice->photo_url_);
-      if (r_http_url.is_error()) {
-        if (!input_invoice->photo_url_.empty()) {
-          LOG(INFO) << "Can't register url " << input_invoice->photo_url_;
-        }
-      } else {
-        auto url = r_http_url.ok().get_url();
-        auto r_invoice_file_id = td->file_manager_->from_persistent_id(url, FileType::Temp);
-        if (r_invoice_file_id.is_error()) {
-          LOG(INFO) << "Can't register url " << url;
-        } else {
-          auto invoice_file_id = r_invoice_file_id.move_as_ok();
-
-          PhotoSize s;
-          s.type = 'n';
-          s.dimensions =
-              get_dimensions(input_invoice->photo_width_, input_invoice->photo_height_, "inputMessageInvoice");
-          s.size = input_invoice->photo_size_;  // TODO use invoice_file_id size
-          s.file_id = invoice_file_id;
-
-          message_invoice->photo.id = 0;
-          message_invoice->photo.photos.push_back(s);
-        }
-      }
-      message_invoice->start_parameter = std::move(input_invoice->start_parameter_);
-
-      message_invoice->invoice.currency = std::move(input_invoice->invoice_->currency_);
-      message_invoice->invoice.price_parts.reserve(input_invoice->invoice_->price_parts_.size());
-      int64 total_amount = 0;
-      const int64 MAX_AMOUNT = 9999'9999'9999;
-      for (auto &price : input_invoice->invoice_->price_parts_) {
-        if (!clean_input_string(price->label_)) {
-          return Status::Error(400, "Invoice price label must be encoded in UTF-8");
-        }
-        message_invoice->invoice.price_parts.emplace_back(std::move(price->label_), price->amount_);
-        if (price->amount_ < -MAX_AMOUNT || price->amount_ > MAX_AMOUNT) {
-          return Status::Error(400, "Too big amount of the currency specified");
-        }
-        total_amount += price->amount_;
-      }
-      if (total_amount <= 0) {
-        return Status::Error(400, "Total price must be positive");
-      }
-      if (total_amount > MAX_AMOUNT) {
-        return Status::Error(400, "Total price is too big");
-      }
-      message_invoice->total_amount = total_amount;
-
-      if (input_invoice->invoice_->max_tip_amount_ < 0 || input_invoice->invoice_->max_tip_amount_ > MAX_AMOUNT) {
-        return Status::Error(400, "Invalid max tip amount of the currency specified");
-      }
-      for (auto tip_amount : input_invoice->invoice_->suggested_tip_amounts_) {
-        if (tip_amount < 0 || tip_amount > input_invoice->invoice_->max_tip_amount_) {
-          return Status::Error(400, "Invalid suggested tip amount of the currency specified");
-        }
-      }
-
-      message_invoice->invoice.max_tip_amount = input_invoice->invoice_->max_tip_amount_;
-      message_invoice->invoice.suggested_tip_amounts = std::move(input_invoice->invoice_->suggested_tip_amounts_);
-      message_invoice->invoice.is_test = input_invoice->invoice_->is_test_;
-      message_invoice->invoice.need_name = input_invoice->invoice_->need_name_;
-      message_invoice->invoice.need_phone_number = input_invoice->invoice_->need_phone_number_;
-      message_invoice->invoice.need_email_address = input_invoice->invoice_->need_email_address_;
-      message_invoice->invoice.need_shipping_address = input_invoice->invoice_->need_shipping_address_;
-      message_invoice->invoice.send_phone_number_to_provider = input_invoice->invoice_->send_phone_number_to_provider_;
-      message_invoice->invoice.send_email_address_to_provider =
-          input_invoice->invoice_->send_email_address_to_provider_;
-      message_invoice->invoice.is_flexible = input_invoice->invoice_->is_flexible_;
-      if (message_invoice->invoice.send_phone_number_to_provider) {
-        message_invoice->invoice.need_phone_number = true;
-      }
-      if (message_invoice->invoice.send_email_address_to_provider) {
-        message_invoice->invoice.need_email_address = true;
-      }
-      if (message_invoice->invoice.is_flexible) {
-        message_invoice->invoice.need_shipping_address = true;
-      }
-
-      message_invoice->payload = std::move(input_invoice->payload_);
-      message_invoice->provider_token = std::move(input_invoice->provider_token_);
-      message_invoice->provider_data = std::move(input_invoice->provider_data_);
-
-      content = std::move(message_invoice);
+      TRY_RESULT(input_invoice, process_input_message_invoice(
+                                    move_tl_object_as<td_api::inputMessageInvoice>(input_message_content), td));
+      content = make_unique<MessageInvoice>(std::move(input_invoice));
       break;
     }
     case td_api::inputMessagePoll::ID: {
@@ -2280,88 +2127,6 @@ SecretInputMedia get_secret_input_media(const MessageContent *content, Td *td,
   return SecretInputMedia{};
 }
 
-static tl_object_ptr<telegram_api::invoice> get_input_invoice(const Invoice &invoice) {
-  int32 flags = 0;
-  if (invoice.is_test) {
-    flags |= telegram_api::invoice::TEST_MASK;
-  }
-  if (invoice.need_name) {
-    flags |= telegram_api::invoice::NAME_REQUESTED_MASK;
-  }
-  if (invoice.need_phone_number) {
-    flags |= telegram_api::invoice::PHONE_REQUESTED_MASK;
-  }
-  if (invoice.need_email_address) {
-    flags |= telegram_api::invoice::EMAIL_REQUESTED_MASK;
-  }
-  if (invoice.need_shipping_address) {
-    flags |= telegram_api::invoice::SHIPPING_ADDRESS_REQUESTED_MASK;
-  }
-  if (invoice.send_phone_number_to_provider) {
-    flags |= telegram_api::invoice::PHONE_TO_PROVIDER_MASK;
-  }
-  if (invoice.send_email_address_to_provider) {
-    flags |= telegram_api::invoice::EMAIL_TO_PROVIDER_MASK;
-  }
-  if (invoice.is_flexible) {
-    flags |= telegram_api::invoice::FLEXIBLE_MASK;
-  }
-  if (invoice.max_tip_amount != 0) {
-    flags |= telegram_api::invoice::MAX_TIP_AMOUNT_MASK;
-  }
-
-  auto prices = transform(invoice.price_parts, [](const LabeledPricePart &price) {
-    return telegram_api::make_object<telegram_api::labeledPrice>(price.label, price.amount);
-  });
-  return make_tl_object<telegram_api::invoice>(
-      flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-      false /*ignored*/, false /*ignored*/, false /*ignored*/, invoice.currency, std::move(prices),
-      invoice.max_tip_amount, vector<int64>(invoice.suggested_tip_amounts));
-}
-
-static tl_object_ptr<telegram_api::inputWebDocument> get_input_web_document(const FileManager *file_manager,
-                                                                            const Photo &photo) {
-  if (photo.is_empty()) {
-    return nullptr;
-  }
-
-  CHECK(photo.photos.size() == 1);
-  const PhotoSize &size = photo.photos[0];
-  CHECK(size.file_id.is_valid());
-
-  vector<tl_object_ptr<telegram_api::DocumentAttribute>> attributes;
-  if (size.dimensions.width != 0 && size.dimensions.height != 0) {
-    attributes.push_back(
-        make_tl_object<telegram_api::documentAttributeImageSize>(size.dimensions.width, size.dimensions.height));
-  }
-
-  auto file_view = file_manager->get_file_view(size.file_id);
-  CHECK(file_view.has_url());
-
-  auto file_name = get_url_file_name(file_view.url());
-  return make_tl_object<telegram_api::inputWebDocument>(
-      file_view.url(), size.size, MimeType::from_extension(PathView(file_name).extension(), "image/jpeg"),
-      std::move(attributes));
-}
-
-static tl_object_ptr<telegram_api::inputMediaInvoice> get_input_media_invoice(const FileManager *file_manager,
-                                                                              const MessageInvoice *message_invoice) {
-  CHECK(message_invoice != nullptr);
-  int32 flags = telegram_api::inputMediaInvoice::START_PARAM_MASK;
-  auto input_web_document = get_input_web_document(file_manager, message_invoice->photo);
-  if (input_web_document != nullptr) {
-    flags |= telegram_api::inputMediaInvoice::PHOTO_MASK;
-  }
-
-  return make_tl_object<telegram_api::inputMediaInvoice>(
-      flags, message_invoice->title, message_invoice->description, std::move(input_web_document),
-      get_input_invoice(message_invoice->invoice), BufferSlice(message_invoice->payload),
-      message_invoice->provider_token,
-      telegram_api::make_object<telegram_api::dataJSON>(
-          message_invoice->provider_data.empty() ? "null" : message_invoice->provider_data),
-      message_invoice->start_parameter);
-}
-
 static tl_object_ptr<telegram_api::InputMedia> get_input_media_impl(
     const MessageContent *content, Td *td, tl_object_ptr<telegram_api::InputFile> input_file,
     tl_object_ptr<telegram_api::InputFile> input_thumbnail, int32 ttl, const string &emoji) {
@@ -2395,7 +2160,7 @@ static tl_object_ptr<telegram_api::InputMedia> get_input_media_impl(
     }
     case MessageContentType::Invoice: {
       auto m = static_cast<const MessageInvoice *>(content);
-      return get_input_media_invoice(td->file_manager_.get(), m);
+      return get_input_media_invoice(m->input_invoice, td);
     }
     case MessageContentType::LiveLocation: {
       auto m = static_cast<const MessageLiveLocation *>(content);
@@ -3016,14 +2781,8 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
     case MessageContentType::Invoice: {
       auto old_ = static_cast<const MessageInvoice *>(old_content);
       auto new_ = static_cast<const MessageInvoice *>(new_content);
-      if (old_->title != new_->title || old_->description != new_->description || old_->photo != new_->photo ||
-          old_->start_parameter != new_->start_parameter || old_->invoice != new_->invoice ||
-          old_->total_amount != new_->total_amount || old_->receipt_message_id != new_->receipt_message_id) {
+      if (old_->input_invoice != new_->input_invoice) {
         need_update = true;
-      }
-      if (old_->payload != new_->payload || old_->provider_token != new_->provider_token ||
-          old_->provider_data != new_->provider_data) {
-        is_content_changed = true;
       }
       break;
     }
@@ -4158,26 +3917,9 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
 
       return std::move(m);
     }
-    case telegram_api::messageMediaInvoice::ID: {
-      auto message_invoice = move_tl_object_as<telegram_api::messageMediaInvoice>(media);
-
-      MessageId receipt_message_id;
-      if ((message_invoice->flags_ & telegram_api::messageMediaInvoice::RECEIPT_MSG_ID_MASK) != 0) {
-        receipt_message_id = MessageId(ServerMessageId(message_invoice->receipt_msg_id_));
-        if (!receipt_message_id.is_valid()) {
-          LOG(ERROR) << "Receive as receipt message " << receipt_message_id << " in " << owner_dialog_id;
-          receipt_message_id = MessageId();
-        }
-      }
-      bool need_shipping_address =
-          (message_invoice->flags_ & telegram_api::messageMediaInvoice::SHIPPING_ADDRESS_REQUESTED_MASK) != 0;
-      bool is_test = (message_invoice->flags_ & telegram_api::messageMediaInvoice::TEST_MASK) != 0;
+    case telegram_api::messageMediaInvoice::ID:
       return td::make_unique<MessageInvoice>(
-          std::move(message_invoice->title_), std::move(message_invoice->description_),
-          get_web_document_photo(td->file_manager_.get(), std::move(message_invoice->photo_), owner_dialog_id),
-          std::move(message_invoice->start_param_), message_invoice->total_amount_,
-          std::move(message_invoice->currency_), is_test, need_shipping_address, receipt_message_id);
-    }
+          get_input_invoice(move_tl_object_as<telegram_api::messageMediaInvoice>(media), td, owner_dialog_id));
     case telegram_api::messageMediaWebPage::ID: {
       auto media_web_page = move_tl_object_as<telegram_api::messageMediaWebPage>(media);
       auto web_page_id = td->web_pages_manager_->on_get_web_page(std::move(media_web_page->webpage_), owner_dialog_id);
@@ -4710,10 +4452,7 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     }
     case MessageContentType::Invoice: {
       const MessageInvoice *m = static_cast<const MessageInvoice *>(content);
-      return make_tl_object<td_api::messageInvoice>(
-          m->title, m->description, get_photo_object(td->file_manager_.get(), m->photo), m->invoice.currency,
-          m->total_amount, m->start_parameter, m->invoice.is_test, m->invoice.need_shipping_address,
-          m->receipt_message_id.get());
+      return get_message_invoice_object(m->input_invoice, td);
     }
     case MessageContentType::LiveLocation: {
       const MessageLiveLocation *m = static_cast<const MessageLiveLocation *>(content);
@@ -5109,7 +4848,7 @@ vector<FileId> get_message_content_file_ids(const MessageContent *content, const
     case MessageContentType::Game:
       return static_cast<const MessageGame *>(content)->game.get_file_ids(td);
     case MessageContentType::Invoice:
-      return photo_get_file_ids(static_cast<const MessageInvoice *>(content)->photo);
+      return get_input_invoice_file_ids(static_cast<const MessageInvoice *>(content)->input_invoice);
     case MessageContentType::ChatChangePhoto:
       return photo_get_file_ids(static_cast<const MessageChatChangePhoto *>(content)->photo);
     case MessageContentType::PassportDataReceived: {

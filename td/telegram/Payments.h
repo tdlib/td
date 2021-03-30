@@ -9,18 +9,20 @@
 #include "td/actor/PromiseFuture.h"
 
 #include "td/telegram/DialogId.h"
+#include "td/telegram/MessageId.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/ServerMessageId.h"
+#include "td/telegram/td_api.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/utils/common.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 
-#include "td/telegram/td_api.h"
-#include "td/telegram/telegram_api.h"
-
 namespace td {
+
+class Td;
 
 struct LabeledPricePart {
   string label;
@@ -49,6 +51,20 @@ struct Invoice {
   Invoice(string &&currency, bool is_test, bool need_shipping_address)
       : currency(std::move(currency)), is_test(is_test), need_shipping_address(need_shipping_address) {
   }
+};
+
+struct InputInvoice {
+  string title;
+  string description;
+  Photo photo;
+  string start_parameter;
+  Invoice invoice;
+  string payload;
+  string provider_token;
+  string provider_data;
+
+  int64 total_amount = 0;
+  MessageId receipt_message_id;
 };
 
 struct Address {
@@ -101,6 +117,21 @@ bool operator==(const Invoice &lhs, const Invoice &rhs);
 bool operator!=(const Invoice &lhs, const Invoice &rhs);
 
 StringBuilder &operator<<(StringBuilder &string_builder, const Invoice &invoice);
+
+bool operator==(const InputInvoice &lhs, const InputInvoice &rhs);
+bool operator!=(const InputInvoice &lhs, const InputInvoice &rhs);
+
+InputInvoice get_input_invoice(tl_object_ptr<telegram_api::messageMediaInvoice> &&message_invoice, Td *td,
+                               DialogId owner_dialog_id);
+
+Result<InputInvoice> process_input_message_invoice(td_api::object_ptr<td_api::inputMessageInvoice> &&input_invoice,
+                                                   Td *td);
+
+tl_object_ptr<td_api::messageInvoice> get_message_invoice_object(const InputInvoice &input_invoice, Td *td);
+
+tl_object_ptr<telegram_api::inputMediaInvoice> get_input_media_invoice(const InputInvoice &input_invoice, Td *td);
+
+vector<FileId> get_input_invoice_file_ids(const InputInvoice &input_invoice);
 
 bool operator==(const Address &lhs, const Address &rhs);
 bool operator!=(const Address &lhs, const Address &rhs);

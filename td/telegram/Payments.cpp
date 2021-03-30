@@ -7,21 +7,24 @@
 #include "td/telegram/Payments.h"
 
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/files/FileManager.h"
+#include "td/telegram/files/FileType.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/PasswordManager.h"
 #include "td/telegram/Td.h"
-#include "td/telegram/td_api.h"
-#include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/format.h"
+#include "td/utils/HttpUrl.h"
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
+#include "td/utils/MimeType.h"
+#include "td/utils/PathView.h"
 #include "td/utils/Status.h"
 
 namespace td {
@@ -598,6 +601,245 @@ StringBuilder &operator<<(StringBuilder &string_builder, const Invoice &invoice)
                         << invoice.currency << " with price parts " << format::as_array(invoice.price_parts)
                         << " and suggested tip amounts " << invoice.suggested_tip_amounts << " up to "
                         << invoice.max_tip_amount << "]";
+}
+
+bool operator==(const InputInvoice &lhs, const InputInvoice &rhs) {
+  return lhs.title == rhs.title && lhs.description == rhs.description && lhs.photo == rhs.photo &&
+         lhs.start_parameter == rhs.start_parameter && lhs.invoice == rhs.invoice &&
+         lhs.total_amount == rhs.total_amount && lhs.receipt_message_id == rhs.receipt_message_id &&
+         lhs.payload == rhs.payload && lhs.provider_token == rhs.provider_token &&
+         lhs.provider_data == rhs.provider_data;
+}
+
+bool operator!=(const InputInvoice &lhs, const InputInvoice &rhs) {
+  return !(lhs == rhs);
+}
+
+InputInvoice get_input_invoice(tl_object_ptr<telegram_api::messageMediaInvoice> &&message_invoice, Td *td,
+                               DialogId owner_dialog_id) {
+  InputInvoice result;
+  result.title = std::move(message_invoice->title_);
+  result.description = std::move(message_invoice->description_);
+  result.photo = get_web_document_photo(td->file_manager_.get(), std::move(message_invoice->photo_), owner_dialog_id);
+  result.start_parameter = std::move(message_invoice->start_param_);
+  result.invoice.currency = std::move(message_invoice->currency_);
+  result.invoice.is_test = (message_invoice->flags_ & telegram_api::messageMediaInvoice::TEST_MASK) != 0;
+  result.invoice.need_shipping_address =
+      (message_invoice->flags_ & telegram_api::messageMediaInvoice::SHIPPING_ADDRESS_REQUESTED_MASK) != 0;
+  // result.payload = string();
+  // result.provider_token = string();
+  // result.provider_data = string();
+  result.total_amount = message_invoice->total_amount_;
+  if ((message_invoice->flags_ & telegram_api::messageMediaInvoice::RECEIPT_MSG_ID_MASK) != 0) {
+    result.receipt_message_id = MessageId(ServerMessageId(message_invoice->receipt_msg_id_));
+    if (!result.receipt_message_id.is_valid()) {
+      LOG(ERROR) << "Receive as receipt message " << result.receipt_message_id << " in " << owner_dialog_id;
+      result.receipt_message_id = MessageId();
+    }
+  }
+  return result;
+}
+
+Result<InputInvoice> process_input_message_invoice(td_api::object_ptr<td_api::inputMessageInvoice> &&input_invoice,
+                                                   Td *td) {
+  if (!clean_input_string(input_invoice->title_)) {
+    return Status::Error(400, "Invoice title must be encoded in UTF-8");
+  }
+  if (!clean_input_string(input_invoice->description_)) {
+    return Status::Error(400, "Invoice description must be encoded in UTF-8");
+  }
+  if (!clean_input_string(input_invoice->photo_url_)) {
+    return Status::Error(400, "Invoice photo URL must be encoded in UTF-8");
+  }
+  if (!clean_input_string(input_invoice->start_parameter_)) {
+    return Status::Error(400, "Invoice bot start parameter must be encoded in UTF-8");
+  }
+  if (!clean_input_string(input_invoice->provider_token_)) {
+    return Status::Error(400, "Invoice provider token must be encoded in UTF-8");
+  }
+  if (!clean_input_string(input_invoice->provider_data_)) {
+    return Status::Error(400, "Invoice provider data must be encoded in UTF-8");
+  }
+  if (!clean_input_string(input_invoice->invoice_->currency_)) {
+    return Status::Error(400, "Invoice currency must be encoded in UTF-8");
+  }
+
+  InputInvoice result;
+  result.title = std::move(input_invoice->title_);
+  result.description = std::move(input_invoice->description_);
+
+  auto r_http_url = parse_url(input_invoice->photo_url_);
+  if (r_http_url.is_error()) {
+    if (!input_invoice->photo_url_.empty()) {
+      LOG(INFO) << "Can't register url " << input_invoice->photo_url_;
+    }
+  } else {
+    auto url = r_http_url.ok().get_url();
+    auto r_invoice_file_id = td->file_manager_->from_persistent_id(url, FileType::Temp);
+    if (r_invoice_file_id.is_error()) {
+      LOG(INFO) << "Can't register url " << url;
+    } else {
+      auto invoice_file_id = r_invoice_file_id.move_as_ok();
+
+      PhotoSize s;
+      s.type = 'n';
+      s.dimensions =
+          get_dimensions(input_invoice->photo_width_, input_invoice->photo_height_, "process_input_message_invoice");
+      s.size = input_invoice->photo_size_;  // TODO use invoice_file_id size
+      s.file_id = invoice_file_id;
+
+      result.photo.id = 0;
+      result.photo.photos.push_back(s);
+    }
+  }
+  result.start_parameter = std::move(input_invoice->start_parameter_);
+
+  result.invoice.currency = std::move(input_invoice->invoice_->currency_);
+  result.invoice.price_parts.reserve(input_invoice->invoice_->price_parts_.size());
+  int64 total_amount = 0;
+  const int64 MAX_AMOUNT = 9999'9999'9999;
+  for (auto &price : input_invoice->invoice_->price_parts_) {
+    if (!clean_input_string(price->label_)) {
+      return Status::Error(400, "Invoice price label must be encoded in UTF-8");
+    }
+    result.invoice.price_parts.emplace_back(std::move(price->label_), price->amount_);
+    if (price->amount_ < -MAX_AMOUNT || price->amount_ > MAX_AMOUNT) {
+      return Status::Error(400, "Too big amount of the currency specified");
+    }
+    total_amount += price->amount_;
+  }
+  if (total_amount <= 0) {
+    return Status::Error(400, "Total price must be positive");
+  }
+  if (total_amount > MAX_AMOUNT) {
+    return Status::Error(400, "Total price is too big");
+  }
+  result.total_amount = total_amount;
+
+  if (input_invoice->invoice_->max_tip_amount_ < 0 || input_invoice->invoice_->max_tip_amount_ > MAX_AMOUNT) {
+    return Status::Error(400, "Invalid max tip amount of the currency specified");
+  }
+  for (auto tip_amount : input_invoice->invoice_->suggested_tip_amounts_) {
+    if (tip_amount < 0 || tip_amount > input_invoice->invoice_->max_tip_amount_) {
+      return Status::Error(400, "Invalid suggested tip amount of the currency specified");
+    }
+  }
+
+  result.invoice.max_tip_amount = input_invoice->invoice_->max_tip_amount_;
+  result.invoice.suggested_tip_amounts = std::move(input_invoice->invoice_->suggested_tip_amounts_);
+  result.invoice.is_test = input_invoice->invoice_->is_test_;
+  result.invoice.need_name = input_invoice->invoice_->need_name_;
+  result.invoice.need_phone_number = input_invoice->invoice_->need_phone_number_;
+  result.invoice.need_email_address = input_invoice->invoice_->need_email_address_;
+  result.invoice.need_shipping_address = input_invoice->invoice_->need_shipping_address_;
+  result.invoice.send_phone_number_to_provider = input_invoice->invoice_->send_phone_number_to_provider_;
+  result.invoice.send_email_address_to_provider = input_invoice->invoice_->send_email_address_to_provider_;
+  result.invoice.is_flexible = input_invoice->invoice_->is_flexible_;
+  if (result.invoice.send_phone_number_to_provider) {
+    result.invoice.need_phone_number = true;
+  }
+  if (result.invoice.send_email_address_to_provider) {
+    result.invoice.need_email_address = true;
+  }
+  if (result.invoice.is_flexible) {
+    result.invoice.need_shipping_address = true;
+  }
+
+  result.payload = std::move(input_invoice->payload_);
+  result.provider_token = std::move(input_invoice->provider_token_);
+  result.provider_data = std::move(input_invoice->provider_data_);
+  return result;
+}
+
+tl_object_ptr<td_api::messageInvoice> get_message_invoice_object(const InputInvoice &input_invoice, Td *td) {
+  return make_tl_object<td_api::messageInvoice>(
+      input_invoice.title, input_invoice.description, get_photo_object(td->file_manager_.get(), input_invoice.photo),
+      input_invoice.invoice.currency, input_invoice.total_amount, input_invoice.start_parameter,
+      input_invoice.invoice.is_test, input_invoice.invoice.need_shipping_address,
+      input_invoice.receipt_message_id.get());
+}
+
+static tl_object_ptr<telegram_api::invoice> get_input_invoice(const Invoice &invoice) {
+  int32 flags = 0;
+  if (invoice.is_test) {
+    flags |= telegram_api::invoice::TEST_MASK;
+  }
+  if (invoice.need_name) {
+    flags |= telegram_api::invoice::NAME_REQUESTED_MASK;
+  }
+  if (invoice.need_phone_number) {
+    flags |= telegram_api::invoice::PHONE_REQUESTED_MASK;
+  }
+  if (invoice.need_email_address) {
+    flags |= telegram_api::invoice::EMAIL_REQUESTED_MASK;
+  }
+  if (invoice.need_shipping_address) {
+    flags |= telegram_api::invoice::SHIPPING_ADDRESS_REQUESTED_MASK;
+  }
+  if (invoice.send_phone_number_to_provider) {
+    flags |= telegram_api::invoice::PHONE_TO_PROVIDER_MASK;
+  }
+  if (invoice.send_email_address_to_provider) {
+    flags |= telegram_api::invoice::EMAIL_TO_PROVIDER_MASK;
+  }
+  if (invoice.is_flexible) {
+    flags |= telegram_api::invoice::FLEXIBLE_MASK;
+  }
+  if (invoice.max_tip_amount != 0) {
+    flags |= telegram_api::invoice::MAX_TIP_AMOUNT_MASK;
+  }
+
+  auto prices = transform(invoice.price_parts, [](const LabeledPricePart &price) {
+    return telegram_api::make_object<telegram_api::labeledPrice>(price.label, price.amount);
+  });
+  return make_tl_object<telegram_api::invoice>(
+      flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+      false /*ignored*/, false /*ignored*/, false /*ignored*/, invoice.currency, std::move(prices),
+      invoice.max_tip_amount, vector<int64>(invoice.suggested_tip_amounts));
+}
+
+static tl_object_ptr<telegram_api::inputWebDocument> get_input_web_document(const FileManager *file_manager,
+                                                                            const Photo &photo) {
+  if (photo.is_empty()) {
+    return nullptr;
+  }
+
+  CHECK(photo.photos.size() == 1);
+  const PhotoSize &size = photo.photos[0];
+  CHECK(size.file_id.is_valid());
+
+  vector<tl_object_ptr<telegram_api::DocumentAttribute>> attributes;
+  if (size.dimensions.width != 0 && size.dimensions.height != 0) {
+    attributes.push_back(
+        make_tl_object<telegram_api::documentAttributeImageSize>(size.dimensions.width, size.dimensions.height));
+  }
+
+  auto file_view = file_manager->get_file_view(size.file_id);
+  CHECK(file_view.has_url());
+
+  auto file_name = get_url_file_name(file_view.url());
+  return make_tl_object<telegram_api::inputWebDocument>(
+      file_view.url(), size.size, MimeType::from_extension(PathView(file_name).extension(), "image/jpeg"),
+      std::move(attributes));
+}
+
+tl_object_ptr<telegram_api::inputMediaInvoice> get_input_media_invoice(const InputInvoice &input_invoice, Td *td) {
+  int32 flags = telegram_api::inputMediaInvoice::START_PARAM_MASK;
+  auto input_web_document = get_input_web_document(td->file_manager_.get(), input_invoice.photo);
+  if (input_web_document != nullptr) {
+    flags |= telegram_api::inputMediaInvoice::PHOTO_MASK;
+  }
+
+  return make_tl_object<telegram_api::inputMediaInvoice>(
+      flags, input_invoice.title, input_invoice.description, std::move(input_web_document),
+      get_input_invoice(input_invoice.invoice), BufferSlice(input_invoice.payload), input_invoice.provider_token,
+      telegram_api::make_object<telegram_api::dataJSON>(
+          input_invoice.provider_data.empty() ? "null" : input_invoice.provider_data),
+      input_invoice.start_parameter);
+}
+
+vector<FileId> get_input_invoice_file_ids(const InputInvoice &input_invoice) {
+  return photo_get_file_ids(input_invoice.photo);
 }
 
 bool operator==(const Address &lhs, const Address &rhs) {

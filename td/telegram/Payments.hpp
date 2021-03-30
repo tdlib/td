@@ -9,6 +9,7 @@
 #include "td/telegram/Payments.h"
 
 #include "td/telegram/Photo.hpp"
+#include "td/telegram/Version.h"
 
 #include "td/utils/tl_helpers.h"
 
@@ -68,6 +69,38 @@ void parse(Invoice &invoice, ParserT &parser) {
     parse(invoice.max_tip_amount, parser);
     parse(invoice.suggested_tip_amounts, parser);
   }
+}
+
+template <class StorerT>
+void store(const InputInvoice &input_invoice, StorerT &storer) {
+  store(input_invoice.title, storer);
+  store(input_invoice.description, storer);
+  store(input_invoice.photo, storer);
+  store(input_invoice.start_parameter, storer);
+  store(input_invoice.invoice, storer);
+  store(input_invoice.payload, storer);
+  store(input_invoice.provider_token, storer);
+  store(input_invoice.provider_data, storer);
+  store(input_invoice.total_amount, storer);
+  store(input_invoice.receipt_message_id, storer);
+}
+
+template <class ParserT>
+void parse(InputInvoice &input_invoice, ParserT &parser) {
+  parse(input_invoice.title, parser);
+  parse(input_invoice.description, parser);
+  parse(input_invoice.photo, parser);
+  parse(input_invoice.start_parameter, parser);
+  parse(input_invoice.invoice, parser);
+  parse(input_invoice.payload, parser);
+  parse(input_invoice.provider_token, parser);
+  if (parser.version() >= static_cast<int32>(Version::AddMessageInvoiceProviderData)) {
+    parse(input_invoice.provider_data, parser);
+  } else {
+    input_invoice.provider_data.clear();
+  }
+  parse(input_invoice.total_amount, parser);
+  parse(input_invoice.receipt_message_id, parser);
 }
 
 template <class StorerT>
