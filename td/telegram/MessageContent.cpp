@@ -1875,7 +1875,7 @@ static Result<InputMessageContent> create_input_message_content(
         }
         message_invoice->invoice.price_parts.emplace_back(std::move(price->label_), price->amount_);
         if (price->amount_ < -MAX_AMOUNT || price->amount_ > MAX_AMOUNT) {
-          return Status::Error(400, "Too big amount of currency specified");
+          return Status::Error(400, "Too big amount of the currency specified");
         }
         total_amount += price->amount_;
       }
@@ -1887,6 +1887,17 @@ static Result<InputMessageContent> create_input_message_content(
       }
       message_invoice->total_amount = total_amount;
 
+      if (input_invoice->invoice_->max_tip_amount_ < 0 || input_invoice->invoice_->max_tip_amount_ > MAX_AMOUNT) {
+        return Status::Error(400, "Invalid max tip amount of the currency specified");
+      }
+      for (auto tip_amount : input_invoice->invoice_->suggested_tip_amounts_) {
+        if (tip_amount < 0 || tip_amount > input_invoice->invoice_->max_tip_amount_) {
+          return Status::Error(400, "Invalid suggested tip amount of the currency specified");
+        }
+      }
+
+      message_invoice->invoice.max_tip_amount = input_invoice->invoice_->max_tip_amount_;
+      message_invoice->invoice.suggested_tip_amounts = std::move(input_invoice->invoice_->suggested_tip_amounts_);
       message_invoice->invoice.is_test = input_invoice->invoice_->is_test_;
       message_invoice->invoice.need_name = input_invoice->invoice_->need_name_;
       message_invoice->invoice.need_phone_number = input_invoice->invoice_->need_phone_number_;
@@ -2295,13 +2306,17 @@ static tl_object_ptr<telegram_api::invoice> get_input_invoice(const Invoice &inv
   if (invoice.is_flexible) {
     flags |= telegram_api::invoice::FLEXIBLE_MASK;
   }
+  if (invoice.max_tip_amount != 0) {
+    flags |= telegram_api::invoice::MAX_TIP_AMOUNT_MASK;
+  }
 
   auto prices = transform(invoice.price_parts, [](const LabeledPricePart &price) {
     return telegram_api::make_object<telegram_api::labeledPrice>(price.label, price.amount);
   });
   return make_tl_object<telegram_api::invoice>(
       flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-      false /*ignored*/, false /*ignored*/, false /*ignored*/, invoice.currency, std::move(prices), 0, vector<int64>());
+      false /*ignored*/, false /*ignored*/, false /*ignored*/, invoice.currency, std::move(prices),
+      invoice.max_tip_amount, vector<int64>(invoice.suggested_tip_amounts));
 }
 
 static tl_object_ptr<telegram_api::inputWebDocument> get_input_web_document(const FileManager *file_manager,

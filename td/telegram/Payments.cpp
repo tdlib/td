@@ -129,9 +129,10 @@ static tl_object_ptr<td_api::invoice> convert_invoice(tl_object_ptr<telegram_api
     need_shipping_address = true;
   }
 
-  return make_tl_object<td_api::invoice>(std::move(invoice->currency_), std::move(labeled_prices), is_test, need_name,
-                                         need_phone_number, need_email_address, need_shipping_address,
-                                         send_phone_number_to_provider, send_email_address_to_provider, is_flexible);
+  return make_tl_object<td_api::invoice>(
+      std::move(invoice->currency_), std::move(labeled_prices), invoice->max_tip_amount_,
+      vector<int64>(invoice->suggested_tip_amounts_), is_test, need_name, need_phone_number, need_email_address,
+      need_shipping_address, send_phone_number_to_provider, send_email_address_to_provider, is_flexible);
 }
 
 static tl_object_ptr<td_api::paymentsProviderStripe> convert_payment_provider(
@@ -574,7 +575,8 @@ bool operator==(const Invoice &lhs, const Invoice &rhs) {
          lhs.need_shipping_address == rhs.need_shipping_address &&
          lhs.send_phone_number_to_provider == rhs.send_phone_number_to_provider &&
          lhs.send_email_address_to_provider == rhs.send_email_address_to_provider &&
-         lhs.is_flexible == rhs.is_flexible && lhs.currency == rhs.currency && lhs.price_parts == rhs.price_parts;
+         lhs.is_flexible == rhs.is_flexible && lhs.currency == rhs.currency && lhs.price_parts == rhs.price_parts &&
+         lhs.max_tip_amount == rhs.max_tip_amount && lhs.suggested_tip_amounts == rhs.suggested_tip_amounts;
 }
 
 bool operator!=(const Invoice &lhs, const Invoice &rhs) {
@@ -589,7 +591,9 @@ StringBuilder &operator<<(StringBuilder &string_builder, const Invoice &invoice)
                         << (invoice.need_shipping_address ? ", needs shipping address" : "")
                         << (invoice.send_phone_number_to_provider ? ", sends phone number to provider" : "")
                         << (invoice.send_email_address_to_provider ? ", sends email address to provider" : "") << " in "
-                        << invoice.currency << " with price parts " << format::as_array(invoice.price_parts) << "]";
+                        << invoice.currency << " with price parts " << format::as_array(invoice.price_parts)
+                        << " and suggested tip amounts " << invoice.suggested_tip_amounts << " up to "
+                        << invoice.max_tip_amount << "]";
 }
 
 bool operator==(const Address &lhs, const Address &rhs) {

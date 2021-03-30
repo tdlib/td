@@ -28,6 +28,7 @@ void parse(LabeledPricePart &labeled_price_part, ParserT &parser) {
 
 template <class StorerT>
 void store(const Invoice &invoice, StorerT &storer) {
+  bool has_tip = invoice.max_tip_amount != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(invoice.is_test);
   STORE_FLAG(invoice.need_name);
@@ -37,13 +38,19 @@ void store(const Invoice &invoice, StorerT &storer) {
   STORE_FLAG(invoice.is_flexible);
   STORE_FLAG(invoice.send_phone_number_to_provider);
   STORE_FLAG(invoice.send_email_address_to_provider);
+  STORE_FLAG(has_tip);
   END_STORE_FLAGS();
   store(invoice.currency, storer);
   store(invoice.price_parts, storer);
+  if (has_tip) {
+    store(invoice.max_tip_amount, storer);
+    store(invoice.suggested_tip_amounts, storer);
+  }
 }
 
 template <class ParserT>
 void parse(Invoice &invoice, ParserT &parser) {
+  bool has_tip;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(invoice.is_test);
   PARSE_FLAG(invoice.need_name);
@@ -53,9 +60,14 @@ void parse(Invoice &invoice, ParserT &parser) {
   PARSE_FLAG(invoice.is_flexible);
   PARSE_FLAG(invoice.send_phone_number_to_provider);
   PARSE_FLAG(invoice.send_email_address_to_provider);
+  PARSE_FLAG(has_tip);
   END_PARSE_FLAGS();
   parse(invoice.currency, parser);
   parse(invoice.price_parts, parser);
+  if (has_tip) {
+    parse(invoice.max_tip_amount, parser);
+    parse(invoice.suggested_tip_amounts, parser);
+  }
 }
 
 template <class StorerT>
