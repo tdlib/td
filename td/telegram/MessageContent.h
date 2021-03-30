@@ -87,7 +87,7 @@ void store_message_content(const MessageContent *content, LogEventStorerUnsafe &
 void parse_message_content(unique_ptr<MessageContent> &content, LogEventParser &parser);
 
 InlineMessageContent create_inline_message_content(Td *td, FileId file_id,
-                                                   tl_object_ptr<telegram_api::BotInlineMessage> &&inline_message,
+                                                   tl_object_ptr<telegram_api::BotInlineMessage> &&bot_inline_message,
                                                    int32 allowed_media_content_id, Photo *photo, Game *game);
 
 unique_ptr<MessageContent> create_text_message_content(string text, vector<MessageEntity> entities,
