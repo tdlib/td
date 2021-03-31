@@ -130,7 +130,7 @@ int32 get_message_content_index_mask(const MessageContent *content, const Td *td
 
 MessageId get_message_content_pinned_message_id(const MessageContent *content);
 
-MessageId get_message_content_replied_message_id(const MessageContent *content);
+FullMessageId get_message_content_replied_message_id(DialogId dialog_id, const MessageContent *content);
 
 vector<UserId> get_message_content_added_user_ids(const MessageContent *content);
 
@@ -187,10 +187,12 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
                                                MessageContentDupType type, MessageCopyOptions &&copy_options);
 
 unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<telegram_api::MessageAction> &&action,
-                                                      DialogId owner_dialog_id, MessageId reply_to_message_id);
+                                                      DialogId owner_dialog_id, DialogId reply_in_dialog_id,
+                                                      MessageId reply_to_message_id);
 
 tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageContent *content, Td *td,
-                                                                 int32 message_date, bool is_content_secret);
+                                                                 DialogId dialog_id, int32 message_date,
+                                                                 bool is_content_secret);
 
 const FormattedText *get_message_content_text(const MessageContent *content);
 

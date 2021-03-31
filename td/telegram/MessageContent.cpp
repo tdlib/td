@@ -482,6 +482,7 @@ class MessageInvoice : public MessageContent {
 
 class MessagePaymentSuccessful : public MessageContent {
  public:
+  DialogId invoice_dialog_id;
   MessageId invoice_message_id;
   string currency;
   int64 total_amount = 0;
@@ -494,8 +495,12 @@ class MessagePaymentSuccessful : public MessageContent {
   string provider_payment_charge_id;
 
   MessagePaymentSuccessful() = default;
-  MessagePaymentSuccessful(MessageId invoice_message_id, string &&currency, int64 total_amount)
-      : invoice_message_id(invoice_message_id), currency(std::move(currency)), total_amount(total_amount) {
+  MessagePaymentSuccessful(DialogId invoice_dialog_id, MessageId invoice_message_id, string &&currency,
+                           int64 total_amount)
+      : invoice_dialog_id(invoice_dialog_id)
+      , invoice_message_id(invoice_message_id)
+      , currency(std::move(currency))
+      , total_amount(total_amount) {
   }
 
   MessageContentType get_type() const override {
@@ -905,6 +910,7 @@ static void store(const MessageContent *content, StorerT &storer) {
       bool has_provider_payment_charge_id = !m->provider_payment_charge_id.empty();
       bool has_invoice_message_id = m->invoice_message_id.is_valid();
       bool is_correctly_stored = true;
+      bool has_invoice_dialog_id = m->invoice_dialog_id.is_valid();
       BEGIN_STORE_FLAGS();
       STORE_FLAG(has_payload);
       STORE_FLAG(has_shipping_option_id);
@@ -913,6 +919,7 @@ static void store(const MessageContent *content, StorerT &storer) {
       STORE_FLAG(has_provider_payment_charge_id);
       STORE_FLAG(has_invoice_message_id);
       STORE_FLAG(is_correctly_stored);
+      STORE_FLAG(has_invoice_dialog_id);
       END_STORE_FLAGS();
       store(m->currency, storer);
       store(m->total_amount, storer);
@@ -933,6 +940,9 @@ static void store(const MessageContent *content, StorerT &storer) {
       }
       if (has_invoice_message_id) {
         store(m->invoice_message_id, storer);
+      }
+      if (has_invoice_dialog_id) {
+        store(m->invoice_dialog_id, storer);
       }
       break;
     }
@@ -1267,6 +1277,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       bool has_provider_payment_charge_id;
       bool has_invoice_message_id;
       bool is_correctly_stored;
+      bool has_invoice_dialog_id;
       BEGIN_PARSE_FLAGS();
       PARSE_FLAG(has_payload);
       PARSE_FLAG(has_shipping_option_id);
@@ -1275,6 +1286,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       PARSE_FLAG(has_provider_payment_charge_id);
       PARSE_FLAG(has_invoice_message_id);
       PARSE_FLAG(is_correctly_stored);
+      PARSE_FLAG(has_invoice_dialog_id);
       END_PARSE_FLAGS();
       parse(m->currency, parser);
       parse(m->total_amount, parser);
@@ -1304,6 +1316,9 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       }
       if (has_invoice_message_id) {
         parse(m->invoice_message_id, parser);
+      }
+      if (has_invoice_dialog_id) {
+        parse(m->invoice_dialog_id, parser);
       }
       if (is_correctly_stored) {
         content = std::move(m);
@@ -2548,16 +2563,19 @@ MessageId get_message_content_pinned_message_id(const MessageContent *content) {
   }
 }
 
-MessageId get_message_content_replied_message_id(const MessageContent *content) {
+FullMessageId get_message_content_replied_message_id(DialogId dialog_id, const MessageContent *content) {
   switch (content->get_type()) {
     case MessageContentType::PinMessage:
-      return static_cast<const MessagePinMessage *>(content)->message_id;
+      return {dialog_id, static_cast<const MessagePinMessage *>(content)->message_id};
     case MessageContentType::GameScore:
-      return static_cast<const MessageGameScore *>(content)->game_message_id;
-    case MessageContentType::PaymentSuccessful:
-      return static_cast<const MessagePaymentSuccessful *>(content)->invoice_message_id;
+      return {dialog_id, static_cast<const MessageGameScore *>(content)->game_message_id};
+    case MessageContentType::PaymentSuccessful: {
+      auto *m = static_cast<const MessagePaymentSuccessful *>(content);
+      auto reply_in_dialog_id = m->invoice_dialog_id.is_valid() ? m->invoice_dialog_id : dialog_id;
+      return {reply_in_dialog_id, m->invoice_message_id};
+    }
     default:
-      return MessageId();
+      return FullMessageId();
   }
 }
 
@@ -2705,8 +2723,9 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       if (old_->text.text != new_->text.text) {
         if (need_message_changed_warning && need_message_text_changed_warning(old_, new_)) {
           LOG(ERROR) << "Message text has changed from "
-                     << to_string(get_message_content_object(old_content, td, -1, false)) << ". New content is "
-                     << to_string(get_message_content_object(new_content, td, -1, false));
+                     << to_string(get_message_content_object(old_content, td, dialog_id, -1, false))
+                     << ". New content is "
+                     << to_string(get_message_content_object(new_content, td, dialog_id, -1, false));
         }
         need_update = true;
       }
@@ -2716,8 +2735,9 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
             old_->text.entities.size() <= MAX_CUSTOM_ENTITIES_COUNT &&
             need_message_entities_changed_warning(old_->text.entities, new_->text.entities)) {
           LOG(WARNING) << "Entities has changed from "
-                       << to_string(get_message_content_object(old_content, td, -1, false)) << ". New content is "
-                       << to_string(get_message_content_object(new_content, td, -1, false));
+                       << to_string(get_message_content_object(old_content, td, dialog_id, -1, false))
+                       << ". New content is "
+                       << to_string(get_message_content_object(new_content, td, dialog_id, -1, false));
         }
         need_update = true;
       }
@@ -3065,9 +3085,9 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
     case MessageContentType::PaymentSuccessful: {
       auto old_ = static_cast<const MessagePaymentSuccessful *>(old_content);
       auto new_ = static_cast<const MessagePaymentSuccessful *>(new_content);
-      if (old_->invoice_message_id != new_->invoice_message_id || old_->currency != new_->currency ||
-          old_->total_amount != new_->total_amount || old_->invoice_payload != new_->invoice_payload ||
-          old_->shipping_option_id != new_->shipping_option_id ||
+      if (old_->invoice_dialog_id != new_->invoice_dialog_id || old_->invoice_message_id != new_->invoice_message_id ||
+          old_->currency != new_->currency || old_->total_amount != new_->total_amount ||
+          old_->invoice_payload != new_->invoice_payload || old_->shipping_option_id != new_->shipping_option_id ||
           old_->telegram_payment_charge_id != new_->telegram_payment_charge_id ||
           old_->provider_payment_charge_id != new_->provider_payment_charge_id ||
           ((old_->order_info != nullptr || new_->order_info != nullptr) &&
@@ -4187,7 +4207,8 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
 }
 
 unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<telegram_api::MessageAction> &&action,
-                                                      DialogId owner_dialog_id, MessageId reply_to_message_id) {
+                                                      DialogId owner_dialog_id, DialogId reply_in_dialog_id,
+                                                      MessageId reply_to_message_id) {
   CHECK(action != nullptr);
 
   switch (action->get_id()) {
@@ -4283,6 +4304,12 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       return td::make_unique<MessageChannelMigrateFrom>(std::move(channel_migrate_from->title_), chat_id);
     }
     case telegram_api::messageActionPinMessage::ID: {
+      if (reply_in_dialog_id.is_valid() && reply_in_dialog_id != owner_dialog_id) {
+        LOG(ERROR) << "Receive pinned message with " << reply_to_message_id << " in " << owner_dialog_id
+                   << " in another " << reply_in_dialog_id;
+        reply_to_message_id = MessageId();
+        reply_in_dialog_id = DialogId();
+      }
       if (!reply_to_message_id.is_valid()) {
         // possible in basic groups
         LOG(INFO) << "Receive pinned message with " << reply_to_message_id << " in " << owner_dialog_id;
@@ -4291,6 +4318,12 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       return make_unique<MessagePinMessage>(reply_to_message_id);
     }
     case telegram_api::messageActionGameScore::ID: {
+      if (reply_in_dialog_id.is_valid() && reply_in_dialog_id != owner_dialog_id) {
+        LOG(ERROR) << "Receive game score with " << reply_to_message_id << " in " << owner_dialog_id << " in another "
+                   << reply_in_dialog_id;
+        reply_to_message_id = MessageId();
+        reply_in_dialog_id = DialogId();
+      }
       if (!reply_to_message_id.is_valid()) {
         // possible in basic groups
         LOG(INFO) << "Receive game score with " << reply_to_message_id << " in " << owner_dialog_id;
@@ -4318,8 +4351,8 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
         reply_to_message_id = MessageId();
       }
       auto payment_sent = move_tl_object_as<telegram_api::messageActionPaymentSent>(action);
-      return td::make_unique<MessagePaymentSuccessful>(reply_to_message_id, std::move(payment_sent->currency_),
-                                                       payment_sent->total_amount_);
+      return td::make_unique<MessagePaymentSuccessful>(reply_in_dialog_id, reply_to_message_id,
+                                                       std::move(payment_sent->currency_), payment_sent->total_amount_);
     }
     case telegram_api::messageActionPaymentSentMe::ID: {
       LOG_IF(ERROR, !td->auth_manager_->is_bot()) << "Receive MessageActionPaymentSentMe in " << owner_dialog_id;
@@ -4328,8 +4361,8 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
         reply_to_message_id = MessageId();
       }
       auto payment_sent = move_tl_object_as<telegram_api::messageActionPaymentSentMe>(action);
-      auto result = td::make_unique<MessagePaymentSuccessful>(reply_to_message_id, std::move(payment_sent->currency_),
-                                                              payment_sent->total_amount_);
+      auto result = td::make_unique<MessagePaymentSuccessful>(
+          reply_in_dialog_id, reply_to_message_id, std::move(payment_sent->currency_), payment_sent->total_amount_);
       result->invoice_payload = payment_sent->payload_.as_slice().str();
       result->shipping_option_id = std::move(payment_sent->shipping_option_id_);
       result->order_info = get_order_info(std::move(payment_sent->info_));
@@ -4425,7 +4458,8 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
 }
 
 tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageContent *content, Td *td,
-                                                                 int32 message_date, bool is_content_secret) {
+                                                                 DialogId dialog_id, int32 message_date,
+                                                                 bool is_content_secret) {
   CHECK(content != nullptr);
   switch (content->get_type()) {
     case MessageContentType::Animation: {
@@ -4570,13 +4604,15 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     }
     case MessageContentType::PaymentSuccessful: {
       const MessagePaymentSuccessful *m = static_cast<const MessagePaymentSuccessful *>(content);
+      auto invoice_dialog_id = m->invoice_dialog_id.is_valid() ? m->invoice_dialog_id : dialog_id;
       if (td->auth_manager_->is_bot()) {
         return make_tl_object<td_api::messagePaymentSuccessfulBot>(
-            m->invoice_message_id.get(), m->currency, m->total_amount, m->invoice_payload, m->shipping_option_id,
-            get_order_info_object(m->order_info), m->telegram_payment_charge_id, m->provider_payment_charge_id);
+            invoice_dialog_id.get(), m->invoice_message_id.get(), m->currency, m->total_amount, m->invoice_payload,
+            m->shipping_option_id, get_order_info_object(m->order_info), m->telegram_payment_charge_id,
+            m->provider_payment_charge_id);
       } else {
-        return make_tl_object<td_api::messagePaymentSuccessful>(m->invoice_message_id.get(), m->currency,
-                                                                m->total_amount);
+        return make_tl_object<td_api::messagePaymentSuccessful>(invoice_dialog_id.get(), m->invoice_message_id.get(),
+                                                                m->currency, m->total_amount);
       }
     }
     case MessageContentType::ContactRegistered:
@@ -5124,8 +5160,11 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
       break;
     case MessageContentType::Call:
       break;
-    case MessageContentType::PaymentSuccessful:
+    case MessageContentType::PaymentSuccessful: {
+      auto content = static_cast<const MessagePaymentSuccessful *>(message_content);
+      add_dialog_and_dependencies(dependencies, content->invoice_dialog_id);
       break;
+    }
     case MessageContentType::ContactRegistered:
       break;
     case MessageContentType::ExpiredPhoto:

@@ -6653,9 +6653,10 @@ void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api:
   bool is_content_secret = is_secret_message_content(ttl, content->get_type());
 
   if ((update->flags_ & telegram_api::updateServiceNotification::POPUP_MASK) != 0) {
-    send_closure(G()->td(), &Td::send_update,
-                 td_api::make_object<td_api::updateServiceNotification>(
-                     update->type_, get_message_content_object(content.get(), td_, date, is_content_secret)));
+    send_closure(
+        G()->td(), &Td::send_update,
+        td_api::make_object<td_api::updateServiceNotification>(
+            update->type_, get_message_content_object(content.get(), td_, owner_dialog_id, date, is_content_secret)));
   }
   if (has_date && is_user) {
     Dialog *d = get_service_notifications_dialog();
@@ -13331,10 +13332,23 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
         message_info.ttl_period = message->ttl_period_;
       }
       message_info.flags = message->flags_;
-      auto reply_to_message_id =
-          MessageId(ServerMessageId(message->reply_to_ == nullptr ? 0 : message->reply_to_->reply_to_msg_id_));
-      message_info.content =
-          get_action_message_content(td_, std::move(message->action_), message_info.dialog_id, reply_to_message_id);
+
+      DialogId reply_in_dialog_id;
+      MessageId reply_to_message_id;
+      if (message_info.reply_header != nullptr) {
+        reply_to_message_id = MessageId(ServerMessageId(message_info.reply_header->reply_to_msg_id_));
+        auto reply_to_peer_id = std::move(message_info.reply_header->reply_to_peer_id_);
+        if (reply_to_peer_id != nullptr) {
+          reply_in_dialog_id = DialogId(reply_to_peer_id);
+          if (!reply_in_dialog_id.is_valid()) {
+            LOG(ERROR) << "Receive reply in invalid " << to_string(reply_to_peer_id);
+            reply_to_message_id = MessageId();
+            reply_in_dialog_id = DialogId();
+          }
+        }
+      }
+      message_info.content = get_action_message_content(td_, std::move(message->action_), message_info.dialog_id,
+                                                        reply_in_dialog_id, reply_to_message_id);
       break;
     }
     default:
@@ -13437,7 +13451,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     */
   }
 
-  MessageId reply_to_message_id = message_info.reply_to_message_id;
+  MessageId reply_to_message_id = message_info.reply_to_message_id;  // for secret messages
   DialogId reply_in_dialog_id;
   MessageId top_thread_message_id;
   if (message_info.reply_header != nullptr) {
@@ -13446,12 +13460,16 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     if (reply_to_peer_id != nullptr) {
       reply_in_dialog_id = DialogId(reply_to_peer_id);
       if (!reply_in_dialog_id.is_valid()) {
-        LOG(ERROR) << " Receive reply in invalid " << to_string(reply_to_peer_id);
+        LOG(ERROR) << "Receive reply in invalid " << to_string(reply_to_peer_id);
         reply_to_message_id = MessageId();
         reply_in_dialog_id = DialogId();
       }
+      if (reply_in_dialog_id == dialog_id) {
+        reply_in_dialog_id = DialogId();  // just in case
+      }
     }
-    if (reply_to_message_id.is_valid() && !td_->auth_manager_->is_bot() && !message_id.is_scheduled()) {
+    if (reply_to_message_id.is_valid() && !td_->auth_manager_->is_bot() && !message_id.is_scheduled() &&
+        !reply_in_dialog_id.is_valid()) {
       if ((message_info.reply_header->flags_ & telegram_api::messageReplyHeader::REPLY_TO_TOP_ID_MASK) != 0) {
         top_thread_message_id = MessageId(ServerMessageId(message_info.reply_header->reply_to_top_id_));
       } else if (!is_broadcast_channel(dialog_id)) {
@@ -13581,8 +13599,8 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     if (!is_allowed_media_group_content(content_type)) {
       LOG(ERROR) << "Receive media group identifier " << message_info.media_album_id << " in " << message_id << " from "
                  << dialog_id << " with content "
-                 << oneline(to_string(
-                        get_message_content_object(message->content.get(), td_, message->date, is_content_secret)));
+                 << oneline(to_string(get_message_content_object(message->content.get(), td_, dialog_id, message->date,
+                                                                 is_content_secret)));
     } else {
       message->media_album_id = message_info.media_album_id;
     }
@@ -16755,10 +16773,10 @@ MessagesManager::Message *MessagesManager::get_message_force(FullMessageId full_
 }
 
 FullMessageId MessagesManager::get_replied_message_id(DialogId dialog_id, const Message *m) {
-  auto message_id = get_message_content_replied_message_id(m->content.get());
-  if (message_id.is_valid()) {
+  auto full_message_id = get_message_content_replied_message_id(dialog_id, m->content.get());
+  if (full_message_id.get_message_id().is_valid()) {
     CHECK(!m->reply_to_message_id.is_valid());
-    return {dialog_id, message_id};
+    return full_message_id;
   }
   if (!m->reply_to_message_id.is_valid()) {
     return {};
@@ -22870,7 +22888,7 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
       get_message_interaction_info_object(dialog_id, m), reply_in_dialog_id.get(), reply_to_message_id,
       top_thread_message_id, ttl, ttl_expires_in, via_bot_user_id, m->author_signature, media_album_id,
       get_restriction_reason_description(m->restriction_reasons),
-      get_message_content_object(m->content.get(), td_, live_location_date, m->is_content_secret),
+      get_message_content_object(m->content.get(), td_, dialog_id, live_location_date, m->is_content_secret),
       get_reply_markup_object(m->reply_markup));
 }
 
@@ -24233,7 +24251,8 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
                  << file_view.has_alive_remote_location() << " " << file_view.has_active_upload_remote_location() << " "
                  << file_view.has_active_download_remote_location() << " " << file_view.is_encrypted() << " " << is_web
                  << " " << file_view.has_url() << " "
-                 << to_string(get_message_content_object(m->content.get(), td_, m->date, m->is_content_secret));
+                 << to_string(
+                        get_message_content_object(m->content.get(), td_, dialog_id, m->date, m->is_content_secret));
     }
     auto entities = get_input_message_entities(td_->contacts_manager_.get(), caption, "do_send_message_group");
     int32 input_single_media_flags = 0;
@@ -28293,7 +28312,7 @@ void MessagesManager::send_update_message_content(DialogId dialog_id, MessageId 
   LOG(INFO) << "Send updateMessageContent for " << message_id << " in " << dialog_id << " from " << source;
   LOG_CHECK(have_dialog(dialog_id)) << "Send updateMessageContent in unknown " << dialog_id << " from " << source
                                     << " with load count " << loaded_dialogs_.count(dialog_id);
-  auto content_object = get_message_content_object(content, td_, message_date, is_content_secret);
+  auto content_object = get_message_content_object(content, td_, dialog_id, message_date, is_content_secret);
   send_closure(
       G()->td(), &Td::send_update,
       td_api::make_object<td_api::updateMessageContent>(dialog_id.get(), message_id.get(), std::move(content_object)));
@@ -30572,7 +30591,8 @@ void MessagesManager::on_send_dialog_action_timeout(DialogId dialog_id) {
   auto file_id = get_message_content_upload_file_id(m->content.get());
   if (!file_id.is_valid()) {
     LOG(ERROR) << "Have no file in "
-               << to_string(get_message_content_object(m->content.get(), td_, m->date, m->is_content_secret));
+               << to_string(
+                      get_message_content_object(m->content.get(), td_, dialog_id, m->date, m->is_content_secret));
     return;
   }
   auto file_view = td_->file_manager_->get_file_view(file_id);
