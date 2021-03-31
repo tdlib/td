@@ -21,7 +21,7 @@ namespace td {
  * Interface for managing the internal logging of TDLib.
  * By default TDLib writes logs to stderr or an OS specific log and uses a verbosity level of 5.
  * These functions are deprecated since TDLib 1.4.0 in favor of the td::td_api::setLogVerbosityLevel,
- * td::td_api::setLogStream and other synchronous requests for managing the intrenal TDLib logging.
+ * td::td_api::setLogStream and other synchronous requests for managing the internal TDLib logging.
  */
 class Log {
  public:
