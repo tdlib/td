@@ -911,16 +911,9 @@ class MessagesManager : public Actor {
   void stop_poll(FullMessageId full_message_id, td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
                  Promise<Unit> &&promise);
 
-  void get_payment_form(FullMessageId full_message_id, Promise<tl_object_ptr<td_api::paymentForm>> &&promise);
+  Result<ServerMessageId> get_invoice_message_id(FullMessageId full_message_id);
 
-  void validate_order_info(FullMessageId full_message_id, tl_object_ptr<td_api::orderInfo> order_info, bool allow_save,
-                           Promise<tl_object_ptr<td_api::validatedOrderInfo>> &&promise);
-
-  void send_payment_form(FullMessageId full_message_id, int64 payment_form_id, const string &order_info_id,
-                         const string &shipping_option_id, const tl_object_ptr<td_api::InputCredentials> &credentials,
-                         int64 tip_amount, Promise<tl_object_ptr<td_api::paymentResult>> &&promise);
-
-  void get_payment_receipt(FullMessageId full_message_id, Promise<tl_object_ptr<td_api::paymentReceipt>> &&promise);
+  Result<ServerMessageId> get_payment_successful_message_id(FullMessageId full_message_id);
 
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
@@ -2969,8 +2962,6 @@ class MessagesManager : public Actor {
   void suffix_load_till_message_id(Dialog *d, MessageId message_id, Promise<> promise);
 
   Result<string> get_login_button_url(DialogId dialog_id, MessageId message_id, int32 button_id);
-
-  Result<ServerMessageId> get_invoice_message_id(FullMessageId full_message_id);
 
   bool is_broadcast_channel(DialogId dialog_id) const;
 

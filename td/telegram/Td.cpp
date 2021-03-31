@@ -7714,34 +7714,30 @@ void Td::on_request(uint64 id, td_api::getBankCardInfo &request) {
 void Td::on_request(uint64 id, const td_api::getPaymentForm &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  messages_manager_->get_payment_form({DialogId(request.chat_id_), MessageId(request.message_id_)}, std::move(promise));
+  get_payment_form(this, {DialogId(request.chat_id_), MessageId(request.message_id_)}, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::validateOrderInfo &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  messages_manager_->validate_order_info({DialogId(request.chat_id_), MessageId(request.message_id_)},
-                                         std::move(request.order_info_), request.allow_save_, std::move(promise));
+  validate_order_info(this, {DialogId(request.chat_id_), MessageId(request.message_id_)},
+                      std::move(request.order_info_), request.allow_save_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::sendPaymentForm &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.order_info_id_);
   CLEAN_INPUT_STRING(request.shipping_option_id_);
-  if (request.credentials_ == nullptr) {
-    return send_error_raw(id, 400, "Input payments credentials must be non-empty");
-  }
   CREATE_REQUEST_PROMISE();
-  messages_manager_->send_payment_form({DialogId(request.chat_id_), MessageId(request.message_id_)},
-                                       request.payment_form_id_, request.order_info_id_, request.shipping_option_id_,
-                                       request.credentials_, request.tip_amount_, std::move(promise));
+  send_payment_form(this, {DialogId(request.chat_id_), MessageId(request.message_id_)}, request.payment_form_id_,
+                    request.order_info_id_, request.shipping_option_id_, request.credentials_, request.tip_amount_,
+                    std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getPaymentReceipt &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  messages_manager_->get_payment_receipt({DialogId(request.chat_id_), MessageId(request.message_id_)},
-                                         std::move(promise));
+  get_payment_receipt(this, {DialogId(request.chat_id_), MessageId(request.message_id_)}, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getSavedOrderInfo &request) {

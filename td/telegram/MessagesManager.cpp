@@ -42,7 +42,6 @@
 #include "td/telegram/NotificationManager.h"
 #include "td/telegram/NotificationSettings.hpp"
 #include "td/telegram/NotificationType.h"
-#include "td/telegram/Payments.h"
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/ReplyMarkup.hpp"
 #include "td/telegram/SecretChatActor.h"
@@ -37359,59 +37358,22 @@ Result<ServerMessageId> MessagesManager::get_invoice_message_id(FullMessageId fu
   return m->message_id.get_server_message_id();
 }
 
-void MessagesManager::get_payment_form(FullMessageId full_message_id,
-                                       Promise<tl_object_ptr<td_api::paymentForm>> &&promise) {
-  auto r_message_id = get_invoice_message_id(full_message_id);
-  if (r_message_id.is_error()) {
-    return promise.set_error(r_message_id.move_as_error());
-  }
-
-  ::td::get_payment_form(td_, full_message_id.get_dialog_id(), r_message_id.ok(), std::move(promise));
-}
-
-void MessagesManager::validate_order_info(FullMessageId full_message_id, tl_object_ptr<td_api::orderInfo> order_info,
-                                          bool allow_save,
-                                          Promise<tl_object_ptr<td_api::validatedOrderInfo>> &&promise) {
-  auto r_message_id = get_invoice_message_id(full_message_id);
-  if (r_message_id.is_error()) {
-    return promise.set_error(r_message_id.move_as_error());
-  }
-
-  ::td::validate_order_info(td_, full_message_id.get_dialog_id(), r_message_id.ok(), std::move(order_info), allow_save,
-                            std::move(promise));
-}
-
-void MessagesManager::send_payment_form(FullMessageId full_message_id, int64 payment_form_id,
-                                        const string &order_info_id, const string &shipping_option_id,
-                                        const tl_object_ptr<td_api::InputCredentials> &credentials, int64 tip_amount,
-                                        Promise<tl_object_ptr<td_api::paymentResult>> &&promise) {
-  auto r_message_id = get_invoice_message_id(full_message_id);
-  if (r_message_id.is_error()) {
-    return promise.set_error(r_message_id.move_as_error());
-  }
-
-  ::td::send_payment_form(td_, full_message_id.get_dialog_id(), r_message_id.ok(), payment_form_id, order_info_id,
-                          shipping_option_id, credentials, tip_amount, std::move(promise));
-}
-
-void MessagesManager::get_payment_receipt(FullMessageId full_message_id,
-                                          Promise<tl_object_ptr<td_api::paymentReceipt>> &&promise) {
-  auto m = get_message_force(full_message_id, "get_payment_receipt");
+Result<ServerMessageId> MessagesManager::get_payment_successful_message_id(FullMessageId full_message_id) {
+  auto m = get_message_force(full_message_id, "get_payment_successful_message_id");
   if (m == nullptr) {
-    return promise.set_error(Status::Error(5, "Message not found"));
+    return Status::Error(5, "Message not found");
   }
   if (m->content->get_type() != MessageContentType::PaymentSuccessful) {
-    return promise.set_error(Status::Error(5, "Message has wrong type"));
+    return Status::Error(5, "Message has wrong type");
   }
   if (m->message_id.is_scheduled()) {
-    return promise.set_error(Status::Error(5, "Can't get payment receipt from scheduled messages"));
+    return Status::Error(5, "Wrong sheduled message identifier");
   }
   if (!m->message_id.is_server()) {
-    return promise.set_error(Status::Error(5, "Wrong message identifier"));
+    return Status::Error(5, "Wrong message identifier");
   }
 
-  ::td::get_payment_receipt(td_, full_message_id.get_dialog_id(), m->message_id.get_server_message_id(),
-                            std::move(promise));
+  return m->message_id.get_server_message_id();
 }
 
 void MessagesManager::remove_sponsored_dialog() {

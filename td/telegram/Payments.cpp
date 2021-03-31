@@ -13,6 +13,7 @@
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/PasswordManager.h"
+#include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/UpdatesManager.h"
 
@@ -1110,14 +1111,15 @@ void answer_pre_checkout_query(Td *td, int64 pre_checkout_query_id, const string
   td->create_handler<SetBotPreCheckoutAnswerQuery>(std::move(promise))->send(pre_checkout_query_id, error_message);
 }
 
-void get_payment_form(Td *td, DialogId dialog_id, ServerMessageId server_message_id,
-                      Promise<tl_object_ptr<td_api::paymentForm>> &&promise) {
-  td->create_handler<GetPaymentFormQuery>(std::move(promise))->send(dialog_id, server_message_id);
+void get_payment_form(Td *td, FullMessageId full_message_id, Promise<tl_object_ptr<td_api::paymentForm>> &&promise) {
+  TRY_RESULT_PROMISE(promise, server_message_id, td->messages_manager_->get_invoice_message_id(full_message_id));
+  td->create_handler<GetPaymentFormQuery>(std::move(promise))->send(full_message_id.get_dialog_id(), server_message_id);
 }
 
-void validate_order_info(Td *td, DialogId dialog_id, ServerMessageId server_message_id,
-                         tl_object_ptr<td_api::orderInfo> order_info, bool allow_save,
-                         Promise<tl_object_ptr<td_api::validatedOrderInfo>> &&promise) {
+void validate_order_info(Td *td, FullMessageId full_message_id, tl_object_ptr<td_api::orderInfo> order_info,
+                         bool allow_save, Promise<tl_object_ptr<td_api::validatedOrderInfo>> &&promise) {
+  TRY_RESULT_PROMISE(promise, server_message_id, td->messages_manager_->get_invoice_message_id(full_message_id));
+
   if (order_info != nullptr) {
     if (!clean_input_string(order_info->name_)) {
       return promise.set_error(Status::Error(400, "Name must be encoded in UTF-8"));
@@ -1151,14 +1153,17 @@ void validate_order_info(Td *td, DialogId dialog_id, ServerMessageId server_mess
   }
 
   td->create_handler<ValidateRequestedInfoQuery>(std::move(promise))
-      ->send(dialog_id, server_message_id, convert_order_info(std::move(order_info)), allow_save);
+      ->send(full_message_id.get_dialog_id(), server_message_id, convert_order_info(std::move(order_info)), allow_save);
 }
 
-void send_payment_form(Td *td, DialogId dialog_id, ServerMessageId server_message_id, int64 payment_form_id,
-                       const string &order_info_id, const string &shipping_option_id,
-                       const tl_object_ptr<td_api::InputCredentials> &credentials, int64 tip_amount,
-                       Promise<tl_object_ptr<td_api::paymentResult>> &&promise) {
-  CHECK(credentials != nullptr);
+void send_payment_form(Td *td, FullMessageId full_message_id, int64 payment_form_id, const string &order_info_id,
+                       const string &shipping_option_id, const tl_object_ptr<td_api::InputCredentials> &credentials,
+                       int64 tip_amount, Promise<tl_object_ptr<td_api::paymentResult>> &&promise) {
+  TRY_RESULT_PROMISE(promise, server_message_id, td->messages_manager_->get_invoice_message_id(full_message_id));
+
+  if (credentials == nullptr) {
+    return promise.set_error(Status::Error(400, "Input payment credentials must be non-empty"));
+  }
 
   tl_object_ptr<telegram_api::InputPaymentCredentials> input_credentials;
   switch (credentials->get_id()) {
@@ -1205,13 +1210,16 @@ void send_payment_form(Td *td, DialogId dialog_id, ServerMessageId server_messag
   }
 
   td->create_handler<SendPaymentFormQuery>(std::move(promise))
-      ->send(dialog_id, server_message_id, payment_form_id, order_info_id, shipping_option_id,
+      ->send(full_message_id.get_dialog_id(), server_message_id, payment_form_id, order_info_id, shipping_option_id,
              std::move(input_credentials), tip_amount);
 }
 
-void get_payment_receipt(Td *td, DialogId dialog_id, ServerMessageId server_message_id,
+void get_payment_receipt(Td *td, FullMessageId full_message_id,
                          Promise<tl_object_ptr<td_api::paymentReceipt>> &&promise) {
-  td->create_handler<GetPaymentReceiptQuery>(std::move(promise))->send(dialog_id, server_message_id);
+  TRY_RESULT_PROMISE(promise, server_message_id,
+                     td->messages_manager_->get_payment_successful_message_id(full_message_id));
+  td->create_handler<GetPaymentReceiptQuery>(std::move(promise))
+      ->send(full_message_id.get_dialog_id(), server_message_id);
 }
 
 void get_saved_order_info(Td *td, Promise<tl_object_ptr<td_api::orderInfo>> &&promise) {
