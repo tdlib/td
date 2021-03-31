@@ -186,9 +186,9 @@ static tl_object_ptr<telegram_api::postAddress> convert_address(tl_object_ptr<td
   if (address == nullptr) {
     return nullptr;
   }
-  return make_tl_object<telegram_api::postAddress>(std::move(address->country_code_), std::move(address->state_),
-                                                   std::move(address->city_), std::move(address->street_line1_),
-                                                   std::move(address->street_line2_), std::move(address->postal_code_));
+  return make_tl_object<telegram_api::postAddress>(std::move(address->street_line1_), std::move(address->street_line2_),
+                                                   std::move(address->city_), std::move(address->state_),
+                                                   std::move(address->country_code_), std::move(address->postal_code_));
 }
 
 static tl_object_ptr<td_api::orderInfo> convert_order_info(
