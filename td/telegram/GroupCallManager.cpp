@@ -1391,12 +1391,12 @@ void GroupCallManager::on_update_group_call_participants(
         continue;
       }
       if (participant.joined_date == 0) {
-        if (version > group_call->leave_version) {
+        if (group_call == nullptr || version > group_call->leave_version) {
           diff--;
         }
         remove_recent_group_call_speaker(input_group_call_id, participant.dialog_id);
       } else {
-        if (participant.is_just_joined && version >= group_call->leave_version) {
+        if (participant.is_just_joined && (group_call == nullptr || version >= group_call->leave_version)) {
           diff++;
         }
         on_participant_speaking_in_group_call(input_group_call_id, participant);
