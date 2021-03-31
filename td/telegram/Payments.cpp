@@ -1070,7 +1070,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, const ShippingOption &s
                         << " with price parts " << format::as_array(shipping_option.price_parts) << "]";
 }
 
-void answer_shipping_query(int64 shipping_query_id, vector<tl_object_ptr<td_api::shippingOption>> &&shipping_options,
+void answer_shipping_query(Td *td, int64 shipping_query_id,
+                           vector<tl_object_ptr<td_api::shippingOption>> &&shipping_options,
                            const string &error_message, Promise<Unit> &&promise) {
   vector<tl_object_ptr<telegram_api::shippingOption>> options;
   for (auto &option : shipping_options) {
@@ -1100,28 +1101,21 @@ void answer_shipping_query(int64 shipping_query_id, vector<tl_object_ptr<td_api:
                                                                    std::move(prices)));
   }
 
-  G()->td()
-      .get_actor_unsafe()
-      ->create_handler<SetBotShippingAnswerQuery>(std::move(promise))
+  td->create_handler<SetBotShippingAnswerQuery>(std::move(promise))
       ->send(shipping_query_id, error_message, std::move(options));
 }
 
-void answer_pre_checkout_query(int64 pre_checkout_query_id, const string &error_message, Promise<Unit> &&promise) {
-  G()->td()
-      .get_actor_unsafe()
-      ->create_handler<SetBotPreCheckoutAnswerQuery>(std::move(promise))
-      ->send(pre_checkout_query_id, error_message);
+void answer_pre_checkout_query(Td *td, int64 pre_checkout_query_id, const string &error_message,
+                               Promise<Unit> &&promise) {
+  td->create_handler<SetBotPreCheckoutAnswerQuery>(std::move(promise))->send(pre_checkout_query_id, error_message);
 }
 
-void get_payment_form(DialogId dialog_id, ServerMessageId server_message_id,
+void get_payment_form(Td *td, DialogId dialog_id, ServerMessageId server_message_id,
                       Promise<tl_object_ptr<td_api::paymentForm>> &&promise) {
-  G()->td()
-      .get_actor_unsafe()
-      ->create_handler<GetPaymentFormQuery>(std::move(promise))
-      ->send(dialog_id, server_message_id);
+  td->create_handler<GetPaymentFormQuery>(std::move(promise))->send(dialog_id, server_message_id);
 }
 
-void validate_order_info(DialogId dialog_id, ServerMessageId server_message_id,
+void validate_order_info(Td *td, DialogId dialog_id, ServerMessageId server_message_id,
                          tl_object_ptr<td_api::orderInfo> order_info, bool allow_save,
                          Promise<tl_object_ptr<td_api::validatedOrderInfo>> &&promise) {
   if (order_info != nullptr) {
@@ -1156,13 +1150,11 @@ void validate_order_info(DialogId dialog_id, ServerMessageId server_message_id,
     }
   }
 
-  G()->td()
-      .get_actor_unsafe()
-      ->create_handler<ValidateRequestedInfoQuery>(std::move(promise))
+  td->create_handler<ValidateRequestedInfoQuery>(std::move(promise))
       ->send(dialog_id, server_message_id, convert_order_info(std::move(order_info)), allow_save);
 }
 
-void send_payment_form(DialogId dialog_id, ServerMessageId server_message_id, int64 payment_form_id,
+void send_payment_form(Td *td, DialogId dialog_id, ServerMessageId server_message_id, int64 payment_form_id,
                        const string &order_info_id, const string &shipping_option_id,
                        const tl_object_ptr<td_api::InputCredentials> &credentials, int64 tip_amount,
                        Promise<tl_object_ptr<td_api::paymentResult>> &&promise) {
@@ -1176,8 +1168,7 @@ void send_payment_form(DialogId dialog_id, ServerMessageId server_message_id, in
       if (!clean_input_string(credentials_id)) {
         return promise.set_error(Status::Error(400, "Credentials identifier must be encoded in UTF-8"));
       }
-      auto temp_password_state =
-          G()->td().get_actor_unsafe()->password_manager_->get_actor_unsafe()->get_temp_password_state_sync();
+      auto temp_password_state = td->password_manager_->get_actor_unsafe()->get_temp_password_state_sync();
       if (!temp_password_state.has_temp_password) {
         return promise.set_error(Status::Error(400, "Temporary password required to use saved credentials"));
       }
@@ -1213,35 +1204,31 @@ void send_payment_form(DialogId dialog_id, ServerMessageId server_message_id, in
       UNREACHABLE();
   }
 
-  G()->td()
-      .get_actor_unsafe()
-      ->create_handler<SendPaymentFormQuery>(std::move(promise))
+  td->create_handler<SendPaymentFormQuery>(std::move(promise))
       ->send(dialog_id, server_message_id, payment_form_id, order_info_id, shipping_option_id,
              std::move(input_credentials), tip_amount);
 }
 
-void get_payment_receipt(DialogId dialog_id, ServerMessageId server_message_id,
+void get_payment_receipt(Td *td, DialogId dialog_id, ServerMessageId server_message_id,
                          Promise<tl_object_ptr<td_api::paymentReceipt>> &&promise) {
-  G()->td()
-      .get_actor_unsafe()
-      ->create_handler<GetPaymentReceiptQuery>(std::move(promise))
-      ->send(dialog_id, server_message_id);
+  td->create_handler<GetPaymentReceiptQuery>(std::move(promise))->send(dialog_id, server_message_id);
 }
 
-void get_saved_order_info(Promise<tl_object_ptr<td_api::orderInfo>> &&promise) {
-  G()->td().get_actor_unsafe()->create_handler<GetSavedInfoQuery>(std::move(promise))->send();
+void get_saved_order_info(Td *td, Promise<tl_object_ptr<td_api::orderInfo>> &&promise) {
+  td->create_handler<GetSavedInfoQuery>(std::move(promise))->send();
 }
 
-void delete_saved_order_info(Promise<Unit> &&promise) {
-  G()->td().get_actor_unsafe()->create_handler<ClearSavedInfoQuery>(std::move(promise))->send(false, true);
+void delete_saved_order_info(Td *td, Promise<Unit> &&promise) {
+  td->create_handler<ClearSavedInfoQuery>(std::move(promise))->send(false, true);
 }
 
-void delete_saved_credentials(Promise<Unit> &&promise) {
-  G()->td().get_actor_unsafe()->create_handler<ClearSavedInfoQuery>(std::move(promise))->send(true, false);
+void delete_saved_credentials(Td *td, Promise<Unit> &&promise) {
+  td->create_handler<ClearSavedInfoQuery>(std::move(promise))->send(true, false);
 }
 
-void get_bank_card_info(const string &bank_card_number, Promise<td_api::object_ptr<td_api::bankCardInfo>> &&promise) {
-  G()->td().get_actor_unsafe()->create_handler<GetBankCardInfoQuery>(std::move(promise))->send(bank_card_number);
+void get_bank_card_info(Td *td, const string &bank_card_number,
+                        Promise<td_api::object_ptr<td_api::bankCardInfo>> &&promise) {
+  td->create_handler<GetBankCardInfoQuery>(std::move(promise))->send(bank_card_number);
 }
 
 }  // namespace td

@@ -172,32 +172,35 @@ bool operator!=(const ShippingOption &lhs, const ShippingOption &rhs);
 
 StringBuilder &operator<<(StringBuilder &string_builder, const ShippingOption &shipping_option);
 
-void answer_shipping_query(int64 shipping_query_id, vector<tl_object_ptr<td_api::shippingOption>> &&shipping_options,
+void answer_shipping_query(Td *td, int64 shipping_query_id,
+                           vector<tl_object_ptr<td_api::shippingOption>> &&shipping_options,
                            const string &error_message, Promise<Unit> &&promise);
 
-void answer_pre_checkout_query(int64 pre_checkout_query_id, const string &error_message, Promise<Unit> &&promise);
+void answer_pre_checkout_query(Td *td, int64 pre_checkout_query_id, const string &error_message,
+                               Promise<Unit> &&promise);
 
-void get_payment_form(DialogId dialog_id, ServerMessageId server_message_id,
+void get_payment_form(Td *td, DialogId dialog_id, ServerMessageId server_message_id,
                       Promise<tl_object_ptr<td_api::paymentForm>> &&promise);
 
-void validate_order_info(DialogId dialog_id, ServerMessageId server_message_id,
+void validate_order_info(Td *td, DialogId dialog_id, ServerMessageId server_message_id,
                          tl_object_ptr<td_api::orderInfo> order_info, bool allow_save,
                          Promise<tl_object_ptr<td_api::validatedOrderInfo>> &&promise);
 
-void send_payment_form(DialogId dialog_id, ServerMessageId server_message_id, int64 payment_form_id,
+void send_payment_form(Td *td, DialogId dialog_id, ServerMessageId server_message_id, int64 payment_form_id,
                        const string &order_info_id, const string &shipping_option_id,
                        const tl_object_ptr<td_api::InputCredentials> &credentials, int64 tip_amount,
                        Promise<tl_object_ptr<td_api::paymentResult>> &&promise);
 
-void get_payment_receipt(DialogId dialog_id, ServerMessageId server_message_id,
+void get_payment_receipt(Td *td, DialogId dialog_id, ServerMessageId server_message_id,
                          Promise<tl_object_ptr<td_api::paymentReceipt>> &&promise);
 
-void get_saved_order_info(Promise<tl_object_ptr<td_api::orderInfo>> &&promise);
+void get_saved_order_info(Td *td, Promise<tl_object_ptr<td_api::orderInfo>> &&promise);
 
-void delete_saved_order_info(Promise<Unit> &&promise);
+void delete_saved_order_info(Td *td, Promise<Unit> &&promise);
 
-void delete_saved_credentials(Promise<Unit> &&promise);
+void delete_saved_credentials(Td *td, Promise<Unit> &&promise);
 
-void get_bank_card_info(const string &bank_card_number, Promise<td_api::object_ptr<td_api::bankCardInfo>> &&promise);
+void get_bank_card_info(Td *td, const string &bank_card_number,
+                        Promise<td_api::object_ptr<td_api::bankCardInfo>> &&promise);
 
 }  // namespace td

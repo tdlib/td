@@ -7693,7 +7693,7 @@ void Td::on_request(uint64 id, td_api::answerShippingQuery &request) {
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.error_message_);
   CREATE_OK_REQUEST_PROMISE();
-  answer_shipping_query(request.shipping_query_id_, std::move(request.shipping_options_), request.error_message_,
+  answer_shipping_query(this, request.shipping_query_id_, std::move(request.shipping_options_), request.error_message_,
                         std::move(promise));
 }
 
@@ -7701,14 +7701,14 @@ void Td::on_request(uint64 id, td_api::answerPreCheckoutQuery &request) {
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.error_message_);
   CREATE_OK_REQUEST_PROMISE();
-  answer_pre_checkout_query(request.pre_checkout_query_id_, request.error_message_, std::move(promise));
+  answer_pre_checkout_query(this, request.pre_checkout_query_id_, request.error_message_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getBankCardInfo &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.bank_card_number_);
   CREATE_REQUEST_PROMISE();
-  get_bank_card_info(request.bank_card_number_, std::move(promise));
+  get_bank_card_info(this, request.bank_card_number_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getPaymentForm &request) {
@@ -7747,19 +7747,19 @@ void Td::on_request(uint64 id, const td_api::getPaymentReceipt &request) {
 void Td::on_request(uint64 id, const td_api::getSavedOrderInfo &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  get_saved_order_info(std::move(promise));
+  get_saved_order_info(this, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::deleteSavedOrderInfo &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  delete_saved_order_info(std::move(promise));
+  delete_saved_order_info(this, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::deleteSavedCredentials &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  delete_saved_credentials(std::move(promise));
+  delete_saved_credentials(this, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getPassportElement &request) {
