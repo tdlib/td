@@ -34143,8 +34143,11 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
   d->debug_last_new_message_id = d->last_new_message_id;
 
   if (last_database_message != nullptr) {
+    Dependencies dependencies;
+    add_message_dependencies(dependencies, last_database_message.get());
+
     int32 dependent_dialog_count = 0;
-    auto depend_on_dialog = [&](DialogId other_dialog_id) {
+    for (auto &other_dialog_id : dependencies.dialog_ids) {
       if (other_dialog_id.is_valid() && !have_dialog(other_dialog_id)) {
         LOG(INFO) << "Postpone adding of last message in " << dialog_id << " because of cyclic dependency with "
                   << other_dialog_id;
@@ -34152,13 +34155,6 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
         dependent_dialog_count++;
       }
     };
-    if (last_database_message->forward_info != nullptr) {
-      depend_on_dialog(last_database_message->forward_info->sender_dialog_id);
-      depend_on_dialog(last_database_message->forward_info->from_dialog_id);
-    }
-    depend_on_dialog(last_database_message->sender_dialog_id);
-    depend_on_dialog(last_database_message->reply_in_dialog_id);
-    depend_on_dialog(last_database_message->real_forward_from_dialog_id);
 
     if (dependent_dialog_count == 0) {
       add_dialog_last_database_message(d, std::move(last_database_message));
