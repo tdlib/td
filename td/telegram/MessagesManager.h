@@ -2921,7 +2921,7 @@ class MessagesManager : public Actor {
 
   static void dump_debug_message_op(const Dialog *d, int priority = 0);
 
-  static void add_message_dependencies(Dependencies &dependencies, DialogId dialog_id, const Message *m);
+  static void add_message_dependencies(Dependencies &dependencies, const Message *m);
 
   void save_send_message_log_event(DialogId dialog_id, const Message *m);
 

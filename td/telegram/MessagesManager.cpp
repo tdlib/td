@@ -22248,7 +22248,7 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
         last_added_message_id = m->message_id;
       }
       if (old_message == nullptr) {
-        add_message_dependencies(dependencies, dialog_id, m);
+        add_message_dependencies(dependencies, m);
         added_new_message = true;
       } else if (m->message_id != from_message_id) {
         added_new_message = true;
@@ -22587,7 +22587,7 @@ void MessagesManager::on_get_scheduled_messages_from_database(DialogId dialog_id
     Message *m = add_scheduled_message_to_dialog(d, std::move(message), false, &need_update,
                                                  "on_get_scheduled_messages_from_database");
     if (m != nullptr) {
-      add_message_dependencies(dependencies, dialog_id, m);
+      add_message_dependencies(dependencies, m);
       added_message_ids.push_back(m->message_id);
     }
   }
@@ -23439,7 +23439,7 @@ bool MessagesManager::is_message_auto_read(DialogId dialog_id, bool is_outgoing)
   }
 }
 
-void MessagesManager::add_message_dependencies(Dependencies &dependencies, DialogId dialog_id, const Message *m) {
+void MessagesManager::add_message_dependencies(Dependencies &dependencies, const Message *m) {
   dependencies.user_ids.insert(m->sender_user_id);
   add_dialog_and_dependencies(dependencies, m->sender_dialog_id);
   add_dialog_and_dependencies(dependencies, m->reply_in_dialog_id);
@@ -31853,7 +31853,7 @@ MessagesManager::Message *MessagesManager::on_get_message_from_database(DialogId
   }
 
   Dependencies dependencies;
-  add_message_dependencies(dependencies, d->dialog_id, m.get());
+  add_message_dependencies(dependencies, m.get());
   resolve_dependencies_force(td_, dependencies, "on_get_message_from_database");
 
   m->have_previous = false;
@@ -34965,7 +34965,7 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
     add_message_sender_dependencies(dependencies, d->default_join_group_call_as_dialog_id);
   }
   if (d->messages != nullptr) {
-    add_message_dependencies(dependencies, dialog_id, d->messages.get());
+    add_message_dependencies(dependencies, d->messages.get());
   }
   if (d->draft_message != nullptr) {
     add_formatted_text_dependencies(dependencies, &d->draft_message->input_message_text.text);
@@ -36229,7 +36229,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
 
         Dependencies dependencies;
         add_dialog_dependencies(dependencies, dialog_id);
-        add_message_dependencies(dependencies, dialog_id, m.get());
+        add_message_dependencies(dependencies, m.get());
         resolve_dependencies_force(td_, dependencies, "SendMessageLogEvent");
 
         m->content =
@@ -36259,7 +36259,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
 
         Dependencies dependencies;
         add_dialog_dependencies(dependencies, dialog_id);
-        add_message_dependencies(dependencies, dialog_id, m.get());
+        add_message_dependencies(dependencies, m.get());
         resolve_dependencies_force(td_, dependencies, "SendBotStartMessageLogEvent");
 
         auto bot_user_id = log_event.bot_user_id;
@@ -36296,7 +36296,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
 
         Dependencies dependencies;
         add_dialog_dependencies(dependencies, dialog_id);
-        add_message_dependencies(dependencies, dialog_id, m.get());
+        add_message_dependencies(dependencies, m.get());
         resolve_dependencies_force(td_, dependencies, "SendInlineQueryResultMessageLogEvent");
 
         m->content = dup_message_content(td_, dialog_id, m->content.get(), MessageContentDupType::SendViaBot,
@@ -36325,7 +36325,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
 
         Dependencies dependencies;
         add_dialog_dependencies(dependencies, dialog_id);
-        add_message_dependencies(dependencies, dialog_id, m.get());
+        add_message_dependencies(dependencies, m.get());
         resolve_dependencies_force(td_, dependencies, "SendScreenshotTakenNotificationMessageLogEvent");
 
         auto result_message = continue_send_message(dialog_id, std::move(m), event.id_);
@@ -36351,7 +36351,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         add_dialog_dependencies(dependencies, to_dialog_id);
         add_dialog_dependencies(dependencies, from_dialog_id);
         for (auto &m : messages) {
-          add_message_dependencies(dependencies, to_dialog_id, m.get());
+          add_message_dependencies(dependencies, m.get());
         }
         resolve_dependencies_force(td_, dependencies, "ForwardMessagesLogEvent");
 
