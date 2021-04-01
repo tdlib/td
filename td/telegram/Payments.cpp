@@ -158,11 +158,15 @@ static tl_object_ptr<td_api::paymentsProviderStripe> convert_payment_provider(
     auto r_need_postal_code = get_json_object_bool_field(value.get_object(), "need_zip", false);
     auto r_need_cardholder_name = get_json_object_bool_field(value.get_object(), "need_cardholder_name", false);
     auto r_publishable_key = get_json_object_string_field(value.get_object(), "publishable_key", false);
+    // TODO support "gpay_parameters":{"gateway":"stripe","stripe:publishableKey":"...","stripe:version":"..."}
 
-    if (value.get_object().size() != 4 || r_need_country.is_error() || r_need_postal_code.is_error() ||
-        r_need_cardholder_name.is_error() || r_publishable_key.is_error()) {
-      LOG(WARNING) << "Unsupported JSON data \"" << native_parameters->data_ << '"';
+    if (r_need_country.is_error() || r_need_postal_code.is_error() || r_need_cardholder_name.is_error() ||
+        r_publishable_key.is_error()) {
+      LOG(ERROR) << "Unsupported JSON data \"" << native_parameters->data_ << '"';
       return nullptr;
+    }
+    if (value.get_object().size() != 5) {
+      LOG(ERROR) << "Unsupported JSON data \"" << native_parameters->data_ << '"';
     }
 
     return make_tl_object<td_api::paymentsProviderStripe>(r_publishable_key.move_as_ok(), r_need_country.move_as_ok(),
