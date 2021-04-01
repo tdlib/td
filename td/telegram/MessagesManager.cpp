@@ -34176,6 +34176,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
 
   if (default_join_group_call_as_dialog_id != d->default_join_group_call_as_dialog_id) {
     CHECK(default_join_group_call_as_dialog_id.is_valid());
+    CHECK(!d->default_join_group_call_as_dialog_id.is_valid());
     if (!have_dialog(default_join_group_call_as_dialog_id)) {
       LOG(INFO) << "Postpone adding of default join voice chat as " << default_join_group_call_as_dialog_id << " in "
                 << dialog_id;
