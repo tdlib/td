@@ -6308,7 +6308,7 @@ int32 MessagesManager::get_message_index_mask(DialogId dialog_id, const Message 
 
 void MessagesManager::update_reply_count_by_message(Dialog *d, int diff, const Message *m) {
   if (td_->auth_manager_->is_bot() || !m->top_thread_message_id.is_valid() ||
-      m->top_thread_message_id == m->message_id || !m->message_id.is_server()) {
+      m->top_thread_message_id == m->message_id || !m->message_id.is_valid() || !m->message_id.is_server()) {
     return;
   }
 
@@ -13428,7 +13428,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
         reply_in_dialog_id = DialogId();
       }
     }
-    if (reply_to_message_id.is_valid() && !td_->auth_manager_->is_bot()) {
+    if (reply_to_message_id.is_valid() && !td_->auth_manager_->is_bot() && !message_id.is_scheduled()) {
       if ((message_info.reply_header->flags_ & telegram_api::messageReplyHeader::REPLY_TO_TOP_ID_MASK) != 0) {
         top_thread_message_id = MessageId(ServerMessageId(message_info.reply_header->reply_to_top_id_));
       } else if (!is_broadcast_channel(dialog_id)) {
@@ -13491,7 +13491,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   }
   MessageReplyInfo reply_info(std::move(message_info.reply_info), td_->auth_manager_->is_bot());
   if (!top_thread_message_id.is_valid() && !is_broadcast_channel(dialog_id) &&
-      is_active_message_reply_info(dialog_id, reply_info)) {
+      is_active_message_reply_info(dialog_id, reply_info) && !message_id.is_scheduled()) {
     top_thread_message_id = message_id;
   }
   if (top_thread_message_id.is_valid() && dialog_type != DialogType::Channel) {
@@ -13634,10 +13634,8 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
 
   MessageId old_message_id = find_old_message_id(dialog_id, message_id);
   bool is_sent_message = false;
-  if (old_message_id.is_valid()) {
-    LOG(INFO) << "Found temporary " << old_message_id << " for " << FullMessageId{dialog_id, message_id};
-  }
   if (old_message_id.is_valid() || old_message_id.is_valid_scheduled()) {
+    LOG(INFO) << "Found temporary " << old_message_id << " for " << FullMessageId{dialog_id, message_id};
     Dialog *d = get_dialog(dialog_id);
     CHECK(d != nullptr);
 
@@ -13744,7 +13742,7 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
     update_message_count_by_index(d, +1, m);
   }
 
-  if (is_sent_message || need_update) {
+  if (is_sent_message || (need_update && !message_id.is_scheduled())) {
     update_reply_count_by_message(d, +1, m);
     update_forward_count(dialog_id, m);
   }
@@ -22932,11 +22930,13 @@ MessagesManager::Message *MessagesManager::get_message_to_send(
   m->send_date = G()->unix_time();
   m->date = is_scheduled ? options.schedule_date : m->send_date;
   m->reply_to_message_id = reply_to_message_id;
-  m->top_thread_message_id = top_thread_message_id;
-  if (reply_to_message_id.is_valid()) {
-    const Message *reply_m = get_message(d, reply_to_message_id);
-    if (reply_m != nullptr && reply_m->top_thread_message_id.is_valid()) {
-      m->top_thread_message_id = reply_m->top_thread_message_id;
+  if (!is_scheduled) {
+    m->top_thread_message_id = top_thread_message_id;
+    if (reply_to_message_id.is_valid()) {
+      const Message *reply_m = get_message(d, reply_to_message_id);
+      if (reply_m != nullptr && reply_m->top_thread_message_id.is_valid()) {
+        m->top_thread_message_id = reply_m->top_thread_message_id;
+      }
     }
   }
   m->is_channel_post = is_channel_post;
@@ -26696,7 +26696,7 @@ Result<MessageId> MessagesManager::add_local_message(
   }
   m->date = G()->unix_time();
   m->reply_to_message_id = get_reply_to_message_id(d, MessageId(), reply_to_message_id, false);
-  if (m->reply_to_message_id.is_valid()) {
+  if (m->reply_to_message_id.is_valid() && !message_id.is_scheduled()) {
     const Message *reply_m = get_message(d, m->reply_to_message_id);
     if (reply_m != nullptr) {
       m->top_thread_message_id = reply_m->top_thread_message_id;
@@ -31931,7 +31931,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
   }
   if (!message->top_thread_message_id.is_valid() && !is_broadcast_channel(dialog_id) &&
-      is_visible_message_reply_info(dialog_id, message.get())) {
+      is_visible_message_reply_info(dialog_id, message.get()) && !message_id.is_scheduled()) {
     message->top_thread_message_id = message_id;
   }
 
@@ -32652,6 +32652,8 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
   CHECK(message_id.is_valid_scheduled());
   CHECK(!message->notification_id.is_valid());
   CHECK(!message->removed_notification_id.is_valid());
+
+  message->top_thread_message_id = MessageId();
 
   if (d->deleted_message_ids.count(message_id)) {
     LOG(INFO) << "Skip adding deleted " << message_id << " to " << dialog_id << " from " << source;
