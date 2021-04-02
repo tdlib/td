@@ -936,6 +936,7 @@ static void store(const MessageContent *content, StorerT &storer) {
       bool has_telegram_payment_charge_id = !m->telegram_payment_charge_id.empty();
       bool has_provider_payment_charge_id = !m->provider_payment_charge_id.empty();
       bool has_invoice_message_id = m->invoice_message_id.is_valid();
+      bool is_correctly_stored = true;
       BEGIN_STORE_FLAGS();
       STORE_FLAG(has_payload);
       STORE_FLAG(has_shipping_option_id);
@@ -943,14 +944,15 @@ static void store(const MessageContent *content, StorerT &storer) {
       STORE_FLAG(has_telegram_payment_charge_id);
       STORE_FLAG(has_provider_payment_charge_id);
       STORE_FLAG(has_invoice_message_id);
+      STORE_FLAG(is_correctly_stored);
       END_STORE_FLAGS();
       store(m->currency, storer);
       store(m->total_amount, storer);
       if (has_payload) {
-        store(m->total_amount, storer);
+        store(m->invoice_payload, storer);
       }
       if (has_shipping_option_id) {
-        store(m->invoice_payload, storer);
+        store(m->shipping_option_id, storer);
       }
       if (has_order_info) {
         store(m->order_info, storer);
@@ -1309,6 +1311,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       bool has_telegram_payment_charge_id;
       bool has_provider_payment_charge_id;
       bool has_invoice_message_id;
+      bool is_correctly_stored;
       BEGIN_PARSE_FLAGS();
       PARSE_FLAG(has_payload);
       PARSE_FLAG(has_shipping_option_id);
@@ -1316,14 +1319,24 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       PARSE_FLAG(has_telegram_payment_charge_id);
       PARSE_FLAG(has_provider_payment_charge_id);
       PARSE_FLAG(has_invoice_message_id);
+      PARSE_FLAG(is_correctly_stored);
       END_PARSE_FLAGS();
       parse(m->currency, parser);
       parse(m->total_amount, parser);
-      if (has_payload) {
-        parse(m->total_amount, parser);
-      }
-      if (has_shipping_option_id) {
-        parse(m->invoice_payload, parser);
+      if (is_correctly_stored) {
+        if (has_payload) {
+          parse(m->invoice_payload, parser);
+        }
+        if (has_shipping_option_id) {
+          parse(m->shipping_option_id, parser);
+        }
+      } else {
+        if (has_payload) {
+          parse(m->total_amount, parser);
+        }
+        if (has_shipping_option_id) {
+          parse(m->invoice_payload, parser);
+        }
       }
       if (has_order_info) {
         parse(m->order_info, parser);
@@ -1337,7 +1350,11 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       if (has_invoice_message_id) {
         parse(m->invoice_message_id, parser);
       }
-      content = std::move(m);
+      if (is_correctly_stored) {
+        content = std::move(m);
+      } else {
+        content = make_unique<MessageUnsupported>(0);
+      }
       break;
     }
     case MessageContentType::ContactRegistered:
