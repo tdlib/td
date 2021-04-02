@@ -610,10 +610,7 @@ class ChainBufferReader {
     begin_.confirm_read(size);
   }
 
-  size_t advance(size_t offset, MutableSlice dest = MutableSlice()) {
-    CHECK(offset <= size());
-    return begin_.advance(offset, dest);
-  }
+  size_t advance(size_t offset, MutableSlice dest = MutableSlice());
 
   size_t size() const {
     return end_.offset() - begin_.offset();

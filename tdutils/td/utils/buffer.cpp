@@ -6,6 +6,7 @@
 //
 #include "td/utils/buffer.h"
 
+#include "td/utils/logging.h"
 #include "td/utils/port/thread_local.h"
 #include "td/utils/ThreadSafeCounter.h"
 
@@ -106,6 +107,12 @@ void BufferAllocator::dec_ref_cnt(BufferRaw *ptr) {
   }
 }
 
+size_t ChainBufferReader::advance(size_t offset, MutableSlice dest) {
+  LOG_CHECK(offset <= size()) << offset << " " << size() << " " << end_.offset() << " " << begin_.offset() << " "
+                              << sync_flag_ << " " << dest.size();
+  return begin_.advance(offset, dest);
+}
+
 BufferRaw *BufferAllocator::create_buffer_raw(size_t size) {
   size = (size + 7) & -8;
 
@@ -124,6 +131,7 @@ void BufferBuilder::append(BufferSlice slice) {
   }
   append_slow(std::move(slice));
 }
+
 void BufferBuilder::append(Slice slice) {
   if (append_inplace(slice)) {
     return;
@@ -137,6 +145,7 @@ void BufferBuilder::prepend(BufferSlice slice) {
   }
   prepend_slow(std::move(slice));
 }
+
 void BufferBuilder::prepend(Slice slice) {
   if (prepend_inplace(slice)) {
     return;
@@ -177,9 +186,11 @@ bool BufferBuilder::append_inplace(Slice slice) {
   buffer_writer_.confirm_append(slice.size());
   return true;
 }
+
 void BufferBuilder::append_slow(BufferSlice slice) {
   to_append_.push_back(std::move(slice));
 }
+
 bool BufferBuilder::prepend_inplace(Slice slice) {
   if (!to_prepend_.empty()) {
     return false;
@@ -193,7 +204,9 @@ bool BufferBuilder::prepend_inplace(Slice slice) {
   buffer_writer_.confirm_prepend(slice.size());
   return true;
 }
+
 void BufferBuilder::prepend_slow(BufferSlice slice) {
   to_prepend_.push_back(std::move(slice));
 }
+
 }  // namespace td
