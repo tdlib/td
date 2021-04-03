@@ -14685,7 +14685,13 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
         }
       }
       for (auto dialog_id : old_pinned_dialog_ids) {
-        if (set_dialog_is_pinned(dialog_id, false)) {
+        Dialog *d = get_dialog_force(dialog_id);
+        if (d == nullptr) {
+          LOG(ERROR) << "Failed to find " << dialog_id << " to unpin in " << folder_id;
+          force_create_dialog(dialog_id, "from_pinned_dialog_list", true);
+          d = get_dialog_force(dialog_id);
+        }
+        if (d != nullptr && set_dialog_is_pinned(DialogListId(folder_id), d, false)) {
           are_pinned_dialogs_saved = true;
         }
       }
@@ -18860,7 +18866,15 @@ Status MessagesManager::set_pinned_dialogs(DialogListId dialog_list_id, vector<D
     set_dialog_is_pinned(dialog_id, true);
   }
   for (auto dialog_id : old_pinned_dialog_ids) {
-    set_dialog_is_pinned(dialog_id, false);
+    Dialog *d = get_dialog_force(dialog_id);
+    if (d == nullptr) {
+      LOG(ERROR) << "Failed to find " << dialog_id << " to unpin in " << dialog_list_id;
+      force_create_dialog(dialog_id, "set_pinned_dialogs", true);
+      d = get_dialog_force(dialog_id);
+    }
+    if (d != nullptr) {
+      set_dialog_is_pinned(dialog_list_id, d, false);
+    }
   }
 
   if (server_old_dialog_ids != server_new_dialog_ids) {
