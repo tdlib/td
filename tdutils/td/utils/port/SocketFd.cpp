@@ -18,6 +18,8 @@
 #include "td/utils/port/detail/Iocp.h"
 #include "td/utils/SpinLock.h"
 #include "td/utils/VectorQueue.h"
+
+#include <limits>
 #endif
 
 #if TD_PORT_POSIX
@@ -30,8 +32,6 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
-#else
-#include <limits>
 #endif
 
 #include <atomic>
@@ -403,7 +403,19 @@ class SocketFdImpl {
       return ::writev(native_fd, slices.begin(), slices_size);
 #endif
     });
-    return write_finish(write_res);
+    if (write_res >= 0) {
+      auto result = narrow_cast<size_t>(write_res);
+      auto left = result;
+      for (const auto &slice : slices) {
+        if (left <= slice.iov_len) {
+          return result;
+        }
+        left -= slice.iov_len;
+      }
+      LOG(FATAL) << "Receive " << result << " as writev response, but tried to write only " << result - left
+                 << " bytes";
+    }
+    return write_finish();
   }
 
   Result<size_t> write(Slice slice) {
@@ -416,15 +428,17 @@ class SocketFdImpl {
           ::write(native_fd, slice.begin(), slice.size());
 #endif
     });
-    return write_finish(write_res);
+    if (write_res >= 0) {
+      auto result = narrow_cast<size_t>(write_res);
+      LOG_CHECK(result <= slice.size()) << "Receive " << result << " as write response, but tried to write only "
+                                        << slice.size() << " bytes";
+      return result;
+    }
+    return write_finish();
   }
 
-  Result<size_t> write_finish(ssize_t write_res) {
+  Result<size_t> write_finish() {
     auto write_errno = errno;
-    if (write_res >= 0) {
-      return narrow_cast<size_t>(write_res);
-    }
-
     if (write_errno == EAGAIN
 #if EAGAIN != EWOULDBLOCK
         || write_errno == EWOULDBLOCK
@@ -472,7 +486,9 @@ class SocketFdImpl {
         get_poll_info().clear_flags(PollFlags::Read());
         get_poll_info().add_flags(PollFlags::Close());
       }
-      return narrow_cast<size_t>(read_res);
+      auto result = narrow_cast<size_t>(read_res);
+      CHECK(result <= slice.size());
+      return result;
     }
     if (read_errno == EAGAIN
 #if EAGAIN != EWOULDBLOCK
