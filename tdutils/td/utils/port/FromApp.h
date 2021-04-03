@@ -76,11 +76,15 @@ inline BOOL DeleteFileFromAppW(_In_ LPCWSTR lpFileName) {
 }
 
 inline BOOL MoveFileExFromAppW(_In_ LPCWSTR lpExistingFileName, _In_ LPCWSTR lpNewFileName, _In_ DWORD dwFlags) {
-  auto func = get_from_app_function<4>("MoveFileFromAppW", &MoveFileEx);
-  if (func != &MoveFileEx && (dwFlags & MOVEFILE_REPLACE_EXISTING) != 0) {
+  auto func = get_from_app_function<4>("MoveFileFromAppW", &MoveFile);
+  if (func == &MoveFile || (dwFlags & ~MOVEFILE_REPLACE_EXISTING) != 0) {
+    // if can't find MoveFileFromAppW or have unsupported flags, call MoveFileEx directly
+    return MoveFileEx(lpExistingFileName, lpNewFileName, dwFlags);
+  }
+  if ((dwFlags & MOVEFILE_REPLACE_EXISTING) != 0) {
     td::DeleteFileFromAppW(lpNewFileName);
   }
-  return func(lpExistingFileName, lpNewFileName, dwFlags);
+  return func(lpExistingFileName, lpNewFileName);
 }
 
 inline HANDLE FindFirstFileExFromAppW(_In_ LPCWSTR lpFileName, _In_ FINDEX_INFO_LEVELS fInfoLevelId,
