@@ -256,7 +256,9 @@ Result<size_t> FileFd::write(Slice slice) {
   BOOL success = WriteFile(native_fd, slice.data(), narrow_cast<DWORD>(slice.size()), &bytes_written, nullptr);
 #endif
   if (success) {
-    return narrow_cast<size_t>(bytes_written);
+    auto result = narrow_cast<size_t>(bytes_written);
+    CHECK(result <= slice.size());
+    return result;
   }
   return OS_ERROR(PSLICE() << "Write to " << get_native_fd() << " has failed");
 }
@@ -268,7 +270,15 @@ Result<size_t> FileFd::writev(Span<IoSlice> slices) {
   auto bytes_written = detail::skip_eintr([&] { return ::writev(native_fd, slices.begin(), slices_size); });
   bool success = bytes_written >= 0;
   if (success) {
-    return narrow_cast<size_t>(bytes_written);
+    auto result = narrow_cast<size_t>(bytes_written);
+    auto left = result;
+    for (const auto &slice : slices) {
+      if (left <= slice.iov_len) {
+        return result;
+      }
+      left -= slice.iov_len;
+    }
+    UNREACHABLE();
   }
   return OS_ERROR(PSLICE() << "Writev to " << get_native_fd() << " has failed");
 #else
@@ -314,7 +324,9 @@ Result<size_t> FileFd::read(MutableSlice slice) {
     if (is_eof) {
       get_poll_info().clear_flags(PollFlags::Read());
     }
-    return static_cast<size_t>(bytes_read);
+    auto result = narrow_cast<size_t>(bytes_read);
+    CHECK(result <= slice.size());
+    return result;
   }
   return OS_ERROR(PSLICE() << "Read from " << get_native_fd() << " has failed");
 }
@@ -338,7 +350,9 @@ Result<size_t> FileFd::pwrite(Slice slice, int64 offset) {
   BOOL success = WriteFile(native_fd, slice.data(), narrow_cast<DWORD>(slice.size()), &bytes_written, &overlapped);
 #endif
   if (success) {
-    return narrow_cast<size_t>(bytes_written);
+    auto result = narrow_cast<size_t>(bytes_written);
+    CHECK(result <= slice.size());
+    return result;
   }
   return OS_ERROR(PSLICE() << "Pwrite to " << get_native_fd() << " at offset " << offset << " has failed");
 }
@@ -361,7 +375,9 @@ Result<size_t> FileFd::pread(MutableSlice slice, int64 offset) const {
   BOOL success = ReadFile(native_fd, slice.data(), narrow_cast<DWORD>(slice.size()), &bytes_read, &overlapped);
 #endif
   if (success) {
-    return narrow_cast<size_t>(bytes_read);
+    auto result = narrow_cast<size_t>(bytes_read);
+    CHECK(result <= slice.size());
+    return result;
   }
   return OS_ERROR(PSLICE() << "Pread from " << get_native_fd() << " at offset " << offset << " has failed");
 }
