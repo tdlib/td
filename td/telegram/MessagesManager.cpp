@@ -33739,6 +33739,7 @@ MessageId MessagesManager::get_message_id_by_random_id(Dialog *d, int64 random_i
 void MessagesManager::force_create_dialog(DialogId dialog_id, const char *source, bool expect_no_access,
                                           bool force_update_dialog_pos) {
   LOG_CHECK(dialog_id.is_valid()) << source;
+  LOG_CHECK(is_inited_) << dialog_id << ' ' << source << ' ' << expect_no_access << ' ' << force_update_dialog_pos;
   Dialog *d = get_dialog_force(dialog_id);
   if (d == nullptr) {
     LOG(INFO) << "Force create " << dialog_id << " from " << source;
@@ -33829,6 +33830,7 @@ MessagesManager::Dialog *MessagesManager::add_dialog(DialogId dialog_id) {
 
 MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d, bool is_loaded_from_database) {
   auto dialog_id = d->dialog_id;
+  LOG_CHECK(is_inited_) << dialog_id << ' ' << is_loaded_from_database;
   switch (dialog_id.get_type()) {
     case DialogType::User:
       if (dialog_id == get_my_dialog_id() && d->last_read_inbox_message_id == MessageId::max() &&
