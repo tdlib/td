@@ -30,6 +30,8 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
+#else
+#include <limits>
 #endif
 
 #include <atomic>
@@ -98,7 +100,9 @@ class SocketFdImpl : private Iocp::Callback {
   Result<size_t> writev(Span<IoSlice> slices) {
     size_t total_size = 0;
     for (auto io_slice : slices) {
-      total_size += as_slice(io_slice).size();
+      auto size = as_slice(io_slice).size();
+      CHECK(size <= std::numeric_limits<size_t>::max() - total_size);
+      total_size += size;
     }
 
     auto left_size = total_size;

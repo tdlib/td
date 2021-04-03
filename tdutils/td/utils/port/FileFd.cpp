@@ -36,6 +36,8 @@
 #include <sys/types.h>
 #include <sys/uio.h>
 #include <unistd.h>
+#else
+#include <limits>
 #endif
 
 #if TD_PORT_WINDOWS && defined(WIN32_LEAN_AND_MEAN)
@@ -271,9 +273,16 @@ Result<size_t> FileFd::writev(Span<IoSlice> slices) {
   return OS_ERROR(PSLICE() << "Writev to " << get_native_fd() << " has failed");
 #else
   size_t res = 0;
-  for (auto slice : slices) {
+  for (const auto &slice : slices) {
+    if (slice.size() > std::numeric_limits<size_t>::max() - res) {
+      break;
+    }
     TRY_RESULT(size, write(slice));
     res += size;
+    if (size != slice.size()) {
+      CHECK(size < slice.size());
+      break;
+    }
   }
   return res;
 #endif

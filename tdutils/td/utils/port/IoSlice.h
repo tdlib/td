@@ -25,7 +25,7 @@ inline IoSlice as_io_slice(Slice slice) {
   return res;
 }
 
-inline Slice as_slice(const IoSlice io_slice) {
+inline Slice as_slice(const IoSlice &io_slice) {
   return Slice(static_cast<const char *>(io_slice.iov_base), io_slice.iov_len);
 }
 
