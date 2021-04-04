@@ -10458,13 +10458,25 @@ void MessagesManager::delete_messages(DialogId dialog_id, const vector<MessageId
   }
 }
 
-void MessagesManager::delete_message_from_server(DialogId dialog_id, MessageId message_id, bool revoke) {
-  if (message_id.is_valid()) {
-    CHECK(message_id.is_server());
-    delete_messages_from_server(dialog_id, {message_id}, revoke, 0, Auto());
+void MessagesManager::delete_sent_message_from_server(DialogId dialog_id, MessageId message_id) {
+  // being sent message was deleted by the user or is in an inaccessible channel
+  // don't need to send an update to the user, because the message has already been deleted
+  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+    LOG(INFO) << "Ignore sent " << message_id << " in inaccessible " << dialog_id;
+    return;
+  }
+
+  LOG(INFO) << "Delete already deleted sent " << message_id << " in " << dialog_id << " from server";
+  if (have_message_force({dialog_id, message_id}, "delete_sent_message_from_server")) {
+    delete_messages(dialog_id, {message_id}, true, Auto());
   } else {
-    CHECK(message_id.is_scheduled_server());
-    delete_scheduled_messages_from_server(dialog_id, {message_id}, 0, Auto());
+    if (message_id.is_valid()) {
+      CHECK(message_id.is_server());
+      delete_messages_from_server(dialog_id, {message_id}, true, 0, Auto());
+    } else {
+      CHECK(message_id.is_scheduled_server());
+      delete_scheduled_messages_from_server(dialog_id, {message_id}, 0, Auto());
+    }
   }
 }
 
@@ -13683,10 +13695,7 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
     unique_ptr<Message> old_message =
         delete_message(d, old_message_id, false, &need_update_dialog_pos, "add sent message");
     if (old_message == nullptr) {
-      // message has already been deleted by the user or sent to inaccessible channel
-      // don't need to send update to the user, because the message has already been deleted
-      LOG(INFO) << "Delete already deleted sent " << new_message->message_id << " from server";
-      delete_message_from_server(dialog_id, new_message->message_id, true);
+      delete_sent_message_from_server(dialog_id, new_message->message_id);
       being_readded_message_id_ = FullMessageId();
       return FullMessageId();
     }
@@ -26961,6 +26970,7 @@ bool MessagesManager::on_update_message_id(int64 random_id, MessageId new_messag
   being_sent_messages_.erase(it);
 
   LOG(INFO) << "Save correspondence from " << new_message_id << " in " << dialog_id << " to " << old_message_id;
+  CHECK(old_message_id.is_yet_unsent());
   update_message_ids_[FullMessageId(dialog_id, new_message_id)] = old_message_id;
   return true;
 }
@@ -26985,6 +26995,7 @@ bool MessagesManager::on_update_scheduled_message_id(int64 random_id, ScheduledS
   being_sent_messages_.erase(it);
 
   LOG(INFO) << "Save correspondence from " << new_message_id << " in " << dialog_id << " to " << old_message_id;
+  CHECK(old_message_id.is_yet_unsent());
   update_scheduled_message_ids_[dialog_id][new_message_id] = old_message_id;
   return true;
 }
@@ -28771,10 +28782,7 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
   being_readded_message_id_ = {dialog_id, old_message_id};
   unique_ptr<Message> sent_message = delete_message(d, old_message_id, false, &need_update_dialog_pos, source);
   if (sent_message == nullptr) {
-    // message has already been deleted by the user or sent to inaccessible channel
-    // don't need to send update to the user, because the message has already been deleted
-    LOG(INFO) << "Delete already deleted sent " << new_message_id << " from server";
-    delete_message_from_server(dialog_id, new_message_id, true);
+    delete_sent_message_from_server(dialog_id, new_message_id);
     being_readded_message_id_ = FullMessageId();
     return {};
   }
