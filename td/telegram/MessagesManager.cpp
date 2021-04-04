@@ -10439,11 +10439,11 @@ void MessagesManager::delete_messages(DialogId dialog_id, const vector<MessageId
   bool need_update_chat_has_scheduled_messages = false;
   vector<int64> deleted_message_ids;
   for (auto message_id : message_ids) {
-    need_update_chat_has_scheduled_messages |= message_id.is_scheduled();
     auto m = delete_message(d, message_id, true, &need_update_dialog_pos, DELETE_MESSAGE_USER_REQUEST_SOURCE);
     if (m == nullptr) {
       LOG(INFO) << "Can't delete " << message_id << " because it is not found";
     } else {
+      need_update_chat_has_scheduled_messages |= m->message_id.is_scheduled();
       deleted_message_ids.push_back(m->message_id.get());
     }
   }
@@ -10467,7 +10467,9 @@ void MessagesManager::delete_sent_message_from_server(DialogId dialog_id, Messag
   }
 
   LOG(INFO) << "Delete already deleted sent " << message_id << " in " << dialog_id << " from server";
-  if (have_message_force({dialog_id, message_id}, "delete_sent_message_from_server")) {
+  Dialog *d = get_dialog(dialog_id);
+  CHECK(d != nullptr);
+  if (get_message(d, message_id) != nullptr) {
     delete_messages(dialog_id, {message_id}, true, Auto());
   } else {
     if (message_id.is_valid()) {
@@ -10477,6 +10479,11 @@ void MessagesManager::delete_sent_message_from_server(DialogId dialog_id, Messag
       CHECK(message_id.is_scheduled_server());
       delete_scheduled_messages_from_server(dialog_id, {message_id}, 0, Auto());
     }
+
+    bool need_update_dialog_pos = false;
+    auto m = delete_message(d, message_id, true, &need_update_dialog_pos, "delete_sent_message_from_server");
+    CHECK(m == nullptr);
+    CHECK(need_update_dialog_pos == false);
   }
 }
 
@@ -26969,6 +26976,11 @@ bool MessagesManager::on_update_message_id(int64 random_id, MessageId new_messag
 
   being_sent_messages_.erase(it);
 
+  if (!have_message_force({dialog_id, old_message_id}, "on_update_message_id")) {
+    delete_sent_message_from_server(dialog_id, new_message_id);
+    return true;
+  }
+
   LOG(INFO) << "Save correspondence from " << new_message_id << " in " << dialog_id << " to " << old_message_id;
   CHECK(old_message_id.is_yet_unsent());
   update_message_ids_[FullMessageId(dialog_id, new_message_id)] = old_message_id;
@@ -26993,6 +27005,11 @@ bool MessagesManager::on_update_scheduled_message_id(int64 random_id, ScheduledS
   auto old_message_id = it->second.get_message_id();
 
   being_sent_messages_.erase(it);
+
+  if (!have_message_force({dialog_id, old_message_id}, "on_update_scheduled_message_id")) {
+    delete_sent_message_from_server(dialog_id, MessageId(new_message_id, std::numeric_limits<int32>::max()));
+    return true;
+  }
 
   LOG(INFO) << "Save correspondence from " << new_message_id << " in " << dialog_id << " to " << old_message_id;
   CHECK(old_message_id.is_yet_unsent());
