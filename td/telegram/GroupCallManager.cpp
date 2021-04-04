@@ -1566,11 +1566,13 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
         diff += cur_diff;
       }
       pending_version_updates.erase(it);
-    } else if (!group_call->syncing_participants) {
+    } else {
       // found a gap
-      LOG(INFO) << "Receive " << participants.size() << " group call participant updates with version " << version
-                << ", but current version is " << group_call->version;
-      sync_participants_timeout_.add_timeout_in(group_call->group_call_id.get(), 1.0);
+      if (!group_call->syncing_participants) {
+        LOG(INFO) << "Receive " << participants.size() << " group call participant updates with version " << version
+                  << ", but current version is " << group_call->version;
+        sync_participants_timeout_.add_timeout_in(group_call->group_call_id.get(), 1.0);
+      }
       break;
     }
   }
