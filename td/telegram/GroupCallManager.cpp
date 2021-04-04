@@ -1577,7 +1577,7 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
   bool need_update = set_group_call_participant_count(group_call, group_call->participant_count + diff,
                                                       "process_pending_group_call_participant_updates");
   if (is_left && group_call->is_joined) {
-    on_group_call_left_impl(group_call, need_rejoin);
+    on_group_call_left_impl(group_call, need_rejoin, "process_pending_group_call_participant_updates");
     need_update = true;
   }
   if (need_update) {
@@ -3179,13 +3179,15 @@ void GroupCallManager::on_group_call_left(InputGroupCallId input_group_call_id, 
   auto *group_call = get_group_call(input_group_call_id);
   CHECK(group_call != nullptr && group_call->is_inited);
   if (group_call->is_joined && group_call->audio_source == audio_source) {
-    on_group_call_left_impl(group_call, need_rejoin);
+    on_group_call_left_impl(group_call, need_rejoin, "on_group_call_left");
     send_update_group_call(group_call, "on_group_call_left");
   }
 }
 
-void GroupCallManager::on_group_call_left_impl(GroupCall *group_call, bool need_rejoin) {
+void GroupCallManager::on_group_call_left_impl(GroupCall *group_call, bool need_rejoin, const char *source) {
   CHECK(group_call != nullptr && group_call->is_inited && group_call->is_joined);
+  LOG(INFO) << "Leave " << group_call->group_call_id << " in " << group_call->dialog_id
+            << " with need_rejoin = " << need_rejoin << " from " << source;
   group_call->is_joined = false;
   group_call->need_rejoin = need_rejoin && !group_call->is_being_left;
   if (group_call->need_rejoin && group_call->dialog_id.is_valid()) {
