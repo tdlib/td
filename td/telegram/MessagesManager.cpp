@@ -33081,7 +33081,9 @@ void MessagesManager::delete_message_from_database(Dialog *d, MessageId message_
     if (message_id.is_any_server()) {
       auto old_message_id = find_old_message_id(d->dialog_id, message_id);
       if (old_message_id.is_valid()) {
-        LOG(WARNING) << "Sent " << FullMessageId{d->dialog_id, message_id} << " was deleted before it was received";
+        bool have_old_message = get_message(d, old_message_id) != nullptr;
+        LOG(WARNING) << "Sent " << FullMessageId{d->dialog_id, message_id}
+                     << " was deleted before it was received. Have old message = " << have_old_message;
         send_closure_later(actor_id(this), &MessagesManager::delete_messages, d->dialog_id,
                            vector<MessageId>{old_message_id}, false, Promise<Unit>());
         delete_update_message_id(d->dialog_id, message_id);
