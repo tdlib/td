@@ -8,7 +8,6 @@
 
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/ChannelId.h"
-#include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogAction.h"
 #include "td/telegram/DialogDate.h"
 #include "td/telegram/DialogDb.h"
@@ -81,17 +80,12 @@
 namespace td {
 
 struct BinlogEvent;
-
+struct Dependencies;
 class DialogFilter;
-
 class DraftMessage;
-
 struct InputMessageContent;
-
 class MessageContent;
-
 class MultiSequenceDispatcher;
-
 class Td;
 
 class MessagesManager : public Actor {

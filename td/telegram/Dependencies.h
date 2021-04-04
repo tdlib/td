@@ -34,6 +34,6 @@ void add_dialog_dependencies(Dependencies &dependencies, DialogId dialog_id);
 
 void add_message_sender_dependencies(Dependencies &dependencies, DialogId dialog_id);
 
-void resolve_dependencies_force(Td *td, const Dependencies &dependencies, const char *source);
+bool resolve_dependencies_force(Td *td, const Dependencies &dependencies, const char *source);
 
 }  // namespace td

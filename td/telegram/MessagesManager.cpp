@@ -10,6 +10,7 @@
 #include "td/telegram/ChatId.h"
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogDb.h"
 #include "td/telegram/DialogFilter.h"
 #include "td/telegram/DialogFilter.hpp"
@@ -11396,7 +11397,7 @@ void MessagesManager::repair_channel_server_unread_count(Dialog *d) {
   }
 
   LOG(INFO) << "Reload ChannelFull for " << d->dialog_id << " to repair unread message counts";
-  get_dialog_info_full(d->dialog_id, Promise<Unit>());
+  get_dialog_info_full(d->dialog_id, Auto());
 }
 
 void MessagesManager::read_history_inbox(DialogId dialog_id, MessageId max_message_id, int32 unread_count,
@@ -22292,7 +22293,7 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
     is_first = false;
     pos++;
   }
-  resolve_dependencies_force(td_, dependencies, "get_history");
+  resolve_dependencies_force(td_, dependencies, "on_get_history_from_database");
 
   if (from_the_end && !last_added_message_id.is_valid() && last_received_message_id < d->first_database_message_id &&
       !d->have_full_history) {
@@ -22607,7 +22608,7 @@ void MessagesManager::on_get_scheduled_messages_from_database(DialogId dialog_id
       added_message_ids.push_back(m->message_id);
     }
   }
-  resolve_dependencies_force(td_, dependencies, "get_scheduled_messages");
+  resolve_dependencies_force(td_, dependencies, "on_get_scheduled_messages_from_database");
 
   // for (auto message_id : added_message_ids) {
   //   send_update_new_message(d, get_message(d, message_id));
@@ -29323,7 +29324,7 @@ void MessagesManager::on_update_dialog_draft_message(DialogId dialog_id,
     if (!have_input_peer(dialog_id, AccessRights::Read)) {
       LOG(ERROR) << "Have no read access to " << dialog_id << " to repair chat draft message";
     } else {
-      send_get_dialog_query(dialog_id, Promise<Unit>(), 0, "on_update_dialog_draft_message");
+      send_get_dialog_query(dialog_id, Auto(), 0, "on_update_dialog_draft_message");
     }
     return;
   }
@@ -31849,7 +31850,7 @@ MessagesManager::Message *MessagesManager::on_get_message_from_database(DialogId
     CHECK(d != nullptr);
   }
 
-  if (!have_input_peer(d->dialog_id, AccessRights::Read)) {
+  if (!have_input_peer(dialog_id, AccessRights::Read)) {
     return nullptr;
   }
 
@@ -31872,7 +31873,10 @@ MessagesManager::Message *MessagesManager::on_get_message_from_database(DialogId
 
   Dependencies dependencies;
   add_message_dependencies(dependencies, m.get());
-  resolve_dependencies_force(td_, dependencies, "on_get_message_from_database");
+  if (!resolve_dependencies_force(td_, dependencies, "on_get_message_from_database")) {
+    FullMessageId full_message_id{dialog_id, m->message_id};
+    get_message_from_server(full_message_id, Auto());
+  }
 
   m->have_previous = false;
   m->have_next = false;
@@ -31882,7 +31886,7 @@ MessagesManager::Message *MessagesManager::on_get_message_from_database(DialogId
   auto result = add_message_to_dialog(d, std::move(m), false, &need_update, &need_update_dialog_pos, source);
   if (need_update_dialog_pos) {
     LOG(ERROR) << "Need update dialog pos after load " << (result == nullptr ? MessageId() : result->message_id)
-               << " in " << d->dialog_id << " from " << source;
+               << " in " << dialog_id << " from " << source;
     send_update_chat_last_message(d, source);
   }
   return result;
@@ -34990,7 +34994,9 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
   if (d->draft_message != nullptr) {
     add_formatted_text_dependencies(dependencies, &d->draft_message->input_message_text.text);
   }
-  resolve_dependencies_force(td_, dependencies, "parse_dialog");
+  if (!resolve_dependencies_force(td_, dependencies, "parse_dialog")) {
+    send_get_dialog_query(dialog_id, Auto(), 0, "parse_dialog");
+  }
 
   return d;
 }
@@ -36874,7 +36880,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
           break;
         }
 
-        send_get_dialog_query(dialog_id, Promise<Unit>(), event.id_, "GetDialogFromServerLogEvent");
+        send_get_dialog_query(dialog_id, Auto(), event.id_, "GetDialogFromServerLogEvent");
         break;
       }
       case LogEvent::HandlerType::UnpinAllDialogMessagesOnServer: {
