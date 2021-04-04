@@ -24,6 +24,9 @@ bool GroupCallParticipantOrder::is_valid() const {
 }
 
 string GroupCallParticipantOrder::get_group_call_participant_order_object() const {
+  if (!is_valid()) {
+    return string();
+  }
   return PSTRING() << lpad0(to_string(active_date), 10) << lpad0(to_string(raise_hand_rating), 19)
                    << lpad0(to_string(joined_date), 10);
 }
