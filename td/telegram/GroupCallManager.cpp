@@ -1654,7 +1654,9 @@ GroupCallParticipantOrder GroupCallManager::get_real_participant_order(
 void GroupCallManager::process_group_call_participants(
     InputGroupCallId input_group_call_id, vector<tl_object_ptr<telegram_api::groupCallParticipant>> &&participants,
     int32 version, const string &offset, bool is_load, bool is_sync) {
-  if (offset.empty() && is_load && !participants.empty() && participants[0]->self_) {
+  // if receive exactly one participant, then the current user is the only participant
+  // there are no reasons to process it independently
+  if (offset.empty() && is_load && participants.size() >= 2 && participants[0]->self_) {
     GroupCallParticipant participant(participants[0], version);
     if (participant.is_valid()) {
       process_my_group_call_participant(input_group_call_id, std::move(participant));
@@ -3136,6 +3138,10 @@ void GroupCallManager::load_group_call_participants(GroupCallId group_call_id, i
   if (participants_it != group_call_participants_.end()) {
     CHECK(participants_it->second != nullptr);
     next_offset = participants_it->second->next_offset;
+  }
+  if (limit == 1 && next_offset.empty()) {
+    // prevent removing self as the first user and deducing that there are no more participants
+    limit = 2;
   }
   td_->create_handler<GetGroupCallParticipantsQuery>(std::move(promise))
       ->send(input_group_call_id, std::move(next_offset), limit);
