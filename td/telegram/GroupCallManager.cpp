@@ -1521,6 +1521,7 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
     }
   };
 
+  bool need_update = false;
   while (!pending_version_updates.empty()) {
     process_mute_updates();
 
@@ -1532,7 +1533,12 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
         auto &participant = participant_it.second;
         on_participant_speaking_in_group_call(input_group_call_id, participant);
         if (participant.is_self || participant.joined_date != 0) {
-          diff += process_group_call_participant(input_group_call_id, std::move(participant));
+          auto cur_diff = process_group_call_participant(input_group_call_id, std::move(participant));
+          if (cur_diff > 0 && group_call->loaded_all_participants && group_call->joined_date_asc) {
+            group_call->loaded_all_participants = false;
+            need_update = true;
+          }
+          diff += cur_diff;
         }
       }
       LOG(INFO) << "Ignore already applied updateGroupCallParticipants with version " << version << " in "
@@ -1552,7 +1558,12 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
             need_rejoin = false;
           }
         }
-        diff += process_group_call_participant(input_group_call_id, std::move(participant));
+        auto cur_diff = process_group_call_participant(input_group_call_id, std::move(participant));
+        if (cur_diff > 0 && group_call->loaded_all_participants && group_call->joined_date_asc) {
+          group_call->loaded_all_participants = false;
+          need_update = true;
+        }
+        diff += cur_diff;
       }
       pending_version_updates.erase(it);
     } else if (!group_call->syncing_participants) {
@@ -1574,8 +1585,8 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
     sync_participants_timeout_.cancel_timeout(group_call->group_call_id.get());
   }
 
-  bool need_update = set_group_call_participant_count(group_call, group_call->participant_count + diff,
-                                                      "process_pending_group_call_participant_updates");
+  need_update |= set_group_call_participant_count(group_call, group_call->participant_count + diff,
+                                                  "process_pending_group_call_participant_updates");
   if (is_left && group_call->is_joined) {
     on_group_call_left_impl(group_call, need_rejoin, "process_pending_group_call_participant_updates");
     need_update = true;
@@ -3659,6 +3670,7 @@ bool GroupCallManager::set_group_call_participant_count(GroupCall *group_call, i
     count = 0;
   }
 
+  bool result = false;
   auto input_group_call_id = get_input_group_call_id(group_call->group_call_id).ok();
   if (need_group_call_participants(input_group_call_id, group_call)) {
     auto known_participant_count =
@@ -3671,12 +3683,17 @@ bool GroupCallManager::set_group_call_participant_count(GroupCall *group_call, i
       }
       count = known_participant_count;
     } else if (group_call->loaded_all_participants && count > known_participant_count) {
-      count = known_participant_count;
+      if (group_call->joined_date_asc) {
+        group_call->loaded_all_participants = false;
+        result = true;
+      } else {
+        count = known_participant_count;
+      }
     }
   }
 
   if (group_call->participant_count == count) {
-    return false;
+    return result;
   }
 
   group_call->participant_count = count;
