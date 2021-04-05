@@ -289,11 +289,23 @@ class GetPaymentFormQuery : public Td::ResultHandler {
 
     td->contacts_manager_->on_get_users(std::move(payment_form->users_), "GetPaymentFormQuery");
 
+    UserId payments_provider_user_id(payment_form->provider_id_);
+    if (!payments_provider_user_id.is_valid()) {
+      LOG(ERROR) << "Receive invalid payments provider " << payments_provider_user_id;
+      return on_error(id, Status::Error(500, "Receive invalid payments provider identifier"));
+    }
+    UserId seller_bot_user_id(payment_form->bot_id_);
+    if (!seller_bot_user_id.is_valid()) {
+      LOG(ERROR) << "Receive invalid seller " << seller_bot_user_id;
+      return on_error(id, Status::Error(500, "Receive invalid seller identifier"));
+    }
     bool can_save_credentials =
         (payment_form->flags_ & telegram_api::payments_paymentForm::CAN_SAVE_CREDENTIALS_MASK) != 0;
     bool need_password = (payment_form->flags_ & telegram_api::payments_paymentForm::PASSWORD_MISSING_MASK) != 0;
     promise_.set_value(make_tl_object<td_api::paymentForm>(
         payment_form->form_id_, convert_invoice(std::move(payment_form->invoice_)), std::move(payment_form->url_),
+        td->contacts_manager_->get_user_id_object(seller_bot_user_id, "paymentForm seller"),
+        td->contacts_manager_->get_user_id_object(payments_provider_user_id, "paymentForm provider"),
         convert_payment_provider(payment_form->native_provider_, std::move(payment_form->native_params_)),
         convert_order_info(std::move(payment_form->saved_info_)),
         convert_saved_credentials(std::move(payment_form->saved_credentials_)), can_save_credentials, need_password));
