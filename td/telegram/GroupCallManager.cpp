@@ -1537,12 +1537,7 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
         auto &participant = participant_it.second;
         on_participant_speaking_in_group_call(input_group_call_id, participant);
         if (participant.is_self || participant.joined_date != 0) {
-          auto cur_diff = process_group_call_participant(input_group_call_id, std::move(participant));
-          if (cur_diff > 0 && group_call->loaded_all_participants && group_call->joined_date_asc) {
-            group_call->loaded_all_participants = false;
-            need_update = true;
-          }
-          diff += cur_diff;
+          diff += process_group_call_participant(input_group_call_id, std::move(participant));
         }
       }
       LOG(INFO) << "Ignore already applied updateGroupCallParticipants with version " << version << " in "
@@ -1562,12 +1557,7 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
             need_rejoin = false;
           }
         }
-        auto cur_diff = process_group_call_participant(input_group_call_id, std::move(participant));
-        if (cur_diff > 0 && group_call->loaded_all_participants && group_call->joined_date_asc) {
-          group_call->loaded_all_participants = false;
-          need_update = true;
-        }
-        diff += cur_diff;
+        diff += process_group_call_participant(input_group_call_id, std::move(participant));
       }
       pending_version_updates.erase(it);
     } else {
@@ -1855,7 +1845,7 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
       auto can_self_unmute = !participant.get_is_muted_by_admin();
       if (can_self_unmute != group_call->can_self_unmute) {
         group_call->can_self_unmute = can_self_unmute;
-        send_update_group_call(group_call, "process_group_call_participant");
+        send_update_group_call(group_call, "process_group_call_participant 1");
       }
     }
   }
@@ -1922,6 +1912,13 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
   if (participants->participants.back().order.is_valid()) {
     send_update_group_call_participant(input_group_call_id, participants->participants.back(),
                                        "process_group_call_participant add");
+  } else {
+    auto *group_call = get_group_call(input_group_call_id);
+    CHECK(group_call != nullptr && group_call->is_inited);
+    if (group_call->loaded_all_participants) {
+      group_call->loaded_all_participants = false;
+      send_update_group_call(group_call, "process_group_call_participant 2");
+    }
   }
   on_add_group_call_participant(input_group_call_id, participants->participants.back().dialog_id);
   on_participant_speaking_in_group_call(input_group_call_id, participants->participants.back());
