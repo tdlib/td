@@ -297,10 +297,11 @@ class GroupCallManager : public Actor {
 
   void send_update_group_call(const GroupCall *group_call, const char *source);
 
-  void send_update_group_call_participant(GroupCallId group_call_id, const GroupCallParticipant &participant);
+  void send_update_group_call_participant(GroupCallId group_call_id, const GroupCallParticipant &participant,
+                                          const char *source);
 
-  void send_update_group_call_participant(InputGroupCallId input_group_call_id,
-                                          const GroupCallParticipant &participant);
+  void send_update_group_call_participant(InputGroupCallId input_group_call_id, const GroupCallParticipant &participant,
+                                          const char *source);
 
   Td *td_;
   ActorShared<> parent_;
