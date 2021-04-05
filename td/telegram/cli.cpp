@@ -2673,7 +2673,10 @@ class CliClient final : public Actor {
     } else if (op == "gavca") {
       send_request(td_api::make_object<td_api::getAvailableVoiceChatAliases>(as_chat_id(args)));
     } else if (op == "cvc") {
-      send_request(td_api::make_object<td_api::createVoiceChat>(as_chat_id(args)));
+      string chat_id;
+      string title;
+      get_args(args, chat_id, title);
+      send_request(td_api::make_object<td_api::createVoiceChat>(as_chat_id(chat_id), title));
     } else if (op == "ggc") {
       send_request(td_api::make_object<td_api::getGroupCall>(as_group_call_id(args)));
     } else if (op == "ggcss") {

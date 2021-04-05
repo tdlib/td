@@ -5974,8 +5974,9 @@ void Td::on_request(uint64 id, const td_api::getAvailableVoiceChatAliases &reque
   group_call_manager_->get_group_call_join_as(DialogId(request.chat_id_), std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::createVoiceChat &request) {
+void Td::on_request(uint64 id, td_api::createVoiceChat &request) {
   CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.title_);
   CREATE_REQUEST_PROMISE();
   auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<GroupCallId> result) mutable {
     if (result.is_error()) {
@@ -5984,7 +5985,8 @@ void Td::on_request(uint64 id, const td_api::createVoiceChat &request) {
       promise.set_value(td_api::make_object<td_api::groupCallId>(result.ok().get()));
     }
   });
-  group_call_manager_->create_voice_chat(DialogId(request.chat_id_), std::move(query_promise));
+  group_call_manager_->create_voice_chat(DialogId(request.chat_id_), std::move(request.title_),
+                                         std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getGroupCall &request) {

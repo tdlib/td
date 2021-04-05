@@ -131,15 +131,18 @@ class CreateGroupCallQuery : public Td::ResultHandler {
   explicit CreateGroupCallQuery(Promise<InputGroupCallId> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id) {
+  void send(DialogId dialog_id, const string &title) {
     dialog_id_ = dialog_id;
 
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
 
     int32 flags = 0;
+    if (!title.empty()) {
+      flags |= telegram_api::phone_createGroupCall::TITLE_MASK;
+    }
     send_query(G()->net_query_creator().create(
-        telegram_api::phone_createGroupCall(flags, std::move(input_peer), Random::secure_int32(), string(), 0)));
+        telegram_api::phone_createGroupCall(flags, std::move(input_peer), Random::secure_int32(), title, 0)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -1036,7 +1039,7 @@ void GroupCallManager::get_group_call_join_as(DialogId dialog_id,
   td_->create_handler<GetGroupCallJoinAsQuery>(std::move(promise))->send(dialog_id);
 }
 
-void GroupCallManager::create_voice_chat(DialogId dialog_id, Promise<GroupCallId> &&promise) {
+void GroupCallManager::create_voice_chat(DialogId dialog_id, string title, Promise<GroupCallId> &&promise) {
   if (!dialog_id.is_valid()) {
     return promise.set_error(Status::Error(400, "Invalid chat identifier specified"));
   }
@@ -1049,6 +1052,8 @@ void GroupCallManager::create_voice_chat(DialogId dialog_id, Promise<GroupCallId
 
   TRY_STATUS_PROMISE(promise, can_manage_group_calls(dialog_id));
 
+  title = clean_name(title, MAX_TITLE_LENGTH);
+
   auto query_promise = PromiseCreator::lambda(
       [actor_id = actor_id(this), dialog_id, promise = std::move(promise)](Result<InputGroupCallId> result) mutable {
         if (result.is_error()) {
@@ -1058,7 +1063,7 @@ void GroupCallManager::create_voice_chat(DialogId dialog_id, Promise<GroupCallId
                        std::move(promise));
         }
       });
-  td_->create_handler<CreateGroupCallQuery>(std::move(query_promise))->send(dialog_id);
+  td_->create_handler<CreateGroupCallQuery>(std::move(query_promise))->send(dialog_id, title);
 }
 
 void GroupCallManager::on_voice_chat_created(DialogId dialog_id, InputGroupCallId input_group_call_id,

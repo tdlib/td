@@ -4600,8 +4600,9 @@ sendCallDebugInformation call_id:int32 debug_information:string = Ok;
 //@description Returns list of user and chat, which can be used as aliases to join a voice chat in the chat @chat_id Chat identifier
 getAvailableVoiceChatAliases chat_id:int53 = MessageSenders;
 
-//@description Creates a voice chat (a group call bound to a chat). Available only for basic groups, supergroups and channels; requires can_manage_voice_chats rights @chat_id Chat identifier
-createVoiceChat chat_id:int53 = GroupCallId;
+//@description Creates a voice chat (a group call bound to a chat). Available only for basic groups, supergroups and channels; requires can_manage_voice_chats rights
+//@chat_id Chat identifier @title Group call title; if empty, chat title will be used
+createVoiceChat chat_id:int53 title:string = GroupCallId;
 
 //@description Returns information about a group call @group_call_id Group call identifier
 getGroupCall group_call_id:int32 = GroupCall;
