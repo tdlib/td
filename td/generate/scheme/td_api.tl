@@ -1359,9 +1359,19 @@ validatedOrderInfo order_info_id:string shipping_options:vector<shippingOption> 
 //@description Contains the result of a payment request @success True, if the payment request was successful; otherwise the verification_url will be not empty @verification_url URL for additional payment credentials verification
 paymentResult success:Bool verification_url:string = PaymentResult;
 
-//@description Contains information about a successful payment @date Point in time (Unix timestamp) when the payment was made @payments_provider_user_id User identifier of the payment provider bot @invoice Contains information about the invoice
-//@order_info Contains order information; may be null @shipping_option Chosen shipping option; may be null @credentials_title Title of the saved credentials
-paymentReceipt date:int32 payments_provider_user_id:int32 invoice:invoice order_info:orderInfo shipping_option:shippingOption credentials_title:string = PaymentReceipt;
+//@description Contains information about a successful payment
+//@title Product title
+//@param_description Product description
+//@photo Product photo; may be null
+//@date Point in time (Unix timestamp) when the payment was made
+//@seller_bot_user_id User identifier of the seller bot
+//@payments_provider_user_id User identifier of the payment provider bot
+//@invoice Contains information about the invoice
+//@order_info Order information; may be null
+//@shipping_option Chosen shipping option; may be null
+//@credentials_title Title of the saved credentials chosen by the buyer
+//@tip_amount The amount of tip chosen by the buyer in the smallest units of the currency
+paymentReceipt title:string description:string photo:photo date:int32 seller_bot_user_id:int32 payments_provider_user_id:int32 invoice:invoice order_info:orderInfo shipping_option:shippingOption credentials_title:string tip_amount:int53 = PaymentReceipt;
 
 
 //@description File with the date it was uploaded @file The file @date Point in time (Unix timestamp) when the file was uploaded
