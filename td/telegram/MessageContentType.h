@@ -13,6 +13,7 @@
 
 namespace td {
 
+// increase MessageUnsupported::CURRENT_VERSION each time a new message content type is added
 enum class MessageContentType : int32 {
   None = -1,
   Text,
