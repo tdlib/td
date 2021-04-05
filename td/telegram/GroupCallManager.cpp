@@ -1653,6 +1653,10 @@ GroupCallParticipantOrder GroupCallManager::get_real_participant_order(
   if (participant.is_self) {
     return participants->min_order;
   }
+  if (real_order.is_valid()) {
+    LOG(DEBUG) << "Order " << real_order << " of " << participant.dialog_id << " is less than last known order "
+               << participants->min_order;
+  }
   return GroupCallParticipantOrder();
 }
 
@@ -1902,12 +1906,12 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
 
   CHECK(!participant.is_min);
   int diff = participant.is_just_joined ? 1 : 0;
+  participant.order = get_real_participant_order(can_manage, participant, participants);
   if (participant.is_just_joined) {
     LOG(INFO) << "Add new " << participant;
   } else {
     LOG(INFO) << "Receive new " << participant;
   }
-  participant.order = get_real_participant_order(can_manage, participant, participants);
   participant.is_just_joined = false;
   update_group_call_participant_can_be_muted(can_manage, participants, participant);
   participants->participants.push_back(std::move(participant));
