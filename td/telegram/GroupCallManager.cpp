@@ -131,7 +131,7 @@ class CreateGroupCallQuery : public Td::ResultHandler {
   explicit CreateGroupCallQuery(Promise<InputGroupCallId> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, const string &title) {
+  void send(DialogId dialog_id, const string &title, int32 start_date) {
     dialog_id_ = dialog_id;
 
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
@@ -141,8 +141,11 @@ class CreateGroupCallQuery : public Td::ResultHandler {
     if (!title.empty()) {
       flags |= telegram_api::phone_createGroupCall::TITLE_MASK;
     }
+    if (start_date > 0) {
+      flags |= telegram_api::phone_createGroupCall::SCHEDULE_DATE_MASK;
+    }
     send_query(G()->net_query_creator().create(
-        telegram_api::phone_createGroupCall(flags, std::move(input_peer), Random::secure_int32(), title, 0)));
+        telegram_api::phone_createGroupCall(flags, std::move(input_peer), Random::secure_int32(), title, start_date)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -1039,7 +1042,8 @@ void GroupCallManager::get_group_call_join_as(DialogId dialog_id,
   td_->create_handler<GetGroupCallJoinAsQuery>(std::move(promise))->send(dialog_id);
 }
 
-void GroupCallManager::create_voice_chat(DialogId dialog_id, string title, Promise<GroupCallId> &&promise) {
+void GroupCallManager::create_voice_chat(DialogId dialog_id, string title, int32 start_date,
+                                         Promise<GroupCallId> &&promise) {
   if (!dialog_id.is_valid()) {
     return promise.set_error(Status::Error(400, "Invalid chat identifier specified"));
   }
@@ -1063,7 +1067,7 @@ void GroupCallManager::create_voice_chat(DialogId dialog_id, string title, Promi
                        std::move(promise));
         }
       });
-  td_->create_handler<CreateGroupCallQuery>(std::move(query_promise))->send(dialog_id, title);
+  td_->create_handler<CreateGroupCallQuery>(std::move(query_promise))->send(dialog_id, title, start_date);
 }
 
 void GroupCallManager::on_voice_chat_created(DialogId dialog_id, InputGroupCallId input_group_call_id,

@@ -4601,8 +4601,10 @@ sendCallDebugInformation call_id:int32 debug_information:string = Ok;
 getAvailableVoiceChatAliases chat_id:int53 = MessageSenders;
 
 //@description Creates a voice chat (a group call bound to a chat). Available only for basic groups, supergroups and channels; requires can_manage_voice_chats rights
-//@chat_id Chat identifier @title Group call title; if empty, chat title will be used
-createVoiceChat chat_id:int53 title:string = GroupCallId;
+//@chat_id Chat identifier, in which the voice chat will be created
+//@title Group call title; if empty, chat title will be used
+//@start_date Point in time (Unix timestamp) when the group call will be started. Pass 0 to start the voice chat immediately
+createVoiceChat chat_id:int53 title:string start_date:int32 = GroupCallId;
 
 //@description Returns information about a group call @group_call_id Group call identifier
 getGroupCall group_call_id:int32 = GroupCall;

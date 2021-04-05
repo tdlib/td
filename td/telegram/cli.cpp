@@ -2675,8 +2675,9 @@ class CliClient final : public Actor {
     } else if (op == "cvc") {
       string chat_id;
       string title;
-      get_args(args, chat_id, title);
-      send_request(td_api::make_object<td_api::createVoiceChat>(as_chat_id(chat_id), title));
+      int32 start_date;
+      get_args(args, chat_id, title, start_date);
+      send_request(td_api::make_object<td_api::createVoiceChat>(as_chat_id(chat_id), title, start_date));
     } else if (op == "ggc") {
       send_request(td_api::make_object<td_api::getGroupCall>(as_group_call_id(args)));
     } else if (op == "ggcss") {
