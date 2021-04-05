@@ -438,7 +438,7 @@ class MessageChatSetTtl : public MessageContent {
 
 class MessageUnsupported : public MessageContent {
  public:
-  static constexpr int32 CURRENT_VERSION = 6;
+  static constexpr int32 CURRENT_VERSION = 7;
   int32 version = CURRENT_VERSION;
 
   MessageUnsupported() = default;
@@ -695,10 +695,11 @@ class MessageGroupCall : public MessageContent {
  public:
   InputGroupCallId input_group_call_id;
   int32 duration = -1;
+  int32 schedule_date = -1;
 
   MessageGroupCall() = default;
-  MessageGroupCall(InputGroupCallId input_group_call_id, int32 duration)
-      : input_group_call_id(input_group_call_id), duration(duration) {
+  MessageGroupCall(InputGroupCallId input_group_call_id, int32 duration, int32 schedule_date)
+      : input_group_call_id(input_group_call_id), duration(duration), schedule_date(schedule_date) {
   }
 
   MessageContentType get_type() const override {
@@ -994,12 +995,17 @@ static void store(const MessageContent *content, StorerT &storer) {
     case MessageContentType::GroupCall: {
       auto m = static_cast<const MessageGroupCall *>(content);
       bool has_duration = m->duration >= 0;
+      bool has_schedule_date = m->schedule_date > 0;
       BEGIN_STORE_FLAGS();
       STORE_FLAG(has_duration);
+      STORE_FLAG(has_schedule_date);
       END_STORE_FLAGS();
       store(m->input_group_call_id, storer);
       if (has_duration) {
         store(m->duration, storer);
+      }
+      if (has_schedule_date) {
+        store(m->schedule_date, storer);
       }
       break;
     }
@@ -1393,12 +1399,17 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
     case MessageContentType::GroupCall: {
       auto m = make_unique<MessageGroupCall>();
       bool has_duration;
+      bool has_schedule_date;
       BEGIN_PARSE_FLAGS();
       PARSE_FLAG(has_duration);
+      PARSE_FLAG(has_schedule_date);
       END_PARSE_FLAGS();
       parse(m->input_group_call_id, parser);
       if (has_duration) {
         parse(m->duration, parser);
+      }
+      if (has_schedule_date) {
+        parse(m->schedule_date, parser);
       }
       content = std::move(m);
       break;
@@ -3165,7 +3176,8 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
     case MessageContentType::GroupCall: {
       auto old_ = static_cast<const MessageGroupCall *>(old_content);
       auto new_ = static_cast<const MessageGroupCall *>(new_content);
-      if (old_->input_group_call_id != new_->input_group_call_id || old_->duration != new_->duration) {
+      if (old_->input_group_call_id != new_->input_group_call_id || old_->duration != new_->duration ||
+          old_->schedule_date != new_->schedule_date) {
         need_update = true;
       }
       if (!old_->input_group_call_id.is_identical(new_->input_group_call_id)) {
@@ -4419,7 +4431,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
           break;
         }
       }
-      return make_unique<MessageGroupCall>(InputGroupCallId(group_call->call_), duration);
+      return make_unique<MessageGroupCall>(InputGroupCallId(group_call->call_), duration, -1);
     }
     case telegram_api::messageActionInviteToGroupCall::ID: {
       auto invite_to_group_call = move_tl_object_as<telegram_api::messageActionInviteToGroupCall>(action);
@@ -4444,11 +4456,16 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
         LOG(ERROR) << "Receive wrong TTL = " << set_messages_ttl->period_;
         break;
       }
-      return td::make_unique<MessageChatSetTtl>(set_messages_ttl->period_);
+      return make_unique<MessageChatSetTtl>(set_messages_ttl->period_);
     }
     case telegram_api::messageActionGroupCallScheduled::ID: {
       auto scheduled_group_call = move_tl_object_as<telegram_api::messageActionGroupCallScheduled>(action);
-      break;
+      if (scheduled_group_call->schedule_date_ <= 0) {
+        LOG(ERROR) << "Receive wrong schedule_date = " << scheduled_group_call->schedule_date_;
+        break;
+      }
+      return make_unique<MessageGroupCall>(InputGroupCallId(scheduled_group_call->call_), -1,
+                                           scheduled_group_call->schedule_date_);
     }
     default:
       UNREACHABLE();
@@ -4664,8 +4681,12 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
       if (m->duration >= 0) {
         return make_tl_object<td_api::messageVoiceChatEnded>(m->duration);
       } else {
-        return make_tl_object<td_api::messageVoiceChatStarted>(
-            td->group_call_manager_->get_group_call_id(m->input_group_call_id, DialogId()).get());
+        auto group_call_id = td->group_call_manager_->get_group_call_id(m->input_group_call_id, DialogId()).get();
+        if (m->schedule_date > 0) {
+          return make_tl_object<td_api::messageVoiceChatScheduled>(group_call_id, m->schedule_date);
+        } else {
+          return make_tl_object<td_api::messageVoiceChatStarted>(group_call_id);
+        }
       }
     }
     case MessageContentType::InviteToGroupCall: {
