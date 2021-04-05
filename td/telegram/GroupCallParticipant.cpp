@@ -62,13 +62,13 @@ bool GroupCallParticipant::is_versioned_update(const tl_object_ptr<telegram_api:
   return participant->just_joined_ || participant->left_ || participant->versioned_;
 }
 
-GroupCallParticipantOrder GroupCallParticipant::get_real_order(bool can_manage, bool joined_date_asc,
+GroupCallParticipantOrder GroupCallParticipant::get_real_order(bool can_self_unmute, bool joined_date_asc,
                                                                bool keep_active_date) const {
   auto sort_active_date = td::max(active_date, local_active_date);
   if (!keep_active_date && sort_active_date < G()->unix_time() - 300) {
     sort_active_date = 0;
   }
-  auto sort_raise_hand_rating = can_manage ? raise_hand_rating : 0;
+  auto sort_raise_hand_rating = can_self_unmute ? raise_hand_rating : 0;
   auto sort_joined_date = joined_date_asc ? std::numeric_limits<int32>::max() - joined_date : joined_date;
   return GroupCallParticipantOrder(sort_active_date, sort_raise_hand_rating, sort_joined_date);
 }

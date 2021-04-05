@@ -746,10 +746,10 @@ void GroupCallManager::on_update_group_call_participant_order_timeout(GroupCallI
     return;
   }
 
-  bool can_manage = can_manage_group_call(input_group_call_id);
+  bool can_self_unmute = get_group_call_can_self_unmute(input_group_call_id);
   auto *participants = add_group_call_participants(input_group_call_id);
   for (auto &participant : participants->participants) {
-    auto new_order = get_real_participant_order(can_manage, participant, participants);
+    auto new_order = get_real_participant_order(can_self_unmute, participant, participants);
     if (new_order != participant.order) {
       participant.order = new_order;
       send_update_group_call_participant(input_group_call_id, participant,
@@ -1009,6 +1009,12 @@ bool GroupCallManager::can_manage_group_call(InputGroupCallId input_group_call_i
   return can_manage_group_calls(group_call->dialog_id).is_ok();
 }
 
+bool GroupCallManager::get_group_call_can_self_unmute(InputGroupCallId input_group_call_id) const {
+  auto group_call = get_group_call(input_group_call_id);
+  CHECK(group_call != nullptr && group_call->is_inited);
+  return group_call->can_self_unmute;
+}
+
 bool GroupCallManager::get_group_call_joined_date_asc(InputGroupCallId input_group_call_id) const {
   auto group_call = get_group_call(input_group_call_id);
   CHECK(group_call != nullptr && group_call->is_inited);
@@ -1107,7 +1113,6 @@ void GroupCallManager::on_update_group_call_rights(InputGroupCallId input_group_
   }
 
   reload_group_call(input_group_call_id, Auto());
-  sync_group_call_participants(input_group_call_id);  // participant order is different for administrators
 }
 
 void GroupCallManager::reload_group_call(InputGroupCallId input_group_call_id,
@@ -1637,8 +1642,8 @@ void GroupCallManager::on_sync_group_call_participants_failed(InputGroupCallId i
 }
 
 GroupCallParticipantOrder GroupCallManager::get_real_participant_order(
-    bool can_manage, const GroupCallParticipant &participant, const GroupCallParticipants *participants) const {
-  auto real_order = participant.get_real_order(can_manage, participants->joined_date_asc, false);
+    bool can_self_unmute, const GroupCallParticipant &participant, const GroupCallParticipants *participants) const {
+  auto real_order = participant.get_real_order(can_self_unmute, participants->joined_date_asc, false);
   if (real_order >= participants->min_order) {
     return real_order;
   }
@@ -1693,7 +1698,7 @@ void GroupCallManager::process_group_call_participants(
 
   auto min_order = GroupCallParticipantOrder::max();
   DialogId min_order_dialog_id;
-  bool can_manage = can_manage_group_call(input_group_call_id);
+  bool can_self_unmute = get_group_call_can_self_unmute(input_group_call_id);
   bool joined_date_asc = get_group_call_joined_date_asc(input_group_call_id);
   for (auto &group_call_participant : participants) {
     GroupCallParticipant participant(group_call_participant, version);
@@ -1710,7 +1715,7 @@ void GroupCallManager::process_group_call_participants(
     }
 
     if (is_load) {
-      auto real_order = participant.get_real_order(can_manage, joined_date_asc, true);
+      auto real_order = participant.get_real_order(can_self_unmute, joined_date_asc, true);
       if (real_order > min_order) {
         LOG(ERROR) << "Receive call participant " << participant.dialog_id << " with order " << real_order
                    << " after call participant " << min_order_dialog_id << " with order " << min_order;
@@ -1770,7 +1775,7 @@ void GroupCallManager::process_group_call_participants(
         participants_it->second->min_order = min_order;
 
         for (auto &participant : participants_it->second->participants) {
-          auto real_order = get_real_participant_order(can_manage, participant, participants_it->second.get());
+          auto real_order = get_real_participant_order(can_self_unmute, participant, participants_it->second.get());
           if (old_min_order > real_order && real_order >= min_order) {
             CHECK(!participant.order.is_valid() || participant.is_self);
             participant.order = real_order;
@@ -1845,10 +1850,12 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
       if (can_self_unmute != group_call->can_self_unmute) {
         group_call->can_self_unmute = can_self_unmute;
         send_update_group_call(group_call, "process_group_call_participant 1");
+        sync_group_call_participants(input_group_call_id);  // participant order is different for administrators
       }
     }
   }
 
+  bool can_self_unmute = get_group_call_can_self_unmute(input_group_call_id);
   bool can_manage = can_manage_group_call(input_group_call_id);
   auto *participants = add_group_call_participants(input_group_call_id);
   for (size_t i = 0; i < participants->participants.size(); i++) {
@@ -1878,7 +1885,7 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
       participant.update_from(old_participant);
 
       participant.is_just_joined = false;
-      participant.order = get_real_participant_order(can_manage, participant, participants);
+      participant.order = get_real_participant_order(can_self_unmute, participant, participants);
       update_group_call_participant_can_be_muted(can_manage, participants, participant);
 
       LOG(INFO) << "Edit " << old_participant << " to " << participant;
@@ -1899,7 +1906,7 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
 
   CHECK(!participant.is_min);
   int diff = participant.is_just_joined ? 1 : 0;
-  participant.order = get_real_participant_order(can_manage, participant, participants);
+  participant.order = get_real_participant_order(can_self_unmute, participant, participants);
   if (participant.is_just_joined) {
     LOG(INFO) << "Add new " << participant;
   } else {
@@ -3668,8 +3675,8 @@ DialogId GroupCallManager::set_group_call_participant_is_speaking_by_source(Inpu
         if (is_speaking) {
           participant.local_active_date = max(participant.local_active_date, date);
         }
-        bool can_manage = can_manage_group_call(input_group_call_id);
-        participant.order = get_real_participant_order(can_manage, participant, participants_it->second.get());
+        bool can_self_unmute = get_group_call_can_self_unmute(input_group_call_id);
+        participant.order = get_real_participant_order(can_self_unmute, participant, participants_it->second.get());
         if (participant.order.is_valid()) {
           send_update_group_call_participant(input_group_call_id, participant,
                                              "set_group_call_participant_is_speaking_by_source");
