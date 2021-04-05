@@ -35379,7 +35379,8 @@ void MessagesManager::set_channel_pts(Dialog *d, int32 new_pts, const char *sour
   CHECK(d->dialog_id.get_type() == DialogType::Channel);
 
   LOG_IF(ERROR, running_get_channel_difference(d->dialog_id))
-      << "Set pts of " << d->dialog_id << " to " << new_pts << " while running getChannelDifference";
+      << "Set pts of " << d->dialog_id << " to " << new_pts << " from " << source
+      << " while running getChannelDifference";
 
   if (is_debug_message_op_enabled()) {
     d->debug_message_op.emplace_back(Dialog::MessageOp::SetPts, new_pts, source);
@@ -35387,7 +35388,7 @@ void MessagesManager::set_channel_pts(Dialog *d, int32 new_pts, const char *sour
 
   // TODO delete_first_messages support in channels
   if (new_pts == std::numeric_limits<int32>::max()) {
-    LOG(ERROR) << "Update " << d->dialog_id << " pts to -1";
+    LOG(ERROR) << "Update " << d->dialog_id << " pts to -1 from " << source;
     G()->td_db()->get_binlog_pmc()->erase(get_channel_pts_key(d->dialog_id));
     d->pts = std::numeric_limits<int32>::max();
     if (d->pending_read_channel_inbox_pts != 0) {
@@ -35397,9 +35398,10 @@ void MessagesManager::set_channel_pts(Dialog *d, int32 new_pts, const char *sour
   }
   if (new_pts > d->pts || (0 < new_pts && new_pts < d->pts - 99999)) {  // pts can only go up or drop cardinally
     if (new_pts < d->pts - 99999) {
-      LOG(WARNING) << "Pts of " << d->dialog_id << " decreases from " << d->pts << " to " << new_pts;
+      LOG(WARNING) << "Pts of " << d->dialog_id << " decreases from " << d->pts << " to " << new_pts << " from "
+                   << source;
     } else {
-      LOG(INFO) << "Update " << d->dialog_id << " pts to " << new_pts;
+      LOG(INFO) << "Update " << d->dialog_id << " pts to " << new_pts << " from " << source;
     }
 
     d->pts = new_pts;
@@ -35418,7 +35420,8 @@ void MessagesManager::set_channel_pts(Dialog *d, int32 new_pts, const char *sour
       G()->td_db()->get_binlog_pmc()->set(get_channel_pts_key(d->dialog_id), to_string(new_pts));
     }
   } else if (new_pts < d->pts) {
-    LOG(ERROR) << "Receive wrong pts " << new_pts << " in " << d->dialog_id << ". Current pts is " << d->pts;
+    LOG(ERROR) << "Receive wrong pts " << new_pts << " in " << d->dialog_id << " from " << source << ". Current pts is "
+               << d->pts;
   }
 }
 
