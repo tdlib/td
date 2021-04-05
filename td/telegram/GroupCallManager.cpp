@@ -1300,6 +1300,9 @@ void GroupCallManager::on_get_group_call_participants(
       }
 
       auto real_participant_count = participants->count_;
+      if (!group_call->is_joined) {
+        real_participant_count++;
+      }
       if (is_empty) {
         auto known_participant_count = participants_it != group_call_participants_.end()
                                            ? static_cast<int32>(participants_it->second->participants.size())
@@ -3360,6 +3363,10 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
   call.can_self_unmute = call.is_active && (!call.mute_new_participants || call.can_be_managed);
   if (!group_call->dialog_id.is_valid()) {
     group_call->dialog_id = dialog_id;
+  }
+  if (call.is_active && join_params.empty() && !group_call->is_joined &&
+      (group_call->need_rejoin || is_group_call_being_joined(input_group_call_id))) {
+    call.participant_count++;
   }
   LOG(INFO) << "Update " << call.group_call_id << " with " << group_call->participant_count
             << " participants and version " << group_call->version;
