@@ -1106,6 +1106,8 @@ class MessagesManager : public Actor {
 
     int32 last_edit_pts = 0;
 
+    const char *debug_source = nullptr;
+
     unique_ptr<Message> left;
     unique_ptr<Message> right;
 

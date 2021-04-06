@@ -32670,6 +32670,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     add_notification_id_to_message_id_correspondence(d, m->notification_id, m->message_id);
   }
 
+  result_message->debug_source = source;
   d->being_added_message_id = MessageId();
 
   if (!td_->auth_manager_->is_bot() && from_update && d->reply_markup_message_id != MessageId()) {
@@ -34336,8 +34337,10 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
 
   if (d->messages != nullptr) {
     CHECK(d->messages->message_id == last_message_id);
-    CHECK(d->messages->left == nullptr);
-    CHECK(d->messages->right == nullptr);
+    LOG_CHECK(d->messages->left == nullptr)
+        << (d->messages->left->debug_source != nullptr ? d->messages->left->debug_source : "null");
+    LOG_CHECK(d->messages->right == nullptr)
+        << (d->messages->right->debug_source != nullptr ? d->messages->right->debug_source : "null");
   }
 }
 
