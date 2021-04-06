@@ -1702,7 +1702,7 @@ messageInvoice title:string description:string photo:photo currency:string total
 //@description A message with information about an ended call @is_video True, if the call was a video call @discard_reason Reason why the call was discarded @duration Call duration, in seconds
 messageCall is_video:Bool discard_reason:CallDiscardReason duration:int32 = MessageContent;
 
-//@description A new voice chat was scheduled @group_call_id Identifier of the voice chat. The voice chat can be received through the method getGroupCall @start_date Point in time (Unix timestamp) when the group call will be started
+//@description A new voice chat was scheduled @group_call_id Identifier of the voice chat. The voice chat can be received through the method getGroupCall @start_date Point in time (Unix timestamp) when the group call is supposed to be started by an administrator
 messageVoiceChatScheduled group_call_id:int32 start_date:int32 = MessageContent;
 
 //@description A newly created voice chat @group_call_id Identifier of the voice chat. The voice chat can be received through the method getGroupCall
@@ -2144,6 +2144,7 @@ groupCallRecentSpeaker speaker:MessageSender is_speaking:Bool = GroupCallRecentS
 //@description Describes a group call
 //@id Group call identifier
 //@title Group call title
+//@scheduled_start_date Point in time (Unix timestamp) when the group call is supposed to be started by an administrator; 0 if it is already active or was ended
 //@is_active True, if the call is active
 //@is_joined True, if the call is joined
 //@need_rejoin True, if user was kicked from the call because of network loss and the call needs to be rejoined
@@ -2156,7 +2157,7 @@ groupCallRecentSpeaker speaker:MessageSender is_speaking:Bool = GroupCallRecentS
 //@can_change_mute_new_participants True, if the current user can enable or disable mute_new_participants setting
 //@record_duration Duration of the ongoing group call recording, in seconds; 0 if none. An updateGroupCall update is not triggered when value of this field changes, but the same recording goes on
 //@duration Call duration; for ended calls only
-groupCall id:int32 title:string is_active:Bool is_joined:Bool need_rejoin:Bool can_unmute_self:Bool can_be_managed:Bool participant_count:int32 loaded_all_participants:Bool recent_speakers:vector<groupCallRecentSpeaker> mute_new_participants:Bool can_change_mute_new_participants:Bool record_duration:int32 duration:int32 = GroupCall;
+groupCall id:int32 title:string scheduled_start_date:int32 is_active:Bool is_joined:Bool need_rejoin:Bool can_unmute_self:Bool can_be_managed:Bool participant_count:int32 loaded_all_participants:Bool recent_speakers:vector<groupCallRecentSpeaker> mute_new_participants:Bool can_change_mute_new_participants:Bool record_duration:int32 duration:int32 = GroupCall;
 
 //@description Describes a payload fingerprint for interaction with tgcalls @hash Value of the field hash @setup Value of the field setup @fingerprint Value of the field fingerprint
 groupCallPayloadFingerprint hash:string setup:string fingerprint:string = GroupCallPayloadFingerprint;
@@ -4603,7 +4604,7 @@ getAvailableVoiceChatAliases chat_id:int53 = MessageSenders;
 //@description Creates a voice chat (a group call bound to a chat). Available only for basic groups, supergroups and channels; requires can_manage_voice_chats rights
 //@chat_id Chat identifier, in which the voice chat will be created
 //@title Group call title; if empty, chat title will be used
-//@start_date Point in time (Unix timestamp) when the group call will be started. Pass 0 to start the voice chat immediately
+//@start_date Point in time (Unix timestamp) when the group call is supposed to be started by an administrator. Pass 0 to start the voice chat immediately
 createVoiceChat chat_id:int53 title:string start_date:int32 = GroupCallId;
 
 //@description Returns information about a group call @group_call_id Group call identifier

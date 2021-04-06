@@ -650,6 +650,7 @@ struct GroupCallManager::GroupCall {
   bool mute_new_participants = false;
   bool allowed_change_mute_new_participants = false;
   bool joined_date_asc = false;
+  int32 scheduled_start_date = 0;
   int32 participant_count = 0;
   int32 duration = 0;
   int32 audio_source = 0;
@@ -664,6 +665,7 @@ struct GroupCallManager::GroupCall {
   int32 mute_version = -1;
   int32 stream_dc_id_version = -1;
   int32 record_start_date_version = -1;
+  int32 scheduled_start_date_version = -1;
 
   vector<Promise<Unit>> after_join;
   bool have_pending_mute_new_participants = false;
@@ -3358,11 +3360,20 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
           call.record_start_date = 0;
         }
       }
+      if ((group_call->flags_ & telegram_api::groupCall::SCHEDULE_DATE_MASK) != 0) {
+        call.scheduled_start_date = group_call->schedule_date_;
+        if (call.scheduled_start_date <= 0) {
+          LOG(ERROR) << "Receive invalid scheduled start date " << group_call->schedule_date_ << " in "
+                     << input_group_call_id;
+          call.scheduled_start_date = 0;
+        }
+      }
       call.version = group_call->version_;
       call.title_version = group_call->version_;
       call.mute_version = group_call->version_;
       call.stream_dc_id_version = group_call->version_;
       call.record_start_date_version = group_call->version_;
+      call.scheduled_start_date_version = group_call->version_;
       if (group_call->params_ != nullptr) {
         join_params = std::move(group_call->params_->data_);
       }
@@ -3470,6 +3481,13 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
         if (old_record_start_date != get_group_call_record_start_date(group_call)) {
           need_update = true;
         }
+      }
+      if (call.scheduled_start_date != group_call->scheduled_start_date &&
+          call.scheduled_start_date_version >= group_call->scheduled_start_date_version) {
+        LOG_IF(ERROR, group_call->scheduled_start_date == 0) << call.group_call_id << " became scheduled";
+        group_call->scheduled_start_date = call.scheduled_start_date;
+        group_call->scheduled_start_date_version = call.scheduled_start_date_version;
+        need_update = true;
       }
       if (call.version > group_call->version) {
         if (group_call->version != -1) {
@@ -3811,6 +3829,8 @@ tl_object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(
   CHECK(group_call != nullptr);
   CHECK(group_call->is_inited);
 
+  int32 scheduled_start_date = group_call->scheduled_start_date;
+  bool is_active = scheduled_start_date == 0 ? group_call->is_active : 0;
   bool is_joined = group_call->is_joined && !group_call->is_being_left;
   bool can_self_unmute = is_joined && group_call->can_self_unmute;
   bool mute_new_participants = get_group_call_mute_new_participants(group_call);
@@ -3819,7 +3839,7 @@ tl_object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(
   int32 record_start_date = get_group_call_record_start_date(group_call);
   int32 record_duration = record_start_date == 0 ? 0 : max(G()->unix_time() - record_start_date + 1, 1);
   return td_api::make_object<td_api::groupCall>(
-      group_call->group_call_id.get(), get_group_call_title(group_call), group_call->is_active, is_joined,
+      group_call->group_call_id.get(), get_group_call_title(group_call), scheduled_start_date, is_active, is_joined,
       group_call->need_rejoin, can_self_unmute, group_call->can_be_managed, group_call->participant_count,
       group_call->loaded_all_participants, std::move(recent_speakers), mute_new_participants,
       can_change_mute_new_participants, record_duration, group_call->duration);
