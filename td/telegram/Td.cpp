@@ -5995,6 +5995,12 @@ void Td::on_request(uint64 id, const td_api::getGroupCall &request) {
   group_call_manager_->get_group_call(GroupCallId(request.group_call_id_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::startScheduledGroupCall &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  group_call_manager_->start_scheduled_group_call(GroupCallId(request.group_call_id_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::joinGroupCall &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.invite_hash_);

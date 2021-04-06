@@ -280,6 +280,38 @@ class GetGroupCallParticipantsQuery : public Td::ResultHandler {
   }
 };
 
+class StartScheduledGroupCallQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit StartScheduledGroupCallQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(InputGroupCallId input_group_call_id) {
+    send_query(G()->net_query_creator().create(
+        telegram_api::phone_startScheduledGroupCall(input_group_call_id.get_input_group_call())));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::phone_startScheduledGroupCall>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for StartScheduledGroupCallQuery: " << to_string(ptr);
+    td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(uint64 id, Status status) override {
+    if (status.message() == "GROUPCALL_NOT_MODIFIED") {
+      promise_.set_value(Unit());
+      return;
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
 class JoinGroupCallQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   InputGroupCallId input_group_call_id_;
@@ -2067,6 +2099,40 @@ void GroupCallManager::finish_get_group_call_stream_segment(InputGroupCallId inp
   }
 
   promise.set_result(std::move(result));
+}
+
+void GroupCallManager::start_scheduled_group_call(GroupCallId group_call_id, Promise<Unit> &&promise) {
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
+
+  TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
+
+  auto *group_call = get_group_call(input_group_call_id);
+  if (group_call == nullptr || !group_call->is_inited) {
+    reload_group_call(input_group_call_id,
+                      PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, promise = std::move(promise)](
+                                                 Result<td_api::object_ptr<td_api::groupCall>> &&result) mutable {
+                        if (result.is_error()) {
+                          promise.set_error(result.move_as_error());
+                        } else {
+                          send_closure(actor_id, &GroupCallManager::start_scheduled_group_call, group_call_id,
+                                       std::move(promise));
+                        }
+                      }));
+    return;
+  }
+  if (!group_call->can_be_managed) {
+    return promise.set_error(Status::Error(400, "Not enough rights to start the group call"));
+  }
+  if (!group_call->is_active) {
+    return promise.set_error(Status::Error(400, "Group call already ended"));
+  }
+  if (group_call->scheduled_start_date == 0) {
+    return promise.set_value(Unit());
+  }
+
+  td_->create_handler<StartScheduledGroupCallQuery>(std::move(promise))->send(input_group_call_id);
 }
 
 void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_dialog_id,
