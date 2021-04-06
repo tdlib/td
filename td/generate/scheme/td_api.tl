@@ -1919,8 +1919,10 @@ inputMessageDice emoji:string clear_draft:Bool = InputMessageContent;
 //@description A message with a game; not supported for channels or secret chats @bot_user_id User identifier of the bot that owns the game @game_short_name Short name of the game
 inputMessageGame bot_user_id:int32 game_short_name:string = InputMessageContent;
 
-//@description A message with an invoice; can be used only by bots and only in private chats @invoice Invoice @title Product title; 1-32 characters @param_description Product description; 0-255 characters @photo_url Product photo URL; optional @photo_size Product photo size @photo_width Product photo width @photo_height Product photo height
-//@payload The invoice payload @provider_token Payment provider token @provider_data JSON-encoded data about the invoice, which will be shared with the payment provider @start_parameter Unique invoice bot start_parameter for the generation of this invoice
+//@description A message with an invoice; can be used only by bots @invoice Invoice @title Product title; 1-32 characters @param_description Product description; 0-255 characters
+//@photo_url Product photo URL; optional @photo_size Product photo size @photo_width Product photo width @photo_height Product photo height
+//@payload The invoice payload @provider_token Payment provider token @provider_data JSON-encoded data about the invoice, which will be shared with the payment provider
+//@start_parameter Unique invoice bot deep link parameter for the generation of this invoice. If empty, it would be possible to pay directly from forwards of the invoice message
 inputMessageInvoice invoice:invoice title:string description:string photo_url:string photo_size:int32 photo_width:int32 photo_height:int32 payload:bytes provider_token:string provider_data:string start_parameter:string = InputMessageContent;
 
 //@description A message with a poll. Polls can't be sent to secret chats. Polls can be sent only to a private chat with a bot @question Poll question; 1-255 characters (up to 300 characters for bots) @options List of poll answer options, 2-10 strings 1-100 characters each
@@ -2275,30 +2277,30 @@ httpUrl url:string = HttpUrl;
 //@video_url The URL of the video file (file size must not exceed 1MB) @video_mime_type MIME type of the video file. Must be one of "image/gif" and "video/mp4"
 //@video_duration Duration of the video, in seconds @video_width Width of the video @video_height Height of the video
 //@reply_markup The message reply markup. Must be of type replyMarkupInlineKeyboard or null
-//@input_message_content The content of the message to be sent. Must be one of the following types: InputMessageText, InputMessageAnimation, InputMessageInvoice, InputMessageLocation, InputMessageVenue or InputMessageContact
+//@input_message_content The content of the message to be sent. Must be one of the following types: inputMessageText, inputMessageAnimation, inputMessageInvoice, inputMessageLocation, inputMessageVenue or inputMessageContact
 inputInlineQueryResultAnimation id:string title:string thumbnail_url:string thumbnail_mime_type:string video_url:string video_mime_type:string video_duration:int32 video_width:int32 video_height:int32 reply_markup:ReplyMarkup input_message_content:InputMessageContent = InputInlineQueryResult;
 
 //@description Represents a link to an article or web page @id Unique identifier of the query result @url URL of the result, if it exists @hide_url True, if the URL must be not shown @title Title of the result
 //@param_description A short description of the result @thumbnail_url URL of the result thumbnail, if it exists @thumbnail_width Thumbnail width, if known @thumbnail_height Thumbnail height, if known
 //@reply_markup The message reply markup. Must be of type replyMarkupInlineKeyboard or null
-//@input_message_content The content of the message to be sent. Must be one of the following types: InputMessageText, InputMessageInvoice, InputMessageLocation, InputMessageVenue or InputMessageContact
+//@input_message_content The content of the message to be sent. Must be one of the following types: inputMessageText, inputMessageInvoice, inputMessageLocation, inputMessageVenue or inputMessageContact
 inputInlineQueryResultArticle id:string url:string hide_url:Bool title:string description:string thumbnail_url:string thumbnail_width:int32 thumbnail_height:int32 reply_markup:ReplyMarkup input_message_content:InputMessageContent = InputInlineQueryResult;
 
 //@description Represents a link to an MP3 audio file @id Unique identifier of the query result @title Title of the audio file @performer Performer of the audio file
 //@audio_url The URL of the audio file @audio_duration Audio file duration, in seconds
 //@reply_markup The message reply markup. Must be of type replyMarkupInlineKeyboard or null
-//@input_message_content The content of the message to be sent. Must be one of the following types: InputMessageText, InputMessageAudio, InputMessageInvoice, InputMessageLocation, InputMessageVenue or InputMessageContact
+//@input_message_content The content of the message to be sent. Must be one of the following types: inputMessageText, inputMessageAudio, inputMessageInvoice, inputMessageLocation, inputMessageVenue or inputMessageContact
 inputInlineQueryResultAudio id:string title:string performer:string audio_url:string audio_duration:int32 reply_markup:ReplyMarkup input_message_content:InputMessageContent = InputInlineQueryResult;
 
 //@description Represents a user contact @id Unique identifier of the query result @contact User contact @thumbnail_url URL of the result thumbnail, if it exists @thumbnail_width Thumbnail width, if known @thumbnail_height Thumbnail height, if known
 //@reply_markup The message reply markup. Must be of type replyMarkupInlineKeyboard or null
-//@input_message_content The content of the message to be sent. Must be one of the following types: InputMessageText, InputMessageInvoice, InputMessageLocation, InputMessageVenue or InputMessageContact
+//@input_message_content The content of the message to be sent. Must be one of the following types: inputMessageText, inputMessageInvoice, inputMessageLocation, inputMessageVenue or inputMessageContact
 inputInlineQueryResultContact id:string contact:contact thumbnail_url:string thumbnail_width:int32 thumbnail_height:int32 reply_markup:ReplyMarkup input_message_content:InputMessageContent = InputInlineQueryResult;
 
 //@description Represents a link to a file @id Unique identifier of the query result @title Title of the resulting file @param_description Short description of the result, if known @document_url URL of the file @mime_type MIME type of the file content; only "application/pdf" and "application/zip" are currently allowed
 //@thumbnail_url The URL of the file thumbnail, if it exists @thumbnail_width Width of the thumbnail @thumbnail_height Height of the thumbnail
 //@reply_markup The message reply markup. Must be of type replyMarkupInlineKeyboard or null
-//@input_message_content The content of the message to be sent. Must be one of the following types: InputMessageText, InputMessageDocument, InputMessageInvoice, InputMessageLocation, InputMessageVenue or InputMessageContact
+//@input_message_content The content of the message to be sent. Must be one of the following types: inputMessageText, inputMessageDocument, inputMessageInvoice, inputMessageLocation, inputMessageVenue or inputMessageContact
 inputInlineQueryResultDocument id:string title:string description:string document_url:string mime_type:string thumbnail_url:string thumbnail_width:int32 thumbnail_height:int32 reply_markup:ReplyMarkup input_message_content:InputMessageContent = InputInlineQueryResult;
 
 //@description Represents a game @id Unique identifier of the query result @game_short_name Short name of the game @reply_markup Message reply markup. Must be of type replyMarkupInlineKeyboard or null
@@ -2308,37 +2310,37 @@ inputInlineQueryResultGame id:string game_short_name:string reply_markup:ReplyMa
 //@live_period Amount of time relative to the message sent time until the location can be updated, in seconds
 //@title Title of the result @thumbnail_url URL of the result thumbnail, if it exists @thumbnail_width Thumbnail width, if known @thumbnail_height Thumbnail height, if known
 //@reply_markup The message reply markup. Must be of type replyMarkupInlineKeyboard or null
-//@input_message_content The content of the message to be sent. Must be one of the following types: InputMessageText, InputMessageInvoice, InputMessageLocation, InputMessageVenue or InputMessageContact
+//@input_message_content The content of the message to be sent. Must be one of the following types: inputMessageText, inputMessageInvoice, inputMessageLocation, inputMessageVenue or inputMessageContact
 inputInlineQueryResultLocation id:string location:location live_period:int32 title:string thumbnail_url:string thumbnail_width:int32 thumbnail_height:int32 reply_markup:ReplyMarkup input_message_content:InputMessageContent = InputInlineQueryResult;
 
 //@description Represents link to a JPEG image @id Unique identifier of the query result @title Title of the result, if known @param_description A short description of the result, if known @thumbnail_url URL of the photo thumbnail, if it exists
 //@photo_url The URL of the JPEG photo (photo size must not exceed 5MB) @photo_width Width of the photo @photo_height Height of the photo
 //@reply_markup The message reply markup. Must be of type replyMarkupInlineKeyboard or null
-//@input_message_content The content of the message to be sent. Must be one of the following types: InputMessageText, InputMessagePhoto, InputMessageInvoice, InputMessageLocation, InputMessageVenue or InputMessageContact
+//@input_message_content The content of the message to be sent. Must be one of the following types: inputMessageText, inputMessagePhoto, inputMessageInvoice, inputMessageLocation, inputMessageVenue or inputMessageContact
 inputInlineQueryResultPhoto id:string title:string description:string thumbnail_url:string photo_url:string photo_width:int32 photo_height:int32 reply_markup:ReplyMarkup input_message_content:InputMessageContent = InputInlineQueryResult;
 
 //@description Represents a link to a WEBP or TGS sticker @id Unique identifier of the query result @thumbnail_url URL of the sticker thumbnail, if it exists
 //@sticker_url The URL of the WEBP or TGS sticker (sticker file size must not exceed 5MB) @sticker_width Width of the sticker @sticker_height Height of the sticker
 //@reply_markup The message reply markup. Must be of type replyMarkupInlineKeyboard or null
-//@input_message_content The content of the message to be sent. Must be one of the following types: InputMessageText, inputMessageSticker, InputMessageInvoice, InputMessageLocation, InputMessageVenue or InputMessageContact
+//@input_message_content The content of the message to be sent. Must be one of the following types: inputMessageText, inputMessageSticker, inputMessageInvoice, inputMessageLocation, inputMessageVenue or inputMessageContact
 inputInlineQueryResultSticker id:string thumbnail_url:string sticker_url:string sticker_width:int32 sticker_height:int32 reply_markup:ReplyMarkup input_message_content:InputMessageContent = InputInlineQueryResult;
 
 //@description Represents information about a venue @id Unique identifier of the query result @venue Venue result @thumbnail_url URL of the result thumbnail, if it exists @thumbnail_width Thumbnail width, if known @thumbnail_height Thumbnail height, if known
 //@reply_markup The message reply markup. Must be of type replyMarkupInlineKeyboard or null
-//@input_message_content The content of the message to be sent. Must be one of the following types: InputMessageText, InputMessageInvoice, InputMessageLocation, InputMessageVenue or InputMessageContact
+//@input_message_content The content of the message to be sent. Must be one of the following types: inputMessageText, inputMessageInvoice, inputMessageLocation, inputMessageVenue or inputMessageContact
 inputInlineQueryResultVenue id:string venue:venue thumbnail_url:string thumbnail_width:int32 thumbnail_height:int32 reply_markup:ReplyMarkup input_message_content:InputMessageContent = InputInlineQueryResult;
 
 //@description Represents a link to a page containing an embedded video player or a video file @id Unique identifier of the query result @title Title of the result @param_description A short description of the result, if known
 //@thumbnail_url The URL of the video thumbnail (JPEG), if it exists @video_url URL of the embedded video player or video file @mime_type MIME type of the content of the video URL, only "text/html" or "video/mp4" are currently supported
 //@video_width Width of the video @video_height Height of the video @video_duration Video duration, in seconds
 //@reply_markup The message reply markup. Must be of type replyMarkupInlineKeyboard or null
-//@input_message_content The content of the message to be sent. Must be one of the following types: InputMessageText, InputMessageVideo, InputMessageInvoice, InputMessageLocation, InputMessageVenue or InputMessageContact
+//@input_message_content The content of the message to be sent. Must be one of the following types: inputMessageText, inputMessageVideo, inputMessageInvoice, inputMessageLocation, inputMessageVenue or inputMessageContact
 inputInlineQueryResultVideo id:string title:string description:string thumbnail_url:string video_url:string mime_type:string video_width:int32 video_height:int32 video_duration:int32 reply_markup:ReplyMarkup input_message_content:InputMessageContent = InputInlineQueryResult;
 
 //@description Represents a link to an opus-encoded audio file within an OGG container, single channel audio @id Unique identifier of the query result @title Title of the voice note
 //@voice_note_url The URL of the voice note file @voice_note_duration Duration of the voice note, in seconds
 //@reply_markup The message reply markup. Must be of type replyMarkupInlineKeyboard or null
-//@input_message_content The content of the message to be sent. Must be one of the following types: InputMessageText, InputMessageVoiceNote, InputMessageInvoice, InputMessageLocation, InputMessageVenue or InputMessageContact
+//@input_message_content The content of the message to be sent. Must be one of the following types: inputMessageText, inputMessageVoiceNote, inputMessageInvoice, inputMessageLocation, inputMessageVenue or inputMessageContact
 inputInlineQueryResultVoiceNote id:string title:string voice_note_url:string voice_note_duration:int32 reply_markup:ReplyMarkup input_message_content:InputMessageContent = InputInlineQueryResult;
 
 
@@ -4088,7 +4090,7 @@ deleteChatMessagesFromUser chat_id:int53 user_id:int32 = Ok;
 
 
 //@description Edits the text of a message (or a text of a game message). Returns the edited message after the edit is completed on the server side
-//@chat_id The chat the message belongs to @message_id Identifier of the message @reply_markup The new message reply markup; for bots only @input_message_content New text content of the message. Should be of type InputMessageText
+//@chat_id The chat the message belongs to @message_id Identifier of the message @reply_markup The new message reply markup; for bots only @input_message_content New text content of the message. Should be of type inputMessageText
 editMessageText chat_id:int53 message_id:int53 reply_markup:ReplyMarkup input_message_content:InputMessageContent = Message;
 
 //@description Edits the message content of a live location. Messages can be edited for a limited period of time specified in the live location. Returns the edited message after the edit is completed on the server side
@@ -4098,7 +4100,7 @@ editMessageText chat_id:int53 message_id:int53 reply_markup:ReplyMarkup input_me
 editMessageLiveLocation chat_id:int53 message_id:int53 reply_markup:ReplyMarkup location:location heading:int32 proximity_alert_radius:int32 = Message;
 
 //@description Edits the content of a message with an animation, an audio, a document, a photo or a video. The media in the message can't be replaced if the message was set to self-destruct. Media can't be replaced by self-destructing media. Media in an album can be edited only to contain a photo or a video. Returns the edited message after the edit is completed on the server side
-//@chat_id The chat the message belongs to @message_id Identifier of the message @reply_markup The new message reply markup; for bots only @input_message_content New content of the message. Must be one of the following types: InputMessageAnimation, InputMessageAudio, InputMessageDocument, InputMessagePhoto or InputMessageVideo
+//@chat_id The chat the message belongs to @message_id Identifier of the message @reply_markup The new message reply markup; for bots only @input_message_content New content of the message. Must be one of the following types: inputMessageAnimation, inputMessageAudio, inputMessageDocument, inputMessagePhoto or inputMessageVideo
 editMessageMedia chat_id:int53 message_id:int53 reply_markup:ReplyMarkup input_message_content:InputMessageContent = Message;
 
 //@description Edits the message content caption. Returns the edited message after the edit is completed on the server side
@@ -4109,7 +4111,7 @@ editMessageCaption chat_id:int53 message_id:int53 reply_markup:ReplyMarkup capti
 //@chat_id The chat the message belongs to @message_id Identifier of the message @reply_markup The new message reply markup
 editMessageReplyMarkup chat_id:int53 message_id:int53 reply_markup:ReplyMarkup = Message;
 
-//@description Edits the text of an inline text or game message sent via a bot; for bots only @inline_message_id Inline message identifier @reply_markup The new message reply markup @input_message_content New text content of the message. Should be of type InputMessageText
+//@description Edits the text of an inline text or game message sent via a bot; for bots only @inline_message_id Inline message identifier @reply_markup The new message reply markup @input_message_content New text content of the message. Should be of type inputMessageText
 editInlineMessageText inline_message_id:string reply_markup:ReplyMarkup input_message_content:InputMessageContent = Ok;
 
 //@description Edits the content of a live location in an inline message sent via a bot; for bots only @inline_message_id Inline message identifier @reply_markup The new message reply markup
@@ -4119,7 +4121,7 @@ editInlineMessageText inline_message_id:string reply_markup:ReplyMarkup input_me
 editInlineMessageLiveLocation inline_message_id:string reply_markup:ReplyMarkup location:location heading:int32 proximity_alert_radius:int32 = Ok;
 
 //@description Edits the content of a message with an animation, an audio, a document, a photo or a video in an inline message sent via a bot; for bots only @inline_message_id Inline message identifier
-//@reply_markup The new message reply markup; for bots only @input_message_content New content of the message. Must be one of the following types: InputMessageAnimation, InputMessageAudio, InputMessageDocument, InputMessagePhoto or InputMessageVideo
+//@reply_markup The new message reply markup; for bots only @input_message_content New content of the message. Must be one of the following types: inputMessageAnimation, inputMessageAudio, inputMessageDocument, inputMessagePhoto or inputMessageVideo
 editInlineMessageMedia inline_message_id:string reply_markup:ReplyMarkup input_message_content:InputMessageContent = Ok;
 
 //@description Edits the caption of an inline message sent via a bot; for bots only @inline_message_id Inline message identifier @reply_markup The new message reply markup @caption New message content caption; 0-GetOption("message_caption_length_max") characters

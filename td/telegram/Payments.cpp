@@ -868,7 +868,10 @@ static tl_object_ptr<telegram_api::inputWebDocument> get_input_web_document(cons
 }
 
 tl_object_ptr<telegram_api::inputMediaInvoice> get_input_media_invoice(const InputInvoice &input_invoice, Td *td) {
-  int32 flags = telegram_api::inputMediaInvoice::START_PARAM_MASK;
+  int32 flags = 0;
+  if (!input_invoice.start_parameter.empty()) {
+    flags |= telegram_api::inputMediaInvoice::START_PARAM_MASK;
+  }
   auto input_web_document = get_input_web_document(td->file_manager_.get(), input_invoice.photo);
   if (input_web_document != nullptr) {
     flags |= telegram_api::inputMediaInvoice::PHOTO_MASK;
