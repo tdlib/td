@@ -123,6 +123,42 @@ class GetGroupCallJoinAsQuery : public Td::ResultHandler {
   }
 };
 
+class SaveDefaultGroupCallJoinAsQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit SaveDefaultGroupCallJoinAsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, DialogId as_dialog_id) {
+    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+
+    auto as_input_peer = td->messages_manager_->get_input_peer(as_dialog_id, AccessRights::Read);
+    CHECK(as_input_peer != nullptr);
+
+    send_query(G()->net_query_creator().create(
+        telegram_api::phone_saveDefaultGroupCallJoinAs(std::move(input_peer), std::move(as_input_peer))));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::phone_saveDefaultGroupCallJoinAs>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto success = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for SaveDefaultGroupCallJoinAsQuery: " << success;
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(uint64 id, Status status) override {
+    // td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetGroupCallJoinAsQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class CreateGroupCallQuery : public Td::ResultHandler {
   Promise<InputGroupCallId> promise_;
   DialogId dialog_id_;
@@ -1110,6 +1146,43 @@ void GroupCallManager::get_group_call_join_as(DialogId dialog_id,
   }
 
   td_->create_handler<GetGroupCallJoinAsQuery>(std::move(promise))->send(dialog_id);
+}
+
+void GroupCallManager::set_group_call_default_join_as(DialogId dialog_id, DialogId as_dialog_id,
+                                                      Promise<Unit> &&promise) {
+  if (!dialog_id.is_valid()) {
+    return promise.set_error(Status::Error(400, "Invalid chat identifier specified"));
+  }
+  if (!td_->messages_manager_->have_dialog_force(dialog_id)) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+  if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+    return promise.set_error(Status::Error(400, "Can't access chat"));
+  }
+
+  switch (as_dialog_id.get_type()) {
+    case DialogType::User:
+      if (as_dialog_id != DialogId(td_->contacts_manager_->get_my_id())) {
+        return promise.set_error(Status::Error(400, "Can't join voice chat as another user"));
+      }
+      break;
+    case DialogType::Chat:
+    case DialogType::Channel:
+      if (!td_->messages_manager_->have_dialog_force(as_dialog_id)) {
+        return promise.set_error(Status::Error(400, "Participant chat not found"));
+      }
+      break;
+    case DialogType::SecretChat:
+      return promise.set_error(Status::Error(400, "Can't join voice chat as a secret chat"));
+    default:
+      return promise.set_error(Status::Error(400, "Invalid default participant identifier specified"));
+  }
+  if (!td_->messages_manager_->have_input_peer(as_dialog_id, AccessRights::Read)) {
+    return promise.set_error(Status::Error(400, "Can't access specified default participant chat"));
+  }
+
+  td_->create_handler<SaveDefaultGroupCallJoinAsQuery>(std::move(promise))->send(dialog_id, as_dialog_id);
+  td_->messages_manager_->on_update_dialog_default_join_group_call_as_dialog_id(dialog_id, as_dialog_id, true);
 }
 
 void GroupCallManager::create_voice_chat(DialogId dialog_id, string title, int32 start_date,
@@ -2213,11 +2286,11 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
       }
     } else {
       if (!td_->messages_manager_->have_dialog_force(as_dialog_id, "join_group_call")) {
-        return promise.set_error(Status::Error(400, "Alias chat not found"));
+        return promise.set_error(Status::Error(400, "Join as chat not found"));
       }
     }
     if (!td_->messages_manager_->have_input_peer(as_dialog_id, AccessRights::Read)) {
-      return promise.set_error(Status::Error(400, "Can't access the alias participant"));
+      return promise.set_error(Status::Error(400, "Can't access the join as participant"));
     }
     if (dialog_type == DialogType::SecretChat) {
       return promise.set_error(Status::Error(400, "Can't join voice chat as a secret chat"));

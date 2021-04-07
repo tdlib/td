@@ -5974,6 +5974,14 @@ void Td::on_request(uint64 id, const td_api::getVoiceChatAvailableParticipants &
   group_call_manager_->get_group_call_join_as(DialogId(request.chat_id_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::setVoiceChatDefaultParticipant &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  group_call_manager_->set_group_call_default_join_as(
+      DialogId(request.chat_id_), group_call_manager_->get_group_call_participant_id(request.default_participant_id_),
+      std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::createVoiceChat &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.title_);

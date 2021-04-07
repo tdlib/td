@@ -4604,6 +4604,9 @@ sendCallDebugInformation call_id:int32 debug_information:string = Ok;
 //@description Returns list of participant identifiers, which can be used to join voice chats in a chat @chat_id Chat identifier
 getVoiceChatAvailableParticipants chat_id:int53 = MessageSenders;
 
+//@description Changes default participant identifier, which can be used to join voice chats in a chat @chat_id Chat identifier @default_participant_id Default group call participant identifier to join the voice chats
+setVoiceChatDefaultParticipant chat_id:int53 default_participant_id:MessageSender = Ok;
+
 //@description Creates a voice chat (a group call bound to a chat). Available only for basic groups, supergroups and channels; requires can_manage_voice_chats rights
 //@chat_id Chat identifier, in which the voice chat will be created
 //@title Group call title; if empty, chat title will be used

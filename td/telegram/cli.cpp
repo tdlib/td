@@ -2672,6 +2672,12 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::sendCallDebugInformation>(as_call_id(args), "{}"));
     } else if (op == "gvcap") {
       send_request(td_api::make_object<td_api::getVoiceChatAvailableParticipants>(as_chat_id(args)));
+    } else if (op == "svcdp") {
+      string group_call_id;
+      string participant_id;
+      get_args(args, group_call_id, participant_id);
+      send_request(td_api::make_object<td_api::setVoiceChatDefaultParticipant>(as_chat_id(args),
+                                                                               as_message_sender(participant_id)));
     } else if (op == "cvc") {
       string chat_id;
       string title;
@@ -2690,14 +2696,14 @@ class CliClient final : public Actor {
                                                                                         op == "tgcesne"));
     } else if (op == "jgc") {
       string group_call_id;
-      string participant_alias;
+      string participant_id;
       string invite_hash;
-      get_args(args, group_call_id, participant_alias, invite_hash);
+      get_args(args, group_call_id, participant_id, invite_hash);
       vector<td_api::object_ptr<td_api::groupCallPayloadFingerprint>> fingerprints;
       fingerprints.push_back(td_api::make_object<td_api::groupCallPayloadFingerprint>("hash", "setup", "fingerprint"));
       fingerprints.push_back(td_api::make_object<td_api::groupCallPayloadFingerprint>("h2", "s2", "fingerprint2"));
       send_request(td_api::make_object<td_api::joinGroupCall>(
-          as_group_call_id(group_call_id), as_message_sender(participant_alias),
+          as_group_call_id(group_call_id), as_message_sender(participant_id),
           td_api::make_object<td_api::groupCallPayload>("ufrag", "pwd", std::move(fingerprints)), group_call_source_,
           true, invite_hash));
     } else if (op == "sgct") {
