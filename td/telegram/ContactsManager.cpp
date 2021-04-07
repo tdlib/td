@@ -7861,7 +7861,7 @@ void ContactsManager::on_load_contacts_from_database(string value) {
 }
 
 void ContactsManager::on_get_contacts_finished(size_t expected_contact_count) {
-  LOG(INFO) << "Finished to get " << contacts_hints_.size() << " contacts out of " << expected_contact_count;
+  LOG(INFO) << "Finished to get " << contacts_hints_.size() << " contacts out of expected " << expected_contact_count;
   are_contacts_loaded_ = true;
   auto promises = std::move(load_contacts_queries_);
   load_contacts_queries_.clear();
