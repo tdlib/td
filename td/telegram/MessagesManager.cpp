@@ -22166,7 +22166,6 @@ void MessagesManager::preload_older_messages(const Dialog *d, MessageId min_mess
 
 unique_ptr<MessagesManager::Message> MessagesManager::parse_message(DialogId dialog_id, const BufferSlice &value,
                                                                     bool is_scheduled) {
-  LOG(INFO) << "Loaded message of size " << value.size() << " from database";
   auto m = make_unique<Message>();
 
   auto status = log_event_parse(*m, value.as_slice());
@@ -22183,6 +22182,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::parse_message(DialogId dia
     return nullptr;
   }
 
+  LOG(INFO) << "Loaded " << m->message_id << " in " << dialog_id << " of size " << value.size() << " from database";
   return m;
 }
 
@@ -31987,6 +31987,9 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 
   if (!message_id.is_scheduled() && message_id <= d->last_clear_history_message_id) {
     LOG(INFO) << "Skip adding cleared " << message_id << " to " << dialog_id << " from " << source;
+    if (message->from_database) {
+      delete_message_from_database(d, message_id, message.get(), true);
+    }
     debug_add_message_to_dialog_fail_reason_ = "cleared full history";
     return nullptr;
   }
