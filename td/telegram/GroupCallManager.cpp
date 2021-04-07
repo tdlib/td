@@ -1731,7 +1731,6 @@ void GroupCallManager::process_group_call_participants(
       for (auto participant_it = group_participants.begin(); participant_it != group_participants.end();) {
         auto &participant = *participant_it;
         if (old_participant_dialog_ids.count(participant.dialog_id) == 0) {
-          CHECK(!participant.order.is_valid() || participant.order >= min_order);
           ++participant_it;
           continue;
         }
