@@ -2582,6 +2582,10 @@ FullMessageId get_message_content_replied_message_id(DialogId dialog_id, const M
       return {dialog_id, static_cast<const MessageGameScore *>(content)->game_message_id};
     case MessageContentType::PaymentSuccessful: {
       auto *m = static_cast<const MessagePaymentSuccessful *>(content);
+      if (!m->invoice_message_id.is_valid()) {
+        return FullMessageId();
+      }
+
       auto reply_in_dialog_id = m->invoice_dialog_id.is_valid() ? m->invoice_dialog_id : dialog_id;
       return {reply_in_dialog_id, m->invoice_message_id};
     }
@@ -4357,7 +4361,10 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
                                       is_video);
     }
     case telegram_api::messageActionPaymentSent::ID: {
-      LOG_IF(ERROR, td->auth_manager_->is_bot()) << "Receive MessageActionPaymentSent in " << owner_dialog_id;
+      if (td->auth_manager_->is_bot()) {
+        LOG(ERROR) << "Receive MessageActionPaymentSent in " << owner_dialog_id;
+        break;
+      }
       if (!reply_to_message_id.is_valid()) {
         LOG(ERROR) << "Receive succesful payment message with " << reply_to_message_id << " in " << owner_dialog_id;
         reply_to_message_id = MessageId();
@@ -4367,14 +4374,13 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
                                                        std::move(payment_sent->currency_), payment_sent->total_amount_);
     }
     case telegram_api::messageActionPaymentSentMe::ID: {
-      LOG_IF(ERROR, !td->auth_manager_->is_bot()) << "Receive MessageActionPaymentSentMe in " << owner_dialog_id;
-      if (!reply_to_message_id.is_valid()) {
-        LOG(ERROR) << "Receive succesful payment message with " << reply_to_message_id << " in " << owner_dialog_id;
-        reply_to_message_id = MessageId();
+      if (!td->auth_manager_->is_bot()) {
+        LOG(ERROR) << "Receive MessageActionPaymentSentMe in " << owner_dialog_id;
+        break;
       }
       auto payment_sent = move_tl_object_as<telegram_api::messageActionPaymentSentMe>(action);
       auto result = td::make_unique<MessagePaymentSuccessful>(
-          reply_in_dialog_id, reply_to_message_id, std::move(payment_sent->currency_), payment_sent->total_amount_);
+          DialogId(), MessageId(), std::move(payment_sent->currency_), payment_sent->total_amount_);
       result->invoice_payload = payment_sent->payload_.as_slice().str();
       result->shipping_option_id = std::move(payment_sent->shipping_option_id_);
       result->order_info = get_order_info(std::move(payment_sent->info_));
@@ -4621,13 +4627,12 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     }
     case MessageContentType::PaymentSuccessful: {
       const MessagePaymentSuccessful *m = static_cast<const MessagePaymentSuccessful *>(content);
-      auto invoice_dialog_id = m->invoice_dialog_id.is_valid() ? m->invoice_dialog_id : dialog_id;
       if (td->auth_manager_->is_bot()) {
         return make_tl_object<td_api::messagePaymentSuccessfulBot>(
-            invoice_dialog_id.get(), m->invoice_message_id.get(), m->currency, m->total_amount, m->invoice_payload,
-            m->shipping_option_id, get_order_info_object(m->order_info), m->telegram_payment_charge_id,
-            m->provider_payment_charge_id);
+            m->currency, m->total_amount, m->invoice_payload, m->shipping_option_id,
+            get_order_info_object(m->order_info), m->telegram_payment_charge_id, m->provider_payment_charge_id);
       } else {
+        auto invoice_dialog_id = m->invoice_dialog_id.is_valid() ? m->invoice_dialog_id : dialog_id;
         return make_tl_object<td_api::messagePaymentSuccessful>(invoice_dialog_id.get(), m->invoice_message_id.get(),
                                                                 m->currency, m->total_amount);
       }
