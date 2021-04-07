@@ -2428,9 +2428,9 @@ class MessagesManager : public Actor {
   Dialog *get_dialog(DialogId dialog_id);
   const Dialog *get_dialog(DialogId dialog_id) const;
 
-  Dialog *get_dialog_force(DialogId dialog_id);
+  Dialog *get_dialog_force(DialogId dialog_id, const char *source = "get_dialog_force");
 
-  Dialog *on_load_dialog_from_database(DialogId dialog_id, const BufferSlice &value);
+  Dialog *on_load_dialog_from_database(DialogId dialog_id, const BufferSlice &value, const char *source);
 
   void on_get_dialogs_from_database(FolderId folder_id, int32 limit, DialogDbGetDialogsResult &&dialogs,
                                     Promise<Unit> &&promise);
