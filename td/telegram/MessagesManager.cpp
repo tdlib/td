@@ -6776,7 +6776,7 @@ void MessagesManager::on_update_channel_too_long(tl_object_ptr<telegram_api::upd
   if (d == nullptr) {
     auto pts = load_channel_pts(dialog_id);
     if (pts > 0) {
-      d = add_dialog(dialog_id);
+      d = add_dialog(dialog_id, "on_update_channel_too_long");
       CHECK(d != nullptr);
       CHECK(d->pts == pts);
       update_dialog_pos(d, "on_update_channel_too_long");
@@ -7402,7 +7402,7 @@ void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_p
         return;
       }
 
-      d = add_dialog(dialog_id);
+      d = add_dialog(dialog_id, "add_pending_channel_update");
       CHECK(d != nullptr);
       CHECK(d->pts == pts);
       update_dialog_pos(d, "add_pending_channel_update");
@@ -14451,7 +14451,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     bool need_update_dialog_pos = false;
     being_added_dialog_id_ = dialog_id;
     if (d == nullptr) {
-      d = add_dialog(dialog_id);
+      d = add_dialog(dialog_id, "on_get_dialogs");
       need_update_dialog_pos = true;
     } else {
       LOG(INFO) << "Receive already created " << dialog_id;
@@ -15428,7 +15428,7 @@ bool MessagesManager::load_dialog(DialogId dialog_id, int left_tries, Promise<Un
         return false;
       }
 
-      add_dialog(dialog_id);
+      add_dialog(dialog_id, "load_dialog");
       return true;
     }
 
@@ -19394,7 +19394,7 @@ DialogId MessagesManager::migrate_dialog_to_megagroup(DialogId dialog_id, Promis
   auto new_dialog_id = DialogId(channel_id);
   Dialog *d = get_dialog_force(new_dialog_id);
   if (d == nullptr) {
-    d = add_dialog(new_dialog_id);
+    d = add_dialog(new_dialog_id, "migrate_dialog_to_megagroup");
     if (d->pts == 0) {
       d->pts = 1;
       if (is_debug_message_op_enabled()) {
@@ -31943,7 +31943,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(DialogId dialog
 
   Dialog *d = get_dialog_force(dialog_id);
   if (d == nullptr) {
-    d = add_dialog(dialog_id);
+    d = add_dialog(dialog_id, "add_message_to_dialog");
     *need_update_dialog_pos = true;
   } else {
     CHECK(d->dialog_id == dialog_id);
@@ -33795,7 +33795,7 @@ void MessagesManager::force_create_dialog(DialogId dialog_id, const char *source
       return;
     }
 
-    d = add_dialog(dialog_id);
+    d = add_dialog(dialog_id, "force_create_dialog");
     update_dialog_pos(d, "force_create_dialog");
 
     if (dialog_id.get_type() == DialogType::SecretChat && !d->notification_settings.is_synchronized &&
@@ -33855,7 +33855,7 @@ void MessagesManager::force_create_dialog(DialogId dialog_id, const char *source
   }
 }
 
-MessagesManager::Dialog *MessagesManager::add_dialog(DialogId dialog_id) {
+MessagesManager::Dialog *MessagesManager::add_dialog(DialogId dialog_id, const char *source) {
   LOG(DEBUG) << "Creating " << dialog_id;
   CHECK(!have_dialog(dialog_id));
 
@@ -33864,7 +33864,7 @@ MessagesManager::Dialog *MessagesManager::add_dialog(DialogId dialog_id) {
     auto r_value = G()->td_db()->get_dialog_db_sync()->get_dialog(dialog_id);
     if (r_value.is_ok()) {
       LOG(INFO) << "Synchronously loaded " << dialog_id << " from database";
-      return add_new_dialog(parse_dialog(dialog_id, r_value.ok()), true);
+      return add_new_dialog(parse_dialog(dialog_id, r_value.ok()), true, source);
     }
   }
 
@@ -33872,10 +33872,11 @@ MessagesManager::Dialog *MessagesManager::add_dialog(DialogId dialog_id) {
   d->dialog_id = dialog_id;
   invalidate_message_indexes(d.get());
 
-  return add_new_dialog(std::move(d), false);
+  return add_new_dialog(std::move(d), false, source);
 }
 
-MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d, bool is_loaded_from_database) {
+MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d, bool is_loaded_from_database,
+                                                         const char *source) {
   auto dialog_id = d->dialog_id;
   LOG_CHECK(is_inited_) << dialog_id << ' ' << is_loaded_from_database;
   switch (dialog_id.get_type()) {
@@ -35054,7 +35055,7 @@ MessagesManager::Dialog *MessagesManager::on_load_dialog_from_database(DialogId 
   }
 
   LOG(INFO) << "Add new " << dialog_id << " from database";
-  return add_new_dialog(parse_dialog(dialog_id, value), true);
+  return add_new_dialog(parse_dialog(dialog_id, value), true, "on_load_dialog_from_database");
 }
 
 const DialogFilter *MessagesManager::get_server_dialog_filter(DialogFilterId dialog_filter_id) const {
@@ -35779,7 +35780,7 @@ void MessagesManager::on_get_channel_difference(
 
   bool need_update_dialog_pos = false;
   if (d == nullptr) {
-    d = add_dialog(dialog_id);
+    d = add_dialog(dialog_id, "on_get_channel_difference");
     need_update_dialog_pos = true;
   }
 
