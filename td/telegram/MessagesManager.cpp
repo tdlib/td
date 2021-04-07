@@ -13490,14 +13490,14 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   }
 
   int32 ttl_period = message_info.ttl_period;
-  if (ttl_period < 0 || message_id.is_scheduled()) {
+  if (ttl_period < 0 || (message_id.is_scheduled() && ttl_period != 0)) {
     LOG(ERROR) << "Wrong TTL period = " << ttl_period << " received in " << message_id << " in " << dialog_id;
     ttl_period = 0;
   }
 
   int32 ttl = message_info.ttl;
   bool is_content_secret = is_secret_message_content(ttl, content_type);  // should be calculated before TTL is adjusted
-  if (ttl < 0 || message_id.is_scheduled()) {
+  if (ttl < 0 || (message_id.is_scheduled() && ttl != 0)) {
     LOG(ERROR) << "Wrong TTL = " << ttl << " received in " << message_id << " in " << dialog_id;
     ttl = 0;
   } else if (ttl > 0) {
