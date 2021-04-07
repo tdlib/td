@@ -480,7 +480,7 @@ chatMemberStatusRestricted is_member:Bool restricted_until_date:int32 permission
 //@description The user or the chat is not a chat member
 chatMemberStatusLeft = ChatMemberStatus;
 
-//@description The user or the chat was banned (and hence is not a member of the chat). Implies the user can't return to the chat, view messages, or be used as an alias to join a voice chat of the chat
+//@description The user or the chat was banned (and hence is not a member of the chat). Implies the user can't return to the chat, view messages, or be used as a participant identifier to join a voice chat of the chat
 //@banned_until_date Point in time (Unix timestamp) when the user will be unbanned; 0 if never. If the user is banned for more than 366 days or for less than 30 seconds from the current time, the user is considered to be banned forever. Always 0 in basic groups
 chatMemberStatusBanned banned_until_date:int32 = ChatMemberStatus;
 
@@ -895,8 +895,8 @@ chatPosition list:ChatList order:int64 is_pinned:Bool source:ChatSource = ChatPo
 //@description Describes a voice chat
 //@group_call_id Group call identifier of an active voice chat; 0 if none. Full informationa about the voice chat can be received through the method getGroupCall
 //@has_participants True, if the voice chat has participants
-//@default_participant_alias Default group call participant identifier to join the voice chat; may be null
-voiceChat group_call_id:int32 has_participants:Bool default_participant_alias:MessageSender = VoiceChat;
+//@default_participant_id Default group call participant identifier to join the voice chat; may be null
+voiceChat group_call_id:int32 has_participants:Bool default_participant_id:MessageSender = VoiceChat;
 
 
 //@description A chat. (Can be a private chat, basic group, supergroup, or secret chat)
@@ -2140,8 +2140,8 @@ callStateDiscarded reason:CallDiscardReason need_rating:Bool need_debug_informat
 callStateError error:error = CallState;
 
 
-//@description Describes a recently speaking participant in a group call @speaker Speaking participantt @is_speaking True, is the user has spoken recently
-groupCallRecentSpeaker speaker:MessageSender is_speaking:Bool = GroupCallRecentSpeaker;
+//@description Describes a recently speaking participant in a group call @participant_id Group call participant identifier @is_speaking True, is the user has spoken recently
+groupCallRecentSpeaker participant_id:MessageSender is_speaking:Bool = GroupCallRecentSpeaker;
 
 //@description Describes a group call
 //@id Group call identifier
@@ -2184,7 +2184,7 @@ groupCallJoinResponseStream = GroupCallJoinResponse;
 
 
 //@description Represents a group call participant
-//@participant Identifier of the group call participant
+//@participant_id Identifier of the group call participant
 //@source User's synchronization source
 //@bio The participant user's bio or the participant chat's description
 //@is_current_user True, if the participant is the current user
@@ -2199,7 +2199,7 @@ groupCallJoinResponseStream = GroupCallJoinResponse;
 //@can_unmute_self True, if the participant is muted for all users, but can unmute themself
 //@volume_level Participant's volume level; 1-20000 in hundreds of percents
 //@order User's order in the group call participant list. Orders must be compared lexicographically. The bigger is order, the higher is user in the list. If order is empty, the user must be removed from the participant list
-groupCallParticipant participant:MessageSender source:int32 bio:string is_current_user:Bool is_speaking:Bool is_hand_raised:Bool can_be_muted_for_all_users:Bool can_be_unmuted_for_all_users:Bool can_be_muted_for_current_user:Bool can_be_unmuted_for_current_user:Bool is_muted_for_all_users:Bool is_muted_for_current_user:Bool can_unmute_self:Bool volume_level:int32 order:string = GroupCallParticipant;
+groupCallParticipant participant_id:MessageSender source:int32 bio:string is_current_user:Bool is_speaking:Bool is_hand_raised:Bool can_be_muted_for_all_users:Bool can_be_unmuted_for_all_users:Bool can_be_muted_for_current_user:Bool can_be_unmuted_for_current_user:Bool is_muted_for_all_users:Bool is_muted_for_current_user:Bool can_unmute_self:Bool volume_level:int32 order:string = GroupCallParticipant;
 
 
 //@class CallProblem @description Describes the exact type of a problem with a call
@@ -2506,11 +2506,11 @@ chatEventVoiceChatCreated group_call_id:int32 = ChatEventAction;
 //@description A voice chat was discarded @group_call_id Identifier of the voice chat. The voice chat can be received through the method getGroupCall
 chatEventVoiceChatDiscarded group_call_id:int32 = ChatEventAction;
 
-//@description A voice chat participant was muted or unmuted @participant Identifier of the affected group call participant @is_muted New value of is_muted
-chatEventVoiceChatParticipantIsMutedToggled participant:MessageSender is_muted:Bool = ChatEventAction;
+//@description A voice chat participant was muted or unmuted @participant_id Identifier of the affected group call participant @is_muted New value of is_muted
+chatEventVoiceChatParticipantIsMutedToggled participant_id:MessageSender is_muted:Bool = ChatEventAction;
 
-//@description A voice chat participant volume level was changed @participant Identifier of the affected group call participant @volume_level New value of volume_level; 1-20000 in hundreds of percents
-chatEventVoiceChatParticipantVolumeLevelChanged participant:MessageSender volume_level:int32 = ChatEventAction;
+//@description A voice chat participant volume level was changed @participant_id Identifier of the affected group call participant @volume_level New value of volume_level; 1-20000 in hundreds of percents
+chatEventVoiceChatParticipantVolumeLevelChanged participant_id:MessageSender volume_level:int32 = ChatEventAction;
 
 //@description The mute_new_participants setting of a voice chat was toggled @mute_new_participants New value of the mute_new_participants setting
 chatEventVoiceChatMuteNewParticipantsToggled mute_new_participants:Bool = ChatEventAction;
@@ -4601,8 +4601,8 @@ sendCallRating call_id:int32 rating:int32 comment:string problems:vector<CallPro
 sendCallDebugInformation call_id:int32 debug_information:string = Ok;
 
 
-//@description Returns list of user and chat, which can be used as aliases to join a voice chat in the chat @chat_id Chat identifier
-getAvailableVoiceChatAliases chat_id:int53 = MessageSenders;
+//@description Returns list of participant identifiers, which can be used to join voice chats in a chat @chat_id Chat identifier
+getVoiceChatAvailableParticipants chat_id:int53 = MessageSenders;
 
 //@description Creates a voice chat (a group call bound to a chat). Available only for basic groups, supergroups and channels; requires can_manage_voice_chats rights
 //@chat_id Chat identifier, in which the voice chat will be created
@@ -4622,12 +4622,12 @@ toggleGroupCallEnabledStartNotification group_call_id:int32 enabled_start_notifi
 
 //@description Joins a group call
 //@group_call_id Group call identifier
-//@participant_alias Identifier of the group call participant, which will be used to join the call; voice chats only
+//@participant_id Identifier of a group call participant, which will be used to join the call; voice chats only
 //@payload Group join payload; received from tgcalls
 //@source Caller synchronization source identifier; received from tgcalls
 //@is_muted True, if the user's microphone is muted
 //@invite_hash If non-empty, invite hash to be used to join the group call without being muted by administrators
-joinGroupCall group_call_id:int32 participant_alias:MessageSender payload:groupCallPayload source:int32 is_muted:Bool invite_hash:string = GroupCallJoinResponse;
+joinGroupCall group_call_id:int32 participant_id:MessageSender payload:groupCallPayload source:int32 is_muted:Bool invite_hash:string = GroupCallJoinResponse;
 
 //@description Sets group call title. Requires groupCall.can_be_managed group call flag @group_call_id Group call identifier @title New group call title; 1-64 characters
 setGroupCallTitle group_call_id:int32 title:string = Ok;
@@ -4659,17 +4659,17 @@ endGroupCallRecording group_call_id:int32 = Ok;
 setGroupCallParticipantIsSpeaking group_call_id:int32 source:int32 is_speaking:Bool = Ok;
 
 //@description Toggles whether a group call participant is muted, unmuted, or allowed to unmute themself
-//@group_call_id Group call identifier @participant Participant identifier @is_muted Pass true if the user must be muted and false otherwise
-toggleGroupCallParticipantIsMuted group_call_id:int32 participant:MessageSender is_muted:Bool = Ok;
+//@group_call_id Group call identifier @participant_id Participant identifier @is_muted Pass true if the user must be muted and false otherwise
+toggleGroupCallParticipantIsMuted group_call_id:int32 participant_id:MessageSender is_muted:Bool = Ok;
 
 //@description Changes a group call participant's volume level. If the current user can manage the group call, then the participant's volume level will be changed for all users with default volume level
-//@group_call_id Group call identifier @participant Participant identifier @volume_level New participant's volume level; 1-20000 in hundreds of percents
-setGroupCallParticipantVolumeLevel group_call_id:int32 participant:MessageSender volume_level:int32 = Ok;
+//@group_call_id Group call identifier @participant_id Participant identifier @volume_level New participant's volume level; 1-20000 in hundreds of percents
+setGroupCallParticipantVolumeLevel group_call_id:int32 participant_id:MessageSender volume_level:int32 = Ok;
 
 //@description Toggles whether a group call participant hand is rased
-//@group_call_id Group call identifier @participant Participant identifier
+//@group_call_id Group call identifier @participant_id Participant identifier
 //@is_hand_raised Pass true if the user's hand should be raised. Only self hand can be raised. Requires groupCall.can_be_managed group call flag to lower other's hand
-toggleGroupCallParticipantIsHandRaised group_call_id:int32 participant:MessageSender is_hand_raised:Bool = Ok;
+toggleGroupCallParticipantIsHandRaised group_call_id:int32 participant_id:MessageSender is_hand_raised:Bool = Ok;
 
 //@description Loads more group call participants. The loaded participants will be received through updates. Use the field groupCall.loaded_all_participants to check whether all participants has already been loaded
 //@group_call_id Group call identifier. The group call must be previously received through getGroupCall and must be joined or being joined
