@@ -34337,11 +34337,13 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
                       << ", max_notification_message_id = " << d->max_notification_message_id;
 
   if (d->messages != nullptr) {
-    CHECK(d->messages->message_id == last_message_id);
-    LOG_CHECK(d->messages->left == nullptr)
-        << (d->messages->left->debug_source != nullptr ? d->messages->left->debug_source : "null");
-    LOG_CHECK(d->messages->right == nullptr)
-        << (d->messages->right->debug_source != nullptr ? d->messages->right->debug_source : "null");
+    auto get_debug_source = [](const unique_ptr<Message> &message) {
+      return message->debug_source != nullptr ? message->debug_source : "null";
+    };
+    LOG_CHECK(d->messages->message_id == last_message_id)
+        << d->messages->message_id << ' ' << last_message_id << ' ' << get_debug_source(d->messages);
+    LOG_CHECK(d->messages->left == nullptr) << get_debug_source(d->messages->left);
+    LOG_CHECK(d->messages->right == nullptr) << get_debug_source(d->messages->right);
   }
 }
 
