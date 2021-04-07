@@ -1828,7 +1828,9 @@ class CliClient final : public Actor {
       string chat_id;
       string message_id;
       get_args(args, chat_id, message_id);
-      send_request(td_api::make_object<td_api::getPaymentForm>(as_chat_id(chat_id), as_message_id(message_id)));
+      send_request(td_api::make_object<td_api::getPaymentForm>(
+          as_chat_id(chat_id), as_message_id(message_id),
+          td_api::make_object<td_api::paymentFormTheme>(0, -1, 256, 65536, 123456789, 65535)));
     } else if (op == "voi") {
       string chat_id;
       string message_id;

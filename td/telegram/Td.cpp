@@ -7736,7 +7736,8 @@ void Td::on_request(uint64 id, td_api::getBankCardInfo &request) {
 void Td::on_request(uint64 id, const td_api::getPaymentForm &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  get_payment_form(this, {DialogId(request.chat_id_), MessageId(request.message_id_)}, std::move(promise));
+  get_payment_form(this, {DialogId(request.chat_id_), MessageId(request.message_id_)}, request.theme_,
+                   std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::validateOrderInfo &request) {

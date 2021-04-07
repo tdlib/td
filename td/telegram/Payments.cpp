@@ -266,7 +266,8 @@ class GetPaymentFormQuery : public Td::ResultHandler {
   explicit GetPaymentFormQuery(Promise<tl_object_ptr<td_api::paymentForm>> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, ServerMessageId server_message_id) {
+  void send(DialogId dialog_id, ServerMessageId server_message_id,
+            tl_object_ptr<telegram_api::dataJSON> &&theme_parameters) {
     dialog_id_ = dialog_id;
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
@@ -274,8 +275,11 @@ class GetPaymentFormQuery : public Td::ResultHandler {
     }
 
     int32 flags = 0;
-    send_query(G()->net_query_creator().create(
-        telegram_api::payments_getPaymentForm(flags, std::move(input_peer), server_message_id.get(), nullptr)));
+    if (theme_parameters != nullptr) {
+      flags |= telegram_api::payments_getPaymentForm::THEME_PARAMS_MASK;
+    }
+    send_query(G()->net_query_creator().create(telegram_api::payments_getPaymentForm(
+        flags, std::move(input_peer), server_message_id.get(), std::move(theme_parameters))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -1134,9 +1138,24 @@ void answer_pre_checkout_query(Td *td, int64 pre_checkout_query_id, const string
   td->create_handler<SetBotPreCheckoutAnswerQuery>(std::move(promise))->send(pre_checkout_query_id, error_message);
 }
 
-void get_payment_form(Td *td, FullMessageId full_message_id, Promise<tl_object_ptr<td_api::paymentForm>> &&promise) {
+void get_payment_form(Td *td, FullMessageId full_message_id, const td_api::object_ptr<td_api::paymentFormTheme> &theme,
+                      Promise<tl_object_ptr<td_api::paymentForm>> &&promise) {
   TRY_RESULT_PROMISE(promise, server_message_id, td->messages_manager_->get_invoice_message_id(full_message_id));
-  td->create_handler<GetPaymentFormQuery>(std::move(promise))->send(full_message_id.get_dialog_id(), server_message_id);
+
+  tl_object_ptr<telegram_api::dataJSON> theme_parameters;
+  if (theme != nullptr) {
+    theme_parameters = make_tl_object<telegram_api::dataJSON>(string());
+    theme_parameters->data_ = json_encode<string>(json_object([&theme](auto &o) {
+      o("bg_color", theme->background_color_);
+      o("text_color", theme->text_color_);
+      o("hint_color", theme->hint_color_);
+      o("link_color", theme->link_color_);
+      o("button_color", theme->button_color_);
+      o("button_text_color", theme->button_text_color_);
+    }));
+  }
+  td->create_handler<GetPaymentFormQuery>(std::move(promise))
+      ->send(full_message_id.get_dialog_id(), server_message_id, std::move(theme_parameters));
 }
 
 void validate_order_info(Td *td, FullMessageId full_message_id, tl_object_ptr<td_api::orderInfo> order_info,
