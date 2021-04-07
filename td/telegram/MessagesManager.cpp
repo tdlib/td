@@ -12883,7 +12883,7 @@ void MessagesManager::delete_secret_messages(SecretChatId secret_chat_id, std::v
   CHECK(secret_chat_id.is_valid());
 
   DialogId dialog_id(secret_chat_id);
-  if (!have_dialog_force(dialog_id)) {
+  if (!have_dialog_force(dialog_id, "delete_secret_messages")) {
     LOG(ERROR) << "Ignore delete secret messages in unknown " << dialog_id;
     promise.set_value(Unit());
     return;
@@ -12930,7 +12930,7 @@ void MessagesManager::delete_secret_chat_history(SecretChatId secret_chat_id, bo
   CHECK(!last_message_id.is_scheduled());
 
   DialogId dialog_id(secret_chat_id);
-  if (!have_dialog_force(dialog_id)) {
+  if (!have_dialog_force(dialog_id, "delete_secret_chat_history")) {
     LOG(ERROR) << "Ignore delete history in unknown " << dialog_id;
     promise.set_value(Unit());
     return;
@@ -15385,7 +15385,7 @@ bool MessagesManager::load_dialog(DialogId dialog_id, int left_tries, Promise<Un
     return false;
   }
 
-  if (!have_dialog_force(dialog_id)) {  // TODO remove _force
+  if (!have_dialog_force(dialog_id, "load_dialog")) {  // TODO remove _force
     if (G()->parameters().use_message_db) {
       //      TODO load dialog from database, DialogLoader
       //      send_closure_later(actor_id(this), &MessagesManager::load_dialog_from_database, dialog_id,
@@ -15470,7 +15470,7 @@ void MessagesManager::load_dialog_filter(const DialogFilter *filter, bool force,
   for (auto &input_dialog_id : needed_dialog_ids) {
     auto dialog_id = input_dialog_id.get_dialog_id();
     // TODO load dialogs asynchronously
-    if (!have_dialog_force(dialog_id)) {
+    if (!have_dialog_force(dialog_id, "load_dialog_filter")) {
       if (dialog_id.get_type() == DialogType::SecretChat) {
         if (have_dialog_info_force(dialog_id)) {
           force_create_dialog(dialog_id, "load_dialog_filter");
@@ -15624,7 +15624,7 @@ std::pair<int32, vector<DialogId>> MessagesManager::get_dialogs(DialogListId dia
     vector<InputDialogId> input_dialog_ids;
     for (auto &input_dialog_id : filter->pinned_dialog_ids) {
       auto dialog_id = input_dialog_id.get_dialog_id();
-      if (!have_dialog_force(dialog_id)) {
+      if (!have_dialog_force(dialog_id, "get_dialogs")) {
         if (dialog_id.get_type() == DialogType::SecretChat) {
           if (have_dialog_info_force(dialog_id)) {
             force_create_dialog(dialog_id, "get_dialogs");
@@ -17286,7 +17286,7 @@ void MessagesManager::get_messages_from_server(vector<FullMessageId> &&message_i
 
   for (auto &it : scheduled_message_ids) {
     auto dialog_id = it.first;
-    have_dialog_force(dialog_id);
+    have_dialog_force(dialog_id, "get_messages_from_server");
     auto input_peer = get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
       LOG(ERROR) << "Can't find info about " << dialog_id << " to get a message from it";
@@ -19019,7 +19019,7 @@ Status MessagesManager::toggle_message_sender_is_blocked(const td_api::object_pt
       break;
     case td_api::messageSenderChat::ID: {
       auto sender_dialog_id = DialogId(static_cast<const td_api::messageSenderChat *>(sender.get())->chat_id_);
-      if (!have_dialog_force(sender_dialog_id)) {
+      if (!have_dialog_force(sender_dialog_id, "toggle_message_sender_is_blocked")) {
         return Status::Error(400, "Sender chat not found");
       }
 
@@ -21721,7 +21721,7 @@ MessagesManager::FoundMessages MessagesManager::offline_search_messages(DialogId
     promise.set_value(Unit());
     return {};
   }
-  if (dialog_id != DialogId() && !have_dialog_force(dialog_id)) {
+  if (dialog_id != DialogId() && !have_dialog_force(dialog_id, "offline_search_messages")) {
     promise.set_error(Status::Error(400, "Chat not found"));
     return {};
   }
@@ -26685,7 +26685,7 @@ Result<MessageId> MessagesManager::add_local_message(
         if (sender_dialog_id.get_type() != DialogType::Channel) {
           return Status::Error(400, "Sender chat must be a supergroup or channel");
         }
-        if (!have_dialog_force(sender_dialog_id)) {
+        if (!have_dialog_force(sender_dialog_id, "add_local_message")) {
           return Status::Error(400, "Sender chat not found");
         }
         break;
@@ -26796,7 +26796,7 @@ void MessagesManager::get_message_file_type(const string &message_file_head,
 }
 
 Status MessagesManager::can_import_messages(DialogId dialog_id) {
-  if (!have_dialog_force(dialog_id)) {
+  if (!have_dialog_force(dialog_id, "can_import_messages")) {
     return Status::Error(400, "Chat not found");
   }
 
@@ -27118,7 +27118,7 @@ Result<MessagesManager::MessagePushNotificationInfo> MessagesManager::get_messag
   if (d == nullptr) {
     return Status::Error(406, "Ignore notification in unknown chat");
   }
-  if (sender_dialog_id.is_valid() && !have_dialog_force(sender_dialog_id)) {
+  if (sender_dialog_id.is_valid() && !have_dialog_force(sender_dialog_id, "get_message_push_notification_info")) {
     return Status::Error(406, "Ignore notification sent by unknown chat");
   }
 
@@ -30518,7 +30518,7 @@ bool MessagesManager::is_dialog_action_unneeded(DialogId dialog_id) const {
 
 void MessagesManager::send_dialog_action(DialogId dialog_id, MessageId top_thread_message_id, DialogAction action,
                                          Promise<Unit> &&promise) {
-  if (!have_dialog_force(dialog_id)) {
+  if (!have_dialog_force(dialog_id, "send_dialog_action")) {
     return promise.set_error(Status::Error(5, "Chat not found"));
   }
   if (top_thread_message_id != MessageId() &&
@@ -30825,7 +30825,7 @@ void MessagesManager::set_dialog_photo(DialogId dialog_id, const tl_object_ptr<t
                                        Promise<Unit> &&promise) {
   LOG(INFO) << "Receive setChatPhoto request to change photo of " << dialog_id;
 
-  if (!have_dialog_force(dialog_id)) {
+  if (!have_dialog_force(dialog_id, "set_dialog_photo")) {
     return promise.set_error(Status::Error(3, "Chat not found"));
   }
 
@@ -30940,7 +30940,7 @@ void MessagesManager::upload_dialog_photo(DialogId dialog_id, FileId file_id, bo
 void MessagesManager::set_dialog_title(DialogId dialog_id, const string &title, Promise<Unit> &&promise) {
   LOG(INFO) << "Receive setChatTitle request to change title of " << dialog_id << " to \"" << title << '"';
 
-  if (!have_dialog_force(dialog_id)) {
+  if (!have_dialog_force(dialog_id, "set_dialog_title")) {
     return promise.set_error(Status::Error(3, "Chat not found"));
   }
 
@@ -31056,7 +31056,7 @@ void MessagesManager::set_dialog_permissions(DialogId dialog_id,
   LOG(INFO) << "Receive setChatPermissions request to change permissions of " << dialog_id << " to "
             << to_string(permissions);
 
-  if (!have_dialog_force(dialog_id)) {
+  if (!have_dialog_force(dialog_id, "set_dialog_permissions")) {
     return promise.set_error(Status::Error(3, "Chat not found"));
   }
   if (!have_input_peer(dialog_id, AccessRights::Write)) {
@@ -31110,7 +31110,7 @@ void MessagesManager::set_dialog_description(DialogId dialog_id, const string &d
   LOG(INFO) << "Receive setChatDescription request to set description of " << dialog_id << " to \"" << description
             << '"';
 
-  if (!have_dialog_force(dialog_id)) {
+  if (!have_dialog_force(dialog_id, "set_dialog_description")) {
     return promise.set_error(Status::Error(3, "Chat not found"));
   }
 
@@ -31319,7 +31319,7 @@ int64 MessagesManager::get_dialog_event_log(DialogId dialog_id, const string &qu
     return 0;
   }
 
-  if (!have_dialog_force(dialog_id)) {
+  if (!have_dialog_force(dialog_id, "get_dialog_event_log")) {
     promise.set_error(Status::Error(3, "Chat not found"));
     return 0;
   }
@@ -34958,8 +34958,8 @@ const MessagesManager::Dialog *MessagesManager::get_dialog(DialogId dialog_id) c
   return it == dialogs_.end() ? nullptr : it->second.get();
 }
 
-bool MessagesManager::have_dialog_force(DialogId dialog_id) {
-  return loaded_dialogs_.count(dialog_id) > 0 || get_dialog_force(dialog_id, "have_dialog_force") != nullptr;
+bool MessagesManager::have_dialog_force(DialogId dialog_id, const char *source) {
+  return loaded_dialogs_.count(dialog_id) > 0 || get_dialog_force(dialog_id, source) != nullptr;
 }
 
 MessagesManager::Dialog *MessagesManager::get_dialog_force(DialogId dialog_id, const char *source) {
@@ -36777,7 +36777,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         auto dialog_id = log_event.dialog_id_;
         bool have_info = dialog_id.get_type() == DialogType::User
                              ? td_->contacts_manager_->have_user_force(dialog_id.get_user_id())
-                             : have_dialog_force(dialog_id);
+                             : have_dialog_force(dialog_id, "ToggleDialogIsMarkedAsUnreadOnServerLogEvent");
         if (!have_info || !have_input_peer(dialog_id, AccessRights::Know)) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
@@ -37065,7 +37065,7 @@ bool MessagesManager::load_recently_found_dialogs(Promise<Unit> &promise) {
 }
 
 Status MessagesManager::add_recently_found_dialog(DialogId dialog_id) {
-  if (!have_dialog_force(dialog_id)) {
+  if (!have_dialog_force(dialog_id, "add_recently_found_dialog")) {
     return Status::Error(5, "Chat not found");
   }
   if (add_recently_found_dialog_internal(dialog_id)) {
@@ -37076,7 +37076,7 @@ Status MessagesManager::add_recently_found_dialog(DialogId dialog_id) {
 }
 
 Status MessagesManager::remove_recently_found_dialog(DialogId dialog_id) {
-  if (!have_dialog_force(dialog_id)) {
+  if (!have_dialog_force(dialog_id, "remove_recently_found_dialog")) {
     return Status::Error(5, "Chat not found");
   }
   if (remove_recently_found_dialog_internal(dialog_id)) {

@@ -78,7 +78,7 @@ bool resolve_dependencies_force(Td *td, const Dependencies &dependencies, const 
     }
   }
   for (auto dialog_id : dependencies.dialog_ids) {
-    if (dialog_id.is_valid() && !td->messages_manager_->have_dialog_force(dialog_id)) {
+    if (dialog_id.is_valid() && !td->messages_manager_->have_dialog_force(dialog_id, source)) {
       LOG(ERROR) << "Can't find " << dialog_id << " from " << source;
       td->messages_manager_->force_create_dialog(dialog_id, "resolve_dependencies_force", true);
       success = false;

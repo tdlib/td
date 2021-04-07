@@ -151,7 +151,7 @@ void PrivacyManager::UserPrivacySettingRule::set_chat_ids(const vector<int64> &d
   auto td = G()->td().get_actor_unsafe();
   for (auto dialog_id_int : dialog_ids) {
     DialogId dialog_id(dialog_id_int);
-    if (!td->messages_manager_->have_dialog_force(dialog_id)) {
+    if (!td->messages_manager_->have_dialog_force(dialog_id, "UserPrivacySettingRule::set_chat_ids")) {
       LOG(ERROR) << "Ignore not found " << dialog_id;
       continue;
     }

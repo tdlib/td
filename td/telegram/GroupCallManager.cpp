@@ -890,7 +890,7 @@ DialogId GroupCallManager::get_group_call_participant_id(
     }
     case td_api::messageSenderChat::ID: {
       DialogId dialog_id(static_cast<const td_api::messageSenderChat *>(message_sender.get())->chat_id_);
-      if (td_->messages_manager_->have_dialog_force(dialog_id)) {
+      if (td_->messages_manager_->have_dialog_force(dialog_id, "get_group_call_participant_id")) {
         return dialog_id;
       }
       break;
@@ -1019,7 +1019,7 @@ void GroupCallManager::get_group_call_join_as(DialogId dialog_id,
   if (!dialog_id.is_valid()) {
     return promise.set_error(Status::Error(400, "Invalid chat identifier specified"));
   }
-  if (!td_->messages_manager_->have_dialog_force(dialog_id)) {
+  if (!td_->messages_manager_->have_dialog_force(dialog_id, "get_group_call_join_as")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
   if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
@@ -1033,7 +1033,7 @@ void GroupCallManager::create_voice_chat(DialogId dialog_id, Promise<GroupCallId
   if (!dialog_id.is_valid()) {
     return promise.set_error(Status::Error(400, "Invalid chat identifier specified"));
   }
-  if (!td_->messages_manager_->have_dialog_force(dialog_id)) {
+  if (!td_->messages_manager_->have_dialog_force(dialog_id, "create_voice_chat")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
   if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
@@ -2087,7 +2087,7 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
         have_as_dialog_id = false;
       }
     } else {
-      if (!td_->messages_manager_->have_dialog_force(as_dialog_id)) {
+      if (!td_->messages_manager_->have_dialog_force(as_dialog_id, "join_group_call")) {
         return promise.set_error(Status::Error(400, "Alias chat not found"));
       }
     }

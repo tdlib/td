@@ -6303,7 +6303,7 @@ void Td::on_request(uint64 id, const td_api::leaveChat &request) {
   CREATE_OK_REQUEST_PROMISE();
   DialogId dialog_id(request.chat_id_);
   td_api::object_ptr<td_api::ChatMemberStatus> new_status = td_api::make_object<td_api::chatMemberStatusLeft>();
-  if (dialog_id.get_type() == DialogType::Channel && messages_manager_->have_dialog_force(dialog_id)) {
+  if (dialog_id.get_type() == DialogType::Channel && messages_manager_->have_dialog_force(dialog_id, "leaveChat")) {
     auto status = contacts_manager_->get_channel_status(dialog_id.get_channel_id());
     if (status.is_creator()) {
       if (!status.is_member()) {
@@ -7140,7 +7140,7 @@ void Td::on_request(uint64 id, const td_api::resetAllNotificationSettings &reque
 
 void Td::on_request(uint64 id, const td_api::getMapThumbnailFile &request) {
   DialogId dialog_id(request.chat_id_);
-  if (!messages_manager_->have_dialog_force(dialog_id)) {
+  if (!messages_manager_->have_dialog_force(dialog_id, "getMapThumbnailFile")) {
     dialog_id = DialogId();
   }
 

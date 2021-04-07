@@ -496,7 +496,7 @@ class MessagesManager : public Actor {
   tl_object_ptr<td_api::chatEvents> get_chat_events_object(int64 random_id);
 
   bool have_dialog(DialogId dialog_id) const;
-  bool have_dialog_force(DialogId dialog_id);
+  bool have_dialog_force(DialogId dialog_id, const char *source = "have_dialog_force");
 
   bool have_dialog_info(DialogId dialog_id) const;
   bool have_dialog_info_force(DialogId dialog_id) const;
