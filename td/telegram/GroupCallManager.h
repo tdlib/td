@@ -68,6 +68,8 @@ class GroupCallManager : public Actor {
 
   void set_group_call_title(GroupCallId group_call_id, string title, Promise<Unit> &&promise);
 
+  void toggle_group_call_start_subscribed(GroupCallId group_call_id, bool start_subscribed, Promise<Unit> &&promise);
+
   void toggle_group_call_mute_new_participants(GroupCallId group_call_id, bool mute_new_participants,
                                                Promise<Unit> &&promise);
 
@@ -179,6 +181,8 @@ class GroupCallManager : public Actor {
 
   static const string &get_group_call_title(const GroupCall *group_call);
 
+  static bool get_group_call_start_subscribed(const GroupCall *group_call);
+
   static bool get_group_call_mute_new_participants(const GroupCall *group_call);
 
   static int32 get_group_call_record_start_date(const GroupCall *group_call);
@@ -238,6 +242,11 @@ class GroupCallManager : public Actor {
   void send_edit_group_call_title_query(InputGroupCallId input_group_call_id, const string &title);
 
   void on_edit_group_call_title(InputGroupCallId input_group_call_id, const string &title, Result<Unit> &&result);
+
+  void send_toggle_group_call_start_subscription_query(InputGroupCallId input_group_call_id, bool start_subscribed);
+
+  void on_toggle_group_call_start_subscription(InputGroupCallId input_group_call_id, bool start_subscribed,
+                                               Result<Unit> &&result);
 
   void send_toggle_group_call_mute_new_participants_query(InputGroupCallId input_group_call_id,
                                                           bool mute_new_participants);

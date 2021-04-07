@@ -2147,6 +2147,7 @@ groupCallRecentSpeaker speaker:MessageSender is_speaking:Bool = GroupCallRecentS
 //@id Group call identifier
 //@title Group call title
 //@scheduled_start_date Point in time (Unix timestamp) when the group call is supposed to be started by an administrator; 0 if it is already active or was ended
+//@enabled_start_notification True, if the group call is scheduled and the current user will receive a notification when the group call will start
 //@is_active True, if the call is active
 //@is_joined True, if the call is joined
 //@need_rejoin True, if user was kicked from the call because of network loss and the call needs to be rejoined
@@ -2159,7 +2160,7 @@ groupCallRecentSpeaker speaker:MessageSender is_speaking:Bool = GroupCallRecentS
 //@can_change_mute_new_participants True, if the current user can enable or disable mute_new_participants setting
 //@record_duration Duration of the ongoing group call recording, in seconds; 0 if none. An updateGroupCall update is not triggered when value of this field changes, but the same recording goes on
 //@duration Call duration; for ended calls only
-groupCall id:int32 title:string scheduled_start_date:int32 is_active:Bool is_joined:Bool need_rejoin:Bool can_unmute_self:Bool can_be_managed:Bool participant_count:int32 loaded_all_participants:Bool recent_speakers:vector<groupCallRecentSpeaker> mute_new_participants:Bool can_change_mute_new_participants:Bool record_duration:int32 duration:int32 = GroupCall;
+groupCall id:int32 title:string scheduled_start_date:int32 enabled_start_notification:Bool is_active:Bool is_joined:Bool need_rejoin:Bool can_unmute_self:Bool can_be_managed:Bool participant_count:int32 loaded_all_participants:Bool recent_speakers:vector<groupCallRecentSpeaker> mute_new_participants:Bool can_change_mute_new_participants:Bool record_duration:int32 duration:int32 = GroupCall;
 
 //@description Describes a payload fingerprint for interaction with tgcalls @hash Value of the field hash @setup Value of the field setup @fingerprint Value of the field fingerprint
 groupCallPayloadFingerprint hash:string setup:string fingerprint:string = GroupCallPayloadFingerprint;
@@ -4614,6 +4615,10 @@ getGroupCall group_call_id:int32 = GroupCall;
 
 //@description Starts a scheduled group call @group_call_id Group call identifier
 startScheduledGroupCall group_call_id:int32 = Ok;
+
+//@description Toggles whether the current user will receive a notification when the group call will start; scheduled group calls only
+//@group_call_id Group call identifier @enabled_start_notification New value of the enabled_start_notification setting
+toggleGroupCallEnabledStartNotification group_call_id:int32 enabled_start_notification:Bool = Ok;
 
 //@description Joins a group call
 //@group_call_id Group call identifier

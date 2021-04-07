@@ -2685,6 +2685,9 @@ class CliClient final : public Actor {
                                                                           (std::time(nullptr) - 5) * 1000, 0));
     } else if (op == "ssgc") {
       send_request(td_api::make_object<td_api::startScheduledGroupCall>(as_group_call_id(args)));
+    } else if (op == "tgcesn" || op == "tgcesne") {
+      send_request(td_api::make_object<td_api::toggleGroupCallEnabledStartNotification>(as_group_call_id(args),
+                                                                                        op == "tgcesne"));
     } else if (op == "jgc") {
       string group_call_id;
       string participant_alias;

@@ -400,6 +400,38 @@ class EditGroupCallTitleQuery : public Td::ResultHandler {
   }
 };
 
+class ToggleGroupCallStartSubscriptionQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit ToggleGroupCallStartSubscriptionQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(InputGroupCallId input_group_call_id, bool start_subscribed) {
+    send_query(G()->net_query_creator().create(telegram_api::phone_toggleGroupCallStartSubscription(
+        input_group_call_id.get_input_group_call(), start_subscribed)));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::phone_toggleGroupCallStartSubscription>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for ToggleGroupCallStartSubscriptionQuery: " << to_string(ptr);
+    td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(uint64 id, Status status) override {
+    if (status.message() == "GROUPCALL_NOT_MODIFIED") {
+      promise_.set_value(Unit());
+      return;
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
 class ToggleGroupCallSettingsQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -679,6 +711,7 @@ struct GroupCallManager::GroupCall {
   bool syncing_participants = false;
   bool need_syncing_participants = false;
   bool loaded_all_participants = false;
+  bool start_subscribed = false;
   bool mute_new_participants = false;
   bool allowed_change_mute_new_participants = false;
   bool joined_date_asc = false;
@@ -694,12 +727,15 @@ struct GroupCallManager::GroupCall {
   int32 version = -1;
   int32 leave_version = -1;
   int32 title_version = -1;
+  int32 start_subscribed_version = -1;
   int32 mute_version = -1;
   int32 stream_dc_id_version = -1;
   int32 record_start_date_version = -1;
   int32 scheduled_start_date_version = -1;
 
   vector<Promise<Unit>> after_join;
+  bool have_pending_start_subscribed = false;
+  bool pending_start_subscribed = false;
   bool have_pending_mute_new_participants = false;
   bool pending_mute_new_participants = false;
   string pending_title;
@@ -1256,6 +1292,12 @@ void GroupCallManager::finish_check_group_call_is_joined(InputGroupCallId input_
 const string &GroupCallManager::get_group_call_title(const GroupCall *group_call) {
   CHECK(group_call != nullptr);
   return group_call->pending_title.empty() ? group_call->title : group_call->pending_title;
+}
+
+bool GroupCallManager::get_group_call_start_subscribed(const GroupCall *group_call) {
+  CHECK(group_call != nullptr);
+  return group_call->have_pending_start_subscribed ? group_call->pending_start_subscribed
+                                                   : group_call->start_subscribed;
 }
 
 bool GroupCallManager::get_group_call_mute_new_participants(const GroupCall *group_call) {
@@ -2588,6 +2630,93 @@ void GroupCallManager::on_edit_group_call_title(InputGroupCallId input_group_cal
   }
 }
 
+void GroupCallManager::toggle_group_call_start_subscribed(GroupCallId group_call_id, bool start_subscribed,
+                                                          Promise<Unit> &&promise) {
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
+
+  TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
+
+  auto *group_call = get_group_call(input_group_call_id);
+  if (group_call == nullptr || !group_call->is_inited) {
+    reload_group_call(input_group_call_id,
+                      PromiseCreator::lambda(
+                          [actor_id = actor_id(this), group_call_id, start_subscribed, promise = std::move(promise)](
+                              Result<td_api::object_ptr<td_api::groupCall>> &&result) mutable {
+                            if (result.is_error()) {
+                              promise.set_error(result.move_as_error());
+                            } else {
+                              send_closure(actor_id, &GroupCallManager::toggle_group_call_start_subscribed,
+                                           group_call_id, start_subscribed, std::move(promise));
+                            }
+                          }));
+    return;
+  }
+  if (!group_call->is_active || group_call->scheduled_start_date <= 0) {
+    return promise.set_error(Status::Error(400, "Group call isn't scheduled"));
+  }
+
+  if (start_subscribed == get_group_call_start_subscribed(group_call)) {
+    return promise.set_value(Unit());
+  }
+
+  // there is no reason to save promise; we will send an update with actual value anyway
+
+  group_call->pending_start_subscribed = start_subscribed;
+  if (!group_call->have_pending_start_subscribed) {
+    group_call->have_pending_start_subscribed = true;
+    send_toggle_group_call_start_subscription_query(input_group_call_id, start_subscribed);
+  }
+  send_update_group_call(group_call, "toggle_group_call_start_subscription");
+  promise.set_value(Unit());
+}
+
+void GroupCallManager::send_toggle_group_call_start_subscription_query(InputGroupCallId input_group_call_id,
+                                                                       bool start_subscribed) {
+  auto promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), input_group_call_id, start_subscribed](Result<Unit> result) {
+        send_closure(actor_id, &GroupCallManager::on_toggle_group_call_start_subscription, input_group_call_id,
+                     start_subscribed, std::move(result));
+      });
+  td_->create_handler<ToggleGroupCallStartSubscriptionQuery>(std::move(promise))
+      ->send(input_group_call_id, start_subscribed);
+}
+
+void GroupCallManager::on_toggle_group_call_start_subscription(InputGroupCallId input_group_call_id,
+                                                               bool start_subscribed, Result<Unit> &&result) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto *group_call = get_group_call(input_group_call_id);
+  if (group_call == nullptr || !group_call->is_inited || !group_call->is_active ||
+      !group_call->have_pending_start_subscribed) {
+    return;
+  }
+
+  if (result.is_error()) {
+    group_call->have_pending_start_subscribed = false;
+    LOG(ERROR) << "Failed to set enabled_start_notification to " << start_subscribed << " in " << input_group_call_id
+               << ": " << result.error();
+    if (group_call->pending_start_subscribed != group_call->start_subscribed) {
+      send_update_group_call(group_call, "on_toggle_group_call_start_subscription failed");
+    }
+  } else {
+    if (group_call->pending_start_subscribed != start_subscribed) {
+      // need to send another request
+      send_toggle_group_call_start_subscription_query(input_group_call_id, group_call->pending_start_subscribed);
+      return;
+    }
+
+    group_call->have_pending_start_subscribed = false;
+    if (group_call->start_subscribed != start_subscribed) {
+      LOG(ERROR) << "Failed to set enabled_start_notification to " << start_subscribed << " in " << input_group_call_id;
+      send_update_group_call(group_call, "on_toggle_group_call_start_subscription failed 2");
+    }
+  }
+}
+
 void GroupCallManager::toggle_group_call_mute_new_participants(GroupCallId group_call_id, bool mute_new_participants,
                                                                Promise<Unit> &&promise) {
   if (G()->close_flag()) {
@@ -2612,7 +2741,7 @@ void GroupCallManager::toggle_group_call_mute_new_participants(GroupCallId group
     return;
   }
   if (!group_call->is_active || !group_call->can_be_managed || !group_call->allowed_change_mute_new_participants) {
-    return promise.set_error(Status::Error(400, "Can't change mute_new_participant setting"));
+    return promise.set_error(Status::Error(400, "Can't change mute_new_participants setting"));
   }
 
   if (mute_new_participants == get_group_call_mute_new_participants(group_call)) {
@@ -3407,6 +3536,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       input_group_call_id = InputGroupCallId(group_call->id_, group_call->access_hash_);
       call.is_active = true;
       call.title = std::move(group_call->title_);
+      call.start_subscribed = group_call->schedule_start_subscribed_;
       call.mute_new_participants = group_call->join_muted_;
       call.joined_date_asc = group_call->join_date_asc_;
       call.allowed_change_mute_new_participants = group_call->can_change_join_muted_;
@@ -3434,8 +3564,12 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
           call.scheduled_start_date = 0;
         }
       }
+      if (call.scheduled_start_date == 0) {
+        call.start_subscribed = false;
+      }
       call.version = group_call->version_;
       call.title_version = group_call->version_;
+      call.start_subscribed_version = group_call->version_;
       call.mute_version = group_call->version_;
       call.stream_dc_id_version = group_call->version_;
       call.record_start_date_version = group_call->version_;
@@ -3507,6 +3641,15 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       *group_call = std::move(call);
       need_update = true;
     } else {
+      if (call.start_subscribed != group_call->start_subscribed &&
+          call.start_subscribed_version >= group_call->start_subscribed_version) {
+        auto old_start_subscribed = get_group_call_start_subscribed(group_call);
+        group_call->start_subscribed = call.start_subscribed;
+        group_call->start_subscribed_version = call.start_subscribed_version;
+        if (old_start_subscribed != get_group_call_start_subscribed(group_call)) {
+          need_update = true;
+        }
+      }
       auto mute_flags_changed =
           call.mute_new_participants != group_call->mute_new_participants ||
           call.allowed_change_mute_new_participants != group_call->allowed_change_mute_new_participants;
@@ -3899,16 +4042,17 @@ tl_object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(
   bool is_active = scheduled_start_date == 0 ? group_call->is_active : 0;
   bool is_joined = group_call->is_joined && !group_call->is_being_left;
   bool can_self_unmute = is_joined && group_call->can_self_unmute;
+  bool start_subscribed = get_group_call_start_subscribed(group_call);
   bool mute_new_participants = get_group_call_mute_new_participants(group_call);
   bool can_change_mute_new_participants =
       group_call->is_active && group_call->can_be_managed && group_call->allowed_change_mute_new_participants;
   int32 record_start_date = get_group_call_record_start_date(group_call);
   int32 record_duration = record_start_date == 0 ? 0 : max(G()->unix_time() - record_start_date + 1, 1);
   return td_api::make_object<td_api::groupCall>(
-      group_call->group_call_id.get(), get_group_call_title(group_call), scheduled_start_date, is_active, is_joined,
-      group_call->need_rejoin, can_self_unmute, group_call->can_be_managed, group_call->participant_count,
-      group_call->loaded_all_participants, std::move(recent_speakers), mute_new_participants,
-      can_change_mute_new_participants, record_duration, group_call->duration);
+      group_call->group_call_id.get(), get_group_call_title(group_call), scheduled_start_date, start_subscribed,
+      is_active, is_joined, group_call->need_rejoin, can_self_unmute, group_call->can_be_managed,
+      group_call->participant_count, group_call->loaded_all_participants, std::move(recent_speakers),
+      mute_new_participants, can_change_mute_new_participants, record_duration, group_call->duration);
 }
 
 tl_object_ptr<td_api::updateGroupCall> GroupCallManager::get_update_group_call_object(
