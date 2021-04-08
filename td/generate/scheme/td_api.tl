@@ -4615,7 +4615,7 @@ setVoiceChatDefaultParticipant chat_id:int53 default_participant_id:MessageSende
 //@description Creates a voice chat (a group call bound to a chat). Available only for basic groups, supergroups and channels; requires can_manage_voice_chats rights
 //@chat_id Chat identifier, in which the voice chat will be created
 //@title Group call title; if empty, chat title will be used
-//@start_date Point in time (Unix timestamp) when the group call is supposed to be started by an administrator. Pass 0 to start the voice chat immediately
+//@start_date Point in time (Unix timestamp) when the group call is supposed to be started by an administrator; 0 to start the voice chat immediately. The date must be at least 10 seconds and at most 8 days in the future
 createVoiceChat chat_id:int53 title:string start_date:int32 = GroupCallId;
 
 //@description Returns information about a group call @group_call_id Group call identifier
@@ -4628,7 +4628,7 @@ startScheduledGroupCall group_call_id:int32 = Ok;
 //@group_call_id Group call identifier @enabled_start_notification New value of the enabled_start_notification setting
 toggleGroupCallEnabledStartNotification group_call_id:int32 enabled_start_notification:Bool = Ok;
 
-//@description Joins a group call
+//@description Joins an active group call
 //@group_call_id Group call identifier
 //@participant_id Identifier of a group call participant, which will be used to join the call; voice chats only
 //@payload Group join payload; received from tgcalls
@@ -4647,7 +4647,7 @@ toggleGroupCallMuteNewParticipants group_call_id:int32 mute_new_participants:Boo
 //@description Revokes invite link for a group call. Requires groupCall.can_be_managed group call flag @group_call_id Group call identifier
 revokeGroupCallInviteLink group_call_id:int32 = Ok;
 
-//@description Invites users to a group call. Sends a service message of type messageInviteToGroupCall for voice chats
+//@description Invites users to an active group call. Sends a service message of type messageInviteToGroupCall for voice chats
 //@group_call_id Group call identifier @user_ids User identifiers. At most 10 users can be invited simultaneously
 inviteGroupCallParticipants group_call_id:int32 user_ids:vector<int32> = Ok;
 
@@ -4656,21 +4656,21 @@ inviteGroupCallParticipants group_call_id:int32 user_ids:vector<int32> = Ok;
 //@can_self_unmute Pass true if the invite_link should contain an invite hash, passing which to joinGroupCall would allow the invited user to unmute themself. Requires groupCall.can_be_managed group call flag
 getGroupCallInviteLink group_call_id:int32 can_self_unmute:Bool = HttpUrl;
 
-//@description Starts recording of a group call. Requires groupCall.can_be_managed group call flag @group_call_id Group call identifier @title Group call recording title; 0-64 characters
+//@description Starts recording of an active group call. Requires groupCall.can_be_managed group call flag @group_call_id Group call identifier @title Group call recording title; 0-64 characters
 startGroupCallRecording group_call_id:int32 title:string = Ok;
 
-//@description Ends recording of a group call. Requires groupCall.can_be_managed group call flag @group_call_id Group call identifier
+//@description Ends recording of an active group call. Requires groupCall.can_be_managed group call flag @group_call_id Group call identifier
 endGroupCallRecording group_call_id:int32 = Ok;
 
-//@description Informs TDLib that a group call participant speaking state has changed @group_call_id Group call identifier
+//@description Informs TDLib that a participant of an active group call speaking state has changed @group_call_id Group call identifier
 //@source Group call participant's synchronization source identifier, or 0 for the current user @is_speaking True, if the user is speaking
 setGroupCallParticipantIsSpeaking group_call_id:int32 source:int32 is_speaking:Bool = Ok;
 
-//@description Toggles whether a group call participant is muted, unmuted, or allowed to unmute themself
+//@description Toggles whether a participant of an active group call is muted, unmuted, or allowed to unmute themself
 //@group_call_id Group call identifier @participant_id Participant identifier @is_muted Pass true if the user must be muted and false otherwise
 toggleGroupCallParticipantIsMuted group_call_id:int32 participant_id:MessageSender is_muted:Bool = Ok;
 
-//@description Changes a group call participant's volume level. If the current user can manage the group call, then the participant's volume level will be changed for all users with default volume level
+//@description Changes volume level of a participant of an active group call. If the current user can manage the group call, then the participant's volume level will be changed for all users with default volume level
 //@group_call_id Group call identifier @participant_id Participant identifier @volume_level New participant's volume level; 1-20000 in hundreds of percents
 setGroupCallParticipantVolumeLevel group_call_id:int32 participant_id:MessageSender volume_level:int32 = Ok;
 
@@ -4679,7 +4679,7 @@ setGroupCallParticipantVolumeLevel group_call_id:int32 participant_id:MessageSen
 //@is_hand_raised Pass true if the user's hand should be raised. Only self hand can be raised. Requires groupCall.can_be_managed group call flag to lower other's hand
 toggleGroupCallParticipantIsHandRaised group_call_id:int32 participant_id:MessageSender is_hand_raised:Bool = Ok;
 
-//@description Loads more group call participants. The loaded participants will be received through updates. Use the field groupCall.loaded_all_participants to check whether all participants has already been loaded
+//@description Loads more participants of a group call. The loaded participants will be received through updates. Use the field groupCall.loaded_all_participants to check whether all participants has already been loaded
 //@group_call_id Group call identifier. The group call must be previously received through getGroupCall and must be joined or being joined
 //@limit The maximum number of participants to load
 loadGroupCallParticipants group_call_id:int32 limit:int32 = Ok;
