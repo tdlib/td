@@ -90,15 +90,15 @@ Status DialogFilter::check_limits() const {
 
   if (excluded_server_dialog_count > MAX_INCLUDED_FILTER_DIALOGS ||
       excluded_secret_dialog_count > MAX_INCLUDED_FILTER_DIALOGS) {
-    return Status::Error(400, "Maximum number of excluded chats exceeded");
+    return Status::Error(400, "The maximum number of excluded chats exceeded");
   }
   if (included_server_dialog_count > MAX_INCLUDED_FILTER_DIALOGS ||
       included_secret_dialog_count > MAX_INCLUDED_FILTER_DIALOGS) {
-    return Status::Error(400, "Maximum number of included chats exceeded");
+    return Status::Error(400, "The maximum number of included chats exceeded");
   }
   if (included_server_dialog_count + pinned_server_dialog_count > MAX_INCLUDED_FILTER_DIALOGS ||
       included_secret_dialog_count + pinned_secret_dialog_count > MAX_INCLUDED_FILTER_DIALOGS) {
-    return Status::Error(400, "Maximum number of pinned chats exceeded");
+    return Status::Error(400, "The maximum number of pinned chats exceeded");
   }
 
   if (is_empty(false)) {

@@ -17905,7 +17905,7 @@ void MessagesManager::create_dialog_filter(td_api::object_ptr<td_api::chatFilter
                                            Promise<td_api::object_ptr<td_api::chatFilterInfo>> &&promise) {
   CHECK(!td_->auth_manager_->is_bot());
   if (dialog_filters_.size() >= MAX_DIALOG_FILTERS) {
-    return promise.set_error(Status::Error(400, "Maximum number of chat folders exceeded"));
+    return promise.set_error(Status::Error(400, "The maximum number of chat folders exceeded"));
   }
   if (!is_update_chat_filters_sent_) {
     return promise.set_error(Status::Error(400, "Chat folders are not synchronized yet"));
@@ -18741,7 +18741,7 @@ Status MessagesManager::toggle_dialog_is_pinned(DialogListId dialog_list_id, Dia
                               : pinned_dialog_count - secret_pinned_dialog_count;
 
     if (dialog_count >= static_cast<size_t>(get_pinned_dialogs_limit(dialog_list_id))) {
-      return Status::Error(400, "Maximum number of pinned chats exceeded");
+      return Status::Error(400, "The maximum number of pinned chats exceeded");
     }
   }
 
@@ -18824,7 +18824,7 @@ Status MessagesManager::set_pinned_dialogs(DialogListId dialog_list_id, vector<D
     }
 
     if (dialog_count > dialog_count_limit || secret_dialog_count > dialog_count_limit) {
-      return Status::Error(400, "Maximum number of pinned chats exceeded");
+      return Status::Error(400, "The maximum number of pinned chats exceeded");
     }
   }
   std::unordered_set<DialogId, DialogIdHash> new_pinned_dialog_ids(dialog_ids.begin(), dialog_ids.end());
@@ -37387,7 +37387,7 @@ Result<ServerMessageId> MessagesManager::get_payment_successful_message_id(FullM
     return Status::Error(5, "Message has wrong type");
   }
   if (m->message_id.is_scheduled()) {
-    return Status::Error(5, "Wrong sheduled message identifier");
+    return Status::Error(5, "Wrong scheduled message identifier");
   }
   if (!m->message_id.is_server()) {
     return Status::Error(5, "Wrong message identifier");

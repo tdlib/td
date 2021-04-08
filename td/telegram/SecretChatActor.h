@@ -11,9 +11,9 @@
 #include "td/telegram/logevent/SecretChatEvent.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/net/NetQuery.h"
+#include "td/telegram/secret_api.h"
 #include "td/telegram/SecretChatDb.h"
 #include "td/telegram/SecretChatId.h"
-#include "td/telegram/secret_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
 
