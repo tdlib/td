@@ -3187,6 +3187,10 @@ bool Td::is_online() const {
 }
 
 void Td::set_is_bot_online(bool is_bot_online) {
+  if (G()->shared_config().get_option_integer("session_count") > 1) {
+    is_bot_online = false;
+  }
+
   if (is_bot_online == is_bot_online_) {
     return;
   }
