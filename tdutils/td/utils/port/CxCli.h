@@ -85,7 +85,11 @@ inline std::string string_to_unmanaged(String^ str) {
   if (!str) {
     return std::string();
   }
-  return td::from_wstring(str->Data(), str->Length()).ok();
+  auto r_unmanaged_str = td::from_wstring(str->Data(), str->Length());
+  if (r_unmanaged_str.is_error()) {
+    return std::string();
+  }
+  return r_unmanaged_str.move_as_ok();
 }
 
 inline String^ string_from_unmanaged(const std::string &from) {

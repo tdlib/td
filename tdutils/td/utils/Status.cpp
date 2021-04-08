@@ -42,12 +42,16 @@ string winerror_to_string(int code) {
   wchar_t wbuf[size];
   auto res_size = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, nullptr, code, 0, wbuf, size - 1, nullptr);
   if (res_size == 0) {
-    return "Unknown windows error";
+    return "Unknown Windows error";
   }
   while (res_size != 0 && (wbuf[res_size - 1] == '\n' || wbuf[res_size - 1] == '\r')) {
     res_size--;
   }
-  return from_wstring(wbuf, res_size).ok();
+  auto error_message = from_wstring(wbuf, res_size);
+  if (error_message.is_error()) {
+    return "Invalid Windows error";
+  }
+  return error_message.move_as_ok();
 }
 #endif
 

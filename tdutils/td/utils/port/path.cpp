@@ -470,7 +470,7 @@ CSlice get_temporary_dir() {
       }
       auto rs = from_wstring(buf);
       LOG_IF(FATAL, rs.is_error()) << "GetTempPathW failed: " << rs.error();
-      temporary_dir = rs.ok();
+      temporary_dir = rs.move_as_ok();
     }
     if (temporary_dir.size() > 1 && temporary_dir.back() == TD_DIR_SLASH) {
       temporary_dir.pop_back();
