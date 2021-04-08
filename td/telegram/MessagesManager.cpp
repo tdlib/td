@@ -31299,10 +31299,10 @@ tl_object_ptr<telegram_api::channelAdminLogEventsFilter> MessagesManager::get_ch
     flags |= telegram_api::channelAdminLogEventsFilter::SETTINGS_MASK;
   }
   if (filters->invite_link_changes_) {
-    flags |= telegram_api::channelAdminLogEventsFilter::GROUP_CALL_MASK;
+    flags |= telegram_api::channelAdminLogEventsFilter::INVITES_MASK;
   }
   if (filters->voice_chat_changes_) {
-    flags |= telegram_api::channelAdminLogEventsFilter::INVITES_MASK;
+    flags |= telegram_api::channelAdminLogEventsFilter::GROUP_CALL_MASK;
   }
 
   return make_tl_object<telegram_api::channelAdminLogEventsFilter>(
