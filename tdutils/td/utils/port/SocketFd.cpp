@@ -393,7 +393,8 @@ class SocketFdImpl {
     int native_fd = get_native_fd().socket();
     TRY_RESULT(slices_size, narrow_cast_safe<int>(slices.size()));
     auto write_res = detail::skip_eintr([&] {
-#ifdef MSG_NOSIGNAL
+    // sendmsg can erroneously return 2^32 - 1 on Android 5.1 and Android 6.0, so it must not be used there
+#ifdef MSG_NOSIGNAL && !TD_ANDROID
       msghdr msg;
       std::memset(&msg, 0, sizeof(msg));
       msg.msg_iov = const_cast<iovec *>(slices.begin());
@@ -412,7 +413,7 @@ class SocketFdImpl {
         }
         left -= slice.iov_len;
       }
-      LOG(FATAL) << "Receive " << result << " as writev response, but tried to write only " << result - left
+      LOG(FATAL) << "Receive " << write_res << " as writev response, but tried to write only " << result - left
                  << " bytes";
     }
     return write_finish();
@@ -430,7 +431,7 @@ class SocketFdImpl {
     });
     if (write_res >= 0) {
       auto result = narrow_cast<size_t>(write_res);
-      LOG_CHECK(result <= slice.size()) << "Receive " << result << " as write response, but tried to write only "
+      LOG_CHECK(result <= slice.size()) << "Receive " << write_res << " as write response, but tried to write only "
                                         << slice.size() << " bytes";
       return result;
     }
