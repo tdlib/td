@@ -394,7 +394,7 @@ class SocketFdImpl {
     TRY_RESULT(slices_size, narrow_cast_safe<int>(slices.size()));
     auto write_res = detail::skip_eintr([&] {
     // sendmsg can erroneously return 2^32 - 1 on Android 5.1 and Android 6.0, so it must not be used there
-#ifdef MSG_NOSIGNAL && !TD_ANDROID
+#if defined(MSG_NOSIGNAL) && !TD_ANDROID
       msghdr msg;
       std::memset(&msg, 0, sizeof(msg));
       msg.msg_iov = const_cast<iovec *>(slices.begin());
