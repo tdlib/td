@@ -31980,6 +31980,13 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       }
     }
   }
+  if (message->sender_user_id == ContactsManager::get_anonymous_bot_user_id() &&
+      !message->sender_dialog_id.is_valid() && dialog_id.get_type() == DialogType::Channel &&
+      !is_broadcast_channel(dialog_id)) {
+    message->sender_user_id = UserId();
+    message->sender_dialog_id = dialog_id;
+  }
+
   if (!message->top_thread_message_id.is_valid() && !is_broadcast_channel(dialog_id) &&
       is_visible_message_reply_info(dialog_id, message.get()) && !message_id.is_scheduled()) {
     message->top_thread_message_id = message_id;
@@ -33371,6 +33378,9 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
   }
   if (new_message->is_mention_notification_disabled) {
     old_message->is_mention_notification_disabled = true;
+  }
+  if (!new_message->from_database) {
+    old_message->from_database = false;
   }
 
   if (old_message->ttl_period != new_message->ttl_period) {
