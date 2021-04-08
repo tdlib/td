@@ -1146,12 +1146,15 @@ void get_payment_form(Td *td, FullMessageId full_message_id, const td_api::objec
   if (theme != nullptr) {
     theme_parameters = make_tl_object<telegram_api::dataJSON>(string());
     theme_parameters->data_ = json_encode<string>(json_object([&theme](auto &o) {
-      o("bg_color", theme->background_color_);
-      o("text_color", theme->text_color_);
-      o("hint_color", theme->hint_color_);
-      o("link_color", theme->link_color_);
-      o("button_color", theme->button_color_);
-      o("button_text_color", theme->button_text_color_);
+      auto get_color = [](int32 color) {
+        return static_cast<int64>(static_cast<uint32>(color) | 0x000000FF);
+      };
+      o("bg_color", get_color(theme->background_color_));
+      o("text_color", get_color(theme->text_color_));
+      o("hint_color", get_color(theme->hint_color_));
+      o("link_color", get_color(theme->link_color_));
+      o("button_color", get_color(theme->button_color_));
+      o("button_text_color", get_color(theme->button_text_color_));
     }));
   }
   td->create_handler<GetPaymentFormQuery>(std::move(promise))
