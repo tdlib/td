@@ -32118,7 +32118,9 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
     LOG(INFO) << "Process MessageChatDeleteHistory in " << message_id << " in " << dialog_id << " with date "
               << message->date << " from " << source;
-    set_dialog_max_unavailable_message_id(dialog_id, message_id, false, "message chat delete history");
+    if (message_id > d->max_unavailable_message_id) {
+      set_dialog_max_unavailable_message_id(dialog_id, message_id, false, "message chat delete history");
+    }
     CHECK(!message->from_database);
     debug_add_message_to_dialog_fail_reason_ = "skip adding MessageChatDeleteHistory";
     return nullptr;
