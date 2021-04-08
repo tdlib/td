@@ -20137,6 +20137,8 @@ vector<DialogId> MessagesManager::get_dialog_notification_settings_exceptions(No
 
         const Dialog *d = get_dialog(dialog_id);
         CHECK(d != nullptr);
+        LOG_CHECK(d->folder_id == list.first)
+            << list.first << ' ' << dialog_id << ' ' << d->folder_id << ' ' << d->order;
         if (d->order == DEFAULT_ORDER) {
           break;
         }
@@ -34713,7 +34715,10 @@ void MessagesManager::update_dialog_lists(
 
     if (d->folder_id != FolderId::main()) {
       LOG(INFO) << "Change folder of " << dialog_id << " to " << FolderId::main();
+      DialogDate dialog_date(d->order, dialog_id);
+      get_dialog_folder(d->folder_id)->ordered_dialogs_.erase(dialog_date);
       do_set_dialog_folder_id(d, FolderId::main());
+      get_dialog_folder(d->folder_id)->ordered_dialogs_.insert(dialog_date);
     }
   }
 
