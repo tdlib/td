@@ -20126,8 +20126,8 @@ vector<DialogId> MessagesManager::get_dialog_notification_settings_exceptions(No
     vector<DialogDate> ordered_dialogs;
     auto my_dialog_id = get_my_dialog_id();
     for (const auto &list : dialog_folders_) {
-      for (const auto &it : list.second.ordered_dialogs_) {
-        auto dialog_id = it.get_dialog_id();
+      for (const auto &dialog_date : list.second.ordered_dialogs_) {
+        auto dialog_id = dialog_date.get_dialog_id();
         if (filter_scope && get_dialog_notification_setting_scope(dialog_id) != scope) {
           continue;
         }
@@ -20152,9 +20152,9 @@ vector<DialogId> MessagesManager::get_dialog_notification_settings_exceptions(No
     std::sort(ordered_dialogs.begin(), ordered_dialogs.end());
 
     vector<DialogId> result;
-    for (auto &it : ordered_dialogs) {
-      CHECK(result.empty() || result.back() != it.get_dialog_id());
-      result.push_back(it.get_dialog_id());
+    for (auto &dialog_date : ordered_dialogs) {
+      CHECK(result.empty() || result.back() != dialog_date.get_dialog_id());
+      result.push_back(dialog_date.get_dialog_id());
     }
     promise.set_value(Unit());
     return result;
@@ -29764,8 +29764,7 @@ void MessagesManager::set_dialog_folder_id(Dialog *d, FolderId folder_id) {
   }
 
   DialogDate dialog_date(d->order, d->dialog_id);
-  auto *folder = get_dialog_folder(d->folder_id);
-  if (folder->ordered_dialogs_.erase(dialog_date) == 0) {
+  if (get_dialog_folder(d->folder_id)->ordered_dialogs_.erase(dialog_date) == 0) {
     LOG_IF(ERROR, d->order != DEFAULT_ORDER) << d->dialog_id << " not found in the chat list";
   }
 
