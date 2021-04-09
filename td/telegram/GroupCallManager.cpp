@@ -1751,10 +1751,10 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
     on_group_call_left_impl(group_call, need_rejoin, "process_pending_group_call_participant_updates");
     need_update = true;
   }
+  need_update |= try_clear_group_call_participants(input_group_call_id);
   if (need_update) {
     send_update_group_call(group_call, "process_pending_group_call_participant_updates");
   }
-  try_clear_group_call_participants(input_group_call_id);
 
   return need_update;
 }
@@ -2567,7 +2567,7 @@ bool GroupCallManager::on_join_group_call_response(InputGroupCallId input_group_
     need_update = true;
   }
   pending_join_requests_.erase(it);
-  try_clear_group_call_participants(input_group_call_id);
+  need_update |= try_clear_group_call_participants(input_group_call_id);
   process_group_call_after_join_requests(input_group_call_id, "on_join_group_call_response");
   return need_update;
 }
@@ -2579,18 +2579,23 @@ void GroupCallManager::finish_join_group_call(InputGroupCallId input_group_call_
     return;
   }
   it->second->promise.set_error(std::move(error));
+  auto as_dialog_id = it->second->as_dialog_id;
   pending_join_requests_.erase(it);
 
   if (G()->close_flag()) {
     return;
   }
 
-  try_clear_group_call_participants(input_group_call_id);
+  const GroupCall *group_call = get_group_call(input_group_call_id);
+  remove_recent_group_call_speaker(input_group_call_id, as_dialog_id);
+  if (try_clear_group_call_participants(input_group_call_id)) {
+    CHECK(group_call != nullptr);
+    send_update_group_call(group_call, "finish_join_group_call");
+  }
   process_group_call_after_join_requests(input_group_call_id, "finish_join_group_call");
 
-  GroupCall *group_call = get_group_call(input_group_call_id);
-  CHECK(group_call != nullptr);
-  if (group_call->dialog_id.is_valid()) {
+  if (group_call != nullptr && group_call->dialog_id.is_valid()) {
+    update_group_call_dialog(group_call, "finish_join_group_call", false);
     td_->messages_manager_->reload_dialog_info_full(group_call->dialog_id);
   }
 }
@@ -3454,14 +3459,18 @@ void GroupCallManager::leave_group_call(GroupCallId group_call_id, Promise<Unit>
   if (group_call == nullptr || !group_call->is_inited || !group_call->is_active || !group_call->is_joined ||
       group_call->is_being_left) {
     if (cancel_join_group_call_request(input_group_call_id) != 0) {
-      try_clear_group_call_participants(input_group_call_id);
+      if (try_clear_group_call_participants(input_group_call_id)) {
+        send_update_group_call(group_call, "leave_group_call 1");
+      }
       process_group_call_after_join_requests(input_group_call_id, "leave_group_call 1");
       return promise.set_value(Unit());
     }
     if (group_call->need_rejoin) {
       group_call->need_rejoin = false;
       send_update_group_call(group_call, "leave_group_call");
-      try_clear_group_call_participants(input_group_call_id);
+      if (try_clear_group_call_participants(input_group_call_id)) {
+        send_update_group_call(group_call, "leave_group_call 2");
+      }
       process_group_call_after_join_requests(input_group_call_id, "leave_group_call 2");
       return promise.set_value(Unit());
     }
@@ -3551,20 +3560,20 @@ void GroupCallManager::on_update_group_call(tl_object_ptr<telegram_api::GroupCal
   }
 }
 
-void GroupCallManager::try_clear_group_call_participants(InputGroupCallId input_group_call_id) {
+bool GroupCallManager::try_clear_group_call_participants(InputGroupCallId input_group_call_id) {
   if (need_group_call_participants(input_group_call_id)) {
-    return;
+    return false;
   }
 
   auto group_call = get_group_call(input_group_call_id);
   if (group_call != nullptr) {
     update_group_call_participant_order_timeout_.cancel_timeout(group_call->group_call_id.get());
+    remove_recent_group_call_speaker(input_group_call_id, group_call->as_dialog_id);
   }
-  remove_recent_group_call_speaker(input_group_call_id, group_call->as_dialog_id);
 
   auto participants_it = group_call_participants_.find(input_group_call_id);
   if (participants_it == group_call_participants_.end()) {
-    return;
+    return false;
   }
 
   auto participants = std::move(participants_it->second);
@@ -3580,11 +3589,17 @@ void GroupCallManager::try_clear_group_call_participants(InputGroupCallId input_
   group_call->leave_version = group_call->version;
   group_call->version = -1;
 
+  bool need_update = false;
   for (auto &participant : participants->participants) {
     if (participant.order.is_valid()) {
       CHECK(participant.order >= participants->min_order);
       participant.order = GroupCallParticipantOrder();
       send_update_group_call_participant(input_group_call_id, participant, "try_clear_group_call_participants");
+
+      if (participant.is_self) {
+        need_update |= set_group_call_participant_count(group_call, group_call->participant_count - 1,
+                                                        "try_clear_group_call_participants");
+      }
     }
     on_remove_group_call_participant(input_group_call_id, participant.dialog_id);
   }
@@ -3592,6 +3607,7 @@ void GroupCallManager::try_clear_group_call_participants(InputGroupCallId input_
   if (group_call_participants_.empty()) {
     CHECK(participant_id_to_group_call_id_.empty());
   }
+  return need_update;
 }
 
 InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegram_api::GroupCall> &group_call_ptr,
@@ -3799,10 +3815,10 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
     need_update |= on_join_group_call_response(input_group_call_id, std::move(join_params));
   }
   update_group_call_dialog(group_call, "update_group_call", false);  // must be after join response is processed
+  need_update |= try_clear_group_call_participants(input_group_call_id);
   if (need_update) {
     send_update_group_call(group_call, "update_group_call");
   }
-  try_clear_group_call_participants(input_group_call_id);
   return input_group_call_id;
 }
 
@@ -4045,6 +4061,7 @@ bool GroupCallManager::set_group_call_participant_count(GroupCall *group_call, i
 }
 
 void GroupCallManager::update_group_call_dialog(const GroupCall *group_call, const char *source, bool force) {
+  CHECK(group_call != nullptr);
   if (!group_call->dialog_id.is_valid()) {
     return;
   }

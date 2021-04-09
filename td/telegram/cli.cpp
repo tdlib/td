@@ -2675,10 +2675,10 @@ class CliClient final : public Actor {
     } else if (op == "gvcap") {
       send_request(td_api::make_object<td_api::getVoiceChatAvailableParticipants>(as_chat_id(args)));
     } else if (op == "svcdp") {
-      string group_call_id;
+      string chat_id;
       string participant_id;
-      get_args(args, group_call_id, participant_id);
-      send_request(td_api::make_object<td_api::setVoiceChatDefaultParticipant>(as_chat_id(args),
+      get_args(args, chat_id, participant_id);
+      send_request(td_api::make_object<td_api::setVoiceChatDefaultParticipant>(as_chat_id(chat_id),
                                                                                as_message_sender(participant_id)));
     } else if (op == "cvc") {
       string chat_id;

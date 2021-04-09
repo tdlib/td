@@ -291,7 +291,7 @@ class GroupCallManager : public Actor {
   static Result<td_api::object_ptr<td_api::GroupCallJoinResponse>> get_group_call_join_response_object(
       string json_response);
 
-  void try_clear_group_call_participants(InputGroupCallId input_group_call_id);
+  bool try_clear_group_call_participants(InputGroupCallId input_group_call_id);
 
   bool set_group_call_participant_count(GroupCall *group_call, int32 count, const char *source,
                                         bool force_update = false);
