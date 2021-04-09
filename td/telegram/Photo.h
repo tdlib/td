@@ -36,6 +36,7 @@ struct Dimensions {
 struct DialogPhoto {
   FileId small_file_id;
   FileId big_file_id;
+  string minithumbnail;
   bool has_animation = false;
 };
 

@@ -168,6 +168,7 @@ ProfilePhoto get_profile_photo(FileManager *file_manager, UserId user_id, int64 
       auto dc_id = DcId::create(profile_photo->dc_id_);
       result.has_animation = (profile_photo->flags_ & telegram_api::userProfilePhoto::HAS_VIDEO_MASK) != 0;
       result.id = profile_photo->photo_id_;
+      result.minithumbnail = profile_photo->stripped_thumb_.as_slice().str();
       result.small_file_id =
           register_photo(file_manager, {DialogId(user_id), user_access_hash, false}, result.id, 0, "",
                          std::move(profile_photo->photo_small_), DialogId(), 0, dc_id, PhotoFormat::Jpeg);
@@ -191,7 +192,8 @@ tl_object_ptr<td_api::profilePhoto> get_profile_photo_object(FileManager *file_m
   }
   return td_api::make_object<td_api::profilePhoto>(
       profile_photo.id, file_manager->get_file_object(profile_photo.small_file_id),
-      file_manager->get_file_object(profile_photo.big_file_id), profile_photo.has_animation);
+      file_manager->get_file_object(profile_photo.big_file_id), get_minithumbnail_object(profile_photo.minithumbnail),
+      profile_photo.has_animation);
 }
 
 bool operator==(const ProfilePhoto &lhs, const ProfilePhoto &rhs) {
@@ -209,7 +211,7 @@ bool operator==(const ProfilePhoto &lhs, const ProfilePhoto &rhs) {
                                << ", second profilePhoto: " << rhs;
     return false;
   }
-  return lhs.has_animation == rhs.has_animation && !id_differs;
+  return lhs.has_animation == rhs.has_animation && lhs.minithumbnail == rhs.minithumbnail && !id_differs;
 }
 
 bool operator!=(const ProfilePhoto &lhs, const ProfilePhoto &rhs) {
@@ -235,6 +237,7 @@ DialogPhoto get_dialog_photo(FileManager *file_manager, DialogId dialog_id, int6
 
       auto dc_id = DcId::create(chat_photo->dc_id_);
       result.has_animation = (chat_photo->flags_ & telegram_api::chatPhoto::HAS_VIDEO_MASK) != 0;
+      result.minithumbnail = chat_photo->stripped_thumb_.as_slice().str();
       result.small_file_id =
           register_photo(file_manager, {dialog_id, dialog_access_hash, false}, 0, 0, "",
                          std::move(chat_photo->photo_small_), DialogId(), 0, dc_id, PhotoFormat::Jpeg);
@@ -258,6 +261,7 @@ tl_object_ptr<td_api::chatPhotoInfo> get_chat_photo_info_object(FileManager *fil
   }
   return td_api::make_object<td_api::chatPhotoInfo>(file_manager->get_file_object(dialog_photo->small_file_id),
                                                     file_manager->get_file_object(dialog_photo->big_file_id),
+                                                    get_minithumbnail_object(dialog_photo->minithumbnail),
                                                     dialog_photo->has_animation);
 }
 
@@ -318,7 +322,7 @@ ProfilePhoto as_profile_photo(FileManager *file_manager, UserId user_id, int64 u
 
 bool operator==(const DialogPhoto &lhs, const DialogPhoto &rhs) {
   return lhs.small_file_id == rhs.small_file_id && lhs.big_file_id == rhs.big_file_id &&
-         lhs.has_animation == rhs.has_animation;
+         lhs.minithumbnail == rhs.minithumbnail && lhs.has_animation == rhs.has_animation;
 }
 
 bool operator!=(const DialogPhoto &lhs, const DialogPhoto &rhs) {
