@@ -3174,6 +3174,7 @@ void GroupCallManager::toggle_group_call_participant_is_muted(GroupCallId group_
   if (participant == nullptr) {
     return promise.set_error(Status::Error(400, "Can't find group call participant"));
   }
+  dialog_id = participant->dialog_id;
 
   bool can_manage = can_manage_group_call(input_group_call_id);
   bool is_admin = td::contains(participants->administrator_dialog_ids, dialog_id);
@@ -3268,6 +3269,7 @@ void GroupCallManager::set_group_call_participant_volume_level(GroupCallId group
   if (participant == nullptr) {
     return promise.set_error(Status::Error(400, "Can't find group call participant"));
   }
+  dialog_id = participant->dialog_id;
 
   if (participant->is_self) {
     return promise.set_error(Status::Error(400, "Can't change self volume level"));
@@ -3357,6 +3359,7 @@ void GroupCallManager::toggle_group_call_participant_is_hand_raised(GroupCallId 
   if (participant == nullptr) {
     return promise.set_error(Status::Error(400, "Can't find group call participant"));
   }
+  dialog_id = participant->dialog_id;
 
   if (is_hand_raised == participant->get_is_hand_raised()) {
     return promise.set_value(Unit());
