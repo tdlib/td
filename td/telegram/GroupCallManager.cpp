@@ -3218,14 +3218,17 @@ void GroupCallManager::on_toggle_group_call_participant_is_muted(InputGroupCallI
     return promise.set_value(Unit());
   }
 
-  auto participant = get_group_call_participant(input_group_call_id, dialog_id);
+  auto participants = add_group_call_participants(input_group_call_id);
+  auto participant = get_group_call_participant(participants, dialog_id);
   if (participant == nullptr || participant->pending_is_muted_generation != generation) {
     return promise.set_value(Unit());
   }
 
   CHECK(participant->have_pending_is_muted);
   participant->have_pending_is_muted = false;
-  if (participant->server_is_muted_by_themselves != participant->pending_is_muted_by_themselves ||
+  bool can_manage = can_manage_group_call(input_group_call_id);
+  if (update_group_call_participant_can_be_muted(can_manage, participants, *participant) ||
+      participant->server_is_muted_by_themselves != participant->pending_is_muted_by_themselves ||
       participant->server_is_muted_by_admin != participant->pending_is_muted_by_admin ||
       participant->server_is_muted_locally != participant->pending_is_muted_locally) {
     LOG(ERROR) << "Failed to mute/unmute " << dialog_id << " in " << input_group_call_id;
