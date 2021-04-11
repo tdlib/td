@@ -2593,6 +2593,12 @@ FullMessageId get_message_content_replied_message_id(DialogId dialog_id, const M
   }
 }
 
+std::pair<InputGroupCallId, bool> get_message_content_group_call_info(const MessageContent *content) {
+  CHECK(content->get_type() == MessageContentType::GroupCall);
+  auto message_group_call = static_cast<const MessageGroupCall *>(content);
+  return {message_group_call->input_group_call_id, message_group_call->duration >= 0};
+}
+
 vector<UserId> get_message_content_added_user_ids(const MessageContent *content) {
   CHECK(content->get_type() == MessageContentType::ChatAddUsers);
   return static_cast<const MessageChatAddUsers *>(content)->user_ids;

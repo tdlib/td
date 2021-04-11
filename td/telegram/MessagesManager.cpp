@@ -29861,11 +29861,10 @@ void MessagesManager::on_update_dialog_group_call_id(DialogId dialog_id, InputGr
   }
 
   if (d->active_group_call_id != input_group_call_id) {
+    LOG(INFO) << "Update active group call in " << dialog_id << " to " << input_group_call_id;
     d->active_group_call_id = input_group_call_id;
     bool has_active_group_call = input_group_call_id.is_valid();
     if (has_active_group_call != d->has_active_group_call) {
-      LOG(ERROR) << "Receive invalid has_active_group_call flag " << d->has_active_group_call << ", but have "
-                 << input_group_call_id << " in " << dialog_id;
       d->has_active_group_call = has_active_group_call;
       if (!has_active_group_call) {
         d->is_group_call_empty = false;
@@ -32607,6 +32606,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
 
   if (from_update) {
+    speculatively_update_active_group_call_id(d, m);
     speculatively_update_channel_participants(dialog_id, m);
     update_sent_message_contents(dialog_id, m);
     update_used_hashtags(dialog_id, m);
@@ -36052,6 +36052,26 @@ void MessagesManager::reget_message_from_server_if_needed(DialogId dialog_id, co
     FullMessageId full_message_id{dialog_id, m->message_id};
     LOG(INFO) << "Reget from server " << full_message_id;
     get_message_from_server(full_message_id, Auto());
+  }
+}
+
+void MessagesManager::speculatively_update_active_group_call_id(Dialog *d, const Message *m) {
+  CHECK(m != nullptr);
+  if (!m->message_id.is_any_server() || m->content->get_type() != MessageContentType::GroupCall) {
+    return;
+  }
+
+  InputGroupCallId input_group_call_id;
+  bool is_ended;
+  std::tie(input_group_call_id, is_ended) = get_message_content_group_call_info(m->content.get());
+  if (is_ended) {
+    if (d->active_group_call_id == input_group_call_id) {
+      on_update_dialog_group_call_id(d->dialog_id, InputGroupCallId());
+    }
+  } else {
+    if (d->active_group_call_id != input_group_call_id) {
+      repair_dialog_active_group_call_id(d->dialog_id);
+    }
   }
 }
 

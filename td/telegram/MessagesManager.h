@@ -2881,6 +2881,8 @@ class MessagesManager : public Actor {
 
   void reget_message_from_server_if_needed(DialogId dialog_id, const Message *m);
 
+  void speculatively_update_active_group_call_id(Dialog *d, const Message *m);
+
   void speculatively_update_channel_participants(DialogId dialog_id, const Message *m);
 
   void update_sent_message_contents(DialogId dialog_id, const Message *m);

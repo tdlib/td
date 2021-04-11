@@ -9,6 +9,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/FullMessageId.h"
+#include "td/telegram/InputGroupCallId.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessageContentType.h"
 #include "td/telegram/MessageCopyOptions.h"
@@ -131,6 +132,8 @@ int32 get_message_content_index_mask(const MessageContent *content, const Td *td
 MessageId get_message_content_pinned_message_id(const MessageContent *content);
 
 FullMessageId get_message_content_replied_message_id(DialogId dialog_id, const MessageContent *content);
+
+std::pair<InputGroupCallId, bool> get_message_content_group_call_info(const MessageContent *content);
 
 vector<UserId> get_message_content_added_user_ids(const MessageContent *content);
 
