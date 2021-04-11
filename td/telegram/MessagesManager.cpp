@@ -8222,7 +8222,11 @@ void MessagesManager::repair_dialog_active_group_call_id(DialogId dialog_id) {
 void MessagesManager::do_repair_dialog_active_group_call_id(DialogId dialog_id) {
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
-  if (!d->has_active_group_call || d->active_group_call_id.is_valid()) {
+  bool need_repair_active_group_call_id = d->has_active_group_call && !d->active_group_call_id.is_valid();
+  bool need_repair_expected_group_call_id =
+      d->has_expected_active_group_call_id && d->active_group_call_id != d->expected_active_group_call_id;
+  d->has_expected_active_group_call_id = false;
+  if (!need_repair_active_group_call_id && !need_repair_expected_group_call_id) {
     return;
   }
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
@@ -36064,11 +36068,14 @@ void MessagesManager::speculatively_update_active_group_call_id(Dialog *d, const
   InputGroupCallId input_group_call_id;
   bool is_ended;
   std::tie(input_group_call_id, is_ended) = get_message_content_group_call_info(m->content.get());
+  d->has_expected_active_group_call_id = true;
   if (is_ended) {
+    d->expected_active_group_call_id = InputGroupCallId();
     if (d->active_group_call_id == input_group_call_id) {
       on_update_dialog_group_call_id(d->dialog_id, InputGroupCallId());
     }
   } else {
+    d->expected_active_group_call_id = input_group_call_id;
     if (d->active_group_call_id != input_group_call_id) {
       repair_dialog_active_group_call_id(d->dialog_id);
     }

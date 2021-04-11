@@ -1168,6 +1168,7 @@ class MessagesManager : public Actor {
     std::unordered_set<MessageId, MessageIdHash> updated_read_history_message_ids;
     LogEventIdWithGeneration set_folder_id_log_event_id;
     InputGroupCallId active_group_call_id;
+    InputGroupCallId expected_active_group_call_id;
     DialogId default_join_group_call_as_dialog_id;
 
     FolderId folder_id;
@@ -1244,6 +1245,7 @@ class MessagesManager : public Actor {
     bool has_active_group_call = false;
     bool is_group_call_empty = false;
     bool is_message_ttl_setting_inited = false;
+    bool has_expected_active_group_call_id = false;
 
     bool increment_view_counter = false;
 
