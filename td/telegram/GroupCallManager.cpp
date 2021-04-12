@@ -2003,13 +2003,11 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
   if (participant.is_self) {
     auto *group_call = get_group_call(input_group_call_id);
     CHECK(group_call != nullptr && group_call->is_inited);
-    if (group_call->is_joined && group_call->is_active) {
-      auto can_self_unmute = !participant.get_is_muted_by_admin();
-      if (can_self_unmute != group_call->can_self_unmute) {
-        group_call->can_self_unmute = can_self_unmute;
-        send_update_group_call(group_call, "process_group_call_participant 1");
-        sync_group_call_participants(input_group_call_id);  // participant order is different for administrators
-      }
+    auto can_self_unmute = group_call->is_active && !participant.get_is_muted_by_admin();
+    if (can_self_unmute != group_call->can_self_unmute) {
+      group_call->can_self_unmute = can_self_unmute;
+      send_update_group_call(group_call, "process_group_call_participant 1");
+      sync_group_call_participants(input_group_call_id);  // participant order is different for administrators
     }
   }
 
@@ -4137,7 +4135,6 @@ tl_object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(
   int32 scheduled_start_date = group_call->scheduled_start_date;
   bool is_active = scheduled_start_date == 0 ? group_call->is_active : 0;
   bool is_joined = group_call->is_joined && !group_call->is_being_left;
-  bool can_self_unmute = is_joined && group_call->can_self_unmute;
   bool start_subscribed = get_group_call_start_subscribed(group_call);
   bool mute_new_participants = get_group_call_mute_new_participants(group_call);
   bool can_change_mute_new_participants =
@@ -4146,9 +4143,9 @@ tl_object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(
   int32 record_duration = record_start_date == 0 ? 0 : max(G()->unix_time() - record_start_date + 1, 1);
   return td_api::make_object<td_api::groupCall>(
       group_call->group_call_id.get(), get_group_call_title(group_call), scheduled_start_date, start_subscribed,
-      is_active, is_joined, group_call->need_rejoin, can_self_unmute, group_call->can_be_managed,
-      group_call->participant_count, group_call->loaded_all_participants, std::move(recent_speakers),
-      mute_new_participants, can_change_mute_new_participants, record_duration, group_call->duration);
+      is_active, is_joined, group_call->need_rejoin, group_call->can_be_managed, group_call->participant_count,
+      group_call->loaded_all_participants, std::move(recent_speakers), mute_new_participants,
+      can_change_mute_new_participants, record_duration, group_call->duration);
 }
 
 tl_object_ptr<td_api::updateGroupCall> GroupCallManager::get_update_group_call_object(
