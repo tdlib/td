@@ -11831,8 +11831,7 @@ void MessagesManager::set_dialog_last_read_inbox_message_id(Dialog *d, MessageId
     if (d->message_notification_group.group_id.is_valid()) {
       auto total_count = get_dialog_pending_notification_count(d, false);
       if (total_count == 0) {
-        set_dialog_last_notification(d->dialog_id, d->message_notification_group, 0, NotificationId(),
-                                     "set_dialog_last_read_inbox_message_id");
+        set_dialog_last_notification(d->dialog_id, d->message_notification_group, 0, NotificationId(), source);
       }
       if (!d->pending_new_message_notifications.empty()) {
         for (auto &it : d->pending_new_message_notifications) {
@@ -11857,7 +11856,7 @@ void MessagesManager::set_dialog_last_read_inbox_message_id(Dialog *d, MessageId
     if (d->mention_notification_group.group_id.is_valid() && d->pinned_message_notification_message_id.is_valid() &&
         d->pinned_message_notification_message_id <= d->last_read_inbox_message_id) {
       // remove pinned message notification when it is read
-      remove_dialog_pinned_message_notification(d, "set_dialog_last_read_inbox_message_id 2");
+      remove_dialog_pinned_message_notification(d, source);
     }
   }
 
@@ -34305,36 +34304,6 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
     LOG(ERROR) << dialog_id << " has order " << d->order << " instead of saved to database order " << order;
   }
 
-  // must be after update_dialog_pos, because uses d->order
-  if (d->pending_read_channel_inbox_pts != 0 && !td_->auth_manager_->is_bot() &&
-      have_input_peer(dialog_id, AccessRights::Read) && need_unread_counter(d->order)) {
-    if (d->pts == d->pending_read_channel_inbox_pts) {
-      read_history_inbox(dialog_id, d->pending_read_channel_inbox_max_message_id,
-                         d->pending_read_channel_inbox_server_unread_count, "fix_new_dialog 12");
-      d->pending_read_channel_inbox_pts = 0;
-      on_dialog_updated(dialog_id, "fix_new_dialog 13");
-    } else if (d->pts > d->pending_read_channel_inbox_pts) {
-      d->need_repair_channel_server_unread_count = true;
-      d->pending_read_channel_inbox_pts = 0;
-      on_dialog_updated(dialog_id, "fix_new_dialog 14");
-    } else {
-      channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(), 0.001);
-    }
-  } else {
-    d->pending_read_channel_inbox_pts = 0;
-  }
-  if (need_get_history && !td_->auth_manager_->is_bot() && dialog_id != being_added_dialog_id_ &&
-      have_input_peer(dialog_id, AccessRights::Read) && (d->order != DEFAULT_ORDER || is_dialog_sponsored(d))) {
-    get_history_from_the_end(dialog_id, true, false, Auto());
-  }
-  if (d->need_repair_server_unread_count && need_unread_counter(d->order)) {
-    CHECK(dialog_type != DialogType::SecretChat);
-    repair_server_unread_count(dialog_id, d->server_unread_count);
-  }
-  if (d->need_repair_channel_server_unread_count) {
-    repair_channel_server_unread_count(d);
-  }
-
   LOG(INFO) << "Loaded " << dialog_id << " with last new " << d->last_new_message_id << ", first database "
             << d->first_database_message_id << ", last database " << d->last_database_message_id << ", last "
             << d->last_message_id << " with order " << d->order;
@@ -34362,6 +34331,38 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
         << d->messages->message_id << ' ' << last_message_id << ' ' << get_debug_source(d->messages);
     LOG_CHECK(d->messages->left == nullptr) << get_debug_source(d->messages->left);
     LOG_CHECK(d->messages->right == nullptr) << get_debug_source(d->messages->right);
+  }
+
+  // must be after update_dialog_pos, because uses d->order
+  // must be after checks that dialog has at most one message, because read_history_inbox can load
+  // pinned message to remove its notification
+  if (d->pending_read_channel_inbox_pts != 0 && !td_->auth_manager_->is_bot() &&
+      have_input_peer(dialog_id, AccessRights::Read) && need_unread_counter(d->order)) {
+    if (d->pts == d->pending_read_channel_inbox_pts) {
+      d->pending_read_channel_inbox_pts = 0;
+      read_history_inbox(dialog_id, d->pending_read_channel_inbox_max_message_id,
+                         d->pending_read_channel_inbox_server_unread_count, "fix_new_dialog 12");
+      on_dialog_updated(dialog_id, "fix_new_dialog 13");
+    } else if (d->pts > d->pending_read_channel_inbox_pts) {
+      d->need_repair_channel_server_unread_count = true;
+      d->pending_read_channel_inbox_pts = 0;
+      on_dialog_updated(dialog_id, "fix_new_dialog 14");
+    } else {
+      channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(), 0.001);
+    }
+  } else {
+    d->pending_read_channel_inbox_pts = 0;
+  }
+  if (need_get_history && !td_->auth_manager_->is_bot() && dialog_id != being_added_dialog_id_ &&
+      have_input_peer(dialog_id, AccessRights::Read) && (d->order != DEFAULT_ORDER || is_dialog_sponsored(d))) {
+    get_history_from_the_end(dialog_id, true, false, Auto());
+  }
+  if (d->need_repair_server_unread_count && need_unread_counter(d->order)) {
+    CHECK(dialog_type != DialogType::SecretChat);
+    repair_server_unread_count(dialog_id, d->server_unread_count);
+  }
+  if (d->need_repair_channel_server_unread_count) {
+    repair_channel_server_unread_count(d);
   }
 }
 
