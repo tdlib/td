@@ -1407,7 +1407,7 @@ class ContactsManager : public Actor {
   void add_chat_participant(ChatId chat_id, UserId user_id, int32 forward_limit, Promise<Unit> &&promise);
 
   void add_channel_participant(ChannelId channel_id, UserId user_id, Promise<Unit> &&promise,
-                               DialogParticipantStatus old_status = DialogParticipantStatus::Left());
+                               DialogParticipantStatus old_status);
 
   void add_channel_participants(ChannelId channel_id, const vector<UserId> &user_ids, Promise<Unit> &&promise);
 

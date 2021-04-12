@@ -6782,6 +6782,7 @@ void ContactsManager::add_channel_participant(ChannelId channel_id, UserId user_
       return promise.set_error(Status::Error(3, "Can't return to kicked from chat"));
     }
 
+    speculative_add_channel_user(channel_id, user_id, DialogParticipantStatus::Member(), c->status);
     td_->create_handler<JoinChannelQuery>(std::move(promise))->send(channel_id);
     return;
   }
@@ -7401,6 +7402,7 @@ void ContactsManager::restrict_channel_participant(ChannelId channel_id, UserId 
     }
 
     // leave the channel
+    speculative_add_channel_user(channel_id, user_id, status, c->status);
     td_->create_handler<LeaveChannelQuery>(std::move(promise))->send(channel_id);
     return;
   }
@@ -12961,6 +12963,10 @@ void ContactsManager::on_channel_status_changed(Channel *c, ChannelId channel_id
 
   if (old_status.is_member() != new_status.is_member() || new_status.is_banned()) {
     remove_dialog_access_by_invite_link(DialogId(channel_id));
+
+    if (new_status.is_member()) {
+      reload_channel_full(channel_id, Promise<Unit>(), "on_channel_status_changed");
+    }
   }
   if (need_reload_group_call) {
     send_closure_later(G()->messages_manager(), &MessagesManager::on_update_dialog_group_call_rights,
@@ -14372,7 +14378,8 @@ void ContactsManager::add_dialog_participant(DialogId dialog_id, UserId user_id,
     case DialogType::Chat:
       return add_chat_participant(dialog_id.get_chat_id(), user_id, forward_limit, std::move(promise));
     case DialogType::Channel:
-      return add_channel_participant(dialog_id.get_channel_id(), user_id, std::move(promise));
+      return add_channel_participant(dialog_id.get_channel_id(), user_id, std::move(promise),
+                                     DialogParticipantStatus::Left());
     case DialogType::SecretChat:
       return promise.set_error(Status::Error(3, "Can't add members to a secret chat"));
     case DialogType::None:
