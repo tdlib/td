@@ -1332,7 +1332,7 @@ class ContactsManager : public Actor {
   void save_channel_full(const ChannelFull *channel_full, ChannelId channel_id);
   static string get_channel_full_database_key(ChannelId channel_id);
   static string get_channel_full_database_value(const ChannelFull *channel_full);
-  void on_load_channel_full_from_database(ChannelId channel_id, string value);
+  void on_load_channel_full_from_database(ChannelId channel_id, string value, const char *source);
 
   void update_user(User *u, UserId user_id, bool from_binlog = false, bool from_database = false);
   void update_chat(Chat *c, ChatId chat_id, bool from_binlog = false, bool from_database = false);

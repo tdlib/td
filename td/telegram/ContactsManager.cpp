@@ -9236,7 +9236,7 @@ void ContactsManager::on_load_user_full_from_database(UserId user_id, string val
 
   Dependencies dependencies;
   dependencies.user_ids.insert(user_id);
-  if (!resolve_dependencies_force(td_, dependencies, "user_full")) {
+  if (!resolve_dependencies_force(td_, dependencies, "on_load_user_full_from_database")) {
     users_full_.erase(user_id);
     G()->td_db()->get_sqlite_pmc()->erase(get_user_full_database_key(user_id), Auto());
     return;
@@ -9427,7 +9427,7 @@ void ContactsManager::on_load_chat_full_from_database(ChatId chat_id, string val
     dependencies.user_ids.insert(participant.inviter_user_id);
   }
   dependencies.user_ids.insert(chat_full->invite_link.get_creator_user_id());
-  if (!resolve_dependencies_force(td_, dependencies, "chat_full")) {
+  if (!resolve_dependencies_force(td_, dependencies, "on_load_chat_full_from_database")) {
     chats_full_.erase(chat_id);
     G()->td_db()->get_sqlite_pmc()->erase(get_chat_full_database_key(chat_id), Auto());
     return;
@@ -9508,8 +9508,9 @@ string ContactsManager::get_channel_full_database_value(const ChannelFull *chann
   return log_event_store(*channel_full).as_slice().str();
 }
 
-void ContactsManager::on_load_channel_full_from_database(ChannelId channel_id, string value) {
-  LOG(INFO) << "Successfully loaded full " << channel_id << " of size " << value.size() << " from database";
+void ContactsManager::on_load_channel_full_from_database(ChannelId channel_id, string value, const char *source) {
+  LOG(INFO) << "Successfully loaded full " << channel_id << " of size " << value.size() << " from database from "
+            << source;
   //  G()->td_db()->get_sqlite_pmc()->erase(get_channel_full_database_key(channel_id), Auto());
   //  return;
 
@@ -9535,7 +9536,7 @@ void ContactsManager::on_load_channel_full_from_database(ChannelId channel_id, s
   dependencies.chat_ids.insert(channel_full->migrated_from_chat_id);
   dependencies.user_ids.insert(channel_full->bot_user_ids.begin(), channel_full->bot_user_ids.end());
   dependencies.user_ids.insert(channel_full->invite_link.get_creator_user_id());
-  if (!resolve_dependencies_force(td_, dependencies, "channel_full")) {
+  if (!resolve_dependencies_force(td_, dependencies, source)) {
     channels_full_.erase(channel_id);
     G()->td_db()->get_sqlite_pmc()->erase(get_channel_full_database_key(channel_id), Auto());
     return;
@@ -9612,7 +9613,7 @@ ContactsManager::ChannelFull *ContactsManager::get_channel_full_force(ChannelId 
 
   LOG(INFO) << "Trying to load full " << channel_id << " from database from " << source;
   on_load_channel_full_from_database(
-      channel_id, G()->td_db()->get_sqlite_sync_pmc()->get(get_channel_full_database_key(channel_id)));
+      channel_id, G()->td_db()->get_sqlite_sync_pmc()->get(get_channel_full_database_key(channel_id)), source);
   return get_channel_full(channel_id, source);
 }
 
