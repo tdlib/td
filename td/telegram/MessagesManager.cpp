@@ -16043,7 +16043,7 @@ void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram
       continue;
     }
 
-    sort_dialog_filter_input_dialog_ids(dialog_filter.get());
+    sort_dialog_filter_input_dialog_ids(dialog_filter.get(), "on_get_dialog_filters 1");
     new_server_dialog_filters.push_back(std::move(dialog_filter));
   }
 
@@ -16075,7 +16075,7 @@ void MessagesManager::on_get_dialog_filters(Result<vector<tl_object_ptr<telegram
               LOG(INFO) << "Old server filter: " << *old_server_filter;
               LOG(INFO) << "New server filter: " << *new_server_filter;
               LOG(INFO) << "New  local filter: " << *new_filter;
-              sort_dialog_filter_input_dialog_ids(new_filter.get());
+              sort_dialog_filter_input_dialog_ids(new_filter.get(), "on_get_dialog_filters 2");
               if (*new_filter != *old_filter) {
                 is_changed = true;
                 edit_dialog_filter(std::move(new_filter), "on_get_dialog_filters");
@@ -17785,7 +17785,7 @@ InputDialogId MessagesManager::get_input_dialog_id(DialogId dialog_id) const {
   }
 }
 
-void MessagesManager::sort_dialog_filter_input_dialog_ids(DialogFilter *dialog_filter) const {
+void MessagesManager::sort_dialog_filter_input_dialog_ids(DialogFilter *dialog_filter, const char *source) const {
   auto sort_input_dialog_ids = [contacts_manager =
                                     td_->contacts_manager_.get()](vector<InputDialogId> &input_dialog_ids) {
     std::sort(input_dialog_ids.begin(), input_dialog_ids.end(),
@@ -17814,7 +17814,10 @@ void MessagesManager::sort_dialog_filter_input_dialog_ids(DialogFilter *dialog_f
   for (auto input_dialog_ids :
        {&dialog_filter->pinned_dialog_ids, &dialog_filter->excluded_dialog_ids, &dialog_filter->included_dialog_ids}) {
     for (auto input_dialog_id : *input_dialog_ids) {
-      CHECK(all_dialog_ids.insert(input_dialog_id.get_dialog_id()).second);
+      LOG_CHECK(all_dialog_ids.insert(input_dialog_id.get_dialog_id()).second)
+          << source << ' ' << td::contains(dialog_filter->pinned_dialog_ids, input_dialog_id) << ' '
+          << td::contains(dialog_filter->excluded_dialog_ids, input_dialog_id) << ' '
+          << td::contains(dialog_filter->included_dialog_ids, input_dialog_id);
     }
   }
 }
@@ -17877,7 +17880,7 @@ Result<unique_ptr<DialogFilter>> MessagesManager::create_dialog_filter(DialogFil
   dialog_filter->include_channels = filter->include_channels_;
 
   TRY_STATUS(dialog_filter->check_limits());
-  sort_dialog_filter_input_dialog_ids(dialog_filter.get());
+  sort_dialog_filter_input_dialog_ids(dialog_filter.get(), "create_dialog_filter");
 
   return std::move(dialog_filter);
 }
@@ -18692,7 +18695,7 @@ Status MessagesManager::toggle_dialog_is_pinned(DialogListId dialog_list_id, Dia
     }
 
     TRY_STATUS(new_dialog_filter->check_limits());
-    sort_dialog_filter_input_dialog_ids(new_dialog_filter.get());
+    sort_dialog_filter_input_dialog_ids(new_dialog_filter.get(), "toggle_dialog_is_pinned");
 
     edit_dialog_filter(std::move(new_dialog_filter), "toggle_dialog_is_pinned");
     save_dialog_filters();
@@ -18848,7 +18851,7 @@ Status MessagesManager::set_pinned_dialogs(DialogListId dialog_list_id, vector<D
     append(new_dialog_filter->included_dialog_ids, old_pinned_dialog_ids);
 
     TRY_STATUS(new_dialog_filter->check_limits());
-    sort_dialog_filter_input_dialog_ids(new_dialog_filter.get());
+    sort_dialog_filter_input_dialog_ids(new_dialog_filter.get(), "set_pinned_dialogs");
 
     edit_dialog_filter(std::move(new_dialog_filter), "set_pinned_dialogs");
     save_dialog_filters();
@@ -30738,7 +30741,7 @@ void MessagesManager::add_dialog_to_list(DialogId dialog_id, DialogListId dialog
     if (status.is_error()) {
       return promise.set_error(std::move(status));
     }
-    sort_dialog_filter_input_dialog_ids(new_dialog_filter.get());
+    sort_dialog_filter_input_dialog_ids(new_dialog_filter.get(), "add_dialog_to_list");
 
     edit_dialog_filter(std::move(new_dialog_filter), "add_dialog_to_list");
     save_dialog_filters();
