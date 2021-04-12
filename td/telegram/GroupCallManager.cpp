@@ -3231,7 +3231,9 @@ void GroupCallManager::on_group_call_left_impl(GroupCall *group_call, bool need_
   }
   group_call->is_being_left = false;
   group_call->is_speaking = false;
-  group_call->can_be_managed = false;
+  if (!group_call->is_active) {
+    group_call->can_be_managed = false;
+  }
   group_call->joined_date = 0;
   group_call->audio_source = 0;
   check_group_call_is_joined_timeout_.cancel_timeout(group_call->group_call_id.get());
