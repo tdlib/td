@@ -2906,7 +2906,7 @@ class MessagesManager : public Actor {
 
   unique_ptr<Message> parse_message(DialogId dialog_id, const BufferSlice &value, bool is_scheduled);
 
-  unique_ptr<Dialog> parse_dialog(DialogId dialog_id, const BufferSlice &value);
+  unique_ptr<Dialog> parse_dialog(DialogId dialog_id, const BufferSlice &value, const char *source);
 
   void load_calls_db_state();
   void save_calls_db_state();

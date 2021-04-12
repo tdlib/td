@@ -33881,7 +33881,7 @@ MessagesManager::Dialog *MessagesManager::add_dialog(DialogId dialog_id, const c
     auto r_value = G()->td_db()->get_dialog_db_sync()->get_dialog(dialog_id);
     if (r_value.is_ok()) {
       LOG(INFO) << "Synchronously loaded " << dialog_id << " from database";
-      return add_new_dialog(parse_dialog(dialog_id, r_value.ok()), true, source);
+      return add_new_dialog(parse_dialog(dialog_id, r_value.ok(), source), true, source);
     }
   }
 
@@ -35005,8 +35005,9 @@ MessagesManager::Dialog *MessagesManager::get_dialog_force(DialogId dialog_id, c
   }
 }
 
-unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialog_id, const BufferSlice &value) {
-  LOG(INFO) << "Loaded " << dialog_id << " of size " << value.size() << " from database";
+unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialog_id, const BufferSlice &value,
+                                                                  const char *source) {
+  LOG(INFO) << "Loaded " << dialog_id << " of size " << value.size() << " from database from " << source;
   auto d = make_unique<Dialog>();
   d->dialog_id = dialog_id;
   invalidate_message_indexes(d.get());  // must initialize indexes, because some of them could be not parsed
@@ -35018,7 +35019,7 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
     // can't happen unless database is broken, but has been seen in the wild
     // if dialog_id is invalid, we can't repair the dialog
     LOG_CHECK(dialog_id.is_valid()) << "Can't repair " << dialog_id << ' ' << d->dialog_id << ' ' << status << ' '
-                                    << format::as_hex_dump<4>(value.as_slice());
+                                    << source << ' ' << format::as_hex_dump<4>(value.as_slice());
 
     LOG(ERROR) << "Repair broken " << dialog_id << ' ' << format::as_hex_dump<4>(value.as_slice());
 
@@ -35031,10 +35032,10 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
     have_dialog_info_force(dialog_id);
     if (have_input_peer(dialog_id, AccessRights::Read)) {
       if (dialog_id.get_type() != DialogType::SecretChat) {
-        send_get_dialog_query(dialog_id, Auto(), 0, "parse_dialog");
+        send_get_dialog_query(dialog_id, Auto(), 0, source);
       }
     } else {
-      LOG(ERROR) << "Have no info about " << dialog_id << " to repair it";
+      LOG(ERROR) << "Have no info about " << dialog_id << " from " << source << " to repair it";
     }
   }
   CHECK(dialog_id == d->dialog_id);
@@ -35050,8 +35051,8 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
   if (d->draft_message != nullptr) {
     add_formatted_text_dependencies(dependencies, &d->draft_message->input_message_text.text);
   }
-  if (!resolve_dependencies_force(td_, dependencies, "parse_dialog")) {
-    send_get_dialog_query(dialog_id, Auto(), 0, "parse_dialog");
+  if (!resolve_dependencies_force(td_, dependencies, source)) {
+    send_get_dialog_query(dialog_id, Auto(), 0, source);
   }
 
   return d;
@@ -35080,7 +35081,7 @@ MessagesManager::Dialog *MessagesManager::on_load_dialog_from_database(DialogId 
   }
 
   LOG(INFO) << "Add new " << dialog_id << " from database from " << source;
-  return add_new_dialog(parse_dialog(dialog_id, value), true, source);
+  return add_new_dialog(parse_dialog(dialog_id, value, source), true, source);
 }
 
 const DialogFilter *MessagesManager::get_server_dialog_filter(DialogFilterId dialog_filter_id) const {
