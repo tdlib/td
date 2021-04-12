@@ -2788,6 +2788,7 @@ class GetChatsQuery : public Td::ResultHandler {
 
 class GetFullChatQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
+  ChatId chat_id_;
 
  public:
   explicit GetFullChatQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
@@ -2811,6 +2812,7 @@ class GetFullChatQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
+    td->contacts_manager_->on_get_chat_full_failed(chat_id_);
     promise_.set_error(std::move(status));
   }
 };
@@ -2895,6 +2897,7 @@ class GetFullChannelQuery : public Td::ResultHandler {
 
   void on_error(uint64 id, Status status) override {
     td->contacts_manager_->on_get_channel_error(channel_id_, status, "GetFullChannelQuery");
+    td->contacts_manager_->on_get_channel_full_failed(channel_id_);
     promise_.set_error(std::move(status));
   }
 };
@@ -10670,6 +10673,26 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     }
   }
   promise.set_value(Unit());
+}
+
+void ContactsManager::on_get_chat_full_failed(ChatId chat_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  LOG(INFO) << "Failed to get " << chat_id;
+}
+
+void ContactsManager::on_get_channel_full_failed(ChannelId channel_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  LOG(INFO) << "Failed to get " << channel_id;
+  auto channel_full = get_channel_full(channel_id, "on_get_channel_full");
+  if (channel_full != nullptr) {
+    channel_full->repair_request_version = 0;
+  }
 }
 
 bool ContactsManager::is_update_about_username_change_received(UserId user_id) const {
