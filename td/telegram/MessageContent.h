@@ -123,6 +123,8 @@ tl_object_ptr<telegram_api::InputMedia> get_fake_input_media(Td *td, tl_object_p
 
 void delete_message_content_thumbnail(MessageContent *content, Td *td);
 
+Status can_send_message_content(DialogId dialog_id, const MessageContent *content, bool is_forward, const Td *td);
+
 bool can_forward_message_content(const MessageContent *content);
 
 bool update_opened_message_content(MessageContent *content);
@@ -142,8 +144,6 @@ UserId get_message_content_deleted_user_id(const MessageContent *content);
 int32 get_message_content_live_location_period(const MessageContent *content);
 
 bool get_message_content_poll_is_closed(const Td *td, const MessageContent *content);
-
-bool get_message_content_poll_is_anonymous(const Td *td, const MessageContent *content);
 
 bool has_message_content_web_page(const MessageContent *content);
 

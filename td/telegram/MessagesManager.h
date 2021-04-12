@@ -1774,9 +1774,6 @@ class MessagesManager : public Actor {
 
   Status can_send_message(DialogId dialog_id) const TD_WARN_UNUSED_RESULT;
 
-  Status can_send_message_content(DialogId dialog_id, const MessageContent *content,
-                                  bool is_forward) const TD_WARN_UNUSED_RESULT;
-
   bool can_resend_message(const Message *m) const;
 
   bool can_edit_message(DialogId dialog_id, const Message *m, bool is_editing, bool only_reply_markup = false) const;

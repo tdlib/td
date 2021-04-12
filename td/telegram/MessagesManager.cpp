@@ -44,7 +44,6 @@
 #include "td/telegram/NotificationType.h"
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/ReplyMarkup.hpp"
-#include "td/telegram/SecretChatActor.h"
 #include "td/telegram/SecretChatsManager.h"
 #include "td/telegram/SequenceDispatcher.h"
 #include "td/telegram/Td.h"
@@ -23120,179 +23119,6 @@ Status MessagesManager::can_send_message(DialogId dialog_id) const {
   return Status::OK();
 }
 
-Status MessagesManager::can_send_message_content(DialogId dialog_id, const MessageContent *content,
-                                                 bool is_forward) const {
-  auto dialog_type = dialog_id.get_type();
-  int32 secret_chat_layer = std::numeric_limits<int32>::max();
-  if (dialog_type == DialogType::SecretChat) {
-    auto secret_chat_id = dialog_id.get_secret_chat_id();
-    secret_chat_layer = td_->contacts_manager_->get_secret_chat_layer(secret_chat_id);
-  }
-
-  auto content_type = content->get_type();
-  RestrictedRights permissions = [&] {
-    switch (dialog_type) {
-      case DialogType::User:
-        return td_->contacts_manager_->get_user_default_permissions(dialog_id.get_user_id());
-      case DialogType::Chat:
-        return td_->contacts_manager_->get_chat_permissions(dialog_id.get_chat_id()).get_restricted_rights();
-      case DialogType::Channel:
-        return td_->contacts_manager_->get_channel_permissions(dialog_id.get_channel_id()).get_restricted_rights();
-      case DialogType::SecretChat:
-        return td_->contacts_manager_->get_secret_chat_default_permissions(dialog_id.get_secret_chat_id());
-      case DialogType::None:
-      default:
-        UNREACHABLE();
-        return td_->contacts_manager_->get_user_default_permissions(UserId());
-    }
-  }();
-
-  switch (content_type) {
-    case MessageContentType::Animation:
-      if (!permissions.can_send_animations()) {
-        return Status::Error(400, "Not enough rights to send animations to the chat");
-      }
-      break;
-    case MessageContentType::Audio:
-      if (!permissions.can_send_media()) {
-        return Status::Error(400, "Not enough rights to send music to the chat");
-      }
-      break;
-    case MessageContentType::Contact:
-      if (!permissions.can_send_messages()) {
-        return Status::Error(400, "Not enough rights to send contacts to the chat");
-      }
-      break;
-    case MessageContentType::Dice:
-      if (!permissions.can_send_stickers()) {
-        return Status::Error(400, "Not enough rights to send dice to the chat");
-      }
-      if (dialog_type == DialogType::SecretChat) {
-        return Status::Error(400, "Dice can't be sent to secret chats");
-      }
-      break;
-    case MessageContentType::Document:
-      if (!permissions.can_send_media()) {
-        return Status::Error(400, "Not enough rights to send documents to the chat");
-      }
-      break;
-    case MessageContentType::Game:
-      if (is_broadcast_channel(dialog_id)) {
-        // return Status::Error(400, "Games can't be sent to channel chats");
-      }
-      if (dialog_type == DialogType::SecretChat) {
-        return Status::Error(400, "Games can't be sent to secret chats");
-      }
-      if (!permissions.can_send_games()) {
-        return Status::Error(400, "Not enough rights to send games to the chat");
-      }
-      break;
-    case MessageContentType::Invoice:
-      if (!permissions.can_send_messages()) {
-        return Status::Error(400, "Not enough rights to send invoice messages to the chat");
-      }
-      if (dialog_type == DialogType::SecretChat) {
-        return Status::Error(400, "Invoice messages can't be sent to secret chats");
-      }
-      break;
-    case MessageContentType::LiveLocation:
-      if (!permissions.can_send_messages()) {
-        return Status::Error(400, "Not enough rights to send live locations to the chat");
-      }
-      break;
-    case MessageContentType::Location:
-      if (!permissions.can_send_messages()) {
-        return Status::Error(400, "Not enough rights to send locations to the chat");
-      }
-      break;
-    case MessageContentType::Photo:
-      if (!permissions.can_send_media()) {
-        return Status::Error(400, "Not enough rights to send photos to the chat");
-      }
-      break;
-    case MessageContentType::Poll:
-      if (!permissions.can_send_polls()) {
-        return Status::Error(400, "Not enough rights to send polls to the chat");
-      }
-      if (!get_message_content_poll_is_anonymous(td_, content) && is_broadcast_channel(dialog_id)) {
-        return Status::Error(400, "Non-anonymous polls can't be sent to channel chats");
-      }
-      if (dialog_type == DialogType::User && !is_forward && !td_->auth_manager_->is_bot() &&
-          !td_->contacts_manager_->is_user_bot(dialog_id.get_user_id())) {
-        return Status::Error(400, "Polls can't be sent to the private chat");
-      }
-      if (dialog_type == DialogType::SecretChat) {
-        return Status::Error(400, "Polls can't be sent to secret chats");
-      }
-      break;
-    case MessageContentType::Sticker:
-      if (!permissions.can_send_stickers()) {
-        return Status::Error(400, "Not enough rights to send stickers to the chat");
-      }
-      break;
-    case MessageContentType::Text:
-      if (!permissions.can_send_messages()) {
-        return Status::Error(400, "Not enough rights to send text messages to the chat");
-      }
-      break;
-    case MessageContentType::Venue:
-      if (!permissions.can_send_messages()) {
-        return Status::Error(400, "Not enough rights to send venues to the chat");
-      }
-      break;
-    case MessageContentType::Video:
-      if (!permissions.can_send_media()) {
-        return Status::Error(400, "Not enough rights to send videos to the chat");
-      }
-      break;
-    case MessageContentType::VideoNote:
-      if (!permissions.can_send_media()) {
-        return Status::Error(400, "Not enough rights to send video notes to the chat");
-      }
-      if (secret_chat_layer < SecretChatActor::VIDEO_NOTES_LAYER) {
-        return Status::Error(400, PSLICE()
-                                      << "Video notes can't be sent to secret chat with layer " << secret_chat_layer);
-      }
-      break;
-    case MessageContentType::VoiceNote:
-      if (!permissions.can_send_media()) {
-        return Status::Error(400, "Not enough rights to send voice notes to the chat");
-      }
-      break;
-    case MessageContentType::None:
-    case MessageContentType::ChatCreate:
-    case MessageContentType::ChatChangeTitle:
-    case MessageContentType::ChatChangePhoto:
-    case MessageContentType::ChatDeletePhoto:
-    case MessageContentType::ChatDeleteHistory:
-    case MessageContentType::ChatAddUsers:
-    case MessageContentType::ChatJoinedByLink:
-    case MessageContentType::ChatDeleteUser:
-    case MessageContentType::ChatMigrateTo:
-    case MessageContentType::ChannelCreate:
-    case MessageContentType::ChannelMigrateFrom:
-    case MessageContentType::PinMessage:
-    case MessageContentType::GameScore:
-    case MessageContentType::ScreenshotTaken:
-    case MessageContentType::ChatSetTtl:
-    case MessageContentType::Unsupported:
-    case MessageContentType::Call:
-    case MessageContentType::PaymentSuccessful:
-    case MessageContentType::ContactRegistered:
-    case MessageContentType::ExpiredPhoto:
-    case MessageContentType::ExpiredVideo:
-    case MessageContentType::CustomServiceAction:
-    case MessageContentType::WebsiteConnected:
-    case MessageContentType::PassportDataSent:
-    case MessageContentType::PassportDataReceived:
-    case MessageContentType::ProximityAlertTriggered:
-    case MessageContentType::GroupCall:
-    case MessageContentType::InviteToGroupCall:
-      UNREACHABLE();
-  }
-  return Status::OK();
-}
-
 MessageId MessagesManager::get_persistent_message_id(const Dialog *d, MessageId message_id) const {
   if (!message_id.is_valid() && !message_id.is_valid_scheduled()) {
     return MessageId();
@@ -23648,7 +23474,7 @@ Result<InputMessageContent> MessagesManager::process_input_message_content(
   }
 
   if (dialog_id != DialogId()) {
-    TRY_STATUS(can_send_message_content(dialog_id, content.content.get(), false));
+    TRY_STATUS(can_send_message_content(dialog_id, content.content.get(), false, td_));
   }
 
   return std::move(content);
@@ -24602,7 +24428,7 @@ Result<MessageId> MessagesManager::send_inline_query_result_message(DialogId dia
 
   reply_to_message_id = get_reply_to_message_id(d, top_thread_message_id, reply_to_message_id, false);
   TRY_STATUS(can_use_message_send_options(message_send_options, content->message_content, 0));
-  TRY_STATUS(can_send_message_content(dialog_id, content->message_content.get(), false));
+  TRY_STATUS(can_send_message_content(dialog_id, content->message_content.get(), false, td_));
   TRY_STATUS(can_use_top_thread_message_id(d, top_thread_message_id, reply_to_message_id));
 
   bool need_update_dialog_pos = false;
@@ -26237,7 +26063,7 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
       continue;
     }
 
-    auto can_send_status = can_send_message_content(to_dialog_id, content.get(), !need_copy);
+    auto can_send_status = can_send_message_content(to_dialog_id, content.get(), !need_copy, td_);
     if (can_send_status.is_error()) {
       LOG(INFO) << "Can't forward " << message_id << ": " << can_send_status.message();
       continue;
@@ -26498,7 +26324,7 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
       continue;
     }
 
-    auto can_send_status = can_send_message_content(dialog_id, content.get(), false);
+    auto can_send_status = can_send_message_content(dialog_id, content.get(), false, td_);
     if (can_send_status.is_error()) {
       LOG(INFO) << "Can't resend " << m->message_id << ": " << can_send_status.message();
       continue;
