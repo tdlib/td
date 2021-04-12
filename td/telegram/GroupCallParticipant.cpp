@@ -39,9 +39,9 @@ GroupCallParticipant::GroupCallParticipant(const tl_object_ptr<telegram_api::gro
     if ((participant->flags_ & telegram_api::groupCallParticipant::ACTIVE_DATE_MASK) != 0) {
       active_date = participant->active_date_;
     }
-    if (joined_date < 0 || active_date < 0) {
+    if (joined_date <= 0 || active_date < 0) {
       LOG(ERROR) << "Receive invalid active_date/joined_date in " << to_string(participant);
-      joined_date = 0;
+      joined_date = 1;
       active_date = 0;
     }
     if ((participant->flags_ & telegram_api::groupCallParticipant::RAISE_HAND_RATING_MASK) != 0) {
