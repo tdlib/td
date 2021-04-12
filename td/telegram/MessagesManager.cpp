@@ -27110,8 +27110,6 @@ NotificationGroupId MessagesManager::get_dialog_notification_group_id(DialogId d
 Result<MessagesManager::MessagePushNotificationInfo> MessagesManager::get_message_push_notification_info(
     DialogId dialog_id, MessageId message_id, int64 random_id, UserId sender_user_id, DialogId sender_dialog_id,
     int32 date, bool is_from_scheduled, bool contains_mention, bool is_pinned, bool is_from_binlog) {
-  init();
-
   if (!is_from_scheduled && dialog_id == get_my_dialog_id()) {
     return Status::Error("Ignore notification in chat with self");
   }
@@ -27547,8 +27545,6 @@ vector<NotificationGroupKey> MessagesManager::get_message_notification_group_key
   if (!G()->parameters().use_message_db) {
     return {};
   }
-
-  init();
 
   VLOG(notifications) << "Trying to load " << limit << " message notification groups from database from "
                       << from_group_key;
@@ -34637,9 +34633,7 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
   }
 
   auto folder_ptr = get_dialog_folder(d->folder_id);
-  LOG_CHECK(folder_ptr != nullptr) << is_inited_ << ' ' << G()->close_flag() << ' ' << dialog_id << ' ' << d->folder_id
-                                   << ' ' << is_loaded_from_database << ' ' << td_->auth_manager_->is_authorized()
-                                   << ' ' << td_->auth_manager_->was_authorized() << ' ' << source;
+  CHECK(folder_ptr != nullptr);
   auto &folder = *folder_ptr;
   if (old_date == new_date) {
     if (new_order == DEFAULT_ORDER) {
@@ -34986,7 +34980,8 @@ bool MessagesManager::have_dialog_force(DialogId dialog_id, const char *source) 
 }
 
 MessagesManager::Dialog *MessagesManager::get_dialog_force(DialogId dialog_id, const char *source) {
-  // TODO remove most usages of that function, preload dialog asynchronously if possible
+  init();
+
   auto it = dialogs_.find(dialog_id);
   if (it != dialogs_.end()) {
     return it->second.get();
