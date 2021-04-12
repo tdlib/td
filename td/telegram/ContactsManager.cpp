@@ -4742,10 +4742,9 @@ string ContactsManager::get_secret_chat_title(SecretChatId secret_chat_id) const
 
 RestrictedRights ContactsManager::get_user_default_permissions(UserId user_id) const {
   auto u = get_user(user_id);
-  if (u == nullptr) {
-    return RestrictedRights(false, false, false, false, false, false, false, false, false, false, false);
+  if (u == nullptr || user_id == get_replies_bot_user_id()) {
+    return RestrictedRights(false, false, false, false, false, false, false, false, false, false, u != nullptr);
   }
-
   return RestrictedRights(true, true, true, true, true, true, true, true, false, false, true);
 }
 
