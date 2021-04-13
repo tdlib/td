@@ -181,6 +181,7 @@ Session::Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> 
     auth_data_.set_header(G()->mtproto_header().get_default_header().str());
   }
   last_activity_timestamp_ = Time::now();
+  last_success_timestamp_ = Time::now() - 366 * 86400;
 }
 
 bool Session::can_destroy_auth_key() const {
@@ -273,8 +274,9 @@ void Session::on_bind_result(NetQueryPtr query) {
   if (query->is_error()) {
     status = std::move(query->error());
     if (status.code() == 400 && status.message() == "ENCRYPTED_MESSAGE_INVALID") {
-      bool has_immunity =
-          !G()->is_server_time_reliable() || G()->server_time() - auth_data_.get_main_auth_key().created_at() < 60;
+      auto auth_key_age = G()->server_time() - auth_data_.get_main_auth_key().created_at();
+      bool has_immunity = !G()->is_server_time_reliable() || auth_key_age < 60 ||
+                          (auth_key_age > 86400 && last_success_timestamp_ > Time::now() - 86400);
       if (!use_pfs_) {
         if (has_immunity) {
           LOG(WARNING) << "Do not drop main key, because it was created too recently";
@@ -559,8 +561,8 @@ void Session::on_closed(Status status) {
 
 void Session::on_session_created(uint64 unique_id, uint64 first_id) {
   // TODO: use unique_id
-  // send updatesTooLong to force getDifference
   LOG(INFO) << "New session " << unique_id << " created with first message_id " << first_id;
+  last_success_timestamp_ = Time::now();
   if (is_main_) {
     LOG(DEBUG) << "Sending updatesTooLong to force getDifference";
     BufferSlice packet(4);
@@ -711,9 +713,11 @@ Status Session::on_message_result_ok(uint64 id, BufferSlice packet, size_t origi
     if (is_cdn_) {
       return Status::Error("Got update from CDN connection");
     }
+    last_success_timestamp_ = Time::now();
     return_query(G()->net_query_creator().create_update(std::move(packet)));
     return Status::OK();
   }
+  last_success_timestamp_ = Time::now();
 
   TlParser parser(packet.as_slice());
   int32 ID = parser.fetch_int();
