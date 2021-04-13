@@ -1867,7 +1867,7 @@ messageSchedulingStateSendWhenOnline = MessageSchedulingState;
 //@scheduling_state Message scheduling state. Messages sent to a secret chat, live location messages and self-destructing messages can't be scheduled
 messageSendOptions disable_notification:Bool from_background:Bool scheduling_state:MessageSchedulingState = MessageSendOptions;
 
-//@description Options to be used when a message content is copied without a link to the original message
+//@description Options to be used when a message content is copied without a link to the original message. Service messages and messageInvoice can't be copied
 //@send_copy True, if content of the message needs to be copied without a link to the original message. Always true if the message is forwarded to a secret chat
 //@replace_caption True, if media caption of the message copy needs to be replaced. Ignored if send_copy is false
 //@new_caption New message caption. Ignored if replace_caption is false

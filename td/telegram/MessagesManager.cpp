@@ -25946,6 +25946,7 @@ void MessagesManager::do_forward_messages(DialogId to_dialog_id, DialogId from_d
 Result<MessageId> MessagesManager::forward_message(DialogId to_dialog_id, DialogId from_dialog_id, MessageId message_id,
                                                    tl_object_ptr<td_api::messageSendOptions> &&options,
                                                    bool in_game_share, MessageCopyOptions &&copy_options) {
+  bool need_copy = copy_options.send_copy;
   vector<MessageCopyOptions> all_copy_options;
   all_copy_options.push_back(std::move(copy_options));
   TRY_RESULT(result, forward_messages(to_dialog_id, from_dialog_id, {message_id}, std::move(options), in_game_share,
@@ -25953,7 +25954,8 @@ Result<MessageId> MessagesManager::forward_message(DialogId to_dialog_id, Dialog
   CHECK(result.size() == 1);
   auto sent_message_id = result[0];
   if (sent_message_id == MessageId()) {
-    return Status::Error(11, "Message can't be forwarded");
+    return Status::Error(400,
+                         need_copy ? Slice("The message can't be copied") : Slice("The message can't be forwarded"));
   }
   return sent_message_id;
 }

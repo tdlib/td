@@ -4235,6 +4235,9 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
     case MessageContentType::Game:
       return make_unique<MessageGame>(*static_cast<const MessageGame *>(content));
     case MessageContentType::Invoice:
+      if (type == MessageContentDupType::Copy) {
+        return nullptr;
+      }
       return make_unique<MessageInvoice>(*static_cast<const MessageInvoice *>(content));
     case MessageContentType::LiveLocation:
       if (!to_secret && (type == MessageContentDupType::Send || type == MessageContentDupType::SendViaBot)) {
