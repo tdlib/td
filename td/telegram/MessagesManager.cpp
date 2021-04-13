@@ -37226,7 +37226,11 @@ Result<ServerMessageId> MessagesManager::get_invoice_message_id(FullMessageId fu
   if (!m->message_id.is_server()) {
     return Status::Error(5, "Wrong message identifier");
   }
-  // TODO need to check that message is not forwarded
+  if (m->reply_markup == nullptr || m->reply_markup->inline_keyboard.empty() ||
+      m->reply_markup->inline_keyboard[0].empty() ||
+      m->reply_markup->inline_keyboard[0][0].type != InlineKeyboardButton::Type::Buy) {
+    return Status::Error(400, "Message has no Pay button");
+  }
 
   return m->message_id.get_server_message_id();
 }
