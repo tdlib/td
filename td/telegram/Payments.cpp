@@ -766,12 +766,18 @@ Result<InputInvoice> process_input_message_invoice(
   result.total_amount = total_amount;
 
   if (input_invoice->invoice_->max_tip_amount_ < 0 || input_invoice->invoice_->max_tip_amount_ > MAX_AMOUNT) {
-    return Status::Error(400, "Invalid max tip amount of the currency specified");
+    return Status::Error(400, "Invalid max_tip_amount of the currency specified");
   }
   for (auto tip_amount : input_invoice->invoice_->suggested_tip_amounts_) {
-    if (tip_amount < 0 || tip_amount > input_invoice->invoice_->max_tip_amount_) {
-      return Status::Error(400, "Invalid suggested tip amount of the currency specified");
+    if (tip_amount <= 0) {
+      return Status::Error(400, "Suggested tip amount must be positive");
     }
+    if (tip_amount > input_invoice->invoice_->max_tip_amount_) {
+      return Status::Error(400, "Suggested tip amount can't be bigger than max_tip_amount");
+    }
+  }
+  if (input_invoice->invoice_->suggested_tip_amounts_.size() > 4) {
+    return Status::Error(400, "There can be at most 4 suggested tip amounts");
   }
 
   result.invoice.max_tip_amount = input_invoice->invoice_->max_tip_amount_;
