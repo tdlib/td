@@ -57,7 +57,7 @@ class InlineQueriesManager : public Actor {
 
   UserId get_inline_bot_user_id(int64 query_id) const;
 
-  void on_get_inline_query_results(UserId bot_user_id, uint64 query_hash,
+  void on_get_inline_query_results(DialogId dialog_id, UserId bot_user_id, uint64 query_hash,
                                    tl_object_ptr<telegram_api::messages_botResults> &&results);
 
   tl_object_ptr<td_api::inlineQueryResults> get_inline_query_results_object(uint64 query_hash);
@@ -91,7 +91,8 @@ class InlineQueriesManager : public Actor {
 
   bool register_inline_message_content(int64 query_id, const string &result_id, FileId file_id,
                                        tl_object_ptr<telegram_api::BotInlineMessage> &&inline_message,
-                                       int32 allowed_media_content_id, Photo *photo = nullptr, Game *game = nullptr);
+                                       int32 allowed_media_content_id, bool allow_invoice, Photo *photo = nullptr,
+                                       Game *game = nullptr);
 
   tl_object_ptr<td_api::thumbnail> register_thumbnail(
       tl_object_ptr<telegram_api::WebDocument> &&web_document_ptr) const;
@@ -120,6 +121,7 @@ class InlineQueriesManager : public Actor {
   struct PendingInlineQuery {
     uint64 query_hash;
     UserId bot_user_id;
+    DialogId dialog_id;
     tl_object_ptr<telegram_api::InputPeer> input_peer;
     Location user_location;
     string query;
