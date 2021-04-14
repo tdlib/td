@@ -1241,6 +1241,10 @@ void GroupCallManager::get_group_call(GroupCallId group_call_id,
 }
 
 void GroupCallManager::on_update_group_call_rights(InputGroupCallId input_group_call_id) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
   auto group_call = get_group_call(input_group_call_id);
   if (need_group_call_participants(input_group_call_id, group_call)) {
     CHECK(group_call != nullptr && group_call->is_inited);
@@ -1269,6 +1273,10 @@ void GroupCallManager::on_update_group_call_rights(InputGroupCallId input_group_
 
 void GroupCallManager::reload_group_call(InputGroupCallId input_group_call_id,
                                          Promise<td_api::object_ptr<td_api::groupCall>> &&promise) {
+  if (td_->auth_manager_->is_bot()) {
+    return promise.set_error(Status::Error(400, "Bots can't get group call info"));
+  }
+
   auto &queries = load_group_call_queries_[input_group_call_id];
   queries.push_back(std::move(promise));
   if (queries.size() == 1) {
