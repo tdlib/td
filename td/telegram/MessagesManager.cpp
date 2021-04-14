@@ -13338,9 +13338,9 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
 
       DialogId reply_in_dialog_id;
       MessageId reply_to_message_id;
-      if (message_info.reply_header != nullptr) {
-        reply_to_message_id = MessageId(ServerMessageId(message_info.reply_header->reply_to_msg_id_));
-        auto reply_to_peer_id = std::move(message_info.reply_header->reply_to_peer_id_);
+      if (message->reply_to_ != nullptr) {
+        reply_to_message_id = MessageId(ServerMessageId(message->reply_to_->reply_to_msg_id_));
+        auto reply_to_peer_id = std::move(message->reply_to_->reply_to_peer_id_);
         if (reply_to_peer_id != nullptr) {
           reply_in_dialog_id = DialogId(reply_to_peer_id);
           if (!reply_in_dialog_id.is_valid()) {
