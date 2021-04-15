@@ -54,26 +54,35 @@ FileType PhotoSizeSource::get_file_type() const {
   }
 }
 
+static bool operator==(const PhotoSizeSource::Legacy &lhs, const PhotoSizeSource::Legacy &rhs) {
+  return lhs.secret == rhs.secret;
+}
+
+static bool operator==(const PhotoSizeSource::Thumbnail &lhs, const PhotoSizeSource::Thumbnail &rhs) {
+  return lhs.file_type == rhs.file_type && lhs.thumbnail_type == rhs.thumbnail_type;
+}
+
+static bool operator==(const PhotoSizeSource::DialogPhoto &lhs, const PhotoSizeSource::DialogPhoto &rhs) {
+  return lhs.dialog_id == rhs.dialog_id && lhs.dialog_access_hash == rhs.dialog_access_hash;
+}
+
+static bool operator==(const PhotoSizeSource::DialogPhotoSmall &lhs, const PhotoSizeSource::DialogPhotoSmall &rhs) {
+  return static_cast<const PhotoSizeSource::DialogPhoto &>(lhs) ==
+         static_cast<const PhotoSizeSource::DialogPhoto &>(rhs);
+}
+
+static bool operator==(const PhotoSizeSource::DialogPhotoBig &lhs, const PhotoSizeSource::DialogPhotoBig &rhs) {
+  return static_cast<const PhotoSizeSource::DialogPhoto &>(lhs) ==
+         static_cast<const PhotoSizeSource::DialogPhoto &>(rhs);
+}
+
+static bool operator==(const PhotoSizeSource::StickerSetThumbnail &lhs,
+                       const PhotoSizeSource::StickerSetThumbnail &rhs) {
+  return lhs.sticker_set_id == rhs.sticker_set_id && lhs.sticker_set_access_hash == rhs.sticker_set_access_hash;
+}
+
 bool operator==(const PhotoSizeSource &lhs, const PhotoSizeSource &rhs) {
-  if (lhs.get_type() != rhs.get_type()) {
-    return false;
-  }
-  switch (lhs.get_type()) {
-    case PhotoSizeSource::Type::Thumbnail:
-      return lhs.thumbnail().file_type == rhs.thumbnail().file_type &&
-             lhs.thumbnail().thumbnail_type == rhs.thumbnail().thumbnail_type;
-    case PhotoSizeSource::Type::DialogPhotoSmall:
-    case PhotoSizeSource::Type::DialogPhotoBig:
-      return lhs.dialog_photo().dialog_id == rhs.dialog_photo().dialog_id &&
-             lhs.dialog_photo().dialog_access_hash == rhs.dialog_photo().dialog_access_hash;
-    case PhotoSizeSource::Type::StickerSetThumbnail:
-      return lhs.sticker_set_thumbnail().sticker_set_id == rhs.sticker_set_thumbnail().sticker_set_id &&
-             lhs.sticker_set_thumbnail().sticker_set_access_hash == rhs.sticker_set_thumbnail().sticker_set_access_hash;
-    case PhotoSizeSource::Type::Legacy:
-      return lhs.legacy().secret == rhs.legacy().secret;
-    default:
-      return true;
-  }
+  return lhs.variant == rhs.variant;
 }
 
 bool operator!=(const PhotoSizeSource &lhs, const PhotoSizeSource &rhs) {

@@ -125,6 +125,8 @@ struct PhotoSizeSource {
   template <class ParserT>
   void parse(ParserT &parser);
 
+  friend bool operator==(const PhotoSizeSource &lhs, const PhotoSizeSource &rhs);
+
  private:
   Variant<Legacy, Thumbnail, DialogPhotoSmall, DialogPhotoBig, StickerSetThumbnail> variant;
 };
