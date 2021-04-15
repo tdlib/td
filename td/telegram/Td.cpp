@@ -3410,17 +3410,14 @@ void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {
       break;
     }
     case State::Decrypt: {
-      string encryption_key;
       switch (function_id) {
         case td_api::checkDatabaseEncryptionKey::ID: {
           auto check_key = move_tl_object_as<td_api::checkDatabaseEncryptionKey>(function);
-          encryption_key = std::move(check_key->encryption_key_);
-          break;
+          return answer_ok_query(id, init(as_db_key(std::move(check_key->encryption_key_))));
         }
         case td_api::setDatabaseEncryptionKey::ID: {
           auto set_key = move_tl_object_as<td_api::setDatabaseEncryptionKey>(function);
-          encryption_key = std::move(set_key->new_encryption_key_);
-          break;
+          return answer_ok_query(id, init(as_db_key(std::move(set_key->new_encryption_key_))));
         }
         case td_api::destroy::ID:
           // need to send response synchronously before actual destroying
@@ -3437,7 +3434,7 @@ void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {
           return send_error_impl(
               id, make_error(400, "Database encryption key is needed: call checkDatabaseEncryptionKey first"));
       }
-      return answer_ok_query(id, init(as_db_key(encryption_key)));
+      break;
     }
     case State::Close:
       if (destroy_flag_) {
