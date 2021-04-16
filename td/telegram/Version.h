@@ -8,7 +8,7 @@
 
 namespace td {
 
-constexpr int32 MTPROTO_LAYER = 127;
+constexpr int32 MTPROTO_LAYER = 128;
 
 enum class Version : int32 {
   Initial,  // 0
@@ -43,6 +43,7 @@ enum class Version : int32 {
   AddLiveLocationHeading,
   AddLiveLocationProximityAlertDistance,  // 30
   SupportBannedChannels,
+  RemovePhotoVolumeAndLocalId,
   Next
 };
 

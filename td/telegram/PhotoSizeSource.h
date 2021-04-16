@@ -15,10 +15,23 @@
 #include "td/utils/StringBuilder.h"
 #include "td/utils/Variant.h"
 
+#include <cstddef>
+
 namespace td {
 
 struct PhotoSizeSource {
-  enum class Type : int32 { Legacy, Thumbnail, DialogPhotoSmall, DialogPhotoBig, StickerSetThumbnail };
+  enum class Type : int32 {
+    Legacy,
+    Thumbnail,
+    DialogPhotoSmall,
+    DialogPhotoBig,
+    StickerSetThumbnail,
+    FullLegacy,
+    DialogPhotoSmallLegacy,
+    DialogPhotoBigLegacy,
+    StickerSetThumbnailLegacy,
+    StickerSetThumbnailVersion
+  };
 
   // for legacy photos with secret
   struct Legacy {
@@ -75,9 +88,59 @@ struct PhotoSizeSource {
     }
   };
 
+  // for legacy photos with volume_id, local_id, secret
+  struct FullLegacy {
+    FullLegacy() = default;
+    FullLegacy(int64 volume_id, int32 local_id, int64 secret)
+        : volume_id(volume_id), local_id(local_id), secret(secret) {
+    }
+
+    int64 volume_id = 0;
+    int32 local_id = 0;
+    int64 secret = 0;
+  };
+
+  // for legacy dialog photos
+  struct DialogPhotoLegacy : public DialogPhoto {
+    DialogPhotoLegacy() = default;
+    DialogPhotoLegacy(DialogId dialog_id, int64 dialog_access_hash, int64 volume_id, int32 local_id)
+        : DialogPhoto(dialog_id, dialog_access_hash), volume_id(volume_id), local_id(local_id) {
+    }
+
+    int64 volume_id = 0;
+    int32 local_id = 0;
+  };
+
+  struct DialogPhotoSmallLegacy : public DialogPhotoLegacy {
+    using DialogPhotoLegacy::DialogPhotoLegacy;
+  };
+
+  struct DialogPhotoBigLegacy : public DialogPhotoLegacy {
+    using DialogPhotoLegacy::DialogPhotoLegacy;
+  };
+
+  // for legacy sticker set thumbnails
+  struct StickerSetThumbnailLegacy : public StickerSetThumbnail {
+    StickerSetThumbnailLegacy() = default;
+    StickerSetThumbnailLegacy(int64 sticker_set_id, int64 sticker_set_access_hash, int64 volume_id, int32 local_id)
+        : StickerSetThumbnail(sticker_set_id, sticker_set_access_hash), volume_id(volume_id), local_id(local_id) {
+    }
+
+    int64 volume_id = 0;
+    int32 local_id = 0;
+  };
+
+  // for sticker set thumbnails identified by version
+  struct StickerSetThumbnailVersion : public StickerSetThumbnail {
+    StickerSetThumbnailVersion() = default;
+    StickerSetThumbnailVersion(int64 sticker_set_id, int64 sticker_set_access_hash, int32 version)
+        : StickerSetThumbnail(sticker_set_id, sticker_set_access_hash), version(version) {
+    }
+
+    int32 version = 0;
+  };
+
   PhotoSizeSource() = default;
-  explicit PhotoSizeSource(int64 secret) : variant(Legacy(secret)) {
-  }
   PhotoSizeSource(FileType file_type, int32 thumbnail_type) : variant(Thumbnail(file_type, thumbnail_type)) {
   }
   PhotoSizeSource(DialogId dialog_id, int64 dialog_access_hash, bool is_big) {
@@ -89,6 +152,22 @@ struct PhotoSizeSource {
   }
   PhotoSizeSource(int64 sticker_set_id, int64 sticker_set_access_hash)
       : variant(StickerSetThumbnail(sticker_set_id, sticker_set_access_hash)) {
+  }
+  PhotoSizeSource(std::nullptr_t, int64 volume_id, int32 local_id, int64 secret)
+      : variant(FullLegacy(volume_id, local_id, secret)) {
+  }
+  PhotoSizeSource(DialogId dialog_id, int64 dialog_access_hash, bool is_big, int64 volume_id, int32 local_id) {
+    if (is_big) {
+      variant = DialogPhotoBigLegacy(dialog_id, dialog_access_hash, volume_id, local_id);
+    } else {
+      variant = DialogPhotoSmallLegacy(dialog_id, dialog_access_hash, volume_id, local_id);
+    }
+  }
+  PhotoSizeSource(int64 sticker_set_id, int64 sticker_set_access_hash, int64 volume_id, int32 local_id)
+      : variant(StickerSetThumbnailLegacy(sticker_set_id, sticker_set_access_hash, volume_id, local_id)) {
+  }
+  PhotoSizeSource(int64 sticker_set_id, int64 sticker_set_access_hash, int32 version)
+      : variant(StickerSetThumbnailVersion(sticker_set_id, sticker_set_access_hash, version)) {
   }
 
   Type get_type() const {
@@ -110,15 +189,55 @@ struct PhotoSizeSource {
     return variant.get<Thumbnail>();
   }
   const DialogPhoto &dialog_photo() const {
-    if (variant.get_offset() == 2) {
-      return variant.get<DialogPhotoSmall>();
-    } else {
-      return variant.get<DialogPhotoBig>();
+    switch (variant.get_offset()) {
+      case 2:
+        return variant.get<DialogPhotoSmall>();
+      case 3:
+        return variant.get<DialogPhotoBig>();
+      case 6:
+        return variant.get<DialogPhotoSmallLegacy>();
+      case 7:
+        return variant.get<DialogPhotoBigLegacy>();
+      default:
+        UNREACHABLE();
+        return variant.get<DialogPhotoSmall>();
     }
   }
   const StickerSetThumbnail &sticker_set_thumbnail() const {
-    return variant.get<StickerSetThumbnail>();
+    switch (variant.get_offset()) {
+      case 4:
+        return variant.get<StickerSetThumbnail>();
+      case 8:
+        return variant.get<StickerSetThumbnailLegacy>();
+      case 9:
+        return variant.get<StickerSetThumbnailVersion>();
+      default:
+        UNREACHABLE();
+        return variant.get<StickerSetThumbnail>();
+    }
   }
+  const FullLegacy &full_legacy() const {
+    return variant.get<FullLegacy>();
+  }
+  const DialogPhotoLegacy &dialog_photo_legacy() const {
+    if (variant.get_offset() == 6) {
+      return variant.get<DialogPhotoSmallLegacy>();
+    } else {
+      return variant.get<DialogPhotoBigLegacy>();
+    }
+  }
+  const StickerSetThumbnailLegacy &sticker_set_thumbnail_legacy() const {
+    return variant.get<StickerSetThumbnailLegacy>();
+  }
+  const StickerSetThumbnailVersion &sticker_set_thumbnail_version() const {
+    return variant.get<StickerSetThumbnailVersion>();
+  }
+
+  // returns unique representation of the source
+  string get_unique() const;
+
+  // can't be called for Legacy sources
+  string get_unique_name(int64 photo_id) const;
 
   template <class StorerT>
   void store(StorerT &storer) const;
@@ -128,7 +247,9 @@ struct PhotoSizeSource {
   friend bool operator==(const PhotoSizeSource &lhs, const PhotoSizeSource &rhs);
 
  private:
-  Variant<Legacy, Thumbnail, DialogPhotoSmall, DialogPhotoBig, StickerSetThumbnail> variant;
+  Variant<Legacy, Thumbnail, DialogPhotoSmall, DialogPhotoBig, StickerSetThumbnail, FullLegacy, DialogPhotoSmallLegacy,
+          DialogPhotoBigLegacy, StickerSetThumbnailLegacy, StickerSetThumbnailVersion>
+      variant;
 };
 
 bool operator==(const PhotoSizeSource &lhs, const PhotoSizeSource &rhs);

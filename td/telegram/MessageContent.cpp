@@ -3091,10 +3091,9 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
                          new_file_view.remote_location().get_file_reference() ||
                      old_file_view.main_remote_location().get_access_hash() !=
                          new_file_view.remote_location().get_access_hash()) {
-            auto volume_id = -new_file_view.remote_location().get_id();
             FileId file_id = td->file_manager_->register_remote(
                 FullRemoteFileLocation({FileType::Photo, 'i'}, new_file_view.remote_location().get_id(),
-                                       new_file_view.remote_location().get_access_hash(), 0, volume_id, DcId::invalid(),
+                                       new_file_view.remote_location().get_access_hash(), DcId::invalid(),
                                        new_file_view.remote_location().get_file_reference().str()),
                 FileLocationSource::FromServer, dialog_id, old_photo->photos.back().size, 0, "");
             LOG_STATUS(td->file_manager_->merge(file_id, old_file_id));
@@ -3592,16 +3591,6 @@ void unregister_message_content(Td *td, const MessageContent *content, FullMessa
 template <class ToT, class FromT>
 static tl_object_ptr<ToT> secret_to_telegram(FromT &from);
 
-// fileLocationUnavailable volume_id:long local_id:int secret:long = FileLocation;
-static auto secret_to_telegram(secret_api::fileLocationUnavailable &file_location) {
-  return make_tl_object<telegram_api::fileLocationToBeDeprecated>(file_location.volume_id_, file_location.local_id_);
-}
-
-// fileLocation dc_id:int volume_id:long local_id:int secret:long = FileLocation;
-static auto secret_to_telegram(secret_api::fileLocation &file_location) {
-  return make_tl_object<telegram_api::fileLocationToBeDeprecated>(file_location.volume_id_, file_location.local_id_);
-}
-
 // photoSizeEmpty type:string = PhotoSize;
 static auto secret_to_telegram(secret_api::photoSizeEmpty &empty) {
   if (!clean_input_string(empty.type_)) {
@@ -3615,9 +3604,7 @@ static auto secret_to_telegram(secret_api::photoSize &photo_size) {
   if (!clean_input_string(photo_size.type_)) {
     photo_size.type_.clear();
   }
-  return make_tl_object<telegram_api::photoSize>(
-      photo_size.type_, secret_to_telegram<telegram_api::fileLocationToBeDeprecated>(*photo_size.location_),
-      photo_size.w_, photo_size.h_, photo_size.size_);
+  return make_tl_object<telegram_api::photoSize>(photo_size.type_, photo_size.w_, photo_size.h_, photo_size.size_);
 }
 
 // photoCachedSize type:string location:FileLocation w:int h:int bytes:bytes = PhotoSize;
@@ -3625,9 +3612,8 @@ static auto secret_to_telegram(secret_api::photoCachedSize &photo_size) {
   if (!clean_input_string(photo_size.type_)) {
     photo_size.type_.clear();
   }
-  return make_tl_object<telegram_api::photoCachedSize>(
-      photo_size.type_, secret_to_telegram<telegram_api::fileLocationToBeDeprecated>(*photo_size.location_),
-      photo_size.w_, photo_size.h_, photo_size.bytes_.clone());
+  return make_tl_object<telegram_api::photoCachedSize>(photo_size.type_, photo_size.w_, photo_size.h_,
+                                                       photo_size.bytes_.clone());
 }
 
 // documentAttributeImageSize w:int h:int = DocumentAttribute;

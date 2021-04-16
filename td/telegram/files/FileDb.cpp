@@ -40,7 +40,6 @@ Status drop_file_db(SqliteDb &db, int32 version) {
   return Status::OK();
 }
 
-Status fix_file_remote_location_key_bug(SqliteDb &db);
 Status init_file_db(SqliteDb &db, int32 version) {
   LOG(INFO) << "Init file database " << tag("version", version);
 
@@ -49,11 +48,9 @@ Status init_file_db(SqliteDb &db, int32 version) {
 
   if (!has_table) {
     version = 0;
-  } else if (version < static_cast<int32>(DbVersion::DialogDbCreated)) {
+  } else if (version < static_cast<int32>(DbVersion::FixFileRemoteLocationKeyBug)) {
     TRY_STATUS(drop_file_db(db, version));
     version = 0;
-  } else if (version < static_cast<int>(DbVersion::FixFileRemoteLocationKeyBug)) {
-    TRY_STATUS(fix_file_remote_location_key_bug(db));
   }
 
   if (version == 0) {
@@ -304,32 +301,6 @@ class FileDb : public FileDbInterface {
 std::shared_ptr<FileDbInterface> create_file_db(std::shared_ptr<SqliteConnectionSafe> connection, int scheduler_id) {
   auto kv = std::make_shared<SqliteKeyValueSafe>("files", std::move(connection));
   return std::make_shared<FileDb>(std::move(kv), scheduler_id);
-}
-
-Status fix_file_remote_location_key_bug(SqliteDb &db) {
-  static const int32 OLD_KEY_MAGIC = 0x64378433;
-  SqliteKeyValue kv;
-  kv.init_with_connection(db.clone(), "files").ensure();
-  auto ptr = StackAllocator::alloc(4);
-  MutableSlice prefix = ptr.as_slice();
-  TlStorerUnsafe(prefix.ubegin()).store_int(OLD_KEY_MAGIC);
-  kv.get_by_prefix(prefix, [&](Slice key, Slice value) {
-    CHECK(TlParser(key).fetch_int() == OLD_KEY_MAGIC);
-    auto remote_str = PSTRING() << key.substr(4, 4) << Slice("\0\0\0\0") << key.substr(8);
-    FullRemoteFileLocation remote;
-    log_event::WithVersion<TlParser> parser(remote_str);
-    parser.set_version(static_cast<int32>(Version::Initial));
-    parse(remote, parser);
-    parser.fetch_end();
-    auto status = parser.get_status();
-    if (status.is_ok()) {
-      kv.set(FileDbInterface::as_key(remote), value);
-    }
-    LOG(DEBUG) << "ERASE " << format::as_hex_dump<4>(Slice(key));
-    kv.erase(key);
-    return true;
-  });
-  return Status::OK();
 }
 
 }  // namespace td

@@ -354,16 +354,25 @@ void FileReferenceManager::reload_photo(PhotoSizeSource source, Promise<Unit> pr
   switch (source.get_type()) {
     case PhotoSizeSource::Type::DialogPhotoBig:
     case PhotoSizeSource::Type::DialogPhotoSmall:
+    case PhotoSizeSource::Type::DialogPhotoBigLegacy:
+    case PhotoSizeSource::Type::DialogPhotoSmallLegacy:
       send_closure(G()->contacts_manager(), &ContactsManager::reload_dialog_info, source.dialog_photo().dialog_id,
                    std::move(promise));
       break;
     case PhotoSizeSource::Type::StickerSetThumbnail:
+    case PhotoSizeSource::Type::StickerSetThumbnailLegacy:
+    case PhotoSizeSource::Type::StickerSetThumbnailVersion:
       send_closure(G()->stickers_manager(), &StickersManager::reload_sticker_set,
                    StickerSetId(source.sticker_set_thumbnail().sticker_set_id),
                    source.sticker_set_thumbnail().sticker_set_access_hash, std::move(promise));
       break;
-    default:
+    case PhotoSizeSource::Type::Legacy:
+    case PhotoSizeSource::Type::FullLegacy:
+    case PhotoSizeSource::Type::Thumbnail:
       promise.set_error(Status::Error("Unexpected PhotoSizeSource type"));
+      break;
+    default:
+      UNREACHABLE();
   }
 }
 

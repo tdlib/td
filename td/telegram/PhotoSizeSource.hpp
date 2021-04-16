@@ -15,6 +15,7 @@ namespace td {
 
 template <class StorerT>
 void store(const PhotoSizeSource::Legacy &source, StorerT &storer) {
+  UNREACHABLE();
   store(source.secret, storer);
 }
 
@@ -39,21 +40,9 @@ void parse(PhotoSizeSource::Thumbnail &source, ParserT &parser) {
   source.file_type = static_cast<FileType>(raw_type);
 
   parse(source.thumbnail_type, parser);
-  if (source.thumbnail_type < 0 || source.thumbnail_type > 255) {
+  if (source.thumbnail_type < 0 || source.thumbnail_type > 127) {
     parser.set_error("Wrong thumbnail type");
   }
-}
-
-template <class StorerT>
-void store(const PhotoSizeSource::StickerSetThumbnail &source, StorerT &storer) {
-  store(source.sticker_set_id, storer);
-  store(source.sticker_set_access_hash, storer);
-}
-
-template <class ParserT>
-void parse(PhotoSizeSource::StickerSetThumbnail &source, ParserT &parser) {
-  parse(source.sticker_set_id, parser);
-  parse(source.sticker_set_access_hash, parser);
 }
 
 template <class StorerT>
@@ -94,6 +83,101 @@ void store(const PhotoSizeSource::DialogPhotoBig &source, StorerT &storer) {
 template <class ParserT>
 void parse(PhotoSizeSource::DialogPhotoBig &source, ParserT &parser) {
   parse(static_cast<PhotoSizeSource::DialogPhoto &>(source), parser);
+}
+
+template <class StorerT>
+void store(const PhotoSizeSource::StickerSetThumbnail &source, StorerT &storer) {
+  store(source.sticker_set_id, storer);
+  store(source.sticker_set_access_hash, storer);
+}
+
+template <class ParserT>
+void parse(PhotoSizeSource::StickerSetThumbnail &source, ParserT &parser) {
+  parse(source.sticker_set_id, parser);
+  parse(source.sticker_set_access_hash, parser);
+}
+
+template <class StorerT>
+void store(const PhotoSizeSource::FullLegacy &source, StorerT &storer) {
+  store(source.volume_id, storer);
+  store(source.secret, storer);
+  store(source.local_id, storer);
+}
+
+template <class ParserT>
+void parse(PhotoSizeSource::FullLegacy &source, ParserT &parser) {
+  parse(source.volume_id, parser);
+  parse(source.secret, parser);
+  parse(source.local_id, parser);
+  if (source.local_id < 0) {
+    parser.set_error("Wrong local_id");
+  }
+}
+
+template <class StorerT>
+void store(const PhotoSizeSource::DialogPhotoLegacy &source, StorerT &storer) {
+  store(static_cast<const PhotoSizeSource::DialogPhoto &>(source), storer);
+  store(source.volume_id, storer);
+  store(source.local_id, storer);
+}
+
+template <class ParserT>
+void parse(PhotoSizeSource::DialogPhotoLegacy &source, ParserT &parser) {
+  parse(static_cast<PhotoSizeSource::DialogPhoto &>(source), parser);
+  parse(source.volume_id, parser);
+  parse(source.local_id, parser);
+  if (source.local_id < 0) {
+    parser.set_error("Wrong local_id");
+  }
+}
+
+template <class StorerT>
+void store(const PhotoSizeSource::DialogPhotoSmallLegacy &source, StorerT &storer) {
+  store(static_cast<const PhotoSizeSource::DialogPhotoLegacy &>(source), storer);
+}
+
+template <class ParserT>
+void parse(PhotoSizeSource::DialogPhotoSmallLegacy &source, ParserT &parser) {
+  parse(static_cast<PhotoSizeSource::DialogPhotoLegacy &>(source), parser);
+}
+
+template <class StorerT>
+void store(const PhotoSizeSource::DialogPhotoBigLegacy &source, StorerT &storer) {
+  store(static_cast<const PhotoSizeSource::DialogPhotoLegacy &>(source), storer);
+}
+
+template <class ParserT>
+void parse(PhotoSizeSource::DialogPhotoBigLegacy &source, ParserT &parser) {
+  parse(static_cast<PhotoSizeSource::DialogPhotoLegacy &>(source), parser);
+}
+
+template <class StorerT>
+void store(const PhotoSizeSource::StickerSetThumbnailLegacy &source, StorerT &storer) {
+  store(static_cast<const PhotoSizeSource::StickerSetThumbnail &>(source), storer);
+  store(source.volume_id, storer);
+  store(source.local_id, storer);
+}
+
+template <class ParserT>
+void parse(PhotoSizeSource::StickerSetThumbnailLegacy &source, ParserT &parser) {
+  parse(static_cast<PhotoSizeSource::StickerSetThumbnail &>(source), parser);
+  parse(source.volume_id, parser);
+  parse(source.local_id, parser);
+  if (source.local_id < 0) {
+    parser.set_error("Wrong local_id");
+  }
+}
+
+template <class StorerT>
+void store(const PhotoSizeSource::StickerSetThumbnailVersion &source, StorerT &storer) {
+  store(static_cast<const PhotoSizeSource::StickerSetThumbnail &>(source), storer);
+  store(source.version, storer);
+}
+
+template <class ParserT>
+void parse(PhotoSizeSource::StickerSetThumbnailVersion &source, ParserT &parser) {
+  parse(static_cast<PhotoSizeSource::StickerSetThumbnail &>(source), parser);
+  parse(source.version, parser);
 }
 
 template <class StorerT>

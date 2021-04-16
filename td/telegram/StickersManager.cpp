@@ -2445,8 +2445,8 @@ StickerSetId StickersManager::on_get_sticker_set(tl_object_ptr<telegram_api::sti
   PhotoSize thumbnail;
   string minithumbnail;
   for (auto &thumb : set->thumbs_) {
-    auto photo_size = get_photo_size(td_->file_manager_.get(), {set_id.get(), s->access_hash}, 0, 0, "",
-                                     DcId::create(set->thumb_dc_id_), DialogId(), std::move(thumb),
+    auto photo_size = get_photo_size(td_->file_manager_.get(), {set_id.get(), s->access_hash, set->thumb_version_}, 0,
+                                     0, "", DcId::create(set->thumb_dc_id_), DialogId(), std::move(thumb),
                                      is_animated ? PhotoFormat::Tgs : PhotoFormat::Webp);
     if (photo_size.get_offset() == 0) {
       if (!thumbnail.file_id.is_valid()) {

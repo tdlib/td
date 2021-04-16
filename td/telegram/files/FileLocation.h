@@ -81,8 +81,6 @@ inline StringBuilder &operator<<(StringBuilder &sb, const PartialRemoteFileLocat
 struct PhotoRemoteFileLocation {
   int64 id_;
   int64 access_hash_;
-  int64 volume_id_;
-  int32 local_id_;
   PhotoSizeSource source_;
 
   template <class StorerT>
@@ -102,16 +100,19 @@ struct PhotoRemoteFileLocation {
   }
 
   bool operator<(const PhotoRemoteFileLocation &other) const {
-    return std::tie(id_, volume_id_, local_id_) < std::tie(other.id_, other.volume_id_, other.local_id_);
+    if (id_ != other.id_) {
+      return id_ < other.id_;
+    }
+    return source_.get_unique() < other.source_.get_unique();
   }
   bool operator==(const PhotoRemoteFileLocation &other) const {
-    return std::tie(id_, volume_id_, local_id_) == std::tie(other.id_, other.volume_id_, other.local_id_);
+    return id_ == other.id_ && source_.get_unique() == other.source_.get_unique();
   }
 };
 
 inline StringBuilder &operator<<(StringBuilder &string_builder, const PhotoRemoteFileLocation &location) {
-  return string_builder << "[ID = " << location.id_ << ", access_hash = " << location.access_hash_
-                        << ", volume_id = " << location.volume_id_ << ", local_id = " << location.local_id_ << "]";
+  return string_builder << "[ID = " << location.id_ << ", access_hash = " << location.access_hash_ << ", "
+                        << location.source_ << "]";
 }
 
 struct WebRemoteFileLocation {
@@ -165,10 +166,10 @@ struct CommonRemoteFileLocation {
   }
 
   bool operator<(const CommonRemoteFileLocation &other) const {
-    return std::tie(id_) < std::tie(other.id_);
+    return id_ < other.id_;
   }
   bool operator==(const CommonRemoteFileLocation &other) const {
-    return std::tie(id_) == std::tie(other.id_);
+    return id_ == other.id_;
   }
 };
 
@@ -324,11 +325,11 @@ class FullRemoteFileLocation {
         return photo().source_;
       case LocationType::Common:
       case LocationType::Web:
-        return PhotoSizeSource(0);
+        return PhotoSizeSource(nullptr, 0, 0, 0);
       case LocationType::None:
       default:
         UNREACHABLE();
-        return PhotoSizeSource(0);
+        return PhotoSizeSource(nullptr, 0, 0, 0);
     }
   }
 
@@ -395,22 +396,24 @@ class FullRemoteFileLocation {
 
   tl_object_ptr<telegram_api::InputFileLocation> as_input_file_location() const {
     switch (location_type()) {
-      case LocationType::Photo:
-        switch (photo().source_.get_type()) {
+      case LocationType::Photo: {
+        const auto &id = photo().id_;
+        const auto &access_hash = photo().access_hash_;
+        const auto &source = photo().source_;
+        switch (source.get_type()) {
           case PhotoSizeSource::Type::Legacy:
-            return make_tl_object<telegram_api::inputPhotoLegacyFileLocation>(
-                photo().id_, photo().access_hash_, BufferSlice(file_reference_), photo().volume_id_, photo().local_id_,
-                photo().source_.legacy().secret);
+            UNREACHABLE();
+            break;
           case PhotoSizeSource::Type::Thumbnail: {
-            auto &thumbnail = photo().source_.thumbnail();
+            auto &thumbnail = source.thumbnail();
             switch (thumbnail.file_type) {
               case FileType::Photo:
                 return make_tl_object<telegram_api::inputPhotoFileLocation>(
-                    photo().id_, photo().access_hash_, BufferSlice(file_reference_),
+                    id, access_hash, BufferSlice(file_reference_),
                     std::string(1, static_cast<char>(static_cast<uint8>(thumbnail.thumbnail_type))));
               case FileType::Thumbnail:
                 return make_tl_object<telegram_api::inputDocumentFileLocation>(
-                    photo().id_, photo().access_hash_, BufferSlice(file_reference_),
+                    id, access_hash, BufferSlice(file_reference_),
                     std::string(1, static_cast<char>(static_cast<uint8>(thumbnail.thumbnail_type))));
               default:
                 UNREACHABLE();
@@ -420,22 +423,46 @@ class FullRemoteFileLocation {
           }
           case PhotoSizeSource::Type::DialogPhotoSmall:
           case PhotoSizeSource::Type::DialogPhotoBig: {
-            auto &dialog_photo = photo().source_.dialog_photo();
-            bool is_big = photo().source_.get_type() == PhotoSizeSource::Type::DialogPhotoBig;
+            auto &dialog_photo = source.dialog_photo();
+            bool is_big = source.get_type() == PhotoSizeSource::Type::DialogPhotoBig;
             return make_tl_object<telegram_api::inputPeerPhotoFileLocation>(
-                is_big * telegram_api::inputPeerPhotoFileLocation::Flags::BIG_MASK, false /*ignored*/,
-                dialog_photo.get_input_peer(), photo().volume_id_, photo().local_id_);
+                is_big * telegram_api::inputPeerPhotoFileLocation::BIG_MASK, false /*ignored*/,
+                dialog_photo.get_input_peer(), id);
           }
-          case PhotoSizeSource::Type::StickerSetThumbnail: {
-            auto &sticker_set_thumbnail = photo().source_.sticker_set_thumbnail();
+          case PhotoSizeSource::Type::StickerSetThumbnail:
+            UNREACHABLE();
+            break;
+          case PhotoSizeSource::Type::FullLegacy: {
+            const auto &full_legacy = source.full_legacy();
+            return make_tl_object<telegram_api::inputPhotoLegacyFileLocation>(
+                id, access_hash, BufferSlice(file_reference_), full_legacy.volume_id, full_legacy.local_id,
+                full_legacy.secret);
+          }
+          case PhotoSizeSource::Type::DialogPhotoSmallLegacy:
+          case PhotoSizeSource::Type::DialogPhotoBigLegacy: {
+            auto &dialog_photo = source.dialog_photo_legacy();
+            bool is_big = source.get_type() == PhotoSizeSource::Type::DialogPhotoBigLegacy;
+            return make_tl_object<telegram_api::inputPeerPhotoFileLocationLegacy>(
+                is_big * telegram_api::inputPeerPhotoFileLocationLegacy::BIG_MASK, false /*ignored*/,
+                dialog_photo.get_input_peer(), dialog_photo.volume_id, dialog_photo.local_id);
+          }
+          case PhotoSizeSource::Type::StickerSetThumbnailLegacy: {
+            auto &sticker_set_thumbnail = source.sticker_set_thumbnail_legacy();
+            return make_tl_object<telegram_api::inputStickerSetThumbLegacy>(
+                sticker_set_thumbnail.get_input_sticker_set(), sticker_set_thumbnail.volume_id,
+                sticker_set_thumbnail.local_id);
+          }
+          case PhotoSizeSource::Type::StickerSetThumbnailVersion: {
+            auto &sticker_set_thumbnail = source.sticker_set_thumbnail_version();
             return make_tl_object<telegram_api::inputStickerSetThumb>(sticker_set_thumbnail.get_input_sticker_set(),
-                                                                      photo().volume_id_, photo().local_id_);
+                                                                      sticker_set_thumbnail.version);
           }
           default:
             break;
         }
         UNREACHABLE();
         return nullptr;
+      }
       case LocationType::Common:
         if (is_encrypted_secret()) {
           return make_tl_object<telegram_api::inputEncryptedFileLocation>(common().id_, common().access_hash_);
@@ -478,16 +505,16 @@ class FullRemoteFileLocation {
     return make_tl_object<telegram_api::inputSecureFile>(common().id_, common().access_hash_);
   }
 
-  // TODO: this constructor is just for immediate unserialize
+  // this constructor is just for immediate unserialize
   FullRemoteFileLocation() = default;
 
   // photo
-  FullRemoteFileLocation(const PhotoSizeSource &source, int64 id, int64 access_hash, int32 local_id, int64 volume_id,
-                         DcId dc_id, std::string file_reference)
+  FullRemoteFileLocation(const PhotoSizeSource &source, int64 id, int64 access_hash, DcId dc_id,
+                         std::string file_reference)
       : file_type_(source.get_file_type())
       , dc_id_(dc_id)
       , file_reference_(std::move(file_reference))
-      , variant_(PhotoRemoteFileLocation{id, access_hash, volume_id, local_id, source}) {
+      , variant_(PhotoRemoteFileLocation{id, access_hash, source}) {
     CHECK(is_photo());
     check_file_reference();
   }

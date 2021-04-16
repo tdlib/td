@@ -8410,8 +8410,6 @@ ContactsManager::User *ContactsManager::get_user_force(UserId user_id) {
     int32 flags = telegram_api::user::ACCESS_HASH_MASK | telegram_api::user::FIRST_NAME_MASK |
                   telegram_api::user::APPLY_MIN_PHOTO_MASK;
     int64 profile_photo_id = 0;
-    int64 profile_photo_volume_id = 0;
-    int32 profile_photo_local_id = 0;
     int32 profile_photo_dc_id = 1;
     string first_name;
     string last_name;
@@ -8428,8 +8426,6 @@ ContactsManager::User *ContactsManager::get_user_force(UserId user_id) {
       }
       phone_number = "42777";
       profile_photo_id = 3337190045231023;
-      profile_photo_volume_id = 107738948;
-      profile_photo_local_id = 13226;
     } else if (user_id == get_replies_bot_user_id()) {
       flags |= telegram_api::user::USERNAME_MASK | telegram_api::user::BOT_MASK;
       if (!G()->is_test_dc()) {
@@ -8447,20 +8443,13 @@ ContactsManager::User *ContactsManager::get_user_force(UserId user_id) {
       username = G()->is_test_dc() ? "izgroupbot" : "GroupAnonymousBot";
       bot_info_version = G()->is_test_dc() ? 1 : 3;
       profile_photo_id = 5159307831025969322;
-      profile_photo_volume_id = 806529792;
-      profile_photo_local_id = 188482;
     }
 
     telegram_api::object_ptr<telegram_api::userProfilePhoto> profile_photo;
     if (!G()->is_test_dc() && profile_photo_id != 0) {
       flags |= telegram_api::user::PHOTO_MASK;
-      profile_photo = telegram_api::make_object<telegram_api::userProfilePhoto>(
-          0, false /*ignored*/, profile_photo_id,
-          telegram_api::make_object<telegram_api::fileLocationToBeDeprecated>(profile_photo_volume_id,
-                                                                              profile_photo_local_id),
-          telegram_api::make_object<telegram_api::fileLocationToBeDeprecated>(profile_photo_volume_id,
-                                                                              profile_photo_local_id + 2),
-          BufferSlice(), profile_photo_dc_id);
+      profile_photo = telegram_api::make_object<telegram_api::userProfilePhoto>(0, false /*ignored*/, profile_photo_id,
+                                                                                BufferSlice(), profile_photo_dc_id);
     }
 
     auto user = telegram_api::make_object<telegram_api::user>(

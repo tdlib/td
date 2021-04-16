@@ -99,6 +99,10 @@ void parse(PhotoSize &photo_size, ParserT &parser) {
   } else {
     photo_size.progressive_sizes.clear();
   }
+  if (photo_size.type < 0 || photo_size.type >= 128) {
+    parser.set_error("Wrong PhotoSize type");
+    return;
+  }
   LOG(DEBUG) << "Parsed photo size " << photo_size;
 }
 

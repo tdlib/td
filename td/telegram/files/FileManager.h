@@ -324,8 +324,7 @@ class FileView {
       return false;
     }
     auto type = remote_location().get_source().get_type();
-    return type == PhotoSizeSource::Type::DialogPhotoBig || type == PhotoSizeSource::Type::DialogPhotoSmall ||
-           type == PhotoSizeSource::Type::StickerSetThumbnail;
+    return type != PhotoSizeSource::Type::Legacy && type != PhotoSizeSource::Type::FullLegacy;
   }
 
   string get_persistent_file_id() const;
