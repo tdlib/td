@@ -5,6 +5,8 @@ function(td_set_up_compiler)
 
   set(CMAKE_POSITION_INDEPENDENT_CODE ON PARENT_SCOPE)
 
+  include(illumos)
+
   if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     set(GCC 1)
     set(GCC 1 PARENT_SCOPE)
@@ -58,7 +60,9 @@ function(td_set_up_compiler)
     else()
       set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ffunction-sections -fdata-sections")
       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffunction-sections -fdata-sections")
-      set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--gc-sections -Wl,--exclude-libs,ALL")
+      if (NOT ILLUMOS)
+        set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--gc-sections -Wl,--exclude-libs,ALL")
+      endif()
     endif()
 
     if (WIN32 OR CYGWIN)
@@ -79,6 +83,12 @@ function(td_set_up_compiler)
 
   if (NOT ANDROID) # _FILE_OFFSET_BITS is broken in NDK r15, r15b and r17 and doesn't work prior to Android 7.0
     add_definitions(-D_FILE_OFFSET_BITS=64)
+  endif()
+
+  if (ILLUMOS)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -lnsl -lsocket")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lnsl -lsocket")
+    add_definitions(-DTD_ILLUMOS=1)
   endif()
 
   include(AddCXXCompilerFlag)

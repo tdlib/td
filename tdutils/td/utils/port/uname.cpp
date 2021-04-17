@@ -194,7 +194,7 @@ Slice get_operating_system_version() {
     }
 #endif
 
-    utsname name;
+    struct utsname name;
     int err = uname(&name);
     if (err == 0) {
       auto os_name = trim(PSTRING() << Slice(name.sysname, std::strlen(name.sysname)) << " "
