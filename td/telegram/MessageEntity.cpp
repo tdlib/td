@@ -2889,75 +2889,6 @@ Result<vector<MessageEntity>> parse_html(string &text) {
   return entities;
 }
 
-vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(const ContactsManager *contacts_manager,
-                                                                              const vector<MessageEntity> &entities,
-                                                                              const char *source) {
-  vector<tl_object_ptr<telegram_api::MessageEntity>> result;
-  for (auto &entity : entities) {
-    if (!is_user_entity(entity.type)) {
-      continue;
-    }
-    switch (entity.type) {
-      case MessageEntity::Type::Bold:
-        result.push_back(make_tl_object<telegram_api::messageEntityBold>(entity.offset, entity.length));
-        break;
-      case MessageEntity::Type::Italic:
-        result.push_back(make_tl_object<telegram_api::messageEntityItalic>(entity.offset, entity.length));
-        break;
-      case MessageEntity::Type::Underline:
-        result.push_back(make_tl_object<telegram_api::messageEntityUnderline>(entity.offset, entity.length));
-        break;
-      case MessageEntity::Type::Strikethrough:
-        result.push_back(make_tl_object<telegram_api::messageEntityStrike>(entity.offset, entity.length));
-        break;
-      case MessageEntity::Type::BlockQuote:
-        result.push_back(make_tl_object<telegram_api::messageEntityBlockquote>(entity.offset, entity.length));
-        break;
-      case MessageEntity::Type::Code:
-        result.push_back(make_tl_object<telegram_api::messageEntityCode>(entity.offset, entity.length));
-        break;
-      case MessageEntity::Type::Pre:
-        result.push_back(make_tl_object<telegram_api::messageEntityPre>(entity.offset, entity.length, string()));
-        break;
-      case MessageEntity::Type::PreCode:
-        result.push_back(make_tl_object<telegram_api::messageEntityPre>(entity.offset, entity.length, entity.argument));
-        break;
-      case MessageEntity::Type::TextUrl:
-        result.push_back(
-            make_tl_object<telegram_api::messageEntityTextUrl>(entity.offset, entity.length, entity.argument));
-        break;
-      case MessageEntity::Type::MentionName: {
-        auto input_user = contacts_manager->get_input_user(entity.user_id);
-        LOG_CHECK(input_user != nullptr) << source;
-        result.push_back(make_tl_object<telegram_api::inputMessageEntityMentionName>(entity.offset, entity.length,
-                                                                                     std::move(input_user)));
-        break;
-      }
-      case MessageEntity::Type::Mention:
-      case MessageEntity::Type::Hashtag:
-      case MessageEntity::Type::BotCommand:
-      case MessageEntity::Type::Url:
-      case MessageEntity::Type::EmailAddress:
-      case MessageEntity::Type::Cashtag:
-      case MessageEntity::Type::PhoneNumber:
-      case MessageEntity::Type::BankCardNumber:
-      default:
-        UNREACHABLE();
-    }
-  }
-
-  return result;
-}
-
-vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(const ContactsManager *contacts_manager,
-                                                                              const FormattedText *text,
-                                                                              const char *source) {
-  if (text != nullptr && !text->entities.empty()) {
-    return get_input_message_entities(contacts_manager, text->entities, source);
-  }
-  return {};
-}
-
 vector<tl_object_ptr<secret_api::MessageEntity>> get_input_secret_message_entities(
     const vector<MessageEntity> &entities, int32 layer) {
   vector<tl_object_ptr<secret_api::MessageEntity>> result;
@@ -3592,7 +3523,7 @@ static std::pair<size_t, int32> remove_invalid_entities(const string &text, vect
 }
 
 // enitities must contain only splittable entities
-void split_entities(vector<MessageEntity> &entities, const vector<MessageEntity> &other_entities) {
+static void split_entities(vector<MessageEntity> &entities, const vector<MessageEntity> &other_entities) {
   check_is_sorted(entities);
   check_is_sorted(other_entities);
 
@@ -3975,6 +3906,79 @@ bool need_skip_bot_commands(const ContactsManager *contacts_manager, DialogId di
       UNREACHABLE();
       return false;
   }
+}
+
+vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(const ContactsManager *contacts_manager,
+                                                                              const vector<MessageEntity> &entities,
+                                                                              const char *source) {
+  vector<tl_object_ptr<telegram_api::MessageEntity>> result;
+  vector<MessageEntity> splittable_entities;
+  for (auto &entity : entities) {
+    if (!is_user_entity(entity.type)) {
+      continue;
+    }
+    if (is_splittable_entity(entity.type)) {
+      splittable_entities.push_back(entity);
+      continue;
+    }
+    switch (entity.type) {
+      case MessageEntity::Type::BlockQuote:
+        result.push_back(make_tl_object<telegram_api::messageEntityBlockquote>(entity.offset, entity.length));
+        break;
+      case MessageEntity::Type::Code:
+        result.push_back(make_tl_object<telegram_api::messageEntityCode>(entity.offset, entity.length));
+        break;
+      case MessageEntity::Type::Pre:
+        result.push_back(make_tl_object<telegram_api::messageEntityPre>(entity.offset, entity.length, string()));
+        break;
+      case MessageEntity::Type::PreCode:
+        result.push_back(make_tl_object<telegram_api::messageEntityPre>(entity.offset, entity.length, entity.argument));
+        break;
+      case MessageEntity::Type::TextUrl:
+        result.push_back(
+            make_tl_object<telegram_api::messageEntityTextUrl>(entity.offset, entity.length, entity.argument));
+        break;
+      case MessageEntity::Type::MentionName: {
+        auto input_user = contacts_manager->get_input_user(entity.user_id);
+        LOG_CHECK(input_user != nullptr) << source;
+        result.push_back(make_tl_object<telegram_api::inputMessageEntityMentionName>(entity.offset, entity.length,
+                                                                                     std::move(input_user)));
+        break;
+      }
+      default:
+        UNREACHABLE();
+    }
+  }
+  split_entities(splittable_entities, vector<MessageEntity>());
+  for (auto &entity : splittable_entities) {
+    switch (entity.type) {
+      case MessageEntity::Type::Bold:
+        result.push_back(make_tl_object<telegram_api::messageEntityBold>(entity.offset, entity.length));
+        break;
+      case MessageEntity::Type::Italic:
+        result.push_back(make_tl_object<telegram_api::messageEntityItalic>(entity.offset, entity.length));
+        break;
+      case MessageEntity::Type::Underline:
+        result.push_back(make_tl_object<telegram_api::messageEntityUnderline>(entity.offset, entity.length));
+        break;
+      case MessageEntity::Type::Strikethrough:
+        result.push_back(make_tl_object<telegram_api::messageEntityStrike>(entity.offset, entity.length));
+        break;
+      default:
+        UNREACHABLE();
+    }
+  }
+
+  return result;
+}
+
+vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(const ContactsManager *contacts_manager,
+                                                                              const FormattedText *text,
+                                                                              const char *source) {
+  if (text != nullptr && !text->entities.empty()) {
+    return get_input_message_entities(contacts_manager, text->entities, source);
+  }
+  return {};
 }
 
 }  // namespace td
