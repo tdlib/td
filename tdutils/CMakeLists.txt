@@ -360,7 +360,7 @@ if (ANDROID)
   target_link_libraries(tdutils PRIVATE log)
 endif()
 
-if (CMAKE_HOST_SYSTEM_NAME MATCHES "NetBSD")
+if (CMAKE_SYSTEM_NAME MATCHES "NetBSD")
   target_link_libraries(tdutils PUBLIC /usr/pkg/gcc5/i486--netbsdelf/lib/libatomic.so)
 endif()
 
