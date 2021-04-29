@@ -51,6 +51,7 @@ set(TDUTILS_SOURCE
   td/utils/port/IPAddress.cpp
   td/utils/port/MemoryMapping.cpp
   td/utils/port/path.cpp
+  td/utils/port/platform.cpp
   td/utils/port/PollFlags.cpp
   td/utils/port/rlimit.cpp
   td/utils/port/ServerSocketFd.cpp
