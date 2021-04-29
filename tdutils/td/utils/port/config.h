@@ -34,6 +34,9 @@
 #elif TD_WINDOWS
   #define TD_POLL_WINEVENT 1
   #define TD_EVENTFD_WINDOWS 1
+#elif TD_ILLUMOS
+  #define TD_POLL_EPOLL 1
+  #define TD_EVENTFD_LINUX 1
 #else
   #error "Poll's implementation is not defined"
 #endif
