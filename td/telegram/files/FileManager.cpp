@@ -921,23 +921,23 @@ Status FileManager::check_local_location(FullLocalFileLocation &location, int64 
   constexpr int64 MAX_PHOTO_SIZE = 10 * (1 << 20) /* 10 MB */;
 
   if (location.path_.empty()) {
-    return Status::Error("File must have non-empty path");
+    return Status::Error(400, "File must have non-empty path");
   }
   TRY_RESULT(path, realpath(location.path_, true));
   if (bad_paths_.count(path) != 0) {
-    return Status::Error("Sending of internal database files is forbidden");
+    return Status::Error(400, "Sending of internal database files is forbidden");
   }
   location.path_ = std::move(path);
   TRY_RESULT(stat, stat(location.path_));
   if (!stat.is_reg_) {
-    return Status::Error("File must be a regular file");
+    return Status::Error(400, "File must be a regular file");
   }
   if (stat.size_ < 0) {
     // TODO is it possible?
-    return Status::Error("File is too big");
+    return Status::Error(400, "File is too big");
   }
   if (stat.size_ == 0) {
-    return Status::Error("File must be non-empty");
+    return Status::Error(400, "File must be non-empty");
   }
 
   if (size == 0) {
@@ -949,23 +949,23 @@ Status FileManager::check_local_location(FullLocalFileLocation &location, int64 
   } else if (!are_modification_times_equal(location.mtime_nsec_, stat.mtime_nsec_)) {
     VLOG(file_loader) << "File \"" << location.path_ << "\" was modified: old mtime = " << location.mtime_nsec_
                       << ", new mtime = " << stat.mtime_nsec_;
-    return Status::Error(PSLICE() << "File \"" << location.path_ << "\" was modified");
+    return Status::Error(400, PSLICE() << "File \"" << location.path_ << "\" was modified");
   }
   if (skip_file_size_checks) {
     return Status::OK();
   }
   if ((location.file_type_ == FileType::Thumbnail || location.file_type_ == FileType::EncryptedThumbnail) &&
       size > MAX_THUMBNAIL_SIZE && !begins_with(PathView(location.path_).file_name(), "map")) {
-    return Status::Error(PSLICE() << "File \"" << location.path_ << "\" is too big for a thumbnail "
-                                  << tag("size", format::as_size(size)));
+    return Status::Error(400, PSLICE() << "File \"" << location.path_ << "\" is too big for a thumbnail "
+                                       << tag("size", format::as_size(size)));
   }
   if (location.file_type_ == FileType::Photo && size > MAX_PHOTO_SIZE) {
-    return Status::Error(PSLICE() << "File \"" << location.path_ << "\" is too big for a photo "
-                                  << tag("size", format::as_size(size)));
+    return Status::Error(400, PSLICE() << "File \"" << location.path_ << "\" is too big for a photo "
+                                       << tag("size", format::as_size(size)));
   }
   if (size > MAX_FILE_SIZE) {
-    return Status::Error(PSLICE() << "File \"" << location.path_ << "\" is too big "
-                                  << tag("size", format::as_size(size)));
+    return Status::Error(
+        400, PSLICE() << "File \"" << location.path_ << "\" is too big " << tag("size", format::as_size(size)));
   }
   return Status::OK();
 }
@@ -1175,7 +1175,7 @@ Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource fi
   bool has_local = data.local_.type() == LocalFileLocation::Type::Full;
   bool has_location = has_local || has_remote || has_generate;
   if (!has_location) {
-    return Status::Error("No location");
+    return Status::Error(400, "No location");
   }
 
   FileId file_id = next_file_id();
@@ -2842,11 +2842,11 @@ Result<FileId> FileManager::from_persistent_id(CSlice persistent_id, FileType fi
 
   auto r_binary = base64url_decode(persistent_id);
   if (r_binary.is_error()) {
-    return Status::Error(10, PSLICE() << "Wrong remote file identifier specified: " << r_binary.error().message());
+    return Status::Error(400, PSLICE() << "Wrong remote file identifier specified: " << r_binary.error().message());
   }
   auto binary = r_binary.move_as_ok();
   if (binary.empty()) {
-    return Status::Error(10, "Remote file identifier can't be empty");
+    return Status::Error(400, "Remote file identifier can't be empty");
   }
   if (binary.back() == FileNode::PERSISTENT_ID_VERSION_OLD) {
     return from_persistent_id_v2(binary, file_type);
@@ -2857,7 +2857,7 @@ Result<FileId> FileManager::from_persistent_id(CSlice persistent_id, FileType fi
   if (binary.back() == FileNode::PERSISTENT_ID_VERSION_MAP) {
     return from_persistent_id_map(binary, file_type);
   }
-  return Status::Error(10, "Wrong remote file identifier specified: can't unserialize it. Wrong last symbol");
+  return Status::Error(400, "Wrong remote file identifier specified: can't unserialize it. Wrong last symbol");
 }
 
 Result<FileId> FileManager::from_persistent_id_map(Slice binary, FileType file_type) {
@@ -2866,15 +2866,15 @@ Result<FileId> FileManager::from_persistent_id_map(Slice binary, FileType file_t
   FullGenerateFileLocation generate_location;
   auto status = unserialize(generate_location, decoded_binary);
   if (status.is_error()) {
-    return Status::Error(10, "Wrong remote file identifier specified: can't unserialize it");
+    return Status::Error(400, "Wrong remote file identifier specified: can't unserialize it");
   }
   auto real_file_type = generate_location.file_type_;
   if ((real_file_type != file_type && file_type != FileType::Temp) ||
       (real_file_type != FileType::Thumbnail && real_file_type != FileType::EncryptedThumbnail)) {
-    return Status::Error(10, "Type of file mismatch");
+    return Status::Error(400, "Type of file mismatch");
   }
   if (!begins_with(generate_location.conversion_, "#map#")) {
-    return Status::Error(10, "Unexpected conversion type");
+    return Status::Error(400, "Unexpected conversion type");
   }
   FileData data;
   data.generate_ = make_unique<FullGenerateFileLocation>(std::move(generate_location));
@@ -2883,7 +2883,7 @@ Result<FileId> FileManager::from_persistent_id_map(Slice binary, FileType file_t
 
 Result<FileId> FileManager::from_persistent_id_v23(Slice binary, FileType file_type, int32 version) {
   if (version < 0 || version >= static_cast<int32>(Version::Next)) {
-    return Status::Error("Invalid remote file identifier");
+    return Status::Error(400, "Invalid remote file identifier");
   }
   auto decoded_binary = zero_decode(binary);
   FullRemoteFileLocation remote_location;
@@ -2893,7 +2893,7 @@ Result<FileId> FileManager::from_persistent_id_v23(Slice binary, FileType file_t
   parser.fetch_end();
   auto status = parser.get_status();
   if (status.is_error()) {
-    return Status::Error(10, "Wrong remote file identifier specified: can't unserialize it");
+    return Status::Error(400, "Wrong remote file identifier specified: can't unserialize it");
   }
   auto &real_file_type = remote_location.file_type_;
   if (is_document_type(real_file_type) && is_document_type(file_type)) {
@@ -2901,7 +2901,7 @@ Result<FileId> FileManager::from_persistent_id_v23(Slice binary, FileType file_t
   } else if (is_background_type(real_file_type) && is_background_type(file_type)) {
     // type of file matches, but real type is in the stored remote location
   } else if (real_file_type != file_type && file_type != FileType::Temp) {
-    return Status::Error(10, "Type of file mismatch");
+    return Status::Error(400, "Type of file mismatch");
   }
   FileData data;
   data.remote_ = RemoteFileLocation(std::move(remote_location));
@@ -2918,7 +2918,7 @@ Result<FileId> FileManager::from_persistent_id_v2(Slice binary, FileType file_ty
 Result<FileId> FileManager::from_persistent_id_v3(Slice binary, FileType file_type) {
   binary.remove_suffix(1);
   if (binary.empty()) {
-    return Status::Error("Invalid remote file identifier");
+    return Status::Error(400, "Invalid remote file identifier");
   }
   int32 version = static_cast<uint8>(binary.back());
   binary.remove_suffix(1);
