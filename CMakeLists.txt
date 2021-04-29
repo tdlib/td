@@ -26,8 +26,6 @@ if (POLICY CMP0060)
   cmake_policy(SET CMP0060 NEW)
 endif()
 
-include(illumos)
-
 include(PreventInSourceBuild)
 prevent_in_source_build()
 

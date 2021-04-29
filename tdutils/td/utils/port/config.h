@@ -37,6 +37,9 @@
 #elif TD_ILLUMOS
   #define TD_POLL_EPOLL 1
   #define TD_EVENTFD_LINUX 1
+#elif TD_SOLARIS
+  #define TD_POLL_POLL 1
+  #define TD_EVENTFD_BSD 1
 #else
   #error "Poll's implementation is not defined"
 #endif

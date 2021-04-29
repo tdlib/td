@@ -53,7 +53,9 @@
   #define TD_CYGWIN 1
 #elif defined(__EMSCRIPTEN__)
   #define TD_EMSCRIPTEN 1
-#elif defined(TD_ILLUMOS)
+#elif defined(__sun)
+  #define TD_SOLARIS 1
+  // TD_ILLUMOS can be already defined by CMake
 #elif defined(__unix__)  // all unices not caught above
   #define TD_UNIX_UNKNOWN 1
   #define TD_CYGWIN 1
