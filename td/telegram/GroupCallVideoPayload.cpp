@@ -182,19 +182,9 @@ Result<GroupCallVideoPayload> get_group_call_video_payload(string json, string &
 
   auto &value_object = value.get_object();
   TRY_RESULT_ASSIGN(endpoint, get_json_object_string_field(value_object, "endpoint", false));
-  TRY_RESULT(payload_types, get_json_object_field(value_object, "payload-types", JsonValue::Type::Array, false));
-  TRY_RESULT(extensions, get_json_object_field(value_object, "rtp-hdrexts", JsonValue::Type::Array, false));
   TRY_RESULT(source_groups, get_json_object_field(value_object, "ssrc-groups", JsonValue::Type::Array, false));
 
   GroupCallVideoPayload result;
-  for (auto &payload_type_object : payload_types.get_array()) {
-    TRY_RESULT(payload_type, get_group_call_video_payload_type(std::move(payload_type_object)));
-    result.payload_types.push_back(std::move(payload_type));
-  }
-  for (auto &extension_object : extensions.get_array()) {
-    TRY_RESULT(extension, get_group_call_video_extension(std::move(extension_object)));
-    result.extensions.push_back(std::move(extension));
-  }
   for (auto &source_group_object : source_groups.get_array()) {
     TRY_RESULT(source_group, get_group_call_video_source_group(std::move(source_group_object)));
     result.source_groups.push_back(std::move(source_group));

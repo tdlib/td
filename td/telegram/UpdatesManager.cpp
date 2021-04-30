@@ -969,6 +969,11 @@ const vector<tl_object_ptr<telegram_api::Update>> *UpdatesManager::get_updates(
   }
 }
 
+vector<tl_object_ptr<telegram_api::Update>> *UpdatesManager::get_updates(telegram_api::Updates *updates_ptr) {
+  return const_cast<vector<tl_object_ptr<telegram_api::Update>> *>(
+      get_updates(static_cast<const telegram_api::Updates *>(updates_ptr)));
+}
+
 std::unordered_set<int64> UpdatesManager::get_sent_messages_random_ids(const telegram_api::Updates *updates_ptr) {
   std::unordered_set<int64> random_ids;
   auto updates = get_updates(updates_ptr);
@@ -1734,6 +1739,12 @@ void UpdatesManager::process_updates(vector<tl_object_ptr<telegram_api::Update>>
       // process updateNewScheduledMessage first
       if (constructor_id == telegram_api::updateNewScheduledMessage::ID) {
         on_update(move_tl_object_as<telegram_api::updateNewScheduledMessage>(update), mpas.get_promise());
+        continue;
+      }
+
+      // updateGroupCallConnection must be processed before updateGroupCall
+      if (constructor_id == telegram_api::updateGroupCallConnection::ID) {
+        on_update(move_tl_object_as<telegram_api::updateGroupCallConnection>(update), mpas.get_promise());
         continue;
       }
 
@@ -2821,6 +2832,12 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePhoneCallSignal
                                Promise<Unit> &&promise) {
   send_closure(G()->call_manager(), &CallManager::update_call_signaling_data, update->phone_call_id_,
                update->data_.as_slice().str());
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateGroupCallConnection> update, Promise<Unit> &&promise) {
+  send_closure(G()->group_call_manager(), &GroupCallManager::on_update_group_call_connection, update->presentation_,
+               std::move(update->params_->data_));
   promise.set_value(Unit());
 }
 

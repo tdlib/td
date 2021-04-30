@@ -56,8 +56,8 @@ GroupCallParticipant::GroupCallParticipant(const tl_object_ptr<telegram_api::gro
   is_min = participant->min_;
   version = call_version;
 
-  if (participant->params_ != nullptr) {
-    auto r_video_payload = get_group_call_video_payload(participant->params_->data_, endpoint);
+  if (participant->video_ != nullptr) {
+    auto r_video_payload = get_group_call_video_payload(participant->video_->data_, endpoint);
     if (r_video_payload.is_error()) {
       LOG(ERROR) << "Failed to parse GroupCallParticipant params: " << r_video_payload.error();
     } else {

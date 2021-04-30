@@ -104,6 +104,8 @@ class GroupCallManager : public Actor {
 
   void on_update_dialog_about(DialogId dialog_id, const string &about, bool from_server);
 
+  void on_update_group_call_connection(bool is_presentation, string &&connection_params);
+
   void on_update_group_call(tl_object_ptr<telegram_api::GroupCall> group_call_ptr, DialogId dialog_id);
 
   void on_user_speaking_in_group_call(GroupCallId group_call_id, DialogId dialog_id, int32 date,
@@ -324,6 +326,8 @@ class GroupCallManager : public Actor {
   vector<InputGroupCallId> input_group_call_ids_;
 
   std::unordered_map<InputGroupCallId, unique_ptr<GroupCall>, InputGroupCallIdHash> group_calls_;
+
+  string pending_group_call_join_params_[2];
 
   std::unordered_map<InputGroupCallId, unique_ptr<GroupCallParticipants>, InputGroupCallIdHash>
       group_call_participants_;

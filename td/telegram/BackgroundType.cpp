@@ -298,7 +298,7 @@ telegram_api::object_ptr<telegram_api::wallPaperSettings> get_input_wallpaper_se
     flags |= telegram_api::wallPaperSettings::INTENSITY_MASK;
   }
   return telegram_api::make_object<telegram_api::wallPaperSettings>(flags, false /*ignored*/, false /*ignored*/,
-                                                                    type.fill.top_color, type.fill.bottom_color,
+                                                                    type.fill.top_color, type.fill.bottom_color, 0, 0,
                                                                     type.intensity, type.fill.rotation_angle);
 }
 
