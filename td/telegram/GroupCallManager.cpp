@@ -748,6 +748,7 @@ struct GroupCallManager::GroupCall {
   bool is_speaking = false;
   bool can_self_unmute = false;
   bool can_be_managed = false;
+  bool can_start_video = false;
   bool syncing_participants = false;
   bool need_syncing_participants = false;
   bool loaded_all_participants = false;
@@ -767,6 +768,7 @@ struct GroupCallManager::GroupCall {
   int32 version = -1;
   int32 leave_version = -1;
   int32 title_version = -1;
+  int32 can_start_video_version = -1;
   int32 start_subscribed_version = -1;
   int32 mute_version = -1;
   int32 stream_dc_id_version = -1;
@@ -3544,6 +3546,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       input_group_call_id = InputGroupCallId(group_call->id_, group_call->access_hash_);
       call.is_active = true;
       call.title = std::move(group_call->title_);
+      call.can_start_video = group_call->can_start_video_;
       call.start_subscribed = group_call->schedule_start_subscribed_;
       call.mute_new_participants = group_call->join_muted_;
       call.joined_date_asc = group_call->join_date_asc_;
@@ -3577,6 +3580,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       }
       call.version = group_call->version_;
       call.title_version = group_call->version_;
+      call.can_start_video_version = group_call->version_;
       call.start_subscribed_version = group_call->version_;
       call.mute_version = group_call->version_;
       call.stream_dc_id_version = group_call->version_;
@@ -3649,6 +3653,12 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       *group_call = std::move(call);
       need_update = true;
     } else {
+      if (call.can_start_video != group_call->can_start_video &&
+          call.can_start_video_version >= group_call->can_start_video_version) {
+        group_call->can_start_video = call.can_start_video;
+        group_call->can_start_video_version = call.can_start_video_version;
+        need_update = true;
+      }
       if (call.start_subscribed != group_call->start_subscribed &&
           call.start_subscribed_version >= group_call->start_subscribed_version) {
         auto old_start_subscribed = get_group_call_start_subscribed(group_call);
@@ -4059,8 +4069,8 @@ tl_object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(
   return td_api::make_object<td_api::groupCall>(
       group_call->group_call_id.get(), get_group_call_title(group_call), scheduled_start_date, start_subscribed,
       is_active, is_joined, group_call->need_rejoin, group_call->can_be_managed, group_call->participant_count,
-      group_call->loaded_all_participants, std::move(recent_speakers), mute_new_participants,
-      can_change_mute_new_participants, record_duration, group_call->duration);
+      group_call->loaded_all_participants, std::move(recent_speakers), group_call->can_start_video,
+      mute_new_participants, can_change_mute_new_participants, record_duration, group_call->duration);
 }
 
 tl_object_ptr<td_api::updateGroupCall> GroupCallManager::get_update_group_call_object(
