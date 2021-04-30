@@ -2691,7 +2691,7 @@ class CliClient final : public Actor {
     } else if (op == "tgcesn" || op == "tgcesne") {
       send_request(td_api::make_object<td_api::toggleGroupCallEnabledStartNotification>(as_group_call_id(args),
                                                                                         op == "tgcesne"));
-    } else if (op == "jgc" || op == "jgcv") {
+    } else if (op == "jgc" || op == "jgcv" || op == "sgcss") {
       string group_call_id;
       string participant_id;
       string invite_hash;
@@ -2711,9 +2711,14 @@ class CliClient final : public Actor {
             "ietf:params:rtp-hdrext:ssrc-audio-level\"}],\"ssrc-groups\":[{\"sources\":[1,2],\"semantics\":\"SIM\"},{"
             "\"sources\":[3,4],\"semantics\":\"FID\"}]}";
       }
-      send_request(td_api::make_object<td_api::joinGroupCall>(as_group_call_id(group_call_id),
-                                                              as_message_sender(participant_id), group_call_source_,
-                                                              std::move(payload), true, invite_hash));
+      if (op == "sgcss") {
+        send_request(td_api::make_object<td_api::startGroupCallScreenSharing>(as_group_call_id(group_call_id),
+                                                                              std::move(payload)));
+      } else {
+        send_request(td_api::make_object<td_api::joinGroupCall>(as_group_call_id(group_call_id),
+                                                                as_message_sender(participant_id), group_call_source_,
+                                                                std::move(payload), true, invite_hash));
+      }
     } else if (op == "sgct") {
       string chat_id;
       string title;

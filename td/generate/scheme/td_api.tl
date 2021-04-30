@@ -4612,14 +4612,17 @@ startScheduledGroupCall group_call_id:int32 = Ok;
 //@group_call_id Group call identifier @enabled_start_notification New value of the enabled_start_notification setting
 toggleGroupCallEnabledStartNotification group_call_id:int32 enabled_start_notification:Bool = Ok;
 
-//@description Joins an active group call
+//@description Joins an active group call. Returns join response payload for tgcalls
 //@group_call_id Group call identifier
 //@participant_id Identifier of a group call participant, which will be used to join the call; voice chats only
 //@audio_source Caller audio synchronization source identifier; received from tgcalls
-//@payload Group join payload; received from tgcalls
+//@payload Group call join payload; received from tgcalls
 //@is_muted True, if the user's microphone is muted
 //@invite_hash If non-empty, invite hash to be used to join the group call without being muted by administrators
 joinGroupCall group_call_id:int32 participant_id:MessageSender audio_source:int32 payload:string is_muted:Bool invite_hash:string = Text;
+
+//@description Starts screen sharing in a joined group call. Returns join response payload for tgcalls @group_call_id Group call identifier @payload Group call join payload; received from tgcalls
+startGroupCallScreenSharing group_call_id:int32 payload:string = Text;
 
 //@description Sets group call title. Requires groupCall.can_be_managed group call flag @group_call_id Group call identifier @title New group call title; 1-64 characters
 setGroupCallTitle group_call_id:int32 title:string = Ok;

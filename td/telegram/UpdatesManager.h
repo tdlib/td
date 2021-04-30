@@ -104,6 +104,8 @@ class UpdatesManager : public Actor {
 
   static vector<InputGroupCallId> get_update_new_group_call_ids(const telegram_api::Updates *updates_ptr);
 
+  static string extract_join_group_call_presentation_params(telegram_api::Updates *updates_ptr);
+
   static vector<DialogId> get_update_notify_settings_dialog_ids(const telegram_api::Updates *updates_ptr);
 
   static vector<DialogId> get_chat_dialog_ids(const telegram_api::Updates *updates_ptr);

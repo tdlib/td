@@ -64,8 +64,10 @@ class GroupCallManager : public Actor {
 
   void start_scheduled_group_call(GroupCallId group_call_id, Promise<Unit> &&promise);
 
-  void join_group_call(GroupCallId group_call_id, DialogId as_dialog_id, int32 audio_source, const string &payload,
+  void join_group_call(GroupCallId group_call_id, DialogId as_dialog_id, int32 audio_source, string &&payload,
                        bool is_muted, const string &invite_hash, Promise<string> &&promise);
+
+  void start_group_call_screen_sharing(GroupCallId group_call_id, string &&payload, Promise<string> &&promise);
 
   void set_group_call_title(GroupCallId group_call_id, string title, Promise<Unit> &&promise);
 
@@ -102,7 +104,7 @@ class GroupCallManager : public Actor {
 
   void on_update_dialog_about(DialogId dialog_id, const string &about, bool from_server);
 
-  void on_update_group_call_connection(bool is_presentation, string &&connection_params);
+  void on_update_group_call_connection(string &&connection_params);
 
   void on_update_group_call(tl_object_ptr<telegram_api::GroupCall> group_call_ptr, DialogId dialog_id);
 
@@ -119,6 +121,9 @@ class GroupCallManager : public Actor {
 
   void process_join_group_call_response(InputGroupCallId input_group_call_id, uint64 generation,
                                         tl_object_ptr<telegram_api::Updates> &&updates, Promise<Unit> &&promise);
+
+  void process_join_group_call_presentation_response(InputGroupCallId input_group_call_id, uint64 generation,
+                                                     tl_object_ptr<telegram_api::Updates> &&updates, Status status);
 
  private:
   struct GroupCall;
@@ -229,6 +234,8 @@ class GroupCallManager : public Actor {
 
   int32 cancel_join_group_call_request(InputGroupCallId input_group_call_id);
 
+  int32 cancel_join_group_call_presentation_request(InputGroupCallId input_group_call_id);
+
   bool on_join_group_call_response(InputGroupCallId input_group_call_id, string json_response);
 
   void finish_join_group_call(InputGroupCallId input_group_call_id, uint64 generation, Status error);
@@ -325,7 +332,7 @@ class GroupCallManager : public Actor {
 
   std::unordered_map<InputGroupCallId, unique_ptr<GroupCall>, InputGroupCallIdHash> group_calls_;
 
-  string pending_group_call_join_params_[2];
+  string pending_group_call_join_params_;
 
   std::unordered_map<InputGroupCallId, unique_ptr<GroupCallParticipants>, InputGroupCallIdHash>
       group_call_participants_;
@@ -337,6 +344,8 @@ class GroupCallManager : public Actor {
       load_group_call_queries_;
 
   std::unordered_map<InputGroupCallId, unique_ptr<PendingJoinRequest>, InputGroupCallIdHash> pending_join_requests_;
+  std::unordered_map<InputGroupCallId, unique_ptr<PendingJoinRequest>, InputGroupCallIdHash>
+      pending_join_presentation_requests_;
   uint64 join_group_request_generation_ = 0;
 
   uint64 toggle_recording_generation_ = 0;

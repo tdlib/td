@@ -6035,6 +6035,21 @@ void Td::on_request(uint64 id, td_api::joinGroupCall &request) {
                                        request.invite_hash_, std::move(query_promise));
 }
 
+void Td::on_request(uint64 id, td_api::startGroupCallScreenSharing &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.payload_);
+  CREATE_REQUEST_PROMISE();
+  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<string> result) mutable {
+    if (result.is_error()) {
+      promise.set_error(result.move_as_error());
+    } else {
+      promise.set_value(make_tl_object<td_api::text>(result.move_as_ok()));
+    }
+  });
+  group_call_manager_->start_group_call_screen_sharing(GroupCallId(request.group_call_id_), std::move(request.payload_),
+                                                       std::move(query_promise));
+}
+
 void Td::on_request(uint64 id, td_api::setGroupCallTitle &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.title_);

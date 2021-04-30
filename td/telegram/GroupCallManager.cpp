@@ -404,6 +404,41 @@ class JoinGroupCallQuery : public Td::ResultHandler {
   }
 };
 
+class JoinGroupCallPresentationQuery : public Td::ResultHandler {
+  InputGroupCallId input_group_call_id_;
+  uint64 generation_ = 0;
+
+ public:
+  NetQueryRef send(InputGroupCallId input_group_call_id, const string &payload, uint64 generation) {
+    input_group_call_id_ = input_group_call_id;
+    generation_ = generation;
+
+    auto query = G()->net_query_creator().create(telegram_api::phone_joinGroupCallPresentation(
+        input_group_call_id.get_input_group_call(), make_tl_object<telegram_api::dataJSON>(payload)));
+    auto join_query_ref = query.get_weak();
+    send_query(std::move(query));
+    return join_query_ref;
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::phone_joinGroupCallPresentation>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for JoinGroupCallPresentationQuery with generation " << generation_ << ": "
+              << to_string(ptr);
+    td->group_call_manager_->process_join_group_call_presentation_response(input_group_call_id_, generation_,
+                                                                           std::move(ptr), Status::OK());
+  }
+
+  void on_error(uint64 id, Status status) override {
+    td->group_call_manager_->process_join_group_call_presentation_response(input_group_call_id_, generation_, nullptr,
+                                                                           std::move(status));
+  }
+};
+
 class EditGroupCallTitleQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -2170,6 +2205,22 @@ int32 GroupCallManager::cancel_join_group_call_request(InputGroupCallId input_gr
   return audio_source;
 }
 
+int32 GroupCallManager::cancel_join_group_call_presentation_request(InputGroupCallId input_group_call_id) {
+  auto it = pending_join_presentation_requests_.find(input_group_call_id);
+  if (it == pending_join_presentation_requests_.end()) {
+    return 0;
+  }
+
+  CHECK(it->second != nullptr);
+  if (!it->second->query_ref.empty()) {
+    cancel_query(it->second->query_ref);
+  }
+  it->second->promise.set_error(Status::Error(200, "Cancelled"));
+  auto audio_source = it->second->audio_source;
+  pending_join_presentation_requests_.erase(it);
+  return audio_source;
+}
+
 void GroupCallManager::get_group_call_stream_segment(GroupCallId group_call_id, int64 time_offset, int32 scale,
                                                      Promise<string> &&promise) {
   if (G()->close_flag()) {
@@ -2279,7 +2330,7 @@ void GroupCallManager::start_scheduled_group_call(GroupCallId group_call_id, Pro
 }
 
 void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_dialog_id, int32 audio_source,
-                                       const string &payload, bool is_muted, const string &invite_hash,
+                                       string &&payload, bool is_muted, const string &invite_hash,
                                        Promise<string> &&promise) {
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
 
@@ -2382,6 +2433,49 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
   try_load_group_call_administrators(input_group_call_id, group_call->dialog_id);
 }
 
+void GroupCallManager::start_group_call_screen_sharing(GroupCallId group_call_id, string &&payload,
+                                                       Promise<string> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
+
+  auto *group_call = get_group_call(input_group_call_id);
+  CHECK(group_call != nullptr);
+  if (!group_call->is_inited || !group_call->is_active) {
+    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+  }
+  if (!group_call->is_joined || group_call->is_being_left) {
+    if (is_group_call_being_joined(input_group_call_id) || group_call->need_rejoin) {
+      group_call->after_join.push_back(
+          PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, payload = std::move(payload),
+                                  promise = std::move(promise)](Result<Unit> &&result) mutable {
+            if (result.is_error()) {
+              promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+            } else {
+              send_closure(actor_id, &GroupCallManager::start_group_call_screen_sharing, group_call_id,
+                           std::move(payload), std::move(promise));
+            }
+          }));
+      return;
+    }
+    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+  }
+
+  cancel_join_group_call_presentation_request(input_group_call_id);
+
+  auto generation = ++join_group_request_generation_;
+  auto &request = pending_join_presentation_requests_[input_group_call_id];
+  request = make_unique<PendingJoinRequest>();
+  request->generation = generation;
+  request->promise = std::move(promise);
+
+  request->query_ref =
+      td_->create_handler<JoinGroupCallPresentationQuery>()->send(input_group_call_id, payload, generation);
+
+  bool need_update = false;
+  if (group_call->is_inited && need_update) {
+    send_update_group_call(group_call, "start_group_call_screen_sharing");
+  }
+}
+
 void GroupCallManager::try_load_group_call_administrators(InputGroupCallId input_group_call_id, DialogId dialog_id) {
   if (!dialog_id.is_valid() || !need_group_call_participants(input_group_call_id) ||
       can_manage_group_calls(dialog_id).is_error()) {
@@ -2453,6 +2547,29 @@ void GroupCallManager::process_join_group_call_response(InputGroupCallId input_g
                                         PromiseCreator::lambda([promise = std::move(promise)](Unit) mutable {
                                           promise.set_error(Status::Error(500, "Wrong join response received"));
                                         }));
+}
+
+void GroupCallManager::process_join_group_call_presentation_response(InputGroupCallId input_group_call_id,
+                                                                     uint64 generation,
+                                                                     tl_object_ptr<telegram_api::Updates> &&updates,
+                                                                     Status status) {
+  auto it = pending_join_presentation_requests_.find(input_group_call_id);
+  if (it == pending_join_presentation_requests_.end() || it->second->generation != generation) {
+    LOG(INFO) << "Ignore JoinGroupCallPresentationQuery response with " << input_group_call_id << " and generation "
+              << generation;
+    return;
+  }
+  auto promise = std::move(it->second->promise);
+  pending_join_presentation_requests_.erase(it);
+
+  string params = UpdatesManager::extract_join_group_call_presentation_params(updates.get());
+  if (params.empty()) {
+    return promise.set_error(
+        Status::Error(500, "Wrong start group call screen sharing response received: parameters are missing"));
+  }
+  td_->updates_manager_->on_get_updates(
+      std::move(updates), PromiseCreator::lambda([params = std::move(params), promise = std::move(promise)](
+                                                     Unit) mutable { promise.set_value(std::move(params)); }));
 }
 
 bool GroupCallManager::on_join_group_call_response(InputGroupCallId input_group_call_id, string json_response) {
@@ -3459,11 +3576,11 @@ void GroupCallManager::discard_group_call(GroupCallId group_call_id, Promise<Uni
   td_->create_handler<DiscardGroupCallQuery>(std::move(promise))->send(input_group_call_id);
 }
 
-void GroupCallManager::on_update_group_call_connection(bool is_presentation, string &&connection_params) {
-  if (!pending_group_call_join_params_[is_presentation].empty()) {
-    LOG(ERROR) << "Receive duplicate connection params for " << (is_presentation ? "pesentation" : "video");
+void GroupCallManager::on_update_group_call_connection(string &&connection_params) {
+  if (!pending_group_call_join_params_.empty()) {
+    LOG(ERROR) << "Receive duplicate connection params";
   }
-  pending_group_call_join_params_[is_presentation] = std::move(connection_params);
+  pending_group_call_join_params_ = std::move(connection_params);
 }
 
 void GroupCallManager::on_update_group_call(tl_object_ptr<telegram_api::GroupCall> group_call_ptr, DialogId dialog_id) {
@@ -3602,8 +3719,8 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
     return {};
   }
 
-  string join_params = std::move(pending_group_call_join_params_[0]);
-  pending_group_call_join_params_[0].clear();
+  string join_params = std::move(pending_group_call_join_params_);
+  pending_group_call_join_params_.clear();
 
   bool need_update = false;
   auto *group_call = add_group_call(input_group_call_id, dialog_id);

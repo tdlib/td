@@ -1031,6 +1031,20 @@ vector<InputGroupCallId> UpdatesManager::get_update_new_group_call_ids(const tel
   return input_group_call_ids;
 }
 
+string UpdatesManager::extract_join_group_call_presentation_params(telegram_api::Updates *updates_ptr) {
+  auto updates = get_updates(updates_ptr);
+  for (auto it = updates->begin(); it != updates->end(); ++it) {
+    auto *update = it->get();
+    if (update->get_id() == telegram_api::updateGroupCallConnection::ID &&
+        static_cast<const telegram_api::updateGroupCallConnection *>(update)->presentation_) {
+      string result = std::move(static_cast<telegram_api::updateGroupCallConnection *>(update)->params_->data_);
+      updates->erase(it);
+      return result;
+    }
+  }
+  return string();
+}
+
 vector<DialogId> UpdatesManager::get_update_notify_settings_dialog_ids(const telegram_api::Updates *updates_ptr) {
   vector<DialogId> dialog_ids;
   auto updates = get_updates(updates_ptr);
@@ -2836,8 +2850,12 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePhoneCallSignal
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateGroupCallConnection> update, Promise<Unit> &&promise) {
-  send_closure(G()->group_call_manager(), &GroupCallManager::on_update_group_call_connection, update->presentation_,
-               std::move(update->params_->data_));
+  if (update->presentation_) {
+    LOG(ERROR) << "Receive unexpected updateGroupCallConnection";
+  } else {
+    send_closure(G()->group_call_manager(), &GroupCallManager::on_update_group_call_connection,
+                 std::move(update->params_->data_));
+  }
   promise.set_value(Unit());
 }
 
