@@ -6020,11 +6020,19 @@ void Td::on_request(uint64 id, const td_api::toggleGroupCallEnabledStartNotifica
 void Td::on_request(uint64 id, td_api::joinGroupCall &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.invite_hash_);
+  CLEAN_INPUT_STRING(request.payload_);
   CREATE_REQUEST_PROMISE();
-  group_call_manager_->join_group_call(
-      GroupCallId(request.group_call_id_), group_call_manager_->get_group_call_participant_id(request.participant_id_),
-      std::move(request.payload_), request.audio_source_, std::move(request.video_payload_), request.is_muted_,
-      request.invite_hash_, std::move(promise));
+  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<string> result) mutable {
+    if (result.is_error()) {
+      promise.set_error(result.move_as_error());
+    } else {
+      promise.set_value(make_tl_object<td_api::text>(result.move_as_ok()));
+    }
+  });
+  group_call_manager_->join_group_call(GroupCallId(request.group_call_id_),
+                                       group_call_manager_->get_group_call_participant_id(request.participant_id_),
+                                       request.audio_source_, std::move(request.payload_), request.is_muted_,
+                                       request.invite_hash_, std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, td_api::setGroupCallTitle &request) {

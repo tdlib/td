@@ -2168,54 +2168,12 @@ groupCallRecentSpeaker participant_id:MessageSender is_speaking:Bool = GroupCall
 //@duration Call duration; for ended calls only
 groupCall id:int32 title:string scheduled_start_date:int32 enabled_start_notification:Bool is_active:Bool is_joined:Bool need_rejoin:Bool can_be_managed:Bool participant_count:int32 loaded_all_participants:Bool recent_speakers:vector<groupCallRecentSpeaker> mute_new_participants:Bool can_change_mute_new_participants:Bool record_duration:int32 duration:int32 = GroupCall;
 
-//@description Describes a payload fingerprint for interaction with tgcalls @hash Value of the field hash @setup Value of the field setup @fingerprint Value of the field fingerprint
-groupCallPayloadFingerprint hash:string setup:string fingerprint:string = GroupCallPayloadFingerprint;
-
-//@description Describes a payload for interaction with tgcalls @ufrag Value of the field ufrag @pwd Value of the field pwd @fingerprints The list of fingerprints
-groupCallPayload ufrag:string pwd:string fingerprints:vector<groupCallPayloadFingerprint> = GroupCallPayload;
-
-//@description Describes a video payload feedback type for interaction with tgcalls @type Value of the field type @subtype Value of the field subtype
-groupCallVideoPayloadFeedbackType type:string subtype:string = GroupCallVideoPayloadFeedbackType;
-
-//@description Describes a video payload parameter for interaction with tgcalls @name Parameter's name @value Parameter's value
-groupCallVideoPayloadParameter name:string value:string = GroupCallVideoPayloadParameter;
-
-//@description Describes a video payload type for interaction with tgcalls @id Video payload identifier @name Name of the video payload @clock_rate Video clock rate
-//@channel_count Number of channels @feedback_types Video payload feedback types @parameters Video payload parameters
-groupCallVideoPayloadType id:int32 name:string clock_rate:int32 channel_count:int32 feedback_types:vector<groupCallVideoPayloadFeedbackType> parameters:vector<groupCallVideoPayloadParameter> = GroupCallVideoPayloadType;
-
-//@description Describes an RTP header extension for interaction with tgcalls @id Extension identifier @name Name of the extension
-groupCallVideoExtension id:int32 name:string = GroupCallVideoExtension;
-
-//@description Describes a group of video synchronization sources @sources The list of synchronization sources @semantics The semantics of sources, one of "SIM" or "FID"
-groupCallVideoSourceGroup sources:vector<int32> semantics:string = GroupCallVideoSourceGroup;
-
-//@description Describes a video payload for interaction with tgcalls @payload_types List of payload types @extensions List of RTP header extensions @source_groups List of video source groups
-groupCallVideoPayload payload_types:vector<groupCallVideoPayloadType> extensions:vector<groupCallVideoExtension> source_groups:vector<groupCallVideoSourceGroup> = GroupCallVideoPayload;
-
-//@description Describes a join response candidate for interaction with tgcalls @port Value of the field port @protocol Value of the field protocol @network Value of the field network
-//@generation Value of the field generation @id Value of the field id @component Value of the field component @foundation Value of the field foundation @priority Value of the field priority
-//@ip Value of the field ip @type Value of the field type @tcp_type Value of the field tcp_type @rel_addr Value of the field rel_addr @rel_port Value of the field rel_port
-groupCallJoinResponseCandidate port:string protocol:string network:string generation:string id:string component:string foundation:string priority:string ip:string type:string tcp_type:string rel_addr:string rel_port:string = GroupCallJoinResponseCandidate;
-
-
-//@class GroupCallJoinResponse @description Describes a group call join response
-
-//@description Contains data needed to join the group call with WebRTC
-//@payload Group call payload to pass to tgcalls
-//@candidates Join response candidates to pass to tgcalls
-//@server_video_bandwidth_probing_source Join response serverVideoBandwidthProbingSource to pass to tgcalls
-groupCallJoinResponseWebrtc payload:groupCallPayload candidates:vector<groupCallJoinResponseCandidate> server_video_bandwidth_probing_source:int32 = GroupCallJoinResponse;
-
-//@description Describes that group call needs to be joined as a stream
-groupCallJoinResponseStream = GroupCallJoinResponse;
-
 
 //@description Represents a group call participant
 //@participant_id Identifier of the group call participant
 //@audio_source User's audio synchronization source
 //@endpoint_id User's endpoint identifier
-//@video_payload Description of user's video payload; may be null
+//@video_payload Description of user's video payload; may be empty if there is no video channel
 //@bio The participant user's bio or the participant chat's description
 //@is_current_user True, if the participant is the current user
 //@is_speaking True, if the participant is speaking as set by setGroupCallParticipantIsSpeaking
@@ -2229,7 +2187,7 @@ groupCallJoinResponseStream = GroupCallJoinResponse;
 //@can_unmute_self True, if the participant is muted for all users, but can unmute themself
 //@volume_level Participant's volume level; 1-20000 in hundreds of percents
 //@order User's order in the group call participant list. Orders must be compared lexicographically. The bigger is order, the higher is user in the list. If order is empty, the user must be removed from the participant list
-groupCallParticipant participant_id:MessageSender audio_source:int32 endpoint_id:string video_payload:groupCallVideoPayload bio:string is_current_user:Bool is_speaking:Bool is_hand_raised:Bool can_be_muted_for_all_users:Bool can_be_unmuted_for_all_users:Bool can_be_muted_for_current_user:Bool can_be_unmuted_for_current_user:Bool is_muted_for_all_users:Bool is_muted_for_current_user:Bool can_unmute_self:Bool volume_level:int32 order:string = GroupCallParticipant;
+groupCallParticipant participant_id:MessageSender audio_source:int32 endpoint_id:string video_payload:string bio:string is_current_user:Bool is_speaking:Bool is_hand_raised:Bool can_be_muted_for_all_users:Bool can_be_unmuted_for_all_users:Bool can_be_muted_for_current_user:Bool can_be_unmuted_for_current_user:Bool is_muted_for_all_users:Bool is_muted_for_current_user:Bool can_unmute_self:Bool volume_level:int32 order:string = GroupCallParticipant;
 
 
 //@class CallProblem @description Describes the exact type of a problem with a call
@@ -4656,12 +4614,11 @@ toggleGroupCallEnabledStartNotification group_call_id:int32 enabled_start_notifi
 //@description Joins an active group call
 //@group_call_id Group call identifier
 //@participant_id Identifier of a group call participant, which will be used to join the call; voice chats only
-//@payload Group join payload; received from tgcalls
 //@audio_source Caller audio synchronization source identifier; received from tgcalls
-//@video_payload Group join video payload, received from tgcalls. Use null if video is not supported
+//@payload Group join payload; received from tgcalls
 //@is_muted True, if the user's microphone is muted
 //@invite_hash If non-empty, invite hash to be used to join the group call without being muted by administrators
-joinGroupCall group_call_id:int32 participant_id:MessageSender payload:groupCallPayload audio_source:int32 video_payload:groupCallVideoPayload is_muted:Bool invite_hash:string = GroupCallJoinResponse;
+joinGroupCall group_call_id:int32 participant_id:MessageSender audio_source:int32 payload:string is_muted:Bool invite_hash:string = Text;
 
 //@description Sets group call title. Requires groupCall.can_be_managed group call flag @group_call_id Group call identifier @title New group call title; 1-64 characters
 setGroupCallTitle group_call_id:int32 title:string = Ok;

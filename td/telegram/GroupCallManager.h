@@ -64,10 +64,8 @@ class GroupCallManager : public Actor {
 
   void start_scheduled_group_call(GroupCallId group_call_id, Promise<Unit> &&promise);
 
-  void join_group_call(GroupCallId group_call_id, DialogId as_dialog_id,
-                       td_api::object_ptr<td_api::groupCallPayload> &&payload, int32 audio_source,
-                       td_api::object_ptr<td_api::groupCallVideoPayload> &&video_payload, bool is_muted,
-                       const string &invite_hash, Promise<td_api::object_ptr<td_api::GroupCallJoinResponse>> &&promise);
+  void join_group_call(GroupCallId group_call_id, DialogId as_dialog_id, int32 audio_source, const string &payload,
+                       bool is_muted, const string &invite_hash, Promise<string> &&promise);
 
   void set_group_call_title(GroupCallId group_call_id, string title, Promise<Unit> &&promise);
 

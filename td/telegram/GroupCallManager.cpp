@@ -812,7 +812,7 @@ struct GroupCallManager::PendingJoinRequest {
   uint64 generation = 0;
   int32 audio_source = 0;
   DialogId as_dialog_id;
-  Promise<td_api::object_ptr<td_api::GroupCallJoinResponse>> promise;
+  Promise<string> promise;
 };
 
 GroupCallManager::GroupCallManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
@@ -2276,11 +2276,9 @@ void GroupCallManager::start_scheduled_group_call(GroupCallId group_call_id, Pro
   td_->create_handler<StartScheduledGroupCallQuery>(std::move(promise))->send(input_group_call_id);
 }
 
-void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_dialog_id,
-                                       td_api::object_ptr<td_api::groupCallPayload> &&payload, int32 audio_source,
-                                       td_api::object_ptr<td_api::groupCallVideoPayload> &&video_payload, bool is_muted,
-                                       const string &invite_hash,
-                                       Promise<td_api::object_ptr<td_api::GroupCallJoinResponse>> &&promise) {
+void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_dialog_id, int32 audio_source,
+                                       const string &payload, bool is_muted, const string &invite_hash,
+                                       Promise<string> &&promise) {
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
 
   auto *group_call = get_group_call(input_group_call_id);
@@ -2324,9 +2322,6 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
     }
   }
 
-  TRY_RESULT_PROMISE(promise, json_payload,
-                     encode_join_group_call_payload(std::move(payload), audio_source, std::move(video_payload)));
-
   if (group_call->is_being_left) {
     group_call->is_being_left = false;
     need_update |= group_call->is_joined;
@@ -2347,7 +2342,7 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
                      result.move_as_error());
       });
   request->query_ref = td_->create_handler<JoinGroupCallQuery>(std::move(query_promise))
-                           ->send(input_group_call_id, as_dialog_id, json_payload, is_muted, invite_hash, generation);
+                           ->send(input_group_call_id, as_dialog_id, payload, is_muted, invite_hash, generation);
 
   if (group_call->dialog_id.is_valid()) {
     td_->messages_manager_->on_update_dialog_default_join_group_call_as_dialog_id(group_call->dialog_id, as_dialog_id,
@@ -2465,31 +2460,23 @@ bool GroupCallManager::on_join_group_call_response(InputGroupCallId input_group_
   }
   CHECK(it->second != nullptr);
 
-  auto result = get_group_call_join_response_object(std::move(json_response));
-  bool need_update = false;
-  if (result.is_error()) {
-    LOG(ERROR) << "Failed to parse join response JSON object: " << result.error().message();
-    it->second->promise.set_error(Status::Error(500, "Receive invalid join group call response payload"));
-  } else {
-    auto group_call = get_group_call(input_group_call_id);
-    CHECK(group_call != nullptr);
-    group_call->is_joined = true;
-    group_call->need_rejoin = false;
-    group_call->is_being_left = false;
-    group_call->joined_date = G()->unix_time();
-    group_call->audio_source = it->second->audio_source;
-    group_call->as_dialog_id = it->second->as_dialog_id;
-    it->second->promise.set_value(result.move_as_ok());
-    if (group_call->audio_source != 0) {
-      check_group_call_is_joined_timeout_.set_timeout_in(group_call->group_call_id.get(),
-                                                         CHECK_GROUP_CALL_IS_JOINED_TIMEOUT);
-    }
-    need_update = true;
+  auto group_call = get_group_call(input_group_call_id);
+  CHECK(group_call != nullptr);
+  group_call->is_joined = true;
+  group_call->need_rejoin = false;
+  group_call->is_being_left = false;
+  group_call->joined_date = G()->unix_time();
+  group_call->audio_source = it->second->audio_source;
+  group_call->as_dialog_id = it->second->as_dialog_id;
+  it->second->promise.set_value(std::move(json_response));
+  if (group_call->audio_source != 0) {
+    check_group_call_is_joined_timeout_.set_timeout_in(group_call->group_call_id.get(),
+                                                       CHECK_GROUP_CALL_IS_JOINED_TIMEOUT);
   }
   pending_join_requests_.erase(it);
-  need_update |= try_clear_group_call_participants(input_group_call_id);
+  try_clear_group_call_participants(input_group_call_id);
   process_group_call_after_join_requests(input_group_call_id, "on_join_group_call_response");
-  return need_update;
+  return true;
 }
 
 void GroupCallManager::finish_join_group_call(InputGroupCallId input_group_call_id, uint64 generation, Status error) {
