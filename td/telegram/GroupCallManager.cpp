@@ -439,6 +439,38 @@ class JoinGroupCallPresentationQuery : public Td::ResultHandler {
   }
 };
 
+class LeaveGroupCallPresentationQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit LeaveGroupCallPresentationQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(InputGroupCallId input_group_call_id) {
+    send_query(G()->net_query_creator().create(
+        telegram_api::phone_leaveGroupCallPresentation(input_group_call_id.get_input_group_call())));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::phone_editGroupCallTitle>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for LeaveGroupCallPresentationQuery: " << to_string(ptr);
+    td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(uint64 id, Status status) override {
+    if (status.message() == "PARTICIPANT_PRESENTATION_MISSING") {
+      promise_.set_value(Unit());
+      return;
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
 class EditGroupCallTitleQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -2474,6 +2506,36 @@ void GroupCallManager::start_group_call_screen_sharing(GroupCallId group_call_id
   if (group_call->is_inited && need_update) {
     send_update_group_call(group_call, "start_group_call_screen_sharing");
   }
+}
+
+void GroupCallManager::end_group_call_screen_sharing(GroupCallId group_call_id, Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
+
+  auto *group_call = get_group_call(input_group_call_id);
+  CHECK(group_call != nullptr);
+  if (!group_call->is_inited || !group_call->is_active) {
+    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+  }
+  if (!group_call->is_joined || group_call->is_being_left) {
+    if (is_group_call_being_joined(input_group_call_id) || group_call->need_rejoin) {
+      group_call->after_join.push_back(
+          PromiseCreator::lambda([actor_id = actor_id(this), group_call_id,
+                                  promise = std::move(promise)](Result<Unit> &&result) mutable {
+            if (result.is_error()) {
+              promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+            } else {
+              send_closure(actor_id, &GroupCallManager::end_group_call_screen_sharing, group_call_id,
+                           std::move(promise));
+            }
+          }));
+      return;
+    }
+    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+  }
+
+  cancel_join_group_call_presentation_request(input_group_call_id);
+
+  td_->create_handler<LeaveGroupCallPresentationQuery>(std::move(promise))->send(input_group_call_id);
 }
 
 void GroupCallManager::try_load_group_call_administrators(InputGroupCallId input_group_call_id, DialogId dialog_id) {

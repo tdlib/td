@@ -2719,6 +2719,9 @@ class CliClient final : public Actor {
                                                                 as_message_sender(participant_id), group_call_source_,
                                                                 std::move(payload), true, invite_hash));
       }
+    } else if (op == "egcss") {
+      string group_call_id = args;
+      send_request(td_api::make_object<td_api::endGroupCallScreenSharing>(as_group_call_id(group_call_id)));
     } else if (op == "sgct") {
       string chat_id;
       string title;

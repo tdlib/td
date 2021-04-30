@@ -69,6 +69,8 @@ class GroupCallManager : public Actor {
 
   void start_group_call_screen_sharing(GroupCallId group_call_id, string &&payload, Promise<string> &&promise);
 
+  void end_group_call_screen_sharing(GroupCallId group_call_id, Promise<Unit> &&promise);
+
   void set_group_call_title(GroupCallId group_call_id, string title, Promise<Unit> &&promise);
 
   void toggle_group_call_start_subscribed(GroupCallId group_call_id, bool start_subscribed, Promise<Unit> &&promise);

@@ -6050,6 +6050,13 @@ void Td::on_request(uint64 id, td_api::startGroupCallScreenSharing &request) {
                                                        std::move(query_promise));
 }
 
+void Td::on_request(uint64 id, const td_api::endGroupCallScreenSharing &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  group_call_manager_->end_group_call_screen_sharing(GroupCallId(request.group_call_id_),
+                                                       std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::setGroupCallTitle &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.title_);
