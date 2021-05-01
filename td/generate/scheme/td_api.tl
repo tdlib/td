@@ -4618,8 +4618,9 @@ toggleGroupCallEnabledStartNotification group_call_id:int32 enabled_start_notifi
 //@audio_source Caller audio synchronization source identifier; received from tgcalls
 //@payload Group call join payload; received from tgcalls
 //@is_muted True, if the user's microphone is muted
+//@is_video_enabled True, if the user's video is enabled
 //@invite_hash If non-empty, invite hash to be used to join the group call without being muted by administrators
-joinGroupCall group_call_id:int32 participant_id:MessageSender audio_source:int32 payload:string is_muted:Bool invite_hash:string = Text;
+joinGroupCall group_call_id:int32 participant_id:MessageSender audio_source:int32 payload:string is_muted:Bool is_video_enabled:Bool invite_hash:string = Text;
 
 //@description Starts screen sharing in a joined group call. Returns join response payload for tgcalls @group_call_id Group call identifier @payload Group call join payload; received from tgcalls
 startGroupCallScreenSharing group_call_id:int32 payload:string = Text;

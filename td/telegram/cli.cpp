@@ -2717,7 +2717,7 @@ class CliClient final : public Actor {
       } else {
         send_request(td_api::make_object<td_api::joinGroupCall>(as_group_call_id(group_call_id),
                                                                 as_message_sender(participant_id), group_call_source_,
-                                                                std::move(payload), true, invite_hash));
+                                                                std::move(payload), true, false, invite_hash));
       }
     } else if (op == "egcss") {
       string group_call_id = args;

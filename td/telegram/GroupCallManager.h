@@ -65,7 +65,7 @@ class GroupCallManager : public Actor {
   void start_scheduled_group_call(GroupCallId group_call_id, Promise<Unit> &&promise);
 
   void join_group_call(GroupCallId group_call_id, DialogId as_dialog_id, int32 audio_source, string &&payload,
-                       bool is_muted, const string &invite_hash, Promise<string> &&promise);
+                       bool is_muted, bool is_video_enabled, const string &invite_hash, Promise<string> &&promise);
 
   void start_group_call_screen_sharing(GroupCallId group_call_id, string &&payload, Promise<string> &&promise);
 

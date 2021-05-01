@@ -33,6 +33,7 @@ struct GroupCallParticipant {
   bool server_is_muted_by_themselves = false;
   bool server_is_muted_by_admin = false;
   bool server_is_muted_locally = false;
+  bool server_is_video_muted = false;
   bool is_self = false;
 
   bool can_be_muted_for_all_users = false;

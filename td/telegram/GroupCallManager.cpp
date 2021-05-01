@@ -359,7 +359,7 @@ class JoinGroupCallQuery : public Td::ResultHandler {
   }
 
   NetQueryRef send(InputGroupCallId input_group_call_id, DialogId as_dialog_id, const string &payload, bool is_muted,
-                   const string &invite_hash, uint64 generation) {
+                   bool is_video_muted, const string &invite_hash, uint64 generation) {
     input_group_call_id_ = input_group_call_id;
     as_dialog_id_ = as_dialog_id;
     generation_ = generation;
@@ -378,6 +378,9 @@ class JoinGroupCallQuery : public Td::ResultHandler {
     }
     if (!invite_hash.empty()) {
       flags |= telegram_api::phone_joinGroupCall::INVITE_HASH_MASK;
+    }
+    if (is_video_muted) {
+      flags |= telegram_api::phone_joinGroupCall::VIDEO_MUTED_MASK;
     }
     auto query = G()->net_query_creator().create(telegram_api::phone_joinGroupCall(
         flags, false /*ignored*/, false /*ignored*/, input_group_call_id.get_input_group_call(),
@@ -2362,8 +2365,8 @@ void GroupCallManager::start_scheduled_group_call(GroupCallId group_call_id, Pro
 }
 
 void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_dialog_id, int32 audio_source,
-                                       string &&payload, bool is_muted, const string &invite_hash,
-                                       Promise<string> &&promise) {
+                                       string &&payload, bool is_muted, bool is_video_enabled,
+                                       const string &invite_hash, Promise<string> &&promise) {
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
 
   auto *group_call = get_group_call(input_group_call_id);
@@ -2426,8 +2429,9 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
         send_closure(actor_id, &GroupCallManager::finish_join_group_call, input_group_call_id, generation,
                      result.move_as_error());
       });
-  request->query_ref = td_->create_handler<JoinGroupCallQuery>(std::move(query_promise))
-                           ->send(input_group_call_id, as_dialog_id, payload, is_muted, invite_hash, generation);
+  request->query_ref =
+      td_->create_handler<JoinGroupCallQuery>(std::move(query_promise))
+          ->send(input_group_call_id, as_dialog_id, payload, is_muted, !is_video_enabled, invite_hash, generation);
 
   if (group_call->dialog_id.is_valid()) {
     td_->messages_manager_->on_update_dialog_default_join_group_call_as_dialog_id(group_call->dialog_id, as_dialog_id,
@@ -2448,6 +2452,7 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
     // it contains reasonable default "!call.mute_new_participants || call.can_be_managed"
     participant.server_is_muted_by_admin = !group_call->can_self_unmute && !can_manage_group_call(input_group_call_id);
     participant.server_is_muted_by_themselves = is_muted && !participant.server_is_muted_by_admin;
+    participant.server_is_video_muted = !is_video_enabled || participant.server_is_muted_by_admin;
     participant.is_just_joined = !is_rejoin;
     participant.is_fake = true;
     int diff = process_group_call_participant(input_group_call_id, std::move(participant));
@@ -2518,9 +2523,8 @@ void GroupCallManager::end_group_call_screen_sharing(GroupCallId group_call_id, 
   }
   if (!group_call->is_joined || group_call->is_being_left) {
     if (is_group_call_being_joined(input_group_call_id) || group_call->need_rejoin) {
-      group_call->after_join.push_back(
-          PromiseCreator::lambda([actor_id = actor_id(this), group_call_id,
-                                  promise = std::move(promise)](Result<Unit> &&result) mutable {
+      group_call->after_join.push_back(PromiseCreator::lambda(
+          [actor_id = actor_id(this), group_call_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
             if (result.is_error()) {
               promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
             } else {
