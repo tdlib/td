@@ -6032,7 +6032,7 @@ void Td::on_request(uint64 id, td_api::joinGroupCall &request) {
   group_call_manager_->join_group_call(GroupCallId(request.group_call_id_),
                                        group_call_manager_->get_group_call_participant_id(request.participant_id_),
                                        request.audio_source_, std::move(request.payload_), request.is_muted_,
-                                       request.is_video_enabled_, request.invite_hash_, std::move(query_promise));
+                                       request.is_my_video_enabled_, request.invite_hash_, std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, td_api::startGroupCallScreenSharing &request) {
@@ -6111,6 +6111,13 @@ void Td::on_request(uint64 id, const td_api::endGroupCallRecording &request) {
   CREATE_OK_REQUEST_PROMISE();
   group_call_manager_->toggle_group_call_recording(GroupCallId(request.group_call_id_), false, string(),
                                                    std::move(promise));
+}
+
+void Td::on_request(uint64 id, const td_api::toggleGroupCallIsMyVideoEnabled &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  group_call_manager_->toggle_group_call_is_my_video_enabled(GroupCallId(request.group_call_id_),
+                                                             request.is_my_video_enabled_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::setGroupCallParticipantIsSpeaking &request) {

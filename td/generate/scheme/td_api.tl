@@ -2162,12 +2162,13 @@ groupCallRecentSpeaker participant_id:MessageSender is_speaking:Bool = GroupCall
 //@participant_count Number of participants in the group call
 //@loaded_all_participants True, if all group call participants are loaded
 //@recent_speakers Recently speaking users in the group call
+//@is_my_video_enabled True, if the current user's video is enabled
 //@can_start_video True, if video can be enabled by group call participants
 //@mute_new_participants True, if only group call administrators can unmute new participants
 //@can_change_mute_new_participants True, if the current user can enable or disable mute_new_participants setting
 //@record_duration Duration of the ongoing group call recording, in seconds; 0 if none. An updateGroupCall update is not triggered when value of this field changes, but the same recording goes on
 //@duration Call duration; for ended calls only
-groupCall id:int32 title:string scheduled_start_date:int32 enabled_start_notification:Bool is_active:Bool is_joined:Bool need_rejoin:Bool can_be_managed:Bool participant_count:int32 loaded_all_participants:Bool recent_speakers:vector<groupCallRecentSpeaker> can_start_video:Bool mute_new_participants:Bool can_change_mute_new_participants:Bool record_duration:int32 duration:int32 = GroupCall;
+groupCall id:int32 title:string scheduled_start_date:int32 enabled_start_notification:Bool is_active:Bool is_joined:Bool need_rejoin:Bool can_be_managed:Bool participant_count:int32 loaded_all_participants:Bool recent_speakers:vector<groupCallRecentSpeaker> is_my_video_enabled:Bool can_start_video:Bool mute_new_participants:Bool can_change_mute_new_participants:Bool record_duration:int32 duration:int32 = GroupCall;
 
 
 //@description Represents a group call participant
@@ -4618,9 +4619,9 @@ toggleGroupCallEnabledStartNotification group_call_id:int32 enabled_start_notifi
 //@audio_source Caller audio synchronization source identifier; received from tgcalls
 //@payload Group call join payload; received from tgcalls
 //@is_muted True, if the user's microphone is muted
-//@is_video_enabled True, if the user's video is enabled
+//@is_my_video_enabled True, if the user's video is enabled
 //@invite_hash If non-empty, invite hash to be used to join the group call without being muted by administrators
-joinGroupCall group_call_id:int32 participant_id:MessageSender audio_source:int32 payload:string is_muted:Bool is_video_enabled:Bool invite_hash:string = Text;
+joinGroupCall group_call_id:int32 participant_id:MessageSender audio_source:int32 payload:string is_muted:Bool is_my_video_enabled:Bool invite_hash:string = Text;
 
 //@description Starts screen sharing in a joined group call. Returns join response payload for tgcalls @group_call_id Group call identifier @payload Group call join payload; received from tgcalls
 startGroupCallScreenSharing group_call_id:int32 payload:string = Text;
@@ -4652,6 +4653,9 @@ startGroupCallRecording group_call_id:int32 title:string = Ok;
 
 //@description Ends recording of an active group call. Requires groupCall.can_be_managed group call flag @group_call_id Group call identifier
 endGroupCallRecording group_call_id:int32 = Ok;
+
+//@description Toggles whether current user's video is enabled @group_call_id Group call identifier @is_my_video_enabled Pass true if the current user's video is enabled
+toggleGroupCallIsMyVideoEnabled group_call_id:int32 is_my_video_enabled:Bool = Ok;
 
 //@description Informs TDLib that speaking state of a participant of an active group has changed @group_call_id Group call identifier
 //@audio_source Group call participant's synchronization audio source identifier, or 0 for the current user @is_speaking True, if the user is speaking

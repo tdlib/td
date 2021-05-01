@@ -2732,6 +2732,12 @@ class CliClient final : public Actor {
           td_api::make_object<td_api::toggleGroupCallMuteNewParticipants>(as_group_call_id(args), op == "tgcmnpe"));
     } else if (op == "rgcil") {
       send_request(td_api::make_object<td_api::revokeGroupCallInviteLink>(as_group_call_id(args)));
+    } else if (op == "tgcimve") {
+      string group_call_id;
+      bool is_my_video_enabled;
+      get_args(args, group_call_id, is_my_video_enabled);
+      send_request(td_api::make_object<td_api::toggleGroupCallIsMyVideoEnabled>(as_group_call_id(group_call_id),
+                                                                                is_my_video_enabled));
     } else if (op == "sgcpis") {
       string group_call_id;
       int32 source;

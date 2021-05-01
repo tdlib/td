@@ -65,13 +65,16 @@ class GroupCallManager : public Actor {
   void start_scheduled_group_call(GroupCallId group_call_id, Promise<Unit> &&promise);
 
   void join_group_call(GroupCallId group_call_id, DialogId as_dialog_id, int32 audio_source, string &&payload,
-                       bool is_muted, bool is_video_enabled, const string &invite_hash, Promise<string> &&promise);
+                       bool is_muted, bool is_my_video_enabled, const string &invite_hash, Promise<string> &&promise);
 
   void start_group_call_screen_sharing(GroupCallId group_call_id, string &&payload, Promise<string> &&promise);
 
   void end_group_call_screen_sharing(GroupCallId group_call_id, Promise<Unit> &&promise);
 
   void set_group_call_title(GroupCallId group_call_id, string title, Promise<Unit> &&promise);
+
+  void toggle_group_call_is_my_video_enabled(GroupCallId group_call_id, bool is_my_video_enabled,
+                                             Promise<Unit> &&promise);
 
   void toggle_group_call_start_subscribed(GroupCallId group_call_id, bool start_subscribed, Promise<Unit> &&promise);
 
@@ -193,6 +196,8 @@ class GroupCallManager : public Actor {
 
   static bool get_group_call_start_subscribed(const GroupCall *group_call);
 
+  static bool get_group_call_is_my_video_enabled(const GroupCall *group_call);
+
   static bool get_group_call_mute_new_participants(const GroupCall *group_call);
 
   static int32 get_group_call_record_start_date(const GroupCall *group_call);
@@ -259,6 +264,12 @@ class GroupCallManager : public Actor {
 
   void on_toggle_group_call_start_subscription(InputGroupCallId input_group_call_id, bool start_subscribed,
                                                Result<Unit> &&result);
+
+  void send_toggle_group_call_is_my_video_enabled_query(InputGroupCallId input_group_call_id, DialogId as_dialog_id,
+                                                        bool is_my_video_enabled);
+
+  void on_toggle_group_call_is_my_video_enabled(InputGroupCallId input_group_call_id, bool is_my_video_enabled,
+                                                Result<Unit> &&result);
 
   void send_toggle_group_call_mute_new_participants_query(InputGroupCallId input_group_call_id,
                                                           bool mute_new_participants);

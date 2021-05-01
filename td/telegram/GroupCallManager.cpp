@@ -823,6 +823,7 @@ struct GroupCallManager::GroupCall {
   bool need_syncing_participants = false;
   bool loaded_all_participants = false;
   bool start_subscribed = false;
+  bool is_my_video_enabled = false;
   bool mute_new_participants = false;
   bool allowed_change_mute_new_participants = false;
   bool joined_date_asc = false;
@@ -848,6 +849,8 @@ struct GroupCallManager::GroupCall {
   vector<Promise<Unit>> after_join;
   bool have_pending_start_subscribed = false;
   bool pending_start_subscribed = false;
+  bool have_pending_is_my_video_enabled = false;
+  bool pending_is_my_video_enabled = false;
   bool have_pending_mute_new_participants = false;
   bool pending_mute_new_participants = false;
   string pending_title;
@@ -1455,6 +1458,12 @@ bool GroupCallManager::get_group_call_start_subscribed(const GroupCall *group_ca
   CHECK(group_call != nullptr);
   return group_call->have_pending_start_subscribed ? group_call->pending_start_subscribed
                                                    : group_call->start_subscribed;
+}
+
+bool GroupCallManager::get_group_call_is_my_video_enabled(const GroupCall *group_call) {
+  CHECK(group_call != nullptr);
+  return group_call->have_pending_is_my_video_enabled ? group_call->pending_is_my_video_enabled
+                                                      : group_call->is_my_video_enabled;
 }
 
 bool GroupCallManager::get_group_call_mute_new_participants(const GroupCall *group_call) {
@@ -2365,7 +2374,7 @@ void GroupCallManager::start_scheduled_group_call(GroupCallId group_call_id, Pro
 }
 
 void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_dialog_id, int32 audio_source,
-                                       string &&payload, bool is_muted, bool is_video_enabled,
+                                       string &&payload, bool is_muted, bool is_my_video_enabled,
                                        const string &invite_hash, Promise<string> &&promise) {
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
 
@@ -2431,7 +2440,7 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
       });
   request->query_ref =
       td_->create_handler<JoinGroupCallQuery>(std::move(query_promise))
-          ->send(input_group_call_id, as_dialog_id, payload, is_muted, !is_video_enabled, invite_hash, generation);
+          ->send(input_group_call_id, as_dialog_id, payload, is_muted, !is_my_video_enabled, invite_hash, generation);
 
   if (group_call->dialog_id.is_valid()) {
     td_->messages_manager_->on_update_dialog_default_join_group_call_as_dialog_id(group_call->dialog_id, as_dialog_id,
@@ -2452,7 +2461,7 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
     // it contains reasonable default "!call.mute_new_participants || call.can_be_managed"
     participant.server_is_muted_by_admin = !group_call->can_self_unmute && !can_manage_group_call(input_group_call_id);
     participant.server_is_muted_by_themselves = is_muted && !participant.server_is_muted_by_admin;
-    participant.server_is_video_muted = !is_video_enabled || participant.server_is_muted_by_admin;
+    participant.server_is_video_muted = !is_my_video_enabled || participant.server_is_muted_by_admin;
     participant.is_just_joined = !is_rejoin;
     participant.is_fake = true;
     int diff = process_group_call_participant(input_group_call_id, std::move(participant));
@@ -2461,6 +2470,10 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
       need_update |=
           set_group_call_participant_count(group_call, group_call->participant_count + diff, "join_group_call", true);
     }
+  }
+  if (group_call->is_my_video_enabled != is_my_video_enabled) {
+    group_call->is_my_video_enabled = is_my_video_enabled;
+    need_update = true;
   }
 
   if (group_call->is_inited && need_update) {
@@ -2800,6 +2813,95 @@ void GroupCallManager::on_edit_group_call_title(InputGroupCallId input_group_cal
   }
 }
 
+void GroupCallManager::toggle_group_call_is_my_video_enabled(GroupCallId group_call_id, bool is_my_video_enabled,
+                                                             Promise<Unit> &&promise) {
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
+
+  TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
+
+  auto *group_call = get_group_call(input_group_call_id);
+  if (group_call == nullptr || !group_call->is_inited || !group_call->is_active) {
+    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+  }
+  if (!group_call->is_joined) {
+    if (is_group_call_being_joined(input_group_call_id) || group_call->need_rejoin) {
+      group_call->after_join.push_back(
+          PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, is_my_video_enabled,
+                                  promise = std::move(promise)](Result<Unit> &&result) mutable {
+            if (result.is_error()) {
+              promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+            } else {
+              send_closure(actor_id, &GroupCallManager::toggle_group_call_is_my_video_enabled, group_call_id,
+                           is_my_video_enabled, std::move(promise));
+            }
+          }));
+      return;
+    }
+    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+  }
+
+  if (is_my_video_enabled == get_group_call_is_my_video_enabled(group_call)) {
+    return promise.set_value(Unit());
+  }
+
+  // there is no reason to save promise; we will send an update with actual value anyway
+
+  group_call->pending_is_my_video_enabled = is_my_video_enabled;
+  if (!group_call->have_pending_is_my_video_enabled) {
+    group_call->have_pending_is_my_video_enabled = true;
+    send_toggle_group_call_is_my_video_enabled_query(input_group_call_id, group_call->as_dialog_id,
+                                                     is_my_video_enabled);
+  }
+  send_update_group_call(group_call, "toggle_group_call_is_my_video_enabled");
+  promise.set_value(Unit());
+}
+
+void GroupCallManager::send_toggle_group_call_is_my_video_enabled_query(InputGroupCallId input_group_call_id,
+                                                                        DialogId as_dialog_id,
+                                                                        bool is_my_video_enabled) {
+  auto promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), input_group_call_id, is_my_video_enabled](Result<Unit> result) {
+        send_closure(actor_id, &GroupCallManager::on_toggle_group_call_is_my_video_enabled, input_group_call_id,
+                     is_my_video_enabled, std::move(result));
+      });
+  td_->create_handler<EditGroupCallParticipantQuery>(std::move(promise))
+      ->send(input_group_call_id, as_dialog_id, false, false, 0, false, false, true, !is_my_video_enabled);
+}
+
+void GroupCallManager::on_toggle_group_call_is_my_video_enabled(InputGroupCallId input_group_call_id,
+                                                                bool is_my_video_enabled, Result<Unit> &&result) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto *group_call = get_group_call(input_group_call_id);
+  if (group_call == nullptr || !group_call->is_inited || !group_call->is_active ||
+      !group_call->have_pending_is_my_video_enabled) {
+    return;
+  }
+
+  if (result.is_error()) {
+    group_call->have_pending_is_my_video_enabled = false;
+    LOG(ERROR) << "Failed to set is_my_video_enabled to " << is_my_video_enabled << " in " << input_group_call_id
+               << ": " << result.error();
+    if (group_call->pending_is_my_video_enabled != group_call->is_my_video_enabled) {
+      send_update_group_call(group_call, "on_toggle_group_call_is_my_video_enabled failed");
+    }
+  } else {
+    group_call->is_my_video_enabled = is_my_video_enabled;
+    if (group_call->pending_is_my_video_enabled != is_my_video_enabled) {
+      // need to send another request
+      send_toggle_group_call_is_my_video_enabled_query(input_group_call_id, group_call->as_dialog_id,
+                                                       group_call->pending_is_my_video_enabled);
+      return;
+    }
+
+    group_call->have_pending_is_my_video_enabled = false;
+  }
+}
+
 void GroupCallManager::toggle_group_call_start_subscribed(GroupCallId group_call_id, bool start_subscribed,
                                                           Promise<Unit> &&promise) {
   if (G()->close_flag()) {
@@ -2838,7 +2940,7 @@ void GroupCallManager::toggle_group_call_start_subscribed(GroupCallId group_call
     group_call->have_pending_start_subscribed = true;
     send_toggle_group_call_start_subscription_query(input_group_call_id, start_subscribed);
   }
-  send_update_group_call(group_call, "toggle_group_call_start_subscription");
+  send_update_group_call(group_call, "toggle_group_call_start_subscribed");
   promise.set_value(Unit());
 }
 
@@ -3624,6 +3726,8 @@ void GroupCallManager::on_group_call_left_impl(GroupCall *group_call, bool need_
   }
   group_call->is_being_left = false;
   group_call->is_speaking = false;
+  group_call->is_my_video_enabled = false;
+  group_call->have_pending_is_my_video_enabled = false;
   if (!group_call->is_active) {
     group_call->can_be_managed = false;
   }
@@ -3808,6 +3912,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
     call.need_rejoin = group_call->need_rejoin;
     call.is_being_left = group_call->is_being_left;
     call.is_speaking = group_call->is_speaking;
+    call.is_my_video_enabled = group_call->is_my_video_enabled;
     call.syncing_participants = group_call->syncing_participants;
     call.need_syncing_participants = group_call->need_syncing_participants;
     call.loaded_all_participants = group_call->loaded_all_participants;
@@ -4244,6 +4349,7 @@ tl_object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(
   bool is_active = scheduled_start_date == 0 ? group_call->is_active : 0;
   bool is_joined = group_call->is_joined && !group_call->is_being_left;
   bool start_subscribed = get_group_call_start_subscribed(group_call);
+  bool is_my_video_enabled = get_group_call_is_my_video_enabled(group_call);
   bool mute_new_participants = get_group_call_mute_new_participants(group_call);
   bool can_change_mute_new_participants =
       group_call->is_active && group_call->can_be_managed && group_call->allowed_change_mute_new_participants;
@@ -4252,7 +4358,7 @@ tl_object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(
   return td_api::make_object<td_api::groupCall>(
       group_call->group_call_id.get(), get_group_call_title(group_call), scheduled_start_date, start_subscribed,
       is_active, is_joined, group_call->need_rejoin, group_call->can_be_managed, group_call->participant_count,
-      group_call->loaded_all_participants, std::move(recent_speakers), group_call->can_start_video,
+      group_call->loaded_all_participants, std::move(recent_speakers), is_my_video_enabled, group_call->can_start_video,
       mute_new_participants, can_change_mute_new_participants, record_duration, group_call->duration);
 }
 
