@@ -2641,6 +2641,11 @@ void GroupCallManager::process_join_group_call_presentation_response(InputGroupC
   auto promise = std::move(it->second->promise);
   pending_join_presentation_requests_.erase(it);
 
+  if (status.is_error()) {
+    return promise.set_error(std::move(status));
+  }
+  CHECK(updates != nullptr);
+
   string params = UpdatesManager::extract_join_group_call_presentation_params(updates.get());
   if (params.empty()) {
     return promise.set_error(
