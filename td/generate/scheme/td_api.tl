@@ -2170,12 +2170,14 @@ groupCallRecentSpeaker participant_id:MessageSender is_speaking:Bool = GroupCall
 //@duration Call duration; for ended calls only
 groupCall id:int32 title:string scheduled_start_date:int32 enabled_start_notification:Bool is_active:Bool is_joined:Bool need_rejoin:Bool can_be_managed:Bool participant_count:int32 loaded_all_participants:Bool recent_speakers:vector<groupCallRecentSpeaker> is_my_video_enabled:Bool can_start_video:Bool mute_new_participants:Bool can_change_mute_new_participants:Bool record_duration:int32 duration:int32 = GroupCall;
 
+//@description Contains informatioan about a group call participant's video @sources List of video synchronization sources @endpoint_id Video endpoint identifier
+groupCallParticipantVideoInfo sources:vector<int32> endpoint_id:string = GroupCallParticipantVideoInfo;
 
 //@description Represents a group call participant
 //@participant_id Identifier of the group call participant
 //@audio_source User's audio synchronization source
-//@endpoint_id User's endpoint identifier
-//@video_payload Description of user's video payload; may be empty if there is no video channel
+//@video_info Information about user's video; may be null if there is no active video
+//@screen_sharing_video_info Information about user's screen sharing video; may be null if there is no active screen sharing video
 //@bio The participant user's bio or the participant chat's description
 //@is_current_user True, if the participant is the current user
 //@is_speaking True, if the participant is speaking as set by setGroupCallParticipantIsSpeaking
@@ -2189,7 +2191,7 @@ groupCall id:int32 title:string scheduled_start_date:int32 enabled_start_notific
 //@can_unmute_self True, if the participant is muted for all users, but can unmute themself
 //@volume_level Participant's volume level; 1-20000 in hundreds of percents
 //@order User's order in the group call participant list. Orders must be compared lexicographically. The bigger is order, the higher is user in the list. If order is empty, the user must be removed from the participant list
-groupCallParticipant participant_id:MessageSender audio_source:int32 endpoint_id:string video_payload:string bio:string is_current_user:Bool is_speaking:Bool is_hand_raised:Bool can_be_muted_for_all_users:Bool can_be_unmuted_for_all_users:Bool can_be_muted_for_current_user:Bool can_be_unmuted_for_current_user:Bool is_muted_for_all_users:Bool is_muted_for_current_user:Bool can_unmute_self:Bool volume_level:int32 order:string = GroupCallParticipant;
+groupCallParticipant participant_id:MessageSender audio_source:int32 video_info:groupCallParticipantVideoInfo screen_sharing_video_info:groupCallParticipantVideoInfo bio:string is_current_user:Bool is_speaking:Bool is_hand_raised:Bool can_be_muted_for_all_users:Bool can_be_unmuted_for_all_users:Bool can_be_muted_for_current_user:Bool can_be_unmuted_for_current_user:Bool is_muted_for_all_users:Bool is_muted_for_current_user:Bool can_unmute_self:Bool volume_level:int32 order:string = GroupCallParticipant;
 
 
 //@class CallProblem @description Describes the exact type of a problem with a call

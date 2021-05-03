@@ -22,8 +22,8 @@ class Td;
 struct GroupCallParticipant {
   DialogId dialog_id;
   string about;
-  string video_payload;
-  string endpoint;
+  GroupCallVideoPayload video_payload;
+  GroupCallVideoPayload presentation_payload;
   int32 audio_source = 0;
   int32 joined_date = 0;
   int32 active_date = 0;
