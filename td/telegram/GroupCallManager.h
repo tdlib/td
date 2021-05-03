@@ -89,6 +89,10 @@ class GroupCallManager : public Actor {
 
   void toggle_group_call_recording(GroupCallId group_call_id, bool is_enabled, string title, Promise<Unit> &&promise);
 
+  void get_group_call_media_channel_descriptions(
+      GroupCallId group_call_id, vector<int32> source_ids,
+      Promise<td_api::object_ptr<td_api::groupCallMediaChannelDescriptions>> &&promise, bool is_recursive = false);
+
   void set_group_call_participant_is_speaking(GroupCallId group_call_id, int32 audio_source, bool is_speaking,
                                               Promise<Unit> &&promise, int32 date = 0);
 

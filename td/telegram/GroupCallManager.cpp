@@ -257,12 +257,11 @@ class GetGroupCallParticipantQuery : public Td::ResultHandler {
   }
 
   void send(InputGroupCallId input_group_call_id, vector<tl_object_ptr<telegram_api::InputPeer>> &&input_peers,
-            vector<int32> &&audio_sources) {
+            vector<int32> &&source_ids) {
     input_group_call_id_ = input_group_call_id;
-    auto limit = narrow_cast<int32>(max(input_peers.size(), audio_sources.size()));
-    send_query(G()->net_query_creator().create(
-        telegram_api::phone_getGroupParticipants(input_group_call_id.get_input_group_call(), std::move(input_peers),
-                                                 std::move(audio_sources), string(), limit)));
+    auto limit = narrow_cast<int32>(max(input_peers.size(), source_ids.size()));
+    send_query(G()->net_query_creator().create(telegram_api::phone_getGroupParticipants(
+        input_group_call_id.get_input_group_call(), std::move(input_peers), std::move(source_ids), string(), limit)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -3255,6 +3254,92 @@ void GroupCallManager::on_toggle_group_call_recording(InputGroupCallId input_gro
   if (current_record_start_date != get_group_call_record_start_date(group_call)) {
     send_update_group_call(group_call, "on_toggle_group_call_recording");
   }
+}
+
+void GroupCallManager::get_group_call_media_channel_descriptions(
+    GroupCallId group_call_id, vector<int32> source_ids,
+    Promise<td_api::object_ptr<td_api::groupCallMediaChannelDescriptions>> &&promise, bool is_recursive) {
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
+
+  TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
+
+  auto *group_call = get_group_call(input_group_call_id);
+  if (group_call == nullptr || !group_call->is_inited || !group_call->is_active) {
+    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+  }
+  if (!group_call->is_joined) {
+    if (is_group_call_being_joined(input_group_call_id) || group_call->need_rejoin) {
+      group_call->after_join.push_back(
+          PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, source_ids = std::move(source_ids),
+                                  promise = std::move(promise), is_recursive](Result<Unit> &&result) mutable {
+            if (result.is_error()) {
+              promise.set_error(result.move_as_error());
+            } else {
+              send_closure(actor_id, &GroupCallManager::get_group_call_media_channel_descriptions, group_call_id,
+                           std::move(source_ids), std::move(promise), is_recursive);
+            }
+          }));
+      return;
+    }
+    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+  }
+
+  vector<td_api::object_ptr<td_api::groupCallMediaChannelDescription>> result;
+  std::unordered_set<int32> source_ids_set(source_ids.begin(), source_ids.end());
+  auto participants = add_group_call_participants(input_group_call_id);
+  for (auto &participant : participants->participants) {
+    if (source_ids_set.empty()) {
+      break;
+    }
+    if (source_ids_set.count(participant.audio_source)) {
+      source_ids_set.erase(participant.audio_source);
+      result.push_back(
+          td_api::make_object<td_api::groupCallMediaChannelDescription>(participant.audio_source, false, string()));
+    }
+    for (auto &source_id : participant.video_payload.sources) {
+      if (source_ids_set.count(source_id)) {
+        source_ids_set.erase(source_id);
+        result.push_back(td_api::make_object<td_api::groupCallMediaChannelDescription>(
+            source_id, true, participant.video_payload.json_payload));
+      }
+    }
+    for (auto &source_id : participant.presentation_payload.sources) {
+      if (source_ids_set.count(source_id)) {
+        source_ids_set.erase(source_id);
+        result.push_back(td_api::make_object<td_api::groupCallMediaChannelDescription>(
+            source_id, true, participant.presentation_payload.json_payload));
+      }
+    }
+  }
+
+  if (!source_ids_set.empty()) {
+    vector<int32> missing_source_ids(source_ids_set.begin(), source_ids_set.end());
+    if (!is_recursive) {
+      auto query_promise =
+          PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, source_ids = std::move(source_ids),
+                                  promise = std::move(promise)](Result<Unit> &&result) mutable {
+            if (G()->close_flag()) {
+              return promise.set_error(Status::Error(500, "Request aborted"));
+            }
+            if (result.is_error()) {
+              promise.set_error(result.move_as_error());
+            } else {
+              send_closure(actor_id, &GroupCallManager::get_group_call_media_channel_descriptions, group_call_id,
+                           std::move(source_ids), std::move(promise), true);
+            }
+          });
+      td_->create_handler<GetGroupCallParticipantQuery>(std::move(query_promise))
+          ->send(input_group_call_id, {}, std::move(missing_source_ids));
+      return;
+    } else {
+      LOG(INFO) << "Failed to find participants with sources " << missing_source_ids << " in " << group_call_id
+                << " from " << group_call->dialog_id;
+    }
+  }
+
+  promise.set_value(td_api::make_object<td_api::groupCallMediaChannelDescriptions>(std::move(result)));
 }
 
 void GroupCallManager::set_group_call_participant_is_speaking(GroupCallId group_call_id, int32 audio_source,

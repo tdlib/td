@@ -2170,14 +2170,14 @@ groupCallRecentSpeaker participant_id:MessageSender is_speaking:Bool = GroupCall
 //@duration Call duration; for ended calls only
 groupCall id:int32 title:string scheduled_start_date:int32 enabled_start_notification:Bool is_active:Bool is_joined:Bool need_rejoin:Bool can_be_managed:Bool participant_count:int32 loaded_all_participants:Bool recent_speakers:vector<groupCallRecentSpeaker> is_my_video_enabled:Bool can_start_video:Bool mute_new_participants:Bool can_change_mute_new_participants:Bool record_duration:int32 duration:int32 = GroupCall;
 
-//@description Contains informatioan about a group call participant's video @sources List of video synchronization sources @endpoint_id Video endpoint identifier
-groupCallParticipantVideoInfo sources:vector<int32> endpoint_id:string = GroupCallParticipantVideoInfo;
+//@description Contains information about a group call participant's video channel @source_ids List of video channel synchronization source identifiers @endpoint_id Video endpoint identifier
+groupCallParticipantVideoInfo source_ids:vector<int32> endpoint_id:string = GroupCallParticipantVideoInfo;
 
 //@description Represents a group call participant
 //@participant_id Identifier of the group call participant
-//@audio_source User's audio synchronization source
-//@video_info Information about user's video; may be null if there is no active video
-//@screen_sharing_video_info Information about user's screen sharing video; may be null if there is no active screen sharing video
+//@audio_source_id User's audio channel synchronization source identifier
+//@video_info Information about user's video channel; may be null if there is no active video
+//@screen_sharing_video_info Information about user's screen sharing video channel; may be null if there is no active screen sharing video
 //@bio The participant user's bio or the participant chat's description
 //@is_current_user True, if the participant is the current user
 //@is_speaking True, if the participant is speaking as set by setGroupCallParticipantIsSpeaking
@@ -2191,7 +2191,13 @@ groupCallParticipantVideoInfo sources:vector<int32> endpoint_id:string = GroupCa
 //@can_unmute_self True, if the participant is muted for all users, but can unmute themself
 //@volume_level Participant's volume level; 1-20000 in hundreds of percents
 //@order User's order in the group call participant list. Orders must be compared lexicographically. The bigger is order, the higher is user in the list. If order is empty, the user must be removed from the participant list
-groupCallParticipant participant_id:MessageSender audio_source:int32 video_info:groupCallParticipantVideoInfo screen_sharing_video_info:groupCallParticipantVideoInfo bio:string is_current_user:Bool is_speaking:Bool is_hand_raised:Bool can_be_muted_for_all_users:Bool can_be_unmuted_for_all_users:Bool can_be_muted_for_current_user:Bool can_be_unmuted_for_current_user:Bool is_muted_for_all_users:Bool is_muted_for_current_user:Bool can_unmute_self:Bool volume_level:int32 order:string = GroupCallParticipant;
+groupCallParticipant participant_id:MessageSender audio_source_id:int32 video_info:groupCallParticipantVideoInfo screen_sharing_video_info:groupCallParticipantVideoInfo bio:string is_current_user:Bool is_speaking:Bool is_hand_raised:Bool can_be_muted_for_all_users:Bool can_be_unmuted_for_all_users:Bool can_be_muted_for_current_user:Bool can_be_unmuted_for_current_user:Bool is_muted_for_all_users:Bool is_muted_for_current_user:Bool can_unmute_self:Bool volume_level:int32 order:string = GroupCallParticipant;
+
+//@description Describes a media channel in a group call @source_id Channel's synchronization source identifier @is_video True if the channel is a video channel @param_description Description of the channel
+groupCallMediaChannelDescription source_id:int32 is_video:Bool description:string = GroupCallMediaChannelDescription;
+
+//@description Represents a list of group call media channel description @descriptions List of descriptions
+groupCallMediaChannelDescriptions descriptions:vector<groupCallMediaChannelDescription> = GroupCallMediaChannelDescriptions;
 
 
 //@class CallProblem @description Describes the exact type of a problem with a call
@@ -4618,12 +4624,12 @@ toggleGroupCallEnabledStartNotification group_call_id:int32 enabled_start_notifi
 //@description Joins an active group call. Returns join response payload for tgcalls
 //@group_call_id Group call identifier
 //@participant_id Identifier of a group call participant, which will be used to join the call; voice chats only
-//@audio_source Caller audio synchronization source identifier; received from tgcalls
+//@audio_source_id Caller audio channel synchronization source identifier; received from tgcalls
 //@payload Group call join payload; received from tgcalls
 //@is_muted True, if the user's microphone is muted
 //@is_my_video_enabled True, if the user's video is enabled
 //@invite_hash If non-empty, invite hash to be used to join the group call without being muted by administrators
-joinGroupCall group_call_id:int32 participant_id:MessageSender audio_source:int32 payload:string is_muted:Bool is_my_video_enabled:Bool invite_hash:string = Text;
+joinGroupCall group_call_id:int32 participant_id:MessageSender audio_source_id:int32 payload:string is_muted:Bool is_my_video_enabled:Bool invite_hash:string = Text;
 
 //@description Starts screen sharing in a joined group call. Returns join response payload for tgcalls @group_call_id Group call identifier @payload Group call join payload; received from tgcalls
 startGroupCallScreenSharing group_call_id:int32 payload:string = Text;
@@ -4658,6 +4664,9 @@ endGroupCallRecording group_call_id:int32 = Ok;
 
 //@description Toggles whether current user's video is enabled @group_call_id Group call identifier @is_my_video_enabled Pass true if the current user's video is enabled
 toggleGroupCallIsMyVideoEnabled group_call_id:int32 is_my_video_enabled:Bool = Ok;
+
+//@description Returns information about group call media channels by their synchronization source identifiers @group_call_id Group call identifier @source_ids Synchronization source identifiers
+getGroupCallMediaChannelDescriptions group_call_id:int32 source_ids:vector<int32> = GroupCallMediaChannelDescriptions;
 
 //@description Informs TDLib that speaking state of a participant of an active group has changed @group_call_id Group call identifier
 //@audio_source Group call participant's synchronization audio source identifier, or 0 for the current user @is_speaking True, if the user is speaking
