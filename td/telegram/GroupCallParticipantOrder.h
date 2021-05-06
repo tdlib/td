@@ -30,6 +30,8 @@ class GroupCallParticipantOrder {
       : active_date(active_date), joined_date(joined_date), raise_hand_rating(raise_hand_rating) {
   }
 
+  static GroupCallParticipantOrder min();
+
   static GroupCallParticipantOrder max();
 
   bool is_valid() const;

@@ -1863,7 +1863,7 @@ void GroupCallManager::process_group_call_participants(
   }
 
   auto min_order = GroupCallParticipantOrder::max();
-  DialogId min_order_dialog_id;
+  DialogId debug_min_order_dialog_id;
   bool can_self_unmute = get_group_call_can_self_unmute(input_group_call_id);
   bool joined_date_asc = get_group_call_joined_date_asc(input_group_call_id);
   for (auto &group_call_participant : participants) {
@@ -1883,17 +1883,24 @@ void GroupCallManager::process_group_call_participants(
     if (is_load) {
       auto real_order = participant.get_real_order(can_self_unmute, joined_date_asc, true);
       if (real_order > min_order) {
-        LOG(ERROR) << "Receive call participant " << participant.dialog_id << " with order " << real_order
-                   << " after call participant " << min_order_dialog_id << " with order " << min_order;
+        LOG(ERROR) << "Receive group call participant " << participant.dialog_id << " with order " << real_order
+                   << " after group call participant " << debug_min_order_dialog_id << " with order " << min_order;
       } else {
         min_order = real_order;
-        min_order_dialog_id = participant.dialog_id;
+        debug_min_order_dialog_id = participant.dialog_id;
       }
     }
     if (is_sync) {
       old_participant_dialog_ids.erase(participant.dialog_id);
     }
     process_group_call_participant(input_group_call_id, std::move(participant));
+  }
+  if (is_load && participants.empty() && !joined_date_asc) {
+    // If loaded 0 participants and new participants are added to the beginning of the list,
+    // then the end of the list was reached.
+    // Set min_order to the minimum possible value to send updates about all participants with order less than
+    // the current min_order. There can be such participants if the last loaded participant had a fake active_date.
+    min_order = GroupCallParticipantOrder::min();
   }
   if (is_sync) {
     auto participants_it = group_call_participants_.find(input_group_call_id);
@@ -1903,6 +1910,7 @@ void GroupCallManager::process_group_call_participants(
       for (auto participant_it = group_participants.begin(); participant_it != group_participants.end();) {
         auto &participant = *participant_it;
         if (old_participant_dialog_ids.count(participant.dialog_id) == 0) {
+          // successfully synced old user
           ++participant_it;
           continue;
         }

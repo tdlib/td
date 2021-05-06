@@ -14,6 +14,10 @@
 
 namespace td {
 
+GroupCallParticipantOrder GroupCallParticipantOrder::min() {
+  return GroupCallParticipantOrder(0, 0, 1);
+}
+
 GroupCallParticipantOrder GroupCallParticipantOrder::max() {
   return GroupCallParticipantOrder(std::numeric_limits<int32>::max(), std::numeric_limits<int64>::max(),
                                    std::numeric_limits<int32>::max());
