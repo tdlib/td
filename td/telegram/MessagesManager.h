@@ -1714,6 +1714,8 @@ class MessagesManager : public Actor {
 
   bool is_dialog_mention_notifications_disabled(const Dialog *d) const;
 
+  bool is_dialog_pinned(DialogListId dialog_list_id, DialogId dialog_id) const;
+
   int64 get_dialog_pinned_order(DialogListId dialog_list_id, DialogId dialog_id) const;
 
   static int64 get_dialog_pinned_order(const DialogList *list, DialogId dialog_id);
