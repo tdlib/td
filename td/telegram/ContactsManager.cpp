@@ -8592,6 +8592,7 @@ void ContactsManager::save_chat_to_database(Chat *c, ChatId chat_id) {
 void ContactsManager::save_chat_to_database_impl(Chat *c, ChatId chat_id, string value) {
   CHECK(c != nullptr);
   CHECK(load_chat_from_database_queries_.count(chat_id) == 0);
+  CHECK(!c->is_being_saved);
   c->is_being_saved = true;
   c->is_saved = true;
   LOG(INFO) << "Trying to save to database " << chat_id;
@@ -8828,6 +8829,7 @@ void ContactsManager::save_channel_to_database(Channel *c, ChannelId channel_id)
 void ContactsManager::save_channel_to_database_impl(Channel *c, ChannelId channel_id, string value) {
   CHECK(c != nullptr);
   CHECK(load_channel_from_database_queries_.count(channel_id) == 0);
+  CHECK(!c->is_being_saved);
   c->is_being_saved = true;
   c->is_saved = true;
   LOG(INFO) << "Trying to save to database " << channel_id;
@@ -8936,10 +8938,12 @@ void ContactsManager::on_load_channel_from_database(ChannelId channel_id, string
       temp_c.status.update_restrictions();
       if (temp_c.status != c->status) {
         on_channel_status_changed(c, channel_id, temp_c.status, c->status);
+        CHECK(!c->is_being_saved);
       }
 
       if (temp_c.username != c->username) {
         on_channel_username_changed(c, channel_id, temp_c.username, c->username);
+        CHECK(!c->is_being_saved);
       }
     }
     auto new_value = get_channel_database_value(c);
@@ -9078,6 +9082,7 @@ void ContactsManager::save_secret_chat_to_database(SecretChat *c, SecretChatId s
 void ContactsManager::save_secret_chat_to_database_impl(SecretChat *c, SecretChatId secret_chat_id, string value) {
   CHECK(c != nullptr);
   CHECK(load_secret_chat_from_database_queries_.count(secret_chat_id) == 0);
+  CHECK(!c->is_being_saved);
   c->is_being_saved = true;
   c->is_saved = true;
   LOG(INFO) << "Trying to save to database " << secret_chat_id;
@@ -13024,7 +13029,7 @@ void ContactsManager::on_update_channel_status(Channel *c, ChannelId channel_id,
   }
 }
 
-void ContactsManager::on_channel_status_changed(Channel *c, ChannelId channel_id,
+void ContactsManager::on_channel_status_changed(const Channel *c, ChannelId channel_id,
                                                 const DialogParticipantStatus &old_status,
                                                 const DialogParticipantStatus &new_status) {
   CHECK(c->is_update_supergroup_sent);
@@ -13104,7 +13109,7 @@ void ContactsManager::on_update_channel_username(Channel *c, ChannelId channel_i
   }
 }
 
-void ContactsManager::on_channel_username_changed(Channel *c, ChannelId channel_id, const string &old_username,
+void ContactsManager::on_channel_username_changed(const Channel *c, ChannelId channel_id, const string &old_username,
                                                   const string &new_username) {
   if (old_username.empty() || new_username.empty()) {
     // moving channel from private to public can change availability of chat members
