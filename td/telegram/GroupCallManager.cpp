@@ -1951,7 +1951,11 @@ void GroupCallManager::process_group_call_participants(
         for (auto &participant : participants_it->second->participants) {
           auto real_order = get_real_participant_order(can_self_unmute, participant, participants_it->second.get());
           if (old_min_order > real_order && real_order >= min_order) {
-            CHECK(!participant.order.is_valid() || participant.is_self);
+            LOG_CHECK(!participant.order.is_valid() || participant.is_self)
+                << participant << ' ' << old_min_order << ' ' << real_order << ' ' << min_order << ' '
+                << participant.joined_date << ' ' << participant.active_date << ' ' << participant.raise_hand_rating
+                << ' ' << participant.local_active_date << ' ' << G()->unix_time() << ' ' << can_self_unmute << ' '
+                << participants_it->second->joined_date_asc;
             participant.order = real_order;
             send_update_group_call_participant(input_group_call_id, participant,
                                                "process_group_call_participants load");
