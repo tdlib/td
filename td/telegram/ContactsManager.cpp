@@ -9622,6 +9622,10 @@ void ContactsManager::on_load_channel_full_from_database(ChannelId channel_id, s
     }
   }
 
+  if (invalidated_channels_full_.erase(channel_id) > 0) {
+    do_invalidate_channel_full(channel_full, !c->is_slow_mode_enabled);
+  }
+
   td_->group_call_manager_->on_update_dialog_about(DialogId(channel_id), channel_full->description, false);
 
   send_closure_later(G()->messages_manager(), &MessagesManager::on_dialog_bots_updated, DialogId(channel_id),
@@ -10450,6 +10454,8 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       LOG(ERROR) << "Receive invalid " << channel_id;
       return promise.set_value(Unit());
     }
+
+    invalidated_channels_full_.erase(channel_id);
 
     if (!G()->close_flag()) {
       auto channel_full = get_channel_full(channel_id, "on_get_channel_full");
@@ -12035,17 +12041,26 @@ void ContactsManager::drop_channel_photos(ChannelId channel_id, bool is_empty, b
 
 void ContactsManager::invalidate_channel_full(ChannelId channel_id, bool need_drop_slow_mode_delay) {
   LOG(INFO) << "Invalidate supergroup full for " << channel_id;
-  // drop channel full cache
-  auto channel_full = get_channel_full_force(channel_id, "invalidate_channel_full");
+  auto channel_full = get_channel_full(channel_id, "invalidate_channel_full"); // must not load ChannelFull
   if (channel_full != nullptr) {
-    channel_full->expires_at = 0.0;
-    if (need_drop_slow_mode_delay && channel_full->slow_mode_delay != 0) {
-      channel_full->slow_mode_delay = 0;
-      channel_full->slow_mode_next_send_date = 0;
-      channel_full->is_slow_mode_next_send_date_changed = true;
-      channel_full->is_changed = true;
-    }
+    do_invalidate_channel_full(channel_full, need_drop_slow_mode_delay);
     update_channel_full(channel_full, channel_id);
+  } else {
+    invalidated_channels_full_.insert(channel_id);
+  }
+}
+
+void ContactsManager::do_invalidate_channel_full(ChannelFull *channel_full, bool need_drop_slow_mode_delay) {
+  CHECK(channel_full != nullptr);
+  if (channel_full->expires_at >= Time::now()) {
+    channel_full->expires_at = 0.0;
+    channel_full->need_save_to_database = true;
+  }
+  if (need_drop_slow_mode_delay && channel_full->slow_mode_delay != 0) {
+    channel_full->slow_mode_delay = 0;
+    channel_full->slow_mode_next_send_date = 0;
+    channel_full->is_slow_mode_next_send_date_changed = true;
+    channel_full->is_changed = true;
   }
 }
 
