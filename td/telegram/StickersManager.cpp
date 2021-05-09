@@ -6415,6 +6415,9 @@ void StickersManager::on_get_emoji_keywords_difference(
   version = keywords->version_;
   auto *pmc = G()->td_db()->get_sqlite_sync_pmc();
   pmc->begin_transaction().ensure();
+  // set must be the first operation to start a write transaction
+  pmc->set(get_emoji_language_code_version_database_key(language_code), to_string(version));
+  pmc->set(get_emoji_language_code_last_difference_time_database_key(language_code), to_string(G()->unix_time()));
   for (auto &keyword_ptr : keywords->keywords_) {
     switch (keyword_ptr->get_id()) {
       case telegram_api::emojiKeyword::ID: {
@@ -6467,8 +6470,6 @@ void StickersManager::on_get_emoji_keywords_difference(
         UNREACHABLE();
     }
   }
-  pmc->set(get_emoji_language_code_version_database_key(language_code), to_string(version));
-  pmc->set(get_emoji_language_code_last_difference_time_database_key(language_code), to_string(G()->unix_time()));
   pmc->commit_transaction().ensure();
   emoji_language_code_versions_[language_code] = version;
   emoji_language_code_last_difference_times_[language_code] = static_cast<int32>(Time::now_cached());

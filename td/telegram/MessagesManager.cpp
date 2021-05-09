@@ -27108,8 +27108,9 @@ MessagesManager::MessageNotificationGroup MessagesManager::get_message_notificat
     d = get_dialog(it->second);
     CHECK(d != nullptr);
   } else if (G()->parameters().use_message_db) {
-    G()->td_db()->get_dialog_db_sync()->begin_transaction().ensure();
-    auto r_value = G()->td_db()->get_dialog_db_sync()->get_notification_group(group_id);
+    auto *dialog_db = G()->td_db()->get_dialog_db_sync();
+    dialog_db->begin_transaction().ensure();  // read transaction
+    auto r_value = dialog_db->get_notification_group(group_id);
     if (r_value.is_ok()) {
       VLOG(notifications) << "Loaded " << r_value.ok() << " from database by " << group_id;
       d = get_dialog_force(r_value.ok().dialog_id, "get_message_notification_group_force");
@@ -27117,7 +27118,7 @@ MessagesManager::MessageNotificationGroup MessagesManager::get_message_notificat
       CHECK(r_value.error().message() == "Not found");
       VLOG(notifications) << "Failed to load " << group_id << " from database";
     }
-    G()->td_db()->get_dialog_db_sync()->commit_transaction().ensure();
+    dialog_db->commit_transaction().ensure();
   }
 
   if (d == nullptr) {
@@ -27403,9 +27404,10 @@ vector<NotificationGroupKey> MessagesManager::get_message_notification_group_key
   VLOG(notifications) << "Trying to load " << limit << " message notification groups from database from "
                       << from_group_key;
 
-  G()->td_db()->get_dialog_db_sync()->begin_transaction().ensure();
+  auto *dialog_db = G()->td_db()->get_dialog_db_sync();
+  dialog_db->begin_transaction().ensure();  // read transaction
   Result<vector<NotificationGroupKey>> r_notification_group_keys =
-      G()->td_db()->get_dialog_db_sync()->get_notification_groups_by_last_notification_date(from_group_key, limit);
+      dialog_db->get_notification_groups_by_last_notification_date(from_group_key, limit);
   r_notification_group_keys.ensure();
   auto group_keys = r_notification_group_keys.move_as_ok();
 
@@ -27424,7 +27426,7 @@ vector<NotificationGroupKey> MessagesManager::get_message_notification_group_key
     VLOG(notifications) << "Loaded " << group_key << " from database";
     result.push_back(group_key);
   }
-  G()->td_db()->get_dialog_db_sync()->commit_transaction().ensure();
+  dialog_db->commit_transaction().ensure();
   return result;
 }
 
