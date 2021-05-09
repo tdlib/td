@@ -13049,13 +13049,14 @@ void ContactsManager::on_channel_status_changed(const Channel *c, ChannelId chan
                                                 const DialogParticipantStatus &old_status,
                                                 const DialogParticipantStatus &new_status) {
   CHECK(c->is_update_supergroup_sent);
+  bool have_channel_full = get_channel_full(channel_id) != nullptr;
 
   bool need_reload_group_call = old_status.can_manage_calls() != new_status.can_manage_calls();
   if (old_status.can_manage_invite_links() && !new_status.can_manage_invite_links()) {
-    auto channel_full = get_channel_full_force(channel_id, "on_channel_status_changed");
-    if (channel_full != nullptr) {
+    auto channel_full = get_channel_full(channel_id, "on_channel_status_changed");
+    if (channel_full != nullptr) {  // otherwise invite_link will be dropped when the channel is loaded
       on_update_channel_full_invite_link(channel_full, nullptr);
-      invalidate_channel_full(channel_id, !c->is_slow_mode_enabled);
+      do_invalidate_channel_full(channel_full, !c->is_slow_mode_enabled);
       update_channel_full(channel_full, channel_id);
     }
   } else {
@@ -13084,6 +13085,9 @@ void ContactsManager::on_channel_status_changed(const Channel *c, ChannelId chan
     send_closure_later(G()->messages_manager(), &MessagesManager::on_update_dialog_group_call_rights,
                        DialogId(channel_id));
   }
+
+  // must not load ChannelFull, because must not change the Channel
+  CHECK(have_channel_full == (get_channel_full(channel_id) != nullptr));
 }
 
 void ContactsManager::on_update_channel_default_permissions(Channel *c, ChannelId channel_id,
@@ -13127,10 +13131,14 @@ void ContactsManager::on_update_channel_username(Channel *c, ChannelId channel_i
 
 void ContactsManager::on_channel_username_changed(const Channel *c, ChannelId channel_id, const string &old_username,
                                                   const string &new_username) {
+  bool have_channel_full = get_channel_full(channel_id) != nullptr;
   if (old_username.empty() || new_username.empty()) {
     // moving channel from private to public can change availability of chat members
     invalidate_channel_full(channel_id, !c->is_slow_mode_enabled);
   }
+
+  // must not load ChannelFull, because must not change the Channel
+  CHECK(have_channel_full == (get_channel_full(channel_id) != nullptr));
 }
 
 void ContactsManager::on_update_channel_description(ChannelId channel_id, string &&description) {
