@@ -9622,7 +9622,8 @@ void ContactsManager::on_load_channel_full_from_database(ChannelId channel_id, s
     }
   }
 
-  if (invalidated_channels_full_.erase(channel_id) > 0) {
+  if (invalidated_channels_full_.erase(channel_id) > 0 ||
+      (!c->is_slow_mode_enabled && channel_full->slow_mode_delay != 0)) {
     do_invalidate_channel_full(channel_full, !c->is_slow_mode_enabled);
   }
 
@@ -12041,7 +12042,7 @@ void ContactsManager::drop_channel_photos(ChannelId channel_id, bool is_empty, b
 
 void ContactsManager::invalidate_channel_full(ChannelId channel_id, bool need_drop_slow_mode_delay) {
   LOG(INFO) << "Invalidate supergroup full for " << channel_id;
-  auto channel_full = get_channel_full(channel_id, "invalidate_channel_full"); // must not load ChannelFull
+  auto channel_full = get_channel_full(channel_id, "invalidate_channel_full");  // must not load ChannelFull
   if (channel_full != nullptr) {
     do_invalidate_channel_full(channel_full, need_drop_slow_mode_delay);
     update_channel_full(channel_full, channel_id);
