@@ -33606,7 +33606,9 @@ MessagesManager::Dialog *MessagesManager::get_dialog_by_message_id(MessageId mes
                                                   r_value.ok().second, false, "get_dialog_by_message_id");
         if (m != nullptr) {
           CHECK(m->message_id == message_id);
-          CHECK(message_id_to_dialog_id_[message_id] == dialog_id);
+          LOG_CHECK(message_id_to_dialog_id_[message_id] == dialog_id)
+              << message_id << ' ' << dialog_id << ' ' << message_id_to_dialog_id_[message_id] << ' '
+              << m->debug_source;
           Dialog *d = get_dialog(dialog_id);
           CHECK(d != nullptr);
           return d;
@@ -34183,13 +34185,9 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
                       << ", max_notification_message_id = " << d->max_notification_message_id;
 
   if (d->messages != nullptr) {
-    auto get_debug_source = [](const unique_ptr<Message> &message) {
-      return message->debug_source != nullptr ? message->debug_source : "null";
-    };
-    LOG_CHECK(d->messages->message_id == last_message_id)
-        << d->messages->message_id << ' ' << last_message_id << ' ' << get_debug_source(d->messages);
-    LOG_CHECK(d->messages->left == nullptr) << get_debug_source(d->messages->left);
-    LOG_CHECK(d->messages->right == nullptr) << get_debug_source(d->messages->right);
+    CHECK(d->messages->message_id == last_message_id);
+    CHECK(d->messages->left == nullptr);
+    CHECK(d->messages->right == nullptr);
   }
 
   // must be after update_dialog_pos, because uses d->order
