@@ -28938,13 +28938,12 @@ void MessagesManager::on_send_message_fail(int64 random_id, Status error) {
         if (td_->auth_manager_->is_bot()) {
           switch (dialog_id.get_type()) {
             case DialogType::User:
+            case DialogType::SecretChat:
               error_message = "Bot was blocked by the user";
               break;
             case DialogType::Chat:
             case DialogType::Channel:
               error_message = "Bot was kicked from the chat";
-              break;
-            case DialogType::SecretChat:
               break;
             case DialogType::None:
             default:
@@ -28953,13 +28952,12 @@ void MessagesManager::on_send_message_fail(int64 random_id, Status error) {
         } else {
           switch (dialog_id.get_type()) {
             case DialogType::User:
+            case DialogType::SecretChat:
               error_message = "User was blocked by the other user";
               break;
             case DialogType::Chat:
             case DialogType::Channel:
               error_message = "User is not in the chat";
-              break;
-            case DialogType::SecretChat:
               break;
             case DialogType::None:
             default:
@@ -28968,7 +28966,8 @@ void MessagesManager::on_send_message_fail(int64 random_id, Status error) {
         }
         // TODO add check to send_message
       } else if (error.message() == "USER_IS_BOT") {
-        if (td_->auth_manager_->is_bot() && dialog_id.get_type() == DialogType::User) {
+        if (td_->auth_manager_->is_bot() &&
+            (dialog_id.get_type() == DialogType::User || dialog_id.get_type() == DialogType::SecretChat)) {
           error_code = 403;
           if (td_->contacts_manager_->is_user_bot(dialog_id.get_user_id())) {
             error_message = "Bot can't send messages to bots";
@@ -28979,7 +28978,8 @@ void MessagesManager::on_send_message_fail(int64 random_id, Status error) {
         }
       } else if (error.message() == "PEER_ID_INVALID") {
         error_code = 403;
-        if (td_->auth_manager_->is_bot()) {
+        if (td_->auth_manager_->is_bot() &&
+            (dialog_id.get_type() == DialogType::User || dialog_id.get_type() == DialogType::SecretChat)) {
           error_message = "Bot can't initiate conversation with a user";
         }
       } else if (error.message() == "WC_CONVERT_URL_INVALID" || error.message() == "EXTERNAL_URL_INVALID") {
