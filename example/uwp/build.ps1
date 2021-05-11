@@ -14,6 +14,11 @@ $arch_list = @( "x86", "x64", "ARM" )
 if ($arch) {
   $arch_list = @(, $arch)
 }
+$config_list = @( "Debug", "Release" )
+if ($release_only) {
+  $config_list = @(, "RelWithDebInfo")
+}
+$targets = @{ Debug = "Debug"; Release = "Retail"; RelWithDebInfo = "CommonConfiguration"}
 
 $td_root = Resolve-Path "../.."
 
@@ -48,7 +53,7 @@ function config {
   New-Item -ItemType Directory -Force -Path build-uwp
   cd build-uwp
 
-  ForEach($arch in $arch_list) {
+  ForEach ($arch in $arch_list) {
     echo "Config Arch = [$arch]"
     New-Item -ItemType Directory -Force -Path $arch
     cd $arch
@@ -67,28 +72,15 @@ function config {
 
 function build {
   cd build-uwp
-  ForEach($arch in $arch_list) {
+  ForEach ($arch in $arch_list) {
     echo "Build Arch = [$arch]"
     cd $arch
-    if ($release_only) {
-      cmake --build . --config RelWithDebInfo --target tddotnet
-    } else {
-      cmake --build . --config Release --target tddotnet
-      cmake --build . --config Debug --target tddotnet
+    ForEach ($config in $config_list) {
+      cmake --build . --config $config --target tddotnet
     }
     cd ..
   }
   cd ..
-}
-
-function export-architecture($arch, $config, $target) {
-  New-Item -ItemType Directory -Force -Path vsix/DesignTime/${target}/${arch}
-  New-Item -ItemType Directory -Force -Path vsix/Redist/${target}/${arch}
-  New-Item -ItemType Directory -Force -Path vsix/References/${target}/${arch}
-
-  cp ${arch}/${config}/* -include "SSLEAY*","LIBEAY*","libcrypto*","libssl*","zlib*" vsix/Redist/${target}/${arch}/
-  cp ${arch}/${config}/* -filter "Telegram.Td.*" -include "*.lib" vsix/DesignTime/${target}/${arch}/
-  cp ${arch}/${config}/* -filter "Telegram.Td.*" -include "*.pdb","*.dll" vsix/Redist/${target}/${arch}/
 }
 
 function export {
@@ -100,16 +92,18 @@ function export {
   cp '../`[Content_Types`].xml' vsix
   cp ../LICENSE_1_0.txt vsix
 
-  ForEach($arch in $arch_list) {
-    if ($release_only) {
-      New-Item -ItemType Directory -Force -Path vsix/References/CommonConfiguration/${arch}
-      export-architecture -arch $arch -config "RelWithDebInfo" -target "CommonConfiguration"
-      cp ${arch}/RelWithDebInfo/* -filter "Telegram.Td.*" -include "*.pri","*.winmd","*.xml" vsix/References/CommonConfiguration/${arch}/
-    } else {
-      New-Item -ItemType Directory -Force -Path vsix/References/CommonConfiguration/${arch}
-      export-architecture -arch $arch -config "Debug" -target "Debug"
-      export-architecture -arch $arch -config "Release" -target "Retail"
-      cp ${arch}/Release/* -filter "Telegram.Td.*" -include "*.pri","*.winmd","*.xml" vsix/References/CommonConfiguration/${arch}/
+  ForEach ($arch in $arch_list) {
+    New-Item -ItemType Directory -Force -Path vsix/References/CommonConfiguration/${arch}
+    ForEach ($config in $config_list) {
+      $target = $targets[$config]
+
+      New-Item -ItemType Directory -Force -Path vsix/DesignTime/${target}/${arch}
+      cp ${arch}/${config}/Telegram.Td.lib vsix/DesignTime/${target}/${arch}/
+
+      New-Item -ItemType Directory -Force -Path vsix/Redist/${target}/${arch}
+      cp ${arch}/${config}/* -include "SSLEAY*","LIBEAY*","libcrypto*","libssl*","zlib*","Telegram.Td.pdb","Telegram.Td.dll" vsix/Redist/${target}/${arch}/
+
+      cp ${arch}/${config}/* -include "Telegram.Td.pri","Telegram.Td.winmd","Telegram.Td.xml" vsix/References/CommonConfiguration/${arch}/
     }
   }
 
