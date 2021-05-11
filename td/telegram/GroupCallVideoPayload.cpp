@@ -15,7 +15,7 @@
 namespace td {
 
 bool operator==(const GroupCallVideoPayload &lhs, const GroupCallVideoPayload &rhs) {
-  return lhs.sources == rhs.sources && lhs.endpoint == rhs.endpoint;
+  return lhs.sources == rhs.sources && lhs.endpoint == rhs.endpoint && lhs.json_payload == rhs.json_payload;
 }
 
 td_api::object_ptr<td_api::groupCallParticipantVideoInfo> get_group_call_participant_video_info_object(
@@ -23,8 +23,8 @@ td_api::object_ptr<td_api::groupCallParticipantVideoInfo> get_group_call_partici
   if (payload.endpoint.empty() || payload.sources.empty()) {
     return nullptr;
   }
-  return td_api::make_object<td_api::groupCallParticipantVideoInfo>(vector<int32>(payload.sources),
-                                                                    payload.endpoint);
+  return td_api::make_object<td_api::groupCallParticipantVideoInfo>(vector<int32>(payload.sources), payload.endpoint,
+                                                                    payload.json_payload);
 }
 
 static vector<int32> get_group_call_video_sources(JsonValue &&value) {
