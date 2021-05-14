@@ -628,7 +628,7 @@ static vector<Slice> match_urls(Slice str) {
         }
         path_end_ptr = next_ptr;
       }
-      while (bad_path_end_chars.find(path_end_ptr[-1]) < bad_path_end_chars.size()) {
+      while (path_end_ptr > url_end_ptr + 1 && bad_path_end_chars.find(path_end_ptr[-1]) < bad_path_end_chars.size()) {
         path_end_ptr--;
       }
       if (url_end_ptr[0] == '/' || path_end_ptr > url_end_ptr + 1) {
