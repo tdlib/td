@@ -352,44 +352,44 @@ unique_ptr<SecretChatActor::Context> SecretChatsManager::make_secret_chat_contex
     void on_inbound_message(UserId user_id, MessageId message_id, int32 date,
                             tl_object_ptr<telegram_api::encryptedFile> file,
                             tl_object_ptr<secret_api::decryptedMessage> message, Promise<> promise) override {
-      send_closure(G()->messages_manager(), &MessagesManager::on_get_secret_message, secret_chat_id_, user_id,
-                   message_id, date, std::move(file), std::move(message), std::move(promise));
+      send_closure_later(G()->messages_manager(), &MessagesManager::on_get_secret_message, secret_chat_id_, user_id,
+                         message_id, date, std::move(file), std::move(message), std::move(promise));
     }
 
     void on_send_message_error(int64 random_id, Status error, Promise<> promise) override {
-      send_closure(G()->messages_manager(), &MessagesManager::on_send_secret_message_error, random_id, std::move(error),
-                   std::move(promise));
+      send_closure_later(G()->messages_manager(), &MessagesManager::on_send_secret_message_error, random_id,
+                         std::move(error), std::move(promise));
     }
 
     void on_send_message_ack(int64 random_id) override {
-      send_closure(G()->messages_manager(), &MessagesManager::on_send_message_get_quick_ack, random_id);
+      send_closure_later(G()->messages_manager(), &MessagesManager::on_send_message_get_quick_ack, random_id);
     }
     void on_send_message_ok(int64 random_id, MessageId message_id, int32 date,
                             tl_object_ptr<telegram_api::EncryptedFile> file, Promise<> promise) override {
-      send_closure(G()->messages_manager(), &MessagesManager::on_send_secret_message_success, random_id, message_id,
-                   date, std::move(file), std::move(promise));
+      send_closure_later(G()->messages_manager(), &MessagesManager::on_send_secret_message_success, random_id,
+                         message_id, date, std::move(file), std::move(promise));
     }
     void on_delete_messages(std::vector<int64> random_ids, Promise<> promise) override {
-      send_closure(G()->messages_manager(), &MessagesManager::delete_secret_messages, secret_chat_id_,
-                   std::move(random_ids), std::move(promise));
+      send_closure_later(G()->messages_manager(), &MessagesManager::delete_secret_messages, secret_chat_id_,
+                         std::move(random_ids), std::move(promise));
     }
     void on_flush_history(bool remove_from_dialog_list, MessageId message_id, Promise<> promise) override {
-      send_closure(G()->messages_manager(), &MessagesManager::delete_secret_chat_history, secret_chat_id_,
-                   remove_from_dialog_list, message_id, std::move(promise));
+      send_closure_later(G()->messages_manager(), &MessagesManager::delete_secret_chat_history, secret_chat_id_,
+                         remove_from_dialog_list, message_id, std::move(promise));
     }
     void on_read_message(int64 random_id, Promise<> promise) override {
-      send_closure(G()->messages_manager(), &MessagesManager::open_secret_message, secret_chat_id_, random_id,
-                   std::move(promise));
+      send_closure_later(G()->messages_manager(), &MessagesManager::open_secret_message, secret_chat_id_, random_id,
+                         std::move(promise));
     }
     void on_screenshot_taken(UserId user_id, MessageId message_id, int32 date, int64 random_id,
                              Promise<> promise) override {
-      send_closure(G()->messages_manager(), &MessagesManager::on_secret_chat_screenshot_taken, secret_chat_id_, user_id,
-                   message_id, date, random_id, std::move(promise));
+      send_closure_later(G()->messages_manager(), &MessagesManager::on_secret_chat_screenshot_taken, secret_chat_id_,
+                         user_id, message_id, date, random_id, std::move(promise));
     }
     void on_set_ttl(UserId user_id, MessageId message_id, int32 date, int32 ttl, int64 random_id,
                     Promise<> promise) override {
-      send_closure(G()->messages_manager(), &MessagesManager::on_secret_chat_ttl_changed, secret_chat_id_, user_id,
-                   message_id, date, ttl, random_id, std::move(promise));
+      send_closure_later(G()->messages_manager(), &MessagesManager::on_secret_chat_ttl_changed, secret_chat_id_,
+                         user_id, message_id, date, ttl, random_id, std::move(promise));
     }
 
    private:
