@@ -25,7 +25,7 @@ NetQueryPtr NetQueryCreator::create(const telegram_api::Function &function, DcId
 
 NetQueryPtr NetQueryCreator::create(uint64 id, const telegram_api::Function &function, DcId dc_id, NetQuery::Type type,
                                     NetQuery::AuthFlag auth_flag) {
-  LOG(DEBUG) << "Create query " << to_string(function);
+  LOG(INFO) << "Create query " << to_string(function);
   auto storer = DefaultStorer<telegram_api::Function>(function);
   BufferSlice slice(storer.size());
   auto real_size = storer.store(slice.as_slice().ubegin());
