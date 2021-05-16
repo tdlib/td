@@ -67,9 +67,6 @@ class MemoryLog : public LogInterface {
     }
   }
 
-  void rotate() override {
-  }
-
   Slice get_buffer() const {
     return Slice(buffer_, sizeof(buffer_));
   }

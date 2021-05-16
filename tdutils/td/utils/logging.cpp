@@ -263,8 +263,6 @@ class DefaultLog : public LogInterface {
       process_fatal_error(slice);
     }
   }
-  void rotate() override {
-  }
 };
 static DefaultLog default_log;
 

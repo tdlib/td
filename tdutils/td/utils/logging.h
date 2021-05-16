@@ -187,8 +187,6 @@ class NullLog : public LogInterface {
  public:
   void append(CSlice /*slice*/, int /*log_level*/) override {
   }
-  void rotate() override {
-  }
   NullLog &ref() {
     return *this;
   }

@@ -206,8 +206,6 @@ class CliLog : public LogInterface {
       default_log_interface->append(slice, log_level);
     }
   }
-  void rotate() override {
-  }
 };
 
 struct SendMessageInfo {
