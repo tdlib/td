@@ -6,6 +6,7 @@
 //
 #include "td/db/SqliteKeyValue.h"
 
+#include "td/utils/logging.h"
 #include "td/utils/ScopeGuard.h"
 
 namespace td {

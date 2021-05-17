@@ -8,6 +8,7 @@
 
 #include "td/utils/logging.h"
 #include "td/utils/PathView.h"
+#include "td/utils/SliceBuilder.h"
 
 #if TD_PORT_WINDOWS
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)

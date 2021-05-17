@@ -6,9 +6,9 @@
 //
 #include "td/telegram/SpecialStickerSetType.h"
 
-#include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Slice.h"
+#include "td/utils/SliceBuilder.h"
 
 namespace td {
 

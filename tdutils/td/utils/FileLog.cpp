@@ -12,6 +12,7 @@
 #include "td/utils/port/path.h"
 #include "td/utils/port/StdStreams.h"
 #include "td/utils/Slice.h"
+#include "td/utils/SliceBuilder.h"
 
 namespace td {
 

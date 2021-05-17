@@ -10,6 +10,7 @@
 #include "td/utils/format.h"
 #include "td/utils/port/path.h"
 #include "td/utils/port/Stat.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/Timer.h"

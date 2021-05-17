@@ -8,7 +8,7 @@
 
 #include "td/tl/TlObject.h"
 
-#include "td/utils/logging.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/UInt.h"
 
 #include <cstdint>

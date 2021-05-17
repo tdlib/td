@@ -13,6 +13,7 @@
 #include "td/utils/port/FileFd.h"
 #include "td/utils/Random.h"
 #include "td/utils/SharedSlice.h"
+#include "td/utils/SliceBuilder.h"
 
 namespace td {
 namespace secure_storage {

@@ -6,8 +6,8 @@
 //
 #include "td/telegram/GroupCallParticipantOrder.h"
 
-#include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/SliceBuilder.h"
 
 #include <limits>
 #include <tuple>

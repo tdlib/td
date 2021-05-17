@@ -8,8 +8,8 @@
 
 #include "td/utils/find_boundary.h"
 #include "td/utils/format.h"
-#include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
 
 namespace td {

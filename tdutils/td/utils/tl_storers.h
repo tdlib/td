@@ -10,6 +10,7 @@
 #include "td/utils/logging.h"
 #include "td/utils/SharedSlice.h"
 #include "td/utils/Slice.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/StorerBase.h"
 #include "td/utils/UInt.h"
 

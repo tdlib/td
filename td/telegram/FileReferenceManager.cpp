@@ -22,6 +22,7 @@
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/overloaded.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/Time.h"
 
 namespace td {

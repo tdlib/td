@@ -13,6 +13,7 @@
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/port/Stat.h"
+#include "td/utils/SliceBuilder.h"
 
 #if TD_PORT_POSIX
 

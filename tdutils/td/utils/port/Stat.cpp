@@ -16,6 +16,7 @@
 #include "td/utils/port/Clocks.h"
 #include "td/utils/port/detail/skip_eintr.h"
 #include "td/utils/ScopeGuard.h"
+#include "td/utils/SliceBuilder.h"
 
 #include <utility>
 

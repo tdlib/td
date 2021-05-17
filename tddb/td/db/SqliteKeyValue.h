@@ -9,8 +9,8 @@
 #include "td/db/SqliteDb.h"
 #include "td/db/SqliteStatement.h"
 
-#include "td/utils/logging.h"
 #include "td/utils/Slice.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
 
 #include <unordered_map>

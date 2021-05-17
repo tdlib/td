@@ -23,6 +23,7 @@ std::string TD_TL_writer_cpp::gen_output_begin() const {
          "#include \"td/utils/common.h\"\n"
          "#include \"td/utils/format.h\"\n"
          "#include \"td/utils/logging.h\"\n"
+         "#include \"td/utils/SliceBuilder.h\"\n"
          "#include \"td/utils/tl_parsers.h\"\n"
          "#include \"td/utils/tl_storers.h\"\n\n"
          "namespace td {\n"

@@ -11,8 +11,8 @@
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/filesystem.h"
-#include "td/utils/logging.h"
 #include "td/utils/Slice.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/StringBuilder.h"
 
 #include <utility>

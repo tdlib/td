@@ -8,6 +8,7 @@
 
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
+#include "td/utils/SliceBuilder.h"
 
 #if TD_PORT_POSIX
 #include <fcntl.h>

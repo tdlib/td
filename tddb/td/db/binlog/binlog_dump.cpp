@@ -14,6 +14,7 @@
 #include "td/utils/misc.h"
 #include "td/utils/port/Stat.h"
 #include "td/utils/Slice.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/tl_parsers.h"
 

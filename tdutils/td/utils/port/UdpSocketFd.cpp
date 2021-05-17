@@ -13,6 +13,7 @@
 #include "td/utils/port/detail/skip_eintr.h"
 #include "td/utils/port/PollFlags.h"
 #include "td/utils/port/SocketFd.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/VectorQueue.h"
 
 #if TD_PORT_WINDOWS

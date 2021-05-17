@@ -12,6 +12,7 @@
 #include "td/utils/crypto.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
+#include "td/utils/SliceBuilder.h"
 
 #include <algorithm>
 #include <limits>

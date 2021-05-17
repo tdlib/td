@@ -12,7 +12,7 @@
 #include "td/utils/common.h"
 #include "td/utils/filesystem.h"
 #include "td/utils/format.h"
-#include "td/utils/logging.h"
+#include "td/utils/SliceBuilder.h"
 
 namespace td {
 

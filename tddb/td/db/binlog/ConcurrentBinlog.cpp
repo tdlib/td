@@ -8,6 +8,7 @@
 
 #include "td/utils/logging.h"
 #include "td/utils/OrderedEventsProcessor.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/Time.h"
 
 #include <map>

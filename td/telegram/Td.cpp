@@ -131,6 +131,7 @@
 #include "td/utils/port/uname.h"
 #include "td/utils/Random.h"
 #include "td/utils/Slice.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
 #include "td/utils/Timer.h"
 #include "td/utils/tl_parsers.h"

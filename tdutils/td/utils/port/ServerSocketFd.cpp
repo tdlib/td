@@ -13,6 +13,7 @@
 #include "td/utils/port/detail/skip_eintr.h"
 #include "td/utils/port/IPAddress.h"
 #include "td/utils/port/PollFlags.h"
+#include "td/utils/SliceBuilder.h"
 
 #if TD_PORT_POSIX
 #include <cerrno>

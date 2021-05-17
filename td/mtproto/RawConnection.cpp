@@ -22,6 +22,7 @@
 #include "td/utils/MpscPollableQueue.h"
 #include "td/utils/port/EventFd.h"
 #include "td/utils/Slice.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
 #include "td/utils/StorerBase.h"
 

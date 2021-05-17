@@ -12,6 +12,7 @@
 #include "td/utils/misc.h"
 #include "td/utils/Random.h"
 #include "td/utils/Slice.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/tests.h"
 #include "td/utils/utf8.h"
 

@@ -11,6 +11,7 @@
 #include "td/utils/MpmcQueue.h"
 #include "td/utils/port/thread.h"
 #include "td/utils/Random.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/StealingQueue.h"
 #include "td/utils/tests.h"
 

@@ -32,6 +32,7 @@
 #include "td/utils/common.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/tl_helpers.h"
 
 #include <type_traits>

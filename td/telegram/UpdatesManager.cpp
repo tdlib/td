@@ -21,6 +21,7 @@
 #include "td/telegram/DialogAction.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogInviteLink.h"
+#include "td/telegram/DialogParticipant.h"
 #include "td/telegram/FolderId.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/GroupCallManager.h"
@@ -56,6 +57,7 @@
 #include "td/utils/misc.h"
 #include "td/utils/Random.h"
 #include "td/utils/Slice.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/Time.h"
@@ -2618,7 +2620,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChatDefaultBann
     case DialogType::User:
     case DialogType::SecretChat:
     default:
-      LOG(ERROR) << "Receive updateChatDefaultBannedRights in the " << dialog_id;
+      LOG(ERROR) << "Receive updateChatDefaultBannedRights in " << dialog_id;
       break;
   }
   promise.set_value(Unit());

@@ -8,9 +8,9 @@
 #include "td/utils/benchmark.h"
 #include "td/utils/common.h"
 #include "td/utils/crypto.h"
-#include "td/utils/logging.h"
 #include "td/utils/Random.h"
 #include "td/utils/Slice.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/tests.h"
 #include "td/utils/UInt.h"
 

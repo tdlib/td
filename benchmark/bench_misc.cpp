@@ -15,6 +15,7 @@
 #include "td/utils/port/Stat.h"
 #include "td/utils/port/thread.h"
 #include "td/utils/Slice.h"
+#include "td/utils/SliceBuilder.h"
 
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/telegram_api.hpp"

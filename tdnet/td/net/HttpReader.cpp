@@ -17,6 +17,7 @@
 #include "td/utils/Parser.h"
 #include "td/utils/PathView.h"
 #include "td/utils/port/path.h"
+#include "td/utils/SliceBuilder.h"
 
 #include <cstring>
 

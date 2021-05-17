@@ -12,6 +12,7 @@
 #include "td/utils/port/path.h"
 #include "td/utils/port/thread.h"
 #include "td/utils/Slice.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/tests.h"
 #include "td/utils/TsFileLog.h"
 

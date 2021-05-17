@@ -81,6 +81,7 @@
 #include "td/utils/misc.h"
 #include "td/utils/PathView.h"
 #include "td/utils/Slice.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/tl_helpers.h"
 #include "td/utils/utf8.h"
 

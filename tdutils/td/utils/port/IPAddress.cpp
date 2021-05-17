@@ -15,6 +15,7 @@
 #include "td/utils/port/thread_local.h"
 #include "td/utils/ScopeGuard.h"
 #include "td/utils/Slice.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/utf8.h"
 
 #if TD_WINDOWS
