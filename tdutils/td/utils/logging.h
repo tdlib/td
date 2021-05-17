@@ -185,10 +185,14 @@ class NullLog : public LogInterface {
 extern LogInterface *const default_log_interface;
 extern LogInterface *log_interface;
 
+[[noreturn]] void process_fatal_error(CSlice message);
+
+// deprecated in favor of set_log_message_callback
 using OnFatalErrorCallback = void (*)(CSlice message);
 void set_log_fatal_error_callback(OnFatalErrorCallback callback);
 
-[[noreturn]] void process_fatal_error(CSlice message);
+using OnLogMessageCallback = void (*)(int verbosity_level, CSlice message);
+void set_log_message_callback(int max_verbosity_level, OnLogMessageCallback callback);
 
 #define TC_RED "\x1b[1;31m"
 #define TC_BLUE "\x1b[1;34m"

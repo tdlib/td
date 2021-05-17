@@ -32,8 +32,22 @@ namespace td {
 
 LogOptions log_options;
 
+static std::atomic<int> max_callback_verbosity_level = 0;
+static std::atomic<OnLogMessageCallback> on_log_message_callback = nullptr;
+
+void set_log_message_callback(int max_verbosity_level, OnLogMessageCallback callback) {
+  max_callback_verbosity_level = max_verbosity_level;
+  on_log_message_callback = callback;
+}
+
 void LogInterface::append(int log_level, CSlice slice) {
   do_append(log_level, slice);
+  if (log_level <= max_callback_verbosity_level.load(std::memory_order_relaxed)) {
+    auto callback = on_log_message_callback.load(std::memory_order_relaxed);
+    if (callback != nullptr) {
+      callback(log_level, slice);
+    }
+  }
   if (log_level == VERBOSITY_NAME(FATAL)) {
     process_fatal_error(slice);
   }
