@@ -34,7 +34,7 @@ class FileLog : public LogInterface {
 
   bool get_redirect_stderr() const;
 
-  void rotate() final;
+  void after_rotation() final;
 
   void lazy_rotate();
 
@@ -48,7 +48,7 @@ class FileLog : public LogInterface {
 
   void do_append(int log_level, CSlice slice) final;
 
-  void do_rotate();
+  void do_after_rotation();
 };
 
 }  // namespace td

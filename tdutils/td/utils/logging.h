@@ -59,8 +59,6 @@
 #define VLOG(level) LOG_IMPL(DEBUG, level, true, TD_DEFINE_STR(level))
 #define VLOG_IF(level, condition) LOG_IMPL(DEBUG, level, condition, TD_DEFINE_STR(level) " " #condition)
 
-#define LOG_ROTATE() ::td::log_interface->rotate()
-
 #define LOG_TAG ::td::Logger::tag_
 #define LOG_TAG2 ::td::Logger::tag2_
 
@@ -169,7 +167,7 @@ class LogInterface {
 
   void append(int log_level, CSlice slice);
 
-  virtual void rotate() {
+  virtual void after_rotation() {
   }
 
   virtual vector<string> get_file_paths() {
@@ -278,9 +276,9 @@ class TsLog : public LogInterface {
     log_ = log;
     exit_critical();
   }
-  void rotate() final {
+  void after_rotation() final {
     enter_critical();
-    log_->rotate();
+    log_->after_rotation();
     exit_critical();
   }
   vector<string> get_file_paths() final {

@@ -33,6 +33,14 @@ class TsFileLog : public LogInterface {
     return init_info(&logs_[0]);
   }
 
+  void rotate() {
+    for (auto &info : logs_) {
+      if (info.is_inited.load(std::memory_order_acquire)) {
+        info.log.lazy_rotate();
+      }
+    }
+  }
+
  private:
   struct Info {
     FileLog log;
@@ -77,14 +85,6 @@ class TsFileLog : public LogInterface {
 
   void do_append(int log_level, CSlice slice) final {
     get_current_logger()->do_append(log_level, slice);
-  }
-
-  void rotate() final {
-    for (auto &info : logs_) {
-      if (info.is_inited.load(std::memory_order_acquire)) {
-        info.log.lazy_rotate();
-      }
-    }
   }
 
   vector<string> get_file_paths() final {

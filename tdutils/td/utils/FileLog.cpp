@@ -76,7 +76,7 @@ void FileLog::do_append(int log_level, CSlice slice) {
     if (status.is_error()) {
       process_fatal_error(PSLICE() << status.error() << " in " << __FILE__ << " at " << __LINE__);
     }
-    do_rotate();
+    do_after_rotation();
   }
   while (!slice.empty()) {
     auto r_size = fd_.write(slice);
@@ -89,18 +89,18 @@ void FileLog::do_append(int log_level, CSlice slice) {
   }
 }
 
-void FileLog::rotate() {
+void FileLog::after_rotation() {
   if (path_.empty()) {
     return;
   }
-  do_rotate();
+  do_after_rotation();
 }
 
 void FileLog::lazy_rotate() {
   want_rotate_ = true;
 }
 
-void FileLog::do_rotate() {
+void FileLog::do_after_rotation() {
   want_rotate_ = false;
   ScopedDisableLog disable_log;  // to ensure that nothing will be printed to the closed log
   CHECK(!path_.empty());

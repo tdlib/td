@@ -62,12 +62,12 @@ class CombinedLog : public LogInterface {
     }
   }
 
-  void rotate() final {
+  void after_rotation() final {
     if (first_) {
-      first_->rotate();
+      first_->after_rotation();
     }
     if (second_) {
-      second_->rotate();
+      second_->after_rotation();
     }
   }
 
