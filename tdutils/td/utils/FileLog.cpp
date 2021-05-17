@@ -71,6 +71,13 @@ bool FileLog::get_redirect_stderr() const {
 }
 
 void FileLog::do_append(int log_level, CSlice slice) {
+  if (size_ > rotate_threshold_ || want_rotate_.load(std::memory_order_relaxed)) {
+    auto status = rename(path_, PSLICE() << path_ << ".old");
+    if (status.is_error()) {
+      process_fatal_error(PSLICE() << status.error() << " in " << __FILE__ << " at " << __LINE__);
+    }
+    do_rotate();
+  }
   while (!slice.empty()) {
     auto r_size = fd_.write(slice);
     if (r_size.is_error()) {
@@ -79,14 +86,6 @@ void FileLog::do_append(int log_level, CSlice slice) {
     auto written = r_size.ok();
     size_ += static_cast<int64>(written);
     slice.remove_prefix(written);
-  }
-
-  if (size_ > rotate_threshold_ || want_rotate_.load(std::memory_order_relaxed)) {
-    auto status = rename(path_, PSLICE() << path_ << ".old");
-    if (status.is_error()) {
-      process_fatal_error(PSLICE() << status.error() << " in " << __FILE__ << " at " << __LINE__);
-    }
-    do_rotate();
   }
 }
 

@@ -20,6 +20,7 @@
 #include "td/utils/algorithm.h"
 #include "td/utils/base64.h"
 #include "td/utils/buffer.h"
+#include "td/utils/CombinedLog.h"
 #include "td/utils/common.h"
 #include "td/utils/crypto.h"
 #include "td/utils/ExitGuard.h"
@@ -207,6 +208,8 @@ class CliLog : public LogInterface {
     }
   }
 };
+
+static CombinedLog combined_log;
 
 struct SendMessageInfo {
   double start_time = 0;
@@ -4160,12 +4163,10 @@ class CliClient final : public Actor {
                    << ", user ticks = " << stats.process_user_ticks_
                    << ", system ticks = " << stats.process_system_ticks_;
       }
-    } else if (op == "SetVerbosity" || op == "SV") {
-      Log::set_verbosity_level(to_integer<int>(args));
-    } else if (op[0] == 'v' && op[1] == 'v') {
-      Log::set_verbosity_level(static_cast<int>(op.size()));
-    } else if (op[0] == 'v' && ('0' <= op[1] && op[1] <= '9')) {
-      Log::set_verbosity_level(to_integer<int>(op.substr(1)));
+    } else if (op[0] == 'v' && (op[1] == 'v' || is_digit(op[1]))) {
+      int new_verbosity_level = op[1] == 'v' ? static_cast<int>(op.size()) : to_integer<int>(op.substr(1));
+      SET_VERBOSITY_LEVEL(td::max(new_verbosity_level, VERBOSITY_NAME(DEBUG)));
+      combined_log.set_first_verbosity_level(new_verbosity_level);
     } else if (op == "slse") {
       execute(td_api::make_object<td_api::setLogStream>(td_api::make_object<td_api::logStreamEmpty>()));
     } else if (op == "slsd") {
@@ -4388,10 +4389,13 @@ void main(int argc, char **argv) {
   };
 
   CliLog cli_log;
-  log_interface = &cli_log;
 
   FileLog file_log;
   TsLog ts_log(&file_log);
+
+  combined_log.set_first(&cli_log);
+
+  log_interface = &combined_log;
 
   int new_verbosity_level = VERBOSITY_NAME(INFO);
   bool use_test_dc = false;
@@ -4427,7 +4431,7 @@ void main(int argc, char **argv) {
   options.add_option('l', "log", "Log to file", [&](Slice file_name) {
     if (file_log.init(file_name.str()).is_ok() && file_log.init(file_name.str()).is_ok() &&
         file_log.init(file_name.str(), 1000 << 20).is_ok()) {
-      log_interface = &ts_log;
+      combined_log.set_first(&ts_log);
     }
   });
   options.add_option('W', "", "Preload chat list", [&] { get_chat_list = true; });
@@ -4449,7 +4453,15 @@ void main(int argc, char **argv) {
     return;
   }
 
-  SET_VERBOSITY_LEVEL(new_verbosity_level);
+  SET_VERBOSITY_LEVEL(td::max(new_verbosity_level, VERBOSITY_NAME(DEBUG)));
+  combined_log.set_first_verbosity_level(new_verbosity_level);
+
+  if (combined_log.get_first() == &cli_log) {
+    file_log.init("tg_cli.log", 1000 << 20).ensure();
+    file_log.lazy_rotate();
+    combined_log.set_second(&ts_log);
+    combined_log.set_second_verbosity_level(VERBOSITY_NAME(DEBUG));
+  }
 
   {
     ConcurrentScheduler scheduler;

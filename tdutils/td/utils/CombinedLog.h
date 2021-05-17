@@ -31,6 +31,14 @@ class CombinedLog : public LogInterface {
     second_verbosity_level_ = verbosity_level;
   }
 
+  const LogInterface *get_first() const {
+    return first_;
+  }
+
+  const LogInterface *get_second() const {
+    return second_;
+  }
+
   int get_first_verbosity_level() const {
     return first_verbosity_level_;
   }
