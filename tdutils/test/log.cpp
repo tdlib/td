@@ -5,6 +5,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/utils/benchmark.h"
+#include "td/utils/CombinedLog.h"
 #include "td/utils/FileLog.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
@@ -95,6 +96,19 @@ TEST(Log, Bench) {
   bench_log("NullLog", [] { return td::make_unique<td::NullLog>(); });
 
   bench_log("MemoryLog", [] { return td::make_unique<td::MemoryLog<1 << 20>>(); });
+
+  bench_log("CombinedLogEmpty", [] { return td::make_unique<td::CombinedLog>(); });
+
+  bench_log("CombinedLogMemory", [] {
+    auto result = td::make_unique<td::CombinedLog>();
+    static td::NullLog null_log;
+    static td::MemoryLog<1 << 20> memory_log;
+    result->set_first(&null_log);
+    result->set_second(&memory_log);
+    result->set_first_verbosity_level(VERBOSITY_NAME(DEBUG));
+    result->set_second_verbosity_level(VERBOSITY_NAME(DEBUG));
+    return result;
+  });
 
   bench_log("TsFileLog",
             [] { return td::TsFileLog::create("tmplog", std::numeric_limits<td::int64>::max(), false).move_as_ok(); });

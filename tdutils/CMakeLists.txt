@@ -182,6 +182,7 @@ set(TDUTILS_SOURCE
   td/utils/ChangesProcessor.h
   td/utils/check.h
   td/utils/Closure.h
+  td/utils/CombinedLog.h
   td/utils/common.h
   td/utils/ConcurrentHashTable.h
   td/utils/Container.h

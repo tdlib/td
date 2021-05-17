@@ -75,8 +75,8 @@ class TsFileLog : public LogInterface {
     return PSTRING() << path_ << ".thread" << info->id << ".log";
   }
 
-  void do_append(int log_level, CSlice cslice) final {
-    get_current_logger()->do_append(log_level, cslice);
+  void do_append(int log_level, CSlice slice) final {
+    get_current_logger()->do_append(log_level, slice);
   }
 
   void rotate() final {
