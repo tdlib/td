@@ -740,7 +740,7 @@ class CliClient final : public Actor {
       }
     }
 
-    if (id > 0 && GET_VERBOSITY_LEVEL() < VERBOSITY_NAME(td_requests)) {
+    if (id > 0 && combined_log.get_first_verbosity_level() < VERBOSITY_NAME(td_requests)) {
       LOG(ERROR) << "Receive result [" << generation << "][id=" << id << "] " << result_str;
     }
 
@@ -859,7 +859,7 @@ class CliClient final : public Actor {
   }
 
   void on_error(uint64 generation, uint64 id, td_api::object_ptr<td_api::error> error) {
-    if (id > 0 && GET_VERBOSITY_LEVEL() < VERBOSITY_NAME(td_requests)) {
+    if (id > 0 && combined_log.get_first_verbosity_level() < VERBOSITY_NAME(td_requests)) {
       LOG(ERROR) << "Receive error [" << generation << "][id=" << id << "] " << to_string(error);
     }
   }
@@ -1561,11 +1561,11 @@ class CliClient final : public Actor {
   }
 
   static td_api::object_ptr<td_api::Object> execute(td_api::object_ptr<td_api::Function> f) {
-    if (GET_VERBOSITY_LEVEL() < VERBOSITY_NAME(td_requests)) {
+    if (combined_log.get_first_verbosity_level() < VERBOSITY_NAME(td_requests)) {
       LOG(ERROR) << "Execute request: " << to_string(f);
     }
     auto res = ClientActor::execute(std::move(f));
-    if (GET_VERBOSITY_LEVEL() < VERBOSITY_NAME(td_requests)) {
+    if (combined_log.get_first_verbosity_level() < VERBOSITY_NAME(td_requests)) {
       LOG(ERROR) << "Execute response: " << to_string(res);
     }
     return res;
