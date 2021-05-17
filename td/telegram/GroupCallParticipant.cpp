@@ -272,7 +272,7 @@ bool operator!=(const GroupCallParticipant &lhs, const GroupCallParticipant &rhs
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const GroupCallParticipant &group_call_participant) {
-  return string_builder << '[' << group_call_participant.dialog_id << " with source "
+  return string_builder << "GroupCallParticipant[" << group_call_participant.dialog_id << " with source "
                         << group_call_participant.audio_source << " and order " << group_call_participant.order << ']';
 }
 
