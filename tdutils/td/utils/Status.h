@@ -599,27 +599,4 @@ inline StringBuilder &operator<<(StringBuilder &string_builder, const Status &st
   return status.print(string_builder);
 }
 
-namespace detail {
-
-class SlicifySafe {
- public:
-  Result<CSlice> operator&(Logger &logger) {
-    if (logger.is_error()) {
-      return Status::Error("Buffer overflow");
-    }
-    return logger.as_cslice();
-  }
-};
-
-class StringifySafe {
- public:
-  Result<string> operator&(Logger &logger) {
-    if (logger.is_error()) {
-      return Status::Error("Buffer overflow");
-    }
-    return logger.as_cslice().str();
-  }
-};
-
-}  // namespace detail
 }  // namespace td

@@ -26,17 +26,12 @@
 #include "td/utils/common.h"
 #include "td/utils/port/thread_local.h"
 #include "td/utils/Slice.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/StackAllocator.h"
 #include "td/utils/StringBuilder.h"
 
 #include <atomic>
 #include <type_traits>
-
-#define PSTR_IMPL() ::td::Logger(::td::NullLog().ref(), ::td::LogOptions::plain(), 0)
-#define PSLICE() ::td::detail::Slicify() & PSTR_IMPL()
-#define PSTRING() ::td::detail::Stringify() & PSTR_IMPL()
-#define PSLICE_SAFE() ::td::detail::SlicifySafe() & PSTR_IMPL()
-#define PSTRING_SAFE() ::td::detail::StringifySafe() & PSTR_IMPL()
 
 #define VERBOSITY_NAME(x) verbosity_##x
 
@@ -187,9 +182,6 @@ class NullLog : public LogInterface {
  public:
   void append(CSlice /*slice*/, int /*log_level*/) override {
   }
-  NullLog &ref() {
-    return *this;
-  }
 };
 
 extern LogInterface *const default_log_interface;
@@ -227,7 +219,7 @@ class TsCerr {
 
 class Logger {
  public:
-  static const int BUFFER_SIZE = 128 * 1024;
+  static const size_t BUFFER_SIZE = 128 * 1024;
   Logger(LogInterface &log, const LogOptions &options, int log_level)
       : buffer_(StackAllocator::alloc(BUFFER_SIZE))
       , log_(log)
@@ -272,20 +264,6 @@ class Voidify {
  public:
   template <class T>
   void operator&(const T &) {
-  }
-};
-
-class Slicify {
- public:
-  CSlice operator&(Logger &logger) {
-    return logger.as_cslice();
-  }
-};
-
-class Stringify {
- public:
-  string operator&(Logger &logger) {
-    return logger.as_cslice().str();
   }
 };
 }  // namespace detail

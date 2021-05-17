@@ -66,9 +66,9 @@ Result<std::pair<FileFd, string>> open_temp_file(FileType file_type) {
   pmc->set("tmp_file_id", to_string(file_id + 1));
 
   auto temp_dir = get_files_temp_dir(file_type);
-  auto res = try_create_new_file(PSLICE_SAFE() << temp_dir << file_id);
+  auto res = try_create_new_file(PSLICE() << temp_dir << file_id);
   if (res.is_error()) {
-    res = try_create_new_file(PSLICE_SAFE() << temp_dir << file_id << "_" << RandSuff{6});
+    res = try_create_new_file(PSLICE() << temp_dir << file_id << "_" << RandSuff{6});
   }
   return res;
 }
@@ -88,20 +88,20 @@ bool for_suggested_file_name(CSlice name, bool use_pmc, bool use_random, F &&cal
   auto ext = path_view.extension();
   bool active = true;
   if (!stem.empty() && !G()->parameters().ignore_file_names) {
-    active = try_callback(PSLICE_SAFE() << stem << Ext{ext});
+    active = try_callback(PSLICE() << stem << Ext{ext});
     for (int i = 0; active && i < 10; i++) {
-      active = try_callback(PSLICE_SAFE() << stem << "_(" << i << ")" << Ext{ext});
+      active = try_callback(PSLICE() << stem << "_(" << i << ")" << Ext{ext});
     }
     for (int i = 2; active && i < 12 && use_random; i++) {
-      active = try_callback(PSLICE_SAFE() << stem << "_(" << RandSuff{i} << ")" << Ext{ext});
+      active = try_callback(PSLICE() << stem << "_(" << RandSuff{i} << ")" << Ext{ext});
     }
   } else if (use_pmc) {
     auto pmc = G()->td_db()->get_binlog_pmc();
     int32 file_id = to_integer<int32>(pmc->get("perm_file_id"));
     pmc->set("perm_file_id", to_string(file_id + 1));
-    active = try_callback(PSLICE_SAFE() << "file_" << file_id << Ext{ext});
+    active = try_callback(PSLICE() << "file_" << file_id << Ext{ext});
     if (active) {
-      active = try_callback(PSLICE_SAFE() << "file_" << file_id << "_" << RandSuff{6} << Ext{ext});
+      active = try_callback(PSLICE() << "file_" << file_id << "_" << RandSuff{6} << Ext{ext});
     }
   }
   return active;
@@ -112,7 +112,7 @@ Result<string> create_from_temp(CSlice temp_path, CSlice dir, CSlice name) {
             << temp_path;
   Result<std::pair<FileFd, string>> res = Status::Error(500, "Can't find suitable file name");
   for_suggested_file_name(name, true, true, [&](CSlice suggested_name) {
-    res = try_create_new_file(PSLICE_SAFE() << dir << suggested_name);
+    res = try_create_new_file(PSLICE() << dir << suggested_name);
     return res.is_error();
   });
   TRY_RESULT(tmp, std::move(res));
@@ -125,7 +125,7 @@ Result<string> create_from_temp(CSlice temp_path, CSlice dir, CSlice name) {
 Result<string> search_file(CSlice dir, CSlice name, int64 expected_size) {
   Result<std::string> res = Status::Error(500, "Can't find suitable file name");
   for_suggested_file_name(name, false, false, [&](CSlice suggested_name) {
-    auto r_pair = try_open_file(PSLICE_SAFE() << dir << suggested_name);
+    auto r_pair = try_open_file(PSLICE() << dir << suggested_name);
     if (r_pair.is_error()) {
       return false;
     }

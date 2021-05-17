@@ -235,6 +235,7 @@ set(TDUTILS_SOURCE
   td/utils/SharedSlice.h
   td/utils/Slice-decl.h
   td/utils/Slice.h
+  td/utils/SliceBuilder.h
   td/utils/Span.h
   td/utils/SpinLock.h
   td/utils/StackAllocator.h
