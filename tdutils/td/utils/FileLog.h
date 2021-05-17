@@ -26,7 +26,7 @@ class FileLog : public LogInterface {
 
   Slice get_path() const;
 
-  vector<string> get_file_paths() override;
+  vector<string> get_file_paths() final;
 
   void set_rotate_threshold(int64 rotate_threshold);
 
@@ -34,9 +34,7 @@ class FileLog : public LogInterface {
 
   bool get_redirect_stderr() const;
 
-  void append(CSlice cslice, int log_level) override;
-
-  void rotate() override;
+  void rotate() final;
 
   void lazy_rotate();
 
@@ -47,6 +45,8 @@ class FileLog : public LogInterface {
   int64 rotate_threshold_ = 0;
   bool redirect_stderr_ = false;
   std::atomic<bool> want_rotate_{false};
+
+  void do_append(int log_level, CSlice slice) final;
 
   void do_rotate();
 };

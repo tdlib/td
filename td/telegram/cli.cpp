@@ -189,8 +189,7 @@ static char **tg_cli_completion(const char *text, int start, int end) {
 #endif
 
 class CliLog : public LogInterface {
- public:
-  void append(CSlice slice, int log_level) override {
+  void do_append(int log_level, CSlice slice) final {
 #ifdef USE_READLINE
     deactivate_readline();
     SCOPE_EXIT {
@@ -204,7 +203,7 @@ class CliLog : public LogInterface {
       TsCerr() << TC_GREEN << slice << TC_EMPTY;
 #endif
     } else {
-      default_log_interface->append(slice, log_level);
+      default_log_interface->do_append(log_level, slice);
     }
   }
 };

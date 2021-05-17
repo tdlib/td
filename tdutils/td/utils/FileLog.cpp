@@ -70,8 +70,7 @@ bool FileLog::get_redirect_stderr() const {
   return redirect_stderr_;
 }
 
-void FileLog::append(CSlice cslice, int log_level) {
-  Slice slice = cslice;
+void FileLog::do_append(int log_level, CSlice slice) {
   while (!slice.empty()) {
     auto r_size = fd_.write(slice);
     if (r_size.is_error()) {
@@ -80,9 +79,6 @@ void FileLog::append(CSlice cslice, int log_level) {
     auto written = r_size.ok();
     size_ += static_cast<int64>(written);
     slice.remove_prefix(written);
-  }
-  if (log_level == VERBOSITY_NAME(FATAL)) {
-    process_fatal_error(cslice);
   }
 
   if (size_ > rotate_threshold_ || want_rotate_.load(std::memory_order_relaxed)) {

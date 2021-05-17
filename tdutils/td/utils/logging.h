@@ -167,7 +167,7 @@ class LogInterface {
   LogInterface &operator=(LogInterface &&) = delete;
   virtual ~LogInterface() = default;
 
-  virtual void append(CSlice slice, int log_level) = 0;
+  void append(int log_level, CSlice slice);
 
   virtual void rotate() {
   }
@@ -175,11 +175,12 @@ class LogInterface {
   virtual vector<string> get_file_paths() {
     return {};
   }
+
+  virtual void do_append(int log_level, CSlice slice) = 0;
 };
 
 class NullLog : public LogInterface {
- public:
-  void append(CSlice /*slice*/, int /*log_level*/) override {
+  void do_append(int /*log_level*/, CSlice /*slice*/) final {
   }
 };
 
@@ -217,8 +218,9 @@ class TsCerr {
 };
 
 class Logger {
- public:
   static const size_t BUFFER_SIZE = 128 * 1024;
+
+ public:
   Logger(LogInterface &log, const LogOptions &options, int log_level)
       : buffer_(StackAllocator::alloc(BUFFER_SIZE))
       , log_(log)
@@ -276,17 +278,12 @@ class TsLog : public LogInterface {
     log_ = log;
     exit_critical();
   }
-  void append(CSlice slice, int level) override {
-    enter_critical();
-    log_->append(slice, level);
-    exit_critical();
-  }
-  void rotate() override {
+  void rotate() final {
     enter_critical();
     log_->rotate();
     exit_critical();
   }
-  vector<string> get_file_paths() override {
+  vector<string> get_file_paths() final {
     enter_critical();
     auto result = log_->get_file_paths();
     exit_critical();
@@ -294,6 +291,12 @@ class TsLog : public LogInterface {
   }
 
  private:
+  void do_append(int log_level, CSlice slice) final {
+    enter_critical();
+    log_->do_append(log_level, slice);
+    exit_critical();
+  }
+
   LogInterface *log_ = nullptr;
   std::atomic_flag lock_ = ATOMIC_FLAG_INIT;
   void enter_critical();

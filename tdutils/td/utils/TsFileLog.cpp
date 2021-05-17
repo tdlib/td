@@ -33,18 +33,6 @@ class TsFileLog : public LogInterface {
     return init_info(&logs_[0]);
   }
 
-  vector<string> get_file_paths() override {
-    vector<string> res;
-    for (auto &log : logs_) {
-      res.push_back(get_path(&log));
-    }
-    return res;
-  }
-
-  void append(CSlice cslice, int log_level) override {
-    get_current_logger()->append(cslice, log_level);
-  }
-
  private:
   struct Info {
     FileLog log;
@@ -87,12 +75,24 @@ class TsFileLog : public LogInterface {
     return PSTRING() << path_ << ".thread" << info->id << ".log";
   }
 
-  void rotate() override {
+  void do_append(int log_level, CSlice cslice) final {
+    get_current_logger()->do_append(log_level, cslice);
+  }
+
+  void rotate() final {
     for (auto &info : logs_) {
       if (info.is_inited.load(std::memory_order_acquire)) {
         info.log.lazy_rotate();
       }
     }
+  }
+
+  vector<string> get_file_paths() final {
+    vector<string> res;
+    for (auto &log : logs_) {
+      res.push_back(get_path(&log));
+    }
+    return res;
   }
 };
 }  // namespace detail

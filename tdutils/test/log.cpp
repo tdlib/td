@@ -106,12 +106,10 @@ TEST(Log, Bench) {
         file_log_.init("tmplog", std::numeric_limits<td::int64>::max(), false).ensure();
         ts_log_.init(&file_log_);
       }
-      ~FileLog() {
+      void do_append(int log_level, td::CSlice slice) final {
+        static_cast<td::LogInterface &>(ts_log_).do_append(log_level, slice);
       }
-      void append(td::CSlice slice, int log_level) override {
-        ts_log_.append(slice, log_level);
-      }
-      std::vector<std::string> get_file_paths() override {
+      std::vector<std::string> get_file_paths() final {
         return file_log_.get_file_paths();
       }
 
@@ -128,12 +126,10 @@ TEST(Log, Bench) {
       FileLog() {
         file_log_.init("tmplog", std::numeric_limits<td::int64>::max(), false).ensure();
       }
-      ~FileLog() {
+      void do_append(int log_level, td::CSlice slice) final {
+        static_cast<td::LogInterface &>(file_log_).do_append(log_level, slice);
       }
-      void append(td::CSlice slice, int log_level) override {
-        file_log_.append(slice, log_level);
-      }
-      std::vector<std::string> get_file_paths() override {
+      std::vector<std::string> get_file_paths() final {
         return file_log_.get_file_paths();
       }
 

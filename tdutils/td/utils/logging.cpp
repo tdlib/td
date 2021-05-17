@@ -32,6 +32,13 @@ namespace td {
 
 LogOptions log_options;
 
+void LogInterface::append(int log_level, CSlice slice) {
+  do_append(log_level, slice);
+  if (log_level == VERBOSITY_NAME(FATAL)) {
+    process_fatal_error(slice);
+  }
+}
+
 TD_THREAD_LOCAL const char *Logger::tag_ = nullptr;
 TD_THREAD_LOCAL const char *Logger::tag2_ = nullptr;
 
@@ -121,9 +128,9 @@ Logger::~Logger() {
       slice.back() = '\0';
       slice = MutableCSlice(slice.begin(), slice.begin() + slice.size() - 1);
     }
-    log_.append(slice, log_level_);
+    log_.append(log_level_, slice);
   } else {
-    log_.append(as_cslice(), log_level_);
+    log_.append(log_level_, as_cslice());
   }
 }
 
@@ -180,8 +187,7 @@ void TsLog::exit_critical() {
 }
 
 class DefaultLog : public LogInterface {
- public:
-  void append(CSlice slice, int log_level) override {
+  void do_append(int log_level, CSlice slice) final {
 #if TD_ANDROID
     switch (log_level) {
       case VERBOSITY_NAME(FATAL):
@@ -259,9 +265,6 @@ class DefaultLog : public LogInterface {
     // TODO: color
     TsCerr() << slice;
 #endif
-    if (log_level == VERBOSITY_NAME(FATAL)) {
-      process_fatal_error(slice);
-    }
   }
 };
 static DefaultLog default_log;
