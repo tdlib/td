@@ -74,14 +74,14 @@ void FileLog::do_append(int log_level, CSlice slice) {
   if (size_ > rotate_threshold_ || want_rotate_.load(std::memory_order_relaxed)) {
     auto status = rename(path_, PSLICE() << path_ << ".old");
     if (status.is_error()) {
-      process_fatal_error(PSLICE() << status.error() << " in " << __FILE__ << " at " << __LINE__);
+      process_fatal_error(PSLICE() << status.error() << " in " << __FILE__ << " at " << __LINE__ << '\n');
     }
     do_after_rotation();
   }
   while (!slice.empty()) {
     auto r_size = fd_.write(slice);
     if (r_size.is_error()) {
-      process_fatal_error(PSLICE() << r_size.error() << " in " << __FILE__ << " at " << __LINE__);
+      process_fatal_error(PSLICE() << r_size.error() << " in " << __FILE__ << " at " << __LINE__ << '\n');
     }
     auto written = r_size.ok();
     size_ += static_cast<int64>(written);
@@ -107,7 +107,7 @@ void FileLog::do_after_rotation() {
   fd_.close();
   auto r_fd = FileFd::open(path_, FileFd::Create | FileFd::Truncate | FileFd::Write);
   if (r_fd.is_error()) {
-    process_fatal_error(PSLICE() << r_fd.error() << " in " << __FILE__ << " at " << __LINE__);
+    process_fatal_error(PSLICE() << r_fd.error() << " in " << __FILE__ << " at " << __LINE__ << '\n');
   }
   fd_ = r_fd.move_as_ok();
   if (!Stderr().empty() && redirect_stderr_) {

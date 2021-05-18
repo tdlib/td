@@ -76,6 +76,7 @@ class Log {
    * The TDLib will crash as soon as callback returns.
    * By default the callback is not set.
    *
+   * \deprecated Use ClientManager::set_log_message_callback instead.
    * \param[in]  callback Callback that will be called when a fatal error happens.
    *                      Pass nullptr to remove the callback.
    */

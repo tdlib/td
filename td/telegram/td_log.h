@@ -71,6 +71,7 @@ typedef void (*td_log_fatal_error_callback_ptr)(const char *error_message);
  * The TDLib will crash as soon as callback returns.
  * By default the callback is not set.
  *
+ * \deprecated Use td_set_log_message_callback instead.
  * \param[in]  callback Callback that will be called when a fatal error happens.
  *                      Pass NULL to remove the callback.
  */

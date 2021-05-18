@@ -13,7 +13,7 @@
 #include "td/net/HttpReader.h"
 
 #include "td/telegram/ClientActor.h"
-#include "td/telegram/Log.h"
+#include "td/telegram/Client.h"
 #include "td/telegram/Td.h"  // for VERBOSITY_NAME(td_requests)
 #include "td/telegram/td_api_json.h"
 
@@ -4366,8 +4366,11 @@ static void fail_signal(int sig) {
   }
 }
 
-static void on_fatal_error(const char *error) {
-  std::cerr << "Fatal error: " << error << std::endl;
+static void on_log_message(int verbosity_level, const char *message) {
+  if (verbosity_level == 0) {
+    std::cerr << "Fatal error: " << message;
+  }
+  std::cerr << "Log message: " << message;
 }
 
 void main(int argc, char **argv) {
@@ -4376,7 +4379,7 @@ void main(int argc, char **argv) {
   ignore_signal(SignalType::Pipe).ensure();
   set_signal_handler(SignalType::Error, fail_signal).ensure();
   set_signal_handler(SignalType::Abort, fail_signal).ensure();
-  Log::set_fatal_error_callback(on_fatal_error);
+  ClientManager::set_log_message_callback(0, on_log_message);
   init_openssl_threads();
 
   const char *locale_name = (std::setlocale(LC_ALL, "fr-FR") == nullptr ? "C" : "fr-FR");

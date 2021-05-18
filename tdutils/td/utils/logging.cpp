@@ -32,24 +32,27 @@ namespace td {
 
 LogOptions log_options;
 
-static std::atomic<int> max_callback_verbosity_level = 0;
-static std::atomic<OnLogMessageCallback> on_log_message_callback = nullptr;
+static std::atomic<int> max_callback_verbosity_level{-2};
+static std::atomic<OnLogMessageCallback> on_log_message_callback{nullptr};
 
 void set_log_message_callback(int max_verbosity_level, OnLogMessageCallback callback) {
+  if (callback == nullptr) {
+    max_verbosity_level = -2;
+  }
+
   max_callback_verbosity_level = max_verbosity_level;
   on_log_message_callback = callback;
 }
 
 void LogInterface::append(int log_level, CSlice slice) {
   do_append(log_level, slice);
-  if (log_level <= max_callback_verbosity_level.load(std::memory_order_relaxed)) {
+  if (log_level == VERBOSITY_NAME(FATAL)) {
+    process_fatal_error(slice);
+  } else if (log_level <= max_callback_verbosity_level.load(std::memory_order_relaxed)) {
     auto callback = on_log_message_callback.load(std::memory_order_relaxed);
     if (callback != nullptr) {
       callback(log_level, slice);
     }
-  }
-  if (log_level == VERBOSITY_NAME(FATAL)) {
-    process_fatal_error(slice);
   }
 }
 
@@ -286,17 +289,14 @@ static DefaultLog default_log;
 LogInterface *const default_log_interface = &default_log;
 LogInterface *log_interface = default_log_interface;
 
-static OnFatalErrorCallback on_fatal_error_callback = nullptr;
-
-void set_log_fatal_error_callback(OnFatalErrorCallback callback) {
-  on_fatal_error_callback = callback;
-}
-
 void process_fatal_error(CSlice message) {
-  auto callback = on_fatal_error_callback;
-  if (callback) {
-    callback(message);
+  if (0 <= max_callback_verbosity_level.load(std::memory_order_relaxed)) {
+    auto callback = on_log_message_callback.load(std::memory_order_relaxed);
+    if (callback != nullptr) {
+      callback(0, message);
+    }
   }
+
   std::abort();
 }
 

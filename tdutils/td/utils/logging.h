@@ -187,10 +187,6 @@ extern LogInterface *log_interface;
 
 [[noreturn]] void process_fatal_error(CSlice message);
 
-// deprecated in favor of set_log_message_callback
-using OnFatalErrorCallback = void (*)(CSlice message);
-void set_log_fatal_error_callback(OnFatalErrorCallback callback);
-
 using OnLogMessageCallback = void (*)(int verbosity_level, CSlice message);
 void set_log_message_callback(int max_verbosity_level, OnLogMessageCallback callback);
 

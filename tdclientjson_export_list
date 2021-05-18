@@ -11,3 +11,4 @@ _td_create_client_id
 _td_send
 _td_receive
 _td_execute
+_td_set_log_message_callback

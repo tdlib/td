@@ -659,6 +659,25 @@ td_api::object_ptr<td_api::Object> ClientManager::execute(td_api::object_ptr<td_
   return Td::static_request(std::move(request));
 }
 
+static std::atomic<ClientManager::LogMessageCallbackPtr> log_message_callback;
+
+static void log_message_callback_wrapper(int verbosity_level, CSlice message) {
+  auto callback = log_message_callback.load(std::memory_order_relaxed);
+  if (callback != nullptr) {
+    callback(verbosity_level, message.c_str());
+  }
+}
+
+void ClientManager::set_log_message_callback(int max_verbosity_level, LogMessageCallbackPtr callback) {
+  if (callback == nullptr) {
+    ::td::set_log_message_callback(max_verbosity_level, nullptr);
+    log_message_callback = nullptr;
+  } else {
+    log_message_callback = callback;
+    ::td::set_log_message_callback(max_verbosity_level, log_message_callback_wrapper);
+  }
+}
+
 ClientManager::~ClientManager() = default;
 ClientManager::ClientManager(ClientManager &&other) = default;
 ClientManager &ClientManager::operator=(ClientManager &&other) = default;

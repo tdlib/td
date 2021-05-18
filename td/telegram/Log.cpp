@@ -6,6 +6,7 @@
 //
 #include "td/telegram/Log.h"
 
+#include "td/telegram/Client.h"
 #include "td/telegram/Logging.h"
 
 #include "td/telegram/td_api.h"
@@ -23,9 +24,13 @@ static string log_file_path;
 static int64 max_log_file_size = 10 << 20;
 static Log::FatalErrorCallbackPtr fatal_error_callback;
 
-static void fatal_error_callback_wrapper(CSlice message) {
-  CHECK(fatal_error_callback != nullptr);
-  fatal_error_callback(message.c_str());
+static void fatal_error_callback_wrapper(int verbosity_level, const char *message) {
+  if (verbosity_level == 0) {
+    auto callback = fatal_error_callback;
+    if (callback != nullptr) {
+      callback(message);
+    }
+  }
 }
 
 bool Log::set_file_path(string file_path) {
@@ -59,11 +64,11 @@ void Log::set_verbosity_level(int new_verbosity_level) {
 void Log::set_fatal_error_callback(FatalErrorCallbackPtr callback) {
   std::lock_guard<std::mutex> lock(log_mutex);
   if (callback == nullptr) {
+    ClientManager::set_log_message_callback(0, nullptr);
     fatal_error_callback = nullptr;
-    set_log_fatal_error_callback(nullptr);
   } else {
     fatal_error_callback = callback;
-    set_log_fatal_error_callback(fatal_error_callback_wrapper);
+    ClientManager::set_log_message_callback(0, fatal_error_callback_wrapper);
   }
 }
 
