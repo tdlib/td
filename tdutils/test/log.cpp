@@ -17,6 +17,7 @@
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/tests.h"
 #include "td/utils/TsFileLog.h"
+#include "td/utils/TsLog.h"
 
 #include <functional>
 #include <limits>

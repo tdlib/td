@@ -116,6 +116,7 @@ set(TDUTILS_SOURCE
   td/utils/translit.cpp
   td/utils/TsCerr.cpp
   td/utils/TsFileLog.cpp
+  td/utils/TsLog.cpp
   td/utils/unicode.cpp
   td/utils/utf8.cpp
 
@@ -261,6 +262,7 @@ set(TDUTILS_SOURCE
   td/utils/TsCerr.h
   td/utils/TsFileLog.h
   td/utils/TsList.h
+  td/utils/TsLog.h
   td/utils/type_traits.h
   td/utils/UInt.h
   td/utils/uint128.h

@@ -146,16 +146,6 @@ inline int get_verbosity_level() {
   return log_options.get_level();
 }
 
-class ScopedDisableLog {
- public:
-  ScopedDisableLog();
-  ScopedDisableLog(const ScopedDisableLog &) = delete;
-  ScopedDisableLog &operator=(const ScopedDisableLog &) = delete;
-  ScopedDisableLog(ScopedDisableLog &&) = delete;
-  ScopedDisableLog &operator=(ScopedDisableLog &&) = delete;
-  ~ScopedDisableLog();
-};
-
 class LogInterface {
  public:
   LogInterface() = default;
@@ -228,6 +218,16 @@ class Logger {
   int log_level_;
 };
 
+class ScopedDisableLog {
+ public:
+  ScopedDisableLog();
+  ScopedDisableLog(const ScopedDisableLog &) = delete;
+  ScopedDisableLog &operator=(const ScopedDisableLog &) = delete;
+  ScopedDisableLog(ScopedDisableLog &&) = delete;
+  ScopedDisableLog &operator=(ScopedDisableLog &&) = delete;
+  ~ScopedDisableLog();
+};
+
 namespace detail {
 class Voidify {
  public:
@@ -236,39 +236,5 @@ class Voidify {
   }
 };
 }  // namespace detail
-
-class TsLog : public LogInterface {
- public:
-  explicit TsLog(LogInterface *log) : log_(log) {
-  }
-  void init(LogInterface *log) {
-    enter_critical();
-    log_ = log;
-    exit_critical();
-  }
-  void after_rotation() final {
-    enter_critical();
-    log_->after_rotation();
-    exit_critical();
-  }
-  vector<string> get_file_paths() final {
-    enter_critical();
-    auto result = log_->get_file_paths();
-    exit_critical();
-    return result;
-  }
-
- private:
-  void do_append(int log_level, CSlice slice) final {
-    enter_critical();
-    log_->do_append(log_level, slice);
-    exit_critical();
-  }
-
-  LogInterface *log_ = nullptr;
-  std::atomic_flag lock_ = ATOMIC_FLAG_INIT;
-  void enter_critical();
-  void exit_critical();
-};
 
 }  // namespace td

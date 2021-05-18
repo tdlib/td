@@ -150,10 +150,6 @@ Logger::~Logger() {
   }
 }
 
-void TsLog::exit_critical() {
-  lock_.clear(std::memory_order_release);
-}
-
 class DefaultLog : public LogInterface {
   void do_append(int log_level, CSlice slice) final {
 #if TD_ANDROID

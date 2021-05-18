@@ -36,6 +36,7 @@
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/port/detail/NativeFd.h"
+#include "td/utils/TsLog.h"
 
 #include <atomic>
 #include <map>

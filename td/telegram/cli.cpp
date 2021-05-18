@@ -45,6 +45,7 @@
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/Time.h"
+#include "td/utils/TsLog.h"
 #include "td/utils/utf8.h"
 
 #ifndef USE_READLINE
