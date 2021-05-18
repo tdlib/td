@@ -190,13 +190,6 @@ extern LogInterface *log_interface;
 using OnLogMessageCallback = void (*)(int verbosity_level, CSlice message);
 void set_log_message_callback(int max_verbosity_level, OnLogMessageCallback callback);
 
-#define TC_RED "\x1b[1;31m"
-#define TC_BLUE "\x1b[1;34m"
-#define TC_CYAN "\x1b[1;36m"
-#define TC_GREEN "\x1b[1;32m"
-#define TC_YELLOW "\x1b[1;33m"
-#define TC_EMPTY "\x1b[0m"
-
 class TsCerr {
  public:
   TsCerr();

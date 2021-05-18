@@ -197,15 +197,7 @@ class CliLog : public LogInterface {
       reactivate_readline();
     };
 #endif
-    if (log_level == VERBOSITY_NAME(PLAIN)) {
-#if TD_WINDOWS
-      TsCerr() << slice;
-#else
-      TsCerr() << TC_GREEN << slice << TC_EMPTY;
-#endif
-    } else {
-      default_log_interface->do_append(log_level, slice);
-    }
+    default_log_interface->do_append(log_level, slice);
   }
 };
 

@@ -264,19 +264,20 @@ class DefaultLog : public LogInterface {
     switch (log_level) {
       case VERBOSITY_NAME(FATAL):
       case VERBOSITY_NAME(ERROR):
-        color = Slice(TC_RED);
+        color = Slice("\x1b[1;31m");  // red
         break;
       case VERBOSITY_NAME(WARNING):
-        color = Slice(TC_YELLOW);
+        color = Slice("\x1b[1;33m");  // yellow
         break;
       case VERBOSITY_NAME(INFO):
-        color = Slice(TC_CYAN);
+        color = Slice("\x1b[1;36m");  // cyan
         break;
     }
+    Slice no_color("\x1b[0m");
     if (!slice.empty() && slice.back() == '\n') {
-      TsCerr() << color << slice.substr(0, slice.size() - 1) << TC_EMPTY "\n";
+      TsCerr() << color << slice.substr(0, slice.size() - 1) << no_color << "\n";
     } else {
-      TsCerr() << color << slice << TC_EMPTY;
+      TsCerr() << color << slice << no_color;
     }
 #else
     // TODO: color
