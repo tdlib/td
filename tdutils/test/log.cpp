@@ -10,6 +10,7 @@
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/MemoryLog.h"
+#include "td/utils/NullLog.h"
 #include "td/utils/port/path.h"
 #include "td/utils/port/thread.h"
 #include "td/utils/Slice.h"

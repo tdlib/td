@@ -221,6 +221,7 @@ set(TDUTILS_SOURCE
   td/utils/MpscPollableQueue.h
   td/utils/MpscLinkQueue.h
   td/utils/Named.h
+  td/utils/NullLog.h
   td/utils/ObjectPool.h
   td/utils/Observer.h
   td/utils/optional.h

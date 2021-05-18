@@ -177,11 +177,6 @@ class LogInterface {
   virtual void do_append(int log_level, CSlice slice) = 0;
 };
 
-class NullLog : public LogInterface {
-  void do_append(int /*log_level*/, CSlice /*slice*/) final {
-  }
-};
-
 extern LogInterface *const default_log_interface;
 extern LogInterface *log_interface;
 

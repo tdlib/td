@@ -30,6 +30,7 @@
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/NullLog.h"
 #include "td/utils/OptionParser.h"
 #include "td/utils/port/FileFd.h"
 #include "td/utils/port/PollFlags.h"

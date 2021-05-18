@@ -32,6 +32,7 @@
 #include "td/utils/algorithm.h"
 #include "td/utils/ExitGuard.h"
 #include "td/utils/FileLog.h"
+#include "td/utils/NullLog.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/port/detail/NativeFd.h"
