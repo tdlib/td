@@ -2002,6 +2002,13 @@ void UpdatesManager::process_qts_update(tl_object_ptr<telegram_api::Update> &&up
                    add_qts(qts));
       break;
     }
+    case telegram_api::updateMessagePollVote::ID: {
+      auto update = move_tl_object_as<telegram_api::updateMessagePollVote>(update_ptr);
+      td_->poll_manager_->on_get_poll_vote(PollId(update->poll_id_), UserId(update->user_id_),
+                                           std::move(update->options_));
+      add_qts(qts).set_value(Unit());
+      break;
+    }
     case telegram_api::updateBotStopped::ID: {
       auto update = move_tl_object_as<telegram_api::updateBotStopped>(update_ptr);
       td_->contacts_manager_->on_update_bot_stopped(UserId(update->user_id_), update->date_,
@@ -2519,6 +2526,7 @@ int32 UpdatesManager::get_update_pts(const telegram_api::Update *update) {
 bool UpdatesManager::is_qts_update(const telegram_api::Update *update) {
   switch (update->get_id()) {
     case telegram_api::updateNewEncryptedMessage::ID:
+    case telegram_api::updateMessagePollVote::ID:
     case telegram_api::updateBotStopped::ID:
     case telegram_api::updateChatParticipant::ID:
     case telegram_api::updateChannelParticipant::ID:
@@ -2532,6 +2540,8 @@ int32 UpdatesManager::get_update_qts(const telegram_api::Update *update) {
   switch (update->get_id()) {
     case telegram_api::updateNewEncryptedMessage::ID:
       return static_cast<const telegram_api::updateNewEncryptedMessage *>(update)->qts_;
+    case telegram_api::updateMessagePollVote::ID:
+      return static_cast<const telegram_api::updateMessagePollVote *>(update)->qts_;
     case telegram_api::updateBotStopped::ID:
       return static_cast<const telegram_api::updateBotStopped *>(update)->qts_;
     case telegram_api::updateChatParticipant::ID:
@@ -2907,8 +2917,8 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateMessagePoll> up
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateMessagePollVote> update, Promise<Unit> &&promise) {
-  td_->poll_manager_->on_get_poll_vote(PollId(update->poll_id_), UserId(update->user_id_), std::move(update->options_));
-  promise.set_value(Unit());
+  auto qts = update->qts_;
+  add_pending_qts_update(std::move(update), qts, std::move(promise));
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewScheduledMessage> update, Promise<Unit> &&promise) {
