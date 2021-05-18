@@ -114,6 +114,7 @@ set(TDUTILS_SOURCE
   td/utils/TsFileLog.cpp
   td/utils/tl_parsers.cpp
   td/utils/translit.cpp
+  td/utils/TsCerr.cpp
   td/utils/TsFileLog.cpp
   td/utils/unicode.cpp
   td/utils/utf8.cpp
@@ -257,6 +258,7 @@ set(TDUTILS_SOURCE
   td/utils/tl_parsers.h
   td/utils/tl_storers.h
   td/utils/translit.h
+  td/utils/TsCerr.h
   td/utils/TsFileLog.h
   td/utils/TsList.h
   td/utils/type_traits.h

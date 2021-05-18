@@ -185,24 +185,6 @@ extern LogInterface *log_interface;
 using OnLogMessageCallback = void (*)(int verbosity_level, CSlice message);
 void set_log_message_callback(int max_verbosity_level, OnLogMessageCallback callback);
 
-class TsCerr {
- public:
-  TsCerr();
-  TsCerr(const TsCerr &) = delete;
-  TsCerr &operator=(const TsCerr &) = delete;
-  TsCerr(TsCerr &&) = delete;
-  TsCerr &operator=(TsCerr &&) = delete;
-  ~TsCerr();
-  TsCerr &operator<<(Slice slice);
-
- private:
-  using Lock = std::atomic_flag;
-  static Lock lock_;
-
-  void enterCritical();
-  void exitCritical();
-};
-
 class Logger {
   static const size_t BUFFER_SIZE = 128 * 1024;
 

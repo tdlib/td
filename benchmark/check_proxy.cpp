@@ -12,6 +12,7 @@
 #include "td/utils/filesystem.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/TsCerr.h"
 
 #include <algorithm>
 #include <cstdlib>
