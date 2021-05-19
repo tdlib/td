@@ -27,8 +27,12 @@ struct BackgroundFill {
       : top_color(top_color), bottom_color(bottom_color), rotation_angle(rotation_angle) {
   }
 
-  bool is_solid() const {
-    return top_color == bottom_color;
+  enum class Type : int32 { Solid, Gradient };
+  Type get_type() const {
+    if (top_color == bottom_color) {
+      return Type::Solid;
+    }
+    return Type::Gradient;
   }
 
   int64 get_id() const;

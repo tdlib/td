@@ -56,14 +56,20 @@ static Result<BackgroundFill> get_background_fill(const td_api::BackgroundFill *
 }
 
 static string get_background_fill_color_hex_string(const BackgroundFill &fill, bool is_first) {
-  if (fill.is_solid()) {
-    return get_color_hex_string(fill.top_color);
-  } else {
-    string colors = PSTRING() << get_color_hex_string(fill.top_color) << '-' << get_color_hex_string(fill.bottom_color);
-    if (fill.rotation_angle != 0) {
-      colors += (PSTRING() << (is_first ? '?' : '&') << "rotation=" << fill.rotation_angle);
+  switch (fill.get_type()) {
+    case BackgroundFill::Type::Solid:
+      return get_color_hex_string(fill.top_color);
+    case BackgroundFill::Type::Gradient: {
+      string colors = PSTRING() << get_color_hex_string(fill.top_color) << '-'
+                                << get_color_hex_string(fill.bottom_color);
+      if (fill.rotation_angle != 0) {
+        colors += (PSTRING() << (is_first ? '?' : '&') << "rotation=" << fill.rotation_angle);
+      }
+      return colors;
     }
-    return colors;
+    default:
+      UNREACHABLE();
+      return string();
   }
 }
 
@@ -75,10 +81,16 @@ int64 BackgroundFill::get_id() const {
   CHECK(is_valid_color(top_color));
   CHECK(is_valid_color(bottom_color));
   CHECK(is_valid_rotation_angle(rotation_angle));
-  if (is_solid()) {
-    return static_cast<int64>(top_color) + 1;
+  switch (get_type()) {
+    case Type::Solid:
+      return static_cast<int64>(top_color) + 1;
+    case Type::Gradient:
+      return (rotation_angle / 45) * 0x1000001000001 + (static_cast<int64>(top_color) << 24) + bottom_color +
+             (1 << 24) + 1;
+    default:
+      UNREACHABLE();
+      return 0;
   }
-  return (rotation_angle / 45) * 0x1000001000001 + (static_cast<int64>(top_color) << 24) + bottom_color + (1 << 24) + 1;
 }
 
 bool BackgroundFill::is_valid_id(int64 id) {
@@ -235,10 +247,16 @@ BackgroundType get_background_type(bool is_pattern,
 }
 
 static td_api::object_ptr<td_api::BackgroundFill> get_background_fill_object(const BackgroundFill &fill) {
-  if (fill.is_solid()) {
-    return td_api::make_object<td_api::backgroundFillSolid>(fill.top_color);
+  switch (fill.get_type()) {
+    case BackgroundFill::Type::Solid:
+      return td_api::make_object<td_api::backgroundFillSolid>(fill.top_color);
+    case BackgroundFill::Type::Gradient:
+      return td_api::make_object<td_api::backgroundFillGradient>(fill.top_color, fill.bottom_color,
+                                                                 fill.rotation_angle);
+    default:
+      UNREACHABLE();
+      return nullptr;
   }
-  return td_api::make_object<td_api::backgroundFillGradient>(fill.top_color, fill.bottom_color, fill.rotation_angle);
 }
 
 td_api::object_ptr<td_api::BackgroundType> get_background_type_object(const BackgroundType &type) {
@@ -257,6 +275,8 @@ td_api::object_ptr<td_api::BackgroundType> get_background_type_object(const Back
 }
 
 telegram_api::object_ptr<telegram_api::wallPaperSettings> get_input_wallpaper_settings(const BackgroundType &type) {
+  CHECK(type.is_server());
+
   int32 flags = 0;
   if (type.is_blurred) {
     flags |= telegram_api::wallPaperSettings::BLUR_MASK;
@@ -264,23 +284,22 @@ telegram_api::object_ptr<telegram_api::wallPaperSettings> get_input_wallpaper_se
   if (type.is_moving) {
     flags |= telegram_api::wallPaperSettings::MOTION_MASK;
   }
-  if (type.fill.top_color != 0 || type.fill.bottom_color != 0) {
-    flags |= telegram_api::wallPaperSettings::BACKGROUND_COLOR_MASK;
+  switch (type.fill.get_type()) {
+    case BackgroundFill::Type::Gradient:
+      flags |= telegram_api::wallPaperSettings::SECOND_BACKGROUND_COLOR_MASK;
+      // fallthrough
+    case BackgroundFill::Type::Solid:
+      flags |= telegram_api::wallPaperSettings::BACKGROUND_COLOR_MASK;
+      break;
+    default:
+      UNREACHABLE();
   }
-  if (!type.fill.is_solid()) {
-    flags |= telegram_api::wallPaperSettings::SECOND_BACKGROUND_COLOR_MASK;
-  }
-  if (type.intensity) {
+  if (type.intensity != 0) {
     flags |= telegram_api::wallPaperSettings::INTENSITY_MASK;
   }
-  if (type.is_server()) {
-    return telegram_api::make_object<telegram_api::wallPaperSettings>(flags, false /*ignored*/, false /*ignored*/,
-                                                                      type.fill.top_color, type.fill.bottom_color,
-                                                                      type.intensity, type.fill.rotation_angle);
-  }
-
-  UNREACHABLE();
-  return nullptr;
+  return telegram_api::make_object<telegram_api::wallPaperSettings>(flags, false /*ignored*/, false /*ignored*/,
+                                                                    type.fill.top_color, type.fill.bottom_color,
+                                                                    type.intensity, type.fill.rotation_angle);
 }
 
 }  // namespace td

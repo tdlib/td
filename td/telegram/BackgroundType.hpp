@@ -16,7 +16,8 @@ template <class StorerT>
 void store(const BackgroundType &type, StorerT &storer) {
   bool has_fill = type.fill.top_color != 0 || type.fill.bottom_color != 0;
   bool has_intensity = type.intensity != 0;
-  bool is_gradient = !type.fill.is_solid();
+  auto fill_type = type.fill.get_type();
+  bool is_gradient = fill_type == BackgroundFill::Type::Gradient;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(type.is_blurred);
   STORE_FLAG(type.is_moving);
