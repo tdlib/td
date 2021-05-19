@@ -6,6 +6,7 @@
 //
 #pragma managed(push, off)
 #include "td/telegram/Client.h"
+#include "td/telegram/Log.h"
 #pragma managed(pop)
 
 #include "td/telegram/TdDotNetApi.h"
@@ -20,6 +21,12 @@ namespace Telegram {
 namespace Td {
 
 using namespace CxCli;
+
+/// <summary>
+/// A type of callback function that will be called when a fatal error happens.
+/// </summary>
+/// <param name="errorMessage">Null-terminated string with a description of a happened fatal error.</param>
+public delegate void FatalErrorCallback(String^ errorMessage);
 
 /// <summary>
 /// Interface for handler for results of queries to TDLib and incoming updates from TDLib.
@@ -105,6 +112,21 @@ public:
     return REF_NEW Client(updateHandler);
   }
 
+  /// <summary>
+  /// Sets the callback that will be called when a fatal error happens.
+  /// </summary>
+  /// <param name="callback">Callback that will be called when a fatal error happens. Pass null to remove the callback.</param>
+  static void SetFatalErrorCallback(FatalErrorCallback^ callback) {
+    std::lock_guard<std::mutex> lock(logMutex);
+    if (callback == nullptr) {
+      ::td::Log::set_fatal_error_callback(nullptr);
+      fatalErrorCallback = nullptr;
+    } else {
+      fatalErrorCallback = callback;
+      ::td::Log::set_fatal_error_callback(FatalErrorCallbackWrapper);
+    }
+  }
+
 private:
   Client(ClientResultHandler^ updateHandler) {
     client = new td::Client();
@@ -127,7 +149,18 @@ private:
       handler->OnResult(object);
     }
   }
+
+  static std::mutex logMutex;
+  static FatalErrorCallback^ fatalErrorCallback;
+
+  static void FatalErrorCallbackWrapper(const char* message) {
+    CHECK(fatalErrorCallback != nullptr);
+    fatalErrorCallback(string_from_unmanaged(message));
+  }
 };
+
+std::mutex Client::logMutex;
+FatalErrorCallback^ Client::fatalErrorCallback;
 
 }  // namespace Td
 }  // namespace Telegram
