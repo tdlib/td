@@ -20,15 +20,33 @@ static string get_color_hex_string(int32 color) {
   return result;
 }
 
-static BackgroundFill get_background_fill(const td_api::BackgroundFill *fill) {
-  CHECK(fill != nullptr);
+static bool is_valid_color(int32 color) {
+  return 0 <= color && color <= 0xFFFFFF;
+}
+
+static Result<BackgroundFill> get_background_fill(const td_api::BackgroundFill *fill) {
+  if (fill == nullptr) {
+    return Status::Error(400, "Background fill info must be non-empty");
+  }
   switch (fill->get_id()) {
     case td_api::backgroundFillSolid::ID: {
       auto solid = static_cast<const td_api::backgroundFillSolid *>(fill);
+      if (!is_valid_color(solid->color_)) {
+        return Status::Error(400, "Invalid solid fill color value");
+      }
       return BackgroundFill(solid->color_);
     }
     case td_api::backgroundFillGradient::ID: {
       auto gradient = static_cast<const td_api::backgroundFillGradient *>(fill);
+      if (!is_valid_color(gradient->top_color_)) {
+        return Status::Error(400, "Invalid top gradient color value");
+      }
+      if (!is_valid_color(gradient->bottom_color_)) {
+        return Status::Error(400, "Invalid bottom gradient color value");
+      }
+      if (!BackgroundFill::is_valid_rotation_angle(gradient->rotation_angle_)) {
+        return Status::Error(400, "Invalid rotation angle value");
+      }
       return BackgroundFill(gradient->top_color_, gradient->bottom_color_, gradient->rotation_angle_);
     }
     default:
@@ -47,10 +65,6 @@ static string get_background_fill_color_hex_string(const BackgroundFill &fill, b
     }
     return colors;
   }
-}
-
-static bool is_valid_color(int32 color) {
-  return 0 <= color && color <= 0xFFFFFF;
 }
 
 static bool is_valid_intensity(int32 intensity) {
@@ -149,34 +163,21 @@ Result<BackgroundType> get_background_type(const td_api::BackgroundType *type) {
     }
     case td_api::backgroundTypePattern::ID: {
       auto pattern = static_cast<const td_api::backgroundTypePattern *>(type);
-      if (pattern->fill_ == nullptr) {
-        return Status::Error(400, "Fill info must be non-empty");
+      TRY_RESULT(background_fill, get_background_fill(pattern->fill_.get()));
+      if (!is_valid_intensity(pattern->intensity_)) {
+        return Status::Error(400, "Wrong intensity value");
       }
-      result = BackgroundType(pattern->is_moving_, get_background_fill(pattern->fill_.get()), pattern->intensity_);
+      result = BackgroundType(pattern->is_moving_, std::move(background_fill), pattern->intensity_);
       break;
     }
     case td_api::backgroundTypeFill::ID: {
       auto fill = static_cast<const td_api::backgroundTypeFill *>(type);
-      if (fill->fill_ == nullptr) {
-        return Status::Error(400, "Fill info must be non-empty");
-      }
-      result = BackgroundType(get_background_fill(fill->fill_.get()));
+      TRY_RESULT(background_fill, get_background_fill(fill->fill_.get()));
+      result = BackgroundType(std::move(background_fill));
       break;
     }
     default:
       UNREACHABLE();
-  }
-  if (!is_valid_intensity(result.intensity)) {
-    return Status::Error(400, "Wrong intensity value");
-  }
-  if (!is_valid_color(result.fill.top_color)) {
-    return Status::Error(400, result.fill.is_solid() ? Slice("Wrong color value") : ("Wrong top color value"));
-  }
-  if (!is_valid_color(result.fill.bottom_color)) {
-    return Status::Error(400, "Wrong bottom color value");
-  }
-  if (!BackgroundFill::is_valid_rotation_angle(result.fill.rotation_angle)) {
-    return Status::Error(400, "Wrong rotation angle value");
   }
   return result;
 }
