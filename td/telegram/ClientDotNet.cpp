@@ -6,7 +6,6 @@
 //
 #pragma managed(push, off)
 #include "td/telegram/Client.h"
-#include "td/telegram/Log.h"
 #pragma managed(pop)
 
 #include "td/telegram/TdDotNetApi.h"
@@ -23,10 +22,12 @@ namespace Td {
 using namespace CxCli;
 
 /// <summary>
-/// A type of callback function that will be called when a fatal error happens.
+/// A type of callback function that will be called when a message is added to the internal TDLib log.
 /// </summary>
-/// <param name="errorMessage">Null-terminated string with a description of a happened fatal error.</param>
-public delegate void FatalErrorCallback(String^ errorMessage);
+/// <param name="verbosityLevel">Log verbosity level with which the message was added. If 0,
+/// then TDLib will crash as soon as the callback returns.</param>
+/// <param name="message">Null-terminated string with the message added to the log.</param>
+public delegate void LogMessageCallback(int verbosityLevel, String^ message);
 
 /// <summary>
 /// Interface for handler for results of queries to TDLib and incoming updates from TDLib.
@@ -113,17 +114,20 @@ public:
   }
 
   /// <summary>
-  /// Sets the callback that will be called when a fatal error happens.
+  /// Sets the callback that will be called when a message is added to the internal TDLib log.
+  /// None of the TDLib methods can be called from the callback.
   /// </summary>
-  /// <param name="callback">Callback that will be called when a fatal error happens. Pass null to remove the callback.</param>
-  static void SetFatalErrorCallback(FatalErrorCallback^ callback) {
+  /// <param name="max_verbosity_level">Maximum verbosity level of messages for which the callback will be called.</param>
+  /// <param name="callback">Callback that will be called when a message is added to the internal TDLib log.
+  /// Pass null to remove the callback.</param>
+  static void SetLogMessageCallback(std::int32_t max_verbosity_level, LogMessageCallback^ callback) {
     std::lock_guard<std::mutex> lock(logMutex);
     if (callback == nullptr) {
-      ::td::Log::set_fatal_error_callback(nullptr);
-      fatalErrorCallback = nullptr;
+      ::td::ClientManager::set_log_message_callback(max_verbosity_level, nullptr);
+      logMessageCallback = nullptr;
     } else {
-      fatalErrorCallback = callback;
-      ::td::Log::set_fatal_error_callback(FatalErrorCallbackWrapper);
+      logMessageCallback = callback;
+      ::td::ClientManager::set_log_message_callback(max_verbosity_level, LogMessageCallbackWrapper);
     }
   }
 
@@ -151,16 +155,18 @@ private:
   }
 
   static std::mutex logMutex;
-  static FatalErrorCallback^ fatalErrorCallback;
+  static LogMessageCallback^ logMessageCallback;
 
-  static void FatalErrorCallbackWrapper(const char* message) {
-    CHECK(fatalErrorCallback != nullptr);
-    fatalErrorCallback(string_from_unmanaged(message));
+  static void LogMessageCallbackWrapper(int verbosity_level, const char *message) {
+    auto callback = logMessageCallback;
+    if (callback != nullptr) {
+      callback(verbosity_level, string_from_unmanaged(message));
+    }
   }
 };
 
 std::mutex Client::logMutex;
-FatalErrorCallback^ Client::fatalErrorCallback;
+LogMessageCallback^ Client::logMessageCallback;
 
 }  // namespace Td
 }  // namespace Telegram
