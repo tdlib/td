@@ -19,6 +19,8 @@ struct BackgroundFill {
   int32 top_color = 0;
   int32 bottom_color = 0;
   int32 rotation_angle = 0;
+  int32 third_color = -1;
+  int32 fourth_color = -1;
 
   BackgroundFill() = default;
   explicit BackgroundFill(int32 solid_color) : top_color(solid_color), bottom_color(solid_color) {
@@ -26,9 +28,19 @@ struct BackgroundFill {
   BackgroundFill(int32 top_color, int32 bottom_color, int32 rotation_angle)
       : top_color(top_color), bottom_color(bottom_color), rotation_angle(rotation_angle) {
   }
+  BackgroundFill(int32 first_color, int32 second_color, int32 third_color, int32 fourth_color)
+      : top_color(first_color), bottom_color(second_color), third_color(third_color), fourth_color(fourth_color) {
+  }
 
-  enum class Type : int32 { Solid, Gradient };
+  explicit BackgroundFill(const telegram_api::wallPaperSettings *settings);
+
+  static Result<BackgroundFill> get_background_fill(Slice name);
+
+  enum class Type : int32 { Solid, Gradient, FreeformGradient };
   Type get_type() const {
+    if (third_color != -1) {
+      return Type::FreeformGradient;
+    }
     if (top_color == bottom_color) {
       return Type::Solid;
     }
@@ -37,11 +49,9 @@ struct BackgroundFill {
 
   int64 get_id() const;
 
-  static bool is_valid_id(int64 id);
+  bool is_dark() const;
 
-  static bool is_valid_rotation_angle(int32 rotation_angle) {
-    return 0 <= rotation_angle && rotation_angle < 360 && rotation_angle % 45 == 0;
-  }
+  static bool is_valid_id(int64 id);
 };
 
 bool operator==(const BackgroundFill &lhs, const BackgroundFill &rhs);

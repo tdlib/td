@@ -1535,6 +1535,10 @@ class CliClient final : public Actor {
     return td_api::make_object<td_api::backgroundFillGradient>(top_color, bottom_color, Random::fast(0, 7) * 45);
   }
 
+  static td_api::object_ptr<td_api::BackgroundFill> get_background_fill(vector<int32> colors) {
+    return td_api::make_object<td_api::backgroundFillFreeformGradient>(std::move(colors));
+  }
+
   static td_api::object_ptr<td_api::BackgroundType> get_solid_pattern_background(int32 color, int32 intensity,
                                                                                  bool is_moving) {
     return get_gradient_pattern_background(color, color, intensity, is_moving);
@@ -1546,12 +1550,23 @@ class CliClient final : public Actor {
                                                               is_moving);
   }
 
+  static td_api::object_ptr<td_api::BackgroundType> get_freeform_gradient_pattern_background(vector<int32> colors,
+                                                                                             int32 intensity,
+                                                                                             bool is_moving) {
+    return td_api::make_object<td_api::backgroundTypePattern>(get_background_fill(std::move(colors)), intensity,
+                                                              is_moving);
+  }
+
   static td_api::object_ptr<td_api::BackgroundType> get_solid_background(int32 color) {
     return td_api::make_object<td_api::backgroundTypeFill>(get_background_fill(color));
   }
 
   static td_api::object_ptr<td_api::BackgroundType> get_gradient_background(int32 top_color, int32 bottom_color) {
     return td_api::make_object<td_api::backgroundTypeFill>(get_background_fill(top_color, bottom_color));
+  }
+
+  static td_api::object_ptr<td_api::BackgroundType> get_freeform_gradient_background(vector<int32> colors) {
+    return td_api::make_object<td_api::backgroundTypeFill>(get_background_fill(std::move(colors)));
   }
 
   static td_api::object_ptr<td_api::Object> execute(td_api::object_ptr<td_api::Function> f) {
@@ -2206,12 +2221,19 @@ class CliClient final : public Actor {
       send_get_background_url(get_gradient_pattern_background(0xFFFFFF, 0, 100, true));
       send_get_background_url(get_gradient_pattern_background(0xABCDEF, 0xFEDCBA, 49, true));
       send_get_background_url(get_gradient_pattern_background(0, 0x1000000, 49, true));
+      send_get_background_url(get_freeform_gradient_pattern_background({0xABCDEF, 0xFEDCBA}, 49, true));
+      send_get_background_url(get_freeform_gradient_pattern_background({0xABCDEF, 0x111111, 0x222222}, 49, true));
+      send_get_background_url(
+          get_freeform_gradient_pattern_background({0xABCDEF, 0xFEDCBA, 0x111111, 0x222222}, 49, true));
       send_get_background_url(get_solid_background(-1));
       send_get_background_url(get_solid_background(0xABCDEF));
       send_get_background_url(get_solid_background(0x1000000));
       send_get_background_url(get_gradient_background(0xABCDEF, 0xFEDCBA));
       send_get_background_url(get_gradient_background(0, 0));
       send_get_background_url(get_gradient_background(-1, -1));
+      send_get_background_url(get_freeform_gradient_background({0xFEDCBA, 0x222222}));
+      send_get_background_url(get_freeform_gradient_background({0xFEDCBA, 0x111111, 0x222222}));
+      send_get_background_url(get_freeform_gradient_background({0xABCDEF, 0xFEDCBA, 0x111111, 0x222222}));
     } else if (op == "sbg") {
       send_request(td_api::make_object<td_api::searchBackground>(args));
     } else if (op == "sbgd") {
@@ -2237,6 +2259,9 @@ class CliClient final : public Actor {
       get_args(args, top_color, bottom_color);
       auto background_type = get_gradient_background(top_color, bottom_color);
       send_request(td_api::make_object<td_api::setBackground>(nullptr, std::move(background_type), op == "sbggd"));
+    } else if (op == "sbgfg" || op == "sbgfgd") {
+      auto background_type = get_freeform_gradient_background(to_integers<int32>(args));
+      send_request(td_api::make_object<td_api::setBackground>(nullptr, std::move(background_type), op == "sbgfgd"));
     } else if (op == "sbgwid" || op == "sbgwidd") {
       send_request(td_api::make_object<td_api::setBackground>(
           td_api::make_object<td_api::inputBackgroundRemote>(to_integer<int64>(args)),

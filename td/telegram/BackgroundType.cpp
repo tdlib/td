@@ -7,6 +7,7 @@
 #include "td/telegram/BackgroundType.h"
 
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
 #include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
 
@@ -15,13 +16,64 @@ namespace td {
 static string get_color_hex_string(int32 color) {
   string result;
   for (int i = 20; i >= 0; i -= 4) {
-    result += "0123456789abcdef"[(color >> i) & 0xf];
+    result += "0123456789abcdef"[(color >> i) & 0xF];
   }
   return result;
 }
 
 static bool is_valid_color(int32 color) {
   return 0 <= color && color <= 0xFFFFFF;
+}
+
+static bool is_valid_rotation_angle(int32 rotation_angle) {
+  return 0 <= rotation_angle && rotation_angle < 360 && rotation_angle % 45 == 0;
+}
+
+BackgroundFill::BackgroundFill(const telegram_api::wallPaperSettings *settings) {
+  if (settings == nullptr) {
+    return;
+  }
+
+  auto flags = settings->flags_;
+  if ((flags & telegram_api::wallPaperSettings::BACKGROUND_COLOR_MASK) != 0) {
+    top_color = settings->background_color_;
+    if (!is_valid_color(top_color)) {
+      LOG(ERROR) << "Receive " << to_string(*settings);
+      top_color = 0;
+    }
+  }
+  if ((flags & telegram_api::wallPaperSettings::FOURTH_BACKGROUND_COLOR_MASK) != 0 ||
+      (flags & telegram_api::wallPaperSettings::THIRD_BACKGROUND_COLOR_MASK) != 0) {
+    bottom_color = settings->second_background_color_;
+    if (!is_valid_color(bottom_color)) {
+      LOG(ERROR) << "Receive " << to_string(*settings);
+      bottom_color = 0;
+    }
+    third_color = settings->third_background_color_;
+    if (!is_valid_color(third_color)) {
+      LOG(ERROR) << "Receive " << to_string(*settings);
+      third_color = 0;
+    }
+    if ((flags & telegram_api::wallPaperSettings::FOURTH_BACKGROUND_COLOR_MASK) != 0) {
+      fourth_color = settings->fourth_background_color_;
+      if (!is_valid_color(fourth_color)) {
+        LOG(ERROR) << "Receive " << to_string(*settings);
+        fourth_color = 0;
+      }
+    }
+  } else if ((flags & telegram_api::wallPaperSettings::SECOND_BACKGROUND_COLOR_MASK) != 0) {
+    bottom_color = settings->second_background_color_;
+    if (!is_valid_color(bottom_color)) {
+      LOG(ERROR) << "Receive " << to_string(*settings);
+      bottom_color = 0;
+    }
+
+    rotation_angle = settings->rotation_;
+    if (!is_valid_rotation_angle(rotation_angle)) {
+      LOG(ERROR) << "Receive " << to_string(*settings);
+      rotation_angle = 0;
+    }
+  }
 }
 
 static Result<BackgroundFill> get_background_fill(const td_api::BackgroundFill *fill) {
@@ -44,15 +96,83 @@ static Result<BackgroundFill> get_background_fill(const td_api::BackgroundFill *
       if (!is_valid_color(gradient->bottom_color_)) {
         return Status::Error(400, "Invalid bottom gradient color value");
       }
-      if (!BackgroundFill::is_valid_rotation_angle(gradient->rotation_angle_)) {
+      if (!is_valid_rotation_angle(gradient->rotation_angle_)) {
         return Status::Error(400, "Invalid rotation angle value");
       }
       return BackgroundFill(gradient->top_color_, gradient->bottom_color_, gradient->rotation_angle_);
+    }
+    case td_api::backgroundFillFreeformGradient::ID: {
+      auto freeform = static_cast<const td_api::backgroundFillFreeformGradient *>(fill);
+      if (freeform->colors_.size() != 3 && freeform->colors_.size() != 4) {
+        return Status::Error(400, "Wrong number of gradient colors");
+      }
+      for (auto &color : freeform->colors_) {
+        if (!is_valid_color(color)) {
+          return Status::Error(400, "Invalid freeform gradient color value");
+        }
+      }
+      return BackgroundFill(freeform->colors_[0], freeform->colors_[1], freeform->colors_[2],
+                            freeform->colors_.size() == 3 ? -1 : freeform->colors_[3]);
     }
     default:
       UNREACHABLE();
       return {};
   }
+}
+
+Result<BackgroundFill> BackgroundFill::get_background_fill(Slice name) {
+  name = name.substr(0, name.find('#'));
+
+  Slice parameters;
+  auto parameters_pos = name.find('?');
+  if (parameters_pos != Slice::npos) {
+    parameters = name.substr(parameters_pos + 1);
+    name = name.substr(0, parameters_pos);
+  }
+
+  auto get_color = [](Slice color_string) -> Result<int32> {
+    auto r_color = hex_to_integer_safe<uint32>(color_string);
+    if (r_color.is_error() || color_string.size() > 6) {
+      return Status::Error(400, "WALLPAPER_INVALID");
+    }
+    return static_cast<int32>(r_color.ok());
+  };
+
+  if (name.find('~') < name.size()) {
+    vector<Slice> color_strings = full_split(name, '~');
+    if (color_strings.size() != 4 && color_strings.size() != 3) {
+      return Status::Error(400, "WALLPAPER_INVALID");
+    }
+
+    TRY_RESULT(first_color, get_color(color_strings[0]));
+    TRY_RESULT(second_color, get_color(color_strings[1]));
+    TRY_RESULT(third_color, get_color(color_strings[2]));
+    int32 fourth_color = -1;
+    if (color_strings.size() == 4) {
+      TRY_RESULT_ASSIGN(fourth_color, get_color(color_strings[3]));
+    }
+    return BackgroundFill(first_color, second_color, third_color, fourth_color);
+  }
+
+  size_t hyphen_pos = name.find('-');
+  if (hyphen_pos < name.size()) {
+    TRY_RESULT(top_color, get_color(name.substr(0, hyphen_pos)));
+    TRY_RESULT(bottom_color, get_color(name.substr(hyphen_pos + 1)));
+    int32 rotation_angle = 0;
+
+    Slice prefix("rotation=");
+    if (begins_with(parameters, prefix)) {
+      rotation_angle = to_integer<int32>(parameters.substr(prefix.size()));
+      if (!is_valid_rotation_angle(rotation_angle)) {
+        rotation_angle = 0;
+      }
+    }
+
+    return BackgroundFill(top_color, bottom_color, rotation_angle);
+  }
+
+  TRY_RESULT(color, get_color(name));
+  return BackgroundFill(color);
 }
 
 static string get_background_fill_color_hex_string(const BackgroundFill &fill, bool is_first) {
@@ -67,6 +187,15 @@ static string get_background_fill_color_hex_string(const BackgroundFill &fill, b
       }
       return colors;
     }
+    case BackgroundFill::Type::FreeformGradient: {
+      SliceBuilder sb;
+      sb << get_color_hex_string(fill.top_color) << '~' << get_color_hex_string(fill.bottom_color) << '~'
+         << get_color_hex_string(fill.third_color);
+      if (fill.fourth_color != -1) {
+        sb << '~' << get_color_hex_string(fill.fourth_color);
+      }
+      return sb.as_cslice().str();
+    }
     default:
       UNREACHABLE();
       return string();
@@ -80,13 +209,38 @@ static bool is_valid_intensity(int32 intensity) {
 int64 BackgroundFill::get_id() const {
   CHECK(is_valid_color(top_color));
   CHECK(is_valid_color(bottom_color));
-  CHECK(is_valid_rotation_angle(rotation_angle));
   switch (get_type()) {
     case Type::Solid:
       return static_cast<int64>(top_color) + 1;
     case Type::Gradient:
+      CHECK(is_valid_rotation_angle(rotation_angle));
       return (rotation_angle / 45) * 0x1000001000001 + (static_cast<int64>(top_color) << 24) + bottom_color +
              (1 << 24) + 1;
+    case Type::FreeformGradient: {
+      CHECK(is_valid_color(third_color));
+      CHECK(fourth_color == -1 || is_valid_color(fourth_color));
+      const uint64 mul = 123456789;
+      uint64 result = static_cast<uint64>(top_color);
+      result = result * mul + static_cast<uint64>(bottom_color);
+      result = result * mul + static_cast<uint64>(third_color);
+      result = result * mul + static_cast<uint64>(fourth_color);
+      return 0x8000008000008 + static_cast<int64>(result % 0x8000008000008);
+    }
+    default:
+      UNREACHABLE();
+      return 0;
+  }
+}
+
+bool BackgroundFill::is_dark() const {
+  switch (get_type()) {
+    case Type::Solid:
+      return (top_color & 0x808080) == 0;
+    case Type::Gradient:
+      return (top_color & 0x808080) == 0 && (bottom_color & 0x808080) == 0;
+    case Type::FreeformGradient:
+      return (top_color & 0x808080) == 0 && (bottom_color & 0x808080) == 0 && (third_color & 0x808080) == 0 &&
+             (fourth_color == -1 || (fourth_color & 0x808080) == 0);
     default:
       UNREACHABLE();
       return 0;
@@ -94,12 +248,13 @@ int64 BackgroundFill::get_id() const {
 }
 
 bool BackgroundFill::is_valid_id(int64 id) {
-  return 0 < id && id < 0x8000008000008;
+  return 0 < id && id < 0x8000008000008 * 2;
 }
 
 bool operator==(const BackgroundFill &lhs, const BackgroundFill &rhs) {
   return lhs.top_color == rhs.top_color && lhs.bottom_color == rhs.bottom_color &&
-         lhs.rotation_angle == rhs.rotation_angle;
+         lhs.rotation_angle == rhs.rotation_angle && lhs.third_color == rhs.third_color &&
+         lhs.fourth_color == rhs.fourth_color;
 }
 
 string BackgroundType::get_link() const {
@@ -198,38 +353,12 @@ BackgroundType get_background_type(bool is_pattern,
                                    telegram_api::object_ptr<telegram_api::wallPaperSettings> settings) {
   bool is_blurred = false;
   bool is_moving = false;
-  BackgroundFill fill;
+  BackgroundFill fill(settings.get());
   int32 intensity = 0;
   if (settings) {
     auto flags = settings->flags_;
     is_blurred = (flags & telegram_api::wallPaperSettings::BLUR_MASK) != 0;
     is_moving = (flags & telegram_api::wallPaperSettings::MOTION_MASK) != 0;
-
-    int32 color = 0;
-    if ((flags & telegram_api::wallPaperSettings::BACKGROUND_COLOR_MASK) != 0) {
-      color = settings->background_color_;
-      if (!is_valid_color(color)) {
-        LOG(ERROR) << "Receive " << to_string(settings);
-        color = 0;
-      }
-    }
-    if ((flags & telegram_api::wallPaperSettings::SECOND_BACKGROUND_COLOR_MASK) != 0) {
-      int32 second_color = settings->second_background_color_;
-      if (!is_valid_color(second_color)) {
-        LOG(ERROR) << "Receive " << to_string(settings);
-        second_color = 0;
-      }
-
-      int32 rotation_angle = settings->rotation_;
-      if (!BackgroundFill::is_valid_rotation_angle(rotation_angle)) {
-        LOG(ERROR) << "Receive " << to_string(settings);
-        rotation_angle = 0;
-      }
-
-      fill = BackgroundFill(color, second_color, rotation_angle);
-    } else {
-      fill = BackgroundFill(color);
-    }
 
     if ((flags & telegram_api::wallPaperSettings::INTENSITY_MASK) != 0) {
       intensity = settings->intensity_;
@@ -253,6 +382,13 @@ static td_api::object_ptr<td_api::BackgroundFill> get_background_fill_object(con
     case BackgroundFill::Type::Gradient:
       return td_api::make_object<td_api::backgroundFillGradient>(fill.top_color, fill.bottom_color,
                                                                  fill.rotation_angle);
+    case BackgroundFill::Type::FreeformGradient: {
+      vector<int32> colors{fill.top_color, fill.bottom_color, fill.third_color, fill.fourth_color};
+      if (colors.back() == -1) {
+        colors.pop_back();
+      }
+      return td_api::make_object<td_api::backgroundFillFreeformGradient>(std::move(colors));
+    }
     default:
       UNREACHABLE();
       return nullptr;
@@ -285,6 +421,12 @@ telegram_api::object_ptr<telegram_api::wallPaperSettings> get_input_wallpaper_se
     flags |= telegram_api::wallPaperSettings::MOTION_MASK;
   }
   switch (type.fill.get_type()) {
+    case BackgroundFill::Type::FreeformGradient:
+      if (type.fill.fourth_color != -1) {
+        flags |= telegram_api::wallPaperSettings::FOURTH_BACKGROUND_COLOR_MASK;
+      }
+      flags |= telegram_api::wallPaperSettings::THIRD_BACKGROUND_COLOR_MASK;
+      // fallthrough
     case BackgroundFill::Type::Gradient:
       flags |= telegram_api::wallPaperSettings::SECOND_BACKGROUND_COLOR_MASK;
       // fallthrough
@@ -297,9 +439,9 @@ telegram_api::object_ptr<telegram_api::wallPaperSettings> get_input_wallpaper_se
   if (type.intensity != 0) {
     flags |= telegram_api::wallPaperSettings::INTENSITY_MASK;
   }
-  return telegram_api::make_object<telegram_api::wallPaperSettings>(flags, false /*ignored*/, false /*ignored*/,
-                                                                    type.fill.top_color, type.fill.bottom_color, 0, 0,
-                                                                    type.intensity, type.fill.rotation_angle);
+  return telegram_api::make_object<telegram_api::wallPaperSettings>(
+      flags, false /*ignored*/, false /*ignored*/, type.fill.top_color, type.fill.bottom_color, type.fill.third_color,
+      type.fill.fourth_color, type.intensity, type.fill.rotation_angle);
 }
 
 }  // namespace td

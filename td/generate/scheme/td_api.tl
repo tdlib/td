@@ -2619,6 +2619,9 @@ backgroundFillSolid color:int32 = BackgroundFill;
 //@rotation_angle Clockwise rotation angle of the gradient, in degrees; 0-359. Should be always divisible by 45
 backgroundFillGradient top_color:int32 bottom_color:int32 rotation_angle:int32 = BackgroundFill;
 
+//@description Describes a freeform gradient fill of a background @colors A list of 3 or 4 colors of the freeform gradients in the RGB24 format
+backgroundFillFreeformGradient colors:vector<int32> = BackgroundFill;
+
 
 //@class BackgroundType @description Describes the type of a background
 

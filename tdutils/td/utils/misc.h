@@ -226,13 +226,16 @@ Result<typename std::enable_if<std::is_unsigned<T>::value, T>::type> hex_to_inte
   T integer_value = 0;
   auto begin = str.begin();
   auto end = str.end();
+  if (begin == end) {
+    return Status::Error("String is empty");
+  }
   while (begin != end) {
     T digit = hex_to_int(*begin++);
     if (digit == 16) {
-      return Status::Error("Not a hex digit");
+      return Status::Error("String contains non-hex digit");
     }
     if (integer_value > std::numeric_limits<T>::max() / 16) {
-      return Status::Error("Hex number overflow");
+      return Status::Error("String hex number overflows");
     }
     integer_value = integer_value * 16 + digit;
   }
