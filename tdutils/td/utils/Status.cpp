@@ -71,7 +71,7 @@ Status Status::move_as_error_prefix(Slice prefix) const {
   }
 }
 
-Status Status::move_as_error_suffix(Slice suffix) const TD_WARN_UNUSED_RESULT {
+Status Status::move_as_error_suffix(Slice suffix) const {
   CHECK(is_error());
   Info info = get_info();
   switch (info.error_type) {
