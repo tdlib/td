@@ -241,8 +241,9 @@ class ClientManager final {
   /**
    * A type of callback function that will be called when a message is added to the internal TDLib log.
    *
-   * \param verbosity_level Log verbosity level with which the message was added. If 0, then TDLib will crash
-   *                        as soon as the callback returns.
+   * \param verbosity_level Log verbosity level with which the message was added (-1 - 1024).
+   *                        If 0, then TDLib will crash as soon as the callback returns.
+   *                        None of the TDLib methods can be called from the callback.
    * \param message Null-terminated string with the message added to the log.
    */
   using LogMessageCallbackPtr = void (*)(int verbosity_level, const char *message);
