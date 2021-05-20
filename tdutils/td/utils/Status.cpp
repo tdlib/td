@@ -6,6 +6,8 @@
 //
 #include "td/utils/Status.h"
 
+#include "td/utils/SliceBuilder.h"
+
 #if TD_PORT_WINDOWS
 #include "td/utils/port/wstring_convert.h"
 #endif
@@ -54,5 +56,33 @@ string winerror_to_string(int code) {
   return error_message.move_as_ok();
 }
 #endif
+
+Status Status::move_as_error_prefix(Slice prefix) const {
+  CHECK(is_error());
+  Info info = get_info();
+  switch (info.error_type) {
+    case ErrorType::General:
+      return Error(code(), PSLICE() << prefix << message());
+    case ErrorType::Os:
+      return Status(false, ErrorType::Os, code(), PSLICE() << prefix << message());
+    default:
+      UNREACHABLE();
+      return {};
+  }
+}
+
+Status Status::move_as_error_suffix(Slice suffix) const TD_WARN_UNUSED_RESULT {
+  CHECK(is_error());
+  Info info = get_info();
+  switch (info.error_type) {
+    case ErrorType::General:
+      return Error(code(), PSLICE() << message() << suffix);
+    case ErrorType::Os:
+      return Status(false, ErrorType::Os, code(), PSLICE() << message() << suffix);
+    default:
+      UNREACHABLE();
+      return {};
+  }
+}
 
 }  // namespace td

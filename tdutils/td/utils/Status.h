@@ -10,7 +10,6 @@
 #include "td/utils/logging.h"
 #include "td/utils/ScopeGuard.h"
 #include "td/utils/Slice.h"
-#include "td/utils/SliceBuilder.h"
 #include "td/utils/StackAllocator.h"
 #include "td/utils/StringBuilder.h"
 
@@ -325,32 +324,9 @@ class Status {
     return status.move_as_error_suffix(message());
   }
 
-  Status move_as_error_prefix(Slice prefix) const TD_WARN_UNUSED_RESULT {
-    CHECK(is_error());
-    Info info = get_info();
-    switch (info.error_type) {
-      case ErrorType::General:
-        return Error(code(), PSLICE() << prefix << message());
-      case ErrorType::Os:
-        return Status(false, ErrorType::Os, code(), PSLICE() << prefix << message());
-      default:
-        UNREACHABLE();
-        return {};
-    }
-  }
-  Status move_as_error_suffix(Slice suffix) const TD_WARN_UNUSED_RESULT {
-    CHECK(is_error());
-    Info info = get_info();
-    switch (info.error_type) {
-      case ErrorType::General:
-        return Error(code(), PSLICE() << message() << suffix);
-      case ErrorType::Os:
-        return Status(false, ErrorType::Os, code(), PSLICE() << message() << suffix);
-      default:
-        UNREACHABLE();
-        return {};
-    }
-  }
+  Status move_as_error_prefix(Slice prefix) const TD_WARN_UNUSED_RESULT;
+
+  Status move_as_error_suffix(Slice suffix) const TD_WARN_UNUSED_RESULT;
 
  private:
   struct Info {

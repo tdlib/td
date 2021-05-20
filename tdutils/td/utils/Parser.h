@@ -7,7 +7,6 @@
 #pragma once
 
 #include "td/utils/common.h"
-#include "td/utils/format.h"
 #include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
@@ -99,7 +98,7 @@ class ParserImpl {
     }
     SliceT res = read_till_nofail(c);
     if (ptr_ == end_ || ptr_[0] != c) {
-      status_ = Status::Error(PSLICE() << "Read till " << tag("char", c) << " failed");
+      status_ = Status::Error(PSLICE() << "Read till '" << c << "' failed");
       return SliceT();
     }
     return res;
@@ -126,7 +125,7 @@ class ParserImpl {
       return;
     }
     if (ptr_ == end_ || ptr_[0] != c) {
-      status_ = Status::Error(PSLICE() << "Skip " << tag("char", c) << " failed");
+      status_ = Status::Error(PSLICE() << "Skip '" << c << "' failed");
       return;
     }
     ptr_++;
