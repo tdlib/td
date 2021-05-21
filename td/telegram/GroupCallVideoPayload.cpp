@@ -60,12 +60,12 @@ GroupCallVideoPayload get_group_call_video_payload(string json) {
   string json_copy = json;
   auto r_value = json_decode(json_copy);
   if (r_value.is_error()) {
-    return {};
+    return GroupCallVideoPayload();
   }
 
   auto value = r_value.move_as_ok();
   if (value.type() != JsonValue::Type::Object) {
-    return {};
+    return GroupCallVideoPayload();
   }
 
   GroupCallVideoPayload result;
