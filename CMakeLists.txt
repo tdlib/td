@@ -683,7 +683,7 @@ if (MEMPROF)
 endif()
 
 
-add_library(tdapi STATIC ${TL_TD_API_SOURCE})
+add_library(tdapi ${TL_TD_API_SOURCE})
 target_include_directories(tdapi PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> INTERFACE $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDE_DIR}>)
 target_link_libraries(tdapi PRIVATE tdutils)
 
@@ -912,4 +912,5 @@ install(FILES "TdConfig.cmake" "${CMAKE_CURRENT_BINARY_DIR}/TdConfigVersion.cmak
 
 # Add SOVERSION to shared libraries
 set_property(TARGET tdclient PROPERTY SOVERSION "${TDLib_VERSION}")
+set_property(TARGET tdapi PROPERTY SOVERSION "${TDLib_VERSION}")
 set_property(TARGET tdjson PROPERTY SOVERSION "${TDLib_VERSION}")
