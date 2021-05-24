@@ -173,6 +173,40 @@ StringBuilder &operator<<(StringBuilder &sb, const HttpUrl &url) {
   return sb;
 }
 
+HttpUrlQuery parse_url_query(Slice query) {
+  size_t path_size = 0;
+  while (path_size < query.size() && query[path_size] != '?' && query[path_size] != '#') {
+    path_size++;
+  }
+
+  HttpUrlQuery result;
+  result.path_ = url_decode(query.substr(0, path_size), false);
+
+  if (path_size < query.size() && query[path_size] == '?') {
+    query = query.substr(path_size + 1);
+    query.truncate(query.find('#'));
+
+    ConstParser parser(query);
+    while (!parser.data().empty()) {
+      auto key_value = split(parser.read_till_nofail('&'), '=');
+      parser.skip_nofail('&');
+      auto key = url_decode(key_value.first, true);
+      if (!key.empty()) {
+        result.args_.emplace_back(std::move(key), url_decode(key_value.second, true));
+      }
+    }
+    CHECK(parser.status().is_ok());
+  }
+
+  return result;
+}
+
+Slice HttpUrlQuery::get_arg(Slice key) const {
+  auto it =
+      std::find_if(args_.begin(), args_.end(), [&key](const std::pair<string, string> &s) { return s.first == key; });
+  return it == args_.end() ? Slice() : it->second;
+}
+
 string get_url_query_file_name(const string &query) {
   Slice query_slice = query;
   query_slice.truncate(query.find_first_of("?#"));

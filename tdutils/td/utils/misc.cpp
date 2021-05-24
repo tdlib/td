@@ -166,6 +166,13 @@ size_t url_decode(Slice from, MutableSlice to, bool decode_plus_sign_as_space) {
   return to_i;
 }
 
+string url_decode(Slice from, bool decode_plus_sign_as_space) {
+  string to;
+  to.resize(from.size());
+  to.resize(url_decode(from, to, decode_plus_sign_as_space));
+  return to;
+}
+
 MutableSlice url_decode_inplace(MutableSlice str, bool decode_plus_sign_as_space) {
   size_t result_size = url_decode(str, str, decode_plus_sign_as_space);
   str.truncate(result_size);

@@ -11,6 +11,8 @@
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 
+#include <utility>
+
 namespace td {
 
 class HttpUrl {
@@ -40,6 +42,16 @@ Result<HttpUrl> parse_url(Slice url,
                           HttpUrl::Protocol default_protocol = HttpUrl::Protocol::Http) TD_WARN_UNUSED_RESULT;
 
 StringBuilder &operator<<(StringBuilder &sb, const HttpUrl &url);
+
+class HttpUrlQuery {
+ public:
+  string path_;
+  vector<std::pair<string, string>> args_;
+
+  Slice get_arg(Slice key) const;
+};
+
+HttpUrlQuery parse_url_query(Slice query);
 
 string get_url_query_file_name(const string &query);
 
