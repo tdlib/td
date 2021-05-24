@@ -55,6 +55,7 @@ class GroupCallManager;
 class InlineQueriesManager;
 class HashtagHints;
 class LanguagePackManager;
+class LinkManager;
 class MessagesManager;
 class NetStatsManager;
 class NotificationManager;
@@ -164,6 +165,8 @@ class Td final : public NetQueryCallback {
   ActorOwn<GroupCallManager> group_call_manager_actor_;
   unique_ptr<InlineQueriesManager> inline_queries_manager_;
   ActorOwn<InlineQueriesManager> inline_queries_manager_actor_;
+  unique_ptr<LinkManager> link_manager_;
+  ActorOwn<LinkManager> link_manager_actor_;
   unique_ptr<MessagesManager> messages_manager_;
   ActorOwn<MessagesManager> messages_manager_actor_;
   unique_ptr<NotificationManager> notification_manager_;

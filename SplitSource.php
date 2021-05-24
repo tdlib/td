@@ -290,6 +290,7 @@ function split_file($file, $chunks, $undo) {
                 'HashtagHints' => 'HashtagHints',
                 'inline_queries_manager[_(-][^.]|InlineQueriesManager' => 'InlineQueriesManager',
                 'language_pack_manager[_(-][^.]|LanguagePackManager' => 'LanguagePackManager',
+                'link_manager[_(-][^.]|LinkManager' => 'LinkManager',
                 'LogeventIdWithGeneration|add_log_event|delete_log_event|get_erase_log_event_promise|parse_time|store_time' => 'logevent/LogEventHelper',
                 'MessageCopyOptions' => 'MessageCopyOptions',
                 'messages_manager[_(-][^.]|MessagesManager' => 'MessagesManager',

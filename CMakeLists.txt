@@ -331,6 +331,7 @@ set(TDLIB_SOURCE
   td/telegram/InputMessageText.cpp
   td/telegram/JsonValue.cpp
   td/telegram/LanguagePackManager.cpp
+  td/telegram/LinkManager.cpp
   td/telegram/Location.cpp
   td/telegram/logevent/LogEventHelper.cpp
   td/telegram/Logging.cpp
@@ -512,6 +513,7 @@ set(TDLIB_SOURCE
   td/telegram/InputMessageText.h
   td/telegram/JsonValue.h
   td/telegram/LanguagePackManager.h
+  td/telegram/LinkManager.h
   td/telegram/Location.h
   td/telegram/logevent/LogEvent.h
   td/telegram/logevent/LogEventHelper.h

@@ -49,6 +49,7 @@
 #include "td/telegram/InlineQueriesManager.h"
 #include "td/telegram/JsonValue.h"
 #include "td/telegram/LanguagePackManager.h"
+#include "td/telegram/LinkManager.h"
 #include "td/telegram/Location.h"
 #include "td/telegram/Logging.h"
 #include "td/telegram/MessageCopyOptions.h"
@@ -3816,6 +3817,8 @@ void Td::dec_actor_refcnt() {
       LOG(DEBUG) << "GroupCallManager was cleared" << timer;
       inline_queries_manager_.reset();
       LOG(DEBUG) << "InlineQueriesManager was cleared" << timer;
+      link_manager_.reset();
+      LOG(DEBUG) << "LinkManager was cleared" << timer;
       messages_manager_.reset();
       LOG(DEBUG) << "MessagesManager was cleared" << timer;
       notification_manager_.reset();
@@ -4002,6 +4005,8 @@ void Td::clear() {
   LOG(DEBUG) << "GroupCallManager actor was cleared" << timer;
   inline_queries_manager_actor_.reset();
   LOG(DEBUG) << "InlineQueriesManager actor was cleared" << timer;
+  link_manager_actor_.reset();
+  LOG(DEBUG) << "LinkManager actor was cleared" << timer;
   messages_manager_actor_.reset();  // TODO: Stop silent
   LOG(DEBUG) << "MessagesManager actor was cleared" << timer;
   notification_manager_actor_.reset();
@@ -4438,6 +4443,8 @@ void Td::init_managers() {
   G()->set_group_call_manager(group_call_manager_actor_.get());
   inline_queries_manager_ = make_unique<InlineQueriesManager>(this, create_reference());
   inline_queries_manager_actor_ = register_actor("InlineQueriesManager", inline_queries_manager_.get());
+  link_manager_ = make_unique<LinkManager>(this, create_reference());
+  link_manager_actor_ = register_actor("LinkManager", link_manager_.get());
   messages_manager_ = make_unique<MessagesManager>(this, create_reference());
   messages_manager_actor_ = register_actor("MessagesManager", messages_manager_.get());
   G()->set_messages_manager(messages_manager_actor_.get());
