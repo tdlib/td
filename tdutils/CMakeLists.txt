@@ -292,6 +292,7 @@ set(TDUTILS_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/test/gzip.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/HazardPointers.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/heap.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/test/HttpUrl.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/json.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/List.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/log.cpp

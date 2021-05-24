@@ -15,7 +15,6 @@
 #include "td/utils/Hash.h"
 #include "td/utils/HashMap.h"
 #include "td/utils/HashSet.h"
-#include "td/utils/HttpUrl.h"
 #include "td/utils/invoke.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
@@ -514,25 +513,6 @@ TEST(Misc, print_uint) {
   ASSERT_STREQ("2147483648", PSLICE() << 2147483648u);
   ASSERT_STREQ("2147483649", PSLICE() << 2147483649u);
   ASSERT_STREQ("9223372036854775807", PSLICE() << 9223372036854775807u);
-}
-
-static void test_get_url_query_file_name_one(const char *prefix, const char *suffix, const char *file_name) {
-  auto path = td::string(prefix) + td::string(file_name) + td::string(suffix);
-  ASSERT_STREQ(file_name, td::get_url_query_file_name(path));
-  ASSERT_STREQ(file_name, td::get_url_file_name("http://telegram.org" + path));
-  ASSERT_STREQ(file_name, td::get_url_file_name("http://telegram.org:80" + path));
-  ASSERT_STREQ(file_name, td::get_url_file_name("telegram.org" + path));
-}
-
-TEST(Misc, get_url_query_file_name) {
-  for (auto suffix : {"?t=1#test", "#test?t=1", "#?t=1", "?t=1#", "#test", "?t=1", "#", "?", ""}) {
-    test_get_url_query_file_name_one("", suffix, "");
-    test_get_url_query_file_name_one("/", suffix, "");
-    test_get_url_query_file_name_one("/a/adasd/", suffix, "");
-    test_get_url_query_file_name_one("/a/lklrjetn/", suffix, "adasd.asdas");
-    test_get_url_query_file_name_one("/", suffix, "a123asadas");
-    test_get_url_query_file_name_one("/", suffix, "\\a\\1\\2\\3\\a\\s\\a\\das");
-  }
 }
 
 static void test_idn_to_ascii_one(td::string host, td::string result) {
