@@ -8,6 +8,7 @@
 
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Dependencies.h"
+#include "td/telegram/LinkManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/SecretChatActor.h"
 
@@ -1676,7 +1677,7 @@ Result<vector<MessageEntity>> parse_markdown(string &text) {
           if (user_id.is_valid()) {
             entities.emplace_back(entity_offset, entity_length, user_id);
           } else {
-            auto r_url = check_url(url);
+            auto r_url = LinkManager::check_link(url);
             if (r_url.is_ok()) {
               entities.emplace_back(MessageEntity::Type::TextUrl, entity_offset, entity_length, r_url.move_as_ok());
             }
@@ -1880,7 +1881,7 @@ static Result<vector<MessageEntity>> do_parse_markdown_v2(CSlice text, string &r
           }
           user_id = get_link_user_id(url);
           if (!user_id.is_valid()) {
-            auto r_url = check_url(url);
+            auto r_url = LinkManager::check_link(url);
             if (r_url.is_error()) {
               skip_entity = true;
             } else {
@@ -1957,7 +1958,7 @@ static vector<Slice> find_text_url_entities_v3(Slice text) {
 
     if (url_end < size) {
       Slice url = text.substr(url_begin + 1, url_end - url_begin - 1);
-      if (check_url(url).is_ok()) {
+      if (LinkManager::check_link(url).is_ok()) {
         result.push_back(text.substr(text_begin, text_end - text_begin + 1));
         result.push_back(text.substr(url_begin, url_end - url_begin + 1));
       }
@@ -2029,7 +2030,7 @@ static FormattedText parse_text_url_entities_v3(Slice text, const vector<Message
         Slice url = parsed_part_text.substr(url_begin_pos + 1, url_end_pos - url_begin_pos - 1);
         auto url_utf16_length = text_length(url);
         result.entities.emplace_back(MessageEntity::Type::TextUrl, result_text_utf16_length, text_url_utf16_length,
-                                     check_url(url).move_as_ok());
+                                     LinkManager::check_link(url).move_as_ok());
         result.text.append(text_url.begin(), text_url.size());
         result_text_utf16_length += text_url_utf16_length;
 
@@ -2832,7 +2833,7 @@ static Result<vector<MessageEntity>> do_parse_html(CSlice text, string &result) 
           if (user_id.is_valid()) {
             entities.emplace_back(entity_offset, entity_length, user_id);
           } else {
-            auto r_url = check_url(url);
+            auto r_url = LinkManager::check_link(url);
             if (r_url.is_ok()) {
               entities.emplace_back(MessageEntity::Type::TextUrl, entity_offset, entity_length, r_url.move_as_ok());
             }
@@ -3026,7 +3027,7 @@ Result<vector<MessageEntity>> get_message_entities(const ContactsManager *contac
         if (!clean_input_string(entity_text_url->url_)) {
           return Status::Error(400, "MessageEntityTextUrl.url must be encoded in UTF-8");
         }
-        auto r_url = check_url(entity_text_url->url_);
+        auto r_url = LinkManager::check_link(entity_text_url->url_);
         if (r_url.is_error()) {
           return Status::Error(400, PSTRING() << "Wrong message entity: " << r_url.error().message());
         }
@@ -3146,7 +3147,7 @@ vector<MessageEntity> get_message_entities(const ContactsManager *contacts_manag
       }
       case telegram_api::messageEntityTextUrl::ID: {
         auto entity_text_url = static_cast<const telegram_api::messageEntityTextUrl *>(entity.get());
-        auto r_url = check_url(entity_text_url->url_);
+        auto r_url = LinkManager::check_link(entity_text_url->url_);
         if (r_url.is_error()) {
           LOG(ERROR) << "Wrong URL entity: \"" << entity_text_url->url_ << "\": " << r_url.error().message() << " from "
                      << source;
@@ -3268,7 +3269,7 @@ vector<MessageEntity> get_message_entities(vector<tl_object_ptr<secret_api::Mess
           LOG(WARNING) << "Wrong URL entity: \"" << entity_text_url->url_ << '"';
           continue;
         }
-        auto r_url = check_url(entity_text_url->url_);
+        auto r_url = LinkManager::check_link(entity_text_url->url_);
         if (r_url.is_error()) {
           LOG(WARNING) << "Wrong URL entity: \"" << entity_text_url->url_ << "\": " << r_url.error().message();
           continue;

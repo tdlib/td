@@ -8,6 +8,7 @@
 
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/LinkManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/td_api.h"
@@ -425,8 +426,9 @@ static Result<InlineKeyboardButton> get_inline_keyboard_button(tl_object_ptr<td_
   switch (button_type_id) {
     case td_api::inlineKeyboardButtonTypeUrl::ID: {
       current_button.type = InlineKeyboardButton::Type::Url;
-      TRY_RESULT_ASSIGN(current_button.data,
-                        check_url(static_cast<const td_api::inlineKeyboardButtonTypeUrl *>(button->type_.get())->url_));
+      TRY_RESULT_ASSIGN(
+          current_button.data,
+          LinkManager::check_link(static_cast<const td_api::inlineKeyboardButtonTypeUrl *>(button->type_.get())->url_));
       if (!clean_input_string(current_button.data)) {
         return Status::Error(400, "Inline keyboard button url must be encoded in UTF-8");
       }
@@ -467,7 +469,7 @@ static Result<InlineKeyboardButton> get_inline_keyboard_button(tl_object_ptr<td_
     case td_api::inlineKeyboardButtonTypeLoginUrl::ID: {
       current_button.type = InlineKeyboardButton::Type::UrlAuth;
       auto login_url = td_api::move_object_as<td_api::inlineKeyboardButtonTypeLoginUrl>(button->type_);
-      TRY_RESULT_ASSIGN(current_button.data, check_url(login_url->url_));
+      TRY_RESULT_ASSIGN(current_button.data, LinkManager::check_link(login_url->url_));
       current_button.forward_text = std::move(login_url->forward_text_);
       if (!clean_input_string(current_button.data)) {
         return Status::Error(400, "Inline keyboard button login url must be encoded in UTF-8");

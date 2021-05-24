@@ -36,9 +36,6 @@ int32 get_vector_hash(const vector<uint32> &numbers) TD_WARN_UNUSED_RESULT;
 // returns emoji corresponding to the specified number
 string get_emoji_fingerprint(uint64 num);
 
-// checks whether url is a valid tg, ton or HTTP(S) URL and returns it in a canonical form
-Result<string> check_url(Slice url);
-
 // removes all emoji modifiers
 string remove_emoji_modifiers(string emoji);
 

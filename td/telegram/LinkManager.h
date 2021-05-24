@@ -14,6 +14,8 @@
 #include "td/actor/PromiseFuture.h"
 
 #include "td/utils/common.h"
+#include "td/utils/Slice.h"
+#include "td/utils/Status.h"
 
 namespace td {
 
@@ -28,6 +30,9 @@ class LinkManager : public Actor {
   LinkManager(LinkManager &&) = delete;
   LinkManager &operator=(LinkManager &&) = delete;
   ~LinkManager() override;
+
+  // checks whether link is a valid tg, ton or HTTP(S) URL and returns it in a canonical form
+  static Result<string> check_link(Slice link);
 
   void get_login_url_info(DialogId dialog_id, MessageId message_id, int32 button_id,
                           Promise<td_api::object_ptr<td_api::LoginUrlInfo>> &&promise);
