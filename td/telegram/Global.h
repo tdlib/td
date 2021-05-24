@@ -40,6 +40,7 @@ class FileManager;
 class FileReferenceManager;
 class GroupCallManager;
 class LanguagePackManager;
+class LinkManager;
 class MessagesManager;
 class MtprotoHeader;
 class NetQueryDispatcher;
@@ -230,6 +231,13 @@ class Global : public ActorContext {
     language_pack_manager_ = language_pack_manager;
   }
 
+  ActorId<LinkManager> link_manager() const {
+    return link_manager_;
+  }
+  void set_link_manager(ActorId<LinkManager> link_manager) {
+    link_manager_ = link_manager;
+  }
+
   ActorId<MessagesManager> messages_manager() const {
     return messages_manager_;
   }
@@ -395,6 +403,7 @@ class Global : public ActorContext {
   ActorId<FileReferenceManager> file_reference_manager_;
   ActorId<GroupCallManager> group_call_manager_;
   ActorId<LanguagePackManager> language_pack_manager_;
+  ActorId<LinkManager> link_manager_;
   ActorId<MessagesManager> messages_manager_;
   ActorId<NotificationManager> notification_manager_;
   ActorId<PasswordManager> password_manager_;

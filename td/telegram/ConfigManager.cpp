@@ -10,8 +10,8 @@
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/JsonValue.h"
+#include "td/telegram/LinkManager.h"
 #include "td/telegram/logevent/LogEvent.h"
-#include "td/telegram/MessagesManager.h"
 #include "td/telegram/net/AuthDataShared.h"
 #include "td/telegram/net/ConnectionCreator.h"
 #include "td/telegram/net/DcId.h"
@@ -984,7 +984,7 @@ void ConfigManager::get_external_link_info(string &&link, Promise<td_api::object
 
   if (!td::contains(autologin_domains_, r_url.ok().host_)) {
     if (td::contains(url_auth_domains_, r_url.ok().host_)) {
-      send_closure(G()->messages_manager(), &MessagesManager::get_link_login_url_info, link, std::move(promise));
+      send_closure(G()->link_manager(), &LinkManager::get_link_login_url_info, link, std::move(promise));
       return;
     }
     return promise.set_value(std::move(default_result));

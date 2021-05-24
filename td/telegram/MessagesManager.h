@@ -796,17 +796,6 @@ class MessagesManager : public Actor {
   void get_dialog_statistics_url(DialogId dialog_id, const string &parameters, bool is_dark,
                                  Promise<td_api::object_ptr<td_api::httpUrl>> &&promise);
 
-  void get_login_url_info(DialogId dialog_id, MessageId message_id, int32 button_id,
-                          Promise<td_api::object_ptr<td_api::LoginUrlInfo>> &&promise);
-
-  void get_login_url(DialogId dialog_id, MessageId message_id, int32 button_id, bool allow_write_access,
-                     Promise<td_api::object_ptr<td_api::httpUrl>> &&promise);
-
-  void get_link_login_url_info(const string &url, Promise<td_api::object_ptr<td_api::LoginUrlInfo>> &&promise);
-
-  void get_link_login_url(const string &url, bool allow_write_access,
-                          Promise<td_api::object_ptr<td_api::httpUrl>> &&promise);
-
   void on_authorization_success();
 
   void before_get_difference();
@@ -910,6 +899,8 @@ class MessagesManager : public Actor {
 
   void stop_poll(FullMessageId full_message_id, td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
                  Promise<Unit> &&promise);
+
+  Result<string> get_login_button_url(DialogId dialog_id, MessageId message_id, int32 button_id);
 
   Result<ServerMessageId> get_invoice_message_id(FullMessageId full_message_id);
 
@@ -2963,8 +2954,6 @@ class MessagesManager : public Actor {
   void suffix_load_add_query(Dialog *d, std::pair<Promise<>, std::function<bool(const Message *)>> query);
   void suffix_load_till_date(Dialog *d, int32 date, Promise<> promise);
   void suffix_load_till_message_id(Dialog *d, MessageId message_id, Promise<> promise);
-
-  Result<string> get_login_button_url(DialogId dialog_id, MessageId message_id, int32 button_id);
 
   bool is_broadcast_channel(DialogId dialog_id) const;
 

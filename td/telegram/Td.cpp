@@ -4445,6 +4445,7 @@ void Td::init_managers() {
   inline_queries_manager_actor_ = register_actor("InlineQueriesManager", inline_queries_manager_.get());
   link_manager_ = make_unique<LinkManager>(this, create_reference());
   link_manager_actor_ = register_actor("LinkManager", link_manager_.get());
+  G()->set_link_manager(link_manager_actor_.get());
   messages_manager_ = make_unique<MessagesManager>(this, create_reference());
   messages_manager_actor_ = register_actor("MessagesManager", messages_manager_.get());
   G()->set_messages_manager(messages_manager_actor_.get());
@@ -5497,7 +5498,7 @@ void Td::on_request(uint64 id, td_api::getExternalLink &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.link_);
   CREATE_REQUEST_PROMISE();
-  messages_manager_->get_link_login_url(request.link_, request.allow_write_access_, std::move(promise));
+  link_manager_->get_link_login_url(request.link_, request.allow_write_access_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getChatHistory &request) {
@@ -7719,15 +7720,15 @@ void Td::on_request(uint64 id, const td_api::hideSuggestedAction &request) {
 void Td::on_request(uint64 id, const td_api::getLoginUrlInfo &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  messages_manager_->get_login_url_info(DialogId(request.chat_id_), MessageId(request.message_id_), request.button_id_,
-                                        std::move(promise));
+  link_manager_->get_login_url_info(DialogId(request.chat_id_), MessageId(request.message_id_), request.button_id_,
+                                    std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getLoginUrl &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  messages_manager_->get_login_url(DialogId(request.chat_id_), MessageId(request.message_id_), request.button_id_,
-                                   request.allow_write_access_, std::move(promise));
+  link_manager_->get_login_url(DialogId(request.chat_id_), MessageId(request.message_id_), request.button_id_,
+                               request.allow_write_access_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getInlineQueryResults &request) {
