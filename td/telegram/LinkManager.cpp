@@ -237,6 +237,7 @@ LinkManager::LinkInfo LinkManager::get_link_info(Slice link) {
   if (link.empty()) {
     return result;
   }
+  link.truncate(link.find('#'));
 
   bool is_tg = false;
   if (tolower_begins_with(link, "tg:")) {

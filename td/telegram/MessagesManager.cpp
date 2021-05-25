@@ -28,6 +28,7 @@
 #include "td/telegram/GroupCallParticipant.h"
 #include "td/telegram/InlineQueriesManager.h"
 #include "td/telegram/InputMessageText.h"
+#include "td/telegram/LinkManager.h"
 #include "td/telegram/Location.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessageContent.h"
@@ -17378,11 +17379,10 @@ Result<MessagesManager::MessageLinkInfo> MessagesManager::get_message_link_info(
   if (url.empty()) {
     return Status::Error("URL must be non-empty");
   }
-
-  url.truncate(url.find('#'));
-
-  string lower_cased_url = to_lower(url);
-  url = lower_cased_url;
+  auto link_info = LinkManager::get_link_info(url);
+  if (!link_info.is_internal_) {
+    return Status::Error("Invalid message link URL");
+  }
 
   Slice username;
   Slice channel_id_slice;
@@ -17390,12 +17390,7 @@ Result<MessagesManager::MessageLinkInfo> MessagesManager::get_message_link_info(
   Slice comment_message_id_slice = "0";
   bool is_single = false;
   bool for_comment = false;
-  if (begins_with(url, "tg:")) {
-    url = url.substr(3);
-    if (begins_with(url, "//")) {
-      url = url.substr(2);
-    }
-
+  if (link_info.is_tg_) {
     // resolve?domain=username&post=12345&single
     // privatepost?channel=123456789&msg_id=12345
 
@@ -17446,60 +17441,39 @@ Result<MessagesManager::MessageLinkInfo> MessagesManager::get_message_link_info(
       }
     }
   } else {
-    if (begins_with(url, "http://") || begins_with(url, "https://")) {
-      url = url.substr(url[4] == 's' ? 8 : 7);
+    // /c/123456789/12345
+    // /username/12345?single
+    auto username_end_pos = url.find('/');
+    if (username_end_pos == Slice::npos) {
+      return Status::Error("Wrong message link URL");
     }
-
-    // t.me/c/123456789/12345
-    // t.me/username/12345?single
-
-    vector<Slice> t_me_urls{Slice("t.me/"), Slice("telegram.me/"), Slice("telegram.dog/")};
-    string cur_t_me_url = G()->shared_config().get_option_string("t_me_url");
-    if (begins_with(cur_t_me_url, "http://") || begins_with(cur_t_me_url, "https://")) {
-      Slice t_me_url = cur_t_me_url;
-      t_me_url = t_me_url.substr(t_me_url[4] == 's' ? 8 : 7);
-      if (!td::contains(t_me_urls, t_me_url)) {
-        t_me_urls.push_back(t_me_url);
+    username = url.substr(0, username_end_pos);
+    url = url.substr(username_end_pos + 1);
+    if (username == "c") {
+      username = Slice();
+      auto channel_id_end_pos = url.find('/');
+      if (channel_id_end_pos == Slice::npos) {
+        return Status::Error("Wrong message link URL");
       }
+      channel_id_slice = url.substr(0, channel_id_end_pos);
+      url = url.substr(channel_id_end_pos + 1);
     }
 
-    for (auto t_me_url : t_me_urls) {
-      if (begins_with(url, t_me_url)) {
-        url = url.substr(t_me_url.size());
-        auto username_end_pos = url.find('/');
-        if (username_end_pos == Slice::npos) {
-          return Status::Error("Wrong message link URL");
+    auto query_pos = url.find('?');
+    message_id_slice = url.substr(0, query_pos);
+    if (query_pos != Slice::npos) {
+      auto args = full_split(url.substr(query_pos + 1), '&');
+      for (auto arg : args) {
+        auto key_value = split(arg, '=');
+        if (key_value.first == "single") {
+          is_single = true;
         }
-        username = url.substr(0, username_end_pos);
-        url = url.substr(username_end_pos + 1);
-        if (username == "c") {
-          username = Slice();
-          auto channel_id_end_pos = url.find('/');
-          if (channel_id_end_pos == Slice::npos) {
-            return Status::Error("Wrong message link URL");
-          }
-          channel_id_slice = url.substr(0, channel_id_end_pos);
-          url = url.substr(channel_id_end_pos + 1);
+        if (key_value.first == "comment") {
+          comment_message_id_slice = key_value.second;
         }
-
-        auto query_pos = url.find('?');
-        message_id_slice = url.substr(0, query_pos);
-        if (query_pos != Slice::npos) {
-          auto args = full_split(url.substr(query_pos + 1), '&');
-          for (auto arg : args) {
-            auto key_value = split(arg, '=');
-            if (key_value.first == "single") {
-              is_single = true;
-            }
-            if (key_value.first == "comment") {
-              comment_message_id_slice = key_value.second;
-            }
-            if (key_value.first == "thread") {
-              for_comment = true;
-            }
-          }
+        if (key_value.first == "thread") {
+          for_comment = true;
         }
-        break;
       }
     }
   }
