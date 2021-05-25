@@ -442,6 +442,12 @@ unique_ptr<LinkManager::InternalLink> LinkManager::get_internal_link_message_dra
   if (fix_formatted_text(full_text.text, full_text.entities, false, false, false, true).is_error()) {
     return nullptr;
   }
+  if (full_text.text[0] == '@') {
+    full_text.text = ' ' + full_text.text;
+    for (auto &entity : full_text.entities) {
+      entity.offset++;
+    }
+  }
   return td::make_unique<InternalLinkMessageDraft>(std::move(full_text), contains_url);
 }
 
