@@ -67,7 +67,12 @@ Result<HttpUrl> parse_url(Slice url, HttpUrl::Protocol default_protocol) {
   }
   Slice userinfo_host;
   if (colon > userinfo_host_port.begin() && *colon == ':') {
-    port = to_integer<int>(Slice(colon + 1, userinfo_host_port.end()));
+    auto r_port = to_integer_safe<int>(Slice(colon + 1, userinfo_host_port.end()));
+    if (r_port.is_error() || r_port.ok() == 0) {
+      port = -1;
+    } else {
+      port = r_port.ok();
+    }
     userinfo_host = Slice(userinfo_host_port.begin(), colon);
   } else {
     userinfo_host = userinfo_host_port;
@@ -131,7 +136,8 @@ Result<HttpUrl> parse_url(Slice url, HttpUrl::Protocol default_protocol) {
   for (size_t i = 0; i < host_str.size(); i++) {
     char c = host_str[i];
     if (is_ipv6) {
-      if (c == ':' || ('0' <= c && c <= '9') || ('a' <= c && c <= 'f') || c == '.') {
+      if (i == 0 || i + 1 == host_str.size() || c == ':' || ('0' <= c && c <= '9') || ('a' <= c && c <= 'f') ||
+          c == '.') {
         continue;
       }
       return Status::Error("Wrong IPv6 URL host");
