@@ -249,7 +249,7 @@ Result<string> LinkManager::check_link(Slice link) {
 
     Slice query(http_url.query_);
     CHECK(query[0] == '/');
-    if (query[1] == '?') {
+    if (query.size() > 1 && query[1] == '?') {
       query.remove_prefix(1);
     }
     return PSTRING() << (is_tg ? "tg" : "ton") << "://" << http_url.host_ << query;
