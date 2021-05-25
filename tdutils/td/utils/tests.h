@@ -18,12 +18,6 @@
 #include <functional>
 #include <utility>
 
-#define REGISTER_TESTS(x)                \
-  void TD_CONCAT(register_tests_, x)() { \
-  }
-#define DESC_TESTS(x) void TD_CONCAT(register_tests_, x)()
-#define LOAD_TESTS(x) TD_CONCAT(register_tests_, x)()
-
 namespace td {
 
 class RandomSteps {

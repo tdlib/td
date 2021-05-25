@@ -53,8 +53,6 @@
 #include <map>
 #include <memory>
 
-REGISTER_TESTS(secret);
-
 namespace my_api {
 
 using namespace td;

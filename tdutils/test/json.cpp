@@ -12,8 +12,6 @@
 
 #include <utility>
 
-REGISTER_TESTS(json)
-
 using namespace td;
 
 static void decode_encode(string str, string result = "") {

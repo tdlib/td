@@ -35,8 +35,6 @@
 #include <map>
 #include <memory>
 
-REGISTER_TESTS(db);
-
 using namespace td;
 
 template <class ContainerT>

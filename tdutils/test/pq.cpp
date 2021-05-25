@@ -18,8 +18,6 @@
 #include <limits>
 #include <utility>
 
-REGISTER_TESTS(pq)
-
 using namespace td;
 
 #if TD_HAVE_OPENSSL

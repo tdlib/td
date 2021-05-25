@@ -28,8 +28,6 @@
 #include <memory>
 #include <tuple>
 
-REGISTER_TESTS(actors_simple)
-
 namespace {
 using namespace td;
 

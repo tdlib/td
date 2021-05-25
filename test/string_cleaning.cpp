@@ -9,8 +9,6 @@
 #include "td/utils/Slice.h"
 #include "td/utils/tests.h"
 
-REGISTER_TESTS(string_cleaning);
-
 using namespace td;
 
 TEST(StringCleaning, clean_name) {

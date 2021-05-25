@@ -43,8 +43,6 @@
 #include "td/utils/tests.h"
 #include "td/utils/Time.h"
 
-REGISTER_TESTS(mtproto);
-
 using namespace td;
 
 TEST(Mtproto, GetHostByNameActor) {

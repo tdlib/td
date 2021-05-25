@@ -41,8 +41,6 @@
 #include <set>
 #include <utility>
 
-REGISTER_TESTS(tdclient);
-
 template <class T>
 static void check_td_error(T &result) {
   LOG_CHECK(result->get_id() != td::td_api::error::ID) << to_string(result);

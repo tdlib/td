@@ -46,8 +46,6 @@
 #include <condition_variable>
 #include <mutex>
 
-REGISTER_TESTS(http)
-
 using namespace td;
 
 static string make_chunked(string str) {

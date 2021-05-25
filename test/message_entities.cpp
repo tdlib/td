@@ -18,8 +18,6 @@
 
 #include <algorithm>
 
-REGISTER_TESTS(message_entities);
-
 static void check_mention(const td::string &str, const td::vector<td::string> &expected) {
   auto result_slice = td::find_mentions(str);
   td::vector<td::string> result;

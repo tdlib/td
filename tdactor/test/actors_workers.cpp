@@ -11,8 +11,6 @@
 
 #include "td/utils/SliceBuilder.h"
 
-REGISTER_TESTS(actors_workers);
-
 namespace {
 
 using namespace td;

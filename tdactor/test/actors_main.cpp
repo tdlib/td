@@ -22,8 +22,6 @@
 
 using namespace td;
 
-REGISTER_TESTS(actors_main);
-
 namespace {
 
 template <class ContainerT>

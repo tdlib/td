@@ -15,8 +15,6 @@
 #include <set>
 #include <utility>
 
-REGISTER_TESTS(heap)
-
 TEST(Heap, sort_random_perm) {
   int n = 1000000;
 
