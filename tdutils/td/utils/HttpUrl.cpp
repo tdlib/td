@@ -174,13 +174,20 @@ StringBuilder &operator<<(StringBuilder &sb, const HttpUrl &url) {
 }
 
 HttpUrlQuery parse_url_query(Slice query) {
+  if (!query.empty() && query[0] == '/') {
+    query.remove_prefix(1);
+  }
+
   size_t path_size = 0;
   while (path_size < query.size() && query[path_size] != '?' && query[path_size] != '#') {
     path_size++;
   }
 
   HttpUrlQuery result;
-  result.path_ = url_decode(query.substr(0, path_size), false);
+  result.path_ = full_split(url_decode(query.substr(0, path_size), false), '/');
+  if (!result.path_.empty() && result.path_.back().empty()) {
+    result.path_.pop_back();
+  }
 
   if (path_size < query.size() && query[path_size] == '?') {
     query = query.substr(path_size + 1);

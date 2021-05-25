@@ -45,7 +45,7 @@ StringBuilder &operator<<(StringBuilder &sb, const HttpUrl &url);
 
 class HttpUrlQuery {
  public:
-  string path_;
+  vector<string> path_;
   vector<std::pair<string, string>> args_;
 
   Slice get_arg(Slice key) const;

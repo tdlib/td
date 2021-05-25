@@ -29,23 +29,26 @@ TEST(HttpUrl, get_url_query_file_name) {
   }
 }
 
-static void test_parse_url_query(const td::string &query, const td::string &path,
+static void test_parse_url_query(const td::string &query, const td::vector<td::string> &path,
                                  const td::vector<std::pair<td::string, td::string>> &args) {
   for (auto hash : {"", "#", "#?t=1", "#t=1&a=b"}) {
     auto url_query = td::parse_url_query(query + hash);
-    ASSERT_STREQ(path, url_query.path_);
+    ASSERT_EQ(path, url_query.path_);
     ASSERT_EQ(args, url_query.args_);
   }
 }
 
 TEST(HttpUrl, parce_url_query) {
-  test_parse_url_query("", "", {});
-  test_parse_url_query("a", "a", {});
-  test_parse_url_query("/a/b/c/", "/a/b/c/", {});
-  test_parse_url_query("/a/b/?c/", "/a/b/", {{"c/", ""}});
-  test_parse_url_query("?", "", {});
-  test_parse_url_query("???", "", {{"??", ""}});
-  test_parse_url_query("?a=b=c=d?e=f=g=h&x=y=z?d=3&", "", {{"a", "b=c=d?e=f=g=h"}, {"x", "y=z?d=3"}});
-  test_parse_url_query("c?&&&a=b", "c", {{"a", "b"}});
-  test_parse_url_query("c?&&&=b", "c", {});
+  test_parse_url_query("", {}, {});
+  test_parse_url_query("a", {"a"}, {});
+  test_parse_url_query("/", {}, {});
+  test_parse_url_query("//", {""}, {});
+  test_parse_url_query("///?a", {td::string(), td::string()}, {{"a", ""}});
+  test_parse_url_query("/a/b/c/", {"a", "b", "c"}, {});
+  test_parse_url_query("/a/b/?c/", {td::string("a"), td::string("b")}, {{"c/", ""}});
+  test_parse_url_query("?", {}, {});
+  test_parse_url_query("???", {}, {{"??", ""}});
+  test_parse_url_query("?a=b=c=d?e=f=g=h&x=y=z?d=3&", {}, {{"a", "b=c=d?e=f=g=h"}, {"x", "y=z?d=3"}});
+  test_parse_url_query("c?&&&a=b", {"c"}, {{"a", "b"}});
+  test_parse_url_query("c?&&&=b", {"c"}, {});
 }
