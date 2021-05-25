@@ -10,6 +10,7 @@
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
@@ -34,7 +35,7 @@ class LinkManager::InternalLinkBackground : public InternalLink {
   }
 
  public:
-  explicit InternalLinkBackground(string background_name) : background_name_(background_name) {
+  explicit InternalLinkBackground(string background_name) : background_name_(std::move(background_name)) {
   }
 };
 
@@ -45,6 +46,24 @@ class LinkManager::InternalLinkMessage : public InternalLink {
 
   InternalLinkType get_type() const final {
     return InternalLinkType::Message;
+  }
+};
+
+class LinkManager::InternalLinkMessageDraft : public InternalLink {
+  FormattedText text_;
+  bool contains_link_ = false;
+
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeMessageDraft>(get_formatted_text_object(text_), contains_link_);
+  }
+
+  InternalLinkType get_type() const final {
+    return InternalLinkType::MessageDraft;
+  }
+
+ public:
+  InternalLinkMessageDraft(FormattedText &&text, bool contains_link)
+      : text_(std::move(text)), contains_link_(contains_link) {
   }
 };
 
@@ -283,8 +302,14 @@ LinkManager::LinkInfo LinkManager::get_link_info(Slice link) {
       }
     }
 
+    // host is already lowercased
+    Slice host = http_url.host_;
+    if (begins_with(host, "www.")) {
+      host.remove_prefix(4);
+    }
+
     for (auto t_me_url : t_me_urls) {
-      if (http_url.host_ == t_me_url) {
+      if (host == t_me_url) {
         result.is_internal_ = true;
         result.is_tg_ = false;
         result.query_ = http_url.query_;
@@ -347,6 +372,10 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
                                                                << copy_arg("mode") << copy_arg("intensity")
                                                                << copy_arg("bg_color") << copy_arg("rotation"));
     }
+  } else if (path.size() == 1 && (path[0] == "share" || path[0] == "msg" || path[0] == "msg_url")) {
+    // msg_url?url=<url>
+    // msg_url?url=<url>&text=<text>
+    return get_internal_link_message_draft(url_query.get_arg("url"), url_query.get_arg("text"));
   }
   return nullptr;
 }
@@ -365,11 +394,42 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
     // /bg/<background_name>?mode=blur+motion
     // /bg/<pattern_name>?intensity=...&bg_color=...&mode=blur+motion
     return td::make_unique<InternalLinkBackground>(query.substr(4).str());
+  } else if (path.size() >= 1 && (path[0] == "share" || path[0] == "msg") &&
+             (path.size() == 1 || (path[1] != "bookmarklet" && path[1] != "embed"))) {
+    // /share?url=<url>
+    // /share/url?url=<url>&text=<text>
+    return get_internal_link_message_draft(url_query.get_arg("url"), url_query.get_arg("text"));
   } else if (path.size() == 2 && !path[0].empty()) {
     // /<username>/12345?single
     return td::make_unique<InternalLinkMessage>();
   }
   return nullptr;
+}
+
+unique_ptr<LinkManager::InternalLink> LinkManager::get_internal_link_message_draft(Slice url, Slice text) {
+  if (url.empty() && text.empty()) {
+    return nullptr;
+  }
+  while (!text.empty() && text.back() == '\n') {
+    text.remove_suffix(1);
+  }
+  url = trim(url);
+  if (url.empty()) {
+    url = text;
+    text = Slice();
+  }
+  FormattedText full_text;
+  bool contains_url = false;
+  if (!text.empty()) {
+    contains_url = true;
+    full_text.text = PSTRING() << url << '\n' << text;
+  } else {
+    full_text.text = url.str();
+  }
+  if (fix_formatted_text(full_text.text, full_text.entities, false, false, false, true).is_error()) {
+    return nullptr;
+  }
+  return td::make_unique<InternalLinkMessageDraft>(std::move(full_text), contains_url);
 }
 
 void LinkManager::get_login_url_info(DialogId dialog_id, MessageId message_id, int32 button_id,

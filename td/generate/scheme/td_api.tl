@@ -3006,6 +3006,10 @@ internalLinkTypeBackground background_name:string = InternalLinkType;
 //@description The link is a link to a Telegram message. Call getMessageLinkInfo to process the link
 internalLinkTypeMessage = InternalLinkType;
 
+//@description The link contains a message draft text. A share screen needs to be shown to the user, then the chosen chat should be open and the text should be added to the input field
+//@text Message draft text @contains_link True, if the first line of the text contains a link. If true, the input field needs to be focused and the text after the link should be selected
+internalLinkTypeMessageDraft text:formattedText contains_link:Bool = InternalLinkType;
+
 
 //@description Contains an HTTPS link to a message in a supergroup or channel @link Message link @is_public True, if the link will work for non-members of the chat
 messageLink link:string is_public:Bool = MessageLink;
