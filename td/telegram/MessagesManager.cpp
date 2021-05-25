@@ -17457,7 +17457,7 @@ Result<MessagesManager::MessageLinkInfo> MessagesManager::get_message_link_info(
     string cur_t_me_url = G()->shared_config().get_option_string("t_me_url");
     if (begins_with(cur_t_me_url, "http://") || begins_with(cur_t_me_url, "https://")) {
       Slice t_me_url = cur_t_me_url;
-      t_me_url = t_me_url.substr(url[4] == 's' ? 8 : 7);
+      t_me_url = t_me_url.substr(t_me_url[4] == 's' ? 8 : 7);
       if (!td::contains(t_me_urls, t_me_url)) {
         t_me_urls.push_back(t_me_url);
       }

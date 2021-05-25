@@ -6,18 +6,47 @@
 //
 #include "td/telegram/LinkManager.h"
 
+#include "td/telegram/ChannelId.h"
+#include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/HttpUrl.h"
 #include "td/utils/logging.h"
 #include "td/utils/SliceBuilder.h"
 
 namespace td {
+
+class LinkManager::InternalLinkBackground : public InternalLink {
+  string background_name_;
+
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeBackground>(background_name_);
+  }
+
+  InternalLinkType get_type() const final {
+    return InternalLinkType::Background;
+  }
+
+ public:
+  explicit InternalLinkBackground(string background_name) : background_name_(background_name) {
+  }
+};
+
+class LinkManager::InternalLinkMessage : public InternalLink {
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeMessage>();
+  }
+
+  InternalLinkType get_type() const final {
+    return InternalLinkType::Message;
+  }
+};
 
 class RequestUrlAuthQuery : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::LoginUrlInfo>> promise_;
@@ -201,6 +230,145 @@ Result<string> LinkManager::check_link(Slice link) {
     return Status::Error("Wrong HTTP URL");
   }
   return http_url.get_url();
+}
+
+LinkManager::LinkInfo LinkManager::get_link_info(Slice link) {
+  LinkInfo result;
+  if (link.empty()) {
+    return result;
+  }
+
+  bool is_tg = false;
+  if (tolower_begins_with(link, "tg:")) {
+    link.remove_prefix(3);
+    if (begins_with(link, "//")) {
+      link.remove_prefix(2);
+    }
+    is_tg = true;
+  }
+
+  auto r_http_url = parse_url(link);
+  if (r_http_url.is_error()) {
+    return result;
+  }
+  auto http_url = r_http_url.move_as_ok();
+
+  if (!http_url.userinfo_.empty() || http_url.is_ipv6_) {
+    return result;
+  }
+
+  if (is_tg) {
+    if (tolower_begins_with(link, "http://") || http_url.protocol_ == HttpUrl::Protocol::Https ||
+        http_url.specified_port_ != 0) {
+      return result;
+    }
+
+    result.is_internal_ = true;
+    result.is_tg_ = true;
+    result.query_ = link;
+    return result;
+  } else {
+    if (http_url.port_ != 80 && http_url.port_ != 443) {
+      return result;
+    }
+
+    vector<Slice> t_me_urls{Slice("t.me"), Slice("telegram.me"), Slice("telegram.dog")};
+    string cur_t_me_url = G()->shared_config().get_option_string("t_me_url");
+    if (tolower_begins_with(cur_t_me_url, "http://") || tolower_begins_with(cur_t_me_url, "https://")) {
+      Slice t_me_url = cur_t_me_url;
+      t_me_url = t_me_url.substr(t_me_url[4] == 's' ? 8 : 7);
+      if (!td::contains(t_me_urls, t_me_url)) {
+        t_me_urls.push_back(t_me_url);
+      }
+    }
+
+    for (auto t_me_url : t_me_urls) {
+      if (http_url.host_ == t_me_url) {
+        result.is_internal_ = true;
+        result.is_tg_ = false;
+        result.query_ = http_url.query_;
+        return result;
+      }
+    }
+  }
+  return result;
+}
+
+unique_ptr<LinkManager::InternalLink> LinkManager::parse_internal_link(Slice link) {
+  auto info = get_link_info(link);
+  if (!info.is_internal_) {
+    return nullptr;
+  }
+  if (info.is_tg_) {
+    return parse_tg_link_query(info.query_);
+  } else {
+    return parse_t_me_link_query(info.query_);
+  }
+}
+
+unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice query) {
+  const auto url_query = parse_url_query(query);
+  const auto &path = url_query.path_;
+
+  auto copy_arg = [&](Slice name) {
+    auto arg = url_query.get_arg(name);
+    if (arg.empty()) {
+      return string();
+    }
+    return PSTRING() << name << '=' << url_encode(arg);
+  };
+
+  if (path.size() == 1 && path[0] == "resolve") {
+    // resolve?domain=username&post=12345&single
+    if (!url_query.get_arg("domain").empty() && !url_query.get_arg("post").empty()) {
+      return td::make_unique<InternalLinkMessage>();
+    }
+  } else if (path.size() == 1 && path[0] == "privatepost") {
+    // privatepost?channel=123456789&msg_id=12345
+    if (!url_query.get_arg("channel").empty() && !url_query.get_arg("msg_id").empty()) {
+      return td::make_unique<InternalLinkMessage>();
+    }
+  } else if (path.size() == 1 && path[0] == "bg") {
+    // bg?color=<color>
+    // bg?gradient=<hex_color>-<hex_color>&rotation=...
+    // bg?gradient=<hex_color>~<hex_color>~<hex_color>~<hex_color>
+    // bg?slug=<background_name>&mode=blur+motion
+    // bg?slug=<pattern_name>&intensity=...&bg_color=...&mode=blur+motion
+    if (!url_query.get_arg("color").empty()) {
+      return td::make_unique<InternalLinkBackground>(url_query.get_arg("color").str());
+    }
+    if (!url_query.get_arg("gradient").empty()) {
+      return td::make_unique<InternalLinkBackground>(PSTRING() << url_encode(url_query.get_arg("gradient")) << '?'
+                                                               << copy_arg("rotation"));
+    }
+    if (!url_query.get_arg("slug").empty()) {
+      return td::make_unique<InternalLinkBackground>(PSTRING() << url_encode(url_query.get_arg("slug")) << '?'
+                                                               << copy_arg("mode") << copy_arg("intensity")
+                                                               << copy_arg("bg_color") << copy_arg("rotation"));
+    }
+  }
+  return nullptr;
+}
+
+unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice query) {
+  CHECK(query[0] == '/');
+  const auto url_query = parse_url_query(query);
+  const auto &path = url_query.path_;
+  if (path.size() == 3 && path[0] == "c") {
+    // /c/123456789/12345
+    return td::make_unique<InternalLinkMessage>();
+  } else if (path.size() == 2 && path[0] == "bg") {
+    // /bg/<hex_color>
+    // /bg/<hex_color>-<hex_color>?rotation=...
+    // /bg/<hex_color>~<hex_color>~<hex_color>~<hex_color>
+    // /bg/<background_name>?mode=blur+motion
+    // /bg/<pattern_name>?intensity=...&bg_color=...&mode=blur+motion
+    return td::make_unique<InternalLinkBackground>(query.substr(4).str());
+  } else if (path.size() == 2 && !path[0].empty()) {
+    // /<username>/12345?single
+    return td::make_unique<InternalLinkMessage>();
+  }
+  return nullptr;
 }
 
 void LinkManager::get_login_url_info(DialogId dialog_id, MessageId message_id, int32 button_id,

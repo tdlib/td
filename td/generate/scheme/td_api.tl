@@ -2998,6 +2998,15 @@ chatReportReasonFake = ChatReportReason;
 chatReportReasonCustom = ChatReportReason;
 
 
+//@class InternalLinkType @description Describes an internal t.me or tg: link, which must be processed by the app in a special way
+
+//@description The link is a link to a background. Call searchBackground with a given background name to process the link @background_name Name of the background
+internalLinkTypeBackground background_name:string = InternalLinkType;
+
+//@description The link is a link to a Telegram message. Call getMessageLinkInfo to process the link
+internalLinkTypeMessage = InternalLinkType;
+
+
 //@description Contains an HTTPS link to a message in a supergroup or channel @link Message link @is_public True, if the link will work for non-members of the chat
 messageLink link:string is_public:Bool = MessageLink;
 
