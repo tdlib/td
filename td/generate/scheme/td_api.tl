@@ -3010,6 +3010,10 @@ internalLinkTypeMessage = InternalLinkType;
 //@text Message draft text @contains_link True, if the first line of the text contains a link. If true, the input field needs to be focused and the text after the link should be selected
 internalLinkTypeMessageDraft text:formattedText contains_link:Bool = InternalLinkType;
 
+//@description The link is an unknown tg: link. Call getDeepLinkInfo to process the link
+internalLinkTypeUnknownDeepLink = InternalLinkType;
+
+
 
 //@description Contains an HTTPS link to a message in a supergroup or channel @link Message link @is_public True, if the link will work for non-members of the chat
 messageLink link:string is_public:Bool = MessageLink;

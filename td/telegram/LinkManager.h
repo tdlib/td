@@ -33,7 +33,7 @@ class LinkManager : public Actor {
   LinkManager &operator=(LinkManager &&) = delete;
   ~LinkManager() override;
 
-  enum class InternalLinkType : int32 { Background, Message, MessageDraft };
+  enum class InternalLinkType : int32 { Background, Message, MessageDraft, UnknownDeepLink };
 
   class InternalLink {
    public:
@@ -80,6 +80,7 @@ class LinkManager : public Actor {
   class InternalLinkBackground;
   class InternalLinkMessage;
   class InternalLinkMessageDraft;
+  class InternalLinkUnknownDeepLink;
 
   static unique_ptr<InternalLink> parse_tg_link_query(Slice query);
 
