@@ -2957,14 +2957,14 @@ class GetBackgroundsRequest : public RequestOnceActor {
 class SearchBackgroundRequest : public RequestActor<> {
   string name_;
 
-  BackgroundId background_id_;
+  std::pair<BackgroundId, BackgroundType> background_;
 
   void do_run(Promise<Unit> &&promise) override {
-    background_id_ = td->background_manager_->search_background(name_, std::move(promise));
+    background_ = td->background_manager_->search_background(name_, std::move(promise));
   }
 
   void do_send_result() override {
-    send_result(td->background_manager_->get_background_object(background_id_, false));
+    send_result(td->background_manager_->get_background_object(background_.first, false, &background_.second));
   }
 
  public:

@@ -6,6 +6,7 @@
 //
 #include "td/telegram/BackgroundType.h"
 
+#include "td/utils/HttpUrl.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Slice.h"
@@ -138,23 +139,28 @@ Result<BackgroundFill> BackgroundFill::get_background_fill(Slice name) {
     return static_cast<int32>(r_color.ok());
   };
 
+  size_t hyphen_pos = name.find('-');
   if (name.find('~') < name.size()) {
     vector<Slice> color_strings = full_split(name, '~');
-    if (color_strings.size() != 4 && color_strings.size() != 3) {
-      return Status::Error(400, "WALLPAPER_INVALID");
-    }
+    CHECK(color_strings.size() >= 2);
+    if (color_strings.size() == 2) {
+      hyphen_pos = color_strings[0].size();
+    } else {
+      if (color_strings.size() > 4) {
+        return Status::Error(400, "WALLPAPER_INVALID");
+      }
 
-    TRY_RESULT(first_color, get_color(color_strings[0]));
-    TRY_RESULT(second_color, get_color(color_strings[1]));
-    TRY_RESULT(third_color, get_color(color_strings[2]));
-    int32 fourth_color = -1;
-    if (color_strings.size() == 4) {
-      TRY_RESULT_ASSIGN(fourth_color, get_color(color_strings[3]));
+      TRY_RESULT(first_color, get_color(color_strings[0]));
+      TRY_RESULT(second_color, get_color(color_strings[1]));
+      TRY_RESULT(third_color, get_color(color_strings[2]));
+      int32 fourth_color = -1;
+      if (color_strings.size() == 4) {
+        TRY_RESULT_ASSIGN(fourth_color, get_color(color_strings[3]));
+      }
+      return BackgroundFill(first_color, second_color, third_color, fourth_color);
     }
-    return BackgroundFill(first_color, second_color, third_color, fourth_color);
   }
 
-  size_t hyphen_pos = name.find('-');
   if (hyphen_pos < name.size()) {
     TRY_RESULT(top_color, get_color(name.substr(0, hyphen_pos)));
     TRY_RESULT(bottom_color, get_color(name.substr(hyphen_pos + 1)));
@@ -179,14 +185,9 @@ static string get_background_fill_color_hex_string(const BackgroundFill &fill, b
   switch (fill.get_type()) {
     case BackgroundFill::Type::Solid:
       return get_color_hex_string(fill.top_color);
-    case BackgroundFill::Type::Gradient: {
-      string colors = PSTRING() << get_color_hex_string(fill.top_color) << '-'
-                                << get_color_hex_string(fill.bottom_color);
-      if (fill.rotation_angle != 0) {
-        colors += (PSTRING() << (is_first ? '?' : '&') << "rotation=" << fill.rotation_angle);
-      }
-      return colors;
-    }
+    case BackgroundFill::Type::Gradient:
+      return PSTRING() << get_color_hex_string(fill.top_color) << '-' << get_color_hex_string(fill.bottom_color)
+                       << (is_first ? '?' : '&') << "rotation=" << fill.rotation_angle;
     case BackgroundFill::Type::FreeformGradient: {
       SliceBuilder sb;
       sb << get_color_hex_string(fill.top_color) << '~' << get_color_hex_string(fill.bottom_color) << '~'
@@ -255,6 +256,42 @@ bool operator==(const BackgroundFill &lhs, const BackgroundFill &rhs) {
   return lhs.top_color == rhs.top_color && lhs.bottom_color == rhs.bottom_color &&
          lhs.rotation_angle == rhs.rotation_angle && lhs.third_color == rhs.third_color &&
          lhs.fourth_color == rhs.fourth_color;
+}
+
+void BackgroundType::apply_parameters_from_link(Slice name) {
+  const auto query = parse_url_query(name);
+
+  is_blurred = false;
+  is_moving = false;
+  auto modes = full_split(query.get_arg("mode"), ' ');
+  for (auto &mode : modes) {
+    if (type != Type::Pattern && to_lower(mode) == "blur") {
+      is_blurred = true;
+    }
+    if (to_lower(mode) == "motion") {
+      is_moving = true;
+    }
+  }
+
+  if (type == Type::Pattern) {
+    intensity = -1;
+    auto intensity_arg = query.get_arg("intensity");
+    if (!intensity_arg.empty()) {
+      intensity = to_integer<int32>(intensity_arg);
+    }
+    if (!is_valid_intensity(intensity)) {
+      intensity = 50;
+    }
+
+    auto bg_color = query.get_arg("bg_color");
+    if (!bg_color.empty()) {
+      auto r_fill = BackgroundFill::get_background_fill(
+          PSLICE() << url_encode(bg_color) << "?rotation=" << url_encode(query.get_arg("rotation")));
+      if (r_fill.is_ok()) {
+        fill = r_fill.move_as_ok();
+      }
+    }
+  }
 }
 
 string BackgroundType::get_link() const {

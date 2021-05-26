@@ -78,6 +78,8 @@ struct BackgroundType {
     return type == Type::Wallpaper || type == Type::Pattern;
   }
 
+  void apply_parameters_from_link(Slice name);
+
   string get_link() const;
 };
 

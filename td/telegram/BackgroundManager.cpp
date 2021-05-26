@@ -397,46 +397,55 @@ static bool is_background_name_local(Slice name) {
   return name.size() <= 13u || name.find('?') <= 13u || !is_base64url_characters(name.substr(0, name.find('?')));
 }
 
-BackgroundId BackgroundManager::search_background(const string &name, Promise<Unit> &&promise) {
-  auto it = name_to_background_id_.find(name);
+std::pair<BackgroundId, BackgroundType> BackgroundManager::search_background(const string &name,
+                                                                             Promise<Unit> &&promise) {
+  auto params_pos = name.find('?');
+  string slug = params_pos >= name.size() ? name : name.substr(0, params_pos);
+  auto it = name_to_background_id_.find(slug);
   if (it != name_to_background_id_.end()) {
+    CHECK(!is_background_name_local(slug));
+
+    const auto *background = get_background(it->second);
+    CHECK(background != nullptr);
     promise.set_value(Unit());
-    return it->second;
+    BackgroundType type = background->type;
+    type.apply_parameters_from_link(name);
+    return {it->second, std::move(type)};
   }
 
-  if (name.empty()) {
+  if (slug.empty()) {
     promise.set_error(Status::Error(400, "Background name must be non-empty"));
-    return BackgroundId();
+    return {};
   }
 
-  if (is_background_name_local(name)) {
+  if (is_background_name_local(slug)) {
     auto r_fill = BackgroundFill::get_background_fill(name);
     if (r_fill.is_error()) {
       promise.set_error(r_fill.move_as_error());
-      return BackgroundId();
+      return {};
     }
     auto background_id = add_fill_background(r_fill.ok());
     promise.set_value(Unit());
-    return background_id;
+    return {background_id, BackgroundType(r_fill.ok())};
   }
 
-  if (G()->parameters().use_file_db && loaded_from_database_backgrounds_.count(name) == 0) {
-    auto &queries = being_loaded_from_database_backgrounds_[name];
+  if (G()->parameters().use_file_db && loaded_from_database_backgrounds_.count(slug) == 0) {
+    auto &queries = being_loaded_from_database_backgrounds_[slug];
     queries.push_back(std::move(promise));
     if (queries.size() == 1) {
-      LOG(INFO) << "Trying to load background " << name << " from database";
+      LOG(INFO) << "Trying to load background " << slug << " from database";
       G()->td_db()->get_sqlite_pmc()->get(
-          get_background_name_database_key(name), PromiseCreator::lambda([name](string value) {
+          get_background_name_database_key(slug), PromiseCreator::lambda([slug](string value) {
             send_closure(G()->background_manager(), &BackgroundManager::on_load_background_from_database,
-                         std::move(name), std::move(value));
+                         std::move(slug), std::move(value));
           }));
     }
-    return BackgroundId();
+    return {};
   }
 
-  reload_background_from_server(BackgroundId(), name, telegram_api::make_object<telegram_api::inputWallPaperSlug>(name),
+  reload_background_from_server(BackgroundId(), slug, telegram_api::make_object<telegram_api::inputWallPaperSlug>(slug),
                                 std::move(promise));
-  return BackgroundId();
+  return {};
 }
 
 void BackgroundManager::on_load_background_from_database(string name, string value) {
@@ -581,7 +590,7 @@ BackgroundId BackgroundManager::set_background(const td_api::InputBackground *in
 BackgroundId BackgroundManager::set_background(BackgroundId background_id, const BackgroundType &type,
                                                bool for_dark_theme, Promise<Unit> &&promise) {
   LOG(INFO) << "Set " << background_id << " with " << type;
-  auto *background = get_background(background_id);
+  const auto *background = get_background(background_id);
   if (background == nullptr) {
     promise.set_error(Status::Error(400, "Background to set not found"));
     return BackgroundId();
@@ -721,7 +730,7 @@ void BackgroundManager::on_uploaded_background_file(FileId file_id, const Backgr
     return promise.set_error(Status::Error(500, "Receive wrong uploaded background"));
   }
 
-  auto background = get_background(background_id);
+  const auto *background = get_background(background_id);
   CHECK(background != nullptr);
   if (!background->file_id.is_valid()) {
     td_->file_manager_->cancel_upload(file_id);
@@ -733,7 +742,7 @@ void BackgroundManager::on_uploaded_background_file(FileId file_id, const Backgr
 }
 
 void BackgroundManager::remove_background(BackgroundId background_id, Promise<Unit> &&promise) {
-  auto background = get_background(background_id);
+  const auto *background = get_background(background_id);
   if (background == nullptr) {
     return promise.set_error(Status::Error(400, "Background not found"));
   }
@@ -1001,18 +1010,21 @@ void BackgroundManager::on_get_backgrounds(Result<telegram_api::object_ptr<teleg
 }
 
 td_api::object_ptr<td_api::background> BackgroundManager::get_background_object(BackgroundId background_id,
-                                                                                bool for_dark_theme) const {
-  auto background = get_background(background_id);
+                                                                                bool for_dark_theme,
+                                                                                const BackgroundType *type) const {
+  const auto *background = get_background(background_id);
   if (background == nullptr) {
     return nullptr;
   }
-  auto type = &background->type;
-  // first check another set_background_id to get correct type if both backgrounds are the same
-  if (background_id == set_background_id_[1 - static_cast<int>(for_dark_theme)]) {
-    type = &set_background_type_[1 - static_cast<int>(for_dark_theme)];
-  }
-  if (background_id == set_background_id_[for_dark_theme]) {
-    type = &set_background_type_[for_dark_theme];
+  if (type == nullptr) {
+    type = &background->type;
+    // first check another set_background_id to get correct type if both backgrounds are the same
+    if (background_id == set_background_id_[1 - static_cast<int>(for_dark_theme)]) {
+      type = &set_background_type_[1 - static_cast<int>(for_dark_theme)];
+    }
+    if (background_id == set_background_id_[for_dark_theme]) {
+      type = &set_background_type_[for_dark_theme];
+    }
   }
   return td_api::make_object<td_api::background>(
       background->id.get(), background->is_default, background->is_dark, background->name,

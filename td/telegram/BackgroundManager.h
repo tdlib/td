@@ -40,7 +40,7 @@ class BackgroundManager : public Actor {
 
   void reload_background(BackgroundId background_id, int64 access_hash, Promise<Unit> &&promise);
 
-  BackgroundId search_background(const string &name, Promise<Unit> &&promise);
+  std::pair<BackgroundId, BackgroundType> search_background(const string &name, Promise<Unit> &&promise);
 
   BackgroundId set_background(const td_api::InputBackground *input_background,
                               const td_api::BackgroundType *background_type, bool for_dark_theme,
@@ -50,7 +50,8 @@ class BackgroundManager : public Actor {
 
   void reset_backgrounds(Promise<Unit> &&promise);
 
-  td_api::object_ptr<td_api::background> get_background_object(BackgroundId background_id, bool for_dark_theme) const;
+  td_api::object_ptr<td_api::background> get_background_object(BackgroundId background_id, bool for_dark_theme,
+                                                               const BackgroundType *type = nullptr) const;
 
   td_api::object_ptr<td_api::backgrounds> get_backgrounds_object(bool for_dark_theme) const;
 
