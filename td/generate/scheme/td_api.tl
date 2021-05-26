@@ -3000,7 +3000,10 @@ chatReportReasonCustom = ChatReportReason;
 
 //@class InternalLinkType @description Describes an internal t.me or tg: link, which must be processed by the app in a special way
 
-//@description The link is a link to a background. Call searchBackground with a given background name to process the link @background_name Name of the background
+//@description The link contains an authentication code. Call checkAuthenticationCode with the code if the current authorization state is authorizationStateWaitCode @code The authentication code
+internalLinkTypeAuthenticationCode code:string = InternalLinkType;
+
+//@description The link is a link to a background. Call searchBackground with the given background name to process the link @background_name Name of the background
 internalLinkTypeBackground background_name:string = InternalLinkType;
 
 //@description The link is a link to a Telegram message. Call getMessageLinkInfo to process the link

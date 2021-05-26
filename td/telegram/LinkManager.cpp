@@ -23,6 +23,22 @@
 
 namespace td {
 
+class LinkManager::InternalLinkAuthenticationCode : public InternalLink {
+  string code_;
+
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeAuthenticationCode>(code_);
+  }
+
+  InternalLinkType get_type() const final {
+    return InternalLinkType::AuthenticationCode;
+  }
+
+ public:
+  explicit InternalLinkAuthenticationCode(string code) : code_(std::move(code)) {
+  }
+};
+
 class LinkManager::InternalLinkBackground : public InternalLink {
   string background_name_;
 
@@ -303,7 +319,7 @@ LinkManager::LinkInfo LinkManager::get_link_info(Slice link) {
     }
 
     vector<Slice> t_me_urls{Slice("t.me"), Slice("telegram.me"), Slice("telegram.dog")};
-    if (Scheduler::context() != nullptr) {
+    if (Scheduler::context() != nullptr) {  // for tests only
       string cur_t_me_url = G()->shared_config().get_option_string("t_me_url");
       if (tolower_begins_with(cur_t_me_url, "http://") || tolower_begins_with(cur_t_me_url, "https://")) {
         Slice t_me_url = cur_t_me_url;
@@ -386,6 +402,11 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     if (has_arg("domain") && has_arg("post")) {
       return td::make_unique<InternalLinkMessage>();
     }
+  } else if (path.size() == 1 && path[0] == "login") {
+    // login?code=123456
+    if (has_arg("code")) {
+      return td::make_unique<InternalLinkAuthenticationCode>(get_arg("code"));
+    }
   } else if (path.size() == 1 && path[0] == "privatepost") {
     // privatepost?channel=123456789&msg_id=12345
     if (has_arg("channel") && has_arg("msg_id")) {
@@ -439,6 +460,11 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
     if (path.size() >= 3 && to_integer<int64>(path[1]) > 0 && to_integer<int64>(path[2]) > 0) {
       // /c/123456789/12345
       return td::make_unique<InternalLinkMessage>();
+    }
+  } else if (path[0] == "login") {
+    if (path.size() >= 2 && !path[1].empty()) {
+      // /login/<code>
+      return td::make_unique<InternalLinkAuthenticationCode>(path[1]);
     }
   } else if (path[0] == "bg") {
     if (path.size() >= 2 && !path[1].empty()) {

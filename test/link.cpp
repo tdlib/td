@@ -64,6 +64,9 @@ static void parse_internal_link(td::string url, td::td_api::object_ptr<td::td_ap
 }
 
 TEST(Link, parse_internal_link) {
+  auto authentication_code = [](td::string code) {
+    return td::td_api::make_object<td::td_api::internalLinkTypeAuthenticationCode>(code);
+  };
   auto background = [](td::string background_name) {
     return td::td_api::make_object<td::td_api::internalLinkTypeBackground>(background_name);
   };
@@ -219,4 +222,23 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("https://t.me/msg?url=&text=@", message_draft(" @", false));
   parse_internal_link("https://t.me/msg?url=@&text=@", message_draft(" @\n@", true));
   parse_internal_link("https://t.me/msg?url=%FF&text=1", nullptr);
+
+  parse_internal_link("tg:login?codec=12345", unknown_deep_link());
+  parse_internal_link("tg:login", unknown_deep_link());
+  parse_internal_link("tg:login?code=abacaba", authentication_code("abacaba"));
+  parse_internal_link("tg:login?code=123456", authentication_code("123456"));
+
+  parse_internal_link("t.me/login?codec=12345", nullptr);
+  parse_internal_link("t.me/login", nullptr);
+  parse_internal_link("t.me/login/", nullptr);
+  parse_internal_link("t.me/login//12345", nullptr);
+  parse_internal_link("t.me/login?/12345", nullptr);
+  parse_internal_link("t.me/login/?12345", nullptr);
+  parse_internal_link("t.me/login/#12345", nullptr);
+  parse_internal_link("t.me/login/abacaba", authentication_code("abacaba"));
+  parse_internal_link("t.me/login/aba%20aba", authentication_code("aba aba"));
+  parse_internal_link("t.me/login/123456a", authentication_code("123456a"));
+  parse_internal_link("t.me/login/12345678901", authentication_code("12345678901"));
+  parse_internal_link("t.me/login/123456", authentication_code("123456"));
+  parse_internal_link("t.me/login/123456/123123/12/31/a/s//21w/?asdas#test", authentication_code("123456"));
 }

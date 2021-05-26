@@ -33,7 +33,7 @@ class LinkManager : public Actor {
   LinkManager &operator=(LinkManager &&) = delete;
   ~LinkManager() override;
 
-  enum class InternalLinkType : int32 { Background, Message, MessageDraft, UnknownDeepLink };
+  enum class InternalLinkType : int32 { AuthenticationCode, Background, Message, MessageDraft, UnknownDeepLink };
 
   class InternalLink {
    public:
@@ -77,6 +77,7 @@ class LinkManager : public Actor {
  private:
   void tear_down() override;
 
+  class InternalLinkAuthenticationCode;
   class InternalLinkBackground;
   class InternalLinkMessage;
   class InternalLinkMessageDraft;
