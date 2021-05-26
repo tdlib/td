@@ -55,7 +55,7 @@ class LinkManager : public Actor {
   struct LinkInfo {
     bool is_internal_ = false;
     bool is_tg_ = false;
-    Slice query_;
+    string query_;
   };
   // returns information about the link
   static LinkInfo get_link_info(Slice link);

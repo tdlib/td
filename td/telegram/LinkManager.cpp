@@ -295,7 +295,7 @@ LinkManager::LinkInfo LinkManager::get_link_info(Slice link) {
 
     result.is_internal_ = true;
     result.is_tg_ = true;
-    result.query_ = link;
+    result.query_ = link.str();
     return result;
   } else {
     if (http_url.port_ != 80 && http_url.port_ != 443) {
@@ -303,26 +303,28 @@ LinkManager::LinkInfo LinkManager::get_link_info(Slice link) {
     }
 
     vector<Slice> t_me_urls{Slice("t.me"), Slice("telegram.me"), Slice("telegram.dog")};
-    string cur_t_me_url = G()->shared_config().get_option_string("t_me_url");
-    if (tolower_begins_with(cur_t_me_url, "http://") || tolower_begins_with(cur_t_me_url, "https://")) {
-      Slice t_me_url = cur_t_me_url;
-      t_me_url = t_me_url.substr(t_me_url[4] == 's' ? 8 : 7);
-      if (!td::contains(t_me_urls, t_me_url)) {
-        t_me_urls.push_back(t_me_url);
+    if (Scheduler::context() != nullptr) {
+      string cur_t_me_url = G()->shared_config().get_option_string("t_me_url");
+      if (tolower_begins_with(cur_t_me_url, "http://") || tolower_begins_with(cur_t_me_url, "https://")) {
+        Slice t_me_url = cur_t_me_url;
+        t_me_url = t_me_url.substr(t_me_url[4] == 's' ? 8 : 7);
+        if (!td::contains(t_me_urls, t_me_url)) {
+          t_me_urls.push_back(t_me_url);
+        }
       }
     }
 
-    // host is already lowercased
-    Slice host = http_url.host_;
+    auto host = url_decode(http_url.host_, false);
+    to_lower_inplace(host);
     if (begins_with(host, "www.")) {
-      host.remove_prefix(4);
+      host = host.substr(4);
     }
 
     for (auto t_me_url : t_me_urls) {
       if (host == t_me_url) {
         result.is_internal_ = true;
         result.is_tg_ = false;
-        result.query_ = http_url.query_;
+        result.query_ = std::move(http_url.query_);
         return result;
       }
     }
@@ -342,26 +344,51 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_internal_link(Slice lin
   }
 }
 
+namespace {
+struct CopyArg {
+  Slice name_;
+  const HttpUrlQuery *url_query_;
+  bool *is_first_;
+
+  CopyArg(Slice name, const HttpUrlQuery *url_query, bool *is_first)
+      : name_(name), url_query_(url_query), is_first_(is_first) {
+  }
+};
+
+StringBuilder &operator<<(StringBuilder &string_builder, const CopyArg &copy_arg) {
+  auto arg = copy_arg.url_query_->get_arg(copy_arg.name_);
+  if (arg.empty()) {
+    return string_builder;
+  }
+  char c = *copy_arg.is_first_ ? '?' : '&';
+  *copy_arg.is_first_ = false;
+  return string_builder << c << copy_arg.name_ << '=' << url_encode(arg);
+}
+}  // namespace
+
 unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice query) {
   const auto url_query = parse_url_query(query);
   const auto &path = url_query.path_;
 
+  bool is_first_arg = true;
   auto copy_arg = [&](Slice name) {
-    auto arg = url_query.get_arg(name);
-    if (arg.empty()) {
-      return string();
-    }
-    return PSTRING() << name << '=' << url_encode(arg);
+    return CopyArg(name, &url_query, &is_first_arg);
+  };
+  auto get_arg = [&](Slice name) {
+    return url_encode(url_query.get_arg(name));
+  };
+  auto has_arg = [&](Slice name) {
+    return !url_query.get_arg(name).empty();
   };
 
   if (path.size() == 1 && path[0] == "resolve") {
     // resolve?domain=username&post=12345&single
-    if (!url_query.get_arg("domain").empty() && !url_query.get_arg("post").empty()) {
+    if (has_arg("domain") && has_arg("post")) {
       return td::make_unique<InternalLinkMessage>();
     }
   } else if (path.size() == 1 && path[0] == "privatepost") {
     // privatepost?channel=123456789&msg_id=12345
-    if (!url_query.get_arg("channel").empty() && !url_query.get_arg("msg_id").empty()) {
+    if (has_arg("channel") && has_arg("msg_id")) {
       return td::make_unique<InternalLinkMessage>();
     }
   } else if (path.size() == 1 && path[0] == "bg") {
@@ -370,17 +397,16 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     // bg?gradient=<hex_color>~<hex_color>~<hex_color>~<hex_color>
     // bg?slug=<background_name>&mode=blur+motion
     // bg?slug=<pattern_name>&intensity=...&bg_color=...&mode=blur+motion
-    if (!url_query.get_arg("color").empty()) {
-      return td::make_unique<InternalLinkBackground>(url_query.get_arg("color").str());
+    if (has_arg("color")) {
+      return td::make_unique<InternalLinkBackground>(get_arg("color"));
     }
-    if (!url_query.get_arg("gradient").empty()) {
-      return td::make_unique<InternalLinkBackground>(PSTRING() << url_encode(url_query.get_arg("gradient")) << '?'
-                                                               << copy_arg("rotation"));
+    if (has_arg("gradient")) {
+      return td::make_unique<InternalLinkBackground>(PSTRING() << get_arg("gradient") << copy_arg("rotation"));
     }
-    if (!url_query.get_arg("slug").empty()) {
-      return td::make_unique<InternalLinkBackground>(PSTRING() << url_encode(url_query.get_arg("slug")) << '?'
-                                                               << copy_arg("mode") << copy_arg("intensity")
-                                                               << copy_arg("bg_color") << copy_arg("rotation"));
+    if (has_arg("slug")) {
+      return td::make_unique<InternalLinkBackground>(PSTRING()
+                                                     << get_arg("slug") << copy_arg("mode") << copy_arg("intensity")
+                                                     << copy_arg("bg_color") << copy_arg("rotation"));
     }
   } else if (path.size() == 1 && (path[0] == "share" || path[0] == "msg" || path[0] == "msg_url")) {
     // msg_url?url=<url>
@@ -397,24 +423,45 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
   CHECK(query[0] == '/');
   const auto url_query = parse_url_query(query);
   const auto &path = url_query.path_;
-  if (path.size() == 3 && path[0] == "c") {
-    // /c/123456789/12345
-    return td::make_unique<InternalLinkMessage>();
-  } else if (path.size() == 2 && path[0] == "bg") {
-    // /bg/<hex_color>
-    // /bg/<hex_color>-<hex_color>?rotation=...
-    // /bg/<hex_color>~<hex_color>~<hex_color>~<hex_color>
-    // /bg/<background_name>?mode=blur+motion
-    // /bg/<pattern_name>?intensity=...&bg_color=...&mode=blur+motion
-    return td::make_unique<InternalLinkBackground>(query.substr(4).str());
-  } else if (path.size() >= 1 && (path[0] == "share" || path[0] == "msg") &&
-             (path.size() == 1 || (path[1] != "bookmarklet" && path[1] != "embed"))) {
-    // /share?url=<url>
-    // /share/url?url=<url>&text=<text>
-    return get_internal_link_message_draft(url_query.get_arg("url"), url_query.get_arg("text"));
-  } else if (path.size() == 2 && !path[0].empty()) {
-    // /<username>/12345?single
-    return td::make_unique<InternalLinkMessage>();
+  if (path.empty() || path[0].empty()) {
+    return nullptr;
+  }
+
+  bool is_first_arg = true;
+  auto copy_arg = [&](Slice name) {
+    return CopyArg(name, &url_query, &is_first_arg);
+  };
+  auto get_arg = [&](Slice name) {
+    return url_encode(url_query.get_arg(name));
+  };
+
+  if (path[0] == "c") {
+    if (path.size() >= 3 && to_integer<int64>(path[1]) > 0 && to_integer<int64>(path[2]) > 0) {
+      // /c/123456789/12345
+      return td::make_unique<InternalLinkMessage>();
+    }
+  } else if (path[0] == "bg") {
+    if (path.size() >= 2 && !path[1].empty()) {
+      // /bg/<hex_color>
+      // /bg/<hex_color>-<hex_color>?rotation=...
+      // /bg/<hex_color>~<hex_color>~<hex_color>~<hex_color>
+      // /bg/<background_name>?mode=blur+motion
+      // /bg/<pattern_name>?intensity=...&bg_color=...&mode=blur+motion
+      return td::make_unique<InternalLinkBackground>(PSTRING()
+                                                     << url_encode(path[1]) << copy_arg("mode") << copy_arg("intensity")
+                                                     << copy_arg("bg_color") << copy_arg("rotation"));
+    }
+  } else if (path[0] == "share" || path[0] == "msg") {
+    if (!(path.size() > 1 && (path[1] == "bookmarklet" || path[1] == "embed"))) {
+      // /share?url=<url>
+      // /share/url?url=<url>&text=<text>
+      return get_internal_link_message_draft(url_query.get_arg("url"), url_query.get_arg("text"));
+    }
+  } else {
+    if (path.size() >= 2 && to_integer<int64>(path[1]) > 0) {
+      // /<username>/12345?single
+      return td::make_unique<InternalLinkMessage>();
+    }
   }
   return nullptr;
 }
