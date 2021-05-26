@@ -83,6 +83,16 @@ class LinkManager::InternalLinkMessageDraft : public InternalLink {
   }
 };
 
+class LinkManager::InternalLinkQrCodeAuthentication : public InternalLink {
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeQrCodeAuthentication>();
+  }
+
+  InternalLinkType get_type() const final {
+    return InternalLinkType::QrCodeAuthentication;
+  }
+};
+
 class LinkManager::InternalLinkUnknownDeepLink : public InternalLink {
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
     return td_api::make_object<td_api::internalLinkTypeUnknownDeepLink>();
@@ -406,6 +416,10 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     // login?code=123456
     if (has_arg("code")) {
       return td::make_unique<InternalLinkAuthenticationCode>(get_arg("code"));
+    }
+    // login?token=abacaba
+    if (has_arg("token")) {
+      return td::make_unique<InternalLinkQrCodeAuthentication>();
     }
   } else if (path.size() == 1 && path[0] == "privatepost") {
     // privatepost?channel=123456789&msg_id=12345

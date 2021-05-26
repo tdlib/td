@@ -78,6 +78,9 @@ TEST(Link, parse_internal_link) {
     formatted_text->text_ = std::move(text);
     return td::td_api::make_object<td::td_api::internalLinkTypeMessageDraft>(std::move(formatted_text), contains_url);
   };
+  auto qr_code_authentication = []() {
+    return td::td_api::make_object<td::td_api::internalLinkTypeQrCodeAuthentication>();
+  };
   auto unknown_deep_link = [] {
     return td::td_api::make_object<td::td_api::internalLinkTypeUnknownDeepLink>();
   };
@@ -241,4 +244,7 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("t.me/login/12345678901", authentication_code("12345678901"));
   parse_internal_link("t.me/login/123456", authentication_code("123456"));
   parse_internal_link("t.me/login/123456/123123/12/31/a/s//21w/?asdas#test", authentication_code("123456"));
+
+  parse_internal_link("tg:login?token=abacaba", qr_code_authentication());
+  parse_internal_link("tg:login?token=", qr_code_authentication());
 }
