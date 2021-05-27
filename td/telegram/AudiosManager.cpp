@@ -6,10 +6,10 @@
 //
 #include "td/telegram/AudiosManager.h"
 
+#include "td/telegram/AuthManager.h"
 #include "td/telegram/files/FileManager.h"
-#include "td/telegram/Td.h"
-
 #include "td/telegram/secret_api.h"
+#include "td/telegram/Td.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -180,7 +180,9 @@ void AudiosManager::create_audio(FileId file_id, string minithumbnail, PhotoSize
   a->duration = max(duration, 0);
   a->title = std::move(title);
   a->performer = std::move(performer);
-  a->minithumbnail = std::move(minithumbnail);
+  if (!td_->auth_manager_->is_bot()) {
+    a->minithumbnail = std::move(minithumbnail);
+  }
   a->thumbnail = std::move(thumbnail);
   on_get_audio(std::move(a), replace);
 }

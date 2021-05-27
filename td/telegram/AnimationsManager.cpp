@@ -18,10 +18,9 @@
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/SecretChatActor.h"
+#include "td/telegram/secret_api.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
-
-#include "td/telegram/secret_api.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -337,7 +336,9 @@ void AnimationsManager::create_animation(FileId file_id, string minithumbnail, P
   a->mime_type = std::move(mime_type);
   a->duration = max(duration, 0);
   a->dimensions = dimensions;
-  a->minithumbnail = std::move(minithumbnail);
+  if (!td_->auth_manager_->is_bot()) {
+    a->minithumbnail = std::move(minithumbnail);
+  }
   a->thumbnail = std::move(thumbnail);
   a->animated_thumbnail = std::move(animated_thumbnail);
   a->has_stickers = has_stickers;

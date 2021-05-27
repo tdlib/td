@@ -10839,8 +10839,11 @@ void ContactsManager::on_update_user_photo(User *u, UserId user_id,
 
 void ContactsManager::do_update_user_photo(User *u, UserId user_id,
                                            tl_object_ptr<telegram_api::UserProfilePhoto> &&photo, const char *source) {
-  do_update_user_photo(
-      u, user_id, get_profile_photo(td_->file_manager_.get(), user_id, u->access_hash, std::move(photo)), true, source);
+  ProfilePhoto new_photo = get_profile_photo(td_->file_manager_.get(), user_id, u->access_hash, std::move(photo));
+  if (td_->auth_manager_->is_bot()) {
+    new_photo.minithumbnail.clear();
+  }
+  do_update_user_photo(u, user_id, std::move(new_photo), true, source);
 }
 
 void ContactsManager::do_update_user_photo(User *u, UserId user_id, ProfilePhoto new_photo, bool invalidate_photo_cache,
@@ -12870,6 +12873,9 @@ void ContactsManager::on_update_chat_photo(Chat *c, ChatId chat_id,
                                            tl_object_ptr<telegram_api::ChatPhoto> &&chat_photo_ptr) {
   DialogPhoto new_chat_photo =
       get_dialog_photo(td_->file_manager_.get(), DialogId(chat_id), 0, std::move(chat_photo_ptr));
+  if (td_->auth_manager_->is_bot()) {
+    new_chat_photo.minithumbnail.clear();
+  }
 
   if (new_chat_photo != c->photo) {
     c->photo = new_chat_photo;
@@ -13008,6 +13014,9 @@ void ContactsManager::on_update_channel_photo(Channel *c, ChannelId channel_id,
                                               tl_object_ptr<telegram_api::ChatPhoto> &&chat_photo_ptr) {
   DialogPhoto new_chat_photo =
       get_dialog_photo(td_->file_manager_.get(), DialogId(channel_id), c->access_hash, std::move(chat_photo_ptr));
+  if (td_->auth_manager_->is_bot()) {
+    new_chat_photo.minithumbnail.clear();
+  }
 
   if (new_chat_photo != c->photo) {
     c->photo = new_chat_photo;
