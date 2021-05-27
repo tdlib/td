@@ -55,6 +55,7 @@
 #include "td/telegram/MessageCopyOptions.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageId.h"
+#include "td/telegram/MessageLinkInfo.h"
 #include "td/telegram/MessageSearchFilter.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
@@ -1174,12 +1175,12 @@ class GetMessageEmbeddingCodeRequest : public RequestActor<> {
   }
 };
 
-class GetMessageLinkInfoRequest : public RequestActor<MessagesManager::MessageLinkInfo> {
+class GetMessageLinkInfoRequest : public RequestActor<MessageLinkInfo> {
   string url_;
 
-  MessagesManager::MessageLinkInfo message_link_info_;
+  MessageLinkInfo message_link_info_;
 
-  void do_run(Promise<MessagesManager::MessageLinkInfo> &&promise) override {
+  void do_run(Promise<MessageLinkInfo> &&promise) override {
     if (get_tries() < 2) {
       promise.set_value(std::move(message_link_info_));
       return;
@@ -1187,7 +1188,7 @@ class GetMessageLinkInfoRequest : public RequestActor<MessagesManager::MessageLi
     td->messages_manager_->get_message_link_info(url_, std::move(promise));
   }
 
-  void do_set_result(MessagesManager::MessageLinkInfo &&result) override {
+  void do_set_result(MessageLinkInfo &&result) override {
     message_link_info_ = std::move(result);
   }
 

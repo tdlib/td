@@ -8,6 +8,7 @@
 
 #include "td/telegram/DialogId.h"
 #include "td/telegram/MessageId.h"
+#include "td/telegram/MessageLinkInfo.h"
 #include "td/telegram/td_api.h"
 
 #include "td/actor/actor.h"
@@ -83,6 +84,8 @@ class LinkManager : public Actor {
                           Promise<td_api::object_ptr<td_api::httpUrl>> &&promise);
 
   static string get_dialog_invite_link_hash(Slice invite_link);
+
+  static Result<MessageLinkInfo> get_message_link_info(Slice url);
 
  private:
   void tear_down() override;

@@ -524,6 +524,7 @@ set(TDLIB_SOURCE
   td/telegram/MessageCopyOptions.h
   td/telegram/MessageEntity.h
   td/telegram/MessageId.h
+  td/telegram/MessageLinkInfo.h
   td/telegram/MessageReplyInfo.h
   td/telegram/MessagesDb.h
   td/telegram/MessageSearchFilter.h

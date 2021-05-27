@@ -592,7 +592,7 @@ void LinkManager::get_link_login_url(const string &url, bool allow_write_access,
 }
 
 string LinkManager::get_dialog_invite_link_hash(Slice invite_link) {
-  auto link_info = LinkManager::get_link_info(invite_link);
+  auto link_info = get_link_info(invite_link);
   if (!link_info.is_internal_) {
     return string();
   }
@@ -615,6 +615,145 @@ string LinkManager::get_dialog_invite_link_hash(Slice invite_link) {
     }
   }
   return string();
+}
+
+Result<MessageLinkInfo> LinkManager::get_message_link_info(Slice url) {
+  if (url.empty()) {
+    return Status::Error("URL must be non-empty");
+  }
+  auto link_info = get_link_info(url);
+  if (!link_info.is_internal_) {
+    return Status::Error("Invalid message link URL");
+  }
+  url = link_info.query_;
+
+  Slice username;
+  Slice channel_id_slice;
+  Slice message_id_slice;
+  Slice comment_message_id_slice = "0";
+  bool is_single = false;
+  bool for_comment = false;
+  if (link_info.is_tg_) {
+    // resolve?domain=username&post=12345&single
+    // privatepost?channel=123456789&msg_id=12345
+
+    bool is_resolve = false;
+    if (begins_with(url, "resolve")) {
+      url = url.substr(7);
+      is_resolve = true;
+    } else if (begins_with(url, "privatepost")) {
+      url = url.substr(11);
+    } else {
+      return Status::Error("Wrong message link URL");
+    }
+
+    if (begins_with(url, "/")) {
+      url = url.substr(1);
+    }
+    if (!begins_with(url, "?")) {
+      return Status::Error("Wrong message link URL");
+    }
+    url = url.substr(1);
+
+    auto args = full_split(url, '&');
+    for (auto arg : args) {
+      auto key_value = split(arg, '=');
+      if (is_resolve) {
+        if (key_value.first == "domain") {
+          username = key_value.second;
+        }
+        if (key_value.first == "post") {
+          message_id_slice = key_value.second;
+        }
+      } else {
+        if (key_value.first == "channel") {
+          channel_id_slice = key_value.second;
+        }
+        if (key_value.first == "msg_id") {
+          message_id_slice = key_value.second;
+        }
+      }
+      if (key_value.first == "single") {
+        is_single = true;
+      }
+      if (key_value.first == "comment") {
+        comment_message_id_slice = key_value.second;
+      }
+      if (key_value.first == "thread") {
+        for_comment = true;
+      }
+    }
+  } else {
+    // /c/123456789/12345
+    // /username/12345?single
+
+    CHECK(!url.empty() && url[0] == '/');
+    url.remove_prefix(1);
+
+    auto username_end_pos = url.find('/');
+    if (username_end_pos == Slice::npos) {
+      return Status::Error("Wrong message link URL");
+    }
+    username = url.substr(0, username_end_pos);
+    url = url.substr(username_end_pos + 1);
+    if (username == "c") {
+      username = Slice();
+      auto channel_id_end_pos = url.find('/');
+      if (channel_id_end_pos == Slice::npos) {
+        return Status::Error("Wrong message link URL");
+      }
+      channel_id_slice = url.substr(0, channel_id_end_pos);
+      url = url.substr(channel_id_end_pos + 1);
+    }
+
+    auto query_pos = url.find('?');
+    message_id_slice = url.substr(0, query_pos);
+    if (query_pos != Slice::npos) {
+      auto args = full_split(url.substr(query_pos + 1), '&');
+      for (auto arg : args) {
+        auto key_value = split(arg, '=');
+        if (key_value.first == "single") {
+          is_single = true;
+        }
+        if (key_value.first == "comment") {
+          comment_message_id_slice = key_value.second;
+        }
+        if (key_value.first == "thread") {
+          for_comment = true;
+        }
+      }
+    }
+  }
+
+  ChannelId channel_id;
+  if (username.empty()) {
+    auto r_channel_id = to_integer_safe<int32>(channel_id_slice);
+    if (r_channel_id.is_error() || !ChannelId(r_channel_id.ok()).is_valid()) {
+      return Status::Error("Wrong channel ID");
+    }
+    channel_id = ChannelId(r_channel_id.ok());
+  }
+
+  auto r_message_id = to_integer_safe<int32>(message_id_slice);
+  if (r_message_id.is_error() || !ServerMessageId(r_message_id.ok()).is_valid()) {
+    return Status::Error("Wrong message ID");
+  }
+
+  auto r_comment_message_id = to_integer_safe<int32>(comment_message_id_slice);
+  if (r_comment_message_id.is_error() ||
+      !(r_comment_message_id.ok() == 0 || ServerMessageId(r_comment_message_id.ok()).is_valid())) {
+    return Status::Error("Wrong comment message ID");
+  }
+
+  MessageLinkInfo info;
+  info.username = username.str();
+  info.channel_id = channel_id;
+  info.message_id = MessageId(ServerMessageId(r_message_id.ok()));
+  info.comment_message_id = MessageId(ServerMessageId(r_comment_message_id.ok()));
+  info.is_single = is_single;
+  info.for_comment = for_comment;
+  LOG(INFO) << "Have link to " << info.message_id << " in chat @" << info.username << "/" << channel_id.get();
+  return std::move(info);
 }
 
 }  // namespace td
