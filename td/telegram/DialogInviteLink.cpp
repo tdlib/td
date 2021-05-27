@@ -7,17 +7,12 @@
 #include "td/telegram/DialogInviteLink.h"
 
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/LinkManager.h"
 
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 
 namespace td {
-
-const CSlice DialogInviteLink::INVITE_LINK_URLS[12] = {
-    "t.me/joinchat/", "telegram.me/joinchat/", "telegram.dog/joinchat/",
-    "t.me/+",         "telegram.me/+",         "telegram.dog/+",
-    "t.me/ ",         "telegram.me/ ",         "telegram.dog/ ",
-    "t.me/%20",       "telegram.me/%20",       "telegram.dog/%20"};
 
 DialogInviteLink::DialogInviteLink(tl_object_ptr<telegram_api::chatInviteExported> exported_invite) {
   if (exported_invite == nullptr) {
@@ -76,29 +71,7 @@ DialogInviteLink::DialogInviteLink(tl_object_ptr<telegram_api::chatInviteExporte
 }
 
 bool DialogInviteLink::is_valid_invite_link(Slice invite_link) {
-  return !get_dialog_invite_link_hash(invite_link).empty();
-}
-
-Slice DialogInviteLink::get_dialog_invite_link_hash(Slice invite_link) {
-  auto lower_cased_invite_link_str = to_lower(invite_link);
-  Slice lower_cased_invite_link = lower_cased_invite_link_str;
-  size_t offset = 0;
-  if (begins_with(lower_cased_invite_link, "https://")) {
-    offset = 8;
-  } else if (begins_with(lower_cased_invite_link, "http://")) {
-    offset = 7;
-  }
-  lower_cased_invite_link.remove_prefix(offset);
-
-  for (auto &url : INVITE_LINK_URLS) {
-    if (begins_with(lower_cased_invite_link, url)) {
-      Slice hash = invite_link.substr(url.size() + offset);
-      hash.truncate(hash.find('#'));
-      hash.truncate(hash.find('?'));
-      return hash;
-    }
-  }
-  return Slice();
+  return !LinkManager::get_dialog_invite_link_hash(invite_link).empty();
 }
 
 td_api::object_ptr<td_api::chatInviteLink> DialogInviteLink::get_chat_invite_link_object(

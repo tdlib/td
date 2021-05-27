@@ -17383,6 +17383,7 @@ Result<MessagesManager::MessageLinkInfo> MessagesManager::get_message_link_info(
   if (!link_info.is_internal_) {
     return Status::Error("Invalid message link URL");
   }
+  url = link_info.query_;
 
   Slice username;
   Slice channel_id_slice;
@@ -17443,6 +17444,10 @@ Result<MessagesManager::MessageLinkInfo> MessagesManager::get_message_link_info(
   } else {
     // /c/123456789/12345
     // /username/12345?single
+
+    CHECK(!url.empty() && url[0] == '/');
+    url.remove_prefix(1);
+
     auto username_end_pos = url.find('/');
     if (username_end_pos == Slice::npos) {
       return Status::Error("Wrong message link URL");

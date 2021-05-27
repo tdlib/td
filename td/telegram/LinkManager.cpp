@@ -591,4 +591,30 @@ void LinkManager::get_link_login_url(const string &url, bool allow_write_access,
       ->send(url, DialogId(), MessageId(), 0, allow_write_access);
 }
 
+string LinkManager::get_dialog_invite_link_hash(Slice invite_link) {
+  auto link_info = LinkManager::get_link_info(invite_link);
+  if (!link_info.is_internal_) {
+    return string();
+  }
+  const auto url_query = parse_url_query(link_info.query_);
+  const auto &path = url_query.path_;
+
+  if (link_info.is_tg_) {
+    if (path.size() == 1 && path[0] == "join" && !url_query.get_arg("invite").empty()) {
+      // join?invite=abcdef
+      return url_query.get_arg("invite").str();
+    }
+  } else {
+    if (path.size() >= 2 && path[0] == "joinchat" && !path[1].empty()) {
+      // /joinchat/<link>
+      return path[1];
+    }
+    if (path.size() >= 1 && path[0].size() >= 2 && (path[0][0] == ' ' || path[0][0] == '+')) {
+      // /+<link>
+      return path[0].substr(1);
+    }
+  }
+  return string();
+}
+
 }  // namespace td

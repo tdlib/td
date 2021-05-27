@@ -34,16 +34,12 @@ class DialogInviteLink {
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const DialogInviteLink &invite_link);
 
-  static const CSlice INVITE_LINK_URLS[12];
-
  public:
   DialogInviteLink() = default;
 
   explicit DialogInviteLink(tl_object_ptr<telegram_api::chatInviteExported> exported_invite);
 
   static bool is_valid_invite_link(Slice invite_link);
-
-  static Slice get_dialog_invite_link_hash(Slice invite_link);
 
   td_api::object_ptr<td_api::chatInviteLink> get_chat_invite_link_object(const ContactsManager *contacts_manager) const;
 

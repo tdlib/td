@@ -82,6 +82,8 @@ class LinkManager : public Actor {
   void get_link_login_url(const string &url, bool allow_write_access,
                           Promise<td_api::object_ptr<td_api::httpUrl>> &&promise);
 
+  static string get_dialog_invite_link_hash(Slice invite_link);
+
  private:
   void tear_down() override;
 
