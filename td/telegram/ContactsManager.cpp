@@ -10822,6 +10822,13 @@ void ContactsManager::on_update_user_photo(UserId user_id, tl_object_ptr<telegra
 void ContactsManager::on_update_user_photo(User *u, UserId user_id,
                                            tl_object_ptr<telegram_api::UserProfilePhoto> &&photo, const char *source) {
   if (td_->auth_manager_->is_bot() && !G()->parameters().use_file_db && !u->is_photo_inited) {
+    if (photo != nullptr && photo->get_id() == telegram_api::userProfilePhoto::ID) {
+      auto *profile_photo = static_cast<telegram_api::userProfilePhoto *>(photo.get());
+      if ((profile_photo->flags_ & telegram_api::userProfilePhoto::STRIPPED_THUMB_MASK) != 0) {
+        profile_photo->flags_ -= telegram_api::userProfilePhoto::STRIPPED_THUMB_MASK;
+        profile_photo->stripped_thumb_ = BufferSlice();
+      }
+    }
     auto &old_photo = pending_user_photos_[user_id];
     if (!LOG_IS_STRIPPED(ERROR) && to_string(old_photo) == to_string(photo)) {
       return;
