@@ -55,6 +55,16 @@ class LinkManager::InternalLinkBackground : public InternalLink {
   }
 };
 
+class LinkManager::InternalLinkDialogInviteLink : public InternalLink {
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeChatInviteLink>();
+  }
+
+  InternalLinkType get_type() const final {
+    return InternalLinkType::DialogInviteLink;
+  }
+};
+
 class LinkManager::InternalLinkMessage : public InternalLink {
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
     return td_api::make_object<td_api::internalLinkTypeMessage>();
@@ -421,6 +431,11 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     if (has_arg("token")) {
       return td::make_unique<InternalLinkQrCodeAuthentication>();
     }
+  } else if (path.size() == 1 && path[0] == "join") {
+    // join?invite=abcdef
+    if (has_arg("invite")) {
+      return td::make_unique<InternalLinkDialogInviteLink>();
+    }
   } else if (path.size() == 1 && path[0] == "privatepost") {
     // privatepost?channel=123456789&msg_id=12345
     if (has_arg("channel") && has_arg("msg_id")) {
@@ -479,6 +494,16 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
     if (path.size() >= 2 && !path[1].empty()) {
       // /login/<code>
       return td::make_unique<InternalLinkAuthenticationCode>(path[1]);
+    }
+  } else if (path[0] == "joinchat") {
+    if (path.size() >= 2 && !path[1].empty()) {
+      // /joinchat/<link>
+      return td::make_unique<InternalLinkDialogInviteLink>();
+    }
+  } else if (path[0][0] == ' ' || path[0][0] == '+') {
+    if (path[0].size() >= 2) {
+      // /+<link>
+      return td::make_unique<InternalLinkDialogInviteLink>();
     }
   } else if (path[0] == "bg") {
     if (path.size() >= 2 && !path[1].empty()) {

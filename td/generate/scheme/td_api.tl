@@ -2998,13 +2998,16 @@ chatReportReasonFake = ChatReportReason;
 chatReportReasonCustom = ChatReportReason;
 
 
-//@class InternalLinkType @description Describes an internal t.me or tg: link, which must be processed by the app in a special way
+//@class InternalLinkType @description Describes an internal https://t.me or tg: link, which must be processed by the app in a special way
 
 //@description The link contains an authentication code. Call checkAuthenticationCode with the code if the current authorization state is authorizationStateWaitCode @code The authentication code
 internalLinkTypeAuthenticationCode code:string = InternalLinkType;
 
 //@description The link is a link to a background. Call searchBackground with the given background name to process the link @background_name Name of the background
 internalLinkTypeBackground background_name:string = InternalLinkType;
+
+//@description The link is a chat invite link. Call checkChatInviteLink to process the link
+internalLinkTypeChatInviteLink = InternalLinkType;
 
 //@description The link is a link to a Telegram message. Call getMessageLinkInfo to process the link
 internalLinkTypeMessage = InternalLinkType;
@@ -3244,7 +3247,7 @@ text text:string = Text;
 seconds seconds:double = Seconds;
 
 
-//@description Contains information about a tg:// deep link @text Text to be shown to the user @need_update_application True, if user should be asked to update the application
+//@description Contains information about a tg: deep link @text Text to be shown to the user @need_update_application True, if user should be asked to update the application
 deepLinkInfo text:formattedText need_update_application:Bool = DeepLinkInfo;
 
 
@@ -4049,7 +4052,7 @@ getMessageLink chat_id:int53 message_id:int53 for_album:Bool for_comment:Bool = 
 //@for_album Pass true to return an HTML code for embedding of the whole media album
 getMessageEmbeddingCode chat_id:int53 message_id:int53 for_album:Bool = Text;
 
-//@description Returns information about a public or private message link @url The message link in the format "https://t.me/c/...", or "tg://privatepost?...", or "https://t.me/username/...", or "tg://resolve?..."
+//@description Returns information about a public or private message link @url The message link
 getMessageLinkInfo url:string = MessageLinkInfo;
 
 
@@ -4598,11 +4601,10 @@ deleteRevokedChatInviteLink chat_id:int53 invite_link:string = Ok;
 //@creator_user_id User identifier of a chat administrator, which links will be deleted. Must be an identifier of the current user for non-owner
 deleteAllRevokedChatInviteLinks chat_id:int53 creator_user_id:int32 = Ok;
 
-//@description Checks the validity of an invite link for a chat and returns information about the corresponding chat @invite_link Invite link to be checked; must have URL "t.me", "telegram.me", or "telegram.dog" and query beginning with "/joinchat/" or "/+"
+//@description Checks the validity of an invite link for a chat and returns information about the corresponding chat @invite_link Invite link to be checked
 checkChatInviteLink invite_link:string = ChatInviteLinkInfo;
 
-//@description Uses an invite link to add the current user to the chat if possible
-//@invite_link Invite link to import; must have URL "t.me", "telegram.me", or "telegram.dog" and query beginning with "/joinchat/" or "/+"
+//@description Uses an invite link to add the current user to the chat if possible @invite_link Invite link to use
 joinChatByInviteLink invite_link:string = Chat;
 
 
@@ -5096,7 +5098,7 @@ reportChat chat_id:int53 message_ids:vector<int53> reason:ChatReportReason text:
 //@chat_id Chat identifier @file_id Identifier of the photo to report. Only full photos from chatPhoto can be reported @reason The reason for reporting the chat photo @text Additional report details; 0-1024 characters
 reportChatPhoto chat_id:int53 file_id:int32 reason:ChatReportReason text:string = Ok;
 
-//@description Returns an HTTP URL with the chat statistics. Currently this method of getting the statistics are disabled and can be deleted in the future @chat_id Chat identifier @parameters Parameters from "tg://statsrefresh?params=******" link @is_dark Pass true if a URL with the dark theme must be returned
+//@description Returns an HTTP URL with the chat statistics. Currently this method of getting the statistics are disabled and can be deleted in the future @chat_id Chat identifier @parameters Parameters for the request @is_dark Pass true if a URL with the dark theme must be returned
 getChatStatisticsUrl chat_id:int53 parameters:string is_dark:Bool = HttpUrl;
 
 //@description Returns detailed statistics about a chat. Currently this method can be used only for supergroups and channels. Can be used only if SupergroupFullInfo.can_get_statistics == true @chat_id Chat identifier @is_dark Pass true if a dark theme is used by the application

@@ -36,6 +36,7 @@ class LinkManager : public Actor {
   enum class InternalLinkType : int32 {
     AuthenticationCode,
     Background,
+    DialogInviteLink,
     Message,
     MessageDraft,
     QrCodeAuthentication,
@@ -86,6 +87,7 @@ class LinkManager : public Actor {
 
   class InternalLinkAuthenticationCode;
   class InternalLinkBackground;
+  class InternalLinkDialogInviteLink;
   class InternalLinkMessage;
   class InternalLinkMessageDraft;
   class InternalLinkQrCodeAuthentication;

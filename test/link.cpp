@@ -70,6 +70,9 @@ TEST(Link, parse_internal_link) {
   auto background = [](td::string background_name) {
     return td::td_api::make_object<td::td_api::internalLinkTypeBackground>(background_name);
   };
+  auto chat_invite_link = [] {
+    return td::td_api::make_object<td::td_api::internalLinkTypeChatInviteLink>();
+  };
   auto message = [] {
     return td::td_api::make_object<td::td_api::internalLinkTypeMessage>();
   };
@@ -246,5 +249,37 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("t.me/login/123456/123123/12/31/a/s//21w/?asdas#test", authentication_code("123456"));
 
   parse_internal_link("tg:login?token=abacaba", qr_code_authentication());
-  parse_internal_link("tg:login?token=", qr_code_authentication());
+  parse_internal_link("tg:login?token=", unknown_deep_link());
+
+  parse_internal_link("t.me/joinchat?invite=abcdef", nullptr);
+  parse_internal_link("t.me/joinchat", nullptr);
+  parse_internal_link("t.me/joinchat/", nullptr);
+  parse_internal_link("t.me/joinchat//abcdef", nullptr);
+  parse_internal_link("t.me/joinchat?/abcdef", nullptr);
+  parse_internal_link("t.me/joinchat/?abcdef", nullptr);
+  parse_internal_link("t.me/joinchat/#abcdef", nullptr);
+  parse_internal_link("t.me/joinchat/abacaba", chat_invite_link());
+  parse_internal_link("t.me/joinchat/aba%20aba", chat_invite_link());
+  parse_internal_link("t.me/joinchat/123456a", chat_invite_link());
+  parse_internal_link("t.me/joinchat/12345678901", chat_invite_link());
+  parse_internal_link("t.me/joinchat/123456", chat_invite_link());
+  parse_internal_link("t.me/joinchat/123456/123123/12/31/a/s//21w/?asdas#test", chat_invite_link());
+
+  parse_internal_link("t.me/+?invite=abcdef", nullptr);
+  parse_internal_link("t.me/+a", chat_invite_link());
+  parse_internal_link("t.me/+", nullptr);
+  parse_internal_link("t.me/+/abcdef", nullptr);
+  parse_internal_link("t.me/ ?/abcdef", nullptr);
+  parse_internal_link("t.me/+?abcdef", nullptr);
+  parse_internal_link("t.me/+#abcdef", nullptr);
+  parse_internal_link("t.me/ abacaba", chat_invite_link());
+  parse_internal_link("t.me/+aba%20aba", chat_invite_link());
+  parse_internal_link("t.me/+123456a", chat_invite_link());
+  parse_internal_link("t.me/%2012345678901", chat_invite_link());
+  parse_internal_link("t.me/+123456", chat_invite_link());
+  parse_internal_link("t.me/ 123456/123123/12/31/a/s//21w/?asdas#test", chat_invite_link());
+  parse_internal_link("t.me/ /123456/123123/12/31/a/s//21w/?asdas#test", nullptr);
+
+  parse_internal_link("tg:join?invite=abcdef", chat_invite_link());
+  parse_internal_link("tg:join?invite=", unknown_deep_link());
 }
