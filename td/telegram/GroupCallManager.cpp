@@ -2038,8 +2038,8 @@ void GroupCallManager::process_group_call_participants(
 
         for (auto &participant : participants_it->second->participants) {
           auto real_order = get_real_participant_order(can_self_unmute, participant, participants_it->second.get());
-          if (old_min_order > real_order && real_order >= min_order) {
-            LOG_CHECK(!participant.order.is_valid() || participant.is_self)
+          if ((old_min_order > real_order && real_order >= min_order) || participant.order != real_order) {
+            LOG_CHECK(!participant.order.is_valid() || participant.is_self || participant.order != real_order)
                 << participant << ' ' << old_min_order << ' ' << real_order << ' ' << min_order << ' '
                 << participant.joined_date << ' ' << participant.active_date << ' ' << participant.raise_hand_rating
                 << ' ' << participant.local_active_date << ' ' << G()->unix_time() << ' ' << can_self_unmute << ' '
@@ -4308,8 +4308,9 @@ DialogId GroupCallManager::set_group_call_participant_is_speaking_by_source(Inpu
           participant.local_active_date = max(participant.local_active_date, date);
         }
         bool can_self_unmute = get_group_call_can_self_unmute(input_group_call_id);
+        auto old_order = participant.order;
         participant.order = get_real_participant_order(can_self_unmute, participant, participants_it->second.get());
-        if (participant.order.is_valid()) {
+        if (participant.order.is_valid() || old_order.is_valid()) {
           send_update_group_call_participant(input_group_call_id, participant,
                                              "set_group_call_participant_is_speaking_by_source");
         }
