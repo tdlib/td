@@ -93,6 +93,9 @@ TEST(Link, parse_internal_link) {
   auto sticker_set = [](td::string sticker_set_name) {
     return td::td_api::make_object<td::td_api::internalLinkTypeStickerSet>(sticker_set_name);
   };
+  auto theme = [](td::string theme_name) {
+    return td::td_api::make_object<td::td_api::internalLinkTypeTheme>(theme_name);
+  };
   auto unknown_deep_link = [] {
     return td::td_api::make_object<td::td_api::internalLinkTypeUnknownDeepLink>();
   };
@@ -341,4 +344,22 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("tg:setlanguage?lang=abcdef", language_pack("abcdef"));
   parse_internal_link("tg:setlanguage?lang=abc%30ef", language_pack("abc0ef"));
   parse_internal_link("tg://setlanguage?lang=", unknown_deep_link());
+
+  parse_internal_link("t.me/addtheme?slug=abcdef", nullptr);
+  parse_internal_link("t.me/addtheme", nullptr);
+  parse_internal_link("t.me/addtheme/", nullptr);
+  parse_internal_link("t.me/addtheme//abcdef", nullptr);
+  parse_internal_link("t.me/addtheme?/abcdef", nullptr);
+  parse_internal_link("t.me/addtheme/?abcdef", nullptr);
+  parse_internal_link("t.me/addtheme/#abcdef", nullptr);
+  parse_internal_link("t.me/addtheme/abacaba", theme("abacaba"));
+  parse_internal_link("t.me/addtheme/aba%20aba", theme("aba aba"));
+  parse_internal_link("t.me/addtheme/123456a", theme("123456a"));
+  parse_internal_link("t.me/addtheme/12345678901", theme("12345678901"));
+  parse_internal_link("t.me/addtheme/123456", theme("123456"));
+  parse_internal_link("t.me/addtheme/123456/123123/12/31/a/s//21w/?asdas#test", theme("123456"));
+
+  parse_internal_link("tg:addtheme?slug=abcdef", theme("abcdef"));
+  parse_internal_link("tg:addtheme?slug=abc%30ef", theme("abc0ef"));
+  parse_internal_link("tg://addtheme?slug=", unknown_deep_link());
 }

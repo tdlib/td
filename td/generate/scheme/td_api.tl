@@ -3030,6 +3030,9 @@ internalLinkTypeQrCodeAuthentication = InternalLinkType;
 //@description The link is a link to a sticker set. Call searchStickerSet with the given sticker set name to process the link and show the sticker set @sticker_set_name Name of the sticker set
 internalLinkTypeStickerSet sticker_set_name:string = InternalLinkType;
 
+//@description The link is a link to a theme. TDLib has no theme support yet @theme_name Name of the theme
+internalLinkTypeTheme theme_name:string = InternalLinkType;
+
 //@description The link is an unknown tg: link. Call getDeepLinkInfo to process the link
 internalLinkTypeUnknownDeepLink = InternalLinkType;
 

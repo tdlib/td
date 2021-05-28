@@ -153,6 +153,22 @@ class LinkManager::InternalLinkStickerSet : public InternalLink {
   }
 };
 
+class LinkManager::InternalLinkTheme : public InternalLink {
+  string theme_name_;
+
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeBackground>(theme_name_);
+  }
+
+  InternalLinkType get_type() const final {
+    return InternalLinkType::Theme;
+  }
+
+ public:
+  explicit InternalLinkTheme(string theme_name) : theme_name_(std::move(theme_name)) {
+  }
+};
+
 class LinkManager::InternalLinkUnknownDeepLink : public InternalLink {
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
     return td_api::make_object<td_api::internalLinkTypeUnknownDeepLink>();
@@ -499,6 +515,11 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     if (has_arg("lang")) {
       return td::make_unique<InternalLinkLanguage>(get_arg("lang"));
     }
+  } else if (path.size() == 1 && path[0] == "addtheme") {
+    // addtheme?slug=name
+    if (has_arg("slug")) {
+      return td::make_unique<InternalLinkTheme>(get_arg("slug"));
+    }
   } else if (path.size() == 1 && path[0] == "confirmphone") {
     if (has_arg("hash") && has_arg("phone")) {
       // confirmphone?phone=<phone>&hash=<hash>
@@ -581,6 +602,11 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
     if (path.size() >= 2 && !path[1].empty()) {
       // /setlanguage/<name>
       return td::make_unique<InternalLinkLanguage>(path[1]);
+    }
+  } else if (path[0] == "addtheme") {
+    if (path.size() >= 2 && !path[1].empty()) {
+      // /addtheme/<name>
+      return td::make_unique<InternalLinkTheme>(path[1]);
     }
   } else if (path[0] == "confirmphone") {
     if (has_arg("hash") && has_arg("phone")) {

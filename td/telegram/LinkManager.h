@@ -44,6 +44,7 @@ class LinkManager : public Actor {
     MessageDraft,
     QrCodeAuthentication,
     StickerSet,
+    Theme,
     UnknownDeepLink
   };
 
@@ -94,6 +95,7 @@ class LinkManager : public Actor {
   class InternalLinkMessageDraft;
   class InternalLinkQrCodeAuthentication;
   class InternalLinkStickerSet;
+  class InternalLinkTheme;
   class InternalLinkUnknownDeepLink;
 
   struct LinkInfo {
