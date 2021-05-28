@@ -2037,14 +2037,9 @@ void GroupCallManager::process_group_call_participants(
                   << input_group_call_id;
 
         for (auto &participant : participants_it->second->participants) {
-          auto real_order = get_real_participant_order(can_self_unmute, participant, participants_it->second.get());
-          if ((old_min_order > real_order && real_order >= min_order) || participant.order != real_order) {
-            LOG_CHECK(!participant.order.is_valid() || participant.is_self || participant.order != real_order)
-                << participant << ' ' << old_min_order << ' ' << real_order << ' ' << min_order << ' '
-                << participant.joined_date << ' ' << participant.active_date << ' ' << participant.raise_hand_rating
-                << ' ' << participant.local_active_date << ' ' << G()->unix_time() << ' ' << can_self_unmute << ' '
-                << participants_it->second->joined_date_asc;
-            participant.order = real_order;
+          auto new_order = get_real_participant_order(can_self_unmute, participant, participants_it->second.get());
+          if (new_order != participant.order) {
+            participant.order = new_order;
             send_update_group_call_participant(input_group_call_id, participant,
                                                "process_group_call_participants load");
           }
@@ -2052,7 +2047,7 @@ void GroupCallManager::process_group_call_participants(
 
         auto *group_call = get_group_call(input_group_call_id);
         CHECK(group_call != nullptr && group_call->is_inited);
-        update_group_call_participant_order_timeout_.add_timeout_in(group_call->group_call_id.get(),
+        update_group_call_participant_order_timeout_.set_timeout_in(group_call->group_call_id.get(),
                                                                     UPDATE_GROUP_CALL_PARTICIPANT_ORDER_TIMEOUT);
       }
     }
