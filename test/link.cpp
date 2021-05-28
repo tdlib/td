@@ -50,14 +50,13 @@ TEST(Link, check_link) {
 }
 
 static void parse_internal_link(td::string url, td::td_api::object_ptr<td::td_api::InternalLinkType> expected) {
-  // LOG(ERROR) << url;
   auto result = td::LinkManager::parse_internal_link(url);
   if (result != nullptr) {
     auto object = result->get_internal_link_type_object();
     if (object->get_id() == td::td_api::internalLinkTypeMessageDraft::ID) {
       static_cast<td::td_api::internalLinkTypeMessageDraft *>(object.get())->text_->entities_.clear();
     }
-    ASSERT_STREQ(to_string(expected), to_string(object));
+    ASSERT_STREQ(url + to_string(expected), url + to_string(object));
   } else {
     ASSERT_TRUE(expected == nullptr);
   }
@@ -107,6 +106,8 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("www%2etelegram.me/levlam/1", message());
   parse_internal_link("www%2Etelegram.dog/levlam/1", message());
   parse_internal_link("www%252Etelegram.dog/levlam/1", nullptr);
+  parse_internal_link("www.t.me/s/s/s/s/s/joinchat/1", chat_invite());
+  parse_internal_link("http://t.me/s/s/s/s/s/s/s/s/s/s/s/s/s/s/s/s/s/joinchat/1", chat_invite());
   parse_internal_link("http://t.me/levlam/1", message());
   parse_internal_link("https://t.me/levlam/1", message());
   parse_internal_link("hTtp://www.t.me:443/levlam/1", message());

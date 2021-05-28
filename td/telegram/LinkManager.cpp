@@ -157,7 +157,7 @@ class LinkManager::InternalLinkTheme : public InternalLink {
   string theme_name_;
 
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
-    return td_api::make_object<td_api::internalLinkTypeBackground>(theme_name_);
+    return td_api::make_object<td_api::internalLinkTypeTheme>(theme_name_);
   }
 
   InternalLinkType get_type() const final {
@@ -426,7 +426,20 @@ LinkManager::LinkInfo LinkManager::get_link_info(Slice link) {
       if (host == t_me_url) {
         result.is_internal_ = true;
         result.is_tg_ = false;
-        result.query_ = std::move(http_url.query_);
+
+        Slice query = http_url.query_;
+        while (true) {
+          if (begins_with(query, "/s/")) {
+            query.remove_prefix(2);
+            continue;
+          }
+          if (begins_with(query, "/%73/")) {
+            query.remove_prefix(4);
+            continue;
+          }
+          break;
+        }
+        result.query_ = query.str();
         return result;
       }
     }
