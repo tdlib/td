@@ -83,6 +83,22 @@ class LinkManager::InternalLinkDialogInvite : public InternalLink {
   }
 };
 
+class LinkManager::InternalLinkLanguage : public InternalLink {
+  string language_pack_id_;
+
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeLanguagePack>(language_pack_id_);
+  }
+
+  InternalLinkType get_type() const final {
+    return InternalLinkType::Language;
+  }
+
+ public:
+  explicit InternalLinkLanguage(string language_pack_id) : language_pack_id_(std::move(language_pack_id)) {
+  }
+};
+
 class LinkManager::InternalLinkMessage : public InternalLink {
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
     return td_api::make_object<td_api::internalLinkTypeMessage>();
@@ -478,6 +494,11 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     if (has_arg("set")) {
       return td::make_unique<InternalLinkStickerSet>(get_arg("set"));
     }
+  } else if (path.size() == 1 && path[0] == "setlanguage") {
+    // setlanguage?lang=name
+    if (has_arg("lang")) {
+      return td::make_unique<InternalLinkLanguage>(get_arg("lang"));
+    }
   } else if (path.size() == 1 && path[0] == "confirmphone") {
     if (has_arg("hash") && has_arg("phone")) {
       // confirmphone?phone=<phone>&hash=<hash>
@@ -555,6 +576,11 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
     if (path.size() >= 2 && !path[1].empty()) {
       // /addstickers/<name>
       return td::make_unique<InternalLinkStickerSet>(path[1]);
+    }
+  } else if (path[0] == "setlanguage") {
+    if (path.size() >= 2 && !path[1].empty()) {
+      // /setlanguage/<name>
+      return td::make_unique<InternalLinkLanguage>(path[1]);
     }
   } else if (path[0] == "confirmphone") {
     if (has_arg("hash") && has_arg("phone")) {

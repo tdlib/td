@@ -39,6 +39,7 @@ class LinkManager : public Actor {
     Background,
     ConfirmPhone,
     DialogInvite,
+    Language,
     Message,
     MessageDraft,
     QrCodeAuthentication,
@@ -88,6 +89,7 @@ class LinkManager : public Actor {
   class InternalLinkBackground;
   class InternalLinkConfirmPhone;
   class InternalLinkDialogInvite;
+  class InternalLinkLanguage;
   class InternalLinkMessage;
   class InternalLinkMessageDraft;
   class InternalLinkQrCodeAuthentication;

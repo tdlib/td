@@ -73,6 +73,9 @@ TEST(Link, parse_internal_link) {
   auto chat_invite = [] {
     return td::td_api::make_object<td::td_api::internalLinkTypeChatInvite>();
   };
+  auto language_pack = [](td::string language_pack_name) {
+    return td::td_api::make_object<td::td_api::internalLinkTypeLanguagePack>(language_pack_name);
+  };
   auto message = [] {
     return td::td_api::make_object<td::td_api::internalLinkTypeMessage>();
   };
@@ -320,4 +323,22 @@ TEST(Link, parse_internal_link) {
                       phone_number_confirmation("123", "123456789123456789"));
   parse_internal_link("tg://confirmphone?hash=&phone=123456789123456789", unknown_deep_link());
   parse_internal_link("tg://confirmphone?hash=123456789123456789&phone=", unknown_deep_link());
+
+  parse_internal_link("t.me/setlanguage?lang=abcdef", nullptr);
+  parse_internal_link("t.me/setlanguage", nullptr);
+  parse_internal_link("t.me/setlanguage/", nullptr);
+  parse_internal_link("t.me/setlanguage//abcdef", nullptr);
+  parse_internal_link("t.me/setlanguage?/abcdef", nullptr);
+  parse_internal_link("t.me/setlanguage/?abcdef", nullptr);
+  parse_internal_link("t.me/setlanguage/#abcdef", nullptr);
+  parse_internal_link("t.me/setlanguage/abacaba", language_pack("abacaba"));
+  parse_internal_link("t.me/setlanguage/aba%20aba", language_pack("aba aba"));
+  parse_internal_link("t.me/setlanguage/123456a", language_pack("123456a"));
+  parse_internal_link("t.me/setlanguage/12345678901", language_pack("12345678901"));
+  parse_internal_link("t.me/setlanguage/123456", language_pack("123456"));
+  parse_internal_link("t.me/setlanguage/123456/123123/12/31/a/s//21w/?asdas#test", language_pack("123456"));
+
+  parse_internal_link("tg:setlanguage?lang=abcdef", language_pack("abcdef"));
+  parse_internal_link("tg:setlanguage?lang=abc%30ef", language_pack("abc0ef"));
+  parse_internal_link("tg://setlanguage?lang=", unknown_deep_link());
 }

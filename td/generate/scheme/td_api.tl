@@ -3009,6 +3009,9 @@ internalLinkTypeBackground background_name:string = InternalLinkType;
 //@description The link is a chat invite link. Call checkChatInviteLink to process the link
 internalLinkTypeChatInvite = InternalLinkType;
 
+//@description The link is a link to a language pack. Call getLanguagePackInfo with the given language pack identifier to process the link @language_pack_id Language pack identifier
+internalLinkTypeLanguagePack language_pack_id:string = InternalLinkType;
+
 //@description The link is a link to a Telegram message. Call getMessageLinkInfo to process the link
 internalLinkTypeMessage = InternalLinkType;
 
