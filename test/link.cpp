@@ -81,6 +81,9 @@ TEST(Link, parse_internal_link) {
     formatted_text->text_ = std::move(text);
     return td::td_api::make_object<td::td_api::internalLinkTypeMessageDraft>(std::move(formatted_text), contains_url);
   };
+  auto phone_number_confirmation = [](td::string hash, td::string phone_number) {
+    return td::td_api::make_object<td::td_api::internalLinkTypePhoneNumberConfirmation>(hash, phone_number);
+  };
   auto qr_code_authentication = []() {
     return td::td_api::make_object<td::td_api::internalLinkTypeQrCodeAuthentication>();
   };
@@ -293,13 +296,28 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("t.me/addstickers?/abcdef", nullptr);
   parse_internal_link("t.me/addstickers/?abcdef", nullptr);
   parse_internal_link("t.me/addstickers/#abcdef", nullptr);
-  parse_internal_link("t.me/addstickers/abacaba", sticker_set());
-  parse_internal_link("t.me/addstickers/aba%20aba", sticker_set());
-  parse_internal_link("t.me/addstickers/123456a", sticker_set());
-  parse_internal_link("t.me/addstickers/12345678901", sticker_set());
-  parse_internal_link("t.me/addstickers/123456", sticker_set());
-  parse_internal_link("t.me/addstickers/123456/123123/12/31/a/s//21w/?asdas#test", sticker_set());
+  parse_internal_link("t.me/addstickers/abacaba", sticker_set("abacaba"));
+  parse_internal_link("t.me/addstickers/aba%20aba", sticker_set("aba aba"));
+  parse_internal_link("t.me/addstickers/123456a", sticker_set("123456a"));
+  parse_internal_link("t.me/addstickers/12345678901", sticker_set("12345678901"));
+  parse_internal_link("t.me/addstickers/123456", sticker_set("123456"));
+  parse_internal_link("t.me/addstickers/123456/123123/12/31/a/s//21w/?asdas#test", sticker_set("123456"));
 
-  parse_internal_link("tg:addstickers?set=abcdef", sticker_set());
+  parse_internal_link("tg:addstickers?set=abcdef", sticker_set("abcdef"));
+  parse_internal_link("tg:addstickers?set=abc%30ef", sticker_set("abc0ef"));
   parse_internal_link("tg://addstickers?set=", unknown_deep_link());
+
+  parse_internal_link("t.me/confirmphone?hash=abc%30ef&phone=", nullptr);
+  parse_internal_link("t.me/confirmphone/123456/123123/12/31/a/s//21w/?hash=abc%30ef&phone=123456789",
+                      phone_number_confirmation("abc0ef", "123456789"));
+  parse_internal_link("t.me/confirmphone?hash=abc%30ef&phone=123456789",
+                      phone_number_confirmation("abc0ef", "123456789"));
+
+  parse_internal_link("tg:confirmphone?hash=abc%30ef&phone=", unknown_deep_link());
+  parse_internal_link("tg:confirmphone?hash=abc%30ef&phone=123456789",
+                      phone_number_confirmation("abc0ef", "123456789"));
+  parse_internal_link("tg://confirmphone?hash=123&phone=123456789123456789",
+                      phone_number_confirmation("123", "123456789123456789"));
+  parse_internal_link("tg://confirmphone?hash=&phone=123456789123456789", unknown_deep_link());
+  parse_internal_link("tg://confirmphone?hash=123456789123456789&phone=", unknown_deep_link());
 }
