@@ -107,6 +107,7 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("www%2Etelegram.dog/levlam/1", message());
   parse_internal_link("www%252Etelegram.dog/levlam/1", nullptr);
   parse_internal_link("www.t.me/s/s/s/s/s/joinchat/1", chat_invite());
+  parse_internal_link("www.t.me/s/%73/%73/s/%73/joinchat/1", chat_invite());
   parse_internal_link("http://t.me/s/s/s/s/s/s/s/s/s/s/s/s/s/s/s/s/s/joinchat/1", chat_invite());
   parse_internal_link("http://t.me/levlam/1", message());
   parse_internal_link("https://t.me/levlam/1", message());
