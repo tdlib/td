@@ -55,13 +55,13 @@ class LinkManager::InternalLinkBackground : public InternalLink {
   }
 };
 
-class LinkManager::InternalLinkDialogInviteLink : public InternalLink {
+class LinkManager::InternalLinkDialogInvite : public InternalLink {
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
-    return td_api::make_object<td_api::internalLinkTypeChatInviteLink>();
+    return td_api::make_object<td_api::internalLinkTypeChatInvite>();
   }
 
   InternalLinkType get_type() const final {
-    return InternalLinkType::DialogInviteLink;
+    return InternalLinkType::DialogInvite;
   }
 };
 
@@ -100,6 +100,22 @@ class LinkManager::InternalLinkQrCodeAuthentication : public InternalLink {
 
   InternalLinkType get_type() const final {
     return InternalLinkType::QrCodeAuthentication;
+  }
+};
+
+class LinkManager::InternalLinkStickerSet : public InternalLink {
+  string sticker_set_name_;
+
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeStickerSet>(sticker_set_name_);
+  }
+
+  InternalLinkType get_type() const final {
+    return InternalLinkType::StickerSet;
+  }
+
+ public:
+  explicit InternalLinkStickerSet(string sticker_set_name) : sticker_set_name_(std::move(sticker_set_name)) {
   }
 };
 
@@ -434,7 +450,12 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
   } else if (path.size() == 1 && path[0] == "join") {
     // join?invite=abcdef
     if (has_arg("invite")) {
-      return td::make_unique<InternalLinkDialogInviteLink>();
+      return td::make_unique<InternalLinkDialogInvite>();
+    }
+  } else if (path.size() == 1 && path[0] == "addstickers") {
+    // addstickers?set=name
+    if (has_arg("set")) {
+      return td::make_unique<InternalLinkStickerSet>(get_arg("set"));
     }
   } else if (path.size() == 1 && path[0] == "privatepost") {
     // privatepost?channel=123456789&msg_id=12345
@@ -498,12 +519,17 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
   } else if (path[0] == "joinchat") {
     if (path.size() >= 2 && !path[1].empty()) {
       // /joinchat/<link>
-      return td::make_unique<InternalLinkDialogInviteLink>();
+      return td::make_unique<InternalLinkDialogInvite>();
+    }
+  } else if (path[0] == "addstickers") {
+    if (path.size() >= 2 && !path[1].empty()) {
+      // /addstickers/<name>
+      return td::make_unique<InternalLinkStickerSet>(path[1]);
     }
   } else if (path[0][0] == ' ' || path[0][0] == '+') {
     if (path[0].size() >= 2) {
       // /+<link>
-      return td::make_unique<InternalLinkDialogInviteLink>();
+      return td::make_unique<InternalLinkDialogInvite>();
     }
   } else if (path[0] == "bg") {
     if (path.size() >= 2 && !path[1].empty()) {

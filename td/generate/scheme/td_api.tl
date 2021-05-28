@@ -3007,7 +3007,7 @@ internalLinkTypeAuthenticationCode code:string = InternalLinkType;
 internalLinkTypeBackground background_name:string = InternalLinkType;
 
 //@description The link is a chat invite link. Call checkChatInviteLink to process the link
-internalLinkTypeChatInviteLink = InternalLinkType;
+internalLinkTypeChatInvite = InternalLinkType;
 
 //@description The link is a link to a Telegram message. Call getMessageLinkInfo to process the link
 internalLinkTypeMessage = InternalLinkType;
@@ -3019,6 +3019,9 @@ internalLinkTypeMessageDraft text:formattedText contains_link:Bool = InternalLin
 //@description The link can be used to login the current user on another device, but it must be scanned from QR-code using in-app camera. An alert similar to
 //-"This code can be used to allow someone to log in to your Telegram account. To confirm Telegram login, please go to Settings > Devices > Scan QR and scan the code" needs to be shown
 internalLinkTypeQrCodeAuthentication = InternalLinkType;
+
+//@description The link is a link to a sticker set. Call searchStickerSet with the given sticker set name to process the link and show the sticker set @sticker_set_name Name of the sticker set
+internalLinkTypeStickerSet sticker_set_name:string = InternalLinkType;
 
 //@description The link is an unknown tg: link. Call getDeepLinkInfo to process the link
 internalLinkTypeUnknownDeepLink = InternalLinkType;

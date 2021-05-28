@@ -37,10 +37,11 @@ class LinkManager : public Actor {
   enum class InternalLinkType : int32 {
     AuthenticationCode,
     Background,
-    DialogInviteLink,
+    DialogInvite,
     Message,
     MessageDraft,
     QrCodeAuthentication,
+    StickerSet,
     UnknownDeepLink
   };
 
@@ -60,14 +61,6 @@ class LinkManager : public Actor {
 
   // checks whether the link is a valid tg, ton or HTTP(S) URL and returns it in a canonical form
   static Result<string> check_link(Slice link);
-
-  struct LinkInfo {
-    bool is_internal_ = false;
-    bool is_tg_ = false;
-    string query_;
-  };
-  // returns information about the link
-  static LinkInfo get_link_info(Slice link);
 
   // checks whether the link is a supported tg or t.me URL and parses it
   static unique_ptr<InternalLink> parse_internal_link(Slice link);
@@ -92,11 +85,20 @@ class LinkManager : public Actor {
 
   class InternalLinkAuthenticationCode;
   class InternalLinkBackground;
-  class InternalLinkDialogInviteLink;
+  class InternalLinkDialogInvite;
   class InternalLinkMessage;
   class InternalLinkMessageDraft;
   class InternalLinkQrCodeAuthentication;
+  class InternalLinkStickerSet;
   class InternalLinkUnknownDeepLink;
+
+  struct LinkInfo {
+    bool is_internal_ = false;
+    bool is_tg_ = false;
+    string query_;
+  };
+  // returns information about the link
+  static LinkInfo get_link_info(Slice link);
 
   static unique_ptr<InternalLink> parse_tg_link_query(Slice query);
 

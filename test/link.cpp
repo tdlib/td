@@ -70,8 +70,8 @@ TEST(Link, parse_internal_link) {
   auto background = [](td::string background_name) {
     return td::td_api::make_object<td::td_api::internalLinkTypeBackground>(background_name);
   };
-  auto chat_invite_link = [] {
-    return td::td_api::make_object<td::td_api::internalLinkTypeChatInviteLink>();
+  auto chat_invite = [] {
+    return td::td_api::make_object<td::td_api::internalLinkTypeChatInvite>();
   };
   auto message = [] {
     return td::td_api::make_object<td::td_api::internalLinkTypeMessage>();
@@ -83,6 +83,9 @@ TEST(Link, parse_internal_link) {
   };
   auto qr_code_authentication = []() {
     return td::td_api::make_object<td::td_api::internalLinkTypeQrCodeAuthentication>();
+  };
+  auto sticker_set = [](td::string sticker_set_name) {
+    return td::td_api::make_object<td::td_api::internalLinkTypeStickerSet>(sticker_set_name);
   };
   auto unknown_deep_link = [] {
     return td::td_api::make_object<td::td_api::internalLinkTypeUnknownDeepLink>();
@@ -258,28 +261,45 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("t.me/joinchat?/abcdef", nullptr);
   parse_internal_link("t.me/joinchat/?abcdef", nullptr);
   parse_internal_link("t.me/joinchat/#abcdef", nullptr);
-  parse_internal_link("t.me/joinchat/abacaba", chat_invite_link());
-  parse_internal_link("t.me/joinchat/aba%20aba", chat_invite_link());
-  parse_internal_link("t.me/joinchat/123456a", chat_invite_link());
-  parse_internal_link("t.me/joinchat/12345678901", chat_invite_link());
-  parse_internal_link("t.me/joinchat/123456", chat_invite_link());
-  parse_internal_link("t.me/joinchat/123456/123123/12/31/a/s//21w/?asdas#test", chat_invite_link());
+  parse_internal_link("t.me/joinchat/abacaba", chat_invite());
+  parse_internal_link("t.me/joinchat/aba%20aba", chat_invite());
+  parse_internal_link("t.me/joinchat/123456a", chat_invite());
+  parse_internal_link("t.me/joinchat/12345678901", chat_invite());
+  parse_internal_link("t.me/joinchat/123456", chat_invite());
+  parse_internal_link("t.me/joinchat/123456/123123/12/31/a/s//21w/?asdas#test", chat_invite());
 
   parse_internal_link("t.me/+?invite=abcdef", nullptr);
-  parse_internal_link("t.me/+a", chat_invite_link());
+  parse_internal_link("t.me/+a", chat_invite());
   parse_internal_link("t.me/+", nullptr);
   parse_internal_link("t.me/+/abcdef", nullptr);
   parse_internal_link("t.me/ ?/abcdef", nullptr);
   parse_internal_link("t.me/+?abcdef", nullptr);
   parse_internal_link("t.me/+#abcdef", nullptr);
-  parse_internal_link("t.me/ abacaba", chat_invite_link());
-  parse_internal_link("t.me/+aba%20aba", chat_invite_link());
-  parse_internal_link("t.me/+123456a", chat_invite_link());
-  parse_internal_link("t.me/%2012345678901", chat_invite_link());
-  parse_internal_link("t.me/+123456", chat_invite_link());
-  parse_internal_link("t.me/ 123456/123123/12/31/a/s//21w/?asdas#test", chat_invite_link());
+  parse_internal_link("t.me/ abacaba", chat_invite());
+  parse_internal_link("t.me/+aba%20aba", chat_invite());
+  parse_internal_link("t.me/+123456a", chat_invite());
+  parse_internal_link("t.me/%2012345678901", chat_invite());
+  parse_internal_link("t.me/+123456", chat_invite());
+  parse_internal_link("t.me/ 123456/123123/12/31/a/s//21w/?asdas#test", chat_invite());
   parse_internal_link("t.me/ /123456/123123/12/31/a/s//21w/?asdas#test", nullptr);
 
-  parse_internal_link("tg:join?invite=abcdef", chat_invite_link());
+  parse_internal_link("tg:join?invite=abcdef", chat_invite());
   parse_internal_link("tg:join?invite=", unknown_deep_link());
+
+  parse_internal_link("t.me/addstickers?set=abcdef", nullptr);
+  parse_internal_link("t.me/addstickers", nullptr);
+  parse_internal_link("t.me/addstickers/", nullptr);
+  parse_internal_link("t.me/addstickers//abcdef", nullptr);
+  parse_internal_link("t.me/addstickers?/abcdef", nullptr);
+  parse_internal_link("t.me/addstickers/?abcdef", nullptr);
+  parse_internal_link("t.me/addstickers/#abcdef", nullptr);
+  parse_internal_link("t.me/addstickers/abacaba", sticker_set());
+  parse_internal_link("t.me/addstickers/aba%20aba", sticker_set());
+  parse_internal_link("t.me/addstickers/123456a", sticker_set());
+  parse_internal_link("t.me/addstickers/12345678901", sticker_set());
+  parse_internal_link("t.me/addstickers/123456", sticker_set());
+  parse_internal_link("t.me/addstickers/123456/123123/12/31/a/s//21w/?asdas#test", sticker_set());
+
+  parse_internal_link("tg:addstickers?set=abcdef", sticker_set());
+  parse_internal_link("tg://addstickers?set=", unknown_deep_link());
 }
