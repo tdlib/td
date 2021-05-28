@@ -12,6 +12,8 @@
 #include "td/utils/Parser.h"
 #include "td/utils/port/IPAddress.h"
 
+#include <algorithm>
+
 namespace td {
 
 string HttpUrl::get_url() const {
