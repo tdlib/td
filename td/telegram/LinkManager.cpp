@@ -216,6 +216,24 @@ class LinkManager::InternalLinkUnknownDeepLink : public InternalLink {
   }
 };
 
+class LinkManager::InternalLinkVoiceChat : public InternalLink {
+  string chat_username_;
+  string invite_hash_;
+
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeVoiceChat>(chat_username_, invite_hash_);
+  }
+
+  InternalLinkType get_type() const final {
+    return InternalLinkType::VoiceChat;
+  }
+
+ public:
+  InternalLinkVoiceChat(string chat_username, string invite_hash)
+      : chat_username_(std::move(chat_username)), invite_hash_(std::move(invite_hash)) {
+  }
+};
+
 class RequestUrlAuthQuery : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::LoginUrlInfo>> promise_;
   string url_;
@@ -537,9 +555,18 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
   };
 
   if (path.size() == 1 && path[0] == "resolve") {
-    // resolve?domain=username&post=12345&single
-    if (has_arg("domain") && has_arg("post")) {
-      return td::make_unique<InternalLinkMessage>();
+    if (has_arg("domain")) {
+      if (has_arg("post")) {
+        // resolve?domain=username&post=12345&single
+        return td::make_unique<InternalLinkMessage>();
+      }
+      for (auto &arg : url_query.args_) {
+        if (arg.first == "voicechat") {
+          // resolve?domain=username&voicechat
+          // resolve?domain=username&voicechat=<invite_hash>
+          return td::make_unique<InternalLinkVoiceChat>(get_arg("domain"), arg.second);
+        }
+      }
     }
   } else if (path.size() == 1 && path[0] == "login") {
     // login?code=123456
@@ -721,10 +748,18 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
       // /share/url?url=<url>&text=<text>
       return get_internal_link_message_draft(get_arg("url"), get_arg("text"));
     }
-  } else {
+  } else if (path[0].size() <= 64) {
     if (path.size() >= 2 && to_integer<int64>(path[1]) > 0) {
-      // /<username>/12345?single
+      // /<username>/12345?single&thread=<thread_id>&comment=<message_id>
       return td::make_unique<InternalLinkMessage>();
+    } else {
+      for (auto &arg : url_query.args_) {
+        if (arg.first == "voicechat") {
+          // /<username>?voicechat
+          // /<username>?voicechat=<invite_hash>
+          return td::make_unique<InternalLinkVoiceChat>(path[0], arg.second);
+        }
+      }
     }
   }
   return nullptr;

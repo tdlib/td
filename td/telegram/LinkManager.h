@@ -46,7 +46,8 @@ class LinkManager : public Actor {
     QrCodeAuthentication,
     StickerSet,
     Theme,
-    UnknownDeepLink
+    UnknownDeepLink,
+    VoiceChat
   };
 
   class InternalLink {
@@ -99,6 +100,7 @@ class LinkManager : public Actor {
   class InternalLinkStickerSet;
   class InternalLinkTheme;
   class InternalLinkUnknownDeepLink;
+  class InternalLinkVoiceChat;
 
   struct LinkInfo {
     bool is_internal_ = false;

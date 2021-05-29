@@ -3040,6 +3040,10 @@ internalLinkTypeTheme theme_name:string = InternalLinkType;
 //@description The link is an unknown tg: link. Call getDeepLinkInfo to process the link
 internalLinkTypeUnknownDeepLink = InternalLinkType;
 
+//@description The link is a link to a voice chat. Call searchPublicChat and joinGoupCall with the given chat username and the given invite hash to process the link
+//@chat_username Username of the chat with the voice chat @invite_hash If non-empty, invite hash to be used to join the voice chat without being muted by administrators
+internalLinkTypeVoiceChat chat_username:string invite_hash:string = InternalLinkType;
+
 
 //@description Contains an HTTPS link to a message in a supergroup or channel @link Message link @is_public True, if the link will work for non-members of the chat
 messageLink link:string is_public:Bool = MessageLink;
