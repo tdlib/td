@@ -12185,6 +12185,7 @@ void MessagesManager::init() {
   if (is_authorized && td_->auth_manager_->is_bot()) {
     disable_get_dialog_filter_ = true;
   }
+  authorization_date_ = G()->shared_config().get_option_integer("authorization_date");
 
   if (was_authorized_user) {
     vector<NotificationSettingsScope> scopes{NotificationSettingsScope::Private, NotificationSettingsScope::Group,
@@ -12590,6 +12591,8 @@ void MessagesManager::init() {
 
 void MessagesManager::on_authorization_success() {
   CHECK(td_->auth_manager_->is_authorized());
+  authorization_date_ = G()->shared_config().get_option_integer("authorization_date");
+
   if (td_->auth_manager_->is_bot()) {
     disable_get_dialog_filter_ = true;
     return;
@@ -27552,6 +27555,9 @@ bool MessagesManager::is_dialog_message_notification_disabled(DialogId dialog_id
     default:
       UNREACHABLE();
   }
+  if (message_date < authorization_date_) {
+    return true;
+  }
 
   return false;
 }
@@ -31687,8 +31693,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       (message->reply_markup->type == ReplyMarkup::Type::RemoveKeyboard ||
        (message->reply_markup->type == ReplyMarkup::Type::ForceReply && !message->reply_markup->is_personal)) &&
       !td_->auth_manager_->is_bot()) {
-    if (*need_update && message->reply_markup->is_personal) {  // if this keyboard is for us
-      if (d->reply_markup_message_id != MessageId()) {
+    if (from_update && message->reply_markup->is_personal) {  // if this keyboard is for us
+      if (d->reply_markup_message_id != MessageId() && message_id > d->reply_markup_message_id) {
         const Message *old_message = get_message_force(d, d->reply_markup_message_id, "add_message_to_dialog 1");
         if (old_message == nullptr ||
             (old_message->sender_user_id.is_valid() && old_message->sender_user_id == message->sender_user_id)) {

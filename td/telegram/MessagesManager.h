@@ -3307,6 +3307,8 @@ class MessagesManager : public Actor {
 
   uint32 scheduled_messages_sync_generation_ = 1;
 
+  int64 authorization_date_ = 0;
+
   DialogId removed_sponsored_dialog_id_;
   DialogId sponsored_dialog_id_;
   DialogSource sponsored_dialog_source_;
