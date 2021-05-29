@@ -9600,7 +9600,7 @@ void ContactsManager::on_load_channel_full_from_database(ChannelId channel_id, s
   if (channel_full->participant_count < channel_full->administrator_count) {
     channel_full->participant_count = channel_full->administrator_count;
   }
-  if (c->participant_count != channel_full->participant_count) {
+  if (c->participant_count != 0 && c->participant_count != channel_full->participant_count) {
     channel_full->participant_count = c->participant_count;
 
     if (channel_full->participant_count < channel_full->administrator_count) {
