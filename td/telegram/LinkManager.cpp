@@ -15,6 +15,8 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 
+#include "td/mtproto/ProxySecret.h"
+
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/HttpUrl.h"
@@ -124,6 +126,41 @@ class LinkManager::InternalLinkMessageDraft : public InternalLink {
  public:
   InternalLinkMessageDraft(FormattedText &&text, bool contains_link)
       : text_(std::move(text)), contains_link_(contains_link) {
+  }
+};
+
+class LinkManager::InternalLinkProxy : public InternalLink {
+  string server_;
+  int32 port_;
+  td_api::object_ptr<td_api::ProxyType> type_;
+
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    CHECK(type_ != nullptr);
+    auto proxy_type = [type = type_.get()]() -> td_api::object_ptr<td_api::ProxyType> {
+      switch (type->get_id()) {
+        case td_api::proxyTypeSocks5::ID: {
+          auto type_socks = static_cast<const td_api::proxyTypeSocks5 *>(type);
+          return td_api::make_object<td_api::proxyTypeSocks5>(type_socks->username_, type_socks->password_);
+        }
+        case td_api::proxyTypeMtproto::ID: {
+          auto type_mtproto = static_cast<const td_api::proxyTypeMtproto *>(type);
+          return td_api::make_object<td_api::proxyTypeMtproto>(type_mtproto->secret_);
+        }
+        default:
+          UNREACHABLE();
+          return nullptr;
+      }
+    }();
+    return td_api::make_object<td_api::internalLinkTypeProxy>(server_, port_, std::move(proxy_type));
+  }
+
+  InternalLinkType get_type() const final {
+    return InternalLinkType::Proxy;
+  }
+
+ public:
+  InternalLinkProxy(string server, int32 port, td_api::object_ptr<td_api::ProxyType> type)
+      : server_(std::move(server)), port_(port), type_(std::move(type)) {
   }
 };
 
@@ -538,6 +575,24 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
       // confirmphone?phone=<phone>&hash=<hash>
       return td::make_unique<InternalLinkConfirmPhone>(get_arg("hash"), get_arg("phone"));
     }
+  } else if (path.size() == 1 && path[0] == "socks") {
+    if (has_arg("server") && has_arg("port")) {
+      // socks?server=<server>&port=<port>&user=<user>&pass=<pass>
+      auto port = to_integer<int32>(get_arg("port"));
+      if (0 < port && port < 65536) {
+        return td::make_unique<InternalLinkProxy>(
+            get_arg("server"), port, td_api::make_object<td_api::proxyTypeSocks5>(get_arg("user"), get_arg("pass")));
+      }
+    }
+  } else if (path.size() == 1 && path[0] == "proxy") {
+    if (has_arg("server") && has_arg("port")) {
+      // proxy?server=<server>&port=<port>&secret=<secret>
+      auto port = to_integer<int32>(get_arg("port"));
+      if (0 < port && port < 65536 && mtproto::ProxySecret::from_link(get_arg("secret")).is_ok()) {
+        return td::make_unique<InternalLinkProxy>(get_arg("server"), port,
+                                                  td_api::make_object<td_api::proxyTypeMtproto>(get_arg("secret")));
+      }
+    }
   } else if (path.size() == 1 && path[0] == "privatepost") {
     // privatepost?channel=123456789&msg_id=12345
     if (has_arg("channel") && has_arg("msg_id")) {
@@ -606,6 +661,11 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
       // /joinchat/<link>
       return td::make_unique<InternalLinkDialogInvite>();
     }
+  } else if (path[0][0] == ' ' || path[0][0] == '+') {
+    if (path[0].size() >= 2) {
+      // /+<link>
+      return td::make_unique<InternalLinkDialogInvite>();
+    }
   } else if (path[0] == "addstickers") {
     if (path.size() >= 2 && !path[1].empty()) {
       // /addstickers/<name>
@@ -626,10 +686,23 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
       // /confirmphone?phone=<phone>&hash=<hash>
       return td::make_unique<InternalLinkConfirmPhone>(get_arg("hash"), get_arg("phone"));
     }
-  } else if (path[0][0] == ' ' || path[0][0] == '+') {
-    if (path[0].size() >= 2) {
-      // /+<link>
-      return td::make_unique<InternalLinkDialogInvite>();
+  } else if (path[0] == "socks") {
+    if (has_arg("server") && has_arg("port")) {
+      // /socks?server=<server>&port=<port>&user=<user>&pass=<pass>
+      auto port = to_integer<int32>(get_arg("port"));
+      if (0 < port && port < 65536) {
+        return td::make_unique<InternalLinkProxy>(
+            get_arg("server"), port, td_api::make_object<td_api::proxyTypeSocks5>(get_arg("user"), get_arg("pass")));
+      }
+    }
+  } else if (path[0] == "proxy") {
+    if (has_arg("server") && has_arg("port")) {
+      // /proxy?server=<server>&port=<port>&secret=<secret>
+      auto port = to_integer<int32>(get_arg("port"));
+      if (0 < port && port < 65536 && mtproto::ProxySecret::from_link(get_arg("secret")).is_ok()) {
+        return td::make_unique<InternalLinkProxy>(get_arg("server"), port,
+                                                  td_api::make_object<td_api::proxyTypeMtproto>(get_arg("secret")));
+      }
     }
   } else if (path[0] == "bg") {
     if (path.size() >= 2 && !path[1].empty()) {

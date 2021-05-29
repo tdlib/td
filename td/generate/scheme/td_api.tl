@@ -3023,6 +3023,10 @@ internalLinkTypeMessageDraft text:formattedText contains_link:Bool = InternalLin
 //@hash Hash value from the link @phone_number Phone number value from the link
 internalLinkTypePhoneNumberConfirmation hash:string phone_number:string = InternalLinkType;
 
+//@description The link is a link to a proxy. Call addProxy to process the link and add the proxy
+//@server Proxy server IP address @port Proxy server port @type Type of the proxy
+internalLinkTypeProxy server:string port:int32 type:ProxyType = InternalLinkType;
+
 //@description The link can be used to login the current user on another device, but it must be scanned from QR-code using in-app camera. An alert similar to
 //-"This code can be used to allow someone to log in to your Telegram account. To confirm Telegram login, please go to Settings > Devices > Scan QR and scan the code" needs to be shown
 internalLinkTypeQrCodeAuthentication = InternalLinkType;
