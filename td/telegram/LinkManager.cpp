@@ -89,7 +89,7 @@ class LinkManager::InternalLinkBotStartInGroup : public InternalLink {
   }
 
   InternalLinkType get_type() const final {
-    return InternalLinkType::BotStart;
+    return InternalLinkType::BotStartInGroup;
   }
 
  public:
@@ -123,6 +123,24 @@ class LinkManager::InternalLinkDialogInvite : public InternalLink {
 
   InternalLinkType get_type() const final {
     return InternalLinkType::DialogInvite;
+  }
+};
+
+class LinkManager::InternalLinkGame : public InternalLink {
+  string bot_username_;
+  string game_short_name_;
+
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeGame>(bot_username_, game_short_name_);
+  }
+
+  InternalLinkType get_type() const final {
+    return InternalLinkType::Game;
+  }
+
+ public:
+  InternalLinkGame(string bot_username, string game_short_name)
+      : bot_username_(std::move(bot_username)), game_short_name_(std::move(game_short_name)) {
   }
 };
 
@@ -598,22 +616,26 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
   if (path.size() == 1 && path[0] == "resolve") {
     if (has_arg("domain")) {
       if (has_arg("post")) {
-        // resolve?domain=username&post=12345&single
+        // resolve?domain=<username>&post=12345&single
         return td::make_unique<InternalLinkMessage>();
       }
       for (auto &arg : url_query.args_) {
         if (arg.first == "voicechat") {
-          // resolve?domain=username&voicechat
-          // resolve?domain=username&voicechat=<invite_hash>
+          // resolve?domain=<username>&voicechat
+          // resolve?domain=<username>&voicechat=<invite_hash>
           return td::make_unique<InternalLinkVoiceChat>(get_arg("domain"), arg.second);
         }
         if (arg.first == "start" && is_valid_start_parameter(arg.second)) {
-          // /<bot_username>?start=<parameter>
+          // resolve?domain=<bot_username>?start=<parameter>
           return td::make_unique<InternalLinkBotStart>(get_arg("domain"), arg.second);
         }
         if (arg.first == "startgroup" && is_valid_start_parameter(arg.second)) {
-          // /<bot_username>?startgroup=<parameter>
+          // resolve?domain=<bot_username>?startgroup=<parameter>
           return td::make_unique<InternalLinkBotStartInGroup>(get_arg("domain"), arg.second);
+        }
+        if (arg.first == "game" && !arg.second.empty()) {
+          // resolve?domain=<bot_username>?game=<short_name>
+          return td::make_unique<InternalLinkGame>(get_arg("domain"), arg.second);
         }
       }
     }
@@ -622,27 +644,27 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     if (has_arg("code")) {
       return td::make_unique<InternalLinkAuthenticationCode>(get_arg("code"));
     }
-    // login?token=abacaba
+    // login?token=<token>
     if (has_arg("token")) {
       return td::make_unique<InternalLinkQrCodeAuthentication>();
     }
   } else if (path.size() == 1 && path[0] == "join") {
-    // join?invite=abcdef
+    // join?invite=<hash>
     if (has_arg("invite")) {
       return td::make_unique<InternalLinkDialogInvite>();
     }
   } else if (path.size() == 1 && path[0] == "addstickers") {
-    // addstickers?set=name
+    // addstickers?set=<name>
     if (has_arg("set")) {
       return td::make_unique<InternalLinkStickerSet>(get_arg("set"));
     }
   } else if (path.size() == 1 && path[0] == "setlanguage") {
-    // setlanguage?lang=name
+    // setlanguage?lang=<name>
     if (has_arg("lang")) {
       return td::make_unique<InternalLinkLanguage>(get_arg("lang"));
     }
   } else if (path.size() == 1 && path[0] == "addtheme") {
-    // addtheme?slug=name
+    // addtheme?slug=<name>
     if (has_arg("slug")) {
       return td::make_unique<InternalLinkTheme>(get_arg("slug"));
     }
@@ -815,6 +837,10 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
         if (arg.first == "startgroup" && is_valid_start_parameter(arg.second)) {
           // /<bot_username>?startgroup=<parameter>
           return td::make_unique<InternalLinkBotStartInGroup>(path[0], arg.second);
+        }
+        if (arg.first == "game" && !arg.second.empty()) {
+          // /<bot_username>?game=<short_name>
+          return td::make_unique<InternalLinkGame>(path[0], arg.second);
         }
       }
     }

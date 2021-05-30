@@ -3019,6 +3019,10 @@ internalLinkTypeBotStartInGroup bot_username:string start_parameter:string = Int
 //@description The link is a chat invite link. Call checkChatInviteLink to process the link
 internalLinkTypeChatInvite = InternalLinkType;
 
+//@description The link is a link to a game. Call searchPublicChat with the given bot username, check that the user is a bot, ask the current user to select a group to send the game, and then call sendMessage with inputMessageGame
+//@bot_username Username of the bot that owns the game @game_short_name Short name of the game
+internalLinkTypeGame bot_username:string game_short_name:string = InternalLinkType;
+
 //@description The link is a link to a language pack. Call getLanguagePackInfo with the given language pack identifier to process the link @language_pack_id Language pack identifier
 internalLinkTypeLanguagePack language_pack_id:string = InternalLinkType;
 

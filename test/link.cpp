@@ -78,6 +78,9 @@ TEST(Link, parse_internal_link) {
   auto chat_invite = [] {
     return td::td_api::make_object<td::td_api::internalLinkTypeChatInvite>();
   };
+  auto game = [](td::string bot_username, td::string game_short_name) {
+    return td::td_api::make_object<td::td_api::internalLinkTypeGame>(bot_username, game_short_name);
+  };
   auto language_pack = [](td::string language_pack_name) {
     return td::td_api::make_object<td::td_api::internalLinkTypeLanguagePack>(language_pack_name);
   };
@@ -491,4 +494,23 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("t.me/username#startgroup=asdas", nullptr);
   parse_internal_link("t.me//username?startgroup=", nullptr);
   parse_internal_link("https://telegram.dog/tele%63ram?startgroup=t%63st", bot_start_in_group("telecram", "tcst"));
+
+  parse_internal_link("tg:resolve?domain=username&game=aasdasd", game("username", "aasdasd"));
+  parse_internal_link("TG://resolve?domain=username&game=", unknown_deep_link());
+  parse_internal_link("TG://test@resolve?domain=username&game=asd", nullptr);
+  parse_internal_link("tg:resolve:80?domain=username&game=asd", nullptr);
+  parse_internal_link("tg:http://resolve?domain=username&game=asd", nullptr);
+  parse_internal_link("tg:https://resolve?domain=username&game=asd", nullptr);
+  parse_internal_link("tg:resolve?domain=&game=asd", unknown_deep_link());
+  parse_internal_link("tg:resolve?domain=telegram&&&&&&&game=%30", game("telegram", "0"));
+
+  parse_internal_link("t.me/username/0/a//s/as?game=asd", game("username", "asd"));
+  parse_internal_link("t.me/username/aasdas?test=1&game=asd#12312", game("username", "asd"));
+  parse_internal_link("t.me/username/0?game=asd", game("username", "asd"));
+  parse_internal_link("t.me/username/-1?game=asdasd", game("username", "asdasd"));
+  parse_internal_link("t.me/username?game=asd", game("username", "asd"));
+  parse_internal_link("t.me/username?game=", nullptr);
+  parse_internal_link("t.me/username#game=asdas", nullptr);
+  parse_internal_link("t.me//username?game=asd", nullptr);
+  parse_internal_link("https://telegram.dog/tele%63ram?game=t%63st", game("telecram", "tcst"));
 }

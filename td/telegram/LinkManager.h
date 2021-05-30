@@ -41,6 +41,7 @@ class LinkManager : public Actor {
     BotStartInGroup,
     ConfirmPhone,
     DialogInvite,
+    Game,
     Language,
     Message,
     MessageDraft,
@@ -96,6 +97,7 @@ class LinkManager : public Actor {
   class InternalLinkBotStartInGroup;
   class InternalLinkConfirmPhone;
   class InternalLinkDialogInvite;
+  class InternalLinkGame;
   class InternalLinkLanguage;
   class InternalLinkMessage;
   class InternalLinkMessageDraft;
