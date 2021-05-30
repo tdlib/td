@@ -3006,6 +3006,16 @@ internalLinkTypeAuthenticationCode code:string = InternalLinkType;
 //@description The link is a link to a background. Call searchBackground with the given background name to process the link @background_name Name of the background
 internalLinkTypeBackground background_name:string = InternalLinkType;
 
+//@description The link is a link to a chat with a Telegram bot. Call searchPublicChat with the given bot username, check that the user is a bot, show START button in the chat with the bot,
+//-and then call sendBotStartMessage with the given start parameter after the button is pressed
+//@bot_username Username of the bot @start_parameter The parameter to be passed to sendBotStartMessage
+internalLinkTypeBotStart bot_username:string start_parameter:string = InternalLinkType;
+
+//@description The link is a link to a Telegram bot, which is supposed to be added to a group chat. Call searchPublicChat with the given bot username, check that the user is a bot and can be added to groups,
+//-ask the current user to select a group to add the bot to, and then call sendBotStartMessage with the given start parameter and the chosen group chat. Bots can be added to a public group only by administrators of the group
+//@bot_username Username of the bot @start_parameter The parameter to be passed to sendBotStartMessage
+internalLinkTypeBotStartInGroup bot_username:string start_parameter:string = InternalLinkType;
+
 //@description The link is a chat invite link. Call checkChatInviteLink to process the link
 internalLinkTypeChatInvite = InternalLinkType;
 
@@ -3040,7 +3050,7 @@ internalLinkTypeTheme theme_name:string = InternalLinkType;
 //@description The link is an unknown tg: link. Call getDeepLinkInfo to process the link
 internalLinkTypeUnknownDeepLink = InternalLinkType;
 
-//@description The link is a link to a voice chat. Call searchPublicChat and joinGoupCall with the given chat username and the given invite hash to process the link
+//@description The link is a link to a voice chat. Call searchPublicChat with the given chat username and then joinGoupCall with the given invite hash to process the link
 //@chat_username Username of the chat with the voice chat @invite_hash If non-empty, invite hash to be used to join the voice chat without being muted by administrators
 internalLinkTypeVoiceChat chat_username:string invite_hash:string = InternalLinkType;
 

@@ -69,6 +69,12 @@ TEST(Link, parse_internal_link) {
   auto background = [](td::string background_name) {
     return td::td_api::make_object<td::td_api::internalLinkTypeBackground>(background_name);
   };
+  auto bot_start = [](td::string bot_username, td::string start_parameter) {
+    return td::td_api::make_object<td::td_api::internalLinkTypeBotStart>(bot_username, start_parameter);
+  };
+  auto bot_start_in_group = [](td::string bot_username, td::string start_parameter) {
+    return td::td_api::make_object<td::td_api::internalLinkTypeBotStartInGroup>(bot_username, start_parameter);
+  };
   auto chat_invite = [] {
     return td::td_api::make_object<td::td_api::internalLinkTypeChatInvite>();
   };
@@ -448,5 +454,41 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("t.me/username?voicechat=", voice_chat("username", ""));
   parse_internal_link("t.me/username#voicechat=asdas", nullptr);
   parse_internal_link("t.me//username?voicechat=", nullptr);
-  parse_internal_link("https://telegram.dog/telegram?voi%63e%63hat=t%63st", voice_chat("telegram", "tcst"));
+  parse_internal_link("https://telegram.dog/tele%63ram?voi%63e%63hat=t%63st", voice_chat("telecram", "tcst"));
+
+  parse_internal_link("tg:resolve?domain=username&start=aasdasd", bot_start("username", "aasdasd"));
+  parse_internal_link("TG://resolve?domain=username&start=", bot_start("username", ""));
+  parse_internal_link("TG://test@resolve?domain=username&start=", nullptr);
+  parse_internal_link("tg:resolve:80?domain=username&start=", nullptr);
+  parse_internal_link("tg:http://resolve?domain=username&start=", nullptr);
+  parse_internal_link("tg:https://resolve?domain=username&start=", nullptr);
+  parse_internal_link("tg:resolve?domain=&start=", unknown_deep_link());
+  parse_internal_link("tg:resolve?domain=telegram&&&&&&&start=%30", bot_start("telegram", "0"));
+
+  parse_internal_link("t.me/username/0/a//s/as?start=", bot_start("username", ""));
+  parse_internal_link("t.me/username/aasdas?test=1&start=#12312", bot_start("username", ""));
+  parse_internal_link("t.me/username/0?start=", bot_start("username", ""));
+  parse_internal_link("t.me/username/-1?start=asdasd", bot_start("username", "asdasd"));
+  parse_internal_link("t.me/username?start=", bot_start("username", ""));
+  parse_internal_link("t.me/username#start=asdas", nullptr);
+  parse_internal_link("t.me//username?start=", nullptr);
+  parse_internal_link("https://telegram.dog/tele%63ram?start=t%63st", bot_start("telecram", "tcst"));
+
+  parse_internal_link("tg:resolve?domain=username&startgroup=aasdasd", bot_start_in_group("username", "aasdasd"));
+  parse_internal_link("TG://resolve?domain=username&startgroup=", bot_start_in_group("username", ""));
+  parse_internal_link("TG://test@resolve?domain=username&startgroup=", nullptr);
+  parse_internal_link("tg:resolve:80?domain=username&startgroup=", nullptr);
+  parse_internal_link("tg:http://resolve?domain=username&startgroup=", nullptr);
+  parse_internal_link("tg:https://resolve?domain=username&startgroup=", nullptr);
+  parse_internal_link("tg:resolve?domain=&startgroup=", unknown_deep_link());
+  parse_internal_link("tg:resolve?domain=telegram&&&&&&&startgroup=%30", bot_start_in_group("telegram", "0"));
+
+  parse_internal_link("t.me/username/0/a//s/as?startgroup=", bot_start_in_group("username", ""));
+  parse_internal_link("t.me/username/aasdas?test=1&startgroup=#12312", bot_start_in_group("username", ""));
+  parse_internal_link("t.me/username/0?startgroup=", bot_start_in_group("username", ""));
+  parse_internal_link("t.me/username/-1?startgroup=asdasd", bot_start_in_group("username", "asdasd"));
+  parse_internal_link("t.me/username?startgroup=", bot_start_in_group("username", ""));
+  parse_internal_link("t.me/username#startgroup=asdas", nullptr);
+  parse_internal_link("t.me//username?startgroup=", nullptr);
+  parse_internal_link("https://telegram.dog/tele%63ram?startgroup=t%63st", bot_start_in_group("telecram", "tcst"));
 }

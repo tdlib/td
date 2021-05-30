@@ -18,12 +18,17 @@
 #include "td/mtproto/ProxySecret.h"
 
 #include "td/utils/algorithm.h"
+#include "td/utils/base64.h"
 #include "td/utils/buffer.h"
 #include "td/utils/HttpUrl.h"
 #include "td/utils/logging.h"
 #include "td/utils/SliceBuilder.h"
 
 namespace td {
+
+static bool is_valid_start_parameter(Slice start_parameter) {
+  return start_parameter.size() <= 64 && is_base64url_characters(start_parameter);
+}
 
 class LinkManager::InternalLinkAuthenticationCode : public InternalLink {
   string code_;
@@ -54,6 +59,42 @@ class LinkManager::InternalLinkBackground : public InternalLink {
 
  public:
   explicit InternalLinkBackground(string background_name) : background_name_(std::move(background_name)) {
+  }
+};
+
+class LinkManager::InternalLinkBotStart : public InternalLink {
+  string bot_username_;
+  string start_parameter_;
+
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeBotStart>(bot_username_, start_parameter_);
+  }
+
+  InternalLinkType get_type() const final {
+    return InternalLinkType::BotStart;
+  }
+
+ public:
+  InternalLinkBotStart(string bot_username, string start_parameter)
+      : bot_username_(std::move(bot_username)), start_parameter_(std::move(start_parameter)) {
+  }
+};
+
+class LinkManager::InternalLinkBotStartInGroup : public InternalLink {
+  string bot_username_;
+  string start_parameter_;
+
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeBotStartInGroup>(bot_username_, start_parameter_);
+  }
+
+  InternalLinkType get_type() const final {
+    return InternalLinkType::BotStart;
+  }
+
+ public:
+  InternalLinkBotStartInGroup(string bot_username, string start_parameter)
+      : bot_username_(std::move(bot_username)), start_parameter_(std::move(start_parameter)) {
   }
 };
 
@@ -566,6 +607,14 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
           // resolve?domain=username&voicechat=<invite_hash>
           return td::make_unique<InternalLinkVoiceChat>(get_arg("domain"), arg.second);
         }
+        if (arg.first == "start" && is_valid_start_parameter(arg.second)) {
+          // /<bot_username>?start=<parameter>
+          return td::make_unique<InternalLinkBotStart>(get_arg("domain"), arg.second);
+        }
+        if (arg.first == "startgroup" && is_valid_start_parameter(arg.second)) {
+          // /<bot_username>?startgroup=<parameter>
+          return td::make_unique<InternalLinkBotStartInGroup>(get_arg("domain"), arg.second);
+        }
       }
     }
   } else if (path.size() == 1 && path[0] == "login") {
@@ -758,6 +807,14 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
           // /<username>?voicechat
           // /<username>?voicechat=<invite_hash>
           return td::make_unique<InternalLinkVoiceChat>(path[0], arg.second);
+        }
+        if (arg.first == "start" && is_valid_start_parameter(arg.second)) {
+          // /<bot_username>?start=<parameter>
+          return td::make_unique<InternalLinkBotStart>(path[0], arg.second);
+        }
+        if (arg.first == "startgroup" && is_valid_start_parameter(arg.second)) {
+          // /<bot_username>?startgroup=<parameter>
+          return td::make_unique<InternalLinkBotStartInGroup>(path[0], arg.second);
         }
       }
     }

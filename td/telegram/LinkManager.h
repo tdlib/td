@@ -37,6 +37,8 @@ class LinkManager : public Actor {
   enum class InternalLinkType : int32 {
     AuthenticationCode,
     Background,
+    BotStart,
+    BotStartInGroup,
     ConfirmPhone,
     DialogInvite,
     Language,
@@ -90,6 +92,8 @@ class LinkManager : public Actor {
 
   class InternalLinkAuthenticationCode;
   class InternalLinkBackground;
+  class InternalLinkBotStart;
+  class InternalLinkBotStartInGroup;
   class InternalLinkConfirmPhone;
   class InternalLinkDialogInvite;
   class InternalLinkLanguage;
