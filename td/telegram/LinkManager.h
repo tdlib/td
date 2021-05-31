@@ -45,6 +45,7 @@ class LinkManager : public Actor {
     Language,
     Message,
     MessageDraft,
+    PassportDataRequest,
     Proxy,
     PublicDialog,
     QrCodeAuthentication,
@@ -102,6 +103,7 @@ class LinkManager : public Actor {
   class InternalLinkLanguage;
   class InternalLinkMessage;
   class InternalLinkMessageDraft;
+  class InternalLinkPassportDataRequest;
   class InternalLinkProxy;
   class InternalLinkPublicDialog;
   class InternalLinkQrCodeAuthentication;
@@ -121,6 +123,8 @@ class LinkManager : public Actor {
   static unique_ptr<InternalLink> parse_tg_link_query(Slice query);
 
   static unique_ptr<InternalLink> parse_t_me_link_query(Slice query);
+
+  static unique_ptr<InternalLink> get_internal_link_passport(const vector<std::pair<string, string>> &args);
 
   static unique_ptr<InternalLink> get_internal_link_message_draft(Slice url, Slice text);
 

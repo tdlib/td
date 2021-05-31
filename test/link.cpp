@@ -92,6 +92,11 @@ TEST(Link, parse_internal_link) {
     formatted_text->text_ = std::move(text);
     return td::td_api::make_object<td::td_api::internalLinkTypeMessageDraft>(std::move(formatted_text), contains_url);
   };
+  auto passport_data_request = [](td::int32 bot_user_id, td::string scope, td::string public_key, td::string nonce,
+                                  td::string callback_url) {
+    return td::td_api::make_object<td::td_api::internalLinkTypePassportDataRequest>(bot_user_id, scope, public_key,
+                                                                                    nonce, callback_url);
+  };
   auto phone_number_confirmation = [](td::string hash, td::string phone_number) {
     return td::td_api::make_object<td::td_api::internalLinkTypePhoneNumberConfirmation>(hash, phone_number);
   };
@@ -542,4 +547,23 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("t.me/username/0", public_chat("username"));
   parse_internal_link("t.me//username", nullptr);
   parse_internal_link("https://telegram.dog/tele%63ram", public_chat("telecram"));
+
+  parse_internal_link(
+      "tg://"
+      "resolve?domain=telegrampassport&bot_id=543260180&scope=%7B%22v%22%3A1%2C%22d%22%3A%5B%7B%22%22%5D%7D%5D%7D&"
+      "public_key=BEGIN%20PUBLIC%20KEY%0A&nonce=b8ee&callback_url=https%3A%2F%2Fcore.telegram.org%2Fpassport%2Fexample%"
+      "3Fpassport_ssid%3Db8ee&payload=nonce",
+      passport_data_request(543260180, "{\"v\":1,\"d\":[{\"\"]}]}", "BEGIN PUBLIC KEY\n", "b8ee",
+                            "https://core.telegram.org/passport/example?passport_ssid=b8ee"));
+  parse_internal_link("tg://resolve?domain=telegrampassport&bot_id=12345&public_key=key&scope=asd&payload=nonce",
+                      passport_data_request(12345, "asd", "key", "nonce", ""));
+  parse_internal_link("tg://passport?bot_id=12345&public_key=key&scope=asd&payload=nonce",
+                      passport_data_request(12345, "asd", "key", "nonce", ""));
+  parse_internal_link("tg://passport?bot_id=0&public_key=key&scope=asd&payload=nonce", unknown_deep_link());
+  parse_internal_link("tg://passport?bot_id=-1&public_key=key&scope=asd&payload=nonce", unknown_deep_link());
+  parse_internal_link("tg://passport?bot_id=12345&public_key=&scope=asd&payload=nonce", unknown_deep_link());
+  parse_internal_link("tg://passport?bot_id=12345&public_key=key&scope=&payload=nonce", unknown_deep_link());
+  parse_internal_link("tg://passport?bot_id=12345&public_key=key&scope=asd&payload=", unknown_deep_link());
+  parse_internal_link("t.me/telegrampassport?bot_id=12345&public_key=key&scope=asd&payload=nonce",
+                      public_chat("telegrampassport"));
 }

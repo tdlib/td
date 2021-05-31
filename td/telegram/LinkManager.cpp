@@ -14,6 +14,7 @@
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserId.h"
 
 #include "td/mtproto/ProxySecret.h"
 
@@ -210,6 +211,33 @@ class LinkManager::InternalLinkMessageDraft : public InternalLink {
  public:
   InternalLinkMessageDraft(FormattedText &&text, bool contains_link)
       : text_(std::move(text)), contains_link_(contains_link) {
+  }
+};
+
+class LinkManager::InternalLinkPassportDataRequest : public InternalLink {
+  UserId bot_user_id_;
+  string scope_;
+  string public_key_;
+  string nonce_;
+  string callback_url_;
+
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypePassportDataRequest>(bot_user_id_.get(), scope_, public_key_,
+                                                                            nonce_, callback_url_);
+  }
+
+  InternalLinkType get_type() const final {
+    return InternalLinkType::PassportDataRequest;
+  }
+
+ public:
+  InternalLinkPassportDataRequest(UserId bot_user_id, string scope, string public_key, string nonce,
+                                  string callback_url)
+      : bot_user_id_(bot_user_id)
+      , scope_(std::move(scope))
+      , public_key_(std::move(public_key))
+      , nonce_(std::move(nonce))
+      , callback_url_(std::move(callback_url)) {
   }
 };
 
@@ -679,6 +707,10 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
           return td::make_unique<InternalLinkGame>(get_arg("domain"), arg.second);
         }
       }
+      if (get_arg("domain") == "telegrampassport") {
+        // resolve?domain=telegrampassport&bot_id=<bot_user_id>&scope=<scope>&public_key=<public_key>&nonce=<nonce>
+        return get_internal_link_passport(url_query.args_);
+      }
       // resolve?domain=<username>
       return td::make_unique<InternalLinkPublicDialog>(get_arg("domain"));
     }
@@ -691,6 +723,9 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     if (has_arg("token")) {
       return td::make_unique<InternalLinkQrCodeAuthentication>();
     }
+  } else if (path.size() == 1 && path[0] == "passport") {
+    // passport?bot_id=<bot_user_id>&scope=<scope>&public_key=<public_key>&nonce=<nonce>
+    return get_internal_link_passport(url_query.args_);
   } else if (path.size() == 1 && path[0] == "join") {
     // join?invite=<hash>
     if (has_arg("invite")) {
@@ -922,6 +957,33 @@ unique_ptr<LinkManager::InternalLink> LinkManager::get_internal_link_message_dra
     }
   }
   return td::make_unique<InternalLinkMessageDraft>(std::move(full_text), contains_url);
+}
+
+unique_ptr<LinkManager::InternalLink> LinkManager::get_internal_link_passport(
+    const vector<std::pair<string, string>> &args) {
+  auto get_arg = [&args](Slice key) {
+    for (auto &arg : args) {
+      if (arg.first == key) {
+        return Slice(arg.second);
+      }
+    }
+    return Slice();
+  };
+
+  UserId bot_user_id(to_integer<int32>(get_arg("bot_id")));
+  auto scope = get_arg("scope");
+  auto public_key = get_arg("public_key");
+  auto nonce = get_arg("nonce");
+  if (nonce.empty()) {
+    nonce = get_arg("payload");
+  }
+  auto callback_url = get_arg("callback_url");
+
+  if (!bot_user_id.is_valid() || scope.empty() || public_key.empty() || nonce.empty()) {
+    return td::make_unique<InternalLinkUnknownDeepLink>();
+  }
+  return td::make_unique<InternalLinkPassportDataRequest>(bot_user_id, scope.str(), public_key.str(), nonce.str(),
+                                                          callback_url.str());
 }
 
 void LinkManager::get_login_url_info(DialogId dialog_id, MessageId message_id, int32 button_id,
