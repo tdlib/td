@@ -263,7 +263,7 @@ vector<FileId> dialog_photo_get_file_ids(const DialogPhoto &dialog_photo) {
   return result;
 }
 
-DialogPhoto as_fake_dialog_photo(const Photo &photo) {
+DialogPhoto as_fake_dialog_photo(const Photo &photo, DialogId dialog_id) {
   DialogPhoto result;
   if (!photo.is_empty()) {
     for (auto &size : photo.photos) {
@@ -276,7 +276,7 @@ DialogPhoto as_fake_dialog_photo(const Photo &photo) {
     result.minithumbnail = photo.minithumbnail;
     result.has_animation = !photo.animations.empty();
     if (!result.small_file_id.is_valid() || !result.big_file_id.is_valid()) {
-      LOG(ERROR) << "Failed to convert " << photo << " to chat photo";
+      LOG(ERROR) << "Failed to convert " << photo << " to chat photo of " << dialog_id;
       return DialogPhoto();
     }
   }
@@ -285,7 +285,7 @@ DialogPhoto as_fake_dialog_photo(const Photo &photo) {
 
 ProfilePhoto as_profile_photo(FileManager *file_manager, UserId user_id, int64 user_access_hash, const Photo &photo) {
   ProfilePhoto result;
-  static_cast<DialogPhoto &>(result) = as_fake_dialog_photo(photo);
+  static_cast<DialogPhoto &>(result) = as_fake_dialog_photo(photo, DialogId(user_id));
   if (!result.small_file_id.is_valid()) {
     return result;
   }
