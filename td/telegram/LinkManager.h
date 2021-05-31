@@ -46,6 +46,7 @@ class LinkManager : public Actor {
     Message,
     MessageDraft,
     Proxy,
+    PublicDialog,
     QrCodeAuthentication,
     StickerSet,
     Theme,
@@ -102,6 +103,7 @@ class LinkManager : public Actor {
   class InternalLinkMessage;
   class InternalLinkMessageDraft;
   class InternalLinkProxy;
+  class InternalLinkPublicDialog;
   class InternalLinkQrCodeAuthentication;
   class InternalLinkStickerSet;
   class InternalLinkTheme;

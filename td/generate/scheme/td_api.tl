@@ -3041,6 +3041,9 @@ internalLinkTypePhoneNumberConfirmation hash:string phone_number:string = Intern
 //@server Proxy server IP address @port Proxy server port @type Type of the proxy
 internalLinkTypeProxy server:string port:int32 type:ProxyType = InternalLinkType;
 
+//@description The link is a link to a chat by its username. Call searchPublicChat with the given chat username to process the link @chat_username Username of the chat
+internalLinkTypePublicChat chat_username:string = InternalLinkType;
+
 //@description The link can be used to login the current user on another device, but it must be scanned from QR-code using in-app camera. An alert similar to
 //-"This code can be used to allow someone to log in to your Telegram account. To confirm Telegram login, please go to Settings > Devices > Scan QR and scan the code" needs to be shown
 internalLinkTypeQrCodeAuthentication = InternalLinkType;
@@ -3054,7 +3057,7 @@ internalLinkTypeTheme theme_name:string = InternalLinkType;
 //@description The link is an unknown tg: link. Call getDeepLinkInfo to process the link
 internalLinkTypeUnknownDeepLink = InternalLinkType;
 
-//@description The link is a link to a voice chat. Call searchPublicChat with the given chat username and then joinGoupCall with the given invite hash to process the link
+//@description The link is a link to a voice chat. Call searchPublicChat with the given chat username, and then joinGoupCall with the given invite hash to process the link
 //@chat_username Username of the chat with the voice chat @invite_hash If non-empty, invite hash to be used to join the voice chat without being muted by administrators
 internalLinkTypeVoiceChat chat_username:string invite_hash:string = InternalLinkType;
 
