@@ -104,8 +104,8 @@ class GetInlineBotResultsQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    if (status.code() == NetQuery::Cancelled) {
-      status = Status::Error(406, "Request cancelled");
+    if (status.code() == NetQuery::Canceled) {
+      status = Status::Error(406, "Request canceled");
     } else if (status.message() == "BOT_RESPONSE_TIMEOUT") {
       status = Status::Error(502, "The bot is not responding");
     }
@@ -828,7 +828,7 @@ uint64 InlineQueriesManager::send_inline_query(UserId bot_user_id, DialogId dial
     LOG(INFO) << "Drop inline query " << pending_inline_query_->query_hash;
     on_get_inline_query_results(pending_inline_query_->dialog_id, pending_inline_query_->bot_user_id,
                                 pending_inline_query_->query_hash, nullptr);
-    pending_inline_query_->promise.set_error(Status::Error(406, "Request cancelled"));
+    pending_inline_query_->promise.set_error(Status::Error(406, "Request canceled"));
   }
 
   pending_inline_query_ = make_unique<PendingInlineQuery>(PendingInlineQuery{

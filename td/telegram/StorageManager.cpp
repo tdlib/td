@@ -361,7 +361,7 @@ void StorageManager::timeout_expired() {
   next_gc_at_ = 0;
   run_gc({}, false, PromiseCreator::lambda([actor_id = actor_id(this)](Result<FileStats> r_stats) {
            if (!r_stats.is_error() || r_stats.error().code() != 500) {
-             // do not save gc timestamp if request was cancelled
+             // do not save gc timestamp if request was canceled
              send_closure(actor_id, &StorageManager::save_last_gc_timestamp);
            }
            send_closure(actor_id, &StorageManager::schedule_next_gc);

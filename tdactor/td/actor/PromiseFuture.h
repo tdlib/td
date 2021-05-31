@@ -56,7 +56,7 @@ class PromiseInterface {
   virtual bool is_cancellable() const {
     return false;
   }
-  virtual bool is_cancelled() const {
+  virtual bool is_canceled() const {
     return false;
   }
 
@@ -296,11 +296,11 @@ class Promise {
     }
     return promise_->is_cancellable();
   }
-  bool is_cancelled() const {
+  bool is_canceled() const {
     if (!promise_) {
       return false;
     }
-    return promise_->is_cancelled();
+    return promise_->is_canceled();
   }
   unique_ptr<PromiseInterface<T>> release() {
     return std::move(promise_);
@@ -416,7 +416,7 @@ class CancellablePromise : public PromiseT {
   virtual bool is_cancellable() const {
     return true;
   }
-  virtual bool is_cancelled() const {
+  virtual bool is_canceled() const {
     return static_cast<bool>(cancellation_token_);
   }
 

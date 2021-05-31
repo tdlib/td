@@ -3854,7 +3854,7 @@ class SetTypingQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    if (status.code() == NetQuery::Cancelled) {
+    if (status.code() == NetQuery::Canceled) {
       return promise_.set_value(Unit());
     }
 
@@ -7174,7 +7174,7 @@ void MessagesManager::on_user_dialog_action(DialogId dialog_id, MessageId top_th
     }
 
     if (!td_->contacts_manager_->is_user_bot(user_id) &&
-        !it->action.is_cancelled_by_message_of_type(message_content_type)) {
+        !it->action.is_canceled_by_message_of_type(message_content_type)) {
       return;
     }
 
@@ -8543,7 +8543,7 @@ void MessagesManager::on_upload_media(FileId file_id, tl_object_ptr<telegram_api
 
   auto it = being_uploaded_files_.find(file_id);
   if (it == being_uploaded_files_.end()) {
-    // callback may be called just before the file upload was cancelled
+    // callback may be called just before the file upload was canceled
     return;
   }
 
@@ -8555,7 +8555,7 @@ void MessagesManager::on_upload_media(FileId file_id, tl_object_ptr<telegram_api
   Message *m = get_message(full_message_id);
   if (m == nullptr) {
     // message has already been deleted by the user or sent to inaccessible channel, do not need to send or edit it
-    // file upload should be already cancelled in cancel_send_message_query, it shouldn't happen
+    // file upload should be already canceled in cancel_send_message_query, it shouldn't happen
     LOG(ERROR) << "Message with a media has already been deleted";
     return;
   }
@@ -8665,7 +8665,7 @@ void MessagesManager::on_upload_media_error(FileId file_id, Status status) {
 
   auto it = being_uploaded_files_.find(file_id);
   if (it == being_uploaded_files_.end()) {
-    // callback may be called just before the file upload was cancelled
+    // callback may be called just before the file upload was canceled
     return;
   }
 
@@ -8739,7 +8739,7 @@ void MessagesManager::on_upload_thumbnail(FileId thumbnail_file_id,
 
   auto it = being_uploaded_thumbnails_.find(thumbnail_file_id);
   if (it == being_uploaded_thumbnails_.end()) {
-    // callback may be called just before the thumbnail upload was cancelled
+    // callback may be called just before the thumbnail upload was canceled
     return;
   }
 
@@ -8752,7 +8752,7 @@ void MessagesManager::on_upload_thumbnail(FileId thumbnail_file_id,
   Message *m = get_message(full_message_id);
   if (m == nullptr) {
     // message has already been deleted by the user or sent to inaccessible channel, do not need to send or edit it
-    // thumbnail file upload should be already cancelled in cancel_send_message_query
+    // thumbnail file upload should be already canceled in cancel_send_message_query
     LOG(ERROR) << "Message with a media has already been deleted";
     return;
   }
@@ -24782,7 +24782,7 @@ void MessagesManager::edit_message_media(FullMessageId full_message_id,
     return promise.set_error(r_new_reply_markup.move_as_error());
   }
 
-  cancel_edit_message_media(dialog_id, m, "Cancelled by new editMessageMedia request");
+  cancel_edit_message_media(dialog_id, m, "Canceled by new editMessageMedia request");
 
   m->edited_content =
       dup_message_content(td_, dialog_id, content.content.get(), MessageContentDupType::Send, MessageCopyOptions());
@@ -28580,7 +28580,7 @@ void MessagesManager::on_send_message_fail(int64 random_id, Status error) {
   if (it == being_sent_messages_.end()) {
     // we can't receive fail more than once
     // but message can be successfully sent before
-    if (error.code() != NetQuery::Cancelled) {
+    if (error.code() != NetQuery::Canceled) {
       LOG(ERROR) << "Receive error " << error << " about successfully sent message with random_id = " << random_id;
     }
     return;
@@ -28598,7 +28598,7 @@ void MessagesManager::on_send_message_fail(int64 random_id, Status error) {
     LOG(INFO) << "Fail to send already deleted by the user or sent to inaccessible chat " << full_message_id;
     return;
   }
-  LOG_IF(ERROR, error.code() == NetQuery::Cancelled)
+  LOG_IF(ERROR, error.code() == NetQuery::Canceled)
       << "Receive error " << error << " about sent message with random_id = " << random_id;
 
   auto dialog_id = full_message_id.get_dialog_id();

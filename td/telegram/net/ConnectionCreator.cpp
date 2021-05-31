@@ -857,7 +857,7 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
     auto begin = client.queries.begin();
     auto it = begin;
     while (it != client.queries.end() && !client.ready_connections.empty()) {
-      if (!it->is_cancelled()) {
+      if (!it->is_canceled()) {
         VLOG(connections) << "Send to promise " << tag("connection", client.ready_connections.back().first.get());
         it->set_value(std::move(client.ready_connections.back().first));
         client.ready_connections.pop_back();

@@ -2179,7 +2179,7 @@ void FileManager::download(FileId file_id, std::shared_ptr<DownloadCallback> cal
     // this would be an error and should never happen, unless we cancel previous download query
     // in that case we send an error to the callback
     CHECK(new_priority == 0);
-    file_info->download_callback_->on_download_error(file_id, Status::Error(200, "Cancelled"));
+    file_info->download_callback_->on_download_error(file_id, Status::Error(200, "Canceled"));
   }
   file_info->download_priority_ = narrow_cast<int8>(new_priority);
   file_info->download_callback_ = std::move(callback);
@@ -2367,7 +2367,7 @@ class FileManager::ForceUploadActor : public Actor {
       if (callback_.empty()) {
         return;
       }
-      send_closure(std::move(callback_), &ForceUploadActor::on_upload_error, Status::Error("Cancelled"));
+      send_closure(std::move(callback_), &ForceUploadActor::on_upload_error, Status::Error("Canceled"));
     }
 
    private:
@@ -2445,7 +2445,7 @@ class FileManager::ForceUploadActor : public Actor {
 
   void tear_down() override {
     if (callback_) {
-      callback_->on_upload_error(file_id_, Status::Error("Cancelled"));
+      callback_->on_upload_error(file_id_, Status::Error("Canceled"));
     }
   }
 };

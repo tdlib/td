@@ -27,7 +27,7 @@ HandshakeActor::HandshakeActor(unique_ptr<AuthKeyHandshake> handshake, unique_pt
 }
 
 void HandshakeActor::close() {
-  finish(Status::Error("Cancelled"));
+  finish(Status::Error("Canceled"));
   stop();
 }
 

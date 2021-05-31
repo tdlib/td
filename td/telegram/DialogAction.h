@@ -56,7 +56,7 @@ class DialogAction {
 
   td_api::object_ptr<td_api::ChatAction> get_chat_action_object() const;
 
-  bool is_cancelled_by_message_of_type(MessageContentType message_content_type) const;
+  bool is_canceled_by_message_of_type(MessageContentType message_content_type) const;
 
   static DialogAction get_uploading_action(MessageContentType message_content_type, int32 progress);
 

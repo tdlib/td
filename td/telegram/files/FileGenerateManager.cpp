@@ -238,7 +238,7 @@ class MapDownloadGenerateActor : public FileGenerateActor {
   }
 
   void hangup_shared() override {
-    on_error(Status::Error(1, "Cancelled"));
+    on_error(Status::Error(1, "Canceled"));
   }
 };
 
@@ -308,7 +308,7 @@ class FileExternalGenerateActor : public FileGenerateActor {
             static_cast<int64>(query_id_), generate_location_.original_path_, path_, generate_location_.conversion_));
   }
   void hangup() override {
-    check_status(Status::Error(1, "Cancelled"));
+    check_status(Status::Error(1, "Canceled"));
   }
 
   Status do_file_generate_write_part(int32 offset, const string &data) {

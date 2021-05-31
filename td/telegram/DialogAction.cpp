@@ -262,7 +262,7 @@ tl_object_ptr<td_api::ChatAction> DialogAction::get_chat_action_object() const {
   }
 }
 
-bool DialogAction::is_cancelled_by_message_of_type(MessageContentType message_content_type) const {
+bool DialogAction::is_canceled_by_message_of_type(MessageContentType message_content_type) const {
   if (message_content_type == MessageContentType::None) {
     return true;
   }

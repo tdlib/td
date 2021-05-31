@@ -13,18 +13,18 @@ namespace td {
 
 namespace detail {
 struct RawCancellationToken {
-  std::atomic<bool> is_cancelled_{false};
+  std::atomic<bool> is_canceled_{false};
 };
 }  // namespace detail
 
 class CancellationToken {
  public:
   explicit operator bool() const {
-    // empty CancellationToken is never cancelled
+    // empty CancellationToken is never canceled
     if (!token_) {
       return false;
     }
-    return token_->is_cancelled_.load(std::memory_order_acquire);
+    return token_->is_canceled_.load(std::memory_order_acquire);
   }
   CancellationToken() = default;
   explicit CancellationToken(std::shared_ptr<detail::RawCancellationToken> token) : token_(std::move(token)) {
@@ -60,7 +60,7 @@ class CancellationTokenSource {
     if (!token_) {
       return;
     }
-    token_->is_cancelled_.store(true, std::memory_order_release);
+    token_->is_canceled_.store(true, std::memory_order_release);
     token_.reset();
   }
 

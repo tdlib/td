@@ -149,7 +149,7 @@ void Wget::timeout_expired() {
 
 void Wget::tear_down() {
   if (promise_) {
-    on_error(Status::Error("Cancelled"));
+    on_error(Status::Error("Canceled"));
   }
 }
 

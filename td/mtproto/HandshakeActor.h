@@ -40,7 +40,7 @@ class HandshakeActor : public Actor {
     finish(Status::OK());
   }
   void hangup() override {
-    finish(Status::Error(1, "Cancelled"));
+    finish(Status::Error(1, "Canceled"));
     stop();
   }
   void timeout_expired() override {

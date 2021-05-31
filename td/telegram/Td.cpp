@@ -402,7 +402,7 @@ class UpdateStatusQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    if (status.code() != NetQuery::Cancelled && !G()->is_expected_error(status)) {
+    if (status.code() != NetQuery::Canceled && !G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for UpdateStatusQuery: " << status;
     }
     status.ignore();
@@ -6599,7 +6599,7 @@ void Td::on_request(uint64 id, const td_api::downloadFile &request) {
     // we can't have two pending requests with different offset and limit, so cancel all previous requests
     for (auto request_id : info->request_ids) {
       send_closure(actor_id(this), &Td::send_error, request_id,
-                   Status::Error(200, "Cancelled by another downloadFile request"));
+                   Status::Error(200, "Canceled by another downloadFile request"));
     }
     info->request_ids.clear();
   }
@@ -6639,7 +6639,7 @@ void Td::on_file_download_finished(FileId file_id) {
           download_offset + downloaded_size - it->second.offset >= limit))) {
       send_result(id, std::move(file_object));
     } else {
-      send_error_impl(id, td_api::make_object<td_api::error>(400, "File download has failed or was cancelled"));
+      send_error_impl(id, td_api::make_object<td_api::error>(400, "File download has failed or was canceled"));
     }
   }
   pending_file_downloads_.erase(it);

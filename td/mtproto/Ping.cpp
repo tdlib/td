@@ -45,7 +45,7 @@ ActorOwn<> create_ping_actor(string debug, unique_ptr<RawConnection> raw_connect
     }
 
     void hangup() override {
-      finish(Status::Error("Cancelled"));
+      finish(Status::Error("Canceled"));
       stop();
     }
 

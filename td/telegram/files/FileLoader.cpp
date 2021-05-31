@@ -278,7 +278,7 @@ void FileLoader::on_result(NetQueryPtr query) {
   bool next = false;
   auto status = [&] {
     TRY_RESULT(should_restart, should_restart_part(part, query));
-    if (query->is_error() && query->error().code() == NetQuery::Error::Cancelled) {
+    if (query->is_error() && query->error().code() == NetQuery::Error::Canceled) {
       should_restart = true;
     }
     if (should_restart) {

@@ -94,10 +94,10 @@ class GenAuthKeyActor : public Actor {
 
   void hangup() override {
     if (connection_promise_) {
-      connection_promise_.set_error(Status::Error(1, "Cancelled"));
+      connection_promise_.set_error(Status::Error(1, "Canceled"));
     }
     if (handshake_promise_) {
-      handshake_promise_.set_error(Status::Error(1, "Cancelled"));
+      handshake_promise_.set_error(Status::Error(1, "Canceled"));
     }
     stop();
   }

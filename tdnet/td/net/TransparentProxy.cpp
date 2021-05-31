@@ -48,7 +48,7 @@ void TransparentProxy::tear_down() {
 }
 
 void TransparentProxy::hangup() {
-  on_error(Status::Error("Cancelled"));
+  on_error(Status::Error("Canceled"));
 }
 
 void TransparentProxy::start_up() {

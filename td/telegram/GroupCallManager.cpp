@@ -2236,7 +2236,7 @@ int32 GroupCallManager::cancel_join_group_call_request(InputGroupCallId input_gr
   if (!it->second->query_ref.empty()) {
     cancel_query(it->second->query_ref);
   }
-  it->second->promise.set_error(Status::Error(200, "Cancelled"));
+  it->second->promise.set_error(Status::Error(200, "Canceled"));
   auto audio_source = it->second->audio_source;
   pending_join_requests_.erase(it);
   return audio_source;
@@ -2252,7 +2252,7 @@ int32 GroupCallManager::cancel_join_group_call_presentation_request(InputGroupCa
   if (!it->second->query_ref.empty()) {
     cancel_query(it->second->query_ref);
   }
-  it->second->promise.set_error(Status::Error(200, "Cancelled"));
+  it->second->promise.set_error(Status::Error(200, "Canceled"));
   auto audio_source = it->second->audio_source;
   pending_join_presentation_requests_.erase(it);
   return audio_source;

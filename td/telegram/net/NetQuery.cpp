@@ -44,8 +44,7 @@ int32 NetQuery::tl_magic(const BufferSlice &buffer_slice) {
 }
 
 void NetQuery::set_error(Status status, string source) {
-  if (status.code() == Error::Resend || status.code() == Error::Cancelled ||
-      status.code() == Error::ResendInvokeAfter) {
+  if (status.code() == Error::Resend || status.code() == Error::Canceled || status.code() == Error::ResendInvokeAfter) {
     return set_error_impl(Status::Error(200, PSLICE() << status), std::move(source));
   }
 
