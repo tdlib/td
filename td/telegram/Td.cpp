@@ -3286,6 +3286,7 @@ bool Td::is_preinitialization_request(int32 id) {
 
 bool Td::is_preauthentication_request(int32 id) {
   switch (id) {
+    case td_api::getInternalLinkType::ID:
     case td_api::getLocalizationTargetInfo::ID:
     case td_api::getLanguagePackInfo::ID:
     case td_api::getLanguagePackStrings::ID:
@@ -5485,6 +5486,11 @@ void Td::on_request(uint64 id, const td_api::openMessageContent &request) {
   CHECK_IS_USER();
   answer_ok_query(
       id, messages_manager_->open_message_content({DialogId(request.chat_id_), MessageId(request.message_id_)}));
+}
+
+void Td::on_request(uint64 id, const td_api::getInternalLinkType &request) {
+  auto type = link_manager_->parse_internal_link(request.link_);
+  send_closure(actor_id(this), &Td::send_result, id, type == nullptr ? nullptr : type->get_internal_link_type_object());
 }
 
 void Td::on_request(uint64 id, td_api::getExternalLinkInfo &request) {

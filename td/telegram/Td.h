@@ -580,6 +580,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, const td_api::openMessageContent &request);
 
+  void on_request(uint64 id, const td_api::getInternalLinkType &request);
+
   void on_request(uint64 id, td_api::getExternalLinkInfo &request);
 
   void on_request(uint64 id, td_api::getExternalLink &request);

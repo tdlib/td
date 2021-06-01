@@ -4002,6 +4002,9 @@ class CliClient final : public Actor {
       string message_id;
       get_args(args, chat_id, message_id);
       send_request(td_api::make_object<td_api::openMessageContent>(as_chat_id(chat_id), as_message_id(message_id)));
+    } else if (op == "gilt") {
+      string link = args;
+      send_request(td_api::make_object<td_api::getInternalLinkType>(link));
     } else if (op == "geli") {
       string link = args;
       send_request(td_api::make_object<td_api::getExternalLinkInfo>(link));
