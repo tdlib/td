@@ -79,6 +79,9 @@ class GroupCallManager : public Actor {
   void toggle_group_call_is_my_video_enabled(GroupCallId group_call_id, bool is_my_video_enabled,
                                              Promise<Unit> &&promise);
 
+  void toggle_group_call_is_my_presentation_paused(GroupCallId group_call_id, bool is_my_presentation_paused,
+                                                   Promise<Unit> &&promise);
+
   void toggle_group_call_start_subscribed(GroupCallId group_call_id, bool start_subscribed, Promise<Unit> &&promise);
 
   void toggle_group_call_mute_new_participants(GroupCallId group_call_id, bool mute_new_participants,
@@ -207,6 +210,8 @@ class GroupCallManager : public Actor {
 
   static bool get_group_call_is_my_video_enabled(const GroupCall *group_call);
 
+  static bool get_group_call_is_my_presentation_paused(const GroupCall *group_call);
+
   static bool get_group_call_mute_new_participants(const GroupCall *group_call);
 
   static int32 get_group_call_record_start_date(const GroupCall *group_call);
@@ -285,6 +290,12 @@ class GroupCallManager : public Actor {
 
   void on_toggle_group_call_is_my_video_enabled(InputGroupCallId input_group_call_id, bool is_my_video_enabled,
                                                 Result<Unit> &&result);
+
+  void send_toggle_group_call_is_my_presentation_paused_query(InputGroupCallId input_group_call_id,
+                                                              DialogId as_dialog_id, bool is_my_presentation_paused);
+
+  void on_toggle_group_call_is_my_presentation_paused(InputGroupCallId input_group_call_id,
+                                                      bool is_my_presentation_paused, Result<Unit> &&result);
 
   void send_toggle_group_call_mute_new_participants_query(InputGroupCallId input_group_call_id,
                                                           bool mute_new_participants);

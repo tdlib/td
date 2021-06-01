@@ -4729,6 +4729,9 @@ joinGroupCall group_call_id:int32 participant_id:MessageSender audio_source_id:i
 //@description Starts screen sharing in a joined group call. Returns join response payload for tgcalls @group_call_id Group call identifier @payload Group call join payload; received from tgcalls
 startGroupCallScreenSharing group_call_id:int32 payload:string = Text;
 
+//@description Pauses or unpauses screen sharing in a joined group call @group_call_id Group call identifier @is_paused True if screen sharing is paused
+setGroupCallScreenSharingIsPaused group_call_id:int32 is_paused:Bool = Ok;
+
 //@description Ends screen sharing in a joined group call @group_call_id Group call identifier
 endGroupCallScreenSharing group_call_id:int32 = Ok;
 

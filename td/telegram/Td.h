@@ -736,6 +736,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, td_api::startGroupCallRecording &request);
 
+  void on_request(uint64 id, const td_api::setGroupCallScreenSharingIsPaused &request);
+
   void on_request(uint64 id, const td_api::endGroupCallRecording &request);
 
   void on_request(uint64 id, const td_api::toggleGroupCallIsMyVideoPaused &request);
