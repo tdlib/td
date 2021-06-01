@@ -15,7 +15,7 @@ static bool operator==(const GroupCallVideoSourceGroup &lhs, const GroupCallVide
 }
 
 bool operator==(const GroupCallVideoPayload &lhs, const GroupCallVideoPayload &rhs) {
-  return lhs.source_groups == rhs.source_groups && lhs.endpoint == rhs.endpoint;
+  return lhs.source_groups == rhs.source_groups && lhs.endpoint == rhs.endpoint && lhs.is_paused == rhs.is_paused;
 }
 
 static td_api::object_ptr<td_api::groupCallVideoSourceGroup> get_group_call_video_source_group_object(
@@ -29,7 +29,7 @@ td_api::object_ptr<td_api::groupCallParticipantVideoInfo> get_group_call_partici
     return nullptr;
   }
   return td_api::make_object<td_api::groupCallParticipantVideoInfo>(
-      transform(payload.source_groups, get_group_call_video_source_group_object), payload.endpoint);
+      transform(payload.source_groups, get_group_call_video_source_group_object), payload.endpoint, payload.is_paused);
 }
 
 GroupCallVideoPayload get_group_call_video_payload(const telegram_api::groupCallParticipantVideo *video) {
@@ -41,6 +41,7 @@ GroupCallVideoPayload get_group_call_video_payload(const telegram_api::groupCall
     result.source_ids = source_group->sources_;
     return result;
   });
+  result.is_paused = video->paused_;
   return result;
 }
 

@@ -2175,7 +2175,8 @@ groupCall id:int32 title:string scheduled_start_date:int32 enabled_start_notific
 groupCallVideoSourceGroup semantics:string source_ids:vector<int32> = GroupCallVideoSourceGroup;
 
 //@description Contains information about a group call participant's video channel @source_groups List of synchronization source groups of the video @endpoint_id Video channel endpoint identifier
-groupCallParticipantVideoInfo source_groups:vector<groupCallVideoSourceGroup> endpoint_id:string = GroupCallParticipantVideoInfo;
+//@is_paused True if the video is paused. This flag needs to be ignored, if new video frames are received
+groupCallParticipantVideoInfo source_groups:vector<groupCallVideoSourceGroup> endpoint_id:string is_paused:Bool = GroupCallParticipantVideoInfo;
 
 //@description Represents a group call participant
 //@participant_id Identifier of the group call participant
