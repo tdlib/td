@@ -6128,6 +6128,13 @@ void Td::on_request(uint64 id, const td_api::endGroupCallRecording &request) {
                                                    std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::toggleGroupCallIsMyVideoPaused &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  group_call_manager_->toggle_group_call_is_my_video_paused(GroupCallId(request.group_call_id_),
+                                                            request.is_my_video_paused_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::toggleGroupCallIsMyVideoEnabled &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

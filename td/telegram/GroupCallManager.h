@@ -73,6 +73,9 @@ class GroupCallManager : public Actor {
 
   void set_group_call_title(GroupCallId group_call_id, string title, Promise<Unit> &&promise);
 
+  void toggle_group_call_is_my_video_paused(GroupCallId group_call_id, bool is_my_video_paused,
+                                            Promise<Unit> &&promise);
+
   void toggle_group_call_is_my_video_enabled(GroupCallId group_call_id, bool is_my_video_enabled,
                                              Promise<Unit> &&promise);
 
@@ -200,6 +203,8 @@ class GroupCallManager : public Actor {
 
   static bool get_group_call_start_subscribed(const GroupCall *group_call);
 
+  static bool get_group_call_is_my_video_paused(const GroupCall *group_call);
+
   static bool get_group_call_is_my_video_enabled(const GroupCall *group_call);
 
   static bool get_group_call_mute_new_participants(const GroupCall *group_call);
@@ -267,6 +272,12 @@ class GroupCallManager : public Actor {
   void send_toggle_group_call_start_subscription_query(InputGroupCallId input_group_call_id, bool start_subscribed);
 
   void on_toggle_group_call_start_subscription(InputGroupCallId input_group_call_id, bool start_subscribed,
+                                               Result<Unit> &&result);
+
+  void send_toggle_group_call_is_my_video_paused_query(InputGroupCallId input_group_call_id, DialogId as_dialog_id,
+                                                       bool is_my_video_paused);
+
+  void on_toggle_group_call_is_my_video_paused(InputGroupCallId input_group_call_id, bool is_my_video_paused,
                                                Result<Unit> &&result);
 
   void send_toggle_group_call_is_my_video_enabled_query(InputGroupCallId input_group_call_id, DialogId as_dialog_id,
