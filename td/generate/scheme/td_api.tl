@@ -2181,6 +2181,7 @@ groupCallParticipantVideoInfo source_groups:vector<groupCallVideoSourceGroup> en
 //@description Represents a group call participant
 //@participant_id Identifier of the group call participant
 //@audio_source_id User's audio channel synchronization source identifier
+//@can_enable_video True, if the user can broadcast video or share screen
 //@video_info Information about user's video channel; may be null if there is no active video
 //@screen_sharing_video_info Information about user's screen sharing video channel; may be null if there is no active screen sharing video
 //@bio The participant user's bio or the participant chat's description
@@ -2196,7 +2197,7 @@ groupCallParticipantVideoInfo source_groups:vector<groupCallVideoSourceGroup> en
 //@can_unmute_self True, if the participant is muted for all users, but can unmute themself
 //@volume_level Participant's volume level; 1-20000 in hundreds of percents
 //@order User's order in the group call participant list. Orders must be compared lexicographically. The bigger is order, the higher is user in the list. If order is empty, the user must be removed from the participant list
-groupCallParticipant participant_id:MessageSender audio_source_id:int32 video_info:groupCallParticipantVideoInfo screen_sharing_video_info:groupCallParticipantVideoInfo bio:string is_current_user:Bool is_speaking:Bool is_hand_raised:Bool can_be_muted_for_all_users:Bool can_be_unmuted_for_all_users:Bool can_be_muted_for_current_user:Bool can_be_unmuted_for_current_user:Bool is_muted_for_all_users:Bool is_muted_for_current_user:Bool can_unmute_self:Bool volume_level:int32 order:string = GroupCallParticipant;
+groupCallParticipant participant_id:MessageSender audio_source_id:int32 can_enable_video:Bool video_info:groupCallParticipantVideoInfo screen_sharing_video_info:groupCallParticipantVideoInfo bio:string is_current_user:Bool is_speaking:Bool is_hand_raised:Bool can_be_muted_for_all_users:Bool can_be_unmuted_for_all_users:Bool can_be_muted_for_current_user:Bool can_be_unmuted_for_current_user:Bool is_muted_for_all_users:Bool is_muted_for_current_user:Bool can_unmute_self:Bool volume_level:int32 order:string = GroupCallParticipant;
 
 //@description Describes a media channel in a group call @source_id Channel's synchronization source identifier @is_video True if the channel is a video channel @param_description Description of the channel
 groupCallMediaChannelDescription source_id:int32 is_video:Bool description:string = GroupCallMediaChannelDescription;
