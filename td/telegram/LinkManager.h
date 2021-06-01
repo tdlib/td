@@ -34,27 +34,6 @@ class LinkManager : public Actor {
   LinkManager &operator=(LinkManager &&) = delete;
   ~LinkManager() override;
 
-  enum class InternalLinkType : int32 {
-    AuthenticationCode,
-    Background,
-    BotStart,
-    BotStartInGroup,
-    ConfirmPhone,
-    DialogInvite,
-    Game,
-    Language,
-    Message,
-    MessageDraft,
-    PassportDataRequest,
-    Proxy,
-    PublicDialog,
-    QrCodeAuthentication,
-    StickerSet,
-    Theme,
-    UnknownDeepLink,
-    VoiceChat
-  };
-
   class InternalLink {
    public:
     InternalLink() = default;
@@ -65,8 +44,6 @@ class LinkManager : public Actor {
     virtual ~InternalLink() = default;
 
     virtual td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const = 0;
-
-    virtual InternalLinkType get_type() const = 0;
   };
 
   // checks whether the link is a valid tg, ton or HTTP(S) URL and returns it in a canonical form

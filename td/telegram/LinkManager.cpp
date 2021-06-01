@@ -63,10 +63,6 @@ class LinkManager::InternalLinkAuthenticationCode : public InternalLink {
     return td_api::make_object<td_api::internalLinkTypeAuthenticationCode>(code_);
   }
 
-  InternalLinkType get_type() const final {
-    return InternalLinkType::AuthenticationCode;
-  }
-
  public:
   explicit InternalLinkAuthenticationCode(string code) : code_(std::move(code)) {
   }
@@ -77,10 +73,6 @@ class LinkManager::InternalLinkBackground : public InternalLink {
 
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
     return td_api::make_object<td_api::internalLinkTypeBackground>(background_name_);
-  }
-
-  InternalLinkType get_type() const final {
-    return InternalLinkType::Background;
   }
 
  public:
@@ -94,10 +86,6 @@ class LinkManager::InternalLinkBotStart : public InternalLink {
 
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
     return td_api::make_object<td_api::internalLinkTypeBotStart>(bot_username_, start_parameter_);
-  }
-
-  InternalLinkType get_type() const final {
-    return InternalLinkType::BotStart;
   }
 
  public:
@@ -114,10 +102,6 @@ class LinkManager::InternalLinkBotStartInGroup : public InternalLink {
     return td_api::make_object<td_api::internalLinkTypeBotStartInGroup>(bot_username_, start_parameter_);
   }
 
-  InternalLinkType get_type() const final {
-    return InternalLinkType::BotStartInGroup;
-  }
-
  public:
   InternalLinkBotStartInGroup(string bot_username, string start_parameter)
       : bot_username_(std::move(bot_username)), start_parameter_(std::move(start_parameter)) {
@@ -132,10 +116,6 @@ class LinkManager::InternalLinkConfirmPhone : public InternalLink {
     return td_api::make_object<td_api::internalLinkTypePhoneNumberConfirmation>(hash_, phone_number_);
   }
 
-  InternalLinkType get_type() const final {
-    return InternalLinkType::ConfirmPhone;
-  }
-
  public:
   InternalLinkConfirmPhone(string hash, string phone_number)
       : hash_(std::move(hash)), phone_number_(std::move(phone_number)) {
@@ -146,10 +126,6 @@ class LinkManager::InternalLinkDialogInvite : public InternalLink {
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
     return td_api::make_object<td_api::internalLinkTypeChatInvite>();
   }
-
-  InternalLinkType get_type() const final {
-    return InternalLinkType::DialogInvite;
-  }
 };
 
 class LinkManager::InternalLinkGame : public InternalLink {
@@ -158,10 +134,6 @@ class LinkManager::InternalLinkGame : public InternalLink {
 
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
     return td_api::make_object<td_api::internalLinkTypeGame>(bot_username_, game_short_name_);
-  }
-
-  InternalLinkType get_type() const final {
-    return InternalLinkType::Game;
   }
 
  public:
@@ -177,10 +149,6 @@ class LinkManager::InternalLinkLanguage : public InternalLink {
     return td_api::make_object<td_api::internalLinkTypeLanguagePack>(language_pack_id_);
   }
 
-  InternalLinkType get_type() const final {
-    return InternalLinkType::Language;
-  }
-
  public:
   explicit InternalLinkLanguage(string language_pack_id) : language_pack_id_(std::move(language_pack_id)) {
   }
@@ -190,10 +158,6 @@ class LinkManager::InternalLinkMessage : public InternalLink {
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
     return td_api::make_object<td_api::internalLinkTypeMessage>();
   }
-
-  InternalLinkType get_type() const final {
-    return InternalLinkType::Message;
-  }
 };
 
 class LinkManager::InternalLinkMessageDraft : public InternalLink {
@@ -202,10 +166,6 @@ class LinkManager::InternalLinkMessageDraft : public InternalLink {
 
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
     return td_api::make_object<td_api::internalLinkTypeMessageDraft>(get_formatted_text_object(text_), contains_link_);
-  }
-
-  InternalLinkType get_type() const final {
-    return InternalLinkType::MessageDraft;
   }
 
  public:
@@ -224,10 +184,6 @@ class LinkManager::InternalLinkPassportDataRequest : public InternalLink {
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
     return td_api::make_object<td_api::internalLinkTypePassportDataRequest>(bot_user_id_.get(), scope_, public_key_,
                                                                             nonce_, callback_url_);
-  }
-
-  InternalLinkType get_type() const final {
-    return InternalLinkType::PassportDataRequest;
   }
 
  public:
@@ -266,10 +222,6 @@ class LinkManager::InternalLinkProxy : public InternalLink {
     return td_api::make_object<td_api::internalLinkTypeProxy>(server_, port_, std::move(proxy_type));
   }
 
-  InternalLinkType get_type() const final {
-    return InternalLinkType::Proxy;
-  }
-
  public:
   InternalLinkProxy(string server, int32 port, td_api::object_ptr<td_api::ProxyType> type)
       : server_(std::move(server)), port_(port), type_(std::move(type)) {
@@ -283,10 +235,6 @@ class LinkManager::InternalLinkPublicDialog : public InternalLink {
     return td_api::make_object<td_api::internalLinkTypePublicChat>(dialog_username_);
   }
 
-  InternalLinkType get_type() const final {
-    return InternalLinkType::PublicDialog;
-  }
-
  public:
   explicit InternalLinkPublicDialog(string dialog_username) : dialog_username_(std::move(dialog_username)) {
   }
@@ -296,10 +244,6 @@ class LinkManager::InternalLinkQrCodeAuthentication : public InternalLink {
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
     return td_api::make_object<td_api::internalLinkTypeQrCodeAuthentication>();
   }
-
-  InternalLinkType get_type() const final {
-    return InternalLinkType::QrCodeAuthentication;
-  }
 };
 
 class LinkManager::InternalLinkStickerSet : public InternalLink {
@@ -307,10 +251,6 @@ class LinkManager::InternalLinkStickerSet : public InternalLink {
 
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
     return td_api::make_object<td_api::internalLinkTypeStickerSet>(sticker_set_name_);
-  }
-
-  InternalLinkType get_type() const final {
-    return InternalLinkType::StickerSet;
   }
 
  public:
@@ -325,10 +265,6 @@ class LinkManager::InternalLinkTheme : public InternalLink {
     return td_api::make_object<td_api::internalLinkTypeTheme>(theme_name_);
   }
 
-  InternalLinkType get_type() const final {
-    return InternalLinkType::Theme;
-  }
-
  public:
   explicit InternalLinkTheme(string theme_name) : theme_name_(std::move(theme_name)) {
   }
@@ -338,10 +274,6 @@ class LinkManager::InternalLinkUnknownDeepLink : public InternalLink {
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
     return td_api::make_object<td_api::internalLinkTypeUnknownDeepLink>();
   }
-
-  InternalLinkType get_type() const final {
-    return InternalLinkType::UnknownDeepLink;
-  }
 };
 
 class LinkManager::InternalLinkVoiceChat : public InternalLink {
@@ -350,10 +282,6 @@ class LinkManager::InternalLinkVoiceChat : public InternalLink {
 
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
     return td_api::make_object<td_api::internalLinkTypeVoiceChat>(dialog_username_, invite_hash_);
-  }
-
-  InternalLinkType get_type() const final {
-    return InternalLinkType::VoiceChat;
   }
 
  public:
