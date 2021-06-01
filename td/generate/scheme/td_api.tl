@@ -2170,8 +2170,11 @@ groupCallRecentSpeaker participant_id:MessageSender is_speaking:Bool = GroupCall
 //@duration Call duration; for ended calls only
 groupCall id:int32 title:string scheduled_start_date:int32 enabled_start_notification:Bool is_active:Bool is_joined:Bool need_rejoin:Bool can_be_managed:Bool participant_count:int32 loaded_all_participants:Bool recent_speakers:vector<groupCallRecentSpeaker> is_my_video_enabled:Bool can_start_video:Bool mute_new_participants:Bool can_change_mute_new_participants:Bool record_duration:int32 duration:int32 = GroupCall;
 
-//@description Contains information about a group call participant's video channel @source_ids List of video channel synchronization source identifiers @endpoint_id Video channel endpoint identifier @param_description Detailed description of the video channel
-groupCallParticipantVideoInfo source_ids:vector<int32> endpoint_id:string description:string = GroupCallParticipantVideoInfo;
+//@description Describes a group of video synchronization source identifiers @semantics The semantics of sources, one of "SIM" or "FID" @source_ids The list of synchronization source identifiers
+groupCallVideoSourceGroup semantics:string source_ids:vector<int32> = GroupCallVideoSourceGroup;
+
+//@description Contains information about a group call participant's video channel @source_groups List of synchronization source groups of the video @endpoint_id Video channel endpoint identifier
+groupCallParticipantVideoInfo source_groups:vector<groupCallVideoSourceGroup> endpoint_id:string = GroupCallParticipantVideoInfo;
 
 //@description Represents a group call participant
 //@participant_id Identifier of the group call participant

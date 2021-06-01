@@ -358,7 +358,7 @@ class JoinGroupCallQuery : public Td::ResultHandler {
   }
 
   NetQueryRef send(InputGroupCallId input_group_call_id, DialogId as_dialog_id, const string &payload, bool is_muted,
-                   bool is_video_muted, const string &invite_hash, uint64 generation) {
+                   bool is_video_stopped, const string &invite_hash, uint64 generation) {
     input_group_call_id_ = input_group_call_id;
     as_dialog_id_ = as_dialog_id;
     generation_ = generation;
@@ -378,8 +378,8 @@ class JoinGroupCallQuery : public Td::ResultHandler {
     if (!invite_hash.empty()) {
       flags |= telegram_api::phone_joinGroupCall::INVITE_HASH_MASK;
     }
-    if (is_video_muted) {
-      flags |= telegram_api::phone_joinGroupCall::VIDEO_MUTED_MASK;
+    if (is_video_stopped) {
+      flags |= telegram_api::phone_joinGroupCall::VIDEO_STOPPED_MASK;
     }
     auto query = G()->net_query_creator().create(telegram_api::phone_joinGroupCall(
         flags, false /*ignored*/, false /*ignored*/, input_group_call_id.get_input_group_call(),
@@ -675,7 +675,8 @@ class EditGroupCallParticipantQuery : public Td::ResultHandler {
   }
 
   void send(InputGroupCallId input_group_call_id, DialogId dialog_id, bool set_is_mited, bool is_muted,
-            int32 volume_level, bool set_raise_hand, bool raise_hand, bool set_video_is_muted, bool video_is_muted) {
+            int32 volume_level, bool set_raise_hand, bool raise_hand, bool set_video_is_stopped,
+            bool video_is_stopped) {
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Know);
     if (input_peer == nullptr) {
       return on_error(0, Status::Error(400, "Can't access the chat"));
@@ -688,13 +689,13 @@ class EditGroupCallParticipantQuery : public Td::ResultHandler {
       flags |= telegram_api::phone_editGroupCallParticipant::VOLUME_MASK;
     } else if (set_is_mited) {
       flags |= telegram_api::phone_editGroupCallParticipant::MUTED_MASK;
-    } else if (set_video_is_muted) {
-      flags |= telegram_api::phone_editGroupCallParticipant::VIDEO_MUTED_MASK;
+    } else if (set_video_is_stopped) {
+      flags |= telegram_api::phone_editGroupCallParticipant::VIDEO_STOPPED_MASK;
     }
 
     send_query(G()->net_query_creator().create(telegram_api::phone_editGroupCallParticipant(
         flags, input_group_call_id.get_input_group_call(), std::move(input_peer), is_muted, volume_level, raise_hand,
-        video_is_muted)));
+        video_is_stopped, false, false)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -2454,7 +2455,7 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
     // it contains reasonable default "!call.mute_new_participants || call.can_be_managed"
     participant.server_is_muted_by_admin = !group_call->can_self_unmute && !can_manage_group_call(input_group_call_id);
     participant.server_is_muted_by_themselves = is_muted && !participant.server_is_muted_by_admin;
-    participant.server_is_video_muted = !is_my_video_enabled || participant.server_is_muted_by_admin;
+    participant.server_is_video_stopped = !is_my_video_enabled || participant.server_is_muted_by_admin;
     participant.is_just_joined = !is_rejoin;
     participant.is_fake = true;
     int diff = process_group_call_participant(input_group_call_id, std::move(participant));
@@ -3292,18 +3293,20 @@ void GroupCallManager::get_group_call_media_channel_descriptions(
       result.push_back(
           td_api::make_object<td_api::groupCallMediaChannelDescription>(participant.audio_source, false, string()));
     }
-    for (auto &source_id : participant.video_payload.sources) {
-      if (source_ids_set.count(source_id)) {
-        source_ids_set.erase(source_id);
-        result.push_back(td_api::make_object<td_api::groupCallMediaChannelDescription>(
-            source_id, true, participant.video_payload.json_payload));
+    for (auto &group : participant.video_payload.source_groups) {
+      for (auto &source_id : group.source_ids) {
+        if (source_ids_set.count(source_id)) {
+          source_ids_set.erase(source_id);
+          result.push_back(td_api::make_object<td_api::groupCallMediaChannelDescription>(source_id, true, string()));
+        }
       }
     }
-    for (auto &source_id : participant.presentation_payload.sources) {
-      if (source_ids_set.count(source_id)) {
-        source_ids_set.erase(source_id);
-        result.push_back(td_api::make_object<td_api::groupCallMediaChannelDescription>(
-            source_id, true, participant.presentation_payload.json_payload));
+    for (auto &group : participant.presentation_payload.source_groups) {
+      for (auto &source_id : group.source_ids) {
+        if (source_ids_set.count(source_id)) {
+          source_ids_set.erase(source_id);
+          result.push_back(td_api::make_object<td_api::groupCallMediaChannelDescription>(source_id, true, string()));
+        }
       }
     }
   }

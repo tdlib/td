@@ -57,10 +57,10 @@ GroupCallParticipant::GroupCallParticipant(const tl_object_ptr<telegram_api::gro
   version = call_version;
 
   if (participant->video_ != nullptr) {
-    video_payload = get_group_call_video_payload(participant->video_->data_);
+    video_payload = get_group_call_video_payload(participant->video_.get());
   }
   if (participant->presentation_ != nullptr) {
-    presentation_payload = get_group_call_video_payload(participant->presentation_->data_);
+    presentation_payload = get_group_call_video_payload(participant->presentation_.get());
   }
 }
 
