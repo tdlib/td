@@ -70,12 +70,15 @@ class LinkManager : public Actor {
  private:
   void tear_down() override;
 
+  class InternalLinkActiveSessions;
   class InternalLinkAuthenticationCode;
   class InternalLinkBackground;
   class InternalLinkBotStart;
   class InternalLinkBotStartInGroup;
+  class InternalLinkChangePhoneNumber;
   class InternalLinkConfirmPhone;
   class InternalLinkDialogInvite;
+  class InternalLinkFilterSettings;
   class InternalLinkGame;
   class InternalLinkLanguage;
   class InternalLinkMessage;
@@ -84,8 +87,10 @@ class LinkManager : public Actor {
   class InternalLinkProxy;
   class InternalLinkPublicDialog;
   class InternalLinkQrCodeAuthentication;
+  class InternalLinkSettings;
   class InternalLinkStickerSet;
   class InternalLinkTheme;
+  class InternalLinkThemeSettings;
   class InternalLinkUnknownDeepLink;
   class InternalLinkVoiceChat;
 

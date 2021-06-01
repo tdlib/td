@@ -3000,6 +3000,9 @@ chatReportReasonCustom = ChatReportReason;
 
 //@class InternalLinkType @description Describes an internal https://t.me or tg: link, which must be processed by the app in a special way
 
+//@description The link is a link to the active sessions section of the app. Use getActiveSessions to handle the link
+internalLinkTypeActiveSessions = InternalLinkType;
+
 //@description The link contains an authentication code. Call checkAuthenticationCode with the code if the current authorization state is authorizationStateWaitCode @code The authentication code
 internalLinkTypeAuthenticationCode code:string = InternalLinkType;
 
@@ -3016,8 +3019,14 @@ internalLinkTypeBotStart bot_username:string start_parameter:string = InternalLi
 //@bot_username Username of the bot @start_parameter The parameter to be passed to sendBotStartMessage
 internalLinkTypeBotStartInGroup bot_username:string start_parameter:string = InternalLinkType;
 
+//@description The link is a link to the change phone number section of the app
+internalLinkTypeChangePhoneNumber = InternalLinkType;
+
 //@description The link is a chat invite link. Call checkChatInviteLink to process the link
 internalLinkTypeChatInvite = InternalLinkType;
+
+//@description The link is a link to the filter settings section of the app
+internalLinkTypeFilterSettings = InternalLinkType;
 
 //@description The link is a link to a game. Call searchPublicChat with the given bot username, check that the user is a bot, ask the current user to select a group to send the game, and then call sendMessage with inputMessageGame
 //@bot_username Username of the bot that owns the game @game_short_name Short name of the game
@@ -3053,11 +3062,17 @@ internalLinkTypePublicChat chat_username:string = InternalLinkType;
 //-"This code can be used to allow someone to log in to your Telegram account. To confirm Telegram login, please go to Settings > Devices > Scan QR and scan the code" needs to be shown
 internalLinkTypeQrCodeAuthentication = InternalLinkType;
 
+//@description The link is a link to app settings
+internalLinkTypeSettings = InternalLinkType;
+
 //@description The link is a link to a sticker set. Call searchStickerSet with the given sticker set name to process the link and show the sticker set @sticker_set_name Name of the sticker set
 internalLinkTypeStickerSet sticker_set_name:string = InternalLinkType;
 
 //@description The link is a link to a theme. TDLib has no theme support yet @theme_name Name of the theme
 internalLinkTypeTheme theme_name:string = InternalLinkType;
+
+//@description The link is a link to the theme settings section of the app
+internalLinkTypeThemeSettings = InternalLinkType;
 
 //@description The link is an unknown tg: link. Call getDeepLinkInfo to process the link
 internalLinkTypeUnknownDeepLink = InternalLinkType;

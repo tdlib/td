@@ -56,6 +56,12 @@ static bool is_valid_username(Slice username) {
   return true;
 }
 
+class LinkManager::InternalLinkActiveSessions : public InternalLink {
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeActiveSessions>();
+  }
+};
+
 class LinkManager::InternalLinkAuthenticationCode : public InternalLink {
   string code_;
 
@@ -108,6 +114,12 @@ class LinkManager::InternalLinkBotStartInGroup : public InternalLink {
   }
 };
 
+class LinkManager::InternalLinkChangePhoneNumber : public InternalLink {
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeChangePhoneNumber>();
+  }
+};
+
 class LinkManager::InternalLinkConfirmPhone : public InternalLink {
   string hash_;
   string phone_number_;
@@ -125,6 +137,12 @@ class LinkManager::InternalLinkConfirmPhone : public InternalLink {
 class LinkManager::InternalLinkDialogInvite : public InternalLink {
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
     return td_api::make_object<td_api::internalLinkTypeChatInvite>();
+  }
+};
+
+class LinkManager::InternalLinkFilterSettings : public InternalLink {
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeFilterSettings>();
   }
 };
 
@@ -246,6 +264,12 @@ class LinkManager::InternalLinkQrCodeAuthentication : public InternalLink {
   }
 };
 
+class LinkManager::InternalLinkSettings : public InternalLink {
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeSettings>();
+  }
+};
+
 class LinkManager::InternalLinkStickerSet : public InternalLink {
   string sticker_set_name_;
 
@@ -267,6 +291,12 @@ class LinkManager::InternalLinkTheme : public InternalLink {
 
  public:
   explicit InternalLinkTheme(string theme_name) : theme_name_(std::move(theme_name)) {
+  }
+};
+
+class LinkManager::InternalLinkThemeSettings : public InternalLink {
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeThemeSettings>();
   }
 };
 
@@ -654,6 +684,25 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
   } else if (path.size() == 1 && path[0] == "passport") {
     // passport?bot_id=<bot_user_id>&scope=<scope>&public_key=<public_key>&nonce=<nonce>
     return get_internal_link_passport(url_query.args_);
+  } else if (path.size() >= 1 && path[0] == "settings") {
+    if (path.size() == 2 && path[1] == "change_number") {
+      // settings/change_number
+      return td::make_unique<InternalLinkChangePhoneNumber>();
+    }
+    if (path.size() == 2 && path[1] == "devices") {
+      // settings/devices
+      return td::make_unique<InternalLinkActiveSessions>();
+    }
+    if (path.size() == 2 && path[1] == "folders") {
+      // settings/folders
+      return td::make_unique<InternalLinkFilterSettings>();
+    }
+    if (path.size() == 2 && path[1] == "themes") {
+      // settings/themes
+      return td::make_unique<InternalLinkThemeSettings>();
+    }
+    // settings
+    return td::make_unique<InternalLinkSettings>();
   } else if (path.size() == 1 && path[0] == "join") {
     // join?invite=<hash>
     if (has_arg("invite")) {

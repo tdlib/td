@@ -63,6 +63,9 @@ static void parse_internal_link(td::string url, td::td_api::object_ptr<td::td_ap
 }
 
 TEST(Link, parse_internal_link) {
+  auto active_sessions = [] {
+    return td::td_api::make_object<td::td_api::internalLinkTypeActiveSessions>();
+  };
   auto authentication_code = [](td::string code) {
     return td::td_api::make_object<td::td_api::internalLinkTypeAuthenticationCode>(code);
   };
@@ -75,8 +78,14 @@ TEST(Link, parse_internal_link) {
   auto bot_start_in_group = [](td::string bot_username, td::string start_parameter) {
     return td::td_api::make_object<td::td_api::internalLinkTypeBotStartInGroup>(bot_username, start_parameter);
   };
+  auto change_phone_number = [] {
+    return td::td_api::make_object<td::td_api::internalLinkTypeChangePhoneNumber>();
+  };
   auto chat_invite = [] {
     return td::td_api::make_object<td::td_api::internalLinkTypeChatInvite>();
+  };
+  auto filter_settings = [] {
+    return td::td_api::make_object<td::td_api::internalLinkTypeFilterSettings>();
   };
   auto game = [](td::string bot_username, td::string game_short_name) {
     return td::td_api::make_object<td::td_api::internalLinkTypeGame>(bot_username, game_short_name);
@@ -111,14 +120,20 @@ TEST(Link, parse_internal_link) {
   auto public_chat = [](td::string chat_username) {
     return td::td_api::make_object<td::td_api::internalLinkTypePublicChat>(chat_username);
   };
-  auto qr_code_authentication = []() {
+  auto qr_code_authentication = [] {
     return td::td_api::make_object<td::td_api::internalLinkTypeQrCodeAuthentication>();
+  };
+  auto settings = [] {
+    return td::td_api::make_object<td::td_api::internalLinkTypeSettings>();
   };
   auto sticker_set = [](td::string sticker_set_name) {
     return td::td_api::make_object<td::td_api::internalLinkTypeStickerSet>(sticker_set_name);
   };
   auto theme = [](td::string theme_name) {
     return td::td_api::make_object<td::td_api::internalLinkTypeTheme>(theme_name);
+  };
+  auto theme_settings = [] {
+    return td::td_api::make_object<td::td_api::internalLinkTypeThemeSettings>();
   };
   auto unknown_deep_link = [] {
     return td::td_api::make_object<td::td_api::internalLinkTypeUnknownDeepLink>();
@@ -566,4 +581,21 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("tg://passport?bot_id=12345&public_key=key&scope=asd&payload=", unknown_deep_link());
   parse_internal_link("t.me/telegrampassport?bot_id=12345&public_key=key&scope=asd&payload=nonce",
                       public_chat("telegrampassport"));
+
+  parse_internal_link("tg://settings", settings());
+  parse_internal_link("tg://setting", unknown_deep_link());
+  parse_internal_link("tg://settings?asdsa?D?SADasD?asD", settings());
+  parse_internal_link("tg://settings#test", settings());
+  parse_internal_link("tg://settings/#test", settings());
+  parse_internal_link("tg://settings/aadsa#test", settings());
+  parse_internal_link("tg://settings/theme#test", settings());
+  parse_internal_link("tg://settings/themes#test", theme_settings());
+  parse_internal_link("tg://settings/themesa#test", settings());
+  parse_internal_link("tg://settings/themes/?as#rad", theme_settings());
+  parse_internal_link("tg://settings/themes/a", settings());
+  parse_internal_link("tg://settings/asdsathemesasdas/devices", settings());
+  parse_internal_link("tg://settings/devices", active_sessions());
+  parse_internal_link("tg://settings/change_number", change_phone_number());
+  parse_internal_link("tg://settings/folders", filter_settings());
+  parse_internal_link("tg://settings/filters", settings());
 }
