@@ -31,7 +31,7 @@ class SecretChatsManager : public Actor {
  public:
   explicit SecretChatsManager(ActorShared<> parent);
 
-  // Proxy query to corrensponding SecretChatActor
+  // proxy query to corrensponding SecretChatActor
   void on_update_chat(tl_object_ptr<telegram_api::updateEncryption> update);
   void on_new_message(tl_object_ptr<telegram_api::EncryptedMessage> &&message_ptr, Promise<Unit> &&promise);
 
@@ -47,7 +47,7 @@ class SecretChatsManager : public Actor {
   void notify_screenshot_taken(SecretChatId secret_chat_id, Promise<> promise);
   void send_set_ttl_message(SecretChatId secret_chat_id, int32 ttl, int64 random_id, Promise<> promise);
 
-  // Binlog replay
+  // binlog replay
   void replay_binlog_event(BinlogEvent &&binlog_event);
   void binlog_replay_finish();
 

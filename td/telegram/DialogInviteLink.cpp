@@ -10,7 +10,6 @@
 #include "td/telegram/LinkManager.h"
 
 #include "td/utils/logging.h"
-#include "td/utils/misc.h"
 
 namespace td {
 

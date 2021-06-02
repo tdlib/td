@@ -21,6 +21,7 @@
 #include "td/utils/MpscPollableQueue.h"
 #include "td/utils/port/RwMutex.h"
 #include "td/utils/port/thread.h"
+#include "td/utils/Slice.h"
 
 #include <algorithm>
 #include <atomic>

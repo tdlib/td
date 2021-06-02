@@ -8,8 +8,8 @@
 
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/files/FileManager.h"
-#include "td/telegram/SecretChatActor.h"
 #include "td/telegram/secret_api.h"
+#include "td/telegram/SecretChatActor.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"

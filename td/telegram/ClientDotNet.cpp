@@ -121,7 +121,7 @@ public:
   /// Sets the callback that will be called when a message is added to the internal TDLib log.
   /// None of the TDLib methods can be called from the callback.
   /// </summary>
-  /// <param name="max_verbosity_level">Maximum verbosity level of messages for which the callback will be called.</param>
+  /// <param name="max_verbosity_level">The maximum verbosity level of messages for which the callback will be called.</param>
   /// <param name="callback">Callback that will be called when a message is added to the internal TDLib log.
   /// Pass null to remove the callback.</param>
   static void SetLogMessageCallback(std::int32_t max_verbosity_level, LogMessageCallback^ callback) {

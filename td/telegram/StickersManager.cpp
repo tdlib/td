@@ -29,8 +29,8 @@
 #include "td/telegram/StickerSetId.hpp"
 #include "td/telegram/StickersManager.hpp"
 #include "td/telegram/Td.h"
-#include "td/telegram/TdDb.h"
 #include "td/telegram/td_api.h"
+#include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
 
 #include "td/actor/MultiPromise.h"

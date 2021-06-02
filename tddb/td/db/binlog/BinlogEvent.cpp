@@ -64,7 +64,7 @@ BufferSlice BinlogEvent::create_raw(uint64 id, int32 type, int32 flags, const St
   tl_storer.store_storer(storer);
 
   CHECK(tl_storer.get_buf() == raw_event.as_slice().uend() - TAIL_SIZE);
-  tl_storer.store_int(::td::crc32(raw_event.as_slice().truncate(raw_event.size() - TAIL_SIZE)));
+  tl_storer.store_int(crc32(raw_event.as_slice().truncate(raw_event.size() - TAIL_SIZE)));
 
   return raw_event;
 }

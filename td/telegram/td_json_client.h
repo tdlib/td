@@ -174,7 +174,7 @@ typedef void (*td_log_message_callback_ptr)(int verbosity_level, const char *mes
  * None of the TDLib methods can be called from the callback.
  * By default the callback is not set.
  *
- * \param[in] max_verbosity_level Maximum verbosity level of messages for which the callback will be called.
+ * \param[in] max_verbosity_level The maximum verbosity level of messages for which the callback will be called.
  * \param[in] callback Callback that will be called when a message is added to the internal TDLib log.
  *                     Pass nullptr to remove the callback.
  */

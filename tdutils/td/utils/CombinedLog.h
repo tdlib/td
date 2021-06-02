@@ -23,12 +23,12 @@ class CombinedLog : public LogInterface {
     second_ = second;
   }
 
-  void set_first_verbosity_level(int verbosity_level) {
-    first_verbosity_level_ = verbosity_level;
+  void set_first_verbosity_level(int new_verbosity_level) {
+    first_verbosity_level_ = new_verbosity_level;
   }
 
-  void set_second_verbosity_level(int verbosity_level) {
-    second_verbosity_level_ = verbosity_level;
+  void set_second_verbosity_level(int new_verbosity_level) {
+    second_verbosity_level_ = new_verbosity_level;
   }
 
   const LogInterface *get_first() const {
@@ -74,10 +74,10 @@ class CombinedLog : public LogInterface {
   vector<string> get_file_paths() final {
     vector<string> result;
     if (first_) {
-      td::append(result, first_->get_file_paths());
+      ::td::append(result, first_->get_file_paths());
     }
     if (second_) {
-      td::append(result, second_->get_file_paths());
+      ::td::append(result, second_->get_file_paths());
     }
     return result;
   }
