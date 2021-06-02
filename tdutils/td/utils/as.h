@@ -74,7 +74,7 @@ detail::As<ToT> as(FromT *from) {
 
 template <class ToT, class FromT,
           std::enable_if_t<TD_IS_TRIVIALLY_COPYABLE(ToT) && TD_IS_TRIVIALLY_COPYABLE(FromT), int> = 0>
-const detail::ConstAs<ToT> as(const FromT *from) {
+detail::ConstAs<ToT> as(const FromT *from) {
   return detail::ConstAs<ToT>(from);
 }
 
