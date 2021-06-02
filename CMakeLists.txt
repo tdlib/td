@@ -412,13 +412,13 @@ set(TDLIB_SOURCE
   td/mtproto/HttpTransport.h
   td/mtproto/IStreamTransport.h
   td/mtproto/KDF.h
+  td/mtproto/MtprotoQuery.h
   td/mtproto/NoCryptoStorer.h
   td/mtproto/PacketInfo.h
   td/mtproto/PacketStorer.h
   td/mtproto/Ping.h
   td/mtproto/PingConnection.h
   td/mtproto/ProxySecret.h
-  td/mtproto/Query.h
   td/mtproto/RawConnection.h
   td/mtproto/RSA.h
   td/mtproto/SessionConnection.h

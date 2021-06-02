@@ -7,8 +7,8 @@
 #pragma once
 
 #include "td/mtproto/AuthData.h"
+#include "td/mtproto/MtprotoQuery.h"
 #include "td/mtproto/PacketStorer.h"
-#include "td/mtproto/Query.h"
 #include "td/mtproto/utils.h"
 
 #include "td/mtproto/mtproto_api.h"
