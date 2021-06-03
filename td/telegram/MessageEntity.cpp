@@ -493,6 +493,81 @@ static bool is_url_unicode_symbol(uint32 c) {
   return get_unicode_simple_category(c) != UnicodeSimpleCategory::Separator;
 }
 
+static bool is_url_path_symbol(uint32 c) {
+  switch (c) {
+    case '\n':
+    case '<':
+    case '>':
+    case '"':
+    case 0xab:  // «
+    case 0xbb:  // »
+      return false;
+    default:
+      return is_url_unicode_symbol(c);
+  }
+}
+
+static vector<Slice> match_tg_urls(Slice str) {
+  vector<Slice> result;
+  const unsigned char *begin = str.ubegin();
+  const unsigned char *end = str.uend();
+  const unsigned char *ptr = begin;
+
+  // '(tg|ton)://[a-z0-9_-]{1,253}([/?#][^\s\x{2000}-\x{200b}\x{200e}-\x{200f}\x{2016}-\x{206f}<>«»"]*)?'
+
+  Slice bad_path_end_chars(".:;,('?!`");
+
+  while (end - ptr > 5) {
+    ptr = static_cast<const unsigned char *>(std::memchr(ptr, ':', narrow_cast<int32>(end - ptr)));
+    if (ptr == nullptr) {
+      break;
+    }
+
+    const unsigned char *url_begin = nullptr;
+    if (end - ptr >= 3 && ptr[1] == '/' && ptr[2] == '/') {
+      if (ptr - begin >= 2 && to_lower(ptr[-2]) == 't' && to_lower(ptr[-1]) == 'g') {
+        url_begin = ptr - 2;
+      } else if (ptr - begin >= 3 && to_lower(ptr[-3]) == 't' && to_lower(ptr[-2]) == 'o' && to_lower(ptr[-1]) == 'n') {
+        url_begin = ptr - 3;
+      }
+    }
+    if (url_begin == nullptr) {
+      ++ptr;
+      continue;
+    }
+
+    ptr += 3;
+    auto domain_begin = ptr;
+    while (ptr != end && ptr - domain_begin != 253 && is_alpha_digit_or_underscore_or_minus(*ptr)) {
+      ptr++;
+    }
+    if (ptr == domain_begin) {
+      continue;
+    }
+
+    if (ptr != end && (*ptr == '/' || *ptr == '?' || *ptr == '#')) {
+      auto path_end_ptr = ptr + 1;
+      while (path_end_ptr != end) {
+        uint32 code = 0;
+        auto next_ptr = next_utf8_unsafe(path_end_ptr, &code, "match_tg_urls");
+        if (!is_url_path_symbol(code)) {
+          break;
+        }
+        path_end_ptr = next_ptr;
+      }
+      while (path_end_ptr > ptr + 1 && bad_path_end_chars.find(path_end_ptr[-1]) < bad_path_end_chars.size()) {
+        path_end_ptr--;
+      }
+      if (ptr[0] == '/' || path_end_ptr > ptr + 1) {
+        ptr = path_end_ptr;
+      }
+    }
+
+    result.emplace_back(url_begin, ptr);
+  }
+  return result;
+}
+
 static vector<Slice> match_urls(Slice str) {
   vector<Slice> result;
   const unsigned char *begin = str.ubegin();
@@ -535,20 +610,6 @@ static vector<Slice> match_urls(Slice str) {
       return c == '.' || is_alpha_digit_or_underscore_or_minus(c) || c == '~';
     }
     return is_url_unicode_symbol(c);
-  };
-
-  const auto &is_path_symbol = [](uint32 c) {
-    switch (c) {
-      case '\n':
-      case '<':
-      case '>':
-      case '"':
-      case 0xab:  // «
-      case 0xbb:  // »
-        return false;
-      default:
-        return is_url_unicode_symbol(c);
-    }
   };
 
   Slice bad_path_end_chars(".:;,('?!`");
@@ -624,7 +685,7 @@ static vector<Slice> match_urls(Slice str) {
       while (path_end_ptr != end) {
         uint32 code = 0;
         auto next_ptr = next_utf8_unsafe(path_end_ptr, &code, "match_urls 4");
-        if (!is_path_symbol(code)) {
+        if (!is_url_path_symbol(code)) {
           break;
         }
         path_end_ptr = next_ptr;
@@ -978,7 +1039,7 @@ static bool is_common_tld(Slice str) {
   return tlds.count(str_lower) > 0;
 }
 
-Slice fix_url(Slice str) {
+static Slice fix_url(Slice str) {
   auto full_url = str;
 
   bool has_protocol = false;
@@ -1154,6 +1215,10 @@ vector<Slice> find_bank_card_numbers(Slice str) {
     }
   }
   return result;
+}
+
+vector<Slice> find_tg_urls(Slice str) {
+  return match_tg_urls(str);
 }
 
 vector<std::pair<Slice, bool>> find_urls(Slice str) {
@@ -1395,6 +1460,7 @@ vector<MessageEntity> find_entities(Slice text, bool skip_bot_commands) {
   add_entities(MessageEntity::Type::Cashtag, find_cashtags);
   // TODO find_phone_numbers
   add_entities(MessageEntity::Type::BankCardNumber, find_bank_card_numbers);
+  add_entities(MessageEntity::Type::Url, find_tg_urls);
 
   auto urls = find_urls(text);
   for (auto &url : urls) {

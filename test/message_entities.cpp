@@ -214,6 +214,62 @@ TEST(MessageEntities, bank_card_number) {
   check_bank_card_number("+1234567890128", {});
 }
 
+static void check_tg_url(const td::string &str, const td::vector<td::string> &expected) {
+  auto result_slice = td::find_tg_urls(str);
+  td::vector<td::string> result;
+  for (auto &it : result_slice) {
+    result.push_back(it.str());
+  }
+  if (result != expected) {
+    LOG(FATAL) << td::tag("text", str) << td::tag("got", td::format::as_array(result))
+               << td::tag("expected", td::format::as_array(expected));
+  }
+}
+
+TEST(MessageEntities, tg_url) {
+  check_tg_url("", {});
+  check_tg_url("tg://", {});
+  check_tg_url("tg://a", {"tg://a"});
+  check_tg_url("a", {});
+  check_tg_url("stg://a", {"tg://a"});
+  check_tg_url("asd  asdas das ton:asd tg:test ton://resolve tg://resolve TON://_-RESOLVE_- TG://-_RESOLVE-_",
+               {"ton://resolve", "tg://resolve", "TON://_-RESOLVE_-", "TG://-_RESOLVE-_"});
+  check_tg_url("tg:test/", {});
+  check_tg_url("tg:/test/", {});
+  check_tg_url("tg://test/", {"tg://test/"});
+  check_tg_url("tg://test/?", {"tg://test/"});
+  check_tg_url("tg://test/#", {"tg://test/#"});
+  check_tg_url("tg://test?", {"tg://test"});
+  check_tg_url("tg://test#", {"tg://test"});
+  check_tg_url("tg://test/―asd―?asd=asd&asdas=―#――――", {"tg://test/―asd―?asd=asd&asdas=―#――――"});
+  check_tg_url("tg://test/?asd", {"tg://test/?asd"});
+  check_tg_url("tg://test/?.:;,('?!`.:;,('?!`", {"tg://test/"});
+  check_tg_url("tg://test/#asdf", {"tg://test/#asdf"});
+  check_tg_url("tg://test?asdf", {"tg://test?asdf"});
+  check_tg_url("tg://test#asdf", {"tg://test#asdf"});
+  check_tg_url("tg://test?as‖df", {"tg://test?as"});
+  check_tg_url("tg://test?as<df", {"tg://test?as"});
+  check_tg_url("tg://test?as>df", {"tg://test?as"});
+  check_tg_url("tg://test?as\"df", {"tg://test?as"});
+  check_tg_url("tg://test?as«df", {"tg://test?as"});
+  check_tg_url("tg://test?as»df", {"tg://test?as"});
+  check_tg_url("tg://test?as(df", {"tg://test?as(df"});
+  check_tg_url("tg://test?as)df", {"tg://test?as)df"});
+  check_tg_url("tg://test?as[df", {"tg://test?as[df"});
+  check_tg_url("tg://test?as]df", {"tg://test?as]df"});
+  check_tg_url("tg://test?as{df", {"tg://test?as{df"});
+  check_tg_url("tg://test?as'df", {"tg://test?as'df"});
+  check_tg_url("tg://test?as}df", {"tg://test?as}df"});
+  check_tg_url("tg://test?as$df", {"tg://test?as$df"});
+  check_tg_url("tg://test?as%df", {"tg://test?as%df"});
+  check_tg_url("tg://%30/sccct", {});
+  check_tg_url("tg://test:asd@google.com:80", {"tg://test"});
+  check_tg_url("tg://google.com", {"tg://google"});
+  check_tg_url("tg://google/.com", {"tg://google/.com"});
+  check_tg_url("tg://127.0.0.1", {"tg://127"});
+  check_tg_url("tg://б.а.н.а.на", {});
+}
+
 static void check_is_email_address(const td::string &str, bool expected) {
   bool result = td::is_email_address(str);
   LOG_IF(FATAL, result != expected) << "Expected " << expected << " as result of is_email_address(" << str << ")";
@@ -455,6 +511,7 @@ TEST(MessageEntities, url) {
   check_url("http://google_.com", {});
   check_url("http://google._com_", {});
   check_url("http://[2001:4860:0:2001::68]/", {});  // TODO
+  check_url("tg://resolve", {});
   check_url("test.abd", {});
   check_url("/.b/..a    @.....@/. a.ba", {"a.ba"});
   check_url("bbbbbbbbbbbbbb.@.@", {});
