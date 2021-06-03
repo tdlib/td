@@ -887,7 +887,7 @@ class SearchPublicChatRequest : public RequestActor<> {
  public:
   SearchPublicChatRequest(ActorShared<Td> td, uint64 request_id, string username)
       : RequestActor(std::move(td), request_id), username_(std::move(username)) {
-    set_tries(3);
+    set_tries(4);  // 1 for server request + 1 for reload voice chat + 1 for reload dialog + 1 for result
   }
 };
 

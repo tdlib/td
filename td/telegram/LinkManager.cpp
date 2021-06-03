@@ -654,31 +654,35 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
         // resolve?domain=<username>&post=12345&single
         return td::make_unique<InternalLinkMessage>();
       }
+      auto username = get_arg("domain");
       for (auto &arg : url_query.args_) {
         if (arg.first == "voicechat") {
           // resolve?domain=<username>&voicechat
           // resolve?domain=<username>&voicechat=<invite_hash>
-          return td::make_unique<InternalLinkVoiceChat>(get_arg("domain"), arg.second);
+          if (Scheduler::context() != nullptr) {
+            send_closure(G()->messages_manager(), &MessagesManager::reload_voice_chat_on_search, username);
+          }
+          return td::make_unique<InternalLinkVoiceChat>(std::move(username), arg.second);
         }
         if (arg.first == "start" && is_valid_start_parameter(arg.second)) {
           // resolve?domain=<bot_username>?start=<parameter>
-          return td::make_unique<InternalLinkBotStart>(get_arg("domain"), arg.second);
+          return td::make_unique<InternalLinkBotStart>(std::move(username), arg.second);
         }
         if (arg.first == "startgroup" && is_valid_start_parameter(arg.second)) {
           // resolve?domain=<bot_username>?startgroup=<parameter>
-          return td::make_unique<InternalLinkBotStartInGroup>(get_arg("domain"), arg.second);
+          return td::make_unique<InternalLinkBotStartInGroup>(std::move(username), arg.second);
         }
         if (arg.first == "game" && !arg.second.empty()) {
           // resolve?domain=<bot_username>?game=<short_name>
-          return td::make_unique<InternalLinkGame>(get_arg("domain"), arg.second);
+          return td::make_unique<InternalLinkGame>(std::move(username), arg.second);
         }
       }
-      if (get_arg("domain") == "telegrampassport") {
+      if (username == "telegrampassport") {
         // resolve?domain=telegrampassport&bot_id=<bot_user_id>&scope=<scope>&public_key=<public_key>&nonce=<nonce>
         return get_internal_link_passport(url_query.args_);
       }
       // resolve?domain=<username>
-      return td::make_unique<InternalLinkPublicDialog>(get_arg("domain"));
+      return td::make_unique<InternalLinkPublicDialog>(std::move(username));
     }
   } else if (path.size() == 1 && path[0] == "login") {
     // login?code=123456
@@ -887,27 +891,31 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
       // /<username>/12345?single&thread=<thread_id>&comment=<message_id>
       return td::make_unique<InternalLinkMessage>();
     }
+    auto username = path[0];
     for (auto &arg : url_query.args_) {
       if (arg.first == "voicechat") {
         // /<username>?voicechat
         // /<username>?voicechat=<invite_hash>
-        return td::make_unique<InternalLinkVoiceChat>(path[0], arg.second);
+        if (Scheduler::context() != nullptr) {
+          send_closure(G()->messages_manager(), &MessagesManager::reload_voice_chat_on_search, username);
+        }
+        return td::make_unique<InternalLinkVoiceChat>(std::move(username), arg.second);
       }
       if (arg.first == "start" && is_valid_start_parameter(arg.second)) {
         // /<bot_username>?start=<parameter>
-        return td::make_unique<InternalLinkBotStart>(path[0], arg.second);
+        return td::make_unique<InternalLinkBotStart>(std::move(username), arg.second);
       }
       if (arg.first == "startgroup" && is_valid_start_parameter(arg.second)) {
         // /<bot_username>?startgroup=<parameter>
-        return td::make_unique<InternalLinkBotStartInGroup>(path[0], arg.second);
+        return td::make_unique<InternalLinkBotStartInGroup>(std::move(username), arg.second);
       }
       if (arg.first == "game" && !arg.second.empty()) {
         // /<bot_username>?game=<short_name>
-        return td::make_unique<InternalLinkGame>(path[0], arg.second);
+        return td::make_unique<InternalLinkGame>(std::move(username), arg.second);
       }
     }
     // /<username>
-    return td::make_unique<InternalLinkPublicDialog>(path[0]);
+    return td::make_unique<InternalLinkPublicDialog>(std::move(username));
   }
   return nullptr;
 }

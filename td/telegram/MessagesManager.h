@@ -364,6 +364,8 @@ class MessagesManager : public Actor {
 
   DialogId search_public_dialog(const string &username_to_search, bool force, Promise<Unit> &&promise);
 
+  void reload_voice_chat_on_search(const string &username);
+
   Result<MessageId> send_message(
       DialogId dialog_id, MessageId top_thread_message_id, MessageId reply_to_message_id,
       tl_object_ptr<td_api::messageSendOptions> &&options, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
@@ -3243,6 +3245,7 @@ class MessagesManager : public Actor {
 
   std::unordered_map<string, ResolvedUsername> resolved_usernames_;
   std::unordered_map<string, DialogId> inaccessible_resolved_usernames_;
+  std::unordered_set<string> reload_voice_chat_on_search_usernames_;
 
   struct PendingOnGetDialogs {
     FolderId folder_id;

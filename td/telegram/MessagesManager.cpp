@@ -29717,6 +29717,15 @@ DialogId MessagesManager::search_public_dialog(const string &username_to_search,
 
   if (dialog_id.is_valid()) {
     if (have_input_peer(dialog_id, AccessRights::Read)) {
+      if (!force && reload_voice_chat_on_search_usernames_.count(username)) {
+        reload_voice_chat_on_search_usernames_.erase(username);
+        if (dialog_id.get_type() == DialogType::Channel) {
+          td_->contacts_manager_->reload_channel_full(dialog_id.get_channel_id(), std::move(promise),
+                                                      "search_public_dialog");
+          return DialogId();
+        }
+      }
+
       if (td_->auth_manager_->is_bot()) {
         force_create_dialog(dialog_id, "search_public_dialog", true);
       } else {
@@ -29741,6 +29750,10 @@ DialogId MessagesManager::search_public_dialog(const string &username_to_search,
 
   td_->create_handler<ResolveUsernameQuery>(std::move(promise))->send(username);
   return DialogId();
+}
+
+void MessagesManager::reload_voice_chat_on_search(const string &username) {
+  reload_voice_chat_on_search_usernames_.insert(clean_username(username));
 }
 
 void MessagesManager::send_get_dialog_notification_settings_query(DialogId dialog_id, Promise<Unit> &&promise) {
