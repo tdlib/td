@@ -22,7 +22,7 @@ static void check_link(td::string url, td::string expected) {
 
 TEST(Link, check_link) {
   check_link("sftp://google.com", "");
-  check_link("tg://google.com", "tg://google.com/");
+  check_link("tg://google_com", "tg://google_com/");
   check_link("tOn://google", "ton://google/");
   check_link("httP://google.com?1#tes", "http://google.com/?1#tes");
   check_link("httPs://google.com/?1#tes", "https://google.com/?1#tes");
@@ -37,11 +37,12 @@ TEST(Link, check_link) {
   check_link("tg:https://google.com", "");
   check_link("tg:test@google.com", "");
   check_link("tg:google.com:80", "");
-  check_link("tg:google.com", "tg://google.com/");
+  check_link("tg:google-com", "tg://google-com/");
+  check_link("tg:google.com", "");
   check_link("tg:google.com:0", "");
   check_link("tg:google.com:a", "");
   check_link("tg:[2001:db8:0:0:0:ff00:42:8329]", "");
-  check_link("tg:127.0.0.1", "tg://127.0.0.1/");
+  check_link("tg:127.0.0.1", "");
   check_link("http://[2001:db8:0:0:0:ff00:42:8329]", "http://[2001:db8:0:0:0:ff00:42:8329]/");
   check_link("http://localhost", "");
   check_link("http://..", "http://../");

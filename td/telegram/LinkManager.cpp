@@ -498,6 +498,11 @@ Result<string> LinkManager::check_link(Slice link) {
     if (query.size() > 1 && query[1] == '?') {
       query.remove_prefix(1);
     }
+    for (auto c : http_url.host_) {
+      if (!is_alnum(c) && c != '-' && c != '_') {
+        return Status::Error("Unallowed characters in URL host");
+      }
+    }
     return PSTRING() << (is_tg ? "tg" : "ton") << "://" << http_url.host_ << query;
   }
 
