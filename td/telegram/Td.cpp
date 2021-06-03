@@ -6064,7 +6064,7 @@ void Td::on_request(uint64 id, td_api::startGroupCallScreenSharing &request) {
                                                        std::move(query_promise));
 }
 
-void Td::on_request(uint64 id, const td_api::setGroupCallScreenSharingIsPaused &request) {
+void Td::on_request(uint64 id, const td_api::toggleGroupCallScreenSharingIsPaused &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   group_call_manager_->toggle_group_call_is_my_presentation_paused(GroupCallId(request.group_call_id_),

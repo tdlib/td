@@ -2750,6 +2750,12 @@ class CliClient final : public Actor {
                                                                 as_message_sender(participant_id), group_call_source_,
                                                                 std::move(payload), true, true, invite_hash));
       }
+    } else if (op == "tgcssip") {
+      string group_call_id;
+      bool is_paused;
+      get_args(args, group_call_id, is_paused);
+      send_request(td_api::make_object<td_api::toggleGroupCallScreenSharingIsPaused>(as_group_call_id(group_call_id),
+                                                                                     is_paused));
     } else if (op == "egcss") {
       string group_call_id = args;
       send_request(td_api::make_object<td_api::endGroupCallScreenSharing>(as_group_call_id(group_call_id)));
