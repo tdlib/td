@@ -8459,30 +8459,30 @@ void MessagesManager::get_dialog_statistics_url(DialogId dialog_id, const string
   td_->create_handler<GetStatsUrlQuery>(std::move(promise))->send(dialog_id, parameters, is_dark);
 }
 
-Result<string> MessagesManager::get_login_button_url(DialogId dialog_id, MessageId message_id, int32 button_id) {
-  Dialog *d = get_dialog_force(dialog_id, "get_login_button_url");
+Result<string> MessagesManager::get_login_button_url(FullMessageId full_message_id, int32 button_id) {
+  Dialog *d = get_dialog_force(full_message_id.get_dialog_id(), "get_login_button_url");
   if (d == nullptr) {
     return Status::Error(3, "Chat not found");
   }
-  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+  if (!have_input_peer(d->dialog_id, AccessRights::Read)) {
     return Status::Error(3, "Can't access the chat");
   }
 
-  auto m = get_message_force(d, message_id, "get_login_button_url");
+  auto m = get_message_force(d, full_message_id.get_message_id(), "get_login_button_url");
   if (m == nullptr) {
     return Status::Error(5, "Message not found");
   }
   if (m->reply_markup == nullptr || m->reply_markup->type != ReplyMarkup::Type::InlineKeyboard) {
     return Status::Error(5, "Message has no inline keyboard");
   }
-  if (message_id.is_scheduled()) {
+  if (m->message_id.is_scheduled()) {
     return Status::Error(5, "Can't use login buttons from scheduled messages");
   }
-  if (!message_id.is_server()) {
+  if (!m->message_id.is_server()) {
     // it shouldn't have UrlAuth buttons anyway
     return Status::Error(5, "Message is not server");
   }
-  if (dialog_id.get_type() == DialogType::SecretChat) {
+  if (d->dialog_id.get_type() == DialogType::SecretChat) {
     // secret chat messages can't have reply markup, so this shouldn't happen now
     return Status::Error(5, "Message is in a secret chat");
   }

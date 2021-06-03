@@ -891,7 +891,7 @@ class MessagesManager : public Actor {
   void stop_poll(FullMessageId full_message_id, td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
                  Promise<Unit> &&promise);
 
-  Result<string> get_login_button_url(DialogId dialog_id, MessageId message_id, int32 button_id);
+  Result<string> get_login_button_url(FullMessageId full_message_id, int32 button_id);
 
   Result<ServerMessageId> get_invoice_message_id(FullMessageId full_message_id);
 
