@@ -1376,34 +1376,29 @@ static void remove_entities_intersecting_blockquote(vector<MessageEntity> &entit
   entities.erase(entities.begin() + left_entities, entities.end());
 }
 
-vector<MessageEntity> find_entities(Slice text, bool skip_bot_commands, bool only_urls) {
+vector<MessageEntity> find_entities(Slice text, bool skip_bot_commands) {
   vector<MessageEntity> entities;
 
-  if (!only_urls) {
-    auto add_entities = [&entities, &text](MessageEntity::Type type, vector<Slice> (*find_entities_f)(Slice)) mutable {
-      auto new_entities = find_entities_f(text);
-      for (auto &entity : new_entities) {
-        auto offset = narrow_cast<int32>(entity.begin() - text.begin());
-        auto length = narrow_cast<int32>(entity.size());
-        entities.emplace_back(type, offset, length);
-      }
-    };
-    add_entities(MessageEntity::Type::Mention, find_mentions);
-    if (!skip_bot_commands) {
-      add_entities(MessageEntity::Type::BotCommand, find_bot_commands);
+  auto add_entities = [&entities, &text](MessageEntity::Type type, vector<Slice> (*find_entities_f)(Slice)) mutable {
+    auto new_entities = find_entities_f(text);
+    for (auto &entity : new_entities) {
+      auto offset = narrow_cast<int32>(entity.begin() - text.begin());
+      auto length = narrow_cast<int32>(entity.size());
+      entities.emplace_back(type, offset, length);
     }
-    add_entities(MessageEntity::Type::Hashtag, find_hashtags);
-    add_entities(MessageEntity::Type::Cashtag, find_cashtags);
-    // TODO find_phone_numbers
-    add_entities(MessageEntity::Type::BankCardNumber, find_bank_card_numbers);
+  };
+  add_entities(MessageEntity::Type::Mention, find_mentions);
+  if (!skip_bot_commands) {
+    add_entities(MessageEntity::Type::BotCommand, find_bot_commands);
   }
+  add_entities(MessageEntity::Type::Hashtag, find_hashtags);
+  add_entities(MessageEntity::Type::Cashtag, find_cashtags);
+  // TODO find_phone_numbers
+  add_entities(MessageEntity::Type::BankCardNumber, find_bank_card_numbers);
 
   auto urls = find_urls(text);
   for (auto &url : urls) {
     auto type = url.second ? MessageEntity::Type::EmailAddress : MessageEntity::Type::Url;
-    if (only_urls && type != MessageEntity::Type::Url) {
-      continue;
-    }
     auto offset = narrow_cast<int32>(url.first.begin() - text.begin());
     auto length = narrow_cast<int32>(url.first.size());
     entities.emplace_back(type, offset, length);
@@ -2160,7 +2155,7 @@ static vector<MessageEntity> find_splittable_entities_v3(Slice text, const vecto
     }
   }
 
-  auto found_entities = find_entities(text, false, false);
+  auto found_entities = find_entities(text, false);
   td::remove_if(found_entities, [](const auto &entity) {
     return entity.type == MessageEntity::Type::EmailAddress || entity.type == MessageEntity::Type::Url;
   });
