@@ -6,10 +6,34 @@
 //
 #include "td/telegram/LinkManager.h"
 
+#include "td/telegram/MessageEntity.h"
 #include "td/telegram/td_api.h"
 
 #include "td/utils/common.h"
+#include "td/utils/misc.h"
 #include "td/utils/tests.h"
+
+static void check_find_urls(td::string url, bool is_valid) {
+  auto url_lower = td::to_lower(url);
+  {
+    auto tg_urls = td::find_tg_urls(url);
+    if (is_valid && (td::begins_with(url_lower, "tg://") || td::begins_with(url_lower, "ton://"))) {
+      ASSERT_EQ(1u, tg_urls.size());
+      ASSERT_STREQ(url, tg_urls[0]);
+    } else {
+      ASSERT_TRUE(tg_urls.empty() || tg_urls[0] != url);
+    }
+  }
+
+  {
+    if (is_valid && (td::begins_with(url_lower, "http") || td::begins_with(url_lower, "t.me")) &&
+        url.find('.') != td::string::npos && url.find(' ') == td::string::npos && url != "http://..") {
+      auto urls = td::find_urls(url);
+      ASSERT_EQ(1u, urls.size());
+      ASSERT_STREQ(url, urls[0].first);
+    }
+  }
+}
 
 static void check_link(td::string url, td::string expected) {
   auto result = td::LinkManager::check_link(url);
@@ -18,6 +42,8 @@ static void check_link(td::string url, td::string expected) {
   } else {
     ASSERT_TRUE(expected.empty());
   }
+
+  check_find_urls(url, result.is_ok());
 }
 
 TEST(Link, check_link) {
@@ -61,6 +87,8 @@ static void parse_internal_link(td::string url, td::td_api::object_ptr<td::td_ap
   } else {
     ASSERT_TRUE(expected == nullptr);
   }
+
+  check_find_urls(url, result != nullptr);
 }
 
 TEST(Link, parse_internal_link) {
@@ -280,8 +308,8 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("https://t.me/msg?url=google.com&text=", message_draft("google.com", false));
   parse_internal_link("https://t.me/msg?url=&text=google.com", message_draft("google.com", false));
   parse_internal_link("https://t.me/msg?url=&text=\n\n\n\n\n\n\n\n", nullptr);
-  parse_internal_link("https://t.me/msg?url=%20\n&text=", nullptr);
-  parse_internal_link("https://t.me/msg?url=%20\n&text=google.com", message_draft("google.com", false));
+  parse_internal_link("https://t.me/msg?url=%20%0A&text=", nullptr);
+  parse_internal_link("https://t.me/msg?url=%20%0A&text=google.com", message_draft("google.com", false));
   parse_internal_link("https://t.me/msg?url=@&text=", message_draft(" @", false));
   parse_internal_link("https://t.me/msg?url=&text=@", message_draft(" @", false));
   parse_internal_link("https://t.me/msg?url=@&text=@", message_draft(" @\n@", true));
