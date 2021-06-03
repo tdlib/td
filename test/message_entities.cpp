@@ -582,6 +582,8 @@ TEST(MessageEntities, url) {
   check_url("👉http://ab.com/cdefgh-1IJ", {"http://ab.com/cdefgh-1IJ"});
   check_url("...👉http://ab.com/cdefgh-1IJ", {});  // TODO
   check_url(".?", {});
+  check_url("http://test―‑@―google―.―com―/―–―‐―/―/―/―?―‑―#―――", {"http://test―‑@―google―.―com―/―–―‐―/―/―/―?―‑―#―――"});
+  check_url("http://google.com/‖", {"http://google.com/"});
 }
 
 static void check_fix_formatted_text(td::string str, td::vector<td::MessageEntity> entities,

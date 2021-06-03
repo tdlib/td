@@ -485,6 +485,14 @@ static vector<Slice> match_bank_card_numbers(Slice str) {
   return result;
 }
 
+static bool is_url_unicode_symbol(uint32 c) {
+  if (0x2000 <= c && c <= 0x206f) {  // General Punctuation
+    // Zero Width Non-Joiner/Joiner and various dashes
+    return c == 0x200c || c == 0x200d || (0x2010 <= c && c <= 0x2015);
+  }
+  return get_unicode_simple_category(c) != UnicodeSimpleCategory::Separator;
+}
+
 static vector<Slice> match_urls(Slice str) {
   vector<Slice> result;
   const unsigned char *begin = str.ubegin();
@@ -518,10 +526,7 @@ static vector<Slice> match_urls(Slice str) {
       case 0xbb:  // »
         return false;
       default:
-        if (0x2000 <= c && c <= 0x206f) {     // General Punctuation
-          return c == 0x200c || c == 0x200d;  // Zero Width Non-Joiner/Joiner
-        }
-        return get_unicode_simple_category(c) != UnicodeSimpleCategory::Separator;
+        return is_url_unicode_symbol(c);
     }
   };
 
@@ -529,10 +534,7 @@ static vector<Slice> match_urls(Slice str) {
     if (c < 0xc0) {
       return c == '.' || is_alpha_digit_or_underscore_or_minus(c) || c == '~';
     }
-    if (0x2000 <= c && c <= 0x206f) {     // General Punctuation
-      return c == 0x200c || c == 0x200d;  // Zero Width Non-Joiner/Joiner
-    }
-    return get_unicode_simple_category(c) != UnicodeSimpleCategory::Separator;
+    return is_url_unicode_symbol(c);
   };
 
   const auto &is_path_symbol = [](uint32 c) {
@@ -545,10 +547,7 @@ static vector<Slice> match_urls(Slice str) {
       case 0xbb:  // »
         return false;
       default:
-        if (0x2000 <= c && c <= 0x206f) {     // General Punctuation
-          return c == 0x200c || c == 0x200d;  // Zero Width Non-Joiner/Joiner
-        }
-        return get_unicode_simple_category(c) != UnicodeSimpleCategory::Separator;
+        return is_url_unicode_symbol(c);
     }
   };
 
