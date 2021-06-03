@@ -790,19 +790,27 @@ const NativeFd &UdpSocketFd::get_native_fd() const {
 
 #if TD_PORT_POSIX
 static Result<uint32> maximize_buffer(int socket_fd, int optname, uint32 max) {
+  if (setsockopt(socket_fd, SOL_SOCKET, optname, &max, sizeof(max)) == 0) {
+    // fast path
+    return max;
+  }
+
   /* Start with the default size. */
-  uint32 old_size;
+  uint32 old_size = 0;
   socklen_t intsize = sizeof(old_size);
   if (getsockopt(socket_fd, SOL_SOCKET, optname, &old_size, &intsize)) {
     return OS_ERROR("getsockopt() failed");
   }
+#if TD_LINUX
+  old_size /= 2;
+#endif
 
   /* Binary-search for the real maximum. */
   uint32 last_good = old_size;
   uint32 min = old_size;
   while (min <= max) {
     uint32 avg = min + (max - min) / 2;
-    if (setsockopt(socket_fd, SOL_SOCKET, optname, &avg, intsize) == 0) {
+    if (setsockopt(socket_fd, SOL_SOCKET, optname, &avg, sizeof(avg)) == 0) {
       last_good = avg;
       min = avg + 1;
     } else {
