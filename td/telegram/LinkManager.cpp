@@ -8,6 +8,7 @@
 
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/ChannelId.h"
+#include "td/telegram/ConfigManager.h"
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Global.h"
@@ -15,6 +16,7 @@
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
 
@@ -28,6 +30,7 @@
 #include "td/utils/misc.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/StringBuilder.h"
+#include "td/utils/Time.h"
 
 namespace td {
 
@@ -456,6 +459,13 @@ LinkManager::LinkManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::m
 }
 
 LinkManager::~LinkManager() = default;
+
+void LinkManager::start_up() {
+  autologin_update_time_ = Time::now() - 365 * 86400;
+  autologin_domains_ = full_split(G()->td_db()->get_binlog_pmc()->get("autologin_domains"), '\xFF');
+
+  url_auth_domains_ = full_split(G()->td_db()->get_binlog_pmc()->get("url_auth_domains"), '\xFF');
+}
 
 void LinkManager::tear_down() {
   parent_.reset();
@@ -979,6 +989,79 @@ unique_ptr<LinkManager::InternalLink> LinkManager::get_internal_link_passport(
                                                           callback_url.str());
 }
 
+void LinkManager::update_autologin_domains(string autologin_token, vector<string> autologin_domains,
+                                           vector<string> url_auth_domains) {
+  autologin_update_time_ = Time::now();
+  autologin_token = std::move(autologin_token);
+  if (autologin_domains_ != autologin_domains) {
+    autologin_domains_ = std::move(autologin_domains);
+    G()->td_db()->get_binlog_pmc()->set("autologin_domains", implode(autologin_domains_, '\xFF'));
+  }
+  if (url_auth_domains_ != url_auth_domains) {
+    url_auth_domains_ = std::move(url_auth_domains);
+    G()->td_db()->get_binlog_pmc()->set("url_auth_domains", implode(url_auth_domains_, '\xFF'));
+  }
+}
+
+void LinkManager::get_external_link_info(string &&link, Promise<td_api::object_ptr<td_api::LoginUrlInfo>> &&promise) {
+  auto default_result = td_api::make_object<td_api::loginUrlInfoOpen>(link, false);
+  if (G()->close_flag()) {
+    return promise.set_value(std::move(default_result));
+  }
+
+  auto r_url = parse_url(link);
+  if (r_url.is_error()) {
+    return promise.set_value(std::move(default_result));
+  }
+
+  if (!td::contains(autologin_domains_, r_url.ok().host_)) {
+    if (td::contains(url_auth_domains_, r_url.ok().host_)) {
+      td_->create_handler<RequestUrlAuthQuery>(std::move(promise))->send(link, DialogId(), MessageId(), 0);
+      return;
+    }
+    return promise.set_value(std::move(default_result));
+  }
+
+  if (autologin_update_time_ < Time::now() - 10000) {
+    auto query_promise = PromiseCreator::lambda([link = std::move(link), promise = std::move(promise)](
+                                                    Result<td_api::object_ptr<td_api::JsonValue>> &&result) mutable {
+      if (result.is_error()) {
+        return promise.set_value(td_api::make_object<td_api::loginUrlInfoOpen>(link, false));
+      }
+      send_closure(G()->link_manager(), &LinkManager::get_external_link_info, std::move(link), std::move(promise));
+    });
+    return send_closure(G()->config_manager(), &ConfigManager::get_app_config, std::move(query_promise));
+  }
+
+  if (autologin_token_.empty()) {
+    return promise.set_value(std::move(default_result));
+  }
+
+  auto url = r_url.move_as_ok();
+  url.protocol_ = HttpUrl::Protocol::Https;
+  Slice path = url.query_;
+  path.truncate(url.query_.find_first_of("?#"));
+  Slice parameters_hash = Slice(url.query_).substr(path.size());
+  Slice parameters = parameters_hash;
+  parameters.truncate(parameters.find('#'));
+  Slice hash = parameters_hash.substr(parameters.size());
+
+  string added_parameter;
+  if (parameters.empty()) {
+    added_parameter = '?';
+  } else if (parameters.size() == 1) {
+    CHECK(parameters == "?");
+  } else {
+    added_parameter = '&';
+  }
+  added_parameter += "autologin_token=";
+  added_parameter += autologin_token_;
+
+  url.query_ = PSTRING() << path << parameters << added_parameter << hash;
+
+  promise.set_value(td_api::make_object<td_api::loginUrlInfoOpen>(url.get_url(), false));
+}
+
 void LinkManager::get_login_url_info(DialogId dialog_id, MessageId message_id, int32 button_id,
                                      Promise<td_api::object_ptr<td_api::LoginUrlInfo>> &&promise) {
   TRY_RESULT_PROMISE(promise, url, td_->messages_manager_->get_login_button_url(dialog_id, message_id, button_id));
@@ -990,15 +1073,6 @@ void LinkManager::get_login_url(DialogId dialog_id, MessageId message_id, int32 
   TRY_RESULT_PROMISE(promise, url, td_->messages_manager_->get_login_button_url(dialog_id, message_id, button_id));
   td_->create_handler<AcceptUrlAuthQuery>(std::move(promise))
       ->send(std::move(url), dialog_id, message_id, button_id, allow_write_access);
-}
-
-void LinkManager::get_link_login_url_info(const string &url,
-                                          Promise<td_api::object_ptr<td_api::LoginUrlInfo>> &&promise) {
-  if (G()->close_flag()) {
-    return promise.set_value(td_api::make_object<td_api::loginUrlInfoOpen>(url, false));
-  }
-
-  td_->create_handler<RequestUrlAuthQuery>(std::move(promise))->send(url, DialogId(), MessageId(), 0);
 }
 
 void LinkManager::get_link_login_url(const string &url, bool allow_write_access,

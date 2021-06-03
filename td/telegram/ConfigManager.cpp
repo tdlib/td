@@ -32,7 +32,6 @@
 #include "td/mtproto/RSA.h"
 #include "td/mtproto/TransportType.h"
 
-#include "td/net/HttpQuery.h"
 #if !TD_EMSCRIPTEN  //FIXME
 #include "td/net/SslStream.h"
 #include "td/net/Wget.h"
@@ -890,11 +889,6 @@ void ConfigManager::start_up() {
     expire_time_ = expire_time;
     set_timeout_in(expire_time_.in());
   }
-
-  autologin_update_time_ = Time::now() - 365 * 86400;
-  autologin_domains_ = full_split(G()->td_db()->get_binlog_pmc()->get("autologin_domains"), '\xFF');
-
-  url_auth_domains_ = full_split(G()->td_db()->get_binlog_pmc()->get("url_auth_domains"), '\xFF');
 }
 
 ActorShared<> ConfigManager::create_reference() {
@@ -969,65 +963,6 @@ void ConfigManager::get_app_config(Promise<td_api::object_ptr<td_api::JsonValue>
     query->total_timeout_limit_ = 60 * 60 * 24;
     G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this, 1));
   }
-}
-
-void ConfigManager::get_external_link_info(string &&link, Promise<td_api::object_ptr<td_api::LoginUrlInfo>> &&promise) {
-  auto default_result = td_api::make_object<td_api::loginUrlInfoOpen>(link, false);
-  if (G()->close_flag()) {
-    return promise.set_value(std::move(default_result));
-  }
-
-  auto r_url = parse_url(link);
-  if (r_url.is_error()) {
-    return promise.set_value(std::move(default_result));
-  }
-
-  if (!td::contains(autologin_domains_, r_url.ok().host_)) {
-    if (td::contains(url_auth_domains_, r_url.ok().host_)) {
-      send_closure(G()->link_manager(), &LinkManager::get_link_login_url_info, link, std::move(promise));
-      return;
-    }
-    return promise.set_value(std::move(default_result));
-  }
-
-  if (autologin_update_time_ < Time::now() - 10000) {
-    auto query_promise = PromiseCreator::lambda([link = std::move(link), promise = std::move(promise)](
-                                                    Result<td_api::object_ptr<td_api::JsonValue>> &&result) mutable {
-      if (result.is_error()) {
-        return promise.set_value(td_api::make_object<td_api::loginUrlInfoOpen>(link, false));
-      }
-      send_closure(G()->config_manager(), &ConfigManager::get_external_link_info, std::move(link), std::move(promise));
-    });
-    return get_app_config(std::move(query_promise));
-  }
-
-  if (autologin_token_.empty()) {
-    return promise.set_value(std::move(default_result));
-  }
-
-  auto url = r_url.move_as_ok();
-  url.protocol_ = HttpUrl::Protocol::Https;
-  Slice path = url.query_;
-  path.truncate(url.query_.find_first_of("?#"));
-  Slice parameters_hash = Slice(url.query_).substr(path.size());
-  Slice parameters = parameters_hash;
-  parameters.truncate(parameters.find('#'));
-  Slice hash = parameters_hash.substr(parameters.size());
-
-  string added_parameter;
-  if (parameters.empty()) {
-    added_parameter = '?';
-  } else if (parameters.size() == 1) {
-    CHECK(parameters == "?");
-  } else {
-    added_parameter = '&';
-  }
-  added_parameter += "autologin_token=";
-  added_parameter += autologin_token_;
-
-  url.query_ = PSTRING() << path << parameters << added_parameter << hash;
-
-  promise.set_value(td_api::make_object<td_api::loginUrlInfoOpen>(url.get_url(), false));
 }
 
 void ConfigManager::get_content_settings(Promise<Unit> &&promise) {
@@ -1528,13 +1463,9 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   const bool archive_and_mute =
       G()->shared_config().get_option_boolean("archive_and_mute_new_chats_from_unknown_users");
 
-  autologin_token_.clear();
-  auto old_autologin_domains = std::move(autologin_domains_);
-  autologin_domains_.clear();
-  autologin_update_time_ = Time::now();
-
-  auto old_url_auth_domains = std::move(url_auth_domains_);
-  url_auth_domains_.clear();
+  string autologin_token;
+  vector<string> autologin_domains;
+  vector<string> url_auth_domains;
 
   vector<tl_object_ptr<telegram_api::jsonObjectValue>> new_values;
   string ignored_restriction_reasons;
@@ -1704,7 +1635,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       }
       if (key == "autologin_token") {
         if (value->get_id() == telegram_api::jsonString::ID) {
-          autologin_token_ = url_encode(static_cast<telegram_api::jsonString *>(value)->value_);
+          autologin_token = url_encode(static_cast<telegram_api::jsonString *>(value)->value_);
         } else {
           LOG(ERROR) << "Receive unexpected autologin_token " << to_string(*value);
         }
@@ -1716,7 +1647,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
           for (auto &domain : domains) {
             CHECK(domain != nullptr);
             if (domain->get_id() == telegram_api::jsonString::ID) {
-              autologin_domains_.push_back(std::move(static_cast<telegram_api::jsonString *>(domain.get())->value_));
+              autologin_domains.push_back(std::move(static_cast<telegram_api::jsonString *>(domain.get())->value_));
             } else {
               LOG(ERROR) << "Receive unexpected autologin domain " << to_string(domain);
             }
@@ -1732,7 +1663,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
           for (auto &domain : domains) {
             CHECK(domain != nullptr);
             if (domain->get_id() == telegram_api::jsonString::ID) {
-              url_auth_domains_.push_back(std::move(static_cast<telegram_api::jsonString *>(domain.get())->value_));
+              url_auth_domains.push_back(std::move(static_cast<telegram_api::jsonString *>(domain.get())->value_));
             } else {
               LOG(ERROR) << "Receive unexpected url auth domain " << to_string(domain);
             }
@@ -1750,12 +1681,8 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   }
   config = make_tl_object<telegram_api::jsonObject>(std::move(new_values));
 
-  if (autologin_domains_ != old_autologin_domains) {
-    G()->td_db()->get_binlog_pmc()->set("autologin_domains", implode(autologin_domains_, '\xFF'));
-  }
-  if (url_auth_domains_ != old_url_auth_domains) {
-    G()->td_db()->get_binlog_pmc()->set("url_auth_domains", implode(url_auth_domains_, '\xFF'));
-  }
+  send_closure(G()->link_manager(), &LinkManager::update_autologin_domains, std::move(autologin_token),
+               std::move(autologin_domains), std::move(url_auth_domains));
 
   ConfigShared &shared_config = G()->shared_config();
 

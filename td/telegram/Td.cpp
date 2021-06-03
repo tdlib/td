@@ -5497,8 +5497,7 @@ void Td::on_request(uint64 id, td_api::getExternalLinkInfo &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.link_);
   CREATE_REQUEST_PROMISE();
-  send_closure_later(G()->config_manager(), &ConfigManager::get_external_link_info, std::move(request.link_),
-                     std::move(promise));
+  link_manager_->get_external_link_info(std::move(request.link_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getExternalLink &request) {

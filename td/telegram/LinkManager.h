@@ -52,13 +52,16 @@ class LinkManager : public Actor {
   // checks whether the link is a supported tg or t.me link and parses it
   static unique_ptr<InternalLink> parse_internal_link(Slice link);
 
+  void update_autologin_domains(string autologin_token, vector<string> autologin_domains,
+                                vector<string> url_auth_domains);
+
+  void get_external_link_info(string &&link, Promise<td_api::object_ptr<td_api::LoginUrlInfo>> &&promise);
+
   void get_login_url_info(DialogId dialog_id, MessageId message_id, int32 button_id,
                           Promise<td_api::object_ptr<td_api::LoginUrlInfo>> &&promise);
 
   void get_login_url(DialogId dialog_id, MessageId message_id, int32 button_id, bool allow_write_access,
                      Promise<td_api::object_ptr<td_api::httpUrl>> &&promise);
-
-  void get_link_login_url_info(const string &url, Promise<td_api::object_ptr<td_api::LoginUrlInfo>> &&promise);
 
   void get_link_login_url(const string &url, bool allow_write_access,
                           Promise<td_api::object_ptr<td_api::httpUrl>> &&promise);
@@ -68,7 +71,9 @@ class LinkManager : public Actor {
   static Result<MessageLinkInfo> get_message_link_info(Slice url);
 
  private:
-  void tear_down() override;
+  void start_up() final;
+
+  void tear_down() final;
 
   class InternalLinkActiveSessions;
   class InternalLinkAuthenticationCode;
@@ -112,6 +117,11 @@ class LinkManager : public Actor {
 
   Td *td_;
   ActorShared<> parent_;
+
+  string autologin_token_;
+  vector<string> autologin_domains_;
+  double autologin_update_time_ = 0.0;
+  vector<string> url_auth_domains_;
 };
 
 }  // namespace td

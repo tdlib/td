@@ -93,8 +93,6 @@ class ConfigManager : public NetQueryCallback {
 
   void get_app_config(Promise<td_api::object_ptr<td_api::JsonValue>> &&promise);
 
-  void get_external_link_info(string &&link, Promise<td_api::object_ptr<td_api::LoginUrlInfo>> &&promise);
-
   void get_content_settings(Promise<Unit> &&promise);
 
   void set_content_settings(bool ignore_sensitive_content_restrictions, Promise<Unit> &&promise);
@@ -115,11 +113,6 @@ class ConfigManager : public NetQueryCallback {
   ActorOwn<ConfigRecoverer> config_recoverer_;
   int ref_cnt_{1};
   Timestamp expire_time_;
-
-  string autologin_token_;
-  vector<string> autologin_domains_;
-  double autologin_update_time_ = 0.0;
-  vector<string> url_auth_domains_;
 
   FloodControlStrict lazy_request_flood_control_;
 
