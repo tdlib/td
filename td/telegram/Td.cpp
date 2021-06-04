@@ -8155,14 +8155,14 @@ void Td::on_request(uint64 id, const td_api::getPhoneNumberInfo &request) {
   country_info_manager_->get_phone_number_info(request.phone_number_prefix_, std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::getInviteText &request) {
+void Td::on_request(uint64 id, const td_api::getApplicationDownloadLink &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<string> result) mutable {
     if (result.is_error()) {
       promise.set_error(result.move_as_error());
     } else {
-      promise.set_value(make_tl_object<td_api::text>(result.move_as_ok()));
+      promise.set_value(make_tl_object<td_api::httpUrl>(result.move_as_ok()));
     }
   });
   create_handler<GetInviteTextQuery>(std::move(query_promise))->send();

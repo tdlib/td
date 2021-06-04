@@ -5353,8 +5353,8 @@ getCountryCode = Text;
 //@description Returns information about a phone number by its prefix. Can be called before authorization @phone_number_prefix The phone number prefix
 getPhoneNumberInfo phone_number_prefix:string = PhoneNumberInfo;
 
-//@description Returns the default text for invitation messages to be used as a placeholder when the current user invites friends to Telegram
-getInviteText = Text;
+//@description Returns the link for downloading official Telegram application to be used when the current user invites friends to Telegram
+getApplicationDownloadLink = HttpUrl;
 
 //@description Returns information about a tg:// deep link. Use "tg://need_update_for_some_feature" or "tg:some_unsupported_feature" for testing. Returns a 404 error for unknown links. Can be called before authorization @link The link
 getDeepLinkInfo link:string = DeepLinkInfo;
