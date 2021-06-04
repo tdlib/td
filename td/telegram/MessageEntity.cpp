@@ -1562,7 +1562,8 @@ string get_first_url(Slice text, const vector<MessageEntity> &entities) {
         break;
       case MessageEntity::Type::Url: {
         Slice url = utf8_utf16_substr(text, entity.offset, entity.length);
-        if (begins_with(url, "ton:") || begins_with(url, "tg:") || is_plain_domain(url)) {
+        string scheme = to_lower(url.substr(0, 4));
+        if (scheme == "ton:" || begins_with(scheme, "tg:") || scheme == "ftp:" || is_plain_domain(url)) {
           continue;
         }
         return url.str();
@@ -1585,11 +1586,13 @@ string get_first_url(Slice text, const vector<MessageEntity> &entities) {
         break;
       case MessageEntity::Type::PreCode:
         break;
-      case MessageEntity::Type::TextUrl:
-        if (begins_with(entity.argument, "ton:") || begins_with(entity.argument, "tg:")) {
+      case MessageEntity::Type::TextUrl: {
+        Slice url = entity.argument;
+        if (begins_with(url, "ton:") || begins_with(url, "tg:") || begins_with(url, "ftp:")) {
           continue;
         }
-        return entity.argument;
+        return url.str();
+      }
       case MessageEntity::Type::MentionName:
         break;
       case MessageEntity::Type::Cashtag:
