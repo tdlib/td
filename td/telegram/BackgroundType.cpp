@@ -204,7 +204,7 @@ static string get_background_fill_color_hex_string(const BackgroundFill &fill, b
 }
 
 static bool is_valid_intensity(int32 intensity) {
-  return 0 <= intensity && intensity <= 100;
+  return -100 <= intensity && intensity <= 100;
 }
 
 int64 BackgroundFill::get_id() const {
@@ -274,7 +274,7 @@ void BackgroundType::apply_parameters_from_link(Slice name) {
   }
 
   if (type == Type::Pattern) {
-    intensity = -1;
+    intensity = -101;
     auto intensity_arg = query.get_arg("intensity");
     if (!intensity_arg.empty()) {
       intensity = to_integer<int32>(intensity_arg);
@@ -401,7 +401,7 @@ BackgroundType get_background_type(bool is_pattern,
       intensity = settings->intensity_;
       if (!is_valid_intensity(intensity)) {
         LOG(ERROR) << "Receive " << to_string(settings);
-        intensity = 0;
+        intensity = 50;
       }
     }
   }
