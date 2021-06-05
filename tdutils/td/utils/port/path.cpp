@@ -394,6 +394,9 @@ Status WalkPath::do_run(CSlice path, const detail::WalkFunction &func) {
 
 Status mkdir(CSlice dir, int32 mode) {
   TRY_RESULT(wdir, to_wstring(dir));
+  while (!wdir.empty() && (wdir.back() == L'/' || wdir.back() == L'\\')) {
+    wdir.pop_back();
+  }
   auto status = td::CreateDirectoryFromAppW(wdir.c_str(), nullptr);
   if (status == 0 && GetLastError() != ERROR_ALREADY_EXISTS) {
     return OS_ERROR(PSLICE() << "Can't create directory \"" << dir << '"');
