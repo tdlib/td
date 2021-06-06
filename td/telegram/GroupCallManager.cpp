@@ -950,16 +950,8 @@ void GroupCallManager::on_update_group_call_participant_order_timeout(GroupCallI
 
   bool can_self_unmute = get_group_call_can_self_unmute(input_group_call_id);
   auto *participants = add_group_call_participants(input_group_call_id);
-  for (auto &participant : participants->participants) {
-    auto new_order = get_real_participant_order(can_self_unmute, participant, participants);
-    if (new_order != participant.order) {
-      participant.order = new_order;
-      send_update_group_call_participant(input_group_call_id, participant,
-                                         "on_update_group_call_participant_order_timeout");
-    }
-  }
-  update_group_call_participant_order_timeout_.set_timeout_in(group_call_id.get(),
-                                                              UPDATE_GROUP_CALL_PARTICIPANT_ORDER_TIMEOUT);
+  update_group_call_participants_order(input_group_call_id, can_self_unmute, participants,
+                                       "on_update_group_call_participant_order_timeout");
 }
 
 void GroupCallManager::on_check_group_call_is_joined_timeout_callback(void *group_call_manager_ptr,
@@ -2047,6 +2039,8 @@ void GroupCallManager::process_group_call_participants(
         LOG(INFO) << "Decrease min_order from " << participants_it->second->min_order << " to " << min_order << " in "
                   << input_group_call_id;
         participants_it->second->min_order = min_order;
+        update_group_call_participants_order(input_group_call_id, can_self_unmute, participants_it->second.get(),
+                                             "decrease min_order");
       }
     }
   }
@@ -2058,20 +2052,8 @@ void GroupCallManager::process_group_call_participants(
         LOG(INFO) << "Increase min_order from " << participants_it->second->min_order << " to " << min_order << " in "
                   << input_group_call_id;
         participants_it->second->min_order = min_order;
-
-        for (auto &participant : participants_it->second->participants) {
-          auto new_order = get_real_participant_order(can_self_unmute, participant, participants_it->second.get());
-          if (new_order != participant.order) {
-            participant.order = new_order;
-            send_update_group_call_participant(input_group_call_id, participant,
-                                               "process_group_call_participants load");
-          }
-        }
-
-        auto *group_call = get_group_call(input_group_call_id);
-        CHECK(group_call != nullptr && group_call->is_inited);
-        update_group_call_participant_order_timeout_.set_timeout_in(group_call->group_call_id.get(),
-                                                                    UPDATE_GROUP_CALL_PARTICIPANT_ORDER_TIMEOUT);
+        update_group_call_participants_order(input_group_call_id, can_self_unmute, participants_it->second.get(),
+                                             "increase min_order");
       }
     }
   }
@@ -2096,6 +2078,22 @@ void GroupCallManager::update_group_call_participants_can_be_muted(InputGroupCal
                                          "update_group_call_participants_can_be_muted");
     }
   }
+}
+
+void GroupCallManager::update_group_call_participants_order(InputGroupCallId input_group_call_id, bool can_self_unmute,
+                                                            GroupCallParticipants *participants, const char *source) {
+  for (auto &participant : participants->participants) {
+    auto new_order = get_real_participant_order(can_self_unmute, participant, participants);
+    if (new_order != participant.order) {
+      participant.order = new_order;
+      send_update_group_call_participant(input_group_call_id, participant, "process_group_call_participants load");
+    }
+  }
+
+  auto *group_call = get_group_call(input_group_call_id);
+  CHECK(group_call != nullptr && group_call->is_inited);
+  update_group_call_participant_order_timeout_.set_timeout_in(group_call->group_call_id.get(),
+                                                              UPDATE_GROUP_CALL_PARTICIPANT_ORDER_TIMEOUT);
 }
 
 void GroupCallManager::process_my_group_call_participant(InputGroupCallId input_group_call_id,

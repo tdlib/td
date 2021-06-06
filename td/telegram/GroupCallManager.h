@@ -243,6 +243,9 @@ class GroupCallManager : public Actor {
   void update_group_call_participants_can_be_muted(InputGroupCallId input_group_call_id, bool can_manage,
                                                    GroupCallParticipants *participants);
 
+  void update_group_call_participants_order(InputGroupCallId input_group_call_id, bool can_self_unmute,
+                                            GroupCallParticipants *participants, const char *source);
+
   int process_group_call_participant(InputGroupCallId group_call_id, GroupCallParticipant &&participant);
 
   void on_add_group_call_participant(InputGroupCallId input_group_call_id, DialogId participant_dialog_id);
