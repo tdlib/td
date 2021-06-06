@@ -291,6 +291,8 @@ Result<MemStat> mem_stat() {
     return Status::Error("Call to GetProcessMemoryInfo failed");
   }
 
+  // Working set = all non-virtual memory in RAM, including memory-mapped files
+  // PrivateUsage = Commit charge = all non-virtual memory in RAM and swap file, but not in memory-mapped files
   MemStat res;
   res.resident_size_ = counters.WorkingSetSize;
   res.resident_size_peak_ = counters.PeakWorkingSetSize;
