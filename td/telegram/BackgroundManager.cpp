@@ -752,8 +752,13 @@ void BackgroundManager::remove_background(BackgroundId background_id, Promise<Un
                      std::move(promise));
       });
 
-  if (!background->type.is_server()) {
-    return query_promise.set_value(Unit());
+  if (!background->type.has_file()) {
+    if (background->is_default) {
+      return td_->create_handler<UnsaveBackgroundQuery>(std::move(query_promise))
+          ->send(telegram_api::make_object<telegram_api::inputWallPaperNoFile>(background_id.get()));
+    } else {
+      return query_promise.set_value(Unit());
+    }
   }
 
   td_->create_handler<UnsaveBackgroundQuery>(std::move(query_promise))
@@ -906,18 +911,36 @@ BackgroundId BackgroundManager::on_get_background(BackgroundId expected_backgrou
     }
 
     auto is_default = (wallpaper->flags_ & telegram_api::wallPaperNoFile::DEFAULT_MASK) != 0;
-    auto is_dark = (wallpaper->flags_ & telegram_api::wallPaperNoFile::DARK_MASK) != 0;
+    if (!is_default) {
+      LOG(ERROR) << "Receive non-default wallPaperNoFile: " << to_string(wallpaper);
+      return BackgroundId();
+    }
 
-    return add_fill_background(BackgroundFill(settings.get()), is_default, is_dark);
+    auto background_id = BackgroundId(wallpaper->id_);
+    if (!background_id.is_valid() || BackgroundFill::is_valid_id(wallpaper->id_)) {
+      LOG(ERROR) << "Receive " << to_string(wallpaper);
+      return BackgroundId();
+    }
+
+    Background background;
+    background.id = background_id;
+    background.is_creator = false;
+    background.is_default = true;
+    background.is_dark = (wallpaper->flags_ & telegram_api::wallPaperNoFile::DARK_MASK) != 0;
+    background.type = BackgroundType(BackgroundFill(settings.get()));
+    background.name = background.type.get_link();
+    add_background(background);
+
+    return background_id;
   }
 
   auto wallpaper = move_tl_object_as<telegram_api::wallPaper>(wallpaper_ptr);
-  auto id = BackgroundId(wallpaper->id_);
-  if (!id.is_valid()) {
+  auto background_id = BackgroundId(wallpaper->id_);
+  if (!background_id.is_valid()) {
     LOG(ERROR) << "Receive " << to_string(wallpaper);
     return BackgroundId();
   }
-  if (expected_background_id.is_valid() && id != expected_background_id) {
+  if (expected_background_id.is_valid() && background_id != expected_background_id) {
     LOG(ERROR) << "Expected " << expected_background_id << ", but receive " << to_string(wallpaper);
   }
   if (is_background_name_local(wallpaper->slug_) || BackgroundFill::is_valid_id(wallpaper->id_)) {
@@ -945,7 +968,7 @@ BackgroundId BackgroundManager::on_get_background(BackgroundId expected_backgrou
   CHECK(document.type == Document::Type::General);  // guaranteed by is_background parameter to on_get_document
 
   Background background;
-  background.id = id;
+  background.id = background_id;
   background.access_hash = wallpaper->access_hash_;
   background.is_creator = (flags & telegram_api::wallPaper::CREATOR_MASK) != 0;
   background.is_default = (flags & telegram_api::wallPaper::DEFAULT_MASK) != 0;
@@ -957,17 +980,17 @@ BackgroundId BackgroundManager::on_get_background(BackgroundId expected_backgrou
 
   if (!expected_background_name.empty() && background.name != expected_background_name) {
     LOG(ERROR) << "Expected background " << expected_background_name << ", but receive " << background.name;
-    name_to_background_id_.emplace(expected_background_name, id);
+    name_to_background_id_.emplace(expected_background_name, background_id);
   }
 
   if (G()->parameters().use_file_db) {
-    LOG(INFO) << "Save " << id << " to database with name " << background.name;
+    LOG(INFO) << "Save " << background_id << " to database with name " << background.name;
     CHECK(!is_background_name_local(background.name));
     G()->td_db()->get_sqlite_pmc()->set(get_background_name_database_key(background.name),
                                         log_event_store(background).as_slice().str(), Auto());
   }
 
-  return id;
+  return background_id;
 }
 
 void BackgroundManager::on_get_backgrounds(Result<telegram_api::object_ptr<telegram_api::account_WallPapers>> result) {

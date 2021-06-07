@@ -2478,6 +2478,7 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
     // it contains reasonable default "!call.mute_new_participants || call.can_be_managed"
     participant.server_is_muted_by_admin = !group_call->can_self_unmute && !can_manage_group_call(input_group_call_id);
     participant.server_is_muted_by_themselves = is_muted && !participant.server_is_muted_by_admin;
+    participant.can_enable_video = !participant.server_is_muted_by_admin && group_call->can_start_video;
     participant.is_just_joined = !is_rejoin;
     participant.is_fake = true;
     int diff = process_group_call_participant(input_group_call_id, std::move(participant));

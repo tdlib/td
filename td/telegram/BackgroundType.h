@@ -78,6 +78,9 @@ struct BackgroundType {
   bool is_server() const {
     return type == Type::Wallpaper || type == Type::Pattern;
   }
+  bool has_file() const {
+    return type == Type::Wallpaper || type == Type::Pattern;
+  }
 
   void apply_parameters_from_link(Slice name);
 

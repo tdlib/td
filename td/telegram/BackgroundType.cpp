@@ -225,7 +225,7 @@ int64 BackgroundFill::get_id() const {
       result = result * mul + static_cast<uint64>(bottom_color);
       result = result * mul + static_cast<uint64>(third_color);
       result = result * mul + static_cast<uint64>(fourth_color);
-      return 0x8000008000008 + static_cast<int64>(result % 0x8000008000008);
+      return static_cast<int64>(result % 0x8000008000008);
     }
     default:
       UNREACHABLE();
@@ -249,7 +249,7 @@ bool BackgroundFill::is_dark() const {
 }
 
 bool BackgroundFill::is_valid_id(int64 id) {
-  return 0 < id && id < 0x8000008000008 * 2;
+  return 0 < id && id < 0x8000008000008;
 }
 
 bool operator==(const BackgroundFill &lhs, const BackgroundFill &rhs) {

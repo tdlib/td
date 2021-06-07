@@ -2164,7 +2164,7 @@ groupCallRecentSpeaker participant_id:MessageSender is_speaking:Bool = GroupCall
 //@recent_speakers Recently speaking users in the group call
 //@is_my_video_enabled True, if the current user's video is enabled
 //@is_my_video_paused True, if the current user's video is paused
-//@can_start_video True, if video can be enabled by group call participants
+//@can_start_video True, if video can be enabled by group call participants. This flag is generally useless after the user has already joined the group call
 //@mute_new_participants True, if only group call administrators can unmute new participants
 //@can_change_mute_new_participants True, if the current user can enable or disable mute_new_participants setting
 //@record_duration Duration of the ongoing group call recording, in seconds; 0 if none. An updateGroupCall update is not triggered when value of this field changes, but the same recording goes on
