@@ -1827,6 +1827,8 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
           is_left = true;
           if (participant.joined_date != 0) {
             need_rejoin = false;
+          } else {
+            continue;
           }
         }
         diff += process_group_call_participant(input_group_call_id, std::move(participant));
