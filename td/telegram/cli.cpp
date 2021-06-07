@@ -2731,7 +2731,7 @@ class CliClient final : public Actor {
       } else {
         string sim_sources = "[1,2]";
         string fid_sources = "[3,4]";
-        if (op == "sgcss" && false) {
+        if (op == "sgcss") {
           sim_sources = "[5,6]";
           fid_sources = "[7,8]";
         }
