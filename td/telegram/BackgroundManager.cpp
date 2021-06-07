@@ -176,17 +176,16 @@ class UploadBackgroundQuery : public Td::ResultHandler {
   }
 };
 
-class SaveBackgroundQuery : public Td::ResultHandler {
+class UnsaveBackgroundQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
-  explicit SaveBackgroundQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit UnsaveBackgroundQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(BackgroundId background_id, int64 access_hash, const BackgroundType &type, bool unsave) {
+  void send(telegram_api::object_ptr<telegram_api::InputWallPaper> input_wallpaper) {
     send_query(G()->net_query_creator().create(telegram_api::account_saveWallPaper(
-        telegram_api::make_object<telegram_api::inputWallPaper>(background_id.get(), access_hash), unsave,
-        get_input_wallpaper_settings(type))));
+        std::move(input_wallpaper), true, telegram_api::make_object<telegram_api::wallPaperSettings>())));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -757,8 +756,8 @@ void BackgroundManager::remove_background(BackgroundId background_id, Promise<Un
     return query_promise.set_value(Unit());
   }
 
-  td_->create_handler<SaveBackgroundQuery>(std::move(query_promise))
-      ->send(background_id, background->access_hash, background->type, true);
+  td_->create_handler<UnsaveBackgroundQuery>(std::move(query_promise))
+      ->send(telegram_api::make_object<telegram_api::inputWallPaper>(background_id.get(), background->access_hash));
 }
 
 void BackgroundManager::on_removed_background(BackgroundId background_id, Result<Unit> &&result,
