@@ -229,7 +229,7 @@ function onLanguageChanged(initial) {
   if (supported_os.length) {
     document.getElementById('osSelectDiv').style.display = 'block';
   } else {
-    if (history.state != '') {
+    if (history.state !== '' && history.state !== null) {
       history.pushState('', '', 'build.html');
     }
     document.getElementById('osSelectDiv').style.display = 'none';
