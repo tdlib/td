@@ -26803,7 +26803,7 @@ MessagesManager::MessageNotificationGroup MessagesManager::get_message_notificat
       VLOG(notifications) << "Loaded " << r_value.ok() << " from database by " << group_id;
       d = get_dialog_force(r_value.ok().dialog_id, "get_message_notification_group_force");
     } else {
-      CHECK(r_value.error().message() == "Not found");
+      LOG_CHECK(r_value.error().message() == "Not found") << r_value.error();
       VLOG(notifications) << "Failed to load " << group_id << " from database";
     }
     dialog_db->commit_transaction().ensure();
