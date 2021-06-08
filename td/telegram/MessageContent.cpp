@@ -50,7 +50,6 @@
 #include "td/telegram/PollId.hpp"
 #include "td/telegram/PollManager.h"
 #include "td/telegram/secret_api.hpp"
-#include "td/telegram/SecretChatActor.h"
 #include "td/telegram/SecureValue.h"
 #include "td/telegram/SecureValue.hpp"
 #include "td/telegram/StickersManager.h"
@@ -2061,12 +2060,12 @@ bool can_have_input_media(const Td *td, const MessageContent *content) {
 
 SecretInputMedia get_secret_input_media(const MessageContent *content, Td *td,
                                         tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
-                                        BufferSlice thumbnail, int32 layer) {
+                                        BufferSlice thumbnail) {
   switch (content->get_type()) {
     case MessageContentType::Animation: {
       auto m = static_cast<const MessageAnimation *>(content);
       return td->animations_manager_->get_secret_input_media(m->file_id, std::move(input_file), m->caption.text,
-                                                             std::move(thumbnail), layer);
+                                                             std::move(thumbnail));
     }
     case MessageContentType::Audio: {
       auto m = static_cast<const MessageAudio *>(content);
@@ -2112,8 +2111,7 @@ SecretInputMedia get_secret_input_media(const MessageContent *content, Td *td,
     }
     case MessageContentType::VideoNote: {
       auto m = static_cast<const MessageVideoNote *>(content);
-      return td->video_notes_manager_->get_secret_input_media(m->file_id, std::move(input_file), std::move(thumbnail),
-                                                              layer);
+      return td->video_notes_manager_->get_secret_input_media(m->file_id, std::move(input_file), std::move(thumbnail));
     }
     case MessageContentType::VoiceNote: {
       auto m = static_cast<const MessageVoiceNote *>(content);
@@ -2566,10 +2564,6 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
     case MessageContentType::VideoNote:
       if (!permissions.can_send_media()) {
         return Status::Error(400, "Not enough rights to send video notes to the chat");
-      }
-      if (secret_chat_layer < SecretChatActor::VIDEO_NOTES_LAYER) {
-        return Status::Error(400, PSLICE()
-                                      << "Video notes can't be sent to secret chat with layer " << secret_chat_layer);
       }
       break;
     case MessageContentType::VoiceNote:

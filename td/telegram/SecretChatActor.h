@@ -48,10 +48,8 @@ class NetQueryCreator;
 
 class SecretChatActor : public NetQueryCallback {
  public:
-  // do not change DEFAULT_LAYER, unless all it's usages are fixed
   enum : int32 {
-    DEFAULT_LAYER = 46,
-    VIDEO_NOTES_LAYER = 66,
+    DEFAULT_LAYER = 73,
     MTPROTO_2_LAYER = 73,
     NEW_ENTITIES_LAYER = 101,
     DELETE_MESSAGES_ON_CLOSE_LAYER = 123,
@@ -571,7 +569,8 @@ class SecretChatActor : public NetQueryCallback {
   Result<std::tuple<uint64, BufferSlice, int32>> decrypt(BufferSlice &encrypted_message);
 
   Status do_inbound_message_encrypted(unique_ptr<log_event::InboundSecretMessage> message);
-  Status do_inbound_message_decrypted_unchecked(unique_ptr<log_event::InboundSecretMessage> message);
+  Status do_inbound_message_decrypted_unchecked(unique_ptr<log_event::InboundSecretMessage> message,
+                                                int32 mtproto_version);
   Status do_inbound_message_decrypted(unique_ptr<log_event::InboundSecretMessage> message);
   void do_inbound_message_decrypted_pending(unique_ptr<log_event::InboundSecretMessage> message);
 
@@ -620,7 +619,8 @@ class SecretChatActor : public NetQueryCallback {
                          tl_object_ptr<telegram_api::InputEncryptedFile> file, int32 flags, Promise<> promise);
 
   void do_outbound_message_impl(unique_ptr<log_event::OutboundSecretMessage>, Promise<> promise);
-  Result<BufferSlice> create_encrypted_message(int32 layer, int32 my_in_seq_no, int32 my_out_seq_no,
+
+  Result<BufferSlice> create_encrypted_message(int32 my_in_seq_no, int32 my_out_seq_no,
                                                tl_object_ptr<secret_api::DecryptedMessage> &message);
 
   NetQueryPtr create_net_query(const log_event::OutboundSecretMessage &message);

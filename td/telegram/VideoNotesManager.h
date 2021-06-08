@@ -39,7 +39,7 @@ class VideoNotesManager {
 
   SecretInputMedia get_secret_input_media(FileId video_note_file_id,
                                           tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
-                                          BufferSlice thumbnail, int32 layer) const;
+                                          BufferSlice thumbnail) const;
 
   FileId get_video_note_thumbnail_file_id(FileId file_id) const;
 

@@ -8647,11 +8647,10 @@ void MessagesManager::do_send_secret_media(DialogId dialog_id, Message *m, FileI
   LOG(INFO) << "Do send secret media file " << file_id << " with thumbnail " << thumbnail_file_id
             << ", have_input_file = " << have_input_file;
 
-  auto layer = td_->contacts_manager_->get_secret_chat_layer(dialog_id.get_secret_chat_id());
   on_secret_message_media_uploaded(
       dialog_id, m,
-      get_secret_input_media(m->content.get(), td_, std::move(input_encrypted_file), std::move(thumbnail), layer),
-      file_id, thumbnail_file_id);
+      get_secret_input_media(m->content.get(), td_, std::move(input_encrypted_file), std::move(thumbnail)), file_id,
+      thumbnail_file_id);
 }
 
 void MessagesManager::on_upload_media_error(FileId file_id, Status status) {
@@ -23422,8 +23421,7 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, vect
   LOG(DEBUG) << "Need to send file " << file_id << " with thumbnail " << thumbnail_file_id;
   if (is_secret) {
     CHECK(!is_edit);
-    auto layer = td_->contacts_manager_->get_secret_chat_layer(dialog_id.get_secret_chat_id());
-    auto secret_input_media = get_secret_input_media(content, td_, nullptr, BufferSlice(), layer);
+    auto secret_input_media = get_secret_input_media(content, td_, nullptr, BufferSlice());
     if (secret_input_media.empty()) {
       LOG(INFO) << "Ask to upload encrypted file " << file_id;
       CHECK(file_view.is_encrypted_secret());
@@ -23862,7 +23860,7 @@ void MessagesManager::on_text_message_ready_to_send(DialogId dialog_id, MessageI
     auto layer = td_->contacts_manager_->get_secret_chat_layer(dialog_id.get_secret_chat_id());
     send_closure(td_->create_net_actor<SendSecretMessageActor>(), &SendSecretMessageActor::send, dialog_id,
                  m->reply_to_random_id, m->ttl, message_text->text,
-                 get_secret_input_media(content, td_, nullptr, BufferSlice(), layer),
+                 get_secret_input_media(content, td_, nullptr, BufferSlice()),
                  get_input_secret_message_entities(message_text->entities, layer), m->via_bot_user_id,
                  m->media_album_id, m->disable_notification, random_id);
   } else {
