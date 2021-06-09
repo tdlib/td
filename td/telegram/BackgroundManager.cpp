@@ -363,7 +363,7 @@ Result<string> BackgroundManager::get_background_url(const string &name,
   TRY_RESULT(type, get_background_type(background_type.get()));
   auto url = PSTRING() << G()->shared_config().get_option_string("t_me_url", "https://t.me/") << "bg/";
   auto link = type.get_link();
-  if (type.is_server()) {
+  if (type.has_file()) {
     url += name;
     if (!link.empty()) {
       url += '?';

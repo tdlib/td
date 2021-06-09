@@ -75,9 +75,6 @@ struct BackgroundType {
   explicit BackgroundType(BackgroundFill fill) : type(Type::Fill), fill(fill) {
   }
 
-  bool is_server() const {
-    return type == Type::Wallpaper || type == Type::Pattern;
-  }
   bool has_file() const {
     return type == Type::Wallpaper || type == Type::Pattern;
   }
