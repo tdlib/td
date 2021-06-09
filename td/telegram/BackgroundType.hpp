@@ -13,69 +13,71 @@
 namespace td {
 
 template <class StorerT>
-void store(const BackgroundType &type, StorerT &storer) {
-  bool has_fill = type.fill.top_color != 0 || type.fill.bottom_color != 0;
-  bool has_intensity = type.intensity != 0;
-  auto fill_type = type.fill.get_type();
+void BackgroundType::store(StorerT &storer) const {
+  using td::store;
+  bool has_fill = fill.top_color != 0 || fill.bottom_color != 0;
+  bool has_intensity = intensity != 0;
+  auto fill_type = fill.get_type();
   bool is_gradient = fill_type == BackgroundFill::Type::Gradient;
   bool is_freeform_gradient = fill_type == BackgroundFill::Type::FreeformGradient;
   BEGIN_STORE_FLAGS();
-  STORE_FLAG(type.is_blurred);
-  STORE_FLAG(type.is_moving);
+  STORE_FLAG(is_blurred);
+  STORE_FLAG(is_moving);
   STORE_FLAG(has_fill);
   STORE_FLAG(has_intensity);
   STORE_FLAG(is_gradient);
   STORE_FLAG(is_freeform_gradient);
   END_STORE_FLAGS();
-  store(type.type, storer);
+  store(type, storer);
   if (is_freeform_gradient) {
-    store(type.fill.top_color, storer);
-    store(type.fill.bottom_color, storer);
-    store(type.fill.third_color, storer);
-    store(type.fill.fourth_color, storer);
+    store(fill.top_color, storer);
+    store(fill.bottom_color, storer);
+    store(fill.third_color, storer);
+    store(fill.fourth_color, storer);
   } else if (has_fill) {
-    store(type.fill.top_color, storer);
+    store(fill.top_color, storer);
     if (is_gradient) {
-      store(type.fill.bottom_color, storer);
-      store(type.fill.rotation_angle, storer);
+      store(fill.bottom_color, storer);
+      store(fill.rotation_angle, storer);
     }
   }
   if (has_intensity) {
-    store(type.intensity, storer);
+    store(intensity, storer);
   }
 }
 
 template <class ParserT>
-void parse(BackgroundType &type, ParserT &parser) {
+void BackgroundType::parse(ParserT &parser) {
+  using td::parse;
   bool has_fill;
   bool has_intensity;
   bool is_gradient;
   bool is_freeform_gradient;
   BEGIN_PARSE_FLAGS();
-  PARSE_FLAG(type.is_blurred);
-  PARSE_FLAG(type.is_moving);
+  PARSE_FLAG(is_blurred);
+  PARSE_FLAG(is_moving);
   PARSE_FLAG(has_fill);
   PARSE_FLAG(has_intensity);
   PARSE_FLAG(is_gradient);
   PARSE_FLAG(is_freeform_gradient);
   END_PARSE_FLAGS();
-  parse(type.type, parser);
+  parse(type, parser);
   if (is_freeform_gradient) {
-    parse(type.fill.top_color, parser);
-    parse(type.fill.bottom_color, parser);
-    parse(type.fill.third_color, parser);
-    parse(type.fill.fourth_color, parser);
+    parse(fill.top_color, parser);
+    parse(fill.bottom_color, parser);
+    parse(fill.third_color, parser);
+    parse(fill.fourth_color, parser);
   } else if (has_fill) {
-    parse(type.fill.top_color, parser);
+    parse(fill.top_color, parser);
     if (is_gradient) {
-      parse(type.fill.bottom_color, parser);
-      parse(type.fill.rotation_angle, parser);
+      parse(fill.bottom_color, parser);
+      parse(fill.rotation_angle, parser);
     } else {
-      type.fill.bottom_color = type.fill.top_color;
+      fill.bottom_color = fill.top_color;
     }
   }
   if (has_intensity) {
-    parse(type.intensity, parser);
+    parse(intensity, parser);
   }
 }
 

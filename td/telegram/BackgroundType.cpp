@@ -335,6 +335,11 @@ string BackgroundType::get_link() const {
   }
 }
 
+BackgroundFill BackgroundType::get_background_fill() {
+  CHECK(type == Type::Fill);
+  return fill;
+}
+
 bool operator==(const BackgroundType &lhs, const BackgroundType &rhs) {
   return lhs.type == rhs.type && lhs.is_blurred == rhs.is_blurred && lhs.is_moving == rhs.is_moving &&
          lhs.intensity == rhs.intensity && lhs.fill == rhs.fill;
@@ -371,7 +376,7 @@ Result<BackgroundType> BackgroundType::get_background_type(const td_api::Backgro
     }
     case td_api::backgroundTypePattern::ID: {
       auto pattern_type = static_cast<const td_api::backgroundTypePattern *>(background_type);
-      TRY_RESULT(background_fill, get_background_fill(pattern_type->fill_.get()));
+      TRY_RESULT(background_fill, ::td::get_background_fill(pattern_type->fill_.get()));
       if (!is_valid_intensity(pattern_type->intensity_)) {
         return Status::Error(400, "Wrong intensity value");
       }
@@ -379,7 +384,7 @@ Result<BackgroundType> BackgroundType::get_background_type(const td_api::Backgro
     }
     case td_api::backgroundTypeFill::ID: {
       auto fill_type = static_cast<const td_api::backgroundTypeFill *>(background_type);
-      TRY_RESULT(background_fill, get_background_fill(fill_type->fill_.get()));
+      TRY_RESULT(background_fill, ::td::get_background_fill(fill_type->fill_.get()));
       return BackgroundType(std::move(background_fill));
     }
     default:

@@ -57,7 +57,7 @@ struct BackgroundFill {
 
 bool operator==(const BackgroundFill &lhs, const BackgroundFill &rhs);
 
-struct BackgroundType {
+class BackgroundType {
   enum class Type : int32 { Wallpaper, Pattern, Fill };
   Type type = Type::Fill;
   bool is_blurred = false;
@@ -65,6 +65,11 @@ struct BackgroundType {
   int32 intensity = 0;
   BackgroundFill fill;
 
+  friend bool operator==(const BackgroundType &lhs, const BackgroundType &rhs);
+
+  friend StringBuilder &operator<<(StringBuilder &string_builder, const BackgroundType &type);
+
+ public:
   BackgroundType() = default;
   BackgroundType(bool is_blurred, bool is_moving)
       : type(Type::Wallpaper), is_blurred(is_blurred), is_moving(is_moving) {
@@ -83,15 +88,27 @@ struct BackgroundType {
     return type == Type::Wallpaper || type == Type::Pattern;
   }
 
+  BackgroundFill get_background_fill();
+
   string get_mime_type() const;
 
   void apply_parameters_from_link(Slice name);
 
   string get_link() const;
 
+  bool has_equal_type(const BackgroundType &other) const {
+    return type == other.type;
+  }
+
   td_api::object_ptr<td_api::BackgroundType> get_background_type_object() const;
 
   telegram_api::object_ptr<telegram_api::wallPaperSettings> get_input_wallpaper_settings() const;
+
+  template <class StorerT>
+  void store(StorerT &storer) const;
+
+  template <class ParserT>
+  void parse(ParserT &parser);
 };
 
 bool operator==(const BackgroundType &lhs, const BackgroundType &rhs);

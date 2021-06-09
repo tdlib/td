@@ -551,7 +551,7 @@ BackgroundId BackgroundManager::set_background(const td_api::InputBackground *in
       return BackgroundId();
     }
 
-    auto background_id = add_fill_background(type.fill);
+    auto background_id = add_fill_background(type.get_background_fill());
     set_background_id(background_id, type, for_dark_theme);
     promise.set_value(Unit());
     return background_id;
@@ -603,8 +603,7 @@ BackgroundId BackgroundManager::set_background(BackgroundId background_id, Backg
   }
   if (!type.has_file()) {
     type = background->type;
-  }
-  if (background->type.type != type.type) {
+  } else if (background->type.has_equal_type(type)) {
     promise.set_error(Status::Error(400, "Background type mismatch"));
     return BackgroundId();
   }
