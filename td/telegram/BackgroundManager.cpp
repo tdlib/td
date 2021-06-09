@@ -326,8 +326,7 @@ void BackgroundManager::start_up() {
       log_event_parse(log_event, log_event_string).ensure();
 
       CHECK(log_event.background_.id.is_valid());
-      bool needs_file_id = log_event.background_.type.type != BackgroundType::Type::Fill;
-      if (log_event.background_.file_id.is_valid() != needs_file_id) {
+      if (log_event.background_.file_id.is_valid() != log_event.background_.type.has_file()) {
         LOG(ERROR) << "Failed to load " << log_event.background_.id << " of " << log_event.background_.type;
         G()->td_db()->get_binlog_pmc()->erase(get_background_database_key(for_dark_theme));
         continue;
@@ -464,7 +463,7 @@ void BackgroundManager::on_load_background_from_database(string name, string val
     LOG(INFO) << "Successfully loaded background " << name << " of size " << value.size() << " from database";
     Background background;
     auto status = log_event_parse(background, value);
-    if (status.is_error() || background.type.type == BackgroundType::Type::Fill || !background.file_id.is_valid() ||
+    if (status.is_error() || !background.type.has_file() || !background.file_id.is_valid() ||
         !background.id.is_valid()) {
       LOG(ERROR) << "Can't load background " << name << ": " << status << ' ' << format::as_hex_dump<4>(Slice(value));
     } else {
