@@ -783,9 +783,8 @@ TEST(MessageEntities, fix_formatted_text) {
           td::vector<td::MessageEntity> fixed_entities;
           if (fixed_length > 0) {
             for (auto i = 0; i < length; i++) {
-              if (str[offset + i] != '\r' && str[offset + i] != '\n' &&
-                  (str[offset + i] != ' ' || type == td::MessageEntity::Type::TextUrl ||
-                   type == td::MessageEntity::Type::MentionName)) {
+              if (!td::is_space(str[offset + i]) || type == td::MessageEntity::Type::TextUrl ||
+                  type == td::MessageEntity::Type::MentionName) {
                 fixed_entities.emplace_back(type, fixed_offset, fixed_length);
                 break;
               }
@@ -1413,7 +1412,7 @@ TEST(MessageEntities, parse_markdown_v3) {
   check_parse_markdown_v3("` `", " ", {{td::MessageEntity::Type::Code, 0, 1}});
   check_parse_markdown_v3("`\n`", "\n", {{td::MessageEntity::Type::Code, 0, 1}});
   check_parse_markdown_v3("` `a", " a", {{td::MessageEntity::Type::Code, 0, 1}}, true);
-  check_parse_markdown_v3("`\n`a", "\na", {}, true);
+  check_parse_markdown_v3("`\n`a", "\na", {{td::MessageEntity::Type::Code, 0, 1}}, true);
   check_parse_markdown_v3("``", "``", {});
   check_parse_markdown_v3("`a````b```", "`a````b```", {});
   check_parse_markdown_v3("ab", {{td::MessageEntity::Type::Code, 0, 1}, {td::MessageEntity::Type::Pre, 1, 1}}, "ab",
@@ -1428,7 +1427,7 @@ TEST(MessageEntities, parse_markdown_v3) {
       "[ ](t.me) [ ](t.me)", {{td::MessageEntity::Type::TextUrl, 8, 1, "http://t.me/"}, {10, 1, td::UserId(1)}},
       "[ ](t.me) [ ](t.me)", {{td::MessageEntity::Type::TextUrl, 8, 1, "http://t.me/"}, {10, 1, td::UserId(1)}});
   check_parse_markdown_v3("[\n](t.me)", "\n", {{td::MessageEntity::Type::TextUrl, 0, 1, "http://t.me/"}});
-  check_parse_markdown_v3("[\n](t.me)a", "\na", {}, true);
+  check_parse_markdown_v3("[\n](t.me)a", "\na", {{td::MessageEntity::Type::TextUrl, 0, 1, "http://t.me/"}}, true);
   check_parse_markdown_v3("asd[abcd](google.com)", {{td::MessageEntity::Type::Italic, 0, 5}}, "asdabcd",
                           {{td::MessageEntity::Type::Italic, 0, 3},
                            {td::MessageEntity::Type::TextUrl, 3, 4, "http://google.com/"},

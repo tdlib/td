@@ -3514,7 +3514,6 @@ static std::pair<size_t, int32> remove_invalid_entities(const string &text, vect
   size_t last_non_whitespace_pos = text.size();
 
   int32 utf16_offset = 0;
-  int32 last_space_utf16_offset = -1;
   int32 last_non_whitespace_utf16_offset = -1;
 
   td::remove_if(entities, [](const auto &entity) { return entity.length == 0; });
@@ -3527,10 +3526,9 @@ static std::pair<size_t, int32> remove_invalid_entities(const string &text, vect
         break;
       }
 
-      if (last_non_whitespace_utf16_offset >= entity->offset ||
-          (last_space_utf16_offset >= entity->offset && is_hidden_data_entity(entity->type))) {
-        // TODO check entity for validness, for example, that mentions, hashtags, cashtags and URLs are valid
+      if (last_non_whitespace_utf16_offset >= entity->offset || is_hidden_data_entity(entity->type)) {
         // keep entity
+        // TODO check entity for validness, for example, that mentions, hashtags, cashtags and URLs are valid
       } else {
         entity->length = 0;
       }
@@ -3566,9 +3564,7 @@ static std::pair<size_t, int32> remove_invalid_entities(const string &text, vect
     auto c = static_cast<unsigned char>(text[pos]);
     switch (c) {
       case '\n':
-        break;
       case 32:
-        last_space_utf16_offset = utf16_offset;
         break;
       default:
         while (!is_utf8_character_first_code_unit(static_cast<unsigned char>(text[pos + 1]))) {
