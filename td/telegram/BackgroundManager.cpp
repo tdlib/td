@@ -921,8 +921,7 @@ BackgroundId BackgroundManager::on_get_background(BackgroundId expected_backgrou
   if (wallpaper_ptr->get_id() == telegram_api::wallPaperNoFile::ID) {
     auto wallpaper = move_tl_object_as<telegram_api::wallPaperNoFile>(wallpaper_ptr);
 
-    auto settings = std::move(wallpaper->settings_);
-    if (settings == nullptr) {
+    if (wallpaper->settings_ == nullptr) {
       LOG(ERROR) << "Receive wallPaperNoFile without settings: " << to_string(wallpaper);
       return BackgroundId();
     }
@@ -944,7 +943,7 @@ BackgroundId BackgroundManager::on_get_background(BackgroundId expected_backgrou
     background.is_creator = false;
     background.is_default = true;
     background.is_dark = (wallpaper->flags_ & telegram_api::wallPaperNoFile::DARK_MASK) != 0;
-    background.type = BackgroundType(BackgroundFill(settings.get()));
+    background.type = BackgroundType(true, false, std::move(wallpaper->settings_));
     background.name = background.type.get_link();
     add_background(background);
 
@@ -990,7 +989,7 @@ BackgroundId BackgroundManager::on_get_background(BackgroundId expected_backgrou
   background.is_creator = (flags & telegram_api::wallPaper::CREATOR_MASK) != 0;
   background.is_default = (flags & telegram_api::wallPaper::DEFAULT_MASK) != 0;
   background.is_dark = (flags & telegram_api::wallPaper::DARK_MASK) != 0;
-  background.type = BackgroundType(is_pattern, std::move(wallpaper->settings_));
+  background.type = BackgroundType(false, is_pattern, std::move(wallpaper->settings_));
   background.name = std::move(wallpaper->slug_);
   background.file_id = document.file_id;
   add_background(background);

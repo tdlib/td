@@ -393,8 +393,13 @@ Result<BackgroundType> BackgroundType::get_background_type(const td_api::Backgro
   }
 }
 
-BackgroundType::BackgroundType(bool is_pattern, telegram_api::object_ptr<telegram_api::wallPaperSettings> settings) {
-  if (is_pattern) {
+BackgroundType::BackgroundType(bool is_fill, bool is_pattern,
+                               telegram_api::object_ptr<telegram_api::wallPaperSettings> settings) {
+  if (is_fill) {
+    type_ = Type::Fill;
+    CHECK(settings != nullptr);
+    fill_ = BackgroundFill(settings.get());
+  } else if (is_pattern) {
     type_ = Type::Pattern;
     if (settings) {
       fill_ = BackgroundFill(settings.get());

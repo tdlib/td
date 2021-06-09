@@ -80,7 +80,7 @@ class BackgroundType {
   explicit BackgroundType(BackgroundFill fill) : type_(Type::Fill), fill_(fill) {
   }
 
-  BackgroundType(bool is_pattern, telegram_api::object_ptr<telegram_api::wallPaperSettings> settings);
+  BackgroundType(bool is_fill, bool is_pattern, telegram_api::object_ptr<telegram_api::wallPaperSettings> settings);
 
   static Result<BackgroundType> get_background_type(const td_api::BackgroundType *background_type);
 
