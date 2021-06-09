@@ -77,7 +77,7 @@ BackgroundFill::BackgroundFill(const telegram_api::wallPaperSettings *settings) 
   }
 }
 
-static Result<BackgroundFill> get_background_fill(const td_api::BackgroundFill *fill) {
+Result<BackgroundFill> BackgroundFill::get_background_fill(const td_api::BackgroundFill *fill) {
   if (fill == nullptr) {
     return Status::Error(400, "Background fill info must be non-empty");
   }
@@ -181,19 +181,19 @@ Result<BackgroundFill> BackgroundFill::get_background_fill(Slice name) {
   return BackgroundFill(color);
 }
 
-static string get_background_fill_color_hex_string(const BackgroundFill &fill, bool is_first) {
-  switch (fill.get_type()) {
+string BackgroundFill::get_link(bool is_first) const {
+  switch (get_type()) {
     case BackgroundFill::Type::Solid:
-      return get_color_hex_string(fill.top_color_);
+      return get_color_hex_string(top_color_);
     case BackgroundFill::Type::Gradient:
-      return PSTRING() << get_color_hex_string(fill.top_color_) << '-' << get_color_hex_string(fill.bottom_color_)
-                       << (is_first ? '?' : '&') << "rotation=" << fill.rotation_angle_;
+      return PSTRING() << get_color_hex_string(top_color_) << '-' << get_color_hex_string(bottom_color_)
+                       << (is_first ? '?' : '&') << "rotation=" << rotation_angle_;
     case BackgroundFill::Type::FreeformGradient: {
       SliceBuilder sb;
-      sb << get_color_hex_string(fill.top_color_) << '~' << get_color_hex_string(fill.bottom_color_) << '~'
-         << get_color_hex_string(fill.third_color_);
-      if (fill.fourth_color_ != -1) {
-        sb << '~' << get_color_hex_string(fill.fourth_color_);
+      sb << get_color_hex_string(top_color_) << '~' << get_color_hex_string(bottom_color_) << '~'
+         << get_color_hex_string(third_color_);
+      if (fourth_color_ != -1) {
+        sb << '~' << get_color_hex_string(fourth_color_);
       }
       return sb.as_cslice().str();
     }
@@ -319,8 +319,7 @@ string BackgroundType::get_link() const {
       return string();
     }
     case Type::Pattern: {
-      string link = PSTRING() << "intensity=" << intensity_
-                              << "&bg_color=" << get_background_fill_color_hex_string(fill_, false);
+      string link = PSTRING() << "intensity=" << intensity_ << "&bg_color=" << fill_.get_link(false);
       if (!mode.empty()) {
         link += "&mode=";
         link += mode;
@@ -328,7 +327,7 @@ string BackgroundType::get_link() const {
       return link;
     }
     case Type::Fill:
-      return get_background_fill_color_hex_string(fill_, true);
+      return fill_.get_link(true);
     default:
       UNREACHABLE();
       return string();
@@ -376,7 +375,7 @@ Result<BackgroundType> BackgroundType::get_background_type(const td_api::Backgro
     }
     case td_api::backgroundTypePattern::ID: {
       auto pattern_type = static_cast<const td_api::backgroundTypePattern *>(background_type);
-      TRY_RESULT(background_fill, ::td::get_background_fill(pattern_type->fill_.get()));
+      TRY_RESULT(background_fill, BackgroundFill::get_background_fill(pattern_type->fill_.get()));
       if (!is_valid_intensity(pattern_type->intensity_)) {
         return Status::Error(400, "Wrong intensity value");
       }
@@ -384,7 +383,7 @@ Result<BackgroundType> BackgroundType::get_background_type(const td_api::Backgro
     }
     case td_api::backgroundTypeFill::ID: {
       auto fill_type = static_cast<const td_api::backgroundTypeFill *>(background_type);
-      TRY_RESULT(background_fill, ::td::get_background_fill(fill_type->fill_.get()));
+      TRY_RESULT(background_fill, BackgroundFill::get_background_fill(fill_type->fill_.get()));
       return BackgroundType(std::move(background_fill));
     }
     default:
@@ -421,15 +420,14 @@ BackgroundType::BackgroundType(bool is_fill, bool is_pattern,
   }
 }
 
-static td_api::object_ptr<td_api::BackgroundFill> get_background_fill_object(const BackgroundFill &fill) {
-  switch (fill.get_type()) {
+td_api::object_ptr<td_api::BackgroundFill> BackgroundFill::get_background_fill_object() const {
+  switch (get_type()) {
     case BackgroundFill::Type::Solid:
-      return td_api::make_object<td_api::backgroundFillSolid>(fill.top_color_);
+      return td_api::make_object<td_api::backgroundFillSolid>(top_color_);
     case BackgroundFill::Type::Gradient:
-      return td_api::make_object<td_api::backgroundFillGradient>(fill.top_color_, fill.bottom_color_,
-                                                                 fill.rotation_angle_);
+      return td_api::make_object<td_api::backgroundFillGradient>(top_color_, bottom_color_, rotation_angle_);
     case BackgroundFill::Type::FreeformGradient: {
-      vector<int32> colors{fill.top_color_, fill.bottom_color_, fill.third_color_, fill.fourth_color_};
+      vector<int32> colors{top_color_, bottom_color_, third_color_, fourth_color_};
       if (colors.back() == -1) {
         colors.pop_back();
       }
@@ -446,10 +444,10 @@ td_api::object_ptr<td_api::BackgroundType> BackgroundType::get_background_type_o
     case Type::Wallpaper:
       return td_api::make_object<td_api::backgroundTypeWallpaper>(is_blurred_, is_moving_);
     case Type::Pattern:
-      return td_api::make_object<td_api::backgroundTypePattern>(get_background_fill_object(fill_), intensity_,
+      return td_api::make_object<td_api::backgroundTypePattern>(fill_.get_background_fill_object(), intensity_,
                                                                 is_moving_);
     case Type::Fill:
-      return td_api::make_object<td_api::backgroundTypeFill>(get_background_fill_object(fill_));
+      return td_api::make_object<td_api::backgroundTypeFill>(fill_.get_background_fill_object());
     default:
       UNREACHABLE();
       return nullptr;

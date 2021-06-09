@@ -16,7 +16,7 @@
 
 namespace td {
 
-struct BackgroundFill {
+class BackgroundFill {
   int32 top_color_ = 0;
   int32 bottom_color_ = 0;
   int32 rotation_angle_ = 0;
@@ -35,7 +35,11 @@ struct BackgroundFill {
 
   explicit BackgroundFill(const telegram_api::wallPaperSettings *settings);
 
-  static Result<BackgroundFill> get_background_fill(Slice name);
+  static Result<BackgroundFill> get_background_fill(const td_api::BackgroundFill *fill);
+
+  string get_link(bool is_first) const;
+
+  td_api::object_ptr<td_api::BackgroundFill> get_background_fill_object() const;
 
   enum class Type : int32 { Solid, Gradient, FreeformGradient };
   Type get_type() const {
@@ -47,6 +51,13 @@ struct BackgroundFill {
     }
     return Type::Gradient;
   }
+
+  friend bool operator==(const BackgroundFill &lhs, const BackgroundFill &rhs);
+
+  friend class BackgroundType;
+
+ public:
+  static Result<BackgroundFill> get_background_fill(Slice name);
 
   int64 get_id() const;
 
