@@ -144,9 +144,8 @@ class UploadBackgroundQuery : public Td::ResultHandler {
     file_id_ = file_id;
     type_ = type;
     for_dark_theme_ = for_dark_theme;
-    string mime_type = type.type == BackgroundType::Type::Pattern ? "image/png" : "image/jpeg";
-    send_query(G()->net_query_creator().create(
-        telegram_api::account_uploadWallPaper(std::move(input_file), mime_type, get_input_wallpaper_settings(type))));
+    send_query(G()->net_query_creator().create(telegram_api::account_uploadWallPaper(
+        std::move(input_file), type_.get_mime_type(), get_input_wallpaper_settings(type))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -552,7 +551,6 @@ BackgroundId BackgroundManager::set_background(const td_api::InputBackground *in
       return BackgroundId();
     }
 
-    CHECK(type.type == BackgroundType::Type::Fill);
     auto background_id = add_fill_background(type.fill);
     set_background_id(background_id, type, for_dark_theme);
     promise.set_value(Unit());

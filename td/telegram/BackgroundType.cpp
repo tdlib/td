@@ -258,6 +258,11 @@ bool operator==(const BackgroundFill &lhs, const BackgroundFill &rhs) {
          lhs.fourth_color == rhs.fourth_color;
 }
 
+string BackgroundType::get_mime_type() const {
+  CHECK(has_file());
+  return type == Type::Pattern ? "image/png" : "image/jpeg";
+}
+
 void BackgroundType::apply_parameters_from_link(Slice name) {
   const auto query = parse_url_query(name);
 
@@ -307,13 +312,13 @@ string BackgroundType::get_link() const {
   }
 
   switch (type) {
-    case BackgroundType::Type::Wallpaper: {
+    case Type::Wallpaper: {
       if (!mode.empty()) {
         return PSTRING() << "mode=" << mode;
       }
       return string();
     }
-    case BackgroundType::Type::Pattern: {
+    case Type::Pattern: {
       string link = PSTRING() << "intensity=" << intensity
                               << "&bg_color=" << get_background_fill_color_hex_string(fill, false);
       if (!mode.empty()) {
@@ -322,7 +327,7 @@ string BackgroundType::get_link() const {
       }
       return link;
     }
-    case BackgroundType::Type::Fill:
+    case Type::Fill:
       return get_background_fill_color_hex_string(fill, true);
     default:
       UNREACHABLE();
@@ -335,22 +340,23 @@ bool operator==(const BackgroundType &lhs, const BackgroundType &rhs) {
          lhs.intensity == rhs.intensity && lhs.fill == rhs.fill;
 }
 
-static StringBuilder &operator<<(StringBuilder &string_builder, const BackgroundType::Type &type) {
-  switch (type) {
+StringBuilder &operator<<(StringBuilder &string_builder, const BackgroundType &type) {
+  string_builder << "type ";
+  switch (type.type) {
     case BackgroundType::Type::Wallpaper:
-      return string_builder << "Wallpaper";
+      string_builder << "Wallpaper";
+      break;
     case BackgroundType::Type::Pattern:
-      return string_builder << "Pattern";
+      string_builder << "Pattern";
+      break;
     case BackgroundType::Type::Fill:
-      return string_builder << "Fill";
+      string_builder << "Fill";
+      break;
     default:
       UNREACHABLE();
-      return string_builder;
+      break;
   }
-}
-
-StringBuilder &operator<<(StringBuilder &string_builder, const BackgroundType &type) {
-  return string_builder << "type " << type.type << '[' << type.get_link() << ']';
+  return string_builder << '[' << type.get_link() << ']';
 }
 
 Result<BackgroundType> get_background_type(const td_api::BackgroundType *type) {
