@@ -110,7 +110,7 @@ class InstallBackgroundQuery : public Td::ResultHandler {
 
   void send(telegram_api::object_ptr<telegram_api::InputWallPaper> input_wallpaper, const BackgroundType &type) {
     send_query(G()->net_query_creator().create(
-        telegram_api::account_installWallPaper(std::move(input_wallpaper), get_input_wallpaper_settings(type))));
+        telegram_api::account_installWallPaper(std::move(input_wallpaper), type.get_input_wallpaper_settings())));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -145,7 +145,7 @@ class UploadBackgroundQuery : public Td::ResultHandler {
     type_ = type;
     for_dark_theme_ = for_dark_theme;
     send_query(G()->net_query_creator().create(telegram_api::account_uploadWallPaper(
-        std::move(input_file), type_.get_mime_type(), get_input_wallpaper_settings(type))));
+        std::move(input_file), type_.get_mime_type(), type.get_input_wallpaper_settings())));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -358,7 +358,7 @@ void BackgroundManager::get_backgrounds(Promise<Unit> &&promise) {
 
 Result<string> BackgroundManager::get_background_url(const string &name,
                                                      td_api::object_ptr<td_api::BackgroundType> background_type) const {
-  TRY_RESULT(type, get_background_type(background_type.get()));
+  TRY_RESULT(type, BackgroundType::get_background_type(background_type.get()));
   auto url = PSTRING() << G()->shared_config().get_option_string("t_me_url", "https://t.me/") << "bg/";
   auto link = type.get_link();
   if (type.has_file()) {
@@ -530,7 +530,7 @@ BackgroundId BackgroundManager::set_background(const td_api::InputBackground *in
                                                Promise<Unit> &&promise) {
   BackgroundType type;
   if (background_type != nullptr) {
-    auto r_type = get_background_type(background_type);
+    auto r_type = BackgroundType::get_background_type(background_type);
     if (r_type.is_error()) {
       promise.set_error(r_type.move_as_error());
       return BackgroundId();
@@ -991,7 +991,7 @@ BackgroundId BackgroundManager::on_get_background(BackgroundId expected_backgrou
   background.is_creator = (flags & telegram_api::wallPaper::CREATOR_MASK) != 0;
   background.is_default = (flags & telegram_api::wallPaper::DEFAULT_MASK) != 0;
   background.is_dark = (flags & telegram_api::wallPaper::DARK_MASK) != 0;
-  background.type = get_background_type(is_pattern, std::move(wallpaper->settings_));
+  background.type = BackgroundType(is_pattern, std::move(wallpaper->settings_));
   background.name = std::move(wallpaper->slug_);
   background.file_id = document.file_id;
   add_background(background);
@@ -1069,7 +1069,7 @@ td_api::object_ptr<td_api::background> BackgroundManager::get_background_object(
   return td_api::make_object<td_api::background>(
       background->id.get(), background->is_default, background->is_dark, background->name,
       td_->documents_manager_->get_document_object(background->file_id, PhotoFormat::Png),
-      get_background_type_object(*type));
+      type->get_background_type_object());
 }
 
 td_api::object_ptr<td_api::backgrounds> BackgroundManager::get_backgrounds_object(bool for_dark_theme) const {

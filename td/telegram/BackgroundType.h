@@ -75,6 +75,10 @@ struct BackgroundType {
   explicit BackgroundType(BackgroundFill fill) : type(Type::Fill), fill(fill) {
   }
 
+  BackgroundType(bool is_pattern, telegram_api::object_ptr<telegram_api::wallPaperSettings> settings);
+
+  static Result<BackgroundType> get_background_type(const td_api::BackgroundType *background_type);
+
   bool has_file() const {
     return type == Type::Wallpaper || type == Type::Pattern;
   }
@@ -84,18 +88,14 @@ struct BackgroundType {
   void apply_parameters_from_link(Slice name);
 
   string get_link() const;
+
+  td_api::object_ptr<td_api::BackgroundType> get_background_type_object() const;
+
+  telegram_api::object_ptr<telegram_api::wallPaperSettings> get_input_wallpaper_settings() const;
 };
 
 bool operator==(const BackgroundType &lhs, const BackgroundType &rhs);
 
 StringBuilder &operator<<(StringBuilder &string_builder, const BackgroundType &type);
-
-Result<BackgroundType> get_background_type(const td_api::BackgroundType *type);
-
-BackgroundType get_background_type(bool is_pattern, telegram_api::object_ptr<telegram_api::wallPaperSettings> settings);
-
-td_api::object_ptr<td_api::BackgroundType> get_background_type_object(const BackgroundType &type);
-
-telegram_api::object_ptr<telegram_api::wallPaperSettings> get_input_wallpaper_settings(const BackgroundType &type);
 
 }  // namespace td

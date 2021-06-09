@@ -359,62 +359,55 @@ StringBuilder &operator<<(StringBuilder &string_builder, const BackgroundType &t
   return string_builder << '[' << type.get_link() << ']';
 }
 
-Result<BackgroundType> get_background_type(const td_api::BackgroundType *type) {
-  if (type == nullptr) {
+Result<BackgroundType> BackgroundType::get_background_type(const td_api::BackgroundType *background_type) {
+  if (background_type == nullptr) {
     return Status::Error(400, "Type must be non-empty");
   }
 
-  BackgroundType result;
-  switch (type->get_id()) {
+  switch (background_type->get_id()) {
     case td_api::backgroundTypeWallpaper::ID: {
-      auto wallpaper = static_cast<const td_api::backgroundTypeWallpaper *>(type);
-      result = BackgroundType(wallpaper->is_blurred_, wallpaper->is_moving_);
-      break;
+      auto wallpaper_type = static_cast<const td_api::backgroundTypeWallpaper *>(background_type);
+      return BackgroundType(wallpaper_type->is_blurred_, wallpaper_type->is_moving_);
     }
     case td_api::backgroundTypePattern::ID: {
-      auto pattern = static_cast<const td_api::backgroundTypePattern *>(type);
-      TRY_RESULT(background_fill, get_background_fill(pattern->fill_.get()));
-      if (!is_valid_intensity(pattern->intensity_)) {
+      auto pattern_type = static_cast<const td_api::backgroundTypePattern *>(background_type);
+      TRY_RESULT(background_fill, get_background_fill(pattern_type->fill_.get()));
+      if (!is_valid_intensity(pattern_type->intensity_)) {
         return Status::Error(400, "Wrong intensity value");
       }
-      result = BackgroundType(pattern->is_moving_, std::move(background_fill), pattern->intensity_);
-      break;
+      return BackgroundType(pattern_type->is_moving_, std::move(background_fill), pattern_type->intensity_);
     }
     case td_api::backgroundTypeFill::ID: {
-      auto fill = static_cast<const td_api::backgroundTypeFill *>(type);
-      TRY_RESULT(background_fill, get_background_fill(fill->fill_.get()));
-      result = BackgroundType(std::move(background_fill));
-      break;
+      auto fill_type = static_cast<const td_api::backgroundTypeFill *>(background_type);
+      TRY_RESULT(background_fill, get_background_fill(fill_type->fill_.get()));
+      return BackgroundType(std::move(background_fill));
     }
     default:
       UNREACHABLE();
+      return BackgroundType();
   }
-  return result;
 }
 
-BackgroundType get_background_type(bool is_pattern,
-                                   telegram_api::object_ptr<telegram_api::wallPaperSettings> settings) {
-  bool is_blurred = false;
-  bool is_moving = false;
-  BackgroundFill fill(settings.get());
-  int32 intensity = 0;
-  if (settings) {
-    auto flags = settings->flags_;
-    is_blurred = (flags & telegram_api::wallPaperSettings::BLUR_MASK) != 0;
-    is_moving = (flags & telegram_api::wallPaperSettings::MOTION_MASK) != 0;
-
-    if ((flags & telegram_api::wallPaperSettings::INTENSITY_MASK) != 0) {
-      intensity = settings->intensity_;
-      if (!is_valid_intensity(intensity)) {
-        LOG(ERROR) << "Receive " << to_string(settings);
-        intensity = 50;
+BackgroundType::BackgroundType(bool is_pattern, telegram_api::object_ptr<telegram_api::wallPaperSettings> settings) {
+  if (is_pattern) {
+    type = Type::Pattern;
+    if (settings) {
+      fill = BackgroundFill(settings.get());
+      is_moving = (settings->flags_ & telegram_api::wallPaperSettings::MOTION_MASK) != 0;
+      if ((settings->flags_ & telegram_api::wallPaperSettings::INTENSITY_MASK) != 0) {
+        intensity = settings->intensity_;
+        if (!is_valid_intensity(intensity)) {
+          LOG(ERROR) << "Receive " << to_string(settings);
+          intensity = 50;
+        }
       }
     }
-  }
-  if (is_pattern) {
-    return BackgroundType(is_moving, fill, intensity);
   } else {
-    return BackgroundType(is_blurred, is_moving);
+    type = Type::Wallpaper;
+    if (settings) {
+      is_blurred = (settings->flags_ & telegram_api::wallPaperSettings::BLUR_MASK) != 0;
+      is_moving = (settings->flags_ & telegram_api::wallPaperSettings::MOTION_MASK) != 0;
+    }
   }
 }
 
@@ -438,34 +431,33 @@ static td_api::object_ptr<td_api::BackgroundFill> get_background_fill_object(con
   }
 }
 
-td_api::object_ptr<td_api::BackgroundType> get_background_type_object(const BackgroundType &type) {
-  switch (type.type) {
-    case BackgroundType::Type::Wallpaper:
-      return td_api::make_object<td_api::backgroundTypeWallpaper>(type.is_blurred, type.is_moving);
-    case BackgroundType::Type::Pattern:
-      return td_api::make_object<td_api::backgroundTypePattern>(get_background_fill_object(type.fill), type.intensity,
-                                                                type.is_moving);
-    case BackgroundType::Type::Fill:
-      return td_api::make_object<td_api::backgroundTypeFill>(get_background_fill_object(type.fill));
+td_api::object_ptr<td_api::BackgroundType> BackgroundType::get_background_type_object() const {
+  switch (type) {
+    case Type::Wallpaper:
+      return td_api::make_object<td_api::backgroundTypeWallpaper>(is_blurred, is_moving);
+    case Type::Pattern:
+      return td_api::make_object<td_api::backgroundTypePattern>(get_background_fill_object(fill), intensity, is_moving);
+    case Type::Fill:
+      return td_api::make_object<td_api::backgroundTypeFill>(get_background_fill_object(fill));
     default:
       UNREACHABLE();
       return nullptr;
   }
 }
 
-telegram_api::object_ptr<telegram_api::wallPaperSettings> get_input_wallpaper_settings(const BackgroundType &type) {
-  CHECK(type.has_file());
+telegram_api::object_ptr<telegram_api::wallPaperSettings> BackgroundType::get_input_wallpaper_settings() const {
+  CHECK(has_file());
 
   int32 flags = 0;
-  if (type.is_blurred) {
+  if (is_blurred) {
     flags |= telegram_api::wallPaperSettings::BLUR_MASK;
   }
-  if (type.is_moving) {
+  if (is_moving) {
     flags |= telegram_api::wallPaperSettings::MOTION_MASK;
   }
-  switch (type.fill.get_type()) {
+  switch (fill.get_type()) {
     case BackgroundFill::Type::FreeformGradient:
-      if (type.fill.fourth_color != -1) {
+      if (fill.fourth_color != -1) {
         flags |= telegram_api::wallPaperSettings::FOURTH_BACKGROUND_COLOR_MASK;
       }
       flags |= telegram_api::wallPaperSettings::THIRD_BACKGROUND_COLOR_MASK;
@@ -479,12 +471,12 @@ telegram_api::object_ptr<telegram_api::wallPaperSettings> get_input_wallpaper_se
     default:
       UNREACHABLE();
   }
-  if (type.intensity != 0) {
+  if (intensity != 0) {
     flags |= telegram_api::wallPaperSettings::INTENSITY_MASK;
   }
-  return telegram_api::make_object<telegram_api::wallPaperSettings>(
-      flags, false /*ignored*/, false /*ignored*/, type.fill.top_color, type.fill.bottom_color, type.fill.third_color,
-      type.fill.fourth_color, type.intensity, type.fill.rotation_angle);
+  return telegram_api::make_object<telegram_api::wallPaperSettings>(flags, false /*ignored*/, false /*ignored*/,
+                                                                    fill.top_color, fill.bottom_color, fill.third_color,
+                                                                    fill.fourth_color, intensity, fill.rotation_angle);
 }
 
 }  // namespace td
