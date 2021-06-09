@@ -753,7 +753,7 @@ void BackgroundManager::remove_background(BackgroundId background_id, Promise<Un
       });
 
   if (!background->type.has_file()) {
-    if (background->is_default) {
+    if (!background->id.is_local()) {
       return td_->create_handler<UnsaveBackgroundQuery>(std::move(query_promise))
           ->send(telegram_api::make_object<telegram_api::inputWallPaperNoFile>(background_id.get()));
     } else {

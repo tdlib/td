@@ -42,6 +42,10 @@ class BackgroundId {
     return id != 0;
   }
 
+  bool is_local() const {
+    return 0 < id && id <= 0x7FFFFFFF;
+  }
+
   template <class StorerT>
   void store(StorerT &storer) const {
     td::store(id, storer);
