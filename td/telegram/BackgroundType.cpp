@@ -37,42 +37,42 @@ BackgroundFill::BackgroundFill(const telegram_api::wallPaperSettings *settings) 
 
   auto flags = settings->flags_;
   if ((flags & telegram_api::wallPaperSettings::BACKGROUND_COLOR_MASK) != 0) {
-    top_color = settings->background_color_;
-    if (!is_valid_color(top_color)) {
+    top_color_ = settings->background_color_;
+    if (!is_valid_color(top_color_)) {
       LOG(ERROR) << "Receive " << to_string(*settings);
-      top_color = 0;
+      top_color_ = 0;
     }
   }
   if ((flags & telegram_api::wallPaperSettings::FOURTH_BACKGROUND_COLOR_MASK) != 0 ||
       (flags & telegram_api::wallPaperSettings::THIRD_BACKGROUND_COLOR_MASK) != 0) {
-    bottom_color = settings->second_background_color_;
-    if (!is_valid_color(bottom_color)) {
+    bottom_color_ = settings->second_background_color_;
+    if (!is_valid_color(bottom_color_)) {
       LOG(ERROR) << "Receive " << to_string(*settings);
-      bottom_color = 0;
+      bottom_color_ = 0;
     }
-    third_color = settings->third_background_color_;
-    if (!is_valid_color(third_color)) {
+    third_color_ = settings->third_background_color_;
+    if (!is_valid_color(third_color_)) {
       LOG(ERROR) << "Receive " << to_string(*settings);
-      third_color = 0;
+      third_color_ = 0;
     }
     if ((flags & telegram_api::wallPaperSettings::FOURTH_BACKGROUND_COLOR_MASK) != 0) {
-      fourth_color = settings->fourth_background_color_;
-      if (!is_valid_color(fourth_color)) {
+      fourth_color_ = settings->fourth_background_color_;
+      if (!is_valid_color(fourth_color_)) {
         LOG(ERROR) << "Receive " << to_string(*settings);
-        fourth_color = 0;
+        fourth_color_ = 0;
       }
     }
   } else if ((flags & telegram_api::wallPaperSettings::SECOND_BACKGROUND_COLOR_MASK) != 0) {
-    bottom_color = settings->second_background_color_;
-    if (!is_valid_color(bottom_color)) {
+    bottom_color_ = settings->second_background_color_;
+    if (!is_valid_color(bottom_color_)) {
       LOG(ERROR) << "Receive " << to_string(*settings);
-      bottom_color = 0;
+      bottom_color_ = 0;
     }
 
-    rotation_angle = settings->rotation_;
-    if (!is_valid_rotation_angle(rotation_angle)) {
+    rotation_angle_ = settings->rotation_;
+    if (!is_valid_rotation_angle(rotation_angle_)) {
       LOG(ERROR) << "Receive " << to_string(*settings);
-      rotation_angle = 0;
+      rotation_angle_ = 0;
     }
   }
 }
@@ -184,16 +184,16 @@ Result<BackgroundFill> BackgroundFill::get_background_fill(Slice name) {
 static string get_background_fill_color_hex_string(const BackgroundFill &fill, bool is_first) {
   switch (fill.get_type()) {
     case BackgroundFill::Type::Solid:
-      return get_color_hex_string(fill.top_color);
+      return get_color_hex_string(fill.top_color_);
     case BackgroundFill::Type::Gradient:
-      return PSTRING() << get_color_hex_string(fill.top_color) << '-' << get_color_hex_string(fill.bottom_color)
-                       << (is_first ? '?' : '&') << "rotation=" << fill.rotation_angle;
+      return PSTRING() << get_color_hex_string(fill.top_color_) << '-' << get_color_hex_string(fill.bottom_color_)
+                       << (is_first ? '?' : '&') << "rotation=" << fill.rotation_angle_;
     case BackgroundFill::Type::FreeformGradient: {
       SliceBuilder sb;
-      sb << get_color_hex_string(fill.top_color) << '~' << get_color_hex_string(fill.bottom_color) << '~'
-         << get_color_hex_string(fill.third_color);
-      if (fill.fourth_color != -1) {
-        sb << '~' << get_color_hex_string(fill.fourth_color);
+      sb << get_color_hex_string(fill.top_color_) << '~' << get_color_hex_string(fill.bottom_color_) << '~'
+         << get_color_hex_string(fill.third_color_);
+      if (fill.fourth_color_ != -1) {
+        sb << '~' << get_color_hex_string(fill.fourth_color_);
       }
       return sb.as_cslice().str();
     }
@@ -208,23 +208,23 @@ static bool is_valid_intensity(int32 intensity) {
 }
 
 int64 BackgroundFill::get_id() const {
-  CHECK(is_valid_color(top_color));
-  CHECK(is_valid_color(bottom_color));
+  CHECK(is_valid_color(top_color_));
+  CHECK(is_valid_color(bottom_color_));
   switch (get_type()) {
     case Type::Solid:
-      return static_cast<int64>(top_color) + 1;
+      return static_cast<int64>(top_color_) + 1;
     case Type::Gradient:
-      CHECK(is_valid_rotation_angle(rotation_angle));
-      return (rotation_angle / 45) * 0x1000001000001 + (static_cast<int64>(top_color) << 24) + bottom_color +
+      CHECK(is_valid_rotation_angle(rotation_angle_));
+      return (rotation_angle_ / 45) * 0x1000001000001 + (static_cast<int64>(top_color_) << 24) + bottom_color_ +
              (1 << 24) + 1;
     case Type::FreeformGradient: {
-      CHECK(is_valid_color(third_color));
-      CHECK(fourth_color == -1 || is_valid_color(fourth_color));
+      CHECK(is_valid_color(third_color_));
+      CHECK(fourth_color_ == -1 || is_valid_color(fourth_color_));
       const uint64 mul = 123456789;
-      uint64 result = static_cast<uint64>(top_color);
-      result = result * mul + static_cast<uint64>(bottom_color);
-      result = result * mul + static_cast<uint64>(third_color);
-      result = result * mul + static_cast<uint64>(fourth_color);
+      uint64 result = static_cast<uint64>(top_color_);
+      result = result * mul + static_cast<uint64>(bottom_color_);
+      result = result * mul + static_cast<uint64>(third_color_);
+      result = result * mul + static_cast<uint64>(fourth_color_);
       return static_cast<int64>(result % 0x8000008000008);
     }
     default:
@@ -236,12 +236,12 @@ int64 BackgroundFill::get_id() const {
 bool BackgroundFill::is_dark() const {
   switch (get_type()) {
     case Type::Solid:
-      return (top_color & 0x808080) == 0;
+      return (top_color_ & 0x808080) == 0;
     case Type::Gradient:
-      return (top_color & 0x808080) == 0 && (bottom_color & 0x808080) == 0;
+      return (top_color_ & 0x808080) == 0 && (bottom_color_ & 0x808080) == 0;
     case Type::FreeformGradient:
-      return (top_color & 0x808080) == 0 && (bottom_color & 0x808080) == 0 && (third_color & 0x808080) == 0 &&
-             (fourth_color == -1 || (fourth_color & 0x808080) == 0);
+      return (top_color_ & 0x808080) == 0 && (bottom_color_ & 0x808080) == 0 && (third_color_ & 0x808080) == 0 &&
+             (fourth_color_ == -1 || (fourth_color_ & 0x808080) == 0);
     default:
       UNREACHABLE();
       return 0;
@@ -253,39 +253,39 @@ bool BackgroundFill::is_valid_id(int64 id) {
 }
 
 bool operator==(const BackgroundFill &lhs, const BackgroundFill &rhs) {
-  return lhs.top_color == rhs.top_color && lhs.bottom_color == rhs.bottom_color &&
-         lhs.rotation_angle == rhs.rotation_angle && lhs.third_color == rhs.third_color &&
-         lhs.fourth_color == rhs.fourth_color;
+  return lhs.top_color_ == rhs.top_color_ && lhs.bottom_color_ == rhs.bottom_color_ &&
+         lhs.rotation_angle_ == rhs.rotation_angle_ && lhs.third_color_ == rhs.third_color_ &&
+         lhs.fourth_color_ == rhs.fourth_color_;
 }
 
 string BackgroundType::get_mime_type() const {
   CHECK(has_file());
-  return type == Type::Pattern ? "image/png" : "image/jpeg";
+  return type_ == Type::Pattern ? "image/png" : "image/jpeg";
 }
 
 void BackgroundType::apply_parameters_from_link(Slice name) {
   const auto query = parse_url_query(name);
 
-  is_blurred = false;
-  is_moving = false;
+  is_blurred_ = false;
+  is_moving_ = false;
   auto modes = full_split(query.get_arg("mode"), ' ');
   for (auto &mode : modes) {
-    if (type != Type::Pattern && to_lower(mode) == "blur") {
-      is_blurred = true;
+    if (type_ != Type::Pattern && to_lower(mode) == "blur") {
+      is_blurred_ = true;
     }
     if (to_lower(mode) == "motion") {
-      is_moving = true;
+      is_moving_ = true;
     }
   }
 
-  if (type == Type::Pattern) {
-    intensity = -101;
+  if (type_ == Type::Pattern) {
+    intensity_ = -101;
     auto intensity_arg = query.get_arg("intensity");
     if (!intensity_arg.empty()) {
-      intensity = to_integer<int32>(intensity_arg);
+      intensity_ = to_integer<int32>(intensity_arg);
     }
-    if (!is_valid_intensity(intensity)) {
-      intensity = 50;
+    if (!is_valid_intensity(intensity_)) {
+      intensity_ = 50;
     }
 
     auto bg_color = query.get_arg("bg_color");
@@ -293,7 +293,7 @@ void BackgroundType::apply_parameters_from_link(Slice name) {
       auto r_fill = BackgroundFill::get_background_fill(
           PSLICE() << url_encode(bg_color) << "?rotation=" << url_encode(query.get_arg("rotation")));
       if (r_fill.is_ok()) {
-        fill = r_fill.move_as_ok();
+        fill_ = r_fill.move_as_ok();
       }
     }
   }
@@ -301,17 +301,17 @@ void BackgroundType::apply_parameters_from_link(Slice name) {
 
 string BackgroundType::get_link() const {
   string mode;
-  if (is_blurred) {
+  if (is_blurred_) {
     mode = "blur";
   }
-  if (is_moving) {
+  if (is_moving_) {
     if (!mode.empty()) {
       mode += '+';
     }
     mode += "motion";
   }
 
-  switch (type) {
+  switch (type_) {
     case Type::Wallpaper: {
       if (!mode.empty()) {
         return PSTRING() << "mode=" << mode;
@@ -319,8 +319,8 @@ string BackgroundType::get_link() const {
       return string();
     }
     case Type::Pattern: {
-      string link = PSTRING() << "intensity=" << intensity
-                              << "&bg_color=" << get_background_fill_color_hex_string(fill, false);
+      string link = PSTRING() << "intensity=" << intensity_
+                              << "&bg_color=" << get_background_fill_color_hex_string(fill_, false);
       if (!mode.empty()) {
         link += "&mode=";
         link += mode;
@@ -328,7 +328,7 @@ string BackgroundType::get_link() const {
       return link;
     }
     case Type::Fill:
-      return get_background_fill_color_hex_string(fill, true);
+      return get_background_fill_color_hex_string(fill_, true);
     default:
       UNREACHABLE();
       return string();
@@ -336,18 +336,18 @@ string BackgroundType::get_link() const {
 }
 
 BackgroundFill BackgroundType::get_background_fill() {
-  CHECK(type == Type::Fill);
-  return fill;
+  CHECK(type_ == Type::Fill);
+  return fill_;
 }
 
 bool operator==(const BackgroundType &lhs, const BackgroundType &rhs) {
-  return lhs.type == rhs.type && lhs.is_blurred == rhs.is_blurred && lhs.is_moving == rhs.is_moving &&
-         lhs.intensity == rhs.intensity && lhs.fill == rhs.fill;
+  return lhs.type_ == rhs.type_ && lhs.is_blurred_ == rhs.is_blurred_ && lhs.is_moving_ == rhs.is_moving_ &&
+         lhs.intensity_ == rhs.intensity_ && lhs.fill_ == rhs.fill_;
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const BackgroundType &type) {
   string_builder << "type ";
-  switch (type.type) {
+  switch (type.type_) {
     case BackgroundType::Type::Wallpaper:
       string_builder << "Wallpaper";
       break;
@@ -395,23 +395,23 @@ Result<BackgroundType> BackgroundType::get_background_type(const td_api::Backgro
 
 BackgroundType::BackgroundType(bool is_pattern, telegram_api::object_ptr<telegram_api::wallPaperSettings> settings) {
   if (is_pattern) {
-    type = Type::Pattern;
+    type_ = Type::Pattern;
     if (settings) {
-      fill = BackgroundFill(settings.get());
-      is_moving = (settings->flags_ & telegram_api::wallPaperSettings::MOTION_MASK) != 0;
+      fill_ = BackgroundFill(settings.get());
+      is_moving_ = (settings->flags_ & telegram_api::wallPaperSettings::MOTION_MASK) != 0;
       if ((settings->flags_ & telegram_api::wallPaperSettings::INTENSITY_MASK) != 0) {
-        intensity = settings->intensity_;
-        if (!is_valid_intensity(intensity)) {
+        intensity_ = settings->intensity_;
+        if (!is_valid_intensity(intensity_)) {
           LOG(ERROR) << "Receive " << to_string(settings);
-          intensity = 50;
+          intensity_ = 50;
         }
       }
     }
   } else {
-    type = Type::Wallpaper;
+    type_ = Type::Wallpaper;
     if (settings) {
-      is_blurred = (settings->flags_ & telegram_api::wallPaperSettings::BLUR_MASK) != 0;
-      is_moving = (settings->flags_ & telegram_api::wallPaperSettings::MOTION_MASK) != 0;
+      is_blurred_ = (settings->flags_ & telegram_api::wallPaperSettings::BLUR_MASK) != 0;
+      is_moving_ = (settings->flags_ & telegram_api::wallPaperSettings::MOTION_MASK) != 0;
     }
   }
 }
@@ -419,12 +419,12 @@ BackgroundType::BackgroundType(bool is_pattern, telegram_api::object_ptr<telegra
 static td_api::object_ptr<td_api::BackgroundFill> get_background_fill_object(const BackgroundFill &fill) {
   switch (fill.get_type()) {
     case BackgroundFill::Type::Solid:
-      return td_api::make_object<td_api::backgroundFillSolid>(fill.top_color);
+      return td_api::make_object<td_api::backgroundFillSolid>(fill.top_color_);
     case BackgroundFill::Type::Gradient:
-      return td_api::make_object<td_api::backgroundFillGradient>(fill.top_color, fill.bottom_color,
-                                                                 fill.rotation_angle);
+      return td_api::make_object<td_api::backgroundFillGradient>(fill.top_color_, fill.bottom_color_,
+                                                                 fill.rotation_angle_);
     case BackgroundFill::Type::FreeformGradient: {
-      vector<int32> colors{fill.top_color, fill.bottom_color, fill.third_color, fill.fourth_color};
+      vector<int32> colors{fill.top_color_, fill.bottom_color_, fill.third_color_, fill.fourth_color_};
       if (colors.back() == -1) {
         colors.pop_back();
       }
@@ -437,13 +437,14 @@ static td_api::object_ptr<td_api::BackgroundFill> get_background_fill_object(con
 }
 
 td_api::object_ptr<td_api::BackgroundType> BackgroundType::get_background_type_object() const {
-  switch (type) {
+  switch (type_) {
     case Type::Wallpaper:
-      return td_api::make_object<td_api::backgroundTypeWallpaper>(is_blurred, is_moving);
+      return td_api::make_object<td_api::backgroundTypeWallpaper>(is_blurred_, is_moving_);
     case Type::Pattern:
-      return td_api::make_object<td_api::backgroundTypePattern>(get_background_fill_object(fill), intensity, is_moving);
+      return td_api::make_object<td_api::backgroundTypePattern>(get_background_fill_object(fill_), intensity_,
+                                                                is_moving_);
     case Type::Fill:
-      return td_api::make_object<td_api::backgroundTypeFill>(get_background_fill_object(fill));
+      return td_api::make_object<td_api::backgroundTypeFill>(get_background_fill_object(fill_));
     default:
       UNREACHABLE();
       return nullptr;
@@ -454,15 +455,15 @@ telegram_api::object_ptr<telegram_api::wallPaperSettings> BackgroundType::get_in
   CHECK(has_file());
 
   int32 flags = 0;
-  if (is_blurred) {
+  if (is_blurred_) {
     flags |= telegram_api::wallPaperSettings::BLUR_MASK;
   }
-  if (is_moving) {
+  if (is_moving_) {
     flags |= telegram_api::wallPaperSettings::MOTION_MASK;
   }
-  switch (fill.get_type()) {
+  switch (fill_.get_type()) {
     case BackgroundFill::Type::FreeformGradient:
-      if (fill.fourth_color != -1) {
+      if (fill_.fourth_color_ != -1) {
         flags |= telegram_api::wallPaperSettings::FOURTH_BACKGROUND_COLOR_MASK;
       }
       flags |= telegram_api::wallPaperSettings::THIRD_BACKGROUND_COLOR_MASK;
@@ -476,12 +477,12 @@ telegram_api::object_ptr<telegram_api::wallPaperSettings> BackgroundType::get_in
     default:
       UNREACHABLE();
   }
-  if (intensity != 0) {
+  if (intensity_ != 0) {
     flags |= telegram_api::wallPaperSettings::INTENSITY_MASK;
   }
-  return telegram_api::make_object<telegram_api::wallPaperSettings>(flags, false /*ignored*/, false /*ignored*/,
-                                                                    fill.top_color, fill.bottom_color, fill.third_color,
-                                                                    fill.fourth_color, intensity, fill.rotation_angle);
+  return telegram_api::make_object<telegram_api::wallPaperSettings>(
+      flags, false /*ignored*/, false /*ignored*/, fill_.top_color_, fill_.bottom_color_, fill_.third_color_,
+      fill_.fourth_color_, intensity_, fill_.rotation_angle_);
 }
 
 }  // namespace td
