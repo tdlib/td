@@ -2436,13 +2436,6 @@ void delete_message_content_thumbnail(MessageContent *content, Td *td) {
 
 Status can_send_message_content(DialogId dialog_id, const MessageContent *content, bool is_forward, const Td *td) {
   auto dialog_type = dialog_id.get_type();
-  int32 secret_chat_layer = std::numeric_limits<int32>::max();
-  if (dialog_type == DialogType::SecretChat) {
-    auto secret_chat_id = dialog_id.get_secret_chat_id();
-    secret_chat_layer = td->contacts_manager_->get_secret_chat_layer(secret_chat_id);
-  }
-
-  auto content_type = content->get_type();
   RestrictedRights permissions = [&] {
     switch (dialog_type) {
       case DialogType::User:
@@ -2460,6 +2453,7 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
     }
   }();
 
+  auto content_type = content->get_type();
   switch (content_type) {
     case MessageContentType::Animation:
       if (!permissions.can_send_animations()) {
