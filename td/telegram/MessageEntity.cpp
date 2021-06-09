@@ -1316,6 +1316,12 @@ static int32 is_user_entity(MessageEntity::Type type) {
   return (get_entity_type_mask(type) & get_user_entities_mask()) != 0;
 }
 
+static int32 is_hidden_data_entity(MessageEntity::Type type) {
+  return (get_entity_type_mask(type) &
+          (get_entity_type_mask(MessageEntity::Type::TextUrl) | get_entity_type_mask(MessageEntity::Type::MentionName) |
+           get_pre_entities_mask())) != 0;
+}
+
 static constexpr size_t SPLITTABLE_ENTITY_TYPE_COUNT = 4;
 
 static size_t get_splittable_entity_type_index(MessageEntity::Type type) {
@@ -3521,10 +3527,8 @@ static std::pair<size_t, int32> remove_invalid_entities(const string &text, vect
         break;
       }
 
-      auto have_hidden_data = entity->type == MessageEntity::Type::TextUrl ||
-                              entity->type == MessageEntity::Type::MentionName || is_pre_entity(entity->type);
       if (last_non_whitespace_utf16_offset >= entity->offset ||
-          (last_space_utf16_offset >= entity->offset && have_hidden_data)) {
+          (last_space_utf16_offset >= entity->offset && is_hidden_data_entity(entity->type))) {
         // TODO check entity for validness, for example, that mentions, hashtags, cashtags and URLs are valid
         // keep entity
       } else {
@@ -3547,8 +3551,7 @@ static std::pair<size_t, int32> remove_invalid_entities(const string &text, vect
       // one continuous entity for the given offset
       for (size_t i = nested_entities_stack.size(); i > 0; i--) {
         auto *entity = nested_entities_stack[i - 1];
-        if (entity->offset != utf16_offset || entity->type == MessageEntity::Type::TextUrl ||
-            entity->type == MessageEntity::Type::MentionName || is_pre_entity(entity->type)) {
+        if (entity->offset != utf16_offset || is_hidden_data_entity(entity->type)) {
           break;
         }
         entity->offset++;
@@ -3806,8 +3809,7 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
     CHECK(last_non_whitespace_pos < result.size());
     result.resize(last_non_whitespace_pos + 1);
     while (!entities.empty() && entities.back().offset > last_non_whitespace_utf16_offset) {
-      CHECK(entities.back().type == MessageEntity::Type::TextUrl ||
-            entities.back().type == MessageEntity::Type::MentionName || is_pre_entity(entities.back().type));
+      CHECK(is_hidden_data_entity(entities.back().type));
       entities.pop_back();
     }
     bool need_sort = false;
