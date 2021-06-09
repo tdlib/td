@@ -5079,8 +5079,8 @@ getBackgroundUrl name:string type:BackgroundType = HttpUrl;
 searchBackground name:string = Background;
 
 //@description Changes the background selected by the user; adds background to the list of installed backgrounds
-//@background The input background to use, null for filled backgrounds
-//@type Background type; null for default background. The method will return error 404 if type is null
+//@background The input background to use. Pass null to create a new filled backgrounds. Pass null to remove the current background
+//@type Background type. Pass null to use default type of the remote background. Pass null to remove the current background
 //@for_dark_theme True, if the background is chosen for dark theme
 setBackground background:InputBackground type:BackgroundType for_dark_theme:Bool = Background;
 

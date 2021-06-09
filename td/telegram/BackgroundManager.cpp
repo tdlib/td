@@ -108,10 +108,9 @@ class InstallBackgroundQuery : public Td::ResultHandler {
   explicit InstallBackgroundQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(BackgroundId background_id, int64 access_hash, const BackgroundType &type) {
-    send_query(G()->net_query_creator().create(telegram_api::account_installWallPaper(
-        telegram_api::make_object<telegram_api::inputWallPaper>(background_id.get(), access_hash),
-        get_input_wallpaper_settings(type))));
+  void send(telegram_api::object_ptr<telegram_api::InputWallPaper> input_wallpaper, const BackgroundType &type) {
+    send_query(G()->net_query_creator().create(
+        telegram_api::account_installWallPaper(std::move(input_wallpaper), get_input_wallpaper_settings(type))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -531,34 +530,44 @@ BackgroundId BackgroundManager::add_fill_background(const BackgroundFill &fill, 
 BackgroundId BackgroundManager::set_background(const td_api::InputBackground *input_background,
                                                const td_api::BackgroundType *background_type, bool for_dark_theme,
                                                Promise<Unit> &&promise) {
-  if (background_type == nullptr) {
-    set_background_id(BackgroundId(), BackgroundType(), for_dark_theme);
-    promise.set_value(Unit());
-    return BackgroundId();
+  BackgroundType type;
+  if (background_type != nullptr) {
+    auto r_type = get_background_type(background_type);
+    if (r_type.is_error()) {
+      promise.set_error(r_type.move_as_error());
+      return BackgroundId();
+    }
+    type = r_type.move_as_ok();
+  } else {
+    CHECK(!type.has_file());
   }
 
-  auto r_type = get_background_type(background_type);
-  if (r_type.is_error()) {
-    promise.set_error(r_type.move_as_error());
-    return BackgroundId();
-  }
+  if (input_background == nullptr) {
+    if (background_type == nullptr) {
+      set_background_id(BackgroundId(), BackgroundType(), for_dark_theme);
+      promise.set_value(Unit());
+      return BackgroundId();
+    }
+    if (type.has_file()) {
+      promise.set_error(Status::Error(400, "Input background must be non-empty for the background type"));
+      return BackgroundId();
+    }
 
-  auto type = r_type.move_as_ok();
-  if (type.type == BackgroundType::Type::Fill) {
+    CHECK(type.type == BackgroundType::Type::Fill);
     auto background_id = add_fill_background(type.fill);
     set_background_id(background_id, type, for_dark_theme);
     promise.set_value(Unit());
     return background_id;
   }
-  CHECK(type.is_server());
-
-  if (input_background == nullptr) {
-    promise.set_error(Status::Error(400, "Input background must be non-empty"));
-    return BackgroundId();
-  }
 
   switch (input_background->get_id()) {
     case td_api::inputBackgroundLocal::ID: {
+      if (!type.has_file()) {
+        promise.set_error(Status::Error(400, "Can't specify local file for the background type"));
+        return BackgroundId();
+      }
+      CHECK(background_type != nullptr);
+
       auto background_local = static_cast<const td_api::inputBackgroundLocal *>(input_background);
       auto r_file_id = prepare_input_file(background_local->background_);
       if (r_file_id.is_error()) {
@@ -578,7 +587,8 @@ BackgroundId BackgroundManager::set_background(const td_api::InputBackground *in
     }
     case td_api::inputBackgroundRemote::ID: {
       auto background_remote = static_cast<const td_api::inputBackgroundRemote *>(input_background);
-      return set_background(BackgroundId(background_remote->background_id_), type, for_dark_theme, std::move(promise));
+      return set_background(BackgroundId(background_remote->background_id_), std::move(type), for_dark_theme,
+                            std::move(promise));
     }
     default:
       UNREACHABLE();
@@ -586,13 +596,16 @@ BackgroundId BackgroundManager::set_background(const td_api::InputBackground *in
   return BackgroundId();
 }
 
-BackgroundId BackgroundManager::set_background(BackgroundId background_id, const BackgroundType &type,
-                                               bool for_dark_theme, Promise<Unit> &&promise) {
+BackgroundId BackgroundManager::set_background(BackgroundId background_id, BackgroundType type, bool for_dark_theme,
+                                               Promise<Unit> &&promise) {
   LOG(INFO) << "Set " << background_id << " with " << type;
   const auto *background = get_background(background_id);
   if (background == nullptr) {
     promise.set_error(Status::Error(400, "Background to set not found"));
     return BackgroundId();
+  }
+  if (!type.has_file()) {
+    type = background->type;
   }
   if (background->type.type != type.type) {
     promise.set_error(Status::Error(400, "Background type mismatch"));
@@ -604,13 +617,21 @@ BackgroundId BackgroundManager::set_background(BackgroundId background_id, const
   }
 
   LOG(INFO) << "Install " << background_id << " with " << type;
+
+  if (!type.has_file()) {
+    set_background_id(background_id, type, for_dark_theme);
+    promise.set_value(Unit());
+    return background_id;
+  }
+
   auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), background_id, type, for_dark_theme,
                                                promise = std::move(promise)](Result<Unit> &&result) mutable {
     send_closure(actor_id, &BackgroundManager::on_installed_background, background_id, type, for_dark_theme,
                  std::move(result), std::move(promise));
   });
   td_->create_handler<InstallBackgroundQuery>(std::move(query_promise))
-      ->send(background_id, background->access_hash, type);
+      ->send(telegram_api::make_object<telegram_api::inputWallPaper>(background_id.get(), background->access_hash),
+             type);
   return BackgroundId();
 }
 

@@ -123,7 +123,7 @@ class BackgroundManager : public Actor {
 
   Result<FileId> prepare_input_file(const tl_object_ptr<td_api::InputFile> &input_file);
 
-  BackgroundId set_background(BackgroundId background_id, const BackgroundType &type, bool for_dark_theme,
+  BackgroundId set_background(BackgroundId background_id, BackgroundType type, bool for_dark_theme,
                               Promise<Unit> &&promise);
 
   void on_installed_background(BackgroundId background_id, BackgroundType type, bool for_dark_theme,

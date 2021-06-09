@@ -2262,6 +2262,11 @@ class CliClient final : public Actor {
     } else if (op == "sbgfg" || op == "sbgfgd") {
       auto background_type = get_freeform_gradient_background(to_integers<int32>(args));
       send_request(td_api::make_object<td_api::setBackground>(nullptr, std::move(background_type), op == "sbgfgd"));
+    } else if (op == "sbgfid" || op == "sbgfidd") {
+      int64 background_id;
+      get_args(args, background_id);
+      send_request(td_api::make_object<td_api::setBackground>(
+          td_api::make_object<td_api::inputBackgroundRemote>(background_id), nullptr, op == "sbgfidd"));
     } else if (op == "sbgwid" || op == "sbgwidd") {
       send_request(td_api::make_object<td_api::setBackground>(
           td_api::make_object<td_api::inputBackgroundRemote>(to_integer<int64>(args)),

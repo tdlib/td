@@ -448,7 +448,7 @@ td_api::object_ptr<td_api::BackgroundType> get_background_type_object(const Back
 }
 
 telegram_api::object_ptr<telegram_api::wallPaperSettings> get_input_wallpaper_settings(const BackgroundType &type) {
-  CHECK(type.is_server());
+  CHECK(type.has_file());
 
   int32 flags = 0;
   if (type.is_blurred) {
