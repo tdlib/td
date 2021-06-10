@@ -101,6 +101,8 @@ class ConfigManager : public NetQueryCallback {
 
   void set_archive_and_mute(bool archive_and_mute, Promise<Unit> &&promise);
 
+  void hide_suggested_action(SuggestedAction suggested_action);
+
   void dismiss_suggested_action(SuggestedAction suggested_action, Promise<Unit> &&promise);
 
   void on_dc_options_update(DcOptions dc_options);

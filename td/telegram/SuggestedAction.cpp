@@ -25,6 +25,8 @@ void SuggestedAction::init(Type type) {
 SuggestedAction::SuggestedAction(Slice action_str) {
   if (action_str == Slice("AUTOARCHIVE_POPULAR")) {
     init(Type::EnableArchiveAndMuteNewChats);
+  } else if (action_str == Slice("VALIDATE_PHONE_NUMBER")) {
+    init(Type::CheckPhoneNumber);
   } else if (action_str == Slice("NEWCOMER_TICKS")) {
     init(Type::SeeTicksHint);
   }
@@ -70,6 +72,8 @@ string SuggestedAction::get_suggested_action_str() const {
   switch (type_) {
     case Type::EnableArchiveAndMuteNewChats:
       return "AUTOARCHIVE_POPULAR";
+    case Type::CheckPhoneNumber:
+      return "VALIDATE_PHONE_NUMBER";
     case Type::SeeTicksHint:
       return "NEWCOMER_TICKS";
     case Type::ConvertToGigagroup:

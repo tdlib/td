@@ -1074,6 +1074,10 @@ void ConfigManager::do_set_archive_and_mute(bool archive_and_mute) {
   G()->shared_config().set_option_boolean("archive_and_mute_new_chats_from_unknown_users", archive_and_mute);
 }
 
+void ConfigManager::hide_suggested_action(SuggestedAction suggested_action) {
+  remove_suggested_action(suggested_actions_, suggested_action);
+}
+
 void ConfigManager::dismiss_suggested_action(SuggestedAction suggested_action, Promise<Unit> &&promise) {
   auto action_str = suggested_action.get_suggested_action_str();
   if (action_str.empty()) {
