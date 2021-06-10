@@ -87,6 +87,7 @@ class BackgroundManager : public Actor {
   };
 
   class BackgroundLogEvent;
+  class BackgroundsLogEvent;
 
   class UploadBackgroundFileCallback;
 
@@ -96,7 +97,11 @@ class BackgroundManager : public Actor {
 
   static string get_background_database_key(bool for_dark_theme);
 
-  void save_background_id(bool for_dark_theme) const;
+  static string get_local_backgrounds_database_key(bool for_dark_theme);
+
+  void save_background_id(bool for_dark_theme);
+
+  void save_local_backgrounds(bool for_dark_theme);
 
   void reload_background_from_server(BackgroundId background_id, const string &background_name,
                                      telegram_api::object_ptr<telegram_api::InputWallPaper> &&input_wallpaper,
@@ -176,6 +181,7 @@ class BackgroundManager : public Actor {
   std::unordered_map<FileId, UploadedFileInfo, FileIdHash> being_uploaded_files_;
 
   BackgroundId max_local_background_id_;
+  vector<BackgroundId> local_background_ids_[2];
 
   Td *td_;
   ActorShared<> parent_;

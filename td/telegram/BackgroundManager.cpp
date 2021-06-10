@@ -318,6 +318,21 @@ class BackgroundManager::BackgroundLogEvent {
   }
 };
 
+class BackgroundManager::BackgroundsLogEvent {
+ public:
+  vector<Background> backgrounds_;
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    td::store(backgrounds_, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    td::parse(backgrounds_, parser);
+  }
+};
+
 void BackgroundManager::start_up() {
   max_local_background_id_ = BackgroundId(to_integer<int64>(G()->td_db()->get_binlog_pmc()->get("max_bg_id")));
 
@@ -338,7 +353,28 @@ void BackgroundManager::start_up() {
     }
   }
 
-  // then add backgrounds fixing their ID
+  for (int i = 0; i < 2; i++) {
+    bool for_dark_theme = i != 0;
+    auto log_event_string = G()->td_db()->get_binlog_pmc()->get(get_local_backgrounds_database_key(for_dark_theme));
+    if (!log_event_string.empty()) {
+      BackgroundsLogEvent log_event;
+      log_event_parse(log_event, log_event_string).ensure();
+      for (const auto &background : log_event.backgrounds_) {
+        CHECK(background.has_new_local_id);
+        CHECK(background.id.is_valid());
+        CHECK(background.id.is_local());
+        CHECK(!background.type.has_file());
+        CHECK(!background.file_id.is_valid());
+        if (background.id.get() > max_local_background_id_.get()) {
+          set_max_local_background_id(background.id);
+        }
+        add_background(background);
+        local_background_ids_[for_dark_theme].push_back(background.id);
+      }
+    }
+  }
+
+  // then add selected backgrounds fixing their ID
   for (int i = 0; i < 2; i++) {
     bool for_dark_theme = i != 0;
     if (has_selected_background[i]) {
@@ -590,6 +626,10 @@ BackgroundId BackgroundManager::set_background(const td_api::InputBackground *in
 
     auto background_id = add_local_background(type);
     set_background_id(background_id, type, for_dark_theme);
+
+    local_background_ids_[for_dark_theme].insert(local_background_ids_[for_dark_theme].begin(), background_id);
+    save_local_backgrounds(for_dark_theme);
+
     promise.set_value(Unit());
     return background_id;
   }
@@ -685,7 +725,11 @@ string BackgroundManager::get_background_database_key(bool for_dark_theme) {
   return for_dark_theme ? "bgd" : "bg";
 }
 
-void BackgroundManager::save_background_id(bool for_dark_theme) const {
+string BackgroundManager::get_local_backgrounds_database_key(bool for_dark_theme) {
+  return for_dark_theme ? "bgsd" : "bgs";
+}
+
+void BackgroundManager::save_background_id(bool for_dark_theme) {
   string key = get_background_database_key(for_dark_theme);
   auto background_id = set_background_id_[for_dark_theme];
   if (background_id.is_valid()) {
@@ -708,6 +752,26 @@ void BackgroundManager::set_background_id(BackgroundId background_id, const Back
 
   save_background_id(for_dark_theme);
   send_update_selected_background(for_dark_theme);
+}
+
+void BackgroundManager::save_local_backgrounds(bool for_dark_theme) {
+  string key = get_local_backgrounds_database_key(for_dark_theme);
+  auto &background_ids = local_background_ids_[for_dark_theme];
+  const size_t MAX_LOCAL_BACKGROUNDS = 100;
+  while (background_ids.size() > MAX_LOCAL_BACKGROUNDS) {
+    background_ids.pop_back();
+  }
+  if (!background_ids.empty()) {
+    BackgroundsLogEvent log_event;
+    log_event.backgrounds_ = transform(background_ids, [&](BackgroundId background_id) {
+      const Background *background = get_background(background_id);
+      CHECK(background != nullptr);
+      return *background;
+    });
+    G()->td_db()->get_binlog_pmc()->set(key, log_event_store(log_event).as_slice().str());
+  } else {
+    G()->td_db()->get_binlog_pmc()->erase(key);
+  }
 }
 
 void BackgroundManager::upload_background_file(FileId file_id, const BackgroundType &type, bool for_dark_theme,
@@ -831,6 +895,14 @@ void BackgroundManager::on_removed_background(BackgroundId background_id, Result
   if (background_id == set_background_id_[1]) {
     set_background_id(BackgroundId(), BackgroundType(), true);
   }
+  if (background_id.is_local()) {
+    if (td::remove(local_background_ids_[0], background_id)) {
+      save_local_backgrounds(false);
+    }
+    if (td::remove(local_background_ids_[1], background_id)) {
+      save_local_backgrounds(true);
+    }
+  }
   promise.set_value(Unit());
 }
 
@@ -850,6 +922,15 @@ void BackgroundManager::on_reset_background(Result<Unit> &&result, Promise<Unit>
   installed_background_ids_.clear();
   set_background_id(BackgroundId(), BackgroundType(), false);
   set_background_id(BackgroundId(), BackgroundType(), true);
+  if (!local_background_ids_[0].empty()) {
+    local_background_ids_[0].clear();
+    save_local_backgrounds(false);
+  }
+  if (!local_background_ids_[1].empty()) {
+    local_background_ids_[1].clear();
+    save_local_backgrounds(true);
+  }
+
   promise.set_value(Unit());
 }
 
@@ -1105,6 +1186,11 @@ td_api::object_ptr<td_api::backgrounds> BackgroundManager::get_backgrounds_objec
   if (background_id.is_valid() && !td::contains(installed_background_ids_, background_id)) {
     backgrounds.push_back(get_background_object(background_id, for_dark_theme));
   }
+  for (auto local_background_id : local_background_ids_[for_dark_theme]) {
+    if (local_background_id != background_id) {
+      backgrounds.push_back(get_background_object(local_background_id, for_dark_theme));
+    }
+  }
   std::stable_sort(backgrounds.begin(), backgrounds.end(),
                    [background_id, for_dark_theme](const td_api::object_ptr<td_api::background> &lhs,
                                                    const td_api::object_ptr<td_api::background> &rhs) {
@@ -1113,10 +1199,9 @@ td_api::object_ptr<td_api::backgrounds> BackgroundManager::get_backgrounds_objec
                        if (background->id_ == background_id.get()) {
                          return 0;
                        }
-                       if (background->is_dark_ == for_dark_theme) {
-                         return 1;
-                       }
-                       return 2;
+                       int theme_score = background->is_dark_ == for_dark_theme ? 0 : 1;
+                       int local_score = BackgroundId(background->id_).is_local() ? 0 : 2;
+                       return 1 + local_score + theme_score;
                      };
                      return get_order(lhs) < get_order(rhs);
                    });
