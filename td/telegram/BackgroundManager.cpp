@@ -446,14 +446,14 @@ std::pair<BackgroundId, BackgroundType> BackgroundManager::search_background(con
   }
 
   if (is_background_name_local(slug)) {
-    auto r_fill = BackgroundFill::get_background_fill(name);
-    if (r_fill.is_error()) {
-      promise.set_error(r_fill.move_as_error());
+    auto r_type = BackgroundType::get_local_background_type(name);
+    if (r_type.is_error()) {
+      promise.set_error(r_type.move_as_error());
       return {};
     }
-    auto background_id = add_fill_background(r_fill.ok());
+    auto background_id = add_local_background(r_type.ok());
     promise.set_value(Unit());
-    return {background_id, BackgroundType(r_fill.ok())};
+    return {background_id, r_type.ok()};
   }
 
   if (G()->parameters().use_file_db && loaded_from_database_backgrounds_.count(slug) == 0) {
@@ -549,18 +549,18 @@ BackgroundId BackgroundManager::get_next_local_background_id() {
   return max_local_background_id_;
 }
 
-BackgroundId BackgroundManager::add_fill_background(const BackgroundFill &fill) {
-  return add_fill_background(fill, false, fill.is_dark());
+BackgroundId BackgroundManager::add_local_background(const BackgroundType &type) {
+  return add_local_background(type, false, type.is_dark());
 }
 
-BackgroundId BackgroundManager::add_fill_background(const BackgroundFill &fill, bool is_default, bool is_dark) {
+BackgroundId BackgroundManager::add_local_background(const BackgroundType &type, bool is_default, bool is_dark) {
   Background background;
   background.id = get_next_local_background_id();
   background.is_creator = true;
   background.is_default = is_default;
   background.is_dark = is_dark;
-  background.type = BackgroundType(fill);
-  background.name = background.type.get_link();
+  background.type = type;
+  background.name = type.get_link();
   add_background(background);
 
   return background.id;
@@ -592,7 +592,7 @@ BackgroundId BackgroundManager::set_background(const td_api::InputBackground *in
       return BackgroundId();
     }
 
-    auto background_id = add_fill_background(type.get_background_fill());
+    auto background_id = add_local_background(type);
     set_background_id(background_id, type, for_dark_theme);
     promise.set_value(Unit());
     return background_id;
@@ -644,7 +644,7 @@ BackgroundId BackgroundManager::set_background(BackgroundId background_id, Backg
   }
   if (!type.has_file()) {
     type = background->type;
-  } else if (background->type.has_equal_type(type)) {
+  } else if (!background->type.has_equal_type(type)) {
     promise.set_error(Status::Error(400, "Background type mismatch"));
     return BackgroundId();
   }

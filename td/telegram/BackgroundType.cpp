@@ -304,11 +304,6 @@ string BackgroundType::get_link() const {
   }
 }
 
-BackgroundFill BackgroundType::get_background_fill() {
-  CHECK(type_ == Type::Fill);
-  return fill_;
-}
-
 bool operator==(const BackgroundType &lhs, const BackgroundType &rhs) {
   return lhs.type_ == rhs.type_ && lhs.is_blurred_ == rhs.is_blurred_ && lhs.is_moving_ == rhs.is_moving_ &&
          lhs.intensity_ == rhs.intensity_ && lhs.fill_ == rhs.fill_;
@@ -360,6 +355,11 @@ Result<BackgroundType> BackgroundType::get_background_type(const td_api::Backgro
       UNREACHABLE();
       return BackgroundType();
   }
+}
+
+Result<BackgroundType> BackgroundType::get_local_background_type(Slice name) {
+  TRY_RESULT(fill, BackgroundFill::get_background_fill(name));
+  return BackgroundType(fill);
 }
 
 BackgroundType::BackgroundType(bool is_fill, bool is_pattern,

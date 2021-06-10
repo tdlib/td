@@ -110,9 +110,9 @@ class BackgroundManager : public Actor {
 
   BackgroundId get_next_local_background_id();
 
-  BackgroundId add_fill_background(const BackgroundFill &fill);
+  BackgroundId add_local_background(const BackgroundType &type);
 
-  BackgroundId add_fill_background(const BackgroundFill &fill, bool is_default, bool is_dark);
+  BackgroundId add_local_background(const BackgroundType &type, bool is_default, bool is_dark);
 
   void add_background(const Background &background);
 

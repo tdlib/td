@@ -56,7 +56,6 @@ class BackgroundFill {
 
   friend class BackgroundType;
 
- public:
   static Result<BackgroundFill> get_background_fill(Slice name);
 
   bool is_dark() const;
@@ -76,8 +75,6 @@ class BackgroundType {
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const BackgroundType &type);
 
- public:
-  BackgroundType() = default;
   BackgroundType(bool is_blurred, bool is_moving)
       : type_(Type::Wallpaper), is_blurred_(is_blurred), is_moving_(is_moving) {
   }
@@ -87,15 +84,18 @@ class BackgroundType {
   explicit BackgroundType(BackgroundFill fill) : type_(Type::Fill), fill_(fill) {
   }
 
+ public:
+  BackgroundType() = default;
+
   BackgroundType(bool is_fill, bool is_pattern, telegram_api::object_ptr<telegram_api::wallPaperSettings> settings);
 
   static Result<BackgroundType> get_background_type(const td_api::BackgroundType *background_type);
 
+  static Result<BackgroundType> get_local_background_type(Slice name);
+
   bool has_file() const {
     return type_ == Type::Wallpaper || type_ == Type::Pattern;
   }
-
-  BackgroundFill get_background_fill();
 
   string get_mime_type() const;
 
@@ -110,6 +110,11 @@ class BackgroundType {
   td_api::object_ptr<td_api::BackgroundType> get_background_type_object() const;
 
   telegram_api::object_ptr<telegram_api::wallPaperSettings> get_input_wallpaper_settings() const;
+
+  bool is_dark() const {
+    CHECK(type_ == Type::Fill);
+    return fill_.is_dark();
+  }
 
   template <class StorerT>
   void store(StorerT &storer) const;
