@@ -59,11 +59,7 @@ class BackgroundFill {
  public:
   static Result<BackgroundFill> get_background_fill(Slice name);
 
-  int64 get_id() const;
-
   bool is_dark() const;
-
-  static bool is_valid_id(int64 id);
 };
 
 bool operator==(const BackgroundFill &lhs, const BackgroundFill &rhs);

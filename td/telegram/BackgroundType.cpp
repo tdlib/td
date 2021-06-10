@@ -207,32 +207,6 @@ static bool is_valid_intensity(int32 intensity) {
   return -100 <= intensity && intensity <= 100;
 }
 
-int64 BackgroundFill::get_id() const {
-  CHECK(is_valid_color(top_color_));
-  CHECK(is_valid_color(bottom_color_));
-  switch (get_type()) {
-    case Type::Solid:
-      return static_cast<int64>(top_color_) + 1;
-    case Type::Gradient:
-      CHECK(is_valid_rotation_angle(rotation_angle_));
-      return (rotation_angle_ / 45) * 0x1000001000001 + (static_cast<int64>(top_color_) << 24) + bottom_color_ +
-             (1 << 24) + 1;
-    case Type::FreeformGradient: {
-      CHECK(is_valid_color(third_color_));
-      CHECK(fourth_color_ == -1 || is_valid_color(fourth_color_));
-      const uint64 mul = 123456789;
-      uint64 result = static_cast<uint64>(top_color_);
-      result = result * mul + static_cast<uint64>(bottom_color_);
-      result = result * mul + static_cast<uint64>(third_color_);
-      result = result * mul + static_cast<uint64>(fourth_color_);
-      return static_cast<int64>(result % 0x8000008000008);
-    }
-    default:
-      UNREACHABLE();
-      return 0;
-  }
-}
-
 bool BackgroundFill::is_dark() const {
   switch (get_type()) {
     case Type::Solid:
@@ -246,10 +220,6 @@ bool BackgroundFill::is_dark() const {
       UNREACHABLE();
       return 0;
   }
-}
-
-bool BackgroundFill::is_valid_id(int64 id) {
-  return 0 < id && id < 0x8000008000008;
 }
 
 bool operator==(const BackgroundFill &lhs, const BackgroundFill &rhs) {

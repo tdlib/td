@@ -268,6 +268,7 @@ void BackgroundManager::Background::store(StorerT &storer) const {
   STORE_FLAG(is_default);
   STORE_FLAG(is_dark);
   STORE_FLAG(has_file_id);
+  STORE_FLAG(has_new_local_id);
   END_STORE_FLAGS();
   td::store(id, storer);
   td::store(access_hash, storer);
@@ -286,6 +287,7 @@ void BackgroundManager::Background::parse(ParserT &parser) {
   PARSE_FLAG(is_default);
   PARSE_FLAG(is_dark);
   PARSE_FLAG(has_file_id);
+  PARSE_FLAG(has_new_local_id);
   END_PARSE_FLAGS();
   td::parse(id, parser);
   td::parse(access_hash, parser);
@@ -317,23 +319,52 @@ class BackgroundManager::BackgroundLogEvent {
 };
 
 void BackgroundManager::start_up() {
+  max_local_background_id_ = BackgroundId(to_integer<int64>(G()->td_db()->get_binlog_pmc()->get("max_bg_id")));
+
+  // first parse all log events and fix max_local_background_id_ value
+  bool has_selected_background[2] = {false, false};
+  BackgroundLogEvent selected_background_log_event[2];
   for (int i = 0; i < 2; i++) {
     bool for_dark_theme = i != 0;
     auto log_event_string = G()->td_db()->get_binlog_pmc()->get(get_background_database_key(for_dark_theme));
     if (!log_event_string.empty()) {
-      BackgroundLogEvent log_event;
-      log_event_parse(log_event, log_event_string).ensure();
-
-      CHECK(log_event.background_.id.is_valid());
-      if (log_event.background_.file_id.is_valid() != log_event.background_.type.has_file()) {
-        LOG(ERROR) << "Failed to load " << log_event.background_.id << " of " << log_event.background_.type;
-        G()->td_db()->get_binlog_pmc()->erase(get_background_database_key(for_dark_theme));
-        continue;
+      has_selected_background[i] = true;
+      log_event_parse(selected_background_log_event[i], log_event_string).ensure();
+      const Background &background = selected_background_log_event[i].background_;
+      if (background.has_new_local_id && background.id.is_local() && !background.type.has_file() &&
+          background.id.get() > max_local_background_id_.get()) {
+        set_max_local_background_id(background.id);
       }
-      set_background_id_[for_dark_theme] = log_event.background_.id;
-      set_background_type_[for_dark_theme] = log_event.set_type_;
+    }
+  }
 
-      add_background(log_event.background_);
+  // then add backgrounds fixing their ID
+  for (int i = 0; i < 2; i++) {
+    bool for_dark_theme = i != 0;
+    if (has_selected_background[i]) {
+      Background &background = selected_background_log_event[i].background_;
+
+      bool need_resave = false;
+      if (!background.has_new_local_id && !background.type.has_file()) {
+        background.has_new_local_id = true;
+        background.id = get_next_local_background_id();
+        need_resave = true;
+      }
+
+      CHECK(background.id.is_valid());
+      if (background.file_id.is_valid() != background.type.has_file()) {
+        LOG(ERROR) << "Failed to load " << background.id << " of " << background.type;
+        need_resave = true;
+      } else {
+        set_background_id_[for_dark_theme] = background.id;
+        set_background_type_[for_dark_theme] = selected_background_log_event[i].set_type_;
+
+        add_background(background);
+      }
+
+      if (need_resave) {
+        save_background_id(for_dark_theme);
+      }
     }
 
     send_update_selected_background(for_dark_theme);
@@ -506,15 +537,25 @@ Result<FileId> BackgroundManager::prepare_input_file(const tl_object_ptr<td_api:
   return std::move(file_id);
 }
 
+void BackgroundManager::set_max_local_background_id(BackgroundId background_id) {
+  CHECK(background_id.is_local());
+  CHECK(background_id.get() > max_local_background_id_.get());
+  max_local_background_id_ = background_id;
+  G()->td_db()->get_binlog_pmc()->set("max_bg_id", to_string(max_local_background_id_.get()));
+}
+
+BackgroundId BackgroundManager::get_next_local_background_id() {
+  set_max_local_background_id(BackgroundId(max_local_background_id_.get() + 1));
+  return max_local_background_id_;
+}
+
 BackgroundId BackgroundManager::add_fill_background(const BackgroundFill &fill) {
   return add_fill_background(fill, false, fill.is_dark());
 }
 
 BackgroundId BackgroundManager::add_fill_background(const BackgroundFill &fill, bool is_default, bool is_dark) {
-  BackgroundId background_id(fill.get_id());
-
   Background background;
-  background.id = background_id;
+  background.id = get_next_local_background_id();
   background.is_creator = true;
   background.is_default = is_default;
   background.is_dark = is_dark;
@@ -522,7 +563,7 @@ BackgroundId BackgroundManager::add_fill_background(const BackgroundFill &fill, 
   background.name = background.type.get_link();
   add_background(background);
 
-  return background_id;
+  return background.id;
 }
 
 BackgroundId BackgroundManager::set_background(const td_api::InputBackground *input_background,
@@ -933,7 +974,7 @@ BackgroundId BackgroundManager::on_get_background(BackgroundId expected_backgrou
     }
 
     auto background_id = BackgroundId(wallpaper->id_);
-    if (!background_id.is_valid() || BackgroundFill::is_valid_id(wallpaper->id_)) {
+    if (!background_id.is_valid() || background_id.is_local()) {
       LOG(ERROR) << "Receive " << to_string(wallpaper);
       return BackgroundId();
     }
@@ -952,16 +993,12 @@ BackgroundId BackgroundManager::on_get_background(BackgroundId expected_backgrou
 
   auto wallpaper = move_tl_object_as<telegram_api::wallPaper>(wallpaper_ptr);
   auto background_id = BackgroundId(wallpaper->id_);
-  if (!background_id.is_valid()) {
+  if (!background_id.is_valid() || background_id.is_local() || is_background_name_local(wallpaper->slug_)) {
     LOG(ERROR) << "Receive " << to_string(wallpaper);
     return BackgroundId();
   }
   if (expected_background_id.is_valid() && background_id != expected_background_id) {
     LOG(ERROR) << "Expected " << expected_background_id << ", but receive " << to_string(wallpaper);
-  }
-  if (is_background_name_local(wallpaper->slug_) || BackgroundFill::is_valid_id(wallpaper->id_)) {
-    LOG(ERROR) << "Receive " << to_string(wallpaper);
-    return BackgroundId();
   }
 
   int32 document_id = wallpaper->document_->get_id();

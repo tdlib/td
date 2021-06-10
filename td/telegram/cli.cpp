@@ -2251,8 +2251,9 @@ class CliClient final : public Actor {
           td_api::make_object<td_api::inputBackgroundLocal>(as_input_file(args)),
           get_gradient_pattern_background(0xABCDEF, 0xFE, 51, false), op == "sbggpd"));
     } else if (op == "sbgs" || op == "sbgsd") {
-      send_request(td_api::make_object<td_api::setBackground>(nullptr, get_solid_background(to_integer<int32>(args)),
-                                                              op == "sbgsd"));
+      int32 color;
+      get_args(args, color);
+      send_request(td_api::make_object<td_api::setBackground>(nullptr, get_solid_background(color), op == "sbgsd"));
     } else if (op == "sbgg" || op == "sbggd") {
       int32 top_color;
       int32 bottom_color;
@@ -2268,12 +2269,16 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::setBackground>(
           td_api::make_object<td_api::inputBackgroundRemote>(background_id), nullptr, op == "sbgfidd"));
     } else if (op == "sbgwid" || op == "sbgwidd") {
+      int64 background_id;
+      get_args(args, background_id);
       send_request(td_api::make_object<td_api::setBackground>(
-          td_api::make_object<td_api::inputBackgroundRemote>(to_integer<int64>(args)),
+          td_api::make_object<td_api::inputBackgroundRemote>(background_id),
           td_api::make_object<td_api::backgroundTypeWallpaper>(true, true), op == "sbgwidd"));
     } else if (op == "sbgpid" || op == "sbgpidd") {
+      int64 background_id;
+      get_args(args, background_id);
       send_request(td_api::make_object<td_api::setBackground>(
-          td_api::make_object<td_api::inputBackgroundRemote>(to_integer<int64>(args)),
+          td_api::make_object<td_api::inputBackgroundRemote>(background_id),
           get_solid_pattern_background(0xabcdef, 49, true), op == "sbgpidd"));
     } else if (op == "rbg") {
       send_request(td_api::make_object<td_api::removeBackground>(to_integer<int64>(args)));

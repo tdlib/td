@@ -75,6 +75,7 @@ class BackgroundManager : public Actor {
     bool is_creator = false;
     bool is_default = false;
     bool is_dark = false;
+    bool has_new_local_id = true;
     BackgroundType type;
     FileSourceId file_source_id;
 
@@ -104,6 +105,10 @@ class BackgroundManager : public Actor {
   td_api::object_ptr<td_api::updateSelectedBackground> get_update_selected_background_object(bool for_dark_theme) const;
 
   void send_update_selected_background(bool for_dark_theme) const;
+
+  void set_max_local_background_id(BackgroundId background_id);
+
+  BackgroundId get_next_local_background_id();
 
   BackgroundId add_fill_background(const BackgroundFill &fill);
 
@@ -171,6 +176,8 @@ class BackgroundManager : public Actor {
     Promise<Unit> promise;
   };
   std::unordered_map<FileId, UploadedFileInfo, FileIdHash> being_uploaded_files_;
+
+  BackgroundId max_local_background_id_;
 
   Td *td_;
   ActorShared<> parent_;
