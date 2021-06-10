@@ -284,8 +284,6 @@ class ContactsManager : public Actor {
 
   void invalidate_user_full(UserId user_id);
 
-  void on_channel_unban_timeout(ChannelId channel_id);
-
   void check_dialog_username(DialogId dialog_id, const string &username, Promise<CheckDialogUsernameResult> &&promise);
 
   static td_api::object_ptr<td_api::CheckChatUsernameResult> get_check_chat_username_result_object(
@@ -1553,6 +1551,8 @@ class ContactsManager : public Actor {
   static void on_invite_link_info_expire_timeout_callback(void *contacts_manager_ptr, int64 dialog_id_long);
 
   void on_user_online_timeout(UserId user_id);
+
+  void on_channel_unban_timeout(ChannelId channel_id);
 
   void on_user_nearby_timeout(UserId user_id);
 

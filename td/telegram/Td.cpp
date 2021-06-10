@@ -3186,13 +3186,6 @@ void Td::schedule_get_promo_data(int32 expires_in) {
   }
 }
 
-void Td::on_channel_unban_timeout(int64 channel_id_long) {
-  if (close_flag_ >= 2) {
-    return;
-  }
-  contacts_manager_->on_channel_unban_timeout(ChannelId(narrow_cast<int32>(channel_id_long)));
-}
-
 bool Td::is_online() const {
   return is_online_;
 }

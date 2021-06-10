@@ -3507,11 +3507,20 @@ void ContactsManager::on_user_online_timeout(UserId user_id) {
 }
 
 void ContactsManager::on_channel_unban_timeout_callback(void *contacts_manager_ptr, int64 channel_id_long) {
-  auto td = static_cast<ContactsManager *>(contacts_manager_ptr)->td_;
-  send_closure_later(td->actor_id(td), &Td::on_channel_unban_timeout, channel_id_long);
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto contacts_manager = static_cast<ContactsManager *>(contacts_manager_ptr);
+  send_closure_later(contacts_manager->actor_id(contacts_manager), &ContactsManager::on_channel_unban_timeout,
+                     ChannelId(narrow_cast<int32>(channel_id_long)));
 }
 
 void ContactsManager::on_channel_unban_timeout(ChannelId channel_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   auto c = get_channel(channel_id);
   CHECK(c != nullptr);
 
