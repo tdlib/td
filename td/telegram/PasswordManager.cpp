@@ -10,6 +10,7 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
+#include "td/telegram/SuggestedAction.h"
 #include "td/telegram/TdDb.h"
 
 #include "td/mtproto/DhHandshake.h"
@@ -303,6 +304,9 @@ void PasswordManager::on_finish_create_temp_password(Result<TempPasswordState> r
 }
 
 void PasswordManager::get_full_state(string password, Promise<PasswordFullState> promise) {
+  send_closure(G()->config_manager(), &ConfigManager::hide_suggested_action,
+               SuggestedAction{SuggestedAction::Type::CheckPassword});
+
   do_get_state(PromiseCreator::lambda([password = std::move(password), promise = std::move(promise),
                                        actor_id = actor_id(this)](Result<PasswordState> r_state) mutable {
     if (r_state.is_error()) {

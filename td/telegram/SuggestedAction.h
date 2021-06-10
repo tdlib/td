@@ -15,7 +15,14 @@
 namespace td {
 
 struct SuggestedAction {
-  enum class Type : int32 { Empty, EnableArchiveAndMuteNewChats, CheckPhoneNumber, SeeTicksHint, ConvertToGigagroup };
+  enum class Type : int32 {
+    Empty,
+    EnableArchiveAndMuteNewChats,
+    CheckPhoneNumber,
+    SeeTicksHint,
+    ConvertToGigagroup,
+    CheckPassword
+  };
   Type type_ = Type::Empty;
   DialogId dialog_id_;
 

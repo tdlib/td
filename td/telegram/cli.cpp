@@ -1388,6 +1388,9 @@ class CliClient final : public Actor {
     if (action == "unarchive") {
       return td_api::make_object<td_api::suggestedActionEnableArchiveAndMuteNewChats>();
     }
+    if (action == "pass") {
+      return td_api::make_object<td_api::suggestedActionCheckPassword>();
+    }
     if (action == "number") {
       return td_api::make_object<td_api::suggestedActionCheckPhoneNumber>();
     }

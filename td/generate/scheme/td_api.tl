@@ -3291,7 +3291,10 @@ tMeUrls urls:vector<tMeUrl> = TMeUrls;
 //@description Suggests the user to enable "archive_and_mute_new_chats_from_unknown_users" option
 suggestedActionEnableArchiveAndMuteNewChats = SuggestedAction;
 
-//@description Suggests the user to check authorization phone number and change the phone number if it is inaccessible
+//@description Suggests the user to check whether 2-step verification password is still remembered
+suggestedActionCheckPassword = SuggestedAction;
+
+//@description Suggests the user to check whether authorization phone number is correct and change the phone number if it is inaccessible
 suggestedActionCheckPhoneNumber = SuggestedAction;
 
 //@description Suggests the user to see a hint about meaning of one and two ticks on sent message
