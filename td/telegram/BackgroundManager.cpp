@@ -550,15 +550,11 @@ BackgroundId BackgroundManager::get_next_local_background_id() {
 }
 
 BackgroundId BackgroundManager::add_local_background(const BackgroundType &type) {
-  return add_local_background(type, false, type.is_dark());
-}
-
-BackgroundId BackgroundManager::add_local_background(const BackgroundType &type, bool is_default, bool is_dark) {
   Background background;
   background.id = get_next_local_background_id();
   background.is_creator = true;
-  background.is_default = is_default;
-  background.is_dark = is_dark;
+  background.is_default = false;
+  background.is_dark = type.is_dark();
   background.type = type;
   background.name = type.get_link();
   add_background(background);
@@ -967,12 +963,6 @@ BackgroundId BackgroundManager::on_get_background(BackgroundId expected_backgrou
       return BackgroundId();
     }
 
-    auto is_default = (wallpaper->flags_ & telegram_api::wallPaperNoFile::DEFAULT_MASK) != 0;
-    if (!is_default) {
-      LOG(ERROR) << "Receive non-default wallPaperNoFile: " << to_string(wallpaper);
-      return BackgroundId();
-    }
-
     auto background_id = BackgroundId(wallpaper->id_);
     if (!background_id.is_valid() || background_id.is_local()) {
       LOG(ERROR) << "Receive " << to_string(wallpaper);
@@ -982,7 +972,7 @@ BackgroundId BackgroundManager::on_get_background(BackgroundId expected_backgrou
     Background background;
     background.id = background_id;
     background.is_creator = false;
-    background.is_default = true;
+    background.is_default = (wallpaper->flags_ & telegram_api::wallPaperNoFile::DEFAULT_MASK) != 0;
     background.is_dark = (wallpaper->flags_ & telegram_api::wallPaperNoFile::DARK_MASK) != 0;
     background.type = BackgroundType(true, false, std::move(wallpaper->settings_));
     background.name = background.type.get_link();

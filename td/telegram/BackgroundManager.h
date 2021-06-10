@@ -112,8 +112,6 @@ class BackgroundManager : public Actor {
 
   BackgroundId add_local_background(const BackgroundType &type);
 
-  BackgroundId add_local_background(const BackgroundType &type, bool is_default, bool is_dark);
-
   void add_background(const Background &background);
 
   Background *get_background_ref(BackgroundId background_id);
