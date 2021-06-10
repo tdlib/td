@@ -201,7 +201,7 @@ See [tdlib-bundle](https://github.com/yaroslavche/tdlib-bundle) – a Symfony bu
 
 TDLib can be used from the Lua programming language through the [JSON](https://github.com/tdlib/td#using-json) interface.
 
-See [luajit-tdlib](https://github.com/Rami-Sabbagh/luajit-tdlib), [tdlua](https://github.com/giuseppeM99/tdlua), [Luagram](https://github.com/Luagram/LuagramProject), or
+See [luajit-tdlib](https://github.com/Rami-Sabbagh/luajit-tdlib), [tdlua](https://github.com/giuseppeM99/tdlua), or
 [luajit-tdlib](https://github.com/Playermet/luajit-tdlib) for examples of TDLib Lua bindings and basic usage examples.
 
 See also [tdbot](https://github.com/vysheng/tdbot), which makes all TDLib features available from Lua scripts.
