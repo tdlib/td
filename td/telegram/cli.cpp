@@ -4544,7 +4544,7 @@ void main(int argc, char **argv) {
   combined_log.set_first_verbosity_level(new_verbosity_level);
 
   if (combined_log.get_first() == &cli_log) {
-    file_log.init("tg_cli.log", 1000 << 20).ensure();
+    file_log.init("tg_cli.log", 1000 << 20, false).ensure();
     file_log.lazy_rotate();
     combined_log.set_second(&ts_log);
     combined_log.set_second_verbosity_level(VERBOSITY_NAME(DEBUG));
