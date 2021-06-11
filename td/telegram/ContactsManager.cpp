@@ -14953,26 +14953,35 @@ DialogParticipant ContactsManager::get_channel_participant(ChannelId channel_id,
   LOG(DEBUG) << "Get info about " << participant_dialog_id << " membership in the " << channel_id << " with random_id "
              << random_id;
 
-  auto on_result_promise = PromiseCreator::lambda(
-      [this, random_id, promise = std::move(promise)](Result<DialogParticipant> r_dialog_participant) mutable {
-        // ResultHandlers are cleared before managers, so it is safe to capture this
-        LOG(INFO) << "Receive a member of a channel with random_id " << random_id;
-
-        auto it = received_channel_participant_.find(random_id);
-        CHECK(it != received_channel_participant_.end());
-
-        if (r_dialog_participant.is_error()) {
-          received_channel_participant_.erase(it);
-          promise.set_error(r_dialog_participant.move_as_error());
-        } else {
-          it->second = r_dialog_participant.move_as_ok();
-          promise.set_value(Unit());
-        }
-      });
+  auto on_result_promise = PromiseCreator::lambda([actor_id = actor_id(this), random_id, promise = std::move(promise)](
+                                                      Result<DialogParticipant> r_dialog_participant) mutable {
+    send_closure(actor_id, &ContactsManager::on_get_channel_participant, random_id, std::move(r_dialog_participant),
+                 std::move(promise));
+  });
 
   td_->create_handler<GetChannelParticipantQuery>(std::move(on_result_promise))
       ->send(channel_id, participant_dialog_id, std::move(input_peer));
   return DialogParticipant();
+}
+
+void ContactsManager::on_get_channel_participant(int64 random_id, Result<DialogParticipant> r_dialog_participant,
+                                                 Promise<Unit> &&promise) {
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
+
+  LOG(INFO) << "Receive a member of a channel with random_id " << random_id;
+
+  auto it = received_channel_participant_.find(random_id);
+  CHECK(it != received_channel_participant_.end());
+
+  if (r_dialog_participant.is_error()) {
+    received_channel_participant_.erase(it);
+    promise.set_error(r_dialog_participant.move_as_error());
+  } else {
+    it->second = r_dialog_participant.move_as_ok();
+    promise.set_value(Unit());
+  }
 }
 
 void ContactsManager::get_channel_participants(ChannelId channel_id,

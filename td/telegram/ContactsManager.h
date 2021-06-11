@@ -1493,6 +1493,9 @@ class ContactsManager : public Actor {
 
   void delete_chat_participant(ChatId chat_id, UserId user_id, bool revoke_messages, Promise<Unit> &&promise);
 
+  void on_get_channel_participant(int64 random_id, Result<DialogParticipant> r_dialog_participant,
+                                  Promise<Unit> &&promise);
+
   void search_chat_participants(ChatId chat_id, const string &query, int32 limit, DialogParticipantsFilter filter,
                                 Promise<DialogParticipants> &&promise);
 
