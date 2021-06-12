@@ -979,6 +979,8 @@ class ContactsManager : public Actor {
   static constexpr size_t MAX_BIO_LENGTH = 70;                // server side limit
   static constexpr int32 MAX_GET_CHANNEL_PARTICIPANTS = 200;  // server side limit
 
+  static constexpr int32 CHANNEL_PARTICIPANT_CACHE_TIME = 1800;  // some reasonable limit
+
   static constexpr int32 USER_FLAG_HAS_ACCESS_HASH = 1 << 0;
   static constexpr int32 USER_FLAG_HAS_FIRST_NAME = 1 << 1;
   static constexpr int32 USER_FLAG_HAS_LAST_NAME = 1 << 2;
@@ -1493,7 +1495,7 @@ class ContactsManager : public Actor {
 
   void delete_chat_participant(ChatId chat_id, UserId user_id, bool revoke_messages, Promise<Unit> &&promise);
 
-  void on_get_channel_participant(int64 random_id, Result<DialogParticipant> r_dialog_participant,
+  void on_get_channel_participant(ChannelId channel_id, int64 random_id, Result<DialogParticipant> r_dialog_participant,
                                   Promise<Unit> &&promise);
 
   void search_chat_participants(ChatId chat_id, const string &query, int32 limit, DialogParticipantsFilter filter,
@@ -1510,6 +1512,14 @@ class ContactsManager : public Actor {
                                    string additional_query, int32 additional_limit,
                                    tl_object_ptr<telegram_api::channels_channelParticipants> &&channel_participants,
                                    Promise<DialogParticipants> &&promise);
+
+  bool have_channel_participant_cache(ChannelId channel_id) const;
+
+  void add_channel_participant_to_cache(ChannelId channel_id, const DialogParticipant &dialog_participant,
+                                        bool allow_replace);
+
+  const DialogParticipant *get_channel_participant_from_cache(ChannelId channel_id,
+                                                              DialogId participant_dialog_id) const;
 
   void change_channel_participant_status_impl(ChannelId channel_id, DialogId participant_dialog_id,
                                               DialogParticipantStatus status, DialogParticipantStatus old_status,
@@ -1553,6 +1563,8 @@ class ContactsManager : public Actor {
 
   static void on_invite_link_info_expire_timeout_callback(void *contacts_manager_ptr, int64 dialog_id_long);
 
+  static void on_channel_participant_cache_timeout_callback(void *contacts_manager_ptr, int64 channel_id_long);
+
   void on_user_online_timeout(UserId user_id);
 
   void on_channel_unban_timeout(ChannelId channel_id);
@@ -1562,6 +1574,8 @@ class ContactsManager : public Actor {
   void on_slow_mode_delay_timeout(ChannelId channel_id);
 
   void on_invite_link_info_expire_timeout(DialogId dialog_id);
+
+  void on_channel_participant_cache_timeout(ChannelId channel_id);
 
   void tear_down() override;
 
@@ -1667,6 +1681,17 @@ class ContactsManager : public Actor {
 
   std::unordered_map<ChannelId, vector<DialogParticipant>, ChannelIdHash> cached_channel_participants_;
 
+  // bot-administrators only
+  struct ChannelParticipantInfo {
+    DialogParticipant participant_;
+
+    mutable int32 last_access_date_ = 0;
+  };
+  struct ChannelParticipants {
+    std::unordered_map<DialogId, ChannelParticipantInfo, DialogIdHash> participants_;
+  };
+  std::unordered_map<ChannelId, ChannelParticipants, ChannelIdHash> channel_participants_;
+
   bool are_contacts_loaded_ = false;
   int32 next_contacts_sync_date_ = 0;
   Hints contacts_hints_;  // search contacts by first name, last name and username
@@ -1710,6 +1735,7 @@ class ContactsManager : public Actor {
   MultiTimeout user_nearby_timeout_{"UserNearbyTimeout"};
   MultiTimeout slow_mode_delay_timeout_{"SlowModeDelayTimeout"};
   MultiTimeout invite_link_info_expire_timeout_{"InviteLinkInfoExpireTimeout"};
+  MultiTimeout channel_participant_cache_timeout_{"ChannelParticipantCacheTimeout"};
 };
 
 }  // namespace td
