@@ -1,5 +1,11 @@
 cmake_minimum_required(VERSION 3.0.2 FATAL_ERROR)
 
+if (POLICY CMP0065)
+  # do not export symbols from executables
+  # affects compiler checks in project(), so must be set before it
+  cmake_policy(SET CMP0065 NEW)
+endif()
+
 project(TDLib VERSION 1.7.4 LANGUAGES CXX C)
 
 if (NOT DEFINED CMAKE_MODULE_PATH)
