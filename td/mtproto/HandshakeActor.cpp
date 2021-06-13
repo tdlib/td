@@ -56,7 +56,7 @@ void HandshakeActor::return_connection(Status status) {
     return;
   }
   if (status.is_error() && !raw_connection->extra().debug_str.empty()) {
-    status = Status::Error(status.code(), PSLICE() << status.message() << " : " << raw_connection->extra().debug_str);
+    status = status.move_as_error_suffix(PSLICE() << " : " << raw_connection->extra().debug_str);
   }
   Scheduler::unsubscribe(raw_connection->get_poll_info().get_pollable_fd_ref());
   if (raw_connection_promise_) {
