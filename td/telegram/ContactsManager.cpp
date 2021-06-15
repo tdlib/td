@@ -13192,6 +13192,11 @@ void ContactsManager::on_channel_status_changed(const Channel *c, ChannelId chan
   if (td_->auth_manager_->is_bot() && old_status.is_administrator() && !new_status.is_administrator()) {
     channel_participants_.erase(channel_id);
   }
+  if (td_->auth_manager_->is_bot() && old_status.is_member() && !new_status.is_member() &&
+      !G()->parameters().use_message_db) {
+    send_closure_later(G()->messages_manager(), &MessagesManager::on_dialog_deleted, DialogId(channel_id),
+                       Promise<Unit>());
+  }
 
   // must not load ChannelFull, because must not change the Channel
   CHECK(have_channel_full == (get_channel_full(channel_id) != nullptr));

@@ -10968,6 +10968,9 @@ void MessagesManager::on_dialog_deleted(DialogId dialog_id, Promise<Unit> &&prom
   if (remove_recently_found_dialog_internal(dialog_id)) {
     save_recently_found_dialogs();
   }
+  if (dialog_id.get_type() == DialogType::Channel) {
+    G()->td_db()->get_binlog_pmc()->erase(get_channel_pts_key(dialog_id));
+  }
 
   close_dialog(d);
   promise.set_value(Unit());
@@ -34958,7 +34961,7 @@ string MessagesManager::get_channel_pts_key(DialogId dialog_id) {
 }
 
 int32 MessagesManager::load_channel_pts(DialogId dialog_id) const {
-  if (G()->ignore_background_updates()) {
+  if (G()->ignore_background_updates() || !have_input_peer(dialog_id, AccessRights::Read)) {
     G()->td_db()->get_binlog_pmc()->erase(get_channel_pts_key(dialog_id));  // just in case
     return 0;
   }
@@ -35009,7 +35012,7 @@ void MessagesManager::set_channel_pts(Dialog *d, int32 new_pts, const char *sour
         repair_channel_server_unread_count(d);
       }
     }
-    if (!G()->ignore_background_updates()) {
+    if (!G()->ignore_background_updates() && have_input_peer(d->dialog_id, AccessRights::Read)) {
       G()->td_db()->get_binlog_pmc()->set(get_channel_pts_key(d->dialog_id), to_string(new_pts));
     }
   } else if (new_pts < d->pts) {
