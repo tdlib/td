@@ -2788,10 +2788,6 @@ void GroupCallManager::set_group_call_title(GroupCallId group_call_id, string ti
   }
 
   title = clean_name(title, MAX_TITLE_LENGTH);
-  if (title.empty()) {
-    return promise.set_error(Status::Error(3, "Title can't be empty"));
-  }
-
   if (title == get_group_call_title(group_call)) {
     return promise.set_value(Unit());
   }
