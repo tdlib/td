@@ -27,6 +27,8 @@
 
 namespace td {
 
+extern int32 VERBOSITY_NAME(binlog);
+
 struct BinlogInfo {
   bool was_created{false};
   uint64 last_id{0};

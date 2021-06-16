@@ -126,8 +126,12 @@ class BinlogKeyValue : public KeyValueSyncInterface {
       if (it_ok.first->second.first == value) {
         return 0;
       }
+      VLOG(binlog) << "Change value of key " << key << " from " << hex_encode(it_ok.first->second.first) << " to "
+                   << hex_encode(value);
       old_id = it_ok.first->second.second;
       it_ok.first->second.first = value;
+    } else {
+      VLOG(binlog) << "Set value of key " << key << " to " << hex_encode(value);
     }
     bool rewrite = false;
     uint64 id;
@@ -152,9 +156,9 @@ class BinlogKeyValue : public KeyValueSyncInterface {
     if (it == map_.end()) {
       return 0;
     }
+    VLOG(binlog) << "Remove value of key " << key << ", which is " << hex_encode(it->second.first);
     uint64 id = it->second.second;
     map_.erase(it);
-    // LOG(ERROR) << "ADD EVENT";
     auto seq_no = binlog_->next_id();
     lock.reset();
     add_event(seq_no, BinlogEvent::create_raw(id, BinlogEvent::ServiceTypes::Empty, BinlogEvent::Flags::Rewrite,
@@ -177,6 +181,7 @@ class BinlogKeyValue : public KeyValueSyncInterface {
     if (it == map_.end()) {
       return string();
     }
+    VLOG(binlog) << "Get value of key " << key << ", which is " << hex_encode(it->second.first);
     return it->second.first;
   }
 
@@ -189,7 +194,6 @@ class BinlogKeyValue : public KeyValueSyncInterface {
   }
 
   std::unordered_map<string, string> prefix_get(Slice prefix) override {
-    // TODO: optimize with std::map?
     auto lock = rw_mutex_.lock_write().move_as_ok();
     std::unordered_map<string, string> res;
     for (const auto &kv : map_) {

@@ -21,7 +21,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/UpdatesManager.h"
 
-#include "td/db/binlog/BinlogEvent.h"
+#include "td/db/binlog/Binlog.h"
 #include "td/db/SqliteStatement.h"
 
 #include "td/net/GetHostByNameActor.h"

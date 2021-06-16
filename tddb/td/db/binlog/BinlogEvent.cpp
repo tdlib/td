@@ -13,8 +13,6 @@
 
 namespace td {
 
-int32 VERBOSITY_NAME(binlog) = VERBOSITY_NAME(DEBUG) + 8;
-
 Status BinlogEvent::init(BufferSlice &&raw_event, bool check_crc) {
   TlParser parser(raw_event.as_slice());
   size_ = parser.fetch_int();

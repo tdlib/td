@@ -33,8 +33,6 @@ inline auto EmptyStorer() {
   return create_default_storer(impl);
 }
 
-extern int32 VERBOSITY_NAME(binlog);
-
 struct BinlogDebugInfo {
   BinlogDebugInfo() = default;
   BinlogDebugInfo(const char *file, int line) : file(file), line(line) {
