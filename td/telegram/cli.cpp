@@ -433,7 +433,7 @@ class CliClient final : public Actor {
   static char get_delimiter(Slice str) {
     std::unordered_set<char> chars;
     for (auto c : trim(str)) {
-      if (!is_alnum(c) && c != '-') {
+      if (!is_alnum(c) && c != '-' && c != '.' && c != '/') {
         chars.insert(c);
       }
     }
@@ -2412,6 +2412,18 @@ class CliClient final : public Actor {
       string category;
       get_args(args, chat_id, category);
       send_request(td_api::make_object<td_api::removeTopChat>(get_top_chat_category(category), as_chat_id(chat_id)));
+    } else if (op == "cnss") {
+      string title;
+      string name;
+      string stickers;
+      get_args(args, title, name, stickers);
+      auto input_stickers =
+          transform(full_split(stickers, get_delimiter(stickers)),
+                    [](string sticker) -> td_api::object_ptr<td_api::InputSticker> {
+                      return td_api::make_object<td_api::inputStickerStatic>(as_input_file(sticker), "😀", nullptr);
+                    });
+      send_request(
+          td_api::make_object<td_api::createNewStickerSet>(my_id_, title, name, false, std::move(input_stickers)));
     } else if (op == "sss") {
       send_request(td_api::make_object<td_api::searchStickerSet>(args));
     } else if (op == "siss") {
@@ -3167,9 +3179,8 @@ class CliClient final : public Actor {
       vector<string> attached_files;
       get_args(args, chat_id, message_file, args);
       attached_files = full_split(args);
-      send_request(td_api::make_object<td_api::importMessages>(
-          as_chat_id(chat_id), as_input_file(message_file),
-          transform(attached_files, [](const string &attached_file) { return as_input_file(attached_file); })));
+      send_request(td_api::make_object<td_api::importMessages>(as_chat_id(chat_id), as_input_file(message_file),
+                                                               transform(attached_files, as_input_file)));
     } else if (op == "em") {
       string chat_id;
       string message_id;

@@ -5303,8 +5303,8 @@ setBotUpdatesStatus pending_update_count:int32 error_message:string = Ok;
 //@user_id Sticker file owner @png_sticker PNG image with the sticker; must be up to 512 KB in size and fit in 512x512 square
 uploadStickerFile user_id:int32 png_sticker:InputFile = File;
 
-//@description Creates a new sticker set; for bots only. Returns the newly created sticker set
-//@user_id Sticker set owner
+//@description Creates a new sticker set. Returns the newly created sticker set
+//@user_id Sticker set owner; ignored for regular users
 //@title Sticker set title; 1-64 characters
 //@name Sticker set name. Can contain only English letters, digits and underscores. Must end with *"_by_<bot username>"* (*<bot_username>* is case insensitive); 1-64 characters
 //@is_masks True, if stickers are masks. Animated stickers can't be masks

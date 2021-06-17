@@ -4720,6 +4720,10 @@ tl_object_ptr<telegram_api::inputStickerSetItem> StickersManager::get_input_stic
 void StickersManager::create_new_sticker_set(UserId user_id, string &title, string &short_name, bool is_masks,
                                              vector<tl_object_ptr<td_api::InputSticker>> &&stickers,
                                              Promise<Unit> &&promise) {
+  bool is_bot = td_->auth_manager_->is_bot();
+  if (!is_bot) {
+    user_id = td_->contacts_manager_->get_my_id();
+  }
   auto input_user = td_->contacts_manager_->get_input_user(user_id);
   if (input_user == nullptr) {
     return promise.set_error(Status::Error(3, "User not found"));
