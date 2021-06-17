@@ -1240,6 +1240,8 @@ groupCallParticipantVideoSourceGroup#dcb118b7 semantics:string sources:Vector<in
 
 groupCallParticipantVideo#78e41663 flags:# paused:flags.0?true endpoint:string source_groups:Vector<GroupCallParticipantVideoSourceGroup> = GroupCallParticipantVideo;
 
+stickers.suggestedShortName#85fea03f short_name:string = stickers.SuggestedShortName;
+
 ---functions---
 
 invokeAfterMsg#cb9f372d {X:Type} msg_id:long query:!X = X;
@@ -1601,6 +1603,8 @@ stickers.removeStickerFromSet#f7760f51 sticker:InputDocument = messages.StickerS
 stickers.changeStickerPosition#ffb6d4ca sticker:InputDocument position:int = messages.StickerSet;
 stickers.addStickerToSet#8653febe stickerset:InputStickerSet sticker:InputStickerSetItem = messages.StickerSet;
 stickers.setStickerSetThumb#9a364e30 stickerset:InputStickerSet thumb:InputDocument = messages.StickerSet;
+stickers.checkShortName#284b3639 short_name:string = Bool;
+stickers.suggestShortName#4dafc503 title:string = stickers.SuggestedShortName;
 
 phone.getCallConfig#55451fa9 = DataJSON;
 phone.requestCall#42ff96ed flags:# video:flags.0?true user_id:InputUser random_id:int g_a_hash:bytes protocol:PhoneCallProtocol = phone.PhoneCall;
