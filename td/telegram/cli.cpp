@@ -2415,6 +2415,9 @@ class CliClient final : public Actor {
     } else if (op == "gsssn") {
       string title = args;
       send_request(td_api::make_object<td_api::getSuggestedStickerSetName>(title));
+    } else if (op == "cssn") {
+      string name = args;
+      send_request(td_api::make_object<td_api::checkStickerSetName>(name));
     } else if (op == "cnss") {
       string title;
       string name;

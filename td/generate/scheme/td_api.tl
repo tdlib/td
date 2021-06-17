@@ -2706,6 +2706,18 @@ checkChatUsernameResultPublicChatsTooMuch = CheckChatUsernameResult;
 checkChatUsernameResultPublicGroupsUnavailable = CheckChatUsernameResult;
 
 
+//@class CheckStickerSetNameResult @description Represents result of checking whether a name can be used for a new sticker set
+
+//@description The name can be set
+checkStickerSetNameResultOk = CheckStickerSetNameResult;
+
+//@description The name is invalid
+checkStickerSetNameResultNameInvalid = CheckStickerSetNameResult;
+
+//@description The name is occupied
+checkStickerSetNameResultNameOccupied = CheckStickerSetNameResult;
+
+
 //@class MessageFileType @description Contains information about a file with messages exported from another app
 
 //@description The messages was exported from a private chat @name Name of the other party; may be empty if unrecognized
@@ -3990,7 +4002,7 @@ removeRecentlyFoundChat chat_id:int53 = Ok;
 //@description Clears the list of recently found chats
 clearRecentlyFoundChats = Ok;
 
-//@description Checks whether a username can be set for a chat @chat_id Chat identifier; should be identifier of a supergroup chat, or a channel chat, or a private chat with self, or zero if chat is being created @username Username to be checked
+//@description Checks whether a username can be set for a chat @chat_id Chat identifier; should be identifier of a supergroup chat, or a channel chat, or a private chat with self, or zero if the chat is being created @username Username to be checked
 checkChatUsername chat_id:int53 username:string = CheckChatUsernameResult;
 
 //@description Returns a list of public chats of the specified type, owned by the user @type Type of the public chats to return
@@ -5305,6 +5317,9 @@ uploadStickerFile user_id:int32 png_sticker:InputFile = File;
 
 //@description Returns a suggested name for a new sticker set with a given title @title Sticker set title; 1-64 characters
 getSuggestedStickerSetName title:string = Text;
+
+//@description Checks whether a name can be used for a new sticker set @name Name to be checked
+checkStickerSetName name:string = CheckStickerSetNameResult;
 
 //@description Creates a new sticker set. Returns the newly created sticker set
 //@user_id Sticker set owner; ignored for regular users

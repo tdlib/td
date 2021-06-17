@@ -928,6 +928,31 @@ class SuggestStickerSetShortNameQuery : public Td::ResultHandler {
   }
 };
 
+class CheckStickerSetShortNameQuery : public Td::ResultHandler {
+  Promise<bool> promise_;
+
+ public:
+  explicit CheckStickerSetShortNameQuery(Promise<bool> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(const string &short_name) {
+    send_query(G()->net_query_creator().create(telegram_api::stickers_checkShortName(short_name)));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::stickers_checkShortName>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    promise_.set_value(result_ptr.move_as_ok());
+  }
+
+  void on_error(uint64 id, Status status) override {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class CreateNewStickerSetQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -4752,6 +4777,44 @@ void StickersManager::get_suggested_sticker_set_name(string title, Promise<strin
   }
 
   td_->create_handler<SuggestStickerSetShortNameQuery>(std::move(promise))->send(title);
+}
+
+void StickersManager::check_sticker_set_name(const string &name, Promise<CheckStickerSetNameResult> &&promise) {
+  if (name.empty()) {
+    return promise.set_value(CheckStickerSetNameResult::Invalid);
+  }
+
+  auto request_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<bool> result) mutable {
+    if (result.is_error()) {
+      auto error = result.move_as_error();
+      if (error.message() == "SHORT_NAME_INVALID") {
+        return promise.set_value(CheckStickerSetNameResult::Invalid);
+      }
+      if (error.message() == "SHORT_NAME_OCCUPIED") {
+        return promise.set_value(CheckStickerSetNameResult::Occupied);
+      }
+      return promise.set_error(std::move(error));
+    }
+
+    promise.set_value(CheckStickerSetNameResult::Ok);
+  });
+
+  return td_->create_handler<CheckStickerSetShortNameQuery>(std::move(request_promise))->send(name);
+}
+
+td_api::object_ptr<td_api::CheckStickerSetNameResult> StickersManager::get_check_sticker_set_name_result_object(
+    CheckStickerSetNameResult result) {
+  switch (result) {
+    case CheckStickerSetNameResult::Ok:
+      return td_api::make_object<td_api::checkStickerSetNameResultOk>();
+    case CheckStickerSetNameResult::Invalid:
+      return td_api::make_object<td_api::checkStickerSetNameResultNameInvalid>();
+    case CheckStickerSetNameResult::Occupied:
+      return td_api::make_object<td_api::checkStickerSetNameResultNameOccupied>();
+    default:
+      UNREACHABLE();
+      return nullptr;
+  }
 }
 
 void StickersManager::create_new_sticker_set(UserId user_id, string &title, string &short_name, bool is_masks,

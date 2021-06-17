@@ -976,6 +976,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, td_api::getSuggestedStickerSetName &request);
 
+  void on_request(uint64 id, td_api::checkStickerSetName &request);
+
   void on_request(uint64 id, td_api::createNewStickerSet &request);
 
   void on_request(uint64 id, td_api::addStickerToSet &request);

@@ -38,6 +38,8 @@ namespace td {
 
 class Td;
 
+enum class CheckStickerSetNameResult : uint8 { Ok, Invalid, Occupied };
+
 class StickersManager : public Actor {
  public:
   static constexpr int64 GREAT_MINDS_SET_ID = 1842540969984001;
@@ -166,6 +168,11 @@ class StickersManager : public Actor {
   FileId upload_sticker_file(UserId user_id, const tl_object_ptr<td_api::InputFile> &sticker, Promise<Unit> &&promise);
 
   void get_suggested_sticker_set_name(string short_name, Promise<string> &&promise);
+
+  void check_sticker_set_name(const string &name, Promise<CheckStickerSetNameResult> &&promise);
+
+  static td_api::object_ptr<td_api::CheckStickerSetNameResult> get_check_sticker_set_name_result_object(
+      CheckStickerSetNameResult result);
 
   void create_new_sticker_set(UserId user_id, string &title, string &short_name, bool is_masks,
                               vector<tl_object_ptr<td_api::InputSticker>> &&stickers, Promise<Unit> &&promise);

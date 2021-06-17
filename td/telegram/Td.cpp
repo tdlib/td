@@ -7051,6 +7051,20 @@ void Td::on_request(uint64 id, td_api::getSuggestedStickerSetName &request) {
   stickers_manager_->get_suggested_sticker_set_name(std::move(request.title_), std::move(query_promise));
 }
 
+void Td::on_request(uint64 id, td_api::checkStickerSetName &request) {
+  CLEAN_INPUT_STRING(request.name_);
+  CREATE_REQUEST_PROMISE();
+  auto query_promise =
+      PromiseCreator::lambda([promise = std::move(promise)](Result<CheckStickerSetNameResult> result) mutable {
+        if (result.is_error()) {
+          promise.set_error(result.move_as_error());
+        } else {
+          promise.set_value(StickersManager::get_check_sticker_set_name_result_object(result.ok()));
+        }
+      });
+  stickers_manager_->check_sticker_set_name(request.name_, std::move(query_promise));
+}
+
 void Td::on_request(uint64 id, td_api::createNewStickerSet &request) {
   CLEAN_INPUT_STRING(request.title_);
   CLEAN_INPUT_STRING(request.name_);
