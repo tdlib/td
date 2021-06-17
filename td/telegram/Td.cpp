@@ -6141,13 +6141,6 @@ void Td::on_request(uint64 id, const td_api::toggleGroupCallIsMyVideoEnabled &re
                                                              request.is_my_video_enabled_, std::move(promise));
 }
 
-void Td::on_request(uint64 id, td_api::getGroupCallMediaChannelDescriptions &request) {
-  CHECK_IS_USER();
-  CREATE_REQUEST_PROMISE();
-  group_call_manager_->get_group_call_media_channel_descriptions(GroupCallId(request.group_call_id_),
-                                                                 std::move(request.source_ids_), std::move(promise));
-}
-
 void Td::on_request(uint64 id, const td_api::setGroupCallParticipantIsSpeaking &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

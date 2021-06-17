@@ -2199,12 +2199,6 @@ groupCallParticipantVideoInfo source_groups:vector<groupCallVideoSourceGroup> en
 //@order User's order in the group call participant list. Orders must be compared lexicographically. The bigger is order, the higher is user in the list. If order is empty, the user must be removed from the participant list
 groupCallParticipant participant_id:MessageSender audio_source_id:int32 can_enable_video:Bool video_info:groupCallParticipantVideoInfo screen_sharing_video_info:groupCallParticipantVideoInfo bio:string is_current_user:Bool is_speaking:Bool is_hand_raised:Bool can_be_muted_for_all_users:Bool can_be_unmuted_for_all_users:Bool can_be_muted_for_current_user:Bool can_be_unmuted_for_current_user:Bool is_muted_for_all_users:Bool is_muted_for_current_user:Bool can_unmute_self:Bool volume_level:int32 order:string = GroupCallParticipant;
 
-//@description Describes a media channel in a group call @source_id Channel's synchronization source identifier @is_video True if the channel is a video channel @param_description Description of the channel
-groupCallMediaChannelDescription source_id:int32 is_video:Bool description:string = GroupCallMediaChannelDescription;
-
-//@description Represents a list of group call media channel description @descriptions List of descriptions
-groupCallMediaChannelDescriptions descriptions:vector<groupCallMediaChannelDescription> = GroupCallMediaChannelDescriptions;
-
 
 //@class CallProblem @description Describes the exact type of a problem with a call
 
@@ -4780,9 +4774,6 @@ toggleGroupCallIsMyVideoPaused group_call_id:int32 is_my_video_paused:Bool = Ok;
 
 //@description Toggles whether current user's video is enabled @group_call_id Group call identifier @is_my_video_enabled Pass true if the current user's video is enabled
 toggleGroupCallIsMyVideoEnabled group_call_id:int32 is_my_video_enabled:Bool = Ok;
-
-//@description Returns information about group call media channels by their synchronization source identifiers @group_call_id Group call identifier @source_ids Synchronization source identifiers
-getGroupCallMediaChannelDescriptions group_call_id:int32 source_ids:vector<int32> = GroupCallMediaChannelDescriptions;
 
 //@description Informs TDLib that speaking state of a participant of an active group has changed @group_call_id Group call identifier
 //@audio_source Group call participant's synchronization audio source identifier, or 0 for the current user @is_speaking True, if the user is speaking

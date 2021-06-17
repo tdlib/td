@@ -2812,12 +2812,6 @@ class CliClient final : public Actor {
       get_args(args, group_call_id, is_my_video_enabled);
       send_request(td_api::make_object<td_api::toggleGroupCallIsMyVideoEnabled>(as_group_call_id(group_call_id),
                                                                                 is_my_video_enabled));
-    } else if (op == "ggcmcd") {
-      string group_call_id;
-      string source_ids;
-      get_args(args, group_call_id, source_ids);
-      send_request(td_api::make_object<td_api::getGroupCallMediaChannelDescriptions>(as_group_call_id(group_call_id),
-                                                                                     to_integers<int32>(source_ids)));
     } else if (op == "sgcpis") {
       string group_call_id;
       int32 source_id;
