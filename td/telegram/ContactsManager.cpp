@@ -3849,6 +3849,22 @@ void ContactsManager::User::parse(ParserT &parser) {
     parse(cache_version, parser);
   }
 
+  if (!check_utf8(first_name)) {
+    LOG(ERROR) << "Have invalid first name \"" << first_name << '"';
+    first_name.clear();
+    cache_version = 0;
+  }
+  if (!check_utf8(last_name)) {
+    LOG(ERROR) << "Have invalid last name \"" << last_name << '"';
+    last_name.clear();
+    cache_version = 0;
+  }
+  if (!check_utf8(username)) {
+    LOG(ERROR) << "Have invalid username \"" << username << '"';
+    username.clear();
+    cache_version = 0;
+  }
+
   if (first_name.empty() && last_name.empty()) {
     first_name = phone_number;
   }
@@ -4020,6 +4036,12 @@ void ContactsManager::Chat::parse(ParserT &parser) {
   }
   if (has_cache_version) {
     parse(cache_version, parser);
+  }
+
+  if (!check_utf8(title)) {
+    LOG(ERROR) << "Have invalid title \"" << title << '"';
+    title.clear();
+    cache_version = 0;
   }
 
   if (status.is_administrator() && !status.is_creator()) {
@@ -4238,6 +4260,17 @@ void ContactsManager::Channel::parse(ParserT &parser) {
   }
   if (has_cache_version) {
     parse(cache_version, parser);
+  }
+
+  if (!check_utf8(title)) {
+    LOG(ERROR) << "Have invalid title \"" << title << '"';
+    title.clear();
+    cache_version = 0;
+  }
+  if (!check_utf8(username)) {
+    LOG(ERROR) << "Have invalid username \"" << username << '"';
+    username.clear();
+    cache_version = 0;
   }
   if (legacy_has_active_group_call) {
     cache_version = 0;
@@ -4914,6 +4947,7 @@ string ContactsManager::get_channel_username(ChannelId channel_id) const {
   }
   return c->username;
 }
+
 UserId ContactsManager::get_secret_chat_user_id(SecretChatId secret_chat_id) const {
   auto c = get_secret_chat(secret_chat_id);
   if (c == nullptr) {
@@ -8414,19 +8448,6 @@ void ContactsManager::on_load_user_from_database(UserId user_id, string value) {
       u = add_user(user_id, "on_load_user_from_database");
 
       log_event_parse(*u, value).ensure();
-
-      if (!check_utf8(u->first_name)) {
-        LOG(ERROR) << "Have invalid " << user_id << " first name \"" << u->first_name << '"';
-        u->first_name.clear();
-      }
-      if (!check_utf8(u->last_name)) {
-        LOG(ERROR) << "Have invalid " << user_id << " last name \"" << u->last_name << '"';
-        u->last_name.clear();
-      }
-      if (!check_utf8(u->username)) {
-        LOG(ERROR) << "Have invalid " << user_id << " username \"" << u->username << '"';
-        u->username.clear();
-      }
 
       u->is_saved = true;
       u->is_status_saved = true;

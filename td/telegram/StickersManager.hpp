@@ -16,6 +16,7 @@
 #include "td/utils/misc.h"
 #include "td/utils/Slice.h"
 #include "td/utils/tl_helpers.h"
+#include "td/utils/utf8.h"
 
 namespace td {
 
@@ -316,6 +317,13 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
     }
     if (expires_at > sticker_set->expires_at) {
       sticker_set->expires_at = expires_at;
+    }
+
+    if (!check_utf8(sticker_set->title)) {
+      return parser.set_error("Have invalid sticker set title");
+    }
+    if (!check_utf8(sticker_set->short_name)) {
+      return parser.set_error("Have invalid sticker set name");
     }
   }
 }
