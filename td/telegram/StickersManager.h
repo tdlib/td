@@ -165,6 +165,8 @@ class StickersManager : public Actor {
 
   FileId upload_sticker_file(UserId user_id, const tl_object_ptr<td_api::InputFile> &sticker, Promise<Unit> &&promise);
 
+  void get_suggested_sticker_set_name(string short_name, Promise<string> &&promise);
+
   void create_new_sticker_set(UserId user_id, string &title, string &short_name, bool is_masks,
                               vector<tl_object_ptr<td_api::InputSticker>> &&stickers, Promise<Unit> &&promise);
 

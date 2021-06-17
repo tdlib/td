@@ -2412,6 +2412,9 @@ class CliClient final : public Actor {
       string category;
       get_args(args, chat_id, category);
       send_request(td_api::make_object<td_api::removeTopChat>(get_top_chat_category(category), as_chat_id(chat_id)));
+    } else if (op == "gsssn") {
+      string title = args;
+      send_request(td_api::make_object<td_api::getSuggestedStickerSetName>(title));
     } else if (op == "cnss") {
       string title;
       string name;

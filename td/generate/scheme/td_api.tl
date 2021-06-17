@@ -5303,6 +5303,9 @@ setBotUpdatesStatus pending_update_count:int32 error_message:string = Ok;
 //@user_id Sticker file owner @png_sticker PNG image with the sticker; must be up to 512 KB in size and fit in 512x512 square
 uploadStickerFile user_id:int32 png_sticker:InputFile = File;
 
+//@description Returns a suggested name for a new sticker set with a given title @title Sticker set title; 1-64 characters
+getSuggestedStickerSetName title:string = Text;
+
 //@description Creates a new sticker set. Returns the newly created sticker set
 //@user_id Sticker set owner; ignored for regular users
 //@title Sticker set title; 1-64 characters

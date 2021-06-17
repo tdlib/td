@@ -900,6 +900,34 @@ class UploadStickerFileQuery : public Td::ResultHandler {
   }
 };
 
+class SuggestStickerSetShortNameQuery : public Td::ResultHandler {
+  Promise<string> promise_;
+
+ public:
+  explicit SuggestStickerSetShortNameQuery(Promise<string> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(const string &title) {
+    send_query(G()->net_query_creator().create(telegram_api::stickers_suggestShortName(title)));
+  }
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::stickers_suggestShortName>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    promise_.set_value(std::move(ptr->short_name_));
+  }
+
+  void on_error(uint64 id, Status status) override {
+    if (status.message() == "TITLE_INVALID") {
+      return promise_.set_value(string());
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
 class CreateNewStickerSetQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -4715,6 +4743,15 @@ tl_object_ptr<telegram_api::inputStickerSetItem> StickersManager::get_input_stic
 
   return make_tl_object<telegram_api::inputStickerSetItem>(flags, std::move(input_document),
                                                            get_input_sticker_emojis(sticker), std::move(mask_coords));
+}
+
+void StickersManager::get_suggested_sticker_set_name(string title, Promise<string> &&promise) {
+  title = strip_empty_characters(title, MAX_STICKER_SET_TITLE_LENGTH);
+  if (title.empty()) {
+    return promise.set_error(Status::Error(3, "Sticker set title can't be empty"));
+  }
+
+  td_->create_handler<SuggestStickerSetShortNameQuery>(std::move(promise))->send(title);
 }
 
 void StickersManager::create_new_sticker_set(UserId user_id, string &title, string &short_name, bool is_masks,

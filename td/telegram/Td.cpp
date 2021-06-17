@@ -7038,6 +7038,19 @@ void Td::on_request(uint64 id, td_api::uploadStickerFile &request) {
   CREATE_REQUEST(UploadStickerFileRequest, request.user_id_, std::move(request.png_sticker_));
 }
 
+void Td::on_request(uint64 id, td_api::getSuggestedStickerSetName &request) {
+  CLEAN_INPUT_STRING(request.title_);
+  CREATE_REQUEST_PROMISE();
+  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<string> result) mutable {
+    if (result.is_error()) {
+      promise.set_error(result.move_as_error());
+    } else {
+      promise.set_value(make_tl_object<td_api::text>(result.move_as_ok()));
+    }
+  });
+  stickers_manager_->get_suggested_sticker_set_name(std::move(request.title_), std::move(query_promise));
+}
+
 void Td::on_request(uint64 id, td_api::createNewStickerSet &request) {
   CLEAN_INPUT_STRING(request.title_);
   CLEAN_INPUT_STRING(request.name_);
