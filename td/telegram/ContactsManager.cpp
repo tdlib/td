@@ -989,8 +989,8 @@ class SetBotCommandsQuery : public Td::ResultHandler {
 
   void send(vector<std::pair<string, string>> &&commands) {
     commands_ = std::move(commands);
-    send_query(
-        G()->net_query_creator().create(telegram_api::bots_setBotCommands(transform(commands_, [](const auto &command) {
+    send_query(G()->net_query_creator().create(telegram_api::bots_setBotCommands(
+        make_tl_object<telegram_api::botCommandScopeDefault>(), string(), transform(commands_, [](const auto &command) {
           return make_tl_object<telegram_api::botCommand>(command.first, command.second);
         }))));
   }

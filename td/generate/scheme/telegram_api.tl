@@ -1242,6 +1242,14 @@ groupCallParticipantVideo#78e41663 flags:# paused:flags.0?true endpoint:string s
 
 stickers.suggestedShortName#85fea03f short_name:string = stickers.SuggestedShortName;
 
+botCommandScopeDefault#2f6cb2ab = BotCommandScope;
+botCommandScopeUsers#3c4f04d8 = BotCommandScope;
+botCommandScopeChats#6fe1a881 = BotCommandScope;
+botCommandScopeChatAdmins#b9aa606a = BotCommandScope;
+botCommandScopePeer#db9d897d peer:InputPeer = BotCommandScope;
+botCommandScopePeerAdmins#3fd863d1 peer:InputPeer = BotCommandScope;
+botCommandScopePeerUser#a1321f3 peer:InputPeer user_id:InputUser = BotCommandScope;
+
 ---functions---
 
 invokeAfterMsg#cb9f372d {X:Type} msg_id:long query:!X = X;
@@ -1588,7 +1596,9 @@ channels.convertToGigagroup#b290c69 channel:InputChannel = Updates;
 
 bots.sendCustomRequest#aa2769ed custom_method:string params:DataJSON = DataJSON;
 bots.answerWebhookJSONQuery#e6213f4d query_id:long data:DataJSON = Bool;
-bots.setBotCommands#805d46f6 commands:Vector<BotCommand> = Bool;
+bots.setBotCommands#517165a scope:BotCommandScope lang_code:string commands:Vector<BotCommand> = Bool;
+bots.resetBotCommands#3d8de0f9 scope:BotCommandScope lang_code:string = Bool;
+bots.getBotCommands#e34c0dd6 scope:BotCommandScope lang_code:string = Vector<BotCommand>;
 
 payments.getPaymentForm#8a333c8d flags:# peer:InputPeer msg_id:int theme_params:flags.0?DataJSON = payments.PaymentForm;
 payments.getPaymentReceipt#2478d1cc peer:InputPeer msg_id:int = payments.PaymentReceipt;
@@ -1598,7 +1608,7 @@ payments.getSavedInfo#227d824b = payments.SavedInfo;
 payments.clearSavedInfo#d83d70c1 flags:# credentials:flags.0?true info:flags.1?true = Bool;
 payments.getBankCardData#2e79d779 number:string = payments.BankCardData;
 
-stickers.createStickerSet#f1036780 flags:# masks:flags.0?true animated:flags.1?true user_id:InputUser title:string short_name:string thumb:flags.2?InputDocument stickers:Vector<InputStickerSetItem> = messages.StickerSet;
+stickers.createStickerSet#9021ab67 flags:# masks:flags.0?true animated:flags.1?true user_id:InputUser title:string short_name:string thumb:flags.2?InputDocument stickers:Vector<InputStickerSetItem> software:flags.3?string = messages.StickerSet;
 stickers.removeStickerFromSet#f7760f51 sticker:InputDocument = messages.StickerSet;
 stickers.changeStickerPosition#ffb6d4ca sticker:InputDocument position:int = messages.StickerSet;
 stickers.addStickerToSet#8653febe stickerset:InputStickerSet sticker:InputStickerSetItem = messages.StickerSet;
