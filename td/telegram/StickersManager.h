@@ -174,7 +174,8 @@ class StickersManager : public Actor {
       CheckStickerSetNameResult result);
 
   void create_new_sticker_set(UserId user_id, string &title, string &short_name, bool is_masks,
-                              vector<tl_object_ptr<td_api::InputSticker>> &&stickers, Promise<Unit> &&promise);
+                              vector<tl_object_ptr<td_api::InputSticker>> &&stickers, string software,
+                              Promise<Unit> &&promise);
 
   void add_sticker_to_set(UserId user_id, string &short_name, tl_object_ptr<td_api::InputSticker> &&sticker,
                           Promise<Unit> &&promise);
@@ -373,6 +374,7 @@ class StickersManager : public Actor {
     bool is_animated;
     vector<FileId> file_ids;
     vector<tl_object_ptr<td_api::InputSticker>> stickers;
+    string software;
     Promise<> promise;
   };
 

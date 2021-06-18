@@ -961,8 +961,8 @@ class CreateNewStickerSetQuery : public Td::ResultHandler {
   }
 
   void send(tl_object_ptr<telegram_api::InputUser> &&input_user, const string &title, const string &short_name,
-            bool is_masks, bool is_animated,
-            vector<tl_object_ptr<telegram_api::inputStickerSetItem>> &&input_stickers) {
+            bool is_masks, bool is_animated, vector<tl_object_ptr<telegram_api::inputStickerSetItem>> &&input_stickers,
+            const string &software) {
     CHECK(input_user != nullptr);
 
     int32 flags = 0;
@@ -972,10 +972,13 @@ class CreateNewStickerSetQuery : public Td::ResultHandler {
     if (is_animated) {
       flags |= telegram_api::stickers_createStickerSet::ANIMATED_MASK;
     }
+    if (!software.empty()) {
+      flags |= telegram_api::stickers_createStickerSet::SOFTWARE_MASK;
+    }
 
     send_query(G()->net_query_creator().create(
         telegram_api::stickers_createStickerSet(flags, false /*ignored*/, false /*ignored*/, std::move(input_user),
-                                                title, short_name, nullptr, std::move(input_stickers), string())));
+                                                title, short_name, nullptr, std::move(input_stickers), software)));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -4818,7 +4821,7 @@ td_api::object_ptr<td_api::CheckStickerSetNameResult> StickersManager::get_check
 }
 
 void StickersManager::create_new_sticker_set(UserId user_id, string &title, string &short_name, bool is_masks,
-                                             vector<tl_object_ptr<td_api::InputSticker>> &&stickers,
+                                             vector<tl_object_ptr<td_api::InputSticker>> &&stickers, string software,
                                              Promise<Unit> &&promise) {
   bool is_bot = td_->auth_manager_->is_bot();
   if (!is_bot) {
@@ -4889,6 +4892,7 @@ void StickersManager::create_new_sticker_set(UserId user_id, string &title, stri
   pending_new_sticker_set->is_animated = is_animated;
   pending_new_sticker_set->file_ids = std::move(file_ids);
   pending_new_sticker_set->stickers = std::move(stickers);
+  pending_new_sticker_set->software = std::move(software);
   pending_new_sticker_set->promise = std::move(promise);
 
   auto &multipromise = pending_new_sticker_set->upload_files_multipromise;
@@ -5061,7 +5065,7 @@ void StickersManager::on_new_stickers_uploaded(int64 random_id, Result<Unit> res
 
   td_->create_handler<CreateNewStickerSetQuery>(std::move(pending_new_sticker_set->promise))
       ->send(std::move(input_user), pending_new_sticker_set->title, pending_new_sticker_set->short_name, is_masks,
-             is_animated, std::move(input_stickers));
+             is_animated, std::move(input_stickers), std::move(pending_new_sticker_set->software));
 }
 
 void StickersManager::add_sticker_to_set(UserId user_id, string &short_name,

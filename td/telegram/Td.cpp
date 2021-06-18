@@ -2558,10 +2558,11 @@ class CreateNewStickerSetRequest : public RequestOnceActor {
   string name_;
   bool is_masks_;
   vector<tl_object_ptr<td_api::InputSticker>> stickers_;
+  string software_;
 
   void do_run(Promise<Unit> &&promise) override {
     td->stickers_manager_->create_new_sticker_set(user_id_, title_, name_, is_masks_, std::move(stickers_),
-                                                  std::move(promise));
+                                                  std::move(software_), std::move(promise));
   }
 
   void do_send_result() override {
@@ -2574,13 +2575,14 @@ class CreateNewStickerSetRequest : public RequestOnceActor {
 
  public:
   CreateNewStickerSetRequest(ActorShared<Td> td, uint64 request_id, int32 user_id, string &&title, string &&name,
-                             bool is_masks, vector<tl_object_ptr<td_api::InputSticker>> &&stickers)
+                             bool is_masks, vector<tl_object_ptr<td_api::InputSticker>> &&stickers, string &&software)
       : RequestOnceActor(std::move(td), request_id)
       , user_id_(user_id)
       , title_(std::move(title))
       , name_(std::move(name))
       , is_masks_(is_masks)
-      , stickers_(std::move(stickers)) {
+      , stickers_(std::move(stickers))
+      , software_(std::move(software)) {
   }
 };
 
@@ -7061,8 +7063,9 @@ void Td::on_request(uint64 id, td_api::checkStickerSetName &request) {
 void Td::on_request(uint64 id, td_api::createNewStickerSet &request) {
   CLEAN_INPUT_STRING(request.title_);
   CLEAN_INPUT_STRING(request.name_);
+  CLEAN_INPUT_STRING(request.source_);
   CREATE_REQUEST(CreateNewStickerSetRequest, request.user_id_, std::move(request.title_), std::move(request.name_),
-                 request.is_masks_, std::move(request.stickers_));
+                 request.is_masks_, std::move(request.stickers_), std::move(request.source_));
 }
 
 void Td::on_request(uint64 id, td_api::addStickerToSet &request) {
