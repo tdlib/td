@@ -55,28 +55,7 @@ namespace td {
 
 struct BinlogEvent;
 
-class DialogInviteLink;
-class DialogLocation;
-
 class Td;
-
-struct BotData {
-  string username;
-  bool can_join_groups;
-  bool can_read_all_group_messages;
-  bool is_inline;
-  bool need_location;
-};
-
-enum class ChannelType : uint8 { Broadcast, Megagroup, Unknown };
-
-enum class CheckDialogUsernameResult : uint8 { Ok, Invalid, Occupied, PublicDialogsTooMuch, PublicGroupsUnavailable };
-
-struct CanTransferOwnershipResult {
-  enum class Type : uint8 { Ok, PasswordNeeded, PasswordTooFresh, SessionTooFresh };
-  Type type = Type::Ok;
-  int32 retry_after = 0;
-};
 
 class ContactsManager : public Actor {
  public:
@@ -284,6 +263,8 @@ class ContactsManager : public Actor {
 
   void invalidate_user_full(UserId user_id);
 
+  enum class CheckDialogUsernameResult : uint8 { Ok, Invalid, Occupied, PublicDialogsTooMuch, PublicGroupsUnavailable };
+
   void check_dialog_username(DialogId dialog_id, const string &username, Promise<CheckDialogUsernameResult> &&promise);
 
   static td_api::object_ptr<td_api::CheckChatUsernameResult> get_check_chat_username_result_object(
@@ -387,6 +368,11 @@ class ContactsManager : public Actor {
   void load_statistics_graph(DialogId dialog_id, const string &token, int64 x,
                              Promise<td_api::object_ptr<td_api::StatisticalGraph>> &&promise);
 
+  struct CanTransferOwnershipResult {
+    enum class Type : uint8 { Ok, PasswordNeeded, PasswordTooFresh, SessionTooFresh };
+    Type type = Type::Ok;
+    int32 retry_after = 0;
+  };
   void can_transfer_ownership(Promise<CanTransferOwnershipResult> &&promise);
 
   static td_api::object_ptr<td_api::CanTransferOwnershipResult> get_can_transfer_ownership_result_object(
@@ -444,6 +430,14 @@ class ContactsManager : public Actor {
   bool is_user_support(UserId user_id) const;
 
   bool is_user_bot(UserId user_id) const;
+
+  struct BotData {
+    string username;
+    bool can_join_groups;
+    bool can_read_all_group_messages;
+    bool is_inline;
+    bool need_location;
+  };
   Result<BotData> get_bot_data(UserId user_id) const TD_WARN_UNUSED_RESULT;
 
   bool is_user_online(UserId user_id, int32 tolerance = 0) const;
@@ -501,6 +495,8 @@ class ContactsManager : public Actor {
   bool have_secret_chat_force(SecretChatId secret_chat_id);
   bool get_secret_chat(SecretChatId secret_chat_id, bool force, Promise<Unit> &&promise);
   bool get_secret_chat_full(SecretChatId secret_chat_id, Promise<Unit> &&promise);
+
+  enum class ChannelType : uint8 { Broadcast, Megagroup, Unknown };
 
   ChannelType get_channel_type(ChannelId channel_id) const;
   int32 get_channel_date(ChannelId channel_id) const;

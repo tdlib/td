@@ -13591,7 +13591,7 @@ bool ContactsManager::is_user_bot(UserId user_id) const {
   return u != nullptr && !u->is_deleted && u->is_bot;
 }
 
-Result<BotData> ContactsManager::get_bot_data(UserId user_id) const {
+Result<ContactsManager::BotData> ContactsManager::get_bot_data(UserId user_id) const {
   auto p = users_.find(user_id);
   if (p == users_.end()) {
     return Status::Error(5, "Bot not found");
@@ -14229,7 +14229,7 @@ bool ContactsManager::is_channel_public(const Channel *c) {
   return c != nullptr && (!c->username.empty() || c->has_location);
 }
 
-ChannelType ContactsManager::get_channel_type(ChannelId channel_id) const {
+ContactsManager::ChannelType ContactsManager::get_channel_type(ChannelId channel_id) const {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
     return ChannelType::Unknown;
@@ -14237,7 +14237,7 @@ ChannelType ContactsManager::get_channel_type(ChannelId channel_id) const {
   return get_channel_type(c);
 }
 
-ChannelType ContactsManager::get_channel_type(const Channel *c) {
+ContactsManager::ChannelType ContactsManager::get_channel_type(const Channel *c) {
   if (c->is_megagroup) {
     return ChannelType::Megagroup;
   }

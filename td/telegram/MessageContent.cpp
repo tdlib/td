@@ -2484,8 +2484,8 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
       }
       break;
     case MessageContentType::Game:
-      if (dialog_type == DialogType::Channel &&
-          td->contacts_manager_->get_channel_type(dialog_id.get_channel_id()) == ChannelType::Broadcast) {
+      if (dialog_type == DialogType::Channel && td->contacts_manager_->get_channel_type(dialog_id.get_channel_id()) ==
+                                                    ContactsManager::ChannelType::Broadcast) {
         // return Status::Error(400, "Games can't be sent to channel chats");
       }
       if (dialog_type == DialogType::SecretChat) {
@@ -2523,7 +2523,8 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
         return Status::Error(400, "Not enough rights to send polls to the chat");
       }
       if (dialog_type == DialogType::Channel &&
-          td->contacts_manager_->get_channel_type(dialog_id.get_channel_id()) == ChannelType::Broadcast &&
+          td->contacts_manager_->get_channel_type(dialog_id.get_channel_id()) ==
+              ContactsManager::ChannelType::Broadcast &&
           !td->poll_manager_->get_poll_is_anonymous(static_cast<const MessagePoll *>(content)->poll_id)) {
         return Status::Error(400, "Non-anonymous polls can't be sent to channel chats");
       }

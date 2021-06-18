@@ -5410,8 +5410,8 @@ void Td::on_request(uint64 id, td_api::checkChatUsername &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.username_);
   CREATE_REQUEST_PROMISE();
-  auto query_promise =
-      PromiseCreator::lambda([promise = std::move(promise)](Result<CheckDialogUsernameResult> result) mutable {
+  auto query_promise = PromiseCreator::lambda(
+      [promise = std::move(promise)](Result<ContactsManager::CheckDialogUsernameResult> result) mutable {
         if (result.is_error()) {
           promise.set_error(result.move_as_error());
         } else {
@@ -6439,8 +6439,8 @@ void Td::on_request(uint64 id, const td_api::banChatMember &request) {
 void Td::on_request(uint64 id, const td_api::canTransferOwnership &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  auto query_promise =
-      PromiseCreator::lambda([promise = std::move(promise)](Result<CanTransferOwnershipResult> result) mutable {
+  auto query_promise = PromiseCreator::lambda(
+      [promise = std::move(promise)](Result<ContactsManager::CanTransferOwnershipResult> result) mutable {
         if (result.is_error()) {
           promise.set_error(result.move_as_error());
         } else {
@@ -7047,8 +7047,8 @@ void Td::on_request(uint64 id, td_api::getSuggestedStickerSetName &request) {
 void Td::on_request(uint64 id, td_api::checkStickerSetName &request) {
   CLEAN_INPUT_STRING(request.name_);
   CREATE_REQUEST_PROMISE();
-  auto query_promise =
-      PromiseCreator::lambda([promise = std::move(promise)](Result<CheckStickerSetNameResult> result) mutable {
+  auto query_promise = PromiseCreator::lambda(
+      [promise = std::move(promise)](Result<StickersManager::CheckStickerSetNameResult> result) mutable {
         if (result.is_error()) {
           promise.set_error(result.move_as_error());
         } else {

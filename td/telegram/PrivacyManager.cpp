@@ -162,7 +162,7 @@ void PrivacyManager::UserPrivacySettingRule::set_chat_ids(const vector<int64> &d
         break;
       case DialogType::Channel: {
         auto channel_id = dialog_id.get_channel_id();
-        if (td->contacts_manager_->get_channel_type(channel_id) != ChannelType::Megagroup) {
+        if (td->contacts_manager_->get_channel_type(channel_id) != ContactsManager::ChannelType::Megagroup) {
           LOG(ERROR) << "Ignore broadcast " << channel_id;
           break;
         }

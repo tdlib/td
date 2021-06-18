@@ -38,8 +38,6 @@ namespace td {
 
 class Td;
 
-enum class CheckStickerSetNameResult : uint8 { Ok, Invalid, Occupied };
-
 class StickersManager : public Actor {
  public:
   static constexpr int64 GREAT_MINDS_SET_ID = 1842540969984001;
@@ -169,6 +167,7 @@ class StickersManager : public Actor {
 
   void get_suggested_sticker_set_name(string short_name, Promise<string> &&promise);
 
+  enum class CheckStickerSetNameResult : uint8 { Ok, Invalid, Occupied };
   void check_sticker_set_name(const string &name, Promise<CheckStickerSetNameResult> &&promise);
 
   static td_api::object_ptr<td_api::CheckStickerSetNameResult> get_check_sticker_set_name_result_object(

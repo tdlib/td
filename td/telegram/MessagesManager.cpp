@@ -2152,7 +2152,8 @@ class SearchMessagesQuery : public Td::ResultHandler {
     } else if (top_thread_message_id.is_valid() && query.empty() && !sender_dialog_id.is_valid() &&
                filter == MessageSearchFilter::Empty) {
       handle_errors_ = dialog_id.get_type() != DialogType::Channel ||
-                       td->contacts_manager_->get_channel_type(dialog_id.get_channel_id()) != ChannelType::Broadcast;
+                       td->contacts_manager_->get_channel_type(dialog_id.get_channel_id()) !=
+                           ContactsManager::ChannelType::Broadcast;
       send_query(G()->net_query_creator().create(telegram_api::messages_getReplies(
           std::move(input_peer), top_thread_message_id.get_server_message_id().get(),
           from_message_id.get_server_message_id().get(), 0, offset, limit, std::numeric_limits<int32>::max(), 0, 0)));
@@ -10731,7 +10732,7 @@ void MessagesManager::delete_dialog_messages_from_user(DialogId dialog_id, UserI
     case DialogType::Channel: {
       channel_id = dialog_id.get_channel_id();
       auto channel_type = td_->contacts_manager_->get_channel_type(channel_id);
-      if (channel_type != ChannelType::Megagroup) {
+      if (channel_type != ContactsManager::ChannelType::Megagroup) {
         return promise.set_error(Status::Error(3, "The method is available only for supergroup chats"));
       }
       channel_status = td_->contacts_manager_->get_channel_permissions(channel_id);
@@ -19589,7 +19590,7 @@ td_api::object_ptr<td_api::ChatType> MessagesManager::get_chat_type_object(Dialo
       auto channel_type = td_->contacts_manager_->get_channel_type(channel_id);
       return td_api::make_object<td_api::chatTypeSupergroup>(
           td_->contacts_manager_->get_supergroup_id_object(channel_id, "chatTypeSupergroup"),
-          channel_type != ChannelType::Megagroup);
+          channel_type != ContactsManager::ChannelType::Megagroup);
     }
     case DialogType::SecretChat: {
       auto secret_chat_id = dialog_id.get_secret_chat_id();
@@ -22819,13 +22820,13 @@ Status MessagesManager::can_send_message(DialogId dialog_id) const {
     auto channel_status = td_->contacts_manager_->get_channel_permissions(channel_id);
 
     switch (channel_type) {
-      case ChannelType::Unknown:
-      case ChannelType::Megagroup:
+      case ContactsManager::ChannelType::Unknown:
+      case ContactsManager::ChannelType::Megagroup:
         if (!channel_status.can_send_messages()) {
           return Status::Error(400, "Have no rights to send a message");
         }
         break;
-      case ChannelType::Broadcast: {
+      case ContactsManager::ChannelType::Broadcast: {
         if (!channel_status.can_post_messages()) {
           return Status::Error(400, "Need administrator rights in the channel chat");
         }
@@ -23988,14 +23989,14 @@ Result<MessageId> MessagesManager::send_bot_start_message(UserId bot_user_id, Di
         return Status::Error(3, "Can't access the chat");
       }
       switch (td_->contacts_manager_->get_channel_type(channel_id)) {
-        case ChannelType::Megagroup:
+        case ContactsManager::ChannelType::Megagroup:
           if (!bot_data.can_join_groups) {
             return Status::Error(5, "The bot can't join groups");
           }
           break;
-        case ChannelType::Broadcast:
+        case ContactsManager::ChannelType::Broadcast:
           return Status::Error(3, "Bots can't be invited to channel chats. Add them as administrators instead");
-        case ChannelType::Unknown:
+        case ContactsManager::ChannelType::Unknown:
         default:
           UNREACHABLE();
       }
@@ -24443,7 +24444,8 @@ bool MessagesManager::is_broadcast_channel(DialogId dialog_id) const {
     return false;
   }
 
-  return td_->contacts_manager_->get_channel_type(dialog_id.get_channel_id()) == ChannelType::Broadcast;
+  return td_->contacts_manager_->get_channel_type(dialog_id.get_channel_id()) ==
+         ContactsManager::ChannelType::Broadcast;
 }
 
 bool MessagesManager::is_deleted_secret_chat(const Dialog *d) const {
@@ -33479,7 +33481,7 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
       break;
     case DialogType::Channel: {
       auto channel_type = td_->contacts_manager_->get_channel_type(dialog_id.get_channel_id());
-      if (channel_type == ChannelType::Broadcast) {
+      if (channel_type == ContactsManager::ChannelType::Broadcast) {
         d->last_read_outbox_message_id = MessageId::max();
         d->is_last_read_outbox_message_id_inited = true;
       }
@@ -35731,13 +35733,13 @@ void MessagesManager::update_top_dialogs(DialogId dialog_id, const Message *m) {
       break;
     case DialogType::Channel:
       switch (td_->contacts_manager_->get_channel_type(dialog_id.get_channel_id())) {
-        case ChannelType::Broadcast:
+        case ContactsManager::ChannelType::Broadcast:
           category = TopDialogCategory::Channel;
           break;
-        case ChannelType::Megagroup:
+        case ContactsManager::ChannelType::Megagroup:
           category = TopDialogCategory::Group;
           break;
-        case ChannelType::Unknown:
+        case ContactsManager::ChannelType::Unknown:
           break;
         default:
           UNREACHABLE();

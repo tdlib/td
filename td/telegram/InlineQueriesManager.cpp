@@ -1264,7 +1264,8 @@ void InlineQueriesManager::on_get_inline_query_results(DialogId dialog_id, UserI
             break;
           }
           if (dialog_type == DialogType::Channel &&
-              td_->contacts_manager_->get_channel_type(dialog_id.get_channel_id()) == ChannelType::Broadcast) {
+              td_->contacts_manager_->get_channel_type(dialog_id.get_channel_id()) ==
+                  ContactsManager::ChannelType::Broadcast) {
             continue;
           }
           if (dialog_type == DialogType::SecretChat) {
