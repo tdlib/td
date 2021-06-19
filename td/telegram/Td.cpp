@@ -6874,7 +6874,8 @@ void Td::on_request(uint64 id, td_api::setUsername &request) {
 void Td::on_request(uint64 id, td_api::setCommands &request) {
   CHECK_IS_BOT();
   CREATE_OK_REQUEST_PROMISE();
-  contacts_manager_->set_commands(std::move(request.commands_), std::move(promise));
+  contacts_manager_->set_commands(std::move(request.scope_), std::move(request.language_code_),
+                                  std::move(request.commands_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::setLocation &request) {

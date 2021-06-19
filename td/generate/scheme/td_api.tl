@@ -3469,6 +3469,30 @@ vectorPathCommandLine end_point:point = VectorPathCommand;
 vectorPathCommandCubicBezierCurve start_control_point:point end_control_point:point end_point:point = VectorPathCommand;
 
 
+//@class BotCommandScope @description Represents the scope to which bot commands are applied
+
+//@description A scope covering all users
+botCommandScopeDefault = BotCommandScope;
+
+//@description A scope covering all private chats
+botCommandScopeAllPrivateChats = BotCommandScope;
+
+//@description A scope covering all group and supergroup chats
+botCommandScopeAllGroupChats = BotCommandScope;
+
+//@description A scope covering all group and supergroup chat administrators
+botCommandScopeAllChatAdministrators = BotCommandScope;
+
+//@description A scope covering all members of a chat @chat_id Chat identifier
+botCommandScopeChat chat_id:int53 = BotCommandScope;
+
+//@description A scope covering all administrators of a chat @chat_id Chat identifier
+botCommandScopeChatAdministrators chat_id:int53 = BotCommandScope;
+
+//@description A scope covering a member of a chat @chat_id Chat identifier @user_id User identifier
+botCommandScopeChatMember chat_id:int53 user_id:int32 = BotCommandScope;
+
+
 //@class Update @description Contains notifications about data changes
 
 //@description The user authorization state has changed @authorization_state New authorization state
@@ -4990,8 +5014,10 @@ resendChangePhoneNumberCode = AuthenticationCodeInfo;
 //@description Checks the authentication code sent to confirm a new phone number of the user @code Verification code received by SMS, phone call or flash call
 checkChangePhoneNumberCode code:string = Ok;
 
-//@description Sets the list of commands supported by the bot; for bots only @commands List of the bot's commands
-setCommands commands:vector<botCommand> = Ok;
+//@description Sets the list of commands supported by the bot for the given user scope and language; for bots only @scope The scope to which the commands are applied
+//@language_code A two-letter ISO 639-1 country code. If empty, the commands will be applied to all users from the given scope, for which language there are no dedicated commands
+//@commands List of the bot's commands
+setCommands scope:BotCommandScope language_code:string commands:vector<botCommand> = Ok;
 
 
 //@description Returns all active sessions of the current user

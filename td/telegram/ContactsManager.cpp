@@ -11,6 +11,7 @@
 #include "td/telegram/telegram_api.hpp"
 
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/BotCommandScope.h"
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/Dependencies.h"
@@ -981,16 +982,14 @@ class UpdateUsernameQuery : public Td::ResultHandler {
 
 class SetBotCommandsQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
-  vector<std::pair<string, string>> commands_;
 
  public:
   explicit SetBotCommandsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(vector<std::pair<string, string>> &&commands) {
-    commands_ = std::move(commands);
+  void send(BotCommandScope scope, const string &language_code, vector<std::pair<string, string>> &&commands) {
     send_query(G()->net_query_creator().create(telegram_api::bots_setBotCommands(
-        make_tl_object<telegram_api::botCommandScopeDefault>(), string(), transform(commands_, [](const auto &command) {
+        scope.get_input_bot_command_scope(td), language_code, transform(commands, [](const auto &command) {
           return make_tl_object<telegram_api::botCommand>(command.first, command.second);
         }))));
   }
@@ -1001,10 +1000,7 @@ class SetBotCommandsQuery : public Td::ResultHandler {
       return on_error(id, result_ptr.move_as_error());
     }
 
-    bool result = result_ptr.ok();
-    if (result) {
-      td->contacts_manager_->on_set_bot_commands_success(std::move(commands_));
-    } else {
+    if (!result_ptr.ok()) {
       LOG(ERROR) << "Set bot commands request failed";
     }
     promise_.set_value(Unit());
@@ -6255,7 +6251,18 @@ void ContactsManager::set_username(const string &username, Promise<Unit> &&promi
   td_->create_handler<UpdateUsernameQuery>(std::move(promise))->send(username);
 }
 
-void ContactsManager::set_commands(vector<td_api::object_ptr<td_api::botCommand>> &&commands, Promise<Unit> &&promise) {
+void ContactsManager::set_commands(td_api::object_ptr<td_api::BotCommandScope> &&scope_ptr, string &&language_code,
+                                   vector<td_api::object_ptr<td_api::botCommand>> &&commands, Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE(promise, scope, BotCommandScope::get_bot_command_scope(td_, std::move(scope_ptr)));
+
+  if (!language_code.empty() && (language_code.size() != 2 || language_code[0] < 'a' || language_code[0] > 'z' ||
+                                 language_code[1] < 'a' || language_code[1] > 'z')) {
+    return promise.set_error(Status::Error(400, "Invalid language code specified"));
+  }
+  if (!scope.have_input_bot_command_scope(td_)) {
+    return promise.set_error(Status::Error(400, "Invalid scope specified"));
+  }
+
   vector<std::pair<string, string>> new_commands;
   for (auto &command : commands) {
     if (command == nullptr) {
@@ -6297,22 +6304,7 @@ void ContactsManager::set_commands(vector<td_api::object_ptr<td_api::botCommand>
     new_commands.emplace_back(std::move(command->command_), std::move(command->description_));
   }
 
-  td_->create_handler<SetBotCommandsQuery>(std::move(promise))->send(std::move(new_commands));
-}
-
-void ContactsManager::on_set_bot_commands_success(vector<std::pair<string, string>> &&commands) {
-  auto user_id = get_my_id();
-  BotInfo *bot_info = get_bot_info_force(user_id);
-  if (bot_info == nullptr) {
-    return;
-  }
-  if (bot_info->commands == commands) {
-    return;
-  }
-  bot_info->commands = std::move(commands);
-  bot_info->is_changed = true;
-
-  update_bot_info(bot_info, user_id, true, false);
+  td_->create_handler<SetBotCommandsQuery>(std::move(promise))->send(scope, language_code, std::move(new_commands));
 }
 
 void ContactsManager::set_chat_description(ChatId chat_id, const string &description, Promise<Unit> &&promise) {

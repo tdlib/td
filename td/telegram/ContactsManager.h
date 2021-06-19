@@ -160,7 +160,6 @@ class ContactsManager : public Actor {
   void on_get_channel_full_failed(ChannelId channel_id);
 
   void on_update_profile_success(int32 flags, const string &first_name, const string &last_name, const string &about);
-  void on_set_bot_commands_success(vector<std::pair<string, string>> &&commands);
 
   void on_update_user_name(UserId user_id, string &&first_name, string &&last_name, string &&username);
   void on_update_user_phone_number(UserId user_id, string &&phone_number);
@@ -329,7 +328,8 @@ class ContactsManager : public Actor {
 
   void set_username(const string &username, Promise<Unit> &&promise);
 
-  void set_commands(vector<td_api::object_ptr<td_api::botCommand>> &&commands, Promise<Unit> &&promise);
+  void set_commands(td_api::object_ptr<td_api::BotCommandScope> &&scope_ptr, string &&language_code,
+                    vector<td_api::object_ptr<td_api::botCommand>> &&commands, Promise<Unit> &&promise);
 
   void set_chat_description(ChatId chat_id, const string &description, Promise<Unit> &&promise);
 
