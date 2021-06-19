@@ -1011,6 +1011,36 @@ class SetBotCommandsQuery : public Td::ResultHandler {
   }
 };
 
+class GetBotCommandsQuery : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::botCommands>> promise_;
+
+ public:
+  explicit GetBotCommandsQuery(Promise<td_api::object_ptr<td_api::botCommands>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(BotCommandScope scope, const string &language_code) {
+    send_query(G()->net_query_creator().create(
+        telegram_api::bots_getBotCommands(scope.get_input_bot_command_scope(td), language_code)));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::bots_getBotCommands>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto commands = transform(result_ptr.move_as_ok(), [](auto &&command) {
+      return td_api::make_object<td_api::botCommand>(command->command_, command->description_);
+    });
+    promise_.set_value(td_api::make_object<td_api::botCommands>(std::move(commands)));
+  }
+
+  void on_error(uint64 id, Status status) override {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class CheckChannelUsernameQuery : public Td::ResultHandler {
   Promise<bool> promise_;
   ChannelId channel_id_;
@@ -6305,6 +6335,21 @@ void ContactsManager::set_commands(td_api::object_ptr<td_api::BotCommandScope> &
   }
 
   td_->create_handler<SetBotCommandsQuery>(std::move(promise))->send(scope, language_code, std::move(new_commands));
+}
+
+void ContactsManager::get_commands(td_api::object_ptr<td_api::BotCommandScope> &&scope_ptr, string &&language_code,
+                                   Promise<td_api::object_ptr<td_api::botCommands>> &&promise) {
+  TRY_RESULT_PROMISE(promise, scope, BotCommandScope::get_bot_command_scope(td_, std::move(scope_ptr)));
+
+  if (!language_code.empty() && (language_code.size() != 2 || language_code[0] < 'a' || language_code[0] > 'z' ||
+                                 language_code[1] < 'a' || language_code[1] > 'z')) {
+    return promise.set_error(Status::Error(400, "Invalid language code specified"));
+  }
+  if (!scope.have_input_bot_command_scope(td_)) {
+    return promise.set_error(Status::Error(400, "Invalid scope specified"));
+  }
+
+  td_->create_handler<GetBotCommandsQuery>(std::move(promise))->send(scope, language_code);
 }
 
 void ContactsManager::set_chat_description(ChatId chat_id, const string &description, Promise<Unit> &&promise) {

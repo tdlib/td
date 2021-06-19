@@ -350,6 +350,9 @@ userTypeUnknown = UserType;
 //@description Represents a command supported by a bot @command Text of the bot command @param_description Description of the bot command
 botCommand command:string description:string = BotCommand;
 
+//@description Contains a list of bot commands @commands List of bot commands
+botCommands commands:vector<botCommand> = BotCommands;
+
 //@description Provides information about a bot and its supported commands @param_description Long description shown on the user info page @commands A list of commands supported by the bot
 botInfo description:string commands:vector<botCommand> = BotInfo;
 
@@ -5014,10 +5017,15 @@ resendChangePhoneNumberCode = AuthenticationCodeInfo;
 //@description Checks the authentication code sent to confirm a new phone number of the user @code Verification code received by SMS, phone call or flash call
 checkChangePhoneNumberCode code:string = Ok;
 
+
 //@description Sets the list of commands supported by the bot for the given user scope and language; for bots only @scope The scope to which the commands are applied
 //@language_code A two-letter ISO 639-1 country code. If empty, the commands will be applied to all users from the given scope, for which language there are no dedicated commands
 //@commands List of the bot's commands
 setCommands scope:BotCommandScope language_code:string commands:vector<botCommand> = Ok;
+
+//@description Returns the list of commands supported by the bot for the given user scope and language; for bots only @scope The scope to which the commands are applied
+//@language_code A two-letter ISO 639-1 country code or an empty string
+getCommands scope:BotCommandScope language_code:string = BotCommands;
 
 
 //@description Returns all active sessions of the current user
