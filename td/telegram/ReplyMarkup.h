@@ -58,6 +58,7 @@ struct ReplyMarkup {
   bool need_resize_keyboard = false;        // for ShowKeyboard
   bool is_one_time_keyboard = false;        // for ShowKeyboard
   vector<vector<KeyboardButton>> keyboard;  // for ShowKeyboard
+  string placeholder;                       // for ShowKeyboard, ForceReply
 
   vector<vector<InlineKeyboardButton>> inline_keyboard;  // for InlineKeyboard
 
