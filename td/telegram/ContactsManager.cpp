@@ -3905,6 +3905,7 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   bool has_about = !about.empty();
   bool has_photo = !photo.is_empty();
   bool has_description = !description.empty();
+  bool has_commands = !commands.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_about);
   STORE_FLAG(is_blocked);
@@ -3915,6 +3916,7 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   STORE_FLAG(has_photo);
   STORE_FLAG(supports_video_calls);
   STORE_FLAG(has_description);
+  STORE_FLAG(has_commands);
   END_STORE_FLAGS();
   if (has_about) {
     store(about, storer);
@@ -3927,6 +3929,9 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   if (has_description) {
     store(description, storer);
   }
+  if (has_commands) {
+    store(commands, storer);
+  }
 }
 
 template <class ParserT>
@@ -3935,6 +3940,7 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   bool has_about;
   bool has_photo;
   bool has_description;
+  bool has_commands;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_about);
   PARSE_FLAG(is_blocked);
@@ -3945,6 +3951,7 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   PARSE_FLAG(has_photo);
   PARSE_FLAG(supports_video_calls);
   PARSE_FLAG(has_description);
+  PARSE_FLAG(has_commands);
   END_PARSE_FLAGS();
   if (has_about) {
     parse(about, parser);
@@ -3956,6 +3963,9 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   }
   if (has_description) {
     parse(description, parser);
+  }
+  if (has_commands) {
+    parse(commands, parser);
   }
 }
 
@@ -9388,6 +9398,9 @@ void ContactsManager::on_load_user_full_from_database(UserId user_id, string val
   auto *bot_info = get_bot_info_force(user_id, false);
   if (bot_info != nullptr) {
     user_full->description = bot_info->description;
+    user_full->commands = transform(
+        bot_info->commands, [](const auto &bot_command) { return BotCommand(bot_command.first, bot_command.second); });
+    user_full->expires_at = 0.0;
   }
 
   User *u = get_user(user_id);
@@ -10290,8 +10303,12 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
     td_->group_call_manager_->on_update_dialog_about(DialogId(user_id), user_full->about, true);
   }
   string description;
-  if (user->bot_info_ != nullptr) {
+  if (user->bot_info_ != nullptr && !td_->auth_manager_->is_bot()) {
     description = std::move(user->bot_info_->description_);
+
+    auto commands = transform(std::move(user->bot_info_->commands_),
+                              [](auto &&bot_command) { return BotCommand(std::move(bot_command)); });
+    on_update_user_full_commands(user_full, user_id, std::move(commands));
   }
   if (user_full->description != description) {
     user_full->description = std::move(description);
@@ -11231,6 +11248,14 @@ void ContactsManager::on_update_user_full_common_chat_count(UserFull *user_full,
   }
 }
 
+void ContactsManager::on_update_user_full_commands(UserFull *user_full, UserId user_id, vector<BotCommand> &&commands) {
+  CHECK(user_full != nullptr);
+  if (user_full->commands != commands) {
+    user_full->commands = std::move(commands);
+    user_full->is_changed = true;
+  }
+}
+
 void ContactsManager::on_update_user_need_phone_number_privacy_exception(UserId user_id,
                                                                          bool need_phone_number_privacy_exception) {
   LOG(INFO) << "Receive " << need_phone_number_privacy_exception << " need phone number privacy exception with "
@@ -11484,6 +11509,7 @@ void ContactsManager::drop_user_full(UserId user_id) {
   user_full->need_phone_number_privacy_exception = false;
   user_full->about = string();
   user_full->description = string();
+  user_full->commands.clear();
   user_full->common_chat_count = 0;
   user_full->is_changed = true;
 
@@ -16006,12 +16032,13 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
                                                                                const UserFull *user_full) const {
   CHECK(user_full != nullptr);
   bool is_bot = is_user_bot(user_id);
+  auto commands = transform(user_full->commands, [](const auto &command) { return command.get_bot_command_object(); });
   return make_tl_object<td_api::userFullInfo>(
       get_chat_photo_object(td_->file_manager_.get(), user_full->photo), user_full->is_blocked,
       user_full->can_be_called, user_full->supports_video_calls, user_full->has_private_calls,
       user_full->need_phone_number_privacy_exception, is_bot ? string() : user_full->about,
       is_bot ? user_full->about : string(), is_bot ? user_full->description : string(), user_full->common_chat_count,
-      is_bot ? get_bot_info_object(user_id) : nullptr);
+      std::move(commands));
 }
 
 td_api::object_ptr<td_api::updateBasicGroup> ContactsManager::get_update_unknown_basic_group_object(ChatId chat_id) {

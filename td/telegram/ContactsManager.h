@@ -678,6 +678,8 @@ class ContactsManager : public Actor {
     string about;
     string description;
 
+    vector<BotCommand> commands;
+
     int32 common_chat_count = 0;
 
     bool is_blocked = false;
@@ -1200,6 +1202,7 @@ class ContactsManager : public Actor {
 
   void on_update_user_full_is_blocked(UserFull *user_full, UserId user_id, bool is_blocked);
   void on_update_user_full_common_chat_count(UserFull *user_full, UserId user_id, int32 common_chat_count);
+  void on_update_user_full_commands(UserFull *user_full, UserId user_id, vector<BotCommand> &&commands);
   void on_update_user_full_need_phone_number_privacy_exception(UserFull *user_full, UserId user_id,
                                                                bool need_phone_number_privacy_exception);
 

@@ -21,8 +21,12 @@ class BotCommand {
   string command_;
   string description_;
 
+  friend bool operator==(const BotCommand &lhs, const BotCommand &rhs);
+
  public:
   BotCommand() = default;
+  BotCommand(string command, string description) : command_(std::move(command)), description_(std::move(description)) {
+  }
   BotCommand(telegram_api::object_ptr<telegram_api::botCommand> &&bot_command);
 
   td_api::object_ptr<td_api::botCommand> get_bot_command_object() const;
@@ -40,9 +44,17 @@ class BotCommand {
   }
 };
 
+bool operator==(const BotCommand &lhs, const BotCommand &rhs);
+
+inline bool operator!=(const BotCommand &lhs, const BotCommand &rhs) {
+  return !(lhs == rhs);
+}
+
 class BotCommands {
   UserId bot_user_id_;
   vector<BotCommand> commands_;
+
+  friend bool operator==(const BotCommands &lhs, const BotCommands &rhs);
 
  public:
   BotCommands() = default;
@@ -62,5 +74,11 @@ class BotCommands {
     td::parse(commands_, parser);
   }
 };
+
+bool operator==(const BotCommands &lhs, const BotCommands &rhs);
+
+inline bool operator!=(const BotCommands &lhs, const BotCommands &rhs) {
+  return !(lhs == rhs);
+}
 
 }  // namespace td

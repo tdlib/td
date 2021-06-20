@@ -23,6 +23,10 @@ td_api::object_ptr<td_api::botCommand> BotCommand::get_bot_command_object() cons
   return td_api::make_object<td_api::botCommand>(command_, description_);
 }
 
+bool operator==(const BotCommand &lhs, const BotCommand &rhs) {
+  return lhs.command_ == rhs.command_ && lhs.description_ == rhs.description_;
+}
+
 BotCommands::BotCommands(UserId bot_user_id, vector<telegram_api::object_ptr<telegram_api::botCommand>> &&bot_commands)
     : bot_user_id_(bot_user_id) {
   commands_ = transform(std::move(bot_commands), [](telegram_api::object_ptr<telegram_api::botCommand> &&bot_command) {
@@ -34,6 +38,10 @@ td_api::object_ptr<td_api::botCommands> BotCommands::get_bot_commands_object(Td 
   auto commands = transform(commands_, [](const auto &command) { return command.get_bot_command_object(); });
   return td_api::make_object<td_api::botCommands>(
       td->contacts_manager_->get_user_id_object(bot_user_id_, "get_bot_commands_object"), std::move(commands));
+}
+
+bool operator==(const BotCommands &lhs, const BotCommands &rhs) {
+  return lhs.bot_user_id_ == rhs.bot_user_id_ && lhs.commands_ == rhs.commands_;
 }
 
 }  // namespace td
