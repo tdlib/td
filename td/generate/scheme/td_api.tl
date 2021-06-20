@@ -422,8 +422,8 @@ user id:int32 first_name:string last_name:string username:string phone_number:st
 //@has_private_calls True, if the user can't be called due to their privacy settings
 //@need_phone_number_privacy_exception True, if the current user needs to explicitly allow to share their phone number with the user when the method addContact is used
 //@bio A short user bio
-//@share_text For bots, the text that is included with the link when users share the bot
-//@param_description For bots, description shown on the bot info page
+//@share_text For bots, the text that is shown on the bot's profile page and is sent together with the link when users share the bot
+//@param_description For bots, the text shown in the chat with the bot if the chat is empty
 //@group_in_common_count Number of group chats where both the other user and the current user are a member; 0 for the current user
 //@bot_info If the user is a bot, information about the bot; may be null
 userFullInfo photo:chatPhoto is_blocked:Bool can_be_called:Bool supports_video_calls:Bool has_private_calls:Bool need_phone_number_privacy_exception:Bool bio:string share_text:string description:string group_in_common_count:int32 bot_info:botInfo = UserFullInfo;
