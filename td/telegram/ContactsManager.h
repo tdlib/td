@@ -10,6 +10,7 @@
 #include "td/telegram/telegram_api.h"
 
 #include "td/telegram/AccessRights.h"
+#include "td/telegram/BotCommand.h"
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatId.h"
 #include "td/telegram/Contact.h"

@@ -278,6 +278,7 @@ set(TDLIB_SOURCE
   td/telegram/AutoDownloadSettings.cpp
   td/telegram/BackgroundManager.cpp
   td/telegram/BackgroundType.cpp
+  td/telegram/BotCommand.cpp
   td/telegram/BotCommandScope.cpp
   td/telegram/CallActor.cpp
   td/telegram/CallDiscardReason.cpp
@@ -444,6 +445,7 @@ set(TDLIB_SOURCE
   td/telegram/BackgroundId.h
   td/telegram/BackgroundManager.h
   td/telegram/BackgroundType.h
+  td/telegram/BotCommand.h
   td/telegram/BotCommandScope.h
   td/telegram/CallActor.h
   td/telegram/CallDiscardReason.h
