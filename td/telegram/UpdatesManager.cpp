@@ -910,7 +910,8 @@ void UpdatesManager::on_failed_get_difference(Status &&error) {
 
 void UpdatesManager::schedule_get_difference(const char *source) {
   if (!retry_timeout_.has_timeout()) {
-    LOG(WARNING) << "Schedule getDifference in " << retry_time_ << " seconds from " << source;
+    LOG(WARNING) << "Schedule getDifference in " << retry_time_ << " seconds with pts = " << get_pts()
+                 << ", qts = " << get_qts() << ", date = " << get_date() << " from " << source;
     retry_timeout_.set_callback(std::move(fill_get_difference_gap));
     retry_timeout_.set_callback_data(static_cast<void *>(td_));
     retry_timeout_.set_timeout_in(retry_time_);
