@@ -350,8 +350,8 @@ userTypeUnknown = UserType;
 //@description Represents a command supported by a bot @command Text of the bot command @param_description Description of the bot command
 botCommand command:string description:string = BotCommand;
 
-//@description Contains a list of bot commands @commands List of bot commands
-botCommands commands:vector<botCommand> = BotCommands;
+//@description Contains a list of bot commands @bot_user_id Bot's user identifier @commands List of bot commands
+botCommands bot_user_id:int32 commands:vector<botCommand> = BotCommands;
 
 //@description Provides information about a bot and its supported commands @commands A list of commands supported by the bot
 botInfo commands:vector<botCommand> = BotInfo;

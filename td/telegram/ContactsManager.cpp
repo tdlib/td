@@ -1033,7 +1033,9 @@ class GetBotCommandsQuery : public Td::ResultHandler {
     auto commands = transform(result_ptr.move_as_ok(), [](auto &&command) {
       return td_api::make_object<td_api::botCommand>(command->command_, command->description_);
     });
-    promise_.set_value(td_api::make_object<td_api::botCommands>(std::move(commands)));
+    promise_.set_value(td_api::make_object<td_api::botCommands>(
+        td->contacts_manager_->get_user_id_object(td->contacts_manager_->get_my_id(), "GetBotCommandsQuery"),
+        std::move(commands)));
   }
 
   void on_error(uint64 id, Status status) override {
