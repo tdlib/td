@@ -675,6 +675,7 @@ class ContactsManager : public Actor {
     Photo photo;
 
     string about;
+    string description;
 
     int32 common_chat_count = 0;
 

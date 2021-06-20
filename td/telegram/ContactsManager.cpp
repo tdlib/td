@@ -3906,6 +3906,7 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   using td::store;
   bool has_about = !about.empty();
   bool has_photo = !photo.is_empty();
+  bool has_description = !description.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_about);
   STORE_FLAG(is_blocked);
@@ -3915,6 +3916,7 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   STORE_FLAG(need_phone_number_privacy_exception);
   STORE_FLAG(has_photo);
   STORE_FLAG(supports_video_calls);
+  STORE_FLAG(has_description);
   END_STORE_FLAGS();
   if (has_about) {
     store(about, storer);
@@ -3924,6 +3926,9 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   if (has_photo) {
     store(photo, storer);
   }
+  if (has_description) {
+    store(description, storer);
+  }
 }
 
 template <class ParserT>
@@ -3931,6 +3936,7 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   using td::parse;
   bool has_about;
   bool has_photo;
+  bool has_description;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_about);
   PARSE_FLAG(is_blocked);
@@ -3940,6 +3946,7 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   PARSE_FLAG(need_phone_number_privacy_exception);
   PARSE_FLAG(has_photo);
   PARSE_FLAG(supports_video_calls);
+  PARSE_FLAG(has_description);
   END_PARSE_FLAGS();
   if (has_about) {
     parse(about, parser);
@@ -3948,6 +3955,9 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   parse_time(expires_at, parser);
   if (has_photo) {
     parse(photo, parser);
+  }
+  if (has_description) {
+    parse(description, parser);
   }
 }
 
@@ -9377,7 +9387,10 @@ void ContactsManager::on_load_user_full_from_database(UserId user_id, string val
   if (user_full->need_phone_number_privacy_exception && is_user_contact(user_id)) {
     user_full->need_phone_number_privacy_exception = false;
   }
-  get_bot_info_force(user_id, false);
+  auto *bot_info = get_bot_info_force(user_id, false);
+  if (bot_info != nullptr) {
+    user_full->description = bot_info->description;
+  }
 
   User *u = get_user(user_id);
   CHECK(u != nullptr);
@@ -10277,6 +10290,14 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
     user_full->about = std::move(user->about_);
     user_full->is_changed = true;
     td_->group_call_manager_->on_update_dialog_about(DialogId(user_id), user_full->about, true);
+  }
+  string description;
+  if (user->bot_info_ != nullptr) {
+    description = std::move(user->bot_info_->description_);
+  }
+  if (user_full->description != description) {
+    user_full->description = std::move(description);
+    user_full->is_changed = true;
   }
 
   auto photo = get_photo(td_->file_manager_.get(), std::move(user->profile_photo_), DialogId(user_id));
@@ -11464,6 +11485,7 @@ void ContactsManager::drop_user_full(UserId user_id) {
   user_full->has_private_calls = false;
   user_full->need_phone_number_privacy_exception = false;
   user_full->about = string();
+  user_full->description = string();
   user_full->common_chat_count = 0;
   user_full->is_changed = true;
 
@@ -15990,7 +16012,7 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
       get_chat_photo_object(td_->file_manager_.get(), user_full->photo), user_full->is_blocked,
       user_full->can_be_called, user_full->supports_video_calls, user_full->has_private_calls,
       user_full->need_phone_number_privacy_exception, is_bot ? string() : user_full->about,
-      is_bot ? user_full->about : string(), user_full->common_chat_count,
+      is_bot ? user_full->about : string(), is_bot ? user_full->description : string(), user_full->common_chat_count,
       is_bot ? get_bot_info_object(user_id) : nullptr);
 }
 
@@ -16158,7 +16180,7 @@ td_api::object_ptr<td_api::botInfo> ContactsManager::get_bot_info_object(UserId 
   auto commands = transform(bot_info->commands, [](auto &command) {
     return td_api::make_object<td_api::botCommand>(command.first, command.second);
   });
-  return td_api::make_object<td_api::botInfo>(bot_info->description, std::move(commands));
+  return td_api::make_object<td_api::botInfo>(std::move(commands));
 }
 
 tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_info_object(
