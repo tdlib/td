@@ -145,7 +145,6 @@ static char *command_generator(const char *text, int state) {
                                        "CancelDownloadFile",
                                        "ImportContacts",
                                        "RemoveContacts",
-                                       "DumpNetQueries",
                                        "CreateSecretChat",
                                        "CreateNewSecretChat"};
   static size_t cmd_i;
@@ -4304,7 +4303,7 @@ class CliClient final : public Actor {
       }
     } else if (op == "q" || op == "Quit") {
       quit();
-    } else if (op == "dnq" || op == "DumpNetQueries") {
+    } else if (op == "dnq") {
       dump_pending_network_queries(*net_query_stats_);
     } else if (op == "fatal") {
       LOG(FATAL) << "Fatal!";

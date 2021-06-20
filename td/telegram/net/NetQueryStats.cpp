@@ -31,7 +31,8 @@ void NetQueryStats::dump_pending_network_queries() {
   bool was_gap = false;
   auto &net_query_list = list_;
   auto guard = net_query_list.lock();
-  for (auto end = net_query_list.end(), cur = net_query_list.begin(); cur != end; cur = cur->get_next(), i++) {
+  for (auto begin = net_query_list.begin(), cur = net_query_list.end(); cur != begin; i++) {
+    cur = cur->get_prev();
     if (i < 20 || i + 20 > n || i % (n / 20 + 1) == 0) {
       if (was_gap) {
         LOG(WARNING) << "...";
