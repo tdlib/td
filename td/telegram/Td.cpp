@@ -2533,12 +2533,12 @@ class ChangeStickerSetRequest : public RequestOnceActor {
 
 class UploadStickerFileRequest : public RequestOnceActor {
   UserId user_id_;
-  tl_object_ptr<td_api::InputFile> sticker_;
+  tl_object_ptr<td_api::InputSticker> sticker_;
 
   FileId file_id;
 
   void do_run(Promise<Unit> &&promise) override {
-    file_id = td->stickers_manager_->upload_sticker_file(user_id_, sticker_, std::move(promise));
+    file_id = td->stickers_manager_->upload_sticker_file(user_id_, std::move(sticker_), std::move(promise));
   }
 
   void do_send_result() override {
@@ -2547,7 +2547,7 @@ class UploadStickerFileRequest : public RequestOnceActor {
 
  public:
   UploadStickerFileRequest(ActorShared<Td> td, uint64 request_id, int32 user_id,
-                           tl_object_ptr<td_api::InputFile> &&sticker)
+                           tl_object_ptr<td_api::InputSticker> &&sticker)
       : RequestOnceActor(std::move(td), request_id), user_id_(user_id), sticker_(std::move(sticker)) {
   }
 };
@@ -7036,8 +7036,7 @@ void Td::on_request(uint64 id, td_api::reorderInstalledStickerSets &request) {
 }
 
 void Td::on_request(uint64 id, td_api::uploadStickerFile &request) {
-  CHECK_IS_BOT();
-  CREATE_REQUEST(UploadStickerFileRequest, request.user_id_, std::move(request.png_sticker_));
+  CREATE_REQUEST(UploadStickerFileRequest, request.user_id_, std::move(request.sticker_));
 }
 
 void Td::on_request(uint64 id, td_api::getSuggestedStickerSetName &request) {

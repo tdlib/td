@@ -4699,8 +4699,13 @@ Result<std::tuple<FileId, bool, bool, bool>> StickersManager::prepare_input_file
   return std::make_tuple(file_id, is_url, is_local, is_animated);
 }
 
-FileId StickersManager::upload_sticker_file(UserId user_id, const tl_object_ptr<td_api::InputFile> &sticker,
+FileId StickersManager::upload_sticker_file(UserId user_id, tl_object_ptr<td_api::InputSticker> &&sticker,
                                             Promise<Unit> &&promise) {
+  bool is_bot = td_->auth_manager_->is_bot();
+  if (!is_bot) {
+    user_id = td_->contacts_manager_->get_my_id();
+  }
+
   auto input_user = td_->contacts_manager_->get_input_user(user_id);
   if (input_user == nullptr) {
     promise.set_error(Status::Error(3, "User not found"));
@@ -4713,7 +4718,7 @@ FileId StickersManager::upload_sticker_file(UserId user_id, const tl_object_ptr<
     return FileId();
   }
 
-  auto r_file_id = prepare_input_file(sticker, false, false);
+  auto r_file_id = prepare_input_sticker(sticker.get());
   if (r_file_id.is_error()) {
     promise.set_error(r_file_id.move_as_error());
     return FileId();

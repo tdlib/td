@@ -2417,18 +2417,30 @@ class CliClient final : public Actor {
     } else if (op == "cssn") {
       string name = args;
       send_request(td_api::make_object<td_api::checkStickerSetName>(name));
-    } else if (op == "cnss") {
+    } else if (op == "usf" || op == "usfa") {
+      td_api::object_ptr<td_api::InputSticker> input_sticker;
+      if (op == "usfa") {
+        input_sticker = td_api::make_object<td_api::inputStickerAnimated>(as_input_file(args), "😀");
+      } else {
+        input_sticker = td_api::make_object<td_api::inputStickerStatic>(as_input_file(args), "😀", nullptr);
+      }
+      send_request(td_api::make_object<td_api::uploadStickerFile>(-1, std::move(input_sticker)));
+    } else if (op == "cnss" || op == "cnssa") {
       string title;
       string name;
       string stickers;
       get_args(args, title, name, stickers);
       auto input_stickers =
           transform(full_split(stickers, get_delimiter(stickers)),
-                    [](string sticker) -> td_api::object_ptr<td_api::InputSticker> {
-                      return td_api::make_object<td_api::inputStickerStatic>(as_input_file(sticker), "😀", nullptr);
+                    [op](string sticker) -> td_api::object_ptr<td_api::InputSticker> {
+                      if (op == "cnssa") {
+                        return td_api::make_object<td_api::inputStickerAnimated>(as_input_file(sticker), "😀");
+                      } else {
+                        return td_api::make_object<td_api::inputStickerStatic>(as_input_file(sticker), "😀", nullptr);
+                      }
                     });
-      send_request(
-          td_api::make_object<td_api::createNewStickerSet>(my_id_, title, name, false, std::move(input_stickers), "tg_cli"));
+      send_request(td_api::make_object<td_api::createNewStickerSet>(my_id_, title, name, false,
+                                                                    std::move(input_stickers), "tg_cli"));
     } else if (op == "sss") {
       send_request(td_api::make_object<td_api::searchStickerSet>(args));
     } else if (op == "siss") {

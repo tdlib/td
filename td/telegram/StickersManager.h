@@ -163,7 +163,7 @@ class StickersManager : public Actor {
   void reorder_installed_sticker_sets(bool is_masks, const vector<StickerSetId> &sticker_set_ids,
                                       Promise<Unit> &&promise);
 
-  FileId upload_sticker_file(UserId user_id, const tl_object_ptr<td_api::InputFile> &sticker, Promise<Unit> &&promise);
+  FileId upload_sticker_file(UserId user_id, tl_object_ptr<td_api::InputSticker> &&sticker, Promise<Unit> &&promise);
 
   void get_suggested_sticker_set_name(string short_name, Promise<string> &&promise);
 
