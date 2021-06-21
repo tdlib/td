@@ -763,6 +763,8 @@ class ContactsManager : public Actor {
 
     DialogInviteLink invite_link;
 
+    vector<BotCommands> bot_commands;
+
     bool can_set_username = false;
 
     bool is_changed = true;             // have new changes that need to be sent to the client and database
@@ -841,6 +843,8 @@ class ContactsManager : public Actor {
     int32 banned_count = 0;
 
     DialogInviteLink invite_link;
+
+    vector<BotCommands> bot_commands;
 
     uint32 speculative_version = 1;
     uint32 repair_request_version = 0;
@@ -1420,6 +1424,9 @@ class ContactsManager : public Actor {
                                DialogParticipantStatus old_status);
 
   void add_channel_participants(ChannelId channel_id, const vector<UserId> &user_ids, Promise<Unit> &&promise);
+
+  vector<BotCommands> get_bot_commands(vector<tl_object_ptr<telegram_api::botInfo>> &&bot_infos,
+                                       const vector<DialogParticipant> *participants);
 
   const DialogParticipant *get_chat_participant(ChatId chat_id, UserId user_id) const;
 

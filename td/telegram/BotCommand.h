@@ -62,6 +62,10 @@ class BotCommands {
 
   td_api::object_ptr<td_api::botCommands> get_bot_commands_object(Td *td) const;
 
+  UserId get_bot_user_id() const {
+    return bot_user_id_;
+  }
+
   template <class StorerT>
   void store(StorerT &storer) const {
     td::store(bot_user_id_, storer);
