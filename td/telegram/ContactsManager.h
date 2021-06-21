@@ -529,13 +529,13 @@ class ContactsManager : public Actor {
                                            bool force, Promise<Unit> &&promise);
 
   void search_dialog_participants(DialogId dialog_id, const string &query, int32 limit, DialogParticipantsFilter filter,
-                                  bool without_bot_info, Promise<DialogParticipants> &&promise);
+                                  Promise<DialogParticipants> &&promise);
 
   vector<DialogAdministrator> get_dialog_administrators(DialogId dialog_id, int left_tries, Promise<Unit> &&promise);
 
   void get_channel_participants(ChannelId channel_id, tl_object_ptr<td_api::SupergroupMembersFilter> &&filter,
                                 string additional_query, int32 offset, int32 limit, int32 additional_limit,
-                                bool without_bot_info, Promise<DialogParticipants> &&promise);
+                                Promise<DialogParticipants> &&promise);
 
   int32 get_user_id_object(UserId user_id, const char *source) const;
 
@@ -1462,8 +1462,6 @@ class ContactsManager : public Actor {
 
   td_api::object_ptr<td_api::UserStatus> get_user_status_object(UserId user_id, const User *u) const;
 
-  td_api::object_ptr<td_api::botInfo> get_bot_info_object(UserId user_id) const;
-
   tl_object_ptr<td_api::user> get_user_object(UserId user_id, const User *u) const;
 
   tl_object_ptr<td_api::userFullInfo> get_user_full_info_object(UserId user_id, const UserFull *user_full) const;
@@ -1513,10 +1511,6 @@ class ContactsManager : public Actor {
                                 Promise<DialogParticipants> &&promise);
 
   void do_search_chat_participants(ChatId chat_id, const string &query, int32 limit, DialogParticipantsFilter filter,
-                                   Promise<DialogParticipants> &&promise);
-
-  void do_get_channel_participants(ChannelId channel_id, ChannelParticipantsFilter &&filter, string additional_query,
-                                   int32 offset, int32 limit, int32 additional_limit,
                                    Promise<DialogParticipants> &&promise);
 
   void on_get_channel_participants(ChannelId channel_id, ChannelParticipantsFilter filter, int32 offset, int32 limit,

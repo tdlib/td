@@ -11846,7 +11846,7 @@ void MessagesManager::on_update_dialog_online_member_count_timeout(DialogId dial
     } else {
       td_->contacts_manager_->get_channel_participants(dialog_id.get_channel_id(),
                                                        td_api::make_object<td_api::supergroupMembersFilterRecent>(),
-                                                       string(), 0, 200, 200, true, Auto());
+                                                       string(), 0, 200, 200, Auto());
     }
     return;
   }
@@ -19463,7 +19463,7 @@ void MessagesManager::open_dialog(Dialog *d) {
         if (participant_count < 195) {  // include unknown participant_count
           td_->contacts_manager_->get_channel_participants(dialog_id.get_channel_id(),
                                                            td_api::make_object<td_api::supergroupMembersFilterRecent>(),
-                                                           string(), 0, 200, 200, true, Auto());
+                                                           string(), 0, 200, 200, Auto());
         }
       }
       get_channel_difference(dialog_id, d->pts, true, "open_dialog");

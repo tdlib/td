@@ -353,9 +353,6 @@ botCommand command:string description:string = BotCommand;
 //@description Contains a list of bot commands @bot_user_id Bot's user identifier @commands List of bot commands
 botCommands bot_user_id:int32 commands:vector<botCommand> = BotCommands;
 
-//@description Provides information about a bot and its supported commands @commands A list of commands supported by the bot
-botInfo commands:vector<botCommand> = BotInfo;
-
 
 //@description Represents a location to which a chat is connected @location The location @address Location address; 1-64 characters, as defined by the chat owner
 chatLocation location:location address:string = ChatLocation;
@@ -497,8 +494,7 @@ chatMemberStatusBanned banned_until_date:int32 = ChatMemberStatus;
 //@inviter_user_id Identifier of a user that invited/promoted/banned this member in the chat; 0 if unknown
 //@joined_chat_date Point in time (Unix timestamp) when the user joined the chat
 //@status Status of the member in the chat
-//@bot_info If the user is a bot, information about the bot; may be null. Can be null even for a bot if the bot is not the chat member
-chatMember member_id:MessageSender inviter_user_id:int32 joined_chat_date:int32 status:ChatMemberStatus bot_info:botInfo = ChatMember;
+chatMember member_id:MessageSender inviter_user_id:int32 joined_chat_date:int32 status:ChatMemberStatus = ChatMember;
 
 //@description Contains a list of chat members @total_count Approximate total count of chat members found @members A list of chat members
 chatMembers total_count:int32 members:vector<chatMember> = ChatMembers;

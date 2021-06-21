@@ -2591,7 +2591,7 @@ void GroupCallManager::try_load_group_call_administrators(InputGroupCallId input
                      std::move(result));
       });
   td_->contacts_manager_->search_dialog_participants(
-      dialog_id, string(), 100, DialogParticipantsFilter(DialogParticipantsFilter::Type::Administrators), true,
+      dialog_id, string(), 100, DialogParticipantsFilter(DialogParticipantsFilter::Type::Administrators),
       std::move(promise));
 }
 

@@ -6477,7 +6477,7 @@ void Td::on_request(uint64 id, td_api::searchChatMembers &request) {
         }
       });
   contacts_manager_->search_dialog_participants(DialogId(request.chat_id_), request.query_, request.limit_,
-                                                get_dialog_participants_filter(request.filter_), false,
+                                                get_dialog_participants_filter(request.filter_),
                                                 std::move(query_promise));
 }
 
@@ -6957,7 +6957,7 @@ void Td::on_request(uint64 id, td_api::getSupergroupMembers &request) {
         }
       });
   contacts_manager_->get_channel_participants(ChannelId(request.supergroup_id_), std::move(request.filter_), string(),
-                                              request.offset_, request.limit_, -1, false, std::move(query_promise));
+                                              request.offset_, request.limit_, -1, std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, td_api::closeSecretChat &request) {
