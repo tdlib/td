@@ -920,19 +920,6 @@ class ContactsManager : public Actor {
     void parse(ParserT &parser);
   };
 
-  struct BotInfo {
-    int32 version = -1;
-    string description;
-    vector<std::pair<string, string>> commands;
-    bool is_changed = true;
-
-    template <class StorerT>
-    void store(StorerT &storer) const;
-
-    template <class ParserT>
-    void parse(ParserT &parser);
-  };
-
   struct InviteLinkInfo {
     // known dialog
     DialogId dialog_id;
@@ -1125,12 +1112,6 @@ class ContactsManager : public Actor {
   void send_get_user_full_query(UserId user_id, tl_object_ptr<telegram_api::InputUser> &&input_user,
                                 Promise<Unit> &&promise, const char *source);
 
-  const BotInfo *get_bot_info(UserId user_id) const;
-  BotInfo *get_bot_info(UserId user_id);
-  BotInfo *get_bot_info_force(UserId user_id, bool send_update = true);
-
-  BotInfo *add_bot_info(UserId user_id);
-
   const Chat *get_chat(ChatId chat_id) const;
   Chat *get_chat(ChatId chat_id);
   Chat *get_chat_force(ChatId chat_id);
@@ -1179,9 +1160,6 @@ class ContactsManager : public Actor {
   void set_my_id(UserId my_id);
 
   static bool is_valid_username(const string &username);
-
-  bool on_update_bot_info(tl_object_ptr<telegram_api::botInfo> &&new_bot_info, bool send_update = true);
-  bool is_bot_info_expired(UserId user_id, int32 bot_info_version);
 
   void on_update_user_name(User *u, UserId user_id, string &&first_name, string &&last_name, string &&username);
   void on_update_user_phone_number(User *u, UserId user_id, string &&phone_number);
@@ -1331,11 +1309,6 @@ class ContactsManager : public Actor {
   static string get_user_full_database_value(const UserFull *user_full);
   void on_load_user_full_from_database(UserId user_id, string value);
 
-  void save_bot_info(const BotInfo *bot_info, UserId user_id);
-  static string get_bot_info_database_key(UserId user_id);
-  static string get_bot_info_database_value(const BotInfo *bot_info);
-  void on_load_bot_info_from_database(UserId user_id, string value, bool send_update);
-
   void save_chat_full(const ChatFull *chat_full, ChatId chat_id);
   static string get_chat_full_database_key(ChatId chat_id);
   static string get_chat_full_database_value(const ChatFull *chat_full);
@@ -1355,8 +1328,6 @@ class ContactsManager : public Actor {
   void update_user_full(UserFull *user_full, UserId user_id, bool from_database = false);
   void update_chat_full(ChatFull *chat_full, ChatId chat_id, bool from_database = false);
   void update_channel_full(ChannelFull *channel_full, ChannelId channel_id, bool from_database = false);
-
-  void update_bot_info(BotInfo *bot_info, UserId user_id, bool send_update, bool from_database);
 
   bool is_chat_full_outdated(const ChatFull *chat_full, const Chat *c, ChatId chat_id);
 
@@ -1592,7 +1563,6 @@ class ContactsManager : public Actor {
 
   std::unordered_map<UserId, unique_ptr<User>, UserIdHash> users_;
   std::unordered_map<UserId, unique_ptr<UserFull>, UserIdHash> users_full_;
-  std::unordered_map<UserId, unique_ptr<BotInfo>, UserIdHash> bot_infos_;
   std::unordered_map<UserId, UserPhotos, UserIdHash> user_photos_;
   mutable std::unordered_set<UserId, UserIdHash> unknown_users_;
   std::unordered_map<UserId, tl_object_ptr<telegram_api::UserProfilePhoto>, UserIdHash> pending_user_photos_;
@@ -1640,7 +1610,6 @@ class ContactsManager : public Actor {
   std::unordered_map<UserId, vector<Promise<Unit>>, UserIdHash> load_user_from_database_queries_;
   std::unordered_set<UserId, UserIdHash> loaded_from_database_users_;
   std::unordered_set<UserId, UserIdHash> unavailable_user_fulls_;
-  std::unordered_set<UserId, UserIdHash> unavailable_bot_infos_;
 
   std::unordered_map<ChatId, vector<Promise<Unit>>, ChatIdHash> load_chat_from_database_queries_;
   std::unordered_set<ChatId, ChatIdHash> loaded_from_database_chats_;
