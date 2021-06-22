@@ -3070,8 +3070,8 @@ void GroupCallManager::send_toggle_group_call_is_my_presentation_paused_query(In
                      is_my_presentation_paused, std::move(result));
       });
   td_->create_handler<EditGroupCallParticipantQuery>(std::move(promise))
-      ->send(input_group_call_id, as_dialog_id, false, false, 0, false, false, false, false, true,
-             !is_my_presentation_paused, false, false);
+      ->send(input_group_call_id, as_dialog_id, false, false, 0, false, false, false, false, false, false, true,
+             !is_my_presentation_paused);
 }
 
 void GroupCallManager::on_toggle_group_call_is_my_presentation_paused(InputGroupCallId input_group_call_id,
