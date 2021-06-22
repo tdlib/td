@@ -5023,6 +5023,10 @@ checkChangePhoneNumberCode code:string = Ok;
 //@commands List of the bot's commands
 setCommands scope:BotCommandScope language_code:string commands:vector<botCommand> = Ok;
 
+//@description Deletes commands supported by the bot for the given user scope and language; for bots only @scope The scope to which the commands are applied
+//@language_code A two-letter ISO 639-1 country code or an empty string
+deleteCommands scope:BotCommandScope language_code:string = Ok;
+
 //@description Returns the list of commands supported by the bot for the given user scope and language; for bots only @scope The scope to which the commands are applied
 //@language_code A two-letter ISO 639-1 country code or an empty string
 getCommands scope:BotCommandScope language_code:string = BotCommands;

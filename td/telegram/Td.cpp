@@ -6878,6 +6878,12 @@ void Td::on_request(uint64 id, td_api::setCommands &request) {
                                   std::move(request.commands_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::deleteCommands &request) {
+  CHECK_IS_BOT();
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->delete_commands(std::move(request.scope_), std::move(request.language_code_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::getCommands &request) {
   CHECK_IS_BOT();
   CREATE_REQUEST_PROMISE();
