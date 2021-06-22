@@ -48,12 +48,14 @@ template <class StorerT>
 void store(const ReplyMarkup &reply_markup, StorerT &storer) {
   bool has_keyboard = !reply_markup.keyboard.empty();
   bool has_inline_keyboard = !reply_markup.inline_keyboard.empty();
+  bool has_placeholder = !reply_markup.placeholder.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(reply_markup.is_personal);
   STORE_FLAG(reply_markup.need_resize_keyboard);
   STORE_FLAG(reply_markup.is_one_time_keyboard);
   STORE_FLAG(has_keyboard);
   STORE_FLAG(has_inline_keyboard);
+  STORE_FLAG(has_placeholder);
   END_STORE_FLAGS();
   store(reply_markup.type, storer);
   if (has_keyboard) {
@@ -62,18 +64,23 @@ void store(const ReplyMarkup &reply_markup, StorerT &storer) {
   if (has_inline_keyboard) {
     store(reply_markup.inline_keyboard, storer);
   }
+  if (has_placeholder) {
+    store(reply_markup.placeholder, storer);
+  }
 }
 
 template <class ParserT>
 void parse(ReplyMarkup &reply_markup, ParserT &parser) {
   bool has_keyboard;
   bool has_inline_keyboard;
+  bool has_placeholder;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(reply_markup.is_personal);
   PARSE_FLAG(reply_markup.need_resize_keyboard);
   PARSE_FLAG(reply_markup.is_one_time_keyboard);
   PARSE_FLAG(has_keyboard);
   PARSE_FLAG(has_inline_keyboard);
+  PARSE_FLAG(has_placeholder);
   END_PARSE_FLAGS();
   parse(reply_markup.type, parser);
   if (has_keyboard) {
@@ -81,6 +88,9 @@ void parse(ReplyMarkup &reply_markup, ParserT &parser) {
   }
   if (has_inline_keyboard) {
     parse(reply_markup.inline_keyboard, parser);
+  }
+  if (has_placeholder) {
+    parse(reply_markup.placeholder, parser);
   }
 }
 
