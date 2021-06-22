@@ -14,6 +14,7 @@
 #include "td/telegram/BackgroundId.h"
 #include "td/telegram/BackgroundManager.h"
 #include "td/telegram/BackgroundType.h"
+#include "td/telegram/BotCommand.h"
 #include "td/telegram/CallbackQueriesManager.h"
 #include "td/telegram/CallId.h"
 #include "td/telegram/CallManager.h"
@@ -6874,20 +6875,20 @@ void Td::on_request(uint64 id, td_api::setUsername &request) {
 void Td::on_request(uint64 id, td_api::setCommands &request) {
   CHECK_IS_BOT();
   CREATE_OK_REQUEST_PROMISE();
-  contacts_manager_->set_commands(std::move(request.scope_), std::move(request.language_code_),
-                                  std::move(request.commands_), std::move(promise));
+  set_commands(this, std::move(request.scope_), std::move(request.language_code_), std::move(request.commands_),
+               std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::deleteCommands &request) {
   CHECK_IS_BOT();
   CREATE_OK_REQUEST_PROMISE();
-  contacts_manager_->delete_commands(std::move(request.scope_), std::move(request.language_code_), std::move(promise));
+  delete_commands(this, std::move(request.scope_), std::move(request.language_code_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getCommands &request) {
   CHECK_IS_BOT();
   CREATE_REQUEST_PROMISE();
-  contacts_manager_->get_commands(std::move(request.scope_), std::move(request.language_code_), std::move(promise));
+  get_commands(this, std::move(request.scope_), std::move(request.language_code_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::setLocation &request) {

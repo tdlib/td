@@ -329,15 +329,6 @@ class ContactsManager : public Actor {
 
   void set_username(const string &username, Promise<Unit> &&promise);
 
-  void set_commands(td_api::object_ptr<td_api::BotCommandScope> &&scope_ptr, string &&language_code,
-                    vector<td_api::object_ptr<td_api::botCommand>> &&commands, Promise<Unit> &&promise);
-
-  void delete_commands(td_api::object_ptr<td_api::BotCommandScope> &&scope_ptr, string &&language_code,
-                       Promise<Unit> &&promise);
-
-  void get_commands(td_api::object_ptr<td_api::BotCommandScope> &&scope_ptr, string &&language_code,
-                    Promise<td_api::object_ptr<td_api::botCommands>> &&promise);
-
   void set_chat_description(ChatId chat_id, const string &description, Promise<Unit> &&promise);
 
   void set_channel_username(ChannelId channel_id, const string &username, Promise<Unit> &&promise);

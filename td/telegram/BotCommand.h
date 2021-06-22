@@ -10,6 +10,8 @@
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
 
+#include "td/actor/PromiseFuture.h"
+
 #include "td/utils/common.h"
 #include "td/utils/tl_helpers.h"
 
@@ -84,5 +86,14 @@ bool operator==(const BotCommands &lhs, const BotCommands &rhs);
 inline bool operator!=(const BotCommands &lhs, const BotCommands &rhs) {
   return !(lhs == rhs);
 }
+
+void set_commands(Td *td, td_api::object_ptr<td_api::BotCommandScope> &&scope_ptr, string &&language_code,
+                  vector<td_api::object_ptr<td_api::botCommand>> &&commands, Promise<Unit> &&promise);
+
+void delete_commands(Td *td, td_api::object_ptr<td_api::BotCommandScope> &&scope_ptr, string &&language_code,
+                     Promise<Unit> &&promise);
+
+void get_commands(Td *td, td_api::object_ptr<td_api::BotCommandScope> &&scope_ptr, string &&language_code,
+                  Promise<td_api::object_ptr<td_api::botCommands>> &&promise);
 
 }  // namespace td
