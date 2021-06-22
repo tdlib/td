@@ -25,11 +25,10 @@ class SetBotCommandsQuery : public Td::ResultHandler {
   explicit SetBotCommandsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(BotCommandScope scope, const string &language_code, vector<std::pair<string, string>> &&commands) {
+  void send(BotCommandScope scope, const string &language_code, vector<BotCommand> &&commands) {
     send_query(G()->net_query_creator().create(telegram_api::bots_setBotCommands(
-        scope.get_input_bot_command_scope(td), language_code, transform(commands, [](const auto &command) {
-          return make_tl_object<telegram_api::botCommand>(command.first, command.second);
-        }))));
+        scope.get_input_bot_command_scope(td), language_code,
+        transform(commands, [](const BotCommand &command) { return command.get_input_bot_command(); }))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -113,6 +112,10 @@ td_api::object_ptr<td_api::botCommand> BotCommand::get_bot_command_object() cons
   return td_api::make_object<td_api::botCommand>(command_, description_);
 }
 
+telegram_api::object_ptr<telegram_api::botCommand> BotCommand::get_input_bot_command() const {
+  return telegram_api::make_object<telegram_api::botCommand>(command_, description_);
+}
+
 bool operator==(const BotCommand &lhs, const BotCommand &rhs) {
   return lhs.command_ == rhs.command_ && lhs.description_ == rhs.description_;
 }
@@ -134,19 +137,25 @@ bool operator==(const BotCommands &lhs, const BotCommands &rhs) {
   return lhs.bot_user_id_ == rhs.bot_user_id_ && lhs.commands_ == rhs.commands_;
 }
 
+static bool is_valid_language_code(const string &language_code) {
+  if (language_code.empty()) {
+    return true;
+  }
+  if (language_code.size() != 2) {
+    return false;
+  }
+  return 'a' <= language_code[0] && language_code[0] <= 'z' && 'a' <= language_code[1] && language_code[1] <= 'z';
+}
+
 void set_commands(Td *td, td_api::object_ptr<td_api::BotCommandScope> &&scope_ptr, string &&language_code,
                   vector<td_api::object_ptr<td_api::botCommand>> &&commands, Promise<Unit> &&promise) {
   TRY_RESULT_PROMISE(promise, scope, BotCommandScope::get_bot_command_scope(td, std::move(scope_ptr)));
 
-  if (!language_code.empty() && (language_code.size() != 2 || language_code[0] < 'a' || language_code[0] > 'z' ||
-                                 language_code[1] < 'a' || language_code[1] > 'z')) {
+  if (!is_valid_language_code(language_code)) {
     return promise.set_error(Status::Error(400, "Invalid language code specified"));
   }
-  if (!scope.have_input_bot_command_scope(td)) {
-    return promise.set_error(Status::Error(400, "Invalid scope specified"));
-  }
 
-  vector<std::pair<string, string>> new_commands;
+  vector<BotCommand> new_commands;
   for (auto &command : commands) {
     if (command == nullptr) {
       return promise.set_error(Status::Error(400, "Command must be non-empty"));
@@ -194,12 +203,8 @@ void delete_commands(Td *td, td_api::object_ptr<td_api::BotCommandScope> &&scope
                      Promise<Unit> &&promise) {
   TRY_RESULT_PROMISE(promise, scope, BotCommandScope::get_bot_command_scope(td, std::move(scope_ptr)));
 
-  if (!language_code.empty() && (language_code.size() != 2 || language_code[0] < 'a' || language_code[0] > 'z' ||
-                                 language_code[1] < 'a' || language_code[1] > 'z')) {
+  if (!is_valid_language_code(language_code)) {
     return promise.set_error(Status::Error(400, "Invalid language code specified"));
-  }
-  if (!scope.have_input_bot_command_scope(td)) {
-    return promise.set_error(Status::Error(400, "Invalid scope specified"));
   }
 
   td->create_handler<ResetBotCommandsQuery>(std::move(promise))->send(scope, language_code);
@@ -209,12 +214,8 @@ void get_commands(Td *td, td_api::object_ptr<td_api::BotCommandScope> &&scope_pt
                   Promise<td_api::object_ptr<td_api::botCommands>> &&promise) {
   TRY_RESULT_PROMISE(promise, scope, BotCommandScope::get_bot_command_scope(td, std::move(scope_ptr)));
 
-  if (!language_code.empty() && (language_code.size() != 2 || language_code[0] < 'a' || language_code[0] > 'z' ||
-                                 language_code[1] < 'a' || language_code[1] > 'z')) {
+  if (!is_valid_language_code(language_code)) {
     return promise.set_error(Status::Error(400, "Invalid language code specified"));
-  }
-  if (!scope.have_input_bot_command_scope(td)) {
-    return promise.set_error(Status::Error(400, "Invalid scope specified"));
   }
 
   td->create_handler<GetBotCommandsQuery>(std::move(promise))->send(scope, language_code);

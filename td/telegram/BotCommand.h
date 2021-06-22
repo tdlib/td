@@ -29,9 +29,11 @@ class BotCommand {
   BotCommand() = default;
   BotCommand(string command, string description) : command_(std::move(command)), description_(std::move(description)) {
   }
-  BotCommand(telegram_api::object_ptr<telegram_api::botCommand> &&bot_command);
+  explicit BotCommand(telegram_api::object_ptr<telegram_api::botCommand> &&bot_command);
 
   td_api::object_ptr<td_api::botCommand> get_bot_command_object() const;
+
+  telegram_api::object_ptr<telegram_api::botCommand> get_input_bot_command() const;
 
   template <class StorerT>
   void store(StorerT &storer) const {

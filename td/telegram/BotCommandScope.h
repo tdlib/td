@@ -37,8 +37,6 @@ class BotCommandScope {
  public:
   static Result<BotCommandScope> get_bot_command_scope(Td *td, td_api::object_ptr<td_api::BotCommandScope> scope_ptr);
 
-  bool have_input_bot_command_scope(const Td *td) const;
-
   telegram_api::object_ptr<telegram_api::BotCommandScope> get_input_bot_command_scope(const Td *td) const;
 };
 

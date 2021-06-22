@@ -56,6 +56,9 @@ Result<BotCommandScope> BotCommandScope::get_bot_command_scope(Td *td,
       if (!user_id.is_valid()) {
         return Status::Error(400, "User not found");
       }
+      if (!td->contacts_manager_->have_input_user(user_id)) {
+        return Status::Error(400, "Can't access the user");
+      }
       break;
     }
     default:
@@ -90,16 +93,6 @@ Result<BotCommandScope> BotCommandScope::get_bot_command_scope(Td *td,
   }
 
   return BotCommandScope(type, dialog_id, user_id);
-}
-
-bool BotCommandScope::have_input_bot_command_scope(const Td *td) const {
-  if (dialog_id_.is_valid() && !td->messages_manager_->have_input_peer(dialog_id_, AccessRights::Read)) {
-    return false;
-  }
-  if (user_id_.is_valid() && !td->contacts_manager_->have_input_user(user_id_)) {
-    return false;
-  }
-  return true;
 }
 
 telegram_api::object_ptr<telegram_api::BotCommandScope> BotCommandScope::get_input_bot_command_scope(
