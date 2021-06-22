@@ -2889,7 +2889,7 @@ void GroupCallManager::send_toggle_group_call_is_my_video_paused_query(InputGrou
                      is_my_video_paused, std::move(result));
       });
   td_->create_handler<EditGroupCallParticipantQuery>(std::move(promise))
-      ->send(input_group_call_id, as_dialog_id, false, false, 0, false, false, false, false, true, !is_my_video_paused,
+      ->send(input_group_call_id, as_dialog_id, false, false, 0, false, false, false, false, true, is_my_video_paused,
              false, false);
 }
 
@@ -3071,7 +3071,7 @@ void GroupCallManager::send_toggle_group_call_is_my_presentation_paused_query(In
       });
   td_->create_handler<EditGroupCallParticipantQuery>(std::move(promise))
       ->send(input_group_call_id, as_dialog_id, false, false, 0, false, false, false, false, false, false, true,
-             !is_my_presentation_paused);
+             is_my_presentation_paused);
 }
 
 void GroupCallManager::on_toggle_group_call_is_my_presentation_paused(InputGroupCallId input_group_call_id,
