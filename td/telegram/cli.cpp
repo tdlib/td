@@ -833,7 +833,7 @@ class CliClient final : public Actor {
         if (message != nullptr && message->content_->get_id() == td_api::messageText::ID) {
           auto chat_id = message->chat_id_;
           auto text = static_cast<const td_api::messageText *>(message->content_.get())->text_->text_;
-          if (text == "/start" && use_test_dc_) {
+          if (text == "/start" && !message->is_outgoing_ && use_test_dc_) {
             on_cmd(PSTRING() << "sm " << chat_id << " Hi!");
           }
         }
