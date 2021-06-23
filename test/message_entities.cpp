@@ -248,7 +248,7 @@ TEST(MessageEntities, tg_url) {
   check_tg_url("tg://test?asdf", {"tg://test?asdf"});
   check_tg_url("tg://test#asdf", {"tg://test#asdf"});
   check_tg_url("tg://test?as‖df", {"tg://test?as"});
-  check_tg_url("tg://test?as<df", {"tg://test?as"});
+  check_tg_url("tg://test?sa<df", {"tg://test?sa"});
   check_tg_url("tg://test?as>df", {"tg://test?as"});
   check_tg_url("tg://test?as\"df", {"tg://test?as"});
   check_tg_url("tg://test?as«df", {"tg://test?as"});

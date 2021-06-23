@@ -37,6 +37,8 @@
 #include "td/net/Wget.h"
 #endif
 
+#include "td/net/HttpQuery.h"
+
 #include "td/actor/actor.h"
 
 #include "td/utils/algorithm.h"
@@ -45,7 +47,6 @@
 #include "td/utils/common.h"
 #include "td/utils/crypto.h"
 #include "td/utils/format.h"
-#include "td/utils/HttpUrl.h"
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"

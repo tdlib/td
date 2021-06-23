@@ -3380,7 +3380,9 @@ ContactsManager::ContactsManager(Td *td, ActorShared<> parent) : td_(td), parent
     G()->td_db()->get_binlog_pmc()->erase("next_contacts_sync_date");
     G()->td_db()->get_binlog_pmc()->erase("saved_contact_count");
   }
-  G()->td_db()->get_sqlite_pmc()->erase_by_prefix("us_bot_info", Auto());
+  if (G()->parameters().use_file_db) {
+    G()->td_db()->get_sqlite_pmc()->erase_by_prefix("us_bot_info", Auto());
+  }
 
   was_online_local_ = to_integer<int32>(G()->td_db()->get_binlog_pmc()->get("my_was_online_local"));
   was_online_remote_ = to_integer<int32>(G()->td_db()->get_binlog_pmc()->get("my_was_online_remote"));

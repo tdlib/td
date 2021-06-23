@@ -7,6 +7,7 @@
 #include "td/db/binlog/BinlogEvent.h"
 
 #include "td/utils/crypto.h"
+#include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/tl_parsers.h"
 #include "td/utils/tl_storers.h"

@@ -6,6 +6,7 @@
 //
 #include "td/telegram/PasswordManager.h"
 
+#include "td/telegram/ConfigManager.h"
 #include "td/telegram/DhCache.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"

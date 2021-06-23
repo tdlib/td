@@ -6,6 +6,7 @@
 //
 #include "td/telegram/BotCommandScope.h"
 
+#include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/MessagesManager.h"

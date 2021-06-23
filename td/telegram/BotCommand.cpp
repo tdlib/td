@@ -8,13 +8,17 @@
 
 #include "td/telegram/BotCommandScope.h"
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/Global.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/Td.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
+#include "td/utils/utf8.h"
 
 namespace td {
 

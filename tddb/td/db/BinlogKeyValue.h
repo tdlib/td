@@ -24,7 +24,6 @@
 #include "td/utils/tl_parsers.h"
 #include "td/utils/tl_storers.h"
 
-#include <map>
 #include <memory>
 #include <unordered_map>
 #include <utility>
