@@ -75,7 +75,7 @@ typedef void (*td_log_fatal_error_callback_ptr)(const char *error_message);
  * \param[in]  callback Callback that will be called when a fatal error happens.
  *                      Pass NULL to remove the callback.
  */
-TDJSON_EXPORT void td_set_log_fatal_error_callback(td_log_fatal_error_callback_ptr callback);
+TDJSON_DEPRECATED_EXPORT void td_set_log_fatal_error_callback(td_log_fatal_error_callback_ptr callback);
 
 #ifdef __cplusplus
 }  // extern "C"
