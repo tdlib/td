@@ -5969,12 +5969,12 @@ void MessagesManager::on_preload_folder_dialog_list_timeout_callback(void *messa
 
 td_api::object_ptr<td_api::MessageSender> MessagesManager::get_message_sender_object_const(UserId user_id,
                                                                                            DialogId dialog_id) const {
-  if (dialog_id.is_valid()) {
-    CHECK(have_dialog(dialog_id));
+  if (dialog_id.is_valid() && have_dialog(dialog_id)) {
     return td_api::make_object<td_api::messageSenderChat>(dialog_id.get());
   }
   if (!user_id.is_valid()) {
     // can happen only if the server sends a message with wrong sender
+    LOG(ERROR) << "Receive message with wrong sender " << user_id << '/' << dialog_id;
     user_id = td_->contacts_manager_->add_service_notifications_user();
   }
   return td_api::make_object<td_api::messageSenderUser>(
@@ -13399,6 +13399,10 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   }
 
   bool has_forward_info = message_info.forward_header != nullptr;
+
+  if (sender_dialog_id.is_valid() && sender_dialog_id != dialog_id && have_dialog_info_force(sender_dialog_id)) {
+    force_create_dialog(sender_dialog_id, "create_message");
+  }
 
   LOG(INFO) << "Receive " << message_id << " in " << dialog_id << " from " << sender_user_id << "/" << sender_dialog_id;
 
