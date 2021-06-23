@@ -7462,7 +7462,7 @@ void ContactsManager::restrict_channel_participant(ChannelId channel_id, DialogI
     });
 
     promise = std::move(on_result_promise);
-    status = DialogParticipantStatus::Banned(0);
+    status = DialogParticipantStatus::Banned(G()->unix_time() + 60);
   }
 
   if (participant_dialog_id.get_type() == DialogType::User) {
