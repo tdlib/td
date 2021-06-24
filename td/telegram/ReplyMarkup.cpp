@@ -435,11 +435,14 @@ static Result<InlineKeyboardButton> get_inline_keyboard_button(tl_object_ptr<td_
   switch (button_type_id) {
     case td_api::inlineKeyboardButtonTypeUrl::ID: {
       current_button.type = InlineKeyboardButton::Type::Url;
-      TRY_RESULT_ASSIGN(
-          current_button.data,
-          LinkManager::check_link(static_cast<const td_api::inlineKeyboardButtonTypeUrl *>(button->type_.get())->url_));
+      auto r_url =
+          LinkManager::check_link(static_cast<const td_api::inlineKeyboardButtonTypeUrl *>(button->type_.get())->url_);
+      if (r_url.is_error()) {
+        return Status::Error(400, "Inline keyboard button URL is invalid");
+      }
+      current_button.data = r_url.move_as_ok();
       if (!clean_input_string(current_button.data)) {
-        return Status::Error(400, "Inline keyboard button url must be encoded in UTF-8");
+        return Status::Error(400, "Inline keyboard button URL must be encoded in UTF-8");
       }
       break;
     }
@@ -478,10 +481,14 @@ static Result<InlineKeyboardButton> get_inline_keyboard_button(tl_object_ptr<td_
     case td_api::inlineKeyboardButtonTypeLoginUrl::ID: {
       current_button.type = InlineKeyboardButton::Type::UrlAuth;
       auto login_url = td_api::move_object_as<td_api::inlineKeyboardButtonTypeLoginUrl>(button->type_);
-      TRY_RESULT_ASSIGN(current_button.data, LinkManager::check_link(login_url->url_));
+      auto r_url = LinkManager::check_link(login_url->url_);
+      if (r_url.is_error()) {
+        return Status::Error(400, "Inline keyboard button login URL is invalid");
+      }
+      current_button.data = r_url.move_as_ok();
       current_button.forward_text = std::move(login_url->forward_text_);
       if (!clean_input_string(current_button.data)) {
-        return Status::Error(400, "Inline keyboard button login url must be encoded in UTF-8");
+        return Status::Error(400, "Inline keyboard button login URL must be encoded in UTF-8");
       }
       if (!clean_input_string(current_button.forward_text)) {
         return Status::Error(400, "Inline keyboard button forward text must be encoded in UTF-8");
