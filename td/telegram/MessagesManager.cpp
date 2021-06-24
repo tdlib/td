@@ -13401,7 +13401,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   bool has_forward_info = message_info.forward_header != nullptr;
 
   if (sender_dialog_id.is_valid() && sender_dialog_id != dialog_id && have_dialog_info_force(sender_dialog_id)) {
-    force_create_dialog(sender_dialog_id, "create_message");
+    force_create_dialog(sender_dialog_id, "create_message", true);
   }
 
   LOG(INFO) << "Receive " << message_id << " in " << dialog_id << " from " << sender_user_id << "/" << sender_dialog_id;
