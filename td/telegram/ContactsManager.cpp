@@ -12648,7 +12648,7 @@ void ContactsManager::on_update_chat_delete_user(ChatId chat_id, UserId user_id,
         return;
       }
     }
-    LOG(ERROR) << "Can't find group member " << user_id << " in " << chat_id << " to delete him";
+    LOG(ERROR) << "Can't find basic group member " << user_id << " in " << chat_id << " to be removed";
     repair_chat_participants(chat_id);
   }
 }

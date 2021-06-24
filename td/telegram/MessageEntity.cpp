@@ -1030,7 +1030,7 @@ static bool is_common_tld(Slice str) {
        "இந்தியா", "հայ", "新加坡", "فلسطين", "政务", "xperia", "xxx", "xyz", "yachts", "yahoo", "yamaxun", "yandex",
        "ye", "yodobashi", "yoga", "yokohama", "you", "youtube", "yt", "yun", "za", "zappos", "zara", "zero", "zip",
        "zippo", "zm", "zone", "zuerich",
-       // comment for clang-format to prevent him from placing all strings on separate lines
+       // comment for clang-format to prevent it from placing all strings on separate lines
        "zw"});
   string str_lower = utf8_to_lower(str);
   if (str_lower != str && utf8_substr(Slice(str_lower), 1) == utf8_substr(str, 1)) {
