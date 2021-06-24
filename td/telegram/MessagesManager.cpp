@@ -11880,6 +11880,7 @@ MessageId MessagesManager::get_message_id(const tl_object_ptr<telegram_api::Mess
 }
 
 DialogId MessagesManager::get_message_dialog_id(const tl_object_ptr<telegram_api::Message> &message_ptr) {
+  CHECK(message_ptr != nullptr);
   switch (message_ptr->get_id()) {
     case telegram_api::messageEmpty::ID: {
       auto message = static_cast<const telegram_api::messageEmpty *>(message_ptr.get());
@@ -31653,9 +31654,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
                    << " " << to_string(get_message_object(dialog_id, message.get()));
         dump_debug_message_op(d, 3);
 
-        // keep consistent with need_channel_difference_to_add_message
-        if (dialog_id.get_type() == DialogType::Channel && have_input_peer(dialog_id, AccessRights::Read) &&
-            dialog_id != debug_channel_difference_dialog_) {
+        if (need_channel_difference_to_add_message(dialog_id, nullptr)) {
           LOG(INFO) << "Schedule getDifference in " << dialog_id.get_channel_id();
           channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(), 0.001);
         }
@@ -35029,10 +35028,12 @@ void MessagesManager::set_channel_pts(Dialog *d, int32 new_pts, const char *sour
 
 bool MessagesManager::need_channel_difference_to_add_message(DialogId dialog_id,
                                                              const tl_object_ptr<telegram_api::Message> &message_ptr) {
-  // keep consistent with add_message_to_dialog
   if (dialog_id.get_type() != DialogType::Channel || !have_input_peer(dialog_id, AccessRights::Read) ||
       dialog_id == debug_channel_difference_dialog_) {
     return false;
+  }
+  if (message_ptr == nullptr) {
+    return true;
   }
   if (get_message_dialog_id(message_ptr) != dialog_id) {
     return false;
