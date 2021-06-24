@@ -1872,7 +1872,7 @@ class CreateNewSecretChatRequest : public RequestActor<SecretChatId> {
 
   void do_send_result() override {
     CHECK(secret_chat_id_.is_valid());
-    // SecretChatActor will send this update by himself.
+    // SecretChatActor will send this update by itself
     // But since the update may still be on its way, we will update essential fields here.
     td->contacts_manager_->on_update_secret_chat(
         secret_chat_id_, 0 /* no access_hash */, user_id_, SecretChatState::Unknown, true /* it is outbound chat */,

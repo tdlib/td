@@ -2194,12 +2194,12 @@ groupCallParticipantVideoInfo source_groups:vector<groupCallVideoSourceGroup> en
 //@is_speaking True, if the participant is speaking as set by setGroupCallParticipantIsSpeaking
 //@is_hand_raised True, if the participant hand is raised
 //@can_be_muted_for_all_users True, if the current user can mute the participant for all other group call participants
-//@can_be_unmuted_for_all_users True, if the current user can allow the participant to unmute themself or unmute the participant (if the participant is the current user)
+//@can_be_unmuted_for_all_users True, if the current user can allow the participant to unmute themselves or unmute the participant (if the participant is the current user)
 //@can_be_muted_for_current_user True, if the current user can mute the participant only for self
 //@can_be_unmuted_for_current_user True, if the current user can unmute the participant for self
 //@is_muted_for_all_users True, if the participant is muted for all users
 //@is_muted_for_current_user True, if the participant is muted for the current user
-//@can_unmute_self True, if the participant is muted for all users, but can unmute themself
+//@can_unmute_self True, if the participant is muted for all users, but can unmute themselves
 //@volume_level Participant's volume level; 1-20000 in hundreds of percents
 //@order User's order in the group call participant list. Orders must be compared lexicographically. The bigger is order, the higher is user in the list. If order is empty, the user must be removed from the participant list
 groupCallParticipant participant_id:MessageSender audio_source_id:int32 can_enable_video:Bool video_info:groupCallParticipantVideoInfo screen_sharing_video_info:groupCallParticipantVideoInfo bio:string is_current_user:Bool is_speaking:Bool is_hand_raised:Bool can_be_muted_for_all_users:Bool can_be_unmuted_for_all_users:Bool can_be_muted_for_current_user:Bool can_be_unmuted_for_current_user:Bool is_muted_for_all_users:Bool is_muted_for_current_user:Bool can_unmute_self:Bool volume_level:int32 order:string = GroupCallParticipant;
@@ -2789,7 +2789,7 @@ pushMessageContentVoiceNote voice_note:voiceNote is_pinned:Bool = PushMessageCon
 pushMessageContentBasicGroupChatCreate = PushMessageContent;
 
 //@description New chat members were invited to a group @member_name Name of the added member @is_current_user True, if the current user was added to the group
-//@is_returned True, if the user has returned to the group themself
+//@is_returned True, if the user has returned to the group themselves
 pushMessageContentChatAddMembers member_name:string is_current_user:Bool is_returned:Bool = PushMessageContent;
 
 //@description A chat photo was edited
@@ -2799,7 +2799,7 @@ pushMessageContentChatChangePhoto = PushMessageContent;
 pushMessageContentChatChangeTitle title:string = PushMessageContent;
 
 //@description A chat member was deleted @member_name Name of the deleted member @is_current_user True, if the current user was deleted from the group
-//@is_left True, if the user has left the group themself
+//@is_left True, if the user has left the group themselves
 pushMessageContentChatDeleteMember member_name:string is_current_user:Bool is_left:Bool = PushMessageContent;
 
 //@description A new member joined the chat by invite link
@@ -4789,7 +4789,7 @@ inviteGroupCallParticipants group_call_id:int32 user_ids:vector<int32> = Ok;
 
 //@description Returns invite link to a voice chat in a public chat
 //@group_call_id Group call identifier
-//@can_self_unmute Pass true if the invite_link should contain an invite hash, passing which to joinGroupCall would allow the invited user to unmute themself. Requires groupCall.can_be_managed group call flag
+//@can_self_unmute Pass true if the invite_link should contain an invite hash, passing which to joinGroupCall would allow the invited user to unmute themselves. Requires groupCall.can_be_managed group call flag
 getGroupCallInviteLink group_call_id:int32 can_self_unmute:Bool = HttpUrl;
 
 //@description Starts recording of an active group call. Requires groupCall.can_be_managed group call flag @group_call_id Group call identifier @title Group call recording title; 0-64 characters
@@ -4808,7 +4808,7 @@ toggleGroupCallIsMyVideoEnabled group_call_id:int32 is_my_video_enabled:Bool = O
 //@audio_source Group call participant's synchronization audio source identifier, or 0 for the current user @is_speaking True, if the user is speaking
 setGroupCallParticipantIsSpeaking group_call_id:int32 audio_source:int32 is_speaking:Bool = Ok;
 
-//@description Toggles whether a participant of an active group call is muted, unmuted, or allowed to unmute themself
+//@description Toggles whether a participant of an active group call is muted, unmuted, or allowed to unmute themselves
 //@group_call_id Group call identifier @participant_id Participant identifier @is_muted Pass true if the user must be muted and false otherwise
 toggleGroupCallParticipantIsMuted group_call_id:int32 participant_id:MessageSender is_muted:Bool = Ok;
 
