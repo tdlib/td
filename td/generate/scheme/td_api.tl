@@ -784,7 +784,7 @@ messages total_count:int32 messages:vector<message> = Messages;
 foundMessages total_count:int32 messages:vector<message> next_offset:string = FoundMessages;
 
 
-//@class NotificationSettingsScope @description Describes the types of chats to which notification settings are applied
+//@class NotificationSettingsScope @description Describes the types of chats to which notification settings are relevant
 
 //@description Notification settings applied to all private and secret chats when the corresponding chat setting has a default value
 notificationSettingsScopePrivateChats = NotificationSettingsScope;
@@ -3474,7 +3474,7 @@ vectorPathCommandLine end_point:point = VectorPathCommand;
 vectorPathCommandCubicBezierCurve start_control_point:point end_control_point:point end_point:point = VectorPathCommand;
 
 
-//@class BotCommandScope @description Represents the scope to which bot commands are applied
+//@class BotCommandScope @description Represents the scope to which bot commands are relevant
 
 //@description A scope covering all users
 botCommandScopeDefault = BotCommandScope;
@@ -5020,16 +5020,16 @@ resendChangePhoneNumberCode = AuthenticationCodeInfo;
 checkChangePhoneNumberCode code:string = Ok;
 
 
-//@description Sets the list of commands supported by the bot for the given user scope and language; for bots only @scope The scope to which the commands are applied
+//@description Sets the list of commands supported by the bot for the given user scope and language; for bots only @scope The scope to which the commands are relevant
 //@language_code A two-letter ISO 639-1 country code. If empty, the commands will be applied to all users from the given scope, for which language there are no dedicated commands
 //@commands List of the bot's commands
 setCommands scope:BotCommandScope language_code:string commands:vector<botCommand> = Ok;
 
-//@description Deletes commands supported by the bot for the given user scope and language; for bots only @scope The scope to which the commands are applied
+//@description Deletes commands supported by the bot for the given user scope and language; for bots only @scope The scope to which the commands are relevant
 //@language_code A two-letter ISO 639-1 country code or an empty string
 deleteCommands scope:BotCommandScope language_code:string = Ok;
 
-//@description Returns the list of commands supported by the bot for the given user scope and language; for bots only @scope The scope to which the commands are applied
+//@description Returns the list of commands supported by the bot for the given user scope and language; for bots only @scope The scope to which the commands are relevant
 //@language_code A two-letter ISO 639-1 country code or an empty string
 getCommands scope:BotCommandScope language_code:string = BotCommands;
 
@@ -5268,7 +5268,7 @@ resetNetworkStatistics = Ok;
 //@description Returns auto-download settings presets for the current user
 getAutoDownloadSettingsPresets = AutoDownloadSettingsPresets;
 
-//@description Sets auto-download settings @settings New user auto-download settings @type Type of the network for which the new settings are applied
+//@description Sets auto-download settings @settings New user auto-download settings @type Type of the network for which the new settings are relevant
 setAutoDownloadSettings settings:autoDownloadSettings type:NetworkType = Ok;
 
 
