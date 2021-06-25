@@ -11728,16 +11728,12 @@ void MessagesManager::set_dialog_max_unavailable_message_id(DialogId dialog_id, 
 
   Dialog *d = get_dialog_force(dialog_id, source);
   if (d != nullptr) {
-    if (max_unavailable_message_id > d->last_new_message_id && from_update) {
-      if (d->last_new_message_id.is_valid()) {
-        if (!td_->auth_manager_->is_bot()) {
-          LOG(ERROR) << "Tried to set " << dialog_id << " max unavailable message to " << max_unavailable_message_id
-                     << " from " << source << ", but last new message is " << d->last_new_message_id;
-        }
-        max_unavailable_message_id = d->last_new_message_id;
-      } else if (max_unavailable_message_id.is_valid() && max_unavailable_message_id.is_server()) {
-        set_dialog_last_new_message_id(d, max_unavailable_message_id, source);
+    if (d->last_new_message_id.is_valid() && max_unavailable_message_id > d->last_new_message_id && from_update) {
+      if (!td_->auth_manager_->is_bot()) {
+        LOG(ERROR) << "Tried to set " << dialog_id << " max unavailable message to " << max_unavailable_message_id
+                   << " from " << source << ", but last new message is " << d->last_new_message_id;
       }
+      max_unavailable_message_id = d->last_new_message_id;
     }
 
     if (d->max_unavailable_message_id == max_unavailable_message_id) {
@@ -31650,8 +31646,10 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     if (max_message_id != MessageId() && message_id > max_message_id) {
       if (!message->from_database) {
         LOG(ERROR) << "Ignore " << message_id << " in " << dialog_id << " received not through update from " << source
-                   << ". Last is " << max_message_id << ", channel difference " << debug_channel_difference_dialog_
-                   << " " << to_string(get_message_object(dialog_id, message.get()));
+                   << ". Maximum allowed is " << max_message_id << ", last is " << d->last_message_id
+                   << ", being added message is " << d->being_added_message_id << ", channel difference "
+                   << debug_channel_difference_dialog_ << " "
+                   << to_string(get_message_object(dialog_id, message.get()));
         dump_debug_message_op(d, 3);
 
         if (need_channel_difference_to_add_message(dialog_id, nullptr)) {
@@ -33758,12 +33756,6 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
   if (!d->last_new_message_id.is_valid() && d->last_new_message_id != MessageId()) {
     LOG(ERROR) << "Drop invalid last_new_message_id " << d->last_new_message_id << " in " << dialog_id;
     d->last_new_message_id = MessageId();
-  }
-  if (!d->last_new_message_id.is_valid() && d->max_unavailable_message_id.is_valid() &&
-      d->max_unavailable_message_id.is_server()) {
-    LOG(ERROR) << "Bugfixing wrong last_new_message_id with max_unavailable_message_id to "
-               << d->max_unavailable_message_id << " in " << dialog_id;
-    set_dialog_last_new_message_id(d, d->max_unavailable_message_id, "fix_new_dialog 11");
   }
   if (last_message_id.is_valid()) {
     if ((last_message_id.is_server() || dialog_type == DialogType::SecretChat) && !d->last_new_message_id.is_valid()) {
