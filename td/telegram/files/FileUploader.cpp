@@ -302,7 +302,7 @@ Result<size_t> FileUploader::process_part(Part part, NetQueryPtr net_query) {
   }
   if (!result.ok()) {
     // TODO: it is possible
-    return Status::Error(500, "Internal Server Error");
+    return Status::Error(500, "Internal Server Error during file upload");
   }
   return part.size;
 }
