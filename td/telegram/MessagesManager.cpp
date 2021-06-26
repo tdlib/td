@@ -28873,8 +28873,7 @@ void MessagesManager::fail_send_message(FullMessageId full_message_id, int error
 }
 
 void MessagesManager::fail_send_message(FullMessageId full_message_id, Status error) {
-  fail_send_message(full_message_id, error.code() > 0 ? error.code() : 500,
-                    error.message().str());  // TODO CHECK that status has always a code
+  fail_send_message(full_message_id, error.code(), error.message().str());
 }
 
 void MessagesManager::fail_edit_message_media(FullMessageId full_message_id, Status &&error) {

@@ -924,12 +924,19 @@ Status FileManager::check_local_location(FullLocalFileLocation &location, int64 
   if (location.path_.empty()) {
     return Status::Error(400, "File must have non-empty path");
   }
-  TRY_RESULT(path, realpath(location.path_, true));
-  if (bad_paths_.count(path) != 0) {
+  auto r_path = realpath(location.path_, true);
+  if (r_path.is_error()) {
+    return Status::Error(400, "Can't find real file path");
+  }
+  location.path_ = r_path.move_as_ok();
+  if (bad_paths_.count(location.path_) != 0) {
     return Status::Error(400, "Sending of internal database files is forbidden");
   }
-  location.path_ = std::move(path);
-  TRY_RESULT(stat, stat(location.path_));
+  auto r_stat = stat(location.path_);
+  if (r_stat.is_error()) {
+    return Status::Error(400, "Can't get stat about the file");
+  }
+  auto stat = r_stat.move_as_ok();
   if (!stat.is_reg_) {
     return Status::Error(400, "File must be a regular file");
   }
@@ -2833,8 +2840,11 @@ static bool is_background_type(FileType type) {
 
 Result<FileId> FileManager::from_persistent_id(CSlice persistent_id, FileType file_type) {
   if (persistent_id.find('.') != string::npos) {
-    TRY_RESULT(http_url, parse_url(persistent_id));
-    auto url = http_url.get_url();
+    auto r_http_url = parse_url(persistent_id);
+    if (r_http_url.is_error()) {
+      return Status::Error(400, PSLICE() << "Invalid file HTTP URL specified: " << r_http_url.error().message());
+    }
+    auto url = r_http_url.ok().get_url();
     if (!clean_input_string(url)) {
       return Status::Error(400, "URL must be in UTF-8");
     }
@@ -3010,7 +3020,7 @@ Result<FileId> FileManager::check_input_file_id(FileType type, Result<FileId> re
 
   auto file_node = get_sync_file_node(file_id);  // we need full data about sent files
   if (!file_node) {
-    return Status::Error(6, "File not found");
+    return Status::Error(400, "File not found");
   }
   auto file_view = FileView(file_node);
   FileType real_type = file_view.get_type();
@@ -3020,7 +3030,7 @@ Result<FileId> FileManager::check_input_file_id(FileType type, Result<FileId> re
         !(is_document_type(real_type) && is_document_type(type)) &&
         !(is_background_type(real_type) && is_background_type(type))) {
       // TODO: send encrypted file to unencrypted chat
-      return Status::Error(6, "Type of file mismatch");
+      return Status::Error(400, "Type of file mismatch");
     }
   }
 
@@ -3044,7 +3054,7 @@ Result<FileId> FileManager::check_input_file_id(FileType type, Result<FileId> re
 Result<FileId> FileManager::get_input_thumbnail_file_id(const tl_object_ptr<td_api::InputFile> &thumbnail_input_file,
                                                         DialogId owner_dialog_id, bool is_encrypted) {
   if (thumbnail_input_file == nullptr) {
-    return Status::Error(6, "inputThumbnail not specified");
+    return Status::Error(400, "inputThumbnail not specified");
   }
 
   switch (thumbnail_input_file->get_id()) {
@@ -3055,9 +3065,9 @@ Result<FileId> FileManager::get_input_thumbnail_file_id(const tl_object_ptr<td_a
           owner_dialog_id, 0, false);
     }
     case td_api::inputFileId::ID:
-      return Status::Error(6, "InputFileId is not supported for thumbnails");
+      return Status::Error(400, "InputFileId is not supported for thumbnails");
     case td_api::inputFileRemote::ID:
-      return Status::Error(6, "InputFileRemote is not supported for thumbnails");
+      return Status::Error(400, "InputFileRemote is not supported for thumbnails");
     case td_api::inputFileGenerated::ID: {
       auto *generated_thumbnail = static_cast<const td_api::inputFileGenerated *>(thumbnail_input_file.get());
       return register_generate(is_encrypted ? FileType::EncryptedThumbnail : FileType::Thumbnail,
@@ -3077,7 +3087,7 @@ Result<FileId> FileManager::get_input_file_id(FileType type, const tl_object_ptr
     if (allow_zero) {
       return FileId();
     }
-    return Status::Error(6, "InputFile is not specified");
+    return Status::Error(400, "InputFile is not specified");
   }
 
   if (is_encrypted || is_secure) {
@@ -3147,19 +3157,19 @@ Result<FileId> FileManager::get_input_file_id(FileType type, const tl_object_ptr
 Result<FileId> FileManager::get_map_thumbnail_file_id(Location location, int32 zoom, int32 width, int32 height,
                                                       int32 scale, DialogId owner_dialog_id) {
   if (!location.is_valid_map_point()) {
-    return Status::Error(6, "Invalid location specified");
+    return Status::Error(400, "Invalid location specified");
   }
   if (zoom < 13 || zoom > 20) {
-    return Status::Error(6, "Wrong zoom");
+    return Status::Error(400, "Wrong zoom");
   }
   if (width < 16 || width > 1024) {
-    return Status::Error(6, "Wrong width");
+    return Status::Error(400, "Wrong width");
   }
   if (height < 16 || height > 1024) {
-    return Status::Error(6, "Wrong height");
+    return Status::Error(400, "Wrong height");
   }
   if (scale < 1 || scale > 3) {
-    return Status::Error(6, "Wrong scale");
+    return Status::Error(400, "Wrong scale");
   }
 
   const double PI = 3.14159265358979323846;
