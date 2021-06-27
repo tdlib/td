@@ -59,6 +59,7 @@ AuthManager::AuthManager(int32 api_id, const string &api_hash, ActorShared<> par
           td, PromiseCreator::lambda([this](Result<Unit> result) { update_state(State::Ok); }));
     }
   } else if (auth_str == "logout") {
+    LOG(WARNING) << "Continue to log out";
     update_state(State::LoggingOut);
   } else if (auth_str == "destroy") {
     update_state(State::DestroyingKeys);
@@ -345,10 +346,11 @@ void AuthManager::log_out(uint64 query_id) {
   if (state_ != State::Ok) {
     // TODO: could skip full logout if still no authorization
     // TODO: send auth.cancelCode if state_ == State::WaitCode
+    LOG(WARNING) << "Destroying auth keys by user request";
     destroy_auth_keys();
     on_query_ok();
   } else {
-    LOG(INFO) << "Logging out";
+    LOG(WARNING) << "Logging out by user request";
     G()->td_db()->get_binlog_pmc()->set("auth", "logout");
     update_state(State::LoggingOut);
     send_log_out_query();
@@ -628,12 +630,13 @@ void AuthManager::on_log_out_result(NetQueryPtr &result) {
     on_query_ok();
   }
 }
-void AuthManager::on_authorization_lost() {
+void AuthManager::on_authorization_lost(const string &source) {
+  LOG(WARNING) << "Lost authorization because of " << source;
   destroy_auth_keys();
 }
 
 void AuthManager::destroy_auth_keys() {
-  if (state_ == State::Closing) {
+  if (state_ == State::Closing || state_ == State::DestroyingKeys) {
     return;
   }
   update_state(State::DestroyingKeys);

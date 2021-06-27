@@ -780,11 +780,9 @@ void Session::on_message_result_error(uint64 id, int error_code, BufferSlice mes
       if (message.as_slice() == CSlice("USER_DEACTIVATED_BAN")) {
         LOG(PLAIN) << "Your account was suspended for suspicious activity. If you think that this is a mistake, please "
                       "write to recover@telegram.org your phone number and other details to recover the account.";
-      } else {
-        LOG(WARNING) << "Lost authorization due to " << tag("msg", message.as_slice());
       }
       auth_data_.set_auth_flag(false);
-      G()->shared_config().set_option_boolean("auth", false);
+      G()->shared_config().set_option_string("auth", message.as_slice().str());
       shared_auth_data_->set_auth_key(auth_data_.get_main_auth_key());
       on_session_failed(Status::OK());
     }

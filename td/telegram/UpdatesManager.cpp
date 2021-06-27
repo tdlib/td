@@ -909,6 +909,9 @@ void UpdatesManager::on_failed_get_difference(Status &&error) {
 }
 
 void UpdatesManager::schedule_get_difference(const char *source) {
+  if (G()->close_flag()) {
+    return;
+  }
   if (!retry_timeout_.has_timeout()) {
     LOG(WARNING) << "Schedule getDifference in " << retry_time_ << " seconds with pts = " << get_pts()
                  << ", qts = " << get_qts() << ", date = " << get_date() << " from " << source;

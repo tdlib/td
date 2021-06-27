@@ -116,8 +116,6 @@ class Td final : public NetQueryCallback {
 
   void on_update_server_time_difference();
 
-  void on_authorization_lost();
-
   void on_online_updated(bool force, bool send_update);
   void on_update_status_success(bool is_online);
 

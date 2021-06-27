@@ -3607,7 +3607,9 @@ void Td::on_config_option_updated(const string &name) {
     return;
   }
   if (name == "auth") {
-    return on_authorization_lost();
+    send_closure(auth_manager_actor_, &AuthManager::on_authorization_lost,
+                 G()->shared_config().get_option_string(name));
+    return;
   } else if (name == "saved_animations_limit") {
     return animations_manager_->on_update_saved_animations_limit(
         narrow_cast<int32>(G()->shared_config().get_option_integer(name)));
@@ -3713,11 +3715,6 @@ void Td::on_connection_state_changed(StateManager::State new_state) {
 
   send_closure(actor_id(this), &Td::send_update,
                make_tl_object<td_api::updateConnectionState>(get_connection_state_object(connection_state_)));
-}
-
-void Td::on_authorization_lost() {
-  LOG(WARNING) << "Lost authorization";
-  send_closure(auth_manager_actor_, &AuthManager::on_authorization_lost);
 }
 
 void Td::start_up() {

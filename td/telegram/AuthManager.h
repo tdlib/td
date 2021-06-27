@@ -48,7 +48,7 @@ class AuthManager : public NetActor {
 
   void on_update_login_token();
 
-  void on_authorization_lost();
+  void on_authorization_lost(const string &source);
   void on_closing(bool destroy_flag);
 
   // can return nullptr if state isn't initialized yet
