@@ -69,7 +69,11 @@ Result<HttpUrl> parse_url(Slice url, HttpUrl::Protocol default_protocol) {
   }
   Slice userinfo_host;
   if (colon > userinfo_host_port.begin() && *colon == ':') {
-    auto r_port = to_integer_safe<int>(Slice(colon + 1, userinfo_host_port.end()));
+    Slice port_slice(colon + 1, userinfo_host_port.end());
+    while (port_slice.size() > 1 && port_slice[0] == '0') {
+      port_slice.remove_prefix(1);
+    }
+    auto r_port = to_integer_safe<int>(port_slice);
     if (r_port.is_error() || r_port.ok() == 0) {
       port = -1;
     } else {

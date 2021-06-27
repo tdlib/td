@@ -52,6 +52,9 @@ TEST(Link, check_link) {
   check_link("tOn://google", "ton://google/");
   check_link("httP://google.com?1#tes", "http://google.com/?1#tes");
   check_link("httPs://google.com/?1#tes", "https://google.com/?1#tes");
+  check_link("http://google.com:0", "");
+  check_link("http://google.com:0000000001", "http://google.com:1/");
+  check_link("http://google.com:-1", "");
   check_link("tg://google?1#tes", "tg://google?1#tes");
   check_link("tg://google/?1#tes", "tg://google?1#tes");
   check_link("TG:_", "tg://_/");
