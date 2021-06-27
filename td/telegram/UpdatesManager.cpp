@@ -223,7 +223,7 @@ void UpdatesManager::fill_get_difference_gap(void *td) {
 
 void UpdatesManager::fill_gap(void *td, const char *source) {
   CHECK(td != nullptr);
-  if (G()->close_flag()) {
+  if (G()->close_flag() || !static_cast<Td *>(td)->auth_manager_->is_authorized()) {
     return;
   }
   auto updates_manager = static_cast<Td *>(td)->updates_manager_.get();
@@ -236,15 +236,11 @@ void UpdatesManager::fill_gap(void *td, const char *source) {
 }
 
 void UpdatesManager::get_difference(const char *source) {
-  if (G()->close_flag()) {
+  if (G()->close_flag() || !td_->auth_manager_->is_authorized()) {
     return;
   }
   if (get_pts() == -1) {
     init_state();
-    return;
-  }
-
-  if (!td_->auth_manager_->is_authorized()) {
     return;
   }
 
@@ -881,7 +877,7 @@ void UpdatesManager::on_get_updates(tl_object_ptr<telegram_api::Updates> &&updat
 }
 
 void UpdatesManager::on_failed_get_updates_state(Status &&error) {
-  if (G()->close_flag()) {
+  if (G()->close_flag() || !td_->auth_manager_->is_authorized()) {
     return;
   }
   if (error.code() != 401) {
@@ -893,7 +889,7 @@ void UpdatesManager::on_failed_get_updates_state(Status &&error) {
 }
 
 void UpdatesManager::on_failed_get_difference(Status &&error) {
-  if (G()->close_flag()) {
+  if (G()->close_flag() || !td_->auth_manager_->is_authorized()) {
     return;
   }
   if (error.code() != 401) {
@@ -909,7 +905,7 @@ void UpdatesManager::on_failed_get_difference(Status &&error) {
 }
 
 void UpdatesManager::schedule_get_difference(const char *source) {
-  if (G()->close_flag()) {
+  if (G()->close_flag() || !td_->auth_manager_->is_authorized()) {
     return;
   }
   if (!retry_timeout_.has_timeout()) {
@@ -1151,7 +1147,7 @@ int32 UpdatesManager::get_update_edit_message_pts(const telegram_api::Updates *u
 }
 
 void UpdatesManager::init_state() {
-  if (!td_->auth_manager_->is_authorized()) {
+  if (G()->close_flag() || !td_->auth_manager_->is_authorized()) {
     return;
   }
 
