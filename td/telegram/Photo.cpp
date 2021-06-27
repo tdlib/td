@@ -382,7 +382,8 @@ Variant<PhotoSize, string> get_photo_size(FileManager *file_manager, PhotoSizeSo
     case telegram_api::photoStrippedSize::ID: {
       auto size = move_tl_object_as<telegram_api::photoStrippedSize>(size_ptr);
       if (format != PhotoFormat::Jpeg) {
-        LOG(ERROR) << "Receive unexpected JPEG minithumbnail in photo of format " << format;
+        LOG(ERROR) << "Receive unexpected JPEG minithumbnail in photo " << id << " from " << source << " of format "
+                   << format;
         return std::move(res);
       }
       return size->bytes_.as_slice().str();
@@ -391,7 +392,7 @@ Variant<PhotoSize, string> get_photo_size(FileManager *file_manager, PhotoSizeSo
       auto size = move_tl_object_as<telegram_api::photoSizeProgressive>(size_ptr);
 
       if (size->sizes_.empty()) {
-        LOG(ERROR) << "Receive " << to_string(size);
+        LOG(ERROR) << "Receive photo " << id << " from " << source << " with empty size " << to_string(size);
         return std::move(res);
       }
       std::sort(size->sizes_.begin(), size->sizes_.end());
@@ -407,7 +408,8 @@ Variant<PhotoSize, string> get_photo_size(FileManager *file_manager, PhotoSizeSo
     case telegram_api::photoPathSize::ID: {
       auto size = move_tl_object_as<telegram_api::photoPathSize>(size_ptr);
       if (format != PhotoFormat::Tgs && format != PhotoFormat::Webp) {
-        LOG(ERROR) << "Receive unexpected SVG minithumbnail in photo of format " << format;
+        LOG(ERROR) << "Receive unexpected SVG minithumbnail in photo " << id << " from " << source << " of format "
+                   << format;
         return std::move(res);
       }
       return size->bytes_.as_slice().str();
