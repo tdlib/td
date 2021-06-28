@@ -436,6 +436,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, td_api::requestPasswordRecovery &request);
 
+  void on_request(uint64 id, td_api::checkPasswordRecoveryCode &request);
+
   void on_request(uint64 id, td_api::recoverPassword &request);
 
   void on_request(uint64 id, td_api::getTemporaryPasswordState &request);

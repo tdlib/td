@@ -478,6 +478,21 @@ void PasswordManager::request_password_recovery(
       }));
 }
 
+void PasswordManager::check_password_recovery_code(string code, Promise<Unit> promise) {
+  // is called only after authorization
+  send_with_promise(G()->net_query_creator().create(telegram_api::auth_checkRecoveryPassword(code)),
+                    PromiseCreator::lambda([promise = std::move(promise)](Result<NetQueryPtr> r_query) mutable {
+                      auto r_result = fetch_result<telegram_api::auth_checkRecoveryPassword>(std::move(r_query));
+                      if (r_result.is_error()) {
+                        return promise.set_error(r_result.move_as_error());
+                      }
+                      if (!r_result.ok()) {
+                        return promise.set_error(Status::Error(400, "Invalid recovery code"));
+                      }
+                      return promise.set_value(Unit());
+                    }));
+}
+
 void PasswordManager::recover_password(string code, string new_password, string new_hint, Promise<State> promise) {
   // is called only after authorization
   if (new_password.empty()) {

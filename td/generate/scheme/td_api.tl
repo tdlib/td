@@ -3925,6 +3925,9 @@ resendRecoveryEmailAddressCode = PasswordState;
 //@description Requests to send a password recovery code to an email address that was previously set up
 requestPasswordRecovery = EmailAddressAuthenticationCodeInfo;
 
+//@description Checks whether a password recovery code sent to an email address is valid @recovery_code Recovery code to check 
+checkPasswordRecoveryCode recovery_code:string = Ok;
+
 //@description Recovers the password using a recovery code sent to an email address that was previously set up
 //@recovery_code Recovery code to check @new_password New password of the user; may be empty to remove the password @new_hint New password hint; may be empty
 recoverPassword recovery_code:string new_password:string new_hint:string = PasswordState;

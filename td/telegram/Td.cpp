@@ -4930,6 +4930,14 @@ void Td::on_request(uint64 id, td_api::requestPasswordRecovery &request) {
   send_closure(password_manager_, &PasswordManager::request_password_recovery, std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::checkPasswordRecoveryCode &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.recovery_code_);
+  CREATE_OK_REQUEST_PROMISE();
+  send_closure(password_manager_, &PasswordManager::check_password_recovery_code, std::move(request.recovery_code_),
+               std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::recoverPassword &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.recovery_code_);
