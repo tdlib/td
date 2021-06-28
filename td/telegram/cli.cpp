@@ -1655,7 +1655,11 @@ class CliClient final : public Actor {
     } else if (op == "rapr") {
       send_request(td_api::make_object<td_api::requestAuthenticationPasswordRecovery>());
     } else if (op == "rap") {
-      send_request(td_api::make_object<td_api::recoverAuthenticationPassword>(args));
+      string code;
+      string new_password;
+      string new_hint;
+      get_args(args, code, new_password, new_hint);
+      send_request(td_api::make_object<td_api::recoverAuthenticationPassword>(code, new_password, new_hint));
     } else if (op == "lo" || op == "LogOut" || op == "logout") {
       send_request(td_api::make_object<td_api::logOut>());
     } else if (op == "destroy") {
@@ -1777,7 +1781,11 @@ class CliClient final : public Actor {
     } else if (op == "rpr" || op == "RequestPasswordRecovery") {
       send_request(td_api::make_object<td_api::requestPasswordRecovery>());
     } else if (op == "rp" || op == "RecoverPassword") {
-      send_request(td_api::make_object<td_api::recoverPassword>(args));
+      string code;
+      string new_password;
+      string new_hint;
+      get_args(args, code, new_password, new_hint);
+      send_request(td_api::make_object<td_api::recoverPassword>(code, new_password, new_hint));
     } else if (op == "gtp" || op == "GetTemporaryPassword") {
       send_request(td_api::make_object<td_api::getTemporaryPasswordState>());
     } else if (op == "ctp" || op == "CreateTemporaryPassword") {

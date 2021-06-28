@@ -4783,7 +4783,8 @@ void Td::on_request(uint64 id, const td_api::requestAuthenticationPasswordRecove
 
 void Td::on_request(uint64 id, td_api::recoverAuthenticationPassword &request) {
   CLEAN_INPUT_STRING(request.recovery_code_);
-  send_closure(auth_manager_actor_, &AuthManager::recover_password, id, std::move(request.recovery_code_));
+  send_closure(auth_manager_actor_, &AuthManager::recover_password, id, std::move(request.recovery_code_),
+               std::move(request.new_password_), std::move(request.new_hint_));
 }
 
 void Td::on_request(uint64 id, const td_api::logOut &request) {
@@ -4926,7 +4927,7 @@ void Td::on_request(uint64 id, td_api::recoverPassword &request) {
   CLEAN_INPUT_STRING(request.recovery_code_);
   CREATE_REQUEST_PROMISE();
   send_closure(password_manager_, &PasswordManager::recover_password, std::move(request.recovery_code_),
-               std::move(promise));
+               std::move(request.new_password_), std::move(request.new_hint_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getTemporaryPasswordState &request) {

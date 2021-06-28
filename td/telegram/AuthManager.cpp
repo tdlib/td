@@ -325,7 +325,7 @@ void AuthManager::request_password_recovery(uint64 query_id) {
                   G()->net_query_creator().create_unauth(telegram_api::auth_requestPasswordRecovery()));
 }
 
-void AuthManager::recover_password(uint64 query_id, string code) {
+void AuthManager::recover_password(uint64 query_id, string code, string new_password, string new_hint) {
   if (state_ != State::WaitPassword) {
     return on_query_error(query_id, Status::Error(8, "Call to recoverAuthenticationPassword unexpected"));
   }

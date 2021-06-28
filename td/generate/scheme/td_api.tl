@@ -3870,8 +3870,9 @@ checkAuthenticationPassword password:string = Ok;
 //@description Requests to send a password recovery code to an email address that was previously set up. Works only when the current authorization state is authorizationStateWaitPassword
 requestAuthenticationPasswordRecovery = Ok;
 
-//@description Recovers the password with a password recovery code sent to an email address that was previously set up. Works only when the current authorization state is authorizationStateWaitPassword @recovery_code Recovery code to check
-recoverAuthenticationPassword recovery_code:string = Ok;
+//@description Recovers the password with a password recovery code sent to an email address that was previously set up. Works only when the current authorization state is authorizationStateWaitPassword
+//@recovery_code Recovery code to check @new_password New password of the user; may be empty to remove the password @new_hint New password hint; may be empty
+recoverAuthenticationPassword recovery_code:string new_password:string new_hint:string = Ok;
 
 //@description Checks the authentication token of a bot; to log in as a bot. Works only when the current authorization state is authorizationStateWaitPhoneNumber. Can be used instead of setAuthenticationPhoneNumber and checkAuthenticationCode to log in @token The bot token
 checkAuthenticationBotToken token:string = Ok;
@@ -3921,8 +3922,9 @@ resendRecoveryEmailAddressCode = PasswordState;
 //@description Requests to send a password recovery code to an email address that was previously set up
 requestPasswordRecovery = EmailAddressAuthenticationCodeInfo;
 
-//@description Recovers the password using a recovery code sent to an email address that was previously set up @recovery_code Recovery code to check
-recoverPassword recovery_code:string = PasswordState;
+//@description Recovers the password using a recovery code sent to an email address that was previously set up
+//@recovery_code Recovery code to check @new_password New password of the user; may be empty to remove the password @new_hint New password hint; may be empty
+recoverPassword recovery_code:string new_password:string new_hint:string = PasswordState;
 
 //@description Creates a new temporary password for processing payments @password Persistent user password @valid_for Time during which the temporary password will be valid, in seconds; should be between 60 and 86400
 createTemporaryPassword password:string valid_for:int32 = TemporaryPasswordState;

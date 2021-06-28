@@ -478,9 +478,38 @@ void PasswordManager::request_password_recovery(
       }));
 }
 
-void PasswordManager::recover_password(string code, Promise<State> promise) {
+void PasswordManager::recover_password(string code, string new_password, string new_hint, Promise<State> promise) {
   // is called only after authorization
-  send_with_promise(G()->net_query_creator().create(telegram_api::auth_recoverPassword(0, std::move(code), nullptr)),
+  if (new_password.empty()) {
+    return do_recover_password(std::move(code), nullptr, std::move(promise));
+  }
+
+  UpdateSettings update_settings;
+  update_settings.update_password = true;
+  update_settings.new_password = std::move(new_password);
+  update_settings.new_hint = std::move(new_hint);
+
+  do_get_state(PromiseCreator::lambda([actor_id = actor_id(this), code = std::move(code),
+                                       update_settings = std::move(update_settings),
+                                       promise = std::move(promise)](Result<PasswordState> r_state) mutable {
+    if (r_state.is_error()) {
+      return promise.set_error(r_state.move_as_error());
+    }
+
+    TRY_RESULT_PROMISE(promise, new_settings, get_password_input_settings(update_settings, r_state.ok(), nullptr));
+
+    send_closure(actor_id, &PasswordManager::do_recover_password, std::move(code), std::move(new_settings),
+                 std::move(promise));
+  }));
+}
+
+void PasswordManager::do_recover_password(string code, PasswordInputSettings &&new_settings, Promise<State> &&promise) {
+  int32 flags = 0;
+  if (new_settings != nullptr) {
+    flags |= telegram_api::auth_recoverPassword::NEW_SETTINGS_MASK;
+  }
+  send_with_promise(G()->net_query_creator().create(
+                        telegram_api::auth_recoverPassword(flags, std::move(code), std::move(new_settings))),
                     PromiseCreator::lambda(
                         [actor_id = actor_id(this), promise = std::move(promise)](Result<NetQueryPtr> r_query) mutable {
                           auto r_result = fetch_result<telegram_api::auth_recoverPassword>(std::move(r_query));
@@ -538,7 +567,7 @@ void PasswordManager::do_update_password_settings(UpdateSettings update_settings
   }));
 }
 
-Result<tl_object_ptr<telegram_api::account_passwordInputSettings>> PasswordManager::get_password_input_settings(
+Result<PasswordManager::PasswordInputSettings> PasswordManager::get_password_input_settings(
     const UpdateSettings &update_settings, const PasswordState &state, const PasswordPrivateState *private_state) {
   auto settings = make_tl_object<telegram_api::account_passwordInputSettings>();
   bool have_secret = private_state != nullptr && private_state->secret;

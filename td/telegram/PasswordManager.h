@@ -52,6 +52,7 @@ class PasswordManager : public NetQueryCallback {
  public:
   using State = tl_object_ptr<td_api::passwordState>;
   using TempState = tl_object_ptr<td_api::temporaryPasswordState>;
+  using PasswordInputSettings = tl_object_ptr<telegram_api::account_passwordInputSettings>;
 
   explicit PasswordManager(ActorShared<> parent) : parent_(std::move(parent)) {
   }
@@ -75,7 +76,7 @@ class PasswordManager : public NetQueryCallback {
   void check_email_address_verification_code(string code, Promise<Unit> promise);
 
   void request_password_recovery(Promise<td_api::object_ptr<td_api::emailAddressAuthenticationCodeInfo>> promise);
-  void recover_password(string code, Promise<State> promise);
+  void recover_password(string code, string new_password, string new_hint, Promise<State> promise);
 
   void get_secure_secret(string password, Promise<secure_storage::Secret> promise);
   void get_input_check_password_srp(string password,
@@ -170,8 +171,11 @@ class PasswordManager : public NetQueryCallback {
   static tl_object_ptr<telegram_api::InputCheckPasswordSRP> get_input_check_password(Slice password,
                                                                                      const PasswordState &state);
 
-  static Result<tl_object_ptr<telegram_api::account_passwordInputSettings>> get_password_input_settings(
-      const UpdateSettings &update_settings, const PasswordState &state, const PasswordPrivateState *private_state);
+  static Result<PasswordInputSettings> get_password_input_settings(const UpdateSettings &update_settings,
+                                                                   const PasswordState &state,
+                                                                   const PasswordPrivateState *private_state);
+
+  void do_recover_password(string code, PasswordInputSettings &&new_settings, Promise<State> &&promise);
 
   void update_password_settings(UpdateSettings update_settings, Promise<State> promise);
   void do_update_password_settings(UpdateSettings update_settings, PasswordFullState full_state, Promise<bool> promise);
