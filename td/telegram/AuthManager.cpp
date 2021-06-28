@@ -329,12 +329,19 @@ void AuthManager::request_password_recovery(uint64 query_id) {
                   G()->net_query_creator().create_unauth(telegram_api::auth_requestPasswordRecovery()));
 }
 
+void AuthManager::check_password_recovery_code(uint64 query_id, string code) {
+  if (state_ != State::WaitPassword) {
+    return on_query_error(query_id, Status::Error(8, "Call to checkAuthenticationPasswordRecoveryCode unexpected"));
+  }
+
+  on_new_query(query_id);
+  start_net_query(NetQueryType::CheckPasswordRecoveryCode,
+                  G()->net_query_creator().create_unauth(telegram_api::auth_checkRecoveryPassword(code)));
+}
+
 void AuthManager::recover_password(uint64 query_id, string code, string new_password, string new_hint) {
   if (state_ != State::WaitPassword) {
     return on_query_error(query_id, Status::Error(8, "Call to recoverAuthenticationPassword unexpected"));
-  }
-  if (code.empty()) {
-    return on_query_error(query_id, Status::Error(8, "Recovery code can't be empty"));
   }
 
   on_new_query(query_id);
@@ -635,6 +642,17 @@ void AuthManager::on_request_password_recovery_result(NetQueryPtr &result) {
   on_query_ok();
 }
 
+void AuthManager::on_check_password_recovery_code_result(NetQueryPtr &result) {
+  auto r_success = fetch_result<telegram_api::auth_checkRecoveryPassword>(result->ok());
+  if (r_success.is_error()) {
+    return on_query_error(r_success.move_as_error());
+  }
+  if (!r_success.ok()) {
+    return on_query_error(Status::Error(400, "Invalid recovery code"));
+  }
+  on_query_ok();
+}
+
 void AuthManager::on_authentication_result(NetQueryPtr &result, bool is_from_current_query) {
   auto r_sign_in = fetch_result<telegram_api::auth_signIn>(result->ok());
   if (r_sign_in.is_error()) {
@@ -857,6 +875,9 @@ void AuthManager::on_result(NetQueryPtr result) {
       break;
     case NetQueryType::RequestPasswordRecovery:
       on_request_password_recovery_result(result);
+      break;
+    case NetQueryType::CheckPasswordRecoveryCode:
+      on_check_password_recovery_code_result(result);
       break;
     case NetQueryType::LogOut:
       on_log_out_result(result);

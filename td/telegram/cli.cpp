@@ -1654,6 +1654,9 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getCurrentState>());
     } else if (op == "rapr") {
       send_request(td_api::make_object<td_api::requestAuthenticationPasswordRecovery>());
+    } else if (op == "caprc") {
+      string code = args;
+      send_request(td_api::make_object<td_api::checkAuthenticationPasswordRecoveryCode>(code));
     } else if (op == "rap") {
       string code;
       string new_password;

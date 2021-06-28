@@ -406,6 +406,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, const td_api::requestAuthenticationPasswordRecovery &request);
 
+  void on_request(uint64 id, td_api::checkAuthenticationPasswordRecoveryCode &request);
+
   void on_request(uint64 id, td_api::recoverAuthenticationPassword &request);
 
   void on_request(uint64 id, const td_api::logOut &request);
