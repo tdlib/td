@@ -6052,6 +6052,90 @@ void ContactsManager::update_is_location_visible() {
   G()->shared_config().set_option_boolean("is_location_visible", expire_date != 0);
 }
 
+void ContactsManager::on_update_bot_commands(DialogId dialog_id, UserId bot_user_id,
+                                             vector<tl_object_ptr<telegram_api::botCommand>> &&bot_commands) {
+  if (!bot_user_id.is_valid()) {
+    LOG(ERROR) << "Receive updateBotCOmmands about invalid " << bot_user_id;
+    return;
+  }
+  if (!have_user(bot_user_id) || !is_user_bot(bot_user_id)) {
+    return;
+  }
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  auto is_from_bot = [bot_user_id](const BotCommands &commands) {
+    return commands.get_bot_user_id() == bot_user_id;
+  };
+
+  switch (dialog_id.get_type()) {
+    case DialogType::User: {
+      UserId user_id(dialog_id.get_user_id());
+      auto user_full = get_user_full(user_id);
+      if (user_full != nullptr) {
+        on_update_user_full_commands(user_full, user_id, std::move(bot_commands));
+        update_user_full(user_full, user_id);
+      }
+      break;
+    }
+    case DialogType::Chat: {
+      ChatId chat_id(dialog_id.get_chat_id());
+      auto chat_full = get_chat_full(chat_id);
+      if (chat_full != nullptr) {
+        if (bot_commands.empty()) {
+          if (td::remove_if(chat_full->bot_commands, is_from_bot)) {
+            chat_full->is_changed = true;
+          }
+        } else {
+          BotCommands commands(bot_user_id, std::move(bot_commands));
+          auto it = std::find_if(chat_full->bot_commands.begin(), chat_full->bot_commands.end(), is_from_bot);
+          if (it != chat_full->bot_commands.end()) {
+            if (*it != commands) {
+              *it = std::move(commands);
+              chat_full->is_changed = true;
+            }
+          } else {
+            chat_full->bot_commands.push_back(std::move(commands));
+            chat_full->is_changed = true;
+          }
+        }
+        update_chat_full(chat_full, chat_id);
+      }
+      break;
+    }
+    case DialogType::Channel: {
+      ChannelId channel_id(dialog_id.get_channel_id());
+      auto channel_full = get_channel_full(channel_id, "on_update_bot_commands");
+      if (channel_full != nullptr) {
+        if (bot_commands.empty()) {
+          if (td::remove_if(channel_full->bot_commands, is_from_bot)) {
+            channel_full->is_changed = true;
+          }
+        } else {
+          BotCommands commands(bot_user_id, std::move(bot_commands));
+          auto it = std::find_if(channel_full->bot_commands.begin(), channel_full->bot_commands.end(), is_from_bot);
+          if (it != channel_full->bot_commands.end()) {
+            if (*it != commands) {
+              *it = std::move(commands);
+              channel_full->is_changed = true;
+            }
+          } else {
+            channel_full->bot_commands.push_back(std::move(commands));
+            channel_full->is_changed = true;
+          }
+        }
+        update_channel_full(channel_full, channel_id);
+      }
+      break;
+    }
+    case DialogType::SecretChat:
+    default:
+      LOG(ERROR) << "Receive updateBotCommands in " << dialog_id;
+      break;
+  }
+}
+
 FileId ContactsManager::get_profile_photo_file_id(int64 photo_id) const {
   auto it = my_photo_file_id_.find(photo_id);
   if (it == my_photo_file_id_.end()) {
@@ -10069,9 +10153,7 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
   if (user->bot_info_ != nullptr && !td_->auth_manager_->is_bot()) {
     description = std::move(user->bot_info_->description_);
 
-    auto commands = transform(std::move(user->bot_info_->commands_),
-                              [](auto &&bot_command) { return BotCommand(std::move(bot_command)); });
-    on_update_user_full_commands(user_full, user_id, std::move(commands));
+    on_update_user_full_commands(user_full, user_id, std::move(user->bot_info_->commands_));
   }
   if (user_full->description != description) {
     user_full->description = std::move(description);
@@ -11000,8 +11082,11 @@ void ContactsManager::on_update_user_full_common_chat_count(UserFull *user_full,
   }
 }
 
-void ContactsManager::on_update_user_full_commands(UserFull *user_full, UserId user_id, vector<BotCommand> &&commands) {
+void ContactsManager::on_update_user_full_commands(UserFull *user_full, UserId user_id,
+                                                   vector<tl_object_ptr<telegram_api::botCommand>> &&bot_commands) {
   CHECK(user_full != nullptr);
+  auto commands =
+      transform(std::move(bot_commands), [](auto &&bot_command) { return BotCommand(std::move(bot_command)); });
   if (user_full->commands != commands) {
     user_full->commands = std::move(commands);
     user_full->is_changed = true;

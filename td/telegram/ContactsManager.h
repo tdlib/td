@@ -206,6 +206,9 @@ class ContactsManager : public Actor {
 
   int32 on_update_peer_located(vector<tl_object_ptr<telegram_api::PeerLocated>> &&peers, bool from_update);
 
+  void on_update_bot_commands(DialogId dialog_id, UserId bot_user_id,
+                              vector<tl_object_ptr<telegram_api::botCommand>> &&bot_commands);
+
   void on_update_dialog_administrators(DialogId dialog_id, vector<DialogAdministrator> &&administrators,
                                        bool have_access, bool from_database);
 
@@ -1178,7 +1181,8 @@ class ContactsManager : public Actor {
 
   void on_update_user_full_is_blocked(UserFull *user_full, UserId user_id, bool is_blocked);
   void on_update_user_full_common_chat_count(UserFull *user_full, UserId user_id, int32 common_chat_count);
-  void on_update_user_full_commands(UserFull *user_full, UserId user_id, vector<BotCommand> &&commands);
+  void on_update_user_full_commands(UserFull *user_full, UserId user_id,
+                                    vector<tl_object_ptr<telegram_api::botCommand>> &&bot_commands);
   void on_update_user_full_need_phone_number_privacy_exception(UserFull *user_full, UserId user_id,
                                                                bool need_phone_number_privacy_exception);
 
