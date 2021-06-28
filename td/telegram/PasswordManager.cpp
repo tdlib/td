@@ -465,7 +465,7 @@ void PasswordManager::check_email_address_verification_code(string code, Promise
 
 void PasswordManager::request_password_recovery(
     Promise<td_api::object_ptr<td_api::emailAddressAuthenticationCodeInfo>> promise) {
-  // is called only after authoriation
+  // is called only after authorization
   send_with_promise(
       G()->net_query_creator().create(telegram_api::auth_requestPasswordRecovery()),
       PromiseCreator::lambda([promise = std::move(promise)](Result<NetQueryPtr> r_query) mutable {
@@ -479,8 +479,8 @@ void PasswordManager::request_password_recovery(
 }
 
 void PasswordManager::recover_password(string code, Promise<State> promise) {
-  // is called only after authoriation
-  send_with_promise(G()->net_query_creator().create(telegram_api::auth_recoverPassword(std::move(code))),
+  // is called only after authorization
+  send_with_promise(G()->net_query_creator().create(telegram_api::auth_recoverPassword(0, std::move(code), nullptr)),
                     PromiseCreator::lambda(
                         [actor_id = actor_id(this), promise = std::move(promise)](Result<NetQueryPtr> r_query) mutable {
                           auto r_result = fetch_result<telegram_api::auth_recoverPassword>(std::move(r_query));

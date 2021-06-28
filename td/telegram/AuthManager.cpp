@@ -332,7 +332,7 @@ void AuthManager::recover_password(uint64 query_id, string code) {
 
   on_new_query(query_id);
   start_net_query(NetQueryType::RecoverPassword,
-                  G()->net_query_creator().create_unauth(telegram_api::auth_recoverPassword(code)));
+                  G()->net_query_creator().create_unauth(telegram_api::auth_recoverPassword(0, code, nullptr)));
 }
 
 void AuthManager::log_out(uint64 query_id) {
