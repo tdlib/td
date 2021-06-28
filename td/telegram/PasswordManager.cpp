@@ -746,6 +746,10 @@ void PasswordManager::do_get_state(Promise<PasswordState> promise) {
         state.unconfirmed_recovery_email_address_pattern = std::move(password->email_unconfirmed_pattern_);
         state.code_length = code_length;
 
+        if (password->flags_ & telegram_api::account_password::PENDING_RESET_DATE_MASK) {
+          state.pending_reset_date = td::max(password->pending_reset_date_, 0);
+        }
+
         auto &new_state = state.new_state;
         TRY_RESULT_PROMISE_ASSIGN(
             promise, new_state,

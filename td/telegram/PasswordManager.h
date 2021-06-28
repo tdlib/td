@@ -104,6 +104,7 @@ class PasswordManager : public NetQueryCallback {
     bool has_secure_values = false;
     string unconfirmed_recovery_email_address_pattern;
     int32 code_length = 0;
+    int32 pending_reset_date = 0;
 
     string current_client_salt;
     string current_server_salt;
@@ -121,7 +122,7 @@ class PasswordManager : public NetQueryCallback {
             unconfirmed_recovery_email_address_pattern, code_length);
       }
       return td_api::make_object<td_api::passwordState>(has_password, password_hint, has_recovery_email_address,
-                                                        has_secure_values, std::move(code_info));
+                                                        has_secure_values, std::move(code_info), pending_reset_date);
     }
   };
 
