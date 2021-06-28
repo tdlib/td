@@ -170,6 +170,9 @@ class PasswordManager : public NetQueryCallback {
   static tl_object_ptr<telegram_api::InputCheckPasswordSRP> get_input_check_password(Slice password,
                                                                                      const PasswordState &state);
 
+  static Result<tl_object_ptr<telegram_api::account_passwordInputSettings>> get_password_input_settings(
+      const UpdateSettings &update_settings, const PasswordState &state, const PasswordPrivateState *private_state);
+
   void update_password_settings(UpdateSettings update_settings, Promise<State> promise);
   void do_update_password_settings(UpdateSettings update_settings, PasswordFullState full_state, Promise<bool> promise);
   void do_update_password_settings_impl(UpdateSettings update_settings, PasswordState state,
