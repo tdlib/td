@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/net/NetQuery.h"
+#include "td/telegram/NewPasswordState.h"
 #include "td/telegram/SecureStorage.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -90,9 +91,6 @@ class PasswordManager : public NetQueryCallback {
   static TempPasswordState get_temp_password_state_sync();
 
  private:
-  static constexpr size_t MIN_NEW_SALT_SIZE = 8;
-  static constexpr size_t MIN_NEW_SECURE_SALT_SIZE = 8;
-
   ActorShared<> parent_;
 
   struct PasswordState {
@@ -109,12 +107,8 @@ class PasswordManager : public NetQueryCallback {
     string current_srp_p;
     string current_srp_B;
     int64 current_srp_id;
-    string new_client_salt;
-    string new_server_salt;
-    int32 new_srp_g;
-    string new_srp_p;
 
-    string new_secure_salt;
+    NewPasswordState new_state;
 
     State get_password_state_object() const {
       td_api::object_ptr<td_api::emailAddressAuthenticationCodeInfo> code_info;
@@ -172,7 +166,7 @@ class PasswordManager : public NetQueryCallback {
                                                                                      const PasswordState &state);
 
   static Result<PasswordInputSettings> get_password_input_settings(const UpdateSettings &update_settings,
-                                                                   const PasswordState &state,
+                                                                   bool has_password, const NewPasswordState &state,
                                                                    const PasswordPrivateState *private_state);
 
   void do_recover_password(string code, PasswordInputSettings &&new_settings, Promise<State> &&promise);

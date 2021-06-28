@@ -496,7 +496,9 @@ void PasswordManager::recover_password(string code, string new_password, string 
       return promise.set_error(r_state.move_as_error());
     }
 
-    TRY_RESULT_PROMISE(promise, new_settings, get_password_input_settings(update_settings, r_state.ok(), nullptr));
+    TRY_RESULT_PROMISE(
+        promise, new_settings,
+        get_password_input_settings(update_settings, r_state.ok().has_password, r_state.ok().new_state, nullptr));
 
     send_closure(actor_id, &PasswordManager::do_recover_password, std::move(code), std::move(new_settings),
                  std::move(promise));
@@ -568,7 +570,8 @@ void PasswordManager::do_update_password_settings(UpdateSettings update_settings
 }
 
 Result<PasswordManager::PasswordInputSettings> PasswordManager::get_password_input_settings(
-    const UpdateSettings &update_settings, const PasswordState &state, const PasswordPrivateState *private_state) {
+    const UpdateSettings &update_settings, bool has_password, const NewPasswordState &state,
+    const PasswordPrivateState *private_state) {
   auto settings = make_tl_object<telegram_api::account_passwordInputSettings>();
   bool have_secret = private_state != nullptr && private_state->secret;
   auto update_secure_secret = update_settings.update_secure_secret;
@@ -577,18 +580,17 @@ Result<PasswordManager::PasswordInputSettings> PasswordManager::get_password_inp
     settings->flags_ |= telegram_api::account_passwordInputSettings::NEW_ALGO_MASK;
     settings->flags_ |= telegram_api::account_passwordInputSettings::HINT_MASK;
     if (!update_settings.new_password.empty()) {
-      auto new_client_salt = create_salt(state.new_client_salt);
+      auto new_client_salt = create_salt(state.client_salt);
 
       auto new_hash = calc_password_srp_hash(update_settings.new_password, new_client_salt.as_slice(),
-                                             state.new_server_salt, state.new_srp_g, state.new_srp_p);
+                                             state.server_salt, state.srp_g, state.srp_p);
       if (new_hash.is_error()) {
         return Status::Error(400, "Unable to change password, because it may be unsafe");
       }
       settings->new_password_hash_ = new_hash.move_as_ok();
       settings->new_algo_ =
           make_tl_object<telegram_api::passwordKdfAlgoSHA256SHA256PBKDF2HMACSHA512iter100000SHA256ModPow>(
-              std::move(new_client_salt), BufferSlice(state.new_server_salt), state.new_srp_g,
-              BufferSlice(state.new_srp_p));
+              std::move(new_client_salt), BufferSlice(state.server_salt), state.srp_g, BufferSlice(state.srp_p));
       settings->hint_ = std::move(update_settings.new_hint);
       if (have_secret) {
         update_secure_secret = true;
@@ -599,7 +601,7 @@ Result<PasswordManager::PasswordInputSettings> PasswordManager::get_password_inp
   }
 
   // have no password and not setting one
-  if (!update_settings.update_password && !state.has_password) {
+  if (!update_settings.update_password && !has_password) {
     update_secure_secret = false;
   }
 
@@ -610,8 +612,8 @@ Result<PasswordManager::PasswordInputSettings> PasswordManager::get_password_inp
 
   if (update_secure_secret) {
     auto secret = have_secret ? std::move(private_state->secret.value()) : secure_storage::Secret::create_new();
-    auto algorithm = make_tl_object<telegram_api::securePasswordKdfAlgoPBKDF2HMACSHA512iter100000>(
-        create_salt(state.new_secure_salt));
+    auto algorithm =
+        make_tl_object<telegram_api::securePasswordKdfAlgoPBKDF2HMACSHA512iter100000>(create_salt(state.secure_salt));
     auto encrypted_secret = secret.encrypt(
         update_settings.update_password ? update_settings.new_password : update_settings.current_password,
         algorithm->salt_.as_slice(), secure_storage::EnryptionAlgorithm::Pbkdf2);
@@ -629,7 +631,8 @@ Result<PasswordManager::PasswordInputSettings> PasswordManager::get_password_inp
 
 void PasswordManager::do_update_password_settings_impl(UpdateSettings update_settings, PasswordState state,
                                                        PasswordPrivateState private_state, Promise<bool> promise) {
-  TRY_RESULT_PROMISE(promise, new_settings, get_password_input_settings(update_settings, state, &private_state));
+  TRY_RESULT_PROMISE(promise, new_settings,
+                     get_password_input_settings(update_settings, state.has_password, state.new_state, &private_state));
   auto current_hash = get_input_check_password(state.has_password ? update_settings.current_password : Slice(), state);
   auto query = G()->net_query_creator().create(
       telegram_api::account_updatePasswordSettings(std::move(current_hash), std::move(new_settings)));
@@ -718,46 +721,11 @@ void PasswordManager::do_get_state(Promise<PasswordState> promise) {
         state.unconfirmed_recovery_email_address_pattern = std::move(password->email_unconfirmed_pattern_);
         state.code_length = code_length;
 
-        CHECK(password->new_algo_ != nullptr);
-        switch (password->new_algo_->get_id()) {
-          case telegram_api::passwordKdfAlgoUnknown::ID:
-            return promise.set_error(Status::Error(400, "Please update client to continue"));
-          case telegram_api::passwordKdfAlgoSHA256SHA256PBKDF2HMACSHA512iter100000SHA256ModPow::ID: {
-            auto algo =
-                move_tl_object_as<telegram_api::passwordKdfAlgoSHA256SHA256PBKDF2HMACSHA512iter100000SHA256ModPow>(
-                    password->new_algo_);
-            state.new_client_salt = algo->salt1_.as_slice().str();
-            state.new_server_salt = algo->salt2_.as_slice().str();
-            state.new_srp_g = algo->g_;
-            state.new_srp_p = algo->p_.as_slice().str();
-            break;
-          }
-          default:
-            UNREACHABLE();
-        }
+        auto &new_state = state.new_state;
+        TRY_RESULT_PROMISE_ASSIGN(
+            promise, new_state,
+            get_new_password_state(std::move(password->new_algo_), std::move(password->new_secure_algo_)));
 
-        CHECK(password->new_secure_algo_ != nullptr);
-        switch (password->new_secure_algo_->get_id()) {
-          case telegram_api::securePasswordKdfAlgoUnknown::ID:
-            return promise.set_error(Status::Error(400, "Please update client to continue"));
-          case telegram_api::securePasswordKdfAlgoSHA512::ID:
-            return promise.set_error(Status::Error(500, "Server has sent outdated secret encryption mode"));
-          case telegram_api::securePasswordKdfAlgoPBKDF2HMACSHA512iter100000::ID: {
-            auto algo = move_tl_object_as<telegram_api::securePasswordKdfAlgoPBKDF2HMACSHA512iter100000>(
-                password->new_secure_algo_);
-            state.new_secure_salt = algo->salt_.as_slice().str();
-            break;
-          }
-          default:
-            UNREACHABLE();
-        }
-
-        if (state.new_secure_salt.size() < MIN_NEW_SECURE_SALT_SIZE) {
-          return promise.set_error(Status::Error(500, "New secure salt length too small"));
-        }
-        if (state.new_client_salt.size() < MIN_NEW_SALT_SIZE) {
-          return promise.set_error(Status::Error(500, "New salt length too small"));
-        }
         promise.set_value(std::move(state));
       }));
 }
