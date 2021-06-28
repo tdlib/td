@@ -197,6 +197,10 @@ class AuthManager : public NetActor {
 
   WaitPasswordState wait_password_state_;
 
+  string recovery_code_;
+  string new_password_;
+  string new_hint_;
+
   int32 login_code_retry_delay_ = 0;
   Timeout poll_export_login_code_timeout_;
 

@@ -19,6 +19,7 @@
 #include "td/telegram/misc.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
+#include "td/telegram/NewPasswordState.h"
 #include "td/telegram/NotificationManager.h"
 #include "td/telegram/PasswordManager.h"
 #include "td/telegram/StateManager.h"
@@ -311,6 +312,9 @@ void AuthManager::check_password(uint64 query_id, string password) {
   LOG(INFO) << "Have SRP ID " << wait_password_state_.srp_id_;
   on_new_query(query_id);
   password_ = std::move(password);
+  recovery_code_.clear();
+  new_password_.clear();
+  new_hint_.clear();
   start_net_query(NetQueryType::GetPassword,
                   G()->net_query_creator().create_unauth(telegram_api::account_getPassword()));
 }
@@ -329,8 +333,20 @@ void AuthManager::recover_password(uint64 query_id, string code, string new_pass
   if (state_ != State::WaitPassword) {
     return on_query_error(query_id, Status::Error(8, "Call to recoverAuthenticationPassword unexpected"));
   }
+  if (code.empty()) {
+    return on_query_error(query_id, Status::Error(8, "Recovery code can't be empty"));
+  }
 
   on_new_query(query_id);
+  if (!new_password.empty()) {
+    password_.clear();
+    recovery_code_ = std::move(code);
+    new_password_ = std::move(new_password);
+    new_hint_ = std::move(new_hint);
+    start_net_query(NetQueryType::GetPassword,
+                    G()->net_query_creator().create_unauth(telegram_api::account_getPassword()));
+    return;
+  }
   start_net_query(NetQueryType::RecoverPassword,
                   G()->net_query_creator().create_unauth(telegram_api::auth_recoverPassword(0, code, nullptr)));
 }
@@ -531,6 +547,7 @@ void AuthManager::on_get_password_result(NetQueryPtr &result) {
   LOG(INFO) << "Receive password info: " << to_string(password);
 
   wait_password_state_ = WaitPasswordState();
+  Result<NewPasswordState> r_new_password_state;
   if (password != nullptr && password->current_algo_ != nullptr) {
     switch (password->current_algo_->get_id()) {
       case telegram_api::passwordKdfAlgoUnknown::ID:
@@ -552,6 +569,9 @@ void AuthManager::on_get_password_result(NetQueryPtr &result) {
       default:
         UNREACHABLE();
     }
+
+    r_new_password_state =
+        get_new_password_state(std::move(password->new_algo_), std::move(password->new_secure_algo_));
   } else if (was_qr_code_request_) {
     imported_dc_id_ = -1;
     login_code_retry_delay_ = clamp(2 * login_code_retry_delay_, 1, 60);
@@ -570,6 +590,23 @@ void AuthManager::on_get_password_result(NetQueryPtr &result) {
   }
 
   if (state_ == State::WaitPassword) {
+    if (!new_password_.empty()) {
+      if (r_new_password_state.is_error()) {
+        return on_query_error(r_new_password_state.move_as_error());
+      }
+
+      auto r_new_settings = PasswordManager::get_password_input_settings(std::move(new_password_), std::move(new_hint_),
+                                                                         r_new_password_state.ok());
+      if (r_new_settings.is_error()) {
+        return on_query_error(r_new_settings.move_as_error());
+      }
+
+      int32 flags = telegram_api::auth_recoverPassword::NEW_SETTINGS_MASK;
+      start_net_query(NetQueryType::RecoverPassword,
+                      G()->net_query_creator().create_unauth(
+                          telegram_api::auth_recoverPassword(flags, recovery_code_, r_new_settings.move_as_ok())));
+      return;
+    }
     LOG(INFO) << "Have SRP ID " << wait_password_state_.srp_id_;
     auto hash = PasswordManager::get_input_check_password(password_, wait_password_state_.current_client_salt_,
                                                           wait_password_state_.current_server_salt_,
@@ -706,6 +743,9 @@ void AuthManager::on_get_authorization(tl_object_ptr<telegram_api::auth_Authoriz
   G()->td_db()->get_binlog_pmc()->set("auth", "ok");
   code_.clear();
   password_.clear();
+  recovery_code_.clear();
+  new_password_.clear();
+  new_hint_.clear();
   state_ = State::Ok;
   td->contacts_manager_->on_get_user(std::move(auth->user_), "on_get_authorization", true);
   update_state(State::Ok, true);

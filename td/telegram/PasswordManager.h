@@ -62,6 +62,9 @@ class PasswordManager : public NetQueryCallback {
                                                                                      Slice server_salt, int32 g,
                                                                                      Slice p, Slice B, int64 id);
 
+  static Result<PasswordInputSettings> get_password_input_settings(string new_password, string new_hint,
+                                                                   const NewPasswordState &state);
+
   void get_state(Promise<State> promise);
   void set_password(string current_password, string new_password, string new_hint, bool set_recovery_email_address,
                     string recovery_email_address, Promise<State> promise);

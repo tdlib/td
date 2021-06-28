@@ -570,6 +570,16 @@ void PasswordManager::do_update_password_settings(UpdateSettings update_settings
 }
 
 Result<PasswordManager::PasswordInputSettings> PasswordManager::get_password_input_settings(
+    string new_password, string new_hint, const NewPasswordState &state) {
+  UpdateSettings update_settings;
+  update_settings.update_password = true;
+  update_settings.new_password = std::move(new_password);
+  update_settings.new_hint = std::move(new_hint);
+
+  return get_password_input_settings(update_settings, true, state, nullptr);
+}
+
+Result<PasswordManager::PasswordInputSettings> PasswordManager::get_password_input_settings(
     const UpdateSettings &update_settings, bool has_password, const NewPasswordState &state,
     const PasswordPrivateState *private_state) {
   auto settings = make_tl_object<telegram_api::account_passwordInputSettings>();
