@@ -119,7 +119,7 @@ authorizationStateClosed = AuthorizationState;
 //@description Represents the current state of 2-step verification @has_password True, if a 2-step verification password is set @password_hint Hint for the password; may be empty
 //@has_recovery_email_address True, if a recovery email is set @has_passport_data True, if some Telegram Passport elements were saved
 //@recovery_email_address_code_info Information about the recovery email address to which the confirmation email was sent; may be null
-//@pending_reset_date If not 0, point in time (Unix timestamp) after which password can be reset immediately using resetPassword
+//@pending_reset_date If not 0, point in time (Unix timestamp) after which the password can be reset immediately using resetPassword
 passwordState has_password:Bool password_hint:string has_recovery_email_address:Bool has_passport_data:Bool recovery_email_address_code_info:emailAddressAuthenticationCodeInfo pending_reset_date:int32 = PasswordState;
 
 //@description Contains information about the current recovery email address @recovery_email_address Recovery email address
@@ -2718,6 +2718,18 @@ checkStickerSetNameResultNameInvalid = CheckStickerSetNameResult;
 checkStickerSetNameResultNameOccupied = CheckStickerSetNameResult;
 
 
+//@class ResetPasswordResult @description Represents result of 2-step verification password reset
+
+//@description The password was reset
+resetPasswordResultOk = ResetPasswordResult;
+
+//@description The password reset request is pending @pending_reset_date Point in time (Unix timestamp) after which the password can be reset immediately using resetPassword
+resetPasswordResultPending pending_reset_date:int32 = ResetPasswordResult;
+
+//@description The password reset request was declined @retry_date Point in time (Unix timestamp) when the password reset can be retried
+resetPasswordResultDeclined retry_date:int32 = ResetPasswordResult;
+
+
 //@class MessageFileType @description Contains information about a file with messages exported from another app
 
 //@description The messages was exported from a private chat @name Name of the other party; may be empty if unrecognized
@@ -3923,15 +3935,18 @@ checkRecoveryEmailAddressCode code:string = PasswordState;
 //@description Resends the 2-step verification recovery email address verification code
 resendRecoveryEmailAddressCode = PasswordState;
 
-//@description Requests to send a password recovery code to an email address that was previously set up
+//@description Requests to send a 2-step verification password recovery code to an email address that was previously set up
 requestPasswordRecovery = EmailAddressAuthenticationCodeInfo;
 
-//@description Checks whether a password recovery code sent to an email address is valid @recovery_code Recovery code to check 
+//@description Checks whether a 2-step verification password recovery code sent to an email address is valid @recovery_code Recovery code to check
 checkPasswordRecoveryCode recovery_code:string = Ok;
 
-//@description Recovers the password using a recovery code sent to an email address that was previously set up
+//@description Recovers the 2-step verification password using a recovery code sent to an email address that was previously set up
 //@recovery_code Recovery code to check @new_password New password of the user; may be empty to remove the password @new_hint New password hint; may be empty
 recoverPassword recovery_code:string new_password:string new_hint:string = PasswordState;
+
+//@description Removes 2-step verification password without previous password and access to recovery email address. The password can't be reset immediately and the request needs to be repeated after the specified time
+resetPassword = ResetPasswordResult;
 
 //@description Creates a new temporary password for processing payments @password Persistent user password @valid_for Time during which the temporary password will be valid, in seconds; should be between 60 and 86400
 createTemporaryPassword password:string valid_for:int32 = TemporaryPasswordState;

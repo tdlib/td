@@ -53,6 +53,7 @@ class PasswordManager : public NetQueryCallback {
  public:
   using State = tl_object_ptr<td_api::passwordState>;
   using TempState = tl_object_ptr<td_api::temporaryPasswordState>;
+  using ResetPasswordResult = tl_object_ptr<td_api::ResetPasswordResult>;
   using PasswordInputSettings = tl_object_ptr<telegram_api::account_passwordInputSettings>;
 
   explicit PasswordManager(ActorShared<> parent) : parent_(std::move(parent)) {
@@ -82,6 +83,8 @@ class PasswordManager : public NetQueryCallback {
   void request_password_recovery(Promise<td_api::object_ptr<td_api::emailAddressAuthenticationCodeInfo>> promise);
   void check_password_recovery_code(string code, Promise<Unit> promise);
   void recover_password(string code, string new_password, string new_hint, Promise<State> promise);
+
+  void reset_password(Promise<ResetPasswordResult> promise);
 
   void get_secure_secret(string password, Promise<secure_storage::Secret> promise);
   void get_input_check_password_srp(string password,

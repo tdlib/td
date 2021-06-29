@@ -1781,17 +1781,19 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::checkPhoneNumberVerificationCode>(args));
     } else if (op == "rpncc") {
       send_request(td_api::make_object<td_api::resendPhoneNumberVerificationCode>());
-    } else if (op == "rpr" || op == "RequestPasswordRecovery") {
+    } else if (op == "rpr") {
       send_request(td_api::make_object<td_api::requestPasswordRecovery>());
     } else if (op == "cprc") {
       string recovery_code = args;
       send_request(td_api::make_object<td_api::checkPasswordRecoveryCode>(recovery_code));
-    } else if (op == "rp" || op == "RecoverPassword") {
+    } else if (op == "rp") {
       string recovery_code;
       string new_password;
       string new_hint;
       get_args(args, recovery_code, new_password, new_hint);
       send_request(td_api::make_object<td_api::recoverPassword>(recovery_code, new_password, new_hint));
+    } else if (op == "resetp") {
+      send_request(td_api::make_object<td_api::resetPassword>());
     } else if (op == "gtp" || op == "GetTemporaryPassword") {
       send_request(td_api::make_object<td_api::getTemporaryPasswordState>());
     } else if (op == "ctp" || op == "CreateTemporaryPassword") {

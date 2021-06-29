@@ -537,6 +537,33 @@ void PasswordManager::do_recover_password(string code, PasswordInputSettings &&n
                         }));
 }
 
+void PasswordManager::reset_password(Promise<ResetPasswordResult> promise) {
+  send_with_promise(
+      G()->net_query_creator().create(telegram_api::account_resetPassword()),
+      PromiseCreator::lambda([promise = std::move(promise)](Result<NetQueryPtr> r_query) mutable {
+        auto r_result = fetch_result<telegram_api::account_resetPassword>(std::move(r_query));
+        if (r_result.is_error()) {
+          return promise.set_error(r_result.move_as_error());
+        }
+        auto result_ptr = r_result.move_as_ok();
+        switch (result_ptr->get_id()) {
+          case telegram_api::account_resetPasswordOk::ID:
+            return promise.set_value(td_api::make_object<td_api::resetPasswordResultOk>());
+          case telegram_api::account_resetPasswordRequestedWait::ID: {
+            auto result = move_tl_object_as<telegram_api::account_resetPasswordRequestedWait>(result_ptr);
+            return promise.set_value(td_api::make_object<td_api::resetPasswordResultPending>(result->until_date_));
+          }
+          case telegram_api::account_resetPasswordFailedWait::ID: {
+            auto result = move_tl_object_as<telegram_api::account_resetPasswordFailedWait>(result_ptr);
+            return promise.set_value(td_api::make_object<td_api::resetPasswordResultDeclined>(result->retry_date_));
+          }
+          default:
+            UNREACHABLE();
+            break;
+        }
+      }));
+}
+
 void PasswordManager::update_password_settings(UpdateSettings update_settings, Promise<State> promise) {
   auto result_promise = PromiseCreator::lambda(
       [actor_id = actor_id(this), promise = std::move(promise)](Result<bool> r_update_settings) mutable {
