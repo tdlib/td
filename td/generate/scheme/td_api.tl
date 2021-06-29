@@ -3948,6 +3948,9 @@ recoverPassword recovery_code:string new_password:string new_hint:string = Passw
 //@description Removes 2-step verification password without previous password and access to recovery email address. The password can't be reset immediately and the request needs to be repeated after the specified time
 resetPassword = ResetPasswordResult;
 
+//@description Declines reset of 2-step verification password. The method can be called if passwordState.pending_reset_date > 0
+declinePasswordReset = Ok;
+
 //@description Creates a new temporary password for processing payments @password Persistent user password @valid_for Time during which the temporary password will be valid, in seconds; should be between 60 and 86400
 createTemporaryPassword password:string valid_for:int32 = TemporaryPasswordState;
 

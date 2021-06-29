@@ -1794,6 +1794,8 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::recoverPassword>(recovery_code, new_password, new_hint));
     } else if (op == "resetp") {
       send_request(td_api::make_object<td_api::resetPassword>());
+    } else if (op == "dpr") {
+      send_request(td_api::make_object<td_api::declinePasswordReset>());
     } else if (op == "gtp" || op == "GetTemporaryPassword") {
       send_request(td_api::make_object<td_api::getTemporaryPasswordState>());
     } else if (op == "ctp" || op == "CreateTemporaryPassword") {
