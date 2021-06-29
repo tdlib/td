@@ -1368,11 +1368,15 @@ void WebPagesManager::on_pending_web_page_timeout(WebPageId web_page_id) {
   if (it != web_page_messages_.end()) {
     vector<FullMessageId> full_message_ids;
     for (auto full_message_id : it->second) {
-      full_message_ids.push_back(full_message_id);
+      if (full_message_id.get_dialog_id().get_type() != DialogType::SecretChat) {
+        full_message_ids.push_back(full_message_id);
+      }
       count++;
     }
-    send_closure_later(G()->messages_manager(), &MessagesManager::get_messages_from_server, std::move(full_message_ids),
-                       Promise<Unit>(), nullptr);
+    if (!full_message_ids.empty()) {
+      send_closure_later(G()->messages_manager(), &MessagesManager::get_messages_from_server,
+                         std::move(full_message_ids), Promise<Unit>(), nullptr);
+    }
   }
   auto get_it = pending_get_web_pages_.find(web_page_id);
   if (get_it != pending_get_web_pages_.end()) {
