@@ -4954,10 +4954,10 @@ void Td::on_request(uint64 id, const td_api::resetPassword &request) {
   send_closure(password_manager_, &PasswordManager::reset_password, std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::declinePasswordReset &request) {
+void Td::on_request(uint64 id, const td_api::cancelPasswordReset &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  send_closure(password_manager_, &PasswordManager::decline_password_reset, std::move(promise));
+  send_closure(password_manager_, &PasswordManager::cancel_password_reset, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getTemporaryPasswordState &request) {

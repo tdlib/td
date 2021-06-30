@@ -85,7 +85,7 @@ class PasswordManager : public NetQueryCallback {
   void recover_password(string code, string new_password, string new_hint, Promise<State> promise);
 
   void reset_password(Promise<ResetPasswordResult> promise);
-  void decline_password_reset(Promise<Unit> promise);
+  void cancel_password_reset(Promise<Unit> promise);
 
   void get_secure_secret(string password, Promise<secure_storage::Secret> promise);
   void get_input_check_password_srp(string password,

@@ -442,7 +442,7 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, const td_api::resetPassword &request);
 
-  void on_request(uint64 id, const td_api::declinePasswordReset &request);
+  void on_request(uint64 id, const td_api::cancelPasswordReset &request);
 
   void on_request(uint64 id, td_api::getTemporaryPasswordState &request);
 
