@@ -568,7 +568,7 @@ void PasswordManager::cancel_password_reset(Promise<Unit> promise) {
   send_with_promise(G()->net_query_creator().create(telegram_api::account_declinePasswordReset()),
                     PromiseCreator::lambda([promise = std::move(promise)](Result<NetQueryPtr> r_query) mutable {
                       auto r_result = fetch_result<telegram_api::account_declinePasswordReset>(std::move(r_query));
-                      if (r_result.is_error()) {
+                      if (r_result.is_error() && r_result.error().message() != "RESET_REQUEST_MISSING") {
                         return promise.set_error(r_result.move_as_error());
                       }
                       return promise.set_value(Unit());
