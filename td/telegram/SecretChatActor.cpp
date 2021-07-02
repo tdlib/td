@@ -780,12 +780,7 @@ Result<std::tuple<uint64, BufferSlice, int32>> SecretChatActor::decrypt(BufferSl
                                      << tag("crc", crc64(encrypted_message.as_slice())));
   }
 
-  // expect that message is encrypted with mtproto 2.0 if their layer is at least MTPROTO_2_LAYER
-  std::array<int, 2> versions{{1, 2}};
-  if (config_state_.his_layer >= MTPROTO_2_LAYER) {
-    std::swap(versions[0], versions[1]);
-  }
-
+  std::array<int, 2> versions{{2, 1}};
   BufferSlice encrypted_message_copy;
   int32 mtproto_version = -1;
   Result<mtproto::Transport::ReadResult> r_read_result;
@@ -800,7 +795,7 @@ Result<std::tuple<uint64, BufferSlice, int32>> SecretChatActor::decrypt(BufferSl
     info.version = mtproto_version;
     info.is_creator = auth_state_.x == 0;
     r_read_result = mtproto::Transport::read(data, *auth_key, &info);
-    if (i + 1 == versions.size() && r_read_result.is_error()) {
+    if (i + 1 != versions.size() && r_read_result.is_error()) {
       LOG(WARNING) << tag("mtproto", mtproto_version) << " decryption failed " << r_read_result.error();
       continue;
     }
@@ -850,7 +845,7 @@ Status SecretChatActor::do_inbound_message_encrypted(unique_ptr<log_event::Inbou
     parser.fetch_end();
     if (!parser.get_error()) {
       auto layer = message_with_layer->layer_;
-      if (layer < DEFAULT_LAYER && false /* Android app can send such messages */) {
+      if (layer < DEFAULT_LAYER && false /* old Android app could send such messages */) {
         LOG(ERROR) << "Layer " << layer << " is not supported, drop message " << to_string(message_with_layer);
         return Status::OK();
       }

@@ -80,10 +80,10 @@ class Transport {
 
   static Result<uint64> read_auth_key_id(Slice message);
 
-  // Reads mtproto packet from [message] and saves into [data].
+  // Reads MTProto packet from [message] and saves it into [data].
   // If message is encrypted, [auth_key] is used.
   // Decryption and unpacking is made inplace, so [data] will be subslice of [message].
-  // Returns size of mtproto packet.
+  // Returns size of MTProto packet.
   // If dest.size() >= size, the packet is also written into [dest].
   // If auth_key is nonempty, encryption will be used.
   static Result<ReadResult> read(MutableSlice message, const AuthKey &auth_key, PacketInfo *info) TD_WARN_UNUSED_RESULT;

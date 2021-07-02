@@ -128,7 +128,7 @@ struct NoCryptoHeader {
 #endif
 #pragma pack(pop)
 
-// mtproto v1.0
+// MTProto v1.0
 template <class HeaderT>
 std::pair<uint32, UInt128> Transport::calc_message_ack_and_key(const HeaderT &head, size_t data_size) {
   Slice part(head.encrypt_begin(), head.data + data_size);
@@ -144,7 +144,7 @@ size_t Transport::calc_crypto_size(size_t data_size) {
   return raw_size + ((enc_size + data_size + 15) & ~15);
 }
 
-// mtproto v2.0
+// MTProto v2.0
 std::pair<uint32, UInt128> Transport::calc_message_key2(const AuthKey &auth_key, int X, Slice to_encrypt) {
   // msg_key_large = SHA256 (substr (auth_key, 88+x, 32) + plaintext + random_padding);
   Sha256State state;
@@ -207,7 +207,7 @@ size_t Transport::calc_no_crypto_size(size_t data_size) {
 
 Status Transport::read_no_crypto(MutableSlice message, PacketInfo *info, MutableSlice *data) {
   if (message.size() < sizeof(NoCryptoHeader)) {
-    return Status::Error(PSLICE() << "Invalid mtproto message: too small [message.size() = " << message.size()
+    return Status::Error(PSLICE() << "Invalid MTProto message: too small [message.size() = " << message.size()
                                   << "] < [sizeof(NoCryptoHeader) = " << sizeof(NoCryptoHeader) << "]");
   }
   size_t data_size = message.size() - sizeof(NoCryptoHeader);
@@ -220,7 +220,7 @@ template <class HeaderT, class PrefixT>
 Status Transport::read_crypto_impl(int X, MutableSlice message, const AuthKey &auth_key, HeaderT **header_ptr,
                                    PrefixT **prefix_ptr, MutableSlice *data, PacketInfo *info) {
   if (message.size() < sizeof(HeaderT)) {
-    return Status::Error(PSLICE() << "Invalid mtproto message: too small [message.size() = " << message.size()
+    return Status::Error(PSLICE() << "Invalid MTProto message: too small [message.size() = " << message.size()
                                   << "] < [sizeof(HeaderT) = " << sizeof(HeaderT) << "]");
   }
   //FIXME: rewrite without reinterpret cast
@@ -230,7 +230,7 @@ Status Transport::read_crypto_impl(int X, MutableSlice message, const AuthKey &a
   to_decrypt.remove_suffix(to_decrypt.size() & 15);
 
   if (header->auth_key_id != auth_key.id()) {
-    return Status::Error(PSLICE() << "Invalid mtproto message: auth_key_id mismatch [found = "
+    return Status::Error(PSLICE() << "Invalid MTProto message: auth_key_id mismatch [found = "
                                   << format::as_hex(header->auth_key_id)
                                   << "] [expected = " << format::as_hex(auth_key.id()) << "]");
   }
@@ -272,31 +272,31 @@ Status Transport::read_crypto_impl(int X, MutableSlice message, const AuthKey &a
   }
 
   if (!is_key_ok) {
-    return Status::Error(PSLICE() << "Invalid mtproto message: message_key mismatch [found = "
+    return Status::Error(PSLICE() << "Invalid MTProto message: message_key mismatch [found = "
                                   << format::as_hex_dump(header->message_key)
                                   << "] [expected = " << format::as_hex_dump(real_message_key) << "]");
   }
 
   if (info->version == 2) {
     if (info->check_mod4 && prefix->message_data_length % 4 != 0) {
-      return Status::Error(PSLICE() << "Invalid mtproto message: invalid length (not divisible by four)"
+      return Status::Error(PSLICE() << "Invalid MTProto message: invalid length (not divisible by four)"
                                     << tag("total_size", message.size())
                                     << tag("message_data_length", prefix->message_data_length));
     }
     if (tail_size - sizeof(PrefixT) < prefix->message_data_length) {
-      return Status::Error(PSLICE() << "Invalid mtproto message: invalid length (message_data_length is too big)"
+      return Status::Error(PSLICE() << "Invalid MTProto message: invalid length (message_data_length is too big)"
                                     << tag("total_size", message.size())
                                     << tag("message_data_length", prefix->message_data_length));
     }
     size_t pad_size = tail_size - data_size;
     if (pad_size < 12 || pad_size > 1024) {
-      return Status::Error(PSLICE() << "Invalid mtproto message: invalid length (invalid padding length)"
+      return Status::Error(PSLICE() << "Invalid MTProto message: invalid length (invalid padding length)"
                                     << tag("padding_size", pad_size) << tag("total_size", message.size())
                                     << tag("message_data_length", prefix->message_data_length));
     }
   } else {
     if (!is_length_ok) {
-      return Status::Error(PSLICE() << "Invalid mtproto message: invalid length " << tag("total_size", message.size())
+      return Status::Error(PSLICE() << "Invalid MTProto message: invalid length " << tag("total_size", message.size())
                                     << tag("message_data_length", prefix->message_data_length));
     }
   }
@@ -428,7 +428,7 @@ size_t Transport::write_e2e_crypto(const Storer &storer, const AuthKey &auth_key
 
 Result<uint64> Transport::read_auth_key_id(Slice message) {
   if (message.size() < 8) {
-    return Status::Error(PSLICE() << "Invalid mtproto message: smaller than 8 bytes [size = " << message.size() << "]");
+    return Status::Error(PSLICE() << "Invalid MTProto message: smaller than 8 bytes [size = " << message.size() << "]");
   }
   return as<uint64>(message.begin());
 }
@@ -436,7 +436,7 @@ Result<uint64> Transport::read_auth_key_id(Slice message) {
 Result<Transport::ReadResult> Transport::read(MutableSlice message, const AuthKey &auth_key, PacketInfo *info) {
   if (message.size() < 12) {
     if (message.size() < 4) {
-      return Status::Error(PSLICE() << "Invalid mtproto message: smaller than 4 bytes [size = " << message.size()
+      return Status::Error(PSLICE() << "Invalid MTProto message: smaller than 4 bytes [size = " << message.size()
                                     << "]");
     }
 
@@ -459,7 +459,7 @@ Result<Transport::ReadResult> Transport::read(MutableSlice message, const AuthKe
     TRY_STATUS(read_no_crypto(message, info, &data));
   } else {
     if (auth_key.empty()) {
-      return Status::Error("Failed to decrypt mtproto message: auth key is empty");
+      return Status::Error("Failed to decrypt MTProto message: auth key is empty");
     }
     TRY_STATUS(read_crypto(message, auth_key, info, &data));
   }
