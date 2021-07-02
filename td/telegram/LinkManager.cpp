@@ -996,7 +996,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::get_internal_link_passport(
 void LinkManager::update_autologin_domains(string autologin_token, vector<string> autologin_domains,
                                            vector<string> url_auth_domains) {
   autologin_update_time_ = Time::now();
-  autologin_token = std::move(autologin_token);
+  autologin_token_ = std::move(autologin_token);
   if (autologin_domains_ != autologin_domains) {
     autologin_domains_ = std::move(autologin_domains);
     G()->td_db()->get_binlog_pmc()->set("autologin_domains", implode(autologin_domains_, '\xFF'));
