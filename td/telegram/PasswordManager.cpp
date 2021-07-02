@@ -689,7 +689,7 @@ Result<PasswordManager::PasswordInputSettings> PasswordManager::get_password_inp
     settings->flags_ |= telegram_api::account_passwordInputSettings::EMAIL_MASK;
     settings->email_ = std::move(update_settings.recovery_email_address);
   }
-  return settings;
+  return std::move(settings);
 }
 
 void PasswordManager::do_update_password_settings_impl(UpdateSettings update_settings, PasswordState state,
