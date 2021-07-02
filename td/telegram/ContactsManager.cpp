@@ -11808,7 +11808,7 @@ void ContactsManager::add_channel_participant_to_cache(ChannelId channel_id,
 }
 
 const DialogParticipant *ContactsManager::get_channel_participant_from_cache(ChannelId channel_id,
-                                                                             DialogId participant_dialog_id) const {
+                                                                             DialogId participant_dialog_id) {
   auto channel_participants_it = channel_participants_.find(channel_id);
   if (channel_participants_it == channel_participants_.end()) {
     return nullptr;
@@ -11818,6 +11818,7 @@ const DialogParticipant *ContactsManager::get_channel_participant_from_cache(Cha
   CHECK(!participants.empty());
   auto it = participants.find(participant_dialog_id);
   if (it != participants.end()) {
+    it->second.participant_.status.update_restrictions();
     it->second.last_access_date_ = G()->unix_time();
     return &it->second.participant_;
   }
@@ -14918,6 +14919,7 @@ DialogParticipant ContactsManager::get_channel_participant(ChannelId channel_id,
     auto it = received_channel_participant_.find(random_id);
     CHECK(it != received_channel_participant_.end());
     auto result = std::move(it->second);
+    result.status.update_restrictions();
     received_channel_participant_.erase(it);
     promise.set_value(Unit());
     return result;

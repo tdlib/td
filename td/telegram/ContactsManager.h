@@ -1492,8 +1492,7 @@ class ContactsManager : public Actor {
   void add_channel_participant_to_cache(ChannelId channel_id, const DialogParticipant &dialog_participant,
                                         bool allow_replace);
 
-  const DialogParticipant *get_channel_participant_from_cache(ChannelId channel_id,
-                                                              DialogId participant_dialog_id) const;
+  const DialogParticipant *get_channel_participant_from_cache(ChannelId channel_id, DialogId participant_dialog_id);
 
   void change_channel_participant_status_impl(ChannelId channel_id, DialogId participant_dialog_id,
                                               DialogParticipantStatus status, DialogParticipantStatus old_status,
@@ -1657,7 +1656,7 @@ class ContactsManager : public Actor {
   struct ChannelParticipantInfo {
     DialogParticipant participant_;
 
-    mutable int32 last_access_date_ = 0;
+    int32 last_access_date_ = 0;
   };
   struct ChannelParticipants {
     std::unordered_map<DialogId, ChannelParticipantInfo, DialogIdHash> participants_;
