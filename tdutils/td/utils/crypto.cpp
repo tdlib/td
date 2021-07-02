@@ -888,15 +888,11 @@ static void hmac_impl(const char *digest, Slice key, Slice message, MutableSlice
   EVP_MAC_CTX *ctx = EVP_MAC_CTX_new(hmac);
   LOG_IF(FATAL, ctx == nullptr);
 
-  OSSL_PARAM params[3];
+  OSSL_PARAM params[2];
   params[0] = OSSL_PARAM_construct_utf8_string(OSSL_MAC_PARAM_DIGEST, const_cast<char *>(digest), 0);
-  params[1] =
-      OSSL_PARAM_construct_octet_string(OSSL_MAC_PARAM_KEY, const_cast<unsigned char *>(key.ubegin()), key.size());
-  params[2] = OSSL_PARAM_construct_end();
+  params[1] = OSSL_PARAM_construct_end();
 
-  int res = EVP_MAC_CTX_set_params(ctx, params);
-  LOG_IF(FATAL, res != 1);
-  res = EVP_MAC_init(ctx);
+  int res = EVP_MAC_init(ctx, const_cast<unsigned char *>(key.ubegin()), key.size(), params);
   LOG_IF(FATAL, res != 1);
   res = EVP_MAC_update(ctx, message.ubegin(), message.size());
   LOG_IF(FATAL, res != 1);
