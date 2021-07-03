@@ -64,8 +64,8 @@ class SessionProxy : public Actor {
 
   void on_query_finished();
 
-  void start_up() override;
-  void tear_down() override;
+  void start_up() final;
+  void tear_down() final;
 };
 
 }  // namespace td

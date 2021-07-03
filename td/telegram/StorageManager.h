@@ -77,9 +77,9 @@ class StorageManager : public Actor {
   int32 ref_cnt_{1};
   bool is_closed_{false};
   ActorShared<> create_reference();
-  void start_up() override;
-  void hangup_shared() override;
-  void hangup() override;
+  void start_up() final;
+  void hangup_shared() final;
+  void hangup() final;
 
   // Gc
   ActorOwn<FileGcWorker> gc_worker_;
@@ -99,7 +99,7 @@ class StorageManager : public Actor {
   void save_last_gc_timestamp();
   void schedule_next_gc();
 
-  void timeout_expired() override;
+  void timeout_expired() final;
 };
 
 }  // namespace td

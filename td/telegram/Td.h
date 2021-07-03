@@ -96,7 +96,7 @@ class Td final : public NetQueryCallback {
   Td(Td &&) = delete;
   Td &operator=(const Td &) = delete;
   Td &operator=(Td &&) = delete;
-  ~Td() override;
+  ~Td() final;
 
   struct Options {
     std::shared_ptr<NetQueryStats> net_query_stats;
@@ -112,7 +112,7 @@ class Td final : public NetQueryCallback {
 
   void schedule_get_promo_data(int32 expires_in);
 
-  void on_result(NetQueryPtr query) override;
+  void on_result(NetQueryPtr query) final;
 
   void on_update_server_time_difference();
 
@@ -1303,10 +1303,10 @@ class Td final : public NetQueryCallback {
   }
 
   // Actor
-  void start_up() override;
-  void tear_down() override;
-  void hangup_shared() override;
-  void hangup() override;
+  void start_up() final;
+  void tear_down() final;
+  void hangup_shared() final;
+  void hangup() final;
 };
 
 }  // namespace td

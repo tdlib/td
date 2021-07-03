@@ -336,17 +336,17 @@ static string prime_base64 =
 
 class FakeDhCallback : public DhCallback {
  public:
-  int is_good_prime(Slice prime_str) const override {
+  int is_good_prime(Slice prime_str) const final {
     auto it = cache.find(prime_str.str());
     if (it == cache.end()) {
       return -1;
     }
     return it->second;
   }
-  void add_good_prime(Slice prime_str) const override {
+  void add_good_prime(Slice prime_str) const final {
     cache[prime_str.str()] = 1;
   }
-  void add_bad_prime(Slice prime_str) const override {
+  void add_bad_prime(Slice prime_str) const final {
     cache[prime_str.str()] = 0;
   }
   mutable std::map<string, int> cache;
@@ -359,7 +359,7 @@ class FakeBinlog
   FakeBinlog() {
     register_actor("FakeBinlog", this).release();
   }
-  void force_sync(Promise<> promise) override {
+  void force_sync(Promise<> promise) final {
     if (pending_events_.empty()) {
       pending_events_.emplace_back();
     }
@@ -377,15 +377,15 @@ class FakeBinlog
       }
     }
   }
-  void force_flush() override {
+  void force_flush() final {
   }
 
-  uint64 next_id() override {
+  uint64 next_id() final {
     auto res = last_id_;
     last_id_++;
     return res;
   }
-  uint64 next_id(int32 shift) override {
+  uint64 next_id(int32 shift) final {
     auto res = last_id_;
     last_id_ += shift;
     return res;
@@ -410,15 +410,15 @@ class FakeBinlog
     pending_events_.clear();
   }
 
-  void change_key(DbKey key, Promise<> promise) override {
+  void change_key(DbKey key, Promise<> promise) final {
   }
 
  protected:
-  void close_impl(Promise<> promise) override {
+  void close_impl(Promise<> promise) final {
   }
-  void close_and_destroy_impl(Promise<> promise) override {
+  void close_and_destroy_impl(Promise<> promise) final {
   }
-  void add_raw_event_impl(uint64 id, BufferSlice &&raw_event, Promise<> promise, BinlogDebugInfo info) override {
+  void add_raw_event_impl(uint64 id, BufferSlice &&raw_event, Promise<> promise, BinlogDebugInfo info) final {
     auto event = BinlogEvent(std::move(raw_event), info);
     LOG(INFO) << "ADD EVENT: " << event.id_ << " " << event;
     pending_events_.emplace_back();
@@ -455,10 +455,10 @@ class FakeBinlog
       }
     }
   }
-  void timeout_expired() override {
+  void timeout_expired() final {
     do_force_sync();
   }
-  void wakeup() override {
+  void wakeup() final {
     if (has_request_sync) {
       do_force_sync();
     }
@@ -490,25 +490,25 @@ class FakeSecretChatContext : public SecretChatActor::Context {
     secret_chat_db_ = std::make_shared<SecretChatDb>(key_value_, 1);
     net_query_creator_.stop_check();  // :(
   }
-  DhCallback *dh_callback() override {
+  DhCallback *dh_callback() final {
     return &fake_dh_callback_;
   }
-  NetQueryCreator &net_query_creator() override {
+  NetQueryCreator &net_query_creator() final {
     return net_query_creator_;
   }
-  int32 unix_time() override {
+  int32 unix_time() final {
     return static_cast<int32>(std::time(nullptr));
   }
-  bool close_flag() override {
+  bool close_flag() final {
     return *close_flag_;
   }
-  BinlogInterface *binlog() override {
+  BinlogInterface *binlog() final {
     return binlog_.get();
   }
-  SecretChatDb *secret_chat_db() override {
+  SecretChatDb *secret_chat_db() final {
     return secret_chat_db_.get();
   }
-  std::shared_ptr<DhConfig> dh_config() override {
+  std::shared_ptr<DhConfig> dh_config() final {
     static auto config = [] {
       DhConfig dh_config;
       dh_config.version = 12;
@@ -519,39 +519,38 @@ class FakeSecretChatContext : public SecretChatActor::Context {
 
     return config;
   }
-  void set_dh_config(std::shared_ptr<DhConfig> dh_config) override {
+  void set_dh_config(std::shared_ptr<DhConfig> dh_config) final {
     // empty
   }
 
-  bool get_config_option_boolean(const string &name) const override {
+  bool get_config_option_boolean(const string &name) const final {
     return false;
   }
 
   // We don't want to expose the whole NetQueryDispatcher, MessagesManager and ContactsManager.
   // So it is more clear which parts of MessagesManager is really used. And it is much easier to create tests.
-  void send_net_query(NetQueryPtr query, ActorShared<NetQueryCallback> callback, bool ordered) override;
+  void send_net_query(NetQueryPtr query, ActorShared<NetQueryCallback> callback, bool ordered) final;
 
   void on_update_secret_chat(int64 access_hash, UserId user_id, SecretChatState state, bool is_outbound, int32 ttl,
-                             int32 date, string key_hash, int32 layer, FolderId initial_folder_id) override {
+                             int32 date, string key_hash, int32 layer, FolderId initial_folder_id) final {
   }
 
   void on_inbound_message(UserId user_id, MessageId message_id, int32 date,
                           tl_object_ptr<telegram_api::encryptedFile> file,
-                          tl_object_ptr<secret_api::decryptedMessage> message, Promise<>) override;
+                          tl_object_ptr<secret_api::decryptedMessage> message, Promise<>) final;
 
-  void on_send_message_error(int64 random_id, Status error, Promise<>) override;
-  void on_send_message_ack(int64 random_id) override;
+  void on_send_message_error(int64 random_id, Status error, Promise<>) final;
+  void on_send_message_ack(int64 random_id) final;
   void on_send_message_ok(int64 random_id, MessageId message_id, int32 date,
-                          tl_object_ptr<telegram_api::EncryptedFile> file, Promise<>) override;
-  void on_delete_messages(std::vector<int64> random_id, Promise<>) override;
-  void on_flush_history(bool, MessageId, Promise<>) override;
-  void on_read_message(int64, Promise<>) override;
+                          tl_object_ptr<telegram_api::EncryptedFile> file, Promise<>) final;
+  void on_delete_messages(std::vector<int64> random_id, Promise<>) final;
+  void on_flush_history(bool, MessageId, Promise<>) final;
+  void on_read_message(int64, Promise<>) final;
 
-  void on_screenshot_taken(UserId user_id, MessageId message_id, int32 date, int64 random_id,
-                           Promise<> promise) override {
+  void on_screenshot_taken(UserId user_id, MessageId message_id, int32 date, int64 random_id, Promise<> promise) final {
   }
   void on_set_ttl(UserId user_id, MessageId message_id, int32 date, int32 ttl, int64 random_id,
-                  Promise<> promise) override {
+                  Promise<> promise) final {
   }
 
  private:
@@ -734,7 +733,7 @@ class Master : public Actor {
     }
 
     int32 bad_cnt_ = 0;
-    void timeout_expired() override {
+    void timeout_expired() final {
       LOG(INFO) << "TIMEOUT EXPIRED";
       if (events_cnt_ < 4) {
         bad_cnt_++;
@@ -760,7 +759,7 @@ class Master : public Actor {
   auto &to() {
     return get_by_id(3 - get_link_token());
   }
-  void start_up() override {
+  void start_up() final {
     auto old_context = set_context(std::make_shared<Global>());
     alice_ = create_actor<SecretChatProxy>("SecretChatProxy alice", "alice", actor_shared(this, 1));
     bob_ = create_actor<SecretChatProxy>("SecretChatProxy bob", "bob", actor_shared(this, 2));
@@ -865,7 +864,7 @@ class Master : public Actor {
     send_ping(1, 5000);
     set_timeout_in(1);
   }
-  void timeout_expired() override {
+  void timeout_expired() final {
     send_message(1, "oppa");
     send_message(2, "appo");
     set_timeout_in(1);
@@ -965,7 +964,7 @@ class Master : public Actor {
   };
   std::map<int64, Message> sent_messages_;
 
-  void hangup_shared() override {
+  void hangup_shared() final {
     LOG(INFO) << "GOT HANGUP: " << get_link_token();
     send_closure(from(), &SecretChatProxy::on_closed);
   }

@@ -28,11 +28,11 @@ class NetQueryDelayer : public Actor {
   };
   Container<QuerySlot> container_;
   ActorShared<> parent_;
-  void wakeup() override;
+  void wakeup() final;
 
   void on_slot_event(uint64 id);
 
-  void tear_down() override;
+  void tear_down() final;
 };
 
 }  // namespace td

@@ -14,9 +14,9 @@ namespace td {
 
 class DhCache : public DhCallback {
  public:
-  int is_good_prime(Slice prime_str) const override;
-  void add_good_prime(Slice prime_str) const override;
-  void add_bad_prime(Slice prime_str) const override;
+  int is_good_prime(Slice prime_str) const final;
+  void add_good_prime(Slice prime_str) const final;
+  void add_bad_prime(Slice prime_str) const final;
 
   static DhCallback *instance() {
     static DhCache res;

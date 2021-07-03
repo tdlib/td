@@ -191,15 +191,15 @@ class CallActor : public NetQueryCallback {
 
   static vector<string> get_emojis_fingerprint(const string &key, const string &g_a);
 
-  void start_up() override;
-  void loop() override;
+  void start_up() final;
+  void loop() final;
 
   Container<Promise<NetQueryPtr>> container_;
-  void on_result(NetQueryPtr query) override;
+  void on_result(NetQueryPtr query) final;
   void send_with_promise(NetQueryPtr query, Promise<NetQueryPtr> promise);
 
-  void timeout_expired() override;
-  void hangup() override;
+  void timeout_expired() final;
+  void hangup() final;
 
   void on_error(Status status);
 };

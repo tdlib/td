@@ -27,7 +27,7 @@ class AesCtrByteFlow : public ByteFlowInplaceBase {
   AesCtrState move_aes_ctr_state() {
     return std::move(state_);
   }
-  bool loop() override {
+  bool loop() final {
     bool result = false;
     auto ready = input_->prepare_read();
     if (!ready.empty()) {

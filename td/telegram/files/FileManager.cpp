@@ -2355,19 +2355,19 @@ class FileManager::ForceUploadActor : public Actor {
    public:
     explicit UploadCallback(ActorId<ForceUploadActor> callback) : callback_(std::move(callback)) {
     }
-    void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) override {
+    void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) final {
       send_closure(std::move(callback_), &ForceUploadActor::on_upload_ok, std::move(input_file));
     }
 
-    void on_upload_encrypted_ok(FileId file_id, tl_object_ptr<telegram_api::InputEncryptedFile> input_file) override {
+    void on_upload_encrypted_ok(FileId file_id, tl_object_ptr<telegram_api::InputEncryptedFile> input_file) final {
       send_closure(std::move(callback_), &ForceUploadActor::on_upload_encrypted_ok, std::move(input_file));
     }
 
-    void on_upload_secure_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file) override {
+    void on_upload_secure_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file) final {
       send_closure(std::move(callback_), &ForceUploadActor::on_upload_secure_ok, std::move(input_file));
     }
 
-    void on_upload_error(FileId file_id, Status error) override {
+    void on_upload_error(FileId file_id, Status error) final {
       send_closure(std::move(callback_), &ForceUploadActor::on_upload_error, std::move(error));
     }
     ~UploadCallback() {
@@ -2436,7 +2436,7 @@ class FileManager::ForceUploadActor : public Actor {
     return std::make_shared<UploadCallback>(actor_id(this));
   }
 
-  void loop() override {
+  void loop() final {
     if (is_active_) {
       return;
     }
@@ -2450,7 +2450,7 @@ class FileManager::ForceUploadActor : public Actor {
                  new_priority_, upload_order_, attempt_ == 2, prefer_small_);
   }
 
-  void tear_down() override {
+  void tear_down() final {
     if (callback_) {
       callback_->on_upload_error(file_id_, Status::Error("Canceled"));
     }
@@ -2685,14 +2685,13 @@ void FileManager::run_generate(FileNodePtr node) {
                   public:
                    Callback(ActorId<FileManager> actor, QueryId id) : actor_(std::move(actor)), query_id_(id) {
                    }
-                   void on_partial_generate(const PartialLocalFileLocation &partial_local,
-                                            int32 expected_size) override {
+                   void on_partial_generate(const PartialLocalFileLocation &partial_local, int32 expected_size) final {
                      send_closure(actor_, &FileManager::on_partial_generate, query_id_, partial_local, expected_size);
                    }
-                   void on_ok(const FullLocalFileLocation &local) override {
+                   void on_ok(const FullLocalFileLocation &local) final {
                      send_closure(actor_, &FileManager::on_generate_ok, query_id_, local);
                    }
-                   void on_error(Status error) override {
+                   void on_error(Status error) final {
                      send_closure(actor_, &FileManager::on_error, query_id_, std::move(error));
                    }
                  };

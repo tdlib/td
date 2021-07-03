@@ -60,11 +60,11 @@ class HandshakeConnection
   AuthKeyHandshake *handshake_;
   unique_ptr<AuthKeyHandshakeContext> context_;
 
-  void send_no_crypto(const Storer &storer) override {
+  void send_no_crypto(const Storer &storer) final {
     raw_connection_->send_no_crypto(PacketStorer<NoCryptoImpl>(0, storer));
   }
 
-  Status on_raw_packet(const PacketInfo &packet_info, BufferSlice packet) override {
+  Status on_raw_packet(const PacketInfo &packet_info, BufferSlice packet) final {
     if (packet_info.no_crypto_flag == false) {
       return Status::Error("Expected not encrypted packet");
     }

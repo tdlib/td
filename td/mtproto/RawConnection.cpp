@@ -42,18 +42,18 @@ class RawConnectionDefault : public RawConnection {
     transport_->init(&socket_fd_.input_buffer(), &socket_fd_.output_buffer());
   }
 
-  void set_connection_token(StateManager::ConnectionToken connection_token) override {
+  void set_connection_token(StateManager::ConnectionToken connection_token) final {
     connection_token_ = std::move(connection_token);
   }
 
-  bool can_send() const override {
+  bool can_send() const final {
     return transport_->can_write();
   }
-  TransportType get_transport_type() const override {
+  TransportType get_transport_type() const final {
     return transport_->get_type();
   }
   void send_crypto(const Storer &storer, int64 session_id, int64 salt, const AuthKey &auth_key,
-                   uint64 quick_ack_token) override {
+                   uint64 quick_ack_token) final {
     PacketInfo info;
     info.version = 2;
     info.no_crypto_flag = false;
@@ -78,7 +78,7 @@ class RawConnectionDefault : public RawConnection {
     transport_->write(std::move(packet), use_quick_ack);
   }
 
-  uint64 send_no_crypto(const Storer &storer) override {
+  uint64 send_no_crypto(const Storer &storer) final {
     PacketInfo info;
 
     info.no_crypto_flag = true;
@@ -90,16 +90,16 @@ class RawConnectionDefault : public RawConnection {
     return info.message_id;
   }
 
-  PollableFdInfo &get_poll_info() override {
+  PollableFdInfo &get_poll_info() final {
     return socket_fd_.get_poll_info();
   }
 
-  StatsCallback *stats_callback() override {
+  StatsCallback *stats_callback() final {
     return stats_callback_.get();
   }
 
   // NB: After first returned error, all subsequent calls will return error too.
-  Status flush(const AuthKey &auth_key, Callback &callback) override {
+  Status flush(const AuthKey &auth_key, Callback &callback) final {
     auto status = do_flush(auth_key, callback);
     if (status.is_error()) {
       if (stats_callback_ && status.code() != 2) {
@@ -110,19 +110,19 @@ class RawConnectionDefault : public RawConnection {
     return status;
   }
 
-  bool has_error() const override {
+  bool has_error() const final {
     return has_error_;
   }
 
-  void close() override {
+  void close() final {
     transport_.reset();
     socket_fd_.close();
   }
 
-  PublicFields &extra() override {
+  PublicFields &extra() final {
     return extra_;
   }
-  const PublicFields &extra() const override {
+  const PublicFields &extra() const final {
     return extra_;
   }
 
@@ -268,18 +268,18 @@ class RawConnectionHttp : public RawConnection {
     answers_->init();
   }
 
-  void set_connection_token(StateManager::ConnectionToken connection_token) override {
+  void set_connection_token(StateManager::ConnectionToken connection_token) final {
     connection_token_ = std::move(connection_token);
   }
 
-  bool can_send() const override {
+  bool can_send() const final {
     return mode_ == Send;
   }
-  TransportType get_transport_type() const override {
+  TransportType get_transport_type() const final {
     return mtproto::TransportType{mtproto::TransportType::Http, 0, mtproto::ProxySecret()};
   }
   void send_crypto(const Storer &storer, int64 session_id, int64 salt, const AuthKey &auth_key,
-                   uint64 quick_ack_token) override {
+                   uint64 quick_ack_token) final {
     PacketInfo info;
     info.version = 2;
     info.no_crypto_flag = false;
@@ -293,7 +293,7 @@ class RawConnectionHttp : public RawConnection {
     send_packet(packet.as_buffer_slice());
   }
 
-  uint64 send_no_crypto(const Storer &storer) override {
+  uint64 send_no_crypto(const Storer &storer) final {
     PacketInfo info;
 
     info.no_crypto_flag = true;
@@ -304,16 +304,16 @@ class RawConnectionHttp : public RawConnection {
     return info.message_id;
   }
 
-  PollableFdInfo &get_poll_info() override {
+  PollableFdInfo &get_poll_info() final {
     return answers_->reader_get_event_fd().get_poll_info();
   }
 
-  StatsCallback *stats_callback() override {
+  StatsCallback *stats_callback() final {
     return stats_callback_.get();
   }
 
   // NB: After first returned error, all subsequent calls will return error too.
-  Status flush(const AuthKey &auth_key, Callback &callback) override {
+  Status flush(const AuthKey &auth_key, Callback &callback) final {
     auto status = do_flush(auth_key, callback);
     if (status.is_error()) {
       if (stats_callback_ && status.code() != 2) {
@@ -324,17 +324,17 @@ class RawConnectionHttp : public RawConnection {
     return status;
   }
 
-  bool has_error() const override {
+  bool has_error() const final {
     return has_error_;
   }
 
-  void close() override {
+  void close() final {
   }
 
-  PublicFields &extra() override {
+  PublicFields &extra() final {
     return extra_;
   }
-  const PublicFields &extra() const override {
+  const PublicFields &extra() const final {
     return extra_;
   }
 

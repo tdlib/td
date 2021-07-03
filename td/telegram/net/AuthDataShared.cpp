@@ -25,15 +25,15 @@ class AuthDataSharedImpl : public AuthDataShared {
     log_auth_key(get_auth_key());
   }
 
-  DcId dc_id() const override {
+  DcId dc_id() const final {
     return dc_id_;
   }
 
-  const std::shared_ptr<PublicRsaKeyShared> &public_rsa_key() override {
+  const std::shared_ptr<PublicRsaKeyShared> &public_rsa_key() final {
     return public_rsa_key_;
   }
 
-  mtproto::AuthKey get_auth_key() override {
+  mtproto::AuthKey get_auth_key() final {
     string dc_key = G()->td_db()->get_binlog_pmc()->get(auth_key_key());
 
     mtproto::AuthKey res;
@@ -43,11 +43,11 @@ class AuthDataSharedImpl : public AuthDataShared {
     return res;
   }
 
-  AuthKeyState get_auth_key_state() override {
+  AuthKeyState get_auth_key_state() final {
     return AuthDataShared::get_auth_key_state(get_auth_key());
   }
 
-  void set_auth_key(const mtproto::AuthKey &auth_key) override {
+  void set_auth_key(const mtproto::AuthKey &auth_key) final {
     G()->td_db()->get_binlog_pmc()->set(auth_key_key(), serialize(auth_key));
     log_auth_key(auth_key);
 
@@ -55,26 +55,26 @@ class AuthDataSharedImpl : public AuthDataShared {
   }
 
   // TODO: extract it from G()
-  void update_server_time_difference(double diff) override {
+  void update_server_time_difference(double diff) final {
     G()->update_server_time_difference(diff);
   }
 
-  double get_server_time_difference() override {
+  double get_server_time_difference() final {
     return G()->get_server_time_difference();
   }
 
-  void add_auth_key_listener(unique_ptr<Listener> listener) override {
+  void add_auth_key_listener(unique_ptr<Listener> listener) final {
     if (listener->notify()) {
       auto lock = rw_mutex_.lock_write();
       auth_key_listeners_.push_back(std::move(listener));
     }
   }
 
-  void set_future_salts(const std::vector<mtproto::ServerSalt> &future_salts) override {
+  void set_future_salts(const std::vector<mtproto::ServerSalt> &future_salts) final {
     G()->td_db()->get_binlog_pmc()->set(future_salts_key(), serialize(future_salts));
   }
 
-  std::vector<mtproto::ServerSalt> get_future_salts() override {
+  std::vector<mtproto::ServerSalt> get_future_salts() final {
     string future_salts = G()->td_db()->get_binlog_pmc()->get(future_salts_key());
     std::vector<mtproto::ServerSalt> res;
     if (!future_salts.empty()) {

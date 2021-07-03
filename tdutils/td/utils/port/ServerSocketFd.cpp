@@ -172,7 +172,7 @@ class ServerSocketFdImpl : private Iocp::Callback {
     get_poll_info().add_flags_from_poll(PollFlags::Error());
   }
 
-  void on_iocp(Result<size_t> r_size, WSAOVERLAPPED *overlapped) override {
+  void on_iocp(Result<size_t> r_size, WSAOVERLAPPED *overlapped) final {
     // called from other thread
     if (dec_refcnt() || close_flag_) {
       VLOG(fd) << "Ignore IOCP (server socket is closing)";

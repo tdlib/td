@@ -76,7 +76,7 @@ class GetWebPagePreviewQuery : public Td::ResultHandler {
         G()->net_query_creator().create(telegram_api::messages_getWebPagePreview(flags, text, std::move(entities))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getWebPagePreview>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -87,7 +87,7 @@ class GetWebPagePreviewQuery : public Td::ResultHandler {
     td->web_pages_manager_->on_get_web_page_preview_success(request_id_, url_, std::move(ptr), std::move(promise_));
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     td->web_pages_manager_->on_get_web_page_preview_fail(request_id_, url_, std::move(status), std::move(promise_));
   }
 };
@@ -107,7 +107,7 @@ class GetWebPageQuery : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::messages_getWebPage(url, hash)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getWebPage>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -133,7 +133,7 @@ class GetWebPageQuery : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     promise_.set_error(std::move(status));
   }
 };

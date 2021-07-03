@@ -37,7 +37,7 @@ class TdKvBench : public td::Benchmark {
     name_ = std::move(name);
   }
 
-  td::string get_description() const override {
+  td::string get_description() const final {
     return name_;
   }
 
@@ -47,7 +47,7 @@ class TdKvBench : public td::Benchmark {
     }
 
    private:
-    void loop() override {
+    void loop() final {
       KeyValueT::destroy("test_tddb").ignore();
 
       class Worker : public Actor {
@@ -57,7 +57,7 @@ class TdKvBench : public td::Benchmark {
         }
 
        private:
-        void loop() override {
+        void loop() final {
           for (int i = 0; i < n_; i++) {
             kv_.set(td::to_string(i % 10), td::to_string(i));
           }
@@ -71,12 +71,12 @@ class TdKvBench : public td::Benchmark {
     int n_;
   };
 
-  void start_up_n(int n) override {
+  void start_up_n(int n) final {
     sched.init(1);
     sched.create_actor_unsafe<Main>(1, "Main", n).release();
   }
 
-  void run(int n) override {
+  void run(int n) final {
     sched.start();
     while (sched.run_main(10)) {
       // empty
@@ -84,17 +84,17 @@ class TdKvBench : public td::Benchmark {
     sched.finish();
   }
 
-  void tear_down() override {
+  void tear_down() final {
   }
 };
 
 template <bool is_encrypted = false>
 class SqliteKVBench : public td::Benchmark {
   td::SqliteDb db;
-  td::string get_description() const override {
+  td::string get_description() const final {
     return PSTRING() << "SqliteKV " << td::tag("is_encrypted", is_encrypted);
   }
-  void start_up() override {
+  void start_up() final {
     td::string path = "testdb.sqlite";
     td::SqliteDb::destroy(path).ignore();
     if (is_encrypted) {
@@ -110,7 +110,7 @@ class SqliteKVBench : public td::Benchmark {
     db.exec("DROP TABLE IF EXISTS KV").ensure();
     db.exec("CREATE TABLE IF NOT EXISTS KV (k BLOB PRIMARY KEY, v BLOB)").ensure();
   }
-  void run(int n) override {
+  void run(int n) final {
     auto stmt = db.get_statement("REPLACE INTO KV (k, v) VALUES(?1, ?2)").move_as_ok();
     db.exec("BEGIN TRANSACTION").ensure();
     for (int i = 0; i < n; i++) {
@@ -144,14 +144,14 @@ static td::Status init_db(td::SqliteDb &db) {
 
 class SqliteKeyValueAsyncBench : public td::Benchmark {
  public:
-  td::string get_description() const override {
+  td::string get_description() const final {
     return "SqliteKeyValueAsync";
   }
-  void start_up() override {
+  void start_up() final {
     do_start_up().ensure();
     scheduler_->start();
   }
-  void run(int n) override {
+  void run(int n) final {
     auto guard = scheduler_->get_main_guard();
 
     for (int i = 0; i < n; i++) {
@@ -160,7 +160,7 @@ class SqliteKeyValueAsyncBench : public td::Benchmark {
       sqlite_kv_async_->set(key, value, td::Auto());
     }
   }
-  void tear_down() override {
+  void tear_down() final {
     scheduler_->run_main(0.1);
     {
       auto guard = scheduler_->get_main_guard();
@@ -200,12 +200,12 @@ class SqliteKeyValueAsyncBench : public td::Benchmark {
 };
 
 class SeqKvBench : public td::Benchmark {
-  td::string get_description() const override {
+  td::string get_description() const final {
     return "SeqKvBench";
   }
 
   td::SeqKeyValue kv;
-  void run(int n) override {
+  void run(int n) final {
     for (int i = 0; i < n; i++) {
       kv.set(PSLICE() << i % 10, PSLICE() << i);
     }
@@ -214,16 +214,16 @@ class SeqKvBench : public td::Benchmark {
 
 template <bool is_encrypted = false>
 class BinlogKeyValueBench : public td::Benchmark {
-  td::string get_description() const override {
+  td::string get_description() const final {
     return PSTRING() << "BinlogKeyValue " << td::tag("is_encrypted", is_encrypted);
   }
 
   td::BinlogKeyValue<td::Binlog> kv;
-  void start_up() override {
+  void start_up() final {
     td::SqliteDb::destroy("test_binlog").ignore();
     kv.init("test_binlog", is_encrypted ? td::DbKey::password("cucumber") : td::DbKey::empty()).ensure();
   }
-  void run(int n) override {
+  void run(int n) final {
     for (int i = 0; i < n; i++) {
       kv.set(td::to_string(i % 10), td::to_string(i));
     }

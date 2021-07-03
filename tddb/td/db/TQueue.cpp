@@ -86,14 +86,14 @@ class TQueueImpl : public TQueue {
   static constexpr size_t MAX_TOTAL_EVENT_LENGTH = 1 << 30;
 
  public:
-  void set_callback(unique_ptr<StorageCallback> callback) override {
+  void set_callback(unique_ptr<StorageCallback> callback) final {
     callback_ = std::move(callback);
   }
-  unique_ptr<StorageCallback> extract_callback() override {
+  unique_ptr<StorageCallback> extract_callback() final {
     return std::move(callback_);
   }
 
-  bool do_push(QueueId queue_id, RawEvent &&raw_event) override {
+  bool do_push(QueueId queue_id, RawEvent &&raw_event) final {
     CHECK(raw_event.event_id.is_valid());
     // raw_event.data can be empty when replaying binlog
     if (raw_event.data.size() > MAX_EVENT_LENGTH) {
@@ -132,7 +132,7 @@ class TQueueImpl : public TQueue {
     return true;
   }
 
-  Result<EventId> push(QueueId queue_id, string data, int32 expires_at, int64 extra, EventId hint_new_id) override {
+  Result<EventId> push(QueueId queue_id, string data, int32 expires_at, int64 extra, EventId hint_new_id) final {
     if (data.empty()) {
       return Status::Error("Data is empty");
     }
@@ -181,7 +181,7 @@ class TQueueImpl : public TQueue {
     return event_id;
   }
 
-  EventId get_head(QueueId queue_id) const override {
+  EventId get_head(QueueId queue_id) const final {
     auto it = queues_.find(queue_id);
     if (it == queues_.end()) {
       return EventId();
@@ -189,7 +189,7 @@ class TQueueImpl : public TQueue {
     return get_queue_head(it->second);
   }
 
-  EventId get_tail(QueueId queue_id) const override {
+  EventId get_tail(QueueId queue_id) const final {
     auto it = queues_.find(queue_id);
     if (it == queues_.end()) {
       return EventId();
@@ -198,7 +198,7 @@ class TQueueImpl : public TQueue {
     return q.tail_id;
   }
 
-  void forget(QueueId queue_id, EventId event_id) override {
+  void forget(QueueId queue_id, EventId event_id) final {
     auto q_it = queues_.find(queue_id);
     if (q_it == queues_.end()) {
       return;
@@ -212,7 +212,7 @@ class TQueueImpl : public TQueue {
   }
 
   Result<size_t> get(QueueId queue_id, EventId from_id, bool forget_previous, int32 unix_time_now,
-                     MutableSpan<Event> &result_events) override {
+                     MutableSpan<Event> &result_events) final {
     auto it = queues_.find(queue_id);
     if (it == queues_.end()) {
       result_events.truncate(0);
@@ -231,7 +231,7 @@ class TQueueImpl : public TQueue {
     return get_size(q);
   }
 
-  int64 run_gc(int32 unix_time_now) override {
+  int64 run_gc(int32 unix_time_now) final {
     int64 deleted_events = 0;
     while (!queue_gc_at_.empty()) {
       auto it = queue_gc_at_.begin();
@@ -263,7 +263,7 @@ class TQueueImpl : public TQueue {
     return deleted_events;
   }
 
-  size_t get_size(QueueId queue_id) const override {
+  size_t get_size(QueueId queue_id) const final {
     auto it = queues_.find(queue_id);
     if (it == queues_.end()) {
       return 0;
@@ -271,7 +271,7 @@ class TQueueImpl : public TQueue {
     return get_size(it->second);
   }
 
-  void close(Promise<> promise) override {
+  void close(Promise<> promise) final {
     if (callback_ != nullptr) {
       callback_->close(std::move(promise));
       callback_ = nullptr;
@@ -416,13 +416,13 @@ struct TQueueLogEvent : public Storer {
     }
   }
 
-  size_t size() const override {
+  size_t size() const final {
     TlStorerCalcLength storer;
     store(storer);
     return storer.get_length();
   }
 
-  size_t store(uint8 *ptr) const override {
+  size_t store(uint8 *ptr) const final {
     TlStorerUnsafe storer(ptr);
     store(storer);
     return static_cast<size_t>(storer.get_buf() - ptr);

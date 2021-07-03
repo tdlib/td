@@ -136,7 +136,7 @@ class MessagesManager : public Actor {
   MessagesManager &operator=(const MessagesManager &) = delete;
   MessagesManager(MessagesManager &&) = delete;
   MessagesManager &operator=(MessagesManager &&) = delete;
-  ~MessagesManager() override;
+  ~MessagesManager() final;
 
   td_api::object_ptr<td_api::MessageSender> get_message_sender_object_const(UserId user_id, DialogId dialog_id) const;
 
@@ -2601,9 +2601,9 @@ class MessagesManager : public Actor {
   void on_message_ttl_expired(Dialog *d, Message *m);
   void on_message_ttl_expired_impl(Dialog *d, Message *m);
 
-  void start_up() override;
-  void loop() override;
-  void tear_down() override;
+  void start_up() final;
+  void loop() final;
+  void tear_down() final;
 
   void create_folders();
   void init();

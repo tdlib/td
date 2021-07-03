@@ -35,7 +35,7 @@ class LanguagePackManager : public NetQueryCallback {
   LanguagePackManager &operator=(const LanguagePackManager &) = delete;
   LanguagePackManager(LanguagePackManager &&) = delete;
   LanguagePackManager &operator=(LanguagePackManager &&) = delete;
-  ~LanguagePackManager() override;
+  ~LanguagePackManager() final;
 
   static bool check_language_pack_name(Slice name);
 
@@ -188,11 +188,11 @@ class LanguagePackManager : public NetQueryCallback {
 
   Status do_delete_language(string language_code);
 
-  void on_result(NetQueryPtr query) override;
+  void on_result(NetQueryPtr query) final;
 
-  void start_up() override;
-  void hangup() override;
-  void tear_down() override;
+  void start_up() final;
+  void hangup() final;
+  void tear_down() final;
 
   Container<Promise<NetQueryPtr>> container_;
   void send_with_promise(NetQueryPtr query, Promise<NetQueryPtr> promise);

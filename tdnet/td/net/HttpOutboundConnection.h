@@ -36,9 +36,9 @@ class HttpOutboundConnection final : public detail::HttpConnectionBase {
   // void write_error(Status error);
 
  private:
-  void on_query(unique_ptr<HttpQuery> query) override;
-  void on_error(Status error) override;
-  void hangup() override {
+  void on_query(unique_ptr<HttpQuery> query) final;
+  void on_error(Status error) final;
+  void hangup() final {
     callback_.release();
     HttpConnectionBase::hangup();
   }

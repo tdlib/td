@@ -142,7 +142,7 @@ class BinlogActor : public Actor {
     }
   }
 
-  void timeout_expired() override {
+  void timeout_expired() final {
     bool need_sync = lazy_sync_flag_ || force_sync_flag_;
     lazy_sync_flag_ = false;
     force_sync_flag_ = false;

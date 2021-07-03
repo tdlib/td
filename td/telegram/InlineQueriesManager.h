@@ -109,9 +109,9 @@ class InlineQueriesManager : public Actor {
 
   static void on_drop_inline_query_result_timeout_callback(void *inline_queries_manager_ptr, int64 query_hash);
 
-  void loop() override;
+  void loop() final;
 
-  void tear_down() override;
+  void tear_down() final;
 
   int32 recently_used_bots_loaded_ = 0;  // 0 - not loaded, 1 - load request was sent, 2 - loaded
   MultiPromiseActor resolve_recent_inline_bots_multipromise_{"ResolveRecentInlineBotsMultiPromiseActor"};

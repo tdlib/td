@@ -51,17 +51,17 @@ class TdReceiver {
      public:
       Callback(ClientManager::ClientId client_id, TdReceiver *impl) : client_id_(client_id), impl_(impl) {
       }
-      void on_result(uint64 id, td_api::object_ptr<td_api::Object> result) override {
+      void on_result(uint64 id, td_api::object_ptr<td_api::Object> result) final {
         impl_->responses_.push({client_id_, id, std::move(result)});
       }
-      void on_error(uint64 id, td_api::object_ptr<td_api::error> error) override {
+      void on_error(uint64 id, td_api::object_ptr<td_api::error> error) final {
         impl_->responses_.push({client_id_, id, std::move(error)});
       }
       Callback(const Callback &) = delete;
       Callback &operator=(const Callback &) = delete;
       Callback(Callback &&) = delete;
       Callback &operator=(Callback &&) = delete;
-      ~Callback() override {
+      ~Callback() final {
         impl_->responses_.push({client_id_, 0, nullptr});
       }
 
@@ -292,17 +292,17 @@ class TdReceiver {
       explicit Callback(ClientManager::ClientId client_id, std::shared_ptr<OutputQueue> output_queue)
           : client_id_(client_id), output_queue_(std::move(output_queue)) {
       }
-      void on_result(uint64 id, td_api::object_ptr<td_api::Object> result) override {
+      void on_result(uint64 id, td_api::object_ptr<td_api::Object> result) final {
         output_queue_->writer_put({client_id_, id, std::move(result)});
       }
-      void on_error(uint64 id, td_api::object_ptr<td_api::error> error) override {
+      void on_error(uint64 id, td_api::object_ptr<td_api::error> error) final {
         output_queue_->writer_put({client_id_, id, std::move(error)});
       }
       Callback(const Callback &) = delete;
       Callback &operator=(const Callback &) = delete;
       Callback(Callback &&) = delete;
       Callback &operator=(Callback &&) = delete;
-      ~Callback() override {
+      ~Callback() final {
         output_queue_->writer_put({client_id_, 0, nullptr});
       }
 

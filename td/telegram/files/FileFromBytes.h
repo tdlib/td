@@ -44,12 +44,12 @@ class FileFromBytes : public FileLoaderActor {
   FileFd fd_;
   string path_;
 
-  void wakeup() override;
-  void set_resource_manager(ActorShared<ResourceManager>) override {
+  void wakeup() final;
+  void set_resource_manager(ActorShared<ResourceManager>) final {
   }
-  void update_priority(int8 priority) override {
+  void update_priority(int8 priority) final {
   }
-  void update_resources(const ResourceState &other) override {
+  void update_resources(const ResourceState &other) final {
   }
 };
 }  // namespace td

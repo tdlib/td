@@ -25,23 +25,23 @@
 namespace td {
 
 class NotificationTypeMessage : public NotificationType {
-  bool can_be_delayed() const override {
+  bool can_be_delayed() const final {
     return message_id_.is_valid() && message_id_.is_server();
   }
 
-  bool is_temporary() const override {
+  bool is_temporary() const final {
     return false;
   }
 
-  MessageId get_message_id() const override {
+  MessageId get_message_id() const final {
     return message_id_;
   }
 
-  vector<FileId> get_file_ids(const Td *td) const override {
+  vector<FileId> get_file_ids(const Td *td) const final {
     return {};
   }
 
-  td_api::object_ptr<td_api::NotificationType> get_notification_type_object(DialogId dialog_id) const override {
+  td_api::object_ptr<td_api::NotificationType> get_notification_type_object(DialogId dialog_id) const final {
     auto message_object = G()->td().get_actor_unsafe()->messages_manager_->get_message_object({dialog_id, message_id_});
     if (message_object == nullptr) {
       return nullptr;
@@ -49,7 +49,7 @@ class NotificationTypeMessage : public NotificationType {
     return td_api::make_object<td_api::notificationTypeNewMessage>(std::move(message_object));
   }
 
-  StringBuilder &to_string_builder(StringBuilder &string_builder) const override {
+  StringBuilder &to_string_builder(StringBuilder &string_builder) const final {
     return string_builder << "NewMessageNotification[" << message_id_ << ']';
   }
 
@@ -61,27 +61,27 @@ class NotificationTypeMessage : public NotificationType {
 };
 
 class NotificationTypeSecretChat : public NotificationType {
-  bool can_be_delayed() const override {
+  bool can_be_delayed() const final {
     return false;
   }
 
-  bool is_temporary() const override {
+  bool is_temporary() const final {
     return false;
   }
 
-  MessageId get_message_id() const override {
+  MessageId get_message_id() const final {
     return MessageId();
   }
 
-  vector<FileId> get_file_ids(const Td *td) const override {
+  vector<FileId> get_file_ids(const Td *td) const final {
     return {};
   }
 
-  td_api::object_ptr<td_api::NotificationType> get_notification_type_object(DialogId dialog_id) const override {
+  td_api::object_ptr<td_api::NotificationType> get_notification_type_object(DialogId dialog_id) const final {
     return td_api::make_object<td_api::notificationTypeNewSecretChat>();
   }
 
-  StringBuilder &to_string_builder(StringBuilder &string_builder) const override {
+  StringBuilder &to_string_builder(StringBuilder &string_builder) const final {
     return string_builder << "NewSecretChatNotification[]";
   }
 
@@ -91,27 +91,27 @@ class NotificationTypeSecretChat : public NotificationType {
 };
 
 class NotificationTypeCall : public NotificationType {
-  bool can_be_delayed() const override {
+  bool can_be_delayed() const final {
     return false;
   }
 
-  bool is_temporary() const override {
+  bool is_temporary() const final {
     return false;
   }
 
-  MessageId get_message_id() const override {
+  MessageId get_message_id() const final {
     return MessageId::max();
   }
 
-  vector<FileId> get_file_ids(const Td *td) const override {
+  vector<FileId> get_file_ids(const Td *td) const final {
     return {};
   }
 
-  td_api::object_ptr<td_api::NotificationType> get_notification_type_object(DialogId dialog_id) const override {
+  td_api::object_ptr<td_api::NotificationType> get_notification_type_object(DialogId dialog_id) const final {
     return td_api::make_object<td_api::notificationTypeNewCall>(call_id_.get());
   }
 
-  StringBuilder &to_string_builder(StringBuilder &string_builder) const override {
+  StringBuilder &to_string_builder(StringBuilder &string_builder) const final {
     return string_builder << "NewCallNotification[" << call_id_ << ']';
   }
 
@@ -123,19 +123,19 @@ class NotificationTypeCall : public NotificationType {
 };
 
 class NotificationTypePushMessage : public NotificationType {
-  bool can_be_delayed() const override {
+  bool can_be_delayed() const final {
     return false;
   }
 
-  bool is_temporary() const override {
+  bool is_temporary() const final {
     return true;
   }
 
-  MessageId get_message_id() const override {
+  MessageId get_message_id() const final {
     return message_id_;
   }
 
-  vector<FileId> get_file_ids(const Td *td) const override {
+  vector<FileId> get_file_ids(const Td *td) const final {
     if (!document_.empty()) {
       return document_.get_file_ids(td);
     }
@@ -327,7 +327,7 @@ class NotificationTypePushMessage : public NotificationType {
     UNREACHABLE();
   }
 
-  td_api::object_ptr<td_api::NotificationType> get_notification_type_object(DialogId dialog_id) const override {
+  td_api::object_ptr<td_api::NotificationType> get_notification_type_object(DialogId dialog_id) const final {
     auto sender =
         G()->td().get_actor_unsafe()->messages_manager_->get_message_sender_object(sender_user_id_, sender_dialog_id_);
     return td_api::make_object<td_api::notificationTypeNewPushMessage>(
@@ -335,7 +335,7 @@ class NotificationTypePushMessage : public NotificationType {
         get_push_message_content_object(key_, arg_, photo_, document_));
   }
 
-  StringBuilder &to_string_builder(StringBuilder &string_builder) const override {
+  StringBuilder &to_string_builder(StringBuilder &string_builder) const final {
     return string_builder << "NewPushMessageNotification[" << sender_user_id_ << "/" << sender_dialog_id_ << "/\""
                           << sender_name_ << "\", " << message_id_ << ", " << key_ << ", " << arg_ << ", " << photo_
                           << ", " << document_ << ']';

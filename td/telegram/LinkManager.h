@@ -31,7 +31,7 @@ class LinkManager : public Actor {
   LinkManager &operator=(const LinkManager &) = delete;
   LinkManager(LinkManager &&) = delete;
   LinkManager &operator=(LinkManager &&) = delete;
-  ~LinkManager() override;
+  ~LinkManager() final;
 
   class InternalLink {
    public:

@@ -38,27 +38,27 @@ class SessionCallback : public Session::Callback {
       , hash_(hash) {
   }
 
-  void on_failed() override {
+  void on_failed() final {
     send_closure(parent_, &SessionProxy::on_failed);
   }
-  void on_closed() override {
+  void on_closed() final {
     send_closure(parent_, &SessionProxy::on_closed);
   }
   void request_raw_connection(unique_ptr<mtproto::AuthData> auth_data,
-                              Promise<unique_ptr<mtproto::RawConnection>> promise) override {
+                              Promise<unique_ptr<mtproto::RawConnection>> promise) final {
     send_closure(G()->connection_creator(), &ConnectionCreator::request_raw_connection, dc_id_, allow_media_only_,
                  is_media_, std::move(promise), hash_, std::move(auth_data));
   }
 
-  void on_tmp_auth_key_updated(mtproto::AuthKey auth_key) override {
+  void on_tmp_auth_key_updated(mtproto::AuthKey auth_key) final {
     send_closure(parent_, &SessionProxy::on_tmp_auth_key_updated, std::move(auth_key));
   }
 
-  void on_server_salt_updated(std::vector<mtproto::ServerSalt> server_salts) override {
+  void on_server_salt_updated(std::vector<mtproto::ServerSalt> server_salts) final {
     send_closure(parent_, &SessionProxy::on_server_salt_updated, std::move(server_salts));
   }
 
-  void on_result(NetQueryPtr query) override {
+  void on_result(NetQueryPtr query) final {
     if (UniqueId::extract_type(query->id()) != UniqueId::BindKey &&
         query->id() != 0) {  // not bind key query and not an update
       send_closure(parent_, &SessionProxy::on_query_finished);
@@ -92,7 +92,7 @@ void SessionProxy::start_up() {
    public:
     explicit Listener(ActorShared<SessionProxy> session_proxy) : session_proxy_(std::move(session_proxy)) {
     }
-    bool notify() override {
+    bool notify() final {
       if (!session_proxy_.is_alive()) {
         return false;
       }

@@ -32,17 +32,17 @@ class MultiPromiseInterface {
 
 class MultiPromise : public MultiPromiseInterface {
  public:
-  void add_promise(Promise<> &&promise) override {
+  void add_promise(Promise<> &&promise) final {
     impl_->add_promise(std::move(promise));
   }
-  Promise<> get_promise() override {
+  Promise<> get_promise() final {
     return impl_->get_promise();
   }
 
-  size_t promise_count() const override {
+  size_t promise_count() const final {
     return impl_->promise_count();
   }
-  void set_ignore_errors(bool ignore_errors) override {
+  void set_ignore_errors(bool ignore_errors) final {
     impl_->set_ignore_errors(ignore_errors);
   }
 
@@ -61,13 +61,13 @@ class MultiPromiseActor final
   explicit MultiPromiseActor(string name) : name_(std::move(name)) {
   }
 
-  void add_promise(Promise<Unit> &&promise) override;
+  void add_promise(Promise<Unit> &&promise) final;
 
-  Promise<Unit> get_promise() override;
+  Promise<Unit> get_promise() final;
 
-  void set_ignore_errors(bool ignore_errors) override;
+  void set_ignore_errors(bool ignore_errors) final;
 
-  size_t promise_count() const override;
+  size_t promise_count() const final;
 
  private:
   void set_result(Result<Unit> &&result);
@@ -79,31 +79,31 @@ class MultiPromiseActor final
   bool ignore_errors_ = false;
   Result<Unit> result_;
 
-  void raw_event(const Event::Raw &event) override;
+  void raw_event(const Event::Raw &event) final;
 
-  void tear_down() override;
+  void tear_down() final;
 
-  void on_start_migrate(int32) override {
+  void on_start_migrate(int32) final {
     UNREACHABLE();
   }
-  void on_finish_migrate() override {
+  void on_finish_migrate() final {
     UNREACHABLE();
   }
 };
 
 class MultiPromiseActorSafe : public MultiPromiseInterface {
  public:
-  void add_promise(Promise<Unit> &&promise) override;
-  Promise<Unit> get_promise() override;
-  void set_ignore_errors(bool ignore_errors) override;
-  size_t promise_count() const override;
+  void add_promise(Promise<Unit> &&promise) final;
+  Promise<Unit> get_promise() final;
+  void set_ignore_errors(bool ignore_errors) final;
+  size_t promise_count() const final;
   explicit MultiPromiseActorSafe(string name) : multi_promise_(td::make_unique<MultiPromiseActor>(std::move(name))) {
   }
   MultiPromiseActorSafe(const MultiPromiseActorSafe &other) = delete;
   MultiPromiseActorSafe &operator=(const MultiPromiseActorSafe &other) = delete;
   MultiPromiseActorSafe(MultiPromiseActorSafe &&other) = delete;
   MultiPromiseActorSafe &operator=(MultiPromiseActorSafe &&other) = delete;
-  ~MultiPromiseActorSafe() override;
+  ~MultiPromiseActorSafe() final;
 
  private:
   unique_ptr<MultiPromiseActor> multi_promise_;

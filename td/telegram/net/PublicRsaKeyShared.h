@@ -34,8 +34,8 @@ class PublicRsaKeyShared : public PublicRsaKeyInterface {
   };
 
   void add_rsa(RSA rsa);
-  Result<std::pair<RSA, int64>> get_rsa(const vector<int64> &fingerprints) override;
-  void drop_keys() override;
+  Result<std::pair<RSA, int64>> get_rsa(const vector<int64> &fingerprints) final;
+  void drop_keys() final;
   bool has_keys();
 
   void add_listener(unique_ptr<Listener> listener);

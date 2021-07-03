@@ -38,22 +38,22 @@ ActorOwn<> create_ping_actor(string debug, unique_ptr<RawConnection> raw_connect
     Promise<unique_ptr<RawConnection>> promise_;
     ActorShared<> parent_;
 
-    void start_up() override {
+    void start_up() final {
       Scheduler::subscribe(ping_connection_->get_poll_info().extract_pollable_fd(this));
       set_timeout_in(10);
       yield();
     }
 
-    void hangup() override {
+    void hangup() final {
       finish(Status::Error("Canceled"));
       stop();
     }
 
-    void tear_down() override {
+    void tear_down() final {
       finish(Status::OK());
     }
 
-    void loop() override {
+    void loop() final {
       auto status = ping_connection_->flush();
       if (status.is_error()) {
         finish(std::move(status));
@@ -65,7 +65,7 @@ ActorOwn<> create_ping_actor(string debug, unique_ptr<RawConnection> raw_connect
       }
     }
 
-    void timeout_expired() override {
+    void timeout_expired() final {
       finish(Status::Error("Pong timeout expired"));
       stop();
     }

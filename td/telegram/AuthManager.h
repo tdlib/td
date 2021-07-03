@@ -238,14 +238,14 @@ class AuthManager : public NetActor {
   void on_get_login_token(tl_object_ptr<telegram_api::auth_LoginToken> login_token);
   void on_get_authorization(tl_object_ptr<telegram_api::auth_Authorization> auth_ptr);
 
-  void on_result(NetQueryPtr result) override;
+  void on_result(NetQueryPtr result) final;
 
   void update_state(State new_state, bool force = false, bool should_save_state = true);
   tl_object_ptr<td_api::AuthorizationState> get_authorization_state_object(State authorization_state) const;
   void send_ok(uint64 query_id);
 
-  void start_up() override;
-  void tear_down() override;
+  void start_up() final;
+  void tear_down() final;
 };
 
 }  // namespace td

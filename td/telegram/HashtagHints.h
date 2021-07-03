@@ -35,7 +35,7 @@ class HashtagHints : public Actor {
 
   string get_key() const;
 
-  void start_up() override;
+  void start_up() final;
 
   void hashtag_used_impl(const string &hashtag);
   void from_db(Result<string> data, bool dummy);

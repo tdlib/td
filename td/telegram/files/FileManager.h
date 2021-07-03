@@ -406,7 +406,7 @@ class FileManager : public FileLoadManager::Callback {
   FileManager &operator=(const FileManager &other) = delete;
   FileManager(FileManager &&other) = delete;
   FileManager &operator=(FileManager &&other) = delete;
-  ~FileManager() override;
+  ~FileManager() final;
 
   static bool are_modification_times_equal(int64 old_mtime, int64 new_mtime);
 
@@ -636,16 +636,16 @@ class FileManager : public FileLoadManager::Callback {
   void run_download(FileNodePtr node, bool force_update_priority);
   void run_generate(FileNodePtr node);
 
-  void on_start_download(QueryId query_id) override;
+  void on_start_download(QueryId query_id) final;
   void on_partial_download(QueryId query_id, const PartialLocalFileLocation &partial_local, int64 ready_size,
-                           int64 size) override;
-  void on_hash(QueryId query_id, string hash) override;
-  void on_partial_upload(QueryId query_id, const PartialRemoteFileLocation &partial_remote, int64 ready_size) override;
-  void on_download_ok(QueryId query_id, const FullLocalFileLocation &local, int64 size, bool is_new) override;
+                           int64 size) final;
+  void on_hash(QueryId query_id, string hash) final;
+  void on_partial_upload(QueryId query_id, const PartialRemoteFileLocation &partial_remote, int64 ready_size) final;
+  void on_download_ok(QueryId query_id, const FullLocalFileLocation &local, int64 size, bool is_new) final;
   void on_upload_ok(QueryId query_id, FileType file_type, const PartialRemoteFileLocation &partial_remote,
-                    int64 size) override;
-  void on_upload_full_ok(QueryId query_id, const FullRemoteFileLocation &remote) override;
-  void on_error(QueryId query_id, Status status) override;
+                    int64 size) final;
+  void on_upload_full_ok(QueryId query_id, const FullRemoteFileLocation &remote) final;
+  void on_error(QueryId query_id, Status status) final;
 
   void on_error_impl(FileNodePtr node, Query::Type type, bool was_active, Status status);
 
@@ -658,8 +658,8 @@ class FileManager : public FileLoadManager::Callback {
 
   std::unordered_set<FileId, FileIdHash> get_main_file_ids(const vector<FileId> &file_ids);
 
-  void hangup() override;
-  void tear_down() override;
+  void hangup() final;
+  void tear_down() final;
 
   friend class FileNodePtr;
 };

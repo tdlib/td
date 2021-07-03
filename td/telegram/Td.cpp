@@ -183,7 +183,7 @@ class GetPromoDataQuery : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::help_getPromoData()));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::help_getPromoData>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -192,7 +192,7 @@ class GetPromoDataQuery : public Td::ResultHandler {
     promise_.set_value(result_ptr.move_as_ok());
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -208,7 +208,7 @@ class GetRecentMeUrlsQuery : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::help_getRecentMeUrls(referrer)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::help_getRecentMeUrls>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -291,7 +291,7 @@ class GetRecentMeUrlsQuery : public Td::ResultHandler {
     promise_.set_value(std::move(results));
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -309,7 +309,7 @@ class SendCustomRequestQuery : public Td::ResultHandler {
         telegram_api::bots_sendCustomRequest(method, make_tl_object<telegram_api::dataJSON>(parameters))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::bots_sendCustomRequest>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -319,7 +319,7 @@ class SendCustomRequestQuery : public Td::ResultHandler {
     promise_.set_value(td_api::make_object<td_api::customRequestResult>(result->data_));
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -336,7 +336,7 @@ class AnswerCustomQueryQuery : public Td::ResultHandler {
         telegram_api::bots_answerWebhookJSONQuery(custom_query_id, make_tl_object<telegram_api::dataJSON>(data))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::bots_answerWebhookJSONQuery>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -349,7 +349,7 @@ class AnswerCustomQueryQuery : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -361,7 +361,7 @@ class SetBotUpdatesStatusQuery : public Td::ResultHandler {
         G()->net_query_creator().create(telegram_api::help_setBotUpdatesStatus(pending_update_count, error_message)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::help_setBotUpdatesStatus>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -371,7 +371,7 @@ class SetBotUpdatesStatusQuery : public Td::ResultHandler {
     LOG_IF(WARNING, !result) << "Set bot updates status has failed";
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     if (!G()->is_expected_error(status)) {
       LOG(WARNING) << "Receive error for SetBotUpdatesStatusQuery: " << status;
     }
@@ -391,7 +391,7 @@ class UpdateStatusQuery : public Td::ResultHandler {
     return result;
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::account_updateStatus>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -402,7 +402,7 @@ class UpdateStatusQuery : public Td::ResultHandler {
     td->on_update_status_success(!is_offline_);
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     if (status.code() != NetQuery::Canceled && !G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for UpdateStatusQuery: " << status;
     }
@@ -421,7 +421,7 @@ class GetInviteTextQuery : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::help_getInviteText()));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::help_getInviteText>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -431,7 +431,7 @@ class GetInviteTextQuery : public Td::ResultHandler {
     promise_.set_value(std::move(result->message_));
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -460,7 +460,7 @@ class GetDeepLinkInfoQuery : public Td::ResultHandler {
     send_query(G()->net_query_creator().create_unauth(telegram_api::help_getDeepLinkInfo(link.str())));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::help_getDeepLinkInfo>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -492,7 +492,7 @@ class GetDeepLinkInfoQuery : public Td::ResultHandler {
     }
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -512,7 +512,7 @@ class SaveAppLogQuery : public Td::ResultHandler {
     send_query(G()->net_query_creator().create_unauth(telegram_api::help_saveAppLog(std::move(input_app_events))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::help_saveAppLog>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -523,7 +523,7 @@ class SaveAppLogQuery : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -537,7 +537,7 @@ class TestQuery : public Td::ResultHandler {
     send_query(G()->net_query_creator().create_unauth(telegram_api::help_getConfig()));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::help_getConfig>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, Status::Error(500, "Fetch failed"));
@@ -547,7 +547,7 @@ class TestQuery : public Td::ResultHandler {
     send_closure(G()->td(), &Td::send_result, request_id_, make_tl_object<td_api::ok>());
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     status.ignore();
     LOG(ERROR) << "Test query failed: " << status;
   }
@@ -567,7 +567,7 @@ class TestProxyRequest : public RequestOnceActor {
     return mtproto::TransportType{mtproto::TransportType::ObfuscatedTcp, dc_id_, proxy_.secret()};
   }
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     set_timeout_in(timeout_);
 
     promise_ = std::move(promise);
@@ -606,10 +606,10 @@ class TestProxyRequest : public RequestOnceActor {
     }
     class HandshakeContext : public mtproto::AuthKeyHandshakeContext {
      public:
-      DhCallback *get_dh_callback() override {
+      DhCallback *get_dh_callback() final {
         return nullptr;
       }
-      PublicRsaKeyInterface *get_public_rsa_key_interface() override {
+      PublicRsaKeyInterface *get_public_rsa_key_interface() final {
         return &public_rsa_key;
       }
 
@@ -650,7 +650,7 @@ class TestProxyRequest : public RequestOnceActor {
     promise_.set_value(Unit());
   }
 
-  void timeout_expired() override {
+  void timeout_expired() final {
     send_error(Status::Error(400, "Timeout expired"));
     stop();
   }
@@ -667,11 +667,11 @@ class TestProxyRequest : public RequestOnceActor {
 class GetMeRequest : public RequestActor<> {
   UserId user_id_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     user_id_ = td->contacts_manager_->get_me(std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->contacts_manager_->get_user_object(user_id_));
   }
 
@@ -683,11 +683,11 @@ class GetMeRequest : public RequestActor<> {
 class GetUserRequest : public RequestActor<> {
   UserId user_id_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     td->contacts_manager_->get_user(user_id_, get_tries(), std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->contacts_manager_->get_user_object(user_id_));
   }
 
@@ -701,11 +701,11 @@ class GetUserRequest : public RequestActor<> {
 class GetUserFullInfoRequest : public RequestActor<> {
   UserId user_id_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     td->contacts_manager_->load_user_full(user_id_, get_tries() < 2, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->contacts_manager_->get_user_full_info_object(user_id_));
   }
 
@@ -718,11 +718,11 @@ class GetUserFullInfoRequest : public RequestActor<> {
 class GetGroupRequest : public RequestActor<> {
   ChatId chat_id_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     td->contacts_manager_->get_chat(chat_id_, get_tries(), std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->contacts_manager_->get_basic_group_object(chat_id_));
   }
 
@@ -736,11 +736,11 @@ class GetGroupRequest : public RequestActor<> {
 class GetGroupFullInfoRequest : public RequestActor<> {
   ChatId chat_id_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     td->contacts_manager_->load_chat_full(chat_id_, get_tries() < 2, std::move(promise), "getBasicGroupFullInfo");
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->contacts_manager_->get_basic_group_full_info_object(chat_id_));
   }
 
@@ -753,11 +753,11 @@ class GetGroupFullInfoRequest : public RequestActor<> {
 class GetSupergroupRequest : public RequestActor<> {
   ChannelId channel_id_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     td->contacts_manager_->get_channel(channel_id_, get_tries(), std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->contacts_manager_->get_supergroup_object(channel_id_));
   }
 
@@ -771,11 +771,11 @@ class GetSupergroupRequest : public RequestActor<> {
 class GetSupergroupFullInfoRequest : public RequestActor<> {
   ChannelId channel_id_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     td->contacts_manager_->load_channel_full(channel_id_, get_tries() < 2, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->contacts_manager_->get_supergroup_full_info_object(channel_id_));
   }
 
@@ -788,11 +788,11 @@ class GetSupergroupFullInfoRequest : public RequestActor<> {
 class GetSecretChatRequest : public RequestActor<> {
   SecretChatId secret_chat_id_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     td->contacts_manager_->get_secret_chat(secret_chat_id_, get_tries() < 2, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->contacts_manager_->get_secret_chat_object(secret_chat_id_));
   }
 
@@ -807,11 +807,11 @@ class GetChatRequest : public RequestActor<> {
 
   bool dialog_found_ = false;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     dialog_found_ = td->messages_manager_->load_dialog(dialog_id_, get_tries(), std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     if (!dialog_found_) {
       send_error(Status::Error(400, "Chat is not accessible"));
     } else {
@@ -829,11 +829,11 @@ class GetChatRequest : public RequestActor<> {
 class GetChatFilterRequest : public RequestActor<> {
   DialogFilterId dialog_filter_id_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     td->messages_manager_->load_dialog_filter(dialog_filter_id_, get_tries() < 2, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->messages_manager_->get_chat_filter_object(dialog_filter_id_));
   }
 
@@ -851,12 +851,12 @@ class GetChatsRequest : public RequestActor<> {
 
   std::pair<int32, vector<DialogId>> dialog_ids_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     dialog_ids_ =
         td->messages_manager_->get_dialogs(dialog_list_id_, offset_, limit_, get_tries() < 2, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(MessagesManager::get_chats_object(dialog_ids_));
   }
 
@@ -877,11 +877,11 @@ class SearchPublicChatRequest : public RequestActor<> {
 
   DialogId dialog_id_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     dialog_id_ = td->messages_manager_->search_public_dialog(username_, get_tries() < 3, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->messages_manager_->get_chat_object(dialog_id_));
   }
 
@@ -897,11 +897,11 @@ class SearchPublicChatsRequest : public RequestActor<> {
 
   vector<DialogId> dialog_ids_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     dialog_ids_ = td->messages_manager_->search_public_dialogs(query_, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(MessagesManager::get_chats_object(-1, dialog_ids_));
   }
 
@@ -917,11 +917,11 @@ class SearchChatsRequest : public RequestActor<> {
 
   std::pair<int32, vector<DialogId>> dialog_ids_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     dialog_ids_ = td->messages_manager_->search_dialogs(query_, limit_, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(MessagesManager::get_chats_object(dialog_ids_));
   }
 
@@ -937,11 +937,11 @@ class SearchChatsOnServerRequest : public RequestActor<> {
 
   vector<DialogId> dialog_ids_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     dialog_ids_ = td->messages_manager_->search_dialogs_on_server(query_, limit_, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(MessagesManager::get_chats_object(-1, dialog_ids_));
   }
 
@@ -958,12 +958,12 @@ class GetGroupsInCommonRequest : public RequestActor<> {
 
   std::pair<int32, vector<DialogId>> dialog_ids_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     dialog_ids_ = td->messages_manager_->get_common_dialogs(user_id_, offset_dialog_id_, limit_, get_tries() < 2,
                                                             std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(MessagesManager::get_chats_object(dialog_ids_));
   }
 
@@ -977,11 +977,11 @@ class GetCreatedPublicChatsRequest : public RequestActor<> {
   vector<DialogId> dialog_ids_;
   PublicDialogType type_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     dialog_ids_ = td->contacts_manager_->get_created_public_dialogs(type_, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(MessagesManager::get_chats_object(-1, dialog_ids_));
   }
 
@@ -994,11 +994,11 @@ class GetCreatedPublicChatsRequest : public RequestActor<> {
 class GetSuitableDiscussionChatsRequest : public RequestActor<> {
   vector<DialogId> dialog_ids_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     dialog_ids_ = td->contacts_manager_->get_dialogs_for_discussion(std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(MessagesManager::get_chats_object(-1, dialog_ids_));
   }
 
@@ -1010,11 +1010,11 @@ class GetSuitableDiscussionChatsRequest : public RequestActor<> {
 class GetInactiveSupergroupChatsRequest : public RequestActor<> {
   vector<DialogId> dialog_ids_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     dialog_ids_ = td->contacts_manager_->get_inactive_channels(std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(MessagesManager::get_chats_object(-1, dialog_ids_));
   }
 
@@ -1026,11 +1026,11 @@ class GetInactiveSupergroupChatsRequest : public RequestActor<> {
 class GetMessageRequest : public RequestOnceActor {
   FullMessageId full_message_id_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     td->messages_manager_->get_message(full_message_id_, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->messages_manager_->get_message_object(full_message_id_));
   }
 
@@ -1046,12 +1046,12 @@ class GetRepliedMessageRequest : public RequestOnceActor {
 
   FullMessageId replied_message_id_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     replied_message_id_ =
         td->messages_manager_->get_replied_message(dialog_id_, message_id_, get_tries() < 3, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->messages_manager_->get_message_object(replied_message_id_));
   }
 
@@ -1068,7 +1068,7 @@ class GetMessageThreadRequest : public RequestActor<MessagesManager::MessageThre
 
   MessagesManager::MessageThreadInfo message_thread_info_;
 
-  void do_run(Promise<MessagesManager::MessageThreadInfo> &&promise) override {
+  void do_run(Promise<MessagesManager::MessageThreadInfo> &&promise) final {
     if (get_tries() < 2) {
       promise.set_value(std::move(message_thread_info_));
       return;
@@ -1076,11 +1076,11 @@ class GetMessageThreadRequest : public RequestActor<MessagesManager::MessageThre
     td->messages_manager_->get_message_thread(dialog_id_, message_id_, std::move(promise));
   }
 
-  void do_set_result(MessagesManager::MessageThreadInfo &&result) override {
+  void do_set_result(MessagesManager::MessageThreadInfo &&result) final {
     message_thread_info_ = std::move(result);
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->messages_manager_->get_message_thread_info_object(message_thread_info_));
   }
 
@@ -1095,11 +1095,11 @@ class GetChatPinnedMessageRequest : public RequestOnceActor {
 
   MessageId pinned_message_id_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     pinned_message_id_ = td->messages_manager_->get_dialog_pinned_message(dialog_id_, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->messages_manager_->get_message_object({dialog_id_, pinned_message_id_}));
   }
 
@@ -1115,11 +1115,11 @@ class GetCallbackQueryMessageRequest : public RequestOnceActor {
   MessageId message_id_;
   int64 callback_query_id_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     td->messages_manager_->get_callback_query_message(dialog_id_, message_id_, callback_query_id_, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->messages_manager_->get_message_object({dialog_id_, message_id_}));
   }
 
@@ -1137,11 +1137,11 @@ class GetMessagesRequest : public RequestOnceActor {
   DialogId dialog_id_;
   vector<MessageId> message_ids_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     td->messages_manager_->get_messages(dialog_id_, message_ids_, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->messages_manager_->get_messages_object(-1, dialog_id_, message_ids_, false));
   }
 
@@ -1159,11 +1159,11 @@ class GetMessageEmbeddingCodeRequest : public RequestActor<> {
 
   string html_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     html_ = td->messages_manager_->get_message_embedding_code(full_message_id_, for_group_, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(make_tl_object<td_api::text>(html_));
   }
 
@@ -1181,7 +1181,7 @@ class GetMessageLinkInfoRequest : public RequestActor<MessageLinkInfo> {
 
   MessageLinkInfo message_link_info_;
 
-  void do_run(Promise<MessageLinkInfo> &&promise) override {
+  void do_run(Promise<MessageLinkInfo> &&promise) final {
     if (get_tries() < 2) {
       promise.set_value(std::move(message_link_info_));
       return;
@@ -1189,11 +1189,11 @@ class GetMessageLinkInfoRequest : public RequestActor<MessageLinkInfo> {
     td->messages_manager_->get_message_link_info(url_, std::move(promise));
   }
 
-  void do_set_result(MessageLinkInfo &&result) override {
+  void do_set_result(MessageLinkInfo &&result) final {
     message_link_info_ = std::move(result);
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->messages_manager_->get_message_link_info_object(message_link_info_));
   }
 
@@ -1208,12 +1208,12 @@ class EditMessageTextRequest : public RequestOnceActor {
   tl_object_ptr<td_api::ReplyMarkup> reply_markup_;
   tl_object_ptr<td_api::InputMessageContent> input_message_content_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     td->messages_manager_->edit_message_text(full_message_id_, std::move(reply_markup_),
                                              std::move(input_message_content_), std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->messages_manager_->get_message_object(full_message_id_));
   }
 
@@ -1235,12 +1235,12 @@ class EditMessageLiveLocationRequest : public RequestOnceActor {
   int32 heading_;
   int32 proximity_alert_radius_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     td->messages_manager_->edit_message_live_location(full_message_id_, std::move(reply_markup_), std::move(location_),
                                                       heading_, proximity_alert_radius_, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->messages_manager_->get_message_object(full_message_id_));
   }
 
@@ -1262,12 +1262,12 @@ class EditMessageMediaRequest : public RequestOnceActor {
   tl_object_ptr<td_api::ReplyMarkup> reply_markup_;
   tl_object_ptr<td_api::InputMessageContent> input_message_content_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     td->messages_manager_->edit_message_media(full_message_id_, std::move(reply_markup_),
                                               std::move(input_message_content_), std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->messages_manager_->get_message_object(full_message_id_));
   }
 
@@ -1287,12 +1287,12 @@ class EditMessageCaptionRequest : public RequestOnceActor {
   tl_object_ptr<td_api::ReplyMarkup> reply_markup_;
   tl_object_ptr<td_api::formattedText> caption_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     td->messages_manager_->edit_message_caption(full_message_id_, std::move(reply_markup_), std::move(caption_),
                                                 std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->messages_manager_->get_message_object(full_message_id_));
   }
 
@@ -1311,11 +1311,11 @@ class EditMessageReplyMarkupRequest : public RequestOnceActor {
   FullMessageId full_message_id_;
   tl_object_ptr<td_api::ReplyMarkup> reply_markup_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     td->messages_manager_->edit_message_reply_markup(full_message_id_, std::move(reply_markup_), std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->messages_manager_->get_message_object(full_message_id_));
   }
 
@@ -1335,12 +1335,12 @@ class SetGameScoreRequest : public RequestOnceActor {
   int32 score_;
   bool force_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     td->messages_manager_->set_game_score(full_message_id_, edit_message_, user_id_, score_, force_,
                                           std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->messages_manager_->get_message_object(full_message_id_));
   }
 
@@ -1362,11 +1362,11 @@ class GetGameHighScoresRequest : public RequestOnceActor {
 
   int64 random_id_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     random_id_ = td->messages_manager_->get_game_high_scores(full_message_id_, user_id_, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     CHECK(random_id_ != 0);
     send_result(td->messages_manager_->get_game_high_scores_object(random_id_));
   }
@@ -1386,11 +1386,11 @@ class GetInlineGameHighScoresRequest : public RequestOnceActor {
 
   int64 random_id_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     random_id_ = td->messages_manager_->get_inline_game_high_scores(inline_message_id_, user_id_, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     CHECK(random_id_ != 0);
     send_result(td->messages_manager_->get_game_high_scores_object(random_id_));
   }
@@ -1413,12 +1413,12 @@ class GetChatHistoryRequest : public RequestActor<> {
 
   tl_object_ptr<td_api::messages> messages_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     messages_ = td->messages_manager_->get_dialog_history(dialog_id_, from_message_id_, offset_, limit_,
                                                           get_tries() - 1, only_local_, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(std::move(messages_));
   }
 
@@ -1447,12 +1447,12 @@ class GetMessageThreadHistoryRequest : public RequestActor<> {
 
   std::pair<DialogId, vector<MessageId>> messages_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     messages_ = td->messages_manager_->get_message_thread_history(dialog_id_, message_id_, from_message_id_, offset_,
                                                                   limit_, random_id_, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->messages_manager_->get_messages_object(-1, messages_.first, messages_.second, true));
   }
 
@@ -1483,17 +1483,17 @@ class SearchChatMessagesRequest : public RequestActor<> {
 
   std::pair<int32, vector<MessageId>> messages_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     messages_ = td->messages_manager_->search_dialog_messages(dialog_id_, query_, sender_, from_message_id_, offset_,
                                                               limit_, filter_, top_thread_message_id_, random_id_,
                                                               get_tries() == 3, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->messages_manager_->get_messages_object(messages_.first, dialog_id_, messages_.second, true));
   }
 
-  void do_send_error(Status &&status) override {
+  void do_send_error(Status &&status) final {
     if (status.message() == "SEARCH_QUERY_EMPTY") {
       messages_.first = 0;
       messages_.second.clear();
@@ -1530,12 +1530,12 @@ class SearchSecretMessagesRequest : public RequestActor<> {
 
   MessagesManager::FoundMessages found_messages_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     found_messages_ = td->messages_manager_->offline_search_messages(dialog_id_, query_, offset_, limit_, filter_,
                                                                      random_id_, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->messages_manager_->get_found_messages_object(found_messages_));
   }
 
@@ -1567,17 +1567,17 @@ class SearchMessagesRequest : public RequestActor<> {
 
   std::pair<int32, vector<FullMessageId>> messages_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     messages_ = td->messages_manager_->search_messages(folder_id_, ignore_folder_id_, query_, offset_date_,
                                                        offset_dialog_id_, offset_message_id_, limit_, filter_,
                                                        min_date_, max_date_, random_id_, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->messages_manager_->get_messages_object(messages_.first, messages_.second, true));
   }
 
-  void do_send_error(Status &&status) override {
+  void do_send_error(Status &&status) final {
     if (status.message() == "SEARCH_QUERY_EMPTY") {
       messages_.first = 0;
       messages_.second.clear();
@@ -1613,12 +1613,12 @@ class SearchCallMessagesRequest : public RequestActor<> {
 
   std::pair<int32, vector<FullMessageId>> messages_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     messages_ = td->messages_manager_->search_call_messages(from_message_id_, limit_, only_missed_, random_id_,
                                                             get_tries() == 3, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->messages_manager_->get_messages_object(messages_.first, messages_.second, true));
   }
 
@@ -1640,12 +1640,12 @@ class SearchChatRecentLocationMessagesRequest : public RequestActor<> {
 
   std::pair<int32, vector<MessageId>> messages_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     messages_ = td->messages_manager_->search_dialog_recent_location_messages(dialog_id_, limit_, random_id_,
                                                                               std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->messages_manager_->get_messages_object(messages_.first, dialog_id_, messages_.second, true));
   }
 
@@ -1658,11 +1658,11 @@ class SearchChatRecentLocationMessagesRequest : public RequestActor<> {
 class GetActiveLiveLocationMessagesRequest : public RequestActor<> {
   vector<FullMessageId> full_message_ids_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     full_message_ids_ = td->messages_manager_->get_active_live_location_messages(std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->messages_manager_->get_messages_object(-1, full_message_ids_, true));
   }
 
@@ -1678,11 +1678,11 @@ class GetChatMessageByDateRequest : public RequestOnceActor {
 
   int64 random_id_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     random_id_ = td->messages_manager_->get_dialog_message_by_date(dialog_id_, date_, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->messages_manager_->get_dialog_message_by_date_object(random_id_));
   }
 
@@ -1700,12 +1700,12 @@ class GetChatMessageCountRequest : public RequestActor<> {
 
   int32 result_ = 0;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     result_ = td->messages_manager_->get_dialog_message_count(dialog_id_, filter_, return_local_, random_id_,
                                                               std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td_api::make_object<td_api::count>(result_));
   }
 
@@ -1725,12 +1725,12 @@ class GetChatScheduledMessagesRequest : public RequestActor<> {
 
   vector<MessageId> message_ids_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     message_ids_ =
         td->messages_manager_->get_dialog_scheduled_messages(dialog_id_, get_tries() < 2, false, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->messages_manager_->get_messages_object(-1, dialog_id_, message_ids_, true));
   }
 
@@ -1749,12 +1749,12 @@ class GetMessagePublicForwardsRequest : public RequestActor<> {
 
   MessagesManager::FoundMessages messages_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     messages_ = td->messages_manager_->get_message_public_forwards(full_message_id_, offset_, limit_, random_id_,
                                                                    std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->messages_manager_->get_found_messages_object(messages_));
   }
 
@@ -1774,11 +1774,11 @@ class GetWebPagePreviewRequest : public RequestOnceActor {
 
   int64 request_id_ = 0;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     request_id_ = td->web_pages_manager_->get_web_page_preview(std::move(text_), std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->web_pages_manager_->get_web_page_preview_result(request_id_));
   }
 
@@ -1794,12 +1794,12 @@ class GetWebPageInstantViewRequest : public RequestActor<> {
 
   WebPageId web_page_id_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     web_page_id_ =
         td->web_pages_manager_->get_web_page_instant_view(url_, force_full_, get_tries() < 3, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->web_pages_manager_->get_web_page_instant_view_object(web_page_id_));
   }
 
@@ -1814,11 +1814,11 @@ class CreateChatRequest : public RequestActor<> {
   DialogId dialog_id_;
   bool force_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     td->messages_manager_->create_dialog(dialog_id_, force_, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->messages_manager_->get_chat_object(dialog_id_));
   }
 
@@ -1835,11 +1835,11 @@ class CreateNewGroupChatRequest : public RequestActor<> {
 
   DialogId dialog_id_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     dialog_id_ = td->messages_manager_->create_new_group_chat(user_ids_, title_, random_id_, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     CHECK(dialog_id_.is_valid());
     send_result(td->messages_manager_->get_chat_object(dialog_id_));
   }
@@ -1857,7 +1857,7 @@ class CreateNewSecretChatRequest : public RequestActor<SecretChatId> {
   UserId user_id_;
   SecretChatId secret_chat_id_;
 
-  void do_run(Promise<SecretChatId> &&promise) override {
+  void do_run(Promise<SecretChatId> &&promise) final {
     if (get_tries() < 2) {
       promise.set_value(std::move(secret_chat_id_));
       return;
@@ -1865,12 +1865,12 @@ class CreateNewSecretChatRequest : public RequestActor<SecretChatId> {
     td->messages_manager_->create_new_secret_chat(user_id_, std::move(promise));
   }
 
-  void do_set_result(SecretChatId &&result) override {
+  void do_set_result(SecretChatId &&result) final {
     secret_chat_id_ = result;
     LOG(INFO) << "New " << secret_chat_id_ << " created";
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     CHECK(secret_chat_id_.is_valid());
     // SecretChatActor will send this update by itself
     // But since the update may still be on its way, we will update essential fields here.
@@ -1898,12 +1898,12 @@ class CreateNewSupergroupChatRequest : public RequestActor<> {
 
   DialogId dialog_id_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     dialog_id_ = td->messages_manager_->create_new_channel_chat(title_, is_megagroup_, description_, location_,
                                                                 for_import_, random_id_, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     CHECK(dialog_id_.is_valid());
     send_result(td->messages_manager_->get_chat_object(dialog_id_));
   }
@@ -1928,11 +1928,11 @@ class UpgradeGroupChatToSupergroupChatRequest : public RequestActor<> {
 
   DialogId result_dialog_id_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     result_dialog_id_ = td->messages_manager_->migrate_dialog_to_megagroup(dialog_id_, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     CHECK(result_dialog_id_.is_valid());
     send_result(td->messages_manager_->get_chat_object(result_dialog_id_));
   }
@@ -1950,12 +1950,12 @@ class GetChatMemberRequest : public RequestActor<> {
 
   DialogParticipant dialog_participant_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     dialog_participant_ = td->contacts_manager_->get_dialog_participant(dialog_id_, participant_dialog_id_, random_id_,
                                                                         get_tries() < 3, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     bool is_user = participant_dialog_id_.get_type() == DialogType::User;
     if ((is_user && !td->contacts_manager_->have_user(participant_dialog_id_.get_user_id())) ||
         (!is_user && !td->messages_manager_->have_dialog(participant_dialog_id_))) {
@@ -1979,11 +1979,11 @@ class GetChatAdministratorsRequest : public RequestActor<> {
 
   vector<DialogAdministrator> administrators_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     administrators_ = td->contacts_manager_->get_dialog_administrators(dialog_id_, get_tries(), std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     auto administrator_objects = transform(
         administrators_, [contacts_manager = td->contacts_manager_.get()](const DialogAdministrator &administrator) {
           return administrator.get_chat_administrator_object(contacts_manager);
@@ -2001,11 +2001,11 @@ class GetChatAdministratorsRequest : public RequestActor<> {
 class CheckChatInviteLinkRequest : public RequestActor<> {
   string invite_link_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     td->contacts_manager_->check_dialog_invite_link(invite_link_, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     auto result = td->contacts_manager_->get_chat_invite_link_info_object(invite_link_);
     CHECK(result != nullptr);
     send_result(std::move(result));
@@ -2022,7 +2022,7 @@ class JoinChatByInviteLinkRequest : public RequestActor<DialogId> {
 
   DialogId dialog_id_;
 
-  void do_run(Promise<DialogId> &&promise) override {
+  void do_run(Promise<DialogId> &&promise) final {
     if (get_tries() < 2) {
       promise.set_value(std::move(dialog_id_));
       return;
@@ -2030,11 +2030,11 @@ class JoinChatByInviteLinkRequest : public RequestActor<DialogId> {
     td->contacts_manager_->import_dialog_invite_link(invite_link_, std::move(promise));
   }
 
-  void do_set_result(DialogId &&result) override {
+  void do_set_result(DialogId &&result) final {
     dialog_id_ = result;
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     CHECK(dialog_id_.is_valid());
     td->messages_manager_->force_create_dialog(dialog_id_, "join chat by invite link");
     send_result(td->messages_manager_->get_chat_object(dialog_id_));
@@ -2056,12 +2056,12 @@ class GetChatEventLogRequest : public RequestOnceActor {
 
   int64 random_id_ = 0;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     random_id_ = td->messages_manager_->get_dialog_event_log(dialog_id_, query_, from_event_id_, limit_, filters_,
                                                              user_ids_, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     CHECK(random_id_ != 0);
     send_result(td->messages_manager_->get_chat_events_object(random_id_));
   }
@@ -2086,11 +2086,11 @@ class GetBlockedMessageSendersRequest : public RequestActor<> {
 
   std::pair<int32, vector<DialogId>> message_senders_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     message_senders_ = td->messages_manager_->get_blocked_dialogs(offset_, limit_, random_id_, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     auto senders =
         transform(message_senders_.second, [messages_manager = td->messages_manager_.get()](DialogId dialog_id) {
           return messages_manager->get_message_sender_object(dialog_id);
@@ -2110,11 +2110,11 @@ class ImportContactsRequest : public RequestActor<> {
 
   std::pair<vector<UserId>, vector<int32>> imported_contacts_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     imported_contacts_ = td->contacts_manager_->import_contacts(contacts_, random_id_, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     CHECK(imported_contacts_.first.size() == contacts_.size());
     CHECK(imported_contacts_.second.size() == contacts_.size());
     send_result(make_tl_object<td_api::importedContacts>(transform(imported_contacts_.first,
@@ -2138,11 +2138,11 @@ class SearchContactsRequest : public RequestActor<> {
 
   std::pair<int32, vector<UserId>> user_ids_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     user_ids_ = td->contacts_manager_->search_contacts(query_, limit_, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->contacts_manager_->get_users_object(user_ids_.first, user_ids_.second));
   }
 
@@ -2155,7 +2155,7 @@ class SearchContactsRequest : public RequestActor<> {
 class RemoveContactsRequest : public RequestActor<> {
   vector<UserId> user_ids_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     td->contacts_manager_->remove_contacts(user_ids_, std::move(promise));
   }
 
@@ -2169,11 +2169,11 @@ class RemoveContactsRequest : public RequestActor<> {
 class GetImportedContactCountRequest : public RequestActor<> {
   int32 imported_contact_count_ = 0;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     imported_contact_count_ = td->contacts_manager_->get_imported_contact_count(std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td_api::make_object<td_api::count>(imported_contact_count_));
   }
 
@@ -2189,12 +2189,12 @@ class ChangeImportedContactsRequest : public RequestActor<> {
 
   std::pair<vector<UserId>, vector<int32>> imported_contacts_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     imported_contacts_ =
         td->contacts_manager_->change_imported_contacts(std::move(contacts_), random_id_, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     CHECK(imported_contacts_.first.size() == contacts_size_);
     CHECK(imported_contacts_.second.size() == contacts_size_);
     send_result(make_tl_object<td_api::importedContacts>(transform(imported_contacts_.first,
@@ -2219,11 +2219,11 @@ class ChangeImportedContactsRequest : public RequestActor<> {
 class GetRecentInlineBotsRequest : public RequestActor<> {
   vector<UserId> user_ids_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     user_ids_ = td->inline_queries_manager_->get_recent_inline_bots(std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->contacts_manager_->get_users_object(-1, user_ids_));
   }
 
@@ -2238,11 +2238,11 @@ class GetUserProfilePhotosRequest : public RequestActor<> {
   int32 limit_;
   std::pair<int32, vector<const Photo *>> photos;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     photos = td->contacts_manager_->get_user_profile_photos(user_id_, offset_, limit_, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     // TODO create function get_user_profile_photos_object
     auto result = transform(photos.second, [file_manager = td->file_manager_.get()](const Photo *photo) {
       CHECK(photo != nullptr);
@@ -2266,12 +2266,12 @@ class GetChatNotificationSettingsExceptionsRequest : public RequestActor<> {
 
   vector<DialogId> dialog_ids_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     dialog_ids_ = td->messages_manager_->get_dialog_notification_settings_exceptions(
         scope_, filter_scope_, compare_sound_, get_tries() < 3, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(MessagesManager::get_chats_object(-1, dialog_ids_));
   }
 
@@ -2291,11 +2291,11 @@ class GetScopeNotificationSettingsRequest : public RequestActor<> {
 
   const ScopeNotificationSettings *notification_settings_ = nullptr;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     notification_settings_ = td->messages_manager_->get_scope_notification_settings(scope_, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     CHECK(notification_settings_ != nullptr);
     send_result(get_scope_notification_settings_object(notification_settings_));
   }
@@ -2312,11 +2312,11 @@ class GetStickersRequest : public RequestActor<> {
 
   vector<FileId> sticker_ids_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     sticker_ids_ = td->stickers_manager_->get_stickers(emoji_, limit_, get_tries() < 2, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->stickers_manager_->get_stickers_object(sticker_ids_));
   }
 
@@ -2333,11 +2333,11 @@ class SearchStickersRequest : public RequestActor<> {
 
   vector<FileId> sticker_ids_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     sticker_ids_ = td->stickers_manager_->search_stickers(emoji_, limit_, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->stickers_manager_->get_stickers_object(sticker_ids_));
   }
 
@@ -2352,11 +2352,11 @@ class GetInstalledStickerSetsRequest : public RequestActor<> {
 
   vector<StickerSetId> sticker_set_ids_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     sticker_set_ids_ = td->stickers_manager_->get_installed_sticker_sets(is_masks_, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->stickers_manager_->get_sticker_sets_object(-1, sticker_set_ids_, 1));
   }
 
@@ -2374,12 +2374,12 @@ class GetArchivedStickerSetsRequest : public RequestActor<> {
   int32 total_count_;
   vector<StickerSetId> sticker_set_ids_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     std::tie(total_count_, sticker_set_ids_) = td->stickers_manager_->get_archived_sticker_sets(
         is_masks_, offset_sticker_set_id_, limit_, get_tries() < 2, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->stickers_manager_->get_sticker_sets_object(total_count_, sticker_set_ids_, 1));
   }
 
@@ -2398,11 +2398,11 @@ class GetTrendingStickerSetsRequest : public RequestActor<> {
   int32 offset_;
   int32 limit_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     sticker_set_ids_ = td->stickers_manager_->get_featured_sticker_sets(offset_, limit_, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->stickers_manager_->get_sticker_sets_object(sticker_set_ids_.first, sticker_set_ids_.second, 5));
   }
 
@@ -2418,11 +2418,11 @@ class GetAttachedStickerSetsRequest : public RequestActor<> {
 
   vector<StickerSetId> sticker_set_ids_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     sticker_set_ids_ = td->stickers_manager_->get_attached_sticker_sets(file_id_, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->stickers_manager_->get_sticker_sets_object(-1, sticker_set_ids_, 5));
   }
 
@@ -2437,11 +2437,11 @@ class GetStickerSetRequest : public RequestActor<> {
 
   StickerSetId sticker_set_id_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     sticker_set_id_ = td->stickers_manager_->get_sticker_set(set_id_, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->stickers_manager_->get_sticker_set_object(sticker_set_id_));
   }
 
@@ -2457,11 +2457,11 @@ class SearchStickerSetRequest : public RequestActor<> {
 
   StickerSetId sticker_set_id_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     sticker_set_id_ = td->stickers_manager_->search_sticker_set(name_, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->stickers_manager_->get_sticker_set_object(sticker_set_id_));
   }
 
@@ -2479,12 +2479,12 @@ class SearchInstalledStickerSetsRequest : public RequestActor<> {
 
   std::pair<int32, vector<StickerSetId>> sticker_set_ids_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     sticker_set_ids_ =
         td->stickers_manager_->search_installed_sticker_sets(is_masks_, query_, limit_, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->stickers_manager_->get_sticker_sets_object(sticker_set_ids_.first, sticker_set_ids_.second, 5));
   }
 
@@ -2499,11 +2499,11 @@ class SearchStickerSetsRequest : public RequestActor<> {
 
   vector<StickerSetId> sticker_set_ids_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     sticker_set_ids_ = td->stickers_manager_->search_sticker_sets(query_, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->stickers_manager_->get_sticker_sets_object(-1, sticker_set_ids_, 5));
   }
 
@@ -2518,7 +2518,7 @@ class ChangeStickerSetRequest : public RequestOnceActor {
   bool is_installed_;
   bool is_archived_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     td->stickers_manager_->change_sticker_set(set_id_, is_installed_, is_archived_, std::move(promise));
   }
 
@@ -2538,11 +2538,11 @@ class UploadStickerFileRequest : public RequestOnceActor {
 
   FileId file_id;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     file_id = td->stickers_manager_->upload_sticker_file(user_id_, std::move(sticker_), std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->file_manager_->get_file_object(file_id));
   }
 
@@ -2561,12 +2561,12 @@ class CreateNewStickerSetRequest : public RequestOnceActor {
   vector<tl_object_ptr<td_api::InputSticker>> stickers_;
   string software_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     td->stickers_manager_->create_new_sticker_set(user_id_, title_, name_, is_masks_, std::move(stickers_),
                                                   std::move(software_), std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     auto set_id = td->stickers_manager_->search_sticker_set(name_, Auto());
     if (!set_id.is_valid()) {
       return send_error(Status::Error(500, "Created sticker set not found"));
@@ -2592,11 +2592,11 @@ class AddStickerToSetRequest : public RequestOnceActor {
   string name_;
   tl_object_ptr<td_api::InputSticker> sticker_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     td->stickers_manager_->add_sticker_to_set(user_id_, name_, std::move(sticker_), std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     auto set_id = td->stickers_manager_->search_sticker_set(name_, Auto());
     if (!set_id.is_valid()) {
       return send_error(Status::Error(500, "Sticker set not found"));
@@ -2619,11 +2619,11 @@ class SetStickerSetThumbnailRequest : public RequestOnceActor {
   string name_;
   tl_object_ptr<td_api::InputFile> thumbnail_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     td->stickers_manager_->set_sticker_set_thumbnail(user_id_, name_, std::move(thumbnail_), std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     auto set_id = td->stickers_manager_->search_sticker_set(name_, Auto());
     if (!set_id.is_valid()) {
       return send_error(Status::Error(500, "Sticker set not found"));
@@ -2646,11 +2646,11 @@ class GetRecentStickersRequest : public RequestActor<> {
 
   vector<FileId> sticker_ids_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     sticker_ids_ = td->stickers_manager_->get_recent_stickers(is_attached_, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->stickers_manager_->get_stickers_object(sticker_ids_));
   }
 
@@ -2664,7 +2664,7 @@ class AddRecentStickerRequest : public RequestActor<> {
   bool is_attached_;
   tl_object_ptr<td_api::InputFile> input_file_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     td->stickers_manager_->add_recent_sticker(is_attached_, input_file_, std::move(promise));
   }
 
@@ -2680,7 +2680,7 @@ class RemoveRecentStickerRequest : public RequestActor<> {
   bool is_attached_;
   tl_object_ptr<td_api::InputFile> input_file_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     td->stickers_manager_->remove_recent_sticker(is_attached_, input_file_, std::move(promise));
   }
 
@@ -2695,7 +2695,7 @@ class RemoveRecentStickerRequest : public RequestActor<> {
 class ClearRecentStickersRequest : public RequestActor<> {
   bool is_attached_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     td->stickers_manager_->clear_recent_stickers(is_attached_, std::move(promise));
   }
 
@@ -2709,11 +2709,11 @@ class ClearRecentStickersRequest : public RequestActor<> {
 class GetFavoriteStickersRequest : public RequestActor<> {
   vector<FileId> sticker_ids_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     sticker_ids_ = td->stickers_manager_->get_favorite_stickers(std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->stickers_manager_->get_stickers_object(sticker_ids_));
   }
 
@@ -2725,7 +2725,7 @@ class GetFavoriteStickersRequest : public RequestActor<> {
 class AddFavoriteStickerRequest : public RequestOnceActor {
   tl_object_ptr<td_api::InputFile> input_file_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     td->stickers_manager_->add_favorite_sticker(input_file_, std::move(promise));
   }
 
@@ -2739,7 +2739,7 @@ class AddFavoriteStickerRequest : public RequestOnceActor {
 class RemoveFavoriteStickerRequest : public RequestOnceActor {
   tl_object_ptr<td_api::InputFile> input_file_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     td->stickers_manager_->remove_favorite_sticker(input_file_, std::move(promise));
   }
 
@@ -2755,11 +2755,11 @@ class GetStickerEmojisRequest : public RequestActor<> {
 
   vector<string> emojis_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     emojis_ = td->stickers_manager_->get_sticker_emojis(input_file_, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td_api::make_object<td_api::emojis>(std::move(emojis_)));
   }
 
@@ -2777,12 +2777,12 @@ class SearchEmojisRequest : public RequestActor<> {
 
   vector<string> emojis_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     emojis_ = td->stickers_manager_->search_emojis(text_, exact_match_, input_language_codes_, get_tries() < 2,
                                                    std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td_api::make_object<td_api::emojis>(std::move(emojis_)));
   }
 
@@ -2802,11 +2802,11 @@ class GetEmojiSuggestionsUrlRequest : public RequestOnceActor {
 
   int64 random_id_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     random_id_ = td->stickers_manager_->get_emoji_suggestions_url(language_code_, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->stickers_manager_->get_emoji_suggestions_url_result(random_id_));
   }
 
@@ -2819,11 +2819,11 @@ class GetEmojiSuggestionsUrlRequest : public RequestOnceActor {
 class GetSavedAnimationsRequest : public RequestActor<> {
   vector<FileId> animation_ids_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     animation_ids_ = td->animations_manager_->get_saved_animations(std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(make_tl_object<td_api::animations>(transform(std::move(animation_ids_), [td = td](FileId animation_id) {
       return td->animations_manager_->get_animation_object(animation_id, "GetSavedAnimationsRequest");
     })));
@@ -2837,7 +2837,7 @@ class GetSavedAnimationsRequest : public RequestActor<> {
 class AddSavedAnimationRequest : public RequestOnceActor {
   tl_object_ptr<td_api::InputFile> input_file_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     td->animations_manager_->add_saved_animation(input_file_, std::move(promise));
   }
 
@@ -2851,7 +2851,7 @@ class AddSavedAnimationRequest : public RequestOnceActor {
 class RemoveSavedAnimationRequest : public RequestOnceActor {
   tl_object_ptr<td_api::InputFile> input_file_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     td->animations_manager_->remove_saved_animation(input_file_, std::move(promise));
   }
 
@@ -2871,12 +2871,12 @@ class GetInlineQueryResultsRequest : public RequestOnceActor {
 
   uint64 query_hash_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     query_hash_ = td->inline_queries_manager_->send_inline_query(bot_user_id_, dialog_id_, user_location_, query_,
                                                                  offset_, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->inline_queries_manager_->get_inline_query_results_object(query_hash_));
   }
 
@@ -2899,16 +2899,16 @@ class GetCallbackQueryAnswerRequest : public RequestOnceActor {
 
   int64 result_id_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     result_id_ =
         td->callback_queries_manager_->send_callback_query(full_message_id_, std::move(payload_), std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->callback_queries_manager_->get_callback_query_answer_object(result_id_));
   }
 
-  void do_send_error(Status &&status) override {
+  void do_send_error(Status &&status) final {
     if (status.code() == 502 && td->messages_manager_->is_message_edited_recently(full_message_id_, 31)) {
       return send_result(make_tl_object<td_api::callbackQueryAnswer>());
     }
@@ -2928,11 +2928,11 @@ class GetCallbackQueryAnswerRequest : public RequestOnceActor {
 class GetSupportUserRequest : public RequestActor<> {
   UserId user_id_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     user_id_ = td->contacts_manager_->get_support_user(std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->contacts_manager_->get_user_object(user_id_));
   }
 
@@ -2944,11 +2944,11 @@ class GetSupportUserRequest : public RequestActor<> {
 class GetBackgroundsRequest : public RequestOnceActor {
   bool for_dark_theme_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     td->background_manager_->get_backgrounds(std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->background_manager_->get_backgrounds_object(for_dark_theme_));
   }
 
@@ -2963,11 +2963,11 @@ class SearchBackgroundRequest : public RequestActor<> {
 
   std::pair<BackgroundId, BackgroundType> background_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     background_ = td->background_manager_->search_background(name_, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->background_manager_->get_background_object(background_.first, false, &background_.second));
   }
 
@@ -2985,12 +2985,12 @@ class SetBackgroundRequest : public RequestActor<> {
 
   BackgroundId background_id_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  void do_run(Promise<Unit> &&promise) final {
     background_id_ = td->background_manager_->set_background(input_background_.get(), background_type_.get(),
                                                              for_dark_theme_, std::move(promise));
   }
 
-  void do_send_result() override {
+  void do_send_result() final {
     send_result(td->background_manager_->get_background_object(background_id_, for_dark_theme_));
   }
 
@@ -4058,39 +4058,39 @@ void Td::close_impl(bool destroy_flag) {
 
 class Td::DownloadFileCallback : public FileManager::DownloadCallback {
  public:
-  void on_progress(FileId file_id) override {
+  void on_progress(FileId file_id) final {
   }
 
-  void on_download_ok(FileId file_id) override {
+  void on_download_ok(FileId file_id) final {
     send_closure(G()->td(), &Td::on_file_download_finished, file_id);
   }
 
-  void on_download_error(FileId file_id, Status error) override {
+  void on_download_error(FileId file_id, Status error) final {
     send_closure(G()->td(), &Td::on_file_download_finished, file_id);
   }
 };
 
 class Td::UploadFileCallback : public FileManager::UploadCallback {
  public:
-  void on_progress(FileId file_id) override {
+  void on_progress(FileId file_id) final {
   }
 
-  void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) override {
+  void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) final {
     // cancel file upload of the file to allow next upload with the same file to succeed
     send_closure(G()->file_manager(), &FileManager::cancel_upload, file_id);
   }
 
-  void on_upload_encrypted_ok(FileId file_id, tl_object_ptr<telegram_api::InputEncryptedFile> input_file) override {
+  void on_upload_encrypted_ok(FileId file_id, tl_object_ptr<telegram_api::InputEncryptedFile> input_file) final {
     // cancel file upload of the file to allow next upload with the same file to succeed
     send_closure(G()->file_manager(), &FileManager::cancel_upload, file_id);
   }
 
-  void on_upload_secure_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file) override {
+  void on_upload_secure_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file) final {
     // cancel file upload of the file to allow next upload with the same file to succeed
     send_closure(G()->file_manager(), &FileManager::cancel_upload, file_id);
   }
 
-  void on_upload_error(FileId file_id, Status error) override {
+  void on_upload_error(FileId file_id, Status error) final {
   }
 };
 
@@ -4250,7 +4250,7 @@ void Td::init_options_and_network() {
    public:
     explicit StateManagerCallback(ActorShared<Td> td) : td_(std::move(td)) {
     }
-    bool on_state(StateManager::State state) override {
+    bool on_state(StateManager::State state) final {
       send_closure(td_, &Td::on_connection_state_changed, state);
       return td_.is_alive();
     }
@@ -4300,10 +4300,10 @@ void Td::init_options_and_network() {
   VLOG(td_init) << "Set ConfigShared callback";
   class ConfigSharedCallback : public ConfigShared::Callback {
    public:
-    void on_option_updated(const string &name, const string &value) const override {
+    void on_option_updated(const string &name, const string &value) const final {
       send_closure(G()->td(), &Td::on_config_option_updated, name);
     }
-    ~ConfigSharedCallback() override {
+    ~ConfigSharedCallback() final {
       LOG(INFO) << "Destroy ConfigSharedCallback";
     }
   };

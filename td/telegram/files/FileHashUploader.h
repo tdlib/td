@@ -35,15 +35,15 @@ class FileHashUploader : public FileLoaderActor {
       : local_(local), size_(size), size_left_(size), callback_(std::move(callback)) {
   }
 
-  void set_resource_manager(ActorShared<ResourceManager> resource_manager) override {
+  void set_resource_manager(ActorShared<ResourceManager> resource_manager) final {
     resource_manager_ = std::move(resource_manager);
     send_closure(resource_manager_, &ResourceManager::update_resources, resource_state_);
   }
 
-  void update_priority(int8 priority) override {
+  void update_priority(int8 priority) final {
     send_closure(resource_manager_, &ResourceManager::update_priority, priority);
   }
-  void update_resources(const ResourceState &other) override {
+  void update_resources(const ResourceState &other) final {
     if (stop_flag_) {
       return;
     }
@@ -66,16 +66,16 @@ class FileHashUploader : public FileLoaderActor {
   bool stop_flag_ = false;
   Sha256State sha256_state_;
 
-  void start_up() override;
+  void start_up() final;
   Status init();
 
-  void loop() override;
+  void loop() final;
 
   Status loop_impl();
 
   Status loop_sha();
 
-  void on_result(NetQueryPtr net_query) override;
+  void on_result(NetQueryPtr net_query) final;
 
   Status on_result_impl(NetQueryPtr net_query);
 };

@@ -46,7 +46,7 @@ class SecretChatEvent : public LogEventBase<SecretChatEvent> {
 template <class ChildT>
 class SecretChatLogEventBase : public SecretChatEvent {
  public:
-  typename SecretChatEvent::Type get_type() const override {
+  typename SecretChatEvent::Type get_type() const final {
     return ChildT::type;
   }
 
@@ -292,7 +292,7 @@ class InboundSecretMessage : public SecretChatLogEventBase<InboundSecretMessage>
     is_checked = true;
   }
 
-  StringBuilder &print(StringBuilder &sb) const override {
+  StringBuilder &print(StringBuilder &sb) const final {
     return sb << "[Logevent InboundSecretMessage " << tag("id", log_event_id()) << tag("chat_id", chat_id)
               << tag("date", date) << tag("auth_key_id", format::as_hex(auth_key_id)) << tag("message_id", message_id)
               << tag("my_in_seq_no", my_in_seq_no) << tag("my_out_seq_no", my_out_seq_no)
@@ -398,7 +398,7 @@ class OutboundSecretMessage : public SecretChatLogEventBase<OutboundSecretMessag
     }
   }
 
-  StringBuilder &print(StringBuilder &sb) const override {
+  StringBuilder &print(StringBuilder &sb) const final {
     return sb << "[Logevent OutboundSecretMessage " << tag("id", log_event_id()) << tag("chat_id", chat_id)
               << tag("is_sent", is_sent) << tag("need_notify_user", need_notify_user)
               << tag("is_rewritable", is_rewritable) << tag("is_external", is_external) << tag("message_id", message_id)
@@ -436,7 +436,7 @@ class CloseSecretChat : public SecretChatLogEventBase<CloseSecretChat> {
     parse(chat_id, parser);
   }
 
-  StringBuilder &print(StringBuilder &sb) const override {
+  StringBuilder &print(StringBuilder &sb) const final {
     return sb << "[Logevent CloseSecretChat " << tag("id", log_event_id()) << tag("chat_id", chat_id)
               << tag("delete_history", delete_history) << tag("is_already_discarded", is_already_discarded) << "]";
   }
@@ -467,7 +467,7 @@ class CreateSecretChat : public SecretChatLogEventBase<CreateSecretChat> {
     parse(user_access_hash, parser);
   }
 
-  StringBuilder &print(StringBuilder &sb) const override {
+  StringBuilder &print(StringBuilder &sb) const final {
     return sb << "[Logevent CreateSecretChat " << tag("id", log_event_id()) << tag("chat_id", random_id) << user_id
               << "]";
   }

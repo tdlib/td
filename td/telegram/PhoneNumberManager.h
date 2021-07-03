@@ -62,8 +62,8 @@ class PhoneNumberManager : public NetActor {
 
   void on_check_code_result(NetQueryPtr &result);
   void on_send_code_result(NetQueryPtr &result);
-  void on_result(NetQueryPtr result) override;
-  void tear_down() override;
+  void on_result(NetQueryPtr result) final;
+  void tear_down() final;
 };
 
 }  // namespace td

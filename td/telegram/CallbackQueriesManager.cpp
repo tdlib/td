@@ -75,7 +75,7 @@ class GetBotCallbackAnswerQuery : public Td::ResultHandler {
     send_query(std::move(net_query));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getBotCallbackAnswer>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -85,7 +85,7 @@ class GetBotCallbackAnswerQuery : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     if (status.message() == "DATA_INVALID") {
       td->messages_manager_->get_message_from_server({dialog_id_, message_id_}, Auto());
     } else if (status.message() == "BOT_RESPONSE_TIMEOUT") {
@@ -109,7 +109,7 @@ class SetBotCallbackAnswerQuery : public Td::ResultHandler {
         flags, false /*ignored*/, callback_query_id, text, url, cache_time)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_setBotCallbackAnswer>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -122,7 +122,7 @@ class SetBotCallbackAnswerQuery : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     promise_.set_error(std::move(status));
   }
 };

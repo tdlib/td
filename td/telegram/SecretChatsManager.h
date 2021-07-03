@@ -75,10 +75,10 @@ class SecretChatsManager : public Actor {
   ActorId<SecretChatActor> create_chat_actor(int32 id);
   ActorId<SecretChatActor> create_chat_actor_impl(int32 id, bool can_be_empty);
 
-  void start_up() override;
-  void hangup() override;
-  void hangup_shared() override;
-  void timeout_expired() override;
+  void start_up() final;
+  void hangup() final;
+  void hangup_shared() final;
+  void timeout_expired() final;
 
   void on_online(bool is_online);
 };

@@ -114,8 +114,8 @@ class TestsRunner : public TestContext {
   State state_;
   unique_ptr<RegressionTester> regression_tester_;
 
-  Slice name() override;
-  Status verify(Slice data) override;
+  Slice name() final;
+  Status verify(Slice data) final;
 };
 
 template <class T>

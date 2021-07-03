@@ -78,7 +78,7 @@ class SetContactSignUpNotificationQuery : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::account_setContactSignUpNotification(is_disabled)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::account_setContactSignUpNotification>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -87,7 +87,7 @@ class SetContactSignUpNotificationQuery : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for set contact sign up notification: " << status;
     }
@@ -106,7 +106,7 @@ class GetContactSignUpNotificationQuery : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::account_getContactSignUpNotification()));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::account_getContactSignUpNotification>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -116,7 +116,7 @@ class GetContactSignUpNotificationQuery : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for get contact sign up notification: " << status;
     }
@@ -292,7 +292,7 @@ void NotificationManager::init() {
    public:
     explicit StateCallback(ActorId<NotificationManager> parent) : parent_(std::move(parent)) {
     }
-    bool on_online(bool is_online) override {
+    bool on_online(bool is_online) final {
       if (is_online) {
         send_closure(parent_, &NotificationManager::flush_all_pending_notifications);
       }

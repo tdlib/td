@@ -207,7 +207,7 @@ class TestPingActor : public Actor {
   Status *result_;
   bool is_inited_ = false;
 
-  void start_up() override {
+  void start_up() final {
     auto r_socket = SocketFd::open(ip_address_);
     if (r_socket.is_error()) {
       LOG(ERROR) << "Failed to open socket: " << r_socket.error();
@@ -225,14 +225,14 @@ class TestPingActor : public Actor {
     set_timeout_in(10);
     yield();
   }
-  void tear_down() override {
+  void tear_down() final {
     if (is_inited_) {
       Scheduler::unsubscribe_before_close(ping_connection_->get_poll_info().get_pollable_fd_ref());
     }
     Scheduler::instance()->finish();
   }
 
-  void loop() override {
+  void loop() final {
     auto status = ping_connection_->flush();
     if (status.is_error()) {
       *result_ = std::move(status);
@@ -244,7 +244,7 @@ class TestPingActor : public Actor {
     }
   }
 
-  void timeout_expired() override {
+  void timeout_expired() final {
     *result_ = Status::Error("Timeout expired");
     stop();
   }
@@ -295,10 +295,10 @@ RegisterTest<Mtproto_ping> mtproto_ping("Mtproto_ping");
 
 class HandshakeContext : public mtproto::AuthKeyHandshakeContext {
  public:
-  DhCallback *get_dh_callback() override {
+  DhCallback *get_dh_callback() final {
     return nullptr;
   }
-  PublicRsaKeyInterface *get_public_rsa_key_interface() override {
+  PublicRsaKeyInterface *get_public_rsa_key_interface() final {
     return &public_rsa_key;
   }
 
@@ -321,13 +321,13 @@ class HandshakeTestActor : public Actor {
   Status status_;
   bool wait_for_result_ = false;
 
-  void tear_down() override {
+  void tear_down() final {
     if (raw_connection_) {
       raw_connection_->close();
     }
     finish(Status::Error("Interrupted"));
   }
-  void loop() override {
+  void loop() final {
     if (!wait_for_raw_connection_ && !raw_connection_) {
       auto ip_address = get_default_ip_address();
       auto r_socket = SocketFd::open(ip_address);
@@ -435,7 +435,7 @@ RegisterTest<Mtproto_handshake> mtproto_handshake("Mtproto_handshake");
 
 class Socks5TestActor : public Actor {
  public:
-  void start_up() override {
+  void start_up() final {
     auto promise = PromiseCreator::lambda([actor_id = actor_id(this)](Result<SocketFd> res) {
       send_closure(actor_id, &Socks5TestActor::on_result, std::move(res), false);
     });
@@ -444,10 +444,10 @@ class Socks5TestActor : public Actor {
      public:
       explicit Callback(Promise<SocketFd> promise) : promise_(std::move(promise)) {
       }
-      void set_result(Result<SocketFd> result) override {
+      void set_result(Result<SocketFd> result) final {
         promise_.set_result(std::move(result));
       }
-      void on_connected() override {
+      void on_connected() final {
       }
 
      private:
@@ -533,7 +533,7 @@ class FastPingTestActor : public Actor {
   ActorOwn<> fast_ping_;
   int iteration_{0};
 
-  void start_up() override {
+  void start_up() final {
     // Run handshake to create key and salt
     auto ip_address = get_default_ip_address();
     auto r_socket = SocketFd::open(ip_address);
@@ -588,7 +588,7 @@ class FastPingTestActor : public Actor {
     loop();
   }
 
-  void loop() override {
+  void loop() final {
     if (handshake_ && connection_) {
       LOG(INFO) << "Iteration " << iteration_;
       if (iteration_ == 6) {
@@ -618,7 +618,7 @@ class FastPingTestActor : public Actor {
     }
   }
 
-  void tear_down() override {
+  void tear_down() final {
     Scheduler::instance()->finish();
   }
 };
@@ -671,10 +671,10 @@ TEST(Mtproto, TlsTransport) {
   {
     auto guard = sched.get_main_guard();
     class RunTest : public Actor {
-      void start_up() override {
+      void start_up() final {
         class Callback : public TransparentProxy::Callback {
          public:
-          void set_result(Result<SocketFd> result) override {
+          void set_result(Result<SocketFd> result) final {
             if (result.is_ok()) {
               LOG(ERROR) << "Unexpectedly succeeded to connect to MTProto proxy";
             } else if (result.error().message() != "Response hash mismatch") {
@@ -682,7 +682,7 @@ TEST(Mtproto, TlsTransport) {
             }
             Scheduler::instance()->finish();
           }
-          void on_connected() override {
+          void on_connected() final {
           }
         };
 

@@ -162,7 +162,7 @@ class DialogDbImpl : public DialogDbSyncInterface {
   }
 
   Status add_dialog(DialogId dialog_id, FolderId folder_id, int64 order, BufferSlice data,
-                    vector<NotificationGroupKey> notification_groups) override {
+                    vector<NotificationGroupKey> notification_groups) final {
     SCOPE_EXIT {
       add_dialog_stmt_.reset();
     };
@@ -201,7 +201,7 @@ class DialogDbImpl : public DialogDbSyncInterface {
     return Status::OK();
   }
 
-  Result<BufferSlice> get_dialog(DialogId dialog_id) override {
+  Result<BufferSlice> get_dialog(DialogId dialog_id) final {
     SCOPE_EXIT {
       get_dialog_stmt_.reset();
     };
@@ -214,7 +214,7 @@ class DialogDbImpl : public DialogDbSyncInterface {
     return BufferSlice(get_dialog_stmt_.view_blob(0));
   }
 
-  Result<NotificationGroupKey> get_notification_group(NotificationGroupId notification_group_id) override {
+  Result<NotificationGroupKey> get_notification_group(NotificationGroupId notification_group_id) final {
     SCOPE_EXIT {
       get_notification_group_stmt_.reset();
     };
@@ -227,7 +227,7 @@ class DialogDbImpl : public DialogDbSyncInterface {
                                 get_last_notification_date(get_notification_group_stmt_, 1));
   }
 
-  Result<int32> get_secret_chat_count(FolderId folder_id) override {
+  Result<int32> get_secret_chat_count(FolderId folder_id) final {
     SCOPE_EXIT {
       get_secret_chat_count_stmt_.reset();
     };
@@ -237,8 +237,7 @@ class DialogDbImpl : public DialogDbSyncInterface {
     return get_secret_chat_count_stmt_.view_int32(0);
   }
 
-  Result<DialogDbGetDialogsResult> get_dialogs(FolderId folder_id, int64 order, DialogId dialog_id,
-                                               int32 limit) override {
+  Result<DialogDbGetDialogsResult> get_dialogs(FolderId folder_id, int64 order, DialogId dialog_id, int32 limit) final {
     SCOPE_EXIT {
       get_dialogs_stmt_.reset();
     };
@@ -263,7 +262,7 @@ class DialogDbImpl : public DialogDbSyncInterface {
   }
 
   Result<vector<NotificationGroupKey>> get_notification_groups_by_last_notification_date(
-      NotificationGroupKey notification_group_key, int32 limit) override {
+      NotificationGroupKey notification_group_key, int32 limit) final {
     auto &stmt = get_notification_groups_by_last_notification_date_stmt_;
     SCOPE_EXIT {
       stmt.reset();
@@ -285,10 +284,10 @@ class DialogDbImpl : public DialogDbSyncInterface {
     return std::move(notification_groups);
   }
 
-  Status begin_transaction() override {
+  Status begin_transaction() final {
     return db_.begin_transaction();
   }
-  Status commit_transaction() override {
+  Status commit_transaction() final {
     return db_.commit_transaction();
   }
 
@@ -321,7 +320,7 @@ std::shared_ptr<DialogDbSyncSafeInterface> create_dialog_db_sync(
           return make_unique<DialogDbImpl>(safe_connection->get().clone());
         }) {
     }
-    DialogDbSyncInterface &get() override {
+    DialogDbSyncInterface &get() final {
       return *lsls_db_.get();
     }
 
@@ -338,36 +337,35 @@ class DialogDbAsync : public DialogDbAsyncInterface {
   }
 
   void add_dialog(DialogId dialog_id, FolderId folder_id, int64 order, BufferSlice data,
-                  vector<NotificationGroupKey> notification_groups, Promise<> promise) override {
+                  vector<NotificationGroupKey> notification_groups, Promise<> promise) final {
     send_closure(impl_, &Impl::add_dialog, dialog_id, folder_id, order, std::move(data), std::move(notification_groups),
                  std::move(promise));
   }
 
   void get_notification_groups_by_last_notification_date(NotificationGroupKey notification_group_key, int32 limit,
-                                                         Promise<vector<NotificationGroupKey>> promise) override {
+                                                         Promise<vector<NotificationGroupKey>> promise) final {
     send_closure(impl_, &Impl::get_notification_groups_by_last_notification_date, notification_group_key, limit,
                  std::move(promise));
   }
 
-  void get_notification_group(NotificationGroupId notification_group_id,
-                              Promise<NotificationGroupKey> promise) override {
+  void get_notification_group(NotificationGroupId notification_group_id, Promise<NotificationGroupKey> promise) final {
     send_closure(impl_, &Impl::get_notification_group, notification_group_id, std::move(promise));
   }
 
-  void get_secret_chat_count(FolderId folder_id, Promise<int32> promise) override {
+  void get_secret_chat_count(FolderId folder_id, Promise<int32> promise) final {
     send_closure(impl_, &Impl::get_secret_chat_count, folder_id, std::move(promise));
   }
 
-  void get_dialog(DialogId dialog_id, Promise<BufferSlice> promise) override {
+  void get_dialog(DialogId dialog_id, Promise<BufferSlice> promise) final {
     send_closure_later(impl_, &Impl::get_dialog, dialog_id, std::move(promise));
   }
 
   void get_dialogs(FolderId folder_id, int64 order, DialogId dialog_id, int32 limit,
-                   Promise<DialogDbGetDialogsResult> promise) override {
+                   Promise<DialogDbGetDialogsResult> promise) final {
     send_closure_later(impl_, &Impl::get_dialogs, folder_id, order, dialog_id, limit, std::move(promise));
   }
 
-  void close(Promise<> promise) override {
+  void close(Promise<> promise) final {
     send_closure_later(impl_, &Impl::close, std::move(promise));
   }
 
@@ -474,11 +472,11 @@ class DialogDbAsync : public DialogDbAsyncInterface {
       cancel_timeout();
     }
 
-    void timeout_expired() override {
+    void timeout_expired() final {
       do_flush();
     }
 
-    void start_up() override {
+    void start_up() final {
       sync_db_ = &sync_db_safe_->get();
     }
   };

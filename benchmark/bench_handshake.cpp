@@ -29,29 +29,29 @@ static string prime_base64 =
     "w";
 
 class HandshakeBench : public Benchmark {
-  std::string get_description() const override {
+  std::string get_description() const final {
     return "Handshake";
   }
 
   class FakeDhCallback : public DhCallback {
    public:
-    int is_good_prime(Slice prime_str) const override {
+    int is_good_prime(Slice prime_str) const final {
       auto it = cache.find(prime_str.str());
       if (it == cache.end()) {
         return -1;
       }
       return it->second;
     }
-    void add_good_prime(Slice prime_str) const override {
+    void add_good_prime(Slice prime_str) const final {
       cache[prime_str.str()] = 1;
     }
-    void add_bad_prime(Slice prime_str) const override {
+    void add_bad_prime(Slice prime_str) const final {
       cache[prime_str.str()] = 0;
     }
     mutable std::map<string, int> cache;
   } dh_callback;
 
-  void run(int n) override {
+  void run(int n) final {
     DhHandshake a;
     DhHandshake b;
     auto prime = base64url_decode(prime_base64).move_as_ok();

@@ -56,7 +56,7 @@ void NetStatsManager::init() {
    private:
     ActorId<NetStatsManager> parent_;
     size_t id_;
-    void on_stats_updated() override {
+    void on_stats_updated() final {
       send_closure(parent_, &NetStatsManager::on_stats_updated, id_);
     }
   };
@@ -237,7 +237,7 @@ void NetStatsManager::start_up() {
     explicit NetCallback(ActorId<NetStatsManager> net_stats_manager)
         : net_stats_manager_(std::move(net_stats_manager)) {
     }
-    bool on_network(NetType network_type, uint32 network_generation) override {
+    bool on_network(NetType network_type, uint32 network_generation) final {
       send_closure(net_stats_manager_, &NetStatsManager::on_net_type_updated, network_type);
       return net_stats_manager_.is_alive();
     }

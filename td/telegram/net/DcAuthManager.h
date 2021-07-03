@@ -56,11 +56,11 @@ class DcAuthManager : public NetQueryCallback {
 
   void update_auth_key_state();
 
-  void on_result(NetQueryPtr result) override;
+  void on_result(NetQueryPtr result) final;
   void dc_loop(DcInfo &dc);
 
   void destroy_loop();
-  void loop() override;
+  void loop() final;
 };
 
 }  // namespace td

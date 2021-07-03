@@ -13,7 +13,7 @@ namespace mtproto {
 
 class TlsReaderByteFlow final : public ByteFlowBase {
  public:
-  bool loop() override;
+  bool loop() final;
 };
 
 }  // namespace mtproto

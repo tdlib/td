@@ -8,9 +8,8 @@
 
 namespace td {
 
-Result<NewPasswordState> get_new_password_state(
-    tl_object_ptr<telegram_api::PasswordKdfAlgo> new_algo,
-    tl_object_ptr<telegram_api::SecurePasswordKdfAlgo> new_secure_algo) {
+Result<NewPasswordState> get_new_password_state(tl_object_ptr<telegram_api::PasswordKdfAlgo> new_algo,
+                                                tl_object_ptr<telegram_api::SecurePasswordKdfAlgo> new_secure_algo) {
   NewPasswordState state;
   CHECK(new_algo != nullptr);
   switch (new_algo->get_id()) {

@@ -700,7 +700,7 @@ class VirtuallyJsonableInt : public VirtuallyJsonable {
  public:
   explicit VirtuallyJsonableInt(int32 value) : value_(value) {
   }
-  void store(JsonValueScope *scope) const override {
+  void store(JsonValueScope *scope) const final {
     *scope << JsonInt(value_);
   }
 
@@ -712,7 +712,7 @@ class VirtuallyJsonableLong : public VirtuallyJsonable {
  public:
   explicit VirtuallyJsonableLong(int64 value) : value_(value) {
   }
-  void store(JsonValueScope *scope) const override {
+  void store(JsonValueScope *scope) const final {
     *scope << JsonLong(value_);
   }
 
@@ -724,7 +724,7 @@ class VirtuallyJsonableString : public VirtuallyJsonable {
  public:
   explicit VirtuallyJsonableString(Slice value) : value_(value) {
   }
-  void store(JsonValueScope *scope) const override {
+  void store(JsonValueScope *scope) const final {
     *scope << JsonString(value_);
   }
 

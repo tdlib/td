@@ -34,21 +34,21 @@ class LogBenchmark : public td::Benchmark {
       , test_full_logging_(test_full_logging)
       , creator_(std::move(creator)) {
   }
-  std::string get_description() const override {
+  std::string get_description() const final {
     return PSTRING() << name_ << " " << (test_full_logging_ ? "ERROR" : "PLAIN") << " "
                      << td::tag("threads_n", threads_n_);
   }
-  void start_up() override {
+  void start_up() final {
     log_ = creator_();
     threads_.resize(threads_n_);
   }
-  void tear_down() override {
+  void tear_down() final {
     for (auto path : log_->get_file_paths()) {
       td::unlink(path).ignore();
     }
     log_.reset();
   }
-  void run(int n) override {
+  void run(int n) final {
     auto old_log_interface = td::log_interface;
     td::log_interface = log_.get();
 

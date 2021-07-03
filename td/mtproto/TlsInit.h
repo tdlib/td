@@ -43,7 +43,7 @@ class TlsInit : public TransparentProxy {
   void send_hello();
   Status wait_hello_response();
 
-  Status loop_impl() override;
+  Status loop_impl() final;
 };
 
 }  // namespace mtproto

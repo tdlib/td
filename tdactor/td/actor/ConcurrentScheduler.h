@@ -97,9 +97,9 @@ class ConcurrentScheduler : private Scheduler::Callback {
 #endif
   int32 extra_scheduler_;
 
-  void on_finish() override;
+  void on_finish() final;
 
-  void register_at_finish(std::function<void()> f) override;
+  void register_at_finish(std::function<void()> f) final;
 };
 
 }  // namespace td

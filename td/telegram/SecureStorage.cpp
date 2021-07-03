@@ -94,8 +94,8 @@ class FileDataView : public DataView {
  public:
   FileDataView(FileFd &fd, int64 size);
 
-  int64 size() const override;
-  Result<BufferSlice> pread(int64 offset, int64 size) const override;
+  int64 size() const final;
+  Result<BufferSlice> pread(int64 offset, int64 size) const final;
 
  private:
   FileFd &fd_;

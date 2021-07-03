@@ -254,7 +254,7 @@ class SocketFdImpl : private Iocp::Callback {
     }
   }
 
-  void on_iocp(Result<size_t> r_size, WSAOVERLAPPED *overlapped) override {
+  void on_iocp(Result<size_t> r_size, WSAOVERLAPPED *overlapped) final {
     // called from other thread
     if (dec_refcnt() || close_flag_) {
       VLOG(fd) << "Ignore IOCP (socket is closing)";

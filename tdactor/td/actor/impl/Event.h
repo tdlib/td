@@ -59,24 +59,24 @@ class CustomEvent {
 template <class ClosureT>
 class ClosureEvent : public CustomEvent {
  public:
-  void run(Actor *actor) override {
+  void run(Actor *actor) final {
     closure_.run(static_cast<typename ClosureT::ActorType *>(actor));
   }
-  CustomEvent *clone() const override {
+  CustomEvent *clone() const final {
     return new ClosureEvent<ClosureT>(closure_.clone());
   }
   template <class... ArgsT>
   explicit ClosureEvent(ArgsT &&... args) : closure_(std::forward<ArgsT>(args)...) {
   }
 
-  void start_migrate(int32 sched_id) override {
+  void start_migrate(int32 sched_id) final {
     closure_.for_each([sched_id](auto &obj) {
       using ::td::start_migrate;
       start_migrate(obj, sched_id);
     });
   }
 
-  void finish_migrate() override {
+  void finish_migrate() final {
     closure_.for_each([](auto &obj) {
       using ::td::finish_migrate;
       finish_migrate(obj);
@@ -90,10 +90,10 @@ class ClosureEvent : public CustomEvent {
 template <class LambdaT>
 class LambdaEvent : public CustomEvent {
  public:
-  void run(Actor *actor) override {
+  void run(Actor *actor) final {
     f_();
   }
-  CustomEvent *clone() const override {
+  CustomEvent *clone() const final {
     LOG(FATAL) << "Not supported";
     return nullptr;
   }

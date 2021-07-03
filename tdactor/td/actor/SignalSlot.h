@@ -30,7 +30,7 @@ class Slot final : public Actor {
   Slot &operator=(const Slot &other) = delete;
   Slot(Slot &&) = default;
   Slot &operator=(Slot &&) = default;
-  ~Slot() override {
+  ~Slot() final {
     close();
   }
   void set_event(EventFull &&event) {
@@ -79,11 +79,11 @@ class Slot final : public Actor {
   bool was_signal_ = false;
   EventFull event_;
 
-  void timeout_expired() override {
+  void timeout_expired() final {
     signal();
   }
 
-  void start_up() override {
+  void start_up() final {
     empty();
   }
 
@@ -100,7 +100,7 @@ class Slot final : public Actor {
       event_.try_emit_later();
     }
   }
-  void hangup_shared() override {
+  void hangup_shared() final {
     signal();
   }
 };

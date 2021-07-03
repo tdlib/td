@@ -39,15 +39,15 @@ static Status init_db(SqliteDb &db) {
 
 class MessagesDbBench : public Benchmark {
  public:
-  string get_description() const override {
+  string get_description() const final {
     return "MessagesDb";
   }
-  void start_up() override {
+  void start_up() final {
     LOG(ERROR) << "START UP";
     do_start_up().ensure();
     scheduler_->start();
   }
-  void run(int n) override {
+  void run(int n) final {
     auto guard = scheduler_->get_main_guard();
     for (int i = 0; i < n; i += 20) {
       auto dialog_id = DialogId{UserId{Random::fast(1, 100)}};
@@ -67,7 +67,7 @@ class MessagesDbBench : public Benchmark {
       }
     }
   }
-  void tear_down() override {
+  void tear_down() final {
     scheduler_->run_main(0.1);
     {
       auto guard = scheduler_->get_main_guard();

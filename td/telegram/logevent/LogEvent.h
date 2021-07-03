@@ -174,7 +174,7 @@ class StorerImpl : public Storer {
   explicit StorerImpl(const T &event) : event_(event) {
   }
 
-  size_t size() const override {
+  size_t size() const final {
     WithContext<TlStorerCalcLength, Global *> storer;
     storer.set_context(G());
 
@@ -183,7 +183,7 @@ class StorerImpl : public Storer {
     td::store(event_, storer);
     return storer.get_length();
   }
-  size_t store(uint8 *ptr) const override {
+  size_t store(uint8 *ptr) const final {
     WithContext<TlStorerUnsafe, Global *> storer(ptr);
     storer.set_context(G());
 
@@ -242,12 +242,12 @@ class LogEventStorerImpl : public Storer {
   explicit LogEventStorerImpl(const T &event) : event_(event) {
   }
 
-  size_t size() const override {
+  size_t size() const final {
     LogEventStorerCalcLength storer;
     td::store(event_, storer);
     return storer.get_length();
   }
-  size_t store(uint8 *ptr) const override {
+  size_t store(uint8 *ptr) const final {
     LogEventStorerUnsafe storer(ptr);
     td::store(event_, storer);
 #ifdef TD_DEBUG

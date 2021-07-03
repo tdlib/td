@@ -33,12 +33,12 @@ class FileLoader : public FileLoaderActor {
     Callback &operator=(const Callback &) = delete;
     virtual ~Callback() = default;
   };
-  void set_resource_manager(ActorShared<ResourceManager> resource_manager) override;
-  void update_priority(int8 priority) override;
-  void update_resources(const ResourceState &other) override;
+  void set_resource_manager(ActorShared<ResourceManager> resource_manager) final;
+  void update_priority(int8 priority) final;
+  void update_resources(const ResourceState &other) final;
 
-  void update_local_file_location(const LocalFileLocation &local) override;
-  void update_downloaded_part(int64 offset, int64 limit) override;
+  void update_local_file_location(const LocalFileLocation &local) final;
+  void update_downloaded_part(int64 offset, int64 limit) final;
 
  protected:
   void set_ordered_flag(bool flag);
@@ -124,17 +124,17 @@ class FileLoader : public FileLoaderActor {
   uint32 debug_bad_part_order_ = 0;
   std::vector<int32> debug_bad_parts_;
 
-  void start_up() override;
-  void loop() override;
+  void start_up() final;
+  void loop() final;
   Status do_loop();
-  void hangup() override;
-  void hangup_shared() override;
-  void tear_down() override;
+  void hangup() final;
+  void hangup_shared() final;
+  void tear_down() final;
 
   void update_estimated_limit();
   void on_progress_impl();
 
-  void on_result(NetQueryPtr query) override;
+  void on_result(NetQueryPtr query) final;
   void on_part_query(Part part, NetQueryPtr query);
   void on_common_query(NetQueryPtr query);
   Status try_on_part_query(Part part, NetQueryPtr query);

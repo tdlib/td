@@ -576,9 +576,9 @@ class StickersManager : public Actor {
 
   td_api::object_ptr<td_api::updateDiceEmojis> get_update_dice_emojis_object() const;
 
-  void start_up() override;
+  void start_up() final;
 
-  void tear_down() override;
+  void tear_down() final;
 
   SpecialStickerSet &add_special_sticker_set(const string &type);
 

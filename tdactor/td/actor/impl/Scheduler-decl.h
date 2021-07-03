@@ -148,17 +148,17 @@ class Scheduler {
 
  private:
   static void set_scheduler(Scheduler *scheduler);
-  /*** ServiceActor ***/
+
   class ServiceActor final : public Actor {
    public:
     void set_queue(std::shared_ptr<MpscPollableQueue<EventFull>> queues);
-    void start_up() override;
+    void start_up() final;
 
    private:
     std::shared_ptr<MpscPollableQueue<EventFull>> inbound_;
     bool subscribed_{false};
-    void loop() override;
-    void tear_down() override;
+    void loop() final;
+    void tear_down() final;
   };
   friend class ServiceActor;
 

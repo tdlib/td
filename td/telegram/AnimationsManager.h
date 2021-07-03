@@ -138,7 +138,7 @@ class AnimationsManager : public Actor {
 
   void save_saved_animations_to_database();
 
-  void tear_down() override;
+  void tear_down() final;
 
   class AnimationListLogEvent;
 

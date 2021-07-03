@@ -77,8 +77,8 @@ class DataView {
 class BufferSliceDataView : public DataView {
  public:
   explicit BufferSliceDataView(BufferSlice buffer_slice);
-  int64 size() const override;
-  Result<BufferSlice> pread(int64 offset, int64 size) const override;
+  int64 size() const final;
+  Result<BufferSlice> pread(int64 offset, int64 size) const final;
 
  private:
   BufferSlice buffer_slice_;
@@ -87,8 +87,8 @@ class BufferSliceDataView : public DataView {
 class ConcatDataView : public DataView {
  public:
   ConcatDataView(const DataView &left, const DataView &right);
-  int64 size() const override;
-  Result<BufferSlice> pread(int64 offset, int64 size) const override;
+  int64 size() const final;
+  Result<BufferSlice> pread(int64 offset, int64 size) const final;
 
  private:
   const DataView &left_;
@@ -164,8 +164,8 @@ class Decryptor {
 class Encryptor : public DataView {
  public:
   Encryptor(AesCbcState aes_cbc_state, const DataView &data_view);
-  int64 size() const override;
-  Result<BufferSlice> pread(int64 offset, int64 size) const override;
+  int64 size() const final;
+  Result<BufferSlice> pread(int64 offset, int64 size) const final;
 
  private:
   mutable AesCbcState aes_cbc_state_;

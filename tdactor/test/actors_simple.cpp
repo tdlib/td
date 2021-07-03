@@ -186,10 +186,10 @@ class PrintChar final : public Actor {
  public:
   PrintChar(char c, int cnt) : char_(c), cnt_(cnt) {
   }
-  void start_up() override {
+  void start_up() final {
     yield();
   }
-  void wakeup() override {
+  void wakeup() final {
     if (cnt_ == 0) {
       stop();
     } else {
@@ -249,7 +249,7 @@ class Ping final : public Actor {
  public:
   explicit Ping(ActorId<Pong> pong) : pong_(pong) {
   }
-  void start_up() override {
+  void start_up() final {
     send_closure(pong_, &Pong::pong, Ball());
   }
 
@@ -282,10 +282,10 @@ class OpenClose final : public Actor {
  public:
   explicit OpenClose(int cnt) : cnt_(cnt) {
   }
-  void start_up() override {
+  void start_up() final {
     yield();
   }
-  void wakeup() override {
+  void wakeup() final {
     ObserverBase *observer = reinterpret_cast<ObserverBase *>(123);
     if (cnt_ > 0) {
       auto r_file_fd = FileFd::open("server", FileFd::Read | FileFd::Create);
@@ -332,14 +332,14 @@ class Slave : public Actor {
   ActorId<MsgActor> msg;
   explicit Slave(ActorId<MsgActor> msg) : msg(msg) {
   }
-  void hangup() override {
+  void hangup() final {
     send_closure(msg, &MsgActor::msg);
   }
 };
 
 class MasterActor : public MsgActor {
  public:
-  void loop() override {
+  void loop() final {
     alive_ = true;
     slave = create_actor<Slave>("slave", static_cast<ActorId<MsgActor>>(actor_id(this)));
     stop();
@@ -351,10 +351,10 @@ class MasterActor : public MsgActor {
   MasterActor &operator=(const MasterActor &) = delete;
   MasterActor(MasterActor &&) = delete;
   MasterActor &operator=(MasterActor &&) = delete;
-  ~MasterActor() override {
+  ~MasterActor() final {
     alive_ = 987654321;
   }
-  void msg() override {
+  void msg() final {
     CHECK(alive_ == 123456789);
   }
   uint64 alive_ = 123456789;
@@ -391,11 +391,11 @@ class LinkTokenMasterActor : public Actor {
  public:
   explicit LinkTokenMasterActor(int cnt) : cnt_(cnt) {
   }
-  void start_up() override {
+  void start_up() final {
     child_ = create_actor<LinkTokenSlave>("Slave", actor_shared(this, 123)).release();
     yield();
   }
-  void loop() override {
+  void loop() final {
     for (int i = 0; i < 100 && cnt_ > 0; cnt_--, i++) {
       auto token = static_cast<uint64>(cnt_) + 1;
       switch (i % 4) {
@@ -425,7 +425,7 @@ class LinkTokenMasterActor : public Actor {
     }
   }
 
-  void hangup_shared() override {
+  void hangup_shared() final {
     CHECK(get_link_token() == 123);
     Scheduler::instance()->finish();
     stop();
@@ -466,7 +466,7 @@ class LaterSlave : public Actor {
  private:
   ActorShared<> parent_;
 
-  void hangup() override {
+  void hangup() final {
     sb << "A";
     send_closure(actor_id(this), &LaterSlave::finish);
   }
@@ -479,16 +479,16 @@ class LaterSlave : public Actor {
 class LaterMasterActor : public Actor {
   int cnt_ = 3;
   std::vector<ActorOwn<LaterSlave>> children_;
-  void start_up() override {
+  void start_up() final {
     for (int i = 0; i < cnt_; i++) {
       children_.push_back(create_actor<LaterSlave>("B", actor_shared(this)));
     }
     yield();
   }
-  void loop() override {
+  void loop() final {
     children_.clear();
   }
-  void hangup_shared() override {
+  void hangup_shared() final {
     if (!--cnt_) {
       Scheduler::instance()->finish();
       stop();
@@ -511,7 +511,7 @@ TEST(Actors, later) {
 
 class MultiPromise2 : public Actor {
  public:
-  void start_up() override {
+  void start_up() final {
     auto promise = PromiseCreator::lambda([](Result<Unit> result) {
       result.ensure();
       Scheduler::instance()->finish();
@@ -527,7 +527,7 @@ class MultiPromise2 : public Actor {
 
 class MultiPromise1 : public Actor {
  public:
-  void start_up() override {
+  void start_up() final {
     auto promise = PromiseCreator::lambda([](Result<Unit> result) {
       CHECK(result.is_error());
       create_actor<MultiPromise2>("B").release();
@@ -551,7 +551,7 @@ TEST(Actors, MultiPromise) {
 
 class FastPromise : public Actor {
  public:
-  void start_up() override {
+  void start_up() final {
     PromiseFuture<int> pf;
     auto promise = pf.move_promise();
     auto future = pf.move_future();
@@ -574,10 +574,10 @@ TEST(Actors, FastPromise) {
 }
 
 class StopInTeardown : public Actor {
-  void loop() override {
+  void loop() final {
     stop();
   }
-  void tear_down() override {
+  void tear_down() final {
     stop();
     Scheduler::instance()->finish();
   }
@@ -597,7 +597,7 @@ TEST(Actors, stop_in_teardown) {
 
 class AlwaysWaitForMailbox : public Actor {
  public:
-  void start_up() override {
+  void start_up() final {
     always_wait_for_mailbox();
     create_actor<SleepActor>("Sleep", 0.1, PromiseCreator::lambda([actor_id = actor_id(this), ptr = this](Unit) {
                                send_closure(actor_id, &AlwaysWaitForMailbox::g);

@@ -29,7 +29,7 @@ class SequenceDispatcher : public NetQueryCallback {
   explicit SequenceDispatcher(ActorShared<Parent> parent) : parent_(std::move(parent)) {
   }
   void send_with_callback(NetQueryPtr query, ActorShared<NetQueryCallback> callback);
-  void on_result(NetQueryPtr query) override;
+  void on_result(NetQueryPtr query) final;
   void close_silent();
 
  private:
@@ -65,12 +65,12 @@ class SequenceDispatcher : public NetQueryCallback {
   void do_resend(Data &data);
   void do_finish(Data &data);
 
-  void loop() override;
+  void loop() final;
   void try_shrink();
 
-  void timeout_expired() override;
-  void hangup() override;
-  void tear_down() override;
+  void timeout_expired() final;
+  void hangup() final;
+  void tear_down() final;
 };
 
 class MultiSequenceDispatcher : public SequenceDispatcher::Parent {
@@ -83,8 +83,8 @@ class MultiSequenceDispatcher : public SequenceDispatcher::Parent {
     ActorOwn<SequenceDispatcher> dispatcher_;
   };
   std::unordered_map<uint64, Data> dispatchers_;
-  void on_result() override;
-  void ready_to_close() override;
+  void on_result() final;
+  void ready_to_close() final;
 };
 
 }  // namespace td

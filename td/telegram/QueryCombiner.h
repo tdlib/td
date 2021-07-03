@@ -45,7 +45,7 @@ class QueryCombiner : public Actor {
 
   void on_get_query_result(int64 query_id, Result<Unit> &&result);
 
-  void loop() override;
+  void loop() final;
 };
 
 }  // namespace td

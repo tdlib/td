@@ -80,7 +80,7 @@ class GenAuthKeyActor : public Actor {
 
   ActorOwn<mtproto::HandshakeActor> child_;
 
-  void start_up() override {
+  void start_up() final {
     // Bug in Android clang and MSVC
     // std::tuple<Result<int>> b(std::forward_as_tuple(Result<int>()));
 
@@ -92,7 +92,7 @@ class GenAuthKeyActor : public Actor {
                      }));
   }
 
-  void hangup() override {
+  void hangup() final {
     if (connection_promise_) {
       connection_promise_.set_error(Status::Error(1, "Canceled"));
     }
@@ -194,11 +194,11 @@ void Session::start_up() {
    public:
     explicit StateCallback(ActorId<Session> session) : session_(std::move(session)) {
     }
-    bool on_network(NetType network_type, uint32 network_generation) override {
+    bool on_network(NetType network_type, uint32 network_generation) final {
       send_closure(session_, &Session::on_network, network_type != NetType::None, network_generation);
       return session_.is_alive();
     }
-    bool on_online(bool online_flag) override {
+    bool on_online(bool online_flag) final {
       send_closure(session_, &Session::on_online, online_flag);
       return session_.is_alive();
     }
@@ -1259,10 +1259,10 @@ void Session::create_gen_auth_key_actor(HandshakeId handshake_id) {
     AuthKeyHandshakeContext(DhCallback *dh_callback, std::shared_ptr<PublicRsaKeyInterface> public_rsa_key)
         : dh_callback_(dh_callback), public_rsa_key_(std::move(public_rsa_key)) {
     }
-    DhCallback *get_dh_callback() override {
+    DhCallback *get_dh_callback() final {
       return dh_callback_;
     }
-    PublicRsaKeyInterface *get_public_rsa_key_interface() override {
+    PublicRsaKeyInterface *get_public_rsa_key_interface() final {
       return public_rsa_key_.get();
     }
 

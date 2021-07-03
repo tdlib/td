@@ -131,7 +131,7 @@ void SessionMultiProxy::init() {
       Callback(ActorId<SessionMultiProxy> parent, uint32 generation, int32 session_id)
           : parent_(parent), generation_(generation), session_id_(session_id) {
       }
-      void on_query_finished() override {
+      void on_query_finished() final {
         send_closure(parent_, &SessionMultiProxy::on_query_finished, generation_, session_id_);
       }
 

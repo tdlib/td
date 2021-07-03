@@ -28,7 +28,7 @@ class Observer : ObserverBase {
   explicit Observer(unique_ptr<ObserverBase> &&ptr) : observer_ptr_(std::move(ptr)) {
   }
 
-  void notify() override {
+  void notify() final {
     if (observer_ptr_) {
       observer_ptr_->notify();
     }

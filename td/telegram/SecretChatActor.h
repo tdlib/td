@@ -659,12 +659,12 @@ class SecretChatActor : public NetQueryCallback {
   void ask_on_binlog_replay_finish();
 
   void check_status(Status status);
-  void start_up() override;
-  void loop() override;
+  void start_up() final;
+  void loop() final;
   Status do_loop();
-  void tear_down() override;
+  void tear_down() final;
 
-  void on_result_resendable(NetQueryPtr net_query, Promise<NetQueryPtr> promise) override;
+  void on_result_resendable(NetQueryPtr net_query, Promise<NetQueryPtr> promise) final;
 
   Status run_auth();
   void run_pfs();

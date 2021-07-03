@@ -27,7 +27,7 @@ void PublicRsaKeyWatchdog::add_public_rsa_key(std::shared_ptr<PublicRsaKeyShared
    public:
     explicit Listener(ActorId<PublicRsaKeyWatchdog> parent) : parent_(std::move(parent)) {
     }
-    bool notify() override {
+    bool notify() final {
       send_event(parent_, Event::yield());
       return parent_.is_alive();
     }

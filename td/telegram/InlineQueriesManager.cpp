@@ -92,7 +92,7 @@ class GetInlineBotResultsQuery : public Td::ResultHandler {
     return result;
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getInlineBotResults>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -103,7 +103,7 @@ class GetInlineBotResultsQuery : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     if (status.code() == NetQuery::Canceled) {
       status = Status::Error(406, "Request canceled");
     } else if (status.message() == "BOT_RESPONSE_TIMEOUT") {
@@ -146,7 +146,7 @@ class SetInlineBotResultsQuery : public Td::ResultHandler {
         std::move(inline_bot_switch_pm))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_setInlineBotResults>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -159,7 +159,7 @@ class SetInlineBotResultsQuery : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     promise_.set_error(std::move(status));
   }
 };

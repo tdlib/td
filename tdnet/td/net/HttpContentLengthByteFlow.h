@@ -15,7 +15,7 @@ class HttpContentLengthByteFlow final : public ByteFlowBase {
   HttpContentLengthByteFlow() = default;
   explicit HttpContentLengthByteFlow(size_t len) : len_(len) {
   }
-  bool loop() override;
+  bool loop() final;
 
  private:
   static constexpr size_t MIN_UPDATE_SIZE = 1 << 14;

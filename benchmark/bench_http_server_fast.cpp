@@ -31,11 +31,11 @@ class HttpEchoConnection : public Actor {
   BufferedFd<SocketFd> fd_;
   HttpReader reader_;
   HttpQuery query_;
-  void start_up() override {
+  void start_up() final {
     Scheduler::subscribe(fd_.get_poll_info().extract_pollable_fd(this));
     reader_.init(&fd_.input_buffer(), 1024 * 1024, 0);
   }
-  void tear_down() override {
+  void tear_down() final {
     Scheduler::unsubscribe_before_close(fd_.get_poll_info().get_pollable_fd_ref());
     fd_.close();
   }
@@ -55,7 +55,7 @@ class HttpEchoConnection : public Actor {
     fd_.output_buffer().append(res.ok());
   }
 
-  void loop() override {
+  void loop() final {
     sync_with_poll(fd_);
     auto status = [&] {
       TRY_STATUS(loop_read());
@@ -87,15 +87,15 @@ class HttpEchoConnection : public Actor {
 const int N = 8;
 class Server : public TcpListener::Callback {
  public:
-  void start_up() override {
+  void start_up() final {
     listener_ = create_actor<TcpListener>("Listener", 8082, ActorOwn<TcpListener::Callback>(actor_id(this)));
   }
-  void accept(SocketFd fd) override {
+  void accept(SocketFd fd) final {
     pos_++;
     auto scheduler_id = pos_ % (N != 0 ? N : 1) + (N != 0);
     create_actor_on_scheduler<HttpEchoConnection>("HttpInboundConnection", scheduler_id, std::move(fd)).release();
   }
-  void hangup() override {
+  void hangup() final {
     LOG(ERROR) << "Hanging up..";
     stop();
   }

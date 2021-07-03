@@ -29,15 +29,15 @@ class Wget : public HttpOutboundConnection::Callback {
 
  private:
   Status try_init();
-  void loop() override;
-  void handle(unique_ptr<HttpQuery> result) override;
-  void on_connection_error(Status error) override;
+  void loop() final;
+  void handle(unique_ptr<HttpQuery> result) final;
+  void on_connection_error(Status error) final;
   void on_ok(unique_ptr<HttpQuery> http_query_ptr);
   void on_error(Status error);
 
-  void tear_down() override;
-  void start_up() override;
-  void timeout_expired() override;
+  void tear_down() final;
+  void start_up() final;
+  void timeout_expired() final;
 
   Promise<unique_ptr<HttpQuery>> promise_;
   ActorOwn<HttpOutboundConnection> connection_;

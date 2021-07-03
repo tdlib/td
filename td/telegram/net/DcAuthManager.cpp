@@ -47,7 +47,7 @@ void DcAuthManager::add_dc(std::shared_ptr<AuthDataShared> auth_data) {
    public:
     explicit Listener(ActorShared<DcAuthManager> dc_manager) : dc_manager_(std::move(dc_manager)) {
     }
-    bool notify() override {
+    bool notify() final {
       if (!dc_manager_.is_alive()) {
         return false;
       }

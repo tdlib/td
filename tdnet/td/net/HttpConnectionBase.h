@@ -61,13 +61,13 @@ class HttpConnectionBase : public Actor {
 
   void live_event();
 
-  void start_up() override;
-  void tear_down() override;
-  void timeout_expired() override;
-  void loop() override;
+  void start_up() final;
+  void tear_down() final;
+  void timeout_expired() final;
+  void loop() final;
 
-  void on_start_migrate(int32 sched_id) override;
-  void on_finish_migrate() override;
+  void on_start_migrate(int32 sched_id) final;
+  void on_finish_migrate() final;
 
   virtual void on_query(unique_ptr<HttpQuery> query) = 0;
   virtual void on_error(Status error) = 0;

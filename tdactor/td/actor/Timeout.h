@@ -55,7 +55,7 @@ class Timeout final : public Actor {
   Callback callback_{};
   Data data_{};
 
-  void timeout_expired() override {
+  void timeout_expired() final {
     CHECK(!has_timeout());
     CHECK(callback_ != Callback());
     Callback callback = callback_;
@@ -123,7 +123,7 @@ class MultiTimeout final : public Actor {
 
   void update_timeout();
 
-  void timeout_expired() override;
+  void timeout_expired() final;
 
   vector<int64> get_expired_keys(double now);
 };

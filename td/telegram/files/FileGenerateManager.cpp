@@ -37,12 +37,6 @@ namespace td {
 
 class FileGenerateActor : public Actor {
  public:
-  FileGenerateActor() = default;
-  FileGenerateActor(const FileGenerateActor &) = delete;
-  FileGenerateActor &operator=(const FileGenerateActor &) = delete;
-  FileGenerateActor(FileGenerateActor &&) = delete;
-  FileGenerateActor &operator=(FileGenerateActor &&) = delete;
-  ~FileGenerateActor() override = default;
   virtual void file_generate_write_part(int32 offset, string data, Promise<> promise) {
     LOG(ERROR) << "Receive unexpected file_generate_write_part";
   }
@@ -56,10 +50,10 @@ class FileDownloadGenerateActor : public FileGenerateActor {
                             ActorShared<> parent)
       : file_type_(file_type), file_id_(file_id), callback_(std::move(callback)), parent_(std::move(parent)) {
   }
-  void file_generate_progress(int32 expected_size, int32 local_prefix_size, Promise<> promise) override {
+  void file_generate_progress(int32 expected_size, int32 local_prefix_size, Promise<> promise) final {
     UNREACHABLE();
   }
-  void file_generate_finish(Status status, Promise<> promise) override {
+  void file_generate_finish(Status status, Promise<> promise) final {
     UNREACHABLE();
   }
 
@@ -69,7 +63,7 @@ class FileDownloadGenerateActor : public FileGenerateActor {
   unique_ptr<FileGenerateCallback> callback_;
   ActorShared<> parent_;
 
-  void start_up() override {
+  void start_up() final {
     LOG(INFO) << "Generate by downloading " << file_id_;
     class Callback : public FileManager::DownloadCallback {
      public:
@@ -78,10 +72,10 @@ class FileDownloadGenerateActor : public FileGenerateActor {
 
       // TODO: upload during download
 
-      void on_download_ok(FileId file_id) override {
+      void on_download_ok(FileId file_id) final {
         send_closure(parent_, &FileDownloadGenerateActor::on_download_ok);
       }
-      void on_download_error(FileId file_id, Status error) override {
+      void on_download_error(FileId file_id, Status error) final {
         send_closure(parent_, &FileDownloadGenerateActor::on_download_error, std::move(error));
       }
 
@@ -92,7 +86,7 @@ class FileDownloadGenerateActor : public FileGenerateActor {
     send_closure(G()->file_manager(), &FileManager::download, file_id_, std::make_shared<Callback>(actor_id(this)), 1,
                  -1, -1);
   }
-  void hangup() override {
+  void hangup() final {
     send_closure(G()->file_manager(), &FileManager::download, file_id_, nullptr, 0, -1, -1);
     stop();
   }
@@ -123,10 +117,10 @@ class MapDownloadGenerateActor : public FileGenerateActor {
   MapDownloadGenerateActor(string conversion, unique_ptr<FileGenerateCallback> callback, ActorShared<> parent)
       : conversion_(std::move(conversion)), callback_(std::move(callback)), parent_(std::move(parent)) {
   }
-  void file_generate_progress(int32 expected_size, int32 local_prefix_size, Promise<> promise) override {
+  void file_generate_progress(int32 expected_size, int32 local_prefix_size, Promise<> promise) final {
     UNREACHABLE();
   }
-  void file_generate_finish(Status status, Promise<> promise) override {
+  void file_generate_finish(Status status, Promise<> promise) final {
     UNREACHABLE();
   }
 
@@ -143,11 +137,11 @@ class MapDownloadGenerateActor : public FileGenerateActor {
     explicit Callback(ActorId<MapDownloadGenerateActor> parent) : parent_(parent) {
     }
 
-    void on_result(NetQueryPtr query) override {
+    void on_result(NetQueryPtr query) final {
       send_closure(parent_, &MapDownloadGenerateActor::on_result, std::move(query));
     }
 
-    void hangup_shared() override {
+    void hangup_shared() final {
       send_closure(parent_, &MapDownloadGenerateActor::hangup_shared);
     }
   };
@@ -195,7 +189,7 @@ class MapDownloadGenerateActor : public FileGenerateActor {
         scale);
   }
 
-  void start_up() override {
+  void start_up() final {
     auto r_input_web_file = parse_conversion();
     if (r_input_web_file.is_error()) {
       LOG(ERROR) << "Can't parse " << conversion_ << ": " << r_input_web_file.error();
@@ -237,7 +231,7 @@ class MapDownloadGenerateActor : public FileGenerateActor {
     stop();
   }
 
-  void hangup_shared() override {
+  void hangup_shared() final {
     on_error(Status::Error(1, "Canceled"));
   }
 };
@@ -255,15 +249,15 @@ class FileExternalGenerateActor : public FileGenerateActor {
       , parent_(std::move(parent)) {
   }
 
-  void file_generate_write_part(int32 offset, string data, Promise<> promise) override {
+  void file_generate_write_part(int32 offset, string data, Promise<> promise) final {
     check_status(do_file_generate_write_part(offset, data), std::move(promise));
   }
 
-  void file_generate_progress(int32 expected_size, int32 local_prefix_size, Promise<> promise) override {
+  void file_generate_progress(int32 expected_size, int32 local_prefix_size, Promise<> promise) final {
     check_status(do_file_generate_progress(expected_size, local_prefix_size), std::move(promise));
   }
 
-  void file_generate_finish(Status status, Promise<> promise) override {
+  void file_generate_finish(Status status, Promise<> promise) final {
     if (status.is_error()) {
       check_status(std::move(status));
       return promise.set_value(Unit());
@@ -281,7 +275,7 @@ class FileExternalGenerateActor : public FileGenerateActor {
   unique_ptr<FileGenerateCallback> callback_;
   ActorShared<> parent_;
 
-  void start_up() override {
+  void start_up() final {
     if (local_.type() == LocalFileLocation::Type::Full) {
       callback_->on_ok(local_.full());
       callback_.reset();
@@ -307,7 +301,7 @@ class FileExternalGenerateActor : public FileGenerateActor {
         make_tl_object<td_api::updateFileGenerationStart>(
             static_cast<int64>(query_id_), generate_location_.original_path_, path_, generate_location_.conversion_));
   }
-  void hangup() override {
+  void hangup() final {
     check_status(Status::Error(1, "Canceled"));
   }
 
@@ -363,7 +357,7 @@ class FileExternalGenerateActor : public FileGenerateActor {
     }
   }
 
-  void tear_down() override {
+  void tear_down() final {
     send_closure(G()->td(), &Td::send_update,
                  make_tl_object<td_api::updateFileGenerationStop>(static_cast<int64>(query_id_)));
   }

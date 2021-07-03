@@ -39,16 +39,16 @@ class ConcurrentBinlog : public BinlogInterface {
   ConcurrentBinlog &operator=(const ConcurrentBinlog &other) = delete;
   ConcurrentBinlog(ConcurrentBinlog &&other) = delete;
   ConcurrentBinlog &operator=(ConcurrentBinlog &&other) = delete;
-  ~ConcurrentBinlog() override;
+  ~ConcurrentBinlog() final;
 
-  void force_sync(Promise<> promise) override;
-  void force_flush() override;
-  void change_key(DbKey db_key, Promise<> promise) override;
+  void force_sync(Promise<> promise) final;
+  void force_flush() final;
+  void change_key(DbKey db_key, Promise<> promise) final;
 
-  uint64 next_id() override {
+  uint64 next_id() final {
     return last_id_.fetch_add(1, std::memory_order_relaxed);
   }
-  uint64 next_id(int32 shift) override {
+  uint64 next_id(int32 shift) final {
     return last_id_.fetch_add(shift, std::memory_order_relaxed);
   }
 
@@ -58,9 +58,9 @@ class ConcurrentBinlog : public BinlogInterface {
 
  private:
   void init_impl(unique_ptr<Binlog> binlog, int scheduler_id);
-  void close_impl(Promise<> promise) override;
-  void close_and_destroy_impl(Promise<> promise) override;
-  void add_raw_event_impl(uint64 id, BufferSlice &&raw_event, Promise<> promise, BinlogDebugInfo info) override;
+  void close_impl(Promise<> promise) final;
+  void close_and_destroy_impl(Promise<> promise) final;
+  void add_raw_event_impl(uint64 id, BufferSlice &&raw_event, Promise<> promise, BinlogDebugInfo info) final;
 
   ActorOwn<detail::BinlogActor> binlog_actor_;
   string path_;

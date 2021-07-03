@@ -355,7 +355,7 @@ class RequestUrlAuthQuery : public Td::ResultHandler {
         url_)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_requestUrlAuth>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -389,7 +389,7 @@ class RequestUrlAuthQuery : public Td::ResultHandler {
     }
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     if (!dialog_id_.is_valid() ||
         !td->messages_manager_->on_get_dialog_error(dialog_id_, status, "RequestUrlAuthQuery")) {
       LOG(INFO) << "RequestUrlAuthQuery returned " << status;
@@ -427,7 +427,7 @@ class AcceptUrlAuthQuery : public Td::ResultHandler {
         button_id, url_)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_acceptUrlAuth>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -450,7 +450,7 @@ class AcceptUrlAuthQuery : public Td::ResultHandler {
     }
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     if (!dialog_id_.is_valid() ||
         !td->messages_manager_->on_get_dialog_error(dialog_id_, status, "AcceptUrlAuthQuery")) {
       LOG(INFO) << "AcceptUrlAuthQuery returned " << status;

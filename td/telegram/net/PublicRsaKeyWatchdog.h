@@ -37,10 +37,10 @@ class PublicRsaKeyWatchdog : public NetActor {
   FloodControlStrict flood_control_;
   bool has_query_{false};
 
-  void start_up() override;
-  void loop() override;
+  void start_up() final;
+  void loop() final;
 
-  void on_result(NetQueryPtr net_query) override;
+  void on_result(NetQueryPtr net_query) final;
   void sync(BufferSlice cdn_config_serialized);
   void sync_key(std::shared_ptr<PublicRsaKeyShared> &key);
 };

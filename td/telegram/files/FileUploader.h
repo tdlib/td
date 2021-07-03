@@ -58,23 +58,23 @@ class FileUploader : public FileLoader {
   int64 file_id_;
   bool big_flag_;
 
-  Result<FileInfo> init() override TD_WARN_UNUSED_RESULT;
-  Status on_ok(int64 size) override TD_WARN_UNUSED_RESULT;
-  void on_error(Status status) override;
-  Status before_start_parts() override;
-  void after_start_parts() override;
+  Result<FileInfo> init() final TD_WARN_UNUSED_RESULT;
+  Status on_ok(int64 size) final TD_WARN_UNUSED_RESULT;
+  void on_error(Status status) final;
+  Status before_start_parts() final;
+  void after_start_parts() final;
   Result<std::pair<NetQueryPtr, bool>> start_part(Part part, int32 part_count,
-                                                  int64 streaming_offset) override TD_WARN_UNUSED_RESULT;
-  Result<size_t> process_part(Part part, NetQueryPtr net_query) override TD_WARN_UNUSED_RESULT;
-  void on_progress(Progress progress) override;
-  FileLoader::Callback *get_callback() override;
+                                                  int64 streaming_offset) final TD_WARN_UNUSED_RESULT;
+  Result<size_t> process_part(Part part, NetQueryPtr net_query) final TD_WARN_UNUSED_RESULT;
+  void on_progress(Progress progress) final;
+  FileLoader::Callback *get_callback() final;
   Result<PrefixInfo> on_update_local_location(const LocalFileLocation &location,
-                                              int64 file_size) override TD_WARN_UNUSED_RESULT;
+                                              int64 file_size) final TD_WARN_UNUSED_RESULT;
 
   Status generate_iv_map();
 
   bool keep_fd_ = false;
-  void keep_fd_flag(bool keep_fd) override;
+  void keep_fd_flag(bool keep_fd) final;
   void try_release_fd();
   Status acquire_fd() TD_WARN_UNUSED_RESULT;
 };

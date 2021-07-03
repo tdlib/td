@@ -34,7 +34,7 @@ class GzipByteFlow final : public ByteFlowBase {
     max_output_size_ = max_output_size;
   }
 
-  bool loop() override;
+  bool loop() final;
 
  private:
   Gzip gzip_;

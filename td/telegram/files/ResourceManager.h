@@ -56,9 +56,9 @@ class ResourceManager : public Actor {
   ActorShared<> parent_;
   bool stop_flag_ = false;
 
-  void hangup_shared() override;
+  void hangup_shared() final;
 
-  void loop() override;
+  void loop() final;
 
   void add_to_heap(Node *node);
   bool satisfy_node(NodeId file_node_id);

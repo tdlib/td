@@ -33,18 +33,18 @@ class SHA1Bench : public td::Benchmark {
  public:
   alignas(64) unsigned char data[DATA_SIZE];
 
-  std::string get_description() const override {
+  std::string get_description() const final {
     return PSTRING() << "SHA1 OpenSSL [" << (DATA_SIZE >> 10) << "KB]";
   }
 
-  void start_up() override {
+  void start_up() final {
     for (int i = 0; i < DATA_SIZE; i++) {
       data[i] = 123;
       data[i] = 0;
     }
   }
 
-  void run(int n) override {
+  void run(int n) final {
     for (int i = 0; i < n; i++) {
       unsigned char md[20];
       SHA1(data, DATA_SIZE, md);
@@ -59,11 +59,11 @@ class AesEcbBench : public td::Benchmark {
   td::UInt256 key;
   td::UInt256 iv;
 
-  std::string get_description() const override {
+  std::string get_description() const final {
     return PSTRING() << "AES ECB OpenSSL [" << (DATA_SIZE >> 10) << "KB]";
   }
 
-  void start_up() override {
+  void start_up() final {
     for (int i = 0; i < DATA_SIZE; i++) {
       data[i] = 123;
     }
@@ -71,7 +71,7 @@ class AesEcbBench : public td::Benchmark {
     td::Random::secure_bytes(iv.raw, sizeof(iv));
   }
 
-  void run(int n) override {
+  void run(int n) final {
     td::AesState state;
     state.init(td::as_slice(key), true);
     td::MutableSlice data_slice(data, DATA_SIZE);
@@ -90,11 +90,11 @@ class AesIgeEncryptBench : public td::Benchmark {
   td::UInt256 key;
   td::UInt256 iv;
 
-  std::string get_description() const override {
+  std::string get_description() const final {
     return PSTRING() << "AES IGE OpenSSL encrypt [" << (DATA_SIZE >> 10) << "KB]";
   }
 
-  void start_up() override {
+  void start_up() final {
     for (int i = 0; i < DATA_SIZE; i++) {
       data[i] = 123;
     }
@@ -102,7 +102,7 @@ class AesIgeEncryptBench : public td::Benchmark {
     td::Random::secure_bytes(iv.raw, sizeof(iv));
   }
 
-  void run(int n) override {
+  void run(int n) final {
     td::MutableSlice data_slice(data, DATA_SIZE);
     td::AesIgeState state;
     state.init(as_slice(key), as_slice(iv), true);
@@ -118,11 +118,11 @@ class AesIgeDecryptBench : public td::Benchmark {
   td::UInt256 key;
   td::UInt256 iv;
 
-  std::string get_description() const override {
+  std::string get_description() const final {
     return PSTRING() << "AES IGE OpenSSL decrypt [" << (DATA_SIZE >> 10) << "KB]";
   }
 
-  void start_up() override {
+  void start_up() final {
     for (int i = 0; i < DATA_SIZE; i++) {
       data[i] = 123;
     }
@@ -130,7 +130,7 @@ class AesIgeDecryptBench : public td::Benchmark {
     td::Random::secure_bytes(iv.raw, sizeof(iv));
   }
 
-  void run(int n) override {
+  void run(int n) final {
     td::MutableSlice data_slice(data, DATA_SIZE);
     td::AesIgeState state;
     state.init(as_slice(key), as_slice(iv), false);
@@ -146,11 +146,11 @@ class AesCtrBench : public td::Benchmark {
   td::UInt256 key;
   td::UInt128 iv;
 
-  std::string get_description() const override {
+  std::string get_description() const final {
     return PSTRING() << "AES CTR OpenSSL [" << (DATA_SIZE >> 10) << "KB]";
   }
 
-  void start_up() override {
+  void start_up() final {
     for (int i = 0; i < DATA_SIZE; i++) {
       data[i] = 123;
     }
@@ -158,7 +158,7 @@ class AesCtrBench : public td::Benchmark {
     td::Random::secure_bytes(iv.raw, sizeof(iv));
   }
 
-  void run(int n) override {
+  void run(int n) final {
     td::MutableSlice data_slice(data, DATA_SIZE);
     td::AesCtrState state;
     state.init(as_slice(key), as_slice(iv));
@@ -175,11 +175,11 @@ class AesCtrOpenSSLBench : public td::Benchmark {
   td::UInt256 key;
   td::UInt128 iv;
 
-  std::string get_description() const override {
+  std::string get_description() const final {
     return PSTRING() << "AES CTR RAW OpenSSL [" << (DATA_SIZE >> 10) << "KB]";
   }
 
-  void start_up() override {
+  void start_up() final {
     for (int i = 0; i < DATA_SIZE; i++) {
       data[i] = 123;
     }
@@ -187,7 +187,7 @@ class AesCtrOpenSSLBench : public td::Benchmark {
     td::Random::secure_bytes(iv.raw, sizeof(iv));
   }
 
-  void run(int n) override {
+  void run(int n) final {
     EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
     EVP_EncryptInit_ex(ctx, EVP_aes_256_ctr(), nullptr, key.raw, iv.raw);
 
@@ -211,11 +211,11 @@ class AesCbcDecryptBench : public td::Benchmark {
   td::UInt256 key;
   td::UInt128 iv;
 
-  std::string get_description() const override {
+  std::string get_description() const final {
     return PSTRING() << "AES CBC Decrypt OpenSSL [" << (DATA_SIZE >> 10) << "KB]";
   }
 
-  void start_up() override {
+  void start_up() final {
     for (int i = 0; i < DATA_SIZE; i++) {
       data[i] = 123;
     }
@@ -223,7 +223,7 @@ class AesCbcDecryptBench : public td::Benchmark {
     td::Random::secure_bytes(as_slice(iv));
   }
 
-  void run(int n) override {
+  void run(int n) final {
     td::MutableSlice data_slice(data, DATA_SIZE);
     for (int i = 0; i < n; i++) {
       td::aes_cbc_decrypt(as_slice(key), as_slice(iv), data_slice, data_slice);
@@ -237,11 +237,11 @@ class AesCbcEncryptBench : public td::Benchmark {
   td::UInt256 key;
   td::UInt128 iv;
 
-  std::string get_description() const override {
+  std::string get_description() const final {
     return PSTRING() << "AES CBC Encrypt OpenSSL [" << (DATA_SIZE >> 10) << "KB]";
   }
 
-  void start_up() override {
+  void start_up() final {
     for (int i = 0; i < DATA_SIZE; i++) {
       data[i] = 123;
     }
@@ -249,7 +249,7 @@ class AesCbcEncryptBench : public td::Benchmark {
     td::Random::secure_bytes(as_slice(iv));
   }
 
-  void run(int n) override {
+  void run(int n) final {
     td::MutableSlice data_slice(data, DATA_SIZE);
     for (int i = 0; i < n; i++) {
       td::aes_cbc_encrypt(as_slice(key), as_slice(iv), data_slice, data_slice);
@@ -264,11 +264,11 @@ class AesIgeShortBench : public td::Benchmark {
   td::UInt256 key;
   td::UInt256 iv;
 
-  std::string get_description() const override {
+  std::string get_description() const final {
     return PSTRING() << "AES IGE OpenSSL " << (use_state ? "EVP" : "C  ") << "[" << SHORT_DATA_SIZE << "B]";
   }
 
-  void start_up() override {
+  void start_up() final {
     for (int i = 0; i < SHORT_DATA_SIZE; i++) {
       data[i] = 123;
     }
@@ -276,7 +276,7 @@ class AesIgeShortBench : public td::Benchmark {
     td::Random::secure_bytes(as_slice(iv));
   }
 
-  void run(int n) override {
+  void run(int n) final {
     td::MutableSlice data_slice(data, SHORT_DATA_SIZE);
     for (int i = 0; i < n; i++) {
       if (use_state) {
@@ -367,18 +367,18 @@ class Crc32Bench : public td::Benchmark {
  public:
   alignas(64) unsigned char data[DATA_SIZE];
 
-  std::string get_description() const override {
+  std::string get_description() const final {
     return PSTRING() << "Crc32 zlib [" << (DATA_SIZE >> 10) << "KB]";
   }
 
-  void start_up() override {
+  void start_up() final {
     for (int i = 0; i < DATA_SIZE; i++) {
       data[i] = 123;
       data[i] = 0;
     }
   }
 
-  void run(int n) override {
+  void run(int n) final {
     td::uint64 res = 0;
     for (int i = 0; i < n; i++) {
       res += td::crc32(td::Slice(data, DATA_SIZE));
@@ -391,18 +391,18 @@ class Crc64Bench : public td::Benchmark {
  public:
   alignas(64) unsigned char data[DATA_SIZE];
 
-  std::string get_description() const override {
+  std::string get_description() const final {
     return PSTRING() << "Crc64 Anton [" << (DATA_SIZE >> 10) << "KB]";
   }
 
-  void start_up() override {
+  void start_up() final {
     for (int i = 0; i < DATA_SIZE; i++) {
       data[i] = 123;
       data[i] = 0;
     }
   }
 
-  void run(int n) override {
+  void run(int n) final {
     td::uint64 res = 0;
     for (int i = 0; i < n; i++) {
       res += td::crc64(td::Slice(data, DATA_SIZE));

@@ -130,8 +130,8 @@ class StateManager final : public Actor {
   enum class Flag : int32 { Online, State, Network, LoggingOut };
   void notify_flag(Flag flag);
 
-  void start_up() override;
-  void loop() override;
+  void start_up() final;
+  void loop() final;
 
   void on_network_soft();
   void do_on_network(NetType new_network_type, bool inc_generation);

@@ -236,7 +236,7 @@ class CliClient final : public Actor {
   }
 
  private:
-  void start_up() override {
+  void start_up() final {
     yield();
   }
 
@@ -919,17 +919,17 @@ class CliClient final : public Actor {
      public:
       TdCallbackImpl(CliClient *client, uint64 generation) : client_(client), generation_(generation) {
       }
-      void on_result(uint64 id, td_api::object_ptr<td_api::Object> result) override {
+      void on_result(uint64 id, td_api::object_ptr<td_api::Object> result) final {
         client_->on_result(generation_, id, std::move(result));
       }
-      void on_error(uint64 id, td_api::object_ptr<td_api::error> error) override {
+      void on_error(uint64 id, td_api::object_ptr<td_api::error> error) final {
         client_->on_error(generation_, id, std::move(error));
       }
       TdCallbackImpl(const TdCallbackImpl &) = delete;
       TdCallbackImpl &operator=(const TdCallbackImpl &) = delete;
       TdCallbackImpl(TdCallbackImpl &&) = delete;
       TdCallbackImpl &operator=(TdCallbackImpl &&) = delete;
-      ~TdCallbackImpl() override {
+      ~TdCallbackImpl() final {
         client_->on_closed(generation_);
       }
 
@@ -4349,7 +4349,7 @@ class CliClient final : public Actor {
   }
 
   bool is_inited_ = false;
-  void loop() override {
+  void loop() final {
     if (!is_inited_) {
       is_inited_ = true;
       init();
@@ -4385,7 +4385,7 @@ class CliClient final : public Actor {
     }
   }
 
-  void timeout_expired() override {
+  void timeout_expired() final {
     if (close_flag_) {
       return;
     }
@@ -4426,12 +4426,12 @@ class CliClient final : public Actor {
     }
   }
 
-  void notify() override {
+  void notify() final {
     auto guard = scheduler_->get_send_guard();
     send_event_later(actor_id(), Event::yield());
   }
 
-  void hangup_shared() override {
+  void hangup_shared() final {
     CHECK(get_link_token() == 1);
     LOG(INFO) << "StdinReader stopped";
     is_stdin_reader_stopped_ = true;
@@ -4607,7 +4607,7 @@ void main(int argc, char **argv) {
       }
 
      private:
-      void start_up() override {
+      void start_up() final {
         create_actor<CliClient>("CliClient", scheduler_, use_test_dc_, get_chat_list_, disable_network_, api_id_,
                                 api_hash_)
             .release();

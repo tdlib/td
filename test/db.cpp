@@ -560,7 +560,7 @@ TEST(DB, persistent_key_value) {
              std::vector<DbQuery> *res)
           : parent_(std::move(parent)), kv_(std::move(kv)), queries_(queries), res_(res) {
       }
-      void loop() override {
+      void loop() final {
         for (auto q : *queries_) {
           kv_->do_query(q);
           res_->push_back(q);
@@ -580,7 +580,7 @@ TEST(DB, persistent_key_value) {
           : threads_n_(threads_n), queries_(queries), res_(res), ref_cnt_(threads_n) {
       }
 
-      void start_up() override {
+      void start_up() final {
         LOG(INFO) << "Start up";
         kv_->impl().init("test_pmc").ensure();
         for (int i = 0; i < threads_n_; i++) {
@@ -589,11 +589,11 @@ TEST(DB, persistent_key_value) {
         }
       }
 
-      void tear_down() override {
+      void tear_down() final {
         LOG(INFO) << "Tear down";
         // kv_->impl().close();
       }
-      void hangup_shared() override {
+      void hangup_shared() final {
         LOG(INFO) << "Hang up";
         ref_cnt_--;
         if (ref_cnt_ == 0) {
@@ -602,7 +602,7 @@ TEST(DB, persistent_key_value) {
           stop();
         }
       }
-      void hangup() override {
+      void hangup() final {
         LOG(ERROR) << "BAD HANGUP";
       }
 

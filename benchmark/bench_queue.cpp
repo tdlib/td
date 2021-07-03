@@ -575,16 +575,16 @@ class QueueBenchmark2 : public td::Benchmark {
   explicit QueueBenchmark2(int connections_n = 1) : connections_n(connections_n) {
   }
 
-  std::string get_description() const override {
+  std::string get_description() const final {
     return "QueueBenchmark2";
   }
 
-  void start_up() override {
+  void start_up() final {
     client.init();
     server.init();
   }
 
-  void tear_down() override {
+  void tear_down() final {
     client.destroy();
     server.destroy();
   }
@@ -689,7 +689,7 @@ class QueueBenchmark2 : public td::Benchmark {
     return static_cast<QueueBenchmark2 *>(arg)->server_run(nullptr);
   }
 
-  void run(int n) override {
+  void run(int n) final {
     pthread_t client_thread_id;
     pthread_t server_thread_id;
 
@@ -713,16 +713,16 @@ class QueueBenchmark : public td::Benchmark {
   explicit QueueBenchmark(int connections_n = 1) : connections_n(connections_n) {
   }
 
-  std::string get_description() const override {
+  std::string get_description() const final {
     return "QueueBenchmark";
   }
 
-  void start_up() override {
+  void start_up() final {
     client.init();
     server.init();
   }
 
-  void tear_down() override {
+  void tear_down() final {
     client.destroy();
     server.destroy();
   }
@@ -821,7 +821,7 @@ class QueueBenchmark : public td::Benchmark {
     return static_cast<QueueBenchmark *>(arg)->server_run(nullptr);
   }
 
-  void run(int n) override {
+  void run(int n) final {
     pthread_t client_thread_id;
     pthread_t server_thread_id;
 
@@ -869,7 +869,7 @@ class RingBenchmark : public td::Benchmark {
     return static_cast<Thread *>(arg)->run();
   }
 
-  void start_up() override {
+  void start_up() final {
     for (int i = 0; i < QN; i++) {
       q[i].int_id = i;
       q[i].queue.init();
@@ -877,13 +877,13 @@ class RingBenchmark : public td::Benchmark {
     }
   }
 
-  void tear_down() override {
+  void tear_down() final {
     for (int i = 0; i < QN; i++) {
       q[i].queue.destroy();
     }
   }
 
-  void run(int n) override {
+  void run(int n) final {
     for (int i = 0; i < QN; i++) {
       pthread_create(&q[i].id, nullptr, run_gateway, &q[i]);
     }

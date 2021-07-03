@@ -106,12 +106,12 @@ class TopDialogManager : public NetQueryCallback {
 
   void on_first_sync();
 
-  void on_result(NetQueryPtr net_query) override;
+  void on_result(NetQueryPtr net_query) final;
 
   void init();
 
-  void start_up() override;
-  void loop() override;
+  void start_up() final;
+  void loop() final;
 };
 
 }  // namespace td

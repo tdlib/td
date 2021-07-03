@@ -80,17 +80,17 @@ class TestClient : public td::Actor {
      public:
       explicit TdCallbackImpl(td::ActorId<TestClient> client) : client_(client) {
       }
-      void on_result(td::uint64 id, td::tl_object_ptr<td::td_api::Object> result) override {
+      void on_result(td::uint64 id, td::tl_object_ptr<td::td_api::Object> result) final {
         send_closure(client_, &TestClient::on_result, id, std::move(result));
       }
-      void on_error(td::uint64 id, td::tl_object_ptr<td::td_api::error> error) override {
+      void on_error(td::uint64 id, td::tl_object_ptr<td::td_api::error> error) final {
         send_closure(client_, &TestClient::on_error, id, std::move(error));
       }
       TdCallbackImpl(const TdCallbackImpl &) = delete;
       TdCallbackImpl &operator=(const TdCallbackImpl &) = delete;
       TdCallbackImpl(TdCallbackImpl &&) = delete;
       TdCallbackImpl &operator=(TdCallbackImpl &&) = delete;
-      ~TdCallbackImpl() override {
+      ~TdCallbackImpl() final {
         send_closure(client_, &TestClient::on_closed);
       }
 
@@ -141,7 +141,7 @@ class TestClient : public td::Actor {
     stop();
   }
 
-  void start_up() override {
+  void start_up() final {
     td::rmrf(name_).ignore();
     auto old_context = set_context(std::make_shared<td::ActorContext>());
     set_tag(name_);
@@ -163,7 +163,7 @@ class TestClient : public td::Actor {
 
 class TestClinetTask : public TestClient::Listener {
  public:
-  void on_update(std::shared_ptr<TestClient::Update> update) override {
+  void on_update(std::shared_ptr<TestClient::Update> update) final {
     auto it = sent_queries_.find(update->id);
     if (it != sent_queries_.end()) {
       it->second(std::move(update->object));
@@ -171,7 +171,7 @@ class TestClinetTask : public TestClient::Listener {
     }
     process_update(update);
   }
-  void start_listen(TestClient *client) override {
+  void start_listen(TestClient *client) final {
     client_ = client;
     start_up();
   }
@@ -202,7 +202,7 @@ class DoAuthentication : public TestClinetTask {
   DoAuthentication(td::string name, td::string phone, td::string code, td::Promise<> promise)
       : name_(std::move(name)), phone_(std::move(phone)), code_(std::move(code)), promise_(std::move(promise)) {
   }
-  void start_up() override {
+  void start_up() final {
     send_query(td::make_tl_object<td::td_api::getAuthorizationState>(),
                [this](auto res) { this->process_authorization_state(std::move(res)); });
   }
@@ -259,7 +259,7 @@ class DoAuthentication : public TestClinetTask {
   td::Promise<> promise_;
   bool start_flag_{false};
 
-  void process_update(std::shared_ptr<TestClient::Update> update) override {
+  void process_update(std::shared_ptr<TestClient::Update> update) final {
     if (!start_flag_) {
       return;
     }
@@ -285,7 +285,7 @@ class SetUsername : public TestClinetTask {
   td::int32 self_id_ = 0;
   td::string tag_;
 
-  void start_up() override {
+  void start_up() final {
     send_query(td::make_tl_object<td::td_api::getMe>(), [this](auto res) { this->process_me_user(std::move(res)); });
   }
 
@@ -319,7 +319,7 @@ class SetUsername : public TestClinetTask {
     });
   }
 
-  void process_update(std::shared_ptr<TestClient::Update> update) override {
+  void process_update(std::shared_ptr<TestClient::Update> update) final {
     if (!update->object) {
       return;
     }
@@ -349,7 +349,7 @@ class CheckTestA : public TestClinetTask {
   td::string previous_text_;
   int cnt_ = 20;
 
-  void process_update(std::shared_ptr<TestClient::Update> update) override {
+  void process_update(std::shared_ptr<TestClient::Update> update) final {
     if (update->object->get_id() == td::td_api::updateNewMessage::ID) {
       auto updateNewMessage = td::move_tl_object_as<td::td_api::updateNewMessage>(update->object);
       auto &message = updateNewMessage->message_;
@@ -375,7 +375,7 @@ class TestA : public TestClinetTask {
   TestA(td::string tag, td::string username) : tag_(std::move(tag)), username_(std::move(username)) {
   }
 
-  void start_up() override {
+  void start_up() final {
     send_query(td::make_tl_object<td::td_api::searchPublicChat>(username_), [this](auto res) {
       CHECK(res->get_id() == td::td_api::chat::ID);
       auto chat = td::move_tl_object_as<td::td_api::chat>(res);
@@ -401,7 +401,7 @@ class TestSecretChat : public TestClinetTask {
   TestSecretChat(td::string tag, td::string username) : tag_(std::move(tag)), username_(std::move(username)) {
   }
 
-  void start_up() override {
+  void start_up() final {
     auto f = [this](auto res) {
       CHECK(res->get_id() == td::td_api::chat::ID);
       auto chat = td::move_tl_object_as<td::td_api::chat>(res);
@@ -417,7 +417,7 @@ class TestSecretChat : public TestClinetTask {
     });
   }
 
-  void process_update(std::shared_ptr<TestClient::Update> update) override {
+  void process_update(std::shared_ptr<TestClient::Update> update) final {
     if (!update->object) {
       return;
     }
@@ -452,10 +452,10 @@ class TestFileGenerated : public TestClinetTask {
   TestFileGenerated(td::string tag, td::string username) : tag_(std::move(tag)), username_(std::move(username)) {
   }
 
-  void start_up() override {
+  void start_up() final {
   }
 
-  void process_update(std::shared_ptr<TestClient::Update> update) override {
+  void process_update(std::shared_ptr<TestClient::Update> update) final {
     if (!update->object) {
       return;
     }
@@ -532,7 +532,7 @@ class TestFileGenerated : public TestClinetTask {
     FILE *from = nullptr;
     FILE *to = nullptr;
 
-    void start_up() override {
+    void start_up() final {
       from = std::fopen(original_path_.c_str(), "rb");
       CHECK(from);
       to = std::fopen(destination_path_.c_str(), "wb");
@@ -540,7 +540,7 @@ class TestFileGenerated : public TestClinetTask {
       yield();
     }
 
-    void loop() override {
+    void loop() final {
       int cnt = 0;
       while (true) {
         td::uint32 x;
@@ -560,7 +560,7 @@ class TestFileGenerated : public TestClinetTask {
                           [](auto result) { check_td_error(result); });
       set_timeout_in(0.02);
     }
-    void tear_down() override {
+    void tear_down() final {
       std::fclose(from);
       std::fclose(to);
       parent_->send_query(td::make_tl_object<td::td_api::finishFileGeneration>(id_, nullptr),
@@ -594,7 +594,7 @@ class CheckTestC : public TestClinetTask {
       : username_(std::move(username)), tag_(std::move(tag)), promise_(std::move(promise)) {
   }
 
-  void start_up() override {
+  void start_up() final {
     send_query(td::make_tl_object<td::td_api::searchPublicChat>(username_), [this](auto res) {
       CHECK(res->get_id() == td::td_api::chat::ID);
       auto chat = td::move_tl_object_as<td::td_api::chat>(res);
@@ -618,7 +618,7 @@ class CheckTestC : public TestClinetTask {
                [](auto res) { check_td_error(res); });
   }
 
-  void process_update(std::shared_ptr<TestClient::Update> update) override {
+  void process_update(std::shared_ptr<TestClient::Update> update) final {
     if (!update->object) {
       return;
     }
@@ -682,7 +682,7 @@ class LoginTestActor : public td::Actor {
     set_timeout_in(timeout);
   }
 
-  void start_up() override {
+  void start_up() final {
     begin_stage("Logging in", 160);
     alice_ = td::create_actor<TestClient>("AliceClient", "alice");
     bob_ = td::create_actor<TestClient>("BobClient", "bob");
@@ -709,10 +709,10 @@ class LoginTestActor : public td::Actor {
        public:
         WaitActor(double timeout, td::Promise<> promise) : timeout_(timeout), promise_(std::move(promise)) {
         }
-        void start_up() override {
+        void start_up() final {
           set_timeout_in(timeout_);
         }
-        void timeout_expired() override {
+        void timeout_expired() final {
           stop();
         }
 
@@ -766,7 +766,7 @@ class LoginTestActor : public td::Actor {
     // td::send_closure(alice_, &TestClient::add_listener, td::make_unique<TestChat>(bob_username_));
   }
 
-  void timeout_expired() override {
+  void timeout_expired() final {
     LOG(FATAL) << "Timeout expired in stage '" << stage_name_ << "'";
   }
 

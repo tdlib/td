@@ -35,7 +35,7 @@ class SetBotCommandsQuery : public Td::ResultHandler {
         transform(commands, [](const BotCommand &command) { return command.get_input_bot_command(); }))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::bots_setBotCommands>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -47,7 +47,7 @@ class SetBotCommandsQuery : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -64,7 +64,7 @@ class ResetBotCommandsQuery : public Td::ResultHandler {
         telegram_api::bots_resetBotCommands(scope.get_input_bot_command_scope(td), language_code)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::bots_resetBotCommands>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -73,7 +73,7 @@ class ResetBotCommandsQuery : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -91,7 +91,7 @@ class GetBotCommandsQuery : public Td::ResultHandler {
         telegram_api::bots_getBotCommands(scope.get_input_bot_command_scope(td), language_code)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::bots_getBotCommands>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -101,7 +101,7 @@ class GetBotCommandsQuery : public Td::ResultHandler {
     promise_.set_value(commands.get_bot_commands_object(td));
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     promise_.set_error(std::move(status));
   }
 };

@@ -32,7 +32,7 @@ class LambdaDestructor : public Destructor {
   LambdaDestructor &operator=(const LambdaDestructor &other) = delete;
   LambdaDestructor(LambdaDestructor &&other) = default;
   LambdaDestructor &operator=(LambdaDestructor &&other) = default;
-  ~LambdaDestructor() override {
+  ~LambdaDestructor() final {
     f_();
   }
 

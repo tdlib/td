@@ -31,9 +31,9 @@ class HttpInboundConnection final : public detail::HttpConnectionBase {
                         ActorShared<Callback> callback, int32 slow_scheduler_id = -1);
 
  private:
-  void on_query(unique_ptr<HttpQuery> query) override;
-  void on_error(Status error) override;
-  void hangup() override {
+  void on_query(unique_ptr<HttpQuery> query) final;
+  void on_error(Status error) final;
+  void hangup() final {
     callback_.release();
     stop();
   }

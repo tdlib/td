@@ -34,7 +34,7 @@ class GoogleDnsResolver : public Actor {
   ActorOwn<Wget> wget_;
   double begin_time_ = 0;
 
-  void start_up() override {
+  void start_up() final {
     auto r_address = IPAddress::get_ip_address(host_);
     if (r_address.is_ok()) {
       promise_.set_value(r_address.move_as_ok());
@@ -97,7 +97,7 @@ class NativeDnsResolver : public Actor {
   bool prefer_ipv6_;
   Promise<IPAddress> promise_;
 
-  void start_up() override {
+  void start_up() final {
     IPAddress ip;
     auto begin_time = Time::now();
     auto status = ip.init_host_port(host_, 0, prefer_ipv6_);

@@ -41,7 +41,7 @@ class PollManager : public Actor {
   PollManager &operator=(const PollManager &) = delete;
   PollManager(PollManager &&) = delete;
   PollManager &operator=(PollManager &&) = delete;
-  ~PollManager() override;
+  ~PollManager() final;
 
   static bool is_local_poll_id(PollId poll_id);
 
@@ -138,8 +138,8 @@ class PollManager : public Actor {
   class SetPollAnswerLogEvent;
   class StopPollLogEvent;
 
-  void start_up() override;
-  void tear_down() override;
+  void start_up() final;
+  void tear_down() final;
 
   static void on_update_poll_timeout_callback(void *poll_manager_ptr, int64 poll_id_int);
 

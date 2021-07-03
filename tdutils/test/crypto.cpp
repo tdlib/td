@@ -366,10 +366,10 @@ TEST(Crypto, crc32c_benchmark) {
    public:
     explicit Crc32cExtendBenchmark(size_t chunk_size) : chunk_size_(chunk_size) {
     }
-    td::string get_description() const override {
+    td::string get_description() const final {
       return PSTRING() << "Crc32c with chunk_size=" << chunk_size_;
     }
-    void start_up_n(int n) override {
+    void start_up_n(int n) final {
       if (n > (1 << 20)) {
         cnt_ = n / (1 << 20);
         n = (1 << 20);
@@ -378,7 +378,7 @@ TEST(Crypto, crc32c_benchmark) {
       }
       data_ = td::string(n, 'a');
     }
-    void run(int n) override {
+    void run(int n) final {
       td::uint32 res = 0;
       for (int i = 0; i < cnt_; i++) {
         td::Slice data(data_);

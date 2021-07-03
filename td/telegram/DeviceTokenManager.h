@@ -76,15 +76,15 @@ class DeviceTokenManager : public NetQueryCallback {
   std::array<TokenInfo, TokenType::SIZE> tokens_;
   int32 sync_cnt_{0};
 
-  void start_up() override;
+  void start_up() final;
 
   static string get_database_key(int32 token_type);
   void save_info(int32 token_type);
 
   void dec_sync_cnt();
 
-  void loop() override;
-  void on_result(NetQueryPtr net_query) override;
+  void loop() final;
+  void on_result(NetQueryPtr net_query) final;
 };
 
 }  // namespace td

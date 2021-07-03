@@ -138,7 +138,7 @@ class BufferedStdinImpl : public Iocp::Callback {
       dec_refcnt();
     }
   }
-  void on_iocp(Result<size_t> r_size, WSAOVERLAPPED *overlapped) override {
+  void on_iocp(Result<size_t> r_size, WSAOVERLAPPED *overlapped) final {
     info_.add_flags_from_poll(PollFlags::Read());
     dec_refcnt();
   }

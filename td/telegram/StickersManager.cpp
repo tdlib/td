@@ -74,7 +74,7 @@ class GetAllStickersQuery : public Td::ResultHandler {
     }
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     static_assert(std::is_same<telegram_api::messages_getMaskStickers::ReturnType,
                                telegram_api::messages_getAllStickers::ReturnType>::value,
                   "");
@@ -88,7 +88,7 @@ class GetAllStickersQuery : public Td::ResultHandler {
     td->stickers_manager_->on_get_installed_sticker_sets(is_masks_, std::move(ptr));
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for get all stickers: " << status;
     }
@@ -105,7 +105,7 @@ class SearchStickersQuery : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::messages_getStickers(emoji_, hash)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getStickers>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -116,7 +116,7 @@ class SearchStickersQuery : public Td::ResultHandler {
     td->stickers_manager_->on_find_stickers_success(emoji_, std::move(ptr));
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for search stickers: " << status;
     }
@@ -135,7 +135,7 @@ class GetEmojiKeywordsLanguageQuery : public Td::ResultHandler {
     send_query(
         G()->net_query_creator().create(telegram_api::messages_getEmojiKeywordsLanguages(std::move(language_codes))));
   }
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getEmojiKeywordsLanguages>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -146,7 +146,7 @@ class GetEmojiKeywordsLanguageQuery : public Td::ResultHandler {
     promise_.set_value(std::move(result));
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -163,7 +163,7 @@ class GetEmojiKeywordsQuery : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::messages_getEmojiKeywords(language_code)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getEmojiKeywords>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -172,7 +172,7 @@ class GetEmojiKeywordsQuery : public Td::ResultHandler {
     promise_.set_value(result_ptr.move_as_ok());
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -191,7 +191,7 @@ class GetEmojiKeywordsDifferenceQuery : public Td::ResultHandler {
         G()->net_query_creator().create(telegram_api::messages_getEmojiKeywordsDifference(language_code, version)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getEmojiKeywordsDifference>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -200,7 +200,7 @@ class GetEmojiKeywordsDifferenceQuery : public Td::ResultHandler {
     promise_.set_value(result_ptr.move_as_ok());
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -217,7 +217,7 @@ class GetEmojiUrlQuery : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::messages_getEmojiURL(language_code)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getEmojiURL>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -226,7 +226,7 @@ class GetEmojiUrlQuery : public Td::ResultHandler {
     promise_.set_value(result_ptr.move_as_ok());
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -256,7 +256,7 @@ class GetArchivedStickerSetsQuery : public Td::ResultHandler {
         telegram_api::messages_getArchivedStickers(flags, is_masks /*ignored*/, offset_sticker_set_id.get(), limit)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getArchivedStickers>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -270,7 +270,7 @@ class GetArchivedStickerSetsQuery : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -282,7 +282,7 @@ class GetFeaturedStickerSetsQuery : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::messages_getFeaturedStickers(hash)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getFeaturedStickers>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -293,7 +293,7 @@ class GetFeaturedStickerSetsQuery : public Td::ResultHandler {
     td->stickers_manager_->on_get_featured_sticker_sets(-1, -1, 0, std::move(ptr));
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     td->stickers_manager_->on_get_featured_sticker_sets_failed(-1, -1, 0, std::move(status));
   }
 };
@@ -312,7 +312,7 @@ class GetOldFeaturedStickerSetsQuery : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::messages_getOldFeaturedStickers(offset, limit, 0)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getOldFeaturedStickers>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -323,7 +323,7 @@ class GetOldFeaturedStickerSetsQuery : public Td::ResultHandler {
     td->stickers_manager_->on_get_featured_sticker_sets(offset_, limit_, generation_, std::move(ptr));
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     td->stickers_manager_->on_get_featured_sticker_sets_failed(offset_, limit_, generation_, std::move(status));
   }
 };
@@ -345,7 +345,7 @@ class GetAttachedStickerSetsQuery : public Td::ResultHandler {
         G()->net_query_creator().create(telegram_api::messages_getAttachedStickers(std::move(input_stickered_media))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getAttachedStickers>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -356,7 +356,7 @@ class GetAttachedStickerSetsQuery : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     if (!td->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(status)) {
       VLOG(file_references) << "Receive " << status << " for " << file_id_;
       td->file_manager_->delete_file_reference(file_id_, file_reference_);
@@ -394,7 +394,7 @@ class GetRecentStickersQuery : public Td::ResultHandler {
         telegram_api::messages_getRecentStickers(flags, is_attached /*ignored*/, hash)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getRecentStickers>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -406,7 +406,7 @@ class GetRecentStickersQuery : public Td::ResultHandler {
     td->stickers_manager_->on_get_recent_stickers(is_repair_, is_attached_, std::move(ptr));
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for get recent " << (is_attached_ ? "attached " : "") << "stickers: " << status;
     }
@@ -443,7 +443,7 @@ class SaveRecentStickerQuery : public Td::ResultHandler {
         telegram_api::messages_saveRecentSticker(flags, is_attached /*ignored*/, std::move(input_document), unsave)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_saveRecentSticker>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -458,7 +458,7 @@ class SaveRecentStickerQuery : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     if (!td->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(status)) {
       VLOG(file_references) << "Receive " << status << " for " << file_id_;
       td->file_manager_->delete_file_reference(file_id_, file_reference_);
@@ -503,7 +503,7 @@ class ClearRecentStickersQuery : public Td::ResultHandler {
         G()->net_query_creator().create(telegram_api::messages_clearRecentStickers(flags, is_attached /*ignored*/)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_clearRecentStickers>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -518,7 +518,7 @@ class ClearRecentStickersQuery : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for clear recent " << (is_attached_ ? "attached " : "") << "stickers: " << status;
     }
@@ -537,7 +537,7 @@ class GetFavedStickersQuery : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::messages_getFavedStickers(hash)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getFavedStickers>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -547,7 +547,7 @@ class GetFavedStickersQuery : public Td::ResultHandler {
     td->stickers_manager_->on_get_favorite_stickers(is_repair_, std::move(ptr));
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for get favorite stickers: " << status;
     }
@@ -576,7 +576,7 @@ class FaveStickerQuery : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::messages_faveSticker(std::move(input_document), unsave)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_faveSticker>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -591,7 +591,7 @@ class FaveStickerQuery : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     if (!td->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(status)) {
       VLOG(file_references) << "Receive " << status << " for " << file_id_;
       td->file_manager_->delete_file_reference(file_id_, file_reference_);
@@ -630,7 +630,7 @@ class ReorderStickerSetsQuery : public Td::ResultHandler {
         flags, is_masks /*ignored*/, StickersManager::convert_sticker_set_ids(sticker_set_ids))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_reorderStickerSets>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -642,7 +642,7 @@ class ReorderStickerSetsQuery : public Td::ResultHandler {
     }
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for ReorderStickerSetsQuery: " << status;
     }
@@ -669,7 +669,7 @@ class GetStickerSetQuery : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::messages_getStickerSet(std::move(input_sticker_set))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getStickerSet>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -692,7 +692,7 @@ class GetStickerSetQuery : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     LOG(INFO) << "Receive error for GetStickerSetQuery: " << status;
     td->stickers_manager_->on_load_sticker_set_fail(sticker_set_id_, status);
     promise_.set_error(std::move(status));
@@ -708,7 +708,7 @@ class ReloadSpecialStickerSetQuery : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::messages_getStickerSet(type_.get_input_sticker_set())));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getStickerSet>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -723,7 +723,7 @@ class ReloadSpecialStickerSetQuery : public Td::ResultHandler {
     }
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     LOG(WARNING) << "Receive error for ReloadSpecialStickerSetQuery: " << status;
     td->stickers_manager_->on_load_special_sticker_set(type_, std::move(status));
   }
@@ -739,7 +739,7 @@ class SearchStickerSetsQuery : public Td::ResultHandler {
         G()->net_query_creator().create(telegram_api::messages_searchStickerSets(0, false /*ignored*/, query_, 0)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_searchStickerSets>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -750,7 +750,7 @@ class SearchStickerSetsQuery : public Td::ResultHandler {
     td->stickers_manager_->on_find_sticker_sets_success(query_, std::move(ptr));
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for search sticker sets: " << status;
     }
@@ -774,7 +774,7 @@ class InstallStickerSetQuery : public Td::ResultHandler {
         G()->net_query_creator().create(telegram_api::messages_installStickerSet(std::move(input_set), is_archived)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_installStickerSet>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -785,7 +785,7 @@ class InstallStickerSetQuery : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     CHECK(status.is_error());
     promise_.set_error(std::move(status));
   }
@@ -804,7 +804,7 @@ class UninstallStickerSetQuery : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::messages_uninstallStickerSet(std::move(input_set))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_uninstallStickerSet>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -820,7 +820,7 @@ class UninstallStickerSetQuery : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     CHECK(status.is_error());
     promise_.set_error(std::move(status));
   }
@@ -834,7 +834,7 @@ class ReadFeaturedStickerSetsQuery : public Td::ResultHandler {
         telegram_api::messages_readFeaturedStickers(StickersManager::convert_sticker_set_ids(sticker_set_ids))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_readFeaturedStickers>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -844,7 +844,7 @@ class ReadFeaturedStickerSetsQuery : public Td::ResultHandler {
     (void)result;
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for ReadFeaturedStickerSetsQuery: " << status;
     }
@@ -871,7 +871,7 @@ class UploadStickerFileQuery : public Td::ResultHandler {
         telegram_api::messages_uploadMedia(std::move(input_peer), std::move(input_media))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_uploadMedia>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -880,7 +880,7 @@ class UploadStickerFileQuery : public Td::ResultHandler {
     td->stickers_manager_->on_uploaded_sticker_file(file_id_, result_ptr.move_as_ok(), std::move(promise_));
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     CHECK(status.is_error());
     if (was_uploaded_) {
       CHECK(file_id_.is_valid());
@@ -910,7 +910,7 @@ class SuggestStickerSetShortNameQuery : public Td::ResultHandler {
   void send(const string &title) {
     send_query(G()->net_query_creator().create(telegram_api::stickers_suggestShortName(title)));
   }
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::stickers_suggestShortName>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -920,7 +920,7 @@ class SuggestStickerSetShortNameQuery : public Td::ResultHandler {
     promise_.set_value(std::move(ptr->short_name_));
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     if (status.message() == "TITLE_INVALID") {
       return promise_.set_value(string());
     }
@@ -939,7 +939,7 @@ class CheckStickerSetShortNameQuery : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::stickers_checkShortName(short_name)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::stickers_checkShortName>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -948,7 +948,7 @@ class CheckStickerSetShortNameQuery : public Td::ResultHandler {
     promise_.set_value(result_ptr.move_as_ok());
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -981,7 +981,7 @@ class CreateNewStickerSetQuery : public Td::ResultHandler {
                                                 title, short_name, nullptr, std::move(input_stickers), software)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::stickers_createStickerSet>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -993,7 +993,7 @@ class CreateNewStickerSetQuery : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     CHECK(status.is_error());
     promise_.set_error(std::move(status));
   }
@@ -1011,7 +1011,7 @@ class AddStickerToSetQuery : public Td::ResultHandler {
         make_tl_object<telegram_api::inputStickerSetShortName>(short_name), std::move(input_sticker))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::stickers_addStickerToSet>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -1023,7 +1023,7 @@ class AddStickerToSetQuery : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     CHECK(status.is_error());
     promise_.set_error(std::move(status));
   }
@@ -1041,7 +1041,7 @@ class SetStickerSetThumbnailQuery : public Td::ResultHandler {
         make_tl_object<telegram_api::inputStickerSetShortName>(short_name), std::move(input_document))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::stickers_setStickerSetThumb>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -1053,7 +1053,7 @@ class SetStickerSetThumbnailQuery : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     CHECK(status.is_error());
     promise_.set_error(std::move(status));
   }
@@ -1071,7 +1071,7 @@ class SetStickerPositionQuery : public Td::ResultHandler {
         telegram_api::stickers_changeStickerPosition(std::move(input_document), position)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::stickers_changeStickerPosition>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -1083,7 +1083,7 @@ class SetStickerPositionQuery : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     CHECK(status.is_error());
     promise_.set_error(std::move(status));
   }
@@ -1100,7 +1100,7 @@ class DeleteStickerFromSetQuery : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::stickers_removeStickerFromSet(std::move(input_document))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::stickers_removeStickerFromSet>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -1112,7 +1112,7 @@ class DeleteStickerFromSetQuery : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     CHECK(status.is_error());
     promise_.set_error(std::move(status));
   }
@@ -1169,20 +1169,20 @@ class StickersManager::StickerSetListLogEvent {
 
 class StickersManager::UploadStickerFileCallback : public FileManager::UploadCallback {
  public:
-  void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) override {
+  void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) final {
     send_closure_later(G()->stickers_manager(), &StickersManager::on_upload_sticker_file, file_id,
                        std::move(input_file));
   }
 
-  void on_upload_encrypted_ok(FileId file_id, tl_object_ptr<telegram_api::InputEncryptedFile> input_file) override {
+  void on_upload_encrypted_ok(FileId file_id, tl_object_ptr<telegram_api::InputEncryptedFile> input_file) final {
     UNREACHABLE();
   }
 
-  void on_upload_secure_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file) override {
+  void on_upload_secure_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file) final {
     UNREACHABLE();
   }
 
-  void on_upload_error(FileId file_id, Status error) override {
+  void on_upload_error(FileId file_id, Status error) final {
     send_closure_later(G()->stickers_manager(), &StickersManager::on_upload_sticker_file_error, file_id,
                        std::move(error));
   }

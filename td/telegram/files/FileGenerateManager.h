@@ -62,9 +62,9 @@ class FileGenerateManager : public Actor {
   std::map<uint64, Query> query_id_to_query_;
   bool close_flag_ = false;
 
-  void hangup() override;
-  void hangup_shared() override;
-  void loop() override;
+  void hangup() final;
+  void hangup_shared() final;
+  void loop() final;
   void do_cancel(uint64 query_id);
 };
 

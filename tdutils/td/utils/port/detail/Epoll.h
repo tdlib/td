@@ -29,19 +29,19 @@ class Epoll final : public PollBase {
   Epoll &operator=(const Epoll &) = delete;
   Epoll(Epoll &&) = delete;
   Epoll &operator=(Epoll &&) = delete;
-  ~Epoll() override = default;
+  ~Epoll() final = default;
 
-  void init() override;
+  void init() final;
 
-  void clear() override;
+  void clear() final;
 
-  void subscribe(PollableFd fd, PollFlags flags) override;
+  void subscribe(PollableFd fd, PollFlags flags) final;
 
-  void unsubscribe(PollableFdRef fd) override;
+  void unsubscribe(PollableFdRef fd) final;
 
-  void unsubscribe_before_close(PollableFdRef fd) override;
+  void unsubscribe_before_close(PollableFdRef fd) final;
 
-  void run(int timeout_ms) override;
+  void run(int timeout_ms) final;
 
   static bool is_edge_triggered() {
     return true;

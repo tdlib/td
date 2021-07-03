@@ -65,7 +65,7 @@ class TimeoutManager : public Actor {
   TimeoutManager &operator=(const TimeoutManager &) = delete;
   TimeoutManager(TimeoutManager &&) = delete;
   TimeoutManager &operator=(TimeoutManager &&) = delete;
-  ~TimeoutManager() override {
+  ~TimeoutManager() final {
     count--;
     LOG(INFO) << "Destroy TimeoutManager";
   }

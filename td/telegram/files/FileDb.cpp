@@ -176,24 +176,24 @@ class FileDb : public FileDbInterface {
         create_actor_on_scheduler<FileDbActor>("FileDbActor", scheduler_id, current_pmc_id_, file_kv_safe_);
   }
 
-  FileDbId create_pmc_id() override {
+  FileDbId create_pmc_id() final {
     current_pmc_id_ = FileDbId(current_pmc_id_.get() + 1);
     return current_pmc_id_;
   }
 
-  void close(Promise<> promise) override {
+  void close(Promise<> promise) final {
     send_closure(std::move(file_db_actor_), &FileDbActor::close, std::move(promise));
   }
 
-  void get_file_data_impl(string key, Promise<FileData> promise) override {
+  void get_file_data_impl(string key, Promise<FileData> promise) final {
     send_closure(file_db_actor_, &FileDbActor::load_file_data, std::move(key), std::move(promise));
   }
 
-  Result<FileData> get_file_data_sync_impl(string key) override {
+  Result<FileData> get_file_data_sync_impl(string key) final {
     return load_file_data_impl(file_db_actor_.get(), file_kv_safe_->get(), key, current_pmc_id_);
   }
 
-  void clear_file_data(FileDbId id, const FileData &file_data) override {
+  void clear_file_data(FileDbId id, const FileData &file_data) final {
     string remote_key;
     if (file_data.remote_.type() == RemoteFileLocation::Type::Full) {
       remote_key = as_key(file_data.remote_.full());
@@ -208,8 +208,7 @@ class FileDb : public FileDbInterface {
     }
     send_closure(file_db_actor_, &FileDbActor::clear_file_data, id, remote_key, local_key, generate_key);
   }
-  void set_file_data(FileDbId id, const FileData &file_data, bool new_remote, bool new_local,
-                     bool new_generate) override {
+  void set_file_data(FileDbId id, const FileData &file_data, bool new_remote, bool new_local, bool new_generate) final {
     string remote_key;
     if (file_data.remote_.type() == RemoteFileLocation::Type::Full && new_remote) {
       remote_key = as_key(file_data.remote_.full());
@@ -230,10 +229,10 @@ class FileDb : public FileDbInterface {
                  generate_key);
   }
 
-  void set_file_data_ref(FileDbId id, FileDbId new_id) override {
+  void set_file_data_ref(FileDbId id, FileDbId new_id) final {
     send_closure(file_db_actor_, &FileDbActor::store_file_data_ref, id, new_id);
   }
-  SqliteKeyValue &pmc() override {
+  SqliteKeyValue &pmc() final {
     return file_kv_safe_->get();
   }
 

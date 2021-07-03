@@ -36,7 +36,7 @@ class GetNearestDcQuery : public Td::ResultHandler {
     send_query(G()->net_query_creator().create_unauth(telegram_api::help_getNearestDc()));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::help_getNearestDc>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -46,7 +46,7 @@ class GetNearestDcQuery : public Td::ResultHandler {
     promise_.set_value(std::move(result->country_));
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     if (!G()->is_expected_error(status) && status.message() != "BOT_METHOD_INVALID") {
       LOG(ERROR) << "GetNearestDc returned " << status;
     }
@@ -67,7 +67,7 @@ class GetCountriesListQuery : public Td::ResultHandler {
     send_query(G()->net_query_creator().create_unauth(telegram_api::help_getCountriesList(language_code, hash)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::help_getCountriesList>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -76,7 +76,7 @@ class GetCountriesListQuery : public Td::ResultHandler {
     promise_.set_value(result_ptr.move_as_ok());
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "GetCountriesList returned " << status;
     }

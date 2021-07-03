@@ -48,7 +48,7 @@ class GetSavedGifsQuery : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::messages_getSavedGifs(hash)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getSavedGifs>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -58,7 +58,7 @@ class GetSavedGifsQuery : public Td::ResultHandler {
     td->animations_manager_->on_get_saved_animations(is_repair_, std::move(ptr));
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for get saved animations: " << status;
     }
@@ -86,7 +86,7 @@ class SaveGifQuery : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::messages_saveGif(std::move(input_document), unsave)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) override {
+  void on_result(uint64 id, BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_saveGif>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -101,7 +101,7 @@ class SaveGifQuery : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) override {
+  void on_error(uint64 id, Status status) final {
     if (!td->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(status)) {
       VLOG(file_references) << "Receive " << status << " for " << file_id_;
       td->file_manager_->delete_file_reference(file_id_, file_reference_);

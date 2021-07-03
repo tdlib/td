@@ -155,11 +155,11 @@ class PrivacyManager : public NetQueryCallback {
   void do_update_privacy(UserPrivacySetting user_privacy_setting, UserPrivacySettingRules &&privacy_rules,
                          bool from_update);
 
-  void on_result(NetQueryPtr query) override;
+  void on_result(NetQueryPtr query) final;
   Container<Promise<NetQueryPtr>> container_;
   void send_with_promise(NetQueryPtr query, Promise<NetQueryPtr> promise);
 
-  void hangup() override;
+  void hangup() final;
 };
 
 }  // namespace td

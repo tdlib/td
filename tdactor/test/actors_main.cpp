@@ -147,7 +147,7 @@ class QueryActor final : public Actor {
     }
   }
 
-  void raw_event(const Event::Raw &event) override {
+  void raw_event(const Event::Raw &event) final {
     uint32 id = event.u32;
     auto it = pending_.find(id);
     auto future = std::move(it->second.first);
@@ -163,12 +163,12 @@ class QueryActor final : public Actor {
     stop();
   }
 
-  void on_start_migrate(int32 sched_id) override {
+  void on_start_migrate(int32 sched_id) final {
     for (auto &it : pending_) {
       start_migrate(it.second.first, sched_id);
     }
   }
-  void on_finish_migrate() override {
+  void on_finish_migrate() final {
     for (auto &it : pending_) {
       finish_migrate(it.second.first);
     }
@@ -184,14 +184,14 @@ class QueryActor final : public Actor {
 class MainQueryActor final : public Actor {
   class QueryActorCallback : public QueryActor::Callback {
    public:
-    void on_result(Query &&query) override {
+    void on_result(Query &&query) final {
       if (query.ready()) {
         send_closure(parent_id_, &MainQueryActor::on_result, std::move(query));
       } else {
         send_closure(next_solver_, &QueryActor::query, std::move(query));
       }
     }
-    void on_closed() override {
+    void on_closed() final {
       send_closure(parent_id_, &MainQueryActor::on_closed);
     }
     QueryActorCallback(ActorId<MainQueryActor> parent_id, ActorId<QueryActor> next_solver)
@@ -210,7 +210,7 @@ class MainQueryActor final : public Actor {
   explicit MainQueryActor(int threads_n) : threads_n_(threads_n) {
   }
 
-  void start_up() override {
+  void start_up() final {
     actors_.resize(ACTORS_CNT);
     for (auto &actor : actors_) {
       auto actor_ptr = make_unique<QueryActor>(threads_n_);
@@ -257,7 +257,7 @@ class MainQueryActor final : public Actor {
     }
   }
 
-  void wakeup() override {
+  void wakeup() final {
     int cnt = 100000;
     while (out_cnt_ < in_cnt_ + 100 && out_cnt_ < cnt) {
       if (Random::fast_bool()) {
@@ -291,14 +291,14 @@ class SimpleActor final : public Actor {
  public:
   explicit SimpleActor(int32 threads_n) : threads_n_(threads_n) {
   }
-  void start_up() override {
+  void start_up() final {
     auto actor_ptr = make_unique<Worker>(threads_n_);
     worker_ =
         register_actor("Worker", std::move(actor_ptr), threads_n_ > 1 ? Random::fast(2, threads_n_) : 0).release();
     yield();
   }
 
-  void wakeup() override {
+  void wakeup() final {
     if (q_ == 100000) {
       Scheduler::instance()->finish();
       stop();
@@ -320,16 +320,16 @@ class SimpleActor final : public Actor {
     // migrate(Random::fast(1, threads_n));
     //}
   }
-  void raw_event(const Event::Raw &event) override {
+  void raw_event(const Event::Raw &event) final {
     auto result = future_.move_as_ok();
     CHECK(result == fast_pow_mod_uint32(q_, p_));
     yield();
   }
 
-  void on_start_migrate(int32 sched_id) override {
+  void on_start_migrate(int32 sched_id) final {
     start_migrate(future_, sched_id);
   }
-  void on_finish_migrate() override {
+  void on_finish_migrate() final {
     finish_migrate(future_);
   }
 
@@ -348,14 +348,14 @@ class SendToDead : public Actor {
    public:
     explicit Parent(ActorShared<> parent, int ttl = 3) : parent_(std::move(parent)), ttl_(ttl) {
     }
-    void start_up() override {
+    void start_up() final {
       set_timeout_in(Random::fast_uint32() % 3 * 0.001);
       if (ttl_ != 0) {
         child_ = create_actor_on_scheduler<Parent>(
             "Child", Random::fast_uint32() % Scheduler::instance()->sched_count(), actor_shared(this), ttl_ - 1);
       }
     }
-    void timeout_expired() override {
+    void timeout_expired() final {
       stop();
     }
 
@@ -365,7 +365,7 @@ class SendToDead : public Actor {
     int ttl_;
   };
 
-  void start_up() override {
+  void start_up() final {
     for (int i = 0; i < 2000; i++) {
       create_actor_on_scheduler<Parent>("Parent", Random::fast_uint32() % Scheduler::instance()->sched_count(),
                                         create_reference(), 4)
@@ -377,7 +377,7 @@ class SendToDead : public Actor {
     ref_cnt_++;
     return actor_shared(this);
   }
-  void hangup_shared() override {
+  void hangup_shared() final {
     ref_cnt_--;
     if (ref_cnt_ == 0) {
       ttl_--;
@@ -441,7 +441,7 @@ TEST(Actors, main) {
 
 class DoAfterStop : public Actor {
  public:
-  void loop() override {
+  void loop() final {
     ptr = make_unique<int>(10);
     stop();
     CHECK(*ptr == 10);
@@ -469,7 +469,7 @@ TEST(Actors, do_after_stop) {
 
 class XContext : public ActorContext {
  public:
-  int32 get_id() const override {
+  int32 get_id() const final {
     return 123456789;
   }
 
@@ -484,7 +484,7 @@ class XContext : public ActorContext {
 
 class WithXContext : public Actor {
  public:
-  void start_up() override {
+  void start_up() final {
     auto old_context = set_context(std::make_shared<XContext>());
   }
   void f(unique_ptr<Guard> guard) {

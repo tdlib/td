@@ -17,11 +17,11 @@ static std::string http_query = "GET / HTTP/1.1\r\nConnection:keep-alive\r\nhost
 static const size_t block_size = 2500;
 
 class HttpReaderBench : public td::Benchmark {
-  std::string get_description() const override {
+  std::string get_description() const final {
     return "HttpReaderBench";
   }
 
-  void run(int n) override {
+  void run(int n) final {
     int cnt = static_cast<int>(block_size / http_query.size());
     td::HttpQuery q;
     int parsed = 0;
@@ -46,18 +46,18 @@ class HttpReaderBench : public td::Benchmark {
   td::ChainBufferReader reader_;
   td::HttpReader http_reader_;
 
-  void start_up() override {
+  void start_up() final {
     reader_ = writer_.extract_reader();
     http_reader_.init(&reader_, 10000, 0);
   }
 };
 
 class BufferBench : public td::Benchmark {
-  std::string get_description() const override {
+  std::string get_description() const final {
     return "BufferBench";
   }
 
-  void run(int n) override {
+  void run(int n) final {
     int cnt = static_cast<int>(block_size / http_query.size());
     for (int i = 0; i < n; i += cnt) {
       for (int j = 0; j < cnt; j++) {
@@ -73,17 +73,17 @@ class BufferBench : public td::Benchmark {
   td::ChainBufferReader reader_;
   td::HttpReader http_reader_;
 
-  void start_up() override {
+  void start_up() final {
     reader_ = writer_.extract_reader();
   }
 };
 
 class FindBoundaryBench : public td::Benchmark {
-  std::string get_description() const override {
+  std::string get_description() const final {
     return "FindBoundaryBench";
   }
 
-  void run(int n) override {
+  void run(int n) final {
     int cnt = static_cast<int>(block_size / http_query.size());
     for (int i = 0; i < n; i += cnt) {
       for (int j = 0; j < cnt; j++) {
@@ -103,7 +103,7 @@ class FindBoundaryBench : public td::Benchmark {
   td::ChainBufferReader reader_;
   td::HttpReader http_reader_;
 
-  void start_up() override {
+  void start_up() final {
     reader_ = writer_.extract_reader();
   }
 };

@@ -23,7 +23,7 @@ static int cnt = 0;
 
 class HelloWorld : public HttpInboundConnection::Callback {
  public:
-  void handle(unique_ptr<HttpQuery> query, ActorOwn<HttpInboundConnection> connection) override {
+  void handle(unique_ptr<HttpQuery> query, ActorOwn<HttpInboundConnection> connection) final {
     // LOG(ERROR) << *query;
     HttpHeaderCreator hc;
     Slice content = "hello world";
@@ -40,7 +40,7 @@ class HelloWorld : public HttpInboundConnection::Callback {
     send_closure(connection, &HttpInboundConnection::write_next, BufferSlice(res.ok()));
     send_closure(connection.release(), &HttpInboundConnection::write_ok);
   }
-  void hangup() override {
+  void hangup() final {
     LOG(ERROR) << "CLOSE " << cnt--;
     stop();
   }
@@ -49,10 +49,10 @@ class HelloWorld : public HttpInboundConnection::Callback {
 const int N = 0;
 class Server : public TcpListener::Callback {
  public:
-  void start_up() override {
+  void start_up() final {
     listener_ = create_actor<TcpListener>("Listener", 8082, ActorOwn<TcpListener::Callback>(actor_id(this)));
   }
-  void accept(SocketFd fd) override {
+  void accept(SocketFd fd) final {
     LOG(ERROR) << "ACCEPT " << cnt++;
     pos_++;
     auto scheduler_id = pos_ % (N != 0 ? N : 1) + (N != 0);
@@ -61,7 +61,7 @@ class Server : public TcpListener::Callback {
                                                      create_actor_on_scheduler<HelloWorld>("HelloWorld", scheduler_id))
         .release();
   }
-  void hangup() override {
+  void hangup() final {
     // may be it should be default?..
     LOG(ERROR) << "Hanging up..";
     stop();

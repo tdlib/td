@@ -77,8 +77,8 @@ class SecureManager : public NetQueryCallback {
   std::unordered_map<int32, AuthorizationForm> authorization_forms_;
   int32 max_authorization_form_id_{0};
 
-  void hangup() override;
-  void hangup_shared() override;
+  void hangup() final;
+  void hangup_shared() final;
   void dec_refcnt();
   void on_delete_secure_value(SecureValueType type, Promise<Unit> promise, Result<Unit> result);
   void on_get_passport_authorization_form(
@@ -88,7 +88,7 @@ class SecureManager : public NetQueryCallback {
                                                  Promise<TdApiSecureValuesWithErrors> promise,
                                                  Result<secure_storage::Secret> r_secret);
 
-  void on_result(NetQueryPtr query) override;
+  void on_result(NetQueryPtr query) final;
   Container<Promise<NetQueryPtr>> container_;
   void send_with_promise(NetQueryPtr query, Promise<NetQueryPtr> promise);
 };

@@ -53,12 +53,12 @@ class BinlogKeyValue : public KeyValueSyncInterface {
       value = parser.template fetch_string<Slice>();
     }
 
-    size_t size() const override {
+    size_t size() const final {
       TlStorerCalcLength storer;
       store(storer);
       return storer.get_length();
     }
-    size_t store(uint8 *ptr) const override {
+    size_t store(uint8 *ptr) const final {
       TlStorerUnsafe storer(ptr);
       store(storer);
       return static_cast<size_t>(storer.get_buf() - ptr);
@@ -113,11 +113,11 @@ class BinlogKeyValue : public KeyValueSyncInterface {
   void close() {
     *this = BinlogKeyValue();
   }
-  void close(Promise<> promise) override {
+  void close(Promise<> promise) final {
     binlog_->close(std::move(promise));
   }
 
-  SeqNo set(string key, string value) override {
+  SeqNo set(string key, string value) final {
     auto lock = rw_mutex_.lock_write().move_as_ok();
     uint64 old_id = 0;
     auto it_ok = map_.insert({key, {value, 0}});
@@ -149,7 +149,7 @@ class BinlogKeyValue : public KeyValueSyncInterface {
     return seq_no;
   }
 
-  SeqNo erase(const string &key) override {
+  SeqNo erase(const string &key) final {
     auto lock = rw_mutex_.lock_write().move_as_ok();
     auto it = map_.find(key);
     if (it == map_.end()) {
@@ -169,12 +169,12 @@ class BinlogKeyValue : public KeyValueSyncInterface {
     binlog_->add_raw_event(BinlogDebugInfo{__FILE__, __LINE__}, seq_no, std::move(event));
   }
 
-  bool isset(const string &key) override {
+  bool isset(const string &key) final {
     auto lock = rw_mutex_.lock_read().move_as_ok();
     return map_.count(key) > 0;
   }
 
-  string get(const string &key) override {
+  string get(const string &key) final {
     auto lock = rw_mutex_.lock_read().move_as_ok();
     auto it = map_.find(key);
     if (it == map_.end()) {
@@ -184,7 +184,7 @@ class BinlogKeyValue : public KeyValueSyncInterface {
     return it->second.first;
   }
 
-  void force_sync(Promise<> &&promise) override {
+  void force_sync(Promise<> &&promise) final {
     binlog_->force_sync(std::move(promise));
   }
 
@@ -192,7 +192,7 @@ class BinlogKeyValue : public KeyValueSyncInterface {
     binlog_->lazy_sync(std::move(promise));
   }
 
-  std::unordered_map<string, string> prefix_get(Slice prefix) override {
+  std::unordered_map<string, string> prefix_get(Slice prefix) final {
     auto lock = rw_mutex_.lock_write().move_as_ok();
     std::unordered_map<string, string> res;
     for (const auto &kv : map_) {
@@ -203,7 +203,7 @@ class BinlogKeyValue : public KeyValueSyncInterface {
     return res;
   }
 
-  std::unordered_map<string, string> get_all() override {
+  std::unordered_map<string, string> get_all() final {
     auto lock = rw_mutex_.lock_write().move_as_ok();
     std::unordered_map<string, string> res;
     for (const auto &kv : map_) {
@@ -212,7 +212,7 @@ class BinlogKeyValue : public KeyValueSyncInterface {
     return res;
   }
 
-  void erase_by_prefix(Slice prefix) override {
+  void erase_by_prefix(Slice prefix) final {
     auto lock = rw_mutex_.lock_write().move_as_ok();
     std::vector<uint64> ids;
     for (auto it = map_.begin(); it != map_.end();) {

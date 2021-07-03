@@ -195,11 +195,11 @@ class PasswordManager : public NetQueryCallback {
                                Promise<TempPasswordState> promise);
   void on_finish_create_temp_password(Result<TempPasswordState> result, bool dummy);
 
-  void on_result(NetQueryPtr query) override;
+  void on_result(NetQueryPtr query) final;
 
-  void start_up() override;
-  void timeout_expired() override;
-  void hangup() override;
+  void start_up() final;
+  void timeout_expired() final;
+  void hangup() final;
 
   Container<Promise<NetQueryPtr>> container_;
   void send_with_promise(NetQueryPtr query, Promise<NetQueryPtr> promise);

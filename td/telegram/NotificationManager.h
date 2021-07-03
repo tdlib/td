@@ -209,8 +209,8 @@ class NotificationManager : public Actor {
 
   bool is_disabled() const;
 
-  void start_up() override;
-  void tear_down() override;
+  void start_up() final;
+  void tear_down() final;
 
   void add_update(int32 group_id, td_api::object_ptr<td_api::Update> update);
 

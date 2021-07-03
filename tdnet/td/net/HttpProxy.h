@@ -22,7 +22,7 @@ class HttpProxy : public TransparentProxy {
   void send_connect();
   Status wait_connect_response();
 
-  Status loop_impl() override;
+  Status loop_impl() final;
 };
 
 }  // namespace td

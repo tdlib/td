@@ -39,7 +39,7 @@ class HelloWorld : public Actor {
   std::string write_buf_;
   size_t write_pos_{0};
 
-  void start_up() override {
+  void start_up() final {
     Scheduler::subscribe(socket_fd_.get_poll_info().extract_pollable_fd(this));
     HttpHeaderCreator hc;
     Slice content = "hello world";
@@ -53,7 +53,7 @@ class HelloWorld : public Actor {
     hello_ = hc.finish(content).ok().str();
   }
 
-  void loop() override {
+  void loop() final {
     auto status = do_loop();
     if (status.is_error()) {
       Scheduler::unsubscribe(socket_fd_.get_poll_info().get_pollable_fd_ref());
@@ -100,16 +100,16 @@ class HelloWorld : public Actor {
 const int N = 0;
 class Server : public TcpListener::Callback {
  public:
-  void start_up() override {
+  void start_up() final {
     listener_ = create_actor<TcpListener>("Listener", 8082, ActorOwn<TcpListener::Callback>(actor_id(this)));
   }
-  void accept(SocketFd fd) override {
+  void accept(SocketFd fd) final {
     LOG(ERROR) << "ACCEPT " << cnt++;
     pos_++;
     auto scheduler_id = pos_ % (N != 0 ? N : 1) + (N != 0);
     create_actor_on_scheduler<HelloWorld>("HttpInboundConnection", scheduler_id, std::move(fd)).release();
   }
-  void hangup() override {
+  void hangup() final {
     // may be it should be default?..
     LOG(ERROR) << "Hanging up..";
     stop();

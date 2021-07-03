@@ -38,8 +38,8 @@ class DelayDispatcher : public Actor {
   double default_delay_;
   ActorShared<> parent_;
 
-  void loop() override;
-  void tear_down() override;
+  void loop() final;
+  void tear_down() final;
 };
 
 }  // namespace td

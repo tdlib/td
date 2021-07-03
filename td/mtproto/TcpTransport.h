@@ -51,10 +51,10 @@ class ITransport {
 
 class AbridgedTransport : public ITransport {
  public:
-  size_t read_from_stream(ChainBufferReader *stream, BufferSlice *message, uint32 *quick_ack) override;
-  void write_prepare_inplace(BufferWriter *message, bool quick_ack) override;
-  void init_output_stream(ChainBufferWriter *stream) override;
-  bool support_quick_ack() const override {
+  size_t read_from_stream(ChainBufferReader *stream, BufferSlice *message, uint32 *quick_ack) final;
+  void write_prepare_inplace(BufferWriter *message, bool quick_ack) final;
+  void init_output_stream(ChainBufferWriter *stream) final;
+  bool support_quick_ack() const final {
     return false;
   }
 };
@@ -63,10 +63,10 @@ class IntermediateTransport : ITransport {
  public:
   explicit IntermediateTransport(bool with_padding) : with_padding_(with_padding) {
   }
-  size_t read_from_stream(ChainBufferReader *stream, BufferSlice *message, uint32 *quick_ack) override;
-  void write_prepare_inplace(BufferWriter *message, bool quick_ack) override;
-  void init_output_stream(ChainBufferWriter *stream) override;
-  bool support_quick_ack() const override {
+  size_t read_from_stream(ChainBufferReader *stream, BufferSlice *message, uint32 *quick_ack) final;
+  void write_prepare_inplace(BufferWriter *message, bool quick_ack) final;
+  void init_output_stream(ChainBufferWriter *stream) final;
+  bool support_quick_ack() const final {
     return true;
   }
   bool with_padding() const {
@@ -82,41 +82,41 @@ using TransportImpl = IntermediateTransport;
 class OldTransport : public IStreamTransport {
  public:
   OldTransport() = default;
-  Result<size_t> read_next(BufferSlice *message, uint32 *quick_ack) override TD_WARN_UNUSED_RESULT {
+  Result<size_t> read_next(BufferSlice *message, uint32 *quick_ack) final TD_WARN_UNUSED_RESULT {
     return impl_.read_from_stream(input_, message, quick_ack);
   }
-  bool support_quick_ack() const override {
+  bool support_quick_ack() const final {
     return impl_.support_quick_ack();
   }
-  void write(BufferWriter &&message, bool quick_ack) override {
+  void write(BufferWriter &&message, bool quick_ack) final {
     impl_.write_prepare_inplace(&message, quick_ack);
     output_->append(message.as_buffer_slice());
   }
-  void init(ChainBufferReader *input, ChainBufferWriter *output) override {
+  void init(ChainBufferReader *input, ChainBufferWriter *output) final {
     input_ = input;
     output_ = output;
     impl_.init_output_stream(output_);
   }
-  bool can_read() const override {
+  bool can_read() const final {
     return true;
   }
-  bool can_write() const override {
+  bool can_write() const final {
     return true;
   }
 
-  size_t max_prepend_size() const override {
+  size_t max_prepend_size() const final {
     return 4;
   }
 
-  size_t max_append_size() const override {
+  size_t max_append_size() const final {
     return 15;
   }
 
-  TransportType get_type() const override {
+  TransportType get_type() const final {
     return TransportType{TransportType::Tcp, 0, ProxySecret()};
   }
 
-  bool use_random_padding() const override {
+  bool use_random_padding() const final {
     return false;
   }
 
@@ -132,25 +132,25 @@ class ObfuscatedTransport : public IStreamTransport {
       : dc_id_(dc_id), secret_(secret), impl_(secret_.use_random_padding()) {
   }
 
-  Result<size_t> read_next(BufferSlice *message, uint32 *quick_ack) override TD_WARN_UNUSED_RESULT;
+  Result<size_t> read_next(BufferSlice *message, uint32 *quick_ack) final TD_WARN_UNUSED_RESULT;
 
-  bool support_quick_ack() const override {
+  bool support_quick_ack() const final {
     return impl_.support_quick_ack();
   }
 
-  void write(BufferWriter &&message, bool quick_ack) override;
+  void write(BufferWriter &&message, bool quick_ack) final;
 
-  void init(ChainBufferReader *input, ChainBufferWriter *output) override;
+  void init(ChainBufferReader *input, ChainBufferWriter *output) final;
 
-  bool can_read() const override {
+  bool can_read() const final {
     return true;
   }
 
-  bool can_write() const override {
+  bool can_write() const final {
     return true;
   }
 
-  size_t max_prepend_size() const override {
+  size_t max_prepend_size() const final {
     size_t res = 4;
     if (secret_.emulate_tls()) {
       res += 5;
@@ -165,14 +165,14 @@ class ObfuscatedTransport : public IStreamTransport {
     return res;
   }
 
-  size_t max_append_size() const override {
+  size_t max_append_size() const final {
     return 15;
   }
 
-  TransportType get_type() const override {
+  TransportType get_type() const final {
     return TransportType{TransportType::ObfuscatedTcp, dc_id_, secret_};
   }
-  bool use_random_padding() const override {
+  bool use_random_padding() const final {
     return secret_.use_random_padding();
   }
 

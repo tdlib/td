@@ -55,7 +55,7 @@ class CallManager : public Actor {
   CallId create_call_actor();
   void set_call_id(CallId call_id, Result<int64> r_server_call_id);
 
-  void hangup() override;
-  void hangup_shared() override;
+  void hangup() final;
+  void hangup_shared() final;
 };
 }  // namespace td
