@@ -53,7 +53,7 @@ class Handshake {
     res.private_key = std::move(private_key);
     res.public_key = std::move(public_key);
 
-    return res;
+    return std::move(res);
   }
 
   static td::SecureString expand_secret(td::Slice secret) {
@@ -68,7 +68,7 @@ class Handshake {
     CHECK(pkey_private != nullptr);
     auto res = X25519_pem_from_PKEY(pkey_private, true);
     EVP_PKEY_free(pkey_private);
-    return res;
+    return std::move(res);
   }
 
   static td::Result<td::SecureString> calc_shared_secret(td::Slice private_key, td::Slice other_public_key) {
@@ -200,10 +200,10 @@ static td::SecureString encrypt(td::Slice key, td::Slice data, td::int32 seqno, 
 
   // big endian
   td::uint8 *ptr = res.as_mutable_slice().substr(16).ubegin();
-  ptr[0] = (seqno >> 24) & 255;
-  ptr[1] = (seqno >> 16) & 255;
-  ptr[2] = (seqno >> 8) & 255;
-  ptr[3] = (seqno)&255;
+  ptr[0] = static_cast<td::uint8>((seqno >> 24) & 255);
+  ptr[1] = static_cast<td::uint8>((seqno >> 16) & 255);
+  ptr[2] = static_cast<td::uint8>((seqno >> 8) & 255);
+  ptr[3] = static_cast<td::uint8>(seqno & 255);
 
   td::mtproto::AuthKey auth_key(0, key.str());
   auto payload = res.as_mutable_slice().substr(16);
