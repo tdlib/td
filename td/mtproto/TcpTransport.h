@@ -59,7 +59,7 @@ class AbridgedTransport final : public ITransport {
   }
 };
 
-class IntermediateTransport : ITransport {
+class IntermediateTransport final : public ITransport {
  public:
   explicit IntermediateTransport(bool with_padding) : with_padding_(with_padding) {
   }

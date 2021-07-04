@@ -47,9 +47,9 @@ class ActorContext {
   std::weak_ptr<ActorContext> this_ptr_;
 };
 
-class ActorInfo
+class ActorInfo final
     : private ListNode
-    , HeapNode {
+    , private HeapNode {
  public:
   enum class Deleter : uint8 { Destroy, None };
 

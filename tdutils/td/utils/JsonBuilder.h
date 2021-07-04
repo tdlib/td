@@ -448,7 +448,7 @@ class JsonValue;
 using JsonObject = vector<std::pair<MutableSlice, JsonValue>>;
 using JsonArray = vector<JsonValue>;
 
-class JsonValue final : public Jsonable {
+class JsonValue final : private Jsonable {
  public:
   enum class Type { Null, Number, Boolean, String, Array, Object };
 
@@ -685,7 +685,7 @@ inline StringBuilder &operator<<(StringBuilder &sb, JsonValue::Type type) {
   }
 }
 
-class VirtuallyJsonable : public Jsonable {
+class VirtuallyJsonable : private Jsonable {
  public:
   virtual void store(JsonValueScope *scope) const = 0;
   VirtuallyJsonable() = default;
@@ -766,7 +766,7 @@ StrT json_encode(const ValT &val, bool pretty = false) {
 }
 
 template <class T>
-class ToJsonImpl final : public Jsonable {
+class ToJsonImpl final : private Jsonable {
  public:
   explicit ToJsonImpl(const T &value) : value_(value) {
   }
@@ -789,7 +789,7 @@ void to_json(JsonValueScope &jv, const T &value) {
 }
 
 template <class F>
-class JsonObjectImpl : Jsonable {
+class JsonObjectImpl : private Jsonable {
  public:
   explicit JsonObjectImpl(F &&f) : f_(std::forward<F>(f)) {
   }
@@ -808,7 +808,7 @@ auto json_object(F &&f) {
 }
 
 template <class F>
-class JsonArrayImpl : Jsonable {
+class JsonArrayImpl : private Jsonable {
  public:
   explicit JsonArrayImpl(F &&f) : f_(std::forward<F>(f)) {
   }
