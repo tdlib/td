@@ -285,7 +285,7 @@ class SPSCChainQueue {
 };
 
 template <class T, class QueueT = SPSCChainQueue<T>, class BackoffT = detail::Backoff>
-class BackoffQueue final : public QueueT {
+class BackoffQueue : public QueueT {
  public:
   using ValueType = T;
 
