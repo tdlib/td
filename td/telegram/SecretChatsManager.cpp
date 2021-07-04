@@ -82,7 +82,7 @@ void SecretChatsManager::start_up() {
     return;
   }
 
-  class StateCallback : public StateManager::Callback {
+  class StateCallback final : public StateManager::Callback {
    public:
     explicit StateCallback(ActorId<SecretChatsManager> parent) : parent_(std::move(parent)) {
     }
@@ -291,7 +291,7 @@ ActorId<SecretChatActor> SecretChatsManager::create_chat_actor(int32 id) {
 }
 
 unique_ptr<SecretChatActor::Context> SecretChatsManager::make_secret_chat_context(int32 id) {
-  class Context : public SecretChatActor::Context {
+  class Context final : public SecretChatActor::Context {
    public:
     Context(int32 id, ActorShared<SecretChatsManager> parent, unique_ptr<SecretChatDb> secret_chat_db)
         : secret_chat_id_(SecretChatId(id)), parent_(std::move(parent)), secret_chat_db_(std::move(secret_chat_db)) {

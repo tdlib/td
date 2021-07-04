@@ -29,7 +29,7 @@ struct DatabaseStats {
   tl_object_ptr<td_api::databaseStatistics> get_database_statistics_object() const;
 };
 
-class StorageManager : public Actor {
+class StorageManager final : public Actor {
  public:
   StorageManager(ActorShared<> parent, int32 scheduler_id);
   void get_storage_stats(bool need_all_files, int32 dialog_limit, Promise<FileStats> promise);

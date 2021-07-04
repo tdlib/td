@@ -33,7 +33,7 @@
 namespace td {
 namespace mtproto {
 
-class RawConnectionDefault : public RawConnection {
+class RawConnectionDefault final : public RawConnection {
  public:
   RawConnectionDefault(SocketFd socket_fd, TransportType transport_type, unique_ptr<StatsCallback> stats_callback)
       : socket_fd_(std::move(socket_fd))
@@ -260,7 +260,7 @@ class RawConnectionDefault : public RawConnection {
 };
 
 #if TD_EXPERIMENTAL_WATCH_OS
-class RawConnectionHttp : public RawConnection {
+class RawConnectionHttp final : public RawConnection {
  public:
   RawConnectionHttp(IPAddress ip_address, unique_ptr<StatsCallback> stats_callback)
       : ip_address_(std::move(ip_address)), stats_callback_(std::move(stats_callback)) {

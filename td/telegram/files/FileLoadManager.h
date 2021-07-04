@@ -93,7 +93,7 @@ class FileLoadManager final : public Actor {
   void on_error(Status status);
   void on_error_impl(NodeId node_id, Status status);
 
-  class FileDownloaderCallback : public FileDownloader::Callback {
+  class FileDownloaderCallback final : public FileDownloader::Callback {
    public:
     explicit FileDownloaderCallback(ActorShared<FileLoadManager> actor_id) : actor_id_(std::move(actor_id)) {
     }
@@ -115,7 +115,7 @@ class FileLoadManager final : public Actor {
     }
   };
 
-  class FileUploaderCallback : public FileUploader::Callback {
+  class FileUploaderCallback final : public FileUploader::Callback {
    public:
     explicit FileUploaderCallback(ActorShared<FileLoadManager> actor_id) : actor_id_(std::move(actor_id)) {
     }
@@ -136,7 +136,7 @@ class FileLoadManager final : public Actor {
       send_closure(std::move(actor_id_), &FileLoadManager::on_error, std::move(status));
     }
   };
-  class FileHashUploaderCallback : public FileHashUploader::Callback {
+  class FileHashUploaderCallback final : public FileHashUploader::Callback {
    public:
     explicit FileHashUploaderCallback(ActorShared<FileLoadManager> actor_id) : actor_id_(std::move(actor_id)) {
     }
@@ -152,7 +152,7 @@ class FileLoadManager final : public Actor {
     }
   };
 
-  class FileFromBytesCallback : public FileFromBytes::Callback {
+  class FileFromBytesCallback final : public FileFromBytes::Callback {
    public:
     explicit FileFromBytesCallback(ActorShared<FileLoadManager> actor_id) : actor_id_(std::move(actor_id)) {
     }

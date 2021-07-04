@@ -23,7 +23,7 @@
 
 namespace td {
 
-class AuthManager : public NetActor {
+class AuthManager final : public NetActor {
  public:
   AuthManager(int32 api_id, const string &api_hash, ActorShared<> parent);
 

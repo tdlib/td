@@ -21,7 +21,7 @@ namespace td {
 
 class Td;
 
-class CountryInfoManager : public Actor {
+class CountryInfoManager final : public Actor {
  public:
   CountryInfoManager(Td *td, ActorShared<> parent);
 

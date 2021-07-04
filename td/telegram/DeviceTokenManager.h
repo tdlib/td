@@ -22,7 +22,7 @@
 
 namespace td {
 
-class DeviceTokenManager : public NetQueryCallback {
+class DeviceTokenManager final : public NetQueryCallback {
  public:
   explicit DeviceTokenManager(ActorShared<> parent) : parent_(std::move(parent)) {
   }

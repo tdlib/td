@@ -65,11 +65,11 @@ struct PhotoSizeSource {
     int64 dialog_access_hash = 0;
   };
 
-  struct DialogPhotoSmall : public DialogPhoto {
+  struct DialogPhotoSmall final : public DialogPhoto {
     using DialogPhoto::DialogPhoto;
   };
 
-  struct DialogPhotoBig : public DialogPhoto {
+  struct DialogPhotoBig final : public DialogPhoto {
     using DialogPhoto::DialogPhoto;
   };
 
@@ -111,16 +111,16 @@ struct PhotoSizeSource {
     int32 local_id = 0;
   };
 
-  struct DialogPhotoSmallLegacy : public DialogPhotoLegacy {
+  struct DialogPhotoSmallLegacy final : public DialogPhotoLegacy {
     using DialogPhotoLegacy::DialogPhotoLegacy;
   };
 
-  struct DialogPhotoBigLegacy : public DialogPhotoLegacy {
+  struct DialogPhotoBigLegacy final : public DialogPhotoLegacy {
     using DialogPhotoLegacy::DialogPhotoLegacy;
   };
 
   // for legacy sticker set thumbnails
-  struct StickerSetThumbnailLegacy : public StickerSetThumbnail {
+  struct StickerSetThumbnailLegacy final : public StickerSetThumbnail {
     StickerSetThumbnailLegacy() = default;
     StickerSetThumbnailLegacy(int64 sticker_set_id, int64 sticker_set_access_hash, int64 volume_id, int32 local_id)
         : StickerSetThumbnail(sticker_set_id, sticker_set_access_hash), volume_id(volume_id), local_id(local_id) {
@@ -131,7 +131,7 @@ struct PhotoSizeSource {
   };
 
   // for sticker set thumbnails identified by version
-  struct StickerSetThumbnailVersion : public StickerSetThumbnail {
+  struct StickerSetThumbnailVersion final : public StickerSetThumbnail {
     StickerSetThumbnailVersion() = default;
     StickerSetThumbnailVersion(int64 sticker_set_id, int64 sticker_set_access_hash, int32 version)
         : StickerSetThumbnail(sticker_set_id, sticker_set_access_hash), version(version) {

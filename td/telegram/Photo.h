@@ -40,7 +40,7 @@ struct DialogPhoto {
   bool has_animation = false;
 };
 
-struct ProfilePhoto : public DialogPhoto {
+struct ProfilePhoto final : public DialogPhoto {
   int64 id = 0;
 };
 
@@ -52,7 +52,7 @@ struct PhotoSize {
   vector<int32> progressive_sizes;
 };
 
-struct AnimationSize : public PhotoSize {
+struct AnimationSize final : public PhotoSize {
   double main_frame_timestamp = 0.0;
 };
 

@@ -22,7 +22,7 @@ class ObserverBase {
   virtual void notify() = 0;
 };
 
-class Observer : ObserverBase {
+class Observer final : private ObserverBase {
  public:
   Observer() = default;
   explicit Observer(unique_ptr<ObserverBase> &&ptr) : observer_ptr_(std::move(ptr)) {

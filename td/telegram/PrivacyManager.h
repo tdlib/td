@@ -22,7 +22,7 @@
 
 namespace td {
 
-class PrivacyManager : public NetQueryCallback {
+class PrivacyManager final : public NetQueryCallback {
  public:
   explicit PrivacyManager(ActorShared<> parent) : parent_(std::move(parent)) {
   }

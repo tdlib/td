@@ -15,14 +15,14 @@
 #include <tuple>
 #include <utility>
 
-#define BENCH(name, desc)                       \
-  class name##Bench : public ::td::Benchmark {  \
-   public:                                      \
-    std::string get_description() const final { \
-      return (desc);                            \
-    }                                           \
-    void run(int n) final;                      \
-  };                                            \
+#define BENCH(name, desc)                            \
+  class name##Bench final : public ::td::Benchmark { \
+   public:                                           \
+    std::string get_description() const final {      \
+      return (desc);                                 \
+    }                                                \
+    void run(int n) final;                           \
+  };                                                 \
   void name##Bench::run(int n)
 
 namespace td {

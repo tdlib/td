@@ -28,7 +28,7 @@ namespace mtproto {
 class RawConnection;
 }  // namespace mtproto
 
-class SessionCallback : public Session::Callback {
+class SessionCallback final : public Session::Callback {
  public:
   SessionCallback(ActorShared<SessionProxy> parent, DcId dc_id, bool allow_media_only, bool is_media, size_t hash)
       : parent_(std::move(parent))
@@ -88,7 +88,7 @@ SessionProxy::SessionProxy(unique_ptr<Callback> callback, std::shared_ptr<AuthDa
 }
 
 void SessionProxy::start_up() {
-  class Listener : public AuthDataShared::Listener {
+  class Listener final : public AuthDataShared::Listener {
    public:
     explicit Listener(ActorShared<SessionProxy> session_proxy) : session_proxy_(std::move(session_proxy)) {
     }

@@ -26,7 +26,7 @@ char disable_linker_warning_about_empty_file_tdutils_test_log_cpp TD_UNUSED;
 
 #if !TD_THREAD_UNSUPPORTED
 template <class Log>
-class LogBenchmark : public td::Benchmark {
+class LogBenchmark final : public td::Benchmark {
  public:
   LogBenchmark(std::string name, int threads_n, bool test_full_logging, std::function<td::unique_ptr<Log>()> creator)
       : name_(std::move(name))
@@ -116,7 +116,7 @@ TEST(Log, Bench) {
             [] { return td::TsFileLog::create("tmplog", std::numeric_limits<td::int64>::max(), false).move_as_ok(); });
 
   bench_log("FileLog + TsLog", [] {
-    class FileLog : public td::LogInterface {
+    class FileLog final : public td::LogInterface {
      public:
       FileLog() {
         file_log_.init("tmplog", std::numeric_limits<td::int64>::max(), false).ensure();
@@ -137,7 +137,7 @@ TEST(Log, Bench) {
   });
 
   bench_log("FileLog", [] {
-    class FileLog : public td::LogInterface {
+    class FileLog final : public td::LogInterface {
      public:
       FileLog() {
         file_log_.init("tmplog", std::numeric_limits<td::int64>::max(), false).ensure();

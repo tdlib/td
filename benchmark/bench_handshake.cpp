@@ -28,12 +28,12 @@ static string prime_base64 =
     "WC2xF40WnGvEZbDW_5yjko_vW5rk5Bj8Feg-vqD4f6n_Xu1wBQ3tKEn0e_lZ2VaFDOkphR8NgRX2NbEF7i5OFdBLJFS_b0-t8DSxBAMRnNjjuS_MW"
     "w";
 
-class HandshakeBench : public Benchmark {
+class HandshakeBench final : public Benchmark {
   std::string get_description() const final {
     return "Handshake";
   }
 
-  class FakeDhCallback : public DhCallback {
+  class FakeDhCallback final : public DhCallback {
    public:
     int is_good_prime(Slice prime_str) const final {
       auto it = cache.find(prime_str.str());

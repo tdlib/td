@@ -13,7 +13,7 @@
 
 namespace td {
 
-class TD_TL_writer_jni_h : public TD_TL_writer_h {
+class TD_TL_writer_jni_h final : public TD_TL_writer_h {
  public:
   TD_TL_writer_jni_h(const std::string &tl_name, const std::string &string_type, const std::string &bytes_type,
                      const std::vector<std::string> &ext_include)

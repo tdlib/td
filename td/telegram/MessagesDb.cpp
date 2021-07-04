@@ -177,7 +177,7 @@ Status drop_messages_db(SqliteDb &db, int32 version) {
   return db.exec("DROP TABLE IF EXISTS messages");
 }
 
-class MessagesDbImpl : public MessagesDbSyncInterface {
+class MessagesDbImpl final : public MessagesDbSyncInterface {
  public:
   explicit MessagesDbImpl(SqliteDb db) : db_(std::move(db)) {
     init().ensure();
@@ -925,7 +925,7 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
 
 std::shared_ptr<MessagesDbSyncSafeInterface> create_messages_db_sync(
     std::shared_ptr<SqliteConnectionSafe> sqlite_connection) {
-  class MessagesDbSyncSafe : public MessagesDbSyncSafeInterface {
+  class MessagesDbSyncSafe final : public MessagesDbSyncSafeInterface {
    public:
     explicit MessagesDbSyncSafe(std::shared_ptr<SqliteConnectionSafe> sqlite_connection)
         : lsls_db_([safe_connection = std::move(sqlite_connection)] {
@@ -942,7 +942,7 @@ std::shared_ptr<MessagesDbSyncSafeInterface> create_messages_db_sync(
   return std::make_shared<MessagesDbSyncSafe>(std::move(sqlite_connection));
 }
 
-class MessagesDbAsync : public MessagesDbAsyncInterface {
+class MessagesDbAsync final : public MessagesDbAsyncInterface {
  public:
   MessagesDbAsync(std::shared_ptr<MessagesDbSyncSafeInterface> sync_db, int32 scheduler_id) {
     impl_ = create_actor_on_scheduler<Impl>("MessagesDbActor", scheduler_id, std::move(sync_db));
@@ -1017,7 +1017,7 @@ class MessagesDbAsync : public MessagesDbAsyncInterface {
   }
 
  private:
-  class Impl : public Actor {
+  class Impl final : public Actor {
    public:
     explicit Impl(std::shared_ptr<MessagesDbSyncSafeInterface> sync_db_safe) : sync_db_safe_(std::move(sync_db_safe)) {
     }

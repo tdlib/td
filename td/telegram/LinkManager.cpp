@@ -64,13 +64,13 @@ static bool is_valid_username(Slice username) {
   return true;
 }
 
-class LinkManager::InternalLinkActiveSessions : public InternalLink {
+class LinkManager::InternalLinkActiveSessions final : public InternalLink {
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
     return td_api::make_object<td_api::internalLinkTypeActiveSessions>();
   }
 };
 
-class LinkManager::InternalLinkAuthenticationCode : public InternalLink {
+class LinkManager::InternalLinkAuthenticationCode final : public InternalLink {
   string code_;
 
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
@@ -82,7 +82,7 @@ class LinkManager::InternalLinkAuthenticationCode : public InternalLink {
   }
 };
 
-class LinkManager::InternalLinkBackground : public InternalLink {
+class LinkManager::InternalLinkBackground final : public InternalLink {
   string background_name_;
 
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
@@ -94,7 +94,7 @@ class LinkManager::InternalLinkBackground : public InternalLink {
   }
 };
 
-class LinkManager::InternalLinkBotStart : public InternalLink {
+class LinkManager::InternalLinkBotStart final : public InternalLink {
   string bot_username_;
   string start_parameter_;
 
@@ -108,7 +108,7 @@ class LinkManager::InternalLinkBotStart : public InternalLink {
   }
 };
 
-class LinkManager::InternalLinkBotStartInGroup : public InternalLink {
+class LinkManager::InternalLinkBotStartInGroup final : public InternalLink {
   string bot_username_;
   string start_parameter_;
 
@@ -122,13 +122,13 @@ class LinkManager::InternalLinkBotStartInGroup : public InternalLink {
   }
 };
 
-class LinkManager::InternalLinkChangePhoneNumber : public InternalLink {
+class LinkManager::InternalLinkChangePhoneNumber final : public InternalLink {
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
     return td_api::make_object<td_api::internalLinkTypeChangePhoneNumber>();
   }
 };
 
-class LinkManager::InternalLinkConfirmPhone : public InternalLink {
+class LinkManager::InternalLinkConfirmPhone final : public InternalLink {
   string hash_;
   string phone_number_;
 
@@ -142,19 +142,19 @@ class LinkManager::InternalLinkConfirmPhone : public InternalLink {
   }
 };
 
-class LinkManager::InternalLinkDialogInvite : public InternalLink {
+class LinkManager::InternalLinkDialogInvite final : public InternalLink {
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
     return td_api::make_object<td_api::internalLinkTypeChatInvite>();
   }
 };
 
-class LinkManager::InternalLinkFilterSettings : public InternalLink {
+class LinkManager::InternalLinkFilterSettings final : public InternalLink {
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
     return td_api::make_object<td_api::internalLinkTypeFilterSettings>();
   }
 };
 
-class LinkManager::InternalLinkGame : public InternalLink {
+class LinkManager::InternalLinkGame final : public InternalLink {
   string bot_username_;
   string game_short_name_;
 
@@ -168,7 +168,7 @@ class LinkManager::InternalLinkGame : public InternalLink {
   }
 };
 
-class LinkManager::InternalLinkLanguage : public InternalLink {
+class LinkManager::InternalLinkLanguage final : public InternalLink {
   string language_pack_id_;
 
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
@@ -180,13 +180,13 @@ class LinkManager::InternalLinkLanguage : public InternalLink {
   }
 };
 
-class LinkManager::InternalLinkMessage : public InternalLink {
+class LinkManager::InternalLinkMessage final : public InternalLink {
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
     return td_api::make_object<td_api::internalLinkTypeMessage>();
   }
 };
 
-class LinkManager::InternalLinkMessageDraft : public InternalLink {
+class LinkManager::InternalLinkMessageDraft final : public InternalLink {
   FormattedText text_;
   bool contains_link_ = false;
 
@@ -200,7 +200,7 @@ class LinkManager::InternalLinkMessageDraft : public InternalLink {
   }
 };
 
-class LinkManager::InternalLinkPassportDataRequest : public InternalLink {
+class LinkManager::InternalLinkPassportDataRequest final : public InternalLink {
   UserId bot_user_id_;
   string scope_;
   string public_key_;
@@ -223,7 +223,7 @@ class LinkManager::InternalLinkPassportDataRequest : public InternalLink {
   }
 };
 
-class LinkManager::InternalLinkProxy : public InternalLink {
+class LinkManager::InternalLinkProxy final : public InternalLink {
   string server_;
   int32 port_;
   td_api::object_ptr<td_api::ProxyType> type_;
@@ -254,7 +254,7 @@ class LinkManager::InternalLinkProxy : public InternalLink {
   }
 };
 
-class LinkManager::InternalLinkPublicDialog : public InternalLink {
+class LinkManager::InternalLinkPublicDialog final : public InternalLink {
   string dialog_username_;
 
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
@@ -266,19 +266,19 @@ class LinkManager::InternalLinkPublicDialog : public InternalLink {
   }
 };
 
-class LinkManager::InternalLinkQrCodeAuthentication : public InternalLink {
+class LinkManager::InternalLinkQrCodeAuthentication final : public InternalLink {
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
     return td_api::make_object<td_api::internalLinkTypeQrCodeAuthentication>();
   }
 };
 
-class LinkManager::InternalLinkSettings : public InternalLink {
+class LinkManager::InternalLinkSettings final : public InternalLink {
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
     return td_api::make_object<td_api::internalLinkTypeSettings>();
   }
 };
 
-class LinkManager::InternalLinkStickerSet : public InternalLink {
+class LinkManager::InternalLinkStickerSet final : public InternalLink {
   string sticker_set_name_;
 
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
@@ -290,7 +290,7 @@ class LinkManager::InternalLinkStickerSet : public InternalLink {
   }
 };
 
-class LinkManager::InternalLinkTheme : public InternalLink {
+class LinkManager::InternalLinkTheme final : public InternalLink {
   string theme_name_;
 
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
@@ -302,19 +302,19 @@ class LinkManager::InternalLinkTheme : public InternalLink {
   }
 };
 
-class LinkManager::InternalLinkThemeSettings : public InternalLink {
+class LinkManager::InternalLinkThemeSettings final : public InternalLink {
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
     return td_api::make_object<td_api::internalLinkTypeThemeSettings>();
   }
 };
 
-class LinkManager::InternalLinkUnknownDeepLink : public InternalLink {
+class LinkManager::InternalLinkUnknownDeepLink final : public InternalLink {
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
     return td_api::make_object<td_api::internalLinkTypeUnknownDeepLink>();
   }
 };
 
-class LinkManager::InternalLinkVoiceChat : public InternalLink {
+class LinkManager::InternalLinkVoiceChat final : public InternalLink {
   string dialog_username_;
   string invite_hash_;
 
@@ -328,7 +328,7 @@ class LinkManager::InternalLinkVoiceChat : public InternalLink {
   }
 };
 
-class RequestUrlAuthQuery : public Td::ResultHandler {
+class RequestUrlAuthQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::LoginUrlInfo>> promise_;
   string url_;
   DialogId dialog_id_;
@@ -398,7 +398,7 @@ class RequestUrlAuthQuery : public Td::ResultHandler {
   }
 };
 
-class AcceptUrlAuthQuery : public Td::ResultHandler {
+class AcceptUrlAuthQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::httpUrl>> promise_;
   string url_;
   DialogId dialog_id_;

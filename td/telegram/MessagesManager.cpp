@@ -84,7 +84,7 @@
 
 namespace td {
 
-class GetDialogFiltersQuery : public Td::ResultHandler {
+class GetDialogFiltersQuery final : public Td::ResultHandler {
   Promise<vector<tl_object_ptr<telegram_api::dialogFilter>>> promise_;
 
  public:
@@ -110,7 +110,7 @@ class GetDialogFiltersQuery : public Td::ResultHandler {
   }
 };
 
-class UpdateDialogFilterQuery : public Td::ResultHandler {
+class UpdateDialogFilterQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -142,7 +142,7 @@ class UpdateDialogFilterQuery : public Td::ResultHandler {
   }
 };
 
-class UpdateDialogFiltersOrderQuery : public Td::ResultHandler {
+class UpdateDialogFiltersOrderQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -169,7 +169,7 @@ class UpdateDialogFiltersOrderQuery : public Td::ResultHandler {
   }
 };
 
-class GetSuggestedDialogFiltersQuery : public Td::ResultHandler {
+class GetSuggestedDialogFiltersQuery final : public Td::ResultHandler {
   Promise<vector<tl_object_ptr<telegram_api::dialogFilterSuggested>>> promise_;
 
  public:
@@ -195,7 +195,7 @@ class GetSuggestedDialogFiltersQuery : public Td::ResultHandler {
   }
 };
 
-class GetOnlinesQuery : public Td::ResultHandler {
+class GetOnlinesQuery final : public Td::ResultHandler {
   DialogId dialog_id_;
 
  public:
@@ -226,7 +226,7 @@ class GetOnlinesQuery : public Td::ResultHandler {
   }
 };
 
-class GetAllDraftsQuery : public Td::ResultHandler {
+class GetAllDraftsQuery final : public Td::ResultHandler {
  public:
   void send() {
     send_query(G()->net_query_creator().create(telegram_api::messages_getAllDrafts()));
@@ -251,7 +251,7 @@ class GetAllDraftsQuery : public Td::ResultHandler {
   }
 };
 
-class GetDialogQuery : public Td::ResultHandler {
+class GetDialogQuery final : public Td::ResultHandler {
   DialogId dialog_id_;
 
  public:
@@ -293,7 +293,7 @@ class GetDialogQuery : public Td::ResultHandler {
   }
 };
 
-class GetDialogsQuery : public Td::ResultHandler {
+class GetDialogsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -329,7 +329,7 @@ class GetDialogsQuery : public Td::ResultHandler {
   }
 };
 
-class GetPinnedDialogsActor : public NetActorOnce {
+class GetPinnedDialogsActor final : public NetActorOnce {
   FolderId folder_id_;
   Promise<Unit> promise_;
 
@@ -366,7 +366,7 @@ class GetPinnedDialogsActor : public NetActorOnce {
   }
 };
 
-class GetDialogUnreadMarksQuery : public Td::ResultHandler {
+class GetDialogUnreadMarksQuery final : public Td::ResultHandler {
  public:
   void send() {
     send_query(G()->net_query_creator().create(telegram_api::messages_getDialogUnreadMarks()));
@@ -394,7 +394,7 @@ class GetDialogUnreadMarksQuery : public Td::ResultHandler {
   }
 };
 
-class GetDiscussionMessageQuery : public Td::ResultHandler {
+class GetDiscussionMessageQuery final : public Td::ResultHandler {
   Promise<vector<FullMessageId>> promise_;
   DialogId dialog_id_;
   MessageId message_id_;
@@ -435,7 +435,7 @@ class GetDiscussionMessageQuery : public Td::ResultHandler {
   }
 };
 
-class GetMessagesQuery : public Td::ResultHandler {
+class GetMessagesQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -469,7 +469,7 @@ class GetMessagesQuery : public Td::ResultHandler {
   }
 };
 
-class GetChannelMessagesQuery : public Td::ResultHandler {
+class GetChannelMessagesQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
 
@@ -530,7 +530,7 @@ class GetChannelMessagesQuery : public Td::ResultHandler {
   }
 };
 
-class GetScheduledMessagesQuery : public Td::ResultHandler {
+class GetScheduledMessagesQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
 
@@ -570,7 +570,7 @@ class GetScheduledMessagesQuery : public Td::ResultHandler {
   }
 };
 
-class UpdateDialogPinnedMessageQuery : public Td::ResultHandler {
+class UpdateDialogPinnedMessageQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
 
@@ -618,7 +618,7 @@ class UpdateDialogPinnedMessageQuery : public Td::ResultHandler {
   }
 };
 
-class UnpinAllMessagesQuery : public Td::ResultHandler {
+class UnpinAllMessagesQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
 
@@ -679,7 +679,7 @@ class UnpinAllMessagesQuery : public Td::ResultHandler {
   }
 };
 
-class ExportChannelMessageLinkQuery : public Td::ResultHandler {
+class ExportChannelMessageLinkQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
   MessageId message_id_;
@@ -730,7 +730,7 @@ class ExportChannelMessageLinkQuery : public Td::ResultHandler {
   }
 };
 
-class GetDialogListActor : public NetActorOnce {
+class GetDialogListActor final : public NetActorOnce {
   FolderId folder_id_;
   Promise<Unit> promise_;
 
@@ -792,7 +792,7 @@ class GetDialogListActor : public NetActorOnce {
   }
 };
 
-class SearchPublicDialogsQuery : public Td::ResultHandler {
+class SearchPublicDialogsQuery final : public Td::ResultHandler {
   string query_;
 
  public:
@@ -823,7 +823,7 @@ class SearchPublicDialogsQuery : public Td::ResultHandler {
   }
 };
 
-class GetCommonDialogsQuery : public Td::ResultHandler {
+class GetCommonDialogsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   UserId user_id_;
   int32 offset_chat_id_ = 0;
@@ -877,7 +877,7 @@ class GetCommonDialogsQuery : public Td::ResultHandler {
   }
 };
 
-class GetBlockedDialogsQuery : public Td::ResultHandler {
+class GetBlockedDialogsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   int32 offset_;
   int32 limit_;
@@ -937,7 +937,7 @@ class GetBlockedDialogsQuery : public Td::ResultHandler {
   }
 };
 
-class CreateChatQuery : public Td::ResultHandler {
+class CreateChatQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   int64 random_id_;
 
@@ -967,7 +967,7 @@ class CreateChatQuery : public Td::ResultHandler {
   }
 };
 
-class CreateChannelQuery : public Td::ResultHandler {
+class CreateChannelQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   int64 random_id_;
 
@@ -1013,7 +1013,7 @@ class CreateChannelQuery : public Td::ResultHandler {
   }
 };
 
-class CheckHistoryImportQuery : public Td::ResultHandler {
+class CheckHistoryImportQuery final : public Td::ResultHandler {
   Promise<tl_object_ptr<td_api::MessageFileType>> promise_;
 
  public:
@@ -1050,7 +1050,7 @@ class CheckHistoryImportQuery : public Td::ResultHandler {
   }
 };
 
-class CheckHistoryImportPeerQuery : public Td::ResultHandler {
+class CheckHistoryImportPeerQuery final : public Td::ResultHandler {
   Promise<string> promise_;
   DialogId dialog_id_;
 
@@ -1082,7 +1082,7 @@ class CheckHistoryImportPeerQuery : public Td::ResultHandler {
   }
 };
 
-class InitHistoryImportQuery : public Td::ResultHandler {
+class InitHistoryImportQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   FileId file_id_;
   DialogId dialog_id_;
@@ -1133,7 +1133,7 @@ class InitHistoryImportQuery : public Td::ResultHandler {
   }
 };
 
-class UploadImportedMediaQuery : public Td::ResultHandler {
+class UploadImportedMediaQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
   int64 import_id_;
@@ -1186,7 +1186,7 @@ class UploadImportedMediaQuery : public Td::ResultHandler {
   }
 };
 
-class StartImportHistoryQuery : public Td::ResultHandler {
+class StartImportHistoryQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
 
@@ -1222,7 +1222,7 @@ class StartImportHistoryQuery : public Td::ResultHandler {
   }
 };
 
-class EditDialogPhotoQuery : public Td::ResultHandler {
+class EditDialogPhotoQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   FileId file_id_;
   bool was_uploaded_ = false;
@@ -1306,7 +1306,7 @@ class EditDialogPhotoQuery : public Td::ResultHandler {
   }
 };
 
-class EditDialogTitleQuery : public Td::ResultHandler {
+class EditDialogTitleQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
 
@@ -1362,7 +1362,7 @@ class EditDialogTitleQuery : public Td::ResultHandler {
   }
 };
 
-class SetHistoryTtlQuery : public Td::ResultHandler {
+class SetHistoryTtlQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
 
@@ -1403,7 +1403,7 @@ class SetHistoryTtlQuery : public Td::ResultHandler {
   }
 };
 
-class EditChatDefaultBannedRightsQuery : public Td::ResultHandler {
+class EditChatDefaultBannedRightsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
 
@@ -1443,7 +1443,7 @@ class EditChatDefaultBannedRightsQuery : public Td::ResultHandler {
   }
 };
 
-class SaveDraftMessageQuery : public Td::ResultHandler {
+class SaveDraftMessageQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
 
@@ -1507,7 +1507,7 @@ class SaveDraftMessageQuery : public Td::ResultHandler {
   }
 };
 
-class ClearAllDraftsQuery : public Td::ResultHandler {
+class ClearAllDraftsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -1542,7 +1542,7 @@ class ClearAllDraftsQuery : public Td::ResultHandler {
   }
 };
 
-class ToggleDialogPinQuery : public Td::ResultHandler {
+class ToggleDialogPinQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
   bool is_pinned_;
@@ -1592,7 +1592,7 @@ class ToggleDialogPinQuery : public Td::ResultHandler {
   }
 };
 
-class ReorderPinnedDialogsQuery : public Td::ResultHandler {
+class ReorderPinnedDialogsQuery final : public Td::ResultHandler {
   FolderId folder_id_;
   Promise<Unit> promise_;
 
@@ -1632,7 +1632,7 @@ class ReorderPinnedDialogsQuery : public Td::ResultHandler {
   }
 };
 
-class ToggleDialogUnreadMarkQuery : public Td::ResultHandler {
+class ToggleDialogUnreadMarkQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
   bool is_marked_as_unread_;
@@ -1683,7 +1683,7 @@ class ToggleDialogUnreadMarkQuery : public Td::ResultHandler {
   }
 };
 
-class ToggleDialogIsBlockedQuery : public Td::ResultHandler {
+class ToggleDialogIsBlockedQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
   bool is_blocked_;
@@ -1732,7 +1732,7 @@ class ToggleDialogIsBlockedQuery : public Td::ResultHandler {
   }
 };
 
-class GetMessagesViewsQuery : public Td::ResultHandler {
+class GetMessagesViewsQuery final : public Td::ResultHandler {
   DialogId dialog_id_;
   vector<MessageId> message_ids_;
 
@@ -1785,7 +1785,7 @@ class GetMessagesViewsQuery : public Td::ResultHandler {
   }
 };
 
-class ReadMessagesContentsQuery : public Td::ResultHandler {
+class ReadMessagesContentsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -1825,7 +1825,7 @@ class ReadMessagesContentsQuery : public Td::ResultHandler {
   }
 };
 
-class ReadChannelMessagesContentsQuery : public Td::ResultHandler {
+class ReadChannelMessagesContentsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
 
@@ -1869,7 +1869,7 @@ class ReadChannelMessagesContentsQuery : public Td::ResultHandler {
   }
 };
 
-class GetDialogMessageByDateQuery : public Td::ResultHandler {
+class GetDialogMessageByDateQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
   int32 date_;
@@ -1924,7 +1924,7 @@ class GetDialogMessageByDateQuery : public Td::ResultHandler {
   }
 };
 
-class GetHistoryQuery : public Td::ResultHandler {
+class GetHistoryQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
   MessageId from_message_id_;
@@ -2000,7 +2000,7 @@ class GetHistoryQuery : public Td::ResultHandler {
   }
 };
 
-class ReadHistoryQuery : public Td::ResultHandler {
+class ReadHistoryQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
 
@@ -2043,7 +2043,7 @@ class ReadHistoryQuery : public Td::ResultHandler {
   }
 };
 
-class ReadChannelHistoryQuery : public Td::ResultHandler {
+class ReadChannelHistoryQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
 
@@ -2077,7 +2077,7 @@ class ReadChannelHistoryQuery : public Td::ResultHandler {
   }
 };
 
-class ReadDiscussionQuery : public Td::ResultHandler {
+class ReadDiscussionQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
 
@@ -2109,7 +2109,7 @@ class ReadDiscussionQuery : public Td::ResultHandler {
   }
 };
 
-class SearchMessagesQuery : public Td::ResultHandler {
+class SearchMessagesQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
   string query_;
@@ -2218,7 +2218,7 @@ class SearchMessagesQuery : public Td::ResultHandler {
   }
 };
 
-class SearchMessagesGlobalQuery : public Td::ResultHandler {
+class SearchMessagesGlobalQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   string query_;
   int32 offset_date_;
@@ -2279,7 +2279,7 @@ class SearchMessagesGlobalQuery : public Td::ResultHandler {
   }
 };
 
-class GetAllScheduledMessagesQuery : public Td::ResultHandler {
+class GetAllScheduledMessagesQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
   uint32 generation_;
@@ -2321,7 +2321,7 @@ class GetAllScheduledMessagesQuery : public Td::ResultHandler {
   }
 };
 
-class GetRecentLocationsQuery : public Td::ResultHandler {
+class GetRecentLocationsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
   int32 limit_;
@@ -2375,7 +2375,7 @@ class GetRecentLocationsQuery : public Td::ResultHandler {
   }
 };
 
-class GetMessagePublicForwardsQuery : public Td::ResultHandler {
+class GetMessagePublicForwardsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
   int32 limit_;
@@ -2420,7 +2420,7 @@ class GetMessagePublicForwardsQuery : public Td::ResultHandler {
   }
 };
 
-class HidePromoDataQuery : public Td::ResultHandler {
+class HidePromoDataQuery final : public Td::ResultHandler {
   DialogId dialog_id_;
 
  public:
@@ -2447,7 +2447,7 @@ class HidePromoDataQuery : public Td::ResultHandler {
   }
 };
 
-class DeleteHistoryQuery : public Td::ResultHandler {
+class DeleteHistoryQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
   MessageId max_message_id_;
@@ -2516,7 +2516,7 @@ class DeleteHistoryQuery : public Td::ResultHandler {
   }
 };
 
-class DeleteChannelHistoryQuery : public Td::ResultHandler {
+class DeleteChannelHistoryQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
   MessageId max_message_id_;
@@ -2558,7 +2558,7 @@ class DeleteChannelHistoryQuery : public Td::ResultHandler {
   }
 };
 
-class DeletePhoneCallHistoryQuery : public Td::ResultHandler {
+class DeletePhoneCallHistoryQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   bool revoke_;
 
@@ -2613,7 +2613,7 @@ class DeletePhoneCallHistoryQuery : public Td::ResultHandler {
   }
 };
 
-class BlockFromRepliesQuery : public Td::ResultHandler {
+class BlockFromRepliesQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -2651,7 +2651,7 @@ class BlockFromRepliesQuery : public Td::ResultHandler {
   }
 };
 
-class DeleteUserHistoryQuery : public Td::ResultHandler {
+class DeleteUserHistoryQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
   UserId user_id_;
@@ -2712,7 +2712,7 @@ class DeleteUserHistoryQuery : public Td::ResultHandler {
   }
 };
 
-class ReadMentionsQuery : public Td::ResultHandler {
+class ReadMentionsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
 
@@ -2772,7 +2772,7 @@ class ReadMentionsQuery : public Td::ResultHandler {
   }
 };
 
-class SendSecretMessageActor : public NetActor {
+class SendSecretMessageActor final : public NetActor {
   int64 random_id_;
 
  public:
@@ -2822,7 +2822,7 @@ class SendSecretMessageActor : public NetActor {
   }
 };
 
-class SendMessageActor : public NetActorOnce {
+class SendMessageActor final : public NetActorOnce {
   int64 random_id_;
   DialogId dialog_id_;
 
@@ -2907,7 +2907,7 @@ class SendMessageActor : public NetActorOnce {
   }
 };
 
-class StartBotQuery : public Td::ResultHandler {
+class StartBotQuery final : public Td::ResultHandler {
   int64 random_id_;
   DialogId dialog_id_;
 
@@ -2957,7 +2957,7 @@ class StartBotQuery : public Td::ResultHandler {
   }
 };
 
-class SendInlineBotResultQuery : public Td::ResultHandler {
+class SendInlineBotResultQuery final : public Td::ResultHandler {
   int64 random_id_;
   DialogId dialog_id_;
 
@@ -3001,7 +3001,7 @@ class SendInlineBotResultQuery : public Td::ResultHandler {
   }
 };
 
-class SendMultiMediaActor : public NetActorOnce {
+class SendMultiMediaActor final : public NetActorOnce {
   vector<FileId> file_ids_;
   vector<string> file_references_;
   vector<int64> random_ids_;
@@ -3107,7 +3107,7 @@ class SendMultiMediaActor : public NetActorOnce {
   }
 };
 
-class SendMediaActor : public NetActorOnce {
+class SendMediaActor final : public NetActorOnce {
   int64 random_id_ = 0;
   FileId file_id_;
   FileId thumbnail_file_id_;
@@ -3216,7 +3216,7 @@ class SendMediaActor : public NetActorOnce {
   }
 };
 
-class UploadMediaQuery : public Td::ResultHandler {
+class UploadMediaQuery final : public Td::ResultHandler {
   DialogId dialog_id_;
   MessageId message_id_;
   FileId file_id_;
@@ -3295,7 +3295,7 @@ class UploadMediaQuery : public Td::ResultHandler {
   }
 };
 
-class SendScheduledMessageActor : public NetActorOnce {
+class SendScheduledMessageActor final : public NetActorOnce {
   Promise<Unit> promise_;
   DialogId dialog_id_;
 
@@ -3342,7 +3342,7 @@ class SendScheduledMessageActor : public NetActorOnce {
   }
 };
 
-class EditMessageActor : public NetActorOnce {
+class EditMessageActor final : public NetActorOnce {
   Promise<int32> promise_;
   DialogId dialog_id_;
 
@@ -3431,7 +3431,7 @@ class EditMessageActor : public NetActorOnce {
   }
 };
 
-class EditInlineMessageQuery : public Td::ResultHandler {
+class EditInlineMessageQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -3487,7 +3487,7 @@ class EditInlineMessageQuery : public Td::ResultHandler {
   }
 };
 
-class SetGameScoreActor : public NetActorOnce {
+class SetGameScoreActor final : public NetActorOnce {
   Promise<Unit> promise_;
   DialogId dialog_id_;
 
@@ -3544,7 +3544,7 @@ class SetGameScoreActor : public NetActorOnce {
   }
 };
 
-class SetInlineGameScoreQuery : public Td::ResultHandler {
+class SetInlineGameScoreQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -3589,7 +3589,7 @@ class SetInlineGameScoreQuery : public Td::ResultHandler {
   }
 };
 
-class GetGameHighScoresQuery : public Td::ResultHandler {
+class GetGameHighScoresQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
   int64 random_id_;
@@ -3629,7 +3629,7 @@ class GetGameHighScoresQuery : public Td::ResultHandler {
   }
 };
 
-class GetInlineGameHighScoresQuery : public Td::ResultHandler {
+class GetInlineGameHighScoresQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   int64 random_id_;
 
@@ -3667,7 +3667,7 @@ class GetInlineGameHighScoresQuery : public Td::ResultHandler {
   }
 };
 
-class ForwardMessagesActor : public NetActorOnce {
+class ForwardMessagesActor final : public NetActorOnce {
   Promise<Unit> promise_;
   vector<int64> random_ids_;
   DialogId to_dialog_id_;
@@ -3773,7 +3773,7 @@ class ForwardMessagesActor : public NetActorOnce {
   }
 };
 
-class SendScreenshotNotificationQuery : public Td::ResultHandler {
+class SendScreenshotNotificationQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   int64 random_id_;
   DialogId dialog_id_;
@@ -3819,7 +3819,7 @@ class SendScreenshotNotificationQuery : public Td::ResultHandler {
   }
 };
 
-class SetTypingQuery : public Td::ResultHandler {
+class SetTypingQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
 
@@ -3866,7 +3866,7 @@ class SetTypingQuery : public Td::ResultHandler {
   }
 };
 
-class DeleteMessagesQuery : public Td::ResultHandler {
+class DeleteMessagesQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
   int32 query_count_;
@@ -3929,7 +3929,7 @@ class DeleteMessagesQuery : public Td::ResultHandler {
   }
 };
 
-class DeleteChannelMessagesQuery : public Td::ResultHandler {
+class DeleteChannelMessagesQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   int32 query_count_;
   ChannelId channel_id_;
@@ -3988,7 +3988,7 @@ class DeleteChannelMessagesQuery : public Td::ResultHandler {
   }
 };
 
-class DeleteScheduledMessagesQuery : public Td::ResultHandler {
+class DeleteScheduledMessagesQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
 
@@ -4027,7 +4027,7 @@ class DeleteScheduledMessagesQuery : public Td::ResultHandler {
   }
 };
 
-class GetDialogNotifySettingsQuery : public Td::ResultHandler {
+class GetDialogNotifySettingsQuery final : public Td::ResultHandler {
   DialogId dialog_id_;
 
  public:
@@ -4055,7 +4055,7 @@ class GetDialogNotifySettingsQuery : public Td::ResultHandler {
   }
 };
 
-class GetNotifySettingsExceptionsQuery : public Td::ResultHandler {
+class GetNotifySettingsExceptionsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -4117,7 +4117,7 @@ class GetNotifySettingsExceptionsQuery : public Td::ResultHandler {
   }
 };
 
-class GetScopeNotifySettingsQuery : public Td::ResultHandler {
+class GetScopeNotifySettingsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   NotificationSettingsScope scope_;
 
@@ -4149,7 +4149,7 @@ class GetScopeNotifySettingsQuery : public Td::ResultHandler {
   }
 };
 
-class UpdateDialogNotifySettingsQuery : public Td::ResultHandler {
+class UpdateDialogNotifySettingsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
 
@@ -4212,7 +4212,7 @@ class UpdateDialogNotifySettingsQuery : public Td::ResultHandler {
   }
 };
 
-class UpdateScopeNotifySettingsQuery : public Td::ResultHandler {
+class UpdateScopeNotifySettingsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   NotificationSettingsScope scope_;
 
@@ -4259,7 +4259,7 @@ class UpdateScopeNotifySettingsQuery : public Td::ResultHandler {
   }
 };
 
-class ResetNotifySettingsQuery : public Td::ResultHandler {
+class ResetNotifySettingsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -4292,7 +4292,7 @@ class ResetNotifySettingsQuery : public Td::ResultHandler {
   }
 };
 
-class GetPeerSettingsQuery : public Td::ResultHandler {
+class GetPeerSettingsQuery final : public Td::ResultHandler {
   DialogId dialog_id_;
 
  public:
@@ -4320,7 +4320,7 @@ class GetPeerSettingsQuery : public Td::ResultHandler {
   }
 };
 
-class UpdatePeerSettingsQuery : public Td::ResultHandler {
+class UpdatePeerSettingsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
 
@@ -4370,7 +4370,7 @@ class UpdatePeerSettingsQuery : public Td::ResultHandler {
   }
 };
 
-class ReportEncryptedSpamQuery : public Td::ResultHandler {
+class ReportEncryptedSpamQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
 
@@ -4414,7 +4414,7 @@ class ReportEncryptedSpamQuery : public Td::ResultHandler {
   }
 };
 
-class ReportPeerQuery : public Td::ResultHandler {
+class ReportPeerQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
 
@@ -4463,7 +4463,7 @@ class ReportPeerQuery : public Td::ResultHandler {
   }
 };
 
-class ReportProfilePhotoQuery : public Td::ResultHandler {
+class ReportProfilePhotoQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
   FileId file_id_;
@@ -4527,7 +4527,7 @@ class ReportProfilePhotoQuery : public Td::ResultHandler {
   }
 };
 
-class EditPeerFoldersQuery : public Td::ResultHandler {
+class EditPeerFoldersQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
 
@@ -4570,7 +4570,7 @@ class EditPeerFoldersQuery : public Td::ResultHandler {
   }
 };
 
-class GetStatsUrlQuery : public Td::ResultHandler {
+class GetStatsUrlQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::httpUrl>> promise_;
   DialogId dialog_id_;
 
@@ -4606,7 +4606,7 @@ class GetStatsUrlQuery : public Td::ResultHandler {
   }
 };
 
-class GetChannelDifferenceQuery : public Td::ResultHandler {
+class GetChannelDifferenceQuery final : public Td::ResultHandler {
   DialogId dialog_id_;
   int32 pts_;
   int32 limit_;
@@ -4647,7 +4647,7 @@ class GetChannelDifferenceQuery : public Td::ResultHandler {
   }
 };
 
-class ResolveUsernameQuery : public Td::ResultHandler {
+class ResolveUsernameQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   string username_;
 
@@ -4686,7 +4686,7 @@ class ResolveUsernameQuery : public Td::ResultHandler {
   }
 };
 
-class GetChannelAdminLogQuery : public Td::ResultHandler {
+class GetChannelAdminLogQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
   int64 random_id_;
@@ -4733,7 +4733,7 @@ class GetChannelAdminLogQuery : public Td::ResultHandler {
   }
 };
 
-class MessagesManager::UploadMediaCallback : public FileManager::UploadCallback {
+class MessagesManager::UploadMediaCallback final : public FileManager::UploadCallback {
  public:
   void on_progress(FileId file_id) final {
   }
@@ -4753,7 +4753,7 @@ class MessagesManager::UploadMediaCallback : public FileManager::UploadCallback 
   }
 };
 
-class MessagesManager::UploadThumbnailCallback : public FileManager::UploadCallback {
+class MessagesManager::UploadThumbnailCallback final : public FileManager::UploadCallback {
  public:
   void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) final {
     send_closure_later(G()->messages_manager(), &MessagesManager::on_upload_thumbnail, file_id, std::move(input_file));
@@ -4769,7 +4769,7 @@ class MessagesManager::UploadThumbnailCallback : public FileManager::UploadCallb
   }
 };
 
-class MessagesManager::UploadDialogPhotoCallback : public FileManager::UploadCallback {
+class MessagesManager::UploadDialogPhotoCallback final : public FileManager::UploadCallback {
  public:
   void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) final {
     send_closure_later(G()->messages_manager(), &MessagesManager::on_upload_dialog_photo, file_id,
@@ -4787,7 +4787,7 @@ class MessagesManager::UploadDialogPhotoCallback : public FileManager::UploadCal
   }
 };
 
-class MessagesManager::UploadImportedMessagesCallback : public FileManager::UploadCallback {
+class MessagesManager::UploadImportedMessagesCallback final : public FileManager::UploadCallback {
  public:
   void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) final {
     send_closure_later(G()->messages_manager(), &MessagesManager::on_upload_imported_messages, file_id,
@@ -4805,7 +4805,7 @@ class MessagesManager::UploadImportedMessagesCallback : public FileManager::Uplo
   }
 };
 
-class MessagesManager::UploadImportedMessageAttachmentCallback : public FileManager::UploadCallback {
+class MessagesManager::UploadImportedMessageAttachmentCallback final : public FileManager::UploadCallback {
  public:
   void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) final {
     send_closure_later(G()->messages_manager(), &MessagesManager::on_upload_imported_message_attachment, file_id,
@@ -8500,7 +8500,7 @@ Result<string> MessagesManager::get_login_button_url(FullMessageId full_message_
 }
 
 void MessagesManager::load_secret_thumbnail(FileId thumbnail_file_id) {
-  class Callback : public FileManager::DownloadCallback {
+  class Callback final : public FileManager::DownloadCallback {
    public:
     explicit Callback(Promise<> download_promise) : download_promise_(std::move(download_promise)) {
     }

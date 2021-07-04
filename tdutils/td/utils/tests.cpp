@@ -58,7 +58,7 @@ StringBuilder &operator<<(StringBuilder &sb, const TestInfo &info) {
   return sb << info.name << " " << info.result_hash << "\n";
 }
 
-class RegressionTesterImpl : public RegressionTester {
+class RegressionTesterImpl final : public RegressionTester {
  public:
   static void destroy(CSlice db_path) {
     unlink(db_path).ignore();

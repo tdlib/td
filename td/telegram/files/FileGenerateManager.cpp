@@ -44,7 +44,7 @@ class FileGenerateActor : public Actor {
   virtual void file_generate_finish(Status status, Promise<> promise) = 0;
 };
 
-class FileDownloadGenerateActor : public FileGenerateActor {
+class FileDownloadGenerateActor final : public FileGenerateActor {
  public:
   FileDownloadGenerateActor(FileType file_type, FileId file_id, unique_ptr<FileGenerateCallback> callback,
                             ActorShared<> parent)
@@ -65,7 +65,7 @@ class FileDownloadGenerateActor : public FileGenerateActor {
 
   void start_up() final {
     LOG(INFO) << "Generate by downloading " << file_id_;
-    class Callback : public FileManager::DownloadCallback {
+    class Callback final : public FileManager::DownloadCallback {
      public:
       explicit Callback(ActorId<FileDownloadGenerateActor> parent) : parent_(std::move(parent)) {
       }
@@ -112,7 +112,7 @@ class FileDownloadGenerateActor : public FileGenerateActor {
   }
 };
 
-class MapDownloadGenerateActor : public FileGenerateActor {
+class MapDownloadGenerateActor final : public FileGenerateActor {
  public:
   MapDownloadGenerateActor(string conversion, unique_ptr<FileGenerateCallback> callback, ActorShared<> parent)
       : conversion_(std::move(conversion)), callback_(std::move(callback)), parent_(std::move(parent)) {
@@ -130,7 +130,7 @@ class MapDownloadGenerateActor : public FileGenerateActor {
   ActorShared<> parent_;
   string file_name_;
 
-  class Callback : public NetQueryCallback {
+  class Callback final : public NetQueryCallback {
     ActorId<MapDownloadGenerateActor> parent_;
 
    public:
@@ -236,7 +236,7 @@ class MapDownloadGenerateActor : public FileGenerateActor {
   }
 };
 
-class FileExternalGenerateActor : public FileGenerateActor {
+class FileExternalGenerateActor final : public FileGenerateActor {
  public:
   FileExternalGenerateActor(uint64 query_id, const FullGenerateFileLocation &generate_location,
                             const LocalFileLocation &local_location, string name,

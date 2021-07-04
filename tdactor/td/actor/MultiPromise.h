@@ -30,7 +30,7 @@ class MultiPromiseInterface {
   virtual ~MultiPromiseInterface() = default;
 };
 
-class MultiPromise : public MultiPromiseInterface {
+class MultiPromise final : public MultiPromiseInterface {
  public:
   void add_promise(Promise<> &&promise) final {
     impl_->add_promise(std::move(promise));
@@ -91,7 +91,7 @@ class MultiPromiseActor final
   }
 };
 
-class MultiPromiseActorSafe : public MultiPromiseInterface {
+class MultiPromiseActorSafe final : public MultiPromiseInterface {
  public:
   void add_promise(Promise<Unit> &&promise) final;
   Promise<Unit> get_promise() final;

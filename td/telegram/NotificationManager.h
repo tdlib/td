@@ -42,7 +42,7 @@ struct BinlogEvent;
 
 class Td;
 
-class NotificationManager : public Actor {
+class NotificationManager final : public Actor {
  public:
   static constexpr int32 MIN_NOTIFICATION_GROUP_COUNT_MAX = 0;
   static constexpr int32 MAX_NOTIFICATION_GROUP_COUNT_MAX = 25;

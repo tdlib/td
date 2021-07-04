@@ -24,7 +24,7 @@
 namespace td {
 namespace mtproto {
 
-class HandshakeConnection
+class HandshakeConnection final
     : private RawConnection::Callback
     , private AuthKeyHandshake::Callback {
  public:

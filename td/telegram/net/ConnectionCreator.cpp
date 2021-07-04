@@ -747,7 +747,7 @@ ActorOwn<> ConnectionCreator::prepare_connection(IPAddress ip_address, SocketFd 
                                                  Promise<ConnectionData> promise) {
   if (proxy.use_socks5_proxy() || proxy.use_http_tcp_proxy() || transport_type.secret.emulate_tls()) {
     VLOG(connections) << "Create new transparent proxy connection " << debug_str;
-    class Callback : public TransparentProxy::Callback {
+    class Callback final : public TransparentProxy::Callback {
      public:
       explicit Callback(Promise<ConnectionData> promise, IPAddress ip_address,
                         unique_ptr<mtproto::RawConnection::StatsCallback> stats_callback, bool use_connection_token,
@@ -1086,7 +1086,7 @@ void ConnectionCreator::update_mtproto_header(const Proxy &proxy) {
 }
 
 void ConnectionCreator::start_up() {
-  class StateCallback : public StateManager::Callback {
+  class StateCallback final : public StateManager::Callback {
    public:
     explicit StateCallback(ActorId<ConnectionCreator> connection_creator)
         : connection_creator_(std::move(connection_creator)) {

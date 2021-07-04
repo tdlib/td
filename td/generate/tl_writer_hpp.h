@@ -14,7 +14,7 @@
 
 namespace td {
 
-class TD_TL_writer_hpp : public TD_TL_writer {
+class TD_TL_writer_hpp final : public TD_TL_writer {
  public:
   TD_TL_writer_hpp(const std::string &tl_name, const std::string &string_type, const std::string &bytes_type)
       : TD_TL_writer(tl_name, string_type, bytes_type) {

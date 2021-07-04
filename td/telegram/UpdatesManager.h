@@ -33,7 +33,7 @@ extern int VERBOSITY_NAME(get_difference);
 
 class Td;
 
-class dummyUpdate : public telegram_api::Update {
+class dummyUpdate final : public telegram_api::Update {
  public:
   static constexpr int32 ID = 1234567891;
   int32 get_id() const final {
@@ -54,7 +54,7 @@ class dummyUpdate : public telegram_api::Update {
   }
 };
 
-class updateSentMessage : public telegram_api::Update {
+class updateSentMessage final : public telegram_api::Update {
  public:
   int64 random_id_;
   MessageId message_id_;
@@ -88,7 +88,7 @@ class updateSentMessage : public telegram_api::Update {
   }
 };
 
-class UpdatesManager : public Actor {
+class UpdatesManager final : public Actor {
  public:
   UpdatesManager(Td *td, ActorShared<> parent);
 

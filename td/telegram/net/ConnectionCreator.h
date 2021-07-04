@@ -54,7 +54,7 @@ namespace td {
 
 extern int VERBOSITY_NAME(connections);
 
-class ConnectionCreator : public NetQueryCallback {
+class ConnectionCreator final : public NetQueryCallback {
  public:
   explicit ConnectionCreator(ActorShared<> parent);
   ConnectionCreator(ConnectionCreator &&other);

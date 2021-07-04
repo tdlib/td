@@ -27,7 +27,7 @@ namespace td {
 
 class Td;
 
-class AnimationsManager : public Actor {
+class AnimationsManager final : public Actor {
  public:
   AnimationsManager(Td *td, ActorShared<> parent);
 

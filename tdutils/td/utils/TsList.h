@@ -159,7 +159,7 @@ class TsListNode : protected ListNode {
 };
 
 template <class DataT>
-class TsList : public TsListNode<DataT> {
+class TsList final : public TsListNode<DataT> {
  public:
   TsList() {
     this->parent = this;

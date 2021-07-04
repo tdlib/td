@@ -98,7 +98,7 @@ class UdpSocketSendHelper {
   WSABUF buf_;
 };
 
-class UdpSocketFdImpl : private Iocp::Callback {
+class UdpSocketFdImpl final : private Iocp::Callback {
  public:
   explicit UdpSocketFdImpl(NativeFd fd) : info_(std::move(fd)) {
     get_poll_info().add_flags(PollFlags::Write());

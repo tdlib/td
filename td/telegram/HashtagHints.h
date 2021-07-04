@@ -15,7 +15,7 @@
 
 namespace td {
 
-class HashtagHints : public Actor {
+class HashtagHints final : public Actor {
  public:
   HashtagHints(string mode, ActorShared<> parent);
 

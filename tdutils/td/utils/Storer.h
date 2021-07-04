@@ -17,7 +17,7 @@
 
 namespace td {
 
-class SliceStorer : public Storer {
+class SliceStorer final : public Storer {
   Slice slice;
 
  public:
@@ -36,7 +36,7 @@ inline SliceStorer create_storer(Slice slice) {
   return SliceStorer(slice);
 }
 
-class ConcatStorer : public Storer {
+class ConcatStorer final : public Storer {
   const Storer &a_;
   const Storer &b_;
 
@@ -61,7 +61,7 @@ inline ConcatStorer create_storer(const Storer &a, const Storer &b) {
 }
 
 template <class T>
-class DefaultStorer : public Storer {
+class DefaultStorer final : public Storer {
  public:
   explicit DefaultStorer(const T &object) : object_(object) {
   }

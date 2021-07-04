@@ -24,7 +24,7 @@
 
 namespace td {
 
-class PublicRsaKeyWatchdog : public NetActor {
+class PublicRsaKeyWatchdog final : public NetActor {
  public:
   explicit PublicRsaKeyWatchdog(ActorShared<> parent);
 

@@ -35,7 +35,7 @@ class Td;
 
 class Game;
 
-class InlineQueriesManager : public Actor {
+class InlineQueriesManager final : public Actor {
  public:
   InlineQueriesManager(Td *td, ActorShared<> parent);
 

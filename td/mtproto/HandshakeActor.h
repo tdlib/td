@@ -19,7 +19,7 @@ namespace td {
 namespace mtproto {
 
 // Has Raw connection. Generates new auth key. And returns it and raw_connection. Or error...
-class HandshakeActor : public Actor {
+class HandshakeActor final : public Actor {
  public:
   HandshakeActor(unique_ptr<AuthKeyHandshake> handshake, unique_ptr<RawConnection> raw_connection,
                  unique_ptr<AuthKeyHandshakeContext> context, double timeout,

@@ -135,7 +135,7 @@ tl_object_ptr<telegram_api::JSONValue> convert_json_value(td_api::object_ptr<td_
 
 namespace {
 
-class JsonableJsonValue : public Jsonable {
+class JsonableJsonValue final : public Jsonable {
  public:
   explicit JsonableJsonValue(const td_api::JsonValue *json_value) : json_value_(json_value) {
   }

@@ -200,7 +200,7 @@ inline StringBuilder &operator<<(StringBuilder &sb, const EncryptedFileLocation 
 
 // LogEvents
 // TODO: Qts and SeqNoState could be just Logevents that are updated during regenerate
-class InboundSecretMessage : public SecretChatLogEventBase<InboundSecretMessage> {
+class InboundSecretMessage final : public SecretChatLogEventBase<InboundSecretMessage> {
  public:
   static constexpr Type type = SecretChatEvent::Type::InboundSecretMessage;
 
@@ -301,7 +301,7 @@ class InboundSecretMessage : public SecretChatLogEventBase<InboundSecretMessage>
   }
 };
 
-class OutboundSecretMessage : public SecretChatLogEventBase<OutboundSecretMessage> {
+class OutboundSecretMessage final : public SecretChatLogEventBase<OutboundSecretMessage> {
  public:
   static constexpr Type type = SecretChatEvent::Type::OutboundSecretMessage;
 
@@ -407,7 +407,7 @@ class OutboundSecretMessage : public SecretChatLogEventBase<OutboundSecretMessag
   }
 };
 
-class CloseSecretChat : public SecretChatLogEventBase<CloseSecretChat> {
+class CloseSecretChat final : public SecretChatLogEventBase<CloseSecretChat> {
  public:
   static constexpr Type type = SecretChatEvent::Type::CloseSecretChat;
   int32 chat_id = 0;
@@ -442,7 +442,7 @@ class CloseSecretChat : public SecretChatLogEventBase<CloseSecretChat> {
   }
 };
 
-class CreateSecretChat : public SecretChatLogEventBase<CreateSecretChat> {
+class CreateSecretChat final : public SecretChatLogEventBase<CreateSecretChat> {
  public:
   static constexpr Type type = SecretChatEvent::Type::CreateSecretChat;
   int32 random_id = 0;

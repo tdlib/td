@@ -18,7 +18,7 @@
 #include "td/utils/Status.h"
 
 namespace td {
-class FileFromBytes : public FileLoaderActor {
+class FileFromBytes final : public FileLoaderActor {
  public:
   class Callback {
    public:

@@ -10,14 +10,14 @@
 #include "td/utils/logging.h"
 #include "td/utils/Time.h"
 
-class Worker : public td::Actor {
+class Worker final : public td::Actor {
  public:
   void ping(int x) {
     LOG(ERROR) << "Got ping " << x;
   }
 };
 
-class MainActor : public td::Actor {
+class MainActor final : public td::Actor {
  public:
   void start_up() final {
     LOG(ERROR) << "Start up";

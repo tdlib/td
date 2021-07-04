@@ -2327,7 +2327,7 @@ void FileManager::run_download(FileNodePtr node, bool force_update_priority) {
                download_limit, priority);
 }
 
-class FileManager::ForceUploadActor : public Actor {
+class FileManager::ForceUploadActor final : public Actor {
  public:
   ForceUploadActor(FileManager *file_manager, FileId file_id, std::shared_ptr<FileManager::UploadCallback> callback,
                    int32 new_priority, uint64 upload_order, bool prefer_small, ActorShared<> parent)
@@ -2351,7 +2351,7 @@ class FileManager::ForceUploadActor : public Actor {
   bool is_active_{false};
   int attempt_{0};
 
-  class UploadCallback : public FileManager::UploadCallback {
+  class UploadCallback final : public FileManager::UploadCallback {
    public:
     explicit UploadCallback(ActorId<ForceUploadActor> callback) : callback_(std::move(callback)) {
     }
@@ -2678,7 +2678,7 @@ void FileManager::run_generate(FileNodePtr node) {
   node->generate_id_ = id;
   send_closure(file_generate_manager_, &FileGenerateManager::generate_file, id, *node->generate_, node->local_,
                node->suggested_path(), [file_manager = this, id] {
-                 class Callback : public FileGenerateCallback {
+                 class Callback final : public FileGenerateCallback {
                    ActorId<FileManager> actor_;
                    uint64 query_id_;
 

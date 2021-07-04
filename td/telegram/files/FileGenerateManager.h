@@ -31,7 +31,7 @@ class FileGenerateCallback {
   virtual void on_error(Status error) = 0;
 };
 
-class FileGenerateManager : public Actor {
+class FileGenerateManager final : public Actor {
  public:
   explicit FileGenerateManager(ActorShared<> parent) : parent_(std::move(parent)) {
   }

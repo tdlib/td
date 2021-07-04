@@ -432,7 +432,7 @@ class RelatedArticle {
   }
 };
 
-class WebPageBlockTitle : public WebPageBlock {
+class WebPageBlockTitle final : public WebPageBlock {
   RichText title;
 
  public:
@@ -466,7 +466,7 @@ class WebPageBlockTitle : public WebPageBlock {
   }
 };
 
-class WebPageBlockSubtitle : public WebPageBlock {
+class WebPageBlockSubtitle final : public WebPageBlock {
   RichText subtitle;
 
  public:
@@ -499,7 +499,7 @@ class WebPageBlockSubtitle : public WebPageBlock {
   }
 };
 
-class WebPageBlockAuthorDate : public WebPageBlock {
+class WebPageBlockAuthorDate final : public WebPageBlock {
   RichText author;
   int32 date = 0;
 
@@ -535,7 +535,7 @@ class WebPageBlockAuthorDate : public WebPageBlock {
   }
 };
 
-class WebPageBlockHeader : public WebPageBlock {
+class WebPageBlockHeader final : public WebPageBlock {
   RichText header;
 
  public:
@@ -568,7 +568,7 @@ class WebPageBlockHeader : public WebPageBlock {
   }
 };
 
-class WebPageBlockSubheader : public WebPageBlock {
+class WebPageBlockSubheader final : public WebPageBlock {
   RichText subheader;
 
  public:
@@ -601,7 +601,7 @@ class WebPageBlockSubheader : public WebPageBlock {
   }
 };
 
-class WebPageBlockKicker : public WebPageBlock {
+class WebPageBlockKicker final : public WebPageBlock {
   RichText kicker;
 
  public:
@@ -634,7 +634,7 @@ class WebPageBlockKicker : public WebPageBlock {
   }
 };
 
-class WebPageBlockParagraph : public WebPageBlock {
+class WebPageBlockParagraph final : public WebPageBlock {
   RichText text;
 
  public:
@@ -667,7 +667,7 @@ class WebPageBlockParagraph : public WebPageBlock {
   }
 };
 
-class WebPageBlockPreformatted : public WebPageBlock {
+class WebPageBlockPreformatted final : public WebPageBlock {
   RichText text;
   string language;
 
@@ -703,7 +703,7 @@ class WebPageBlockPreformatted : public WebPageBlock {
   }
 };
 
-class WebPageBlockFooter : public WebPageBlock {
+class WebPageBlockFooter final : public WebPageBlock {
   RichText footer;
 
  public:
@@ -736,7 +736,7 @@ class WebPageBlockFooter : public WebPageBlock {
   }
 };
 
-class WebPageBlockDivider : public WebPageBlock {
+class WebPageBlockDivider final : public WebPageBlock {
  public:
   Type get_type() const final {
     return Type::Divider;
@@ -758,7 +758,7 @@ class WebPageBlockDivider : public WebPageBlock {
   }
 };
 
-class WebPageBlockAnchor : public WebPageBlock {
+class WebPageBlockAnchor final : public WebPageBlock {
   string name;
 
  public:
@@ -793,7 +793,7 @@ class WebPageBlockAnchor : public WebPageBlock {
   }
 };
 
-class WebPageBlockList : public WebPageBlock {
+class WebPageBlockList final : public WebPageBlock {
  public:
   struct Item {
     string label;
@@ -883,7 +883,7 @@ class WebPageBlockList : public WebPageBlock {
   }
 };
 
-class WebPageBlockBlockQuote : public WebPageBlock {
+class WebPageBlockBlockQuote final : public WebPageBlock {
   RichText text;
   RichText credit;
 
@@ -921,7 +921,7 @@ class WebPageBlockBlockQuote : public WebPageBlock {
   }
 };
 
-class WebPageBlockPullQuote : public WebPageBlock {
+class WebPageBlockPullQuote final : public WebPageBlock {
   RichText text;
   RichText credit;
 
@@ -959,7 +959,7 @@ class WebPageBlockPullQuote : public WebPageBlock {
   }
 };
 
-class WebPageBlockAnimation : public WebPageBlock {
+class WebPageBlockAnimation final : public WebPageBlock {
   FileId animation_file_id;
   WebPageBlockCaption caption;
   bool need_autoplay = false;
@@ -1025,7 +1025,7 @@ class WebPageBlockAnimation : public WebPageBlock {
   }
 };
 
-class WebPageBlockPhoto : public WebPageBlock {
+class WebPageBlockPhoto final : public WebPageBlock {
   Photo photo;
   WebPageBlockCaption caption;
   string url;
@@ -1075,7 +1075,7 @@ class WebPageBlockPhoto : public WebPageBlock {
   }
 };
 
-class WebPageBlockVideo : public WebPageBlock {
+class WebPageBlockVideo final : public WebPageBlock {
   FileId video_file_id;
   WebPageBlockCaption caption;
   bool need_autoplay = false;
@@ -1144,7 +1144,7 @@ class WebPageBlockVideo : public WebPageBlock {
   }
 };
 
-class WebPageBlockCover : public WebPageBlock {
+class WebPageBlockCover final : public WebPageBlock {
   unique_ptr<WebPageBlock> cover;
 
  public:
@@ -1177,7 +1177,7 @@ class WebPageBlockCover : public WebPageBlock {
   }
 };
 
-class WebPageBlockEmbedded : public WebPageBlock {
+class WebPageBlockEmbedded final : public WebPageBlock {
   string url;
   string html;
   Photo poster_photo;
@@ -1245,7 +1245,7 @@ class WebPageBlockEmbedded : public WebPageBlock {
   }
 };
 
-class WebPageBlockEmbeddedPost : public WebPageBlock {
+class WebPageBlockEmbeddedPost final : public WebPageBlock {
   string url;
   string author;
   Photo author_photo;
@@ -1306,7 +1306,7 @@ class WebPageBlockEmbeddedPost : public WebPageBlock {
   }
 };
 
-class WebPageBlockCollage : public WebPageBlock {
+class WebPageBlockCollage final : public WebPageBlock {
   vector<unique_ptr<WebPageBlock>> page_blocks;
   WebPageBlockCaption caption;
 
@@ -1347,7 +1347,7 @@ class WebPageBlockCollage : public WebPageBlock {
   }
 };
 
-class WebPageBlockSlideshow : public WebPageBlock {
+class WebPageBlockSlideshow final : public WebPageBlock {
   vector<unique_ptr<WebPageBlock>> page_blocks;
   WebPageBlockCaption caption;
 
@@ -1388,7 +1388,7 @@ class WebPageBlockSlideshow : public WebPageBlock {
   }
 };
 
-class WebPageBlockChatLink : public WebPageBlock {
+class WebPageBlockChatLink final : public WebPageBlock {
   string title;
   DialogPhoto photo;
   string username;
@@ -1429,7 +1429,7 @@ class WebPageBlockChatLink : public WebPageBlock {
   }
 };
 
-class WebPageBlockAudio : public WebPageBlock {
+class WebPageBlockAudio final : public WebPageBlock {
   FileId audio_file_id;
   WebPageBlockCaption caption;
 
@@ -1498,7 +1498,7 @@ class WebPageBlockAudio : public WebPageBlock {
   }
 };
 
-class WebPageBlockTable : public WebPageBlock {
+class WebPageBlockTable final : public WebPageBlock {
   RichText title;
   vector<vector<WebPageBlockTableCell>> cells;
   bool is_bordered = false;
@@ -1556,7 +1556,7 @@ class WebPageBlockTable : public WebPageBlock {
   }
 };
 
-class WebPageBlockDetails : public WebPageBlock {
+class WebPageBlockDetails final : public WebPageBlock {
   RichText header;
   vector<unique_ptr<WebPageBlock>> page_blocks;
   bool is_open;
@@ -1604,7 +1604,7 @@ class WebPageBlockDetails : public WebPageBlock {
   }
 };
 
-class WebPageBlockRelatedArticles : public WebPageBlock {
+class WebPageBlockRelatedArticles final : public WebPageBlock {
   RichText header;
   vector<RelatedArticle> related_articles;
 
@@ -1652,7 +1652,7 @@ class WebPageBlockRelatedArticles : public WebPageBlock {
   }
 };
 
-class WebPageBlockMap : public WebPageBlock {
+class WebPageBlockMap final : public WebPageBlock {
   Location location;
   int32 zoom = 0;
   Dimensions dimensions;
@@ -1696,7 +1696,7 @@ class WebPageBlockMap : public WebPageBlock {
   }
 };
 
-class WebPageBlockVoiceNote : public WebPageBlock {
+class WebPageBlockVoiceNote final : public WebPageBlock {
   FileId voice_note_file_id;
   WebPageBlockCaption caption;
 

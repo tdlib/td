@@ -76,7 +76,7 @@ class Session final
   void close();
 
  private:
-  struct Query : private ListNode {
+  struct Query final : private ListNode {
     uint64 container_id;
     NetQueryPtr query;
 

@@ -31,7 +31,7 @@
 
 namespace td {
 
-class SetBotShippingAnswerQuery : public Td::ResultHandler {
+class SetBotShippingAnswerQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -69,7 +69,7 @@ class SetBotShippingAnswerQuery : public Td::ResultHandler {
   }
 };
 
-class SetBotPreCheckoutAnswerQuery : public Td::ResultHandler {
+class SetBotPreCheckoutAnswerQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -259,7 +259,7 @@ static tl_object_ptr<td_api::savedCredentials> convert_saved_credentials(
                                                   std::move(saved_credentials->title_));
 }
 
-class GetPaymentFormQuery : public Td::ResultHandler {
+class GetPaymentFormQuery final : public Td::ResultHandler {
   Promise<tl_object_ptr<td_api::paymentForm>> promise_;
   DialogId dialog_id_;
 
@@ -322,7 +322,7 @@ class GetPaymentFormQuery : public Td::ResultHandler {
   }
 };
 
-class ValidateRequestedInfoQuery : public Td::ResultHandler {
+class ValidateRequestedInfoQuery final : public Td::ResultHandler {
   Promise<tl_object_ptr<td_api::validatedOrderInfo>> promise_;
   DialogId dialog_id_;
 
@@ -371,7 +371,7 @@ class ValidateRequestedInfoQuery : public Td::ResultHandler {
   }
 };
 
-class SendPaymentFormQuery : public Td::ResultHandler {
+class SendPaymentFormQuery final : public Td::ResultHandler {
   Promise<tl_object_ptr<td_api::paymentResult>> promise_;
   DialogId dialog_id_;
 
@@ -440,7 +440,7 @@ class SendPaymentFormQuery : public Td::ResultHandler {
   }
 };
 
-class GetPaymentReceiptQuery : public Td::ResultHandler {
+class GetPaymentReceiptQuery final : public Td::ResultHandler {
   Promise<tl_object_ptr<td_api::paymentReceipt>> promise_;
   DialogId dialog_id_;
 
@@ -498,7 +498,7 @@ class GetPaymentReceiptQuery : public Td::ResultHandler {
   }
 };
 
-class GetSavedInfoQuery : public Td::ResultHandler {
+class GetSavedInfoQuery final : public Td::ResultHandler {
   Promise<tl_object_ptr<td_api::orderInfo>> promise_;
 
  public:
@@ -525,7 +525,7 @@ class GetSavedInfoQuery : public Td::ResultHandler {
   }
 };
 
-class ClearSavedInfoQuery : public Td::ResultHandler {
+class ClearSavedInfoQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -559,7 +559,7 @@ class ClearSavedInfoQuery : public Td::ResultHandler {
   }
 };
 
-class GetBankCardInfoQuery : public Td::ResultHandler {
+class GetBankCardInfoQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::bankCardInfo>> promise_;
 
  public:

@@ -20,7 +20,7 @@
 
 namespace td {
 
-class Wget : public HttpOutboundConnection::Callback {
+class Wget final : public HttpOutboundConnection::Callback {
  public:
   explicit Wget(Promise<unique_ptr<HttpQuery>> promise, string url, std::vector<std::pair<string, string>> headers = {},
                 int32 timeout_in = 10, int32 ttl = 3, bool prefer_ipv6 = false,

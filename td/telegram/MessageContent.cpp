@@ -88,7 +88,7 @@
 
 namespace td {
 
-class MessageText : public MessageContent {
+class MessageText final : public MessageContent {
  public:
   FormattedText text;
   WebPageId web_page_id;
@@ -102,7 +102,7 @@ class MessageText : public MessageContent {
   }
 };
 
-class MessageAnimation : public MessageContent {
+class MessageAnimation final : public MessageContent {
  public:
   FileId file_id;
 
@@ -117,7 +117,7 @@ class MessageAnimation : public MessageContent {
   }
 };
 
-class MessageAudio : public MessageContent {
+class MessageAudio final : public MessageContent {
  public:
   FileId file_id;
 
@@ -132,7 +132,7 @@ class MessageAudio : public MessageContent {
   }
 };
 
-class MessageDocument : public MessageContent {
+class MessageDocument final : public MessageContent {
  public:
   FileId file_id;
 
@@ -147,7 +147,7 @@ class MessageDocument : public MessageContent {
   }
 };
 
-class MessagePhoto : public MessageContent {
+class MessagePhoto final : public MessageContent {
  public:
   Photo photo;
 
@@ -162,7 +162,7 @@ class MessagePhoto : public MessageContent {
   }
 };
 
-class MessageSticker : public MessageContent {
+class MessageSticker final : public MessageContent {
  public:
   FileId file_id;
 
@@ -175,7 +175,7 @@ class MessageSticker : public MessageContent {
   }
 };
 
-class MessageVideo : public MessageContent {
+class MessageVideo final : public MessageContent {
  public:
   FileId file_id;
 
@@ -190,7 +190,7 @@ class MessageVideo : public MessageContent {
   }
 };
 
-class MessageVoiceNote : public MessageContent {
+class MessageVoiceNote final : public MessageContent {
  public:
   FileId file_id;
 
@@ -207,7 +207,7 @@ class MessageVoiceNote : public MessageContent {
   }
 };
 
-class MessageContact : public MessageContent {
+class MessageContact final : public MessageContent {
  public:
   Contact contact;
 
@@ -220,7 +220,7 @@ class MessageContact : public MessageContent {
   }
 };
 
-class MessageLocation : public MessageContent {
+class MessageLocation final : public MessageContent {
  public:
   Location location;
 
@@ -233,7 +233,7 @@ class MessageLocation : public MessageContent {
   }
 };
 
-class MessageVenue : public MessageContent {
+class MessageVenue final : public MessageContent {
  public:
   Venue venue;
 
@@ -246,7 +246,7 @@ class MessageVenue : public MessageContent {
   }
 };
 
-class MessageChatCreate : public MessageContent {
+class MessageChatCreate final : public MessageContent {
  public:
   string title;
   vector<UserId> participant_user_ids;
@@ -261,7 +261,7 @@ class MessageChatCreate : public MessageContent {
   }
 };
 
-class MessageChatChangeTitle : public MessageContent {
+class MessageChatChangeTitle final : public MessageContent {
  public:
   string title;
 
@@ -274,7 +274,7 @@ class MessageChatChangeTitle : public MessageContent {
   }
 };
 
-class MessageChatChangePhoto : public MessageContent {
+class MessageChatChangePhoto final : public MessageContent {
  public:
   Photo photo;
 
@@ -287,21 +287,21 @@ class MessageChatChangePhoto : public MessageContent {
   }
 };
 
-class MessageChatDeletePhoto : public MessageContent {
+class MessageChatDeletePhoto final : public MessageContent {
  public:
   MessageContentType get_type() const final {
     return MessageContentType::ChatDeletePhoto;
   }
 };
 
-class MessageChatDeleteHistory : public MessageContent {
+class MessageChatDeleteHistory final : public MessageContent {
  public:
   MessageContentType get_type() const final {
     return MessageContentType::ChatDeleteHistory;
   }
 };
 
-class MessageChatAddUsers : public MessageContent {
+class MessageChatAddUsers final : public MessageContent {
  public:
   vector<UserId> user_ids;
 
@@ -314,14 +314,14 @@ class MessageChatAddUsers : public MessageContent {
   }
 };
 
-class MessageChatJoinedByLink : public MessageContent {
+class MessageChatJoinedByLink final : public MessageContent {
  public:
   MessageContentType get_type() const final {
     return MessageContentType::ChatJoinedByLink;
   }
 };
 
-class MessageChatDeleteUser : public MessageContent {
+class MessageChatDeleteUser final : public MessageContent {
  public:
   UserId user_id;
 
@@ -334,7 +334,7 @@ class MessageChatDeleteUser : public MessageContent {
   }
 };
 
-class MessageChatMigrateTo : public MessageContent {
+class MessageChatMigrateTo final : public MessageContent {
  public:
   ChannelId migrated_to_channel_id;
 
@@ -347,7 +347,7 @@ class MessageChatMigrateTo : public MessageContent {
   }
 };
 
-class MessageChannelCreate : public MessageContent {
+class MessageChannelCreate final : public MessageContent {
  public:
   string title;
 
@@ -360,7 +360,7 @@ class MessageChannelCreate : public MessageContent {
   }
 };
 
-class MessageChannelMigrateFrom : public MessageContent {
+class MessageChannelMigrateFrom final : public MessageContent {
  public:
   string title;
   ChatId migrated_from_chat_id;
@@ -375,7 +375,7 @@ class MessageChannelMigrateFrom : public MessageContent {
   }
 };
 
-class MessagePinMessage : public MessageContent {
+class MessagePinMessage final : public MessageContent {
  public:
   MessageId message_id;
 
@@ -388,7 +388,7 @@ class MessagePinMessage : public MessageContent {
   }
 };
 
-class MessageGame : public MessageContent {
+class MessageGame final : public MessageContent {
  public:
   Game game;
 
@@ -401,7 +401,7 @@ class MessageGame : public MessageContent {
   }
 };
 
-class MessageGameScore : public MessageContent {
+class MessageGameScore final : public MessageContent {
  public:
   MessageId game_message_id;
   int64 game_id;
@@ -417,14 +417,14 @@ class MessageGameScore : public MessageContent {
   }
 };
 
-class MessageScreenshotTaken : public MessageContent {
+class MessageScreenshotTaken final : public MessageContent {
  public:
   MessageContentType get_type() const final {
     return MessageContentType::ScreenshotTaken;
   }
 };
 
-class MessageChatSetTtl : public MessageContent {
+class MessageChatSetTtl final : public MessageContent {
  public:
   int32 ttl;
 
@@ -437,7 +437,7 @@ class MessageChatSetTtl : public MessageContent {
   }
 };
 
-class MessageUnsupported : public MessageContent {
+class MessageUnsupported final : public MessageContent {
  public:
   static constexpr int32 CURRENT_VERSION = 7;
   int32 version = CURRENT_VERSION;
@@ -451,7 +451,7 @@ class MessageUnsupported : public MessageContent {
   }
 };
 
-class MessageCall : public MessageContent {
+class MessageCall final : public MessageContent {
  public:
   int64 call_id;
   int32 duration;
@@ -468,7 +468,7 @@ class MessageCall : public MessageContent {
   }
 };
 
-class MessageInvoice : public MessageContent {
+class MessageInvoice final : public MessageContent {
  public:
   InputInvoice input_invoice;
 
@@ -481,7 +481,7 @@ class MessageInvoice : public MessageContent {
   }
 };
 
-class MessagePaymentSuccessful : public MessageContent {
+class MessagePaymentSuccessful final : public MessageContent {
  public:
   DialogId invoice_dialog_id;
   MessageId invoice_message_id;
@@ -509,7 +509,7 @@ class MessagePaymentSuccessful : public MessageContent {
   }
 };
 
-class MessageVideoNote : public MessageContent {
+class MessageVideoNote final : public MessageContent {
  public:
   FileId file_id;
 
@@ -524,14 +524,14 @@ class MessageVideoNote : public MessageContent {
   }
 };
 
-class MessageContactRegistered : public MessageContent {
+class MessageContactRegistered final : public MessageContent {
  public:
   MessageContentType get_type() const final {
     return MessageContentType::ContactRegistered;
   }
 };
 
-class MessageExpiredPhoto : public MessageContent {
+class MessageExpiredPhoto final : public MessageContent {
  public:
   MessageExpiredPhoto() = default;
 
@@ -540,7 +540,7 @@ class MessageExpiredPhoto : public MessageContent {
   }
 };
 
-class MessageExpiredVideo : public MessageContent {
+class MessageExpiredVideo final : public MessageContent {
  public:
   MessageExpiredVideo() = default;
 
@@ -549,7 +549,7 @@ class MessageExpiredVideo : public MessageContent {
   }
 };
 
-class MessageLiveLocation : public MessageContent {
+class MessageLiveLocation final : public MessageContent {
  public:
   Location location;
   int32 period = 0;
@@ -579,7 +579,7 @@ class MessageLiveLocation : public MessageContent {
   }
 };
 
-class MessageCustomServiceAction : public MessageContent {
+class MessageCustomServiceAction final : public MessageContent {
  public:
   string message;
 
@@ -592,7 +592,7 @@ class MessageCustomServiceAction : public MessageContent {
   }
 };
 
-class MessageWebsiteConnected : public MessageContent {
+class MessageWebsiteConnected final : public MessageContent {
  public:
   string domain_name;
 
@@ -605,7 +605,7 @@ class MessageWebsiteConnected : public MessageContent {
   }
 };
 
-class MessagePassportDataSent : public MessageContent {
+class MessagePassportDataSent final : public MessageContent {
  public:
   vector<SecureValueType> types;
 
@@ -618,7 +618,7 @@ class MessagePassportDataSent : public MessageContent {
   }
 };
 
-class MessagePassportDataReceived : public MessageContent {
+class MessagePassportDataReceived final : public MessageContent {
  public:
   vector<EncryptedSecureValue> values;
   EncryptedSecureCredentials credentials;
@@ -633,7 +633,7 @@ class MessagePassportDataReceived : public MessageContent {
   }
 };
 
-class MessagePoll : public MessageContent {
+class MessagePoll final : public MessageContent {
  public:
   PollId poll_id;
 
@@ -646,7 +646,7 @@ class MessagePoll : public MessageContent {
   }
 };
 
-class MessageDice : public MessageContent {
+class MessageDice final : public MessageContent {
  public:
   string emoji;
   int32 dice_value = 0;
@@ -676,7 +676,7 @@ class MessageDice : public MessageContent {
 
 constexpr const char *MessageDice::DEFAULT_EMOJI;
 
-class MessageProximityAlertTriggered : public MessageContent {
+class MessageProximityAlertTriggered final : public MessageContent {
  public:
   DialogId traveler_dialog_id;
   DialogId watcher_dialog_id;
@@ -692,7 +692,7 @@ class MessageProximityAlertTriggered : public MessageContent {
   }
 };
 
-class MessageGroupCall : public MessageContent {
+class MessageGroupCall final : public MessageContent {
  public:
   InputGroupCallId input_group_call_id;
   int32 duration = -1;
@@ -708,7 +708,7 @@ class MessageGroupCall : public MessageContent {
   }
 };
 
-class MessageInviteToGroupCall : public MessageContent {
+class MessageInviteToGroupCall final : public MessageContent {
  public:
   InputGroupCallId input_group_call_id;
   vector<UserId> user_ids;

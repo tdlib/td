@@ -17,7 +17,7 @@ namespace td {
 
 class SessionProxy;
 
-class SessionMultiProxy : public Actor {
+class SessionMultiProxy final : public Actor {
  public:
   SessionMultiProxy();
   SessionMultiProxy(const SessionMultiProxy &other) = delete;

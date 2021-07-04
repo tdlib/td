@@ -26,7 +26,7 @@ struct ListData {
   }
 };
 
-struct Node : public td::ListNode {
+struct Node final : public td::ListNode {
   Node() = default;
   explicit Node(ListData data) : data(std::move(data)) {
   }

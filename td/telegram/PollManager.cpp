@@ -48,7 +48,7 @@
 
 namespace td {
 
-class GetPollResultsQuery : public Td::ResultHandler {
+class GetPollResultsQuery final : public Td::ResultHandler {
   Promise<tl_object_ptr<telegram_api::Updates>> promise_;
   PollId poll_id_;
   DialogId dialog_id_;
@@ -89,7 +89,7 @@ class GetPollResultsQuery : public Td::ResultHandler {
   }
 };
 
-class GetPollVotersQuery : public Td::ResultHandler {
+class GetPollVotersQuery final : public Td::ResultHandler {
   Promise<tl_object_ptr<telegram_api::messages_votesList>> promise_;
   PollId poll_id_;
   DialogId dialog_id_;
@@ -137,7 +137,7 @@ class GetPollVotersQuery : public Td::ResultHandler {
   }
 };
 
-class SetPollAnswerActor : public NetActorOnce {
+class SetPollAnswerActor final : public NetActorOnce {
   Promise<tl_object_ptr<telegram_api::Updates>> promise_;
   DialogId dialog_id_;
 
@@ -179,7 +179,7 @@ class SetPollAnswerActor : public NetActorOnce {
   }
 };
 
-class StopPollActor : public NetActorOnce {
+class StopPollActor final : public NetActorOnce {
   Promise<Unit> promise_;
   DialogId dialog_id_;
 
@@ -247,7 +247,7 @@ PollManager::PollManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::m
 }
 
 void PollManager::start_up() {
-  class StateCallback : public StateManager::Callback {
+  class StateCallback final : public StateManager::Callback {
    public:
     explicit StateCallback(ActorId<PollManager> parent) : parent_(std::move(parent)) {
     }

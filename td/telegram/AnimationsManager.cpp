@@ -38,7 +38,7 @@
 
 namespace td {
 
-class GetSavedGifsQuery : public Td::ResultHandler {
+class GetSavedGifsQuery final : public Td::ResultHandler {
   bool is_repair_ = false;
 
  public:
@@ -66,7 +66,7 @@ class GetSavedGifsQuery : public Td::ResultHandler {
   }
 };
 
-class SaveGifQuery : public Td::ResultHandler {
+class SaveGifQuery final : public Td::ResultHandler {
   FileId file_id_;
   string file_reference_;
   bool unsave_ = false;

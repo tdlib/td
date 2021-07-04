@@ -37,7 +37,7 @@ static Status init_db(SqliteDb &db) {
   return Status::OK();
 }
 
-class MessagesDbBench : public Benchmark {
+class MessagesDbBench final : public Benchmark {
  public:
   string get_description() const final {
     return "MessagesDb";

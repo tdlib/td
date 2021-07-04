@@ -67,7 +67,7 @@ namespace td {
 
 int VERBOSITY_NAME(notifications) = VERBOSITY_NAME(INFO);
 
-class SetContactSignUpNotificationQuery : public Td::ResultHandler {
+class SetContactSignUpNotificationQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -95,7 +95,7 @@ class SetContactSignUpNotificationQuery : public Td::ResultHandler {
   }
 };
 
-class GetContactSignUpNotificationQuery : public Td::ResultHandler {
+class GetContactSignUpNotificationQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -288,7 +288,7 @@ void NotificationManager::init() {
     }
   }
 
-  class StateCallback : public StateManager::Callback {
+  class StateCallback final : public StateManager::Callback {
    public:
     explicit StateCallback(ActorId<NotificationManager> parent) : parent_(std::move(parent)) {
     }

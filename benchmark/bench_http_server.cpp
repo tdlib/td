@@ -21,7 +21,7 @@ namespace td {
 
 static int cnt = 0;
 
-class HelloWorld : public HttpInboundConnection::Callback {
+class HelloWorld final : public HttpInboundConnection::Callback {
  public:
   void handle(unique_ptr<HttpQuery> query, ActorOwn<HttpInboundConnection> connection) final {
     // LOG(ERROR) << *query;
@@ -47,7 +47,7 @@ class HelloWorld : public HttpInboundConnection::Callback {
 };
 
 const int N = 0;
-class Server : public TcpListener::Callback {
+class Server final : public TcpListener::Callback {
  public:
   void start_up() final {
     listener_ = create_actor<TcpListener>("Listener", 8082, ActorOwn<TcpListener::Callback>(actor_id(this)));

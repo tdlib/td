@@ -59,7 +59,7 @@
 
 namespace td {
 
-class GetInlineBotResultsQuery : public Td::ResultHandler {
+class GetInlineBotResultsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
   UserId bot_user_id_;
@@ -116,7 +116,7 @@ class GetInlineBotResultsQuery : public Td::ResultHandler {
   }
 };
 
-class SetInlineBotResultsQuery : public Td::ResultHandler {
+class SetInlineBotResultsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:

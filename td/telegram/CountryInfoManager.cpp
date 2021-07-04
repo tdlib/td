@@ -25,7 +25,7 @@
 
 namespace td {
 
-class GetNearestDcQuery : public Td::ResultHandler {
+class GetNearestDcQuery final : public Td::ResultHandler {
   Promise<string> promise_;
 
  public:
@@ -54,7 +54,7 @@ class GetNearestDcQuery : public Td::ResultHandler {
   }
 };
 
-class GetCountriesListQuery : public Td::ResultHandler {
+class GetCountriesListQuery final : public Td::ResultHandler {
   Promise<tl_object_ptr<telegram_api::help_CountriesList>> promise_;
 
  public:

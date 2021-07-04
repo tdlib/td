@@ -58,7 +58,7 @@ struct BinlogEvent;
 
 class Td;
 
-class ContactsManager : public Actor {
+class ContactsManager final : public Actor {
  public:
   ContactsManager(Td *td, ActorShared<> parent);
   ContactsManager(const ContactsManager &) = delete;

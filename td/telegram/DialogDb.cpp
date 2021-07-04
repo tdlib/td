@@ -117,7 +117,7 @@ Status drop_dialog_db(SqliteDb &db, int version) {
   return status;
 }
 
-class DialogDbImpl : public DialogDbSyncInterface {
+class DialogDbImpl final : public DialogDbSyncInterface {
  public:
   explicit DialogDbImpl(SqliteDb db) : db_(std::move(db)) {
     init().ensure();
@@ -313,7 +313,7 @@ class DialogDbImpl : public DialogDbSyncInterface {
 
 std::shared_ptr<DialogDbSyncSafeInterface> create_dialog_db_sync(
     std::shared_ptr<SqliteConnectionSafe> sqlite_connection) {
-  class DialogDbSyncSafe : public DialogDbSyncSafeInterface {
+  class DialogDbSyncSafe final : public DialogDbSyncSafeInterface {
    public:
     explicit DialogDbSyncSafe(std::shared_ptr<SqliteConnectionSafe> sqlite_connection)
         : lsls_db_([safe_connection = std::move(sqlite_connection)] {
@@ -330,7 +330,7 @@ std::shared_ptr<DialogDbSyncSafeInterface> create_dialog_db_sync(
   return std::make_shared<DialogDbSyncSafe>(std::move(sqlite_connection));
 }
 
-class DialogDbAsync : public DialogDbAsyncInterface {
+class DialogDbAsync final : public DialogDbAsyncInterface {
  public:
   DialogDbAsync(std::shared_ptr<DialogDbSyncSafeInterface> sync_db, int32 scheduler_id) {
     impl_ = create_actor_on_scheduler<Impl>("DialogDbActor", scheduler_id, std::move(sync_db));
@@ -370,7 +370,7 @@ class DialogDbAsync : public DialogDbAsyncInterface {
   }
 
  private:
-  class Impl : public Actor {
+  class Impl final : public Actor {
    public:
     explicit Impl(std::shared_ptr<DialogDbSyncSafeInterface> sync_db_safe) : sync_db_safe_(std::move(sync_db_safe)) {
     }

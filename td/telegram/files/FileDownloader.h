@@ -23,7 +23,7 @@
 #include <utility>
 
 namespace td {
-class FileDownloader : public FileLoader {
+class FileDownloader final : public FileLoader {
  public:
   class Callback : public FileLoader::Callback {
    public:

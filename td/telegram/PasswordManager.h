@@ -49,7 +49,7 @@ struct TempPasswordState {
   }
 };
 
-class PasswordManager : public NetQueryCallback {
+class PasswordManager final : public NetQueryCallback {
  public:
   using State = tl_object_ptr<td_api::passwordState>;
   using TempState = tl_object_ptr<td_api::temporaryPasswordState>;

@@ -57,9 +57,9 @@ Status init_file_db(SqliteDb &db, int32 version) {
   return Status::OK();
 }
 
-class FileDb : public FileDbInterface {
+class FileDb final : public FileDbInterface {
  public:
-  class FileDbActor : public Actor {
+  class FileDbActor final : public Actor {
    public:
     FileDbActor(FileDbId current_pmc_id, std::shared_ptr<SqliteKeyValueSafe> file_kv_safe)
         : current_pmc_id_(current_pmc_id), file_kv_safe_(std::move(file_kv_safe)) {

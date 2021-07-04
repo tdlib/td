@@ -17,7 +17,7 @@
 namespace td {
 
 template <int buffer_size = 32 * (1 << 10)>
-class MemoryLog : public LogInterface {
+class MemoryLog final : public LogInterface {
   static constexpr size_t MAX_OUTPUT_SIZE = buffer_size / 16 < (8 << 10) ? buffer_size / 16 : (8 << 10);
 
   static_assert((buffer_size & (buffer_size - 1)) == 0, "Buffer size must be power of 2");

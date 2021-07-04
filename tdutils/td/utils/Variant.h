@@ -55,7 +55,7 @@ class IthTypeImpl<pos, Skip, Args...> : public IthTypeImpl<pos - 1, Args...> {};
 class Dummy {};
 
 template <size_t pos, class... Args>
-class IthType : public IthTypeImpl<pos, Args..., Dummy> {};
+class IthType final : public IthTypeImpl<pos, Args..., Dummy> {};
 
 template <bool ok, int offset, class... Types>
 class FindTypeOffsetImpl {};
@@ -69,7 +69,7 @@ template <int offset, class T, class S, class... Types>
 class FindTypeOffsetImpl<false, offset, T, S, Types...>
     : public FindTypeOffsetImpl<std::is_same<T, S>::value, offset + 1, T, Types...> {};
 template <class T, class... Types>
-class FindTypeOffset : public FindTypeOffsetImpl<false, -1, T, Types...> {};
+class FindTypeOffset final : public FindTypeOffsetImpl<false, -1, T, Types...> {};
 
 template <int offset, class... Types>
 class ForEachTypeImpl {};

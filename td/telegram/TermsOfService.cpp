@@ -17,7 +17,7 @@
 
 namespace td {
 
-class GetTermsOfServiceUpdateQuery : public Td::ResultHandler {
+class GetTermsOfServiceUpdateQuery final : public Td::ResultHandler {
   Promise<std::pair<int32, TermsOfService>> promise_;
 
  public:
@@ -58,7 +58,7 @@ class GetTermsOfServiceUpdateQuery : public Td::ResultHandler {
   }
 };
 
-class AcceptTermsOfServiceQuery : public Td::ResultHandler {
+class AcceptTermsOfServiceQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:

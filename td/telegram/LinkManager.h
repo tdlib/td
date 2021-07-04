@@ -23,7 +23,7 @@ namespace td {
 
 class Td;
 
-class LinkManager : public Actor {
+class LinkManager final : public Actor {
  public:
   LinkManager(Td *td, ActorShared<> parent);
 

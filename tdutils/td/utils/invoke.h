@@ -203,8 +203,8 @@ auto call_n_arguments(F &&f, Args &&... args) {
 }
 
 template <class F, class X, class = void>
-struct is_callable : public std::false_type {};
+struct is_callable final : public std::false_type {};
 template <class F, class X>
-struct is_callable<F, X, decltype(std::declval<F>()(std::declval<X>()))> : public std::true_type {};
+struct is_callable<F, X, decltype(std::declval<F>()(std::declval<X>()))> final : public std::true_type {};
 
 }  // namespace td

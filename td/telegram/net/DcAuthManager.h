@@ -23,7 +23,7 @@ namespace td {
 
 extern int VERBOSITY_NAME(dc);
 
-class DcAuthManager : public NetQueryCallback {
+class DcAuthManager final : public NetQueryCallback {
  public:
   explicit DcAuthManager(ActorShared<> parent);
 

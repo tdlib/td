@@ -562,7 +562,7 @@ class SemCheatQueue {
 };
 
 template <class QueueT>
-class QueueBenchmark2 : public td::Benchmark {
+class QueueBenchmark2 final : public td::Benchmark {
   QueueT client, server;
   int connections_n, queries_n;
 
@@ -704,7 +704,7 @@ class QueueBenchmark2 : public td::Benchmark {
 };
 
 template <class QueueT>
-class QueueBenchmark : public td::Benchmark {
+class QueueBenchmark final : public td::Benchmark {
   QueueT client, server;
   const int connections_n;
   int queries_n;
@@ -836,7 +836,7 @@ class QueueBenchmark : public td::Benchmark {
 };
 
 template <class QueueT>
-class RingBenchmark : public td::Benchmark {
+class RingBenchmark final : public td::Benchmark {
   static constexpr int QN = 504;
 
   struct Thread {

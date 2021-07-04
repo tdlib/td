@@ -65,7 +65,7 @@ inline StringBuilder &operator<<(StringBuilder &stream, const MsgInfo &id) {
                 << "] [seq_no:" << format::as_hex(id.seq_no) << "]";
 }
 
-class SessionConnection
+class SessionConnection final
     : public Named
     , private RawConnection::Callback {
  public:

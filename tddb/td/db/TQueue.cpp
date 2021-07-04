@@ -80,7 +80,7 @@ bool EventId::is_valid_id(int32 id) {
   return 0 <= id && id < MAX_ID;
 }
 
-class TQueueImpl : public TQueue {
+class TQueueImpl final : public TQueue {
   static constexpr size_t MAX_EVENT_LENGTH = 65536 * 8;
   static constexpr size_t MAX_QUEUE_EVENTS = 1000000;
   static constexpr size_t MAX_TOTAL_EVENT_LENGTH = 1 << 30;
@@ -383,7 +383,7 @@ unique_ptr<TQueue> TQueue::create() {
   return make_unique<TQueueImpl>();
 }
 
-struct TQueueLogEvent : public Storer {
+struct TQueueLogEvent final : public Storer {
   int64 queue_id;
   int32 event_id;
   int32 expires_at;

@@ -18,7 +18,7 @@ template <class T>
 using TLStorer = DefaultStorer<T>;
 
 template <class T>
-class TLObjectStorer : public Storer {
+class TLObjectStorer final : public Storer {
   mutable size_t size_ = std::numeric_limits<size_t>::max();
   const T &object_;
 

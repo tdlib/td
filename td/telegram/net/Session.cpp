@@ -47,7 +47,7 @@ namespace td {
 
 namespace detail {
 
-class GenAuthKeyActor : public Actor {
+class GenAuthKeyActor final : public Actor {
  public:
   GenAuthKeyActor(Slice name, unique_ptr<mtproto::AuthKeyHandshake> handshake,
                   unique_ptr<mtproto::AuthKeyHandshakeContext> context,
@@ -190,7 +190,7 @@ bool Session::can_destroy_auth_key() const {
 }
 
 void Session::start_up() {
-  class StateCallback : public StateManager::Callback {
+  class StateCallback final : public StateManager::Callback {
    public:
     explicit StateCallback(ActorId<Session> session) : session_(std::move(session)) {
     }
@@ -1254,7 +1254,7 @@ void Session::create_gen_auth_key_actor(HandshakeId handshake_id) {
   if (!info.handshake_) {
     info.handshake_ = make_unique<mtproto::AuthKeyHandshake>(dc_id_, is_main && !is_cdn_ ? 0 : 24 * 60 * 60);
   }
-  class AuthKeyHandshakeContext : public mtproto::AuthKeyHandshakeContext {
+  class AuthKeyHandshakeContext final : public mtproto::AuthKeyHandshakeContext {
    public:
     AuthKeyHandshakeContext(DhCallback *dh_callback, std::shared_ptr<PublicRsaKeyInterface> public_rsa_key)
         : dh_callback_(dh_callback), public_rsa_key_(std::move(public_rsa_key)) {

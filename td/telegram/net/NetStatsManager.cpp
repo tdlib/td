@@ -48,7 +48,7 @@ static void parse(NetStatsData &net_stats, ParserT &parser) {
 
 void NetStatsManager::init() {
   LOG_CHECK(!empty()) << G()->close_flag();
-  class NetStatsInternalCallback : public NetStats::Callback {
+  class NetStatsInternalCallback final : public NetStats::Callback {
    public:
     NetStatsInternalCallback(ActorId<NetStatsManager> parent, size_t id) : parent_(std::move(parent)), id_(id) {
     }
@@ -232,7 +232,7 @@ void NetStatsManager::start_up() {
     G()->td_db()->get_binlog_pmc()->set("net_stats_since", to_string(since_total_));
   }
 
-  class NetCallback : public StateManager::Callback {
+  class NetCallback final : public StateManager::Callback {
    public:
     explicit NetCallback(ActorId<NetStatsManager> net_stats_manager)
         : net_stats_manager_(std::move(net_stats_manager)) {

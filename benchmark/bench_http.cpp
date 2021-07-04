@@ -24,7 +24,7 @@ namespace td {
 
 std::atomic<int> counter;
 
-class HttpClient : public HttpOutboundConnection::Callback {
+class HttpClient final : public HttpOutboundConnection::Callback {
   void start_up() final {
     IPAddress addr;
     addr.init_ipv4_port("127.0.0.1", 8082).ensure();

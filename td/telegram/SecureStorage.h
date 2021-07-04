@@ -74,7 +74,7 @@ class DataView {
   virtual ~DataView() = default;
 };
 
-class BufferSliceDataView : public DataView {
+class BufferSliceDataView final : public DataView {
  public:
   explicit BufferSliceDataView(BufferSlice buffer_slice);
   int64 size() const final;
@@ -84,7 +84,7 @@ class BufferSliceDataView : public DataView {
   BufferSlice buffer_slice_;
 };
 
-class ConcatDataView : public DataView {
+class ConcatDataView final : public DataView {
  public:
   ConcatDataView(const DataView &left, const DataView &right);
   int64 size() const final;
@@ -161,7 +161,7 @@ class Decryptor {
 };
 
 // Encryption
-class Encryptor : public DataView {
+class Encryptor final : public DataView {
  public:
   Encryptor(AesCbcState aes_cbc_state, const DataView &data_view);
   int64 size() const final;

@@ -177,7 +177,7 @@ class ConcurrentHashMapJunction {
 }  // namespace td
 
 template <class HashMap>
-class HashMapBenchmark : public td::Benchmark {
+class HashMapBenchmark final : public td::Benchmark {
   struct Query {
     int key;
     int value;

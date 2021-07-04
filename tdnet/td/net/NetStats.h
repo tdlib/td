@@ -91,7 +91,7 @@ class NetStats {
   }
 
  private:
-  class Impl : public NetStatsCallback {
+  class Impl final : public NetStatsCallback {
    public:
     NetStatsData get_stats() const {
       NetStatsData res;

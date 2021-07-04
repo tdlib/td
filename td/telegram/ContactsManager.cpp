@@ -75,7 +75,7 @@
 
 namespace td {
 
-class DismissSuggestionQuery : public Td::ResultHandler {
+class DismissSuggestionQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
 
@@ -107,7 +107,7 @@ class DismissSuggestionQuery : public Td::ResultHandler {
   }
 };
 
-class SetAccountTtlQuery : public Td::ResultHandler {
+class SetAccountTtlQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -138,7 +138,7 @@ class SetAccountTtlQuery : public Td::ResultHandler {
   }
 };
 
-class GetAccountTtlQuery : public Td::ResultHandler {
+class GetAccountTtlQuery final : public Td::ResultHandler {
   Promise<int32> promise_;
 
  public:
@@ -166,7 +166,7 @@ class GetAccountTtlQuery : public Td::ResultHandler {
   }
 };
 
-class AcceptLoginTokenQuery : public Td::ResultHandler {
+class AcceptLoginTokenQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::session>> promise_;
 
  public:
@@ -193,7 +193,7 @@ class AcceptLoginTokenQuery : public Td::ResultHandler {
   }
 };
 
-class GetAuthorizationsQuery : public Td::ResultHandler {
+class GetAuthorizationsQuery final : public Td::ResultHandler {
   Promise<tl_object_ptr<td_api::sessions>> promise_;
 
  public:
@@ -234,7 +234,7 @@ class GetAuthorizationsQuery : public Td::ResultHandler {
   }
 };
 
-class ResetAuthorizationQuery : public Td::ResultHandler {
+class ResetAuthorizationQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -261,7 +261,7 @@ class ResetAuthorizationQuery : public Td::ResultHandler {
   }
 };
 
-class ResetAuthorizationsQuery : public Td::ResultHandler {
+class ResetAuthorizationsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -289,7 +289,7 @@ class ResetAuthorizationsQuery : public Td::ResultHandler {
   }
 };
 
-class GetWebAuthorizationsQuery : public Td::ResultHandler {
+class GetWebAuthorizationsQuery final : public Td::ResultHandler {
   Promise<tl_object_ptr<td_api::connectedWebsites>> promise_;
 
  public:
@@ -337,7 +337,7 @@ class GetWebAuthorizationsQuery : public Td::ResultHandler {
   }
 };
 
-class ResetWebAuthorizationQuery : public Td::ResultHandler {
+class ResetWebAuthorizationQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -364,7 +364,7 @@ class ResetWebAuthorizationQuery : public Td::ResultHandler {
   }
 };
 
-class ResetWebAuthorizationsQuery : public Td::ResultHandler {
+class ResetWebAuthorizationsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -391,7 +391,7 @@ class ResetWebAuthorizationsQuery : public Td::ResultHandler {
   }
 };
 
-class GetContactsQuery : public Td::ResultHandler {
+class GetContactsQuery final : public Td::ResultHandler {
  public:
   void send(int32 hash) {
     LOG(INFO) << "Reload contacts with hash " << hash;
@@ -415,7 +415,7 @@ class GetContactsQuery : public Td::ResultHandler {
   }
 };
 
-class GetContactsStatusesQuery : public Td::ResultHandler {
+class GetContactsStatusesQuery final : public Td::ResultHandler {
  public:
   void send() {
     LOG(INFO) << "Reload contacts statuses";
@@ -438,7 +438,7 @@ class GetContactsStatusesQuery : public Td::ResultHandler {
   }
 };
 
-class AddContactQuery : public Td::ResultHandler {
+class AddContactQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   UserId user_id_;
 
@@ -475,7 +475,7 @@ class AddContactQuery : public Td::ResultHandler {
   }
 };
 
-class AcceptContactQuery : public Td::ResultHandler {
+class AcceptContactQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   UserId user_id_;
 
@@ -506,7 +506,7 @@ class AcceptContactQuery : public Td::ResultHandler {
   }
 };
 
-class ImportContactsQuery : public Td::ResultHandler {
+class ImportContactsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   vector<Contact> input_contacts_;
   vector<UserId> imported_user_ids_;
@@ -609,7 +609,7 @@ class ImportContactsQuery : public Td::ResultHandler {
   }
 };
 
-class DeleteContactsQuery : public Td::ResultHandler {
+class DeleteContactsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -637,7 +637,7 @@ class DeleteContactsQuery : public Td::ResultHandler {
   }
 };
 
-class DeleteContactsByPhoneNumberQuery : public Td::ResultHandler {
+class DeleteContactsByPhoneNumberQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   vector<UserId> user_ids_;
 
@@ -674,7 +674,7 @@ class DeleteContactsByPhoneNumberQuery : public Td::ResultHandler {
   }
 };
 
-class ResetContactsQuery : public Td::ResultHandler {
+class ResetContactsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -708,7 +708,7 @@ class ResetContactsQuery : public Td::ResultHandler {
   }
 };
 
-class SearchDialogsNearbyQuery : public Td::ResultHandler {
+class SearchDialogsNearbyQuery final : public Td::ResultHandler {
   Promise<tl_object_ptr<telegram_api::Updates>> promise_;
 
  public:
@@ -742,7 +742,7 @@ class SearchDialogsNearbyQuery : public Td::ResultHandler {
   }
 };
 
-class UploadProfilePhotoQuery : public Td::ResultHandler {
+class UploadProfilePhotoQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   FileId file_id_;
 
@@ -795,7 +795,7 @@ class UploadProfilePhotoQuery : public Td::ResultHandler {
   }
 };
 
-class UpdateProfilePhotoQuery : public Td::ResultHandler {
+class UpdateProfilePhotoQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   FileId file_id_;
   int64 old_photo_id_;
@@ -849,7 +849,7 @@ class UpdateProfilePhotoQuery : public Td::ResultHandler {
   }
 };
 
-class DeleteProfilePhotoQuery : public Td::ResultHandler {
+class DeleteProfilePhotoQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   int64 profile_photo_id_;
 
@@ -885,7 +885,7 @@ class DeleteProfilePhotoQuery : public Td::ResultHandler {
   }
 };
 
-class UpdateProfileQuery : public Td::ResultHandler {
+class UpdateProfileQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   int32 flags_;
   string first_name_;
@@ -923,7 +923,7 @@ class UpdateProfileQuery : public Td::ResultHandler {
   }
 };
 
-class CheckUsernameQuery : public Td::ResultHandler {
+class CheckUsernameQuery final : public Td::ResultHandler {
   Promise<bool> promise_;
 
  public:
@@ -948,7 +948,7 @@ class CheckUsernameQuery : public Td::ResultHandler {
   }
 };
 
-class UpdateUsernameQuery : public Td::ResultHandler {
+class UpdateUsernameQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -979,7 +979,7 @@ class UpdateUsernameQuery : public Td::ResultHandler {
   }
 };
 
-class CheckChannelUsernameQuery : public Td::ResultHandler {
+class CheckChannelUsernameQuery final : public Td::ResultHandler {
   Promise<bool> promise_;
   ChannelId channel_id_;
   string username_;
@@ -1018,7 +1018,7 @@ class CheckChannelUsernameQuery : public Td::ResultHandler {
   }
 };
 
-class UpdateChannelUsernameQuery : public Td::ResultHandler {
+class UpdateChannelUsernameQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
   string username_;
@@ -1066,7 +1066,7 @@ class UpdateChannelUsernameQuery : public Td::ResultHandler {
   }
 };
 
-class SetChannelStickerSetQuery : public Td::ResultHandler {
+class SetChannelStickerSetQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
   StickerSetId sticker_set_id_;
@@ -1115,7 +1115,7 @@ class SetChannelStickerSetQuery : public Td::ResultHandler {
   }
 };
 
-class ToggleChannelSignaturesQuery : public Td::ResultHandler {
+class ToggleChannelSignaturesQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
 
@@ -1155,7 +1155,7 @@ class ToggleChannelSignaturesQuery : public Td::ResultHandler {
   }
 };
 
-class TogglePrehistoryHiddenQuery : public Td::ResultHandler {
+class TogglePrehistoryHiddenQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
   bool is_all_history_available_;
@@ -1208,7 +1208,7 @@ class TogglePrehistoryHiddenQuery : public Td::ResultHandler {
   }
 };
 
-class ConvertToGigagroupQuery : public Td::ResultHandler {
+class ConvertToGigagroupQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
 
@@ -1247,7 +1247,7 @@ class ConvertToGigagroupQuery : public Td::ResultHandler {
   }
 };
 
-class EditChatAboutQuery : public Td::ResultHandler {
+class EditChatAboutQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
   string about_;
@@ -1309,7 +1309,7 @@ class EditChatAboutQuery : public Td::ResultHandler {
   }
 };
 
-class SetDiscussionGroupQuery : public Td::ResultHandler {
+class SetDiscussionGroupQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId broadcast_channel_id_;
   ChannelId group_channel_id_;
@@ -1348,7 +1348,7 @@ class SetDiscussionGroupQuery : public Td::ResultHandler {
   }
 };
 
-class EditLocationQuery : public Td::ResultHandler {
+class EditLocationQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
   DialogLocation location_;
@@ -1387,7 +1387,7 @@ class EditLocationQuery : public Td::ResultHandler {
   }
 };
 
-class ToggleSlowModeQuery : public Td::ResultHandler {
+class ToggleSlowModeQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
   int32 slow_mode_delay_ = 0;
@@ -1441,7 +1441,7 @@ class ToggleSlowModeQuery : public Td::ResultHandler {
   }
 };
 
-class ReportChannelSpamQuery : public Td::ResultHandler {
+class ReportChannelSpamQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
 
@@ -1482,7 +1482,7 @@ class ReportChannelSpamQuery : public Td::ResultHandler {
   }
 };
 
-class DeleteChatQuery : public Td::ResultHandler {
+class DeleteChatQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -1510,7 +1510,7 @@ class DeleteChatQuery : public Td::ResultHandler {
   }
 };
 
-class DeleteChannelQuery : public Td::ResultHandler {
+class DeleteChannelQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
 
@@ -1542,7 +1542,7 @@ class DeleteChannelQuery : public Td::ResultHandler {
   }
 };
 
-class AddChatUserQuery : public Td::ResultHandler {
+class AddChatUserQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -1571,7 +1571,7 @@ class AddChatUserQuery : public Td::ResultHandler {
   }
 };
 
-class EditChatAdminQuery : public Td::ResultHandler {
+class EditChatAdminQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChatId chat_id_;
 
@@ -1607,7 +1607,7 @@ class EditChatAdminQuery : public Td::ResultHandler {
   }
 };
 
-class ExportChatInviteQuery : public Td::ResultHandler {
+class ExportChatInviteQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::chatInviteLink>> promise_;
   DialogId dialog_id_;
 
@@ -1666,7 +1666,7 @@ class ExportChatInviteQuery : public Td::ResultHandler {
   }
 };
 
-class EditChatInviteLinkQuery : public Td::ResultHandler {
+class EditChatInviteLinkQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::chatInviteLink>> promise_;
   DialogId dialog_id_;
 
@@ -1718,7 +1718,7 @@ class EditChatInviteLinkQuery : public Td::ResultHandler {
   }
 };
 
-class GetExportedChatInviteQuery : public Td::ResultHandler {
+class GetExportedChatInviteQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::chatInviteLink>> promise_;
   DialogId dialog_id_;
 
@@ -1768,7 +1768,7 @@ class GetExportedChatInviteQuery : public Td::ResultHandler {
   }
 };
 
-class GetExportedChatInvitesQuery : public Td::ResultHandler {
+class GetExportedChatInvitesQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::chatInviteLinks>> promise_;
   DialogId dialog_id_;
 
@@ -1836,7 +1836,7 @@ class GetExportedChatInvitesQuery : public Td::ResultHandler {
   }
 };
 
-class GetChatAdminWithInvitesQuery : public Td::ResultHandler {
+class GetChatAdminWithInvitesQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::chatInviteLinkCounts>> promise_;
   DialogId dialog_id_;
 
@@ -1886,7 +1886,7 @@ class GetChatAdminWithInvitesQuery : public Td::ResultHandler {
   }
 };
 
-class GetChatInviteImportersQuery : public Td::ResultHandler {
+class GetChatInviteImportersQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::chatInviteLinkMembers>> promise_;
   DialogId dialog_id_;
 
@@ -1947,7 +1947,7 @@ class GetChatInviteImportersQuery : public Td::ResultHandler {
   }
 };
 
-class RevokeChatInviteLinkQuery : public Td::ResultHandler {
+class RevokeChatInviteLinkQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::chatInviteLinks>> promise_;
   DialogId dialog_id_;
 
@@ -2022,7 +2022,7 @@ class RevokeChatInviteLinkQuery : public Td::ResultHandler {
   }
 };
 
-class DeleteExportedChatInviteQuery : public Td::ResultHandler {
+class DeleteExportedChatInviteQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
 
@@ -2056,7 +2056,7 @@ class DeleteExportedChatInviteQuery : public Td::ResultHandler {
   }
 };
 
-class DeleteRevokedExportedChatInvitesQuery : public Td::ResultHandler {
+class DeleteRevokedExportedChatInvitesQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
 
@@ -2093,7 +2093,7 @@ class DeleteRevokedExportedChatInvitesQuery : public Td::ResultHandler {
   }
 };
 
-class CheckChatInviteQuery : public Td::ResultHandler {
+class CheckChatInviteQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   string invite_link_;
 
@@ -2124,7 +2124,7 @@ class CheckChatInviteQuery : public Td::ResultHandler {
   }
 };
 
-class ImportChatInviteQuery : public Td::ResultHandler {
+class ImportChatInviteQuery final : public Td::ResultHandler {
   Promise<DialogId> promise_;
 
   string invite_link_;
@@ -2168,7 +2168,7 @@ class ImportChatInviteQuery : public Td::ResultHandler {
   }
 };
 
-class DeleteChatUserQuery : public Td::ResultHandler {
+class DeleteChatUserQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -2201,7 +2201,7 @@ class DeleteChatUserQuery : public Td::ResultHandler {
   }
 };
 
-class JoinChannelQuery : public Td::ResultHandler {
+class JoinChannelQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
 
@@ -2234,7 +2234,7 @@ class JoinChannelQuery : public Td::ResultHandler {
   }
 };
 
-class InviteToChannelQuery : public Td::ResultHandler {
+class InviteToChannelQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
 
@@ -2269,7 +2269,7 @@ class InviteToChannelQuery : public Td::ResultHandler {
   }
 };
 
-class EditChannelAdminQuery : public Td::ResultHandler {
+class EditChannelAdminQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
 
@@ -2304,7 +2304,7 @@ class EditChannelAdminQuery : public Td::ResultHandler {
   }
 };
 
-class EditChannelBannedQuery : public Td::ResultHandler {
+class EditChannelBannedQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
 
@@ -2339,7 +2339,7 @@ class EditChannelBannedQuery : public Td::ResultHandler {
   }
 };
 
-class LeaveChannelQuery : public Td::ResultHandler {
+class LeaveChannelQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
 
@@ -2372,7 +2372,7 @@ class LeaveChannelQuery : public Td::ResultHandler {
   }
 };
 
-class CanEditChannelCreatorQuery : public Td::ResultHandler {
+class CanEditChannelCreatorQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -2403,7 +2403,7 @@ class CanEditChannelCreatorQuery : public Td::ResultHandler {
   }
 };
 
-class EditChannelCreatorQuery : public Td::ResultHandler {
+class EditChannelCreatorQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
 
@@ -2445,7 +2445,7 @@ class EditChannelCreatorQuery : public Td::ResultHandler {
   }
 };
 
-class MigrateChatQuery : public Td::ResultHandler {
+class MigrateChatQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -2473,7 +2473,7 @@ class MigrateChatQuery : public Td::ResultHandler {
   }
 };
 
-class GetCreatedPublicChannelsQuery : public Td::ResultHandler {
+class GetCreatedPublicChannelsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   PublicDialogType type_;
 
@@ -2527,7 +2527,7 @@ class GetCreatedPublicChannelsQuery : public Td::ResultHandler {
   }
 };
 
-class GetGroupsForDiscussionQuery : public Td::ResultHandler {
+class GetGroupsForDiscussionQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -2571,7 +2571,7 @@ class GetGroupsForDiscussionQuery : public Td::ResultHandler {
   }
 };
 
-class GetInactiveChannelsQuery : public Td::ResultHandler {
+class GetInactiveChannelsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -2602,7 +2602,7 @@ class GetInactiveChannelsQuery : public Td::ResultHandler {
   }
 };
 
-class GetUsersQuery : public Td::ResultHandler {
+class GetUsersQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -2629,7 +2629,7 @@ class GetUsersQuery : public Td::ResultHandler {
   }
 };
 
-class GetFullUserQuery : public Td::ResultHandler {
+class GetFullUserQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -2656,7 +2656,7 @@ class GetFullUserQuery : public Td::ResultHandler {
   }
 };
 
-class GetUserPhotosQuery : public Td::ResultHandler {
+class GetUserPhotosQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   UserId user_id_;
   int32 offset_;
@@ -2709,7 +2709,7 @@ class GetUserPhotosQuery : public Td::ResultHandler {
   }
 };
 
-class GetChatsQuery : public Td::ResultHandler {
+class GetChatsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -2752,7 +2752,7 @@ class GetChatsQuery : public Td::ResultHandler {
   }
 };
 
-class GetFullChatQuery : public Td::ResultHandler {
+class GetFullChatQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChatId chat_id_;
 
@@ -2783,7 +2783,7 @@ class GetFullChatQuery : public Td::ResultHandler {
   }
 };
 
-class GetChannelsQuery : public Td::ResultHandler {
+class GetChannelsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
 
@@ -2836,7 +2836,7 @@ class GetChannelsQuery : public Td::ResultHandler {
   }
 };
 
-class GetFullChannelQuery : public Td::ResultHandler {
+class GetFullChannelQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
 
@@ -2868,7 +2868,7 @@ class GetFullChannelQuery : public Td::ResultHandler {
   }
 };
 
-class GetChannelParticipantQuery : public Td::ResultHandler {
+class GetChannelParticipantQuery final : public Td::ResultHandler {
   Promise<DialogParticipant> promise_;
   ChannelId channel_id_;
   DialogId participant_dialog_id_;
@@ -2921,7 +2921,7 @@ class GetChannelParticipantQuery : public Td::ResultHandler {
   }
 };
 
-class GetChannelParticipantsQuery : public Td::ResultHandler {
+class GetChannelParticipantsQuery final : public Td::ResultHandler {
   Promise<tl_object_ptr<telegram_api::channels_channelParticipants>> promise_;
   ChannelId channel_id_;
 
@@ -2968,7 +2968,7 @@ class GetChannelParticipantsQuery : public Td::ResultHandler {
   }
 };
 
-class GetChannelAdministratorsQuery : public Td::ResultHandler {
+class GetChannelAdministratorsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
 
@@ -3038,7 +3038,7 @@ class GetChannelAdministratorsQuery : public Td::ResultHandler {
   }
 };
 
-class GetSupportUserQuery : public Td::ResultHandler {
+class GetSupportUserQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -3180,7 +3180,7 @@ tl_object_ptr<td_api::chatStatisticsChannel> ContactsManager::convert_broadcast_
       convert_stats_graph(std::move(obj->iv_interactions_graph_)), std::move(recent_message_interactions));
 }
 
-class GetMegagroupStatsQuery : public Td::ResultHandler {
+class GetMegagroupStatsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::ChatStatistics>> promise_;
   ChannelId channel_id_;
 
@@ -3218,7 +3218,7 @@ class GetMegagroupStatsQuery : public Td::ResultHandler {
   }
 };
 
-class GetBroadcastStatsQuery : public Td::ResultHandler {
+class GetBroadcastStatsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::ChatStatistics>> promise_;
   ChannelId channel_id_;
 
@@ -3267,7 +3267,7 @@ tl_object_ptr<td_api::messageStatistics> ContactsManager::convert_message_stats(
   return make_tl_object<td_api::messageStatistics>(convert_stats_graph(std::move(obj->views_graph_)));
 }
 
-class GetMessageStatsQuery : public Td::ResultHandler {
+class GetMessageStatsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::messageStatistics>> promise_;
   ChannelId channel_id_;
 
@@ -3307,7 +3307,7 @@ class GetMessageStatsQuery : public Td::ResultHandler {
   }
 };
 
-class LoadAsyncGraphQuery : public Td::ResultHandler {
+class LoadAsyncGraphQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::StatisticalGraph>> promise_;
 
  public:
@@ -3338,7 +3338,7 @@ class LoadAsyncGraphQuery : public Td::ResultHandler {
   }
 };
 
-class ContactsManager::UploadProfilePhotoCallback : public FileManager::UploadCallback {
+class ContactsManager::UploadProfilePhotoCallback final : public FileManager::UploadCallback {
  public:
   void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) final {
     send_closure_later(G()->contacts_manager(), &ContactsManager::on_upload_profile_photo, file_id,

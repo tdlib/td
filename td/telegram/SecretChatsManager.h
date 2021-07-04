@@ -27,7 +27,7 @@ namespace td {
 
 struct BinlogEvent;
 
-class SecretChatsManager : public Actor {
+class SecretChatsManager final : public Actor {
  public:
   explicit SecretChatsManager(ActorShared<> parent);
 

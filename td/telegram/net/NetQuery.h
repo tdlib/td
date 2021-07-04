@@ -43,7 +43,7 @@ class NetQueryCallback : public Actor {
   virtual void on_result_resendable(NetQueryPtr query, Promise<NetQueryPtr> promise);
 };
 
-class NetQuery : public TsListNode<NetQueryDebug> {
+class NetQuery final : public TsListNode<NetQueryDebug> {
  public:
   NetQuery() = default;
 
@@ -296,7 +296,7 @@ class NetQuery : public TsListNode<NetQueryDebug> {
   int8 priority_{0};
 
   template <class T>
-  struct movable_atomic : public std::atomic<T> {
+  struct movable_atomic final : public std::atomic<T> {
     movable_atomic() = default;
     movable_atomic(T &&x) : std::atomic<T>(std::forward<T>(x)) {
     }

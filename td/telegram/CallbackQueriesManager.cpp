@@ -28,7 +28,7 @@
 
 namespace td {
 
-class GetBotCallbackAnswerQuery : public Td::ResultHandler {
+class GetBotCallbackAnswerQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   int64 result_id_;
   DialogId dialog_id_;
@@ -97,7 +97,7 @@ class GetBotCallbackAnswerQuery : public Td::ResultHandler {
   }
 };
 
-class SetBotCallbackAnswerQuery : public Td::ResultHandler {
+class SetBotCallbackAnswerQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:

@@ -341,7 +341,7 @@ class FileView {
   static string get_persistent_id(const FullRemoteFileLocation &location);
 };
 
-class FileManager : public FileLoadManager::Callback {
+class FileManager final : public FileLoadManager::Callback {
  public:
   class DownloadCallback {
    public:

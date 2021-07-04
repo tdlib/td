@@ -51,7 +51,7 @@ TEST(MultiTimeout, bug) {
   sched.finish();
 }
 
-class TimeoutManager : public Actor {
+class TimeoutManager final : public Actor {
  public:
   static int32 count;
 

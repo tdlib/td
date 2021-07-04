@@ -89,7 +89,7 @@ class MessageContent;
 class MultiSequenceDispatcher;
 class Td;
 
-class MessagesManager : public Actor {
+class MessagesManager final : public Actor {
  public:
   //  static constexpr int32 MESSAGE_FLAG_IS_UNREAD = 1 << 0;
   static constexpr int32 MESSAGE_FLAG_IS_OUT = 1 << 1;
@@ -1539,7 +1539,7 @@ class MessagesManager : public Actor {
     }
   };
 
-  class MessagesIterator : public MessagesIteratorBase {
+  class MessagesIterator final : public MessagesIteratorBase {
    public:
     MessagesIterator() = default;
 
@@ -1553,7 +1553,7 @@ class MessagesManager : public Actor {
     }
   };
 
-  class MessagesConstIterator : public MessagesIteratorBase {
+  class MessagesConstIterator final : public MessagesIteratorBase {
    public:
     MessagesConstIterator() = default;
 
@@ -2988,7 +2988,7 @@ class MessagesManager : public Actor {
       being_loaded_secret_thumbnails_;  // thumbnail_file_id -> ...
 
   // TTL
-  class TtlNode : private HeapNode {
+  class TtlNode final : private HeapNode {
    public:
     TtlNode(DialogId dialog_id, MessageId message_id, bool by_ttl_period)
         : full_message_id_(dialog_id, message_id), by_ttl_period_(by_ttl_period) {

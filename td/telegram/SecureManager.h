@@ -34,7 +34,7 @@ using TdApiSecureValues = td_api::object_ptr<td_api::passportElements>;
 using TdApiSecureValuesWithErrors = td_api::object_ptr<td_api::passportElementsWithErrors>;
 using TdApiAuthorizationForm = td_api::object_ptr<td_api::passportAuthorizationForm>;
 
-class SecureManager : public NetQueryCallback {
+class SecureManager final : public NetQueryCallback {
  public:
   explicit SecureManager(ActorShared<> parent);
 

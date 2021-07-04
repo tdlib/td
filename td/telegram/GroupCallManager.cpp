@@ -31,7 +31,7 @@
 
 namespace td {
 
-class GetGroupCallStreamQuery : public Td::ResultHandler {
+class GetGroupCallStreamQuery final : public Td::ResultHandler {
   Promise<string> promise_;
 
  public:
@@ -69,7 +69,7 @@ class GetGroupCallStreamQuery : public Td::ResultHandler {
   }
 };
 
-class GetGroupCallJoinAsQuery : public Td::ResultHandler {
+class GetGroupCallJoinAsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::messageSenders>> promise_;
   DialogId dialog_id_;
 
@@ -123,7 +123,7 @@ class GetGroupCallJoinAsQuery : public Td::ResultHandler {
   }
 };
 
-class SaveDefaultGroupCallJoinAsQuery : public Td::ResultHandler {
+class SaveDefaultGroupCallJoinAsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -159,7 +159,7 @@ class SaveDefaultGroupCallJoinAsQuery : public Td::ResultHandler {
   }
 };
 
-class CreateGroupCallQuery : public Td::ResultHandler {
+class CreateGroupCallQuery final : public Td::ResultHandler {
   Promise<InputGroupCallId> promise_;
   DialogId dialog_id_;
 
@@ -218,7 +218,7 @@ class CreateGroupCallQuery : public Td::ResultHandler {
   }
 };
 
-class GetGroupCallQuery : public Td::ResultHandler {
+class GetGroupCallQuery final : public Td::ResultHandler {
   Promise<tl_object_ptr<telegram_api::phone_groupCall>> promise_;
 
  public:
@@ -248,7 +248,7 @@ class GetGroupCallQuery : public Td::ResultHandler {
   }
 };
 
-class GetGroupCallParticipantQuery : public Td::ResultHandler {
+class GetGroupCallParticipantQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   InputGroupCallId input_group_call_id_;
 
@@ -281,7 +281,7 @@ class GetGroupCallParticipantQuery : public Td::ResultHandler {
   }
 };
 
-class GetGroupCallParticipantsQuery : public Td::ResultHandler {
+class GetGroupCallParticipantsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   InputGroupCallId input_group_call_id_;
   string offset_;
@@ -315,7 +315,7 @@ class GetGroupCallParticipantsQuery : public Td::ResultHandler {
   }
 };
 
-class StartScheduledGroupCallQuery : public Td::ResultHandler {
+class StartScheduledGroupCallQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -347,7 +347,7 @@ class StartScheduledGroupCallQuery : public Td::ResultHandler {
   }
 };
 
-class JoinGroupCallQuery : public Td::ResultHandler {
+class JoinGroupCallQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   InputGroupCallId input_group_call_id_;
   DialogId as_dialog_id_;
@@ -406,7 +406,7 @@ class JoinGroupCallQuery : public Td::ResultHandler {
   }
 };
 
-class JoinGroupCallPresentationQuery : public Td::ResultHandler {
+class JoinGroupCallPresentationQuery final : public Td::ResultHandler {
   InputGroupCallId input_group_call_id_;
   uint64 generation_ = 0;
 
@@ -441,7 +441,7 @@ class JoinGroupCallPresentationQuery : public Td::ResultHandler {
   }
 };
 
-class LeaveGroupCallPresentationQuery : public Td::ResultHandler {
+class LeaveGroupCallPresentationQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -473,7 +473,7 @@ class LeaveGroupCallPresentationQuery : public Td::ResultHandler {
   }
 };
 
-class EditGroupCallTitleQuery : public Td::ResultHandler {
+class EditGroupCallTitleQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -505,7 +505,7 @@ class EditGroupCallTitleQuery : public Td::ResultHandler {
   }
 };
 
-class ToggleGroupCallStartSubscriptionQuery : public Td::ResultHandler {
+class ToggleGroupCallStartSubscriptionQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -537,7 +537,7 @@ class ToggleGroupCallStartSubscriptionQuery : public Td::ResultHandler {
   }
 };
 
-class ToggleGroupCallSettingsQuery : public Td::ResultHandler {
+class ToggleGroupCallSettingsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -569,7 +569,7 @@ class ToggleGroupCallSettingsQuery : public Td::ResultHandler {
   }
 };
 
-class InviteToGroupCallQuery : public Td::ResultHandler {
+class InviteToGroupCallQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -597,7 +597,7 @@ class InviteToGroupCallQuery : public Td::ResultHandler {
   }
 };
 
-class ExportGroupCallInviteQuery : public Td::ResultHandler {
+class ExportGroupCallInviteQuery final : public Td::ResultHandler {
   Promise<string> promise_;
 
  public:
@@ -628,7 +628,7 @@ class ExportGroupCallInviteQuery : public Td::ResultHandler {
   }
 };
 
-class ToggleGroupCallRecordQuery : public Td::ResultHandler {
+class ToggleGroupCallRecordQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -667,7 +667,7 @@ class ToggleGroupCallRecordQuery : public Td::ResultHandler {
   }
 };
 
-class EditGroupCallParticipantQuery : public Td::ResultHandler {
+class EditGroupCallParticipantQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -719,7 +719,7 @@ class EditGroupCallParticipantQuery : public Td::ResultHandler {
   }
 };
 
-class CheckGroupCallQuery : public Td::ResultHandler {
+class CheckGroupCallQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -755,7 +755,7 @@ class CheckGroupCallQuery : public Td::ResultHandler {
   }
 };
 
-class LeaveGroupCallQuery : public Td::ResultHandler {
+class LeaveGroupCallQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -783,7 +783,7 @@ class LeaveGroupCallQuery : public Td::ResultHandler {
   }
 };
 
-class DiscardGroupCallQuery : public Td::ResultHandler {
+class DiscardGroupCallQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:

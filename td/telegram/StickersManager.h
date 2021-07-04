@@ -38,7 +38,7 @@ namespace td {
 
 class Td;
 
-class StickersManager : public Actor {
+class StickersManager final : public Actor {
  public:
   static constexpr int64 GREAT_MINDS_SET_ID = 1842540969984001;
 

@@ -15,7 +15,7 @@
 
 namespace td {
 
-class NetQueryDelayer : public Actor {
+class NetQueryDelayer final : public Actor {
  public:
   explicit NetQueryDelayer(ActorShared<> parent) : parent_(std::move(parent)) {
   }

@@ -33,7 +33,7 @@ struct BinlogEvent;
 
 class Td;
 
-class WebPagesManager : public Actor {
+class WebPagesManager final : public Actor {
  public:
   WebPagesManager(Td *td, ActorShared<> parent);
 

@@ -41,7 +41,7 @@
 namespace td {
 namespace detail {
 #if TD_PORT_WINDOWS
-class SocketFdImpl : private Iocp::Callback {
+class SocketFdImpl final : private Iocp::Callback {
  public:
   explicit SocketFdImpl(NativeFd native_fd) : info(std::move(native_fd)) {
     VLOG(fd) << get_native_fd() << " create from native_fd";

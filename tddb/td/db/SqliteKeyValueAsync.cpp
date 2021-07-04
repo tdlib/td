@@ -18,7 +18,7 @@
 
 namespace td {
 
-class SqliteKeyValueAsync : public SqliteKeyValueAsyncInterface {
+class SqliteKeyValueAsync final : public SqliteKeyValueAsyncInterface {
  public:
   explicit SqliteKeyValueAsync(std::shared_ptr<SqliteKeyValueSafe> kv_safe, int32 scheduler_id = -1) {
     impl_ = create_actor_on_scheduler<Impl>("KV", scheduler_id, std::move(kv_safe));
@@ -40,7 +40,7 @@ class SqliteKeyValueAsync : public SqliteKeyValueAsyncInterface {
   }
 
  private:
-  class Impl : public Actor {
+  class Impl final : public Actor {
    public:
     explicit Impl(std::shared_ptr<SqliteKeyValueSafe> kv_safe) : kv_safe_(std::move(kv_safe)) {
     }

@@ -33,7 +33,7 @@ class Td;
 
 extern int VERBOSITY_NAME(file_references);
 
-class FileReferenceManager : public Actor {
+class FileReferenceManager final : public Actor {
  public:
   static bool is_file_reference_error(const Status &error);
   static size_t get_file_reference_error_pos(const Status &error);

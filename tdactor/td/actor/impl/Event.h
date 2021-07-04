@@ -57,7 +57,7 @@ class CustomEvent {
 };
 
 template <class ClosureT>
-class ClosureEvent : public CustomEvent {
+class ClosureEvent final : public CustomEvent {
  public:
   void run(Actor *actor) final {
     closure_.run(static_cast<typename ClosureT::ActorType *>(actor));
@@ -88,7 +88,7 @@ class ClosureEvent : public CustomEvent {
 };
 
 template <class LambdaT>
-class LambdaEvent : public CustomEvent {
+class LambdaEvent final : public CustomEvent {
  public:
   void run(Actor *actor) final {
     f_();

@@ -29,7 +29,7 @@ namespace td {
 
 class Td;
 
-class BackgroundManager : public Actor {
+class BackgroundManager final : public Actor {
  public:
   BackgroundManager(Td *td, ActorShared<> parent);
 

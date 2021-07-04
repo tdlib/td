@@ -29,7 +29,7 @@ class Guard {
 };
 
 template <class FunctionT>
-class LambdaGuard : public Guard {
+class LambdaGuard final : public Guard {
  public:
   explicit LambdaGuard(const FunctionT &func) : func_(func) {
   }

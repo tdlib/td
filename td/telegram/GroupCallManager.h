@@ -29,7 +29,7 @@ namespace td {
 
 class Td;
 
-class GroupCallManager : public Actor {
+class GroupCallManager final : public Actor {
  public:
   GroupCallManager(Td *td, ActorShared<> parent);
   GroupCallManager(const GroupCallManager &) = delete;

@@ -170,7 +170,7 @@ void Td::ResultHandler::send_query(NetQueryPtr query) {
   td->send(std::move(query));
 }
 
-class GetPromoDataQuery : public Td::ResultHandler {
+class GetPromoDataQuery final : public Td::ResultHandler {
   Promise<telegram_api::object_ptr<telegram_api::help_PromoData>> promise_;
 
  public:
@@ -197,7 +197,7 @@ class GetPromoDataQuery : public Td::ResultHandler {
   }
 };
 
-class GetRecentMeUrlsQuery : public Td::ResultHandler {
+class GetRecentMeUrlsQuery final : public Td::ResultHandler {
   Promise<tl_object_ptr<td_api::tMeUrls>> promise_;
 
  public:
@@ -296,7 +296,7 @@ class GetRecentMeUrlsQuery : public Td::ResultHandler {
   }
 };
 
-class SendCustomRequestQuery : public Td::ResultHandler {
+class SendCustomRequestQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::customRequestResult>> promise_;
 
  public:
@@ -324,7 +324,7 @@ class SendCustomRequestQuery : public Td::ResultHandler {
   }
 };
 
-class AnswerCustomQueryQuery : public Td::ResultHandler {
+class AnswerCustomQueryQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -354,7 +354,7 @@ class AnswerCustomQueryQuery : public Td::ResultHandler {
   }
 };
 
-class SetBotUpdatesStatusQuery : public Td::ResultHandler {
+class SetBotUpdatesStatusQuery final : public Td::ResultHandler {
  public:
   void send(int32 pending_update_count, const string &error_message) {
     send_query(
@@ -379,7 +379,7 @@ class SetBotUpdatesStatusQuery : public Td::ResultHandler {
   }
 };
 
-class UpdateStatusQuery : public Td::ResultHandler {
+class UpdateStatusQuery final : public Td::ResultHandler {
   bool is_offline_;
 
  public:
@@ -410,7 +410,7 @@ class UpdateStatusQuery : public Td::ResultHandler {
   }
 };
 
-class GetInviteTextQuery : public Td::ResultHandler {
+class GetInviteTextQuery final : public Td::ResultHandler {
   Promise<string> promise_;
 
  public:
@@ -436,7 +436,7 @@ class GetInviteTextQuery : public Td::ResultHandler {
   }
 };
 
-class GetDeepLinkInfoQuery : public Td::ResultHandler {
+class GetDeepLinkInfoQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::deepLinkInfo>> promise_;
 
  public:
@@ -497,7 +497,7 @@ class GetDeepLinkInfoQuery : public Td::ResultHandler {
   }
 };
 
-class SaveAppLogQuery : public Td::ResultHandler {
+class SaveAppLogQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -528,7 +528,7 @@ class SaveAppLogQuery : public Td::ResultHandler {
   }
 };
 
-class TestQuery : public Td::ResultHandler {
+class TestQuery final : public Td::ResultHandler {
  public:
   explicit TestQuery(uint64 request_id) : request_id_(request_id) {
   }
@@ -556,7 +556,7 @@ class TestQuery : public Td::ResultHandler {
   uint64 request_id_;
 };
 
-class TestProxyRequest : public RequestOnceActor {
+class TestProxyRequest final : public RequestOnceActor {
   Proxy proxy_;
   int16 dc_id_;
   double timeout_;
@@ -604,7 +604,7 @@ class TestProxyRequest : public RequestOnceActor {
     if (r_data.is_error()) {
       return promise_.set_error(r_data.move_as_error());
     }
-    class HandshakeContext : public mtproto::AuthKeyHandshakeContext {
+    class HandshakeContext final : public mtproto::AuthKeyHandshakeContext {
      public:
       DhCallback *get_dh_callback() final {
         return nullptr;
@@ -664,7 +664,7 @@ class TestProxyRequest : public RequestOnceActor {
   }
 };
 
-class GetMeRequest : public RequestActor<> {
+class GetMeRequest final : public RequestActor<> {
   UserId user_id_;
 
   void do_run(Promise<Unit> &&promise) final {
@@ -680,7 +680,7 @@ class GetMeRequest : public RequestActor<> {
   }
 };
 
-class GetUserRequest : public RequestActor<> {
+class GetUserRequest final : public RequestActor<> {
   UserId user_id_;
 
   void do_run(Promise<Unit> &&promise) final {
@@ -698,7 +698,7 @@ class GetUserRequest : public RequestActor<> {
   }
 };
 
-class GetUserFullInfoRequest : public RequestActor<> {
+class GetUserFullInfoRequest final : public RequestActor<> {
   UserId user_id_;
 
   void do_run(Promise<Unit> &&promise) final {
@@ -715,7 +715,7 @@ class GetUserFullInfoRequest : public RequestActor<> {
   }
 };
 
-class GetGroupRequest : public RequestActor<> {
+class GetGroupRequest final : public RequestActor<> {
   ChatId chat_id_;
 
   void do_run(Promise<Unit> &&promise) final {
@@ -733,7 +733,7 @@ class GetGroupRequest : public RequestActor<> {
   }
 };
 
-class GetGroupFullInfoRequest : public RequestActor<> {
+class GetGroupFullInfoRequest final : public RequestActor<> {
   ChatId chat_id_;
 
   void do_run(Promise<Unit> &&promise) final {
@@ -750,7 +750,7 @@ class GetGroupFullInfoRequest : public RequestActor<> {
   }
 };
 
-class GetSupergroupRequest : public RequestActor<> {
+class GetSupergroupRequest final : public RequestActor<> {
   ChannelId channel_id_;
 
   void do_run(Promise<Unit> &&promise) final {
@@ -768,7 +768,7 @@ class GetSupergroupRequest : public RequestActor<> {
   }
 };
 
-class GetSupergroupFullInfoRequest : public RequestActor<> {
+class GetSupergroupFullInfoRequest final : public RequestActor<> {
   ChannelId channel_id_;
 
   void do_run(Promise<Unit> &&promise) final {
@@ -785,7 +785,7 @@ class GetSupergroupFullInfoRequest : public RequestActor<> {
   }
 };
 
-class GetSecretChatRequest : public RequestActor<> {
+class GetSecretChatRequest final : public RequestActor<> {
   SecretChatId secret_chat_id_;
 
   void do_run(Promise<Unit> &&promise) final {
@@ -802,7 +802,7 @@ class GetSecretChatRequest : public RequestActor<> {
   }
 };
 
-class GetChatRequest : public RequestActor<> {
+class GetChatRequest final : public RequestActor<> {
   DialogId dialog_id_;
 
   bool dialog_found_ = false;
@@ -826,7 +826,7 @@ class GetChatRequest : public RequestActor<> {
   }
 };
 
-class GetChatFilterRequest : public RequestActor<> {
+class GetChatFilterRequest final : public RequestActor<> {
   DialogFilterId dialog_filter_id_;
 
   void do_run(Promise<Unit> &&promise) final {
@@ -844,7 +844,7 @@ class GetChatFilterRequest : public RequestActor<> {
   }
 };
 
-class GetChatsRequest : public RequestActor<> {
+class GetChatsRequest final : public RequestActor<> {
   DialogListId dialog_list_id_;
   DialogDate offset_;
   int32 limit_;
@@ -872,7 +872,7 @@ class GetChatsRequest : public RequestActor<> {
   }
 };
 
-class SearchPublicChatRequest : public RequestActor<> {
+class SearchPublicChatRequest final : public RequestActor<> {
   string username_;
 
   DialogId dialog_id_;
@@ -892,7 +892,7 @@ class SearchPublicChatRequest : public RequestActor<> {
   }
 };
 
-class SearchPublicChatsRequest : public RequestActor<> {
+class SearchPublicChatsRequest final : public RequestActor<> {
   string query_;
 
   vector<DialogId> dialog_ids_;
@@ -911,7 +911,7 @@ class SearchPublicChatsRequest : public RequestActor<> {
   }
 };
 
-class SearchChatsRequest : public RequestActor<> {
+class SearchChatsRequest final : public RequestActor<> {
   string query_;
   int32 limit_;
 
@@ -931,7 +931,7 @@ class SearchChatsRequest : public RequestActor<> {
   }
 };
 
-class SearchChatsOnServerRequest : public RequestActor<> {
+class SearchChatsOnServerRequest final : public RequestActor<> {
   string query_;
   int32 limit_;
 
@@ -951,7 +951,7 @@ class SearchChatsOnServerRequest : public RequestActor<> {
   }
 };
 
-class GetGroupsInCommonRequest : public RequestActor<> {
+class GetGroupsInCommonRequest final : public RequestActor<> {
   UserId user_id_;
   DialogId offset_dialog_id_;
   int32 limit_;
@@ -973,7 +973,7 @@ class GetGroupsInCommonRequest : public RequestActor<> {
   }
 };
 
-class GetCreatedPublicChatsRequest : public RequestActor<> {
+class GetCreatedPublicChatsRequest final : public RequestActor<> {
   vector<DialogId> dialog_ids_;
   PublicDialogType type_;
 
@@ -991,7 +991,7 @@ class GetCreatedPublicChatsRequest : public RequestActor<> {
   }
 };
 
-class GetSuitableDiscussionChatsRequest : public RequestActor<> {
+class GetSuitableDiscussionChatsRequest final : public RequestActor<> {
   vector<DialogId> dialog_ids_;
 
   void do_run(Promise<Unit> &&promise) final {
@@ -1007,7 +1007,7 @@ class GetSuitableDiscussionChatsRequest : public RequestActor<> {
   }
 };
 
-class GetInactiveSupergroupChatsRequest : public RequestActor<> {
+class GetInactiveSupergroupChatsRequest final : public RequestActor<> {
   vector<DialogId> dialog_ids_;
 
   void do_run(Promise<Unit> &&promise) final {
@@ -1023,7 +1023,7 @@ class GetInactiveSupergroupChatsRequest : public RequestActor<> {
   }
 };
 
-class GetMessageRequest : public RequestOnceActor {
+class GetMessageRequest final : public RequestOnceActor {
   FullMessageId full_message_id_;
 
   void do_run(Promise<Unit> &&promise) final {
@@ -1040,7 +1040,7 @@ class GetMessageRequest : public RequestOnceActor {
   }
 };
 
-class GetRepliedMessageRequest : public RequestOnceActor {
+class GetRepliedMessageRequest final : public RequestOnceActor {
   DialogId dialog_id_;
   MessageId message_id_;
 
@@ -1062,7 +1062,7 @@ class GetRepliedMessageRequest : public RequestOnceActor {
   }
 };
 
-class GetMessageThreadRequest : public RequestActor<MessagesManager::MessageThreadInfo> {
+class GetMessageThreadRequest final : public RequestActor<MessagesManager::MessageThreadInfo> {
   DialogId dialog_id_;
   MessageId message_id_;
 
@@ -1090,7 +1090,7 @@ class GetMessageThreadRequest : public RequestActor<MessagesManager::MessageThre
   }
 };
 
-class GetChatPinnedMessageRequest : public RequestOnceActor {
+class GetChatPinnedMessageRequest final : public RequestOnceActor {
   DialogId dialog_id_;
 
   MessageId pinned_message_id_;
@@ -1110,7 +1110,7 @@ class GetChatPinnedMessageRequest : public RequestOnceActor {
   }
 };
 
-class GetCallbackQueryMessageRequest : public RequestOnceActor {
+class GetCallbackQueryMessageRequest final : public RequestOnceActor {
   DialogId dialog_id_;
   MessageId message_id_;
   int64 callback_query_id_;
@@ -1133,7 +1133,7 @@ class GetCallbackQueryMessageRequest : public RequestOnceActor {
   }
 };
 
-class GetMessagesRequest : public RequestOnceActor {
+class GetMessagesRequest final : public RequestOnceActor {
   DialogId dialog_id_;
   vector<MessageId> message_ids_;
 
@@ -1153,7 +1153,7 @@ class GetMessagesRequest : public RequestOnceActor {
   }
 };
 
-class GetMessageEmbeddingCodeRequest : public RequestActor<> {
+class GetMessageEmbeddingCodeRequest final : public RequestActor<> {
   FullMessageId full_message_id_;
   bool for_group_;
 
@@ -1176,7 +1176,7 @@ class GetMessageEmbeddingCodeRequest : public RequestActor<> {
   }
 };
 
-class GetMessageLinkInfoRequest : public RequestActor<MessageLinkInfo> {
+class GetMessageLinkInfoRequest final : public RequestActor<MessageLinkInfo> {
   string url_;
 
   MessageLinkInfo message_link_info_;
@@ -1203,7 +1203,7 @@ class GetMessageLinkInfoRequest : public RequestActor<MessageLinkInfo> {
   }
 };
 
-class EditMessageTextRequest : public RequestOnceActor {
+class EditMessageTextRequest final : public RequestOnceActor {
   FullMessageId full_message_id_;
   tl_object_ptr<td_api::ReplyMarkup> reply_markup_;
   tl_object_ptr<td_api::InputMessageContent> input_message_content_;
@@ -1228,7 +1228,7 @@ class EditMessageTextRequest : public RequestOnceActor {
   }
 };
 
-class EditMessageLiveLocationRequest : public RequestOnceActor {
+class EditMessageLiveLocationRequest final : public RequestOnceActor {
   FullMessageId full_message_id_;
   tl_object_ptr<td_api::ReplyMarkup> reply_markup_;
   tl_object_ptr<td_api::location> location_;
@@ -1257,7 +1257,7 @@ class EditMessageLiveLocationRequest : public RequestOnceActor {
   }
 };
 
-class EditMessageMediaRequest : public RequestOnceActor {
+class EditMessageMediaRequest final : public RequestOnceActor {
   FullMessageId full_message_id_;
   tl_object_ptr<td_api::ReplyMarkup> reply_markup_;
   tl_object_ptr<td_api::InputMessageContent> input_message_content_;
@@ -1282,7 +1282,7 @@ class EditMessageMediaRequest : public RequestOnceActor {
   }
 };
 
-class EditMessageCaptionRequest : public RequestOnceActor {
+class EditMessageCaptionRequest final : public RequestOnceActor {
   FullMessageId full_message_id_;
   tl_object_ptr<td_api::ReplyMarkup> reply_markup_;
   tl_object_ptr<td_api::formattedText> caption_;
@@ -1307,7 +1307,7 @@ class EditMessageCaptionRequest : public RequestOnceActor {
   }
 };
 
-class EditMessageReplyMarkupRequest : public RequestOnceActor {
+class EditMessageReplyMarkupRequest final : public RequestOnceActor {
   FullMessageId full_message_id_;
   tl_object_ptr<td_api::ReplyMarkup> reply_markup_;
 
@@ -1328,7 +1328,7 @@ class EditMessageReplyMarkupRequest : public RequestOnceActor {
   }
 };
 
-class SetGameScoreRequest : public RequestOnceActor {
+class SetGameScoreRequest final : public RequestOnceActor {
   FullMessageId full_message_id_;
   bool edit_message_;
   UserId user_id_;
@@ -1356,7 +1356,7 @@ class SetGameScoreRequest : public RequestOnceActor {
   }
 };
 
-class GetGameHighScoresRequest : public RequestOnceActor {
+class GetGameHighScoresRequest final : public RequestOnceActor {
   FullMessageId full_message_id_;
   UserId user_id_;
 
@@ -1380,7 +1380,7 @@ class GetGameHighScoresRequest : public RequestOnceActor {
   }
 };
 
-class GetInlineGameHighScoresRequest : public RequestOnceActor {
+class GetInlineGameHighScoresRequest final : public RequestOnceActor {
   string inline_message_id_;
   UserId user_id_;
 
@@ -1404,7 +1404,7 @@ class GetInlineGameHighScoresRequest : public RequestOnceActor {
   }
 };
 
-class GetChatHistoryRequest : public RequestActor<> {
+class GetChatHistoryRequest final : public RequestActor<> {
   DialogId dialog_id_;
   MessageId from_message_id_;
   int32 offset_;
@@ -1437,7 +1437,7 @@ class GetChatHistoryRequest : public RequestActor<> {
   }
 };
 
-class GetMessageThreadHistoryRequest : public RequestActor<> {
+class GetMessageThreadHistoryRequest final : public RequestActor<> {
   DialogId dialog_id_;
   MessageId message_id_;
   MessageId from_message_id_;
@@ -1470,7 +1470,7 @@ class GetMessageThreadHistoryRequest : public RequestActor<> {
   }
 };
 
-class SearchChatMessagesRequest : public RequestActor<> {
+class SearchChatMessagesRequest final : public RequestActor<> {
   DialogId dialog_id_;
   string query_;
   td_api::object_ptr<td_api::MessageSender> sender_;
@@ -1520,7 +1520,7 @@ class SearchChatMessagesRequest : public RequestActor<> {
   }
 };
 
-class SearchSecretMessagesRequest : public RequestActor<> {
+class SearchSecretMessagesRequest final : public RequestActor<> {
   DialogId dialog_id_;
   string query_;
   string offset_;
@@ -1552,7 +1552,7 @@ class SearchSecretMessagesRequest : public RequestActor<> {
   }
 };
 
-class SearchMessagesRequest : public RequestActor<> {
+class SearchMessagesRequest final : public RequestActor<> {
   FolderId folder_id_;
   bool ignore_folder_id_;
   string query_;
@@ -1605,7 +1605,7 @@ class SearchMessagesRequest : public RequestActor<> {
   }
 };
 
-class SearchCallMessagesRequest : public RequestActor<> {
+class SearchCallMessagesRequest final : public RequestActor<> {
   MessageId from_message_id_;
   int32 limit_;
   bool only_missed_;
@@ -1633,7 +1633,7 @@ class SearchCallMessagesRequest : public RequestActor<> {
   }
 };
 
-class SearchChatRecentLocationMessagesRequest : public RequestActor<> {
+class SearchChatRecentLocationMessagesRequest final : public RequestActor<> {
   DialogId dialog_id_;
   int32 limit_;
   int64 random_id_;
@@ -1655,7 +1655,7 @@ class SearchChatRecentLocationMessagesRequest : public RequestActor<> {
   }
 };
 
-class GetActiveLiveLocationMessagesRequest : public RequestActor<> {
+class GetActiveLiveLocationMessagesRequest final : public RequestActor<> {
   vector<FullMessageId> full_message_ids_;
 
   void do_run(Promise<Unit> &&promise) final {
@@ -1672,7 +1672,7 @@ class GetActiveLiveLocationMessagesRequest : public RequestActor<> {
   }
 };
 
-class GetChatMessageByDateRequest : public RequestOnceActor {
+class GetChatMessageByDateRequest final : public RequestOnceActor {
   DialogId dialog_id_;
   int32 date_;
 
@@ -1692,7 +1692,7 @@ class GetChatMessageByDateRequest : public RequestOnceActor {
   }
 };
 
-class GetChatMessageCountRequest : public RequestActor<> {
+class GetChatMessageCountRequest final : public RequestActor<> {
   DialogId dialog_id_;
   MessageSearchFilter filter_;
   bool return_local_;
@@ -1720,7 +1720,7 @@ class GetChatMessageCountRequest : public RequestActor<> {
   }
 };
 
-class GetChatScheduledMessagesRequest : public RequestActor<> {
+class GetChatScheduledMessagesRequest final : public RequestActor<> {
   DialogId dialog_id_;
 
   vector<MessageId> message_ids_;
@@ -1741,7 +1741,7 @@ class GetChatScheduledMessagesRequest : public RequestActor<> {
   }
 };
 
-class GetMessagePublicForwardsRequest : public RequestActor<> {
+class GetMessagePublicForwardsRequest final : public RequestActor<> {
   FullMessageId full_message_id_;
   string offset_;
   int32 limit_;
@@ -1769,7 +1769,7 @@ class GetMessagePublicForwardsRequest : public RequestActor<> {
   }
 };
 
-class GetWebPagePreviewRequest : public RequestOnceActor {
+class GetWebPagePreviewRequest final : public RequestOnceActor {
   td_api::object_ptr<td_api::formattedText> text_;
 
   int64 request_id_ = 0;
@@ -1788,7 +1788,7 @@ class GetWebPagePreviewRequest : public RequestOnceActor {
   }
 };
 
-class GetWebPageInstantViewRequest : public RequestActor<> {
+class GetWebPageInstantViewRequest final : public RequestActor<> {
   string url_;
   bool force_full_;
 
@@ -1810,7 +1810,7 @@ class GetWebPageInstantViewRequest : public RequestActor<> {
   }
 };
 
-class CreateChatRequest : public RequestActor<> {
+class CreateChatRequest final : public RequestActor<> {
   DialogId dialog_id_;
   bool force_;
 
@@ -1828,7 +1828,7 @@ class CreateChatRequest : public RequestActor<> {
   }
 };
 
-class CreateNewGroupChatRequest : public RequestActor<> {
+class CreateNewGroupChatRequest final : public RequestActor<> {
   vector<UserId> user_ids_;
   string title_;
   int64 random_id_;
@@ -1853,7 +1853,7 @@ class CreateNewGroupChatRequest : public RequestActor<> {
   }
 };
 
-class CreateNewSecretChatRequest : public RequestActor<SecretChatId> {
+class CreateNewSecretChatRequest final : public RequestActor<SecretChatId> {
   UserId user_id_;
   SecretChatId secret_chat_id_;
 
@@ -1888,7 +1888,7 @@ class CreateNewSecretChatRequest : public RequestActor<SecretChatId> {
   }
 };
 
-class CreateNewSupergroupChatRequest : public RequestActor<> {
+class CreateNewSupergroupChatRequest final : public RequestActor<> {
   string title_;
   bool is_megagroup_;
   string description_;
@@ -1922,7 +1922,7 @@ class CreateNewSupergroupChatRequest : public RequestActor<> {
   }
 };
 
-class UpgradeGroupChatToSupergroupChatRequest : public RequestActor<> {
+class UpgradeGroupChatToSupergroupChatRequest final : public RequestActor<> {
   string title_;
   DialogId dialog_id_;
 
@@ -1943,7 +1943,7 @@ class UpgradeGroupChatToSupergroupChatRequest : public RequestActor<> {
   }
 };
 
-class GetChatMemberRequest : public RequestActor<> {
+class GetChatMemberRequest final : public RequestActor<> {
   DialogId dialog_id_;
   DialogId participant_dialog_id_;
   int64 random_id_;
@@ -1974,7 +1974,7 @@ class GetChatMemberRequest : public RequestActor<> {
   }
 };
 
-class GetChatAdministratorsRequest : public RequestActor<> {
+class GetChatAdministratorsRequest final : public RequestActor<> {
   DialogId dialog_id_;
 
   vector<DialogAdministrator> administrators_;
@@ -1998,7 +1998,7 @@ class GetChatAdministratorsRequest : public RequestActor<> {
   }
 };
 
-class CheckChatInviteLinkRequest : public RequestActor<> {
+class CheckChatInviteLinkRequest final : public RequestActor<> {
   string invite_link_;
 
   void do_run(Promise<Unit> &&promise) final {
@@ -2017,7 +2017,7 @@ class CheckChatInviteLinkRequest : public RequestActor<> {
   }
 };
 
-class JoinChatByInviteLinkRequest : public RequestActor<DialogId> {
+class JoinChatByInviteLinkRequest final : public RequestActor<DialogId> {
   string invite_link_;
 
   DialogId dialog_id_;
@@ -2046,7 +2046,7 @@ class JoinChatByInviteLinkRequest : public RequestActor<DialogId> {
   }
 };
 
-class GetChatEventLogRequest : public RequestOnceActor {
+class GetChatEventLogRequest final : public RequestOnceActor {
   DialogId dialog_id_;
   string query_;
   int64 from_event_id_;
@@ -2079,7 +2079,7 @@ class GetChatEventLogRequest : public RequestOnceActor {
   }
 };
 
-class GetBlockedMessageSendersRequest : public RequestActor<> {
+class GetBlockedMessageSendersRequest final : public RequestActor<> {
   int32 offset_;
   int32 limit_;
   int64 random_id_;
@@ -2104,7 +2104,7 @@ class GetBlockedMessageSendersRequest : public RequestActor<> {
   }
 };
 
-class ImportContactsRequest : public RequestActor<> {
+class ImportContactsRequest final : public RequestActor<> {
   vector<tl_object_ptr<td_api::contact>> contacts_;
   int64 random_id_;
 
@@ -2132,7 +2132,7 @@ class ImportContactsRequest : public RequestActor<> {
   }
 };
 
-class SearchContactsRequest : public RequestActor<> {
+class SearchContactsRequest final : public RequestActor<> {
   string query_;
   int32 limit_;
 
@@ -2152,7 +2152,7 @@ class SearchContactsRequest : public RequestActor<> {
   }
 };
 
-class RemoveContactsRequest : public RequestActor<> {
+class RemoveContactsRequest final : public RequestActor<> {
   vector<UserId> user_ids_;
 
   void do_run(Promise<Unit> &&promise) final {
@@ -2166,7 +2166,7 @@ class RemoveContactsRequest : public RequestActor<> {
   }
 };
 
-class GetImportedContactCountRequest : public RequestActor<> {
+class GetImportedContactCountRequest final : public RequestActor<> {
   int32 imported_contact_count_ = 0;
 
   void do_run(Promise<Unit> &&promise) final {
@@ -2182,7 +2182,7 @@ class GetImportedContactCountRequest : public RequestActor<> {
   }
 };
 
-class ChangeImportedContactsRequest : public RequestActor<> {
+class ChangeImportedContactsRequest final : public RequestActor<> {
   vector<tl_object_ptr<td_api::contact>> contacts_;
   size_t contacts_size_;
   int64 random_id_;
@@ -2216,7 +2216,7 @@ class ChangeImportedContactsRequest : public RequestActor<> {
   }
 };
 
-class GetRecentInlineBotsRequest : public RequestActor<> {
+class GetRecentInlineBotsRequest final : public RequestActor<> {
   vector<UserId> user_ids_;
 
   void do_run(Promise<Unit> &&promise) final {
@@ -2232,7 +2232,7 @@ class GetRecentInlineBotsRequest : public RequestActor<> {
   }
 };
 
-class GetUserProfilePhotosRequest : public RequestActor<> {
+class GetUserProfilePhotosRequest final : public RequestActor<> {
   UserId user_id_;
   int32 offset_;
   int32 limit_;
@@ -2259,7 +2259,7 @@ class GetUserProfilePhotosRequest : public RequestActor<> {
   }
 };
 
-class GetChatNotificationSettingsExceptionsRequest : public RequestActor<> {
+class GetChatNotificationSettingsExceptionsRequest final : public RequestActor<> {
   NotificationSettingsScope scope_;
   bool filter_scope_;
   bool compare_sound_;
@@ -2286,7 +2286,7 @@ class GetChatNotificationSettingsExceptionsRequest : public RequestActor<> {
   }
 };
 
-class GetScopeNotificationSettingsRequest : public RequestActor<> {
+class GetScopeNotificationSettingsRequest final : public RequestActor<> {
   NotificationSettingsScope scope_;
 
   const ScopeNotificationSettings *notification_settings_ = nullptr;
@@ -2306,7 +2306,7 @@ class GetScopeNotificationSettingsRequest : public RequestActor<> {
   }
 };
 
-class GetStickersRequest : public RequestActor<> {
+class GetStickersRequest final : public RequestActor<> {
   string emoji_;
   int32 limit_;
 
@@ -2327,7 +2327,7 @@ class GetStickersRequest : public RequestActor<> {
   }
 };
 
-class SearchStickersRequest : public RequestActor<> {
+class SearchStickersRequest final : public RequestActor<> {
   string emoji_;
   int32 limit_;
 
@@ -2347,7 +2347,7 @@ class SearchStickersRequest : public RequestActor<> {
   }
 };
 
-class GetInstalledStickerSetsRequest : public RequestActor<> {
+class GetInstalledStickerSetsRequest final : public RequestActor<> {
   bool is_masks_;
 
   vector<StickerSetId> sticker_set_ids_;
@@ -2366,7 +2366,7 @@ class GetInstalledStickerSetsRequest : public RequestActor<> {
   }
 };
 
-class GetArchivedStickerSetsRequest : public RequestActor<> {
+class GetArchivedStickerSetsRequest final : public RequestActor<> {
   bool is_masks_;
   StickerSetId offset_sticker_set_id_;
   int32 limit_;
@@ -2393,7 +2393,7 @@ class GetArchivedStickerSetsRequest : public RequestActor<> {
   }
 };
 
-class GetTrendingStickerSetsRequest : public RequestActor<> {
+class GetTrendingStickerSetsRequest final : public RequestActor<> {
   std::pair<int32, vector<StickerSetId>> sticker_set_ids_;
   int32 offset_;
   int32 limit_;
@@ -2413,7 +2413,7 @@ class GetTrendingStickerSetsRequest : public RequestActor<> {
   }
 };
 
-class GetAttachedStickerSetsRequest : public RequestActor<> {
+class GetAttachedStickerSetsRequest final : public RequestActor<> {
   FileId file_id_;
 
   vector<StickerSetId> sticker_set_ids_;
@@ -2432,7 +2432,7 @@ class GetAttachedStickerSetsRequest : public RequestActor<> {
   }
 };
 
-class GetStickerSetRequest : public RequestActor<> {
+class GetStickerSetRequest final : public RequestActor<> {
   StickerSetId set_id_;
 
   StickerSetId sticker_set_id_;
@@ -2452,7 +2452,7 @@ class GetStickerSetRequest : public RequestActor<> {
   }
 };
 
-class SearchStickerSetRequest : public RequestActor<> {
+class SearchStickerSetRequest final : public RequestActor<> {
   string name_;
 
   StickerSetId sticker_set_id_;
@@ -2472,7 +2472,7 @@ class SearchStickerSetRequest : public RequestActor<> {
   }
 };
 
-class SearchInstalledStickerSetsRequest : public RequestActor<> {
+class SearchInstalledStickerSetsRequest final : public RequestActor<> {
   bool is_masks_;
   string query_;
   int32 limit_;
@@ -2494,7 +2494,7 @@ class SearchInstalledStickerSetsRequest : public RequestActor<> {
   }
 };
 
-class SearchStickerSetsRequest : public RequestActor<> {
+class SearchStickerSetsRequest final : public RequestActor<> {
   string query_;
 
   vector<StickerSetId> sticker_set_ids_;
@@ -2513,7 +2513,7 @@ class SearchStickerSetsRequest : public RequestActor<> {
   }
 };
 
-class ChangeStickerSetRequest : public RequestOnceActor {
+class ChangeStickerSetRequest final : public RequestOnceActor {
   StickerSetId set_id_;
   bool is_installed_;
   bool is_archived_;
@@ -2532,7 +2532,7 @@ class ChangeStickerSetRequest : public RequestOnceActor {
   }
 };
 
-class UploadStickerFileRequest : public RequestOnceActor {
+class UploadStickerFileRequest final : public RequestOnceActor {
   UserId user_id_;
   tl_object_ptr<td_api::InputSticker> sticker_;
 
@@ -2553,7 +2553,7 @@ class UploadStickerFileRequest : public RequestOnceActor {
   }
 };
 
-class CreateNewStickerSetRequest : public RequestOnceActor {
+class CreateNewStickerSetRequest final : public RequestOnceActor {
   UserId user_id_;
   string title_;
   string name_;
@@ -2587,7 +2587,7 @@ class CreateNewStickerSetRequest : public RequestOnceActor {
   }
 };
 
-class AddStickerToSetRequest : public RequestOnceActor {
+class AddStickerToSetRequest final : public RequestOnceActor {
   UserId user_id_;
   string name_;
   tl_object_ptr<td_api::InputSticker> sticker_;
@@ -2614,7 +2614,7 @@ class AddStickerToSetRequest : public RequestOnceActor {
   }
 };
 
-class SetStickerSetThumbnailRequest : public RequestOnceActor {
+class SetStickerSetThumbnailRequest final : public RequestOnceActor {
   UserId user_id_;
   string name_;
   tl_object_ptr<td_api::InputFile> thumbnail_;
@@ -2641,7 +2641,7 @@ class SetStickerSetThumbnailRequest : public RequestOnceActor {
   }
 };
 
-class GetRecentStickersRequest : public RequestActor<> {
+class GetRecentStickersRequest final : public RequestActor<> {
   bool is_attached_;
 
   vector<FileId> sticker_ids_;
@@ -2660,7 +2660,7 @@ class GetRecentStickersRequest : public RequestActor<> {
   }
 };
 
-class AddRecentStickerRequest : public RequestActor<> {
+class AddRecentStickerRequest final : public RequestActor<> {
   bool is_attached_;
   tl_object_ptr<td_api::InputFile> input_file_;
 
@@ -2676,7 +2676,7 @@ class AddRecentStickerRequest : public RequestActor<> {
   }
 };
 
-class RemoveRecentStickerRequest : public RequestActor<> {
+class RemoveRecentStickerRequest final : public RequestActor<> {
   bool is_attached_;
   tl_object_ptr<td_api::InputFile> input_file_;
 
@@ -2692,7 +2692,7 @@ class RemoveRecentStickerRequest : public RequestActor<> {
   }
 };
 
-class ClearRecentStickersRequest : public RequestActor<> {
+class ClearRecentStickersRequest final : public RequestActor<> {
   bool is_attached_;
 
   void do_run(Promise<Unit> &&promise) final {
@@ -2706,7 +2706,7 @@ class ClearRecentStickersRequest : public RequestActor<> {
   }
 };
 
-class GetFavoriteStickersRequest : public RequestActor<> {
+class GetFavoriteStickersRequest final : public RequestActor<> {
   vector<FileId> sticker_ids_;
 
   void do_run(Promise<Unit> &&promise) final {
@@ -2722,7 +2722,7 @@ class GetFavoriteStickersRequest : public RequestActor<> {
   }
 };
 
-class AddFavoriteStickerRequest : public RequestOnceActor {
+class AddFavoriteStickerRequest final : public RequestOnceActor {
   tl_object_ptr<td_api::InputFile> input_file_;
 
   void do_run(Promise<Unit> &&promise) final {
@@ -2736,7 +2736,7 @@ class AddFavoriteStickerRequest : public RequestOnceActor {
   }
 };
 
-class RemoveFavoriteStickerRequest : public RequestOnceActor {
+class RemoveFavoriteStickerRequest final : public RequestOnceActor {
   tl_object_ptr<td_api::InputFile> input_file_;
 
   void do_run(Promise<Unit> &&promise) final {
@@ -2750,7 +2750,7 @@ class RemoveFavoriteStickerRequest : public RequestOnceActor {
   }
 };
 
-class GetStickerEmojisRequest : public RequestActor<> {
+class GetStickerEmojisRequest final : public RequestActor<> {
   tl_object_ptr<td_api::InputFile> input_file_;
 
   vector<string> emojis_;
@@ -2770,7 +2770,7 @@ class GetStickerEmojisRequest : public RequestActor<> {
   }
 };
 
-class SearchEmojisRequest : public RequestActor<> {
+class SearchEmojisRequest final : public RequestActor<> {
   string text_;
   bool exact_match_;
   vector<string> input_language_codes_;
@@ -2797,7 +2797,7 @@ class SearchEmojisRequest : public RequestActor<> {
   }
 };
 
-class GetEmojiSuggestionsUrlRequest : public RequestOnceActor {
+class GetEmojiSuggestionsUrlRequest final : public RequestOnceActor {
   string language_code_;
 
   int64 random_id_;
@@ -2816,7 +2816,7 @@ class GetEmojiSuggestionsUrlRequest : public RequestOnceActor {
   }
 };
 
-class GetSavedAnimationsRequest : public RequestActor<> {
+class GetSavedAnimationsRequest final : public RequestActor<> {
   vector<FileId> animation_ids_;
 
   void do_run(Promise<Unit> &&promise) final {
@@ -2834,7 +2834,7 @@ class GetSavedAnimationsRequest : public RequestActor<> {
   }
 };
 
-class AddSavedAnimationRequest : public RequestOnceActor {
+class AddSavedAnimationRequest final : public RequestOnceActor {
   tl_object_ptr<td_api::InputFile> input_file_;
 
   void do_run(Promise<Unit> &&promise) final {
@@ -2848,7 +2848,7 @@ class AddSavedAnimationRequest : public RequestOnceActor {
   }
 };
 
-class RemoveSavedAnimationRequest : public RequestOnceActor {
+class RemoveSavedAnimationRequest final : public RequestOnceActor {
   tl_object_ptr<td_api::InputFile> input_file_;
 
   void do_run(Promise<Unit> &&promise) final {
@@ -2862,7 +2862,7 @@ class RemoveSavedAnimationRequest : public RequestOnceActor {
   }
 };
 
-class GetInlineQueryResultsRequest : public RequestOnceActor {
+class GetInlineQueryResultsRequest final : public RequestOnceActor {
   UserId bot_user_id_;
   DialogId dialog_id_;
   Location user_location_;
@@ -2893,7 +2893,7 @@ class GetInlineQueryResultsRequest : public RequestOnceActor {
   }
 };
 
-class GetCallbackQueryAnswerRequest : public RequestOnceActor {
+class GetCallbackQueryAnswerRequest final : public RequestOnceActor {
   FullMessageId full_message_id_;
   tl_object_ptr<td_api::CallbackQueryPayload> payload_;
 
@@ -2925,7 +2925,7 @@ class GetCallbackQueryAnswerRequest : public RequestOnceActor {
   }
 };
 
-class GetSupportUserRequest : public RequestActor<> {
+class GetSupportUserRequest final : public RequestActor<> {
   UserId user_id_;
 
   void do_run(Promise<Unit> &&promise) final {
@@ -2941,7 +2941,7 @@ class GetSupportUserRequest : public RequestActor<> {
   }
 };
 
-class GetBackgroundsRequest : public RequestOnceActor {
+class GetBackgroundsRequest final : public RequestOnceActor {
   bool for_dark_theme_;
 
   void do_run(Promise<Unit> &&promise) final {
@@ -2958,7 +2958,7 @@ class GetBackgroundsRequest : public RequestOnceActor {
   }
 };
 
-class SearchBackgroundRequest : public RequestActor<> {
+class SearchBackgroundRequest final : public RequestActor<> {
   string name_;
 
   std::pair<BackgroundId, BackgroundType> background_;
@@ -2978,7 +2978,7 @@ class SearchBackgroundRequest : public RequestActor<> {
   }
 };
 
-class SetBackgroundRequest : public RequestActor<> {
+class SetBackgroundRequest final : public RequestActor<> {
   td_api::object_ptr<td_api::InputBackground> input_background_;
   td_api::object_ptr<td_api::BackgroundType> background_type_;
   bool for_dark_theme_ = false;
@@ -4056,7 +4056,7 @@ void Td::close_impl(bool destroy_flag) {
   send_closure_later(actor_id(this), &Td::dec_request_actor_refcnt);  // remove guard
 }
 
-class Td::DownloadFileCallback : public FileManager::DownloadCallback {
+class Td::DownloadFileCallback final : public FileManager::DownloadCallback {
  public:
   void on_progress(FileId file_id) final {
   }
@@ -4070,7 +4070,7 @@ class Td::DownloadFileCallback : public FileManager::DownloadCallback {
   }
 };
 
-class Td::UploadFileCallback : public FileManager::UploadCallback {
+class Td::UploadFileCallback final : public FileManager::UploadCallback {
  public:
   void on_progress(FileId file_id) final {
   }
@@ -4246,7 +4246,7 @@ Status Td::init(DbKey key) {
 
 void Td::init_options_and_network() {
   VLOG(td_init) << "Create StateManager";
-  class StateManagerCallback : public StateManager::Callback {
+  class StateManagerCallback final : public StateManager::Callback {
    public:
     explicit StateManagerCallback(ActorShared<Td> td) : td_(std::move(td)) {
     }
@@ -4298,7 +4298,7 @@ void Td::init_options_and_network() {
   G()->set_config_manager(config_manager_.get());
 
   VLOG(td_init) << "Set ConfigShared callback";
-  class ConfigSharedCallback : public ConfigShared::Callback {
+  class ConfigSharedCallback final : public ConfigShared::Callback {
    public:
     void on_option_updated(const string &name, const string &value) const final {
       send_closure(G()->td(), &Td::on_config_option_updated, name);
@@ -4357,7 +4357,7 @@ void Td::init_file_manager() {
   download_file_callback_ = std::make_shared<DownloadFileCallback>();
   upload_file_callback_ = std::make_shared<UploadFileCallback>();
 
-  class FileManagerContext : public FileManager::Context {
+  class FileManagerContext final : public FileManager::Context {
    public:
     explicit FileManagerContext(Td *td) : td_(td) {
     }

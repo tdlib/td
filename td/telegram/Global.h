@@ -60,7 +60,7 @@ class WebPagesManager;
 
 namespace td {
 
-class Global : public ActorContext {
+class Global final : public ActorContext {
  public:
   Global();
   ~Global() final;

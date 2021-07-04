@@ -61,7 +61,7 @@ struct NetworkStats {
   }
 };
 
-class NetStatsManager : public Actor {
+class NetStatsManager final : public Actor {
  public:
   explicit NetStatsManager(ActorShared<> parent) : parent_(std::move(parent)) {
   }

@@ -24,7 +24,7 @@ class Destructor {
 };
 
 template <class F>
-class LambdaDestructor : public Destructor {
+class LambdaDestructor final : public Destructor {
  public:
   explicit LambdaDestructor(F &&f) : f_(std::move(f)) {
   }

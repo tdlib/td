@@ -18,7 +18,7 @@
 
 namespace td {
 
-class AuthDataSharedImpl : public AuthDataShared {
+class AuthDataSharedImpl final : public AuthDataShared {
  public:
   AuthDataSharedImpl(DcId dc_id, std::shared_ptr<PublicRsaKeyShared> public_rsa_key, std::shared_ptr<Guard> guard)
       : dc_id_(dc_id), public_rsa_key_(std::move(public_rsa_key)), guard_(std::move(guard)) {

@@ -19,7 +19,7 @@
 
 namespace td {
 
-class FileUploader : public FileLoader {
+class FileUploader final : public FileLoader {
  public:
   class Callback : public FileLoader::Callback {
    public:

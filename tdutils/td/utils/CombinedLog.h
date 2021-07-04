@@ -13,7 +13,7 @@
 
 namespace td {
 
-class CombinedLog : public LogInterface {
+class CombinedLog final : public LogInterface {
  public:
   void set_first(LogInterface *first) {
     first_ = first;

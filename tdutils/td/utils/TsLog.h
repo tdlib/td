@@ -14,7 +14,7 @@
 
 namespace td {
 
-class TsLog : public LogInterface {
+class TsLog final : public LogInterface {
  public:
   explicit TsLog(LogInterface *log) : log_(log) {
   }

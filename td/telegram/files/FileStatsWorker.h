@@ -15,7 +15,7 @@
 
 namespace td {
 
-class FileStatsWorker : public Actor {
+class FileStatsWorker final : public Actor {
  public:
   FileStatsWorker(ActorShared<> parent, CancellationToken token)
       : parent_(std::move(parent)), token_(std::move(token)) {

@@ -27,7 +27,7 @@ class Td;
  * This is a low-level Actor interface for interaction with TDLib. The interface is a lot more flexible than
  * the Client interface, however, for most usages the Client interface should be sufficient.
  */
-class ClientActor : public Actor {
+class ClientActor final : public Actor {
  public:
   /// Options for ClientActor creation.
   struct Options {

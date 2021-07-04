@@ -19,7 +19,7 @@
 namespace td {
 
 // combines identical queries into one request
-class QueryCombiner : public Actor {
+class QueryCombiner final : public Actor {
  public:
   QueryCombiner(Slice name, double min_delay);
 

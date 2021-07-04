@@ -169,7 +169,7 @@ Result<unique_ptr<DestT>> from_buffer_slice(BufferSlice slice) {
 }
 
 template <class T>
-class StorerImpl : public Storer {
+class StorerImpl final : public Storer {
  public:
   explicit StorerImpl(const T &event) : event_(event) {
   }
@@ -211,7 +211,7 @@ class LogEventBase : public LogEvent {
   }
 };
 
-class LogEventParser : public WithVersion<WithContext<TlParser, Global *>> {
+class LogEventParser final : public WithVersion<WithContext<TlParser, Global *>> {
  public:
   explicit LogEventParser(Slice data) : WithVersion<WithContext<TlParser, Global *>>(data) {
     set_version(fetch_int());
@@ -220,7 +220,7 @@ class LogEventParser : public WithVersion<WithContext<TlParser, Global *>> {
   }
 };
 
-class LogEventStorerCalcLength : public WithContext<TlStorerCalcLength, Global *> {
+class LogEventStorerCalcLength final : public WithContext<TlStorerCalcLength, Global *> {
  public:
   LogEventStorerCalcLength() : WithContext<TlStorerCalcLength, Global *>() {
     store_int(static_cast<int32>(Version::Next) - 1);
@@ -228,7 +228,7 @@ class LogEventStorerCalcLength : public WithContext<TlStorerCalcLength, Global *
   }
 };
 
-class LogEventStorerUnsafe : public WithContext<TlStorerUnsafe, Global *> {
+class LogEventStorerUnsafe final : public WithContext<TlStorerUnsafe, Global *> {
  public:
   explicit LogEventStorerUnsafe(unsigned char *buf) : WithContext<TlStorerUnsafe, Global *>(buf) {
     store_int(static_cast<int32>(Version::Next) - 1);
@@ -237,7 +237,7 @@ class LogEventStorerUnsafe : public WithContext<TlStorerUnsafe, Global *> {
 };
 
 template <class T>
-class LogEventStorerImpl : public Storer {
+class LogEventStorerImpl final : public Storer {
  public:
   explicit LogEventStorerImpl(const T &event) : event_(event) {
   }

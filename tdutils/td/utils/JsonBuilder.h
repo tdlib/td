@@ -311,7 +311,7 @@ class JsonScope {
   }
 };
 
-class JsonValueScope : public JsonScope {
+class JsonValueScope final : public JsonScope {
  public:
   using JsonScope::JsonScope;
   template <class T>
@@ -336,7 +336,7 @@ class JsonValueScope : public JsonScope {
   bool was_ = false;
 };
 
-class JsonArrayScope : public JsonScope {
+class JsonArrayScope final : public JsonScope {
  public:
   explicit JsonArrayScope(JsonBuilder *jb) : JsonScope(jb) {
     jb->inc_offset();
@@ -377,7 +377,7 @@ class JsonArrayScope : public JsonScope {
   bool is_first_ = false;
 };
 
-class JsonObjectScope : public JsonScope {
+class JsonObjectScope final : public JsonScope {
  public:
   explicit JsonObjectScope(JsonBuilder *jb) : JsonScope(jb) {
     jb->inc_offset();
@@ -448,7 +448,7 @@ class JsonValue;
 using JsonObject = vector<std::pair<MutableSlice, JsonValue>>;
 using JsonArray = vector<JsonValue>;
 
-class JsonValue : public Jsonable {
+class JsonValue final : public Jsonable {
  public:
   enum class Type { Null, Number, Boolean, String, Array, Object };
 
@@ -696,7 +696,7 @@ class VirtuallyJsonable : public Jsonable {
   virtual ~VirtuallyJsonable() = default;
 };
 
-class VirtuallyJsonableInt : public VirtuallyJsonable {
+class VirtuallyJsonableInt final : public VirtuallyJsonable {
  public:
   explicit VirtuallyJsonableInt(int32 value) : value_(value) {
   }
@@ -708,7 +708,7 @@ class VirtuallyJsonableInt : public VirtuallyJsonable {
   int32 value_;
 };
 
-class VirtuallyJsonableLong : public VirtuallyJsonable {
+class VirtuallyJsonableLong final : public VirtuallyJsonable {
  public:
   explicit VirtuallyJsonableLong(int64 value) : value_(value) {
   }
@@ -720,7 +720,7 @@ class VirtuallyJsonableLong : public VirtuallyJsonable {
   int64 value_;
 };
 
-class VirtuallyJsonableString : public VirtuallyJsonable {
+class VirtuallyJsonableString final : public VirtuallyJsonable {
  public:
   explicit VirtuallyJsonableString(Slice value) : value_(value) {
   }
@@ -766,7 +766,7 @@ StrT json_encode(const ValT &val, bool pretty = false) {
 }
 
 template <class T>
-class ToJsonImpl : public Jsonable {
+class ToJsonImpl final : public Jsonable {
  public:
   explicit ToJsonImpl(const T &value) : value_(value) {
   }

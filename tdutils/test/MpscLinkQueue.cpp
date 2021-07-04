@@ -11,7 +11,7 @@
 #include "td/utils/port/thread.h"
 #include "td/utils/tests.h"
 
-class NodeX : public td::MpscLinkQueueImpl::Node {
+class NodeX final : public td::MpscLinkQueueImpl::Node {
  public:
   explicit NodeX(int value) : value_(value) {
   }

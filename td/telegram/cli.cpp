@@ -190,7 +190,7 @@ static char **tg_cli_completion(const char *text, int start, int end) {
 }
 #endif
 
-class CliLog : public LogInterface {
+class CliLog final : public LogInterface {
   void do_append(int log_level, CSlice slice) final {
 #ifdef USE_READLINE
     deactivate_readline();
@@ -915,7 +915,7 @@ class CliClient final : public Actor {
     }
 
     LOG(WARNING) << "Creating new TD " << name << " with generation " << generation_ + 1;
-    class TdCallbackImpl : public TdCallback {
+    class TdCallbackImpl final : public TdCallback {
      public:
       TdCallbackImpl(CliClient *client, uint64 generation) : client_(client), generation_(generation) {
       }
@@ -4594,7 +4594,7 @@ void main(int argc, char **argv) {
     ConcurrentScheduler scheduler;
     scheduler.init(3);
 
-    class CreateClient : public Actor {
+    class CreateClient final : public Actor {
      public:
       CreateClient(ConcurrentScheduler *scheduler, bool use_test_dc, bool get_chat_list, bool disable_network,
                    int32 api_id, std::string api_hash)

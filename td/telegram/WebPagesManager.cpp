@@ -53,7 +53,7 @@
 
 namespace td {
 
-class GetWebPagePreviewQuery : public Td::ResultHandler {
+class GetWebPagePreviewQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   int64 request_id_;
   string url_;
@@ -92,7 +92,7 @@ class GetWebPagePreviewQuery : public Td::ResultHandler {
   }
 };
 
-class GetWebPageQuery : public Td::ResultHandler {
+class GetWebPageQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   WebPageId web_page_id_;
   string url_;

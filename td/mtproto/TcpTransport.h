@@ -49,7 +49,7 @@ class ITransport {
   virtual ~ITransport() = default;
 };
 
-class AbridgedTransport : public ITransport {
+class AbridgedTransport final : public ITransport {
  public:
   size_t read_from_stream(ChainBufferReader *stream, BufferSlice *message, uint32 *quick_ack) final;
   void write_prepare_inplace(BufferWriter *message, bool quick_ack) final;
@@ -79,7 +79,7 @@ class IntermediateTransport : ITransport {
 
 using TransportImpl = IntermediateTransport;
 
-class OldTransport : public IStreamTransport {
+class OldTransport final : public IStreamTransport {
  public:
   OldTransport() = default;
   Result<size_t> read_next(BufferSlice *message, uint32 *quick_ack) final TD_WARN_UNUSED_RESULT {
@@ -126,7 +126,7 @@ class OldTransport : public IStreamTransport {
   ChainBufferWriter *output_;
 };
 
-class ObfuscatedTransport : public IStreamTransport {
+class ObfuscatedTransport final : public IStreamTransport {
  public:
   ObfuscatedTransport(int16 dc_id, const ProxySecret &secret)
       : dc_id_(dc_id), secret_(secret), impl_(secret_.use_random_padding()) {

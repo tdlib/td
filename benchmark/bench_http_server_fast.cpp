@@ -22,7 +22,7 @@
 
 namespace td {
 
-class HttpEchoConnection : public Actor {
+class HttpEchoConnection final : public Actor {
  public:
   explicit HttpEchoConnection(SocketFd fd) : fd_(std::move(fd)) {
   }
@@ -85,7 +85,7 @@ class HttpEchoConnection : public Actor {
 };
 
 const int N = 8;
-class Server : public TcpListener::Callback {
+class Server final : public TcpListener::Callback {
  public:
   void start_up() final {
     listener_ = create_actor<TcpListener>("Listener", 8082, ActorOwn<TcpListener::Callback>(actor_id(this)));

@@ -16,7 +16,7 @@
 static std::string http_query = "GET / HTTP/1.1\r\nConnection:keep-alive\r\nhost:127.0.0.1:8080\r\n\r\n";
 static const size_t block_size = 2500;
 
-class HttpReaderBench : public td::Benchmark {
+class HttpReaderBench final : public td::Benchmark {
   std::string get_description() const final {
     return "HttpReaderBench";
   }
@@ -52,7 +52,7 @@ class HttpReaderBench : public td::Benchmark {
   }
 };
 
-class BufferBench : public td::Benchmark {
+class BufferBench final : public td::Benchmark {
   std::string get_description() const final {
     return "BufferBench";
   }
@@ -78,7 +78,7 @@ class BufferBench : public td::Benchmark {
   }
 };
 
-class FindBoundaryBench : public td::Benchmark {
+class FindBoundaryBench final : public td::Benchmark {
   std::string get_description() const final {
     return "FindBoundaryBench";
   }

@@ -27,7 +27,7 @@ namespace td {
 namespace mtproto {
 namespace detail {
 
-class PingConnectionReqPQ
+class PingConnectionReqPQ final
     : public PingConnection
     , private RawConnection::Callback {
  public:
@@ -86,7 +86,7 @@ class PingConnectionReqPQ
   bool was_ping_ = false;
 };
 
-class PingConnectionPingPong
+class PingConnectionPingPong final
     : public PingConnection
     , private SessionConnection::Callback {
  public:

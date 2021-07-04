@@ -47,7 +47,7 @@ class TdReceiver {
   }
 
   unique_ptr<TdCallback> create_callback(ClientManager::ClientId client_id) {
-    class Callback : public TdCallback {
+    class Callback final : public TdCallback {
      public:
       Callback(ClientManager::ClientId client_id, TdReceiver *impl) : client_id_(client_id), impl_(impl) {
       }
@@ -231,7 +231,7 @@ class Client::Impl final {
 
 #else
 
-class MultiTd : public Actor {
+class MultiTd final : public Actor {
  public:
   explicit MultiTd(Td::Options options) : options_(std::move(options)) {
   }
@@ -287,7 +287,7 @@ class TdReceiver {
   }
 
   unique_ptr<TdCallback> create_callback(ClientManager::ClientId client_id) {
-    class Callback : public TdCallback {
+    class Callback final : public TdCallback {
      public:
       explicit Callback(ClientManager::ClientId client_id, std::shared_ptr<OutputQueue> output_queue)
           : client_id_(client_id), output_queue_(std::move(output_queue)) {

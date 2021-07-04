@@ -61,7 +61,7 @@
 
 namespace td {
 
-class GetAllStickersQuery : public Td::ResultHandler {
+class GetAllStickersQuery final : public Td::ResultHandler {
   bool is_masks_;
 
  public:
@@ -96,7 +96,7 @@ class GetAllStickersQuery : public Td::ResultHandler {
   }
 };
 
-class SearchStickersQuery : public Td::ResultHandler {
+class SearchStickersQuery final : public Td::ResultHandler {
   string emoji_;
 
  public:
@@ -124,7 +124,7 @@ class SearchStickersQuery : public Td::ResultHandler {
   }
 };
 
-class GetEmojiKeywordsLanguageQuery : public Td::ResultHandler {
+class GetEmojiKeywordsLanguageQuery final : public Td::ResultHandler {
   Promise<vector<string>> promise_;
 
  public:
@@ -151,7 +151,7 @@ class GetEmojiKeywordsLanguageQuery : public Td::ResultHandler {
   }
 };
 
-class GetEmojiKeywordsQuery : public Td::ResultHandler {
+class GetEmojiKeywordsQuery final : public Td::ResultHandler {
   Promise<telegram_api::object_ptr<telegram_api::emojiKeywordsDifference>> promise_;
 
  public:
@@ -177,7 +177,7 @@ class GetEmojiKeywordsQuery : public Td::ResultHandler {
   }
 };
 
-class GetEmojiKeywordsDifferenceQuery : public Td::ResultHandler {
+class GetEmojiKeywordsDifferenceQuery final : public Td::ResultHandler {
   Promise<telegram_api::object_ptr<telegram_api::emojiKeywordsDifference>> promise_;
 
  public:
@@ -205,7 +205,7 @@ class GetEmojiKeywordsDifferenceQuery : public Td::ResultHandler {
   }
 };
 
-class GetEmojiUrlQuery : public Td::ResultHandler {
+class GetEmojiUrlQuery final : public Td::ResultHandler {
   Promise<telegram_api::object_ptr<telegram_api::emojiURL>> promise_;
 
  public:
@@ -231,7 +231,7 @@ class GetEmojiUrlQuery : public Td::ResultHandler {
   }
 };
 
-class GetArchivedStickerSetsQuery : public Td::ResultHandler {
+class GetArchivedStickerSetsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   StickerSetId offset_sticker_set_id_;
   bool is_masks_;
@@ -275,7 +275,7 @@ class GetArchivedStickerSetsQuery : public Td::ResultHandler {
   }
 };
 
-class GetFeaturedStickerSetsQuery : public Td::ResultHandler {
+class GetFeaturedStickerSetsQuery final : public Td::ResultHandler {
  public:
   void send(int32 hash) {
     LOG(INFO) << "Get trending sticker sets with hash " << hash;
@@ -298,7 +298,7 @@ class GetFeaturedStickerSetsQuery : public Td::ResultHandler {
   }
 };
 
-class GetOldFeaturedStickerSetsQuery : public Td::ResultHandler {
+class GetOldFeaturedStickerSetsQuery final : public Td::ResultHandler {
   int32 offset_;
   int32 limit_;
   uint32 generation_;
@@ -328,7 +328,7 @@ class GetOldFeaturedStickerSetsQuery : public Td::ResultHandler {
   }
 };
 
-class GetAttachedStickerSetsQuery : public Td::ResultHandler {
+class GetAttachedStickerSetsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   FileId file_id_;
   string file_reference_;
@@ -377,7 +377,7 @@ class GetAttachedStickerSetsQuery : public Td::ResultHandler {
   }
 };
 
-class GetRecentStickersQuery : public Td::ResultHandler {
+class GetRecentStickersQuery final : public Td::ResultHandler {
   bool is_repair_ = false;
   bool is_attached_ = false;
 
@@ -414,7 +414,7 @@ class GetRecentStickersQuery : public Td::ResultHandler {
   }
 };
 
-class SaveRecentStickerQuery : public Td::ResultHandler {
+class SaveRecentStickerQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   FileId file_id_;
   string file_reference_;
@@ -483,7 +483,7 @@ class SaveRecentStickerQuery : public Td::ResultHandler {
   }
 };
 
-class ClearRecentStickersQuery : public Td::ResultHandler {
+class ClearRecentStickersQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   bool is_attached_;
 
@@ -527,7 +527,7 @@ class ClearRecentStickersQuery : public Td::ResultHandler {
   }
 };
 
-class GetFavedStickersQuery : public Td::ResultHandler {
+class GetFavedStickersQuery final : public Td::ResultHandler {
   bool is_repair_ = false;
 
  public:
@@ -555,7 +555,7 @@ class GetFavedStickersQuery : public Td::ResultHandler {
   }
 };
 
-class FaveStickerQuery : public Td::ResultHandler {
+class FaveStickerQuery final : public Td::ResultHandler {
   FileId file_id_;
   string file_reference_;
   bool unsave_ = false;
@@ -616,7 +616,7 @@ class FaveStickerQuery : public Td::ResultHandler {
   }
 };
 
-class ReorderStickerSetsQuery : public Td::ResultHandler {
+class ReorderStickerSetsQuery final : public Td::ResultHandler {
   bool is_masks_;
 
  public:
@@ -650,7 +650,7 @@ class ReorderStickerSetsQuery : public Td::ResultHandler {
   }
 };
 
-class GetStickerSetQuery : public Td::ResultHandler {
+class GetStickerSetQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   StickerSetId sticker_set_id_;
   string sticker_set_name_;
@@ -699,7 +699,7 @@ class GetStickerSetQuery : public Td::ResultHandler {
   }
 };
 
-class ReloadSpecialStickerSetQuery : public Td::ResultHandler {
+class ReloadSpecialStickerSetQuery final : public Td::ResultHandler {
   SpecialStickerSetType type_;
 
  public:
@@ -729,7 +729,7 @@ class ReloadSpecialStickerSetQuery : public Td::ResultHandler {
   }
 };
 
-class SearchStickerSetsQuery : public Td::ResultHandler {
+class SearchStickerSetsQuery final : public Td::ResultHandler {
   string query_;
 
  public:
@@ -758,7 +758,7 @@ class SearchStickerSetsQuery : public Td::ResultHandler {
   }
 };
 
-class InstallStickerSetQuery : public Td::ResultHandler {
+class InstallStickerSetQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   StickerSetId set_id_;
   bool is_archived_;
@@ -791,7 +791,7 @@ class InstallStickerSetQuery : public Td::ResultHandler {
   }
 };
 
-class UninstallStickerSetQuery : public Td::ResultHandler {
+class UninstallStickerSetQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   StickerSetId set_id_;
 
@@ -826,7 +826,7 @@ class UninstallStickerSetQuery : public Td::ResultHandler {
   }
 };
 
-class ReadFeaturedStickerSetsQuery : public Td::ResultHandler {
+class ReadFeaturedStickerSetsQuery final : public Td::ResultHandler {
  public:
   void send(vector<StickerSetId> sticker_set_ids) {
     LOG(INFO) << "Read trending sticker sets " << format::as_array(sticker_set_ids);
@@ -852,7 +852,7 @@ class ReadFeaturedStickerSetsQuery : public Td::ResultHandler {
   }
 };
 
-class UploadStickerFileQuery : public Td::ResultHandler {
+class UploadStickerFileQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   FileId file_id_;
   bool was_uploaded_ = false;
@@ -900,7 +900,7 @@ class UploadStickerFileQuery : public Td::ResultHandler {
   }
 };
 
-class SuggestStickerSetShortNameQuery : public Td::ResultHandler {
+class SuggestStickerSetShortNameQuery final : public Td::ResultHandler {
   Promise<string> promise_;
 
  public:
@@ -928,7 +928,7 @@ class SuggestStickerSetShortNameQuery : public Td::ResultHandler {
   }
 };
 
-class CheckStickerSetShortNameQuery : public Td::ResultHandler {
+class CheckStickerSetShortNameQuery final : public Td::ResultHandler {
   Promise<bool> promise_;
 
  public:
@@ -953,7 +953,7 @@ class CheckStickerSetShortNameQuery : public Td::ResultHandler {
   }
 };
 
-class CreateNewStickerSetQuery : public Td::ResultHandler {
+class CreateNewStickerSetQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -999,7 +999,7 @@ class CreateNewStickerSetQuery : public Td::ResultHandler {
   }
 };
 
-class AddStickerToSetQuery : public Td::ResultHandler {
+class AddStickerToSetQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -1029,7 +1029,7 @@ class AddStickerToSetQuery : public Td::ResultHandler {
   }
 };
 
-class SetStickerSetThumbnailQuery : public Td::ResultHandler {
+class SetStickerSetThumbnailQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -1059,7 +1059,7 @@ class SetStickerSetThumbnailQuery : public Td::ResultHandler {
   }
 };
 
-class SetStickerPositionQuery : public Td::ResultHandler {
+class SetStickerPositionQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -1089,7 +1089,7 @@ class SetStickerPositionQuery : public Td::ResultHandler {
   }
 };
 
-class DeleteStickerFromSetQuery : public Td::ResultHandler {
+class DeleteStickerFromSetQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -1167,7 +1167,7 @@ class StickersManager::StickerSetListLogEvent {
   }
 };
 
-class StickersManager::UploadStickerFileCallback : public FileManager::UploadCallback {
+class StickersManager::UploadStickerFileCallback final : public FileManager::UploadCallback {
  public:
   void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) final {
     send_closure_later(G()->stickers_manager(), &StickersManager::on_upload_sticker_file, file_id,

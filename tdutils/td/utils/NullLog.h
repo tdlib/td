@@ -11,7 +11,7 @@
 
 namespace td {
 
-class NullLog : public LogInterface {
+class NullLog final : public LogInterface {
   void do_append(int /*log_level*/, CSlice /*slice*/) final {
   }
 };

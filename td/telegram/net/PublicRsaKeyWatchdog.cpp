@@ -23,7 +23,7 @@ PublicRsaKeyWatchdog::PublicRsaKeyWatchdog(ActorShared<> parent) : parent_(std::
 }
 
 void PublicRsaKeyWatchdog::add_public_rsa_key(std::shared_ptr<PublicRsaKeyShared> key) {
-  class Listener : public PublicRsaKeyShared::Listener {
+  class Listener final : public PublicRsaKeyShared::Listener {
    public:
     explicit Listener(ActorId<PublicRsaKeyWatchdog> parent) : parent_(std::move(parent)) {
     }

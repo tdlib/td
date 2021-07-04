@@ -31,11 +31,11 @@
 namespace td {
 
 template <class BinlogT>
-class BinlogKeyValue : public KeyValueSyncInterface {
+class BinlogKeyValue final : public KeyValueSyncInterface {
  public:
   static constexpr int32 MAGIC = 0x2a280000;
 
-  struct Event : public Storer {
+  struct Event final : public Storer {
     Event() = default;
     Event(Slice key, Slice value) : key(key), value(value) {
     }

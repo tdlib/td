@@ -50,7 +50,7 @@ TEST(Actors, SendLater) {
   scheduler.init(0, {create_queue()}, nullptr);
 
   auto guard = scheduler.get_guard();
-  class Worker : public Actor {
+  class Worker final : public Actor {
    public:
     void f() {
       sb << "A";
@@ -327,7 +327,7 @@ class MsgActor : public Actor {
   virtual void msg() = 0;
 };
 
-class Slave : public Actor {
+class Slave final : public Actor {
  public:
   ActorId<MsgActor> msg;
   explicit Slave(ActorId<MsgActor> msg) : msg(msg) {
@@ -337,7 +337,7 @@ class Slave : public Actor {
   }
 };
 
-class MasterActor : public MsgActor {
+class MasterActor final : public MsgActor {
  public:
   void loop() final {
     alive_ = true;
@@ -372,7 +372,7 @@ TEST(Actors, call_after_destruct) {
   scheduler.run(Timestamp::now());
 }
 
-class LinkTokenSlave : public Actor {
+class LinkTokenSlave final : public Actor {
  public:
   explicit LinkTokenSlave(ActorShared<> parent) : parent_(std::move(parent)) {
   }
@@ -387,7 +387,7 @@ class LinkTokenSlave : public Actor {
   ActorShared<> parent_;
 };
 
-class LinkTokenMasterActor : public Actor {
+class LinkTokenMasterActor final : public Actor {
  public:
   explicit LinkTokenMasterActor(int cnt) : cnt_(cnt) {
   }
@@ -458,7 +458,7 @@ TEST(Actors, promise) {
   ASSERT_EQ(1, value);
 }
 
-class LaterSlave : public Actor {
+class LaterSlave final : public Actor {
  public:
   explicit LaterSlave(ActorShared<> parent) : parent_(std::move(parent)) {
   }
@@ -476,7 +476,7 @@ class LaterSlave : public Actor {
   }
 };
 
-class LaterMasterActor : public Actor {
+class LaterMasterActor final : public Actor {
   int cnt_ = 3;
   std::vector<ActorOwn<LaterSlave>> children_;
   void start_up() final {
@@ -509,7 +509,7 @@ TEST(Actors, later) {
   ASSERT_STREQ(sb.as_cslice().c_str(), "AAABBB");
 }
 
-class MultiPromise2 : public Actor {
+class MultiPromise2 final : public Actor {
  public:
   void start_up() final {
     auto promise = PromiseCreator::lambda([](Result<Unit> result) {
@@ -525,7 +525,7 @@ class MultiPromise2 : public Actor {
   }
 };
 
-class MultiPromise1 : public Actor {
+class MultiPromise1 final : public Actor {
  public:
   void start_up() final {
     auto promise = PromiseCreator::lambda([](Result<Unit> result) {
@@ -549,7 +549,7 @@ TEST(Actors, MultiPromise) {
   scheduler.finish();
 }
 
-class FastPromise : public Actor {
+class FastPromise final : public Actor {
  public:
   void start_up() final {
     PromiseFuture<int> pf;
@@ -573,7 +573,7 @@ TEST(Actors, FastPromise) {
   scheduler.finish();
 }
 
-class StopInTeardown : public Actor {
+class StopInTeardown final : public Actor {
   void loop() final {
     stop();
   }
@@ -595,7 +595,7 @@ TEST(Actors, stop_in_teardown) {
   scheduler.finish();
 }
 
-class AlwaysWaitForMailbox : public Actor {
+class AlwaysWaitForMailbox final : public Actor {
  public:
   void start_up() final {
     always_wait_for_mailbox();
@@ -637,7 +637,7 @@ TEST(Actors, send_from_other_threads) {
   ConcurrentScheduler scheduler;
   scheduler.init(1);
   int thread_n = 10;
-  class Listener : public Actor {
+  class Listener final : public Actor {
    public:
     explicit Listener(int cnt) : cnt_(cnt) {
     }

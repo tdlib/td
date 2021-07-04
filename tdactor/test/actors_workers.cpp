@@ -56,7 +56,7 @@ class Manager final : public Actor {
       , query_size_(query_size) {
   }
 
-  class Callback : public PowerWorker::Callback {
+  class Callback final : public PowerWorker::Callback {
    public:
     Callback(ActorId<Manager> actor_id, int worker_id) : actor_id_(actor_id), worker_id_(worker_id) {
     }

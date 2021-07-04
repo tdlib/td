@@ -16,7 +16,7 @@
 namespace td {
 
 #if TD_HAVE_OPENSSL
-class AesCtrByteFlow : public ByteFlowInplaceBase {
+class AesCtrByteFlow final : public ByteFlowInplaceBase {
  public:
   void init(const UInt256 &key, const UInt128 &iv) {
     state_.init(as_slice(key), as_slice(iv));

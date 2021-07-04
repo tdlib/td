@@ -40,7 +40,7 @@
 
 namespace td {
 
-class GetBackgroundQuery : public Td::ResultHandler {
+class GetBackgroundQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   BackgroundId background_id_;
   string background_name_;
@@ -75,7 +75,7 @@ class GetBackgroundQuery : public Td::ResultHandler {
   }
 };
 
-class GetBackgroundsQuery : public Td::ResultHandler {
+class GetBackgroundsQuery final : public Td::ResultHandler {
   Promise<telegram_api::object_ptr<telegram_api::account_WallPapers>> promise_;
 
  public:
@@ -101,7 +101,7 @@ class GetBackgroundsQuery : public Td::ResultHandler {
   }
 };
 
-class InstallBackgroundQuery : public Td::ResultHandler {
+class InstallBackgroundQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -128,7 +128,7 @@ class InstallBackgroundQuery : public Td::ResultHandler {
   }
 };
 
-class UploadBackgroundQuery : public Td::ResultHandler {
+class UploadBackgroundQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   FileId file_id_;
   BackgroundType type_;
@@ -174,7 +174,7 @@ class UploadBackgroundQuery : public Td::ResultHandler {
   }
 };
 
-class UnsaveBackgroundQuery : public Td::ResultHandler {
+class UnsaveBackgroundQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -205,7 +205,7 @@ class UnsaveBackgroundQuery : public Td::ResultHandler {
   }
 };
 
-class ResetBackgroundsQuery : public Td::ResultHandler {
+class ResetBackgroundsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -235,7 +235,7 @@ class ResetBackgroundsQuery : public Td::ResultHandler {
   }
 };
 
-class BackgroundManager::UploadBackgroundFileCallback : public FileManager::UploadCallback {
+class BackgroundManager::UploadBackgroundFileCallback final : public FileManager::UploadCallback {
  public:
   void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) final {
     send_closure_later(G()->background_manager(), &BackgroundManager::on_upload_background_file, file_id,

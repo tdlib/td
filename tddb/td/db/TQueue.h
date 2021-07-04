@@ -122,7 +122,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const TQueue::EventId i
 struct BinlogEvent;
 
 template <class BinlogT>
-class TQueueBinlog : public TQueue::StorageCallback {
+class TQueueBinlog final : public TQueue::StorageCallback {
  public:
   uint64 push(QueueId queue_id, const RawEvent &event) final;
   void pop(uint64 log_event_id) final;
@@ -138,7 +138,7 @@ class TQueueBinlog : public TQueue::StorageCallback {
   static constexpr int32 BINLOG_EVENT_TYPE = 2314;
 };
 
-class TQueueMemoryStorage : public TQueue::StorageCallback {
+class TQueueMemoryStorage final : public TQueue::StorageCallback {
  public:
   uint64 push(QueueId queue_id, const RawEvent &event) final;
   void pop(uint64 log_event_id) final;

@@ -22,7 +22,7 @@
 
 namespace td {
 
-class CallManager : public Actor {
+class CallManager final : public Actor {
  public:
   using Update = telegram_api::object_ptr<telegram_api::updatePhoneCall>;
   explicit CallManager(ActorShared<> parent);

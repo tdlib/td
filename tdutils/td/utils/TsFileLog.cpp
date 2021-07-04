@@ -21,7 +21,7 @@
 namespace td {
 
 namespace detail {
-class TsFileLog : public LogInterface {
+class TsFileLog final : public LogInterface {
  public:
   Status init(string path, int64 rotate_threshold, bool redirect_stderr) {
     path_ = std::move(path);

@@ -14,7 +14,7 @@
 
 namespace td {
 
-class TD_TL_writer_java : public tl::TL_writer {
+class TD_TL_writer_java final : public tl::TL_writer {
   static const int MAX_ARITY = 0;
 
   static const std::string base_type_class_names[MAX_ARITY + 1];

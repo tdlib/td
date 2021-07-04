@@ -36,7 +36,7 @@ std::string create_tmp_file() {
 #endif
 }
 
-class IostreamWriteBench : public td::Benchmark {
+class IostreamWriteBench final : public td::Benchmark {
  protected:
   std::string file_name_;
   std::ofstream stream;
@@ -67,7 +67,7 @@ class IostreamWriteBench : public td::Benchmark {
   }
 };
 
-class FILEWriteBench : public td::Benchmark {
+class FILEWriteBench final : public td::Benchmark {
  protected:
   std::string file_name_;
   FILE *file;
@@ -101,7 +101,7 @@ class FILEWriteBench : public td::Benchmark {
 #if TD_ANDROID
 #include <android/log.h>
 #define ALOG(...) __android_log_print(ANDROID_LOG_VERBOSE, "XXX", __VA_ARGS__)
-class ALogWriteBench : public td::Benchmark {
+class ALogWriteBench final : public td::Benchmark {
  public:
   std::string get_description() const final {
     return "android_log";
@@ -118,7 +118,7 @@ class ALogWriteBench : public td::Benchmark {
 };
 #endif
 
-class LogWriteBench : public td::Benchmark {
+class LogWriteBench final : public td::Benchmark {
  protected:
   std::string file_name_;
   std::ofstream stream;

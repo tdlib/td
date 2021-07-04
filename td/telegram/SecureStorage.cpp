@@ -90,7 +90,7 @@ BufferSlice gen_random_prefix(int64 data_size) {
   return buff;
 }
 
-class FileDataView : public DataView {
+class FileDataView final : public DataView {
  public:
   FileDataView(FileFd &fd, int64 size);
 

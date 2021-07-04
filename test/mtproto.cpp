@@ -196,7 +196,7 @@ TEST(Mtproto, encrypted_config) {
   auto config = decode_config(data).move_as_ok();
 }
 
-class TestPingActor : public Actor {
+class TestPingActor final : public Actor {
  public:
   TestPingActor(IPAddress ip_address, Status *result) : ip_address_(ip_address), result_(result) {
   }
@@ -264,7 +264,7 @@ static int32 get_default_dc_id() {
   return 10002;
 }
 
-class Mtproto_ping : public Test {
+class Mtproto_ping final : public Test {
  public:
   using Test::Test;
   bool step() final {
@@ -293,7 +293,7 @@ class Mtproto_ping : public Test {
 };
 RegisterTest<Mtproto_ping> mtproto_ping("Mtproto_ping");
 
-class HandshakeContext : public mtproto::AuthKeyHandshakeContext {
+class HandshakeContext final : public mtproto::AuthKeyHandshakeContext {
  public:
   DhCallback *get_dh_callback() final {
     return nullptr;
@@ -306,7 +306,7 @@ class HandshakeContext : public mtproto::AuthKeyHandshakeContext {
   PublicRsaKeyShared public_rsa_key{DcId::empty(), false};
 };
 
-class HandshakeTestActor : public Actor {
+class HandshakeTestActor final : public Actor {
  public:
   HandshakeTestActor(int32 dc_id, Status *result) : dc_id_(dc_id), result_(result) {
   }
@@ -404,7 +404,7 @@ class HandshakeTestActor : public Actor {
   }
 };
 
-class Mtproto_handshake : public Test {
+class Mtproto_handshake final : public Test {
  public:
   using Test::Test;
   bool step() final {
@@ -433,14 +433,14 @@ class Mtproto_handshake : public Test {
 };
 RegisterTest<Mtproto_handshake> mtproto_handshake("Mtproto_handshake");
 
-class Socks5TestActor : public Actor {
+class Socks5TestActor final : public Actor {
  public:
   void start_up() final {
     auto promise = PromiseCreator::lambda([actor_id = actor_id(this)](Result<SocketFd> res) {
       send_closure(actor_id, &Socks5TestActor::on_result, std::move(res), false);
     });
 
-    class Callback : public TransparentProxy::Callback {
+    class Callback final : public TransparentProxy::Callback {
      public:
       explicit Callback(Promise<SocketFd> promise) : promise_(std::move(promise)) {
       }
@@ -521,7 +521,7 @@ TEST(Mtproto, notifications) {
   }
 }
 
-class FastPingTestActor : public Actor {
+class FastPingTestActor final : public Actor {
  public:
   explicit FastPingTestActor(Status *result) : result_(result) {
   }
@@ -623,7 +623,7 @@ class FastPingTestActor : public Actor {
   }
 };
 
-class Mtproto_FastPing : public Test {
+class Mtproto_FastPing final : public Test {
  public:
   using Test::Test;
   bool step() final {
@@ -670,9 +670,9 @@ TEST(Mtproto, TlsTransport) {
   sched.init(threads_n);
   {
     auto guard = sched.get_main_guard();
-    class RunTest : public Actor {
+    class RunTest final : public Actor {
       void start_up() final {
-        class Callback : public TransparentProxy::Callback {
+        class Callback final : public TransparentProxy::Callback {
          public:
           void set_result(Result<SocketFd> result) final {
             if (result.is_ok()) {

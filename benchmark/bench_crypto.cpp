@@ -29,7 +29,7 @@ static constexpr int DATA_SIZE = 8 << 10;
 static constexpr int SHORT_DATA_SIZE = 64;
 
 #if OPENSSL_VERSION_NUMBER <= 0x10100000L
-class SHA1Bench : public td::Benchmark {
+class SHA1Bench final : public td::Benchmark {
  public:
   alignas(64) unsigned char data[DATA_SIZE];
 
@@ -53,7 +53,7 @@ class SHA1Bench : public td::Benchmark {
 };
 #endif
 
-class AesEcbBench : public td::Benchmark {
+class AesEcbBench final : public td::Benchmark {
  public:
   alignas(64) unsigned char data[DATA_SIZE];
   td::UInt256 key;
@@ -84,7 +84,7 @@ class AesEcbBench : public td::Benchmark {
   }
 };
 
-class AesIgeEncryptBench : public td::Benchmark {
+class AesIgeEncryptBench final : public td::Benchmark {
  public:
   alignas(64) unsigned char data[DATA_SIZE];
   td::UInt256 key;
@@ -112,7 +112,7 @@ class AesIgeEncryptBench : public td::Benchmark {
   }
 };
 
-class AesIgeDecryptBench : public td::Benchmark {
+class AesIgeDecryptBench final : public td::Benchmark {
  public:
   alignas(64) unsigned char data[DATA_SIZE];
   td::UInt256 key;
@@ -140,7 +140,7 @@ class AesIgeDecryptBench : public td::Benchmark {
   }
 };
 
-class AesCtrBench : public td::Benchmark {
+class AesCtrBench final : public td::Benchmark {
  public:
   alignas(64) unsigned char data[DATA_SIZE];
   td::UInt256 key;
@@ -169,7 +169,7 @@ class AesCtrBench : public td::Benchmark {
 };
 
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
-class AesCtrOpenSSLBench : public td::Benchmark {
+class AesCtrOpenSSLBench final : public td::Benchmark {
  public:
   alignas(64) unsigned char data[DATA_SIZE];
   td::UInt256 key;
@@ -205,7 +205,7 @@ class AesCtrOpenSSLBench : public td::Benchmark {
 };
 #endif
 
-class AesCbcDecryptBench : public td::Benchmark {
+class AesCbcDecryptBench final : public td::Benchmark {
  public:
   alignas(64) unsigned char data[DATA_SIZE];
   td::UInt256 key;
@@ -231,7 +231,7 @@ class AesCbcDecryptBench : public td::Benchmark {
   }
 };
 
-class AesCbcEncryptBench : public td::Benchmark {
+class AesCbcEncryptBench final : public td::Benchmark {
  public:
   alignas(64) unsigned char data[DATA_SIZE];
   td::UInt256 key;
@@ -258,7 +258,7 @@ class AesCbcEncryptBench : public td::Benchmark {
 };
 
 template <bool use_state>
-class AesIgeShortBench : public td::Benchmark {
+class AesIgeShortBench final : public td::Benchmark {
  public:
   alignas(64) unsigned char data[SHORT_DATA_SIZE];
   td::UInt256 key;
@@ -363,7 +363,7 @@ BENCH(Pbkdf2, "pbkdf2") {
   td::pbkdf2_sha256(password, salt, n, key);
 }
 
-class Crc32Bench : public td::Benchmark {
+class Crc32Bench final : public td::Benchmark {
  public:
   alignas(64) unsigned char data[DATA_SIZE];
 
@@ -387,7 +387,7 @@ class Crc32Bench : public td::Benchmark {
   }
 };
 
-class Crc64Bench : public td::Benchmark {
+class Crc64Bench final : public td::Benchmark {
  public:
   alignas(64) unsigned char data[DATA_SIZE];
 

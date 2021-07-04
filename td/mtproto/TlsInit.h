@@ -23,7 +23,7 @@ class Grease {
   static void init(MutableSlice res);
 };
 
-class TlsInit : public TransparentProxy {
+class TlsInit final : public TransparentProxy {
  public:
   TlsInit(SocketFd socket_fd, string domain, string secret, unique_ptr<Callback> callback, ActorShared<> parent,
           double server_time_difference)

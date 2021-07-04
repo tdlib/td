@@ -21,7 +21,7 @@ namespace td {
 namespace mtproto {
 namespace http {
 
-class Transport : public IStreamTransport {
+class Transport final : public IStreamTransport {
  public:
   explicit Transport(string secret) : secret_(std::move(secret)) {
   }

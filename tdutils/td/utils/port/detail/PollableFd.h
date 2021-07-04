@@ -60,7 +60,7 @@ inline PollableFd PollableFdRef::lock() {
   return PollableFd::from_list_node(list_node_);
 }
 
-class PollableFdInfo : private ListNode {
+class PollableFdInfo final : private ListNode {
  public:
   PollableFdInfo() = default;
   PollableFdInfo(const PollableFdInfo &) = delete;

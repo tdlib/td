@@ -29,7 +29,7 @@
 
 namespace td {
 
-class GetSecureValue : public NetQueryCallback {
+class GetSecureValue final : public NetQueryCallback {
  public:
   GetSecureValue(ActorShared<SecureManager> parent, std::string password, SecureValueType type,
                  Promise<SecureValueWithCredentials> promise);
@@ -50,7 +50,7 @@ class GetSecureValue : public NetQueryCallback {
   void on_result(NetQueryPtr query) final;
 };
 
-class GetAllSecureValues : public NetQueryCallback {
+class GetAllSecureValues final : public NetQueryCallback {
  public:
   GetAllSecureValues(ActorShared<SecureManager> parent, std::string password, Promise<TdApiSecureValues> promise);
 
@@ -69,7 +69,7 @@ class GetAllSecureValues : public NetQueryCallback {
   void on_result(NetQueryPtr query) final;
 };
 
-class SetSecureValue : public NetQueryCallback {
+class SetSecureValue final : public NetQueryCallback {
  public:
   SetSecureValue(ActorShared<SecureManager> parent, string password, SecureValue secure_value,
                  Promise<SecureValueWithCredentials> promise);
@@ -94,7 +94,7 @@ class SetSecureValue : public NetQueryCallback {
 
   enum class State : int32 { WaitSecret, WaitSetValue } state_ = State::WaitSecret;
 
-  class UploadCallback : public FileManager::UploadCallback {
+  class UploadCallback final : public FileManager::UploadCallback {
    public:
     UploadCallback(ActorId<SetSecureValue> actor_id, uint32 upload_generation);
 
@@ -128,7 +128,7 @@ class SetSecureValue : public NetQueryCallback {
   void merge(FileManager *file_manager, FileId file_id, EncryptedSecureFile &encrypted_file);
 };
 
-class SetSecureValueErrorsQuery : public Td::ResultHandler {
+class SetSecureValueErrorsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -652,7 +652,7 @@ void SetSecureValue::merge(FileManager *file_manager, FileId file_id, EncryptedS
   LOG_IF(ERROR, status.is_error()) << status.error();
 }
 
-class DeleteSecureValue : public NetQueryCallback {
+class DeleteSecureValue final : public NetQueryCallback {
  public:
   DeleteSecureValue(ActorShared<SecureManager> parent, SecureValueType type, Promise<Unit> promise)
       : parent_(std::move(parent)), type_(std::move(type)), promise_(std::move(promise)) {
@@ -681,7 +681,7 @@ class DeleteSecureValue : public NetQueryCallback {
   }
 };
 
-class GetPassportAuthorizationForm : public NetQueryCallback {
+class GetPassportAuthorizationForm final : public NetQueryCallback {
  public:
   GetPassportAuthorizationForm(ActorShared<SecureManager> parent, UserId bot_user_id, string scope, string public_key,
                                Promise<telegram_api::object_ptr<telegram_api::account_authorizationForm>> promise)
@@ -752,7 +752,7 @@ void SecureManager::get_secure_value(std::string password, SecureValueType type,
       .release();
 }
 
-class GetPassportConfig : public NetQueryCallback {
+class GetPassportConfig final : public NetQueryCallback {
  public:
   GetPassportConfig(ActorShared<SecureManager> parent, string country_code,
                     Promise<td_api::object_ptr<td_api::text>> promise)

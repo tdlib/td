@@ -46,7 +46,7 @@ static void check_td_error(T &result) {
   LOG_CHECK(result->get_id() != td::td_api::error::ID) << to_string(result);
 }
 
-class TestClient : public td::Actor {
+class TestClient final : public td::Actor {
  public:
   explicit TestClient(td::string name) : name_(std::move(name)) {
   }
@@ -76,7 +76,7 @@ class TestClient : public td::Actor {
   }
 
   td::unique_ptr<td::TdCallback> make_td_callback() {
-    class TdCallbackImpl : public td::TdCallback {
+    class TdCallbackImpl final : public td::TdCallback {
      public:
       explicit TdCallbackImpl(td::ActorId<TestClient> client) : client_(client) {
       }
@@ -197,7 +197,7 @@ class TestClinetTask : public TestClient::Listener {
   }
 };
 
-class DoAuthentication : public TestClinetTask {
+class DoAuthentication final : public TestClinetTask {
  public:
   DoAuthentication(td::string name, td::string phone, td::string code, td::Promise<> promise)
       : name_(std::move(name)), phone_(std::move(phone)), code_(std::move(code)), promise_(std::move(promise)) {
@@ -273,7 +273,7 @@ class DoAuthentication : public TestClinetTask {
   }
 };
 
-class SetUsername : public TestClinetTask {
+class SetUsername final : public TestClinetTask {
  public:
   SetUsername(td::string username, td::Promise<> promise)
       : username_(std::move(username)), promise_(std::move(promise)) {
@@ -338,7 +338,7 @@ class SetUsername : public TestClinetTask {
   }
 };
 
-class CheckTestA : public TestClinetTask {
+class CheckTestA final : public TestClinetTask {
  public:
   CheckTestA(td::string tag, td::Promise<> promise) : tag_(std::move(tag)), promise_(std::move(promise)) {
   }
@@ -370,7 +370,7 @@ class CheckTestA : public TestClinetTask {
   }
 };
 
-class TestA : public TestClinetTask {
+class TestA final : public TestClinetTask {
  public:
   TestA(td::string tag, td::string username) : tag_(std::move(tag)), username_(std::move(username)) {
   }
@@ -396,7 +396,7 @@ class TestA : public TestClinetTask {
   td::string username_;
 };
 
-class TestSecretChat : public TestClinetTask {
+class TestSecretChat final : public TestClinetTask {
  public:
   TestSecretChat(td::string tag, td::string username) : tag_(std::move(tag)), username_(std::move(username)) {
   }
@@ -447,7 +447,7 @@ class TestSecretChat : public TestClinetTask {
   td::int64 chat_id_ = 0;
 };
 
-class TestFileGenerated : public TestClinetTask {
+class TestFileGenerated final : public TestClinetTask {
  public:
   TestFileGenerated(td::string tag, td::string username) : tag_(std::move(tag)), username_(std::move(username)) {
   }
@@ -511,7 +511,7 @@ class TestFileGenerated : public TestClinetTask {
                [](auto res) { check_td_error(res); });
   }
 
-  class GenerateFile : public td::Actor {
+  class GenerateFile final : public td::Actor {
    public:
     GenerateFile(TestClinetTask *parent, td::int64 id, td::string original_path, td::string destination_path,
                  td::string conversion)
@@ -588,7 +588,7 @@ class TestFileGenerated : public TestClinetTask {
   td::int64 chat_id_ = 0;
 };
 
-class CheckTestC : public TestClinetTask {
+class CheckTestC final : public TestClinetTask {
  public:
   CheckTestC(td::string username, td::string tag, td::Promise<> promise)
       : username_(std::move(username)), tag_(std::move(tag)), promise_(std::move(promise)) {
@@ -658,7 +658,7 @@ class CheckTestC : public TestClinetTask {
   td::int32 file_id_to_check_ = 0;
 };
 
-class LoginTestActor : public td::Actor {
+class LoginTestActor final : public td::Actor {
  public:
   explicit LoginTestActor(td::Status *status) : status_(status) {
     *status_ = td::Status::OK();
@@ -705,7 +705,7 @@ class LoginTestActor : public td::Actor {
       init();
     } else if (start_up_fence_ == 1) {
       return init();
-      class WaitActor : public td::Actor {
+      class WaitActor final : public td::Actor {
        public:
         WaitActor(double timeout, td::Promise<> promise) : timeout_(timeout), promise_(std::move(promise)) {
         }
@@ -822,7 +822,7 @@ class LoginTestActor : public td::Actor {
   }
 };
 
-class Tdclient_login : public td::Test {
+class Tdclient_login final : public td::Test {
  public:
   using Test::Test;
   bool step() final {

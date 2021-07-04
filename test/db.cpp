@@ -554,7 +554,7 @@ TEST(DB, persistent_key_value) {
     }
 
     std::vector<std::vector<DbQuery>> res(threads_n);
-    class Worker : public Actor {
+    class Worker final : public Actor {
      public:
       Worker(ActorShared<> parent, std::shared_ptr<QueryHandler<KeyValue>> kv, const std::vector<DbQuery> *queries,
              std::vector<DbQuery> *res)
@@ -574,7 +574,7 @@ TEST(DB, persistent_key_value) {
       const std::vector<DbQuery> *queries_;
       std::vector<DbQuery> *res_;
     };
-    class Main : public Actor {
+    class Main final : public Actor {
      public:
       Main(int threads_n, const std::vector<std::vector<DbQuery>> *queries, std::vector<std::vector<DbQuery>> *res)
           : threads_n_(threads_n), queries_(queries), res_(res), ref_cnt_(threads_n) {

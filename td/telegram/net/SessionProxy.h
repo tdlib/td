@@ -20,7 +20,7 @@ namespace td {
 
 class Session;
 
-class SessionProxy : public Actor {
+class SessionProxy final : public Actor {
  public:
   friend class SessionCallback;
   class Callback {

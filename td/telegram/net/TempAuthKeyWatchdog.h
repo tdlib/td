@@ -23,7 +23,7 @@
 
 namespace td {
 
-class TempAuthKeyWatchdog : public NetQueryCallback {
+class TempAuthKeyWatchdog final : public NetQueryCallback {
   class RegisteredAuthKeyImpl {
    public:
     explicit RegisteredAuthKeyImpl(int64 auth_key_id)

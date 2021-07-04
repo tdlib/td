@@ -69,7 +69,7 @@ FileFd &Stderr() {
 
 #if TD_PORT_WINDOWS
 namespace detail {
-class BufferedStdinImpl : public Iocp::Callback {
+class BufferedStdinImpl final : private Iocp::Callback {
  public:
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
   BufferedStdinImpl() : info_(NativeFd(GetStdHandle(STD_INPUT_HANDLE), true)) {

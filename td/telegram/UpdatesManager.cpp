@@ -86,7 +86,7 @@ class OnUpdate {
   }
 };
 
-class GetUpdatesStateQuery : public Td::ResultHandler {
+class GetUpdatesStateQuery final : public Td::ResultHandler {
   Promise<tl_object_ptr<telegram_api::updates_state>> promise_;
 
  public:
@@ -112,7 +112,7 @@ class GetUpdatesStateQuery : public Td::ResultHandler {
   }
 };
 
-class PingServerQuery : public Td::ResultHandler {
+class PingServerQuery final : public Td::ResultHandler {
   Promise<tl_object_ptr<telegram_api::updates_state>> promise_;
 
  public:
@@ -138,7 +138,7 @@ class PingServerQuery : public Td::ResultHandler {
   }
 };
 
-class GetDifferenceQuery : public Td::ResultHandler {
+class GetDifferenceQuery final : public Td::ResultHandler {
   Promise<tl_object_ptr<telegram_api::updates_Difference>> promise_;
 
  public:

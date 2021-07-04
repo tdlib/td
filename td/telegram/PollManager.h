@@ -33,7 +33,7 @@ struct BinlogEvent;
 
 class Td;
 
-class PollManager : public Actor {
+class PollManager final : public Actor {
  public:
   PollManager(Td *td, ActorShared<> parent);
 

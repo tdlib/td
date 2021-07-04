@@ -30,7 +30,7 @@ static td_api::object_ptr<td_api::autoDownloadSettings> convert_auto_download_se
       settings->video_upload_maxbitrate_, video_preload_large, audio_preload_next, phonecalls_less_data);
 }
 
-class GetAutoDownloadSettingsQuery : public Td::ResultHandler {
+class GetAutoDownloadSettingsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::autoDownloadSettingsPresets>> promise_;
 
  public:
@@ -79,7 +79,7 @@ telegram_api::object_ptr<telegram_api::autoDownloadSettings> get_input_auto_down
       settings.max_video_file_size, settings.max_other_file_size, settings.video_upload_bitrate);
 }
 
-class SaveAutoDownloadSettingsQuery : public Td::ResultHandler {
+class SaveAutoDownloadSettingsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:

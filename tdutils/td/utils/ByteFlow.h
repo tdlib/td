@@ -220,7 +220,7 @@ inline ByteFlowInterface &operator>>(ByteFlowInterface &from, ByteFlowInterface 
   return to;
 }
 
-class ByteFlowSource : public ByteFlowInterface {
+class ByteFlowSource final : public ByteFlowInterface {
  public:
   ByteFlowSource() = default;
   explicit ByteFlowSource(ChainBufferReader *buffer) : buffer_(buffer) {
@@ -279,7 +279,7 @@ class ByteFlowSource : public ByteFlowInterface {
   ByteFlowInterface *parent_ = nullptr;
 };
 
-class ByteFlowSink : public ByteFlowInterface {
+class ByteFlowSink final : public ByteFlowInterface {
  public:
   void set_input(ChainBufferReader *input) final {
     CHECK(buffer_ == nullptr);
@@ -329,7 +329,7 @@ class ByteFlowSink : public ByteFlowInterface {
   ChainBufferReader *buffer_ = nullptr;
 };
 
-class ByteFlowMoveSink : public ByteFlowInterface {
+class ByteFlowMoveSink final : public ByteFlowInterface {
  public:
   ByteFlowMoveSink() = default;
   explicit ByteFlowMoveSink(ChainBufferWriter *output) {

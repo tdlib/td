@@ -119,7 +119,7 @@ BENCH(Time, "Clocks::monotonic") {
 }
 */
 #if !TD_WINDOWS
-class PipeBench : public Benchmark {
+class PipeBench final : public Benchmark {
  public:
   int p[2];
 
@@ -153,7 +153,7 @@ class PipeBench : public Benchmark {
 #endif
 
 #if TD_LINUX || TD_ANDROID || TD_TIZEN
-class SemBench : public Benchmark {
+class SemBench final : public Benchmark {
   sem_t sem;
 
  public:
@@ -180,7 +180,7 @@ class SemBench : public Benchmark {
 #endif
 
 #if !TD_WINDOWS
-class UtimeBench : public Benchmark {
+class UtimeBench final : public Benchmark {
  public:
   void start_up() final {
     FileFd::open("test", FileFd::Flags::Create | FileFd::Flags::Write).move_as_ok().close();
@@ -210,7 +210,7 @@ BENCH(Pwrite, "pwrite") {
   fd.close();
 }
 
-class CreateFileBench : public Benchmark {
+class CreateFileBench final : public Benchmark {
   string get_description() const final {
     return "create_file";
   }
@@ -233,7 +233,7 @@ class CreateFileBench : public Benchmark {
   }
 };
 
-class WalkPathBench : public Benchmark {
+class WalkPathBench final : public Benchmark {
   string get_description() const final {
     return "walk_path";
   }
@@ -266,7 +266,7 @@ class WalkPathBench : public Benchmark {
 
 #if !TD_THREAD_UNSUPPORTED
 template <int ThreadN = 2>
-class AtomicReleaseIncBench : public Benchmark {
+class AtomicReleaseIncBench final : public Benchmark {
   string get_description() const final {
     return PSTRING() << "AtomicReleaseInc" << ThreadN;
   }
@@ -290,7 +290,7 @@ template <int ThreadN>
 std::atomic<uint64> AtomicReleaseIncBench<ThreadN>::a_;
 
 template <int ThreadN = 2>
-class AtomicReleaseCasIncBench : public Benchmark {
+class AtomicReleaseCasIncBench final : public Benchmark {
   string get_description() const final {
     return PSTRING() << "AtomicReleaseCasInc" << ThreadN;
   }
@@ -316,7 +316,7 @@ template <int ThreadN>
 std::atomic<uint64> AtomicReleaseCasIncBench<ThreadN>::a_;
 
 template <int ThreadN = 2>
-class RwMutexReadBench : public Benchmark {
+class RwMutexReadBench final : public Benchmark {
   string get_description() const final {
     return PSTRING() << "RwMutexRead" << ThreadN;
   }
@@ -336,7 +336,7 @@ class RwMutexReadBench : public Benchmark {
   }
 };
 template <int ThreadN = 2>
-class RwMutexWriteBench : public Benchmark {
+class RwMutexWriteBench final : public Benchmark {
   string get_description() const final {
     return PSTRING() << "RwMutexWrite" << ThreadN;
   }

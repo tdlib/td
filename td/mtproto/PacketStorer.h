@@ -15,7 +15,7 @@ namespace td {
 namespace mtproto {
 
 template <class Impl>
-class PacketStorer
+class PacketStorer final
     : public Storer
     , public Impl {
  public:

@@ -22,7 +22,7 @@
 
 namespace td {
 
-class SetBotCommandsQuery : public Td::ResultHandler {
+class SetBotCommandsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -52,7 +52,7 @@ class SetBotCommandsQuery : public Td::ResultHandler {
   }
 };
 
-class ResetBotCommandsQuery : public Td::ResultHandler {
+class ResetBotCommandsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
@@ -78,7 +78,7 @@ class ResetBotCommandsQuery : public Td::ResultHandler {
   }
 };
 
-class GetBotCommandsQuery : public Td::ResultHandler {
+class GetBotCommandsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::botCommands>> promise_;
 
  public:

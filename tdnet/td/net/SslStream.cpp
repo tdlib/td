@@ -384,7 +384,7 @@ class SslStreamImpl {
     return size;
   }
 
-  class SslReadByteFlow : public ByteFlowBase {
+  class SslReadByteFlow final : public ByteFlowBase {
    public:
     explicit SslReadByteFlow(SslStreamImpl *stream) : stream_(stream) {
     }
@@ -411,7 +411,7 @@ class SslStreamImpl {
     SslStreamImpl *stream_;
   };
 
-  class SslWriteByteFlow : public ByteFlowBase {
+  class SslWriteByteFlow final : public ByteFlowBase {
    public:
     explicit SslWriteByteFlow(SslStreamImpl *stream) : stream_(stream) {
     }

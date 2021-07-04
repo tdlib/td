@@ -12,7 +12,7 @@
 
 namespace td {
 
-class DhCache : public DhCallback {
+class DhCache final : public DhCallback {
  public:
   int is_good_prime(Slice prime_str) const final;
   void add_good_prime(Slice prime_str) const final;

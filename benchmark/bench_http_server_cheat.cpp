@@ -24,7 +24,7 @@ namespace td {
 
 // HttpInboundConnection header
 static int cnt = 0;
-class HelloWorld : public Actor {
+class HelloWorld final : public Actor {
  public:
   explicit HelloWorld(SocketFd socket_fd) : socket_fd_(std::move(socket_fd)) {
   }
@@ -98,7 +98,7 @@ class HelloWorld : public Actor {
   }
 };
 const int N = 0;
-class Server : public TcpListener::Callback {
+class Server final : public TcpListener::Callback {
  public:
   void start_up() final {
     listener_ = create_actor<TcpListener>("Listener", 8082, ActorOwn<TcpListener::Callback>(actor_id(this)));

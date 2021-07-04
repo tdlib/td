@@ -17,7 +17,7 @@
 namespace td {
 namespace tl {
 
-class TlWriterDotNet : public TL_writer {
+class TlWriterDotNet final : public TL_writer {
  public:
   bool is_header_;
   std::string prefix_;

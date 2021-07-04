@@ -19,7 +19,7 @@
 
 namespace td {
 
-class FileHashUploader : public FileLoaderActor {
+class FileHashUploader final : public FileLoaderActor {
  public:
   class Callback {
    public:

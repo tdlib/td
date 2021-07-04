@@ -27,7 +27,7 @@ namespace detail {
 class BinlogActor;
 }  // namespace detail
 
-class ConcurrentBinlog : public BinlogInterface {
+class ConcurrentBinlog final : public BinlogInterface {
  public:
   using Callback = std::function<void(const BinlogEvent &)>;
   Result<BinlogInfo> init(string path, const Callback &callback, DbKey db_key = DbKey::empty(),

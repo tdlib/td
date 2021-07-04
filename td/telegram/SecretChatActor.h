@@ -46,7 +46,7 @@ namespace td {
 class BinlogInterface;
 class NetQueryCreator;
 
-class SecretChatActor : public NetQueryCallback {
+class SecretChatActor final : public NetQueryCallback {
  public:
   enum : int32 {
     DEFAULT_LAYER = 73,

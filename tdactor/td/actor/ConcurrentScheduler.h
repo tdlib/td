@@ -24,7 +24,7 @@
 
 namespace td {
 
-class ConcurrentScheduler : private Scheduler::Callback {
+class ConcurrentScheduler final : private Scheduler::Callback {
  public:
   void init(int32 threads_n);
 

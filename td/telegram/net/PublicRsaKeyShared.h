@@ -18,7 +18,7 @@
 
 namespace td {
 
-class PublicRsaKeyShared : public PublicRsaKeyInterface {
+class PublicRsaKeyShared final : public PublicRsaKeyInterface {
  public:
   PublicRsaKeyShared(DcId dc_id, bool is_test);
 

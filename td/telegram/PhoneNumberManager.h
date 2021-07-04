@@ -18,7 +18,7 @@
 
 namespace td {
 
-class PhoneNumberManager : public NetActor {
+class PhoneNumberManager final : public NetActor {
  public:
   enum class Type : int32 { ChangePhone, VerifyPhone, ConfirmPhone };
   PhoneNumberManager(Type type, ActorShared<> parent);

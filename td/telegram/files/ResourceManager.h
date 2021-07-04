@@ -18,7 +18,7 @@
 
 namespace td {
 
-class ResourceManager : public Actor {
+class ResourceManager final : public Actor {
  public:
   enum class Mode : int32 { Baseline, Greedy };
   explicit ResourceManager(Mode mode) : mode_(mode) {
@@ -34,7 +34,7 @@ class ResourceManager : public Actor {
  private:
   Mode mode_;
   using NodeId = uint64;
-  struct Node : public HeapNode {
+  struct Node final : public HeapNode {
     NodeId node_id;
 
     ResourceState resource_state_;

@@ -24,7 +24,7 @@
 
 namespace td {
 
-class NotificationTypeMessage : public NotificationType {
+class NotificationTypeMessage final : public NotificationType {
   bool can_be_delayed() const final {
     return message_id_.is_valid() && message_id_.is_server();
   }
@@ -60,7 +60,7 @@ class NotificationTypeMessage : public NotificationType {
   }
 };
 
-class NotificationTypeSecretChat : public NotificationType {
+class NotificationTypeSecretChat final : public NotificationType {
   bool can_be_delayed() const final {
     return false;
   }
@@ -90,7 +90,7 @@ class NotificationTypeSecretChat : public NotificationType {
   }
 };
 
-class NotificationTypeCall : public NotificationType {
+class NotificationTypeCall final : public NotificationType {
   bool can_be_delayed() const final {
     return false;
   }
@@ -122,7 +122,7 @@ class NotificationTypeCall : public NotificationType {
   }
 };
 
-class NotificationTypePushMessage : public NotificationType {
+class NotificationTypePushMessage final : public NotificationType {
   bool can_be_delayed() const final {
     return false;
   }

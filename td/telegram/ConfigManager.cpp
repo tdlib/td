@@ -379,7 +379,7 @@ ActorOwn<> get_simple_config_firebase_firestore(Promise<SimpleConfigResult> prom
 }
 
 ActorOwn<> get_full_config(DcOption option, Promise<FullConfig> promise, ActorShared<> parent) {
-  class SessionCallback : public Session::Callback {
+  class SessionCallback final : public Session::Callback {
    public:
     SessionCallback(ActorShared<> parent, DcOption option) : parent_(std::move(parent)), option_(std::move(option)) {
     }
@@ -417,7 +417,7 @@ ActorOwn<> get_full_config(DcOption option, Promise<FullConfig> promise, ActorSh
     std::vector<Promise<unique_ptr<mtproto::RawConnection>>> delay_forever_;
   };
 
-  class SimpleAuthData : public AuthDataShared {
+  class SimpleAuthData final : public AuthDataShared {
    public:
     explicit SimpleAuthData(DcId dc_id) : dc_id_(dc_id) {
     }
@@ -487,7 +487,7 @@ ActorOwn<> get_full_config(DcOption option, Promise<FullConfig> promise, ActorSh
     }
   };
 
-  class GetConfigActor : public NetQueryCallback {
+  class GetConfigActor final : public NetQueryCallback {
    public:
     GetConfigActor(DcOption option, Promise<FullConfig> promise, ActorShared<> parent)
         : option_(std::move(option)), promise_(std::move(promise)), parent_(std::move(parent)) {
@@ -542,7 +542,7 @@ ActorOwn<> get_full_config(DcOption option, Promise<FullConfig> promise, ActorSh
   return ActorOwn<>(create_actor<GetConfigActor>("GetConfigActor", option, std::move(promise), std::move(parent)));
 }
 
-class ConfigRecoverer : public Actor {
+class ConfigRecoverer final : public Actor {
  public:
   explicit ConfigRecoverer(ActorShared<> parent) : parent_(std::move(parent)) {
     connecting_since_ = Time::now();
@@ -840,7 +840,7 @@ class ConfigRecoverer : public Actor {
   }
 
   void start_up() final {
-    class StateCallback : public StateManager::Callback {
+    class StateCallback final : public StateManager::Callback {
      public:
       explicit StateCallback(ActorId<ConfigRecoverer> parent) : parent_(std::move(parent)) {
       }

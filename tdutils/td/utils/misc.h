@@ -271,7 +271,7 @@ MutableSlice url_decode_inplace(MutableSlice str, bool decode_plus_sign_as_space
 
 namespace detail {
 template <class T, class U>
-struct is_same_signedness
+struct is_same_signedness final
     : public std::integral_constant<bool, std::is_signed<T>::value == std::is_signed<U>::value> {};
 
 template <class T, class Enable = void>

@@ -150,7 +150,7 @@ Status from_json(std::vector<T> &to, JsonValue from) {
 }
 
 template <class T>
-class DowncastHelper : public T {
+class DowncastHelper final : public T {
  public:
   explicit DowncastHelper(int32 constructor) : constructor_(constructor) {
   }

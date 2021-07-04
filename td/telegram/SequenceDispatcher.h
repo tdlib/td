@@ -18,7 +18,7 @@
 
 namespace td {
 
-class SequenceDispatcher : public NetQueryCallback {
+class SequenceDispatcher final : public NetQueryCallback {
  public:
   class Parent : public Actor {
    public:
@@ -73,7 +73,7 @@ class SequenceDispatcher : public NetQueryCallback {
   void tear_down() final;
 };
 
-class MultiSequenceDispatcher : public SequenceDispatcher::Parent {
+class MultiSequenceDispatcher final : public SequenceDispatcher::Parent {
  public:
   void send_with_callback(NetQueryPtr query, ActorShared<NetQueryCallback> callback, uint64 sequence_id);
 

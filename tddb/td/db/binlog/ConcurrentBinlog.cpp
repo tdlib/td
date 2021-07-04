@@ -15,7 +15,7 @@
 
 namespace td {
 namespace detail {
-class BinlogActor : public Actor {
+class BinlogActor final : public Actor {
  public:
   BinlogActor(unique_ptr<Binlog> binlog, uint64 seq_no) : binlog_(std::move(binlog)), processor_(seq_no) {
   }

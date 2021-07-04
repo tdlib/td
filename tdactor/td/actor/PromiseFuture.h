@@ -69,7 +69,7 @@ class PromiseInterface {
 namespace detail {
 
 template <typename T>
-struct GetArg : public GetArg<decltype(&T::operator())> {};
+struct GetArg final : public GetArg<decltype(&T::operator())> {};
 
 template <class C, class R, class Arg>
 class GetArg<R (C::*)(Arg)> {
@@ -368,7 +368,7 @@ Promise<T> &Promise<T>::operator=(SafePromise<T> &&other) {
 
 namespace detail {
 
-class EventPromise : public PromiseInterface<Unit> {
+class EventPromise final : public PromiseInterface<Unit> {
  public:
   void set_value(Unit &&) final {
     ok_.try_emit();
@@ -407,7 +407,7 @@ class EventPromise : public PromiseInterface<Unit> {
 };
 
 template <class PromiseT>
-class CancellablePromise : public PromiseT {
+class CancellablePromise final : public PromiseT {
  public:
   template <class... ArgsT>
   CancellablePromise(CancellationToken cancellation_token, ArgsT &&... args)
@@ -425,7 +425,7 @@ class CancellablePromise : public PromiseT {
 };
 
 template <class... ArgsT>
-class JoinPromise : public PromiseInterface<Unit> {
+class JoinPromise final : public PromiseInterface<Unit> {
  public:
   explicit JoinPromise(ArgsT &&... arg) : promises_(std::forward<ArgsT>(arg)...) {
   }

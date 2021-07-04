@@ -334,7 +334,7 @@ static string prime_base64 =
     "WC2xF40WnGvEZbDW_5yjko_vW5rk5Bj8Feg-vqD4f6n_Xu1wBQ3tKEn0e_lZ2VaFDOkphR8NgRX2NbEF7i5OFdBLJFS_b0-t8DSxBAMRnNjjuS_MW"
     "w";
 
-class FakeDhCallback : public DhCallback {
+class FakeDhCallback final : public DhCallback {
  public:
   int is_good_prime(Slice prime_str) const final {
     auto it = cache.find(prime_str.str());
@@ -352,7 +352,7 @@ class FakeDhCallback : public DhCallback {
   mutable std::map<string, int> cache;
 };
 
-class FakeBinlog
+class FakeBinlog final
     : public BinlogInterface
     , public Actor {
  public:
@@ -479,7 +479,7 @@ class FakeBinlog
 using FakeKeyValue = BinlogKeyValue<BinlogInterface>;
 
 class Master;
-class FakeSecretChatContext : public SecretChatActor::Context {
+class FakeSecretChatContext final : public SecretChatActor::Context {
  public:
   FakeSecretChatContext(std::shared_ptr<BinlogInterface> binlog, std::shared_ptr<KeyValueSyncInterface> key_value,
                         std::shared_ptr<bool> close_flag, ActorShared<Master> master)
@@ -565,11 +565,11 @@ class FakeSecretChatContext : public SecretChatActor::Context {
 };
 NetQueryCreator FakeSecretChatContext::net_query_creator_;
 
-class Master : public Actor {
+class Master final : public Actor {
  public:
   explicit Master(Status *status) : status_(status) {
   }
-  class SecretChatProxy : public Actor {
+  class SecretChatProxy final : public Actor {
    public:
     SecretChatProxy(string name, ActorShared<Master> parent) : name_(std::move(name)) {
       binlog_ = std::make_shared<FakeBinlog>();

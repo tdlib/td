@@ -69,7 +69,7 @@ class Timeout final : public Actor {
 
 // TODO optimize
 class MultiTimeout final : public Actor {
-  struct Item : public HeapNode {
+  struct Item final : public HeapNode {
     int64 key;
 
     explicit Item(int64 key) : key(key) {

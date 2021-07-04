@@ -182,7 +182,7 @@ class QueryActor final : public Actor {
 };
 
 class MainQueryActor final : public Actor {
-  class QueryActorCallback : public QueryActor::Callback {
+  class QueryActorCallback final : public QueryActor::Callback {
    public:
     void on_result(Query &&query) final {
       if (query.ready()) {
@@ -342,9 +342,9 @@ class SimpleActor final : public Actor {
 };
 }  // namespace
 
-class SendToDead : public Actor {
+class SendToDead final : public Actor {
  public:
-  class Parent : public Actor {
+  class Parent final : public Actor {
    public:
     explicit Parent(ActorShared<> parent, int ttl = 3) : parent_(std::move(parent)), ttl_(ttl) {
     }
@@ -439,7 +439,7 @@ TEST(Actors, main) {
   sched.finish();
 }
 
-class DoAfterStop : public Actor {
+class DoAfterStop final : public Actor {
  public:
   void loop() final {
     ptr = make_unique<int>(10);
@@ -467,7 +467,7 @@ TEST(Actors, do_after_stop) {
   sched.finish();
 }
 
-class XContext : public ActorContext {
+class XContext final : public ActorContext {
  public:
   int32 get_id() const final {
     return 123456789;
@@ -482,7 +482,7 @@ class XContext : public ActorContext {
   int x = 1234;
 };
 
-class WithXContext : public Actor {
+class WithXContext final : public Actor {
  public:
   void start_up() final {
     auto old_context = set_context(std::make_shared<XContext>());

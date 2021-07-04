@@ -27,7 +27,7 @@ namespace td {
 
 class SqliteKeyValue;
 
-class LanguagePackManager : public NetQueryCallback {
+class LanguagePackManager final : public NetQueryCallback {
  public:
   explicit LanguagePackManager(ActorShared<> parent) : parent_(std::move(parent)) {
   }

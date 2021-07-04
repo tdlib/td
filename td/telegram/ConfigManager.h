@@ -83,7 +83,7 @@ using FullConfig = tl_object_ptr<telegram_api::config>;
 ActorOwn<> get_full_config(DcId dc_id, IPAddress ip_address, Promise<FullConfig> promise);
 
 class ConfigRecoverer;
-class ConfigManager : public NetQueryCallback {
+class ConfigManager final : public NetQueryCallback {
  public:
   explicit ConfigManager(ActorShared<> parent);
 

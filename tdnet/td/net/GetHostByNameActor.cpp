@@ -21,7 +21,7 @@
 namespace td {
 namespace detail {
 
-class GoogleDnsResolver : public Actor {
+class GoogleDnsResolver final : public Actor {
  public:
   GoogleDnsResolver(std::string host, bool prefer_ipv6, Promise<IPAddress> promise)
       : host_(std::move(host)), prefer_ipv6_(prefer_ipv6), promise_(std::move(promise)) {
@@ -86,7 +86,7 @@ class GoogleDnsResolver : public Actor {
   }
 };
 
-class NativeDnsResolver : public Actor {
+class NativeDnsResolver final : public Actor {
  public:
   NativeDnsResolver(std::string host, bool prefer_ipv6, Promise<IPAddress> promise)
       : host_(std::move(host)), prefer_ipv6_(prefer_ipv6), promise_(std::move(promise)) {

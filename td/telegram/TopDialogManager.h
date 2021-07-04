@@ -22,7 +22,7 @@
 
 namespace td {
 
-class TopDialogManager : public NetQueryCallback {
+class TopDialogManager final : public NetQueryCallback {
  public:
   explicit TopDialogManager(ActorShared<> parent) : parent_(std::move(parent)) {
   }

@@ -20,7 +20,7 @@
 #endif
 
 template <int type>
-class RingBench : public td::Benchmark {
+class RingBench final : public td::Benchmark {
  public:
   struct PassActor;
 
@@ -37,7 +37,7 @@ class RingBench : public td::Benchmark {
     return PSTRING() << "Ring (send_" << types[type] << ") (threads_n = " << thread_n_ << ")";
   }
 
-  struct PassActor : public td::Actor {
+  struct PassActor final : public td::Actor {
     int id = -1;
     td::ActorId<PassActor> next_actor;
     int start_n = 0;
@@ -118,7 +118,7 @@ class RingBench : public td::Benchmark {
 };
 
 template <int type>
-class QueryBench : public td::Benchmark {
+class QueryBench final : public td::Benchmark {
  public:
   std::string get_description() const final {
     static const char *types[] = {"callback", "immediate future", "delayed future", "dummy", "lambda", "lambda_future"};
@@ -126,7 +126,7 @@ class QueryBench : public td::Benchmark {
     return PSTRING() << "QueryBench: " << types[type];
   }
 
-  class ClientActor : public td::Actor {
+  class ClientActor final : public td::Actor {
    public:
     class Callback {
      public:
@@ -157,9 +157,9 @@ class QueryBench : public td::Benchmark {
     td::unique_ptr<Callback> callback_;
   };
 
-  class ServerActor : public td::Actor {
+  class ServerActor final : public td::Actor {
    public:
-    class ClientCallback : public ClientActor::Callback {
+    class ClientCallback final : public ClientActor::Callback {
      public:
       explicit ClientCallback(td::ActorId<ServerActor> server) : server_(server) {
       }

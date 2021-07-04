@@ -16,7 +16,7 @@
 
 namespace td {
 
-class TlWriterCCommon : public tl::TL_writer {
+class TlWriterCCommon final : public tl::TL_writer {
  public:
   int is_header_;
   std::string prefix_;
@@ -547,7 +547,7 @@ class TlWriterCCommon : public tl::TL_writer {
     }
   };
 
-  struct file_store_methods_to_td : public file_store_methods {
+  struct file_store_methods_to_td final : public file_store_methods {
     explicit file_store_methods_to_td(const class TlWriterCCommon *cl) : cl(cl) {
     }
     void store_simple_type(std::stringstream &ss, std::string offset, std::string res_var, std::string var,
@@ -609,7 +609,7 @@ class TlWriterCCommon : public tl::TL_writer {
     const class TlWriterCCommon *cl;
   };
 
-  struct file_store_methods_destroy : public file_store_methods {
+  struct file_store_methods_destroy final : public file_store_methods {
     explicit file_store_methods_destroy(const class TlWriterCCommon *cl) : cl(cl) {
     }
     void store_simple_type(std::stringstream &ss, std::string offset, std::string res_var, std::string var,
@@ -666,7 +666,7 @@ class TlWriterCCommon : public tl::TL_writer {
     }
     const class TlWriterCCommon *cl;
   };
-  struct file_store_methods_stack : public file_store_methods {
+  struct file_store_methods_stack final : public file_store_methods {
     explicit file_store_methods_stack(const class TlWriterCCommon *cl) : cl(cl) {
     }
     void store_simple_type(std::stringstream &ss, std::string offset, std::string res_var, std::string var,
@@ -767,7 +767,7 @@ class TlWriterCCommon : public tl::TL_writer {
     }
   };
 
-  struct file_fetch_methods_from_td : public file_fetch_methods {
+  struct file_fetch_methods_from_td final : public file_fetch_methods {
     explicit file_fetch_methods_from_td(const class TlWriterCCommon *cl) : cl(cl) {
     }
     std::string fetch_field_start(std::stringstream &ss, std::string offset, int depth,
@@ -818,7 +818,7 @@ class TlWriterCCommon : public tl::TL_writer {
     const class TlWriterCCommon *cl;
   };
 
-  struct file_fetch_methods_stack : public file_fetch_methods {
+  struct file_fetch_methods_stack final : public file_fetch_methods {
     explicit file_fetch_methods_stack(const class TlWriterCCommon *cl) : cl(cl) {
     }
     std::string fetch_field_start(std::stringstream &ss, std::string offset, int depth,

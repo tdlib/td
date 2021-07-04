@@ -12,7 +12,7 @@
 
 namespace td {
 
-class Socks5 : public TransparentProxy {
+class Socks5 final : public TransparentProxy {
  public:
   using TransparentProxy::TransparentProxy;
 

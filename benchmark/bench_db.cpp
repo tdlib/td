@@ -28,7 +28,7 @@
 #include <memory>
 
 template <class KeyValueT>
-class TdKvBench : public td::Benchmark {
+class TdKvBench final : public td::Benchmark {
   td::ConcurrentScheduler sched;
   td::string name_;
 
@@ -41,7 +41,7 @@ class TdKvBench : public td::Benchmark {
     return name_;
   }
 
-  class Main : public td::Actor {
+  class Main final : public td::Actor {
    public:
     explicit Main(int n) : n_(n) {
     }
@@ -50,7 +50,7 @@ class TdKvBench : public td::Benchmark {
     void loop() final {
       KeyValueT::destroy("test_tddb").ignore();
 
-      class Worker : public Actor {
+      class Worker final : public Actor {
        public:
         Worker(int n, td::string db_name) : n_(n) {
           kv_.init(db_name).ensure();
@@ -89,7 +89,7 @@ class TdKvBench : public td::Benchmark {
 };
 
 template <bool is_encrypted = false>
-class SqliteKVBench : public td::Benchmark {
+class SqliteKVBench final : public td::Benchmark {
   td::SqliteDb db;
   td::string get_description() const final {
     return PSTRING() << "SqliteKV " << td::tag("is_encrypted", is_encrypted);
@@ -142,7 +142,7 @@ static td::Status init_db(td::SqliteDb &db) {
   return td::Status::OK();
 }
 
-class SqliteKeyValueAsyncBench : public td::Benchmark {
+class SqliteKeyValueAsyncBench final : public td::Benchmark {
  public:
   td::string get_description() const final {
     return "SqliteKeyValueAsync";
@@ -199,7 +199,7 @@ class SqliteKeyValueAsyncBench : public td::Benchmark {
   }
 };
 
-class SeqKvBench : public td::Benchmark {
+class SeqKvBench final : public td::Benchmark {
   td::string get_description() const final {
     return "SeqKvBench";
   }
@@ -213,7 +213,7 @@ class SeqKvBench : public td::Benchmark {
 };
 
 template <bool is_encrypted = false>
-class BinlogKeyValueBench : public td::Benchmark {
+class BinlogKeyValueBench final : public td::Benchmark {
   td::string get_description() const final {
     return PSTRING() << "BinlogKeyValue " << td::tag("is_encrypted", is_encrypted);
   }

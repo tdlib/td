@@ -16,7 +16,7 @@
 
 namespace td {
 
-class FileLog : public LogInterface {
+class FileLog final : public LogInterface {
   static constexpr int64 DEFAULT_ROTATE_THRESHOLD = 10 * (1 << 20);
 
  public:

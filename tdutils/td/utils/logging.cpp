@@ -150,7 +150,7 @@ Logger::~Logger() {
   }
 }
 
-class DefaultLog : public LogInterface {
+class DefaultLog final : public LogInterface {
   void do_append(int log_level, CSlice slice) final {
 #if TD_ANDROID
     switch (log_level) {

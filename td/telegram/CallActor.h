@@ -89,7 +89,7 @@ struct CallState {
   tl_object_ptr<td_api::CallState> get_call_state_object() const;
 };
 
-class CallActor : public NetQueryCallback {
+class CallActor final : public NetQueryCallback {
  public:
   CallActor(CallId call_id, ActorShared<> parent, Promise<int64> promise);
 

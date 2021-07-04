@@ -12,7 +12,7 @@
 
 namespace td {
 
-class HttpProxy : public TransparentProxy {
+class HttpProxy final : public TransparentProxy {
  public:
   using TransparentProxy::TransparentProxy;
 

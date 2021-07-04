@@ -85,7 +85,7 @@ class TestContext : public Context<TestContext> {
   virtual Status verify(Slice data) = 0;
 };
 
-class TestsRunner : public TestContext {
+class TestsRunner final : public TestContext {
  public:
   static TestsRunner &get_default();
 
@@ -170,7 +170,7 @@ void assert_true_impl(const T &got, const char *file, int line) {
 #define TEST(test_case_name, test_name) TEST_IMPL(TEST_NAME(test_case_name, test_name))
 
 #define TEST_IMPL(test_name)                                                                                         \
-  class test_name : public ::td::Test {                                                                              \
+  class test_name final : public ::td::Test {                                                                        \
    public:                                                                                                           \
     using Test::Test;                                                                                                \
     void run() final;                                                                                                \

@@ -135,7 +135,7 @@ class CheckedHeap {
   }
 
  private:
-  struct Node : public td::HeapNode {
+  struct Node final : public td::HeapNode {
     Node() = default;
     Node(int key, int value) : key(key), value(value) {
     }

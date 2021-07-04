@@ -40,7 +40,7 @@ namespace td {
 
 namespace detail {
 #if TD_PORT_WINDOWS
-class ServerSocketFdImpl : private Iocp::Callback {
+class ServerSocketFdImpl final : private Iocp::Callback {
  public:
   ServerSocketFdImpl(NativeFd fd, int socket_family) : info_(std::move(fd)), socket_family_(socket_family) {
     VLOG(fd) << get_native_fd() << " create ServerSocketFd";

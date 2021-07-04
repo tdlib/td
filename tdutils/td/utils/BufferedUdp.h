@@ -108,7 +108,7 @@ class UdpReader {
 
 #endif
 
-class BufferedUdp : public UdpSocketFd {
+class BufferedUdp final : public UdpSocketFd {
  public:
   explicit BufferedUdp(UdpSocketFd fd) : UdpSocketFd(std::move(fd)) {
   }
