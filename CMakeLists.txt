@@ -593,6 +593,7 @@ set(TDLIB_SOURCE
   td/telegram/SecretChatActor.h
   td/telegram/SecretChatId.h
   td/telegram/SecretChatDb.h
+  td/telegram/SecretChatLayer.h
   td/telegram/SecretChatsManager.h
   td/telegram/SecretInputMedia.h
   td/telegram/SecureManager.h

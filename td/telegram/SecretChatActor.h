@@ -14,6 +14,7 @@
 #include "td/telegram/secret_api.h"
 #include "td/telegram/SecretChatDb.h"
 #include "td/telegram/SecretChatId.h"
+#include "td/telegram/SecretChatLayer.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
 
@@ -48,14 +49,6 @@ class NetQueryCreator;
 
 class SecretChatActor final : public NetQueryCallback {
  public:
-  enum : int32 {
-    DEFAULT_LAYER = 73,
-    MTPROTO_2_LAYER = 73,
-    NEW_ENTITIES_LAYER = 101,
-    DELETE_MESSAGES_ON_CLOSE_LAYER = 123,
-    MY_LAYER = DELETE_MESSAGES_ON_CLOSE_LAYER
-  };
-
   class Context {
    public:
     Context() = default;
@@ -646,12 +639,12 @@ class SecretChatActor final : public NetQueryCallback {
   Status save_common_info(T &update);
 
   int32 current_layer() const {
-    int32 layer = MY_LAYER;
+    int32 layer = static_cast<int32>(SecretChatLayer::MY_LAYER);
     if (config_state_.his_layer < layer) {
       layer = config_state_.his_layer;
     }
-    if (layer < DEFAULT_LAYER) {
-      layer = DEFAULT_LAYER;
+    if (layer < static_cast<int32>(SecretChatLayer::DEFAULT_LAYER)) {
+      layer = static_cast<int32>(SecretChatLayer::DEFAULT_LAYER);
     }
     return layer;
   }

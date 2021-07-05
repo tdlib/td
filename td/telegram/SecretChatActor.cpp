@@ -440,8 +440,9 @@ void SecretChatActor::binlog_replay_finish() {
   LOG(INFO) << "Binlog replay is finished with PfsState " << pfs_state_;
   binlog_replay_finish_flag_ = true;
   if (auth_state_.state == State::Ready) {
-    if (config_state_.my_layer < MY_LAYER) {
-      send_action(secret_api::make_object<secret_api::decryptedMessageActionNotifyLayer>(MY_LAYER), SendFlag::None,
+    auto my_layer = static_cast<int32>(SecretChatLayer::MY_LAYER);
+    if (config_state_.my_layer < my_layer) {
+      send_action(secret_api::make_object<secret_api::decryptedMessageActionNotifyLayer>(my_layer), SendFlag::None,
                   Promise<>());
     }
   }
@@ -845,7 +846,8 @@ Status SecretChatActor::do_inbound_message_encrypted(unique_ptr<log_event::Inbou
     parser.fetch_end();
     if (!parser.get_error()) {
       auto layer = message_with_layer->layer_;
-      if (layer < DEFAULT_LAYER && false /* old Android app could send such messages */) {
+      if (layer < static_cast<int32>(SecretChatLayer::DEFAULT_LAYER) &&
+          false /* old Android app could send such messages */) {
         LOG(ERROR) << "Layer " << layer << " is not supported, drop message " << to_string(message_with_layer);
         return Status::OK();
       }
@@ -854,7 +856,7 @@ Status SecretChatActor::do_inbound_message_encrypted(unique_ptr<log_event::Inbou
         context_->secret_chat_db()->set_value(config_state_);
         send_update_secret_chat();
       }
-      if (layer >= MTPROTO_2_LAYER && mtproto_version < 2) {
+      if (layer >= static_cast<int32>(SecretChatLayer::MTPROTO_2_LAYER) && mtproto_version < 2) {
         return Status::Error(PSLICE() << "MTProto 1.0 encryption is forbidden for this layer");
       }
       if (message_with_layer->in_seq_no_ < 0) {
@@ -871,8 +873,9 @@ Status SecretChatActor::do_inbound_message_encrypted(unique_ptr<log_event::Inbou
 
   // support for older layer
   LOG(WARNING) << "Failed to fetch update: " << status;
-  send_action(secret_api::make_object<secret_api::decryptedMessageActionNotifyLayer>(MY_LAYER), SendFlag::None,
-              Promise<>());
+  send_action(secret_api::make_object<secret_api::decryptedMessageActionNotifyLayer>(
+                  static_cast<int32>(SecretChatLayer::MY_LAYER)),
+              SendFlag::None, Promise<>());
 
   if (config_state_.his_layer == 8) {
     TlBufferParser new_parser(&data_buffer);
@@ -1844,8 +1847,9 @@ Status SecretChatActor::on_update_chat(telegram_api::encryptedChat &update) {
   context_->secret_chat_db()->set_value(pfs_state_);
   context_->secret_chat_db()->set_value(auth_state_);
   send_update_secret_chat();
-  send_action(secret_api::make_object<secret_api::decryptedMessageActionNotifyLayer>(MY_LAYER), SendFlag::None,
-              Promise<>());
+  send_action(secret_api::make_object<secret_api::decryptedMessageActionNotifyLayer>(
+                  static_cast<int32>(SecretChatLayer::MY_LAYER)),
+              SendFlag::None, Promise<>());
   return Status::OK();
 }
 Status SecretChatActor::on_update_chat(telegram_api::encryptedChatDiscarded &update) {
