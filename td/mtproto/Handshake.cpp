@@ -139,17 +139,7 @@ Status AuthKeyHandshake::on_res_pq(Slice message, Callback *connection, PublicRs
 }
 
 Status AuthKeyHandshake::on_server_dh_params(Slice message, Callback *connection, DhCallback *dh_callback) {
-  TRY_RESULT(server_dh_params, fetch_result<mtproto_api::req_DH_params>(message, false));
-  switch (server_dh_params->get_id()) {
-    case mtproto_api::server_DH_params_ok::ID:
-      break;
-    case mtproto_api::server_DH_params_fail::ID:
-      return Status::Error("Server dh params fail");
-    default:
-      return Status::Error("Unknown result");
-  }
-
-  auto dh_params = move_tl_object_as<mtproto_api::server_DH_params_ok>(server_dh_params);
+  TRY_RESULT(dh_params, fetch_result<mtproto_api::req_DH_params>(message, false));
 
   // server_DH_params_ok#d0e8075c nonce:int128 server_nonce:int128 encrypted_answer:string = Server_DH_Params;
   if (dh_params->nonce_ != nonce) {
