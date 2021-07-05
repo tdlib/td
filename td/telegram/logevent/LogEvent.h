@@ -125,68 +125,10 @@ class LogEvent {
  private:
   Id log_event_id_{};
 };
+
 inline StringBuilder &operator<<(StringBuilder &sb, const LogEvent &log_event) {
   return log_event.print(sb);
 }
-
-namespace detail {
-
-template <class EventT>
-int32 magic(EventT &event) {
-  return static_cast<int32>(event.get_type());
-}
-
-template <class DestT, class T>
-Result<unique_ptr<DestT>> from_parser(T &&parser) {
-  auto version = parser.fetch_int();
-  parser.set_version(version);
-  parser.set_context(G());
-  auto magic = static_cast<typename DestT::Type>(parser.fetch_int());
-
-  unique_ptr<DestT> event;
-  DestT::downcast_call(magic, [&](auto *ptr) {
-    auto tmp = make_unique<std::decay_t<decltype(*ptr)>>();
-    tmp->parse(parser);
-    event = std::move(tmp);
-  });
-  parser.fetch_end();
-  TRY_STATUS(parser.get_status());
-  if (event) {
-    return std::move(event);
-  }
-  return Status::Error(PSLICE() << "Unknown SecretChatEvent type: " << format::as_hex(magic));
-}
-
-template <class T>
-class StorerImpl final : public Storer {
- public:
-  explicit StorerImpl(const T &event) : event_(event) {
-  }
-
-  size_t size() const final {
-    WithContext<TlStorerCalcLength, Global *> storer;
-    storer.set_context(G());
-
-    storer.store_int(T::version());
-    td::store(magic(event_), storer);
-    td::store(event_, storer);
-    return storer.get_length();
-  }
-  size_t store(uint8 *ptr) const final {
-    WithContext<TlStorerUnsafe, Global *> storer(ptr);
-    storer.set_context(G());
-
-    storer.store_int(T::version());
-    td::store(magic(event_), storer);
-    td::store(event_, storer);
-    return static_cast<size_t>(storer.get_buf() - ptr);
-  }
-
- private:
-  const T &event_;
-};
-
-}  // namespace detail
 
 class LogEventParser final : public WithVersion<WithContext<TlParser, Global *>> {
  public:

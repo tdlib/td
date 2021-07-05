@@ -17,14 +17,49 @@
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/format.h"
+#include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/tl_helpers.h"
 #include "td/utils/tl_parsers.h"
+#include "td/utils/tl_storers.h"
 
 #include <type_traits>
 
 namespace td {
 namespace log_event {
+
+namespace detail {
+
+template <class T>
+class StorerImpl final : public Storer {
+ public:
+  explicit StorerImpl(const T &event) : event_(event) {
+  }
+
+  size_t size() const final {
+    WithContext<TlStorerCalcLength, Global *> storer;
+    storer.set_context(G());
+
+    storer.store_int(T::version());
+    td::store(static_cast<int32>(event_.get_type()), storer);
+    td::store(event_, storer);
+    return storer.get_length();
+  }
+  size_t store(uint8 *ptr) const final {
+    WithContext<TlStorerUnsafe, Global *> storer(ptr);
+    storer.set_context(G());
+
+    storer.store_int(T::version());
+    td::store(static_cast<int32>(event_.get_type()), storer);
+    td::store(event_, storer);
+    return static_cast<size_t>(storer.get_buf() - ptr);
+  }
+
+ private:
+  const T &event_;
+};
+
+}  // namespace detail
 
 class SecretChatEvent : public LogEvent {
  public:
@@ -52,7 +87,24 @@ class SecretChatEvent : public LogEvent {
   }
 
   static Result<unique_ptr<SecretChatEvent>> from_buffer_slice(BufferSlice slice) {
-    return detail::from_parser<SecretChatEvent>(WithVersion<WithContext<TlBufferParser, Global *>>{&slice});
+    WithVersion<WithContext<TlBufferParser, Global *>> parser{&slice};
+    auto version = parser.fetch_int();
+    parser.set_version(version);
+    parser.set_context(G());
+    auto magic = static_cast<Type>(parser.fetch_int());
+
+    unique_ptr<SecretChatEvent> event;
+    downcast_call(magic, [&](auto *ptr) {
+      auto tmp = make_unique<std::decay_t<decltype(*ptr)>>();
+      tmp->parse(parser);
+      event = std::move(tmp);
+    });
+    parser.fetch_end();
+    TRY_STATUS(parser.get_status());
+    if (event != nullptr) {
+      return std::move(event);
+    }
+    return Status::Error(PSLICE() << "Unknown SecretChatEvent type: " << format::as_hex(magic));
   }
 };
 
