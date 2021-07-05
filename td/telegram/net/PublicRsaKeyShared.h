@@ -44,15 +44,11 @@ class PublicRsaKeyShared final : public mtproto::PublicRsaKeyInterface {
 
  private:
   DcId dc_id_;
-  struct RsaOption {
-    int64 fingerprint;
-    mtproto::RSA rsa;
-  };
-  std::vector<RsaOption> options_;
+  std::vector<RsaKey> keys_;
   std::vector<unique_ptr<Listener>> listeners_;
   RwMutex rw_mutex_;
 
-  mtproto::RSA *get_rsa_unsafe(int64 fingerprint);
+  RsaKey *get_rsa_key_unsafe(int64 fingerprint);
 
   void notify();
 };

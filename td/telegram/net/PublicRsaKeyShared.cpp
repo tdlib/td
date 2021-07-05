@@ -106,19 +106,18 @@ PublicRsaKeyShared::PublicRsaKeyShared(DcId dc_id, bool is_test) : dc_id_(dc_id)
 void PublicRsaKeyShared::add_rsa(mtproto::RSA rsa) {
   auto lock = rw_mutex_.lock_write();
   auto fingerprint = rsa.get_fingerprint();
-  auto *has_rsa = get_rsa_unsafe(fingerprint);
-  if (has_rsa) {
+  if (get_rsa_key_unsafe(fingerprint) != nullptr) {
     return;
   }
-  options_.push_back(RsaOption{fingerprint, std::move(rsa)});
+  keys_.push_back(RsaKey{std::move(rsa), fingerprint});
 }
 
 Result<mtproto::PublicRsaKeyInterface::RsaKey> PublicRsaKeyShared::get_rsa_key(const vector<int64> &fingerprints) {
   auto lock = rw_mutex_.lock_read();
   for (auto fingerprint : fingerprints) {
-    auto *rsa = get_rsa_unsafe(fingerprint);
-    if (rsa) {
-      return RsaKey{rsa->clone(), fingerprint};
+    auto *rsa_key = get_rsa_key_unsafe(fingerprint);
+    if (rsa_key != nullptr) {
+      return RsaKey{rsa_key->rsa.clone(), fingerprint};
     }
   }
   return Status::Error(PSLICE() << "Unknown fingerprints " << format::as_array(fingerprints));
@@ -129,12 +128,12 @@ void PublicRsaKeyShared::drop_keys() {
     return;
   }
   auto lock = rw_mutex_.lock_write();
-  options_.clear();
+  keys_.clear();
 }
 
 bool PublicRsaKeyShared::has_keys() {
   auto lock = rw_mutex_.lock_read();
-  return !options_.empty();
+  return !keys_.empty();
 }
 
 void PublicRsaKeyShared::add_listener(unique_ptr<Listener> listener) {
@@ -144,13 +143,13 @@ void PublicRsaKeyShared::add_listener(unique_ptr<Listener> listener) {
   }
 }
 
-mtproto::RSA *PublicRsaKeyShared::get_rsa_unsafe(int64 fingerprint) {
-  auto it = std::find_if(options_.begin(), options_.end(),
-                         [&](const auto &value) { return value.fingerprint == fingerprint; });
-  if (it == options_.end()) {
+mtproto::PublicRsaKeyInterface::RsaKey *PublicRsaKeyShared::get_rsa_key_unsafe(int64 fingerprint) {
+  auto it = std::find_if(keys_.begin(), keys_.end(),
+                         [fingerprint](const auto &value) { return value.fingerprint == fingerprint; });
+  if (it == keys_.end()) {
     return nullptr;
   }
-  return &it->rsa;
+  return &*it;
 }
 
 void PublicRsaKeyShared::notify() {
