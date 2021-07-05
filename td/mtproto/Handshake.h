@@ -113,11 +113,9 @@ class AuthKeyHandshake {
   double server_time_diff_ = 0;
   uint64 server_salt_ = 0;
 
-  UInt128 nonce;
-  UInt128 server_nonce;
-  UInt256 new_nonce;
-  UInt256 tmp_aes_key;
-  UInt256 tmp_aes_iv;
+  UInt128 nonce_;
+  UInt128 server_nonce_;
+  UInt256 new_nonce_;
 
   BufferSlice last_query_;
 

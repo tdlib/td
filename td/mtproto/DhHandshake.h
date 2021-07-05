@@ -105,7 +105,7 @@ class DhHandshake {
   string prime_str_;
   BigNum prime_;
   BigNum g_;
-  int32 g_int_;
+  int32 g_int_ = 0;
   BigNum b_;
   BigNum g_b_;
   BigNum g_a_;
