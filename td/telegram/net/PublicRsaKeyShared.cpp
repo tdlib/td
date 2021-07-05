@@ -26,7 +26,7 @@ PublicRsaKeyShared::PublicRsaKeyShared(DcId dc_id, bool is_test) : dc_id_(dc_id)
     LOG_CHECK(r_rsa.is_ok()) << r_rsa.error() << " " << pem;
 
     if (r_rsa.is_ok()) {
-      this->add_rsa(r_rsa.move_as_ok());
+      add_rsa(r_rsa.move_as_ok());
     }
   };
 
@@ -106,19 +106,19 @@ PublicRsaKeyShared::PublicRsaKeyShared(DcId dc_id, bool is_test) : dc_id_(dc_id)
 void PublicRsaKeyShared::add_rsa(mtproto::RSA rsa) {
   auto lock = rw_mutex_.lock_write();
   auto fingerprint = rsa.get_fingerprint();
-  auto *has_rsa = get_rsa_locked(fingerprint);
+  auto *has_rsa = get_rsa_unsafe(fingerprint);
   if (has_rsa) {
     return;
   }
   options_.push_back(RsaOption{fingerprint, std::move(rsa)});
 }
 
-Result<std::pair<mtproto::RSA, int64>> PublicRsaKeyShared::get_rsa(const vector<int64> &fingerprints) {
+Result<mtproto::PublicRsaKeyInterface::RsaKey> PublicRsaKeyShared::get_rsa_key(const vector<int64> &fingerprints) {
   auto lock = rw_mutex_.lock_read();
   for (auto fingerprint : fingerprints) {
-    auto *rsa = get_rsa_locked(fingerprint);
+    auto *rsa = get_rsa_unsafe(fingerprint);
     if (rsa) {
-      return std::make_pair(rsa->clone(), fingerprint);
+      return RsaKey{rsa->clone(), fingerprint};
     }
   }
   return Status::Error(PSLICE() << "Unknown fingerprints " << format::as_array(fingerprints));
@@ -144,7 +144,7 @@ void PublicRsaKeyShared::add_listener(unique_ptr<Listener> listener) {
   }
 }
 
-mtproto::RSA *PublicRsaKeyShared::get_rsa_locked(int64 fingerprint) {
+mtproto::RSA *PublicRsaKeyShared::get_rsa_unsafe(int64 fingerprint) {
   auto it = std::find_if(options_.begin(), options_.end(),
                          [&](const auto &value) { return value.fingerprint == fingerprint; });
   if (it == options_.end()) {

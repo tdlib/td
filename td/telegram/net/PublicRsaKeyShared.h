@@ -14,8 +14,6 @@
 #include "td/utils/port/RwMutex.h"
 #include "td/utils/Status.h"
 
-#include <utility>
-
 namespace td {
 
 class PublicRsaKeyShared final : public mtproto::PublicRsaKeyInterface {
@@ -34,7 +32,7 @@ class PublicRsaKeyShared final : public mtproto::PublicRsaKeyInterface {
   };
 
   void add_rsa(mtproto::RSA rsa);
-  Result<std::pair<mtproto::RSA, int64>> get_rsa(const vector<int64> &fingerprints) final;
+  Result<RsaKey> get_rsa_key(const vector<int64> &fingerprints) final;
   void drop_keys() final;
   bool has_keys();
 
@@ -54,7 +52,7 @@ class PublicRsaKeyShared final : public mtproto::PublicRsaKeyInterface {
   std::vector<unique_ptr<Listener>> listeners_;
   RwMutex rw_mutex_;
 
-  mtproto::RSA *get_rsa_locked(int64 fingerprint);
+  mtproto::RSA *get_rsa_unsafe(int64 fingerprint);
 
   void notify();
 };

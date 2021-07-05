@@ -11,8 +11,6 @@
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 
-#include <utility>
-
 namespace td {
 namespace mtproto {
 
@@ -36,7 +34,13 @@ class RSA {
 class PublicRsaKeyInterface {
  public:
   virtual ~PublicRsaKeyInterface() = default;
-  virtual Result<std::pair<RSA, int64>> get_rsa(const vector<int64> &fingerprints) = 0;
+
+  struct RsaKey {
+    RSA rsa;
+    int64 fingerprint;
+  };
+  virtual Result<RsaKey> get_rsa_key(const vector<int64> &fingerprints) = 0;
+
   virtual void drop_keys() = 0;
 };
 

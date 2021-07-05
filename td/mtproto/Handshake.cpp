@@ -79,13 +79,13 @@ Status AuthKeyHandshake::on_res_pq(Slice message, Callback *connection, PublicRs
 
   server_nonce_ = res_pq->server_nonce_;
 
-  auto r_rsa = public_rsa_key->get_rsa(res_pq->server_public_key_fingerprints_);
-  if (r_rsa.is_error()) {
+  auto r_rsa_key = public_rsa_key->get_rsa_key(res_pq->server_public_key_fingerprints_);
+  if (r_rsa_key.is_error()) {
     public_rsa_key->drop_keys();
-    return r_rsa.move_as_error();
+    return r_rsa_key.move_as_error();
   }
-  int64 rsa_fingerprint = r_rsa.ok().second;
-  RSA rsa = std::move(r_rsa.ok_ref().first);
+  int64 rsa_fingerprint = r_rsa_key.ok().fingerprint;
+  RSA rsa = std::move(r_rsa_key.ok_ref().rsa);
 
   string p, q;
   if (pq_factorize(res_pq->pq_, &p, &q) == -1) {
