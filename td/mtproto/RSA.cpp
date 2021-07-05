@@ -27,6 +27,7 @@
 #endif
 
 namespace td {
+namespace mtproto {
 
 RSA::RSA(BigNum n, BigNum e) : n_(std::move(n)), e_(std::move(e)) {
 }
@@ -159,4 +160,5 @@ void RSA::decrypt_signature(Slice from, MutableSlice to) const {
   to.copy_from(y.to_binary(256));
 }
 
+}  // namespace mtproto
 }  // namespace td

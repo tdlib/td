@@ -606,10 +606,10 @@ class TestProxyRequest final : public RequestOnceActor {
     }
     class HandshakeContext final : public mtproto::AuthKeyHandshakeContext {
      public:
-      DhCallback *get_dh_callback() final {
+      mtproto::DhCallback *get_dh_callback() final {
         return nullptr;
       }
-      PublicRsaKeyInterface *get_public_rsa_key_interface() final {
+      mtproto::PublicRsaKeyInterface *get_public_rsa_key_interface() final {
         return &public_rsa_key;
       }
 

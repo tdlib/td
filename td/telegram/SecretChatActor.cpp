@@ -1942,7 +1942,8 @@ Status SecretChatActor::on_dh_config(NetQueryPtr query) {
   LOG(INFO) << "Got dh config";
   TRY_RESULT(config, fetch_result<telegram_api::messages_getDhConfig>(std::move(query)));
   downcast_call(*config, [&](auto &obj) { this->on_dh_config(obj); });
-  TRY_STATUS(DhHandshake::check_config(auth_state_.dh_config.g, auth_state_.dh_config.prime, context_->dh_callback()));
+  TRY_STATUS(mtproto::DhHandshake::check_config(auth_state_.dh_config.g, auth_state_.dh_config.prime,
+                                                context_->dh_callback()));
   auth_state_.handshake.set_config(auth_state_.dh_config.g, auth_state_.dh_config.prime);
   return Status::OK();
 }
@@ -2067,7 +2068,7 @@ void SecretChatActor::on_outbound_action(secret_api::decryptedMessageActionReque
 void SecretChatActor::on_outbound_action(secret_api::decryptedMessageActionAcceptKey &accept_key) {
   CHECK(pfs_state_.state == PfsState::WaitSendAccept || pfs_state_.state == PfsState::SendAccept);
   pfs_state_.state = PfsState::WaitAcceptResponse;
-  pfs_state_.handshake = DhHandshake();
+  pfs_state_.handshake = mtproto::DhHandshake();
   on_pfs_state_changed();
 }
 void SecretChatActor::on_outbound_action(secret_api::decryptedMessageActionAbortKey &abort_key) {
@@ -2116,7 +2117,7 @@ Status SecretChatActor::on_inbound_action(secret_api::decryptedMessageActionRequ
     return Status::Error("Unexpected RequestKey (old key is used)");
   }
   pfs_state_.state = PfsState::SendAccept;
-  pfs_state_.handshake = DhHandshake();
+  pfs_state_.handshake = mtproto::DhHandshake();
   pfs_state_.exchange_id = request_key.exchange_id_;
   pfs_state_.handshake.set_config(auth_state_.dh_config.g, auth_state_.dh_config.prime);
   pfs_state_.handshake.set_g_a(request_key.g_a_.as_slice());
@@ -2146,7 +2147,7 @@ Status SecretChatActor::on_inbound_action(secret_api::decryptedMessageActionAcce
     return Status::Error("AcceptKey: key_fingerprint mismatch");
   }
   pfs_state_.state = PfsState::SendCommit;
-  pfs_state_.handshake = DhHandshake();
+  pfs_state_.handshake = mtproto::DhHandshake();
   CHECK(pfs_state_.can_forget_other_key || static_cast<int64>(pfs_state_.other_auth_key.id()) == id_and_key.first);
   pfs_state_.other_auth_key = mtproto::AuthKey(id_and_key.first, std::move(id_and_key.second));
   pfs_state_.can_forget_other_key = false;
@@ -2165,7 +2166,7 @@ Status SecretChatActor::on_inbound_action(secret_api::decryptedMessageActionAbor
     return Status::Error("AbortKey: unexpected");
   }
   pfs_state_.state = PfsState::Empty;
-  pfs_state_.handshake = DhHandshake();
+  pfs_state_.handshake = mtproto::DhHandshake();
 
   on_pfs_state_changed();
   return Status::OK();
@@ -2248,7 +2249,7 @@ void SecretChatActor::request_new_key() {
   CHECK(!auth_state_.dh_config.empty());
 
   pfs_state_.state = PfsState::SendRequest;
-  pfs_state_.handshake = DhHandshake();
+  pfs_state_.handshake = mtproto::DhHandshake();
   pfs_state_.handshake.set_config(auth_state_.dh_config.g, auth_state_.dh_config.prime);
   pfs_state_.exchange_id = Random::secure_int64();
 

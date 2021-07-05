@@ -14,6 +14,7 @@
 #include <utility>
 
 namespace td {
+namespace mtproto {
 
 class RSA {
  public:
@@ -39,4 +40,5 @@ class PublicRsaKeyInterface {
   virtual void drop_keys() = 0;
 };
 
+}  // namespace mtproto
 }  // namespace td

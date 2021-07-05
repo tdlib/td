@@ -1256,19 +1256,20 @@ void Session::create_gen_auth_key_actor(HandshakeId handshake_id) {
   }
   class AuthKeyHandshakeContext final : public mtproto::AuthKeyHandshakeContext {
    public:
-    AuthKeyHandshakeContext(DhCallback *dh_callback, std::shared_ptr<PublicRsaKeyInterface> public_rsa_key)
+    AuthKeyHandshakeContext(mtproto::DhCallback *dh_callback,
+                            std::shared_ptr<mtproto::PublicRsaKeyInterface> public_rsa_key)
         : dh_callback_(dh_callback), public_rsa_key_(std::move(public_rsa_key)) {
     }
-    DhCallback *get_dh_callback() final {
+    mtproto::DhCallback *get_dh_callback() final {
       return dh_callback_;
     }
-    PublicRsaKeyInterface *get_public_rsa_key_interface() final {
+    mtproto::PublicRsaKeyInterface *get_public_rsa_key_interface() final {
       return public_rsa_key_.get();
     }
 
    private:
-    DhCallback *dh_callback_;
-    std::shared_ptr<PublicRsaKeyInterface> public_rsa_key_;
+    mtproto::DhCallback *dh_callback_;
+    std::shared_ptr<mtproto::PublicRsaKeyInterface> public_rsa_key_;
   };
   info.actor_ = create_actor<detail::GenAuthKeyActor>(
       PSLICE() << get_name() << "::GenAuthKey", get_name(), std::move(info.handshake_),

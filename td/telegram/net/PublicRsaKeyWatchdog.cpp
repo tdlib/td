@@ -108,7 +108,7 @@ void PublicRsaKeyWatchdog::sync_key(std::shared_ptr<PublicRsaKeyShared> &key) {
   }
   for (auto &config_key : cdn_config_->public_keys_) {
     if (key->dc_id().get_raw_id() == config_key->dc_id_) {
-      auto r_rsa = RSA::from_pem_public_key(config_key->public_key_);
+      auto r_rsa = mtproto::RSA::from_pem_public_key(config_key->public_key_);
       if (r_rsa.is_error()) {
         LOG(ERROR) << r_rsa.error();
         continue;

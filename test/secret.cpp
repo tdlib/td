@@ -334,7 +334,7 @@ static string prime_base64 =
     "WC2xF40WnGvEZbDW_5yjko_vW5rk5Bj8Feg-vqD4f6n_Xu1wBQ3tKEn0e_lZ2VaFDOkphR8NgRX2NbEF7i5OFdBLJFS_b0-t8DSxBAMRnNjjuS_MW"
     "w";
 
-class FakeDhCallback final : public DhCallback {
+class FakeDhCallback final : public mtproto::DhCallback {
  public:
   int is_good_prime(Slice prime_str) const final {
     auto it = cache.find(prime_str.str());
@@ -490,7 +490,7 @@ class FakeSecretChatContext final : public SecretChatActor::Context {
     secret_chat_db_ = std::make_shared<SecretChatDb>(key_value_, 1);
     net_query_creator_.stop_check();  // :(
   }
-  DhCallback *dh_callback() final {
+  mtproto::DhCallback *dh_callback() final {
     return &fake_dh_callback_;
   }
   NetQueryCreator &net_query_creator() final {

@@ -557,7 +557,7 @@ void CallActor::on_dh_config(Result<std::shared_ptr<DhConfig>> r_dh_config, bool
   }
 
   dh_config_ = r_dh_config.move_as_ok();
-  auto check_result = DhHandshake::check_config(dh_config_->g, dh_config_->prime, DhCache::instance());
+  auto check_result = mtproto::DhHandshake::check_config(dh_config_->g, dh_config_->prime, DhCache::instance());
   if (check_result.is_error()) {
     return on_error(std::move(check_result));
   }

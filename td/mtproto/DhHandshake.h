@@ -14,8 +14,8 @@
 #include <utility>
 
 namespace td {
+namespace mtproto {
 
-/*** DH ***/
 class DhCallback {
  public:
   DhCallback() = default;
@@ -132,4 +132,5 @@ class DhHandshake {
   BigNumContext ctx_;
 };
 
+}  // namespace mtproto
 }  // namespace td

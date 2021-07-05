@@ -48,8 +48,11 @@ class Object;
 class Function;
 }  // namespace mtproto_api
 
+namespace mtproto {
+
 TLStorer<mtproto_api::Function> create_storer(const mtproto_api::Function &function);
 
 TLObjectStorer<mtproto_api::Object> create_storer(const mtproto_api::Object &object);
 
+}  // namespace mtproto
 }  // namespace td

@@ -14,6 +14,7 @@
 #include "td/utils/UInt.h"
 
 namespace td {
+namespace mtproto {
 
 Status DhHandshake::check_config(Slice prime_str, const BigNum &prime, int32 g_int, BigNumContext &ctx,
                                  DhCallback *callback) {
@@ -225,4 +226,5 @@ int64 DhHandshake::calc_key_id(Slice auth_key) {
   return as<int64>(auth_key_sha1.raw + 12);
 }
 
+}  // namespace mtproto
 }  // namespace td

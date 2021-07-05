@@ -295,10 +295,10 @@ RegisterTest<Mtproto_ping> mtproto_ping("Mtproto_ping");
 
 class HandshakeContext final : public mtproto::AuthKeyHandshakeContext {
  public:
-  DhCallback *get_dh_callback() final {
+  mtproto::DhCallback *get_dh_callback() final {
     return nullptr;
   }
-  PublicRsaKeyInterface *get_public_rsa_key_interface() final {
+  mtproto::PublicRsaKeyInterface *get_public_rsa_key_interface() final {
     return &public_rsa_key;
   }
 
@@ -515,7 +515,7 @@ TEST(Mtproto, notifications) {
     auto push = base64url_decode(pushes[i]).move_as_ok();
     auto decrypted_payload = base64url_decode(decrypted_payloads[i]).move_as_ok();
 
-    auto key_id = DhHandshake::calc_key_id(key);
+    auto key_id = mtproto::DhHandshake::calc_key_id(key);
     ASSERT_EQ(key_id, NotificationManager::get_push_receiver_id(push).ok());
     ASSERT_EQ(decrypted_payload, NotificationManager::decrypt_push(key_id, key, push).ok());
   }
@@ -725,7 +725,7 @@ TEST(Mtproto, RSA) {
       "8Ygs/ps8e6ct82jLXbnndC9s8HjEvDvBPH9IPjv5JUlmHMBFZ5vFQIfbpo0u0+1P\n"
       "n6bkEi5o7/ifoyVv2pAZTRwppTz0EuXD8QIDAQAB\n"
       "-----END RSA PUBLIC KEY-----");
-  auto rsa = RSA::from_pem_public_key(pem).move_as_ok();
+  auto rsa = mtproto::RSA::from_pem_public_key(pem).move_as_ok();
   ASSERT_EQ(-7596991558377038078, rsa.get_fingerprint());
   ASSERT_EQ(256u, rsa.size());
 

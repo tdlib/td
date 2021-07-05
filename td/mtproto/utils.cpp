@@ -9,6 +9,7 @@
 #include "td/mtproto/mtproto_api.h"
 
 namespace td {
+namespace mtproto {
 
 TLStorer<mtproto_api::Function> create_storer(const mtproto_api::Function &function) {
   return TLStorer<mtproto_api::Function>(function);
@@ -18,4 +19,5 @@ TLObjectStorer<mtproto_api::Object> create_storer(const mtproto_api::Object &obj
   return TLObjectStorer<mtproto_api::Object>(object);
 }
 
+}  // namespace mtproto
 }  // namespace td

@@ -255,7 +255,7 @@ void DeviceTokenManager::register_device(tl_object_ptr<td_api::DeviceToken> devi
       info.encryption_key.resize(ENCRYPTION_KEY_LENGTH);
       while (true) {
         Random::secure_bytes(info.encryption_key);
-        info.encryption_key_id = DhHandshake::calc_key_id(info.encryption_key);
+        info.encryption_key_id = mtproto::DhHandshake::calc_key_id(info.encryption_key);
         if (info.encryption_key_id <= -MIN_ENCRYPTION_KEY_ID || info.encryption_key_id >= MIN_ENCRYPTION_KEY_ID) {
           // ensure that encryption key ID never collide with anything
           break;

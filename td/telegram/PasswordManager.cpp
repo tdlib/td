@@ -55,7 +55,7 @@ BufferSlice PasswordManager::calc_password_hash(Slice password, Slice client_sal
 Result<BufferSlice> PasswordManager::calc_password_srp_hash(Slice password, Slice client_salt, Slice server_salt,
                                                             int32 g, Slice p) {
   LOG(INFO) << "Begin password SRP hash calculation";
-  TRY_STATUS(DhHandshake::check_config(g, p, DhCache::instance()));
+  TRY_STATUS(mtproto::DhHandshake::check_config(g, p, DhCache::instance()));
 
   auto hash = calc_password_hash(password, client_salt, server_salt);
   auto p_bn = BigNum::from_binary(p);
@@ -78,7 +78,7 @@ tl_object_ptr<telegram_api::InputCheckPasswordSRP> PasswordManager::get_input_ch
     return make_tl_object<telegram_api::inputCheckPasswordEmpty>();
   }
 
-  if (DhHandshake::check_config(g, p, DhCache::instance()).is_error()) {
+  if (mtproto::DhHandshake::check_config(g, p, DhCache::instance()).is_error()) {
     LOG(ERROR) << "Receive invalid config " << g << " " << format::escaped(p);
     return make_tl_object<telegram_api::inputCheckPasswordEmpty>();
   }

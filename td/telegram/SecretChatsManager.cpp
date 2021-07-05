@@ -305,7 +305,7 @@ unique_ptr<SecretChatActor::Context> SecretChatsManager::make_secret_chat_contex
       send_closure(std::move(sequence_dispatcher_), &SequenceDispatcher::close_silent);
     }
 
-    DhCallback *dh_callback() final {
+    mtproto::DhCallback *dh_callback() final {
       return DhCache::instance();
     }
     NetQueryCreator &net_query_creator() final {

@@ -55,7 +55,7 @@ class SecretChatActor final : public NetQueryCallback {
     Context(const Context &) = delete;
     Context &operator=(const Context &) = delete;
     virtual ~Context() = default;
-    virtual DhCallback *dh_callback() = 0;
+    virtual mtproto::DhCallback *dh_callback() = 0;
     virtual BinlogInterface *binlog() = 0;
     virtual SecretChatDb *secret_chat_db() = 0;
 
@@ -242,7 +242,7 @@ class SecretChatActor final : public NetQueryCallback {
     int32 last_message_id = 0;
     double last_timestamp = 0;
     int32 last_out_seq_no = 0;
-    DhHandshake handshake;
+    mtproto::DhHandshake handshake;
 
     static Slice key() {
       return Slice("pfs_state");
@@ -373,7 +373,7 @@ class SecretChatActor final : public NetQueryCallback {
     FolderId initial_folder_id;
 
     DhConfig dh_config;
-    DhHandshake handshake;
+    mtproto::DhHandshake handshake;
 
     static Slice key() {
       return Slice("auth_state");

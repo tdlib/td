@@ -33,7 +33,7 @@ class HandshakeBench final : public Benchmark {
     return "Handshake";
   }
 
-  class FakeDhCallback final : public DhCallback {
+  class FakeDhCallback final : public mtproto::DhCallback {
    public:
     int is_good_prime(Slice prime_str) const final {
       auto it = cache.find(prime_str.str());
@@ -52,10 +52,10 @@ class HandshakeBench final : public Benchmark {
   } dh_callback;
 
   void run(int n) final {
-    DhHandshake a;
-    DhHandshake b;
+    mtproto::DhHandshake a;
+    mtproto::DhHandshake b;
     auto prime = base64url_decode(prime_base64).move_as_ok();
-    DhHandshake::check_config(g, prime, &dh_callback).ensure();
+    mtproto::DhHandshake::check_config(g, prime, &dh_callback).ensure();
     for (int i = 0; i < n; i += 2) {
       a.set_config(g, prime);
       b.set_config(g, prime);

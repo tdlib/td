@@ -22,7 +22,7 @@ PublicRsaKeyShared::PublicRsaKeyShared(DcId dc_id, bool is_test) : dc_id_(dc_id)
     return;
   }
   auto add_pem = [this](CSlice pem) {
-    auto r_rsa = RSA::from_pem_public_key(pem);
+    auto r_rsa = mtproto::RSA::from_pem_public_key(pem);
     LOG_CHECK(r_rsa.is_ok()) << r_rsa.error() << " " << pem;
 
     if (r_rsa.is_ok()) {
@@ -103,7 +103,7 @@ PublicRsaKeyShared::PublicRsaKeyShared(DcId dc_id, bool is_test) : dc_id_(dc_id)
       "-----END RSA PUBLIC KEY-----\n");
 }
 
-void PublicRsaKeyShared::add_rsa(RSA rsa) {
+void PublicRsaKeyShared::add_rsa(mtproto::RSA rsa) {
   auto lock = rw_mutex_.lock_write();
   auto fingerprint = rsa.get_fingerprint();
   auto *has_rsa = get_rsa_locked(fingerprint);
@@ -113,7 +113,7 @@ void PublicRsaKeyShared::add_rsa(RSA rsa) {
   options_.push_back(RsaOption{fingerprint, std::move(rsa)});
 }
 
-Result<std::pair<RSA, int64>> PublicRsaKeyShared::get_rsa(const vector<int64> &fingerprints) {
+Result<std::pair<mtproto::RSA, int64>> PublicRsaKeyShared::get_rsa(const vector<int64> &fingerprints) {
   auto lock = rw_mutex_.lock_read();
   for (auto fingerprint : fingerprints) {
     auto *rsa = get_rsa_locked(fingerprint);
@@ -144,7 +144,7 @@ void PublicRsaKeyShared::add_listener(unique_ptr<Listener> listener) {
   }
 }
 
-RSA *PublicRsaKeyShared::get_rsa_locked(int64 fingerprint) {
+mtproto::RSA *PublicRsaKeyShared::get_rsa_locked(int64 fingerprint) {
   auto it = std::find_if(options_.begin(), options_.end(),
                          [&](const auto &value) { return value.fingerprint == fingerprint; });
   if (it == options_.end()) {

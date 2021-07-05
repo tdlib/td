@@ -12,13 +12,13 @@
 
 namespace td {
 
-class DhCache final : public DhCallback {
+class DhCache final : public mtproto::DhCallback {
  public:
   int is_good_prime(Slice prime_str) const final;
   void add_good_prime(Slice prime_str) const final;
   void add_bad_prime(Slice prime_str) const final;
 
-  static DhCallback *instance() {
+  static mtproto::DhCallback *instance() {
     static DhCache res;
     return &res;
   }

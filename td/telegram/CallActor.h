@@ -110,7 +110,7 @@ class CallActor final : public NetQueryCallback {
   ActorShared<> parent_;
   Promise<int64> call_id_promise_;
 
-  DhHandshake dh_handshake_;
+  mtproto::DhHandshake dh_handshake_;
   std::shared_ptr<DhConfig> dh_config_;
   bool dh_config_query_sent_{false};
   bool dh_config_ready_{false};
