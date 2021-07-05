@@ -31645,7 +31645,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     if (max_message_id != MessageId() && message_id > max_message_id) {
       if (!message->from_database) {
         LOG(ERROR) << "Ignore " << message_id << " in " << dialog_id << " received not through update from " << source
-                   << ". Maximum allowed is " << max_message_id << ", last is " << d->last_message_id
+                   << ". The maximum allowed is " << max_message_id << ", last is " << d->last_message_id
                    << ", being added message is " << d->being_added_message_id << ", channel difference "
                    << debug_channel_difference_dialog_ << " "
                    << to_string(get_message_object(dialog_id, message.get()));
