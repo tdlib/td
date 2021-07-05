@@ -4459,7 +4459,7 @@ void ContactsManager::ChannelFull::parse(ParserT &parser) {
 template <class StorerT>
 void ContactsManager::SecretChat::store(StorerT &storer) const {
   using td::store;
-  bool has_layer = layer > static_cast<int32>(SecretChatLayer::DEFAULT_LAYER);
+  bool has_layer = layer > static_cast<int32>(SecretChatLayer::Default);
   bool has_initial_folder_id = initial_folder_id != FolderId();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_outbound);
@@ -4505,7 +4505,7 @@ void ContactsManager::SecretChat::parse(ParserT &parser) {
   if (has_layer) {
     parse(layer, parser);
   } else {
-    layer = static_cast<int32>(SecretChatLayer::DEFAULT_LAYER);
+    layer = static_cast<int32>(SecretChatLayer::Default);
   }
   if (has_initial_folder_id) {
     parse(initial_folder_id, parser);

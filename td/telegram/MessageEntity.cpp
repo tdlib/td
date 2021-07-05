@@ -2992,17 +2992,17 @@ vector<tl_object_ptr<secret_api::MessageEntity>> get_input_secret_message_entiti
         result.push_back(make_tl_object<secret_api::messageEntityItalic>(entity.offset, entity.length));
         break;
       case MessageEntity::Type::Underline:
-        if (layer >= static_cast<int32>(SecretChatLayer::NEW_ENTITIES_LAYER)) {
+        if (layer >= static_cast<int32>(SecretChatLayer::NewEntities)) {
           result.push_back(make_tl_object<secret_api::messageEntityUnderline>(entity.offset, entity.length));
         }
         break;
       case MessageEntity::Type::Strikethrough:
-        if (layer >= static_cast<int32>(SecretChatLayer::NEW_ENTITIES_LAYER)) {
+        if (layer >= static_cast<int32>(SecretChatLayer::NewEntities)) {
           result.push_back(make_tl_object<secret_api::messageEntityStrike>(entity.offset, entity.length));
         }
         break;
       case MessageEntity::Type::BlockQuote:
-        if (layer >= static_cast<int32>(SecretChatLayer::NEW_ENTITIES_LAYER)) {
+        if (layer >= static_cast<int32>(SecretChatLayer::NewEntities)) {
           result.push_back(make_tl_object<secret_api::messageEntityBlockquote>(entity.offset, entity.length));
         }
         break;

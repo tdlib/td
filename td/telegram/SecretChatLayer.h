@@ -9,11 +9,11 @@
 namespace td {
 
 enum class SecretChatLayer : int32 {
-  DEFAULT_LAYER = 73,
-  MTPROTO_2_LAYER = 73,
-  NEW_ENTITIES_LAYER = 101,
-  DELETE_MESSAGES_ON_CLOSE_LAYER = 123,
-  MY_LAYER = DELETE_MESSAGES_ON_CLOSE_LAYER
+  Default = 73,
+  Mtproto2 = 73,
+  NewEntities = 101,
+  DeleteMessagesOnClose = 123,
+  Current = DeleteMessagesOnClose
 };
 
 }  // namespace td

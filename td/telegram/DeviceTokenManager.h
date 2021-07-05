@@ -36,19 +36,19 @@ class DeviceTokenManager final : public NetQueryCallback {
  private:
   ActorShared<> parent_;
   enum TokenType : int32 {
-    APNS = 1,
-    FCM = 2,
-    MPNS = 3,
-    SIMPLE_PUSH = 4,
-    UBUNTU_PHONE = 5,
-    BLACKBERRY = 6,
-    UNUSED = 7,
-    WNS = 8,
-    APNS_VOIP = 9,
-    WEB_PUSH = 10,
-    MPNS_VOIP = 11,
-    TIZEN = 12,
-    SIZE
+    Apns = 1,
+    Fcm = 2,
+    Mpns = 3,
+    SimplePush = 4,
+    UbuntuPhone = 5,
+    BlackBerry = 6,
+    Unused = 7,
+    Wns = 8,
+    ApnsVoip = 9,
+    WebPush = 10,
+    MpnsVoip = 11,
+    Tizen = 12,
+    Size
   };
   struct TokenInfo {
     enum class State : int32 { Sync, Unregister, Register, Reregister };
@@ -73,7 +73,7 @@ class DeviceTokenManager final : public NetQueryCallback {
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const TokenInfo &token_info);
 
-  std::array<TokenInfo, TokenType::SIZE> tokens_;
+  std::array<TokenInfo, TokenType::Size> tokens_;
   int32 sync_cnt_{0};
 
   void start_up() final;
