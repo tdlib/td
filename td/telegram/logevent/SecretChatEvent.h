@@ -6,7 +6,11 @@
 //
 #pragma once
 
+#include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
+#include "td/telegram/secret_api.h"
+#include "td/telegram/telegram_api.h"
+#include "td/telegram/UserId.h"
 
 #include "td/actor/PromiseFuture.h"
 
@@ -15,15 +19,14 @@
 #include "td/utils/format.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/tl_helpers.h"
+#include "td/utils/tl_parsers.h"
 
-#include "td/telegram/secret_api.h"
-#include "td/telegram/telegram_api.h"
-#include "td/telegram/UserId.h"
+#include <type_traits>
 
 namespace td {
 namespace log_event {
 
-class SecretChatEvent : public LogEventBase<SecretChatEvent> {
+class SecretChatEvent : public LogEvent {
  public:
   // append only enum
   enum class Type : int32 {
@@ -41,6 +44,16 @@ class SecretChatEvent : public LogEventBase<SecretChatEvent> {
 
   template <class F>
   static void downcast_call(Type type, F &&f);
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    downcast_call(get_type(),
+                  [&](auto *ptr) { static_cast<const std::decay_t<decltype(*ptr)> *>(this)->store(storer); });
+  }
+
+  static Result<unique_ptr<SecretChatEvent>> from_buffer_slice(BufferSlice slice) {
+    return detail::from_parser<SecretChatEvent>(WithVersion<WithContext<TlBufferParser, Global *>>{&slice});
+  }
 };
 
 template <class ChildT>

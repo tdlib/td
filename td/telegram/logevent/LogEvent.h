@@ -136,12 +136,6 @@ int32 magic(EventT &event) {
   return static_cast<int32>(event.get_type());
 }
 
-template <class EventT, class StorerT>
-void store(const EventT &event, StorerT &storer) {
-  EventT::downcast_call(event.get_type(),
-                        [&](auto *ptr) { static_cast<const std::decay_t<decltype(*ptr)> &>(event).store(storer); });
-}
-
 template <class DestT, class T>
 Result<unique_ptr<DestT>> from_parser(T &&parser) {
   auto version = parser.fetch_int();
@@ -161,11 +155,6 @@ Result<unique_ptr<DestT>> from_parser(T &&parser) {
     return std::move(event);
   }
   return Status::Error(PSLICE() << "Unknown SecretChatEvent type: " << format::as_hex(magic));
-}
-
-template <class DestT>
-Result<unique_ptr<DestT>> from_buffer_slice(BufferSlice slice) {
-  return from_parser<DestT>(WithVersion<WithContext<TlBufferParser, Global *>>{&slice});
 }
 
 template <class T>
@@ -198,18 +187,6 @@ class StorerImpl final : public Storer {
 };
 
 }  // namespace detail
-
-template <class ChildT>
-class LogEventBase : public LogEvent {
- public:
-  template <class StorerT>
-  void store(StorerT &storer) const {
-    detail::store(static_cast<const ChildT &>(*this), storer);
-  }
-  static Result<unique_ptr<ChildT>> from_buffer_slice(BufferSlice slice) {
-    return detail::from_buffer_slice<ChildT>(std::move(slice));
-  }
-};
 
 class LogEventParser final : public WithVersion<WithContext<TlParser, Global *>> {
  public:
