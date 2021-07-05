@@ -2803,8 +2803,8 @@ class CliClient final : public Actor {
             sim_sources + ",\"semantics\":\"SIM\"},{\"sources\":" + fid_sources + ",\"semantics\":\"FID\"}]}";
       }
       if (op == "sgcss") {
-        send_request(td_api::make_object<td_api::startGroupCallScreenSharing>(as_group_call_id(group_call_id),
-                                                                              std::move(payload)));
+        send_request(td_api::make_object<td_api::startGroupCallScreenSharing>(
+            as_group_call_id(group_call_id), group_call_source_ + 1, std::move(payload)));
       } else {
         send_request(td_api::make_object<td_api::joinGroupCall>(as_group_call_id(group_call_id),
                                                                 as_message_sender(participant_id), group_call_source_,

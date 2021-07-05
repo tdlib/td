@@ -2503,7 +2503,7 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
   try_load_group_call_administrators(input_group_call_id, group_call->dialog_id);
 }
 
-void GroupCallManager::start_group_call_screen_sharing(GroupCallId group_call_id, string &&payload,
+void GroupCallManager::start_group_call_screen_sharing(GroupCallId group_call_id, int32 audio_source, string &&payload,
                                                        Promise<string> &&promise) {
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
 
@@ -2515,12 +2515,12 @@ void GroupCallManager::start_group_call_screen_sharing(GroupCallId group_call_id
   if (!group_call->is_joined || group_call->is_being_left) {
     if (is_group_call_being_joined(input_group_call_id) || group_call->need_rejoin) {
       group_call->after_join.push_back(
-          PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, payload = std::move(payload),
+          PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, audio_source, payload = std::move(payload),
                                   promise = std::move(promise)](Result<Unit> &&result) mutable {
             if (result.is_error()) {
               promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
             } else {
-              send_closure(actor_id, &GroupCallManager::start_group_call_screen_sharing, group_call_id,
+              send_closure(actor_id, &GroupCallManager::start_group_call_screen_sharing, group_call_id, audio_source,
                            std::move(payload), std::move(promise));
             }
           }));
@@ -2535,6 +2535,7 @@ void GroupCallManager::start_group_call_screen_sharing(GroupCallId group_call_id
   auto &request = pending_join_presentation_requests_[input_group_call_id];
   request = make_unique<PendingJoinRequest>();
   request->generation = generation;
+  request->audio_source = audio_source;
   request->promise = std::move(promise);
 
   request->query_ref =
@@ -4418,7 +4419,7 @@ DialogId GroupCallManager::set_group_call_participant_is_speaking_by_source(Inpu
   }
 
   for (auto &participant : participants_it->second->participants) {
-    if (participant.audio_source == audio_source) {
+    if (participant.audio_source == audio_source || participant.presentation_audio_source == audio_source) {
       if (is_speaking && participant.get_is_muted_by_admin()) {
         // don't allow to show as speaking muted by admin participants
         return DialogId();

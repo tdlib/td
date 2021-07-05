@@ -2187,6 +2187,7 @@ groupCallParticipantVideoInfo source_groups:vector<groupCallVideoSourceGroup> en
 //@description Represents a group call participant
 //@participant_id Identifier of the group call participant
 //@audio_source_id User's audio channel synchronization source identifier
+//@screen_sharing_audio_source_id User's screen sharing audio channel synchronization source identifier
 //@can_enable_video True, if the user can broadcast video or share screen
 //@video_info Information about user's video channel; may be null if there is no active video
 //@screen_sharing_video_info Information about user's screen sharing video channel; may be null if there is no active screen sharing video
@@ -2203,7 +2204,7 @@ groupCallParticipantVideoInfo source_groups:vector<groupCallVideoSourceGroup> en
 //@can_unmute_self True, if the participant is muted for all users, but can unmute themselves
 //@volume_level Participant's volume level; 1-20000 in hundreds of percents
 //@order User's order in the group call participant list. Orders must be compared lexicographically. The bigger is order, the higher is user in the list. If order is empty, the user must be removed from the participant list
-groupCallParticipant participant_id:MessageSender audio_source_id:int32 can_enable_video:Bool video_info:groupCallParticipantVideoInfo screen_sharing_video_info:groupCallParticipantVideoInfo bio:string is_current_user:Bool is_speaking:Bool is_hand_raised:Bool can_be_muted_for_all_users:Bool can_be_unmuted_for_all_users:Bool can_be_muted_for_current_user:Bool can_be_unmuted_for_current_user:Bool is_muted_for_all_users:Bool is_muted_for_current_user:Bool can_unmute_self:Bool volume_level:int32 order:string = GroupCallParticipant;
+groupCallParticipant participant_id:MessageSender audio_source_id:int32 screen_sharing_audio_source_id:int32 can_enable_video:Bool video_info:groupCallParticipantVideoInfo screen_sharing_video_info:groupCallParticipantVideoInfo bio:string is_current_user:Bool is_speaking:Bool is_hand_raised:Bool can_be_muted_for_all_users:Bool can_be_unmuted_for_all_users:Bool can_be_muted_for_current_user:Bool can_be_unmuted_for_current_user:Bool is_muted_for_all_users:Bool is_muted_for_current_user:Bool can_unmute_self:Bool volume_level:int32 order:string = GroupCallParticipant;
 
 
 //@class CallProblem @description Describes the exact type of a problem with a call
@@ -4791,8 +4792,11 @@ toggleGroupCallEnabledStartNotification group_call_id:int32 enabled_start_notifi
 //@invite_hash If non-empty, invite hash to be used to join the group call without being muted by administrators
 joinGroupCall group_call_id:int32 participant_id:MessageSender audio_source_id:int32 payload:string is_muted:Bool is_my_video_enabled:Bool invite_hash:string = Text;
 
-//@description Starts screen sharing in a joined group call. Returns join response payload for tgcalls @group_call_id Group call identifier @payload Group call join payload; received from tgcalls
-startGroupCallScreenSharing group_call_id:int32 payload:string = Text;
+//@description Starts screen sharing in a joined group call. Returns join response payload for tgcalls
+//@group_call_id Group call identifier
+//@audio_source_id Screen sharing audio channel synchronization source identifier; received from tgcalls
+//@payload Group call join payload; received from tgcalls
+startGroupCallScreenSharing group_call_id:int32 audio_source_id:int32 payload:string = Text;
 
 //@description Pauses or unpauses screen sharing in a joined group call @group_call_id Group call identifier @is_paused True if screen sharing is paused
 toggleGroupCallScreenSharingIsPaused group_call_id:int32 is_paused:Bool = Ok;

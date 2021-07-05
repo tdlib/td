@@ -61,6 +61,9 @@ GroupCallParticipant::GroupCallParticipant(const tl_object_ptr<telegram_api::gro
     video_payload = get_group_call_video_payload(participant->video_.get());
   }
   if (participant->presentation_ != nullptr) {
+    if (participant->presentation_->flags_ & telegram_api::groupCallParticipantVideo::AUDIO_SOURCE_MASK) {
+      presentation_audio_source = participant->presentation_->audio_source_;
+    }
     presentation_payload = get_group_call_video_payload(participant->presentation_.get());
   }
 }
@@ -255,8 +258,8 @@ td_api::object_ptr<td_api::groupCallParticipant> GroupCallParticipant::get_group
   }
 
   return td_api::make_object<td_api::groupCallParticipant>(
-      td->messages_manager_->get_message_sender_object(dialog_id), audio_source, can_enable_video,
-      get_group_call_participant_video_info_object(video_payload),
+      td->messages_manager_->get_message_sender_object(dialog_id), audio_source, presentation_audio_source,
+      can_enable_video, get_group_call_participant_video_info_object(video_payload),
       get_group_call_participant_video_info_object(presentation_payload), about, is_self, is_speaking,
       get_is_hand_raised(), can_be_muted_for_all_users, can_be_unmuted_for_all_users, can_be_muted_only_for_self,
       can_be_unmuted_only_for_self, get_is_muted_for_all_users(), get_is_muted_locally(), get_is_muted_by_themselves(),
@@ -265,6 +268,7 @@ td_api::object_ptr<td_api::groupCallParticipant> GroupCallParticipant::get_group
 
 bool operator==(const GroupCallParticipant &lhs, const GroupCallParticipant &rhs) {
   return lhs.dialog_id == rhs.dialog_id && lhs.audio_source == rhs.audio_source &&
+         lhs.presentation_audio_source == rhs.presentation_audio_source &&
          lhs.can_enable_video == rhs.can_enable_video && lhs.video_payload == rhs.video_payload &&
          lhs.presentation_payload == rhs.presentation_payload && lhs.about == rhs.about && lhs.is_self == rhs.is_self &&
          lhs.is_speaking == rhs.is_speaking && lhs.get_is_hand_raised() == rhs.get_is_hand_raised() &&
