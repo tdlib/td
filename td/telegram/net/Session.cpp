@@ -20,7 +20,7 @@
 #include "td/telegram/StateManager.h"
 #include "td/telegram/UniqueId.h"
 
-#include "td/mtproto/DhHandshake.h"
+#include "td/mtproto/DhCallback.h"
 #include "td/mtproto/Handshake.h"
 #include "td/mtproto/HandshakeActor.h"
 #include "td/mtproto/RawConnection.h"

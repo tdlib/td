@@ -114,7 +114,7 @@
 
 #include "td/db/binlog/BinlogEvent.h"
 
-#include "td/mtproto/DhHandshake.h"
+#include "td/mtproto/DhCallback.h"
 #include "td/mtproto/Handshake.h"
 #include "td/mtproto/HandshakeActor.h"
 #include "td/mtproto/RawConnection.h"

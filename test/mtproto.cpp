@@ -11,6 +11,7 @@
 #include "td/telegram/NotificationManager.h"
 
 #include "td/mtproto/AuthData.h"
+#include "td/mtproto/DhCallback.h"
 #include "td/mtproto/DhHandshake.h"
 #include "td/mtproto/Handshake.h"
 #include "td/mtproto/HandshakeActor.h"

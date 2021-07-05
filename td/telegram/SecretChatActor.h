@@ -19,6 +19,7 @@
 #include "td/telegram/UserId.h"
 
 #include "td/mtproto/AuthKey.h"
+#include "td/mtproto/DhCallback.h"
 #include "td/mtproto/DhHandshake.h"
 
 #include "td/actor/actor.h"

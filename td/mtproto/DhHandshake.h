@@ -16,19 +16,7 @@
 namespace td {
 namespace mtproto {
 
-class DhCallback {
- public:
-  DhCallback() = default;
-  DhCallback(const DhCallback &) = delete;
-  DhCallback &operator=(const DhCallback &) = delete;
-  DhCallback(DhCallback &&) = delete;
-  DhCallback &operator=(DhCallback &&) = delete;
-  virtual ~DhCallback() = default;
-
-  virtual int is_good_prime(Slice prime_str) const = 0;
-  virtual void add_good_prime(Slice prime_str) const = 0;
-  virtual void add_bad_prime(Slice prime_str) const = 0;
-};
+class DhCallback;
 
 class DhHandshake {
  public:

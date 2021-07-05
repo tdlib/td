@@ -7,7 +7,6 @@
 #pragma once
 
 #include "td/mtproto/AuthKey.h"
-#include "td/mtproto/DhHandshake.h"
 #include "td/mtproto/RSA.h"
 
 #include "td/utils/buffer.h"
@@ -23,6 +22,8 @@ class Object;
 }  // namespace mtproto_api
 
 namespace mtproto {
+
+class DhCallback;
 
 class AuthKeyHandshakeContext {
  public:

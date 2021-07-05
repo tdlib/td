@@ -6,6 +6,7 @@
 //
 #include "td/utils/benchmark.h"
 
+#include "td/mtproto/DhCallback.h"
 #include "td/mtproto/DhHandshake.h"
 
 #include "td/utils/base64.h"

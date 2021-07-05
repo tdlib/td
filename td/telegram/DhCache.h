@@ -6,7 +6,7 @@
 //
 #pragma once
 
-#include "td/mtproto/DhHandshake.h"
+#include "td/mtproto/DhCallback.h"
 
 #include "td/utils/Slice.h"
 

@@ -22,7 +22,7 @@
 #include "td/db/BinlogKeyValue.h"
 #include "td/db/DbKey.h"
 
-#include "td/mtproto/DhHandshake.h"
+#include "td/mtproto/DhCallback.h"
 #include "td/mtproto/utils.h"
 
 #include "td/tl/tl_object_parse.h"

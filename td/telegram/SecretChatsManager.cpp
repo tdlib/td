@@ -22,7 +22,7 @@
 #include "td/telegram/secret_api.h"
 #include "td/telegram/telegram_api.hpp"
 
-#include "td/mtproto/DhHandshake.h"
+#include "td/mtproto/DhCallback.h"
 
 #include "td/actor/PromiseFuture.h"
 

@@ -6,6 +6,8 @@
 //
 #include "td/mtproto/DhHandshake.h"
 
+#include "td/mtproto/DhCallback.h"
+
 #include "td/utils/as.h"
 #include "td/utils/crypto.h"
 #include "td/utils/logging.h"
