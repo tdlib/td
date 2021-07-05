@@ -7,9 +7,8 @@
 #include "td/mtproto/Handshake.h"
 
 #include "td/mtproto/KDF.h"
-#include "td/mtproto/utils.h"
-
 #include "td/mtproto/mtproto_api.h"
+#include "td/mtproto/utils.h"
 
 #include "td/utils/as.h"
 #include "td/utils/buffer.h"
@@ -62,19 +61,13 @@ void AuthKeyHandshake::on_finish() {
   clear();
 }
 
-template <class DataT>
-Result<size_t> AuthKeyHandshake::fill_data_with_hash(uint8 *data_with_hash, const DataT &data) {
-  // data_with_hash := SHA1(data) + data + (any random bytes); such that the length equal 255 bytes;
-  uint8 *data_ptr = data_with_hash + 20;
-  size_t data_size = tl_calc_length(data);
-  if (data_size + 20 + 4 > 255) {
-    return Status::Error("Too big data");
-  }
-  as<int32>(data_ptr) = data.get_id();
-  auto real_size = tl_store_unsafe(data, data_ptr + 4);
-  CHECK(real_size == data_size);
-  sha1(Slice(data_ptr, data_size + 4), data_with_hash);
-  return data_size + 20 + 4;
+string AuthKeyHandshake::store_object(const mtproto_api::Object &object) {
+  auto storer = create_storer(object);
+  size_t size = storer.size();
+  string result(size, '\0');
+  auto real_size = storer.store(MutableSlice(result).ubegin());
+  CHECK(real_size == size);
+  return result;
 }
 
 Status AuthKeyHandshake::on_res_pq(Slice message, Callback *connection, PublicRsaKeyInterface *public_rsa_key) {
@@ -100,28 +93,30 @@ Status AuthKeyHandshake::on_res_pq(Slice message, Callback *connection, PublicRs
 
   Random::secure_bytes(new_nonce.raw, sizeof(new_nonce));
 
-  alignas(8) uint8 data_with_hash[255];
-  Result<size_t> r_data_size = 0;
+  string data;
   switch (mode_) {
     case Mode::Main:
-      r_data_size = fill_data_with_hash(
-          data_with_hash, mtproto_api::p_q_inner_data_dc(res_pq->pq_, p, q, nonce, server_nonce, new_nonce, dc_id_));
+      data = store_object(mtproto_api::p_q_inner_data_dc(res_pq->pq_, p, q, nonce, server_nonce, new_nonce, dc_id_));
       break;
     case Mode::Temp:
-      r_data_size = fill_data_with_hash(
-          data_with_hash,
+      data = store_object(
           mtproto_api::p_q_inner_data_temp_dc(res_pq->pq_, p, q, nonce, server_nonce, new_nonce, dc_id_, expires_in_));
       expires_at_ = Time::now() + expires_in_;
       break;
     case Mode::Unknown:
     default:
       UNREACHABLE();
-      r_data_size = Status::Error(500, "Unreachable");
   }
-  if (r_data_size.is_error()) {
-    return r_data_size.move_as_error();
+
+  auto size = 20 + data.size();
+  if (size > 255) {
+    return Status::Error("Too big data");
   }
-  size_t size = r_data_size.ok();
+
+  // data_with_hash := SHA1(data) + data + (any random bytes); such that the length equals to 255 bytes;
+  alignas(8) uint8 data_with_hash[255];
+  sha1(data, data_with_hash);
+  MutableSlice(data_with_hash + 20, data.size()).copy_from(data);
 
   // encrypted_data := RSA (data_with_hash, server_public_key); a 255-byte long number (big endian)
   //   is raised to the requisite power over the requisite modulus, and the result is stored as a 256-byte number.
@@ -199,16 +194,13 @@ Status AuthKeyHandshake::on_server_dh_params(Slice message, Callback *connection
   string g_b = handshake.get_g_b();
   auto auth_key_params = handshake.gen_key();
 
-  mtproto_api::client_DH_inner_data data(nonce, server_nonce, 0, g_b);
-  size_t data_size = 4 + tl_calc_length(data);
-  size_t encrypted_data_size = 20 + data_size;
+  auto data = store_object(mtproto_api::client_DH_inner_data(nonce, server_nonce, 0, g_b));
+  size_t encrypted_data_size = 20 + data.size();
   size_t encrypted_data_size_with_pad = (encrypted_data_size + 15) & -16;
-  string encrypted_data_str(encrypted_data_size_with_pad, 0);
+  string encrypted_data_str(encrypted_data_size_with_pad, '\0');
   MutableSlice encrypted_data = encrypted_data_str;
-  as<int32>(encrypted_data.begin() + 20) = data.get_id();
-  auto real_size = tl_store_unsafe(data, encrypted_data.ubegin() + 20 + 4);
-  CHECK(real_size + 4 == data_size);
-  sha1(encrypted_data.substr(20, data_size), encrypted_data.ubegin());
+  sha1(data, encrypted_data.ubegin());
+  encrypted_data.substr(20, data.size()).copy_from(data);
   Random::secure_bytes(encrypted_data.ubegin() + encrypted_data_size,
                        encrypted_data_size_with_pad - encrypted_data_size);
   tmp_KDF(server_nonce, new_nonce, &tmp_aes_key, &tmp_aes_iv);

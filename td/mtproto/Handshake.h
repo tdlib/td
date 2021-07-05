@@ -17,6 +17,11 @@
 #include "td/utils/UInt.h"
 
 namespace td {
+
+namespace mtproto_api {
+class Object;
+}  // namespace mtproto_api
+
 namespace mtproto {
 
 class AuthKeyHandshakeContext {
@@ -115,8 +120,7 @@ class AuthKeyHandshake {
 
   BufferSlice last_query_;
 
-  template <class DataT>
-  Result<size_t> fill_data_with_hash(uint8 *data_with_hash, const DataT &data) TD_WARN_UNUSED_RESULT;
+  static string store_object(const mtproto_api::Object &object);
 
   void send(Callback *connection, const Storer &storer);
   void do_send(Callback *connection, const Storer &storer);
