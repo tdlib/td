@@ -84,8 +84,7 @@ Status AuthKeyHandshake::on_res_pq(Slice message, Callback *connection, PublicRs
     public_rsa_key->drop_keys();
     return r_rsa_key.move_as_error();
   }
-  int64 rsa_fingerprint = r_rsa_key.ok().fingerprint;
-  RSA rsa = std::move(r_rsa_key.ok_ref().rsa);
+  auto rsa_key = r_rsa_key.move_as_ok();
 
   string p, q;
   if (pq_factorize(res_pq->pq_, &p, &q) == -1) {
@@ -122,12 +121,12 @@ Status AuthKeyHandshake::on_res_pq(Slice message, Callback *connection, PublicRs
   // encrypted_data := RSA (data_with_hash, server_public_key); a 255-byte long number (big endian)
   //   is raised to the requisite power over the requisite modulus, and the result is stored as a 256-byte number.
   string encrypted_data(256, 0);
-  rsa.encrypt(data_with_hash, size, sizeof(data_with_hash), reinterpret_cast<unsigned char *>(&encrypted_data[0]),
-              encrypted_data.size());
+  rsa_key.rsa.encrypt(data_with_hash, size, sizeof(data_with_hash),
+                      reinterpret_cast<unsigned char *>(&encrypted_data[0]), encrypted_data.size());
 
   // req_DH_params#d712e4be nonce:int128 server_nonce:int128 p:string q:string public_key_fingerprint:long
   // encrypted_data:string = Server_DH_Params
-  mtproto_api::req_DH_params req_dh_params(nonce_, server_nonce_, p, q, rsa_fingerprint, encrypted_data);
+  mtproto_api::req_DH_params req_dh_params(nonce_, server_nonce_, p, q, rsa_key.fingerprint, encrypted_data);
 
   send(connection, create_storer(req_dh_params));
   state_ = ServerDHParams;

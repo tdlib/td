@@ -711,7 +711,7 @@ class CliClient final : public Actor {
   }
 
   template <class FirstType, class SecondType, class... Types>
-  static void get_args(string &args, FirstType &first_arg, SecondType &second_arg, Types &...other_args) {
+  static void get_args(string &args, FirstType &first_arg, SecondType &second_arg, Types &... other_args) {
     string arg;
     std::tie(arg, args) = split(args);
     get_args(arg, first_arg);
