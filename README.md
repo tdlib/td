@@ -12,6 +12,7 @@ TDLib (Telegram Database library) is a cross-platform library for building [Tele
 - [Using in Java projects](#using-java)
 - [Using in .NET projects](#using-dotnet)
 - [Using with other programming languages](#using-json)
+- [Get help](#get-help)
 - [License](#license)
 
 <a name="features"></a>
@@ -181,6 +182,10 @@ all available `TDLib` [methods](https://core.telegram.org/tdlib/docs/classtd_1_1
 If you need to support different `TDLib` versions, then you can use a value of the `version` option to find exact `TDLib` version to use appropriate API methods.
 
 See [example/python/tdjson_example.py](https://github.com/tdlib/td/tree/master/example/python/tdjson_example.py) for an example of such usage.
+
+<a name="get-help"></a>
+## Get help
+You can open a new issue or you can message us on Telegram: [@tdlib](https://t.me/tdlibchat)
 
 <a name="license"></a>
 ## License
