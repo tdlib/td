@@ -711,7 +711,7 @@ class CliClient final : public Actor {
   }
 
   template <class FirstType, class SecondType, class... Types>
-  static void get_args(string &args, FirstType &first_arg, SecondType &second_arg, Types &... other_args) {
+  static void get_args(string &args, FirstType &first_arg, SecondType &second_arg, Types &...other_args) {
     string arg;
     std::tie(arg, args) = split(args);
     get_args(arg, first_arg);
@@ -3111,7 +3111,7 @@ class CliClient final : public Actor {
     } else if (op == "smt" || op == "smtp" || op == "smtf" || op == "smtpf") {
       const string &chat_id = args;
       for (int i = 1; i <= 200; i++) {
-        string message = PSTRING() << "#" << i;
+        string message = PSTRING() << (td::Random::fast(0, 3) == 0 && i > 90 ? "sleep " : "") << "#" << i;
         if (i == 6 || (op.back() == 'f' && i % 2 == 0)) {
           message = string(4097, 'a');
         }
