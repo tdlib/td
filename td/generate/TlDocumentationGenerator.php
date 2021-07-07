@@ -223,22 +223,27 @@ abstract class TlDocumentationGenerator
                     }
                 }
 
-                foreach (array_diff_key($info, $known_fields) as $field_name => $field_info) {
-                    if ($field_name !== 'description') {
-                        $this->printError("Have info about unexisted field `$field_name`");
-                    }
-                }
-
-                if (!$info['description']) {
-                    $this->printError("Have no description for class `$class_name`");
-                }
-
                 foreach ($info as &$v) {
                     $v = $this->escapeDocumentation($this->addDot($v));
                 }
 
+                $description = $info['description'];
+                unset($info['description']);
+
+                if (!$description) {
+                    $this->printError("Have no description for class `$class_name`");
+                }
+
+                foreach (array_diff_key($info, $known_fields) as $field_name => $field_info) {
+                    $this->printError("Have info about unexisted field `$field_name`");
+                }
+
+                if (array_keys($info) !== array_keys($known_fields)) {
+                    $this->printError("Have wrong documentation for class `$class_name`");
+                }
+
                 $base_class_name = $current_class ?: $this->getBaseClassName($is_function);
-                $class_description = $info['description'];
+                $class_description = $description;
                 if ($is_function) {
                     $class_description .= $this->getFunctionReturnTypeDescription($this->getTypeName($type), false);
                 }
@@ -254,7 +259,7 @@ abstract class TlDocumentationGenerator
                 if ($is_function) {
                     $default_constructor_prefix = 'Default constructor for a function, which ';
                     $full_constructor_prefix = 'Creates a function, which ';
-                    $class_description = lcfirst($info['description']);
+                    $class_description = lcfirst($description);
                     $class_description .= $this->getFunctionReturnTypeDescription($this->getTypeName($type), true);
                 } else {
                     $default_constructor_prefix = '';
