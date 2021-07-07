@@ -29337,15 +29337,7 @@ void MessagesManager::do_set_dialog_folder_id(Dialog *d, FolderId folder_id) {
   d->folder_id = folder_id;
   d->is_folder_id_inited = true;
 
-  if (d->dialog_id.get_type() == DialogType::User) {
-    if (d->can_unarchive && folder_id != FolderId::archive()) {
-      d->can_unarchive = false;
-      d->can_report_spam = false;
-      d->can_block_user = false;
-      // keep d->can_add_contact
-      send_update_chat_action_bar(d);
-    }
-  } else if (d->dialog_id.get_type() == DialogType::SecretChat) {
+  if (d->dialog_id.get_type() == DialogType::SecretChat) {
     // need to change action bar only for the secret chat and keep unarchive for the main chat
     auto user_id = td_->contacts_manager_->get_secret_chat_user_id(d->dialog_id.get_secret_chat_id());
     if (d->is_update_new_chat_sent && user_id.is_valid()) {
@@ -29356,6 +29348,12 @@ void MessagesManager::do_set_dialog_folder_id(Dialog *d, FolderId folder_id) {
             td_api::make_object<td_api::updateChatActionBar>(d->dialog_id.get(), get_chat_action_bar_object(d)));
       }
     }
+  } else if (d->can_unarchive && folder_id != FolderId::archive()) {
+    d->can_unarchive = false;
+    d->can_report_spam = false;
+    d->can_block_user = false;
+    // keep d->can_add_contact
+    send_update_chat_action_bar(d);
   }
 
   on_dialog_updated(d->dialog_id, "do_set_dialog_folder_id");
