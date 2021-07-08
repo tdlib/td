@@ -24,6 +24,8 @@
 #include "td/utils/tl_parsers.h"
 #include "td/utils/tl_storers.h"
 
+#include <algorithm>
+
 namespace td {
 namespace mtproto {
 
@@ -108,24 +110,36 @@ Status AuthKeyHandshake::on_res_pq(Slice message, Callback *connection, PublicRs
       UNREACHABLE();
   }
 
-  auto size = 20 + data.size();
-  if (size > 255) {
+  string encrypted_data(256, '\0');
+  auto data_size = data.size();
+  if (data_size > 144) {
     return Status::Error("Too big data");
   }
 
-  // data_with_hash := SHA1(data) + data + (any random bytes); such that the length equals to 255 bytes;
-  alignas(8) uint8 data_with_hash[255];
-  sha1(data, data_with_hash);
-  MutableSlice(data_with_hash + 20, data.size()).copy_from(data);
+  data.resize(192);
+  Random::secure_bytes(MutableSlice(data).substr(data_size));
 
-  // encrypted_data := RSA (data_with_hash, server_public_key); a 255-byte long number (big endian)
-  //   is raised to the requisite power over the requisite modulus, and the result is stored as a 256-byte number.
-  string encrypted_data(256, 0);
-  rsa_key.rsa.encrypt(data_with_hash, size, sizeof(data_with_hash),
-                      reinterpret_cast<unsigned char *>(&encrypted_data[0]), encrypted_data.size());
+  while (true) {
+    string aes_key(32, '\0');
+    Random::secure_bytes(MutableSlice(aes_key));
 
-  // req_DH_params#d712e4be nonce:int128 server_nonce:int128 p:string q:string public_key_fingerprint:long
-  // encrypted_data:string = Server_DH_Params
+    string data_with_hash = data + sha256(aes_key + data);
+    std::reverse(data_with_hash.begin(), data_with_hash.begin() + data.size());
+
+    string decrypted_data(256, '\0');
+    string aes_iv(32, '\0');
+    aes_ige_encrypt(aes_key, aes_iv, data_with_hash, MutableSlice(decrypted_data).substr(32));
+
+    auto hash = sha256(MutableSlice(decrypted_data).substr(32));
+    for (size_t i = 0; i < 32; i++) {
+      decrypted_data[i] = static_cast<char>(aes_key[i] ^ hash[i]);
+    }
+
+    if (rsa_key.rsa.encrypt(decrypted_data, encrypted_data)) {
+      break;
+    }
+  }
+
   mtproto_api::req_DH_params req_dh_params(nonce_, server_nonce_, p, q, rsa_key.fingerprint, encrypted_data);
 
   send(connection, create_storer(req_dh_params));

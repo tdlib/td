@@ -33,6 +33,7 @@
 
 #include "td/utils/base64.h"
 #include "td/utils/common.h"
+#include "td/utils/crypto.h"
 #include "td/utils/logging.h"
 #include "td/utils/port/Clocks.h"
 #include "td/utils/port/IPAddress.h"
@@ -726,11 +727,11 @@ TEST(Mtproto, RSA) {
       "8Ygs/ps8e6ct82jLXbnndC9s8HjEvDvBPH9IPjv5JUlmHMBFZ5vFQIfbpo0u0+1P\n"
       "n6bkEi5o7/ifoyVv2pAZTRwppTz0EuXD8QIDAQAB\n"
       "-----END RSA PUBLIC KEY-----");
-  auto rsa = mtproto::RSA::from_pem_public_key(pem).move_as_ok();
+  auto rsa = td::mtproto::RSA::from_pem_public_key(pem).move_as_ok();
   ASSERT_EQ(-7596991558377038078, rsa.get_fingerprint());
   ASSERT_EQ(256u, rsa.size());
 
-  string s(255, '\0');
-  string to(256, '\0');
-  ASSERT_EQ(256u, rsa.encrypt(MutableSlice(s).ubegin(), 10, 255, MutableSlice(to).ubegin(), 256));
+  td::string to(256, '\0');
+  rsa.encrypt(pem.substr(0, 256), to);
+  ASSERT_EQ("U2nJEtB2AgpHrm3HB0yhpTQgb0wbesi9Pv/W1v/vULU=", td::base64_encode(td::sha256(to)));
 }
