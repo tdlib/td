@@ -226,9 +226,9 @@ class GetGroupCallQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(InputGroupCallId input_group_call_id) {
-    send_query(
-        G()->net_query_creator().create(telegram_api::phone_getGroupCall(input_group_call_id.get_input_group_call())));
+  void send(InputGroupCallId input_group_call_id, int32 limit) {
+    send_query(G()->net_query_creator().create(
+        telegram_api::phone_getGroupCall(input_group_call_id.get_input_group_call(), limit)));
   }
 
   void on_result(uint64 id, BufferSlice packet) final {
@@ -1367,7 +1367,7 @@ void GroupCallManager::reload_group_call(InputGroupCallId input_group_call_id,
                                                     Result<tl_object_ptr<telegram_api::phone_groupCall>> &&result) {
       send_closure(actor_id, &GroupCallManager::finish_get_group_call, input_group_call_id, std::move(result));
     });
-    td_->create_handler<GetGroupCallQuery>(std::move(query_promise))->send(input_group_call_id);
+    td_->create_handler<GetGroupCallQuery>(std::move(query_promise))->send(input_group_call_id, 3);
   }
 }
 
