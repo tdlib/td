@@ -76,10 +76,13 @@ Result<mtproto::PublicRsaKeyInterface::RsaKey> PublicRsaKeyShared::get_rsa_key(c
 
 void PublicRsaKeyShared::drop_keys() {
   if (dc_id_.is_empty()) {
+    // not CDN
     return;
   }
   auto lock = rw_mutex_.lock_write();
+  LOG(INFO) << "Drop " << keys_.size() << " keys for " << dc_id_;
   keys_.clear();
+  notify();
 }
 
 bool PublicRsaKeyShared::has_keys() {
@@ -104,7 +107,6 @@ mtproto::PublicRsaKeyInterface::RsaKey *PublicRsaKeyShared::get_rsa_key_unsafe(i
 }
 
 void PublicRsaKeyShared::notify() {
-  auto lock = rw_mutex_.lock_read();
   td::remove_if(listeners_, [&](auto &listener) { return !listener->notify(); });
 }
 

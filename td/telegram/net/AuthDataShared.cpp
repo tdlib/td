@@ -90,10 +90,10 @@ class AuthDataSharedImpl final : public AuthDataShared {
   std::shared_ptr<Guard> guard_;
   RwMutex rw_mutex_;
 
-  string auth_key_key() {
+  string auth_key_key() const {
     return PSTRING() << "auth" << dc_id_.get_raw_id();
   }
-  string future_salts_key() {
+  string future_salts_key() const {
     return PSTRING() << "salt" << dc_id_.get_raw_id();
   }
 

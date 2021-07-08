@@ -55,6 +55,7 @@ void PublicRsaKeyWatchdog::loop() {
     return;
   }
   if (Time::now_cached() < flood_control_.get_wakeup_at()) {
+    set_timeout_in(flood_control_.get_wakeup_at() - Time::now_cached() + 0.01);
     return;
   }
   bool ok = true;
@@ -78,6 +79,7 @@ void PublicRsaKeyWatchdog::on_result(NetQueryPtr net_query) {
   yield();
   if (net_query->is_error()) {
     LOG(ERROR) << "Receive error for GetCdnConfig: " << net_query->move_as_error();
+    loop();
     return;
   }
 
@@ -88,11 +90,13 @@ void PublicRsaKeyWatchdog::on_result(NetQueryPtr net_query) {
 
 void PublicRsaKeyWatchdog::sync(BufferSlice cdn_config_serialized) {
   if (cdn_config_serialized.empty()) {
+    loop();
     return;
   }
   auto r_keys = fetch_result<telegram_api::help_getCdnConfig>(cdn_config_serialized);
   if (r_keys.is_error()) {
     LOG(WARNING) << "Failed to deserialize help_getCdnConfig (probably not a problem) " << r_keys.error();
+    loop();
     return;
   }
   cdn_config_ = r_keys.move_as_ok();
