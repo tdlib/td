@@ -36,6 +36,7 @@ class PublicRsaKeyWatchdog final : public NetActor {
   tl_object_ptr<telegram_api::cdnConfig> cdn_config_;
   FloodControlStrict flood_control_;
   bool has_query_{false};
+  string current_version_;
 
   void start_up() final;
   void loop() final;

@@ -9,8 +9,8 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/net/NetQueryCreator.h"
 #include "td/telegram/TdDb.h"
-
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/Version.h"
 
 #include "td/mtproto/RSA.h"
 
@@ -47,7 +47,14 @@ void PublicRsaKeyWatchdog::start_up() {
   flood_control_.add_limit(2, 60);
   flood_control_.add_limit(3, 2 * 60);
 
-  sync(BufferSlice(G()->td_db()->get_binlog_pmc()->get("cdn_config")));
+  string version = G()->td_db()->get_binlog_pmc()->get("cdn_config_version");
+  current_version_ = to_string(MTPROTO_LAYER);
+  if (version != current_version_) {
+    G()->td_db()->get_binlog_pmc()->erase("cdn_config" + version);
+  } else {
+    sync(BufferSlice(G()->td_db()->get_binlog_pmc()->get("cdn_config" + version)));
+  }
+  CHECK(keys_.empty());
 }
 
 void PublicRsaKeyWatchdog::loop() {
@@ -84,7 +91,8 @@ void PublicRsaKeyWatchdog::on_result(NetQueryPtr net_query) {
   }
 
   auto buf = net_query->move_as_ok();
-  G()->td_db()->get_binlog_pmc()->set("cdn_config", buf.as_slice().str());
+  G()->td_db()->get_binlog_pmc()->set("cdn_config_version", current_version_);
+  G()->td_db()->get_binlog_pmc()->set("cdn_config" + current_version_, buf.as_slice().str());
   sync(std::move(buf));
 }
 
@@ -100,9 +108,13 @@ void PublicRsaKeyWatchdog::sync(BufferSlice cdn_config_serialized) {
     return;
   }
   cdn_config_ = r_keys.move_as_ok();
-  LOG(INFO) << "Receive " << to_string(cdn_config_);
-  for (auto &key : keys_) {
-    sync_key(key);
+  if (keys_.empty()) {
+    LOG(INFO) << "Load " << to_string(cdn_config_);
+  } else {
+    LOG(INFO) << "Receive " << to_string(cdn_config_);
+    for (auto &key : keys_) {
+      sync_key(key);
+    }
   }
 }
 
