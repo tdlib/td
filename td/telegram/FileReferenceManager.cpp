@@ -255,7 +255,7 @@ void FileReferenceManager::send_query(Destination dest, FileSourceId file_source
   file_sources_[index].visit(overloaded(
       [&](const FileSourceMessage &source) {
         send_closure_later(G()->messages_manager(), &MessagesManager::get_message_from_server, source.full_message_id,
-                           std::move(promise), nullptr);
+                           std::move(promise), "FileSourceMessage", nullptr);
       },
       [&](const FileSourceUserPhoto &source) {
         send_closure_later(G()->contacts_manager(), &ContactsManager::reload_user_profile_photo, source.user_id,

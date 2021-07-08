@@ -9085,7 +9085,8 @@ void MessagesManager::after_get_difference() {
                                       LOG(WARNING) << "Successfully get missing " << full_message_id << ": "
                                                    << to_string(get_message_object(full_message_id));
                                     }
-                                  }));
+                                  }),
+                                  "get missing");
         } else if (dialog_id.get_type() == DialogType::Channel) {
           LOG(INFO) << "Schedule getDifference in " << dialog_id.get_channel_id();
           channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(), 0.001);
@@ -16684,12 +16685,13 @@ void MessagesManager::get_message_force_from_server(Dialog *d, MessageId message
       }
 
       if (d->deleted_message_ids.count(message_id) == 0 && dialog_type != DialogType::SecretChat) {
-        return get_message_from_server({d->dialog_id, message_id}, std::move(promise), std::move(input_message));
+        return get_message_from_server({d->dialog_id, message_id}, std::move(promise), "get_message_force_from_server",
+                                       std::move(input_message));
       }
     } else if (message_id.is_valid_scheduled() && message_id.is_scheduled_server()) {
       if (d->deleted_scheduled_server_message_ids.count(message_id.get_scheduled_server_message_id()) == 0 &&
           dialog_type != DialogType::SecretChat && input_message == nullptr) {
-        return get_message_from_server({d->dialog_id, message_id}, std::move(promise));
+        return get_message_from_server({d->dialog_id, message_id}, std::move(promise), "get_message_force_from_server");
       }
     }
   }
@@ -17116,7 +17118,7 @@ bool MessagesManager::get_messages(DialogId dialog_id, const vector<MessageId> &
   }
 
   if (!missed_message_ids.empty()) {
-    get_messages_from_server(std::move(missed_message_ids), std::move(promise));
+    get_messages_from_server(std::move(missed_message_ids), std::move(promise), "get_messages");
     return false;
   }
 
@@ -17125,17 +17127,19 @@ bool MessagesManager::get_messages(DialogId dialog_id, const vector<MessageId> &
 }
 
 void MessagesManager::get_message_from_server(FullMessageId full_message_id, Promise<Unit> &&promise,
+                                              const char *source,
                                               tl_object_ptr<telegram_api::InputMessage> input_message) {
-  get_messages_from_server({full_message_id}, std::move(promise), std::move(input_message));
+  get_messages_from_server({full_message_id}, std::move(promise), source, std::move(input_message));
 }
 
 void MessagesManager::get_messages_from_server(vector<FullMessageId> &&message_ids, Promise<Unit> &&promise,
+                                               const char *source,
                                                tl_object_ptr<telegram_api::InputMessage> input_message) {
   if (G()->close_flag()) {
     return promise.set_error(Status::Error(500, "Request aborted"));
   }
   if (message_ids.empty()) {
-    LOG(ERROR) << "Empty message_ids";
+    LOG(ERROR) << "Empty message_ids from " << source;
     return promise.set_error(Status::Error(500, "There are no messages specified to fetch"));
   }
 
@@ -17169,7 +17173,7 @@ void MessagesManager::get_messages_from_server(vector<FullMessageId> &&message_i
         channel_message_ids[dialog_id.get_channel_id()].push_back(std::move(input_message));
         break;
       case DialogType::SecretChat:
-        LOG(ERROR) << "Can't get secret chat message from server";
+        LOG(ERROR) << "Can't get " << full_message_id << " from server from " << source;
         break;
       case DialogType::None:
       default:
@@ -17191,7 +17195,7 @@ void MessagesManager::get_messages_from_server(vector<FullMessageId> &&message_i
     have_dialog_force(dialog_id, "get_messages_from_server");
     auto input_peer = get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
-      LOG(ERROR) << "Can't find info about " << dialog_id << " to get a message from it";
+      LOG(ERROR) << "Can't find info about " << dialog_id << " to get a message from it from " << source;
       mpas.get_promise().set_error(Status::Error(6, "Can't access the chat"));
       continue;
     }
@@ -17203,7 +17207,7 @@ void MessagesManager::get_messages_from_server(vector<FullMessageId> &&message_i
     td_->contacts_manager_->have_channel_force(it.first);
     auto input_channel = td_->contacts_manager_->get_input_channel(it.first);
     if (input_channel == nullptr) {
-      LOG(ERROR) << "Can't find info about " << it.first << " to get a message from it";
+      LOG(ERROR) << "Can't find info about " << it.first << " to get a message from it from " << source;
       mpas.get_promise().set_error(Status::Error(6, "Can't access the chat"));
       continue;
     }
@@ -21922,7 +21926,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::parse_message(DialogId dia
     if (!is_scheduled && dialog_id.get_type() != DialogType::SecretChat && m->message_id.is_valid() &&
         m->message_id.is_server()) {
       // trying to repair the message
-      get_message_from_server({dialog_id, m->message_id}, Auto());
+      get_message_from_server({dialog_id, m->message_id}, Auto(), "parse_message");
     }
     return nullptr;
   }
@@ -24693,7 +24697,7 @@ void MessagesManager::on_message_media_edited(DialogId dialog_id, MessageId mess
     cancel_upload_message_content_files(m->edited_content.get());
 
     if (dialog_id.get_type() != DialogType::SecretChat) {
-      get_message_from_server({dialog_id, m->message_id}, Auto());
+      get_message_from_server({dialog_id, m->message_id}, Auto(), "on_message_media_edited");
     }
   }
 
@@ -27705,7 +27709,8 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
             send_closure(actor_id, &MessagesManager::flush_pending_new_message_notifications, dialog_id, from_mentions,
                          dialog_id);
           });
-      get_message_from_server({d->dialog_id, missing_pinned_message_id}, std::move(promise));
+      get_message_from_server({d->dialog_id, missing_pinned_message_id}, std::move(promise),
+                              "add_new_message_notification");
     }
     return false;
   }
@@ -31436,7 +31441,7 @@ MessagesManager::Message *MessagesManager::on_get_message_from_database(DialogId
 
     if (m->message_id.is_valid() && m->message_id.is_any_server() &&
         (dialog_id.get_type() == DialogType::User || dialog_id.get_type() == DialogType::Chat)) {
-      get_message_from_server({dialog_id, m->message_id}, Auto());
+      get_message_from_server({dialog_id, m->message_id}, Auto(), "on_get_message_from_database 1");
     }
 
     force_create_dialog(dialog_id, source);
@@ -31469,7 +31474,7 @@ MessagesManager::Message *MessagesManager::on_get_message_from_database(DialogId
   add_message_dependencies(dependencies, m.get());
   if (!resolve_dependencies_force(td_, dependencies, "on_get_message_from_database")) {
     FullMessageId full_message_id{dialog_id, m->message_id};
-    get_message_from_server(full_message_id, Auto());
+    get_message_from_server(full_message_id, Auto(), "on_get_message_from_database 2");
   }
 
   m->have_previous = false;
@@ -35613,7 +35618,7 @@ void MessagesManager::reget_message_from_server_if_needed(DialogId dialog_id, co
   if (need_reget_message_content(m->content.get()) || (m->legacy_layer != 0 && m->legacy_layer < MTPROTO_LAYER)) {
     FullMessageId full_message_id{dialog_id, m->message_id};
     LOG(INFO) << "Reget from server " << full_message_id;
-    get_message_from_server(full_message_id, Auto());
+    get_message_from_server(full_message_id, Auto(), "reget_message_from_server_if_needed");
   }
 }
 

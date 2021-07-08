@@ -1375,7 +1375,7 @@ void WebPagesManager::on_pending_web_page_timeout(WebPageId web_page_id) {
     }
     if (!full_message_ids.empty()) {
       send_closure_later(G()->messages_manager(), &MessagesManager::get_messages_from_server,
-                         std::move(full_message_ids), Promise<Unit>(), nullptr);
+                         std::move(full_message_ids), Promise<Unit>(), "on_pending_web_page_timeout", nullptr);
     }
   }
   auto get_it = pending_get_web_pages_.find(web_page_id);
