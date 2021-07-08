@@ -31472,9 +31472,9 @@ MessagesManager::Message *MessagesManager::on_get_message_from_database(DialogId
 
   Dependencies dependencies;
   add_message_dependencies(dependencies, m.get());
-  if (!resolve_dependencies_force(td_, dependencies, "on_get_message_from_database")) {
-    FullMessageId full_message_id{dialog_id, m->message_id};
-    get_message_from_server(full_message_id, Auto(), "on_get_message_from_database 2");
+  if (!resolve_dependencies_force(td_, dependencies, "on_get_message_from_database") &&
+      dialog_id.get_type() != DialogType::SecretChat) {
+    get_message_from_server({dialog_id, m->message_id}, Auto(), "on_get_message_from_database 2");
   }
 
   m->have_previous = false;

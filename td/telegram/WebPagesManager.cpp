@@ -540,7 +540,7 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
 
 void WebPagesManager::update_web_page(unique_ptr<WebPage> web_page, WebPageId web_page_id, bool from_binlog,
                                       bool from_database) {
-  LOG(INFO) << "Update " << web_page_id;
+  LOG(INFO) << "Update " << web_page_id << (from_database ? " from database" : (from_binlog ? " from binlog" : ""));
   CHECK(web_page != nullptr);
 
   auto &page = web_pages_[web_page_id];

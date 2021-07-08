@@ -85,8 +85,8 @@ bool resolve_dependencies_force(Td *td, const Dependencies &dependencies, const 
     }
   }
   for (auto web_page_id : dependencies.web_page_ids) {
-    if (web_page_id.is_valid()) {
-      td->web_pages_manager_->have_web_page_force(web_page_id);
+    if (web_page_id.is_valid() && !td->web_pages_manager_->have_web_page_force(web_page_id)) {
+      LOG(INFO) << "Can't find " << web_page_id << " from " << source;
       success = false;
     }
   }
