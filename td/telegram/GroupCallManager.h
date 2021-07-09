@@ -225,7 +225,8 @@ class GroupCallManager final : public Actor {
 
   void sync_group_call_participants(InputGroupCallId input_group_call_id);
 
-  void on_sync_group_call_participants_failed(InputGroupCallId input_group_call_id);
+  void on_sync_group_call_participants(InputGroupCallId input_group_call_id,
+                                       Result<tl_object_ptr<telegram_api::phone_groupCall>> &&result);
 
   GroupCallParticipantOrder get_real_participant_order(bool can_self_unmute, const GroupCallParticipant &participant,
                                                        const GroupCallParticipants *participants) const;

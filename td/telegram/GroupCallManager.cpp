@@ -1896,26 +1896,43 @@ void GroupCallManager::sync_group_call_participants(InputGroupCallId input_group
   group_call->need_syncing_participants = false;
 
   LOG(INFO) << "Force participants synchronization in " << input_group_call_id << " from " << group_call->dialog_id;
-  auto promise = PromiseCreator::lambda([actor_id = actor_id(this), input_group_call_id](Result<Unit> &&result) {
-    if (result.is_error()) {
-      send_closure(actor_id, &GroupCallManager::on_sync_group_call_participants_failed, input_group_call_id);
-    }
+  auto promise = PromiseCreator::lambda([actor_id = actor_id(this), input_group_call_id](
+                                            Result<tl_object_ptr<telegram_api::phone_groupCall>> &&result) {
+    send_closure(actor_id, &GroupCallManager::on_sync_group_call_participants, input_group_call_id, std::move(result));
   });
-  td_->create_handler<GetGroupCallParticipantsQuery>(std::move(promise))->send(input_group_call_id, string(), 100);
+
+  td_->create_handler<GetGroupCallQuery>(std::move(promise))->send(input_group_call_id, 100);
 }
 
-void GroupCallManager::on_sync_group_call_participants_failed(InputGroupCallId input_group_call_id) {
+void GroupCallManager::on_sync_group_call_participants(InputGroupCallId input_group_call_id,
+                                                       Result<tl_object_ptr<telegram_api::phone_groupCall>> &&result) {
   if (G()->close_flag() || !need_group_call_participants(input_group_call_id)) {
     return;
   }
 
-  auto group_call = get_group_call(input_group_call_id);
-  CHECK(group_call != nullptr && group_call->is_inited);
-  CHECK(group_call->syncing_participants);
-  group_call->syncing_participants = false;
+  if (result.is_error()) {
+    auto group_call = get_group_call(input_group_call_id);
+    CHECK(group_call != nullptr && group_call->is_inited);
+    CHECK(group_call->syncing_participants);
+    group_call->syncing_participants = false;
 
-  sync_participants_timeout_.add_timeout_in(group_call->group_call_id.get(),
-                                            group_call->need_syncing_participants ? 0.0 : 1.0);
+    sync_participants_timeout_.add_timeout_in(group_call->group_call_id.get(),
+                                              group_call->need_syncing_participants ? 0.0 : 1.0);
+    return;
+  }
+
+  auto call = result.move_as_ok();
+  if (call->call_->get_id() == telegram_api::groupCall::ID) {
+    auto *group_call = static_cast<const telegram_api::groupCall *>(call->call_.get());
+    auto participants = make_tl_object<telegram_api::phone_groupParticipants>(
+        group_call->participants_count_, std::move(call->participants_), std::move(call->participants_next_offset_),
+        std::move(call->chats_), std::move(call->users_), group_call->version_);
+    on_get_group_call_participants(input_group_call_id, std::move(participants), true, string());
+  }
+
+  if (update_group_call(call->call_, DialogId()) != input_group_call_id) {
+    LOG(ERROR) << "Expected " << input_group_call_id << ", but received " << to_string(result.ok());
+  }
 }
 
 GroupCallParticipantOrder GroupCallManager::get_real_participant_order(
