@@ -40,8 +40,8 @@ future_salts#ae500895 req_msg_id:long now:int salts:vector<future_salt> = Future
 
 pong#347773c5 msg_id:long ping_id:long = Pong;
 
-destroy_session_ok#e22045fc session_id:long = DestroySessionRes;
-destroy_session_none#62d350c9 session_id:long = DestroySessionRes;
+//destroy_session_ok#e22045fc session_id:long = DestroySessionRes;
+//destroy_session_none#62d350c9 session_id:long = DestroySessionRes;
 
 new_session_created#9ec20908 first_msg_id:long unique_id:long server_salt:long = NewSession;
 
@@ -79,18 +79,10 @@ set_client_DH_params#f5045f1f nonce:int128 server_nonce:int128 encrypted_data:st
 
 rpc_drop_answer#58e4a740 req_msg_id:long = RpcDropAnswer;
 get_future_salts#b921bd04 num:int = FutureSalts;
-ping#7abe77ec ping_id:long = Pong;
+//ping#7abe77ec ping_id:long = Pong;
 ping_delay_disconnect#f3427b8c ping_id:long disconnect_delay:int = Pong;
-destroy_session#e7512126 session_id:long = DestroySessionRes;
+//destroy_session#e7512126 session_id:long = DestroySessionRes;
 
 http_wait#9299359f max_delay:int wait_after:int max_wait:int = HttpWait;
 
 destroy_auth_key#d1435160 = DestroyAuthKeyRes;
-
-//test.useGzipPacked = GzipPacked;
-//test.useServerDhInnerData = Server_DH_inner_data;
-//test.useNewSessionCreated = NewSession;
-//test.useMsgsAck = MsgsAck;
-//test.useBadMsgNotification = BadMsgNotification;
-
-//test.useOther key:rsa_public_key p_q_data:P_Q_inner_data dh_data:client_DH_inner_data = RpcError;
