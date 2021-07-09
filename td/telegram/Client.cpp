@@ -341,9 +341,11 @@ class TdReceiver {
 
 class MultiImpl {
  public:
+  static constexpr int32 ADDITIONAL_THREAD_COUNT = 3;
+
   explicit MultiImpl(std::shared_ptr<NetQueryStats> net_query_stats) {
     concurrent_scheduler_ = std::make_shared<ConcurrentScheduler>();
-    concurrent_scheduler_->init(3);
+    concurrent_scheduler_->init(ADDITIONAL_THREAD_COUNT);
     concurrent_scheduler_->start();
 
     {
@@ -420,7 +422,8 @@ class MultiImplPool {
     if (impls_.empty()) {
       init_openssl_threads();
 
-      impls_.resize(clamp(thread::hardware_concurrency(), 8u, 24u) * 5 / 4);
+      impls_.resize(clamp(thread::hardware_concurrency(), 8u, 20u) * 5 / 4);
+      CHECK(impls_.size() * (1 + MultiImpl::ADDITIONAL_THREAD_COUNT + 1 /* IOCP */) < 128);
 
       net_query_stats_ = std::make_shared<NetQueryStats>();
     }
