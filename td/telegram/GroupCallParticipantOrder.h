@@ -12,6 +12,7 @@
 namespace td {
 
 class GroupCallParticipantOrder {
+  bool has_video = false;
   int32 active_date = 0;
   int32 joined_date = 0;
   int64 raise_hand_rating = 0;
@@ -26,8 +27,8 @@ class GroupCallParticipantOrder {
  public:
   GroupCallParticipantOrder() = default;
 
-  GroupCallParticipantOrder(int32 active_date, int64 raise_hand_rating, int32 joined_date)
-      : active_date(active_date), joined_date(joined_date), raise_hand_rating(raise_hand_rating) {
+  GroupCallParticipantOrder(bool has_video, int32 active_date, int64 raise_hand_rating, int32 joined_date)
+      : has_video(has_video), active_date(active_date), joined_date(joined_date), raise_hand_rating(raise_hand_rating) {
   }
 
   static GroupCallParticipantOrder min();
