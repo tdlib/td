@@ -22,6 +22,8 @@ struct GroupCallVideoPayload {
   vector<GroupCallVideoSourceGroup> source_groups;
   string endpoint;
   bool is_paused = false;
+
+  bool is_empty() const;
 };
 
 bool operator==(const GroupCallVideoPayload &lhs, const GroupCallVideoPayload &rhs);

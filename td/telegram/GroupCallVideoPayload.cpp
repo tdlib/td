@@ -23,9 +23,13 @@ static td_api::object_ptr<td_api::groupCallVideoSourceGroup> get_group_call_vide
   return td_api::make_object<td_api::groupCallVideoSourceGroup>(group.semantics, vector<int32>(group.source_ids));
 }
 
+bool GroupCallVideoPayload::is_empty() const {
+  return endpoint.empty() || source_groups.empty();
+}
+
 td_api::object_ptr<td_api::groupCallParticipantVideoInfo> get_group_call_participant_video_info_object(
     const GroupCallVideoPayload &payload) {
-  if (payload.endpoint.empty() || payload.source_groups.empty()) {
+  if (payload.is_empty()) {
     return nullptr;
   }
   return td_api::make_object<td_api::groupCallParticipantVideoInfo>(
