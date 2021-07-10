@@ -23,14 +23,14 @@ struct GroupCallVideoPayload {
   string endpoint;
   bool is_paused = false;
 
+  GroupCallVideoPayload() = default;
+  explicit GroupCallVideoPayload(const telegram_api::groupCallParticipantVideo *video);
+
   bool is_empty() const;
+
+  td_api::object_ptr<td_api::groupCallParticipantVideoInfo> get_group_call_participant_video_info_object() const;
 };
 
 bool operator==(const GroupCallVideoPayload &lhs, const GroupCallVideoPayload &rhs);
-
-td_api::object_ptr<td_api::groupCallParticipantVideoInfo> get_group_call_participant_video_info_object(
-    const GroupCallVideoPayload &payload);
-
-GroupCallVideoPayload get_group_call_video_payload(const telegram_api::groupCallParticipantVideo *video);
 
 }  // namespace td
