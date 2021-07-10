@@ -253,25 +253,24 @@ Status Transport::read_crypto_impl(int X, MutableSlice message, const AuthKey &a
   auto *prefix = reinterpret_cast<PrefixT *>(header->data);
   *prefix_ptr = prefix;
   size_t data_size = prefix->message_data_length + sizeof(PrefixT);
-  bool is_length_ok = true;
+  bool is_length_bad = false;
   UInt128 real_message_key;
 
   if (info->version == 1) {
-    is_length_ok &= !info->check_mod4 || prefix->message_data_length % 4 == 0;
+    is_length_bad |= info->check_mod4 && prefix->message_data_length % 4 != 0;
     auto expected_size = calc_crypto_size<HeaderT>(data_size);
-    is_length_ok = (is_length_ok & (expected_size == message.size())) != 0;
-    auto check_size = data_size * is_length_ok + tail_size * (1 - is_length_ok);
+    is_length_bad |= expected_size != message.size();
+    auto check_size = data_size * (1 - is_length_bad) + tail_size * is_length_bad;
     std::tie(info->message_ack, real_message_key) = calc_message_ack_and_key(*header, check_size);
   } else {
     std::tie(info->message_ack, real_message_key) = calc_message_key2(auth_key, X, to_decrypt);
   }
 
-  bool is_key_ok = true;
+  int is_key_bad = false;
   for (size_t i = 0; i < sizeof(real_message_key.raw); i++) {
-    is_key_ok &= real_message_key.raw[i] == header->message_key.raw[i];
+    is_key_bad |= real_message_key.raw[i] ^ header->message_key.raw[i];
   }
-
-  if (!is_key_ok) {
+  if (is_key_bad != 0) {
     return Status::Error(PSLICE() << "Invalid MTProto message: message_key mismatch [found = "
                                   << format::as_hex_dump(header->message_key)
                                   << "] [expected = " << format::as_hex_dump(real_message_key) << "]");
@@ -295,7 +294,7 @@ Status Transport::read_crypto_impl(int X, MutableSlice message, const AuthKey &a
                                     << tag("message_data_length", prefix->message_data_length));
     }
   } else {
-    if (!is_length_ok) {
+    if (is_length_bad) {
       return Status::Error(PSLICE() << "Invalid MTProto message: invalid length " << tag("total_size", message.size())
                                     << tag("message_data_length", prefix->message_data_length));
     }
