@@ -80,7 +80,7 @@ GroupCallParticipantOrder GroupCallParticipant::get_real_order(bool can_self_unm
   }
   auto sort_raise_hand_rating = can_self_unmute ? raise_hand_rating : 0;
   auto sort_joined_date = joined_date_asc ? std::numeric_limits<int32>::max() - joined_date : joined_date;
-  bool has_video = !video_payload.endpoint.empty() || !presentation_payload.endpoint.empty();
+  bool has_video = !video_payload.is_empty() || !presentation_payload.is_empty();
   return GroupCallParticipantOrder(has_video, sort_active_date, sort_raise_hand_rating, sort_joined_date);
 }
 
