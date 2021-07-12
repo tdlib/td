@@ -24,6 +24,7 @@
 #include "td/utils/Status.h"
 
 #include <unordered_map>
+#include <utility>
 
 namespace td {
 
@@ -246,7 +247,9 @@ class GroupCallManager final : public Actor {
   void update_group_call_participants_order(InputGroupCallId input_group_call_id, bool can_self_unmute,
                                             GroupCallParticipants *participants, const char *source);
 
-  int process_group_call_participant(InputGroupCallId group_call_id, GroupCallParticipant &&participant);
+  // returns participant_count_diff and video_participant_count_diff
+  std::pair<int32, int32> process_group_call_participant(InputGroupCallId group_call_id,
+                                                         GroupCallParticipant &&participant);
 
   void on_add_group_call_participant(InputGroupCallId input_group_call_id, DialogId participant_dialog_id);
 
@@ -342,6 +345,8 @@ class GroupCallManager final : public Actor {
 
   bool set_group_call_participant_count(GroupCall *group_call, int32 count, const char *source,
                                         bool force_update = false);
+
+  bool set_group_call_unmuted_video_count(GroupCall *group_call, int32 count, const char *source);
 
   void update_group_call_dialog(const GroupCall *group_call, const char *source, bool force);
 

@@ -1667,6 +1667,7 @@ void GroupCallManager::on_update_group_call_participants(
 
   if (!need_group_call_participants(input_group_call_id)) {
     int32 diff = 0;
+    int32 video_diff = 0;
     bool need_update = false;
     auto group_call = get_group_call(input_group_call_id);
     for (auto &group_call_participant : participants) {
@@ -1678,11 +1679,15 @@ void GroupCallManager::on_update_group_call_participants(
       if (participant.joined_date == 0) {
         if (group_call == nullptr || version > group_call->leave_version) {
           diff--;
+          video_diff += participant.video_diff;
         }
         remove_recent_group_call_speaker(input_group_call_id, participant.dialog_id);
       } else {
-        if (participant.is_just_joined && (group_call == nullptr || version >= group_call->leave_version)) {
-          diff++;
+        if (group_call == nullptr || version >= group_call->leave_version) {
+          if (participant.is_just_joined) {
+            diff++;
+          }
+          video_diff += participant.video_diff;
         }
         on_participant_speaking_in_group_call(input_group_call_id, participant);
       }
@@ -1691,6 +1696,8 @@ void GroupCallManager::on_update_group_call_participants(
     if (group_call != nullptr && group_call->is_inited && group_call->is_active && group_call->version == -1) {
       need_update |= set_group_call_participant_count(group_call, group_call->participant_count + diff,
                                                       "on_update_group_call_participants");
+      need_update |= set_group_call_unmuted_video_count(group_call, group_call->unmuted_video_count + video_diff,
+                                                        "on_update_group_call_participants");
     }
     if (need_update) {
       send_update_group_call(group_call, "on_update_group_call_participants");
@@ -1782,7 +1789,7 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
     return false;
   }
 
-  int32 diff = 0;
+  std::pair<int32, int32> diff{0, 0};
   bool is_left = false;
   bool need_rejoin = true;
   auto &pending_version_updates = participants_it->second->pending_version_updates_;
@@ -1799,8 +1806,9 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
       for (auto &participant_it : participants) {
         auto &participant = participant_it.second;
         on_participant_speaking_in_group_call(input_group_call_id, participant);
-        int mute_diff = process_group_call_participant(input_group_call_id, std::move(participant));
-        CHECK(mute_diff == 0);
+        auto mute_diff = process_group_call_participant(input_group_call_id, std::move(participant));
+        CHECK(mute_diff.first == 0);
+        diff.second += mute_diff.second;
       }
       pending_mute_updates.erase(it);
     }
@@ -1818,7 +1826,9 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
         auto &participant = participant_it.second;
         on_participant_speaking_in_group_call(input_group_call_id, participant);
         if (participant.is_self || participant.joined_date != 0) {
-          diff += process_group_call_participant(input_group_call_id, std::move(participant));
+          auto new_diff = process_group_call_participant(input_group_call_id, std::move(participant));
+          diff.first += new_diff.first;
+          diff.second += new_diff.second;
         }
       }
       LOG(INFO) << "Ignore already applied updateGroupCallParticipants with version " << version << " in "
@@ -1840,7 +1850,9 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
             continue;
           }
         }
-        diff += process_group_call_participant(input_group_call_id, std::move(participant));
+        auto new_diff = process_group_call_participant(input_group_call_id, std::move(participant));
+        diff.first += new_diff.first;
+        diff.second += new_diff.second;
       }
       pending_version_updates.erase(it);
     } else {
@@ -1864,8 +1876,10 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
     sync_participants_timeout_.cancel_timeout(group_call->group_call_id.get());
   }
 
-  need_update |= set_group_call_participant_count(group_call, group_call->participant_count + diff,
+  need_update |= set_group_call_participant_count(group_call, group_call->participant_count + diff.first,
                                                   "process_pending_group_call_participant_updates");
+  need_update |= set_group_call_unmuted_video_count(group_call, group_call->unmuted_video_count + diff.second,
+                                                    "process_pending_group_call_participant_updates");
   if (is_left && group_call->is_joined) {
     on_group_call_left_impl(group_call, need_rejoin, "process_pending_group_call_participant_updates");
     need_update = true;
@@ -2140,14 +2154,14 @@ void GroupCallManager::process_my_group_call_participant(InputGroupCallId input_
   }
 }
 
-int GroupCallManager::process_group_call_participant(InputGroupCallId input_group_call_id,
-                                                     GroupCallParticipant &&participant) {
+std::pair<int32, int32> GroupCallManager::process_group_call_participant(InputGroupCallId input_group_call_id,
+                                                                         GroupCallParticipant &&participant) {
   if (!participant.is_valid()) {
     LOG(ERROR) << "Receive invalid " << participant;
-    return 0;
+    return {0, 0};
   }
   if (!need_group_call_participants(input_group_call_id)) {
-    return 0;
+    return {0, 0};
   }
 
   LOG(INFO) << "Process " << participant << " in " << input_group_call_id;
@@ -2176,13 +2190,14 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
         }
         on_remove_group_call_participant(input_group_call_id, old_participant.dialog_id);
         remove_recent_group_call_speaker(input_group_call_id, old_participant.dialog_id);
+        int32 unmuted_video_diff = old_participant.video_payload.is_empty() ? 0 : -1;
         participants->participants.erase(participants->participants.begin() + i);
-        return -1;
+        return {-1, unmuted_video_diff};
       }
 
       if (old_participant.version > participant.version) {
         LOG(INFO) << "Ignore outdated update of " << old_participant.dialog_id;
-        return 0;
+        return {0, 0};
       }
 
       if (old_participant.dialog_id != participant.dialog_id) {
@@ -2201,15 +2216,17 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
         send_update_group_call_participant(input_group_call_id, participant, "process_group_call_participant edit");
       }
       on_participant_speaking_in_group_call(input_group_call_id, participant);
+      int32 unmuted_video_diff = static_cast<int32>(participant.video_payload.is_empty()) -
+                                 static_cast<int32>(old_participant.video_payload.is_empty());
       old_participant = std::move(participant);
-      return 0;
+      return {0, unmuted_video_diff};
     }
   }
 
   if (participant.joined_date == 0) {
     LOG(INFO) << "Remove unknown " << participant;
     remove_recent_group_call_speaker(input_group_call_id, participant.dialog_id);
-    return -1;
+    return {-1, participant.video_diff};
   }
 
   CHECK(!participant.is_min);
@@ -2236,7 +2253,7 @@ int GroupCallManager::process_group_call_participant(InputGroupCallId input_grou
   }
   on_add_group_call_participant(input_group_call_id, participants->participants.back().dialog_id);
   on_participant_speaking_in_group_call(input_group_call_id, participants->participants.back());
-  return diff;
+  return {diff, participant.video_diff};
 }
 
 void GroupCallManager::on_add_group_call_participant(InputGroupCallId input_group_call_id,
@@ -2505,12 +2522,18 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
     participant.server_is_muted_by_admin = !group_call->can_self_unmute && !can_manage_group_call(input_group_call_id);
     participant.server_is_muted_by_themselves = is_muted && !participant.server_is_muted_by_admin;
     participant.is_just_joined = !is_rejoin;
+    participant.video_diff = get_group_call_can_enable_video(group_call) && is_my_video_enabled;
     participant.is_fake = true;
-    int diff = process_group_call_participant(input_group_call_id, std::move(participant));
-    if (diff != 0) {
-      CHECK(diff == 1);
-      need_update |=
-          set_group_call_participant_count(group_call, group_call->participant_count + diff, "join_group_call", true);
+    auto diff = process_group_call_participant(input_group_call_id, std::move(participant));
+    if (diff.first != 0) {
+      CHECK(diff.first == 1);
+      need_update |= set_group_call_participant_count(group_call, group_call->participant_count + diff.first,
+                                                      "join_group_call", true);
+    }
+    if (diff.second != 0) {
+      CHECK(diff.second == 1);
+      need_update |= set_group_call_unmuted_video_count(group_call, group_call->unmuted_video_count + diff.second,
+                                                        "join_group_call");
     }
   }
   if (group_call->is_my_video_enabled != is_my_video_enabled) {
@@ -4043,6 +4066,10 @@ bool GroupCallManager::try_clear_group_call_participants(InputGroupCallId input_
       if (participant.is_self) {
         need_update |= set_group_call_participant_count(group_call, group_call->participant_count - 1,
                                                         "try_clear_group_call_participants");
+        if (!participant.video_payload.is_empty()) {
+          need_update |= set_group_call_unmuted_video_count(group_call, group_call->unmuted_video_count - 1,
+                                                            "try_clear_group_call_participants");
+        }
       }
     }
     on_remove_group_call_participant(input_group_call_id, participant.dialog_id);
@@ -4526,6 +4553,27 @@ bool GroupCallManager::set_group_call_participant_count(GroupCall *group_call, i
   group_call->participant_count = count;
   update_group_call_dialog(group_call, source, force_update);
   return true;
+}
+
+bool GroupCallManager::set_group_call_unmuted_video_count(GroupCall *group_call, int32 count, const char *source) {
+  CHECK(group_call != nullptr);
+  CHECK(group_call->is_inited);
+
+  if (count < 0) {
+    LOG(ERROR) << "Video participant count became negative in " << group_call->group_call_id << " in "
+               << group_call->dialog_id << " from " << source;
+    count = 0;
+  }
+
+  if (group_call->unmuted_video_count == count) {
+    return false;
+  }
+
+  LOG(DEBUG) << "Set " << group_call->group_call_id << " video participant count to " << count << " from " << source;
+
+  auto old_can_enable_video = get_group_call_can_enable_video(group_call);
+  group_call->unmuted_video_count = count;
+  return old_can_enable_video != get_group_call_can_enable_video(group_call);
 }
 
 void GroupCallManager::update_group_call_dialog(const GroupCall *group_call, const char *source, bool force) {
