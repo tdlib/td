@@ -725,7 +725,8 @@ Status Session::on_message_result_ok(uint64 id, BufferSlice packet, size_t origi
 
   auto it = sent_queries_.find(id);
   if (it == sent_queries_.end()) {
-    LOG(DEBUG) << "Drop result to " << tag("request_id", format::as_hex(id)) << tag("tl", format::as_hex(ID));
+    LOG(DEBUG) << "Drop result to " << tag("request_id", format::as_hex(id)) << tag("original_size", original_size)
+               << tag("tl", format::as_hex(ID));
 
     if (original_size > 16 * 1024) {
       dropped_size_ += original_size;
