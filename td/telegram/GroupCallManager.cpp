@@ -1333,13 +1333,10 @@ void GroupCallManager::on_update_group_call_rights(InputGroupCallId input_group_
     CHECK(group_call != nullptr && group_call->is_inited);
     try_load_group_call_administrators(input_group_call_id, group_call->dialog_id);
 
-    auto participants_it = group_call_participants_.find(input_group_call_id);
-    if (participants_it != group_call_participants_.end()) {
-      CHECK(participants_it->second != nullptr);
-      if (participants_it->second->are_administrators_loaded) {
-        update_group_call_participants_can_be_muted(
-            input_group_call_id, can_manage_group_calls(group_call->dialog_id).is_ok(), participants_it->second.get());
-      }
+    auto *group_call_participants = add_group_call_participants(input_group_call_id);
+    if (group_call_participants->are_administrators_loaded) {
+      update_group_call_participants_can_be_muted(
+          input_group_call_id, can_manage_group_calls(group_call->dialog_id).is_ok(), group_call_participants);
     }
   }
 
@@ -1407,12 +1404,9 @@ void GroupCallManager::finish_get_group_call(InputGroupCallId input_group_call_i
   }
   process_group_call_participants(input_group_call_id, std::move(call->participants_), version, string(), true, false);
   if (need_group_call_participants(input_group_call_id)) {
-    auto participants_it = group_call_participants_.find(input_group_call_id);
-    if (participants_it != group_call_participants_.end()) {
-      CHECK(participants_it->second != nullptr);
-      if (participants_it->second->next_offset.empty()) {
-        participants_it->second->next_offset = std::move(call->participants_next_offset_);
-      }
+    auto *group_call_participants = add_group_call_participants(input_group_call_id);
+    if (group_call_participants->next_offset.empty()) {
+      group_call_participants->next_offset = std::move(call->participants_next_offset_);
     }
   }
 
@@ -1564,12 +1558,9 @@ void GroupCallManager::on_get_group_call_participants(
   }
 
   if (is_load) {
-    auto participants_it = group_call_participants_.find(input_group_call_id);
-    if (participants_it != group_call_participants_.end()) {
-      CHECK(participants_it->second != nullptr);
-      if (participants_it->second->next_offset == offset) {
-        participants_it->second->next_offset = std::move(participants->next_offset_);
-      }
+    auto *group_call_participants = add_group_call_participants(input_group_call_id);
+    if (group_call_participants->next_offset == offset) {
+      group_call_participants->next_offset = std::move(participants->next_offset_);
     }
 
     if (is_empty || is_sync) {
@@ -1586,9 +1577,7 @@ void GroupCallManager::on_get_group_call_participants(
         real_participant_count++;
       }
       if (is_empty) {
-        auto known_participant_count = participants_it != group_call_participants_.end()
-                                           ? static_cast<int32>(participants_it->second->participants.size())
-                                           : 0;
+        auto known_participant_count = static_cast<int32>(group_call_participants->participants.size());
         if (real_participant_count != known_participant_count) {
           LOG(ERROR) << "Receive participant count " << real_participant_count << ", but know "
                      << known_participant_count << " participants in " << input_group_call_id << " from "
@@ -1995,12 +1984,9 @@ void GroupCallManager::process_group_call_participants(
 
   std::unordered_set<DialogId, DialogIdHash> old_participant_dialog_ids;
   if (is_sync) {
-    auto participants_it = group_call_participants_.find(input_group_call_id);
-    if (participants_it != group_call_participants_.end()) {
-      CHECK(participants_it->second != nullptr);
-      for (auto &participant : participants_it->second->participants) {
-        old_participant_dialog_ids.insert(participant.dialog_id);
-      }
+    auto *group_call_participants = add_group_call_participants(input_group_call_id);
+    for (auto &participant : group_call_participants->participants) {
+      old_participant_dialog_ids.insert(participant.dialog_id);
     }
   }
 
@@ -2045,58 +2031,51 @@ void GroupCallManager::process_group_call_participants(
     min_order = GroupCallParticipantOrder::min();
   }
   if (is_sync) {
-    auto participants_it = group_call_participants_.find(input_group_call_id);
-    if (participants_it != group_call_participants_.end()) {
-      CHECK(participants_it->second != nullptr);
-      auto &group_participants = participants_it->second->participants;
-      for (auto participant_it = group_participants.begin(); participant_it != group_participants.end();) {
-        auto &participant = *participant_it;
-        if (old_participant_dialog_ids.count(participant.dialog_id) == 0) {
-          // successfully synced old user
-          ++participant_it;
-          continue;
-        }
-
-        if (participant.is_self) {
-          if (participant.order != min_order) {
-            participant.order = min_order;
-            send_update_group_call_participant(input_group_call_id, participant,
-                                               "process_group_call_participants self");
-          }
-          ++participant_it;
-          continue;
-        }
-
-        // not synced user and not self, needs to be deleted
-        if (participant.order.is_valid()) {
-          CHECK(participant.order >= participants_it->second->min_order);
-          participant.order = GroupCallParticipantOrder();
-          send_update_group_call_participant(input_group_call_id, participant, "process_group_call_participants sync");
-        }
-        on_remove_group_call_participant(input_group_call_id, participant.dialog_id);
-        participant_it = group_participants.erase(participant_it);
+    auto *group_call_participants = add_group_call_participants(input_group_call_id);
+    auto &group_participants = group_call_participants->participants;
+    for (auto participant_it = group_participants.begin(); participant_it != group_participants.end();) {
+      auto &participant = *participant_it;
+      if (old_participant_dialog_ids.count(participant.dialog_id) == 0) {
+        // successfully synced old user
+        ++participant_it;
+        continue;
       }
-      if (participants_it->second->min_order < min_order) {
-        // if previously known more users, adjust min_order
-        LOG(INFO) << "Decrease min_order from " << participants_it->second->min_order << " to " << min_order << " in "
-                  << input_group_call_id;
-        participants_it->second->min_order = min_order;
-        update_group_call_participants_order(input_group_call_id, can_self_unmute, participants_it->second.get(),
-                                             "decrease min_order");
+
+      if (participant.is_self) {
+        if (participant.order != min_order) {
+          participant.order = min_order;
+          send_update_group_call_participant(input_group_call_id, participant, "process_group_call_participants self");
+        }
+        ++participant_it;
+        continue;
       }
+
+      // not synced user and not self, needs to be deleted
+      if (participant.order.is_valid()) {
+        CHECK(participant.order >= group_call_participants->min_order);
+        participant.order = GroupCallParticipantOrder();
+        send_update_group_call_participant(input_group_call_id, participant, "process_group_call_participants sync");
+      }
+      on_remove_group_call_participant(input_group_call_id, participant.dialog_id);
+      participant_it = group_participants.erase(participant_it);
+    }
+    if (group_call_participants->min_order < min_order) {
+      // if previously known more users, adjust min_order
+      LOG(INFO) << "Decrease min_order from " << group_call_participants->min_order << " to " << min_order << " in "
+                << input_group_call_id;
+      group_call_participants->min_order = min_order;
+      update_group_call_participants_order(input_group_call_id, can_self_unmute, group_call_participants,
+                                           "decrease min_order");
     }
   }
   if (is_load) {
-    auto participants_it = group_call_participants_.find(input_group_call_id);
-    if (participants_it != group_call_participants_.end()) {
-      CHECK(participants_it->second != nullptr);
-      if (participants_it->second->min_order > min_order) {
-        LOG(INFO) << "Increase min_order from " << participants_it->second->min_order << " to " << min_order << " in "
-                  << input_group_call_id;
-        participants_it->second->min_order = min_order;
-        update_group_call_participants_order(input_group_call_id, can_self_unmute, participants_it->second.get(),
-                                             "increase min_order");
-      }
+    auto *group_call_participants = add_group_call_participants(input_group_call_id);
+    if (group_call_participants->min_order > min_order) {
+      LOG(INFO) << "Increase min_order from " << group_call_participants->min_order << " to " << min_order << " in "
+                << input_group_call_id;
+      group_call_participants->min_order = min_order;
+      update_group_call_participants_order(input_group_call_id, can_self_unmute, group_call_participants,
+                                           "increase min_order");
     }
   }
 }
