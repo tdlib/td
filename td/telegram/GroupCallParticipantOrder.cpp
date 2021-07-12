@@ -31,13 +31,13 @@ string GroupCallParticipantOrder::get_group_call_participant_order_object() cons
   if (!is_valid()) {
     return string();
   }
-  return PSTRING() << (has_video ? '1' : '0') << lpad0(to_string(active_date), 10)
-                   << lpad0(to_string(raise_hand_rating), 19) << lpad0(to_string(joined_date), 10);
+  return PSTRING() << (has_video_ ? '1' : '0') << lpad0(to_string(active_date_), 10)
+                   << lpad0(to_string(raise_hand_rating_), 19) << lpad0(to_string(joined_date_), 10);
 }
 
 bool operator==(const GroupCallParticipantOrder &lhs, const GroupCallParticipantOrder &rhs) {
-  return lhs.has_video == rhs.has_video && lhs.active_date == rhs.active_date && lhs.joined_date == rhs.joined_date &&
-         lhs.raise_hand_rating == rhs.raise_hand_rating;
+  return lhs.has_video_ == rhs.has_video_ && lhs.active_date_ == rhs.active_date_ &&
+         lhs.joined_date_ == rhs.joined_date_ && lhs.raise_hand_rating_ == rhs.raise_hand_rating_;
 }
 
 bool operator!=(const GroupCallParticipantOrder &lhs, const GroupCallParticipantOrder &rhs) {
@@ -45,10 +45,10 @@ bool operator!=(const GroupCallParticipantOrder &lhs, const GroupCallParticipant
 }
 
 bool operator<(const GroupCallParticipantOrder &lhs, const GroupCallParticipantOrder &rhs) {
-  auto lhs_has_video = static_cast<int32>(lhs.has_video);
-  auto rhs_has_video = static_cast<int32>(rhs.has_video);
-  return std::tie(lhs_has_video, lhs.active_date, lhs.raise_hand_rating, lhs.joined_date) <
-         std::tie(rhs_has_video, rhs.active_date, rhs.raise_hand_rating, rhs.joined_date);
+  auto lhs_has_video_ = static_cast<int32>(lhs.has_video_);
+  auto rhs_has_video_ = static_cast<int32>(rhs.has_video_);
+  return std::tie(lhs_has_video_, lhs.active_date_, lhs.raise_hand_rating_, lhs.joined_date_) <
+         std::tie(rhs_has_video_, rhs.active_date_, rhs.raise_hand_rating_, rhs.joined_date_);
 }
 
 bool operator<=(const GroupCallParticipantOrder &lhs, const GroupCallParticipantOrder &rhs) {
@@ -65,9 +65,9 @@ bool operator>=(const GroupCallParticipantOrder &lhs, const GroupCallParticipant
 
 StringBuilder &operator<<(StringBuilder &string_builder,
                           const GroupCallParticipantOrder &group_call_participant_order) {
-  return string_builder << group_call_participant_order.has_video << '/' << group_call_participant_order.active_date
-                        << '/' << group_call_participant_order.raise_hand_rating << '/'
-                        << group_call_participant_order.joined_date;
+  return string_builder << group_call_participant_order.has_video_ << '/' << group_call_participant_order.active_date_
+                        << '/' << group_call_participant_order.raise_hand_rating_ << '/'
+                        << group_call_participant_order.joined_date_;
 }
 
 }  // namespace td
