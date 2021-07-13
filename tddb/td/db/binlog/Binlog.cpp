@@ -667,8 +667,14 @@ void Binlog::do_reindex() {
   auto finish_time = Clocks::monotonic();
   auto finish_size = fd_size_;
   auto finish_events = fd_events_;
-  LOG_CHECK(fd_size_ == detail::file_size(path_))
-      << fd_size_ << ' ' << detail::file_size(path_) << ' ' << fd_events_ << ' ' << path_;
+  {
+    auto r_stat = stat(path_);
+    if (r_stat.is_error()) {
+      LOG(FATAL) << "Failed to rename binlog of size " << fd_size_ << " to " << path_ << ": " << r_stat.error();
+    }
+    LOG_CHECK(fd_size_ == r_stat.ok().size_)
+        << fd_size_ << ' ' << r_stat.ok().size_ << ' ' << fd_events_ << ' ' << path_;
+  }
 
   double ratio = static_cast<double>(start_size) / static_cast<double>(finish_size + 1);
 
