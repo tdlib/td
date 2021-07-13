@@ -115,6 +115,10 @@ bool GroupCallParticipant::get_is_hand_raised() const {
   return have_pending_is_hand_raised ? pending_is_hand_raised : raise_hand_rating != 0;
 }
 
+int32 GroupCallParticipant::get_has_video() const {
+  return video_payload.is_empty() ? 0 : 1;
+}
+
 void GroupCallParticipant::update_from(const GroupCallParticipant &old_participant) {
   CHECK(!old_participant.is_min);
   if (joined_date < old_participant.joined_date) {

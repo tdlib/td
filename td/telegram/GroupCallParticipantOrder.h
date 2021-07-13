@@ -40,6 +40,10 @@ class GroupCallParticipantOrder {
 
   bool is_valid() const;
 
+  bool has_video() const {
+    return has_video_;
+  }
+
   string get_group_call_participant_order_object() const;
 };
 

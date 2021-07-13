@@ -96,6 +96,8 @@ struct GroupCallParticipant {
 
   bool get_is_hand_raised() const;
 
+  int32 get_has_video() const;
+
   td_api::object_ptr<td_api::groupCallParticipant> get_group_call_participant_object(Td *td) const;
 };
 

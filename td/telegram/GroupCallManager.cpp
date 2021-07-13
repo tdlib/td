@@ -877,6 +877,7 @@ struct GroupCallManager::GroupCallParticipants {
   string next_offset;
   GroupCallParticipantOrder min_order = GroupCallParticipantOrder::max();
   bool joined_date_asc = false;
+  int32 local_unmuted_video_count = 0;
 
   bool are_administrators_loaded = false;
   vector<DialogId> administrator_dialog_ids;
@@ -1600,6 +1601,10 @@ void GroupCallManager::on_get_group_call_participants(
       if (process_pending_group_call_participant_updates(input_group_call_id)) {
         need_update = false;
       }
+      if (group_call->loaded_all_participants || !group_call_participants->min_order.has_video()) {
+        set_group_call_unmuted_video_count(group_call, group_call_participants->local_unmuted_video_count,
+                                           "on_get_group_call_participants");
+      }
       if (need_update) {
         send_update_group_call(group_call, "on_get_group_call_participants");
       }
@@ -2057,6 +2062,7 @@ void GroupCallManager::process_group_call_participants(
         send_update_group_call_participant(input_group_call_id, participant, "process_group_call_participants sync");
       }
       on_remove_group_call_participant(input_group_call_id, participant.dialog_id);
+      group_call_participants->local_unmuted_video_count -= participant.get_has_video();
       participant_it = group_participants.erase(participant_it);
     }
     if (group_call_participants->min_order < min_order) {
@@ -2169,7 +2175,8 @@ std::pair<int32, int32> GroupCallManager::process_group_call_participant(InputGr
         }
         on_remove_group_call_participant(input_group_call_id, old_participant.dialog_id);
         remove_recent_group_call_speaker(input_group_call_id, old_participant.dialog_id);
-        int32 unmuted_video_diff = old_participant.video_payload.is_empty() ? 0 : -1;
+        int32 unmuted_video_diff = -old_participant.get_has_video();
+        participants->local_unmuted_video_count += unmuted_video_diff;
         participants->participants.erase(participants->participants.begin() + i);
         return {-1, unmuted_video_diff};
       }
@@ -2195,8 +2202,8 @@ std::pair<int32, int32> GroupCallManager::process_group_call_participant(InputGr
         send_update_group_call_participant(input_group_call_id, participant, "process_group_call_participant edit");
       }
       on_participant_speaking_in_group_call(input_group_call_id, participant);
-      int32 unmuted_video_diff = static_cast<int32>(participant.video_payload.is_empty()) -
-                                 static_cast<int32>(old_participant.video_payload.is_empty());
+      int32 unmuted_video_diff = participant.get_has_video() - old_participant.get_has_video();
+      participants->local_unmuted_video_count += unmuted_video_diff;
       old_participant = std::move(participant);
       return {0, unmuted_video_diff};
     }
@@ -2217,6 +2224,7 @@ std::pair<int32, int32> GroupCallManager::process_group_call_participant(InputGr
     LOG(INFO) << "Receive new " << participant;
   }
   participant.is_just_joined = false;
+  participants->local_unmuted_video_count += participant.get_has_video();
   update_group_call_participant_can_be_muted(can_manage, participants, participant);
   participants->participants.push_back(std::move(participant));
   if (participants->participants.back().order.is_valid()) {
@@ -4045,7 +4053,7 @@ bool GroupCallManager::try_clear_group_call_participants(InputGroupCallId input_
       if (participant.is_self) {
         need_update |= set_group_call_participant_count(group_call, group_call->participant_count - 1,
                                                         "try_clear_group_call_participants");
-        if (!participant.video_payload.is_empty()) {
+        if (participant.get_has_video()) {
           need_update |= set_group_call_unmuted_video_count(group_call, group_call->unmuted_video_count - 1,
                                                             "try_clear_group_call_participants");
         }
@@ -4053,6 +4061,7 @@ bool GroupCallManager::try_clear_group_call_participants(InputGroupCallId input_
     }
     on_remove_group_call_participant(input_group_call_id, participant.dialog_id);
   }
+  participants->local_unmuted_video_count = 0;
 
   if (group_call_participants_.empty()) {
     CHECK(participant_id_to_group_call_id_.empty());
@@ -4537,6 +4546,23 @@ bool GroupCallManager::set_group_call_participant_count(GroupCall *group_call, i
 bool GroupCallManager::set_group_call_unmuted_video_count(GroupCall *group_call, int32 count, const char *source) {
   CHECK(group_call != nullptr);
   CHECK(group_call->is_inited);
+
+  auto participants_it = group_call_participants_.find(get_input_group_call_id(group_call->group_call_id).ok());
+  if (participants_it != group_call_participants_.end()) {
+    auto group_call_participants = participants_it->second.get();
+    CHECK(group_call_participants != nullptr);
+    CHECK(group_call_participants->local_unmuted_video_count >= 0);
+    CHECK(static_cast<size_t>(group_call_participants->local_unmuted_video_count) <=
+          group_call_participants->participants.size());
+    if (group_call->loaded_all_participants || !group_call_participants->min_order.has_video()) {
+      if (group_call_participants->local_unmuted_video_count != count &&
+          group_call->unmuted_video_count != group_call_participants->local_unmuted_video_count) {
+        LOG(INFO) << "Use local count " << group_call_participants->local_unmuted_video_count
+                  << " of unmuted videos instead of " << count;
+      }
+      count = group_call_participants->local_unmuted_video_count;
+    }
+  }
 
   if (count < 0) {
     LOG(ERROR) << "Video participant count became negative in " << group_call->group_call_id << " in "
