@@ -66,7 +66,7 @@ GroupCallParticipant::GroupCallParticipant(const tl_object_ptr<telegram_api::gro
     presentation_payload = GroupCallVideoPayload(participant->presentation_.get());
   }
 
-  if (is_just_joined && !video_payload.is_empty()) {
+  if (is_just_joined && get_has_video()) {
     video_diff++;
   }
   if (joined_date == 0) {
@@ -116,7 +116,7 @@ bool GroupCallParticipant::get_is_hand_raised() const {
 }
 
 int32 GroupCallParticipant::get_has_video() const {
-  return video_payload.is_empty() ? 0 : 1;
+  return video_payload.is_empty() && presentation_payload.is_empty() ? 0 : 1;
 }
 
 void GroupCallParticipant::update_from(const GroupCallParticipant &old_participant) {
