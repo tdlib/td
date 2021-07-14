@@ -9230,8 +9230,13 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
         on_dialog_updated(dialog_id, "set have_full_history");
       }
 
-      if (from_the_end && d->have_full_history && d->messages == nullptr && !d->last_database_message_id.is_valid()) {
-        set_dialog_is_empty(d, "on_get_history empty");
+      if (from_the_end && d->have_full_history && d->messages == nullptr) {
+        if (!d->last_database_message_id.is_valid()) {
+          set_dialog_is_empty(d, "on_get_history empty");
+        } else {
+          LOG(INFO) << "Skip marking " << dialog_id << " as empty, because it probably has messages from "
+                    << d->first_database_message_id << " to " << d->last_database_message_id << " in the database";
+        }
       }
     }
 
