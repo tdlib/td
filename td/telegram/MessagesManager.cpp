@@ -22065,8 +22065,8 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
   }
   resolve_dependencies_force(td_, dependencies, "on_get_history_from_database");
 
-  if (from_the_end && !last_added_message_id.is_valid() && last_received_message_id < d->first_database_message_id &&
-      !d->have_full_history) {
+  if (from_the_end && !last_added_message_id.is_valid() && d->first_database_message_id.is_valid() &&
+      last_received_message_id <= d->first_database_message_id && !d->have_full_history) {
     // failed to load from database a message from first_database_message_id to last_database_message_id; drop them
     set_dialog_first_database_message_id(d, MessageId(), "on_get_history_from_database 8");
     set_dialog_last_database_message_id(d, MessageId(), "on_get_history_from_database 9");
