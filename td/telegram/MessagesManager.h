@@ -1202,6 +1202,7 @@ class MessagesManager final : public Actor {
     bool can_invite_members = false;
 
     bool is_opened = false;
+    bool was_opened = false;
 
     bool need_restore_reply_markup = true;
 

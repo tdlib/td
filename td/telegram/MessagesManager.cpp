@@ -7344,11 +7344,14 @@ void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_p
     if (old_pts != new_pts - pts_count) {
       LOG(INFO) << "Found a gap in the " << dialog_id << " with pts = " << old_pts << ". new_pts = " << new_pts
                 << ", pts_count = " << pts_count << " in update from " << source;
+      if (d->order != DEFAULT_ORDER || is_dialog_sponsored(d) || d->was_opened) {
+        d->postponed_channel_updates.emplace(
+            new_pts, PendingPtsUpdate(std::move(update), new_pts, pts_count, std::move(promise)));
 
-      d->postponed_channel_updates.emplace(new_pts,
-                                           PendingPtsUpdate(std::move(update), new_pts, pts_count, std::move(promise)));
-
-      get_channel_difference(dialog_id, old_pts, true, "add_pending_channel_update pts mismatch");
+        get_channel_difference(dialog_id, old_pts, true, "add_pending_channel_update pts mismatch");
+      } else {
+        promise.set_value(Unit());
+      }
       return;
     }
   }
@@ -19432,6 +19435,7 @@ void MessagesManager::open_dialog(Dialog *d) {
     return;
   }
   d->is_opened = true;
+  d->was_opened = true;
 
   auto min_message_id = MessageId(ServerMessageId(1));
   if (d->last_message_id == MessageId() && d->last_read_outbox_message_id < min_message_id && d->messages != nullptr &&
@@ -35871,6 +35875,8 @@ MessagesManager::Message *MessagesManager::continue_send_message(DialogId dialog
   LOG(INFO) << "Continue to send " << m->message_id << " to " << dialog_id << " initially sent at " << m->send_date
             << " from binlog";
 
+  d->was_opened = true;
+
   auto now = G()->unix_time();
   if (m->message_id.is_scheduled()) {
     set_message_id(m, get_next_yet_unsent_scheduled_message_id(d, m->date));
@@ -36076,6 +36082,8 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           continue;
         }
+
+        to_dialog->was_opened = true;
 
         auto now = G()->unix_time();
         if (!have_input_peer(from_dialog_id, AccessRights::Read) || can_send_message(to_dialog_id).is_error() ||
