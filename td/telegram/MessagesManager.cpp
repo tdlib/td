@@ -15092,7 +15092,8 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
 
   if (!only_from_memory) {
     if (need_get_history && !td_->auth_manager_->is_bot() && have_input_peer(d->dialog_id, AccessRights::Read)) {
-      get_history_from_the_end(d->dialog_id, true, false, Auto());
+      send_closure_later(actor_id(this), &MessagesManager::get_history_from_the_end, d->dialog_id, true, false,
+                         Promise<Unit>());
     }
 
     if (d->reply_markup_message_id == message_id) {
@@ -21958,7 +21959,8 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
   LOG(INFO) << "Receive " << messages.size() << " history messages from database "
             << (from_the_end ? "from the end " : "") << "in " << dialog_id << " from " << from_message_id
             << " with offset " << offset << " and limit " << limit << ". First database message is "
-            << d->first_database_message_id << ", have_full_history = " << d->have_full_history;
+            << d->first_database_message_id << ", last database message is " << d->last_database_message_id
+            << ", have_full_history = " << d->have_full_history;
 
   if (messages.empty() && from_the_end && d->messages == nullptr) {
     if (d->have_full_history) {
