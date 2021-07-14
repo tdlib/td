@@ -22065,13 +22065,35 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
   }
   resolve_dependencies_force(td_, dependencies, "on_get_history_from_database");
 
-  if (from_the_end && !last_added_message_id.is_valid() && d->first_database_message_id.is_valid() && !d->have_full_history) {
+  if (from_the_end && !last_added_message_id.is_valid() && d->first_database_message_id.is_valid() &&
+      !d->have_full_history) {
     if (last_received_message_id <= d->first_database_message_id) {
       // database definitely has no messages from first_database_message_id to last_database_message_id; drop them
       set_dialog_first_database_message_id(d, MessageId(), "on_get_history_from_database 8");
       set_dialog_last_database_message_id(d, MessageId(), "on_get_history_from_database 9");
     } else {
-      set_dialog_last_database_message_id(d, last_received_message_id, "on_get_history_from_database 12");
+      CHECK(last_received_message_id.is_valid());
+      // if a message was received, but wasn't added, then it is likely to be already deleted
+      // if it is less than d->last_database_message_id, then we can adjust d->last_database_message_id and
+      // try again database search without chance to loop
+      if (last_received_message_id < d->last_database_message_id) {
+        set_dialog_last_database_message_id(d, last_received_message_id, "on_get_history_from_database 12");
+
+        get_history_from_the_end(dialog_id, true, only_local, std::move(promise));
+        return;
+      }
+
+      if (limit > 1) {
+        // we expected to have messages [first_database_message_id, last_database_message_id] in the database, but
+        // received newer messages [last_received_message_id, ...], none of which can be added
+        // first_database_message_id and last_database_message_id are very wrong, so it is better to drop them,
+        // pretending that the database has no usable messages
+        LOG(ERROR) << "Receive unusable messages up to " << last_received_message_id << " in " << dialog_id
+                   << " from database from the end, but expected messages from " << d->last_database_message_id
+                   << " up to " << d->first_database_message_id;
+        set_dialog_first_database_message_id(d, MessageId(), "on_get_history_from_database 13");
+        set_dialog_last_database_message_id(d, MessageId(), "on_get_history_from_database 14");
+      }
     }
   }
 
