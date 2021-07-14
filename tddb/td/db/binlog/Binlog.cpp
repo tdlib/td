@@ -670,10 +670,11 @@ void Binlog::do_reindex() {
   {
     auto r_stat = stat(path_);
     if (r_stat.is_error()) {
-      LOG(FATAL) << "Failed to rename binlog of size " << fd_size_ << " to " << path_ << ": " << r_stat.error();
+      LOG(FATAL) << "Failed to rename binlog of size " << fd_size_ << " to " << path_ << ": " << r_stat.error()
+                 << ". Old file size is " << detail::file_size(new_path);
     }
-    LOG_CHECK(fd_size_ == r_stat.ok().size_)
-        << fd_size_ << ' ' << r_stat.ok().size_ << ' ' << fd_events_ << ' ' << path_;
+    LOG_CHECK(fd_size_ == r_stat.ok().size_) << fd_size_ << ' ' << r_stat.ok().size_ << ' '
+                                             << detail::file_size(new_path) << ' ' << fd_events_ << ' ' << path_;
   }
 
   double ratio = static_cast<double>(start_size) / static_cast<double>(finish_size + 1);
