@@ -69,9 +69,6 @@ GroupCallParticipant::GroupCallParticipant(const tl_object_ptr<telegram_api::gro
   if (is_just_joined && get_has_video()) {
     video_diff++;
   }
-  if (joined_date == 0) {
-    video_diff--;
-  }
 }
 
 bool GroupCallParticipant::is_versioned_update(const tl_object_ptr<telegram_api::groupCallParticipant> &participant) {
