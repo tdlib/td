@@ -1721,7 +1721,7 @@ messageVoiceChatScheduled group_call_id:int32 start_date:int32 = MessageContent;
 //@description A newly created voice chat @group_call_id Identifier of the voice chat. The voice chat can be received through the method getGroupCall
 messageVoiceChatStarted group_call_id:int32 = MessageContent;
 
-//@description A message with information about an ended voice chat @duration Call duration
+//@description A message with information about an ended voice chat @duration Call duration, in seconds
 messageVoiceChatEnded duration:int32 = MessageContent;
 
 //@description A message with information about an invite to a voice chat @group_call_id Identifier of the voice chat. The voice chat can be received through the method getGroupCall @user_ids Invited user identifiers
@@ -2174,7 +2174,7 @@ groupCallRecentSpeaker participant_id:MessageSender is_speaking:Bool = GroupCall
 //@mute_new_participants True, if only group call administrators can unmute new participants
 //@can_change_mute_new_participants True, if the current user can enable or disable mute_new_participants setting
 //@record_duration Duration of the ongoing group call recording, in seconds; 0 if none. An updateGroupCall update is not triggered when value of this field changes, but the same recording goes on
-//@duration Call duration; for ended calls only
+//@duration Call duration, in seconds; for ended calls only
 groupCall id:int32 title:string scheduled_start_date:int32 enabled_start_notification:Bool is_active:Bool is_joined:Bool need_rejoin:Bool can_be_managed:Bool participant_count:int32 loaded_all_participants:Bool recent_speakers:vector<groupCallRecentSpeaker> is_my_video_enabled:Bool is_my_video_paused:Bool can_enable_video:Bool mute_new_participants:Bool can_change_mute_new_participants:Bool record_duration:int32 duration:int32 = GroupCall;
 
 //@description Describes a group of video synchronization source identifiers @semantics The semantics of sources, one of "SIM" or "FID" @source_ids The list of synchronization source identifiers
