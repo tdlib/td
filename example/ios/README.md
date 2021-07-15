@@ -13,7 +13,7 @@ To compile `TDLib` you will need to:
 ```
 brew install gperf cmake coreutils
 ```
-* If you don't want to build `TDLib` for macOS, you can pregenerate required source code files using `CMake` prepare_cross_compiling target:
+* If you don't want to build `TDLib` for macOS first, you **must** pregenerate required source code files using `CMake` prepare_cross_compiling target:
 ```
 cd <path to TDLib sources>
 mkdir native-build
