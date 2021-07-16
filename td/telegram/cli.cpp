@@ -3111,7 +3111,7 @@ class CliClient final : public Actor {
     } else if (op == "smt" || op == "smtp" || op == "smtf" || op == "smtpf") {
       const string &chat_id = args;
       for (int i = 1; i <= 200; i++) {
-        string message = PSTRING() << (td::Random::fast(0, 3) == 0 && i > 90 ? "sleep " : "") << "#" << i;
+        string message = PSTRING() << (Random::fast(0, 3) == 0 && i > 90 ? "sleep " : "") << "#" << i;
         if (i == 6 || (op.back() == 'f' && i % 2 == 0)) {
           message = string(4097, 'a');
         }

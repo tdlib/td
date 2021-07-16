@@ -414,6 +414,7 @@ set(TDLIB_SOURCE
   td/mtproto/AuthData.h
   td/mtproto/AuthKey.h
   td/mtproto/CryptoStorer.h
+  td/mtproto/DhCallback.h
   td/mtproto/DhHandshake.h
   td/mtproto/Handshake.h
   td/mtproto/HandshakeActor.h
