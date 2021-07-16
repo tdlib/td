@@ -166,7 +166,7 @@ function split_file($file, $chunks, $undo) {
     $parents = array();
     foreach ($functions as $i => $f) {
         if (preg_match_all('/(?J)(create_handler|create_net_actor)<(?<name>[A-Z][A-Za-z]*)>|'.
-                           '(?<name>[A-Z][A-Za-z]*) : public (Td::ResultHandler|NetActor|Request)|'.
+                           '(?<name>[A-Z][A-Za-z]*) (final )?: public (Td::ResultHandler|NetActor|Request)|'.
                            '(CREATE_REQUEST|CREATE_NO_ARGS_REQUEST)[(](?<name>[A-Z][A-Za-z]*)|'.
                            '(?<name>complete_pending_preauthentication_requests)|'.
                            '(?<name>get_message_history_slice)|'.
