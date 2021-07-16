@@ -14521,15 +14521,26 @@ std::pair<int32, vector<DialogId>> ContactsManager::search_among_dialogs(const v
   return {narrow_cast<int32>(result.first), transform(result.second, [](int64 key) { return DialogId(key); })};
 }
 
-DialogId ContactsManager::get_participant_dialog_id(const td_api::object_ptr<td_api::MessageSender> &participant_id) {
+Result<DialogId> ContactsManager::get_participant_dialog_id(
+    const td_api::object_ptr<td_api::MessageSender> &participant_id) {
   if (participant_id == nullptr) {
-    return DialogId();
+    return Status::Error(400, "Member identifier is not specified");
   }
   switch (participant_id->get_id()) {
-    case td_api::messageSenderUser::ID:
-      return DialogId(UserId(static_cast<const td_api::messageSenderUser *>(participant_id.get())->user_id_));
-    case td_api::messageSenderChat::ID:
-      return DialogId(static_cast<const td_api::messageSenderChat *>(participant_id.get())->chat_id_);
+    case td_api::messageSenderUser::ID: {
+      auto user_id = UserId(static_cast<const td_api::messageSenderUser *>(participant_id.get())->user_id_);
+      if (!user_id.is_valid()) {
+        return Status::Error(400, "Invalid user identifier specified");
+      }
+      return DialogId(user_id);
+    }
+    case td_api::messageSenderChat::ID: {
+      auto dialog_id = DialogId(static_cast<const td_api::messageSenderChat *>(participant_id.get())->chat_id_);
+      if (!dialog_id.is_valid()) {
+        return Status::Error(400, "Invalid chat identifier specified");
+      }
+      return dialog_id;
+    }
     default:
       UNREACHABLE();
       return DialogId();
@@ -14583,9 +14594,12 @@ void ContactsManager::add_dialog_participants(DialogId dialog_id, const vector<U
   }
 }
 
-void ContactsManager::set_dialog_participant_status(DialogId dialog_id, DialogId participant_dialog_id,
+void ContactsManager::set_dialog_participant_status(DialogId dialog_id,
+                                                    const tl_object_ptr<td_api::MessageSender> &participant_id,
                                                     const tl_object_ptr<td_api::ChatMemberStatus> &chat_member_status,
                                                     Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE(promise, participant_dialog_id, get_participant_dialog_id(participant_id));
+
   auto status = get_dialog_participant_status(chat_member_status);
   if (!td_->messages_manager_->have_dialog_force(dialog_id, "set_dialog_participant_status")) {
     return promise.set_error(Status::Error(3, "Chat not found"));
@@ -14615,8 +14629,11 @@ void ContactsManager::set_dialog_participant_status(DialogId dialog_id, DialogId
   }
 }
 
-void ContactsManager::ban_dialog_participant(DialogId dialog_id, DialogId participant_dialog_id,
+void ContactsManager::ban_dialog_participant(DialogId dialog_id,
+                                             const tl_object_ptr<td_api::MessageSender> &participant_id,
                                              int32 banned_until_date, bool revoke_messages, Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE(promise, participant_dialog_id, get_participant_dialog_id(participant_id));
+
   if (!td_->messages_manager_->have_dialog_force(dialog_id, "ban_dialog_participant")) {
     return promise.set_error(Status::Error(3, "Chat not found"));
   }
@@ -14641,17 +14658,21 @@ void ContactsManager::ban_dialog_participant(DialogId dialog_id, DialogId partic
   }
 }
 
-DialogParticipant ContactsManager::get_dialog_participant(DialogId dialog_id, DialogId participant_dialog_id,
+DialogParticipant ContactsManager::get_dialog_participant(DialogId dialog_id,
+                                                          const tl_object_ptr<td_api::MessageSender> &participant_id,
                                                           int64 &random_id, bool force, Promise<Unit> &&promise) {
+  // TODO TRY_RESULT_PROMISE(promise, participant_dialog_id, get_participant_dialog_id(participant_id));
+  auto r_participant_dialog_id = get_participant_dialog_id(participant_id);
+  if (r_participant_dialog_id.is_error()) {
+    promise.set_error(r_participant_dialog_id.move_as_error());
+    return {};
+  }
+  auto participant_dialog_id = r_participant_dialog_id.move_as_ok();
+
   LOG(INFO) << "Receive GetChatMember request to get " << participant_dialog_id << " in " << dialog_id
             << " with random_id " << random_id;
   if (!td_->messages_manager_->have_dialog_force(dialog_id, "get_dialog_participant")) {
     promise.set_error(Status::Error(3, "Chat not found"));
-    return DialogParticipant();
-  }
-
-  if (!participant_dialog_id.is_valid()) {
-    promise.set_error(Status::Error(3, "Invalid member identifier specified"));
     return DialogParticipant();
   }
 
