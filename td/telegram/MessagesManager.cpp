@@ -22094,12 +22094,18 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
 
       if (limit > 1) {
         // we expected to have messages [first_database_message_id, last_database_message_id] in the database, but
-        // received newer messages [last_received_message_id, ...], none of which can be added
+        // received no messages or newer messages [last_received_message_id, ...], none of which can be added
         // first_database_message_id and last_database_message_id are very wrong, so it is better to drop them,
         // pretending that the database has no usable messages
-        LOG(ERROR) << "Receive unusable messages up to " << last_received_message_id << " in " << dialog_id
-                   << " from database from the end, but expected messages from " << d->last_database_message_id
-                   << " up to " << d->first_database_message_id;
+        if (last_received_message_id == MessageId::max()) {
+          LOG(ERROR) << "Receive no usable messages in " << dialog_id
+                     << " from database from the end, but expected messages from " << d->last_database_message_id
+                     << " up to " << d->first_database_message_id;
+        } else {
+          LOG(ERROR) << "Receive " << messages.size() << " unusable messages up to " << last_received_message_id
+                     << " in " << dialog_id << " from database from the end, but expected messages from "
+                     << d->last_database_message_id << " up to " << d->first_database_message_id;
+        }
         set_dialog_first_database_message_id(d, MessageId(), "on_get_history_from_database 13");
         set_dialog_last_database_message_id(d, MessageId(), "on_get_history_from_database 14");
       }
