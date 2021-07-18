@@ -3320,6 +3320,7 @@ class MessagesManager final : public Actor {
   FullMessageId being_readded_message_id_;
 
   DialogId being_added_dialog_id_;
+  DialogId being_added_by_new_message_dialog_id_;
 
   DialogId debug_channel_difference_dialog_;
 

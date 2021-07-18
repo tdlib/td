@@ -14352,6 +14352,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     added_dialog_ids.push_back(dialog_id);
     Dialog *d = get_dialog_force(dialog_id, "on_get_dialogs");
     bool need_update_dialog_pos = false;
+    CHECK(!being_added_dialog_id_.is_valid());
     being_added_dialog_id_ = dialog_id;
     if (d == nullptr) {
       d = add_dialog(dialog_id, "on_get_dialogs");
@@ -31558,8 +31559,13 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(DialogId dialog
 
   Dialog *d = get_dialog_force(dialog_id, source);
   if (d == nullptr) {
+    if (from_update) {
+      CHECK(!being_added_by_new_message_dialog_id_.is_valid());
+      being_added_by_new_message_dialog_id_ = dialog_id;
+    }
     d = add_dialog(dialog_id, "add_message_to_dialog");
     *need_update_dialog_pos = true;
+    being_added_by_new_message_dialog_id_ = DialogId();
   } else {
     CHECK(d->dialog_id == dialog_id);
   }
@@ -33490,14 +33496,14 @@ void MessagesManager::force_create_dialog(DialogId dialog_id, const char *source
 }
 
 MessagesManager::Dialog *MessagesManager::add_dialog(DialogId dialog_id, const char *source) {
-  LOG(DEBUG) << "Creating " << dialog_id;
+  LOG(DEBUG) << "Creating " << dialog_id << " from " << source;
   CHECK(!have_dialog(dialog_id));
 
   if (G()->parameters().use_message_db) {
     // TODO preload dialog asynchronously, remove loading from this function
     auto r_value = G()->td_db()->get_dialog_db_sync()->get_dialog(dialog_id);
     if (r_value.is_ok()) {
-      LOG(INFO) << "Synchronously loaded " << dialog_id << " from database";
+      LOG(INFO) << "Synchronously loaded " << dialog_id << " from database from " << source;
       return add_new_dialog(parse_dialog(dialog_id, r_value.ok(), source), true, source);
     }
   }
@@ -33542,7 +33548,7 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
     }
     case DialogType::SecretChat:
       if (d->last_new_message_id.get() <= MessageId::min().get()) {
-        LOG(INFO) << "Set " << d->dialog_id << " last new message in add_new_dialog";
+        LOG(INFO) << "Set " << d->dialog_id << " last new message in add_new_dialog from " << source;
         d->last_new_message_id = MessageId::min().get_next_message_id(MessageType::Local);
       }
 
@@ -33961,7 +33967,8 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
     d->pending_read_channel_inbox_pts = 0;
   }
   if (need_get_history && !td_->auth_manager_->is_bot() && dialog_id != being_added_dialog_id_ &&
-      have_input_peer(dialog_id, AccessRights::Read) && (d->order != DEFAULT_ORDER || is_dialog_sponsored(d))) {
+      dialog_id != being_added_by_new_message_dialog_id_ && have_input_peer(dialog_id, AccessRights::Read) &&
+      (d->order != DEFAULT_ORDER || is_dialog_sponsored(d))) {
     get_history_from_the_end(dialog_id, true, false, Auto());
   }
   if (d->need_repair_server_unread_count && need_unread_counter(d->order)) {
@@ -33979,6 +33986,7 @@ void MessagesManager::add_dialog_last_database_message(Dialog *d, unique_ptr<Mes
   CHECK(last_database_message->left == nullptr);
   CHECK(last_database_message->right == nullptr);
 
+  auto dialog_id = d->dialog_id;
   auto message_id = last_database_message->message_id;
   CHECK(message_id.is_valid());
   LOG_CHECK(d->last_database_message_id == message_id)
@@ -33986,7 +33994,7 @@ void MessagesManager::add_dialog_last_database_message(Dialog *d, unique_ptr<Mes
 
   bool need_update_dialog_pos = false;
   const Message *m = nullptr;
-  if (have_input_peer(d->dialog_id, AccessRights::Read)) {
+  if (have_input_peer(dialog_id, AccessRights::Read)) {
     bool need_update = false;
     last_database_message->have_previous = false;
     last_database_message->have_next = false;
@@ -33994,7 +34002,7 @@ void MessagesManager::add_dialog_last_database_message(Dialog *d, unique_ptr<Mes
     m = add_message_to_dialog(d, std::move(last_database_message), false, &need_update, &need_update_dialog_pos,
                               "add_dialog_last_database_message 1");
     if (need_update_dialog_pos) {
-      LOG(ERROR) << "Need to update pos in " << d->dialog_id;
+      LOG(ERROR) << "Need to update pos in " << dialog_id;
     }
   }
   if (m != nullptr) {
@@ -34006,11 +34014,12 @@ void MessagesManager::add_dialog_last_database_message(Dialog *d, unique_ptr<Mes
       d->pending_last_message_id = MessageId();
       need_update_dialog_pos = true;
     }
-    on_dialog_updated(d->dialog_id, "add_dialog_last_database_message 4");  // resave without last database message
+    on_dialog_updated(dialog_id, "add_dialog_last_database_message 4");  // resave without last database message
 
-    if (!td_->auth_manager_->is_bot() && d->dialog_id != being_added_dialog_id_ &&
-        have_input_peer(d->dialog_id, AccessRights::Read) && (d->order != DEFAULT_ORDER || is_dialog_sponsored(d))) {
-      get_history_from_the_end(d->dialog_id, true, false, Auto());
+    if (!td_->auth_manager_->is_bot() && dialog_id != being_added_dialog_id_ &&
+        dialog_id != being_added_by_new_message_dialog_id_ && have_input_peer(dialog_id, AccessRights::Read) &&
+        (d->order != DEFAULT_ORDER || is_dialog_sponsored(d))) {
+      get_history_from_the_end(dialog_id, true, false, Auto());
     }
   }
 
