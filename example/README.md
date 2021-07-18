@@ -50,6 +50,10 @@ You can also try a fork [python-telegram](https://github.com/iTeam-co/python-tel
 For older Python versions you can use [pytdlib](https://github.com/pytdlib/pytdlib).
 This wrapper contains generator for TDLib API classes and basic interface for interaction with TDLib.
 
+If you want to use tdlib with asyncio take a look at [aiotdlib](https://github.com/pylakey/aiotdlib).
+This wrapper also contains generator for all TDLib API types and functions. All generated types are properly documented from original TL Schema.
+Additionally, aiotdlib provides set of helper methods which makes work with tdlib much simpler.
+
 You can also check out [example/python/tdjson_example.py](https://github.com/tdlib/td/tree/master/example/python/tdjson_example.py) and
 [tdlib-python](https://github.com/JunaidBabu/tdlib-python) for some very basic examples of TDLib JSON interface integration with Python.
 
