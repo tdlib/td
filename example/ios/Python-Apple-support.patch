@@ -43,7 +43,7 @@ index 695be54..4efe5e5 100644
  
 +# iOS-simulator targets
 +TARGETS-iOS-simulator=iphonesimulator.x86_64 iphonesimulator.i386 iphonesimulator.arm64
-+CFLAGS-iOS-simulator=-mios-version-min=7.0
++CFLAGS-iOS-simulator=-mios-simulator-version-min=7.0
 +
  # tvOS targets
 -TARGETS-tvOS=appletvsimulator.x86_64 appletvos.arm64
@@ -54,7 +54,7 @@ index 695be54..4efe5e5 100644
  
 +# tvOS-simulator targets
 +TARGETS-tvOS-simulator=appletvsimulator.x86_64 appletvsimulator.arm64
-+CFLAGS-tvOS-simulator=-mtvos-version-min=9.0
++CFLAGS-tvOS-simulator=-mtvos-simulator-version-min=9.0
 +
  # watchOS targets
 -TARGETS-watchOS=watchsimulator.i386 watchos.armv7k
@@ -66,7 +66,7 @@ index 695be54..4efe5e5 100644
  
 +# watchOS-simulator targets
 +TARGETS-watchOS-simulator=watchsimulator.i386 watchsimulator.x86_64 watchsimulator.arm64
-+CFLAGS-watchOS-simulator=-mwatchos-version-min=4.0
++CFLAGS-watchOS-simulator=-mwatchos-simulator-version-min=4.0
 +
  # override machine types for arm64
  MACHINE_DETAILED-arm64=aarch64
