@@ -21946,9 +21946,10 @@ unique_ptr<MessagesManager::Message> MessagesManager::parse_message(DialogId dia
   return m;
 }
 
-void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId from_message_id, int32 offset,
-                                                   int32 limit, bool from_the_end, bool only_local,
-                                                   vector<BufferSlice> &&messages, Promise<Unit> &&promise) {
+void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId from_message_id,
+                                                   MessageId old_last_database_message_id, int32 offset, int32 limit,
+                                                   bool from_the_end, bool only_local, vector<BufferSlice> &&messages,
+                                                   Promise<Unit> &&promise) {
   CHECK(-limit < offset && offset <= 0);
   CHECK(offset < 0 || from_the_end);
   CHECK(!from_message_id.is_scheduled());
@@ -21971,6 +21972,17 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
             << " with offset " << offset << " and limit " << limit << ". First database message is "
             << d->first_database_message_id << ", last database message is " << d->last_database_message_id
             << ", have_full_history = " << d->have_full_history;
+
+  if (old_last_database_message_id < d->last_database_message_id && old_last_database_message_id < from_message_id) {
+    // new messages where added to the database since the request was sent
+    // they should have been received from the database, so we must repeat the request to get them
+    if (from_the_end) {
+      get_history_from_the_end_impl(d, true, only_local, std::move(promise));
+    } else {
+      get_history_impl(d, from_message_id, offset, limit, true, only_local, std::move(promise));
+    }
+    return;
+  }
 
   if (messages.empty() && from_the_end && d->messages == nullptr) {
     if (d->have_full_history) {
@@ -22199,10 +22211,12 @@ void MessagesManager::get_history_from_the_end_impl(const Dialog *d, bool from_d
     db_query.from_message_id = MessageId::max();
     db_query.limit = limit;
     G()->td_db()->get_messages_db_async()->get_messages(
-        db_query, PromiseCreator::lambda([dialog_id, only_local, limit, actor_id = actor_id(this),
+        db_query, PromiseCreator::lambda([dialog_id, old_last_database_message_id = d->last_database_message_id,
+                                          only_local, limit, actor_id = actor_id(this),
                                           promise = std::move(promise)](std::vector<BufferSlice> messages) mutable {
-          send_closure(actor_id, &MessagesManager::on_get_history_from_database, dialog_id, MessageId::max(), 0, limit,
-                       true, only_local, std::move(messages), std::move(promise));
+          send_closure(actor_id, &MessagesManager::on_get_history_from_database, dialog_id, MessageId::max(),
+                       old_last_database_message_id, 0, limit, true, only_local, std::move(messages),
+                       std::move(promise));
         }));
   } else {
     if (only_local || dialog_id.get_type() == DialogType::SecretChat) {
@@ -22244,10 +22258,12 @@ void MessagesManager::get_history_impl(const Dialog *d, MessageId from_message_i
     db_query.limit = limit;
     G()->td_db()->get_messages_db_async()->get_messages(
         db_query,
-        PromiseCreator::lambda([dialog_id, from_message_id, offset, limit, only_local, actor_id = actor_id(this),
+        PromiseCreator::lambda([dialog_id, from_message_id, old_last_database_message_id = d->last_database_message_id,
+                                offset, limit, only_local, actor_id = actor_id(this),
                                 promise = std::move(promise)](std::vector<BufferSlice> messages) mutable {
-          send_closure(actor_id, &MessagesManager::on_get_history_from_database, dialog_id, from_message_id, offset,
-                       limit, false, only_local, std::move(messages), std::move(promise));
+          send_closure(actor_id, &MessagesManager::on_get_history_from_database, dialog_id, from_message_id,
+                       old_last_database_message_id, offset, limit, false, only_local, std::move(messages),
+                       std::move(promise));
         }));
   } else {
     if (only_local || dialog_id.get_type() == DialogType::SecretChat) {

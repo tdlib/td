@@ -1998,7 +1998,8 @@ class MessagesManager final : public Actor {
 
   void preload_older_messages(const Dialog *d, MessageId min_message_id);
 
-  void on_get_history_from_database(DialogId dialog_id, MessageId from_message_id, int32 offset, int32 limit,
+  void on_get_history_from_database(DialogId dialog_id, MessageId from_message_id,
+                                    MessageId old_last_database_message_id, int32 offset, int32 limit,
                                     bool from_the_end, bool only_local, vector<BufferSlice> &&messages,
                                     Promise<Unit> &&promise);
 
