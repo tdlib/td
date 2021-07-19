@@ -7,7 +7,7 @@ git apply ../Python-Apple-support.patch
 cd ..
 
 #TODO: change openssl version
-platforms="tvOS"
+platforms="macOS iOS watchOS tvOS"
 
 for platform in $platforms;
 do
