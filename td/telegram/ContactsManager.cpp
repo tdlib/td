@@ -8411,13 +8411,14 @@ void ContactsManager::load_user_from_database_impl(UserId user_id, Promise<Unit>
     G()->td_db()->get_sqlite_pmc()->get(get_user_database_key(user_id), PromiseCreator::lambda([user_id](string value) {
                                           send_closure(G()->contacts_manager(),
                                                        &ContactsManager::on_load_user_from_database, user_id,
-                                                       std::move(value));
+                                                       std::move(value), false);
                                         }));
   }
 }
 
-void ContactsManager::on_load_user_from_database(UserId user_id, string value) {
-  if (G()->close_flag()) {
+void ContactsManager::on_load_user_from_database(UserId user_id, string value, bool force) {
+  if (G()->close_flag() && !force) {
+    // the user is in Binlog and will be saved after restart
     return;
   }
 
@@ -8549,7 +8550,7 @@ ContactsManager::User *ContactsManager::get_user_force_impl(UserId user_id) {
   }
 
   LOG(INFO) << "Trying to load " << user_id << " from database";
-  on_load_user_from_database(user_id, G()->td_db()->get_sqlite_sync_pmc()->get(get_user_database_key(user_id)));
+  on_load_user_from_database(user_id, G()->td_db()->get_sqlite_sync_pmc()->get(get_user_database_key(user_id)), true);
   return get_user(user_id);
 }
 
@@ -8704,13 +8705,14 @@ void ContactsManager::load_chat_from_database_impl(ChatId chat_id, Promise<Unit>
     G()->td_db()->get_sqlite_pmc()->get(get_chat_database_key(chat_id), PromiseCreator::lambda([chat_id](string value) {
                                           send_closure(G()->contacts_manager(),
                                                        &ContactsManager::on_load_chat_from_database, chat_id,
-                                                       std::move(value));
+                                                       std::move(value), false);
                                         }));
   }
 }
 
-void ContactsManager::on_load_chat_from_database(ChatId chat_id, string value) {
-  if (G()->close_flag()) {
+void ContactsManager::on_load_chat_from_database(ChatId chat_id, string value, bool force) {
+  if (G()->close_flag() && !force) {
+    // the chat is in Binlog and will be saved after restart
     return;
   }
 
@@ -8786,7 +8788,7 @@ ContactsManager::Chat *ContactsManager::get_chat_force(ChatId chat_id) {
   }
 
   LOG(INFO) << "Trying to load " << chat_id << " from database";
-  on_load_chat_from_database(chat_id, G()->td_db()->get_sqlite_sync_pmc()->get(get_chat_database_key(chat_id)));
+  on_load_chat_from_database(chat_id, G()->td_db()->get_sqlite_sync_pmc()->get(get_chat_database_key(chat_id)), true);
   return get_chat(chat_id);
 }
 
@@ -8942,13 +8944,14 @@ void ContactsManager::load_channel_from_database_impl(ChannelId channel_id, Prom
     G()->td_db()->get_sqlite_pmc()->get(
         get_channel_database_key(channel_id), PromiseCreator::lambda([channel_id](string value) {
           send_closure(G()->contacts_manager(), &ContactsManager::on_load_channel_from_database, channel_id,
-                       std::move(value));
+                       std::move(value), false);
         }));
   }
 }
 
-void ContactsManager::on_load_channel_from_database(ChannelId channel_id, string value) {
-  if (G()->close_flag()) {
+void ContactsManager::on_load_channel_from_database(ChannelId channel_id, string value, bool force) {
+  if (G()->close_flag() && !force) {
+    // the channel is in Binlog and will be saved after restart
     return;
   }
 
@@ -9039,7 +9042,7 @@ ContactsManager::Channel *ContactsManager::get_channel_force(ChannelId channel_i
 
   LOG(INFO) << "Trying to load " << channel_id << " from database";
   on_load_channel_from_database(channel_id,
-                                G()->td_db()->get_sqlite_sync_pmc()->get(get_channel_database_key(channel_id)));
+                                G()->td_db()->get_sqlite_sync_pmc()->get(get_channel_database_key(channel_id)), true);
   return get_channel(channel_id);
 }
 
@@ -9197,13 +9200,14 @@ void ContactsManager::load_secret_chat_from_database_impl(SecretChatId secret_ch
     G()->td_db()->get_sqlite_pmc()->get(
         get_secret_chat_database_key(secret_chat_id), PromiseCreator::lambda([secret_chat_id](string value) {
           send_closure(G()->contacts_manager(), &ContactsManager::on_load_secret_chat_from_database, secret_chat_id,
-                       std::move(value));
+                       std::move(value), false);
         }));
   }
 }
 
-void ContactsManager::on_load_secret_chat_from_database(SecretChatId secret_chat_id, string value) {
-  if (G()->close_flag()) {
+void ContactsManager::on_load_secret_chat_from_database(SecretChatId secret_chat_id, string value, bool force) {
+  if (G()->close_flag() && !force) {
+    // the secret chat is in Binlog and will be saved after restart
     return;
   }
 
@@ -9280,7 +9284,7 @@ ContactsManager::SecretChat *ContactsManager::get_secret_chat_force(SecretChatId
 
   LOG(INFO) << "Trying to load " << secret_chat_id << " from database";
   on_load_secret_chat_from_database(
-      secret_chat_id, G()->td_db()->get_sqlite_sync_pmc()->get(get_secret_chat_database_key(secret_chat_id)));
+      secret_chat_id, G()->td_db()->get_sqlite_sync_pmc()->get(get_secret_chat_database_key(secret_chat_id)), true);
   return get_secret_chat(secret_chat_id);
 }
 

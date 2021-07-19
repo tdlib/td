@@ -1268,7 +1268,7 @@ class ContactsManager final : public Actor {
   void on_save_user_to_database(UserId user_id, bool success);
   void load_user_from_database(User *u, UserId user_id, Promise<Unit> promise);
   void load_user_from_database_impl(UserId user_id, Promise<Unit> promise);
-  void on_load_user_from_database(UserId user_id, string value);
+  void on_load_user_from_database(UserId user_id, string value, bool force);
 
   void save_chat(Chat *c, ChatId chat_id, bool from_binlog);
   static string get_chat_database_key(ChatId chat_id);
@@ -1278,7 +1278,7 @@ class ContactsManager final : public Actor {
   void on_save_chat_to_database(ChatId chat_id, bool success);
   void load_chat_from_database(Chat *c, ChatId chat_id, Promise<Unit> promise);
   void load_chat_from_database_impl(ChatId chat_id, Promise<Unit> promise);
-  void on_load_chat_from_database(ChatId chat_id, string value);
+  void on_load_chat_from_database(ChatId chat_id, string value, bool force);
 
   void save_channel(Channel *c, ChannelId channel_id, bool from_binlog);
   static string get_channel_database_key(ChannelId channel_id);
@@ -1288,7 +1288,7 @@ class ContactsManager final : public Actor {
   void on_save_channel_to_database(ChannelId channel_id, bool success);
   void load_channel_from_database(Channel *c, ChannelId channel_id, Promise<Unit> promise);
   void load_channel_from_database_impl(ChannelId channel_id, Promise<Unit> promise);
-  void on_load_channel_from_database(ChannelId channel_id, string value);
+  void on_load_channel_from_database(ChannelId channel_id, string value, bool force);
 
   void save_secret_chat(SecretChat *c, SecretChatId secret_chat_id, bool from_binlog);
   static string get_secret_chat_database_key(SecretChatId secret_chat_id);
@@ -1298,7 +1298,7 @@ class ContactsManager final : public Actor {
   void on_save_secret_chat_to_database(SecretChatId secret_chat_id, bool success);
   void load_secret_chat_from_database(SecretChat *c, SecretChatId secret_chat_id, Promise<Unit> promise);
   void load_secret_chat_from_database_impl(SecretChatId secret_chat_id, Promise<Unit> promise);
-  void on_load_secret_chat_from_database(SecretChatId secret_chat_id, string value);
+  void on_load_secret_chat_from_database(SecretChatId secret_chat_id, string value, bool force);
 
   void save_user_full(const UserFull *user_full, UserId user_id);
   static string get_user_full_database_key(UserId user_id);
