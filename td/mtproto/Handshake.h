@@ -33,8 +33,6 @@ class AuthKeyHandshakeContext {
 };
 
 class AuthKeyHandshake {
-  enum class Mode { Unknown, Main, Temp };
-
  public:
   class Callback {
    public:
@@ -45,15 +43,7 @@ class AuthKeyHandshake {
     virtual void send_no_crypto(const Storer &storer) = 0;
   };
 
-  AuthKeyHandshake(int32 dc_id, int32 expires_in) {
-    dc_id_ = dc_id;
-    if (expires_in == 0) {
-      mode_ = Mode::Main;
-    } else {
-      mode_ = Mode::Temp;
-      expires_in_ = expires_in;
-    }
-  }
+  AuthKeyHandshake(int32 dc_id, int32 expires_in);
 
   bool is_ready_for_finish() const;
 
@@ -82,9 +72,10 @@ class AuthKeyHandshake {
   }
 
  private:
-  using State = enum { Start, ResPQ, ServerDHParams, DHGenResponse, Finish };
+  enum State : int32 { Start, ResPQ, ServerDHParams, DHGenResponse, Finish };
   State state_ = Start;
-  Mode mode_ = Mode::Unknown;
+  enum class Mode : int32 { Main, Temp };
+  Mode mode_ = Mode::Main;
   int32 dc_id_ = 0;
   int32 expires_in_ = 0;
   double expires_at_ = 0;

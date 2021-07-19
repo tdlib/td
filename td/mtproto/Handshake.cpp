@@ -46,6 +46,10 @@ static Result<typename T::ReturnType> fetch_result(Slice message, bool check_end
   return std::move(result);
 }
 
+AuthKeyHandshake::AuthKeyHandshake(int32 dc_id, int32 expires_in)
+    : mode_(expires_in == 0 ? Mode::Main : Mode::Temp), dc_id_(dc_id), expires_in_(expires_in) {
+}
+
 void AuthKeyHandshake::clear() {
   last_query_ = BufferSlice();
   state_ = Start;
@@ -100,7 +104,6 @@ Status AuthKeyHandshake::on_res_pq(Slice message, Callback *connection, PublicRs
                                                               dc_id_, expires_in_));
       expires_at_ = Time::now() + expires_in_;
       break;
-    case Mode::Unknown:
     default:
       UNREACHABLE();
   }
