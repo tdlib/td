@@ -5,22 +5,28 @@ rm -rf build
 mkdir -p build
 cd build
 
-platforms="macOS iOS watchOS tvOS"
-#platforms="watchOS"
-for platform in $platforms;
-do
-  echo "Platform = ${platform} Simulator = ${simulator}"
-  openssl_path=$(grealpath ../third_party/openssl/${platform})
+set_cmake_options () {
+  # Set CMAKE options depending on platform passed $1
+  openssl_path=$(grealpath ../third_party/openssl/$1)
   echo "OpenSSL path = ${openssl_path}"
   openssl_crypto_library="${openssl_path}/lib/libcrypto.a"
   openssl_ssl_library="${openssl_path}/lib/libssl.a"
+  options=""
   options="$options -DOPENSSL_FOUND=1"
   options="$options -DOPENSSL_CRYPTO_LIBRARY=${openssl_crypto_library}"
   options="$options -DOPENSSL_SSL_LIBRARY=${openssl_ssl_library}"
   options="$options -DOPENSSL_INCLUDE_DIR=${openssl_path}/include"
   options="$options -DOPENSSL_LIBRARIES=${openssl_crypto_library};${openssl_ssl_library}"
   options="$options -DCMAKE_BUILD_TYPE=Release"
+}
+
+platforms="macOS iOS watchOS tvOS"
+#platforms="watchOS"
+for platform in $platforms;
+do
+  echo "Platform = ${platform}"
   if [[ $platform = "macOS" ]]; then
+    set_cmake_options $platform
     build="build-${platform}"
     install="install-${platform}"
     rm -rf $build
@@ -43,8 +49,10 @@ do
         build="${build}-simulator"
         install="${install}-simulator"
         ios_platform="SIMULATOR"
+        set_cmake_options ${platform}-simulator
       else
         ios_platform="OS"
+        set_cmake_options ${platform}
       fi
       watchos=""
       if [[ $platform = "watchOS" ]]; then
@@ -66,12 +74,13 @@ do
     lib="install-${platform}/lib/libtdjson.dylib"
     lib_simulator="install-${platform}-simulator/lib/libtdjson.dylib"
     mkdir -p $platform
-    lipo -create $lib $lib_simulator -o $platform/libtdjson.dylib
-    install_name_tool -id @rpath/libtdjson.dylib $platform/libtdjson.dylib
+    echo "PLEASE MAKE A XCFRAMEWORK"
+    # lipo -create $lib $lib_simulator -o $platform/libtdjson.dylib # Make XCFRAMEWORK
+    # install_name_tool -id @rpath/libtdjson.dylib $platform/libtdjson.dylib
   fi
 
-  mkdir -p ../tdjson/$platform/include
-  rsync --recursive ${install}/include/ ../tdjson/${platform}/include/
-  mkdir -p ../tdjson/$platform/lib
-  cp $platform/libtdjson.dylib ../tdjson/$platform/lib/
+  # mkdir -p ../tdjson/$platform/include
+  # rsync --recursive ${install}/include/ ../tdjson/${platform}/include/
+  # mkdir -p ../tdjson/$platform/lib
+  # cp $platform/libtdjson.dylib ../tdjson/$platform/lib/
 done
