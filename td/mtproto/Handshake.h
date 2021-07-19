@@ -55,33 +55,13 @@ class AuthKeyHandshake {
     }
   }
 
-  bool is_ready_for_start() const;
-  Status start_main(Callback *connection) TD_WARN_UNUSED_RESULT;
-  Status start_tmp(Callback *connection, int32 expires_in) TD_WARN_UNUSED_RESULT;
-
-  bool is_ready_for_message(const UInt128 &message_nonce) const;
-
   bool is_ready_for_finish() const;
+
   void on_finish();
-
-  void init_main() {
-    clear();
-    mode_ = Mode::Main;
-  }
-
-  void init_temp(int32 expires_in) {
-    clear();
-    mode_ = Mode::Temp;
-    expires_in_ = expires_in;
-  }
 
   void resume(Callback *connection);
 
   Status on_message(Slice message, Callback *connection, AuthKeyHandshakeContext *context) TD_WARN_UNUSED_RESULT;
-
-  bool is_ready() const {
-    return is_ready_for_finish();
-  }
 
   void clear();
 

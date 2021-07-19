@@ -51,15 +51,10 @@ void AuthKeyHandshake::clear() {
   state_ = Start;
 }
 
-bool AuthKeyHandshake::is_ready_for_start() const {
-  return state_ == Start;
-}
-bool AuthKeyHandshake::is_ready_for_message(const UInt128 &message_nonce) const {
-  return state_ != Finish && state_ != Start && nonce_ == message_nonce;
-}
 bool AuthKeyHandshake::is_ready_for_finish() const {
   return state_ == Finish;
 }
+
 void AuthKeyHandshake::on_finish() {
   clear();
 }
@@ -266,17 +261,6 @@ void AuthKeyHandshake::do_send(Callback *connection, const Storer &storer) {
   return connection->send_no_crypto(storer);
 }
 
-Status AuthKeyHandshake::start_main(Callback *connection) {
-  mode_ = Mode::Main;
-  return on_start(connection);
-}
-
-Status AuthKeyHandshake::start_tmp(Callback *connection, int32 expires_in) {
-  mode_ = Mode::Temp;
-  expires_in_ = expires_in;
-  return on_start(connection);
-}
-
 void AuthKeyHandshake::resume(Callback *connection) {
   if (state_ == Start) {
     return on_start(connection).ignore();
@@ -289,7 +273,7 @@ void AuthKeyHandshake::resume(Callback *connection) {
     LOG(ERROR) << "Last query empty! UNREACHABLE " << state_;
     return clear();
   }
-  LOG(INFO) << "RESUME";
+  LOG(INFO) << "Resume handshake";
   do_send(connection, create_storer(last_query_.as_slice()));
 }
 
