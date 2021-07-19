@@ -74,13 +74,9 @@ do
     lib="install-${platform}/lib/libtdjson.dylib"
     lib_simulator="install-${platform}-simulator/lib/libtdjson.dylib"
     mkdir -p $platform
-    echo "PLEASE MAKE A XCFRAMEWORK"
-    # lipo -create $lib $lib_simulator -o $platform/libtdjson.dylib # Make XCFRAMEWORK
-    # install_name_tool -id @rpath/libtdjson.dylib $platform/libtdjson.dylib
+    install_name_tool -id @rpath/libtdjson.dylib $lib
+    install_name_tool -id @rpath/libtdjson.dylib $lib_simulator
   fi
 
-  # mkdir -p ../tdjson/$platform/include
-  # rsync --recursive ${install}/include/ ../tdjson/${platform}/include/
-  # mkdir -p ../tdjson/$platform/lib
-  # cp $platform/libtdjson.dylib ../tdjson/$platform/lib/
+  echo "TODO: Make xcframework from build/install-*/lib/libtdjson.dylib"
 done
