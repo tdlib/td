@@ -1036,8 +1036,7 @@ bool FileManager::try_fix_partial_local_location(FileNodePtr node) {
 }
 
 FileManager::FileIdInfo *FileManager::get_file_id_info(FileId file_id) {
-  LOG_CHECK(0 <= file_id.get() && file_id.get() < static_cast<int32>(file_id_info_.size()))
-      << file_id << " " << file_id_info_.size();
+  CHECK(static_cast<size_t>(file_id.get()) < file_id_info_.size());
   return &file_id_info_[file_id.get()];
 }
 
@@ -1472,7 +1471,14 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
     return std::accumulate(node->file_ids_.begin(), node->file_ids_.end(), 0,
                            [](const auto &x, const auto &y) { return x + (y.get_remote() != 0); });
   };
-  if (count_local(x_node) + count_local(y_node) > 100) {
+  auto x_local_file_ids = count_local(x_node);
+  auto y_local_file_ids = count_local(y_node);
+  if (x_local_file_ids + y_local_file_ids > 100) {
+  }
+
+  if (y_node->file_ids_.size() >= 100 || x_node->file_ids_.size() >= 100) {
+    LOG(INFO) << "Merge files with " << x_local_file_ids << '/' << x_node->file_ids_.size() << " and "
+              << y_local_file_ids << '/' << y_node->file_ids_.size() << " file IDs";
   }
 
   FileNodePtr nodes[] = {x_node, y_node, x_node};
@@ -1637,8 +1643,7 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
 
   for (auto file_id : other_node->file_ids_) {
     auto file_id_info = get_file_id_info(file_id);
-    LOG_CHECK(file_id_info->node_id_ == node_ids[other_node_i])
-        << node_ids[node_i] << " " << node_ids[other_node_i] << " " << file_id << " " << file_id_info->node_id_;
+    CHECK(file_id_info->node_id_ == node_ids[other_node_i]);
     file_id_info->node_id_ = node_ids[node_i];
     send_updates_flag |= file_id_info->send_updates_flag_;
   }
@@ -1650,7 +1655,7 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
     node->on_info_changed();
   }
 
-  // Check is some download/upload queries are ready
+  // Check if some download/upload queries are ready
   for (auto file_id : vector<FileId>(node->file_ids_)) {
     auto *info = get_file_id_info(file_id);
     if (info->download_priority_ != 0 && file_view.has_local_location()) {
