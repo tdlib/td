@@ -40,7 +40,7 @@ do
     cp $build/libtdjson.dylib $platform/libtdjson.dylib
     install_name_tool -id @rpath/libtdjson.dylib $platform/libtdjson.dylib
     
-    mkdir -p ../tdjson/${platform}include
+    mkdir -p ../tdjson/${platform}/include
     rsync --recursive ${install}/include/ ../tdjson/${platform}/include/
     mkdir -p ../tdjson/${platform}/lib
     cp ${platform}/libtdjson.dylib ../tdjson/${platform}/lib/
