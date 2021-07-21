@@ -26,8 +26,8 @@ cmake --build . --target prepare_cross_compiling
 cd <path to TDLib sources>/example/ios
 ./build-openssl.sh
 ```
-Here we use scripts from [Python Apple support](https://github.com/pybee/Python-Apple-support), but any other OpenSSL builds should work too.
-[Python Apple support](https://github.com/pybee/Python-Apple-support) has known problems with spaces in the path to the current directory, so
+Here we use scripts from [Python Apple support](https://github.com/beeware/Python-Apple-support), but any other OpenSSL builds should work too.
+[Python Apple support](https://github.com/beeware/Python-Apple-support) has known problems with spaces in the path to the current directory, so
 you need to ensure that there is no spaces in the path.
 Built libraries should be stored in `third_party/openssl/<platform>`, because the next script will rely on this location.
 * Build TDLib for iOS, watchOS, tvOS and macOS:
