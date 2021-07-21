@@ -8,7 +8,9 @@ endif()
 
 # Affects each target in project(), so must be set before it
 # Ignored on non-Apple platforms
-set (CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Build architecture for macOS")
+if (APPLE AND NOT DEFINED IOS_PLATFORM)
+  set (CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Build architecture for macOS")
+endif()
 
 project(TDLib VERSION 1.7.5 LANGUAGES CXX C)
 
