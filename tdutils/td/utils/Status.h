@@ -36,13 +36,13 @@
     }                                                 \
   }
 
-#define TRY_STATUS_PROMISE(promise_name, status)     \
-  {                                                  \
-    auto try_status = (status);                      \
-    if (try_status.is_error()) {                     \
-      promise_name.set_error(std::move(try_status)); \
-      return;                                        \
-    }                                                \
+#define TRY_STATUS_PROMISE(promise_name, status)          \
+  {                                                       \
+    auto try_status = (status);                           \
+    if (try_status.is_error()) {                          \
+      promise_name.set_error(try_status.move_as_error()); \
+      return;                                             \
+    }                                                     \
   }
 
 #define TRY_STATUS_PROMISE_PREFIX(promise_name, status, prefix)        \

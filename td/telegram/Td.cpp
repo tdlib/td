@@ -1943,39 +1943,6 @@ class UpgradeGroupChatToSupergroupChatRequest final : public RequestActor<> {
   }
 };
 
-class GetChatMemberRequest final : public RequestActor<> {
-  DialogId dialog_id_;
-  tl_object_ptr<td_api::MessageSender> participant_id_;
-  int64 random_id_;
-
-  DialogParticipant dialog_participant_;
-
-  void do_run(Promise<Unit> &&promise) final {
-    dialog_participant_ = td->contacts_manager_->get_dialog_participant(dialog_id_, participant_id_, random_id_,
-                                                                        get_tries() < 3, std::move(promise));
-  }
-
-  void do_send_result() final {
-    auto participant_dialog_id = dialog_participant_.dialog_id;
-    bool is_user = participant_dialog_id.get_type() == DialogType::User;
-    if ((is_user && !td->contacts_manager_->have_user(participant_dialog_id.get_user_id())) ||
-        (!is_user && !td->messages_manager_->have_dialog(participant_dialog_id))) {
-      return send_error(Status::Error(3, "Member not found"));
-    }
-    send_result(td->contacts_manager_->get_chat_member_object(dialog_participant_));
-  }
-
- public:
-  GetChatMemberRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id,
-                       tl_object_ptr<td_api::MessageSender> participant_id)
-      : RequestActor(std::move(td), request_id)
-      , dialog_id_(dialog_id)
-      , participant_id_(std::move(participant_id))
-      , random_id_(0) {
-    set_tries(3);
-  }
-};
-
 class GetChatAdministratorsRequest final : public RequestActor<> {
   DialogId dialog_id_;
 
@@ -6491,7 +6458,9 @@ void Td::on_request(uint64 id, td_api::transferChatOwnership &request) {
 }
 
 void Td::on_request(uint64 id, td_api::getChatMember &request) {
-  CREATE_REQUEST(GetChatMemberRequest, request.chat_id_, std::move(request.member_id_));
+  CREATE_REQUEST_PROMISE();
+  contacts_manager_->get_dialog_participant(DialogId(request.chat_id_), std::move(request.member_id_),
+                                            std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::searchChatMembers &request) {

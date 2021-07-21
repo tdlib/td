@@ -8411,13 +8411,14 @@ void ContactsManager::load_user_from_database_impl(UserId user_id, Promise<Unit>
     G()->td_db()->get_sqlite_pmc()->get(get_user_database_key(user_id), PromiseCreator::lambda([user_id](string value) {
                                           send_closure(G()->contacts_manager(),
                                                        &ContactsManager::on_load_user_from_database, user_id,
-                                                       std::move(value));
+                                                       std::move(value), false);
                                         }));
   }
 }
 
-void ContactsManager::on_load_user_from_database(UserId user_id, string value) {
-  if (G()->close_flag()) {
+void ContactsManager::on_load_user_from_database(UserId user_id, string value, bool force) {
+  if (G()->close_flag() && !force) {
+    // the user is in Binlog and will be saved after restart
     return;
   }
 
@@ -8549,7 +8550,7 @@ ContactsManager::User *ContactsManager::get_user_force_impl(UserId user_id) {
   }
 
   LOG(INFO) << "Trying to load " << user_id << " from database";
-  on_load_user_from_database(user_id, G()->td_db()->get_sqlite_sync_pmc()->get(get_user_database_key(user_id)));
+  on_load_user_from_database(user_id, G()->td_db()->get_sqlite_sync_pmc()->get(get_user_database_key(user_id)), true);
   return get_user(user_id);
 }
 
@@ -8704,13 +8705,14 @@ void ContactsManager::load_chat_from_database_impl(ChatId chat_id, Promise<Unit>
     G()->td_db()->get_sqlite_pmc()->get(get_chat_database_key(chat_id), PromiseCreator::lambda([chat_id](string value) {
                                           send_closure(G()->contacts_manager(),
                                                        &ContactsManager::on_load_chat_from_database, chat_id,
-                                                       std::move(value));
+                                                       std::move(value), false);
                                         }));
   }
 }
 
-void ContactsManager::on_load_chat_from_database(ChatId chat_id, string value) {
-  if (G()->close_flag()) {
+void ContactsManager::on_load_chat_from_database(ChatId chat_id, string value, bool force) {
+  if (G()->close_flag() && !force) {
+    // the chat is in Binlog and will be saved after restart
     return;
   }
 
@@ -8786,7 +8788,7 @@ ContactsManager::Chat *ContactsManager::get_chat_force(ChatId chat_id) {
   }
 
   LOG(INFO) << "Trying to load " << chat_id << " from database";
-  on_load_chat_from_database(chat_id, G()->td_db()->get_sqlite_sync_pmc()->get(get_chat_database_key(chat_id)));
+  on_load_chat_from_database(chat_id, G()->td_db()->get_sqlite_sync_pmc()->get(get_chat_database_key(chat_id)), true);
   return get_chat(chat_id);
 }
 
@@ -8942,13 +8944,14 @@ void ContactsManager::load_channel_from_database_impl(ChannelId channel_id, Prom
     G()->td_db()->get_sqlite_pmc()->get(
         get_channel_database_key(channel_id), PromiseCreator::lambda([channel_id](string value) {
           send_closure(G()->contacts_manager(), &ContactsManager::on_load_channel_from_database, channel_id,
-                       std::move(value));
+                       std::move(value), false);
         }));
   }
 }
 
-void ContactsManager::on_load_channel_from_database(ChannelId channel_id, string value) {
-  if (G()->close_flag()) {
+void ContactsManager::on_load_channel_from_database(ChannelId channel_id, string value, bool force) {
+  if (G()->close_flag() && !force) {
+    // the channel is in Binlog and will be saved after restart
     return;
   }
 
@@ -9039,7 +9042,7 @@ ContactsManager::Channel *ContactsManager::get_channel_force(ChannelId channel_i
 
   LOG(INFO) << "Trying to load " << channel_id << " from database";
   on_load_channel_from_database(channel_id,
-                                G()->td_db()->get_sqlite_sync_pmc()->get(get_channel_database_key(channel_id)));
+                                G()->td_db()->get_sqlite_sync_pmc()->get(get_channel_database_key(channel_id)), true);
   return get_channel(channel_id);
 }
 
@@ -9197,13 +9200,14 @@ void ContactsManager::load_secret_chat_from_database_impl(SecretChatId secret_ch
     G()->td_db()->get_sqlite_pmc()->get(
         get_secret_chat_database_key(secret_chat_id), PromiseCreator::lambda([secret_chat_id](string value) {
           send_closure(G()->contacts_manager(), &ContactsManager::on_load_secret_chat_from_database, secret_chat_id,
-                       std::move(value));
+                       std::move(value), false);
         }));
   }
 }
 
-void ContactsManager::on_load_secret_chat_from_database(SecretChatId secret_chat_id, string value) {
-  if (G()->close_flag()) {
+void ContactsManager::on_load_secret_chat_from_database(SecretChatId secret_chat_id, string value, bool force) {
+  if (G()->close_flag() && !force) {
+    // the secret chat is in Binlog and will be saved after restart
     return;
   }
 
@@ -9280,7 +9284,7 @@ ContactsManager::SecretChat *ContactsManager::get_secret_chat_force(SecretChatId
 
   LOG(INFO) << "Trying to load " << secret_chat_id << " from database";
   on_load_secret_chat_from_database(
-      secret_chat_id, G()->td_db()->get_sqlite_sync_pmc()->get(get_secret_chat_database_key(secret_chat_id)));
+      secret_chat_id, G()->td_db()->get_sqlite_sync_pmc()->get(get_secret_chat_database_key(secret_chat_id)), true);
   return get_secret_chat(secret_chat_id);
 }
 
@@ -14658,68 +14662,81 @@ void ContactsManager::ban_dialog_participant(DialogId dialog_id,
   }
 }
 
-DialogParticipant ContactsManager::get_dialog_participant(DialogId dialog_id,
-                                                          const tl_object_ptr<td_api::MessageSender> &participant_id,
-                                                          int64 &random_id, bool force, Promise<Unit> &&promise) {
-  // TODO TRY_RESULT_PROMISE(promise, participant_dialog_id, get_participant_dialog_id(participant_id));
-  auto r_participant_dialog_id = get_participant_dialog_id(participant_id);
-  if (r_participant_dialog_id.is_error()) {
-    promise.set_error(r_participant_dialog_id.move_as_error());
-    return {};
-  }
-  auto participant_dialog_id = r_participant_dialog_id.move_as_ok();
+void ContactsManager::get_dialog_participant(DialogId dialog_id,
+                                             const tl_object_ptr<td_api::MessageSender> &participant_id,
+                                             Promise<td_api::object_ptr<td_api::chatMember>> &&promise) {
+  TRY_RESULT_PROMISE(promise, participant_dialog_id, get_participant_dialog_id(participant_id));
 
-  LOG(INFO) << "Receive GetChatMember request to get " << participant_dialog_id << " in " << dialog_id
-            << " with random_id " << random_id;
+  auto new_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), promise = std::move(promise)](Result<DialogParticipant> &&result) mutable {
+        TRY_RESULT_PROMISE(promise, dialog_participant, std::move(result));
+        send_closure(actor_id, &ContactsManager::finish_get_dialog_participant, std::move(dialog_participant),
+                     std::move(promise));
+      });
+  get_dialog_participant(dialog_id, participant_dialog_id, std::move(new_promise));
+}
+
+void ContactsManager::finish_get_dialog_participant(DialogParticipant &&dialog_participant,
+                                                    Promise<td_api::object_ptr<td_api::chatMember>> &&promise) {
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
+
+  auto participant_dialog_id = dialog_participant.dialog_id;
+  bool is_user = participant_dialog_id.get_type() == DialogType::User;
+  if ((is_user && !have_user(participant_dialog_id.get_user_id())) ||
+      (!is_user && !td_->messages_manager_->have_dialog(participant_dialog_id))) {
+    return promise.set_error(Status::Error(400, "Member not found"));
+  }
+
+  promise.set_value(get_chat_member_object(dialog_participant));
+}
+
+void ContactsManager::get_dialog_participant(DialogId dialog_id, DialogId participant_dialog_id,
+                                             Promise<DialogParticipant> &&promise) {
+  LOG(INFO) << "Receive GetChatMember request to get " << participant_dialog_id << " in " << dialog_id;
   if (!td_->messages_manager_->have_dialog_force(dialog_id, "get_dialog_participant")) {
-    promise.set_error(Status::Error(3, "Chat not found"));
-    return DialogParticipant();
+    return promise.set_error(Status::Error(3, "Chat not found"));
   }
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
       if (participant_dialog_id == DialogId(get_my_id())) {
-        promise.set_value(Unit());
-        return {participant_dialog_id, dialog_id.get_user_id(), 0, DialogParticipantStatus::Member()};
+        return promise.set_value(
+            DialogParticipant{participant_dialog_id, dialog_id.get_user_id(), 0, DialogParticipantStatus::Member()});
       }
       if (participant_dialog_id == dialog_id) {
-        promise.set_value(Unit());
-        return {participant_dialog_id, get_my_id(), 0, DialogParticipantStatus::Member()};
+        return promise.set_value(
+            DialogParticipant{participant_dialog_id, get_my_id(), 0, DialogParticipantStatus::Member()});
       }
 
-      promise.set_error(Status::Error(3, "Member not found"));
-      break;
+      return promise.set_error(Status::Error(3, "Member not found"));
     case DialogType::Chat:
       if (participant_dialog_id.get_type() != DialogType::User) {
-        promise.set_value(Unit());
-        return DialogParticipant::left(participant_dialog_id);
+        return promise.set_value(DialogParticipant::left(participant_dialog_id));
       }
-      return get_chat_participant(dialog_id.get_chat_id(), participant_dialog_id.get_user_id(), force,
-                                  std::move(promise));
+      return get_chat_participant(dialog_id.get_chat_id(), participant_dialog_id.get_user_id(), std::move(promise));
     case DialogType::Channel:
-      return get_channel_participant(dialog_id.get_channel_id(), participant_dialog_id, random_id, force,
-                                     std::move(promise));
+      return get_channel_participant(dialog_id.get_channel_id(), participant_dialog_id, std::move(promise));
     case DialogType::SecretChat: {
       auto peer_user_id = get_secret_chat_user_id(dialog_id.get_secret_chat_id());
       if (participant_dialog_id == DialogId(get_my_id())) {
-        promise.set_value(Unit());
-        return {participant_dialog_id, peer_user_id.is_valid() ? peer_user_id : get_my_id(), 0,
-                DialogParticipantStatus::Member()};
+        return promise.set_value(DialogParticipant{participant_dialog_id,
+                                                   peer_user_id.is_valid() ? peer_user_id : get_my_id(), 0,
+                                                   DialogParticipantStatus::Member()});
       }
       if (participant_dialog_id == DialogId(peer_user_id)) {
-        promise.set_value(Unit());
-        return {participant_dialog_id, get_my_id(), 0, DialogParticipantStatus::Member()};
+        return promise.set_value(
+            DialogParticipant{participant_dialog_id, get_my_id(), 0, DialogParticipantStatus::Member()});
       }
 
-      promise.set_error(Status::Error(3, "Member not found"));
-      break;
+      return promise.set_error(Status::Error(3, "Member not found"));
     }
     case DialogType::None:
     default:
       UNREACHABLE();
-      promise.set_error(Status::Error(500, "Wrong chat type"));
+      return promise.set_error(Status::Error(500, "Wrong chat type"));
   }
-  return DialogParticipant();
 }
 
 DialogParticipants ContactsManager::search_private_chat_participants(UserId my_user_id, UserId peer_user_id,
@@ -14846,22 +14863,43 @@ void ContactsManager::search_dialog_participants(DialogId dialog_id, const strin
   }
 }
 
-DialogParticipant ContactsManager::get_chat_participant(ChatId chat_id, UserId user_id, bool force,
-                                                        Promise<Unit> &&promise) {
+void ContactsManager::get_chat_participant(ChatId chat_id, UserId user_id, Promise<DialogParticipant> &&promise) {
   LOG(INFO) << "Trying to get " << user_id << " as member of " << chat_id;
-  if (force) {
-    promise.set_value(Unit());
-  } else if (!load_chat_full(chat_id, force, std::move(promise), "get_chat_participant")) {
-    return DialogParticipant();
-  }
-  // promise is already set
 
-  auto result = get_chat_participant(chat_id, user_id);
-  if (result == nullptr) {
-    return DialogParticipant::left(DialogId(user_id));
+  auto c = get_chat(chat_id);
+  if (c == nullptr) {
+    return promise.set_error(Status::Error(6, "Group not found"));
   }
 
-  return *result;
+  auto chat_full = get_chat_full_force(chat_id, "get_chat_participant");
+  if (chat_full == nullptr || (td_->auth_manager_->is_bot() && is_chat_full_outdated(chat_full, c, chat_id))) {
+    auto query_promise = PromiseCreator::lambda(
+        [actor_id = actor_id(this), chat_id, user_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
+          TRY_STATUS_PROMISE(promise, std::move(result));
+          send_closure(actor_id, &ContactsManager::finish_get_chat_participant, chat_id, user_id, std::move(promise));
+        });
+    send_get_chat_full_query(chat_id, std::move(query_promise), "get_chat_participant");
+  }
+
+  if (is_chat_full_outdated(chat_full, c, chat_id)) {
+    send_get_chat_full_query(chat_id, Auto(), "get_chat_participant lazy");
+  }
+
+  finish_get_chat_participant(chat_id, user_id, std::move(promise));
+}
+
+void ContactsManager::finish_get_chat_participant(ChatId chat_id, UserId user_id,
+                                                  Promise<DialogParticipant> &&promise) {
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
+
+  const auto *participant = get_chat_participant(chat_id, user_id);
+  if (participant == nullptr) {
+    return promise.set_value(DialogParticipant::left(DialogId(user_id)));
+  }
+
+  promise.set_value(DialogParticipant(*participant));
 }
 
 void ContactsManager::search_chat_participants(ChatId chat_id, const string &query, int32 limit,
@@ -14931,77 +14969,46 @@ void ContactsManager::do_search_chat_participants(ChatId chat_id, const string &
                                        })});
 }
 
-DialogParticipant ContactsManager::get_channel_participant(ChannelId channel_id, DialogId participant_dialog_id,
-                                                           int64 &random_id, bool force, Promise<Unit> &&promise) {
-  LOG(INFO) << "Trying to get " << participant_dialog_id << " as member of " << channel_id << " with random_id "
-            << random_id;
-  if (random_id != 0) {
-    // request has already been sent before
-    auto it = received_channel_participant_.find(random_id);
-    CHECK(it != received_channel_participant_.end());
-    auto result = std::move(it->second);
-    result.status.update_restrictions();
-    received_channel_participant_.erase(it);
-    promise.set_value(Unit());
-    return result;
-  }
+void ContactsManager::get_channel_participant(ChannelId channel_id, DialogId participant_dialog_id,
+                                              Promise<DialogParticipant> &&promise) {
+  LOG(INFO) << "Trying to get " << participant_dialog_id << " as member of " << channel_id;
 
   auto input_peer = td_->messages_manager_->get_input_peer(participant_dialog_id, AccessRights::Read);
   if (input_peer == nullptr) {
-    promise.set_error(Status::Error(6, "User not found"));
-    return DialogParticipant();
+    return promise.set_error(Status::Error(6, "User not found"));
   }
 
   if (have_channel_participant_cache(channel_id)) {
     auto *participant = get_channel_participant_from_cache(channel_id, participant_dialog_id);
     if (participant != nullptr) {
-      promise.set_value(Unit());
-      return *participant;
+      return promise.set_value(DialogParticipant{*participant});
     }
   }
 
-  do {
-    random_id = Random::secure_int64();
-  } while (random_id == 0 || received_channel_participant_.find(random_id) != received_channel_participant_.end());
-  received_channel_participant_[random_id];  // reserve place for result
-
-  LOG(DEBUG) << "Get info about " << participant_dialog_id << " membership in the " << channel_id << " with random_id "
-             << random_id;
-
-  auto on_result_promise =
-      PromiseCreator::lambda([actor_id = actor_id(this), channel_id, random_id,
-                              promise = std::move(promise)](Result<DialogParticipant> r_dialog_participant) mutable {
-        send_closure(actor_id, &ContactsManager::on_get_channel_participant, channel_id, random_id,
-                     std::move(r_dialog_participant), std::move(promise));
-      });
+  auto on_result_promise = PromiseCreator::lambda([actor_id = actor_id(this), channel_id, promise = std::move(promise)](
+                                                      Result<DialogParticipant> r_dialog_participant) mutable {
+    TRY_RESULT_PROMISE(promise, dialog_participant, std::move(r_dialog_participant));
+    send_closure(actor_id, &ContactsManager::finish_get_channel_participant, channel_id, std::move(dialog_participant),
+                 std::move(promise));
+  });
 
   td_->create_handler<GetChannelParticipantQuery>(std::move(on_result_promise))
       ->send(channel_id, participant_dialog_id, std::move(input_peer));
-  return DialogParticipant();
 }
 
-void ContactsManager::on_get_channel_participant(ChannelId channel_id, int64 random_id,
-                                                 Result<DialogParticipant> r_dialog_participant,
-                                                 Promise<Unit> &&promise) {
+void ContactsManager::finish_get_channel_participant(ChannelId channel_id, DialogParticipant &&dialog_participant,
+                                                     Promise<DialogParticipant> &&promise) {
   if (G()->close_flag()) {
     return promise.set_error(Status::Error(500, "Request aborted"));
   }
 
-  LOG(INFO) << "Receive a member of a channel " << channel_id << " with random_id " << random_id;
+  LOG(INFO) << "Receive a member " << dialog_participant.dialog_id << " of a channel " << channel_id;
 
-  auto it = received_channel_participant_.find(random_id);
-  CHECK(it != received_channel_participant_.end());
-
-  if (r_dialog_participant.is_error()) {
-    received_channel_participant_.erase(it);
-    promise.set_error(r_dialog_participant.move_as_error());
-  } else {
-    it->second = r_dialog_participant.move_as_ok();
-    if (have_channel_participant_cache(channel_id)) {
-      add_channel_participant_to_cache(channel_id, it->second, false);
-    }
-    promise.set_value(Unit());
+  dialog_participant.status.update_restrictions();
+  if (have_channel_participant_cache(channel_id)) {
+    add_channel_participant_to_cache(channel_id, dialog_participant, false);
   }
+  promise.set_value(std::move(dialog_participant));
 }
 
 void ContactsManager::get_channel_participants(ChannelId channel_id,

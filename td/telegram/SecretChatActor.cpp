@@ -215,7 +215,7 @@ Result<BufferSlice> SecretChatActor::create_encrypted_message(int32 my_in_seq_no
   auto out_seq_no = my_out_seq_no * 2 - 1 - auth_state_.x;
 
   auto layer = current_layer();
-  BufferSlice random_bytes(32);
+  BufferSlice random_bytes(31);
   Random::secure_bytes(random_bytes.as_slice().ubegin(), random_bytes.size());
   auto message_with_layer = secret_api::make_object<secret_api::decryptedMessageLayer>(
       std::move(random_bytes), layer, in_seq_no, out_seq_no, std::move(message));
@@ -797,7 +797,9 @@ Result<std::tuple<uint64, BufferSlice, int32>> SecretChatActor::decrypt(BufferSl
     info.is_creator = auth_state_.x == 0;
     r_read_result = mtproto::Transport::read(data, *auth_key, &info);
     if (i + 1 != versions.size() && r_read_result.is_error()) {
-      LOG(WARNING) << tag("mtproto", mtproto_version) << " decryption failed " << r_read_result.error();
+      if (config_state_.his_layer >= static_cast<int32>(SecretChatLayer::Mtproto2)) {
+        LOG(WARNING) << tag("mtproto", mtproto_version) << " decryption failed " << r_read_result.error();
+      }
       continue;
     }
     break;
@@ -1933,13 +1935,13 @@ void SecretChatActor::get_dh_config() {
   }
 
   auto version = auth_state_.dh_config.version;
-  int32 random_length = 0;
+  int32 random_length = 256;  // ignored server-side, always returns 256 random bytes
   auto query = create_net_query(QueryType::DhConfig, telegram_api::messages_getDhConfig(version, random_length));
   context_->send_net_query(std::move(query), actor_shared(this), false);
 }
 
 Status SecretChatActor::on_dh_config(NetQueryPtr query) {
-  LOG(INFO) << "Got dh config";
+  LOG(INFO) << "Got DH config";
   TRY_RESULT(config, fetch_result<telegram_api::messages_getDhConfig>(std::move(query)));
   downcast_call(*config, [&](auto &obj) { this->on_dh_config(obj); });
   TRY_STATUS(mtproto::DhHandshake::check_config(auth_state_.dh_config.g, auth_state_.dh_config.prime,

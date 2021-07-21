@@ -1998,17 +1998,26 @@ class MessagesManager final : public Actor {
 
   void preload_older_messages(const Dialog *d, MessageId min_message_id);
 
-  void on_get_history_from_database(DialogId dialog_id, MessageId from_message_id, int32 offset, int32 limit,
+  void on_get_history_from_database(DialogId dialog_id, MessageId from_message_id,
+                                    MessageId old_last_database_message_id, int32 offset, int32 limit,
                                     bool from_the_end, bool only_local, vector<BufferSlice> &&messages,
                                     Promise<Unit> &&promise);
 
   void get_history_from_the_end(DialogId dialog_id, bool from_database, bool only_local, Promise<Unit> &&promise);
 
+  void get_history_from_the_end_impl(const Dialog *d, bool from_database, bool only_local, Promise<Unit> &&promise);
+
   void get_history(DialogId dialog_id, MessageId from_message_id, int32 offset, int32 limit, bool from_database,
                    bool only_local, Promise<Unit> &&promise);
 
+  void get_history_impl(const Dialog *d, MessageId from_message_id, int32 offset, int32 limit, bool from_database,
+                        bool only_local, Promise<Unit> &&promise);
+
   void load_messages(DialogId dialog_id, MessageId from_message_id, int32 offset, int32 limit, int left_tries,
                      bool only_local, Promise<Unit> &&promise);
+
+  void load_messages_impl(const Dialog *d, MessageId from_message_id, int32 offset, int32 limit, int left_tries,
+                          bool only_local, Promise<Unit> &&promise);
 
   void load_dialog_scheduled_messages(DialogId dialog_id, bool from_database, int32 hash, Promise<Unit> &&promise);
 
@@ -3320,6 +3329,7 @@ class MessagesManager final : public Actor {
   FullMessageId being_readded_message_id_;
 
   DialogId being_added_dialog_id_;
+  DialogId being_added_by_new_message_dialog_id_;
 
   DialogId debug_channel_difference_dialog_;
 
