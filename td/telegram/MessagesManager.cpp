@@ -22199,6 +22199,9 @@ void MessagesManager::get_history_from_the_end_impl(const Dialog *d, bool from_d
   if (G()->close_flag()) {
     return promise.set_error(Status::Error(500, "Request aborted"));
   }
+  if (!d->first_database_message_id.is_valid() && !d->have_full_history) {
+    from_database = false;
+  }
   int32 limit = MAX_GET_HISTORY;
   if (from_database && G()->parameters().use_message_db) {
     if (!promise) {
@@ -22248,6 +22251,9 @@ void MessagesManager::get_history_impl(const Dialog *d, MessageId from_message_i
   if (G()->close_flag()) {
     return promise.set_error(Status::Error(500, "Request aborted"));
   }
+  if (!d->first_database_message_id.is_valid() && !d->have_full_history) {
+    from_database = false;
+  }
   if (from_database && G()->parameters().use_message_db) {
     LOG(INFO) << "Get history in " << dialog_id << " from " << from_message_id << " with offset " << offset
               << " and limit " << limit << " from database";
@@ -22296,8 +22302,10 @@ void MessagesManager::load_messages_impl(const Dialog *d, MessageId from_message
     only_local = true;
   }
   bool from_database = (left_tries > 2 || only_local) && G()->parameters().use_message_db;
+  if (!d->first_database_message_id.is_valid() && !d->have_full_history) {
+    from_database = false;
+  }
   // TODO do not send requests to database if (from_message_id < d->first_database_message_id ||
-  // !d->first_database_message_id.is_valid()) && !d->have_full_history
 
   if (from_message_id == MessageId()) {
     get_history_from_the_end_impl(d, from_database, only_local, std::move(promise));
