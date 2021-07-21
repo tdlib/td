@@ -39,6 +39,11 @@ do
     mkdir -p $platform
     cp $build/libtdjson.dylib $platform/libtdjson.dylib
     install_name_tool -id @rpath/libtdjson.dylib $platform/libtdjson.dylib
+    
+    mkdir -p ../tdjson/${platform}include
+    rsync --recursive ${install}/include/ ../tdjson/${platform}/include/
+    mkdir -p ../tdjson/${platform}/lib
+    cp ${platform}/libtdjson.dylib ../tdjson/${platform}/lib/
   else
     simulators="0 1"
     for simulator in $simulators;
@@ -48,11 +53,15 @@ do
       if [[ $simulator = "1" ]]; then
         build="${build}-simulator"
         install="${install}-simulator"
+        platform_path="${platform}-simulator"
         ios_platform="SIMULATOR"
-        set_cmake_options ${platform}-simulator
+        lib="${install}/lib/libtdjson.dylib"
+        set_cmake_options ${platform_path}
       else
+        platform_path=${platform}
         ios_platform="OS"
-        set_cmake_options ${platform}
+        lib="${install}/lib/libtdjson.dylib"
+        set_cmake_options ${platform_path}
       fi
       watchos=""
       if [[ $platform = "watchOS" ]]; then
@@ -70,13 +79,29 @@ do
       cmake $td_path $options $watchos -DIOS_PLATFORM=${ios_platform} -DCMAKE_TOOLCHAIN_FILE=${td_path}/CMake/iOS.cmake -DCMAKE_INSTALL_PREFIX=../${install}
       make -j3 install || exit
       cd ..
+
+      install_name_tool -id @rpath/libtdjson.dylib $lib
+
+      mkdir -p ../tdjson/${platform_path}/include
+      rsync --recursive ${install}/include/ ../tdjson/${platform_path}/include/
+      mkdir -p ../tdjson/${platform_path}/lib
+      cp ${lib} ../tdjson/${platform_path}/lib/
     done
-    lib="install-${platform}/lib/libtdjson.dylib"
-    lib_simulator="install-${platform}-simulator/lib/libtdjson.dylib"
-    mkdir -p $platform
-    install_name_tool -id @rpath/libtdjson.dylib $lib
-    install_name_tool -id @rpath/libtdjson.dylib $lib_simulator
   fi
 
-  echo "TODO: Make xcframework from build/install-*/lib/libtdjson.dylib"
 done
+
+produced_dylibs=(install-*/lib/libtdjson.dylib)
+xcodebuild_frameworks=()
+
+for dylib in "${produced_dylibs[@]}";
+do
+  xcodebuild_frameworks+=(-library $(grealpath "${dylib}"))
+done
+
+# Make xcframework
+xcodebuild -create-xcframework \
+    "${xcodebuild_frameworks[@]}" \
+    -output "libtdjson.xcframework"
+
+rsync --recursive libtdjson.xcframework ../tdjson/
