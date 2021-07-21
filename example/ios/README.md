@@ -36,7 +36,7 @@ cd <path to TDLib sources>/example/ios
 ./build.sh
 ```
 This may take a while, because TDLib will be built about 10 times.
-Resulting library for iOS will work on any architecture (armv7, armv7s, arm64) and even on a simulator.
+Resulting library for iOS will work on any architecture (armv7, armv7s, arm64) and even on a simulator (Intel, Apple Silicon).
 We use [CMake/iOS.cmake](https://github.com/tdlib/td/blob/master/CMake/iOS.cmake) toolchain, other toolchains may work too.
 
 Built libraries will be stored in `tdjson` directory.
