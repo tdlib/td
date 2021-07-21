@@ -3115,7 +3115,7 @@ Result<FileId> FileManager::get_input_file_id(FileType type, const tl_object_ptr
         string hash;
         if (G()->shared_config().get_option_boolean("reuse_uploaded_photos_by_hash") && new_type == FileType::Photo) {
           auto r_stat = stat(path);
-          if (r_stat.is_ok() && r_stat.ok().size_ > 0 && r_stat.ok().size_ < 5000000) {
+          if (r_stat.is_ok() && r_stat.ok().size_ > 0 && r_stat.ok().size_ < 11000000) {
             auto r_file_content = read_file_str(path, r_stat.ok().size_);
             if (r_file_content.is_ok()) {
               hash = sha256(r_file_content.ok());
