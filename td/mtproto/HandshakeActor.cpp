@@ -49,6 +49,26 @@ void HandshakeActor::loop() {
   }
 }
 
+void HandshakeActor::hangup() {
+  finish(Status::Error(1, "Canceled"));
+  stop();
+}
+
+void HandshakeActor::timeout_expired() {
+  finish(Status::Error("Timeout expired"));
+  stop();
+}
+
+void HandshakeActor::tear_down() {
+  finish(Status::OK());
+}
+
+void HandshakeActor::finish(Status status) {
+  // NB: order may be important for parent
+  return_connection(std::move(status));
+  return_handshake();
+}
+
 void HandshakeActor::return_connection(Status status) {
   auto raw_connection = connection_->move_as_raw_connection();
   if (!raw_connection) {
