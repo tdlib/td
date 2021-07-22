@@ -769,7 +769,7 @@ messageSendingStateFailed error_code:int32 error_message:string can_retry:Bool r
 //@reply_to_message_id If non-zero, the identifier of the message this message is replying to; can be the identifier of a deleted message
 //@message_thread_id If non-zero, the identifier of the message thread the message belongs to; unique within the chat to which the message belongs
 //@ttl For self-destructing messages, the message's TTL (Time To Live), in seconds; 0 if none. TDLib will send updateDeleteMessages or updateMessageContent once the TTL expires
-//@ttl_expires_in Time left before the message expires, in seconds
+//@ttl_expires_in Time left before the message expires, in seconds. If the TTL timer isn't started yet, equals to the value of the ttl field
 //@via_bot_user_id If non-zero, the user identifier of the bot through which this message was sent
 //@author_signature For channel posts and anonymous group messages, optional author signature
 //@media_album_id Unique identifier of an album this message belongs to. Only audios, documents, photos and videos can be grouped together in albums
