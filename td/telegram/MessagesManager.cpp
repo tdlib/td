@@ -10542,10 +10542,12 @@ void MessagesManager::delete_dialog_history(DialogId dialog_id, bool remove_from
   }
 
   bool allow_error = d->messages == nullptr;
+  auto old_order = d->order;
 
   delete_all_dialog_messages(d, remove_from_dialog_list, true);
 
-  if (last_new_message_id.is_valid() && last_new_message_id == d->max_unavailable_message_id && !revoke) {
+  if (last_new_message_id.is_valid() && last_new_message_id == d->max_unavailable_message_id && !revoke &&
+      !(old_order != DEFAULT_ORDER && remove_from_dialog_list)) {
     // history has already been cleared, nothing to do
     promise.set_value(Unit());
     return;
