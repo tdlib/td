@@ -5300,6 +5300,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     last_database_message = get_message(this, last_database_message_id);
   }
 
+  auto dialog_type = dialog_id.get_type();
   bool has_draft_message = draft_message != nullptr;
   bool has_last_database_message = last_database_message != nullptr;
   bool has_first_database_message_id = first_database_message_id.is_valid();
@@ -5329,6 +5330,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   bool has_active_group_call_id = active_group_call_id.is_valid();
   bool has_message_ttl_setting = !message_ttl_setting.is_empty();
   bool has_default_join_group_call_as_dialog_id = default_join_group_call_as_dialog_id.is_valid();
+  bool store_has_bots = dialog_type == DialogType::Chat || dialog_type == DialogType::Channel;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_draft_message);
   STORE_FLAG(has_last_database_message);
@@ -5391,6 +5393,8 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     STORE_FLAG(has_message_ttl_setting);
     STORE_FLAG(is_message_ttl_setting_inited);
     STORE_FLAG(has_default_join_group_call_as_dialog_id);
+    STORE_FLAG(store_has_bots ? has_bots : false);
+    STORE_FLAG(store_has_bots ? is_has_bots_inited : false);  // 26
     END_STORE_FLAGS();
   }
 
@@ -5578,6 +5582,8 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     PARSE_FLAG(has_message_ttl_setting);
     PARSE_FLAG(is_message_ttl_setting_inited);
     PARSE_FLAG(has_default_join_group_call_as_dialog_id);
+    PARSE_FLAG(has_bots);
+    PARSE_FLAG(is_has_bots_inited);
     END_PARSE_FLAGS();
   } else {
     is_folder_id_inited = false;
@@ -5598,6 +5604,8 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     is_group_call_empty = false;
     can_invite_members = false;
     is_message_ttl_setting_inited = false;
+    has_bots = false;
+    is_has_bots_inited = false;
   }
 
   parse(last_new_message_id, parser);
@@ -14395,6 +14403,11 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     if (!d->is_is_blocked_inited && !td_->auth_manager_->is_bot()) {
       // asynchronously get is_blocked from the server
       // TODO add is_blocked to telegram_api::dialog
+      get_dialog_info_full(dialog_id, Auto());
+    }
+    if (!d->is_has_bots_inited && !td_->auth_manager_->is_bot()) {
+      // asynchronously get has_bots from the server
+      // TODO add has_bots to telegram_api::dialog
       get_dialog_info_full(dialog_id, Auto());
     }
     if (!d->is_last_pinned_message_id_inited && !td_->auth_manager_->is_bot()) {
@@ -29641,15 +29654,33 @@ void MessagesManager::on_dialog_bots_updated(DialogId dialog_id, vector<UserId> 
   }
 
   auto d = from_database ? get_dialog(dialog_id) : get_dialog_force(dialog_id, "on_dialog_bots_updated");
-  if (d == nullptr || d->reply_markup_message_id == MessageId()) {
+  if (d == nullptr) {
     return;
   }
-  const Message *m = get_message_force(d, d->reply_markup_message_id, "on_dialog_bots_updated");
-  if (m == nullptr || (m->sender_user_id.is_valid() && !td::contains(bot_user_ids, m->sender_user_id))) {
-    LOG(INFO) << "Remove reply markup in " << dialog_id << ", because bot "
-              << (m == nullptr ? UserId() : m->sender_user_id) << " isn't a member of the chat";
-    set_dialog_reply_markup(d, MessageId());
+
+  bool has_bots = !bot_user_ids.empty();
+  if (!d->is_has_bots_inited || d->has_bots != has_bots) {
+    d->is_has_bots_inited = true;
+    set_dialog_has_bots(d, has_bots);
+    on_dialog_updated(dialog_id, "on_dialog_bots_updated");
   }
+
+  if (d->reply_markup_message_id != MessageId()) {
+    const Message *m = get_message_force(d, d->reply_markup_message_id, "on_dialog_bots_updated");
+    if (m == nullptr || (m->sender_user_id.is_valid() && !td::contains(bot_user_ids, m->sender_user_id))) {
+      LOG(INFO) << "Remove reply markup in " << dialog_id << ", because bot "
+                << (m == nullptr ? UserId() : m->sender_user_id) << " isn't a member of the chat";
+      set_dialog_reply_markup(d, MessageId());
+    }
+  }
+}
+
+void MessagesManager::set_dialog_has_bots(Dialog *d, bool has_bots) {
+  CHECK(d != nullptr);
+  d->has_bots = has_bots;
+
+  LOG(INFO) << "Set " << d->dialog_id << " has_bots to " << has_bots;
+  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in set_dialog_has_bots";
 }
 
 void MessagesManager::on_dialog_photo_updated(DialogId dialog_id) {
@@ -29735,11 +29766,23 @@ void MessagesManager::on_dialog_user_is_deleted_updated(DialogId dialog_id, bool
     if (!dialog_filters_.empty() && d->order != DEFAULT_ORDER) {
       update_dialog_lists(d, get_dialog_positions(d), true, false, "on_dialog_user_is_deleted_updated");
       td_->contacts_manager_->for_each_secret_chat_with_user(
-          d->dialog_id.get_user_id(), [this](SecretChatId secret_chat_id) {
+          dialog_id.get_user_id(), [this](SecretChatId secret_chat_id) {
             DialogId dialog_id(secret_chat_id);
             auto d = get_dialog(dialog_id);  // must not create the dialog
             if (d != nullptr && d->is_update_new_chat_sent && d->order != DEFAULT_ORDER) {
               update_dialog_lists(d, get_dialog_positions(d), true, false, "on_dialog_user_is_deleted_updated");
+            }
+          });
+    }
+
+    if (is_deleted && d->has_bots) {
+      set_dialog_has_bots(d, false);
+      td_->contacts_manager_->for_each_secret_chat_with_user(
+          dialog_id.get_user_id(), [this](SecretChatId secret_chat_id) {
+            DialogId dialog_id(secret_chat_id);
+            auto d = get_dialog(dialog_id);  // must not create the dialog
+            if (d != nullptr && d->is_update_new_chat_sent && d->has_bots) {
+              set_dialog_has_bots(d, false);
             }
           });
     }
@@ -33570,6 +33613,8 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
         d->last_read_inbox_message_id = d->last_new_message_id;
         d->last_read_outbox_message_id = d->last_new_message_id;
       }
+      d->has_bots = td_->contacts_manager_->is_user_bot(dialog_id.get_user_id());
+      d->is_has_bots_inited = true;
       break;
     case DialogType::Chat:
       d->is_is_blocked_inited = true;
@@ -33592,7 +33637,7 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
     }
     case DialogType::SecretChat:
       if (d->last_new_message_id.get() <= MessageId::min().get()) {
-        LOG(INFO) << "Set " << d->dialog_id << " last new message in add_new_dialog from " << source;
+        LOG(INFO) << "Set " << dialog_id << " last new message in add_new_dialog from " << source;
         d->last_new_message_id = MessageId::min().get_next_message_id(MessageType::Local);
       }
 
@@ -33600,7 +33645,7 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
         d->notification_settings.use_default_show_preview = true;
         d->notification_settings.show_preview = false;
         d->notification_settings.is_secret_chat_show_preview_fixed = true;
-        on_dialog_updated(d->dialog_id, "fix secret chat show preview");
+        on_dialog_updated(dialog_id, "fix secret chat show preview");
       }
 
       d->have_full_history = true;
@@ -33616,6 +33661,9 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
       d->message_ttl_setting =
           MessageTtlSetting(td_->contacts_manager_->get_secret_chat_ttl(dialog_id.get_secret_chat_id()));
       d->is_message_ttl_setting_inited = true;
+      d->has_bots = td_->contacts_manager_->is_user_bot(
+          td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id()));
+      d->is_has_bots_inited = true;
 
       break;
     case DialogType::None:
@@ -33644,10 +33692,10 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
   }
 
   if (d->message_notification_group.group_id.is_valid()) {
-    notification_group_id_to_dialog_id_.emplace(d->message_notification_group.group_id, d->dialog_id);
+    notification_group_id_to_dialog_id_.emplace(d->message_notification_group.group_id, dialog_id);
   }
   if (d->mention_notification_group.group_id.is_valid()) {
-    notification_group_id_to_dialog_id_.emplace(d->mention_notification_group.group_id, d->dialog_id);
+    notification_group_id_to_dialog_id_.emplace(d->mention_notification_group.group_id, dialog_id);
   }
   if (pending_dialog_group_call_updates_.count(dialog_id) > 0) {
     auto it = pending_dialog_group_call_updates_.find(dialog_id);
@@ -33713,6 +33761,10 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
 
   if (being_added_dialog_id_ != dialog_id && !d->is_is_blocked_inited && !td_->auth_manager_->is_bot()) {
     // asynchronously get is_blocked from the server
+    get_dialog_info_full(dialog_id, Auto());
+  }
+  if (being_added_dialog_id_ != dialog_id && !d->is_has_bots_inited && !td_->auth_manager_->is_bot()) {
+    // asynchronously get has_bots from the server
     get_dialog_info_full(dialog_id, Auto());
   }
   if (being_added_dialog_id_ != dialog_id && !d->is_last_pinned_message_id_inited && !td_->auth_manager_->is_bot()) {

@@ -1229,6 +1229,8 @@ class MessagesManager final : public Actor {
     bool is_group_call_empty = false;
     bool is_message_ttl_setting_inited = false;
     bool has_expected_active_group_call_id = false;
+    bool has_bots = false;
+    bool is_has_bots_inited = false;
 
     bool increment_view_counter = false;
 
@@ -2315,6 +2317,8 @@ class MessagesManager final : public Actor {
   void set_dialog_is_marked_as_unread(Dialog *d, bool is_marked_as_unread);
 
   void set_dialog_is_blocked(Dialog *d, bool is_blocked);
+
+  void set_dialog_has_bots(Dialog *d, bool has_bots);
 
   void set_dialog_last_pinned_message_id(Dialog *d, MessageId last_pinned_message_id);
 
