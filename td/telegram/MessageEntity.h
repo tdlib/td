@@ -191,6 +191,6 @@ Result<FormattedText> process_input_caption(const ContactsManager *contacts_mana
 
 void add_formatted_text_dependencies(Dependencies &dependencies, const FormattedText *text);
 
-bool need_skip_bot_commands(const ContactsManager *contacts_manager, DialogId dialog_id, bool is_bot);
+bool need_always_skip_bot_commands(const ContactsManager *contacts_manager, DialogId dialog_id, bool is_bot);
 
 }  // namespace td

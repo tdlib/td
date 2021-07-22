@@ -39,7 +39,7 @@ Result<InputMessageText> process_input_message_text(const ContactsManager *conta
   }
 
   TRY_RESULT(entities, get_message_entities(contacts_manager, std::move(input_message_text->text_->entities_)));
-  auto need_skip_commands = need_skip_bot_commands(contacts_manager, dialog_id, is_bot);
+  auto need_skip_commands = need_always_skip_bot_commands(contacts_manager, dialog_id, is_bot);
   bool parse_markdown = G()->shared_config().get_option_boolean("always_parse_markdown");
   TRY_STATUS(fix_formatted_text(input_message_text->text_->text_, entities, for_draft, parse_markdown,
                                 need_skip_commands, for_draft));

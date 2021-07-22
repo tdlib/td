@@ -3929,7 +3929,7 @@ Result<FormattedText> process_input_caption(const ContactsManager *contacts_mana
   }
   TRY_RESULT(entities, get_message_entities(contacts_manager, std::move(caption->entities_)));
   TRY_STATUS(fix_formatted_text(caption->text_, entities, true, false,
-                                need_skip_bot_commands(contacts_manager, dialog_id, is_bot), false));
+                                need_always_skip_bot_commands(contacts_manager, dialog_id, is_bot), false));
   return FormattedText{std::move(caption->text_), std::move(entities)};
 }
 
@@ -3944,7 +3944,7 @@ void add_formatted_text_dependencies(Dependencies &dependencies, const Formatted
   }
 }
 
-bool need_skip_bot_commands(const ContactsManager *contacts_manager, DialogId dialog_id, bool is_bot) {
+bool need_always_skip_bot_commands(const ContactsManager *contacts_manager, DialogId dialog_id, bool is_bot) {
   if (!dialog_id.is_valid()) {
     return true;
   }
