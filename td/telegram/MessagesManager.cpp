@@ -6956,9 +6956,7 @@ void MessagesManager::on_external_update_message_content(FullMessageId full_mess
   CHECK(d != nullptr);
   const Message *m = get_message(d, full_message_id.get_message_id());
   CHECK(m != nullptr);
-  auto live_location_date = m->is_failed_to_send ? 0 : m->date;
-  send_update_message_content(d->dialog_id, m->message_id, m->content.get(), live_location_date, m->is_content_secret,
-                              need_skip_bot_commands(d->dialog_id, m), "on_external_update_message_content");
+  send_update_message_content(d->dialog_id, m, "on_external_update_message_content");
   if (m->message_id == d->last_message_id) {
     send_update_chat_last_message_impl(d, "on_external_update_message_content");
   }
@@ -12113,8 +12111,7 @@ void MessagesManager::on_message_ttl_expired(Dialog *d, Message *m) {
   remove_message_file_sources(d->dialog_id, m);
   on_message_ttl_expired_impl(d, m);
   register_message_content(td_, m->content.get(), {d->dialog_id, m->message_id}, "on_message_ttl_expired");
-  send_update_message_content(d->dialog_id, m->message_id, m->content.get(), m->date, m->is_content_secret, true,
-                              "on_message_ttl_expired");
+  send_update_message_content(d->dialog_id, m, "on_message_ttl_expired");
 }
 
 void MessagesManager::on_message_ttl_expired_impl(Dialog *d, Message *m) {
@@ -14204,8 +14201,7 @@ void MessagesManager::on_update_sent_text_message(int64 random_id,
     m->is_content_secret = is_secret_message_content(m->ttl, MessageContentType::Text);
   }
   if (need_update) {
-    send_update_message_content(dialog_id, m->message_id, m->content.get(), m->date, m->is_content_secret,
-                                need_skip_bot_commands(dialog_id, m), "on_update_sent_text_message");
+    send_update_message_content(dialog_id, m, "on_update_sent_text_message");
   }
 }
 
@@ -27985,18 +27981,15 @@ void MessagesManager::send_update_message_send_succeeded(Dialog *d, MessageId ol
       make_tl_object<td_api::updateMessageSendSucceeded>(get_message_object(d->dialog_id, m), old_message_id.get()));
 }
 
-void MessagesManager::send_update_message_content(DialogId dialog_id, MessageId message_id,
-                                                  const MessageContent *content, int32 message_date,
-                                                  bool is_content_secret, bool skip_bot_commands,
-                                                  const char *source) const {
-  LOG(INFO) << "Send updateMessageContent for " << message_id << " in " << dialog_id << " from " << source;
+void MessagesManager::send_update_message_content(DialogId dialog_id, const Message *m, const char *source) const {
+  LOG(INFO) << "Send updateMessageContent for " << m->message_id << " in " << dialog_id << " from " << source;
   LOG_CHECK(have_dialog(dialog_id)) << "Send updateMessageContent in unknown " << dialog_id << " from " << source
                                     << " with load count " << loaded_dialogs_.count(dialog_id);
-  auto content_object =
-      get_message_content_object(content, td_, dialog_id, message_date, is_content_secret, skip_bot_commands);
-  send_closure(
-      G()->td(), &Td::send_update,
-      td_api::make_object<td_api::updateMessageContent>(dialog_id.get(), message_id.get(), std::move(content_object)));
+  auto content_object = get_message_content_object(m->content.get(), td_, dialog_id, m->is_failed_to_send ? 0 : m->date,
+                                                   m->is_content_secret, need_skip_bot_commands(dialog_id, m));
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateMessageContent>(dialog_id.get(), m->message_id.get(),
+                                                                 std::move(content_object)));
 }
 
 void MessagesManager::send_update_message_edited(DialogId dialog_id, const Message *m) {
@@ -28508,9 +28501,7 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
   // }
 
   if (merge_message_content_file_id(td_, sent_message->content.get(), new_file_id)) {
-    send_update_message_content(dialog_id, old_message_id, sent_message->content.get(), sent_message->date,
-                                sent_message->is_content_secret, need_skip_bot_commands(dialog_id, sent_message.get()),
-                                source);
+    send_update_message_content(dialog_id, sent_message.get(), source);
   }
 
   set_message_id(sent_message, new_message_id);
@@ -33455,9 +33446,7 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
   }
 
   if (need_update && need_send_update_message_content) {
-    send_update_message_content(dialog_id, old_message->message_id, old_content.get(), old_message->date,
-                                old_message->is_content_secret, need_skip_bot_commands(dialog_id, old_message),
-                                "update_message_content");
+    send_update_message_content(dialog_id, old_message, "update_message_content");
   }
   return is_content_changed || need_update;
 }

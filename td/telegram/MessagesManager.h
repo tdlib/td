@@ -2187,9 +2187,7 @@ class MessagesManager final : public Actor {
 
   void send_update_message_send_succeeded(Dialog *d, MessageId old_message_id, const Message *m) const;
 
-  void send_update_message_content(DialogId dialog_id, MessageId message_id, const MessageContent *content,
-                                   int32 message_date, bool is_content_secret, bool skip_bot_commands,
-                                   const char *source) const;
+  void send_update_message_content(DialogId dialog_id, const Message *m, const char *source) const;
 
   void send_update_message_edited(DialogId dialog_id, const Message *m);
 
