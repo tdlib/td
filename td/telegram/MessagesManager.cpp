@@ -22717,13 +22717,13 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   double ttl_expires_in = 0;
   if (!for_event_log) {
     if (m->ttl_expires_at != 0) {
-      ttl_expires_in = max(m->ttl_expires_at - Time::now(), 1e-3);
+      ttl_expires_in = clamp(m->ttl_expires_at - Time::now(), 1e-3, ttl - 1e-3);
     } else {
-      ttl_expires_in = m->ttl;
+      ttl_expires_in = ttl;
     }
     if (ttl == 0 && m->ttl_period != 0) {
       ttl = m->ttl_period;
-      ttl_expires_in = max(m->date + m->ttl_period - G()->server_time(), 1e-3);
+      ttl_expires_in = clamp(m->date + m->ttl_period - G()->server_time(), 1e-3, ttl - 1e-3);
     }
   } else {
     ttl = 0;
