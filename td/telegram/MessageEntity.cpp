@@ -140,11 +140,15 @@ tl_object_ptr<td_api::textEntity> MessageEntity::get_text_entity_object() const 
   return make_tl_object<td_api::textEntity>(offset, length, get_text_entity_type_object());
 }
 
-vector<tl_object_ptr<td_api::textEntity>> get_text_entities_object(const vector<MessageEntity> &entities) {
+vector<tl_object_ptr<td_api::textEntity>> get_text_entities_object(const vector<MessageEntity> &entities,
+                                                                   bool skip_bot_commands) {
   vector<tl_object_ptr<td_api::textEntity>> result;
   result.reserve(entities.size());
 
   for (auto &entity : entities) {
+    if (skip_bot_commands && entity.type == MessageEntity::Type::BotCommand) {
+      continue;
+    }
     auto entity_object = entity.get_text_entity_object();
     if (entity_object->type_ != nullptr) {
       result.push_back(std::move(entity_object));
@@ -158,8 +162,9 @@ StringBuilder &operator<<(StringBuilder &string_builder, const FormattedText &te
   return string_builder << '"' << text.text << "\" with entities " << text.entities;
 }
 
-td_api::object_ptr<td_api::formattedText> get_formatted_text_object(const FormattedText &text) {
-  return td_api::make_object<td_api::formattedText>(text.text, get_text_entities_object(text.entities));
+td_api::object_ptr<td_api::formattedText> get_formatted_text_object(const FormattedText &text, bool skip_bot_commands) {
+  return td_api::make_object<td_api::formattedText>(text.text,
+                                                    get_text_entities_object(text.entities, skip_bot_commands));
 }
 
 static bool is_word_character(uint32 code) {

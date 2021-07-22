@@ -191,7 +191,8 @@ class LinkManager::InternalLinkMessageDraft final : public InternalLink {
   bool contains_link_ = false;
 
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
-    return td_api::make_object<td_api::internalLinkTypeMessageDraft>(get_formatted_text_object(text_), contains_link_);
+    return td_api::make_object<td_api::internalLinkTypeMessageDraft>(get_formatted_text_object(text_, true),
+                                                                     contains_link_);
   }
 
  public:

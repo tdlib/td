@@ -91,9 +91,9 @@ const FormattedText &Game::get_text() const {
   return text_;
 }
 
-tl_object_ptr<td_api::game> Game::get_game_object(Td *td) const {
+tl_object_ptr<td_api::game> Game::get_game_object(Td *td, bool skip_bot_commands) const {
   return make_tl_object<td_api::game>(
-      id_, short_name_, title_, get_formatted_text_object(text_), description_,
+      id_, short_name_, title_, get_formatted_text_object(text_, skip_bot_commands), description_,
       get_photo_object(td->file_manager_.get(), photo_),
       td->animations_manager_->get_animation_object(animation_file_id_, "get_game_object"));
 }

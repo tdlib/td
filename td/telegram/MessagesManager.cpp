@@ -6534,10 +6534,10 @@ void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api:
   bool is_content_secret = is_secret_message_content(ttl, content->get_type());
 
   if ((update->flags_ & telegram_api::updateServiceNotification::POPUP_MASK) != 0) {
-    send_closure(
-        G()->td(), &Td::send_update,
-        td_api::make_object<td_api::updateServiceNotification>(
-            update->type_, get_message_content_object(content.get(), td_, owner_dialog_id, date, is_content_secret)));
+    send_closure(G()->td(), &Td::send_update,
+                 td_api::make_object<td_api::updateServiceNotification>(
+                     update->type_,
+                     get_message_content_object(content.get(), td_, owner_dialog_id, date, is_content_secret, true)));
   }
   if (has_date && is_user) {
     Dialog *d = get_service_notifications_dialog();
@@ -6937,14 +6937,28 @@ void MessagesManager::on_update_some_live_location_viewed(Promise<Unit> &&promis
   promise.set_value(Unit());
 }
 
+bool MessagesManager::need_skip_bot_commands(DialogId dialog_id, const Message *m) const {
+  if (td_->auth_manager_->is_bot()) {
+    return false;
+  }
+
+  if (m != nullptr && m->message_id.is_scheduled()) {
+    return true;
+  }
+
+  auto d = get_dialog(dialog_id);
+  CHECK(d != nullptr);
+  return (d->is_has_bots_inited && !d->has_bots) || is_broadcast_channel(dialog_id);
+}
+
 void MessagesManager::on_external_update_message_content(FullMessageId full_message_id) {
   const Dialog *d = get_dialog(full_message_id.get_dialog_id());
   CHECK(d != nullptr);
   const Message *m = get_message(d, full_message_id.get_message_id());
   CHECK(m != nullptr);
   auto live_location_date = m->is_failed_to_send ? 0 : m->date;
-  send_update_message_content(full_message_id.get_dialog_id(), m->message_id, m->content.get(), live_location_date,
-                              m->is_content_secret, "on_external_update_message_content");
+  send_update_message_content(d->dialog_id, m->message_id, m->content.get(), live_location_date, m->is_content_secret,
+                              need_skip_bot_commands(d->dialog_id, m), "on_external_update_message_content");
   if (m->message_id == d->last_message_id) {
     send_update_chat_last_message_impl(d, "on_external_update_message_content");
   }
@@ -12099,7 +12113,7 @@ void MessagesManager::on_message_ttl_expired(Dialog *d, Message *m) {
   remove_message_file_sources(d->dialog_id, m);
   on_message_ttl_expired_impl(d, m);
   register_message_content(td_, m->content.get(), {d->dialog_id, m->message_id}, "on_message_ttl_expired");
-  send_update_message_content(d->dialog_id, m->message_id, m->content.get(), m->date, m->is_content_secret,
+  send_update_message_content(d->dialog_id, m->message_id, m->content.get(), m->date, m->is_content_secret, true,
                               "on_message_ttl_expired");
 }
 
@@ -13477,7 +13491,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
       LOG(ERROR) << "Receive media group identifier " << message_info.media_album_id << " in " << message_id << " from "
                  << dialog_id << " with content "
                  << oneline(to_string(get_message_content_object(message->content.get(), td_, dialog_id, message->date,
-                                                                 is_content_secret)));
+                                                                 is_content_secret, false)));
     } else {
       message->media_album_id = message_info.media_album_id;
     }
@@ -14153,12 +14167,12 @@ void MessagesManager::on_update_sent_text_message(int64 random_id,
   }
 
   auto full_message_id = it->second;
-  auto dialog_id = full_message_id.get_dialog_id();
   auto m = get_message_force(full_message_id, "on_update_sent_text_message");
   if (m == nullptr) {
     // message has already been deleted
     return;
   }
+  auto dialog_id = full_message_id.get_dialog_id();
   full_message_id = FullMessageId(dialog_id, m->message_id);
 
   if (m->content->get_type() != MessageContentType::Text) {
@@ -14191,7 +14205,7 @@ void MessagesManager::on_update_sent_text_message(int64 random_id,
   }
   if (need_update) {
     send_update_message_content(dialog_id, m->message_id, m->content.get(), m->date, m->is_content_secret,
-                                "on_update_sent_text_message");
+                                need_skip_bot_commands(dialog_id, m), "on_update_sent_text_message");
   }
 }
 
@@ -22708,6 +22722,7 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   auto date = is_scheduled ? 0 : m->date;
   auto edit_date = m->hide_edit_date ? 0 : m->edit_date;
   auto is_pinned = for_event_log || is_scheduled ? false : m->is_pinned;
+  bool skip_bot_commands = for_event_log || need_skip_bot_commands(dialog_id, m);
   return make_tl_object<td_api::message>(
       m->message_id.get(), get_message_sender_object_const(m->sender_user_id, m->sender_dialog_id), dialog_id.get(),
       std::move(sending_state), std::move(scheduling_state), is_outgoing, is_pinned, can_be_edited, can_be_forwarded,
@@ -22716,7 +22731,8 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
       get_message_interaction_info_object(dialog_id, m), reply_in_dialog_id.get(), reply_to_message_id,
       top_thread_message_id, ttl, ttl_expires_in, via_bot_user_id, m->author_signature, media_album_id,
       get_restriction_reason_description(m->restriction_reasons),
-      get_message_content_object(m->content.get(), td_, dialog_id, live_location_date, m->is_content_secret),
+      get_message_content_object(m->content.get(), td_, dialog_id, live_location_date, m->is_content_secret,
+                                 skip_bot_commands),
       get_reply_markup_object(m->reply_markup));
 }
 
@@ -23905,8 +23921,8 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
                  << file_view.has_alive_remote_location() << " " << file_view.has_active_upload_remote_location() << " "
                  << file_view.has_active_download_remote_location() << " " << file_view.is_encrypted() << " " << is_web
                  << " " << file_view.has_url() << " "
-                 << to_string(
-                        get_message_content_object(m->content.get(), td_, dialog_id, m->date, m->is_content_secret));
+                 << to_string(get_message_content_object(m->content.get(), td_, dialog_id, m->date,
+                                                         m->is_content_secret, false));
     }
     auto entities = get_input_message_entities(td_->contacts_manager_.get(), caption, "do_send_message_group");
     int32 input_single_media_flags = 0;
@@ -27971,11 +27987,13 @@ void MessagesManager::send_update_message_send_succeeded(Dialog *d, MessageId ol
 
 void MessagesManager::send_update_message_content(DialogId dialog_id, MessageId message_id,
                                                   const MessageContent *content, int32 message_date,
-                                                  bool is_content_secret, const char *source) const {
+                                                  bool is_content_secret, bool skip_bot_commands,
+                                                  const char *source) const {
   LOG(INFO) << "Send updateMessageContent for " << message_id << " in " << dialog_id << " from " << source;
   LOG_CHECK(have_dialog(dialog_id)) << "Send updateMessageContent in unknown " << dialog_id << " from " << source
                                     << " with load count " << loaded_dialogs_.count(dialog_id);
-  auto content_object = get_message_content_object(content, td_, dialog_id, message_date, is_content_secret);
+  auto content_object =
+      get_message_content_object(content, td_, dialog_id, message_date, is_content_secret, skip_bot_commands);
   send_closure(
       G()->td(), &Td::send_update,
       td_api::make_object<td_api::updateMessageContent>(dialog_id.get(), message_id.get(), std::move(content_object)));
@@ -28491,7 +28509,8 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
 
   if (merge_message_content_file_id(td_, sent_message->content.get(), new_file_id)) {
     send_update_message_content(dialog_id, old_message_id, sent_message->content.get(), sent_message->date,
-                                sent_message->is_content_secret, source);
+                                sent_message->is_content_secret, need_skip_bot_commands(dialog_id, sent_message.get()),
+                                source);
   }
 
   set_message_id(sent_message, new_message_id);
@@ -30293,8 +30312,8 @@ void MessagesManager::on_send_dialog_action_timeout(DialogId dialog_id) {
   auto file_id = get_message_content_upload_file_id(m->content.get());
   if (!file_id.is_valid()) {
     LOG(ERROR) << "Have no file in "
-               << to_string(
-                      get_message_content_object(m->content.get(), td_, dialog_id, m->date, m->is_content_secret));
+               << to_string(get_message_content_object(m->content.get(), td_, dialog_id, m->date, m->is_content_secret,
+                                                       false));
     return;
   }
   auto file_view = td_->file_manager_->get_file_view(file_id);
@@ -33437,7 +33456,8 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
 
   if (need_update && need_send_update_message_content) {
     send_update_message_content(dialog_id, old_message->message_id, old_content.get(), old_message->date,
-                                old_message->is_content_secret, "update_message_content");
+                                old_message->is_content_secret, need_skip_bot_commands(dialog_id, old_message),
+                                "update_message_content");
   }
   return is_content_changed || need_update;
 }
@@ -33613,7 +33633,8 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
         d->last_read_inbox_message_id = d->last_new_message_id;
         d->last_read_outbox_message_id = d->last_new_message_id;
       }
-      d->has_bots = td_->contacts_manager_->is_user_bot(dialog_id.get_user_id());
+      d->has_bots = dialog_id.get_user_id() != ContactsManager::get_replies_bot_user_id() &&
+                    td_->contacts_manager_->is_user_bot(dialog_id.get_user_id());
       d->is_has_bots_inited = true;
       break;
     case DialogType::Chat:

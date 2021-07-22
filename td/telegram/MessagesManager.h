@@ -2183,10 +2183,13 @@ class MessagesManager final : public Actor {
 
   void remove_message_dialog_notifications(Dialog *d, MessageId max_message_id, bool from_mentions, const char *source);
 
+  bool need_skip_bot_commands(DialogId dialog_id, const Message *m) const;
+
   void send_update_message_send_succeeded(Dialog *d, MessageId old_message_id, const Message *m) const;
 
   void send_update_message_content(DialogId dialog_id, MessageId message_id, const MessageContent *content,
-                                   int32 message_date, bool is_content_secret, const char *source) const;
+                                   int32 message_date, bool is_content_secret, bool skip_bot_commands,
+                                   const char *source) const;
 
   void send_update_message_edited(DialogId dialog_id, const Message *m);
 
