@@ -10863,12 +10863,14 @@ void MessagesManager::unload_dialog(DialogId dialog_id) {
   CHECK(d != nullptr);
 
   if (!d->has_unload_timeout) {
+    LOG(INFO) << "Don't need to unload " << dialog_id;
     // possible right after the dialog was opened
     return;
   }
 
   if (!is_message_unload_enabled()) {
     // just in case
+    LOG(INFO) << "Message unload is disabled in " << dialog_id;
     d->has_unload_timeout = false;
     return;
   }
