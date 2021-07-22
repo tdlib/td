@@ -34,6 +34,7 @@ void HandshakeActor::close() {
 void HandshakeActor::start_up() {
   Scheduler::subscribe(connection_->get_poll_info().extract_pollable_fd(this));
   set_timeout_in(timeout_);
+  handshake_->set_timeout_in(timeout_);
   yield();
 }
 

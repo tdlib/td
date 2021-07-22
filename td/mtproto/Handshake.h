@@ -45,6 +45,8 @@ class AuthKeyHandshake {
 
   AuthKeyHandshake(int32 dc_id, int32 expires_in);
 
+  void set_timeout_in(double timeout_in);
+
   bool is_ready_for_finish() const;
 
   void on_finish();
@@ -79,6 +81,8 @@ class AuthKeyHandshake {
   int32 dc_id_ = 0;
   int32 expires_in_ = 0;
   double expires_at_ = 0;
+
+  double timeout_at_ = 0;
 
   AuthKey auth_key_;
   double server_time_diff_ = 0;
