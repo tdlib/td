@@ -14996,6 +14996,8 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
                                      m->have_previous, m->have_next, source);
   }
 
+  delete_bot_command_message_id(d->dialog_id, message_id);
+
   bool need_get_history = false;
   if (!only_from_memory) {
     LOG(INFO) << "Deleting " << full_message_id << " with have_previous = " << m->have_previous
@@ -21294,6 +21296,30 @@ void MessagesManager::on_message_live_location_viewed_on_server(int64 task_id) {
   pending_message_live_location_view_timeout_.add_timeout_in(task_id, LIVE_LOCATION_VIEW_PERIOD);
 }
 
+void MessagesManager::try_add_bot_command_message_id(DialogId dialog_id, const Message *m) {
+  CHECK(m != nullptr);
+  if (td_->auth_manager_->is_bot() || !is_group_dialog(dialog_id) || m->message_id.is_scheduled() ||
+      !has_bot_commands(get_message_content_text(m->content.get()))) {
+    return;
+  }
+
+  dialog_bot_command_message_ids_[dialog_id].message_ids.insert(m->message_id);
+}
+
+void MessagesManager::delete_bot_command_message_id(DialogId dialog_id, MessageId message_id) {
+  if (message_id.is_scheduled()) {
+    return;
+  }
+  auto it = dialog_bot_command_message_ids_.find(dialog_id);
+  if (it == dialog_bot_command_message_ids_.end()) {
+    return;
+  }
+  it->second.message_ids.erase(message_id);
+  if (it->second.message_ids.empty()) {
+    dialog_bot_command_message_ids_.erase(it);
+  }
+}
+
 FileSourceId MessagesManager::get_message_file_source_id(FullMessageId full_message_id) {
   if (td_->auth_manager_->is_bot()) {
     return FileSourceId();
@@ -24554,6 +24580,18 @@ bool MessagesManager::can_resend_message(const Message *m) const {
     return false;
   }
   return true;
+}
+
+bool MessagesManager::is_group_dialog(DialogId dialog_id) const {
+  switch (dialog_id.get_type()) {
+    case DialogType::Chat:
+      return true;
+    case DialogType::Channel:
+      return td_->contacts_manager_->get_channel_type(dialog_id.get_channel_id()) ==
+             ContactsManager::ChannelType::Megagroup;
+    default:
+      return false;
+  }
 }
 
 bool MessagesManager::is_broadcast_channel(DialogId dialog_id) const {
@@ -27981,10 +28019,18 @@ void MessagesManager::send_update_message_send_succeeded(Dialog *d, MessageId ol
       make_tl_object<td_api::updateMessageSendSucceeded>(get_message_object(d->dialog_id, m), old_message_id.get()));
 }
 
-void MessagesManager::send_update_message_content(DialogId dialog_id, const Message *m, const char *source) const {
-  LOG(INFO) << "Send updateMessageContent for " << m->message_id << " in " << dialog_id << " from " << source;
+void MessagesManager::send_update_message_content(DialogId dialog_id, const Message *m, const char *source) {
+  CHECK(m != nullptr);
   LOG_CHECK(have_dialog(dialog_id)) << "Send updateMessageContent in unknown " << dialog_id << " from " << source
                                     << " with load count " << loaded_dialogs_.count(dialog_id);
+  delete_bot_command_message_id(dialog_id, m->message_id);
+  try_add_bot_command_message_id(dialog_id, m);
+  send_update_message_content_impl(dialog_id, m, source);
+}
+
+void MessagesManager::send_update_message_content_impl(DialogId dialog_id, const Message *m, const char *source) const {
+  CHECK(m != nullptr);
+  LOG(INFO) << "Send updateMessageContent for " << m->message_id << " in " << dialog_id << " from " << source;
   auto content_object = get_message_content_object(m->content.get(), td_, dialog_id, m->is_failed_to_send ? 0 : m->date,
                                                    m->is_content_secret, need_skip_bot_commands(dialog_id, m));
   send_closure(G()->td(), &Td::send_update,
@@ -29670,7 +29716,6 @@ void MessagesManager::on_dialog_bots_updated(DialogId dialog_id, vector<UserId> 
 
   bool has_bots = !bot_user_ids.empty();
   if (!d->is_has_bots_inited || d->has_bots != has_bots) {
-    d->is_has_bots_inited = true;
     set_dialog_has_bots(d, has_bots);
     on_dialog_updated(dialog_id, "on_dialog_bots_updated");
   }
@@ -29687,10 +29732,22 @@ void MessagesManager::on_dialog_bots_updated(DialogId dialog_id, vector<UserId> 
 
 void MessagesManager::set_dialog_has_bots(Dialog *d, bool has_bots) {
   CHECK(d != nullptr);
-  d->has_bots = has_bots;
+  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in set_dialog_has_bots";
 
   LOG(INFO) << "Set " << d->dialog_id << " has_bots to " << has_bots;
-  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in set_dialog_has_bots";
+
+  auto old_skip_bot_commands = need_skip_bot_commands(d->dialog_id, nullptr);
+  d->has_bots = has_bots;
+  d->is_has_bots_inited = true;
+  auto new_skip_bot_commands = need_skip_bot_commands(d->dialog_id, nullptr);
+  if (old_skip_bot_commands != new_skip_bot_commands) {
+    auto it = dialog_bot_command_message_ids_.find(d->dialog_id);
+    if (it != dialog_bot_command_message_ids_.end()) {
+      for (auto message_id : it->second.message_ids) {
+        send_update_message_content_impl(d->dialog_id, get_message(d, message_id), "set_dialog_has_bots");
+      }
+    }
+  }
 }
 
 void MessagesManager::on_dialog_photo_updated(DialogId dialog_id) {
@@ -31696,9 +31753,9 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       }
     }
   }
+  auto dialog_type = dialog_id.get_type();
   if (message->sender_user_id == ContactsManager::get_anonymous_bot_user_id() &&
-      !message->sender_dialog_id.is_valid() && dialog_id.get_type() == DialogType::Channel &&
-      !is_broadcast_channel(dialog_id)) {
+      !message->sender_dialog_id.is_valid() && dialog_type == DialogType::Channel && !is_broadcast_channel(dialog_id)) {
     message->sender_user_id = UserId();
     message->sender_dialog_id = dialog_id;
   }
@@ -31758,7 +31815,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   if (from_update) {
     CHECK(message->have_next);
     CHECK(message->have_previous);
-    if (message_id <= d->last_new_message_id && dialog_id.get_type() != DialogType::Channel) {
+    if (message_id <= d->last_new_message_id && dialog_type != DialogType::Channel) {
       if (!G()->parameters().use_message_db) {
         if (td_->auth_manager_->is_bot() && Time::now() > start_time_ + 300 &&
             MessageId(ServerMessageId(100)) <= message_id && message_id <= MessageId(ServerMessageId(1000)) &&
@@ -31810,7 +31867,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       return nullptr;
     }
   }
-  if ((message_id.is_server() || (message_id.is_local() && dialog_id.get_type() == DialogType::SecretChat)) &&
+  if ((message_id.is_server() || (message_id.is_local() && dialog_type == DialogType::SecretChat)) &&
       message_id <= d->max_unavailable_message_id) {
     LOG(INFO) << "Can't add an unavailable " << message_id << " to " << dialog_id << " from " << source;
     if (message->from_database) {
@@ -32035,7 +32092,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   if (message->ttl > 0 && message->ttl_expires_at != 0) {
     auto now = Time::now();
     if (message->ttl_expires_at <= now) {
-      if (dialog_id.get_type() == DialogType::SecretChat) {
+      if (dialog_type == DialogType::SecretChat) {
         LOG(INFO) << "Can't add " << message_id << " with expired TTL to " << dialog_id << " from " << source;
         delete_message_from_database(d, message_id, message.get(), true);
         debug_add_message_to_dialog_fail_reason_ = "delete expired by TTL message";
@@ -32053,7 +32110,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
   }
   if (message->ttl_period > 0) {
-    CHECK(dialog_id.get_type() != DialogType::SecretChat);
+    CHECK(dialog_type != DialogType::SecretChat);
     auto server_time = G()->server_time();
     if (message->date + message->ttl_period <= server_time) {
       LOG(INFO) << "Can't add " << message_id << " with expired TTL period to " << dialog_id << " from " << source;
@@ -32072,7 +32129,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     *need_update_dialog_pos = true;
   }
 
-  if (dialog_id.get_type() == DialogType::Channel && !message->contains_unread_mention) {
+  if (dialog_type == DialogType::Channel && !message->contains_unread_mention) {
     auto channel_read_media_period =
         G()->shared_config().get_option_integer("channels_read_media_period", (G()->is_test_dc() ? 300 : 7 * 86400));
     if (message->date < G()->unix_time_cached() - channel_read_media_period) {
@@ -32109,7 +32166,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
 
   if (from_update && message_id > d->last_new_message_id && !message_id.is_yet_unsent()) {
-    if (dialog_id.get_type() == DialogType::SecretChat || message_id.is_server()) {
+    if (dialog_type == DialogType::SecretChat || message_id.is_server()) {
       // can delete messages, therefore must be called before message attaching/adding
       set_dialog_last_new_message_id(d, message_id, "add_message_to_dialog");
     }
@@ -32260,7 +32317,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     add_message_to_database(d, m, "add_message_to_dialog");
   }
 
-  if (from_update && dialog_id.get_type() == DialogType::Channel) {
+  if (from_update && dialog_type == DialogType::Channel) {
     auto now = max(G()->unix_time_cached(), m->date);
     if (m->date < now - 2 * 86400 && Slice(source) == Slice("updateNewChannelMessage")) {
       // if the message is pretty old, we might have missed the update that the message has already been read
@@ -32333,7 +32390,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     try_hide_distance(dialog_id, m);
 
     if (!td_->auth_manager_->is_bot() && d->messages == nullptr && !m->is_outgoing && dialog_id != get_my_dialog_id()) {
-      switch (dialog_id.get_type()) {
+      switch (dialog_type) {
         case DialogType::User:
           td_->contacts_manager_->invalidate_user_full(dialog_id.get_user_id());
           td_->contacts_manager_->reload_user_full(dialog_id.get_user_id());
@@ -32380,7 +32437,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     CHECK(is_inserted);
   }
 
-  switch (dialog_id.get_type()) {
+  switch (dialog_type) {
     case DialogType::User:
     case DialogType::Chat:
       if (m->message_id.is_server()) {
@@ -32401,6 +32458,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   if (m->notification_id.is_valid()) {
     add_notification_id_to_message_id_correspondence(d, m->notification_id, m->message_id);
   }
+
+  try_add_bot_command_message_id(dialog_id, m);
 
   result_message->debug_source = source;
   d->being_added_message_id = MessageId();

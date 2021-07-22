@@ -3949,6 +3949,18 @@ void add_formatted_text_dependencies(Dependencies &dependencies, const Formatted
   }
 }
 
+bool has_bot_commands(const FormattedText *text) {
+  if (text == nullptr) {
+    return false;
+  }
+  for (auto &entity : text->entities) {
+    if (entity.type == MessageEntity::Type::BotCommand) {
+      return true;
+    }
+  }
+  return false;
+}
+
 bool need_always_skip_bot_commands(const ContactsManager *contacts_manager, DialogId dialog_id, bool is_bot) {
   if (!dialog_id.is_valid()) {
     return true;

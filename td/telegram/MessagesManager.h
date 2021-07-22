@@ -2187,7 +2187,9 @@ class MessagesManager final : public Actor {
 
   void send_update_message_send_succeeded(Dialog *d, MessageId old_message_id, const Message *m) const;
 
-  void send_update_message_content(DialogId dialog_id, const Message *m, const char *source) const;
+  void send_update_message_content(DialogId dialog_id, const Message *m, const char *source);
+
+  void send_update_message_content_impl(DialogId dialog_id, const Message *m, const char *source) const;
 
   void send_update_message_edited(DialogId dialog_id, const Message *m);
 
@@ -2673,6 +2675,10 @@ class MessagesManager final : public Actor {
 
   void on_message_live_location_viewed_on_server(int64 task_id);
 
+  void try_add_bot_command_message_id(DialogId dialog_id, const Message *m);
+
+  void delete_bot_command_message_id(DialogId dialog_id, MessageId message_id);
+
   void add_message_file_sources(DialogId dialog_id, const Message *m);
 
   void remove_message_file_sources(DialogId dialog_id, const Message *m);
@@ -2958,6 +2964,8 @@ class MessagesManager final : public Actor {
   void suffix_load_add_query(Dialog *d, std::pair<Promise<>, std::function<bool(const Message *)>> query);
   void suffix_load_till_date(Dialog *d, int32 date, Promise<> promise);
   void suffix_load_till_message_id(Dialog *d, MessageId message_id, Promise<> promise);
+
+  bool is_group_dialog(DialogId dialog_id) const;
 
   bool is_broadcast_channel(DialogId dialog_id) const;
 
@@ -3284,6 +3292,11 @@ class MessagesManager final : public Actor {
 
   std::unordered_map<DialogId, vector<DialogId>, DialogIdHash>
       pending_add_default_join_group_call_as_dialog_id_;  // dialog_id -> dependent dialogs
+
+  struct MessageIds {
+    std::unordered_set<MessageId, MessageIdHash> message_ids;
+  };
+  std::unordered_map<DialogId, MessageIds, DialogIdHash> dialog_bot_command_message_ids_;
 
   struct CallsDbState {
     std::array<MessageId, 2> first_calls_database_message_id_by_index;
