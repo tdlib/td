@@ -29,13 +29,13 @@ namespace td {
 int VERBOSITY_NAME(file_loader) = VERBOSITY_NAME(DEBUG) + 2;
 
 namespace {
-Result<std::pair<FileFd, string>> try_create_new_file(Result<CSlice> result_name) {
-  TRY_RESULT(name, std::move(result_name));
+Result<std::pair<FileFd, string>> try_create_new_file(CSlice name) {
+  LOG(DEBUG) << "Trying to create new file " << name;
   TRY_RESULT(fd, FileFd::open(name, FileFd::Read | FileFd::Write | FileFd::CreateNew, 0640));
   return std::make_pair(std::move(fd), name.str());
 }
-Result<std::pair<FileFd, string>> try_open_file(Result<CSlice> result_name) {
-  TRY_RESULT(name, std::move(result_name));
+Result<std::pair<FileFd, string>> try_open_file(CSlice name) {
+  LOG(DEBUG) << "Trying to open file " << name;
   TRY_RESULT(fd, FileFd::open(name, FileFd::Read, 0640));
   return std::make_pair(std::move(fd), name.str());
 }
@@ -76,33 +76,26 @@ Result<std::pair<FileFd, string>> open_temp_file(FileType file_type) {
 
 template <class F>
 bool for_suggested_file_name(CSlice name, bool use_pmc, bool use_random, F &&callback) {
-  auto try_callback = [&](Result<CSlice> r_path) {
-    if (r_path.is_error()) {
-      return true;
-    }
-    LOG(DEBUG) << "Trying " << r_path.ok();
-    return callback(r_path.move_as_ok());
-  };
   auto cleaned_name = clean_filename(name);
   PathView path_view(cleaned_name);
   auto stem = path_view.file_stem();
   auto ext = path_view.extension();
   bool active = true;
   if (!stem.empty() && !G()->parameters().ignore_file_names) {
-    active = try_callback(PSLICE() << stem << Ext{ext});
+    active = callback(PSLICE() << stem << Ext{ext});
     for (int i = 0; active && i < 10; i++) {
-      active = try_callback(PSLICE() << stem << "_(" << i << ")" << Ext{ext});
+      active = callback(PSLICE() << stem << "_(" << i << ")" << Ext{ext});
     }
     for (int i = 2; active && i < 12 && use_random; i++) {
-      active = try_callback(PSLICE() << stem << "_(" << RandSuff{i} << ")" << Ext{ext});
+      active = callback(PSLICE() << stem << "_(" << RandSuff{i} << ")" << Ext{ext});
     }
   } else if (use_pmc) {
     auto pmc = G()->td_db()->get_binlog_pmc();
     int32 file_id = to_integer<int32>(pmc->get("perm_file_id"));
     pmc->set("perm_file_id", to_string(file_id + 1));
-    active = try_callback(PSLICE() << "file_" << file_id << Ext{ext});
+    active = callback(PSLICE() << "file_" << file_id << Ext{ext});
     if (active) {
-      active = try_callback(PSLICE() << "file_" << file_id << "_" << RandSuff{6} << Ext{ext});
+      active = callback(PSLICE() << "file_" << file_id << "_" << RandSuff{6} << Ext{ext});
     }
   }
   return active;
