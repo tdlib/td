@@ -184,13 +184,11 @@ void set_commands(Td *td, td_api::object_ptr<td_api::BotCommandScope> &&scope_pt
           Status::Error(400, PSLICE() << "Command length must not exceed " << MAX_COMMAND_TEXT_LENGTH));
     }
 
-    const size_t MIN_COMMAND_DESCRIPTION_LENGTH = 3;
     const size_t MAX_COMMAND_DESCRIPTION_LENGTH = 256;
     command->description_ = trim(command->description_);
     auto description_length = utf8_length(command->description_);
-    if (description_length < MIN_COMMAND_DESCRIPTION_LENGTH) {
-      return promise.set_error(Status::Error(
-          400, PSLICE() << "Command description length must be at least " << MIN_COMMAND_DESCRIPTION_LENGTH));
+    if (command->description_.empty()) {
+      return promise.set_error(Status::Error(400, "Command description must be non-empty"));
     }
     if (description_length > MAX_COMMAND_DESCRIPTION_LENGTH) {
       return promise.set_error(Status::Error(
