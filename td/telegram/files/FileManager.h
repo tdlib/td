@@ -452,6 +452,8 @@ class FileManager final : public FileLoadManager::Callback {
   void delete_file_reference(FileId file_id, std::string file_reference);
   void get_content(FileId file_id, Promise<BufferSlice> promise);
 
+  Result<string> get_suggested_file_name(FileId file_id, const string &directory);
+
   void read_file_part(FileId file_id, int32 offset, int32 count, int left_tries,
                       Promise<td_api::object_ptr<td_api::filePart>> promise);
 

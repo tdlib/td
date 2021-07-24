@@ -3844,6 +3844,18 @@ FullRemoteFileLocation *FileManager::get_remote(int32 key) {
   return &remote_location_info_.get(key).remote_;
 }
 
+Result<string> FileManager::get_suggested_file_name(FileId file_id, const string &directory) {
+  if (!file_id.is_valid()) {
+    return Status::Error(400, "Invalid file identifier");
+  }
+  auto node = get_sync_file_node(file_id);
+  if (!node) {
+    return Status::Error(400, "Wrong file identifier");
+  }
+
+  return ::td::get_suggested_file_name(directory, PathView(node->suggested_path()).file_name());
+}
+
 void FileManager::hangup() {
   file_db_.reset();
   file_generate_manager_.reset();

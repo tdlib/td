@@ -6668,6 +6668,14 @@ void Td::on_request(uint64 id, const td_api::cancelDownloadFile &request) {
   send_closure(actor_id(this), &Td::send_result, id, make_tl_object<td_api::ok>());
 }
 
+void Td::on_request(uint64 id, const td_api::getSuggestedFileName &request) {
+  Result<string> r_file_name = file_manager_->get_suggested_file_name(FileId(request.file_id_, 0), request.directory_);
+  if (r_file_name.is_error()) {
+    return send_closure(actor_id(this), &Td::send_error, id, r_file_name.move_as_error());
+  }
+  send_closure(actor_id(this), &Td::send_result, id, td_api::make_object<td_api::text>(r_file_name.ok()));
+}
+
 void Td::on_request(uint64 id, td_api::uploadFile &request) {
   auto priority = request.priority_;
   if (!(1 <= priority && priority <= 32)) {

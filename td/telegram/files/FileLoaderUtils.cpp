@@ -16,6 +16,7 @@
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/PathView.h"
+#include "td/utils/port/Clocks.h"
 #include "td/utils/port/FileFd.h"
 #include "td/utils/port/path.h"
 #include "td/utils/Random.h"
@@ -135,6 +136,51 @@ Result<string> search_file(CSlice dir, CSlice name, int64 expected_size) {
     return false;
   });
   return res;
+}
+
+Result<string> get_suggested_file_name(CSlice directory, Slice file_name) {
+  string cleaned_name = clean_filename(file_name.str());
+  file_name = cleaned_name;
+
+  if (directory.empty()) {
+    directory = "./";
+  }
+
+  auto dir_stat = stat(directory);
+  if (dir_stat.is_error() || !dir_stat.ok().is_dir_) {
+    return cleaned_name;
+  }
+
+  PathView path_view(file_name);
+  auto stem = path_view.file_stem();
+  auto ext = path_view.extension();
+
+  if (stem.empty()) {
+    return cleaned_name;
+  }
+
+  Slice directory_slice = directory;
+  while (directory_slice.size() > 1 && (directory_slice.back() == '/' || directory_slice.back() == '\\')) {
+    directory_slice.remove_suffix(1);
+  }
+
+  auto check_file_name = [directory_slice](Slice name) {
+    return stat(PSLICE() << directory_slice << TD_DIR_SLASH << name).is_error();  // in case of success, the name is bad
+  };
+
+  string checked_name = PSTRING() << stem << Ext{ext};
+  if (check_file_name(checked_name)) {
+    return checked_name;
+  }
+
+  for (int i = 1; i < 100; i++) {
+    checked_name = PSTRING() << stem << " (" << i << ")" << Ext{ext};
+    if (check_file_name(checked_name)) {
+      return checked_name;
+    }
+  }
+
+  return PSTRING() << stem << " - " << StringBuilder::FixedDouble(Clocks::system(), 3) << Ext{ext};
 }
 
 Result<FullLocalFileLocation> save_file_bytes(FileType type, BufferSlice bytes, CSlice file_name) {

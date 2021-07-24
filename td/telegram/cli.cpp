@@ -2666,6 +2666,11 @@ class CliClient final : public Actor {
       }
     } else if (op == "cdf") {
       send_request(td_api::make_object<td_api::cancelDownloadFile>(as_file_id(args), false));
+    } else if (op == "gsfn") {
+      string file_id;
+      string directory_name;
+      get_args(args, file_id, directory_name);
+      send_request(td_api::make_object<td_api::getSuggestedFileName>(as_file_id(file_id), directory_name));
     } else if (op == "uf" || op == "ufs" || op == "ufse") {
       string file_path;
       int32 priority;
