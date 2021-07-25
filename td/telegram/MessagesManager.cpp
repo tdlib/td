@@ -13617,6 +13617,10 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
 
     need_update = false;
 
+    if (old_message_id.is_valid() && message_id.is_valid() && message_id < old_message_id) {
+      LOG(ERROR) << "Sent " << old_message_id << " to " << dialog_id << " as " << message_id;
+    }
+
     set_message_id(new_message, old_message_id);
     new_message->from_database = false;
     new_message->have_previous = false;
@@ -28554,6 +28558,10 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
     send_update_message_content(dialog_id, sent_message.get(), source);
   }
 
+  if (old_message_id.is_valid() && new_message_id < old_message_id) {
+    LOG(ERROR) << "Sent " << old_message_id << " to " << dialog_id << " as " << new_message_id;
+  }
+
   set_message_id(sent_message, new_message_id);
 
   sent_message->from_database = false;
@@ -28562,11 +28570,18 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
 
   bool need_update = true;
   Message *m = add_message_to_dialog(d, std::move(sent_message), true, &need_update, &need_update_dialog_pos, source);
-  LOG_CHECK(m != nullptr) << td_->contacts_manager_->get_my_id() << " " << dialog_id << " " << old_message_id << " "
-                          << new_message_id << " " << d->last_clear_history_message_id << " "
-                          << d->max_unavailable_message_id << " " << d->last_message_id << " " << d->last_new_message_id
-                          << " " << d->last_assigned_message_id << " " << have_input_peer(dialog_id, AccessRights::Read)
-                          << " " << debug_add_message_to_dialog_fail_reason_ << " " << source;
+  if (m == nullptr) {
+    if (old_message_id.is_valid() && new_message_id < old_message_id) {
+      // the message ID has decreased. This could happen if some messages were lost.
+      // In this case the failure is possible
+      return {};
+    }
+    LOG(FATAL) << td_->contacts_manager_->get_my_id() << " " << dialog_id << " " << old_message_id << " "
+               << new_message_id << " " << d->last_clear_history_message_id << " " << d->max_unavailable_message_id
+               << " " << d->last_message_id << " " << d->last_new_message_id << " " << d->last_assigned_message_id
+               << " " << have_input_peer(dialog_id, AccessRights::Read) << " "
+               << debug_add_message_to_dialog_fail_reason_ << " " << source;
+  }
 
   send_update_message_send_succeeded(d, old_message_id, m);
   if (need_update_dialog_pos) {
