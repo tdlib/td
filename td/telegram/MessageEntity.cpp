@@ -3882,6 +3882,7 @@ FormattedText get_message_text(const ContactsManager *contacts_manager, string m
   auto debug_entities = entities;
   auto status = fix_formatted_text(message_text, entities, true, skip_new_entities, true, false);
   if (status.is_error()) {
+    // message entities in media albums can be wrong because of a long time ago fixed server-side bug
     if (!from_album && (send_date == 0 || send_date > 1600340000)) {  // approximate fix date
       LOG(ERROR) << "Receive error " << status << " while parsing message text from " << source << " sent at "
                  << send_date << " with content \"" << debug_message_text << "\" -> \"" << message_text
