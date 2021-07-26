@@ -4977,6 +4977,7 @@ void ContactsManager::set_my_id(UserId my_id) {
     my_id_ = my_id;
     G()->td_db()->get_binlog_pmc()->set("my_id", to_string(my_id.get()));
     G()->shared_config().set_option_integer("my_id", my_id_.get());
+    G()->td_db()->get_binlog_pmc()->force_sync(Promise<Unit>());
   }
 }
 
