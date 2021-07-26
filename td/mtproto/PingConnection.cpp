@@ -146,7 +146,7 @@ class PingConnectionPingPong final
     LOG(ERROR) << "Unexpected message";
     return Status::OK();
   }
-  void on_message_result_error(uint64 id, int code, BufferSlice descr) final {
+  void on_message_result_error(uint64 id, int code, string message) final {
   }
   void on_message_failed(uint64 id, Status status) final {
   }
