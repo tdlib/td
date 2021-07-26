@@ -39,6 +39,7 @@
 #include "td/utils/Time.h"
 #include "td/utils/Timer.h"
 #include "td/utils/tl_parsers.h"
+#include "td/utils/utf8.h"
 
 #include <tuple>
 #include <utility>
@@ -769,8 +770,17 @@ Status Session::on_message_result_ok(uint64 id, BufferSlice packet, size_t origi
 }
 
 void Session::on_message_result_error(uint64 id, int error_code, string message) {
+  if (!check_utf8(message)) {
+    LOG(ERROR) << "Receive invalid error message \"" << message << '"';
+    message = "INVALID_UTF8_ERROR_MESSAGE";
+  }
+  if (error_code <= -10000 || error_code >= 10000 || error_code == 0) {
+    LOG(ERROR) << "Receive invalid error code " << error_code << " with message \"" << message << '"';
+    error_code = 500;
+  }
+
   // UNAUTHORIZED
-  if (error_code == 401 && message != CSlice("SESSION_PASSWORD_NEEDED")) {
+  if (error_code == 401 && message != "SESSION_PASSWORD_NEEDED") {
     if (auth_data_.use_pfs() && message == CSlice("AUTH_KEY_PERM_EMPTY")) {
       LOG(INFO) << "Receive AUTH_KEY_PERM_EMPTY in session " << auth_data_.get_session_id() << " for auth key "
                 << auth_data_.get_tmp_auth_key().id();
@@ -778,7 +788,7 @@ void Session::on_message_result_error(uint64 id, int error_code, string message)
       on_tmp_auth_key_updated();
       error_code = 500;
     } else {
-      if (message == CSlice("USER_DEACTIVATED_BAN")) {
+      if (message == "USER_DEACTIVATED_BAN") {
         LOG(PLAIN) << "Your account was suspended for suspicious activity. If you think that this is a mistake, please "
                       "write to recover@telegram.org your phone number and other details to recover the account.";
       }

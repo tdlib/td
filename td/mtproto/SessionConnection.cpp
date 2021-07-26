@@ -304,8 +304,8 @@ Status SessionConnection::on_packet(const MsgInfo &info, uint64 req_msg_id, cons
   if (req_msg_id != 0) {
     callback_->on_message_result_error(req_msg_id, rpc_error.error_code_, rpc_error.error_message_.str());
   } else {
-    LOG(WARNING) << "Receive rpc_error as update: [" << rpc_error.error_code_ << "][" << rpc_error.error_message_
-                 << "]";
+    LOG(ERROR) << "Receive rpc_error as update: [" << rpc_error.error_code_ << "][" << rpc_error.error_message_
+               << "]";
   }
   return Status::OK();
 }
