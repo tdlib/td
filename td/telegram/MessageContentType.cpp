@@ -335,10 +335,4 @@ bool can_have_message_content_caption(MessageContentType content_type) {
   }
 }
 
-bool can_have_media_timestamp(MessageContentType content_type) {
-  return content_type == MessageContentType::Audio || content_type == MessageContentType::Text ||
-         content_type == MessageContentType::Video || content_type == MessageContentType::VideoNote ||
-         content_type == MessageContentType::VoiceNote;
-}
-
 }  // namespace td

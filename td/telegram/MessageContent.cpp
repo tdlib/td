@@ -2810,6 +2810,19 @@ void remove_message_content_web_page(MessageContent *content) {
   static_cast<MessageText *>(content)->web_page_id = WebPageId();
 }
 
+bool can_message_content_have_media_timestamp(const MessageContent *content) {
+  CHECK(content != nullptr);
+  switch (content->get_type()) {
+    case MessageContentType::Audio:
+    case MessageContentType::Video:
+    case MessageContentType::VideoNote:
+    case MessageContentType::VoiceNote:
+      return true;
+    default:
+      return has_message_content_web_page(content);
+  }
+}
+
 void set_message_content_poll_answer(Td *td, const MessageContent *content, FullMessageId full_message_id,
                                      vector<int32> &&option_ids, Promise<Unit> &&promise) {
   CHECK(content->get_type() == MessageContentType::Poll);

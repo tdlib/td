@@ -17318,7 +17318,7 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(FullMessageId 
     for_comment = false;
   }
 
-  if (media_timestamp <= 0 || !can_have_media_timestamp(m->content->get_type())) {
+  if (media_timestamp <= 0 || !can_message_content_have_media_timestamp(m->content.get())) {
     media_timestamp = 0;
   }
   if (media_timestamp != 0) {
@@ -17581,7 +17581,7 @@ td_api::object_ptr<td_api::messageLinkInfo> MessagesManager::get_message_link_in
       message = get_message_object(dialog_id, m);
       for_album = !info.is_single && m->media_album_id != 0;
       for_comment = (info.comment_dialog_id.is_valid() || info.for_comment) && m->top_thread_message_id.is_valid();
-      if (can_have_media_timestamp(m->content->get_type())) {
+      if (can_message_content_have_media_timestamp(m->content.get())) {
         auto duration = get_message_content_duration(m->content.get(), td_);
         if (duration == 0 || info.media_timestamp <= duration) {
           media_timestamp = info.media_timestamp;

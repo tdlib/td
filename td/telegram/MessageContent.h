@@ -149,6 +149,8 @@ bool has_message_content_web_page(const MessageContent *content);
 
 void remove_message_content_web_page(MessageContent *content);
 
+bool can_message_content_have_media_timestamp(const MessageContent *content);
+
 void set_message_content_poll_answer(Td *td, const MessageContent *content, FullMessageId full_message_id,
                                      vector<int32> &&option_ids, Promise<Unit> &&promise);
 
