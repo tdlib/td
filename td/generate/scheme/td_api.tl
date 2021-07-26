@@ -3119,7 +3119,7 @@ messageLink link:string is_public:Bool = MessageLink;
 //@is_public True, if the link is a public link for a message in a chat
 //@chat_id If found, identifier of the chat to which the message belongs, 0 otherwise
 //@message If found, the linked message; may be null
-//@media_timestamp Timestamp from which the video/audio/video note/voice note playing should start, in seconds; 0 if not specified
+//@media_timestamp Timestamp from which the video/audio/video note/voice note playing should start, in seconds; 0 if not specified. The media can be in the message content or in its link preview
 //@for_album True, if the whole media album to which the message belongs is linked
 //@for_comment True, if the message is linked as a channel post comment or from a message thread
 messageLinkInfo is_public:Bool chat_id:int53 message:message media_timestamp:int32 for_album:Bool for_comment:Bool = MessageLinkInfo;
@@ -4172,7 +4172,7 @@ removeNotificationGroup notification_group_id:int32 max_notification_id:int32 = 
 //@description Returns an HTTPS link to a message in a chat. Available only for already sent messages in supergroups and channels. This is an offline request
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message
-//@media_timestamp If not 0, timestamp from which the video/audio/video note/voice note playing should start, in seconds
+//@media_timestamp If not 0, timestamp from which the video/audio/video note/voice note playing should start, in seconds. The media can be in the message content or in its link preview
 //@for_album Pass true to create a link for the whole media album
 //@for_comment Pass true to create a link to the message as a channel post comment, or from a message thread
 getMessageLink chat_id:int53 message_id:int53 media_timestamp:int32 for_album:Bool for_comment:Bool = MessageLink;
