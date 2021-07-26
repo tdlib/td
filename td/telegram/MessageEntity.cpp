@@ -29,7 +29,7 @@
 namespace td {
 
 int MessageEntity::get_type_priority(Type type) {
-  static const int types[] = {50, 50, 50, 50, 50, 90, 91, 20, 11, 10, 49, 49, 50, 50, 92, 93, 0, 50};
+  static const int types[] = {50, 50, 50, 50, 50, 90, 91, 20, 11, 10, 49, 49, 50, 50, 92, 93, 0, 50, 50};
   static_assert(sizeof(types) / sizeof(types[0]) == static_cast<size_t>(MessageEntity::Type::Size), "");
   return types[static_cast<int32>(type)];
 }
@@ -72,6 +72,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, const MessageEntity::Ty
       return string_builder << "PhoneNumber";
     case MessageEntity::Type::BankCardNumber:
       return string_builder << "BankCardNumber";
+    case MessageEntity::Type::MediaTimestamp:
+      return string_builder << "MediaTimestamp";
     default:
       UNREACHABLE();
       return string_builder << "Impossible";
@@ -130,6 +132,8 @@ tl_object_ptr<td_api::TextEntityType> MessageEntity::get_text_entity_type_object
       return make_tl_object<td_api::textEntityTypePhoneNumber>();
     case MessageEntity::Type::BankCardNumber:
       return make_tl_object<td_api::textEntityTypeBankCardNumber>();
+    case MessageEntity::Type::MediaTimestamp:
+      return make_tl_object<td_api::textEntityTypeMediaTimestamp>(to_integer<int32>(argument));
     default:
       UNREACHABLE();
       return nullptr;
@@ -1291,7 +1295,8 @@ static constexpr int32 get_continuous_entities_mask() {
          get_entity_type_mask(MessageEntity::Type::EmailAddress) | get_entity_type_mask(MessageEntity::Type::TextUrl) |
          get_entity_type_mask(MessageEntity::Type::MentionName) | get_entity_type_mask(MessageEntity::Type::Cashtag) |
          get_entity_type_mask(MessageEntity::Type::PhoneNumber) |
-         get_entity_type_mask(MessageEntity::Type::BankCardNumber);
+         get_entity_type_mask(MessageEntity::Type::BankCardNumber) |
+         get_entity_type_mask(MessageEntity::Type::MediaTimestamp);
 }
 
 static constexpr int32 get_pre_entities_mask() {
@@ -1615,6 +1620,8 @@ string get_first_url(Slice text, const vector<MessageEntity> &entities) {
       case MessageEntity::Type::PhoneNumber:
         break;
       case MessageEntity::Type::BankCardNumber:
+        break;
+      case MessageEntity::Type::MediaTimestamp:
         break;
       default:
         UNREACHABLE();
@@ -3030,6 +3037,8 @@ vector<tl_object_ptr<secret_api::MessageEntity>> get_input_secret_message_entiti
         break;
       case MessageEntity::Type::MentionName:
         break;
+      case MessageEntity::Type::MediaTimestamp:
+        break;
       default:
         UNREACHABLE();
     }
@@ -3119,6 +3128,15 @@ Result<vector<MessageEntity>> get_message_entities(const ContactsManager *contac
           return Status::Error(7, "Have no access to the user");
         }
         entities.emplace_back(entity->offset_, entity->length_, user_id);
+        break;
+      }
+      case td_api::textEntityTypeMediaTimestamp::ID: {
+        auto entity_media_timestamp = static_cast<td_api::textEntityTypeMediaTimestamp *>(entity->type_.get());
+        if (entity_media_timestamp->media_timestamp_ <= 0) {
+          return Status::Error(400, "Invalid media timestamp specified");
+        }
+        entities.emplace_back(MessageEntity::Type::MediaTimestamp, entity->offset_, entity->length_,
+                              to_string(entity_media_timestamp->media_timestamp_));
         break;
       }
       default:

@@ -48,6 +48,7 @@ class MessageEntity {
     Strikethrough,
     BlockQuote,
     BankCardNumber,
+    MediaTimestamp,
     Size
   };
   Type type;
