@@ -7364,7 +7364,8 @@ void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_p
     if (old_pts != new_pts - pts_count) {
       LOG(INFO) << "Found a gap in the " << dialog_id << " with pts = " << old_pts << ". new_pts = " << new_pts
                 << ", pts_count = " << pts_count << " in update from " << source;
-      if (d->order != DEFAULT_ORDER || is_dialog_sponsored(d) || d->was_opened) {
+      if (d->was_opened || td_->contacts_manager_->get_channel_status(channel_id).is_member() ||
+          is_dialog_sponsored(d)) {
         d->postponed_channel_updates.emplace(
             new_pts, PendingPtsUpdate(std::move(update), new_pts, pts_count, std::move(promise)));
 
@@ -22870,6 +22871,8 @@ MessagesManager::Message *MessagesManager::get_message_to_send(
   MessageId message_id = is_scheduled ? get_next_yet_unsent_scheduled_message_id(d, options.schedule_date)
                                       : get_next_yet_unsent_message_id(d);
   LOG(INFO) << "Create " << message_id << " in " << dialog_id;
+
+  d->was_opened = true;
 
   auto dialog_type = dialog_id.get_type();
   auto my_id = td_->contacts_manager_->get_my_id();
