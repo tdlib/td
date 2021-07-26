@@ -792,7 +792,7 @@ int64 WebPagesManager::get_web_page_preview(td_api::object_ptr<td_api::formatted
   }
   auto entities = r_entities.move_as_ok();
 
-  auto result = fix_formatted_text(text->text_, entities, true, false, true, false);
+  auto result = fix_formatted_text(text->text_, entities, true, false, true, true, false);
   if (result.is_error() || text->text_.empty()) {
     promise.set_value(Unit());
     return 0;

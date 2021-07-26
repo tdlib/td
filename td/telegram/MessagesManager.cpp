@@ -6523,7 +6523,7 @@ void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api:
   bool is_user = is_authorized && !td_->auth_manager_->is_bot();
   auto contacts_manager = is_authorized ? td_->contacts_manager_.get() : nullptr;
   auto message_text = get_message_text(contacts_manager, std::move(update->message_), std::move(update->entities_),
-                                       skip_new_entities, date, false, "on_update_service_notification");
+                                       skip_new_entities, !is_user, date, false, "on_update_service_notification");
   DialogId owner_dialog_id = is_user ? get_service_notifications_dialog()->dialog_id : DialogId();
   auto content = get_message_content(td_, std::move(message_text), std::move(update->media_), owner_dialog_id, false,
                                      UserId(), &ttl);
@@ -13213,7 +13213,8 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       message_info.content = get_message_content(
           td_,
           get_message_text(td_->contacts_manager_.get(), std::move(message->message_), std::move(message->entities_),
-                           true, message_info.forward_header ? message_info.forward_header->date_ : message_info.date,
+                           true, td_->auth_manager_->is_bot(),
+                           message_info.forward_header ? message_info.forward_header->date_ : message_info.date,
                            message_info.media_album_id != 0, new_source.c_str()),
           std::move(message->media_), message_info.dialog_id, is_content_read, message_info.via_bot_user_id,
           &message_info.ttl);
@@ -14207,7 +14208,7 @@ void MessagesManager::on_update_sent_text_message(int64 random_id,
   const FormattedText *old_message_text = get_message_content_text(m->content.get());
   CHECK(old_message_text != nullptr);
   FormattedText new_message_text = get_message_text(
-      td_->contacts_manager_.get(), old_message_text->text, std::move(entities), true,
+      td_->contacts_manager_.get(), old_message_text->text, std::move(entities), true, td_->auth_manager_->is_bot(),
       m->forward_info ? m->forward_info->date : m->date, m->media_album_id != 0, "on_update_sent_text_message");
   auto new_content = get_message_content(td_, std::move(new_message_text), std::move(message_media), dialog_id,
                                          true /*likely ignored*/, UserId() /*likely ignored*/, nullptr /*ignored*/);

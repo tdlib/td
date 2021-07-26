@@ -39,15 +39,16 @@ Result<InputMessageText> process_input_message_text(const ContactsManager *conta
   }
 
   TRY_RESULT(entities, get_message_entities(contacts_manager, std::move(input_message_text->text_->entities_)));
-  auto need_skip_commands = need_always_skip_bot_commands(contacts_manager, dialog_id, is_bot);
+  auto need_skip_bot_commands = need_always_skip_bot_commands(contacts_manager, dialog_id, is_bot);
   bool parse_markdown = G()->shared_config().get_option_boolean("always_parse_markdown");
   TRY_STATUS(fix_formatted_text(input_message_text->text_->text_, entities, for_draft, parse_markdown,
-                                need_skip_commands, for_draft));
+                                need_skip_bot_commands, is_bot || for_draft || parse_markdown, for_draft));
   InputMessageText result{FormattedText{std::move(input_message_text->text_->text_), std::move(entities)},
                           input_message_text->disable_web_page_preview_, input_message_text->clear_draft_};
-  if (G()->shared_config().get_option_boolean("always_parse_markdown")) {
+  if (parse_markdown) {
     result.text = parse_markdown_v3(std::move(result.text));
-    fix_formatted_text(result.text.text, result.text.entities, for_draft, false, need_skip_commands, for_draft)
+    fix_formatted_text(result.text.text, result.text.entities, for_draft, false, need_skip_bot_commands,
+                       is_bot || for_draft, for_draft)
         .ensure();
   }
   return std::move(result);

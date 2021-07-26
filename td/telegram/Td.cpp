@@ -8368,13 +8368,13 @@ td_api::object_ptr<td_api::Object> Td::do_static_request(td_api::parseMarkdown &
     return make_error(400, r_entities.error().message());
   }
   auto entities = r_entities.move_as_ok();
-  auto status = fix_formatted_text(request.text_->text_, entities, true, true, true, true);
+  auto status = fix_formatted_text(request.text_->text_, entities, true, true, true, true, true);
   if (status.is_error()) {
     return make_error(400, status.error().message());
   }
 
   auto parsed_text = parse_markdown_v3({std::move(request.text_->text_), std::move(entities)});
-  fix_formatted_text(parsed_text.text, parsed_text.entities, true, true, true, true).ensure();
+  fix_formatted_text(parsed_text.text, parsed_text.entities, true, true, true, true, true).ensure();
   return get_formatted_text_object(parsed_text, true);
 }
 
@@ -8388,7 +8388,7 @@ td_api::object_ptr<td_api::Object> Td::do_static_request(td_api::getMarkdownText
     return make_error(400, r_entities.error().message());
   }
   auto entities = r_entities.move_as_ok();
-  auto status = fix_formatted_text(request.text_->text_, entities, true, true, true, true);
+  auto status = fix_formatted_text(request.text_->text_, entities, true, true, true, true, true);
   if (status.is_error()) {
     return make_error(400, status.error().message());
   }

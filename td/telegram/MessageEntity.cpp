@@ -3777,7 +3777,7 @@ static void merge_new_entities(vector<MessageEntity> &entities, vector<MessageEn
 }
 
 Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool allow_empty, bool skip_new_entities,
-                          bool skip_bot_commands, bool for_draft) {
+                          bool skip_bot_commands, bool skip_media_timestamps, bool for_draft) {
   string result;
   if (entities.empty()) {
     // fast path
@@ -3898,11 +3898,12 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
 
 FormattedText get_message_text(const ContactsManager *contacts_manager, string message_text,
                                vector<tl_object_ptr<telegram_api::MessageEntity>> &&server_entities,
-                               bool skip_new_entities, int32 send_date, bool from_album, const char *source) {
+                               bool skip_new_entities, bool skip_media_timestamps, int32 send_date, bool from_album,
+                               const char *source) {
   auto entities = get_message_entities(contacts_manager, std::move(server_entities), source);
   auto debug_message_text = message_text;
   auto debug_entities = entities;
-  auto status = fix_formatted_text(message_text, entities, true, skip_new_entities, true, false);
+  auto status = fix_formatted_text(message_text, entities, true, skip_new_entities, true, skip_media_timestamps, false);
   if (status.is_error()) {
     // message entities in media albums can be wrong because of a long time ago fixed server-side bug
     if (!from_album && (send_date == 0 || send_date > 1600340000)) {  // approximate fix date
@@ -3957,7 +3958,7 @@ Result<FormattedText> process_input_caption(const ContactsManager *contacts_mana
   }
   TRY_RESULT(entities, get_message_entities(contacts_manager, std::move(caption->entities_)));
   TRY_STATUS(fix_formatted_text(caption->text_, entities, true, false,
-                                need_always_skip_bot_commands(contacts_manager, dialog_id, is_bot), false));
+                                need_always_skip_bot_commands(contacts_manager, dialog_id, is_bot), is_bot, false));
   return FormattedText{std::move(caption->text_), std::move(entities)};
 }
 

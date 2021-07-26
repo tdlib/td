@@ -1461,7 +1461,7 @@ InlineMessageContent create_inline_message_content(Td *td, FileId file_id,
       auto inline_message = move_tl_object_as<telegram_api::botInlineMessageText>(bot_inline_message);
       auto entities = get_message_entities(td->contacts_manager_.get(), std::move(inline_message->entities_),
                                            "botInlineMessageText");
-      auto status = fix_formatted_text(inline_message->message_, entities, false, true, true, false);
+      auto status = fix_formatted_text(inline_message->message_, entities, false, true, true, false, false);
       if (status.is_error()) {
         LOG(ERROR) << "Receive error " << status << " while parsing botInlineMessageText " << inline_message->message_;
         break;
@@ -1525,7 +1525,7 @@ InlineMessageContent create_inline_message_content(Td *td, FileId file_id,
       auto inline_message = move_tl_object_as<telegram_api::botInlineMessageMediaAuto>(bot_inline_message);
       auto caption =
           get_message_text(td->contacts_manager_.get(), inline_message->message_, std::move(inline_message->entities_),
-                           true, 0, false, "create_inline_message_content");
+                           true, false, 0, false, "create_inline_message_content");
       if (allowed_media_content_id == td_api::inputMessageAnimation::ID) {
         result.message_content = make_unique<MessageAnimation>(file_id, std::move(caption));
       } else if (allowed_media_content_id == td_api::inputMessageAudio::ID) {
@@ -3823,7 +3823,7 @@ unique_ptr<MessageContent> get_secret_message_content(
   }
 
   auto entities = get_message_entities(std::move(secret_entities));
-  auto status = fix_formatted_text(message_text, entities, true, false, true, false);
+  auto status = fix_formatted_text(message_text, entities, true, false, true, true, false);
   if (status.is_error()) {
     LOG(WARNING) << "Receive error " << status << " while parsing secret message \"" << message_text
                  << "\" with entities " << format::as_array(entities);

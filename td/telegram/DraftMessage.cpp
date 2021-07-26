@@ -45,7 +45,7 @@ unique_ptr<DraftMessage> get_draft_message(ContactsManager *contacts_manager,
       }
 
       auto entities = get_message_entities(contacts_manager, std::move(draft->entities_), "draftMessage");
-      auto status = fix_formatted_text(draft->message_, entities, true, true, true, true);
+      auto status = fix_formatted_text(draft->message_, entities, true, true, true, true, true);
       if (status.is_error()) {
         LOG(ERROR) << "Receive error " << status << " while parsing draft " << draft->message_;
         if (!clean_input_string(draft->message_)) {

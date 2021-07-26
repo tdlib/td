@@ -1544,7 +1544,7 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
 
   auto entities =
       get_message_entities(td_->contacts_manager_.get(), std::move(poll_results->solution_entities_), "on_get_poll");
-  auto status = fix_formatted_text(poll_results->solution_, entities, true, true, true, false);
+  auto status = fix_formatted_text(poll_results->solution_, entities, true, true, true, true, false);
   if (status.is_error()) {
     if (!clean_input_string(poll_results->solution_)) {
       poll_results->solution_.clear();

@@ -357,7 +357,7 @@ class GetDeepLinkInfoQuery final : public Td::ResultHandler {
         bool need_update = (info->flags_ & telegram_api::help_deepLinkInfo::UPDATE_APP_MASK) != 0;
 
         auto entities = get_message_entities(nullptr, std::move(info->entities_), "GetDeepLinkInfoQuery");
-        auto status = fix_formatted_text(info->message_, entities, true, true, true, true);
+        auto status = fix_formatted_text(info->message_, entities, true, true, true, true, true);
         if (status.is_error()) {
           LOG(ERROR) << "Receive error " << status << " while parsing deep link info " << info->message_;
           if (!clean_input_string(info->message_)) {
@@ -1005,7 +1005,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::get_internal_link_message_dra
   } else {
     full_text.text = url.str();
   }
-  if (fix_formatted_text(full_text.text, full_text.entities, false, false, false, true).is_error()) {
+  if (fix_formatted_text(full_text.text, full_text.entities, false, false, false, true, true).is_error()) {
     return nullptr;
   }
   if (full_text.text[0] == '@') {
