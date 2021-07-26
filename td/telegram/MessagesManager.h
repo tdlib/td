@@ -576,7 +576,8 @@ class MessagesManager final : public Actor {
 
   bool is_message_edited_recently(FullMessageId full_message_id, int32 seconds);
 
-  Result<std::pair<string, bool>> get_message_link(FullMessageId full_message_id, bool for_group, bool for_comment);
+  Result<std::pair<string, bool>> get_message_link(FullMessageId full_message_id, int32 media_timestamp, bool for_group,
+                                                   bool for_comment);
 
   string get_message_embedding_code(FullMessageId full_message_id, bool for_group, Promise<Unit> &&promise);
 

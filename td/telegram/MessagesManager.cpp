@@ -17276,8 +17276,8 @@ bool MessagesManager::is_message_edited_recently(FullMessageId full_message_id, 
   return m->edit_date >= G()->unix_time() - seconds;
 }
 
-Result<std::pair<string, bool>> MessagesManager::get_message_link(FullMessageId full_message_id, bool for_group,
-                                                                  bool for_comment) {
+Result<std::pair<string, bool>> MessagesManager::get_message_link(FullMessageId full_message_id, int32 media_timestamp,
+                                                                  bool for_group, bool for_comment) {
   auto dialog_id = full_message_id.get_dialog_id();
   auto d = get_dialog_force(dialog_id, "get_message_link");
   if (d == nullptr) {
@@ -17318,10 +17318,22 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(FullMessageId 
     for_comment = false;
   }
 
+  if (media_timestamp <= 0 || !can_have_media_timestamp(m->content->get_type())) {
+    media_timestamp = 0;
+  }
+  if (media_timestamp != 0) {
+    auto duration = get_message_content_duration(m->content.get(), td_);
+    if (duration != 0 && media_timestamp > duration) {
+      media_timestamp = 0;
+    }
+  }
+
   td_->create_handler<ExportChannelMessageLinkQuery>(Promise<Unit>())
       ->send(dialog_id.get_channel_id(), m->message_id, for_group, true);
 
-  auto t_me = G()->shared_config().get_option_string("t_me_url", "https://t.me/");
+  SliceBuilder sb;
+  sb << G()->shared_config().get_option_string("t_me_url", "https://t.me/");
+
   if (for_comment) {
     auto *top_m = get_message_force(d, m->top_thread_message_id, "get_public_message_link");
     if (is_discussion_message(dialog_id, top_m) && is_active_message_reply_info(dialog_id, top_m->reply_info)) {
@@ -17335,38 +17347,49 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(FullMessageId 
       if (linked_m != nullptr && is_active_message_reply_info(linked_dialog_id, linked_m->reply_info) &&
           linked_message_id.is_server() && have_input_peer(linked_dialog_id, AccessRights::Read) &&
           !channel_username.empty()) {
-        return std::make_pair(
-            PSTRING() << t_me << channel_username << '/' << linked_message_id.get_server_message_id().get()
-                      << "?comment=" << m->message_id.get_server_message_id().get() << (for_group ? "" : "&single"),
-            true);
+        sb << channel_username << '/' << linked_message_id.get_server_message_id().get()
+           << "?comment=" << m->message_id.get_server_message_id().get();
+        if (!for_group) {
+          sb << "&single";
+        }
+        if (media_timestamp > 0) {
+          sb << "&t=" << media_timestamp;
+        }
+        return std::make_pair(sb.as_cslice().str(), true);
       }
     }
   }
 
   auto dialog_username = td_->contacts_manager_->get_channel_username(dialog_id.get_channel_id());
-  if (m->content->get_type() == MessageContentType::VideoNote && is_broadcast_channel(dialog_id) &&
-      !dialog_username.empty()) {
+  bool is_public = !dialog_username.empty();
+  if (m->content->get_type() == MessageContentType::VideoNote && is_broadcast_channel(dialog_id) && is_public) {
     return std::make_pair(
         PSTRING() << "https://telesco.pe/" << dialog_username << '/' << m->message_id.get_server_message_id().get(),
         true);
   }
 
-  string args;
+  if (is_public) {
+    sb << dialog_username;
+  } else {
+    sb << "c/" << dialog_id.get_channel_id().get();
+  }
+  sb << '/' << m->message_id.get_server_message_id().get();
+
+  char separator = '?';
   if (for_comment) {
-    args = PSTRING() << "?thread=" << m->top_thread_message_id.get_server_message_id().get();
+    sb << separator << "thread=" << m->top_thread_message_id.get_server_message_id().get();
+    separator = '&';
   }
   if (!for_group) {
-    args += args.empty() ? '?' : '&';
-    args += "single";
+    sb << separator << "single";
+    separator = '&';
+  }
+  if (media_timestamp > 0) {
+    sb << separator << "t=" << media_timestamp;
+    separator = '&';
   }
 
-  bool is_public = !dialog_username.empty();
-  if (!is_public) {
-    dialog_username = PSTRING() << "c/" << dialog_id.get_channel_id().get();
-  }
-  return std::make_pair(PSTRING() << G()->shared_config().get_option_string("t_me_url", "https://t.me/")
-                                  << dialog_username << '/' << m->message_id.get_server_message_id().get() << args,
-                        is_public);
+  return std::make_pair(sb.as_cslice().str(), is_public);
 }
 
 string MessagesManager::get_message_embedding_code(FullMessageId full_message_id, bool for_group,

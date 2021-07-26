@@ -5124,8 +5124,9 @@ void Td::on_request(uint64 id, const td_api::getMessageThread &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::getMessageLink &request) {
-  auto r_message_link = messages_manager_->get_message_link(
-      {DialogId(request.chat_id_), MessageId(request.message_id_)}, request.for_album_, request.for_comment_);
+  auto r_message_link =
+      messages_manager_->get_message_link({DialogId(request.chat_id_), MessageId(request.message_id_)},
+                                          request.media_timestamp_, request.for_album_, request.for_comment_);
   if (r_message_link.is_error()) {
     send_closure(actor_id(this), &Td::send_error, id, r_message_link.move_as_error());
   } else {

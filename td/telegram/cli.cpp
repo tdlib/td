@@ -2604,11 +2604,12 @@ class CliClient final : public Actor {
     } else if (op == "gmlink") {
       string chat_id;
       string message_id;
+      int32 media_timestamp;
       bool for_album;
       bool for_comment;
-      get_args(args, chat_id, message_id, for_album, for_comment);
+      get_args(args, chat_id, message_id, media_timestamp, for_album, for_comment);
       send_request(td_api::make_object<td_api::getMessageLink>(as_chat_id(chat_id), as_message_id(message_id),
-                                                               for_album, for_comment));
+                                                               media_timestamp, for_album, for_comment));
     } else if (op == "gmec") {
       string chat_id;
       string message_id;

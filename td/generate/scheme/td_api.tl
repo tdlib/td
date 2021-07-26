@@ -4172,9 +4172,10 @@ removeNotificationGroup notification_group_id:int32 max_notification_id:int32 = 
 //@description Returns an HTTPS link to a message in a chat. Available only for already sent messages in supergroups and channels. This is an offline request
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message
+//@media_timestamp If not 0, timestamp from which the video/audio/video note/voice note playing should start, in seconds
 //@for_album Pass true to create a link for the whole media album
 //@for_comment Pass true to create a link to the message as a channel post comment, or from a message thread
-getMessageLink chat_id:int53 message_id:int53 for_album:Bool for_comment:Bool = MessageLink;
+getMessageLink chat_id:int53 message_id:int53 media_timestamp:int32 for_album:Bool for_comment:Bool = MessageLink;
 
 //@description Returns an HTML code for embedding the message. Available only for messages in supergroups and channels with a username
 //@chat_id Identifier of the chat to which the message belongs
