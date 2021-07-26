@@ -520,9 +520,8 @@ class ContactsManager final : public Actor {
   void ban_dialog_participant(DialogId dialog_id, const tl_object_ptr<td_api::MessageSender> &participant_id,
                               int32 banned_until_date, bool revoke_messages, Promise<Unit> &&promise);
 
-  DialogParticipant get_dialog_participant(DialogId dialog_id,
-                                           const tl_object_ptr<td_api::MessageSender> &participant_id, int64 &random_id,
-                                           bool force, Promise<Unit> &&promise);
+  void get_dialog_participant(DialogId dialog_id, const tl_object_ptr<td_api::MessageSender> &participant_id,
+                              Promise<td_api::object_ptr<td_api::chatMember>> &&promise);
 
   void search_dialog_participants(DialogId dialog_id, const string &query, int32 limit, DialogParticipantsFilter filter,
                                   Promise<DialogParticipants> &&promise);
@@ -1269,7 +1268,7 @@ class ContactsManager final : public Actor {
   void on_save_user_to_database(UserId user_id, bool success);
   void load_user_from_database(User *u, UserId user_id, Promise<Unit> promise);
   void load_user_from_database_impl(UserId user_id, Promise<Unit> promise);
-  void on_load_user_from_database(UserId user_id, string value);
+  void on_load_user_from_database(UserId user_id, string value, bool force);
 
   void save_chat(Chat *c, ChatId chat_id, bool from_binlog);
   static string get_chat_database_key(ChatId chat_id);
@@ -1279,7 +1278,7 @@ class ContactsManager final : public Actor {
   void on_save_chat_to_database(ChatId chat_id, bool success);
   void load_chat_from_database(Chat *c, ChatId chat_id, Promise<Unit> promise);
   void load_chat_from_database_impl(ChatId chat_id, Promise<Unit> promise);
-  void on_load_chat_from_database(ChatId chat_id, string value);
+  void on_load_chat_from_database(ChatId chat_id, string value, bool force);
 
   void save_channel(Channel *c, ChannelId channel_id, bool from_binlog);
   static string get_channel_database_key(ChannelId channel_id);
@@ -1289,7 +1288,7 @@ class ContactsManager final : public Actor {
   void on_save_channel_to_database(ChannelId channel_id, bool success);
   void load_channel_from_database(Channel *c, ChannelId channel_id, Promise<Unit> promise);
   void load_channel_from_database_impl(ChannelId channel_id, Promise<Unit> promise);
-  void on_load_channel_from_database(ChannelId channel_id, string value);
+  void on_load_channel_from_database(ChannelId channel_id, string value, bool force);
 
   void save_secret_chat(SecretChat *c, SecretChatId secret_chat_id, bool from_binlog);
   static string get_secret_chat_database_key(SecretChatId secret_chat_id);
@@ -1299,7 +1298,7 @@ class ContactsManager final : public Actor {
   void on_save_secret_chat_to_database(SecretChatId secret_chat_id, bool success);
   void load_secret_chat_from_database(SecretChat *c, SecretChatId secret_chat_id, Promise<Unit> promise);
   void load_secret_chat_from_database_impl(SecretChatId secret_chat_id, Promise<Unit> promise);
-  void on_load_secret_chat_from_database(SecretChatId secret_chat_id, string value);
+  void on_load_secret_chat_from_database(SecretChatId secret_chat_id, string value, bool force);
 
   void save_user_full(const UserFull *user_full, UserId user_id);
   static string get_user_full_database_key(UserId user_id);
@@ -1408,10 +1407,20 @@ class ContactsManager final : public Actor {
   DialogParticipants search_private_chat_participants(UserId my_user_id, UserId peer_user_id, const string &query,
                                                       int32 limit, DialogParticipantsFilter filter) const;
 
-  DialogParticipant get_chat_participant(ChatId chat_id, UserId user_id, bool force, Promise<Unit> &&promise);
+  void get_dialog_participant(DialogId dialog_id, DialogId participant_dialog_id, Promise<DialogParticipant> &&promise);
 
-  DialogParticipant get_channel_participant(ChannelId channel_id, DialogId participant_dialog_id, int64 &random_id,
-                                            bool force, Promise<Unit> &&promise);
+  void finish_get_dialog_participant(DialogParticipant &&dialog_participant,
+                                     Promise<td_api::object_ptr<td_api::chatMember>> &&promise);
+
+  void get_chat_participant(ChatId chat_id, UserId user_id, Promise<DialogParticipant> &&promise);
+
+  void finish_get_chat_participant(ChatId chat_id, UserId user_id, Promise<DialogParticipant> &&promise);
+
+  void get_channel_participant(ChannelId channel_id, DialogId participant_dialog_id,
+                               Promise<DialogParticipant> &&promise);
+
+  void finish_get_channel_participant(ChannelId channel_id, DialogParticipant &&dialog_participant,
+                                      Promise<DialogParticipant> &&promise);
 
   static string get_dialog_administrators_database_key(DialogId dialog_id);
 
@@ -1473,9 +1482,6 @@ class ContactsManager final : public Actor {
                                          DialogParticipantStatus status, Promise<Unit> &&promise);
 
   void delete_chat_participant(ChatId chat_id, UserId user_id, bool revoke_messages, Promise<Unit> &&promise);
-
-  void on_get_channel_participant(ChannelId channel_id, int64 random_id, Result<DialogParticipant> r_dialog_participant,
-                                  Promise<Unit> &&promise);
 
   void search_chat_participants(ChatId chat_id, const string &query, int32 limit, DialogParticipantsFilter filter,
                                 Promise<DialogParticipants> &&promise);
@@ -1648,8 +1654,6 @@ class ContactsManager final : public Actor {
   std::unordered_map<FileId, UploadedProfilePhoto, FileIdHash> uploaded_profile_photos_;  // file_id -> promise
 
   std::unordered_map<int64, std::pair<vector<UserId>, vector<int32>>> imported_contacts_;
-
-  std::unordered_map<int64, DialogParticipant> received_channel_participant_;
 
   std::unordered_map<ChannelId, vector<DialogParticipant>, ChannelIdHash> cached_channel_participants_;
 

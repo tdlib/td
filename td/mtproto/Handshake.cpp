@@ -46,20 +46,27 @@ static Result<typename T::ReturnType> fetch_result(Slice message, bool check_end
   return std::move(result);
 }
 
+AuthKeyHandshake::AuthKeyHandshake(int32 dc_id, int32 expires_in)
+    : mode_(expires_in == 0 ? Mode::Main : Mode::Temp)
+    , dc_id_(dc_id)
+    , expires_in_(expires_in)
+    , timeout_at_(Time::now() + 1e9) {
+}
+
+void AuthKeyHandshake::set_timeout_in(double timeout_in) {
+  timeout_at_ = Time::now() + timeout_in;
+}
+
 void AuthKeyHandshake::clear() {
   last_query_ = BufferSlice();
   state_ = Start;
+  timeout_at_ = Time::now() + 1e9;
 }
 
-bool AuthKeyHandshake::is_ready_for_start() const {
-  return state_ == Start;
-}
-bool AuthKeyHandshake::is_ready_for_message(const UInt128 &message_nonce) const {
-  return state_ != Finish && state_ != Start && nonce_ == message_nonce;
-}
 bool AuthKeyHandshake::is_ready_for_finish() const {
   return state_ == Finish;
 }
+
 void AuthKeyHandshake::on_finish() {
   clear();
 }
@@ -105,7 +112,6 @@ Status AuthKeyHandshake::on_res_pq(Slice message, Callback *connection, PublicRs
                                                               dc_id_, expires_in_));
       expires_at_ = Time::now() + expires_in_;
       break;
-    case Mode::Unknown:
     default:
       UNREACHABLE();
   }
@@ -266,17 +272,6 @@ void AuthKeyHandshake::do_send(Callback *connection, const Storer &storer) {
   return connection->send_no_crypto(storer);
 }
 
-Status AuthKeyHandshake::start_main(Callback *connection) {
-  mode_ = Mode::Main;
-  return on_start(connection);
-}
-
-Status AuthKeyHandshake::start_tmp(Callback *connection, int32 expires_in) {
-  mode_ = Mode::Temp;
-  expires_in_ = expires_in;
-  return on_start(connection);
-}
-
 void AuthKeyHandshake::resume(Callback *connection) {
   if (state_ == Start) {
     return on_start(connection).ignore();
@@ -289,7 +284,7 @@ void AuthKeyHandshake::resume(Callback *connection) {
     LOG(ERROR) << "Last query empty! UNREACHABLE " << state_;
     return clear();
   }
-  LOG(INFO) << "RESUME";
+  LOG(INFO) << "Resume handshake";
   do_send(connection, create_storer(last_query_.as_slice()));
 }
 
@@ -307,6 +302,10 @@ Status AuthKeyHandshake::on_start(Callback *connection) {
 
 Status AuthKeyHandshake::on_message(Slice message, Callback *connection, AuthKeyHandshakeContext *context) {
   Status status = [&] {
+    if (Time::now() >= timeout_at_) {
+      return Status::Error("Handshake timeout expired");
+    }
+
     switch (state_) {
       case ResPQ:
         return on_res_pq(message, connection, context->get_public_rsa_key_interface());

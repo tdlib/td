@@ -1256,7 +1256,7 @@ tl_object_ptr<td_api::webPage> WebPagesManager::get_web_page_object(WebPageId we
 
   return make_tl_object<td_api::webPage>(
       web_page->url, web_page->display_url, web_page->type, web_page->site_name, web_page->title,
-      get_formatted_text_object(description), get_photo_object(td_->file_manager_.get(), web_page->photo),
+      get_formatted_text_object(description, true), get_photo_object(td_->file_manager_.get(), web_page->photo),
       web_page->embed_url, web_page->embed_type, web_page->embed_dimensions.width, web_page->embed_dimensions.height,
       web_page->duration, web_page->author,
       web_page->document.type == Document::Type::Animation
@@ -1688,6 +1688,14 @@ string WebPagesManager::get_web_page_search_text(WebPageId web_page_id) const {
     return "";
   }
   return PSTRING() << web_page->title + " " + web_page->description;
+}
+
+int32 WebPagesManager::get_web_page_duration(WebPageId web_page_id) const {
+  const WebPage *web_page = get_web_page(web_page_id);
+  if (web_page == nullptr) {
+    return 0;
+  }
+  return web_page->duration;
 }
 
 vector<FileId> WebPagesManager::get_web_page_file_ids(const WebPage *web_page) const {

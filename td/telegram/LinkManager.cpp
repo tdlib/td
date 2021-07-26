@@ -191,7 +191,8 @@ class LinkManager::InternalLinkMessageDraft final : public InternalLink {
   bool contains_link_ = false;
 
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
-    return td_api::make_object<td_api::internalLinkTypeMessageDraft>(get_formatted_text_object(text_), contains_link_);
+    return td_api::make_object<td_api::internalLinkTypeMessageDraft>(get_formatted_text_object(text_, true),
+                                                                     contains_link_);
   }
 
  public:
@@ -1124,6 +1125,7 @@ Result<MessageLinkInfo> LinkManager::get_message_link_info(Slice url) {
   Slice channel_id_slice;
   Slice message_id_slice;
   Slice comment_message_id_slice = "0";
+  Slice media_timestamp_slice;
   bool is_single = false;
   bool for_comment = false;
   if (link_info.is_tg_) {
@@ -1166,6 +1168,9 @@ Result<MessageLinkInfo> LinkManager::get_message_link_info(Slice url) {
           message_id_slice = key_value.second;
         }
       }
+      if (key_value.first == "t") {
+        media_timestamp_slice = key_value.second;
+      }
       if (key_value.first == "single") {
         is_single = true;
       }
@@ -1205,6 +1210,9 @@ Result<MessageLinkInfo> LinkManager::get_message_link_info(Slice url) {
       auto args = full_split(url.substr(query_pos + 1), '&');
       for (auto arg : args) {
         auto key_value = split(arg, '=');
+        if (key_value.first == "t") {
+          media_timestamp_slice = key_value.second;
+        }
         if (key_value.first == "single") {
           is_single = true;
         }
@@ -1238,11 +1246,49 @@ Result<MessageLinkInfo> LinkManager::get_message_link_info(Slice url) {
     return Status::Error("Wrong comment message ID");
   }
 
+  bool is_media_timestamp_invalid = false;
+  int32 media_timestamp = 0;
+  const int32 MAX_MEDIA_TIMESTAMP = 10000000;
+  if (!media_timestamp_slice.empty()) {
+    int32 current_value = 0;
+    for (size_t i = 0; i <= media_timestamp_slice.size(); i++) {
+      auto c = i < media_timestamp_slice.size() ? media_timestamp_slice[i] : 's';
+      if ('0' <= c && c <= '9') {
+        current_value = current_value * 10 + c - '0';
+        if (current_value > MAX_MEDIA_TIMESTAMP) {
+          is_media_timestamp_invalid = true;
+          break;
+        }
+      } else {
+        auto mul = 0;
+        switch (to_lower(c)) {
+          case 'h':
+            mul = 3600;
+            break;
+          case 'm':
+            mul = 60;
+            break;
+          case 's':
+            mul = 1;
+            break;
+        }
+        if (mul == 0 || current_value > MAX_MEDIA_TIMESTAMP / mul ||
+            media_timestamp + current_value * mul > MAX_MEDIA_TIMESTAMP) {
+          is_media_timestamp_invalid = true;
+          break;
+        }
+        media_timestamp += current_value * mul;
+        current_value = 0;
+      }
+    }
+  }
+
   MessageLinkInfo info;
   info.username = username.str();
   info.channel_id = channel_id;
   info.message_id = MessageId(ServerMessageId(r_message_id.ok()));
   info.comment_message_id = MessageId(ServerMessageId(r_comment_message_id.ok()));
+  info.media_timestamp = is_media_timestamp_invalid ? 0 : media_timestamp;
   info.is_single = is_single;
   info.for_comment = for_comment;
   LOG(INFO) << "Have link to " << info.message_id << " in chat @" << info.username << "/" << channel_id.get();

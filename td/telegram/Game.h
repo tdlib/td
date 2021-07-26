@@ -63,7 +63,7 @@ class Game {
 
   const FormattedText &get_text() const;
 
-  tl_object_ptr<td_api::game> get_game_object(Td *td) const;
+  tl_object_ptr<td_api::game> get_game_object(Td *td, bool skip_bot_commands) const;
 
   bool has_input_media() const;
 

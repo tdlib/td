@@ -87,6 +87,8 @@ class WebPagesManager final : public Actor {
 
   string get_web_page_search_text(WebPageId web_page_id) const;
 
+  int32 get_web_page_duration(WebPageId web_page_id) const;
+
  private:
   static constexpr int32 WEBPAGE_FLAG_HAS_TYPE = 1 << 0;
   static constexpr int32 WEBPAGE_FLAG_HAS_SITE_NAME = 1 << 1;

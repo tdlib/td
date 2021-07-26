@@ -140,11 +140,15 @@ tl_object_ptr<td_api::textEntity> MessageEntity::get_text_entity_object() const 
   return make_tl_object<td_api::textEntity>(offset, length, get_text_entity_type_object());
 }
 
-vector<tl_object_ptr<td_api::textEntity>> get_text_entities_object(const vector<MessageEntity> &entities) {
+vector<tl_object_ptr<td_api::textEntity>> get_text_entities_object(const vector<MessageEntity> &entities,
+                                                                   bool skip_bot_commands) {
   vector<tl_object_ptr<td_api::textEntity>> result;
   result.reserve(entities.size());
 
   for (auto &entity : entities) {
+    if (skip_bot_commands && entity.type == MessageEntity::Type::BotCommand) {
+      continue;
+    }
     auto entity_object = entity.get_text_entity_object();
     if (entity_object->type_ != nullptr) {
       result.push_back(std::move(entity_object));
@@ -158,8 +162,9 @@ StringBuilder &operator<<(StringBuilder &string_builder, const FormattedText &te
   return string_builder << '"' << text.text << "\" with entities " << text.entities;
 }
 
-td_api::object_ptr<td_api::formattedText> get_formatted_text_object(const FormattedText &text) {
-  return td_api::make_object<td_api::formattedText>(text.text, get_text_entities_object(text.entities));
+td_api::object_ptr<td_api::formattedText> get_formatted_text_object(const FormattedText &text, bool skip_bot_commands) {
+  return td_api::make_object<td_api::formattedText>(text.text,
+                                                    get_text_entities_object(text.entities, skip_bot_commands));
 }
 
 static bool is_word_character(uint32 code) {
@@ -3877,6 +3882,7 @@ FormattedText get_message_text(const ContactsManager *contacts_manager, string m
   auto debug_entities = entities;
   auto status = fix_formatted_text(message_text, entities, true, skip_new_entities, true, false);
   if (status.is_error()) {
+    // message entities in media albums can be wrong because of a long time ago fixed server-side bug
     if (!from_album && (send_date == 0 || send_date > 1600340000)) {  // approximate fix date
       LOG(ERROR) << "Receive error " << status << " while parsing message text from " << source << " sent at "
                  << send_date << " with content \"" << debug_message_text << "\" -> \"" << message_text
@@ -3929,7 +3935,7 @@ Result<FormattedText> process_input_caption(const ContactsManager *contacts_mana
   }
   TRY_RESULT(entities, get_message_entities(contacts_manager, std::move(caption->entities_)));
   TRY_STATUS(fix_formatted_text(caption->text_, entities, true, false,
-                                need_skip_bot_commands(contacts_manager, dialog_id, is_bot), false));
+                                need_always_skip_bot_commands(contacts_manager, dialog_id, is_bot), false));
   return FormattedText{std::move(caption->text_), std::move(entities)};
 }
 
@@ -3944,7 +3950,19 @@ void add_formatted_text_dependencies(Dependencies &dependencies, const Formatted
   }
 }
 
-bool need_skip_bot_commands(const ContactsManager *contacts_manager, DialogId dialog_id, bool is_bot) {
+bool has_bot_commands(const FormattedText *text) {
+  if (text == nullptr) {
+    return false;
+  }
+  for (auto &entity : text->entities) {
+    if (entity.type == MessageEntity::Type::BotCommand) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool need_always_skip_bot_commands(const ContactsManager *contacts_manager, DialogId dialog_id, bool is_bot) {
   if (!dialog_id.is_valid()) {
     return true;
   }

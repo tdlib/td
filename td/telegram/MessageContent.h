@@ -149,6 +149,8 @@ bool has_message_content_web_page(const MessageContent *content);
 
 void remove_message_content_web_page(MessageContent *content);
 
+bool can_message_content_have_media_timestamp(const MessageContent *content);
+
 void set_message_content_poll_answer(Td *td, const MessageContent *content, FullMessageId full_message_id,
                                      vector<int32> &&option_ids, Promise<Unit> &&promise);
 
@@ -195,7 +197,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
 
 tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageContent *content, Td *td,
                                                                  DialogId dialog_id, int32 message_date,
-                                                                 bool is_content_secret);
+                                                                 bool is_content_secret, bool skip_bot_commands);
 
 const FormattedText *get_message_content_text(const MessageContent *content);
 

@@ -39,6 +39,7 @@
 #include "td/utils/Time.h"
 #include "td/utils/Timer.h"
 #include "td/utils/tl_parsers.h"
+#include "td/utils/utf8.h"
 
 #include <tuple>
 #include <utility>
@@ -768,22 +769,31 @@ Status Session::on_message_result_ok(uint64 id, BufferSlice packet, size_t origi
   return Status::OK();
 }
 
-void Session::on_message_result_error(uint64 id, int error_code, BufferSlice message) {
+void Session::on_message_result_error(uint64 id, int error_code, string message) {
+  if (!check_utf8(message)) {
+    LOG(ERROR) << "Receive invalid error message \"" << message << '"';
+    message = "INVALID_UTF8_ERROR_MESSAGE";
+  }
+  if (error_code <= -10000 || error_code >= 10000 || error_code == 0) {
+    LOG(ERROR) << "Receive invalid error code " << error_code << " with message \"" << message << '"';
+    error_code = 500;
+  }
+
   // UNAUTHORIZED
-  if (error_code == 401 && message.as_slice() != CSlice("SESSION_PASSWORD_NEEDED")) {
-    if (auth_data_.use_pfs() && message.as_slice() == CSlice("AUTH_KEY_PERM_EMPTY")) {
+  if (error_code == 401 && message != "SESSION_PASSWORD_NEEDED") {
+    if (auth_data_.use_pfs() && message == CSlice("AUTH_KEY_PERM_EMPTY")) {
       LOG(INFO) << "Receive AUTH_KEY_PERM_EMPTY in session " << auth_data_.get_session_id() << " for auth key "
                 << auth_data_.get_tmp_auth_key().id();
       auth_data_.drop_tmp_auth_key();
       on_tmp_auth_key_updated();
       error_code = 500;
     } else {
-      if (message.as_slice() == CSlice("USER_DEACTIVATED_BAN")) {
+      if (message == "USER_DEACTIVATED_BAN") {
         LOG(PLAIN) << "Your account was suspended for suspicious activity. If you think that this is a mistake, please "
                       "write to recover@telegram.org your phone number and other details to recover the account.";
       }
       auth_data_.set_auth_flag(false);
-      G()->shared_config().set_option_string("auth", message.as_slice().str());
+      G()->shared_config().set_option_string("auth", message);
       shared_auth_data_->set_auth_key(auth_data_.get_main_auth_key());
       on_session_failed(Status::OK());
     }
@@ -796,10 +806,10 @@ void Session::on_message_result_error(uint64 id, int error_code, BufferSlice mes
 
   if (error_code < 0) {
     LOG(WARNING) << "Session::on_message_result_error from mtproto " << tag("id", id) << tag("error_code", error_code)
-                 << tag("msg", message.as_slice());
+                 << tag("msg", message);
   } else {
     LOG(DEBUG) << "Session::on_message_result_error " << tag("id", id) << tag("error_code", error_code)
-               << tag("msg", message.as_slice());
+               << tag("msg", message);
   }
   auto it = sent_queries_.find(id);
   if (it == sent_queries_.end()) {
@@ -811,8 +821,7 @@ void Session::on_message_result_error(uint64 id, int error_code, BufferSlice mes
 
   cleanup_container(id, query_ptr);
   mark_as_known(id, query_ptr);
-  query_ptr->query->set_error(Status::Error(error_code, message.as_slice()),
-                              current_info_->connection->get_name().str());
+  query_ptr->query->set_error(Status::Error(error_code, message), current_info_->connection->get_name().str());
   query_ptr->query->set_message_id(0);
   query_ptr->query->cancel_slot_.clear_event();
   return_query(std::move(query_ptr->query));

@@ -43,9 +43,12 @@ TDLib can be used from Python through the [JSON](https://github.com/tdlib/td#usi
 
 Convenient Python wrappers already exist for our JSON interface.
 
-If you use modern Python >= 3.6, take a look at [python-telegram](https://github.com/alexander-akhmetov/python-telegram).
+If you use Python >= 3.6, take a look at [python-telegram](https://github.com/alexander-akhmetov/python-telegram).
 The wrapper uses the full power of asyncio, has a good documentation and has several examples. It can be installed through pip or used in a Docker container.
 You can also try a fork [python-telegram](https://github.com/iTeam-co/python-telegram) of this library.
+
+If you want to use TDLib with asyncio and Python >= 3.9, take a look at [aiotdlib](https://github.com/pylakey/aiotdlib).
+This wrapper contains automatically generated fully-documented classes for all TDLib API types and functions and provides set of helper methods which makes work with TDLib much simpler.
 
 For older Python versions you can use [pytdlib](https://github.com/pytdlib/pytdlib).
 This wrapper contains generator for TDLib API classes and basic interface for interaction with TDLib.

@@ -52,6 +52,7 @@ AuthManager::AuthManager(int32 api_id, const string &api_hash, ActorShared<> par
     auto my_id = ContactsManager::load_my_id();
     if (my_id.is_valid()) {
       // just in case
+      LOG(INFO) << "Logged in as " << my_id;
       G()->shared_config().set_option_integer("my_id", my_id.get());
       update_state(State::Ok);
     } else {
@@ -917,6 +918,7 @@ void AuthManager::update_state(State new_state, bool force, bool should_save_sta
 bool AuthManager::load_state() {
   auto data = G()->td_db()->get_binlog_pmc()->get("auth_state");
   if (data.empty()) {
+    LOG(INFO) << "Have no saved auth_state. Waiting for phone number";
     return false;
   }
   DbState db_state;

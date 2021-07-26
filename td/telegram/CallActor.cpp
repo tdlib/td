@@ -382,8 +382,8 @@ Status CallActor::do_update_call(telegram_api::phoneCallWaiting &call) {
   call_access_hash_ = call.access_hash_;
   is_call_id_inited_ = true;
   is_video_ |= (call.flags_ & telegram_api::phoneCallWaiting::VIDEO_MASK) != 0;
-  call_admin_id_ = call.admin_id_;
-  call_participant_id_ = call.participant_id_;
+  call_admin_user_id_ = UserId(call.admin_id_);
+  // call_participant_user_id_ = UserId(call.participant_id_);
   if (call_id_promise_) {
     call_id_promise_.set_value(std::move(call.id_));
   }
@@ -405,8 +405,8 @@ Status CallActor::do_update_call(telegram_api::phoneCallRequested &call) {
   call_access_hash_ = call.access_hash_;
   is_call_id_inited_ = true;
   is_video_ |= (call.flags_ & telegram_api::phoneCallRequested::VIDEO_MASK) != 0;
-  call_admin_id_ = call.admin_id_;
-  call_participant_id_ = call.participant_id_;
+  call_admin_user_id_ = UserId(call.admin_id_);
+  // call_participant_user_id_ = UserId(call.participant_id_);
   if (call_id_promise_) {
     call_id_promise_.set_value(std::move(call.id_));
   }
@@ -438,8 +438,8 @@ Status CallActor::do_update_call(telegram_api::phoneCallAccepted &call) {
     call_id_ = call.id_;
     call_access_hash_ = call.access_hash_;
     is_call_id_inited_ = true;
-    call_admin_id_ = call.admin_id_;
-    call_participant_id_ = call.participant_id_;
+    call_admin_user_id_ = UserId(call.admin_id_);
+    // call_participant_user_id_ = UserId(call.participant_id_);
     if (call_id_promise_) {
       call_id_promise_.set_value(std::move(call.id_));
     }
@@ -748,13 +748,13 @@ void CallActor::flush_call_state() {
         if (!has_notification_) {
           has_notification_ = true;
           send_closure(G()->notification_manager(), &NotificationManager::add_call_notification,
-                       DialogId(UserId(call_admin_id_)), local_call_id_);
+                       DialogId(call_admin_user_id_), local_call_id_);
         }
       } else {
         if (has_notification_) {
           has_notification_ = false;
           send_closure(G()->notification_manager(), &NotificationManager::remove_call_notification,
-                       DialogId(UserId(call_admin_id_)), local_call_id_);
+                       DialogId(call_admin_user_id_), local_call_id_);
         }
       }
     }
@@ -767,9 +767,9 @@ void CallActor::flush_call_state() {
     // TODO can't call const function
     // send_closure(G()->contacts_manager(), &ContactsManager::get_user_id_object, user_id_, "flush_call_state");
     send_closure(G()->td(), &Td::send_update,
-                 make_tl_object<td_api::updateCall>(
-                     make_tl_object<td_api::call>(local_call_id_.get(), is_outgoing_ ? user_id_.get() : call_admin_id_,
-                                                  is_outgoing_, is_video_, call_state_.get_call_state_object())));
+                 make_tl_object<td_api::updateCall>(make_tl_object<td_api::call>(
+                     local_call_id_.get(), is_outgoing_ ? user_id_.get() : call_admin_user_id_.get(), is_outgoing_,
+                     is_video_, call_state_.get_call_state_object())));
   }
 }
 

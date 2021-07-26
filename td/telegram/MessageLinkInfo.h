@@ -21,6 +21,7 @@ struct MessageLinkInfo {
 
   MessageId message_id;
   bool is_single = false;
+  int32 media_timestamp = 0;
 
   DialogId comment_dialog_id;
   MessageId comment_message_id;

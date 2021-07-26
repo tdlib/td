@@ -33,8 +33,6 @@ class AuthKeyHandshakeContext {
 };
 
 class AuthKeyHandshake {
-  enum class Mode { Unknown, Main, Temp };
-
  public:
   class Callback {
    public:
@@ -45,43 +43,17 @@ class AuthKeyHandshake {
     virtual void send_no_crypto(const Storer &storer) = 0;
   };
 
-  AuthKeyHandshake(int32 dc_id, int32 expires_in) {
-    dc_id_ = dc_id;
-    if (expires_in == 0) {
-      mode_ = Mode::Main;
-    } else {
-      mode_ = Mode::Temp;
-      expires_in_ = expires_in;
-    }
-  }
+  AuthKeyHandshake(int32 dc_id, int32 expires_in);
 
-  bool is_ready_for_start() const;
-  Status start_main(Callback *connection) TD_WARN_UNUSED_RESULT;
-  Status start_tmp(Callback *connection, int32 expires_in) TD_WARN_UNUSED_RESULT;
-
-  bool is_ready_for_message(const UInt128 &message_nonce) const;
+  void set_timeout_in(double timeout_in);
 
   bool is_ready_for_finish() const;
+
   void on_finish();
-
-  void init_main() {
-    clear();
-    mode_ = Mode::Main;
-  }
-
-  void init_temp(int32 expires_in) {
-    clear();
-    mode_ = Mode::Temp;
-    expires_in_ = expires_in;
-  }
 
   void resume(Callback *connection);
 
   Status on_message(Slice message, Callback *connection, AuthKeyHandshakeContext *context) TD_WARN_UNUSED_RESULT;
-
-  bool is_ready() const {
-    return is_ready_for_finish();
-  }
 
   void clear();
 
@@ -102,12 +74,15 @@ class AuthKeyHandshake {
   }
 
  private:
-  using State = enum { Start, ResPQ, ServerDHParams, DHGenResponse, Finish };
+  enum State : int32 { Start, ResPQ, ServerDHParams, DHGenResponse, Finish };
   State state_ = Start;
-  Mode mode_ = Mode::Unknown;
+  enum class Mode : int32 { Main, Temp };
+  Mode mode_ = Mode::Main;
   int32 dc_id_ = 0;
   int32 expires_in_ = 0;
   double expires_at_ = 0;
+
+  double timeout_at_ = 0;
 
   AuthKey auth_key_;
   double server_time_diff_ = 0;

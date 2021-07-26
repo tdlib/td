@@ -16,6 +16,7 @@
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/PathView.h"
+#include "td/utils/port/Clocks.h"
 #include "td/utils/port/FileFd.h"
 #include "td/utils/port/path.h"
 #include "td/utils/Random.h"
@@ -29,13 +30,13 @@ namespace td {
 int VERBOSITY_NAME(file_loader) = VERBOSITY_NAME(DEBUG) + 2;
 
 namespace {
-Result<std::pair<FileFd, string>> try_create_new_file(Result<CSlice> result_name) {
-  TRY_RESULT(name, std::move(result_name));
+Result<std::pair<FileFd, string>> try_create_new_file(CSlice name) {
+  LOG(DEBUG) << "Trying to create new file " << name;
   TRY_RESULT(fd, FileFd::open(name, FileFd::Read | FileFd::Write | FileFd::CreateNew, 0640));
   return std::make_pair(std::move(fd), name.str());
 }
-Result<std::pair<FileFd, string>> try_open_file(Result<CSlice> result_name) {
-  TRY_RESULT(name, std::move(result_name));
+Result<std::pair<FileFd, string>> try_open_file(CSlice name) {
+  LOG(DEBUG) << "Trying to open file " << name;
   TRY_RESULT(fd, FileFd::open(name, FileFd::Read, 0640));
   return std::make_pair(std::move(fd), name.str());
 }
@@ -76,33 +77,26 @@ Result<std::pair<FileFd, string>> open_temp_file(FileType file_type) {
 
 template <class F>
 bool for_suggested_file_name(CSlice name, bool use_pmc, bool use_random, F &&callback) {
-  auto try_callback = [&](Result<CSlice> r_path) {
-    if (r_path.is_error()) {
-      return true;
-    }
-    LOG(DEBUG) << "Trying " << r_path.ok();
-    return callback(r_path.move_as_ok());
-  };
   auto cleaned_name = clean_filename(name);
   PathView path_view(cleaned_name);
   auto stem = path_view.file_stem();
   auto ext = path_view.extension();
   bool active = true;
   if (!stem.empty() && !G()->parameters().ignore_file_names) {
-    active = try_callback(PSLICE() << stem << Ext{ext});
+    active = callback(PSLICE() << stem << Ext{ext});
     for (int i = 0; active && i < 10; i++) {
-      active = try_callback(PSLICE() << stem << "_(" << i << ")" << Ext{ext});
+      active = callback(PSLICE() << stem << "_(" << i << ")" << Ext{ext});
     }
     for (int i = 2; active && i < 12 && use_random; i++) {
-      active = try_callback(PSLICE() << stem << "_(" << RandSuff{i} << ")" << Ext{ext});
+      active = callback(PSLICE() << stem << "_(" << RandSuff{i} << ")" << Ext{ext});
     }
   } else if (use_pmc) {
     auto pmc = G()->td_db()->get_binlog_pmc();
     int32 file_id = to_integer<int32>(pmc->get("perm_file_id"));
     pmc->set("perm_file_id", to_string(file_id + 1));
-    active = try_callback(PSLICE() << "file_" << file_id << Ext{ext});
+    active = callback(PSLICE() << "file_" << file_id << Ext{ext});
     if (active) {
-      active = try_callback(PSLICE() << "file_" << file_id << "_" << RandSuff{6} << Ext{ext});
+      active = callback(PSLICE() << "file_" << file_id << "_" << RandSuff{6} << Ext{ext});
     }
   }
   return active;
@@ -142,6 +136,51 @@ Result<string> search_file(CSlice dir, CSlice name, int64 expected_size) {
     return false;
   });
   return res;
+}
+
+Result<string> get_suggested_file_name(CSlice directory, Slice file_name) {
+  string cleaned_name = clean_filename(file_name.str());
+  file_name = cleaned_name;
+
+  if (directory.empty()) {
+    directory = "./";
+  }
+
+  auto dir_stat = stat(directory);
+  if (dir_stat.is_error() || !dir_stat.ok().is_dir_) {
+    return cleaned_name;
+  }
+
+  PathView path_view(file_name);
+  auto stem = path_view.file_stem();
+  auto ext = path_view.extension();
+
+  if (stem.empty()) {
+    return cleaned_name;
+  }
+
+  Slice directory_slice = directory;
+  while (directory_slice.size() > 1 && (directory_slice.back() == '/' || directory_slice.back() == '\\')) {
+    directory_slice.remove_suffix(1);
+  }
+
+  auto check_file_name = [directory_slice](Slice name) {
+    return stat(PSLICE() << directory_slice << TD_DIR_SLASH << name).is_error();  // in case of success, the name is bad
+  };
+
+  string checked_name = PSTRING() << stem << Ext{ext};
+  if (check_file_name(checked_name)) {
+    return checked_name;
+  }
+
+  for (int i = 1; i < 100; i++) {
+    checked_name = PSTRING() << stem << " (" << i << ")" << Ext{ext};
+    if (check_file_name(checked_name)) {
+      return checked_name;
+    }
+  }
+
+  return PSTRING() << stem << " - " << StringBuilder::FixedDouble(Clocks::system(), 3) << Ext{ext};
 }
 
 Result<FullLocalFileLocation> save_file_bytes(FileType type, BufferSlice bytes, CSlice file_name) {

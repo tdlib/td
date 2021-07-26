@@ -39,7 +39,7 @@ Result<InputMessageText> process_input_message_text(const ContactsManager *conta
   }
 
   TRY_RESULT(entities, get_message_entities(contacts_manager, std::move(input_message_text->text_->entities_)));
-  auto need_skip_commands = need_skip_bot_commands(contacts_manager, dialog_id, is_bot);
+  auto need_skip_commands = need_always_skip_bot_commands(contacts_manager, dialog_id, is_bot);
   bool parse_markdown = G()->shared_config().get_option_boolean("always_parse_markdown");
   TRY_STATUS(fix_formatted_text(input_message_text->text_->text_, entities, for_draft, parse_markdown,
                                 need_skip_commands, for_draft));
@@ -54,7 +54,7 @@ Result<InputMessageText> process_input_message_text(const ContactsManager *conta
 }
 
 td_api::object_ptr<td_api::inputMessageText> get_input_message_text_object(const InputMessageText &input_message_text) {
-  return td_api::make_object<td_api::inputMessageText>(get_formatted_text_object(input_message_text.text),
+  return td_api::make_object<td_api::inputMessageText>(get_formatted_text_object(input_message_text.text, false),
                                                        input_message_text.disable_web_page_preview,
                                                        input_message_text.clear_draft);
 }

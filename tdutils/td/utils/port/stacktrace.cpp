@@ -27,10 +27,11 @@ namespace td {
 namespace {
 
 void print_backtrace(void) {
-  void *buffer[128];
 #if TD_PORT_WINDOWS
+  void *buffer[128];
   USHORT nptrs = CaptureStackBackTrace(0, 128, buffer, nullptr);
 #elif __GLIBC__
+  void *buffer[128];
   int nptrs = backtrace(buffer, 128);
 #else
   return;

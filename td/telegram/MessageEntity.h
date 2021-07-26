@@ -131,9 +131,10 @@ Result<vector<MessageEntity>> get_message_entities(const ContactsManager *contac
                                                    vector<tl_object_ptr<td_api::textEntity>> &&input_entities,
                                                    bool allow_all = false);
 
-vector<tl_object_ptr<td_api::textEntity>> get_text_entities_object(const vector<MessageEntity> &entities);
+vector<tl_object_ptr<td_api::textEntity>> get_text_entities_object(const vector<MessageEntity> &entities,
+                                                                   bool skip_bot_commands);
 
-td_api::object_ptr<td_api::formattedText> get_formatted_text_object(const FormattedText &text);
+td_api::object_ptr<td_api::formattedText> get_formatted_text_object(const FormattedText &text, bool skip_bot_commands);
 
 vector<MessageEntity> find_entities(Slice text, bool skip_bot_commands);
 
@@ -191,6 +192,8 @@ Result<FormattedText> process_input_caption(const ContactsManager *contacts_mana
 
 void add_formatted_text_dependencies(Dependencies &dependencies, const FormattedText *text);
 
-bool need_skip_bot_commands(const ContactsManager *contacts_manager, DialogId dialog_id, bool is_bot);
+bool has_bot_commands(const FormattedText *text);
+
+bool need_always_skip_bot_commands(const ContactsManager *contacts_manager, DialogId dialog_id, bool is_bot);
 
 }  // namespace td

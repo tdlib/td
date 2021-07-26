@@ -34,6 +34,7 @@ void HandshakeActor::close() {
 void HandshakeActor::start_up() {
   Scheduler::subscribe(connection_->get_poll_info().extract_pollable_fd(this));
   set_timeout_in(timeout_);
+  handshake_->set_timeout_in(timeout_);
   yield();
 }
 
@@ -47,6 +48,26 @@ void HandshakeActor::loop() {
     finish(Status::OK());
     return stop();
   }
+}
+
+void HandshakeActor::hangup() {
+  finish(Status::Error(1, "Canceled"));
+  stop();
+}
+
+void HandshakeActor::timeout_expired() {
+  finish(Status::Error("Timeout expired"));
+  stop();
+}
+
+void HandshakeActor::tear_down() {
+  finish(Status::OK());
+}
+
+void HandshakeActor::finish(Status status) {
+  // NB: order may be important for parent
+  return_connection(std::move(status));
+  return_handshake();
 }
 
 void HandshakeActor::return_connection(Status status) {

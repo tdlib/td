@@ -18,7 +18,7 @@
 namespace td {
 namespace mtproto {
 
-// Has Raw connection. Generates new auth key. And returns it and raw_connection. Or error...
+// Owns RawConnection. Generates new auth key. And returns it and RawConnection. Or error...
 class HandshakeActor final : public Actor {
  public:
   HandshakeActor(unique_ptr<AuthKeyHandshake> handshake, unique_ptr<RawConnection> raw_connection,
@@ -36,26 +36,19 @@ class HandshakeActor final : public Actor {
   Promise<unique_ptr<AuthKeyHandshake>> handshake_promise_;
 
   void start_up() final;
-  void tear_down() final {
-    finish(Status::OK());
-  }
-  void hangup() final {
-    finish(Status::Error(1, "Canceled"));
-    stop();
-  }
-  void timeout_expired() final {
-    finish(Status::Error("Timeout expired"));
-    stop();
-  }
+
+  void tear_down() final;
+
+  void hangup() final;
+
+  void timeout_expired() final;
+
   void loop() final;
 
-  void finish(Status status) {
-    // NB: order may be important for parent
-    return_connection(std::move(status));
-    return_handshake();
-  }
+  void finish(Status status);
 
   void return_connection(Status status);
+
   void return_handshake();
 };
 

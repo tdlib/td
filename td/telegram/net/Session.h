@@ -208,7 +208,7 @@ class Session final
 
   void on_message_ack(uint64 id) final;
   Status on_message_result_ok(uint64 id, BufferSlice packet, size_t original_size) final;
-  void on_message_result_error(uint64 id, int error_code, BufferSlice message) final;
+  void on_message_result_error(uint64 id, int error_code, string message) final;
   void on_message_failed(uint64 id, Status status) final;
 
   void on_message_info(uint64 id, int32 state, uint64 answer_id, int32 answer_size) final;

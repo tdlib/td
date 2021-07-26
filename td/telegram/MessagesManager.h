@@ -576,7 +576,8 @@ class MessagesManager final : public Actor {
 
   bool is_message_edited_recently(FullMessageId full_message_id, int32 seconds);
 
-  Result<std::pair<string, bool>> get_message_link(FullMessageId full_message_id, bool for_group, bool for_comment);
+  Result<std::pair<string, bool>> get_message_link(FullMessageId full_message_id, int32 media_timestamp, bool for_group,
+                                                   bool for_comment);
 
   string get_message_embedding_code(FullMessageId full_message_id, bool for_group, Promise<Unit> &&promise);
 
@@ -1229,6 +1230,8 @@ class MessagesManager final : public Actor {
     bool is_group_call_empty = false;
     bool is_message_ttl_setting_inited = false;
     bool has_expected_active_group_call_id = false;
+    bool has_bots = false;
+    bool is_has_bots_inited = false;
 
     bool increment_view_counter = false;
 
@@ -1998,17 +2001,26 @@ class MessagesManager final : public Actor {
 
   void preload_older_messages(const Dialog *d, MessageId min_message_id);
 
-  void on_get_history_from_database(DialogId dialog_id, MessageId from_message_id, int32 offset, int32 limit,
+  void on_get_history_from_database(DialogId dialog_id, MessageId from_message_id,
+                                    MessageId old_last_database_message_id, int32 offset, int32 limit,
                                     bool from_the_end, bool only_local, vector<BufferSlice> &&messages,
                                     Promise<Unit> &&promise);
 
   void get_history_from_the_end(DialogId dialog_id, bool from_database, bool only_local, Promise<Unit> &&promise);
 
+  void get_history_from_the_end_impl(const Dialog *d, bool from_database, bool only_local, Promise<Unit> &&promise);
+
   void get_history(DialogId dialog_id, MessageId from_message_id, int32 offset, int32 limit, bool from_database,
                    bool only_local, Promise<Unit> &&promise);
 
+  void get_history_impl(const Dialog *d, MessageId from_message_id, int32 offset, int32 limit, bool from_database,
+                        bool only_local, Promise<Unit> &&promise);
+
   void load_messages(DialogId dialog_id, MessageId from_message_id, int32 offset, int32 limit, int left_tries,
                      bool only_local, Promise<Unit> &&promise);
+
+  void load_messages_impl(const Dialog *d, MessageId from_message_id, int32 offset, int32 limit, int left_tries,
+                          bool only_local, Promise<Unit> &&promise);
 
   void load_dialog_scheduled_messages(DialogId dialog_id, bool from_database, int32 hash, Promise<Unit> &&promise);
 
@@ -2172,10 +2184,13 @@ class MessagesManager final : public Actor {
 
   void remove_message_dialog_notifications(Dialog *d, MessageId max_message_id, bool from_mentions, const char *source);
 
+  bool need_skip_bot_commands(DialogId dialog_id, const Message *m) const;
+
   void send_update_message_send_succeeded(Dialog *d, MessageId old_message_id, const Message *m) const;
 
-  void send_update_message_content(DialogId dialog_id, MessageId message_id, const MessageContent *content,
-                                   int32 message_date, bool is_content_secret, const char *source) const;
+  void send_update_message_content(DialogId dialog_id, const Message *m, const char *source);
+
+  void send_update_message_content_impl(DialogId dialog_id, const Message *m, const char *source) const;
 
   void send_update_message_edited(DialogId dialog_id, const Message *m);
 
@@ -2306,6 +2321,8 @@ class MessagesManager final : public Actor {
   void set_dialog_is_marked_as_unread(Dialog *d, bool is_marked_as_unread);
 
   void set_dialog_is_blocked(Dialog *d, bool is_blocked);
+
+  void set_dialog_has_bots(Dialog *d, bool has_bots);
 
   void set_dialog_last_pinned_message_id(Dialog *d, MessageId last_pinned_message_id);
 
@@ -2659,6 +2676,10 @@ class MessagesManager final : public Actor {
 
   void on_message_live_location_viewed_on_server(int64 task_id);
 
+  void try_add_bot_command_message_id(DialogId dialog_id, const Message *m);
+
+  void delete_bot_command_message_id(DialogId dialog_id, MessageId message_id);
+
   void add_message_file_sources(DialogId dialog_id, const Message *m);
 
   void remove_message_file_sources(DialogId dialog_id, const Message *m);
@@ -2944,6 +2965,8 @@ class MessagesManager final : public Actor {
   void suffix_load_add_query(Dialog *d, std::pair<Promise<>, std::function<bool(const Message *)>> query);
   void suffix_load_till_date(Dialog *d, int32 date, Promise<> promise);
   void suffix_load_till_message_id(Dialog *d, MessageId message_id, Promise<> promise);
+
+  bool is_group_dialog(DialogId dialog_id) const;
 
   bool is_broadcast_channel(DialogId dialog_id) const;
 
@@ -3271,6 +3294,11 @@ class MessagesManager final : public Actor {
   std::unordered_map<DialogId, vector<DialogId>, DialogIdHash>
       pending_add_default_join_group_call_as_dialog_id_;  // dialog_id -> dependent dialogs
 
+  struct MessageIds {
+    std::unordered_set<MessageId, MessageIdHash> message_ids;
+  };
+  std::unordered_map<DialogId, MessageIds, DialogIdHash> dialog_bot_command_message_ids_;
+
   struct CallsDbState {
     std::array<MessageId, 2> first_calls_database_message_id_by_index;
     std::array<int32, 2> message_count_by_index;
@@ -3320,6 +3348,7 @@ class MessagesManager final : public Actor {
   FullMessageId being_readded_message_id_;
 
   DialogId being_added_dialog_id_;
+  DialogId being_added_by_new_message_dialog_id_;
 
   DialogId debug_channel_difference_dialog_;
 
