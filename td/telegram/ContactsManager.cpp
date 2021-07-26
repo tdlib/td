@@ -14892,6 +14892,7 @@ void ContactsManager::get_chat_participant(ChatId chat_id, UserId user_id, Promi
           send_closure(actor_id, &ContactsManager::finish_get_chat_participant, chat_id, user_id, std::move(promise));
         });
     send_get_chat_full_query(chat_id, std::move(query_promise), "get_chat_participant");
+    return;
   }
 
   if (is_chat_full_outdated(chat_full, c, chat_id)) {
