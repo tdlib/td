@@ -314,8 +314,8 @@ Status Binlog::close_and_destroy() {
 }
 
 Status Binlog::destroy(Slice path) {
+  unlink(PSLICE() << path << ".new").ignore();  // delete regenerated version first to avoid it becoming main version
   unlink(PSLICE() << path).ignore();
-  unlink(PSLICE() << path << ".new").ignore();
   return Status::OK();
 }
 
