@@ -1690,6 +1690,14 @@ string WebPagesManager::get_web_page_search_text(WebPageId web_page_id) const {
   return PSTRING() << web_page->title + " " + web_page->description;
 }
 
+int32 WebPagesManager::get_web_page_duration(WebPageId web_page_id) const {
+  const WebPage *web_page = get_web_page(web_page_id);
+  if (web_page == nullptr) {
+    return 0;
+  }
+  return web_page->duration;
+}
+
 vector<FileId> WebPagesManager::get_web_page_file_ids(const WebPage *web_page) const {
   if (web_page == nullptr) {
     return vector<FileId>();

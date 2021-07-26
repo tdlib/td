@@ -4904,6 +4904,10 @@ int32 get_message_content_duration(const MessageContent *content, const Td *td) 
       auto audio_file_id = static_cast<const MessageAudio *>(content)->file_id;
       return td->audios_manager_->get_audio_duration(audio_file_id);
     }
+    case MessageContentType::Text: {
+      auto web_page_id = static_cast<const MessageText *>(content)->web_page_id;
+      return td->web_pages_manager_->get_web_page_duration(web_page_id);
+    }
     case MessageContentType::Video: {
       auto video_file_id = static_cast<const MessageVideo *>(content)->file_id;
       return td->videos_manager_->get_video_duration(video_file_id);
