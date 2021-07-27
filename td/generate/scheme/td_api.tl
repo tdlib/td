@@ -466,7 +466,7 @@ chatMemberStatusCreator custom_title:string is_anonymous:Bool is_member:Bool = C
 //@can_edit_messages True, if the administrator can edit messages of other users and pin messages; applicable to channels only
 //@can_delete_messages True, if the administrator can delete messages of other users
 //@can_invite_users True, if the administrator can invite new users to the chat
-//@can_restrict_members True, if the administrator can restrict, ban, or unban chat members
+//@can_restrict_members True, if the administrator can restrict, ban, or unban chat members; always true for channels
 //@can_pin_messages True, if the administrator can pin messages; applicable to basic groups and supergroups only
 //@can_promote_members True, if the administrator can add new administrators with a subset of their own privileges or demote administrators that were directly or indirectly promoted by them
 //@can_manage_voice_chats True, if the administrator can manage voice chats
