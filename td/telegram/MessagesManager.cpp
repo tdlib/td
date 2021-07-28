@@ -35614,17 +35614,23 @@ void MessagesManager::on_get_channel_difference(
 
   if (difference_ptr == nullptr) {
     bool have_access = have_input_peer(dialog_id, AccessRights::Read);
-    if (have_access && d != nullptr) {
-      channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(), d->retry_get_difference_timeout);
-      d->retry_get_difference_timeout *= 2;
-      if (d->retry_get_difference_timeout > 60) {
-        d->retry_get_difference_timeout = Random::fast(60, 80);
+    if (have_access) {
+      auto &delay = channel_get_difference_retry_timeouts_[dialog_id];
+      if (delay == 0) {
+        delay = 1;
+      }
+      channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(), delay);
+      delay *= 2;
+      if (delay > 60) {
+        delay = Random::fast(60, 80);
       }
     } else {
       after_get_channel_difference(dialog_id, false);
     }
     return;
   }
+
+  channel_get_difference_retry_timeouts_.erase(dialog_id);
 
   LOG(INFO) << "Receive result of getChannelDifference for " << dialog_id << " with pts = " << request_pts
             << " and limit = " << request_limit << ": " << to_string(difference_ptr);
@@ -35670,8 +35676,6 @@ void MessagesManager::on_get_channel_difference(
   int32 cur_pts = d->pts <= 0 ? 1 : d->pts;
   LOG_IF(ERROR, cur_pts != request_pts) << "Channel pts has changed from " << request_pts << " to " << d->pts << " in "
                                         << dialog_id << " during getChannelDifference";
-
-  d->retry_get_difference_timeout = 1;
 
   bool is_final = true;
   int32 timeout = 0;

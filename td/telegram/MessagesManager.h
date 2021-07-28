@@ -1240,7 +1240,6 @@ class MessagesManager final : public Actor {
 
     int32 pts = 0;                                                     // for channels only
     std::multimap<int32, PendingPtsUpdate> postponed_channel_updates;  // for channels only
-    int32 retry_get_difference_timeout = 1;                            // for channels only
     int32 pending_read_channel_inbox_pts = 0;                          // for channels only
     MessageId pending_read_channel_inbox_max_message_id;               // for channels only
     int32 pending_read_channel_inbox_server_unread_count = 0;          // for channels only
@@ -3237,6 +3236,7 @@ class MessagesManager final : public Actor {
 
   std::unordered_map<DialogId, string, DialogIdHash> active_get_channel_differencies_;
   std::unordered_map<DialogId, uint64, DialogIdHash> get_channel_difference_to_log_event_id_;
+  std::unordered_map<DialogId, int32, DialogIdHash> channel_get_difference_retry_timeouts_;
 
   MultiTimeout channel_get_difference_timeout_{"ChannelGetDifferenceTimeout"};
   MultiTimeout channel_get_difference_retry_timeout_{"ChannelGetDifferenceRetryTimeout"};
