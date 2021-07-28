@@ -14458,7 +14458,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
         auto last_message = std::move(full_message_id_to_message[full_message_id]);
         if (last_message == nullptr) {
           LOG(ERROR) << "Last " << full_message_id << " not found";
-        } else {
+        } else if (!has_pts || d->pts == 0 || dialog->pts_ <= d->pts) {
           auto added_full_message_id =
               on_get_message(std::move(last_message), false, has_pts, false, false, false, "get chats");
           CHECK(d->last_new_message_id == MessageId());
@@ -14468,14 +14468,13 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
             set_dialog_last_message_id(d, d->last_new_message_id, "on_get_dialogs");
             send_update_chat_last_message(d, "on_get_dialogs");
           }
+        } else {
+          get_channel_difference(dialog_id, d->pts, true, "on_get_dialogs");
         }
       }
 
       if (has_pts && !running_get_channel_difference(dialog_id)) {
-        int32 channel_pts = dialog->pts_;
-        LOG_IF(ERROR, channel_pts < d->pts) << "In new " << dialog_id << " pts = " << d->pts
-                                            << ", but pts = " << channel_pts << " received in GetChats";
-        set_channel_pts(d, channel_pts, "get channel");
+        set_channel_pts(d, dialog->pts_, "get channel");
       }
     }
     bool is_marked_as_unread = (dialog->flags_ & telegram_api::dialog::UNREAD_MARK_MASK) != 0;
