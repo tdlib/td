@@ -4255,6 +4255,15 @@ void Td::init_options_and_network() {
   if (!G()->shared_config().have_option("message_caption_length_max")) {
     G()->shared_config().set_option_integer("message_caption_length_max", 1024);
   }
+  if (!G()->shared_config().have_option("suggested_video_note_length")) {
+    G()->shared_config().set_option_integer("suggested_video_note_length", 384);
+  }
+  if (!G()->shared_config().have_option("suggested_video_note_video_bitrate")) {
+    G()->shared_config().set_option_integer("suggested_video_note_video_bitrate", 1000);
+  }
+  if (!G()->shared_config().have_option("suggested_video_note_audio_bitrate")) {
+    G()->shared_config().set_option_integer("suggested_video_note_audio_bitrate", 64);
+  }
 
   init_connection_creator();
 

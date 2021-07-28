@@ -3235,7 +3235,7 @@ networkStatistics since_date:int32 entries:vector<NetworkStatisticsEntry> = Netw
 //@max_photo_file_size The maximum size of a photo file to be auto-downloaded
 //@max_video_file_size The maximum size of a video file to be auto-downloaded
 //@max_other_file_size The maximum size of other file types to be auto-downloaded
-//@video_upload_bitrate The maximum suggested bitrate for uploaded videos
+//@video_upload_bitrate The maximum suggested bitrate for uploaded videos, in kbit/s
 //@preload_large_videos True, if the beginning of video files needs to be preloaded for instant playback
 //@preload_next_audio True, if the next audio track needs to be preloaded while the user is listening to an audio file
 //@use_less_data_for_calls True, if "use less data for calls" option needs to be enabled
