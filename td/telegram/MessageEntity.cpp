@@ -1461,6 +1461,51 @@ static void remove_entities_intersecting_blockquote(vector<MessageEntity> &entit
   entities.erase(entities.begin() + left_entities, entities.end());
 }
 
+// keeps only non-intersecting entities
+// fixes entity offsets from UTF-8 to UTF-16 offsets
+static void fix_entity_offsets(Slice text, vector<MessageEntity> &entities) {
+  if (entities.empty()) {
+    return;
+  }
+
+  sort_entities(entities);
+
+  remove_intersecting_entities(entities);
+
+  const unsigned char *begin = text.ubegin();
+  const unsigned char *ptr = begin;
+  const unsigned char *end = text.uend();
+
+  int32 utf16_pos = 0;
+  for (auto &entity : entities) {
+    int cnt = 2;
+    auto entity_begin = entity.offset;
+    auto entity_end = entity.offset + entity.length;
+
+    int32 pos = static_cast<int32>(ptr - begin);
+    if (entity_begin == pos) {
+      cnt--;
+      entity.offset = utf16_pos;
+    }
+
+    while (ptr != end && cnt > 0) {
+      unsigned char c = ptr[0];
+      utf16_pos += 1 + (c >= 0xf0);
+      ptr = next_utf8_unsafe(ptr, nullptr, "fix_entity_offsets");
+
+      pos = static_cast<int32>(ptr - begin);
+      if (entity_begin == pos) {
+        cnt--;
+        entity.offset = utf16_pos;
+      } else if (entity_end == pos) {
+        cnt--;
+        entity.length = utf16_pos - entity.offset;
+      }
+    }
+    CHECK(cnt == 0);
+  }
+}
+
 vector<MessageEntity> find_entities(Slice text, bool skip_bot_commands) {
   vector<MessageEntity> entities;
 
@@ -1490,47 +1535,7 @@ vector<MessageEntity> find_entities(Slice text, bool skip_bot_commands) {
     entities.emplace_back(type, offset, length);
   }
 
-  if (entities.empty()) {
-    return entities;
-  }
-
-  sort_entities(entities);
-
-  remove_intersecting_entities(entities);
-
-  // fix offsets to UTF-16 offsets
-  const unsigned char *begin = text.ubegin();
-  const unsigned char *ptr = begin;
-  const unsigned char *end = text.uend();
-
-  int32 utf16_pos = 0;
-  for (auto &entity : entities) {
-    int cnt = 2;
-    auto entity_begin = entity.offset;
-    auto entity_end = entity.offset + entity.length;
-
-    int32 pos = static_cast<int32>(ptr - begin);
-    if (entity_begin == pos) {
-      cnt--;
-      entity.offset = utf16_pos;
-    }
-
-    while (ptr != end && cnt > 0) {
-      unsigned char c = ptr[0];
-      utf16_pos += 1 + (c >= 0xf0);
-      ptr = next_utf8_unsafe(ptr, nullptr, "find_entities");
-
-      pos = static_cast<int32>(ptr - begin);
-      if (entity_begin == pos) {
-        cnt--;
-        entity.offset = utf16_pos;
-      } else if (entity_end == pos) {
-        cnt--;
-        entity.length = utf16_pos - entity.offset;
-      }
-    }
-    CHECK(cnt == 0);
-  }
+  fix_entity_offsets(text, entities);
 
   return entities;
 }
