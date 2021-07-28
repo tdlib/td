@@ -7276,7 +7276,7 @@ void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_p
 
   auto channel_id = dialog_id.get_channel_id();
   if (!td_->contacts_manager_->have_channel(channel_id) && td_->contacts_manager_->have_min_channel(channel_id)) {
-    td_->updates_manager_->schedule_get_difference("on_update_new_channel_message");
+    td_->updates_manager_->schedule_get_difference("add_pending_channel_update 1");
     promise.set_value(Unit());
     return;
   }
@@ -7284,7 +7284,7 @@ void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_p
   // TODO need to save all updates that can change result of running queries not associated with pts (for example
   // getHistory) and apply them to result of these queries
 
-  Dialog *d = get_dialog_force(dialog_id, "add_pending_channel_update");
+  Dialog *d = get_dialog_force(dialog_id, "add_pending_channel_update 2");
   if (d == nullptr) {
     auto pts = load_channel_pts(dialog_id);
     if (pts > 0) {
@@ -7295,10 +7295,25 @@ void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_p
         return;
       }
 
-      d = add_dialog(dialog_id, "add_pending_channel_update");
+      if (new_pts <= pts && new_pts >= pts - 19999) {
+        LOG(INFO) << "There is no need to process an update with pts " << new_pts << " in " << dialog_id << " with pts "
+                  << pts;
+        promise.set_value(Unit());
+        return;
+      }
+
+      if (new_pts > pts && pts != new_pts - pts_count) {
+        LOG(INFO) << "Found a gap in the " << dialog_id << " with pts = " << pts << ". new_pts = " << new_pts
+                  << ", pts_count = " << pts_count << " in update from " << source;
+        get_channel_difference(dialog_id, pts, true, "add_pending_channel_update 3");
+        promise.set_value(Unit());
+        return;
+      }
+
+      d = add_dialog(dialog_id, "add_pending_channel_update 4");
       CHECK(d != nullptr);
       CHECK(d->pts == pts);
-      update_dialog_pos(d, "add_pending_channel_update");
+      update_dialog_pos(d, "add_pending_channel_update 5");
     }
   }
   if (d == nullptr) {
@@ -35615,6 +35630,7 @@ void MessagesManager::on_get_channel_difference(
   LOG(INFO) << "Receive result of getChannelDifference for " << dialog_id << " with pts = " << request_pts
             << " and limit = " << request_limit << ": " << to_string(difference_ptr);
 
+  bool have_new_messages = false;
   switch (difference_ptr->get_id()) {
     case telegram_api::updates_channelDifferenceEmpty::ID:
       if (d == nullptr) {
@@ -35625,12 +35641,14 @@ void MessagesManager::on_get_channel_difference(
       break;
     case telegram_api::updates_channelDifference::ID: {
       auto difference = static_cast<telegram_api::updates_channelDifference *>(difference_ptr.get());
+      have_new_messages = !difference->new_messages_.empty();
       td_->contacts_manager_->on_get_users(std::move(difference->users_), "updates.channelDifference");
       td_->contacts_manager_->on_get_chats(std::move(difference->chats_), "updates.channelDifference");
       break;
     }
     case telegram_api::updates_channelDifferenceTooLong::ID: {
       auto difference = static_cast<telegram_api::updates_channelDifferenceTooLong *>(difference_ptr.get());
+      have_new_messages = difference->dialog_->get_id() == telegram_api::dialog::ID && !difference->messages_.empty();
       td_->contacts_manager_->on_get_users(std::move(difference->users_), "updates.channelDifferenceTooLong");
       td_->contacts_manager_->on_get_chats(std::move(difference->chats_), "updates.channelDifferenceTooLong");
       break;
@@ -35641,7 +35659,12 @@ void MessagesManager::on_get_channel_difference(
 
   bool need_update_dialog_pos = false;
   if (d == nullptr) {
+    if (have_new_messages) {
+      CHECK(!being_added_by_new_message_dialog_id_.is_valid());
+      being_added_by_new_message_dialog_id_ = dialog_id;
+    }
     d = add_dialog(dialog_id, "on_get_channel_difference");
+    being_added_by_new_message_dialog_id_ = DialogId();
     need_update_dialog_pos = true;
   }
 
