@@ -172,6 +172,47 @@ TEST(MessageEntities, cashtag) {
   check_cashtag(u8"\u2122$ABC\u2122", {"$ABC"});
 }
 
+static void check_media_timestamp(const td::string &str, const td::vector<std::pair<td::Slice, td::int32>> &expected) {
+  auto result = td::find_media_timestamps(str);
+  if (result != expected) {
+    LOG(FATAL) << td::tag("text", str) << td::tag("got", td::format::as_array(result))
+               << td::tag("expected", td::format::as_array(expected));
+  }
+}
+
+TEST(MessageEntities, media_timestamp) {
+  check_media_timestamp("", {});
+  check_media_timestamp(":", {});
+  check_media_timestamp(":1", {});
+  check_media_timestamp("a:1", {});
+  check_media_timestamp("01", {});
+  check_media_timestamp("01:", {});
+  check_media_timestamp("01::", {});
+  check_media_timestamp("01::", {});
+  check_media_timestamp("a1:1a", {});
+  check_media_timestamp("a1::01a", {});
+  check_media_timestamp("2001:db8::8a2e:f70:13a4", {});
+  check_media_timestamp("0:00", {{"0:00", 0}});
+  check_media_timestamp("+0:00", {{"0:00", 0}});
+  check_media_timestamp("0:00+", {{"0:00", 0}});
+  check_media_timestamp("a0:00", {});
+  check_media_timestamp("0:00a", {});
+  check_media_timestamp("б0:00", {});
+  check_media_timestamp("0:00б", {});
+  check_media_timestamp("_0:00", {});
+  check_media_timestamp("0:00_", {});
+  check_media_timestamp("00:00:00:00", {});
+  check_media_timestamp("1:1:01 1:1:1", {{"1:1:01", 3661}});
+  check_media_timestamp("0:0:00 00:00 000:00 0000:00 00000:00 00:00:00 000:00:00 00:000:00 00:00:000",
+                        {{"0:0:00", 0}, {"00:00", 0}, {"000:00", 0}, {"0000:00", 0}, {"00:00:00", 0}});
+  check_media_timestamp("00:0:00 0:00:00 00::00 :00:00 00:00: 00:00:0 00:00:", {{"00:0:00", 0}, {"0:00:00", 0}});
+  check_media_timestamp("1:1:59 1:1:-1 1:1:60", {{"1:1:59", 3719}});
+  check_media_timestamp("1:59:00 1:-1:00 1:60:00", {{"1:59:00", 7140}, {"1:00", 60}});
+  check_media_timestamp("59:59 60:00", {{"59:59", 3599}, {"60:00", 3600}});
+  check_media_timestamp("9999:59 99:59:59 99:60:59", {{"9999:59", 599999}, {"99:59:59", 360000 - 1}});
+  check_media_timestamp("2001:db8::8a2e:f70:13a4", {});
+}
+
 static void check_bank_card_number(const td::string &str, const td::vector<td::string> &expected) {
   auto result_slice = td::find_bank_card_numbers(str);
   td::vector<td::string> result;

@@ -434,6 +434,57 @@ static vector<Slice> match_cashtags(Slice str) {
   return result;
 }
 
+static vector<Slice> match_media_timestamps(Slice str) {
+  vector<Slice> result;
+  const unsigned char *begin = str.ubegin();
+  const unsigned char *end = str.uend();
+  const unsigned char *ptr = begin;
+
+  while (true) {
+    ptr = static_cast<const unsigned char *>(std::memchr(ptr, ':', narrow_cast<int32>(end - ptr)));
+    if (ptr == nullptr) {
+      break;
+    }
+
+    auto media_timestamp_begin = ptr;
+    while (media_timestamp_begin != begin &&
+           (media_timestamp_begin[-1] == ':' || is_digit(media_timestamp_begin[-1]))) {
+      media_timestamp_begin--;
+    }
+    auto media_timestamp_end = ptr;
+    while (media_timestamp_end + 1 != end && (media_timestamp_end[1] == ':' || is_digit(media_timestamp_end[1]))) {
+      media_timestamp_end++;
+    }
+    media_timestamp_end++;
+
+    if (media_timestamp_begin != ptr && media_timestamp_end != ptr + 1 && is_digit(ptr[1])) {
+      ptr = media_timestamp_end;
+
+      if (media_timestamp_begin != begin) {
+        uint32 prev;
+        next_utf8_unsafe(prev_utf8_unsafe(media_timestamp_begin), &prev, "match_media_timestamps 1");
+
+        if (is_word_character(prev)) {
+          continue;
+        }
+      }
+      if (media_timestamp_end != end) {
+        uint32 next;
+        next_utf8_unsafe(media_timestamp_end, &next, "match_media_timestamps 2");
+
+        if (is_word_character(next)) {
+          continue;
+        }
+      }
+
+      result.emplace_back(media_timestamp_begin, media_timestamp_end);
+    } else {
+      ptr = media_timestamp_end;
+    }
+  }
+  return result;
+}
+
 static vector<Slice> match_bank_card_numbers(Slice str) {
   vector<Slice> result;
   const unsigned char *begin = str.ubegin();
@@ -1251,6 +1302,42 @@ vector<std::pair<Slice, bool>> find_urls(Slice str) {
   return result;
 }
 
+vector<std::pair<Slice, int32>> find_media_timestamps(Slice str) {
+  vector<std::pair<Slice, int32>> result;
+  for (auto media_timestamp : match_media_timestamps(str)) {
+    vector<Slice> parts = full_split(media_timestamp, ':');
+    CHECK(parts.size() >= 2);
+    if (parts.size() > 3 || parts.back().size() != 2) {
+      continue;
+    }
+    auto seconds = to_integer<int32>(parts.back());
+    if (seconds >= 60) {
+      continue;
+    }
+    if (parts.size() == 2) {
+      if (parts[0].size() > 4 || parts[0].empty()) {
+        continue;
+      }
+
+      auto minutes = to_integer<int32>(parts[0]);
+      result.emplace_back(media_timestamp, minutes * 60 + seconds);
+      continue;
+    } else {
+      if (parts[0].size() > 2 || parts[1].size() > 2 || parts[0].empty() || parts[1].empty()) {
+        continue;
+      }
+
+      auto minutes = to_integer<int32>(parts[1]);
+      if (minutes >= 60) {
+        continue;
+      }
+      auto hours = to_integer<int32>(parts[0]);
+      result.emplace_back(media_timestamp, hours * 3600 + minutes * 60 + seconds);
+    }
+  }
+  return result;
+}
+
 static int32 text_length(Slice text) {
   return narrow_cast<int32>(utf8_utf16_length(text));
 }
@@ -1533,6 +1620,21 @@ vector<MessageEntity> find_entities(Slice text, bool skip_bot_commands) {
     auto offset = narrow_cast<int32>(url.first.begin() - text.begin());
     auto length = narrow_cast<int32>(url.first.size());
     entities.emplace_back(type, offset, length);
+  }
+
+  fix_entity_offsets(text, entities);
+
+  return entities;
+}
+
+static vector<MessageEntity> find_media_timestamp_entities(Slice text) {
+  vector<MessageEntity> entities;
+
+  auto new_entities = find_media_timestamps(text);
+  for (auto &entity : new_entities) {
+    auto offset = narrow_cast<int32>(entity.first.begin() - text.begin());
+    auto length = narrow_cast<int32>(entity.first.size());
+    entities.emplace_back(MessageEntity::Type::MediaTimestamp, offset, length, to_string(entity.second));
   }
 
   fix_entity_offsets(text, entities);
@@ -3891,6 +3993,9 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
 
   if (!skip_new_entities) {
     merge_new_entities(entities, find_entities(text, skip_bot_commands));
+  }
+  if (!skip_media_timestamps) {
+    merge_new_entities(entities, find_media_timestamp_entities(text));
   }
 
   // new whitespace-only entities could be added after splitting of entities
