@@ -189,8 +189,9 @@ class MessagesManager final : public Actor {
   void on_get_messages(vector<tl_object_ptr<telegram_api::Message>> &&messages, bool is_channel_message,
                        bool is_scheduled, const char *source);
 
-  void on_get_history(DialogId dialog_id, MessageId from_message_id, int32 offset, int32 limit, bool from_the_end,
-                      vector<tl_object_ptr<telegram_api::Message>> &&messages);
+  void on_get_history(DialogId dialog_id, MessageId from_message_id, MessageId old_last_new_message_id, int32 offset,
+                      int32 limit, bool from_the_end, vector<tl_object_ptr<telegram_api::Message>> &&messages,
+                      Promise<Unit> &&promise);
 
   void on_get_public_dialogs_search_result(const string &query, vector<tl_object_ptr<telegram_api::Peer>> &&my_peers,
                                            vector<tl_object_ptr<telegram_api::Peer>> &&peers);
