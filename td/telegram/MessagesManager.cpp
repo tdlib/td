@@ -10905,7 +10905,7 @@ void MessagesManager::unload_dialog(DialogId dialog_id) {
   }
 
   if (!unloaded_message_ids.empty()) {
-    if (!G()->parameters().use_message_db) {
+    if (!G()->parameters().use_message_db && !d->is_empty) {
       d->have_full_history = false;
     }
 
@@ -11013,6 +11013,7 @@ void MessagesManager::on_dialog_deleted(DialogId dialog_id, Promise<Unit> &&prom
   delete_all_dialog_messages(d, true, false);
   if (dialog_id.get_type() != DialogType::SecretChat) {
     d->have_full_history = false;
+    d->is_empty = false;
     d->need_restore_reply_markup = true;
   }
   if (remove_recently_found_dialog_internal(dialog_id)) {
@@ -13781,7 +13782,7 @@ void MessagesManager::remove_dialog_newer_messages(Dialog *d, MessageId from_mes
   delete_all_dialog_messages_from_database(d, MessageId::max(), "remove_dialog_newer_messages");
   set_dialog_first_database_message_id(d, MessageId(), "remove_dialog_newer_messages");
   set_dialog_last_database_message_id(d, MessageId(), source);
-  if (d->dialog_id.get_type() != DialogType::SecretChat) {
+  if (d->dialog_id.get_type() != DialogType::SecretChat && !d->is_empty) {
     d->have_full_history = false;
   }
   invalidate_message_indexes(d);
@@ -22119,6 +22120,7 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
     if (message == nullptr) {
       if (d->have_full_history) {
         d->have_full_history = false;
+        d->is_empty = false;  // just in case
         on_dialog_updated(dialog_id, "drop have_full_history in on_get_history_from_database");
       }
       break;
@@ -33889,6 +33891,11 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
     }
   }
 
+  if (d->is_empty && !d->have_full_history) {
+    LOG(ERROR) << "Drop invalid flag is_empty";
+    d->is_empty = false;
+  }
+
   if (being_added_dialog_id_ != dialog_id && !td_->auth_manager_->is_bot() && !is_dialog_inited(d) &&
       dialog_type != DialogType::SecretChat && have_input_peer(dialog_id, AccessRights::Read)) {
     // asynchronously get dialog from the server
@@ -35556,6 +35563,7 @@ void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_m
     set_dialog_first_database_message_id(d, MessageId(), "on_get_channel_dialog 6");
     set_dialog_last_database_message_id(d, MessageId(), "on_get_channel_dialog 7");
     d->have_full_history = false;
+    d->is_empty = false;
   }
   invalidate_message_indexes(d);
 
