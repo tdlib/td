@@ -1240,12 +1240,11 @@ class MessagesManager final : public Actor {
     bool has_unload_timeout = false;
     bool is_channel_difference_finished = false;
 
-    int32 pts = 0;                                                     // for channels only
-    std::multimap<int32, PendingPtsUpdate> postponed_channel_updates;  // for channels only
-    int32 pending_read_channel_inbox_pts = 0;                          // for channels only
-    MessageId pending_read_channel_inbox_max_message_id;               // for channels only
-    int32 pending_read_channel_inbox_server_unread_count = 0;          // for channels only
-    std::unordered_map<int64, MessageId> random_id_to_message_id;      // for secret chats only
+    int32 pts = 0;                                                 // for channels only
+    int32 pending_read_channel_inbox_pts = 0;                      // for channels only
+    MessageId pending_read_channel_inbox_max_message_id;           // for channels only
+    int32 pending_read_channel_inbox_server_unread_count = 0;      // for channels only
+    std::unordered_map<int64, MessageId> random_id_to_message_id;  // for secret chats only
 
     MessageId last_assigned_message_id;  // identifier of the last local or yet unsent message, assigned after
                                          // application start, used to guarantee that all assigned message identifiers
@@ -1787,6 +1786,9 @@ class MessagesManager final : public Actor {
                                              MessageId &reply_to_message_id);
 
   bool can_set_game_score(DialogId dialog_id, const Message *m) const;
+
+  void add_postponed_channel_update(DialogId dialog_id, tl_object_ptr<telegram_api::Update> &&update, int32 new_pts,
+                                    int32 pts_count, Promise<Unit> &&promise);
 
   void process_channel_update(tl_object_ptr<telegram_api::Update> &&update);
 
@@ -3239,6 +3241,7 @@ class MessagesManager final : public Actor {
   std::unordered_map<DialogId, string, DialogIdHash> active_get_channel_differencies_;
   std::unordered_map<DialogId, uint64, DialogIdHash> get_channel_difference_to_log_event_id_;
   std::unordered_map<DialogId, int32, DialogIdHash> channel_get_difference_retry_timeouts_;
+  std::unordered_map<DialogId, std::multimap<int32, PendingPtsUpdate>, DialogIdHash> postponed_channel_updates_;
 
   MultiTimeout channel_get_difference_timeout_{"ChannelGetDifferenceTimeout"};
   MultiTimeout channel_get_difference_retry_timeout_{"ChannelGetDifferenceRetryTimeout"};
