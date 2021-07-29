@@ -3624,7 +3624,7 @@ class CliClient final : public Actor {
       string video_path;
       get_args(args, chat_id, video_path);
       send_message(chat_id,
-                   td_api::make_object<td_api::inputMessageVideoNote>(as_input_file(video_path), nullptr, 1, 5));
+                   td_api::make_object<td_api::inputMessageVideoNote>(as_input_file(video_path), nullptr, 10, 5));
     } else if (op == "svenue") {
       string chat_id;
       string latitude;

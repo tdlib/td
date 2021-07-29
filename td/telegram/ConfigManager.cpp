@@ -1684,7 +1684,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
           for (auto &video_note_setting : video_note_settings) {
             CHECK(video_note_setting != nullptr);
             if (video_note_setting->key_ != "diameter" && video_note_setting->key_ != "video_bitrate" &&
-                video_note_setting->key_ != "audio_bitrate") {
+                video_note_setting->key_ != "audio_bitrate" && video_note_setting->key_ != "max_size") {
               continue;
             }
             if (video_note_setting->value_->get_id() == telegram_api::jsonNumber::ID) {
@@ -1699,6 +1699,9 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
                 }
                 if (video_note_setting->key_ == "audio_bitrate") {
                   G()->shared_config().set_option_integer("suggested_video_note_audio_bitrate", setting_value);
+                }
+                if (video_note_setting->key_ == "max_size") {
+                  G()->shared_config().set_option_integer("video_note_size_max", setting_value);
                 }
               }
             } else {
