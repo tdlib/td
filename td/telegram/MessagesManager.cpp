@@ -13890,6 +13890,7 @@ void MessagesManager::set_dialog_unread_mention_count(Dialog *d, int32 unread_me
 
 void MessagesManager::set_dialog_is_empty(Dialog *d, const char *source) {
   LOG(INFO) << "Set " << d->dialog_id << " is_empty to true from " << source;
+  CHECK(d->have_full_history);
   d->is_empty = true;
 
   if (d->server_unread_count + d->local_unread_count > 0) {
@@ -14458,7 +14459,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
         auto last_message = std::move(full_message_id_to_message[full_message_id]);
         if (last_message == nullptr) {
           LOG(ERROR) << "Last " << full_message_id << " not found";
-        } else if (!has_pts || d->pts == 0 || dialog->pts_ <= d->pts) {
+        } else if (!has_pts || d->pts == 0 || dialog->pts_ <= d->pts || d->is_channel_difference_finished) {
           auto added_full_message_id =
               on_get_message(std::move(last_message), false, has_pts, false, false, false, "get chats");
           CHECK(d->last_new_message_id == MessageId());
@@ -35825,6 +35826,7 @@ void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool succ
 
   auto d = get_dialog(dialog_id);
   if (d != nullptr) {
+    d->is_channel_difference_finished = true;
     bool have_access = have_input_peer(dialog_id, AccessRights::Read);
     if (!d->postponed_channel_updates.empty()) {
       LOG(INFO) << "Begin to apply postponed channel updates";
@@ -35876,6 +35878,11 @@ void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool succ
     if (d->mention_notification_group.group_id.is_valid()) {
       send_closure_later(G()->notification_manager(), &NotificationManager::after_get_chat_difference,
                          d->mention_notification_group.group_id);
+    }
+
+    if (!td_->auth_manager_->is_bot() && have_access && !d->last_message_id.is_valid() && !d->is_empty &&
+        (d->order != DEFAULT_ORDER || is_dialog_sponsored(d))) {
+      get_history_from_the_end_impl(d, true, false, Auto());
     }
   }
 
