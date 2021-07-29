@@ -1690,7 +1690,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
             if (video_note_setting->value_->get_id() == telegram_api::jsonNumber::ID) {
               auto setting_value = static_cast<int32>(
                   static_cast<const telegram_api::jsonNumber *>(video_note_setting->value_.get())->value_);
-              if (value > 0) {
+              if (setting_value > 0) {
                 if (video_note_setting->key_ == "diameter") {
                   G()->shared_config().set_option_integer("suggested_video_note_length", setting_value);
                 }
