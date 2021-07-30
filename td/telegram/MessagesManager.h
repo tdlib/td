@@ -3242,6 +3242,7 @@ class MessagesManager final : public Actor {
   std::unordered_map<DialogId, uint64, DialogIdHash> get_channel_difference_to_log_event_id_;
   std::unordered_map<DialogId, int32, DialogIdHash> channel_get_difference_retry_timeouts_;
   std::unordered_map<DialogId, std::multimap<int32, PendingPtsUpdate>, DialogIdHash> postponed_channel_updates_;
+  std::unordered_set<DialogId, DialogIdHash> is_channel_difference_finished_;
 
   MultiTimeout channel_get_difference_timeout_{"ChannelGetDifferenceTimeout"};
   MultiTimeout channel_get_difference_retry_timeout_{"ChannelGetDifferenceRetryTimeout"};

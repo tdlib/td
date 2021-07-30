@@ -33825,6 +33825,9 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
   if (td_->auth_manager_->is_bot()) {
     d->notification_settings.is_synchronized = true;
   }
+  if (is_channel_difference_finished_.erase(dialog_id)) {
+    d->is_channel_difference_finished = true;
+  }
 
   unique_ptr<Message> last_database_message = std::move(d->messages);
   MessageId last_database_message_id = d->last_database_message_id;
@@ -35336,7 +35339,7 @@ bool MessagesManager::need_channel_difference_to_add_message(DialogId dialog_id,
 
   Dialog *d = get_dialog_force(dialog_id, "need_channel_difference_to_add_message");
   if (d == nullptr) {
-    return load_channel_pts(dialog_id) > 0;
+    return load_channel_pts(dialog_id) > 0 && !is_channel_difference_finished_.count(dialog_id);
   }
   if (d->last_new_message_id == MessageId()) {
     return d->pts > 0 && !d->is_channel_difference_finished;
@@ -35913,6 +35916,8 @@ void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool succ
         (d->order != DEFAULT_ORDER || is_dialog_sponsored(d))) {
       get_history_from_the_end_impl(d, true, false, Auto());
     }
+  } else {
+    is_channel_difference_finished_.insert(dialog_id);
   }
 
   if (postponed_chat_read_inbox_updates_.erase(dialog_id) > 0) {
