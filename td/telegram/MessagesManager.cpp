@@ -35864,56 +35864,58 @@ void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool succ
   }
 
   auto d = get_dialog(dialog_id);
+  bool have_access = have_input_peer(dialog_id, AccessRights::Read);
+  auto pts = d != nullptr ? d->pts : load_channel_pts(dialog_id);
+  auto updates_it = postponed_channel_updates_.find(dialog_id);
+  if (updates_it != postponed_channel_updates_.end()) {
+    auto &updates = updates_it->second;
+    LOG(INFO) << "Begin to apply " << updates.size() << " postponed channel updates";
+    while (!updates.empty()) {
+      auto it = updates.begin();
+      auto update = std::move(it->second.update);
+      auto update_pts = it->second.pts;
+      auto update_pts_count = it->second.pts_count;
+      auto promise = std::move(it->second.promise);
+      updates.erase(it);
+
+      auto old_size = updates.size();
+      auto update_id = update->get_id();
+      if (have_access) {
+        add_pending_channel_update(dialog_id, std::move(update), update_pts, update_pts_count, std::move(promise),
+                                   "apply postponed channel updates", true);
+      } else {
+        promise.set_value(Unit());
+      }
+      if (updates.size() != old_size || running_get_channel_difference(dialog_id)) {
+        if (success && update_pts - 10000 < pts && update_pts_count == 1) {
+          // if getChannelDifference was successful and update pts is near channel pts,
+          // we hope that the update eventually can be applied
+          LOG(INFO) << "Can't apply postponed channel updates";
+        } else {
+          // otherwise protect from getChannelDifference repeating calls by dropping postponed updates
+          LOG(WARNING) << "Failed to apply postponed updates of type " << update_id << " in " << dialog_id
+                       << " with pts " << pts << ", update pts is " << update_pts << ", update pts count is "
+                       << update_pts_count;
+          vector<Promise<Unit>> update_promises;
+          for (auto &postponed_update : updates) {
+            update_promises.push_back(std::move(postponed_update.second.promise));
+          }
+          updates.clear();
+          for (auto &update_promise : update_promises) {
+            update_promise.set_value(Unit());
+          }
+        }
+        break;
+      }
+    }
+    if (updates.empty()) {
+      postponed_channel_updates_.erase(updates_it);
+    }
+    LOG(INFO) << "Finish to apply postponed channel updates";
+  }
+
   if (d != nullptr) {
     d->is_channel_difference_finished = true;
-    bool have_access = have_input_peer(dialog_id, AccessRights::Read);
-    auto updates_it = postponed_channel_updates_.find(dialog_id);
-    if (updates_it != postponed_channel_updates_.end()) {
-      auto &updates = updates_it->second;
-      LOG(INFO) << "Begin to apply " << updates.size() << " postponed channel updates";
-      while (!updates.empty()) {
-        auto it = updates.begin();
-        auto update = std::move(it->second.update);
-        auto update_pts = it->second.pts;
-        auto update_pts_count = it->second.pts_count;
-        auto promise = std::move(it->second.promise);
-        updates.erase(it);
-
-        auto old_size = updates.size();
-        auto update_id = update->get_id();
-        if (have_access) {
-          add_pending_channel_update(dialog_id, std::move(update), update_pts, update_pts_count, std::move(promise),
-                                     "apply postponed channel updates", true);
-        } else {
-          promise.set_value(Unit());
-        }
-        if (updates.size() != old_size || running_get_channel_difference(dialog_id)) {
-          if (success && update_pts - 10000 < d->pts && update_pts_count == 1) {
-            // if getChannelDifference was successful and update pts is near channel pts,
-            // we hope that the update eventually can be applied
-            LOG(INFO) << "Can't apply postponed channel updates";
-          } else {
-            // otherwise protect from getChannelDifference repeating calls by dropping postponed updates
-            LOG(WARNING) << "Failed to apply postponed updates of type " << update_id << " in " << dialog_id
-                         << " with pts " << d->pts << ", update pts is " << update_pts << ", update pts count is "
-                         << update_pts_count;
-            vector<Promise<Unit>> update_promises;
-            for (auto &postponed_update : updates) {
-              update_promises.push_back(std::move(postponed_update.second.promise));
-            }
-            updates.clear();
-            for (auto &update_promise : update_promises) {
-              update_promise.set_value(Unit());
-            }
-          }
-          break;
-        }
-      }
-      if (updates.empty()) {
-        postponed_channel_updates_.erase(updates_it);
-      }
-      LOG(INFO) << "Finish to apply postponed channel updates";
-    }
 
     if (d->message_notification_group.group_id.is_valid()) {
       send_closure_later(G()->notification_manager(), &NotificationManager::after_get_chat_difference,
