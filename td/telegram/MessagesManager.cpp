@@ -9386,7 +9386,9 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
         }
       }
 
-      have_next = true;
+      if (!message_ids.empty()) {
+        have_next = true;
+      }
     }
   }
 
