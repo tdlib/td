@@ -32038,7 +32038,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       if (*need_update) {
         *need_update = false;
         if (!G()->parameters().use_message_db) {
-          // can happen for bots if the message is received first through getMessage in an unknown chat without
+          // can happen if the message is received first through getMessage in an unknown chat without
           // last_new_message_id and only after that received through getDifference or getChannelDifference
           if (d->last_new_message_id.is_valid()) {
             LOG(ERROR) << "Receive again " << (message->is_outgoing ? "outgoing" : "incoming")
@@ -32055,7 +32055,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         message->have_previous = false;
         message->have_next = false;
       }
-      if (!message->from_database) {
+      if (!message->from_database && (from_update || message->edit_date >= m->edit_date)) {
         const int32 INDEX_MASK_MASK = ~message_search_filter_index_mask(MessageSearchFilter::UnreadMention);
         auto old_index_mask = get_message_index_mask(dialog_id, m) & INDEX_MASK_MASK;
         bool was_deleted = delete_active_live_location(dialog_id, m);
