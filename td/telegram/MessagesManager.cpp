@@ -35335,8 +35335,11 @@ bool MessagesManager::need_channel_difference_to_add_message(DialogId dialog_id,
   }
 
   Dialog *d = get_dialog_force(dialog_id, "need_channel_difference_to_add_message");
-  if (d == nullptr || d->last_new_message_id == MessageId()) {
-    return false;
+  if (d == nullptr) {
+    return load_channel_pts(dialog_id) > 0;
+  }
+  if (d->last_new_message_id == MessageId()) {
+    return d->pts > 0 && !d->is_channel_difference_finished;
   }
 
   return get_message_id(message_ptr, false) > d->last_new_message_id;
@@ -35346,7 +35349,7 @@ void MessagesManager::run_after_channel_difference(DialogId dialog_id, Promise<U
   CHECK(dialog_id.get_type() == DialogType::Channel);
   CHECK(have_input_peer(dialog_id, AccessRights::Read));
 
-  Dialog *d = get_dialog(dialog_id);
+  const Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
 
   run_after_get_channel_difference_[dialog_id].push_back(std::move(promise));
