@@ -35486,6 +35486,9 @@ void MessagesManager::process_get_channel_difference_updates(
             << other_updates.size() << " other updates";
   CHECK(!debug_channel_difference_dialog_.is_valid());
   debug_channel_difference_dialog_ = dialog_id;
+
+  // identifiers of edited and deleted messages
+  std::unordered_set<MessageId, MessageIdHash> changed_message_ids;
   for (auto &update_ptr : other_updates) {
     bool is_good_update = true;
     switch (update_ptr->get_id()) {
@@ -35501,6 +35504,10 @@ void MessagesManager::process_get_channel_difference_updates(
         auto *update = static_cast<const telegram_api::updateDeleteChannelMessages *>(update_ptr.get());
         if (DialogId(ChannelId(update->channel_id_)) != dialog_id) {
           is_good_update = false;
+        } else {
+          for (auto &message : update->messages_) {
+            changed_message_ids.insert(MessageId(ServerMessageId(message)));
+          }
         }
         break;
       }
@@ -35509,6 +35516,8 @@ void MessagesManager::process_get_channel_difference_updates(
         auto full_message_id = get_full_message_id(update->message_, false);
         if (full_message_id.get_dialog_id() != dialog_id) {
           is_good_update = false;
+        } else {
+          changed_message_ids.insert(full_message_id.get_message_id());
         }
         break;
       }
@@ -35529,12 +35538,79 @@ void MessagesManager::process_get_channel_difference_updates(
     }
   }
 
+  auto is_edited_message = [](const tl_object_ptr<telegram_api::Message> &message) {
+    if (message->get_id() != telegram_api::message::ID) {
+      return false;
+    }
+    return static_cast<const telegram_api::message *>(message.get())->edit_date_ > 0;
+  };
+
+  for (auto &message : new_messages) {
+    if (is_edited_message(message)) {
+      changed_message_ids.insert(get_message_id(message, false));
+    }
+  }
+
+  // extract awaited sent messages, which were edited or deleted after that
+  auto postponed_updates_it = postponed_channel_updates_.find(dialog_id);
+  std::map<MessageId, tl_object_ptr<telegram_api::Message>> awaited_messages;
+  if (postponed_updates_it != postponed_channel_updates_.end()) {
+    auto &updates = postponed_updates_it->second;
+    while (!updates.empty()) {
+      auto it = updates.begin();
+      auto update_pts = it->second.pts;
+      if (update_pts > new_pts) {
+        break;
+      }
+
+      auto update = std::move(it->second.update);
+      auto promise = std::move(it->second.promise);
+      updates.erase(it);
+
+      if (!promise && update->get_id() == telegram_api::updateNewChannelMessage::ID) {
+        auto update_new_channel_message = static_cast<telegram_api::updateNewChannelMessage *>(update.get());
+        auto message_id = get_message_id(update_new_channel_message->message_, false);
+        FullMessageId full_message_id(dialog_id, message_id);
+        if (update_message_ids_.find(full_message_id) != update_message_ids_.end() &&
+            changed_message_ids.find(message_id) != changed_message_ids.end()) {
+          changed_message_ids.erase(message_id);
+          awaited_messages.emplace(message_id, std::move(update_new_channel_message->message_));
+          continue;
+        }
+      }
+
+      LOG(INFO) << "Skip to be applied from getChannelDifference " << to_string(update);
+      promise.set_value(Unit());
+    }
+    if (updates.empty()) {
+      postponed_channel_updates_.erase(postponed_updates_it);
+    }
+  }
+
   // if last message is pretty old, we might have missed the update
   bool need_repair_unread_count =
       !new_messages.empty() && get_message_date(new_messages[0]) < G()->unix_time() - 2 * 86400;
 
+  auto it = awaited_messages.begin();
   for (auto &message : new_messages) {
+    auto message_id = get_message_id(message, false);
+    while (it != awaited_messages.end() && it->first < message_id) {
+      on_get_message(std::move(it->second), true, true, false, true, true, "postponed channel update");
+      ++it;
+    }
+    if (it != awaited_messages.end() && it->first == message_id) {
+      if (is_edited_message(message)) {
+        // the new message is edited, apply postponed one and move this to updateEditChannelMessage
+        other_updates.push_back(make_tl_object<telegram_api::updateEditChannelMessage>(std::move(message), new_pts, 0));
+        message = std::move(it->second);
+      }
+      ++it;
+    }
     on_get_message(std::move(message), true, true, false, true, true, "get channel difference");
+  }
+  while (it != awaited_messages.end()) {
+    on_get_message(std::move(it->second), true, true, false, true, true, "postponed channel update 2");
+    ++it;
   }
 
   for (auto &update : other_updates) {
@@ -35878,9 +35954,9 @@ void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool succ
   auto d = get_dialog(dialog_id);
   bool have_access = have_input_peer(dialog_id, AccessRights::Read);
   auto pts = d != nullptr ? d->pts : load_channel_pts(dialog_id);
-  auto updates_it = postponed_channel_updates_.find(dialog_id);
-  if (updates_it != postponed_channel_updates_.end()) {
-    auto &updates = updates_it->second;
+  auto postponed_updates_it = postponed_channel_updates_.find(dialog_id);
+  if (postponed_updates_it != postponed_channel_updates_.end()) {
+    auto &updates = postponed_updates_it->second;
     LOG(INFO) << "Begin to apply " << updates.size() << " postponed channel updates";
     while (!updates.empty()) {
       auto it = updates.begin();
@@ -35921,7 +35997,7 @@ void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool succ
       }
     }
     if (updates.empty()) {
-      postponed_channel_updates_.erase(updates_it);
+      postponed_channel_updates_.erase(postponed_updates_it);
     }
     LOG(INFO) << "Finish to apply postponed channel updates";
   }
