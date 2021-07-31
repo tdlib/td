@@ -2782,7 +2782,7 @@ class MessagesManager final : public Actor {
   void do_get_channel_difference(DialogId dialog_id, int32 pts, bool force,
                                  tl_object_ptr<telegram_api::InputChannel> &&input_channel, const char *source);
 
-  void process_get_channel_difference_updates(DialogId dialog_id,
+  void process_get_channel_difference_updates(DialogId dialog_id, int32 new_pts,
                                               vector<tl_object_ptr<telegram_api::Message>> &&new_messages,
                                               vector<tl_object_ptr<telegram_api::Update>> &&other_updates);
 

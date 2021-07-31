@@ -35480,19 +35480,32 @@ void MessagesManager::do_get_channel_difference(DialogId dialog_id, int32 pts, b
 }
 
 void MessagesManager::process_get_channel_difference_updates(
-    DialogId dialog_id, vector<tl_object_ptr<telegram_api::Message>> &&new_messages,
+    DialogId dialog_id, int32 new_pts, vector<tl_object_ptr<telegram_api::Message>> &&new_messages,
     vector<tl_object_ptr<telegram_api::Update>> &&other_updates) {
   LOG(INFO) << "In get channel difference for " << dialog_id << " receive " << new_messages.size() << " messages and "
             << other_updates.size() << " other updates";
   CHECK(!debug_channel_difference_dialog_.is_valid());
   debug_channel_difference_dialog_ = dialog_id;
   for (auto &update : other_updates) {
-    if (update->get_id() == telegram_api::updateMessageID::ID) {
-      // in channels.getDifference updateMessageID can't be received for scheduled messages
-      auto sent_message_update = move_tl_object_as<telegram_api::updateMessageID>(update);
-      on_update_message_id(sent_message_update->random_id_, MessageId(ServerMessageId(sent_message_update->id_)),
-                           "get_channel_difference");
-      update = nullptr;
+    switch (update->get_id()) {
+      case telegram_api::updateMessageID::ID: {
+        // in channels.getDifference updateMessageID can't be received for scheduled messages
+        auto sent_message_update = move_tl_object_as<telegram_api::updateMessageID>(update);
+        on_update_message_id(sent_message_update->random_id_, MessageId(ServerMessageId(sent_message_update->id_)),
+                             "get_channel_difference");
+        update = nullptr;
+        break;
+      }
+      case telegram_api::updateDeleteChannelMessages::ID:
+        break;
+      case telegram_api::updateEditChannelMessage::ID:
+        break;
+      case telegram_api::updatePinnedChannelMessages::ID:
+        break;
+      default:
+        LOG(ERROR) << "Unsupported update received in getChannelDifference: " << oneline(to_string(update));
+        update = nullptr;
+        break;
     }
   }
 
@@ -35506,16 +35519,7 @@ void MessagesManager::process_get_channel_difference_updates(
 
   for (auto &update : other_updates) {
     if (update != nullptr) {
-      switch (update->get_id()) {
-        case telegram_api::updateDeleteChannelMessages::ID:
-        case telegram_api::updateEditChannelMessage::ID:
-        case telegram_api::updatePinnedChannelMessages::ID:
-          process_channel_update(std::move(update));
-          break;
-        default:
-          LOG(ERROR) << "Unsupported update received in getChannelDifference: " << oneline(to_string(update));
-          break;
-      }
+      process_channel_update(std::move(update));
     }
   }
   LOG_CHECK(!running_get_channel_difference(dialog_id)) << '"' << active_get_channel_differencies_[dialog_id] << '"';
@@ -35744,7 +35748,7 @@ void MessagesManager::on_get_channel_difference(
         new_pts = request_pts + 1;
       }
 
-      process_get_channel_difference_updates(dialog_id, std::move(difference->new_messages_),
+      process_get_channel_difference_updates(dialog_id, new_pts, std::move(difference->new_messages_),
                                              std::move(difference->other_updates_));
 
       set_channel_pts(d, new_pts, "channel difference");
