@@ -9306,7 +9306,7 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
     return;
   }
 
-  {
+  if (messages.size() > 1) {
     // check that messages are received in decreasing message_id order
     MessageId cur_message_id = MessageId::max();
     for (const auto &message : messages) {
@@ -35842,6 +35842,23 @@ void MessagesManager::on_get_channel_difference(
                    << " and limit = " << request_limit << " in " << dialog_id << ", but pts has changed from " << d->pts
                    << " to " << new_pts << ". Difference: " << oneline(to_string(difference));
         new_pts = request_pts + 1;
+      }
+
+      if (difference->new_messages_.size() > 1) {
+        // check that new messages are received in increasing message_id order
+        MessageId cur_message_id;
+        for (const auto &message : difference->new_messages_) {
+          auto message_id = get_message_id(message, false);
+          if (message_id <= cur_message_id) {
+            // TODO move to ERROR
+            LOG(FATAL) << "Receive " << cur_message_id << " after " << message_id << " in channelDifference of "
+                       << dialog_id << " with pts " << request_pts << " and limit " << request_limit << ": "
+                       << to_string(difference);
+            after_get_channel_difference(dialog_id, false);
+            return;
+          }
+          cur_message_id = message_id;
+        }
       }
 
       process_get_channel_difference_updates(dialog_id, new_pts, std::move(difference->new_messages_),
