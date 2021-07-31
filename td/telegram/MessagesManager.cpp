@@ -35486,26 +35486,46 @@ void MessagesManager::process_get_channel_difference_updates(
             << other_updates.size() << " other updates";
   CHECK(!debug_channel_difference_dialog_.is_valid());
   debug_channel_difference_dialog_ = dialog_id;
-  for (auto &update : other_updates) {
-    switch (update->get_id()) {
+  for (auto &update_ptr : other_updates) {
+    bool is_good_update = true;
+    switch (update_ptr->get_id()) {
       case telegram_api::updateMessageID::ID: {
         // in channels.getDifference updateMessageID can't be received for scheduled messages
-        auto sent_message_update = move_tl_object_as<telegram_api::updateMessageID>(update);
+        auto sent_message_update = move_tl_object_as<telegram_api::updateMessageID>(update_ptr);
         on_update_message_id(sent_message_update->random_id_, MessageId(ServerMessageId(sent_message_update->id_)),
                              "get_channel_difference");
-        update = nullptr;
+        update_ptr = nullptr;
         break;
       }
-      case telegram_api::updateDeleteChannelMessages::ID:
+      case telegram_api::updateDeleteChannelMessages::ID: {
+        auto *update = static_cast<const telegram_api::updateDeleteChannelMessages *>(update_ptr.get());
+        if (DialogId(ChannelId(update->channel_id_)) != dialog_id) {
+          is_good_update = false;
+        }
         break;
-      case telegram_api::updateEditChannelMessage::ID:
+      }
+      case telegram_api::updateEditChannelMessage::ID: {
+        auto *update = static_cast<const telegram_api::updateEditChannelMessage *>(update_ptr.get());
+        auto full_message_id = get_full_message_id(update->message_, false);
+        if (full_message_id.get_dialog_id() != dialog_id) {
+          is_good_update = false;
+        }
         break;
-      case telegram_api::updatePinnedChannelMessages::ID:
+      }
+      case telegram_api::updatePinnedChannelMessages::ID: {
+        auto *update = static_cast<const telegram_api::updatePinnedChannelMessages *>(update_ptr.get());
+        if (DialogId(ChannelId(update->channel_id_)) != dialog_id) {
+          is_good_update = false;
+        }
         break;
+      }
       default:
-        LOG(ERROR) << "Unsupported update received in getChannelDifference: " << oneline(to_string(update));
-        update = nullptr;
+        is_good_update = false;
         break;
+    }
+    if (!is_good_update) {
+      LOG(ERROR) << "Receive wrong update in channelDifference of " << dialog_id << ": " << to_string(update_ptr);
+      update_ptr = nullptr;
     }
   }
 
