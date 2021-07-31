@@ -4356,12 +4356,7 @@ class UpdatePeerSettingsQuery final : public Td::ResultHandler {
       return on_error(id, result_ptr.move_as_error());
     }
 
-    td->messages_manager_->on_get_peer_settings(
-        dialog_id_,
-        make_tl_object<telegram_api::peerSettings>(0, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                                   false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                                   false /*ignored*/, false /*ignored*/, 0),
-        true);
+    td->messages_manager_->on_get_peer_settings(dialog_id_, make_tl_object<telegram_api::peerSettings>(), true);
 
     promise_.set_value(Unit());
   }
@@ -4398,12 +4393,7 @@ class ReportEncryptedSpamQuery final : public Td::ResultHandler {
       return on_error(id, result_ptr.move_as_error());
     }
 
-    td->messages_manager_->on_get_peer_settings(
-        dialog_id_,
-        make_tl_object<telegram_api::peerSettings>(0, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                                   false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                                   false /*ignored*/, false /*ignored*/, 0),
-        true);
+    td->messages_manager_->on_get_peer_settings(dialog_id_, make_tl_object<telegram_api::peerSettings>(), true);
 
     promise_.set_value(Unit());
   }
@@ -19130,8 +19120,8 @@ DialogId MessagesManager::create_new_group_chat(const vector<UserId> &user_ids, 
     created_dialogs_.erase(it);
 
     // set default notification settings to newly created chat
-    on_update_dialog_notify_settings(
-        dialog_id, make_tl_object<telegram_api::peerNotifySettings>(0, false, false, 0, ""), "create_new_group_chat");
+    on_update_dialog_notify_settings(dialog_id, make_tl_object<telegram_api::peerNotifySettings>(),
+                                     "create_new_group_chat");
 
     promise.set_value(Unit());
     return dialog_id;
@@ -19184,8 +19174,8 @@ DialogId MessagesManager::create_new_channel_chat(const string &title, bool is_m
     created_dialogs_.erase(it);
 
     // set default notification settings to newly created chat
-    on_update_dialog_notify_settings(
-        dialog_id, make_tl_object<telegram_api::peerNotifySettings>(0, false, false, 0, ""), "create_new_channel_chat");
+    on_update_dialog_notify_settings(dialog_id, make_tl_object<telegram_api::peerNotifySettings>(),
+                                     "create_new_channel_chat");
 
     promise.set_value(Unit());
     return dialog_id;
