@@ -12,6 +12,7 @@
 
 #include "td/telegram/DialogId.h"
 #include "td/telegram/Document.h"
+#include "td/telegram/EncryptedFile.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/SecretInputMedia.h"
@@ -35,7 +36,7 @@ class DocumentsManager {
    public:
     tl_object_ptr<telegram_api::document> document;
     // or
-    tl_object_ptr<telegram_api::encryptedFile> secret_file;
+    unique_ptr<EncryptedFile> secret_file;
     tl_object_ptr<secret_api::decryptedMessageMediaDocument> secret_document;
     // or
     tl_object_ptr<telegram_api::WebDocument> web_document;
@@ -62,7 +63,7 @@ class DocumentsManager {
         , attributes(std::move(attributes)) {
     }
 
-    RemoteDocument(tl_object_ptr<telegram_api::encryptedFile> &&secret_file,
+    RemoteDocument(unique_ptr<EncryptedFile> &&secret_file,
                    tl_object_ptr<secret_api::decryptedMessageMediaDocument> &&secret_document,
                    vector<tl_object_ptr<telegram_api::DocumentAttribute>> &&attributes)
         : document(nullptr)

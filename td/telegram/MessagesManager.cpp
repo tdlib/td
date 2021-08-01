@@ -12744,15 +12744,13 @@ void MessagesManager::on_send_secret_message_error(int64 random_id, Status error
 }
 
 void MessagesManager::on_send_secret_message_success(int64 random_id, MessageId message_id, int32 date,
-                                                     tl_object_ptr<telegram_api::EncryptedFile> file_ptr,
-                                                     Promise<> promise) {
+                                                     unique_ptr<EncryptedFile> file, Promise<> promise) {
   promise.set_value(Unit());  // TODO: set after message is saved
 
   FileId new_file_id;
-  if (file_ptr != nullptr && file_ptr->get_id() == telegram_api::encryptedFile::ID) {
-    auto file = move_tl_object_as<telegram_api::encryptedFile>(file_ptr);
+  if (file != nullptr) {
     if (!DcId::is_valid(file->dc_id_)) {
-      LOG(ERROR) << "Wrong dc_id = " << file->dc_id_ << " in file " << to_string(file);
+      LOG(ERROR) << "Wrong dc_id = " << file->dc_id_ << " in file " << *file;
     } else {
       DialogId owner_dialog_id;
       auto it = being_sent_messages_.find(random_id);
@@ -12936,7 +12934,7 @@ void MessagesManager::on_update_secret_chat_state(SecretChatId secret_chat_id, S
 }
 
 void MessagesManager::on_get_secret_message(SecretChatId secret_chat_id, UserId user_id, MessageId message_id,
-                                            int32 date, tl_object_ptr<telegram_api::encryptedFile> file,
+                                            int32 date, unique_ptr<EncryptedFile> file,
                                             tl_object_ptr<secret_api::decryptedMessage> message, Promise<> promise) {
   LOG(DEBUG) << "On get " << to_string(message);
   CHECK(message != nullptr);

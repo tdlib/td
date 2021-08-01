@@ -1238,11 +1238,6 @@ Status SecretChatActor::do_inbound_message_decrypted(unique_ptr<log_event::Inbou
   auto qts_promise = std::move(message->promise);
 
   // process message
-  tl_object_ptr<telegram_api::encryptedFile> file;
-  if (message->has_encrypted_file) {
-    file = message->file.as_encrypted_file();
-  }
-
   if (message->decrypted_message_layer->message_->get_id() == secret_api::decryptedMessage46::ID) {
     auto old = move_tl_object_as<secret_api::decryptedMessage46>(message->decrypted_message_layer->message_);
     old->flags_ &= ~secret_api::decryptedMessage::GROUPED_ID_MASK;  // just in case
@@ -1266,7 +1261,8 @@ Status SecretChatActor::do_inbound_message_decrypted(unique_ptr<log_event::Inbou
     auto decrypted_message =
         move_tl_object_as<secret_api::decryptedMessage>(message->decrypted_message_layer->message_);
     context_->on_inbound_message(get_user_id(), MessageId(ServerMessageId(message->message_id)), message->date,
-                                 std::move(file), std::move(decrypted_message), std::move(save_message_finish));
+                                 std::move(message->file), std::move(decrypted_message),
+                                 std::move(save_message_finish));
   } else if (message->decrypted_message_layer->message_->get_id() == secret_api::decryptedMessageService::ID) {
     auto decrypted_message_service =
         move_tl_object_as<secret_api::decryptedMessageService>(message->decrypted_message_layer->message_);
@@ -1618,31 +1614,24 @@ void SecretChatActor::on_outbound_send_message_result(NetQueryPtr query, Promise
       }
       case telegram_api::messages_sentEncryptedFile::ID: {
         auto sent = move_tl_object_as<telegram_api::messages_sentEncryptedFile>(result);
-        std::function<telegram_api::object_ptr<telegram_api::EncryptedFile>()> get_file;
-        telegram_api::downcast_call(
-            *sent->file_, overloaded(
-                              [&](telegram_api::encryptedFileEmpty &) {
-                                state->message->file = log_event::EncryptedInputFile::from_input_encrypted_file(
-                                    telegram_api::inputEncryptedFileEmpty());
-                                get_file = [] {
-                                  return telegram_api::make_object<telegram_api::encryptedFileEmpty>();
-                                };
-                              },
-                              [&](telegram_api::encryptedFile &file) {
-                                state->message->file = log_event::EncryptedInputFile::from_input_encrypted_file(
-                                    telegram_api::inputEncryptedFile(file.id_, file.access_hash_));
-                                get_file = [id = file.id_, access_hash = file.access_hash_, size = file.size_,
-                                            dc_id = file.dc_id_, key_fingerprint = file.key_fingerprint_] {
-                                  return telegram_api::make_object<telegram_api::encryptedFile>(id, access_hash, size,
-                                                                                                dc_id, key_fingerprint);
-                                };
-                              }));
-
-        state->send_result_ = [this, random_id = state->message->random_id,
-                               message_id = MessageId(ServerMessageId(state->message->message_id)), date = sent->date_,
-                               get_file = std::move(get_file)](Promise<> promise) {
-          this->context_->on_send_message_ok(random_id, message_id, date, get_file(), std::move(promise));
-        };
+        auto file = EncryptedFile::get_encrypted_file(std::move(sent->file_));
+        if (file == nullptr) {
+          state->message->file = log_event::EncryptedInputFile::from_input_encrypted_file(nullptr);
+          state->send_result_ = [this, random_id = state->message->random_id,
+                                 message_id = MessageId(ServerMessageId(state->message->message_id)),
+                                 date = sent->date_](Promise<> promise) {
+            this->context_->on_send_message_ok(random_id, message_id, date, nullptr, std::move(promise));
+          };
+        } else {
+          state->message->file = log_event::EncryptedInputFile::from_input_encrypted_file(
+              make_tl_object<telegram_api::inputEncryptedFile>(file->id_, file->access_hash_));
+          state->send_result_ = [this, random_id = state->message->random_id,
+                                 message_id = MessageId(ServerMessageId(state->message->message_id)),
+                                 date = sent->date_, file = *file](Promise<> promise) {
+            this->context_->on_send_message_ok(random_id, message_id, date, make_unique<EncryptedFile>(file),
+                                               std::move(promise));
+          };
+        }
         state->send_result_(std::move(send_message_finish_promise));
         return;
       }
