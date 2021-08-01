@@ -256,7 +256,7 @@ static void write_function(tl_outputer &out, const tl_combinator *t, const std::
   if (w.is_default_constructor_generated(t, false, true)) {
     write_class_constructor(out, t, class_name, true, w);
   }
-  if (required_args) {
+  if (required_args && w.is_full_constructor_generated(t, false, true)) {
     write_class_constructor(out, t, class_name, false, w);
   }
 
@@ -337,7 +337,7 @@ static void write_constructor(tl_outputer &out, const tl_combinator *t, const st
   if (w.is_default_constructor_generated(t, can_be_parsed, can_be_stored)) {
     write_class_constructor(out, t, class_name, true, w);
   }
-  if (required_args) {
+  if (required_args && w.is_full_constructor_generated(t, can_be_parsed, can_be_stored)) {
     write_class_constructor(out, t, class_name, false, w);
   }
 

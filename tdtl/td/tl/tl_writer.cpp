@@ -139,6 +139,10 @@ bool TL_writer::is_default_constructor_generated(const tl_combinator *t, bool ca
   return true;
 }
 
+bool TL_writer::is_full_constructor_generated(const tl_combinator *t, bool can_be_parsed, bool can_be_stored) const {
+  return true;
+}
+
 std::string TL_writer::gen_main_class_name(const tl_type *t) const {
   if (t->simple_constructors == 1) {
     for (std::size_t i = 0; i < t->constructors_num; i++) {

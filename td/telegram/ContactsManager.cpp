@@ -1501,8 +1501,7 @@ class DeleteChatQuery final : public Td::ResultHandler {
 
     LOG(INFO) << "Receive result for DeleteChatQuery: " << result_ptr.ok();
     td->updates_manager_->get_difference("DeleteChatQuery");
-    td->updates_manager_->on_get_updates(make_tl_object<telegram_api::updates>(Auto(), Auto(), Auto(), 0, 0),
-                                         std::move(promise_));
+    td->updates_manager_->on_get_updates(make_tl_object<telegram_api::updates>(), std::move(promise_));
   }
 
   void on_error(uint64 id, Status status) final {
