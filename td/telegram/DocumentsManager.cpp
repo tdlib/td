@@ -118,9 +118,14 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
     }
 
     if (animated != nullptr) {
-      // video animation
       type_attributes--;
-      video = nullptr;
+      if ((video->flags_ & telegram_api::documentAttributeVideo::ROUND_MESSAGE_MASK) != 0) {
+        // video note without sound
+        animated = nullptr;
+      } else {
+        // video animation
+        video = nullptr;
+      }
     }
   }
   if (animated != nullptr && audio != nullptr) {
