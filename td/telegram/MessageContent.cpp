@@ -4846,8 +4846,9 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     case MessageContentType::ProximityAlertTriggered: {
       const MessageProximityAlertTriggered *m = static_cast<const MessageProximityAlertTriggered *>(content);
       return make_tl_object<td_api::messageProximityAlertTriggered>(
-          td->messages_manager_->get_message_sender_object(m->traveler_dialog_id),
-          td->messages_manager_->get_message_sender_object(m->watcher_dialog_id), m->distance);
+          td->messages_manager_->get_message_sender_object(m->traveler_dialog_id, "messageProximityAlertTriggered 1"),
+          td->messages_manager_->get_message_sender_object(m->watcher_dialog_id, "messageProximityAlertTriggered 2"),
+          m->distance);
     }
     case MessageContentType::GroupCall: {
       auto *m = static_cast<const MessageGroupCall *>(content);

@@ -110,7 +110,8 @@ class GetGroupCallJoinAsQuery final : public Td::ResultHandler {
         td->messages_manager_->force_create_dialog(dialog_id, "GetGroupCallJoinAsQuery");
       }
 
-      participant_aliaces.push_back(td->messages_manager_->get_message_sender_object(dialog_id));
+      participant_aliaces.push_back(
+          td->messages_manager_->get_message_sender_object(dialog_id, "GetGroupCallJoinAsQuery"));
     }
 
     promise_.set_value(td_api::make_object<td_api::messageSenders>(static_cast<int32>(participant_aliaces.size()),
@@ -4629,7 +4630,8 @@ vector<td_api::object_ptr<td_api::groupCallRecentSpeaker>> GroupCallManager::get
   auto get_result = [recent_speaker_users, messages_manager = td_->messages_manager_.get()] {
     return transform(recent_speaker_users, [messages_manager](const std::pair<DialogId, bool> &recent_speaker_user) {
       return td_api::make_object<td_api::groupCallRecentSpeaker>(
-          messages_manager->get_message_sender_object(recent_speaker_user.first), recent_speaker_user.second);
+          messages_manager->get_message_sender_object(recent_speaker_user.first, "get_recent_speakers"),
+          recent_speaker_user.second);
     });
   };
   if (recent_speakers->last_sent_users != recent_speaker_users) {

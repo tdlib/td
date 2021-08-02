@@ -11552,7 +11552,7 @@ tl_object_ptr<td_api::chatMember> ContactsManager::get_chat_member_object(
     td_->messages_manager_->force_create_dialog(dialog_id, "get_chat_member_object", true);
   }
   return td_api::make_object<td_api::chatMember>(
-      td_->messages_manager_->get_message_sender_object_const(dialog_id),
+      td_->messages_manager_->get_message_sender_object_const(dialog_id, "get_chat_member_object"),
       get_user_id_object(dialog_participant.inviter_user_id, "chatMember.inviter_user_id"),
       dialog_participant.joined_date, dialog_participant.status.get_chat_member_status_object());
 }

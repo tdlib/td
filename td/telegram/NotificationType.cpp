@@ -328,8 +328,8 @@ class NotificationTypePushMessage final : public NotificationType {
   }
 
   td_api::object_ptr<td_api::NotificationType> get_notification_type_object(DialogId dialog_id) const final {
-    auto sender =
-        G()->td().get_actor_unsafe()->messages_manager_->get_message_sender_object(sender_user_id_, sender_dialog_id_);
+    auto sender = G()->td().get_actor_unsafe()->messages_manager_->get_message_sender_object(
+        sender_user_id_, sender_dialog_id_, "get_notification_type_object");
     return td_api::make_object<td_api::notificationTypeNewPushMessage>(
         message_id_.get(), std::move(sender), sender_name_, is_outgoing_,
         get_push_message_content_object(key_, arg_, photo_, document_));

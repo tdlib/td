@@ -2063,7 +2063,7 @@ class GetBlockedMessageSendersRequest final : public RequestActor<> {
   void do_send_result() final {
     auto senders =
         transform(message_senders_.second, [messages_manager = td->messages_manager_.get()](DialogId dialog_id) {
-          return messages_manager->get_message_sender_object(dialog_id);
+          return messages_manager->get_message_sender_object(dialog_id, "GetBlockedMessageSendersRequest");
         });
     send_result(td_api::make_object<td_api::messageSenders>(message_senders_.first, std::move(senders)));
   }

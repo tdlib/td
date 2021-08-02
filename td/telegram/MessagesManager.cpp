@@ -5970,44 +5970,46 @@ void MessagesManager::on_preload_folder_dialog_list_timeout_callback(void *messa
 }
 
 td_api::object_ptr<td_api::MessageSender> MessagesManager::get_message_sender_object_const(UserId user_id,
-                                                                                           DialogId dialog_id) const {
+                                                                                           DialogId dialog_id,
+                                                                                           const char *source) const {
   if (dialog_id.is_valid() && have_dialog(dialog_id)) {
     return td_api::make_object<td_api::messageSenderChat>(dialog_id.get());
   }
   if (!user_id.is_valid()) {
     // can happen only if the server sends a message with wrong sender
-    LOG(ERROR) << "Receive message with wrong sender " << user_id << '/' << dialog_id;
+    LOG(ERROR) << "Receive message with wrong sender " << user_id << '/' << dialog_id << " from " << source;
     user_id = td_->contacts_manager_->add_service_notifications_user();
   }
-  return td_api::make_object<td_api::messageSenderUser>(
-      td_->contacts_manager_->get_user_id_object(user_id, "get_message_sender_object"));
+  return td_api::make_object<td_api::messageSenderUser>(td_->contacts_manager_->get_user_id_object(user_id, source));
 }
 
-td_api::object_ptr<td_api::MessageSender> MessagesManager::get_message_sender_object(UserId user_id,
-                                                                                     DialogId dialog_id) {
+td_api::object_ptr<td_api::MessageSender> MessagesManager::get_message_sender_object(UserId user_id, DialogId dialog_id,
+                                                                                     const char *source) {
   if (dialog_id.is_valid() && !have_dialog(dialog_id)) {
     LOG(ERROR) << "Failed to find " << dialog_id;
-    force_create_dialog(dialog_id, "get_message_sender_object");
+    force_create_dialog(dialog_id, source);
   }
   if (!user_id.is_valid() && td_->auth_manager_->is_bot()) {
     td_->contacts_manager_->add_anonymous_bot_user();
     td_->contacts_manager_->add_service_notifications_user();
   }
-  return get_message_sender_object_const(user_id, dialog_id);
+  return get_message_sender_object_const(user_id, dialog_id, source);
 }
 
-td_api::object_ptr<td_api::MessageSender> MessagesManager::get_message_sender_object_const(DialogId dialog_id) const {
+td_api::object_ptr<td_api::MessageSender> MessagesManager::get_message_sender_object_const(DialogId dialog_id,
+                                                                                           const char *source) const {
   if (dialog_id.get_type() == DialogType::User) {
-    return get_message_sender_object_const(dialog_id.get_user_id(), DialogId());
+    return get_message_sender_object_const(dialog_id.get_user_id(), DialogId(), source);
   }
-  return get_message_sender_object_const(UserId(), dialog_id);
+  return get_message_sender_object_const(UserId(), dialog_id, source);
 }
 
-td_api::object_ptr<td_api::MessageSender> MessagesManager::get_message_sender_object(DialogId dialog_id) {
+td_api::object_ptr<td_api::MessageSender> MessagesManager::get_message_sender_object(DialogId dialog_id,
+                                                                                     const char *source) {
   if (dialog_id.get_type() == DialogType::User) {
-    return get_message_sender_object(dialog_id.get_user_id(), DialogId());
+    return get_message_sender_object(dialog_id.get_user_id(), DialogId(), source);
   }
-  return get_message_sender_object(UserId(), dialog_id);
+  return get_message_sender_object(UserId(), dialog_id, source);
 }
 
 BufferSlice MessagesManager::get_dialog_database_value(const Dialog *d) {
@@ -19763,9 +19765,10 @@ td_api::object_ptr<td_api::ChatActionBar> MessagesManager::get_chat_action_bar_o
 
 td_api::object_ptr<td_api::voiceChat> MessagesManager::get_voice_chat_object(const Dialog *d) const {
   auto active_group_call_id = td_->group_call_manager_->get_group_call_id(d->active_group_call_id, d->dialog_id);
-  auto default_participant_alias = d->default_join_group_call_as_dialog_id.is_valid()
-                                       ? get_message_sender_object_const(d->default_join_group_call_as_dialog_id)
-                                       : nullptr;
+  auto default_participant_alias =
+      d->default_join_group_call_as_dialog_id.is_valid()
+          ? get_message_sender_object_const(d->default_join_group_call_as_dialog_id, "get_voice_chat_object")
+          : nullptr;
   return make_tl_object<td_api::voiceChat>(active_group_call_id.get(),
                                            active_group_call_id.is_valid() ? !d->is_group_call_empty : false,
                                            std::move(default_participant_alias));
@@ -22806,11 +22809,12 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   auto edit_date = m->hide_edit_date ? 0 : m->edit_date;
   auto is_pinned = for_event_log || is_scheduled ? false : m->is_pinned;
   bool skip_bot_commands = for_event_log || need_skip_bot_commands(dialog_id, m);
+  string source = PSTRING() << dialog_id << ' ' << m->message_id;
   return make_tl_object<td_api::message>(
-      m->message_id.get(), get_message_sender_object_const(m->sender_user_id, m->sender_dialog_id), dialog_id.get(),
-      std::move(sending_state), std::move(scheduling_state), is_outgoing, is_pinned, can_be_edited, can_be_forwarded,
-      can_delete_for_self, can_delete_for_all_users, can_get_statistics, can_get_message_thread, m->is_channel_post,
-      contains_unread_mention, date, edit_date, get_message_forward_info_object(m->forward_info),
+      m->message_id.get(), get_message_sender_object_const(m->sender_user_id, m->sender_dialog_id, source.c_str()),
+      dialog_id.get(), std::move(sending_state), std::move(scheduling_state), is_outgoing, is_pinned, can_be_edited,
+      can_be_forwarded, can_delete_for_self, can_delete_for_all_users, can_get_statistics, can_get_message_thread,
+      m->is_channel_post, contains_unread_mention, date, edit_date, get_message_forward_info_object(m->forward_info),
       get_message_interaction_info_object(dialog_id, m), reply_in_dialog_id.get(), reply_to_message_id,
       top_thread_message_id, ttl, ttl_expires_in, via_bot_user_id, m->author_signature, media_album_id,
       get_restriction_reason_description(m->restriction_reasons),
@@ -31259,7 +31263,7 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
         return nullptr;
       }
       return make_tl_object<td_api::chatEventMemberRestricted>(
-          get_message_sender_object(old_dialog_participant.dialog_id),
+          get_message_sender_object(old_dialog_participant.dialog_id, "chatEventMemberRestricted"),
           old_dialog_participant.status.get_chat_member_status_object(),
           new_dialog_participant.status.get_chat_member_status_object());
     }
@@ -31481,7 +31485,7 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
         return nullptr;
       }
       return make_tl_object<td_api::chatEventVoiceChatParticipantIsMutedToggled>(
-          get_message_sender_object(participant.dialog_id), true);
+          get_message_sender_object(participant.dialog_id, "chatEventVoiceChatParticipantIsMutedToggled"), true);
     }
     case telegram_api::channelAdminLogEventActionParticipantUnmute::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantUnmute>(action_ptr);
@@ -31490,7 +31494,7 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
         return nullptr;
       }
       return make_tl_object<td_api::chatEventVoiceChatParticipantIsMutedToggled>(
-          get_message_sender_object(participant.dialog_id), false);
+          get_message_sender_object(participant.dialog_id, "chatEventVoiceChatParticipantIsMutedToggled"), false);
     }
     case telegram_api::channelAdminLogEventActionParticipantVolume::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantVolume>(action_ptr);
@@ -31499,7 +31503,8 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
         return nullptr;
       }
       return make_tl_object<td_api::chatEventVoiceChatParticipantVolumeLevelChanged>(
-          get_message_sender_object(participant.dialog_id), participant.volume_level);
+          get_message_sender_object(participant.dialog_id, "chatEventVoiceChatParticipantVolumeLevelChanged"),
+          participant.volume_level);
     }
     case telegram_api::channelAdminLogEventActionToggleGroupCallSetting::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionToggleGroupCallSetting>(action_ptr);
