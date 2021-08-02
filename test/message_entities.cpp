@@ -137,8 +137,9 @@ TEST(MessageEntities, cashtag) {
   check_cashtag("$ab", {});
   check_cashtag("$abc", {});
   check_cashtag("$", {});
-  check_cashtag("$A", {});
-  check_cashtag("$AB", {});
+  check_cashtag("$A", {"$A"});
+  check_cashtag("$AB", {"$AB"});
+  check_cashtag("$ABС", {});
   check_cashtag("$АBC", {});
   check_cashtag("$АВС", {});
   check_cashtag("$ABC", {"$ABC"});
@@ -160,6 +161,12 @@ TEST(MessageEntities, cashtag) {
   check_cashtag(" А$ABC ", {});
   check_cashtag("$ABC$DEF $GHI $KLM", {"$GHI", "$KLM"});
   check_cashtag("$TEST", {"$TEST"});
+  check_cashtag("$1INC", {});
+  check_cashtag("$1INCH", {"$1INCH"});
+  check_cashtag("...$1INCH...", {"$1INCH"});
+  check_cashtag("$1inch", {});
+  check_cashtag("$1INCHA", {});
+  check_cashtag("$1INCHА", {});
   check_cashtag(u8"$ABC\u2122", {"$ABC"});
   check_cashtag(u8"\u2122$ABC", {"$ABC"});
   check_cashtag(u8"\u2122$ABC\u2122", {"$ABC"});

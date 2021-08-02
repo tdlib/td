@@ -384,7 +384,7 @@ static vector<Slice> match_cashtags(Slice str) {
   const unsigned char *end = str.uend();
   const unsigned char *ptr = begin;
 
-  // '/(?<=^|[^$\d_\pL\x{200c}])\$([A-Z]{3,8})(?![$\d_\pL\x{200c}])/u'
+  // '/(?<=^|[^$\d_\pL\x{200c}])\$(1INCH|[A-Z]{1,8})(?![$\d_\pL\x{200c}])/u'
 
   UnicodeSimpleCategory category;
   while (true) {
@@ -404,12 +404,16 @@ static vector<Slice> match_cashtags(Slice str) {
     }
 
     auto cashtag_begin = ++ptr;
-    while (ptr != end && 'Z' >= *ptr && *ptr >= 'A') {
-      ptr++;
+    if (end - ptr >= 5 && Slice(ptr, ptr + 5) == Slice("1INCH")) {
+      ptr += 5;
+    } else {
+      while (ptr != end && 'Z' >= *ptr && *ptr >= 'A') {
+        ptr++;
+      }
     }
     auto cashtag_end = ptr;
     auto cashtag_size = cashtag_end - cashtag_begin;
-    if (cashtag_size < 3 || cashtag_size > 8) {
+    if (cashtag_size < 1 || cashtag_size > 8) {
       continue;
     }
 
