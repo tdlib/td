@@ -33,7 +33,7 @@ do
     mkdir -p $build
     mkdir -p $install
     cd $build
-    cmake $td_path $options -DCMAKE_INSTALL_PREFIX=../${install}
+    cmake $td_path $options -DCMAKE_INSTALL_PREFIX=../${install} -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"
     make -j3 install || exit
     cd ..
     mkdir -p $platform
