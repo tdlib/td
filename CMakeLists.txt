@@ -6,12 +6,6 @@ if (POLICY CMP0065)
   cmake_policy(SET CMP0065 NEW)
 endif()
 
-# Affects each target in project(), so must be set before it
-# Ignored on non-Apple platforms
-if (APPLE AND NOT DEFINED IOS_PLATFORM)
-  set (CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Build architecture for macOS")
-endif()
-
 project(TDLib VERSION 1.7.6 LANGUAGES CXX C)
 
 if (NOT DEFINED CMAKE_MODULE_PATH)
