@@ -660,7 +660,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const AnimationSize &an
                         << animation_size.main_frame_timestamp;
 }
 
-Photo get_encrypted_file_photo(FileManager *file_manager, tl_object_ptr<telegram_api::encryptedFile> &&file,
+Photo get_encrypted_file_photo(FileManager *file_manager, unique_ptr<EncryptedFile> &&file,
                                tl_object_ptr<secret_api::decryptedMessageMediaPhoto> &&photo,
                                DialogId owner_dialog_id) {
   FileId file_id = file_manager->register_remote(

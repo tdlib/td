@@ -17,6 +17,7 @@
 #include "td/telegram/DialogLocation.h"
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/DialogSource.h"
+#include "td/telegram/EncryptedFile.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/FolderId.h"
@@ -189,8 +190,9 @@ class MessagesManager final : public Actor {
   void on_get_messages(vector<tl_object_ptr<telegram_api::Message>> &&messages, bool is_channel_message,
                        bool is_scheduled, const char *source);
 
-  void on_get_history(DialogId dialog_id, MessageId from_message_id, int32 offset, int32 limit, bool from_the_end,
-                      vector<tl_object_ptr<telegram_api::Message>> &&messages);
+  void on_get_history(DialogId dialog_id, MessageId from_message_id, MessageId old_last_new_message_id, int32 offset,
+                      int32 limit, bool from_the_end, vector<tl_object_ptr<telegram_api::Message>> &&messages,
+                      Promise<Unit> &&promise);
 
   void on_get_public_dialogs_search_result(const string &query, vector<tl_object_ptr<telegram_api::Peer>> &&my_peers,
                                            vector<tl_object_ptr<telegram_api::Peer>> &&peers);
@@ -227,8 +229,8 @@ class MessagesManager final : public Actor {
 
   void open_secret_message(SecretChatId secret_chat_id, int64 random_id, Promise<>);
 
-  void on_send_secret_message_success(int64 random_id, MessageId message_id, int32 date,
-                                      tl_object_ptr<telegram_api::EncryptedFile> file_ptr, Promise<> promise);
+  void on_send_secret_message_success(int64 random_id, MessageId message_id, int32 date, unique_ptr<EncryptedFile> file,
+                                      Promise<> promise);
   void on_send_secret_message_error(int64 random_id, Status error, Promise<> promise);
 
   void delete_secret_messages(SecretChatId secret_chat_id, std::vector<int64> random_ids, Promise<> promise);
@@ -241,8 +243,8 @@ class MessagesManager final : public Actor {
   void on_update_secret_chat_state(SecretChatId secret_chat_id, SecretChatState state);
 
   void on_get_secret_message(SecretChatId secret_chat_id, UserId user_id, MessageId message_id, int32 date,
-                             tl_object_ptr<telegram_api::encryptedFile> file,
-                             tl_object_ptr<secret_api::decryptedMessage> message, Promise<> promise);
+                             unique_ptr<EncryptedFile> file, tl_object_ptr<secret_api::decryptedMessage> message,
+                             Promise<> promise);
 
   void on_secret_chat_screenshot_taken(SecretChatId secret_chat_id, UserId user_id, MessageId message_id, int32 date,
                                        int64 random_id, Promise<> promise);
@@ -487,7 +489,7 @@ class MessagesManager final : public Actor {
 
   void unpin_all_dialog_messages(DialogId dialog_id, Promise<Unit> &&promise);
 
-  void get_dialog_info_full(DialogId dialog_id, Promise<Unit> &&promise);
+  void get_dialog_info_full(DialogId dialog_id, Promise<Unit> &&promise, const char *source);
 
   int64 get_dialog_event_log(DialogId dialog_id, const string &query, int64 from_event_id, int32 limit,
                              const tl_object_ptr<td_api::chatEventLogFilters> &filters, const vector<UserId> &user_ids,
@@ -1237,14 +1239,13 @@ class MessagesManager final : public Actor {
 
     bool is_update_new_chat_sent = false;
     bool has_unload_timeout = false;
+    bool is_channel_difference_finished = false;
 
-    int32 pts = 0;                                                     // for channels only
-    std::multimap<int32, PendingPtsUpdate> postponed_channel_updates;  // for channels only
-    int32 retry_get_difference_timeout = 1;                            // for channels only
-    int32 pending_read_channel_inbox_pts = 0;                          // for channels only
-    MessageId pending_read_channel_inbox_max_message_id;               // for channels only
-    int32 pending_read_channel_inbox_server_unread_count = 0;          // for channels only
-    std::unordered_map<int64, MessageId> random_id_to_message_id;      // for secret chats only
+    int32 pts = 0;                                                 // for channels only
+    int32 pending_read_channel_inbox_pts = 0;                      // for channels only
+    MessageId pending_read_channel_inbox_max_message_id;           // for channels only
+    int32 pending_read_channel_inbox_server_unread_count = 0;      // for channels only
+    std::unordered_map<int64, MessageId> random_id_to_message_id;  // for secret chats only
 
     MessageId last_assigned_message_id;  // identifier of the last local or yet unsent message, assigned after
                                          // application start, used to guarantee that all assigned message identifiers
@@ -1766,6 +1767,8 @@ class MessagesManager final : public Actor {
 
   bool can_edit_message(DialogId dialog_id, const Message *m, bool is_editing, bool only_reply_markup = false) const;
 
+  static bool can_overflow_message_id(DialogId dialog_id);
+
   bool can_report_dialog(DialogId dialog_id) const;
 
   Status can_pin_messages(DialogId dialog_id) const;
@@ -1786,6 +1789,9 @@ class MessagesManager final : public Actor {
                                              MessageId &reply_to_message_id);
 
   bool can_set_game_score(DialogId dialog_id, const Message *m) const;
+
+  void add_postponed_channel_update(DialogId dialog_id, tl_object_ptr<telegram_api::Update> &&update, int32 new_pts,
+                                    int32 pts_count, Promise<Unit> &&promise);
 
   void process_channel_update(tl_object_ptr<telegram_api::Update> &&update);
 
@@ -2779,7 +2785,7 @@ class MessagesManager final : public Actor {
   void do_get_channel_difference(DialogId dialog_id, int32 pts, bool force,
                                  tl_object_ptr<telegram_api::InputChannel> &&input_channel, const char *source);
 
-  void process_get_channel_difference_updates(DialogId dialog_id,
+  void process_get_channel_difference_updates(DialogId dialog_id, int32 new_pts,
                                               vector<tl_object_ptr<telegram_api::Message>> &&new_messages,
                                               vector<tl_object_ptr<telegram_api::Update>> &&other_updates);
 
@@ -3237,6 +3243,9 @@ class MessagesManager final : public Actor {
 
   std::unordered_map<DialogId, string, DialogIdHash> active_get_channel_differencies_;
   std::unordered_map<DialogId, uint64, DialogIdHash> get_channel_difference_to_log_event_id_;
+  std::unordered_map<DialogId, int32, DialogIdHash> channel_get_difference_retry_timeouts_;
+  std::unordered_map<DialogId, std::multimap<int32, PendingPtsUpdate>, DialogIdHash> postponed_channel_updates_;
+  std::unordered_set<DialogId, DialogIdHash> is_channel_difference_finished_;
 
   MultiTimeout channel_get_difference_timeout_{"ChannelGetDifferenceTimeout"};
   MultiTimeout channel_get_difference_retry_timeout_{"ChannelGetDifferenceRetryTimeout"};

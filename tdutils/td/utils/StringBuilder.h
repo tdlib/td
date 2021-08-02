@@ -27,6 +27,11 @@ class StringBuilder {
     error_flag_ = false;
   }
 
+  void pop_back() {
+    CHECK(current_ptr_ > begin_ptr_);
+    current_ptr_--;
+  }
+
   MutableCSlice as_cslice() {
     if (current_ptr_ >= end_ptr_ + RESERVED_SIZE) {
       std::abort();  // shouldn't happen

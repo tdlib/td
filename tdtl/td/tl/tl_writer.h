@@ -56,7 +56,8 @@ class TL_writer {
   virtual bool is_type_bare(const tl_type *t) const = 0;
   virtual bool is_combinator_supported(const tl_combinator *constructor) const;
   virtual bool is_documentation_generated() const;
-  virtual bool is_default_constructor_generated(const tl_combinator *t, bool is_function) const;
+  virtual bool is_default_constructor_generated(const tl_combinator *t, bool can_be_parsed, bool can_be_stored) const;
+  virtual bool is_full_constructor_generated(const tl_combinator *t, bool can_be_parsed, bool can_be_stored) const;
 
   virtual int get_parser_type(const tl_combinator *t, const std::string &parser_name) const;
   virtual int get_storer_type(const tl_combinator *t, const std::string &storer_name) const;

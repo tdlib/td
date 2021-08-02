@@ -920,6 +920,7 @@ bool FileManager::are_modification_times_equal(int64 old_mtime, int64 new_mtime)
 Status FileManager::check_local_location(FullLocalFileLocation &location, int64 &size, bool skip_file_size_checks) {
   constexpr int64 MAX_THUMBNAIL_SIZE = 200 * (1 << 10) - 1 /* 200 KB - 1 B */;
   constexpr int64 MAX_PHOTO_SIZE = 10 * (1 << 20) /* 10 MB */;
+  constexpr int64 DEFAULT_VIDEO_NOTE_SIZE_MAX = 12 * (1 << 20) /* 12 MB */;
 
   if (location.path_.empty()) {
     return Status::Error(400, "File must have non-empty path");
@@ -967,13 +968,17 @@ Status FileManager::check_local_location(FullLocalFileLocation &location, int64 
     return Status::Error(400, PSLICE() << "File \"" << location.path_ << "\" is too big for a thumbnail "
                                        << tag("size", format::as_size(size)));
   }
-  if (location.file_type_ == FileType::Photo && size > MAX_PHOTO_SIZE) {
-    return Status::Error(400, PSLICE() << "File \"" << location.path_ << "\" is too big for a photo "
-                                       << tag("size", format::as_size(size)));
-  }
   if (size > MAX_FILE_SIZE) {
+    return Status::Error(400, PSLICE() << "File \"" << location.path_ << "\" of size " << size << " bytes is too big");
+  }
+  if (location.file_type_ == FileType::Photo && size > MAX_PHOTO_SIZE) {
     return Status::Error(
-        400, PSLICE() << "File \"" << location.path_ << "\" is too big " << tag("size", format::as_size(size)));
+        400, PSLICE() << "File \"" << location.path_ << "\" of size " << size << " bytes is too big for a photo");
+  }
+  if (location.file_type_ == FileType::VideoNote &&
+      size > G()->shared_config().get_option_integer("video_note_size_max", DEFAULT_VIDEO_NOTE_SIZE_MAX)) {
+    return Status::Error(
+        400, PSLICE() << "File \"" << location.path_ << "\" of size " << size << " bytes is too big for a video note");
   }
   return Status::OK();
 }

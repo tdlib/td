@@ -1678,6 +1678,41 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         }
         continue;
       }
+      if (key == "round_video_encoding") {
+        if (value->get_id() == telegram_api::jsonObject::ID) {
+          auto video_note_settings = std::move(static_cast<telegram_api::jsonObject *>(value)->value_);
+          for (auto &video_note_setting : video_note_settings) {
+            CHECK(video_note_setting != nullptr);
+            if (video_note_setting->key_ != "diameter" && video_note_setting->key_ != "video_bitrate" &&
+                video_note_setting->key_ != "audio_bitrate" && video_note_setting->key_ != "max_size") {
+              continue;
+            }
+            if (video_note_setting->value_->get_id() == telegram_api::jsonNumber::ID) {
+              auto setting_value = static_cast<int32>(
+                  static_cast<const telegram_api::jsonNumber *>(video_note_setting->value_.get())->value_);
+              if (setting_value > 0) {
+                if (video_note_setting->key_ == "diameter") {
+                  G()->shared_config().set_option_integer("suggested_video_note_length", setting_value);
+                }
+                if (video_note_setting->key_ == "video_bitrate") {
+                  G()->shared_config().set_option_integer("suggested_video_note_video_bitrate", setting_value);
+                }
+                if (video_note_setting->key_ == "audio_bitrate") {
+                  G()->shared_config().set_option_integer("suggested_video_note_audio_bitrate", setting_value);
+                }
+                if (video_note_setting->key_ == "max_size") {
+                  G()->shared_config().set_option_integer("video_note_size_max", setting_value);
+                }
+              }
+            } else {
+              LOG(ERROR) << "Receive unexpected video note setting " << to_string(video_note_setting);
+            }
+          }
+        } else {
+          LOG(ERROR) << "Receive unexpected round_video_encoding " << to_string(*value);
+        }
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }

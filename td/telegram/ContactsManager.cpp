@@ -1501,8 +1501,7 @@ class DeleteChatQuery final : public Td::ResultHandler {
 
     LOG(INFO) << "Receive result for DeleteChatQuery: " << result_ptr.ok();
     td->updates_manager_->get_difference("DeleteChatQuery");
-    td->updates_manager_->on_get_updates(make_tl_object<telegram_api::updates>(Auto(), Auto(), Auto(), 0, 0),
-                                         std::move(promise_));
+    td->updates_manager_->on_get_updates(make_tl_object<telegram_api::updates>(), std::move(promise_));
   }
 
   void on_error(uint64 id, Status status) final {
@@ -9360,7 +9359,7 @@ void ContactsManager::on_load_user_full_from_database(UserId user_id, string val
   if (is_user_deleted(user_id)) {
     drop_user_full(user_id);
   } else if (user_full->expires_at == 0.0) {
-    load_user_full(user_id, true, Auto());
+    load_user_full(user_id, true, Auto(), "on_load_user_full_from_database");
   }
 }
 
@@ -9601,7 +9600,7 @@ void ContactsManager::on_load_channel_full_from_database(ChannelId channel_id, s
   update_channel_full(channel_full, channel_id, true);
 
   if (channel_full->expires_at == 0.0) {
-    load_channel_full(channel_id, true, Auto());
+    load_channel_full(channel_id, true, Auto(), "on_load_channel_full_from_database");
   }
 }
 
@@ -11261,7 +11260,7 @@ bool ContactsManager::delete_profile_photo_from_cache(UserId user_id, int64 prof
       user_full->photo = Photo();
       user_full->is_changed = true;
 
-      load_user_full(user_id, true, Auto());
+      load_user_full(user_id, true, Auto(), "delete_profile_photo_from_cache");
     }
     if (send_updates) {
       update_user_full(user_full, user_id);
@@ -11321,7 +11320,7 @@ void ContactsManager::drop_user_photos(UserId user_id, bool is_empty, bool drop_
         user_full->expires_at = 0.0;
         user_full->need_save_to_database = true;
       }
-      load_user_full(user_id, true, Auto());
+      load_user_full(user_id, true, Auto(), "drop_user_photos");
     }
     update_user_full(user_full, user_id);
   }
@@ -13722,7 +13721,7 @@ void ContactsManager::reload_user(UserId user_id, Promise<Unit> &&promise) {
   td_->create_handler<GetUsersQuery>(std::move(promise))->send(std::move(users));
 }
 
-bool ContactsManager::load_user_full(UserId user_id, bool force, Promise<Unit> &&promise) {
+bool ContactsManager::load_user_full(UserId user_id, bool force, Promise<Unit> &&promise, const char *source) {
   auto u = get_user(user_id);
   if (u == nullptr) {
     promise.set_error(Status::Error(6, "User not found"));
@@ -13737,7 +13736,7 @@ bool ContactsManager::load_user_full(UserId user_id, bool force, Promise<Unit> &
       return false;
     }
 
-    send_get_user_full_query(user_id, std::move(input_user), std::move(promise), "load_user_full");
+    send_get_user_full_query(user_id, std::move(input_user), std::move(promise), source);
     return false;
   }
   if (user_full->is_expired()) {
@@ -14345,10 +14344,10 @@ ContactsManager::ChannelFull *ContactsManager::add_channel_full(ChannelId channe
   return channel_full_ptr.get();
 }
 
-bool ContactsManager::load_channel_full(ChannelId channel_id, bool force, Promise<Unit> &&promise) {
-  auto channel_full = get_channel_full_force(channel_id, "load_channel_full");
+bool ContactsManager::load_channel_full(ChannelId channel_id, bool force, Promise<Unit> &&promise, const char *source) {
+  auto channel_full = get_channel_full_force(channel_id, source);
   if (channel_full == nullptr) {
-    send_get_channel_full_query(channel_full, channel_id, std::move(promise), "load_channel_full");
+    send_get_channel_full_query(channel_full, channel_id, std::move(promise), source);
     return false;
   }
   if (channel_full->is_expired()) {
@@ -14374,7 +14373,11 @@ void ContactsManager::send_get_channel_full_query(ChannelFull *channel_full, Cha
                                                   Promise<Unit> &&promise, const char *source) {
   auto input_channel = get_input_channel(channel_id);
   if (input_channel == nullptr) {
-    return promise.set_error(Status::Error(6, "Supergroup not found"));
+    return promise.set_error(Status::Error(400, "Supergroup not found"));
+  }
+
+  if (!have_input_peer_channel(channel_id, AccessRights::Read)) {
+    return promise.set_error(Status::Error(400, "Can't access the chat"));
   }
 
   if (channel_full != nullptr) {
@@ -14892,6 +14895,7 @@ void ContactsManager::get_chat_participant(ChatId chat_id, UserId user_id, Promi
           send_closure(actor_id, &ContactsManager::finish_get_chat_participant, chat_id, user_id, std::move(promise));
         });
     send_get_chat_full_query(chat_id, std::move(query_promise), "get_chat_participant");
+    return;
   }
 
   if (is_chat_full_outdated(chat_full, c, chat_id)) {

@@ -135,7 +135,11 @@ bool TL_writer::is_documentation_generated() const {
   return false;
 }
 
-bool TL_writer::is_default_constructor_generated(const tl_combinator *t, bool is_function) const {
+bool TL_writer::is_default_constructor_generated(const tl_combinator *t, bool can_be_parsed, bool can_be_stored) const {
+  return true;
+}
+
+bool TL_writer::is_full_constructor_generated(const tl_combinator *t, bool can_be_parsed, bool can_be_stored) const {
   return true;
 }
 

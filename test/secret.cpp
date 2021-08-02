@@ -4,6 +4,7 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
+#include "td/telegram/EncryptedFile.h"
 #include "td/telegram/FolderId.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageId.h"
@@ -535,14 +536,13 @@ class FakeSecretChatContext final : public SecretChatActor::Context {
                              int32 date, string key_hash, int32 layer, FolderId initial_folder_id) final {
   }
 
-  void on_inbound_message(UserId user_id, MessageId message_id, int32 date,
-                          tl_object_ptr<telegram_api::encryptedFile> file,
+  void on_inbound_message(UserId user_id, MessageId message_id, int32 date, unique_ptr<EncryptedFile> file,
                           tl_object_ptr<secret_api::decryptedMessage> message, Promise<>) final;
 
   void on_send_message_error(int64 random_id, Status error, Promise<>) final;
   void on_send_message_ack(int64 random_id) final;
-  void on_send_message_ok(int64 random_id, MessageId message_id, int32 date,
-                          tl_object_ptr<telegram_api::EncryptedFile> file, Promise<>) final;
+  void on_send_message_ok(int64 random_id, MessageId message_id, int32 date, unique_ptr<EncryptedFile> file,
+                          Promise<>) final;
   void on_delete_messages(std::vector<int64> random_id, Promise<>) final;
   void on_flush_history(bool, MessageId, Promise<>) final;
   void on_read_message(int64, Promise<>) final;
@@ -974,7 +974,7 @@ void FakeSecretChatContext::send_net_query(NetQueryPtr query, ActorShared<NetQue
   send_closure(master_, &Master::send_net_query, std::move(query), std::move(callback), ordered);
 }
 void FakeSecretChatContext::on_inbound_message(UserId user_id, MessageId message_id, int32 date,
-                                               tl_object_ptr<telegram_api::encryptedFile> file,
+                                               unique_ptr<EncryptedFile> file,
                                                tl_object_ptr<secret_api::decryptedMessage> message, Promise<> promise) {
   send_closure(master_, &Master::on_inbound_message, message->message_, std::move(promise));
 }
@@ -984,7 +984,7 @@ void FakeSecretChatContext::on_send_message_error(int64 random_id, Status error,
 void FakeSecretChatContext::on_send_message_ack(int64 random_id) {
 }
 void FakeSecretChatContext::on_send_message_ok(int64 random_id, MessageId message_id, int32 date,
-                                               tl_object_ptr<telegram_api::EncryptedFile> file, Promise<> promise) {
+                                               unique_ptr<EncryptedFile> file, Promise<> promise) {
   send_closure(master_, &Master::on_send_message_ok, random_id, std::move(promise));
 }
 void FakeSecretChatContext::on_delete_messages(std::vector<int64> random_id, Promise<> promise) {

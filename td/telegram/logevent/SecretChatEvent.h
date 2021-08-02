@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/EncryptedFile.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/secret_api.h"
@@ -218,53 +219,6 @@ inline StringBuilder &operator<<(StringBuilder &sb, const EncryptedInputFile &fi
   return sb << to_string(file.as_input_encrypted_file());
 }
 
-// encryptedFile#4a70994c id:long access_hash:long size:int dc_id:int key_fingerprint:int = EncryptedFile;
-struct EncryptedFileLocation {
-  static constexpr int32 MAGIC = 0x473d738a;
-  int64 id = 0;
-  int64 access_hash = 0;
-  int32 size = 0;
-  int32 dc_id = 0;
-  int32 key_fingerprint = 0;
-
-  tl_object_ptr<telegram_api::encryptedFile> as_encrypted_file() {
-    return make_tl_object<telegram_api::encryptedFile>(id, access_hash, size, dc_id, key_fingerprint);
-  }
-  template <class StorerT>
-  void store(StorerT &storer) const {
-    using td::store;
-    store(MAGIC, storer);
-    store(id, storer);
-    store(access_hash, storer);
-    store(size, storer);
-    store(dc_id, storer);
-    store(key_fingerprint, storer);
-  }
-
-  template <class ParserT>
-  void parse(ParserT &parser) {
-    using td::parse;
-    int32 got_magic;
-
-    parse(got_magic, parser);
-    parse(id, parser);
-    parse(access_hash, parser);
-    parse(size, parser);
-    parse(dc_id, parser);
-    parse(key_fingerprint, parser);
-
-    if (got_magic != MAGIC) {
-      parser.set_error("EncryptedFileLocation magic mismatch");
-      return;
-    }
-  }
-};
-
-inline StringBuilder &operator<<(StringBuilder &sb, const EncryptedFileLocation &file) {
-  return sb << "[" << tag("id", file.id) << tag("access_hash", file.access_hash) << tag("size", file.size)
-            << tag("dc_id", file.dc_id) << tag("key_fingerprint", file.key_fingerprint) << "]";
-}
-
 // LogEvents
 // TODO: Qts and SeqNoState could be just Logevents that are updated during regenerate
 class InboundSecretMessage final : public SecretChatLogEventBase<InboundSecretMessage> {
@@ -291,15 +245,15 @@ class InboundSecretMessage final : public SecretChatLogEventBase<InboundSecretMe
     return decrypted_message_layer->layer_;
   }
 
-  EncryptedFileLocation file;
+  unique_ptr<EncryptedFile> file;
 
-  bool has_encrypted_file = false;
   bool is_pending = false;
 
   template <class StorerT>
   void store(StorerT &storer) const {
     using td::store;
 
+    bool has_encrypted_file = file != nullptr;
     BEGIN_STORE_FLAGS();
     STORE_FLAG(has_encrypted_file);
     STORE_FLAG(is_pending);
@@ -328,6 +282,7 @@ class InboundSecretMessage final : public SecretChatLogEventBase<InboundSecretMe
   void parse(ParserT &parser) {
     using td::parse;
 
+    bool has_encrypted_file;
     bool no_qts;
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(has_encrypted_file);
@@ -364,7 +319,7 @@ class InboundSecretMessage final : public SecretChatLogEventBase<InboundSecretMe
               << tag("date", date) << tag("auth_key_id", format::as_hex(auth_key_id)) << tag("message_id", message_id)
               << tag("my_in_seq_no", my_in_seq_no) << tag("my_out_seq_no", my_out_seq_no)
               << tag("his_in_seq_no", his_in_seq_no) << tag("message", to_string(decrypted_message_layer))
-              << tag("is_pending", is_pending) << format::cond(has_encrypted_file, tag("file", file)) << "]";
+              << tag("is_pending", is_pending) << format::cond(file != nullptr, tag("file", *file)) << "]";
   }
 };
 

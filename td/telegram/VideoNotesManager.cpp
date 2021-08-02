@@ -219,7 +219,7 @@ tl_object_ptr<telegram_api::InputMedia> VideoNotesManager::get_input_media(
         telegram_api::documentAttributeVideo::ROUND_MESSAGE_MASK, false /*ignored*/, false /*ignored*/,
         video_note->duration, video_note->dimensions.width ? video_note->dimensions.width : 240,
         video_note->dimensions.height ? video_note->dimensions.height : 240));
-    int32 flags = 0;
+    int32 flags = telegram_api::inputMediaUploadedDocument::NOSOUND_VIDEO_MASK;
     if (input_thumbnail != nullptr) {
       flags |= telegram_api::inputMediaUploadedDocument::THUMB_MASK;
     }

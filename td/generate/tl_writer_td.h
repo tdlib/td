@@ -35,7 +35,9 @@ class TD_TL_writer : public tl::TL_writer {
   bool is_built_in_complex_type(const std::string &name) const override;
   bool is_type_bare(const tl::tl_type *t) const override;
   bool is_combinator_supported(const tl::tl_combinator *constructor) const override;
-  bool is_default_constructor_generated(const tl::tl_combinator *t, bool is_function) const override;
+  bool is_default_constructor_generated(const tl::tl_combinator *t, bool can_be_parsed,
+                                        bool can_be_stored) const override;
+  bool is_full_constructor_generated(const tl::tl_combinator *t, bool can_be_parsed, bool can_be_stored) const override;
 
   int get_storer_type(const tl::tl_combinator *t, const std::string &storer_name) const override;
   Mode get_parser_mode(int type) const override;

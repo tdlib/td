@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/DhConfig.h"
+#include "td/telegram/EncryptedFile.h"
 #include "td/telegram/FolderId.h"
 #include "td/telegram/logevent/SecretChatEvent.h"
 #include "td/telegram/MessageId.h"
@@ -84,8 +85,7 @@ class SecretChatActor final : public NetQueryCallback {
     // this update through binlog too. So it wouldn't be deleted before update is saved.
 
     // inbound messages
-    virtual void on_inbound_message(UserId user_id, MessageId message_id, int32 date,
-                                    tl_object_ptr<telegram_api::encryptedFile> file,
+    virtual void on_inbound_message(UserId user_id, MessageId message_id, int32 date, unique_ptr<EncryptedFile> file,
                                     tl_object_ptr<secret_api::decryptedMessage> message, Promise<> promise) = 0;
     virtual void on_delete_messages(std::vector<int64> random_id, Promise<> promise) = 0;
     virtual void on_flush_history(bool remove_from_dialog_list, MessageId message_id, Promise<> promise) = 0;
@@ -97,8 +97,8 @@ class SecretChatActor final : public NetQueryCallback {
 
     // outbound messages
     virtual void on_send_message_ack(int64 random_id) = 0;
-    virtual void on_send_message_ok(int64 random_id, MessageId message_id, int32 date,
-                                    tl_object_ptr<telegram_api::EncryptedFile> file, Promise<> promise) = 0;
+    virtual void on_send_message_ok(int64 random_id, MessageId message_id, int32 date, unique_ptr<EncryptedFile> file,
+                                    Promise<> promise) = 0;
     virtual void on_send_message_error(int64 random_id, Status error, Promise<> promise) = 0;
   };
 

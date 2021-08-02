@@ -182,6 +182,7 @@ bool is_file_big(FileType file_type, int64 expected_size) {
     case FileType::ProfilePhoto:
     case FileType::Photo:
     case FileType::EncryptedThumbnail:
+    case FileType::VideoNote:
       return false;
     default:
       break;

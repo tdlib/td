@@ -635,13 +635,16 @@ Result<PasswordManager::PasswordInputSettings> PasswordManager::get_password_inp
 Result<PasswordManager::PasswordInputSettings> PasswordManager::get_password_input_settings(
     const UpdateSettings &update_settings, bool has_password, const NewPasswordState &state,
     const PasswordPrivateState *private_state) {
-  auto settings = make_tl_object<telegram_api::account_passwordInputSettings>();
   bool have_secret = private_state != nullptr && private_state->secret;
   auto update_secure_secret = update_settings.update_secure_secret;
+  int32 flags = 0;
+  BufferSlice new_password_hash;
+  tl_object_ptr<telegram_api::PasswordKdfAlgo> new_algo;
+  string new_hint;
   if (update_settings.update_password) {
-    settings->flags_ |= telegram_api::account_passwordInputSettings::NEW_PASSWORD_HASH_MASK;
-    settings->flags_ |= telegram_api::account_passwordInputSettings::NEW_ALGO_MASK;
-    settings->flags_ |= telegram_api::account_passwordInputSettings::HINT_MASK;
+    flags |= telegram_api::account_passwordInputSettings::NEW_PASSWORD_HASH_MASK;
+    flags |= telegram_api::account_passwordInputSettings::NEW_ALGO_MASK;
+    flags |= telegram_api::account_passwordInputSettings::HINT_MASK;
     if (!update_settings.new_password.empty()) {
       auto new_client_salt = create_salt(state.client_salt);
 
@@ -650,16 +653,15 @@ Result<PasswordManager::PasswordInputSettings> PasswordManager::get_password_inp
       if (new_hash.is_error()) {
         return Status::Error(400, "Unable to change password, because it may be unsafe");
       }
-      settings->new_password_hash_ = new_hash.move_as_ok();
-      settings->new_algo_ =
-          make_tl_object<telegram_api::passwordKdfAlgoSHA256SHA256PBKDF2HMACSHA512iter100000SHA256ModPow>(
-              std::move(new_client_salt), BufferSlice(state.server_salt), state.srp_g, BufferSlice(state.srp_p));
-      settings->hint_ = std::move(update_settings.new_hint);
+      new_password_hash = new_hash.move_as_ok();
+      new_algo = make_tl_object<telegram_api::passwordKdfAlgoSHA256SHA256PBKDF2HMACSHA512iter100000SHA256ModPow>(
+          std::move(new_client_salt), BufferSlice(state.server_salt), state.srp_g, BufferSlice(state.srp_p));
+      new_hint = std::move(update_settings.new_hint);
       if (have_secret) {
         update_secure_secret = true;
       }
     } else {
-      settings->new_algo_ = make_tl_object<telegram_api::passwordKdfAlgoUnknown>();
+      new_algo = make_tl_object<telegram_api::passwordKdfAlgoUnknown>();
     }
   }
 
@@ -673,6 +675,7 @@ Result<PasswordManager::PasswordInputSettings> PasswordManager::get_password_inp
     update_secure_secret = false;
   }
 
+  tl_object_ptr<telegram_api::secureSecretSettings> new_secure_settings;
   if (update_secure_secret) {
     auto secret = have_secret ? std::move(private_state->secret.value()) : secure_storage::Secret::create_new();
     auto algorithm =
@@ -681,15 +684,16 @@ Result<PasswordManager::PasswordInputSettings> PasswordManager::get_password_inp
         update_settings.update_password ? update_settings.new_password : update_settings.current_password,
         algorithm->salt_.as_slice(), secure_storage::EnryptionAlgorithm::Pbkdf2);
 
-    settings->flags_ |= telegram_api::account_passwordInputSettings::NEW_SECURE_SETTINGS_MASK;
-    settings->new_secure_settings_ = make_tl_object<telegram_api::secureSecretSettings>(
+    flags |= telegram_api::account_passwordInputSettings::NEW_SECURE_SETTINGS_MASK;
+    new_secure_settings = make_tl_object<telegram_api::secureSecretSettings>(
         std::move(algorithm), BufferSlice(encrypted_secret.as_slice()), secret.get_hash());
   }
   if (update_settings.update_recovery_email_address) {
-    settings->flags_ |= telegram_api::account_passwordInputSettings::EMAIL_MASK;
-    settings->email_ = std::move(update_settings.recovery_email_address);
+    flags |= telegram_api::account_passwordInputSettings::EMAIL_MASK;
   }
-  return std::move(settings);
+  return make_tl_object<telegram_api::account_passwordInputSettings>(
+      flags, std::move(new_algo), std::move(new_password_hash), new_hint, update_settings.recovery_email_address,
+      std::move(new_secure_settings));
 }
 
 void PasswordManager::do_update_password_settings_impl(UpdateSettings update_settings, PasswordState state,

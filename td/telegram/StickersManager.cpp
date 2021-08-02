@@ -5029,9 +5029,10 @@ void StickersManager::on_uploaded_sticker_file(FileId file_id, tl_object_ptr<tel
   }
 
   if (is_animated) {
-    merge_stickers(parsed_document.file_id, file_id, true);
+    merge_stickers(parsed_document.file_id, file_id, false);
   } else {
-    td_->documents_manager_->merge_documents(parsed_document.file_id, file_id, true);
+    // must not delete the old document, because the file_id could be used for simultaneous URL uploads
+    td_->documents_manager_->merge_documents(parsed_document.file_id, file_id, false);
   }
   promise.set_value(Unit());
 }

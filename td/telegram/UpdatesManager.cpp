@@ -165,7 +165,7 @@ class GetDifferenceQuery final : public Td::ResultHandler {
   }
 };
 
-const double UpdatesManager::MAX_UNFILLED_GAP_TIME = 0.4;
+const double UpdatesManager::MAX_UNFILLED_GAP_TIME = 0.7;
 
 UpdatesManager::UpdatesManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
   pts_manager_.init(-1);

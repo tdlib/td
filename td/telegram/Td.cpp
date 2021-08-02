@@ -702,7 +702,7 @@ class GetUserFullInfoRequest final : public RequestActor<> {
   UserId user_id_;
 
   void do_run(Promise<Unit> &&promise) final {
-    td->contacts_manager_->load_user_full(user_id_, get_tries() < 2, std::move(promise));
+    td->contacts_manager_->load_user_full(user_id_, get_tries() < 2, std::move(promise), "GetUserFullInfoRequest");
   }
 
   void do_send_result() final {
@@ -772,7 +772,8 @@ class GetSupergroupFullInfoRequest final : public RequestActor<> {
   ChannelId channel_id_;
 
   void do_run(Promise<Unit> &&promise) final {
-    td->contacts_manager_->load_channel_full(channel_id_, get_tries() < 2, std::move(promise));
+    td->contacts_manager_->load_channel_full(channel_id_, get_tries() < 2, std::move(promise),
+                                             "GetSupergroupFullInfoRequest");
   }
 
   void do_send_result() final {
@@ -3565,6 +3566,8 @@ bool Td::is_internal_config_option(Slice name) {
              name == "rating_e_decay" || name == "recent_stickers_limit";
     case 's':
       return name == "saved_animations_limit";
+    case 'v':
+      return name == "video_note_size_max";
     case 'w':
       return name == "webfile_dc_id";
     default:
@@ -4254,6 +4257,15 @@ void Td::init_options_and_network() {
   }
   if (!G()->shared_config().have_option("message_caption_length_max")) {
     G()->shared_config().set_option_integer("message_caption_length_max", 1024);
+  }
+  if (!G()->shared_config().have_option("suggested_video_note_length")) {
+    G()->shared_config().set_option_integer("suggested_video_note_length", 384);
+  }
+  if (!G()->shared_config().have_option("suggested_video_note_video_bitrate")) {
+    G()->shared_config().set_option_integer("suggested_video_note_video_bitrate", 1000);
+  }
+  if (!G()->shared_config().have_option("suggested_video_note_audio_bitrate")) {
+    G()->shared_config().set_option_integer("suggested_video_note_audio_bitrate", 64);
   }
 
   init_connection_creator();

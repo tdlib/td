@@ -18,12 +18,12 @@ QueryCombiner::QueryCombiner(Slice name, double min_delay) : next_query_time_(Ti
 }
 
 void QueryCombiner::add_query(int64 query_id, Promise<Promise<Unit>> &&send_query, Promise<Unit> &&promise) {
-  LOG(INFO) << "Add query " << query_id;
+  LOG(INFO) << "Add query " << query_id << " with" << (promise ? "" : "out") << " promise";
   auto &query = queries_[query_id];
   if (promise) {
     query.promises.push_back(std::move(promise));
   } else if (min_delay_ > 0 && !query.is_sent) {
-    // if there is no promise, than no one waits for response
+    // if there is no promise, then noone waits for response
     // we can delay query to not exceed any flood limit
     if (query.send_query) {
       // the query is already delayed

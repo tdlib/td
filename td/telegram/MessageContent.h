@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/DialogId.h"
+#include "td/telegram/EncryptedFile.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/FullMessageId.h"
 #include "td/telegram/InputGroupCallId.h"
@@ -176,7 +177,7 @@ void unregister_message_content(Td *td, const MessageContent *content, FullMessa
                                 const char *source);
 
 unique_ptr<MessageContent> get_secret_message_content(
-    Td *td, string message_text, tl_object_ptr<telegram_api::encryptedFile> file,
+    Td *td, string message_text, unique_ptr<EncryptedFile> file,
     tl_object_ptr<secret_api::DecryptedMessageMedia> &&media,
     vector<tl_object_ptr<secret_api::MessageEntity>> &&secret_entities, DialogId owner_dialog_id,
     MultiPromiseActor &load_data_multipromise);
