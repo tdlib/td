@@ -36018,11 +36018,6 @@ void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool succ
       send_closure_later(G()->notification_manager(), &NotificationManager::after_get_chat_difference,
                          d->mention_notification_group.group_id);
     }
-
-    if (!td_->auth_manager_->is_bot() && have_access && !d->last_message_id.is_valid() && !d->is_empty &&
-        (d->order != DEFAULT_ORDER || is_dialog_sponsored(d))) {
-      get_history_from_the_end_impl(d, true, false, Auto());
-    }
   } else {
     is_channel_difference_finished_.insert(dialog_id);
   }
@@ -36049,6 +36044,11 @@ void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool succ
 
     on_get_dialogs(res.folder_id, std::move(res.dialogs), res.total_count, std::move(res.messages),
                    std::move(res.promise));
+  }
+
+  if (d != nullptr && !td_->auth_manager_->is_bot() && have_access && !d->last_message_id.is_valid() && !d->is_empty &&
+      (d->order != DEFAULT_ORDER || is_dialog_sponsored(d))) {
+    get_history_from_the_end_impl(d, true, false, Auto());
   }
 }
 
