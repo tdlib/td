@@ -14373,7 +14373,11 @@ void ContactsManager::send_get_channel_full_query(ChannelFull *channel_full, Cha
                                                   Promise<Unit> &&promise, const char *source) {
   auto input_channel = get_input_channel(channel_id);
   if (input_channel == nullptr) {
-    return promise.set_error(Status::Error(6, "Supergroup not found"));
+    return promise.set_error(Status::Error(400, "Supergroup not found"));
+  }
+
+  if (!have_input_peer_channel(channel_id, AccessRights::Read)) {
+    return promise.set_error(Status::Error(400, "Can't access the chat"));
   }
 
   if (channel_full != nullptr) {
