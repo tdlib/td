@@ -7320,7 +7320,7 @@ void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_p
     // if there is no dialog, it can be created by the update
     LOG(INFO) << "Receive pending update from " << source << " about unknown " << dialog_id;
     if (running_get_channel_difference(dialog_id)) {
-      promise.set_value(Unit());
+      add_postponed_channel_update(dialog_id, std::move(update), new_pts, pts_count, std::move(promise));
       return;
     }
   } else {
