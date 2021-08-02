@@ -77,7 +77,8 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
     switch (attribute->get_id()) {
       case telegram_api::documentAttributeImageSize::ID: {
         auto image_size = move_tl_object_as<telegram_api::documentAttributeImageSize>(attribute);
-        dimensions = get_dimensions(image_size->w_, image_size->h_, "documentAttributeImageSize");
+        dimensions =
+            get_dimensions(image_size->w_, image_size->h_, oneline(to_string(remote_document.document)).c_str());
         break;
       }
       case telegram_api::documentAttributeAnimated::ID:
