@@ -9359,7 +9359,7 @@ void ContactsManager::on_load_user_full_from_database(UserId user_id, string val
   if (is_user_deleted(user_id)) {
     drop_user_full(user_id);
   } else if (user_full->expires_at == 0.0) {
-    load_user_full(user_id, true, Auto());
+    load_user_full(user_id, true, Auto(), "on_load_user_full_from_database");
   }
 }
 
@@ -11260,7 +11260,7 @@ bool ContactsManager::delete_profile_photo_from_cache(UserId user_id, int64 prof
       user_full->photo = Photo();
       user_full->is_changed = true;
 
-      load_user_full(user_id, true, Auto());
+      load_user_full(user_id, true, Auto(), "delete_profile_photo_from_cache");
     }
     if (send_updates) {
       update_user_full(user_full, user_id);
@@ -11320,7 +11320,7 @@ void ContactsManager::drop_user_photos(UserId user_id, bool is_empty, bool drop_
         user_full->expires_at = 0.0;
         user_full->need_save_to_database = true;
       }
-      load_user_full(user_id, true, Auto());
+      load_user_full(user_id, true, Auto(), "drop_user_photos");
     }
     update_user_full(user_full, user_id);
   }
@@ -13721,7 +13721,7 @@ void ContactsManager::reload_user(UserId user_id, Promise<Unit> &&promise) {
   td_->create_handler<GetUsersQuery>(std::move(promise))->send(std::move(users));
 }
 
-bool ContactsManager::load_user_full(UserId user_id, bool force, Promise<Unit> &&promise) {
+bool ContactsManager::load_user_full(UserId user_id, bool force, Promise<Unit> &&promise, const char *source) {
   auto u = get_user(user_id);
   if (u == nullptr) {
     promise.set_error(Status::Error(6, "User not found"));
@@ -13736,7 +13736,7 @@ bool ContactsManager::load_user_full(UserId user_id, bool force, Promise<Unit> &
       return false;
     }
 
-    send_get_user_full_query(user_id, std::move(input_user), std::move(promise), "load_user_full");
+    send_get_user_full_query(user_id, std::move(input_user), std::move(promise), source);
     return false;
   }
   if (user_full->is_expired()) {

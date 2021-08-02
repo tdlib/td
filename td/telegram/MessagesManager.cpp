@@ -17063,7 +17063,7 @@ void MessagesManager::get_dialog_info_full(DialogId dialog_id, Promise<Unit> &&p
   switch (dialog_id.get_type()) {
     case DialogType::User:
       send_closure_later(G()->contacts_manager(), &ContactsManager::load_user_full, dialog_id.get_user_id(), false,
-                         std::move(promise));
+                         std::move(promise), source);
       return;
     case DialogType::Chat:
       send_closure_later(G()->contacts_manager(), &ContactsManager::load_chat_full, dialog_id.get_chat_id(), false,
