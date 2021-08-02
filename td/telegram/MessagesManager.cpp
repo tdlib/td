@@ -22331,6 +22331,10 @@ void MessagesManager::get_history_from_the_end_impl(const Dialog *d, bool from_d
       promise.set_value(Unit());
       return;
     }
+    if (!promise && !G()->parameters().use_message_db) {
+      // repair last message ID
+      limit = 10;
+    }
 
     LOG(INFO) << "Get history from the end of " << dialog_id << " from server";
     td_->create_handler<GetHistoryQuery>(std::move(promise))
