@@ -33923,7 +33923,8 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
              order != DEFAULT_ORDER) {
     // asynchronously get dialog folder identifier from the server
     get_dialog_info_full(dialog_id, Auto(), "fix_new_dialog init folder_id");
-  } else if (!d->is_message_ttl_setting_inited && !td_->auth_manager_->is_bot() && order != DEFAULT_ORDER) {
+  } else if (!d->is_message_ttl_setting_inited && !td_->auth_manager_->is_bot() &&
+             have_input_peer(dialog_id, AccessRights::Write)) {
     // asynchronously get dialog message TTL setting from the server
     get_dialog_info_full(dialog_id, Auto(), "fix_new_dialog init message_ttl_setting");
   }
