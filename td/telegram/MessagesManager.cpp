@@ -13632,7 +13632,8 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
 
     need_update = false;
 
-    if (old_message_id.is_valid() && message_id.is_valid() && message_id < old_message_id) {
+    if (old_message_id.is_valid() && message_id.is_valid() && message_id < old_message_id &&
+        !can_overflow_message_id(dialog_id)) {
       LOG(ERROR) << "Sent " << old_message_id << " to " << dialog_id << " as " << message_id;
     }
 
@@ -23104,8 +23105,7 @@ void MessagesManager::fix_server_reply_to_message_id(DialogId dialog_id, Message
   }
 
   if (!message_id.is_scheduled() && !reply_in_dialog_id.is_valid() && reply_to_message_id >= message_id) {
-    if (reply_to_message_id.get() - message_id.get() <= MessageId(ServerMessageId(1000000)).get() ||
-        dialog_id.get_type() == DialogType::Channel) {
+    if (!can_overflow_message_id(dialog_id)) {
       LOG(ERROR) << "Receive reply to wrong " << reply_to_message_id << " in " << message_id << " in " << dialog_id;
     }
     reply_to_message_id = MessageId();
@@ -24446,6 +24446,21 @@ void MessagesManager::do_send_inline_query_result_message(DialogId dialog_id, co
   }
   m->send_query_ref = td_->create_handler<SendInlineBotResultQuery>()->send(
       flags, dialog_id, m->reply_to_message_id, get_message_schedule_date(m), random_id, query_id, result_id);
+}
+
+bool MessagesManager::can_overflow_message_id(DialogId dialog_id) {
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+    case DialogType::Chat:
+      return G()->shared_config().get_option_integer("session_count") > 1;
+    case DialogType::Channel:
+    case DialogType::SecretChat:
+      return false;
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+      return false;
+  }
 }
 
 bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, bool is_editing,
@@ -28612,7 +28627,7 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
     send_update_message_content(dialog_id, sent_message.get(), source);
   }
 
-  if (old_message_id.is_valid() && new_message_id < old_message_id) {
+  if (old_message_id.is_valid() && new_message_id < old_message_id && !can_overflow_message_id(dialog_id)) {
     LOG(ERROR) << "Sent " << old_message_id << " to " << dialog_id << " as " << new_message_id;
   }
 
