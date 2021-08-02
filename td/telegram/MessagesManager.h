@@ -489,7 +489,7 @@ class MessagesManager final : public Actor {
 
   void unpin_all_dialog_messages(DialogId dialog_id, Promise<Unit> &&promise);
 
-  void get_dialog_info_full(DialogId dialog_id, Promise<Unit> &&promise);
+  void get_dialog_info_full(DialogId dialog_id, Promise<Unit> &&promise, const char *source);
 
   int64 get_dialog_event_log(DialogId dialog_id, const string &query, int64 from_event_id, int32 limit,
                              const tl_object_ptr<td_api::chatEventLogFilters> &filters, const vector<UserId> &user_ids,

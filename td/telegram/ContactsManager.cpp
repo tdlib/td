@@ -9600,7 +9600,7 @@ void ContactsManager::on_load_channel_full_from_database(ChannelId channel_id, s
   update_channel_full(channel_full, channel_id, true);
 
   if (channel_full->expires_at == 0.0) {
-    load_channel_full(channel_id, true, Auto());
+    load_channel_full(channel_id, true, Auto(), "on_load_channel_full_from_database");
   }
 }
 
@@ -14344,10 +14344,10 @@ ContactsManager::ChannelFull *ContactsManager::add_channel_full(ChannelId channe
   return channel_full_ptr.get();
 }
 
-bool ContactsManager::load_channel_full(ChannelId channel_id, bool force, Promise<Unit> &&promise) {
-  auto channel_full = get_channel_full_force(channel_id, "load_channel_full");
+bool ContactsManager::load_channel_full(ChannelId channel_id, bool force, Promise<Unit> &&promise, const char *source) {
+  auto channel_full = get_channel_full_force(channel_id, source);
   if (channel_full == nullptr) {
-    send_get_channel_full_query(channel_full, channel_id, std::move(promise), "load_channel_full");
+    send_get_channel_full_query(channel_full, channel_id, std::move(promise), source);
     return false;
   }
   if (channel_full->is_expired()) {
