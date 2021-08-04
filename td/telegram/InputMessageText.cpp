@@ -54,8 +54,9 @@ Result<InputMessageText> process_input_message_text(const ContactsManager *conta
   return std::move(result);
 }
 
+// used only for draft
 td_api::object_ptr<td_api::inputMessageText> get_input_message_text_object(const InputMessageText &input_message_text) {
-  return td_api::make_object<td_api::inputMessageText>(get_formatted_text_object(input_message_text.text, false),
+  return td_api::make_object<td_api::inputMessageText>(get_formatted_text_object(input_message_text.text, false, -1),
                                                        input_message_text.disable_web_page_preview,
                                                        input_message_text.clear_draft);
 }

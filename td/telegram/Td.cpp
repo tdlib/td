@@ -8320,7 +8320,8 @@ td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getTextEn
     return make_error(400, "Text must be encoded in UTF-8");
   }
   auto text_entities = find_entities(request.text_, false, false);
-  return make_tl_object<td_api::textEntities>(get_text_entities_object(text_entities, false));
+  return make_tl_object<td_api::textEntities>(
+      get_text_entities_object(text_entities, false, std::numeric_limits<int32>::max()));
 }
 
 td_api::object_ptr<td_api::Object> Td::do_static_request(td_api::parseTextEntities &request) {
@@ -8355,7 +8356,7 @@ td_api::object_ptr<td_api::Object> Td::do_static_request(td_api::parseTextEntiti
   }
 
   return make_tl_object<td_api::formattedText>(std::move(request.text_),
-                                               get_text_entities_object(r_entities.ok(), false));
+                                               get_text_entities_object(r_entities.ok(), false, -1));
 }
 
 td_api::object_ptr<td_api::Object> Td::do_static_request(td_api::parseMarkdown &request) {
@@ -8375,7 +8376,7 @@ td_api::object_ptr<td_api::Object> Td::do_static_request(td_api::parseMarkdown &
 
   auto parsed_text = parse_markdown_v3({std::move(request.text_->text_), std::move(entities)});
   fix_formatted_text(parsed_text.text, parsed_text.entities, true, true, true, true, true).ensure();
-  return get_formatted_text_object(parsed_text, true);
+  return get_formatted_text_object(parsed_text, false, std::numeric_limits<int32>::max());
 }
 
 td_api::object_ptr<td_api::Object> Td::do_static_request(td_api::getMarkdownText &request) {
@@ -8393,7 +8394,8 @@ td_api::object_ptr<td_api::Object> Td::do_static_request(td_api::getMarkdownText
     return make_error(400, status.error().message());
   }
 
-  return get_formatted_text_object(get_markdown_v3({std::move(request.text_->text_), std::move(entities)}), true);
+  return get_formatted_text_object(get_markdown_v3({std::move(request.text_->text_), std::move(entities)}), false,
+                                   std::numeric_limits<int32>::max());
 }
 
 td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getFileMimeType &request) {

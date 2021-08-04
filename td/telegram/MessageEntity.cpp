@@ -145,12 +145,16 @@ tl_object_ptr<td_api::textEntity> MessageEntity::get_text_entity_object() const 
 }
 
 vector<tl_object_ptr<td_api::textEntity>> get_text_entities_object(const vector<MessageEntity> &entities,
-                                                                   bool skip_bot_commands) {
+                                                                   bool skip_bot_commands, int32 max_media_timestamp) {
   vector<tl_object_ptr<td_api::textEntity>> result;
   result.reserve(entities.size());
 
   for (auto &entity : entities) {
     if (skip_bot_commands && entity.type == MessageEntity::Type::BotCommand) {
+      continue;
+    }
+    if (entity.type == MessageEntity::Type::MediaTimestamp &&
+        (max_media_timestamp < 0 || max_media_timestamp < to_integer<int32>(entity.argument))) {
       continue;
     }
     auto entity_object = entity.get_text_entity_object();
@@ -166,9 +170,10 @@ StringBuilder &operator<<(StringBuilder &string_builder, const FormattedText &te
   return string_builder << '"' << text.text << "\" with entities " << text.entities;
 }
 
-td_api::object_ptr<td_api::formattedText> get_formatted_text_object(const FormattedText &text, bool skip_bot_commands) {
-  return td_api::make_object<td_api::formattedText>(text.text,
-                                                    get_text_entities_object(text.entities, skip_bot_commands));
+td_api::object_ptr<td_api::formattedText> get_formatted_text_object(const FormattedText &text, bool skip_bot_commands,
+                                                                    int32 max_media_timestamp) {
+  return td_api::make_object<td_api::formattedText>(
+      text.text, get_text_entities_object(text.entities, skip_bot_commands, max_media_timestamp));
 }
 
 static bool is_word_character(uint32 code) {

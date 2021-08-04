@@ -133,9 +133,10 @@ Result<vector<MessageEntity>> get_message_entities(const ContactsManager *contac
                                                    bool allow_all = false);
 
 vector<tl_object_ptr<td_api::textEntity>> get_text_entities_object(const vector<MessageEntity> &entities,
-                                                                   bool skip_bot_commands);
+                                                                   bool skip_bot_commands, int32 max_media_timestamp);
 
-td_api::object_ptr<td_api::formattedText> get_formatted_text_object(const FormattedText &text, bool skip_bot_commands);
+td_api::object_ptr<td_api::formattedText> get_formatted_text_object(const FormattedText &text, bool skip_bot_commands,
+                                                                    int32 max_media_timestamp);
 
 vector<MessageEntity> find_entities(Slice text, bool skip_bot_commands, bool skip_media_timestamps);
 

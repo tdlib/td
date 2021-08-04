@@ -42,7 +42,7 @@ class TermsOfService {
       return nullptr;
     }
 
-    return td_api::make_object<td_api::termsOfService>(get_formatted_text_object(text_, true), min_user_age_,
+    return td_api::make_object<td_api::termsOfService>(get_formatted_text_object(text_, true, -1), min_user_age_,
                                                        show_popup_);
   }
 

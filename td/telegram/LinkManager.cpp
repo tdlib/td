@@ -192,7 +192,7 @@ class LinkManager::InternalLinkMessageDraft final : public InternalLink {
   bool contains_link_ = false;
 
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
-    return td_api::make_object<td_api::internalLinkTypeMessageDraft>(get_formatted_text_object(text_, true),
+    return td_api::make_object<td_api::internalLinkTypeMessageDraft>(get_formatted_text_object(text_, true, -1),
                                                                      contains_link_);
   }
 
@@ -367,7 +367,7 @@ class GetDeepLinkInfoQuery final : public Td::ResultHandler {
         }
         FormattedText text{std::move(info->message_), std::move(entities)};
         return promise_.set_value(
-            td_api::make_object<td_api::deepLinkInfo>(get_formatted_text_object(text, true), need_update));
+            td_api::make_object<td_api::deepLinkInfo>(get_formatted_text_object(text, true, -1), need_update));
       }
       default:
         UNREACHABLE();

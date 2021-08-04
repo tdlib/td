@@ -1254,11 +1254,16 @@ tl_object_ptr<td_api::webPage> WebPagesManager::get_web_page_object(WebPageId we
     }
   }
 
+  int32 max_media_timestamp = -1;
+  if (web_page->document.type == Document::Type::Audio || web_page->document.type == Document::Type::Video ||
+      web_page->document.type == Document::Type::VideoNote || web_page->document.type == Document::Type::VoiceNote) {
+    max_media_timestamp = web_page->duration == 0 ? std::numeric_limits<int32>::max() : web_page->duration;
+  }
   return make_tl_object<td_api::webPage>(
       web_page->url, web_page->display_url, web_page->type, web_page->site_name, web_page->title,
-      get_formatted_text_object(description, true), get_photo_object(td_->file_manager_.get(), web_page->photo),
-      web_page->embed_url, web_page->embed_type, web_page->embed_dimensions.width, web_page->embed_dimensions.height,
-      web_page->duration, web_page->author,
+      get_formatted_text_object(description, true, max_media_timestamp),
+      get_photo_object(td_->file_manager_.get(), web_page->photo), web_page->embed_url, web_page->embed_type,
+      web_page->embed_dimensions.width, web_page->embed_dimensions.height, web_page->duration, web_page->author,
       web_page->document.type == Document::Type::Animation
           ? td_->animations_manager_->get_animation_object(web_page->document.file_id, "get_web_page_object")
           : nullptr,
