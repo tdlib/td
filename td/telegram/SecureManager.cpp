@@ -441,8 +441,8 @@ void SetSecureValue::start_up() {
     for (auto it = secure_value_.files.begin(); it != secure_value_.files.end();) {
       auto file_id = file_manager->get_file_view(it->file_id).file_id();
       bool is_duplicate = false;
-      for (auto pit = secure_value_.files.begin(); pit != it; pit++) {
-        if (file_id == file_manager->get_file_view(pit->file_id).file_id()) {
+      for (auto other_it = secure_value_.files.begin(); other_it != it; ++other_it) {
+        if (file_id == file_manager->get_file_view(other_it->file_id).file_id()) {
           is_duplicate = true;
           break;
         }
@@ -458,8 +458,8 @@ void SetSecureValue::start_up() {
     for (auto it = secure_value_.translations.begin(); it != secure_value_.translations.end();) {
       auto file_id = file_manager->get_file_view(it->file_id).file_id();
       bool is_duplicate = file_id == front_side_file_id || file_id == reverse_side_file_id || file_id == selfie_file_id;
-      for (auto pit = secure_value_.translations.begin(); pit != it; pit++) {
-        if (file_id == file_manager->get_file_view(pit->file_id).file_id()) {
+      for (auto other_it = secure_value_.translations.begin(); other_it != it; ++other_it) {
+        if (file_id == file_manager->get_file_view(other_it->file_id).file_id()) {
           is_duplicate = true;
           break;
         }

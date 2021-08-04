@@ -1440,7 +1440,7 @@ static void remove_entities_intersecting_blockquote(vector<MessageEntity> &entit
     while (blockquote_it != blockquote_entities.end() &&
            (blockquote_it->type != MessageEntity::Type::BlockQuote ||
             blockquote_it->offset + blockquote_it->length <= entities[i].offset)) {
-      blockquote_it++;
+      ++blockquote_it;
     }
     if (blockquote_it != blockquote_entities.end() &&
         (blockquote_it->offset + blockquote_it->length < entities[i].offset + entities[i].length ||
@@ -1546,17 +1546,17 @@ static vector<MessageEntity> merge_entities(vector<MessageEntity> old_entities, 
   for (auto &old_entity : old_entities) {
     while (new_it != new_end && new_it->offset + new_it->length <= old_entity.offset) {
       result.push_back(std::move(*new_it));
-      new_it++;
+      ++new_it;
     }
     auto old_entity_end = old_entity.offset + old_entity.length;
     result.push_back(std::move(old_entity));
     while (new_it != new_end && new_it->offset < old_entity_end) {
-      new_it++;
+      ++new_it;
     }
   }
   while (new_it != new_end) {
     result.push_back(std::move(*new_it));
-    new_it++;
+    ++new_it;
   }
 
   return result;

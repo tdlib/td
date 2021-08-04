@@ -136,8 +136,8 @@ void update_suggested_actions(vector<SuggestedAction> &suggested_actions,
     } else if (old_it == suggested_actions.end() || *new_it < *old_it) {
       added_actions.push_back(*new_it++);
     } else {
-      old_it++;
-      new_it++;
+      ++old_it;
+      ++new_it;
     }
   }
   CHECK(!added_actions.empty() || !removed_actions.empty());
