@@ -17369,7 +17369,7 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(FullMessageId 
   }
   if (media_timestamp != 0) {
     for_group = false;
-    auto duration = get_message_content_duration(m->content.get(), td_);
+    auto duration = get_message_content_media_duration(m->content.get(), td_);
     if (duration != 0 && media_timestamp > duration) {
       media_timestamp = 0;
     }
@@ -17630,7 +17630,7 @@ td_api::object_ptr<td_api::messageLinkInfo> MessagesManager::get_message_link_in
       for_album = !info.is_single && m->media_album_id != 0;
       for_comment = (info.comment_dialog_id.is_valid() || info.for_comment) && m->top_thread_message_id.is_valid();
       if (can_message_content_have_media_timestamp(m->content.get())) {
-        auto duration = get_message_content_duration(m->content.get(), td_);
+        auto duration = get_message_content_media_duration(m->content.get(), td_);
         if (duration == 0 || info.media_timestamp <= duration) {
           media_timestamp = info.media_timestamp;
         }
@@ -22841,7 +22841,7 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   auto edit_date = m->hide_edit_date ? 0 : m->edit_date;
   auto is_pinned = for_event_log || is_scheduled ? false : m->is_pinned;
   bool skip_bot_commands = for_event_log ? true : need_skip_bot_commands(dialog_id, m);
-  int32 max_media_timestamp = for_event_log ? -1 : get_message_content_duration(m->content.get(), td_);
+  int32 max_media_timestamp = for_event_log ? -1 : get_message_content_media_duration(m->content.get(), td_);
   string source = PSTRING() << dialog_id << ' ' << m->message_id;
   return make_tl_object<td_api::message>(
       m->message_id.get(), get_message_sender_object_const(m->sender_user_id, m->sender_dialog_id, source.c_str()),
@@ -28145,7 +28145,7 @@ void MessagesManager::send_update_message_content(DialogId dialog_id, const Mess
 void MessagesManager::send_update_message_content_impl(DialogId dialog_id, const Message *m, const char *source) const {
   CHECK(m != nullptr);
   LOG(INFO) << "Send updateMessageContent for " << m->message_id << " in " << dialog_id << " from " << source;
-  int32 max_media_timestamp = get_message_content_duration(m->content.get(), td_);
+  int32 max_media_timestamp = get_message_content_media_duration(m->content.get(), td_);
   auto content_object =
       get_message_content_object(m->content.get(), td_, dialog_id, m->is_failed_to_send ? 0 : m->date,
                                  m->is_content_secret, need_skip_bot_commands(dialog_id, m), max_media_timestamp);

@@ -4921,10 +4921,6 @@ int32 get_message_content_duration(const MessageContent *content, const Td *td) 
       auto audio_file_id = static_cast<const MessageAudio *>(content)->file_id;
       return td->audios_manager_->get_audio_duration(audio_file_id);
     }
-    case MessageContentType::Text: {
-      auto web_page_id = static_cast<const MessageText *>(content)->web_page_id;
-      return td->web_pages_manager_->get_web_page_duration(web_page_id);
-    }
     case MessageContentType::Video: {
       auto video_file_id = static_cast<const MessageVideo *>(content)->file_id;
       return td->videos_manager_->get_video_duration(video_file_id);
@@ -4939,6 +4935,34 @@ int32 get_message_content_duration(const MessageContent *content, const Td *td) 
     }
     default:
       return 0;
+  }
+}
+
+int32 get_message_content_media_duration(const MessageContent *content, const Td *td) {
+  CHECK(content != nullptr);
+  switch (content->get_type()) {
+    case MessageContentType::Audio: {
+      auto audio_file_id = static_cast<const MessageAudio *>(content)->file_id;
+      return td->audios_manager_->get_audio_duration(audio_file_id);
+    }
+    case MessageContentType::Text: {
+      auto web_page_id = static_cast<const MessageText *>(content)->web_page_id;
+      return td->web_pages_manager_->get_web_page_media_duration(web_page_id);
+    }
+    case MessageContentType::Video: {
+      auto video_file_id = static_cast<const MessageVideo *>(content)->file_id;
+      return td->videos_manager_->get_video_duration(video_file_id);
+    }
+    case MessageContentType::VideoNote: {
+      auto video_note_file_id = static_cast<const MessageVideoNote *>(content)->file_id;
+      return td->video_notes_manager_->get_video_note_duration(video_note_file_id);
+    }
+    case MessageContentType::VoiceNote: {
+      auto voice_file_id = static_cast<const MessageVoiceNote *>(content)->file_id;
+      return td->voice_notes_manager_->get_voice_note_duration(voice_file_id);
+    }
+    default:
+      return -1;
   }
 }
 

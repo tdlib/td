@@ -87,7 +87,7 @@ class WebPagesManager final : public Actor {
 
   string get_web_page_search_text(WebPageId web_page_id) const;
 
-  int32 get_web_page_duration(WebPageId web_page_id) const;
+  int32 get_web_page_media_duration(WebPageId web_page_id) const;
 
  private:
   static constexpr int32 WEBPAGE_FLAG_HAS_TYPE = 1 << 0;
@@ -169,6 +169,8 @@ class WebPagesManager final : public Actor {
                                              Result<> result);
 
   void tear_down() final;
+
+  static int32 get_web_page_media_duration(const WebPage *web_page);
 
   FileSourceId get_web_page_file_source_id(WebPage *web_page);
 

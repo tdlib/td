@@ -207,6 +207,8 @@ const FormattedText *get_message_content_caption(const MessageContent *content);
 
 int32 get_message_content_duration(const MessageContent *content, const Td *td);
 
+int32 get_message_content_media_duration(const MessageContent *content, const Td *td);
+
 FileId get_message_content_upload_file_id(const MessageContent *content);
 
 FileId get_message_content_any_file_id(const MessageContent *content);
