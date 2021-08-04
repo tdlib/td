@@ -6,6 +6,7 @@
 //
 #include "td/telegram/MessageEntity.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/common.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
@@ -17,6 +18,7 @@
 #include "td/utils/utf8.h"
 
 #include <algorithm>
+#include <utility>
 
 static void check_mention(const td::string &str, const td::vector<td::string> &expected) {
   auto result_slice = td::find_mentions(str);
@@ -172,8 +174,9 @@ TEST(MessageEntities, cashtag) {
   check_cashtag(u8"\u2122$ABC\u2122", {"$ABC"});
 }
 
-static void check_media_timestamp(const td::string &str, const td::vector<std::pair<td::Slice, td::int32>> &expected) {
-  auto result = td::find_media_timestamps(str);
+static void check_media_timestamp(const td::string &str, const td::vector<std::pair<td::string, td::int32>> &expected) {
+  auto result = td::transform(td::find_media_timestamps(str),
+                              [](auto &&entity) { return std::make_pair(entity.first.str(), entity.second); });
   if (result != expected) {
     LOG(FATAL) << td::tag("text", str) << td::tag("got", td::format::as_array(result))
                << td::tag("expected", td::format::as_array(expected));
