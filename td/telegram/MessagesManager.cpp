@@ -696,7 +696,9 @@ class ExportChannelMessageLinkQuery final : public Td::ResultHandler {
     for_group_ = for_group;
     ignore_result_ = ignore_result;
     auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
-    CHECK(input_channel != nullptr);
+    if (input_channel == nullptr) {
+      return on_error(0, Status::Error(400, "Can't access the chat"));
+    }
     int32 flags = 0;
     if (for_group) {
       flags |= telegram_api::channels_exportMessageLink::GROUPED_MASK;
@@ -17294,6 +17296,35 @@ bool MessagesManager::is_message_edited_recently(FullMessageId full_message_id, 
   return m->edit_date >= G()->unix_time() - seconds;
 }
 
+Status MessagesManager::can_get_media_timestamp_link(DialogId dialog_id, const Message *m) {
+  if (m == nullptr) {
+    return Status::Error(400, "Message not found");
+  }
+
+  if (dialog_id.get_type() != DialogType::Channel) {
+    auto forward_info = m->forward_info.get();
+    if (!can_message_content_have_media_timestamp(m->content.get()) || forward_info == nullptr ||
+        forward_info->is_imported || is_forward_info_sender_hidden(forward_info) ||
+        !forward_info->message_id.is_valid() || !m->forward_info->message_id.is_server() ||
+        !forward_info->sender_dialog_id.is_valid() ||
+        forward_info->sender_dialog_id.get_type() != DialogType::Channel) {
+      return Status::Error(400, "Message links are available only for messages in supergroups and channel chats");
+    }
+    return Status::OK();
+  }
+
+  if (m->message_id.is_yet_unsent()) {
+    return Status::Error(400, "Message is not sent yet");
+  }
+  if (m->message_id.is_scheduled()) {
+    return Status::Error(400, "Message is scheduled");
+  }
+  if (!m->message_id.is_server()) {
+    return Status::Error(400, "Message is local");
+  }
+  return Status::OK();
+}
+
 Result<std::pair<string, bool>> MessagesManager::get_message_link(FullMessageId full_message_id, int32 media_timestamp,
                                                                   bool for_group, bool for_comment) {
   auto dialog_id = full_message_id.get_dialog_id();
@@ -17304,26 +17335,23 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(FullMessageId 
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
     return Status::Error(400, "Can't access the chat");
   }
-  if (dialog_id.get_type() != DialogType::Channel) {
-    return Status::Error(400, "Public message links are available only for messages in supergroups and channel chats");
-  }
 
   auto *m = get_message_force(d, full_message_id.get_message_id(), "get_message_link");
-  if (m == nullptr) {
-    return Status::Error(400, "Message not found");
-  }
-  if (m->message_id.is_yet_unsent()) {
-    return Status::Error(400, "Message is not sent yet");
-  }
-  if (m->message_id.is_scheduled()) {
-    return Status::Error(400, "Message is scheduled");
-  }
-  if (!m->message_id.is_server()) {
-    return Status::Error(400, "Message is local");
-  }
+  TRY_STATUS(can_get_media_timestamp_link(dialog_id, m));
+  auto message_id = m->message_id;
+  if (dialog_id.get_type() != DialogType::Channel) {
+    CHECK(m != nullptr);
+    CHECK(m->forward_info != nullptr);
+    CHECK(m->forward_info->sender_dialog_id.get_type() == DialogType::Channel);
 
-  if (m->media_album_id == 0) {
-    for_group = true;  // default is true
+    dialog_id = m->forward_info->sender_dialog_id;
+    message_id = m->forward_info->message_id;
+    for_group = false;
+    for_comment = false;
+  } else {
+    if (m->media_album_id == 0) {
+      for_group = true;  // default is true
+    }
   }
 
   if (!m->top_thread_message_id.is_valid() || !m->top_thread_message_id.is_server()) {
@@ -17340,6 +17368,7 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(FullMessageId 
     media_timestamp = 0;
   }
   if (media_timestamp != 0) {
+    for_group = false;
     auto duration = get_message_content_duration(m->content.get(), td_);
     if (duration != 0 && media_timestamp > duration) {
       media_timestamp = 0;
@@ -17348,7 +17377,7 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(FullMessageId 
 
   if (!td_->auth_manager_->is_bot()) {
     td_->create_handler<ExportChannelMessageLinkQuery>(Promise<Unit>())
-        ->send(dialog_id.get_channel_id(), m->message_id, for_group, true);
+        ->send(dialog_id.get_channel_id(), message_id, for_group, true);
   }
 
   SliceBuilder sb;
@@ -17368,7 +17397,7 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(FullMessageId 
           linked_message_id.is_server() && have_input_peer(linked_dialog_id, AccessRights::Read) &&
           !channel_username.empty()) {
         sb << channel_username << '/' << linked_message_id.get_server_message_id().get()
-           << "?comment=" << m->message_id.get_server_message_id().get();
+           << "?comment=" << message_id.get_server_message_id().get();
         if (!for_group) {
           sb << "&single";
         }
@@ -17384,8 +17413,7 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(FullMessageId 
   bool is_public = !dialog_username.empty();
   if (m->content->get_type() == MessageContentType::VideoNote && is_broadcast_channel(dialog_id) && is_public) {
     return std::make_pair(
-        PSTRING() << "https://telesco.pe/" << dialog_username << '/' << m->message_id.get_server_message_id().get(),
-        true);
+        PSTRING() << "https://telesco.pe/" << dialog_username << '/' << message_id.get_server_message_id().get(), true);
   }
 
   if (is_public) {
@@ -17393,7 +17421,7 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(FullMessageId 
   } else {
     sb << "c/" << dialog_id.get_channel_id().get();
   }
-  sb << '/' << m->message_id.get_server_message_id().get();
+  sb << '/' << message_id.get_server_message_id().get();
 
   char separator = '?';
   if (for_comment) {
@@ -22800,6 +22828,7 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   bool can_be_forwarded = for_event_log ? false : can_forward_message(dialog_id, m);
   bool can_get_statistics = for_event_log ? false : can_get_message_statistics(dialog_id, m);
   bool can_get_message_thread = for_event_log ? false : get_top_thread_full_message_id(dialog_id, m).is_ok();
+  bool can_get_media_timestamp_links = for_event_log ? false : can_get_media_timestamp_link(dialog_id, m).is_ok();
   auto via_bot_user_id = td_->contacts_manager_->get_user_id_object(m->via_bot_user_id, "via_bot_user_id");
   auto media_album_id = for_event_log ? static_cast<int64>(0) : m->media_album_id;
   auto reply_to_message_id = for_event_log ? static_cast<int64>(0) : m->reply_to_message_id.get();
@@ -22817,10 +22846,10 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
       m->message_id.get(), get_message_sender_object_const(m->sender_user_id, m->sender_dialog_id, source.c_str()),
       dialog_id.get(), std::move(sending_state), std::move(scheduling_state), is_outgoing, is_pinned, can_be_edited,
       can_be_forwarded, can_delete_for_self, can_delete_for_all_users, can_get_statistics, can_get_message_thread,
-      m->is_channel_post, contains_unread_mention, date, edit_date, get_message_forward_info_object(m->forward_info),
-      get_message_interaction_info_object(dialog_id, m), reply_in_dialog_id.get(), reply_to_message_id,
-      top_thread_message_id, ttl, ttl_expires_in, via_bot_user_id, m->author_signature, media_album_id,
-      get_restriction_reason_description(m->restriction_reasons),
+      can_get_media_timestamp_links, m->is_channel_post, contains_unread_mention, date, edit_date,
+      get_message_forward_info_object(m->forward_info), get_message_interaction_info_object(dialog_id, m),
+      reply_in_dialog_id.get(), reply_to_message_id, top_thread_message_id, ttl, ttl_expires_in, via_bot_user_id,
+      m->author_signature, media_album_id, get_restriction_reason_description(m->restriction_reasons),
       get_message_content_object(m->content.get(), td_, dialog_id, live_location_date, m->is_content_secret,
                                  skip_bot_commands),
       get_reply_markup_object(m->reply_markup));

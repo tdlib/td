@@ -1776,6 +1776,8 @@ class MessagesManager final : public Actor {
 
   Status can_pin_messages(DialogId dialog_id) const;
 
+  static Status can_get_media_timestamp_link(DialogId dialog_id, const Message *m);
+
   void cancel_edit_message_media(DialogId dialog_id, Message *m, Slice error_message);
 
   void on_message_media_edited(DialogId dialog_id, MessageId message_id, FileId file_id, FileId thumbnail_file_id,
