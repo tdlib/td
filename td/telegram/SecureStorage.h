@@ -182,10 +182,6 @@ struct EncryptedValue {
   BufferSlice data;
   ValueHash hash;
 };
-struct EncryptedFile {
-  std::string path;
-  ValueHash hash;
-};
 
 Result<EncryptedValue> encrypt_value(const Secret &secret, Slice data);
 Result<ValueHash> encrypt_file(const Secret &secret, std::string src, std::string dest);
