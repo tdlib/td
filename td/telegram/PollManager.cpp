@@ -1549,7 +1549,7 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
     if (!clean_input_string(poll_results->solution_)) {
       poll_results->solution_.clear();
     }
-    entities = find_entities(poll_results->solution_, true);
+    entities = find_entities(poll_results->solution_, true, true);
   }
   FormattedText explanation{std::move(poll_results->solution_), std::move(entities)};
 

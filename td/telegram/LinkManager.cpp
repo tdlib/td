@@ -363,7 +363,7 @@ class GetDeepLinkInfoQuery final : public Td::ResultHandler {
           if (!clean_input_string(info->message_)) {
             info->message_.clear();
           }
-          entities = find_entities(info->message_, true);
+          entities = find_entities(info->message_, true, true);
         }
         FormattedText text{std::move(info->message_), std::move(entities)};
         return promise_.set_value(

@@ -1030,7 +1030,7 @@ static void parse_caption(FormattedText &caption, ParserT &parser) {
     if (!check_utf8(caption.text)) {
       caption.text.clear();
     }
-    caption.entities = find_entities(caption.text, false);
+    caption.entities = find_entities(caption.text, false, true);
   }
 }
 
@@ -3823,14 +3823,14 @@ unique_ptr<MessageContent> get_secret_message_content(
   }
 
   auto entities = get_message_entities(std::move(secret_entities));
-  auto status = fix_formatted_text(message_text, entities, true, false, true, true, false);
+  auto status = fix_formatted_text(message_text, entities, true, false, true, td->auth_manager_->is_bot(), false);
   if (status.is_error()) {
     LOG(WARNING) << "Receive error " << status << " while parsing secret message \"" << message_text
                  << "\" with entities " << format::as_array(entities);
     if (!clean_input_string(message_text)) {
       message_text.clear();
     }
-    entities = find_entities(message_text, true);
+    entities = find_entities(message_text, true, td->auth_manager_->is_bot());
   }
 
   // support of old layer and old constructions

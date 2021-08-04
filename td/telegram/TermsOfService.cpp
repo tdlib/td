@@ -100,7 +100,7 @@ TermsOfService::TermsOfService(telegram_api::object_ptr<telegram_api::help_terms
     if (!clean_input_string(terms->text_)) {
       terms->text_.clear();
     }
-    entities = find_entities(terms->text_, true);
+    entities = find_entities(terms->text_, true, true);
   }
   if (terms->text_.empty()) {
     id_.clear();

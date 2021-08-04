@@ -8319,7 +8319,7 @@ td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getTextEn
   if (!check_utf8(request.text_)) {
     return make_error(400, "Text must be encoded in UTF-8");
   }
-  auto text_entities = find_entities(request.text_, false);
+  auto text_entities = find_entities(request.text_, false, false);
   return make_tl_object<td_api::textEntities>(get_text_entities_object(text_entities, false));
 }
 

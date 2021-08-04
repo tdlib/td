@@ -51,7 +51,7 @@ unique_ptr<DraftMessage> get_draft_message(ContactsManager *contacts_manager,
         if (!clean_input_string(draft->message_)) {
           draft->message_.clear();
         }
-        entities = find_entities(draft->message_, false);
+        entities = find_entities(draft->message_, false, true);
       }
       result->input_message_text.text = FormattedText{std::move(draft->message_), std::move(entities)};
       result->input_message_text.disable_web_page_preview = (flags & telegram_api::draftMessage::NO_WEBPAGE_MASK) != 0;

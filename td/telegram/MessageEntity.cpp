@@ -1593,7 +1593,7 @@ static void fix_entity_offsets(Slice text, vector<MessageEntity> &entities) {
   }
 }
 
-vector<MessageEntity> find_entities(Slice text, bool skip_bot_commands) {
+vector<MessageEntity> find_entities(Slice text, bool skip_bot_commands, bool skip_media_timestamps) {
   vector<MessageEntity> entities;
 
   auto add_entities = [&entities, &text](MessageEntity::Type type, vector<Slice> (*find_entities_f)(Slice)) mutable {
@@ -1622,6 +1622,15 @@ vector<MessageEntity> find_entities(Slice text, bool skip_bot_commands) {
     entities.emplace_back(type, offset, length);
   }
 
+  if (!skip_media_timestamps) {
+    auto media_timestamps = find_media_timestamps(text);
+    for (auto &entity : media_timestamps) {
+      auto offset = narrow_cast<int32>(entity.first.begin() - text.begin());
+      auto length = narrow_cast<int32>(entity.first.size());
+      entities.emplace_back(MessageEntity::Type::MediaTimestamp, offset, length, to_string(entity.second));
+    }
+  }
+
   fix_entity_offsets(text, entities);
 
   return entities;
@@ -1630,8 +1639,8 @@ vector<MessageEntity> find_entities(Slice text, bool skip_bot_commands) {
 static vector<MessageEntity> find_media_timestamp_entities(Slice text) {
   vector<MessageEntity> entities;
 
-  auto new_entities = find_media_timestamps(text);
-  for (auto &entity : new_entities) {
+  auto media_timestamps = find_media_timestamps(text);
+  for (auto &entity : media_timestamps) {
     auto offset = narrow_cast<int32>(entity.first.begin() - text.begin());
     auto length = narrow_cast<int32>(entity.first.size());
     entities.emplace_back(MessageEntity::Type::MediaTimestamp, offset, length, to_string(entity.second));
@@ -2353,7 +2362,7 @@ static vector<MessageEntity> find_splittable_entities_v3(Slice text, const vecto
     }
   }
 
-  auto found_entities = find_entities(text, false);
+  auto found_entities = find_entities(text, false, true);
   td::remove_if(found_entities, [](const auto &entity) {
     return entity.type == MessageEntity::Type::EmailAddress || entity.type == MessageEntity::Type::Url;
   });
@@ -3992,9 +4001,8 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
   }
 
   if (!skip_new_entities) {
-    merge_new_entities(entities, find_entities(text, skip_bot_commands));
-  }
-  if (!skip_media_timestamps) {
+    merge_new_entities(entities, find_entities(text, skip_bot_commands, skip_media_timestamps));
+  } else if (!skip_media_timestamps) {
     merge_new_entities(entities, find_media_timestamp_entities(text));
   }
 
@@ -4024,7 +4032,7 @@ FormattedText get_message_text(const ContactsManager *contacts_manager, string m
     if (!clean_input_string(message_text)) {
       message_text.clear();
     }
-    entities = find_entities(message_text, false);
+    entities = find_entities(message_text, false, skip_media_timestamps);
   }
   return FormattedText{std::move(message_text), std::move(entities)};
 }
