@@ -31950,6 +31950,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(DialogId dialog
   return add_message_to_dialog(d, std::move(message), from_update, need_update, need_update_dialog_pos, source);
 }
 
+// keep synced with add_scheduled_message_to_dialog
 MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, unique_ptr<Message> message,
                                                                  bool from_update, bool *need_update,
                                                                  bool *need_update_dialog_pos, const char *source) {
@@ -32796,6 +32797,9 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
   }
 
   LOG(INFO) << "Adding not found " << message_id << " to " << dialog_id << " from " << source;
+
+  update_message_max_reply_media_timestamp(d, message.get(), false);
+  update_message_max_own_media_timestamp(d, message.get());
 
   const Message *m = message.get();
   if (m->message_id.is_yet_unsent() && m->reply_to_message_id.is_valid() && !m->reply_to_message_id.is_yet_unsent()) {
