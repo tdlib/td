@@ -196,6 +196,8 @@ Result<FormattedText> process_input_caption(const ContactsManager *contacts_mana
 
 void add_formatted_text_dependencies(Dependencies &dependencies, const FormattedText *text);
 
+bool has_media_timestamps(const FormattedText *text, int32 min_timestamp, int32 max_timestamp);
+
 bool has_bot_commands(const FormattedText *text);
 
 bool need_always_skip_bot_commands(const ContactsManager *contacts_manager, DialogId dialog_id, bool is_bot);

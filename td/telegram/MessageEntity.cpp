@@ -4096,6 +4096,21 @@ void add_formatted_text_dependencies(Dependencies &dependencies, const Formatted
   }
 }
 
+bool has_media_timestamps(const FormattedText *text, int32 min_timestamp, int32 max_timestamp) {
+  if (text == nullptr) {
+    return false;
+  }
+  for (auto &entity : text->entities) {
+    if (entity.type == MessageEntity::Type::MediaTimestamp) {
+      int32 timestamp = to_integer<int32>(entity.argument);
+      if (min_timestamp <= timestamp && timestamp <= max_timestamp) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 bool has_bot_commands(const FormattedText *text) {
   if (text == nullptr) {
     return false;
