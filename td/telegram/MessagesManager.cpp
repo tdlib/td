@@ -12147,6 +12147,7 @@ void MessagesManager::on_message_ttl_expired(Dialog *d, Message *m) {
   on_message_ttl_expired_impl(d, m);
   register_message_content(td_, m->content.get(), {d->dialog_id, m->message_id}, "on_message_ttl_expired");
   send_update_message_content(d, m, "on_message_ttl_expired");
+  // the caller must call on_message_changed
 }
 
 void MessagesManager::on_message_ttl_expired_impl(Dialog *d, Message *m) {
@@ -14205,12 +14206,14 @@ void MessagesManager::on_update_sent_text_message(int64 random_id,
   }
 
   auto full_message_id = it->second;
-  auto m = get_message_force(full_message_id, "on_update_sent_text_message");
+  auto dialog_id = full_message_id.get_dialog_id();
+  Dialog *d = get_dialog(dialog_id);
+  auto m = get_message_force(d, full_message_id.get_message_id(), "on_update_sent_text_message");
   if (m == nullptr) {
     // message has already been deleted
     return;
   }
-  auto dialog_id = full_message_id.get_dialog_id();
+  CHECK(m->message_id.is_yet_unsent());
   full_message_id = FullMessageId(dialog_id, m->message_id);
 
   if (m->content->get_type() != MessageContentType::Text) {
@@ -14243,8 +14246,10 @@ void MessagesManager::on_update_sent_text_message(int64 random_id,
   }
   if (need_update) {
     send_update_message_content(dialog_id, m, "on_update_sent_text_message");
+    if (m->message_id == d->last_message_id) {
+      send_update_chat_last_message_impl(d, "on_update_sent_text_message");
+    }
   }
-  // there is no need to call on_message_changed, because only content was changed
 }
 
 void MessagesManager::delete_pending_message_web_page(FullMessageId full_message_id) {
@@ -23872,8 +23877,10 @@ void MessagesManager::on_upload_message_media_success(DialogId dialog_id, Messag
   auto content = get_message_content(td_, caption == nullptr ? FormattedText() : *caption, std::move(media), dialog_id,
                                      false, UserId(), nullptr);
 
-  update_message_content(dialog_id, m, std::move(content), true, true, true);
-  // there is no need to call on_message_changed, because only content was changed
+  if (update_message_content(dialog_id, m, std::move(content), true, true, true) &&
+      m->message_id == d->last_message_id) {
+    send_update_chat_last_message_impl(d, "on_upload_message_media_success");
+  }
 
   auto input_media = get_input_media(m->content.get(), td_, m->ttl, m->send_emoji, true);
   Status result;
@@ -33727,7 +33734,7 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
   if (need_update && need_send_update_message_content) {
     send_update_message_content(dialog_id, old_message, "update_message_content");
   }
-  return is_content_changed || need_update;
+  return need_update;
 }
 
 MessagesManager::Dialog *MessagesManager::get_dialog_by_message_id(MessageId message_id) {
