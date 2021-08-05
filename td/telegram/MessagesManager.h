@@ -1059,6 +1059,9 @@ class MessagesManager final : public Actor {
     NotificationId notification_id;
     NotificationId removed_notification_id;
 
+    int32 max_reply_media_timestamp = -1;
+    int32 max_own_media_timestamp = -1;
+
     int32 view_count = 0;
     int32 forward_count = 0;
     MessageReplyInfo reply_info;
@@ -2143,6 +2146,10 @@ class MessagesManager final : public Actor {
   bool update_message_content(DialogId dialog_id, Message *old_message, unique_ptr<MessageContent> new_content,
                               bool need_send_update_message_content, bool need_merge_files, bool is_message_in_dialog);
 
+  void update_message_max_reply_media_timestamp(const Dialog *d, Message *m, bool need_send_update_message_content);
+
+  void update_message_max_own_media_timestamp(const Dialog *d, Message *m);
+
   void send_update_new_message(const Dialog *d, const Message *m);
 
   static bool is_from_mention_notification_group(const Dialog *d, const Message *m);
@@ -2199,7 +2206,9 @@ class MessagesManager final : public Actor {
 
   void send_update_message_send_succeeded(Dialog *d, MessageId old_message_id, const Message *m) const;
 
-  void send_update_message_content(DialogId dialog_id, const Message *m, const char *source);
+  void send_update_message_content(DialogId dialog_id, Message *m, const char *source);
+
+  void send_update_message_content(const Dialog *d, Message *m, const char *source);
 
   void send_update_message_content_impl(DialogId dialog_id, const Message *m, const char *source) const;
 
@@ -2601,6 +2610,10 @@ class MessagesManager final : public Actor {
   bool is_discussion_message(DialogId dialog_id, const Message *m) const;
 
   bool has_message_sender_user_id(DialogId dialog_id, const Message *m) const;
+
+  int32 get_message_own_max_media_timestamp(const Message *m) const;
+
+  static int32 get_message_max_media_timestamp(const Message *m);
 
   static bool get_message_disable_web_page_preview(const Message *m);
 

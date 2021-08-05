@@ -4858,6 +4858,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool has_send_emoji = !send_emoji.empty();
   bool is_imported = is_forwarded && forward_info->is_imported;
   bool has_ttl_period = ttl_period != 0;
+  bool has_max_reply_media_timestamp = max_reply_media_timestamp >= 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_channel_post);
   STORE_FLAG(is_outgoing);
@@ -4919,6 +4920,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(has_send_emoji);
     STORE_FLAG(is_imported);
     STORE_FLAG(has_ttl_period);  // 25
+    STORE_FLAG(has_max_reply_media_timestamp);
     END_STORE_FLAGS();
   }
 
@@ -5034,6 +5036,9 @@ void MessagesManager::Message::store(StorerT &storer) const {
   if (has_ttl_period) {
     store(ttl_period, storer);
   }
+  if (has_max_reply_media_timestamp) {
+    store(max_reply_media_timestamp, storer);
+  }
 }
 
 // do not forget to resolve message dependencies
@@ -5075,6 +5080,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   bool has_send_emoji = false;
   bool is_imported = false;
   bool has_ttl_period = false;
+  bool has_max_reply_media_timestamp = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_channel_post);
   PARSE_FLAG(is_outgoing);
@@ -5136,6 +5142,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(has_send_emoji);
     PARSE_FLAG(is_imported);
     PARSE_FLAG(has_ttl_period);
+    PARSE_FLAG(has_max_reply_media_timestamp);
     END_PARSE_FLAGS();
   }
 
@@ -5257,6 +5264,9 @@ void MessagesManager::Message::parse(ParserT &parser) {
   }
   if (has_ttl_period) {
     parse(ttl_period, parser);
+  }
+  if (has_max_reply_media_timestamp) {
+    parse(max_reply_media_timestamp, parser);
   }
 
   is_content_secret |=
@@ -6950,11 +6960,11 @@ bool MessagesManager::need_skip_bot_commands(DialogId dialog_id, const Message *
 }
 
 void MessagesManager::on_external_update_message_content(FullMessageId full_message_id) {
-  const Dialog *d = get_dialog(full_message_id.get_dialog_id());
+  Dialog *d = get_dialog(full_message_id.get_dialog_id());
   CHECK(d != nullptr);
-  const Message *m = get_message(d, full_message_id.get_message_id());
+  Message *m = get_message(d, full_message_id.get_message_id());
   CHECK(m != nullptr);
-  send_update_message_content(d->dialog_id, m, "on_external_update_message_content");
+  send_update_message_content(d, m, "on_external_update_message_content");
   if (m->message_id == d->last_message_id) {
     send_update_chat_last_message_impl(d, "on_external_update_message_content");
   }
@@ -12136,7 +12146,7 @@ void MessagesManager::on_message_ttl_expired(Dialog *d, Message *m) {
   remove_message_file_sources(d->dialog_id, m);
   on_message_ttl_expired_impl(d, m);
   register_message_content(td_, m->content.get(), {d->dialog_id, m->message_id}, "on_message_ttl_expired");
-  send_update_message_content(d->dialog_id, m, "on_message_ttl_expired");
+  send_update_message_content(d, m, "on_message_ttl_expired");
 }
 
 void MessagesManager::on_message_ttl_expired_impl(Dialog *d, Message *m) {
@@ -12164,6 +12174,7 @@ void MessagesManager::on_message_ttl_expired_impl(Dialog *d, Message *m) {
   update_message_contains_unread_mention(d, m, false, "on_message_ttl_expired_impl");
   m->contains_mention = false;
   m->reply_to_message_id = MessageId();
+  m->max_reply_media_timestamp = -1;
   m->reply_in_dialog_id = DialogId();
   m->top_thread_message_id = MessageId();
   m->linked_top_thread_message_id = MessageId();
@@ -14233,6 +14244,7 @@ void MessagesManager::on_update_sent_text_message(int64 random_id,
   if (need_update) {
     send_update_message_content(dialog_id, m, "on_update_sent_text_message");
   }
+  // there is no need to call on_message_changed, because only content was changed
 }
 
 void MessagesManager::delete_pending_message_web_page(FullMessageId full_message_id) {
@@ -22841,7 +22853,8 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   auto edit_date = m->hide_edit_date ? 0 : m->edit_date;
   auto is_pinned = for_event_log || is_scheduled ? false : m->is_pinned;
   bool skip_bot_commands = for_event_log ? true : need_skip_bot_commands(dialog_id, m);
-  int32 max_media_timestamp = for_event_log ? -1 : get_message_content_media_duration(m->content.get(), td_);
+  int32 max_media_timestamp =
+      for_event_log ? get_message_own_max_media_timestamp(m) : get_message_max_media_timestamp(m);
   string source = PSTRING() << dialog_id << ' ' << m->message_id;
   return make_tl_object<td_api::message>(
       m->message_id.get(), get_message_sender_object_const(m->sender_user_id, m->sender_dialog_id, source.c_str()),
@@ -23860,6 +23873,7 @@ void MessagesManager::on_upload_message_media_success(DialogId dialog_id, Messag
                                      false, UserId(), nullptr);
 
   update_message_content(dialog_id, m, std::move(content), true, true, true);
+  // there is no need to call on_message_changed, because only content was changed
 
   auto input_media = get_input_media(m->content.get(), td_, m->ttl, m->send_emoji, true);
   Status result;
@@ -25422,6 +25436,74 @@ bool MessagesManager::has_message_sender_user_id(DialogId dialog_id, const Messa
     return false;
   }
   return true;
+}
+
+int32 MessagesManager::get_message_own_max_media_timestamp(const Message *m) const {
+  auto duration = get_message_content_media_duration(m->content.get(), td_);
+  return duration == 0 ? std::numeric_limits<int32>::max() : duration;
+}
+
+int32 MessagesManager::get_message_max_media_timestamp(const Message *m) {
+  return m->max_own_media_timestamp != -1 ? m->max_own_media_timestamp : m->max_reply_media_timestamp;
+}
+
+void MessagesManager::update_message_max_reply_media_timestamp(const Dialog *d, Message *m,
+                                                               bool need_send_update_message_content) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  auto new_max_reply_media_timestamp = m->max_reply_media_timestamp;
+  if (!m->reply_to_message_id.is_valid()) {
+    new_max_reply_media_timestamp = -1;
+  } else {
+    auto replied_m = get_message(d, m->reply_to_message_id);
+    if (replied_m != nullptr) {
+      new_max_reply_media_timestamp = get_message_own_max_media_timestamp(replied_m);
+    } else if (d->deleted_message_ids.count(m->reply_to_message_id) ||
+               m->reply_to_message_id <= d->last_clear_history_message_id ||
+               m->reply_to_message_id <= d->max_unavailable_message_id) {
+      new_max_reply_media_timestamp = -1;
+    } else {
+      // replied message isn't deleted and isn't loaded yet
+      return;
+    }
+  }
+
+  if (m->max_reply_media_timestamp == new_max_reply_media_timestamp) {
+    return;
+  }
+
+  LOG(INFO) << "Set max_reply_media_timestamp in " << m->message_id << " in " << d->dialog_id << " to "
+            << new_max_reply_media_timestamp;
+  auto old_max_media_timestamp = get_message_max_media_timestamp(m);
+  m->max_reply_media_timestamp = new_max_reply_media_timestamp;
+  auto new_max_media_timestamp = get_message_max_media_timestamp(m);
+  if (need_send_update_message_content && old_max_media_timestamp != new_max_media_timestamp) {
+    if (old_max_media_timestamp > new_max_media_timestamp) {
+      std::swap(old_max_media_timestamp, new_max_media_timestamp);
+    }
+
+    if (has_media_timestamps(get_message_content_text(m->content.get()), old_max_media_timestamp + 1,
+                             new_max_media_timestamp)) {
+      send_update_message_content_impl(d->dialog_id, m, "update_message_max_reply_media_timestamp");
+    }
+  }
+}
+
+void MessagesManager::update_message_max_own_media_timestamp(const Dialog *d, Message *m) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+  auto new_max_own_media_timestamp = get_message_own_max_media_timestamp(m);
+  if (m->max_own_media_timestamp == new_max_own_media_timestamp) {
+    return;
+  }
+
+  LOG(INFO) << "Set max_own_media_timestamp in " << m->message_id << " in " << d->dialog_id << " to "
+            << new_max_own_media_timestamp;
+  m->max_own_media_timestamp = new_max_own_media_timestamp;
+  // TODO update replied messages
 }
 
 bool MessagesManager::get_message_disable_web_page_preview(const Message *m) {
@@ -28133,22 +28215,28 @@ void MessagesManager::send_update_message_send_succeeded(Dialog *d, MessageId ol
       make_tl_object<td_api::updateMessageSendSucceeded>(get_message_object(d->dialog_id, m), old_message_id.get()));
 }
 
-void MessagesManager::send_update_message_content(DialogId dialog_id, const Message *m, const char *source) {
+void MessagesManager::send_update_message_content(DialogId dialog_id, Message *m, const char *source) {
+  Dialog *d = get_dialog(dialog_id);
+  LOG_CHECK(d != nullptr) << "Send updateMessageContent in unknown " << dialog_id << " from " << source
+                          << " with load count " << loaded_dialogs_.count(dialog_id);
+  send_update_message_content(d, m, source);
+}
+
+void MessagesManager::send_update_message_content(const Dialog *d, Message *m, const char *source) {
+  CHECK(d != nullptr);
   CHECK(m != nullptr);
-  LOG_CHECK(have_dialog(dialog_id)) << "Send updateMessageContent in unknown " << dialog_id << " from " << source
-                                    << " with load count " << loaded_dialogs_.count(dialog_id);
-  delete_bot_command_message_id(dialog_id, m->message_id);
-  try_add_bot_command_message_id(dialog_id, m);
-  send_update_message_content_impl(dialog_id, m, source);
+  delete_bot_command_message_id(d->dialog_id, m->message_id);
+  try_add_bot_command_message_id(d->dialog_id, m);
+  update_message_max_own_media_timestamp(d, m);
+  send_update_message_content_impl(d->dialog_id, m, source);
 }
 
 void MessagesManager::send_update_message_content_impl(DialogId dialog_id, const Message *m, const char *source) const {
   CHECK(m != nullptr);
   LOG(INFO) << "Send updateMessageContent for " << m->message_id << " in " << dialog_id << " from " << source;
-  int32 max_media_timestamp = get_message_content_media_duration(m->content.get(), td_);
-  auto content_object =
-      get_message_content_object(m->content.get(), td_, dialog_id, m->is_failed_to_send ? 0 : m->date,
-                                 m->is_content_secret, need_skip_bot_commands(dialog_id, m), max_media_timestamp);
+  auto content_object = get_message_content_object(m->content.get(), td_, dialog_id, m->is_failed_to_send ? 0 : m->date,
+                                                   m->is_content_secret, need_skip_bot_commands(dialog_id, m),
+                                                   get_message_max_media_timestamp(m));
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateMessageContent>(dialog_id.get(), m->message_id.get(),
                                                                  std::move(content_object)));
@@ -28664,7 +28752,7 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
   // }
 
   if (merge_message_content_file_id(td_, sent_message->content.get(), new_file_id)) {
-    send_update_message_content(dialog_id, sent_message.get(), source);
+    send_update_message_content(d, sent_message.get(), source);
   }
 
   if (old_message_id.is_valid() && new_message_id < old_message_id && !can_overflow_message_id(dialog_id)) {
@@ -32436,6 +32524,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       }
     }
   }
+  update_message_max_reply_media_timestamp(d, message.get(), false);
+  update_message_max_own_media_timestamp(d, message.get());
 
   const Message *m = message.get();
   if (m->message_id.is_yet_unsent() && m->reply_to_message_id.is_valid() && !m->reply_to_message_id.is_yet_unsent()) {
@@ -33305,6 +33395,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     if (new_message->reply_to_message_id == MessageId() || replace_legacy) {
       LOG(DEBUG) << "Drop message reply_to_message_id";
       old_message->reply_to_message_id = MessageId();
+      update_message_max_reply_media_timestamp(d, old_message, true);
       need_send_update = true;
     } else if (is_new_available) {
       LOG(ERROR) << message_id << " in " << dialog_id << " has changed message it is reply to from "
