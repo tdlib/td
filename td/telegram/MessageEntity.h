@@ -51,19 +51,24 @@ class MessageEntity {
     MediaTimestamp,
     Size
   };
-  Type type;
-  int32 offset;
-  int32 length;
+  Type type = Type::Size;
+  int32 offset = -1;
+  int32 length = -1;
+  int32 media_timestamp = -1;
   string argument;
   UserId user_id;
 
   MessageEntity() = default;
 
   MessageEntity(Type type, int32 offset, int32 length, string argument = "")
-      : type(type), offset(offset), length(length), argument(std::move(argument)), user_id() {
+      : type(type), offset(offset), length(length), media_timestamp(-1), argument(std::move(argument)), user_id() {
   }
   MessageEntity(int32 offset, int32 length, UserId user_id)
-      : type(Type::MentionName), offset(offset), length(length), argument(), user_id(user_id) {
+      : type(Type::MentionName), offset(offset), length(length), media_timestamp(-1), argument(), user_id(user_id) {
+  }
+  MessageEntity(Type type, int32 offset, int32 length, int32 media_timestamp)
+      : type(type), offset(offset), length(length), media_timestamp(media_timestamp), argument(), user_id(user_id) {
+    CHECK(type == Type::MediaTimestamp);
   }
 
   tl_object_ptr<td_api::textEntity> get_text_entity_object() const;
@@ -196,7 +201,7 @@ Result<FormattedText> process_input_caption(const ContactsManager *contacts_mana
 
 void add_formatted_text_dependencies(Dependencies &dependencies, const FormattedText *text);
 
-bool has_media_timestamps(const FormattedText *text, int32 min_timestamp, int32 max_timestamp);
+bool has_media_timestamps(const FormattedText *text, int32 min_media_timestamp, int32 max_media_timestamp);
 
 bool has_bot_commands(const FormattedText *text);
 

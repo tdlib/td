@@ -133,7 +133,7 @@ tl_object_ptr<td_api::TextEntityType> MessageEntity::get_text_entity_type_object
     case MessageEntity::Type::BankCardNumber:
       return make_tl_object<td_api::textEntityTypeBankCardNumber>();
     case MessageEntity::Type::MediaTimestamp:
-      return make_tl_object<td_api::textEntityTypeMediaTimestamp>(to_integer<int32>(argument));
+      return make_tl_object<td_api::textEntityTypeMediaTimestamp>(media_timestamp);
     default:
       UNREACHABLE();
       return nullptr;
@@ -153,8 +153,7 @@ vector<tl_object_ptr<td_api::textEntity>> get_text_entities_object(const vector<
     if (skip_bot_commands && entity.type == MessageEntity::Type::BotCommand) {
       continue;
     }
-    if (entity.type == MessageEntity::Type::MediaTimestamp &&
-        (max_media_timestamp < 0 || max_media_timestamp < to_integer<int32>(entity.argument))) {
+    if (entity.type == MessageEntity::Type::MediaTimestamp && max_media_timestamp < entity.media_timestamp) {
       continue;
     }
     auto entity_object = entity.get_text_entity_object();
@@ -1632,7 +1631,7 @@ vector<MessageEntity> find_entities(Slice text, bool skip_bot_commands, bool ski
     for (auto &entity : media_timestamps) {
       auto offset = narrow_cast<int32>(entity.first.begin() - text.begin());
       auto length = narrow_cast<int32>(entity.first.size());
-      entities.emplace_back(MessageEntity::Type::MediaTimestamp, offset, length, to_string(entity.second));
+      entities.emplace_back(MessageEntity::Type::MediaTimestamp, offset, length, entity.second);
     }
   }
 
@@ -1648,7 +1647,7 @@ static vector<MessageEntity> find_media_timestamp_entities(Slice text) {
   for (auto &entity : media_timestamps) {
     auto offset = narrow_cast<int32>(entity.first.begin() - text.begin());
     auto length = narrow_cast<int32>(entity.first.size());
-    entities.emplace_back(MessageEntity::Type::MediaTimestamp, offset, length, to_string(entity.second));
+    entities.emplace_back(MessageEntity::Type::MediaTimestamp, offset, length, entity.second);
   }
 
   fix_entity_offsets(text, entities);
@@ -3253,11 +3252,11 @@ Result<vector<MessageEntity>> get_message_entities(const ContactsManager *contac
       }
       case td_api::textEntityTypeMediaTimestamp::ID: {
         auto entity_media_timestamp = static_cast<td_api::textEntityTypeMediaTimestamp *>(entity->type_.get());
-        if (entity_media_timestamp->media_timestamp_ <= 0) {
+        if (entity_media_timestamp->media_timestamp_ < 0) {
           return Status::Error(400, "Invalid media timestamp specified");
         }
         entities.emplace_back(MessageEntity::Type::MediaTimestamp, entity->offset_, entity->length_,
-                              to_string(entity_media_timestamp->media_timestamp_));
+                              entity_media_timestamp->media_timestamp_);
         break;
       }
       default:
@@ -4096,16 +4095,14 @@ void add_formatted_text_dependencies(Dependencies &dependencies, const Formatted
   }
 }
 
-bool has_media_timestamps(const FormattedText *text, int32 min_timestamp, int32 max_timestamp) {
+bool has_media_timestamps(const FormattedText *text, int32 min_media_timestamp, int32 max_media_timestamp) {
   if (text == nullptr) {
     return false;
   }
   for (auto &entity : text->entities) {
-    if (entity.type == MessageEntity::Type::MediaTimestamp) {
-      int32 timestamp = to_integer<int32>(entity.argument);
-      if (min_timestamp <= timestamp && timestamp <= max_timestamp) {
-        return true;
-      }
+    if (entity.type == MessageEntity::Type::MediaTimestamp && min_media_timestamp <= entity.media_timestamp &&
+        entity.media_timestamp <= max_media_timestamp) {
+      return true;
     }
   }
   return false;
