@@ -12173,6 +12173,7 @@ void MessagesManager::on_message_ttl_expired_impl(Dialog *d, Message *m) {
   }
   remove_message_notification_id(d, m, true, true);
   update_message_contains_unread_mention(d, m, false, "on_message_ttl_expired_impl");
+  unregister_message_reply(d, m);
   m->contains_mention = false;
   m->reply_to_message_id = MessageId();
   m->max_reply_media_timestamp = -1;
@@ -15040,8 +15041,6 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
                                      m->have_previous, m->have_next, source);
   }
 
-  delete_bot_command_message_id(d->dialog_id, message_id);
-
   bool need_get_history = false;
   if (!only_from_memory) {
     LOG(INFO) << "Deleting " << full_message_id << " with have_previous = " << m->have_previous
@@ -15251,7 +15250,9 @@ void MessagesManager::on_message_deleted(Dialog *d, Message *m, bool is_permanen
   }
   ttl_unregister_message(d->dialog_id, m, source);
   ttl_period_unregister_message(d->dialog_id, m);
+  delete_bot_command_message_id(d->dialog_id, m->message_id);
   unregister_message_content(td_, m->content.get(), {d->dialog_id, m->message_id}, "on_message_deleted");
+  unregister_message_reply(d, m);
   if (m->notification_id.is_valid()) {
     delete_notification_id_to_message_id_correspondence(d, m->notification_id, m->message_id);
   }
@@ -15298,6 +15299,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_scheduled_messag
   cancel_send_deleted_message(d->dialog_id, result.get(), is_permanently_deleted);
 
   unregister_message_content(td_, result->content.get(), {d->dialog_id, message_id}, "do_delete_scheduled_message");
+  unregister_message_reply(d, m);
 
   return result;
 }
@@ -25451,7 +25453,7 @@ int32 MessagesManager::get_message_own_max_media_timestamp(const Message *m) con
 }
 
 int32 MessagesManager::get_message_max_media_timestamp(const Message *m) {
-  return m->max_own_media_timestamp != -1 ? m->max_own_media_timestamp : m->max_reply_media_timestamp;
+  return m->max_own_media_timestamp >= 0 ? m->max_own_media_timestamp : m->max_reply_media_timestamp;
 }
 
 void MessagesManager::update_message_max_reply_media_timestamp(const Dialog *d, Message *m,
@@ -25502,6 +25504,7 @@ void MessagesManager::update_message_max_own_media_timestamp(const Dialog *d, Me
   if (td_->auth_manager_->is_bot()) {
     return;
   }
+
   auto new_max_own_media_timestamp = get_message_own_max_media_timestamp(m);
   if (m->max_own_media_timestamp == new_max_own_media_timestamp) {
     return;
@@ -25510,7 +25513,79 @@ void MessagesManager::update_message_max_own_media_timestamp(const Dialog *d, Me
   LOG(INFO) << "Set max_own_media_timestamp in " << m->message_id << " in " << d->dialog_id << " to "
             << new_max_own_media_timestamp;
   m->max_own_media_timestamp = new_max_own_media_timestamp;
-  // TODO update replied messages
+
+  update_message_max_reply_media_timestamp_in_replied_messages(d->dialog_id, m->message_id);
+}
+
+void MessagesManager::update_message_max_reply_media_timestamp_in_replied_messages(DialogId dialog_id,
+                                                                                   MessageId reply_to_message_id) {
+  if (reply_to_message_id.is_scheduled()) {
+    return;
+  }
+  CHECK(reply_to_message_id.is_valid());
+
+  FullMessageId full_message_id{dialog_id, reply_to_message_id};
+  auto it = replied_by_media_timestamp_messages_.find(full_message_id);
+  if (it == replied_by_media_timestamp_messages_.end()) {
+    return;
+  }
+
+  LOG(INFO) << "Update max_reply_media_timestamp for replies of " << reply_to_message_id << " in " << dialog_id;
+
+  Dialog *d = get_dialog(dialog_id);
+  CHECK(d != nullptr);
+  for (auto message_id : it->second) {
+    auto m = get_message(d, message_id);
+    CHECK(m != nullptr);
+    CHECK(m->reply_to_message_id == reply_to_message_id);
+    update_message_max_reply_media_timestamp(d, m, true);
+  }
+}
+
+void MessagesManager::register_message_reply(const Dialog *d, const Message *m) {
+  if (!m->reply_to_message_id.is_valid() || td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  if (has_media_timestamps(get_message_content_text(m->content.get()), 0, std::numeric_limits<int32>::max())) {
+    LOG(INFO) << "Register " << m->message_id << " in " << d->dialog_id << " as reply to " << m->reply_to_message_id;
+    FullMessageId full_message_id{d->dialog_id, m->reply_to_message_id};
+    bool is_inserted = replied_by_media_timestamp_messages_[full_message_id].insert(m->message_id).second;
+    CHECK(is_inserted);
+  }
+}
+
+void MessagesManager::reregister_message_reply(const Dialog *d, const Message *m) {
+  if (!m->reply_to_message_id.is_valid() || td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  auto it = replied_by_media_timestamp_messages_.find({d->dialog_id, m->reply_to_message_id});
+  bool was_registered = it != replied_by_media_timestamp_messages_.end() && it->second.count(m->message_id) > 0;
+  bool need_register =
+      has_media_timestamps(get_message_content_text(m->content.get()), 0, std::numeric_limits<int32>::max());
+  if (was_registered == need_register) {
+    return;
+  }
+  if (was_registered) {
+    unregister_message_reply(d, m);
+  } else {
+    register_message_reply(d, m);
+  }
+}
+
+void MessagesManager::unregister_message_reply(const Dialog *d, const Message *m) {
+  auto it = replied_by_media_timestamp_messages_.find({d->dialog_id, m->reply_to_message_id});
+  if (it == replied_by_media_timestamp_messages_.end()) {
+    return;
+  }
+
+  LOG(INFO) << "Unregister " << m->message_id << " in " << d->dialog_id << " as reply to " << m->reply_to_message_id;
+  auto is_deleted = it->second.erase(m->message_id) > 0;
+  CHECK(is_deleted);
+  if (it->second.empty()) {
+    replied_by_media_timestamp_messages_.erase(it);
+  }
 }
 
 bool MessagesManager::get_message_disable_web_page_preview(const Message *m) {
@@ -28234,6 +28309,8 @@ void MessagesManager::send_update_message_content(const Dialog *d, Message *m, c
   CHECK(m != nullptr);
   delete_bot_command_message_id(d->dialog_id, m->message_id);
   try_add_bot_command_message_id(d->dialog_id, m);
+  reregister_message_reply(d, m);
+  update_message_max_reply_media_timestamp(d, m, false);  // because the message reply can be just registered
   update_message_max_own_media_timestamp(d, m);
   send_update_message_content_impl(d->dialog_id, m, source);
 }
@@ -32532,8 +32609,6 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       }
     }
   }
-  update_message_max_reply_media_timestamp(d, message.get(), false);
-  update_message_max_own_media_timestamp(d, message.get());
 
   const Message *m = message.get();
   if (m->message_id.is_yet_unsent() && m->reply_to_message_id.is_valid() && !m->reply_to_message_id.is_yet_unsent()) {
@@ -32599,6 +32674,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   add_message_file_sources(dialog_id, m);
 
   register_message_content(td_, m->content.get(), {dialog_id, m->message_id}, "add_message_to_dialog");
+
+  register_message_reply(d, m);
 
   if (*need_update && m->message_id.is_server() && message_content_type == MessageContentType::PinMessage) {
     auto pinned_message_id = get_message_content_pinned_message_id(m->content.get());
@@ -32687,6 +32764,10 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
 
   try_add_bot_command_message_id(dialog_id, m);
+
+  // must be called after the message is added to correctly update replies
+  update_message_max_reply_media_timestamp(d, result_message, false);
+  update_message_max_own_media_timestamp(d, result_message);
 
   result_message->debug_source = source;
   d->being_added_message_id = MessageId();
@@ -32798,9 +32879,6 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
 
   LOG(INFO) << "Adding not found " << message_id << " to " << dialog_id << " from " << source;
 
-  update_message_max_reply_media_timestamp(d, message.get(), false);
-  update_message_max_own_media_timestamp(d, message.get());
-
   const Message *m = message.get();
   if (m->message_id.is_yet_unsent() && m->reply_to_message_id.is_valid() && !m->reply_to_message_id.is_yet_unsent()) {
     replied_by_yet_unsent_messages_[FullMessageId{dialog_id, m->reply_to_message_id}]++;
@@ -32815,6 +32893,12 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
   add_message_file_sources(dialog_id, m);
 
   register_message_content(td_, m->content.get(), {dialog_id, m->message_id}, "add_scheduled_message_to_dialog");
+
+  // must be called after register_message_content, which loads web page
+  update_message_max_reply_media_timestamp(d, message.get(), false);
+  update_message_max_own_media_timestamp(d, message.get());
+
+  register_message_reply(d, m);
 
   if (from_update) {
     update_sent_message_contents(dialog_id, m);
@@ -33097,6 +33181,9 @@ void MessagesManager::delete_message_from_database(Dialog *d, MessageId message_
       // don't store failed to send message identifiers for bots to reduce memory usage
       if (m == nullptr || !td_->auth_manager_->is_bot() || !m->is_failed_to_send) {
         d->deleted_message_ids.insert(message_id);
+        send_closure_later(actor_id(this),
+                           &MessagesManager::update_message_max_reply_media_timestamp_in_replied_messages, d->dialog_id,
+                           message_id);
       }
     }
 
@@ -33405,6 +33492,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     // can change message tree and invalidate reference to old_message
     if (new_message->reply_to_message_id == MessageId() || replace_legacy) {
       LOG(DEBUG) << "Drop message reply_to_message_id";
+      unregister_message_reply(d, old_message);
       old_message->reply_to_message_id = MessageId();
       update_message_max_reply_media_timestamp(d, old_message, true);
       need_send_update = true;

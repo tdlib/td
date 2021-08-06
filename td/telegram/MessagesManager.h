@@ -1060,7 +1060,7 @@ class MessagesManager final : public Actor {
     NotificationId removed_notification_id;
 
     int32 max_reply_media_timestamp = -1;
-    int32 max_own_media_timestamp = -1;
+    int32 max_own_media_timestamp = -2;  // to update replied messages on the first load
 
     int32 view_count = 0;
     int32 forward_count = 0;
@@ -2150,6 +2150,14 @@ class MessagesManager final : public Actor {
 
   void update_message_max_own_media_timestamp(const Dialog *d, Message *m);
 
+  void update_message_max_reply_media_timestamp_in_replied_messages(DialogId dialog_id, MessageId reply_to_message_id);
+
+  void register_message_reply(const Dialog *d, const Message *m);
+
+  void reregister_message_reply(const Dialog *d, const Message *m);
+
+  void unregister_message_reply(const Dialog *d, const Message *m);
+
   void send_update_new_message(const Dialog *d, const Message *m);
 
   static bool is_from_mention_notification_group(const Dialog *d, const Message *m);
@@ -3218,6 +3226,10 @@ class MessagesManager final : public Actor {
   std::unordered_map<DialogId, uint64, DialogIdHash> get_dialog_query_log_event_id_;
 
   std::unordered_map<FullMessageId, int32, FullMessageIdHash> replied_by_yet_unsent_messages_;
+
+  // full_message_id -> replies with media timestamps
+  std::unordered_map<FullMessageId, std::unordered_set<MessageId, MessageIdHash>, FullMessageIdHash>
+      replied_by_media_timestamp_messages_;
 
   struct ActiveDialogAction {
     MessageId top_thread_message_id;
