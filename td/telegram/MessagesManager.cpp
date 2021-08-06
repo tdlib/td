@@ -35563,7 +35563,11 @@ void MessagesManager::process_get_channel_difference_updates(
 
   // extract awaited sent messages, which were edited or deleted after that
   auto postponed_updates_it = postponed_channel_updates_.find(dialog_id);
-  std::map<MessageId, tl_object_ptr<telegram_api::Message>> awaited_messages;
+  struct AwaitedMessage {
+    tl_object_ptr<telegram_api::Message> message;
+    Promise<Unit> promise;
+  };
+  std::map<MessageId, AwaitedMessage> awaited_messages;
   if (postponed_updates_it != postponed_channel_updates_.end()) {
     auto &updates = postponed_updates_it->second;
     while (!updates.empty()) {
@@ -35577,14 +35581,17 @@ void MessagesManager::process_get_channel_difference_updates(
       auto promise = std::move(it->second.promise);
       updates.erase(it);
 
-      if (!promise && update->get_id() == telegram_api::updateNewChannelMessage::ID) {
+      if (update->get_id() == telegram_api::updateNewChannelMessage::ID) {
         auto update_new_channel_message = static_cast<telegram_api::updateNewChannelMessage *>(update.get());
         auto message_id = get_message_id(update_new_channel_message->message_, false);
         FullMessageId full_message_id(dialog_id, message_id);
         if (update_message_ids_.find(full_message_id) != update_message_ids_.end() &&
             changed_message_ids.find(message_id) != changed_message_ids.end()) {
           changed_message_ids.erase(message_id);
-          awaited_messages.emplace(message_id, std::move(update_new_channel_message->message_));
+          AwaitedMessage awaited_message;
+          awaited_message.message = std::move(update_new_channel_message->message_);
+          awaited_message.promise = std::move(promise);
+          awaited_messages.emplace(message_id, std::move(awaited_message));
           continue;
         }
       }
@@ -35605,21 +35612,28 @@ void MessagesManager::process_get_channel_difference_updates(
   for (auto &message : new_messages) {
     auto message_id = get_message_id(message, false);
     while (it != awaited_messages.end() && it->first < message_id) {
-      on_get_message(std::move(it->second), true, true, false, true, true, "postponed channel update");
+      on_get_message(std::move(it->second.message), true, true, false, true, true, "postponed channel update");
+      it->second.promise.set_value(Unit());
       ++it;
     }
+    Promise<Unit> promise;
     if (it != awaited_messages.end() && it->first == message_id) {
       if (is_edited_message(message)) {
         // the new message is edited, apply postponed one and move this to updateEditChannelMessage
         other_updates.push_back(make_tl_object<telegram_api::updateEditChannelMessage>(std::move(message), new_pts, 0));
-        message = std::move(it->second);
+        message = std::move(it->second.message);
+        promise = std::move(it->second.promise);
+      } else {
+        it->second.promise.set_value(Unit());
       }
       ++it;
     }
     on_get_message(std::move(message), true, true, false, true, true, "get channel difference");
+    promise.set_value(Unit());
   }
   while (it != awaited_messages.end()) {
-    on_get_message(std::move(it->second), true, true, false, true, true, "postponed channel update 2");
+    on_get_message(std::move(it->second.message), true, true, false, true, true, "postponed channel update 2");
+    it->second.promise.set_value(Unit());
     ++it;
   }
 
