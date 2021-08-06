@@ -28255,6 +28255,7 @@ void MessagesManager::send_update_unread_message_count(DialogList &list, DialogI
   }
 
   if (!from_database) {
+    LOG(INFO) << "Save unread message count in " << dialog_list_id;
     G()->td_db()->get_binlog_pmc()->set(
         PSTRING() << "unread_message_count" << dialog_list_id.get(),
         PSTRING() << list.unread_message_total_count_ << ' ' << list.unread_message_muted_count_);
@@ -32968,7 +32969,7 @@ void MessagesManager::delete_message_from_database(Dialog *d, MessageId message_
       if (old_message_id.is_valid()) {
         bool have_old_message = get_message(d, old_message_id) != nullptr;
         LOG(WARNING) << "Sent " << FullMessageId{d->dialog_id, message_id}
-                     << " was deleted before it was received. Have old message = " << have_old_message;
+                     << " was deleted before it was received. Have old " << old_message_id << " = " << have_old_message;
         send_closure_later(actor_id(this), &MessagesManager::delete_messages, d->dialog_id,
                            vector<MessageId>{old_message_id}, false, Promise<Unit>());
         delete_update_message_id(d->dialog_id, message_id);
