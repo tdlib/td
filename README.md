@@ -131,11 +131,9 @@ For C++ projects that use CMake, the best approach is to build `TDLib` as part o
 There are several libraries that you could use in your CMake project:
 
 * Td::TdJson, Td::TdJsonStatic — dynamic and static version of a JSON interface. This has a simple C interface, so it can be easily used with any programming language that is able to execute C functions.
-  See [td_json_client](https://core.telegram.org/tdlib/docs/td__json__client_8h.html) and [td_log](https://core.telegram.org/tdlib/docs/td__log_8h.html) documentation for more information.
+  See [td_json_client](https://core.telegram.org/tdlib/docs/td__json__client_8h.html) documentation for more information.
 * Td::TdStatic — static library with C++ interface for general usage.
-  See [Client](https://core.telegram.org/tdlib/docs/classtd_1_1_client.html) and [Log](https://core.telegram.org/tdlib/docs/classtd_1_1_log.html) documentation for more information.
-* Td::TdCoreStatic — static library with low-level C++ interface intended mostly for internal usage.
-  See [ClientActor](https://core.telegram.org/tdlib/docs/classtd_1_1_client_actor.html) and [Log](https://core.telegram.org/tdlib/docs/classtd_1_1_log.html) documentation for more information.
+  See [ClientManager](https://core.telegram.org/tdlib/docs/classtd_1_1_client_manager.html) and [Client](https://core.telegram.org/tdlib/docs/classtd_1_1_client.html) documentation for more information.
 
 For example, part of your CMakeLists.txt may look like this:
 ```
@@ -173,7 +171,7 @@ git checkout td/telegram/Client.h td/telegram/Log.h td/tl/TlObject.h
 ## Using from other programming languages
 `TDLib` provides efficient native C++, Java, and .NET interfaces.
 But for most use cases we suggest to use the JSON interface, which can be easily used with any programming language that is able to execute C functions.
-See [td_json_client](https://core.telegram.org/tdlib/docs/td__json__client_8h.html) and [td_log](https://core.telegram.org/tdlib/docs/td__log_8h.html) documentation for detailed JSON interface description,
+See [td_json_client](https://core.telegram.org/tdlib/docs/td__json__client_8h.html) documentation for detailed JSON interface description,
 the [td_api.tl](https://github.com/tdlib/td/blob/master/td/generate/scheme/td_api.tl) scheme or the automatically generated [HTML documentation](https://core.telegram.org/tdlib/docs/td__api_8h.html) for a list of
 all available `TDLib` [methods](https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1_function.html) and [classes](https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1_object.html).
 
