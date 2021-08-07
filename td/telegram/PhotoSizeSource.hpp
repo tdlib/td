@@ -109,9 +109,7 @@ void parse(PhotoSizeSource::FullLegacy &source, ParserT &parser) {
   parse(source.volume_id, parser);
   parse(source.secret, parser);
   parse(source.local_id, parser);
-  if (source.local_id < 0) {
-    parser.set_error("Wrong local_id");
-  }
+  // source.local_id can be negative in secret chat thumbnails
 }
 
 template <class StorerT>
