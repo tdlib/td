@@ -17345,8 +17345,10 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(FullMessageId 
     }
   }
 
-  td_->create_handler<ExportChannelMessageLinkQuery>(Promise<Unit>())
-      ->send(dialog_id.get_channel_id(), m->message_id, for_group, true);
+  if (!td_->auth_manager_->is_bot()) {
+    td_->create_handler<ExportChannelMessageLinkQuery>(Promise<Unit>())
+        ->send(dialog_id.get_channel_id(), m->message_id, for_group, true);
+  }
 
   SliceBuilder sb;
   sb << G()->shared_config().get_option_string("t_me_url", "https://t.me/");
