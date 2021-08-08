@@ -16,6 +16,7 @@
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/misc.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
@@ -326,6 +327,55 @@ class LinkManager::InternalLinkVoiceChat final : public InternalLink {
  public:
   InternalLinkVoiceChat(string dialog_username, string invite_hash)
       : dialog_username_(std::move(dialog_username)), invite_hash_(std::move(invite_hash)) {
+  }
+};
+
+class GetDeepLinkInfoQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::deepLinkInfo>> promise_;
+
+ public:
+  explicit GetDeepLinkInfoQuery(Promise<td_api::object_ptr<td_api::deepLinkInfo>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(Slice link) {
+    send_query(G()->net_query_creator().create_unauth(telegram_api::help_getDeepLinkInfo(link.str())));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::help_getDeepLinkInfo>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    switch (result->get_id()) {
+      case telegram_api::help_deepLinkInfoEmpty::ID:
+        return promise_.set_value(nullptr);
+      case telegram_api::help_deepLinkInfo::ID: {
+        auto info = telegram_api::move_object_as<telegram_api::help_deepLinkInfo>(result);
+        bool need_update = (info->flags_ & telegram_api::help_deepLinkInfo::UPDATE_APP_MASK) != 0;
+
+        auto entities = get_message_entities(nullptr, std::move(info->entities_), "GetDeepLinkInfoQuery");
+        auto status = fix_formatted_text(info->message_, entities, true, true, true, true);
+        if (status.is_error()) {
+          LOG(ERROR) << "Receive error " << status << " while parsing deep link info " << info->message_;
+          if (!clean_input_string(info->message_)) {
+            info->message_.clear();
+          }
+          entities = find_entities(info->message_, true);
+        }
+        FormattedText text{std::move(info->message_), std::move(entities)};
+        return promise_.set_value(
+            td_api::make_object<td_api::deepLinkInfo>(get_formatted_text_object(text, true), need_update));
+      }
+      default:
+        UNREACHABLE();
+    }
+  }
+
+  void on_error(uint64 id, Status status) final {
+    promise_.set_error(std::move(status));
   }
 };
 
@@ -1006,6 +1056,22 @@ void LinkManager::update_autologin_domains(string autologin_token, vector<string
     url_auth_domains_ = std::move(url_auth_domains);
     G()->td_db()->get_binlog_pmc()->set("url_auth_domains", implode(url_auth_domains_, '\xFF'));
   }
+}
+
+void LinkManager::get_deep_link_info(Slice link, Promise<td_api::object_ptr<td_api::deepLinkInfo>> &&promise) {
+  Slice link_scheme("tg:");
+  if (begins_with(link, link_scheme)) {
+    link.remove_prefix(link_scheme.size());
+    if (begins_with(link, "//")) {
+      link.remove_prefix(2);
+    }
+  }
+  size_t pos = 0;
+  while (pos < link.size() && link[pos] != '/' && link[pos] != '?' && link[pos] != '#') {
+    pos++;
+  }
+  link.truncate(pos);
+  td_->create_handler<GetDeepLinkInfoQuery>(std::move(promise))->send(link);
 }
 
 void LinkManager::get_external_link_info(string &&link, Promise<td_api::object_ptr<td_api::LoginUrlInfo>> &&promise) {

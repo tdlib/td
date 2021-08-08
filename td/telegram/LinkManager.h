@@ -54,6 +54,8 @@ class LinkManager final : public Actor {
   void update_autologin_domains(string autologin_token, vector<string> autologin_domains,
                                 vector<string> url_auth_domains);
 
+  void get_deep_link_info(Slice link, Promise<td_api::object_ptr<td_api::deepLinkInfo>> &&promise);
+
   void get_external_link_info(string &&link, Promise<td_api::object_ptr<td_api::LoginUrlInfo>> &&promise);
 
   void get_login_url_info(FullMessageId full_message_id, int32 button_id,
