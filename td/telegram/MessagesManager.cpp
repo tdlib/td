@@ -25580,11 +25580,12 @@ void MessagesManager::unregister_message_reply(const Dialog *d, const Message *m
     return;
   }
 
-  LOG(INFO) << "Unregister " << m->message_id << " in " << d->dialog_id << " as reply to " << m->reply_to_message_id;
   auto is_deleted = it->second.erase(m->message_id) > 0;
-  CHECK(is_deleted);
-  if (it->second.empty()) {
-    replied_by_media_timestamp_messages_.erase(it);
+  if (is_deleted) {
+    LOG(INFO) << "Unregister " << m->message_id << " in " << d->dialog_id << " as reply to " << m->reply_to_message_id;
+    if (it->second.empty()) {
+      replied_by_media_timestamp_messages_.erase(it);
+    }
   }
 }
 
