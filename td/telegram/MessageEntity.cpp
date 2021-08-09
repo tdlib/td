@@ -83,6 +83,9 @@ StringBuilder &operator<<(StringBuilder &string_builder, const MessageEntity::Ty
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageEntity &message_entity) {
   string_builder << '[' << message_entity.type << ", offset = " << message_entity.offset
                  << ", length = " << message_entity.length;
+  if (message_entity.media_timestamp >= 0) {
+    string_builder << ", media_timestamp = \"" << message_entity.media_timestamp << "\"";
+  }
   if (!message_entity.argument.empty()) {
     string_builder << ", argument = \"" << message_entity.argument << "\"";
   }

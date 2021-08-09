@@ -74,8 +74,8 @@ class MessageEntity {
   tl_object_ptr<td_api::textEntity> get_text_entity_object() const;
 
   bool operator==(const MessageEntity &other) const {
-    return offset == other.offset && length == other.length && type == other.type && argument == other.argument &&
-           user_id == other.user_id;
+    return offset == other.offset && length == other.length && type == other.type &&
+           media_timestamp == other.media_timestamp && argument == other.argument && user_id == other.user_id;
   }
 
   bool operator<(const MessageEntity &other) const {

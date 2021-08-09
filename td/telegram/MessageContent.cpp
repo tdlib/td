@@ -4880,6 +4880,10 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
   return nullptr;
 }
 
+FormattedText *get_message_content_text_mutable(MessageContent *content) {
+  return const_cast<FormattedText *>(get_message_content_text(content));
+}
+
 const FormattedText *get_message_content_text(const MessageContent *content) {
   switch (content->get_type()) {
     case MessageContentType::Text:

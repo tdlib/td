@@ -4859,6 +4859,8 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool is_imported = is_forwarded && forward_info->is_imported;
   bool has_ttl_period = ttl_period != 0;
   bool has_max_reply_media_timestamp = max_reply_media_timestamp >= 0;
+  bool are_message_media_timestamp_entities_found = true;
+  bool has_flags3 = false;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_channel_post);
   STORE_FLAG(is_outgoing);
@@ -4919,8 +4921,10 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(has_interaction_info_update_date);
     STORE_FLAG(has_send_emoji);
     STORE_FLAG(is_imported);
-    STORE_FLAG(has_ttl_period);  // 25
+    STORE_FLAG(has_ttl_period);
     STORE_FLAG(has_max_reply_media_timestamp);
+    STORE_FLAG(are_message_media_timestamp_entities_found);
+    STORE_FLAG(has_flags3);
     END_STORE_FLAGS();
   }
 
@@ -5081,6 +5085,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   bool is_imported = false;
   bool has_ttl_period = false;
   bool has_max_reply_media_timestamp = false;
+  bool has_flags3 = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_channel_post);
   PARSE_FLAG(is_outgoing);
@@ -5143,6 +5148,12 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(is_imported);
     PARSE_FLAG(has_ttl_period);
     PARSE_FLAG(has_max_reply_media_timestamp);
+    PARSE_FLAG(are_media_timestamp_entities_found);
+    PARSE_FLAG(has_flags3);
+    END_PARSE_FLAGS();
+  }
+  if (has_flags3) {
+    BEGIN_PARSE_FLAGS();
     END_PARSE_FLAGS();
   }
 
@@ -32425,6 +32436,16 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       ttl_period_register_message(dialog_id, message.get(), server_time);
     }
   }
+
+  if (message->from_database && !message->are_media_timestamp_entities_found) {
+    auto text = get_message_content_text_mutable(message->content.get());
+    if (text != nullptr) {
+      fix_formatted_text(text->text, text->entities, true, true, true, false, false).ensure();
+      // always call to save are_media_timestamp_entities_found flag
+      on_message_changed(d, message.get(), false, "save media timestamp entities");
+    }
+  }
+  message->are_media_timestamp_entities_found = true;
 
   LOG(INFO) << "Adding not found " << message_id << " to " << dialog_id << " from " << source;
   if (d->is_empty) {

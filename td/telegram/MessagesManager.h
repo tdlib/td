@@ -1038,6 +1038,7 @@ class MessagesManager final : public Actor {
     bool is_mention_notification_disabled = false;
     bool is_from_scheduled = false;
     bool is_pinned = false;
+    bool are_media_timestamp_entities_found = false;
 
     bool is_copy = false;                   // for send_message
     bool from_background = false;           // for send_message
