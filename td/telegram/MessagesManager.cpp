@@ -17368,9 +17368,20 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(FullMessageId 
 
   auto *m = get_message_force(d, full_message_id.get_message_id(), "get_message_link");
   TRY_STATUS(can_get_media_timestamp_link(dialog_id, m));
+
+  if (media_timestamp <= 0 || !can_message_content_have_media_timestamp(m->content.get())) {
+    media_timestamp = 0;
+  }
+  if (media_timestamp != 0) {
+    for_group = false;
+    auto duration = get_message_content_media_duration(m->content.get(), td_);
+    if (duration != 0 && media_timestamp > duration) {
+      media_timestamp = 0;
+    }
+  }
+
   auto message_id = m->message_id;
   if (dialog_id.get_type() != DialogType::Channel) {
-    CHECK(m != nullptr);
     CHECK(m->forward_info != nullptr);
     CHECK(m->forward_info->sender_dialog_id.get_type() == DialogType::Channel);
 
@@ -17378,6 +17389,10 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(FullMessageId 
     message_id = m->forward_info->message_id;
     for_group = false;
     for_comment = false;
+    auto channel_message = get_message({dialog_id, message_id});
+    if (channel_message != nullptr && channel_message->media_album_id == 0) {
+      for_group = true;  // default is true
+    }
   } else {
     if (m->media_album_id == 0) {
       for_group = true;  // default is true
@@ -17392,17 +17407,6 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(FullMessageId 
   }
   if (for_comment && is_broadcast_channel(dialog_id)) {
     for_comment = false;
-  }
-
-  if (media_timestamp <= 0 || !can_message_content_have_media_timestamp(m->content.get())) {
-    media_timestamp = 0;
-  }
-  if (media_timestamp != 0) {
-    for_group = false;
-    auto duration = get_message_content_media_duration(m->content.get(), td_);
-    if (duration != 0 && media_timestamp > duration) {
-      media_timestamp = 0;
-    }
   }
 
   if (!td_->auth_manager_->is_bot()) {
