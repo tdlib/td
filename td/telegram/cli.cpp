@@ -944,7 +944,7 @@ class CliClient final : public Actor {
     td_client_ = create_actor<ClientActor>(name, make_unique<TdCallbackImpl>(this, ++generation_), std::move(options));
 
     if (get_chat_list_) {
-      send_request(td_api::make_object<td_api::getChats>(nullptr, std::numeric_limits<int64>::max(), 0, 100));
+      send_request(td_api::make_object<td_api::getChats>(nullptr, std::numeric_limits<int64>::max(), 0, 10000));
     }
     if (disable_network_) {
       send_request(td_api::make_object<td_api::setNetworkType>(td_api::make_object<td_api::networkTypeNone>()));
@@ -1978,6 +1978,8 @@ class CliClient final : public Actor {
       }
       send_request(td_api::make_object<td_api::getChats>(as_chat_list(op), offset_order, as_chat_id(offset_chat_id),
                                                          as_limit(limit, 10000)));
+    } else if (op == "lc" || op == "lca" || begins_with(op, "lc-")) {
+      send_request(td_api::make_object<td_api::loadChats>(as_chat_list(op), as_limit(args, 10000)));
     } else if (op == "gctest") {
       send_request(td_api::make_object<td_api::getChats>(nullptr, std::numeric_limits<int64>::max(), 0, 1));
       send_request(td_api::make_object<td_api::getChats>(nullptr, std::numeric_limits<int64>::max(), 0, 10));

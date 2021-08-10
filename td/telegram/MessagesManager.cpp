@@ -15549,6 +15549,16 @@ void MessagesManager::on_load_recommended_dialog_filters(
   promise.set_value(td_api::make_object<td_api::recommendedChatFilters>(std::move(chat_filters)));
 }
 
+Result<DialogDate> MessagesManager::get_dialog_list_last_date(DialogListId dialog_list_id) {
+  CHECK(!td_->auth_manager_->is_bot());
+
+  auto *list_ptr = get_dialog_list(dialog_list_id);
+  if (list_ptr == nullptr) {
+    return Status::Error(3, "Chat list not found");
+  }
+  return list_ptr->list_last_dialog_date_;
+}
+
 std::pair<int32, vector<DialogId>> MessagesManager::get_dialogs(DialogListId dialog_list_id, DialogDate offset,
                                                                 int32 limit, bool force, Promise<Unit> &&promise) {
   CHECK(!td_->auth_manager_->is_bot());

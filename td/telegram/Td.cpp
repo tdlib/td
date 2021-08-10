@@ -785,6 +785,23 @@ class GetChatFilterRequest final : public RequestActor<> {
   }
 };
 
+class LoadChatsRequest final : public RequestActor<> {
+  DialogListId dialog_list_id_;
+  DialogDate offset_;
+  int32 limit_;
+
+  void do_run(Promise<Unit> &&promise) final {
+    td->messages_manager_->get_dialogs(dialog_list_id_, offset_, limit_, get_tries() < 2, std::move(promise));
+  }
+
+ public:
+  LoadChatsRequest(ActorShared<Td> td, uint64 request_id, DialogListId dialog_list_id, DialogDate offset, int32 limit)
+      : RequestActor(std::move(td), request_id), dialog_list_id_(dialog_list_id), offset_(offset), limit_(limit) {
+    // 1 for database + 1 for server request + 1 for server request at the end + 1 for return + 1 just in case
+    set_tries(5);
+  }
+};
+
 class GetChatsRequest final : public RequestActor<> {
   DialogListId dialog_list_id_;
   DialogDate offset_;
@@ -5319,6 +5336,22 @@ void Td::on_request(uint64 id, const td_api::removeTopChat &request) {
   send_closure(top_dialog_manager_, &TopDialogManager::remove_dialog, get_top_dialog_category(*request.category_),
                dialog_id, messages_manager_->get_input_peer(dialog_id, AccessRights::Read));
   send_closure(actor_id(this), &Td::send_result, id, td_api::make_object<td_api::ok>());
+}
+
+void Td::on_request(uint64 id, const td_api::loadChats &request) {
+  CHECK_IS_USER();
+
+  DialogListId dialog_list_id(request.chat_list_);
+  auto r_offset = messages_manager_->get_dialog_list_last_date(dialog_list_id);
+  if (r_offset.is_error()) {
+    return send_error_raw(id, 400, r_offset.error().message());
+  }
+  auto offset = r_offset.move_as_ok();
+  if (offset == MAX_DIALOG_DATE) {
+    return send_closure(actor_id(this), &Td::send_result, id, nullptr);
+  }
+
+  CREATE_REQUEST(LoadChatsRequest, dialog_list_id, offset, request.limit_);
 }
 
 void Td::on_request(uint64 id, const td_api::getChats &request) {

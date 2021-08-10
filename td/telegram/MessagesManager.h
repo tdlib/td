@@ -522,6 +522,8 @@ class MessagesManager final : public Actor {
 
   void get_recommended_dialog_filters(Promise<td_api::object_ptr<td_api::recommendedChatFilters>> &&promise);
 
+  Result<DialogDate> get_dialog_list_last_date(DialogListId dialog_list_id);
+
   std::pair<int32, vector<DialogId>> get_dialogs(DialogListId dialog_list_id, DialogDate offset, int32 limit,
                                                  bool force, Promise<Unit> &&promise);
 
