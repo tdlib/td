@@ -237,7 +237,7 @@ namespace TdExample
                 _gotAuthorization.Reset();
                 _gotAuthorization.WaitOne();
 
-                _client.Send(new TdApi.GetChats(null, Int64.MaxValue, 0, 100), _defaultHandler); // preload main chat list
+                _client.Send(new TdApi.LoadChats(null, 100), _defaultHandler); // preload main chat list
                 while (_haveAuthorization)
                 {
                     GetCommand();

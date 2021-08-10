@@ -249,27 +249,20 @@ public final class Example {
         synchronized (mainChatList) {
             if (!haveFullMainChatList && limit > mainChatList.size()) {
                 // send GetChats request if there are some unknown chats and have not enough known chats
-                long offsetOrder = Long.MAX_VALUE;
-                long offsetChatId = 0;
-                if (!mainChatList.isEmpty()) {
-                    OrderedChat last = mainChatList.last();
-                    offsetOrder = last.position.order;
-                    offsetChatId = last.chatId;
-                }
-                client.send(new TdApi.GetChats(new TdApi.ChatListMain(), offsetOrder, offsetChatId, limit - mainChatList.size()), new Client.ResultHandler() {
+                client.send(new TdApi.LoadChats(new TdApi.ChatListMain(), limit - mainChatList.size()), new Client.ResultHandler() {
                     @Override
                     public void onResult(TdApi.Object object) {
                         switch (object.getConstructor()) {
                             case TdApi.Error.CONSTRUCTOR:
-                                System.err.println("Receive an error for GetChats:" + newLine + object);
-                                break;
-                            case TdApi.Chats.CONSTRUCTOR:
-                                long[] chatIds = ((TdApi.Chats) object).chatIds;
-                                if (chatIds.length == 0) {
+                                if (((TdApi.Error) object).code == 404) {
                                     synchronized (mainChatList) {
                                         haveFullMainChatList = true;
                                     }
+                                } else {
+                                    System.err.println("Receive an error for GetChats:" + newLine + object);
                                 }
+                                break;
+                            case TdApi.Ok.CONSTRUCTOR:
                                 // chats had already been received through updates, let's retry request
                                 getMainChatList(limit);
                                 break;
