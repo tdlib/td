@@ -3212,10 +3212,10 @@ class MessagesManager final : public Actor {
   std::unordered_map<int64, FoundMessages> found_fts_messages_;             // random_id -> FoundMessages
   std::unordered_map<int64, FoundMessages> found_message_public_forwards_;  // random_id -> FoundMessages
 
-  struct PublicMessageLinks {
-    std::unordered_map<MessageId, std::pair<string, string>, MessageIdHash> links_;
+  struct MessageEmbeddingCodes {
+    std::unordered_map<MessageId, string, MessageIdHash> embedding_codes_;
   };
-  std::unordered_map<DialogId, PublicMessageLinks, DialogIdHash> public_message_links_[2];
+  std::unordered_map<DialogId, MessageEmbeddingCodes, DialogIdHash> message_embedding_codes_[2];
 
   std::unordered_map<int64, tl_object_ptr<td_api::chatEvents>> chat_events_;  // random_id -> chat events
 

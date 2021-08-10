@@ -17515,7 +17515,7 @@ string MessagesManager::get_message_embedding_code(FullMessageId full_message_id
     for_group = true;  // default is true
   }
 
-  auto &links = public_message_links_[for_group][dialog_id].links_;
+  auto &links = message_embedding_codes_[for_group][dialog_id].embedding_codes_;
   auto it = links.find(m->message_id);
   if (it == links.end()) {
     td_->create_handler<ExportChannelMessageLinkQuery>(std::move(promise))
@@ -17524,14 +17524,15 @@ string MessagesManager::get_message_embedding_code(FullMessageId full_message_id
   }
 
   promise.set_value(Unit());
-  return it->second.second;
+  return it->second;
 }
 
 void MessagesManager::on_get_public_message_link(FullMessageId full_message_id, bool for_group, string url,
                                                  string html) {
   LOG_IF(ERROR, url.empty() && html.empty()) << "Receive empty public link for " << full_message_id;
-  public_message_links_[for_group][full_message_id.get_dialog_id()].links_[full_message_id.get_message_id()] = {
-      std::move(url), std::move(html)};
+  auto dialog_id = full_message_id.get_dialog_id();
+  auto message_id = full_message_id.get_message_id();
+  message_embedding_codes_[for_group][dialog_id].embedding_codes_[message_id] = std::move(html);
 }
 
 void MessagesManager::get_message_link_info(Slice url, Promise<MessageLinkInfo> &&promise) {
@@ -30435,8 +30436,8 @@ void MessagesManager::on_dialog_username_updated(DialogId dialog_id, const strin
     update_dialogs_hints(d);
   }
   if (old_username != new_username) {
-    public_message_links_[0].erase(dialog_id);
-    public_message_links_[1].erase(dialog_id);
+    message_embedding_codes_[0].erase(dialog_id);
+    message_embedding_codes_[1].erase(dialog_id);
   }
   if (!old_username.empty() && old_username != new_username) {
     resolved_usernames_.erase(clean_username(old_username));
