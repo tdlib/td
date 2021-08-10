@@ -22797,6 +22797,8 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
     return nullptr;
   }
 
+  m->is_update_sent = true;
+
   auto sending_state = get_message_sending_state_object(m);
 
   if (for_event_log) {
@@ -28334,6 +28336,10 @@ void MessagesManager::send_update_message_content(const Dialog *d, Message *m, c
 
 void MessagesManager::send_update_message_content_impl(DialogId dialog_id, const Message *m, const char *source) const {
   CHECK(m != nullptr);
+  if (!m->is_update_sent) {
+    LOG(INFO) << "Skip updateMessageContent for " << m->message_id << " in " << dialog_id << " from " << source;
+    return;
+  }
   LOG(INFO) << "Send updateMessageContent for " << m->message_id << " in " << dialog_id << " from " << source;
   auto content_object = get_message_content_object(m->content.get(), td_, dialog_id, m->is_failed_to_send ? 0 : m->date,
                                                    m->is_content_secret, need_skip_bot_commands(dialog_id, m),
@@ -28354,7 +28360,7 @@ void MessagesManager::send_update_message_edited(DialogId dialog_id, const Messa
 
 void MessagesManager::send_update_message_interaction_info(DialogId dialog_id, const Message *m) const {
   CHECK(m != nullptr);
-  if (td_->auth_manager_->is_bot()) {
+  if (td_->auth_manager_->is_bot() || !m->is_update_sent) {
     return;
   }
 
@@ -33708,6 +33714,9 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
 
   if (old_message->last_access_date < new_message->last_access_date) {
     old_message->last_access_date = new_message->last_access_date;
+  }
+  if (new_message->is_update_sent) {
+    old_message->is_update_sent = true;
   }
 
   if (!is_scheduled) {

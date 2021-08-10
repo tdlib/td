@@ -1099,6 +1099,7 @@ class MessagesManager final : public Actor {
     unique_ptr<Message> right;
 
     mutable int32 last_access_date = 0;
+    mutable bool is_update_sent = false;  // whether the message is known to the app
 
     mutable uint64 send_message_log_event_id = 0;
 
