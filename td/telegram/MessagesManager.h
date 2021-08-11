@@ -524,8 +524,11 @@ class MessagesManager final : public Actor {
 
   Result<DialogDate> get_dialog_list_last_date(DialogListId dialog_list_id);
 
-  std::pair<int32, vector<DialogId>> get_dialogs(DialogListId dialog_list_id, DialogDate offset, int32 limit,
-                                                 bool force, Promise<Unit> &&promise);
+  vector<DialogId> get_dialogs(DialogListId dialog_list_id, DialogDate offset, int32 limit, bool exact_limit,
+                               bool force, Promise<Unit> &&promise);
+
+  void get_dialogs_from_list(DialogListId dialog_list_id, int32 limit,
+                             Promise<td_api::object_ptr<td_api::chats>> &&promise);
 
   vector<DialogId> search_public_dialogs(const string &query, Promise<Unit> &&promise);
 
@@ -2075,6 +2078,10 @@ class MessagesManager final : public Actor {
 
   void preload_folder_dialog_list(FolderId folder_id);
 
+  void get_dialogs_from_list_impl(int64 task_id);
+
+  void on_get_dialogs_from_list(int64 task_id, Result<Unit> &&result);
+
   static void invalidate_message_indexes(Dialog *d);
 
   void update_message_count_by_index(Dialog *d, int diff, const Message *m);
@@ -3311,6 +3318,17 @@ class MessagesManager final : public Actor {
   std::unordered_map<string, ResolvedUsername> resolved_usernames_;
   std::unordered_map<string, DialogId> inaccessible_resolved_usernames_;
   std::unordered_set<string> reload_voice_chat_on_search_usernames_;
+
+  struct GetDialogsTask {
+    DialogListId dialog_list_id;
+    int32 limit;
+    int32 retry_count;
+    DialogDate last_dialog_date = MIN_DIALOG_DATE;
+    Promise<td_api::object_ptr<td_api::chats>> promise;
+  };
+
+  std::unordered_map<int64, GetDialogsTask> get_dialogs_tasks_;
+  int64 current_get_dialogs_task_id_ = 0;
 
   struct PendingOnGetDialogs {
     FolderId folder_id;

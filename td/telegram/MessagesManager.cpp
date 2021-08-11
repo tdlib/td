@@ -9179,7 +9179,7 @@ void MessagesManager::after_get_difference() {
     if (!list->is_dialog_unread_count_inited_) {
       int32 limit = list->are_pinned_dialogs_inited_ ? static_cast<int32>(list->pinned_dialogs_.size())
                                                      : get_pinned_dialogs_limit(dialog_list_id);
-      get_dialogs(dialog_list_id, MIN_DIALOG_DATE, limit + 2, false,
+      get_dialogs(dialog_list_id, MIN_DIALOG_DATE, limit + 2, true, false,
                   PromiseCreator::lambda([dialog_list_id](Result<Unit> result) {
                     if (!G()->close_flag() && result.is_ok()) {
                       LOG(INFO) << "Inited total chat count in " << dialog_list_id;
@@ -15559,8 +15559,8 @@ Result<DialogDate> MessagesManager::get_dialog_list_last_date(DialogListId dialo
   return list_ptr->list_last_dialog_date_;
 }
 
-std::pair<int32, vector<DialogId>> MessagesManager::get_dialogs(DialogListId dialog_list_id, DialogDate offset,
-                                                                int32 limit, bool force, Promise<Unit> &&promise) {
+vector<DialogId> MessagesManager::get_dialogs(DialogListId dialog_list_id, DialogDate offset, int32 limit,
+                                              bool exact_limit, bool force, Promise<Unit> &&promise) {
   CHECK(!td_->auth_manager_->is_bot());
 
   auto *list_ptr = get_dialog_list(dialog_list_id);
@@ -15576,12 +15576,8 @@ std::pair<int32, vector<DialogId>> MessagesManager::get_dialogs(DialogListId dia
             << ", are_pinned_dialogs_inited_ = " << list.are_pinned_dialogs_inited_;
 
   if (limit <= 0) {
-    promise.set_error(Status::Error(3, "Parameter limit in getChats must be positive"));
+    promise.set_error(Status::Error(3, "Parameter limit must be positive"));
     return {};
-  }
-
-  if (limit > MAX_GET_DIALOGS + 2) {
-    limit = MAX_GET_DIALOGS + 2;
   }
 
   vector<DialogId> result;
@@ -15601,7 +15597,7 @@ std::pair<int32, vector<DialogId>> MessagesManager::get_dialogs(DialogListId dia
   if (!list.are_pinned_dialogs_inited_) {
     if (limit == 0 || force) {
       promise.set_value(Unit());
-      return {get_dialog_total_count(list), std::move(result)};
+      return std::move(result);
     } else {
       if (dialog_list_id.is_folder()) {
         auto &folder = *get_dialog_folder(dialog_list_id.get_folder_id());
@@ -15635,7 +15631,7 @@ std::pair<int32, vector<DialogId>> MessagesManager::get_dialogs(DialogListId dia
     if (!input_dialog_ids.empty()) {
       if (limit == 0 || force) {
         promise.set_value(Unit());
-        return {get_dialog_total_count(list), std::move(result)};
+        return std::move(result);
       } else {
         td_->create_handler<GetDialogsQuery>(std::move(promise))->send(std::move(input_dialog_ids));
         return {};
@@ -15705,13 +15701,13 @@ std::pair<int32, vector<DialogId>> MessagesManager::get_dialogs(DialogListId dia
     ++folder_iterators[best_pos];
   }
 
-  if (!result.empty() || force || list.list_last_dialog_date_ == MAX_DIALOG_DATE) {
+  if ((!result.empty() && (!exact_limit || limit == 0)) || force || list.list_last_dialog_date_ == MAX_DIALOG_DATE) {
     if (limit > 0 && list.list_last_dialog_date_ != MAX_DIALOG_DATE) {
       load_dialog_list(list, limit, Promise<Unit>());
     }
 
     promise.set_value(Unit());
-    return {get_dialog_total_count(list), std::move(result)};
+    return std::move(result);
   } else {
     load_dialog_list(list, limit, std::move(promise));
     return {};
@@ -15720,6 +15716,9 @@ std::pair<int32, vector<DialogId>> MessagesManager::get_dialogs(DialogListId dia
 
 void MessagesManager::load_dialog_list(DialogList &list, int32 limit, Promise<Unit> &&promise) {
   CHECK(!td_->auth_manager_->is_bot());
+  if (limit > MAX_GET_DIALOGS + 2) {
+    limit = MAX_GET_DIALOGS + 2;
+  }
   bool is_request_sent = false;
   for (auto folder_id : get_dialog_list_folder_ids(list)) {
     const auto &folder = *get_dialog_folder(folder_id);
@@ -15929,6 +15928,79 @@ void MessagesManager::preload_folder_dialog_list(FolderId folder_id) {
   } else {
     recalc_unread_count(DialogListId(folder_id));
   }
+}
+
+void MessagesManager::get_dialogs_from_list(DialogListId dialog_list_id, int32 limit,
+                                            Promise<td_api::object_ptr<td_api::chats>> &&promise) {
+  CHECK(!td_->auth_manager_->is_bot());
+
+  if (get_dialog_list(dialog_list_id) == nullptr) {
+    return promise.set_error(Status::Error(400, "Chat list not found"));
+  }
+
+  if (limit <= 0) {
+    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
+  }
+
+  auto task_id = ++current_get_dialogs_task_id_;
+  auto &task = get_dialogs_tasks_[task_id];
+  task.dialog_list_id = dialog_list_id;
+  task.retry_count = 5;
+  task.limit = limit;
+  task.promise = std::move(promise);
+  get_dialogs_from_list_impl(task_id);
+}
+
+void MessagesManager::get_dialogs_from_list_impl(int64 task_id) {
+  auto task_it = get_dialogs_tasks_.find(task_id);
+  CHECK(task_it != get_dialogs_tasks_.end());
+  auto &task = task_it->second;
+  auto promise = PromiseCreator::lambda([actor_id = actor_id(this), task_id](Result<Unit> &&result) {
+    send_closure_later(actor_id, &MessagesManager::on_get_dialogs_from_list, task_id, std::move(result));
+  });
+  auto dialog_ids = get_dialogs(task.dialog_list_id, MIN_DIALOG_DATE, task.limit, true, false, std::move(promise));
+  auto &list = *get_dialog_list(task.dialog_list_id);
+  auto total_count = get_dialog_total_count(list);
+  LOG(INFO) << "Receive " << dialog_ids.size() << " chats out of " << total_count << "/" << task.limit;
+  CHECK(dialog_ids.size() <= static_cast<size_t>(total_count));
+  CHECK(dialog_ids.size() <= static_cast<size_t>(task.limit));
+  if (dialog_ids.size() == static_cast<size_t>(min(total_count, task.limit)) ||
+      list.list_last_dialog_date_ == MAX_DIALOG_DATE || task.retry_count == 0) {
+    auto task_promise = std::move(task.promise);
+    get_dialogs_tasks_.erase(task_it);
+    if (!task_promise) {
+      dialog_ids.clear();
+    }
+    return task_promise.set_value(get_chats_object(total_count, dialog_ids));
+  }
+  // nor the limit, nor the end of the list were reached; wait for the promise
+}
+
+void MessagesManager::on_get_dialogs_from_list(int64 task_id, Result<Unit> &&result) {
+  auto task_it = get_dialogs_tasks_.find(task_id);
+  if (task_it == get_dialogs_tasks_.end()) {
+    // the task has already been completed successfully
+    return;
+  }
+  auto &task = task_it->second;
+  if (result.is_error()) {
+    auto task_promise = std::move(task.promise);
+    get_dialogs_tasks_.erase(task_it);
+    return task_promise.set_error(result.move_as_error());
+  }
+
+  auto list_ptr = get_dialog_list(task.dialog_list_id);
+  CHECK(list_ptr != nullptr);
+  auto &list = *list_ptr;
+  if (task.last_dialog_date == list.list_last_dialog_date_) {
+    // no new chats were loaded
+    task.retry_count--;
+  } else {
+    CHECK(task.last_dialog_date < list.list_last_dialog_date_);
+    task.last_dialog_date = list.list_last_dialog_date_;
+    task.retry_count = 5;
+  }
+  get_dialogs_from_list_impl(task_id);
 }
 
 vector<DialogId> MessagesManager::get_pinned_dialog_ids(DialogListId dialog_list_id) const {
@@ -18266,8 +18338,8 @@ void MessagesManager::edit_dialog_filter(unique_ptr<DialogFilter> new_dialog_fil
 
       if (old_list.need_unread_count_recalc_) {
         // repair unread count
-        get_dialogs(dialog_list_id, MIN_DIALOG_DATE, static_cast<int32>(old_list.pinned_dialogs_.size() + 2), false,
-                    Promise<Unit>());
+        get_dialogs(dialog_list_id, MIN_DIALOG_DATE, static_cast<int32>(old_list.pinned_dialogs_.size() + 2), true,
+                    false, Promise<Unit>());
       }
 
       for (auto &promise : load_list_promises) {
@@ -29494,7 +29566,7 @@ void MessagesManager::on_update_pinned_dialogs(FolderId folder_id) {
   }
   // preload all pinned dialogs
   get_dialogs(DialogListId(folder_id), {SPONSORED_DIALOG_ORDER - 1, DialogId()},
-              narrow_cast<int32>(list->pinned_dialogs_.size()), true, Auto());
+              narrow_cast<int32>(list->pinned_dialogs_.size()), true, true, Auto());
   reload_pinned_dialogs(DialogListId(folder_id), Auto());
 }
 
@@ -37406,7 +37478,7 @@ bool MessagesManager::load_recently_found_dialogs(Promise<Unit> &promise) {
       }
       resolve_recently_found_dialogs_multipromise_.get_promise().set_value(Unit());
     } else {
-      get_dialogs(DialogListId(FolderId::main()), MIN_DIALOG_DATE, MAX_GET_DIALOGS, false,
+      get_dialogs(DialogListId(FolderId::main()), MIN_DIALOG_DATE, MAX_GET_DIALOGS, false, false,
                   resolve_recently_found_dialogs_multipromise_.get_promise());
       td_->contacts_manager_->search_contacts("", 1, resolve_recently_found_dialogs_multipromise_.get_promise());
     }

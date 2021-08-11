@@ -131,22 +131,11 @@ static void reactivate_readline() {
 }
 
 static char *command_generator(const char *text, int state) {
-  static const vector<CSlice> commands{"GetChats",
-                                       "GetHistory",
-                                       "SetVerbosity",
-                                       "SendVideo",
-                                       "SearchDocument",
-                                       "GetChatMember",
-                                       "GetSupergroupAdministrators",
-                                       "GetSupergroupBanned",
-                                       "GetSupergroupMembers",
-                                       "GetFile",
-                                       "DownloadFile",
-                                       "CancelDownloadFile",
-                                       "ImportContacts",
-                                       "RemoveContacts",
-                                       "CreateSecretChat",
-                                       "CreateNewSecretChat"};
+  static const vector<CSlice> commands{"GetHistory",          "SetVerbosity",         "SendVideo",
+                                       "SearchDocument",      "GetChatMember",        "GetSupergroupAdministrators",
+                                       "GetSupergroupBanned", "GetSupergroupMembers", "GetFile",
+                                       "DownloadFile",        "CancelDownloadFile",   "ImportContacts",
+                                       "RemoveContacts",      "CreateSecretChat",     "CreateNewSecretChat"};
   static size_t cmd_i;
   if (state == 0) {
     cmd_i = 0;
@@ -944,7 +933,7 @@ class CliClient final : public Actor {
     td_client_ = create_actor<ClientActor>(name, make_unique<TdCallbackImpl>(this, ++generation_), std::move(options));
 
     if (get_chat_list_) {
-      send_request(td_api::make_object<td_api::getChats>(nullptr, std::numeric_limits<int64>::max(), 0, 10000));
+      send_request(td_api::make_object<td_api::getChats>(nullptr, 10000));
     }
     if (disable_network_) {
       send_request(td_api::make_object<td_api::setNetworkType>(td_api::make_object<td_api::networkTypeNone>()));
@@ -1965,25 +1954,14 @@ class CliClient final : public Actor {
       op_not_found_count++;
     }
 
-    if (op == "gc" || op == "GetChats" || op == "gca" || begins_with(op, "gc-")) {
-      string limit;
-      string offset_order_string;
-      string offset_chat_id;
-      get_args(args, limit, offset_order_string, offset_chat_id);
-      int64 offset_order;
-      if (offset_order_string.empty()) {
-        offset_order = std::numeric_limits<int64>::max();
-      } else {
-        offset_order = to_integer<int64>(offset_order_string);
-      }
-      send_request(td_api::make_object<td_api::getChats>(as_chat_list(op), offset_order, as_chat_id(offset_chat_id),
-                                                         as_limit(limit, 10000)));
+    if (op == "gc" || op == "gca" || begins_with(op, "gc-")) {
+      send_request(td_api::make_object<td_api::getChats>(as_chat_list(op), as_limit(args, 10000)));
     } else if (op == "lc" || op == "lca" || begins_with(op, "lc-")) {
       send_request(td_api::make_object<td_api::loadChats>(as_chat_list(op), as_limit(args, 10000)));
     } else if (op == "gctest") {
-      send_request(td_api::make_object<td_api::getChats>(nullptr, std::numeric_limits<int64>::max(), 0, 1));
-      send_request(td_api::make_object<td_api::getChats>(nullptr, std::numeric_limits<int64>::max(), 0, 10));
-      send_request(td_api::make_object<td_api::getChats>(nullptr, std::numeric_limits<int64>::max(), 0, 5));
+      send_request(td_api::make_object<td_api::getChats>(nullptr, 1));
+      send_request(td_api::make_object<td_api::getChats>(nullptr, 10));
+      send_request(td_api::make_object<td_api::getChats>(nullptr, 5));
     } else if (op == "gcc" || op == "GetCommonChats") {
       string user_id;
       string offset_chat_id;

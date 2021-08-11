@@ -4027,12 +4027,8 @@ getRemoteFile remote_file_id:string file_type:FileType = File;
 //@limit The maximum number of chats to be loaded. For optimal performance, the number of loaded chats is chosen by TDLib and can be smaller than the specified limit, even if the end of the list is not reached
 loadChats chat_list:ChatList limit:int32 = Ok;
 
-//@description Returns an ordered list of chats in a chat list. Chats are sorted by the pair (chat.position.order, chat.id) in descending order. (For example, to get a list of chats from the beginning, the offset_order should be equal to a biggest signed 64-bit number 9223372036854775807 == 2^63 - 1).
-//-For optimal performance, the number of returned chats is chosen by TDLib
-//@chat_list The chat list in which to return chats
-//@offset_order Chat order to return chats from @offset_chat_id Chat identifier to return chats from
-//@limit The maximum number of chats to be returned. For optimal performance, the number of returned chats is chosen by TDLib and can be smaller than the specified limit, even if the end of the list is not reached
-getChats chat_list:ChatList offset_order:int64 offset_chat_id:int53 limit:int32 = Chats;
+//@description Returns an ordered list of chats from the beginning of a chat list. For informational purposes only. Use loadChats instead to maintain chat lists @chat_list The chat list in which to return chats @limit The maximum number of chats to be returned
+getChats chat_list:ChatList limit:int32 = Chats;
 
 //@description Searches a public chat by its username. Currently only private chats, supergroups and channels can be public. Returns the chat if found; otherwise an error is returned @username Username to be resolved
 searchPublicChat username:string = Chat;

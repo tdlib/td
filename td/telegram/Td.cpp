@@ -791,7 +791,7 @@ class LoadChatsRequest final : public RequestActor<> {
   int32 limit_;
 
   void do_run(Promise<Unit> &&promise) final {
-    td->messages_manager_->get_dialogs(dialog_list_id_, offset_, limit_, get_tries() < 2, std::move(promise));
+    td->messages_manager_->get_dialogs(dialog_list_id_, offset_, limit_, false, get_tries() < 2, std::move(promise));
   }
 
  public:
@@ -799,34 +799,10 @@ class LoadChatsRequest final : public RequestActor<> {
       : RequestActor(std::move(td), request_id), dialog_list_id_(dialog_list_id), offset_(offset), limit_(limit) {
     // 1 for database + 1 for server request + 1 for server request at the end + 1 for return + 1 just in case
     set_tries(5);
-  }
-};
 
-class GetChatsRequest final : public RequestActor<> {
-  DialogListId dialog_list_id_;
-  DialogDate offset_;
-  int32 limit_;
-
-  std::pair<int32, vector<DialogId>> dialog_ids_;
-
-  void do_run(Promise<Unit> &&promise) final {
-    dialog_ids_ =
-        td->messages_manager_->get_dialogs(dialog_list_id_, offset_, limit_, get_tries() < 2, std::move(promise));
-  }
-
-  void do_send_result() final {
-    send_result(MessagesManager::get_chats_object(dialog_ids_));
-  }
-
- public:
-  GetChatsRequest(ActorShared<Td> td, uint64 request_id, DialogListId dialog_list_id, int64 offset_order,
-                  int64 offset_dialog_id, int32 limit)
-      : RequestActor(std::move(td), request_id)
-      , dialog_list_id_(dialog_list_id)
-      , offset_(offset_order, DialogId(offset_dialog_id))
-      , limit_(limit) {
-    // 1 for database + 1 for server request + 1 for server request at the end + 1 for return + 1 just in case
-    set_tries(5);
+    if (limit > 100) {
+      limit = 100;
+    }
   }
 };
 
@@ -5356,8 +5332,8 @@ void Td::on_request(uint64 id, const td_api::loadChats &request) {
 
 void Td::on_request(uint64 id, const td_api::getChats &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST(GetChatsRequest, DialogListId(request.chat_list_), request.offset_order_, request.offset_chat_id_,
-                 request.limit_);
+  CREATE_REQUEST_PROMISE();
+  messages_manager_->get_dialogs_from_list(DialogListId(request.chat_list_), request.limit_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::searchPublicChat &request) {

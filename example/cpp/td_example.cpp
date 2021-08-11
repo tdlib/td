@@ -116,16 +116,15 @@ class TdExample {
           send_query(std::move(send_message), {});
         } else if (action == "c") {
           std::cout << "Loading chat list..." << std::endl;
-          send_query(td_api::make_object<td_api::getChats>(nullptr, std::numeric_limits<std::int64_t>::max(), 0, 20),
-                     [this](Object object) {
-                       if (object->get_id() == td_api::error::ID) {
-                         return;
-                       }
-                       auto chats = td::move_tl_object_as<td_api::chats>(object);
-                       for (auto chat_id : chats->chat_ids_) {
-                         std::cout << "[chat_id:" << chat_id << "] [title:" << chat_title_[chat_id] << "]" << std::endl;
-                       }
-                     });
+          send_query(td_api::make_object<td_api::getChats>(nullptr, 20), [this](Object object) {
+            if (object->get_id() == td_api::error::ID) {
+              return;
+            }
+            auto chats = td::move_tl_object_as<td_api::chats>(object);
+            for (auto chat_id : chats->chat_ids_) {
+              std::cout << "[chat_id:" << chat_id << "] [title:" << chat_title_[chat_id] << "]" << std::endl;
+            }
+          });
         }
       }
     }
