@@ -14639,7 +14639,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
             if (result.is_ok()) {
               LOG(INFO) << "Continue to load chat list in " << folder_id;
               send_closure_later(actor_id, &MessagesManager::load_folder_dialog_list, folder_id, int32{MAX_GET_DIALOGS},
-                                 false, Promise<Unit>());
+                                 false);
             }
           }));
         }
@@ -15723,7 +15723,7 @@ void MessagesManager::load_dialog_list(DialogList &list, int32 limit, Promise<Un
   for (auto folder_id : get_dialog_list_folder_ids(list)) {
     const auto &folder = *get_dialog_folder(folder_id);
     if (folder.folder_last_dialog_date_ != MAX_DIALOG_DATE) {
-      load_folder_dialog_list(folder_id, limit, false, Auto());
+      load_folder_dialog_list(folder_id, limit, false);
       is_request_sent = true;
     }
   }
@@ -15736,30 +15736,27 @@ void MessagesManager::load_dialog_list(DialogList &list, int32 limit, Promise<Un
   }
 }
 
-// TODO remove the promise
-void MessagesManager::load_folder_dialog_list(FolderId folder_id, int32 limit, bool only_local,
-                                              Promise<Unit> &&promise) {
+void MessagesManager::load_folder_dialog_list(FolderId folder_id, int32 limit, bool only_local) {
   CHECK(!td_->auth_manager_->is_bot());
   auto &folder = *get_dialog_folder(folder_id);
   if (folder.folder_last_dialog_date_ == MAX_DIALOG_DATE) {
-    return promise.set_value(Unit());
+    return;
   }
 
   bool use_database = G()->parameters().use_message_db &&
                       folder.last_loaded_database_dialog_date_ < folder.last_database_server_dialog_date_;
   if (only_local && !use_database) {
-    return promise.set_value(Unit());
+    return;
   }
 
   LOG(INFO) << "Load dialog list in " << folder_id << " with limit " << limit;
   auto &multipromise = folder.load_folder_dialog_list_multipromise_;
-  multipromise.add_promise(std::move(promise));
   multipromise.add_promise(PromiseCreator::lambda([actor_id = actor_id(this), folder_id](Result<Unit> result) {
     if (result.is_error() && !G()->close_flag()) {
       send_closure(actor_id, &MessagesManager::on_load_folder_dialog_list_fail, folder_id, result.move_as_error());
     }
   }));
-  if (multipromise.promise_count() != 2) {
+  if (multipromise.promise_count() != 1) {
     // queries have already been sent, just wait for the result
     if (use_database && folder.load_dialog_list_limit_max_ != 0) {
       folder.load_dialog_list_limit_max_ = max(folder.load_dialog_list_limit_max_, limit);
@@ -15773,6 +15770,12 @@ void MessagesManager::load_folder_dialog_list(FolderId folder_id, int32 limit, b
     is_query_sent = true;
   } else {
     LOG(INFO) << "Get chats from " << folder.last_server_dialog_date_;
+    multipromise.add_promise(PromiseCreator::lambda([actor_id = actor_id(this), folder_id](Result<Unit> result) {
+      if (result.is_ok()) {
+        send_closure(actor_id, &MessagesManager::recalc_unread_count, DialogListId(folder_id), -1);
+      }
+    }));
+    auto lock = multipromise.get_promise();
     reload_pinned_dialogs(DialogListId(folder_id), multipromise.get_promise());
     if (folder.folder_last_dialog_date_ == folder.last_server_dialog_date_) {
       send_closure(
@@ -15787,6 +15790,7 @@ void MessagesManager::load_folder_dialog_list(FolderId folder_id, int32 limit, b
       // do not pass promise to not wait for drafts before showing chat list
       td_->create_handler<GetAllDraftsQuery>()->send();
     }
+    lock.set_value(Unit());
   }
   CHECK(is_query_sent);
 }
@@ -15915,16 +15919,10 @@ void MessagesManager::preload_folder_dialog_list(FolderId folder_id) {
 
   if (folder.last_loaded_database_dialog_date_ < folder.last_database_server_dialog_date_) {
     // if there are some dialogs in database, preload some of them
-    load_folder_dialog_list(folder_id, 20, true, Auto());
+    load_folder_dialog_list(folder_id, 20, true);
   } else if (folder.folder_last_dialog_date_ != MAX_DIALOG_DATE) {
     // otherwise load more dialogs from the server
-    load_folder_dialog_list(folder_id, MAX_GET_DIALOGS, false,
-                            PromiseCreator::lambda([actor_id = actor_id(this), folder_id](Result<Unit> result) {
-                              if (result.is_ok()) {
-                                send_closure(actor_id, &MessagesManager::recalc_unread_count, DialogListId(folder_id),
-                                             -1);
-                              }
-                            }));
+    load_folder_dialog_list(folder_id, MAX_GET_DIALOGS, false);
   } else {
     recalc_unread_count(DialogListId(folder_id));
   }
@@ -20142,7 +20140,7 @@ vector<DialogId> MessagesManager::get_dialog_notification_settings_exceptions(No
   }
 
   for (const auto &folder : dialog_folders_) {
-    load_folder_dialog_list(folder.first, MAX_GET_DIALOGS, true, Auto());
+    load_folder_dialog_list(folder.first, MAX_GET_DIALOGS, true);
   }
 
   td_->create_handler<GetNotifySettingsExceptionsQuery>(std::move(promise))->send(scope, filter_scope, compare_sound);
