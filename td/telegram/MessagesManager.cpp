@@ -3704,9 +3704,9 @@ class ForwardMessagesActor final : public NetActorOnce {
     }
 
     auto query = G()->net_query_creator().create(telegram_api::messages_forwardMessages(
-        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(from_input_peer),
-        MessagesManager::get_server_message_ids(message_ids), std::move(random_ids), std::move(to_input_peer),
-        schedule_date));
+        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+        std::move(from_input_peer), MessagesManager::get_server_message_ids(message_ids), std::move(random_ids),
+        std::move(to_input_peer), schedule_date));
     if (G()->shared_config().get_option_boolean("use_quick_ack")) {
       query->quick_ack_promise_ = PromiseCreator::lambda(
           [random_ids = random_ids_](Unit) {
@@ -31809,6 +31809,10 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
       auto new_value = MessageTtlSetting(clamp(action->new_value_, 0, 86400 * 366));
       return make_tl_object<td_api::chatEventMessageTtlSettingChanged>(old_value.get_message_ttl_setting_object(),
                                                                        new_value.get_message_ttl_setting_object());
+    }
+    case telegram_api::channelAdminLogEventActionChangeTheme::ID: {
+      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeTheme>(action_ptr);
+      return nullptr;
     }
     default:
       UNREACHABLE();
