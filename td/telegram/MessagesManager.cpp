@@ -15747,18 +15747,18 @@ void MessagesManager::load_folder_dialog_list(FolderId folder_id, int32 limit, b
 
   LOG(INFO) << "Load dialog list in " << folder_id << " with limit " << limit;
   auto &multipromise = folder.load_folder_dialog_list_multipromise_;
-  multipromise.add_promise(PromiseCreator::lambda([actor_id = actor_id(this), folder_id](Result<Unit> result) {
-    if (result.is_error() && !G()->close_flag()) {
-      send_closure(actor_id, &MessagesManager::on_load_folder_dialog_list_fail, folder_id, result.move_as_error());
-    }
-  }));
-  if (multipromise.promise_count() != 1) {
+  if (multipromise.promise_count() != 0) {
     // queries have already been sent, just wait for the result
     if (use_database && folder.load_dialog_list_limit_max_ != 0) {
       folder.load_dialog_list_limit_max_ = max(folder.load_dialog_list_limit_max_, limit);
     }
     return;
   }
+  multipromise.add_promise(PromiseCreator::lambda([actor_id = actor_id(this), folder_id](Result<Unit> result) {
+    if (result.is_error() && !G()->close_flag()) {
+      send_closure(actor_id, &MessagesManager::on_load_folder_dialog_list_fail, folder_id, result.move_as_error());
+    }
+  }));
 
   bool is_query_sent = false;
   if (use_database) {
