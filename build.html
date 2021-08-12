@@ -626,7 +626,7 @@ function onOptionsChanged() {
           cmake = 'cmake3';
           packages += ' gperf';
         } else {
-          commands.push(sudo + 'dnf --enablerepo=PowerTools install gperf');
+          commands.push(sudo + 'dnf --enablerepo=powertools install gperf');
         }
         packages += ' ' + cmake;
         if (target === 'JNI') {
