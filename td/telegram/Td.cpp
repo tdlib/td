@@ -59,6 +59,7 @@
 #include "td/telegram/MessageLinkInfo.h"
 #include "td/telegram/MessageSearchFilter.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/MessageThreadInfo.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/net/ConnectionCreator.h"
 #include "td/telegram/net/DcId.h"
@@ -1002,13 +1003,13 @@ class GetRepliedMessageRequest final : public RequestOnceActor {
   }
 };
 
-class GetMessageThreadRequest final : public RequestActor<MessagesManager::MessageThreadInfo> {
+class GetMessageThreadRequest final : public RequestActor<MessageThreadInfo> {
   DialogId dialog_id_;
   MessageId message_id_;
 
-  MessagesManager::MessageThreadInfo message_thread_info_;
+  MessageThreadInfo message_thread_info_;
 
-  void do_run(Promise<MessagesManager::MessageThreadInfo> &&promise) final {
+  void do_run(Promise<MessageThreadInfo> &&promise) final {
     if (get_tries() < 2) {
       promise.set_value(std::move(message_thread_info_));
       return;
@@ -1016,7 +1017,7 @@ class GetMessageThreadRequest final : public RequestActor<MessagesManager::Messa
     td->messages_manager_->get_message_thread(dialog_id_, message_id_, std::move(promise));
   }
 
-  void do_set_result(MessagesManager::MessageThreadInfo &&result) final {
+  void do_set_result(MessageThreadInfo &&result) final {
     message_thread_info_ = std::move(result);
   }
 

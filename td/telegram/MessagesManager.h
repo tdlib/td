@@ -31,6 +31,7 @@
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageLinkInfo.h"
 #include "td/telegram/MessageReplyInfo.h"
+#include "td/telegram/MessageThreadInfo.h"
 #include "td/telegram/MessagesDb.h"
 #include "td/telegram/MessageSearchFilter.h"
 #include "td/telegram/MessageTtlSetting.h"
@@ -567,10 +568,6 @@ class MessagesManager final : public Actor {
   void get_messages_from_server(vector<FullMessageId> &&message_ids, Promise<Unit> &&promise, const char *source,
                                 tl_object_ptr<telegram_api::InputMessage> input_message = nullptr);
 
-  struct MessageThreadInfo {
-    DialogId dialog_id;
-    vector<MessageId> message_ids;
-  };
   void get_message_thread(DialogId dialog_id, MessageId message_id, Promise<MessageThreadInfo> &&promise);
 
   td_api::object_ptr<td_api::messageThreadInfo> get_message_thread_info_object(const MessageThreadInfo &info);

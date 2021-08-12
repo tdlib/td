@@ -539,6 +539,7 @@ set(TDLIB_SOURCE
   td/telegram/MessageId.h
   td/telegram/MessageLinkInfo.h
   td/telegram/MessageReplyInfo.h
+  td/telegram/MessageThreadInfo.h
   td/telegram/MessagesDb.h
   td/telegram/MessageSearchFilter.h
   td/telegram/MessagesManager.h
