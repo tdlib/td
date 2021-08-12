@@ -9179,12 +9179,8 @@ void MessagesManager::after_get_difference() {
     if (!list->is_dialog_unread_count_inited_) {
       int32 limit = list->are_pinned_dialogs_inited_ ? static_cast<int32>(list->pinned_dialogs_.size())
                                                      : get_pinned_dialogs_limit(dialog_list_id);
-      get_dialogs(dialog_list_id, MIN_DIALOG_DATE, limit + 2, true, false,
-                  PromiseCreator::lambda([dialog_list_id](Result<Unit> result) {
-                    if (!G()->close_flag() && result.is_ok()) {
-                      LOG(INFO) << "Inited total chat count in " << dialog_list_id;
-                    }
-                  }));
+      LOG(INFO) << "Loading chat list in " << dialog_list_id << " to init total unread count";
+      get_dialogs_from_list(dialog_list_id, limit + 2, Auto());
     }
   }
 }
@@ -18336,8 +18332,7 @@ void MessagesManager::edit_dialog_filter(unique_ptr<DialogFilter> new_dialog_fil
 
       if (old_list.need_unread_count_recalc_) {
         // repair unread count
-        get_dialogs(dialog_list_id, MIN_DIALOG_DATE, static_cast<int32>(old_list.pinned_dialogs_.size() + 2), true,
-                    false, Promise<Unit>());
+        get_dialogs_from_list(dialog_list_id, static_cast<int32>(old_list.pinned_dialogs_.size() + 2), Auto());
       }
 
       for (auto &promise : load_list_promises) {
@@ -29563,8 +29558,9 @@ void MessagesManager::on_update_pinned_dialogs(FolderId folder_id) {
     return;
   }
   // preload all pinned dialogs
-  get_dialogs(DialogListId(folder_id), {SPONSORED_DIALOG_ORDER - 1, DialogId()},
-              narrow_cast<int32>(list->pinned_dialogs_.size()), true, true, Auto());
+  int32 limit = narrow_cast<int32>(list->pinned_dialogs_.size()) +
+                (folder_id == FolderId::main() && sponsored_dialog_id_.is_valid() ? 1 : 0);
+  get_dialogs_from_list(DialogListId(folder_id), limit, Auto());
   reload_pinned_dialogs(DialogListId(folder_id), Auto());
 }
 
@@ -37458,6 +37454,7 @@ bool MessagesManager::load_recently_found_dialogs(Promise<Unit> &promise) {
     recently_found_dialogs_loaded_ = 1;
 
     resolve_recently_found_dialogs_multipromise_.set_ignore_errors(true);
+    auto lock = resolve_recently_found_dialogs_multipromise_.get_promise();
 
     for (auto &found_dialog : found_dialogs) {
       if (found_dialog[0] == '@') {
@@ -37474,12 +37471,15 @@ bool MessagesManager::load_recently_found_dialogs(Promise<Unit> &promise) {
           get_dialog_force(dialog_id, "load_recently_found_dialogs");
         }
       }
-      resolve_recently_found_dialogs_multipromise_.get_promise().set_value(Unit());
     } else {
-      get_dialogs(DialogListId(FolderId::main()), MIN_DIALOG_DATE, MAX_GET_DIALOGS, false, false,
-                  resolve_recently_found_dialogs_multipromise_.get_promise());
+      get_dialogs_from_list(DialogListId(FolderId::main()), MAX_GET_DIALOGS + 2,
+                            PromiseCreator::lambda(
+                                [promise = resolve_recently_found_dialogs_multipromise_.get_promise()](
+                                    td_api::object_ptr<td_api::chats> &&chats) mutable { promise.set_value(Unit()); }));
       td_->contacts_manager_->search_contacts("", 1, resolve_recently_found_dialogs_multipromise_.get_promise());
     }
+
+    lock.set_value(Unit());
   }
   return false;
 }
