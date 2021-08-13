@@ -2911,12 +2911,14 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
     case MessageContentType::Text: {
       auto old_ = static_cast<const MessageText *>(old_content);
       auto new_ = static_cast<const MessageText *>(new_content);
+      auto get_content_object = [td, dialog_id](const MessageContent *content) {
+        return to_string(
+            get_message_content_object(content, td, dialog_id, -1, false, false, std::numeric_limits<int32>::max()));
+      };
       if (old_->text.text != new_->text.text) {
         if (need_message_changed_warning && need_message_text_changed_warning(old_, new_)) {
-          LOG(ERROR) << "Message text has changed from "
-                     << to_string(get_message_content_object(old_content, td, dialog_id, -1, false, false, -1))
-                     << ". New content is "
-                     << to_string(get_message_content_object(new_content, td, dialog_id, -1, false, false, -1));
+          LOG(ERROR) << "Message text has changed in " << get_content_object(old_content) << ". New content is "
+                     << get_content_object(new_content);
         }
         need_update = true;
       }
@@ -2925,10 +2927,8 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
         if (need_message_changed_warning && need_message_text_changed_warning(old_, new_) &&
             old_->text.entities.size() <= MAX_CUSTOM_ENTITIES_COUNT &&
             need_message_entities_changed_warning(old_->text.entities, new_->text.entities)) {
-          LOG(WARNING) << "Entities has changed from "
-                       << to_string(get_message_content_object(old_content, td, dialog_id, -1, false, false, -1))
-                       << ". New content is "
-                       << to_string(get_message_content_object(new_content, td, dialog_id, -1, false, false, -1));
+          LOG(WARNING) << "Entities has changed in " << get_content_object(old_content) << ". New content is "
+                       << get_content_object(new_content);
         }
         need_update = true;
       }
