@@ -13670,7 +13670,7 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
     new_message->from_database = false;
     new_message->have_previous = false;
     new_message->have_next = false;
-    update_message(d, old_message.get(), std::move(new_message), &need_update_dialog_pos);
+    update_message(d, old_message.get(), std::move(new_message), &need_update_dialog_pos, false);
     new_message = std::move(old_message);
 
     set_message_id(new_message, message_id);
@@ -28835,7 +28835,7 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
     // dump_debug_message_op(d, 5);
   }
 
-  // imitation of update_message(d, sent_message.get(), std::move(new_message), &need_update_dialog_pos);
+  // imitation of update_message(d, sent_message.get(), std::move(new_message), &need_update_dialog_pos, false);
   if (date <= 0) {
     LOG(ERROR) << "Receive " << new_message_id << " in " << dialog_id << " with wrong date " << date << " from "
                << source;
@@ -32281,7 +32281,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         auto old_index_mask = get_message_index_mask(dialog_id, m) & INDEX_MASK_MASK;
         bool was_deleted = delete_active_live_location(dialog_id, m);
         auto old_file_ids = get_message_content_file_ids(m->content.get(), td_);
-        bool need_send_update = update_message(d, m, std::move(message), need_update_dialog_pos);
+        bool need_send_update = update_message(d, m, std::move(message), need_update_dialog_pos, true);
         if (!need_send_update) {
           LOG(INFO) << message_id << " in " << dialog_id << " is not changed";
         }
@@ -32888,7 +32888,7 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
       if (!message->from_database) {
         auto old_file_ids = get_message_content_file_ids(m->content.get(), td_);
         bool need_update_dialog_pos = false;
-        update_message(d, m, std::move(message), &need_update_dialog_pos);
+        update_message(d, m, std::move(message), &need_update_dialog_pos, true);
         CHECK(need_update_dialog_pos == false);
         change_message_files(dialog_id, m, old_file_ids);
       }
@@ -33347,7 +33347,7 @@ void MessagesManager::attach_message_to_next(Dialog *d, MessageId message_id, co
 }
 
 bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr<Message> new_message,
-                                     bool *need_update_dialog_pos) {
+                                     bool *need_update_dialog_pos, bool is_message_in_dialog) {
   CHECK(d != nullptr);
   CHECK(old_message != nullptr);
   CHECK(new_message != nullptr);
@@ -33727,8 +33727,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
   }
 
   if (update_message_content(dialog_id, old_message, std::move(new_message->content), true,
-                             message_id.is_yet_unsent() && new_message->edit_date == 0,
-                             get_message(d, message_id) != nullptr)) {
+                             message_id.is_yet_unsent() && new_message->edit_date == 0, is_message_in_dialog)) {
     need_send_update = true;
   }
 
