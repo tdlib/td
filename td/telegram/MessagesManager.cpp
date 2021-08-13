@@ -22872,13 +22872,14 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   bool skip_bot_commands = for_event_log ? true : need_skip_bot_commands(dialog_id, m);
   int32 max_media_timestamp =
       for_event_log ? get_message_own_max_media_timestamp(m) : get_message_max_media_timestamp(m);
+  bool has_timestamped_media = for_event_log || reply_to_message_id == 0 || m->max_own_media_timestamp >= 0;
   string source = PSTRING() << dialog_id << ' ' << m->message_id;
   return make_tl_object<td_api::message>(
       m->message_id.get(), get_message_sender_object_const(m->sender_user_id, m->sender_dialog_id, source.c_str()),
       dialog_id.get(), std::move(sending_state), std::move(scheduling_state), is_outgoing, is_pinned, can_be_edited,
       can_be_forwarded, can_delete_for_self, can_delete_for_all_users, can_get_statistics, can_get_message_thread,
-      can_get_media_timestamp_links, m->is_channel_post, contains_unread_mention, date, edit_date,
-      get_message_forward_info_object(m->forward_info), get_message_interaction_info_object(dialog_id, m),
+      can_get_media_timestamp_links, has_timestamped_media, m->is_channel_post, contains_unread_mention, date,
+      edit_date, get_message_forward_info_object(m->forward_info), get_message_interaction_info_object(dialog_id, m),
       reply_in_dialog_id.get(), reply_to_message_id, top_thread_message_id, ttl, ttl_expires_in, via_bot_user_id,
       m->author_signature, media_album_id, get_restriction_reason_description(m->restriction_reasons),
       get_message_content_object(m->content.get(), td_, dialog_id, live_location_date, m->is_content_secret,
