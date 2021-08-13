@@ -1064,9 +1064,10 @@ loginUrlInfoRequestConfirmation url:string domain:string bot_user_id:int32 reque
 //@chat_id Identifier of the chat to which the message thread belongs
 //@message_thread_id Message thread identifier, unique within the chat
 //@reply_info Contains information about the message thread
+//@unread_message_count Approximate number of unread messages in the message thread
 //@messages The messages from which the thread starts. The messages are returned in a reverse chronological order (i.e., in order of decreasing message_id)
 //@draft_message A draft of a message in the message thread; may be null
-messageThreadInfo chat_id:int53 message_thread_id:int53 reply_info:messageReplyInfo messages:vector<message> draft_message:draftMessage = MessageThreadInfo;
+messageThreadInfo chat_id:int53 message_thread_id:int53 reply_info:messageReplyInfo unread_message_count:int32 messages:vector<message> draft_message:draftMessage = MessageThreadInfo;
 
 
 //@class RichText @description Describes a text object inside an instant-view web page

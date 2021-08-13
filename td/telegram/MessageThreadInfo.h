@@ -16,6 +16,7 @@ namespace td {
 struct MessageThreadInfo {
   DialogId dialog_id;
   vector<MessageId> message_ids;
+  int32 unread_message_count = 0;
 };
 
 }  // namespace td

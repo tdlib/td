@@ -17046,6 +17046,7 @@ void MessagesManager::process_discussion_message_impl(
 
   MessageThreadInfo message_thread_info;
   message_thread_info.dialog_id = expected_dialog_id;
+  message_thread_info.unread_message_count = max(0, result->unread_count_);
   MessageId top_message_id;
   for (auto &message : result->messages_) {
     auto full_message_id =
@@ -17160,8 +17161,8 @@ td_api::object_ptr<td_api::messageThreadInfo> MessagesManager::get_message_threa
     }
   }
   return td_api::make_object<td_api::messageThreadInfo>(d->dialog_id.get(), top_thread_message_id.get(),
-                                                        std::move(reply_info), std::move(messages),
-                                                        std::move(draft_message));
+                                                        std::move(reply_info), info.unread_message_count,
+                                                        std::move(messages), std::move(draft_message));
 }
 
 void MessagesManager::get_dialog_info_full(DialogId dialog_id, Promise<Unit> &&promise, const char *source) {
