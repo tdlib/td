@@ -240,8 +240,9 @@ void CountryInfoManager::do_get_phone_number_info(string phone_number_prefix, st
         result += pattern[current_pattern_pos++];
       }
       if (current_pattern_pos == pattern.size()) {
-        result += c;
-      } else if (pattern[current_pattern_pos] == 'X') {
+        result += ' ';
+      }
+      if (current_pattern_pos >= pattern.size() || pattern[current_pattern_pos] == 'X') {
         result += c;
         current_pattern_pos++;
       } else {
