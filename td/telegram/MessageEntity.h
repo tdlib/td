@@ -61,13 +61,13 @@ class MessageEntity {
   MessageEntity() = default;
 
   MessageEntity(Type type, int32 offset, int32 length, string argument = "")
-      : type(type), offset(offset), length(length), media_timestamp(-1), argument(std::move(argument)), user_id() {
+      : type(type), offset(offset), length(length), argument(std::move(argument)) {
   }
   MessageEntity(int32 offset, int32 length, UserId user_id)
-      : type(Type::MentionName), offset(offset), length(length), media_timestamp(-1), argument(), user_id(user_id) {
+      : type(Type::MentionName), offset(offset), length(length), user_id(user_id) {
   }
   MessageEntity(Type type, int32 offset, int32 length, int32 media_timestamp)
-      : type(type), offset(offset), length(length), media_timestamp(media_timestamp), argument(), user_id(user_id) {
+      : type(type), offset(offset), length(length), media_timestamp(media_timestamp) {
     CHECK(type == Type::MediaTimestamp);
   }
 
