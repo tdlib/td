@@ -6975,7 +6975,7 @@ void MessagesManager::on_external_update_message_content(FullMessageId full_mess
   CHECK(d != nullptr);
   Message *m = get_message(d, full_message_id.get_message_id());
   CHECK(m != nullptr);
-  send_update_message_content(d, m, "on_external_update_message_content");
+  send_update_message_content(d, m, true, "on_external_update_message_content");
   if (m->message_id == d->last_message_id) {
     send_update_chat_last_message_impl(d, "on_external_update_message_content");
   }
@@ -12157,7 +12157,7 @@ void MessagesManager::on_message_ttl_expired(Dialog *d, Message *m) {
   remove_message_file_sources(d->dialog_id, m);
   on_message_ttl_expired_impl(d, m);
   register_message_content(td_, m->content.get(), {d->dialog_id, m->message_id}, "on_message_ttl_expired");
-  send_update_message_content(d, m, "on_message_ttl_expired");
+  send_update_message_content(d, m, true, "on_message_ttl_expired");
   // the caller must call on_message_changed
 }
 
@@ -14257,7 +14257,7 @@ void MessagesManager::on_update_sent_text_message(int64 random_id,
     m->is_content_secret = is_secret_message_content(m->ttl, MessageContentType::Text);
   }
   if (need_update) {
-    send_update_message_content(dialog_id, m, "on_update_sent_text_message");
+    send_update_message_content(dialog_id, m, true, "on_update_sent_text_message");
     if (m->message_id == d->last_message_id) {
       send_update_chat_last_message_impl(d, "on_update_sent_text_message");
     }
@@ -28308,21 +28308,25 @@ void MessagesManager::send_update_message_send_succeeded(Dialog *d, MessageId ol
       make_tl_object<td_api::updateMessageSendSucceeded>(get_message_object(d->dialog_id, m), old_message_id.get()));
 }
 
-void MessagesManager::send_update_message_content(DialogId dialog_id, Message *m, const char *source) {
+void MessagesManager::send_update_message_content(DialogId dialog_id, Message *m, bool is_message_in_dialog,
+                                                  const char *source) {
   Dialog *d = get_dialog(dialog_id);
   LOG_CHECK(d != nullptr) << "Send updateMessageContent in unknown " << dialog_id << " from " << source
                           << " with load count " << loaded_dialogs_.count(dialog_id);
-  send_update_message_content(d, m, source);
+  send_update_message_content(d, m, is_message_in_dialog, source);
 }
 
-void MessagesManager::send_update_message_content(const Dialog *d, Message *m, const char *source) {
+void MessagesManager::send_update_message_content(const Dialog *d, Message *m, bool is_message_in_dialog,
+                                                  const char *source) {
   CHECK(d != nullptr);
   CHECK(m != nullptr);
-  delete_bot_command_message_id(d->dialog_id, m->message_id);
-  try_add_bot_command_message_id(d->dialog_id, m);
-  reregister_message_reply(d, m);
-  update_message_max_reply_media_timestamp(d, m, false);  // because the message reply can be just registered
-  update_message_max_own_media_timestamp(d, m);
+  if (is_message_in_dialog) {
+    delete_bot_command_message_id(d->dialog_id, m->message_id);
+    try_add_bot_command_message_id(d->dialog_id, m);
+    reregister_message_reply(d, m);
+    update_message_max_reply_media_timestamp(d, m, false);  // because the message reply can be just registered
+    update_message_max_own_media_timestamp(d, m);
+  }
   send_update_message_content_impl(d->dialog_id, m, source);
 }
 
@@ -28851,7 +28855,7 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
   // }
 
   if (merge_message_content_file_id(td_, sent_message->content.get(), new_file_id)) {
-    send_update_message_content(d, sent_message.get(), source);
+    send_update_message_content(d, sent_message.get(), false, source);
   }
 
   if (old_message_id.is_valid() && new_message_id < old_message_id && !can_overflow_message_id(dialog_id)) {
@@ -33852,7 +33856,7 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
   }
 
   if (need_update && need_send_update_message_content) {
-    send_update_message_content(dialog_id, old_message, "update_message_content");
+    send_update_message_content(dialog_id, old_message, is_message_in_dialog, "update_message_content");
   }
   return need_update;
 }
