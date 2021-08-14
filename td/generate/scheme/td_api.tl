@@ -3063,7 +3063,7 @@ internalLinkTypeChatInvite = InternalLinkType;
 //@description The link is a link to the filter settings section of the app
 internalLinkTypeFilterSettings = InternalLinkType;
 
-//@description The link is a link to a game. Call searchPublicChat with the given bot username, check that the user is a bot, ask the current user to select a group to send the game, and then call sendMessage with inputMessageGame
+//@description The link is a link to a game. Call searchPublicChat with the given bot username, check that the user is a bot, ask the current user to select a chat to send the game, and then call sendMessage with inputMessageGame
 //@bot_username Username of the bot that owns the game @game_short_name Short name of the game
 internalLinkTypeGame bot_username:string game_short_name:string = InternalLinkType;
 
@@ -4188,7 +4188,7 @@ getMessageLink chat_id:int53 message_id:int53 media_timestamp:int32 for_album:Bo
 //@for_album Pass true to return an HTML code for embedding of the whole media album
 getMessageEmbeddingCode chat_id:int53 message_id:int53 for_album:Bool = Text;
 
-//@description Returns information about a public or private message link @url The message link
+//@description Returns information about a public or private message link. Can be called for any internal link of the type internalLinkTypeMessage @url The message link
 getMessageLinkInfo url:string = MessageLinkInfo;
 
 
