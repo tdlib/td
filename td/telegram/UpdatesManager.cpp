@@ -1366,17 +1366,22 @@ void UpdatesManager::on_get_difference(tl_object_ptr<telegram_api::updates_Diffe
       }
       CHECK(!is_pts_changed);
 
-      auto state = std::move(difference->intermediate_state_);
-      if (get_pts() != std::numeric_limits<int32>::max() && state->date_ == get_date() &&
-          (state->pts_ == get_pts() || (min_postponed_update_pts_ != 0 && state->pts_ >= min_postponed_update_pts_)) &&
-          (state->qts_ == get_qts() || (min_postponed_update_qts_ != 0 && state->qts_ >= min_postponed_update_qts_))) {
-        on_get_updates_state(std::move(state), "get difference final slice");
-        VLOG(get_difference) << "Trying to switch back from getDifference to update processing";
+      auto old_pts = get_pts();
+      auto old_date = get_date();
+      auto old_qts = get_qts();
+      on_get_updates_state(std::move(difference->intermediate_state_), "get difference slice");
+      auto new_pts = get_pts();
+      auto new_date = get_date();
+      auto new_qts = get_qts();
+
+      if (old_pts != std::numeric_limits<int32>::max() && new_date == old_date &&
+          (new_pts == old_pts || (min_postponed_update_pts_ != 0 && new_pts >= min_postponed_update_pts_)) &&
+          (new_qts == old_qts || (min_postponed_update_qts_ != 0 && new_qts >= min_postponed_update_qts_))) {
+        VLOG(get_difference) << "Switch back from getDifference to update processing";
         break;
       }
 
-      on_get_updates_state(std::move(state), "get difference slice");
-      if (get_pts() != -1) {  // just in case
+      if (new_pts != -1) {  // just in case
         run_get_difference(true, "on updates_differenceSlice");
       }
       break;
