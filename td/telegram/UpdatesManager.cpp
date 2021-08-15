@@ -1442,15 +1442,17 @@ void UpdatesManager::after_get_difference() {
     auto postponed_updates = std::move(postponed_pts_updates_);
     postponed_pts_updates_.clear();
 
-    LOG(INFO) << "Begin to apply " << postponed_updates.size() << " postponed pts updates";
+    VLOG(get_difference) << "Begin to apply " << postponed_updates.size()
+                         << " postponed pts updates with pts = " << get_pts();
     for (auto &postponed_update : postponed_updates) {
       auto &update = postponed_update.second;
       add_pending_pts_update(std::move(update.update), update.pts, update.pts_count, update.receive_time,
                              std::move(update.promise), "after get difference");
       CHECK(!running_get_difference_);
     }
-    LOG(INFO) << "Finish to apply postponed pts updates, have " << postponed_pts_updates_.size()
-              << " left postponed updates";
+    VLOG(get_difference) << "Finish to apply postponed pts updates, have " << postponed_pts_updates_.size()
+                         << " left postponed updates with pts = " << get_pts()
+                         << " and accumulated_pts = " << accumulated_pts_;
   }
 
   td_->animations_manager_->after_get_difference();
@@ -2042,21 +2044,23 @@ void UpdatesManager::process_qts_update(tl_object_ptr<telegram_api::Update> &&up
 }
 
 void UpdatesManager::process_pending_pts_updates() {
+  auto begin_time = Time::now();
   for (auto &update : pending_pts_updates_) {
     td_->messages_manager_->process_pts_update(std::move(update.second.update));
     update.second.promise.set_value(Unit());
   }
 
   if (last_pts_gap_time_ != 0) {
+    auto begin_diff = begin_time - last_pts_gap_time_;
     auto diff = Time::now() - last_pts_gap_time_;
     last_pts_gap_time_ = 0;
     if (diff > 0.1) {
       VLOG(get_difference) << "Gap in pts from " << accumulated_pts_ - accumulated_pts_count_ << " to "
-                           << accumulated_pts_ << " has been filled in " << diff << " seconds";
+                           << accumulated_pts_ << " has been filled in " << begin_diff << '-' << diff << " seconds";
     }
   }
 
-  set_pts(accumulated_pts_, "postpone_pending_pts_update")
+  set_pts(accumulated_pts_, "process_pending_pts_updates")
       .set_value(Unit());  // TODO can't set until updates are stored on persistent storage
   drop_pending_pts_updates();
 }
