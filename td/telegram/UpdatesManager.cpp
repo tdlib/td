@@ -1960,7 +1960,6 @@ void UpdatesManager::add_pending_pts_update(tl_object_ptr<telegram_api::Update> 
 
   if (old_pts < accumulated_pts_ - accumulated_pts_count_) {
     set_pts_gap_timeout(receive_time + MAX_UNFILLED_GAP_TIME - Time::now());
-    last_pts_gap_time_ = Time::now();
     return;
   }
 
@@ -2159,6 +2158,7 @@ void UpdatesManager::set_pts_gap_timeout(double timeout) {
     pts_gap_timeout_.set_callback(std::move(fill_pts_gap));
     pts_gap_timeout_.set_callback_data(static_cast<void *>(td_));
     pts_gap_timeout_.set_timeout_in(timeout);
+    last_pts_gap_time_ = Time::now();
   }
 }
 
