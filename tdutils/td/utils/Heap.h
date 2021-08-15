@@ -156,6 +156,9 @@ class KHeap {
       fix_down(pos);
       fix_up(pos);
     }
+    if (array_.capacity() > 50 && array_.size() < array_.capacity() / 4) {
+      array_.shrink_to_fit();
+    }
   }
 };
 
