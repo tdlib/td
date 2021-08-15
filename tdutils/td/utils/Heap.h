@@ -20,7 +20,7 @@ struct HeapNode {
   void remove() {
     pos_ = -1;
   }
-  int pos_ = -1;
+  int32 pos_ = -1;
 };
 
 template <class KeyT, int K = 4>
@@ -45,19 +45,19 @@ class KHeap {
     CHECK(!empty());
     HeapNode *result = array_[0].node_;
     result->remove();
-    erase(0);
+    erase(static_cast<size_t>(0));
     return result;
   }
 
   void insert(KeyT key, HeapNode *node) {
     CHECK(!node->in_heap());
     array_.push_back({key, node});
-    fix_up(static_cast<int>(array_.size()) - 1);
+    fix_up(array_.size() - 1);
   }
 
   void fix(KeyT key, HeapNode *node) {
-    CHECK(node->in_heap());
-    int pos = node->pos_;
+    size_t pos = static_cast<size_t>(node->pos_);
+    CHECK(pos < array_.size());
     KeyT old_key = array_[pos].key_;
     array_[pos].key_ = key;
     if (key < old_key) {
@@ -68,9 +68,9 @@ class KHeap {
   }
 
   void erase(HeapNode *node) {
-    CHECK(node->in_heap());
-    int pos = node->pos_;
+    size_t pos = static_cast<size_t>(node->pos_);
     node->remove();
+    CHECK(pos < array_.size());
     erase(pos);
   }
 
@@ -103,34 +103,34 @@ class KHeap {
   };
   vector<Item> array_;
 
-  void fix_up(int pos) {
+  void fix_up(size_t pos) {
     auto item = array_[pos];
 
     while (pos) {
-      int parent_pos = (pos - 1) / K;
+      auto parent_pos = (pos - 1) / K;
       auto parent_item = array_[parent_pos];
 
       if (parent_item.key_ < item.key_) {
         break;
       }
 
-      parent_item.node_->pos_ = pos;
+      parent_item.node_->pos_ = static_cast<int32>(pos);
       array_[pos] = parent_item;
       pos = parent_pos;
     }
 
-    item.node_->pos_ = pos;
+    item.node_->pos_ = static_cast<int32>(pos);
     array_[pos] = item;
   }
 
-  void fix_down(int pos) {
+  void fix_down(size_t pos) {
     auto item = array_[pos];
     while (true) {
-      int left_pos = pos * K + 1;
-      int right_pos = min(left_pos + K, static_cast<int>(array_.size()));
-      int next_pos = pos;
+      auto left_pos = pos * K + 1;
+      auto right_pos = min(left_pos + K, array_.size());
+      auto next_pos = pos;
       KeyT next_key = item.key_;
-      for (int i = left_pos; i < right_pos; i++) {
+      for (auto i = left_pos; i < right_pos; i++) {
         KeyT i_key = array_[i].key_;
         if (i_key < next_key) {
           next_key = i_key;
@@ -141,18 +141,18 @@ class KHeap {
         break;
       }
       array_[pos] = array_[next_pos];
-      array_[pos].node_->pos_ = pos;
+      array_[pos].node_->pos_ = static_cast<int32>(pos);
       pos = next_pos;
     }
 
-    item.node_->pos_ = pos;
+    item.node_->pos_ = static_cast<int32>(pos);
     array_[pos] = item;
   }
 
-  void erase(int pos) {
+  void erase(size_t pos) {
     array_[pos] = array_.back();
     array_.pop_back();
-    if (pos < static_cast<int>(array_.size())) {
+    if (pos < array_.size()) {
       fix_down(pos);
       fix_up(pos);
     }
