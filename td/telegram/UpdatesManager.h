@@ -95,7 +95,7 @@ class UpdatesManager final : public Actor {
   void on_get_updates(tl_object_ptr<telegram_api::Updates> &&updates_ptr, Promise<Unit> &&promise);
 
   void add_pending_pts_update(tl_object_ptr<telegram_api::Update> &&update, int32 new_pts, int32 pts_count,
-                              Promise<Unit> &&promise, const char *source);
+                              double receive_time, Promise<Unit> &&promise, const char *source);
 
   static std::unordered_set<int64> get_sent_messages_random_ids(const telegram_api::Updates *updates_ptr);
 
@@ -134,10 +134,16 @@ class UpdatesManager final : public Actor {
     tl_object_ptr<telegram_api::Update> update;
     int32 pts;
     int32 pts_count;
+    double receive_time;
     Promise<Unit> promise;
 
-    PendingPtsUpdate(tl_object_ptr<telegram_api::Update> &&update, int32 pts, int32 pts_count, Promise<Unit> &&promise)
-        : update(std::move(update)), pts(pts), pts_count(pts_count), promise(std::move(promise)) {
+    PendingPtsUpdate(tl_object_ptr<telegram_api::Update> &&update, int32 pts, int32 pts_count, double receive_time,
+                     Promise<Unit> &&promise)
+        : update(std::move(update))
+        , pts(pts)
+        , pts_count(pts_count)
+        , receive_time(receive_time)
+        , promise(std::move(promise)) {
     }
   };
 
@@ -146,17 +152,24 @@ class UpdatesManager final : public Actor {
     int32 seq_begin;
     int32 seq_end;
     int32 date;
+    double receive_time;
     vector<tl_object_ptr<telegram_api::Update>> updates;
     Promise<Unit> promise;
 
-    PendingSeqUpdates(int32 seq_begin, int32 seq_end, int32 date, vector<tl_object_ptr<telegram_api::Update>> &&updates,
-                      Promise<Unit> &&promise)
-        : seq_begin(seq_begin), seq_end(seq_end), date(date), updates(std::move(updates)), promise(std::move(promise)) {
+    PendingSeqUpdates(int32 seq_begin, int32 seq_end, int32 date, double receive_time,
+                      vector<tl_object_ptr<telegram_api::Update>> &&updates, Promise<Unit> &&promise)
+        : seq_begin(seq_begin)
+        , seq_end(seq_end)
+        , date(date)
+        , receive_time(receive_time)
+        , updates(std::move(updates))
+        , promise(std::move(promise)) {
     }
   };
 
   class PendingQtsUpdate {
    public:
+    double receive_time;
     tl_object_ptr<telegram_api::Update> update;
     vector<Promise<Unit>> promises;
   };
@@ -243,13 +256,13 @@ class UpdatesManager final : public Actor {
   void add_pending_qts_update(tl_object_ptr<telegram_api::Update> &&update, int32 qts, Promise<Unit> &&promise);
 
   void on_pending_updates(vector<tl_object_ptr<telegram_api::Update>> &&updates, int32 seq_begin, int32 seq_end,
-                          int32 date, Promise<Unit> &&promise, const char *source);
+                          int32 date, double receive_time, Promise<Unit> &&promise, const char *source);
 
   void process_updates(vector<tl_object_ptr<telegram_api::Update>> &&updates, bool force_apply,
                        Promise<Unit> &&promise);
 
   void postpone_pts_update(tl_object_ptr<telegram_api::Update> &&update, int32 pts, int32 pts_count,
-                           Promise<Unit> &&promise);
+                           double receive_time, Promise<Unit> &&promise);
 
   void process_pts_update(tl_object_ptr<telegram_api::Update> &&update);
 

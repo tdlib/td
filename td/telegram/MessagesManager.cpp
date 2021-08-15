@@ -660,7 +660,7 @@ class UnpinAllMessagesQuery final : public Td::ResultHandler {
                                                           std::move(promise), "unpin all messages");
       } else {
         td->updates_manager_->add_pending_pts_update(make_tl_object<dummyUpdate>(), affected_history->pts_,
-                                                     affected_history->pts_count_, std::move(promise),
+                                                     affected_history->pts_count_, Time::now(), std::move(promise),
                                                      "unpin all messages");
       }
     } else if (affected_history->offset_ <= 0) {
@@ -1812,7 +1812,7 @@ class ReadMessagesContentsQuery final : public Td::ResultHandler {
 
     if (affected_messages->pts_count_ > 0) {
       td->updates_manager_->add_pending_pts_update(make_tl_object<dummyUpdate>(), affected_messages->pts_,
-                                                   affected_messages->pts_count_, Promise<Unit>(),
+                                                   affected_messages->pts_count_, Time::now(), Promise<Unit>(),
                                                    "read messages content query");
     }
 
@@ -2034,7 +2034,7 @@ class ReadHistoryQuery final : public Td::ResultHandler {
 
     if (affected_messages->pts_count_ > 0) {
       td->updates_manager_->add_pending_pts_update(make_tl_object<dummyUpdate>(), affected_messages->pts_,
-                                                   affected_messages->pts_count_, Promise<Unit>(),
+                                                   affected_messages->pts_count_, Time::now(), Promise<Unit>(),
                                                    "read history query");
     }
 
@@ -2504,7 +2504,7 @@ class DeleteHistoryQuery final : public Td::ResultHandler {
 
     if (affected_history->pts_count_ > 0) {
       td->updates_manager_->add_pending_pts_update(make_tl_object<dummyUpdate>(), affected_history->pts_,
-                                                   affected_history->pts_count_, Promise<Unit>(),
+                                                   affected_history->pts_count_, Time::now(), Promise<Unit>(),
                                                    "delete history query");
     }
 
@@ -2602,7 +2602,7 @@ class DeletePhoneCallHistoryQuery final : public Td::ResultHandler {
       auto pts_count = affected_messages->pts_count_;
       auto update =
           make_tl_object<telegram_api::updateDeleteMessages>(std::move(affected_messages->messages_), pts, pts_count);
-      td->updates_manager_->add_pending_pts_update(std::move(update), pts, pts_count, std::move(promise),
+      td->updates_manager_->add_pending_pts_update(std::move(update), pts, pts_count, Time::now(), std::move(promise),
                                                    "delete phone call history query");
     } else if (affected_messages->offset_ <= 0) {
       promise_.set_value(Unit());
@@ -2759,7 +2759,7 @@ class ReadMentionsQuery final : public Td::ResultHandler {
         td->updates_manager_->get_difference("Wrong messages_readMentions result");
       } else {
         td->updates_manager_->add_pending_pts_update(make_tl_object<dummyUpdate>(), affected_history->pts_,
-                                                     affected_history->pts_count_, Promise<Unit>(),
+                                                     affected_history->pts_count_, Time::now(), Promise<Unit>(),
                                                      "read all mentions query");
       }
     }
@@ -2899,7 +2899,7 @@ class SendMessageActor final : public NetActorOnce {
     }
 
     td->updates_manager_->add_pending_pts_update(std::move(update), sent_message->pts_, sent_message->pts_count_,
-                                                 Promise<Unit>(), "send message actor");
+                                                 Time::now(), Promise<Unit>(), "send message actor");
   }
 
   void on_error(uint64 id, Status status) final {
@@ -3914,7 +3914,7 @@ class DeleteMessagesQuery final : public Td::ResultHandler {
 
     if (affected_messages->pts_count_ > 0) {
       td->updates_manager_->add_pending_pts_update(make_tl_object<dummyUpdate>(), affected_messages->pts_,
-                                                   affected_messages->pts_count_, Promise<Unit>(),
+                                                   affected_messages->pts_count_, Time::now(), Promise<Unit>(),
                                                    "delete messages query");
     }
     if (--query_count_ == 0) {
