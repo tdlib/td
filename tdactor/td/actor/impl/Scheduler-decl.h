@@ -126,6 +126,7 @@ class Scheduler {
   void finish_migrate_actor(Actor *actor);
 
   bool has_actor_timeout(const Actor *actor) const;
+  double get_actor_timeout(const Actor *actor) const;
   void set_actor_timeout_in(Actor *actor, double timeout);
   void set_actor_timeout_at(Actor *actor, double timeout_at);
   void cancel_actor_timeout(Actor *actor);
@@ -176,6 +177,7 @@ class Scheduler {
   void start_migrate_actor(ActorInfo *actor_info, int32 dest_sched_id);
 
   bool has_actor_timeout(const ActorInfo *actor_info) const;
+  double get_actor_timeout(const ActorInfo *actor_info) const;
   void set_actor_timeout_in(ActorInfo *actor_info, double timeout);
   void set_actor_timeout_at(ActorInfo *actor_info, double timeout_at);
   void cancel_actor_timeout(ActorInfo *actor_info);

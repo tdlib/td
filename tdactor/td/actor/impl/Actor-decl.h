@@ -67,6 +67,7 @@ class Actor : public ObserverBase {
   void stop();
   void do_stop();
   bool has_timeout() const;
+  double get_timeout() const;
   void set_timeout_in(double timeout_in);
   void set_timeout_at(double timeout_at);
   void cancel_timeout();

@@ -392,6 +392,7 @@ void Scheduler::do_migrate_actor(ActorInfo *actor_info, int32 dest_sched_id) {
 void Scheduler::start_migrate_actor(Actor *actor, int32 dest_sched_id) {
   start_migrate_actor(actor->get_info(), dest_sched_id);
 }
+
 void Scheduler::start_migrate_actor(ActorInfo *actor_info, int32 dest_sched_id) {
   VLOG(actor) << "Start migrate actor: " << tag("name", actor_info) << tag("ptr", actor_info)
               << tag("actor_count", actor_count_);
@@ -404,6 +405,11 @@ void Scheduler::start_migrate_actor(ActorInfo *actor_info, int32 dest_sched_id) 
   actor_info->start_migrate(dest_sched_id);
   actor_info->get_list_node()->remove();
   cancel_actor_timeout(actor_info);
+}
+
+double Scheduler::get_actor_timeout(const ActorInfo *actor_info) const {
+  const HeapNode *heap_node = actor_info->get_heap_node();
+  return heap_node->in_heap() ? timeout_queue_.get_key(heap_node) - Time::now() : 0.0;
 }
 
 void Scheduler::set_actor_timeout_in(ActorInfo *actor_info, double timeout) {

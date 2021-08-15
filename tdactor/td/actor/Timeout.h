@@ -35,6 +35,9 @@ class Timeout final : public Actor {
   bool has_timeout() const {
     return Actor::has_timeout();
   }
+  double get_timeout() const {
+    return Actor::get_timeout();
+  }
   void set_timeout_in(double timeout) {
     Actor::set_timeout_in(timeout);
   }

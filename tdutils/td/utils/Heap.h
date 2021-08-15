@@ -37,6 +37,12 @@ class KHeap {
     return array_[0].key_;
   }
 
+  KeyT get_key(const HeapNode *node) const {
+    size_t pos = static_cast<size_t>(node->pos_);
+    CHECK(pos < array_.size());
+    return array_[pos].key_;
+  }
+
   const HeapNode *top() const {
     return array_[0].node_;
   }

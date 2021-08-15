@@ -302,6 +302,9 @@ inline void Scheduler::finish_migrate_actor(Actor *actor) {
 inline bool Scheduler::has_actor_timeout(const Actor *actor) const {
   return has_actor_timeout(actor->get_info());
 }
+inline double Scheduler::get_actor_timeout(const Actor *actor) const {
+  return get_actor_timeout(actor->get_info());
+}
 inline void Scheduler::set_actor_timeout_in(Actor *actor, double timeout) {
   set_actor_timeout_in(actor->get_info(), timeout);
 }

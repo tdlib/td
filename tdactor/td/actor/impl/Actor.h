@@ -54,6 +54,9 @@ inline void Actor::do_stop() {
 inline bool Actor::has_timeout() const {
   return Scheduler::instance()->has_actor_timeout(this);
 }
+inline double Actor::get_timeout() const {
+  return Scheduler::instance()->get_actor_timeout(this);
+}
 inline void Actor::set_timeout_in(double timeout_in) {
   Scheduler::instance()->set_actor_timeout_in(this, timeout_in);
 }
