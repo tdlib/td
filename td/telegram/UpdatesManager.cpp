@@ -1450,9 +1450,9 @@ void UpdatesManager::after_get_difference() {
                              std::move(update.promise), "after get difference");
       CHECK(!running_get_difference_);
     }
-    VLOG(get_difference) << "Finish to apply postponed pts updates, have " << postponed_pts_updates_.size()
-                         << " left postponed updates with pts = " << get_pts()
-                         << " and accumulated_pts = " << accumulated_pts_;
+    VLOG(get_difference) << "After applying postponed pts updates have pts = " << get_pts()
+                         << ", max_pts = " << accumulated_pts_ << " and " << pending_pts_updates_.size() << " + "
+                         << postponed_pts_updates_.size() << " pending pts updates";
   }
 
   td_->animations_manager_->after_get_difference();
