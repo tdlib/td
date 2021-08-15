@@ -20493,7 +20493,9 @@ void MessagesManager::read_history_on_server(Dialog *d, MessageId max_message_id
 
   d->updated_read_history_message_ids.insert(MessageId());
 
-  bool need_delay = d->is_opened && !is_secret && d->server_unread_count > 0;
+  bool need_delay = d->is_opened && !is_secret &&
+                    (d->server_unread_count > 0 || (!need_unread_counter(d->order) && d->last_message_id.is_valid() &&
+                                                    max_message_id < d->last_message_id));
   pending_read_history_timeout_.set_timeout_in(dialog_id.get(), need_delay ? MIN_READ_HISTORY_DELAY : 0);
 }
 
@@ -20523,7 +20525,7 @@ void MessagesManager::read_message_thread_history_on_server(Dialog *d, MessageId
 
   d->updated_read_history_message_ids.insert(top_thread_message_id);
 
-  bool need_delay = d->is_opened && last_message_id.is_valid() && max_message_id != last_message_id;
+  bool need_delay = d->is_opened && last_message_id.is_valid() && max_message_id < last_message_id;
   pending_read_history_timeout_.set_timeout_in(dialog_id.get(), need_delay ? MIN_READ_HISTORY_DELAY : 0);
 }
 
