@@ -181,9 +181,18 @@ void UpdatesManager::fill_pts_gap(void *td) {
     return;
   }
 
-  auto td_ptr = static_cast<Td *>(td);
-  string source = PSTRING() << "pts from " << td_ptr->updates_manager_->get_pts() << " to "
-                            << td_ptr->updates_manager_->get_min_pending_pts();
+  auto updates_manager = static_cast<Td *>(td)->updates_manager_.get();
+  auto min_pts = std::numeric_limits<int32>::max();
+  auto max_pts = 0;
+  if (!updates_manager->pending_pts_updates_.empty()) {
+    min_pts = min(min_pts, updates_manager->pending_pts_updates_.begin()->first);
+    max_pts = max(max_pts, updates_manager->pending_pts_updates_.rbegin()->first);
+  }
+  if (!updates_manager->postponed_pts_updates_.empty()) {
+    min_pts = min(min_pts, updates_manager->postponed_pts_updates_.begin()->first);
+    max_pts = max(max_pts, updates_manager->postponed_pts_updates_.rbegin()->first);
+  }
+  string source = PSTRING() << "pts from " << updates_manager->get_pts() << " to " << min_pts << '-' << max_pts;
   fill_gap(td, source.c_str());
 }
 
@@ -193,12 +202,14 @@ void UpdatesManager::fill_seq_gap(void *td) {
     return;
   }
 
-  auto td_ptr = static_cast<Td *>(td);
-  auto seq = std::numeric_limits<int32>::max();
-  if (!td_ptr->updates_manager_->pending_seq_updates_.empty()) {
-    seq = td_ptr->updates_manager_->pending_seq_updates_.begin()->first;
+  auto updates_manager = static_cast<Td *>(td)->updates_manager_.get();
+  auto min_seq = std::numeric_limits<int32>::max();
+  auto max_seq = 0;
+  if (!updates_manager->pending_seq_updates_.empty()) {
+    min_seq = updates_manager->pending_seq_updates_.begin()->first;
+    max_seq = updates_manager->pending_seq_updates_.rbegin()->second.seq_end;
   }
-  string source = PSTRING() << "seq from " << td_ptr->updates_manager_->seq_ << " to " << seq;
+  string source = PSTRING() << "seq from " << updates_manager->seq_ << " to " << min_seq << '-' << max_seq;
   fill_gap(td, source.c_str());
 }
 
@@ -208,12 +219,14 @@ void UpdatesManager::fill_qts_gap(void *td) {
     return;
   }
 
-  auto td_ptr = static_cast<Td *>(td);
-  auto qts = std::numeric_limits<int32>::max();
-  if (!td_ptr->updates_manager_->pending_qts_updates_.empty()) {
-    qts = td_ptr->updates_manager_->pending_qts_updates_.begin()->first;
+  auto updates_manager = static_cast<Td *>(td)->updates_manager_.get();
+  auto min_qts = std::numeric_limits<int32>::max();
+  auto max_qts = 0;
+  if (!updates_manager->pending_qts_updates_.empty()) {
+    min_qts = updates_manager->pending_qts_updates_.begin()->first;
+    max_qts = updates_manager->pending_qts_updates_.rbegin()->first;
   }
-  string source = PSTRING() << "qts from " << td_ptr->updates_manager_->get_qts() << " to " << qts;
+  string source = PSTRING() << "qts from " << updates_manager->get_qts() << " to " << min_qts << '-' << max_qts;
   fill_gap(td, source.c_str());
 }
 
@@ -1815,23 +1828,6 @@ void UpdatesManager::process_updates(vector<tl_object_ptr<telegram_api::Update>>
     on_update(std::move(update_pts_changed), mpas.get_promise());
   }
   lock.set_value(Unit());
-}
-
-int32 UpdatesManager::get_min_pending_pts() const {
-  int32 result = std::numeric_limits<int32>::max();
-  if (!pending_pts_updates_.empty()) {
-    auto pts = pending_pts_updates_.begin()->first;
-    if (pts < result) {
-      result = pts;
-    }
-  }
-  if (!postponed_pts_updates_.empty()) {
-    auto pts = postponed_pts_updates_.begin()->first;
-    if (pts < result) {
-      result = pts;
-    }
-  }
-  return result;
 }
 
 void UpdatesManager::process_pts_update(tl_object_ptr<telegram_api::Update> &&update) {
