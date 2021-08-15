@@ -1368,10 +1368,8 @@ void UpdatesManager::on_get_difference(tl_object_ptr<telegram_api::updates_Diffe
 
       auto state = std::move(difference->intermediate_state_);
       if (get_pts() != std::numeric_limits<int32>::max() && state->date_ == get_date() &&
-          (state->pts_ == get_pts() ||
-           (min_postponed_update_pts_ != 0 && state->pts_ - 500 >= min_postponed_update_pts_)) &&
-          (state->qts_ == get_qts() ||
-           (min_postponed_update_qts_ != 0 && state->qts_ - 500 >= min_postponed_update_qts_))) {
+          (state->pts_ == get_pts() || (min_postponed_update_pts_ != 0 && state->pts_ >= min_postponed_update_pts_)) &&
+          (state->qts_ == get_qts() || (min_postponed_update_qts_ != 0 && state->qts_ >= min_postponed_update_qts_))) {
         on_get_updates_state(std::move(state), "get difference final slice");
         VLOG(get_difference) << "Trying to switch back from getDifference to update processing";
         break;
