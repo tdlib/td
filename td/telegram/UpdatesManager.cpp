@@ -1409,10 +1409,14 @@ void UpdatesManager::after_get_difference() {
   retry_timeout_.cancel_timeout();
   retry_time_ = 1;
 
+  // cancels qts_gap_timeout_ if needed, can apply some updates received during getDifference,
+  // but missed in getDifference
   process_pending_qts_updates();
 
-  process_pending_seq_updates();  // cancels seq_gap_timeout_, may apply some updates received before getDifference,
-                                  // but not returned in getDifference
+  // cancels seq_gap_timeout_ if needed, can apply some updates received during getDifference,
+  // but missed in getDifference
+  process_pending_seq_updates();
+
   if (running_get_difference_) {
     return;
   }
@@ -1674,11 +1678,11 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
       set_seq_gap_timeout(0.001);
     }
     if (seq_end > seq_) {
-      LOG(ERROR) << "Strange updates from " << source << " coming with seq_begin = " << seq_begin
-                 << ", seq_end = " << seq_end << ", but seq = " << seq_;
+      LOG(ERROR) << "Receive updates with seq_begin = " << seq_begin << ", seq_end = " << seq_end
+                 << ", but seq = " << seq_ << " from " << source;
     } else {
-      LOG(INFO) << "Old updates from " << source << " coming with seq_begin = " << seq_begin
-                << ", seq_end = " << seq_end << ", but seq = " << seq_;
+      LOG(INFO) << "Receive old updates with seq_begin = " << seq_begin << ", seq_end = " << seq_end
+                << ", but seq = " << seq_ << " from " << source;
     }
     return lock.set_value(Unit());
   }
@@ -2083,28 +2087,30 @@ void UpdatesManager::process_pending_seq_updates() {
   }
   while (!pending_seq_updates_.empty() && !running_get_difference_) {
     auto update_it = pending_seq_updates_.begin();
-    auto seq_begin = update_it->second.seq_begin;
+    auto &update = update_it->second;
+    auto seq_begin = update.seq_begin;
     if (seq_begin - 1 > seq_ && seq_begin - 500000000 <= seq_) {
       // the updates will be applied later
       break;
     }
+    auto seq_end = update.seq_end;
     if (seq_begin - 1 == seq_) {
-      process_seq_updates(update_it->second.seq_end, update_it->second.date, std::move(update_it->second.updates),
-                          std::move(update_it->second.promise));
+      process_seq_updates(seq_end, update.date, std::move(update.updates), std::move(update.promise));
     } else {
       // old update
       CHECK(seq_begin != 0);
-      LOG_IF(ERROR, update_it->second.seq_end > seq_ && seq_begin - 1 < seq_)
-          << "Strange updates coming with seq_begin = " << seq_begin << ", seq_end = " << update_it->second.seq_end
-          << ", but seq = " << seq_;
-      update_it->second.promise.set_value(Unit());
+      if (seq_begin <= seq_ && seq_ < seq_end) {
+        LOG(ERROR) << "Receive updates with seq_begin = " << seq_begin << ", seq_end = " << seq_end
+                   << ", but seq = " << seq_;
+      }
+      update.promise.set_value(Unit());
     }
     pending_seq_updates_.erase(update_it);
   }
   if (pending_seq_updates_.empty()) {
     seq_gap_timeout_.cancel_timeout();
   } else {
-    // if after getDifference still have a gap
+    // if still have a gap
     auto update_it = pending_seq_updates_.begin();
     double receive_time = update_it->second.receive_time;
     for (size_t i = 0; i < 10; i++) {
@@ -2148,7 +2154,7 @@ void UpdatesManager::process_pending_qts_updates() {
   if (pending_qts_updates_.empty()) {
     qts_gap_timeout_.cancel_timeout();
   } else {
-    // if after getDifference still have a gap
+    // if still have a gap
     auto update_it = pending_qts_updates_.begin();
     double receive_time = update_it->second.receive_time;
     for (size_t i = 0; i < 10; i++) {
