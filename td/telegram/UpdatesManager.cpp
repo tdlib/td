@@ -2155,6 +2155,12 @@ void UpdatesManager::process_pending_pts_updates() {
       td_->messages_manager_->process_pts_update(std::move(update.update));
       set_pts(update.pts, "process_pending_pts_updates")
           .set_value(Unit());  // TODO can't set until data are really stored on persistent storage
+
+      if (accumulated_pts_ != -1) {
+        CHECK(update.pts <= accumulated_pts_);
+        CHECK(accumulated_pts_count_ >= update.pts_count);
+        accumulated_pts_count_ -= update.pts_count;
+      }
     }
     update.promise.set_value(Unit());
     pending_pts_updates_.erase(update_it);
