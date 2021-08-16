@@ -2084,7 +2084,10 @@ void UpdatesManager::drop_pending_pts_updates() {
 void UpdatesManager::process_pending_seq_updates() {
   if (!pending_seq_updates_.empty()) {
     LOG(DEBUG) << "Trying to process " << pending_seq_updates_.size() << " pending seq updates";
+    // must not return, because in case of seq overflow there are no pending seq updates
   }
+
+  bool processed_pending_update = false;
   while (!pending_seq_updates_.empty() && !running_get_difference_) {
     auto update_it = pending_seq_updates_.begin();
     auto &update = update_it->second;
@@ -2093,6 +2096,8 @@ void UpdatesManager::process_pending_seq_updates() {
       // the updates will be applied later
       break;
     }
+
+    processed_pending_update = true;
     auto seq_end = update.seq_end;
     if (seq_begin - 1 == seq_) {
       process_seq_updates(seq_end, update.date, std::move(update.updates), std::move(update.promise));
@@ -2107,10 +2112,11 @@ void UpdatesManager::process_pending_seq_updates() {
     }
     pending_seq_updates_.erase(update_it);
   }
-  if (pending_seq_updates_.empty()) {
+  if (pending_seq_updates_.empty() || processed_pending_update) {
     seq_gap_timeout_.cancel_timeout();
-  } else {
-    // if still have a gap
+  }
+  if (!pending_seq_updates_.empty()) {
+    // if still have a gap, reset timeout
     auto update_it = pending_seq_updates_.begin();
     double receive_time = update_it->second.receive_time;
     for (size_t i = 0; i < 10; i++) {
@@ -2129,6 +2135,7 @@ void UpdatesManager::process_pending_qts_updates() {
   }
 
   LOG(DEBUG) << "Process " << pending_qts_updates_.size() << " pending qts updates";
+  bool processed_pending_update = false;
   while (!pending_qts_updates_.empty()) {
     CHECK(!running_get_difference_);
     auto update_it = pending_qts_updates_.begin();
@@ -2143,6 +2150,7 @@ void UpdatesManager::process_pending_qts_updates() {
         promise.set_value(Unit());
       }
     });
+    processed_pending_update = true;
     if (qts == old_qts + 1) {
       process_qts_update(std::move(update_it->second.update), qts, std::move(promise));
     } else {
@@ -2151,10 +2159,11 @@ void UpdatesManager::process_pending_qts_updates() {
     pending_qts_updates_.erase(update_it);
   }
 
-  if (pending_qts_updates_.empty()) {
+  if (processed_pending_update) {
     qts_gap_timeout_.cancel_timeout();
-  } else {
-    // if still have a gap
+  }
+  if (!pending_qts_updates_.empty()) {
+    // if still have a gap, reset timeout
     auto update_it = pending_qts_updates_.begin();
     double receive_time = update_it->second.receive_time;
     for (size_t i = 0; i < 10; i++) {
