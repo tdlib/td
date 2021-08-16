@@ -276,6 +276,8 @@ class UpdatesManager final : public Actor {
 
   void drop_all_pending_pts_updates();
 
+  void process_postponed_pts_updates();
+
   void process_pending_pts_updates();
 
   void process_pending_seq_updates();
