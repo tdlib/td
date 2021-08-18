@@ -3657,6 +3657,19 @@ static Result<string> clean_input_string_with_entities(const string &text, vecto
 // entities must be sorted by offset and length, but not necessary by type
 // returns {last_non_whitespace_pos, last_non_whitespace_utf16_offset}
 static std::pair<size_t, int32> remove_invalid_entities(const string &text, vector<MessageEntity> &entities) {
+  if (entities.empty()) {
+    // fast path
+    for (size_t pos = 0; pos < text.size(); pos++) {
+      auto back_pos = text.size() - pos - 1;
+      auto c = text[back_pos];
+      if (c != '\n' && c != ' ') {
+        return {back_pos, 0 /*unused*/};
+      }
+    }
+
+    return {text.size(), -1};
+  }
+
   // check_is_sorted(entities);
   vector<MessageEntity *> nested_entities_stack;
   size_t current_entity = 0;

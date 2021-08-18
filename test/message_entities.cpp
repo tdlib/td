@@ -733,6 +733,12 @@ TEST(MessageEntities, fix_formatted_text) {
   check_fix_formatted_text(str, {}, false, false, false, false);
   check_fix_formatted_text(str, {}, false, false, false, true);
 
+  check_fix_formatted_text("  aba\n ", {}, "  aba\n ", {}, true, true, true, true);
+  check_fix_formatted_text("  aba\n ", {}, "aba", {}, true, true, true, false);
+  check_fix_formatted_text("  \n ", {}, "", {}, true, true, true, true);
+  check_fix_formatted_text("  \n ", {}, "", {}, true, true, true, false);
+  check_fix_formatted_text("  \n ", {}, false, true, true, false);
+
   str += "a  \r\n  ";
   fixed_str += "a  \n  ";
 
