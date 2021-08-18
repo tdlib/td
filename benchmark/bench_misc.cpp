@@ -32,34 +32,32 @@
 #include <atomic>
 #include <cstdint>
 
-namespace td {
-
 class F {
-  uint32 &sum;
+  td::uint32 &sum;
 
  public:
-  explicit F(uint32 &sum) : sum(sum) {
+  explicit F(td::uint32 &sum) : sum(sum) {
   }
 
   template <class T>
   void operator()(const T &x) const {
-    sum += static_cast<uint32>(x.get_id());
+    sum += static_cast<td::uint32>(x.get_id());
   }
 };
 
 BENCH(Call, "TL Call") {
-  tl_object_ptr<telegram_api::Function> x = make_tl_object<telegram_api::account_getWallPapers>(0);
-  uint32 res = 0;
+  td::tl_object_ptr<td::telegram_api::Function> x = td::make_tl_object<td::telegram_api::account_getWallPapers>(0);
+  td::uint32 res = 0;
   F f(res);
   for (int i = 0; i < n; i++) {
     downcast_call(*x, f);
   }
-  do_not_optimize_away(res);
+  td::do_not_optimize_away(res);
 }
 
 #if !TD_EVENTFD_UNSUPPORTED
 BENCH(EventFd, "EventFd") {
-  EventFd fd;
+  td::EventFd fd;
   fd.init();
   for (int i = 0; i < n; i++) {
     fd.release();
@@ -76,15 +74,15 @@ BENCH(NewInt, "new int + delete") {
     res += reinterpret_cast<std::uintptr_t>(x);
     delete x;
   }
-  do_not_optimize_away(res);
+  td::do_not_optimize_away(res);
 }
 
 BENCH(NewObj, "new struct, then delete") {
   struct A {
-    int32 a = 0;
-    int32 b = 0;
-    int32 c = 0;
-    int32 d = 0;
+    td::int32 a = 0;
+    td::int32 b = 0;
+    td::int32 c = 0;
+    td::int32 d = 0;
   };
   std::uintptr_t res = 0;
   A **ptr = new A *[n];
@@ -96,14 +94,14 @@ BENCH(NewObj, "new struct, then delete") {
     delete ptr[i];
   }
   delete[] ptr;
-  do_not_optimize_away(res);
+  td::do_not_optimize_away(res);
 }
 
 #if !TD_THREAD_UNSUPPORTED
 BENCH(ThreadNew, "new struct, then delete in several threads") {
-  td::NewObjBench a, b;
-  thread ta([&] { a.run(n / 2); });
-  thread tb([&] { b.run(n - n / 2); });
+  NewObjBench a, b;
+  td::thread ta([&] { a.run(n / 2); });
+  td::thread tb([&] { b.run(n - n / 2); });
   ta.join();
   tb.join();
 }
@@ -113,17 +111,17 @@ BENCH(ThreadNew, "new struct, then delete in several threads") {
 BENCH(Time, "Clocks::monotonic") {
   double res = 0;
   for (int i = 0; i < n; i++) {
-    res += Clocks::monotonic();
+    res += td::Clocks::monotonic();
   }
-  do_not_optimize_away(res);
+  td::do_not_optimize_away(res);
 }
 */
 #if !TD_WINDOWS
-class PipeBench final : public Benchmark {
+class PipeBench final : public td::Benchmark {
  public:
   int p[2];
 
-  string get_description() const final {
+  td::string get_description() const final {
     return "pipe write + read int32";
   }
 
@@ -142,7 +140,7 @@ class PipeBench final : public Benchmark {
       CHECK(read_len == sizeof(val));
       res += val;
     }
-    do_not_optimize_away(res);
+    td::do_not_optimize_away(res);
   }
 
   void tear_down() final {
@@ -153,11 +151,11 @@ class PipeBench final : public Benchmark {
 #endif
 
 #if TD_LINUX || TD_ANDROID || TD_TIZEN
-class SemBench final : public Benchmark {
+class SemBench final : public td::Benchmark {
   sem_t sem;
 
  public:
-  string get_description() const final {
+  td::string get_description() const final {
     return "sem post + wait";
   }
 
@@ -180,12 +178,12 @@ class SemBench final : public Benchmark {
 #endif
 
 #if !TD_WINDOWS
-class UtimeBench final : public Benchmark {
+class UtimeBench final : public td::Benchmark {
  public:
   void start_up() final {
-    FileFd::open("test", FileFd::Flags::Create | FileFd::Flags::Write).move_as_ok().close();
+    td::FileFd::open("test", td::FileFd::Create | td::FileFd::Write).move_as_ok().close();
   }
-  string get_description() const final {
+  td::string get_description() const final {
     return "utime";
   }
   void run(int n) final {
@@ -203,62 +201,62 @@ class UtimeBench final : public Benchmark {
 #endif
 
 BENCH(Pwrite, "pwrite") {
-  auto fd = FileFd::open("test", FileFd::Flags::Create | FileFd::Flags::Write).move_as_ok();
+  auto fd = td::FileFd::open("test", td::FileFd::Create | td::FileFd::Write).move_as_ok();
   for (int i = 0; i < n; i++) {
     fd.pwrite("a", 0).ok();
   }
   fd.close();
 }
 
-class CreateFileBench final : public Benchmark {
-  string get_description() const final {
+class CreateFileBench final : public td::Benchmark {
+  td::string get_description() const final {
     return "create_file";
   }
   void start_up() final {
-    mkdir("A").ensure();
+    td::mkdir("A").ensure();
   }
   void run(int n) final {
     for (int i = 0; i < n; i++) {
-      FileFd::open(PSLICE() << "A/" << i, FileFd::Flags::Write | FileFd::Flags::Create).move_as_ok().close();
+      td::FileFd::open(PSLICE() << "A/" << i, td::FileFd::Write | td::FileFd::Create).move_as_ok().close();
     }
   }
   void tear_down() final {
-    td::walk_path("A/", [&](CSlice path, auto type) {
+    td::walk_path("A/", [&](td::CSlice path, auto type) {
       if (type == td::WalkPath::Type::ExitDir) {
-        rmdir(path).ignore();
+        td::rmdir(path).ignore();
       } else if (type == td::WalkPath::Type::NotDir) {
-        unlink(path).ignore();
+        td::unlink(path).ignore();
       }
     }).ignore();
   }
 };
 
-class WalkPathBench final : public Benchmark {
-  string get_description() const final {
+class WalkPathBench final : public td::Benchmark {
+  td::string get_description() const final {
     return "walk_path";
   }
   void start_up_n(int n) final {
-    mkdir("A").ensure();
+    td::mkdir("A").ensure();
     for (int i = 0; i < n; i++) {
-      FileFd::open(PSLICE() << "A/" << i, FileFd::Flags::Write | FileFd::Flags::Create).move_as_ok().close();
+      td::FileFd::open(PSLICE() << "A/" << i, td::FileFd::Write | td::FileFd::Create).move_as_ok().close();
     }
   }
   void run(int n) final {
     int cnt = 0;
-    td::walk_path("A/", [&](CSlice path, auto type) {
+    td::walk_path("A/", [&](td::CSlice path, auto type) {
       if (type == td::WalkPath::Type::EnterDir) {
         return;
       }
-      stat(path).ok();
+      td::stat(path).ok();
       cnt++;
     }).ignore();
   }
   void tear_down() final {
-    td::walk_path("A/", [&](CSlice path, auto type) {
+    td::walk_path("A/", [&](td::CSlice path, auto type) {
       if (type == td::WalkPath::Type::ExitDir) {
-        rmdir(path).ignore();
+        td::rmdir(path).ignore();
       } else if (type == td::WalkPath::Type::NotDir) {
-        unlink(path).ignore();
+        td::unlink(path).ignore();
       }
     }).ignore();
   }
@@ -266,14 +264,14 @@ class WalkPathBench final : public Benchmark {
 
 #if !TD_THREAD_UNSUPPORTED
 template <int ThreadN = 2>
-class AtomicReleaseIncBench final : public Benchmark {
-  string get_description() const final {
+class AtomicReleaseIncBench final : public td::Benchmark {
+  td::string get_description() const final {
     return PSTRING() << "AtomicReleaseInc" << ThreadN;
   }
 
-  static std::atomic<uint64> a_;
+  static std::atomic<td::uint64> a_;
   void run(int n) final {
-    std::vector<thread> threads;
+    td::vector<td::thread> threads;
     for (int i = 0; i < ThreadN; i++) {
       threads.emplace_back([&] {
         for (int i = 0; i < n / ThreadN; i++) {
@@ -287,17 +285,17 @@ class AtomicReleaseIncBench final : public Benchmark {
   }
 };
 template <int ThreadN>
-std::atomic<uint64> AtomicReleaseIncBench<ThreadN>::a_;
+std::atomic<td::uint64> AtomicReleaseIncBench<ThreadN>::a_;
 
 template <int ThreadN = 2>
-class AtomicReleaseCasIncBench final : public Benchmark {
-  string get_description() const final {
+class AtomicReleaseCasIncBench final : public td::Benchmark {
+  td::string get_description() const final {
     return PSTRING() << "AtomicReleaseCasInc" << ThreadN;
   }
 
-  static std::atomic<uint64> a_;
+  static std::atomic<td::uint64> a_;
   void run(int n) final {
-    std::vector<thread> threads;
+    td::vector<td::thread> threads;
     for (int i = 0; i < ThreadN; i++) {
       threads.emplace_back([&] {
         for (int i = 0; i < n / ThreadN; i++) {
@@ -313,16 +311,16 @@ class AtomicReleaseCasIncBench final : public Benchmark {
   }
 };
 template <int ThreadN>
-std::atomic<uint64> AtomicReleaseCasIncBench<ThreadN>::a_;
+std::atomic<td::uint64> AtomicReleaseCasIncBench<ThreadN>::a_;
 
 template <int ThreadN = 2>
-class RwMutexReadBench final : public Benchmark {
-  string get_description() const final {
+class RwMutexReadBench final : public td::Benchmark {
+  td::string get_description() const final {
     return PSTRING() << "RwMutexRead" << ThreadN;
   }
-  RwMutex mutex_;
+  td::RwMutex mutex_;
   void run(int n) final {
-    std::vector<thread> threads;
+    td::vector<td::thread> threads;
     for (int i = 0; i < ThreadN; i++) {
       threads.emplace_back([&] {
         for (int i = 0; i < n / ThreadN; i++) {
@@ -336,13 +334,13 @@ class RwMutexReadBench final : public Benchmark {
   }
 };
 template <int ThreadN = 2>
-class RwMutexWriteBench final : public Benchmark {
-  string get_description() const final {
+class RwMutexWriteBench final : public td::Benchmark {
+  td::string get_description() const final {
     return PSTRING() << "RwMutexWrite" << ThreadN;
   }
-  RwMutex mutex_;
+  td::RwMutex mutex_;
   void run(int n) final {
-    std::vector<thread> threads;
+    td::vector<td::thread> threads;
     for (int i = 0; i < ThreadN; i++) {
       threads.emplace_back([&] {
         for (int i = 0; i < n / ThreadN; i++) {
@@ -356,40 +354,39 @@ class RwMutexWriteBench final : public Benchmark {
   }
 };
 #endif
-}  // namespace td
 
 int main() {
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(DEBUG));
 #if !TD_THREAD_UNSUPPORTED
-  td::bench(td::AtomicReleaseIncBench<1>());
-  td::bench(td::AtomicReleaseIncBench<2>());
-  td::bench(td::AtomicReleaseCasIncBench<1>());
-  td::bench(td::AtomicReleaseCasIncBench<2>());
-  td::bench(td::RwMutexWriteBench<1>());
-  td::bench(td::RwMutexReadBench<1>());
-  td::bench(td::RwMutexWriteBench<>());
-  td::bench(td::RwMutexReadBench<>());
+  td::bench(AtomicReleaseIncBench<1>());
+  td::bench(AtomicReleaseIncBench<2>());
+  td::bench(AtomicReleaseCasIncBench<1>());
+  td::bench(AtomicReleaseCasIncBench<2>());
+  td::bench(RwMutexWriteBench<1>());
+  td::bench(RwMutexReadBench<1>());
+  td::bench(RwMutexWriteBench<>());
+  td::bench(RwMutexReadBench<>());
 #endif
 #if !TD_WINDOWS
-  td::bench(td::UtimeBench());
+  td::bench(UtimeBench());
 #endif
-  td::bench(td::WalkPathBench());
-  td::bench(td::CreateFileBench());
-  td::bench(td::PwriteBench());
+  td::bench(WalkPathBench());
+  td::bench(CreateFileBench());
+  td::bench(PwriteBench());
 
-  td::bench(td::CallBench());
+  td::bench(CallBench());
 #if !TD_THREAD_UNSUPPORTED
-  td::bench(td::ThreadNewBench());
+  td::bench(ThreadNewBench());
 #endif
 #if !TD_EVENTFD_UNSUPPORTED
-  td::bench(td::EventFdBench());
+  td::bench(EventFdBench());
 #endif
-  td::bench(td::NewObjBench());
-  td::bench(td::NewIntBench());
+  td::bench(NewObjBench());
+  td::bench(NewIntBench());
 #if !TD_WINDOWS
-  td::bench(td::PipeBench());
+  td::bench(PipeBench());
 #endif
 #if TD_LINUX || TD_ANDROID || TD_TIZEN
-  td::bench(td::SemBench());
+  td::bench(SemBench());
 #endif
 }
