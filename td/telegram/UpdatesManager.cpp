@@ -674,6 +674,7 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
         case telegram_api::messageActionGroupCall::ID:
         case telegram_api::messageActionGroupCallScheduled::ID:
         case telegram_api::messageActionSetMessagesTTL::ID:
+        case telegram_api::messageActionSetChatTheme::ID:
           break;
         case telegram_api::messageActionChatCreate::ID: {
           auto chat_create = static_cast<const telegram_api::messageActionChatCreate *>(action);

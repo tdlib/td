@@ -723,6 +723,19 @@ class MessageInviteToGroupCall final : public MessageContent {
   }
 };
 
+class MessageChatSetTheme final : public MessageContent {
+ public:
+  string emoji;
+
+  MessageChatSetTheme() = default;
+  explicit MessageChatSetTheme(string &&emoji) : emoji(std::move(emoji)) {
+  }
+
+  MessageContentType get_type() const final {
+    return MessageContentType::ChatSetTheme;
+  }
+};
+
 template <class StorerT>
 static void store(const MessageContent *content, StorerT &storer) {
   CHECK(content != nullptr);
@@ -1014,6 +1027,11 @@ static void store(const MessageContent *content, StorerT &storer) {
       auto m = static_cast<const MessageInviteToGroupCall *>(content);
       store(m->input_group_call_id, storer);
       store(m->user_ids, storer);
+      break;
+    }
+    case MessageContentType::ChatSetTheme: {
+      auto m = static_cast<const MessageChatSetTheme *>(content);
+      store(m->emoji, storer);
       break;
     }
     default:
@@ -1419,6 +1437,12 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       auto m = make_unique<MessageInviteToGroupCall>();
       parse(m->input_group_call_id, parser);
       parse(m->user_ids, parser);
+      content = std::move(m);
+      break;
+    }
+    case MessageContentType::ChatSetTheme: {
+      auto m = make_unique<MessageChatSetTheme>();
+      parse(m->emoji, parser);
       content = std::move(m);
       break;
     }
@@ -2035,6 +2059,7 @@ bool can_have_input_media(const Td *td, const MessageContent *content) {
     case MessageContentType::ProximityAlertTriggered:
     case MessageContentType::GroupCall:
     case MessageContentType::InviteToGroupCall:
+    case MessageContentType::ChatSetTheme:
       return false;
     case MessageContentType::Animation:
     case MessageContentType::Audio:
@@ -2149,6 +2174,7 @@ SecretInputMedia get_secret_input_media(const MessageContent *content, Td *td,
     case MessageContentType::ProximityAlertTriggered:
     case MessageContentType::GroupCall:
     case MessageContentType::InviteToGroupCall:
+    case MessageContentType::ChatSetTheme:
       break;
     default:
       UNREACHABLE();
@@ -2264,6 +2290,7 @@ static tl_object_ptr<telegram_api::InputMedia> get_input_media_impl(
     case MessageContentType::ProximityAlertTriggered:
     case MessageContentType::GroupCall:
     case MessageContentType::InviteToGroupCall:
+    case MessageContentType::ChatSetTheme:
       break;
     default:
       UNREACHABLE();
@@ -2427,6 +2454,7 @@ void delete_message_content_thumbnail(MessageContent *content, Td *td) {
     case MessageContentType::ProximityAlertTriggered:
     case MessageContentType::GroupCall:
     case MessageContentType::InviteToGroupCall:
+    case MessageContentType::ChatSetTheme:
       break;
     default:
       UNREACHABLE();
@@ -2594,6 +2622,7 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
     case MessageContentType::ProximityAlertTriggered:
     case MessageContentType::GroupCall:
     case MessageContentType::InviteToGroupCall:
+    case MessageContentType::ChatSetTheme:
       UNREACHABLE();
   }
   return Status::OK();
@@ -2719,6 +2748,7 @@ static int32 get_message_content_media_index_mask(const MessageContent *content,
     case MessageContentType::ProximityAlertTriggered:
     case MessageContentType::GroupCall:
     case MessageContentType::InviteToGroupCall:
+    case MessageContentType::ChatSetTheme:
       return 0;
     default:
       UNREACHABLE();
@@ -3389,6 +3419,14 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       }
       break;
     }
+    case MessageContentType::ChatSetTheme: {
+      auto old_ = static_cast<const MessageChatSetTheme *>(old_content);
+      auto new_ = static_cast<const MessageChatSetTheme *>(new_content);
+      if (old_->emoji != new_->emoji) {
+        need_update = true;
+      }
+      break;
+    }
     case MessageContentType::Unsupported: {
       auto old_ = static_cast<const MessageUnsupported *>(old_content);
       auto new_ = static_cast<const MessageUnsupported *>(new_content);
@@ -3524,6 +3562,7 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
     case MessageContentType::ProximityAlertTriggered:
     case MessageContentType::GroupCall:
     case MessageContentType::InviteToGroupCall:
+    case MessageContentType::ChatSetTheme:
       LOG(ERROR) << "Receive new file " << new_file_id << " in a sent message of the type " << content_type;
       break;
     default:
@@ -4393,6 +4432,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
     case MessageContentType::ProximityAlertTriggered:
     case MessageContentType::GroupCall:
     case MessageContentType::InviteToGroupCall:
+    case MessageContentType::ChatSetTheme:
       return nullptr;
     default:
       UNREACHABLE();
@@ -4652,6 +4692,10 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       return make_unique<MessageGroupCall>(InputGroupCallId(scheduled_group_call->call_), -1,
                                            scheduled_group_call->schedule_date_);
     }
+    case telegram_api::messageActionSetChatTheme::ID: {
+      auto set_chat_theme = move_tl_object_as<telegram_api::messageActionSetChatTheme>(action);
+      return td::make_unique<MessageChatSetTheme>(std::move(set_chat_theme->emoticon_));
+    }
     default:
       UNREACHABLE();
   }
@@ -4885,6 +4929,10 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
       return make_tl_object<td_api::messageInviteVoiceChatParticipants>(
           td->group_call_manager_->get_group_call_id(m->input_group_call_id, DialogId()).get(),
           td->contacts_manager_->get_user_ids_object(m->user_ids, "MessageInviteToGroupCall"));
+    }
+    case MessageContentType::ChatSetTheme: {
+      const MessageChatSetTheme *m = static_cast<const MessageChatSetTheme *>(content);
+      return make_tl_object<td_api::messageChatSetTheme>(m->emoji);
     }
     default:
       UNREACHABLE();
@@ -5232,6 +5280,7 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
     case MessageContentType::ProximityAlertTriggered:
     case MessageContentType::GroupCall:
     case MessageContentType::InviteToGroupCall:
+    case MessageContentType::ChatSetTheme:
       return string();
     default:
       UNREACHABLE();
@@ -5441,6 +5490,8 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
       dependencies.user_ids.insert(content->user_ids.begin(), content->user_ids.end());
       break;
     }
+    case MessageContentType::ChatSetTheme:
+      break;
     default:
       UNREACHABLE();
       break;
