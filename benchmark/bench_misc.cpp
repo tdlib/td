@@ -16,6 +16,7 @@
 #include "td/utils/port/thread.h"
 #include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
+#include "td/utils/ThreadSafeCounter.h"
 
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/telegram_api.hpp"
@@ -313,7 +314,7 @@ class AtomicReleaseCasIncBench final : public td::Benchmark {
 template <int ThreadN>
 std::atomic<td::uint64> AtomicReleaseCasIncBench<ThreadN>::a_;
 
-template <int ThreadN = 2>
+template <int ThreadN>
 class RwMutexReadBench final : public td::Benchmark {
   td::string get_description() const final {
     return PSTRING() << "RwMutexRead" << ThreadN;
@@ -333,7 +334,8 @@ class RwMutexReadBench final : public td::Benchmark {
     }
   }
 };
-template <int ThreadN = 2>
+
+template <int ThreadN>
 class RwMutexWriteBench final : public td::Benchmark {
   td::string get_description() const final {
     return PSTRING() << "RwMutexWrite" << ThreadN;
@@ -353,19 +355,86 @@ class RwMutexWriteBench final : public td::Benchmark {
     }
   }
 };
+
+class ThreadSafeCounterBench final : public td::Benchmark {
+  static td::ThreadSafeCounter counter_;
+  int thread_count_;
+
+  td::string get_description() const final {
+    return PSTRING() << "ThreadSafeCounter" << thread_count_;
+  }
+  void run(int n) final {
+    counter_.clear();
+    td::vector<td::thread> threads;
+    for (int i = 0; i < thread_count_; i++) {
+      threads.emplace_back([n] {
+        for (int i = 0; i < n; i++) {
+          counter_.add(1);
+        }
+      });
+    }
+    for (auto &thread : threads) {
+      thread.join();
+    }
+    CHECK(counter_.sum() == n * thread_count_);
+  }
+
+ public:
+  explicit ThreadSafeCounterBench(int thread_count) : thread_count_(thread_count) {
+  }
+};
+td::ThreadSafeCounter ThreadSafeCounterBench::counter_;
+
+template <bool StrictOrder>
+class AtomicCounterBench final : public td::Benchmark {
+  static std::atomic<td::int64> counter_;
+  int thread_count_;
+
+  td::string get_description() const final {
+    return PSTRING() << "AtomicCounter" << thread_count_;
+  }
+  void run(int n) final {
+    counter_.store(0);
+    td::vector<td::thread> threads;
+    for (int i = 0; i < thread_count_; i++) {
+      threads.emplace_back([n] {
+        for (int i = 0; i < n; i++) {
+          counter_.fetch_add(1, StrictOrder ? std::memory_order_seq_cst : std::memory_order_relaxed);
+        }
+      });
+    }
+    for (auto &thread : threads) {
+      thread.join();
+    }
+    CHECK(counter_.load() == n * thread_count_);
+  }
+
+ public:
+  explicit AtomicCounterBench(int thread_count) : thread_count_(thread_count) {
+  }
+};
+template <bool StrictOrder>
+std::atomic<td::int64> AtomicCounterBench<StrictOrder>::counter_;
+
 #endif
 
 int main() {
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(DEBUG));
 #if !TD_THREAD_UNSUPPORTED
+  for (int i = 1; i <= 16; i *= 2) {
+    td::bench(ThreadSafeCounterBench(i));
+    td::bench(AtomicCounterBench<false>(i));
+    td::bench(AtomicCounterBench<true>(i));
+  }
+
   td::bench(AtomicReleaseIncBench<1>());
   td::bench(AtomicReleaseIncBench<2>());
   td::bench(AtomicReleaseCasIncBench<1>());
   td::bench(AtomicReleaseCasIncBench<2>());
   td::bench(RwMutexWriteBench<1>());
   td::bench(RwMutexReadBench<1>());
-  td::bench(RwMutexWriteBench<>());
-  td::bench(RwMutexReadBench<>());
+  td::bench(RwMutexWriteBench<2>());
+  td::bench(RwMutexReadBench<2>());
 #endif
 #if !TD_WINDOWS
   td::bench(UtimeBench());

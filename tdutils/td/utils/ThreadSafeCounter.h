@@ -53,6 +53,10 @@ class ThreadSafeCounter {
     return counter_.sum(0);
   }
 
+  void clear() {
+    counter_.clear();
+  }
+
  private:
   ThreadSafeMultiCounter<1> counter_;
 };
