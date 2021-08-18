@@ -2098,32 +2098,54 @@ void UpdatesManager::process_postponed_pts_updates() {
   auto old_pts = initial_pts;
   int32 skipped_update_count = 0;
   int32 applied_update_count = 0;
-  while (!postponed_pts_updates_.empty()) {
-    auto update_it = postponed_pts_updates_.begin();
-    auto &update = update_it->second;
-    auto new_pts = update.pts;
-    auto pts_count = update.pts_count;
+  auto update_it = postponed_pts_updates_.begin();
+  while (update_it != postponed_pts_updates_.end()) {
+    auto new_pts = update_it->second.pts;
+    auto pts_count = update_it->second.pts_count;
     if (new_pts <= old_pts || (old_pts >= 1 && new_pts - 500000000 > old_pts)) {
       skipped_update_count++;
-      td_->messages_manager_->skip_old_pending_pts_update(std::move(update.update), new_pts, old_pts, pts_count,
-                                                          "process_postponed_pts_updates");
-      update.promise.set_value(Unit());
-      postponed_pts_updates_.erase(update_it);
+      td_->messages_manager_->skip_old_pending_pts_update(std::move(update_it->second.update), new_pts, old_pts,
+                                                          pts_count, "process_postponed_pts_updates");
+      update_it->second.promise.set_value(Unit());
+      update_it = postponed_pts_updates_.erase(update_it);
       continue;
     }
 
-    if (old_pts != new_pts - pts_count) {
+    auto last_update_it = ++update_it;
+    for (int32 i = 1; true; i++) {
+      if (old_pts == new_pts - pts_count) {
+        // the updates can be applied
+        break;
+      }
+      if (old_pts > new_pts - pts_count || last_update_it == postponed_pts_updates_.end() ||
+          i == GAP_TIMEOUT_UPDATE_COUNT) {
+        // the updates can't be applied
+        VLOG(get_difference) << "Can't apply " << i << " next postponed updates, because their pts_count is "
+                             << pts_count << " instead of expected " << new_pts - old_pts;
+        last_update_it = update_it;
+        break;
+      }
+
+      new_pts = last_update_it->second.pts;
+      pts_count += last_update_it->second.pts_count;
+      ++last_update_it;
+    }
+
+    if (last_update_it == update_it) {
       // the updates will be applied or skipped later
       break;
     }
+    CHECK(old_pts == new_pts - pts_count);
 
-    if (pts_count > 0) {
-      applied_update_count++;
-      td_->messages_manager_->process_pts_update(std::move(update.update));
-      old_pts = new_pts;
+    while (update_it != last_update_it) {
+      if (update_it->second.pts_count > 0) {
+        applied_update_count++;
+        td_->messages_manager_->process_pts_update(std::move(update_it->second.update));
+      }
+      update_it->second.promise.set_value(Unit());
+      update_it = postponed_pts_updates_.erase(update_it);
     }
-    update.promise.set_value(Unit());
-    postponed_pts_updates_.erase(update_it);
+    old_pts = new_pts;
   }
   if (old_pts != initial_pts) {
     set_pts(old_pts, "process_postponed_pts_updates")
@@ -2131,8 +2153,9 @@ void UpdatesManager::process_postponed_pts_updates() {
   }
   CHECK(!running_get_difference_);
   if (skipped_update_count + applied_update_count > 0) {
-    VLOG(get_difference) << "After skipping " << skipped_update_count << " and applying " << applied_update_count
-                         << " postponed updates pts has changed from " << initial_pts << " to " << old_pts;
+    VLOG(get_difference) << "After skipping " << skipped_update_count << ", applying " << applied_update_count
+                         << " and keeping " << postponed_updates_.size() << " postponed updates pts has changed from "
+                         << initial_pts << " to " << old_pts;
   }
 }
 
