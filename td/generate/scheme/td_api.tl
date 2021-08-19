@@ -2022,28 +2022,43 @@ searchMessagesFilterPinned = SearchMessagesFilter;
 
 //@description The user is typing a message
 chatActionTyping = ChatAction;
+
 //@description The user is recording a video
 chatActionRecordingVideo = ChatAction;
+
 //@description The user is uploading a video @progress Upload progress, as a percentage
 chatActionUploadingVideo progress:int32 = ChatAction;
+
 //@description The user is recording a voice note
 chatActionRecordingVoiceNote = ChatAction;
+
 //@description The user is uploading a voice note @progress Upload progress, as a percentage
 chatActionUploadingVoiceNote progress:int32 = ChatAction;
+
 //@description The user is uploading a photo @progress Upload progress, as a percentage
 chatActionUploadingPhoto progress:int32 = ChatAction;
+
 //@description The user is uploading a document @progress Upload progress, as a percentage
 chatActionUploadingDocument progress:int32 = ChatAction;
+
+//@description The user is picking a sticker to send
+chatActionChoosingSticker = ChatAction;
+
 //@description The user is picking a location or venue to send
 chatActionChoosingLocation = ChatAction;
+
 //@description The user is picking a contact to send
 chatActionChoosingContact = ChatAction;
+
 //@description The user has started to play a game
 chatActionStartPlayingGame = ChatAction;
+
 //@description The user is recording a video note
 chatActionRecordingVideoNote = ChatAction;
+
 //@description The user is uploading a video note @progress Upload progress, as a percentage
 chatActionUploadingVideoNote progress:int32 = ChatAction;
+
 //@description The user has canceled the previous action
 chatActionCancel = ChatAction;
 

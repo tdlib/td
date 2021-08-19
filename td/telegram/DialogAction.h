@@ -32,7 +32,8 @@ class DialogAction {
     RecordingVideoNote,
     UploadingVideoNote,
     SpeakingInVoiceChat,
-    ImportingMessages
+    ImportingMessages,
+    ChoosingSticker
   };
   Type type_ = Type::Cancel;
   int32 progress_ = 0;

@@ -79,6 +79,9 @@ DialogAction::DialogAction(tl_object_ptr<td_api::ChatAction> &&action) {
       init(Type::UploadingVideoNote, uploading_action->progress_);
       break;
     }
+    case td_api::chatActionChoosingSticker::ID:
+      init(Type::ChoosingSticker);
+      break;
     default:
       UNREACHABLE();
       break;
@@ -144,6 +147,9 @@ DialogAction::DialogAction(tl_object_ptr<telegram_api::SendMessageAction> &&acti
       init(Type::ImportingMessages, history_import_action->progress_);
       break;
     }
+    case telegram_api::sendMessageChooseStickerAction::ID:
+      init(Type::ChoosingSticker);
+      break;
     default:
       UNREACHABLE();
       break;
@@ -182,6 +188,8 @@ tl_object_ptr<telegram_api::SendMessageAction> DialogAction::get_input_send_mess
       return make_tl_object<telegram_api::speakingInGroupCallAction>();
     case Type::ImportingMessages:
       return make_tl_object<telegram_api::sendMessageHistoryImportAction>(progress_);
+    case Type::ChoosingSticker:
+      return make_tl_object<telegram_api::sendMessageChooseStickerAction>();
     default:
       UNREACHABLE();
       return nullptr;
@@ -220,6 +228,8 @@ tl_object_ptr<secret_api::SendMessageAction> DialogAction::get_secret_input_send
       return make_tl_object<secret_api::sendMessageTypingAction>();
     case Type::ImportingMessages:
       return make_tl_object<secret_api::sendMessageTypingAction>();
+    case Type::ChoosingSticker:
+      return make_tl_object<secret_api::sendMessageTypingAction>();
     default:
       UNREACHABLE();
       return nullptr;
@@ -254,6 +264,8 @@ tl_object_ptr<td_api::ChatAction> DialogAction::get_chat_action_object() const {
       return td_api::make_object<td_api::chatActionRecordingVideoNote>();
     case Type::UploadingVideoNote:
       return td_api::make_object<td_api::chatActionUploadingVideoNote>(progress_);
+    case Type::ChoosingSticker:
+      return td_api::make_object<td_api::chatActionChoosingSticker>();
     case Type::ImportingMessages:
     case Type::SpeakingInVoiceChat:
     default:
@@ -293,9 +305,10 @@ bool DialogAction::is_canceled_by_message_of_type(MessageContentType message_con
     case MessageContentType::Location:
     case MessageContentType::Venue:
       return type_ == Type::ChoosingLocation;
+    case MessageContentType::Sticker:
+      return type_ == Type::ChoosingSticker;
     case MessageContentType::Game:
     case MessageContentType::Invoice:
-    case MessageContentType::Sticker:
     case MessageContentType::Text:
     case MessageContentType::Unsupported:
     case MessageContentType::ChatCreate:
@@ -400,6 +413,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, const DialogAction &act
         return "SpeakingInVoiceChat";
       case DialogAction::Type::ImportingMessages:
         return "ImportingMessages";
+      case DialogAction::Type::ChoosingSticker:
+        return "ChoosingSticker";
       default:
         UNREACHABLE();
         return "Cancel";
