@@ -36026,6 +36026,9 @@ void MessagesManager::on_get_channel_difference(
   if (difference_ptr == nullptr) {
     bool have_access = have_input_peer(dialog_id, AccessRights::Read);
     if (have_access) {
+      if (d == nullptr) {
+        force_create_dialog(dialog_id, "on_get_channel_difference failed");
+      }
       auto &delay = channel_get_difference_retry_timeouts_[dialog_id];
       if (delay == 0) {
         delay = 1;
