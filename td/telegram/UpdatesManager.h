@@ -122,10 +122,13 @@ class UpdatesManager final : public Actor {
     return running_get_difference_;
   }
 
+  void timeout_expired() final;
+
  private:
   static constexpr int32 FORCED_GET_DIFFERENCE_PTS_DIFF = 100000;
   static constexpr int32 GAP_TIMEOUT_UPDATE_COUNT = 20;
   static const double MAX_UNFILLED_GAP_TIME;
+  static const double MAX_PTS_SAVE_DELAY;
   static constexpr bool DROP_PTS_UPDATES = false;
 
   friend class OnUpdate;
@@ -183,6 +186,11 @@ class UpdatesManager final : public Actor {
   int32 date_ = 0;
   int32 seq_ = 0;
   string date_source_ = "nowhere";
+
+  double last_pts_save_time_ = 0;
+  double last_qts_save_time_ = 0;
+  int32 pending_pts_ = 0;
+  int32 pending_qts_ = 0;
 
   int32 short_update_date_ = 0;
 

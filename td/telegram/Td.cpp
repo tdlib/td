@@ -3961,6 +3961,7 @@ void Td::close_impl(bool destroy_flag) {
   close_flag_ = 1;
   G()->set_close_flag();
   send_closure(auth_manager_actor_, &AuthManager::on_closing, destroy_flag);
+  updates_manager_->timeout_expired();
 
   // wait till all request_actors will stop.
   request_actors_.clear();

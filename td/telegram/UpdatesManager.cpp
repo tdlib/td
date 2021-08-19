@@ -166,9 +166,10 @@ class GetDifferenceQuery final : public Td::ResultHandler {
 };
 
 const double UpdatesManager::MAX_UNFILLED_GAP_TIME = 0.7;
+const double UpdatesManager::MAX_PTS_SAVE_DELAY = 0.05;
 
 UpdatesManager::UpdatesManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
-  pts_manager_.init(-1);
+  last_pts_save_time_ = last_qts_save_time_ = Time::now() - 2 * MAX_PTS_SAVE_DELAY;
 }
 
 void UpdatesManager::tear_down() {
@@ -342,22 +343,59 @@ void UpdatesManager::on_qts_ack(PtsManager::PtsId ack_token) {
 void UpdatesManager::save_pts(int32 pts) {
   if (pts == std::numeric_limits<int32>::max()) {
     G()->td_db()->get_binlog_pmc()->erase("updates.pts");
+    last_pts_save_time_ -= 2 * MAX_PTS_SAVE_DELAY;
+    pending_pts_ = 0;
   } else if (!G()->ignore_background_updates()) {
-    G()->td_db()->get_binlog_pmc()->set("updates.pts", to_string(pts));
+    auto now = Time::now();
+    auto delay = last_pts_save_time_ + MAX_PTS_SAVE_DELAY - now;
+    if (delay <= 0 || !td_->auth_manager_->is_bot()) {
+      last_pts_save_time_ = now;
+      pending_pts_ = 0;
+      G()->td_db()->get_binlog_pmc()->set("updates.pts", to_string(pts));
+    } else {
+      pending_pts_ = pts;
+      if (!has_timeout()) {
+        set_timeout_in(delay);
+      }
+    }
   }
 }
 
 void UpdatesManager::save_qts(int32 qts) {
   if (!G()->ignore_background_updates()) {
-    G()->td_db()->get_binlog_pmc()->set("updates.qts", to_string(qts));
+    auto now = Time::now();
+    auto delay = last_qts_save_time_ + MAX_PTS_SAVE_DELAY - now;
+    if (delay <= 0 || !td_->auth_manager_->is_bot()) {
+      last_qts_save_time_ = now;
+      pending_qts_ = 0;
+      G()->td_db()->get_binlog_pmc()->set("updates.qts", to_string(qts));
+    } else {
+      pending_qts_ = qts;
+      if (!has_timeout()) {
+        set_timeout_in(delay);
+      }
+    }
+  }
+}
+
+void UpdatesManager::timeout_expired() {
+  if (pending_pts_ != 0) {
+    last_pts_save_time_ -= 2 * MAX_PTS_SAVE_DELAY;
+    save_pts(pending_pts_);
+    CHECK(pending_pts_ == 0);
+  }
+  if (pending_qts_ != 0) {
+    last_qts_save_time_ -= 2 * MAX_PTS_SAVE_DELAY;
+    save_qts(pending_qts_);
+    CHECK(pending_qts_ == 0);
   }
 }
 
 Promise<> UpdatesManager::set_pts(int32 pts, const char *source) {
   if (pts == std::numeric_limits<int32>::max()) {
     LOG(WARNING) << "Update pts from " << get_pts() << " to -1 from " << source;
-    G()->td_db()->get_binlog_pmc()->erase("updates.pts");
-    auto result = add_pts(std::numeric_limits<int32>::max());
+    save_pts(pts);
+    auto result = add_pts(pts);
     init_state();
     return result;
   }
@@ -947,6 +985,8 @@ void UpdatesManager::on_get_updates_state(tl_object_ptr<telegram_api::updates_st
     // restoring right pts
     pts_manager_.init(state->pts_);
     last_get_difference_pts_ = get_pts();
+    last_pts_save_time_ = Time::now() - 2 * MAX_PTS_SAVE_DELAY;
+    save_pts(state->pts_);
   } else {
     string full_source = "on_get_updates_state " + oneline(to_string(state)) + " from " + source;
     set_pts(state->pts_, full_source.c_str()).set_value(Unit());
