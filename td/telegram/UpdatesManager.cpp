@@ -2161,8 +2161,9 @@ void UpdatesManager::process_postponed_pts_updates() {
       if (old_pts > new_pts - pts_count || last_update_it == postponed_pts_updates_.end() ||
           i == GAP_TIMEOUT_UPDATE_COUNT) {
         // the updates can't be applied
-        VLOG(get_difference) << "Can't apply " << i << " next postponed updates, because their pts_count is "
-                             << pts_count << " instead of expected " << new_pts - old_pts;
+        VLOG(get_difference) << "Can't apply " << i << " next postponed updates with pts " << update_it->second.pts << '-'
+                             << new_pts << ", because their pts_count is " << pts_count << " instead of expected "
+                             << new_pts - old_pts;
         last_update_it = update_it;
         break;
       }
@@ -2193,9 +2194,9 @@ void UpdatesManager::process_postponed_pts_updates() {
   }
   CHECK(!running_get_difference_);
   if (skipped_update_count + applied_update_count > 0) {
-    VLOG(get_difference) << "After skipping " << skipped_update_count << ", applying " << applied_update_count
-                         << " and keeping " << postponed_updates_.size() << " postponed updates pts has changed from "
-                         << initial_pts << " to " << old_pts;
+    VLOG(get_difference) << "Pts has changed from " << initial_pts << " to " << old_pts << " after skipping "
+                         << skipped_update_count << ", applying " << applied_update_count << " and keeping "
+                         << postponed_pts_updates_.size() << " postponed updates";
   }
 }
 
