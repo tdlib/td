@@ -343,8 +343,14 @@ class LinkManager::InternalLinkThemeSettings final : public InternalLink {
 };
 
 class LinkManager::InternalLinkUnknownDeepLink final : public InternalLink {
+  string link_;
+
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
-    return td_api::make_object<td_api::internalLinkTypeUnknownDeepLink>();
+    return td_api::make_object<td_api::internalLinkTypeUnknownDeepLink>(link_);
+  }
+
+ public:
+  explicit InternalLinkUnknownDeepLink(string link) : link_(std::move(link)) {
   }
 };
 
@@ -785,7 +791,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
       }
       if (username == "telegrampassport") {
         // resolve?domain=telegrampassport&bot_id=<bot_user_id>&scope=<scope>&public_key=<public_key>&nonce=<nonce>
-        return get_internal_link_passport(url_query.args_);
+        return get_internal_link_passport(query, url_query.args_);
       }
       // resolve?domain=<username>
       return td::make_unique<InternalLinkPublicDialog>(std::move(username));
@@ -801,7 +807,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     }
   } else if (path.size() == 1 && path[0] == "passport") {
     // passport?bot_id=<bot_user_id>&scope=<scope>&public_key=<public_key>&nonce=<nonce>
-    return get_internal_link_passport(url_query.args_);
+    return get_internal_link_passport(query, url_query.args_);
   } else if (path.size() >= 1 && path[0] == "settings") {
     if (path.size() == 2 && path[1] == "change_number") {
       // settings/change_number
@@ -895,7 +901,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     return get_internal_link_message_draft(get_arg("url"), get_arg("text"));
   }
   if (!path.empty() && !path[0].empty()) {
-    return td::make_unique<InternalLinkUnknownDeepLink>();
+    return td::make_unique<InternalLinkUnknownDeepLink>(PSTRING() << "tg://" << query);
   }
   return nullptr;
 }
@@ -1071,7 +1077,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::get_internal_link_message_dra
 }
 
 unique_ptr<LinkManager::InternalLink> LinkManager::get_internal_link_passport(
-    const vector<std::pair<string, string>> &args) {
+    Slice query, const vector<std::pair<string, string>> &args) {
   auto get_arg = [&args](Slice key) {
     for (auto &arg : args) {
       if (arg.first == key) {
@@ -1091,7 +1097,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::get_internal_link_passport(
   auto callback_url = get_arg("callback_url");
 
   if (!bot_user_id.is_valid() || scope.empty() || public_key.empty() || nonce.empty()) {
-    return td::make_unique<InternalLinkUnknownDeepLink>();
+    return td::make_unique<InternalLinkUnknownDeepLink>(PSTRING() << "tg://" << query);
   }
   return td::make_unique<InternalLinkPassportDataRequest>(bot_user_id, scope.str(), public_key.str(), nonce.str(),
                                                           callback_url.str());

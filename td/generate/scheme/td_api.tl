@@ -3057,8 +3057,8 @@ internalLinkTypeBotStartInGroup bot_username:string start_parameter:string = Int
 //@description The link is a link to the change phone number section of the app
 internalLinkTypeChangePhoneNumber = InternalLinkType;
 
-//@description The link is a chat invite link. Call checkChatInviteLink with the given URL to process the link @url Internal representation of the link
-internalLinkTypeChatInvite url:string = InternalLinkType;
+//@description The link is a chat invite link. Call checkChatInviteLink with the given invite link to process the link @invite_link Internal representation of the invite link
+internalLinkTypeChatInvite invite_link:string = InternalLinkType;
 
 //@description The link is a link to the filter settings section of the app
 internalLinkTypeFilterSettings = InternalLinkType;
@@ -3109,8 +3109,8 @@ internalLinkTypeTheme theme_name:string = InternalLinkType;
 //@description The link is a link to the theme settings section of the app
 internalLinkTypeThemeSettings = InternalLinkType;
 
-//@description The link is an unknown tg: link. Call getDeepLinkInfo to process the link
-internalLinkTypeUnknownDeepLink = InternalLinkType;
+//@description The link is an unknown tg: link. Call getDeepLinkInfo to process the link @link Link to be passed to getDeepLinkInfo
+internalLinkTypeUnknownDeepLink link:string = InternalLinkType;
 
 //@description The link is a link to a voice chat. Call searchPublicChat with the given chat username, and then joinGoupCall with the given invite hash to process the link
 //@chat_username Username of the chat with the voice chat @invite_hash If non-empty, invite hash to be used to join the voice chat without being muted by administrators
