@@ -1663,7 +1663,6 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
     return promise.set_value(Unit());
   }
 
-  size_t processed_updates = 0;
   MultiPromiseActorSafe mpas{"OnPendingUpdatesMultiPromiseActor"};
   mpas.add_promise(std::move(promise));
   auto lock = mpas.get_promise();
@@ -1688,17 +1687,14 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
             LOG(ERROR) << "Update: " << oneline(to_string(debug_update));
           }
         }
-        processed_updates++;
         update = nullptr;
       }
       if (id == telegram_api::updateFolderPeers::ID) {
         on_update(move_tl_object_as<telegram_api::updateFolderPeers>(update), mpas.get_promise());
-        processed_updates++;
         update = nullptr;
       }
       if (id == telegram_api::updateEncryption::ID) {
         on_update(move_tl_object_as<telegram_api::updateEncryption>(update), mpas.get_promise());
-        processed_updates++;
         update = nullptr;
       }
       CHECK(!running_get_difference_);
@@ -1709,7 +1705,6 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
     if (update != nullptr) {
       if (is_pts_update(update.get()) || is_qts_update(update.get())) {
         downcast_call(*update, OnUpdate(this, update, mpas.get_promise()));
-        processed_updates++;
         update = nullptr;
       }
     }
@@ -1723,9 +1718,18 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
     return lock.set_value(Unit());
   }
 
-  if (processed_updates == updates.size() && seq_begin == 0 && seq_end == 0) {
-    LOG(INFO) << "All updates was processed";
-    return lock.set_value(Unit());
+  if (seq_begin == 0 && seq_end == 0) {
+    bool have_updates = false;
+    for (auto &update : updates) {
+      if (update != nullptr) {
+        have_updates = true;
+        break;
+      }
+    }
+    if (!have_updates) {
+      LOG(INFO) << "All updates was processed";
+      return lock.set_value(Unit());
+    }
   }
 
   if (seq_begin == 0 || seq_begin == seq_ + 1) {
