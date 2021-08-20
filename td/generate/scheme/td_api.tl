@@ -3070,14 +3070,14 @@ internalLinkTypeGame bot_username:string game_short_name:string = InternalLinkTy
 //@description The link is a link to a language pack. Call getLanguagePackInfo with the given language pack identifier to process the link @language_pack_id Language pack identifier
 internalLinkTypeLanguagePack language_pack_id:string = InternalLinkType;
 
-//@description The link is a link to a Telegram message. Call getMessageLinkInfo to process the link
-internalLinkTypeMessage = InternalLinkType;
+//@description The link is a link to a Telegram message. Call getMessageLinkInfo with the given URL to process the link @url URL to be passed to getMessageLinkInfo
+internalLinkTypeMessage url:string = InternalLinkType;
 
 //@description The link contains a message draft text. A share screen needs to be shown to the user, then the chosen chat should be open and the text should be added to the input field
 //@text Message draft text @contains_link True, if the first line of the text contains a link. If true, the input field needs to be focused and the text after the link should be selected
 internalLinkTypeMessageDraft text:formattedText contains_link:Bool = InternalLinkType;
 
-//@description The link contains a request of Telegram passport data. Call getPassportAuthorizationForm to process the link if the link was received outside of the app, otherwise ignore it
+//@description The link contains a request of Telegram passport data. Call getPassportAuthorizationForm with the given parameters to process the link if the link was received from outside of the app, otherwise ignore it
 //@bot_user_id User identifier of the service's bot @scope Telegram Passport element types requested by the service @public_key Service's public key @nonce Unique request identifier provided by the service
 //@callback_url An HTTP URL to open once the request is finished or canceled with the parameter tg_passport=success or tg_passport=cancel respectively. If empty, then the link tgbot{bot_user_id}://passport/success or tgbot{bot_user_id}://passport/cancel needs to be opened instead
 internalLinkTypePassportDataRequest bot_user_id:int32 scope:string public_key:string nonce:string callback_url:string = InternalLinkType;
@@ -3086,7 +3086,7 @@ internalLinkTypePassportDataRequest bot_user_id:int32 scope:string public_key:st
 //@hash Hash value from the link @phone_number Phone number value from the link
 internalLinkTypePhoneNumberConfirmation hash:string phone_number:string = InternalLinkType;
 
-//@description The link is a link to a proxy. Call addProxy to process the link and add the proxy
+//@description The link is a link to a proxy. Call addProxy with the given parameters to process the link and add the proxy
 //@server Proxy server IP address @port Proxy server port @type Type of the proxy
 internalLinkTypeProxy server:string port:int32 type:ProxyType = InternalLinkType;
 

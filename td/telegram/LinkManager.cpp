@@ -208,8 +208,14 @@ class LinkManager::InternalLinkLanguage final : public InternalLink {
 };
 
 class LinkManager::InternalLinkMessage final : public InternalLink {
+  string url_;
+
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
-    return td_api::make_object<td_api::internalLinkTypeMessage>();
+    return td_api::make_object<td_api::internalLinkTypeMessage>(url_);
+  }
+
+ public:
+  explicit InternalLinkMessage(string url) : url_(std::move(url)) {
   }
 };
 
@@ -713,6 +719,13 @@ struct CopyArg {
 StringBuilder &operator<<(StringBuilder &string_builder, const CopyArg &copy_arg) {
   auto arg = copy_arg.url_query_->get_arg(copy_arg.name_);
   if (arg.empty()) {
+    for (const auto &query_arg : copy_arg.url_query_->args_) {
+      if (query_arg.first == copy_arg.name_) {
+        char c = *copy_arg.is_first_ ? '?' : '&';
+        *copy_arg.is_first_ = false;
+        return string_builder << c << copy_arg.name_;
+      }
+    }
     return string_builder;
   }
   char c = *copy_arg.is_first_ ? '?' : '&';
@@ -742,8 +755,10 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
   if (path.size() == 1 && path[0] == "resolve") {
     if (is_valid_username(get_arg("domain"))) {
       if (has_arg("post")) {
-        // resolve?domain=<username>&post=12345&single
-        return td::make_unique<InternalLinkMessage>();
+        // resolve?domain=<username>&post=12345&single&thread=<thread_id>&comment=<message_id>&t=<media_timestamp>
+        return td::make_unique<InternalLinkMessage>(PSTRING() << "tg:resolve" << copy_arg("domain") << copy_arg("post")
+                                                              << copy_arg("single") << copy_arg("thread")
+                                                              << copy_arg("comment") << copy_arg("t"));
       }
       auto username = get_arg("domain");
       for (auto &arg : url_query.args_) {
@@ -851,9 +866,11 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
       }
     }
   } else if (path.size() == 1 && path[0] == "privatepost") {
-    // privatepost?channel=123456789&msg_id=12345
+    // privatepost?channel=123456789&msg_id=12345&single&thread=<thread_id>&comment=<message_id>&t=<media_timestamp>
     if (has_arg("channel") && has_arg("msg_id")) {
-      return td::make_unique<InternalLinkMessage>();
+      return td::make_unique<InternalLinkMessage>(
+          PSTRING() << "tg:privatepost" << copy_arg("channel") << copy_arg("msg_id") << copy_arg("single")
+                    << copy_arg("thread") << copy_arg("comment") << copy_arg("t"));
     }
   } else if (path.size() == 1 && path[0] == "bg") {
     // bg?color=<color>
@@ -905,8 +922,12 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
 
   if (path[0] == "c") {
     if (path.size() >= 3 && to_integer<int64>(path[1]) > 0 && to_integer<int64>(path[2]) > 0) {
-      // /c/123456789/12345
-      return td::make_unique<InternalLinkMessage>();
+      // /c/123456789/12345?single&thread=<thread_id>&comment=<message_id>&t=<media_timestamp>
+      is_first_arg = false;
+      return td::make_unique<InternalLinkMessage>(PSTRING()
+                                                  << "tg:privatepost?channel=" << to_integer<int64>(path[1])
+                                                  << "&msg_id=" << to_integer<int64>(path[2]) << copy_arg("single")
+                                                  << copy_arg("thread") << copy_arg("comment") << copy_arg("t"));
     }
   } else if (path[0] == "login") {
     if (path.size() >= 2 && !path[1].empty()) {
@@ -982,8 +1003,11 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
     }
   } else if (is_valid_username(path[0])) {
     if (path.size() >= 2 && to_integer<int64>(path[1]) > 0) {
-      // /<username>/12345?single&thread=<thread_id>&comment=<message_id>
-      return td::make_unique<InternalLinkMessage>();
+      // /<username>/12345?single&thread=<thread_id>&comment=<message_id>&t=<media_timestamp>
+      is_first_arg = false;
+      return td::make_unique<InternalLinkMessage>(
+          PSTRING() << "tg:resolve?domain=" << url_encode(path[0]) << "&post=" << to_integer<int64>(path[1])
+                    << copy_arg("single") << copy_arg("thread") << copy_arg("comment") << copy_arg("t"));
     }
     auto username = path[0];
     for (auto &arg : url_query.args_) {
@@ -1207,8 +1231,8 @@ Result<MessageLinkInfo> LinkManager::get_message_link_info(Slice url) {
   bool is_single = false;
   bool for_comment = false;
   if (link_info.is_tg_) {
-    // resolve?domain=username&post=12345&single
-    // privatepost?channel=123456789&msg_id=12345
+    // resolve?domain=username&post=12345&single&t=123&comment=12&thread=21
+    // privatepost?channel=123456789&msg_id=12345&single&t=123&comment=12&thread=21
 
     bool is_resolve = false;
     if (begins_with(url, "resolve")) {
