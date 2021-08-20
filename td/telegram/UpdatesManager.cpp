@@ -2151,8 +2151,9 @@ void UpdatesManager::process_postponed_pts_updates() {
       continue;
     }
 
-    auto last_update_it = ++update_it;
+    auto last_update_it = update_it;
     for (int32 i = 1; true; i++) {
+      ++last_update_it;
       if (old_pts == new_pts - pts_count) {
         // the updates can be applied
         break;
@@ -2168,7 +2169,6 @@ void UpdatesManager::process_postponed_pts_updates() {
 
       new_pts = last_update_it->second.pts;
       pts_count += last_update_it->second.pts_count;
-      ++last_update_it;
     }
 
     if (last_update_it == update_it) {
