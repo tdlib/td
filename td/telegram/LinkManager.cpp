@@ -65,6 +65,26 @@ static bool is_valid_username(Slice username) {
   return true;
 }
 
+static string get_url_query_hash(bool is_tg, const HttpUrlQuery &url_query) {
+  const auto &path = url_query.path_;
+  if (is_tg) {
+    if (path.size() == 1 && path[0] == "join" && !url_query.get_arg("invite").empty()) {
+      // join?invite=abcdef
+      return url_query.get_arg("invite").str();
+    }
+  } else {
+    if (path.size() >= 2 && path[0] == "joinchat" && !path[1].empty()) {
+      // /joinchat/<link>
+      return path[1];
+    }
+    if (path.size() >= 1 && path[0].size() >= 2 && (path[0][0] == ' ' || path[0][0] == '+')) {
+      // /+<link>
+      return path[0].substr(1);
+    }
+  }
+  return string();
+}
+
 class LinkManager::InternalLinkActiveSessions final : public InternalLink {
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
     return td_api::make_object<td_api::internalLinkTypeActiveSessions>();
@@ -144,8 +164,14 @@ class LinkManager::InternalLinkConfirmPhone final : public InternalLink {
 };
 
 class LinkManager::InternalLinkDialogInvite final : public InternalLink {
+  string url_;
+
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
-    return td_api::make_object<td_api::internalLinkTypeChatInvite>();
+    return td_api::make_object<td_api::internalLinkTypeChatInvite>(url_);
+  }
+
+ public:
+  explicit InternalLinkDialogInvite(string url) : url_(std::move(url)) {
   }
 };
 
@@ -783,7 +809,8 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
   } else if (path.size() == 1 && path[0] == "join") {
     // join?invite=<hash>
     if (has_arg("invite")) {
-      return td::make_unique<InternalLinkDialogInvite>();
+      return td::make_unique<InternalLinkDialogInvite>(PSTRING() << "tg:join?invite="
+                                                                 << url_encode(get_url_query_hash(true, url_query)));
     }
   } else if (path.size() == 1 && path[0] == "addstickers") {
     // addstickers?set=<name>
@@ -889,12 +916,14 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
   } else if (path[0] == "joinchat") {
     if (path.size() >= 2 && !path[1].empty()) {
       // /joinchat/<link>
-      return td::make_unique<InternalLinkDialogInvite>();
+      return td::make_unique<InternalLinkDialogInvite>(PSTRING() << "tg:join?invite="
+                                                                 << url_encode(get_url_query_hash(false, url_query)));
     }
   } else if (path[0][0] == ' ' || path[0][0] == '+') {
     if (path[0].size() >= 2) {
       // /+<link>
-      return td::make_unique<InternalLinkDialogInvite>();
+      return td::make_unique<InternalLinkDialogInvite>(
+          PSTRING() << "tg:join?invite=" + url_encode(get_url_query_hash(false, url_query)));
     }
   } else if (path[0] == "addstickers") {
     if (path.size() >= 2 && !path[1].empty()) {
@@ -1157,24 +1186,7 @@ string LinkManager::get_dialog_invite_link_hash(Slice invite_link) {
     return string();
   }
   const auto url_query = parse_url_query(link_info.query_);
-  const auto &path = url_query.path_;
-
-  if (link_info.is_tg_) {
-    if (path.size() == 1 && path[0] == "join" && !url_query.get_arg("invite").empty()) {
-      // join?invite=abcdef
-      return url_query.get_arg("invite").str();
-    }
-  } else {
-    if (path.size() >= 2 && path[0] == "joinchat" && !path[1].empty()) {
-      // /joinchat/<link>
-      return path[1];
-    }
-    if (path.size() >= 1 && path[0].size() >= 2 && (path[0][0] == ' ' || path[0][0] == '+')) {
-      // /+<link>
-      return path[0].substr(1);
-    }
-  }
-  return string();
+  return get_url_query_hash(link_info.is_tg_, url_query);
 }
 
 Result<MessageLinkInfo> LinkManager::get_message_link_info(Slice url) {

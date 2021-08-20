@@ -3057,8 +3057,8 @@ internalLinkTypeBotStartInGroup bot_username:string start_parameter:string = Int
 //@description The link is a link to the change phone number section of the app
 internalLinkTypeChangePhoneNumber = InternalLinkType;
 
-//@description The link is a chat invite link. Call checkChatInviteLink to process the link
-internalLinkTypeChatInvite = InternalLinkType;
+//@description The link is a chat invite link. Call checkChatInviteLink with the given URL to process the link @url Internal representation of the link
+internalLinkTypeChatInvite url:string = InternalLinkType;
 
 //@description The link is a link to the filter settings section of the app
 internalLinkTypeFilterSettings = InternalLinkType;

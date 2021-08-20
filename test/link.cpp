@@ -113,8 +113,8 @@ TEST(Link, parse_internal_link) {
   auto change_phone_number = [] {
     return td::td_api::make_object<td::td_api::internalLinkTypeChangePhoneNumber>();
   };
-  auto chat_invite = [] {
-    return td::td_api::make_object<td::td_api::internalLinkTypeChatInvite>();
+  auto chat_invite = [](td::string hash) {
+    return td::td_api::make_object<td::td_api::internalLinkTypeChatInvite>("tg:join?invite=" + hash);
   };
   auto filter_settings = [] {
     return td::td_api::make_object<td::td_api::internalLinkTypeFilterSettings>();
@@ -181,9 +181,9 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("www%2etelegram.me/levlam/1", message());
   parse_internal_link("www%2Etelegram.dog/levlam/1", message());
   parse_internal_link("www%252Etelegram.dog/levlam/1", nullptr);
-  parse_internal_link("www.t.me/s/s/s/s/s/joinchat/1", chat_invite());
-  parse_internal_link("www.t.me/s/%73/%73/s/%73/joinchat/1", chat_invite());
-  parse_internal_link("http://t.me/s/s/s/s/s/s/s/s/s/s/s/s/s/s/s/s/s/joinchat/1", chat_invite());
+  parse_internal_link("www.t.me/s/s/s/s/s/joinchat/1", chat_invite("1"));
+  parse_internal_link("www.t.me/s/%73/%73/s/%73/joinchat/1", chat_invite("1"));
+  parse_internal_link("http://t.me/s/s/s/s/s/s/s/s/s/s/s/s/s/s/s/s/s/joinchat/1", chat_invite("1"));
   parse_internal_link("http://t.me/levlam/1", message());
   parse_internal_link("https://t.me/levlam/1", message());
   parse_internal_link("hTtp://www.t.me:443/levlam/1", message());
@@ -347,29 +347,33 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("t.me/joinchat?/abcdef", nullptr);
   parse_internal_link("t.me/joinchat/?abcdef", nullptr);
   parse_internal_link("t.me/joinchat/#abcdef", nullptr);
-  parse_internal_link("t.me/joinchat/abacaba", chat_invite());
-  parse_internal_link("t.me/joinchat/aba%20aba", chat_invite());
-  parse_internal_link("t.me/joinchat/123456a", chat_invite());
-  parse_internal_link("t.me/joinchat/12345678901", chat_invite());
-  parse_internal_link("t.me/joinchat/123456", chat_invite());
-  parse_internal_link("t.me/joinchat/123456/123123/12/31/a/s//21w/?asdas#test", chat_invite());
+  parse_internal_link("t.me/joinchat/abacaba", chat_invite("abacaba"));
+  parse_internal_link("t.me/joinchat/aba%20aba", chat_invite("aba%20aba"));
+  parse_internal_link("t.me/joinchat/aba%30aba", chat_invite("aba0aba"));
+  parse_internal_link("t.me/joinchat/123456a", chat_invite("123456a"));
+  parse_internal_link("t.me/joinchat/12345678901", chat_invite("12345678901"));
+  parse_internal_link("t.me/joinchat/123456", chat_invite("123456"));
+  parse_internal_link("t.me/joinchat/123456/123123/12/31/a/s//21w/?asdas#test", chat_invite("123456"));
 
   parse_internal_link("t.me/+?invite=abcdef", nullptr);
-  parse_internal_link("t.me/+a", chat_invite());
+  parse_internal_link("t.me/+a", chat_invite("a"));
   parse_internal_link("t.me/+", nullptr);
   parse_internal_link("t.me/+/abcdef", nullptr);
   parse_internal_link("t.me/ ?/abcdef", nullptr);
   parse_internal_link("t.me/+?abcdef", nullptr);
   parse_internal_link("t.me/+#abcdef", nullptr);
-  parse_internal_link("t.me/ abacaba", chat_invite());
-  parse_internal_link("t.me/+aba%20aba", chat_invite());
-  parse_internal_link("t.me/+123456a", chat_invite());
-  parse_internal_link("t.me/%2012345678901", chat_invite());
-  parse_internal_link("t.me/+123456", chat_invite());
-  parse_internal_link("t.me/ 123456/123123/12/31/a/s//21w/?asdas#test", chat_invite());
+  parse_internal_link("t.me/ abacaba", chat_invite("abacaba"));
+  parse_internal_link("t.me/+aba%20aba", chat_invite("aba%20aba"));
+  parse_internal_link("t.me/+aba%30aba", chat_invite("aba0aba"));
+  parse_internal_link("t.me/+123456a", chat_invite("123456a"));
+  parse_internal_link("t.me/%2012345678901", chat_invite("12345678901"));
+  parse_internal_link("t.me/+123456", chat_invite("123456"));
+  parse_internal_link("t.me/ 123456/123123/12/31/a/s//21w/?asdas#test", chat_invite("123456"));
   parse_internal_link("t.me/ /123456/123123/12/31/a/s//21w/?asdas#test", nullptr);
 
-  parse_internal_link("tg:join?invite=abcdef", chat_invite());
+  parse_internal_link("tg:join?invite=abcdef", chat_invite("abcdef"));
+  parse_internal_link("tg:join?invite=abc%20def", chat_invite("abc%20def"));
+  parse_internal_link("tg://join?invite=abc%30def", chat_invite("abc0def"));
   parse_internal_link("tg:join?invite=", unknown_deep_link());
 
   parse_internal_link("t.me/addstickers?set=abcdef", nullptr);
