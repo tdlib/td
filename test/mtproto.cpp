@@ -305,7 +305,7 @@ class HandshakeContext final : public mtproto::AuthKeyHandshakeContext {
   }
 
  private:
-  PublicRsaKeyShared public_rsa_key{DcId::empty(), false};
+  PublicRsaKeyShared public_rsa_key{DcId::empty(), true};
 };
 
 class HandshakeTestActor final : public Actor {
