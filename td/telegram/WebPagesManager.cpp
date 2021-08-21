@@ -1286,11 +1286,11 @@ tl_object_ptr<td_api::webPage> WebPagesManager::get_web_page_object(WebPageId we
 
 tl_object_ptr<td_api::webPageInstantView> WebPagesManager::get_web_page_instant_view_object(
     WebPageId web_page_id) const {
-  return get_web_page_instant_view_object(get_web_page_instant_view(web_page_id));
+  return get_web_page_instant_view_object(web_page_id, get_web_page_instant_view(web_page_id));
 }
 
 tl_object_ptr<td_api::webPageInstantView> WebPagesManager::get_web_page_instant_view_object(
-    const WebPageInstantView *web_page_instant_view) const {
+    WebPageId web_page_id, const WebPageInstantView *web_page_instant_view) const {
   if (web_page_instant_view == nullptr) {
     return nullptr;
   }
@@ -1298,10 +1298,12 @@ tl_object_ptr<td_api::webPageInstantView> WebPagesManager::get_web_page_instant_
     LOG(ERROR) << "Trying to get not loaded web page instant view";
     return nullptr;
   }
+  auto feedback_link =
+      td_api::make_object<td_api::internalLinkTypeBotStart>("previews", PSTRING() << "webpage" << web_page_id.get());
   return td_api::make_object<td_api::webPageInstantView>(
       get_page_block_objects(web_page_instant_view->page_blocks, td_, web_page_instant_view->url),
       web_page_instant_view->view_count, web_page_instant_view->is_v2 ? 2 : 1, web_page_instant_view->is_rtl,
-      web_page_instant_view->is_full);
+      web_page_instant_view->is_full, std::move(feedback_link));
 }
 
 void WebPagesManager::on_web_page_changed(WebPageId web_page_id, bool have_web_page) {
@@ -1479,7 +1481,7 @@ void WebPagesManager::on_get_web_page_instant_view(WebPage *web_page, tl_object_
   web_page->instant_view.is_loaded = true;
 
   LOG(DEBUG) << "Receive web page instant view: "
-             << to_string(get_web_page_instant_view_object(&web_page->instant_view));
+             << to_string(get_web_page_instant_view_object(WebPageId(), &web_page->instant_view));
 }
 
 class WebPagesManager::WebPageLogEvent {
@@ -1701,7 +1703,8 @@ int32 WebPagesManager::get_web_page_media_duration(WebPageId web_page_id) const 
 
 int32 WebPagesManager::get_web_page_media_duration(const WebPage *web_page) {
   if (web_page->document.type == Document::Type::Audio || web_page->document.type == Document::Type::Video ||
-      web_page->document.type == Document::Type::VideoNote || web_page->document.type == Document::Type::VoiceNote || web_page->embed_type == "iframe") {
+      web_page->document.type == Document::Type::VideoNote || web_page->document.type == Document::Type::VoiceNote ||
+      web_page->embed_type == "iframe") {
     return web_page->duration;
   }
 

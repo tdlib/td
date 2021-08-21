@@ -1259,7 +1259,8 @@ pageBlockMap location:location zoom:int32 width:int32 height:int32 caption:pageB
 //@version Version of the instant view, currently can be 1 or 2
 //@is_rtl True, if the instant view must be shown from right to left
 //@is_full True, if the instant view contains the full page. A network request might be needed to get the full web page instant view
-webPageInstantView page_blocks:vector<PageBlock> view_count:int32 version:int32 is_rtl:Bool is_full:Bool = WebPageInstantView;
+//@feedback_link An internal link to be opened to leave feedback about the instant view
+webPageInstantView page_blocks:vector<PageBlock> view_count:int32 version:int32 is_rtl:Bool is_full:Bool feedback_link:InternalLinkType = WebPageInstantView;
 
 
 //@description Describes a web page preview
