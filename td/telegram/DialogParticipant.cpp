@@ -421,6 +421,10 @@ DialogParticipantStatus get_dialog_participant_status(const tl_object_ptr<td_api
     case td_api::chatMemberStatusRestricted::ID: {
       auto st = static_cast<const td_api::chatMemberStatusRestricted *>(status.get());
       auto permissions = st->permissions_.get();
+      if (permissions == nullptr) {
+        return DialogParticipantStatus::Restricted(st->is_member_, st->restricted_until_date_, false, false, false,
+                                                   false, false, false, false, false, false, false, false);
+      }
       bool can_send_polls = permissions->can_send_polls_;
       bool can_send_media = permissions->can_send_media_messages_;
       bool can_send_messages = permissions->can_send_messages_ || can_send_media || can_send_polls ||
