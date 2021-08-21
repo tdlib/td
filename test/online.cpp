@@ -5,6 +5,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include <iostream>
+#include <map>
 #include <tdutils/td/utils/FileLog.h>
 #include <tdutils/td/utils/OptionParser.h>
 #include <tdutils/td/utils/port/path.h>

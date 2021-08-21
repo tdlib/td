@@ -24,9 +24,9 @@
 #include <openssl/x509v3.h>
 
 #include <cstring>
-#include <map>
 #include <memory>
 #include <mutex>
+#include <unordered_map>
 
 #if TD_PORT_WINDOWS
 #include <wincrypt.h>
@@ -131,7 +131,7 @@ int verify_callback(int preverify_ok, X509_STORE_CTX *ctx) {
     static std::mutex warning_mutex;
     {
       std::lock_guard<std::mutex> lock(warning_mutex);
-      static std::map<std::string, double> next_warning_time;
+      static std::unordered_map<std::string, double> next_warning_time;
       double &next = next_warning_time[warning];
       if (next <= now) {
         next = now + 300;  // one warning per 5 minutes

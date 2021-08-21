@@ -26,8 +26,8 @@
 #include "td/utils/Status.h"
 #include "td/utils/StorerBase.h"
 
-#include <map>
 #include <memory>
+#include <unordered_map>
 #include <utility>
 
 namespace td {
@@ -130,7 +130,7 @@ class RawConnectionDefault final : public RawConnection {
   PublicFields extra_;
   BufferedFd<SocketFd> socket_fd_;
   unique_ptr<IStreamTransport> transport_;
-  std::map<uint32, uint64> quick_ack_to_token_;
+  std::unordered_map<uint32, uint64> quick_ack_to_token_;
   bool has_error_{false};
 
   unique_ptr<StatsCallback> stats_callback_;

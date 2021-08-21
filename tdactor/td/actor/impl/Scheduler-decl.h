@@ -26,9 +26,9 @@
 #include "td/utils/type_traits.h"
 
 #include <functional>
-#include <map>
 #include <memory>
 #include <type_traits>
+#include <unordered_map>
 #include <utility>
 
 namespace td {
@@ -214,7 +214,7 @@ class Scheduler {
   ListNode ready_actors_list_;
   KHeap<double> timeout_queue_;
 
-  std::map<ActorInfo *, std::vector<Event>> pending_events_;
+  std::unordered_map<ActorInfo *, std::vector<Event>> pending_events_;
 
   ServiceActor service_actor_;
   Poll poll_;
