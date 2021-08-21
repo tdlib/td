@@ -22,20 +22,19 @@ Status MessageIdDuplicateChecker::check(int64 message_id) {
   // a message comes in with msg_id lower than all or equal to any of the stored values, that message is to be
   // ignored. Otherwise, the new message msg_id is added to the set, and, if the number of stored msg_id values is
   // greater than N, the oldest (i. e. the lowest) is forgotten.
-  if (saved_message_ids_.size() == MAX_SAVED_MESSAGE_IDS) {
-    auto oldest_message_id = *saved_message_ids_.begin();
-    if (message_id < oldest_message_id) {
-      return Status::Error(2, PSLICE() << "Ignore very old message_id " << tag("oldest message_id", oldest_message_id)
-                                       << tag("got message_id", message_id));
-    }
-  }
-  if (saved_message_ids_.count(message_id) != 0) {
+  auto insert_result = saved_message_ids_.insert(message_id);
+  if (!insert_result.second) {
     return Status::Error(1, PSLICE() << "Ignore duplicated message_id " << tag("message_id", message_id));
   }
-
-  saved_message_ids_.insert(message_id);
-  if (saved_message_ids_.size() > MAX_SAVED_MESSAGE_IDS) {
-    saved_message_ids_.erase(saved_message_ids_.begin());
+  if (saved_message_ids_.size() == MAX_SAVED_MESSAGE_IDS + 1) {
+    auto begin_it = saved_message_ids_.begin();
+    bool is_very_old = begin_it == insert_result.first;
+    saved_message_ids_.erase(begin_it);
+    if (is_very_old) {
+      return Status::Error(2, PSLICE() << "Ignore very old message_id "
+                                       << tag("oldest message_id", *saved_message_ids_.begin())
+                                       << tag("got message_id", message_id));
+    }
   }
   return Status::OK();
 }
