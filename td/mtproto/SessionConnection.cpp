@@ -250,6 +250,10 @@ Status SessionConnection::on_packet_rpc_result(const MsgInfo &info, Slice packet
   if (parser.get_error()) {
     return Status::Error(PSLICE() << "Failed to parse mtproto_api::rpc_result: " << parser.get_error());
   }
+  if (req_msg_id == 0) {
+    LOG(ERROR) << "Receive an update in rpc_result: message_id = " << info.message_id << ", seq_no = " << info.seq_no;
+    return Status::Error("Receive an update in rpc_result");
+  }
 
   auto object_begin_pos = packet.size() - parser.get_left_len();
   int32 id = parser.fetch_int();
