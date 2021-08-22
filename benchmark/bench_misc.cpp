@@ -6,6 +6,7 @@
 //
 #include "td/utils/benchmark.h"
 #include "td/utils/common.h"
+#include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/port/Clocks.h"
 #include "td/utils/port/EventFd.h"
@@ -32,6 +33,7 @@
 
 #include <atomic>
 #include <cstdint>
+#include <set>
 
 class F {
   td::uint32 &sum;
@@ -418,8 +420,140 @@ std::atomic<td::int64> AtomicCounterBench<StrictOrder>::counter_;
 
 #endif
 
+class MessageIdDuplicateCheckerOld {
+ public:
+  static td::string get_description() {
+    return "Old";
+  }
+  td::Status check(td::int64 message_id) {
+    if (saved_message_ids_.size() == MAX_SAVED_MESSAGE_IDS) {
+      auto oldest_message_id = *saved_message_ids_.begin();
+      if (message_id < oldest_message_id) {
+        return td::Status::Error(2, PSLICE() << "Ignore very old message_id "
+                                             << td::tag("oldest message_id", oldest_message_id)
+                                             << td::tag("got message_id", message_id));
+      }
+    }
+    if (saved_message_ids_.count(message_id) != 0) {
+      return td::Status::Error(1, PSLICE() << "Ignore duplicated message_id " << td::tag("message_id", message_id));
+    }
+
+    saved_message_ids_.insert(message_id);
+    if (saved_message_ids_.size() > MAX_SAVED_MESSAGE_IDS) {
+      saved_message_ids_.erase(saved_message_ids_.begin());
+    }
+    return td::Status::OK();
+  }
+
+ private:
+  static constexpr size_t MAX_SAVED_MESSAGE_IDS = 1000;
+  std::set<td::int64> saved_message_ids_;
+};
+
+template<size_t MAX_SAVED_MESSAGE_IDS>
+class MessageIdDuplicateCheckerNew {
+ public:
+  static td::string get_description() {
+    return PSTRING() << "New" << MAX_SAVED_MESSAGE_IDS;
+  }
+  td::Status check(td::int64 message_id) {
+    auto insert_result = saved_message_ids_.insert(message_id);
+    if (!insert_result.second) {
+      return td::Status::Error(1, PSLICE() << "Ignore duplicated message_id " << td::tag("message_id", message_id));
+    }
+    if (saved_message_ids_.size() == MAX_SAVED_MESSAGE_IDS + 1) {
+      auto begin_it = saved_message_ids_.begin();
+      bool is_very_old = begin_it == insert_result.first;
+      saved_message_ids_.erase(begin_it);
+      if (is_very_old) {
+        return td::Status::Error(2, PSLICE() << "Ignore very old message_id "
+                                             << td::tag("oldest message_id", *saved_message_ids_.begin())
+                                             << td::tag("got message_id", message_id));
+      }
+    }
+    return td::Status::OK();
+  }
+
+ private:
+  std::set<td::int64> saved_message_ids_;
+};
+
+class MessageIdDuplicateCheckerNewOther {
+ public:
+  static td::string get_description() {
+    return "NewOther";
+  }
+  td::Status check(td::int64 message_id) {
+    if (!saved_message_ids_.insert(message_id).second) {
+      return td::Status::Error(1, PSLICE() << "Ignore duplicated message_id " << td::tag("message_id", message_id));
+    }
+    if (saved_message_ids_.size() == MAX_SAVED_MESSAGE_IDS + 1) {
+      auto begin_it = saved_message_ids_.begin();
+      bool is_very_old = *begin_it == message_id;
+      saved_message_ids_.erase(begin_it);
+      if (is_very_old) {
+        return td::Status::Error(2, PSLICE() << "Ignore very old message_id "
+                                             << td::tag("oldest message_id", *saved_message_ids_.begin())
+                                             << td::tag("got message_id", message_id));
+      }
+    }
+    return td::Status::OK();
+  }
+
+ private:
+  static constexpr size_t MAX_SAVED_MESSAGE_IDS = 1000;
+  std::set<td::int64> saved_message_ids_;
+};
+
+class MessageIdDuplicateCheckerNewSimple {
+ public:
+  static td::string get_description() {
+    return "NewSimple";
+  }
+  td::Status check(td::int64 message_id) {
+    auto insert_result = saved_message_ids_.insert(message_id);
+    if (!insert_result.second) {
+      return td::Status::Error(1, "Ignore duplicated message_id");
+    }
+    if (saved_message_ids_.size() == MAX_SAVED_MESSAGE_IDS + 1) {
+      auto begin_it = saved_message_ids_.begin();
+      bool is_very_old = begin_it == insert_result.first;
+      saved_message_ids_.erase(begin_it);
+      if (is_very_old) {
+        return td::Status::Error(2, "Ignore very old message_id");
+      }
+    }
+    return td::Status::OK();
+  }
+
+ private:
+  static constexpr size_t MAX_SAVED_MESSAGE_IDS = 1000;
+  std::set<td::int64> saved_message_ids_;
+};
+
+template <class T>
+class DuplicateCheckerBench final : public td::Benchmark {
+  td::string get_description() const final {
+    return PSTRING() << "DuplicateCheckerBench" << T::get_description();
+  }
+  void run(int n) final {
+    T checker_;
+    for (int i = 0; i < n; i++) {
+      checker_.check(i).ensure();
+    }
+  }
+};
+
 int main() {
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(DEBUG));
+
+  td::bench(DuplicateCheckerBench<MessageIdDuplicateCheckerOld>());
+  td::bench(DuplicateCheckerBench<MessageIdDuplicateCheckerNew<1000>>());
+  td::bench(DuplicateCheckerBench<MessageIdDuplicateCheckerNewOther>());
+  td::bench(DuplicateCheckerBench<MessageIdDuplicateCheckerNewSimple>());
+  td::bench(DuplicateCheckerBench<MessageIdDuplicateCheckerNew<100>>());
+  td::bench(DuplicateCheckerBench<MessageIdDuplicateCheckerNew<10>>());
+
 #if !TD_THREAD_UNSUPPORTED
   for (int i = 1; i <= 16; i *= 2) {
     td::bench(ThreadSafeCounterBench(i));
