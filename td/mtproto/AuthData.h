@@ -12,7 +12,7 @@
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 
-#include <set>
+#include <array>
 
 namespace td {
 namespace mtproto {
@@ -37,13 +37,18 @@ void parse(ServerSalt &salt, ParserT &parser) {
   salt.valid_until = parser.fetch_double();
 }
 
+Status check_message_id_duplicates(int64 *saved_message_ids, size_t max_size, size_t &end_pos, int64 message_id);
+
+template <size_t max_size>
 class MessageIdDuplicateChecker {
  public:
-  Status check(int64 message_id);
+  Status check(int64 message_id) {
+    return check_message_id_duplicates(&saved_message_ids_[0], max_size, end_pos_, message_id);
+  }
 
  private:
-  static constexpr size_t MAX_SAVED_MESSAGE_IDS = 1000;
-  std::set<int64> saved_message_ids_;
+  std::array<int64, 2 * max_size> saved_message_ids_;
+  size_t end_pos_ = 0;
 };
 
 class AuthData {
@@ -274,8 +279,8 @@ class AuthData {
 
   std::vector<ServerSalt> future_salts_;
 
-  MessageIdDuplicateChecker duplicate_checker_;
-  MessageIdDuplicateChecker updates_duplicate_checker_;
+  MessageIdDuplicateChecker<1000> duplicate_checker_;
+  MessageIdDuplicateChecker<1000> updates_duplicate_checker_;
 
   void update_salt(double now);
 };

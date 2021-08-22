@@ -533,40 +533,40 @@ class MessageIdDuplicateCheckerNewSimple {
   std::set<td::int64> saved_message_ids_;
 };
 
-template <size_t MAX_SAVED_MESSAGE_IDS>
+template <size_t max_size>
 class MessageIdDuplicateCheckerArray {
  public:
   static td::string get_description() {
-    return PSTRING() << "Array" << MAX_SAVED_MESSAGE_IDS;
+    return PSTRING() << "Array" << max_size;
   }
   td::Status check(td::int64 message_id) {
-    if (end_pos == 2 * MAX_SAVED_MESSAGE_IDS) {
-      std::copy_n(&saved_message_ids_[MAX_SAVED_MESSAGE_IDS], MAX_SAVED_MESSAGE_IDS, &saved_message_ids_[0]);
-      end_pos = MAX_SAVED_MESSAGE_IDS;
+    if (end_pos_ == 2 * max_size) {
+      std::copy_n(&saved_message_ids_[max_size], max_size, &saved_message_ids_[0]);
+      end_pos_ = max_size;
     }
-    if (end_pos == 0 || message_id > saved_message_ids_[end_pos - 1]) {
+    if (end_pos_ == 0 || message_id > saved_message_ids_[end_pos_ - 1]) {
       // fast path
-      saved_message_ids_[end_pos++] = message_id;
+      saved_message_ids_[end_pos_++] = message_id;
       return td::Status::OK();
     }
-    if (end_pos >= MAX_SAVED_MESSAGE_IDS && message_id < saved_message_ids_[0]) {
+    if (end_pos_ >= max_size && message_id < saved_message_ids_[0]) {
       return td::Status::Error(2, PSLICE() << "Ignore very old message_id "
                                            << td::tag("oldest message_id", saved_message_ids_[0])
                                            << td::tag("got message_id", message_id));
     }
-    auto it = std::lower_bound(&saved_message_ids_[0], &saved_message_ids_[end_pos], message_id);
+    auto it = std::lower_bound(&saved_message_ids_[0], &saved_message_ids_[end_pos_], message_id);
     if (*it == message_id) {
       return td::Status::Error(1, PSLICE() << "Ignore duplicated message_id " << td::tag("message_id", message_id));
     }
-    std::copy_backward(it, &saved_message_ids_[end_pos], &saved_message_ids_[end_pos + 1]);
+    std::copy_backward(it, &saved_message_ids_[end_pos_], &saved_message_ids_[end_pos_ + 1]);
     *it = message_id;
-    ++end_pos;
+    ++end_pos_;
     return td::Status::OK();
   }
 
  private:
-  std::array<td::int64, 2 * MAX_SAVED_MESSAGE_IDS> saved_message_ids_;
-  std::size_t end_pos = 0;
+  std::array<td::int64, 2 * max_size> saved_message_ids_;
+  std::size_t end_pos_ = 0;
 };
 
 template <class T>
