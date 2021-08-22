@@ -601,8 +601,46 @@ class DuplicateCheckerBenchRepeat final : public td::Benchmark {
   }
 };
 
+template <class T>
+class DuplicateCheckerBenchRepeatOnly final : public td::Benchmark {
+  td::string get_description() const final {
+    return PSTRING() << "DuplicateCheckerBenchRepeatOnly" << T::get_description();
+  }
+  void run(int n) final {
+    T checker_;
+    for (int i = 0; i < n; i++) {
+      auto result = checker_.check(i & 255);
+      CHECK(result.is_error() == i >= 256);
+    }
+  }
+};
+
+template <class T>
+class DuplicateCheckerBenchReverse final : public td::Benchmark {
+  td::string get_description() const final {
+    return PSTRING() << "DuplicateCheckerBenchReverseAdd" << T::get_description();
+  }
+  void run(int n) final {
+    T checker_;
+    for (int i = 0; i < n; i++) {
+      auto pos = i & 255;
+      checker_.check(i - pos + (255 - pos)).ensure();
+    }
+  }
+};
+
 int main() {
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(DEBUG));
+
+  td::bench(DuplicateCheckerBenchReverse<MessageIdDuplicateCheckerNew<1000>>());
+  td::bench(DuplicateCheckerBenchReverse<MessageIdDuplicateCheckerNew<300>>());
+  td::bench(DuplicateCheckerBenchReverse<MessageIdDuplicateCheckerArray<1000>>());
+  td::bench(DuplicateCheckerBenchReverse<MessageIdDuplicateCheckerArray<300>>());
+
+  td::bench(DuplicateCheckerBenchRepeatOnly<MessageIdDuplicateCheckerNew<1000>>());
+  td::bench(DuplicateCheckerBenchRepeatOnly<MessageIdDuplicateCheckerNew<300>>());
+  td::bench(DuplicateCheckerBenchRepeatOnly<MessageIdDuplicateCheckerArray<1000>>());
+  td::bench(DuplicateCheckerBenchRepeatOnly<MessageIdDuplicateCheckerArray<300>>());
 
   td::bench(DuplicateCheckerBenchRepeat<MessageIdDuplicateCheckerOld>());
   td::bench(DuplicateCheckerBenchRepeat<MessageIdDuplicateCheckerNew<1000>>());
