@@ -450,7 +450,7 @@ class MessageIdDuplicateCheckerOld {
   std::set<td::int64> saved_message_ids_;
 };
 
-template<size_t MAX_SAVED_MESSAGE_IDS>
+template <size_t MAX_SAVED_MESSAGE_IDS>
 class MessageIdDuplicateCheckerNew {
  public:
   static td::string get_description() {
@@ -544,13 +544,39 @@ class DuplicateCheckerBench final : public td::Benchmark {
   }
 };
 
+template <class T>
+class DuplicateCheckerBenchRepeat final : public td::Benchmark {
+  td::string get_description() const final {
+    return PSTRING() << "DuplicateCheckerBenchRepeat" << T::get_description();
+  }
+  void run(int n) final {
+    T checker_;
+    for (int i = 0; i < n; i++) {
+      auto iter = i >> 10;
+      auto pos = i - (iter << 10);
+      if (pos < 768) {
+        checker_.check(iter * 768 + pos).ensure();
+      } else {
+        checker_.check(iter * 768 + pos - 256).ensure_error();
+      }
+    }
+  }
+};
+
 int main() {
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(DEBUG));
+
+  td::bench(DuplicateCheckerBenchRepeat<MessageIdDuplicateCheckerOld>());
+  td::bench(DuplicateCheckerBenchRepeat<MessageIdDuplicateCheckerNew<1000>>());
+  td::bench(DuplicateCheckerBenchRepeat<MessageIdDuplicateCheckerNewOther>());
+  td::bench(DuplicateCheckerBenchRepeat<MessageIdDuplicateCheckerNewSimple>());
+  td::bench(DuplicateCheckerBenchRepeat<MessageIdDuplicateCheckerNew<300>>());
 
   td::bench(DuplicateCheckerBench<MessageIdDuplicateCheckerOld>());
   td::bench(DuplicateCheckerBench<MessageIdDuplicateCheckerNew<1000>>());
   td::bench(DuplicateCheckerBench<MessageIdDuplicateCheckerNewOther>());
   td::bench(DuplicateCheckerBench<MessageIdDuplicateCheckerNewSimple>());
+  td::bench(DuplicateCheckerBench<MessageIdDuplicateCheckerNew<300>>());
   td::bench(DuplicateCheckerBench<MessageIdDuplicateCheckerNew<100>>());
   td::bench(DuplicateCheckerBench<MessageIdDuplicateCheckerNew<10>>());
 
