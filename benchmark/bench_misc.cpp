@@ -103,7 +103,7 @@ BENCH(NewObj, "new struct, then delete") {
 }
 
 #if !TD_THREAD_UNSUPPORTED
-BENCH(ThreadNew, "new struct, then delete in several threads") {
+BENCH(ThreadNew, "new struct, then delete in 2 threads") {
   NewObjBench a, b;
   td::thread ta([&] { a.run(n / 2); });
   td::thread tb([&] { b.run(n - n / 2); });
@@ -593,6 +593,10 @@ class DuplicateCheckerBenchRepeat final : public td::Benchmark {
       auto iter = i >> 10;
       auto pos = i - (iter << 10);
       if (pos < 768) {
+        if (iter >= 3 && pos == 0) {
+          auto error = checker_.check((iter - 3) * 768 + pos);
+          CHECK(error.error().code() == 2);
+        }
         checker_.check(iter * 768 + pos).ensure();
       } else {
         checker_.check(iter * 768 + pos - 256).ensure_error();
