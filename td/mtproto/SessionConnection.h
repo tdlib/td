@@ -164,15 +164,15 @@ class SessionConnection final
 
   struct ServiceQuery {
     enum Type { GetStateInfo, ResendAnswer } type;
-    std::vector<int64> message_ids;
+    vector<int64> message_ids;
   };
-  std::vector<int64> to_resend_answer_;
-  std::vector<int64> to_cancel_answer_;
-  std::vector<int64> to_get_state_info_;
+  vector<int64> to_resend_answer_;
+  vector<int64> to_cancel_answer_;
+  vector<int64> to_get_state_info_;
   std::unordered_map<uint64, ServiceQuery> service_queries_;
 
   // nobody cleans up this map. But it should be really small.
-  std::unordered_map<uint64, std::vector<uint64>> container_to_service_msg_;
+  std::unordered_map<uint64, vector<uint64>> container_to_service_msg_;
 
   double last_read_at_ = 0;
   double last_ping_at_ = 0;
@@ -233,7 +233,7 @@ class SessionConnection final
   Status on_packet(const MsgInfo &info, const mtproto_api::pong &pong) TD_WARN_UNUSED_RESULT;
   Status on_packet(const MsgInfo &info, const mtproto_api::future_salts &salts) TD_WARN_UNUSED_RESULT;
 
-  Status on_msgs_state_info(const std::vector<int64> &ids, Slice info) TD_WARN_UNUSED_RESULT;
+  Status on_msgs_state_info(const vector<int64> &ids, Slice info) TD_WARN_UNUSED_RESULT;
   Status on_packet(const MsgInfo &info, const mtproto_api::msgs_state_info &msgs_state_info) TD_WARN_UNUSED_RESULT;
   Status on_packet(const MsgInfo &info, const mtproto_api::msgs_all_info &msgs_all_info) TD_WARN_UNUSED_RESULT;
   Status on_packet(const MsgInfo &info, const mtproto_api::msg_detailed_info &msg_detailed_info) TD_WARN_UNUSED_RESULT;
