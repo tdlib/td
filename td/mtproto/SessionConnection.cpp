@@ -304,8 +304,7 @@ Status SessionConnection::on_packet(const MsgInfo &info, uint64 req_msg_id, cons
   if (req_msg_id != 0) {
     callback_->on_message_result_error(req_msg_id, rpc_error.error_code_, rpc_error.error_message_.str());
   } else {
-    LOG(ERROR) << "Receive rpc_error as update: [" << rpc_error.error_code_ << "][" << rpc_error.error_message_
-               << "]";
+    LOG(ERROR) << "Receive rpc_error as update: [" << rpc_error.error_code_ << "][" << rpc_error.error_message_ << "]";
   }
   return Status::OK();
 }
@@ -499,12 +498,15 @@ Status SessionConnection::on_slice_packet(const MsgInfo &info, Slice packet) {
     auto status = auth_data_->check_update(info.message_id);
     if (status.is_error()) {
       if (status.code() == 2) {
-        LOG(WARNING) << "Receive too old update: " << status;
+        LOG(WARNING) << "Receive too old update from " << get_name() << " created in " << (Time::now() - created_at_)
+                     << " in container " << container_id_ << " from session " << auth_data_->get_session_id()
+                     << " with message_id " << info.message_id << ", main_message_id = " << main_message_id_
+                     << ", seq_no = " << info.seq_no << " and original size " << info.size << ": " << status;
         callback_->on_session_failed(Status::Error("Receive too old update"));
         return status;
       }
-      VLOG(mtproto) << "Skip update " << info.message_id << " from " << get_name() << " created in "
-                    << (Time::now() - created_at_) << ": " << status;
+      VLOG(mtproto) << "Skip update " << info.message_id << " of size " << info.size << " with seq_no " << info.seq_no
+                    << " from " << get_name() << " created in " << (Time::now() - created_at_) << ": " << status;
       return Status::OK();
     } else {
       VLOG(mtproto) << "Got update from " << get_name() << " created in " << (Time::now() - created_at_)
