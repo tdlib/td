@@ -31,6 +31,8 @@
 #include <semaphore.h>
 #endif
 
+#include <algorithm>
+#include <array>
 #include <atomic>
 #include <cstdint>
 #include <set>
@@ -531,6 +533,42 @@ class MessageIdDuplicateCheckerNewSimple {
   std::set<td::int64> saved_message_ids_;
 };
 
+template <size_t MAX_SAVED_MESSAGE_IDS>
+class MessageIdDuplicateCheckerArray {
+ public:
+  static td::string get_description() {
+    return PSTRING() << "Array" << MAX_SAVED_MESSAGE_IDS;
+  }
+  td::Status check(td::int64 message_id) {
+    if (end_pos == 2 * MAX_SAVED_MESSAGE_IDS) {
+      std::copy_n(&saved_message_ids_[MAX_SAVED_MESSAGE_IDS], MAX_SAVED_MESSAGE_IDS, &saved_message_ids_[0]);
+      end_pos = MAX_SAVED_MESSAGE_IDS;
+    }
+    if (end_pos == 0 || message_id > saved_message_ids_[end_pos - 1]) {
+      // fast path
+      saved_message_ids_[end_pos++] = message_id;
+      return td::Status::OK();
+    }
+    if (end_pos >= MAX_SAVED_MESSAGE_IDS && message_id < saved_message_ids_[0]) {
+      return td::Status::Error(2, PSLICE() << "Ignore very old message_id "
+                                           << td::tag("oldest message_id", saved_message_ids_[0])
+                                           << td::tag("got message_id", message_id));
+    }
+    auto it = std::lower_bound(&saved_message_ids_[0], &saved_message_ids_[end_pos], message_id);
+    if (*it == message_id) {
+      return td::Status::Error(1, PSLICE() << "Ignore duplicated message_id " << td::tag("message_id", message_id));
+    }
+    std::copy_backward(it, &saved_message_ids_[end_pos], &saved_message_ids_[end_pos + 1]);
+    *it = message_id;
+    ++end_pos;
+    return td::Status::OK();
+  }
+
+ private:
+  std::array<td::int64, 2 * MAX_SAVED_MESSAGE_IDS> saved_message_ids_;
+  std::size_t end_pos = 0;
+};
+
 template <class T>
 class DuplicateCheckerBench final : public td::Benchmark {
   td::string get_description() const final {
@@ -571,6 +609,8 @@ int main() {
   td::bench(DuplicateCheckerBenchRepeat<MessageIdDuplicateCheckerNewOther>());
   td::bench(DuplicateCheckerBenchRepeat<MessageIdDuplicateCheckerNewSimple>());
   td::bench(DuplicateCheckerBenchRepeat<MessageIdDuplicateCheckerNew<300>>());
+  td::bench(DuplicateCheckerBenchRepeat<MessageIdDuplicateCheckerArray<1000>>());
+  td::bench(DuplicateCheckerBenchRepeat<MessageIdDuplicateCheckerArray<300>>());
 
   td::bench(DuplicateCheckerBench<MessageIdDuplicateCheckerOld>());
   td::bench(DuplicateCheckerBench<MessageIdDuplicateCheckerNew<1000>>());
@@ -579,6 +619,8 @@ int main() {
   td::bench(DuplicateCheckerBench<MessageIdDuplicateCheckerNew<300>>());
   td::bench(DuplicateCheckerBench<MessageIdDuplicateCheckerNew<100>>());
   td::bench(DuplicateCheckerBench<MessageIdDuplicateCheckerNew<10>>());
+  td::bench(DuplicateCheckerBench<MessageIdDuplicateCheckerArray<1000>>());
+  td::bench(DuplicateCheckerBench<MessageIdDuplicateCheckerArray<300>>());
 
 #if !TD_THREAD_UNSUPPORTED
   for (int i = 1; i <= 16; i *= 2) {
