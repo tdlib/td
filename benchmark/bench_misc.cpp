@@ -610,7 +610,7 @@ class DuplicateCheckerBenchRepeatOnly final : public td::Benchmark {
     T checker_;
     for (int i = 0; i < n; i++) {
       auto result = checker_.check(i & 255);
-      CHECK(result.is_error() == i >= 256);
+      CHECK(result.is_error() == (i >= 256));
     }
   }
 };
