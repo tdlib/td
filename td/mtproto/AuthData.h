@@ -245,6 +245,10 @@ class AuthData {
     return updates_duplicate_checker_.check(message_id);
   }
 
+  Status recheck_update(int64 message_id) {
+    return updates_duplicate_rechecker_.check(message_id);
+  }
+
   int32 next_seq_no(bool is_content_related) {
     int32 res = seq_no_;
     if (is_content_related) {
@@ -281,6 +285,7 @@ class AuthData {
 
   MessageIdDuplicateChecker<1000> duplicate_checker_;
   MessageIdDuplicateChecker<1000> updates_duplicate_checker_;
+  MessageIdDuplicateChecker<100> updates_duplicate_rechecker_;
 
   void update_salt(double now);
 };

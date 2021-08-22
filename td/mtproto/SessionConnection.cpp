@@ -499,6 +499,14 @@ Status SessionConnection::on_slice_packet(const MsgInfo &info, Slice packet) {
 
     // It is an update... I hope.
     auto status = auth_data_->check_update(info.message_id);
+    auto recheck_status = auth_data_->recheck_update(info.message_id);
+    if (recheck_status.is_error() && recheck_status.code() == 2) {
+      LOG(WARNING) << "Receive very old update from " << get_name() << " created in " << (Time::now() - created_at_)
+                   << " in container " << container_id_ << " from session " << auth_data_->get_session_id()
+                   << " with message_id " << info.message_id << ", main_message_id = " << main_message_id_
+                   << ", seq_no = " << info.seq_no << " and original size " << info.size << ": " << status << ' '
+                   << recheck_status;
+    }
     if (status.is_error()) {
       if (status.code() == 2) {
         LOG(WARNING) << "Receive too old update from " << get_name() << " created in " << (Time::now() - created_at_)
