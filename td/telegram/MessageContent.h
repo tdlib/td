@@ -134,6 +134,8 @@ int32 get_message_content_index_mask(const MessageContent *content, const Td *td
 
 MessageId get_message_content_pinned_message_id(const MessageContent *content);
 
+string get_message_content_theme_name(const MessageContent *content);
+
 FullMessageId get_message_content_replied_message_id(DialogId dialog_id, const MessageContent *content);
 
 std::pair<InputGroupCallId, bool> get_message_content_group_call_info(const MessageContent *content);

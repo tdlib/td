@@ -5348,6 +5348,8 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   bool has_message_ttl_setting = !message_ttl_setting.is_empty();
   bool has_default_join_group_call_as_dialog_id = default_join_group_call_as_dialog_id.is_valid();
   bool store_has_bots = dialog_type == DialogType::Chat || dialog_type == DialogType::Channel;
+  bool has_theme_name = !theme_name.empty();
+  bool has_flags3 = false;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_draft_message);
   STORE_FLAG(has_last_database_message);
@@ -5411,7 +5413,10 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     STORE_FLAG(is_message_ttl_setting_inited);
     STORE_FLAG(has_default_join_group_call_as_dialog_id);
     STORE_FLAG(store_has_bots ? has_bots : false);
-    STORE_FLAG(store_has_bots ? is_has_bots_inited : false);  // 26
+    STORE_FLAG(store_has_bots ? is_has_bots_inited : false);
+    STORE_FLAG(is_theme_name_inited);
+    STORE_FLAG(has_theme_name);
+    STORE_FLAG(has_flags3);
     END_STORE_FLAGS();
   }
 
@@ -5505,6 +5510,9 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   if (has_default_join_group_call_as_dialog_id) {
     store(default_join_group_call_as_dialog_id, storer);
   }
+  if (has_theme_name) {
+    store(theme_name, storer);
+  }
 }
 
 // do not forget to resolve dialog dependencies including dependencies of last_message
@@ -5537,6 +5545,8 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   bool has_active_group_call_id = false;
   bool has_message_ttl_setting = false;
   bool has_default_join_group_call_as_dialog_id = false;
+  bool has_theme_name = false;
+  bool has_flags3 = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_draft_message);
   PARSE_FLAG(has_last_database_message);
@@ -5601,6 +5611,9 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     PARSE_FLAG(has_default_join_group_call_as_dialog_id);
     PARSE_FLAG(has_bots);
     PARSE_FLAG(is_has_bots_inited);
+    PARSE_FLAG(is_theme_name_inited);
+    PARSE_FLAG(has_theme_name);
+    PARSE_FLAG(has_flags3);
     END_PARSE_FLAGS();
   } else {
     is_folder_id_inited = false;
@@ -5623,6 +5636,11 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     is_message_ttl_setting_inited = false;
     has_bots = false;
     is_has_bots_inited = false;
+    is_theme_name_inited = false;
+  }
+  if (has_flags3) {
+    BEGIN_PARSE_FLAGS();
+    END_PARSE_FLAGS();
   }
 
   parse(last_new_message_id, parser);
@@ -5747,6 +5765,9 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   }
   if (has_default_join_group_call_as_dialog_id) {
     parse(default_join_group_call_as_dialog_id, parser);
+  }
+  if (has_theme_name) {
+    parse(theme_name, parser);
   }
 }
 
@@ -14473,6 +14494,10 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
       // asynchronously get has_bots from the server
       // TODO add has_bots to telegram_api::dialog
       get_dialog_info_full(dialog_id, Auto(), "on_get_dialogs init has_bots");
+    } else if (!d->is_theme_name_inited && !td_->auth_manager_->is_bot()) {
+      // asynchronously get theme_name from the server
+      // TODO add theme_name to telegram_api::dialog
+      get_dialog_info_full(dialog_id, Auto(), "on_get_dialogs init theme_name");
     } else if (!d->is_last_pinned_message_id_inited && !td_->auth_manager_->is_bot()) {
       // asynchronously get dialog pinned message from the server
       get_dialog_pinned_message(dialog_id, Auto());
@@ -19977,8 +20002,8 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
       d->server_unread_count + d->local_unread_count, d->last_read_inbox_message_id.get(),
       d->last_read_outbox_message_id.get(), d->unread_mention_count,
       get_chat_notification_settings_object(&d->notification_settings),
-      d->message_ttl_setting.get_message_ttl_setting_object(), get_chat_action_bar_object(d), get_voice_chat_object(d),
-      d->reply_markup_message_id.get(), std::move(draft_message), d->client_data);
+      d->message_ttl_setting.get_message_ttl_setting_object(), d->theme_name, get_chat_action_bar_object(d),
+      get_voice_chat_object(d), d->reply_markup_message_id.get(), std::move(draft_message), d->client_data);
 }
 
 tl_object_ptr<td_api::chat> MessagesManager::get_chat_object(DialogId dialog_id) const {
@@ -29746,6 +29771,33 @@ void MessagesManager::drop_dialog_last_pinned_message_id(Dialog *d) {
       .release();
 }
 
+void MessagesManager::on_update_dialog_theme_name(DialogId dialog_id, string theme_name) {
+  if (!dialog_id.is_valid()) {
+    LOG(ERROR) << "Receive theme in invalid " << dialog_id;
+    return;
+  }
+
+  auto d = get_dialog_force(dialog_id, "on_update_dialog_theme_name");
+  if (d == nullptr) {
+    // nothing to do
+    return;
+  }
+
+  set_dialog_theme_name(d, std::move(theme_name));
+}
+
+void MessagesManager::set_dialog_theme_name(Dialog *d, string theme_name) {
+  CHECK(d != nullptr);
+  if (d->theme_name == theme_name && d->is_theme_name_inited) {
+    return;
+  }
+  d->theme_name = std::move(theme_name);
+  d->is_theme_name_inited = true;
+  on_dialog_updated(d->dialog_id, "set_dialog_theme_name");
+
+  LOG(INFO) << "Set " << d->dialog_id << " theme to \"" << theme_name << '"';
+}
+
 void MessagesManager::repair_dialog_scheduled_messages(Dialog *d) {
   if (td_->auth_manager_->is_bot() || d->dialog_id.get_type() == DialogType::SecretChat) {
     return;
@@ -32783,6 +32835,9 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       set_dialog_last_pinned_message_id(d, pinned_message_id);
     }
   }
+  if (*need_update && m->message_id.is_server() && message_content_type == MessageContentType::ChatSetTheme) {
+    set_dialog_theme_name(d, get_message_content_theme_name(m->content.get()));
+  }
 
   if (from_update) {
     speculatively_update_active_group_call_id(d, m);
@@ -34143,6 +34198,7 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
       d->is_last_read_inbox_message_id_inited = true;
       d->is_last_read_outbox_message_id_inited = true;
       d->is_last_pinned_message_id_inited = true;
+      d->is_theme_name_inited = true;
       d->is_is_blocked_inited = true;
       if (!d->is_folder_id_inited && !td_->auth_manager_->is_bot()) {
         do_set_dialog_folder_id(
@@ -34263,6 +34319,9 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
   } else if (being_added_dialog_id_ != dialog_id && !d->is_has_bots_inited && !td_->auth_manager_->is_bot()) {
     // asynchronously get has_bots from the server
     get_dialog_info_full(dialog_id, Auto(), "fix_new_dialog init has_bots");
+  } else if (being_added_dialog_id_ != dialog_id && !d->is_theme_name_inited && !td_->auth_manager_->is_bot()) {
+    // asynchronously get dialog theme identifier from the server
+    get_dialog_info_full(dialog_id, Auto(), "fix_new_dialog init theme_name");
   } else if (being_added_dialog_id_ != dialog_id && !d->is_last_pinned_message_id_inited &&
              !td_->auth_manager_->is_bot()) {
     // asynchronously get dialog pinned message from the server

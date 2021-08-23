@@ -284,6 +284,8 @@ class MessagesManager final : public Actor {
 
   void on_update_dialog_last_pinned_message_id(DialogId dialog_id, MessageId last_pinned_message_id);
 
+  void on_update_dialog_theme_name(DialogId dialog_id, string theme_name);
+
   void on_update_dialog_has_scheduled_server_messages(DialogId dialog_id, bool has_scheduled_server_messages);
 
   void on_update_dialog_folder_id(DialogId dialog_id, FolderId folder_id);
@@ -1165,6 +1167,7 @@ class MessagesManager final : public Actor {
     InputGroupCallId active_group_call_id;
     InputGroupCallId expected_active_group_call_id;
     DialogId default_join_group_call_as_dialog_id;
+    string theme_name;
 
     FolderId folder_id;
     vector<DialogListId> dialog_list_ids;  // TODO replace with mask
@@ -1244,6 +1247,7 @@ class MessagesManager final : public Actor {
     bool has_expected_active_group_call_id = false;
     bool has_bots = false;
     bool is_has_bots_inited = false;
+    bool is_theme_name_inited = false;
 
     bool increment_view_counter = false;
 
@@ -2364,6 +2368,8 @@ class MessagesManager final : public Actor {
   void set_dialog_last_pinned_message_id(Dialog *d, MessageId last_pinned_message_id);
 
   void drop_dialog_last_pinned_message_id(Dialog *d);
+
+  void set_dialog_theme_name(Dialog *d, string theme_name);
 
   void repair_dialog_scheduled_messages(Dialog *d);
 

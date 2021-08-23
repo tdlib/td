@@ -2770,6 +2770,15 @@ MessageId get_message_content_pinned_message_id(const MessageContent *content) {
   }
 }
 
+string get_message_content_theme_name(const MessageContent *content) {
+  switch (content->get_type()) {
+    case MessageContentType::ChatSetTheme:
+      return static_cast<const MessageChatSetTheme *>(content)->emoji;
+    default:
+      return string();
+  }
+}
+
 FullMessageId get_message_content_replied_message_id(DialogId dialog_id, const MessageContent *content) {
   switch (content->get_type()) {
     case MessageContentType::PinMessage:
