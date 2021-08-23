@@ -633,8 +633,27 @@ class DuplicateCheckerBenchReverse final : public td::Benchmark {
   }
 };
 
+template <class T>
+class DuplicateCheckerBenchEvenOdd final : public td::Benchmark {
+  td::string get_description() const final {
+    return PSTRING() << "DuplicateCheckerBenchEvenOdd" << T::get_description();
+  }
+  void run(int n) final {
+    T checker_;
+    for (int i = 0; i < n; i++) {
+      auto pos = i & 255;
+      checker_.check(i - pos + (pos * 2) % 256 + (pos * 2) / 256).ensure();
+    }
+  }
+};
+
 int main() {
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(DEBUG));
+
+  td::bench(DuplicateCheckerBenchEvenOdd<MessageIdDuplicateCheckerNew<1000>>());
+  td::bench(DuplicateCheckerBenchEvenOdd<MessageIdDuplicateCheckerNew<300>>());
+  td::bench(DuplicateCheckerBenchEvenOdd<MessageIdDuplicateCheckerArray<1000>>());
+  td::bench(DuplicateCheckerBenchEvenOdd<MessageIdDuplicateCheckerArray<300>>());
 
   td::bench(DuplicateCheckerBenchReverse<MessageIdDuplicateCheckerNew<1000>>());
   td::bench(DuplicateCheckerBenchReverse<MessageIdDuplicateCheckerNew<300>>());
