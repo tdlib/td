@@ -6081,13 +6081,14 @@ void Td::on_request(uint64 id, td_api::startGroupCallRecording &request) {
   CLEAN_INPUT_STRING(request.title_);
   CREATE_OK_REQUEST_PROMISE();
   group_call_manager_->toggle_group_call_recording(GroupCallId(request.group_call_id_), true, std::move(request.title_),
+                                                   request.record_video_, request.use_portrait_orientation_,
                                                    std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::endGroupCallRecording &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  group_call_manager_->toggle_group_call_recording(GroupCallId(request.group_call_id_), false, string(),
+  group_call_manager_->toggle_group_call_recording(GroupCallId(request.group_call_id_), false, string(), false, false,
                                                    std::move(promise));
 }
 

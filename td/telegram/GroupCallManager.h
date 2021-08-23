@@ -95,7 +95,8 @@ class GroupCallManager final : public Actor {
 
   void get_group_call_invite_link(GroupCallId group_call_id, bool can_self_unmute, Promise<string> &&promise);
 
-  void toggle_group_call_recording(GroupCallId group_call_id, bool is_enabled, string title, Promise<Unit> &&promise);
+  void toggle_group_call_recording(GroupCallId group_call_id, bool is_enabled, string title, bool record_video,
+                                   bool use_portrait_orientation, Promise<Unit> &&promise);
 
   void set_group_call_participant_is_speaking(GroupCallId group_call_id, int32 audio_source, bool is_speaking,
                                               Promise<Unit> &&promise, int32 date = 0);
@@ -310,7 +311,8 @@ class GroupCallManager final : public Actor {
                                                   Result<Unit> &&result);
 
   void send_toggle_group_call_recording_query(InputGroupCallId input_group_call_id, bool is_enabled,
-                                              const string &title, uint64 generation);
+                                              const string &title, bool record_video, bool use_portrait_orientation,
+                                              uint64 generation);
 
   void on_toggle_group_call_recording(InputGroupCallId input_group_call_id, uint64 generation, Result<Unit> &&result);
 

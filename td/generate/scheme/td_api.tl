@@ -4854,7 +4854,8 @@ inviteGroupCallParticipants group_call_id:int32 user_ids:vector<int32> = Ok;
 getGroupCallInviteLink group_call_id:int32 can_self_unmute:Bool = HttpUrl;
 
 //@description Starts recording of an active group call. Requires groupCall.can_be_managed group call flag @group_call_id Group call identifier @title Group call recording title; 0-64 characters
-startGroupCallRecording group_call_id:int32 title:string = Ok;
+//@record_video Pass true to record a video file instead of an audio file @use_portrait_orientation Pass true to use portrait orientation for video instead of landscape one
+startGroupCallRecording group_call_id:int32 title:string record_video:Bool use_portrait_orientation:Bool = Ok;
 
 //@description Ends recording of an active group call. Requires groupCall.can_be_managed group call flag @group_call_id Group call identifier
 endGroupCallRecording group_call_id:int32 = Ok;

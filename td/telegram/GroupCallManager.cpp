@@ -637,7 +637,8 @@ class ToggleGroupCallRecordQuery final : public Td::ResultHandler {
   explicit ToggleGroupCallRecordQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(InputGroupCallId input_group_call_id, bool is_enabled, const string &title) {
+  void send(InputGroupCallId input_group_call_id, bool is_enabled, const string &title, bool record_video,
+            bool use_portrait_orientation) {
     int32 flags = 0;
     if (is_enabled) {
       flags |= telegram_api::phone_toggleGroupCallRecord::START_MASK;
@@ -645,8 +646,12 @@ class ToggleGroupCallRecordQuery final : public Td::ResultHandler {
     if (!title.empty()) {
       flags |= telegram_api::phone_toggleGroupCallRecord::TITLE_MASK;
     }
+    if (record_video) {
+      flags |= telegram_api::phone_toggleGroupCallRecord::VIDEO_MASK;
+    }
     send_query(G()->net_query_creator().create(telegram_api::phone_toggleGroupCallRecord(
-        flags, false /*ignored*/, false /*ignored*/, input_group_call_id.get_input_group_call(), title, false)));
+        flags, false /*ignored*/, false /*ignored*/, input_group_call_id.get_input_group_call(), title,
+        use_portrait_orientation)));
   }
 
   void on_result(uint64 id, BufferSlice packet) final {
@@ -871,6 +876,8 @@ struct GroupCallManager::GroupCall {
   bool have_pending_record_start_date = false;
   int32 pending_record_start_date = 0;
   string pending_record_title;
+  bool pending_record_record_video = false;
+  bool pending_record_use_portrait_orientation = false;
   uint64 toggle_recording_generation = 0;
 };
 
@@ -3413,6 +3420,7 @@ void GroupCallManager::get_group_call_invite_link(GroupCallId group_call_id, boo
 }
 
 void GroupCallManager::toggle_group_call_recording(GroupCallId group_call_id, bool is_enabled, string title,
+                                                   bool record_video, bool use_portrait_orientation,
                                                    Promise<Unit> &&promise) {
   if (G()->close_flag()) {
     return promise.set_error(Status::Error(500, "Request aborted"));
@@ -3422,17 +3430,18 @@ void GroupCallManager::toggle_group_call_recording(GroupCallId group_call_id, bo
 
   auto *group_call = get_group_call(input_group_call_id);
   if (group_call == nullptr || !group_call->is_inited) {
-    reload_group_call(input_group_call_id,
-                      PromiseCreator::lambda(
-                          [actor_id = actor_id(this), group_call_id, is_enabled, title, promise = std::move(promise)](
-                              Result<td_api::object_ptr<td_api::groupCall>> &&result) mutable {
-                            if (result.is_error()) {
-                              promise.set_error(result.move_as_error());
-                            } else {
-                              send_closure(actor_id, &GroupCallManager::toggle_group_call_recording, group_call_id,
-                                           is_enabled, std::move(title), std::move(promise));
-                            }
-                          }));
+    reload_group_call(
+        input_group_call_id,
+        PromiseCreator::lambda(
+            [actor_id = actor_id(this), group_call_id, is_enabled, title, record_video, use_portrait_orientation,
+             promise = std::move(promise)](Result<td_api::object_ptr<td_api::groupCall>> &&result) mutable {
+              if (result.is_error()) {
+                promise.set_error(result.move_as_error());
+              } else {
+                send_closure(actor_id, &GroupCallManager::toggle_group_call_recording, group_call_id, is_enabled,
+                             std::move(title), record_video, use_portrait_orientation, std::move(promise));
+              }
+            }));
     return;
   }
   if (!group_call->is_active || !group_call->can_be_managed) {
@@ -3448,24 +3457,29 @@ void GroupCallManager::toggle_group_call_recording(GroupCallId group_call_id, bo
   // there is no reason to save promise; we will send an update with actual value anyway
 
   if (!group_call->have_pending_record_start_date) {
-    send_toggle_group_call_recording_query(input_group_call_id, is_enabled, title, toggle_recording_generation_ + 1);
+    send_toggle_group_call_recording_query(input_group_call_id, is_enabled, title, record_video,
+                                           use_portrait_orientation, toggle_recording_generation_ + 1);
   }
   group_call->have_pending_record_start_date = true;
   group_call->pending_record_start_date = is_enabled ? G()->unix_time() : 0;
   group_call->pending_record_title = std::move(title);
+  group_call->pending_record_record_video = record_video;
+  group_call->pending_record_use_portrait_orientation = use_portrait_orientation;
   group_call->toggle_recording_generation = ++toggle_recording_generation_;
   send_update_group_call(group_call, "toggle_group_call_recording");
   promise.set_value(Unit());
 }
 
 void GroupCallManager::send_toggle_group_call_recording_query(InputGroupCallId input_group_call_id, bool is_enabled,
-                                                              const string &title, uint64 generation) {
+                                                              const string &title, bool record_video,
+                                                              bool use_portrait_orientation, uint64 generation) {
   auto promise =
       PromiseCreator::lambda([actor_id = actor_id(this), input_group_call_id, generation](Result<Unit> result) {
         send_closure(actor_id, &GroupCallManager::on_toggle_group_call_recording, input_group_call_id, generation,
                      std::move(result));
       });
-  td_->create_handler<ToggleGroupCallRecordQuery>(std::move(promise))->send(input_group_call_id, is_enabled, title);
+  td_->create_handler<ToggleGroupCallRecordQuery>(std::move(promise))
+      ->send(input_group_call_id, is_enabled, title, record_video, use_portrait_orientation);
 }
 
 void GroupCallManager::on_toggle_group_call_recording(InputGroupCallId input_group_call_id, uint64 generation,
@@ -3484,7 +3498,9 @@ void GroupCallManager::on_toggle_group_call_recording(InputGroupCallId input_gro
   if (group_call->toggle_recording_generation != generation && group_call->can_be_managed) {
     // need to send another request
     send_toggle_group_call_recording_query(input_group_call_id, group_call->pending_record_start_date != 0,
-                                           group_call->pending_record_title, group_call->toggle_recording_generation);
+                                           group_call->pending_record_title, group_call->pending_record_record_video,
+                                           group_call->pending_record_use_portrait_orientation,
+                                           group_call->toggle_recording_generation);
     return;
   }
 

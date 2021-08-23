@@ -2854,8 +2854,11 @@ class CliClient final : public Actor {
     } else if (op == "sgcr") {
       string chat_id;
       string title;
-      get_args(args, chat_id, title);
-      send_request(td_api::make_object<td_api::startGroupCallRecording>(as_group_call_id(chat_id), title));
+      bool record_video;
+      bool use_portrait_orientation;
+      get_args(args, chat_id, title, record_video, use_portrait_orientation);
+      send_request(td_api::make_object<td_api::startGroupCallRecording>(as_group_call_id(chat_id), title, record_video,
+                                                                        use_portrait_orientation));
     } else if (op == "egcr") {
       string chat_id = args;
       send_request(td_api::make_object<td_api::endGroupCallRecording>(as_group_call_id(chat_id)));
