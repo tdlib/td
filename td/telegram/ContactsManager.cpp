@@ -6597,7 +6597,7 @@ void ContactsManager::get_channel_statistics_dc_id(DialogId dialog_id, bool for_
     return promise.set_error(Status::Error(400, "Chat info not found"));
   }
 
-  auto channel_full = get_channel_full_force(channel_id, true, "get_channel_statistics_dc_id");
+  auto channel_full = get_channel_full_force(channel_id, false, "get_channel_statistics_dc_id");
   if (channel_full == nullptr || !channel_full->stats_dc_id.is_exact() ||
       (for_full_statistics && !channel_full->can_view_statistics)) {
     auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), channel_id, for_full_statistics,
