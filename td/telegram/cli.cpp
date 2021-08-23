@@ -2760,8 +2760,11 @@ class CliClient final : public Actor {
     } else if (op == "ggc") {
       send_request(td_api::make_object<td_api::getGroupCall>(as_group_call_id(args)));
     } else if (op == "ggcss") {
-      send_request(td_api::make_object<td_api::getGroupCallStreamSegment>(as_group_call_id(args),
-                                                                          (std::time(nullptr) - 5) * 1000, 0));
+      string group_call_id;
+      int32 channel_id;
+      get_args(args, group_call_id, channel_id);
+      send_request(td_api::make_object<td_api::getGroupCallStreamSegment>(
+          as_group_call_id(group_call_id), (std::time(nullptr) - 5) * 1000, 0, channel_id, nullptr));
     } else if (op == "ssgc") {
       send_request(td_api::make_object<td_api::startScheduledGroupCall>(as_group_call_id(args)));
     } else if (op == "tgcesn" || op == "tgcesne") {

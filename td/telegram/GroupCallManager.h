@@ -60,7 +60,8 @@ class GroupCallManager final : public Actor {
   void reload_group_call(InputGroupCallId input_group_call_id,
                          Promise<td_api::object_ptr<td_api::groupCall>> &&promise);
 
-  void get_group_call_stream_segment(GroupCallId group_call_id, int64 time_offset, int32 scale,
+  void get_group_call_stream_segment(GroupCallId group_call_id, int64 time_offset, int32 scale, int32 channel_id,
+                                     td_api::object_ptr<td_api::GroupCallVideoQuality> quality,
                                      Promise<string> &&promise);
 
   void start_scheduled_group_call(GroupCallId group_call_id, Promise<Unit> &&promise);

@@ -2178,6 +2178,18 @@ callStateDiscarded reason:CallDiscardReason need_rating:Bool need_debug_informat
 callStateError error:error = CallState;
 
 
+//@class GroupCallVideoQuality @description Describes the quality of a group call video
+
+//@description The worst available video quality
+groupCallVideoQualityThumbnail = GroupCallVideoQuality;
+
+//@description The medium video quality
+groupCallVideoQualityMedium = GroupCallVideoQuality;
+
+//@description The best available video quality
+groupCallVideoQualityFull = GroupCallVideoQuality;
+
+
 //@description Describes a recently speaking participant in a group call @participant_id Group call participant identifier @is_speaking True, is the user has spoken recently
 groupCallRecentSpeaker participant_id:MessageSender is_speaking:Bool = GroupCallRecentSpeaker;
 
@@ -4894,11 +4906,13 @@ leaveGroupCall group_call_id:int32 = Ok;
 //@description Discards a group call. Requires groupCall.can_be_managed @group_call_id Group call identifier
 discardGroupCall group_call_id:int32 = Ok;
 
-//@description Returns a file with a segment of a group call stream in a modified OGG format
+//@description Returns a file with a segment of a group call stream in a modified OGG format for audio or MPEG-4 format for video
 //@group_call_id Group call identifier
 //@time_offset Point in time when the stream segment begins; Unix timestamp in milliseconds
 //@scale Segment duration scale; 0-1. Segment's duration is 1000/(2**scale) milliseconds
-getGroupCallStreamSegment group_call_id:int32 time_offset:int53 scale:int32 = FilePart;
+//@channel_id Identifier of an audio/video channel to get as received from tgcalls
+//@video_quality Video quality as received from tgcalls
+getGroupCallStreamSegment group_call_id:int32 time_offset:int53 scale:int32 channel_id:int32 video_quality:GroupCallVideoQuality = FilePart;
 
 
 //@description Changes the block state of a message sender. Currently, only users and supergroup chats can be blocked @sender Message Sender @is_blocked New value of is_blocked

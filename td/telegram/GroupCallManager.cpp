@@ -38,10 +38,11 @@ class GetGroupCallStreamQuery final : public Td::ResultHandler {
   explicit GetGroupCallStreamQuery(Promise<string> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(InputGroupCallId input_group_call_id, DcId stream_dc_id, int64 time_offset, int32 scale) {
+  void send(InputGroupCallId input_group_call_id, DcId stream_dc_id, int64 time_offset, int32 scale, int32 channel_id,
+            int32 video_quality) {
     int32 stream_flags = 0;
     auto input_stream = make_tl_object<telegram_api::inputGroupCallStream>(
-        stream_flags, input_group_call_id.get_input_group_call(), time_offset, scale, 0, 0);
+        stream_flags, input_group_call_id.get_input_group_call(), time_offset, scale, channel_id, video_quality);
     int32 flags = 0;
     auto query = G()->net_query_creator().create(
         telegram_api::upload_getFile(flags, false /*ignored*/, false /*ignored*/, std::move(input_stream), 0, 1 << 20),
@@ -2322,6 +2323,8 @@ int32 GroupCallManager::cancel_join_group_call_presentation_request(InputGroupCa
 }
 
 void GroupCallManager::get_group_call_stream_segment(GroupCallId group_call_id, int64 time_offset, int32 scale,
+                                                     int32 channel_id,
+                                                     td_api::object_ptr<td_api::GroupCallVideoQuality> quality,
                                                      Promise<string> &&promise) {
   if (G()->close_flag()) {
     return promise.set_error(Status::Error(500, "Request aborted"));
@@ -2332,16 +2335,16 @@ void GroupCallManager::get_group_call_stream_segment(GroupCallId group_call_id, 
   auto *group_call = get_group_call(input_group_call_id);
   if (group_call == nullptr || !group_call->is_inited) {
     reload_group_call(input_group_call_id,
-                      PromiseCreator::lambda(
-                          [actor_id = actor_id(this), group_call_id, time_offset, scale, promise = std::move(promise)](
-                              Result<td_api::object_ptr<td_api::groupCall>> &&result) mutable {
-                            if (result.is_error()) {
-                              promise.set_error(result.move_as_error());
-                            } else {
-                              send_closure(actor_id, &GroupCallManager::get_group_call_stream_segment, group_call_id,
-                                           time_offset, scale, std::move(promise));
-                            }
-                          }));
+                      PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, time_offset, scale, channel_id,
+                                              quality = std::move(quality), promise = std::move(promise)](
+                                                 Result<td_api::object_ptr<td_api::groupCall>> &&result) mutable {
+                        if (result.is_error()) {
+                          promise.set_error(result.move_as_error());
+                        } else {
+                          send_closure(actor_id, &GroupCallManager::get_group_call_stream_segment, group_call_id,
+                                       time_offset, scale, channel_id, std::move(quality), std::move(promise));
+                        }
+                      }));
     return;
   }
   if (!group_call->is_active || !group_call->stream_dc_id.is_exact()) {
@@ -2349,19 +2352,36 @@ void GroupCallManager::get_group_call_stream_segment(GroupCallId group_call_id, 
   }
   if (!group_call->is_joined) {
     if (is_group_call_being_joined(input_group_call_id) || group_call->need_rejoin) {
-      group_call->after_join.push_back(
-          PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, time_offset, scale,
-                                  promise = std::move(promise)](Result<Unit> &&result) mutable {
+      group_call->after_join.push_back(PromiseCreator::lambda(
+          [actor_id = actor_id(this), group_call_id, time_offset, scale, channel_id, quality = std::move(quality),
+           promise = std::move(promise)](Result<Unit> &&result) mutable {
             if (result.is_error()) {
               promise.set_error(result.move_as_error());
             } else {
               send_closure(actor_id, &GroupCallManager::get_group_call_stream_segment, group_call_id, time_offset,
-                           scale, std::move(promise));
+                           scale, channel_id, std::move(quality), std::move(promise));
             }
           }));
       return;
     }
     return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+  }
+
+  int32 video_quality = 0;
+  if (quality != nullptr) {
+    switch (quality->get_id()) {
+      case td_api::groupCallVideoQualityThumbnail::ID:
+        video_quality = 0;
+        break;
+      case td_api::groupCallVideoQualityMedium::ID:
+        video_quality = 1;
+        break;
+      case td_api::groupCallVideoQualityFull::ID:
+        video_quality = 2;
+        break;
+      default:
+        UNREACHABLE();
+    }
   }
 
   auto query_promise =
@@ -2371,7 +2391,7 @@ void GroupCallManager::get_group_call_stream_segment(GroupCallId group_call_id, 
                      audio_source, std::move(result), std::move(promise));
       });
   td_->create_handler<GetGroupCallStreamQuery>(std::move(query_promise))
-      ->send(input_group_call_id, group_call->stream_dc_id, time_offset, scale);
+      ->send(input_group_call_id, group_call->stream_dc_id, time_offset, scale, channel_id, video_quality);
 }
 
 void GroupCallManager::finish_get_group_call_stream_segment(InputGroupCallId input_group_call_id, int32 audio_source,
