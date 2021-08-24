@@ -125,6 +125,10 @@ class BackgroundType {
 
 bool operator==(const BackgroundType &lhs, const BackgroundType &rhs);
 
+inline bool operator!=(const BackgroundType &lhs, const BackgroundType &rhs) {
+  return !(lhs == rhs);
+}
+
 StringBuilder &operator<<(StringBuilder &string_builder, const BackgroundType &type);
 
 }  // namespace td

@@ -2901,7 +2901,7 @@ class SetBackgroundRequest final : public RequestActor<> {
   }
 
   void do_send_result() final {
-    send_result(td->background_manager_->get_background_object(background_id_, for_dark_theme_));
+    send_result(td->background_manager_->get_background_object(background_id_, for_dark_theme_, nullptr));
   }
 
  public:

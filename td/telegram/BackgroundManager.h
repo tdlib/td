@@ -51,12 +51,13 @@ class BackgroundManager final : public Actor {
   void reset_backgrounds(Promise<Unit> &&promise);
 
   td_api::object_ptr<td_api::background> get_background_object(BackgroundId background_id, bool for_dark_theme,
-                                                               const BackgroundType *type = nullptr) const;
+                                                               const BackgroundType *type) const;
 
   td_api::object_ptr<td_api::backgrounds> get_backgrounds_object(bool for_dark_theme) const;
 
-  BackgroundId on_get_background(BackgroundId expected_background_id, const string &expected_background_name,
-                                 telegram_api::object_ptr<telegram_api::WallPaper> wallpaper_ptr);
+  std::pair<BackgroundId, BackgroundType> on_get_background(
+      BackgroundId expected_background_id, const string &expected_background_name,
+      telegram_api::object_ptr<telegram_api::WallPaper> wallpaper_ptr);
 
   FileSourceId get_background_file_source_id(BackgroundId background_id, int64 access_hash);
 
@@ -167,7 +168,7 @@ class BackgroundManager final : public Actor {
   BackgroundId set_background_id_[2];
   BackgroundType set_background_type_[2];
 
-  vector<BackgroundId> installed_background_ids_;
+  vector<std::pair<BackgroundId, BackgroundType>> installed_backgrounds_;
 
   vector<Promise<Unit>> pending_get_backgrounds_queries_;
 
