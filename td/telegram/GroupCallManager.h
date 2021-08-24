@@ -216,6 +216,8 @@ class GroupCallManager final : public Actor {
 
   static int32 get_group_call_record_start_date(const GroupCall *group_call);
 
+  static bool get_group_call_is_video_recorded(const GroupCall *group_call);
+
   static bool get_group_call_has_recording(const GroupCall *group_call);
 
   static bool get_group_call_can_enable_video(const GroupCall *group_call);

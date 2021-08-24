@@ -841,6 +841,7 @@ struct GroupCallManager::GroupCall {
   bool mute_new_participants = false;
   bool allowed_change_mute_new_participants = false;
   bool joined_date_asc = false;
+  bool is_video_recorded = false;
   int32 scheduled_start_date = 0;
   int32 participant_count = 0;
   int32 duration = 0;
@@ -1497,6 +1498,12 @@ int32 GroupCallManager::get_group_call_record_start_date(const GroupCall *group_
   CHECK(group_call != nullptr);
   return group_call->have_pending_record_start_date ? group_call->pending_record_start_date
                                                     : group_call->record_start_date;
+}
+
+bool GroupCallManager::get_group_call_is_video_recorded(const GroupCall *group_call) {
+  CHECK(group_call != nullptr);
+  return group_call->have_pending_record_start_date ? group_call->pending_record_record_video
+                                                    : group_call->is_video_recorded;
 }
 
 bool GroupCallManager::get_group_call_has_recording(const GroupCall *group_call) {
@@ -3524,9 +3531,11 @@ void GroupCallManager::on_toggle_group_call_recording(InputGroupCallId input_gro
     return;
   }
 
-  int32 current_record_start_date = get_group_call_record_start_date(group_call);
+  auto current_record_start_date = get_group_call_record_start_date(group_call);
+  auto current_is_video_recorded = get_group_call_is_video_recorded(group_call);
   group_call->have_pending_record_start_date = false;
-  if (current_record_start_date != get_group_call_record_start_date(group_call)) {
+  if (current_record_start_date != get_group_call_record_start_date(group_call) ||
+      current_is_video_recorded != get_group_call_is_video_recorded(group_call)) {
     send_update_group_call(group_call, "on_toggle_group_call_recording");
   }
 }
@@ -4139,13 +4148,16 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       }
       if ((group_call->flags_ & telegram_api::groupCall::RECORD_START_DATE_MASK) != 0) {
         call.record_start_date = group_call->record_start_date_;
+        call.is_video_recorded = group_call->record_video_active_;
         if (call.record_start_date <= 0) {
           LOG(ERROR) << "Receive invalid record start date " << group_call->record_start_date_ << " in "
                      << input_group_call_id;
           call.record_start_date = 0;
+          call.is_video_recorded = false;
         }
       } else {
         call.record_start_date = 0;
+        call.is_video_recorded = false;
       }
       if ((group_call->flags_ & telegram_api::groupCall::SCHEDULE_DATE_MASK) != 0) {
         call.scheduled_start_date = group_call->schedule_date_;
@@ -4291,12 +4303,16 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
         group_call->stream_dc_id_version = call.stream_dc_id_version;
       }
       // flag call.joined_date_asc must not change
-      if (call.record_start_date != group_call->record_start_date &&
+      if ((call.record_start_date != group_call->record_start_date ||
+           call.is_video_recorded != group_call->is_video_recorded) &&
           call.record_start_date_version >= group_call->record_start_date_version) {
         int32 old_record_start_date = get_group_call_record_start_date(group_call);
+        bool old_is_video_recorded = get_group_call_is_video_recorded(group_call);
         group_call->record_start_date = call.record_start_date;
+        group_call->is_video_recorded = call.is_video_recorded;
         group_call->record_start_date_version = call.record_start_date_version;
-        if (old_record_start_date != get_group_call_record_start_date(group_call)) {
+        if (old_record_start_date != get_group_call_record_start_date(group_call) ||
+            old_is_video_recorded != get_group_call_is_video_recorded(group_call)) {
           need_update = true;
         }
       }
@@ -4700,11 +4716,13 @@ tl_object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(
   bool can_enable_video = get_group_call_can_enable_video(group_call);
   int32 record_start_date = get_group_call_record_start_date(group_call);
   int32 record_duration = record_start_date == 0 ? 0 : max(G()->unix_time() - record_start_date + 1, 1);
+  bool is_video_recorded = get_group_call_is_video_recorded(group_call);
   return td_api::make_object<td_api::groupCall>(
       group_call->group_call_id.get(), get_group_call_title(group_call), scheduled_start_date, start_subscribed,
       is_active, is_joined, group_call->need_rejoin, group_call->can_be_managed, group_call->participant_count,
       group_call->loaded_all_participants, std::move(recent_speakers), is_my_video_enabled, is_my_video_paused,
-      can_enable_video, mute_new_participants, can_change_mute_new_participants, record_duration, group_call->duration);
+      can_enable_video, mute_new_participants, can_change_mute_new_participants, record_duration, is_video_recorded,
+      group_call->duration);
 }
 
 tl_object_ptr<td_api::updateGroupCall> GroupCallManager::get_update_group_call_object(
