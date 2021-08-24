@@ -787,6 +787,14 @@ messages total_count:int32 messages:vector<message> = Messages;
 foundMessages total_count:int32 messages:vector<message> next_offset:string = FoundMessages;
 
 
+//@description Describes a sponsored message @id Unique sponsored message identifier @sponsor_chat_id Chat identifier
+//@start_parameter Parameter for the bot start message if the sponsored chat is a chat with a bot @content Content of the message
+sponsoredMessage id:bytes sponsor_chat_id:int53 start_parameter:string content:MessageContent = SponsoredMessage;
+
+//@description Contains a list of sponsored messages @messages List of sponsored messages
+sponsoredMessages messages:vector<sponsoredMessage> = SponsoredMessages;
+
+
 //@class NotificationSettingsScope @description Describes the types of chats to which notification settings are relevant
 
 //@description Notification settings applied to all private and secret chats when the corresponding chat setting has a default value
@@ -4043,6 +4051,9 @@ getCallbackQueryMessage chat_id:int53 message_id:int53 callback_query_id:int64 =
 
 //@description Returns information about messages. If a message is not found, returns null on the corresponding position of the result @chat_id Identifier of the chat the messages belong to @message_ids Identifiers of the messages to get
 getMessages chat_id:int53 message_ids:vector<int53> = Messages;
+
+//@description Returns sponsored messages to be shown in a chat; for channel chats only @chat_id Identifier of the chat
+getSponsoredMessages chat_id:int53 = SponsoredMessages;
 
 //@description Returns information about a message thread. Can be used only if message.can_get_message_thread == true @chat_id Chat identifier @message_id Identifier of the message
 getMessageThread chat_id:int53 message_id:int53 = MessageThreadInfo;

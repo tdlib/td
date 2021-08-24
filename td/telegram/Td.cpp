@@ -90,6 +90,7 @@
 #include "td/telegram/SecretChatsManager.h"
 #include "td/telegram/SecureManager.h"
 #include "td/telegram/SecureValue.h"
+#include "td/telegram/SponsoredMessages.h"
 #include "td/telegram/StateManager.h"
 #include "td/telegram/StickerSetId.h"
 #include "td/telegram/StickersManager.h"
@@ -5063,6 +5064,12 @@ void Td::on_request(uint64 id, const td_api::getCallbackQueryMessage &request) {
 
 void Td::on_request(uint64 id, const td_api::getMessages &request) {
   CREATE_REQUEST(GetMessagesRequest, request.chat_id_, request.message_ids_);
+}
+
+void Td::on_request(uint64 id, const td_api::getSponsoredMessages &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  get_sponsored_messages(this, DialogId(request.chat_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getMessageThread &request) {
