@@ -5072,6 +5072,12 @@ void Td::on_request(uint64 id, const td_api::getChatSponsoredMessages &request) 
   get_dialog_sponsored_messages(this, DialogId(request.chat_id_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::viewSponsoredMessage &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  view_sponsored_message(this, DialogId(request.chat_id_), request.message_id_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getMessageThread &request) {
   CHECK_IS_USER();
   CREATE_REQUEST(GetMessageThreadRequest, request.chat_id_, request.message_id_);

@@ -7,10 +7,14 @@
 #include "td/telegram/SponsoredMessages.h"
 
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/Global.h"
 #include "td/telegram/MessageContent.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/net/NetQueryCreator.h"
 #include "td/telegram/Td.h"
+
+//#include "td/utils/buffer.h"
 
 namespace td {
 
@@ -75,6 +79,39 @@ class GetSponsoredMessagesQuery final : public Td::ResultHandler {
   }
 };
 
+class ViewSponsoredMessageQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  ChannelId channel_id_;
+
+ public:
+  explicit ViewSponsoredMessageQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(ChannelId channel_id, const string &message_id) {
+    channel_id_ = channel_id;
+    auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
+    if (input_channel == nullptr) {
+      return promise_.set_error(Status::Error(3, "Chat info not found"));
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::channels_viewSponsoredMessage(std::move(input_channel), BufferSlice(message_id))));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::channels_viewSponsoredMessage>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(uint64 id, Status status) final {
+    td->contacts_manager_->on_get_channel_error(channel_id_, status, "ViewSponsoredMessageQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 void get_dialog_sponsored_messages(Td *td, DialogId dialog_id,
                                    Promise<td_api::object_ptr<td_api::sponsoredMessages>> &&promise) {
   if (!td->messages_manager_->have_dialog_force(dialog_id, "get_sponsored_messages")) {
@@ -86,6 +123,19 @@ void get_dialog_sponsored_messages(Td *td, DialogId dialog_id,
   }
 
   td->create_handler<GetSponsoredMessagesQuery>(std::move(promise))->send(dialog_id.get_channel_id());
+}
+
+void view_sponsored_message(Td *td, DialogId dialog_id, const string &message_id, Promise<Unit> &&promise) {
+  if (!td->messages_manager_->have_dialog_force(dialog_id, "view_sponsored_message")) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+  if (dialog_id.get_type() != DialogType::Channel ||
+      td->contacts_manager_->get_channel_type(dialog_id.get_channel_id()) != ContactsManager::ChannelType::Broadcast ||
+      message_id.empty()) {
+    return promise.set_error(Status::Error(400, "Message not found"));
+  }
+
+  td->create_handler<ViewSponsoredMessageQuery>(std::move(promise))->send(dialog_id.get_channel_id(), message_id);
 }
 
 }  // namespace td

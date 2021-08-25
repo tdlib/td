@@ -20,4 +20,6 @@ class Td;
 void get_dialog_sponsored_messages(Td *td, DialogId dialog_id,
                                    Promise<td_api::object_ptr<td_api::sponsoredMessages>> &&promise);
 
+void view_sponsored_message(Td *td, DialogId dialog_id, const string &message_id, Promise<Unit> &&promise);
+
 }  // namespace td

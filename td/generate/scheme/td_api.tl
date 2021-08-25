@@ -4212,6 +4212,9 @@ getMessagePublicForwards chat_id:int53 message_id:int53 offset:string limit:int3
 //@description Returns sponsored messages to be shown in a chat; for channel chats only @chat_id Identifier of the chat
 getChatSponsoredMessages chat_id:int53 = SponsoredMessages;
 
+//@description Informs TDLib that a sponsored message was viewed by the user @chat_id Chat identifier @message_id The identifier of the sponsored message being viewed
+viewSponsoredMessage chat_id:int53 message_id:bytes = Ok;
+
 
 //@description Removes an active notification from notification list. Needs to be called only if the notification is removed by the current user @notification_group_id Identifier of notification group to which the notification belongs @notification_id Identifier of removed notification
 removeNotification notification_group_id:int32 notification_id:int32 = Ok;
