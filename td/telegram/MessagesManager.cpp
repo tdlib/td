@@ -16973,7 +16973,7 @@ void MessagesManager::process_discussion_message_impl(
   MessageId top_message_id;
   for (auto &message : result->messages_) {
     auto full_message_id =
-        on_get_message(std::move(message), false, true, false, false, false, "process_discussion_message");
+        on_get_message(std::move(message), false, true, false, false, false, "process_discussion_message_impl");
     if (full_message_id.get_message_id().is_valid()) {
       CHECK(full_message_id.get_dialog_id() == expected_dialog_id);
       message_thread_info.message_ids.push_back(full_message_id.get_message_id());
@@ -35610,12 +35610,11 @@ void MessagesManager::run_after_channel_difference(DialogId dialog_id, Promise<U
   CHECK(dialog_id.get_type() == DialogType::Channel);
   CHECK(have_input_peer(dialog_id, AccessRights::Read));
 
-  const Dialog *d = get_dialog(dialog_id);
-  CHECK(d != nullptr);
-
   run_after_get_channel_difference_[dialog_id].push_back(std::move(promise));
 
-  get_channel_difference(dialog_id, d->pts, true, "run_after_channel_difference");
+  const Dialog *d = get_dialog(dialog_id);
+  get_channel_difference(dialog_id, d == nullptr ? load_channel_pts(dialog_id) : d->pts, true,
+                         "run_after_channel_difference");
 }
 
 bool MessagesManager::running_get_channel_difference(DialogId dialog_id) const {
