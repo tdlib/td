@@ -15273,7 +15273,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_scheduled_messag
                                                                                   bool is_permanently_deleted,
                                                                                   const char *source) {
   CHECK(d != nullptr);
-  CHECK(message_id.is_valid_scheduled());
+  LOG_CHECK(message_id.is_valid_scheduled()) << d->dialog_id << ' ' << message_id << ' ' << source;
 
   unique_ptr<Message> *v = treap_find_message(&d->scheduled_messages, message_id);
   if (*v == nullptr) {

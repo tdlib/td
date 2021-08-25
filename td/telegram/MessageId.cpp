@@ -35,7 +35,7 @@ bool MessageId::is_valid() const {
 }
 
 bool MessageId::is_valid_scheduled() const {
-  if (id <= 0 || id > max().get()) {
+  if (id <= 0 || id > (static_cast<int64>(1) << 51)) {
     return false;
   }
   int32 type = (id & TYPE_MASK);
@@ -43,7 +43,7 @@ bool MessageId::is_valid_scheduled() const {
 }
 
 MessageType MessageId::get_type() const {
-  if (id <= 0 || id > max().get()) {
+  if (id <= 0 || id > (static_cast<int64>(1) << 51)) {
     return MessageType::None;
   }
 
