@@ -5066,10 +5066,10 @@ void Td::on_request(uint64 id, const td_api::getMessages &request) {
   CREATE_REQUEST(GetMessagesRequest, request.chat_id_, request.message_ids_);
 }
 
-void Td::on_request(uint64 id, const td_api::getSponsoredMessages &request) {
+void Td::on_request(uint64 id, const td_api::getChatSponsoredMessages &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  get_sponsored_messages(this, DialogId(request.chat_id_), std::move(promise));
+  get_dialog_sponsored_messages(this, DialogId(request.chat_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getMessageThread &request) {

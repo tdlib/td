@@ -2587,8 +2587,7 @@ class CliClient final : public Actor {
       get_args(args, chat_id, message_ids);
       send_request(td_api::make_object<td_api::getMessages>(as_chat_id(chat_id), as_message_ids(message_ids)));
     } else if (op == "gsm") {
-      string chat_id = args;
-      send_request(td_api::make_object<td_api::getSponsoredMessages>(as_chat_id(chat_id)));
+      send_request(td_api::make_object<td_api::getChatSponsoredMessages>(as_chat_id(args)));
     } else if (op == "gmlink") {
       string chat_id;
       string message_id;

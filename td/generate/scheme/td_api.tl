@@ -4052,9 +4052,6 @@ getCallbackQueryMessage chat_id:int53 message_id:int53 callback_query_id:int64 =
 //@description Returns information about messages. If a message is not found, returns null on the corresponding position of the result @chat_id Identifier of the chat the messages belong to @message_ids Identifiers of the messages to get
 getMessages chat_id:int53 message_ids:vector<int53> = Messages;
 
-//@description Returns sponsored messages to be shown in a chat; for channel chats only @chat_id Identifier of the chat
-getSponsoredMessages chat_id:int53 = SponsoredMessages;
-
 //@description Returns information about a message thread. Can be used only if message.can_get_message_thread == true @chat_id Chat identifier @message_id Identifier of the message
 getMessageThread chat_id:int53 message_id:int53 = MessageThreadInfo;
 
@@ -4211,6 +4208,9 @@ getChatScheduledMessages chat_id:int53 = Messages;
 //@offset Offset of the first entry to return as received from the previous request; use empty string to get first chunk of results
 //@limit The maximum number of messages to be returned; must be positive and can't be greater than 100. For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
 getMessagePublicForwards chat_id:int53 message_id:int53 offset:string limit:int32 = FoundMessages;
+
+//@description Returns sponsored messages to be shown in a chat; for channel chats only @chat_id Identifier of the chat
+getChatSponsoredMessages chat_id:int53 = SponsoredMessages;
 
 
 //@description Removes an active notification from notification list. Needs to be called only if the notification is removed by the current user @notification_group_id Identifier of notification group to which the notification belongs @notification_id Identifier of removed notification

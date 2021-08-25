@@ -17,7 +17,7 @@ namespace td {
 
 class Td;
 
-void get_sponsored_messages(Td *td, DialogId dialog_id,
-                            Promise<td_api::object_ptr<td_api::sponsoredMessages>> &&promise);
+void get_dialog_sponsored_messages(Td *td, DialogId dialog_id,
+                                   Promise<td_api::object_ptr<td_api::sponsoredMessages>> &&promise);
 
 }  // namespace td
