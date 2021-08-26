@@ -122,6 +122,9 @@ void FileLoader::start_up() {
   // locaiton untouched. This is completely possible at this point, but probably should be fixed.
   auto status =
       parts_manager_.init(size, expected_size, is_size_final, part_size, ready_parts, use_part_count_limit, is_upload);
+  LOG(DEBUG) << "Start " << (is_upload ? "up" : "down") << "load of a file of size " << size << " with expected "
+             << (is_size_final ? "exact" : "approximate") << " size " << expected_size << ", part size " << part_size
+             << " and " << ready_parts << " ready parts: " << status;
   if (status.is_error()) {
     on_error(std::move(status));
     stop_flag_ = true;

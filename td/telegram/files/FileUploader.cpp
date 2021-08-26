@@ -40,7 +40,8 @@ FileUploader::FileUploader(const LocalFileLocation &local, const RemoteFileLocat
     iv_ = encryption_key_.mutable_iv();
     generate_iv_ = encryption_key_.iv_slice().str();
   }
-  if (remote_.type() == RemoteFileLocation::Type::Partial && encryption_key_.is_secure()) {
+  if (remote_.type() == RemoteFileLocation::Type::Partial && encryption_key_.is_secure() &&
+      remote_.partial().part_count_ != remote_.partial().ready_part_count_) {
     remote_ = RemoteFileLocation{};
   }
 }
@@ -80,6 +81,7 @@ Result<FileLoader::FileInfo> FileUploader::init() {
       parts.push_back(i);
     }
   }
+  LOG(DEBUG) << "Init file uploader for " << remote_ << " with offset = " << offset << " and part size = " << part_size;
   if (!ok.empty() && !ok[0]) {
     parts.clear();
   }
@@ -134,7 +136,7 @@ Result<FileLoader::PrefixInfo> FileUploader::on_update_local_location(const Loca
   file_type_ = file_type;
 
   bool is_temp = false;
-  if (encryption_key_.is_secure() && local_is_ready) {
+  if (encryption_key_.is_secure() && local_is_ready && remote_.type() == RemoteFileLocation::Type::Empty) {
     TRY_RESULT(file_fd_path, open_temp_file(FileType::Temp));
     file_fd_path.first.close();
     auto new_path = std::move(file_fd_path.second);
