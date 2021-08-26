@@ -666,6 +666,20 @@ inline bool operator!=(const RemoteFileLocation &lhs, const RemoteFileLocation &
   return !(lhs == rhs);
 }
 
+inline StringBuilder &operator<<(StringBuilder &sb, const RemoteFileLocation &location) {
+  switch (location.type()) {
+    case RemoteFileLocation::Type::Empty:
+      return sb << "[empty remote location]";
+    case RemoteFileLocation::Type::Partial:
+      return sb << location.partial();
+    case RemoteFileLocation::Type::Full:
+      return sb << location.full();
+    default:
+      UNREACHABLE();
+      return sb;
+  }
+}
+
 struct EmptyLocalFileLocation {
   template <class StorerT>
   void store(StorerT &storer) const {
