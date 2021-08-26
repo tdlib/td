@@ -1749,7 +1749,7 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
   }
 
   if (seq_begin <= seq_) {
-    if (seq_ >= 1000000000 && seq_begin < seq_ - 1000000000) {
+    if (seq_ >= (1 << 30) && seq_begin < seq_ - (1 << 30)) {
       set_seq_gap_timeout(0.001);
     }
     if (seq_end > seq_) {
@@ -1975,7 +1975,7 @@ void UpdatesManager::add_pending_pts_update(tl_object_ptr<telegram_api::Update> 
     }
   }
 
-  if (new_pts <= old_pts || (old_pts >= 1 && new_pts - 500000000 > old_pts)) {
+  if (new_pts <= old_pts || (old_pts >= 1 && new_pts - (1 << 30) > old_pts)) {
     td_->messages_manager_->skip_old_pending_pts_update(std::move(update), new_pts, old_pts, pts_count, source);
     return promise.set_value(Unit());
   }
@@ -2166,7 +2166,7 @@ void UpdatesManager::process_postponed_pts_updates() {
   while (update_it != postponed_pts_updates_.end()) {
     auto new_pts = update_it->second.pts;
     auto pts_count = update_it->second.pts_count;
-    if (new_pts <= old_pts || (old_pts >= 1 && new_pts - 500000000 > old_pts)) {
+    if (new_pts <= old_pts || (old_pts >= 1 && new_pts - (1 << 30) > old_pts)) {
       skipped_update_count++;
       td_->messages_manager_->skip_old_pending_pts_update(std::move(update_it->second.update), new_pts, old_pts,
                                                           pts_count, "process_postponed_pts_updates");
@@ -2281,7 +2281,7 @@ void UpdatesManager::process_pending_seq_updates() {
     auto update_it = pending_seq_updates_.begin();
     auto &update = update_it->second;
     auto seq_begin = update.seq_begin;
-    if (seq_begin - 1 > seq_ && seq_begin - 500000000 <= seq_) {
+    if (seq_begin - 1 > seq_ && seq_begin - (1 << 30) <= seq_) {
       // the updates will be applied later
       break;
     }
@@ -2330,7 +2330,7 @@ void UpdatesManager::process_pending_qts_updates() {
     auto update_it = pending_qts_updates_.begin();
     auto qts = update_it->first;
     auto old_qts = get_qts();
-    if (qts - 1 > old_qts && qts - 500000000 <= old_qts) {
+    if (qts - 1 > old_qts && qts - (1 << 30) <= old_qts) {
       // the update will be applied later
       break;
     }
