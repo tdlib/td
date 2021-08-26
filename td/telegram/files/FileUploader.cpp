@@ -245,6 +245,7 @@ Status FileUploader::before_start_parts() {
   }
   return status;
 }
+
 void FileUploader::after_start_parts() {
   try_release_fd();
 }
@@ -320,6 +321,7 @@ void FileUploader::on_progress(Progress progress) {
                      local_size_);
   }
 }
+
 FileLoader::Callback *FileUploader::get_callback() {
   return static_cast<FileLoader::Callback *>(callback_.get());
 }
