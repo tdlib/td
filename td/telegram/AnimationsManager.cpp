@@ -158,8 +158,6 @@ tl_object_ptr<td_api::animation> AnimationsManager::get_animation_object(FileId 
   auto &animation = animations_[file_id];
   LOG_CHECK(animation != nullptr) << source << " " << file_id << " "
                                   << static_cast<int32>(td_->file_manager_->get_file_view(file_id).get_type());
-  // TODO can we make that function const?
-  animation->is_changed = false;
   auto thumbnail =
       animation->animated_thumbnail.file_id.is_valid()
           ? get_thumbnail_object(td_->file_manager_.get(), animation->animated_thumbnail, PhotoFormat::Mpeg4)
@@ -183,26 +181,21 @@ FileId AnimationsManager::on_get_animation(unique_ptr<Animation> new_animation, 
     if (a->mime_type != new_animation->mime_type) {
       LOG(DEBUG) << "Animation " << file_id << " info has changed";
       a->mime_type = new_animation->mime_type;
-      a->is_changed = true;
     }
     if (a->file_name != new_animation->file_name) {
       LOG(DEBUG) << "Animation " << file_id << " file name has changed";
       a->file_name = std::move(new_animation->file_name);
-      a->is_changed = true;
     }
     if (a->dimensions != new_animation->dimensions) {
       LOG(DEBUG) << "Animation " << file_id << " dimensions has changed";
       a->dimensions = new_animation->dimensions;
-      a->is_changed = true;
     }
     if (a->duration != new_animation->duration) {
       LOG(DEBUG) << "Animation " << file_id << " duration has changed";
       a->duration = new_animation->duration;
-      a->is_changed = true;
     }
     if (a->minithumbnail != new_animation->minithumbnail) {
       a->minithumbnail = std::move(new_animation->minithumbnail);
-      a->is_changed = true;
     }
     if (a->thumbnail != new_animation->thumbnail) {
       if (!a->thumbnail.file_id.is_valid()) {
@@ -212,7 +205,6 @@ FileId AnimationsManager::on_get_animation(unique_ptr<Animation> new_animation, 
                   << new_animation->thumbnail;
       }
       a->thumbnail = new_animation->thumbnail;
-      a->is_changed = true;
     }
     if (a->animated_thumbnail != new_animation->animated_thumbnail) {
       if (!a->animated_thumbnail.file_id.is_valid()) {
@@ -222,15 +214,12 @@ FileId AnimationsManager::on_get_animation(unique_ptr<Animation> new_animation, 
                   << " to " << new_animation->animated_thumbnail;
       }
       a->animated_thumbnail = new_animation->animated_thumbnail;
-      a->is_changed = true;
     }
     if (a->has_stickers != new_animation->has_stickers && new_animation->has_stickers) {
       a->has_stickers = new_animation->has_stickers;
-      a->is_changed = true;
     }
     if (a->sticker_file_ids != new_animation->sticker_file_ids && !new_animation->sticker_file_ids.empty()) {
       a->sticker_file_ids = std::move(new_animation->sticker_file_ids);
-      a->is_changed = true;
     }
   }
 
@@ -280,24 +269,18 @@ FileId AnimationsManager::dup_animation(FileId new_id, FileId old_id) {
   return new_id;
 }
 
-bool AnimationsManager::merge_animations(FileId new_id, FileId old_id, bool can_delete_old) {
-  if (!old_id.is_valid()) {
-    LOG(ERROR) << "Old file identifier is invalid";
-    return true;
-  }
+void AnimationsManager::merge_animations(FileId new_id, FileId old_id, bool can_delete_old) {
+  CHECK(old_id.is_valid() && new_id.is_valid());
+  CHECK(new_id != old_id);
 
   LOG(INFO) << "Merge animations " << new_id << " and " << old_id;
   const Animation *old_ = get_animation(old_id);
   CHECK(old_ != nullptr);
-  if (old_id == new_id) {
-    return old_->is_changed;
-  }
 
   bool need_merge = true;
   auto new_it = animations_.find(new_id);
   if (new_it == animations_.end()) {
     auto &old = animations_[old_id];
-    old->is_changed = true;
     if (!can_delete_old) {
       dup_animation(new_id, old_id);
     } else {
@@ -308,7 +291,6 @@ bool AnimationsManager::merge_animations(FileId new_id, FileId old_id, bool can_
     Animation *new_ = new_it->second.get();
     CHECK(new_ != nullptr);
 
-    new_->is_changed = true;
     if (old_->thumbnail != new_->thumbnail) {
       //    LOG_STATUS(td_->file_manager_->merge(new_->thumbnail.file_id, old_->thumbnail.file_id));
     }
@@ -322,7 +304,6 @@ bool AnimationsManager::merge_animations(FileId new_id, FileId old_id, bool can_
   if (can_delete_old) {
     animations_.erase(old_id);
   }
-  return true;
 }
 
 void AnimationsManager::create_animation(FileId file_id, string minithumbnail, PhotoSize thumbnail,

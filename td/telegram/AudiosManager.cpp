@@ -36,7 +36,6 @@ tl_object_ptr<td_api::audio> AudiosManager::get_audio_object(FileId file_id) {
 
   auto &audio = audios_[file_id];
   CHECK(audio != nullptr);
-  audio->is_changed = false;
   return make_tl_object<td_api::audio>(
       audio->duration, audio->title, audio->performer, audio->file_name, audio->mime_type,
       get_minithumbnail_object(audio->minithumbnail),
@@ -56,23 +55,19 @@ FileId AudiosManager::on_get_audio(unique_ptr<Audio> new_audio, bool replace) {
     if (a->mime_type != new_audio->mime_type) {
       LOG(DEBUG) << "Audio " << file_id << " info has changed";
       a->mime_type = new_audio->mime_type;
-      a->is_changed = true;
     }
     if (a->duration != new_audio->duration || a->title != new_audio->title || a->performer != new_audio->performer) {
       LOG(DEBUG) << "Audio " << file_id << " info has changed";
       a->duration = new_audio->duration;
       a->title = new_audio->title;
       a->performer = new_audio->performer;
-      a->is_changed = true;
     }
     if (a->file_name != new_audio->file_name) {
       LOG(DEBUG) << "Audio " << file_id << " file name has changed";
       a->file_name = std::move(new_audio->file_name);
-      a->is_changed = true;
     }
     if (a->minithumbnail != new_audio->minithumbnail) {
       a->minithumbnail = std::move(new_audio->minithumbnail);
-      a->is_changed = true;
     }
     if (a->thumbnail != new_audio->thumbnail) {
       if (!a->thumbnail.file_id.is_valid()) {
@@ -82,7 +77,6 @@ FileId AudiosManager::on_get_audio(unique_ptr<Audio> new_audio, bool replace) {
                   << new_audio->thumbnail;
       }
       a->thumbnail = new_audio->thumbnail;
-      a->is_changed = true;
     }
   }
 
@@ -110,23 +104,17 @@ FileId AudiosManager::dup_audio(FileId new_id, FileId old_id) {
   return new_id;
 }
 
-bool AudiosManager::merge_audios(FileId new_id, FileId old_id, bool can_delete_old) {
-  if (!old_id.is_valid()) {
-    LOG(ERROR) << "Old file identifier is invalid";
-    return true;
-  }
+void AudiosManager::merge_audios(FileId new_id, FileId old_id, bool can_delete_old) {
+  CHECK(old_id.is_valid() && new_id.is_valid());
+  CHECK(new_id != old_id);
 
   LOG(INFO) << "Merge audios " << new_id << " and " << old_id;
   const Audio *old_ = get_audio(old_id);
   CHECK(old_ != nullptr);
-  if (old_id == new_id) {
-    return old_->is_changed;
-  }
 
   auto new_it = audios_.find(new_id);
   if (new_it == audios_.end()) {
     auto &old = audios_[old_id];
-    old->is_changed = true;
     if (!can_delete_old) {
       dup_audio(new_id, old_id);
     } else {
@@ -141,7 +129,6 @@ bool AudiosManager::merge_audios(FileId new_id, FileId old_id, bool can_delete_o
       LOG(INFO) << "Audio has changed: mime_type = (" << old_->mime_type << ", " << new_->mime_type << ")";
     }
 
-    new_->is_changed = true;
     if (old_->thumbnail != new_->thumbnail) {
       //    LOG_STATUS(td_->file_manager_->merge(new_->thumbnail.file_id, old_->thumbnail.file_id));
     }
@@ -150,7 +137,6 @@ bool AudiosManager::merge_audios(FileId new_id, FileId old_id, bool can_delete_o
   if (can_delete_old) {
     audios_.erase(old_id);
   }
-  return true;
 }
 
 string AudiosManager::get_audio_search_text(FileId file_id) const {

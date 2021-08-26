@@ -300,7 +300,6 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
       if (sticker->set_id != sticker_set->id) {
         LOG_IF(ERROR, sticker->set_id.is_valid()) << "Sticker " << sticker_id << " set_id has changed";
         sticker->set_id = sticker_set->id;
-        sticker->is_changed = true;
       }
 
       if (sticker_set->was_loaded) {

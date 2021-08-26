@@ -55,7 +55,7 @@ class AnimationsManager final : public Actor {
 
   FileId dup_animation(FileId new_id, FileId old_id);
 
-  bool merge_animations(FileId new_id, FileId old_id, bool can_delete_old);
+  void merge_animations(FileId new_id, FileId old_id, bool can_delete_old);
 
   void on_update_animation_search_emojis(string animation_search_emojis);
 
@@ -110,8 +110,6 @@ class AnimationsManager final : public Actor {
     vector<FileId> sticker_file_ids;
 
     FileId file_id;
-
-    bool is_changed = true;
   };
 
   const Animation *get_animation(FileId file_id) const;

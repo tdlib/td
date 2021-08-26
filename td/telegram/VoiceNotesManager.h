@@ -39,7 +39,7 @@ class VoiceNotesManager {
 
   FileId dup_voice_note(FileId new_id, FileId old_id);
 
-  bool merge_voice_notes(FileId new_id, FileId old_id, bool can_delete_old);
+  void merge_voice_notes(FileId new_id, FileId old_id, bool can_delete_old);
 
   template <class StorerT>
   void store_voice_note(FileId file_id, StorerT &storer) const;
@@ -55,8 +55,6 @@ class VoiceNotesManager {
     string waveform;
 
     FileId file_id;
-
-    bool is_changed = true;
   };
 
   const VoiceNote *get_voice_note(FileId file_id) const;

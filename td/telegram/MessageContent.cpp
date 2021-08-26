@@ -2943,8 +2943,10 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
     case MessageContentType::Animation: {
       auto old_ = static_cast<const MessageAnimation *>(old_content);
       auto new_ = static_cast<const MessageAnimation *>(new_content);
-      if (new_->file_id != old_->file_id &&
-          (!need_merge_files || td->animations_manager_->merge_animations(new_->file_id, old_->file_id, false))) {
+      if (new_->file_id != old_->file_id) {
+        if (need_merge_files) {
+          td->animations_manager_->merge_animations(new_->file_id, old_->file_id, false);
+        }
         need_update = true;
       }
       if (old_->caption != new_->caption) {
@@ -2955,8 +2957,10 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
     case MessageContentType::Audio: {
       auto old_ = static_cast<const MessageAudio *>(old_content);
       auto new_ = static_cast<const MessageAudio *>(new_content);
-      if (new_->file_id != old_->file_id &&
-          (!need_merge_files || td->audios_manager_->merge_audios(new_->file_id, old_->file_id, false))) {
+      if (new_->file_id != old_->file_id) {
+        if (need_merge_files) {
+          td->audios_manager_->merge_audios(new_->file_id, old_->file_id, false);
+        }
         need_update = true;
       }
       if (old_->caption != new_->caption) {
@@ -2975,8 +2979,10 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
     case MessageContentType::Document: {
       auto old_ = static_cast<const MessageDocument *>(old_content);
       auto new_ = static_cast<const MessageDocument *>(new_content);
-      if (new_->file_id != old_->file_id &&
-          (!need_merge_files || td->documents_manager_->merge_documents(new_->file_id, old_->file_id, false))) {
+      if (new_->file_id != old_->file_id) {
+        if (need_merge_files) {
+          td->documents_manager_->merge_documents(new_->file_id, old_->file_id, false);
+        }
         need_update = true;
       }
       if (old_->caption != new_->caption) {
@@ -3106,8 +3112,10 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
     case MessageContentType::Sticker: {
       auto old_ = static_cast<const MessageSticker *>(old_content);
       auto new_ = static_cast<const MessageSticker *>(new_content);
-      if (new_->file_id != old_->file_id &&
-          (!need_merge_files || td->stickers_manager_->merge_stickers(new_->file_id, old_->file_id, false))) {
+      if (new_->file_id != old_->file_id) {
+        if (need_merge_files) {
+          td->stickers_manager_->merge_stickers(new_->file_id, old_->file_id, false);
+        }
         need_update = true;
       }
       break;
@@ -3127,8 +3135,10 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
     case MessageContentType::Video: {
       auto old_ = static_cast<const MessageVideo *>(old_content);
       auto new_ = static_cast<const MessageVideo *>(new_content);
-      if (new_->file_id != old_->file_id &&
-          (!need_merge_files || td->videos_manager_->merge_videos(new_->file_id, old_->file_id, false))) {
+      if (new_->file_id != old_->file_id) {
+        if (need_merge_files) {
+          td->videos_manager_->merge_videos(new_->file_id, old_->file_id, false);
+        }
         need_update = true;
       }
       if (old_->caption != new_->caption) {
@@ -3139,8 +3149,10 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
     case MessageContentType::VideoNote: {
       auto old_ = static_cast<const MessageVideoNote *>(old_content);
       auto new_ = static_cast<const MessageVideoNote *>(new_content);
-      if (new_->file_id != old_->file_id &&
-          (!need_merge_files || td->video_notes_manager_->merge_video_notes(new_->file_id, old_->file_id, false))) {
+      if (new_->file_id != old_->file_id) {
+        if (need_merge_files) {
+          td->video_notes_manager_->merge_video_notes(new_->file_id, old_->file_id, false);
+        }
         need_update = true;
       }
       if (old_->is_viewed != new_->is_viewed) {
@@ -3151,8 +3163,10 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
     case MessageContentType::VoiceNote: {
       auto old_ = static_cast<const MessageVoiceNote *>(old_content);
       auto new_ = static_cast<const MessageVoiceNote *>(new_content);
-      if (new_->file_id != old_->file_id &&
-          (!need_merge_files || td->voice_notes_manager_->merge_voice_notes(new_->file_id, old_->file_id, false))) {
+      if (new_->file_id != old_->file_id) {
+        if (need_merge_files) {
+          td->voice_notes_manager_->merge_voice_notes(new_->file_id, old_->file_id, false);
+        }
         need_update = true;
       }
       if (old_->caption != new_->caption) {

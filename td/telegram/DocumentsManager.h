@@ -101,7 +101,7 @@ class DocumentsManager {
 
   FileId dup_document(FileId new_id, FileId old_id);
 
-  bool merge_documents(FileId new_id, FileId old_id, bool can_delete_old);
+  void merge_documents(FileId new_id, FileId old_id, bool can_delete_old);
 
   template <class StorerT>
   void store_document(FileId file_id, StorerT &storer) const;
@@ -119,8 +119,6 @@ class DocumentsManager {
     string minithumbnail;
     PhotoSize thumbnail;
     FileId file_id;
-
-    bool is_changed = true;
   };
 
   const GeneralDocument *get_document(FileId file_id) const;

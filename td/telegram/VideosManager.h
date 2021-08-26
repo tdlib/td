@@ -51,7 +51,7 @@ class VideosManager {
 
   FileId dup_video(FileId new_id, FileId old_id);
 
-  bool merge_videos(FileId new_id, FileId old_id, bool can_delete_old);
+  void merge_videos(FileId new_id, FileId old_id, bool can_delete_old);
 
   template <class StorerT>
   void store_video(FileId file_id, StorerT &storer) const;
@@ -78,8 +78,6 @@ class VideosManager {
     vector<FileId> sticker_file_ids;
 
     FileId file_id;
-
-    bool is_changed = true;
   };
 
   const Video *get_video(FileId file_id) const;

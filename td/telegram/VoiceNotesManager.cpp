@@ -35,7 +35,6 @@ tl_object_ptr<td_api::voiceNote> VoiceNotesManager::get_voice_note_object(FileId
 
   auto &voice_note = voice_notes_[file_id];
   CHECK(voice_note != nullptr);
-  voice_note->is_changed = false;
   return make_tl_object<td_api::voiceNote>(voice_note->duration, voice_note->waveform, voice_note->mime_type,
                                            td_->file_manager_->get_file_object(file_id));
 }
@@ -52,13 +51,11 @@ FileId VoiceNotesManager::on_get_voice_note(unique_ptr<VoiceNote> new_voice_note
     if (v->mime_type != new_voice_note->mime_type) {
       LOG(DEBUG) << "Voice note " << file_id << " info has changed";
       v->mime_type = new_voice_note->mime_type;
-      v->is_changed = true;
     }
     if (v->duration != new_voice_note->duration || v->waveform != new_voice_note->waveform) {
       LOG(DEBUG) << "Voice note " << file_id << " info has changed";
       v->duration = new_voice_note->duration;
       v->waveform = new_voice_note->waveform;
-      v->is_changed = true;
     }
   }
 
@@ -85,23 +82,17 @@ FileId VoiceNotesManager::dup_voice_note(FileId new_id, FileId old_id) {
   return new_id;
 }
 
-bool VoiceNotesManager::merge_voice_notes(FileId new_id, FileId old_id, bool can_delete_old) {
-  if (!old_id.is_valid()) {
-    LOG(ERROR) << "Old file identifier is invalid";
-    return true;
-  }
+void VoiceNotesManager::merge_voice_notes(FileId new_id, FileId old_id, bool can_delete_old) {
+  CHECK(old_id.is_valid() && new_id.is_valid());
+  CHECK(new_id != old_id);
 
   LOG(INFO) << "Merge voice notes " << new_id << " and " << old_id;
   const VoiceNote *old_ = get_voice_note(old_id);
   CHECK(old_ != nullptr);
-  if (old_id == new_id) {
-    return old_->is_changed;
-  }
 
   auto new_it = voice_notes_.find(new_id);
   if (new_it == voice_notes_.end()) {
     auto &old = voice_notes_[old_id];
-    old->is_changed = true;
     if (!can_delete_old) {
       dup_voice_note(new_id, old_id);
     } else {
@@ -115,14 +106,11 @@ bool VoiceNotesManager::merge_voice_notes(FileId new_id, FileId old_id, bool can
     if (!old_->mime_type.empty() && old_->mime_type != new_->mime_type) {
       LOG(INFO) << "Voice note has changed: mime_type = (" << old_->mime_type << ", " << new_->mime_type << ")";
     }
-
-    new_->is_changed = true;
   }
   LOG_STATUS(td_->file_manager_->merge(new_id, old_id));
   if (can_delete_old) {
     voice_notes_.erase(old_id);
   }
-  return true;
 }
 
 void VoiceNotesManager::create_voice_note(FileId file_id, string mime_type, int32 duration, string waveform,

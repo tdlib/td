@@ -263,7 +263,7 @@ class StickersManager final : public Actor {
 
   FileId dup_sticker(FileId new_id, FileId old_id);
 
-  bool merge_stickers(FileId new_id, FileId old_id, bool can_delete_old);
+  void merge_stickers(FileId new_id, FileId old_id, bool can_delete_old);
 
   template <class StorerT>
   void store_sticker(FileId file_id, bool in_sticker_set, StorerT &storer) const;
@@ -324,8 +324,6 @@ class StickersManager final : public Actor {
     double x_shift = 0;
     double y_shift = 0;
     double scale = 0;
-
-    mutable bool is_changed = true;
   };
 
   class StickerSet {

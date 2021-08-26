@@ -47,7 +47,7 @@ class VideoNotesManager {
 
   FileId dup_video_note(FileId new_id, FileId old_id);
 
-  bool merge_video_notes(FileId new_id, FileId old_id, bool can_delete_old);
+  void merge_video_notes(FileId new_id, FileId old_id, bool can_delete_old);
 
   template <class StorerT>
   void store_video_note(FileId file_id, StorerT &storer) const;
@@ -64,8 +64,6 @@ class VideoNotesManager {
     PhotoSize thumbnail;
 
     FileId file_id;
-
-    bool is_changed = true;
   };
 
   const VideoNote *get_video_note(FileId file_id) const;

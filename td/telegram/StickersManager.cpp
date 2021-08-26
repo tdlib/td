@@ -1639,8 +1639,6 @@ tl_object_ptr<td_api::sticker> StickersManager::get_sticker_object(FileId file_i
   CHECK(it != stickers_.end());
   auto sticker = it->second.get();
   CHECK(sticker != nullptr);
-  sticker->is_changed = false;
-
   auto mask_position = sticker->point >= 0
                            ? make_tl_object<td_api::maskPosition>(get_mask_point_object(sticker->point),
                                                                   sticker->x_shift, sticker->y_shift, sticker->scale)
@@ -1850,49 +1848,40 @@ FileId StickersManager::on_get_sticker(unique_ptr<Sticker> new_sticker, bool rep
     if (s->dimensions != new_sticker->dimensions && new_sticker->dimensions.width != 0) {
       LOG(DEBUG) << "Sticker " << file_id << " dimensions has changed";
       s->dimensions = new_sticker->dimensions;
-      s->is_changed = true;
     }
     if (s->set_id != new_sticker->set_id && new_sticker->set_id.is_valid()) {
       LOG_IF(ERROR, s->set_id.is_valid()) << "Sticker " << file_id << " set_id has changed";
       s->set_id = new_sticker->set_id;
-      s->is_changed = true;
     }
     if (s->alt != new_sticker->alt && !new_sticker->alt.empty()) {
       LOG(DEBUG) << "Sticker " << file_id << " emoji has changed";
       s->alt = std::move(new_sticker->alt);
-      s->is_changed = true;
     }
     if (s->minithumbnail != new_sticker->minithumbnail) {
       LOG(DEBUG) << "Sticker " << file_id << " minithumbnail has changed";
       s->minithumbnail = std::move(new_sticker->minithumbnail);
-      s->is_changed = true;
     }
     if (s->s_thumbnail != new_sticker->s_thumbnail && new_sticker->s_thumbnail.file_id.is_valid()) {
       LOG_IF(INFO, s->s_thumbnail.file_id.is_valid()) << "Sticker " << file_id << " s thumbnail has changed from "
                                                       << s->s_thumbnail << " to " << new_sticker->s_thumbnail;
       s->s_thumbnail = std::move(new_sticker->s_thumbnail);
-      s->is_changed = true;
     }
     if (s->m_thumbnail != new_sticker->m_thumbnail && new_sticker->m_thumbnail.file_id.is_valid()) {
       LOG_IF(INFO, s->m_thumbnail.file_id.is_valid()) << "Sticker " << file_id << " m thumbnail has changed from "
                                                       << s->m_thumbnail << " to " << new_sticker->m_thumbnail;
       s->m_thumbnail = std::move(new_sticker->m_thumbnail);
-      s->is_changed = true;
     }
     if (s->is_animated != new_sticker->is_animated && new_sticker->is_animated) {
       s->is_animated = new_sticker->is_animated;
-      s->is_changed = true;
     }
     if (s->is_mask != new_sticker->is_mask && new_sticker->is_mask) {
       s->is_mask = new_sticker->is_mask;
-      s->is_changed = true;
     }
     if (s->point != new_sticker->point && new_sticker->point != -1) {
       s->point = new_sticker->point;
       s->x_shift = new_sticker->x_shift;
       s->y_shift = new_sticker->y_shift;
       s->scale = new_sticker->scale;
-      s->is_changed = true;
     }
   }
 
@@ -2133,23 +2122,17 @@ FileId StickersManager::dup_sticker(FileId new_id, FileId old_id) {
   return new_id;
 }
 
-bool StickersManager::merge_stickers(FileId new_id, FileId old_id, bool can_delete_old) {
-  if (!old_id.is_valid()) {
-    LOG(ERROR) << "Old file identifier is invalid";
-    return true;
-  }
+void StickersManager::merge_stickers(FileId new_id, FileId old_id, bool can_delete_old) {
+  CHECK(old_id.is_valid() && new_id.is_valid());
+  CHECK(new_id != old_id);
 
   LOG(INFO) << "Merge stickers " << new_id << " and " << old_id;
   const Sticker *old_ = get_sticker(old_id);
   CHECK(old_ != nullptr);
-  if (old_id == new_id) {
-    return old_->is_changed;
-  }
 
   auto new_it = stickers_.find(new_id);
   if (new_it == stickers_.end()) {
     auto &old = stickers_[old_id];
-    old->is_changed = true;
     if (!can_delete_old) {
       dup_sticker(new_id, old_id);
     } else {
@@ -2167,8 +2150,6 @@ bool StickersManager::merge_stickers(FileId new_id, FileId old_id, bool can_dele
                  << ", " << new_->set_id << "), dimensions = (" << old_->dimensions << ", " << new_->dimensions << ")";
     }
 
-    new_->is_changed = true;
-
     if (old_->s_thumbnail != new_->s_thumbnail) {
       //    LOG_STATUS(td_->file_manager_->merge(new_->s_thumbnail.file_id, old_->s_thumbnail.file_id));
     }
@@ -2180,7 +2161,6 @@ bool StickersManager::merge_stickers(FileId new_id, FileId old_id, bool can_dele
   if (can_delete_old) {
     stickers_.erase(old_id);
   }
-  return true;
 }
 
 tl_object_ptr<telegram_api::InputStickerSet> StickersManager::get_input_sticker_set(const StickerSet *set) {
@@ -2277,7 +2257,6 @@ void StickersManager::on_resolve_sticker_set_short_name(FileId sticker_file_id, 
     CHECK(s->file_id == sticker_file_id);
     if (s->set_id != set_id) {
       s->set_id = set_id;
-      s->is_changed = true;
     }
   }
 }
@@ -5028,11 +5007,13 @@ void StickersManager::on_uploaded_sticker_file(FileId file_id, tl_object_ptr<tel
     return promise.set_error(Status::Error(400, "Wrong file type"));
   }
 
-  if (is_animated) {
-    merge_stickers(parsed_document.file_id, file_id, false);
-  } else {
-    // must not delete the old document, because the file_id could be used for simultaneous URL uploads
-    td_->documents_manager_->merge_documents(parsed_document.file_id, file_id, false);
+  if (parsed_document.file_id != file_id) {
+    if (is_animated) {
+      merge_stickers(parsed_document.file_id, file_id, false);
+    } else {
+      // must not delete the old document, because the file_id could be used for simultaneous URL uploads
+      td_->documents_manager_->merge_documents(parsed_document.file_id, file_id, false);
+    }
   }
   promise.set_value(Unit());
 }
