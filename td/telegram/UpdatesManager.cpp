@@ -242,7 +242,7 @@ void UpdatesManager::fill_gap(void *td, const char *source) {
   }
   auto updates_manager = static_cast<Td *>(td)->updates_manager_.get();
 
-  if (source != nullptr) {
+  if (source != nullptr && !updates_manager->running_get_difference_) {
     LOG(WARNING) << "Filling gap in " << source << " by running getDifference";
   }
 
