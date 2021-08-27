@@ -2879,6 +2879,9 @@ pushMessageContentChatChangePhoto = PushMessageContent;
 //@description A chat title was edited @title New chat title
 pushMessageContentChatChangeTitle title:string = PushMessageContent;
 
+//@description A chat theme was edited @theme_name Name of the new chat theme
+pushMessageContentChatChangeTheme theme_name:string = PushMessageContent;
+
 //@description A chat member was deleted @member_name Name of the deleted member @is_current_user True, if the current user was deleted from the group
 //@is_left True, if the user has left the group themselves
 pushMessageContentChatDeleteMember member_name:string is_current_user:Bool is_left:Bool = PushMessageContent;

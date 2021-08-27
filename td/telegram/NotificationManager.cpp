@@ -2874,6 +2874,9 @@ string NotificationManager::convert_loc_key(const string &loc_key) {
       if (loc_key == "CHAT_PHOTO_EDITED") {
         return "MESSAGE_CHAT_CHANGE_PHOTO";
       }
+      if (loc_key == "MESSAGE_THEME") {
+        return "MESSAGE_CHAT_CHANGE_THEME";
+      }
       break;
     case 'U':
       if (loc_key == "PINNED_AUDIO") {
