@@ -2287,6 +2287,8 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::removeBackground>(to_integer<int64>(args)));
     } else if (op == "rbgs") {
       send_request(td_api::make_object<td_api::resetBackgrounds>());
+    } else if (op == "gcts") {
+      send_request(td_api::make_object<td_api::getChatThemes>());
     } else if (op == "gcos") {
       send_request(td_api::make_object<td_api::getCountries>());
     } else if (op == "gcoc") {

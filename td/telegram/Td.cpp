@@ -97,6 +97,7 @@
 #include "td/telegram/StorageManager.h"
 #include "td/telegram/SuggestedAction.h"
 #include "td/telegram/TdDb.h"
+#include "td/telegram/ThemeManager.h"
 #include "td/telegram/TopDialogCategory.h"
 #include "td/telegram/TopDialogManager.h"
 #include "td/telegram/UpdatesManager.h"
@@ -2909,6 +2910,20 @@ class SetBackgroundRequest final : public RequestActor<> {
   }
 };
 
+class GetChatThemesRequest final : public RequestOnceActor {
+  void do_run(Promise<Unit> &&promise) final {
+    td->theme_manager_->get_chat_themes(std::move(promise));
+  }
+
+  void do_send_result() final {
+    send_result(td->theme_manager_->get_chat_themes_object());
+  }
+
+ public:
+  GetChatThemesRequest(ActorShared<Td> td, uint64 request_id) : RequestOnceActor(std::move(td), request_id) {
+  }
+};
+
 Td::Td(unique_ptr<TdCallback> callback, Options options)
     : callback_(std::move(callback)), td_options_(std::move(options)) {
   CHECK(callback_ != nullptr);
@@ -3730,6 +3745,8 @@ void Td::dec_actor_refcnt() {
       LOG(DEBUG) << "PollManager was cleared" << timer;
       stickers_manager_.reset();
       LOG(DEBUG) << "StickersManager was cleared" << timer;
+      theme_manager_.reset();
+      LOG(DEBUG) << "ThemeManager was cleared" << timer;
       updates_manager_.reset();
       LOG(DEBUG) << "UpdatesManager was cleared" << timer;
       video_notes_manager_.reset();
@@ -3918,6 +3935,8 @@ void Td::clear() {
   LOG(DEBUG) << "PollManager actor was cleared" << timer;
   stickers_manager_actor_.reset();
   LOG(DEBUG) << "StickersManager actor was cleared" << timer;
+  theme_manager_actor_.reset();
+  LOG(DEBUG) << "ThemeManager actor was cleared" << timer;
   updates_manager_actor_.reset();
   LOG(DEBUG) << "UpdatesManager actor was cleared" << timer;
   web_pages_manager_actor_.reset();
@@ -4370,6 +4389,9 @@ void Td::init_managers() {
   stickers_manager_ = make_unique<StickersManager>(this, create_reference());
   stickers_manager_actor_ = register_actor("StickersManager", stickers_manager_.get());
   G()->set_stickers_manager(stickers_manager_actor_.get());
+  theme_manager_ = make_unique<ThemeManager>(this, create_reference());
+  theme_manager_actor_ = register_actor("ThemeManager", theme_manager_.get());
+  G()->set_theme_manager(theme_manager_actor_.get());
   updates_manager_ = make_unique<UpdatesManager>(this, create_reference());
   updates_manager_actor_ = register_actor("UpdatesManager", updates_manager_.get());
   G()->set_updates_manager(updates_manager_actor_.get());
@@ -8067,6 +8089,11 @@ void Td::on_request(uint64 id, const td_api::resetBackgrounds &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   background_manager_->reset_backgrounds(std::move(promise));
+}
+
+void Td::on_request(uint64 id, const td_api::getChatThemes &request) {
+  CHECK_IS_USER();
+  CREATE_NO_ARGS_REQUEST(GetChatThemesRequest);
 }
 
 void Td::on_request(uint64 id, td_api::getRecentlyVisitedTMeUrls &request) {

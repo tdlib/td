@@ -53,6 +53,7 @@ class StorageManager;
 class Td;
 class TdDb;
 class TempAuthKeyWatchdog;
+class ThemeManager;
 class TopDialogManager;
 class UpdatesManager;
 class WebPagesManager;
@@ -280,6 +281,13 @@ class Global final : public ActorContext {
     storage_manager_ = storage_manager;
   }
 
+  ActorId<ThemeManager> theme_manager() const {
+    return theme_manager_;
+  }
+  void set_theme_manager(ActorId<ThemeManager> theme_manager) {
+    theme_manager_ = theme_manager;
+  }
+
   ActorId<TopDialogManager> top_dialog_manager() const {
     return top_dialog_manager_;
   }
@@ -410,6 +418,7 @@ class Global final : public ActorContext {
   ActorId<SecretChatsManager> secret_chats_manager_;
   ActorId<StickersManager> stickers_manager_;
   ActorId<StorageManager> storage_manager_;
+  ActorId<ThemeManager> theme_manager_;
   ActorId<TopDialogManager> top_dialog_manager_;
   ActorId<UpdatesManager> updates_manager_;
   ActorId<WebPagesManager> web_pages_manager_;

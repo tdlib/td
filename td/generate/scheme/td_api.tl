@@ -2719,6 +2719,24 @@ inputBackgroundLocal background:InputFile = InputBackground;
 inputBackgroundRemote background_id:int64 = InputBackground;
 
 
+//@description Describes theme settings
+//@accent_color Theme accent color in ARGB format
+//@background The background to be used in chats; may be null
+//@message_fill The fill to be used as a background for outgoing messages
+//@animate_message_fill If true, the freeform gradient fill needs to be animated on every sent message
+themeSettings accent_color:int32 background:background message_fill:BackgroundFill animate_message_fill:Bool = ThemeSettings;
+
+
+//@description Describes a chat theme
+//@name Theme name
+//@light_settings Theme settings for a light chat theme
+//@dark_settings Theme settings for a dark chat theme
+chatTheme name:string light_settings:themeSettings dark_settings:themeSettings = ChatTheme;
+
+//@description Contains a list of chat themes @chat_themes A list of chat themes
+chatThemes chat_themes:vector<chatTheme> = ChatThemes;
+
+
 //@description Contains a list of hashtags @hashtags A list of hashtags
 hashtags hashtags:vector<string> = Hashtags;
 
@@ -5230,6 +5248,10 @@ removeBackground background_id:int64 = Ok;
 
 //@description Resets list of installed backgrounds to its default value
 resetBackgrounds = Ok;
+
+
+//@description Returns the list of available chat themes
+getChatThemes = ChatThemes;
 
 
 //@description Returns information about the current localization target. This is an offline request if only_local is true. Can be called before authorization @only_local If true, returns only locally available information without sending network requests

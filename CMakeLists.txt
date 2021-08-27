@@ -403,6 +403,7 @@ set(TDLIB_SOURCE
   td/telegram/Td.cpp
   td/telegram/TdDb.cpp
   td/telegram/TermsOfService.cpp
+  td/telegram/ThemeManager.cpp
   td/telegram/TopDialogManager.cpp
   td/telegram/UpdatesManager.cpp
   td/telegram/Venue.cpp
@@ -619,6 +620,7 @@ set(TDLIB_SOURCE
   td/telegram/TdDb.h
   td/telegram/TdParameters.h
   td/telegram/TermsOfService.h
+  td/telegram/ThemeManager.h
   td/telegram/TopDialogCategory.h
   td/telegram/TopDialogManager.h
   td/telegram/UniqueId.h

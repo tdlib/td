@@ -67,6 +67,7 @@ class SecureManager;
 class SecretChatsManager;
 class StickersManager;
 class StorageManager;
+class ThemeManager;
 class TopDialogManager;
 class UpdatesManager;
 class VideoNotesManager;
@@ -171,6 +172,8 @@ class Td final : public NetQueryCallback {
   ActorOwn<PollManager> poll_manager_actor_;
   unique_ptr<StickersManager> stickers_manager_;
   ActorOwn<StickersManager> stickers_manager_actor_;
+  unique_ptr<ThemeManager> theme_manager_;
+  ActorOwn<ThemeManager> theme_manager_actor_;
   unique_ptr<UpdatesManager> updates_manager_;
   ActorOwn<UpdatesManager> updates_manager_actor_;
   unique_ptr<WebPagesManager> web_pages_manager_;
@@ -1167,6 +1170,8 @@ class Td final : public NetQueryCallback {
   void on_request(uint64 id, const td_api::removeBackground &request);
 
   void on_request(uint64 id, const td_api::resetBackgrounds &request);
+
+  void on_request(uint64 id, const td_api::getChatThemes &request);
 
   void on_request(uint64 id, td_api::getRecentlyVisitedTMeUrls &request);
 
