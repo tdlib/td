@@ -2518,6 +2518,9 @@ chatEventUsernameChanged old_username:string new_username:string = ChatEventActi
 //@description The chat photo was changed @old_photo Previous chat photo value; may be null @new_photo New chat photo value; may be null
 chatEventPhotoChanged old_photo:chatPhoto new_photo:chatPhoto = ChatEventAction;
 
+//@description The chat theme was changed @old_theme_name Previous chat theme name; empty if none @new_theme_name New chat theme name; empty if none
+chatEventThemeChanged old_theme_name:string new_theme_name:string = ChatEventAction;
+
 //@description The can_invite_users permission of a supergroup chat was toggled @can_invite_users New value of can_invite_users permission
 chatEventInvitesToggled can_invite_users:Bool = ChatEventAction;
 

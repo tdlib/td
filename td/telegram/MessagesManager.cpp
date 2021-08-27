@@ -31865,7 +31865,8 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
     }
     case telegram_api::channelAdminLogEventActionChangeTheme::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeTheme>(action_ptr);
-      return nullptr;
+      return make_tl_object<td_api::chatEventThemeChanged>(std::move(action->prev_value_),
+                                                           std::move(action->new_value_));
     }
     default:
       UNREACHABLE();
