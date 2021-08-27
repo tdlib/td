@@ -19961,6 +19961,21 @@ td_api::object_ptr<td_api::ChatActionBar> MessagesManager::get_chat_action_bar_o
   return nullptr;
 }
 
+string MessagesManager::get_dialog_theme_name(const Dialog *d) const {
+  CHECK(d != nullptr);
+  if (d->dialog_id.get_type() == DialogType::SecretChat) {
+    auto user_id = td_->contacts_manager_->get_secret_chat_user_id(d->dialog_id.get_secret_chat_id());
+    if (!user_id.is_valid()) {
+      return string();
+    }
+    d = get_dialog(DialogId(user_id));
+    if (d == nullptr) {
+      return string();
+    }
+  }
+  return d->theme_name;
+}
+
 td_api::object_ptr<td_api::voiceChat> MessagesManager::get_voice_chat_object(const Dialog *d) const {
   auto active_group_call_id = td_->group_call_manager_->get_group_call_id(d->active_group_call_id, d->dialog_id);
   auto default_participant_alias =
@@ -20041,7 +20056,7 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
       d->server_unread_count + d->local_unread_count, d->last_read_inbox_message_id.get(),
       d->last_read_outbox_message_id.get(), d->unread_mention_count,
       get_chat_notification_settings_object(&d->notification_settings),
-      d->message_ttl_setting.get_message_ttl_setting_object(), d->theme_name, get_chat_action_bar_object(d),
+      d->message_ttl_setting.get_message_ttl_setting_object(), get_dialog_theme_name(d), get_chat_action_bar_object(d),
       get_voice_chat_object(d), d->reply_markup_message_id.get(), std::move(draft_message), d->client_data);
 }
 
@@ -28533,12 +28548,16 @@ void MessagesManager::send_update_new_chat(Dialog *d) {
   CHECK(d->messages == nullptr);
   auto chat_object = get_chat_object(d);
   bool has_action_bar = chat_object->action_bar_ != nullptr;
+  bool has_theme = !chat_object->theme_name_.empty();
   d->last_sent_has_scheduled_messages = chat_object->has_scheduled_messages_;
   send_closure(G()->td(), &Td::send_update, make_tl_object<td_api::updateNewChat>(std::move(chat_object)));
   d->is_update_new_chat_sent = true;
 
   if (has_action_bar) {
     send_update_secret_chats_with_user_action_bar(d);
+  }
+  if (has_theme) {
+    send_update_secret_chats_with_user_theme(d);
   }
 }
 
@@ -28815,6 +28834,41 @@ void MessagesManager::send_update_chat_action_bar(const Dialog *d) {
                td_api::make_object<td_api::updateChatActionBar>(d->dialog_id.get(), get_chat_action_bar_object(d)));
 
   send_update_secret_chats_with_user_action_bar(d);
+}
+
+void MessagesManager::send_update_secret_chats_with_user_theme(const Dialog *d) const {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  if (d->dialog_id.get_type() != DialogType::User) {
+    return;
+  }
+
+  td_->contacts_manager_->for_each_secret_chat_with_user(
+      d->dialog_id.get_user_id(), [this, user_d = d](SecretChatId secret_chat_id) {
+        DialogId dialog_id(secret_chat_id);
+        auto secret_chat_d = get_dialog(dialog_id);  // must not create the dialog
+        if (secret_chat_d != nullptr && secret_chat_d->is_update_new_chat_sent) {
+          send_closure(G()->td(), &Td::send_update,
+                       td_api::make_object<td_api::updateChatTheme>(dialog_id.get(), user_d->theme_name));
+        }
+      });
+}
+
+void MessagesManager::send_update_chat_theme(const Dialog *d) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  CHECK(d != nullptr);
+  CHECK(d->dialog_id.get_type() != DialogType::SecretChat);
+  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_theme";
+  on_dialog_updated(d->dialog_id, "send_update_chat_theme");
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateChatTheme>(d->dialog_id.get(), d->theme_name));
+
+  send_update_secret_chats_with_user_theme(d);
 }
 
 void MessagesManager::send_update_chat_voice_chat(const Dialog *d) {
@@ -29828,14 +29882,18 @@ void MessagesManager::on_update_dialog_theme_name(DialogId dialog_id, string the
 
 void MessagesManager::set_dialog_theme_name(Dialog *d, string theme_name) {
   CHECK(d != nullptr);
-  if (d->theme_name == theme_name && d->is_theme_name_inited) {
+  bool is_changed = d->theme_name != theme_name;
+  if (!is_changed && d->is_theme_name_inited) {
     return;
   }
   d->theme_name = std::move(theme_name);
   d->is_theme_name_inited = true;
   on_dialog_updated(d->dialog_id, "set_dialog_theme_name");
 
-  LOG(INFO) << "Set " << d->dialog_id << " theme to \"" << theme_name << '"';
+  if (is_changed) {
+    LOG(INFO) << "Set " << d->dialog_id << " theme to \"" << theme_name << '"';
+    send_update_chat_theme(d);
+  }
 }
 
 void MessagesManager::repair_dialog_scheduled_messages(Dialog *d) {

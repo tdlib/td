@@ -3678,6 +3678,9 @@ updateChatMessageTtlSetting chat_id:int53 message_ttl_setting:int32 = Update;
 //@description The chat action bar was changed @chat_id Chat identifier @action_bar The new value of the action bar; may be null
 updateChatActionBar chat_id:int53 action_bar:ChatActionBar = Update;
 
+//@description The chat theme was changed @chat_id Chat identifier @theme_name The new name of the chat theme; may be empty if none
+updateChatTheme chat_id:int53 theme_name:string = Update;
+
 //@description The default chat reply markup was changed. Can occur because new messages with reply markup were received or because an old reply markup was hidden by the user
 //@chat_id Chat identifier @reply_markup_message_id Identifier of the message from which reply markup needs to be used; 0 if there is no default custom reply markup in the chat
 updateChatReplyMarkup chat_id:int53 reply_markup_message_id:int53 = Update;
