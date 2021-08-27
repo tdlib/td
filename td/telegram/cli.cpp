@@ -3778,6 +3778,11 @@ class CliClient final : public Actor {
       } else {
         LOG(ERROR) << "Wrong permissions size, expected 8";
       }
+    } else if (op == "sctn") {
+      string chat_id;
+      string theme_name;
+      get_args(args, chat_id, theme_name);
+      send_request(td_api::make_object<td_api::setChatTheme>(as_chat_id(chat_id), theme_name));
     } else if (op == "sccd") {
       string chat_id;
       string client_data;

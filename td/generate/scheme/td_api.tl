@@ -4591,6 +4591,10 @@ setChatMessageTtlSetting chat_id:int53 ttl:int32 = Ok;
 //@chat_id Chat identifier @permissions New non-administrator members permissions in the chat
 setChatPermissions chat_id:int53 permissions:chatPermissions = Ok;
 
+//@description Changes the chat theme. Requires can_change_info administrator right in groups, supergroups and channels @chat_id Chat identifier
+//@theme_name Name of the new chat theme; may be empty to return the default theme
+setChatTheme chat_id:int53 theme_name:string = Ok;
+
 //@description Changes the draft message in a chat @chat_id Chat identifier @message_thread_id If not 0, a message thread identifier in which the draft was changed @draft_message New draft message; may be null
 setChatDraftMessage chat_id:int53 message_thread_id:int53 draft_message:draftMessage = Ok;
 
