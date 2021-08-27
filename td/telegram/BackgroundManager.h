@@ -57,7 +57,7 @@ class BackgroundManager final : public Actor {
 
   std::pair<BackgroundId, BackgroundType> on_get_background(
       BackgroundId expected_background_id, const string &expected_background_name,
-      telegram_api::object_ptr<telegram_api::WallPaper> wallpaper_ptr);
+      telegram_api::object_ptr<telegram_api::WallPaper> wallpaper_ptr, bool replace_type);
 
   FileSourceId get_background_file_source_id(BackgroundId background_id, int64 access_hash);
 
@@ -118,7 +118,7 @@ class BackgroundManager final : public Actor {
 
   BackgroundId add_local_background(const BackgroundType &type);
 
-  void add_background(const Background &background);
+  void add_background(const Background &background, bool replace_type);
 
   Background *get_background_ref(BackgroundId background_id);
 
