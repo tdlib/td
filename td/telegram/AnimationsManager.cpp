@@ -150,14 +150,15 @@ int32 AnimationsManager::get_animation_duration(FileId file_id) const {
   return it->second->duration;
 }
 
-tl_object_ptr<td_api::animation> AnimationsManager::get_animation_object(FileId file_id, const char *source) {
+tl_object_ptr<td_api::animation> AnimationsManager::get_animation_object(FileId file_id) const {
   if (!file_id.is_valid()) {
     return nullptr;
   }
 
-  auto &animation = animations_[file_id];
-  LOG_CHECK(animation != nullptr) << source << " " << file_id << " "
-                                  << static_cast<int32>(td_->file_manager_->get_file_view(file_id).get_type());
+  auto it = animations_.find(file_id);
+  CHECK(it != animations_.end());
+  auto animation = it->second.get();
+  CHECK(animation != nullptr);
   auto thumbnail =
       animation->animated_thumbnail.file_id.is_valid()
           ? get_thumbnail_object(td_->file_manager_.get(), animation->animated_thumbnail, PhotoFormat::Mpeg4)

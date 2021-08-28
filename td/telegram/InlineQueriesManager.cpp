@@ -1302,8 +1302,7 @@ void InlineQueriesManager::on_get_inline_query_results(DialogId dialog_id, UserI
 
               auto animation = make_tl_object<td_api::inlineQueryResultAnimation>();
               animation->id_ = std::move(result->id_);
-              animation->animation_ =
-                  td_->animations_manager_->get_animation_object(parsed_document.file_id, "inlineQueryResultAnimation");
+              animation->animation_ = td_->animations_manager_->get_animation_object(parsed_document.file_id);
               animation->title_ = std::move(result->title_);
 
               if (!register_inline_message_content(results->query_id_, animation->id_, parsed_document.file_id,
@@ -1618,8 +1617,7 @@ void InlineQueriesManager::on_get_inline_query_results(DialogId dialog_id, UserI
           } else if (is_animation && parsed_document.type == Document::Type::Animation) {
             auto animation = make_tl_object<td_api::inlineQueryResultAnimation>();
             animation->id_ = std::move(result->id_);
-            animation->animation_ =
-                td_->animations_manager_->get_animation_object(file_id, "inlineQueryResultAnimationCached");
+            animation->animation_ = td_->animations_manager_->get_animation_object(file_id);
             animation->title_ = std::move(result->title_);
             if (!register_inline_message_content(results->query_id_, animation->id_, file_id,
                                                  std::move(result->send_message_), td_api::inputMessageAnimation::ID,

@@ -28,12 +28,14 @@ int32 VoiceNotesManager::get_voice_note_duration(FileId file_id) const {
   return it->second->duration;
 }
 
-tl_object_ptr<td_api::voiceNote> VoiceNotesManager::get_voice_note_object(FileId file_id) {
+tl_object_ptr<td_api::voiceNote> VoiceNotesManager::get_voice_note_object(FileId file_id) const {
   if (!file_id.is_valid()) {
     return nullptr;
   }
 
-  auto &voice_note = voice_notes_[file_id];
+  auto it = voice_notes_.find(file_id);
+  CHECK(it != voice_notes_.end());
+  auto voice_note = it->second.get();
   CHECK(voice_note != nullptr);
   return make_tl_object<td_api::voiceNote>(voice_note->duration, voice_note->waveform, voice_note->mime_type,
                                            td_->file_manager_->get_file_object(file_id));

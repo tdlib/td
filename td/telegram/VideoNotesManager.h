@@ -28,7 +28,7 @@ class VideoNotesManager {
 
   int32 get_video_note_duration(FileId file_id) const;
 
-  tl_object_ptr<td_api::videoNote> get_video_note_object(FileId file_id);
+  tl_object_ptr<td_api::videoNote> get_video_note_object(FileId file_id) const;
 
   void create_video_note(FileId file_id, string minithumbnail, PhotoSize thumbnail, int32 duration,
                          Dimensions dimensions, bool replace);

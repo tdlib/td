@@ -2735,7 +2735,7 @@ class GetSavedAnimationsRequest final : public RequestActor<> {
 
   void do_send_result() final {
     send_result(make_tl_object<td_api::animations>(transform(std::move(animation_ids_), [td = td](FileId animation_id) {
-      return td->animations_manager_->get_animation_object(animation_id, "GetSavedAnimationsRequest");
+      return td->animations_manager_->get_animation_object(animation_id);
     })));
   }
 

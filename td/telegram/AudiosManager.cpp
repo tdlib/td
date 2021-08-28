@@ -29,12 +29,14 @@ int32 AudiosManager::get_audio_duration(FileId file_id) const {
   return it->second->duration;
 }
 
-tl_object_ptr<td_api::audio> AudiosManager::get_audio_object(FileId file_id) {
+tl_object_ptr<td_api::audio> AudiosManager::get_audio_object(FileId file_id) const {
   if (!file_id.is_valid()) {
     return nullptr;
   }
 
-  auto &audio = audios_[file_id];
+  auto it = audios_.find(file_id);
+  CHECK(it != audios_.end());
+  auto audio = it->second.get();
   CHECK(audio != nullptr);
   return make_tl_object<td_api::audio>(
       audio->duration, audio->title, audio->performer, audio->file_name, audio->mime_type,

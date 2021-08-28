@@ -164,7 +164,7 @@ class NotificationTypePushMessage final : public NotificationType {
         if (key == "MESSAGE_ANIMATION") {
           auto animations_manager = G()->td().get_actor_unsafe()->animations_manager_.get();
           return td_api::make_object<td_api::pushMessageContentAnimation>(
-              animations_manager->get_animation_object(document.file_id, "MESSAGE_ANIMATION"), arg, is_pinned);
+              animations_manager->get_animation_object(document.file_id), arg, is_pinned);
         }
         if (key == "MESSAGE_AUDIO") {
           auto audios_manager = G()->td().get_actor_unsafe()->audios_manager_.get();

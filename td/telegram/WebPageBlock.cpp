@@ -981,7 +981,7 @@ class WebPageBlockAnimation final : public WebPageBlock {
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
     return make_tl_object<td_api::pageBlockAnimation>(
-        context->td_->animations_manager_->get_animation_object(animation_file_id, "get_page_block_object"),
+        context->td_->animations_manager_->get_animation_object(animation_file_id),
         caption.get_page_block_caption_object(context), need_autoplay);
   }
 

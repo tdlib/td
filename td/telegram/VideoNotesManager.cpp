@@ -28,13 +28,14 @@ int32 VideoNotesManager::get_video_note_duration(FileId file_id) const {
   return it->second->duration;
 }
 
-tl_object_ptr<td_api::videoNote> VideoNotesManager::get_video_note_object(FileId file_id) {
+tl_object_ptr<td_api::videoNote> VideoNotesManager::get_video_note_object(FileId file_id) const {
   if (!file_id.is_valid()) {
     return nullptr;
   }
 
-  auto &video_note = video_notes_[file_id];
-  CHECK(video_note != nullptr);
+  auto it = video_notes_.find(file_id);
+  CHECK(it != video_notes_.end());
+  auto video_note = it->second.get();
   return make_tl_object<td_api::videoNote>(
       video_note->duration, video_note->dimensions.width, get_minithumbnail_object(video_note->minithumbnail),
       get_thumbnail_object(td_->file_manager_.get(), video_note->thumbnail, PhotoFormat::Jpeg),

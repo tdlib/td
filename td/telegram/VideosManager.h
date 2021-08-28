@@ -28,7 +28,7 @@ class VideosManager {
 
   int32 get_video_duration(FileId file_id) const;
 
-  tl_object_ptr<td_api::video> get_video_object(FileId file_id);
+  tl_object_ptr<td_api::video> get_video_object(FileId file_id) const;
 
   void create_video(FileId file_id, string minithumbnail, PhotoSize thumbnail, AnimationSize animated_thumbnail,
                     bool has_stickers, vector<FileId> &&sticker_file_ids, string file_name, string mime_type,

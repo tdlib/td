@@ -47,14 +47,16 @@ namespace td {
 DocumentsManager::DocumentsManager(Td *td) : td_(td) {
 }
 
-tl_object_ptr<td_api::document> DocumentsManager::get_document_object(FileId file_id, PhotoFormat thumbnail_format) {
+tl_object_ptr<td_api::document> DocumentsManager::get_document_object(FileId file_id,
+                                                                      PhotoFormat thumbnail_format) const {
   if (!file_id.is_valid()) {
     return nullptr;
   }
 
-  LOG(INFO) << "Return document " << file_id << " object";
-  auto &document = documents_[file_id];
-  LOG_CHECK(document != nullptr) << tag("file_id", file_id);
+  auto it = documents_.find(file_id);
+  CHECK(it != documents_.end());
+  auto document = it->second.get();
+  CHECK(document != nullptr);
   return make_tl_object<td_api::document>(
       document->file_name, document->mime_type, get_minithumbnail_object(document->minithumbnail),
       get_thumbnail_object(td_->file_manager_.get(), document->thumbnail, thumbnail_format),

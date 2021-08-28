@@ -1261,7 +1261,7 @@ tl_object_ptr<td_api::webPage> WebPagesManager::get_web_page_object(WebPageId we
       get_photo_object(td_->file_manager_.get(), web_page->photo), web_page->embed_url, web_page->embed_type,
       web_page->embed_dimensions.width, web_page->embed_dimensions.height, web_page->duration, web_page->author,
       web_page->document.type == Document::Type::Animation
-          ? td_->animations_manager_->get_animation_object(web_page->document.file_id, "get_web_page_object")
+          ? td_->animations_manager_->get_animation_object(web_page->document.file_id)
           : nullptr,
       web_page->document.type == Document::Type::Audio
           ? td_->audios_manager_->get_audio_object(web_page->document.file_id)

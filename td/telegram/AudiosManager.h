@@ -28,7 +28,7 @@ class AudiosManager {
 
   int32 get_audio_duration(FileId file_id) const;
 
-  tl_object_ptr<td_api::audio> get_audio_object(FileId file_id);
+  tl_object_ptr<td_api::audio> get_audio_object(FileId file_id) const;
 
   void create_audio(FileId file_id, string minithumbnail, PhotoSize thumbnail, string file_name, string mime_type,
                     int32 duration, string title, string performer, bool replace);

@@ -4668,7 +4668,7 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     case MessageContentType::Animation: {
       const MessageAnimation *m = static_cast<const MessageAnimation *>(content);
       return make_tl_object<td_api::messageAnimation>(
-          td->animations_manager_->get_animation_object(m->file_id, "get_message_content_object"),
+          td->animations_manager_->get_animation_object(m->file_id),
           get_formatted_text_object(m->caption, skip_bot_commands, max_media_timestamp), is_content_secret);
     }
     case MessageContentType::Audio: {
