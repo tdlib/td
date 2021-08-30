@@ -405,10 +405,8 @@ ActorId<SecretChatActor> SecretChatsManager::create_chat_actor_impl(int32 id, bo
     if (binlog_replay_finish_flag_) {
       send_closure(it_flag.first->second, &SecretChatActor::binlog_replay_finish);
     }
-    return it_flag.first->second.get();
-  } else {
-    return it_flag.first->second.get();
   }
+  return it_flag.first->second.get();
 }
 
 void SecretChatsManager::hangup() {
@@ -417,7 +415,7 @@ void SecretChatsManager::hangup() {
     return stop();
   }
   for (auto &it : id_to_actor_) {
-    LOG(INFO) << "Ask close SecretChatActor " << tag("id", it.first);
+    LOG(INFO) << "Ask to close SecretChatActor " << tag("id", it.first);
     it.second.reset();
   }
   if (id_to_actor_.empty()) {
@@ -429,13 +427,10 @@ void SecretChatsManager::hangup_shared() {
   CHECK(!dummy_mode_);
   auto token = get_link_token();
   auto it = id_to_actor_.find(static_cast<int32>(token));
-  if (it != id_to_actor_.end()) {
-    LOG(INFO) << "Close SecretChatActor " << tag("id", it->first);
-    it->second.release();
-    id_to_actor_.erase(it);
-  } else {
-    LOG(FATAL) << "Unknown SecretChatActor hangup " << tag("id", static_cast<int32>(token));
-  }
+  CHECK(it != id_to_actor_.end());
+  LOG(INFO) << "Close SecretChatActor " << tag("id", it->first);
+  it->second.release();
+  id_to_actor_.erase(it);
   if (close_flag_ && id_to_actor_.empty()) {
     stop();
   }
