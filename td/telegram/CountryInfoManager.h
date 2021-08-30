@@ -15,6 +15,7 @@
 #include "td/utils/common.h"
 #include "td/utils/Status.h"
 
+#include <mutex>
 #include <unordered_map>
 
 namespace td {
@@ -39,6 +40,7 @@ class CountryInfoManager final : public Actor {
   ~CountryInfoManager() final;
 
  private:
+  void start_up() final;
   void tear_down() final;
 
   struct CallingCodeInfo;
@@ -58,16 +60,21 @@ class CountryInfoManager final : public Actor {
   void on_get_country_list(const string &language_code,
                            Result<tl_object_ptr<telegram_api::help_CountriesList>> r_country_list);
 
-  void on_get_country_list_impl(const string &language_code,
-                                tl_object_ptr<telegram_api::help_CountriesList> country_list);
+  static void on_get_country_list_impl(const string &language_code,
+                                       tl_object_ptr<telegram_api::help_CountriesList> country_list);
 
-  const CountryList *get_country_list(const string &language_code);
+  static const CountryList *get_country_list(CountryInfoManager *manager, const string &language_code);
 
   static td_api::object_ptr<td_api::phoneNumberInfo> get_phone_number_info_object(const CountryList *list,
                                                                                   Slice phone_number);
 
+  static std::mutex country_mutex_;
+
+  static int32 manager_count_;
+
+  static std::unordered_map<string, unique_ptr<CountryList>> countries_;
+
   std::unordered_map<string, vector<Promise<Unit>>> pending_load_country_queries_;
-  std::unordered_map<string, unique_ptr<CountryList>> countries_;
 
   Td *td_;
   ActorShared<> parent_;

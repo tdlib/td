@@ -105,13 +105,13 @@ struct CountryInfoManager::CountryInfo {
 };
 
 struct CountryInfoManager::CountryList {
-  vector<CountryInfo> countries_;
+  vector<CountryInfo> countries;
   int32 hash = 0;
   double next_reload_time = 0.0;
 
   td_api::object_ptr<td_api::countries> get_countries_object() const {
     return td_api::make_object<td_api::countries>(
-        transform(countries_, [](const CountryInfo &info) { return info.get_country_info_object(); }));
+        transform(countries, [](const CountryInfo &info) { return info.get_country_info_object(); }));
   }
 };
 
@@ -120,8 +120,20 @@ CountryInfoManager::CountryInfoManager(Td *td, ActorShared<> parent) : td_(td), 
 
 CountryInfoManager::~CountryInfoManager() = default;
 
+void CountryInfoManager::start_up() {
+  std::lock_guard<std::mutex> country_lock(country_mutex_);
+  manager_count_++;
+}
+
 void CountryInfoManager::tear_down() {
   parent_.reset();
+
+  std::lock_guard<std::mutex> country_lock(country_mutex_);
+  manager_count_--;
+  if (manager_count_ == 0) {
+    LOG(INFO) << "Clear country info";
+    countries_.clear();
+  }
 }
 
 string CountryInfoManager::get_main_language_code() {
@@ -141,23 +153,27 @@ void CountryInfoManager::do_get_countries(string language_code, bool is_recursiv
       is_recursive = false;
     }
   }
-  auto list = get_country_list(language_code);
-  if (list == nullptr) {
-    if (is_recursive) {
-      return promise.set_error(Status::Error(500, "Requested data is inaccessible"));
+
+  {
+    std::lock_guard<std::mutex> country_lock(country_mutex_);
+    auto list = get_country_list(this, language_code);
+    if (list != nullptr) {
+      return promise.set_value(list->get_countries_object());
     }
-    return load_country_list(language_code, 0,
-                             PromiseCreator::lambda([actor_id = actor_id(this), language_code,
-                                                     promise = std::move(promise)](Result<Unit> &&result) mutable {
-                               if (result.is_error()) {
-                                 return promise.set_error(result.move_as_error());
-                               }
-                               send_closure(actor_id, &CountryInfoManager::do_get_countries, std::move(language_code),
-                                            true, std::move(promise));
-                             }));
   }
 
-  promise.set_value(list->get_countries_object());
+  if (is_recursive) {
+    return promise.set_error(Status::Error(500, "Requested data is inaccessible"));
+  }
+  load_country_list(language_code, 0,
+                    PromiseCreator::lambda([actor_id = actor_id(this), language_code,
+                                            promise = std::move(promise)](Result<Unit> &&result) mutable {
+                      if (result.is_error()) {
+                        return promise.set_error(result.move_as_error());
+                      }
+                      send_closure(actor_id, &CountryInfoManager::do_get_countries, std::move(language_code), true,
+                                   std::move(promise));
+                    }));
 }
 
 void CountryInfoManager::get_phone_number_info(string phone_number_prefix,
@@ -178,24 +194,26 @@ void CountryInfoManager::do_get_phone_number_info(string phone_number_prefix, st
       is_recursive = false;
     }
   }
-  auto list = get_country_list(language_code);
-  if (list == nullptr) {
-    if (is_recursive) {
-      return promise.set_error(Status::Error(500, "Requested data is inaccessible"));
+  {
+    std::lock_guard<std::mutex> country_lock(country_mutex_);
+    auto list = get_country_list(this, language_code);
+    if (list != nullptr) {
+      return promise.set_value(get_phone_number_info_object(list, phone_number_prefix));
     }
-    return load_country_list(language_code, 0,
-                             PromiseCreator::lambda([actor_id = actor_id(this), phone_number_prefix, language_code,
-                                                     promise = std::move(promise)](Result<Unit> &&result) mutable {
-                               if (result.is_error()) {
-                                 return promise.set_error(result.move_as_error());
-                               }
-                               send_closure(actor_id, &CountryInfoManager::do_get_phone_number_info,
-                                            std::move(phone_number_prefix), std::move(language_code), true,
-                                            std::move(promise));
-                             }));
   }
 
-  promise.set_value(get_phone_number_info_object(list, phone_number_prefix));
+  if (is_recursive) {
+    return promise.set_error(Status::Error(500, "Requested data is inaccessible"));
+  }
+  load_country_list(language_code, 0,
+                    PromiseCreator::lambda([actor_id = actor_id(this), phone_number_prefix, language_code,
+                                            promise = std::move(promise)](Result<Unit> &&result) mutable {
+                      if (result.is_error()) {
+                        return promise.set_error(result.move_as_error());
+                      }
+                      send_closure(actor_id, &CountryInfoManager::do_get_phone_number_info,
+                                   std::move(phone_number_prefix), std::move(language_code), true, std::move(promise));
+                    }));
 }
 
 td_api::object_ptr<td_api::phoneNumberInfo> CountryInfoManager::get_phone_number_info_object(const CountryList *list,
@@ -205,7 +223,7 @@ td_api::object_ptr<td_api::phoneNumberInfo> CountryInfoManager::get_phone_number
   const CallingCodeInfo *best_calling_code = nullptr;
   size_t best_length = 0;
   bool is_prefix = false;  // is phone number a prefix of a valid country_code + prefix
-  for (auto &country : list->countries_) {
+  for (auto &country : list->countries) {
     for (auto &calling_code : country.calling_codes) {
       if (begins_with(phone_number, calling_code.calling_code)) {
         auto calling_code_size = calling_code.calling_code.size();
@@ -315,9 +333,19 @@ void CountryInfoManager::on_get_country_list(const string &language_code,
   pending_load_country_queries_.erase(query_it);
 
   if (r_country_list.is_error()) {
-    auto it = countries_.find(language_code);
-    if (it != countries_.end()) {
-      it->second->next_reload_time = Time::now() + Random::fast(60, 120);
+    {
+      std::lock_guard<std::mutex> country_lock(country_mutex_);
+      auto it = countries_.find(language_code);
+      if (it != countries_.end()) {
+        // don't try to reload countries more often than once in 1-2 minutes
+        it->second->next_reload_time = max(Time::now() + Random::fast(60, 120), it->second->next_reload_time);
+
+        // if we have data for the language, then we don't need to fail promises
+        for (auto &promise : promises) {
+          promise.set_value(Unit());
+        }
+        return;
+      }
     }
     for (auto &promise : promises) {
       promise.set_error(r_country_list.error().clone());
@@ -325,7 +353,10 @@ void CountryInfoManager::on_get_country_list(const string &language_code,
     return;
   }
 
-  on_get_country_list_impl(language_code, r_country_list.move_as_ok());
+  {
+    std::lock_guard<std::mutex> country_lock(country_mutex_);
+    on_get_country_list_impl(language_code, r_country_list.move_as_ok());
+  }
 
   for (auto &promise : promises) {
     promise.set_value(Unit());
@@ -378,7 +409,7 @@ void CountryInfoManager::on_get_country_list_impl(const string &language_code,
           continue;
         }
 
-        countries->countries_.push_back(std::move(info));
+        countries->countries.push_back(std::move(info));
       }
       countries->hash = list->hash_;
       countries->next_reload_time = Time::now() + Random::fast(86400, 2 * 86400);
@@ -389,7 +420,8 @@ void CountryInfoManager::on_get_country_list_impl(const string &language_code,
   }
 }
 
-const CountryInfoManager::CountryList *CountryInfoManager::get_country_list(const string &language_code) {
+const CountryInfoManager::CountryList *CountryInfoManager::get_country_list(CountryInfoManager *manager,
+                                                                            const string &language_code) {
   auto it = countries_.find(language_code);
   if (it == countries_.end()) {
     if (language_code == "en") {
@@ -467,7 +499,9 @@ const CountryInfoManager::CountryList *CountryInfoManager::get_country_list(cons
       it = countries_.find(language_code);
       CHECK(it != countries_.end())
       auto *country = it->second.get();
-      load_country_list(language_code, country->hash, Auto());
+      if (manager != nullptr) {
+        manager->load_country_list(language_code, country->hash, Auto());
+      }
       return country;
     }
     return nullptr;
@@ -475,11 +509,15 @@ const CountryInfoManager::CountryList *CountryInfoManager::get_country_list(cons
 
   auto *country = it->second.get();
   CHECK(country != nullptr);
-  if (country->next_reload_time < Time::now()) {
-    load_country_list(language_code, country->hash, Auto());
+  if (manager != nullptr && country->next_reload_time < Time::now()) {
+    manager->load_country_list(language_code, country->hash, Auto());
   }
 
   return country;
 }
+
+int32 CountryInfoManager::manager_count_ = 0;
+std::mutex CountryInfoManager::country_mutex_;
+std::unordered_map<string, unique_ptr<CountryInfoManager::CountryList>> CountryInfoManager::countries_;
 
 }  // namespace td
