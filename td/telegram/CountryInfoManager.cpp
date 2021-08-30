@@ -199,7 +199,7 @@ void CountryInfoManager::do_get_phone_number_info(string phone_number_prefix, st
   const CountryInfo *best_country = nullptr;
   const CallingCodeInfo *best_calling_code = nullptr;
   size_t best_length = 0;
-  bool is_prefix = false;
+  bool is_prefix = false;  // is phone number a prefix of a valid country_code + prefix
   for (auto &country : list->countries_) {
     for (auto &calling_code : country.calling_codes) {
       if (begins_with(phone_number, calling_code.calling_code)) {
@@ -240,7 +240,7 @@ void CountryInfoManager::do_get_phone_number_info(string phone_number_prefix, st
         result += pattern[current_pattern_pos++];
       }
       if (current_pattern_pos == pattern.size()) {
-        result += ' ';
+        // result += ' ';
       }
       if (current_pattern_pos >= pattern.size() || pattern[current_pattern_pos] == 'X') {
         result += c;
@@ -257,8 +257,22 @@ void CountryInfoManager::do_get_phone_number_info(string phone_number_prefix, st
         }
       }
     }
+    for (size_t i = current_pattern_pos; i < pattern.size(); i++) {
+      if (is_digit(pattern[i])) {
+        is_failed_match = true;
+      }
+    }
     if (!is_failed_match && matched_digits >= max_matched_digits) {
       max_matched_digits = matched_digits;
+      while (current_pattern_pos < pattern.size()) {
+        if (pattern[current_pattern_pos] == 'X') {
+          result.push_back('-');
+        } else {
+          CHECK(!is_digit(pattern[current_pattern_pos]));
+          result.push_back(' ');
+        }
+        current_pattern_pos++;
+      }
       formatted_phone_number = std::move(result);
     }
   }

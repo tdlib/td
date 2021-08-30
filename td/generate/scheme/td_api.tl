@@ -1302,7 +1302,7 @@ countries countries:vector<countryInfo> = Countries;
 //@description Contains information about a phone number
 //@country Information about the country to which the phone number belongs; may be null
 //@country_calling_code The part of the phone number denoting country calling code or its part
-//@formatted_phone_number The phone number without country calling code formatted accordingly to local rules
+//@formatted_phone_number The phone number without country calling code formatted accordingly to local rules. Expected digits are returned as '-', but even more digits might be entered by the user
 phoneNumberInfo country:countryInfo country_calling_code:string formatted_phone_number:string = PhoneNumberInfo;
 
 
