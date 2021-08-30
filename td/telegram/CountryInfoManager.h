@@ -63,6 +63,9 @@ class CountryInfoManager final : public Actor {
 
   const CountryList *get_country_list(const string &language_code);
 
+  static td_api::object_ptr<td_api::phoneNumberInfo> get_phone_number_info_object(const CountryList *list,
+                                                                                  Slice phone_number);
+
   std::unordered_map<string, vector<Promise<Unit>>> pending_load_country_queries_;
   std::unordered_map<string, unique_ptr<CountryList>> countries_;
 

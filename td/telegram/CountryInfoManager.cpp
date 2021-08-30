@@ -195,7 +195,12 @@ void CountryInfoManager::do_get_phone_number_info(string phone_number_prefix, st
                              }));
   }
 
-  Slice phone_number = phone_number_prefix;
+  promise.set_value(get_phone_number_info_object(list, phone_number_prefix));
+}
+
+td_api::object_ptr<td_api::phoneNumberInfo> CountryInfoManager::get_phone_number_info_object(const CountryList *list,
+                                                                                             Slice phone_number) {
+  CHECK(list != nullptr);
   const CountryInfo *best_country = nullptr;
   const CallingCodeInfo *best_calling_code = nullptr;
   size_t best_length = 0;
@@ -222,12 +227,12 @@ void CountryInfoManager::do_get_phone_number_info(string phone_number_prefix, st
     }
   }
   if (best_country == nullptr) {
-    return promise.set_value(td_api::make_object<td_api::phoneNumberInfo>(
-        nullptr, is_prefix ? phone_number_prefix : string(), is_prefix ? string() : phone_number_prefix));
+    return td_api::make_object<td_api::phoneNumberInfo>(nullptr, is_prefix ? phone_number.str() : string(),
+                                                        is_prefix ? string() : phone_number.str());
   }
 
-  string formatted_part = phone_number_prefix.substr(best_calling_code->calling_code.size());
-  string formatted_phone_number = formatted_part;
+  Slice formatted_part = phone_number.substr(best_calling_code->calling_code.size());
+  string formatted_phone_number;
   size_t max_matched_digits = 0;
   for (auto &pattern : best_calling_code->patterns) {
     string result;
@@ -277,9 +282,9 @@ void CountryInfoManager::do_get_phone_number_info(string phone_number_prefix, st
     }
   }
 
-  promise.set_value(td_api::make_object<td_api::phoneNumberInfo>(
+  return td_api::make_object<td_api::phoneNumberInfo>(
       best_country->get_country_info_object(), best_calling_code->calling_code,
-      formatted_phone_number.empty() ? formatted_part : formatted_phone_number));
+      formatted_phone_number.empty() ? formatted_part.str() : formatted_phone_number);
 }
 
 void CountryInfoManager::get_current_country_code(Promise<string> &&promise) {
