@@ -48,7 +48,7 @@ TEST(MessageEntities, mention) {
   check_mention(
       "@ya @gif @wiki @vid @bing @pic @bold @imdb @ImDb @coub @like @vote @giff @cap ya cap @y @yar @bingg @bin",
       {"@gif", "@wiki", "@vid", "@bing", "@pic", "@bold", "@imdb", "@ImDb", "@coub", "@like", "@vote", "@bingg"});
-};
+}
 
 static void check_bot_command(const td::string &str, const td::vector<td::string> &expected) {
   auto result_slice = td::find_bot_commands(str);

@@ -55,4 +55,4 @@ TEST(Poll, get_vote_percentage) {
   check_vote_percentage({200, 200, 200, 300, 240, 60}, 1200, {16, 16, 16, 25, 20, 5});
   check_vote_percentage({200, 200, 200, 250, 250, 20}, 1120, {18, 18, 18, 22, 22, 2});
   check_vote_percentage({200, 200, 200, 250, 250, 40}, 1140, {17, 17, 17, 22, 22, 4});
-};
+}

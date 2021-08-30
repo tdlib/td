@@ -33,7 +33,7 @@ TEST(Heap, sort_random_perm) {
     ASSERT_EQ(i, kheap.top_key());
     kheap.pop();
   }
-};
+}
 
 class CheckedHeap {
  public:

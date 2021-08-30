@@ -92,7 +92,7 @@ static void bench_log(std::string name, F &&f) {
       bench(LogBenchmark<typename decltype(f())::element_type>(name, threads_n, test_full_logging, f));
     }
   }
-};
+}
 
 TEST(Log, Bench) {
   bench_log("NullLog", [] { return td::make_unique<td::NullLog>(); });

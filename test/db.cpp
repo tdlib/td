@@ -132,7 +132,7 @@ TEST(DB, binlog_encryption) {
         binlog_name.str(), [&](const BinlogEvent &x) { v.push_back(x.data_.str()); }, cucumber, hello);
     CHECK(v == std::vector<string>({"AAAA", "BBBB", long_data, "CCCC"}));
   }
-};
+}
 
 TEST(DB, sqlite_lfs) {
   string path = "test_sqlite_db";

@@ -25,7 +25,7 @@ TEST(StringCleaning, clean_name) {
   ASSERT_EQ("abc", clean_name("\xC2\xA0\xC2\xA0"
                               "abc\xC2\xA0\xC2\xA0\xC2\xA0\xC2\xA0",
                               1000000));
-};
+}
 
 TEST(StringCleaning, clean_username) {
   ASSERT_EQ("@mention", clean_username("@mention"));
@@ -34,7 +34,7 @@ TEST(StringCleaning, clean_username) {
   ASSERT_EQ("ЛШТШФУМ", clean_username("ЛШТШФУМ"));
   ASSERT_EQ("", clean_username("...."));
   ASSERT_EQ("asd", clean_username(".   ASD   .."));
-};
+}
 
 static void check_clean_input_string(string str, string expected, bool expected_result) {
   auto result = clean_input_string(str);

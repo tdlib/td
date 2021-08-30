@@ -47,7 +47,8 @@ using Platform::String;
 
 using Platform::NullReferenceException;
 
-template <class Key, class Value> class ConcurrentDictionary {
+template <class Key, class Value>
+class ConcurrentDictionary {
 public:
   bool TryGetValue(Key key, Value &value) {
     std::lock_guard<std::mutex> guard(mutex_);

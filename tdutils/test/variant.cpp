@@ -68,4 +68,4 @@ TEST(Variant, simple) {
   }
   ASSERT_STREQ("-C", move_sb());
   sb.clear();
-};
+}
