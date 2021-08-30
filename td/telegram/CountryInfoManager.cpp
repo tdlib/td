@@ -216,6 +216,22 @@ void CountryInfoManager::do_get_phone_number_info(string phone_number_prefix, st
                     }));
 }
 
+td_api::object_ptr<td_api::phoneNumberInfo> CountryInfoManager::get_phone_number_info_sync(string language_code,
+                                                                                           string phone_number_prefix) {
+  td::remove_if(phone_number_prefix, [](char c) { return c < '0' || c > '9'; });
+  if (phone_number_prefix.empty()) {
+    return td_api::make_object<td_api::phoneNumberInfo>(nullptr, string(), string());
+  }
+
+  std::lock_guard<std::mutex> country_lock(country_mutex_);
+  auto list = get_country_list(nullptr, language_code);
+  if (list == nullptr) {
+    list = get_country_list(nullptr, "en");
+  }
+
+  return get_phone_number_info_object(list, phone_number_prefix);
+}
+
 td_api::object_ptr<td_api::phoneNumberInfo> CountryInfoManager::get_phone_number_info_object(const CountryList *list,
                                                                                              Slice phone_number) {
   CHECK(list != nullptr);

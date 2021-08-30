@@ -1224,6 +1224,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, const td_api::getLanguagePackString &request);
 
+  void on_request(uint64 id, const td_api::getPhoneNumberInfoSync &request);
+
   void on_request(uint64 id, const td_api::getPushReceiverId &request);
 
   void on_request(uint64 id, const td_api::getChatFilterDefaultIconName &request);
@@ -1275,6 +1277,7 @@ class Td final : public NetQueryCallback {
   static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getFileExtension &request);
   static td_api::object_ptr<td_api::Object> do_static_request(const td_api::cleanFileName &request);
   static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getLanguagePackString &request);
+  static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getPhoneNumberInfoSync &request);
   static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getPushReceiverId &request);
   static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getChatFilterDefaultIconName &request);
   static td_api::object_ptr<td_api::Object> do_static_request(td_api::getJsonValue &request);

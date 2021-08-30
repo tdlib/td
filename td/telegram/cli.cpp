@@ -2310,6 +2310,8 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getCountryCode>());
     } else if (op == "gpni") {
       send_request(td_api::make_object<td_api::getPhoneNumberInfo>(args));
+    } else if (op == "gpnis") {
+      execute(td_api::make_object<td_api::getPhoneNumberInfoSync>(rand_bool() ? "en" : "", args));
     } else if (op == "gadl") {
       send_request(td_api::make_object<td_api::getApplicationDownloadLink>());
     } else if (op == "atos") {

@@ -3152,6 +3152,7 @@ bool Td::is_synchronous_request(int32 id) {
     case td_api::getFileExtension::ID:
     case td_api::cleanFileName::ID:
     case td_api::getLanguagePackString::ID:
+    case td_api::getPhoneNumberInfoSync::ID:
     case td_api::getChatFilterDefaultIconName::ID:
     case td_api::getJsonValue::ID:
     case td_api::getJsonString::ID:
@@ -8269,6 +8270,10 @@ void Td::on_request(uint64 id, const td_api::getLanguagePackString &request) {
   UNREACHABLE();
 }
 
+void Td::on_request(uint64 id, const td_api::getPhoneNumberInfoSync &request) {
+  UNREACHABLE();
+}
+
 void Td::on_request(uint64 id, const td_api::getPushReceiverId &request) {
   UNREACHABLE();
 }
@@ -8418,6 +8423,11 @@ td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::cleanFile
 td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getLanguagePackString &request) {
   return LanguagePackManager::get_language_pack_string(
       request.language_pack_database_path_, request.localization_target_, request.language_pack_id_, request.key_);
+}
+
+td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getPhoneNumberInfoSync &request) {
+  // don't check language_code/phone number UTF-8 correctness
+  return CountryInfoManager::get_phone_number_info_sync(request.language_code_, request.phone_number_prefix_);
 }
 
 td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getPushReceiverId &request) {

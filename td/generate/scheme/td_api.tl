@@ -5446,6 +5446,10 @@ getCountryCode = Text;
 //@description Returns information about a phone number by its prefix. Can be called before authorization @phone_number_prefix The phone number prefix
 getPhoneNumberInfo phone_number_prefix:string = PhoneNumberInfo;
 
+//@description Returns information about a phone number by its prefix synchronously. getCountries must be called at least once after changing localization to the specified language if properly localized country information is expected. Can be called synchronously
+//@language_code A two-letter ISO 639-1 country code for country information localization @phone_number_prefix The phone number prefix
+getPhoneNumberInfoSync language_code:string phone_number_prefix:string = PhoneNumberInfo;
+
 //@description Returns the link for downloading official Telegram application to be used when the current user invites friends to Telegram
 getApplicationDownloadLink = HttpUrl;
 
