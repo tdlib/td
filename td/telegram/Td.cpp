@@ -5837,7 +5837,7 @@ void Td::on_request(uint64 id, td_api::forwardMessages &request) {
                                        MessageId) { return MessageCopyOptions(send_copy, remove_caption); });
   auto r_messages = messages_manager_->forward_messages(DialogId(request.chat_id_), DialogId(request.from_chat_id_),
                                                         std::move(input_message_ids), std::move(request.options_),
-                                                        false, std::move(message_copy_options));
+                                                        false, std::move(message_copy_options), request.only_preview_);
   if (r_messages.is_error()) {
     send_closure(actor_id(this), &Td::send_error, id, r_messages.move_as_error());
   } else {

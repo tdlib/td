@@ -2698,15 +2698,15 @@ class CliClient final : public Actor {
       get_args(args, chat_id, message_ids);
       send_request(
           td_api::make_object<td_api::deleteMessages>(as_chat_id(chat_id), as_message_ids(message_ids), op == "dmr"));
-    } else if (op == "fm" || op == "cm") {
+    } else if (op == "fm" || op == "cm" || op == "fmp" || op == "cmp") {
       string chat_id;
       string from_chat_id;
       string message_ids;
       get_args(args, chat_id, from_chat_id, message_ids);
       auto chat = as_chat_id(chat_id);
-      send_request(
-          td_api::make_object<td_api::forwardMessages>(chat, as_chat_id(from_chat_id), as_message_ids(message_ids),
-                                                       default_message_send_options(), op[0] == 'c', rand_bool()));
+      send_request(td_api::make_object<td_api::forwardMessages>(
+          chat, as_chat_id(from_chat_id), as_message_ids(message_ids), default_message_send_options(), op[0] == 'c',
+          rand_bool(), op.back() == 'p'));
     } else if (op == "resend") {
       string chat_id;
       string message_ids;

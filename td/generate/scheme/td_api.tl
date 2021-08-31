@@ -1391,7 +1391,7 @@ paymentForm id:int64 invoice:invoice url:string seller_bot_user_id:int32 payment
 //@description Contains a temporary identifier of validated order information, which is stored for one hour. Also contains the available shipping options @order_info_id Temporary identifier of the order information @shipping_options Available shipping options
 validatedOrderInfo order_info_id:string shipping_options:vector<shippingOption> = ValidatedOrderInfo;
 
-//@description Contains the result of a payment request @success True, if the payment request was successful; otherwise the verification_url will be not empty @verification_url URL for additional payment credentials verification
+//@description Contains the result of a payment request @success True, if the payment request was successful; otherwise the verification_url will be non-empty @verification_url URL for additional payment credentials verification
 paymentResult success:Bool verification_url:string = PaymentResult;
 
 //@description Contains information about a successful payment
@@ -4302,9 +4302,10 @@ sendInlineQueryResultMessage chat_id:int53 message_thread_id:int53 reply_to_mess
 //@from_chat_id Identifier of the chat from which to forward messages
 //@message_ids Identifiers of the messages to forward. Message identifiers must be in a strictly increasing order. At most 100 messages can be forwarded simultaneously
 //@options Options to be used to send the messages
-//@send_copy True, if content of the messages needs to be copied without links to the original messages. Always true if the messages are forwarded to a secret chat
-//@remove_caption True, if media caption of message copies needs to be removed. Ignored if send_copy is false
-forwardMessages chat_id:int53 from_chat_id:int53 message_ids:vector<int53> options:messageSendOptions send_copy:Bool remove_caption:Bool = Messages;
+//@send_copy If true, content of the messages will be copied without links to the original messages. Always true if the messages are forwarded to a secret chat
+//@remove_caption If true, media caption of message copies will be removed. Ignored if send_copy is false
+//@only_preview If true, messages will not be forwarded and instead fake messages will be returned
+forwardMessages chat_id:int53 from_chat_id:int53 message_ids:vector<int53> options:messageSendOptions send_copy:Bool remove_caption:Bool only_preview:Bool = Messages;
 
 //@description Resends messages which failed to send. Can be called only for messages for which messageSendingStateFailed.can_retry is true and after specified in messageSendingStateFailed.retry_after time passed.
 //-If a message is re-sent, the corresponding failed to send message is deleted. Returns the sent messages in the same order as the message identifiers passed in message_ids. If a message can't be re-sent, null will be returned instead of the message

@@ -23215,24 +23215,25 @@ MessagesManager::Message *MessagesManager::get_message_to_send(
     unique_ptr<MessageForwardInfo> forward_info, bool is_copy) {
   d->was_opened = true;
 
-  auto m = create_message_to_send(d, top_thread_message_id, reply_to_message_id, options, std::move(content),
-                                  suppress_reply_info, std::move(forward_info), is_copy);
+  auto message = create_message_to_send(d, top_thread_message_id, reply_to_message_id, options, std::move(content),
+                                        suppress_reply_info, std::move(forward_info), is_copy);
 
   MessageId message_id = options.schedule_date != 0 ? get_next_yet_unsent_scheduled_message_id(d, options.schedule_date)
                                                     : get_next_yet_unsent_message_id(d);
-  set_message_id(m, message_id);
+  set_message_id(message, message_id);
 
-  m->have_previous = true;
-  m->have_next = true;
+  message->have_previous = true;
+  message->have_next = true;
 
   do {
-    m->random_id = Random::secure_int64();
-  } while (m->random_id == 0 || message_random_ids_.find(m->random_id) != message_random_ids_.end());
-  message_random_ids_.insert(m->random_id);
+    message->random_id = Random::secure_int64();
+  } while (message->random_id == 0 || message_random_ids_.find(message->random_id) != message_random_ids_.end());
+  message_random_ids_.insert(message->random_id);
 
   bool need_update = false;
   CHECK(have_input_peer(d->dialog_id, AccessRights::Read));
-  auto result = add_message_to_dialog(d, std::move(m), true, &need_update, need_update_dialog_pos, "send message");
+  auto result =
+      add_message_to_dialog(d, std::move(message), true, &need_update, need_update_dialog_pos, "send message");
   LOG_CHECK(result != nullptr) << message_id << " " << debug_add_message_to_dialog_fail_reason_;
   if (result->message_id.is_scheduled()) {
     send_update_chat_has_scheduled_messages(d, false);
@@ -26280,7 +26281,7 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::forward_message(
   vector<MessageCopyOptions> all_copy_options;
   all_copy_options.push_back(std::move(copy_options));
   TRY_RESULT(result, forward_messages(to_dialog_id, from_dialog_id, {message_id}, std::move(options), in_game_share,
-                                      std::move(all_copy_options)));
+                                      std::move(all_copy_options), false));
   CHECK(result->messages_.size() == 1);
   if (result->messages_[0] == nullptr) {
     return Status::Error(400,
@@ -26454,7 +26455,7 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
   for (size_t i = 0; i < message_ids.size(); i++) {
     MessageId message_id = get_persistent_message_id(from_dialog, message_ids[i]);
 
-    const Message *forwarded_message = get_message_force(from_dialog, message_id, "forward_messages");
+    const Message *forwarded_message = get_message_force(from_dialog, message_id, "get_forwarded_messages");
     if (forwarded_message == nullptr) {
       LOG(INFO) << "Can't find " << message_id << " to forward";
       continue;
@@ -26562,8 +26563,8 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
 
 Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
     DialogId to_dialog_id, DialogId from_dialog_id, vector<MessageId> message_ids,
-    tl_object_ptr<td_api::messageSendOptions> &&options, bool in_game_share,
-    vector<MessageCopyOptions> &&copy_options) {
+    tl_object_ptr<td_api::messageSendOptions> &&options, bool in_game_share, vector<MessageCopyOptions> &&copy_options,
+    bool only_preview) {
   TRY_RESULT(forwarded_messages_info,
              get_forwarded_messages(to_dialog_id, from_dialog_id, message_ids, std::move(options), in_game_share,
                                     std::move(copy_options)));
@@ -26584,41 +26585,75 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
 
     auto content = std::move(forwarded_message_contents[j].content);
     auto forward_info = create_message_forward_info(from_dialog_id, to_dialog_id, forwarded_message);
-    Message *m = get_message_to_send(to_dialog, MessageId(), MessageId(), message_send_options, std::move(content),
-                                     &need_update_dialog_pos, j + 1 != forwarded_message_contents.size(),
-                                     std::move(forward_info));
+
+    unique_ptr<Message> message;
+    Message *m;
+    if (only_preview) {
+      message = create_message_to_send(to_dialog, MessageId(), MessageId(), message_send_options, std::move(content),
+                                       j + 1 != forwarded_message_contents.size(), std::move(forward_info), false);
+      MessageId new_message_id =
+          message_send_options.schedule_date != 0
+              ? get_next_yet_unsent_scheduled_message_id(to_dialog, message_send_options.schedule_date)
+              : get_next_yet_unsent_message_id(to_dialog);
+      set_message_id(message, new_message_id);
+      m = message.get();
+    } else {
+      m = get_message_to_send(to_dialog, MessageId(), MessageId(), message_send_options, std::move(content),
+                              &need_update_dialog_pos, j + 1 != forwarded_message_contents.size(),
+                              std::move(forward_info));
+    }
     fix_forwarded_message(m, to_dialog_id, forwarded_message, forwarded_message_contents[j].media_album_id);
     m->in_game_share = in_game_share;
     m->real_forward_from_dialog_id = from_dialog_id;
     m->real_forward_from_message_id = message_id;
 
-    send_update_new_message(to_dialog, m);
+    if (!only_preview) {
+      send_update_new_message(to_dialog, m);
+      forwarded_messages.push_back(m);
+      forwarded_message_ids.push_back(message_id);
+    }
 
     result[forwarded_message_contents[j].index] = get_message_object(to_dialog_id, m, false);
-    forwarded_messages.push_back(m);
-    forwarded_message_ids.push_back(message_id);
   }
 
   if (!forwarded_messages.empty()) {
+    CHECK(!only_preview);
     do_forward_messages(to_dialog_id, from_dialog_id, forwarded_messages, forwarded_message_ids, 0);
   }
 
   for (auto &copied_message : copied_messages) {
-    Message *m = get_message_to_send(to_dialog, copied_message.top_thread_message_id,
-                                     copied_message.reply_to_message_id, message_send_options,
-                                     std::move(copied_message.content), &need_update_dialog_pos, false, nullptr, true);
+    unique_ptr<Message> message;
+    Message *m;
+    if (only_preview) {
+      message =
+          create_message_to_send(to_dialog, copied_message.top_thread_message_id, copied_message.reply_to_message_id,
+                                 message_send_options, std::move(copied_message.content), false, nullptr, true);
+      MessageId new_message_id =
+          message_send_options.schedule_date != 0
+              ? get_next_yet_unsent_scheduled_message_id(to_dialog, message_send_options.schedule_date)
+              : get_next_yet_unsent_message_id(to_dialog);
+      set_message_id(message, new_message_id);
+      m = message.get();
+    } else {
+      m = get_message_to_send(to_dialog, copied_message.top_thread_message_id, copied_message.reply_to_message_id,
+                              message_send_options, std::move(copied_message.content), &need_update_dialog_pos, false,
+                              nullptr, true);
+    }
     m->disable_web_page_preview = copied_message.disable_web_page_preview;
     m->media_album_id = copied_message.media_album_id;
     m->reply_markup = std::move(copied_message.reply_markup);
 
-    save_send_message_log_event(to_dialog_id, m);
-    do_send_message(to_dialog_id, m);
-    result[copied_message.index] = get_message_object(to_dialog_id, m, false);
+    if (!only_preview) {
+      save_send_message_log_event(to_dialog_id, m);
+      do_send_message(to_dialog_id, m);
+      send_update_new_message(to_dialog, m);
+    }
 
-    send_update_new_message(to_dialog, m);
+    result[copied_message.index] = get_message_object(to_dialog_id, m, false);
   }
 
   if (need_update_dialog_pos) {
+    CHECK(!only_preview);
     send_update_chat_last_message(to_dialog, "forward_messages");
   }
 
