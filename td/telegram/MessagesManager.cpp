@@ -23506,11 +23506,10 @@ class MessagesManager::SendMessageLogEvent {
   }
 };
 
-Result<MessageId> MessagesManager::send_message(DialogId dialog_id, MessageId top_thread_message_id,
-                                                MessageId reply_to_message_id,
-                                                tl_object_ptr<td_api::messageSendOptions> &&options,
-                                                tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
-                                                tl_object_ptr<td_api::InputMessageContent> &&input_message_content) {
+Result<td_api::object_ptr<td_api::message>> MessagesManager::send_message(
+    DialogId dialog_id, MessageId top_thread_message_id, MessageId reply_to_message_id,
+    tl_object_ptr<td_api::messageSendOptions> &&options, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
+    tl_object_ptr<td_api::InputMessageContent> &&input_message_content) {
   if (input_message_content == nullptr) {
     return Status::Error(5, "Can't send message without content");
   }
@@ -23574,7 +23573,7 @@ Result<MessageId> MessagesManager::send_message(DialogId dialog_id, MessageId to
     send_update_chat_last_message(d, "send_message");
   }
 
-  return m->message_id;
+  return get_message_object(dialog_id, m);
 }
 
 Result<InputMessageContent> MessagesManager::process_input_message_content(
@@ -26274,21 +26273,20 @@ void MessagesManager::do_forward_messages(DialogId to_dialog_id, DialogId from_d
                schedule_date, get_sequence_dispatcher_id(to_dialog_id, MessageContentType::None));
 }
 
-Result<MessageId> MessagesManager::forward_message(DialogId to_dialog_id, DialogId from_dialog_id, MessageId message_id,
-                                                   tl_object_ptr<td_api::messageSendOptions> &&options,
-                                                   bool in_game_share, MessageCopyOptions &&copy_options) {
+Result<td_api::object_ptr<td_api::message>> MessagesManager::forward_message(
+    DialogId to_dialog_id, DialogId from_dialog_id, MessageId message_id,
+    tl_object_ptr<td_api::messageSendOptions> &&options, bool in_game_share, MessageCopyOptions &&copy_options) {
   bool need_copy = copy_options.send_copy;
   vector<MessageCopyOptions> all_copy_options;
   all_copy_options.push_back(std::move(copy_options));
   TRY_RESULT(result, forward_messages(to_dialog_id, from_dialog_id, {message_id}, std::move(options), in_game_share,
                                       std::move(all_copy_options)));
-  CHECK(result.size() == 1);
-  auto sent_message_id = result[0];
-  if (sent_message_id == MessageId()) {
+  CHECK(result->messages_.size() == 1);
+  if (result->messages_[0] == nullptr) {
     return Status::Error(400,
                          need_copy ? Slice("The message can't be copied") : Slice("The message can't be forwarded"));
   }
-  return sent_message_id;
+  return std::move(result->messages_[0]);
 }
 
 unique_ptr<MessagesManager::MessageForwardInfo> MessagesManager::create_message_forward_info(
@@ -26562,11 +26560,10 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
   return std::move(result);
 }
 
-Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_id, DialogId from_dialog_id,
-                                                            vector<MessageId> message_ids,
-                                                            tl_object_ptr<td_api::messageSendOptions> &&options,
-                                                            bool in_game_share,
-                                                            vector<MessageCopyOptions> &&copy_options) {
+Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
+    DialogId to_dialog_id, DialogId from_dialog_id, vector<MessageId> message_ids,
+    tl_object_ptr<td_api::messageSendOptions> &&options, bool in_game_share,
+    vector<MessageCopyOptions> &&copy_options) {
   TRY_RESULT(forwarded_messages_info,
              get_forwarded_messages(to_dialog_id, from_dialog_id, message_ids, std::move(options), in_game_share,
                                     std::move(copy_options)));
@@ -26576,7 +26573,7 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
   auto &copied_messages = forwarded_messages_info.copied_messages;
   auto &forwarded_message_contents = forwarded_messages_info.forwarded_message_contents;
 
-  vector<MessageId> result(message_ids.size());
+  vector<td_api::object_ptr<td_api::message>> result(message_ids.size());
   vector<Message *> forwarded_messages;
   vector<MessageId> forwarded_message_ids;
   bool need_update_dialog_pos = false;
@@ -26597,7 +26594,7 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
 
     send_update_new_message(to_dialog, m);
 
-    result[forwarded_message_contents[j].index] = m->message_id;
+    result[forwarded_message_contents[j].index] = get_message_object(to_dialog_id, m, false);
     forwarded_messages.push_back(m);
     forwarded_message_ids.push_back(message_id);
   }
@@ -26606,28 +26603,26 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
     do_forward_messages(to_dialog_id, from_dialog_id, forwarded_messages, forwarded_message_ids, 0);
   }
 
-  if (!copied_messages.empty()) {
-    for (auto &copied_message : copied_messages) {
-      Message *m = get_message_to_send(
-          to_dialog, copied_message.top_thread_message_id, copied_message.reply_to_message_id, message_send_options,
-          std::move(copied_message.content), &need_update_dialog_pos, false, nullptr, true);
-      m->disable_web_page_preview = copied_message.disable_web_page_preview;
-      m->media_album_id = copied_message.media_album_id;
-      m->reply_markup = std::move(copied_message.reply_markup);
+  for (auto &copied_message : copied_messages) {
+    Message *m = get_message_to_send(to_dialog, copied_message.top_thread_message_id,
+                                     copied_message.reply_to_message_id, message_send_options,
+                                     std::move(copied_message.content), &need_update_dialog_pos, false, nullptr, true);
+    m->disable_web_page_preview = copied_message.disable_web_page_preview;
+    m->media_album_id = copied_message.media_album_id;
+    m->reply_markup = std::move(copied_message.reply_markup);
 
-      save_send_message_log_event(to_dialog_id, m);
-      do_send_message(to_dialog_id, m);
-      result[copied_message.index] = m->message_id;
+    save_send_message_log_event(to_dialog_id, m);
+    do_send_message(to_dialog_id, m);
+    result[copied_message.index] = get_message_object(to_dialog_id, m, false);
 
-      send_update_new_message(to_dialog, m);
-    }
+    send_update_new_message(to_dialog, m);
   }
 
   if (need_update_dialog_pos) {
     send_update_chat_last_message(to_dialog, "forward_messages");
   }
 
-  return result;
+  return get_messages_object(-1, std::move(result), false);
 }
 
 Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, vector<MessageId> message_ids) {

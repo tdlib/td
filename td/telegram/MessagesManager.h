@@ -374,7 +374,7 @@ class MessagesManager final : public Actor {
 
   void reload_voice_chat_on_search(const string &username);
 
-  Result<MessageId> send_message(
+  Result<td_api::object_ptr<td_api::message>> send_message(
       DialogId dialog_id, MessageId top_thread_message_id, MessageId reply_to_message_id,
       tl_object_ptr<td_api::messageSendOptions> &&options, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
       tl_object_ptr<td_api::InputMessageContent> &&input_message_content) TD_WARN_UNUSED_RESULT;
@@ -393,10 +393,10 @@ class MessagesManager final : public Actor {
                                                      int64 query_id, const string &result_id,
                                                      bool hide_via_bot) TD_WARN_UNUSED_RESULT;
 
-  Result<vector<MessageId>> forward_messages(DialogId to_dialog_id, DialogId from_dialog_id,
-                                             vector<MessageId> message_ids,
-                                             tl_object_ptr<td_api::messageSendOptions> &&options, bool in_game_share,
-                                             vector<MessageCopyOptions> &&copy_options) TD_WARN_UNUSED_RESULT;
+  Result<td_api::object_ptr<td_api::messages>> forward_messages(
+      DialogId to_dialog_id, DialogId from_dialog_id, vector<MessageId> message_ids,
+      tl_object_ptr<td_api::messageSendOptions> &&options, bool in_game_share,
+      vector<MessageCopyOptions> &&copy_options) TD_WARN_UNUSED_RESULT;
 
   Result<vector<MessageId>> resend_messages(DialogId dialog_id, vector<MessageId> message_ids) TD_WARN_UNUSED_RESULT;
 
@@ -1833,9 +1833,11 @@ class MessagesManager final : public Actor {
   void do_forward_messages(DialogId to_dialog_id, DialogId from_dialog_id, const vector<Message *> &messages,
                            const vector<MessageId> &message_ids, uint64 log_event_id);
 
-  Result<MessageId> forward_message(DialogId to_dialog_id, DialogId from_dialog_id, MessageId message_id,
-                                    tl_object_ptr<td_api::messageSendOptions> &&options, bool in_game_share,
-                                    MessageCopyOptions &&copy_options) TD_WARN_UNUSED_RESULT;
+  Result<td_api::object_ptr<td_api::message>> forward_message(DialogId to_dialog_id, DialogId from_dialog_id,
+                                                              MessageId message_id,
+                                                              tl_object_ptr<td_api::messageSendOptions> &&options,
+                                                              bool in_game_share,
+                                                              MessageCopyOptions &&copy_options) TD_WARN_UNUSED_RESULT;
 
   unique_ptr<MessageForwardInfo> create_message_forward_info(DialogId from_dialog_id, DialogId to_dialog_id,
                                                              const Message *forwarded_message) const;

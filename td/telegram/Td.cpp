@@ -5639,17 +5639,14 @@ void Td::on_request(uint64 id, const td_api::readAllChatMentions &request) {
 }
 
 void Td::on_request(uint64 id, td_api::sendMessage &request) {
-  DialogId dialog_id(request.chat_id_);
-  auto r_new_message_id = messages_manager_->send_message(
-      dialog_id, MessageId(request.message_thread_id_), MessageId(request.reply_to_message_id_),
+  auto r_sent_message = messages_manager_->send_message(
+      DialogId(request.chat_id_), MessageId(request.message_thread_id_), MessageId(request.reply_to_message_id_),
       std::move(request.options_), std::move(request.reply_markup_), std::move(request.input_message_content_));
-  if (r_new_message_id.is_error()) {
-    return send_closure(actor_id(this), &Td::send_error, id, r_new_message_id.move_as_error());
+  if (r_sent_message.is_error()) {
+    send_closure(actor_id(this), &Td::send_error, id, r_sent_message.move_as_error());
+  } else {
+    send_closure(actor_id(this), &Td::send_result, id, r_sent_message.move_as_ok());
   }
-
-  CHECK(r_new_message_id.ok().is_valid() || r_new_message_id.ok().is_valid_scheduled());
-  send_closure(actor_id(this), &Td::send_result, id,
-               messages_manager_->get_message_object({dialog_id, r_new_message_id.ok()}));
 }
 
 void Td::on_request(uint64 id, td_api::sendMessageAlbum &request) {
@@ -5834,20 +5831,18 @@ void Td::on_request(uint64 id, td_api::sendChatScreenshotTakenNotification &requ
 }
 
 void Td::on_request(uint64 id, td_api::forwardMessages &request) {
-  DialogId dialog_id(request.chat_id_);
   auto input_message_ids = MessagesManager::get_message_ids(request.message_ids_);
   auto message_copy_options =
       transform(input_message_ids, [send_copy = request.send_copy_, remove_caption = request.remove_caption_](
                                        MessageId) { return MessageCopyOptions(send_copy, remove_caption); });
-  auto r_message_ids =
-      messages_manager_->forward_messages(dialog_id, DialogId(request.from_chat_id_), std::move(input_message_ids),
-                                          std::move(request.options_), false, std::move(message_copy_options));
-  if (r_message_ids.is_error()) {
-    return send_closure(actor_id(this), &Td::send_error, id, r_message_ids.move_as_error());
+  auto r_messages = messages_manager_->forward_messages(DialogId(request.chat_id_), DialogId(request.from_chat_id_),
+                                                        std::move(input_message_ids), std::move(request.options_),
+                                                        false, std::move(message_copy_options));
+  if (r_messages.is_error()) {
+    send_closure(actor_id(this), &Td::send_error, id, r_messages.move_as_error());
+  } else {
+    send_closure(actor_id(this), &Td::send_result, id, r_messages.move_as_ok());
   }
-
-  send_closure(actor_id(this), &Td::send_result, id,
-               messages_manager_->get_messages_object(-1, dialog_id, r_message_ids.ok(), false));
 }
 
 void Td::on_request(uint64 id, const td_api::resendMessages &request) {
