@@ -26462,7 +26462,8 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
   };
   vector<ForwardedMessageContent> forwarded_message_contents;
 
-  std::unordered_map<int64, std::pair<int64, int32>> new_media_album_ids;
+  std::unordered_map<int64, std::pair<int64, int32>> new_copied_media_album_ids;
+  std::unordered_map<int64, std::pair<int64, int32>> new_forwarded_media_album_ids;
 
   for (size_t i = 0; i < message_ids.size(); i++) {
     MessageId message_id = get_persistent_message_id(from_dialog, message_ids[i]);
@@ -26512,7 +26513,8 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
     }
 
     if (forwarded_message->media_album_id != 0) {
-      auto &new_media_album_id = new_media_album_ids[forwarded_message->media_album_id];
+      auto &new_media_album_id = need_copy ? new_copied_media_album_ids[forwarded_message->media_album_id]
+                                           : new_forwarded_media_album_ids[forwarded_message->media_album_id];
       new_media_album_id.second++;
       if (new_media_album_id.second == 2) {  // have at least 2 messages in the new album
         CHECK(new_media_album_id.first == 0);
@@ -26544,11 +26546,14 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
     }
     if (message_content_types.size() == 1 && is_homogenous_media_group_content(*message_content_types.begin()) &&
         sender_dialog_ids.size() == 1 && *sender_dialog_ids.begin() != DialogId()) {
-      new_media_album_ids[0].first = generate_new_media_album_id();
+      new_forwarded_media_album_ids[0].first = generate_new_media_album_id();
       for (auto &message : forwarded_message_contents) {
         message.media_album_id = 0;
       }
     }
+  }
+  for (auto &message : forwarded_message_contents) {
+    message.media_album_id = new_forwarded_media_album_ids[message.media_album_id].first;
   }
 
   vector<MessageId> result(message_ids.size());
@@ -26565,8 +26570,7 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
     Message *m = get_message_to_send(to_dialog, MessageId(), MessageId(), message_send_options, std::move(content),
                                      &need_update_dialog_pos, j + 1 != forwarded_message_contents.size(),
                                      std::move(forward_info));
-    fix_forwarded_message(m, to_dialog_id, forwarded_message,
-                          new_media_album_ids[forwarded_message_contents[j].media_album_id].first);
+    fix_forwarded_message(m, to_dialog_id, forwarded_message, forwarded_message_contents[j].media_album_id);
     m->in_game_share = in_game_share;
     m->real_forward_from_dialog_id = from_dialog_id;
     m->real_forward_from_message_id = message_id;
@@ -26582,18 +26586,20 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
     do_forward_messages(to_dialog_id, from_dialog_id, forwarded_messages, forwarded_message_ids, 0);
   }
 
-  new_media_album_ids.erase(0);
   if (2 <= copied_messages.size() && copied_messages.size() <= MAX_GROUPED_MESSAGES) {
     std::unordered_set<MessageContentType, MessageContentTypeHash> message_content_types;
     for (auto &copied_message : copied_messages) {
       message_content_types.insert(copied_message.content->get_type());
     }
     if (message_content_types.size() == 1 && is_homogenous_media_group_content(*message_content_types.begin())) {
-      new_media_album_ids[0].first = generate_new_media_album_id();
+      new_copied_media_album_ids[0].first = generate_new_media_album_id();
       for (auto &message : copied_messages) {
         message.media_album_id = 0;
       }
     }
+  }
+  for (auto &message : copied_messages) {
+    message.media_album_id = new_copied_media_album_ids[message.media_album_id].first;
   }
 
   if (!copied_messages.empty()) {
@@ -26602,7 +26608,7 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
           to_dialog, copied_message.top_thread_message_id, copied_message.reply_to_message_id, message_send_options,
           std::move(copied_message.content), &need_update_dialog_pos, false, nullptr, true);
       m->disable_web_page_preview = copied_message.disable_web_page_preview;
-      m->media_album_id = new_media_album_ids[copied_message.media_album_id].first;
+      m->media_album_id = copied_message.media_album_id;
       m->reply_markup = std::move(copied_message.reply_markup);
 
       save_send_message_log_event(to_dialog_id, m);
