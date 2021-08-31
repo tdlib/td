@@ -1837,6 +1837,10 @@ class MessagesManager final : public Actor {
                                     tl_object_ptr<td_api::messageSendOptions> &&options, bool in_game_share,
                                     MessageCopyOptions &&copy_options) TD_WARN_UNUSED_RESULT;
 
+  unique_ptr<MessageForwardInfo> create_message_forward_info(DialogId from_dialog_id, DialogId to_dialog_id,
+                                                             MessageContentType content_type,
+                                                             const Message *forwarded_message) const;
+
   void do_send_media(DialogId dialog_id, Message *m, FileId file_id, FileId thumbnail_file_id,
                      tl_object_ptr<telegram_api::InputFile> input_file,
                      tl_object_ptr<telegram_api::InputFile> input_thumbnail);

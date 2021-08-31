@@ -26291,6 +26291,53 @@ Result<MessageId> MessagesManager::forward_message(DialogId to_dialog_id, Dialog
   return sent_message_id;
 }
 
+unique_ptr<MessagesManager::MessageForwardInfo> MessagesManager::create_message_forward_info(
+    DialogId from_dialog_id, DialogId to_dialog_id, MessageContentType content_type,
+    const Message *forwarded_message) const {
+  if (content_type == MessageContentType::Game || content_type == MessageContentType::Audio) {
+    return nullptr;
+  }
+
+  auto my_id = td_->contacts_manager_->get_my_id();
+  auto message_id = forwarded_message->message_id;
+
+  DialogId saved_from_dialog_id;
+  MessageId saved_from_message_id;
+  if (to_dialog_id == DialogId(my_id)) {
+    saved_from_dialog_id = from_dialog_id;
+    saved_from_message_id = message_id;
+  }
+
+  if (forwarded_message->forward_info != nullptr) {
+    auto forward_info = make_unique<MessageForwardInfo>(*forwarded_message->forward_info);
+    forward_info->from_dialog_id = saved_from_dialog_id;
+    forward_info->from_message_id = saved_from_message_id;
+    return forward_info;
+  }
+
+  if (from_dialog_id != DialogId(my_id) || content_type == MessageContentType::Dice) {
+    if (forwarded_message->is_channel_post) {
+      if (is_broadcast_channel(from_dialog_id)) {
+        auto author_signature = forwarded_message->sender_user_id.is_valid()
+                                    ? td_->contacts_manager_->get_user_title(forwarded_message->sender_user_id)
+                                    : forwarded_message->author_signature;
+        return td::make_unique<MessageForwardInfo>(UserId(), forwarded_message->date, from_dialog_id,
+                                                   forwarded_message->message_id, std::move(author_signature), "",
+                                                   saved_from_dialog_id, saved_from_message_id, "", false);
+      } else {
+        LOG(ERROR) << "Don't know how to forward a channel post not from a channel";
+      }
+    } else if (forwarded_message->sender_user_id.is_valid() || forwarded_message->sender_dialog_id.is_valid()) {
+      return td::make_unique<MessageForwardInfo>(
+          forwarded_message->sender_user_id, forwarded_message->date, forwarded_message->sender_dialog_id, MessageId(),
+          "", forwarded_message->author_signature, saved_from_dialog_id, saved_from_message_id, "", false);
+    } else {
+      LOG(ERROR) << "Don't know how to forward a non-channel post message without forward info and sender";
+    }
+  }
+  return nullptr;
+}
+
 Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_id, DialogId from_dialog_id,
                                                             vector<MessageId> message_ids,
                                                             tl_object_ptr<td_api::messageSendOptions> &&options,
@@ -26341,10 +26388,6 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
   }
 
   bool to_secret = to_dialog_id.get_type() == DialogType::SecretChat;
-
-  vector<MessageId> result(message_ids.size());
-  vector<Message *> forwarded_messages;
-  vector<MessageId> forwarded_message_ids;
 
   struct CopiedMessage {
     unique_ptr<MessageContent> content;
@@ -26455,6 +26498,9 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
     }
   }
 
+  vector<MessageId> result(message_ids.size());
+  vector<Message *> forwarded_messages;
+  vector<MessageId> forwarded_message_ids;
   for (size_t j = 0; j < forwarded_message_contents.size(); j++) {
     MessageId message_id = get_persistent_message_id(from_dialog, message_ids[forwarded_message_contents[j].index]);
     const Message *forwarded_message = get_message(from_dialog, message_id);
@@ -26462,45 +26508,7 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
 
     auto content = std::move(forwarded_message_contents[j].content);
     auto content_type = content->get_type();
-    bool is_game = content_type == MessageContentType::Game;
-    unique_ptr<MessageForwardInfo> forward_info;
-    if (!is_game && content_type != MessageContentType::Audio) {
-      DialogId saved_from_dialog_id;
-      MessageId saved_from_message_id;
-      if (to_dialog_id == DialogId(my_id)) {
-        saved_from_dialog_id = from_dialog_id;
-        saved_from_message_id = message_id;
-      }
-
-      if (forwarded_message->forward_info != nullptr) {
-        forward_info = make_unique<MessageForwardInfo>(*forwarded_message->forward_info);
-        forward_info->from_dialog_id = saved_from_dialog_id;
-        forward_info->from_message_id = saved_from_message_id;
-      } else {
-        if (from_dialog_id != DialogId(my_id) || content_type == MessageContentType::Dice) {
-          if (forwarded_message->is_channel_post) {
-            if (is_broadcast_channel(from_dialog_id)) {
-              auto author_signature = forwarded_message->sender_user_id.is_valid()
-                                          ? td_->contacts_manager_->get_user_title(forwarded_message->sender_user_id)
-                                          : forwarded_message->author_signature;
-              forward_info = td::make_unique<MessageForwardInfo>(
-                  UserId(), forwarded_message->date, from_dialog_id, forwarded_message->message_id,
-                  std::move(author_signature), "", saved_from_dialog_id, saved_from_message_id, "", false);
-            } else {
-              LOG(ERROR) << "Don't know how to forward a channel post not from a channel";
-            }
-          } else if (forwarded_message->sender_user_id.is_valid() || forwarded_message->sender_dialog_id.is_valid()) {
-            forward_info = td::make_unique<MessageForwardInfo>(
-                forwarded_message->sender_user_id, forwarded_message->date, forwarded_message->sender_dialog_id,
-                MessageId(), "", forwarded_message->author_signature, saved_from_dialog_id, saved_from_message_id, "",
-                false);
-          } else {
-            LOG(ERROR) << "Don't know how to forward a non-channel post message without forward info and sender";
-          }
-        }
-      }
-    }
-
+    auto forward_info = create_message_forward_info(from_dialog_id, to_dialog_id, content_type, forwarded_message);
     Message *m = get_message_to_send(to_dialog, MessageId(), MessageId(), message_send_options, std::move(content),
                                      &need_update_dialog_pos, j + 1 != forwarded_message_contents.size(),
                                      std::move(forward_info));
@@ -26516,7 +26524,7 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
       m->interaction_info_update_date = G()->unix_time();
     }
 
-    if (is_game) {
+    if (content_type == MessageContentType::Game) {
       if (m->via_bot_user_id == my_id) {
         m->via_bot_user_id = UserId();
       } else if (m->via_bot_user_id == UserId()) {
