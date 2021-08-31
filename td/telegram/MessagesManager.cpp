@@ -26292,8 +26292,8 @@ Result<MessageId> MessagesManager::forward_message(DialogId to_dialog_id, Dialog
 }
 
 unique_ptr<MessagesManager::MessageForwardInfo> MessagesManager::create_message_forward_info(
-    DialogId from_dialog_id, DialogId to_dialog_id, MessageContentType content_type,
-    const Message *forwarded_message) const {
+    DialogId from_dialog_id, DialogId to_dialog_id, const Message *forwarded_message) const {
+  auto content_type = forwarded_message->content->get_type();
   if (content_type == MessageContentType::Game || content_type == MessageContentType::Audio) {
     return nullptr;
   }
@@ -26336,6 +26336,61 @@ unique_ptr<MessagesManager::MessageForwardInfo> MessagesManager::create_message_
     }
   }
   return nullptr;
+}
+
+void MessagesManager::fix_forwarded_message(Message *m, DialogId to_dialog_id, const Message *forwarded_message,
+                                            int64 media_album_id) const {
+  m->via_bot_user_id = forwarded_message->via_bot_user_id;
+  m->media_album_id = media_album_id;
+  if (forwarded_message->view_count > 0 && m->forward_info != nullptr && m->view_count == 0 &&
+      !(m->message_id.is_scheduled() && is_broadcast_channel(to_dialog_id))) {
+    m->view_count = forwarded_message->view_count;
+    m->forward_count = forwarded_message->forward_count;
+    m->interaction_info_update_date = G()->unix_time();
+  }
+
+  auto content_type = forwarded_message->content->get_type();
+  if (content_type == MessageContentType::Game) {
+    if (m->via_bot_user_id == UserId()) {
+      m->via_bot_user_id = forwarded_message->sender_user_id;
+    } else if (m->via_bot_user_id == td_->contacts_manager_->get_my_id()) {
+      m->via_bot_user_id = UserId();
+    }
+  }
+  if (forwarded_message->reply_markup != nullptr &&
+      forwarded_message->reply_markup->type == ReplyMarkup::Type::InlineKeyboard &&
+      to_dialog_id.get_type() != DialogType::SecretChat) {
+    bool need_reply_markup = true;
+    for (auto &row : forwarded_message->reply_markup->inline_keyboard) {
+      for (auto &button : row) {
+        if (button.type == InlineKeyboardButton::Type::Url || button.type == InlineKeyboardButton::Type::UrlAuth) {
+          // ok
+          continue;
+        }
+        if (m->via_bot_user_id.is_valid() && (button.type == InlineKeyboardButton::Type::SwitchInline ||
+                                              button.type == InlineKeyboardButton::Type::SwitchInlineCurrentDialog)) {
+          // ok
+          continue;
+        }
+
+        need_reply_markup = false;
+      }
+    }
+    if (need_reply_markup) {
+      m->reply_markup = make_unique<ReplyMarkup>(*forwarded_message->reply_markup);
+      for (auto &row : m->reply_markup->inline_keyboard) {
+        for (auto &button : row) {
+          if (button.type == InlineKeyboardButton::Type::SwitchInlineCurrentDialog) {
+            button.type = InlineKeyboardButton::Type::SwitchInline;
+          }
+          if (!button.forward_text.empty()) {
+            button.text = std::move(button.forward_text);
+            button.forward_text.clear();
+          }
+        }
+      }
+    }
+  }
 }
 
 Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_id, DialogId from_dialog_id,
@@ -26409,8 +26464,6 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
 
   std::unordered_map<int64, std::pair<int64, int32>> new_media_album_ids;
 
-  auto my_id = td_->contacts_manager_->get_my_id();
-  bool need_update_dialog_pos = false;
   for (size_t i = 0; i < message_ids.size(); i++) {
     MessageId message_id = get_persistent_message_id(from_dialog, message_ids[i]);
 
@@ -26501,69 +26554,22 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
   vector<MessageId> result(message_ids.size());
   vector<Message *> forwarded_messages;
   vector<MessageId> forwarded_message_ids;
+  bool need_update_dialog_pos = false;
   for (size_t j = 0; j < forwarded_message_contents.size(); j++) {
     MessageId message_id = get_persistent_message_id(from_dialog, message_ids[forwarded_message_contents[j].index]);
     const Message *forwarded_message = get_message(from_dialog, message_id);
     CHECK(forwarded_message != nullptr);
 
     auto content = std::move(forwarded_message_contents[j].content);
-    auto content_type = content->get_type();
-    auto forward_info = create_message_forward_info(from_dialog_id, to_dialog_id, content_type, forwarded_message);
+    auto forward_info = create_message_forward_info(from_dialog_id, to_dialog_id, forwarded_message);
     Message *m = get_message_to_send(to_dialog, MessageId(), MessageId(), message_send_options, std::move(content),
                                      &need_update_dialog_pos, j + 1 != forwarded_message_contents.size(),
                                      std::move(forward_info));
+    fix_forwarded_message(m, to_dialog_id, forwarded_message,
+                          new_media_album_ids[forwarded_message_contents[j].media_album_id].first);
+    m->in_game_share = in_game_share;
     m->real_forward_from_dialog_id = from_dialog_id;
     m->real_forward_from_message_id = message_id;
-    m->via_bot_user_id = forwarded_message->via_bot_user_id;
-    m->in_game_share = in_game_share;
-    m->media_album_id = new_media_album_ids[forwarded_message_contents[j].media_album_id].first;
-    if (forwarded_message->view_count > 0 && m->forward_info != nullptr && m->view_count == 0 &&
-        !(m->message_id.is_scheduled() && is_broadcast_channel(to_dialog_id))) {
-      m->view_count = forwarded_message->view_count;
-      m->forward_count = forwarded_message->forward_count;
-      m->interaction_info_update_date = G()->unix_time();
-    }
-
-    if (content_type == MessageContentType::Game) {
-      if (m->via_bot_user_id == my_id) {
-        m->via_bot_user_id = UserId();
-      } else if (m->via_bot_user_id == UserId()) {
-        m->via_bot_user_id = forwarded_message->sender_user_id;
-      }
-    }
-    if (!to_secret && forwarded_message->reply_markup != nullptr &&
-        forwarded_message->reply_markup->type == ReplyMarkup::Type::InlineKeyboard) {
-      bool need_reply_markup = true;
-      for (auto &row : forwarded_message->reply_markup->inline_keyboard) {
-        for (auto &button : row) {
-          if (button.type == InlineKeyboardButton::Type::Url || button.type == InlineKeyboardButton::Type::UrlAuth) {
-            // ok
-            continue;
-          }
-          if (m->via_bot_user_id.is_valid() && (button.type == InlineKeyboardButton::Type::SwitchInline ||
-                                                button.type == InlineKeyboardButton::Type::SwitchInlineCurrentDialog)) {
-            // ok
-            continue;
-          }
-
-          need_reply_markup = false;
-        }
-      }
-      if (need_reply_markup) {
-        m->reply_markup = make_unique<ReplyMarkup>(*forwarded_message->reply_markup);
-        for (auto &row : m->reply_markup->inline_keyboard) {
-          for (auto &button : row) {
-            if (button.type == InlineKeyboardButton::Type::SwitchInlineCurrentDialog) {
-              button.type = InlineKeyboardButton::Type::SwitchInline;
-            }
-            if (!button.forward_text.empty()) {
-              button.text = std::move(button.forward_text);
-              button.forward_text.clear();
-            }
-          }
-        }
-      }
-    }
 
     send_update_new_message(to_dialog, m);
 

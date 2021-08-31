@@ -1838,8 +1838,10 @@ class MessagesManager final : public Actor {
                                     MessageCopyOptions &&copy_options) TD_WARN_UNUSED_RESULT;
 
   unique_ptr<MessageForwardInfo> create_message_forward_info(DialogId from_dialog_id, DialogId to_dialog_id,
-                                                             MessageContentType content_type,
                                                              const Message *forwarded_message) const;
+
+  void fix_forwarded_message(Message *m, DialogId to_dialog_id, const Message *forwarded_message,
+                             int64 media_album_id) const;
 
   void do_send_media(DialogId dialog_id, Message *m, FileId file_id, FileId thumbnail_file_id,
                      tl_object_ptr<telegram_api::InputFile> input_file,
