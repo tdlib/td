@@ -1770,6 +1770,11 @@ class MessagesManager final : public Actor {
 
   bool is_anonymous_administrator(DialogId dialog_id, string *author_signature) const;
 
+  unique_ptr<Message> create_message_to_send(Dialog *d, MessageId top_thread_message_id, MessageId reply_to_message_id,
+                                             const MessageSendOptions &options, unique_ptr<MessageContent> &&content,
+                                             bool suppress_reply_info, unique_ptr<MessageForwardInfo> forward_info,
+                                             bool is_copy) const;
+
   Message *get_message_to_send(Dialog *d, MessageId top_thread_message_id, MessageId reply_to_message_id,
                                const MessageSendOptions &options, unique_ptr<MessageContent> &&content,
                                bool *need_update_dialog_pos, bool suppress_reply_info = false,

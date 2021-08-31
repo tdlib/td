@@ -20236,7 +20236,7 @@ const ScopeNotificationSettings *MessagesManager::get_scope_notification_setting
 }
 
 DialogNotificationSettings *MessagesManager::get_dialog_notification_settings(DialogId dialog_id, bool force) {
-  auto d = get_dialog_force(dialog_id, "get_dialog_notification_settings");
+  Dialog *d = get_dialog_force(dialog_id, "get_dialog_notification_settings");
   if (d == nullptr) {
     return nullptr;
   }
@@ -23105,37 +23105,31 @@ bool MessagesManager::is_anonymous_administrator(DialogId dialog_id, string *aut
   return true;
 }
 
-MessagesManager::Message *MessagesManager::get_message_to_send(
+unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
     Dialog *d, MessageId top_thread_message_id, MessageId reply_to_message_id, const MessageSendOptions &options,
-    unique_ptr<MessageContent> &&content, bool *need_update_dialog_pos, bool suppress_reply_info,
-    unique_ptr<MessageForwardInfo> forward_info, bool is_copy) {
+    unique_ptr<MessageContent> &&content, bool suppress_reply_info, unique_ptr<MessageForwardInfo> forward_info,
+    bool is_copy) const {
   CHECK(d != nullptr);
   CHECK(!reply_to_message_id.is_scheduled());
   CHECK(content != nullptr);
 
   bool is_scheduled = options.schedule_date != 0;
   DialogId dialog_id = d->dialog_id;
-  MessageId message_id = is_scheduled ? get_next_yet_unsent_scheduled_message_id(d, options.schedule_date)
-                                      : get_next_yet_unsent_message_id(d);
-  LOG(INFO) << "Create " << message_id << " in " << dialog_id;
-
-  d->was_opened = true;
 
   auto dialog_type = dialog_id.get_type();
   auto my_id = td_->contacts_manager_->get_my_id();
 
   auto m = make_unique<Message>();
-  set_message_id(m, message_id);
   bool is_channel_post = is_broadcast_channel(dialog_id);
   if (is_channel_post) {
     // sender of the post can be hidden
     if (!is_scheduled && td_->contacts_manager_->get_channel_sign_messages(dialog_id.get_channel_id())) {
       m->author_signature = td_->contacts_manager_->get_user_title(my_id);
     }
-    m->sender_dialog_id = d->dialog_id;
+    m->sender_dialog_id = dialog_id;
   } else {
-    if (is_anonymous_administrator(d->dialog_id, &m->author_signature)) {
-      m->sender_dialog_id = d->dialog_id;
+    if (is_anonymous_administrator(dialog_id, &m->author_signature)) {
+      m->sender_dialog_id = dialog_id;
     } else {
       m->sender_user_id = my_id;
     }
@@ -23192,9 +23186,7 @@ MessagesManager::Message *MessagesManager::get_message_to_send(
       G()->shared_config().get_option_boolean("ignore_default_disable_notification")) {
     m->disable_notification = options.disable_notification;
   } else {
-    auto notification_settings = get_dialog_notification_settings(dialog_id, true);
-    CHECK(notification_settings != nullptr);
-    m->disable_notification = notification_settings->silent_send_message;
+    m->disable_notification = d->notification_settings.silent_send_message;
   }
 
   if (dialog_type == DialogType::SecretChat) {
@@ -23205,7 +23197,8 @@ MessagesManager::Message *MessagesManager::get_message_to_send(
     }
     m->is_content_secret = is_secret_message_content(m->ttl, m->content->get_type());
     if (reply_to_message_id.is_valid()) {
-      auto *reply_to_message = get_message_force(d, reply_to_message_id, "get_message_to_send");
+      // the message was forcely preloaded in get_reply_to_message_id
+      auto *reply_to_message = get_message(d, reply_to_message_id);
       if (reply_to_message != nullptr) {
         m->reply_to_random_id = reply_to_message->random_id;
       } else {
@@ -23213,6 +23206,21 @@ MessagesManager::Message *MessagesManager::get_message_to_send(
       }
     }
   }
+  return m;
+}
+
+MessagesManager::Message *MessagesManager::get_message_to_send(
+    Dialog *d, MessageId top_thread_message_id, MessageId reply_to_message_id, const MessageSendOptions &options,
+    unique_ptr<MessageContent> &&content, bool *need_update_dialog_pos, bool suppress_reply_info,
+    unique_ptr<MessageForwardInfo> forward_info, bool is_copy) {
+  d->was_opened = true;
+
+  auto m = create_message_to_send(d, top_thread_message_id, reply_to_message_id, options, std::move(content),
+                                  suppress_reply_info, std::move(forward_info), is_copy);
+
+  MessageId message_id = options.schedule_date != 0 ? get_next_yet_unsent_scheduled_message_id(d, options.schedule_date)
+                                                    : get_next_yet_unsent_message_id(d);
+  set_message_id(m, message_id);
 
   m->have_previous = true;
   m->have_next = true;
@@ -23223,7 +23231,7 @@ MessagesManager::Message *MessagesManager::get_message_to_send(
   message_random_ids_.insert(m->random_id);
 
   bool need_update = false;
-  CHECK(have_input_peer(dialog_id, AccessRights::Read));
+  CHECK(have_input_peer(d->dialog_id, AccessRights::Read));
   auto result = add_message_to_dialog(d, std::move(m), true, &need_update, need_update_dialog_pos, "send message");
   LOG_CHECK(result != nullptr) << message_id << " " << debug_add_message_to_dialog_fail_reason_;
   if (result->message_id.is_scheduled()) {
@@ -26387,6 +26395,8 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
       LOG(INFO) << "Can't forward " << message_id;
       continue;
     }
+
+    reply_to_message_id = get_reply_to_message_id(to_dialog, top_thread_message_id, reply_to_message_id, false);
 
     auto can_send_status = can_send_message_content(to_dialog_id, content.get(), !need_copy, td_);
     if (can_send_status.is_error()) {
