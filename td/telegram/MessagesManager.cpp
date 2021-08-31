@@ -26393,11 +26393,10 @@ void MessagesManager::fix_forwarded_message(Message *m, DialogId to_dialog_id, c
   }
 }
 
-Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_id, DialogId from_dialog_id,
-                                                            vector<MessageId> message_ids,
-                                                            tl_object_ptr<td_api::messageSendOptions> &&options,
-                                                            bool in_game_share,
-                                                            vector<MessageCopyOptions> &&copy_options) {
+Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messages(
+    DialogId to_dialog_id, DialogId from_dialog_id, const vector<MessageId> &message_ids,
+    tl_object_ptr<td_api::messageSendOptions> &&options, bool in_game_share,
+    vector<MessageCopyOptions> &&copy_options) {
   CHECK(copy_options.size() == message_ids.size());
   if (message_ids.size() > 100) {  // TODO replace with const from config or implement mass-forward
     return Status::Error(4, "Too much messages to forward");
@@ -26444,23 +26443,12 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
 
   bool to_secret = to_dialog_id.get_type() == DialogType::SecretChat;
 
-  struct CopiedMessage {
-    unique_ptr<MessageContent> content;
-    MessageId top_thread_message_id;
-    MessageId reply_to_message_id;
-    unique_ptr<ReplyMarkup> reply_markup;
-    int64 media_album_id;
-    bool disable_web_page_preview;
-    size_t index;
-  };
-  vector<CopiedMessage> copied_messages;
-
-  struct ForwardedMessageContent {
-    unique_ptr<MessageContent> content;
-    int64 media_album_id;
-    size_t index;
-  };
-  vector<ForwardedMessageContent> forwarded_message_contents;
+  ForwardedMessages result;
+  result.to_dialog = to_dialog;
+  result.from_dialog = from_dialog;
+  result.message_send_options = message_send_options;
+  auto &copied_messages = result.copied_messages;
+  auto &forwarded_message_contents = result.forwarded_message_contents;
 
   std::unordered_map<int64, std::pair<int64, int32>> new_copied_media_album_ids;
   std::unordered_map<int64, std::pair<int64, int32>> new_forwarded_media_album_ids;
@@ -26556,6 +26544,38 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
     message.media_album_id = new_forwarded_media_album_ids[message.media_album_id].first;
   }
 
+  if (2 <= copied_messages.size() && copied_messages.size() <= MAX_GROUPED_MESSAGES) {
+    std::unordered_set<MessageContentType, MessageContentTypeHash> message_content_types;
+    for (auto &copied_message : copied_messages) {
+      message_content_types.insert(copied_message.content->get_type());
+    }
+    if (message_content_types.size() == 1 && is_homogenous_media_group_content(*message_content_types.begin())) {
+      new_copied_media_album_ids[0].first = generate_new_media_album_id();
+      for (auto &message : copied_messages) {
+        message.media_album_id = 0;
+      }
+    }
+  }
+  for (auto &message : copied_messages) {
+    message.media_album_id = new_copied_media_album_ids[message.media_album_id].first;
+  }
+  return std::move(result);
+}
+
+Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_id, DialogId from_dialog_id,
+                                                            vector<MessageId> message_ids,
+                                                            tl_object_ptr<td_api::messageSendOptions> &&options,
+                                                            bool in_game_share,
+                                                            vector<MessageCopyOptions> &&copy_options) {
+  TRY_RESULT(forwarded_messages_info,
+             get_forwarded_messages(to_dialog_id, from_dialog_id, message_ids, std::move(options), in_game_share,
+                                    std::move(copy_options)));
+  auto from_dialog = forwarded_messages_info.from_dialog;
+  auto to_dialog = forwarded_messages_info.to_dialog;
+  auto message_send_options = forwarded_messages_info.message_send_options;
+  auto &copied_messages = forwarded_messages_info.copied_messages;
+  auto &forwarded_message_contents = forwarded_messages_info.forwarded_message_contents;
+
   vector<MessageId> result(message_ids.size());
   vector<Message *> forwarded_messages;
   vector<MessageId> forwarded_message_ids;
@@ -26584,22 +26604,6 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
 
   if (!forwarded_messages.empty()) {
     do_forward_messages(to_dialog_id, from_dialog_id, forwarded_messages, forwarded_message_ids, 0);
-  }
-
-  if (2 <= copied_messages.size() && copied_messages.size() <= MAX_GROUPED_MESSAGES) {
-    std::unordered_set<MessageContentType, MessageContentTypeHash> message_content_types;
-    for (auto &copied_message : copied_messages) {
-      message_content_types.insert(copied_message.content->get_type());
-    }
-    if (message_content_types.size() == 1 && is_homogenous_media_group_content(*message_content_types.begin())) {
-      new_copied_media_album_ids[0].first = generate_new_media_album_id();
-      for (auto &message : copied_messages) {
-        message.media_album_id = 0;
-      }
-    }
-  }
-  for (auto &message : copied_messages) {
-    message.media_album_id = new_copied_media_album_ids[message.media_album_id].first;
   }
 
   if (!copied_messages.empty()) {

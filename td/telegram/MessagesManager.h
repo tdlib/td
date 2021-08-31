@@ -1843,6 +1843,35 @@ class MessagesManager final : public Actor {
   void fix_forwarded_message(Message *m, DialogId to_dialog_id, const Message *forwarded_message,
                              int64 media_album_id) const;
 
+  struct ForwardedMessages {
+    struct CopiedMessage {
+      unique_ptr<MessageContent> content;
+      MessageId top_thread_message_id;
+      MessageId reply_to_message_id;
+      unique_ptr<ReplyMarkup> reply_markup;
+      int64 media_album_id;
+      bool disable_web_page_preview;
+      size_t index;
+    };
+    vector<CopiedMessage> copied_messages;
+
+    struct ForwardedMessageContent {
+      unique_ptr<MessageContent> content;
+      int64 media_album_id;
+      size_t index;
+    };
+    vector<ForwardedMessageContent> forwarded_message_contents;
+
+    Dialog *from_dialog;
+    Dialog *to_dialog;
+    MessageSendOptions message_send_options;
+  };
+
+  Result<ForwardedMessages> get_forwarded_messages(DialogId to_dialog_id, DialogId from_dialog_id,
+                                                   const vector<MessageId> &message_ids,
+                                                   tl_object_ptr<td_api::messageSendOptions> &&options,
+                                                   bool in_game_share, vector<MessageCopyOptions> &&copy_options);
+
   void do_send_media(DialogId dialog_id, Message *m, FileId file_id, FileId thumbnail_file_id,
                      tl_object_ptr<telegram_api::InputFile> input_file,
                      tl_object_ptr<telegram_api::InputFile> input_thumbnail);
