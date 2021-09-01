@@ -13,6 +13,7 @@
 #include "td/actor/PromiseFuture.h"
 
 #include "td/utils/common.h"
+#include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 
 #include <mutex>

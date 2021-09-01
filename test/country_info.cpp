@@ -13,7 +13,6 @@ static void check_phone_number_info(const td::string &phone_number_prefix, const
                                     const td::string &calling_code, const td::string &formatted_phone_number) {
   auto result = td::CountryInfoManager::get_phone_number_info_sync(td::string(), phone_number_prefix);
   CHECK(result != nullptr);
-  // LOG(ERROR) << phone_number_prefix << ' ' << to_string(result);
   if (result->country_ == nullptr) {
     CHECK(country_code.empty());
   } else {

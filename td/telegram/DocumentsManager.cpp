@@ -27,7 +27,6 @@
 #include "td/telegram/VoiceNotesManager.h"
 
 #include "td/utils/common.h"
-#include "td/utils/format.h"
 #include "td/utils/HttpUrl.h"
 #include "td/utils/logging.h"
 #include "td/utils/MimeType.h"

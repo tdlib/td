@@ -6,6 +6,7 @@
 //
 #include "td/telegram/SponsoredMessages.h"
 
+#include "td/telegram/ChannelId.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageContent.h"
@@ -13,8 +14,11 @@
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/net/NetQueryCreator.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/telegram_api.h"
 
-//#include "td/utils/buffer.h"
+#include "td/utils/buffer.h"
+#include "td/utils/logging.h"
+#include "td/utils/Status.h"
 
 namespace td {
 

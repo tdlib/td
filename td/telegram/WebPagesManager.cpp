@@ -51,6 +51,8 @@
 #include "td/utils/tl_helpers.h"
 #include "td/utils/utf8.h"
 
+#include <limits>
+
 namespace td {
 
 class GetWebPagePreviewQuery final : public Td::ResultHandler {

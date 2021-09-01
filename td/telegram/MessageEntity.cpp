@@ -1873,7 +1873,7 @@ Result<vector<MessageEntity>> parse_markdown(string &text) {
         case '[': {
           string url;
           if (text[i + 1] != '(') {
-            // use text as a url
+            // use text as a URL
             url.assign(text, begin_pos + 1, i - begin_pos - 1);
           } else {
             i += 2;
@@ -2070,7 +2070,7 @@ static Result<vector<MessageEntity>> do_parse_markdown_v2(CSlice text, string &r
         case MessageEntity::Type::TextUrl: {
           string url;
           if (text[i + 1] != '(') {
-            // use text as a url
+            // use text as a URL
             url = result.substr(nested_entities.back().entity_begin_pos);
           } else {
             i += 2;

@@ -13,6 +13,7 @@
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
+#include "td/utils/logging.h"
 
 namespace td {
 
@@ -159,7 +160,7 @@ ThemeManager::BaseTheme ThemeManager::get_base_theme(
 ThemeManager::ThemeSettings ThemeManager::get_chat_theme_settings(
     telegram_api::object_ptr<telegram_api::themeSettings> settings) {
   ThemeSettings result;
-  if (settings != nullptr && 1 <= settings->message_colors_.size() && settings->message_colors_.size() <= 4) {
+  if (settings != nullptr && !settings->message_colors_.empty() && settings->message_colors_.size() <= 4) {
     auto background =
         td_->background_manager_->on_get_background(BackgroundId(), string(), std::move(settings->wallpaper_), false);
 

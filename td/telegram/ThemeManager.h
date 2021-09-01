@@ -8,7 +8,7 @@
 
 #include "td/telegram/BackgroundId.h"
 #include "td/telegram/BackgroundType.h"
-#include "td/telegram/td.h"
+#include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
 #include "td/actor/actor.h"

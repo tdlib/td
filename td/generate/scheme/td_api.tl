@@ -1776,7 +1776,7 @@ messagePinMessage message_id:int53 = MessageContent;
 //@description A screenshot of a message in the chat has been taken
 messageScreenshotTaken = MessageContent;
 
-//@description The  in the chat has been changed @theme_name New message TTL setting
+//@description A theme in the chat has been changed @theme_name If non-empty, name of the new theme set for the chat. Otherwise theme was deleted in the chat
 messageChatSetTheme theme_name:string = MessageContent;
 
 //@description The TTL (Time To Live) setting for messages in the chat has been changed @ttl New message TTL setting

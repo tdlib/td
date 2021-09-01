@@ -17,6 +17,7 @@
 #include "td/utils/port/thread.h"
 #include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
+#include "td/utils/Status.h"
 #include "td/utils/ThreadSafeCounter.h"
 
 #include "td/telegram/telegram_api.h"
@@ -422,7 +423,7 @@ std::atomic<td::int64> AtomicCounterBench<StrictOrder>::counter_;
 
 #endif
 
-class MessageIdDuplicateCheckerOld {
+class IdDuplicateCheckerOld {
  public:
   static td::string get_description() {
     return "Old";
@@ -453,7 +454,7 @@ class MessageIdDuplicateCheckerOld {
 };
 
 template <size_t MAX_SAVED_MESSAGE_IDS>
-class MessageIdDuplicateCheckerNew {
+class IdDuplicateCheckerNew {
  public:
   static td::string get_description() {
     return PSTRING() << "New" << MAX_SAVED_MESSAGE_IDS;
@@ -480,7 +481,7 @@ class MessageIdDuplicateCheckerNew {
   std::set<td::int64> saved_message_ids_;
 };
 
-class MessageIdDuplicateCheckerNewOther {
+class IdDuplicateCheckerNewOther {
  public:
   static td::string get_description() {
     return "NewOther";
@@ -507,7 +508,7 @@ class MessageIdDuplicateCheckerNewOther {
   std::set<td::int64> saved_message_ids_;
 };
 
-class MessageIdDuplicateCheckerNewSimple {
+class IdDuplicateCheckerNewSimple {
  public:
   static td::string get_description() {
     return "NewSimple";
@@ -534,7 +535,7 @@ class MessageIdDuplicateCheckerNewSimple {
 };
 
 template <size_t max_size>
-class MessageIdDuplicateCheckerArray {
+class IdDuplicateCheckerArray {
  public:
   static td::string get_description() {
     return PSTRING() << "Array" << max_size;
@@ -650,38 +651,38 @@ class DuplicateCheckerBenchEvenOdd final : public td::Benchmark {
 int main() {
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(DEBUG));
 
-  td::bench(DuplicateCheckerBenchEvenOdd<MessageIdDuplicateCheckerNew<1000>>());
-  td::bench(DuplicateCheckerBenchEvenOdd<MessageIdDuplicateCheckerNew<300>>());
-  td::bench(DuplicateCheckerBenchEvenOdd<MessageIdDuplicateCheckerArray<1000>>());
-  td::bench(DuplicateCheckerBenchEvenOdd<MessageIdDuplicateCheckerArray<300>>());
+  td::bench(DuplicateCheckerBenchEvenOdd<IdDuplicateCheckerNew<1000>>());
+  td::bench(DuplicateCheckerBenchEvenOdd<IdDuplicateCheckerNew<300>>());
+  td::bench(DuplicateCheckerBenchEvenOdd<IdDuplicateCheckerArray<1000>>());
+  td::bench(DuplicateCheckerBenchEvenOdd<IdDuplicateCheckerArray<300>>());
 
-  td::bench(DuplicateCheckerBenchReverse<MessageIdDuplicateCheckerNew<1000>>());
-  td::bench(DuplicateCheckerBenchReverse<MessageIdDuplicateCheckerNew<300>>());
-  td::bench(DuplicateCheckerBenchReverse<MessageIdDuplicateCheckerArray<1000>>());
-  td::bench(DuplicateCheckerBenchReverse<MessageIdDuplicateCheckerArray<300>>());
+  td::bench(DuplicateCheckerBenchReverse<IdDuplicateCheckerNew<1000>>());
+  td::bench(DuplicateCheckerBenchReverse<IdDuplicateCheckerNew<300>>());
+  td::bench(DuplicateCheckerBenchReverse<IdDuplicateCheckerArray<1000>>());
+  td::bench(DuplicateCheckerBenchReverse<IdDuplicateCheckerArray<300>>());
 
-  td::bench(DuplicateCheckerBenchRepeatOnly<MessageIdDuplicateCheckerNew<1000>>());
-  td::bench(DuplicateCheckerBenchRepeatOnly<MessageIdDuplicateCheckerNew<300>>());
-  td::bench(DuplicateCheckerBenchRepeatOnly<MessageIdDuplicateCheckerArray<1000>>());
-  td::bench(DuplicateCheckerBenchRepeatOnly<MessageIdDuplicateCheckerArray<300>>());
+  td::bench(DuplicateCheckerBenchRepeatOnly<IdDuplicateCheckerNew<1000>>());
+  td::bench(DuplicateCheckerBenchRepeatOnly<IdDuplicateCheckerNew<300>>());
+  td::bench(DuplicateCheckerBenchRepeatOnly<IdDuplicateCheckerArray<1000>>());
+  td::bench(DuplicateCheckerBenchRepeatOnly<IdDuplicateCheckerArray<300>>());
 
-  td::bench(DuplicateCheckerBenchRepeat<MessageIdDuplicateCheckerOld>());
-  td::bench(DuplicateCheckerBenchRepeat<MessageIdDuplicateCheckerNew<1000>>());
-  td::bench(DuplicateCheckerBenchRepeat<MessageIdDuplicateCheckerNewOther>());
-  td::bench(DuplicateCheckerBenchRepeat<MessageIdDuplicateCheckerNewSimple>());
-  td::bench(DuplicateCheckerBenchRepeat<MessageIdDuplicateCheckerNew<300>>());
-  td::bench(DuplicateCheckerBenchRepeat<MessageIdDuplicateCheckerArray<1000>>());
-  td::bench(DuplicateCheckerBenchRepeat<MessageIdDuplicateCheckerArray<300>>());
+  td::bench(DuplicateCheckerBenchRepeat<IdDuplicateCheckerOld>());
+  td::bench(DuplicateCheckerBenchRepeat<IdDuplicateCheckerNew<1000>>());
+  td::bench(DuplicateCheckerBenchRepeat<IdDuplicateCheckerNewOther>());
+  td::bench(DuplicateCheckerBenchRepeat<IdDuplicateCheckerNewSimple>());
+  td::bench(DuplicateCheckerBenchRepeat<IdDuplicateCheckerNew<300>>());
+  td::bench(DuplicateCheckerBenchRepeat<IdDuplicateCheckerArray<1000>>());
+  td::bench(DuplicateCheckerBenchRepeat<IdDuplicateCheckerArray<300>>());
 
-  td::bench(DuplicateCheckerBench<MessageIdDuplicateCheckerOld>());
-  td::bench(DuplicateCheckerBench<MessageIdDuplicateCheckerNew<1000>>());
-  td::bench(DuplicateCheckerBench<MessageIdDuplicateCheckerNewOther>());
-  td::bench(DuplicateCheckerBench<MessageIdDuplicateCheckerNewSimple>());
-  td::bench(DuplicateCheckerBench<MessageIdDuplicateCheckerNew<300>>());
-  td::bench(DuplicateCheckerBench<MessageIdDuplicateCheckerNew<100>>());
-  td::bench(DuplicateCheckerBench<MessageIdDuplicateCheckerNew<10>>());
-  td::bench(DuplicateCheckerBench<MessageIdDuplicateCheckerArray<1000>>());
-  td::bench(DuplicateCheckerBench<MessageIdDuplicateCheckerArray<300>>());
+  td::bench(DuplicateCheckerBench<IdDuplicateCheckerOld>());
+  td::bench(DuplicateCheckerBench<IdDuplicateCheckerNew<1000>>());
+  td::bench(DuplicateCheckerBench<IdDuplicateCheckerNewOther>());
+  td::bench(DuplicateCheckerBench<IdDuplicateCheckerNewSimple>());
+  td::bench(DuplicateCheckerBench<IdDuplicateCheckerNew<300>>());
+  td::bench(DuplicateCheckerBench<IdDuplicateCheckerNew<100>>());
+  td::bench(DuplicateCheckerBench<IdDuplicateCheckerNew<10>>());
+  td::bench(DuplicateCheckerBench<IdDuplicateCheckerArray<1000>>());
+  td::bench(DuplicateCheckerBench<IdDuplicateCheckerArray<300>>());
 
 #if !TD_THREAD_UNSUPPORTED
   for (int i = 1; i <= 16; i *= 2) {

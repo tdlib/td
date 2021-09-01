@@ -84,6 +84,7 @@
 #include "td/utils/tl_helpers.h"
 #include "td/utils/utf8.h"
 
+#include <limits>
 #include <utility>
 
 namespace td {
