@@ -31,6 +31,10 @@ if (POLICY CMP0060)
   # link libraries by full path
   cmake_policy(SET CMP0060 NEW)
 endif()
+if (POLICY CMP0074)
+  # use environment variables to find libraries
+  cmake_policy(SET CMP0074 NEW)
+endif()
 
 include(PreventInSourceBuild)
 prevent_in_source_build()
