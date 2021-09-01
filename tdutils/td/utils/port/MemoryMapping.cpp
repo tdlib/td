@@ -38,10 +38,8 @@ class MemoryMapping::Impl {
   int64 offset_;
 };
 
+#if !TD_WINDOWS
 static Result<int64> get_page_size() {
-#if TD_WINDOWS
-  return Status::Error("Unimplemented");
-#else
   static Result<int64> page_size = []() -> Result<int64> {
     auto page_size = sysconf(_SC_PAGESIZE);
     if (page_size < 0) {
@@ -50,8 +48,8 @@ static Result<int64> get_page_size() {
     return page_size;
   }();
   return page_size.clone();
-#endif
 }
+#endif
 
 Result<MemoryMapping> MemoryMapping::create_anonymous(const MemoryMapping::Options &options) {
   return Status::Error("Unsupported yet");

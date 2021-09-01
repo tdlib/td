@@ -230,7 +230,7 @@ Slice get_operating_system_version() {
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
     auto handle = GetModuleHandle(L"ntdll.dll");
     if (handle != nullptr) {
-      using RtlGetVersionPtr = LONG(WINAPI *)(PRTL_OSVERSIONINFOEXW);
+      using RtlGetVersionPtr = LONG(WINAPI *)(_Out_ PRTL_OSVERSIONINFOEXW);
       RtlGetVersionPtr RtlGetVersion = reinterpret_cast<RtlGetVersionPtr>(GetProcAddress(handle, "RtlGetVersion"));
       if (RtlGetVersion != nullptr) {
         RTL_OSVERSIONINFOEXW os_version_info = {};
@@ -240,7 +240,7 @@ Slice get_operating_system_version() {
           auto minor = os_version_info.dwMinorVersion;
           bool is_server = os_version_info.wProductType != VER_NT_WORKSTATION;
 
-          if (major == 10 && minor >= 0) {
+          if (major == 10) {
             if (is_server) {
               return os_version_info.dwBuildNumber >= 17623 ? "Windows Server 2019" : "Windows Server 2016";
             }

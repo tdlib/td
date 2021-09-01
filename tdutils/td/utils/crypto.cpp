@@ -860,7 +860,7 @@ static void pbkdf2_impl(Slice password, Slice salt, int iteration_count, Mutable
         LOG(FATAL) << "Failed to HMAC";
       }
       for (int i = 0; i < hash_size; i++) {
-        dest[i] ^= buf[i];
+        dest[i] = static_cast<unsigned char>(dest[i] ^ buf[i]);
       }
     }
   }
