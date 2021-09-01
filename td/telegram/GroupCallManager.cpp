@@ -1248,7 +1248,7 @@ void GroupCallManager::set_group_call_default_join_as(DialogId dialog_id, Dialog
   if (!dialog_id.is_valid()) {
     return promise.set_error(Status::Error(400, "Invalid chat identifier specified"));
   }
-  if (!td_->messages_manager_->have_dialog_force(dialog_id)) {
+  if (!td_->messages_manager_->have_dialog_force(dialog_id, "set_group_call_default_join_as")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
   if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
@@ -1263,7 +1263,7 @@ void GroupCallManager::set_group_call_default_join_as(DialogId dialog_id, Dialog
       break;
     case DialogType::Chat:
     case DialogType::Channel:
-      if (!td_->messages_manager_->have_dialog_force(as_dialog_id)) {
+      if (!td_->messages_manager_->have_dialog_force(as_dialog_id, "set_group_call_default_join_as 2")) {
         return promise.set_error(Status::Error(400, "Participant chat not found"));
       }
       break;

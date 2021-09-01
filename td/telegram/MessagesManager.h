@@ -513,7 +513,7 @@ class MessagesManager final : public Actor {
   string get_dialog_title(DialogId dialog_id) const;
 
   bool have_dialog(DialogId dialog_id) const;
-  bool have_dialog_force(DialogId dialog_id, const char *source = "have_dialog_force");
+  bool have_dialog_force(DialogId dialog_id, const char *source);
 
   bool have_dialog_info(DialogId dialog_id) const;
   bool have_dialog_info_force(DialogId dialog_id) const;
