@@ -134,6 +134,10 @@ function(td_set_up_compiler)
   if (GCC AND NOT (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 7.0))
     add_cxx_compiler_flag("-Wno-maybe-uninitialized")  # too much false positives
   endif()
+  if (WIN32 AND GCC AND NOT (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 8.0))
+    # warns about casts of function pointers returned by GetProcAddress
+    add_cxx_compiler_flag("-Wno-cast-function-type")
+  endif()
   if (GCC AND NOT (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.0))
     # warns about a lot of "return std::move", which are not redundant for compilers without fix for DR 1579, i.e. GCC 4.9 or clang 3.8
     # see http://www.open-std.org/jtc1/sc22/wg21/docs/cwg_defects.html#1579
