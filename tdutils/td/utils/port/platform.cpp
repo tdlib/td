@@ -6,6 +6,8 @@
 //
 #include "td/utils/port/platform.h"
 
+char disable_linker_warning_about_empty_file_platform_cpp TD_UNUSED;
+
 #if !TD_MSVC
 
 #if TD_DARWIN_UNKNOWN
