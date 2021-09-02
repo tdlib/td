@@ -44,22 +44,21 @@ class Game {
  public:
   Game() = default;
 
-  Game(Td *td, tl_object_ptr<telegram_api::game> &&game, DialogId owner_dialog_id);
+  Game(Td *td, UserId bot_user_id, tl_object_ptr<telegram_api::game> &&game, FormattedText text,
+       DialogId owner_dialog_id);
 
+  // for inline results
   Game(Td *td, string title, string description, tl_object_ptr<telegram_api::Photo> &&photo,
        tl_object_ptr<telegram_api::Document> &&document, DialogId owner_dialog_id);
 
+  // for outgoing messages
   Game(UserId bot_user_id, string short_name);
 
   bool is_empty() const;
 
-  void set_bot_user_id(UserId bot_user_id);
-
   UserId get_bot_user_id() const;
 
   vector<FileId> get_file_ids(const Td *td) const;
-
-  void set_text(FormattedText &&text);
 
   const FormattedText &get_text() const;
 

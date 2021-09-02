@@ -4171,14 +4171,11 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
     case telegram_api::messageMediaGame::ID: {
       auto message_game = move_tl_object_as<telegram_api::messageMediaGame>(media);
 
-      auto m = make_unique<MessageGame>(Game(td, std::move(message_game->game_), owner_dialog_id));
+      auto m =
+          make_unique<MessageGame>(Game(td, via_bot_user_id, std::move(message_game->game_), message, owner_dialog_id));
       if (m->game.is_empty()) {
         break;
       }
-
-      m->game.set_bot_user_id(via_bot_user_id);
-      m->game.set_text(std::move(message));
-
       return std::move(m);
     }
     case telegram_api::messageMediaInvoice::ID:
