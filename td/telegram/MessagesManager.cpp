@@ -15657,7 +15657,7 @@ vector<DialogId> MessagesManager::get_dialogs(DialogListId dialog_list_id, Dialo
   if (!list.are_pinned_dialogs_inited_) {
     if (limit == 0 || force) {
       promise.set_value(Unit());
-      return std::move(result);
+      return result;
     } else {
       if (dialog_list_id.is_folder()) {
         auto &folder = *get_dialog_folder(dialog_list_id.get_folder_id());
@@ -15691,7 +15691,7 @@ vector<DialogId> MessagesManager::get_dialogs(DialogListId dialog_list_id, Dialo
     if (!input_dialog_ids.empty()) {
       if (limit == 0 || force) {
         promise.set_value(Unit());
-        return std::move(result);
+        return result;
       } else {
         td_->create_handler<GetDialogsQuery>(std::move(promise))->send(std::move(input_dialog_ids));
         return {};
@@ -15767,7 +15767,7 @@ vector<DialogId> MessagesManager::get_dialogs(DialogListId dialog_list_id, Dialo
     }
 
     promise.set_value(Unit());
-    return std::move(result);
+    return result;
   } else {
     load_dialog_list(list, limit, std::move(promise));
     return {};
