@@ -26348,11 +26348,14 @@ void MessagesManager::fix_forwarded_message(Message *m, DialogId to_dialog_id, c
     m->interaction_info_update_date = G()->unix_time();
   }
 
-  auto content_type = forwarded_message->content->get_type();
-  if (content_type == MessageContentType::Game) {
+  if (m->content->get_type() == MessageContentType::Game) {
+    // via_bot_user_id in games is present unless the message is sent by the bot
     if (m->via_bot_user_id == UserId()) {
+      // if there is no via_bot_user_id, then the original message was sent by the game owner
       m->via_bot_user_id = forwarded_message->sender_user_id;
-    } else if (m->via_bot_user_id == td_->contacts_manager_->get_my_id()) {
+    }
+    if (m->via_bot_user_id == td_->contacts_manager_->get_my_id()) {
+      // if via_bot_user_id is the current bot user, then there should be
       m->via_bot_user_id = UserId();
     }
   }
