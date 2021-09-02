@@ -4172,7 +4172,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
       auto message_game = move_tl_object_as<telegram_api::messageMediaGame>(media);
 
       auto m = make_unique<MessageGame>(Game(td, std::move(message_game->game_), owner_dialog_id));
-      if (m->game.empty()) {
+      if (m->game.is_empty()) {
         break;
       }
 

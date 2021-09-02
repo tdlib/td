@@ -51,7 +51,7 @@ class Game {
 
   Game(UserId bot_user_id, string short_name);
 
-  bool empty() const;
+  bool is_empty() const;
 
   void set_bot_user_id(UserId bot_user_id);
 

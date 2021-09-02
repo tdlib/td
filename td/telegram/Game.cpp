@@ -61,7 +61,7 @@ Game::Game(UserId bot_user_id, string short_name) : bot_user_id_(bot_user_id), s
   photo_.id = 0;  // to prevent null photo in td_api
 }
 
-bool Game::empty() const {
+bool Game::is_empty() const {
   return short_name_.empty();
 }
 
