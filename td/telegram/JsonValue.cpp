@@ -199,6 +199,15 @@ string get_json_string(const td_api::JsonValue *json_value) {
   return json_encode<string>(JsonableJsonValue(json_value));
 }
 
+bool get_json_value_bool(telegram_api::object_ptr<telegram_api::JSONValue> &&json_value, Slice name) {
+  CHECK(json_value != nullptr);
+  if (json_value->get_id() == telegram_api::jsonBool::ID) {
+    return static_cast<const telegram_api::jsonBool *>(json_value.get())->value_;
+  }
+  LOG(ERROR) << "Expected Boolean as " << name << ", but found " << to_string(json_value);
+  return false;
+}
+
 int32 get_json_value_int(telegram_api::object_ptr<telegram_api::JSONValue> &&json_value, Slice name) {
   CHECK(json_value != nullptr);
   if (json_value->get_id() == telegram_api::jsonNumber::ID) {

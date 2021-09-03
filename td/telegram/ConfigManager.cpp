@@ -1606,12 +1606,8 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         continue;
       }
       if (key == "autoarchive_setting_available") {
-        if (value->get_id() == telegram_api::jsonBool::ID) {
-          can_archive_and_mute_new_chats_from_unknown_users =
-              std::move(static_cast<telegram_api::jsonBool *>(value)->value_);
-        } else {
-          LOG(ERROR) << "Receive unexpected autoarchive_setting_available " << to_string(*value);
-        }
+        can_archive_and_mute_new_chats_from_unknown_users =
+            get_json_value_bool(std::move(key_value->value_), "autoarchive_setting_available");
         continue;
       }
       if (key == "autologin_token") {
