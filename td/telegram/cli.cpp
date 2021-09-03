@@ -237,8 +237,8 @@ class CliClient final : public Actor {
     string username;
   };
 
-  std::unordered_map<int32, User> users_;
-  std::unordered_map<string, int32> username_to_user_id_;
+  std::unordered_map<int64, User> users_;
+  std::unordered_map<string, int64> username_to_user_id_;
 
   void register_user(const td_api::user &user) {
     User &new_user = users_[user.id_];
@@ -248,7 +248,7 @@ class CliClient final : public Actor {
     username_to_user_id_[to_lower(new_user.username)] = user.id_;
   }
 
-  void print_user(Logger &log, int32 user_id, bool full = false) {
+  void print_user(Logger &log, int64 user_id, bool full = false) {
     const User *user = &users_[user_id];
     log << user->first_name << " " << user->last_name << " #" << user_id;
     if (!user->username.empty()) {
@@ -267,7 +267,7 @@ class CliClient final : public Actor {
     }
   }
 
-  std::unordered_map<string, int32> username_to_supergroup_id_;
+  std::unordered_map<string, int64> username_to_supergroup_id_;
   void register_supergroup(const td_api::supergroup &supergroup) {
     if (!supergroup.username_.empty()) {
       username_to_supergroup_id_[to_lower(supergroup.username_)] = supergroup.id_;
@@ -276,7 +276,7 @@ class CliClient final : public Actor {
 
   void update_option(const td_api::updateOption &option) {
     if (option.name_ == "my_id" && option.value_->get_id() == td_api::optionValueInteger::ID) {
-      my_id_ = static_cast<int32>(static_cast<const td_api::optionValueInteger *>(option.value_.get())->value_);
+      my_id_ = static_cast<const td_api::optionValueInteger *>(option.value_.get())->value_;
       LOG(INFO) << "Set my user identifier to " << my_id_;
     }
   }
@@ -518,7 +518,7 @@ class CliClient final : public Actor {
     return to_integer<int32>(trim(str));
   }
 
-  int32 as_user_id(Slice str) const {
+  int64 as_user_id(Slice str) const {
     str = trim(str);
     if (str == "me") {
       return my_id_;
@@ -534,23 +534,23 @@ class CliClient final : public Actor {
       LOG(ERROR) << "Can't find user " << str;
       return 0;
     }
-    return to_integer<int32>(str);
+    return to_integer<int64>(str);
   }
 
-  vector<int32> as_user_ids(Slice user_ids) const {
+  vector<int64> as_user_ids(Slice user_ids) const {
     return transform(full_split(user_ids, get_delimiter(user_ids)), [this](Slice str) { return as_user_id(str); });
   }
 
-  static int32 as_basic_group_id(Slice str) {
+  static int64 as_basic_group_id(Slice str) {
     str = trim(str);
-    auto result = to_integer<int32>(str);
+    auto result = to_integer<int64>(str);
     if (result < 0) {
       return -result;
     }
     return result;
   }
 
-  int32 as_supergroup_id(Slice str) const {
+  int64 as_supergroup_id(Slice str) const {
     str = trim(str);
     if (str[0] == '@') {
       str.remove_prefix(1);
@@ -565,9 +565,9 @@ class CliClient final : public Actor {
     auto result = to_integer<int64>(str);
     int64 shift = static_cast<int64>(-1000000000000ll);
     if (result <= shift) {
-      return static_cast<int32>(shift - result);
+      return shift - result;
     }
-    return static_cast<int32>(result);
+    return result;
   }
 
   static int32 as_secret_chat_id(Slice str) {
@@ -606,8 +606,8 @@ class CliClient final : public Actor {
     if ((str.size() >= 20 && is_base64url(str)) || begins_with(str, "http")) {
       return as_remote_file(str);
     }
-    auto r_id = to_integer_safe<int32>(str);
-    if (r_id.is_ok()) {
+    auto r_file_id = to_integer_safe<int32>(str);
+    if (r_file_id.is_ok()) {
       return as_input_file_id(str);
     }
     if (str.find(';') < str.size()) {
@@ -3923,7 +3923,7 @@ class CliClient final : public Actor {
       string limit;
       get_args(args, chat_id, limit);
       send_request(td_api::make_object<td_api::getChatEventLog>(as_chat_id(chat_id), "", 0, as_limit(limit), nullptr,
-                                                                vector<int32>()));
+                                                                vector<int64>()));
     } else if (op == "join") {
       send_request(td_api::make_object<td_api::joinChat>(as_chat_id(args)));
     } else if (op == "leave") {
@@ -4476,7 +4476,7 @@ class CliClient final : public Actor {
 
   std::unordered_map<int32, double> being_downloaded_files_;
 
-  int32 my_id_ = 0;
+  int64 my_id_ = 0;
   string schedule_date_;
   string message_thread_id_;
 

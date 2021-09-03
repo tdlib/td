@@ -494,7 +494,7 @@ static Result<InlineKeyboardButton> get_inline_keyboard_button(tl_object_ptr<td_
         return Status::Error(400, "Inline keyboard button forward text must be encoded in UTF-8");
       }
       current_button.id = login_url->id_;
-      if (current_button.id == 0 || current_button.id == std::numeric_limits<int32>::min()) {
+      if (current_button.id == 0 || current_button.id == std::numeric_limits<int64>::min()) {
         return Status::Error(400, "Invalid bot_user_id specified");
       }
       break;
@@ -662,7 +662,7 @@ static tl_object_ptr<telegram_api::KeyboardButton> get_inline_keyboard_button(
       return make_tl_object<telegram_api::keyboardButtonBuy>(keyboard_button.text);
     case InlineKeyboardButton::Type::UrlAuth: {
       int32 flags = 0;
-      int32 bot_user_id = keyboard_button.id;
+      int64 bot_user_id = keyboard_button.id;
       if (bot_user_id > 0) {
         flags |= telegram_api::inputKeyboardButtonUrlAuth::REQUEST_WRITE_ACCESS_MASK;
       } else {

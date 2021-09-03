@@ -17,7 +17,7 @@ namespace td {
 
 struct NetQueryDebug {
   double start_timestamp_ = 0;
-  int32 my_id_ = 0;
+  int64 my_id_ = 0;
   int32 resend_count_ = 0;
   string state_ = "empty";
   double state_timestamp_ = 0;

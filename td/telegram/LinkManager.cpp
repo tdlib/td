@@ -1090,7 +1090,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::get_internal_link_passport(
     return Slice();
   };
 
-  UserId bot_user_id(to_integer<int32>(get_arg("bot_id")));
+  UserId bot_user_id(to_integer<int64>(get_arg("bot_id")));
   auto scope = get_arg("scope");
   auto public_key = get_arg("public_key");
   auto nonce = get_arg("nonce");
@@ -1195,17 +1195,18 @@ void LinkManager::get_external_link_info(string &&link, Promise<td_api::object_p
   promise.set_value(td_api::make_object<td_api::loginUrlInfoOpen>(url.get_url(), false));
 }
 
-void LinkManager::get_login_url_info(FullMessageId full_message_id, int32 button_id,
+void LinkManager::get_login_url_info(FullMessageId full_message_id, int64 button_id,
                                      Promise<td_api::object_ptr<td_api::LoginUrlInfo>> &&promise) {
   TRY_RESULT_PROMISE(promise, url, td_->messages_manager_->get_login_button_url(full_message_id, button_id));
-  td_->create_handler<RequestUrlAuthQuery>(std::move(promise))->send(std::move(url), full_message_id, button_id);
+  td_->create_handler<RequestUrlAuthQuery>(std::move(promise))
+      ->send(std::move(url), full_message_id, narrow_cast<int32>(button_id));
 }
 
-void LinkManager::get_login_url(FullMessageId full_message_id, int32 button_id, bool allow_write_access,
+void LinkManager::get_login_url(FullMessageId full_message_id, int64 button_id, bool allow_write_access,
                                 Promise<td_api::object_ptr<td_api::httpUrl>> &&promise) {
   TRY_RESULT_PROMISE(promise, url, td_->messages_manager_->get_login_button_url(full_message_id, button_id));
   td_->create_handler<AcceptUrlAuthQuery>(std::move(promise))
-      ->send(std::move(url), full_message_id, button_id, allow_write_access);
+      ->send(std::move(url), full_message_id, narrow_cast<int32>(button_id), allow_write_access);
 }
 
 void LinkManager::get_link_login_url(const string &url, bool allow_write_access,
@@ -1339,7 +1340,7 @@ Result<MessageLinkInfo> LinkManager::get_message_link_info(Slice url) {
 
   ChannelId channel_id;
   if (username.empty()) {
-    auto r_channel_id = to_integer_safe<int32>(channel_id_slice);
+    auto r_channel_id = to_integer_safe<int64>(channel_id_slice);
     if (r_channel_id.is_error() || !ChannelId(r_channel_id.ok()).is_valid()) {
       return Status::Error("Wrong channel ID");
     }

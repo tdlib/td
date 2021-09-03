@@ -50,12 +50,12 @@ class MessagesDbBench final : public Benchmark {
   void run(int n) final {
     auto guard = scheduler_->get_main_guard();
     for (int i = 0; i < n; i += 20) {
-      auto dialog_id = DialogId{UserId{Random::fast(1, 100)}};
+      auto dialog_id = DialogId(UserId(static_cast<int64>(Random::fast(1, 100))));
       auto message_id_raw = Random::fast(1, 100000);
       for (int j = 0; j < 20; j++) {
         auto message_id = MessageId{ServerMessageId{message_id_raw + j}};
         auto unique_message_id = ServerMessageId{i + 1};
-        auto sender_user_id = UserId{Random::fast(1, 1000)};
+        auto sender_user_id = UserId(static_cast<int64>(Random::fast(1, 1000)));
         auto random_id = i + 1;
         auto ttl_expires_at = 0;
         auto data = BufferSlice(Random::fast(100, 299));

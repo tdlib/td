@@ -49,17 +49,17 @@ DialogType DialogId::get_type() const {
 
 UserId DialogId::get_user_id() const {
   CHECK(get_type() == DialogType::User);
-  return UserId(static_cast<int32>(id));
+  return UserId(id);
 }
 
 ChatId DialogId::get_chat_id() const {
   CHECK(get_type() == DialogType::Chat);
-  return ChatId(static_cast<int32>(-id));
+  return ChatId(-id);
 }
 
 ChannelId DialogId::get_channel_id() const {
   CHECK(get_type() == DialogType::Channel);
-  return ChannelId(static_cast<int32>(MAX_CHANNEL_ID - id));
+  return ChannelId(MAX_CHANNEL_ID - id);
 }
 
 SecretChatId DialogId::get_secret_chat_id() const {
@@ -69,7 +69,7 @@ SecretChatId DialogId::get_secret_chat_id() const {
 
 DialogId::DialogId(UserId user_id) {
   if (user_id.is_valid()) {
-    id = static_cast<int64>(user_id.get());
+    id = user_id.get();
   } else {
     id = 0;
   }
@@ -77,7 +77,7 @@ DialogId::DialogId(UserId user_id) {
 
 DialogId::DialogId(ChatId chat_id) {
   if (chat_id.is_valid()) {
-    id = -static_cast<int64>(chat_id.get());
+    id = -chat_id.get();
   } else {
     id = 0;
   }
@@ -85,7 +85,7 @@ DialogId::DialogId(ChatId chat_id) {
 
 DialogId::DialogId(ChannelId channel_id) {
   if (channel_id.is_valid()) {
-    id = MAX_CHANNEL_ID - static_cast<int64>(channel_id.get());
+    id = MAX_CHANNEL_ID - channel_id.get();
   } else {
     id = 0;
   }
@@ -130,7 +130,7 @@ int64 DialogId::get_peer_id(const tl_object_ptr<telegram_api::Peer> &peer) {
         return 0;
       }
 
-      return static_cast<int64>(user_id.get());
+      return user_id.get();
     }
     case telegram_api::peerChat::ID: {
       auto peer_chat = static_cast<const telegram_api::peerChat *>(peer.get());
@@ -140,7 +140,7 @@ int64 DialogId::get_peer_id(const tl_object_ptr<telegram_api::Peer> &peer) {
         return 0;
       }
 
-      return -static_cast<int64>(chat_id.get());
+      return -chat_id.get();
     }
     case telegram_api::peerChannel::ID: {
       auto peer_channel = static_cast<const telegram_api::peerChannel *>(peer.get());
@@ -150,7 +150,7 @@ int64 DialogId::get_peer_id(const tl_object_ptr<telegram_api::Peer> &peer) {
         return 0;
       }
 
-      return MAX_CHANNEL_ID - static_cast<int64>(channel_id.get());
+      return MAX_CHANNEL_ID - channel_id.get();
     }
     default:
       UNREACHABLE();

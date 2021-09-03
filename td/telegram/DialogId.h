@@ -27,10 +27,10 @@ class DialogId {
   static constexpr int64 MIN_SECRET_ID = -2002147483648ll;
   static constexpr int64 ZERO_SECRET_ID = -2000000000000ll;
   static constexpr int64 MAX_SECRET_ID = -1997852516353ll;
-  static constexpr int64 MIN_CHANNEL_ID = -1002147483647ll;
+  static constexpr int64 MIN_CHANNEL_ID = -1997852516352ll;
   static constexpr int64 MAX_CHANNEL_ID = -1000000000000ll;
-  static constexpr int64 MIN_CHAT_ID = -2147483647ll;
-  static constexpr int64 MAX_USER_ID = 2147483647ll;
+  static constexpr int64 MIN_CHAT_ID = -999999999999ll;
+  static constexpr int64 MAX_USER_ID = 999999999999ll;
 
   int64 id = 0;
 

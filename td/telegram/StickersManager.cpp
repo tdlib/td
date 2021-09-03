@@ -65,7 +65,7 @@ class GetAllStickersQuery final : public Td::ResultHandler {
   bool is_masks_;
 
  public:
-  void send(bool is_masks, int32 hash) {
+  void send(bool is_masks, int64 hash) {
     is_masks_ = is_masks;
     if (is_masks) {
       send_query(G()->net_query_creator().create(telegram_api::messages_getMaskStickers(hash)));
@@ -100,7 +100,7 @@ class SearchStickersQuery final : public Td::ResultHandler {
   string emoji_;
 
  public:
-  void send(string emoji, int32 hash) {
+  void send(string emoji, int64 hash) {
     emoji_ = std::move(emoji);
     send_query(G()->net_query_creator().create(telegram_api::messages_getStickers(emoji_, hash)));
   }
@@ -277,7 +277,7 @@ class GetArchivedStickerSetsQuery final : public Td::ResultHandler {
 
 class GetFeaturedStickerSetsQuery final : public Td::ResultHandler {
  public:
-  void send(int32 hash) {
+  void send(int64 hash) {
     LOG(INFO) << "Get trending sticker sets with hash " << hash;
     send_query(G()->net_query_creator().create(telegram_api::messages_getFeaturedStickers(hash)));
   }
@@ -382,7 +382,7 @@ class GetRecentStickersQuery final : public Td::ResultHandler {
   bool is_attached_ = false;
 
  public:
-  void send(bool is_repair, bool is_attached, int32 hash) {
+  void send(bool is_repair, bool is_attached, int64 hash) {
     is_repair_ = is_repair;
     is_attached_ = is_attached;
     int32 flags = 0;
@@ -531,7 +531,7 @@ class GetFavedStickersQuery final : public Td::ResultHandler {
   bool is_repair_ = false;
 
  public:
-  void send(bool is_repair, int32 hash) {
+  void send(bool is_repair, int64 hash) {
     is_repair_ = is_repair;
     LOG(INFO) << "Send get favorite stickers request with hash = " << hash;
     send_query(G()->net_query_creator().create(telegram_api::messages_getFavedStickers(hash)));
@@ -3132,7 +3132,7 @@ vector<FileId> StickersManager::search_stickers(string emoji, int32 limit, Promi
   auto &promises = search_stickers_queries_[emoji];
   promises.push_back(std::move(promise));
   if (promises.size() == 1u) {
-    int32 hash = 0;
+    int64 hash = 0;
     if (it != found_stickers_.end()) {
       hash = get_recent_stickers_hash(it->second.sticker_ids_);
     }
@@ -5310,29 +5310,27 @@ vector<FileId> StickersManager::get_attached_sticker_file_ids(const vector<int32
   return result;
 }
 
-int32 StickersManager::get_sticker_sets_hash(const vector<StickerSetId> &sticker_set_ids) const {
-  vector<uint32> numbers;
+int64 StickersManager::get_sticker_sets_hash(const vector<StickerSetId> &sticker_set_ids) const {
+  vector<uint64> numbers;
   numbers.reserve(sticker_set_ids.size());
   for (auto sticker_set_id : sticker_set_ids) {
     const StickerSet *sticker_set = get_sticker_set(sticker_set_id);
     CHECK(sticker_set != nullptr);
     CHECK(sticker_set->is_inited);
-    numbers.push_back(static_cast<uint32>(sticker_set->hash));
+    numbers.push_back(sticker_set->hash);
   }
   return get_vector_hash(numbers);
 }
 
-int32 StickersManager::get_featured_sticker_sets_hash() const {
-  vector<uint32> numbers;
-  numbers.reserve(featured_sticker_set_ids_.size());
+int64 StickersManager::get_featured_sticker_sets_hash() const {
+  vector<uint64> numbers;
+  numbers.reserve(featured_sticker_set_ids_.size() * 2);
   for (auto sticker_set_id : featured_sticker_set_ids_) {
     const StickerSet *sticker_set = get_sticker_set(sticker_set_id);
     CHECK(sticker_set != nullptr);
     CHECK(sticker_set->is_inited);
 
-    uint64 pack_id = static_cast<uint64>(sticker_set_id.get());
-    numbers.push_back(static_cast<uint32>(pack_id >> 32));
-    numbers.push_back(static_cast<uint32>(pack_id & 0xFFFFFFFF));
+    numbers.push_back(sticker_set_id.get());
 
     if (!sticker_set->is_viewed) {
       numbers.push_back(1);
@@ -5544,9 +5542,9 @@ void StickersManager::on_get_recent_stickers_failed(bool is_repair, bool is_atta
   }
 }
 
-int32 StickersManager::get_recent_stickers_hash(const vector<FileId> &sticker_ids) const {
-  vector<uint32> numbers;
-  numbers.reserve(sticker_ids.size() * 2);
+int64 StickersManager::get_recent_stickers_hash(const vector<FileId> &sticker_ids) const {
+  vector<uint64> numbers;
+  numbers.reserve(sticker_ids.size());
   for (auto sticker_id : sticker_ids) {
     auto sticker = get_sticker(sticker_id);
     CHECK(sticker != nullptr);
@@ -5556,9 +5554,7 @@ int32 StickersManager::get_recent_stickers_hash(const vector<FileId> &sticker_id
       LOG(ERROR) << "Recent sticker remote location is not document: " << file_view.remote_location();
       continue;
     }
-    auto id = static_cast<uint64>(file_view.remote_location().get_id());
-    numbers.push_back(static_cast<uint32>(id >> 32));
-    numbers.push_back(static_cast<uint32>(id & 0xFFFFFFFF));
+    numbers.push_back(file_view.remote_location().get_id());
   }
   return get_vector_hash(numbers);
 }
@@ -5965,7 +5961,7 @@ void StickersManager::on_get_favorite_stickers_failed(bool is_repair, Status err
   }
 }
 
-int32 StickersManager::get_favorite_stickers_hash() const {
+int64 StickersManager::get_favorite_stickers_hash() const {
   return get_recent_stickers_hash(favorite_sticker_ids_);
 }
 

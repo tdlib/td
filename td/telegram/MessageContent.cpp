@@ -3969,9 +3969,9 @@ unique_ptr<MessageContent> get_secret_message_content(
       if (!clean_input_string(message_contact->last_name_)) {
         message_contact->last_name_.clear();
       }
-      return make_unique<MessageContact>(
-          Contact(std::move(message_contact->phone_number_), std::move(message_contact->first_name_),
-                  std::move(message_contact->last_name_), string(), UserId(message_contact->user_id_)));
+      return make_unique<MessageContact>(Contact(std::move(message_contact->phone_number_),
+                                                 std::move(message_contact->first_name_),
+                                                 std::move(message_contact->last_name_), string(), UserId()));
     }
     case secret_api::decryptedMessageMediaWebPage::ID: {
       auto media_web_page = move_tl_object_as<secret_api::decryptedMessageMediaWebPage>(media);

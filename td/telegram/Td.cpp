@@ -635,7 +635,7 @@ class GetUserRequest final : public RequestActor<> {
   }
 
  public:
-  GetUserRequest(ActorShared<Td> td, uint64 request_id, int32 user_id)
+  GetUserRequest(ActorShared<Td> td, uint64 request_id, int64 user_id)
       : RequestActor(std::move(td), request_id), user_id_(user_id) {
     set_tries(3);
   }
@@ -653,7 +653,7 @@ class GetUserFullInfoRequest final : public RequestActor<> {
   }
 
  public:
-  GetUserFullInfoRequest(ActorShared<Td> td, uint64 request_id, int32 user_id)
+  GetUserFullInfoRequest(ActorShared<Td> td, uint64 request_id, int64 user_id)
       : RequestActor(std::move(td), request_id), user_id_(user_id) {
   }
 };
@@ -670,7 +670,7 @@ class GetGroupRequest final : public RequestActor<> {
   }
 
  public:
-  GetGroupRequest(ActorShared<Td> td, uint64 request_id, int32 chat_id)
+  GetGroupRequest(ActorShared<Td> td, uint64 request_id, int64 chat_id)
       : RequestActor(std::move(td), request_id), chat_id_(chat_id) {
     set_tries(3);
   }
@@ -688,7 +688,7 @@ class GetGroupFullInfoRequest final : public RequestActor<> {
   }
 
  public:
-  GetGroupFullInfoRequest(ActorShared<Td> td, uint64 request_id, int32 chat_id)
+  GetGroupFullInfoRequest(ActorShared<Td> td, uint64 request_id, int64 chat_id)
       : RequestActor(std::move(td), request_id), chat_id_(chat_id) {
   }
 };
@@ -705,7 +705,7 @@ class GetSupergroupRequest final : public RequestActor<> {
   }
 
  public:
-  GetSupergroupRequest(ActorShared<Td> td, uint64 request_id, int32 channel_id)
+  GetSupergroupRequest(ActorShared<Td> td, uint64 request_id, int64 channel_id)
       : RequestActor(std::move(td), request_id), channel_id_(channel_id) {
     set_tries(3);
   }
@@ -724,7 +724,7 @@ class GetSupergroupFullInfoRequest final : public RequestActor<> {
   }
 
  public:
-  GetSupergroupFullInfoRequest(ActorShared<Td> td, uint64 request_id, int32 channel_id)
+  GetSupergroupFullInfoRequest(ActorShared<Td> td, uint64 request_id, int64 channel_id)
       : RequestActor(std::move(td), request_id), channel_id_(channel_id) {
   }
 };
@@ -905,7 +905,7 @@ class GetGroupsInCommonRequest final : public RequestActor<> {
   }
 
  public:
-  GetGroupsInCommonRequest(ActorShared<Td> td, uint64 request_id, int32 user_id, int64 offset_dialog_id, int32 limit)
+  GetGroupsInCommonRequest(ActorShared<Td> td, uint64 request_id, int64 user_id, int64 offset_dialog_id, int32 limit)
       : RequestActor(std::move(td), request_id), user_id_(user_id), offset_dialog_id_(offset_dialog_id), limit_(limit) {
   }
 };
@@ -1763,7 +1763,7 @@ class CreateNewSecretChatRequest final : public RequestActor<SecretChatId> {
   }
 
  public:
-  CreateNewSecretChatRequest(ActorShared<Td> td, uint64 request_id, int32 user_id)
+  CreateNewSecretChatRequest(ActorShared<Td> td, uint64 request_id, int64 user_id)
       : RequestActor(std::move(td), request_id), user_id_(user_id) {
   }
 };
@@ -2103,7 +2103,7 @@ class GetUserProfilePhotosRequest final : public RequestActor<> {
   }
 
  public:
-  GetUserProfilePhotosRequest(ActorShared<Td> td, uint64 request_id, int32 user_id, int32 offset, int32 limit)
+  GetUserProfilePhotosRequest(ActorShared<Td> td, uint64 request_id, int64 user_id, int32 offset, int32 limit)
       : RequestActor(std::move(td), request_id), user_id_(user_id), offset_(offset), limit_(limit) {
   }
 };
@@ -2396,7 +2396,7 @@ class UploadStickerFileRequest final : public RequestOnceActor {
   }
 
  public:
-  UploadStickerFileRequest(ActorShared<Td> td, uint64 request_id, int32 user_id,
+  UploadStickerFileRequest(ActorShared<Td> td, uint64 request_id, int64 user_id,
                            tl_object_ptr<td_api::InputSticker> &&sticker)
       : RequestOnceActor(std::move(td), request_id), user_id_(user_id), sticker_(std::move(sticker)) {
   }
@@ -2424,7 +2424,7 @@ class CreateNewStickerSetRequest final : public RequestOnceActor {
   }
 
  public:
-  CreateNewStickerSetRequest(ActorShared<Td> td, uint64 request_id, int32 user_id, string &&title, string &&name,
+  CreateNewStickerSetRequest(ActorShared<Td> td, uint64 request_id, int64 user_id, string &&title, string &&name,
                              bool is_masks, vector<tl_object_ptr<td_api::InputSticker>> &&stickers, string &&software)
       : RequestOnceActor(std::move(td), request_id)
       , user_id_(user_id)
@@ -2454,7 +2454,7 @@ class AddStickerToSetRequest final : public RequestOnceActor {
   }
 
  public:
-  AddStickerToSetRequest(ActorShared<Td> td, uint64 request_id, int32 user_id, string &&name,
+  AddStickerToSetRequest(ActorShared<Td> td, uint64 request_id, int64 user_id, string &&name,
                          tl_object_ptr<td_api::InputSticker> &&sticker)
       : RequestOnceActor(std::move(td), request_id)
       , user_id_(user_id)
@@ -2481,7 +2481,7 @@ class SetStickerSetThumbnailRequest final : public RequestOnceActor {
   }
 
  public:
-  SetStickerSetThumbnailRequest(ActorShared<Td> td, uint64 request_id, int32 user_id, string &&name,
+  SetStickerSetThumbnailRequest(ActorShared<Td> td, uint64 request_id, int64 user_id, string &&name,
                                 tl_object_ptr<td_api::InputFile> &&thumbnail)
       : RequestOnceActor(std::move(td), request_id)
       , user_id_(user_id)
@@ -2730,7 +2730,7 @@ class GetInlineQueryResultsRequest final : public RequestOnceActor {
   }
 
  public:
-  GetInlineQueryResultsRequest(ActorShared<Td> td, uint64 request_id, int32 bot_user_id, int64 dialog_id,
+  GetInlineQueryResultsRequest(ActorShared<Td> td, uint64 request_id, int64 bot_user_id, int64 dialog_id,
                                const tl_object_ptr<td_api::location> &user_location, string query, string offset)
       : RequestOnceActor(std::move(td), request_id)
       , bot_user_id_(bot_user_id)
@@ -3456,7 +3456,7 @@ void Td::on_config_option_updated(const string &name) {
     stickers_manager_->on_update_favorite_stickers_limit(
         narrow_cast<int32>(G()->shared_config().get_option_integer(name)));
   } else if (name == "my_id") {
-    G()->set_my_id(static_cast<int32>(G()->shared_config().get_option_integer(name)));
+    G()->set_my_id(G()->shared_config().get_option_integer(name));
   } else if (name == "session_count") {
     G()->net_query_dispatcher().update_session_count();
   } else if (name == "use_pfs") {
@@ -3986,7 +3986,7 @@ Status Td::init(DbKey key) {
 
   init_managers();
 
-  G()->set_my_id(static_cast<int32>(G()->shared_config().get_option_integer("my_id")));
+  G()->set_my_id(G()->shared_config().get_option_integer("my_id"));
 
   storage_manager_ = create_actor<StorageManager>("StorageManager", create_reference(),
                                                   min(current_scheduler_id + 2, scheduler_count - 1));

@@ -280,7 +280,7 @@ class InitTask : public Task {
 class GetMe : public Task {
  public:
   struct Result {
-    int32 user_id;
+    int64 user_id;
     int64 chat_id;
   };
   GetMe(Promise<Result> promise) : promise_(std::move(promise)) {
@@ -293,9 +293,10 @@ class GetMe : public Task {
   Promise<Result> promise_;
   Result result_;
 
-  void with_user_id(int32 user_id) {
+  void with_user_id(int64 user_id) {
     result_.user_id = user_id;
-    send_query(td::make_tl_object<td::td_api::createPrivateChat>(user_id, false), [this](auto res) { with_chat_id(res.move_as_ok()->id_); });
+    send_query(td::make_tl_object<td::td_api::createPrivateChat>(user_id, false),
+               [this](auto res) { with_chat_id(res.move_as_ok()->id_); });
   }
 
   void with_chat_id(int64 chat_id) {
@@ -311,7 +312,8 @@ class UploadFile : public Task {
     std::string content;
     std::string remote_id;
   };
-  UploadFile(std::string dir, std::string content, int64 chat_id, Promise<Result> promise) : dir_(std::move(dir)), content_(std::move(content)), chat_id_(std::move(chat_id)), promise_(std::move(promise)) {
+  UploadFile(std::string dir, std::string content, int64 chat_id, Promise<Result> promise)
+      : dir_(std::move(dir)), content_(std::move(content)), chat_id_(std::move(chat_id)), promise_(std::move(promise)) {
   }
   void start_up() override {
     auto hash = hex_encode(sha256(content_)).substr(0, 10);
@@ -333,10 +335,10 @@ class UploadFile : public Task {
     write_file(content_path_, content_).ensure();
 
     send_query(td::make_tl_object<td::td_api::sendMessage>(
-        chat_id_, 0, 0, nullptr, nullptr,
-        td::make_tl_object<td::td_api::inputMessageDocument>(
-            td::make_tl_object<td::td_api::inputFileLocal>(content_path_), nullptr, true,
-            td::make_tl_object<td::td_api::formattedText>("tag", td::Auto()))),
+                   chat_id_, 0, 0, nullptr, nullptr,
+                   td::make_tl_object<td::td_api::inputMessageDocument>(
+                       td::make_tl_object<td::td_api::inputFileLocal>(content_path_), nullptr, true,
+                       td::make_tl_object<td::td_api::formattedText>("tag", td::Auto()))),
                [this](auto res) { with_message(res.move_as_ok()); });
   }
 
@@ -388,12 +390,12 @@ class UploadFile : public Task {
 
 class TestDownloadFile : public Task {
  public:
-  TestDownloadFile(std::string remote_id, std::string content, Promise<Unit> promise) : remote_id_(std::move(remote_id)), content_(std::move(content)), promise_(std::move(promise)) {
+  TestDownloadFile(std::string remote_id, std::string content, Promise<Unit> promise)
+      : remote_id_(std::move(remote_id)), content_(std::move(content)), promise_(std::move(promise)) {
   }
   void start_up() override {
-    send_query(td::make_tl_object<td::td_api::getRemoteFile>(
-        remote_id_, nullptr
-    ), [this](auto res) { start_file(*res.ok()); });
+    send_query(td::make_tl_object<td::td_api::getRemoteFile>(remote_id_, nullptr),
+               [this](auto res) { start_file(*res.ok()); });
   }
 
  private:
@@ -407,13 +409,12 @@ class TestDownloadFile : public Task {
   int32 file_id_{0};
   std::vector<Range> ranges_;
 
-
   void start_file(const td_api::file &file) {
     LOG(ERROR) << "Start";
     file_id_ = file.id_;
-//    CHECK(!file.local_->is_downloading_active_);
-//    CHECK(!file.local_->is_downloading_completed_);
-//    CHECK(file.local_->download_offset_ == 0);
+    //    CHECK(!file.local_->is_downloading_active_);
+    //    CHECK(!file.local_->is_downloading_completed_);
+    //    CHECK(file.local_->download_offset_ == 0);
     if (!file.local_->path_.empty()) {
       unlink(file.local_->path_).ignore();
     }
@@ -453,11 +454,9 @@ class TestDownloadFile : public Task {
   }
 
   void start_chunk() {
-
-    send_query(td::make_tl_object<td::td_api::downloadFile>(
-        file_id_, 1, int(ranges_.back().begin), int(ranges_.back().end - ranges_.back().begin), true
-    ), [this](auto res) { got_chunk(*res.ok()); });
-
+    send_query(td::make_tl_object<td::td_api::downloadFile>(file_id_, 1, int(ranges_.back().begin),
+                                                            int(ranges_.back().end - ranges_.back().begin), true),
+               [this](auto res) { got_chunk(*res.ok()); });
   }
 };
 
@@ -526,17 +525,19 @@ class TestTd : public Actor {
     LOG(ERROR) << "Alice user_id=" << alice_id_.user_id << ", chat_id=" << alice_id_.chat_id;
     auto content = gen_readable_file(65536, 20);
     send_closure(alice_, &TestClient::add_listener,
-                     td::make_unique<UploadFile>(alice_cache_dir_,  std::move(content), alice_id_.chat_id, promise_send_closure(actor_id(this), &TestTd::with_file)));
+                 td::make_unique<UploadFile>(alice_cache_dir_, std::move(content), alice_id_.chat_id,
+                                             promise_send_closure(actor_id(this), &TestTd::with_file)));
   }
   void with_file(Result<UploadFile::Result> r_result) {
     auto result = r_result.move_as_ok();
-    send_closure(alice_, &TestClient::add_listener,
-                 td::make_unique<TestDownloadFile>(result.remote_id, std::move(result.content), promise_send_closure(actor_id(this), &TestTd::after_test_download_file)));
+    send_closure(
+        alice_, &TestClient::add_listener,
+        td::make_unique<TestDownloadFile>(result.remote_id, std::move(result.content),
+                                          promise_send_closure(actor_id(this), &TestTd::after_test_download_file)));
   }
   void after_test_download_file(Result<Unit>) {
     close();
   }
-
 
   void close() {
     MultiPromiseActorSafe mp("close");

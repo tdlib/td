@@ -196,7 +196,21 @@ void InlineQueriesManager::after_get_difference() {
   }
 }
 
-tl_object_ptr<telegram_api::inputBotInlineMessageID> InlineQueriesManager::get_input_bot_inline_message_id(
+int32 InlineQueriesManager::get_inline_message_dc_id(
+    const tl_object_ptr<telegram_api::InputBotInlineMessageID> &inline_message_id) {
+  CHECK(inline_message_id != nullptr);
+  switch (inline_message_id->get_id()) {
+    case telegram_api::inputBotInlineMessageID::ID:
+      return static_cast<const telegram_api::inputBotInlineMessageID *>(inline_message_id.get())->dc_id_;
+    case telegram_api::inputBotInlineMessageID64::ID:
+      return static_cast<const telegram_api::inputBotInlineMessageID64 *>(inline_message_id.get())->dc_id_;
+    default:
+      UNREACHABLE();
+      return 0;
+  }
+}
+
+tl_object_ptr<telegram_api::InputBotInlineMessageID> InlineQueriesManager::get_input_bot_inline_message_id(
     const string &inline_message_id) {
   auto r_binary = base64url_decode(inline_message_id);
   if (r_binary.is_error()) {
@@ -204,12 +218,13 @@ tl_object_ptr<telegram_api::inputBotInlineMessageID> InlineQueriesManager::get_i
   }
   BufferSlice buffer_slice(r_binary.ok());
   TlBufferParser parser(&buffer_slice);
-  auto result = telegram_api::inputBotInlineMessageID::fetch(parser);
+  auto result = buffer_slice.size() == 20 ? telegram_api::inputBotInlineMessageID::fetch(parser)
+                                          : telegram_api::inputBotInlineMessageID64::fetch(parser);
   parser.fetch_end();
   if (parser.get_error()) {
     return nullptr;
   }
-  if (!DcId::is_valid(result->dc_id_)) {
+  if (!DcId::is_valid(get_inline_message_dc_id(result))) {
     return nullptr;
   }
   LOG(INFO) << "Have inline message identifier: " << to_string(result);
@@ -217,7 +232,7 @@ tl_object_ptr<telegram_api::inputBotInlineMessageID> InlineQueriesManager::get_i
 }
 
 string InlineQueriesManager::get_inline_message_id(
-    tl_object_ptr<telegram_api::inputBotInlineMessageID> &&input_bot_inline_message_id) {
+    tl_object_ptr<telegram_api::InputBotInlineMessageID> &&input_bot_inline_message_id) {
   if (input_bot_inline_message_id == nullptr) {
     return string();
   }
@@ -1750,7 +1765,7 @@ bool InlineQueriesManager::load_recently_used_bots(Promise<Unit> &promise) {
       }
     } else {
       for (auto it = bot_ids.rbegin(); it != bot_ids.rend(); ++it) {
-        UserId user_id(to_integer<int32>(*it));
+        UserId user_id(to_integer<int64>(*it));
         if (td_->contacts_manager_->have_user(user_id)) {
           update_bot_usage(user_id);
         } else {
@@ -1778,7 +1793,7 @@ bool InlineQueriesManager::load_recently_used_bots(Promise<Unit> &promise) {
       }
     } else {
       for (auto &bot_id : bot_ids) {
-        UserId user_id(to_integer<int32>(bot_id));
+        UserId user_id(to_integer<int64>(bot_id));
         td_->contacts_manager_->get_user(user_id, 3, resolve_recent_inline_bots_multipromise_.get_promise());
       }
     }
@@ -1832,7 +1847,7 @@ void InlineQueriesManager::on_new_query(int64 query_id, UserId sender_user_id, L
 
 void InlineQueriesManager::on_chosen_result(
     UserId user_id, Location user_location, const string &query, const string &result_id,
-    tl_object_ptr<telegram_api::inputBotInlineMessageID> &&input_bot_inline_message_id) {
+    tl_object_ptr<telegram_api::InputBotInlineMessageID> &&input_bot_inline_message_id) {
   if (!user_id.is_valid()) {
     LOG(ERROR) << "Receive chosen inline query result from invalid " << user_id;
     return;

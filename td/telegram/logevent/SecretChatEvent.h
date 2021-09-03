@@ -77,7 +77,7 @@ class SecretChatEvent : public LogEvent {
   virtual Type get_type() const = 0;
 
   static constexpr int32 version() {
-    return 3;
+    return 4;
   }
 
   template <class F>
@@ -475,7 +475,7 @@ class CreateSecretChat final : public SecretChatLogEventBase<CreateSecretChat> {
   void store(StorerT &storer) const {
     using td::store;
     store(random_id, storer);
-    store(user_id.get(), storer);
+    store(user_id, storer);
     store(user_access_hash, storer);
   }
 
@@ -483,9 +483,15 @@ class CreateSecretChat final : public SecretChatLogEventBase<CreateSecretChat> {
   void parse(ParserT &parser) {
     using td::parse;
     parse(random_id, parser);
-    int32 legacy_user_id;
-    parse(legacy_user_id, parser);
-    user_id = UserId(legacy_user_id);
+    if (parser.version() >= 4) {
+      int32 legacy_user_id;
+      parse(legacy_user_id, parser);
+      user_id = UserId(static_cast<int64>(legacy_user_id));
+    } else {
+      int64 legacy_user_id;
+      parse(legacy_user_id, parser);
+      user_id = UserId(legacy_user_id);
+    }
     parse(user_access_hash, parser);
   }
 

@@ -116,7 +116,7 @@ class AnimationsManager final : public Actor {
 
   FileId on_get_animation(unique_ptr<Animation> new_animation, bool replace);
 
-  int32 get_saved_animations_hash(const char *source) const;
+  int64 get_saved_animations_hash(const char *source) const;
 
   void add_saved_animation_impl(FileId animation_id, bool add_on_server, Promise<Unit> &&promise);
 

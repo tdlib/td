@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/ReplyMarkup.h"
+#include "td/telegram/Version.h"
 
 #include "td/utils/tl_helpers.h"
 
@@ -38,7 +39,13 @@ template <class ParserT>
 void parse(InlineKeyboardButton &button, ParserT &parser) {
   parse(button.type, parser);
   if (button.type == InlineKeyboardButton::Type::UrlAuth) {
-    parse(button.id, parser);
+    if (parser.version() >= static_cast<int32>(Version::Support64BitIds)) {
+      parse(button.id, parser);
+    } else {
+      int32 old_id;
+      parse(old_id, parser);
+      button.id = old_id;
+    }
   }
   parse(button.text, parser);
   parse(button.data, parser);

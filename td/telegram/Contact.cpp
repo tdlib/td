@@ -50,7 +50,7 @@ tl_object_ptr<telegram_api::inputMediaContact> Contact::get_input_media_contact(
 
 SecretInputMedia Contact::get_secret_input_media_contact() const {
   return SecretInputMedia{nullptr, make_tl_object<secret_api::decryptedMessageMediaContact>(
-                                       phone_number_, first_name_, last_name_, user_id_.get())};
+                                       phone_number_, first_name_, last_name_, static_cast<int32>(0))};
 }
 
 tl_object_ptr<telegram_api::inputPhoneContact> Contact::get_input_phone_contact(int64 client_id) const {

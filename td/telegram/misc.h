@@ -29,7 +29,7 @@ string strip_empty_characters(string str, size_t max_length, bool strip_rtlo = f
 bool is_empty_string(const string &str) TD_WARN_UNUSED_RESULT;
 
 // calculates hash of list of uint32
-int32 get_vector_hash(const vector<uint32> &numbers) TD_WARN_UNUSED_RESULT;
+int64 get_vector_hash(const vector<uint64> &numbers) TD_WARN_UNUSED_RESULT;
 
 // returns emoji corresponding to the specified number
 string get_emoji_fingerprint(uint64 num);

@@ -17,7 +17,7 @@ namespace td {
 
 int VERBOSITY_NAME(net_query) = VERBOSITY_NAME(INFO);
 
-int32 NetQuery::get_my_id() {
+int64 NetQuery::get_my_id() {
   return G()->get_my_id();
 }
 

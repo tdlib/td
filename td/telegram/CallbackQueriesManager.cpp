@@ -202,7 +202,7 @@ void CallbackQueriesManager::on_new_query(int32 flags, int64 callback_query_id, 
 
 void CallbackQueriesManager::on_new_inline_query(
     int32 flags, int64 callback_query_id, UserId sender_user_id,
-    tl_object_ptr<telegram_api::inputBotInlineMessageID> &&inline_message_id, BufferSlice &&data, int64 chat_instance,
+    tl_object_ptr<telegram_api::InputBotInlineMessageID> &&inline_message_id, BufferSlice &&data, int64 chat_instance,
     string &&game_short_name) {
   if (!sender_user_id.is_valid()) {
     LOG(ERROR) << "Receive new callback query from invalid " << sender_user_id;

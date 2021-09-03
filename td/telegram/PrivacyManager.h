@@ -99,7 +99,7 @@ class PrivacyManager final : public NetQueryCallback {
     } type_ = Type::RestrictAll;
 
     vector<UserId> user_ids_;
-    vector<int32> chat_ids_;
+    vector<int64> chat_ids_;
 
     vector<tl_object_ptr<telegram_api::InputUser>> get_input_users() const;
 

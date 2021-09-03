@@ -459,11 +459,11 @@ class StickersManager final : public Actor {
 
   static void read_featured_sticker_sets(void *td_void);
 
-  int32 get_sticker_sets_hash(const vector<StickerSetId> &sticker_set_ids) const;
+  int64 get_sticker_sets_hash(const vector<StickerSetId> &sticker_set_ids) const;
 
-  int32 get_featured_sticker_sets_hash() const;
+  int64 get_featured_sticker_sets_hash() const;
 
-  int32 get_recent_stickers_hash(const vector<FileId> &sticker_ids) const;
+  int64 get_recent_stickers_hash(const vector<FileId> &sticker_ids) const;
 
   void load_installed_sticker_sets(bool is_masks, Promise<Unit> &&promise);
 
@@ -520,7 +520,7 @@ class StickersManager final : public Actor {
 
   void add_recent_sticker_impl(bool is_attached, FileId sticker_id, bool add_on_server, Promise<Unit> &&promise);
 
-  int32 get_favorite_stickers_hash() const;
+  int64 get_favorite_stickers_hash() const;
 
   void add_favorite_sticker_impl(FileId sticker_id, bool add_on_server, Promise<Unit> &&promise);
 
@@ -650,9 +650,9 @@ class StickersManager final : public Actor {
   double next_recent_stickers_load_time_[2] = {0, 0};
   double next_favorite_stickers_load_time_ = 0;
 
-  int32 installed_sticker_sets_hash_[2] = {0, 0};
-  int32 featured_sticker_sets_hash_ = 0;
-  int32 recent_stickers_hash_[2] = {0, 0};
+  int64 installed_sticker_sets_hash_[2] = {0, 0};
+  int64 featured_sticker_sets_hash_ = 0;
+  int64 recent_stickers_hash_[2] = {0, 0};
 
   int32 old_featured_sticker_set_count_ = -1;
   uint32 old_featured_sticker_set_generation_ = 1;

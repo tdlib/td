@@ -142,7 +142,7 @@ class TdExample {
 
   std::map<std::uint64_t, std::function<void(Object)>> handlers_;
 
-  std::map<std::int32_t, td_api::object_ptr<td_api::user>> users_;
+  std::map<std::int64_t, td_api::object_ptr<td_api::user>> users_;
 
   std::map<std::int64_t, std::string> chat_title_;
 
@@ -174,7 +174,7 @@ class TdExample {
     }
   }
 
-  std::string get_user_name(std::int32_t user_id) const {
+  std::string get_user_name(std::int64_t user_id) const {
     auto it = users_.find(user_id);
     if (it == users_.end()) {
       return "unknown user";

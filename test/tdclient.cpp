@@ -282,7 +282,7 @@ class SetUsername final : public TestClinetTask {
  private:
   td::string username_;
   td::Promise<> promise_;
-  td::int32 self_id_ = 0;
+  td::int64 self_id_ = 0;
   td::string tag_;
 
   void start_up() final {

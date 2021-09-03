@@ -9,14 +9,14 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
-#include "td/telegram/TdDb.h"
-#include "td/telegram/UserId.h"
-
 #include "td/telegram/td_api.hpp"
+#include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserId.h"
 
 #include "td/mtproto/DhHandshake.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/base64.h"
 #include "td/utils/buffer.h"
 #include "td/utils/format.h"
@@ -40,12 +40,13 @@ void DeviceTokenManager::TokenInfo::store(StorerT &storer) const {
   bool is_register = state == State::Register;
   CHECK(state != State::Reregister);
   BEGIN_STORE_FLAGS();
-  STORE_FLAG(has_other_user_ids);
+  STORE_FLAG(false);
   STORE_FLAG(is_sync);
   STORE_FLAG(is_unregister);
   STORE_FLAG(is_register);
   STORE_FLAG(is_app_sandbox);
   STORE_FLAG(encrypt);
+  STORE_FLAG(has_other_user_ids);
   END_STORE_FLAGS();
   store(token, storer);
   if (has_other_user_ids) {
@@ -60,17 +61,19 @@ void DeviceTokenManager::TokenInfo::store(StorerT &storer) const {
 template <class ParserT>
 void DeviceTokenManager::TokenInfo::parse(ParserT &parser) {
   using td::parse;
+  bool has_other_user_ids_legacy;
   bool has_other_user_ids;
   bool is_sync;
   bool is_unregister;
   bool is_register;
   BEGIN_PARSE_FLAGS();
-  PARSE_FLAG(has_other_user_ids);
+  PARSE_FLAG(has_other_user_ids_legacy);
   PARSE_FLAG(is_sync);
   PARSE_FLAG(is_unregister);
   PARSE_FLAG(is_register);
   PARSE_FLAG(is_app_sandbox);
   PARSE_FLAG(encrypt);
+  PARSE_FLAG(has_other_user_ids);
   END_PARSE_FLAGS();
   CHECK(is_sync + is_unregister + is_register == 1);
   if (is_sync) {
@@ -81,6 +84,11 @@ void DeviceTokenManager::TokenInfo::parse(ParserT &parser) {
     state = State::Register;
   }
   parse(token, parser);
+  if (has_other_user_ids_legacy) {
+    vector<int32> other_user_ids_legacy;
+    parse(other_user_ids_legacy, parser);
+    other_user_ids = transform(other_user_ids_legacy, [](int32 user_id) { return static_cast<int64>(user_id); });
+  }
   if (has_other_user_ids) {
     parse(other_user_ids, parser);
   }
@@ -246,7 +254,7 @@ void DeviceTokenManager::register_device(tl_object_ptr<td_api::DeviceToken> devi
     info.state = TokenInfo::State::Register;
     info.token = std::move(token);
   }
-  info.other_user_ids = std::move(other_user_ids);
+  info.other_user_ids = UserId::get_input_user_ids(other_user_ids);
   info.is_app_sandbox = is_app_sandbox;
   if (encrypt != info.encrypt) {
     if (encrypt) {
@@ -370,15 +378,14 @@ void DeviceTokenManager::loop() {
     }
     // have to send query
     NetQueryPtr net_query;
-    auto other_user_ids = info.other_user_ids;
     if (info.state == TokenInfo::State::Unregister) {
       net_query = G()->net_query_creator().create(
-          telegram_api::account_unregisterDevice(token_type, info.token, UserId::get_input_user_ids(other_user_ids)));
+          telegram_api::account_unregisterDevice(token_type, info.token, vector<int64>(info.other_user_ids)));
     } else {
       int32 flags = telegram_api::account_registerDevice::NO_MUTED_MASK;
-      net_query = G()->net_query_creator().create(telegram_api::account_registerDevice(
-          flags, false /*ignored*/, token_type, info.token, info.is_app_sandbox, BufferSlice(info.encryption_key),
-          UserId::get_input_user_ids(other_user_ids)));
+      net_query = G()->net_query_creator().create(
+          telegram_api::account_registerDevice(flags, false /*ignored*/, token_type, info.token, info.is_app_sandbox,
+                                               BufferSlice(info.encryption_key), vector<int64>(info.other_user_ids)));
     }
     info.net_query_id = net_query->id();
     G()->net_query_dispatcher().dispatch_with_callback(std::move(net_query), actor_shared(this, token_type));

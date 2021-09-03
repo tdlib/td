@@ -266,7 +266,7 @@ class MessagesManager final : public Actor {
                       int32 total_count, vector<tl_object_ptr<telegram_api::Message>> &&messages,
                       Promise<Unit> &&promise);
 
-  void on_get_common_dialogs(UserId user_id, int32 offset_chat_id, vector<tl_object_ptr<telegram_api::Chat>> &&chats,
+  void on_get_common_dialogs(UserId user_id, int64 offset_chat_id, vector<tl_object_ptr<telegram_api::Chat>> &&chats,
                              int32 total_count);
 
   bool on_update_message_id(int64 random_id, MessageId new_message_id, const string &source);
@@ -898,7 +898,7 @@ class MessagesManager final : public Actor {
   void stop_poll(FullMessageId full_message_id, td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
                  Promise<Unit> &&promise);
 
-  Result<string> get_login_button_url(FullMessageId full_message_id, int32 button_id);
+  Result<string> get_login_button_url(FullMessageId full_message_id, int64 button_id);
 
   Result<ServerMessageId> get_invoice_message_id(FullMessageId full_message_id);
 
@@ -2087,7 +2087,7 @@ class MessagesManager final : public Actor {
   void load_messages_impl(const Dialog *d, MessageId from_message_id, int32 offset, int32 limit, int left_tries,
                           bool only_local, Promise<Unit> &&promise);
 
-  void load_dialog_scheduled_messages(DialogId dialog_id, bool from_database, int32 hash, Promise<Unit> &&promise);
+  void load_dialog_scheduled_messages(DialogId dialog_id, bool from_database, int64 hash, Promise<Unit> &&promise);
 
   void on_get_scheduled_messages_from_database(DialogId dialog_id, vector<BufferSlice> &&messages);
 

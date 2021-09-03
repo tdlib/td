@@ -1805,7 +1805,7 @@ static UserId get_link_user_id(Slice url) {
     Slice value;
     std::tie(key, value) = split(parameter, '=');
     if (key == Slice("id")) {
-      auto r_user_id = to_integer_safe<int32>(value);
+      auto r_user_id = to_integer_safe<int64>(value);
       if (r_user_id.is_error()) {
         return UserId();
       }

@@ -42,7 +42,7 @@ class GetSavedGifsQuery final : public Td::ResultHandler {
   bool is_repair_ = false;
 
  public:
-  void send(bool is_repair, int32 hash) {
+  void send(bool is_repair, int64 hash) {
     is_repair_ = is_repair;
     LOG(INFO) << "Send get saved animations request with hash = " << hash;
     send_query(G()->net_query_creator().create(telegram_api::messages_getSavedGifs(hash)));
@@ -664,9 +664,9 @@ void AnimationsManager::on_get_saved_animations_failed(bool is_repair, Status er
   }
 }
 
-int32 AnimationsManager::get_saved_animations_hash(const char *source) const {
-  vector<uint32> numbers;
-  numbers.reserve(saved_animation_ids_.size() * 2);
+int64 AnimationsManager::get_saved_animations_hash(const char *source) const {
+  vector<uint64> numbers;
+  numbers.reserve(saved_animation_ids_.size());
   for (auto animation_id : saved_animation_ids_) {
     auto animation = get_animation(animation_id);
     CHECK(animation != nullptr);
@@ -676,9 +676,7 @@ int32 AnimationsManager::get_saved_animations_hash(const char *source) const {
       LOG(ERROR) << "Saved animation remote location is not document: " << source << " " << file_view.remote_location();
       continue;
     }
-    auto id = static_cast<uint64>(file_view.remote_location().get_id());
-    numbers.push_back(static_cast<uint32>(id >> 32));
-    numbers.push_back(static_cast<uint32>(id & 0xFFFFFFFF));
+    numbers.push_back(file_view.remote_location().get_id());
   }
   return get_vector_hash(numbers);
 }

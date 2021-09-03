@@ -360,7 +360,7 @@ void TopDialogManager::do_get_top_peers() {
   LOG(INFO) << "Send get top peers request";
   using telegram_api::contacts_getTopPeers;
 
-  std::vector<uint32> ids;
+  std::vector<uint64> ids;
   for (auto &category : by_category_) {
     for (auto &top_dialog : category.dialogs) {
       auto dialog_id = top_dialog.dialog_id;
@@ -380,7 +380,7 @@ void TopDialogManager::do_get_top_peers() {
     }
   }
 
-  int32 hash = get_vector_hash(ids);
+  int64 hash = get_vector_hash(ids);
 
   int32 flags = contacts_getTopPeers::CORRESPONDENTS_MASK | contacts_getTopPeers::BOTS_PM_MASK |
                 contacts_getTopPeers::BOTS_INLINE_MASK | contacts_getTopPeers::GROUPS_MASK |

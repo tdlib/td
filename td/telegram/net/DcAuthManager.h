@@ -40,7 +40,7 @@ class DcAuthManager final : public NetQueryCallback {
     enum class State : int32 { Waiting, Export, Import, BeforeOk, Ok };
     State state = State::Waiting;
     uint64 wait_id;
-    int32 export_id;
+    int64 export_id;
     BufferSlice export_bytes;
   };
 

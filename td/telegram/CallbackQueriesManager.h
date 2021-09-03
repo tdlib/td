@@ -36,7 +36,7 @@ class CallbackQueriesManager {
                     MessageId message_id, BufferSlice &&data, int64 chat_instance, string &&game_short_name);
 
   void on_new_inline_query(int32 flags, int64 callback_query_id, UserId sender_user_id,
-                           tl_object_ptr<telegram_api::inputBotInlineMessageID> &&inline_message_id, BufferSlice &&data,
+                           tl_object_ptr<telegram_api::InputBotInlineMessageID> &&inline_message_id, BufferSlice &&data,
                            int64 chat_instance, string &&game_short_name);
 
   int64 send_callback_query(FullMessageId full_message_id, tl_object_ptr<td_api::CallbackQueryPayload> &&payload,

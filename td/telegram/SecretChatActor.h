@@ -381,7 +381,7 @@ class SecretChatActor final : public NetQueryCallback {
     }
     template <class StorerT>
     void store(StorerT &storer) const {
-      uint32 flags = 0;
+      uint32 flags = 8;
       bool has_date = date != 0;
       bool has_key_hash = true;
       bool has_initial_folder_id = initial_folder_id != FolderId();
@@ -399,7 +399,7 @@ class SecretChatActor final : public NetQueryCallback {
 
       storer.store_int(id);
       storer.store_long(access_hash);
-      storer.store_int(user_id.get());
+      storer.store_long(user_id.get());
       storer.store_long(user_access_hash);
       storer.store_int(random_id);
       if (has_date) {
@@ -425,12 +425,17 @@ class SecretChatActor final : public NetQueryCallback {
       bool has_date = (flags & 1) != 0;
       bool has_key_hash = (flags & 2) != 0;
       bool has_initial_folder_id = (flags & 4) != 0;
+      bool has_64bit_user_id = (flags & 8) != 0;
 
       x = parser.fetch_int();
 
       id = parser.fetch_int();
       access_hash = parser.fetch_long();
-      user_id = UserId(parser.fetch_int());
+      if (has_64bit_user_id) {
+        user_id = UserId(parser.fetch_long());
+      } else {
+        user_id = UserId(static_cast<int64>(parser.fetch_int()));
+      }
       user_access_hash = parser.fetch_long();
       random_id = parser.fetch_int();
       if (has_date) {

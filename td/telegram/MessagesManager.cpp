@@ -828,13 +828,13 @@ class SearchPublicDialogsQuery final : public Td::ResultHandler {
 class GetCommonDialogsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   UserId user_id_;
-  int32 offset_chat_id_ = 0;
+  int64 offset_chat_id_ = 0;
 
  public:
   explicit GetCommonDialogsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(UserId user_id, int32 offset_chat_id, int32 limit) {
+  void send(UserId user_id, int64 offset_chat_id, int32 limit) {
     user_id_ = user_id;
     offset_chat_id_ = offset_chat_id;
     LOG(INFO) << "Get common dialogs with " << user_id << " from " << offset_chat_id << " with limit " << limit;
@@ -2333,7 +2333,7 @@ class GetAllScheduledMessagesQuery final : public Td::ResultHandler {
   explicit GetAllScheduledMessagesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, int32 hash, uint32 generation) {
+  void send(DialogId dialog_id, int64 hash, uint32 generation) {
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
 
@@ -3483,7 +3483,7 @@ class EditInlineMessageQuery final : public Td::ResultHandler {
   explicit EditInlineMessageQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(int32 flags, tl_object_ptr<telegram_api::inputBotInlineMessageID> input_bot_inline_message_id,
+  void send(int32 flags, tl_object_ptr<telegram_api::InputBotInlineMessageID> input_bot_inline_message_id,
             const string &text, vector<tl_object_ptr<telegram_api::MessageEntity>> &&entities,
             tl_object_ptr<telegram_api::InputMedia> &&input_media,
             tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup) {
@@ -3507,7 +3507,7 @@ class EditInlineMessageQuery final : public Td::ResultHandler {
     }
     LOG(DEBUG) << "Edit inline message with flags " << flags;
 
-    auto dc_id = DcId::internal(input_bot_inline_message_id->dc_id_);
+    auto dc_id = DcId::internal(InlineQueriesManager::get_inline_message_dc_id(input_bot_inline_message_id));
     send_query(G()->net_query_creator().create(
         telegram_api::messages_editInlineBotMessage(flags, false /*ignored*/, std::move(input_bot_inline_message_id),
                                                     text, std::move(input_media), std::move(reply_markup),
@@ -8410,7 +8410,7 @@ void MessagesManager::get_dialog_statistics_url(DialogId dialog_id, const string
   td_->create_handler<GetStatsUrlQuery>(std::move(promise))->send(dialog_id, parameters, is_dark);
 }
 
-Result<string> MessagesManager::get_login_button_url(FullMessageId full_message_id, int32 button_id) {
+Result<string> MessagesManager::get_login_button_url(FullMessageId full_message_id, int64 button_id) {
   Dialog *d = get_dialog_force(full_message_id.get_dialog_id(), "get_login_button_url");
   if (d == nullptr) {
     return Status::Error(3, "Chat not found");
@@ -8436,6 +8436,9 @@ Result<string> MessagesManager::get_login_button_url(FullMessageId full_message_
   if (d->dialog_id.get_type() == DialogType::SecretChat) {
     // secret chat messages can't have reply markup, so this shouldn't happen now
     return Status::Error(5, "Message is in a secret chat");
+  }
+  if (button_id < std::numeric_limits<int32>::min() || button_id > std::numeric_limits<int32>::max()) {
+    return Status::Error(5, "Invalid button identifier specified");
   }
 
   for (auto &row : m->reply_markup->inline_keyboard) {
@@ -11642,7 +11645,7 @@ void MessagesManager::set_dialog_last_read_inbox_message_id(Dialog *d, MessageId
             it.first = DialogId();
           }
         }
-        flush_pending_new_message_notifications(d->dialog_id, false, DialogId(UserId(1)));
+        flush_pending_new_message_notifications(d->dialog_id, false, DialogId(UserId(static_cast<int64>(1))));
       }
       total_count -= static_cast<int32>(d->pending_new_message_notifications.size());
       if (total_count < 0) {
@@ -16354,7 +16357,7 @@ std::pair<int32, vector<DialogId>> MessagesManager::get_common_dialogs(UserId us
     limit = MAX_GET_DIALOGS;
   }
 
-  int32 offset_chat_id = 0;
+  int64 offset_chat_id = 0;
   switch (offset_dialog_id.get_type()) {
     case DialogType::Chat:
       offset_chat_id = offset_dialog_id.get_chat_id().get();
@@ -16416,7 +16419,7 @@ std::pair<int32, vector<DialogId>> MessagesManager::get_common_dialogs(UserId us
   return {};
 }
 
-void MessagesManager::on_get_common_dialogs(UserId user_id, int32 offset_chat_id,
+void MessagesManager::on_get_common_dialogs(UserId user_id, int64 offset_chat_id,
                                             vector<tl_object_ptr<telegram_api::Chat>> &&chats, int32 total_count) {
   td_->contacts_manager_->on_update_user_common_chat_count(user_id, total_count);
 
@@ -22536,7 +22539,7 @@ vector<MessageId> MessagesManager::get_dialog_scheduled_messages(DialogId dialog
   }
 
   if (d->scheduled_messages_sync_generation != scheduled_messages_sync_generation_) {
-    vector<uint32> numbers;
+    vector<uint64> numbers;
     for (auto &message_id : message_ids) {
       if (!message_id.is_scheduled_server()) {
         continue;
@@ -22567,7 +22570,7 @@ vector<MessageId> MessagesManager::get_dialog_scheduled_messages(DialogId dialog
   return message_ids;
 }
 
-void MessagesManager::load_dialog_scheduled_messages(DialogId dialog_id, bool from_database, int32 hash,
+void MessagesManager::load_dialog_scheduled_messages(DialogId dialog_id, bool from_database, int64 hash,
                                                      Promise<Unit> &&promise) {
   if (G()->parameters().use_message_db && from_database) {
     LOG(INFO) << "Load scheduled messages from database in " << dialog_id;
@@ -25723,7 +25726,7 @@ bool MessagesManager::is_forward_info_sender_hidden(const MessageForwardInfo *fo
   if (!forward_info->sender_name.empty()) {
     return true;
   }
-  DialogId hidden_sender_dialog_id(ChannelId(G()->is_test_dc() ? 10460537 : 1228946795));
+  DialogId hidden_sender_dialog_id(ChannelId(static_cast<int64>(G()->is_test_dc() ? 10460537 : 1228946795)));
   return forward_info->sender_dialog_id == hidden_sender_dialog_id && !forward_info->author_signature.empty() &&
          !forward_info->message_id.is_valid();
 }
@@ -28144,7 +28147,7 @@ void MessagesManager::remove_all_dialog_notifications(Dialog *d, bool from_menti
       for (auto &it : d->pending_new_message_notifications) {
         it.first = DialogId();
       }
-      flush_pending_new_message_notifications(d->dialog_id, from_mentions, DialogId(UserId(2)));
+      flush_pending_new_message_notifications(d->dialog_id, from_mentions, DialogId(UserId(static_cast<int64>(2))));
     }
     // remove_message_notifications will be called by NotificationManager
     send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification_group,
@@ -28176,7 +28179,7 @@ void MessagesManager::remove_message_dialog_notifications(Dialog *d, MessageId m
         it.first = DialogId();
       }
     }
-    flush_pending_new_message_notifications(d->dialog_id, from_mentions, DialogId(UserId(3)));
+    flush_pending_new_message_notifications(d->dialog_id, from_mentions, DialogId(UserId(static_cast<int64>(3))));
   }
 
   auto max_notification_message_id = max_message_id;
@@ -31631,7 +31634,7 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
     case telegram_api::channelAdminLogEventActionChangeLinkedChat::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeLinkedChat>(action_ptr);
 
-      auto get_dialog_from_channel_id = [this](int32 channel_id_int) {
+      auto get_dialog_from_channel_id = [this](int64 channel_id_int) {
         ChannelId channel_id(channel_id_int);
         if (!channel_id.is_valid()) {
           return DialogId();
@@ -31751,11 +31754,6 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
       auto new_value = MessageTtlSetting(clamp(action->new_value_, 0, 86400 * 366));
       return make_tl_object<td_api::chatEventMessageTtlSettingChanged>(old_value.get_message_ttl_setting_object(),
                                                                        new_value.get_message_ttl_setting_object());
-    }
-    case telegram_api::channelAdminLogEventActionChangeTheme::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeTheme>(action_ptr);
-      return make_tl_object<td_api::chatEventThemeChanged>(std::move(action->prev_value_),
-                                                           std::move(action->new_value_));
     }
     default:
       UNREACHABLE();

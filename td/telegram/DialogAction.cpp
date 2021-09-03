@@ -94,6 +94,8 @@ DialogAction::DialogAction(tl_object_ptr<telegram_api::SendMessageAction> &&acti
       init(Type::Cancel);
       break;
     case telegram_api::sendMessageTypingAction::ID:
+    case telegram_api::sendMessageEmojiInteraction::ID:
+    case telegram_api::sendMessageEmojiInteractionSeen::ID:
       init(Type::Typing);
       break;
     case telegram_api::sendMessageRecordVideoAction::ID:

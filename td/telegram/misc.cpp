@@ -239,12 +239,15 @@ bool is_empty_string(const string &str) {
   return strip_empty_characters(str, str.size()).empty();
 }
 
-int32 get_vector_hash(const vector<uint32> &numbers) {
-  uint32 acc = 0;
+int64 get_vector_hash(const vector<uint64> &numbers) {
+  uint64 acc = 0;
   for (auto number : numbers) {
-    acc = acc * 20261 + number;
+    acc ^= acc >> 21;
+    acc ^= acc << 35;
+    acc ^= acc >> 4;
+    acc += number;
   }
-  return static_cast<int32>(acc & 0x7FFFFFFF);
+  return static_cast<int64>(acc);
 }
 
 string get_emoji_fingerprint(uint64 num) {

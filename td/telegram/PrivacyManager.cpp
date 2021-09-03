@@ -279,7 +279,7 @@ tl_object_ptr<telegram_api::InputPrivacyRule> PrivacyManager::UserPrivacySetting
     case Type::AllowUsers:
       return make_tl_object<telegram_api::inputPrivacyValueAllowUsers>(get_input_users());
     case Type::AllowChatParticipants:
-      return make_tl_object<telegram_api::inputPrivacyValueAllowChatParticipants>(vector<int32>{chat_ids_});
+      return make_tl_object<telegram_api::inputPrivacyValueAllowChatParticipants>(vector<int64>{chat_ids_});
     case Type::RestrictContacts:
       return make_tl_object<telegram_api::inputPrivacyValueDisallowContacts>();
     case Type::RestrictAll:
@@ -287,7 +287,7 @@ tl_object_ptr<telegram_api::InputPrivacyRule> PrivacyManager::UserPrivacySetting
     case Type::RestrictUsers:
       return make_tl_object<telegram_api::inputPrivacyValueDisallowUsers>(get_input_users());
     case Type::RestrictChatParticipants:
-      return make_tl_object<telegram_api::inputPrivacyValueDisallowChatParticipants>(vector<int32>{chat_ids_});
+      return make_tl_object<telegram_api::inputPrivacyValueDisallowChatParticipants>(vector<int64>{chat_ids_});
     default:
       UNREACHABLE();
   }

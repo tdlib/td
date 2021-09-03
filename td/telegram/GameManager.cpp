@@ -92,7 +92,7 @@ class SetInlineGameScoreQuery final : public Td::ResultHandler {
   explicit SetInlineGameScoreQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(tl_object_ptr<telegram_api::inputBotInlineMessageID> input_bot_inline_message_id, bool edit_message,
+  void send(tl_object_ptr<telegram_api::InputBotInlineMessageID> input_bot_inline_message_id, bool edit_message,
             tl_object_ptr<telegram_api::InputUser> input_user, int32 score, bool force) {
     CHECK(input_bot_inline_message_id != nullptr);
     CHECK(input_user != nullptr);
@@ -105,7 +105,7 @@ class SetInlineGameScoreQuery final : public Td::ResultHandler {
       flags |= telegram_api::messages_setInlineGameScore::FORCE_MASK;
     }
 
-    auto dc_id = DcId::internal(input_bot_inline_message_id->dc_id_);
+    auto dc_id = DcId::internal(InlineQueriesManager::get_inline_message_dc_id(input_bot_inline_message_id));
     send_query(G()->net_query_creator().create(
         telegram_api::messages_setInlineGameScore(flags, false /*ignored*/, false /*ignored*/,
                                                   std::move(input_bot_inline_message_id), std::move(input_user), score),
@@ -172,12 +172,12 @@ class GetInlineGameHighScoresQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(tl_object_ptr<telegram_api::inputBotInlineMessageID> input_bot_inline_message_id,
+  void send(tl_object_ptr<telegram_api::InputBotInlineMessageID> input_bot_inline_message_id,
             tl_object_ptr<telegram_api::InputUser> input_user) {
     CHECK(input_bot_inline_message_id != nullptr);
     CHECK(input_user != nullptr);
 
-    auto dc_id = DcId::internal(input_bot_inline_message_id->dc_id_);
+    auto dc_id = DcId::internal(InlineQueriesManager::get_inline_message_dc_id(input_bot_inline_message_id));
     send_query(G()->net_query_creator().create(
         telegram_api::messages_getInlineGameHighScores(std::move(input_bot_inline_message_id), std::move(input_user)),
         dc_id));

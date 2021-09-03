@@ -1428,7 +1428,8 @@ TEST(MessageEntities, parse_markdown) {
                        {{td::MessageEntity::Type::TextUrl, 0, 12, "https://telegram.dog/?\\("}});
   check_parse_markdown("[telegram\\.org]()", "telegram.org", {});
   check_parse_markdown("[telegram\\.org](asdasd)", "telegram.org", {});
-  check_parse_markdown("[telegram\\.org](tg:user?id=123456)", "telegram.org", {{0, 12, td::UserId(123456)}});
+  check_parse_markdown("[telegram\\.org](tg:user?id=123456)", "telegram.org",
+                       {{0, 12, td::UserId(static_cast<td::int64>(123456))}});
 }
 
 static void check_parse_markdown_v3(td::string text, td::vector<td::MessageEntity> entities,
@@ -1483,8 +1484,10 @@ TEST(MessageEntities, parse_markdown_v3) {
   check_parse_markdown_v3("[ ](t.me)", "", {}, true);
   check_parse_markdown_v3("[ ](t.me)a", " a", {{td::MessageEntity::Type::TextUrl, 0, 1, "http://t.me/"}}, true);
   check_parse_markdown_v3(
-      "[ ](t.me) [ ](t.me)", {{td::MessageEntity::Type::TextUrl, 8, 1, "http://t.me/"}, {10, 1, td::UserId(1)}},
-      "[ ](t.me) [ ](t.me)", {{td::MessageEntity::Type::TextUrl, 8, 1, "http://t.me/"}, {10, 1, td::UserId(1)}});
+      "[ ](t.me) [ ](t.me)",
+      {{td::MessageEntity::Type::TextUrl, 8, 1, "http://t.me/"}, {10, 1, td::UserId(static_cast<td::int64>(1))}},
+      "[ ](t.me) [ ](t.me)",
+      {{td::MessageEntity::Type::TextUrl, 8, 1, "http://t.me/"}, {10, 1, td::UserId(static_cast<td::int64>(1))}});
   check_parse_markdown_v3("[\n](t.me)", "\n", {{td::MessageEntity::Type::TextUrl, 0, 1, "http://t.me/"}});
   check_parse_markdown_v3("[\n](t.me)a", "\na", {{td::MessageEntity::Type::TextUrl, 0, 1, "http://t.me/"}}, true);
   check_parse_markdown_v3("asd[abcd](google.com)", {{td::MessageEntity::Type::Italic, 0, 5}}, "asdabcd",
@@ -1528,14 +1531,14 @@ TEST(MessageEntities, parse_markdown_v3) {
        {td::MessageEntity::Type::Bold, 15, 2},
        {td::MessageEntity::Type::Bold, 18, 2},
        {td::MessageEntity::Type::Bold, 26, 2},
-       {31, 2, td::UserId(1)},
+       {31, 2, td::UserId(static_cast<td::int64>(1))},
        {td::MessageEntity::Type::Bold, 35, 1},
        {td::MessageEntity::Type::Bold, 44, 2},
        {td::MessageEntity::Type::Bold, 50, 2},
        {td::MessageEntity::Type::Bold, 54, 2},
-       {56, 2, td::UserId(2)},
+       {56, 2, td::UserId(static_cast<td::int64>(2))},
        {td::MessageEntity::Type::Bold, 58, 7},
-       {60, 2, td::UserId(3)},
+       {60, 2, td::UserId(static_cast<td::int64>(3))},
        {td::MessageEntity::Type::Bold, 67, 7},
        {td::MessageEntity::Type::Bold, 80, 7},
        {td::MessageEntity::Type::Bold, 89, 25}},
@@ -1547,11 +1550,11 @@ TEST(MessageEntities, parse_markdown_v3) {
        {td::MessageEntity::Type::Bold, 6, 2},
        {td::MessageEntity::Type::Bold, 10, 2},
        {td::MessageEntity::Type::Bold, 14, 2},
-       {18, 2, td::UserId(1)},
+       {18, 2, td::UserId(static_cast<td::int64>(1))},
        {td::MessageEntity::Type::TextUrl, 22, 8, "http://www.🤙.tk/"},
-       {30, 2, td::UserId(2)},
+       {30, 2, td::UserId(static_cast<td::int64>(2))},
        {td::MessageEntity::Type::Bold, 32, 2},
-       {34, 2, td::UserId(3)},
+       {34, 2, td::UserId(static_cast<td::int64>(3))},
        {td::MessageEntity::Type::Bold, 34, 2},
        {td::MessageEntity::Type::TextUrl, 36, 8, "http://www.🤙.tk/"},
        {td::MessageEntity::Type::Bold, 36, 2},
@@ -1757,8 +1760,9 @@ TEST(MessageEntities, get_markdown_v3) {
                         {{td::MessageEntity::Type::Code, 0, 1}, {td::MessageEntity::Type::Pre, 1, 1}});
 
   check_get_markdown_v3("[ ](http://t.me/)", {}, " ", {{td::MessageEntity::Type::TextUrl, 0, 1, "http://t.me/"}});
-  check_get_markdown_v3("[ ]t.me[)](http://t.me/) [ ](t.me)", {{25, 1, td::UserId(1)}}, "[ ]t.me) [ ](t.me)",
-                        {{td::MessageEntity::Type::TextUrl, 7, 1, "http://t.me/"}, {9, 1, td::UserId(1)}});
+  check_get_markdown_v3(
+      "[ ]t.me[)](http://t.me/) [ ](t.me)", {{25, 1, td::UserId(static_cast<td::int64>(1))}}, "[ ]t.me) [ ](t.me)",
+      {{td::MessageEntity::Type::TextUrl, 7, 1, "http://t.me/"}, {9, 1, td::UserId(static_cast<td::int64>(1))}});
 
   check_get_markdown_v3("__ __", {}, " ", {{td::MessageEntity::Type::Italic, 0, 1}});
   check_get_markdown_v3("** **", {}, " ", {{td::MessageEntity::Type::Bold, 0, 1}});
