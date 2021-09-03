@@ -50,7 +50,7 @@ void ThemeManager::tear_down() {
   parent_.reset();
 }
 
-void ThemeManager::get_chat_themes(Promise<Unit> &&promise) {
+void ThemeManager::get_chat_themes(Promise<td_api::object_ptr<td_api::chatThemes>> &&promise) {
   pending_get_chat_themes_queries_.push_back(std::move(promise));
   if (pending_get_chat_themes_queries_.size() == 1) {
     auto request_promise = PromiseCreator::lambda(
@@ -110,7 +110,7 @@ void ThemeManager::on_get_chat_themes(Result<telegram_api::object_ptr<telegram_a
   LOG(DEBUG) << "Receive " << to_string(chat_themes_ptr);
   if (chat_themes_ptr->get_id() == telegram_api::account_chatThemesNotModified::ID) {
     for (auto &promise : promises) {
-      promise.set_value(Unit());
+      promise.set_value(get_chat_themes_object());
     }
     return;
   }
@@ -133,7 +133,7 @@ void ThemeManager::on_get_chat_themes(Result<telegram_api::object_ptr<telegram_a
   }
 
   for (auto &promise : promises) {
-    promise.set_value(Unit());
+    promise.set_value(get_chat_themes_object());
   }
 }
 

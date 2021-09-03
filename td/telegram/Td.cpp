@@ -2910,20 +2910,6 @@ class SetBackgroundRequest final : public RequestActor<> {
   }
 };
 
-class GetChatThemesRequest final : public RequestOnceActor {
-  void do_run(Promise<Unit> &&promise) final {
-    td->theme_manager_->get_chat_themes(std::move(promise));
-  }
-
-  void do_send_result() final {
-    send_result(td->theme_manager_->get_chat_themes_object());
-  }
-
- public:
-  GetChatThemesRequest(ActorShared<Td> td, uint64 request_id) : RequestOnceActor(std::move(td), request_id) {
-  }
-};
-
 Td::Td(unique_ptr<TdCallback> callback, Options options)
     : callback_(std::move(callback)), td_options_(std::move(options)) {
   CHECK(callback_ != nullptr);
@@ -8095,7 +8081,8 @@ void Td::on_request(uint64 id, const td_api::resetBackgrounds &request) {
 
 void Td::on_request(uint64 id, const td_api::getChatThemes &request) {
   CHECK_IS_USER();
-  CREATE_NO_ARGS_REQUEST(GetChatThemesRequest);
+  CREATE_REQUEST_PROMISE();
+  theme_manager_->get_chat_themes(std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getRecentlyVisitedTMeUrls &request) {

@@ -25,9 +25,7 @@ class ThemeManager final : public Actor {
  public:
   ThemeManager(Td *td, ActorShared<> parent);
 
-  void get_chat_themes(Promise<Unit> &&promise);
-
-  td_api::object_ptr<td_api::chatThemes> get_chat_themes_object() const;
+  void get_chat_themes(Promise<td_api::object_ptr<td_api::chatThemes>> &&promise);
 
  private:
   enum class BaseTheme : int32 { Classic, Day, Night, Tinted, Arctic };
@@ -60,11 +58,13 @@ class ThemeManager final : public Actor {
 
   td_api::object_ptr<td_api::chatTheme> get_chat_theme_object(const ChatTheme &theme) const;
 
+  td_api::object_ptr<td_api::chatThemes> get_chat_themes_object() const;
+
   static BaseTheme get_base_theme(const telegram_api::object_ptr<telegram_api::BaseTheme> &base_theme);
 
   ThemeSettings get_chat_theme_settings(telegram_api::object_ptr<telegram_api::themeSettings> settings);
 
-  vector<Promise<Unit>> pending_get_chat_themes_queries_;
+  vector<Promise<td_api::object_ptr<td_api::chatThemes>>> pending_get_chat_themes_queries_;
 
   ChatThemes chat_themes_;
 
