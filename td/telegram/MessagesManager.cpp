@@ -17117,7 +17117,7 @@ Status MessagesManager::can_get_message_viewers(DialogId dialog_id, const Messag
   if (!m->is_outgoing) {
     return Status::Error(400, "Can't get viewers of incoming messages");
   }
-  if (m->date < G()->unix_time() - 7 * 86400) {
+  if (G()->unix_time() - m->date > G()->shared_config().get_option_integer("chat_read_mark_expire_period", 7 * 86400)) {
     return Status::Error(400, "Message is too old");
   }
   if (td_->auth_manager_->is_bot()) {
@@ -17153,7 +17153,7 @@ Status MessagesManager::can_get_message_viewers(DialogId dialog_id, const Messag
   if (participant_count == 0) {
     return Status::Error(400, "Chat is empty or have unknown number of members");
   }
-  if (participant_count > 50) {
+  if (participant_count > G()->shared_config().get_option_integer("chat_read_mark_size_threshold", 50)) {
     return Status::Error(400, "Chat is too big");
   }
 

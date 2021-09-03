@@ -3405,7 +3405,8 @@ bool Td::is_internal_config_option(Slice name) {
       return name == "base_language_pack_version";
     case 'c':
       return name == "call_ring_timeout_ms" || name == "call_receive_timeout_ms" ||
-             name == "channels_read_media_period";
+             name == "channels_read_media_period" || name == "chat_read_mark_expire_period" ||
+             name == "chat_read_mark_size_threshold";
     case 'd':
       return name == "dc_txt_domain_name" || name == "dice_emojis" || name == "dice_success_values";
     case 'e':
