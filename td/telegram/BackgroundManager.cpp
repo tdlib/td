@@ -411,8 +411,9 @@ void BackgroundManager::tear_down() {
   parent_.reset();
 }
 
-void BackgroundManager::get_backgrounds(Promise<Unit> &&promise) {
-  pending_get_backgrounds_queries_.push_back(std::move(promise));
+void BackgroundManager::get_backgrounds(bool for_dark_theme,
+                                        Promise<td_api::object_ptr<td_api::backgrounds>> &&promise) {
+  pending_get_backgrounds_queries_.emplace_back(for_dark_theme, std::move(promise));
   if (pending_get_backgrounds_queries_.size() == 1) {
     auto request_promise = PromiseCreator::lambda(
         [actor_id = actor_id(this)](Result<telegram_api::object_ptr<telegram_api::account_WallPapers>> result) {
@@ -1142,7 +1143,7 @@ void BackgroundManager::on_get_backgrounds(Result<telegram_api::object_ptr<teleg
 
     auto error = result.move_as_error();
     for (auto &promise : promises) {
-      promise.set_error(error.clone());
+      promise.second.set_error(error.clone());
     }
     return;
   }
@@ -1151,7 +1152,7 @@ void BackgroundManager::on_get_backgrounds(Result<telegram_api::object_ptr<teleg
   LOG(INFO) << "Receive " << to_string(wallpapers_ptr);
   if (wallpapers_ptr->get_id() == telegram_api::account_wallPapersNotModified::ID) {
     for (auto &promise : promises) {
-      promise.set_value(Unit());
+      promise.second.set_value(get_backgrounds_object(promise.first));
     }
     return;
   }
@@ -1166,7 +1167,7 @@ void BackgroundManager::on_get_backgrounds(Result<telegram_api::object_ptr<teleg
   }
 
   for (auto &promise : promises) {
-    promise.set_value(Unit());
+    promise.second.set_value(get_backgrounds_object(promise.first));
   }
 }
 

@@ -33,7 +33,7 @@ class BackgroundManager final : public Actor {
  public:
   BackgroundManager(Td *td, ActorShared<> parent);
 
-  void get_backgrounds(Promise<Unit> &&promise);
+  void get_backgrounds(bool for_dark_theme, Promise<td_api::object_ptr<td_api::backgrounds>> &&promise);
 
   Result<string> get_background_url(const string &name,
                                     td_api::object_ptr<td_api::BackgroundType> background_type) const;
@@ -52,8 +52,6 @@ class BackgroundManager final : public Actor {
 
   td_api::object_ptr<td_api::background> get_background_object(BackgroundId background_id, bool for_dark_theme,
                                                                const BackgroundType *type) const;
-
-  td_api::object_ptr<td_api::backgrounds> get_backgrounds_object(bool for_dark_theme) const;
 
   std::pair<BackgroundId, BackgroundType> on_get_background(
       BackgroundId expected_background_id, const string &expected_background_name,
@@ -109,6 +107,8 @@ class BackgroundManager final : public Actor {
                                      Promise<Unit> &&promise) const;
 
   td_api::object_ptr<td_api::updateSelectedBackground> get_update_selected_background_object(bool for_dark_theme) const;
+
+  td_api::object_ptr<td_api::backgrounds> get_backgrounds_object(bool for_dark_theme) const;
 
   void send_update_selected_background(bool for_dark_theme) const;
 
@@ -170,7 +170,7 @@ class BackgroundManager final : public Actor {
 
   vector<std::pair<BackgroundId, BackgroundType>> installed_backgrounds_;
 
-  vector<Promise<Unit>> pending_get_backgrounds_queries_;
+  vector<std::pair<bool, Promise<td_api::object_ptr<td_api::backgrounds>>>> pending_get_backgrounds_queries_;
 
   std::shared_ptr<UploadBackgroundFileCallback> upload_background_file_callback_;
 
