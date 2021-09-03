@@ -679,6 +679,37 @@ class UnpinAllMessagesQuery final : public Td::ResultHandler {
   }
 };
 
+class GetMessageReadParticipantsQuery final : public Td::ResultHandler {
+  Promise<vector<UserId>> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit GetMessageReadParticipantsQuery(Promise<vector<UserId>> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, MessageId message_id) {
+    dialog_id_ = dialog_id;
+    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+    send_query(G()->net_query_creator().create(telegram_api::messages_getMessageReadParticipants(
+        std::move(input_peer), message_id.get_server_message_id().get())));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_getMessageReadParticipants>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    promise_.set_value(UserId::get_user_ids(result_ptr.ok()));
+  }
+
+  void on_error(uint64 id, Status status) final {
+    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetMessageReadParticipantsQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class ExportChannelMessageLinkQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
@@ -17065,6 +17096,131 @@ td_api::object_ptr<td_api::messageThreadInfo> MessagesManager::get_message_threa
   return td_api::make_object<td_api::messageThreadInfo>(d->dialog_id.get(), top_thread_message_id.get(),
                                                         std::move(reply_info), info.unread_message_count,
                                                         std::move(messages), std::move(draft_message));
+}
+
+Status MessagesManager::can_get_message_viewers(FullMessageId full_message_id) {
+  auto dialog_id = full_message_id.get_dialog_id();
+  Dialog *d = get_dialog_force(dialog_id, "get_message_viewers");
+  if (d == nullptr) {
+    return Status::Error(400, "Chat not found");
+  }
+
+  auto m = get_message_force(d, full_message_id.get_message_id(), "get_message_viewers");
+  if (m == nullptr) {
+    return Status::Error(400, "Message not found");
+  }
+
+  return can_get_message_viewers(dialog_id, m);
+}
+
+Status MessagesManager::can_get_message_viewers(DialogId dialog_id, const Message *m) const {
+  if (!m->is_outgoing) {
+    return Status::Error(400, "Can't get viewers of incoming messages");
+  }
+  if (m->date < G()->unix_time() - 7 * 86400) {
+    return Status::Error(400, "Message is too old");
+  }
+
+  int32 participant_count = 0;
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      return Status::Error(400, "Can't get message viewers in private chats");
+    case DialogType::Chat:
+      if (!td_->contacts_manager_->get_chat_is_active(dialog_id.get_chat_id())) {
+        return Status::Error(400, "Chat is deactivated");
+      }
+      participant_count = td_->contacts_manager_->get_chat_participant_count(dialog_id.get_chat_id());
+      break;
+    case DialogType::Channel:
+      if (is_broadcast_channel(dialog_id)) {
+        return Status::Error(400, "Can't get message viewers in channel chats");
+      }
+      participant_count = td_->contacts_manager_->get_channel_participant_count(dialog_id.get_channel_id());
+      break;
+    case DialogType::SecretChat:
+      return Status::Error(400, "Can't get message viewers in secret chats");
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+      return Status::OK();
+  }
+  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+    return Status::Error(400, "Can't access the chat");
+  }
+  if (participant_count == 0) {
+    return Status::Error(400, "Chat is empty or have unknown number of members");
+  }
+  if (participant_count > 50) {
+    return Status::Error(400, "Chat is too big");
+  }
+
+  if (m->message_id.is_scheduled()) {
+    return Status::Error(400, "Scheduled messages can't have viewers");
+  }
+  if (m->message_id.is_yet_unsent()) {
+    return Status::Error(400, "Yet unsent messages can't have viewers");
+  }
+  if (m->message_id.is_local()) {
+    return Status::Error(400, "Local messages can't have viewers");
+  }
+  CHECK(m->message_id.is_server());
+
+  return Status::OK();
+}
+
+void MessagesManager::get_message_viewers(FullMessageId full_message_id,
+                                          Promise<td_api::object_ptr<td_api::users>> &&promise) {
+  TRY_STATUS_PROMISE(promise, can_get_message_viewers(full_message_id));
+
+  auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id = full_message_id.get_dialog_id(),
+                                               promise = std::move(promise)](Result<vector<UserId>> result) mutable {
+    if (result.is_error()) {
+      return promise.set_error(result.move_as_error());
+    }
+    send_closure(actor_id, &MessagesManager::on_get_message_viewers, dialog_id, result.move_as_ok(), false,
+                 std::move(promise));
+  });
+
+  td_->create_handler<GetMessageReadParticipantsQuery>(std::move(query_promise))
+      ->send(full_message_id.get_dialog_id(), full_message_id.get_message_id());
+}
+
+void MessagesManager::on_get_message_viewers(DialogId dialog_id, vector<UserId> user_ids, bool is_recursive,
+                                             Promise<td_api::object_ptr<td_api::users>> &&promise) {
+  if (!is_recursive) {
+    bool need_participant_list = false;
+    for (auto user_id : user_ids) {
+      if (!user_id.is_valid()) {
+        LOG(ERROR) << "Receive invalid " << user_id << " as viewer of a message in " << dialog_id;
+        continue;
+      }
+      if (!td_->contacts_manager_->have_user_force(user_id)) {
+        need_participant_list = true;
+      }
+    }
+    if (need_participant_list) {
+      auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, user_ids = std::move(user_ids),
+                                                   promise = std::move(promise)](Unit result) mutable {
+        send_closure(actor_id, &MessagesManager::on_get_message_viewers, dialog_id, std::move(user_ids), true,
+                     std::move(promise));
+      });
+
+      switch (dialog_id.get_type()) {
+        case DialogType::Chat:
+          return td_->contacts_manager_->reload_chat_full(dialog_id.get_chat_id(), std::move(query_promise));
+        case DialogType::Channel:
+          return td_->contacts_manager_->get_channel_participants(
+              dialog_id.get_channel_id(), td_api::make_object<td_api::supergroupMembersFilterRecent>(), string(), 0,
+              200, 200, PromiseCreator::lambda([query_promise = std::move(query_promise)](DialogParticipants) mutable {
+                query_promise.set_value(Unit());
+              }));
+        default:
+          UNREACHABLE();
+          return;
+      }
+    }
+  }
+  promise.set_value(td_->contacts_manager_->get_users_object(-1, user_ids));
 }
 
 void MessagesManager::get_dialog_info_full(DialogId dialog_id, Promise<Unit> &&promise, const char *source) {
