@@ -836,10 +836,10 @@ draftMessage reply_to_message_id:int53 date:int32 input_message_text:InputMessag
 //@description An ordinary chat with a user @user_id User identifier
 chatTypePrivate user_id:int53 = ChatType;
 
-//@description A basic group (i.e., a chat with 0-200 other users) @basic_group_id Basic group identifier
+//@description A basic group (a chat with 0-200 other users) @basic_group_id Basic group identifier
 chatTypeBasicGroup basic_group_id:int53 = ChatType;
 
-//@description A supergroup (i.e. a chat with up to GetOption("supergroup_max_size") other users), or channel (with unlimited members) @supergroup_id Supergroup or channel identifier @is_channel True, if the supergroup is a channel
+//@description A supergroup or channel (with unlimited members) @supergroup_id Supergroup or channel identifier @is_channel True, if the supergroup is a channel
 chatTypeSupergroup supergroup_id:int53 is_channel:Bool = ChatType;
 
 //@description A secret chat with a user @secret_chat_id Secret chat identifier @user_id User identifier of the secret chat peer
@@ -1823,7 +1823,7 @@ textEntityTypeMention = TextEntityType;
 //@description A hashtag text, beginning with "#"
 textEntityTypeHashtag = TextEntityType;
 
-//@description A cashtag text, beginning with "$" and consisting of capital english letters (i.e. "$USD")
+//@description A cashtag text, beginning with "$" and consisting of capital english letters (e.g., "$USD")
 textEntityTypeCashtag = TextEntityType;
 
 //@description A bot command, beginning with "/"
@@ -2323,7 +2323,7 @@ httpUrl url:string = HttpUrl;
 
 //@class InputInlineQueryResult @description Represents a single result of an inline query; for bots only
 
-//@description Represents a link to an animated GIF or an animated (i.e. without sound) H.264/MPEG-4 AVC video
+//@description Represents a link to an animated GIF or an animated (i.e., without sound) H.264/MPEG-4 AVC video
 //@id Unique identifier of the query result @title Title of the query result
 //@thumbnail_url URL of the result thumbnail (JPEG, GIF, or MPEG4), if it exists @thumbnail_mime_type MIME type of the video thumbnail. If non-empty, must be one of "image/jpeg", "image/gif" and "video/mp4"
 //@video_url The URL of the video file (file size must not exceed 1MB) @video_mime_type MIME type of the video file. Must be one of "image/gif" and "video/mp4"
@@ -4168,7 +4168,7 @@ getChatHistory chat_id:int53 from_message_id:int53 offset:int32 limit:int32 only
 //@limit The maximum number of messages to be returned; must be positive and can't be greater than 100. If the offset is negative, the limit must be greater than or equal to -offset. For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
 getMessageThreadHistory chat_id:int53 message_id:int53 from_message_id:int53 offset:int32 limit:int32 = Messages;
 
-//@description Deletes all messages in the chat. Use Chat.can_be_deleted_only_for_self and Chat.can_be_deleted_for_all_users fields to find whether and how the method can be applied to the chat
+//@description Deletes all messages in the chat. Use chat.can_be_deleted_only_for_self and chat.can_be_deleted_for_all_users fields to find whether and how the method can be applied to the chat
 //@chat_id Chat identifier @remove_from_chat_list Pass true if the chat should be removed from the chat list @revoke Pass true to try to delete chat history for all users
 deleteChatHistory chat_id:int53 remove_from_chat_list:Bool revoke:Bool = Ok;
 
@@ -4980,7 +4980,7 @@ getBlockedMessageSenders offset:int32 limit:int32 = MessageSenders;
 
 
 //@description Adds a user to the contact list or edits an existing contact by their user identifier @contact The contact to add or edit; phone number can be empty and needs to be specified only if known, vCard is ignored
-//@share_phone_number True, if the new contact needs to be allowed to see current user's phone number. A corresponding rule to userPrivacySettingShowPhoneNumber will be added if needed. Use the field UserFullInfo.need_phone_number_privacy_exception to check whether the current user needs to be asked to share their phone number
+//@share_phone_number True, if the new contact needs to be allowed to see current user's phone number. A corresponding rule to userPrivacySettingShowPhoneNumber will be added if needed. Use the field userFullInfo.need_phone_number_privacy_exception to check whether the current user needs to be asked to share their phone number
 addContact contact:contact share_phone_number:Bool = Ok;
 
 //@description Adds new contacts or edits existing contacts by their phone numbers; contacts' user identifiers are ignored @contacts The list of contacts to import or edit; contacts' vCard are ignored and are not imported
@@ -5092,7 +5092,7 @@ getEmojiSuggestionsUrl language_code:string = HttpUrl;
 getSavedAnimations = Animations;
 
 //@description Manually adds a new animation to the list of saved animations. The new animation is added to the beginning of the list. If the animation was already in the list, it is removed first. Only non-secret video animations with MIME type "video/mp4" can be added to the list
-//@animation The animation file to be added. Only animations known to the server (i.e. successfully sent via a message) can be added to the list
+//@animation The animation file to be added. Only animations known to the server (i.e., successfully sent via a message) can be added to the list
 addSavedAnimation animation:InputFile = Ok;
 
 //@description Removes an animation from the list of saved animations @animation Animation file to be removed
@@ -5198,7 +5198,7 @@ toggleSupergroupIsBroadcastGroup supergroup_id:int53 = Ok;
 //@description Reports some messages from a user in a supergroup as spam; requires administrator rights in the supergroup @supergroup_id Supergroup identifier @user_id User identifier @message_ids Identifiers of messages sent in the supergroup by the user. This list must be non-empty
 reportSupergroupSpam supergroup_id:int53 user_id:int53 message_ids:vector<int53> = Ok;
 
-//@description Returns information about members or banned users in a supergroup or channel. Can be used only if SupergroupFullInfo.can_get_members == true; additionally, administrator privileges may be required for some filters @supergroup_id Identifier of the supergroup or channel
+//@description Returns information about members or banned users in a supergroup or channel. Can be used only if supergroupFullInfo.can_get_members == true; additionally, administrator privileges may be required for some filters @supergroup_id Identifier of the supergroup or channel
 //@filter The type of users to return. By default, supergroupMembersFilterRecent @offset Number of users to skip @limit The maximum number of users be returned; up to 200
 getSupergroupMembers supergroup_id:int53 filter:SupergroupMembersFilter offset:int32 limit:int32 = ChatMembers;
 
@@ -5346,10 +5346,10 @@ reportChatPhoto chat_id:int53 file_id:int32 reason:ChatReportReason text:string 
 //@description Returns an HTTP URL with the chat statistics. Currently this method of getting the statistics are disabled and can be deleted in the future @chat_id Chat identifier @parameters Parameters for the request @is_dark Pass true if a URL with the dark theme must be returned
 getChatStatisticsUrl chat_id:int53 parameters:string is_dark:Bool = HttpUrl;
 
-//@description Returns detailed statistics about a chat. Currently this method can be used only for supergroups and channels. Can be used only if SupergroupFullInfo.can_get_statistics == true @chat_id Chat identifier @is_dark Pass true if a dark theme is used by the application
+//@description Returns detailed statistics about a chat. Currently this method can be used only for supergroups and channels. Can be used only if supergroupFullInfo.can_get_statistics == true @chat_id Chat identifier @is_dark Pass true if a dark theme is used by the application
 getChatStatistics chat_id:int53 is_dark:Bool = ChatStatistics;
 
-//@description Returns detailed statistics about a message. Can be used only if Message.can_get_statistics == true @chat_id Chat identifier @message_id Message identifier @is_dark Pass true if a dark theme is used by the application
+//@description Returns detailed statistics about a message. Can be used only if message.can_get_statistics == true @chat_id Chat identifier @message_id Message identifier @is_dark Pass true if a dark theme is used by the application
 getMessageStatistics chat_id:int53 message_id:int53 is_dark:Bool = MessageStatistics;
 
 //@description Loads an asynchronous or a zoomed in statistical graph @chat_id Chat identifier @token The token for graph loading @x X-value for zoomed in graph or 0 otherwise
