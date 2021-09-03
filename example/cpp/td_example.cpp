@@ -5,8 +5,6 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include <td/telegram/Client.h>
-#include <td/telegram/td_api.h>
-#include <td/telegram/td_api.hpp>
 
 #include <cstdint>
 #include <functional>
@@ -15,7 +13,6 @@
 #include <memory>
 #include <sstream>
 #include <string>
-#include <vector>
 
 // Simple single-threaded example of TDLib usage.
 // Real world programs should use separate thread for the user input.
