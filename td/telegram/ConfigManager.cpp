@@ -1548,8 +1548,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
                 if (dice_key_value->value_->get_id() != telegram_api::jsonNumber::ID) {
                   continue;
                 }
-                auto current_value =
-                    static_cast<int32>(static_cast<telegram_api::jsonNumber *>(dice_key_value->value_.get())->value_);
+                auto current_value = get_json_value_int(std::move(dice_key_value->value_), Slice());
                 if (dice_key_value->key_ == "value") {
                   dice_value = current_value;
                 }
@@ -1689,8 +1688,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
               continue;
             }
             if (video_note_setting->value_->get_id() == telegram_api::jsonNumber::ID) {
-              auto setting_value = static_cast<int32>(
-                  static_cast<const telegram_api::jsonNumber *>(video_note_setting->value_.get())->value_);
+              auto setting_value = get_json_value_int(std::move(video_note_setting->value_), Slice());
               if (setting_value > 0) {
                 if (video_note_setting->key_ == "diameter") {
                   G()->shared_config().set_option_integer("suggested_video_note_length", setting_value);

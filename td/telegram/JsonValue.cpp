@@ -199,4 +199,13 @@ string get_json_string(const td_api::JsonValue *json_value) {
   return json_encode<string>(JsonableJsonValue(json_value));
 }
 
+int32 get_json_value_int(telegram_api::object_ptr<telegram_api::JSONValue> &&json_value, Slice name) {
+  CHECK(json_value != nullptr);
+  if (json_value->get_id() == telegram_api::jsonNumber::ID) {
+    return static_cast<int32>(static_cast<const telegram_api::jsonNumber *>(json_value.get())->value_);
+  }
+  LOG(ERROR) << "Expected integer as " << name << " found " << to_string(*json_value);
+  return 0;
+}
+
 }  // namespace td

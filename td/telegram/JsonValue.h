@@ -26,4 +26,6 @@ tl_object_ptr<telegram_api::JSONValue> convert_json_value(td_api::object_ptr<td_
 
 string get_json_string(const td_api::JsonValue *json_value);
 
+int32 get_json_value_int(telegram_api::object_ptr<telegram_api::JSONValue> &&json_value, Slice name);
+
 }  // namespace td
