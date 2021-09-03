@@ -6,7 +6,7 @@
 //
 #include "td/utils/utf8.h"
 
-#include "td/utils/logging.h"  // for UNREACHABLE
+#include "td/utils/logging.h"
 #include "td/utils/unicode.h"
 
 namespace td {

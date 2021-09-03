@@ -11,7 +11,7 @@
 #include "td/utils/CancellationToken.h"
 #include "td/utils/Closure.h"
 #include "td/utils/common.h"
-#include "td/utils/invoke.h"  // for tuple_for_each
+#include "td/utils/invoke.h"
 #include "td/utils/MovableValue.h"
 #include "td/utils/ScopeGuard.h"
 #include "td/utils/Status.h"

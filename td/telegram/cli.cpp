@@ -14,7 +14,7 @@
 
 #include "td/telegram/Client.h"
 #include "td/telegram/ClientActor.h"
-#include "td/telegram/Td.h"  // for VERBOSITY_NAME(td_requests)
+#include "td/telegram/Td.h"
 #include "td/telegram/td_api_json.h"
 
 #include "td/utils/algorithm.h"
