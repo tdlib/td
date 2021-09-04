@@ -14,7 +14,6 @@
 
 #include "td/telegram/Client.h"
 #include "td/telegram/ClientActor.h"
-#include "td/telegram/Td.h"
 #include "td/telegram/td_api_json.h"
 
 #include "td/utils/algorithm.h"
@@ -722,7 +721,7 @@ class CliClient final : public Actor {
       }
     }
 
-    if (id > 0 && combined_log.get_first_verbosity_level() < VERBOSITY_NAME(td_requests)) {
+    if (id > 0 && combined_log.get_first_verbosity_level() < get_log_tag_verbosity_level("td_requests")) {
       LOG(ERROR) << "Receive result [" << generation << "][id=" << id << "] " << result_str;
     }
 
@@ -841,7 +840,7 @@ class CliClient final : public Actor {
   }
 
   void on_error(uint64 generation, uint64 id, td_api::object_ptr<td_api::error> error) {
-    if (id > 0 && combined_log.get_first_verbosity_level() < VERBOSITY_NAME(td_requests)) {
+    if (id > 0 && combined_log.get_first_verbosity_level() < get_log_tag_verbosity_level("td_requests")) {
       LOG(ERROR) << "Receive error [" << generation << "][id=" << id << "] " << to_string(error);
     }
   }
@@ -1564,11 +1563,11 @@ class CliClient final : public Actor {
   }
 
   static td_api::object_ptr<td_api::Object> execute(td_api::object_ptr<td_api::Function> f) {
-    if (combined_log.get_first_verbosity_level() < VERBOSITY_NAME(td_requests)) {
+    if (combined_log.get_first_verbosity_level() < get_log_tag_verbosity_level("td_requests")) {
       LOG(ERROR) << "Execute request: " << to_string(f);
     }
     auto res = ClientActor::execute(std::move(f));
-    if (combined_log.get_first_verbosity_level() < VERBOSITY_NAME(td_requests)) {
+    if (combined_log.get_first_verbosity_level() < get_log_tag_verbosity_level("td_requests")) {
       LOG(ERROR) << "Execute response: " << to_string(res);
     }
     return res;
@@ -1584,6 +1583,15 @@ class CliClient final : public Actor {
       LOG(ERROR) << "Failed to send: " << to_string(f);
       return 0;
     }
+  }
+
+  static int32 get_log_tag_verbosity_level(string name) {
+    auto level = ClientActor::execute(td_api::make_object<td_api::getLogTagVerbosityLevel>(name));
+    if (level->get_id() == td_api::error::ID) {
+      return -1;
+    }
+    CHECK(level->get_id() == td_api::logVerbosityLevel::ID);
+    return static_cast<const td_api::logVerbosityLevel *>(level.get())->verbosity_level_;
   }
 
   void send_message(const string &chat_id, td_api::object_ptr<td_api::InputMessageContent> &&input_message_content,
