@@ -1292,54 +1292,6 @@ class SetGameScoreRequest final : public RequestOnceActor {
   }
 };
 
-class GetGameHighScoresRequest final : public RequestOnceActor {
-  FullMessageId full_message_id_;
-  UserId user_id_;
-
-  int64 random_id_;
-
-  void do_run(Promise<Unit> &&promise) final {
-    random_id_ = td->messages_manager_->get_game_high_scores(full_message_id_, user_id_, std::move(promise));
-  }
-
-  void do_send_result() final {
-    CHECK(random_id_ != 0);
-    send_result(td->messages_manager_->get_game_high_scores_object(random_id_));
-  }
-
- public:
-  GetGameHighScoresRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, int64 message_id, int32 user_id)
-      : RequestOnceActor(std::move(td), request_id)
-      , full_message_id_(DialogId(dialog_id), MessageId(message_id))
-      , user_id_(user_id)
-      , random_id_(0) {
-  }
-};
-
-class GetInlineGameHighScoresRequest final : public RequestOnceActor {
-  string inline_message_id_;
-  UserId user_id_;
-
-  int64 random_id_;
-
-  void do_run(Promise<Unit> &&promise) final {
-    random_id_ = td->messages_manager_->get_inline_game_high_scores(inline_message_id_, user_id_, std::move(promise));
-  }
-
-  void do_send_result() final {
-    CHECK(random_id_ != 0);
-    send_result(td->messages_manager_->get_game_high_scores_object(random_id_));
-  }
-
- public:
-  GetInlineGameHighScoresRequest(ActorShared<Td> td, uint64 request_id, string inline_message_id, int32 user_id)
-      : RequestOnceActor(std::move(td), request_id)
-      , inline_message_id_(std::move(inline_message_id))
-      , user_id_(user_id)
-      , random_id_(0) {
-  }
-};
-
 class GetChatHistoryRequest final : public RequestActor<> {
   DialogId dialog_id_;
   MessageId from_message_id_;
@@ -5773,13 +5725,17 @@ void Td::on_request(uint64 id, td_api::setInlineGameScore &request) {
 
 void Td::on_request(uint64 id, td_api::getGameHighScores &request) {
   CHECK_IS_BOT();
-  CREATE_REQUEST(GetGameHighScoresRequest, request.chat_id_, request.message_id_, request.user_id_);
+  CREATE_REQUEST_PROMISE();
+  messages_manager_->get_game_high_scores({DialogId(request.chat_id_), MessageId(request.message_id_)},
+                                          UserId(request.user_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getInlineGameHighScores &request) {
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.inline_message_id_);
-  CREATE_REQUEST(GetInlineGameHighScoresRequest, std::move(request.inline_message_id_), request.user_id_);
+  CREATE_REQUEST_PROMISE();
+  messages_manager_->get_inline_game_high_scores(request.inline_message_id_, UserId(request.user_id_),
+                                                 std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::deleteChatReplyMarkup &request) {
