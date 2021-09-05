@@ -4362,7 +4362,12 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
       return std::move(result);
     }
     case MessageContentType::Poll:
-      return make_unique<MessagePoll>(*static_cast<const MessagePoll *>(content));
+      if (type == MessageContentDupType::Copy) {
+        return make_unique<MessagePoll>(
+            td->poll_manager_->dup_poll(static_cast<const MessagePoll *>(content)->poll_id));
+      } else {
+        return make_unique<MessagePoll>(*static_cast<const MessagePoll *>(content));
+      }
     case MessageContentType::Sticker: {
       auto result = make_unique<MessageSticker>(*static_cast<const MessageSticker *>(content));
       if (td->stickers_manager_->has_input_media(result->file_id, to_secret)) {

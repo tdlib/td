@@ -576,6 +576,10 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
       open_period = close_date - now;
     }
   }
+  if (poll->is_closed) {
+    open_period = 0;
+    close_date = 0;
+  }
   return td_api::make_object<td_api::poll>(
       poll_id.get(), poll->question, std::move(poll_options), total_voter_count,
       td_->contacts_manager_->get_user_ids_object(poll->recent_voter_user_ids, "get_poll_object"), poll->is_anonymous,
@@ -1246,6 +1250,18 @@ void PollManager::on_online() {
   }
 }
 
+PollId PollManager::dup_poll(PollId poll_id) {
+  auto poll = get_poll(poll_id);
+  CHECK(poll != nullptr);
+
+  auto question = poll->question;
+  auto options = transform(poll->options, [](auto &option) { return option.text; });
+  auto explanation = poll->explanation;
+  return create_poll(std::move(question), std::move(options), poll->is_anonymous, poll->allow_multiple_answers,
+                     poll->is_quiz, poll->correct_option_id, std::move(explanation), poll->open_period,
+                     poll->open_period == 0 ? 0 : G()->unix_time(), false);
+}
+
 bool PollManager::has_input_media(PollId poll_id) const {
   auto poll = get_poll(poll_id);
   CHECK(poll != nullptr);
@@ -1346,6 +1362,7 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
 
   auto poll = get_poll_force(poll_id);
   bool is_changed = false;
+  bool need_save_to_database = false;
   if (poll == nullptr) {
     if (poll_server == nullptr) {
       LOG(INFO) << "Ignore " << poll_id << ", because have no data about it";
@@ -1428,13 +1445,16 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
     }
     if (open_period != poll->open_period) {
       poll->open_period = open_period;
-      is_changed = true;
+      if (!poll->is_closed) {
+        is_changed = true;
+      } else {
+        need_save_to_database = true;
+      }
     }
     if (close_date != poll->close_date) {
       poll->close_date = close_date;
-      is_changed = true;
-
       if (!poll->is_closed) {
+        is_changed = true;
         if (close_date != 0) {
           if (close_date <= G()->server_time()) {
             poll->is_closed = true;
@@ -1444,6 +1464,8 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
         } else {
           close_poll_timeout_.cancel_timeout(poll_id.get());
         }
+      } else {
+        need_save_to_database = true;
       }
     }
     bool is_anonymous = (poll_server->flags_ & telegram_api::poll::PUBLIC_VOTERS_MASK) == 0;
@@ -1608,6 +1630,8 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
   }
   if (is_changed) {
     notify_on_poll_update(poll_id);
+  }
+  if (is_changed || need_save_to_database) {
     save_poll(poll, poll_id);
   }
   if (need_update_poll && (is_changed || (poll->is_closed && being_closed_polls_.erase(poll_id) != 0))) {
