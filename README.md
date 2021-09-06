@@ -7,7 +7,6 @@ TDLib (Telegram Database library) is a cross-platform library for building [Tele
 - [Examples and documentation](#usage)
 - [Dependencies](#dependencies)
 - [Building](#building)
-- [Installing dependencies](#installing-dependencies)
 - [Using in CMake C++ projects](#using-cxx)
 - [Using in Java projects](#using-java)
 - [Using in .NET projects](#using-dotnet)
@@ -59,8 +58,7 @@ for a list of all available `TDLib` [methods](https://core.telegram.org/tdlib/do
 The simplest way to build `TDLib` is to use our [TDLib build instructions generator](https://tdlib.github.io/td/build.html).
 You need only to choose your programming language and target operating system to receive complete build instructions.
 
-In general, you need to install all `TDLib` [dependencies](#dependencies) as described in [Installing dependencies](#installing-dependencies).
-Then enter directory containing `TDLib` sources and compile them using CMake:
+In general, you need to install all `TDLib` [dependencies](#dependencies), enter directory containing `TDLib` sources and compile them using CMake:
 
 ```
 mkdir build
@@ -85,44 +83,6 @@ cd ..
 php SplitSource.php --undo
 ```
 In our tests clang 6.0 with libc++ required less than 500 MB of RAM per file and GCC 4.9/6.3 used less than 1 GB of RAM per file.
-
-<a name="installing-dependencies"></a>
-### Installing dependencies
-
-<a name="macos"></a>
-#### macOS
-* Install the latest Xcode command line tools, for example, via `xcode-select --install`.
-* Install other [dependencies](#dependencies), for example, using [Homebrew](https://brew.sh):
-```
-brew install gperf cmake openssl
-```
-* Build `TDLib` with CMake as explained in [building](#building). You will likely need to manually specify path to the installed OpenSSL to CMake, e.g.,
-```
-cmake -DCMAKE_BUILD_TYPE=Release -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl/ ..
-```
-
-<a name="windows"></a>
-#### Windows
-* Download and install Microsoft Visual Studio 2015 or later.
-* Download and install [gperf](https://sourceforge.net/projects/gnuwin32/files/gperf/3.0.1/). Add the path to gperf.exe to the PATH environment variable.
-* Install [vcpkg](https://github.com/Microsoft/vcpkg#quick-start).
-* Run the following commands to install `TDLib` dependencies using vcpkg:
-```
-cd <path to vcpkg>
-.\vcpkg.exe install openssl:x64-windows openssl:x86-windows zlib:x64-windows zlib:x86-windows
-```
-* Download and install [CMake](https://cmake.org/download/); choose "Add CMake to the system PATH" option while installing.
-* Build `TDLib` with CMake as explained in [building](#building), but instead of `cmake -DCMAKE_BUILD_TYPE=Release ..` use
-```
-cmake -DCMAKE_TOOLCHAIN_FILE=<path to vcpkg>/scripts/buildsystems/vcpkg.cmake ..
-```
-
-To build 32-bit/64-bit `TDLib` using MSVC, you will need to additionally specify parameter `-A Win32`/`-A x64` to CMake.
-To build `TDLib` in Release mode using MSVC, you will need to additionally specify parameter `--config Release` to the `cmake --build .` command.
-
-<a name="linux"></a>
-#### Linux
-* Install all [dependencies](#dependencies) using your package manager.
 
 <a name="using-cxx"></a>
 ## Using in CMake C++ projects
