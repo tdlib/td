@@ -196,6 +196,7 @@ void HttpConnectionBase::on_start_migrate(int32 sched_id) {
 
 void HttpConnectionBase::on_finish_migrate() {
   Scheduler::subscribe(fd_.get_poll_info().extract_pollable_fd(this));
+  live_event();
 }
 
 }  // namespace detail
