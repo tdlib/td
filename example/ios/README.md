@@ -2,7 +2,7 @@
 
 Below are instructions for building TDLib for iOS, watchOS, tvOS, and also macOS.
 
-If you need only a macOS build for the current architecture, take a look at our build instructions for [macOS](https://github.com/tdlib/td#macos).
+If you need only a macOS build for the current architecture, take a look at [TDLib build instructions generator](https://tdlib.github.io/td/build.html).
 
 For example of usage take a look at our [Swift example](https://github.com/tdlib/td/tree/master/example/swift).
 
@@ -26,19 +26,21 @@ cmake --build . --target prepare_cross_compiling
 cd <path to TDLib sources>/example/ios
 ./build-openssl.sh
 ```
-Here we use scripts from [Python Apple support](https://github.com/beeware/Python-Apple-support), but any other OpenSSL builds should work too.
+Here we use scripts from [Python Apple support](https://github.com/beeware/Python-Apple-support), but any other OpenSSL build should work too.
 [Python Apple support](https://github.com/beeware/Python-Apple-support) has known problems with spaces in the path to the current directory, so
-you need to ensure that there is no spaces in the path.
-Built libraries should be stored in `third_party/openssl/<platform>`, because the next script will rely on this location.
+you need to ensure that there are no spaces in the path.
+Built OpenSSL libraries should be stored in the directory `third_party/openssl/<platform>`, because the next script will rely on this location.
 * Build TDLib for iOS, watchOS, tvOS and macOS:
 ```
 cd <path to TDLib sources>/example/ios
 ./build.sh
 ```
-This may take a while, because TDLib will be built about 10 times.
-Resulting library will work on any architecture (armv7, armv7s, arm64) and even on a simulator (Intel, Apple Silicon).
+This may take a while, because TDLib will be built about 16 times.
+Resulting XCFramework will work on any architecture and even on a simulator (Intel, Apple silicon).
 We use [CMake/iOS.cmake](https://github.com/tdlib/td/blob/master/CMake/iOS.cmake) toolchain, other toolchains may work too.
 
-Built libraries will be stored in `tdjson` directory.
+Built libraries and XCFramework will be stored in `tdjson` directory.
 
 Documentation for all available classes and methods can be found at https://core.telegram.org/tdlib/docs.
+
+If you receive an "error: SDK "appletvsimulator" cannot be located", you need to run the command "sudo xcode-select -s /Applications/Xcode.app/Contents/Developer" before running ./build.sh.
