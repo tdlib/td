@@ -32,8 +32,8 @@ cd <path to TDLib sources>/example/java/bin
 java '-Djava.library.path=.' org/drinkless/tdlib/example/Example
 ```
 
-If you get "Could NOT find JNI ..." error from CMake, you need to specify to CMake path to the installed JDK, for example, "-DJAVA_HOME=/usr/lib/jvm/java-8-oracle/".
+If you receive "Could NOT find JNI ..." error from CMake, you need to specify to CMake path to the installed JDK, for example, "-DJAVA_HOME=/usr/lib/jvm/java-8-oracle/".
 
-If you get java.lang.UnsatisfiedLinkError with "Can't find dependent libraries", you may also need to copy some dependent shared OpenSSL and zlib libraries to `bin/`.
+If you receive java.lang.UnsatisfiedLinkError with "Can't find dependent libraries", you may also need to copy some dependent shared OpenSSL and zlib libraries to `bin/`.
 
 In case you compiled the example as 32-bit version, you may need to give -d32 parameter to Java.

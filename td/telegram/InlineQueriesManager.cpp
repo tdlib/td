@@ -1069,7 +1069,7 @@ tl_object_ptr<td_api::venue> copy(const td_api::venue &obj) {
 
 template <>
 tl_object_ptr<td_api::formattedText> copy(const td_api::formattedText &obj) {
-  // there is no entities in the game text
+  // there are no entities in the game text
   return make_tl_object<td_api::formattedText>(obj.text_, vector<tl_object_ptr<td_api::textEntity>>());
 }
 

@@ -1141,10 +1141,10 @@ class MessagesManager final : public Actor {
     DialogId dialog_id;
     MessageId last_new_message_id;  // identifier of the last known server message received from update, there should be
                                     // no server messages after it
-    MessageId last_message_id;      // identifier of the message after which currently there is no any message, i.e. a
+    MessageId last_message_id;      // identifier of the message after which currently there are no messages, i.e. a
                                     // message without a gap after it, memory only
     MessageId first_database_message_id;  // identifier of the first message in the database, needed
-                                          // until there is no gaps in the database
+                                          // until there are no gaps in the database
     MessageId last_database_message_id;   // identifier of the last local or server message, if last_database_message_id
                                           // is known and last_message_id is known, then last_database_message_id <=
                                           // last_message_id

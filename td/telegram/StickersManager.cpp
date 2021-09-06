@@ -4036,8 +4036,8 @@ void StickersManager::on_get_archived_sticker_sets(
     LOG(ERROR) << "Receive " << total_count << " as total count of archived sticker sets";
   }
 
-  // if 0 sticker sets are received, then set offset_sticker_set_id was found and there is no stickers after it
-  // or it wasn't found and there is no archived sets at all
+  // if 0 sticker sets are received, then set offset_sticker_set_id was found and there are no stickers after it
+  // or it wasn't found and there are no archived sets at all
   bool is_last =
       sticker_sets.empty() && (!offset_sticker_set_id.is_valid() ||
                                (!sticker_set_ids.empty() && offset_sticker_set_id == sticker_set_ids.back()));

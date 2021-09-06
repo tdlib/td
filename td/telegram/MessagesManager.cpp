@@ -8565,7 +8565,7 @@ void MessagesManager::get_dialog_statistics_url(DialogId dialog_id, const string
     return promise.set_error(Status::Error(3, "Can't access the chat"));
   }
   if (dialog_id.get_type() == DialogType::SecretChat) {
-    return promise.set_error(Status::Error(500, "There is no statistics for secret chats"));
+    return promise.set_error(Status::Error(500, "There are no statistics for secret chats"));
   }
 
   td_->create_handler<GetStatsUrlQuery>(std::move(promise))->send(dialog_id, parameters, is_dark);
@@ -11373,7 +11373,7 @@ void MessagesManager::repair_channel_server_unread_count(Dialog *d) {
     return;
   }
   if (!need_unread_counter(d->order)) {
-    // there is no unread count in left channels
+    // there are no unread counters in left channels
     return;
   }
   if (!d->need_repair_channel_server_unread_count) {
@@ -19479,7 +19479,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, MessageId top_thread_m
       return Status::Error(400, "Invalid message thread ID specified");
     }
     if (dialog_id.get_type() != DialogType::Channel || is_broadcast_channel(dialog_id)) {
-      return Status::Error(400, "There is no message threads in the chat");
+      return Status::Error(400, "There are no message threads in the chat");
     }
   }
 

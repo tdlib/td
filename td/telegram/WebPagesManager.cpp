@@ -612,7 +612,7 @@ void WebPagesManager::update_web_page_instant_view(WebPageId web_page_id, WebPag
       auto previous_queries =
           load_web_page_instant_view_queries.partial.size() + load_web_page_instant_view_queries.full.size();
       if (previous_queries == 0) {
-        // try to load it only if there is no pending load queries
+        // try to load it only if there are no pending load queries
         load_web_page_instant_view(web_page_id, false, Auto());
         return;
       }
