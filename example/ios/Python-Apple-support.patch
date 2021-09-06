@@ -6,16 +6,12 @@ index 695be54..4efe5e5 100644
  # - iOS                       - build everything for iOS
  # - tvOS                      - build everything for tvOS
  # - watchOS                   - build everything for watchOS
--# - OpenSSL-macOS   - build OpenSSL for macOS
--# - OpenSSL-iOS     - build OpenSSL for iOS
--# - OpenSSL-tvOS    - build OpenSSL for tvOS
--# - OpenSSL-watchOS - build OpenSSL for watchOS
-+# - OpenSSL-macOS  			  - build OpenSSL for macOS
-+# - OpenSSL-iOS    			  - build OpenSSL for iOS
+ # - OpenSSL-macOS   - build OpenSSL for macOS
+ # - OpenSSL-iOS     - build OpenSSL for iOS
 +# - OpenSSL-iOS-simulator     - build OpenSSL for iOS-simulator
-+# - OpenSSL-tvOS   			  - build OpenSSL for tvOS
+ # - OpenSSL-tvOS    - build OpenSSL for tvOS
 +# - OpenSSL-tvOS-simulator    - build OpenSSL for tvOS-simulator
-+# - OpenSSL-watchOS 		  - build OpenSSL for watchOS
+ # - OpenSSL-watchOS - build OpenSSL for watchOS
 +# - OpenSSL-watchOS-simulator - build OpenSSL for watchOS-simulator
  # - BZip2-macOS     - build BZip2 for macOS
  # - BZip2-iOS       - build BZip2 for iOS

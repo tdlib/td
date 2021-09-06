@@ -26,6 +26,37 @@ for platform in $platforms;
 do
   echo "Platform = ${platform}"
   if [[ $platform = "macOS" ]]; then
+    simulators="0"
+  else
+    simulators="0 1"
+  fi
+
+  for simulator in $simulators;
+  do
+    if [[ $platform = "macOS" ]]; then
+      other_options="-DCMAKE_OSX_ARCHITECTURES='x86_64;arm64'"
+    else
+      watchos=""
+      if [[ $platform = "watchOS" ]]; then
+        ios_platform="WATCH"
+        watchos="-DTD_EXPERIMENTAL_WATCH_OS=ON"
+      elif [[ $platform = "tvOS" ]]; then
+        ios_platform="TV"
+      else
+        ios_platform=""
+      fi
+
+      if [[ $simulator = "1" ]]; then
+        platform="${platform}-simulator"
+        ios_platform="${ios_platform}SIMULATOR"
+      else
+        ios_platform="${ios_platform}OS"
+      fi
+
+      echo "iOS platform = ${ios_platform}"
+      other_options="${watchos} -DIOS_PLATFORM=${ios_platform} -DCMAKE_TOOLCHAIN_FILE=${td_path}/CMake/iOS.cmake"
+    fi
+
     set_cmake_options $platform
     build="build-${platform}"
     install="install-${platform}"
@@ -33,62 +64,15 @@ do
     mkdir -p $build
     mkdir -p $install
     cd $build
-    cmake $td_path $options -DCMAKE_INSTALL_PREFIX=../${install} -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"
+    cmake $td_path $options $other_options -DCMAKE_INSTALL_PREFIX=../${install}
     make -j3 install || exit
     cd ..
-    mkdir -p $platform
-    cp $build/libtdjson.dylib $platform/libtdjson.dylib
-    install_name_tool -id @rpath/libtdjson.dylib $platform/libtdjson.dylib
-    
+    install_name_tool -id @rpath/libtdjson.dylib ${install}/lib/libtdjson.dylib
     mkdir -p ../tdjson/${platform}/include
     rsync --recursive ${install}/include/ ../tdjson/${platform}/include/
     mkdir -p ../tdjson/${platform}/lib
-    cp ${platform}/libtdjson.dylib ../tdjson/${platform}/lib/
-  else
-    simulators="0 1"
-    for simulator in $simulators;
-    do
-      build="build-${platform}"
-      install="install-${platform}"
-      if [[ $simulator = "1" ]]; then
-        build="${build}-simulator"
-        install="${install}-simulator"
-        platform_path="${platform}-simulator"
-        ios_platform="SIMULATOR"
-        lib="${install}/lib/libtdjson.dylib"
-        set_cmake_options ${platform_path}
-      else
-        platform_path=${platform}
-        ios_platform="OS"
-        lib="${install}/lib/libtdjson.dylib"
-        set_cmake_options ${platform_path}
-      fi
-      watchos=""
-      if [[ $platform = "watchOS" ]]; then
-        ios_platform="WATCH${ios_platform}"
-        watchos="-DTD_EXPERIMENTAL_WATCH_OS=ON"
-      fi
-      if [[ $platform = "tvOS" ]]; then
-        ios_platform="TV${ios_platform}"
-      fi
-      echo $ios_platform
-      rm -rf $build
-      mkdir -p $build
-      mkdir -p $install
-      cd $build
-      cmake $td_path $options $watchos -DIOS_PLATFORM=${ios_platform} -DCMAKE_TOOLCHAIN_FILE=${td_path}/CMake/iOS.cmake -DCMAKE_INSTALL_PREFIX=../${install}
-      make -j3 install || exit
-      cd ..
-
-      install_name_tool -id @rpath/libtdjson.dylib $lib
-
-      mkdir -p ../tdjson/${platform_path}/include
-      rsync --recursive ${install}/include/ ../tdjson/${platform_path}/include/
-      mkdir -p ../tdjson/${platform_path}/lib
-      cp ${lib} ../tdjson/${platform_path}/lib/
-    done
-  fi
-
+    cp ${install}/lib/libtdjson.dylib ../tdjson/${platform}/lib/
+  done
 done
 
 produced_dylibs=(install-*/lib/libtdjson.dylib)

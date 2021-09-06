@@ -2,7 +2,7 @@
 
 Below are instructions for building TDLib for iOS, watchOS, tvOS, and also macOS.
 
-If you need only a macOS build, take a look at our build instructions for [macOS](https://github.com/tdlib/td#macos).
+If you need only a macOS build for the current architecture, take a look at our build instructions for [macOS](https://github.com/tdlib/td#macos).
 
 For example of usage take a look at our [Swift example](https://github.com/tdlib/td/tree/master/example/swift).
 
@@ -36,7 +36,7 @@ cd <path to TDLib sources>/example/ios
 ./build.sh
 ```
 This may take a while, because TDLib will be built about 10 times.
-Resulting library for iOS will work on any architecture (armv7, armv7s, arm64) and even on a simulator (Intel, Apple Silicon).
+Resulting library will work on any architecture (armv7, armv7s, arm64) and even on a simulator (Intel, Apple Silicon).
 We use [CMake/iOS.cmake](https://github.com/tdlib/td/blob/master/CMake/iOS.cmake) toolchain, other toolchains may work too.
 
 Built libraries will be stored in `tdjson` directory.
