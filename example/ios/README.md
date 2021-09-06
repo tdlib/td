@@ -1,4 +1,4 @@
-# Build for iOS
+# Universal XCFramework build example
 
 Below are instructions for building TDLib for iOS, watchOS, tvOS, and also macOS.
 
@@ -21,7 +21,7 @@ cd native-build
 cmake ..
 cmake --build . --target prepare_cross_compiling
 ```
-* Build OpenSSL for iOS, watchOS, tvOS and macOS:
+* Build OpenSSL for iOS, watchOS, tvOS, and macOS:
 ```
 cd <path to TDLib sources>/example/ios
 ./build-openssl.sh
@@ -30,13 +30,13 @@ Here we use scripts from [Python Apple support](https://github.com/beeware/Pytho
 [Python Apple support](https://github.com/beeware/Python-Apple-support) has known problems with spaces in the path to the current directory, so
 you need to ensure that there are no spaces in the path.
 Built OpenSSL libraries should be stored in the directory `third_party/openssl/<platform>`, because the next script will rely on this location.
-* Build TDLib for iOS, watchOS, tvOS and macOS:
+* Build TDLib for iOS, watchOS, tvOS, and macOS:
 ```
 cd <path to TDLib sources>/example/ios
 ./build.sh
 ```
 This may take a while, because TDLib will be built about 16 times.
-Resulting XCFramework will work on any architecture and even on a simulator (Intel, Apple silicon).
+Resulting XCFramework will work on any architecture and even on a simulator (x64, Apple silicon).
 We use [CMake/iOS.cmake](https://github.com/tdlib/td/blob/master/CMake/iOS.cmake) toolchain, other toolchains may work too.
 
 Built libraries and XCFramework will be stored in `tdjson` directory.

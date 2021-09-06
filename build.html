@@ -542,6 +542,10 @@ function onOptionsChanged() {
   if (os_netbsd) {
     pre_text.push('Note that the following instruction is for NetBSD 8.0 and default SH shell.');
   }
+  if (os_mac) {
+    pre_text.push('Note that the following instruction will build TDLib only for the current architecture (x64 or Apple silicon).');
+    pre_text.push('If you want to create a universal XCFramework, take a look at our <a href="https://github.com/tdlib/td/tree/master/example/ios">example</a> instead.');
+  }
 
   var terminal_name = (function () {
     if (os_windows) {
