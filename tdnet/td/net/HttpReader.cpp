@@ -223,7 +223,7 @@ Result<size_t> HttpReader::read_next(HttpQuery *query, bool can_be_slow) {
         return need_size;
       }
       case State::ReadMultipartFormData: {
-        if (!content_->empty()) {
+        if (!content_->empty() || flow_sink_.is_ready()) {
           TRY_RESULT(result, parse_multipart_form_data(can_be_slow));
           if (result) {
             break;
