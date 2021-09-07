@@ -4,7 +4,7 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
-#include "td/telegram/SponsoredMessages.h"
+#include "td/telegram/SponsoredMessageManager.h"
 
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ContactsManager.h"
@@ -116,30 +116,40 @@ class ViewSponsoredMessageQuery final : public Td::ResultHandler {
   }
 };
 
-void get_dialog_sponsored_messages(Td *td, DialogId dialog_id,
-                                   Promise<td_api::object_ptr<td_api::sponsoredMessages>> &&promise) {
-  if (!td->messages_manager_->have_dialog_force(dialog_id, "get_sponsored_messages")) {
+SponsoredMessageManager::SponsoredMessageManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
+}
+
+SponsoredMessageManager::~SponsoredMessageManager() = default;
+
+void SponsoredMessageManager::tear_down() {
+  parent_.reset();
+}
+
+void SponsoredMessageManager::get_dialog_sponsored_messages(
+    DialogId dialog_id, Promise<td_api::object_ptr<td_api::sponsoredMessages>> &&promise) {
+  if (!td_->messages_manager_->have_dialog_force(dialog_id, "get_sponsored_messages")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
   if (dialog_id.get_type() != DialogType::Channel ||
-      td->contacts_manager_->get_channel_type(dialog_id.get_channel_id()) != ContactsManager::ChannelType::Broadcast) {
+      td_->contacts_manager_->get_channel_type(dialog_id.get_channel_id()) != ContactsManager::ChannelType::Broadcast) {
     return promise.set_value(td_api::make_object<td_api::sponsoredMessages>());
   }
 
-  td->create_handler<GetSponsoredMessagesQuery>(std::move(promise))->send(dialog_id.get_channel_id());
+  td_->create_handler<GetSponsoredMessagesQuery>(std::move(promise))->send(dialog_id.get_channel_id());
 }
 
-void view_sponsored_message(Td *td, DialogId dialog_id, const string &message_id, Promise<Unit> &&promise) {
-  if (!td->messages_manager_->have_dialog_force(dialog_id, "view_sponsored_message")) {
+void SponsoredMessageManager::view_sponsored_message(DialogId dialog_id, const string &message_id,
+                                                     Promise<Unit> &&promise) {
+  if (!td_->messages_manager_->have_dialog_force(dialog_id, "view_sponsored_message")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
   if (dialog_id.get_type() != DialogType::Channel ||
-      td->contacts_manager_->get_channel_type(dialog_id.get_channel_id()) != ContactsManager::ChannelType::Broadcast ||
+      td_->contacts_manager_->get_channel_type(dialog_id.get_channel_id()) != ContactsManager::ChannelType::Broadcast ||
       message_id.empty()) {
     return promise.set_error(Status::Error(400, "Message not found"));
   }
 
-  td->create_handler<ViewSponsoredMessageQuery>(std::move(promise))->send(dialog_id.get_channel_id(), message_id);
+  td_->create_handler<ViewSponsoredMessageQuery>(std::move(promise))->send(dialog_id.get_channel_id(), message_id);
 }
 
 }  // namespace td

@@ -66,6 +66,7 @@ class PollManager;
 class PrivacyManager;
 class SecureManager;
 class SecretChatsManager;
+class SponsoredMessageManager;
 class StickersManager;
 class StorageManager;
 class ThemeManager;
@@ -173,6 +174,8 @@ class Td final : public NetQueryCallback {
   ActorOwn<NotificationManager> notification_manager_actor_;
   unique_ptr<PollManager> poll_manager_;
   ActorOwn<PollManager> poll_manager_actor_;
+  unique_ptr<SponsoredMessageManager> sponsored_message_manager_;
+  ActorOwn<SponsoredMessageManager> sponsored_message_manager_actor_;
   unique_ptr<StickersManager> stickers_manager_;
   ActorOwn<StickersManager> stickers_manager_actor_;
   unique_ptr<ThemeManager> theme_manager_;

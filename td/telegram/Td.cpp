@@ -91,7 +91,7 @@
 #include "td/telegram/SecretChatsManager.h"
 #include "td/telegram/SecureManager.h"
 #include "td/telegram/SecureValue.h"
-#include "td/telegram/SponsoredMessages.h"
+#include "td/telegram/SponsoredMessageManager.h"
 #include "td/telegram/StateManager.h"
 #include "td/telegram/StickerSetId.h"
 #include "td/telegram/StickersManager.h"
@@ -3639,6 +3639,8 @@ void Td::dec_actor_refcnt() {
       LOG(DEBUG) << "NotificationManager was cleared" << timer;
       poll_manager_.reset();
       LOG(DEBUG) << "PollManager was cleared" << timer;
+      sponsored_message_manager_.reset();
+      LOG(DEBUG) << "SponsoredMessageManager was cleared" << timer;
       stickers_manager_.reset();
       LOG(DEBUG) << "StickersManager was cleared" << timer;
       theme_manager_.reset();
@@ -3831,6 +3833,8 @@ void Td::clear() {
   LOG(DEBUG) << "NotificationManager actor was cleared" << timer;
   poll_manager_actor_.reset();
   LOG(DEBUG) << "PollManager actor was cleared" << timer;
+  sponsored_message_manager_actor_.reset();
+  LOG(DEBUG) << "SponsoredMessageManager actor was cleared" << timer;
   stickers_manager_actor_.reset();
   LOG(DEBUG) << "StickersManager actor was cleared" << timer;
   theme_manager_actor_.reset();
@@ -4287,6 +4291,9 @@ void Td::init_managers() {
   poll_manager_ = make_unique<PollManager>(this, create_reference());
   poll_manager_actor_ = register_actor("PollManager", poll_manager_.get());
   G()->set_notification_manager(notification_manager_actor_.get());
+  sponsored_message_manager_ = make_unique<SponsoredMessageManager>(this, create_reference());
+  sponsored_message_manager_actor_ = register_actor("SponsoredMessageManager", sponsored_message_manager_.get());
+  G()->set_sponsored_message_manager(sponsored_message_manager_actor_.get());
   stickers_manager_ = make_unique<StickersManager>(this, create_reference());
   stickers_manager_actor_ = register_actor("StickersManager", stickers_manager_.get());
   G()->set_stickers_manager(stickers_manager_actor_.get());
@@ -4992,13 +4999,14 @@ void Td::on_request(uint64 id, const td_api::getMessages &request) {
 void Td::on_request(uint64 id, const td_api::getChatSponsoredMessages &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  get_dialog_sponsored_messages(this, DialogId(request.chat_id_), std::move(promise));
+  sponsored_message_manager_->get_dialog_sponsored_messages(DialogId(request.chat_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::viewSponsoredMessage &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  view_sponsored_message(this, DialogId(request.chat_id_), request.message_id_, std::move(promise));
+  sponsored_message_manager_->view_sponsored_message(DialogId(request.chat_id_), request.message_id_,
+                                                     std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getMessageThread &request) {

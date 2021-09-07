@@ -301,6 +301,7 @@ function split_file($file, $chunks, $undo) {
                 'PublicDialogType|get_public_dialog_type' => 'PublicDialogType',
                 'SecretChatActor' => 'SecretChatActor',
                 'secret_chats_manager[_(-][^.]|SecretChatsManager' => 'SecretChatsManager',
+                'sponsored_message_manager[_(-][^.]|SponsoredMessageManager' => 'SponsoredMessageManager',
                 'stickers_manager[_(-][^.]|StickersManager' => 'StickersManager',
                 '[>](td_db[(][)]|get_td_db_impl[(])|TdDb[^A-Za-z]' => 'TdDb',
                 'theme_manager[_(-][^.]|ThemeManager' => "ThemeManager",

@@ -48,6 +48,7 @@ class NetQueryDispatcher;
 class NotificationManager;
 class PasswordManager;
 class SecretChatsManager;
+class SponsoredMessageManager;
 class StateManager;
 class StickersManager;
 class StorageManager;
@@ -275,6 +276,13 @@ class Global final : public ActorContext {
     secret_chats_manager_ = secret_chats_manager;
   }
 
+  ActorId<SponsoredMessageManager> sponsored_message_manager() const {
+    return sponsored_message_manager_;
+  }
+  void set_sponsored_message_manager(ActorId<SponsoredMessageManager> sponsored_message_manager) {
+    sponsored_message_manager_ = sponsored_message_manager;
+  }
+
   ActorId<StickersManager> stickers_manager() const {
     return stickers_manager_;
   }
@@ -425,6 +433,7 @@ class Global final : public ActorContext {
   ActorId<NotificationManager> notification_manager_;
   ActorId<PasswordManager> password_manager_;
   ActorId<SecretChatsManager> secret_chats_manager_;
+  ActorId<SponsoredMessageManager> sponsored_message_manager_;
   ActorId<StickersManager> stickers_manager_;
   ActorId<StorageManager> storage_manager_;
   ActorId<ThemeManager> theme_manager_;
