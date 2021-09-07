@@ -204,7 +204,7 @@ void GameManager::tear_down() {
 }
 
 void GameManager::set_game_score(FullMessageId full_message_id, bool edit_message, UserId user_id, int32 score,
-                                 bool force, Promise<Unit> &&promise) {
+                                 bool force, Promise<td_api::object_ptr<td_api::message>> &&promise) {
   CHECK(td_->auth_manager_->is_bot());
 
   if (!td_->messages_manager_->have_message_force(full_message_id, "set_game_score")) {
@@ -225,9 +225,21 @@ void GameManager::set_game_score(FullMessageId full_message_id, bool edit_messag
     return promise.set_error(Status::Error(5, "Game score can't be set"));
   }
 
-  send_closure(td_->create_net_actor<SetGameScoreActor>(std::move(promise)), &SetGameScoreActor::send, dialog_id,
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), full_message_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
+        if (result.is_error()) {
+          return promise.set_error(result.move_as_error());
+        }
+        send_closure(actor_id, &GameManager::on_set_game_score, full_message_id, std::move(promise));
+      });
+  send_closure(td_->create_net_actor<SetGameScoreActor>(std::move(query_promise)), &SetGameScoreActor::send, dialog_id,
                full_message_id.get_message_id(), edit_message, std::move(input_user), score, force,
                MessagesManager::get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
+}
+
+void GameManager::on_set_game_score(FullMessageId full_message_id,
+                                    Promise<td_api::object_ptr<td_api::message>> &&promise) {
+  promise.set_value(td_->messages_manager_->get_message_object(full_message_id));
 }
 
 void GameManager::set_inline_game_score(const string &inline_message_id, bool edit_message, UserId user_id, int32 score,

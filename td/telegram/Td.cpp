@@ -1265,33 +1265,6 @@ class EditMessageReplyMarkupRequest final : public RequestOnceActor {
   }
 };
 
-class SetGameScoreRequest final : public RequestOnceActor {
-  FullMessageId full_message_id_;
-  bool edit_message_;
-  UserId user_id_;
-  int32 score_;
-  bool force_;
-
-  void do_run(Promise<Unit> &&promise) final {
-    td->game_manager_->set_game_score(full_message_id_, edit_message_, user_id_, score_, force_, std::move(promise));
-  }
-
-  void do_send_result() final {
-    send_result(td->messages_manager_->get_message_object(full_message_id_));
-  }
-
- public:
-  SetGameScoreRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, int64 message_id, bool edit_message,
-                      int32 user_id, int32 score, bool force)
-      : RequestOnceActor(std::move(td), request_id)
-      , full_message_id_(DialogId(dialog_id), MessageId(message_id))
-      , edit_message_(edit_message)
-      , user_id_(user_id)
-      , score_(score)
-      , force_(force) {
-  }
-};
-
 class GetChatHistoryRequest final : public RequestActor<> {
   DialogId dialog_id_;
   MessageId from_message_id_;
@@ -5717,8 +5690,9 @@ void Td::on_request(uint64 id, td_api::editMessageSchedulingState &request) {
 
 void Td::on_request(uint64 id, td_api::setGameScore &request) {
   CHECK_IS_BOT();
-  CREATE_REQUEST(SetGameScoreRequest, request.chat_id_, request.message_id_, request.edit_message_, request.user_id_,
-                 request.score_, request.force_);
+  CREATE_REQUEST_PROMISE();
+  game_manager_->set_game_score({DialogId(request.chat_id_), MessageId(request.message_id_)}, request.edit_message_,
+                                UserId(request.user_id_), request.score_, request.force_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setInlineGameScore &request) {

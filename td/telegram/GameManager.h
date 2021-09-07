@@ -30,7 +30,7 @@ class GameManager final : public Actor {
   ~GameManager() final;
 
   void set_game_score(FullMessageId full_message_id, bool edit_message, UserId user_id, int32 score, bool force,
-                      Promise<Unit> &&promise);
+                      Promise<td_api::object_ptr<td_api::message>> &&promise);
 
   void set_inline_game_score(const string &inline_message_id, bool edit_message, UserId user_id, int32 score,
                              bool force, Promise<Unit> &&promise);
@@ -46,6 +46,8 @@ class GameManager final : public Actor {
 
  private:
   void tear_down() final;
+
+  void on_set_game_score(FullMessageId full_message_id, Promise<td_api::object_ptr<td_api::message>> &&promise);
 
   Td *td_;
   ActorShared<> parent_;
