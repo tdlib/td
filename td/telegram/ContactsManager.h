@@ -1321,9 +1321,10 @@ class ContactsManager final : public Actor {
   void update_secret_chat(SecretChat *c, SecretChatId secret_chat_id, bool from_binlog = false,
                           bool from_database = false);
 
-  void update_user_full(UserFull *user_full, UserId user_id, bool from_database = false);
-  void update_chat_full(ChatFull *chat_full, ChatId chat_id, bool from_database = false);
-  void update_channel_full(ChannelFull *channel_full, ChannelId channel_id, bool from_database = false);
+  void update_user_full(UserFull *user_full, UserId user_id, const char *source, bool from_database = false);
+  void update_chat_full(ChatFull *chat_full, ChatId chat_id, const char *source, bool from_database = false);
+  void update_channel_full(ChannelFull *channel_full, ChannelId channel_id, const char *source,
+                           bool from_database = false);
 
   bool is_chat_full_outdated(const ChatFull *chat_full, const Chat *c, ChatId chat_id);
 
