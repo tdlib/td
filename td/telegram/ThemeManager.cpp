@@ -44,6 +44,7 @@ class GetChatThemesQuery final : public Td::ResultHandler {
 };
 
 ThemeManager::ThemeManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
+  chat_themes_.next_reload_time = Time::now();
 }
 
 void ThemeManager::tear_down() {
@@ -51,7 +52,16 @@ void ThemeManager::tear_down() {
 }
 
 void ThemeManager::get_chat_themes(Promise<td_api::object_ptr<td_api::chatThemes>> &&promise) {
-  pending_get_chat_themes_queries_.push_back(std::move(promise));
+  if (Time::now() < chat_themes_.next_reload_time) {
+    return promise.set_value(get_chat_themes_object());
+  }
+
+  if (!chat_themes_.themes.empty()) {
+    promise.set_value(get_chat_themes_object());
+    pending_get_chat_themes_queries_.push_back(Promise<td_api::object_ptr<td_api::chatThemes>>());
+  } else {
+    pending_get_chat_themes_queries_.push_back(std::move(promise));
+  }
   if (pending_get_chat_themes_queries_.size() == 1) {
     auto request_promise = PromiseCreator::lambda(
         [actor_id = actor_id(this)](Result<telegram_api::object_ptr<telegram_api::account_ChatThemes>> result) {
@@ -106,34 +116,33 @@ void ThemeManager::on_get_chat_themes(Result<telegram_api::object_ptr<telegram_a
     return;
   }
 
+  chat_themes_.next_reload_time = Time::now() + THEME_CACHE_TIME;
+
   auto chat_themes_ptr = result.move_as_ok();
   LOG(DEBUG) << "Receive " << to_string(chat_themes_ptr);
-  if (chat_themes_ptr->get_id() == telegram_api::account_chatThemesNotModified::ID) {
-    for (auto &promise : promises) {
-      promise.set_value(get_chat_themes_object());
-    }
-    return;
-  }
+  if (chat_themes_ptr->get_id() != telegram_api::account_chatThemesNotModified::ID) {
+    CHECK(chat_themes_ptr->get_id() == telegram_api::account_chatThemes::ID);
+    auto chat_themes = telegram_api::move_object_as<telegram_api::account_chatThemes>(chat_themes_ptr);
+    chat_themes_.hash = chat_themes->hash_;
+    chat_themes_.themes.clear();
+    for (auto &chat_theme : chat_themes->themes_) {
+      if (chat_theme->emoticon_.empty()) {
+        LOG(ERROR) << "Receive " << to_string(chat_theme);
+        continue;
+      }
 
-  auto chat_themes = telegram_api::move_object_as<telegram_api::account_chatThemes>(chat_themes_ptr);
-  LOG(INFO) << "Receive " << to_string(chat_themes);
-  chat_themes_.hash = chat_themes->hash_;
-  chat_themes_.themes.clear();
-  for (auto &chat_theme : chat_themes->themes_) {
-    if (chat_theme->emoticon_.empty()) {
-      LOG(ERROR) << "Receive " << to_string(chat_theme);
-      continue;
+      ChatTheme theme;
+      theme.emoji = std::move(chat_theme->emoticon_);
+      theme.light_theme = get_chat_theme_settings(std::move(chat_theme->theme_->settings_));
+      theme.dark_theme = get_chat_theme_settings(std::move(chat_theme->dark_theme_->settings_));
+      chat_themes_.themes.push_back(std::move(theme));
     }
-
-    ChatTheme theme;
-    theme.emoji = std::move(chat_theme->emoticon_);
-    theme.light_theme = get_chat_theme_settings(std::move(chat_theme->theme_->settings_));
-    theme.dark_theme = get_chat_theme_settings(std::move(chat_theme->dark_theme_->settings_));
-    chat_themes_.themes.push_back(std::move(theme));
   }
 
   for (auto &promise : promises) {
-    promise.set_value(get_chat_themes_object());
+    if (promise) {
+      promise.set_value(get_chat_themes_object());
+    }
   }
 }
 

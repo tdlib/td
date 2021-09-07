@@ -30,6 +30,8 @@ class ThemeManager final : public Actor {
  private:
   enum class BaseTheme : int32 { Classic, Day, Night, Tinted, Arctic };
 
+  static constexpr int32 THEME_CACHE_TIME = 3600;
+
   struct ThemeSettings {
     int32 accent_color = 0;
     BackgroundId background_id;
@@ -47,6 +49,7 @@ class ThemeManager final : public Actor {
 
   struct ChatThemes {
     int32 hash = 0;
+    double next_reload_time = 0;
     vector<ChatTheme> themes;
   };
 
