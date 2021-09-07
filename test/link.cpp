@@ -524,6 +524,8 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("tg:socks?server=google.com&port=80&user=1&pass=2", proxy_socks("google.com", 80, "1", "2"));
 
   parse_internal_link("tg:resolve?domain=username&voice%63hat=aasdasd", voice_chat("username", "aasdasd"));
+  parse_internal_link("tg:resolve?domain=username&video%63hat=aasdasd", voice_chat("username", "aasdasd"));
+  parse_internal_link("tg:resolve?domain=username&livestream=aasdasd", voice_chat("username", "aasdasd"));
   parse_internal_link("TG://resolve?domain=username&voicechat=", voice_chat("username", ""));
   parse_internal_link("TG://test@resolve?domain=username&voicechat=", nullptr);
   parse_internal_link("tg:resolve:80?domain=username&voicechat=", nullptr);
@@ -533,6 +535,8 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("tg:resolve?domain=telegram&&&&&&&voicechat=%30", voice_chat("telegram", "0"));
 
   parse_internal_link("t.me/username/0/a//s/as?voicechat=", voice_chat("username", ""));
+  parse_internal_link("t.me/username/0/a//s/as?videochat=2", voice_chat("username", "2"));
+  parse_internal_link("t.me/username/0/a//s/as?livestream=3", voice_chat("username", "3"));
   parse_internal_link("t.me/username/aasdas?test=1&voicechat=#12312", voice_chat("username", ""));
   parse_internal_link("t.me/username/0?voicechat=", voice_chat("username", ""));
   parse_internal_link("t.me/username/-1?voicechat=asdasd", voice_chat("username", "asdasd"));

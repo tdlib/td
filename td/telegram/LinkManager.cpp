@@ -768,9 +768,9 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
       }
       auto username = get_arg("domain");
       for (auto &arg : url_query.args_) {
-        if (arg.first == "voicechat") {
-          // resolve?domain=<username>&voicechat
-          // resolve?domain=<username>&voicechat=<invite_hash>
+        if (arg.first == "voicechat" || arg.first == "videochat" || arg.first == "livestream") {
+          // resolve?domain=<username>&videochat
+          // resolve?domain=<username>&videochat=<invite_hash>
           if (Scheduler::context() != nullptr) {
             send_closure(G()->messages_manager(), &MessagesManager::reload_voice_chat_on_search, username);
           }
@@ -1017,9 +1017,9 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
     }
     auto username = path[0];
     for (auto &arg : url_query.args_) {
-      if (arg.first == "voicechat") {
-        // /<username>?voicechat
-        // /<username>?voicechat=<invite_hash>
+      if (arg.first == "voicechat" || arg.first == "videochat" || arg.first == "livestream") {
+        // /<username>?videochat
+        // /<username>?videochat=<invite_hash>
         if (Scheduler::context() != nullptr) {
           send_closure(G()->messages_manager(), &MessagesManager::reload_voice_chat_on_search, username);
         }
