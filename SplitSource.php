@@ -286,6 +286,7 @@ function split_file($file, $chunks, $undo) {
                 'file_reference_manager[_(-][^.]|FileReferenceManager|file_references[)]' => 'FileReferenceManager',
                 'file_manager[_(-][^.]|FileManager([^ ;.]| [^*])|update_file[)]' => 'files/FileManager',
                 'G[(][)]|Global[^A-Za-z]' => 'Global',
+                'game_manager[_(-][^.]|GameManager' => 'GameManager',
                 'group_call_manager[_(-][^.]|GroupCallManager' => 'GroupCallManager',
                 'HashtagHints' => 'HashtagHints',
                 'inline_queries_manager[_(-][^.]|InlineQueriesManager' => 'InlineQueriesManager',

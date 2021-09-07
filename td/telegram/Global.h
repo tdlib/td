@@ -38,6 +38,7 @@ class ConnectionCreator;
 class ContactsManager;
 class FileManager;
 class FileReferenceManager;
+class GameManager;
 class GroupCallManager;
 class LanguagePackManager;
 class LinkManager;
@@ -216,6 +217,13 @@ class Global final : public ActorContext {
   }
   void set_file_reference_manager(ActorId<FileReferenceManager> file_reference_manager) {
     file_reference_manager_ = std::move(file_reference_manager);
+  }
+
+  ActorId<GameManager> game_manager() const {
+    return game_manager_;
+  }
+  void set_game_manager(ActorId<GameManager> game_manager) {
+    game_manager_ = game_manager;
   }
 
   ActorId<GroupCallManager> group_call_manager() const {
@@ -409,6 +417,7 @@ class Global final : public ActorContext {
   ActorId<ContactsManager> contacts_manager_;
   ActorId<FileManager> file_manager_;
   ActorId<FileReferenceManager> file_reference_manager_;
+  ActorId<GameManager> game_manager_;
   ActorId<GroupCallManager> group_call_manager_;
   ActorId<LanguagePackManager> language_pack_manager_;
   ActorId<LinkManager> link_manager_;

@@ -43,6 +43,7 @@
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/FolderId.h"
 #include "td/telegram/FullMessageId.h"
+#include "td/telegram/GameManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/GroupCallId.h"
 #include "td/telegram/GroupCallManager.h"
@@ -3652,6 +3653,8 @@ void Td::dec_actor_refcnt() {
       LOG(DEBUG) << "FileManager was cleared" << timer;
       file_reference_manager_.reset();
       LOG(DEBUG) << "FileReferenceManager was cleared" << timer;
+      game_manager_.reset();
+      LOG(DEBUG) << "GameManager was cleared" << timer;
       group_call_manager_.reset();
       LOG(DEBUG) << "GroupCallManager was cleared" << timer;
       inline_queries_manager_.reset();
@@ -3842,6 +3845,8 @@ void Td::clear() {
   LOG(DEBUG) << "FileManager actor was cleared" << timer;
   file_reference_manager_actor_.reset();
   LOG(DEBUG) << "FileReferenceManager actor was cleared" << timer;
+  game_manager_actor_.reset();
+  LOG(DEBUG) << "GameManager actor was cleared" << timer;
   group_call_manager_actor_.reset();
   LOG(DEBUG) << "GroupCallManager actor was cleared" << timer;
   inline_queries_manager_actor_.reset();
@@ -4291,6 +4296,9 @@ void Td::init_managers() {
   G()->set_contacts_manager(contacts_manager_actor_.get());
   country_info_manager_ = make_unique<CountryInfoManager>(this, create_reference());
   country_info_manager_actor_ = register_actor("CountryInfoManager", country_info_manager_.get());
+  game_manager_ = make_unique<GameManager>(this, create_reference());
+  game_manager_actor_ = register_actor("GameManager", game_manager_.get());
+  G()->set_game_manager(game_manager_actor_.get());
   group_call_manager_ = make_unique<GroupCallManager>(this, create_reference());
   group_call_manager_actor_ = register_actor("GroupCallManager", group_call_manager_.get());
   G()->set_group_call_manager(group_call_manager_actor_.get());

@@ -51,6 +51,7 @@ class DeviceTokenManager;
 class DocumentsManager;
 class FileManager;
 class FileReferenceManager;
+class GameManager;
 class GroupCallManager;
 class InlineQueriesManager;
 class HashtagHints;
@@ -158,6 +159,8 @@ class Td final : public NetQueryCallback {
   ActorOwn<FileManager> file_manager_actor_;
   unique_ptr<FileReferenceManager> file_reference_manager_;
   ActorOwn<FileReferenceManager> file_reference_manager_actor_;
+  unique_ptr<GameManager> game_manager_;
+  ActorOwn<GameManager> game_manager_actor_;
   unique_ptr<GroupCallManager> group_call_manager_;
   ActorOwn<GroupCallManager> group_call_manager_actor_;
   unique_ptr<InlineQueriesManager> inline_queries_manager_;

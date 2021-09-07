@@ -331,6 +331,7 @@ set(TDLIB_SOURCE
   td/telegram/files/PartsManager.cpp
   td/telegram/files/ResourceManager.cpp
   td/telegram/Game.cpp
+  td/telegram/GameManager.cpp
   td/telegram/Global.cpp
   td/telegram/GroupCallManager.cpp
   td/telegram/GroupCallParticipant.cpp
@@ -519,6 +520,7 @@ set(TDLIB_SOURCE
   td/telegram/FolderId.h
   td/telegram/FullMessageId.h
   td/telegram/Game.h
+  td/telegram/GameManager.h
   td/telegram/Global.h
   td/telegram/GroupCallId.h
   td/telegram/GroupCallManager.h
