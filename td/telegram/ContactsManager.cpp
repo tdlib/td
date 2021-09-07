@@ -9354,6 +9354,7 @@ void ContactsManager::on_load_user_full_from_database(UserId user_id, string val
 
   td_->group_call_manager_->on_update_dialog_about(DialogId(user_id), user_full->about, false);
 
+  user_full->is_update_user_full_sent = true;
   update_user_full(user_full, user_id, "on_load_user_full_from_database", true);
 
   if (is_user_deleted(user_id)) {
@@ -9467,6 +9468,7 @@ void ContactsManager::on_load_chat_full_from_database(ChatId chat_id, string val
 
   on_update_chat_full_photo(chat_full, chat_id, std::move(chat_full->photo));
 
+  chat_full->is_update_chat_full_sent = true;
   update_chat_full(chat_full, chat_id, "on_load_chat_full_from_database", true);
 }
 
@@ -9599,6 +9601,7 @@ void ContactsManager::on_load_channel_full_from_database(ChannelId channel_id, s
   send_closure_later(G()->messages_manager(), &MessagesManager::on_dialog_bots_updated, DialogId(channel_id),
                      channel_full->bot_user_ids, true);
 
+  channel_full->is_update_channel_full_sent = true;
   update_channel_full(channel_full, channel_id, "on_load_channel_full_from_database", true);
 
   if (channel_full->expires_at == 0.0) {
@@ -9960,6 +9963,10 @@ void ContactsManager::update_user_full(UserFull *user_full, UserId user_id, cons
       auto u = get_user(user_id);
       CHECK(u == nullptr || u->is_update_user_sent);
     }
+    if (!user_full->is_update_user_full_sent) {
+      LOG(ERROR) << "Send partial updateUserFullInfo for " << user_id << " from " << source;
+      user_full->is_update_user_full_sent = true;
+    }
     send_closure(G()->td(), &Td::send_update,
                  make_tl_object<td_api::updateUserFullInfo>(get_user_id_object(user_id, "updateUserFullInfo"),
                                                             get_user_full_info_object(user_id, user_full)));
@@ -10010,6 +10017,10 @@ void ContactsManager::update_chat_full(ChatFull *chat_full, ChatId chat_id, cons
     {
       Chat *c = get_chat(chat_id);
       CHECK(c == nullptr || c->is_update_basic_group_sent);
+    }
+    if (!chat_full->is_update_chat_full_sent) {
+      LOG(ERROR) << "Send partial updateBasicGroupFullInfo for " << chat_id << " from " << source;
+      chat_full->is_update_chat_full_sent = true;
     }
     send_closure(
         G()->td(), &Td::send_update,
@@ -10070,6 +10081,10 @@ void ContactsManager::update_channel_full(ChannelFull *channel_full, ChannelId c
     {
       Channel *c = get_channel(channel_id);
       CHECK(c == nullptr || c->is_update_supergroup_sent);
+    }
+    if (!channel_full->is_update_channel_full_sent) {
+      LOG(ERROR) << "Send partial updateSupergroupFullInfo for " << channel_id << " from " << source;
+      channel_full->is_update_channel_full_sent = true;
     }
     send_closure(
         G()->td(), &Td::send_update,
@@ -10190,6 +10205,7 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
     register_user_photo(u, user_id, user_full->photo);
   }
 
+  user_full->is_update_user_full_sent = true;
   update_user_full(user_full, user_id, "on_get_user_full");
 
   // update peer settings after UserFull is created and updated to not update twice need_phone_number_privacy_exception
@@ -10433,6 +10449,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       chat_full->is_changed = true;
     }
 
+    chat_full->is_update_chat_full_sent = true;
     update_chat_full(chat_full, chat_id, "on_get_chat_full");
   } else {
     CHECK(chat_full_ptr->get_id() == telegram_api::channelFull::ID);
@@ -10681,6 +10698,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       channel_full->is_changed = true;
     }
 
+    channel_full->is_update_channel_full_sent = true;
     update_channel_full(channel_full, channel_id, "on_get_channel_full");
 
     if (linked_channel_id.is_valid()) {
