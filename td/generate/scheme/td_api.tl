@@ -2721,9 +2721,10 @@ inputBackgroundRemote background_id:int64 = InputBackground;
 //@description Describes theme settings
 //@accent_color Theme accent color in ARGB format
 //@background The background to be used in chats; may be null
-//@message_fill The fill to be used as a background for outgoing messages
-//@animate_message_fill If true, the freeform gradient fill needs to be animated on every sent message
-themeSettings accent_color:int32 background:background message_fill:BackgroundFill animate_message_fill:Bool = ThemeSettings;
+//@outgoing_message_fill The fill to be used as a background for outgoing messages
+//@animate_outgoing_message_fill If true, the freeform gradient fill needs to be animated on every sent message
+//@outgoing_message_accent_color Accent color of outgoing messages in ARGB format
+themeSettings accent_color:int32 background:background outgoing_message_fill:BackgroundFill animate_outgoing_message_fill:Bool outgoing_message_accent_color:int32 = ThemeSettings;
 
 
 //@description Describes a chat theme

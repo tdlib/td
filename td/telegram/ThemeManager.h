@@ -38,6 +38,7 @@ class ThemeManager final : public Actor {
 
   struct ThemeSettings {
     int32 accent_color = 0;
+    int32 message_accent_color = 0;
     BackgroundId background_id;
     BackgroundType background_type;
     BaseTheme base_theme;

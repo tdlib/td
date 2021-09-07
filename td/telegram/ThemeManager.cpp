@@ -47,9 +47,10 @@ class GetChatThemesQuery final : public Td::ResultHandler {
 };
 
 bool operator==(const ThemeManager::ThemeSettings &lhs, const ThemeManager::ThemeSettings &rhs) {
-  return lhs.accent_color == rhs.accent_color && lhs.background_id == rhs.background_id &&
-         lhs.background_type == rhs.background_type && lhs.base_theme == rhs.base_theme &&
-         lhs.message_colors == rhs.message_colors && lhs.animate_message_colors == rhs.animate_message_colors;
+  return lhs.accent_color == rhs.accent_color && lhs.message_accent_color == rhs.message_accent_color &&
+         lhs.background_id == rhs.background_id && lhs.background_type == rhs.background_type &&
+         lhs.base_theme == rhs.base_theme && lhs.message_colors == rhs.message_colors &&
+         lhs.animate_message_colors == rhs.animate_message_colors;
 }
 
 bool operator!=(const ThemeManager::ThemeSettings &lhs, const ThemeManager::ThemeSettings &rhs) {
@@ -99,6 +100,9 @@ void ThemeManager::on_update_theme(telegram_api::object_ptr<telegram_api::theme>
   for (auto &chat_theme : chat_themes_.themes) {
     if (chat_theme.light_id == theme->id_ || chat_theme.dark_id == theme->id_) {
       auto theme_settings = get_chat_theme_settings(std::move(theme->settings_));
+      if (theme_settings.message_colors.empty()) {
+        break;
+      }
       if (chat_theme.light_id == theme->id_ && chat_theme.light_theme != theme_settings) {
         chat_theme.light_theme = theme_settings;
         is_changed = true;
@@ -131,7 +135,7 @@ td_api::object_ptr<td_api::themeSettings> ThemeManager::get_theme_settings_objec
   return td_api::make_object<td_api::themeSettings>(
       settings.accent_color,
       td_->background_manager_->get_background_object(settings.background_id, false, &settings.background_type),
-      std::move(fill), settings.animate_message_colors);
+      std::move(fill), settings.animate_message_colors, settings.message_accent_color);
 }
 
 td_api::object_ptr<td_api::chatTheme> ThemeManager::get_chat_theme_object(const ChatTheme &theme) const {
@@ -215,6 +219,8 @@ ThemeManager::ThemeSettings ThemeManager::get_chat_theme_settings(
         td_->background_manager_->on_get_background(BackgroundId(), string(), std::move(settings->wallpaper_), false);
 
     result.accent_color = settings->accent_color_;
+    bool has_outbox_accent_color = (settings->flags_ & telegram_api::themeSettings::OUTBOX_ACCENT_COLOR_MASK) != 0;
+    result.message_accent_color = (has_outbox_accent_color ? settings->outbox_accent_color_ : result.accent_color);
     result.background_id = background.first;
     result.background_type = std::move(background.second);
     result.base_theme = get_base_theme(settings->base_theme_);
