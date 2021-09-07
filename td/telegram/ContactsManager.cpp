@@ -11061,7 +11061,7 @@ void ContactsManager::on_update_user_is_blocked(UserId user_id, bool is_blocked)
   }
 
   UserFull *user_full = get_user_full_force(user_id);
-  if (user_full == nullptr) {
+  if (user_full == nullptr || user_full->is_blocked == is_blocked) {
     return;
   }
   on_update_user_full_is_blocked(user_full, user_id, is_blocked);
