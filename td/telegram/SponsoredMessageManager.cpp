@@ -111,12 +111,36 @@ struct SponsoredMessageManager::DialogSponsoredMessages {
 };
 
 SponsoredMessageManager::SponsoredMessageManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
+  delete_cached_sponsored_messages_timeout_.set_callback(on_delete_cached_sponsored_messages_timeout_callback);
+  delete_cached_sponsored_messages_timeout_.set_callback_data(static_cast<void *>(this));
 }
 
 SponsoredMessageManager::~SponsoredMessageManager() = default;
 
 void SponsoredMessageManager::tear_down() {
   parent_.reset();
+}
+
+void SponsoredMessageManager::on_delete_cached_sponsored_messages_timeout_callback(void *sponsored_message_manager_ptr,
+                                                                                   int64 dialog_id_int) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto sponsored_message_manager = static_cast<SponsoredMessageManager *>(sponsored_message_manager_ptr);
+  send_closure_later(sponsored_message_manager->actor_id(sponsored_message_manager),
+                     &SponsoredMessageManager::delete_cached_sponsored_messages, DialogId(dialog_id_int));
+}
+
+void SponsoredMessageManager::delete_cached_sponsored_messages(DialogId dialog_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto it = dialog_sponsored_messages_.find(dialog_id);
+  CHECK(it != dialog_sponsored_messages_.end());
+  CHECK(it->second->promises.empty());
+  dialog_sponsored_messages_.erase(it);
 }
 
 td_api::object_ptr<td_api::sponsoredMessage> SponsoredMessageManager::get_sponsored_message_object(
@@ -145,6 +169,10 @@ void SponsoredMessageManager::get_dialog_sponsored_messages(
   }
 
   auto &messages = dialog_sponsored_messages_[dialog_id];
+  if (messages != nullptr && messages->promises.empty()) {
+    return promise.set_value(get_sponsored_messages_object(dialog_id, *messages));
+  }
+
   if (messages == nullptr) {
     messages = make_unique<DialogSponsoredMessages>();
   }
@@ -171,6 +199,7 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
     result = Status::Error(500, "Request aborted");
   }
   if (result.is_error()) {
+    dialog_sponsored_messages_.erase(dialog_id);
     for (auto &promise : promises) {
       promise.set_error(result.error().clone());
     }
@@ -207,6 +236,7 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
   for (auto &promise : promises) {
     promise.set_value(get_sponsored_messages_object(dialog_id, *messages));
   }
+  delete_cached_sponsored_messages_timeout_.set_timeout_in(dialog_id.get(), 300.0);
 }
 
 void SponsoredMessageManager::view_sponsored_message(DialogId dialog_id, const string &message_id,

@@ -12,6 +12,7 @@
 
 #include "td/actor/actor.h"
 #include "td/actor/PromiseFuture.h"
+#include "td/actor/Timeout.h"
 
 #include "td/utils/common.h"
 #include "td/utils/Status.h"
@@ -40,6 +41,11 @@ class SponsoredMessageManager final : public Actor {
 
   void tear_down() final;
 
+  static void on_delete_cached_sponsored_messages_timeout_callback(void *sponsored_message_manager_ptr,
+                                                                   int64 dialog_id_int);
+
+  void delete_cached_sponsored_messages(DialogId dialog_id);
+
   td_api::object_ptr<td_api::sponsoredMessage> get_sponsored_message_object(
       DialogId dialog_id, const SponsoredMessage &sponsored_message) const;
 
@@ -50,6 +56,8 @@ class SponsoredMessageManager final : public Actor {
       DialogId dialog_id, Result<telegram_api::object_ptr<telegram_api::messages_sponsoredMessages>> &&result);
 
   std::unordered_map<DialogId, unique_ptr<DialogSponsoredMessages>, DialogIdHash> dialog_sponsored_messages_;
+
+  MultiTimeout delete_cached_sponsored_messages_timeout_{"DeleteCachedSponsoredMessagesTimeout"};
 
   Td *td_;
   ActorShared<> parent_;
