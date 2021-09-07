@@ -461,21 +461,6 @@ class MessagesManager final : public Actor {
                                      td_api::object_ptr<td_api::MessageSchedulingState> &&scheduling_state,
                                      Promise<Unit> &&promise);
 
-  void set_game_score(FullMessageId full_message_id, bool edit_message, UserId user_id, int32 score, bool force,
-                      Promise<Unit> &&promise);
-
-  void set_inline_game_score(const string &inline_message_id, bool edit_message, UserId user_id, int32 score,
-                             bool force, Promise<Unit> &&promise);
-
-  void get_game_high_scores(FullMessageId full_message_id, UserId user_id,
-                            Promise<td_api::object_ptr<td_api::gameHighScores>> &&promise);
-
-  void get_inline_game_high_scores(const string &inline_message_id, UserId user_id,
-                                   Promise<td_api::object_ptr<td_api::gameHighScores>> &&promise);
-
-  td_api::object_ptr<td_api::gameHighScores> get_game_high_scores_object(
-      telegram_api::object_ptr<telegram_api::messages_highScores> &&high_scores);
-
   void send_dialog_action(DialogId dialog_id, MessageId top_thread_message_id, DialogAction action,
                           Promise<Unit> &&promise);
 
@@ -912,9 +897,13 @@ class MessagesManager final : public Actor {
 
   Result<ServerMessageId> get_payment_successful_message_id(FullMessageId full_message_id);
 
+  bool can_set_game_score(FullMessageId full_message_id) const;
+
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
   ActorOwn<MultiSequenceDispatcher> sequence_dispatcher_;
+
+  static uint64 get_sequence_dispatcher_id(DialogId dialog_id, MessageContentType message_content_type);
 
  private:
   class PendingPtsUpdate {
@@ -2957,8 +2946,6 @@ class MessagesManager final : public Actor {
   void save_sponsored_dialog();
 
   void set_sponsored_dialog(DialogId dialog_id, DialogSource source);
-
-  static uint64 get_sequence_dispatcher_id(DialogId dialog_id, MessageContentType message_content_type);
 
   Dialog *get_service_notifications_dialog();
 

@@ -1273,8 +1273,7 @@ class SetGameScoreRequest final : public RequestOnceActor {
   bool force_;
 
   void do_run(Promise<Unit> &&promise) final {
-    td->messages_manager_->set_game_score(full_message_id_, edit_message_, user_id_, score_, force_,
-                                          std::move(promise));
+    td->game_manager_->set_game_score(full_message_id_, edit_message_, user_id_, score_, force_, std::move(promise));
   }
 
   void do_send_result() final {
@@ -5726,24 +5725,22 @@ void Td::on_request(uint64 id, td_api::setInlineGameScore &request) {
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.inline_message_id_);
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->set_inline_game_score(std::move(request.inline_message_id_), request.edit_message_,
-                                           UserId(request.user_id_), request.score_, request.force_,
-                                           std::move(promise));
+  game_manager_->set_inline_game_score(std::move(request.inline_message_id_), request.edit_message_,
+                                       UserId(request.user_id_), request.score_, request.force_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getGameHighScores &request) {
   CHECK_IS_BOT();
   CREATE_REQUEST_PROMISE();
-  messages_manager_->get_game_high_scores({DialogId(request.chat_id_), MessageId(request.message_id_)},
-                                          UserId(request.user_id_), std::move(promise));
+  game_manager_->get_game_high_scores({DialogId(request.chat_id_), MessageId(request.message_id_)},
+                                      UserId(request.user_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getInlineGameHighScores &request) {
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.inline_message_id_);
   CREATE_REQUEST_PROMISE();
-  messages_manager_->get_inline_game_high_scores(request.inline_message_id_, UserId(request.user_id_),
-                                                 std::move(promise));
+  game_manager_->get_inline_game_high_scores(request.inline_message_id_, UserId(request.user_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::deleteChatReplyMarkup &request) {
