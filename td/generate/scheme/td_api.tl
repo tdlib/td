@@ -3180,7 +3180,8 @@ internalLinkTypeUnknownDeepLink link:string = InternalLinkType;
 
 //@description The link is a link to a voice chat. Call searchPublicChat with the given chat username, and then joinGoupCall with the given invite hash to process the link
 //@chat_username Username of the chat with the voice chat @invite_hash If non-empty, invite hash to be used to join the voice chat without being muted by administrators
-internalLinkTypeVoiceChat chat_username:string invite_hash:string = InternalLinkType;
+//@is_live_stream True, if the voice chat is expected to be a live stream in a channel or a broadcast group
+internalLinkTypeVoiceChat chat_username:string invite_hash:string is_live_stream:Bool = InternalLinkType;
 
 
 //@description Contains an HTTPS link to a message in a supergroup or channel @link Message link @is_public True, if the link will work for non-members of the chat

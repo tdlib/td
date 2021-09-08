@@ -357,14 +357,17 @@ class LinkManager::InternalLinkUnknownDeepLink final : public InternalLink {
 class LinkManager::InternalLinkVoiceChat final : public InternalLink {
   string dialog_username_;
   string invite_hash_;
+  bool is_live_stream_;
 
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
-    return td_api::make_object<td_api::internalLinkTypeVoiceChat>(dialog_username_, invite_hash_);
+    return td_api::make_object<td_api::internalLinkTypeVoiceChat>(dialog_username_, invite_hash_, is_live_stream_);
   }
 
  public:
-  InternalLinkVoiceChat(string dialog_username, string invite_hash)
-      : dialog_username_(std::move(dialog_username)), invite_hash_(std::move(invite_hash)) {
+  InternalLinkVoiceChat(string dialog_username, string invite_hash, bool is_live_stream)
+      : dialog_username_(std::move(dialog_username))
+      , invite_hash_(std::move(invite_hash))
+      , is_live_stream_(is_live_stream) {
   }
 };
 
@@ -774,7 +777,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
           if (Scheduler::context() != nullptr) {
             send_closure(G()->messages_manager(), &MessagesManager::reload_voice_chat_on_search, username);
           }
-          return td::make_unique<InternalLinkVoiceChat>(std::move(username), arg.second);
+          return td::make_unique<InternalLinkVoiceChat>(std::move(username), arg.second, arg.first == "livestream");
         }
         if (arg.first == "start" && is_valid_start_parameter(arg.second)) {
           // resolve?domain=<bot_username>?start=<parameter>
@@ -1023,7 +1026,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
         if (Scheduler::context() != nullptr) {
           send_closure(G()->messages_manager(), &MessagesManager::reload_voice_chat_on_search, username);
         }
-        return td::make_unique<InternalLinkVoiceChat>(std::move(username), arg.second);
+        return td::make_unique<InternalLinkVoiceChat>(std::move(username), arg.second, arg.first == "livestream");
       }
       if (arg.first == "start" && is_valid_start_parameter(arg.second)) {
         // /<bot_username>?start=<parameter>

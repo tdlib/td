@@ -170,8 +170,8 @@ TEST(Link, parse_internal_link) {
   auto unknown_deep_link = [](td::string link) {
     return td::td_api::make_object<td::td_api::internalLinkTypeUnknownDeepLink>(link);
   };
-  auto voice_chat = [](td::string chat_username, td::string invite_hash) {
-    return td::td_api::make_object<td::td_api::internalLinkTypeVoiceChat>(chat_username, invite_hash);
+  auto voice_chat = [](td::string chat_username, td::string invite_hash, bool is_live_stream) {
+    return td::td_api::make_object<td::td_api::internalLinkTypeVoiceChat>(chat_username, invite_hash, is_live_stream);
   };
 
   parse_internal_link("t.me/levlam/1", message("tg:resolve?domain=levlam&post=1"));
@@ -523,27 +523,27 @@ TEST(Link, parse_internal_link) {
   parse_internal_link("tg:socks?server=google.com&port=8%30&user=&pass=2", proxy_socks("google.com", 80, "", "2"));
   parse_internal_link("tg:socks?server=google.com&port=80&user=1&pass=2", proxy_socks("google.com", 80, "1", "2"));
 
-  parse_internal_link("tg:resolve?domain=username&voice%63hat=aasdasd", voice_chat("username", "aasdasd"));
-  parse_internal_link("tg:resolve?domain=username&video%63hat=aasdasd", voice_chat("username", "aasdasd"));
-  parse_internal_link("tg:resolve?domain=username&livestream=aasdasd", voice_chat("username", "aasdasd"));
-  parse_internal_link("TG://resolve?domain=username&voicechat=", voice_chat("username", ""));
+  parse_internal_link("tg:resolve?domain=username&voice%63hat=aasdasd", voice_chat("username", "aasdasd", false));
+  parse_internal_link("tg:resolve?domain=username&video%63hat=aasdasd", voice_chat("username", "aasdasd", false));
+  parse_internal_link("tg:resolve?domain=username&livestream=aasdasd", voice_chat("username", "aasdasd", true));
+  parse_internal_link("TG://resolve?domain=username&voicechat=", voice_chat("username", "", false));
   parse_internal_link("TG://test@resolve?domain=username&voicechat=", nullptr);
   parse_internal_link("tg:resolve:80?domain=username&voicechat=", nullptr);
   parse_internal_link("tg:http://resolve?domain=username&voicechat=", nullptr);
   parse_internal_link("tg:https://resolve?domain=username&voicechat=", nullptr);
   parse_internal_link("tg:resolve?domain=&voicechat=", unknown_deep_link("tg://resolve?domain=&voicechat="));
-  parse_internal_link("tg:resolve?domain=telegram&&&&&&&voicechat=%30", voice_chat("telegram", "0"));
+  parse_internal_link("tg:resolve?domain=telegram&&&&&&&voicechat=%30", voice_chat("telegram", "0", false));
 
-  parse_internal_link("t.me/username/0/a//s/as?voicechat=", voice_chat("username", ""));
-  parse_internal_link("t.me/username/0/a//s/as?videochat=2", voice_chat("username", "2"));
-  parse_internal_link("t.me/username/0/a//s/as?livestream=3", voice_chat("username", "3"));
-  parse_internal_link("t.me/username/aasdas?test=1&voicechat=#12312", voice_chat("username", ""));
-  parse_internal_link("t.me/username/0?voicechat=", voice_chat("username", ""));
-  parse_internal_link("t.me/username/-1?voicechat=asdasd", voice_chat("username", "asdasd"));
-  parse_internal_link("t.me/username?voicechat=", voice_chat("username", ""));
+  parse_internal_link("t.me/username/0/a//s/as?voicechat=", voice_chat("username", "", false));
+  parse_internal_link("t.me/username/0/a//s/as?videochat=2", voice_chat("username", "2", false));
+  parse_internal_link("t.me/username/0/a//s/as?livestream=3", voice_chat("username", "3", true));
+  parse_internal_link("t.me/username/aasdas?test=1&voicechat=#12312", voice_chat("username", "", false));
+  parse_internal_link("t.me/username/0?voicechat=", voice_chat("username", "", false));
+  parse_internal_link("t.me/username/-1?voicechat=asdasd", voice_chat("username", "asdasd", false));
+  parse_internal_link("t.me/username?voicechat=", voice_chat("username", "", false));
   parse_internal_link("t.me/username#voicechat=asdas", public_chat("username"));
   parse_internal_link("t.me//username?voicechat=", nullptr);
-  parse_internal_link("https://telegram.dog/tele%63ram?voi%63e%63hat=t%63st", voice_chat("telecram", "tcst"));
+  parse_internal_link("https://telegram.dog/tele%63ram?voi%63e%63hat=t%63st", voice_chat("telecram", "tcst", false));
 
   parse_internal_link("tg:resolve?domain=username&start=aasdasd", bot_start("username", "aasdasd"));
   parse_internal_link("TG://resolve?domain=username&start=", bot_start("username", ""));
