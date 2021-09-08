@@ -725,7 +725,7 @@ function onOptionsChanged() {
     commands.push('cd vcpkg');
     commands.push(local + 'bootstrap-vcpkg.bat');
     if (target === 'C++/CX') {
-      commands.push(local + 'vcpkg.exe install gperf:x86-windows openssl-uwp:arm-uwp openssl-uwp:x64-uwp openssl-uwp:x86-uwp zlib:arm-uwp zlib:x64-uwp zlib:x86-uwp');
+      commands.push(local + 'vcpkg.exe install gperf:x86-windows openssl:arm-uwp openssl:arm64-uwp openssl:x64-uwp openssl:x86-uwp zlib:arm-uwp zlib:arm64-uwp zlib:x64-uwp zlib:x86-uwp');
     } else {
       if (build_64bit) {
         commands.push(local + 'vcpkg.exe install gperf:x64-windows openssl:x64-windows zlib:x64-windows');
@@ -774,7 +774,7 @@ function onOptionsChanged() {
         break;
     }
 
-    commands.push('powershell -ExecutionPolicy ByPass ' + local + 'build.ps1 -mode clean');
+    commands.push('powershell -ExecutionPolicy ByPass ' + local + 'build.ps1 -vcpkg_root ../../vcpkg -mode clean');
     commands.push('powershell -ExecutionPolicy ByPass ' + local + 'build.ps1 -vcpkg_root ../../vcpkg' + archiver_option);
     if (install_dir) {
       commands.push('cp build-uwp/vsix/tdlib.vsix ' + install_dir);

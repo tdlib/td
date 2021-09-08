@@ -10,7 +10,7 @@ This is an example of building TDLib SDK for Universal Windows Platform and an e
 * Install `zlib` and `openssl` for all UWP architectures and `gperf` for x86 using `vcpkg`:
 ```
 cd <path to vcpkg>
-.\vcpkg.exe install gperf:x86-windows openssl-uwp:arm-uwp openssl-uwp:x64-uwp openssl-uwp:x86-uwp zlib:arm-uwp zlib:x64-uwp zlib:x86-uwp
+.\vcpkg.exe install gperf:x86-windows openssl:arm-uwp openssl:arm64-uwp openssl:x64-uwp openssl:x86-uwp zlib:arm-uwp zlib:arm64-uwp zlib:x64-uwp zlib:x86-uwp
 ```
 * (Optional. For XML documentation generation.) Download [PHP](https://windows.php.net/download#php-7.2). Add the path to php.exe to the PATH environment variable.
 * Download and install [7-Zip](http://www.7-zip.org/download.html) archiver, which is used by the `build.ps1` script to create a Telegram.Td.UWP Visual Studio Extension. Add the path to 7z.exe to the PATH environment variable.
@@ -19,7 +19,7 @@ cd <path to vcpkg>
 ```
 powershell -ExecutionPolicy ByPass .\build.ps1 -vcpkg_root C:\vcpkg
 ```
-If you need to restart the build from scratch, call `.\build.ps1 -mode clean` first.
+If you need to restart the build from scratch, call `.\build.ps1 -vcpkg_root ../../vcpkg -mode clean` first.
 * Install Visual Studio Extension "TDLib for Universal Windows Platform" located at `build-uwp\vsix\tdlib.vsix`, which was created on the previous step by `build.ps1` script.
 
 Now `TDLib` can be used from any UWP project, built in Visual Studio.
