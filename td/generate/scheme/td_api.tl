@@ -1776,7 +1776,7 @@ messagePinMessage message_id:int53 = MessageContent;
 //@description A screenshot of a message in the chat has been taken
 messageScreenshotTaken = MessageContent;
 
-//@description A theme in the chat has been changed @theme_name If non-empty, name of the new theme set for the chat. Otherwise theme was deleted in the chat
+//@description A theme in the chat has been changed @theme_name If non-empty, name of the new theme set for the chat. Otherwise chat theme was reset to the default one
 messageChatSetTheme theme_name:string = MessageContent;
 
 //@description The TTL (Time To Live) setting for messages in the chat has been changed @ttl New message TTL setting
@@ -2518,7 +2518,7 @@ chatEventUsernameChanged old_username:string new_username:string = ChatEventActi
 //@description The chat photo was changed @old_photo Previous chat photo value; may be null @new_photo New chat photo value; may be null
 chatEventPhotoChanged old_photo:chatPhoto new_photo:chatPhoto = ChatEventAction;
 
-//@description The chat theme was changed @old_theme_name Previous chat theme name; empty if none @new_theme_name New chat theme name; empty if none
+//@description The chat theme was changed @old_theme_name Previous chat theme name; empty if default one @new_theme_name New chat theme name; empty if default one
 chatEventThemeChanged old_theme_name:string new_theme_name:string = ChatEventAction;
 
 //@description The can_invite_users permission of a supergroup chat was toggled @can_invite_users New value of can_invite_users permission
@@ -2879,7 +2879,7 @@ pushMessageContentChatChangePhoto = PushMessageContent;
 //@description A chat title was edited @title New chat title
 pushMessageContentChatChangeTitle title:string = PushMessageContent;
 
-//@description A chat theme was edited @theme_name Name of the new chat theme
+//@description A chat theme was edited @theme_name If non-empty, name of the new theme set for the chat. Otherwise chat theme was reset to the default one
 pushMessageContentChatChangeTheme theme_name:string = PushMessageContent;
 
 //@description A chat member was deleted @member_name Name of the deleted member @is_current_user True, if the current user was deleted from the group

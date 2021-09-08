@@ -2805,6 +2805,9 @@ string NotificationManager::convert_loc_key(const string &loc_key) {
       if (loc_key == "MESSAGE_NOTEXT") {
         return "MESSAGE";
       }
+      if (loc_key == "MESSAGE_NOTHEME") {
+        return "MESSAGE_CHAT_CHANGE_THEME";
+      }
       if (loc_key == "PINNED_INVOICE") {
         return "PINNED_MESSAGE_INVOICE";
       }
