@@ -6,6 +6,8 @@
 //
 #pragma once
 
+#include "td/utils/common.h"
+
 namespace td {
 
 constexpr int32 MTPROTO_LAYER = 133;
