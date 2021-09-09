@@ -668,6 +668,7 @@ static vector<Slice> match_urls(Slice str) {
       case '<':
       case '>':
       case '"':
+      case '@':
       case 0xab:  // «
       case 0xbb:  // »
         return false;
@@ -697,20 +698,34 @@ static vector<Slice> match_urls(Slice str) {
       continue;
     }
 
-    const unsigned char *last_at_ptr = nullptr;
-    const unsigned char *domain_end_ptr = begin + dot_pos;
-    while (domain_end_ptr != end) {
+    const unsigned char *domain_begin_ptr = begin + dot_pos;
+    while (domain_begin_ptr != begin) {
+      domain_begin_ptr = prev_utf8_unsafe(domain_begin_ptr);
       uint32 code = 0;
-      auto next_ptr = next_utf8_unsafe(domain_end_ptr, &code, "match_urls");
-      if (code == '@') {
-        last_at_ptr = domain_end_ptr;
-      }
-      if (!is_user_data_symbol(code)) {
+      auto next_ptr = next_utf8_unsafe(domain_begin_ptr, &code, "match_urls 0");
+      if (!is_domain_symbol(code)) {
+        domain_begin_ptr = next_ptr;
         break;
       }
-      domain_end_ptr = next_ptr;
     }
-    domain_end_ptr = last_at_ptr == nullptr ? begin + dot_pos : last_at_ptr + 1;
+
+    const unsigned char *last_at_ptr = nullptr;
+    const unsigned char *domain_end_ptr = begin + dot_pos;
+    if (domain_begin_ptr == begin || domain_begin_ptr[-1] != '@') {
+      // try to find '@' to the right if there is no '@' to the left
+      while (domain_end_ptr != end) {
+        uint32 code = 0;
+        auto next_ptr = next_utf8_unsafe(domain_end_ptr, &code, "match_urls");
+        if (code == '@') {
+          last_at_ptr = domain_end_ptr;
+        }
+        if (!is_user_data_symbol(code)) {
+          break;
+        }
+        domain_end_ptr = next_ptr;
+      }
+      domain_end_ptr = last_at_ptr == nullptr ? begin + dot_pos : last_at_ptr + 1;
+    }
     while (domain_end_ptr != end) {
       uint32 code = 0;
       auto next_ptr = next_utf8_unsafe(domain_end_ptr, &code, "match_urls 2");
@@ -720,14 +735,15 @@ static vector<Slice> match_urls(Slice str) {
       domain_end_ptr = next_ptr;
     }
 
-    const unsigned char *domain_begin_ptr = begin + dot_pos;
-    while (domain_begin_ptr != begin) {
-      domain_begin_ptr = prev_utf8_unsafe(domain_begin_ptr);
-      uint32 code = 0;
-      auto next_ptr = next_utf8_unsafe(domain_begin_ptr, &code, "match_urls 3");
-      if (last_at_ptr == nullptr ? !is_domain_symbol(code) : !is_user_data_symbol(code)) {
-        domain_begin_ptr = next_ptr;
-        break;
+    if (last_at_ptr != nullptr) {
+      while (domain_begin_ptr != begin) {
+        domain_begin_ptr = prev_utf8_unsafe(domain_begin_ptr);
+        uint32 code = 0;
+        auto next_ptr = next_utf8_unsafe(domain_begin_ptr, &code, "match_urls 3");
+        if (!is_user_data_symbol(code)) {
+          domain_begin_ptr = next_ptr;
+          break;
+        }
       }
     }
     // LOG(ERROR) << "Domain: " << Slice(domain_begin_ptr, domain_end_ptr);
@@ -776,6 +792,9 @@ static vector<Slice> match_urls(Slice str) {
     bool is_bad = false;
     const unsigned char *url_begin_ptr = domain_begin_ptr;
     if (url_begin_ptr != begin && url_begin_ptr[-1] == '@') {
+      if (last_at_ptr != nullptr) {
+        is_bad = true;
+      }
       auto user_data_begin_ptr = url_begin_ptr - 1;
       while (user_data_begin_ptr != begin) {
         user_data_begin_ptr = prev_utf8_unsafe(user_data_begin_ptr);

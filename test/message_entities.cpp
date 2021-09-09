@@ -480,7 +480,7 @@ TEST(MessageEntities, url) {
   check_url(".", {});
   check_url("http://@google.com", {});
   check_url("http://@goog.com", {});  // TODO: server fix
-  check_url("http://@@google.com", {"http://@@google.com"});
+  check_url("http://@@google.com", {});
   check_url("http://a@google.com", {"http://a@google.com"});
   check_url("http://test@google.com", {"http://test@google.com"});
   check_url("google.com:᪉᪉᪉᪉᪉", {"google.com"});
@@ -692,6 +692,8 @@ TEST(MessageEntities, url) {
   check_url(".?", {});
   check_url("http://test―‑@―google―.―com―/―–―‐―/―/―/―?―‑―#―――", {"http://test―‑@―google―.―com―/―–―‐―/―/―/―?―‑―#―――"});
   check_url("http://google.com/‖", {"http://google.com/"});
+  check_url("a@b@c.com", {}, {});
+  check_url("a@b.com:c@1", {}, {"a@b.com"});
 }
 
 static void check_fix_formatted_text(td::string str, td::vector<td::MessageEntity> entities,
