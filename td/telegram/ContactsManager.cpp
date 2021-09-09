@@ -11555,7 +11555,9 @@ void ContactsManager::on_get_chat_participants(tl_object_ptr<telegram_api::ChatP
 
       on_update_chat_full_participants(chat_full, chat_id, std::move(new_participants), participants->version_,
                                        from_update);
-      update_chat_full(chat_full, chat_id, "on_get_chat_participants");
+      if (from_update) {
+        update_chat_full(chat_full, chat_id, "on_get_chat_participants");
+      }
       break;
     }
     default:
