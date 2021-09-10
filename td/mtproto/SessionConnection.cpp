@@ -253,26 +253,28 @@ Status SessionConnection::on_packet_rpc_result(const MsgInfo &info, Slice packet
     return Status::Error("Receive an update in rpc_result");
   }
 
-  auto object_begin_pos = packet.size() - parser.get_left_len();
-  int32 id = parser.fetch_int();
-  if (id == mtproto_api::rpc_error::ID) {
-    mtproto_api::rpc_error rpc_error(parser);
-    if (parser.get_error()) {
-      return Status::Error(PSLICE() << "Failed to parse mtproto_api::rpc_error: " << parser.get_error());
+  switch (parser.fetch_int()) {
+    case mtproto_api::rpc_error::ID: {
+      mtproto_api::rpc_error rpc_error(parser);
+      if (parser.get_error()) {
+        return Status::Error(PSLICE() << "Failed to parse mtproto_api::rpc_error: " << parser.get_error());
+      }
+      return on_packet(info, req_msg_id, rpc_error);
     }
-    return on_packet(info, req_msg_id, rpc_error);
-  } else if (id == mtproto_api::gzip_packed::ID) {
-    mtproto_api::gzip_packed gzip(parser);
-    if (parser.get_error()) {
-      return Status::Error(PSLICE() << "Failed to parse mtproto_api::gzip_packed: " << parser.get_error());
+    case mtproto_api::gzip_packed::ID: {
+      mtproto_api::gzip_packed gzip(parser);
+      if (parser.get_error()) {
+        return Status::Error(PSLICE() << "Failed to parse mtproto_api::gzip_packed: " << parser.get_error());
+      }
+      // yep, gzip in rpc_result
+      BufferSlice object = gzdecode(gzip.packed_data_);
+      // send header no more optimization
+      return callback_->on_message_result_ok(req_msg_id, std::move(object), info.size);
     }
-    // yep, gzip in rpc_result
-    BufferSlice object = gzdecode(gzip.packed_data_);
-    // send header no more optimization
-    return callback_->on_message_result_ok(req_msg_id, std::move(object), info.size);
+    default:
+      packet.remove_prefix(4 + sizeof(req_msg_id));
+      return callback_->on_message_result_ok(req_msg_id, as_buffer_slice(packet), info.size);
   }
-
-  return callback_->on_message_result_ok(req_msg_id, as_buffer_slice(packet.substr(object_begin_pos)), info.size);
 }
 
 template <class T>
