@@ -21,6 +21,8 @@
 #include "td/utils/logging.h"
 #include "td/utils/Status.h"
 
+#include <limits>
+
 namespace td {
 
 class GetSponsoredMessagesQuery final : public Td::ResultHandler {
@@ -91,14 +93,14 @@ class ViewSponsoredMessageQuery final : public Td::ResultHandler {
 };
 
 struct SponsoredMessageManager::SponsoredMessage {
-  string random_id;
+  int32 local_id = 0;
   DialogId sponsor_dialog_id;
   string start_param;
   unique_ptr<MessageContent> content;
 
   SponsoredMessage() = default;
-  SponsoredMessage(string random_id, DialogId sponsor_dialog_id, string start_param, unique_ptr<MessageContent> content)
-      : random_id(std::move(random_id))
+  SponsoredMessage(int32 local_id, DialogId sponsor_dialog_id, string start_param, unique_ptr<MessageContent> content)
+      : local_id(local_id)
       , sponsor_dialog_id(sponsor_dialog_id)
       , start_param(std::move(start_param))
       , content(std::move(content)) {
@@ -108,6 +110,7 @@ struct SponsoredMessageManager::SponsoredMessage {
 struct SponsoredMessageManager::DialogSponsoredMessages {
   vector<Promise<td_api::object_ptr<td_api::sponsoredMessages>>> promises;
   vector<SponsoredMessage> messages;
+  std::unordered_map<int32, string> message_random_ids;
 };
 
 SponsoredMessageManager::SponsoredMessageManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
@@ -146,7 +149,7 @@ void SponsoredMessageManager::delete_cached_sponsored_messages(DialogId dialog_i
 td_api::object_ptr<td_api::sponsoredMessage> SponsoredMessageManager::get_sponsored_message_object(
     DialogId dialog_id, const SponsoredMessage &sponsored_message) const {
   return td_api::make_object<td_api::sponsoredMessage>(
-      sponsored_message.random_id, sponsored_message.sponsor_dialog_id.get(), sponsored_message.start_param,
+      sponsored_message.local_id, sponsored_message.sponsor_dialog_id.get(), sponsored_message.start_param,
       get_message_content_object(sponsored_message.content.get(), td_, dialog_id, 0, false, true, -1));
 }
 
@@ -194,6 +197,8 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
   CHECK(messages != nullptr);
   auto promises = std::move(messages->promises);
   reset_to_empty(messages->promises);
+  CHECK(messages->messages.empty());
+  CHECK(messages->message_random_ids.empty());
 
   if (result.is_ok() && G()->close_flag()) {
     result = Status::Error(500, "Request aborted");
@@ -211,7 +216,6 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
   td_->contacts_manager_->on_get_users(std::move(sponsored_messages->users_), "on_get_dialog_sponsored_messages");
   td_->contacts_manager_->on_get_chats(std::move(sponsored_messages->chats_), "on_get_dialog_sponsored_messages");
 
-  reset_to_empty(messages->messages);
   for (auto &sponsored_message : sponsored_messages->messages_) {
     DialogId sponsor_dialog_id(sponsored_message->from_id_);
     if (!sponsor_dialog_id.is_valid() || !td_->messages_manager_->have_dialog_info_force(sponsor_dialog_id)) {
@@ -229,8 +233,11 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
       continue;
     }
 
-    messages->messages.emplace_back(sponsored_message->random_id_.as_slice().str(), sponsor_dialog_id,
-                                    std::move(sponsored_message->start_param_), std::move(content));
+    CHECK(current_sponsored_message_id_ < std::numeric_limits<int32>::max());
+    auto local_id = ++current_sponsored_message_id_;
+    messages->message_random_ids[local_id] = sponsored_message->random_id_.as_slice().str();
+    messages->messages.emplace_back(local_id, sponsor_dialog_id, std::move(sponsored_message->start_param_),
+                                    std::move(content));
   }
 
   for (auto &promise : promises) {
@@ -239,18 +246,24 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
   delete_cached_sponsored_messages_timeout_.set_timeout_in(dialog_id.get(), 300.0);
 }
 
-void SponsoredMessageManager::view_sponsored_message(DialogId dialog_id, const string &message_id,
+void SponsoredMessageManager::view_sponsored_message(DialogId dialog_id, int32 sponsored_message_id,
                                                      Promise<Unit> &&promise) {
   if (!td_->messages_manager_->have_dialog_force(dialog_id, "view_sponsored_message")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
-  if (dialog_id.get_type() != DialogType::Channel ||
-      td_->contacts_manager_->get_channel_type(dialog_id.get_channel_id()) != ContactsManager::ChannelType::Broadcast ||
-      message_id.empty()) {
-    return promise.set_error(Status::Error(400, "Message not found"));
+
+  auto it = dialog_sponsored_messages_.find(dialog_id);
+  if (it == dialog_sponsored_messages_.end()) {
+    return promise.set_value(Unit());
+  }
+  auto random_id_it = it->second->message_random_ids.find(sponsored_message_id);
+  if (random_id_it == it->second->message_random_ids.end()) {
+    return promise.set_value(Unit());
   }
 
-  td_->create_handler<ViewSponsoredMessageQuery>(std::move(promise))->send(dialog_id.get_channel_id(), message_id);
+  auto random_id = std::move(random_id_it->second);
+  it->second->message_random_ids.erase(random_id_it);
+  td_->create_handler<ViewSponsoredMessageQuery>(std::move(promise))->send(dialog_id.get_channel_id(), random_id);
 }
 
 }  // namespace td

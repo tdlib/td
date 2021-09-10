@@ -5005,7 +5005,7 @@ void Td::on_request(uint64 id, const td_api::getChatSponsoredMessages &request) 
 void Td::on_request(uint64 id, const td_api::viewSponsoredMessage &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  sponsored_message_manager_->view_sponsored_message(DialogId(request.chat_id_), request.message_id_,
+  sponsored_message_manager_->view_sponsored_message(DialogId(request.chat_id_), request.sponsored_message_id_,
                                                      std::move(promise));
 }
 

@@ -789,7 +789,7 @@ foundMessages total_count:int32 messages:vector<message> next_offset:string = Fo
 
 //@description Describes a sponsored message @id Unique sponsored message identifier @sponsor_chat_id Chat identifier
 //@start_parameter Parameter for the bot start message if the sponsored chat is a chat with a bot @content Content of the message
-sponsoredMessage id:bytes sponsor_chat_id:int53 start_parameter:string content:MessageContent = SponsoredMessage;
+sponsoredMessage id:int32 sponsor_chat_id:int53 start_parameter:string content:MessageContent = SponsoredMessage;
 
 //@description Contains a list of sponsored messages @messages List of sponsored messages
 sponsoredMessages messages:vector<sponsoredMessage> = SponsoredMessages;
@@ -4240,8 +4240,8 @@ getMessagePublicForwards chat_id:int53 message_id:int53 offset:string limit:int3
 //@description Returns sponsored messages to be shown in a chat; for channel chats only @chat_id Identifier of the chat
 getChatSponsoredMessages chat_id:int53 = SponsoredMessages;
 
-//@description Informs TDLib that a sponsored message was viewed by the user @chat_id Chat identifier @message_id The identifier of the sponsored message being viewed
-viewSponsoredMessage chat_id:int53 message_id:bytes = Ok;
+//@description Informs TDLib that a sponsored message was viewed by the user @chat_id Identifier of the chat with the sponsored message @sponsored_message_id The identifier of the sponsored message being viewed
+viewSponsoredMessage chat_id:int53 sponsored_message_id:int32 = Ok;
 
 
 //@description Removes an active notification from notification list. Needs to be called only if the notification is removed by the current user @notification_group_id Identifier of notification group to which the notification belongs @notification_id Identifier of removed notification

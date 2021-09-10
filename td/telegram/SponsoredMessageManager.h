@@ -35,7 +35,7 @@ class SponsoredMessageManager final : public Actor {
   void get_dialog_sponsored_messages(DialogId dialog_id,
                                      Promise<td_api::object_ptr<td_api::sponsoredMessages>> &&promise);
 
-  void view_sponsored_message(DialogId dialog_id, const string &message_id, Promise<Unit> &&promise);
+  void view_sponsored_message(DialogId dialog_id, int32 sponsored_message_id, Promise<Unit> &&promise);
 
  private:
   struct SponsoredMessage;
@@ -58,6 +58,8 @@ class SponsoredMessageManager final : public Actor {
       DialogId dialog_id, Result<telegram_api::object_ptr<telegram_api::messages_sponsoredMessages>> &&result);
 
   std::unordered_map<DialogId, unique_ptr<DialogSponsoredMessages>, DialogIdHash> dialog_sponsored_messages_;
+
+  int32 current_sponsored_message_id_ = 0;
 
   MultiTimeout delete_cached_sponsored_messages_timeout_{"DeleteCachedSponsoredMessagesTimeout"};
 
