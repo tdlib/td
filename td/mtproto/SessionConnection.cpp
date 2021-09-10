@@ -518,7 +518,7 @@ Status SessionConnection::on_slice_packet(const MsgInfo &info, Slice packet) {
                     << " in container " << container_id_ << " from session " << auth_data_->get_session_id()
                     << " with message_id " << info.message_id << ", main_message_id = " << main_message_id_
                     << ", seq_no = " << info.seq_no << " and original size " << info.size;
-      return callback_->on_message_result_ok(0, as_buffer_slice(packet), info.size);
+      return callback_->on_update(as_buffer_slice(packet));
     }
   }
 

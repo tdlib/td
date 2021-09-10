@@ -140,6 +140,9 @@ class PingConnectionPingPong final
     return Status::OK();
   }
 
+  Status on_update(BufferSlice packet) final {
+    return Status::OK();
+  }
   void on_message_ack(uint64 id) final {
   }
   Status on_message_result_ok(uint64 id, BufferSlice packet, size_t original_size) final {

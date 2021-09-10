@@ -206,6 +206,8 @@ class Session final
 
   void on_container_sent(uint64 container_id, vector<uint64> msg_ids) final;
 
+  Status on_update(BufferSlice packet) final;
+
   void on_message_ack(uint64 id) final;
   Status on_message_result_ok(uint64 id, BufferSlice packet, size_t original_size) final;
   void on_message_result_error(uint64 id, int error_code, string message) final;

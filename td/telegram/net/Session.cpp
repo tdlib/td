@@ -710,15 +710,17 @@ void Session::mark_as_unknown(uint64 id, Query *query) {
   unknown_queries_.insert(id);
 }
 
-Status Session::on_message_result_ok(uint64 id, BufferSlice packet, size_t original_size) {
-  if (id == 0) {
-    if (is_cdn_) {
-      return Status::Error("Got update from CDN connection");
-    }
-    last_success_timestamp_ = Time::now();
-    return_query(G()->net_query_creator().create_update(std::move(packet)));
-    return Status::OK();
+Status Session::on_update(BufferSlice packet) {
+  if (is_cdn_) {
+    return Status::Error("Receive at update from CDN connection");
   }
+
+  last_success_timestamp_ = Time::now();
+  return_query(G()->net_query_creator().create_update(std::move(packet)));
+  return Status::OK();
+}
+
+Status Session::on_message_result_ok(uint64 id, BufferSlice packet, size_t original_size) {
   last_success_timestamp_ = Time::now();
 
   TlParser parser(packet.as_slice());

@@ -109,6 +109,8 @@ class SessionConnection final
     virtual void on_container_sent(uint64 container_id, vector<uint64> msgs_id) = 0;
     virtual Status on_pong() = 0;
 
+    virtual Status on_update(BufferSlice packet) = 0;
+
     virtual void on_message_ack(uint64 id) = 0;
     virtual Status on_message_result_ok(uint64 id, BufferSlice packet, size_t original_size) = 0;
     virtual void on_message_result_error(uint64 id, int code, string message) = 0;
