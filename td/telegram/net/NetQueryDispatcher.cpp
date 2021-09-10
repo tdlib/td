@@ -44,12 +44,10 @@ void NetQueryDispatcher::complete_net_query(NetQueryPtr net_query) {
 void NetQueryDispatcher::dispatch(NetQueryPtr net_query) {
   // net_query->debug("dispatch");
   if (stop_flag_.load(std::memory_order_relaxed)) {
-    if (net_query->id() != 0) {
-      net_query->set_error(Status::Error(500, "Request aborted"));
-    }
+    net_query->set_error(Status::Error(500, "Request aborted"));
     return complete_net_query(std::move(net_query));
   }
-  if (net_query->id() != 0 && G()->shared_config().get_option_boolean("test_flood_wait")) {
+  if (G()->shared_config().get_option_boolean("test_flood_wait")) {
     net_query->set_error(Status::Error(429, "Too Many Requests: retry after 10"));
     return complete_net_query(std::move(net_query));
   }

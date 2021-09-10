@@ -569,7 +569,8 @@ void Session::on_session_created(uint64 unique_id, uint64 first_id) {
     LOG(DEBUG) << "Sending updatesTooLong to force getDifference";
     BufferSlice packet(4);
     as<int32>(packet.as_slice().begin()) = telegram_api::updatesTooLong::ID;
-    return_query(G()->net_query_creator().create_update(std::move(packet)));
+    last_activity_timestamp_ = Time::now();
+    callback_->on_update(std::move(packet));
   }
 
   for (auto it = sent_queries_.begin(); it != sent_queries_.end();) {
@@ -716,7 +717,8 @@ Status Session::on_update(BufferSlice packet) {
   }
 
   last_success_timestamp_ = Time::now();
-  return_query(G()->net_query_creator().create_update(std::move(packet)));
+  last_activity_timestamp_ = Time::now();
+  callback_->on_update(std::move(packet));
   return Status::OK();
 }
 

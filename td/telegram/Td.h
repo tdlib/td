@@ -115,6 +115,8 @@ class Td final : public NetQueryCallback {
 
   void schedule_get_promo_data(int32 expires_in);
 
+  void on_update(BufferSlice &&update);
+
   void on_result(NetQueryPtr query) final;
 
   void on_update_server_time_difference();

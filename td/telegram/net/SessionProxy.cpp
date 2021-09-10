@@ -11,6 +11,7 @@
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/net/Session.h"
+#include "td/telegram/Td.h"
 #include "td/telegram/UniqueId.h"
 
 #include "td/actor/PromiseFuture.h"
@@ -58,9 +59,12 @@ class SessionCallback final : public Session::Callback {
     send_closure(parent_, &SessionProxy::on_server_salt_updated, std::move(server_salts));
   }
 
+  void on_update(BufferSlice &&update) final {
+    send_closure_later(G()->td(), &Td::on_update, std::move(update));
+  }
+
   void on_result(NetQueryPtr query) final {
-    if (UniqueId::extract_type(query->id()) != UniqueId::BindKey &&
-        query->id() != 0) {  // not bind key query and not an update
+    if (UniqueId::extract_type(query->id()) != UniqueId::BindKey) {
       send_closure(parent_, &SessionProxy::on_query_finished);
     }
     G()->net_query_dispatcher().dispatch(std::move(query));
