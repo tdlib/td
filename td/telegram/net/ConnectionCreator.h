@@ -48,10 +48,6 @@ class StatsCallback;
 
 class GetHostByNameActor;
 
-}  // namespace td
-
-namespace td {
-
 extern int VERBOSITY_NAME(connections);
 
 class ConnectionCreator final : public NetQueryCallback {

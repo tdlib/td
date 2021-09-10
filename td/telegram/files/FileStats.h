@@ -17,13 +17,11 @@
 #include <unordered_map>
 
 namespace td {
+
 namespace td_api {
 class storageStatistics;
 class storageStatisticsFast;
 }  // namespace td_api
-}  // namespace td
-
-namespace td {
 
 struct FileTypeStat {
   int64 size{0};

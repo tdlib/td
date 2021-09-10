@@ -77,10 +77,6 @@ class VideosManager;
 class VoiceNotesManager;
 class WebPagesManager;
 
-}  // namespace td
-
-namespace td {
-
 extern int VERBOSITY_NAME(td_init);
 extern int VERBOSITY_NAME(td_requests);
 
