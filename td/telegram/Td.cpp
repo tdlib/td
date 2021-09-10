@@ -3337,7 +3337,6 @@ void Td::invalidate_handler(ResultHandler *handler) {
 void Td::send(NetQueryPtr &&query) {
   VLOG(net_query) << "Send " << query << " to dispatcher";
   query->debug("Td: send to NetQueryDispatcher");
-  query->set_callback(actor_shared(this, 1));
   G()->net_query_dispatcher().dispatch(std::move(query));
 }
 
@@ -3566,7 +3565,7 @@ void Td::hangup_shared() {
   auto type = Container<int>::type_from_id(token);
 
   if (type == RequestActorIdType) {
-    request_actors_.erase(get_link_token());
+    request_actors_.erase(token);
     dec_request_actor_refcnt();
   } else if (type == ActorIdType) {
     dec_actor_refcnt();

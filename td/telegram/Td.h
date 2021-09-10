@@ -89,7 +89,7 @@ extern int VERBOSITY_NAME(td_requests);
 //
 // Parent needs a way to know that it will receive no more updates.
 // It happens after destruction of callback or after on_closed.
-class Td final : public NetQueryCallback {
+class Td final : public Actor {
  public:
   Td(const Td &) = delete;
   Td(Td &&) = delete;
@@ -113,7 +113,7 @@ class Td final : public NetQueryCallback {
 
   void on_update(BufferSlice &&update);
 
-  void on_result(NetQueryPtr query) final;
+  void on_result(NetQueryPtr query);
 
   void on_update_server_time_difference();
 
