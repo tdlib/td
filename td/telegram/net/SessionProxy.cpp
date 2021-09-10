@@ -240,6 +240,7 @@ void SessionProxy::on_tmp_auth_key_updated(mtproto::AuthKey auth_key) {
   LOG(WARNING) << "Have tmp_auth_key " << auth_key.id() << ": " << state;
   tmp_auth_key_ = std::move(auth_key);
 }
+
 void SessionProxy::on_server_salt_updated(std::vector<mtproto::ServerSalt> server_salts) {
   server_salts_ = std::move(server_salts);
 }

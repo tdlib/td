@@ -406,6 +406,9 @@ ActorOwn<> get_full_config(DcOption option, Promise<FullConfig> promise, ActorSh
     void on_tmp_auth_key_updated(mtproto::AuthKey auth_key) final {
       // nop
     }
+    void on_server_salt_updated(std::vector<mtproto::ServerSalt> server_salts) final {
+      // nop
+    }
     void on_result(NetQueryPtr net_query) final {
       G()->net_query_dispatcher().dispatch(std::move(net_query));
     }
