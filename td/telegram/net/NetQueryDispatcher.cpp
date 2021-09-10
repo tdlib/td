@@ -34,10 +34,10 @@ void NetQueryDispatcher::complete_net_query(NetQueryPtr net_query) {
   auto callback = net_query->move_callback();
   if (callback.empty()) {
     net_query->debug("sent to td (no callback)");
-    send_closure(G()->td(), &NetQueryCallback::on_result, std::move(net_query));
+    send_closure_later(G()->td(), &Td::on_result, std::move(net_query));
   } else {
     net_query->debug("sent to callback", true);
-    send_closure(std::move(callback), &NetQueryCallback::on_result, std::move(net_query));
+    send_closure_later(std::move(callback), &NetQueryCallback::on_result, std::move(net_query));
   }
 }
 
