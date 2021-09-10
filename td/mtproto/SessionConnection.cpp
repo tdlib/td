@@ -259,7 +259,10 @@ Status SessionConnection::on_packet_rpc_result(const MsgInfo &info, Slice packet
       if (parser.get_error()) {
         return Status::Error(PSLICE() << "Failed to parse mtproto_api::rpc_error: " << parser.get_error());
       }
-      return on_packet(info, req_msg_id, rpc_error);
+      VLOG(mtproto) << "ERROR " << tag("code", rpc_error.error_code_) << tag("message", rpc_error.error_message_)
+                    << tag("req_msg_id", req_msg_id);
+      callback_->on_message_result_error(req_msg_id, rpc_error.error_code_, rpc_error.error_message_.str());
+      return Status::OK();
     }
     case mtproto_api::gzip_packed::ID: {
       mtproto_api::gzip_packed gzip(parser);
@@ -299,17 +302,7 @@ Status SessionConnection::on_destroy_auth_key(const mtproto_api::DestroyAuthKeyR
 }
 
 Status SessionConnection::on_packet(const MsgInfo &info, const mtproto_api::rpc_error &rpc_error) {
-  return on_packet(info, 0, rpc_error);
-}
-
-Status SessionConnection::on_packet(const MsgInfo &info, uint64 req_msg_id, const mtproto_api::rpc_error &rpc_error) {
-  VLOG(mtproto) << "ERROR " << tag("code", rpc_error.error_code_) << tag("message", rpc_error.error_message_)
-                << tag("req_msg_id", req_msg_id);
-  if (req_msg_id != 0) {
-    callback_->on_message_result_error(req_msg_id, rpc_error.error_code_, rpc_error.error_message_.str());
-  } else {
-    LOG(ERROR) << "Receive rpc_error as update: [" << rpc_error.error_code_ << "][" << rpc_error.error_message_ << "]";
-  }
+  LOG(ERROR) << "Receive rpc_error as update: [" << rpc_error.error_code_ << "][" << rpc_error.error_message_ << "]";
   return Status::OK();
 }
 

@@ -216,8 +216,6 @@ class SessionConnection final
   Status parse_packet(TlParser &parser) TD_WARN_UNUSED_RESULT;
   Status on_packet_container(const MsgInfo &info, Slice packet) TD_WARN_UNUSED_RESULT;
   Status on_packet_rpc_result(const MsgInfo &info, Slice packet) TD_WARN_UNUSED_RESULT;
-  Status on_packet(const MsgInfo &info, uint64 req_msg_id,
-                   const mtproto_api::rpc_error &rpc_error) TD_WARN_UNUSED_RESULT;
 
   template <class T>
   Status on_packet(const MsgInfo &info, const T &packet) TD_WARN_UNUSED_RESULT;
