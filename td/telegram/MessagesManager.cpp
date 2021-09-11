@@ -31132,33 +31132,18 @@ void MessagesManager::set_dialog_theme(DialogId dialog_id, const string &theme_n
 
   auto d = get_dialog_force(dialog_id, "set_dialog_theme");
   if (d == nullptr) {
-    return promise.set_error(Status::Error(3, "Chat not found"));
+    return promise.set_error(Status::Error(400, "Chat not found"));
   }
   if (!have_input_peer(dialog_id, AccessRights::Write)) {
-    return promise.set_error(Status::Error(3, "Can't access the chat"));
+    return promise.set_error(Status::Error(400, "Can't access the chat"));
   }
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
       break;
-    case DialogType::Chat: {
-      auto chat_id = dialog_id.get_chat_id();
-      auto status = td_->contacts_manager_->get_chat_permissions(chat_id);
-      if (!status.can_change_info_and_settings()) {
-        return promise.set_error(Status::Error(3, "Not enough rights to change chat theme"));
-      }
-      break;
-    }
-    case DialogType::Channel: {
-      if (is_broadcast_channel(dialog_id)) {
-        return promise.set_error(Status::Error(3, "Can't change channel chat permissions"));
-      }
-      auto status = td_->contacts_manager_->get_channel_permissions(dialog_id.get_channel_id());
-      if (!status.can_change_info_and_settings()) {
-        return promise.set_error(Status::Error(3, "Not enough rights to change chat theme"));
-      }
-      break;
-    }
+    case DialogType::Chat:
+    case DialogType::Channel:
+      return promise.set_error(Status::Error(400, "Can't change theme in the chat"));
     case DialogType::SecretChat: {
       auto user_id = td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
       if (!user_id.is_valid()) {
