@@ -203,8 +203,6 @@ class SessionConnection final
   SessionConnection::Callback *callback_ = nullptr;
   BufferSlice *current_buffer_slice_;
 
-  friend class OnPacket;
-
   BufferSlice as_buffer_slice(Slice packet);
   auto set_buffer_slice(BufferSlice *buffer_slice) TD_WARN_UNUSED_RESULT {
     auto old_buffer_slice = current_buffer_slice_;
