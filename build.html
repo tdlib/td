@@ -61,7 +61,7 @@ select.large { font-size: large; }
       <option>CentOS 8</option>
       <option>Debian 8</option>
       <option>Debian 9</option>
-      <option>Debian 10</option>
+      <option>Debian 10+</option>
       <option>Ubuntu 14</option>
       <option>Ubuntu 16</option>
       <option>Ubuntu 18</option>
@@ -639,7 +639,7 @@ function onOptionsChanged() {
         break;
       case 'Debian 8':
       case 'Debian 9':
-      case 'Debian 10':
+      case 'Debian 10+':
       case 'Ubuntu 14':
       case 'Ubuntu 16':
       case 'Ubuntu 18':
@@ -668,7 +668,7 @@ function onOptionsChanged() {
         }
         if (use_clang) {
           packages += ' clang' + getClangVersionSuffix() + ' libc++-dev';
-          if (linux_distro === 'Debian 10' || linux_distro === 'Ubuntu 18' || linux_distro === 'Ubuntu 20') {
+          if (linux_distro === 'Debian 10+' || linux_distro === 'Ubuntu 18' || linux_distro === 'Ubuntu 20') {
             packages += ' libc++abi-dev';
           }
         } else {
