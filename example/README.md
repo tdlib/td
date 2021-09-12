@@ -138,7 +138,7 @@ TDLib can be used from the Swift programming language through the [JSON](https:/
 
 See [example/ios](https://github.com/tdlib/td/tree/master/example/ios) for an example of building TDLib for iOS, watchOS, tvOS, and macOS.
 
-See [TDLib-iOS](https://github.com/leoMehlig/TDLib-iOS) or [tdlib-swift](https://github.com/modestman/tdlib-swift), which provide convenient TDLib clients with automatically generated and fully-documented classes for all TDLib API methods and objects.
+See [TDLibKit](https://github.com/Swiftgram/TDLibKit), [tdlib-swift](https://github.com/modestman/tdlib-swift), or [TDLib-iOS](https://github.com/leoMehlig/TDLib-iOS), which provide convenient TDLib clients with automatically generated and fully-documented classes for all TDLib API methods and objects.
 
 See [example/swift](https://github.com/tdlib/td/tree/master/example/swift) for an example of a macOS Swift application.
 
