@@ -256,10 +256,10 @@ set(TDUTILS_SOURCE
   td/utils/Time.h
   td/utils/TimedStat.h
   td/utils/Timer.h
-  td/utils/TsFileLog.h
   td/utils/tl_helpers.h
   td/utils/tl_parsers.h
   td/utils/tl_storers.h
+  td/utils/TlDowncastHelper.h
   td/utils/translit.h
   td/utils/TsCerr.h
   td/utils/TsFileLog.h
