@@ -172,7 +172,7 @@ class DcOption {
 
   friend bool operator==(const DcOption &lhs, const DcOption &rhs);
 
-  friend StringBuilder &operator<<(StringBuilder &sb, const DcOption::PrintFlags &flags);
+  friend StringBuilder &operator<<(StringBuilder &sb, const PrintFlags &flags);
 
   friend StringBuilder &operator<<(StringBuilder &sb, const DcOption &dc_option);
 

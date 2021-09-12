@@ -43,6 +43,10 @@ class ThemeManager final : public Actor {
     bool animate_message_colors = false;
   };
 
+  friend bool operator==(const ThemeSettings &lhs, const ThemeSettings &rhs);
+
+  friend bool operator!=(const ThemeSettings &lhs, const ThemeSettings &rhs);
+
   struct ChatTheme {
     string emoji;
     int64 light_id = 0;

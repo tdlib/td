@@ -44,6 +44,16 @@ class GetChatThemesQuery final : public Td::ResultHandler {
   }
 };
 
+bool operator==(const ThemeManager::ThemeSettings &lhs, const ThemeManager::ThemeSettings &rhs) {
+  return lhs.accent_color == rhs.accent_color && lhs.background_id == rhs.background_id &&
+         lhs.background_type == rhs.background_type && lhs.base_theme == rhs.base_theme &&
+         lhs.message_colors == rhs.message_colors && lhs.animate_message_colors == rhs.animate_message_colors;
+}
+
+bool operator!=(const ThemeManager::ThemeSettings &lhs, const ThemeManager::ThemeSettings &rhs) {
+  return !(lhs == rhs);
+}
+
 ThemeManager::ThemeManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
   chat_themes_.next_reload_time = Time::now();
 }
@@ -80,10 +90,10 @@ void ThemeManager::on_update_theme(telegram_api::object_ptr<telegram_api::theme>
       chat_themes_.hash = 0;
       chat_themes_.next_reload_time = Time::now();
       auto theme_settings = get_chat_theme_settings(std::move(theme->settings_));
-      if (chat_theme.light_id == theme->id_) {
+      if (chat_theme.light_id == theme->id_ && chat_theme.light_theme != theme_settings) {
         chat_theme.light_theme = theme_settings;
       }
-      if (chat_theme.dark_id == theme->id_) {
+      if (chat_theme.dark_id == theme->id_ && chat_theme.dark_theme != theme_settings) {
         chat_theme.dark_theme = theme_settings;
       }
     }
