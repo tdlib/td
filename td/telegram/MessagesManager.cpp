@@ -18906,10 +18906,13 @@ Status MessagesManager::toggle_message_sender_is_blocked(const td_api::object_pt
     dialog_id = DialogId(sender_user_id);
   }
   if (dialog_id == get_my_dialog_id()) {
-    return Status::Error(5, is_blocked ? Slice("Can't block self") : Slice("Can't unblock self"));
+    return Status::Error(400, is_blocked ? Slice("Can't block self") : Slice("Can't unblock self"));
   }
 
   Dialog *d = get_dialog_force(dialog_id, "toggle_message_sender_is_blocked");
+  if (!have_input_peer(dialog_id, AccessRights::Know)) {
+    return Status::Error(400, "Message sender isn't accessible");
+  }
   if (d != nullptr) {
     if (is_blocked == d->is_blocked) {
       return Status::OK();
@@ -18955,11 +18958,6 @@ uint64 MessagesManager::save_toggle_dialog_is_blocked_on_server_log_event(Dialog
 }
 
 void MessagesManager::toggle_dialog_is_blocked_on_server(DialogId dialog_id, bool is_blocked, uint64 log_event_id) {
-  if (log_event_id == 0 && dialog_id.get_type() == DialogType::SecretChat) {
-    // don't even create new binlog events
-    return;
-  }
-
   if (log_event_id == 0 && G()->parameters().use_message_db) {
     log_event_id = save_toggle_dialog_is_blocked_on_server_log_event(dialog_id, is_blocked);
   }
@@ -37134,8 +37132,8 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         log_event_parse(log_event, event.data_).ensure();
 
         auto dialog_id = log_event.dialog_id_;
-        Dialog *d = get_dialog_force(dialog_id, "ToggleDialogIsBlockedOnServerLogEvent");
-        if (d == nullptr || !have_input_peer(dialog_id, AccessRights::Read)) {
+        if (dialog_id.get_type() == DialogType::SecretChat || !have_dialog_info_force(dialog_id) ||
+            !have_input_peer(dialog_id, AccessRights::Know)) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
