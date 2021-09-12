@@ -13573,6 +13573,14 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
     if (need_update_dialog_pos && d != nullptr) {
       send_update_chat_last_message(d, "on_get_message");
     }
+    if (old_message_id.is_valid() || old_message_id.is_valid_scheduled()) {
+      CHECK(d != nullptr);
+      if (!old_message_id.is_valid() || !message_id.is_valid() || old_message_id <= message_id) {
+        LOG(ERROR) << "Failed to add just sent " << old_message_id << " to " << dialog_id << " as " << message_id
+                   << " from " << source << ": " << debug_add_message_to_dialog_fail_reason_;
+      }
+      send_update_delete_messages(dialog_id, {message_id.get()}, true, false);
+    }
 
     return FullMessageId();
   }
@@ -28784,25 +28792,27 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
   sent_message->have_previous = true;
   sent_message->have_next = true;
 
+  send_update_message_send_succeeded(d, old_message_id, sent_message.get());
+
   bool need_update = true;
   Message *m = add_message_to_dialog(d, std::move(sent_message), true, &need_update, &need_update_dialog_pos, source);
-  if (m == nullptr) {
-    if (old_message_id.is_valid() && new_message_id < old_message_id) {
-      // the message ID has decreased. This could happen if some messages were lost.
-      // In this case the failure is possible
-      return {};
-    }
-    LOG(FATAL) << td_->contacts_manager_->get_my_id() << " " << dialog_id << " " << old_message_id << " "
-               << new_message_id << " " << d->last_clear_history_message_id << " " << d->max_unavailable_message_id
-               << " " << d->last_message_id << " " << d->last_new_message_id << " " << d->last_assigned_message_id
-               << " " << have_input_peer(dialog_id, AccessRights::Read) << " "
-               << debug_add_message_to_dialog_fail_reason_ << " " << source;
-  }
-
-  send_update_message_send_succeeded(d, old_message_id, m);
   if (need_update_dialog_pos) {
     send_update_chat_last_message(d, "on_send_message_success");
   }
+
+  if (m == nullptr) {
+    if (!(old_message_id.is_valid() && new_message_id < old_message_id) &&
+        !(ttl_period > 0 && date + ttl_period <= G()->server_time())) {
+      // if message ID has decreased, which could happen if some messages were lost,
+      // or the message has already been deleted after TTL period, then the error is expected
+      LOG(ERROR) << "Failed to add just sent " << old_message_id << " to " << dialog_id << " as " << new_message_id
+                 << " from " << source << ": " << debug_add_message_to_dialog_fail_reason_;
+    }
+    send_update_delete_messages(dialog_id, {new_message_id.get()}, true, false);
+    being_readded_message_id_ = FullMessageId();
+    return {};
+  }
+
   try_add_active_live_location(dialog_id, m);
   update_reply_count_by_message(d, +1, m);
   update_forward_count(dialog_id, m);
