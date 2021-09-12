@@ -47,6 +47,7 @@
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
+#include "td/telegram/ThemeManager.h"
 #include "td/telegram/WebPagesManager.h"
 
 #include "td/actor/MultiPromise.h"
@@ -3206,10 +3207,10 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelParticip
   add_pending_qts_update(std::move(update), qts, std::move(promise));
 }
 
-// unsupported updates
-
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTheme> update, Promise<Unit> &&promise) {
-  promise.set_value(Unit());
+  td_->theme_manager_->on_update_theme(std::move(update->theme_), std::move(promise));
 }
+
+// unsupported updates
 
 }  // namespace td

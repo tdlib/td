@@ -73,6 +73,24 @@ void ThemeManager::get_chat_themes(Promise<td_api::object_ptr<td_api::chatThemes
   }
 }
 
+void ThemeManager::on_update_theme(telegram_api::object_ptr<telegram_api::theme> &&theme, Promise<Unit> &&promise) {
+  CHECK(theme != nullptr);
+  for (auto &chat_theme : chat_themes_.themes) {
+    if (chat_theme.light_id == theme->id_ || chat_theme.dark_id == theme->id_) {
+      chat_themes_.hash = 0;
+      chat_themes_.next_reload_time = Time::now();
+      auto theme_settings = get_chat_theme_settings(std::move(theme->settings_));
+      if (chat_theme.light_id == theme->id_) {
+        chat_theme.light_theme = theme_settings;
+      }
+      if (chat_theme.dark_id == theme->id_) {
+        chat_theme.dark_theme = theme_settings;
+      }
+    }
+  }
+  promise.set_value(Unit());
+}
+
 td_api::object_ptr<td_api::themeSettings> ThemeManager::get_theme_settings_object(const ThemeSettings &settings) const {
   auto fill = [colors = settings.message_colors]() mutable -> td_api::object_ptr<td_api::BackgroundFill> {
     if (colors.size() >= 3) {
@@ -134,6 +152,8 @@ void ThemeManager::on_get_chat_themes(Result<telegram_api::object_ptr<telegram_a
 
       ChatTheme theme;
       theme.emoji = std::move(chat_theme->emoticon_);
+      theme.light_id = chat_theme->theme_->id_;
+      theme.dark_id = chat_theme->dark_theme_->id_;
       theme.light_theme = get_chat_theme_settings(std::move(chat_theme->theme_->settings_));
       theme.dark_theme = get_chat_theme_settings(std::move(chat_theme->dark_theme_->settings_));
       chat_themes_.themes.push_back(std::move(theme));

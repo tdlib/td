@@ -27,6 +27,8 @@ class ThemeManager final : public Actor {
 
   void get_chat_themes(Promise<td_api::object_ptr<td_api::chatThemes>> &&promise);
 
+  void on_update_theme(telegram_api::object_ptr<telegram_api::theme> &&theme, Promise<Unit> &&promise);
+
  private:
   enum class BaseTheme : int32 { Classic, Day, Night, Tinted, Arctic };
 
@@ -43,6 +45,8 @@ class ThemeManager final : public Actor {
 
   struct ChatTheme {
     string emoji;
+    int64 light_id = 0;
+    int64 dark_id = 0;
     ThemeSettings light_theme;
     ThemeSettings dark_theme;
   };
