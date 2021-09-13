@@ -42,6 +42,7 @@
 #include "td/telegram/NotificationGroupType.h"
 #include "td/telegram/NotificationId.h"
 #include "td/telegram/NotificationSettings.h"
+#include "td/telegram/RecentDialogList.h"
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/ReportReason.h"
 #include "td/telegram/RestrictionReason.h"
@@ -574,6 +575,8 @@ class MessagesManager final : public Actor {
                                   MessageId expected_message_id, Promise<MessageThreadInfo> promise);
 
   bool is_message_edited_recently(FullMessageId full_message_id, int32 seconds);
+
+  bool is_deleted_secret_chat(DialogId dialog_id) const;
 
   Result<std::pair<string, bool>> get_message_link(FullMessageId full_message_id, int32 media_timestamp, bool for_group,
                                                    bool for_comment);
@@ -2959,16 +2962,6 @@ class MessagesManager final : public Actor {
 
   static MessageId get_next_yet_unsent_scheduled_message_id(Dialog *d, int32 date);
 
-  bool add_recently_found_dialog_internal(DialogId dialog_id);
-
-  bool remove_recently_found_dialog_internal(DialogId dialog_id);
-
-  void update_recently_found_dialogs();
-
-  void save_recently_found_dialogs();
-
-  bool load_recently_found_dialogs(Promise<Unit> &promise);
-
   void reget_message_from_server_if_needed(DialogId dialog_id, const Message *m);
 
   void speculatively_update_active_group_call_id(Dialog *d, const Message *m);
@@ -3063,10 +3056,7 @@ class MessagesManager final : public Actor {
 
   static DialogId get_message_original_sender(const Message *m);
 
-  int32 recently_found_dialogs_loaded_ = 0;  // 0 - not loaded, 1 - load request was sent, 2 - loaded
-  MultiPromiseActor resolve_recently_found_dialogs_multipromise_{"ResolveRecentlyFoundDialogsMultiPromiseActor"};
-
-  vector<DialogId> recently_found_dialog_ids_;
+  RecentDialogList recently_found_dialogs_;
 
   class UploadMediaCallback;
   class UploadThumbnailCallback;
