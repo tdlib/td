@@ -4334,6 +4334,7 @@ void Td::send_update(tl_object_ptr<td_api::Update> &&object) {
   }
 
   switch (object_id) {
+    case td_api::updateChatThemes::ID:
     case td_api::updateFavoriteStickers::ID:
     case td_api::updateInstalledStickerSets::ID:
     case td_api::updateRecentStickers::ID:
@@ -8000,12 +8001,6 @@ void Td::on_request(uint64 id, const td_api::resetBackgrounds &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   background_manager_->reset_backgrounds(std::move(promise));
-}
-
-void Td::on_request(uint64 id, const td_api::getChatThemes &request) {
-  CHECK_IS_USER();
-  CREATE_REQUEST_PROMISE();
-  theme_manager_->get_chat_themes(std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getRecentlyVisitedTMeUrls &request) {

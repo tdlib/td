@@ -26,6 +26,7 @@
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
+#include "td/telegram/ThemeManager.h"
 #include "td/telegram/TopDialogManager.h"
 #include "td/telegram/UpdatesManager.h"
 
@@ -782,6 +783,7 @@ void AuthManager::on_get_authorization(tl_object_ptr<telegram_api::auth_Authoriz
   td->messages_manager_->on_authorization_success();
   td->notification_manager_->init();
   td->stickers_manager_->init();
+  td->theme_manager_->init();
   send_closure(td->top_dialog_manager_, &TopDialogManager::do_start_up);
   td->updates_manager_->get_difference("on_get_authorization");
   td->on_online_updated(false, true);

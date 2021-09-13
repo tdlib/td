@@ -2733,9 +2733,6 @@ themeSettings accent_color:int32 background:background message_fill:BackgroundFi
 //@dark_settings Theme settings for a dark chat theme
 chatTheme name:string light_settings:themeSettings dark_settings:themeSettings = ChatTheme;
 
-//@description Contains a list of chat themes @chat_themes A list of chat themes
-chatThemes chat_themes:vector<chatTheme> = ChatThemes;
-
 
 //@description Contains a list of hashtags @hashtags A list of hashtags
 hashtags hashtags:vector<string> = Hashtags;
@@ -3816,6 +3813,9 @@ updateSavedAnimations animation_ids:vector<int32> = Update;
 
 //@description The selected background has changed @for_dark_theme True, if background for dark theme has changed @background The new selected background; may be null
 updateSelectedBackground for_dark_theme:Bool background:background = Update;
+
+//@description The list of available chat themes has changed @chat_themes The new list of chat themes
+updateChatThemes chat_themes:vector<chatTheme> = Update;
 
 //@description Some language pack strings have been updated @localization_target Localization target to which the language pack belongs @language_pack_id Identifier of the updated language pack @strings List of changed language pack strings
 updateLanguagePackStrings localization_target:string language_pack_id:string strings:vector<languagePackString> = Update;
@@ -5261,10 +5261,6 @@ removeBackground background_id:int64 = Ok;
 
 //@description Resets list of installed backgrounds to its default value
 resetBackgrounds = Ok;
-
-
-//@description Returns the list of available chat themes
-getChatThemes = ChatThemes;
 
 
 //@description Returns information about the current localization target. This is an offline request if only_local is true. Can be called before authorization @only_local If true, returns only locally available information without sending network requests

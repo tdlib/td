@@ -1050,7 +1050,9 @@ string BackgroundManager::get_background_name_database_key(const string &name) {
 std::pair<BackgroundId, BackgroundType> BackgroundManager::on_get_background(
     BackgroundId expected_background_id, const string &expected_background_name,
     telegram_api::object_ptr<telegram_api::WallPaper> wallpaper_ptr, bool replace_type) {
-  CHECK(wallpaper_ptr != nullptr);
+  if (wallpaper_ptr == nullptr) {
+    return {};
+  }
 
   if (wallpaper_ptr->get_id() == telegram_api::wallPaperNoFile::ID) {
     auto wallpaper = move_tl_object_as<telegram_api::wallPaperNoFile>(wallpaper_ptr);
@@ -1061,9 +1063,12 @@ std::pair<BackgroundId, BackgroundType> BackgroundManager::on_get_background(
     }
 
     auto background_id = BackgroundId(wallpaper->id_);
-    if (!background_id.is_valid() || background_id.is_local()) {
+    if (background_id.is_local()) {
       LOG(ERROR) << "Receive " << to_string(wallpaper);
       return {};
+    }
+    if (!background_id.is_valid()) {
+      background_id = get_next_local_background_id();
     }
 
     Background background;

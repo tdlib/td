@@ -26,6 +26,15 @@ static bool is_valid_color(int32 color) {
   return 0 <= color && color <= 0xFFFFFF;
 }
 
+static bool validate_alpha_color(int32 &color) {
+  if (-0x1000000 <= color && color <= 0xFFFFFF) {
+    color &= 0xFFFFFF;
+    return true;
+  }
+  color = 0;
+  return false;
+}
+
 static bool is_valid_rotation_angle(int32 rotation_angle) {
   return 0 <= rotation_angle && rotation_angle < 360 && rotation_angle % 45 == 0;
 }
@@ -38,35 +47,30 @@ BackgroundFill::BackgroundFill(const telegram_api::wallPaperSettings *settings) 
   auto flags = settings->flags_;
   if ((flags & telegram_api::wallPaperSettings::BACKGROUND_COLOR_MASK) != 0) {
     top_color_ = settings->background_color_;
-    if (!is_valid_color(top_color_)) {
+    if (!validate_alpha_color(top_color_)) {
       LOG(ERROR) << "Receive " << to_string(*settings);
-      top_color_ = 0;
     }
   }
   if ((flags & telegram_api::wallPaperSettings::FOURTH_BACKGROUND_COLOR_MASK) != 0 ||
       (flags & telegram_api::wallPaperSettings::THIRD_BACKGROUND_COLOR_MASK) != 0) {
     bottom_color_ = settings->second_background_color_;
-    if (!is_valid_color(bottom_color_)) {
+    if (!validate_alpha_color(bottom_color_)) {
       LOG(ERROR) << "Receive " << to_string(*settings);
-      bottom_color_ = 0;
     }
     third_color_ = settings->third_background_color_;
-    if (!is_valid_color(third_color_)) {
+    if (!validate_alpha_color(third_color_)) {
       LOG(ERROR) << "Receive " << to_string(*settings);
-      third_color_ = 0;
     }
     if ((flags & telegram_api::wallPaperSettings::FOURTH_BACKGROUND_COLOR_MASK) != 0) {
       fourth_color_ = settings->fourth_background_color_;
-      if (!is_valid_color(fourth_color_)) {
+      if (!validate_alpha_color(fourth_color_)) {
         LOG(ERROR) << "Receive " << to_string(*settings);
-        fourth_color_ = 0;
       }
     }
   } else if ((flags & telegram_api::wallPaperSettings::SECOND_BACKGROUND_COLOR_MASK) != 0) {
     bottom_color_ = settings->second_background_color_;
-    if (!is_valid_color(bottom_color_)) {
+    if (!validate_alpha_color(bottom_color_)) {
       LOG(ERROR) << "Receive " << to_string(*settings);
-      bottom_color_ = 0;
     }
 
     rotation_angle_ = settings->rotation_;

@@ -6,6 +6,7 @@
 //
 #include "td/telegram/ThemeManager.h"
 
+#include "td/telegram/AuthManager.h"
 #include "td/telegram/BackgroundManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/net/NetQueryCreator.h"
@@ -14,6 +15,7 @@
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
+#include "td/utils/Random.h"
 #include "td/utils/Time.h"
 
 namespace td {
@@ -55,48 +57,60 @@ bool operator!=(const ThemeManager::ThemeSettings &lhs, const ThemeManager::Them
 }
 
 ThemeManager::ThemeManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
-  chat_themes_.next_reload_time = Time::now();
+}
+
+void ThemeManager::start_up() {
+  init();
+}
+
+void ThemeManager::init() {
+  if (!td_->auth_manager_->is_authorized() || td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  chat_themes_.next_reload_time = Time::now();  // TODO load chat themes from binlog
+  loop();
 }
 
 void ThemeManager::tear_down() {
   parent_.reset();
 }
 
-void ThemeManager::get_chat_themes(Promise<td_api::object_ptr<td_api::chatThemes>> &&promise) {
+void ThemeManager::loop() {
+  if (!td_->auth_manager_->is_authorized() || td_->auth_manager_->is_bot()) {
+    return;
+  }
+
   if (Time::now() < chat_themes_.next_reload_time) {
-    return promise.set_value(get_chat_themes_object());
+    return set_timeout_at(chat_themes_.next_reload_time);
   }
 
-  if (!chat_themes_.themes.empty()) {
-    promise.set_value(get_chat_themes_object());
-    pending_get_chat_themes_queries_.push_back(Promise<td_api::object_ptr<td_api::chatThemes>>());
-  } else {
-    pending_get_chat_themes_queries_.push_back(std::move(promise));
-  }
-  if (pending_get_chat_themes_queries_.size() == 1) {
-    auto request_promise = PromiseCreator::lambda(
-        [actor_id = actor_id(this)](Result<telegram_api::object_ptr<telegram_api::account_ChatThemes>> result) {
-          send_closure(actor_id, &ThemeManager::on_get_chat_themes, std::move(result));
-        });
+  auto request_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this)](Result<telegram_api::object_ptr<telegram_api::account_ChatThemes>> result) {
+        send_closure(actor_id, &ThemeManager::on_get_chat_themes, std::move(result));
+      });
 
-    td_->create_handler<GetChatThemesQuery>(std::move(request_promise))->send(chat_themes_.hash);
-  }
+  td_->create_handler<GetChatThemesQuery>(std::move(request_promise))->send(chat_themes_.hash);
 }
 
 void ThemeManager::on_update_theme(telegram_api::object_ptr<telegram_api::theme> &&theme, Promise<Unit> &&promise) {
   CHECK(theme != nullptr);
+  bool is_changed = false;
   for (auto &chat_theme : chat_themes_.themes) {
     if (chat_theme.light_id == theme->id_ || chat_theme.dark_id == theme->id_) {
-      chat_themes_.hash = 0;
-      chat_themes_.next_reload_time = Time::now();
       auto theme_settings = get_chat_theme_settings(std::move(theme->settings_));
       if (chat_theme.light_id == theme->id_ && chat_theme.light_theme != theme_settings) {
         chat_theme.light_theme = theme_settings;
+        is_changed = true;
       }
       if (chat_theme.dark_id == theme->id_ && chat_theme.dark_theme != theme_settings) {
         chat_theme.dark_theme = theme_settings;
+        is_changed = true;
       }
     }
+  }
+  if (is_changed) {
+    send_update_chat_themes();
   }
   promise.set_value(Unit());
 }
@@ -125,56 +139,52 @@ td_api::object_ptr<td_api::chatTheme> ThemeManager::get_chat_theme_object(const 
                                                 get_theme_settings_object(theme.dark_theme));
 }
 
-td_api::object_ptr<td_api::chatThemes> ThemeManager::get_chat_themes_object() const {
-  return td_api::make_object<td_api::chatThemes>(
+td_api::object_ptr<td_api::updateChatThemes> ThemeManager::get_update_chat_themes_object() const {
+  return td_api::make_object<td_api::updateChatThemes>(
       transform(chat_themes_.themes, [this](const ChatTheme &theme) { return get_chat_theme_object(theme); }));
 }
 
+void ThemeManager::send_update_chat_themes() const {
+  send_closure(G()->td(), &Td::send_update, get_update_chat_themes_object());
+}
+
 void ThemeManager::on_get_chat_themes(Result<telegram_api::object_ptr<telegram_api::account_ChatThemes>> result) {
-  auto promises = std::move(pending_get_chat_themes_queries_);
-  CHECK(!promises.empty());
-  reset_to_empty(pending_get_chat_themes_queries_);
-
   if (result.is_error()) {
-    // do not clear chat_themes_
-
-    auto error = result.move_as_error();
-    for (auto &promise : promises) {
-      promise.set_error(error.clone());
-    }
+    set_timeout_in(Random::fast(40, 60));
     return;
   }
 
   chat_themes_.next_reload_time = Time::now() + THEME_CACHE_TIME;
+  set_timeout_at(chat_themes_.next_reload_time);
 
   auto chat_themes_ptr = result.move_as_ok();
   LOG(DEBUG) << "Receive " << to_string(chat_themes_ptr);
-  if (chat_themes_ptr->get_id() != telegram_api::account_chatThemesNotModified::ID) {
-    CHECK(chat_themes_ptr->get_id() == telegram_api::account_chatThemes::ID);
-    auto chat_themes = telegram_api::move_object_as<telegram_api::account_chatThemes>(chat_themes_ptr);
-    chat_themes_.hash = chat_themes->hash_;
-    chat_themes_.themes.clear();
-    for (auto &chat_theme : chat_themes->themes_) {
-      if (chat_theme->emoticon_.empty()) {
-        LOG(ERROR) << "Receive " << to_string(chat_theme);
-        continue;
-      }
-
-      ChatTheme theme;
-      theme.emoji = std::move(chat_theme->emoticon_);
-      theme.light_id = chat_theme->theme_->id_;
-      theme.dark_id = chat_theme->dark_theme_->id_;
-      theme.light_theme = get_chat_theme_settings(std::move(chat_theme->theme_->settings_));
-      theme.dark_theme = get_chat_theme_settings(std::move(chat_theme->dark_theme_->settings_));
-      chat_themes_.themes.push_back(std::move(theme));
+  if (chat_themes_ptr->get_id() == telegram_api::account_chatThemesNotModified::ID) {
+    return;
+  }
+  CHECK(chat_themes_ptr->get_id() == telegram_api::account_chatThemes::ID);
+  auto chat_themes = telegram_api::move_object_as<telegram_api::account_chatThemes>(chat_themes_ptr);
+  chat_themes_.hash = chat_themes->hash_;
+  chat_themes_.themes.clear();
+  for (auto &chat_theme : chat_themes->themes_) {
+    if (chat_theme->emoticon_.empty()) {
+      LOG(ERROR) << "Receive " << to_string(chat_theme);
+      continue;
     }
+
+    ChatTheme theme;
+    theme.emoji = std::move(chat_theme->emoticon_);
+    theme.light_id = chat_theme->theme_->id_;
+    theme.dark_id = chat_theme->dark_theme_->id_;
+    theme.light_theme = get_chat_theme_settings(std::move(chat_theme->theme_->settings_));
+    theme.dark_theme = get_chat_theme_settings(std::move(chat_theme->dark_theme_->settings_));
+    if (theme.light_theme.message_colors.empty() || theme.dark_theme.message_colors.empty()) {
+      continue;
+    }
+    chat_themes_.themes.push_back(std::move(theme));
   }
 
-  for (auto &promise : promises) {
-    if (promise) {
-      promise.set_value(get_chat_themes_object());
-    }
-  }
+  send_update_chat_themes();
 }
 
 ThemeManager::BaseTheme ThemeManager::get_base_theme(
@@ -212,6 +222,14 @@ ThemeManager::ThemeSettings ThemeManager::get_chat_theme_settings(
     result.animate_message_colors = settings->message_colors_animated_;
   }
   return result;
+}
+
+void ThemeManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
+  if (!td_->auth_manager_->is_authorized() || td_->auth_manager_->is_bot() || chat_themes_.themes.empty()) {
+    return;
+  }
+
+  updates.push_back(get_update_chat_themes_object());
 }
 
 }  // namespace td
