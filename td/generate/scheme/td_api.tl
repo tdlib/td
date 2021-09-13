@@ -936,7 +936,7 @@ voiceChat group_call_id:int32 has_participants:Bool default_participant_id:Messa
 //@unread_mention_count Number of unread messages with a mention/reply in the chat
 //@notification_settings Notification settings for this chat
 //@message_ttl_setting Current message Time To Live setting (self-destruct timer) for the chat; 0 if not defined. TTL is counted from the time message or its content is viewed in secret chats and from the send date in other chats
-//@theme_name If non-empty, name of the theme set for the chat
+//@theme_name If non-empty, name of a theme set for the chat
 //@action_bar Describes actions which should be possible to do through a chat action bar; may be null
 //@voice_chat Contains information about voice chat of the chat
 //@reply_markup_message_id Identifier of the message from which reply markup needs to be used; 0 if there is no default custom reply markup in the chat
@@ -1776,7 +1776,7 @@ messagePinMessage message_id:int53 = MessageContent;
 //@description A screenshot of a message in the chat has been taken
 messageScreenshotTaken = MessageContent;
 
-//@description A theme in the chat has been changed @theme_name If non-empty, name of the new theme set for the chat. Otherwise chat theme was reset to the default one
+//@description A theme in the chat has been changed @theme_name If non-empty, name of a new theme set for the chat. Otherwise chat theme was reset to the default one
 messageChatSetTheme theme_name:string = MessageContent;
 
 //@description The TTL (Time To Live) setting for messages in the chat has been changed @ttl New message TTL setting
@@ -2518,7 +2518,7 @@ chatEventUsernameChanged old_username:string new_username:string = ChatEventActi
 //@description The chat photo was changed @old_photo Previous chat photo value; may be null @new_photo New chat photo value; may be null
 chatEventPhotoChanged old_photo:chatPhoto new_photo:chatPhoto = ChatEventAction;
 
-//@description The chat theme was changed @old_theme_name Previous chat theme name; empty if default one @new_theme_name New chat theme name; empty if default one
+//@description The chat theme was changed. This event shouldn't be received until chat themes would be supported in supergroups @old_theme_name Previous chat theme name; empty if the previous theme was default one @new_theme_name New chat theme name; empty if the new theme is default one
 chatEventThemeChanged old_theme_name:string new_theme_name:string = ChatEventAction;
 
 //@description The can_invite_users permission of a supergroup chat was toggled @can_invite_users New value of can_invite_users permission
@@ -2876,7 +2876,7 @@ pushMessageContentChatChangePhoto = PushMessageContent;
 //@description A chat title was edited @title New chat title
 pushMessageContentChatChangeTitle title:string = PushMessageContent;
 
-//@description A chat theme was edited @theme_name If non-empty, name of the new theme set for the chat. Otherwise chat theme was reset to the default one
+//@description A chat theme was edited @theme_name If non-empty, name of a new theme set for the chat. Otherwise chat theme was reset to the default one
 pushMessageContentChatChangeTheme theme_name:string = PushMessageContent;
 
 //@description A chat member was deleted @member_name Name of the deleted member @is_current_user True, if the current user was deleted from the group
@@ -3676,7 +3676,7 @@ updateChatMessageTtlSetting chat_id:int53 message_ttl_setting:int32 = Update;
 //@description The chat action bar was changed @chat_id Chat identifier @action_bar The new value of the action bar; may be null
 updateChatActionBar chat_id:int53 action_bar:ChatActionBar = Update;
 
-//@description The chat theme was changed @chat_id Chat identifier @theme_name The new name of the chat theme; may be empty if none
+//@description The chat theme was changed @chat_id Chat identifier @theme_name The new name of the chat theme; may be empty if theme was reset to default
 updateChatTheme chat_id:int53 theme_name:string = Update;
 
 //@description The default chat reply markup was changed. Can occur because new messages with reply markup were received or because an old reply markup was hidden by the user
@@ -4597,8 +4597,7 @@ setChatMessageTtlSetting chat_id:int53 ttl:int32 = Ok;
 //@chat_id Chat identifier @permissions New non-administrator members permissions in the chat
 setChatPermissions chat_id:int53 permissions:chatPermissions = Ok;
 
-//@description Changes the chat theme. Supported only in private and secret chats @chat_id Chat identifier
-//@theme_name Name of the new chat theme; may be empty to return the default theme
+//@description Changes the chat theme. Supported only in private and secret chats @chat_id Chat identifier @theme_name Name of the new chat theme; may be empty to return the default theme
 setChatTheme chat_id:int53 theme_name:string = Ok;
 
 //@description Changes the draft message in a chat @chat_id Chat identifier @message_thread_id If not 0, a message thread identifier in which the draft was changed @draft_message New draft message; may be null
