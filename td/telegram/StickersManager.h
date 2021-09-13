@@ -266,7 +266,7 @@ class StickersManager final : public Actor {
   void merge_stickers(FileId new_id, FileId old_id, bool can_delete_old);
 
   template <class StorerT>
-  void store_sticker(FileId file_id, bool in_sticker_set, StorerT &storer) const;
+  void store_sticker(FileId file_id, bool in_sticker_set, StorerT &storer, const char *source) const;
 
   template <class ParserT>
   FileId parse_sticker(bool in_sticker_set, ParserT &parser);

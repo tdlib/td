@@ -1132,7 +1132,7 @@ class StickersManager::StickerListLogEvent {
     StickersManager *stickers_manager = storer.context()->td().get_actor_unsafe()->stickers_manager_.get();
     td::store(narrow_cast<int32>(sticker_ids.size()), storer);
     for (auto sticker_id : sticker_ids) {
-      stickers_manager->store_sticker(sticker_id, false, storer);
+      stickers_manager->store_sticker(sticker_id, false, storer, "StickerListLogEvent");
     }
   }
 

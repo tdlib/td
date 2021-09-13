@@ -21,9 +21,9 @@
 namespace td {
 
 template <class StorerT>
-void StickersManager::store_sticker(FileId file_id, bool in_sticker_set, StorerT &storer) const {
+void StickersManager::store_sticker(FileId file_id, bool in_sticker_set, StorerT &storer, const char *source) const {
   auto it = stickers_.find(file_id);
-  CHECK(it != stickers_.end());
+  LOG_CHECK(it != stickers_.end()) << file_id << ' ' << in_sticker_set << ' ' << source;
   const Sticker *sticker = it->second.get();
   bool has_sticker_set_access_hash = sticker->set_id.is_valid() && !in_sticker_set;
   bool has_minithumbnail = !sticker->minithumbnail.empty();
@@ -168,7 +168,7 @@ void StickersManager::store_sticker_set(const StickerSet *sticker_set, bool with
     store(stored_sticker_count, storer);
     for (uint32 i = 0; i < stored_sticker_count; i++) {
       auto sticker_id = sticker_set->sticker_ids[i];
-      store_sticker(sticker_id, true, storer);
+      store_sticker(sticker_id, true, storer, "store_sticker_set");
 
       if (was_loaded) {
         auto it = sticker_set->sticker_emojis_map_.find(sticker_id);

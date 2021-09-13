@@ -803,7 +803,7 @@ static void store(const MessageContent *content, StorerT &storer) {
     }
     case MessageContentType::Sticker: {
       auto m = static_cast<const MessageSticker *>(content);
-      td->stickers_manager_->store_sticker(m->file_id, false, storer);
+      td->stickers_manager_->store_sticker(m->file_id, false, storer, "MessageSticker");
       break;
     }
     case MessageContentType::Text: {

@@ -47,7 +47,7 @@ void store(const Document &document, StorerT &storer) {
       td->documents_manager_->store_document(document.file_id, storer);
       break;
     case Document::Type::Sticker:
-      td->stickers_manager_->store_sticker(document.file_id, false, storer);
+      td->stickers_manager_->store_sticker(document.file_id, false, storer, "Document");
       break;
     case Document::Type::Video:
       td->videos_manager_->store_video(document.file_id, storer);
