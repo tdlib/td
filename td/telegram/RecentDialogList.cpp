@@ -122,28 +122,25 @@ bool RecentDialogList::load_dialogs(Promise<Unit> &&promise) {
     resolve_dialogs_multipromise_.set_ignore_errors(true);
     auto lock = resolve_dialogs_multipromise_.get_promise();
 
+    vector<DialogId> dialog_ids;
     for (auto &found_dialog : found_dialogs) {
       if (found_dialog[0] == '@') {
         td_->messages_manager_->search_public_dialog(found_dialog, false, resolve_dialogs_multipromise_.get_promise());
+      } else {
+        dialog_ids.push_back(DialogId(to_integer<int64>(found_dialog)));
       }
     }
-    if (G()->parameters().use_message_db) {
-      for (auto &found_dialog : found_dialogs) {
-        if (found_dialog[0] != '@') {
-          auto dialog_id = DialogId(to_integer<int64>(found_dialog));
-          CHECK(dialog_id.is_valid());
-          // TODO use asynchronous load
-          // get_dialog(dialog_id, resolve_dialogs_multipromise_.get_promise());
-          td_->messages_manager_->have_dialog_force(dialog_id, "RecentDialogList::load_dialogs");
-        }
+    if (!dialog_ids.empty()) {
+      if (G()->parameters().use_message_db) {
+        td_->messages_manager_->load_dialogs(std::move(dialog_ids), resolve_dialogs_multipromise_.get_promise());
+      } else {
+        td_->messages_manager_->get_dialogs_from_list(
+            DialogListId(FolderId::main()), 102,
+            PromiseCreator::lambda(
+                [promise = resolve_dialogs_multipromise_.get_promise()](
+                    td_api::object_ptr<td_api::chats> &&chats) mutable { promise.set_value(Unit()); }));
+        td_->contacts_manager_->search_contacts("", 1, resolve_dialogs_multipromise_.get_promise());
       }
-    } else {
-      td_->messages_manager_->get_dialogs_from_list(
-          DialogListId(FolderId::main()), 102,
-          PromiseCreator::lambda(
-              [promise = resolve_dialogs_multipromise_.get_promise()](
-                  td_api::object_ptr<td_api::chats> &&chats) mutable { promise.set_value(Unit()); }));
-      td_->contacts_manager_->search_contacts("", 1, resolve_dialogs_multipromise_.get_promise());
     }
 
     lock.set_value(Unit());
