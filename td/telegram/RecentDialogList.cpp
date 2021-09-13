@@ -31,6 +31,7 @@ void RecentDialogList::save_dialogs() const {
   if (dialogs_loaded_ < 2) {
     return;
   }
+  CHECK(removed_dialog_ids_.empty());
 
   string value;
   for (auto &dialog_id : dialog_ids_) {
@@ -75,6 +76,7 @@ bool RecentDialogList::load_dialogs(Promise<Unit> &&promise) {
   string found_dialogs_str = G()->td_db()->get_binlog_pmc()->get(get_binlog_key());
   if (found_dialogs_str.empty()) {
     dialogs_loaded_ = 2;
+    removed_dialog_ids_.clear();
     if (!dialog_ids_.empty()) {
       save_dialogs();
     }
@@ -89,25 +91,23 @@ bool RecentDialogList::load_dialogs(Promise<Unit> &&promise) {
     dialog_ids_.clear();
 
     for (auto it = found_dialogs.rbegin(); it != found_dialogs.rend(); ++it) {
+      DialogId dialog_id;
       if ((*it)[0] == '@') {
-        auto dialog_id = td_->messages_manager_->resolve_dialog_username(it->substr(1));
-        if (dialog_id.is_valid() && td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
-          td_->messages_manager_->force_create_dialog(dialog_id, "resolved recent dialog");
-          do_add_dialog(dialog_id);
-        }
+        dialog_id = td_->messages_manager_->resolve_dialog_username(it->substr(1));
       } else {
-        auto dialog_id = DialogId(to_integer<int64>(*it));
-        CHECK(dialog_id.is_valid());
-        if (td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
-          td_->messages_manager_->force_create_dialog(dialog_id, "recent dialog");
-          do_add_dialog(dialog_id);
-        }
+        dialog_id = DialogId(to_integer<int64>(*it));
+      }
+      if (dialog_id.is_valid() && removed_dialog_ids_.count(dialog_id) == 0 &&
+          td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+        td_->messages_manager_->force_create_dialog(dialog_id, "recent dialog");
+        do_add_dialog(dialog_id);
       }
     }
     for (auto it = newly_found_dialogs.rbegin(); it != newly_found_dialogs.rend(); ++it) {
       do_add_dialog(*it);
     }
     dialogs_loaded_ = 2;
+    removed_dialog_ids_.clear();
     if (!newly_found_dialogs.empty()) {
       save_dialogs();
     }
@@ -152,6 +152,9 @@ bool RecentDialogList::load_dialogs(Promise<Unit> &&promise) {
 }
 
 void RecentDialogList::add_dialog(DialogId dialog_id) {
+  if (dialogs_loaded_ != 2) {
+    load_dialogs(Promise<Unit>());
+  }
   if (do_add_dialog(dialog_id)) {
     save_dialogs();
   }
@@ -174,16 +177,23 @@ bool RecentDialogList::do_add_dialog(DialogId dialog_id) {
     it = dialog_ids_.end() - 1;
   }
   std::rotate(dialog_ids_.begin(), it, it + 1);
+  removed_dialog_ids_.erase(dialog_id);
   return true;
 }
 
 void RecentDialogList::remove_dialog(DialogId dialog_id) {
+  if (dialogs_loaded_ != 2) {
+    load_dialogs(Promise<Unit>());
+  }
   if (td::remove(dialog_ids_, dialog_id)) {
     save_dialogs();
+  } else if (dialogs_loaded_ != 2) {
+    removed_dialog_ids_.insert(dialog_id);
   }
 }
 
 void RecentDialogList::update_dialogs() {
+  CHECK(dialogs_loaded_ == 2);
   vector<DialogId> dialog_ids;
   for (auto dialog_id : dialog_ids_) {
     if (!td_->messages_manager_->have_dialog(dialog_id)) {
@@ -229,8 +239,6 @@ std::pair<int32, vector<DialogId>> RecentDialogList::get_dialogs(int32 limit, Pr
     return {};
   }
 
-  CHECK(dialogs_loaded_ == 2);
-
   update_dialogs();
 
   size_t result_size = min(static_cast<size_t>(limit), dialog_ids_.size());
@@ -245,6 +253,7 @@ void RecentDialogList::clear_dialogs() {
 
   dialogs_loaded_ = 2;
   dialog_ids_.clear();
+  removed_dialog_ids_.clear();
   save_dialogs();
 }
 

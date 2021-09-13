@@ -12,6 +12,7 @@
 
 #include "td/utils/common.h"
 
+#include <unordered_set>
 #include <utility>
 
 namespace td {
@@ -36,6 +37,7 @@ class RecentDialogList : public Actor {
   const char *name_;
   size_t max_size_;
   vector<DialogId> dialog_ids_;
+  std::unordered_set<DialogId, DialogIdHash> removed_dialog_ids_;
 
   int32 dialogs_loaded_ = 0;  // 0 - not loaded, 1 - load request was sent, 2 - loaded
   MultiPromiseActor resolve_dialogs_multipromise_{"ResolveDialogsMultiPromiseActor"};
