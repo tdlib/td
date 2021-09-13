@@ -16248,13 +16248,7 @@ std::pair<int32, vector<DialogId>> MessagesManager::search_dialogs(const string 
     return {};
   }
   if (query.empty()) {
-    if (!recently_found_dialogs_.load_dialogs(promise)) {
-      return {};
-    }
-
-    promise.set_value(Unit());
-
-    return recently_found_dialogs_.get_dialogs(limit);
+    return recently_found_dialogs_.get_dialogs(limit, std::move(promise));
   }
 
   auto result = dialogs_hints_.search(query, limit);

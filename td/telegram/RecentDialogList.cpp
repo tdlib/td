@@ -27,7 +27,7 @@ string RecentDialogList::get_binlog_key() const {
   return PSTRING() << name_ << "_dialog_usernames_and_ids";
 }
 
-void RecentDialogList::save_dialogs() {
+void RecentDialogList::save_dialogs() const {
   if (dialogs_loaded_ < 2) {
     return;
   }
@@ -66,8 +66,9 @@ void RecentDialogList::save_dialogs() {
   G()->td_db()->get_binlog_pmc()->set(get_binlog_key(), value);
 }
 
-bool RecentDialogList::load_dialogs(Promise<Unit> &promise) {
+bool RecentDialogList::load_dialogs(Promise<Unit> &&promise) {
   if (dialogs_loaded_ >= 2) {
+    promise.set_value(Unit());
     return true;
   }
 
@@ -77,6 +78,7 @@ bool RecentDialogList::load_dialogs(Promise<Unit> &promise) {
     if (!dialog_ids_.empty()) {
       save_dialogs();
     }
+    promise.set_value(Unit());
     return true;
   }
 
@@ -109,6 +111,7 @@ bool RecentDialogList::load_dialogs(Promise<Unit> &promise) {
     if (!newly_found_dialogs.empty()) {
       save_dialogs();
     }
+    promise.set_value(Unit());
     return true;
   }
 
@@ -221,8 +224,13 @@ void RecentDialogList::update_dialogs() {
   }
 }
 
-std::pair<int32, vector<DialogId>> RecentDialogList::get_dialogs(int32 limit) {
+std::pair<int32, vector<DialogId>> RecentDialogList::get_dialogs(int32 limit, Promise<Unit> &&promise) {
+  if (!load_dialogs(std::move(promise))) {
+    return {};
+  }
+
   CHECK(dialogs_loaded_ == 2);
+
   update_dialogs();
 
   size_t result_size = min(static_cast<size_t>(limit), dialog_ids_.size());
