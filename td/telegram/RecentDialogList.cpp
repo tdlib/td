@@ -33,11 +33,9 @@ void RecentDialogList::save_dialogs() const {
   }
   CHECK(removed_dialog_ids_.empty());
 
-  string value;
+  SliceBuilder sb;
   for (auto &dialog_id : dialog_ids_) {
-    if (!value.empty()) {
-      value += ',';
-    }
+    sb << ',';
     if (!G()->parameters().use_message_db) {
       // if there is no dialog database, prefer to save dialogs by username
       string username;
@@ -57,14 +55,17 @@ void RecentDialogList::save_dialogs() const {
           UNREACHABLE();
       }
       if (!username.empty()) {
-        value += '@';
-        value += username;
+        sb << '@' << username;
         continue;
       }
     }
-    value += to_string(dialog_id.get());
+    sb << dialog_id.get();
   }
-  G()->td_db()->get_binlog_pmc()->set(get_binlog_key(), value);
+  auto result = sb.as_cslice();
+  if (!result.empty()) {
+    result.remove_prefix(1);
+  }
+  G()->td_db()->get_binlog_pmc()->set(get_binlog_key(), result.str());
 }
 
 bool RecentDialogList::load_dialogs(Promise<Unit> &&promise) {
