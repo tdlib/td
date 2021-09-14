@@ -487,8 +487,7 @@ class Global final : public ActorContext {
 
 inline Global *G_impl(const char *file, int line) {
   ActorContext *context = Scheduler::context();
-  CHECK(context);
-  LOG_CHECK(context->get_id() == Global::ID) << "In " << file << " at " << line;
+  LOG_CHECK(context != nullptr && context->get_id() == Global::ID) << "In " << file << " at " << line;
   return static_cast<Global *>(context);
 }
 
