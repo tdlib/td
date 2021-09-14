@@ -21,6 +21,7 @@ namespace td {
 
 RecentDialogList::RecentDialogList(Td *td, const char *name, size_t max_size)
     : td_(td), name_(name), max_size_(max_size) {
+  register_actor(PSLICE() << name << "_chats", this).release();
 }
 
 string RecentDialogList::get_binlog_key() const {
@@ -68,10 +69,9 @@ void RecentDialogList::save_dialogs() const {
   G()->td_db()->get_binlog_pmc()->set(get_binlog_key(), result.str());
 }
 
-bool RecentDialogList::load_dialogs(Promise<Unit> &&promise) {
+void RecentDialogList::load_dialogs(Promise<Unit> &&promise) {
   if (dialogs_loaded_ >= 2) {
-    promise.set_value(Unit());
-    return true;
+    return promise.set_value(Unit());
   }
 
   string found_dialogs_str = G()->td_db()->get_binlog_pmc()->get(get_binlog_key());
@@ -81,8 +81,7 @@ bool RecentDialogList::load_dialogs(Promise<Unit> &&promise) {
     if (!dialog_ids_.empty()) {
       save_dialogs();
     }
-    promise.set_value(Unit());
-    return true;
+    return promise.set_value(Unit());
   }
 
   auto found_dialogs = full_split(found_dialogs_str, ',');
@@ -112,8 +111,7 @@ bool RecentDialogList::load_dialogs(Promise<Unit> &&promise) {
     if (!newly_found_dialogs.empty()) {
       save_dialogs();
     }
-    promise.set_value(Unit());
-    return true;
+    return promise.set_value(Unit());
   }
 
   resolve_dialogs_multipromise_.add_promise(std::move(promise));
@@ -146,7 +144,6 @@ bool RecentDialogList::load_dialogs(Promise<Unit> &&promise) {
 
     lock.set_value(Unit());
   }
-  return false;
 }
 
 void RecentDialogList::add_dialog(DialogId dialog_id) {
@@ -233,7 +230,8 @@ void RecentDialogList::update_dialogs() {
 }
 
 std::pair<int32, vector<DialogId>> RecentDialogList::get_dialogs(int32 limit, Promise<Unit> &&promise) {
-  if (!load_dialogs(std::move(promise))) {
+  load_dialogs(std::move(promise));
+  if (dialogs_loaded_ != 2) {
     return {};
   }
 

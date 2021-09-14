@@ -8,6 +8,7 @@
 
 #include "td/telegram/DialogId.h"
 
+#include "td/actor/actor.h"
 #include "td/actor/MultiPromise.h"
 
 #include "td/utils/common.h"
@@ -42,7 +43,7 @@ class RecentDialogList : public Actor {
   int32 dialogs_loaded_ = 0;  // 0 - not loaded, 1 - load request was sent, 2 - loaded
   MultiPromiseActor resolve_dialogs_multipromise_{"ResolveDialogsMultiPromiseActor"};
 
-  bool load_dialogs(Promise<Unit> &&promise);
+  void load_dialogs(Promise<Unit> &&promise);
 
   bool do_add_dialog(DialogId dialog_id);
 
