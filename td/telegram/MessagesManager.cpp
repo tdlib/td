@@ -21401,8 +21401,7 @@ void MessagesManager::delete_bot_command_message_id(DialogId dialog_id, MessageI
   if (it == dialog_bot_command_message_ids_.end()) {
     return;
   }
-  it->second.message_ids.erase(message_id);
-  if (it->second.message_ids.empty()) {
+  if (it->second.message_ids.erase(message_id) && it->second.message_ids.empty()) {
     dialog_bot_command_message_ids_.erase(it);
   }
 }
@@ -30001,7 +30000,9 @@ void MessagesManager::set_dialog_has_bots(Dialog *d, bool has_bots) {
     auto it = dialog_bot_command_message_ids_.find(d->dialog_id);
     if (it != dialog_bot_command_message_ids_.end()) {
       for (auto message_id : it->second.message_ids) {
-        send_update_message_content_impl(d->dialog_id, get_message(d, message_id), "set_dialog_has_bots");
+        auto m = get_message(d, message_id);
+        LOG_CHECK(m != nullptr) << d->dialog_id << ' ' << message_id;
+        send_update_message_content_impl(d->dialog_id, m, "set_dialog_has_bots");
       }
     }
   }
