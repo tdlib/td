@@ -9,7 +9,7 @@
 #include "td/telegram/DialogId.h"
 
 #include "td/actor/actor.h"
-#include "td/actor/MultiPromise.h"
+#include "td/actor/PromiseFuture.h"
 
 #include "td/utils/common.h"
 
@@ -40,10 +40,12 @@ class RecentDialogList : public Actor {
   vector<DialogId> dialog_ids_;
   std::unordered_set<DialogId, DialogIdHash> removed_dialog_ids_;
 
-  int32 dialogs_loaded_ = 0;  // 0 - not loaded, 1 - load request was sent, 2 - loaded
-  MultiPromiseActor resolve_dialogs_multipromise_{"ResolveDialogsMultiPromiseActor"};
+  bool is_loaded_ = false;
+  vector<Promise<Unit>> load_list_queries_;
 
   void load_dialogs(Promise<Unit> &&promise);
+
+  void on_load_dialogs(vector<string> &&found_dialogs);
 
   bool do_add_dialog(DialogId dialog_id);
 
