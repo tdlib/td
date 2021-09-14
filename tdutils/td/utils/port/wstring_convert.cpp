@@ -10,6 +10,8 @@ char disable_linker_warning_about_empty_file_wstring_convert_cpp TD_UNUSED;
 
 #if TD_PORT_WINDOWS
 
+#include "td/utils/base64.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/utf8.h"
 
 #include <cwchar>
@@ -18,7 +20,7 @@ namespace td {
 
 Result<std::wstring> to_wstring(CSlice slice) {
   if (!check_utf8(slice)) {
-    return Status::Error("Wrong string encoding");
+    return Status::Error(PSLICE() << "String was expected to be encoded in UTF-8: " << base64_encode(slice));
   }
 
   size_t wstring_len = utf8_utf16_length(slice);
