@@ -20,6 +20,8 @@ class UserId {
   int64 id = 0;
 
  public:
+  static constexpr int64 MAX_USER_ID = (1ll << 40) - 1;
+
   UserId() = default;
 
   explicit UserId(int64 user_id) : id(user_id) {
@@ -46,7 +48,7 @@ class UserId {
   }
 
   bool is_valid() const {
-    return id > 0;
+    return 0 < id && id <= MAX_USER_ID;
   }
 
   int64 get() const {

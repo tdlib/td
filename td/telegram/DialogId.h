@@ -24,13 +24,8 @@ namespace td {
 enum class DialogType : int32 { None, User, Chat, Channel, SecretChat };
 
 class DialogId {
-  static constexpr int64 MIN_SECRET_ID = -2002147483648ll;
-  static constexpr int64 ZERO_SECRET_ID = -2000000000000ll;
-  static constexpr int64 MAX_SECRET_ID = -1997852516353ll;
-  static constexpr int64 MIN_CHANNEL_ID = -1997852516352ll;
-  static constexpr int64 MAX_CHANNEL_ID = -1000000000000ll;
-  static constexpr int64 MIN_CHAT_ID = -999999999999ll;
-  static constexpr int64 MAX_USER_ID = 999999999999ll;
+  static constexpr int64 ZERO_SECRET_CHAT_ID = -2000000000000ll;
+  static constexpr int64 ZERO_CHANNEL_ID = -1000000000000ll;
 
   int64 id = 0;
 
@@ -49,7 +44,7 @@ class DialogId {
   explicit DialogId(UserId user_id);
   explicit DialogId(ChatId chat_id);
   explicit DialogId(ChannelId channel_id);
-  explicit DialogId(SecretChatId chat_id);
+  explicit DialogId(SecretChatId secret_chat_id);
 
   int64 get() const {
     return id;

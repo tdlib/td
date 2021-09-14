@@ -10,38 +10,31 @@
 
 #include "td/utils/logging.h"
 
+#include <limits>
+
 namespace td {
 
 bool DialogId::is_valid() const {
-  switch (get_type()) {
-    case DialogType::User:
-      return get_user_id().is_valid();
-    case DialogType::Chat:
-      return get_chat_id().is_valid();
-    case DialogType::Channel:
-      return get_channel_id().is_valid();
-    case DialogType::SecretChat:
-      return get_secret_chat_id().is_valid();
-    case DialogType::None:
-      return false;
-    default:
-      UNREACHABLE();
-      return false;
-  }
+  return get_type() != DialogType::None;
 }
 
 DialogType DialogId::get_type() const {
+  // check that valid ranges are continuous
+  static_assert(ZERO_CHANNEL_ID + 1 == -ChatId::MAX_CHAT_ID, "");
+  static_assert(
+      ZERO_SECRET_CHAT_ID + std::numeric_limits<int32>::max() + 1 == ZERO_CHANNEL_ID - ChannelId::MAX_CHANNEL_ID, "");
+
   if (id < 0) {
-    if (MIN_CHAT_ID <= id) {
+    if (-ChatId::MAX_CHAT_ID <= id) {
       return DialogType::Chat;
     }
-    if (MIN_CHANNEL_ID <= id && id < MAX_CHANNEL_ID) {
+    if (ZERO_CHANNEL_ID - ChannelId::MAX_CHANNEL_ID <= id && id != ZERO_CHANNEL_ID) {
       return DialogType::Channel;
     }
-    if (MIN_SECRET_ID <= id && id < MAX_SECRET_ID) {
+    if (ZERO_SECRET_CHAT_ID + std::numeric_limits<int32>::min() <= id && id != ZERO_SECRET_CHAT_ID) {
       return DialogType::SecretChat;
     }
-  } else if (0 < id && id <= MAX_USER_ID) {
+  } else if (0 < id && id <= UserId::MAX_USER_ID) {
     return DialogType::User;
   }
   return DialogType::None;
@@ -59,12 +52,12 @@ ChatId DialogId::get_chat_id() const {
 
 ChannelId DialogId::get_channel_id() const {
   CHECK(get_type() == DialogType::Channel);
-  return ChannelId(MAX_CHANNEL_ID - id);
+  return ChannelId(ZERO_CHANNEL_ID - id);
 }
 
 SecretChatId DialogId::get_secret_chat_id() const {
   CHECK(get_type() == DialogType::SecretChat);
-  return SecretChatId(static_cast<int32>(id - ZERO_SECRET_ID));
+  return SecretChatId(static_cast<int32>(id - ZERO_SECRET_CHAT_ID));
 }
 
 DialogId::DialogId(UserId user_id) {
@@ -85,15 +78,15 @@ DialogId::DialogId(ChatId chat_id) {
 
 DialogId::DialogId(ChannelId channel_id) {
   if (channel_id.is_valid()) {
-    id = MAX_CHANNEL_ID - channel_id.get();
+    id = ZERO_CHANNEL_ID - channel_id.get();
   } else {
     id = 0;
   }
 }
 
-DialogId::DialogId(SecretChatId chat_id) {
-  if (chat_id.is_valid()) {
-    id = ZERO_SECRET_ID + static_cast<int64>(chat_id.get());
+DialogId::DialogId(SecretChatId secret_chat_id) {
+  if (secret_chat_id.is_valid()) {
+    id = ZERO_SECRET_CHAT_ID + static_cast<int64>(secret_chat_id.get());
   } else {
     id = 0;
   }
@@ -150,7 +143,7 @@ int64 DialogId::get_peer_id(const tl_object_ptr<telegram_api::Peer> &peer) {
         return 0;
       }
 
-      return MAX_CHANNEL_ID - channel_id.get();
+      return ZERO_CHANNEL_ID - channel_id.get();
     }
     default:
       UNREACHABLE();

@@ -1467,7 +1467,8 @@ class ContactsManager final : public Actor {
 
   static tl_object_ptr<td_api::SecretChatState> get_secret_chat_state_object(SecretChatState state);
 
-  static td_api::object_ptr<td_api::updateSecretChat> get_update_unknown_secret_chat_object(SecretChatId user_id);
+  static td_api::object_ptr<td_api::updateSecretChat> get_update_unknown_secret_chat_object(
+      SecretChatId secret_chat_id);
 
   tl_object_ptr<td_api::secretChat> get_secret_chat_object(SecretChatId secret_chat_id, const SecretChat *secret_chat);
 

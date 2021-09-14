@@ -20,6 +20,9 @@ class ChannelId {
   int64 id = 0;
 
  public:
+  // the last (1 << 31) - 1 identifiers will be used for secret chat dialog identifiers
+  static constexpr int64 MAX_CHANNEL_ID = 1000000000000ll - (1ll << 31);
+
   ChannelId() = default;
 
   explicit ChannelId(int64 channel_id) : id(channel_id) {
@@ -28,7 +31,7 @@ class ChannelId {
   ChannelId(T channel_id) = delete;
 
   bool is_valid() const {
-    return id > 0;  // TODO better is_valid
+    return 0 < id && id < MAX_CHANNEL_ID;
   }
 
   int64 get() const {

@@ -34177,6 +34177,7 @@ void MessagesManager::force_create_dialog(DialogId dialog_id, const char *source
 MessagesManager::Dialog *MessagesManager::add_dialog(DialogId dialog_id, const char *source) {
   LOG(DEBUG) << "Creating " << dialog_id << " from " << source;
   CHECK(!have_dialog(dialog_id));
+  LOG_CHECK(dialog_id.is_valid()) << source;
 
   if (G()->parameters().use_message_db) {
     // TODO preload dialog asynchronously, remove loading from this function

@@ -20,6 +20,8 @@ class ChatId {
   int64 id = 0;
 
  public:
+  static constexpr int64 MAX_CHAT_ID = 999999999999ll;
+
   ChatId() = default;
 
   explicit ChatId(int64 chat_id) : id(chat_id) {
@@ -28,7 +30,7 @@ class ChatId {
   ChatId(T chat_id) = delete;
 
   bool is_valid() const {
-    return id > 0;
+    return 0 < id && id <= MAX_CHAT_ID;
   }
 
   int64 get() const {
