@@ -2688,9 +2688,10 @@ backgroundTypeWallpaper is_blurred:Bool is_moving:Bool = BackgroundType;
 
 //@description A PNG or TGV (gzipped subset of SVG with MIME type "application/x-tgwallpattern") pattern to be combined with the background fill chosen by the user
 //@fill Description of the background fill
-//@intensity Intensity of the pattern when it is shown above the filled background; -100-100. If negative, the pattern color and the filled background colors needs to be inverted
+//@intensity Intensity of the pattern when it is shown above the filled background; 0-100.
+//@is_inverted True, if the background fill must be applied only to the pattern itself. All other pixels are black in this case. For dark themes only
 //@is_moving True, if the background needs to be slightly moved when device is tilted
-backgroundTypePattern fill:BackgroundFill intensity:int32 is_moving:Bool = BackgroundType;
+backgroundTypePattern fill:BackgroundFill intensity:int32 is_inverted:Bool is_moving:Bool = BackgroundType;
 
 //@description A filled background @fill Description of the background fill
 backgroundTypeFill fill:BackgroundFill = BackgroundType;

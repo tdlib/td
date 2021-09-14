@@ -1534,20 +1534,22 @@ class CliClient final : public Actor {
 
   static td_api::object_ptr<td_api::BackgroundType> get_solid_pattern_background(int32 color, int32 intensity,
                                                                                  bool is_moving) {
-    return get_gradient_pattern_background(color, color, intensity, is_moving);
+    return get_gradient_pattern_background(color, color, intensity, false, is_moving);
   }
 
   static td_api::object_ptr<td_api::BackgroundType> get_gradient_pattern_background(int32 top_color, int32 bottom_color,
-                                                                                    int32 intensity, bool is_moving) {
+                                                                                    int32 intensity, bool is_inverted,
+                                                                                    bool is_moving) {
     return td_api::make_object<td_api::backgroundTypePattern>(get_background_fill(top_color, bottom_color), intensity,
-                                                              is_moving);
+                                                              is_inverted, is_moving);
   }
 
   static td_api::object_ptr<td_api::BackgroundType> get_freeform_gradient_pattern_background(vector<int32> colors,
                                                                                              int32 intensity,
+                                                                                             bool is_inverted,
                                                                                              bool is_moving) {
     return td_api::make_object<td_api::backgroundTypePattern>(get_background_fill(std::move(colors)), intensity,
-                                                              is_moving);
+                                                              is_inverted, is_moving);
   }
 
   static td_api::object_ptr<td_api::BackgroundType> get_solid_background(int32 color) {
@@ -2228,14 +2230,16 @@ class CliClient final : public Actor {
       send_get_background_url(get_solid_pattern_background(0, 0, false));
       send_get_background_url(get_solid_pattern_background(0xFFFFFF, 100, true));
       send_get_background_url(get_solid_pattern_background(0xABCDEF, 49, true));
-      send_get_background_url(get_gradient_pattern_background(0, 0, 0, false));
-      send_get_background_url(get_gradient_pattern_background(0xFFFFFF, 0, 100, true));
-      send_get_background_url(get_gradient_pattern_background(0xABCDEF, 0xFEDCBA, 49, true));
-      send_get_background_url(get_gradient_pattern_background(0, 0x1000000, 49, true));
-      send_get_background_url(get_freeform_gradient_pattern_background({0xABCDEF, 0xFEDCBA}, 49, true));
-      send_get_background_url(get_freeform_gradient_pattern_background({0xABCDEF, 0x111111, 0x222222}, 49, true));
+      send_get_background_url(get_gradient_pattern_background(0, 0, 0, false, false));
+      send_get_background_url(get_gradient_pattern_background(0, 0, 0, true, false));
+      send_get_background_url(get_gradient_pattern_background(0xFFFFFF, 0, 100, false, true));
+      send_get_background_url(get_gradient_pattern_background(0xFFFFFF, 0, 100, true, true));
+      send_get_background_url(get_gradient_pattern_background(0xABCDEF, 0xFEDCBA, 49, false, true));
+      send_get_background_url(get_gradient_pattern_background(0, 0x1000000, 49, false, true));
+      send_get_background_url(get_freeform_gradient_pattern_background({0xABCDEF, 0xFEDCBA}, 49, false, true));
+      send_get_background_url(get_freeform_gradient_pattern_background({0xABCDEF, 0x111111, 0x222222}, 49, true, true));
       send_get_background_url(
-          get_freeform_gradient_pattern_background({0xABCDEF, 0xFEDCBA, 0x111111, 0x222222}, 49, true));
+          get_freeform_gradient_pattern_background({0xABCDEF, 0xFEDCBA, 0x111111, 0x222222}, 49, false, true));
       send_get_background_url(get_solid_background(-1));
       send_get_background_url(get_solid_background(0xABCDEF));
       send_get_background_url(get_solid_background(0x1000000));
@@ -2260,7 +2264,7 @@ class CliClient final : public Actor {
     } else if (op == "sbggp" || op == "sbggpd") {
       send_request(td_api::make_object<td_api::setBackground>(
           td_api::make_object<td_api::inputBackgroundLocal>(as_input_file(args)),
-          get_gradient_pattern_background(0xABCDEF, 0xFE, 51, false), op == "sbggpd"));
+          get_gradient_pattern_background(0xABCDEF, 0xFE, 51, op == "sbggpd", false), op == "sbggpd"));
     } else if (op == "sbgs" || op == "sbgsd") {
       int32 color;
       get_args(args, color);
