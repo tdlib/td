@@ -577,6 +577,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::clearRecentlyFoundChats &request);
 
+  void on_request(uint64 id, const td_api::getRecentlyOpenedChats &request);
+
   void on_request(uint64 id, const td_api::getGroupsInCommon &request);
 
   void on_request(uint64 id, td_api::checkChatUsername &request);

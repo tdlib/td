@@ -5695,7 +5695,10 @@ MessagesManager::Dialog::~Dialog() {
 }
 
 MessagesManager::MessagesManager(Td *td, ActorShared<> parent)
-    : recently_found_dialogs_{td, "recently_found", MAX_RECENTLY_FOUND_DIALOGS}, td_(td), parent_(std::move(parent)) {
+    : recently_found_dialogs_{td, "recently_found", MAX_RECENT_DIALOGS}
+    , recently_opened_dialogs_{td, "recently_opened", MAX_RECENT_DIALOGS}
+    , td_(td)
+    , parent_(std::move(parent)) {
   upload_media_callback_ = std::make_shared<UploadMediaCallback>();
   upload_thumbnail_callback_ = std::make_shared<UploadThumbnailCallback>();
   upload_dialog_photo_callback_ = std::make_shared<UploadDialogPhotoCallback>();
@@ -10919,6 +10922,7 @@ void MessagesManager::on_dialog_deleted(DialogId dialog_id, Promise<Unit> &&prom
     d->need_restore_reply_markup = true;
   }
   recently_found_dialogs_.remove_dialog(dialog_id);
+  recently_opened_dialogs_.remove_dialog(dialog_id);
   if (dialog_id.get_type() == DialogType::Channel) {
     G()->td_db()->get_binlog_pmc()->erase(get_channel_pts_key(dialog_id));
   }
@@ -16262,6 +16266,10 @@ std::pair<int32, vector<DialogId>> MessagesManager::search_dialogs(const string 
   return {narrow_cast<int32>(result.first), std::move(dialog_ids)};
 }
 
+std::pair<int32, vector<DialogId>> MessagesManager::get_recently_opened_dialogs(int32 limit, Promise<Unit> &&promise) {
+  return recently_opened_dialogs_.get_dialogs(limit, std::move(promise));
+}
+
 vector<DialogId> MessagesManager::sort_dialogs_by_order(const vector<DialogId> &dialog_ids, int32 limit) const {
   CHECK(!td_->auth_manager_->is_bot());
   int64 fake_order = static_cast<int64>(dialog_ids.size()) + 1;
@@ -19525,7 +19533,11 @@ void MessagesManager::read_message_contents_on_server(DialogId dialog_id, vector
 
 void MessagesManager::open_dialog(Dialog *d) {
   DialogId dialog_id = d->dialog_id;
-  if (d->is_opened || !have_input_peer(dialog_id, AccessRights::Read)) {
+  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+    return;
+  }
+  recently_opened_dialogs_.add_dialog(dialog_id);
+  if (d->is_opened) {
     return;
   }
   d->is_opened = true;

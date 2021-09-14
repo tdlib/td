@@ -4130,6 +4130,9 @@ removeRecentlyFoundChat chat_id:int53 = Ok;
 //@description Clears the list of recently found chats
 clearRecentlyFoundChats = Ok;
 
+//@description Returns recently opened chats, this is an offline request. Returns chats in the order of last opening @limit The maximum number of chats to be returned
+getRecentlyOpenedChats limit:int32 = Chats;
+
 //@description Checks whether a username can be set for a chat @chat_id Chat identifier; should be identifier of a supergroup chat, or a channel chat, or a private chat with self, or zero if the chat is being created @username Username to be checked
 checkChatUsername chat_id:int53 username:string = CheckChatUsernameResult;
 

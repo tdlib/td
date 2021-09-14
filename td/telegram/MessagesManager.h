@@ -369,6 +369,8 @@ class MessagesManager final : public Actor {
 
   void clear_recently_found_dialogs();
 
+  std::pair<int32, vector<DialogId>> get_recently_opened_dialogs(int32 limit, Promise<Unit> &&promise);
+
   DialogId resolve_dialog_username(const string &username) const;
 
   DialogId search_public_dialog(const string &username_to_search, bool force, Promise<Unit> &&promise);
@@ -1652,7 +1654,7 @@ class MessagesManager final : public Actor {
   static constexpr int32 MIN_CHANNEL_DIFFERENCE = 1;
   static constexpr int32 MAX_CHANNEL_DIFFERENCE = 100;
   static constexpr int32 MAX_BOT_CHANNEL_DIFFERENCE = 100000;   // server side limit
-  static constexpr int32 MAX_RECENTLY_FOUND_DIALOGS = 50;       // some reasonable value
+  static constexpr int32 MAX_RECENT_DIALOGS = 50;               // some reasonable value
   static constexpr size_t MAX_TITLE_LENGTH = 128;               // server side limit for chat title
   static constexpr size_t MAX_DESCRIPTION_LENGTH = 255;         // server side limit for chat description
   static constexpr size_t MAX_DIALOG_FILTER_TITLE_LENGTH = 12;  // server side limit for dialog filter title
@@ -3057,6 +3059,7 @@ class MessagesManager final : public Actor {
   static DialogId get_message_original_sender(const Message *m);
 
   RecentDialogList recently_found_dialogs_;
+  RecentDialogList recently_opened_dialogs_;
 
   class UploadMediaCallback;
   class UploadThumbnailCallback;

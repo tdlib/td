@@ -4049,6 +4049,8 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::removeRecentlyFoundChat>(as_chat_id(args)));
     } else if (op == "crfcs") {
       send_request(td_api::make_object<td_api::clearRecentlyFoundChats>());
+    } else if (op == "groc") {
+      send_request(td_api::make_object<td_api::getRecentlyOpenedChats>(as_limit(args)));
     } else if (op == "gwpp") {
       send_request(td_api::make_object<td_api::getWebPagePreview>(as_caption(args)));
     } else if (op == "gwpiv") {
