@@ -725,12 +725,12 @@ function onOptionsChanged() {
     commands.push('cd vcpkg');
     commands.push(local + 'bootstrap-vcpkg.bat');
     if (target === 'C++/CX') {
-      commands.push(local + 'vcpkg.exe install gperf openssl-uwp:arm-uwp openssl-uwp:x64-uwp openssl-uwp:x86-uwp zlib:arm-uwp zlib:x64-uwp zlib:x86-uwp');
+      commands.push(local + 'vcpkg.exe install gperf:x86-windows openssl-uwp:arm-uwp openssl-uwp:x64-uwp openssl-uwp:x86-uwp zlib:arm-uwp zlib:x64-uwp zlib:x86-uwp');
     } else {
       if (build_64bit) {
-        commands.push(local + 'vcpkg.exe install gperf openssl:x64-windows zlib:x64-windows');
+        commands.push(local + 'vcpkg.exe install gperf:x64-windows openssl:x64-windows zlib:x64-windows');
       } else {
-        commands.push(local + 'vcpkg.exe install gperf openssl:x86-windows zlib:x86-windows');
+        commands.push(local + 'vcpkg.exe install gperf:x86-windows openssl:x86-windows zlib:x86-windows');
       }
     }
     commands.push('cd ..');
