@@ -17,6 +17,8 @@
 #include "td/utils/misc.h"
 #include "td/utils/SliceBuilder.h"
 
+#include <algorithm>
+
 namespace td {
 
 RecentDialogList::RecentDialogList(Td *td, const char *name, size_t max_size)
