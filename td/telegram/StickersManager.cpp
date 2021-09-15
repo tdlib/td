@@ -665,6 +665,7 @@ class GetStickerSetQuery final : public Td::ResultHandler {
       sticker_set_name_ =
           static_cast<const telegram_api::inputStickerSetShortName *>(input_sticker_set.get())->short_name_;
     }
+    // input_sticker_set = make_tl_object<telegram_api::inputStickerSetAnimatedEmoji>();
     LOG(INFO) << "Load " << sticker_set_id << " from server: " << to_string(input_sticker_set);
     send_query(G()->net_query_creator().create(telegram_api::messages_getStickerSet(std::move(input_sticker_set))));
   }
@@ -1211,15 +1212,21 @@ void StickersManager::init() {
 
   {
     // add animated emoji sticker set
-    auto &animated_emoji_sticker_set = add_special_sticker_set(SpecialStickerSetType::animated_emoji());
+    auto &sticker_set = add_special_sticker_set(SpecialStickerSetType::animated_emoji());
     if (G()->is_test_dc()) {
-      init_special_sticker_set(animated_emoji_sticker_set, 1258816259751954, 4879754868529595811, "emojies");
+      init_special_sticker_set(sticker_set, 1258816259751954, 4879754868529595811, "emojies");
     } else {
-      init_special_sticker_set(animated_emoji_sticker_set, 1258816259751983, 5100237018658464041, "AnimatedEmojies");
+      init_special_sticker_set(sticker_set, 1258816259751983, 5100237018658464041, "AnimatedEmojies");
     }
-    load_special_sticker_set_info_from_binlog(animated_emoji_sticker_set);
-    G()->shared_config().set_option_string(PSLICE() << animated_emoji_sticker_set.type_.type_ << "_name",
-                                           animated_emoji_sticker_set.short_name_);
+    load_special_sticker_set_info_from_binlog(sticker_set);
+    G()->shared_config().set_option_string(PSLICE() << sticker_set.type_.type_ << "_name", sticker_set.short_name_);
+  }
+  if (!G()->is_test_dc()) {
+    // add animated emoji click sticker set
+    auto &sticker_set = add_special_sticker_set(SpecialStickerSetType::animated_emoji_click());
+    init_special_sticker_set(sticker_set, 1258816259751996, 1, "EmojiAnimations");
+    load_special_sticker_set_info_from_binlog(sticker_set);
+    G()->shared_config().set_option_string(PSLICE() << sticker_set.type_.type_ << "_name", sticker_set.short_name_);
   }
 
   dice_emojis_str_ =
@@ -2025,6 +2032,7 @@ StickerSetId StickersManager::get_sticker_set_id(const tl_object_ptr<telegram_ap
       return search_sticker_set(static_cast<const telegram_api::inputStickerSetShortName *>(set_ptr.get())->short_name_,
                                 Auto());
     case telegram_api::inputStickerSetAnimatedEmoji::ID:
+    case telegram_api::inputStickerSetAnimatedEmojiAnimations::ID:
       LOG(ERROR) << "Receive special sticker set " << to_string(set_ptr);
       return add_special_sticker_set(SpecialStickerSetType(set_ptr).type_).id_;
     case telegram_api::inputStickerSetDice::ID:
@@ -2053,6 +2061,7 @@ StickerSetId StickersManager::add_sticker_set(tl_object_ptr<telegram_api::InputS
       return search_sticker_set(set->short_name_, Auto());
     }
     case telegram_api::inputStickerSetAnimatedEmoji::ID:
+    case telegram_api::inputStickerSetAnimatedEmojiAnimations::ID:
       LOG(ERROR) << "Receive special sticker set " << to_string(set_ptr);
       return add_special_sticker_set(SpecialStickerSetType(set_ptr).type_).id_;
     case telegram_api::inputStickerSetDice::ID:
@@ -2239,6 +2248,7 @@ StickerSetId StickersManager::on_get_input_sticker_set(FileId sticker_file_id,
       return StickerSetId();
     }
     case telegram_api::inputStickerSetAnimatedEmoji::ID:
+    case telegram_api::inputStickerSetAnimatedEmojiAnimations::ID:
       return add_special_sticker_set(SpecialStickerSetType(set_ptr).type_).id_;
     case telegram_api::inputStickerSetDice::ID:
       return StickerSetId();
@@ -2790,8 +2800,11 @@ void StickersManager::on_get_special_sticker_set(const SpecialStickerSetType &ty
   CHECK(s->is_inited);
   CHECK(s->is_loaded);
 
+  LOG(INFO) << "Receive special sticker set " << type.type_ << ": " << sticker_set_id << ' ' << s->access_hash << ' '
+            << s->short_name;
   auto &sticker_set = add_special_sticker_set(type.type_);
-  if (sticker_set_id == sticker_set.id_ && s->short_name == sticker_set.short_name_ && !s->short_name.empty()) {
+  if (sticker_set_id == sticker_set.id_ && s->access_hash == sticker_set.access_hash_ &&
+      s->short_name == sticker_set.short_name_ && !s->short_name.empty()) {
     on_load_special_sticker_set(type, Status::OK());
     return;
   }
@@ -2804,6 +2817,8 @@ void StickersManager::on_get_special_sticker_set(const SpecialStickerSetType &ty
   G()->td_db()->get_binlog_pmc()->set(type.type_, PSTRING() << sticker_set.id_.get() << ' ' << sticker_set.access_hash_
                                                             << ' ' << sticker_set.short_name_);
   if (type.type_ == SpecialStickerSetType::animated_emoji()) {
+    G()->shared_config().set_option_string(PSLICE() << type.type_ << "_name", sticker_set.short_name_);
+  } else if (type.type_ == SpecialStickerSetType::animated_emoji_click()) {
     G()->shared_config().set_option_string(PSLICE() << type.type_ << "_name", sticker_set.short_name_);
   } else if (!type.get_dice_emoji().empty()) {
     sticker_set.is_being_loaded_ = true;
@@ -6677,6 +6692,7 @@ void StickersManager::after_get_difference() {
     get_favorite_stickers(Auto());
 
     reload_special_sticker_set(add_special_sticker_set(SpecialStickerSetType::animated_emoji()));
+    reload_special_sticker_set(add_special_sticker_set(SpecialStickerSetType::animated_emoji_click()));
   }
 }
 

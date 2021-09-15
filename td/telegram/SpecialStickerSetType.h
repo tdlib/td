@@ -17,6 +17,8 @@ struct SpecialStickerSetType {
 
   static string animated_emoji();
 
+  static string animated_emoji_click();
+
   static string animated_dice(const string &emoji);
 
   string get_dice_emoji() const;
