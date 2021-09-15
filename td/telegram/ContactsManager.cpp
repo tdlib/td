@@ -13454,9 +13454,14 @@ void ContactsManager::on_update_chat_participant(ChatId chat_id, UserId user_id,
   }
   if (old_dialog_participant.dialog_id != new_dialog_participant.dialog_id || !old_dialog_participant.is_valid() ||
       !new_dialog_participant.is_valid()) {
-    LOG(ERROR) << "Receive wrong updateChannelParticipant: " << old_dialog_participant << " -> "
-               << new_dialog_participant;
+    LOG(ERROR) << "Receive wrong updateChatParticipant: " << old_dialog_participant << " -> " << new_dialog_participant;
     return;
+  }
+  if (new_dialog_participant.dialog_id == DialogId(get_my_id()) &&
+      new_dialog_participant.status != get_chat_status(chat_id) && false) {
+    LOG(ERROR) << "Have status " << get_chat_status(chat_id) << " after receiving updateChatParticipant in " << chat_id
+               << " by " << user_id << " at " << date << " from " << old_dialog_participant << " to "
+               << new_dialog_participant;
   }
 
   send_update_chat_member(DialogId(chat_id), user_id, date, invite_link, old_dialog_participant,
@@ -13503,6 +13508,12 @@ void ContactsManager::on_update_channel_participant(ChannelId channel_id, UserId
     channel_participants_.erase(channel_id);
   } else if (have_channel_participant_cache(channel_id)) {
     add_channel_participant_to_cache(channel_id, new_dialog_participant, true);
+  }
+  if (new_dialog_participant.dialog_id == DialogId(get_my_id()) &&
+      new_dialog_participant.status != get_channel_status(channel_id) && false) {
+    LOG(ERROR) << "Have status " << get_channel_status(channel_id) << " after receiving updateChannelParticipant in "
+               << channel_id << " by " << user_id << " at " << date << " from " << old_dialog_participant << " to "
+               << new_dialog_participant;
   }
 
   send_update_chat_member(DialogId(channel_id), user_id, date, invite_link, old_dialog_participant,
