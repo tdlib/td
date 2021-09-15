@@ -2069,6 +2069,9 @@ chatActionRecordingVideoNote = ChatAction;
 //@description The user is uploading a video note @progress Upload progress, as a percentage
 chatActionUploadingVideoNote progress:int32 = ChatAction;
 
+//@description The user is viewing animations sent by the other party by clicking on animated emojies @emoji The animated emoji
+chatActionEnjoyingAnimations emoji:string = ChatAction;
+
 //@description The user has canceled the previous action
 chatActionCancel = ChatAction;
 

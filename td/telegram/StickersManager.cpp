@@ -2800,6 +2800,14 @@ void StickersManager::on_get_special_sticker_set(const SpecialStickerSetType &ty
   CHECK(s->is_inited);
   CHECK(s->is_loaded);
 
+  /*
+  if (type.type_ == SpecialStickerSetType::animated_emoji_click()) {
+    for (auto &sticker_id : s->sticker_ids) {
+      // TODO get supported emoji and their numbers
+    }
+  }
+  */
+
   LOG(INFO) << "Receive special sticker set " << type.type_ << ": " << sticker_set_id << ' ' << s->access_hash << ' '
             << s->short_name;
   auto &sticker_set = add_special_sticker_set(type.type_);
