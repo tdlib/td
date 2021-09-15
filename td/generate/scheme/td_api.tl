@@ -4515,6 +4515,9 @@ viewMessages chat_id:int53 message_thread_id:int53 message_ids:vector<int53> for
 //@description Informs TDLib that the message content has been opened (e.g., the user has opened a photo, video, document, location or venue, or has listened to an audio file or voice note message). An updateMessageContentOpened update will be generated if something has changed @chat_id Chat identifier of the message @message_id Identifier of the message with the opened content
 openMessageContent chat_id:int53 message_id:int53 = Ok;
 
+//@description Informs TDLib that a message with an animated emoji was clicked by the user. Returns a big animated sticker to be played or a 404 error if usual animation needs to be played @chat_id Chat identifier of the message @message_id Identifier of the clicked message
+clickAnimatedEmojiMessage chat_id:int53 message_id:int53 = Sticker;
+
 //@description Returns information about the type of an internal link. Returns a 404 error if the link is not internal. Can be called before authorization @link The link
 getInternalLinkType link:string = InternalLinkType;
 

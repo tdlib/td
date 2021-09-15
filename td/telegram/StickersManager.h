@@ -69,6 +69,9 @@ class StickersManager final : public Actor {
 
   void unregister_dice(const string &emoji, int32 value, FullMessageId full_message_id, const char *source);
 
+  void get_animated_emoji_click_sticker(const string &message_text, FullMessageId full_message_id,
+                                        Promise<td_api::object_ptr<td_api::sticker>> &&promise);
+
   void create_sticker(FileId file_id, string minithumbnail, PhotoSize thumbnail, Dimensions dimensions,
                       tl_object_ptr<telegram_api::documentAttributeSticker> sticker, bool is_animated,
                       MultiPromiseActor *load_data_multipromise_ptr);
@@ -389,6 +392,13 @@ class StickersManager final : public Actor {
     Promise<> promise;
   };
 
+  struct PendingGetAnimatedEmojiClickSticker {
+    string message_text_;
+    FullMessageId full_message_id_;
+    double start_time_ = 0;
+    Promise<td_api::object_ptr<td_api::sticker>> promise_;
+  };
+
   struct SpecialStickerSet {
     StickerSetId id_;
     int64 access_hash_ = 0;
@@ -572,6 +582,12 @@ class StickersManager final : public Actor {
 
   bool update_sticker_set_cache(const StickerSet *sticker_set, Promise<Unit> &promise);
 
+  static int get_emoji_number(Slice emoji);
+
+  void choose_animated_emoji_click_sticker(const StickerSet *sticker_set, string message_text,
+                                           FullMessageId full_message_id, double start_time,
+                                           Promise<td_api::object_ptr<td_api::sticker>> &&promise);
+
   td_api::object_ptr<td_api::updateDiceEmojis> get_update_dice_emojis_object() const;
 
   void start_up() final;
@@ -721,6 +737,8 @@ class StickersManager final : public Actor {
   std::unordered_map<int64, unique_ptr<PendingAddStickerToSet>> pending_add_sticker_to_sets_;
 
   std::unordered_map<int64, unique_ptr<PendingSetStickerSetThumbnail>> pending_set_sticker_set_thumbnails_;
+
+  vector<PendingGetAnimatedEmojiClickSticker> pending_get_animated_emoji_click_stickers_;
 
   std::shared_ptr<UploadStickerFileCallback> upload_sticker_file_callback_;
 

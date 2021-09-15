@@ -5300,6 +5300,20 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
   }
 }
 
+void get_message_content_animated_emoji_click_sticker(const MessageContent *content, FullMessageId full_message_id,
+                                                      Td *td, Promise<td_api::object_ptr<td_api::sticker>> &&promise) {
+  if (content->get_type() != MessageContentType::Text) {
+    return promise.set_error(Status::Error(400, "Message is not an animated emoji message"));
+  }
+
+  auto &text = static_cast<const MessageText *>(content)->text;
+  if (!text.entities.empty()) {
+    // TODO enable the error
+    // return promise.set_error(Status::Error(400, "Message is not an animated emoji message"));
+  }
+  td->stickers_manager_->get_animated_emoji_click_sticker(text.text, full_message_id, std::move(promise));
+}
+
 bool need_reget_message_content(const MessageContent *content) {
   CHECK(content != nullptr);
   switch (content->get_type()) {

@@ -5398,6 +5398,13 @@ void Td::on_request(uint64 id, const td_api::openMessageContent &request) {
       id, messages_manager_->open_message_content({DialogId(request.chat_id_), MessageId(request.message_id_)}));
 }
 
+void Td::on_request(uint64 id, const td_api::clickAnimatedEmojiMessage &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  messages_manager_->click_animated_emoji_message({DialogId(request.chat_id_), MessageId(request.message_id_)},
+                                                  std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getInternalLinkType &request) {
   auto type = link_manager_->parse_internal_link(request.link_);
   send_closure(actor_id(this), &Td::send_result, id, type == nullptr ? nullptr : type->get_internal_link_type_object());

@@ -1224,9 +1224,7 @@ void StickersManager::init() {
   if (!G()->is_test_dc()) {
     // add animated emoji click sticker set
     auto &sticker_set = add_special_sticker_set(SpecialStickerSetType::animated_emoji_click());
-    init_special_sticker_set(sticker_set, 1258816259751996, 1, "EmojiAnimations");
     load_special_sticker_set_info_from_binlog(sticker_set);
-    G()->shared_config().set_option_string(PSLICE() << sticker_set.type_.type_ << "_name", sticker_set.short_name_);
   }
 
   dice_emojis_str_ =
@@ -1357,13 +1355,24 @@ void StickersManager::on_load_special_sticker_set(const SpecialStickerSetType &t
 
   special_sticker_set.is_being_loaded_ = false;
 
-  auto emoji = type.get_dice_emoji();
-  CHECK(!emoji.empty());
-
   CHECK(special_sticker_set.id_.is_valid());
   auto sticker_set = get_sticker_set(special_sticker_set.id_);
   CHECK(sticker_set != nullptr);
   CHECK(sticker_set->was_loaded);
+
+  if (type.type_ == SpecialStickerSetType::animated_emoji_click()) {
+    auto pending_requests = std::move(pending_get_animated_emoji_click_stickers_);
+    reset_to_empty(pending_get_animated_emoji_click_stickers_);
+    for (auto &pending_request : pending_requests) {
+      choose_animated_emoji_click_sticker(sticker_set, std::move(pending_request.message_text_),
+                                          pending_request.full_message_id_, pending_request.start_time_,
+                                          std::move(pending_request.promise_));
+    }
+    return;
+  }
+
+  auto emoji = type.get_dice_emoji();
+  CHECK(!emoji.empty());
 
   auto it = dice_messages_.find(emoji);
   if (it == dice_messages_.end()) {
@@ -1770,12 +1779,12 @@ tl_object_ptr<td_api::stickerSet> StickersManager::get_sticker_set_object(Sticke
   for (auto sticker_id : sticker_set->sticker_ids) {
     stickers.push_back(get_sticker_object(sticker_id));
 
+    vector<string> sticker_emojis;
     auto it = sticker_set->sticker_emojis_map_.find(sticker_id);
-    if (it == sticker_set->sticker_emojis_map_.end()) {
-      emojis.push_back(Auto());
-    } else {
-      emojis.push_back(make_tl_object<td_api::emojis>(vector<string>(it->second)));
+    if (it != sticker_set->sticker_emojis_map_.end()) {
+      sticker_emojis = it->second;
     }
+    emojis.push_back(make_tl_object<td_api::emojis>(std::move(sticker_emojis)));
   }
   auto thumbnail = get_thumbnail_object(td_->file_manager_.get(), sticker_set->thumbnail,
                                         sticker_set->is_animated ? PhotoFormat::Tgs : PhotoFormat::Webp);
@@ -2825,8 +2834,6 @@ void StickersManager::on_get_special_sticker_set(const SpecialStickerSetType &ty
   G()->td_db()->get_binlog_pmc()->set(type.type_, PSTRING() << sticker_set.id_.get() << ' ' << sticker_set.access_hash_
                                                             << ' ' << sticker_set.short_name_);
   if (type.type_ == SpecialStickerSetType::animated_emoji()) {
-    G()->shared_config().set_option_string(PSLICE() << type.type_ << "_name", sticker_set.short_name_);
-  } else if (type.type_ == SpecialStickerSetType::animated_emoji_click()) {
     G()->shared_config().set_option_string(PSLICE() << type.type_ << "_name", sticker_set.short_name_);
   } else if (!type.get_dice_emoji().empty()) {
     sticker_set.is_being_loaded_ = true;
@@ -3971,6 +3978,79 @@ void StickersManager::unregister_dice(const string &emoji, int32 value, FullMess
   if (message_ids.empty()) {
     dice_messages_.erase(emoji);
   }
+}
+
+void StickersManager::get_animated_emoji_click_sticker(const string &message_text, FullMessageId full_message_id,
+                                                       Promise<td_api::object_ptr<td_api::sticker>> &&promise) {
+  auto &special_sticker_set = add_special_sticker_set(SpecialStickerSetType::animated_emoji_click());
+  if (!special_sticker_set.id_.is_valid()) {
+    // don't wait for the first load of the sticker set from the server
+    if (!special_sticker_set.is_being_loaded_) {
+      load_special_sticker_set(special_sticker_set);
+    }
+    return promise.set_value(nullptr);
+  }
+
+  auto sticker_set = get_sticker_set(special_sticker_set.id_);
+  CHECK(sticker_set != nullptr);
+  if (sticker_set->was_loaded) {
+    return choose_animated_emoji_click_sticker(sticker_set, message_text, full_message_id, Time::now(),
+                                               std::move(promise));
+  }
+
+  LOG(INFO) << "Waiting for an emoji click sticker set needed in " << full_message_id;
+  if (!special_sticker_set.is_being_loaded_) {
+    load_special_sticker_set(special_sticker_set);
+  }
+
+  PendingGetAnimatedEmojiClickSticker pending_request;
+  pending_request.message_text_ = message_text;
+  pending_request.full_message_id_ = full_message_id;
+  pending_request.start_time_ = Time::now();
+  pending_request.promise_ = std::move(promise);
+  pending_get_animated_emoji_click_stickers_.push_back(std::move(pending_request));
+}
+
+int StickersManager::get_emoji_number(Slice emoji) {
+  // '0'-'9' + U+20E3
+  auto data = emoji.ubegin();
+  if (emoji.size() != 4 || emoji[0] < '0' || emoji[0] > '9' || data[1] != 0xE2 || data[2] != 0x83 || data[3] != 0xA3) {
+    return -1;
+  }
+  return emoji[0] - '0';
+}
+
+void StickersManager::choose_animated_emoji_click_sticker(const StickerSet *sticker_set, string message_text,
+                                                          FullMessageId full_message_id, double start_time,
+                                                          Promise<td_api::object_ptr<td_api::sticker>> &&promise) {
+  CHECK(sticker_set->was_loaded);
+  message_text = remove_emoji_modifiers(message_text);
+  if (message_text.empty()) {
+    return promise.set_error(Status::Error(400, "Message is not an animated emoji message"));
+  }
+
+  vector<std::pair<int, FileId>> found_stickers;
+  for (auto sticker_id : sticker_set->sticker_ids) {
+    auto s = get_sticker(sticker_id);
+    CHECK(s != nullptr);
+    if (s->alt == message_text) {
+      auto it = sticker_set->sticker_emojis_map_.find(sticker_id);
+      if (it != sticker_set->sticker_emojis_map_.end()) {
+        for (auto &emoji : it->second) {
+          auto number = get_emoji_number(emoji);
+          if (number > 0) {
+            found_stickers.emplace_back(number, sticker_id);
+          }
+        }
+      }
+    }
+  }
+  if (found_stickers.empty()) {
+    return promise.set_value(nullptr);
+  }
+
+  auto result = found_stickers[Random::fast(0, narrow_cast<int>(found_stickers.size()) - 1)];
+  promise.set_value(get_sticker_object(result.second));
 }
 
 void StickersManager::view_featured_sticker_sets(const vector<StickerSetId> &sticker_set_ids) {

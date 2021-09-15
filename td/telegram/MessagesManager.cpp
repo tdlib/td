@@ -19703,6 +19703,27 @@ void MessagesManager::read_message_contents_on_server(DialogId dialog_id, vector
   }
 }
 
+void MessagesManager::click_animated_emoji_message(FullMessageId full_message_id,
+                                                   Promise<td_api::object_ptr<td_api::sticker>> &&promise) {
+  auto dialog_id = full_message_id.get_dialog_id();
+  Dialog *d = get_dialog_force(dialog_id, "click_animated_emoji_message");
+  if (d == nullptr) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+
+  auto message_id = get_persistent_message_id(d, full_message_id.get_message_id());
+  auto *m = get_message_force(d, message_id, "click_animated_emoji_message");
+  if (m == nullptr) {
+    return promise.set_error(Status::Error(400, "Message not found"));
+  }
+
+  if (m->message_id.is_scheduled() || dialog_id.get_type() != DialogType::User || !m->message_id.is_server()) {
+    return promise.set_value(nullptr);
+  }
+
+  get_message_content_animated_emoji_click_sticker(m->content.get(), full_message_id, td_, std::move(promise));
+}
+
 void MessagesManager::open_dialog(Dialog *d) {
   DialogId dialog_id = d->dialog_id;
   if (!have_input_peer(dialog_id, AccessRights::Read)) {

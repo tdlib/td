@@ -647,6 +647,9 @@ class MessagesManager final : public Actor {
 
   Status open_message_content(FullMessageId full_message_id) TD_WARN_UNUSED_RESULT;
 
+  void click_animated_emoji_message(FullMessageId full_message_id,
+                                    Promise<td_api::object_ptr<td_api::sticker>> &&promise);
+
   td_api::object_ptr<td_api::updateScopeNotificationSettings> get_update_scope_notification_settings_object(
       NotificationSettingsScope scope) const;
 
