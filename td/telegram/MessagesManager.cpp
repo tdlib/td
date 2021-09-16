@@ -16690,6 +16690,10 @@ bool MessagesManager::have_message_force(FullMessageId full_message_id, const ch
   return get_message_force(full_message_id, source) != nullptr;
 }
 
+bool MessagesManager::have_message_force(Dialog *d, MessageId message_id, const char *source) {
+  return get_message_force(d, message_id, source) != nullptr;
+}
+
 MessagesManager::Message *MessagesManager::get_message(FullMessageId full_message_id) {
   Dialog *d = get_dialog(full_message_id.get_dialog_id());
   if (d == nullptr) {
@@ -27989,7 +27993,7 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
   if (is_pinned) {
     auto message_id = get_message_content_pinned_message_id(m->content.get());
     if (message_id.is_valid() &&
-        !have_message_force({d->dialog_id, message_id},
+        !have_message_force(d, message_id,
                             force ? "add_new_message_notification force" : "add_new_message_notification not force")) {
       missing_pinned_message_id = message_id;
     }
@@ -32340,20 +32344,18 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   if (*need_update || (!d->last_new_message_id.is_valid() && !message_id.is_yet_unsent() && from_update)) {
     auto pinned_message_id = get_message_content_pinned_message_id(message->content.get());
     if (pinned_message_id.is_valid() && pinned_message_id < message_id &&
-        have_message_force({dialog_id, pinned_message_id}, "preload pinned message")) {
+        have_message_force(d, pinned_message_id, "preload pinned message")) {
       LOG(INFO) << "Preloaded pinned " << pinned_message_id << " from database";
     }
 
     if (d->pinned_message_notification_message_id.is_valid() &&
         d->pinned_message_notification_message_id != message_id &&
-        have_message_force({dialog_id, d->pinned_message_notification_message_id},
-                           "preload previously pinned message")) {
+        have_message_force(d, d->pinned_message_notification_message_id, "preload previously pinned message")) {
       LOG(INFO) << "Preloaded previously pinned " << d->pinned_message_notification_message_id << " from database";
     }
   }
   if (from_update && message->top_thread_message_id.is_valid() && message->top_thread_message_id != message_id &&
-      message_id.is_server() &&
-      have_message_force({dialog_id, message->top_thread_message_id}, "preload top reply message")) {
+      message_id.is_server() && have_message_force(d, message->top_thread_message_id, "preload top reply message")) {
     LOG(INFO) << "Preloaded top thread " << message->top_thread_message_id << " from database";
 
     Message *top_m = get_message(d, message->top_thread_message_id);

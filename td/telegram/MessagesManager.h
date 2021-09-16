@@ -2639,6 +2639,8 @@ class MessagesManager final : public Actor {
   Message *get_message(FullMessageId full_message_id);
   const Message *get_message(FullMessageId full_message_id) const;
 
+  bool have_message_force(Dialog *d, MessageId message_id, const char *source);
+
   Message *get_message_force(Dialog *d, MessageId message_id, const char *source);
 
   Message *get_message_force(FullMessageId full_message_id, const char *source);
