@@ -5308,8 +5308,7 @@ void get_message_content_animated_emoji_click_sticker(const MessageContent *cont
 
   auto &text = static_cast<const MessageText *>(content)->text;
   if (!text.entities.empty()) {
-    // TODO enable the error
-    // return promise.set_error(Status::Error(400, "Message is not an animated emoji message"));
+    return promise.set_error(Status::Error(400, "Message is not an animated emoji message"));
   }
   td->stickers_manager_->get_animated_emoji_click_sticker(text.text, full_message_id, std::move(promise));
 }

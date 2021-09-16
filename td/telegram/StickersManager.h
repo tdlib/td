@@ -588,9 +588,13 @@ class StickersManager final : public Actor {
                                            FullMessageId full_message_id, double start_time,
                                            Promise<td_api::object_ptr<td_api::sticker>> &&promise);
 
+  void flush_pending_animated_emoji_clicks();
+
   td_api::object_ptr<td_api::updateDiceEmojis> get_update_dice_emojis_object() const;
 
   void start_up() final;
+
+  void timeout_expired() final;
 
   void tear_down() final;
 
@@ -739,6 +743,10 @@ class StickersManager final : public Actor {
   std::unordered_map<int64, unique_ptr<PendingSetStickerSetThumbnail>> pending_set_sticker_set_thumbnails_;
 
   vector<PendingGetAnimatedEmojiClickSticker> pending_get_animated_emoji_click_stickers_;
+
+  string last_clicked_animated_emoji_;
+  FullMessageId last_clicked_animated_emoji_full_message_id_;
+  std::vector<std::pair<int, double>> pending_animated_emoji_clicks_;
 
   std::shared_ptr<UploadStickerFileCallback> upload_sticker_file_callback_;
 

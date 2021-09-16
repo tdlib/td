@@ -42,6 +42,7 @@
 
 #include "td/utils/algorithm.h"
 #include "td/utils/format.h"
+#include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/PathView.h"
@@ -4051,6 +4052,55 @@ void StickersManager::choose_animated_emoji_click_sticker(const StickerSet *stic
 
   auto result = found_stickers[Random::fast(0, narrow_cast<int>(found_stickers.size()) - 1)];
   promise.set_value(get_sticker_object(result.second));
+
+  if (last_clicked_animated_emoji_full_message_id_ != full_message_id) {
+    flush_pending_animated_emoji_clicks();
+  } else if (last_clicked_animated_emoji_ != message_text) {
+    pending_animated_emoji_clicks_.clear();
+  }
+  last_clicked_animated_emoji_ = std::move(message_text);
+  last_clicked_animated_emoji_full_message_id_ = full_message_id;
+  pending_animated_emoji_clicks_.emplace_back(result.first, start_time);
+  if (pending_animated_emoji_clicks_.size() == 5) {
+    flush_pending_animated_emoji_clicks();
+  } else {
+    set_timeout_in(0.5);
+  }
+}
+
+void StickersManager::timeout_expired() {
+  flush_pending_animated_emoji_clicks();
+}
+
+void StickersManager::flush_pending_animated_emoji_clicks() {
+  if (pending_animated_emoji_clicks_.empty()) {
+    return;
+  }
+  auto clicks = std::move(pending_animated_emoji_clicks_);
+  pending_animated_emoji_clicks_.clear();
+  auto full_message_id = last_clicked_animated_emoji_full_message_id_;
+  last_clicked_animated_emoji_full_message_id_ = full_message_id;
+  last_clicked_animated_emoji_.clear();
+
+  if (td_->messages_manager_->is_message_edited_recently(full_message_id, 1)) {
+    // includes deleted full_message_id
+    return;
+  }
+  if (!td_->messages_manager_->have_input_peer(full_message_id.get_dialog_id(), AccessRights::Read)) {
+    return;
+  }
+
+  double start_time = clicks[0].second;
+  auto data = json_encode<string>(json_object([&clicks, start_time](auto &o) {
+    o("v", 1);
+    o("a", json_array(clicks, [start_time](auto &click) {
+        return json_object([&click, start_time](auto &o) {
+          o("i", click.first);
+          auto t = static_cast<int32>((click.second - start_time) * 100);
+          o("t", JsonRaw(PSLICE() << (t / 100) << '.' << (t < 10 ? "0" : "") << (t % 100)));
+        });
+      }));
+  }));
 }
 
 void StickersManager::view_featured_sticker_sets(const vector<StickerSetId> &sticker_set_ids) {
