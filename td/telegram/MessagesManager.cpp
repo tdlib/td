@@ -13537,6 +13537,7 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
       being_readded_message_id_ = FullMessageId();
       return FullMessageId();
     }
+    old_message_id = old_message->message_id;
 
     need_update = false;
 
@@ -33349,7 +33350,9 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
   CHECK(d != nullptr);
   CHECK(old_message != nullptr);
   CHECK(new_message != nullptr);
-  CHECK(old_message->message_id == new_message->message_id);
+  LOG_CHECK(old_message->message_id == new_message->message_id)
+      << d->dialog_id << ' ' << old_message->message_id << ' ' << new_message->message_id << ' '
+      << is_message_in_dialog;
   CHECK(old_message->random_y == new_message->random_y);
   CHECK(need_update_dialog_pos != nullptr);
 
