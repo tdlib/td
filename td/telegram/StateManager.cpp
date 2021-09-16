@@ -100,20 +100,20 @@ void StateManager::close() {
   stop();
 }
 
-StateManager::State StateManager::get_real_state() const {
+ConnectionState StateManager::get_real_state() const {
   if (!network_flag_) {
-    return State::WaitingForNetwork;
+    return ConnectionState::WaitingForNetwork;
   }
   if (!connect_cnt_) {
     if (use_proxy_ && !connect_proxy_cnt_) {
-      return State::ConnectingToProxy;
+      return ConnectionState::ConnectingToProxy;
     }
-    return State::Connecting;
+    return ConnectionState::Connecting;
   }
   if (!sync_flag_) {
-    return State::Updating;
+    return ConnectionState::Updating;
   }
-  return State::Ready;
+  return ConnectionState::Ready;
 }
 
 void StateManager::notify_flag(Flag flag) {
@@ -166,7 +166,7 @@ void StateManager::loop() {
   }
   if (pending_state_ != flush_state_) {
     double delay = 0;
-    if (flush_state_ != State::Empty) {
+    if (flush_state_ != ConnectionState::Empty) {
       if (static_cast<int32>(pending_state_) > static_cast<int32>(flush_state_)) {
         delay = UP_DELAY;
       } else {

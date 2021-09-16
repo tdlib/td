@@ -8,6 +8,7 @@
 
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ConfigShared.h"
+#include "td/telegram/ConnectionState.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/JsonValue.h"
 #include "td/telegram/LinkManager.h"
@@ -850,8 +851,8 @@ class ConfigRecoverer final : public Actor {
      public:
       explicit StateCallback(ActorId<ConfigRecoverer> parent) : parent_(std::move(parent)) {
       }
-      bool on_state(StateManager::State state) final {
-        send_closure(parent_, &ConfigRecoverer::on_connecting, state == StateManager::State::Connecting);
+      bool on_state(ConnectionState state) final {
+        send_closure(parent_, &ConfigRecoverer::on_connecting, state == ConnectionState::Connecting);
         return parent_.is_alive();
       }
       bool on_network(NetType network_type, uint32 network_generation) final {

@@ -9,6 +9,7 @@
 #include "td/actor/actor.h"
 #include "td/actor/PromiseFuture.h"
 
+#include "td/telegram/ConnectionState.h"
 #include "td/telegram/net/NetType.h"
 
 #include "td/utils/common.h"
@@ -17,15 +18,13 @@ namespace td {
 
 class StateManager final : public Actor {
  public:
-  enum class State : int32 { WaitingForNetwork, ConnectingToProxy, Connecting, Updating, Ready, Empty };
-
   class Callback {
    public:
     Callback() = default;
     Callback(const Callback &) = delete;
     Callback &operator=(const Callback &) = delete;
     virtual ~Callback() = default;
-    virtual bool on_state(State state) {
+    virtual bool on_state(ConnectionState state) {
       return true;
     }
     virtual bool on_network(NetType network_type, uint32 generation) {
@@ -114,15 +113,15 @@ class StateManager final : public Actor {
   static constexpr double UP_DELAY = 0.05;
   static constexpr double DOWN_DELAY = 0.3;
 
-  State pending_state_ = State::Empty;
+  ConnectionState pending_state_ = ConnectionState::Empty;
   bool has_timestamp_ = false;
   double pending_timestamp_ = 0;
-  State flush_state_ = State::Empty;
+  ConnectionState flush_state_ = ConnectionState::Empty;
 
   vector<unique_ptr<Callback>> callbacks_;
 
   bool was_sync_ = false;
-  std::vector<Promise<>> wait_first_sync_;
+  vector<Promise<>> wait_first_sync_;
 
   void inc_connect();
   void dec_connect();
@@ -136,7 +135,7 @@ class StateManager final : public Actor {
   void on_network_soft();
   void do_on_network(NetType new_network_type, bool inc_generation);
 
-  State get_real_state() const;
+  ConnectionState get_real_state() const;
 
   static ConnectionToken connection_impl(ActorId<StateManager> state_manager, int mode) {
     auto actor = ActorShared<StateManager>(state_manager, mode);

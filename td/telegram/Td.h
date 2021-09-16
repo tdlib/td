@@ -6,11 +6,11 @@
 //
 #pragma once
 
+#include "td/telegram/ConnectionState.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/net/MtprotoHeader.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/net/NetQueryStats.h"
-#include "td/telegram/StateManager.h"
 #include "td/telegram/TdCallback.h"
 #include "td/telegram/TdParameters.h"
 #include "td/telegram/TermsOfService.h"
@@ -67,6 +67,7 @@ class PrivacyManager;
 class SecureManager;
 class SecretChatsManager;
 class SponsoredMessageManager;
+class StateManager;
 class StickersManager;
 class StorageManager;
 class ThemeManager;
@@ -250,7 +251,7 @@ class Td final : public Actor {
   static constexpr int64 TERMS_OF_SERVICE_ALARM_ID = -2;
   static constexpr int64 PROMO_DATA_ALARM_ID = -3;
 
-  void on_connection_state_changed(StateManager::State new_state);
+  void on_connection_state_changed(ConnectionState new_state);
 
   void send_result(uint64 id, tl_object_ptr<td_api::Object> object);
   void send_error(uint64 id, Status error);
@@ -278,7 +279,7 @@ class Td final : public Actor {
 
   TdParameters parameters_;
 
-  StateManager::State connection_state_ = StateManager::State::Empty;
+  ConnectionState connection_state_ = ConnectionState::Empty;
 
   std::unordered_multiset<uint64> request_set_;
   int actor_refcnt_ = 0;
@@ -348,8 +349,6 @@ class Td final : public Actor {
   static bool is_internal_config_option(Slice name);
 
   void on_config_option_updated(const string &name);
-
-  static tl_object_ptr<td_api::ConnectionState> get_connection_state_object(StateManager::State state);
 
   void send(NetQueryPtr &&query);
 

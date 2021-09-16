@@ -291,6 +291,7 @@ set(TDLIB_SOURCE
   td/telegram/ClientActor.cpp
   td/telegram/ConfigManager.cpp
   td/telegram/ConfigShared.cpp
+  td/telegram/ConnectionState.cpp
   td/telegram/Contact.cpp
   td/telegram/ContactsManager.cpp
   td/telegram/CountryInfoManager.cpp
@@ -467,6 +468,7 @@ set(TDLIB_SOURCE
   td/telegram/ClientActor.h
   td/telegram/ConfigManager.h
   td/telegram/ConfigShared.h
+  td/telegram/ConnectionState.h
   td/telegram/Contact.h
   td/telegram/ContactsManager.h
   td/telegram/CountryInfoManager.h
