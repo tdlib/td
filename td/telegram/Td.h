@@ -278,7 +278,7 @@ class Td final : public Actor {
 
   TdParameters parameters_;
 
-  StateManager::State connection_state_;
+  StateManager::State connection_state_ = StateManager::State::Empty;
 
   std::unordered_multiset<uint64> request_set_;
   int actor_refcnt_ = 0;

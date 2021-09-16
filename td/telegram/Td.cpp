@@ -3533,7 +3533,7 @@ tl_object_ptr<td_api::ConnectionState> Td::get_connection_state_object(StateMana
     case StateManager::State::Ready:
       return make_tl_object<td_api::connectionStateReady>();
     default:
-      UNREACHABLE();
+      LOG(FATAL) << "State = " << static_cast<int32>(state);
       return nullptr;
   }
 }
@@ -3541,6 +3541,9 @@ tl_object_ptr<td_api::ConnectionState> Td::get_connection_state_object(StateMana
 void Td::on_connection_state_changed(StateManager::State new_state) {
   if (new_state == connection_state_) {
     LOG(ERROR) << "State manager sends update about unchanged state " << static_cast<int32>(new_state);
+    return;
+  }
+  if (G()->close_flag()) {
     return;
   }
   connection_state_ = new_state;
@@ -4105,7 +4108,6 @@ void Td::init_options_and_network() {
   state_manager_ = create_actor<StateManager>("State manager", create_reference());
   send_closure(state_manager_, &StateManager::add_callback, make_unique<StateManagerCallback>(create_reference()));
   G()->set_state_manager(state_manager_.get());
-  connection_state_ = StateManager::State::Empty;
 
   VLOG(td_init) << "Create ConfigShared";
   G()->set_shared_config(td::make_unique<ConfigShared>(G()->td_db()->get_config_pmc_shared()));
