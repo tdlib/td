@@ -993,8 +993,8 @@ void BackgroundManager::add_background(const Background &background, bool replac
 
   if (result->file_id != background.file_id) {
     if (result->file_id.is_valid()) {
-      if (td_->file_manager_->get_file_view(result->file_id).file_id() !=
-          td_->file_manager_->get_file_view(background.file_id).file_id()) {
+      if (!background.file_id.is_valid() || td_->file_manager_->get_file_view(result->file_id).file_id() !=
+                                                td_->file_manager_->get_file_view(background.file_id).file_id()) {
         LOG(ERROR) << "Background file has changed from " << result->file_id << " to " << background.file_id;
         file_id_to_background_id_.erase(result->file_id);
         result->file_source_id = FileSourceId();

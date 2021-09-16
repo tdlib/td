@@ -396,6 +396,7 @@ telegram_api::object_ptr<telegram_api::InputSecureFile> get_input_secure_file_ob
     LOG(ERROR) << "Receive invalid EncryptedSecureFile";
     return nullptr;
   }
+  CHECK(input_file.file_id.is_valid());
   CHECK(file_manager->get_file_view(file.file.file_id).file_id() ==
         file_manager->get_file_view(input_file.file_id).file_id());
   auto res = std::move(input_file.input_file);

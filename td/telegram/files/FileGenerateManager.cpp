@@ -95,6 +95,7 @@ class FileDownloadGenerateActor final : public FileGenerateActor {
     send_lambda(G()->file_manager(),
                 [file_type = file_type_, file_id = file_id_, callback = std::move(callback_)]() mutable {
                   auto file_view = G()->td().get_actor_unsafe()->file_manager_->get_file_view(file_id);
+                  CHECK(!file_view.empty());
                   if (file_view.has_local_location()) {
                     auto location = file_view.local_location();
                     location.file_type_ = file_type;

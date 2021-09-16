@@ -1919,6 +1919,7 @@ void FileManager::load_from_pmc(FileNodePtr node, bool new_remote, bool new_loca
     return;
   }
   auto file_view = get_file_view(file_id);
+  CHECK(!file_view.empty());
 
   FullRemoteFileLocation remote;
   FullLocalFileLocation local;
@@ -1929,7 +1930,7 @@ void FileManager::load_from_pmc(FileNodePtr node, bool new_remote, bool new_loca
   }
   new_local &= file_view.has_local_location();
   if (new_local) {
-    local = get_file_view(file_id).local_location();
+    local = file_view.local_location();
     prepare_path_for_pmc(local.file_type_, local.path_);
   }
   new_generate &= file_view.has_generate_location();
@@ -3127,7 +3128,7 @@ Result<FileId> FileManager::get_input_file_id(FileType type, const tl_object_ptr
               auto it = file_hash_to_file_id_.find(hash);
               if (it != file_hash_to_file_id_.end()) {
                 auto file_view = get_file_view(it->second);
-                if (file_view.has_remote_location() && !file_view.remote_location().is_web()) {
+                if (!file_view.empty() && file_view.has_remote_location() && !file_view.remote_location().is_web()) {
                   return it->second;
                 }
               }
