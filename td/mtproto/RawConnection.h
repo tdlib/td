@@ -6,8 +6,7 @@
 //
 #pragma once
 
-#include "td/telegram/StateManager.h"
-
+#include "td/mtproto/ConnectionManager.h"
 #include "td/mtproto/PacketInfo.h"
 #include "td/mtproto/TransportType.h"
 
@@ -44,7 +43,7 @@ class RawConnection {
   static unique_ptr<RawConnection> create(IPAddress ip_address, SocketFd socket_fd, TransportType transport_type,
                                           unique_ptr<StatsCallback> stats_callback);
 
-  virtual void set_connection_token(StateManager::ConnectionToken connection_token) = 0;
+  virtual void set_connection_token(ConnectionManager::ConnectionToken connection_token) = 0;
 
   virtual bool can_send() const = 0;
   virtual TransportType get_transport_type() const = 0;

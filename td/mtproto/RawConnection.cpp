@@ -42,7 +42,7 @@ class RawConnectionDefault final : public RawConnection {
     transport_->init(&socket_fd_.input_buffer(), &socket_fd_.output_buffer());
   }
 
-  void set_connection_token(StateManager::ConnectionToken connection_token) final {
+  void set_connection_token(ConnectionManager::ConnectionToken connection_token) final {
     connection_token_ = std::move(connection_token);
   }
 
@@ -135,7 +135,7 @@ class RawConnectionDefault final : public RawConnection {
 
   unique_ptr<StatsCallback> stats_callback_;
 
-  StateManager::ConnectionToken connection_token_;
+  ConnectionManager::ConnectionToken connection_token_;
 
   Status flush_read(const AuthKey &auth_key, Callback &callback) {
     auto r = socket_fd_.flush_read();
@@ -268,7 +268,7 @@ class RawConnectionHttp final : public RawConnection {
     answers_->init();
   }
 
-  void set_connection_token(StateManager::ConnectionToken connection_token) final {
+  void set_connection_token(ConnectionManager::ConnectionToken connection_token) final {
     connection_token_ = std::move(connection_token);
   }
 
@@ -348,7 +348,7 @@ class RawConnectionHttp final : public RawConnection {
 
   unique_ptr<StatsCallback> stats_callback_;
 
-  StateManager::ConnectionToken connection_token_;
+  ConnectionManager::ConnectionToken connection_token_;
   std::shared_ptr<MpscPollableQueue<Result<BufferSlice>>> answers_;
   std::vector<BufferSlice> to_send_;
 

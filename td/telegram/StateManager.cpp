@@ -15,22 +15,6 @@
 
 namespace td {
 
-void StateManager::inc_connect() {
-  auto &cnt = get_link_token() == 1 ? connect_cnt_ : connect_proxy_cnt_;
-  cnt++;
-  if (cnt == 1) {
-    loop();
-  }
-}
-void StateManager::dec_connect() {
-  auto &cnt = get_link_token() == 1 ? connect_cnt_ : connect_proxy_cnt_;
-  CHECK(cnt > 0);
-  cnt--;
-  if (cnt == 0) {
-    loop();
-  }
-}
-
 void StateManager::on_synchronized(bool is_synchronized) {
   if (sync_flag_ != is_synchronized) {
     sync_flag_ = is_synchronized;

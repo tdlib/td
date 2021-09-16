@@ -9,10 +9,10 @@
 #include "td/telegram/net/AuthDataShared.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/net/TempAuthKeyWatchdog.h"
-#include "td/telegram/StateManager.h"
 
 #include "td/mtproto/AuthData.h"
 #include "td/mtproto/AuthKey.h"
+#include "td/mtproto/ConnectionManager.h"
 #include "td/mtproto/Handshake.h"
 #include "td/mtproto/SessionConnection.h"
 
@@ -153,7 +153,7 @@ class Session final
   ConnectionInfo *current_info_;
   ConnectionInfo main_connection_;
   ConnectionInfo long_poll_connection_;
-  StateManager::ConnectionToken connection_token_;
+  mtproto::ConnectionManager::ConnectionToken connection_token_;
 
   double cached_connection_timestamp_ = 0;
   unique_ptr<mtproto::RawConnection> cached_connection_;

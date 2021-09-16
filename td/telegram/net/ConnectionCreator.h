@@ -13,9 +13,9 @@
 #include "td/telegram/net/DcOptionsSet.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/net/Proxy.h"
-#include "td/telegram/StateManager.h"
 
 #include "td/mtproto/AuthData.h"
+#include "td/mtproto/ConnectionManager.h"
 #include "td/mtproto/RawConnection.h"
 #include "td/mtproto/TransportType.h"
 
@@ -82,7 +82,7 @@ class ConnectionCreator final : public NetQueryCallback {
   struct ConnectionData {
     IPAddress ip_address;
     SocketFd socket_fd;
-    StateManager::ConnectionToken connection_token;
+    mtproto::ConnectionManager::ConnectionToken connection_token;
     unique_ptr<mtproto::RawConnection::StatsCallback> stats_callback;
   };
 

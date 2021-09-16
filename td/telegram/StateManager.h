@@ -6,17 +6,19 @@
 //
 #pragma once
 
-#include "td/actor/actor.h"
-#include "td/actor/PromiseFuture.h"
-
 #include "td/telegram/ConnectionState.h"
 #include "td/telegram/net/NetType.h"
+
+#include "td/mtproto/ConnectionManager.h"
+
+#include "td/actor/actor.h"
+#include "td/actor/PromiseFuture.h"
 
 #include "td/utils/common.h"
 
 namespace td {
 
-class StateManager final : public Actor {
+class StateManager final : public mtproto::ConnectionManager {
  public:
   class Callback {
    public:
@@ -59,49 +61,8 @@ class StateManager final : public Actor {
 
   void close();
 
-  class ConnectionToken {
-   public:
-    ConnectionToken() = default;
-    explicit ConnectionToken(ActorShared<StateManager> state_manager) : state_manager_(std::move(state_manager)) {
-    }
-    ConnectionToken(const ConnectionToken &) = delete;
-    ConnectionToken &operator=(const ConnectionToken &) = delete;
-    ConnectionToken(ConnectionToken &&) = default;
-    ConnectionToken &operator=(ConnectionToken &&other) {
-      reset();
-      state_manager_ = std::move(other.state_manager_);
-      return *this;
-    }
-    ~ConnectionToken() {
-      reset();
-    }
-
-    void reset() {
-      if (!state_manager_.empty()) {
-        send_closure(state_manager_, &StateManager::dec_connect);
-        state_manager_.reset();
-      }
-    }
-
-    bool empty() const {
-      return state_manager_.empty();
-    }
-
-   private:
-    ActorShared<StateManager> state_manager_;
-  };
-
-  static ConnectionToken connection(ActorId<StateManager> state_manager) {
-    return connection_impl(state_manager, 1);
-  }
-  static ConnectionToken connection_proxy(ActorId<StateManager> state_manager) {
-    return connection_impl(state_manager, 2);
-  }
-
  private:
   ActorShared<> parent_;
-  uint32 connect_cnt_ = 0;
-  uint32 connect_proxy_cnt_ = 0;
   bool sync_flag_ = true;
   bool network_flag_ = true;
   NetType network_type_ = NetType::Unknown;
@@ -136,12 +97,6 @@ class StateManager final : public Actor {
   void do_on_network(NetType new_network_type, bool inc_generation);
 
   ConnectionState get_real_state() const;
-
-  static ConnectionToken connection_impl(ActorId<StateManager> state_manager, int mode) {
-    auto actor = ActorShared<StateManager>(state_manager, mode);
-    send_closure(actor, &StateManager::inc_connect);
-    return ConnectionToken(std::move(actor));
-  }
 };
 
 }  // namespace td

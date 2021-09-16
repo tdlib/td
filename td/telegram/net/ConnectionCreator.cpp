@@ -761,7 +761,7 @@ ActorOwn<> ConnectionCreator::prepare_connection(IPAddress ip_address, SocketFd 
       void set_result(Result<SocketFd> result) final {
         if (result.is_error()) {
           if (use_connection_token_) {
-            connection_token_ = StateManager::ConnectionToken();
+            connection_token_ = mtproto::ConnectionManager::ConnectionToken();
           }
           if (was_connected_ && stats_callback_) {
             stats_callback_->on_error();
@@ -778,14 +778,15 @@ ActorOwn<> ConnectionCreator::prepare_connection(IPAddress ip_address, SocketFd 
       }
       void on_connected() final {
         if (use_connection_token_) {
-          connection_token_ = StateManager::connection_proxy(G()->state_manager());
+          connection_token_ = mtproto::ConnectionManager::connection_proxy(
+              static_cast<ActorId<mtproto::ConnectionManager>>(G()->state_manager()));
         }
         was_connected_ = true;
       }
 
      private:
       Promise<ConnectionData> promise_;
-      StateManager::ConnectionToken connection_token_;
+      mtproto::ConnectionManager::ConnectionToken connection_token_;
       IPAddress ip_address_;
       unique_ptr<mtproto::RawConnection::StatsCallback> stats_callback_;
       bool use_connection_token_;

@@ -435,9 +435,11 @@ void Session::raw_event(const Event::Raw &event) {
 /** Connection::Callback **/
 void Session::on_connected() {
   if (is_main_) {
-    connection_token_ = StateManager::connection(G()->state_manager());
+    connection_token_ =
+        mtproto::ConnectionManager::connection(static_cast<ActorId<mtproto::ConnectionManager>>(G()->state_manager()));
   }
 }
+
 Status Session::on_pong() {
   constexpr int MAX_QUERY_TIMEOUT = 60;
   constexpr int MIN_CONNECTION_ACTIVE = 60;
@@ -468,9 +470,11 @@ Status Session::on_pong() {
   }
   return Status::OK();
 }
+
 void Session::on_auth_key_updated() {
   shared_auth_data_->set_auth_key(auth_data_.get_main_auth_key());
 }
+
 void Session::on_tmp_auth_key_updated() {
   callback_->on_tmp_auth_key_updated(auth_data_.get_tmp_auth_key());
 }
