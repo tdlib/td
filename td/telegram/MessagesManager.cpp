@@ -32360,12 +32360,11 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 
     Message *top_m = get_message(d, message->top_thread_message_id);
     CHECK(top_m != nullptr);
-    if (is_active_message_reply_info(dialog_id, top_m->reply_info) && is_discussion_message(dialog_id, top_m) &&
-        have_message_force({top_m->forward_info->from_dialog_id, top_m->forward_info->from_message_id},
-                           "preload discussed message")) {
-      LOG(INFO) << "Preloaded discussed "
-                << FullMessageId{top_m->forward_info->from_dialog_id, top_m->forward_info->from_message_id}
-                << " from database";
+    if (is_active_message_reply_info(dialog_id, top_m->reply_info) && is_discussion_message(dialog_id, top_m)) {
+      FullMessageId top_full_message_id{top_m->forward_info->from_dialog_id, top_m->forward_info->from_message_id};
+      if (have_message_force(top_full_message_id, "preload discussed message")) {
+        LOG(INFO) << "Preloaded discussed " << top_full_message_id << " from database";
+      }
     }
   }
 
