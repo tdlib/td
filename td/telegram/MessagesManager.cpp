@@ -10260,7 +10260,7 @@ void MessagesManager::delete_sent_message_from_server(DialogId dialog_id, Messag
   LOG(INFO) << "Delete already deleted sent " << message_id << " in " << dialog_id << " from server";
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
-  if (get_message(d, message_id) != nullptr) {
+  if (get_message_force(d, message_id, "delete_sent_message_from_server") != nullptr) {
     delete_messages(dialog_id, {message_id}, true, Auto());
   } else {
     if (message_id.is_valid()) {
