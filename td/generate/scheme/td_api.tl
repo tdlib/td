@@ -2316,10 +2316,6 @@ diceStickersRegular sticker:sticker = DiceStickers;
 diceStickersSlotMachine background:sticker lever:sticker left_reel:sticker center_reel:sticker right_reel:sticker = DiceStickers;
 
 
-//@description Describes a click on an animated emoji by the other party, resulted in a big animation @start_delay Animation start delay @sticker The played animated sticker
-animatedEmojiClick start_delay:double sticker:sticker = AnimatedEmojiClick;
-
-
 //@description Represents the result of an ImportContacts request @user_ids User identifiers of the imported contacts in the same order as they were specified in the request; 0 if the contact is not yet a registered user
 //@importer_count The number of users that imported the corresponding contact; 0 for already registered users or if unavailable
 importedContacts user_ids:vector<int53> importer_count:vector<int32> = ImportedContacts;
@@ -3839,8 +3835,9 @@ updateUsersNearby users_nearby:vector<chatNearby> = Update;
 //@description The list of supported dice emojis has changed @emojis The new list of supported dice emojis
 updateDiceEmojis emojis:vector<string> = Update;
 
-//@description Some animated emoji message was clicked @chat_id Chat identifier @message_id Message identifier @clicks Description of  new number of unread mention messages left in the chat
-updateAnimatedEmojiMessageClicked chat_id:int53 message_id:int53 clicks:vector<animatedEmojiClick> = Update;
+//@description Some animated emoji message was clicked and a big animated sticker should be played if the message is visible on the screen. chatActionEnjoyingAnimations with the text of the message needs to be sent if the sticker is played
+//@chat_id Chat identifier @message_id Message identifier @sticker The animated sticker to be played
+updateAnimatedEmojiMessageClicked chat_id:int53 message_id:int53 sticker:sticker = Update;
 
 //@description The parameters of animation search through GetOption("animation_search_bot_username") bot has changed @provider Name of the animation search provider @emojis The new list of emojis suggested for searching
 updateAnimationSearchParameters provider:string emojis:vector<string> = Update;

@@ -604,7 +604,7 @@ class StickersManager final : public Actor {
   void schedule_update_animated_emoji_clicked(const StickerSet *sticker_set, const string &emoji,
                                               FullMessageId full_message_id, vector<std::pair<int, double>> clicks);
 
-  void send_update_animated_emoji_clicked(FullMessageId full_message_id, vector<std::pair<FileId, double>> stickers);
+  void send_update_animated_emoji_clicked(FullMessageId full_message_id, FileId sticker_id);
 
   td_api::object_ptr<td_api::updateDiceEmojis> get_update_dice_emojis_object() const;
 

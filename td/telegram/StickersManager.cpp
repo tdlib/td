@@ -4273,7 +4273,8 @@ void StickersManager::schedule_update_animated_emoji_clicked(const StickerSet *s
     }
   }
 
-  vector<std::pair<FileId, double>> stickers;
+  auto now = Time::now();
+  auto start_time = max(now, next_update_animated_emoji_clicked_);
   for (size_t i = 0; i < clicks.size(); i++) {
     auto index = clicks[i].first;
     auto sticker_id = sticker_ids[index];
@@ -4281,28 +4282,17 @@ void StickersManager::schedule_update_animated_emoji_clicked(const StickerSet *s
       LOG(INFO) << "Failed to find sticker for " << emoji << " with index " << index;
       return;
     }
-    stickers.emplace_back(sticker_id, clicks[i].second);
-  }
-  CHECK(!stickers.empty());
-
-  auto now = Time::now();
-  if (now >= next_update_animated_emoji_clicked_) {
-    send_update_animated_emoji_clicked(full_message_id, std::move(stickers));
-    next_update_animated_emoji_clicked_ = now + clicks.back().second + MIN_ANIMATED_EMOJI_CLICK_DELAY;
-  } else {
-    create_actor<SleepActor>("SendUpdateAnimatedEmojiClicked", next_update_animated_emoji_clicked_ - now,
-                             PromiseCreator::lambda([actor_id = actor_id(this), full_message_id,
-                                                     stickers = std::move(stickers)](Result<Unit> result) mutable {
-                               send_closure(actor_id, &StickersManager::send_update_animated_emoji_clicked,
-                                            full_message_id, std::move(stickers));
-                             }))
+    create_actor<SleepActor>(
+        "SendUpdateAnimatedEmojiClicked", start_time + clicks[i].second - now,
+        PromiseCreator::lambda([actor_id = actor_id(this), full_message_id, sticker_id](Result<Unit> result) {
+          send_closure(actor_id, &StickersManager::send_update_animated_emoji_clicked, full_message_id, sticker_id);
+        }))
         .release();
-    next_update_animated_emoji_clicked_ += clicks.back().second + MIN_ANIMATED_EMOJI_CLICK_DELAY;
   }
+  next_update_animated_emoji_clicked_ = start_time + clicks.back().second + MIN_ANIMATED_EMOJI_CLICK_DELAY;
 }
 
-void StickersManager::send_update_animated_emoji_clicked(FullMessageId full_message_id,
-                                                         vector<std::pair<FileId, double>> stickers) {
+void StickersManager::send_update_animated_emoji_clicked(FullMessageId full_message_id, FileId sticker_id) {
   if (td_->messages_manager_->is_message_edited_recently(full_message_id, 2)) {
     // includes deleted full_message_id
     return;
@@ -4312,12 +4302,9 @@ void StickersManager::send_update_animated_emoji_clicked(FullMessageId full_mess
     return;
   }
 
-  auto result = transform(stickers, [this](const std::pair<FileId, double> &sticker) {
-    return td_api::make_object<td_api::animatedEmojiClick>(sticker.second, get_sticker_object(sticker.first));
-  });
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateAnimatedEmojiMessageClicked>(
-                   dialog_id.get(), full_message_id.get_message_id().get(), std::move(result)));
+                   dialog_id.get(), full_message_id.get_message_id().get(), get_sticker_object(sticker_id)));
 }
 
 void StickersManager::view_featured_sticker_sets(const vector<StickerSetId> &sticker_set_ids) {
