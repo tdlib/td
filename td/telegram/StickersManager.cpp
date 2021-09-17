@@ -1121,6 +1121,36 @@ class DeleteStickerFromSetQuery final : public Td::ResultHandler {
   }
 };
 
+class SendAnimatedEmojiClicksQuery final : public Td::ResultHandler {
+  DialogId dialog_id_;
+
+ public:
+  void send(DialogId dialog_id, tl_object_ptr<telegram_api::InputPeer> &&input_peer,
+            tl_object_ptr<telegram_api::SendMessageAction> &&action) {
+    dialog_id_ = dialog_id;
+    CHECK(input_peer != nullptr);
+
+    int32 flags = 0;
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_setTyping(flags, std::move(input_peer), 0, std::move(action))));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_setTyping>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    // ignore result
+  }
+
+  void on_error(uint64 id, Status status) final {
+    if (!td->messages_manager_->on_get_dialog_error(dialog_id_, status, "SendAnimatedEmojiClicksQuery")) {
+      LOG(INFO) << "Receive error for send animated emoji clicks: " << status;
+    }
+  }
+};
+
 class StickersManager::StickerListLogEvent {
  public:
   vector<FileId> sticker_ids;
@@ -4087,13 +4117,15 @@ void StickersManager::flush_pending_animated_emoji_clicks() {
   pending_animated_emoji_clicks_.clear();
   auto full_message_id = last_clicked_animated_emoji_full_message_id_;
   last_clicked_animated_emoji_full_message_id_ = full_message_id;
+  auto emoji = std::move(last_clicked_animated_emoji_);
   last_clicked_animated_emoji_.clear();
 
   if (td_->messages_manager_->is_message_edited_recently(full_message_id, 1)) {
     // includes deleted full_message_id
     return;
   }
-  if (!td_->messages_manager_->have_input_peer(full_message_id.get_dialog_id(), AccessRights::Read)) {
+  auto input_peer = td_->messages_manager_->get_input_peer(full_message_id.get_dialog_id(), AccessRights::Write);
+  if (input_peer == nullptr) {
     return;
   }
 
@@ -4108,6 +4140,12 @@ void StickersManager::flush_pending_animated_emoji_clicks() {
         });
       }));
   }));
+
+  td_->create_handler<SendAnimatedEmojiClicksQuery>()->send(
+      full_message_id.get_dialog_id(), std::move(input_peer),
+      make_tl_object<telegram_api::sendMessageEmojiInteraction>(
+          emoji, full_message_id.get_message_id().get_server_message_id().get(),
+          make_tl_object<telegram_api::dataJSON>(data)));
 }
 
 Status StickersManager::on_animated_emoji_message_clicked(const string &emoji, FullMessageId full_message_id,
@@ -4183,7 +4221,7 @@ void StickersManager::send_update_animated_emoji_clicked(const StickerSet *stick
     // includes deleted full_message_id
     return;
   }
-  if (!td_->messages_manager_->have_input_peer(full_message_id.get_dialog_id(), AccessRights::Read)) {
+  if (!td_->messages_manager_->have_input_peer(full_message_id.get_dialog_id(), AccessRights::Write)) {
     return;
   }
 

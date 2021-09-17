@@ -61,14 +61,6 @@ DialogAction::DialogAction(Type type, int32 progress) {
   init(type, progress);
 }
 
-DialogAction::DialogAction(Type type, string emoji) {
-  init(type, std::move(emoji));
-}
-
-DialogAction::DialogAction(Type type, int32 message_id, string emoji, string data) {
-  init(type, message_id, std::move(emoji), std::move(data));
-}
-
 DialogAction::DialogAction(tl_object_ptr<td_api::ChatAction> &&action) {
   if (action == nullptr) {
     return;
@@ -253,12 +245,7 @@ tl_object_ptr<telegram_api::SendMessageAction> DialogAction::get_input_send_mess
       return make_tl_object<telegram_api::sendMessageChooseStickerAction>();
     case Type::EnjoyingAnimations:
       return make_tl_object<telegram_api::sendMessageEmojiInteractionSeen>(emoji_);
-    case Type::ClickingAnimatedEmoji: {
-      auto pos = emoji_.find('\xFF');
-      CHECK(pos < emoji_.size());
-      return make_tl_object<telegram_api::sendMessageEmojiInteraction>(
-          emoji_.substr(0, pos), progress_, make_tl_object<telegram_api::dataJSON>(emoji_.substr(pos + 1)));
-    }
+    case Type::ClickingAnimatedEmoji:
     default:
       UNREACHABLE();
       return nullptr;

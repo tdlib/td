@@ -43,10 +43,6 @@ class DialogAction {
 
   DialogAction(Type type, int32 progress);
 
-  DialogAction(Type type, string emoji);
-
-  DialogAction(Type type, int32 message_id, string emoji, string data);
-
   void init(Type type);
 
   void init(Type type, int32 progress);
