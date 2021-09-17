@@ -4067,6 +4067,12 @@ vector<FileId> StickersManager::get_animated_emoji_stickers(const StickerSet *st
       result.push_back(sticker_id);
     }
   }
+  if (result.empty()) {
+    const static vector<string> heart_emojis{"💛", "💙", "💚", "💜", "🧡", "🖤", "🤎", "🤍"};
+    if (td::contains(heart_emojis, emoji)) {
+      return get_animated_emoji_stickers(sticker_set, "❤");
+    }
+  }
   return result;
 }
 
