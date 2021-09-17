@@ -4102,14 +4102,24 @@ void StickersManager::choose_animated_emoji_click_sticker(const StickerSet *stic
     return promise.set_value(nullptr);
   }
 
-  auto result = found_stickers[Random::fast(0, narrow_cast<int>(found_stickers.size()) - 1)];
-  promise.set_value(get_sticker_object(result.second));
-
   if (last_clicked_animated_emoji_full_message_id_ != full_message_id) {
     flush_pending_animated_emoji_clicks();
   } else if (last_clicked_animated_emoji_ != message_text) {
     pending_animated_emoji_clicks_.clear();
   }
+
+  if (!pending_animated_emoji_clicks_.empty() && found_stickers.size() >= 2) {
+    for (auto it = found_stickers.begin(); it != found_stickers.end(); ++it) {
+      if (it->first == pending_animated_emoji_clicks_.back().first) {
+        found_stickers.erase(it);
+        break;
+      }
+    }
+  }
+
+  CHECK(!found_stickers.empty());
+  auto result = found_stickers[Random::fast(0, narrow_cast<int>(found_stickers.size()) - 1)];
+
   last_clicked_animated_emoji_ = std::move(message_text);
   last_clicked_animated_emoji_full_message_id_ = full_message_id;
   pending_animated_emoji_clicks_.emplace_back(result.first, start_time);
@@ -4118,6 +4128,7 @@ void StickersManager::choose_animated_emoji_click_sticker(const StickerSet *stic
   } else {
     set_timeout_in(0.5);
   }
+  promise.set_value(get_sticker_object(result.second));
 }
 
 void StickersManager::timeout_expired() {
