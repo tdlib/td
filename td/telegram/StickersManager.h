@@ -592,6 +592,8 @@ class StickersManager final : public Actor {
 
   static int get_emoji_number(Slice emoji);
 
+  vector<FileId> get_animated_emoji_stickers(const StickerSet *sticker_set, const string &emoji) const;
+
   void choose_animated_emoji_click_sticker(const StickerSet *sticker_set, string message_text,
                                            FullMessageId full_message_id, double start_time,
                                            Promise<td_api::object_ptr<td_api::sticker>> &&promise);

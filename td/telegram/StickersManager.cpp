@@ -4058,6 +4058,18 @@ int StickersManager::get_emoji_number(Slice emoji) {
   return emoji[0] - '0';
 }
 
+vector<FileId> StickersManager::get_animated_emoji_stickers(const StickerSet *sticker_set, const string &emoji) const {
+  vector<FileId> result;
+  for (auto sticker_id : sticker_set->sticker_ids) {
+    auto s = get_sticker(sticker_id);
+    CHECK(s != nullptr);
+    if (remove_emoji_modifiers(s->alt) == emoji) {
+      result.push_back(sticker_id);
+    }
+  }
+  return result;
+}
+
 void StickersManager::choose_animated_emoji_click_sticker(const StickerSet *sticker_set, string message_text,
                                                           FullMessageId full_message_id, double start_time,
                                                           Promise<td_api::object_ptr<td_api::sticker>> &&promise) {
@@ -4067,18 +4079,15 @@ void StickersManager::choose_animated_emoji_click_sticker(const StickerSet *stic
     return promise.set_error(Status::Error(400, "Message is not an animated emoji message"));
   }
 
+  auto all_sticker_ids = get_animated_emoji_stickers(sticker_set, message_text);
   vector<std::pair<int, FileId>> found_stickers;
-  for (auto sticker_id : sticker_set->sticker_ids) {
-    auto s = get_sticker(sticker_id);
-    CHECK(s != nullptr);
-    if (remove_emoji_modifiers(s->alt) == message_text) {
-      auto it = sticker_set->sticker_emojis_map_.find(sticker_id);
-      if (it != sticker_set->sticker_emojis_map_.end()) {
-        for (auto &emoji : it->second) {
-          auto number = get_emoji_number(emoji);
-          if (number > 0) {
-            found_stickers.emplace_back(number, sticker_id);
-          }
+  for (auto sticker_id : all_sticker_ids) {
+    auto it = sticker_set->sticker_emojis_map_.find(sticker_id);
+    if (it != sticker_set->sticker_emojis_map_.end()) {
+      for (auto &emoji : it->second) {
+        auto number = get_emoji_number(emoji);
+        if (number > 0) {
+          found_stickers.emplace_back(number, sticker_id);
         }
       }
     }
@@ -4225,18 +4234,15 @@ void StickersManager::send_update_animated_emoji_clicked(const StickerSet *stick
     return;
   }
 
+  auto all_sticker_ids = get_animated_emoji_stickers(sticker_set, emoji);
   std::unordered_map<int, FileId> sticker_ids;
-  for (auto sticker_id : sticker_set->sticker_ids) {
-    auto s = get_sticker(sticker_id);
-    CHECK(s != nullptr);
-    if (remove_emoji_modifiers(s->alt) == emoji) {
-      auto it = sticker_set->sticker_emojis_map_.find(sticker_id);
-      if (it != sticker_set->sticker_emojis_map_.end()) {
-        for (auto &sticker_emoji : it->second) {
-          auto number = get_emoji_number(sticker_emoji);
-          if (number > 0) {
-            sticker_ids[number] = sticker_id;
-          }
+  for (auto sticker_id : all_sticker_ids) {
+    auto it = sticker_set->sticker_emojis_map_.find(sticker_id);
+    if (it != sticker_set->sticker_emojis_map_.end()) {
+      for (auto &sticker_emoji : it->second) {
+        auto number = get_emoji_number(sticker_emoji);
+        if (number > 0) {
+          sticker_ids[number] = sticker_id;
         }
       }
     }
