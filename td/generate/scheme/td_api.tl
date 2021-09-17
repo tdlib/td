@@ -3485,7 +3485,7 @@ chatStatisticsMessageInteractionInfo message_id:int53 view_count:int32 forward_c
 //@description Contains statistics about messages sent by a user
 //@user_id User identifier
 //@sent_message_count Number of sent messages
-//@average_character_count Average number of characters in sent messages
+//@average_character_count Average number of characters in sent messages; 0 if unknown
 chatStatisticsMessageSenderInfo user_id:int32 sent_message_count:int32 average_character_count:int32 = ChatStatisticsMessageSenderInfo;
 
 //@description Contains statistics about administrator actions done by a user
