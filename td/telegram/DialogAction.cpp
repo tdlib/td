@@ -7,8 +7,10 @@
 #include "td/telegram/DialogAction.h"
 
 #include "td/telegram/misc.h"
+#include "td/telegram/ServerMessageId.h"
 
 #include "td/utils/misc.h"
+#include "td/utils/utf8.h"
 
 namespace td {
 
@@ -45,12 +47,26 @@ void DialogAction::init(Type type, string emoji) {
   }
 }
 
+void DialogAction::init(Type type, int32 message_id, string emoji, string data) {
+  if (ServerMessageId(message_id).is_valid() && is_valid_emoji(emoji) && check_utf8(data)) {
+    type_ = type;
+    progress_ = message_id;
+    emoji_ = PSTRING() << emoji << '\xFF' << data;
+  } else {
+    init(Type::Cancel);
+  }
+}
+
 DialogAction::DialogAction(Type type, int32 progress) {
   init(type, progress);
 }
 
 DialogAction::DialogAction(Type type, string emoji) {
   init(type, std::move(emoji));
+}
+
+DialogAction::DialogAction(Type type, int32 message_id, string emoji, string data) {
+  init(type, message_id, std::move(emoji), std::move(data));
 }
 
 DialogAction::DialogAction(tl_object_ptr<td_api::ChatAction> &&action) {
@@ -128,7 +144,6 @@ DialogAction::DialogAction(tl_object_ptr<telegram_api::SendMessageAction> &&acti
       init(Type::Cancel);
       break;
     case telegram_api::sendMessageTypingAction::ID:
-    case telegram_api::sendMessageEmojiInteraction::ID:
       init(Type::Typing);
       break;
     case telegram_api::sendMessageRecordVideoAction::ID:
@@ -190,6 +205,12 @@ DialogAction::DialogAction(tl_object_ptr<telegram_api::SendMessageAction> &&acti
       init(Type::EnjoyingAnimations, std::move(emoji_interaction_seen_action->emoticon_));
       break;
     }
+    case telegram_api::sendMessageEmojiInteraction::ID: {
+      auto emoji_interaction_action = move_tl_object_as<telegram_api::sendMessageEmojiInteraction>(action);
+      init(Type::ClickingAnimatedEmoji, emoji_interaction_action->msg_id_,
+           std::move(emoji_interaction_action->emoticon_), std::move(emoji_interaction_action->interaction_->data_));
+      break;
+    }
     default:
       UNREACHABLE();
       break;
@@ -232,6 +253,12 @@ tl_object_ptr<telegram_api::SendMessageAction> DialogAction::get_input_send_mess
       return make_tl_object<telegram_api::sendMessageChooseStickerAction>();
     case Type::EnjoyingAnimations:
       return make_tl_object<telegram_api::sendMessageEmojiInteractionSeen>(emoji_);
+    case Type::ClickingAnimatedEmoji: {
+      auto pos = emoji_.find('\xFF');
+      CHECK(pos < emoji_.size());
+      return make_tl_object<telegram_api::sendMessageEmojiInteraction>(
+          emoji_.substr(0, pos), progress_, make_tl_object<telegram_api::dataJSON>(emoji_.substr(pos + 1)));
+    }
     default:
       UNREACHABLE();
       return nullptr;
@@ -274,6 +301,7 @@ tl_object_ptr<secret_api::SendMessageAction> DialogAction::get_secret_input_send
       return make_tl_object<secret_api::sendMessageTypingAction>();
     case Type::EnjoyingAnimations:
       return make_tl_object<secret_api::sendMessageTypingAction>();
+    case Type::ClickingAnimatedEmoji:
     default:
       UNREACHABLE();
       return nullptr;
@@ -314,6 +342,7 @@ tl_object_ptr<td_api::ChatAction> DialogAction::get_chat_action_object() const {
       return td_api::make_object<td_api::chatActionEnjoyingAnimations>(emoji_);
     case Type::ImportingMessages:
     case Type::SpeakingInVoiceChat:
+    case Type::ClickingAnimatedEmoji:
     default:
       UNREACHABLE();
       return td_api::make_object<td_api::chatActionCancel>();
@@ -426,6 +455,18 @@ int32 DialogAction::get_importing_messages_action_progress() const {
   return progress_;
 }
 
+DialogAction::ClickingAnimateEmojiInfo DialogAction::get_clicking_animated_emoji_action_info() const {
+  ClickingAnimateEmojiInfo result;
+  if (type_ == Type::ClickingAnimatedEmoji) {
+    auto pos = emoji_.find('\xFF');
+    CHECK(pos < emoji_.size());
+    result.message_id = progress_;
+    result.emoji = emoji_.substr(0, pos);
+    result.data = emoji_.substr(pos + 1);
+  }
+  return result;
+}
+
 StringBuilder &operator<<(StringBuilder &string_builder, const DialogAction &action) {
   string_builder << "ChatAction";
   const char *type = [action_type = action.type_] {
@@ -464,17 +505,26 @@ StringBuilder &operator<<(StringBuilder &string_builder, const DialogAction &act
         return "ChoosingSticker";
       case DialogAction::Type::EnjoyingAnimations:
         return "EnjoyingAnimations";
+      case DialogAction::Type::ClickingAnimatedEmoji:
+        return "ClickingAnimatedEmoji";
       default:
         UNREACHABLE();
         return "Cancel";
     }
   }();
   string_builder << type << "Action";
-  if (action.progress_ != 0) {
-    string_builder << '(' << action.progress_ << "%)";
-  }
-  if (!action.emoji_.empty()) {
-    string_builder << '(' << action.emoji_ << ')';
+  if (action.type_ == DialogAction::Type::ClickingAnimatedEmoji) {
+    auto pos = action.emoji_.find('\xFF');
+    CHECK(pos < action.emoji_.size());
+    string_builder << '(' << action.progress_ << ")(" << Slice(action.emoji_).substr(0, pos) << ")("
+                   << Slice(action.emoji_).substr(pos + 1) << ')';
+  } else {
+    if (action.progress_ != 0) {
+      string_builder << '(' << action.progress_ << "%)";
+    }
+    if (!action.emoji_.empty()) {
+      string_builder << '(' << action.emoji_ << ')';
+    }
   }
   return string_builder;
 }

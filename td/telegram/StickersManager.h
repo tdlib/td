@@ -72,6 +72,8 @@ class StickersManager final : public Actor {
   void get_animated_emoji_click_sticker(const string &message_text, FullMessageId full_message_id,
                                         Promise<td_api::object_ptr<td_api::sticker>> &&promise);
 
+  Status on_animated_emoji_message_clicked(const string &emoji, FullMessageId full_message_id, string data);
+
   void create_sticker(FileId file_id, string minithumbnail, PhotoSize thumbnail, Dimensions dimensions,
                       tl_object_ptr<telegram_api::documentAttributeSticker> sticker, bool is_animated,
                       MultiPromiseActor *load_data_multipromise_ptr);
@@ -399,6 +401,12 @@ class StickersManager final : public Actor {
     Promise<td_api::object_ptr<td_api::sticker>> promise_;
   };
 
+  struct PendingOnAnimatedEmojiClicked {
+    string emoji_;
+    FullMessageId full_message_id_;
+    vector<std::pair<int, double>> clicks_;
+  };
+
   struct SpecialStickerSet {
     StickerSetId id_;
     int64 access_hash_ = 0;
@@ -590,6 +598,9 @@ class StickersManager final : public Actor {
 
   void flush_pending_animated_emoji_clicks();
 
+  void send_update_animated_emoji_clicked(const StickerSet *sticker_set, const string &emoji,
+                                          FullMessageId full_message_id, vector<std::pair<int, double>> clicks);
+
   td_api::object_ptr<td_api::updateDiceEmojis> get_update_dice_emojis_object() const;
 
   void start_up() final;
@@ -743,6 +754,7 @@ class StickersManager final : public Actor {
   std::unordered_map<int64, unique_ptr<PendingSetStickerSetThumbnail>> pending_set_sticker_set_thumbnails_;
 
   vector<PendingGetAnimatedEmojiClickSticker> pending_get_animated_emoji_click_stickers_;
+  vector<PendingOnAnimatedEmojiClicked> pending_on_animated_emoji_message_clicked_;
 
   string last_clicked_animated_emoji_;
   FullMessageId last_clicked_animated_emoji_full_message_id_;

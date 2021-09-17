@@ -977,7 +977,7 @@ chatActionBarReportUnrelatedLocation = ChatActionBar;
 //@description The chat is a recently created group chat, to which new members can be invited
 chatActionBarInviteMembers = ChatActionBar;
 
-//@description The chat is a private or secret chat, which can be reported using the method reportChat, or the other user can be blocked using the method blockUser, or the other user can be added to the contact list using the method addContact
+//@description The chat is a private or secret chat, which can be reported using the method reportChat, or the other user can be blocked using the method toggleMessageSenderIsBlocked, or the other user can be added to the contact list using the method addContact
 //@can_unarchive If true, the chat was automatically archived and can be moved back to the main chat list using addChatToList simultaneously with setting chat notification settings to default using setChatNotificationSettings
 //@distance If non-negative, the current user was found by the peer through searchChatsNearby and this is the distance between the users
 chatActionBarReportAddBlock can_unarchive:Bool distance:int32 = ChatActionBar;
@@ -2314,6 +2314,10 @@ diceStickersRegular sticker:sticker = DiceStickers;
 //@center_reel The animated sticker with the center reel
 //@right_reel The animated sticker with the right reel
 diceStickersSlotMachine background:sticker lever:sticker left_reel:sticker center_reel:sticker right_reel:sticker = DiceStickers;
+
+
+//@description Describes a click on an animated emoji by the other party, resulted in a big animation @start_delay Animation start delay @sticker The played animated sticker
+animatedEmojiClick start_delay:double sticker:sticker = AnimatedEmojiClick;
 
 
 //@description Represents the result of an ImportContacts request @user_ids User identifiers of the imported contacts in the same order as they were specified in the request; 0 if the contact is not yet a registered user
@@ -3834,6 +3838,9 @@ updateUsersNearby users_nearby:vector<chatNearby> = Update;
 
 //@description The list of supported dice emojis has changed @emojis The new list of supported dice emojis
 updateDiceEmojis emojis:vector<string> = Update;
+
+//@description Some animated emoji message was clicked @chat_id Chat identifier @message_id Message identifier @clicks Description of  new number of unread mention messages left in the chat
+updateAnimatedEmojiMessageClicked chat_id:int53 message_id:int53 clicks:vector<animatedEmojiClick> = Update;
 
 //@description The parameters of animation search through GetOption("animation_search_bot_username") bot has changed @provider Name of the animation search provider @emojis The new list of emojis suggested for searching
 updateAnimationSearchParameters provider:string emojis:vector<string> = Update;

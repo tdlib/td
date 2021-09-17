@@ -228,6 +228,9 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
 void get_message_content_animated_emoji_click_sticker(const MessageContent *content, FullMessageId full_message_id,
                                                       Td *td, Promise<td_api::object_ptr<td_api::sticker>> &&promise);
 
+void on_message_content_animated_emoji_clicked(const MessageContent *content, FullMessageId full_message_id, Td *td,
+                                               string emoji, string data);
+
 bool need_reget_message_content(const MessageContent *content);
 
 bool need_delay_message_content_notification(const MessageContent *content, UserId my_user_id);

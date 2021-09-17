@@ -34,7 +34,8 @@ class DialogAction {
     SpeakingInVoiceChat,
     ImportingMessages,
     ChoosingSticker,
-    EnjoyingAnimations
+    EnjoyingAnimations,
+    ClickingAnimatedEmoji
   };
   Type type_ = Type::Cancel;
   int32 progress_ = 0;
@@ -44,11 +45,15 @@ class DialogAction {
 
   DialogAction(Type type, string emoji);
 
+  DialogAction(Type type, int32 message_id, string emoji, string data);
+
   void init(Type type);
 
   void init(Type type, int32 progress);
 
   void init(Type type, string emoji);
+
+  void init(Type type, int32 message_id, string emoji, string data);
 
   static bool is_valid_emoji(string &emoji);
 
@@ -74,6 +79,13 @@ class DialogAction {
   static DialogAction get_speaking_action();
 
   int32 get_importing_messages_action_progress() const;
+
+  struct ClickingAnimateEmojiInfo {
+    int32 message_id;
+    string emoji;
+    string data;
+  };
+  ClickingAnimateEmojiInfo get_clicking_animated_emoji_action_info() const;
 
   friend bool operator==(const DialogAction &lhs, const DialogAction &rhs) {
     return lhs.type_ == rhs.type_ && lhs.progress_ == rhs.progress_ && lhs.emoji_ == rhs.emoji_;

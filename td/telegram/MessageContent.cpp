@@ -5313,6 +5313,22 @@ void get_message_content_animated_emoji_click_sticker(const MessageContent *cont
   td->stickers_manager_->get_animated_emoji_click_sticker(text.text, full_message_id, std::move(promise));
 }
 
+void on_message_content_animated_emoji_clicked(const MessageContent *content, FullMessageId full_message_id, Td *td,
+                                               string emoji, string data) {
+  if (content->get_type() != MessageContentType::Text) {
+    return;
+  }
+
+  auto &text = static_cast<const MessageText *>(content)->text;
+  if (!text.entities.empty() || remove_emoji_modifiers(text.text) != emoji) {
+    return;
+  }
+  auto error = td->stickers_manager_->on_animated_emoji_message_clicked(emoji, full_message_id, std::move(data));
+  if (error.is_error()) {
+    LOG(WARNING) << "Failed to process animated emoji click with data \"" << data << "\": " << error;
+  }
+}
+
 bool need_reget_message_content(const MessageContent *content) {
   CHECK(content != nullptr);
   switch (content->get_type()) {
