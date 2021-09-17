@@ -313,6 +313,7 @@ class StickersManager final : public Actor {
   static constexpr size_t MAX_STICKER_SET_SHORT_NAME_LENGTH = 64;     // server side limit
 
   static constexpr int32 EMOJI_KEYWORDS_UPDATE_DELAY = 3600;
+  static constexpr double MIN_ANIMATED_EMOJI_CLICK_DELAY = 0.2;
 
   class Sticker {
    public:
@@ -600,8 +601,10 @@ class StickersManager final : public Actor {
 
   void flush_pending_animated_emoji_clicks();
 
-  void send_update_animated_emoji_clicked(const StickerSet *sticker_set, const string &emoji,
-                                          FullMessageId full_message_id, vector<std::pair<int, double>> clicks);
+  void schedule_update_animated_emoji_clicked(const StickerSet *sticker_set, const string &emoji,
+                                              FullMessageId full_message_id, vector<std::pair<int, double>> clicks);
+
+  void send_update_animated_emoji_clicked(FullMessageId full_message_id, vector<std::pair<FileId, double>> stickers);
 
   td_api::object_ptr<td_api::updateDiceEmojis> get_update_dice_emojis_object() const;
 
@@ -755,6 +758,7 @@ class StickersManager final : public Actor {
 
   std::unordered_map<int64, unique_ptr<PendingSetStickerSetThumbnail>> pending_set_sticker_set_thumbnails_;
 
+  double next_update_animated_emoji_clicked_ = 0;
   vector<PendingGetAnimatedEmojiClickSticker> pending_get_animated_emoji_click_stickers_;
   vector<PendingOnAnimatedEmojiClicked> pending_on_animated_emoji_message_clicked_;
 

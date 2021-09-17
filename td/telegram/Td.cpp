@@ -4348,6 +4348,7 @@ void Td::send_update(tl_object_ptr<td_api::Update> &&object) {
                         << ", count = " << sticker_sets->sets_.size() << " }";
       break;
     }
+    case td_api::updateAnimatedEmojiMessageClicked::ID / 2:
     case td_api::updateOption::ID / 2:
     case td_api::updateChatReadInbox::ID / 2:
     case td_api::updateUnreadMessageCount::ID / 2:

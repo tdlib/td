@@ -5323,7 +5323,7 @@ void on_message_content_animated_emoji_clicked(const MessageContent *content, Fu
   if (!text.entities.empty() || remove_emoji_modifiers(text.text) != emoji) {
     return;
   }
-  auto error = td->stickers_manager_->on_animated_emoji_message_clicked(emoji, full_message_id, std::move(data));
+  auto error = td->stickers_manager_->on_animated_emoji_message_clicked(emoji, full_message_id, data);
   if (error.is_error()) {
     LOG(WARNING) << "Failed to process animated emoji click with data \"" << data << "\": " << error;
   }
