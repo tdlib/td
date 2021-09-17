@@ -3687,6 +3687,7 @@ class SendScreenshotNotificationQuery final : public Td::ResultHandler {
 class SetTypingQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
+  int32 generation_ = 0;
 
  public:
   explicit SetTypingQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
@@ -3704,6 +3705,7 @@ class SetTypingQuery final : public Td::ResultHandler {
     auto net_query = G()->net_query_creator().create(telegram_api::messages_setTyping(
         flags, std::move(input_peer), message_id.get_server_message_id().get(), std::move(action)));
     auto result = net_query.get_weak();
+    generation_ = result.generation();
     send_query(std::move(net_query));
     return result;
   }
@@ -3715,8 +3717,9 @@ class SetTypingQuery final : public Td::ResultHandler {
     }
 
     // ignore result
-
     promise_.set_value(Unit());
+
+    send_closure_later(G()->messages_manager(), &MessagesManager::after_set_typing_query, dialog_id_, generation_);
   }
 
   void on_error(uint64 id, Status status) final {
@@ -3728,6 +3731,8 @@ class SetTypingQuery final : public Td::ResultHandler {
       LOG(INFO) << "Receive error for set typing: " << status;
     }
     promise_.set_error(std::move(status));
+
+    send_closure_later(G()->messages_manager(), &MessagesManager::after_set_typing_query, dialog_id_, generation_);
   }
 };
 
@@ -30602,6 +30607,14 @@ void MessagesManager::send_dialog_action(DialogId dialog_id, MessageId top_threa
   query_ref =
       td_->create_handler<SetTypingQuery>(std::move(promise))
           ->send(dialog_id, std::move(input_peer), top_thread_message_id, action.get_input_send_message_action());
+}
+
+void MessagesManager::after_set_typing_query(DialogId dialog_id, int32 generation) {
+  auto it = set_typing_query_.find(dialog_id);
+  CHECK(it != set_typing_query_.end());
+  if (!it->second.is_alive() || it->second.generation() == generation) {
+    set_typing_query_.erase(it);
+  }
 }
 
 void MessagesManager::on_send_dialog_action_timeout(DialogId dialog_id) {

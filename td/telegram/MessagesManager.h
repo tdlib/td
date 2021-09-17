@@ -467,6 +467,8 @@ class MessagesManager final : public Actor {
   void send_dialog_action(DialogId dialog_id, MessageId top_thread_message_id, DialogAction action,
                           Promise<Unit> &&promise);
 
+  void after_set_typing_query(DialogId dialog_id, int32 generation);
+
   vector<DialogListId> get_dialog_lists_to_add_dialog(DialogId dialog_id);
 
   void add_dialog_to_list(DialogId dialog_id, DialogListId dialog_list_id, Promise<Unit> &&promise);
