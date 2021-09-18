@@ -71,6 +71,10 @@ class StickersManager final : public Actor {
   void get_animated_emoji_click_sticker(const string &message_text, FullMessageId full_message_id,
                                         Promise<td_api::object_ptr<td_api::sticker>> &&promise);
 
+  void on_send_animated_emoji_clicks(DialogId dialog_id, const string &emoji);
+
+  bool is_sent_animated_emoji_click(DialogId dialog_id, const string &emoji);
+
   Status on_animated_emoji_message_clicked(const string &emoji, FullMessageId full_message_id, string data);
 
   void create_sticker(FileId file_id, string minithumbnail, PhotoSize thumbnail, Dimensions dimensions,
@@ -598,6 +602,8 @@ class StickersManager final : public Actor {
                                            FullMessageId full_message_id, double start_time,
                                            Promise<td_api::object_ptr<td_api::sticker>> &&promise);
 
+  void flush_sent_animated_emoji_clicks();
+
   void flush_pending_animated_emoji_clicks();
 
   void schedule_update_animated_emoji_clicked(const StickerSet *sticker_set, const string &emoji,
@@ -764,6 +770,13 @@ class StickersManager final : public Actor {
   string last_clicked_animated_emoji_;
   FullMessageId last_clicked_animated_emoji_full_message_id_;
   std::vector<std::pair<int, double>> pending_animated_emoji_clicks_;
+
+  struct SentAnimatedEmojiClicks {
+    double send_time = 0.0;
+    DialogId dialog_id;
+    string emoji;
+  };
+  std::vector<SentAnimatedEmojiClicks> sent_animated_emoji_clicks_;
 
   std::shared_ptr<UploadStickerFileCallback> upload_sticker_file_callback_;
 

@@ -1124,12 +1124,15 @@ class DeleteStickerFromSetQuery final : public Td::ResultHandler {
 
 class SendAnimatedEmojiClicksQuery final : public Td::ResultHandler {
   DialogId dialog_id_;
+  string emoji_;
 
  public:
   void send(DialogId dialog_id, tl_object_ptr<telegram_api::InputPeer> &&input_peer,
-            tl_object_ptr<telegram_api::SendMessageAction> &&action) {
+            tl_object_ptr<telegram_api::sendMessageEmojiInteraction> &&action) {
     dialog_id_ = dialog_id;
     CHECK(input_peer != nullptr);
+    CHECK(action != nullptr);
+    emoji_ = action->emoticon_;
 
     int32 flags = 0;
     send_query(G()->net_query_creator().create(
@@ -1149,6 +1152,8 @@ class SendAnimatedEmojiClicksQuery final : public Td::ResultHandler {
     if (!td->messages_manager_->on_get_dialog_error(dialog_id_, status, "SendAnimatedEmojiClicksQuery")) {
       LOG(INFO) << "Receive error for send animated emoji clicks: " << status;
     }
+
+    td->stickers_manager_->on_send_animated_emoji_clicks(dialog_id_, emoji_);
   }
 };
 
@@ -4153,7 +4158,8 @@ void StickersManager::flush_pending_animated_emoji_clicks() {
     // includes deleted full_message_id
     return;
   }
-  auto input_peer = td_->messages_manager_->get_input_peer(full_message_id.get_dialog_id(), AccessRights::Write);
+  auto dialog_id = full_message_id.get_dialog_id();
+  auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
   if (input_peer == nullptr) {
     return;
   }
@@ -4171,10 +4177,50 @@ void StickersManager::flush_pending_animated_emoji_clicks() {
   }));
 
   td_->create_handler<SendAnimatedEmojiClicksQuery>()->send(
-      full_message_id.get_dialog_id(), std::move(input_peer),
+      dialog_id, std::move(input_peer),
       make_tl_object<telegram_api::sendMessageEmojiInteraction>(
           emoji, full_message_id.get_message_id().get_server_message_id().get(),
           make_tl_object<telegram_api::dataJSON>(data)));
+
+  on_send_animated_emoji_clicks(dialog_id, emoji);
+}
+
+void StickersManager::on_send_animated_emoji_clicks(DialogId dialog_id, const string &emoji) {
+  flush_sent_animated_emoji_clicks();
+
+  if (!sent_animated_emoji_clicks_.empty() && sent_animated_emoji_clicks_.back().dialog_id == dialog_id &&
+      sent_animated_emoji_clicks_.back().emoji == emoji) {
+    sent_animated_emoji_clicks_.back().send_time = Time::now();
+    return;
+  }
+
+  SentAnimatedEmojiClicks clicks;
+  clicks.send_time = Time::now();
+  clicks.dialog_id = dialog_id;
+  clicks.emoji = emoji;
+  sent_animated_emoji_clicks_.push_back(std::move(clicks));
+}
+
+void StickersManager::flush_sent_animated_emoji_clicks() {
+  if (sent_animated_emoji_clicks_.empty()) {
+    return;
+  }
+  auto min_send_time = Time::now() - 30.0;
+  auto it = sent_animated_emoji_clicks_.begin();
+  while (it != sent_animated_emoji_clicks_.end() && it->send_time <= min_send_time) {
+    ++it;
+  }
+  sent_animated_emoji_clicks_.erase(sent_animated_emoji_clicks_.begin(), it);
+}
+
+bool StickersManager::is_sent_animated_emoji_click(DialogId dialog_id, const string &emoji) {
+  flush_sent_animated_emoji_clicks();
+  for (const auto &click : sent_animated_emoji_clicks_) {
+    if (click.dialog_id == dialog_id && click.emoji == emoji) {
+      return true;
+    }
+  }
+  return false;
 }
 
 Status StickersManager::on_animated_emoji_message_clicked(const string &emoji, FullMessageId full_message_id,

@@ -38,6 +38,7 @@
 namespace td {
 
 struct Dependencies;
+class DialogAction;
 class Game;
 struct Photo;
 class Td;
@@ -244,6 +245,8 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
 void on_sent_message_content(Td *td, const MessageContent *content);
 
 StickerSetId add_sticker_set(Td *td, tl_object_ptr<telegram_api::InputStickerSet> &&input_sticker_set);
+
+bool is_unsent_animated_emoji_click(Td *td, DialogId dialog_id, const DialogAction &action);
 
 void on_dialog_used(TopDialogCategory category, DialogId dialog_id, int32 date);
 

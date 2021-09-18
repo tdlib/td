@@ -7113,6 +7113,11 @@ void MessagesManager::on_user_dialog_action(DialogId dialog_id, MessageId top_th
     }
   }
 
+  if (is_unsent_animated_emoji_click(td_, dialog_id, action)) {
+    LOG(DEBUG) << "Ignore unsent " << action;
+    return;
+  }
+
   if (!td_->contacts_manager_->have_min_user(user_id)) {
     LOG(DEBUG) << "Ignore " << action << " of unknown " << user_id;
     return;

@@ -17,6 +17,7 @@
 #include "td/telegram/Contact.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Dependencies.h"
+#include "td/telegram/DialogAction.h"
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
@@ -5554,6 +5555,14 @@ void on_sent_message_content(Td *td, const MessageContent *content) {
 
 StickerSetId add_sticker_set(Td *td, tl_object_ptr<telegram_api::InputStickerSet> &&input_sticker_set) {
   return td->stickers_manager_->add_sticker_set(std::move(input_sticker_set));
+}
+
+bool is_unsent_animated_emoji_click(Td *td, DialogId dialog_id, const DialogAction &action) {
+  auto emoji = action.get_enjoying_animations_emoji();
+  if (emoji.empty()) {
+    return false;
+  }
+  return !td->stickers_manager_->is_sent_animated_emoji_click(dialog_id, emoji);
 }
 
 void on_dialog_used(TopDialogCategory category, DialogId dialog_id, int32 date) {

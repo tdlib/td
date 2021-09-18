@@ -444,6 +444,13 @@ int32 DialogAction::get_importing_messages_action_progress() const {
   return progress_;
 }
 
+string DialogAction::get_enjoying_animations_emoji() const {
+  if (type_ == Type::EnjoyingAnimations) {
+    return emoji_;
+  }
+  return string();
+}
+
 DialogAction::ClickingAnimateEmojiInfo DialogAction::get_clicking_animated_emoji_action_info() const {
   ClickingAnimateEmojiInfo result;
   if (type_ == Type::ClickingAnimatedEmoji) {
