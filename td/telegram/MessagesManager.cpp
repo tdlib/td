@@ -17454,6 +17454,11 @@ void MessagesManager::get_messages_from_server(vector<FullMessageId> &&message_i
   lock.set_value(Unit());
 }
 
+bool MessagesManager::is_dialog_opened(DialogId dialog_id) const {
+  const Dialog *d = get_dialog(dialog_id);
+  return d != nullptr && d->is_opened;
+}
+
 bool MessagesManager::is_message_edited_recently(FullMessageId full_message_id, int32 seconds) {
   if (seconds < 0) {
     return false;

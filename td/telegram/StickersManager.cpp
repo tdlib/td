@@ -4255,7 +4255,11 @@ void StickersManager::schedule_update_animated_emoji_clicked(const StickerSet *s
     // includes deleted full_message_id
     return;
   }
-  if (!td_->messages_manager_->have_input_peer(full_message_id.get_dialog_id(), AccessRights::Write)) {
+  auto dialog_id = full_message_id.get_dialog_id();
+  if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Write)) {
+    return;
+  }
+  if (!td_->messages_manager_->is_dialog_opened(dialog_id)) {
     return;
   }
 
@@ -4299,6 +4303,9 @@ void StickersManager::send_update_animated_emoji_clicked(FullMessageId full_mess
   }
   auto dialog_id = full_message_id.get_dialog_id();
   if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Write)) {
+    return;
+  }
+  if (!td_->messages_manager_->is_dialog_opened(dialog_id)) {
     return;
   }
 

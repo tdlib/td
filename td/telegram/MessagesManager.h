@@ -580,6 +580,8 @@ class MessagesManager final : public Actor {
 
   void get_message_viewers(FullMessageId full_message_id, Promise<td_api::object_ptr<td_api::users>> &&promise);
 
+  bool is_dialog_opened(DialogId dialog_id) const;
+
   bool is_message_edited_recently(FullMessageId full_message_id, int32 seconds);
 
   bool is_deleted_secret_chat(DialogId dialog_id) const;
