@@ -6,11 +6,11 @@
 //
 #pragma once
 
-#include "td/mtproto/AuthData.h"
-#include "td/mtproto/AuthKey.h"
-
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/PublicRsaKeyShared.h"
+
+#include "td/mtproto/AuthData.h"
+#include "td/mtproto/AuthKey.h"
 
 #include "td/utils/common.h"
 #include "td/utils/ScopeGuard.h"

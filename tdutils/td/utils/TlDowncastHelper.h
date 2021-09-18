@@ -6,6 +6,9 @@
 //
 #pragma once
 
+#include "td/utils/common.h"
+#include "td/utils/tl_storers.h"
+
 namespace td {
 
 template <class T>

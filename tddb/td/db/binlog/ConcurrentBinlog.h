@@ -6,12 +6,12 @@
 //
 #pragma once
 
-#include "td/actor/actor.h"
-#include "td/actor/PromiseFuture.h"
-
 #include "td/db/binlog/Binlog.h"
 #include "td/db/binlog/BinlogInterface.h"
 #include "td/db/DbKey.h"
+
+#include "td/actor/actor.h"
+#include "td/actor/PromiseFuture.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"

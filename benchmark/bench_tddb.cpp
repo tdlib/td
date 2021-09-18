@@ -11,11 +11,11 @@
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/UserId.h"
 
-#include "td/actor/ConcurrentScheduler.h"
-#include "td/actor/PromiseFuture.h"
-
 #include "td/db/SqliteConnectionSafe.h"
 #include "td/db/SqliteDb.h"
+
+#include "td/actor/ConcurrentScheduler.h"
+#include "td/actor/PromiseFuture.h"
 
 #include "td/utils/benchmark.h"
 #include "td/utils/buffer.h"

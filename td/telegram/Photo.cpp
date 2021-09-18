@@ -6,9 +6,6 @@
 //
 #include "td/telegram/Photo.h"
 
-#include "td/telegram/secret_api.h"
-#include "td/telegram/telegram_api.h"
-
 #include "td/telegram/files/FileEncryptionKey.h"
 #include "td/telegram/files/FileLocation.h"
 #include "td/telegram/files/FileManager.h"

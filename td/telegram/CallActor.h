@@ -6,16 +6,15 @@
 //
 #pragma once
 
-#include "td/telegram/td_api.h"
-#include "td/telegram/telegram_api.h"
-
-#include "td/mtproto/DhHandshake.h"
-
 #include "td/telegram/CallDiscardReason.h"
 #include "td/telegram/CallId.h"
 #include "td/telegram/DhConfig.h"
 #include "td/telegram/net/NetQuery.h"
+#include "td/telegram/td_api.h"
+#include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
+
+#include "td/mtproto/DhHandshake.h"
 
 #include "td/actor/actor.h"
 #include "td/actor/PromiseFuture.h"

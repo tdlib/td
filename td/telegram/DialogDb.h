@@ -11,9 +11,9 @@
 #include "td/telegram/NotificationGroupId.h"
 #include "td/telegram/NotificationGroupKey.h"
 
-#include "td/actor/PromiseFuture.h"
-
 #include "td/db/KeyValueSyncInterface.h"
+
+#include "td/actor/PromiseFuture.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"

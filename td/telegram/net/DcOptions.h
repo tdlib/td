@@ -6,10 +6,10 @@
 //
 #pragma once
 
-#include "td/mtproto/ProxySecret.h"
-
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/telegram_api.h"
+
+#include "td/mtproto/ProxySecret.h"
 
 #include "td/utils/common.h"
 #include "td/utils/format.h"

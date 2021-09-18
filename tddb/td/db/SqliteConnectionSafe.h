@@ -6,10 +6,10 @@
 //
 #pragma once
 
-#include "td/actor/SchedulerLocalStorage.h"
-
 #include "td/db/DbKey.h"
 #include "td/db/SqliteDb.h"
+
+#include "td/actor/SchedulerLocalStorage.h"
 
 #include "td/utils/common.h"
 #include "td/utils/optional.h"

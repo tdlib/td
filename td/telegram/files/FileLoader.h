@@ -6,8 +6,6 @@
 //
 #pragma once
 
-#include "td/actor/actor.h"
-
 #include "td/telegram/DelayDispatcher.h"
 #include "td/telegram/files/FileLoaderActor.h"
 #include "td/telegram/files/FileLocation.h"
@@ -15,6 +13,8 @@
 #include "td/telegram/files/ResourceManager.h"
 #include "td/telegram/files/ResourceState.h"
 #include "td/telegram/net/NetQuery.h"
+
+#include "td/actor/actor.h"
 
 #include "td/utils/OrderedEventsProcessor.h"
 #include "td/utils/Status.h"

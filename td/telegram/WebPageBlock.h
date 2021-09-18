@@ -6,12 +6,11 @@
 //
 #pragma once
 
-#include "td/telegram/td_api.h"
-#include "td/telegram/telegram_api.h"
-
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/Photo.h"
+#include "td/telegram/td_api.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/utils/common.h"
 #include "td/utils/Slice.h"

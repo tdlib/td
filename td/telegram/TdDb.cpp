@@ -15,8 +15,6 @@
 #include "td/telegram/TdParameters.h"
 #include "td/telegram/Version.h"
 
-#include "td/actor/MultiPromise.h"
-
 #include "td/db/binlog/Binlog.h"
 #include "td/db/binlog/ConcurrentBinlog.h"
 #include "td/db/BinlogKeyValue.h"
@@ -25,6 +23,8 @@
 #include "td/db/SqliteKeyValue.h"
 #include "td/db/SqliteKeyValueAsync.h"
 #include "td/db/SqliteKeyValueSafe.h"
+
+#include "td/actor/MultiPromise.h"
 
 #include "td/utils/common.h"
 #include "td/utils/format.h"

@@ -6,9 +6,6 @@
 //
 #include "td/telegram/net/NetStatsManager.h"
 
-#include "td/actor/actor.h"
-#include "td/actor/PromiseFuture.h"
-
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"

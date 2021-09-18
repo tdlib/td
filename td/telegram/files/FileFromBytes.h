@@ -6,11 +6,11 @@
 //
 #pragma once
 
-#include "td/actor/actor.h"
-
 #include "td/telegram/files/FileLoader.h"
 #include "td/telegram/files/FileLocation.h"
 #include "td/telegram/files/FileType.h"
+
+#include "td/actor/actor.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"

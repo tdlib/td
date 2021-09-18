@@ -6,9 +6,6 @@
 //
 #include "td/telegram/Logging.h"
 
-#include "td/mtproto/SessionConnection.h"
-#include "td/mtproto/Transport.h"
-
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileGcWorker.h"
@@ -20,6 +17,9 @@
 #include "td/telegram/NotificationManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/UpdatesManager.h"
+
+#include "td/mtproto/SessionConnection.h"
+#include "td/mtproto/Transport.h"
 
 #include "td/db/binlog/Binlog.h"
 #include "td/db/SqliteStatement.h"

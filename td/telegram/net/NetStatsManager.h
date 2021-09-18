@@ -6,15 +6,14 @@
 //
 #pragma once
 
-#include "td/actor/actor.h"
-#include "td/actor/PromiseFuture.h"
-
-#include "td/telegram/td_api.h"
-
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/net/NetType.h"
+#include "td/telegram/td_api.h"
 
 #include "td/net/NetStats.h"
+
+#include "td/actor/actor.h"
+#include "td/actor/PromiseFuture.h"
 
 #include "td/utils/Slice.h"
 

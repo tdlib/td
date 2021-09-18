@@ -7,12 +7,11 @@
 #pragma once
 
 #include "td/telegram/logevent/SecretChatEvent.h"
+#include "td/telegram/secret_api.h"
 #include "td/telegram/SecretChatActor.h"
 #include "td/telegram/SecretChatId.h"
-#include "td/telegram/UserId.h"
-
-#include "td/telegram/secret_api.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserId.h"
 
 #include "td/actor/actor.h"
 #include "td/actor/PromiseFuture.h"

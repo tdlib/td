@@ -6,9 +6,6 @@
 //
 #pragma once
 
-#include "td/actor/actor.h"
-#include "td/actor/PromiseFuture.h"
-
 #include "td/telegram/files/FileDownloader.h"
 #include "td/telegram/files/FileEncryptionKey.h"
 #include "td/telegram/files/FileFromBytes.h"
@@ -18,6 +15,9 @@
 #include "td/telegram/files/FileUploader.h"
 #include "td/telegram/files/ResourceManager.h"
 #include "td/telegram/net/DcId.h"
+
+#include "td/actor/actor.h"
+#include "td/actor/PromiseFuture.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/Container.h"

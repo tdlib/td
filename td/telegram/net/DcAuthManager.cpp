@@ -6,16 +6,15 @@
 //
 #include "td/telegram/net/DcAuthManager.h"
 
-#include "td/actor/actor.h"
-
 #include "td/telegram/Global.h"
 #include "td/telegram/net/AuthDataShared.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/TdDb.h"
+#include "td/telegram/telegram_api.h"
 #include "td/telegram/UniqueId.h"
 
-#include "td/telegram/telegram_api.h"
+#include "td/actor/actor.h"
 
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"

@@ -97,7 +97,9 @@
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/StorageManager.h"
 #include "td/telegram/SuggestedAction.h"
+#include "td/telegram/td_api.hpp"
 #include "td/telegram/TdDb.h"
+#include "td/telegram/telegram_api.hpp"
 #include "td/telegram/ThemeManager.h"
 #include "td/telegram/TopDialogCategory.h"
 #include "td/telegram/TopDialogManager.h"
@@ -109,13 +111,6 @@
 #include "td/telegram/WebPageId.h"
 #include "td/telegram/WebPagesManager.h"
 
-#include "td/telegram/td_api.hpp"
-#include "td/telegram/telegram_api.h"
-#include "td/telegram/telegram_api.hpp"
-
-#include "td/actor/actor.h"
-#include "td/actor/PromiseFuture.h"
-
 #include "td/db/binlog/BinlogEvent.h"
 
 #include "td/mtproto/DhCallback.h"
@@ -124,6 +119,9 @@
 #include "td/mtproto/RawConnection.h"
 #include "td/mtproto/RSA.h"
 #include "td/mtproto/TransportType.h"
+
+#include "td/actor/actor.h"
+#include "td/actor/PromiseFuture.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"

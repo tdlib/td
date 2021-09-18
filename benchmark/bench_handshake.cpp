@@ -4,12 +4,11 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
-#include "td/utils/benchmark.h"
-
 #include "td/mtproto/DhCallback.h"
 #include "td/mtproto/DhHandshake.h"
 
 #include "td/utils/base64.h"
+#include "td/utils/benchmark.h"
 #include "td/utils/common.h"
 #include "td/utils/logging.h"
 #include "td/utils/Slice.h"

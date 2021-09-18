@@ -9,6 +9,8 @@
 #include "td/mtproto/AuthData.h"
 #include "td/mtproto/AuthKey.h"
 #include "td/mtproto/CryptoStorer.h"
+#include "td/mtproto/mtproto_api.h"
+#include "td/mtproto/mtproto_api.hpp"
 #include "td/mtproto/PacketStorer.h"
 #include "td/mtproto/Transport.h"
 #include "td/mtproto/utils.h"
@@ -26,9 +28,6 @@
 #include "td/utils/Time.h"
 #include "td/utils/tl_parsers.h"
 #include "td/utils/TlDowncastHelper.h"
-
-#include "td/mtproto/mtproto_api.h"
-#include "td/mtproto/mtproto_api.hpp"
 
 #include <algorithm>
 #include <iterator>

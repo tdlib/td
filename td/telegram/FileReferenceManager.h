@@ -6,9 +6,6 @@
 //
 #pragma once
 
-#include "td/actor/actor.h"
-#include "td/actor/PromiseFuture.h"
-
 #include "td/telegram/BackgroundId.h"
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatId.h"
@@ -18,6 +15,9 @@
 #include "td/telegram/PhotoSizeSource.h"
 #include "td/telegram/SetWithPosition.h"
 #include "td/telegram/UserId.h"
+
+#include "td/actor/actor.h"
+#include "td/actor/PromiseFuture.h"
 
 #include "td/utils/common.h"
 #include "td/utils/logging.h"

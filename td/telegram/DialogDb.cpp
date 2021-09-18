@@ -8,13 +8,13 @@
 
 #include "td/telegram/Version.h"
 
-#include "td/actor/actor.h"
-#include "td/actor/SchedulerLocalStorage.h"
-
 #include "td/db/SqliteConnectionSafe.h"
 #include "td/db/SqliteDb.h"
 #include "td/db/SqliteKeyValue.h"
 #include "td/db/SqliteStatement.h"
+
+#include "td/actor/actor.h"
+#include "td/actor/SchedulerLocalStorage.h"
 
 #include "td/utils/common.h"
 #include "td/utils/format.h"

@@ -6,10 +6,10 @@
 //
 #pragma once
 
-#include "td/actor/actor.h"
-
 #include "td/telegram/files/FileLoaderActor.h"
 #include "td/telegram/files/ResourceState.h"
+
+#include "td/actor/actor.h"
 
 #include "td/utils/Container.h"
 #include "td/utils/Heap.h"

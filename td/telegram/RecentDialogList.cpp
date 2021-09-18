@@ -6,15 +6,22 @@
 //
 #include "td/telegram/RecentDialogList.h"
 
+#include "td/telegram/AccessRights.h"
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/DialogListId.h"
+#include "td/telegram/FolderId.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/td_api.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/TdParameters.h"
 
+#include "td/actor/MultiPromise.h"
+
 #include "td/utils/algorithm.h"
 #include "td/utils/misc.h"
+#include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
 
 #include <algorithm>

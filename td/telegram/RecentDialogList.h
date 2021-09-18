@@ -21,7 +21,7 @@ namespace td {
 class Td;
 
 // stores list of Dialog identifiers of a limited size
-class RecentDialogList : public Actor {
+class RecentDialogList final : public Actor {
  public:
   RecentDialogList(Td *td, const char *name, size_t max_size);
 

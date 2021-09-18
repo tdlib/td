@@ -8,15 +8,10 @@
 #include "td/telegram/FolderId.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageId.h"
+#include "td/telegram/secret_api.h"
 #include "td/telegram/SecretChatActor.h"
 #include "td/telegram/SecretChatId.h"
-
-#include "td/telegram/secret_api.h"
 #include "td/telegram/telegram_api.h"
-
-#include "td/actor/actor.h"
-#include "td/actor/ConcurrentScheduler.h"
-#include "td/actor/PromiseFuture.h"
 
 #include "td/db/binlog/BinlogInterface.h"
 #include "td/db/binlog/detail/BinlogEventsProcessor.h"
@@ -28,6 +23,10 @@
 
 #include "td/tl/tl_object_parse.h"
 #include "td/tl/tl_object_store.h"
+
+#include "td/actor/actor.h"
+#include "td/actor/ConcurrentScheduler.h"
+#include "td/actor/PromiseFuture.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/as.h"

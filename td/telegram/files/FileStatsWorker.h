@@ -6,10 +6,10 @@
 //
 #pragma once
 
+#include "td/telegram/files/FileStats.h"
+
 #include "td/actor/actor.h"
 #include "td/actor/PromiseFuture.h"
-
-#include "td/telegram/files/FileStats.h"
 
 #include "td/utils/CancellationToken.h"
 

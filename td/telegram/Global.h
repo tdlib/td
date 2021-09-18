@@ -11,11 +11,11 @@
 #include "td/telegram/net/NetQueryCreator.h"
 #include "td/telegram/TdParameters.h"
 
+#include "td/net/NetStats.h"
+
 #include "td/actor/actor.h"
 #include "td/actor/PromiseFuture.h"
 #include "td/actor/SchedulerLocalStorage.h"
-
-#include "td/net/NetStats.h"
 
 #include "td/utils/common.h"
 #include "td/utils/logging.h"

@@ -24,6 +24,7 @@
 #include "td/telegram/Photo.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
+#include "td/telegram/TdParameters.h"
 
 #include "td/db/SqliteKeyValueAsync.h"
 
