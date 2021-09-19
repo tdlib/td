@@ -30834,8 +30834,7 @@ void MessagesManager::send_dialog_action(DialogId dialog_id, MessageId top_threa
 
 void MessagesManager::after_set_typing_query(DialogId dialog_id, int32 generation) {
   auto it = set_typing_query_.find(dialog_id);
-  CHECK(it != set_typing_query_.end());
-  if (!it->second.is_alive() || it->second.generation() == generation) {
+  if (it != set_typing_query_.end() && (!it->second.is_alive() || it->second.generation() == generation)) {
     set_typing_query_.erase(it);
   }
 }
