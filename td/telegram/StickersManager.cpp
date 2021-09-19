@@ -1236,6 +1236,7 @@ StickersManager::StickersManager(Td *td, ActorShared<> parent) : td_(td), parent
       narrow_cast<int32>(G()->shared_config().get_option_integer("favorite_stickers_limit", 5)));
   on_update_dice_emojis();
 
+  next_click_animated_emoji_message_ = Time::now();
   next_update_animated_emoji_clicked_ = Time::now();
 }
 
@@ -4136,7 +4137,28 @@ void StickersManager::choose_animated_emoji_click_sticker(const StickerSet *stic
   } else {
     set_timeout_in(0.5);
   }
-  promise.set_value(get_sticker_object(result.second));
+  auto now = Time::now();
+  if (now >= next_click_animated_emoji_message_) {
+    next_click_animated_emoji_message_ = now + MIN_ANIMATED_EMOJI_CLICK_DELAY;
+    promise.set_value(get_sticker_object(result.second));
+  } else {
+    create_actor<SleepActor>("SendClickAnimatedEmojiMessageResponse", next_click_animated_emoji_message_ - now,
+                             PromiseCreator::lambda([actor_id = actor_id(this), sticker_id = result.second,
+                                                     promise = std::move(promise)](Result<Unit> result) mutable {
+                               send_closure(actor_id, &StickersManager::send_click_animated_emoji_message_response,
+                                            sticker_id, std::move(promise));
+                             }))
+        .release();
+    next_click_animated_emoji_message_ += MIN_ANIMATED_EMOJI_CLICK_DELAY;
+  }
+}
+
+void StickersManager::send_click_animated_emoji_message_response(
+    FileId sticker_id, Promise<td_api::object_ptr<td_api::sticker>> &&promise) {
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
+  promise.set_value(get_sticker_object(sticker_id));
 }
 
 void StickersManager::timeout_expired() {
@@ -4344,6 +4366,9 @@ void StickersManager::schedule_update_animated_emoji_clicked(const StickerSet *s
 }
 
 void StickersManager::send_update_animated_emoji_clicked(FullMessageId full_message_id, FileId sticker_id) {
+  if (G()->close_flag()) {
+    return;
+  }
   if (td_->messages_manager_->is_message_edited_recently(full_message_id, 2)) {
     // includes deleted full_message_id
     return;
