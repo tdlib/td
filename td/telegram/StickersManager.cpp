@@ -4094,6 +4094,12 @@ void StickersManager::choose_animated_emoji_click_sticker(const StickerSet *stic
     return promise.set_error(Status::Error(400, "Message is not an animated emoji message"));
   }
 
+  auto now = Time::now();
+  if (last_clicked_animated_emoji_ == message_text && last_clicked_animated_emoji_full_message_id_ == full_message_id &&
+      next_click_animated_emoji_message_ >= now + 2 * MIN_ANIMATED_EMOJI_CLICK_DELAY) {
+    return promise.set_value(nullptr);
+  }
+
   auto all_sticker_ids = get_animated_emoji_stickers(sticker_set, message_text);
   vector<std::pair<int, FileId>> found_stickers;
   for (auto sticker_id : all_sticker_ids) {
@@ -4137,7 +4143,6 @@ void StickersManager::choose_animated_emoji_click_sticker(const StickerSet *stic
   } else {
     set_timeout_in(0.5);
   }
-  auto now = Time::now();
   if (now >= next_click_animated_emoji_message_) {
     next_click_animated_emoji_message_ = now + MIN_ANIMATED_EMOJI_CLICK_DELAY;
     promise.set_value(get_sticker_object(result.second));
@@ -4172,7 +4177,7 @@ void StickersManager::flush_pending_animated_emoji_clicks() {
   auto clicks = std::move(pending_animated_emoji_clicks_);
   pending_animated_emoji_clicks_.clear();
   auto full_message_id = last_clicked_animated_emoji_full_message_id_;
-  last_clicked_animated_emoji_full_message_id_ = full_message_id;
+  last_clicked_animated_emoji_full_message_id_ = FullMessageId();
   auto emoji = std::move(last_clicked_animated_emoji_);
   last_clicked_animated_emoji_.clear();
 
