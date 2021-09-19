@@ -5558,7 +5558,7 @@ StickerSetId add_sticker_set(Td *td, tl_object_ptr<telegram_api::InputStickerSet
 }
 
 bool is_unsent_animated_emoji_click(Td *td, DialogId dialog_id, const DialogAction &action) {
-  auto emoji = action.get_enjoying_animations_emoji();
+  auto emoji = action.get_watching_animations_emoji();
   if (emoji.empty()) {
     return false;
   }

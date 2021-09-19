@@ -34,7 +34,7 @@ class DialogAction {
     SpeakingInVoiceChat,
     ImportingMessages,
     ChoosingSticker,
-    EnjoyingAnimations,
+    WatchingAnimations,
     ClickingAnimatedEmoji
   };
   Type type_ = Type::Cancel;
@@ -76,7 +76,7 @@ class DialogAction {
 
   int32 get_importing_messages_action_progress() const;
 
-  string get_enjoying_animations_emoji() const;
+  string get_watching_animations_emoji() const;
 
   struct ClickingAnimateEmojiInfo {
     int32 message_id;

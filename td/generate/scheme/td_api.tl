@@ -2069,8 +2069,8 @@ chatActionRecordingVideoNote = ChatAction;
 //@description The user is uploading a video note @progress Upload progress, as a percentage
 chatActionUploadingVideoNote progress:int32 = ChatAction;
 
-//@description The user is viewing animations sent by the other party by clicking on animated emojies @emoji The animated emoji
-chatActionEnjoyingAnimations emoji:string = ChatAction;
+//@description The user is watching animations sent by the other party by clicking on an animated emoji @emoji The animated emoji
+chatActionWatchingAnimations emoji:string = ChatAction;
 
 //@description The user has canceled the previous action
 chatActionCancel = ChatAction;
@@ -3835,7 +3835,7 @@ updateUsersNearby users_nearby:vector<chatNearby> = Update;
 //@description The list of supported dice emojis has changed @emojis The new list of supported dice emojis
 updateDiceEmojis emojis:vector<string> = Update;
 
-//@description Some animated emoji message was clicked and a big animated sticker should be played if the message is visible on the screen. chatActionEnjoyingAnimations with the text of the message needs to be sent if the sticker is played
+//@description Some animated emoji message was clicked and a big animated sticker should be played if the message is visible on the screen. chatActionWatchingAnimations with the text of the message needs to be sent if the sticker is played
 //@chat_id Chat identifier @message_id Message identifier @sticker The animated sticker to be played
 updateAnimatedEmojiMessageClicked chat_id:int53 message_id:int53 sticker:sticker = Update;
 

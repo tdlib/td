@@ -1321,8 +1321,8 @@ class CliClient final : public Actor {
     if (action == "cs" || action == "choose_sticker") {
       return td_api::make_object<td_api::chatActionChoosingSticker>();
     }
-    if (begins_with(action, "ea")) {
-      return td_api::make_object<td_api::chatActionEnjoyingAnimations>(action.substr(2).str());
+    if (begins_with(action, "wa")) {
+      return td_api::make_object<td_api::chatActionWatchingAnimations>(action.substr(2).str());
     }
     return td_api::make_object<td_api::chatActionTyping>();
   }

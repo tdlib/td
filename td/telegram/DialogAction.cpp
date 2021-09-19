@@ -121,9 +121,9 @@ DialogAction::DialogAction(tl_object_ptr<td_api::ChatAction> &&action) {
     case td_api::chatActionChoosingSticker::ID:
       init(Type::ChoosingSticker);
       break;
-    case td_api::chatActionEnjoyingAnimations::ID: {
-      auto enjoying_animations_action = move_tl_object_as<td_api::chatActionEnjoyingAnimations>(action);
-      init(Type::EnjoyingAnimations, std::move(enjoying_animations_action->emoji_));
+    case td_api::chatActionWatchingAnimations::ID: {
+      auto watching_animations_action = move_tl_object_as<td_api::chatActionWatchingAnimations>(action);
+      init(Type::WatchingAnimations, std::move(watching_animations_action->emoji_));
       break;
     }
     default:
@@ -196,7 +196,7 @@ DialogAction::DialogAction(tl_object_ptr<telegram_api::SendMessageAction> &&acti
       break;
     case telegram_api::sendMessageEmojiInteractionSeen::ID: {
       auto emoji_interaction_seen_action = move_tl_object_as<telegram_api::sendMessageEmojiInteractionSeen>(action);
-      init(Type::EnjoyingAnimations, std::move(emoji_interaction_seen_action->emoticon_));
+      init(Type::WatchingAnimations, std::move(emoji_interaction_seen_action->emoticon_));
       break;
     }
     case telegram_api::sendMessageEmojiInteraction::ID: {
@@ -245,7 +245,7 @@ tl_object_ptr<telegram_api::SendMessageAction> DialogAction::get_input_send_mess
       return make_tl_object<telegram_api::sendMessageHistoryImportAction>(progress_);
     case Type::ChoosingSticker:
       return make_tl_object<telegram_api::sendMessageChooseStickerAction>();
-    case Type::EnjoyingAnimations:
+    case Type::WatchingAnimations:
       return make_tl_object<telegram_api::sendMessageEmojiInteractionSeen>(emoji_);
     case Type::ClickingAnimatedEmoji:
     default:
@@ -288,7 +288,7 @@ tl_object_ptr<secret_api::SendMessageAction> DialogAction::get_secret_input_send
       return make_tl_object<secret_api::sendMessageTypingAction>();
     case Type::ChoosingSticker:
       return make_tl_object<secret_api::sendMessageTypingAction>();
-    case Type::EnjoyingAnimations:
+    case Type::WatchingAnimations:
       return make_tl_object<secret_api::sendMessageTypingAction>();
     case Type::ClickingAnimatedEmoji:
     default:
@@ -327,8 +327,8 @@ tl_object_ptr<td_api::ChatAction> DialogAction::get_chat_action_object() const {
       return td_api::make_object<td_api::chatActionUploadingVideoNote>(progress_);
     case Type::ChoosingSticker:
       return td_api::make_object<td_api::chatActionChoosingSticker>();
-    case Type::EnjoyingAnimations:
-      return td_api::make_object<td_api::chatActionEnjoyingAnimations>(emoji_);
+    case Type::WatchingAnimations:
+      return td_api::make_object<td_api::chatActionWatchingAnimations>(emoji_);
     case Type::ImportingMessages:
     case Type::SpeakingInVoiceChat:
     case Type::ClickingAnimatedEmoji:
@@ -444,8 +444,8 @@ int32 DialogAction::get_importing_messages_action_progress() const {
   return progress_;
 }
 
-string DialogAction::get_enjoying_animations_emoji() const {
-  if (type_ == Type::EnjoyingAnimations) {
+string DialogAction::get_watching_animations_emoji() const {
+  if (type_ == Type::WatchingAnimations) {
     return emoji_;
   }
   return string();
@@ -499,8 +499,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, const DialogAction &act
         return "ImportingMessages";
       case DialogAction::Type::ChoosingSticker:
         return "ChoosingSticker";
-      case DialogAction::Type::EnjoyingAnimations:
-        return "EnjoyingAnimations";
+      case DialogAction::Type::WatchingAnimations:
+        return "WatchingAnimations";
       case DialogAction::Type::ClickingAnimatedEmoji:
         return "ClickingAnimatedEmoji";
       default:
