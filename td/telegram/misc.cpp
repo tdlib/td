@@ -307,7 +307,7 @@ string get_emoji_fingerprint(uint64 num) {
   return emojis[static_cast<size_t>((num & 0x7FFFFFFFFFFFFFFF) % emojis.size())].str();
 }
 
-string remove_emoji_modifiers(string emoji) {
+Slice remove_emoji_modifiers(Slice emoji) {
   static const Slice modifiers[] = {u8"\uFE0E" /* variation selector-15 */,
                                     u8"\uFE0F" /* variation selector-16 */,
                                     u8"\u200D\u2640" /* zero width joiner + female sign */,
@@ -322,12 +322,16 @@ string remove_emoji_modifiers(string emoji) {
     found = false;
     for (auto &modifier : modifiers) {
       if (ends_with(emoji, modifier) && emoji.size() > modifier.size()) {
-        emoji.resize(emoji.size() - modifier.size());
+        emoji.remove_suffix(modifier.size());
         found = true;
       }
     }
   }
   return emoji;
+}
+
+void remove_emoji_modifiers_in_place(string &emoji) {
+  emoji.resize(remove_emoji_modifiers(emoji).size());
 }
 
 }  // namespace td

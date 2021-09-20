@@ -596,9 +596,9 @@ class StickersManager final : public Actor {
 
   static int get_emoji_number(Slice emoji);
 
-  vector<FileId> get_animated_emoji_stickers(const StickerSet *sticker_set, const string &emoji) const;
+  vector<FileId> get_animated_emoji_stickers(const StickerSet *sticker_set, Slice emoji) const;
 
-  void choose_animated_emoji_click_sticker(const StickerSet *sticker_set, string message_text,
+  void choose_animated_emoji_click_sticker(const StickerSet *sticker_set, Slice message_text,
                                            FullMessageId full_message_id, double start_time,
                                            Promise<td_api::object_ptr<td_api::sticker>> &&promise);
 
@@ -609,8 +609,8 @@ class StickersManager final : public Actor {
 
   void flush_pending_animated_emoji_clicks();
 
-  void schedule_update_animated_emoji_clicked(const StickerSet *sticker_set, const string &emoji,
-                                              FullMessageId full_message_id, vector<std::pair<int, double>> clicks);
+  void schedule_update_animated_emoji_clicked(const StickerSet *sticker_set, Slice emoji, FullMessageId full_message_id,
+                                              vector<std::pair<int, double>> clicks);
 
   void send_update_animated_emoji_clicked(FullMessageId full_message_id, FileId sticker_id);
 

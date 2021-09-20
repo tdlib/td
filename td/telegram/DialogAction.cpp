@@ -20,7 +20,7 @@ bool DialogAction::is_valid_emoji(string &emoji) {
   if (!clean_input_string(emoji)) {
     return false;
   }
-  emoji = remove_emoji_modifiers(emoji);
+  remove_emoji_modifiers_in_place(emoji);
   if (emoji.empty()) {
     return false;
   }

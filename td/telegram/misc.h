@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/utils/common.h"
+#include "td/utils/Slice.h"
 
 namespace td {
 
@@ -35,6 +36,9 @@ int64 get_vector_hash(const vector<uint64> &numbers) TD_WARN_UNUSED_RESULT;
 string get_emoji_fingerprint(uint64 num);
 
 // removes all emoji modifiers
-string remove_emoji_modifiers(string emoji);
+Slice remove_emoji_modifiers(Slice emoji);
+
+// removes all emoji modifiers in place
+void remove_emoji_modifiers_in_place(string &emoji);
 
 }  // namespace td

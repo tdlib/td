@@ -656,9 +656,8 @@ class MessageDice final : public MessageContent {
   static constexpr const char *DEFAULT_EMOJI = "🎲";
 
   MessageDice() = default;
-  MessageDice(string emoji, int32 dice_value)
-      : emoji(emoji.empty() ? string(DEFAULT_EMOJI) : remove_emoji_modifiers(std::move(emoji)))
-      , dice_value(dice_value) {
+  MessageDice(const string &emoji, int32 dice_value)
+      : emoji(emoji.empty() ? string(DEFAULT_EMOJI) : remove_emoji_modifiers(emoji).str()), dice_value(dice_value) {
   }
 
   MessageContentType get_type() const final {
@@ -1398,9 +1397,8 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
     case MessageContentType::Dice: {
       auto m = make_unique<MessageDice>();
       if (parser.version() >= static_cast<int32>(Version::AddDiceEmoji)) {
-        string emoji;
-        parse(emoji, parser);
-        m->emoji = remove_emoji_modifiers(std::move(emoji));
+        parse(m->emoji, parser);
+        remove_emoji_modifiers_in_place(m->emoji);
       } else {
         m->emoji = MessageDice::DEFAULT_EMOJI;
       }
@@ -1677,7 +1675,7 @@ static Result<InputMessageContent> create_input_message_content(
       if (!clean_input_string(input_dice->emoji_)) {
         return Status::Error(400, "Dice emoji must be encoded in UTF-8");
       }
-      content = td::make_unique<MessageDice>(std::move(input_dice->emoji_), 0);
+      content = td::make_unique<MessageDice>(input_dice->emoji_, 0);
       clear_draft = input_dice->clear_draft_;
       break;
     }
