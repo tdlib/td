@@ -937,7 +937,7 @@ voiceChat group_call_id:int32 has_participants:Bool default_participant_id:Messa
 //@unread_mention_count Number of unread messages with a mention/reply in the chat
 //@notification_settings Notification settings for this chat
 //@message_ttl_setting Current message Time To Live setting (self-destruct timer) for the chat; 0 if not defined. TTL is counted from the time message or its content is viewed in secret chats and from the send date in other chats
-//@theme_name If non-empty, name of a theme set for the chat
+//@theme_name If non-empty, name of a theme, set for the chat
 //@action_bar Describes actions which should be possible to do through a chat action bar; may be null
 //@voice_chat Contains information about voice chat of the chat
 //@reply_markup_message_id Identifier of the message from which reply markup needs to be used; 0 if there is no default custom reply markup in the chat
@@ -1777,7 +1777,7 @@ messagePinMessage message_id:int53 = MessageContent;
 //@description A screenshot of a message in the chat has been taken
 messageScreenshotTaken = MessageContent;
 
-//@description A theme in the chat has been changed @theme_name If non-empty, name of a new theme set for the chat. Otherwise chat theme was reset to the default one
+//@description A theme in the chat has been changed @theme_name If non-empty, name of a new theme, set for the chat. Otherwise chat theme was reset to the default one
 messageChatSetTheme theme_name:string = MessageContent;
 
 //@description The TTL (Time To Live) setting for messages in the chat has been changed @ttl New message TTL setting
@@ -2879,7 +2879,7 @@ pushMessageContentChatChangePhoto = PushMessageContent;
 //@description A chat title was edited @title New chat title
 pushMessageContentChatChangeTitle title:string = PushMessageContent;
 
-//@description A chat theme was edited @theme_name If non-empty, name of a new theme set for the chat. Otherwise chat theme was reset to the default one
+//@description A chat theme was edited @theme_name If non-empty, name of a new theme, set for the chat. Otherwise chat theme was reset to the default one
 pushMessageContentChatChangeTheme theme_name:string = PushMessageContent;
 
 //@description A chat member was deleted @member_name Name of the deleted member @is_current_user True, if the current user was deleted from the group
