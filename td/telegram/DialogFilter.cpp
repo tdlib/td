@@ -7,9 +7,9 @@
 #include "td/telegram/DialogFilter.h"
 
 #include "td/telegram/DialogId.h"
-#include "td/telegram/misc.h"
 
 #include "td/utils/algorithm.h"
+#include "td/utils/emoji.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 

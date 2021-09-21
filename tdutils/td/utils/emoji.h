@@ -14,4 +14,10 @@ namespace td {
 // checks whether the string is an emoji; variation selectors are ignored
 bool is_emoji(Slice str);
 
+// removes all emoji modifiers from the end of the string
+Slice remove_emoji_modifiers(Slice emoji);
+
+// removes all emoji modifiers from the end of the string in place
+void remove_emoji_modifiers_in_place(string &emoji);
+
 }  // namespace td

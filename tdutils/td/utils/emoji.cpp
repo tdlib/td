@@ -6,6 +6,8 @@
 //
 #include "td/utils/emoji.h"
 
+#include "td/utils/misc.h"
+
 #include <unordered_set>
 
 namespace td {
@@ -835,6 +837,33 @@ bool is_emoji(Slice str) {
     return false;
   }
   return emojis.count(str) != 0;
+}
+
+Slice remove_emoji_modifiers(Slice emoji) {
+  static const Slice modifiers[] = {u8"\uFE0E" /* variation selector-15 */,
+                                    u8"\uFE0F" /* variation selector-16 */,
+                                    u8"\u200D\u2640" /* zero width joiner + female sign */,
+                                    u8"\u200D\u2642" /* zero width joiner + male sign */,
+                                    u8"\U0001F3FB" /* emoji modifier fitzpatrick type-1-2 */,
+                                    u8"\U0001F3FC" /* emoji modifier fitzpatrick type-3 */,
+                                    u8"\U0001F3FD" /* emoji modifier fitzpatrick type-4 */,
+                                    u8"\U0001F3FE" /* emoji modifier fitzpatrick type-5 */,
+                                    u8"\U0001F3FF" /* emoji modifier fitzpatrick type-6 */};
+  bool found = true;
+  while (found) {
+    found = false;
+    for (auto &modifier : modifiers) {
+      if (ends_with(emoji, modifier) && emoji.size() > modifier.size()) {
+        emoji.remove_suffix(modifier.size());
+        found = true;
+      }
+    }
+  }
+  return emoji;
+}
+
+void remove_emoji_modifiers_in_place(string &emoji) {
+  emoji.resize(remove_emoji_modifiers(emoji).size());
 }
 
 }  // namespace td

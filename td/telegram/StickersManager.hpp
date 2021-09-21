@@ -12,6 +12,7 @@
 #include "td/telegram/misc.h"
 #include "td/telegram/Photo.hpp"
 
+#include "td/utils/emoji.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Slice.h"

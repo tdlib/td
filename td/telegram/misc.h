@@ -35,10 +35,4 @@ int64 get_vector_hash(const vector<uint64> &numbers) TD_WARN_UNUSED_RESULT;
 // returns emoji corresponding to the specified number
 string get_emoji_fingerprint(uint64 num);
 
-// removes all emoji modifiers
-Slice remove_emoji_modifiers(Slice emoji);
-
-// removes all emoji modifiers in place
-void remove_emoji_modifiers_in_place(string &emoji);
-
 }  // namespace td
