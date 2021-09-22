@@ -483,15 +483,7 @@ class CreateSecretChat final : public SecretChatLogEventBase<CreateSecretChat> {
   void parse(ParserT &parser) {
     using td::parse;
     parse(random_id, parser);
-    if (parser.version() >= 4) {
-      int32 legacy_user_id;
-      parse(legacy_user_id, parser);
-      user_id = UserId(static_cast<int64>(legacy_user_id));
-    } else {
-      int64 legacy_user_id;
-      parse(legacy_user_id, parser);
-      user_id = UserId(legacy_user_id);
-    }
+    user_id = UserId(parser.version() >= 4 ? parser.fetch_long() : static_cast<int64>(parser.fetch_int()));
     parse(user_access_hash, parser);
   }
 
