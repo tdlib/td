@@ -137,8 +137,7 @@ TEST(DB, binlog_encryption) {
 TEST(DB, sqlite_lfs) {
   string path = "test_sqlite_db";
   SqliteDb::destroy(path).ignore();
-  SqliteDb db;
-  db.init(path).ensure();
+  auto db = SqliteDb::open_with_key(path, DbKey::empty()).move_as_ok();
   db.exec("PRAGMA journal_mode=WAL").ensure();
   db.exec("PRAGMA user_version").ensure();
 }
@@ -380,7 +379,8 @@ TEST(DB, key_value) {
   QueryHandler<SqliteKeyValue> sqlite_kv;
   CSlice name = "test_sqlite_kv";
   SqliteDb::destroy(name).ignore();
-  sqlite_kv.impl().init(name.str()).ensure();
+  auto db = SqliteDb::open_with_key(name, DbKey::empty()).move_as_ok();
+  sqlite_kv.impl().init_with_connection(std::move(db), "KV").ensure();
 
   int cnt = 0;
   for (auto &q : queries) {

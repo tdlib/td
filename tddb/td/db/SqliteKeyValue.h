@@ -33,8 +33,6 @@ class SqliteKeyValue {
     return db_.empty();
   }
 
-  Result<bool> init(string path) TD_WARN_UNUSED_RESULT;
-
   Status init_with_connection(SqliteDb connection, string table_name) TD_WARN_UNUSED_RESULT;
 
   Result<bool> try_regenerate_index() TD_WARN_UNUSED_RESULT {
@@ -106,7 +104,6 @@ class SqliteKeyValue {
   }
 
  private:
-  string path_;
   string table_name_;
   SqliteDb db_;
   SqliteStatement get_stmt_;

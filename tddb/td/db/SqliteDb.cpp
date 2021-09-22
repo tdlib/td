@@ -8,6 +8,7 @@
 
 #include "td/utils/common.h"
 #include "td/utils/format.h"
+#include "td/utils/logging.h"
 #include "td/utils/port/path.h"
 #include "td/utils/port/Stat.h"
 #include "td/utils/SliceBuilder.h"
@@ -70,17 +71,13 @@ string db_key_to_sqlcipher_key(const DbKey &db_key) {
 
 SqliteDb::~SqliteDb() = default;
 
-Status SqliteDb::init(CSlice path, bool *was_created) {
-  // If database does not exist, delete all other files which may left
-  // from older database
+Status SqliteDb::init(CSlice path) {
+  // if database does not exist, delete all other files which could have been left from the old database
   bool is_db_exists = stat(path).is_ok();
   if (!is_db_exists) {
     TRY_STATUS(destroy(path));
   }
 
-  if (was_created != nullptr) {
-    *was_created = !is_db_exists;
-  }
   sqlite3 *db;
   CHECK(sqlite3_threadsafe() != 0);
   int rc = sqlite3_open_v2(path.c_str(), &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE /*| SQLITE_OPEN_SHAREDCACHE*/,
@@ -196,7 +193,7 @@ Status SqliteDb::check_encryption() {
 
 Result<SqliteDb> SqliteDb::open_with_key(CSlice path, const DbKey &db_key, optional<int32> cipher_version) {
   auto res = do_open_with_key(path, db_key, cipher_version ? cipher_version.value() : 0);
-  if (res.is_error() && !cipher_version) {
+  if (res.is_error() && !cipher_version && !db_key.is_empty()) {
     return do_open_with_key(path, db_key, 3);
   }
   return res;
@@ -217,7 +214,7 @@ Result<SqliteDb> SqliteDb::do_open_with_key(CSlice path, const DbKey &db_key, in
     }
     db.set_cipher_version(cipher_version);
   }
-  TRY_STATUS_PREFIX(db.check_encryption(), "Can't open database: ");
+  TRY_STATUS_PREFIX(db.check_encryption(), "Can't check database: ");
   return std::move(db);
 }
 

@@ -11,7 +11,6 @@
 
 #include "td/db/detail/RawSqliteDb.h"
 
-#include "td/utils/logging.h"
 #include "td/utils/optional.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
@@ -25,10 +24,6 @@ namespace td {
 class SqliteDb {
  public:
   SqliteDb() = default;
-  explicit SqliteDb(CSlice path) {
-    auto status = init(path);
-    LOG_IF(FATAL, status.is_error()) << status;
-  }
   SqliteDb(SqliteDb &&) = default;
   SqliteDb &operator=(SqliteDb &&) = default;
   SqliteDb(const SqliteDb &) = delete;
@@ -47,7 +42,6 @@ class SqliteDb {
     *this = SqliteDb();
   }
 
-  Status init(CSlice path, bool *was_created = nullptr) TD_WARN_UNUSED_RESULT;
   Status exec(CSlice cmd) TD_WARN_UNUSED_RESULT;
   Result<bool> has_table(Slice table);
   Result<string> get_pragma(Slice name);
@@ -61,7 +55,7 @@ class SqliteDb {
 
   static Status destroy(Slice path) TD_WARN_UNUSED_RESULT;
 
-  // Anyway we can't change the key on the fly, so having static functions is more than enough
+  // we can't change the key on the fly, so static functions are more than enough
   static Result<SqliteDb> open_with_key(CSlice path, const DbKey &db_key, optional<int32> cipher_version = {});
   static Result<SqliteDb> change_key(CSlice path, const DbKey &new_db_key, const DbKey &old_db_key);
 
@@ -85,6 +79,8 @@ class SqliteDb {
   }
   std::shared_ptr<detail::RawSqliteDb> raw_;
   bool enable_logging_ = false;
+
+  Status init(CSlice path) TD_WARN_UNUSED_RESULT;
 
   Status check_encryption();
   static Result<SqliteDb> do_open_with_key(CSlice path, const DbKey &db_key, int32 cipher_version);
