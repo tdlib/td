@@ -86,7 +86,7 @@ Status SqliteDb::init(CSlice path, bool *was_created) {
   int rc = sqlite3_open_v2(path.c_str(), &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE /*| SQLITE_OPEN_SHAREDCACHE*/,
                            nullptr);
   if (rc != SQLITE_OK) {
-    auto res = Status::Error(PSLICE() << "Failed to open database: " << detail::RawSqliteDb::last_error(db, path));
+    auto res = detail::RawSqliteDb::last_error(db, path);
     sqlite3_close(db);
     return res;
   }
