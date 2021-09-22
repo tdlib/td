@@ -124,7 +124,7 @@ bool LanguagePackManager::is_custom_language_code(Slice language_code) {
 }
 
 static Result<SqliteDb> open_database(const string &path) {
-  TRY_RESULT(database, SqliteDb::open_with_key(path, DbKey::empty()));
+  TRY_RESULT(database, SqliteDb::open_with_key(path, true, DbKey::empty()));
   TRY_STATUS(database.exec("PRAGMA synchronous=NORMAL"));
   TRY_STATUS(database.exec("PRAGMA temp_store=MEMORY"));
   TRY_STATUS(database.exec("PRAGMA encoding=\"UTF-8\""));

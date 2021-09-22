@@ -16,14 +16,9 @@ namespace td {
 SqliteConnectionSafe::SqliteConnectionSafe(string path, DbKey key, optional<int32> cipher_version)
     : path_(std::move(path))
     , lsls_connection_([path = path_, key = std::move(key), cipher_version = std::move(cipher_version)] {
-      auto r_db = SqliteDb::open_with_key(path, key, cipher_version.copy());
+      auto r_db = SqliteDb::open_with_key(path, false, key, cipher_version.copy());
       if (r_db.is_error()) {
-        auto r_stat = stat(path);
-        if (r_stat.is_error()) {
-          LOG(FATAL) << "Can't open database (" << r_stat.error() << "): " << r_db.error().message();
-        } else {
-          LOG(FATAL) << "Can't open database of size " << r_stat.ok().size_ << ": " << r_db.error().message();
-        }
+        LOG(FATAL) << "Can't open database: " << r_db.error().message();
       }
       auto db = r_db.move_as_ok();
       db.exec("PRAGMA synchronous=NORMAL").ensure();

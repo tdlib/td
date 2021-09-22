@@ -56,8 +56,10 @@ class SqliteDb {
   static Status destroy(Slice path) TD_WARN_UNUSED_RESULT;
 
   // we can't change the key on the fly, so static functions are more than enough
-  static Result<SqliteDb> open_with_key(CSlice path, const DbKey &db_key, optional<int32> cipher_version = {});
-  static Result<SqliteDb> change_key(CSlice path, const DbKey &new_db_key, const DbKey &old_db_key);
+  static Result<SqliteDb> open_with_key(CSlice path, bool allow_creation, const DbKey &db_key,
+                                        optional<int32> cipher_version = {});
+  static Result<SqliteDb> change_key(CSlice path, bool allow_creation, const DbKey &new_db_key,
+                                     const DbKey &old_db_key);
 
   Status last_error();
 
@@ -80,10 +82,10 @@ class SqliteDb {
   std::shared_ptr<detail::RawSqliteDb> raw_;
   bool enable_logging_ = false;
 
-  Status init(CSlice path) TD_WARN_UNUSED_RESULT;
+  Status init(CSlice path, bool allow_creation) TD_WARN_UNUSED_RESULT;
 
   Status check_encryption();
-  static Result<SqliteDb> do_open_with_key(CSlice path, const DbKey &db_key, int32 cipher_version);
+  static Result<SqliteDb> do_open_with_key(CSlice path, bool allow_creation, const DbKey &db_key, int32 cipher_version);
   void set_cipher_version(int32 cipher_version);
 };
 

@@ -306,7 +306,7 @@ Status TdDb::init_sqlite(int32 scheduler_id, const TdParameters &parameters, DbK
   }
 
   sqlite_path_ = sql_database_path;
-  TRY_RESULT(db_instance, SqliteDb::change_key(sqlite_path_, key, old_key));
+  TRY_RESULT(db_instance, SqliteDb::change_key(sqlite_path_, true, key, old_key));
   sql_connection_ = std::make_shared<SqliteConnectionSafe>(sql_database_path, key, db_instance.get_cipher_version());
   sql_connection_->set(std::move(db_instance));
   auto &db = sql_connection_->get();
