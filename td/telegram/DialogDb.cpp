@@ -105,13 +105,17 @@ Status init_dialog_db(SqliteDb &db, int32 version, KeyValueSyncInterface &binlog
 // NB: must happen inside a transaction
 Status drop_dialog_db(SqliteDb &db, int version) {
   if (version < static_cast<int32>(DbVersion::DialogDbCreated)) {
-    LOG(WARNING) << "Drop old pmc dialog_db";
+    if (version != 0) {
+      LOG(WARNING) << "Drop old pmc dialog_db";
+    }
     SqliteKeyValue kv;
     kv.init_with_connection(db.clone(), "common").ensure();
     kv.erase_by_prefix("di");
   }
 
-  LOG(WARNING) << "Drop dialog_db " << tag("version", version) << tag("current_db_version", current_db_version());
+  if (version != 0) {
+    LOG(WARNING) << "Drop dialog_db " << tag("version", version) << tag("current_db_version", current_db_version());
+  }
   auto status = db.exec("DROP TABLE IF EXISTS dialogs");
   TRY_STATUS(db.exec("DROP TABLE IF EXISTS notification_groups"));
   return status;

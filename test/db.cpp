@@ -161,6 +161,7 @@ TEST(DB, sqlite_encryption) {
   SqliteDb::open_with_key(path, false, cucumber).ensure_error();
 
   SqliteDb::change_key(path, false, cucumber, empty).ensure();
+  SqliteDb::change_key(path, false, cucumber, empty).ensure();
 
   SqliteDb::open_with_key(path, false, tomato).ensure_error();
   {

@@ -83,7 +83,8 @@ Status SqliteDb::init(CSlice path, bool allow_creation) {
 
   sqlite3 *db;
   CHECK(sqlite3_threadsafe() != 0);
-  int rc = sqlite3_open_v2(path.c_str(), &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr);
+  int rc =
+      sqlite3_open_v2(path.c_str(), &db, SQLITE_OPEN_READWRITE | (allow_creation ? SQLITE_OPEN_CREATE : 0), nullptr);
   if (rc != SQLITE_OK) {
     auto res = detail::RawSqliteDb::last_error(db, path);
     sqlite3_close(db);
@@ -246,6 +247,12 @@ Result<SqliteDb> SqliteDb::change_key(CSlice path, bool allow_creation, const Db
     }
   }
 
+  auto create_database = [](CSlice tmp_path) -> Status {
+    TRY_STATUS(destroy(tmp_path));
+    SqliteDb db;
+    return db.init(tmp_path, true);
+  };
+
   TRY_RESULT(db, open_with_key(path, false, old_db_key));
   TRY_RESULT(user_version, db.user_version());
   auto new_key = db_key_to_sqlcipher_key(new_db_key);
@@ -253,9 +260,9 @@ Result<SqliteDb> SqliteDb::change_key(CSlice path, bool allow_creation, const Db
     LOG(DEBUG) << "ENCRYPT";
     PerfWarningTimer timer("Encrypt SQLite database", 0.1);
     auto tmp_path = path.str() + ".encrypted";
-    TRY_STATUS(destroy(tmp_path));
+    TRY_STATUS(create_database(tmp_path));
 
-    // make shure that database is not empty
+    // make sure that database is not empty
     TRY_STATUS(db.exec("CREATE TABLE IF NOT EXISTS encryption_dummy_table(id INT PRIMARY KEY)"));
     TRY_STATUS(db.exec(PSLICE() << "ATTACH DATABASE '" << quote_string(tmp_path) << "' AS encrypted KEY " << new_key));
     TRY_STATUS(db.exec("SELECT sqlcipher_export('encrypted')"));
@@ -267,7 +274,7 @@ Result<SqliteDb> SqliteDb::change_key(CSlice path, bool allow_creation, const Db
     LOG(DEBUG) << "DECRYPT";
     PerfWarningTimer timer("Decrypt SQLite database", 0.1);
     auto tmp_path = path.str() + ".encrypted";
-    TRY_STATUS(destroy(tmp_path));
+    TRY_STATUS(create_database(tmp_path));
 
     TRY_STATUS(db.exec(PSLICE() << "ATTACH DATABASE '" << quote_string(tmp_path) << "' AS decrypted KEY ''"));
     TRY_STATUS(db.exec("SELECT sqlcipher_export('decrypted')"));
