@@ -19,7 +19,7 @@ namespace td {
 class SqliteConnectionSafe {
  public:
   SqliteConnectionSafe() = default;
-  explicit SqliteConnectionSafe(string path, DbKey key = DbKey::empty(), optional<int32> cipher_version = {});
+  SqliteConnectionSafe(string path, DbKey key, optional<int32> cipher_version = {});
 
   SqliteDb &get();
   void set(SqliteDb &&db);

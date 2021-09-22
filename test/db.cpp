@@ -305,7 +305,7 @@ class SqliteKV {
     return 0;
   }
   Status init(string name) {
-    auto sql_connection = std::make_shared<SqliteConnectionSafe>(name);
+    auto sql_connection = std::make_shared<SqliteConnectionSafe>(name, DbKey::empty());
     kv_ = std::make_shared<SqliteKeyValueSafe>("kv", sql_connection);
     return Status::OK();
   }

@@ -94,7 +94,7 @@ class MessagesDbBench final : public Benchmark {
     auto guard = scheduler_->get_main_guard();
 
     string sql_db_name = "testdb.sqlite";
-    sql_connection_ = std::make_shared<SqliteConnectionSafe>(sql_db_name);
+    sql_connection_ = std::make_shared<SqliteConnectionSafe>(sql_db_name, DbKey::empty());
     auto &db = sql_connection_->get();
     TRY_STATUS(init_db(db));
 

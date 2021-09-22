@@ -188,7 +188,7 @@ class SqliteKeyValueAsyncBench final : public td::Benchmark {
     td::string sql_db_name = "testdb.sqlite";
     td::SqliteDb::destroy(sql_db_name).ignore();
 
-    sql_connection_ = std::make_shared<td::SqliteConnectionSafe>(sql_db_name);
+    sql_connection_ = std::make_shared<td::SqliteConnectionSafe>(sql_db_name, td::DbKey::empty());
     auto &db = sql_connection_->get();
     TRY_STATUS(init_db(db));
 
