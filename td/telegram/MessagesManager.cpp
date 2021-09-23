@@ -2343,11 +2343,26 @@ class SearchMessagesGlobalQuery final : public Td::ResultHandler {
     }
 
     auto info = td->messages_manager_->on_get_messages(result_ptr.move_as_ok(), "SearchMessagesGlobalQuery");
-    td->messages_manager_->on_get_messages_search_result(query_, offset_date_, offset_dialog_id_, offset_message_id_,
-                                                         limit_, filter_, min_date_, max_date_, random_id_,
-                                                         info.total_count, std::move(info.messages));
-
-    promise_.set_value(Unit());
+    td->messages_manager_->get_channel_differences_if_needed(
+        std::move(info),
+        PromiseCreator::lambda([td = td, query = std::move(query_), offset_date = offset_date_,
+                                offset_dialog_id = offset_dialog_id_, offset_message_id = offset_message_id_,
+                                limit = limit_, filter = std::move(filter_), min_date = min_date_, max_date = max_date_,
+                                random_id = random_id_,
+                                promise = std::move(promise_)](Result<MessagesManager::MessagesInfo> &&result) mutable {
+          if (G()->close_flag()) {
+            result = Status::Error(500, "Request aborted");
+          }
+          if (result.is_error()) {
+            promise.set_error(result.move_as_error());
+          } else {
+            auto info = result.move_as_ok();
+            td->messages_manager_->on_get_messages_search_result(query, offset_date, offset_dialog_id,
+                                                                 offset_message_id, limit, filter, min_date, max_date,
+                                                                 random_id, info.total_count, std::move(info.messages));
+            promise.set_value(Unit());
+          }
+        }));
   }
 
   void on_error(uint64 id, Status status) final {
@@ -2483,8 +2498,17 @@ class GetMessagePublicForwardsQuery final : public Td::ResultHandler {
     }
 
     auto info = td->messages_manager_->on_get_messages(result_ptr.move_as_ok(), "GetMessagePublicForwardsQuery");
-    td->messages_manager_->on_get_message_public_forwards(info.total_count, std::move(info.messages),
-                                                          std::move(promise_));
+    td->messages_manager_->get_channel_differences_if_needed(
+        std::move(info), PromiseCreator::lambda([td = td, promise = std::move(promise_)](
+                                                    Result<MessagesManager::MessagesInfo> &&result) mutable {
+          if (result.is_error()) {
+            promise.set_error(result.move_as_error());
+          } else {
+            auto info = result.move_as_ok();
+            td->messages_manager_->on_get_message_public_forwards(info.total_count, std::move(info.messages),
+                                                                  std::move(promise));
+          }
+        }));
   }
 
   void on_error(uint64 id, Status status) final {
@@ -9197,6 +9221,30 @@ void MessagesManager::get_channel_difference_if_needed(DialogId dialog_id, Messa
   promise.set_value(std::move(messages_info));
 }
 
+void MessagesManager::get_channel_differences_if_needed(MessagesInfo &&messages_info, Promise<MessagesInfo> &&promise) {
+  MultiPromiseActorSafe mpas{"GetChannelDifferencesIfNeededMultiPromiseActor"};
+  mpas.set_ignore_errors(true);
+  mpas.add_promise(PromiseCreator::lambda(
+      [messages_info = std::move(messages_info), promise = std::move(promise)](Unit ignored) mutable {
+        if (G()->close_flag()) {
+          return promise.set_error(Status::Error(500, "Request aborted"));
+        }
+        promise.set_value(std::move(messages_info));
+      }));
+  auto lock = mpas.get_promise();
+  for (auto &message : messages_info.messages) {
+    if (message == nullptr) {
+      continue;
+    }
+
+    auto dialog_id = get_message_dialog_id(message);
+    if (need_channel_difference_to_add_message(dialog_id, message)) {
+      run_after_channel_difference(dialog_id, mpas.get_promise());
+    }
+  }
+  lock.set_value(Unit());
+}
+
 void MessagesManager::on_get_messages(vector<tl_object_ptr<telegram_api::Message>> &&messages, bool is_channel_message,
                                       bool is_scheduled, const char *source) {
   LOG(DEBUG) << "Receive " << messages.size() << " messages";
@@ -9875,6 +9923,9 @@ void MessagesManager::on_get_recent_locations_failed(int64 random_id) {
 void MessagesManager::on_get_message_public_forwards(int32 total_count,
                                                      vector<tl_object_ptr<telegram_api::Message>> &&messages,
                                                      Promise<td_api::object_ptr<td_api::foundMessages>> &&promise) {
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
   LOG(INFO) << "Receive " << messages.size() << " forwarded messages";
   vector<td_api::object_ptr<td_api::message>> result;
   FullMessageId last_full_message_id;
