@@ -4241,7 +4241,7 @@ void StickersManager::flush_sent_animated_emoji_clicks() {
   sent_animated_emoji_clicks_.erase(sent_animated_emoji_clicks_.begin(), it);
 }
 
-bool StickersManager::is_sent_animated_emoji_click(DialogId dialog_id, const string &emoji) {
+bool StickersManager::is_sent_animated_emoji_click(DialogId dialog_id, Slice emoji) {
   flush_sent_animated_emoji_clicks();
   for (const auto &click : sent_animated_emoji_clicks_) {
     if (click.dialog_id == dialog_id && click.emoji == emoji) {
@@ -4251,8 +4251,7 @@ bool StickersManager::is_sent_animated_emoji_click(DialogId dialog_id, const str
   return false;
 }
 
-Status StickersManager::on_animated_emoji_message_clicked(const string &emoji, FullMessageId full_message_id,
-                                                          string data) {
+Status StickersManager::on_animated_emoji_message_clicked(Slice emoji, FullMessageId full_message_id, string data) {
   TRY_RESULT(value, json_decode(data));
   if (value.type() != JsonValue::Type::Object) {
     return Status::Error("Expected an object");
@@ -4313,7 +4312,7 @@ Status StickersManager::on_animated_emoji_message_clicked(const string &emoji, F
   }
 
   PendingOnAnimatedEmojiClicked pending_request;
-  pending_request.emoji_ = emoji;
+  pending_request.emoji_ = emoji.str();
   pending_request.full_message_id_ = full_message_id;
   pending_request.clicks_ = std::move(clicks);
   pending_on_animated_emoji_message_clicked_.push_back(std::move(pending_request));

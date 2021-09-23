@@ -73,9 +73,9 @@ class StickersManager final : public Actor {
 
   void on_send_animated_emoji_clicks(DialogId dialog_id, const string &emoji);
 
-  bool is_sent_animated_emoji_click(DialogId dialog_id, const string &emoji);
+  bool is_sent_animated_emoji_click(DialogId dialog_id, Slice emoji);
 
-  Status on_animated_emoji_message_clicked(const string &emoji, FullMessageId full_message_id, string data);
+  Status on_animated_emoji_message_clicked(Slice emoji, FullMessageId full_message_id, string data);
 
   void create_sticker(FileId file_id, string minithumbnail, PhotoSize thumbnail, Dimensions dimensions,
                       tl_object_ptr<telegram_api::documentAttributeSticker> sticker, bool is_animated,

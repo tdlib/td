@@ -230,7 +230,7 @@ void get_message_content_animated_emoji_click_sticker(const MessageContent *cont
                                                       Td *td, Promise<td_api::object_ptr<td_api::sticker>> &&promise);
 
 void on_message_content_animated_emoji_clicked(const MessageContent *content, FullMessageId full_message_id, Td *td,
-                                               string emoji, string data);
+                                               Slice emoji, string data);
 
 bool need_reget_message_content(const MessageContent *content);
 

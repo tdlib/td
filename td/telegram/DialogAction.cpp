@@ -21,11 +21,7 @@ bool DialogAction::is_valid_emoji(string &emoji) {
   if (!clean_input_string(emoji)) {
     return false;
   }
-  remove_emoji_modifiers_in_place(emoji);
-  if (emoji.empty()) {
-    return false;
-  }
-  return true;
+  return is_emoji(emoji);
 }
 
 void DialogAction::init(Type type) {

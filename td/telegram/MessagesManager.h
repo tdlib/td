@@ -2964,7 +2964,7 @@ class MessagesManager final : public Actor {
 
   Status can_import_messages(DialogId dialog_id);
 
-  void on_animated_emoji_message_clicked(FullMessageId full_message_id, UserId user_id, string emoji, string data);
+  void on_animated_emoji_message_clicked(FullMessageId full_message_id, UserId user_id, Slice emoji, string data);
 
   void add_sponsored_dialog(const Dialog *d, DialogSource source);
 

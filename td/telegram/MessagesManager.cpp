@@ -7106,7 +7106,7 @@ void MessagesManager::on_user_dialog_action(DialogId dialog_id, MessageId top_th
       auto message_id = MessageId(ServerMessageId(clicking_info.message_id));
       CHECK(message_id.is_valid());
       if (date > G()->unix_time() - 10) {
-        on_animated_emoji_message_clicked({dialog_id, message_id}, user_id, std::move(clicking_info.emoji),
+        on_animated_emoji_message_clicked({dialog_id, message_id}, user_id, clicking_info.emoji,
                                           std::move(clicking_info.data));
       }
       return;
@@ -19748,7 +19748,7 @@ void MessagesManager::click_animated_emoji_message(FullMessageId full_message_id
   get_message_content_animated_emoji_click_sticker(m->content.get(), full_message_id, td_, std::move(promise));
 }
 
-void MessagesManager::on_animated_emoji_message_clicked(FullMessageId full_message_id, UserId user_id, string emoji,
+void MessagesManager::on_animated_emoji_message_clicked(FullMessageId full_message_id, UserId user_id, Slice emoji,
                                                         string data) {
   CHECK(full_message_id.get_message_id().is_server());
   auto *m = get_message_force(full_message_id, "on_animated_emoji_message_clicked");
@@ -19759,7 +19759,7 @@ void MessagesManager::on_animated_emoji_message_clicked(FullMessageId full_messa
       full_message_id.get_dialog_id().get_user_id() != user_id) {
     return;
   }
-  on_message_content_animated_emoji_clicked(m->content.get(), full_message_id, td_, std::move(emoji), std::move(data));
+  on_message_content_animated_emoji_clicked(m->content.get(), full_message_id, td_, emoji, std::move(data));
 }
 
 void MessagesManager::open_dialog(Dialog *d) {
