@@ -142,17 +142,6 @@ Status init_binlog(Binlog &binlog, string path, BinlogKeyValue<Binlog> &binlog_p
   return Status::OK();
 }
 
-Status init_db(SqliteDb &db) {
-  TRY_STATUS(db.exec("PRAGMA encoding=\"UTF-8\""));
-  TRY_STATUS(db.exec("PRAGMA journal_mode=WAL"));
-
-  TRY_STATUS(db.exec("PRAGMA synchronous=NORMAL"));
-  TRY_STATUS(db.exec("PRAGMA temp_store=MEMORY"));
-  TRY_STATUS(db.exec("PRAGMA secure_delete=1"));
-
-  return Status::OK();
-}
-
 }  // namespace
 
 std::shared_ptr<FileDbInterface> TdDb::get_file_db_shared() {
@@ -310,8 +299,8 @@ Status TdDb::init_sqlite(int32 scheduler_id, const TdParameters &parameters, DbK
   sql_connection_ = std::make_shared<SqliteConnectionSafe>(sql_database_path, key, db_instance.get_cipher_version());
   sql_connection_->set(std::move(db_instance));
   auto &db = sql_connection_->get();
-
-  TRY_STATUS(init_db(db));
+  TRY_STATUS(db.exec("PRAGMA journal_mode=WAL"));
+  TRY_STATUS(db.exec("PRAGMA secure_delete=1"));
 
   // Init databases
   // Do initialization once and before everything else to avoid "database is locked" error.

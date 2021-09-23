@@ -21,10 +21,8 @@ SqliteConnectionSafe::SqliteConnectionSafe(string path, DbKey key, optional<int3
         LOG(FATAL) << "Can't open database: " << r_db.error().message();
       }
       auto db = r_db.move_as_ok();
-      db.exec("PRAGMA synchronous=NORMAL").ensure();
-      db.exec("PRAGMA temp_store=MEMORY").ensure();
+      db.exec("PRAGMA journal_mode=WAL").ensure();
       db.exec("PRAGMA secure_delete=1").ensure();
-      db.exec("PRAGMA recursive_triggers=1").ensure();
       return db;
     }) {
 }
