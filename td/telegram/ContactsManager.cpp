@@ -7077,10 +7077,43 @@ void ContactsManager::change_chat_participant_status(ChatId chat_id, UserId user
   if (!status.is_member()) {
     return delete_chat_participant(chat_id, user_id, false, std::move(promise));
   }
+  if (status.is_creator()) {
+    return promise.set_error(Status::Error(400, "Can't change owner in basic group chats"));
+  }
+  if (status.is_restricted()) {
+    return promise.set_error(Status::Error(400, "Can't restrict users in basic group chats"));
+  }
 
   auto c = get_chat(chat_id);
   if (c == nullptr) {
-    return promise.set_error(Status::Error(6, "Chat info not found"));
+    return promise.set_error(Status::Error(400, "Chat info not found"));
+  }
+  if (!c->is_active) {
+    return promise.set_error(Status::Error(400, "Chat is deactivated"));
+  }
+
+  auto chat_full = get_chat_full(chat_id);
+  if (chat_full == nullptr) {
+    auto load_chat_full_promise =
+        PromiseCreator::lambda([actor_id = actor_id(this), chat_id, user_id, status = std::move(status),
+                                promise = std::move(promise)](Result<Unit> &&result) mutable {
+          if (result.is_error()) {
+            promise.set_error(result.move_as_error());
+          } else {
+            send_closure(actor_id, &ContactsManager::change_chat_participant_status, chat_id, user_id, status,
+                         std::move(promise));
+          }
+        });
+    load_chat_full(chat_id, false, std::move(load_chat_full_promise), "change_chat_participant_status");
+    return;
+  }
+
+  auto participant = get_chat_full_participant(chat_full, DialogId(user_id));
+  if (participant == nullptr) {
+    // the user isn't a member
+    if (!status.is_administrator()) {
+      return add_chat_participant(chat_id, user_id, 0, std::move(promise));
+    }
   }
 
   if (!get_chat_permissions(c).can_promote_members()) {
@@ -7094,13 +7127,6 @@ void ContactsManager::change_chat_participant_status(ChatId chat_id, UserId user
   auto input_user = get_input_user(user_id);
   if (input_user == nullptr) {
     return promise.set_error(Status::Error(3, "User not found"));
-  }
-
-  if (status.is_creator()) {
-    return promise.set_error(Status::Error(3, "Can't add creator to the group chat"));
-  }
-  if (status.is_restricted()) {
-    return promise.set_error(Status::Error(3, "Can't restrict users in a basic group chat"));
   }
 
   td_->create_handler<EditChatAdminQuery>(std::move(promise))
