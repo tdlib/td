@@ -3167,6 +3167,8 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
     }
   } else if (dialog_id.get_type() == DialogType::User) {
     sender_user_id = dialog_id.get_user_id();
+  } else if (dialog_id.get_type() == DialogType::Channel) {
+    sender_dialog_id = dialog_id;
   }
 
   TRY_RESULT(contains_mention_int, get_json_object_int_field(custom, "mention"));
