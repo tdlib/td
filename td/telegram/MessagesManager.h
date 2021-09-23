@@ -223,9 +223,8 @@ class MessagesManager final : public Actor {
                                vector<tl_object_ptr<telegram_api::Message>> &&messages);
   void on_get_recent_locations_failed(int64 random_id);
 
-  void on_get_message_public_forwards_result(int64 random_id, int32 total_count,
-                                             vector<tl_object_ptr<telegram_api::Message>> &&messages);
-  void on_failed_get_message_public_forwards(int64 random_id);
+  void on_get_message_public_forwards(int32 total_count, vector<tl_object_ptr<telegram_api::Message>> &&messages,
+                                      Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
 
   // if message is from_update, flags have_previous and have_next are ignored and must be both true
   FullMessageId on_get_message(tl_object_ptr<telegram_api::Message> message_ptr, bool from_update,
@@ -733,8 +732,8 @@ class MessagesManager final : public Actor {
   vector<MessageId> get_dialog_scheduled_messages(DialogId dialog_id, bool force, bool ignore_result,
                                                   Promise<Unit> &&promise);
 
-  FoundMessages get_message_public_forwards(FullMessageId full_message_id, const string &offset, int32 limit,
-                                            int64 &random_id, Promise<Unit> &&promise);
+  void get_message_public_forwards(FullMessageId full_message_id, const string &offset, int32 limit,
+                                   Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
 
   tl_object_ptr<td_api::message> get_dialog_message_by_date_object(int64 random_id);
 
@@ -3276,8 +3275,7 @@ class MessagesManager final : public Actor {
   std::unordered_map<int64, std::pair<int32, vector<MessageId>>>
       found_dialog_recent_location_messages_;  // random_id -> [total_count, [message_id]...]
 
-  std::unordered_map<int64, FoundMessages> found_fts_messages_;             // random_id -> FoundMessages
-  std::unordered_map<int64, FoundMessages> found_message_public_forwards_;  // random_id -> FoundMessages
+  std::unordered_map<int64, FoundMessages> found_fts_messages_;  // random_id -> FoundMessages
 
   struct MessageEmbeddingCodes {
     std::unordered_map<MessageId, string, MessageIdHash> embedding_codes_;
