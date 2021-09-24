@@ -8099,7 +8099,7 @@ void MessagesManager::remove_dialog_action_bar(DialogId dialog_id, Promise<Unit>
 
   hide_dialog_action_bar(d);
 
-  change_dialog_report_spam_state_on_server(dialog_id, false, 0, std::move(promise));
+  toggle_dialog_report_spam_state_on_server(dialog_id, false, 0, std::move(promise));
 }
 
 void MessagesManager::repair_dialog_active_group_call_id(DialogId dialog_id) {
@@ -8131,7 +8131,7 @@ void MessagesManager::do_repair_dialog_active_group_call_id(DialogId dialog_id) 
   reload_dialog_info_full(dialog_id);
 }
 
-class MessagesManager::ChangeDialogReportSpamStateOnServerLogEvent {
+class MessagesManager::ToggleDialogReportSpamStateOnServerLogEvent {
  public:
   DialogId dialog_id_;
   bool is_spam_dialog_;
@@ -8149,17 +8149,17 @@ class MessagesManager::ChangeDialogReportSpamStateOnServerLogEvent {
   }
 };
 
-uint64 MessagesManager::save_change_dialog_report_spam_state_on_server_log_event(DialogId dialog_id,
+uint64 MessagesManager::save_toggle_dialog_report_spam_state_on_server_log_event(DialogId dialog_id,
                                                                                  bool is_spam_dialog) {
-  ChangeDialogReportSpamStateOnServerLogEvent log_event{dialog_id, is_spam_dialog};
-  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ChangeDialogReportSpamStateOnServer,
+  ToggleDialogReportSpamStateOnServerLogEvent log_event{dialog_id, is_spam_dialog};
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ToggleDialogReportSpamStateOnServer,
                     get_log_event_storer(log_event));
 }
 
-void MessagesManager::change_dialog_report_spam_state_on_server(DialogId dialog_id, bool is_spam_dialog,
+void MessagesManager::toggle_dialog_report_spam_state_on_server(DialogId dialog_id, bool is_spam_dialog,
                                                                 uint64 log_event_id, Promise<Unit> &&promise) {
   if (log_event_id == 0 && G()->parameters().use_message_db) {
-    log_event_id = save_change_dialog_report_spam_state_on_server_log_event(dialog_id, is_spam_dialog);
+    log_event_id = save_toggle_dialog_report_spam_state_on_server_log_event(dialog_id, is_spam_dialog);
   }
 
   auto new_promise = get_erase_log_event_promise(log_event_id, std::move(promise));
@@ -8237,7 +8237,7 @@ void MessagesManager::report_dialog(DialogId dialog_id, const vector<MessageId> 
 
   if (is_dialog_spam_report && can_report_spam) {
     hide_dialog_action_bar(user_d);
-    return change_dialog_report_spam_state_on_server(dialog_id, true, 0, std::move(promise));
+    return toggle_dialog_report_spam_state_on_server(dialog_id, true, 0, std::move(promise));
   }
 
   if (!can_report_dialog(dialog_id)) {
@@ -37478,23 +37478,23 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         reset_all_notification_settings_on_server(event.id_);
         break;
       }
-      case LogEvent::HandlerType::ChangeDialogReportSpamStateOnServer: {
+      case LogEvent::HandlerType::ToggleDialogReportSpamStateOnServer: {
         if (!G()->parameters().use_message_db) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
 
-        ChangeDialogReportSpamStateOnServerLogEvent log_event;
+        ToggleDialogReportSpamStateOnServerLogEvent log_event;
         log_event_parse(log_event, event.data_).ensure();
 
         auto dialog_id = log_event.dialog_id_;
-        Dialog *d = get_dialog_force(dialog_id, "ChangeDialogReportSpamStateOnServerLogEvent");
+        Dialog *d = get_dialog_force(dialog_id, "ToggleDialogReportSpamStateOnServerLogEvent");
         if (d == nullptr || !have_input_peer(dialog_id, AccessRights::Read)) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
 
-        change_dialog_report_spam_state_on_server(dialog_id, log_event.is_spam_dialog_, event.id_, Promise<Unit>());
+        toggle_dialog_report_spam_state_on_server(dialog_id, log_event.is_spam_dialog_, event.id_, Promise<Unit>());
         break;
       }
       case LogEvent::HandlerType::SetDialogFolderIdOnServer: {

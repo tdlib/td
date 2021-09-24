@@ -779,7 +779,7 @@ class UploadProfilePhotoQuery final : public Td::ResultHandler {
       return on_error(id, result_ptr.move_as_error());
     }
 
-    td->contacts_manager_->on_change_profile_photo(result_ptr.move_as_ok(), 0);
+    td->contacts_manager_->on_set_profile_photo(result_ptr.move_as_ok(), 0);
 
     td->file_manager_->delete_partial_remote_location(file_id_);
 
@@ -817,7 +817,7 @@ class UpdateProfilePhotoQuery final : public Td::ResultHandler {
       return on_error(id, result_ptr.move_as_error());
     }
 
-    td->contacts_manager_->on_change_profile_photo(result_ptr.move_as_ok(), old_photo_id_);
+    td->contacts_manager_->on_set_profile_photo(result_ptr.move_as_ok(), old_photo_id_);
 
     promise_.set_value(Unit());
   }
@@ -6923,8 +6923,8 @@ void ContactsManager::add_channel_participants(ChannelId channel_id, const vecto
   td_->create_handler<InviteToChannelQuery>(std::move(promise))->send(channel_id, std::move(input_users));
 }
 
-void ContactsManager::change_channel_participant_status(ChannelId channel_id, DialogId participant_dialog_id,
-                                                        DialogParticipantStatus status, Promise<Unit> &&promise) {
+void ContactsManager::set_channel_participant_status(ChannelId channel_id, DialogId participant_dialog_id,
+                                                     DialogParticipantStatus status, Promise<Unit> &&promise) {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
     return promise.set_error(Status::Error(6, "Chat info not found"));
@@ -6937,8 +6937,8 @@ void ContactsManager::change_channel_participant_status(ChannelId channel_id, Di
 
   if (participant_dialog_id == DialogId(get_my_id())) {
     // fast path is needed, because get_channel_status may return Creator, while GetChannelParticipantQuery returning Left
-    return change_channel_participant_status_impl(channel_id, participant_dialog_id, std::move(status),
-                                                  get_channel_status(c), std::move(promise));
+    return set_channel_participant_status_impl(channel_id, participant_dialog_id, std::move(status),
+                                               get_channel_status(c), std::move(promise));
   }
 
   auto on_result_promise =
@@ -6949,18 +6949,17 @@ void ContactsManager::change_channel_participant_status(ChannelId channel_id, Di
           return promise.set_error(r_dialog_participant.move_as_error());
         }
 
-        send_closure(actor_id, &ContactsManager::change_channel_participant_status_impl, channel_id,
-                     participant_dialog_id, std::move(status), r_dialog_participant.ok().status, std::move(promise));
+        send_closure(actor_id, &ContactsManager::set_channel_participant_status_impl, channel_id, participant_dialog_id,
+                     std::move(status), r_dialog_participant.ok().status, std::move(promise));
       });
 
   td_->create_handler<GetChannelParticipantQuery>(std::move(on_result_promise))
       ->send(channel_id, participant_dialog_id, std::move(input_peer));
 }
 
-void ContactsManager::change_channel_participant_status_impl(ChannelId channel_id, DialogId participant_dialog_id,
-                                                             DialogParticipantStatus status,
-                                                             DialogParticipantStatus old_status,
-                                                             Promise<Unit> &&promise) {
+void ContactsManager::set_channel_participant_status_impl(ChannelId channel_id, DialogId participant_dialog_id,
+                                                          DialogParticipantStatus status,
+                                                          DialogParticipantStatus old_status, Promise<Unit> &&promise) {
   if (old_status == status && !old_status.is_creator()) {
     return promise.set_value(Unit());
   }
@@ -7072,8 +7071,8 @@ void ContactsManager::promote_channel_participant(ChannelId channel_id, UserId u
   td_->create_handler<EditChannelAdminQuery>(std::move(promise))->send(channel_id, std::move(input_user), status);
 }
 
-void ContactsManager::change_chat_participant_status(ChatId chat_id, UserId user_id, DialogParticipantStatus status,
-                                                     Promise<Unit> &&promise) {
+void ContactsManager::set_chat_participant_status(ChatId chat_id, UserId user_id, DialogParticipantStatus status,
+                                                  Promise<Unit> &&promise) {
   if (!status.is_member()) {
     return delete_chat_participant(chat_id, user_id, false, std::move(promise));
   }
@@ -7100,11 +7099,11 @@ void ContactsManager::change_chat_participant_status(ChatId chat_id, UserId user
           if (result.is_error()) {
             promise.set_error(result.move_as_error());
           } else {
-            send_closure(actor_id, &ContactsManager::change_chat_participant_status, chat_id, user_id, status,
+            send_closure(actor_id, &ContactsManager::set_chat_participant_status, chat_id, user_id, status,
                          std::move(promise));
           }
         });
-    return load_chat_full(chat_id, false, std::move(load_chat_full_promise), "change_chat_participant_status");
+    return load_chat_full(chat_id, false, std::move(load_chat_full_promise), "set_chat_participant_status");
   }
 
   auto participant = get_chat_full_participant(chat_full, DialogId(user_id));
@@ -11218,7 +11217,7 @@ void ContactsManager::on_ignored_restriction_reasons_changed() {
   }
 }
 
-void ContactsManager::on_change_profile_photo(tl_object_ptr<telegram_api::photos_photo> &&photo, int64 old_photo_id) {
+void ContactsManager::on_set_profile_photo(tl_object_ptr<telegram_api::photos_photo> &&photo, int64 old_photo_id) {
   LOG(INFO) << "Changed profile photo to " << to_string(photo);
 
   UserId my_user_id = get_my_id();
@@ -11231,7 +11230,7 @@ void ContactsManager::on_change_profile_photo(tl_object_ptr<telegram_api::photos
                              get_photo(td_->file_manager_.get(), std::move(photo->photo_), DialogId(my_user_id)));
 
   // if cache was correctly updated, this should produce no updates
-  on_get_users(std::move(photo->users_), "on_change_profile_photo");
+  on_get_users(std::move(photo->users_), "on_set_profile_photo");
 }
 
 void ContactsManager::on_delete_profile_photo(int64 profile_photo_id, Promise<Unit> promise) {
@@ -14724,11 +14723,11 @@ void ContactsManager::set_dialog_participant_status(DialogId dialog_id,
           return promise.set_error(Status::Error(3, "Chats can't be members of basic groups"));
         }
       }
-      return change_chat_participant_status(dialog_id.get_chat_id(), participant_dialog_id.get_user_id(), status,
-                                            std::move(promise));
+      return set_chat_participant_status(dialog_id.get_chat_id(), participant_dialog_id.get_user_id(), status,
+                                         std::move(promise));
     case DialogType::Channel:
-      return change_channel_participant_status(dialog_id.get_channel_id(), participant_dialog_id, status,
-                                               std::move(promise));
+      return set_channel_participant_status(dialog_id.get_channel_id(), participant_dialog_id, status,
+                                            std::move(promise));
     case DialogType::SecretChat:
       return promise.set_error(Status::Error(3, "Chat member status can't be changed in secret chats"));
     case DialogType::None:
@@ -14756,8 +14755,8 @@ void ContactsManager::ban_dialog_participant(DialogId dialog_id,
       return delete_chat_participant(dialog_id.get_chat_id(), participant_dialog_id.get_user_id(), revoke_messages,
                                      std::move(promise));
     case DialogType::Channel:
-      return change_channel_participant_status(dialog_id.get_channel_id(), participant_dialog_id,
-                                               DialogParticipantStatus::Banned(banned_until_date), std::move(promise));
+      return set_channel_participant_status(dialog_id.get_channel_id(), participant_dialog_id,
+                                            DialogParticipantStatus::Banned(banned_until_date), std::move(promise));
     case DialogType::SecretChat:
       return promise.set_error(Status::Error(3, "Can't ban members in secret chats"));
     case DialogType::None:

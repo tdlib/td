@@ -839,7 +839,7 @@ struct GroupCallManager::GroupCall {
   bool is_my_video_enabled = false;
   bool is_my_presentation_paused = false;
   bool mute_new_participants = false;
-  bool allowed_change_mute_new_participants = false;
+  bool allowed_toggle_mute_new_participants = false;
   bool joined_date_asc = false;
   bool is_video_recorded = false;
   int32 scheduled_start_date = 0;
@@ -3289,7 +3289,7 @@ void GroupCallManager::toggle_group_call_mute_new_participants(GroupCallId group
                       }));
     return;
   }
-  if (!group_call->is_active || !group_call->can_be_managed || !group_call->allowed_change_mute_new_participants) {
+  if (!group_call->is_active || !group_call->can_be_managed || !group_call->allowed_toggle_mute_new_participants) {
     return promise.set_error(Status::Error(400, "Can't change mute_new_participants setting"));
   }
 
@@ -3334,7 +3334,7 @@ void GroupCallManager::on_toggle_group_call_mute_new_participants(InputGroupCall
 
   if (result.is_error()) {
     group_call->have_pending_mute_new_participants = false;
-    if (group_call->can_be_managed && group_call->allowed_change_mute_new_participants) {
+    if (group_call->can_be_managed && group_call->allowed_toggle_mute_new_participants) {
       LOG(ERROR) << "Failed to set mute_new_participants to " << mute_new_participants << " in " << input_group_call_id
                  << ": " << result.error();
     }
@@ -4133,7 +4133,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       call.start_subscribed = group_call->schedule_start_subscribed_;
       call.mute_new_participants = group_call->join_muted_;
       call.joined_date_asc = group_call->join_date_asc_;
-      call.allowed_change_mute_new_participants = group_call->can_change_join_muted_;
+      call.allowed_toggle_mute_new_participants = group_call->can_change_join_muted_;
       call.participant_count = group_call->participants_count_;
       call.unmuted_video_count = group_call->unmuted_video_count_;
       call.unmuted_video_limit = group_call->unmuted_video_limit_;
@@ -4273,13 +4273,13 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       }
       auto mute_flags_changed =
           call.mute_new_participants != group_call->mute_new_participants ||
-          call.allowed_change_mute_new_participants != group_call->allowed_change_mute_new_participants;
+          call.allowed_toggle_mute_new_participants != group_call->allowed_toggle_mute_new_participants;
       if (mute_flags_changed && call.mute_version >= group_call->mute_version) {
         auto old_mute_new_participants = get_group_call_mute_new_participants(group_call);
-        need_update |= (call.allowed_change_mute_new_participants && call.can_be_managed) !=
-                       (group_call->allowed_change_mute_new_participants && group_call->can_be_managed);
+        need_update |= (call.allowed_toggle_mute_new_participants && call.can_be_managed) !=
+                       (group_call->allowed_toggle_mute_new_participants && group_call->can_be_managed);
         group_call->mute_new_participants = call.mute_new_participants;
-        group_call->allowed_change_mute_new_participants = call.allowed_change_mute_new_participants;
+        group_call->allowed_toggle_mute_new_participants = call.allowed_toggle_mute_new_participants;
         group_call->mute_version = call.mute_version;
         if (old_mute_new_participants != get_group_call_mute_new_participants(group_call)) {
           need_update = true;
@@ -4711,8 +4711,8 @@ tl_object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(
   bool is_my_video_enabled = get_group_call_is_my_video_enabled(group_call);
   bool is_my_video_paused = is_my_video_enabled && get_group_call_is_my_video_paused(group_call);
   bool mute_new_participants = get_group_call_mute_new_participants(group_call);
-  bool can_change_mute_new_participants =
-      group_call->is_active && group_call->can_be_managed && group_call->allowed_change_mute_new_participants;
+  bool can_toggle_mute_new_participants =
+      group_call->is_active && group_call->can_be_managed && group_call->allowed_toggle_mute_new_participants;
   bool can_enable_video = get_group_call_can_enable_video(group_call);
   int32 record_start_date = get_group_call_record_start_date(group_call);
   int32 record_duration = record_start_date == 0 ? 0 : max(G()->unix_time() - record_start_date + 1, 1);
@@ -4721,7 +4721,7 @@ tl_object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(
       group_call->group_call_id.get(), get_group_call_title(group_call), scheduled_start_date, start_subscribed,
       is_active, is_joined, group_call->need_rejoin, group_call->can_be_managed, group_call->participant_count,
       group_call->loaded_all_participants, std::move(recent_speakers), is_my_video_enabled, is_my_video_paused,
-      can_enable_video, mute_new_participants, can_change_mute_new_participants, record_duration, is_video_recorded,
+      can_enable_video, mute_new_participants, can_toggle_mute_new_participants, record_duration, is_video_recorded,
       group_call->duration);
 }
 

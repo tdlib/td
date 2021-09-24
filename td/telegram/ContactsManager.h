@@ -170,7 +170,7 @@ class ContactsManager final : public Actor {
   void on_update_user_common_chat_count(UserId user_id, int32 common_chat_count);
   void on_update_user_need_phone_number_privacy_exception(UserId user_id, bool need_phone_number_privacy_exception);
 
-  void on_change_profile_photo(tl_object_ptr<telegram_api::photos_photo> &&photo, int64 old_photo_id);
+  void on_set_profile_photo(tl_object_ptr<telegram_api::photos_photo> &&photo, int64 old_photo_id);
   void on_delete_profile_photo(int64 profile_photo_id, Promise<Unit> promise);
 
   void on_ignored_restriction_reasons_changed();
@@ -1482,11 +1482,11 @@ class ContactsManager final : public Actor {
 
   void update_dialogs_for_discussion(DialogId dialog_id, bool is_suitable);
 
-  void change_chat_participant_status(ChatId chat_id, UserId user_id, DialogParticipantStatus status,
-                                      Promise<Unit> &&promise);
+  void set_chat_participant_status(ChatId chat_id, UserId user_id, DialogParticipantStatus status,
+                                   Promise<Unit> &&promise);
 
-  void change_channel_participant_status(ChannelId channel_id, DialogId participant_dialog_id,
-                                         DialogParticipantStatus status, Promise<Unit> &&promise);
+  void set_channel_participant_status(ChannelId channel_id, DialogId participant_dialog_id,
+                                      DialogParticipantStatus status, Promise<Unit> &&promise);
 
   void send_edit_chat_admin_query(ChatId chat_id, UserId user_id, bool is_administrator, Promise<Unit> &&promise);
 
@@ -1510,9 +1510,9 @@ class ContactsManager final : public Actor {
 
   const DialogParticipant *get_channel_participant_from_cache(ChannelId channel_id, DialogId participant_dialog_id);
 
-  void change_channel_participant_status_impl(ChannelId channel_id, DialogId participant_dialog_id,
-                                              DialogParticipantStatus status, DialogParticipantStatus old_status,
-                                              Promise<Unit> &&promise);
+  void set_channel_participant_status_impl(ChannelId channel_id, DialogId participant_dialog_id,
+                                           DialogParticipantStatus status, DialogParticipantStatus old_status,
+                                           Promise<Unit> &&promise);
 
   void promote_channel_participant(ChannelId channel_id, UserId user_id, DialogParticipantStatus status,
                                    DialogParticipantStatus old_status, Promise<Unit> &&promise);

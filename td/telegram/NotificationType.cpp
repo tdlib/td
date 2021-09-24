@@ -195,7 +195,7 @@ class NotificationTypePushMessage final : public NotificationType {
           return td_api::make_object<td_api::pushMessageContentChatChangePhoto>();
         }
         if (key == "MESSAGE_CHAT_CHANGE_THEME") {
-          return td_api::make_object<td_api::pushMessageContentChatChangeTheme>(arg);
+          return td_api::make_object<td_api::pushMessageContentChatSetTheme>(arg);
         }
         if (key == "MESSAGE_CHAT_CHANGE_TITLE") {
           return td_api::make_object<td_api::pushMessageContentChatChangeTitle>(arg);

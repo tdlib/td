@@ -488,7 +488,7 @@ class SecretChatActor final : public NetQueryCallback {
   // So we can do it immediatelly after EVENT is SENT to the binlog, because SEND CHANGE and ERASE EVENT will be
   // ordered automatically.
   //
-  // We will use common ChangeProcessor for all changes (inside one SecretChatActor).
+  // We will use common ChangesProcessor for all changes (inside one SecretChatActor).
   // So all changes will be saved in exactly the same order as they are applied.
 
   template <class StateT>
