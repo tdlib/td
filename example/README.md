@@ -179,6 +179,8 @@ See [rtdlib](https://github.com/fewensa/rtdlib), [tdlib-rs](https://github.com/d
 [tdlib-sys](https://github.com/nuxeh/tdlib-sys), or
 [tdjson-rs](https://github.com/mersinvald/tdjson-rs) for examples of TDLib Rust bindings.
 
+Also see [Telegrand](https://github.com/melix99/telegrand) – a Telegram client optimized for the GNOME desktop.
+
 <a name="erlang"></a>
 ## Using TDLib in Erlang projects
 
