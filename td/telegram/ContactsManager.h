@@ -1488,6 +1488,8 @@ class ContactsManager final : public Actor {
   void change_channel_participant_status(ChannelId channel_id, DialogId participant_dialog_id,
                                          DialogParticipantStatus status, Promise<Unit> &&promise);
 
+  void send_edit_chat_admin_query(ChatId chat_id, UserId user_id, bool is_administrator, Promise<Unit> &&promise);
+
   void delete_chat_participant(ChatId chat_id, UserId user_id, bool revoke_messages, Promise<Unit> &&promise);
 
   void search_chat_participants(ChatId chat_id, const string &query, int32 limit, DialogParticipantsFilter filter,

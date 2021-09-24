@@ -7108,11 +7108,9 @@ void ContactsManager::change_chat_participant_status(ChatId chat_id, UserId user
   }
 
   auto participant = get_chat_full_participant(chat_full, DialogId(user_id));
-  if (participant == nullptr) {
-    // the user isn't a member
-    if (!status.is_administrator()) {
-      return add_chat_participant(chat_id, user_id, 0, std::move(promise));
-    }
+  if (participant == nullptr && !status.is_administrator()) {
+    // the user isn't a member, but needs to be added
+    return add_chat_participant(chat_id, user_id, 0, std::move(promise));
   }
 
   if (!get_chat_permissions(c).can_promote_members()) {
@@ -7120,16 +7118,35 @@ void ContactsManager::change_chat_participant_status(ChatId chat_id, UserId user
   }
 
   if (user_id == get_my_id()) {
-    return promise.set_error(Status::Error(3, "Can't change chat member status of self"));
+    return promise.set_error(Status::Error(3, "Can't promote or demote self"));
   }
 
+  if (participant == nullptr) {
+    // the user must be added first
+    CHECK(status.is_administrator());
+    auto add_chat_participant_promise = PromiseCreator::lambda(
+        [actor_id = actor_id(this), chat_id, user_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
+          if (result.is_error()) {
+            promise.set_error(result.move_as_error());
+          } else {
+            send_closure(actor_id, &ContactsManager::send_edit_chat_admin_query, chat_id, user_id, true,
+                         std::move(promise));
+          }
+        });
+    return add_chat_participant(chat_id, user_id, 0, std::move(add_chat_participant_promise));
+  }
+
+  send_edit_chat_admin_query(chat_id, user_id, status.is_administrator(), std::move(promise));
+}
+
+void ContactsManager::send_edit_chat_admin_query(ChatId chat_id, UserId user_id, bool is_administrator,
+                                                 Promise<Unit> &&promise) {
   auto input_user = get_input_user(user_id);
   if (input_user == nullptr) {
     return promise.set_error(Status::Error(3, "User not found"));
   }
 
-  td_->create_handler<EditChatAdminQuery>(std::move(promise))
-      ->send(chat_id, std::move(input_user), status.is_administrator());
+  td_->create_handler<EditChatAdminQuery>(std::move(promise))->send(chat_id, std::move(input_user), is_administrator);
 }
 
 void ContactsManager::can_transfer_ownership(Promise<CanTransferOwnershipResult> &&promise) {
