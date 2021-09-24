@@ -48,7 +48,7 @@ set(TDNET_SOURCE
   td/net/Wget.h
 )
 
-if (TD_EXPERIMENTAL_WATCH_OS)
+if (APPLE_WATCH)
   set(TDNET_SOURCE
     ${TDNET_SOURCE}
     td/net/DarwinHttp.mm
@@ -77,7 +77,7 @@ if (WIN32)
   endif()
 endif()
 
-if (TD_EXPERIMENTAL_WATCH_OS)
+if (APPLE_WATCH)
   find_library(FOUNDATION_LIBRARY Foundation REQUIRED)
   target_link_libraries(tdnet PRIVATE ${FOUNDATION_LIBRARY})
 endif()

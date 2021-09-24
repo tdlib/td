@@ -705,7 +705,7 @@ Result<SocketFd> ConnectionCreator::find_connection(const Proxy &proxy, const IP
   bool prefer_ipv6 =
       G()->shared_config().get_option_boolean("prefer_ipv6") || (proxy.use_proxy() && proxy_ip_address.is_ipv6());
   bool only_http = proxy.use_http_caching_proxy();
-#if TD_EXPERIMENTAL_WATCH_OS
+#if TD_DARWIN_WATCH_OS
   only_http = true;
 #endif
   TRY_RESULT(info, dc_options_set_.find_connection(

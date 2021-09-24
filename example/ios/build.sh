@@ -36,10 +36,8 @@ do
     if [[ $platform = "macOS" ]]; then
       other_options="-DCMAKE_OSX_ARCHITECTURES='x86_64;arm64'"
     else
-      watchos=""
       if [[ $platform = "watchOS" ]]; then
         ios_platform="WATCH"
-        watchos="-DTD_EXPERIMENTAL_WATCH_OS=ON"
       elif [[ $platform = "tvOS" ]]; then
         ios_platform="TV"
       else
@@ -54,7 +52,7 @@ do
       fi
 
       echo "iOS platform = ${ios_platform}"
-      other_options="${watchos} -DIOS_PLATFORM=${ios_platform} -DCMAKE_TOOLCHAIN_FILE=${td_path}/CMake/iOS.cmake"
+      other_options="-DIOS_PLATFORM=${ios_platform} -DCMAKE_TOOLCHAIN_FILE=${td_path}/CMake/iOS.cmake"
     fi
 
     set_cmake_options $platform

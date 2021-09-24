@@ -6,4 +6,3 @@
 #cmakedefine01 TD_HAVE_COROUTINES
 #cmakedefine01 TD_HAVE_ABSL
 #cmakedefine01 TD_FD_DEBUG
-#cmakedefine01 TD_EXPERIMENTAL_WATCH_OS

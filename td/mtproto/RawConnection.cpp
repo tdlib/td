@@ -11,7 +11,7 @@
 #include "td/mtproto/ProxySecret.h"
 #include "td/mtproto/Transport.h"
 
-#if TD_EXPERIMENTAL_WATCH_OS
+#if TD_DARWIN_WATCH_OS
 #include "td/net/DarwinHttp.h"
 #endif
 
@@ -259,7 +259,7 @@ class RawConnectionDefault final : public RawConnection {
   }
 };
 
-#if TD_EXPERIMENTAL_WATCH_OS
+#if TD_DARWIN_WATCH_OS
 class RawConnectionHttp final : public RawConnection {
  public:
   RawConnectionHttp(IPAddress ip_address, unique_ptr<StatsCallback> stats_callback)
@@ -452,7 +452,7 @@ class RawConnectionHttp final : public RawConnection {
 
 unique_ptr<RawConnection> RawConnection::create(IPAddress ip_address, SocketFd socket_fd, TransportType transport_type,
                                                 unique_ptr<StatsCallback> stats_callback) {
-#if TD_EXPERIMENTAL_WATCH_OS
+#if TD_DARWIN_WATCH_OS
   return td::make_unique<RawConnectionHttp>(ip_address, std::move(stats_callback));
 #else
   return td::make_unique<RawConnectionDefault>(std::move(socket_fd), transport_type, std::move(stats_callback));

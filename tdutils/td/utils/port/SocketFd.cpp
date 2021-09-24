@@ -622,7 +622,7 @@ Result<SocketFd> SocketFd::from_native_fd(NativeFd fd) {
 }
 
 Result<SocketFd> SocketFd::open(const IPAddress &address) {
-#if TD_EXPERIMENTAL_WATCH_OS
+#if TD_DARWIN_WATCH_OS
   return SocketFd{};
 #endif
 
