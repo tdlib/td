@@ -6559,7 +6559,7 @@ void Td::on_request(uint64 id, const td_api::getFileDownloadedPrefixSize &reques
   }
   auto file_view = file_manager_->get_file_view(FileId(request.file_id_, 0));
   if (file_view.empty()) {
-    return send_closure(actor_id(this), &Td::send_error, id, Status::Error(10, "Unknown file ID"));
+    return send_closure(actor_id(this), &Td::send_error, id, Status::Error(400, "Unknown file ID"));
   }
   send_closure(actor_id(this), &Td::send_result, id,
                td_api::make_object<td_api::count>(narrow_cast<int32>(file_view.downloaded_prefix(request.offset_))));

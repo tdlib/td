@@ -872,7 +872,7 @@ class DeleteProfilePhotoQuery final : public Td::ResultHandler {
     LOG(INFO) << "Receive result for DeleteProfilePhotoQuery: " << format::as_array(result);
     if (result.size() != 1u) {
       LOG(WARNING) << "Photo can't be deleted";
-      return on_error(id, Status::Error(7, "Photo can't be deleted"));
+      return on_error(id, Status::Error(400, "Photo can't be deleted"));
     }
 
     td->contacts_manager_->on_delete_profile_photo(profile_photo_id_, std::move(promise_));
@@ -2877,7 +2877,7 @@ class GetChannelParticipantQuery final : public Td::ResultHandler {
   void send(ChannelId channel_id, DialogId participant_dialog_id, tl_object_ptr<telegram_api::InputPeer> &&input_peer) {
     auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
     if (input_channel == nullptr) {
-      return promise_.set_error(Status::Error(3, "Supergroup not found"));
+      return promise_.set_error(Status::Error(400, "Supergroup not found"));
     }
 
     CHECK(input_peer != nullptr);
@@ -2930,7 +2930,7 @@ class GetChannelParticipantsQuery final : public Td::ResultHandler {
   void send(ChannelId channel_id, ChannelParticipantsFilter filter, int32 offset, int32 limit) {
     auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
     if (input_channel == nullptr) {
-      return promise_.set_error(Status::Error(3, "Supergroup not found"));
+      return promise_.set_error(Status::Error(400, "Supergroup not found"));
     }
 
     channel_id_ = channel_id;
@@ -2976,7 +2976,7 @@ class GetChannelAdministratorsQuery final : public Td::ResultHandler {
   void send(ChannelId channel_id, int64 hash) {
     auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
     if (input_channel == nullptr) {
-      return promise_.set_error(Status::Error(3, "Supergroup not found"));
+      return promise_.set_error(Status::Error(400, "Supergroup not found"));
     }
 
     hash = 0;  // to load even only ranks or creator changed
@@ -5066,23 +5066,23 @@ UserId ContactsManager::add_anonymous_bot_user() {
 void ContactsManager::check_dialog_username(DialogId dialog_id, const string &username,
                                             Promise<CheckDialogUsernameResult> &&promise) {
   if (dialog_id != DialogId() && !dialog_id.is_valid()) {
-    return promise.set_error(Status::Error(3, "Chat not found"));
+    return promise.set_error(Status::Error(400, "Chat not found"));
   }
 
   switch (dialog_id.get_type()) {
     case DialogType::User: {
       if (dialog_id.get_user_id() != get_my_id()) {
-        return promise.set_error(Status::Error(3, "Can't check username for private chat with other user"));
+        return promise.set_error(Status::Error(400, "Can't check username for private chat with other user"));
       }
       break;
     }
     case DialogType::Channel: {
       auto c = get_channel(dialog_id.get_channel_id());
       if (c == nullptr) {
-        return promise.set_error(Status::Error(6, "Chat not found"));
+        return promise.set_error(Status::Error(400, "Chat not found"));
       }
       if (!get_channel_status(c).is_creator()) {
-        return promise.set_error(Status::Error(6, "Not enough rights to change username"));
+        return promise.set_error(Status::Error(400, "Not enough rights to change username"));
       }
 
       if (username == c->username) {
@@ -5097,7 +5097,7 @@ void ContactsManager::check_dialog_username(DialogId dialog_id, const string &us
       if (username.empty()) {
         return promise.set_value(CheckDialogUsernameResult::Ok);
       }
-      return promise.set_error(Status::Error(3, "Chat can't have username"));
+      return promise.set_error(Status::Error(400, "Chat can't have username"));
     default:
       UNREACHABLE();
       return;
@@ -5347,7 +5347,7 @@ void ContactsManager::add_contact(td_api::object_ptr<td_api::contact> &&contact,
   UserId user_id{contact->user_id_};
   auto input_user = get_input_user(user_id);
   if (input_user == nullptr) {
-    return promise.set_error(Status::Error(3, "User not found"));
+    return promise.set_error(Status::Error(400, "User not found"));
   }
 
   td_->create_handler<AddContactQuery>(std::move(promise))
@@ -5771,7 +5771,7 @@ void ContactsManager::share_phone_number(UserId user_id, Promise<Unit> &&promise
   LOG(INFO) << "Share phone number with " << user_id;
   auto input_user = get_input_user(user_id);
   if (input_user == nullptr) {
-    return promise.set_error(Status::Error(3, "User not found"));
+    return promise.set_error(Status::Error(400, "User not found"));
   }
 
   td_->messages_manager_->hide_dialog_action_bar(DialogId(user_id));
@@ -6232,7 +6232,7 @@ void ContactsManager::set_name(const string &first_name, const string &last_name
   auto new_first_name = clean_name(first_name, MAX_NAME_LENGTH);
   auto new_last_name = clean_name(last_name, MAX_NAME_LENGTH);
   if (new_first_name.empty()) {
-    return promise.set_error(Status::Error(7, "First name must be non-empty"));
+    return promise.set_error(Status::Error(400, "First name must be non-empty"));
   }
 
   const User *u = get_user(get_my_id());
@@ -6311,10 +6311,10 @@ void ContactsManager::set_chat_description(ChatId chat_id, const string &descrip
   auto new_description = strip_empty_characters(description, MAX_DESCRIPTION_LENGTH);
   auto c = get_chat(chat_id);
   if (c == nullptr) {
-    return promise.set_error(Status::Error(6, "Chat info not found"));
+    return promise.set_error(Status::Error(400, "Chat info not found"));
   }
   if (!get_chat_permissions(c).can_change_info_and_settings()) {
-    return promise.set_error(Status::Error(6, "Not enough rights to set chat description"));
+    return promise.set_error(Status::Error(400, "Not enough rights to set chat description"));
   }
 
   td_->create_handler<EditChatAboutQuery>(std::move(promise))->send(DialogId(chat_id), new_description);
@@ -6323,10 +6323,10 @@ void ContactsManager::set_chat_description(ChatId chat_id, const string &descrip
 void ContactsManager::set_channel_username(ChannelId channel_id, const string &username, Promise<Unit> &&promise) {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
-    return promise.set_error(Status::Error(6, "Supergroup not found"));
+    return promise.set_error(Status::Error(400, "Supergroup not found"));
   }
   if (!get_channel_status(c).is_creator()) {
-    return promise.set_error(Status::Error(6, "Not enough rights to change supergroup username"));
+    return promise.set_error(Status::Error(400, "Not enough rights to change supergroup username"));
   }
 
   if (!username.empty() && !is_valid_username(username)) {
@@ -6336,7 +6336,7 @@ void ContactsManager::set_channel_username(ChannelId channel_id, const string &u
   if (!username.empty() && c->username.empty()) {
     auto channel_full = get_channel_full(channel_id, false, "set_channel_username");
     if (channel_full != nullptr && !channel_full->can_set_username) {
-      return promise.set_error(Status::Error(3, "Can't set supergroup username"));
+      return promise.set_error(Status::Error(400, "Can't set supergroup username"));
     }
   }
 
@@ -6347,13 +6347,13 @@ void ContactsManager::set_channel_sticker_set(ChannelId channel_id, StickerSetId
                                               Promise<Unit> &&promise) {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
-    return promise.set_error(Status::Error(6, "Supergroup not found"));
+    return promise.set_error(Status::Error(400, "Supergroup not found"));
   }
   if (!c->is_megagroup) {
-    return promise.set_error(Status::Error(6, "Chat sticker set can be set only for supergroups"));
+    return promise.set_error(Status::Error(400, "Chat sticker set can be set only for supergroups"));
   }
   if (!get_channel_permissions(c).can_change_info_and_settings()) {
-    return promise.set_error(Status::Error(6, "Not enough rights to change supergroup sticker set"));
+    return promise.set_error(Status::Error(400, "Not enough rights to change supergroup sticker set"));
   }
 
   telegram_api::object_ptr<telegram_api::InputStickerSet> input_sticker_set;
@@ -6362,13 +6362,13 @@ void ContactsManager::set_channel_sticker_set(ChannelId channel_id, StickerSetId
   } else {
     input_sticker_set = td_->stickers_manager_->get_input_sticker_set(sticker_set_id);
     if (input_sticker_set == nullptr) {
-      return promise.set_error(Status::Error(3, "Sticker set not found"));
+      return promise.set_error(Status::Error(400, "Sticker set not found"));
     }
   }
 
   auto channel_full = get_channel_full(channel_id, false, "set_channel_sticker_set");
   if (channel_full != nullptr && !channel_full->can_set_sticker_set) {
-    return promise.set_error(Status::Error(3, "Can't set supergroup sticker set"));
+    return promise.set_error(Status::Error(400, "Can't set supergroup sticker set"));
   }
 
   td_->create_handler<SetChannelStickerSetQuery>(std::move(promise))
@@ -6378,13 +6378,13 @@ void ContactsManager::set_channel_sticker_set(ChannelId channel_id, StickerSetId
 void ContactsManager::toggle_channel_sign_messages(ChannelId channel_id, bool sign_messages, Promise<Unit> &&promise) {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
-    return promise.set_error(Status::Error(6, "Supergroup not found"));
+    return promise.set_error(Status::Error(400, "Supergroup not found"));
   }
   if (get_channel_type(c) == ChannelType::Megagroup) {
-    return promise.set_error(Status::Error(6, "Message signatures can't be toggled in supergroups"));
+    return promise.set_error(Status::Error(400, "Message signatures can't be toggled in supergroups"));
   }
   if (!get_channel_permissions(c).can_change_info_and_settings()) {
-    return promise.set_error(Status::Error(6, "Not enough rights to toggle channel sign messages"));
+    return promise.set_error(Status::Error(400, "Not enough rights to toggle channel sign messages"));
   }
 
   td_->create_handler<ToggleChannelSignaturesQuery>(std::move(promise))->send(channel_id, sign_messages);
@@ -6394,16 +6394,16 @@ void ContactsManager::toggle_channel_is_all_history_available(ChannelId channel_
                                                               Promise<Unit> &&promise) {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
-    return promise.set_error(Status::Error(6, "Supergroup not found"));
+    return promise.set_error(Status::Error(400, "Supergroup not found"));
   }
   if (!get_channel_permissions(c).can_change_info_and_settings()) {
-    return promise.set_error(Status::Error(6, "Not enough rights to toggle all supergroup history availability"));
+    return promise.set_error(Status::Error(400, "Not enough rights to toggle all supergroup history availability"));
   }
   if (get_channel_type(c) != ChannelType::Megagroup) {
-    return promise.set_error(Status::Error(6, "Message history can be hidden in supergroups only"));
+    return promise.set_error(Status::Error(400, "Message history can be hidden in supergroups only"));
   }
   if (c->has_linked_channel && !is_all_history_available) {
-    return promise.set_error(Status::Error(6, "Message history can't be hidden in discussion supergroups"));
+    return promise.set_error(Status::Error(400, "Message history can't be hidden in discussion supergroups"));
   }
   // it can be toggled in public chats, but will not affect them
 
@@ -6413,13 +6413,13 @@ void ContactsManager::toggle_channel_is_all_history_available(ChannelId channel_
 void ContactsManager::convert_channel_to_gigagroup(ChannelId channel_id, Promise<Unit> &&promise) {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
-    return promise.set_error(Status::Error(6, "Supergroup not found"));
+    return promise.set_error(Status::Error(400, "Supergroup not found"));
   }
   if (!get_channel_permissions(c).is_creator()) {
-    return promise.set_error(Status::Error(6, "Not enough rights to convert group to broadcast group"));
+    return promise.set_error(Status::Error(400, "Not enough rights to convert group to broadcast group"));
   }
   if (get_channel_type(c) != ChannelType::Megagroup) {
-    return promise.set_error(Status::Error(6, "Chat must be a supergroup"));
+    return promise.set_error(Status::Error(400, "Chat must be a supergroup"));
   }
 
   remove_dialog_suggested_action(SuggestedAction{SuggestedAction::Type::ConvertToGigagroup, DialogId(channel_id)});
@@ -6432,10 +6432,10 @@ void ContactsManager::set_channel_description(ChannelId channel_id, const string
   auto new_description = strip_empty_characters(description, MAX_DESCRIPTION_LENGTH);
   auto c = get_channel(channel_id);
   if (c == nullptr) {
-    return promise.set_error(Status::Error(6, "Chat info not found"));
+    return promise.set_error(Status::Error(400, "Chat info not found"));
   }
   if (!get_channel_permissions(c).can_change_info_and_settings()) {
-    return promise.set_error(Status::Error(6, "Not enough rights to set chat description"));
+    return promise.set_error(Status::Error(400, "Not enough rights to set chat description"));
   }
 
   td_->create_handler<EditChatAboutQuery>(std::move(promise))->send(DialogId(channel_id), new_description);
@@ -6735,31 +6735,31 @@ void ContactsManager::report_channel_spam(ChannelId channel_id, UserId user_id, 
                                           Promise<Unit> &&promise) {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
-    return promise.set_error(Status::Error(6, "Supergroup not found"));
+    return promise.set_error(Status::Error(400, "Supergroup not found"));
   }
   if (!c->is_megagroup) {
-    return promise.set_error(Status::Error(6, "Spam can be reported only in supergroups"));
+    return promise.set_error(Status::Error(400, "Spam can be reported only in supergroups"));
   }
 
   if (!have_input_user(user_id)) {
-    return promise.set_error(Status::Error(6, "Have no access to the user"));
+    return promise.set_error(Status::Error(400, "Have no access to the user"));
   }
   if (user_id == get_my_id()) {
-    return promise.set_error(Status::Error(6, "Can't report self"));
+    return promise.set_error(Status::Error(400, "Can't report self"));
   }
 
   if (message_ids.empty()) {
-    return promise.set_error(Status::Error(6, "Message list is empty"));
+    return promise.set_error(Status::Error(400, "Message list is empty"));
   }
 
   vector<MessageId> server_message_ids;
   for (auto &message_id : message_ids) {
     if (message_id.is_valid_scheduled()) {
-      return promise.set_error(Status::Error(6, "Can't report scheduled messages"));
+      return promise.set_error(Status::Error(400, "Can't report scheduled messages"));
     }
 
     if (!message_id.is_valid()) {
-      return promise.set_error(Status::Error(6, "Message not found"));
+      return promise.set_error(Status::Error(400, "Message not found"));
     }
 
     if (message_id.is_server()) {
@@ -6802,7 +6802,7 @@ void ContactsManager::delete_channel(ChannelId channel_id, Promise<Unit> &&promi
 
 void ContactsManager::delete_dialog(DialogId dialog_id, Promise<Unit> &&promise) {
   if (!td_->messages_manager_->have_dialog_force(dialog_id, "delete_dialog")) {
-    return promise.set_error(Status::Error(3, "Chat not found"));
+    return promise.set_error(Status::Error(400, "Chat not found"));
   }
 
   switch (dialog_id.get_type()) {
@@ -6825,26 +6825,26 @@ void ContactsManager::add_chat_participant(ChatId chat_id, UserId user_id, int32
                                            Promise<Unit> &&promise) {
   const Chat *c = get_chat(chat_id);
   if (c == nullptr) {
-    return promise.set_error(Status::Error(3, "Chat info not found"));
+    return promise.set_error(Status::Error(400, "Chat info not found"));
   }
   if (!c->is_active) {
-    return promise.set_error(Status::Error(3, "Chat is deactivated"));
+    return promise.set_error(Status::Error(400, "Chat is deactivated"));
   }
   if (forward_limit < 0) {
-    return promise.set_error(Status::Error(3, "Can't forward negative number of messages"));
+    return promise.set_error(Status::Error(400, "Can't forward negative number of messages"));
   }
   if (user_id != get_my_id()) {
     if (!get_chat_permissions(c).can_invite_users()) {
-      return promise.set_error(Status::Error(3, "Not enough rights to invite members to the group chat"));
+      return promise.set_error(Status::Error(400, "Not enough rights to invite members to the group chat"));
     }
   } else if (c->status.is_banned()) {
-    return promise.set_error(Status::Error(3, "User was kicked from the chat"));
+    return promise.set_error(Status::Error(400, "User was kicked from the chat"));
   }
   // TODO upper bound on forward_limit
 
   auto input_user = get_input_user(user_id);
   if (input_user == nullptr) {
-    return promise.set_error(Status::Error(3, "User not found"));
+    return promise.set_error(Status::Error(400, "User not found"));
   }
 
   // TODO invoke after
@@ -6859,17 +6859,17 @@ void ContactsManager::add_channel_participant(ChannelId channel_id, UserId user_
 
   const Channel *c = get_channel(channel_id);
   if (c == nullptr) {
-    return promise.set_error(Status::Error(3, "Chat info not found"));
+    return promise.set_error(Status::Error(400, "Chat info not found"));
   }
   auto input_user = get_input_user(user_id);
   if (input_user == nullptr) {
-    return promise.set_error(Status::Error(3, "User not found"));
+    return promise.set_error(Status::Error(400, "User not found"));
   }
 
   if (user_id == get_my_id()) {
     // join the channel
     if (get_channel_status(c).is_banned()) {
-      return promise.set_error(Status::Error(3, "Can't return to kicked from chat"));
+      return promise.set_error(Status::Error(400, "Can't return to kicked from chat"));
     }
 
     speculative_add_channel_user(channel_id, user_id, DialogParticipantStatus::Member(), c->status);
@@ -6878,7 +6878,7 @@ void ContactsManager::add_channel_participant(ChannelId channel_id, UserId user_
   }
 
   if (!get_channel_permissions(c).can_invite_users()) {
-    return promise.set_error(Status::Error(3, "Not enough rights to invite members to the supergroup chat"));
+    return promise.set_error(Status::Error(400, "Not enough rights to invite members to the supergroup chat"));
   }
 
   speculative_add_channel_user(channel_id, user_id, DialogParticipantStatus::Member(), old_status);
@@ -6895,18 +6895,18 @@ void ContactsManager::add_channel_participants(ChannelId channel_id, const vecto
 
   const Channel *c = get_channel(channel_id);
   if (c == nullptr) {
-    return promise.set_error(Status::Error(3, "Chat info not found"));
+    return promise.set_error(Status::Error(400, "Chat info not found"));
   }
 
   if (!get_channel_permissions(c).can_invite_users()) {
-    return promise.set_error(Status::Error(3, "Not enough rights to invite members to the supergroup chat"));
+    return promise.set_error(Status::Error(400, "Not enough rights to invite members to the supergroup chat"));
   }
 
   vector<tl_object_ptr<telegram_api::InputUser>> input_users;
   for (auto user_id : user_ids) {
     auto input_user = get_input_user(user_id);
     if (input_user == nullptr) {
-      return promise.set_error(Status::Error(3, "User not found"));
+      return promise.set_error(Status::Error(400, "User not found"));
     }
 
     if (user_id == get_my_id()) {
@@ -6927,12 +6927,12 @@ void ContactsManager::set_channel_participant_status(ChannelId channel_id, Dialo
                                                      DialogParticipantStatus status, Promise<Unit> &&promise) {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
-    return promise.set_error(Status::Error(6, "Chat info not found"));
+    return promise.set_error(Status::Error(400, "Chat info not found"));
   }
 
   auto input_peer = td_->messages_manager_->get_input_peer(participant_dialog_id, AccessRights::Read);
   if (input_peer == nullptr) {
-    return promise.set_error(Status::Error(6, "Member not found"));
+    return promise.set_error(Status::Error(400, "Member not found"));
   }
 
   if (participant_dialog_id == DialogId(get_my_id())) {
@@ -6971,13 +6971,13 @@ void ContactsManager::set_channel_participant_status_impl(ChannelId channel_id, 
   bool need_restrict = false;
   if (status.is_creator() || old_status.is_creator()) {
     if (!old_status.is_creator()) {
-      return promise.set_error(Status::Error(3, "Can't add another owner to the chat"));
+      return promise.set_error(Status::Error(400, "Can't add another owner to the chat"));
     }
     if (!status.is_creator()) {
-      return promise.set_error(Status::Error(3, "Can't remove chat owner"));
+      return promise.set_error(Status::Error(400, "Can't remove chat owner"));
     }
     if (participant_dialog_id != DialogId(get_my_id())) {
-      return promise.set_error(Status::Error(3, "Not enough rights to edit chat owner rights"));
+      return promise.set_error(Status::Error(400, "Not enough rights to edit chat owner rights"));
     }
     if (status.is_member() == old_status.is_member()) {
       // change rank and is_anonymous
@@ -7049,13 +7049,13 @@ void ContactsManager::promote_channel_participant(ChannelId channel_id, UserId u
 
   if (user_id == get_my_id()) {
     if (status.is_administrator()) {
-      return promise.set_error(Status::Error(3, "Can't promote self"));
+      return promise.set_error(Status::Error(400, "Can't promote self"));
     }
     CHECK(status.is_member());
     // allow to demote self. TODO is it allowed server-side?
   } else {
     if (!get_channel_permissions(c).can_promote_members()) {
-      return promise.set_error(Status::Error(3, "Not enough rights"));
+      return promise.set_error(Status::Error(400, "Not enough rights"));
     }
 
     CHECK(!old_status.is_creator());
@@ -7064,7 +7064,7 @@ void ContactsManager::promote_channel_participant(ChannelId channel_id, UserId u
 
   auto input_user = get_input_user(user_id);
   if (input_user == nullptr) {
-    return promise.set_error(Status::Error(3, "User not found"));
+    return promise.set_error(Status::Error(400, "User not found"));
   }
 
   speculative_add_channel_user(channel_id, user_id, status, old_status);
@@ -7113,11 +7113,11 @@ void ContactsManager::set_chat_participant_status(ChatId chat_id, UserId user_id
   }
 
   if (!get_chat_permissions(c).can_promote_members()) {
-    return promise.set_error(Status::Error(3, "Need owner rights in the group chat"));
+    return promise.set_error(Status::Error(400, "Need owner rights in the group chat"));
   }
 
   if (user_id == get_my_id()) {
-    return promise.set_error(Status::Error(3, "Can't promote or demote self"));
+    return promise.set_error(Status::Error(400, "Can't promote or demote self"));
   }
 
   if (participant == nullptr) {
@@ -7142,7 +7142,7 @@ void ContactsManager::send_edit_chat_admin_query(ChatId chat_id, UserId user_id,
                                                  Promise<Unit> &&promise) {
   auto input_user = get_input_user(user_id);
   if (input_user == nullptr) {
-    return promise.set_error(Status::Error(3, "User not found"));
+    return promise.set_error(Status::Error(400, "User not found"));
   }
 
   td_->create_handler<EditChatAdminQuery>(std::move(promise))->send(chat_id, std::move(input_user), is_administrator);
@@ -7203,16 +7203,16 @@ td_api::object_ptr<td_api::CanTransferOwnershipResult> ContactsManager::get_can_
 void ContactsManager::transfer_dialog_ownership(DialogId dialog_id, UserId user_id, const string &password,
                                                 Promise<Unit> &&promise) {
   if (!td_->messages_manager_->have_dialog_force(dialog_id, "transfer_dialog_ownership")) {
-    return promise.set_error(Status::Error(3, "Chat not found"));
+    return promise.set_error(Status::Error(400, "Chat not found"));
   }
   if (!have_user_force(user_id)) {
-    return promise.set_error(Status::Error(3, "User not found"));
+    return promise.set_error(Status::Error(400, "User not found"));
   }
   if (is_user_bot(user_id)) {
-    return promise.set_error(Status::Error(3, "User is a bot"));
+    return promise.set_error(Status::Error(400, "User is a bot"));
   }
   if (is_user_deleted(user_id)) {
-    return promise.set_error(Status::Error(3, "User is deleted"));
+    return promise.set_error(Status::Error(400, "User is deleted"));
   }
   if (password.empty()) {
     return promise.set_error(Status::Error(400, "PASSWORD_HASH_INVALID"));
@@ -7222,7 +7222,7 @@ void ContactsManager::transfer_dialog_ownership(DialogId dialog_id, UserId user_
     case DialogType::User:
     case DialogType::Chat:
     case DialogType::SecretChat:
-      return promise.set_error(Status::Error(3, "Can't transfer chat ownership"));
+      return promise.set_error(Status::Error(400, "Can't transfer chat ownership"));
     case DialogType::Channel:
       send_closure(
           td_->password_manager_, &PasswordManager::get_input_check_password_srp, password,
@@ -7255,39 +7255,39 @@ void ContactsManager::transfer_channel_ownership(
 
 Status ContactsManager::can_manage_dialog_invite_links(DialogId dialog_id, bool creator_only) {
   if (!td_->messages_manager_->have_dialog_force(dialog_id, "can_manage_dialog_invite_links")) {
-    return Status::Error(3, "Chat not found");
+    return Status::Error(400, "Chat not found");
   }
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      return Status::Error(3, "Can't invite members to a private chat");
+      return Status::Error(400, "Can't invite members to a private chat");
     case DialogType::Chat: {
       const Chat *c = get_chat(dialog_id.get_chat_id());
       if (c == nullptr) {
-        return Status::Error(3, "Chat info not found");
+        return Status::Error(400, "Chat info not found");
       }
       if (!c->is_active) {
-        return Status::Error(3, "Chat is deactivated");
+        return Status::Error(400, "Chat is deactivated");
       }
       bool have_rights = creator_only ? c->status.is_creator() : c->status.can_manage_invite_links();
       if (!have_rights) {
-        return Status::Error(3, "Not enough rights to manage chat invite link");
+        return Status::Error(400, "Not enough rights to manage chat invite link");
       }
       break;
     }
     case DialogType::Channel: {
       const Channel *c = get_channel(dialog_id.get_channel_id());
       if (c == nullptr) {
-        return Status::Error(3, "Chat info not found");
+        return Status::Error(400, "Chat info not found");
       }
       bool have_rights = creator_only ? c->status.is_creator() : c->status.can_manage_invite_links();
       if (!have_rights) {
-        return Status::Error(3, "Not enough rights to manage chat invite link");
+        return Status::Error(400, "Not enough rights to manage chat invite link");
       }
       break;
     }
     case DialogType::SecretChat:
-      return Status::Error(3, "Can't invite members to a secret chat");
+      return Status::Error(400, "Can't invite members to a secret chat");
     case DialogType::None:
     default:
       UNREACHABLE();
@@ -7451,10 +7451,10 @@ void ContactsManager::delete_chat_participant(ChatId chat_id, UserId user_id, bo
                                               Promise<Unit> &&promise) {
   const Chat *c = get_chat(chat_id);
   if (c == nullptr) {
-    return promise.set_error(Status::Error(3, "Chat info not found"));
+    return promise.set_error(Status::Error(400, "Chat info not found"));
   }
   if (!c->is_active) {
-    return promise.set_error(Status::Error(3, "Chat is deactivated"));
+    return promise.set_error(Status::Error(400, "Chat is deactivated"));
   }
   auto my_id = get_my_id();
   if (c->status.is_left()) {
@@ -7464,7 +7464,7 @@ void ContactsManager::delete_chat_participant(ChatId chat_id, UserId user_id, bo
       }
       return promise.set_value(Unit());
     } else {
-      return promise.set_error(Status::Error(3, "Not in the chat"));
+      return promise.set_error(Status::Error(400, "Not in the chat"));
     }
   }
   if (user_id != my_id) {
@@ -7477,17 +7477,17 @@ void ContactsManager::delete_chat_participant(ChatId chat_id, UserId user_id, bo
         if (c->everyone_is_administrator) {
           // if all are administrators, only invited by me participants can be deleted
           if (participant->inviter_user_id != my_id) {
-            return promise.set_error(Status::Error(3, "Need to be inviter of a user to kick it from a basic group"));
+            return promise.set_error(Status::Error(400, "Need to be inviter of a user to kick it from a basic group"));
           }
         } else {
           // otherwise, only creator can kick administrators
           if (participant->status.is_administrator()) {
             return promise.set_error(
-                Status::Error(3, "Only the creator of a basic group can kick group administrators"));
+                Status::Error(400, "Only the creator of a basic group can kick group administrators"));
           }
           // regular users can be kicked by administrators and their inviters
           if (!my_status.is_administrator() && participant->inviter_user_id != my_id) {
-            return promise.set_error(Status::Error(3, "Need to be inviter of a user to kick it from a basic group"));
+            return promise.set_error(Status::Error(400, "Need to be inviter of a user to kick it from a basic group"));
           }
         }
         */
@@ -7496,7 +7496,7 @@ void ContactsManager::delete_chat_participant(ChatId chat_id, UserId user_id, bo
   }
   auto input_user = get_input_user(user_id);
   if (input_user == nullptr) {
-    return promise.set_error(Status::Error(3, "User not found"));
+    return promise.set_error(Status::Error(400, "User not found"));
   }
 
   // TODO invoke after
@@ -7510,29 +7510,29 @@ void ContactsManager::restrict_channel_participant(ChannelId channel_id, DialogI
             << status;
   const Channel *c = get_channel(channel_id);
   if (c == nullptr) {
-    return promise.set_error(Status::Error(3, "Chat info not found"));
+    return promise.set_error(Status::Error(400, "Chat info not found"));
   }
   if (!c->status.is_member() && !c->status.is_creator()) {
     if (participant_dialog_id == DialogId(get_my_id())) {
       if (status.is_member()) {
-        return promise.set_error(Status::Error(3, "Can't unrestrict self"));
+        return promise.set_error(Status::Error(400, "Can't unrestrict self"));
       }
       return promise.set_value(Unit());
     } else {
-      return promise.set_error(Status::Error(3, "Not in the chat"));
+      return promise.set_error(Status::Error(400, "Not in the chat"));
     }
   }
   auto input_peer = td_->messages_manager_->get_input_peer(participant_dialog_id, AccessRights::Read);
   if (input_peer == nullptr) {
-    return promise.set_error(Status::Error(3, "Member not found"));
+    return promise.set_error(Status::Error(400, "Member not found"));
   }
 
   if (participant_dialog_id == DialogId(get_my_id())) {
     if (status.is_restricted() || status.is_banned()) {
-      return promise.set_error(Status::Error(3, "Can't restrict self"));
+      return promise.set_error(Status::Error(400, "Can't restrict self"));
     }
     if (status.is_member()) {
-      return promise.set_error(Status::Error(3, "Can't unrestrict self"));
+      return promise.set_error(Status::Error(400, "Can't unrestrict self"));
     }
 
     // leave the channel
@@ -7558,7 +7558,7 @@ void ContactsManager::restrict_channel_participant(ChannelId channel_id, DialogI
   CHECK(!status.is_creator());
 
   if (!get_channel_permissions(c).can_restrict_members()) {
-    return promise.set_error(Status::Error(3, "Not enough rights to restrict/unrestrict chat member"));
+    return promise.set_error(Status::Error(400, "Not enough rights to restrict/unrestrict chat member"));
   }
 
   if (old_status.is_member() && !status.is_member() && !status.is_banned()) {
@@ -7596,12 +7596,12 @@ void ContactsManager::restrict_channel_participant(ChannelId channel_id, DialogI
 ChannelId ContactsManager::migrate_chat_to_megagroup(ChatId chat_id, Promise<Unit> &promise) {
   auto c = get_chat(chat_id);
   if (c == nullptr) {
-    promise.set_error(Status::Error(3, "Chat info not found"));
+    promise.set_error(Status::Error(400, "Chat info not found"));
     return ChannelId();
   }
 
   if (!c->status.is_creator()) {
-    promise.set_error(Status::Error(3, "Need creator rights in the chat"));
+    promise.set_error(Status::Error(400, "Need creator rights in the chat"));
     return ChannelId();
   }
 
@@ -13619,18 +13619,18 @@ bool ContactsManager::is_user_bot(UserId user_id) const {
 Result<ContactsManager::BotData> ContactsManager::get_bot_data(UserId user_id) const {
   auto p = users_.find(user_id);
   if (p == users_.end()) {
-    return Status::Error(5, "Bot not found");
+    return Status::Error(400, "Bot not found");
   }
 
   auto bot = p->second.get();
   if (!bot->is_bot) {
-    return Status::Error(5, "User is not a bot");
+    return Status::Error(400, "User is not a bot");
   }
   if (bot->is_deleted) {
-    return Status::Error(5, "Bot is deleted");
+    return Status::Error(400, "Bot is deleted");
   }
   if (!bot->is_received) {
-    return Status::Error(5, "Bot is inaccessible");
+    return Status::Error(400, "Bot is inaccessible");
   }
 
   BotData bot_data;
@@ -13726,7 +13726,7 @@ UserId ContactsManager::get_me(Promise<Unit> &&promise) {
 
 bool ContactsManager::get_user(UserId user_id, int left_tries, Promise<Unit> &&promise) {
   if (!user_id.is_valid()) {
-    promise.set_error(Status::Error(6, "Invalid user identifier"));
+    promise.set_error(Status::Error(400, "Invalid user identifier"));
     return false;
   }
 
@@ -13745,7 +13745,7 @@ bool ContactsManager::get_user(UserId user_id, int left_tries, Promise<Unit> &&p
     }
     auto input_user = get_input_user(user_id);
     if (left_tries == 1 || input_user == nullptr) {
-      promise.set_error(Status::Error(6, "User not found"));
+      promise.set_error(Status::Error(400, "User not found"));
       return false;
     }
 
@@ -13797,13 +13797,13 @@ ContactsManager::UserFull *ContactsManager::add_user_full(UserId user_id) {
 
 void ContactsManager::reload_user(UserId user_id, Promise<Unit> &&promise) {
   if (!user_id.is_valid()) {
-    return promise.set_error(Status::Error(6, "Invalid user identifier"));
+    return promise.set_error(Status::Error(400, "Invalid user identifier"));
   }
 
   have_user_force(user_id);
   auto input_user = get_input_user(user_id);
   if (input_user == nullptr) {
-    return promise.set_error(Status::Error(6, "User info not found"));
+    return promise.set_error(Status::Error(400, "User info not found"));
   }
 
   // there is no much reason to combine different requests into one request
@@ -13815,14 +13815,14 @@ void ContactsManager::reload_user(UserId user_id, Promise<Unit> &&promise) {
 void ContactsManager::load_user_full(UserId user_id, bool force, Promise<Unit> &&promise, const char *source) {
   auto u = get_user(user_id);
   if (u == nullptr) {
-    return promise.set_error(Status::Error(6, "User not found"));
+    return promise.set_error(Status::Error(400, "User not found"));
   }
 
   auto user_full = get_user_full_force(user_id);
   if (user_full == nullptr) {
     auto input_user = get_input_user(user_id);
     if (input_user == nullptr) {
-      return promise.set_error(Status::Error(6, "Can't get info about inaccessible user"));
+      return promise.set_error(Status::Error(400, "Can't get info about inaccessible user"));
     }
 
     return send_get_user_full_query(user_id, std::move(input_user), std::move(promise), source);
@@ -13865,11 +13865,11 @@ std::pair<int32, vector<const Photo *>> ContactsManager::get_user_profile_photos
   result.first = -1;
 
   if (offset < 0) {
-    promise.set_error(Status::Error(3, "Parameter offset must be non-negative"));
+    promise.set_error(Status::Error(400, "Parameter offset must be non-negative"));
     return result;
   }
   if (limit <= 0) {
-    promise.set_error(Status::Error(3, "Parameter limit must be positive"));
+    promise.set_error(Status::Error(400, "Parameter limit must be positive"));
     return result;
   }
   if (limit > MAX_GET_PROFILE_PHOTOS) {
@@ -13878,7 +13878,7 @@ std::pair<int32, vector<const Photo *>> ContactsManager::get_user_profile_photos
 
   auto input_user = get_input_user(user_id);
   if (input_user == nullptr) {
-    promise.set_error(Status::Error(6, "User not found"));
+    promise.set_error(Status::Error(400, "User not found"));
     return result;
   }
 
@@ -13936,7 +13936,7 @@ void ContactsManager::reload_user_profile_photo(UserId user_id, int64 photo_id, 
   get_user_force(user_id);
   auto input_user = get_input_user(user_id);
   if (input_user == nullptr) {
-    return promise.set_error(Status::Error(6, "User info not found"));
+    return promise.set_error(Status::Error(400, "User info not found"));
   }
 
   // this request will be needed only to download the photo,
@@ -14023,7 +14023,7 @@ ContactsManager::Chat *ContactsManager::add_chat(ChatId chat_id) {
 
 bool ContactsManager::get_chat(ChatId chat_id, int left_tries, Promise<Unit> &&promise) {
   if (!chat_id.is_valid()) {
-    promise.set_error(Status::Error(6, "Invalid basic group identifier"));
+    promise.set_error(Status::Error(400, "Invalid basic group identifier"));
     return false;
   }
 
@@ -14039,7 +14039,7 @@ bool ContactsManager::get_chat(ChatId chat_id, int left_tries, Promise<Unit> &&p
       return false;
     }
 
-    promise.set_error(Status::Error(6, "Group not found"));
+    promise.set_error(Status::Error(400, "Group not found"));
     return false;
   }
 
@@ -14049,7 +14049,7 @@ bool ContactsManager::get_chat(ChatId chat_id, int left_tries, Promise<Unit> &&p
 
 void ContactsManager::reload_chat(ChatId chat_id, Promise<Unit> &&promise) {
   if (!chat_id.is_valid()) {
-    return promise.set_error(Status::Error(6, "Invalid basic group identifier"));
+    return promise.set_error(Status::Error(400, "Invalid basic group identifier"));
   }
 
   // there is no much reason to combine different requests into one request
@@ -14108,7 +14108,7 @@ bool ContactsManager::is_chat_full_outdated(const ChatFull *chat_full, const Cha
 void ContactsManager::load_chat_full(ChatId chat_id, bool force, Promise<Unit> &&promise, const char *source) {
   auto c = get_chat(chat_id);
   if (c == nullptr) {
-    return promise.set_error(Status::Error(6, "Group not found"));
+    return promise.set_error(Status::Error(400, "Group not found"));
   }
 
   auto chat_full = get_chat_full_force(chat_id, source);
@@ -14358,7 +14358,7 @@ ContactsManager::Channel *ContactsManager::add_channel(ChannelId channel_id, con
 
 bool ContactsManager::get_channel(ChannelId channel_id, int left_tries, Promise<Unit> &&promise) {
   if (!channel_id.is_valid()) {
-    promise.set_error(Status::Error(6, "Invalid supergroup identifier"));
+    promise.set_error(Status::Error(400, "Invalid supergroup identifier"));
     return false;
   }
 
@@ -14374,7 +14374,7 @@ bool ContactsManager::get_channel(ChannelId channel_id, int left_tries, Promise<
       return false;
     }
 
-    promise.set_error(Status::Error(6, "Supergroup not found"));
+    promise.set_error(Status::Error(400, "Supergroup not found"));
     return false;
   }
 
@@ -14384,7 +14384,7 @@ bool ContactsManager::get_channel(ChannelId channel_id, int left_tries, Promise<
 
 void ContactsManager::reload_channel(ChannelId channel_id, Promise<Unit> &&promise) {
   if (!channel_id.is_valid()) {
-    return promise.set_error(Status::Error(6, "Invalid supergroup identifier"));
+    return promise.set_error(Status::Error(400, "Invalid supergroup identifier"));
   }
 
   have_channel_force(channel_id);
@@ -14520,7 +14520,7 @@ ContactsManager::SecretChat *ContactsManager::get_secret_chat(SecretChatId secre
 
 bool ContactsManager::get_secret_chat(SecretChatId secret_chat_id, bool force, Promise<Unit> &&promise) {
   if (!secret_chat_id.is_valid()) {
-    promise.set_error(Status::Error(6, "Invalid secret chat identifier"));
+    promise.set_error(Status::Error(400, "Invalid secret chat identifier"));
     return false;
   }
 
@@ -14531,7 +14531,7 @@ bool ContactsManager::get_secret_chat(SecretChatId secret_chat_id, bool force, P
       return false;
     }
 
-    promise.set_error(Status::Error(6, "Secret chat not found"));
+    promise.set_error(Status::Error(400, "Secret chat not found"));
     return false;
   }
 
@@ -14657,19 +14657,19 @@ Result<DialogId> ContactsManager::get_participant_dialog_id(
 void ContactsManager::add_dialog_participant(DialogId dialog_id, UserId user_id, int32 forward_limit,
                                              Promise<Unit> &&promise) {
   if (!td_->messages_manager_->have_dialog_force(dialog_id, "add_dialog_participant")) {
-    return promise.set_error(Status::Error(3, "Chat not found"));
+    return promise.set_error(Status::Error(400, "Chat not found"));
   }
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      return promise.set_error(Status::Error(3, "Can't add members to a private chat"));
+      return promise.set_error(Status::Error(400, "Can't add members to a private chat"));
     case DialogType::Chat:
       return add_chat_participant(dialog_id.get_chat_id(), user_id, forward_limit, std::move(promise));
     case DialogType::Channel:
       return add_channel_participant(dialog_id.get_channel_id(), user_id, std::move(promise),
                                      DialogParticipantStatus::Left());
     case DialogType::SecretChat:
-      return promise.set_error(Status::Error(3, "Can't add members to a secret chat"));
+      return promise.set_error(Status::Error(400, "Can't add members to a secret chat"));
     case DialogType::None:
     default:
       UNREACHABLE();
@@ -14679,22 +14679,22 @@ void ContactsManager::add_dialog_participant(DialogId dialog_id, UserId user_id,
 void ContactsManager::add_dialog_participants(DialogId dialog_id, const vector<UserId> &user_ids,
                                               Promise<Unit> &&promise) {
   if (td_->auth_manager_->is_bot()) {
-    return promise.set_error(Status::Error(3, "Method is not available for bots"));
+    return promise.set_error(Status::Error(400, "Method is not available for bots"));
   }
 
   if (!td_->messages_manager_->have_dialog_force(dialog_id, "add_dialog_participants")) {
-    return promise.set_error(Status::Error(3, "Chat not found"));
+    return promise.set_error(Status::Error(400, "Chat not found"));
   }
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      return promise.set_error(Status::Error(3, "Can't add members to a private chat"));
+      return promise.set_error(Status::Error(400, "Can't add members to a private chat"));
     case DialogType::Chat:
-      return promise.set_error(Status::Error(3, "Can't add many members at once to a basic group chat"));
+      return promise.set_error(Status::Error(400, "Can't add many members at once to a basic group chat"));
     case DialogType::Channel:
       return add_channel_participants(dialog_id.get_channel_id(), user_ids, std::move(promise));
     case DialogType::SecretChat:
-      return promise.set_error(Status::Error(3, "Can't add members to a secret chat"));
+      return promise.set_error(Status::Error(400, "Can't add members to a secret chat"));
     case DialogType::None:
     default:
       UNREACHABLE();
@@ -14709,18 +14709,18 @@ void ContactsManager::set_dialog_participant_status(DialogId dialog_id,
 
   auto status = get_dialog_participant_status(chat_member_status);
   if (!td_->messages_manager_->have_dialog_force(dialog_id, "set_dialog_participant_status")) {
-    return promise.set_error(Status::Error(3, "Chat not found"));
+    return promise.set_error(Status::Error(400, "Chat not found"));
   }
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      return promise.set_error(Status::Error(3, "Chat member status can't be changed in private chats"));
+      return promise.set_error(Status::Error(400, "Chat member status can't be changed in private chats"));
     case DialogType::Chat:
       if (participant_dialog_id.get_type() != DialogType::User) {
         if (status == DialogParticipantStatus::Left()) {
           return promise.set_value(Unit());
         } else {
-          return promise.set_error(Status::Error(3, "Chats can't be members of basic groups"));
+          return promise.set_error(Status::Error(400, "Chats can't be members of basic groups"));
         }
       }
       return set_chat_participant_status(dialog_id.get_chat_id(), participant_dialog_id.get_user_id(), status,
@@ -14729,7 +14729,7 @@ void ContactsManager::set_dialog_participant_status(DialogId dialog_id,
       return set_channel_participant_status(dialog_id.get_channel_id(), participant_dialog_id, status,
                                             std::move(promise));
     case DialogType::SecretChat:
-      return promise.set_error(Status::Error(3, "Chat member status can't be changed in secret chats"));
+      return promise.set_error(Status::Error(400, "Chat member status can't be changed in secret chats"));
     case DialogType::None:
     default:
       UNREACHABLE();
@@ -14742,15 +14742,15 @@ void ContactsManager::ban_dialog_participant(DialogId dialog_id,
   TRY_RESULT_PROMISE(promise, participant_dialog_id, get_participant_dialog_id(participant_id));
 
   if (!td_->messages_manager_->have_dialog_force(dialog_id, "ban_dialog_participant")) {
-    return promise.set_error(Status::Error(3, "Chat not found"));
+    return promise.set_error(Status::Error(400, "Chat not found"));
   }
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      return promise.set_error(Status::Error(3, "Can't ban members in private chats"));
+      return promise.set_error(Status::Error(400, "Can't ban members in private chats"));
     case DialogType::Chat:
       if (participant_dialog_id.get_type() != DialogType::User) {
-        return promise.set_error(Status::Error(3, "Can't ban chats in basic groups"));
+        return promise.set_error(Status::Error(400, "Can't ban chats in basic groups"));
       }
       return delete_chat_participant(dialog_id.get_chat_id(), participant_dialog_id.get_user_id(), revoke_messages,
                                      std::move(promise));
@@ -14758,7 +14758,7 @@ void ContactsManager::ban_dialog_participant(DialogId dialog_id,
       return set_channel_participant_status(dialog_id.get_channel_id(), participant_dialog_id,
                                             DialogParticipantStatus::Banned(banned_until_date), std::move(promise));
     case DialogType::SecretChat:
-      return promise.set_error(Status::Error(3, "Can't ban members in secret chats"));
+      return promise.set_error(Status::Error(400, "Can't ban members in secret chats"));
     case DialogType::None:
     default:
       UNREACHABLE();
@@ -14799,7 +14799,7 @@ void ContactsManager::get_dialog_participant(DialogId dialog_id, DialogId partic
                                              Promise<DialogParticipant> &&promise) {
   LOG(INFO) << "Receive GetChatMember request to get " << participant_dialog_id << " in " << dialog_id;
   if (!td_->messages_manager_->have_dialog_force(dialog_id, "get_dialog_participant")) {
-    return promise.set_error(Status::Error(3, "Chat not found"));
+    return promise.set_error(Status::Error(400, "Chat not found"));
   }
 
   switch (dialog_id.get_type()) {
@@ -14813,7 +14813,7 @@ void ContactsManager::get_dialog_participant(DialogId dialog_id, DialogId partic
             DialogParticipant{participant_dialog_id, get_my_id(), 0, DialogParticipantStatus::Member()});
       }
 
-      return promise.set_error(Status::Error(3, "Member not found"));
+      return promise.set_error(Status::Error(400, "Member not found"));
     case DialogType::Chat:
       if (participant_dialog_id.get_type() != DialogType::User) {
         return promise.set_value(DialogParticipant::left(participant_dialog_id));
@@ -14833,7 +14833,7 @@ void ContactsManager::get_dialog_participant(DialogId dialog_id, DialogId partic
             DialogParticipant{participant_dialog_id, get_my_id(), 0, DialogParticipantStatus::Member()});
       }
 
-      return promise.set_error(Status::Error(3, "Member not found"));
+      return promise.set_error(Status::Error(400, "Member not found"));
     }
     case DialogType::None:
     default:
@@ -14891,10 +14891,10 @@ void ContactsManager::search_dialog_participants(DialogId dialog_id, const strin
   LOG(INFO) << "Receive searchChatMembers request to search for \"" << query << "\" in " << dialog_id << " with filter "
             << filter;
   if (!td_->messages_manager_->have_dialog_force(dialog_id, "search_dialog_participants")) {
-    return promise.set_error(Status::Error(3, "Chat not found"));
+    return promise.set_error(Status::Error(400, "Chat not found"));
   }
   if (limit < 0) {
-    return promise.set_error(Status::Error(3, "Parameter limit must be non-negative"));
+    return promise.set_error(Status::Error(400, "Parameter limit must be non-negative"));
   }
 
   switch (dialog_id.get_type()) {
@@ -14971,7 +14971,7 @@ void ContactsManager::get_chat_participant(ChatId chat_id, UserId user_id, Promi
 
   auto c = get_chat(chat_id);
   if (c == nullptr) {
-    return promise.set_error(Status::Error(6, "Group not found"));
+    return promise.set_error(Status::Error(400, "Group not found"));
   }
 
   auto chat_full = get_chat_full_force(chat_id, "get_chat_participant");
@@ -15009,7 +15009,7 @@ void ContactsManager::finish_get_chat_participant(ChatId chat_id, UserId user_id
 void ContactsManager::search_chat_participants(ChatId chat_id, const string &query, int32 limit,
                                                DialogParticipantsFilter filter, Promise<DialogParticipants> &&promise) {
   if (limit < 0) {
-    return promise.set_error(Status::Error(3, "Parameter limit must be non-negative"));
+    return promise.set_error(Status::Error(400, "Parameter limit must be non-negative"));
   }
 
   auto load_chat_full_promise = PromiseCreator::lambda([actor_id = actor_id(this), chat_id, query, limit, filter,
@@ -15079,7 +15079,7 @@ void ContactsManager::get_channel_participant(ChannelId channel_id, DialogId par
 
   auto input_peer = td_->messages_manager_->get_input_peer(participant_dialog_id, AccessRights::Read);
   if (input_peer == nullptr) {
-    return promise.set_error(Status::Error(6, "User not found"));
+    return promise.set_error(Status::Error(400, "User not found"));
   }
 
   if (have_channel_participant_cache(channel_id)) {
@@ -15155,7 +15155,7 @@ vector<DialogAdministrator> ContactsManager::get_dialog_administrators(DialogId 
                                                                        Promise<Unit> &&promise) {
   LOG(INFO) << "Receive GetChatAdministrators request in " << dialog_id << " with " << left_tries << " left tries";
   if (!td_->messages_manager_->have_dialog_force(dialog_id, "get_dialog_administrators")) {
-    promise.set_error(Status::Error(3, "Chat not found"));
+    promise.set_error(Status::Error(400, "Chat not found"));
     return {};
   }
 

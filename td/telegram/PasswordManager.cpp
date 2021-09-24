@@ -582,7 +582,7 @@ void PasswordManager::update_password_settings(UpdateSettings update_settings, P
           return promise.set_error(r_update_settings.move_as_error());
         }
         if (!r_update_settings.ok()) {
-          return promise.set_error(Status::Error(5, "account_updatePasswordSettings returned false"));
+          return promise.set_error(Status::Error(400, "account_updatePasswordSettings returned false"));
         }
         send_closure(actor_id, &PasswordManager::get_state, std::move(promise));
       });

@@ -2975,12 +2975,8 @@ void StickersManager::on_get_installed_sticker_sets_failed(bool is_masks, Status
 }
 
 vector<FileId> StickersManager::get_stickers(string emoji, int32 limit, bool force, Promise<Unit> &&promise) {
-  if (td_->auth_manager_->is_bot()) {
-    promise.set_error(Status::Error(7, "Method is not available for bots"));
-    return {};
-  }
   if (limit <= 0) {
-    promise.set_error(Status::Error(3, "Parameter limit must be positive"));
+    promise.set_error(Status::Error(400, "Parameter limit must be positive"));
     return {};
   }
   if (!are_installed_sticker_sets_loaded_[0]) {
@@ -3176,19 +3172,15 @@ vector<FileId> StickersManager::get_stickers(string emoji, int32 limit, bool for
 }
 
 vector<FileId> StickersManager::search_stickers(string emoji, int32 limit, Promise<Unit> &&promise) {
-  if (td_->auth_manager_->is_bot()) {
-    promise.set_error(Status::Error(7, "Method is not available for bots"));
-    return {};
-  }
   if (limit <= 0) {
-    promise.set_error(Status::Error(3, "Parameter limit must be positive"));
+    promise.set_error(Status::Error(400, "Parameter limit must be positive"));
     return {};
   }
   if (limit > MAX_FOUND_STICKERS) {
     limit = MAX_FOUND_STICKERS;
   }
   if (emoji.empty()) {
-    promise.set_error(Status::Error(3, "Emoji must be non-empty"));
+    promise.set_error(Status::Error(400, "Emoji must be non-empty"));
     return {};
   }
 
@@ -4428,7 +4420,7 @@ std::pair<int32, vector<StickerSetId>> StickersManager::get_archived_sticker_set
                                                                                   int32 limit, bool force,
                                                                                   Promise<Unit> &&promise) {
   if (limit <= 0) {
-    promise.set_error(Status::Error(3, "Parameter limit must be positive"));
+    promise.set_error(Status::Error(400, "Parameter limit must be positive"));
     return {};
   }
 
@@ -4511,12 +4503,12 @@ void StickersManager::on_get_archived_sticker_sets(
 std::pair<int32, vector<StickerSetId>> StickersManager::get_featured_sticker_sets(int32 offset, int32 limit,
                                                                                   Promise<Unit> &&promise) {
   if (offset < 0) {
-    promise.set_error(Status::Error(3, "Parameter offset must be non-negative"));
+    promise.set_error(Status::Error(400, "Parameter offset must be non-negative"));
     return {};
   }
 
   if (limit < 0) {
-    promise.set_error(Status::Error(3, "Parameter limit must be non-negative"));
+    promise.set_error(Status::Error(400, "Parameter limit must be non-negative"));
     return {};
   }
   if (limit == 0) {
@@ -4902,7 +4894,7 @@ void StickersManager::on_load_old_featured_sticker_sets_finished(uint32 generati
 
 vector<StickerSetId> StickersManager::get_attached_sticker_sets(FileId file_id, Promise<Unit> &&promise) {
   if (!file_id.is_valid()) {
-    promise.set_error(Status::Error(5, "Wrong file_id specified"));
+    promise.set_error(Status::Error(400, "Wrong file_id specified"));
     return {};
   }
 
@@ -4919,7 +4911,7 @@ vector<StickerSetId> StickersManager::get_attached_sticker_sets(FileId file_id, 
 void StickersManager::send_get_attached_stickers_query(FileId file_id, Promise<Unit> &&promise) {
   auto file_view = td_->file_manager_->get_file_view(file_id);
   if (file_view.empty()) {
-    return promise.set_error(Status::Error(5, "File not found"));
+    return promise.set_error(Status::Error(400, "File not found"));
   }
   if (!file_view.has_remote_location() ||
       (!file_view.remote_location().is_document() && !file_view.remote_location().is_photo()) ||
@@ -5049,7 +5041,7 @@ string &StickersManager::get_input_sticker_emojis(td_api::InputSticker *sticker)
 
 Result<std::tuple<FileId, bool, bool, bool>> StickersManager::prepare_input_sticker(td_api::InputSticker *sticker) {
   if (sticker == nullptr) {
-    return Status::Error(3, "Input sticker must be non-empty");
+    return Status::Error(400, "Input sticker must be non-empty");
   }
 
   if (!clean_input_string(get_input_sticker_emojis(sticker))) {
@@ -5072,7 +5064,7 @@ Result<std::tuple<FileId, bool, bool, bool>> StickersManager::prepare_input_file
   auto r_file_id = td_->file_manager_->get_input_file_id(is_animated ? FileType::Sticker : FileType::Document,
                                                          input_file, DialogId(), for_thumbnail, false);
   if (r_file_id.is_error()) {
-    return Status::Error(7, r_file_id.error().message());
+    return Status::Error(400, r_file_id.error().message());
   }
   auto file_id = r_file_id.move_as_ok();
   if (file_id.empty()) {
@@ -5128,13 +5120,13 @@ FileId StickersManager::upload_sticker_file(UserId user_id, tl_object_ptr<td_api
 
   auto input_user = td_->contacts_manager_->get_input_user(user_id);
   if (input_user == nullptr) {
-    promise.set_error(Status::Error(3, "User not found"));
+    promise.set_error(Status::Error(400, "User not found"));
     return FileId();
   }
   DialogId dialog_id(user_id);
   auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
   if (input_peer == nullptr) {
-    promise.set_error(Status::Error(3, "Have no access to the user"));
+    promise.set_error(Status::Error(400, "Have no access to the user"));
     return FileId();
   }
 
@@ -5201,7 +5193,7 @@ tl_object_ptr<telegram_api::inputStickerSetItem> StickersManager::get_input_stic
 void StickersManager::get_suggested_sticker_set_name(string title, Promise<string> &&promise) {
   title = strip_empty_characters(title, MAX_STICKER_SET_TITLE_LENGTH);
   if (title.empty()) {
-    return promise.set_error(Status::Error(3, "Sticker set title can't be empty"));
+    return promise.set_error(Status::Error(400, "Sticker set title can't be empty"));
   }
 
   td_->create_handler<SuggestStickerSetShortNameQuery>(std::move(promise))->send(title);
@@ -5254,22 +5246,22 @@ void StickersManager::create_new_sticker_set(UserId user_id, string &title, stri
   }
   auto input_user = td_->contacts_manager_->get_input_user(user_id);
   if (input_user == nullptr) {
-    return promise.set_error(Status::Error(3, "User not found"));
+    return promise.set_error(Status::Error(400, "User not found"));
   }
   DialogId dialog_id(user_id);
   auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
   if (input_peer == nullptr) {
-    return promise.set_error(Status::Error(3, "Have no access to the user"));
+    return promise.set_error(Status::Error(400, "Have no access to the user"));
   }
 
   title = strip_empty_characters(title, MAX_STICKER_SET_TITLE_LENGTH);
   if (title.empty()) {
-    return promise.set_error(Status::Error(3, "Sticker set title can't be empty"));
+    return promise.set_error(Status::Error(400, "Sticker set title can't be empty"));
   }
 
   short_name = strip_empty_characters(short_name, MAX_STICKER_SET_SHORT_NAME_LENGTH);
   if (short_name.empty()) {
-    return promise.set_error(Status::Error(3, "Sticker set name can't be empty"));
+    return promise.set_error(Status::Error(400, "Sticker set name can't be empty"));
   }
 
   if (stickers.empty()) {
@@ -5402,7 +5394,7 @@ void StickersManager::do_upload_sticker_file(UserId user_id, FileId file_id,
   DialogId dialog_id(user_id);
   auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
   if (input_peer == nullptr) {
-    return promise.set_error(Status::Error(3, "Have no access to the user"));
+    return promise.set_error(Status::Error(400, "Have no access to the user"));
   }
 
   FileView file_view = td_->file_manager_->get_file_view(file_id);
@@ -5477,7 +5469,7 @@ void StickersManager::on_new_stickers_uploaded(int64 random_id, Result<Unit> res
 
   auto input_user = td_->contacts_manager_->get_input_user(pending_new_sticker_set->user_id);
   if (input_user == nullptr) {
-    return pending_new_sticker_set->promise.set_error(Status::Error(3, "User not found"));
+    return pending_new_sticker_set->promise.set_error(Status::Error(400, "User not found"));
   }
 
   bool is_masks = pending_new_sticker_set->is_masks;
@@ -5500,17 +5492,17 @@ void StickersManager::add_sticker_to_set(UserId user_id, string &short_name,
                                          tl_object_ptr<td_api::InputSticker> &&sticker, Promise<Unit> &&promise) {
   auto input_user = td_->contacts_manager_->get_input_user(user_id);
   if (input_user == nullptr) {
-    return promise.set_error(Status::Error(3, "User not found"));
+    return promise.set_error(Status::Error(400, "User not found"));
   }
   DialogId dialog_id(user_id);
   auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
   if (input_peer == nullptr) {
-    return promise.set_error(Status::Error(3, "Have no access to the user"));
+    return promise.set_error(Status::Error(400, "Have no access to the user"));
   }
 
   short_name = strip_empty_characters(short_name, MAX_STICKER_SET_SHORT_NAME_LENGTH);
   if (short_name.empty()) {
-    return promise.set_error(Status::Error(3, "Sticker set name can't be empty"));
+    return promise.set_error(Status::Error(400, "Sticker set name can't be empty"));
   }
 
   auto r_file_id = prepare_input_sticker(sticker.get());
@@ -5569,17 +5561,17 @@ void StickersManager::set_sticker_set_thumbnail(UserId user_id, string &short_na
                                                 tl_object_ptr<td_api::InputFile> &&thumbnail, Promise<Unit> &&promise) {
   auto input_user = td_->contacts_manager_->get_input_user(user_id);
   if (input_user == nullptr) {
-    return promise.set_error(Status::Error(3, "User not found"));
+    return promise.set_error(Status::Error(400, "User not found"));
   }
   DialogId dialog_id(user_id);
   auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
   if (input_peer == nullptr) {
-    return promise.set_error(Status::Error(3, "Have no access to the user"));
+    return promise.set_error(Status::Error(400, "Have no access to the user"));
   }
 
   short_name = clean_username(strip_empty_characters(short_name, MAX_STICKER_SET_SHORT_NAME_LENGTH));
   if (short_name.empty()) {
-    return promise.set_error(Status::Error(3, "Sticker set name can't be empty"));
+    return promise.set_error(Status::Error(400, "Sticker set name can't be empty"));
   }
 
   auto it = short_name_to_sticker_set_id_.find(short_name);
@@ -5607,7 +5599,7 @@ void StickersManager::do_set_sticker_set_thumbnail(UserId user_id, string short_
   auto it = short_name_to_sticker_set_id_.find(short_name);
   const StickerSet *sticker_set = it == short_name_to_sticker_set_id_.end() ? nullptr : get_sticker_set(it->second);
   if (sticker_set == nullptr || !sticker_set->was_loaded) {
-    return promise.set_error(Status::Error(3, "Sticker set not found"));
+    return promise.set_error(Status::Error(400, "Sticker set not found"));
   }
 
   auto r_file_id = prepare_input_file(thumbnail, sticker_set->is_animated, true);
@@ -5674,19 +5666,19 @@ void StickersManager::on_sticker_set_thumbnail_uploaded(int64 random_id, Result<
 void StickersManager::set_sticker_position_in_set(const tl_object_ptr<td_api::InputFile> &sticker, int32 position,
                                                   Promise<Unit> &&promise) {
   if (position < 0) {
-    return promise.set_error(Status::Error(7, "Wrong sticker position specified"));
+    return promise.set_error(Status::Error(400, "Wrong sticker position specified"));
   }
 
   auto r_file_id = td_->file_manager_->get_input_file_id(FileType::Sticker, sticker, DialogId(), false, false);
   if (r_file_id.is_error()) {
-    return promise.set_error(Status::Error(7, r_file_id.error().message()));  // TODO do not drop error code
+    return promise.set_error(Status::Error(400, r_file_id.error().message()));  // TODO do not drop error code
   }
 
   auto file_id = r_file_id.move_as_ok();
   auto file_view = td_->file_manager_->get_file_view(file_id);
   if (!file_view.has_remote_location() || !file_view.main_remote_location().is_document() ||
       file_view.main_remote_location().is_web()) {
-    return promise.set_error(Status::Error(7, "Wrong sticker file specified"));
+    return promise.set_error(Status::Error(400, "Wrong sticker file specified"));
   }
 
   td_->create_handler<SetStickerPositionQuery>(std::move(promise))
@@ -5697,14 +5689,14 @@ void StickersManager::remove_sticker_from_set(const tl_object_ptr<td_api::InputF
                                               Promise<Unit> &&promise) {
   auto r_file_id = td_->file_manager_->get_input_file_id(FileType::Sticker, sticker, DialogId(), false, false);
   if (r_file_id.is_error()) {
-    return promise.set_error(Status::Error(7, r_file_id.error().message()));  // TODO do not drop error code
+    return promise.set_error(Status::Error(400, r_file_id.error().message()));  // TODO do not drop error code
   }
 
   auto file_id = r_file_id.move_as_ok();
   auto file_view = td_->file_manager_->get_file_view(file_id);
   if (!file_view.has_remote_location() || !file_view.main_remote_location().is_document() ||
       file_view.main_remote_location().is_web()) {
-    return promise.set_error(Status::Error(7, "Wrong sticker file specified"));
+    return promise.set_error(Status::Error(400, "Wrong sticker file specified"));
   }
 
   td_->create_handler<DeleteStickerFromSetQuery>(std::move(promise))
@@ -6011,7 +6003,7 @@ FileSourceId StickersManager::get_recent_stickers_file_source_id(int is_attached
 void StickersManager::add_recent_sticker(bool is_attached, const tl_object_ptr<td_api::InputFile> &input_file,
                                          Promise<Unit> &&promise) {
   if (td_->auth_manager_->is_bot()) {
-    return promise.set_error(Status::Error(7, "Method is not available for bots"));
+    return promise.set_error(Status::Error(400, "Method is not available for bots"));
   }
   if (!are_recent_stickers_loaded_[is_attached]) {
     load_recent_stickers(is_attached, std::move(promise));
@@ -6020,7 +6012,7 @@ void StickersManager::add_recent_sticker(bool is_attached, const tl_object_ptr<t
 
   auto r_file_id = td_->file_manager_->get_input_file_id(FileType::Sticker, input_file, DialogId(), false, false);
   if (r_file_id.is_error()) {
-    return promise.set_error(Status::Error(7, r_file_id.error().message()));  // TODO do not drop error code
+    return promise.set_error(Status::Error(400, r_file_id.error().message()));  // TODO do not drop error code
   }
 
   add_recent_sticker_impl(is_attached, r_file_id.ok(), true, std::move(promise));
@@ -6080,21 +6072,21 @@ void StickersManager::add_recent_sticker_impl(bool is_attached, FileId sticker_i
 
   auto sticker = get_sticker(sticker_id);
   if (sticker == nullptr) {
-    return promise.set_error(Status::Error(7, "Sticker not found"));
+    return promise.set_error(Status::Error(400, "Sticker not found"));
   }
   if (!sticker->set_id.is_valid()) {
-    return promise.set_error(Status::Error(7, "Stickers without sticker set can't be added to recent"));
+    return promise.set_error(Status::Error(400, "Stickers without sticker set can't be added to recent"));
   }
 
   auto file_view = td_->file_manager_->get_file_view(sticker_id);
   if (!file_view.has_remote_location()) {
-    return promise.set_error(Status::Error(7, "Can save only sent stickers"));
+    return promise.set_error(Status::Error(400, "Can save only sent stickers"));
   }
   if (file_view.remote_location().is_web()) {
-    return promise.set_error(Status::Error(7, "Can't save web stickers"));
+    return promise.set_error(Status::Error(400, "Can't save web stickers"));
   }
   if (!file_view.remote_location().is_document()) {
-    return promise.set_error(Status::Error(7, "Can't save encrypted stickers"));
+    return promise.set_error(Status::Error(400, "Can't save encrypted stickers"));
   }
 
   need_update_recent_stickers_[is_attached] = true;
@@ -6122,7 +6114,7 @@ void StickersManager::add_recent_sticker_impl(bool is_attached, FileId sticker_i
 void StickersManager::remove_recent_sticker(bool is_attached, const tl_object_ptr<td_api::InputFile> &input_file,
                                             Promise<Unit> &&promise) {
   if (td_->auth_manager_->is_bot()) {
-    return promise.set_error(Status::Error(7, "Method is not available for bots"));
+    return promise.set_error(Status::Error(400, "Method is not available for bots"));
   }
   if (!are_recent_stickers_loaded_[is_attached]) {
     load_recent_stickers(is_attached, std::move(promise));
@@ -6131,7 +6123,7 @@ void StickersManager::remove_recent_sticker(bool is_attached, const tl_object_pt
 
   auto r_file_id = td_->file_manager_->get_input_file_id(FileType::Sticker, input_file, DialogId(), false, false);
   if (r_file_id.is_error()) {
-    return promise.set_error(Status::Error(7, r_file_id.error().message()));  // TODO do not drop error code
+    return promise.set_error(Status::Error(400, r_file_id.error().message()));  // TODO do not drop error code
   }
 
   vector<FileId> &sticker_ids = recent_sticker_ids_[is_attached];
@@ -6142,7 +6134,7 @@ void StickersManager::remove_recent_sticker(bool is_attached, const tl_object_pt
 
   auto sticker = get_sticker(file_id);
   if (sticker == nullptr) {
-    return promise.set_error(Status::Error(7, "Sticker not found"));
+    return promise.set_error(Status::Error(400, "Sticker not found"));
   }
 
   send_save_recent_sticker_query(is_attached, file_id, true, std::move(promise));
@@ -6153,7 +6145,7 @@ void StickersManager::remove_recent_sticker(bool is_attached, const tl_object_pt
 
 void StickersManager::clear_recent_stickers(bool is_attached, Promise<Unit> &&promise) {
   if (td_->auth_manager_->is_bot()) {
-    return promise.set_error(Status::Error(7, "Method is not available for bots"));
+    return promise.set_error(Status::Error(400, "Method is not available for bots"));
   }
   if (!are_recent_stickers_loaded_[is_attached]) {
     load_recent_stickers(is_attached, std::move(promise));
@@ -6416,7 +6408,7 @@ FileSourceId StickersManager::get_favorite_stickers_file_source_id() {
 void StickersManager::add_favorite_sticker(const tl_object_ptr<td_api::InputFile> &input_file,
                                            Promise<Unit> &&promise) {
   if (td_->auth_manager_->is_bot()) {
-    return promise.set_error(Status::Error(7, "Method is not available for bots"));
+    return promise.set_error(Status::Error(400, "Method is not available for bots"));
   }
   if (!are_favorite_stickers_loaded_) {
     load_favorite_stickers(std::move(promise));
@@ -6425,7 +6417,7 @@ void StickersManager::add_favorite_sticker(const tl_object_ptr<td_api::InputFile
 
   auto r_file_id = td_->file_manager_->get_input_file_id(FileType::Sticker, input_file, DialogId(), false, false);
   if (r_file_id.is_error()) {
-    return promise.set_error(Status::Error(7, r_file_id.error().message()));  // TODO do not drop error code
+    return promise.set_error(Status::Error(400, r_file_id.error().message()));  // TODO do not drop error code
   }
 
   add_favorite_sticker_impl(r_file_id.ok(), true, std::move(promise));
@@ -6481,21 +6473,21 @@ void StickersManager::add_favorite_sticker_impl(FileId sticker_id, bool add_on_s
 
   auto sticker = get_sticker(sticker_id);
   if (sticker == nullptr) {
-    return promise.set_error(Status::Error(7, "Sticker not found"));
+    return promise.set_error(Status::Error(400, "Sticker not found"));
   }
   if (!sticker->set_id.is_valid()) {
-    return promise.set_error(Status::Error(7, "Stickers without sticker set can't be favorite"));
+    return promise.set_error(Status::Error(400, "Stickers without sticker set can't be favorite"));
   }
 
   auto file_view = td_->file_manager_->get_file_view(sticker_id);
   if (!file_view.has_remote_location()) {
-    return promise.set_error(Status::Error(7, "Can add to favorites only sent stickers"));
+    return promise.set_error(Status::Error(400, "Can add to favorites only sent stickers"));
   }
   if (file_view.remote_location().is_web()) {
-    return promise.set_error(Status::Error(7, "Can't add to favorites web stickers"));
+    return promise.set_error(Status::Error(400, "Can't add to favorites web stickers"));
   }
   if (!file_view.remote_location().is_document()) {
-    return promise.set_error(Status::Error(7, "Can't add to favorites encrypted stickers"));
+    return promise.set_error(Status::Error(400, "Can't add to favorites encrypted stickers"));
   }
 
   auto it = std::find_if(favorite_sticker_ids_.begin(), favorite_sticker_ids_.end(), is_equal);
@@ -6521,7 +6513,7 @@ void StickersManager::add_favorite_sticker_impl(FileId sticker_id, bool add_on_s
 void StickersManager::remove_favorite_sticker(const tl_object_ptr<td_api::InputFile> &input_file,
                                               Promise<Unit> &&promise) {
   if (td_->auth_manager_->is_bot()) {
-    return promise.set_error(Status::Error(7, "Method is not available for bots"));
+    return promise.set_error(Status::Error(400, "Method is not available for bots"));
   }
   if (!are_favorite_stickers_loaded_) {
     load_favorite_stickers(std::move(promise));
@@ -6530,7 +6522,7 @@ void StickersManager::remove_favorite_sticker(const tl_object_ptr<td_api::InputF
 
   auto r_file_id = td_->file_manager_->get_input_file_id(FileType::Sticker, input_file, DialogId(), false, false);
   if (r_file_id.is_error()) {
-    return promise.set_error(Status::Error(7, r_file_id.error().message()));  // TODO do not drop error code
+    return promise.set_error(Status::Error(400, r_file_id.error().message()));  // TODO do not drop error code
   }
 
   FileId file_id = r_file_id.ok();
@@ -6540,7 +6532,7 @@ void StickersManager::remove_favorite_sticker(const tl_object_ptr<td_api::InputF
 
   auto sticker = get_sticker(file_id);
   if (sticker == nullptr) {
-    return promise.set_error(Status::Error(7, "Sticker not found"));
+    return promise.set_error(Status::Error(400, "Sticker not found"));
   }
 
   send_fave_sticker_query(file_id, true, std::move(promise));
@@ -6586,7 +6578,7 @@ vector<string> StickersManager::get_sticker_emojis(const tl_object_ptr<td_api::I
                                                    Promise<Unit> &&promise) {
   auto r_file_id = td_->file_manager_->get_input_file_id(FileType::Sticker, input_file, DialogId(), false, false);
   if (r_file_id.is_error()) {
-    promise.set_error(Status::Error(7, r_file_id.error().message()));  // TODO do not drop error code
+    promise.set_error(Status::Error(400, r_file_id.error().message()));  // TODO do not drop error code
     return {};
   }
 

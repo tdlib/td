@@ -780,7 +780,7 @@ void InlineQueriesManager::answer_inline_query(int64 inline_query_id, bool is_pe
 uint64 InlineQueriesManager::send_inline_query(UserId bot_user_id, DialogId dialog_id, Location user_location,
                                                const string &query, const string &offset, Promise<Unit> &&promise) {
   if (td_->auth_manager_->is_bot()) {
-    promise.set_error(Status::Error(5, "Bot can't send inline queries to other bot"));
+    promise.set_error(Status::Error(400, "Bot can't send inline queries to other bot"));
     return 0;
   }
 
@@ -790,7 +790,7 @@ uint64 InlineQueriesManager::send_inline_query(UserId bot_user_id, DialogId dial
     return 0;
   }
   if (!r_bot_data.ok().is_inline) {
-    promise.set_error(Status::Error(5, "Bot doesn't support inline queries"));
+    promise.set_error(Status::Error(400, "Bot doesn't support inline queries"));
     return 0;
   }
 

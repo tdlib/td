@@ -1995,7 +1995,7 @@ Result<InputMessageContent> get_input_message_content(
   FileId file_id;
   if (have_file) {
     if (r_file_id.is_error()) {
-      return Status::Error(7, r_file_id.error().message());
+      return Status::Error(400, r_file_id.error().message());
     }
     file_id = r_file_id.ok();
     CHECK(file_id.is_valid());

@@ -28,7 +28,7 @@ td_api::object_ptr<td_api::authenticationCodeInfo> SendCodeHelper::get_authentic
 
 Result<telegram_api::auth_resendCode> SendCodeHelper::resend_code() {
   if (next_code_info_.type == AuthenticationCodeInfo::Type::None) {
-    return Status::Error(8, "Authentication code can't be resend");
+    return Status::Error(400, "Authentication code can't be resend");
   }
   sent_code_info_ = next_code_info_;
   next_code_info_ = {};

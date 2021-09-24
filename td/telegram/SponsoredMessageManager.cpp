@@ -39,7 +39,7 @@ class GetSponsoredMessagesQuery final : public Td::ResultHandler {
     channel_id_ = channel_id;
     auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
     if (input_channel == nullptr) {
-      return promise_.set_error(Status::Error(3, "Chat info not found"));
+      return promise_.set_error(Status::Error(400, "Chat info not found"));
     }
     send_query(G()->net_query_creator().create(telegram_api::channels_getSponsoredMessages(std::move(input_channel))));
   }
@@ -71,7 +71,7 @@ class ViewSponsoredMessageQuery final : public Td::ResultHandler {
     channel_id_ = channel_id;
     auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
     if (input_channel == nullptr) {
-      return promise_.set_error(Status::Error(3, "Chat info not found"));
+      return promise_.set_error(Status::Error(400, "Chat info not found"));
     }
     send_query(G()->net_query_creator().create(
         telegram_api::channels_viewSponsoredMessage(std::move(input_channel), BufferSlice(message_id))));

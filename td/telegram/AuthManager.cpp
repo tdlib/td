@@ -158,7 +158,7 @@ void AuthManager::check_bot_token(uint64 query_id, string bot_token) {
         query_id, Status::Error(400, "Cannot set bot token after authentication began. You need to log out first"));
   }
   if (was_check_bot_token_ && bot_token_ != bot_token) {
-    return on_query_error(query_id, Status::Error(8, "Cannot change bot token. You need to log out first"));
+    return on_query_error(query_id, Status::Error(400, "Cannot change bot token. You need to log out first"));
   }
 
   on_new_query(query_id);
@@ -175,13 +175,13 @@ void AuthManager::request_qr_code_authentication(uint64 query_id, vector<UserId>
         net_query_id_ == 0) {
       // ok
     } else {
-      return on_query_error(query_id, Status::Error(8, "Call to requestQrCodeAuthentication unexpected"));
+      return on_query_error(query_id, Status::Error(400, "Call to requestQrCodeAuthentication unexpected"));
     }
   }
   if (was_check_bot_token_) {
     return on_query_error(
         query_id,
-        Status::Error(8,
+        Status::Error(400,
                       "Cannot request QR code authentication after bot token was entered. You need to log out first"));
   }
   for (auto &other_user_id : other_user_ids) {
@@ -237,15 +237,15 @@ void AuthManager::set_phone_number(uint64 query_id, string phone_number,
         net_query_id_ == 0) {
       // ok
     } else {
-      return on_query_error(query_id, Status::Error(8, "Call to setAuthenticationPhoneNumber unexpected"));
+      return on_query_error(query_id, Status::Error(400, "Call to setAuthenticationPhoneNumber unexpected"));
     }
   }
   if (was_check_bot_token_) {
     return on_query_error(
-        query_id, Status::Error(8, "Cannot set phone number after bot token was entered. You need to log out first"));
+        query_id, Status::Error(400, "Cannot set phone number after bot token was entered. You need to log out first"));
   }
   if (phone_number.empty()) {
-    return on_query_error(query_id, Status::Error(8, "Phone number can't be empty"));
+    return on_query_error(query_id, Status::Error(400, "Phone number can't be empty"));
   }
 
   other_user_ids_.clear();
@@ -264,7 +264,7 @@ void AuthManager::set_phone_number(uint64 query_id, string phone_number,
 
 void AuthManager::resend_authentication_code(uint64 query_id) {
   if (state_ != State::WaitCode) {
-    return on_query_error(query_id, Status::Error(8, "Call to resendAuthenticationCode unexpected"));
+    return on_query_error(query_id, Status::Error(400, "Call to resendAuthenticationCode unexpected"));
   }
 
   auto r_resend_code = send_code_helper_.resend_code();
@@ -279,7 +279,7 @@ void AuthManager::resend_authentication_code(uint64 query_id) {
 
 void AuthManager::check_code(uint64 query_id, string code) {
   if (state_ != State::WaitCode) {
-    return on_query_error(query_id, Status::Error(8, "Call to checkAuthenticationCode unexpected"));
+    return on_query_error(query_id, Status::Error(400, "Call to checkAuthenticationCode unexpected"));
   }
 
   code_ = std::move(code);
@@ -291,13 +291,13 @@ void AuthManager::check_code(uint64 query_id, string code) {
 
 void AuthManager::register_user(uint64 query_id, string first_name, string last_name) {
   if (state_ != State::WaitRegistration) {
-    return on_query_error(query_id, Status::Error(8, "Call to registerUser unexpected"));
+    return on_query_error(query_id, Status::Error(400, "Call to registerUser unexpected"));
   }
 
   on_new_query(query_id);
   first_name = clean_name(first_name, MAX_NAME_LENGTH);
   if (first_name.empty()) {
-    return on_query_error(Status::Error(8, "First name can't be empty"));
+    return on_query_error(Status::Error(400, "First name can't be empty"));
   }
 
   last_name = clean_name(last_name, MAX_NAME_LENGTH);
@@ -308,7 +308,7 @@ void AuthManager::register_user(uint64 query_id, string first_name, string last_
 
 void AuthManager::check_password(uint64 query_id, string password) {
   if (state_ != State::WaitPassword) {
-    return on_query_error(query_id, Status::Error(8, "Call to checkAuthenticationPassword unexpected"));
+    return on_query_error(query_id, Status::Error(400, "Call to checkAuthenticationPassword unexpected"));
   }
 
   LOG(INFO) << "Have SRP ID " << wait_password_state_.srp_id_;
@@ -323,7 +323,7 @@ void AuthManager::check_password(uint64 query_id, string password) {
 
 void AuthManager::request_password_recovery(uint64 query_id) {
   if (state_ != State::WaitPassword) {
-    return on_query_error(query_id, Status::Error(8, "Call to requestAuthenticationPasswordRecovery unexpected"));
+    return on_query_error(query_id, Status::Error(400, "Call to requestAuthenticationPasswordRecovery unexpected"));
   }
 
   on_new_query(query_id);
@@ -333,7 +333,7 @@ void AuthManager::request_password_recovery(uint64 query_id) {
 
 void AuthManager::check_password_recovery_code(uint64 query_id, string code) {
   if (state_ != State::WaitPassword) {
-    return on_query_error(query_id, Status::Error(8, "Call to checkAuthenticationPasswordRecoveryCode unexpected"));
+    return on_query_error(query_id, Status::Error(400, "Call to checkAuthenticationPasswordRecoveryCode unexpected"));
   }
 
   on_new_query(query_id);
@@ -343,7 +343,7 @@ void AuthManager::check_password_recovery_code(uint64 query_id, string code) {
 
 void AuthManager::recover_password(uint64 query_id, string code, string new_password, string new_hint) {
   if (state_ != State::WaitPassword) {
-    return on_query_error(query_id, Status::Error(8, "Call to recoverAuthenticationPassword unexpected"));
+    return on_query_error(query_id, Status::Error(400, "Call to recoverAuthenticationPassword unexpected"));
   }
 
   on_new_query(query_id);
@@ -362,10 +362,10 @@ void AuthManager::recover_password(uint64 query_id, string code, string new_pass
 
 void AuthManager::log_out(uint64 query_id) {
   if (state_ == State::Closing) {
-    return on_query_error(query_id, Status::Error(8, "Already logged out"));
+    return on_query_error(query_id, Status::Error(400, "Already logged out"));
   }
   if (state_ == State::LoggingOut || state_ == State::DestroyingKeys) {
-    return on_query_error(query_id, Status::Error(8, "Already logging out"));
+    return on_query_error(query_id, Status::Error(400, "Already logging out"));
   }
   on_new_query(query_id);
   if (state_ != State::Ok) {
@@ -390,7 +390,7 @@ void AuthManager::send_log_out_query() {
 
 void AuthManager::delete_account(uint64 query_id, const string &reason) {
   if (state_ != State::Ok && state_ != State::WaitPassword) {
-    return on_query_error(query_id, Status::Error(8, "Need to log in first"));
+    return on_query_error(query_id, Status::Error(400, "Need to log in first"));
   }
   on_new_query(query_id);
   LOG(INFO) << "Deleting account";
@@ -408,7 +408,7 @@ void AuthManager::on_closing(bool destroy_flag) {
 
 void AuthManager::on_new_query(uint64 query_id) {
   if (query_id_ != 0) {
-    on_query_error(Status::Error(9, "Another authorization query has started"));
+    on_query_error(Status::Error(400, "Another authorization query has started"));
   }
   net_query_id_ = 0;
   net_query_type_ = NetQueryType::None;
