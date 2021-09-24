@@ -1358,7 +1358,9 @@ void StickersManager::load_special_sticker_set_by_type(const SpecialStickerSetTy
 }
 
 void StickersManager::load_special_sticker_set(SpecialStickerSet &sticker_set) {
-  CHECK(!sticker_set.is_being_loaded_);
+  if (sticker_set.is_being_loaded_) {
+    return;
+  }
   sticker_set.is_being_loaded_ = true;
   if (sticker_set.id_.is_valid()) {
     auto promise = PromiseCreator::lambda([actor_id = actor_id(this), type = sticker_set.type_](Result<Unit> &&result) {
@@ -3992,9 +3994,7 @@ void StickersManager::register_dice(const string &emoji, int32 value, FullMessag
 
   if (need_load) {
     LOG(INFO) << "Waiting for a dice sticker set needed in " << full_message_id;
-    if (!special_sticker_set.is_being_loaded_) {
-      load_special_sticker_set(special_sticker_set);
-    }
+    load_special_sticker_set(special_sticker_set);
   } else {
     // TODO reload once in a while
     // reload_special_sticker_set(special_sticker_set);
@@ -4024,9 +4024,7 @@ void StickersManager::get_animated_emoji_click_sticker(const string &message_tex
   auto &special_sticker_set = add_special_sticker_set(SpecialStickerSetType::animated_emoji_click());
   if (!special_sticker_set.id_.is_valid()) {
     // don't wait for the first load of the sticker set from the server
-    if (!special_sticker_set.is_being_loaded_) {
-      load_special_sticker_set(special_sticker_set);
-    }
+    load_special_sticker_set(special_sticker_set);
     return promise.set_value(nullptr);
   }
 
@@ -4038,9 +4036,7 @@ void StickersManager::get_animated_emoji_click_sticker(const string &message_tex
   }
 
   LOG(INFO) << "Waiting for an emoji click sticker set needed in " << full_message_id;
-  if (!special_sticker_set.is_being_loaded_) {
-    load_special_sticker_set(special_sticker_set);
-  }
+  load_special_sticker_set(special_sticker_set);
 
   PendingGetAnimatedEmojiClickSticker pending_request;
   pending_request.message_text_ = message_text;
@@ -4299,9 +4295,7 @@ Status StickersManager::on_animated_emoji_message_clicked(Slice emoji, FullMessa
   }
 
   LOG(INFO) << "Waiting for an emoji click sticker set needed in " << full_message_id;
-  if (!special_sticker_set.is_being_loaded_) {
-    load_special_sticker_set(special_sticker_set);
-  }
+  load_special_sticker_set(special_sticker_set);
 
   PendingOnAnimatedEmojiClicked pending_request;
   pending_request.emoji_ = emoji.str();
