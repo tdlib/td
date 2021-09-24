@@ -17,7 +17,7 @@
 namespace td {
 
 MessageReplyInfo::MessageReplyInfo(tl_object_ptr<telegram_api::messageReplies> &&reply_info, bool is_bot) {
-  if (reply_info == nullptr || is_bot) {
+  if (reply_info == nullptr || is_bot || reply_info->channel_id_ == 777) {
     return;
   }
   if (reply_info->replies_ < 0) {

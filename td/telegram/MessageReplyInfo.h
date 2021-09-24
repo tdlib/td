@@ -118,6 +118,9 @@ struct MessageReplyInfo {
     if (has_last_read_outbox_message_id) {
       td::parse(last_read_outbox_message_id, parser);
     }
+    if (channel_id.get() == 777) {
+      *this = MessageReplyInfo();
+    }
   }
 };
 
