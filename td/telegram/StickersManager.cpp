@@ -1237,8 +1237,8 @@ StickersManager::StickersManager(Td *td, ActorShared<> parent) : td_(td), parent
       narrow_cast<int32>(G()->shared_config().get_option_integer("favorite_stickers_limit", 5)));
   on_update_dice_emojis();
 
-  next_click_animated_emoji_message_ = Time::now();
-  next_update_animated_emoji_clicked_ = Time::now();
+  next_click_animated_emoji_message_time_ = Time::now();
+  next_update_animated_emoji_clicked_time_ = Time::now();
 }
 
 void StickersManager::start_up() {
@@ -4084,7 +4084,7 @@ void StickersManager::choose_animated_emoji_click_sticker(const StickerSet *stic
 
   auto now = Time::now();
   if (last_clicked_animated_emoji_ == message_text && last_clicked_animated_emoji_full_message_id_ == full_message_id &&
-      next_click_animated_emoji_message_ >= now + 2 * MIN_ANIMATED_EMOJI_CLICK_DELAY) {
+      next_click_animated_emoji_message_time_ >= now + 2 * MIN_ANIMATED_EMOJI_CLICK_DELAY) {
     return promise.set_value(nullptr);
   }
 
@@ -4132,18 +4132,18 @@ void StickersManager::choose_animated_emoji_click_sticker(const StickerSet *stic
   } else {
     set_timeout_in(0.5);
   }
-  if (now >= next_click_animated_emoji_message_) {
-    next_click_animated_emoji_message_ = now + MIN_ANIMATED_EMOJI_CLICK_DELAY;
+  if (now >= next_click_animated_emoji_message_time_) {
+    next_click_animated_emoji_message_time_ = now + MIN_ANIMATED_EMOJI_CLICK_DELAY;
     promise.set_value(get_sticker_object(result.second));
   } else {
-    create_actor<SleepActor>("SendClickAnimatedEmojiMessageResponse", next_click_animated_emoji_message_ - now,
+    create_actor<SleepActor>("SendClickAnimatedEmojiMessageResponse", next_click_animated_emoji_message_time_ - now,
                              PromiseCreator::lambda([actor_id = actor_id(this), sticker_id = result.second,
                                                      promise = std::move(promise)](Result<Unit> result) mutable {
                                send_closure(actor_id, &StickersManager::send_click_animated_emoji_message_response,
                                             sticker_id, std::move(promise));
                              }))
         .release();
-    next_click_animated_emoji_message_ += MIN_ANIMATED_EMOJI_CLICK_DELAY;
+    next_click_animated_emoji_message_time_ += MIN_ANIMATED_EMOJI_CLICK_DELAY;
   }
 }
 
@@ -4338,7 +4338,7 @@ void StickersManager::schedule_update_animated_emoji_clicked(const StickerSet *s
   }
 
   auto now = Time::now();
-  auto start_time = max(now, next_update_animated_emoji_clicked_);
+  auto start_time = max(now, next_update_animated_emoji_clicked_time_);
   for (size_t i = 0; i < clicks.size(); i++) {
     auto index = clicks[i].first;
     auto sticker_id = sticker_ids[index];
@@ -4353,7 +4353,7 @@ void StickersManager::schedule_update_animated_emoji_clicked(const StickerSet *s
         }))
         .release();
   }
-  next_update_animated_emoji_clicked_ = start_time + clicks.back().second + MIN_ANIMATED_EMOJI_CLICK_DELAY;
+  next_update_animated_emoji_clicked_time_ = start_time + clicks.back().second + MIN_ANIMATED_EMOJI_CLICK_DELAY;
 }
 
 void StickersManager::send_update_animated_emoji_clicked(FullMessageId full_message_id, FileId sticker_id) {

@@ -766,8 +766,8 @@ class StickersManager final : public Actor {
 
   std::unordered_map<int64, unique_ptr<PendingSetStickerSetThumbnail>> pending_set_sticker_set_thumbnails_;
 
-  double next_click_animated_emoji_message_ = 0;
-  double next_update_animated_emoji_clicked_ = 0;
+  double next_click_animated_emoji_message_time_ = 0;
+  double next_update_animated_emoji_clicked_time_ = 0;
   vector<PendingGetAnimatedEmojiClickSticker> pending_get_animated_emoji_click_stickers_;
   vector<PendingOnAnimatedEmojiClicked> pending_on_animated_emoji_message_clicked_;
 
