@@ -8,9 +8,11 @@
 
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/BackgroundManager.h"
+#include "td/telegram/BackgroundType.hpp"
 #include "td/telegram/Global.h"
 #include "td/telegram/net/NetQueryCreator.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/TdDb.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
@@ -57,6 +59,86 @@ bool operator!=(const ThemeManager::ThemeSettings &lhs, const ThemeManager::Them
   return !(lhs == rhs);
 }
 
+template <class StorerT>
+void ThemeManager::ThemeSettings::store(StorerT &storer) const {
+  using td::store;
+  bool has_message_accent_color = message_accent_color != accent_color;
+  bool has_background = background_id.is_valid();
+  BEGIN_STORE_FLAGS();
+  STORE_FLAG(animate_message_colors);
+  STORE_FLAG(has_message_accent_color);
+  STORE_FLAG(has_background);
+  END_STORE_FLAGS();
+  store(accent_color, storer);
+  if (has_message_accent_color) {
+    store(message_accent_color, storer);
+  }
+  if (has_background) {
+    storer.context()->td().get_actor_unsafe()->background_manager_->store_background(background_id, storer);
+    store(background_type, storer);
+  }
+  store(base_theme, storer);
+  store(message_colors, storer);
+}
+
+template <class ParserT>
+void ThemeManager::ThemeSettings::parse(ParserT &parser) {
+  using td::parse;
+  bool has_message_accent_color;
+  bool has_background;
+  BEGIN_PARSE_FLAGS();
+  PARSE_FLAG(animate_message_colors);
+  PARSE_FLAG(has_message_accent_color);
+  PARSE_FLAG(has_background);
+  END_PARSE_FLAGS();
+  parse(accent_color, parser);
+  if (has_message_accent_color) {
+    parse(message_accent_color, parser);
+  } else {
+    message_accent_color = accent_color;
+  }
+  if (has_background) {
+    parser.context()->td().get_actor_unsafe()->background_manager_->parse_background(background_id, parser);
+    parse(background_type, parser);
+  }
+  parse(base_theme, parser);
+  parse(message_colors, parser);
+}
+
+template <class StorerT>
+void ThemeManager::ChatTheme::store(StorerT &storer) const {
+  BEGIN_STORE_FLAGS();
+  END_STORE_FLAGS();
+  td::store(emoji, storer);
+  td::store(light_id, storer);
+  td::store(dark_id, storer);
+  td::store(light_theme, storer);
+  td::store(dark_theme, storer);
+}
+
+template <class ParserT>
+void ThemeManager::ChatTheme::parse(ParserT &parser) {
+  BEGIN_PARSE_FLAGS();
+  END_PARSE_FLAGS();
+  td::parse(emoji, parser);
+  td::parse(light_id, parser);
+  td::parse(dark_id, parser);
+  td::parse(light_theme, parser);
+  td::parse(dark_theme, parser);
+}
+
+template <class StorerT>
+void ThemeManager::ChatThemes::store(StorerT &storer) const {
+  td::store(hash, storer);
+  td::store(themes, storer);
+}
+
+template <class ParserT>
+void ThemeManager::ChatThemes::parse(ParserT &parser) {
+  td::parse(hash, parser);
+  td::parse(themes, parser);
+}
+
 ThemeManager::ThemeManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
 
@@ -69,7 +151,17 @@ void ThemeManager::init() {
     return;
   }
 
-  chat_themes_.next_reload_time = Time::now();  // TODO load chat themes from binlog
+  auto log_event_string = G()->td_db()->get_binlog_pmc()->get(get_chat_themes_database_key());
+  if (!log_event_string.empty()) {
+    auto status = log_event_parse(chat_themes_, log_event_string);
+    if (status.is_ok()) {
+      send_update_chat_themes();
+    } else {
+      LOG(ERROR) << "Failed to parse chat themes from binlog: " << status;
+      chat_themes_ = ChatThemes();
+    }
+  }
+  chat_themes_.next_reload_time = Time::now();
   loop();
 }
 
@@ -114,6 +206,7 @@ void ThemeManager::on_update_theme(telegram_api::object_ptr<telegram_api::theme>
     }
   }
   if (is_changed) {
+    save_chat_themes();
     send_update_chat_themes();
   }
   promise.set_value(Unit());
@@ -146,6 +239,14 @@ td_api::object_ptr<td_api::chatTheme> ThemeManager::get_chat_theme_object(const 
 td_api::object_ptr<td_api::updateChatThemes> ThemeManager::get_update_chat_themes_object() const {
   return td_api::make_object<td_api::updateChatThemes>(
       transform(chat_themes_.themes, [this](const ChatTheme &theme) { return get_chat_theme_object(theme); }));
+}
+
+string ThemeManager::get_chat_themes_database_key() {
+  return "chat_themes";
+}
+
+void ThemeManager::save_chat_themes() {
+  G()->td_db()->get_binlog_pmc()->set(get_chat_themes_database_key(), log_event_store(chat_themes_).as_slice().str());
 }
 
 void ThemeManager::send_update_chat_themes() const {
@@ -188,6 +289,7 @@ void ThemeManager::on_get_chat_themes(Result<telegram_api::object_ptr<telegram_a
     chat_themes_.themes.push_back(std::move(theme));
   }
 
+  save_chat_themes();
   send_update_chat_themes();
 }
 

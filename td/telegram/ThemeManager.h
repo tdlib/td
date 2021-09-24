@@ -32,6 +32,7 @@ class ThemeManager final : public Actor {
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
+  // apeend-only
   enum class BaseTheme : int32 { Classic, Day, Night, Tinted, Arctic };
 
   static constexpr int32 THEME_CACHE_TIME = 3600;
@@ -44,6 +45,12 @@ class ThemeManager final : public Actor {
     BaseTheme base_theme;
     vector<int32> message_colors;
     bool animate_message_colors = false;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
   };
 
   friend bool operator==(const ThemeSettings &lhs, const ThemeSettings &rhs);
@@ -56,12 +63,24 @@ class ThemeManager final : public Actor {
     int64 dark_id = 0;
     ThemeSettings light_theme;
     ThemeSettings dark_theme;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
   };
 
   struct ChatThemes {
     int32 hash = 0;
     double next_reload_time = 0;
     vector<ChatTheme> themes;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
   };
 
   void start_up() final;
@@ -77,6 +96,10 @@ class ThemeManager final : public Actor {
   td_api::object_ptr<td_api::chatTheme> get_chat_theme_object(const ChatTheme &theme) const;
 
   td_api::object_ptr<td_api::updateChatThemes> get_update_chat_themes_object() const;
+
+  static string get_chat_themes_database_key();
+
+  void save_chat_themes();
 
   void send_update_chat_themes() const;
 
