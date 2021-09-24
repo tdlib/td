@@ -6002,9 +6002,6 @@ FileSourceId StickersManager::get_recent_stickers_file_source_id(int is_attached
 
 void StickersManager::add_recent_sticker(bool is_attached, const tl_object_ptr<td_api::InputFile> &input_file,
                                          Promise<Unit> &&promise) {
-  if (td_->auth_manager_->is_bot()) {
-    return promise.set_error(Status::Error(400, "Method is not available for bots"));
-  }
   if (!are_recent_stickers_loaded_[is_attached]) {
     load_recent_stickers(is_attached, std::move(promise));
     return;
@@ -6113,9 +6110,6 @@ void StickersManager::add_recent_sticker_impl(bool is_attached, FileId sticker_i
 
 void StickersManager::remove_recent_sticker(bool is_attached, const tl_object_ptr<td_api::InputFile> &input_file,
                                             Promise<Unit> &&promise) {
-  if (td_->auth_manager_->is_bot()) {
-    return promise.set_error(Status::Error(400, "Method is not available for bots"));
-  }
   if (!are_recent_stickers_loaded_[is_attached]) {
     load_recent_stickers(is_attached, std::move(promise));
     return;
@@ -6144,9 +6138,6 @@ void StickersManager::remove_recent_sticker(bool is_attached, const tl_object_pt
 }
 
 void StickersManager::clear_recent_stickers(bool is_attached, Promise<Unit> &&promise) {
-  if (td_->auth_manager_->is_bot()) {
-    return promise.set_error(Status::Error(400, "Method is not available for bots"));
-  }
   if (!are_recent_stickers_loaded_[is_attached]) {
     load_recent_stickers(is_attached, std::move(promise));
     return;
@@ -6407,9 +6398,6 @@ FileSourceId StickersManager::get_favorite_stickers_file_source_id() {
 
 void StickersManager::add_favorite_sticker(const tl_object_ptr<td_api::InputFile> &input_file,
                                            Promise<Unit> &&promise) {
-  if (td_->auth_manager_->is_bot()) {
-    return promise.set_error(Status::Error(400, "Method is not available for bots"));
-  }
   if (!are_favorite_stickers_loaded_) {
     load_favorite_stickers(std::move(promise));
     return;
@@ -6512,9 +6500,6 @@ void StickersManager::add_favorite_sticker_impl(FileId sticker_id, bool add_on_s
 
 void StickersManager::remove_favorite_sticker(const tl_object_ptr<td_api::InputFile> &input_file,
                                               Promise<Unit> &&promise) {
-  if (td_->auth_manager_->is_bot()) {
-    return promise.set_error(Status::Error(400, "Method is not available for bots"));
-  }
   if (!are_favorite_stickers_loaded_) {
     load_favorite_stickers(std::move(promise));
     return;

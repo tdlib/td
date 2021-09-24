@@ -14678,10 +14678,6 @@ void ContactsManager::add_dialog_participant(DialogId dialog_id, UserId user_id,
 
 void ContactsManager::add_dialog_participants(DialogId dialog_id, const vector<UserId> &user_ids,
                                               Promise<Unit> &&promise) {
-  if (td_->auth_manager_->is_bot()) {
-    return promise.set_error(Status::Error(400, "Method is not available for bots"));
-  }
-
   if (!td_->messages_manager_->have_dialog_force(dialog_id, "add_dialog_participants")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }

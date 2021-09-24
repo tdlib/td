@@ -684,9 +684,6 @@ int64 AnimationsManager::get_saved_animations_hash(const char *source) const {
 
 void AnimationsManager::add_saved_animation(const tl_object_ptr<td_api::InputFile> &input_file,
                                             Promise<Unit> &&promise) {
-  if (td_->auth_manager_->is_bot()) {
-    return promise.set_error(Status::Error(400, "Method is not available for bots"));
-  }
   if (!are_saved_animations_loaded_) {
     load_saved_animations(std::move(promise));
     return;
@@ -803,9 +800,6 @@ void AnimationsManager::add_saved_animation_impl(FileId animation_id, bool add_o
 
 void AnimationsManager::remove_saved_animation(const tl_object_ptr<td_api::InputFile> &input_file,
                                                Promise<Unit> &&promise) {
-  if (td_->auth_manager_->is_bot()) {
-    return promise.set_error(Status::Error(400, "Method is not available for bots"));
-  }
   if (!are_saved_animations_loaded_) {
     load_saved_animations(std::move(promise));
     return;

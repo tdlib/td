@@ -10757,9 +10757,7 @@ void MessagesManager::find_unloadable_messages(const Dialog *d, int32 unload_bef
 
 void MessagesManager::delete_dialog_messages_from_user(DialogId dialog_id, UserId user_id, Promise<Unit> &&promise) {
   bool is_bot = td_->auth_manager_->is_bot();
-  if (is_bot) {
-    return promise.set_error(Status::Error(400, "Method is not available for bots"));
-  }
+  CHECK(!is_bot);
 
   LOG(INFO) << "Receive deleteChatMessagesFromUser request to delete all messages in " << dialog_id << " from the user "
             << user_id;
@@ -11046,11 +11044,6 @@ void MessagesManager::on_update_dialog_group_call_rights(DialogId dialog_id) {
 }
 
 void MessagesManager::read_all_dialog_mentions(DialogId dialog_id, Promise<Unit> &&promise) {
-  bool is_bot = td_->auth_manager_->is_bot();
-  if (is_bot) {
-    return promise.set_error(Status::Error(400, "Method is not available for bots"));
-  }
-
   Dialog *d = get_dialog_force(dialog_id, "read_all_dialog_mentions");
   if (d == nullptr) {
     return promise.set_error(Status::Error(400, "Chat not found"));
@@ -31660,11 +31653,6 @@ tl_object_ptr<telegram_api::channelAdminLogEventsFilter> MessagesManager::get_ch
 int64 MessagesManager::get_dialog_event_log(DialogId dialog_id, const string &query, int64 from_event_id, int32 limit,
                                             const tl_object_ptr<td_api::chatEventLogFilters> &filters,
                                             const vector<UserId> &user_ids, Promise<Unit> &&promise) {
-  if (td_->auth_manager_->is_bot()) {
-    promise.set_error(Status::Error(400, "Method is not available for bots"));
-    return 0;
-  }
-
   if (!have_dialog_force(dialog_id, "get_dialog_event_log")) {
     promise.set_error(Status::Error(400, "Chat not found"));
     return 0;
