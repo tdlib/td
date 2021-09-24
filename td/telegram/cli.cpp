@@ -2422,7 +2422,7 @@ class CliClient final : public Actor {
           td_api::make_object<td_api::addNetworkStatistics>(td_api::make_object<td_api::networkStatisticsEntryFile>(
               td_api::make_object<td_api::fileTypeDocument>(), get_network_type(network_type), sent_bytes,
               received_bytes)));
-    } else if (op == "top_chats") {
+    } else if (op == "gtc") {
       send_request(td_api::make_object<td_api::getTopChats>(get_top_chat_category(args), 50));
     } else if (op == "rtc") {
       string chat_id;

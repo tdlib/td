@@ -22,12 +22,14 @@
 
 namespace td {
 
+class Td;
+
 class TopDialogManager final : public NetQueryCallback {
  public:
-  explicit TopDialogManager(ActorShared<> parent) : parent_(std::move(parent)) {
+  TopDialogManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
   }
 
-  void do_start_up();
+  void init();
 
   void on_dialog_used(TopDialogCategory category, DialogId dialog_id, int32 date);
 
@@ -44,6 +46,8 @@ class TopDialogManager final : public NetQueryCallback {
   static constexpr int32 SERVER_SYNC_DELAY = 86400;      // seconds
   static constexpr int32 SERVER_SYNC_RESEND_DELAY = 60;  // seconds
   static constexpr int32 DB_SYNC_DELAY = 5;              // seconds
+
+  Td *td_;
   ActorShared<> parent_;
 
   bool is_active_{false};
@@ -108,10 +112,13 @@ class TopDialogManager final : public NetQueryCallback {
 
   void on_result(NetQueryPtr net_query) final;
 
-  void init();
+  void try_start();
 
   void start_up() final;
+
   void loop() final;
+
+  void tear_down() final;
 };
 
 }  // namespace td

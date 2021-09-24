@@ -3435,12 +3435,12 @@ void Td::on_config_option_updated(const string &name) {
   } else if (name == "use_storage_optimizer") {
     send_closure(storage_manager_, &StorageManager::update_use_storage_optimizer);
   } else if (name == "rating_e_decay") {
-    return send_closure(top_dialog_manager_, &TopDialogManager::update_rating_e_decay);
+    return send_closure(top_dialog_manager_actor_, &TopDialogManager::update_rating_e_decay);
   } else if (name == "disable_contact_registered_notifications") {
     send_closure(notification_manager_actor_,
                  &NotificationManager::on_disable_contact_registered_notifications_changed);
   } else if (name == "disable_top_chats") {
-    send_closure(top_dialog_manager_, &TopDialogManager::update_is_enabled,
+    send_closure(top_dialog_manager_actor_, &TopDialogManager::update_is_enabled,
                  !G()->shared_config().get_option_boolean(name));
   } else if (name == "connection_parameters") {
     if (G()->mtproto_header().set_parameters(G()->shared_config().get_option_string(name))) {
@@ -3612,6 +3612,8 @@ void Td::dec_actor_refcnt() {
       LOG(DEBUG) << "StickersManager was cleared" << timer;
       theme_manager_.reset();
       LOG(DEBUG) << "ThemeManager was cleared" << timer;
+      top_dialog_manager_.reset();
+      LOG(DEBUG) << "TopDialogManager was cleared" << timer;
       updates_manager_.reset();
       LOG(DEBUG) << "UpdatesManager was cleared" << timer;
       video_notes_manager_.reset();
@@ -3761,8 +3763,6 @@ void Td::clear() {
   LOG(DEBUG) << "SecretChatsManager was cleared" << timer;
   storage_manager_.reset();
   LOG(DEBUG) << "StorageManager was cleared" << timer;
-  top_dialog_manager_.reset();
-  LOG(DEBUG) << "TopDialogManager was cleared" << timer;
   verify_phone_number_manager_.reset();
   LOG(DEBUG) << "VerifyPhoneNumberManager was cleared" << timer;
 
@@ -3806,6 +3806,8 @@ void Td::clear() {
   LOG(DEBUG) << "StickersManager actor was cleared" << timer;
   theme_manager_actor_.reset();
   LOG(DEBUG) << "ThemeManager actor was cleared" << timer;
+  top_dialog_manager_actor_.reset();
+  LOG(DEBUG) << "TopDialogManager actor was cleared" << timer;
   updates_manager_actor_.reset();
   LOG(DEBUG) << "UpdatesManager actor was cleared" << timer;
   web_pages_manager_actor_.reset();
@@ -4266,6 +4268,9 @@ void Td::init_managers() {
   theme_manager_ = make_unique<ThemeManager>(this, create_reference());
   theme_manager_actor_ = register_actor("ThemeManager", theme_manager_.get());
   G()->set_theme_manager(theme_manager_actor_.get());
+  top_dialog_manager_ = make_unique<TopDialogManager>(this, create_reference());
+  top_dialog_manager_actor_ = register_actor("TopDialogManager", top_dialog_manager_.get());
+  G()->set_top_dialog_manager(top_dialog_manager_actor_.get());
   updates_manager_ = make_unique<UpdatesManager>(this, create_reference());
   updates_manager_actor_ = register_actor("UpdatesManager", updates_manager_.get());
   G()->set_updates_manager(updates_manager_actor_.get());
@@ -4289,8 +4294,6 @@ void Td::init_managers() {
   secret_chats_manager_ = create_actor<SecretChatsManager>("SecretChatsManager", create_reference());
   G()->set_secret_chats_manager(secret_chats_manager_.get());
   secure_manager_ = create_actor<SecureManager>("SecureManager", create_reference());
-  top_dialog_manager_ = create_actor<TopDialogManager>("TopDialogManager", create_reference());
-  G()->set_top_dialog_manager(top_dialog_manager_.get());
   verify_phone_number_manager_ = create_actor<PhoneNumberManager>(
       "VerifyPhoneNumberManager", PhoneNumberManager::Type::VerifyPhone, create_reference());
 }
@@ -5214,8 +5217,8 @@ void Td::on_request(uint64 id, td_api::getTopChats &request) {
       promise.set_value(MessagesManager::get_chats_object(-1, result.ok()));
     }
   });
-  send_closure(top_dialog_manager_, &TopDialogManager::get_top_dialogs, get_top_dialog_category(*request.category_),
-               narrow_cast<size_t>(request.limit_), std::move(query_promise));
+  top_dialog_manager_->get_top_dialogs(get_top_dialog_category(*request.category_), narrow_cast<size_t>(request.limit_),
+                                       std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, const td_api::removeTopChat &request) {
@@ -5228,8 +5231,8 @@ void Td::on_request(uint64 id, const td_api::removeTopChat &request) {
   if (!dialog_id.is_valid()) {
     return send_error_raw(id, 400, "Invalid chat identifier");
   }
-  send_closure(top_dialog_manager_, &TopDialogManager::remove_dialog, get_top_dialog_category(*request.category_),
-               dialog_id, messages_manager_->get_input_peer(dialog_id, AccessRights::Read));
+  top_dialog_manager_->remove_dialog(get_top_dialog_category(*request.category_), dialog_id,
+                                     messages_manager_->get_input_peer(dialog_id, AccessRights::Read));
   send_closure(actor_id(this), &Td::send_result, id, td_api::make_object<td_api::ok>());
 }
 

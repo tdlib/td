@@ -784,7 +784,7 @@ void AuthManager::on_get_authorization(tl_object_ptr<telegram_api::auth_Authoriz
   td->notification_manager_->init();
   td->stickers_manager_->init();
   td->theme_manager_->init();
-  send_closure(td->top_dialog_manager_, &TopDialogManager::do_start_up);
+  td->top_dialog_manager_->init();
   td->updates_manager_->get_difference("on_get_authorization");
   td->on_online_updated(false, true);
   if (!is_bot()) {

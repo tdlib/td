@@ -108,8 +108,7 @@ static tl_object_ptr<telegram_api::TopPeerCategory> get_top_peer_category(TopDia
 }
 
 void TopDialogManager::update_is_enabled(bool is_enabled) {
-  auto auth_manager = G()->td().get_actor_unsafe()->auth_manager_.get();
-  if (auth_manager == nullptr || !auth_manager->is_authorized() || auth_manager->is_bot()) {
+  if (td_->auth_manager_ == nullptr || !td_->auth_manager_->is_authorized() || td_->auth_manager_->is_bot()) {
     return;
   }
 
@@ -128,7 +127,7 @@ bool TopDialogManager::set_is_enabled(bool is_enabled) {
 
   LOG(DEBUG) << "Change top chats is_enabled to " << is_enabled;
   is_enabled_ = is_enabled;
-  init();
+  try_start();
   return true;
 }
 
@@ -512,16 +511,19 @@ void TopDialogManager::do_save_top_dialogs() {
 }
 
 void TopDialogManager::start_up() {
-  do_start_up();
+  init();
 }
 
-void TopDialogManager::do_start_up() {
-  auto auth_manager = G()->td().get_actor_unsafe()->auth_manager_.get();
-  if (auth_manager == nullptr || !auth_manager->is_authorized()) {
+void TopDialogManager::tear_down() {
+  parent_.reset();
+}
+
+void TopDialogManager::init() {
+  if (td_->auth_manager_ == nullptr || !td_->auth_manager_->is_authorized()) {
     return;
   }
 
-  is_active_ = G()->parameters().use_chat_info_db && !auth_manager->is_bot();
+  is_active_ = G()->parameters().use_chat_info_db && !td_->auth_manager_->is_bot();
   is_enabled_ = !G()->shared_config().get_option_boolean("disable_top_chats");
   update_rating_e_decay();
 
@@ -530,11 +532,11 @@ void TopDialogManager::do_start_up() {
     send_toggle_top_peers(need_update_top_peers[0] == '1');
   }
 
-  init();
+  try_start();
   loop();
 }
 
-void TopDialogManager::init() {
+void TopDialogManager::try_start() {
   was_first_sync_ = false;
   first_unsync_change_ = Timestamp();
   server_sync_state_ = SyncState::None;
@@ -585,9 +587,9 @@ void TopDialogManager::init() {
 
 void TopDialogManager::on_first_sync() {
   was_first_sync_ = true;
-  if (!G()->close_flag() && G()->td().get_actor_unsafe()->auth_manager_->is_bot()) {
+  if (!G()->close_flag() && td_->auth_manager_->is_bot()) {
     is_active_ = false;
-    init();
+    try_start();
   }
   loop();
 }

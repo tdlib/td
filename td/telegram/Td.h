@@ -178,6 +178,8 @@ class Td final : public Actor {
   ActorOwn<StickersManager> stickers_manager_actor_;
   unique_ptr<ThemeManager> theme_manager_;
   ActorOwn<ThemeManager> theme_manager_actor_;
+  unique_ptr<TopDialogManager> top_dialog_manager_;
+  ActorOwn<TopDialogManager> top_dialog_manager_actor_;
   unique_ptr<UpdatesManager> updates_manager_;
   ActorOwn<UpdatesManager> updates_manager_actor_;
   unique_ptr<WebPagesManager> web_pages_manager_;
@@ -197,7 +199,6 @@ class Td final : public Actor {
   ActorOwn<SecretChatsManager> secret_chats_manager_;
   ActorOwn<StateManager> state_manager_;
   ActorOwn<StorageManager> storage_manager_;
-  ActorOwn<TopDialogManager> top_dialog_manager_;
   ActorOwn<PhoneNumberManager> verify_phone_number_manager_;
 
   class ResultHandler : public std::enable_shared_from_this<ResultHandler> {
