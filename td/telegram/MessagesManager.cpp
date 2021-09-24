@@ -2477,7 +2477,7 @@ class GetMessagePublicForwardsQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(FullMessageId full_message_id, int32 offset_date, DialogId offset_dialog_id,
+  void send(DcId dc_id, FullMessageId full_message_id, int32 offset_date, DialogId offset_dialog_id,
             ServerMessageId offset_message_id, int32 limit) {
     dialog_id_ = full_message_id.get_dialog_id();
     limit_ = limit;
@@ -2485,10 +2485,12 @@ class GetMessagePublicForwardsQuery final : public Td::ResultHandler {
     auto input_peer = MessagesManager::get_input_peer_force(offset_dialog_id);
     CHECK(input_peer != nullptr);
 
-    send_query(G()->net_query_creator().create(telegram_api::stats_getMessagePublicForwards(
-        td->contacts_manager_->get_input_channel(dialog_id_.get_channel_id()),
-        full_message_id.get_message_id().get_server_message_id().get(), offset_date, std::move(input_peer),
-        offset_message_id.get(), limit)));
+    send_query(
+        G()->net_query_creator().create(telegram_api::stats_getMessagePublicForwards(
+                                            td->contacts_manager_->get_input_channel(dialog_id_.get_channel_id()),
+                                            full_message_id.get_message_id().get_server_message_id().get(), offset_date,
+                                            std::move(input_peer), offset_message_id.get(), limit),
+                                        dc_id));
   }
 
   void on_result(uint64 id, BufferSlice packet) final {
@@ -9223,14 +9225,8 @@ void MessagesManager::get_channel_difference_if_needed(DialogId dialog_id, Messa
 
 void MessagesManager::get_channel_differences_if_needed(MessagesInfo &&messages_info, Promise<MessagesInfo> &&promise) {
   MultiPromiseActorSafe mpas{"GetChannelDifferencesIfNeededMultiPromiseActor"};
+  mpas.add_promise(Promise<Unit>());
   mpas.set_ignore_errors(true);
-  mpas.add_promise(PromiseCreator::lambda(
-      [messages_info = std::move(messages_info), promise = std::move(promise)](Unit ignored) mutable {
-        if (G()->close_flag()) {
-          return promise.set_error(Status::Error(500, "Request aborted"));
-        }
-        promise.set_value(std::move(messages_info));
-      }));
   auto lock = mpas.get_promise();
   for (auto &message : messages_info.messages) {
     if (message == nullptr) {
@@ -9242,6 +9238,14 @@ void MessagesManager::get_channel_differences_if_needed(MessagesInfo &&messages_
       run_after_channel_difference(dialog_id, mpas.get_promise());
     }
   }
+  // must be added after messages_info is checked
+  mpas.add_promise(PromiseCreator::lambda(
+      [messages_info = std::move(messages_info), promise = std::move(promise)](Unit ignored) mutable {
+        if (G()->close_flag()) {
+          return promise.set_error(Status::Error(500, "Request aborted"));
+        }
+        promise.set_value(std::move(messages_info));
+      }));
   lock.set_value(Unit());
 }
 
@@ -22906,15 +22910,30 @@ void MessagesManager::on_get_scheduled_messages_from_database(DialogId dialog_id
   }
 }
 
-void MessagesManager::get_message_public_forwards(FullMessageId full_message_id, const string &offset, int32 limit,
+void MessagesManager::get_message_public_forwards(FullMessageId full_message_id, string offset, int32 limit,
                                                   Promise<td_api::object_ptr<td_api::foundMessages>> &&promise) {
+  auto dc_id_promise = PromiseCreator::lambda([actor_id = actor_id(this), full_message_id, offset = std::move(offset),
+                                               limit, promise = std::move(promise)](Result<DcId> r_dc_id) mutable {
+    if (r_dc_id.is_error()) {
+      return promise.set_error(r_dc_id.move_as_error());
+    }
+    send_closure(actor_id, &MessagesManager::send_get_message_public_forwards_query, r_dc_id.move_as_ok(),
+                 full_message_id, std::move(offset), limit, std::move(promise));
+  });
+  td_->contacts_manager_->get_channel_statistics_dc_id(full_message_id.get_dialog_id(), false,
+                                                       std::move(dc_id_promise));
+}
+
+void MessagesManager::send_get_message_public_forwards_query(
+    DcId dc_id, FullMessageId full_message_id, string offset, int32 limit,
+    Promise<td_api::object_ptr<td_api::foundMessages>> &&promise) {
   auto dialog_id = full_message_id.get_dialog_id();
-  Dialog *d = get_dialog_force(dialog_id, "get_message_public_forwards");
+  Dialog *d = get_dialog_force(dialog_id, "send_get_message_public_forwards_query");
   if (d == nullptr) {
     return promise.set_error(Status::Error(5, "Chat not found"));
   }
 
-  const Message *m = get_message_force(d, full_message_id.get_message_id(), "get_message_public_forwards");
+  const Message *m = get_message_force(d, full_message_id.get_message_id(), "send_get_message_public_forwards_query");
   if (m == nullptr) {
     return promise.set_error(Status::Error(5, "Message not found"));
   }
@@ -22953,7 +22972,7 @@ void MessagesManager::get_message_public_forwards(FullMessageId full_message_id,
   }
 
   td_->create_handler<GetMessagePublicForwardsQuery>(std::move(promise))
-      ->send(full_message_id, offset_date, offset_dialog_id, offset_message_id, limit);
+      ->send(dc_id, full_message_id, offset_date, offset_dialog_id, offset_message_id, limit);
 }
 
 Result<int32> MessagesManager::get_message_schedule_date(

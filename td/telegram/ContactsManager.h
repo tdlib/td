@@ -357,6 +357,8 @@ class ContactsManager final : public Actor {
 
   void delete_dialog(DialogId dialog_id, Promise<Unit> &&promise);
 
+  void get_channel_statistics_dc_id(DialogId dialog_id, bool for_full_statistics, Promise<DcId> &&promise);
+
   void get_channel_statistics(DialogId dialog_id, bool is_dark,
                               Promise<td_api::object_ptr<td_api::ChatStatistics>> &&promise);
 
@@ -1524,8 +1526,6 @@ class ContactsManager final : public Actor {
   void delete_chat(ChatId chat_id, Promise<Unit> &&promise);
 
   void delete_channel(ChannelId channel_id, Promise<Unit> &&promise);
-
-  void get_channel_statistics_dc_id(DialogId dialog_id, bool for_full_statistics, Promise<DcId> &&promise);
 
   void get_channel_statistics_dc_id_impl(ChannelId channel_id, bool for_full_statistics, Promise<DcId> &&promise);
 

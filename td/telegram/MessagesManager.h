@@ -734,7 +734,7 @@ class MessagesManager final : public Actor {
   vector<MessageId> get_dialog_scheduled_messages(DialogId dialog_id, bool force, bool ignore_result,
                                                   Promise<Unit> &&promise);
 
-  void get_message_public_forwards(FullMessageId full_message_id, const string &offset, int32 limit,
+  void get_message_public_forwards(FullMessageId full_message_id, string offset, int32 limit,
                                    Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
 
   tl_object_ptr<td_api::message> get_dialog_message_by_date_object(int64 random_id);
@@ -2964,6 +2964,9 @@ class MessagesManager final : public Actor {
   void on_imported_message_attachments_uploaded(int64 random_id, Result<Unit> &&result);
 
   Status can_import_messages(DialogId dialog_id);
+
+  void send_get_message_public_forwards_query(DcId dc_id, FullMessageId full_message_id, string offset, int32 limit,
+                                              Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
 
   void on_animated_emoji_message_clicked(FullMessageId full_message_id, UserId user_id, Slice emoji, string data);
 

@@ -5497,7 +5497,7 @@ void Td::on_request(uint64 id, td_api::getMessagePublicForwards &request) {
   CLEAN_INPUT_STRING(request.offset_);
   CREATE_REQUEST_PROMISE();
   messages_manager_->get_message_public_forwards({DialogId(request.chat_id_), MessageId(request.message_id_)},
-                                                 request.offset_, request.limit_, std::move(promise));
+                                                 std::move(request.offset_), request.limit_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::removeNotification &request) {
