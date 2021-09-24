@@ -20,7 +20,6 @@
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/Global.h"
-#include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
@@ -410,6 +409,34 @@ void BackgroundManager::start_up() {
 
 void BackgroundManager::tear_down() {
   parent_.reset();
+}
+
+void BackgroundManager::store_background(BackgroundId background_id, LogEventStorerCalcLength &storer) {
+  const auto *background = get_background(background_id);
+  CHECK(background != nullptr);
+  store(*background, storer);
+}
+
+void BackgroundManager::store_background(BackgroundId background_id, LogEventStorerUnsafe &storer) {
+  const auto *background = get_background(background_id);
+  CHECK(background != nullptr);
+  store(*background, storer);
+}
+
+void BackgroundManager::parse_background(BackgroundId &background_id, LogEventParser &parser) {
+  Background background;
+  parse(background, parser);
+  CHECK(background.has_new_local_id);
+  if (background.file_id.is_valid() != background.type.has_file() || !background.id.is_valid()) {
+    parser.set_error(PSTRING() << "Failed to load " << background.id);
+    background_id = BackgroundId();
+    return;
+  }
+  if (background.id.is_local() && !background.type.has_file() && background.id.get() > max_local_background_id_.get()) {
+    set_max_local_background_id(background.id);
+  }
+  background_id = background.id;
+  add_background(background, false);
 }
 
 void BackgroundManager::get_backgrounds(bool for_dark_theme,

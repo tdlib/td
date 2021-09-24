@@ -10,6 +10,7 @@
 #include "td/telegram/BackgroundType.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
+#include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -64,6 +65,12 @@ class BackgroundManager final : public Actor {
                                    Promise<Unit> &&promise);
 
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
+
+  void store_background(BackgroundId background_id, LogEventStorerCalcLength &storer);
+
+  void store_background(BackgroundId background_id, LogEventStorerUnsafe &storer);
+
+  void parse_background(BackgroundId &background_id, LogEventParser &parser);
 
  private:
   struct Background {
