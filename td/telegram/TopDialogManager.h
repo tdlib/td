@@ -105,7 +105,10 @@ class TopDialogManager final : public Actor {
 
   void do_get_top_dialogs(GetTopDialogsQuery &&query);
 
+  void on_load_dialogs(GetTopDialogsQuery &&query, vector<DialogId> &&dialog_ids);
+
   void do_get_top_peers();
+
   void do_save_top_dialogs();
 
   void on_first_sync();

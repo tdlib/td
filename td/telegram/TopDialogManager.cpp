@@ -366,45 +366,49 @@ void TopDialogManager::do_get_top_dialogs(GetTopDialogsQuery &&query) {
     }
   }
 
+  auto promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), query = std::move(query), dialog_ids](Result<Unit>) mutable {
+        send_closure(actor_id, &TopDialogManager::on_load_dialogs, std::move(query), std::move(dialog_ids));
+      });
+  td_->messages_manager_->load_dialogs(std::move(dialog_ids), std::move(promise));
+}
+
+void TopDialogManager::on_load_dialogs(GetTopDialogsQuery &&query, vector<DialogId> &&dialog_ids) {
   auto limit = std::min({query.limit, MAX_TOP_DIALOGS_LIMIT, dialog_ids.size()});
-
-  auto promise = PromiseCreator::lambda([query = std::move(query), dialog_ids, limit](Result<Unit>) mutable {
-    vector<DialogId> result;
-    result.reserve(limit);
-    for (auto dialog_id : dialog_ids) {
-      if (dialog_id.get_type() == DialogType::User) {
-        auto user_id = dialog_id.get_user_id();
-        if (G()->td().get_actor_unsafe()->contacts_manager_->is_user_deleted(user_id)) {
-          LOG(INFO) << "Skip deleted " << user_id;
-          continue;
-        }
-        if (G()->td().get_actor_unsafe()->contacts_manager_->get_my_id() == user_id) {
-          LOG(INFO) << "Skip self " << user_id;
-          continue;
-        }
-        if (query.category == TopDialogCategory::BotInline || query.category == TopDialogCategory::BotPM) {
-          auto r_bot_info = G()->td().get_actor_unsafe()->contacts_manager_->get_bot_data(user_id);
-          if (r_bot_info.is_error()) {
-            LOG(INFO) << "Skip not a bot " << user_id;
-            continue;
-          }
-          if (query.category == TopDialogCategory::BotInline &&
-              (r_bot_info.ok().username.empty() || !r_bot_info.ok().is_inline)) {
-            LOG(INFO) << "Skip not inline bot " << user_id;
-            continue;
-          }
-        }
+  vector<DialogId> result;
+  result.reserve(limit);
+  for (auto dialog_id : dialog_ids) {
+    if (dialog_id.get_type() == DialogType::User) {
+      auto user_id = dialog_id.get_user_id();
+      if (td_->contacts_manager_->is_user_deleted(user_id)) {
+        LOG(INFO) << "Skip deleted " << user_id;
+        continue;
       }
-
-      result.push_back(dialog_id);
-      if (result.size() == limit) {
-        break;
+      if (td_->contacts_manager_->get_my_id() == user_id) {
+        LOG(INFO) << "Skip self " << user_id;
+        continue;
+      }
+      if (query.category == TopDialogCategory::BotInline || query.category == TopDialogCategory::BotPM) {
+        auto r_bot_info = td_->contacts_manager_->get_bot_data(user_id);
+        if (r_bot_info.is_error()) {
+          LOG(INFO) << "Skip not a bot " << user_id;
+          continue;
+        }
+        if (query.category == TopDialogCategory::BotInline &&
+            (r_bot_info.ok().username.empty() || !r_bot_info.ok().is_inline)) {
+          LOG(INFO) << "Skip not inline bot " << user_id;
+          continue;
+        }
       }
     }
 
-    query.promise.set_value(std::move(result));
-  });
-  td_->messages_manager_->load_dialogs(std::move(dialog_ids), std::move(promise));
+    result.push_back(dialog_id);
+    if (result.size() == limit) {
+      break;
+    }
+  }
+
+  query.promise.set_value(std::move(result));
 }
 
 void TopDialogManager::do_get_top_peers() {
