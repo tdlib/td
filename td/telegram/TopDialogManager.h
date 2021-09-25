@@ -54,7 +54,6 @@ class TopDialogManager final : public NetQueryCallback {
   int32 rating_e_decay_ = 241920;
 
   bool have_toggle_top_peers_query_ = false;
-  bool toggle_top_peers_query_is_enabled_ = false;
   bool have_pending_toggle_top_peers_query_ = false;
   bool pending_toggle_top_peers_query_ = false;
   bool was_first_sync_{false};
@@ -100,7 +99,10 @@ class TopDialogManager final : public NetQueryCallback {
   void normalize_rating();
 
   bool set_is_enabled(bool is_enabled);
+
   void send_toggle_top_peers(bool is_enabled);
+
+  void on_toggle_top_peers(bool is_enabled, Result<Unit> &&result);
 
   void do_get_top_dialogs(GetTopDialogsQuery &&query);
 

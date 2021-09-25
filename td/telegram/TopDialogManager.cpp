@@ -39,6 +39,31 @@
 
 namespace td {
 
+class ToggleTopPeersQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit ToggleTopPeersQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(bool is_enabled) {
+    send_query(G()->net_query_creator().create(telegram_api::contacts_toggleTopPeers(is_enabled)));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::contacts_toggleTopPeers>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(uint64 id, Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 static CSlice top_dialog_category_name(TopDialogCategory category) {
   switch (category) {
     case TopDialogCategory::Correspondent:
@@ -133,6 +158,10 @@ bool TopDialogManager::set_is_enabled(bool is_enabled) {
 }
 
 void TopDialogManager::send_toggle_top_peers(bool is_enabled) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   if (have_toggle_top_peers_query_) {
     have_pending_toggle_top_peers_query_ = true;
     pending_toggle_top_peers_query_ = is_enabled;
@@ -141,9 +170,32 @@ void TopDialogManager::send_toggle_top_peers(bool is_enabled) {
 
   LOG(DEBUG) << "Send toggle top peers query to " << is_enabled;
   have_toggle_top_peers_query_ = true;
-  toggle_top_peers_query_is_enabled_ = is_enabled;
-  auto net_query = G()->net_query_creator().create(telegram_api::contacts_toggleTopPeers(is_enabled));
-  G()->net_query_dispatcher().dispatch_with_callback(std::move(net_query), actor_shared(this, 2));
+
+  auto promise = PromiseCreator::lambda([actor_id = actor_id(this), is_enabled](Result<Unit> result) {
+    send_closure(actor_id, &TopDialogManager::on_toggle_top_peers, is_enabled, std::move(result));
+  });
+  td_->create_handler<ToggleTopPeersQuery>(std::move(promise))->send(is_enabled);
+}
+
+void TopDialogManager::on_toggle_top_peers(bool is_enabled, Result<Unit> &&result) {
+  CHECK(have_toggle_top_peers_query_);
+  have_toggle_top_peers_query_ = false;
+
+  if (have_pending_toggle_top_peers_query_) {
+    have_pending_toggle_top_peers_query_ = false;
+    if (pending_toggle_top_peers_query_ != is_enabled) {
+      send_toggle_top_peers(pending_toggle_top_peers_query_);
+      return;
+    }
+  }
+
+  if (result.is_ok()) {
+    // everything is synchronized
+    G()->td_db()->get_binlog_pmc()->erase("top_peers_enabled");
+  } else {
+    // let's resend the query forever
+    send_toggle_top_peers(is_enabled);
+  }
 }
 
 void TopDialogManager::on_dialog_used(TopDialogCategory category, DialogId dialog_id, int32 date) {
@@ -415,30 +467,6 @@ void TopDialogManager::do_get_top_peers() {
 
 void TopDialogManager::on_result(NetQueryPtr net_query) {
   auto query_type = get_link_token();
-  if (query_type == 2) {  // toggleTopPeers
-    CHECK(have_toggle_top_peers_query_);
-    have_toggle_top_peers_query_ = false;
-
-    if (have_pending_toggle_top_peers_query_) {
-      have_pending_toggle_top_peers_query_ = false;
-      if (pending_toggle_top_peers_query_ != toggle_top_peers_query_is_enabled_) {
-        send_toggle_top_peers(pending_toggle_top_peers_query_);
-        return;
-      }
-    }
-
-    auto r_result = fetch_result<telegram_api::contacts_toggleTopPeers>(std::move(net_query));
-    if (r_result.is_ok()) {
-      // everything is synchronized
-      G()->td_db()->get_binlog_pmc()->erase("top_peers_enabled");
-    } else {
-      // let's resend the query forever
-      if (!G()->close_flag()) {
-        send_toggle_top_peers(toggle_top_peers_query_is_enabled_);
-      }
-    }
-    return;
-  }
   if (query_type == 1) {  // resetTopPeerRating
     // ignore result
     return;
