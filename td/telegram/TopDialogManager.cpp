@@ -404,7 +404,7 @@ void TopDialogManager::do_get_top_dialogs(GetTopDialogsQuery &&query) {
 
     query.promise.set_value(std::move(result));
   });
-  send_closure(G()->messages_manager(), &MessagesManager::load_dialogs, std::move(dialog_ids), std::move(promise));
+  td_->messages_manager_->load_dialogs(std::move(dialog_ids), std::move(promise));
 }
 
 void TopDialogManager::do_get_top_peers() {
@@ -461,10 +461,8 @@ void TopDialogManager::on_get_top_peers(Result<telegram_api::object_ptr<telegram
       set_is_enabled(true);  // apply immediately
       auto top_peers = move_tl_object_as<telegram_api::contacts_topPeers>(std::move(top_peers_parent));
 
-      send_closure(G()->contacts_manager(), &ContactsManager::on_get_users, std::move(top_peers->users_),
-                   "on get top chats");
-      send_closure(G()->contacts_manager(), &ContactsManager::on_get_chats, std::move(top_peers->chats_),
-                   "on get top chats");
+      td_->contacts_manager_->on_get_users(std::move(top_peers->users_), "on get top chats");
+      td_->contacts_manager_->on_get_chats(std::move(top_peers->chats_), "on get top chats");
       for (auto &category : top_peers->categories_) {
         auto dialog_category = get_top_dialog_category(category->category_);
         auto pos = static_cast<size_t>(dialog_category);
