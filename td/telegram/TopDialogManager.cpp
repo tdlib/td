@@ -133,6 +133,37 @@ static tl_object_ptr<telegram_api::TopPeerCategory> get_top_peer_category(TopDia
   }
 }
 
+class ResetTopPeerRatingQuery final : public Td::ResultHandler {
+  DialogId dialog_id_;
+
+ public:
+  void send(TopDialogCategory category, DialogId dialog_id) {
+    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    if (input_peer == nullptr) {
+      return;
+    }
+
+    dialog_id_ = dialog_id;
+    send_query(G()->net_query_creator().create(
+        telegram_api::contacts_resetTopPeerRating(get_top_peer_category(category), std::move(input_peer))));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::contacts_resetTopPeerRating>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    // ignore the result
+  }
+
+  void on_error(uint64 id, Status status) final {
+    if (!td->messages_manager_->on_get_dialog_error(dialog_id_, status, "ResetTopPeerRatingQuery")) {
+      LOG(INFO) << "Receive error for resetTopPeerRating: " << status;
+    }
+  }
+};
+
 void TopDialogManager::update_is_enabled(bool is_enabled) {
   if (td_->auth_manager_ == nullptr || !td_->auth_manager_->is_authorized() || td_->auth_manager_->is_bot()) {
     return;
@@ -254,14 +285,7 @@ void TopDialogManager::remove_dialog(TopDialogCategory category, DialogId dialog
   CHECK(pos < by_category_.size());
   auto &top_dialogs = by_category_[pos];
 
-  LOG(INFO) << "Remove " << top_dialog_category_name(category) << " rating of " << dialog_id;
-
-  auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
-  if (input_peer != nullptr) {
-    auto query = telegram_api::contacts_resetTopPeerRating(get_top_peer_category(category), std::move(input_peer));
-    auto net_query = G()->net_query_creator().create(query);
-    G()->net_query_dispatcher().dispatch_with_callback(std::move(net_query), actor_shared(this, 1));
-  }
+  td_->create_handler<ResetTopPeerRatingQuery>()->send(category, dialog_id);
 
   auto it = std::find_if(top_dialogs.dialogs.begin(), top_dialogs.dialogs.end(),
                          [&](auto &top_dialog) { return top_dialog.dialog_id == dialog_id; });
@@ -466,39 +490,28 @@ void TopDialogManager::do_get_top_peers() {
 }
 
 void TopDialogManager::on_result(NetQueryPtr net_query) {
-  auto query_type = get_link_token();
-  if (query_type == 1) {  // resetTopPeerRating
-    // ignore result
-    return;
-  }
-  SCOPE_EXIT {
-    loop();
-  };
-
   normalize_rating();  // once a day too
 
   auto r_top_peers = fetch_result<telegram_api::contacts_getTopPeers>(std::move(net_query));
   if (r_top_peers.is_error()) {
     last_server_sync_ = Timestamp::in(SERVER_SYNC_RESEND_DELAY - SERVER_SYNC_DELAY);
+    loop();
     return;
   }
 
   last_server_sync_ = Timestamp::now();
   server_sync_state_ = SyncState::Ok;
-  SCOPE_EXIT {
-    G()->td_db()->get_binlog_pmc()->set("top_dialogs_ts", to_string(static_cast<uint32>(Clocks::system())));
-  };
 
   auto top_peers_parent = r_top_peers.move_as_ok();
   LOG(DEBUG) << "Receive contacts_getTopPeers result: " << to_string(top_peers_parent);
   switch (top_peers_parent->get_id()) {
     case telegram_api::contacts_topPeersNotModified::ID:
       // nothing to do
-      return;
+      break;
     case telegram_api::contacts_topPeersDisabled::ID:
       G()->shared_config().set_option_boolean("disable_top_chats", true);
       set_is_enabled(false);  // apply immediately
-      return;
+      break;
     case telegram_api::contacts_topPeers::ID: {
       G()->shared_config().set_option_empty("disable_top_chats");
       set_is_enabled(true);  // apply immediately
@@ -529,6 +542,9 @@ void TopDialogManager::on_result(NetQueryPtr net_query) {
     default:
       UNREACHABLE();
   }
+
+  G()->td_db()->get_binlog_pmc()->set("top_dialogs_ts", to_string(static_cast<uint32>(Clocks::system())));
+  loop();
 }
 
 void TopDialogManager::do_save_top_dialogs() {
