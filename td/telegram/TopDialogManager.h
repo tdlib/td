@@ -49,8 +49,8 @@ class TopDialogManager final : public NetQueryCallback {
   Td *td_;
   ActorShared<> parent_;
 
-  bool is_active_{false};
-  bool is_enabled_{true};
+  bool is_active_ = false;
+  bool is_enabled_ = true;
   int32 rating_e_decay_ = 241920;
 
   bool have_toggle_top_peers_query_ = false;

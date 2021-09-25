@@ -7,8 +7,10 @@
 #pragma once
 
 #include "td/telegram/td_api.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/utils/common.h"
+#include "td/utils/Slice.h"
 
 namespace td {
 
@@ -24,29 +26,12 @@ enum class TopDialogCategory : int32 {
   Size
 };
 
-inline TopDialogCategory get_top_dialog_category(const tl_object_ptr<td_api::TopChatCategory> &category) {
-  if (category == nullptr) {
-    return TopDialogCategory::Size;
-  }
-  switch (category->get_id()) {
-    case td_api::topChatCategoryUsers::ID:
-      return TopDialogCategory::Correspondent;
-    case td_api::topChatCategoryBots::ID:
-      return TopDialogCategory::BotPM;
-    case td_api::topChatCategoryInlineBots::ID:
-      return TopDialogCategory::BotInline;
-    case td_api::topChatCategoryGroups::ID:
-      return TopDialogCategory::Group;
-    case td_api::topChatCategoryChannels::ID:
-      return TopDialogCategory::Channel;
-    case td_api::topChatCategoryCalls::ID:
-      return TopDialogCategory::Call;
-    case td_api::topChatCategoryForwardChats::ID:
-      return TopDialogCategory::ForwardUsers;
-    default:
-      UNREACHABLE();
-      return TopDialogCategory::Size;
-  }
-}
+CSlice get_top_dialog_category_name(TopDialogCategory category);
+
+TopDialogCategory get_top_dialog_category(const td_api::object_ptr<td_api::TopChatCategory> &category);
+
+TopDialogCategory get_top_dialog_category(const telegram_api::object_ptr<telegram_api::TopPeerCategory> &category);
+
+telegram_api::object_ptr<telegram_api::TopPeerCategory> get_input_top_peer_category(TopDialogCategory category);
 
 }  // namespace td

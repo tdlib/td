@@ -24,6 +24,7 @@
 #include "td/telegram/telegram_api.h"
 
 #include "td/utils/algorithm.h"
+#include "td/utils/buffer.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/port/Clocks.h"
@@ -64,75 +65,6 @@ class ToggleTopPeersQuery final : public Td::ResultHandler {
   }
 };
 
-static CSlice top_dialog_category_name(TopDialogCategory category) {
-  switch (category) {
-    case TopDialogCategory::Correspondent:
-      return CSlice("correspondent");
-    case TopDialogCategory::BotPM:
-      return CSlice("bot_pm");
-    case TopDialogCategory::BotInline:
-      return CSlice("bot_inline");
-    case TopDialogCategory::Group:
-      return CSlice("group");
-    case TopDialogCategory::Channel:
-      return CSlice("channel");
-    case TopDialogCategory::Call:
-      return CSlice("call");
-    case TopDialogCategory::ForwardUsers:
-      return CSlice("forward_users");
-    case TopDialogCategory::ForwardChats:
-      return CSlice("forward_chats");
-    default:
-      UNREACHABLE();
-  }
-}
-
-static TopDialogCategory get_top_dialog_category(const telegram_api::TopPeerCategory &category) {
-  switch (category.get_id()) {
-    case telegram_api::topPeerCategoryCorrespondents::ID:
-      return TopDialogCategory::Correspondent;
-    case telegram_api::topPeerCategoryBotsPM::ID:
-      return TopDialogCategory::BotPM;
-    case telegram_api::topPeerCategoryBotsInline::ID:
-      return TopDialogCategory::BotInline;
-    case telegram_api::topPeerCategoryGroups::ID:
-      return TopDialogCategory::Group;
-    case telegram_api::topPeerCategoryChannels::ID:
-      return TopDialogCategory::Channel;
-    case telegram_api::topPeerCategoryPhoneCalls::ID:
-      return TopDialogCategory::Call;
-    case telegram_api::topPeerCategoryForwardUsers::ID:
-      return TopDialogCategory::ForwardUsers;
-    case telegram_api::topPeerCategoryForwardChats::ID:
-      return TopDialogCategory::ForwardChats;
-    default:
-      UNREACHABLE();
-  }
-}
-
-static tl_object_ptr<telegram_api::TopPeerCategory> get_top_peer_category(TopDialogCategory category) {
-  switch (category) {
-    case TopDialogCategory::Correspondent:
-      return make_tl_object<telegram_api::topPeerCategoryCorrespondents>();
-    case TopDialogCategory::BotPM:
-      return make_tl_object<telegram_api::topPeerCategoryBotsPM>();
-    case TopDialogCategory::BotInline:
-      return make_tl_object<telegram_api::topPeerCategoryBotsInline>();
-    case TopDialogCategory::Group:
-      return make_tl_object<telegram_api::topPeerCategoryGroups>();
-    case TopDialogCategory::Channel:
-      return make_tl_object<telegram_api::topPeerCategoryChannels>();
-    case TopDialogCategory::Call:
-      return make_tl_object<telegram_api::topPeerCategoryPhoneCalls>();
-    case TopDialogCategory::ForwardUsers:
-      return make_tl_object<telegram_api::topPeerCategoryForwardUsers>();
-    case TopDialogCategory::ForwardChats:
-      return make_tl_object<telegram_api::topPeerCategoryForwardChats>();
-    default:
-      UNREACHABLE();
-  }
-}
-
 class ResetTopPeerRatingQuery final : public Td::ResultHandler {
   DialogId dialog_id_;
 
@@ -145,7 +77,7 @@ class ResetTopPeerRatingQuery final : public Td::ResultHandler {
 
     dialog_id_ = dialog_id;
     send_query(G()->net_query_creator().create(
-        telegram_api::contacts_resetTopPeerRating(get_top_peer_category(category), std::move(input_peer))));
+        telegram_api::contacts_resetTopPeerRating(get_input_top_peer_category(category), std::move(input_peer))));
   }
 
   void on_result(uint64 id, BufferSlice packet) final {
@@ -258,7 +190,7 @@ void TopDialogManager::on_dialog_used(TopDialogCategory category, DialogId dialo
     it = next;
   }
 
-  LOG(INFO) << "Update " << top_dialog_category_name(category) << " rating of " << dialog_id << " by " << delta;
+  LOG(INFO) << "Update " << get_top_dialog_category_name(category) << " rating of " << dialog_id << " by " << delta;
 
   if (!first_unsync_change_) {
     first_unsync_change_ = Timestamp::now_cached();
@@ -522,7 +454,7 @@ void TopDialogManager::on_result(NetQueryPtr net_query) {
       send_closure(G()->contacts_manager(), &ContactsManager::on_get_chats, std::move(top_peers->chats_),
                    "on get top chats");
       for (auto &category : top_peers->categories_) {
-        auto dialog_category = get_top_dialog_category(*category->category_);
+        auto dialog_category = get_top_dialog_category(category->category_);
         auto pos = static_cast<size_t>(dialog_category);
         CHECK(pos < by_category_.size());
         auto &top_dialogs = by_category_[pos];
@@ -551,7 +483,7 @@ void TopDialogManager::do_save_top_dialogs() {
   LOG(INFO) << "Save top chats";
   for (size_t top_dialog_category_i = 0; top_dialog_category_i < by_category_.size(); top_dialog_category_i++) {
     auto top_dialog_category = TopDialogCategory(top_dialog_category_i);
-    auto key = PSTRING() << "top_dialogs#" << top_dialog_category_name(top_dialog_category);
+    auto key = PSTRING() << "top_dialogs#" << get_top_dialog_category_name(top_dialog_category);
 
     auto &top_dialogs = by_category_[top_dialog_category_i];
     if (!top_dialogs.is_dirty) {
@@ -615,7 +547,7 @@ void TopDialogManager::try_start() {
   if (is_enabled_) {
     for (size_t top_dialog_category_i = 0; top_dialog_category_i < by_category_.size(); top_dialog_category_i++) {
       auto top_dialog_category = TopDialogCategory(top_dialog_category_i);
-      auto key = PSTRING() << "top_dialogs#" << top_dialog_category_name(top_dialog_category);
+      auto key = PSTRING() << "top_dialogs#" << get_top_dialog_category_name(top_dialog_category);
       auto value = G()->td_db()->get_binlog_pmc()->get(key);
 
       auto &top_dialogs = by_category_[top_dialog_category_i];

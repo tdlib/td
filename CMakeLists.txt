@@ -411,6 +411,7 @@ set(TDLIB_SOURCE
   td/telegram/TdDb.cpp
   td/telegram/TermsOfService.cpp
   td/telegram/ThemeManager.cpp
+  td/telegram/TopDialogCategory.cpp
   td/telegram/TopDialogManager.cpp
   td/telegram/UpdatesManager.cpp
   td/telegram/Venue.cpp
