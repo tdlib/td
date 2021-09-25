@@ -24,8 +24,11 @@ enum class TopDialogCategory : int32 {
   Size
 };
 
-inline TopDialogCategory get_top_dialog_category(const td_api::TopChatCategory &category) {
-  switch (category.get_id()) {
+inline TopDialogCategory get_top_dialog_category(const tl_object_ptr<td_api::TopChatCategory> &category) {
+  if (category == nullptr) {
+    return TopDialogCategory::Size;
+  }
+  switch (category->get_id()) {
     case td_api::topChatCategoryUsers::ID:
       return TopDialogCategory::Correspondent;
     case td_api::topChatCategoryBots::ID:
@@ -42,6 +45,7 @@ inline TopDialogCategory get_top_dialog_category(const td_api::TopChatCategory &
       return TopDialogCategory::ForwardUsers;
     default:
       UNREACHABLE();
+      return TopDialogCategory::Size;
   }
 }
 

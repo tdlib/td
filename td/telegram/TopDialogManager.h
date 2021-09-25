@@ -8,7 +8,6 @@
 
 #include "td/telegram/DialogId.h"
 #include "td/telegram/net/NetQuery.h"
-#include "td/telegram/telegram_api.h"
 #include "td/telegram/TopDialogCategory.h"
 
 #include "td/actor/actor.h"
@@ -33,9 +32,9 @@ class TopDialogManager final : public NetQueryCallback {
 
   void on_dialog_used(TopDialogCategory category, DialogId dialog_id, int32 date);
 
-  void remove_dialog(TopDialogCategory category, DialogId dialog_id, tl_object_ptr<telegram_api::InputPeer> input_peer);
+  void remove_dialog(TopDialogCategory category, DialogId dialog_id, Promise<Unit> &&promise);
 
-  void get_top_dialogs(TopDialogCategory category, size_t limit, Promise<vector<DialogId>> promise);
+  void get_top_dialogs(TopDialogCategory category, int32 limit, Promise<vector<DialogId>> promise);
 
   void update_rating_e_decay();
 

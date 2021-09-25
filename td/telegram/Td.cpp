@@ -5201,14 +5201,8 @@ void Td::on_request(uint64 id, const td_api::setAutoDownloadSettings &request) {
                              std::move(promise));
 }
 
-void Td::on_request(uint64 id, td_api::getTopChats &request) {
+void Td::on_request(uint64 id, const td_api::getTopChats &request) {
   CHECK_IS_USER();
-  if (request.category_ == nullptr) {
-    return send_error_raw(id, 400, "Top chat category must be non-empty");
-  }
-  if (request.limit_ <= 0) {
-    return send_error_raw(id, 400, "Limit must be positive");
-  }
   CREATE_REQUEST_PROMISE();
   auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<vector<DialogId>> result) mutable {
     if (result.is_error()) {
@@ -5217,23 +5211,15 @@ void Td::on_request(uint64 id, td_api::getTopChats &request) {
       promise.set_value(MessagesManager::get_chats_object(-1, result.ok()));
     }
   });
-  top_dialog_manager_->get_top_dialogs(get_top_dialog_category(*request.category_), narrow_cast<size_t>(request.limit_),
+  top_dialog_manager_->get_top_dialogs(get_top_dialog_category(request.category_), request.limit_,
                                        std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, const td_api::removeTopChat &request) {
   CHECK_IS_USER();
-  if (request.category_ == nullptr) {
-    return send_error_raw(id, 400, "Top chat category must be non-empty");
-  }
-
-  DialogId dialog_id(request.chat_id_);
-  if (!dialog_id.is_valid()) {
-    return send_error_raw(id, 400, "Invalid chat identifier");
-  }
-  top_dialog_manager_->remove_dialog(get_top_dialog_category(*request.category_), dialog_id,
-                                     messages_manager_->get_input_peer(dialog_id, AccessRights::Read));
-  send_closure(actor_id(this), &Td::send_result, id, td_api::make_object<td_api::ok>());
+  CREATE_OK_REQUEST_PROMISE();
+  top_dialog_manager_->remove_dialog(get_top_dialog_category(request.category_), DialogId(request.chat_id_),
+                                     std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::loadChats &request) {

@@ -554,7 +554,7 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::setAutoDownloadSettings &request);
 
-  void on_request(uint64 id, td_api::getTopChats &request);
+  void on_request(uint64 id, const td_api::getTopChats &request);
 
   void on_request(uint64 id, const td_api::removeTopChat &request);
 

@@ -6,6 +6,7 @@
 //
 #include "td/telegram/TopDialogManager.h"
 
+#include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
@@ -182,12 +183,16 @@ void TopDialogManager::on_dialog_used(TopDialogCategory category, DialogId dialo
   loop();
 }
 
-void TopDialogManager::remove_dialog(TopDialogCategory category, DialogId dialog_id,
-                                     tl_object_ptr<telegram_api::InputPeer> input_peer) {
-  if (!is_active_ || !is_enabled_) {
-    return;
+void TopDialogManager::remove_dialog(TopDialogCategory category, DialogId dialog_id, Promise<Unit> &&promise) {
+  if (category == TopDialogCategory::Size) {
+    return promise.set_error(Status::Error(400, "Top chat category must be non-empty"));
   }
-  CHECK(dialog_id.is_valid());
+  if (!td_->messages_manager_->have_dialog_force(dialog_id, "remove_dialog")) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+  if (!is_active_ || !is_enabled_) {
+    return promise.set_value(Unit());
+  }
 
   if (category == TopDialogCategory::ForwardUsers && dialog_id.get_type() != DialogType::User) {
     category = TopDialogCategory::ForwardChats;
@@ -199,6 +204,7 @@ void TopDialogManager::remove_dialog(TopDialogCategory category, DialogId dialog
 
   LOG(INFO) << "Remove " << top_dialog_category_name(category) << " rating of " << dialog_id;
 
+  auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
   if (input_peer != nullptr) {
     auto query = telegram_api::contacts_resetTopPeerRating(get_top_peer_category(category), std::move(input_peer));
     auto net_query = G()->net_query_creator().create(query);
@@ -208,7 +214,7 @@ void TopDialogManager::remove_dialog(TopDialogCategory category, DialogId dialog
   auto it = std::find_if(top_dialogs.dialogs.begin(), top_dialogs.dialogs.end(),
                          [&](auto &top_dialog) { return top_dialog.dialog_id == dialog_id; });
   if (it == top_dialogs.dialogs.end()) {
-    return;
+    return promise.set_value(Unit());
   }
 
   top_dialogs.is_dirty = true;
@@ -217,21 +223,26 @@ void TopDialogManager::remove_dialog(TopDialogCategory category, DialogId dialog
     first_unsync_change_ = Timestamp::now_cached();
   }
   loop();
+  promise.set_value(Unit());
 }
 
-void TopDialogManager::get_top_dialogs(TopDialogCategory category, size_t limit, Promise<vector<DialogId>> promise) {
+void TopDialogManager::get_top_dialogs(TopDialogCategory category, int32 limit, Promise<vector<DialogId>> promise) {
+  if (category == TopDialogCategory::Size) {
+    return promise.set_error(Status::Error(400, "Top chat category must be non-empty"));
+  }
+  if (limit <= 0) {
+    return promise.set_error(Status::Error(400, "Limit must be positive"));
+  }
   if (!is_active_) {
-    promise.set_error(Status::Error(400, "Not supported without chat info database"));
-    return;
+    return promise.set_error(Status::Error(400, "Not supported without chat info database"));
   }
   if (!is_enabled_) {
-    promise.set_error(Status::Error(400, "Top chats computation is disabled"));
-    return;
+    return promise.set_error(Status::Error(400, "Top chats computation is disabled"));
   }
 
   GetTopDialogsQuery query;
   query.category = category;
-  query.limit = limit;
+  query.limit = static_cast<size_t>(limit);
   query.promise = std::move(promise);
   pending_get_top_dialogs_.push_back(std::move(query));
   loop();
