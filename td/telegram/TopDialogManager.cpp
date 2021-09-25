@@ -40,6 +40,39 @@
 
 namespace td {
 
+class GetTopPeersQuery final : public Td::ResultHandler {
+  Promise<telegram_api::object_ptr<telegram_api::contacts_TopPeers>> promise_;
+
+ public:
+  explicit GetTopPeersQuery(Promise<telegram_api::object_ptr<telegram_api::contacts_TopPeers>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(int64 hash) {
+    int32 flags =
+        telegram_api::contacts_getTopPeers::CORRESPONDENTS_MASK | telegram_api::contacts_getTopPeers::BOTS_PM_MASK |
+        telegram_api::contacts_getTopPeers::BOTS_INLINE_MASK | telegram_api::contacts_getTopPeers::GROUPS_MASK |
+        telegram_api::contacts_getTopPeers::CHANNELS_MASK | telegram_api::contacts_getTopPeers::PHONE_CALLS_MASK |
+        telegram_api::contacts_getTopPeers::FORWARD_USERS_MASK | telegram_api::contacts_getTopPeers::FORWARD_CHATS_MASK;
+    send_query(G()->net_query_creator().create(telegram_api::contacts_getTopPeers(
+        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+        false /*ignored*/, false /*ignored*/, false /*ignored*/, 0 /*offset*/, 100 /*limit*/, hash)));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::contacts_getTopPeers>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    promise_.set_value(result_ptr.move_as_ok());
+  }
+
+  void on_error(uint64 id, Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class ToggleTopPeersQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -375,57 +408,36 @@ void TopDialogManager::do_get_top_dialogs(GetTopDialogsQuery &&query) {
 }
 
 void TopDialogManager::do_get_top_peers() {
-  LOG(INFO) << "Send get top peers request";
-  using telegram_api::contacts_getTopPeers;
-
   std::vector<uint64> ids;
   for (auto &category : by_category_) {
     for (auto &top_dialog : category.dialogs) {
       auto dialog_id = top_dialog.dialog_id;
       switch (dialog_id.get_type()) {
-        case DialogType::Channel:
-          ids.push_back(dialog_id.get_channel_id().get());
-          break;
         case DialogType::User:
           ids.push_back(dialog_id.get_user_id().get());
           break;
         case DialogType::Chat:
           ids.push_back(dialog_id.get_chat_id().get());
           break;
+        case DialogType::Channel:
+          ids.push_back(dialog_id.get_channel_id().get());
+          break;
         default:
           break;
       }
     }
   }
-
-  int64 hash = get_vector_hash(ids);
-
-  int32 flags = contacts_getTopPeers::CORRESPONDENTS_MASK | contacts_getTopPeers::BOTS_PM_MASK |
-                contacts_getTopPeers::BOTS_INLINE_MASK | contacts_getTopPeers::GROUPS_MASK |
-                contacts_getTopPeers::CHANNELS_MASK | contacts_getTopPeers::PHONE_CALLS_MASK |
-                contacts_getTopPeers::FORWARD_USERS_MASK | contacts_getTopPeers::FORWARD_CHATS_MASK;
-
-  contacts_getTopPeers query{flags,
-                             true /*correspondents*/,
-                             true /*bot_pm*/,
-                             true /*bot_inline */,
-                             true /*phone_calls*/,
-                             true /*groups*/,
-                             true /*channels*/,
-                             true /*forward_users*/,
-                             true /*forward_chats*/,
-                             0 /*offset*/,
-                             100 /*limit*/,
-                             hash};
-  auto net_query = G()->net_query_creator().create(query);
-  G()->net_query_dispatcher().dispatch_with_callback(std::move(net_query), actor_shared(this));
+  auto promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this)](Result<telegram_api::object_ptr<telegram_api::contacts_TopPeers>> result) {
+        send_closure(actor_id, &TopDialogManager::on_get_top_peers, std::move(result));
+      });
+  td_->create_handler<GetTopPeersQuery>(std::move(promise))->send(get_vector_hash(ids));
 }
 
-void TopDialogManager::on_result(NetQueryPtr net_query) {
+void TopDialogManager::on_get_top_peers(Result<telegram_api::object_ptr<telegram_api::contacts_TopPeers>> result) {
   normalize_rating();  // once a day too
 
-  auto r_top_peers = fetch_result<telegram_api::contacts_getTopPeers>(std::move(net_query));
-  if (r_top_peers.is_error()) {
+  if (result.is_error()) {
     last_server_sync_ = Timestamp::in(SERVER_SYNC_RESEND_DELAY - SERVER_SYNC_DELAY);
     loop();
     return;
@@ -434,7 +446,7 @@ void TopDialogManager::on_result(NetQueryPtr net_query) {
   last_server_sync_ = Timestamp::now();
   server_sync_state_ = SyncState::Ok;
 
-  auto top_peers_parent = r_top_peers.move_as_ok();
+  auto top_peers_parent = result.move_as_ok();
   LOG(DEBUG) << "Receive contacts_getTopPeers result: " << to_string(top_peers_parent);
   switch (top_peers_parent->get_id()) {
     case telegram_api::contacts_topPeersNotModified::ID:

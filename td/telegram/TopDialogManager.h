@@ -7,7 +7,6 @@
 #pragma once
 
 #include "td/telegram/DialogId.h"
-#include "td/telegram/net/NetQuery.h"
 #include "td/telegram/TopDialogCategory.h"
 
 #include "td/actor/actor.h"
@@ -23,7 +22,7 @@ namespace td {
 
 class Td;
 
-class TopDialogManager final : public NetQueryCallback {
+class TopDialogManager final : public Actor {
  public:
   TopDialogManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
   }
@@ -111,7 +110,7 @@ class TopDialogManager final : public NetQueryCallback {
 
   void on_first_sync();
 
-  void on_result(NetQueryPtr net_query) final;
+  void on_get_top_peers(Result<telegram_api::object_ptr<telegram_api::contacts_TopPeers>> result);
 
   void try_start();
 
