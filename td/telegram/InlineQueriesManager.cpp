@@ -1742,7 +1742,7 @@ bool InlineQueriesManager::load_recently_used_bots(Promise<Unit> &promise) {
   auto bot_ids = full_split(saved_bot_ids, ',');
   string saved_bots = G()->td_db()->get_binlog_pmc()->get("recently_used_inline_bot_usernames");
   auto bot_usernames = full_split(saved_bots, ',');
-  if (bot_ids.empty() && bot_usernames.empty()) {
+  if (bot_ids.empty()) {
     recently_used_bots_loaded_ = 2;
     if (!recently_used_bot_user_ids_.empty()) {
       save_recently_used_bots();
@@ -1756,29 +1756,19 @@ bool InlineQueriesManager::load_recently_used_bots(Promise<Unit> &promise) {
     auto newly_used_bots = std::move(recently_used_bot_user_ids_);
     recently_used_bot_user_ids_.clear();
 
-    if (bot_ids.empty()) {
-      // legacy, can be removed in the future
-      for (auto it = bot_usernames.rbegin(); it != bot_usernames.rend(); ++it) {
-        auto dialog_id = td_->messages_manager_->resolve_dialog_username(*it);
-        if (dialog_id.get_type() == DialogType::User) {
-          update_bot_usage(dialog_id.get_user_id());
-        }
-      }
-    } else {
-      for (auto it = bot_ids.rbegin(); it != bot_ids.rend(); ++it) {
-        UserId user_id(to_integer<int64>(*it));
-        if (td_->contacts_manager_->have_user(user_id)) {
-          update_bot_usage(user_id);
-        } else {
-          LOG(ERROR) << "Can't find " << user_id;
-        }
+    for (auto it = bot_ids.rbegin(); it != bot_ids.rend(); ++it) {
+      UserId user_id(to_integer<int64>(*it));
+      if (td_->contacts_manager_->have_user(user_id)) {
+        update_bot_usage(user_id);
+      } else {
+        LOG(ERROR) << "Can't find " << user_id;
       }
     }
     for (auto it = newly_used_bots.rbegin(); it != newly_used_bots.rend(); ++it) {
       update_bot_usage(*it);
     }
     recently_used_bots_loaded_ = 2;
-    if (!newly_used_bots.empty() || (bot_ids.empty() && !bot_usernames.empty())) {
+    if (!newly_used_bots.empty()) {
       save_recently_used_bots();
     }
     return true;
@@ -1787,7 +1777,7 @@ bool InlineQueriesManager::load_recently_used_bots(Promise<Unit> &promise) {
   resolve_recent_inline_bots_multipromise_.add_promise(std::move(promise));
   if (recently_used_bots_loaded_ == 0) {
     resolve_recent_inline_bots_multipromise_.set_ignore_errors(true);
-    if (bot_ids.empty() || !G()->parameters().use_chat_info_db) {
+    if (!G()->parameters().use_chat_info_db) {
       for (auto &bot_username : bot_usernames) {
         td_->messages_manager_->search_public_dialog(bot_username, false,
                                                      resolve_recent_inline_bots_multipromise_.get_promise());
