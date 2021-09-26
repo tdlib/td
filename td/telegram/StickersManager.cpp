@@ -4583,7 +4583,7 @@ void StickersManager::invalidate_old_featured_sticker_sets() {
   auto promises = std::move(load_old_featured_sticker_sets_queries_);
   load_old_featured_sticker_sets_queries_.clear();
   for (auto &promise : promises) {
-    promise.set_error(Status::Error(400, "Trending sticker sets was updated"));
+    promise.set_error(Status::Error(400, "Trending sticker sets were updated"));
   }
 }
 

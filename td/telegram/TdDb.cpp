@@ -352,6 +352,9 @@ Status TdDb::init_sqlite(int32 scheduler_id, const TdParameters &parameters, DbK
   }
   if (user_version == 0) {
     binlog_pmc.erase("next_contacts_sync_date");
+    binlog_pmc.erase("saved_contact_count");
+    binlog_pmc.erase("old_featured_sticker_set_count");
+    binlog_pmc.erase("invalidate_old_featured_sticker_sets");
   }
   binlog_pmc.force_sync({});
 
