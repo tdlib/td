@@ -15333,7 +15333,7 @@ bool MessagesManager::have_dialog(DialogId dialog_id) const {
   return dialogs_.count(dialog_id) > 0;
 }
 
-void MessagesManager::load_dialogs(vector<DialogId> dialog_ids, Promise<Unit> &&promise) {
+void MessagesManager::load_dialogs(vector<DialogId> dialog_ids, Promise<vector<DialogId>> &&promise) {
   LOG(INFO) << "Load chats " << format::as_array(dialog_ids);
 
   Dependencies dependencies;
@@ -15344,13 +15344,14 @@ void MessagesManager::load_dialogs(vector<DialogId> dialog_ids, Promise<Unit> &&
   }
   resolve_dependencies_force(td_, dependencies, "load_dialogs");
 
+  td::remove_if(dialog_ids, [this](DialogId dialog_id) { return !have_dialog_info(dialog_id); });
+
   for (auto dialog_id : dialog_ids) {
-    if (dialog_id.is_valid()) {
-      force_create_dialog(dialog_id, "load_dialogs");
-    }
+    force_create_dialog(dialog_id, "load_dialogs");
   }
 
-  promise.set_value(Unit());
+  LOG(INFO) << "Loaded chats " << format::as_array(dialog_ids);
+  promise.set_value(std::move(dialog_ids));
 }
 
 bool MessagesManager::load_dialog(DialogId dialog_id, int left_tries, Promise<Unit> &&promise) {

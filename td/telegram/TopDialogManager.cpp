@@ -366,9 +366,12 @@ void TopDialogManager::do_get_top_dialogs(GetTopDialogsQuery &&query) {
     }
   }
 
-  auto promise =
-      PromiseCreator::lambda([actor_id = actor_id(this), query = std::move(query), dialog_ids](Result<Unit>) mutable {
-        send_closure(actor_id, &TopDialogManager::on_load_dialogs, std::move(query), std::move(dialog_ids));
+  auto promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), query = std::move(query)](Result<vector<DialogId>> r_dialog_ids) mutable {
+        if (r_dialog_ids.is_error()) {
+          return query.promise.set_error(r_dialog_ids.move_as_error());
+        }
+        send_closure(actor_id, &TopDialogManager::on_load_dialogs, std::move(query), r_dialog_ids.move_as_ok());
       });
   td_->messages_manager_->load_dialogs(std::move(dialog_ids), std::move(promise));
 }

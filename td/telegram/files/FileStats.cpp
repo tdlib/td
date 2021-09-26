@@ -10,6 +10,7 @@
 
 #include "td/telegram/files/FileLoaderUtils.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/common.h"
 #include "td/utils/format.h"
 #include "td/utils/misc.h"
@@ -105,12 +106,11 @@ void FileStats::apply_dialog_limit(int32 limit) {
                     [](const auto &x, const auto &y) { return x.first > y.first; });
   dialogs.resize(prefix);
 
-  std::unordered_set<DialogId, DialogIdHash> all_dialogs;
+  apply_dialog_ids(transform(dialogs, [](const auto &dialog) { return dialog.second; }));
+}
 
-  for (auto &dialog : dialogs) {
-    all_dialogs.insert(dialog.second);
-  }
-
+void FileStats::apply_dialog_ids(const vector<DialogId> &dialog_ids) {
+  std::unordered_set<DialogId, DialogIdHash> all_dialogs(dialog_ids.begin(), dialog_ids.end());
   StatByType other_stats;
   bool other_flag = false;
   for (auto it = stat_by_owner_dialog_id_.begin(); it != stat_by_owner_dialog_id_.end();) {
@@ -127,7 +127,7 @@ void FileStats::apply_dialog_limit(int32 limit) {
   }
 
   if (other_flag) {
-    DialogId other_dialog_id;
+    DialogId other_dialog_id;  // prevents MSVC warning C4709: comma operator within array index expression
     stat_by_owner_dialog_id_[other_dialog_id] = other_stats;
   }
 }

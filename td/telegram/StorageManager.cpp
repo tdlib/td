@@ -264,11 +264,13 @@ void StorageManager::send_stats(FileStats &&stats, int32 dialog_limit, std::vect
   stats.apply_dialog_limit(dialog_limit);
   auto dialog_ids = stats.get_dialog_ids();
 
-  auto promise = PromiseCreator::lambda([promises = std::move(promises), stats = std::move(stats)](Unit) mutable {
-    for (auto &promise : promises) {
-      promise.set_value(FileStats(stats));
-    }
-  });
+  auto promise = PromiseCreator::lambda(
+      [promises = std::move(promises), stats = std::move(stats)](vector<DialogId> dialog_ids) mutable {
+        stats.apply_dialog_ids(dialog_ids);
+        for (auto &promise : promises) {
+          promise.set_value(FileStats(stats));
+        }
+      });
 
   send_closure(G()->messages_manager(), &MessagesManager::load_dialogs, std::move(dialog_ids), std::move(promise));
 }

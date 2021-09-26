@@ -106,7 +106,10 @@ void RecentDialogList::load_dialogs(Promise<Unit> &&promise) {
   }
   if (!dialog_ids.empty()) {
     if (G()->parameters().use_message_db) {
-      td_->messages_manager_->load_dialogs(std::move(dialog_ids), mpas.get_promise());
+      td_->messages_manager_->load_dialogs(
+          std::move(dialog_ids),
+          PromiseCreator::lambda(
+              [promise = mpas.get_promise()](vector<DialogId> dialog_ids) mutable { promise.set_value(Unit()); }));
     } else {
       td_->messages_manager_->get_dialogs_from_list(
           DialogListId(FolderId::main()), 102,
@@ -135,6 +138,7 @@ void RecentDialogList::on_load_dialogs(vector<string> &&found_dialogs) {
       dialog_id = DialogId(to_integer<int64>(*it));
     }
     if (dialog_id.is_valid() && removed_dialog_ids_.count(dialog_id) == 0 &&
+        td_->messages_manager_->have_dialog_info(dialog_id) &&
         td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
       td_->messages_manager_->force_create_dialog(dialog_id, "recent dialog");
       do_add_dialog(dialog_id);

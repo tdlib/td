@@ -88,7 +88,6 @@ class FileStats {
   friend StringBuilder &operator<<(StringBuilder &sb, const FileStats &file_stats);
 
  public:
-  //FileStats() = default;
   FileStats(bool need_all_files, bool split_by_owner_dialog_id)
       : need_all_files_(need_all_files), split_by_owner_dialog_id_(split_by_owner_dialog_id) {
   }
@@ -98,6 +97,8 @@ class FileStats {
   void add(FullFileInfo &&info);
 
   void apply_dialog_limit(int32 limit);
+
+  void apply_dialog_ids(const vector<DialogId> &dialog_ids);
 
   tl_object_ptr<td_api::storageStatistics> get_storage_statistics_object() const;
 

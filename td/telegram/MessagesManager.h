@@ -514,7 +514,7 @@ class MessagesManager final : public Actor {
 
   bool load_dialog(DialogId dialog_id, int left_tries, Promise<Unit> &&promise);
 
-  void load_dialogs(vector<DialogId> dialog_ids, Promise<Unit> &&promise);
+  void load_dialogs(vector<DialogId> dialog_ids, Promise<vector<DialogId>> &&promise);
 
   void load_dialog_filter(DialogFilterId dialog_id, bool force, Promise<Unit> &&promise);
 
