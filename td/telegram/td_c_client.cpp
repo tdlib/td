@@ -13,35 +13,32 @@
 
 #include <cstring>
 
-void *TdCClientCreate() {
-  return new td::Client();
+static td::ClientManager *GetClientManager() {
+  return td::ClientManager::get_manager_singleton();
 }
 
-void TdCClientSend(void *instance, struct TdRequest request) {
-  auto client = static_cast<td::Client *>(instance);
-  td::Client::Request client_request;
-  client_request.id = request.id;
-  client_request.function = TdConvertToInternal(request.function);
+int TdCClientCreateId() {
+  return GetClientManager()->create_client_id();
+}
+
+void TdCClientSend(int client_id, struct TdRequest request) {
+  GetClientManager()->send(client_id, request.request_id, TdConvertToInternal(request.function));
   TdDestroyObjectFunction(request.function);
-  client->send(std::move(client_request));
 }
 
-TdResponse TdCClientReceive(void *instance, double timeout) {
-  auto client = static_cast<td::Client *>(instance);
-  auto response = client->receive(timeout);
+TdResponse TdCClientReceive(double timeout) {
+  auto response = GetClientManager()->receive(timeout);
   TdResponse c_response;
-  c_response.id = response.id;
+  c_response.client_id = response.client_id;
+  c_response.request_id = response.request_id;
   c_response.object = response.object == nullptr ? nullptr : TdConvertFromInternal(*response.object);
   return c_response;
 }
 
-void TdCClientDestroy(void *instance) {
-  auto client = static_cast<td::Client *>(instance);
-  delete client;
-}
-
-void TdCClientSetVerbosity(int new_verbosity_level) {
-  td::Log::set_verbosity_level(new_verbosity_level);
+TdObject *TdCClientExecute(TdFunction *function) {
+  auto result = td::ClientManager::execute(TdConvertToInternal(function));
+  TdDestroyObjectFunction(function);
+  return TdConvertFromInternal(*result);
 }
 
 TdVectorInt *TdCreateObjectVectorInt(int size, int *data) {

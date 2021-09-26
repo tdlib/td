@@ -18,7 +18,7 @@
 
 namespace td {
 
-// TODO can be made private in TDLib 2.0
+// TODO can be removed in TDLib 2.0
 class ClientJson final {
  public:
   void send(Slice request);

@@ -25,7 +25,7 @@ class Td;
 
 /**
  * This is a low-level Actor interface for interaction with TDLib. The interface is a lot more flexible than
- * the Client interface, however, for most usages the Client interface should be sufficient.
+ * the ClientManager interface, however, for most usages the ClientManager interface should be sufficient.
  */
 class ClientActor final : public Actor {
  public:

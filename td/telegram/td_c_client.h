@@ -18,21 +18,23 @@ struct TdVectorObject *TdCreateObjectVectorObject(int size, struct TdObject **da
 struct TdBytes TdCreateObjectBytes(unsigned char *data, int len);
 
 struct TdRequest {
-  long long id;
+  long long request_id;
   TdFunction *function;
 };
 
 struct TdResponse {
-  long long id;
+  long long request_id;
+  int client_id;
   TdObject *object;
 };
 
-void *TdCClientCreate();
-void TdCClientSend(void *instance, struct TdRequest cmd);
-struct TdResponse TdCClientSendCommandSync(void *instance, double timeout);
-void TdCClientDestroy(void *instance);
+int TdCClientCreateId();
 
-void TdCClientSetVerbosity(int new_verbosity_level);
+void TdCClientSend(int client_id, struct TdRequest request);
+
+TdResponse TdCClientReceive(double timeout);
+
+TdObject *TdCClientExecute(TdFunction *function);
 
 #ifdef __cplusplus
 }
