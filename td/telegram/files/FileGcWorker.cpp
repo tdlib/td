@@ -82,9 +82,8 @@ void FileGcWorker::run_gc(const FileGcParameters &parameters, std::vector<FullFi
     total_size += info.size;
   }
 
-  FileStats new_stats;
-  FileStats removed_stats;
-  removed_stats.split_by_owner_dialog_id = new_stats.split_by_owner_dialog_id = parameters.dialog_limit != 0;
+  FileStats new_stats(false, parameters.dialog_limit != 0);
+  FileStats removed_stats(false, parameters.dialog_limit != 0);
 
   auto do_remove_file = [&removed_stats](const FullFileInfo &info) {
     removed_stats.add_copy(info);

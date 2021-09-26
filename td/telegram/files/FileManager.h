@@ -17,7 +17,6 @@
 #include "td/telegram/files/FileLoadManager.h"
 #include "td/telegram/files/FileLocation.h"
 #include "td/telegram/files/FileSourceId.h"
-#include "td/telegram/files/FileStats.h"
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/Location.h"
 #include "td/telegram/PhotoSizeSource.h"
