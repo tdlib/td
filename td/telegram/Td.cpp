@@ -2713,38 +2713,6 @@ class GetInlineQueryResultsRequest final : public RequestOnceActor {
   }
 };
 
-class GetCallbackQueryAnswerRequest final : public RequestOnceActor {
-  FullMessageId full_message_id_;
-  tl_object_ptr<td_api::CallbackQueryPayload> payload_;
-
-  int64 result_id_;
-
-  void do_run(Promise<Unit> &&promise) final {
-    result_id_ =
-        td->callback_queries_manager_->send_callback_query(full_message_id_, std::move(payload_), std::move(promise));
-  }
-
-  void do_send_result() final {
-    send_result(td->callback_queries_manager_->get_callback_query_answer_object(result_id_));
-  }
-
-  void do_send_error(Status &&status) final {
-    if (status.code() == 502 && td->messages_manager_->is_message_edited_recently(full_message_id_, 31)) {
-      return send_result(make_tl_object<td_api::callbackQueryAnswer>());
-    }
-    send_error(std::move(status));
-  }
-
- public:
-  GetCallbackQueryAnswerRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, int64 message_id,
-                                tl_object_ptr<td_api::CallbackQueryPayload> payload)
-      : RequestOnceActor(std::move(td), request_id)
-      , full_message_id_(DialogId(dialog_id), MessageId(message_id))
-      , payload_(std::move(payload))
-      , result_id_(0) {
-  }
-};
-
 class GetSupportUserRequest final : public RequestActor<> {
   UserId user_id_;
 
@@ -7698,7 +7666,9 @@ void Td::on_request(uint64 id, td_api::answerInlineQuery &request) {
 
 void Td::on_request(uint64 id, td_api::getCallbackQueryAnswer &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST(GetCallbackQueryAnswerRequest, request.chat_id_, request.message_id_, std::move(request.payload_));
+  CREATE_REQUEST_PROMISE();
+  callback_queries_manager_->send_callback_query({DialogId(request.chat_id_), MessageId(request.message_id_)},
+                                                 std::move(request.payload_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::answerCallbackQuery &request) {
