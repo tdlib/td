@@ -690,6 +690,9 @@ Result<InputInvoice> process_input_message_invoice(
   CHECK(input_message_content != nullptr);
   CHECK(input_message_content->get_id() == td_api::inputMessageInvoice::ID);
   auto input_invoice = move_tl_object_as<td_api::inputMessageInvoice>(input_message_content);
+  if (input_invoice->invoice_ == nullptr) {
+    return Status::Error(400, "Invoice must be non-empty");
+  }
 
   if (!clean_input_string(input_invoice->title_)) {
     return Status::Error(400, "Invoice title must be encoded in UTF-8");

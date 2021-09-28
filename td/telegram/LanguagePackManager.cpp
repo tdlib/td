@@ -1552,7 +1552,7 @@ void LanguagePackManager::add_custom_server_language(string language_code, Promi
 Result<tl_object_ptr<telegram_api::LangPackString>> LanguagePackManager::convert_to_telegram_api(
     tl_object_ptr<td_api::languagePackString> &&str) {
   if (str == nullptr) {
-    return Status::Error(400, "Language pack strings must not be null");
+    return Status::Error(400, "Language pack strings must be non-empty");
   }
 
   string key = std::move(str->key_);

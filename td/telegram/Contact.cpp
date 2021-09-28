@@ -86,6 +86,9 @@ Result<Contact> process_input_message_contact(tl_object_ptr<td_api::InputMessage
   CHECK(input_message_content != nullptr);
   CHECK(input_message_content->get_id() == td_api::inputMessageContact::ID);
   auto contact = std::move(static_cast<td_api::inputMessageContact *>(input_message_content.get())->contact_);
+  if (contact == nullptr) {
+    return Status::Error(400, "Contact must be non-empty");
+  }
 
   if (!clean_input_string(contact->phone_number_)) {
     return Status::Error(400, "Phone number must be encoded in UTF-8");

@@ -60,7 +60,7 @@ DialogAction::DialogAction(Type type, int32 progress) {
   init(type, progress);
 }
 
-DialogAction::DialogAction(tl_object_ptr<td_api::ChatAction> &&action) {
+DialogAction::DialogAction(td_api::object_ptr<td_api::ChatAction> &&action) {
   if (action == nullptr) {
     return;
   }
@@ -129,7 +129,7 @@ DialogAction::DialogAction(tl_object_ptr<td_api::ChatAction> &&action) {
   }
 }
 
-DialogAction::DialogAction(tl_object_ptr<telegram_api::SendMessageAction> &&action) {
+DialogAction::DialogAction(telegram_api::object_ptr<telegram_api::SendMessageAction> &&action) {
   switch (action->get_id()) {
     case telegram_api::sendMessageCancelAction::ID:
       init(Type::Cancel);

@@ -12,11 +12,11 @@ namespace td {
 
 Result<ReportReason> ReportReason::get_report_reason(td_api::object_ptr<td_api::ChatReportReason> reason,
                                                      string &&message) {
+  if (reason == nullptr) {
+    return Status::Error(400, "Chat report reason must be non-empty");
+  }
   if (!clean_input_string(message)) {
     return Status::Error(400, "Report text must be encoded in UTF-8");
-  }
-  if (reason == nullptr) {
-    return Status::Error(400, "Reason must be non-empty");
   }
 
   auto type = [&] {

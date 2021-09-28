@@ -143,11 +143,7 @@ void ConnectionCreator::set_net_stats_callback(std::shared_ptr<NetStatsCallback>
 void ConnectionCreator::add_proxy(int32 old_proxy_id, string server, int32 port, bool enable,
                                   td_api::object_ptr<td_api::ProxyType> proxy_type,
                                   Promise<td_api::object_ptr<td_api::proxy>> promise) {
-  auto r_proxy = Proxy::create_proxy(std::move(server), port, proxy_type.get());
-  if (r_proxy.is_error()) {
-    return promise.set_error(r_proxy.move_as_error());
-  }
-  auto new_proxy = r_proxy.move_as_ok();
+  TRY_RESULT_PROMISE(promise, new_proxy, Proxy::create_proxy(std::move(server), port, proxy_type.get()));
   if (old_proxy_id >= 0) {
     if (proxies_.count(old_proxy_id) == 0) {
       return promise.set_error(Status::Error(400, "Proxy not found"));

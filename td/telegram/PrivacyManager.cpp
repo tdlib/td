@@ -29,7 +29,7 @@ namespace td {
 
 Result<PrivacyManager::UserPrivacySetting> PrivacyManager::UserPrivacySetting::get_user_privacy_setting(
     tl_object_ptr<td_api::UserPrivacySetting> key) {
-  if (!key) {
+  if (key == nullptr) {
     return Status::Error(400, "UserPrivacySetting must be non-empty");
   }
   return UserPrivacySetting(*key);
@@ -378,12 +378,12 @@ Result<PrivacyManager::UserPrivacySettingRules> PrivacyManager::UserPrivacySetti
 
 Result<PrivacyManager::UserPrivacySettingRules> PrivacyManager::UserPrivacySettingRules::get_user_privacy_setting_rules(
     tl_object_ptr<td_api::userPrivacySettingRules> rules) {
-  if (!rules) {
+  if (rules == nullptr) {
     return Status::Error(400, "UserPrivacySettingRules must be non-empty");
   }
   UserPrivacySettingRules result;
   for (auto &rule : rules->rules_) {
-    if (!rule) {
+    if (rule == nullptr) {
       return Status::Error(400, "UserPrivacySettingRule must be non-empty");
     }
     result.rules_.emplace_back(*rule);
@@ -448,17 +448,8 @@ void PrivacyManager::get_privacy(tl_object_ptr<td_api::UserPrivacySetting> key,
 
 void PrivacyManager::set_privacy(tl_object_ptr<td_api::UserPrivacySetting> key,
                                  tl_object_ptr<td_api::userPrivacySettingRules> rules, Promise<Unit> promise) {
-  auto r_user_privacy_setting = UserPrivacySetting::get_user_privacy_setting(std::move(key));
-  if (r_user_privacy_setting.is_error()) {
-    return promise.set_error(r_user_privacy_setting.move_as_error());
-  }
-  auto user_privacy_setting = r_user_privacy_setting.move_as_ok();
-
-  auto r_privacy_rules = UserPrivacySettingRules::get_user_privacy_setting_rules(std::move(rules));
-  if (r_privacy_rules.is_error()) {
-    return promise.set_error(r_privacy_rules.move_as_error());
-  }
-  auto privacy_rules = r_privacy_rules.move_as_ok();
+  TRY_RESULT_PROMISE(promise, user_privacy_setting, UserPrivacySetting::get_user_privacy_setting(std::move(key)));
+  TRY_RESULT_PROMISE(promise, privacy_rules, UserPrivacySettingRules::get_user_privacy_setting_rules(std::move(rules)));
 
   auto &info = get_info(user_privacy_setting);
   if (info.has_set_query) {

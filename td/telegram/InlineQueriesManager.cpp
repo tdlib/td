@@ -473,6 +473,9 @@ void InlineQueriesManager::answer_inline_query(int64 inline_query_id, bool is_pe
       }
       case td_api::inputInlineQueryResultContact::ID: {
         auto contact = move_tl_object_as<td_api::inputInlineQueryResultContact>(input_result);
+        if (contact->contact_ == nullptr) {
+          return promise.set_error(Status::Error(400, "Contact must be non-empty"));
+        }
         type = "contact";
         id = std::move(contact->id_);
         string phone_number = trim(contact->contact_->phone_number_);
@@ -544,6 +547,9 @@ void InlineQueriesManager::answer_inline_query(int64 inline_query_id, bool is_pe
       }
       case td_api::inputInlineQueryResultLocation::ID: {
         auto location = move_tl_object_as<td_api::inputInlineQueryResultLocation>(input_result);
+        if (location->location_ == nullptr) {
+          return promise.set_error(Status::Error(400, "Location must be non-empty"));
+        }
         type = "geo";
         id = std::move(location->id_);
         title = std::move(location->title_);
@@ -599,6 +605,9 @@ void InlineQueriesManager::answer_inline_query(int64 inline_query_id, bool is_pe
       }
       case td_api::inputInlineQueryResultVenue::ID: {
         auto venue = move_tl_object_as<td_api::inputInlineQueryResultVenue>(input_result);
+        if (venue->venue_ == nullptr) {
+          return promise.set_error(Status::Error(400, "Venue must be non-empty"));
+        }
         type = "venue";
         id = std::move(venue->id_);
         title = std::move(venue->venue_->title_);

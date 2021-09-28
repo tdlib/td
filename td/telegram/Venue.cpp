@@ -95,9 +95,8 @@ Result<Venue> process_input_message_venue(tl_object_ptr<td_api::InputMessageCont
   CHECK(input_message_content != nullptr);
   CHECK(input_message_content->get_id() == td_api::inputMessageVenue::ID);
   auto venue = std::move(static_cast<td_api::inputMessageVenue *>(input_message_content.get())->venue_);
-
   if (venue == nullptr) {
-    return Status::Error(400, "Venue can't be empty");
+    return Status::Error(400, "Venue must be non-empty");
   }
 
   if (!clean_input_string(venue->title_)) {

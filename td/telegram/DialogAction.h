@@ -56,9 +56,9 @@ class DialogAction {
  public:
   DialogAction() = default;
 
-  explicit DialogAction(tl_object_ptr<td_api::ChatAction> &&action);
+  explicit DialogAction(td_api::object_ptr<td_api::ChatAction> &&action);
 
-  explicit DialogAction(tl_object_ptr<telegram_api::SendMessageAction> &&action);
+  explicit DialogAction(telegram_api::object_ptr<telegram_api::SendMessageAction> &&action);
 
   tl_object_ptr<telegram_api::SendMessageAction> get_input_send_message_action() const;
 

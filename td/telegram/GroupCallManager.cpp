@@ -1653,6 +1653,9 @@ GroupCallParticipant *GroupCallManager::get_group_call_participant(InputGroupCal
 
 GroupCallParticipant *GroupCallManager::get_group_call_participant(GroupCallParticipants *group_call_participants,
                                                                    DialogId dialog_id) const {
+  if (!dialog_id.is_valid()) {
+    return nullptr;
+  }
   if (dialog_id == DialogId(td_->contacts_manager_->get_my_id())) {
     for (auto &group_call_participant : group_call_participants->participants) {
       if (group_call_participant.is_self) {
