@@ -4184,12 +4184,6 @@ class CliClient final : public Actor {
       get_args(args, chat_id, file_id, reason, text);
       send_request(td_api::make_object<td_api::reportChatPhoto>(as_chat_id(chat_id), as_file_id(file_id),
                                                                 get_chat_report_reason(reason), text));
-    } else if (op == "gcsu") {
-      string chat_id;
-      string parameters;
-      bool is_dark;
-      get_args(args, chat_id, parameters, is_dark);
-      send_request(td_api::make_object<td_api::getChatStatisticsUrl>(as_chat_id(chat_id), parameters, is_dark));
     } else if (op == "gcst") {
       string chat_id;
       bool is_dark;

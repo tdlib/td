@@ -4484,42 +4484,6 @@ class EditPeerFoldersQuery final : public Td::ResultHandler {
   }
 };
 
-class GetStatsUrlQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::httpUrl>> promise_;
-  DialogId dialog_id_;
-
- public:
-  explicit GetStatsUrlQuery(Promise<td_api::object_ptr<td_api::httpUrl>> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(DialogId dialog_id, const string &parameters, bool is_dark) {
-    dialog_id_ = dialog_id;
-    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
-    CHECK(input_peer != nullptr);
-    int32 flags = 0;
-    if (is_dark) {
-      flags |= telegram_api::messages_getStatsURL::DARK_MASK;
-    }
-    send_query(G()->net_query_creator().create(
-        telegram_api::messages_getStatsURL(flags, false /*ignored*/, std::move(input_peer), parameters)));
-  }
-
-  void on_result(uint64 id, BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::messages_getStatsURL>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
-    }
-
-    auto result = result_ptr.move_as_ok();
-    promise_.set_value(td_api::make_object<td_api::httpUrl>(result->url_));
-  }
-
-  void on_error(uint64 id, Status status) final {
-    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetStatsUrlQuery");
-    promise_.set_error(std::move(status));
-  }
-};
-
 class GetChannelDifferenceQuery final : public Td::ResultHandler {
   DialogId dialog_id_;
   int32 pts_;
@@ -8463,23 +8427,6 @@ void MessagesManager::fix_dialog_action_bar(Dialog *d) {
   if (!d->can_report_spam) {
     d->can_unarchive = false;
   }
-}
-
-void MessagesManager::get_dialog_statistics_url(DialogId dialog_id, const string &parameters, bool is_dark,
-                                                Promise<td_api::object_ptr<td_api::httpUrl>> &&promise) {
-  Dialog *d = get_dialog_force(dialog_id, "get_dialog_statistics_url");
-  if (d == nullptr) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
-  }
-
-  if (!have_input_peer(dialog_id, AccessRights::Read)) {
-    return promise.set_error(Status::Error(400, "Can't access the chat"));
-  }
-  if (dialog_id.get_type() == DialogType::SecretChat) {
-    return promise.set_error(Status::Error(500, "There are no statistics for secret chats"));
-  }
-
-  td_->create_handler<GetStatsUrlQuery>(std::move(promise))->send(dialog_id, parameters, is_dark);
 }
 
 Result<string> MessagesManager::get_login_button_url(FullMessageId full_message_id, int64 button_id) {

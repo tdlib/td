@@ -5428,9 +5428,6 @@ reportChat chat_id:int53 message_ids:vector<int53> reason:ChatReportReason text:
 //@chat_id Chat identifier @file_id Identifier of the photo to report. Only full photos from chatPhoto can be reported @reason The reason for reporting the chat photo @text Additional report details; 0-1024 characters
 reportChatPhoto chat_id:int53 file_id:int32 reason:ChatReportReason text:string = Ok;
 
-//@description Returns an HTTP URL with the chat statistics. Currently this method of getting the statistics are disabled and can be deleted in the future @chat_id Chat identifier @parameters Parameters for the request @is_dark Pass true if a URL with the dark theme must be returned
-getChatStatisticsUrl chat_id:int53 parameters:string is_dark:Bool = HttpUrl;
-
 //@description Returns detailed statistics about a chat. Currently this method can be used only for supergroups and channels. Can be used only if supergroupFullInfo.can_get_statistics == true @chat_id Chat identifier @is_dark Pass true if a dark theme is used by the application
 getChatStatistics chat_id:int53 is_dark:Bool = ChatStatistics;
 

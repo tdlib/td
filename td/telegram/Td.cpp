@@ -7090,14 +7090,6 @@ void Td::on_request(uint64 id, td_api::reportChatPhoto &request) {
                                          r_report_reason.move_as_ok(), std::move(promise));
 }
 
-void Td::on_request(uint64 id, td_api::getChatStatisticsUrl &request) {
-  CHECK_IS_USER();
-  CLEAN_INPUT_STRING(request.parameters_);
-  CREATE_REQUEST_PROMISE();
-  messages_manager_->get_dialog_statistics_url(DialogId(request.chat_id_), request.parameters_, request.is_dark_,
-                                               std::move(promise));
-}
-
 void Td::on_request(uint64 id, const td_api::getChatStatistics &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
