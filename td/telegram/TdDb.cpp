@@ -54,6 +54,7 @@ Result<TdDb::EncryptionInfo> check_encryption(string path) {
   Binlog binlog;
   auto status = binlog.init(path, Binlog::Callback());
   if (status.is_error() && status.code() != Binlog::Error::WrongPassword) {
+    LOG(WARNING) << "Failed to check binlog: " << status;
     return Status::Error(400, status.message());
   }
   TdDb::EncryptionInfo info;
