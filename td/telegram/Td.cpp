@@ -3881,6 +3881,7 @@ Status Td::init(DbKey key) {
   TdDb::Events events;
   auto r_td_db = TdDb::open(min(current_scheduler_id + 1, scheduler_count - 1), parameters_, std::move(key), events);
   if (r_td_db.is_error()) {
+    LOG(WARNING) << "Failed to open database: " << r_td_db.error();
     return Status::Error(400, r_td_db.error().message());
   }
   LOG(INFO) << "Successfully inited database in " << tag("database_directory", parameters_.database_directory)
