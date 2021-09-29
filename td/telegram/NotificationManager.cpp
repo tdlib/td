@@ -643,7 +643,7 @@ void NotificationManager::add_notifications_to_group_begin(NotificationGroups::i
       final_group_key.last_notification_date = notification.date;
     }
   }
-  CHECK(final_group_key.last_notification_date != 0);
+  LOG_CHECK(final_group_key.last_notification_date != 0) << final_group_key << ' ' << *group_it << ' ' << notifications;
 
   bool is_position_changed = final_group_key.last_notification_date != group_key.last_notification_date;
 
