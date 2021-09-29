@@ -6445,15 +6445,15 @@ void Td::on_request(uint64 id, const td_api::clearAllDraftMessages &request) {
 void Td::on_request(uint64 id, const td_api::downloadFile &request) {
   auto priority = request.priority_;
   if (!(1 <= priority && priority <= 32)) {
-    return send_error_raw(id, 5, "Download priority must be in [1;32] range");
+    return send_error_raw(id, 400, "Download priority must be in [1;32] range");
   }
   auto offset = request.offset_;
   if (offset < 0) {
-    return send_error_raw(id, 5, "Download offset must be non-negative");
+    return send_error_raw(id, 400, "Download offset must be non-negative");
   }
   auto limit = request.limit_;
   if (limit < 0) {
-    return send_error_raw(id, 5, "Download limit must be non-negative");
+    return send_error_raw(id, 400, "Download limit must be non-negative");
   }
 
   FileId file_id(request.file_id_, 0);
@@ -6516,7 +6516,7 @@ void Td::on_file_download_finished(FileId file_id) {
 
 void Td::on_request(uint64 id, const td_api::getFileDownloadedPrefixSize &request) {
   if (request.offset_ < 0) {
-    return send_error_raw(id, 5, "Parameter offset must be non-negative");
+    return send_error_raw(id, 400, "Parameter offset must be non-negative");
   }
   auto file_view = file_manager_->get_file_view(FileId(request.file_id_, 0));
   if (file_view.empty()) {
@@ -6543,7 +6543,7 @@ void Td::on_request(uint64 id, const td_api::getSuggestedFileName &request) {
 void Td::on_request(uint64 id, td_api::uploadFile &request) {
   auto priority = request.priority_;
   if (!(1 <= priority && priority <= 32)) {
-    return send_error_raw(id, 5, "Upload priority must be in [1;32] range");
+    return send_error_raw(id, 400, "Upload priority must be in [1;32] range");
   }
 
   auto file_type = request.file_type_ == nullptr ? FileType::Temp : get_file_type(*request.file_type_);
@@ -6646,7 +6646,7 @@ void Td::on_request(uint64 id, const td_api::getBlockedMessageSenders &request) 
 void Td::on_request(uint64 id, td_api::addContact &request) {
   CHECK_IS_USER();
   if (request.contact_ == nullptr) {
-    return send_error_raw(id, 5, "Contact must be non-empty");
+    return send_error_raw(id, 400, "Contact must be non-empty");
   }
   CLEAN_INPUT_STRING(request.contact_->phone_number_);
   CLEAN_INPUT_STRING(request.contact_->first_name_);
@@ -6659,7 +6659,7 @@ void Td::on_request(uint64 id, td_api::importContacts &request) {
   CHECK_IS_USER();
   for (auto &contact : request.contacts_) {
     if (contact == nullptr) {
-      return send_error_raw(id, 5, "Contact must be non-empty");
+      return send_error_raw(id, 400, "Contact must be non-empty");
     }
     CLEAN_INPUT_STRING(contact->phone_number_);
     CLEAN_INPUT_STRING(contact->first_name_);
@@ -6693,7 +6693,7 @@ void Td::on_request(uint64 id, td_api::changeImportedContacts &request) {
   CHECK_IS_USER();
   for (auto &contact : request.contacts_) {
     if (contact == nullptr) {
-      return send_error_raw(id, 5, "Contact must be non-empty");
+      return send_error_raw(id, 400, "Contact must be non-empty");
     }
     CLEAN_INPUT_STRING(contact->phone_number_);
     CLEAN_INPUT_STRING(contact->first_name_);
@@ -7306,7 +7306,7 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
     }
     if (value_constructor_id != td_api::optionValueInteger::ID &&
         value_constructor_id != td_api::optionValueEmpty::ID) {
-      send_error_raw(id, 3, PSLICE() << "Option \"" << name << "\" must have integer value");
+      send_error_raw(id, 400, PSLICE() << "Option \"" << name << "\" must have integer value");
       return true;
     }
     if (value_constructor_id == td_api::optionValueEmpty::ID) {
@@ -7314,7 +7314,7 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
     } else {
       int64 value = static_cast<td_api::optionValueInteger *>(request.value_.get())->value_;
       if (value < min || value > max) {
-        send_error_raw(id, 3,
+        send_error_raw(id, 400,
                        PSLICE() << "Option's \"" << name << "\" value " << value << " is outside of a valid range ["
                                 << min << ", " << max << "]");
         return true;
@@ -7331,7 +7331,7 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
     }
     if (value_constructor_id != td_api::optionValueBoolean::ID &&
         value_constructor_id != td_api::optionValueEmpty::ID) {
-      send_error_raw(id, 3, PSLICE() << "Option \"" << name << "\" must have boolean value");
+      send_error_raw(id, 400, PSLICE() << "Option \"" << name << "\" must have boolean value");
       return true;
     }
     if (value_constructor_id == td_api::optionValueEmpty::ID) {
@@ -7349,7 +7349,7 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
       return false;
     }
     if (value_constructor_id != td_api::optionValueString::ID && value_constructor_id != td_api::optionValueEmpty::ID) {
-      send_error_raw(id, 3, PSLICE() << "Option \"" << name << "\" must have string value");
+      send_error_raw(id, 400, PSLICE() << "Option \"" << name << "\" must have string value");
       return true;
     }
     if (value_constructor_id == td_api::optionValueEmpty::ID) {
@@ -7362,7 +7362,7 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
         if (check_value(value)) {
           G()->shared_config().set_option_string(name, value);
         } else {
-          send_error_raw(id, 3, PSLICE() << "Option \"" << name << "\" can't have specified value");
+          send_error_raw(id, 400, PSLICE() << "Option \"" << name << "\" can't have specified value");
           return true;
         }
       }
@@ -7380,7 +7380,7 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
       if (!is_bot && request.name_ == "archive_and_mute_new_chats_from_unknown_users") {
         if (value_constructor_id != td_api::optionValueBoolean::ID &&
             value_constructor_id != td_api::optionValueEmpty::ID) {
-          return send_error_raw(id, 3,
+          return send_error_raw(id, 400,
                                 "Option \"archive_and_mute_new_chats_from_unknown_users\" must have boolean value");
         }
 
@@ -7444,12 +7444,13 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
       }
       if (!is_bot && request.name_ == "ignore_sensitive_content_restrictions") {
         if (!G()->shared_config().get_option_boolean("can_ignore_sensitive_content_restrictions")) {
-          return send_error_raw(id, 3, "Option \"ignore_sensitive_content_restrictions\" can't be changed by the user");
+          return send_error_raw(id, 400,
+                                "Option \"ignore_sensitive_content_restrictions\" can't be changed by the user");
         }
 
         if (value_constructor_id != td_api::optionValueBoolean::ID &&
             value_constructor_id != td_api::optionValueEmpty::ID) {
-          return send_error_raw(id, 3, "Option \"ignore_sensitive_content_restrictions\" must have boolean value");
+          return send_error_raw(id, 400, "Option \"ignore_sensitive_content_restrictions\" must have boolean value");
         }
 
         auto ignore_sensitive_content_restrictions =
@@ -7497,7 +7498,7 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
       if (request.name_ == "online") {
         if (value_constructor_id != td_api::optionValueBoolean::ID &&
             value_constructor_id != td_api::optionValueEmpty::ID) {
-          return send_error_raw(id, 3, "Option \"online\" must have boolean value");
+          return send_error_raw(id, 400, "Option \"online\" must have boolean value");
         }
         bool is_online = value_constructor_id == td_api::optionValueEmpty::ID ||
                          static_cast<const td_api::optionValueBoolean *>(request.value_.get())->value_;
@@ -7553,7 +7554,7 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
     case 'X':
     case 'x': {
       if (request.name_.size() > 255) {
-        return send_error_raw(id, 3, "Option name is too long");
+        return send_error_raw(id, 400, "Option name is too long");
       }
       switch (value_constructor_id) {
         case td_api::optionValueBoolean::ID:
@@ -7589,7 +7590,7 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
       break;
   }
 
-  return send_error_raw(id, 3, "Option can't be set");
+  return send_error_raw(id, 400, "Option can't be set");
 }
 
 void Td::on_request(uint64 id, td_api::setPollAnswer &request) {
