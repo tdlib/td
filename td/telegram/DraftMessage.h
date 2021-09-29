@@ -12,6 +12,7 @@
 #include "td/telegram/telegram_api.h"
 
 #include "td/utils/common.h"
+#include "td/utils/Status.h"
 
 namespace td {
 
@@ -27,6 +28,9 @@ class DraftMessage {
 td_api::object_ptr<td_api::draftMessage> get_draft_message_object(const unique_ptr<DraftMessage> &draft_message);
 
 unique_ptr<DraftMessage> get_draft_message(ContactsManager *contacts_manager,
-                                           tl_object_ptr<telegram_api::DraftMessage> &&draft_message_ptr);
+                                           telegram_api::object_ptr<telegram_api::DraftMessage> &&draft_message_ptr);
+
+Result<unique_ptr<DraftMessage>> get_draft_message(ContactsManager *contacts_manager, DialogId dialog_id,
+                                                   td_api::object_ptr<td_api::draftMessage> &&draft_message);
 
 }  // namespace td

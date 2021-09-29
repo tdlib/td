@@ -18559,23 +18559,10 @@ Status MessagesManager::set_dialog_draft_message(DialogId dialog_id, MessageId t
   }
   TRY_STATUS(can_send_message(dialog_id));
 
-  unique_ptr<DraftMessage> new_draft_message;
-  if (draft_message != nullptr) {
-    new_draft_message = make_unique<DraftMessage>();
-    new_draft_message->date = G()->unix_time();
+  TRY_RESULT(new_draft_message, get_draft_message(td_->contacts_manager_.get(), dialog_id, std::move(draft_message)));
+  if (new_draft_message != nullptr) {
     new_draft_message->reply_to_message_id =
-        get_reply_to_message_id(d, top_thread_message_id, MessageId(draft_message->reply_to_message_id_), true);
-
-    auto input_message_content = std::move(draft_message->input_message_text_);
-    if (input_message_content != nullptr) {
-      int32 draft_message_content_type = input_message_content->get_id();
-      if (draft_message_content_type != td_api::inputMessageText::ID) {
-        return Status::Error(400, "Input message content type must be InputMessageText");
-      }
-      TRY_RESULT(message_content, process_input_message_text(td_->contacts_manager_.get(), dialog_id,
-                                                             std::move(input_message_content), false, true));
-      new_draft_message->input_message_text = std::move(message_content);
-    }
+        get_reply_to_message_id(d, top_thread_message_id, new_draft_message->reply_to_message_id, true);
 
     if (!new_draft_message->reply_to_message_id.is_valid() && new_draft_message->input_message_text.text.text.empty()) {
       new_draft_message = nullptr;
