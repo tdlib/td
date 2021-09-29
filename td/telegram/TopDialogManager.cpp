@@ -192,6 +192,7 @@ void TopDialogManager::on_toggle_top_peers(bool is_enabled, Result<Unit> &&resul
     // let's resend the query forever
     send_toggle_top_peers(is_enabled);
   }
+  loop();
 }
 
 void TopDialogManager::on_dialog_used(TopDialogCategory category, DialogId dialog_id, int32 date) {
