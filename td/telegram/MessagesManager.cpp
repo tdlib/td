@@ -16257,6 +16257,13 @@ vector<DialogId> MessagesManager::search_public_dialogs(const string &query, Pro
 
         auto dialog_id = it->second.dialog_id;
         force_create_dialog(dialog_id, "public dialogs search");
+
+        auto d = get_dialog(dialog_id);
+        if (d == nullptr || d->order != DEFAULT_ORDER ||
+            (dialog_id.get_type() == DialogType::User && td_->contacts_manager_->is_user_contact(dialog_id.get_user_id()))) {
+          continue;
+        }
+
         promise.set_value(Unit());
         return {dialog_id};
       }
