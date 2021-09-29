@@ -59,13 +59,25 @@
             margin-bottom: 20px;
         }
 
-        pre {
+        #buildCommands {
             font-family: Consolas, monospace;
             margin-left: 40px;
-            overflow-x: scroll;
             background: var(--color-code-block);
             padding: 5px;
             margin-bottom: 0;
+            display: block;
+        }
+        #buildCommands ul {
+          list-style: none;
+        }
+        #buildCommands ul li::before {
+          content: "$"; 
+          color: var(--color-copy-warning);
+          font-weight: bold;
+          display: inline-block;
+          width: 1em;
+          margin-left: -1em;
+            opacity: .4;
         }
 
         a {
@@ -318,7 +330,7 @@
   <div id="buildCommandsDiv" class="hide">
     <p id="buildCommandsHeader">Here is complete instruction for TDLib binaries building:</p>
     <p id="buildPre">Hidden text</p>
-    <pre id="buildCommands">Empty commands</pre>
+    <code id="buildCommands">Empty commands</code>
     <button id="copyBuildCommandsButton" onclick="copyBuildInstructions()">
         <span id="copyBuildCommandsText">Copy</span>
         <span class="notice">Notice: Not all build instructions can be just copied and pasted</span>
@@ -1084,7 +1096,7 @@ function onOptionsChanged() {
     }
     commands.push((use_powershell ? 'dir ' : 'ls -l ') + install_dir);
   }
-  document.getElementById('buildCommands').innerText = commands.join('\n');
+  document.getElementById('buildCommands').innerHTML = '<ul><li>' + commands.join('</li><li>') + '</li></ul>'
 }
 
 function copyBuildInstructions() {
