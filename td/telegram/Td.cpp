@@ -3806,6 +3806,8 @@ void Td::close_impl(bool destroy_flag) {
     state_ = State::Close;
     close_flag_ = 4;
     G()->set_close_flag();
+    send_update(td_api::make_object<td_api::updateAuthorizationState>(
+        td_api::make_object<td_api::authorizationStateClosing>()));
 
     request_actors_.clear();
     return send_closure_later(actor_id(this), &Td::dec_request_actor_refcnt);  // remove guard
@@ -3815,9 +3817,9 @@ void Td::close_impl(bool destroy_flag) {
   close_flag_ = 1;
   G()->set_close_flag();
   send_closure(auth_manager_actor_, &AuthManager::on_closing, destroy_flag);
-  updates_manager_->timeout_expired();
+  updates_manager_->timeout_expired();  // save pts and qts
 
-  // wait till all request_actors will stop.
+  // wait till all request_actors will stop
   request_actors_.clear();
   G()->td_db()->flush_all();
   send_closure_later(actor_id(this), &Td::dec_request_actor_refcnt);  // remove guard
