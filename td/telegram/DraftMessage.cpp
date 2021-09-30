@@ -89,7 +89,7 @@ Result<unique_ptr<DraftMessage>> get_draft_message(ContactsManager *contacts_man
     result->input_message_text = std::move(message_content);
   }
 
-  return result;
+  return std::move(result);
 }
 
 }  // namespace td
