@@ -288,7 +288,7 @@ class ContactsManager final : public Actor {
   void disconnect_website(int64 authorizations_id, Promise<Unit> &&promise) const;
   void disconnect_all_websites(Promise<Unit> &&promise) const;
 
-  void add_contact(td_api::object_ptr<td_api::contact> &&contact, bool share_phone_number, Promise<Unit> &&promise);
+  void add_contact(Contact contact, bool share_phone_number, Promise<Unit> &&promise);
 
   std::pair<vector<UserId>, vector<int32>> import_contacts(const vector<tl_object_ptr<td_api::contact>> &contacts,
                                                            int64 &random_id, Promise<Unit> &&promise);

@@ -6645,14 +6645,12 @@ void Td::on_request(uint64 id, const td_api::getBlockedMessageSenders &request) 
 
 void Td::on_request(uint64 id, td_api::addContact &request) {
   CHECK_IS_USER();
-  if (request.contact_ == nullptr) {
-    return send_error_raw(id, 400, "Contact must be non-empty");
+  auto r_contact = get_contact(std::move(request.contact_));
+  if (r_contact.is_error()) {
+    return send_closure(actor_id(this), &Td::send_error, id, r_contact.move_as_error());
   }
-  CLEAN_INPUT_STRING(request.contact_->phone_number_);
-  CLEAN_INPUT_STRING(request.contact_->first_name_);
-  CLEAN_INPUT_STRING(request.contact_->last_name_);
   CREATE_OK_REQUEST_PROMISE();
-  contacts_manager_->add_contact(std::move(request.contact_), request.share_phone_number_, std::move(promise));
+  contacts_manager_->add_contact(r_contact.move_as_ok(), request.share_phone_number_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::importContacts &request) {

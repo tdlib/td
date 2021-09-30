@@ -444,15 +444,16 @@ class AddContactQuery final : public Td::ResultHandler {
   explicit AddContactQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(UserId user_id, tl_object_ptr<telegram_api::InputUser> &&input_user, const string &first_name,
-            const string &last_name, const string &phone_number, bool share_phone_number) {
+  void send(UserId user_id, tl_object_ptr<telegram_api::InputUser> &&input_user, const Contact &contact,
+            bool share_phone_number) {
     user_id_ = user_id;
     int32 flags = 0;
     if (share_phone_number) {
       flags |= telegram_api::contacts_addContact::ADD_PHONE_PRIVACY_EXCEPTION_MASK;
     }
-    send_query(G()->net_query_creator().create(telegram_api::contacts_addContact(
-        flags, false /*ignored*/, std::move(input_user), first_name, last_name, phone_number)));
+    send_query(G()->net_query_creator().create(
+        telegram_api::contacts_addContact(flags, false /*ignored*/, std::move(input_user), contact.get_first_name(),
+                                          contact.get_last_name(), contact.get_phone_number())));
   }
 
   void on_result(uint64 id, BufferSlice packet) final {
@@ -5324,12 +5325,7 @@ void ContactsManager::reload_contacts(bool force) {
   }
 }
 
-void ContactsManager::add_contact(td_api::object_ptr<td_api::contact> &&contact, bool share_phone_number,
-                                  Promise<Unit> &&promise) {
-  if (contact == nullptr) {
-    return promise.set_error(Status::Error(400, "Added contact must be non-empty"));
-  }
-
+void ContactsManager::add_contact(Contact contact, bool share_phone_number, Promise<Unit> &&promise) {
   if (G()->close_flag()) {
     return promise.set_error(Status::Error(500, "Request aborted"));
   }
@@ -5342,17 +5338,16 @@ void ContactsManager::add_contact(td_api::object_ptr<td_api::contact> &&contact,
     return;
   }
 
-  LOG(INFO) << "Add " << oneline(to_string(contact)) << " with share_phone_number = " << share_phone_number;
+  LOG(INFO) << "Add " << contact << " with share_phone_number = " << share_phone_number;
 
-  UserId user_id{contact->user_id_};
+  auto user_id = contact.get_user_id();
   auto input_user = get_input_user(user_id);
   if (input_user == nullptr) {
     return promise.set_error(Status::Error(400, "User not found"));
   }
 
   td_->create_handler<AddContactQuery>(std::move(promise))
-      ->send(user_id, std::move(input_user), contact->first_name_, contact->last_name_, contact->phone_number_,
-             share_phone_number);
+      ->send(user_id, std::move(input_user), contact, share_phone_number);
 }
 
 std::pair<vector<UserId>, vector<int32>> ContactsManager::import_contacts(

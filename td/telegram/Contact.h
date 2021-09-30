@@ -46,7 +46,11 @@ class Contact {
 
   UserId get_user_id() const;
 
-  string get_phone_number() const;
+  const string &get_phone_number() const;
+
+  const string &get_first_name() const;
+
+  const string &get_last_name() const;
 
   tl_object_ptr<td_api::contact> get_contact_object() const;
 
@@ -138,6 +142,8 @@ struct ContactHash {
            std::hash<std::string>()(contact.last_name_);
   }
 };
+
+Result<Contact> get_contact(td_api::object_ptr<td_api::contact> &&contact) TD_WARN_UNUSED_RESULT;
 
 Result<Contact> process_input_message_contact(tl_object_ptr<td_api::InputMessageContent> &&input_message_content)
     TD_WARN_UNUSED_RESULT;
