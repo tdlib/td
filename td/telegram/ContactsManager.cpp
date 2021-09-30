@@ -5350,8 +5350,8 @@ void ContactsManager::add_contact(Contact contact, bool share_phone_number, Prom
       ->send(user_id, std::move(input_user), contact, share_phone_number);
 }
 
-std::pair<vector<UserId>, vector<int32>> ContactsManager::import_contacts(
-    const vector<tl_object_ptr<td_api::contact>> &contacts, int64 &random_id, Promise<Unit> &&promise) {
+std::pair<vector<UserId>, vector<int32>> ContactsManager::import_contacts(const vector<Contact> &contacts,
+                                                                          int64 &random_id, Promise<Unit> &&promise) {
   if (!are_contacts_loaded_) {
     load_contacts(std::move(promise));
     return {};
@@ -5368,25 +5368,13 @@ std::pair<vector<UserId>, vector<int32>> ContactsManager::import_contacts(
     promise.set_value(Unit());
     return result;
   }
-  for (auto &contact : contacts) {
-    if (contact == nullptr) {
-      promise.set_error(Status::Error(400, "Imported contacts must be non-empty"));
-      return {};
-    }
-  }
 
   do {
     random_id = Random::secure_int64();
   } while (random_id == 0 || imported_contacts_.find(random_id) != imported_contacts_.end());
   imported_contacts_[random_id];  // reserve place for result
 
-  td_->create_handler<ImportContactsQuery>(std::move(promise))
-      ->send(transform(contacts,
-                       [](const tl_object_ptr<td_api::contact> &contact) {
-                         return Contact(contact->phone_number_, contact->first_name_, contact->last_name_, string(),
-                                        UserId());
-                       }),
-             random_id);
+  td_->create_handler<ImportContactsQuery>(std::move(promise))->send(contacts, random_id);
   return {};
 }
 
@@ -5523,8 +5511,9 @@ void ContactsManager::on_load_imported_contacts_finished() {
   }
 }
 
-std::pair<vector<UserId>, vector<int32>> ContactsManager::change_imported_contacts(
-    vector<tl_object_ptr<td_api::contact>> &&contacts, int64 &random_id, Promise<Unit> &&promise) {
+std::pair<vector<UserId>, vector<int32>> ContactsManager::change_imported_contacts(vector<Contact> &contacts,
+                                                                                   int64 &random_id,
+                                                                                   Promise<Unit> &&promise) {
   if (!are_contacts_loaded_) {
     load_contacts(std::move(promise));
     return {};
@@ -5565,26 +5554,14 @@ std::pair<vector<UserId>, vector<int32>> ContactsManager::change_imported_contac
     return {};
   }
 
-  for (auto &contact : contacts) {
-    if (contact == nullptr) {
-      promise.set_error(Status::Error(400, "Contacts must be non-empty"));
-      return {};
-    }
-  }
-
-  auto new_contacts = transform(std::move(contacts), [](tl_object_ptr<td_api::contact> &&contact) {
-    return Contact(std::move(contact->phone_number_), std::move(contact->first_name_), std::move(contact->last_name_),
-                   string(), UserId());
-  });
-
-  vector<size_t> new_contacts_unique_id(new_contacts.size());
+  vector<size_t> new_contacts_unique_id(contacts.size());
   vector<Contact> unique_new_contacts;
-  unique_new_contacts.reserve(new_contacts.size());
+  unique_new_contacts.reserve(contacts.size());
   std::unordered_map<Contact, size_t, ContactHash, ContactEqual> different_new_contacts;
   std::unordered_set<string> different_new_phone_numbers;
   size_t unique_size = 0;
-  for (size_t i = 0; i < new_contacts.size(); i++) {
-    auto it_success = different_new_contacts.emplace(std::move(new_contacts[i]), unique_size);
+  for (size_t i = 0; i < contacts.size(); i++) {
+    auto it_success = different_new_contacts.emplace(std::move(contacts[i]), unique_size);
     new_contacts_unique_id[i] = it_success.first->second;
     if (it_success.second) {
       unique_new_contacts.push_back(it_success.first->first);
@@ -5618,14 +5595,14 @@ std::pair<vector<UserId>, vector<int32>> ContactsManager::change_imported_contac
   }
 
   if (to_add.first.empty() && to_delete.empty()) {
-    for (size_t i = 0; i < new_contacts.size(); i++) {
+    for (size_t i = 0; i < contacts.size(); i++) {
       auto unique_id = new_contacts_unique_id[i];
-      new_contacts[i].set_user_id(unique_new_contacts[unique_id].get_user_id());
+      contacts[i].set_user_id(unique_new_contacts[unique_id].get_user_id());
     }
 
     promise.set_value(Unit());
-    return {transform(new_contacts, [&](const Contact &contact) { return contact.get_user_id(); }),
-            vector<int32>(new_contacts.size())};
+    return {transform(contacts, [&](const Contact &contact) { return contact.get_user_id(); }),
+            vector<int32>(contacts.size())};
   }
 
   are_imported_contacts_changing_ = true;
