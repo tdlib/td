@@ -34,6 +34,10 @@ struct MessagesDbMessagesQuery {
   int32 limit{100};
 };
 
+struct MessagesDbDialogMessage {
+  BufferSlice data;
+};
+
 struct MessagesDbMessage {
   DialogId dialog_id;
   BufferSlice data;
@@ -47,7 +51,7 @@ struct MessagesDbFtsQuery {
   int32 limit{100};
 };
 struct MessagesDbFtsResult {
-  std::vector<MessagesDbMessage> messages;
+  vector<MessagesDbMessage> messages;
   int64 next_search_id{1};
 };
 
@@ -57,7 +61,7 @@ struct MessagesDbCallsQuery {
   int32 limit{100};
 };
 struct MessagesDbCallsResult {
-  std::vector<MessagesDbMessage> messages;
+  vector<MessagesDbMessage> messages;
 };
 
 class MessagesDbSyncInterface {
@@ -76,21 +80,21 @@ class MessagesDbSyncInterface {
   virtual Status delete_all_dialog_messages(DialogId dialog_id, MessageId from_message_id) = 0;
   virtual Status delete_dialog_messages_from_user(DialogId dialog_id, UserId sender_user_id) = 0;
 
-  virtual Result<BufferSlice> get_message(FullMessageId full_message_id) = 0;
+  virtual Result<MessagesDbDialogMessage> get_message(FullMessageId full_message_id) = 0;
   virtual Result<MessagesDbMessage> get_message_by_unique_message_id(ServerMessageId unique_message_id) = 0;
-  virtual Result<BufferSlice> get_message_by_random_id(DialogId dialog_id, int64 random_id) = 0;
-  virtual Result<BufferSlice> get_dialog_message_by_date(DialogId dialog_id, MessageId first_message_id,
-                                                         MessageId last_message_id, int32 date) = 0;
+  virtual Result<MessagesDbDialogMessage> get_message_by_random_id(DialogId dialog_id, int64 random_id) = 0;
+  virtual Result<MessagesDbDialogMessage> get_dialog_message_by_date(DialogId dialog_id, MessageId first_message_id,
+                                                                     MessageId last_message_id, int32 date) = 0;
 
-  virtual Result<std::vector<BufferSlice>> get_messages(MessagesDbMessagesQuery query) = 0;
-  virtual Result<std::vector<BufferSlice>> get_scheduled_messages(DialogId dialog_id, int32 limit) = 0;
-  virtual Result<vector<BufferSlice>> get_messages_from_notification_id(DialogId dialog_id,
-                                                                        NotificationId from_notification_id,
-                                                                        int32 limit) = 0;
+  virtual Result<vector<MessagesDbDialogMessage>> get_messages(MessagesDbMessagesQuery query) = 0;
+  virtual Result<vector<MessagesDbDialogMessage>> get_scheduled_messages(DialogId dialog_id, int32 limit) = 0;
+  virtual Result<vector<MessagesDbDialogMessage>> get_messages_from_notification_id(DialogId dialog_id,
+                                                                                    NotificationId from_notification_id,
+                                                                                    int32 limit) = 0;
 
-  virtual Result<std::pair<std::vector<MessagesDbMessage>, int32>> get_expiring_messages(int32 expires_from,
-                                                                                         int32 expires_till,
-                                                                                         int32 limit) = 0;
+  virtual Result<std::pair<vector<MessagesDbMessage>, int32>> get_expiring_messages(int32 expires_from,
+                                                                                    int32 expires_till,
+                                                                                    int32 limit) = 0;
   virtual Result<MessagesDbCallsResult> get_calls(MessagesDbCallsQuery query) = 0;
   virtual Result<MessagesDbFtsResult> get_messages_fts(MessagesDbFtsQuery query) = 0;
 
@@ -125,23 +129,25 @@ class MessagesDbAsyncInterface {
   virtual void delete_all_dialog_messages(DialogId dialog_id, MessageId from_message_id, Promise<> promise) = 0;
   virtual void delete_dialog_messages_from_user(DialogId dialog_id, UserId sender_user_id, Promise<> promise) = 0;
 
-  virtual void get_message(FullMessageId full_message_id, Promise<BufferSlice> promise) = 0;
+  virtual void get_message(FullMessageId full_message_id, Promise<MessagesDbDialogMessage> promise) = 0;
   virtual void get_message_by_unique_message_id(ServerMessageId unique_message_id,
                                                 Promise<MessagesDbMessage> promise) = 0;
-  virtual void get_message_by_random_id(DialogId dialog_id, int64 random_id, Promise<BufferSlice> promise) = 0;
+  virtual void get_message_by_random_id(DialogId dialog_id, int64 random_id,
+                                        Promise<MessagesDbDialogMessage> promise) = 0;
   virtual void get_dialog_message_by_date(DialogId dialog_id, MessageId first_message_id, MessageId last_message_id,
-                                          int32 date, Promise<BufferSlice> promise) = 0;
+                                          int32 date, Promise<MessagesDbDialogMessage> promise) = 0;
 
-  virtual void get_messages(MessagesDbMessagesQuery query, Promise<std::vector<BufferSlice>> promise) = 0;
-  virtual void get_scheduled_messages(DialogId dialog_id, int32 limit, Promise<std::vector<BufferSlice>> promise) = 0;
+  virtual void get_messages(MessagesDbMessagesQuery query, Promise<vector<MessagesDbDialogMessage>> promise) = 0;
+  virtual void get_scheduled_messages(DialogId dialog_id, int32 limit,
+                                      Promise<vector<MessagesDbDialogMessage>> promise) = 0;
   virtual void get_messages_from_notification_id(DialogId dialog_id, NotificationId from_notification_id, int32 limit,
-                                                 Promise<vector<BufferSlice>> promise) = 0;
+                                                 Promise<vector<MessagesDbDialogMessage>> promise) = 0;
 
   virtual void get_calls(MessagesDbCallsQuery, Promise<MessagesDbCallsResult> promise) = 0;
   virtual void get_messages_fts(MessagesDbFtsQuery query, Promise<MessagesDbFtsResult> promise) = 0;
 
   virtual void get_expiring_messages(int32 expires_from, int32 expires_till, int32 limit,
-                                     Promise<std::pair<std::vector<MessagesDbMessage>, int32>> promise) = 0;
+                                     Promise<std::pair<vector<MessagesDbMessage>, int32>> promise) = 0;
 
   virtual void close(Promise<> promise) = 0;
   virtual void force_flush() = 0;
