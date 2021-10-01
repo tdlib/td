@@ -2660,11 +2660,11 @@ class MessagesManager final : public Actor {
 
   Message *on_get_message_from_database(const MessagesDbMessage &message, bool is_scheduled, const char *source);
 
-  Message *on_get_message_from_database(Dialog *d, const MessagesDbDialogMessage &value, bool is_scheduled,
+  Message *on_get_message_from_database(Dialog *d, const MessagesDbDialogMessage &message, bool is_scheduled,
                                         const char *source);
 
-  Message *on_get_message_from_database(Dialog *d, DialogId dialog_id, const BufferSlice &value, bool is_scheduled,
-                                        const char *source);
+  Message *on_get_message_from_database(Dialog *d, DialogId dialog_id, MessageId message_id, const BufferSlice &value,
+                                        bool is_scheduled, const char *source);
 
   void get_dialog_message_by_date_from_server(const Dialog *d, int32 date, int64 random_id, bool after_database_search,
                                               Promise<Unit> &&promise);
@@ -3010,7 +3010,8 @@ class MessagesManager final : public Actor {
 
   string get_message_search_text(const Message *m) const;
 
-  unique_ptr<Message> parse_message(DialogId dialog_id, const BufferSlice &value, bool is_scheduled);
+  unique_ptr<Message> parse_message(DialogId dialog_id, MessageId expected_message_id, const BufferSlice &value,
+                                    bool is_scheduled);
 
   unique_ptr<Dialog> parse_dialog(DialogId dialog_id, const BufferSlice &value, const char *source);
 
