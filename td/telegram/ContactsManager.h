@@ -1175,7 +1175,7 @@ class ContactsManager final : public Actor {
                             const char *source);
 
   void upload_profile_photo(FileId file_id, bool is_animation, double main_frame_timestamp, Promise<Unit> &&promise,
-                            vector<int> bad_parts = {});
+                            int reupload_count = 0, vector<int> bad_parts = {});
 
   void on_upload_profile_photo(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file);
   void on_upload_profile_photo_error(FileId file_id, Status status);
@@ -1648,13 +1648,13 @@ class ContactsManager final : public Actor {
   struct UploadedProfilePhoto {
     double main_frame_timestamp;
     bool is_animation;
-    bool is_reupload;
+    int reupload_count;
     Promise<Unit> promise;
 
-    UploadedProfilePhoto(double main_frame_timestamp, bool is_animation, bool is_reupload, Promise<Unit> promise)
+    UploadedProfilePhoto(double main_frame_timestamp, bool is_animation, int32 reupload_count, Promise<Unit> promise)
         : main_frame_timestamp(main_frame_timestamp)
         , is_animation(is_animation)
-        , is_reupload(is_reupload)
+        , reupload_count(reupload_count)
         , promise(std::move(promise)) {
     }
   };

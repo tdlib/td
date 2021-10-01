@@ -6179,13 +6179,13 @@ void ContactsManager::send_update_profile_photo_query(FileId file_id, int64 old_
 }
 
 void ContactsManager::upload_profile_photo(FileId file_id, bool is_animation, double main_frame_timestamp,
-                                           Promise<Unit> &&promise, vector<int> bad_parts) {
+                                           Promise<Unit> &&promise, int reupload_count, vector<int> bad_parts) {
   CHECK(file_id.is_valid());
   CHECK(uploaded_profile_photos_.find(file_id) == uploaded_profile_photos_.end());
   uploaded_profile_photos_.emplace(
-      file_id, UploadedProfilePhoto{main_frame_timestamp, is_animation, !bad_parts.empty(), std::move(promise)});
-  LOG(INFO) << "Ask to upload profile photo " << file_id;
-  // TODO use force_reupload
+      file_id, UploadedProfilePhoto{main_frame_timestamp, is_animation, reupload_count, std::move(promise)});
+  LOG(INFO) << "Ask to upload profile photo " << file_id << " with bad parts " << bad_parts;
+  // TODO use force_reupload if reupload_count >= 1, replace reupload_count with is_reupload
   td_->file_manager_->resume_upload(file_id, std::move(bad_parts), upload_profile_photo_callback_, 32, 0);
 }
 
@@ -15751,7 +15751,7 @@ void ContactsManager::on_upload_profile_photo(FileId file_id, tl_object_ptr<tele
 
   double main_frame_timestamp = it->second.main_frame_timestamp;
   bool is_animation = it->second.is_animation;
-  bool is_reupload = it->second.is_reupload;
+  int32 reupload_count = it->second.reupload_count;
   auto promise = std::move(it->second.promise);
 
   uploaded_profile_photos_.erase(it);
@@ -15761,7 +15761,7 @@ void ContactsManager::on_upload_profile_photo(FileId file_id, tl_object_ptr<tele
     if (file_view.main_remote_location().is_web()) {
       return promise.set_error(Status::Error(400, "Can't use web photo as profile photo"));
     }
-    if (is_reupload) {
+    if (reupload_count == 3) {  // upload, ForceReupload repair file reference, reupload
       return promise.set_error(Status::Error(400, "Failed to reupload the file"));
     }
 
@@ -15772,10 +15772,10 @@ void ContactsManager::on_upload_profile_photo(FileId file_id, tl_object_ptr<tele
       CHECK(file_view.get_type() == FileType::Photo);
     }
     auto file_reference =
-        is_animation ? FileManager::extract_file_reference(file_view.main_remote_location().as_input_photo())
-                     : FileManager::extract_file_reference(file_view.main_remote_location().as_input_document());
+        is_animation ? FileManager::extract_file_reference(file_view.main_remote_location().as_input_document())
+                     : FileManager::extract_file_reference(file_view.main_remote_location().as_input_photo());
     td_->file_manager_->delete_file_reference(file_id, file_reference);
-    upload_profile_photo(file_id, is_animation, main_frame_timestamp, std::move(promise), {-1});
+    upload_profile_photo(file_id, is_animation, main_frame_timestamp, std::move(promise), reupload_count + 1, {-1});
     return;
   }
   CHECK(input_file != nullptr);
