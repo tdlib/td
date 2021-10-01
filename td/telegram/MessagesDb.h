@@ -35,11 +35,13 @@ struct MessagesDbMessagesQuery {
 };
 
 struct MessagesDbDialogMessage {
+  MessageId message_id;
   BufferSlice data;
 };
 
 struct MessagesDbMessage {
   DialogId dialog_id;
+  MessageId message_id;
   BufferSlice data;
 };
 

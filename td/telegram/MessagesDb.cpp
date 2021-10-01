@@ -196,14 +196,17 @@ class MessagesDbImpl final : public MessagesDbSyncInterface {
 
     TRY_RESULT_ASSIGN(get_message_stmt_,
                       db_.get_statement("SELECT data FROM messages WHERE dialog_id = ?1 AND message_id = ?2"));
-    TRY_RESULT_ASSIGN(get_message_by_random_id_stmt_,
-                      db_.get_statement("SELECT data FROM messages WHERE dialog_id = ?1 AND random_id = ?2"));
-    TRY_RESULT_ASSIGN(get_message_by_unique_message_id_stmt_,
-                      db_.get_statement("SELECT dialog_id, data FROM messages WHERE unique_message_id = ?1"));
+    TRY_RESULT_ASSIGN(
+        get_message_by_random_id_stmt_,
+        db_.get_statement("SELECT message_id, data FROM messages WHERE dialog_id = ?1 AND random_id = ?2"));
+    TRY_RESULT_ASSIGN(
+        get_message_by_unique_message_id_stmt_,
+        db_.get_statement("SELECT dialog_id, message_id, data FROM messages WHERE unique_message_id = ?1"));
 
     TRY_RESULT_ASSIGN(
         get_expiring_messages_stmt_,
-        db_.get_statement("SELECT dialog_id, data FROM messages WHERE ?1 < ttl_expires_at AND ttl_expires_at <= ?2"));
+        db_.get_statement(
+            "SELECT dialog_id, message_id, data FROM messages WHERE ?1 < ttl_expires_at AND ttl_expires_at <= ?2"));
     TRY_RESULT_ASSIGN(get_expiring_messages_helper_stmt_,
                       db_.get_statement("SELECT MAX(ttl_expires_at), COUNT(*) FROM (SELECT ttl_expires_at FROM "
                                         "messages WHERE ?1 < ttl_expires_at LIMIT ?2) AS T"));
@@ -220,11 +223,10 @@ class MessagesDbImpl final : public MessagesDbSyncInterface {
     TRY_RESULT_ASSIGN(get_messages_from_notification_id_stmt_,
                       db_.get_statement("SELECT data, message_id FROM messages WHERE dialog_id = ?1 AND "
                                         "notification_id < ?2 ORDER BY notification_id DESC LIMIT ?3"));
-    TRY_RESULT_ASSIGN(
-        get_messages_fts_stmt_,
-        db_.get_statement(
-            "SELECT dialog_id, data, search_id FROM messages WHERE search_id IN (SELECT rowid FROM messages_fts WHERE "
-            "messages_fts MATCH ?1 AND rowid < ?2 ORDER BY rowid DESC LIMIT ?3) ORDER BY search_id DESC"));
+    TRY_RESULT_ASSIGN(get_messages_fts_stmt_,
+                      db_.get_statement("SELECT dialog_id, message_id, data, search_id FROM messages WHERE search_id "
+                                        "IN (SELECT rowid FROM messages_fts WHERE messages_fts MATCH ?1 AND rowid < ?2 "
+                                        "ORDER BY rowid DESC LIMIT ?3) ORDER BY search_id DESC"));
 
     for (int32 i = 0; i < MESSAGES_DB_INDEX_COUNT; i++) {
       TRY_RESULT_ASSIGN(get_messages_from_index_stmts_[i].desc_stmt_,
@@ -246,8 +248,9 @@ class MessagesDbImpl final : public MessagesDbSyncInterface {
       TRY_RESULT_ASSIGN(
           get_calls_stmts_[pos],
           db_.get_statement(
-              PSLICE() << "SELECT dialog_id, data FROM messages WHERE unique_message_id < ?1 AND (index_mask & "
-                       << (1 << i) << ") != 0 ORDER BY unique_message_id DESC LIMIT ?2"));
+              PSLICE()
+              << "SELECT dialog_id, message_id, data FROM messages WHERE unique_message_id < ?1 AND (index_mask & "
+              << (1 << i) << ") != 0 ORDER BY unique_message_id DESC LIMIT ?2"));
     }
 
     TRY_RESULT_ASSIGN(add_scheduled_message_stmt_,
@@ -459,7 +462,7 @@ class MessagesDbImpl final : public MessagesDbSyncInterface {
     if (!stmt.has_row()) {
       return Status::Error("Not found");
     }
-    return MessagesDbDialogMessage{BufferSlice(stmt.view_blob(0))};
+    return MessagesDbDialogMessage{message_id, BufferSlice(stmt.view_blob(0))};
   }
 
   Result<MessagesDbMessage> get_message_by_unique_message_id(ServerMessageId unique_message_id) final {
@@ -475,7 +478,8 @@ class MessagesDbImpl final : public MessagesDbSyncInterface {
       return Status::Error("Not found");
     }
     DialogId dialog_id(get_message_by_unique_message_id_stmt_.view_int64(0));
-    return MessagesDbMessage{dialog_id, BufferSlice(get_message_by_unique_message_id_stmt_.view_blob(1))};
+    MessageId message_id(get_message_by_unique_message_id_stmt_.view_int64(1));
+    return MessagesDbMessage{dialog_id, message_id, BufferSlice(get_message_by_unique_message_id_stmt_.view_blob(2))};
   }
 
   Result<MessagesDbDialogMessage> get_message_by_random_id(DialogId dialog_id, int64 random_id) final {
@@ -488,7 +492,8 @@ class MessagesDbImpl final : public MessagesDbSyncInterface {
     if (!get_message_by_random_id_stmt_.has_row()) {
       return Status::Error("Not found");
     }
-    return MessagesDbDialogMessage{BufferSlice(get_message_by_random_id_stmt_.view_blob(0))};
+    MessageId message_id(get_message_by_random_id_stmt_.view_int64(0));
+    return MessagesDbDialogMessage{message_id, BufferSlice(get_message_by_random_id_stmt_.view_blob(1))};
   }
 
   Result<MessagesDbDialogMessage> get_dialog_message_by_date(DialogId dialog_id, MessageId first_message_id,
@@ -570,8 +575,9 @@ class MessagesDbImpl final : public MessagesDbSyncInterface {
 
       while (get_expiring_messages_stmt_.has_row()) {
         DialogId dialog_id(get_expiring_messages_stmt_.view_int64(0));
-        BufferSlice data(get_expiring_messages_stmt_.view_blob(1));
-        messages.push_back(MessagesDbMessage{dialog_id, std::move(data)});
+        MessageId message_id(get_expiring_messages_stmt_.view_int64(1));
+        BufferSlice data(get_expiring_messages_stmt_.view_blob(2));
+        messages.push_back(MessagesDbMessage{dialog_id, message_id, std::move(data)});
         get_expiring_messages_stmt_.step().ensure();
       }
     }
@@ -616,9 +622,9 @@ class MessagesDbImpl final : public MessagesDbSyncInterface {
     stmt.step().ensure();
     while (stmt.has_row()) {
       auto data_slice = stmt.view_blob(0);
-      result.push_back(MessagesDbDialogMessage{BufferSlice(data_slice)});
-      auto message_id = stmt.view_int64(1);
-      LOG(INFO) << "Load " << MessageId(message_id) << " in " << dialog_id << " from database";
+      MessageId message_id(stmt.view_int64(1));
+      result.push_back(MessagesDbDialogMessage{message_id, BufferSlice(data_slice)});
+      LOG(INFO) << "Load " << message_id << " in " << dialog_id << " from database";
       stmt.step().ensure();
     }
     return std::move(result);
@@ -715,11 +721,12 @@ class MessagesDbImpl final : public MessagesDbSyncInterface {
       return std::move(result);
     }
     while (stmt.has_row()) {
-      auto dialog_id = stmt.view_int64(0);
-      auto data_slice = stmt.view_blob(1);
-      auto search_id = stmt.view_int64(2);
+      DialogId dialog_id(stmt.view_int64(0));
+      MessageId message_id(stmt.view_int64(1));
+      auto data_slice = stmt.view_blob(2);
+      auto search_id = stmt.view_int64(3);
       result.next_search_id = search_id;
-      result.messages.push_back(MessagesDbMessage{DialogId(dialog_id), BufferSlice(data_slice)});
+      result.messages.push_back(MessagesDbMessage{dialog_id, message_id, BufferSlice(data_slice)});
       stmt.step().ensure();
     }
     return std::move(result);
@@ -777,9 +784,10 @@ class MessagesDbImpl final : public MessagesDbSyncInterface {
     MessagesDbCallsResult result;
     stmt.step().ensure();
     while (stmt.has_row()) {
-      auto dialog_id = stmt.view_int64(0);
-      auto data_slice = stmt.view_blob(1);
-      result.messages.push_back(MessagesDbMessage{DialogId(dialog_id), BufferSlice(data_slice)});
+      DialogId dialog_id(stmt.view_int64(0));
+      MessageId message_id(stmt.view_int64(1));
+      auto data_slice = stmt.view_blob(2);
+      result.messages.push_back(MessagesDbMessage{dialog_id, message_id, BufferSlice(data_slice)});
       stmt.step().ensure();
     }
     return std::move(result);
@@ -893,9 +901,9 @@ class MessagesDbImpl final : public MessagesDbSyncInterface {
     stmt.step().ensure();
     while (stmt.has_row()) {
       auto data_slice = stmt.view_blob(0);
-      result.push_back(MessagesDbDialogMessage{BufferSlice(data_slice)});
-      auto message_id = stmt.view_int64(1);
-      LOG(INFO) << "Loaded " << MessageId(message_id) << " in " << dialog_id << " from database";
+      MessageId message_id(stmt.view_int64(1));
+      result.push_back(MessagesDbDialogMessage{message_id, BufferSlice(data_slice)});
+      LOG(INFO) << "Loaded " << message_id << " in " << dialog_id << " from database";
       stmt.step().ensure();
     }
     return std::move(result);
@@ -904,12 +912,16 @@ class MessagesDbImpl final : public MessagesDbSyncInterface {
   static std::tuple<MessageId, int32> get_message_info(const MessagesDbDialogMessage &message) {
     LogEventParser message_date_parser(message.data.as_slice());
     int32 flags;
-    td::parse(flags, message_date_parser);
     int32 flags2 = 0;
+    int32 flags3 = 0;
+    td::parse(flags, message_date_parser);
     if ((flags & (1 << 29)) != 0) {
       td::parse(flags2, message_date_parser);
+      if ((flags2 & (1 << 29)) != 0) {
+        td::parse(flags3, message_date_parser);
+      }
     }
-    bool has_sender = (flags >> 10) & 1;
+    bool has_sender = (flags & (1 << 10)) != 0;
     MessageId message_id;
     td::parse(message_id, message_date_parser);
     UserId sender_user_id;
@@ -918,8 +930,9 @@ class MessagesDbImpl final : public MessagesDbSyncInterface {
     }
     int32 date;
     td::parse(date, message_date_parser);
-    LOG(INFO) << "Loaded " << message_id << " sent at " << date << " by " << sender_user_id;
-    return std::make_tuple(message_id, date);
+    LOG(INFO) << "Loaded " << message.message_id << "(aka " << message_id << ") sent at " << date << " by "
+              << sender_user_id;
+    return std::make_tuple(message.message_id, date);
   }
 };
 
