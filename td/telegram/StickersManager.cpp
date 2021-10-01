@@ -4319,9 +4319,6 @@ void StickersManager::schedule_update_animated_emoji_clicked(const StickerSet *s
   if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Write)) {
     return;
   }
-  if (!td_->messages_manager_->is_dialog_opened(dialog_id)) {
-    return;
-  }
 
   auto all_sticker_ids = get_animated_emoji_stickers(sticker_set, emoji);
   std::unordered_map<int, FileId> sticker_ids;
@@ -4366,9 +4363,6 @@ void StickersManager::send_update_animated_emoji_clicked(FullMessageId full_mess
   }
   auto dialog_id = full_message_id.get_dialog_id();
   if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Write)) {
-    return;
-  }
-  if (!td_->messages_manager_->is_dialog_opened(dialog_id)) {
     return;
   }
 
