@@ -2735,7 +2735,7 @@ class MessagesManager final : public Actor {
 
   void ttl_db_loop_start(double server_now);
   void ttl_db_loop(double server_now);
-  void ttl_db_on_result(Result<std::pair<std::vector<std::pair<DialogId, BufferSlice>>, int32>> r_result, bool dummy);
+  void ttl_db_on_result(Result<std::pair<std::vector<MessagesDbMessage>, int32>> r_result, bool dummy);
 
   void on_get_message_link_dialog(MessageLinkInfo &&info, Promise<MessageLinkInfo> &&promise);
 

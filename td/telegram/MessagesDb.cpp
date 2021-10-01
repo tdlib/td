@@ -462,7 +462,7 @@ class MessagesDbImpl final : public MessagesDbSyncInterface {
     return BufferSlice(stmt.view_blob(0));
   }
 
-  Result<std::pair<DialogId, BufferSlice>> get_message_by_unique_message_id(ServerMessageId unique_message_id) final {
+  Result<MessagesDbMessage> get_message_by_unique_message_id(ServerMessageId unique_message_id) final {
     if (!unique_message_id.is_valid()) {
       return Status::Error("Invalid unique_message_id");
     }
@@ -475,7 +475,7 @@ class MessagesDbImpl final : public MessagesDbSyncInterface {
       return Status::Error("Not found");
     }
     DialogId dialog_id(get_message_by_unique_message_id_stmt_.view_int64(0));
-    return std::make_pair(dialog_id, BufferSlice(get_message_by_unique_message_id_stmt_.view_blob(1)));
+    return MessagesDbMessage{dialog_id, BufferSlice(get_message_by_unique_message_id_stmt_.view_blob(1))};
   }
 
   Result<BufferSlice> get_message_by_random_id(DialogId dialog_id, int64 random_id) final {
@@ -554,15 +554,14 @@ class MessagesDbImpl final : public MessagesDbSyncInterface {
     return Status::Error("Not found");
   }
 
-  Result<std::pair<std::vector<std::pair<DialogId, BufferSlice>>, int32>> get_expiring_messages(int32 expires_from,
-                                                                                                int32 expires_till,
-                                                                                                int32 limit) final {
+  Result<std::pair<std::vector<MessagesDbMessage>, int32>> get_expiring_messages(int32 expires_from, int32 expires_till,
+                                                                                 int32 limit) final {
     SCOPE_EXIT {
       get_expiring_messages_stmt_.reset();
       get_expiring_messages_helper_stmt_.reset();
     };
 
-    std::vector<std::pair<DialogId, BufferSlice>> messages;
+    std::vector<MessagesDbMessage> messages;
     // load messages
     if (expires_from <= expires_till) {
       get_expiring_messages_stmt_.bind_int32(1, expires_from).ensure();
@@ -572,7 +571,7 @@ class MessagesDbImpl final : public MessagesDbSyncInterface {
       while (get_expiring_messages_stmt_.has_row()) {
         DialogId dialog_id(get_expiring_messages_stmt_.view_int64(0));
         BufferSlice data(get_expiring_messages_stmt_.view_blob(1));
-        messages.emplace_back(dialog_id, std::move(data));
+        messages.push_back(MessagesDbMessage{dialog_id, std::move(data)});
         get_expiring_messages_stmt_.step().ensure();
       }
     }
@@ -973,8 +972,7 @@ class MessagesDbAsync final : public MessagesDbAsyncInterface {
   void get_message(FullMessageId full_message_id, Promise<BufferSlice> promise) final {
     send_closure_later(impl_, &Impl::get_message, full_message_id, std::move(promise));
   }
-  void get_message_by_unique_message_id(ServerMessageId unique_message_id,
-                                        Promise<std::pair<DialogId, BufferSlice>> promise) final {
+  void get_message_by_unique_message_id(ServerMessageId unique_message_id, Promise<MessagesDbMessage> promise) final {
     send_closure_later(impl_, &Impl::get_message_by_unique_message_id, unique_message_id, std::move(promise));
   }
   void get_message_by_random_id(DialogId dialog_id, int64 random_id, Promise<BufferSlice> promise) final {
@@ -1004,7 +1002,7 @@ class MessagesDbAsync final : public MessagesDbAsyncInterface {
     send_closure_later(impl_, &Impl::get_messages_fts, std::move(query), std::move(promise));
   }
   void get_expiring_messages(int32 expires_from, int32 expires_till, int32 limit,
-                             Promise<std::pair<std::vector<std::pair<DialogId, BufferSlice>>, int32>> promise) final {
+                             Promise<std::pair<std::vector<MessagesDbMessage>, int32>> promise) final {
     send_closure_later(impl_, &Impl::get_expiring_messages, expires_from, expires_till, limit, std::move(promise));
   }
 
@@ -1063,8 +1061,7 @@ class MessagesDbAsync final : public MessagesDbAsyncInterface {
       add_read_query();
       promise.set_result(sync_db_->get_message(full_message_id));
     }
-    void get_message_by_unique_message_id(ServerMessageId unique_message_id,
-                                          Promise<std::pair<DialogId, BufferSlice>> promise) {
+    void get_message_by_unique_message_id(ServerMessageId unique_message_id, Promise<MessagesDbMessage> promise) {
       add_read_query();
       promise.set_result(sync_db_->get_message_by_unique_message_id(unique_message_id));
     }
@@ -1100,7 +1097,7 @@ class MessagesDbAsync final : public MessagesDbAsyncInterface {
       promise.set_result(sync_db_->get_messages_fts(std::move(query)));
     }
     void get_expiring_messages(int32 expires_from, int32 expires_till, int32 limit,
-                               Promise<std::pair<std::vector<std::pair<DialogId, BufferSlice>>, int32>> promise) {
+                               Promise<std::pair<std::vector<MessagesDbMessage>, int32>> promise) {
       add_read_query();
       promise.set_result(sync_db_->get_expiring_messages(expires_from, expires_till, limit));
     }

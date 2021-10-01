@@ -12638,13 +12638,12 @@ void MessagesManager::ttl_db_loop(double server_now) {
   G()->td_db()->get_messages_db_async()->get_expiring_messages(
       ttl_db_expires_from_, ttl_db_expires_till_, limit,
       PromiseCreator::lambda(
-          [actor_id = actor_id(this)](Result<std::pair<std::vector<std::pair<DialogId, BufferSlice>>, int32>> result) {
+          [actor_id = actor_id(this)](Result<std::pair<std::vector<MessagesDbMessage>, int32>> result) {
             send_closure(actor_id, &MessagesManager::ttl_db_on_result, std::move(result), false);
           }));
 }
 
-void MessagesManager::ttl_db_on_result(Result<std::pair<std::vector<std::pair<DialogId, BufferSlice>>, int32>> r_result,
-                                       bool dummy) {
+void MessagesManager::ttl_db_on_result(Result<std::pair<std::vector<MessagesDbMessage>, int32>> r_result, bool dummy) {
   if (G()->close_flag()) {
     return;
   }
@@ -12657,8 +12656,9 @@ void MessagesManager::ttl_db_on_result(Result<std::pair<std::vector<std::pair<Di
   LOG(INFO) << "Receive ttl_db query result " << tag("new expires_till", ttl_db_expires_till_)
             << tag("got messages", result.first.size());
   for (auto &dialog_message : result.first) {
-    on_get_message_from_database(dialog_message.first, get_dialog_force(dialog_message.first, "ttl_db_on_result"),
-                                 dialog_message.second, false, "ttl_db_on_result");
+    on_get_message_from_database(dialog_message.dialog_id,
+                                 get_dialog_force(dialog_message.dialog_id, "ttl_db_on_result"), dialog_message.data,
+                                 false, "ttl_db_on_result");
   }
   ttl_db_loop(G()->server_time());
 }
@@ -16260,7 +16260,8 @@ vector<DialogId> MessagesManager::search_public_dialogs(const string &query, Pro
 
         auto d = get_dialog(dialog_id);
         if (d == nullptr || d->order != DEFAULT_ORDER ||
-            (dialog_id.get_type() == DialogType::User && td_->contacts_manager_->is_user_contact(dialog_id.get_user_id()))) {
+            (dialog_id.get_type() == DialogType::User &&
+             td_->contacts_manager_->is_user_contact(dialog_id.get_user_id()))) {
           continue;
         }
 
@@ -34062,9 +34063,9 @@ MessagesManager::Dialog *MessagesManager::get_dialog_by_message_id(MessageId mes
       auto r_value =
           G()->td_db()->get_messages_db_sync()->get_message_by_unique_message_id(message_id.get_server_message_id());
       if (r_value.is_ok()) {
-        DialogId dialog_id(r_value.ok().first);
+        auto dialog_id = r_value.ok().dialog_id;
         Message *m = on_get_message_from_database(dialog_id, get_dialog_force(dialog_id, "get_dialog_by_message_id"),
-                                                  r_value.ok().second, false, "get_dialog_by_message_id");
+                                                  r_value.ok().data, false, "get_dialog_by_message_id");
         if (m != nullptr) {
           CHECK(m->message_id == message_id);
           LOG_CHECK(message_id_to_dialog_id_[message_id] == dialog_id)
