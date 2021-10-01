@@ -124,14 +124,22 @@ class RichText {
             context->has_anchor_urls_ = true;
           } else {
             auto anchor = Slice(content).substr(context->base_url_.size() + 1);
-            auto it = context->anchors_.find(anchor);
-            if (it != context->anchors_.end()) {
-              if (it->second == nullptr) {
-                return make_tl_object<td_api::richTextAnchorLink>(texts[0].get_rich_text_object(context), anchor.str(),
-                                                                  content);
-              } else {
-                return make_tl_object<td_api::richTextReference>(texts[0].get_rich_text_object(context), anchor.str(),
-                                                                 content);
+            // https://html.spec.whatwg.org/multipage/browsing-the-web.html#the-indicated-part-of-the-document
+            for (int i = 0; i < 2; i++) {
+              string url_decoded_anchor;
+              if (i == 1) {  // try to url_decode anchor
+                url_decoded_anchor = url_decode(anchor, false);
+                anchor = url_decoded_anchor;
+              }
+              auto it = context->anchors_.find(anchor);
+              if (it != context->anchors_.end()) {
+                if (it->second == nullptr) {
+                  return make_tl_object<td_api::richTextAnchorLink>(texts[0].get_rich_text_object(context),
+                                                                    anchor.str(), content);
+                } else {
+                  return make_tl_object<td_api::richTextReference>(texts[0].get_rich_text_object(context), anchor.str(),
+                                                                   content);
+                }
               }
             }
           }
