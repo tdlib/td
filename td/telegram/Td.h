@@ -291,7 +291,7 @@ class Td final : public Actor {
   enum class State : int32 { WaitParameters, Decrypt, Run, Close } state_ = State::WaitParameters;
   bool is_database_encrypted_ = false;
 
-  vector<std::pair<uint64, std::shared_ptr<ResultHandler>>> result_handlers_;
+  std::unordered_map<uint64, std::shared_ptr<ResultHandler>> result_handlers_;
   enum : int8 { RequestActorIdType = 1, ActorIdType = 2 };
   Container<ActorOwn<Actor>> request_actors_;
 
@@ -338,9 +338,6 @@ class Td final : public Actor {
 
   void add_handler(uint64 id, std::shared_ptr<ResultHandler> handler);
   std::shared_ptr<ResultHandler> extract_handler(uint64 id);
-  void invalidate_handler(ResultHandler *handler);
-  void clear_handlers();
-  // void destroy_handler(ResultHandler *handler);
 
   void clear_requests();
 

@@ -3266,28 +3266,17 @@ td_api::object_ptr<td_api::Object> Td::static_request(td_api::object_ptr<td_api:
 }
 
 void Td::add_handler(uint64 id, std::shared_ptr<ResultHandler> handler) {
-  result_handlers_.emplace_back(id, handler);
+  result_handlers_[id] = std::move(handler);
 }
 
 std::shared_ptr<Td::ResultHandler> Td::extract_handler(uint64 id) {
-  std::shared_ptr<Td::ResultHandler> result;
-  for (size_t i = 0; i < result_handlers_.size(); i++) {
-    if (result_handlers_[i].first == id) {
-      result = std::move(result_handlers_[i].second);
-      result_handlers_.erase(result_handlers_.begin() + i);
-      break;
-    }
+  auto it = result_handlers_.find(id);
+  if (it == result_handlers_.end()) {
+    return nullptr;
   }
+  auto result = std::move(it->second);
+  result_handlers_.erase(it);
   return result;
-}
-
-void Td::invalidate_handler(ResultHandler *handler) {
-  for (size_t i = 0; i < result_handlers_.size(); i++) {
-    if (result_handlers_[i].second.get() == handler) {
-      result_handlers_.erase(result_handlers_.begin() + i);
-      i--;
-    }
-  }
 }
 
 void Td::send(NetQueryPtr &&query) {
@@ -3640,10 +3629,6 @@ void Td::dec_request_actor_refcnt() {
   }
 }
 
-void Td::clear_handlers() {
-  result_handlers_.clear();
-}
-
 void Td::clear_requests() {
   while (!pending_alarms_.empty()) {
     auto it = pending_alarms_.begin();
@@ -3687,7 +3672,7 @@ void Td::clear() {
   LOG(DEBUG) << "Options was cleared" << timer;
 
   G()->net_query_creator().stop_check();
-  clear_handlers();
+  result_handlers_.clear();
   LOG(DEBUG) << "Handlers was cleared" << timer;
   G()->net_query_dispatcher().stop();
   LOG(DEBUG) << "NetQueryDispatcher was stopped" << timer;
