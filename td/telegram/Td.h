@@ -332,7 +332,6 @@ class Td final : public Actor {
 
   template <class T>
   friend class RequestActor;        // uses send_result/send_error
-  friend class TestQuery;           // uses send_result/send_error, TODO pass Promise<>
   friend class AuthManager;         // uses send_result/send_error, TODO pass Promise<>
   friend class PhoneNumberManager;  // uses send_result/send_error, TODO pass Promise<>
 

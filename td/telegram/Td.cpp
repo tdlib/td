@@ -470,9 +470,11 @@ class SaveAppLogQuery final : public Td::ResultHandler {
   }
 };
 
-class TestQuery final : public Td::ResultHandler {
+class TestNetworkQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
  public:
-  explicit TestQuery(uint64 request_id) : request_id_(request_id) {
+  explicit TestNetworkQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
   void send() {
@@ -485,17 +487,14 @@ class TestQuery final : public Td::ResultHandler {
       return on_error(id, Status::Error(500, "Fetch failed"));
     }
 
-    LOG(DEBUG) << "TestOK: " << to_string(result_ptr.ok());
-    send_closure(G()->td(), &Td::send_result, request_id_, make_tl_object<td_api::ok>());
+    LOG(DEBUG) << "TestNetwork OK: " << to_string(result_ptr.ok());
+    promise_.set_value(Unit());
   }
 
   void on_error(uint64 id, Status status) final {
-    status.ignore();
     LOG(ERROR) << "Test query failed: " << status;
+    promise_.set_error(std::move(status));
   }
-
- private:
-  uint64 request_id_;
 };
 
 class TestProxyRequest final : public RequestOnceActor {
@@ -8426,7 +8425,8 @@ td_api::object_ptr<td_api::Object> Td::do_static_request(td_api::testReturnError
 
 // test
 void Td::on_request(uint64 id, const td_api::testNetwork &request) {
-  create_handler<TestQuery>(id)->send();
+  CREATE_OK_REQUEST_PROMISE();
+  create_handler<TestNetworkQuery>(std::move(promise))->send();
 }
 
 void Td::on_request(uint64 id, td_api::testProxy &request) {
