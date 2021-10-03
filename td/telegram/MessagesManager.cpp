@@ -9734,29 +9734,28 @@ void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, c
     bool from_the_end = !from_message_id.is_valid() ||
                         (d->last_message_id != MessageId() && from_message_id > d->last_message_id) ||
                         from_message_id >= MessageId::max();
-    if (G()->parameters().use_message_db) {
-      bool update_dialog = false;
+    bool update_dialog = false;
 
-      auto &old_message_count = d->message_count_by_index[message_search_filter_index(filter)];
-      if (old_message_count != total_count) {
-        old_message_count = total_count;
-        if (filter == MessageSearchFilter::UnreadMention) {
-          d->unread_mention_count = old_message_count;
-          update_dialog_mention_notification_count(d);
-          send_update_chat_unread_mention_count(d);
-        }
-        update_dialog = true;
+    auto &old_message_count = d->message_count_by_index[message_search_filter_index(filter)];
+    if (old_message_count != total_count) {
+      old_message_count = total_count;
+      if (filter == MessageSearchFilter::UnreadMention) {
+        d->unread_mention_count = old_message_count;
+        update_dialog_mention_notification_count(d);
+        send_update_chat_unread_mention_count(d);
       }
+      update_dialog = true;
+    }
 
-      auto &old_first_db_message_id = d->first_database_message_id_by_index[message_search_filter_index(filter)];
-      if ((from_the_end || (old_first_db_message_id.is_valid() && old_first_db_message_id <= from_message_id)) &&
-          (!old_first_db_message_id.is_valid() || first_added_message_id < old_first_db_message_id)) {
-        old_first_db_message_id = first_added_message_id;
-        update_dialog = true;
-      }
-      if (update_dialog) {
-        on_dialog_updated(dialog_id, "search results");
-      }
+    auto &old_first_database_message_id = d->first_database_message_id_by_index[message_search_filter_index(filter)];
+    if ((from_the_end ||
+         (old_first_database_message_id.is_valid() && old_first_database_message_id <= from_message_id)) &&
+        (!old_first_database_message_id.is_valid() || first_added_message_id < old_first_database_message_id)) {
+      old_first_database_message_id = first_added_message_id;
+      update_dialog = true;
+    }
+    if (update_dialog) {
+      on_dialog_updated(dialog_id, "search results");
     }
 
     if (from_the_end && filter == MessageSearchFilter::Pinned) {
@@ -9801,9 +9800,9 @@ void MessagesManager::on_get_dialog_message_count(DialogId dialog_id, MessageSea
   }
 
   if (total_count == 0) {
-    auto &old_first_db_message_id = d->first_database_message_id_by_index[message_search_filter_index(filter)];
-    if (old_first_db_message_id != MessageId::min()) {
-      old_first_db_message_id = MessageId::min();
+    auto &old_first_database_message_id = d->first_database_message_id_by_index[message_search_filter_index(filter)];
+    if (old_first_database_message_id != MessageId::min()) {
+      old_first_database_message_id = MessageId::min();
       on_dialog_updated(dialog_id, "on_get_dialog_message_count");
     }
     if (filter == MessageSearchFilter::Pinned) {
