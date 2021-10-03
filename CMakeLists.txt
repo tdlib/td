@@ -173,7 +173,7 @@ if (NOT CMAKE_CROSSCOMPILING)
 endif()
 
 if (NOT OPENSSL_FOUND)
-  message(WARNING "Can't find OpenSSL: stop TDLib building")
+  message(FATAL_ERROR "Can't find OpenSSL: stop TDLib building")
   return()
 endif()
 
@@ -181,12 +181,12 @@ if (NOT ZLIB_FOUND)
   find_package(ZLIB)
 endif()
 if (NOT ZLIB_FOUND)
-  message(WARNING "Can't find zlib: stop TDLib building")
+  message(FATAL_ERROR "Can't find zlib: stop TDLib building")
   return()
 endif()
 
 if (NOT TDUTILS_MIME_TYPE)
-  message(WARNING "Option TDUTILS_MIME_TYPE must not be disabled: stop TDLib building")
+  message(FATAL_ERROR "Option TDUTILS_MIME_TYPE must not be disabled: stop TDLib building")
   return()
 endif()
 
