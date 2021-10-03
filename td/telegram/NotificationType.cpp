@@ -42,7 +42,8 @@ class NotificationTypeMessage final : public NotificationType {
   }
 
   td_api::object_ptr<td_api::NotificationType> get_notification_type_object(DialogId dialog_id) const final {
-    auto message_object = G()->td().get_actor_unsafe()->messages_manager_->get_message_object({dialog_id, message_id_});
+    auto message_object = G()->td().get_actor_unsafe()->messages_manager_->get_message_object(
+        {dialog_id, message_id_}, "get_notification_type_object");
     if (message_object == nullptr) {
       return nullptr;
     }

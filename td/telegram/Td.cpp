@@ -985,7 +985,7 @@ class GetMessageRequest final : public RequestOnceActor {
   }
 
   void do_send_result() final {
-    send_result(td->messages_manager_->get_message_object(full_message_id_));
+    send_result(td->messages_manager_->get_message_object(full_message_id_, "GetMessageRequest"));
   }
 
  public:
@@ -1006,7 +1006,7 @@ class GetRepliedMessageRequest final : public RequestOnceActor {
   }
 
   void do_send_result() final {
-    send_result(td->messages_manager_->get_message_object(replied_message_id_));
+    send_result(td->messages_manager_->get_message_object(replied_message_id_, "GetRepliedMessageRequest"));
   }
 
  public:
@@ -1054,7 +1054,8 @@ class GetChatPinnedMessageRequest final : public RequestOnceActor {
   }
 
   void do_send_result() final {
-    send_result(td->messages_manager_->get_message_object({dialog_id_, pinned_message_id_}));
+    send_result(
+        td->messages_manager_->get_message_object({dialog_id_, pinned_message_id_}, "GetChatPinnedMessageRequest"));
   }
 
  public:
@@ -1074,7 +1075,7 @@ class GetCallbackQueryMessageRequest final : public RequestOnceActor {
   }
 
   void do_send_result() final {
-    send_result(td->messages_manager_->get_message_object({dialog_id_, message_id_}));
+    send_result(td->messages_manager_->get_message_object({dialog_id_, message_id_}, "GetCallbackQueryMessageRequest"));
   }
 
  public:
@@ -1096,7 +1097,7 @@ class GetMessagesRequest final : public RequestOnceActor {
   }
 
   void do_send_result() final {
-    send_result(td->messages_manager_->get_messages_object(-1, dialog_id_, message_ids_, false));
+    send_result(td->messages_manager_->get_messages_object(-1, dialog_id_, message_ids_, false, "GetMessagesRequest"));
   }
 
  public:
@@ -1168,7 +1169,7 @@ class EditMessageTextRequest final : public RequestOnceActor {
   }
 
   void do_send_result() final {
-    send_result(td->messages_manager_->get_message_object(full_message_id_));
+    send_result(td->messages_manager_->get_message_object(full_message_id_, "EditMessageTextRequest"));
   }
 
  public:
@@ -1195,7 +1196,7 @@ class EditMessageLiveLocationRequest final : public RequestOnceActor {
   }
 
   void do_send_result() final {
-    send_result(td->messages_manager_->get_message_object(full_message_id_));
+    send_result(td->messages_manager_->get_message_object(full_message_id_, "EditMessageLiveLocationRequest"));
   }
 
  public:
@@ -1222,7 +1223,7 @@ class EditMessageMediaRequest final : public RequestOnceActor {
   }
 
   void do_send_result() final {
-    send_result(td->messages_manager_->get_message_object(full_message_id_));
+    send_result(td->messages_manager_->get_message_object(full_message_id_, "EditMessageMediaRequest"));
   }
 
  public:
@@ -1247,7 +1248,7 @@ class EditMessageCaptionRequest final : public RequestOnceActor {
   }
 
   void do_send_result() final {
-    send_result(td->messages_manager_->get_message_object(full_message_id_));
+    send_result(td->messages_manager_->get_message_object(full_message_id_, "EditMessageCaptionRequest"));
   }
 
  public:
@@ -1270,7 +1271,7 @@ class EditMessageReplyMarkupRequest final : public RequestOnceActor {
   }
 
   void do_send_result() final {
-    send_result(td->messages_manager_->get_message_object(full_message_id_));
+    send_result(td->messages_manager_->get_message_object(full_message_id_, "EditMessageReplyMarkupRequest"));
   }
 
  public:
@@ -1331,7 +1332,8 @@ class GetMessageThreadHistoryRequest final : public RequestActor<> {
   }
 
   void do_send_result() final {
-    send_result(td->messages_manager_->get_messages_object(-1, messages_.first, messages_.second, true));
+    send_result(td->messages_manager_->get_messages_object(-1, messages_.first, messages_.second, true,
+                                                           "GetMessageThreadHistoryRequest"));
   }
 
  public:
@@ -1368,7 +1370,8 @@ class SearchChatMessagesRequest final : public RequestActor<> {
   }
 
   void do_send_result() final {
-    send_result(td->messages_manager_->get_messages_object(messages_.first, dialog_id_, messages_.second, true));
+    send_result(td->messages_manager_->get_messages_object(messages_.first, dialog_id_, messages_.second, true,
+                                                           "SearchChatMessagesRequest"));
   }
 
   void do_send_error(Status &&status) final {
@@ -1414,7 +1417,7 @@ class SearchSecretMessagesRequest final : public RequestActor<> {
   }
 
   void do_send_result() final {
-    send_result(td->messages_manager_->get_found_messages_object(found_messages_));
+    send_result(td->messages_manager_->get_found_messages_object(found_messages_, "SearchSecretMessagesRequest"));
   }
 
  public:
@@ -1452,7 +1455,8 @@ class SearchMessagesRequest final : public RequestActor<> {
   }
 
   void do_send_result() final {
-    send_result(td->messages_manager_->get_messages_object(messages_.first, messages_.second, true));
+    send_result(
+        td->messages_manager_->get_messages_object(messages_.first, messages_.second, true, "SearchMessagesRequest"));
   }
 
   void do_send_error(Status &&status) final {
@@ -1497,7 +1501,8 @@ class SearchCallMessagesRequest final : public RequestActor<> {
   }
 
   void do_send_result() final {
-    send_result(td->messages_manager_->get_messages_object(messages_.first, messages_.second, true));
+    send_result(td->messages_manager_->get_messages_object(messages_.first, messages_.second, true,
+                                                           "SearchCallMessagesRequest"));
   }
 
  public:
@@ -1524,7 +1529,8 @@ class SearchChatRecentLocationMessagesRequest final : public RequestActor<> {
   }
 
   void do_send_result() final {
-    send_result(td->messages_manager_->get_messages_object(messages_.first, dialog_id_, messages_.second, true));
+    send_result(td->messages_manager_->get_messages_object(messages_.first, dialog_id_, messages_.second, true,
+                                                           "SearchChatRecentLocationMessagesRequest"));
   }
 
  public:
@@ -1541,7 +1547,8 @@ class GetActiveLiveLocationMessagesRequest final : public RequestActor<> {
   }
 
   void do_send_result() final {
-    send_result(td->messages_manager_->get_messages_object(-1, full_message_ids_, true));
+    send_result(td->messages_manager_->get_messages_object(-1, full_message_ids_, true,
+                                                           "GetActiveLiveLocationMessagesRequest"));
   }
 
  public:
@@ -1581,7 +1588,8 @@ class GetChatScheduledMessagesRequest final : public RequestActor<> {
   }
 
   void do_send_result() final {
-    send_result(td->messages_manager_->get_messages_object(-1, dialog_id_, message_ids_, true));
+    send_result(td->messages_manager_->get_messages_object(-1, dialog_id_, message_ids_, true,
+                                                           "GetChatScheduledMessagesRequest"));
   }
 
  public:
@@ -4873,7 +4881,8 @@ void Td::on_request(uint64 id, const td_api::getMessage &request) {
 
 void Td::on_request(uint64 id, const td_api::getMessageLocally &request) {
   FullMessageId full_message_id(DialogId(request.chat_id_), MessageId(request.message_id_));
-  send_closure(actor_id(this), &Td::send_result, id, messages_manager_->get_message_object(full_message_id));
+  send_closure(actor_id(this), &Td::send_result, id,
+               messages_manager_->get_message_object(full_message_id, "getMessageLocally"));
 }
 
 void Td::on_request(uint64 id, const td_api::getRepliedMessage &request) {
@@ -5480,7 +5489,7 @@ void Td::on_request(uint64 id, td_api::sendMessageAlbum &request) {
   }
 
   send_closure(actor_id(this), &Td::send_result, id,
-               messages_manager_->get_messages_object(-1, dialog_id, r_message_ids.ok(), false));
+               messages_manager_->get_messages_object(-1, dialog_id, r_message_ids.ok(), false, "sendMessageAlbum"));
 }
 
 void Td::on_request(uint64 id, td_api::sendBotStartMessage &request) {
@@ -5496,7 +5505,7 @@ void Td::on_request(uint64 id, td_api::sendBotStartMessage &request) {
 
   CHECK(r_new_message_id.ok().is_valid() || r_new_message_id.ok().is_valid_scheduled());
   send_closure(actor_id(this), &Td::send_result, id,
-               messages_manager_->get_message_object({dialog_id, r_new_message_id.ok()}));
+               messages_manager_->get_message_object({dialog_id, r_new_message_id.ok()}, "sendBotStartMessage"));
 }
 
 void Td::on_request(uint64 id, td_api::sendInlineQueryResultMessage &request) {
@@ -5512,8 +5521,9 @@ void Td::on_request(uint64 id, td_api::sendInlineQueryResultMessage &request) {
   }
 
   CHECK(r_new_message_id.ok().is_valid() || r_new_message_id.ok().is_valid_scheduled());
-  send_closure(actor_id(this), &Td::send_result, id,
-               messages_manager_->get_message_object({dialog_id, r_new_message_id.ok()}));
+  send_closure(
+      actor_id(this), &Td::send_result, id,
+      messages_manager_->get_message_object({dialog_id, r_new_message_id.ok()}, "sendInlineQueryResultMessage"));
 }
 
 void Td::on_request(uint64 id, td_api::addLocalMessage &request) {
@@ -5529,7 +5539,7 @@ void Td::on_request(uint64 id, td_api::addLocalMessage &request) {
 
   CHECK(r_new_message_id.ok().is_valid());
   send_closure(actor_id(this), &Td::send_result, id,
-               messages_manager_->get_message_object({dialog_id, r_new_message_id.ok()}));
+               messages_manager_->get_message_object({dialog_id, r_new_message_id.ok()}, "addLocalMessage"));
 }
 
 void Td::on_request(uint64 id, td_api::editMessageText &request) {
@@ -5678,7 +5688,7 @@ void Td::on_request(uint64 id, const td_api::resendMessages &request) {
   }
 
   send_closure(actor_id(this), &Td::send_result, id,
-               messages_manager_->get_messages_object(-1, dialog_id, r_message_ids.ok(), false));
+               messages_manager_->get_messages_object(-1, dialog_id, r_message_ids.ok(), false, "resendMessages"));
 }
 
 void Td::on_request(uint64 id, td_api::getWebPagePreview &request) {

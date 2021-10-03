@@ -703,7 +703,8 @@ class MessagesManager final : public Actor {
     int32 total_count = 0;
   };
 
-  td_api::object_ptr<td_api::foundMessages> get_found_messages_object(const FoundMessages &found_messages);
+  td_api::object_ptr<td_api::foundMessages> get_found_messages_object(const FoundMessages &found_messages,
+                                                                      const char *source);
 
   FoundMessages offline_search_messages(DialogId dialog_id, const string &query, const string &offset, int32 limit,
                                         MessageSearchFilter filter, int64 &random_id, Promise<> &&promise);
@@ -740,13 +741,14 @@ class MessagesManager final : public Actor {
 
   tl_object_ptr<td_api::message> get_dialog_message_by_date_object(int64 random_id);
 
-  tl_object_ptr<td_api::message> get_message_object(FullMessageId full_message_id);
+  tl_object_ptr<td_api::message> get_message_object(FullMessageId full_message_id, const char *source);
 
   tl_object_ptr<td_api::messages> get_messages_object(int32 total_count, DialogId dialog_id,
-                                                      const vector<MessageId> &message_ids, bool skip_not_found);
+                                                      const vector<MessageId> &message_ids, bool skip_not_found,
+                                                      const char *source);
 
   tl_object_ptr<td_api::messages> get_messages_object(int32 total_count, const vector<FullMessageId> &full_message_ids,
-                                                      bool skip_not_found);
+                                                      bool skip_not_found, const char *source);
 
   void process_pts_update(tl_object_ptr<telegram_api::Update> &&update);
 
@@ -2351,7 +2353,7 @@ class MessagesManager final : public Actor {
 
   static tl_object_ptr<td_api::MessageSchedulingState> get_message_scheduling_state_object(int32 send_date);
 
-  tl_object_ptr<td_api::message> get_message_object(DialogId dialog_id, const Message *m,
+  tl_object_ptr<td_api::message> get_message_object(DialogId dialog_id, const Message *m, const char *source,
                                                     bool for_event_log = false) const;
 
   static tl_object_ptr<td_api::messages> get_messages_object(int32 total_count,

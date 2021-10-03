@@ -242,7 +242,7 @@ void GameManager::set_game_score(FullMessageId full_message_id, bool edit_messag
 
 void GameManager::on_set_game_score(FullMessageId full_message_id,
                                     Promise<td_api::object_ptr<td_api::message>> &&promise) {
-  promise.set_value(td_->messages_manager_->get_message_object(full_message_id));
+  promise.set_value(td_->messages_manager_->get_message_object(full_message_id, "on_set_game_score"));
 }
 
 void GameManager::set_inline_game_score(const string &inline_message_id, bool edit_message, UserId user_id, int32 score,
