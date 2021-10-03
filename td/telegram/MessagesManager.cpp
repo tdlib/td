@@ -31819,7 +31819,7 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
       auto message = create_message(
           parse_telegram_api_message(std::move(action->message_), false, "channelAdminLogEventActionUpdatePinned"),
           true);
-      if (message.second == nullptr) {
+      if (message.second == nullptr || message.first != DialogId(channel_id)) {
         LOG(ERROR) << "Failed to get pinned message";
         return nullptr;
       }
@@ -31838,7 +31838,8 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
       auto new_message = create_message(parse_telegram_api_message(std::move(action->new_message_), false,
                                                                    "new channelAdminLogEventActionEditMessage"),
                                         true);
-      if (old_message.second == nullptr || new_message.second == nullptr || old_message.first != new_message.first) {
+      if (old_message.second == nullptr || new_message.second == nullptr || old_message.first != new_message.first ||
+          old_message.first != DialogId(channel_id)) {
         LOG(ERROR) << "Failed to get edited message";
         return nullptr;
       }
@@ -31850,7 +31851,7 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionStopPoll>(action_ptr);
       auto message = create_message(
           parse_telegram_api_message(std::move(action->message_), false, "channelAdminLogEventActionStopPoll"), true);
-      if (message.second == nullptr) {
+      if (message.second == nullptr || message.first != DialogId(channel_id)) {
         LOG(ERROR) << "Failed to get stopped poll message";
         return nullptr;
       }
@@ -31866,7 +31867,7 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
       auto message = create_message(
           parse_telegram_api_message(std::move(action->message_), false, "channelAdminLogEventActionDeleteMessage"),
           true);
-      if (message.second == nullptr) {
+      if (message.second == nullptr || message.first != DialogId(channel_id)) {
         LOG(ERROR) << "Failed to get deleted message";
         return nullptr;
       }
