@@ -212,6 +212,9 @@ class MessagesManager final : public Actor {
                                             vector<tl_object_ptr<telegram_api::Message>> &&messages);
   void on_failed_dialog_messages_search(DialogId dialog_id, int64 random_id);
 
+  void on_get_dialog_message_count(DialogId dialog_id, MessageSearchFilter filter, int32 total_count,
+                                   Promise<int32> &&promise);
+
   void on_get_messages_search_result(const string &query, int32 offset_date, DialogId offset_dialog_id,
                                      MessageId offset_message_id, int32 limit, MessageSearchFilter filter,
                                      int32 min_date, int32 max_date, int64 random_id, int32 total_count,
@@ -726,8 +729,8 @@ class MessagesManager final : public Actor {
 
   void on_get_dialog_message_by_date_fail(int64 random_id);
 
-  int32 get_dialog_message_count(DialogId dialog_id, MessageSearchFilter filter, bool return_local, int64 &random_id,
-                                 Promise<Unit> &&promise);
+  void get_dialog_message_count(DialogId dialog_id, MessageSearchFilter filter, bool return_local,
+                                Promise<int32> &&promise);
 
   vector<MessageId> get_dialog_scheduled_messages(DialogId dialog_id, bool force, bool ignore_result,
                                                   Promise<Unit> &&promise);

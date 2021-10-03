@@ -584,7 +584,7 @@ class UpdateDialogPinnedMessageQuery final : public Td::ResultHandler {
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
       LOG(INFO) << "Can't update pinned message in " << dialog_id;
-      return on_error(0, Status::Error(500, "Can't update pinned message"));
+      return on_error(0, Status::Error(400, "Can't update pinned message"));
     }
 
     int32 flags = 0;
@@ -627,7 +627,7 @@ class UnpinAllMessagesQuery final : public Td::ResultHandler {
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id_, AccessRights::Write);
     if (input_peer == nullptr) {
       LOG(INFO) << "Can't unpin all messages in " << dialog_id_;
-      return on_error(0, Status::Error(500, "Can't unpin all messages"));
+      return on_error(0, Status::Error(400, "Can't unpin all messages"));
     }
 
     send_query(G()->net_query_creator().create(telegram_api::messages_unpinAllMessages(std::move(input_peer))));
@@ -1186,7 +1186,7 @@ class UploadImportedMediaQuery final : public Td::ResultHandler {
 
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
-      return on_error(0, Status::Error(400, "Have no write access to the chat"));
+      return on_error(0, Status::Error(400, "Can't access the chat"));
     }
 
     send_query(G()->net_query_creator().create(telegram_api::messages_uploadImportedMedia(
@@ -1531,7 +1531,7 @@ class SaveDraftMessageQuery final : public Td::ResultHandler {
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
       LOG(INFO) << "Can't update draft message because have no write access to " << dialog_id;
-      return on_error(0, Status::Error(500, "Can't save draft message"));
+      return on_error(0, Status::Error(400, "Can't save draft message"));
     }
 
     int32 flags = 0;
@@ -1630,7 +1630,7 @@ class ToggleDialogPinQuery final : public Td::ResultHandler {
 
     auto input_peer = td->messages_manager_->get_input_dialog_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
-      return on_error(0, Status::Error(500, "Can't update dialog is_pinned"));
+      return on_error(0, Status::Error(400, "Can't access the chat"));
     }
 
     int32 flags = 0;
@@ -1720,7 +1720,7 @@ class ToggleDialogUnreadMarkQuery final : public Td::ResultHandler {
 
     auto input_peer = td->messages_manager_->get_input_dialog_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
-      return on_error(0, Status::Error(500, "Can't update dialog is_marked_as_unread"));
+      return on_error(0, Status::Error(400, "Can't access the chat"));
     }
 
     int32 flags = 0;
@@ -1816,8 +1816,7 @@ class GetMessagesViewsQuery final : public Td::ResultHandler {
 
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
-      LOG(ERROR) << "Can't update message view count because doesn't have info about the " << dialog_id;
-      return on_error(0, Status::Error(500, "Can't update message view count"));
+      return on_error(0, Status::Error(400, "Can't access the chat"));
     }
 
     LOG(INFO) << "View " << message_ids_.size() << " messages in " << dialog_id
@@ -1955,7 +1954,7 @@ class GetDialogMessageByDateQuery final : public Td::ResultHandler {
   void send(DialogId dialog_id, int32 date, int64 random_id) {
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
-      return promise_.set_error(Status::Error(500, "Have no info about the chat"));
+      return promise_.set_error(Status::Error(400, "Can't access the chat"));
     }
 
     dialog_id_ = dialog_id;
@@ -2014,8 +2013,7 @@ class GetHistoryQuery final : public Td::ResultHandler {
             int32 limit) {
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
-      LOG(ERROR) << "Can't get chat history in " << dialog_id << " because doesn't have info about the chat";
-      return promise_.set_error(Status::Error(500, "Have no info about the chat"));
+      return promise_.set_error(Status::Error(400, "Can't access the chat"));
     }
     CHECK(offset < 0);
 
@@ -2032,8 +2030,7 @@ class GetHistoryQuery final : public Td::ResultHandler {
   void send_get_from_the_end(DialogId dialog_id, MessageId old_last_new_message_id, int32 limit) {
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
-      LOG(ERROR) << "Can't get chat history because doesn't have info about the chat";
-      return promise_.set_error(Status::Error(500, "Have no info about the chat"));
+      return promise_.set_error(Status::Error(400, "Can't access the chat"));
     }
 
     dialog_id_ = dialog_id;
@@ -2208,8 +2205,7 @@ class SearchMessagesQuery final : public Td::ResultHandler {
     auto input_peer = dialog_id.is_valid() ? td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read)
                                            : make_tl_object<telegram_api::inputPeerEmpty>();
     if (input_peer == nullptr) {
-      LOG(ERROR) << "Can't search messages because doesn't have info about the chat";
-      return promise_.set_error(Status::Error(500, "Have no info about the chat"));
+      return promise_.set_error(Status::Error(400, "Can't access the chat"));
     }
 
     dialog_id_ = dialog_id;
@@ -2291,6 +2287,55 @@ class SearchMessagesQuery final : public Td::ResultHandler {
       td->messages_manager_->on_get_dialog_error(dialog_id_, status, "SearchMessagesQuery");
     }
     td->messages_manager_->on_failed_dialog_messages_search(dialog_id_, random_id_);
+    promise_.set_error(std::move(status));
+  }
+};
+
+class GetSearchCountersQuery final : public Td::ResultHandler {
+  Promise<int32> promise_;
+  DialogId dialog_id_;
+  MessageSearchFilter filter_;
+
+ public:
+  explicit GetSearchCountersQuery(Promise<int32> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, MessageSearchFilter filter) {
+    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    if (input_peer == nullptr) {
+      return promise_.set_error(Status::Error(400, "Can't access the chat"));
+    }
+
+    dialog_id_ = dialog_id;
+    filter_ = filter;
+
+    CHECK(filter != MessageSearchFilter::Empty);
+    CHECK(filter != MessageSearchFilter::UnreadMention);
+    CHECK(filter != MessageSearchFilter::FailedToSend);
+    vector<telegram_api::object_ptr<telegram_api::MessagesFilter>> filters;
+    filters.push_back(get_input_messages_filter(filter));
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_getSearchCounters(std::move(input_peer), std::move(filters))));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_getSearchCounters>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    if (result.size() != 1 || result[0]->filter_->get_id() != get_input_messages_filter(filter_)->get_id()) {
+      LOG(ERROR) << "Receive unexpected response for get message count in " << dialog_id_ << " with filter " << filter_
+                 << ": " << to_string(result);
+      return on_error(id, Status::Error(500, "Receive wrong response"));
+    }
+
+    td->messages_manager_->on_get_dialog_message_count(dialog_id_, filter_, result[0]->count_, std::move(promise_));
+  }
+
+  void on_error(uint64 id, Status status) final {
+    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetSearchCountersQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -2426,8 +2471,7 @@ class GetRecentLocationsQuery final : public Td::ResultHandler {
   void send(DialogId dialog_id, int32 limit, int64 random_id) {
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
-      LOG(ERROR) << "Can't get recent locations because doesn't have info about the chat";
-      return promise_.set_error(Status::Error(500, "Have no info about the chat"));
+      return on_error(0, Status::Error(400, "Have no info about the chat"));
     }
 
     dialog_id_ = dialog_id;
@@ -9557,6 +9601,10 @@ void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, c
                                                            MessageId top_thread_message_id, int64 random_id,
                                                            int32 total_count,
                                                            vector<tl_object_ptr<telegram_api::Message>> &&messages) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   LOG(INFO) << "Receive " << messages.size() << " found messages in " << dialog_id;
   if (!dialog_id.is_valid()) {
     CHECK(query.empty());
@@ -9730,6 +9778,39 @@ void MessagesManager::on_failed_dialog_messages_search(DialogId dialog_id, int64
   auto it = found_dialog_messages_.find(random_id);
   CHECK(it != found_dialog_messages_.end());
   found_dialog_messages_.erase(it);
+}
+
+void MessagesManager::on_get_dialog_message_count(DialogId dialog_id, MessageSearchFilter filter, int32 total_count,
+                                                  Promise<int32> &&promise) {
+  LOG(INFO) << "Receive " << total_count << " message count in " << dialog_id << " with filter " << filter;
+  if (total_count < 0) {
+    LOG(ERROR) << "Receive total message count = " << total_count << " in " << dialog_id << " with filter " << filter;
+    total_count = 0;
+  }
+
+  Dialog *d = get_dialog(dialog_id);
+  CHECK(d != nullptr);
+  CHECK(filter != MessageSearchFilter::Empty);
+  CHECK(filter != MessageSearchFilter::UnreadMention);
+  CHECK(filter != MessageSearchFilter::FailedToSend);
+
+  auto &old_message_count = d->message_count_by_index[message_search_filter_index(filter)];
+  if (old_message_count != total_count) {
+    old_message_count = total_count;
+    on_dialog_updated(dialog_id, "on_get_dialog_message_count");
+  }
+
+  if (total_count == 0) {
+    auto &old_first_db_message_id = d->first_database_message_id_by_index[message_search_filter_index(filter)];
+    if (old_first_db_message_id != MessageId::min()) {
+      old_first_db_message_id = MessageId::min();
+      on_dialog_updated(dialog_id, "on_get_dialog_message_count");
+    }
+    if (filter == MessageSearchFilter::Pinned) {
+      set_dialog_last_pinned_message_id(d, MessageId());
+    }
+  }
+  promise.set_value(std::move(total_count));
 }
 
 void MessagesManager::on_get_messages_search_result(const string &query, int32 offset_date, DialogId offset_dialog_id,
@@ -22161,66 +22242,43 @@ tl_object_ptr<td_api::message> MessagesManager::get_dialog_message_by_date_objec
   return get_message_object(full_message_id);
 }
 
-int32 MessagesManager::get_dialog_message_count(DialogId dialog_id, MessageSearchFilter filter, bool return_local,
-                                                int64 &random_id, Promise<Unit> &&promise) {
-  if (random_id != 0) {
-    // request has already been sent before
-    auto it = found_dialog_messages_.find(random_id);
-    CHECK(it != found_dialog_messages_.end());
-    auto result = std::move(it->second);
-    found_dialog_messages_.erase(it);
-    CHECK(found_dialog_messages_dialog_id_.count(random_id) == 0);
-    promise.set_value(Unit());
-    return result.first;
-  }
-
+void MessagesManager::get_dialog_message_count(DialogId dialog_id, MessageSearchFilter filter, bool return_local,
+                                               Promise<int32> &&promise) {
   LOG(INFO) << "Get " << (return_local ? "local " : "") << "number of messages in " << dialog_id << " filtered by "
             << filter;
 
   const Dialog *d = get_dialog_force(dialog_id, "get_dialog_message_count");
   if (d == nullptr) {
-    promise.set_error(Status::Error(400, "Chat not found"));
-    return -1;
+    return promise.set_error(Status::Error(400, "Chat not found"));
   }
 
   if (filter == MessageSearchFilter::Empty) {
-    promise.set_error(Status::Error(400, "Can't use searchMessagesFilterEmpty"));
-    return -1;
+    return promise.set_error(Status::Error(400, "Can't use searchMessagesFilterEmpty"));
   }
 
   auto dialog_type = dialog_id.get_type();
   int32 message_count = d->message_count_by_index[message_search_filter_index(filter)];
-  if (message_count == -1) {
-    if (filter == MessageSearchFilter::UnreadMention) {
-      message_count = d->unread_mention_count;
-    }
+  if (message_count == -1 && filter == MessageSearchFilter::UnreadMention) {
+    message_count = d->unread_mention_count;
   }
   if (message_count != -1 || return_local || dialog_type == DialogType::SecretChat ||
       filter == MessageSearchFilter::FailedToSend) {
-    promise.set_value(Unit());
-    return message_count;
+    return promise.set_value(std::move(message_count));
   }
 
   LOG(INFO) << "Get number of messages in " << dialog_id << " filtered by " << filter << " from the server";
-
-  do {
-    random_id = Random::secure_int64();
-  } while (random_id == 0 || found_dialog_messages_.find(random_id) != found_dialog_messages_.end());
-  found_dialog_messages_[random_id];  // reserve place for result
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
     case DialogType::Chat:
     case DialogType::Channel:
-      td_->create_handler<SearchMessagesQuery>(std::move(promise))
-          ->send(dialog_id, "", DialogId(), MessageId(), 0, 1, filter, MessageId(), random_id);
+      td_->create_handler<GetSearchCountersQuery>(std::move(promise))->send(dialog_id, filter);
       break;
     case DialogType::None:
     case DialogType::SecretChat:
     default:
       UNREACHABLE();
   }
-  return -1;
 }
 
 void MessagesManager::preload_newer_messages(const Dialog *d, MessageId max_message_id) {

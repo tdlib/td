@@ -1570,34 +1570,6 @@ class GetChatMessageByDateRequest final : public RequestOnceActor {
   }
 };
 
-class GetChatMessageCountRequest final : public RequestActor<> {
-  DialogId dialog_id_;
-  MessageSearchFilter filter_;
-  bool return_local_;
-  int64 random_id_;
-
-  int32 result_ = 0;
-
-  void do_run(Promise<Unit> &&promise) final {
-    result_ = td->messages_manager_->get_dialog_message_count(dialog_id_, filter_, return_local_, random_id_,
-                                                              std::move(promise));
-  }
-
-  void do_send_result() final {
-    send_result(td_api::make_object<td_api::count>(result_));
-  }
-
- public:
-  GetChatMessageCountRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id,
-                             tl_object_ptr<td_api::SearchMessagesFilter> filter, bool return_local)
-      : RequestActor(std::move(td), request_id)
-      , dialog_id_(dialog_id)
-      , filter_(get_message_search_filter(filter))
-      , return_local_(return_local)
-      , random_id_(0) {
-  }
-};
-
 class GetChatScheduledMessagesRequest final : public RequestActor<> {
   DialogId dialog_id_;
 
@@ -5427,7 +5399,16 @@ void Td::on_request(uint64 id, const td_api::getChatMessageByDate &request) {
 
 void Td::on_request(uint64 id, td_api::getChatMessageCount &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST(GetChatMessageCountRequest, request.chat_id_, std::move(request.filter_), request.return_local_);
+  CREATE_REQUEST_PROMISE();
+  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<int32> result) mutable {
+    if (result.is_error()) {
+      promise.set_error(result.move_as_error());
+    } else {
+      promise.set_value(make_tl_object<td_api::count>(result.move_as_ok()));
+    }
+  });
+  messages_manager_->get_dialog_message_count(DialogId(request.chat_id_), get_message_search_filter(request.filter_),
+                                              request.return_local_, std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getChatScheduledMessages &request) {
