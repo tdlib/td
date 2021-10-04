@@ -112,6 +112,7 @@ TDJSON_EXPORT void td_json_client_destroy(void *client);
  * Also note that all updates and responses to requests must be applied in the order they were received for consistency.
  * Some TDLib requests can be executed synchronously from any thread using td_execute.
  * TDLib client instances are destroyed automatically after they are closed.
+ * All TDLib client instances must be closed before application termination to ensure data consistency.
  *
  * General pattern of usage:
  * \code
