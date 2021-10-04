@@ -32535,6 +32535,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     Message *m = message->from_database ? get_message(d, message_id)
                                         : get_message_force(d, message_id, "add_message_to_dialog 2");
     if (m != nullptr) {
+      CHECK(m->message_id == message_id);
+      CHECK(message->message_id == message_id);
       LOG(INFO) << "Adding already existing " << message_id << " in " << dialog_id << " from " << source;
       if (*need_update) {
         *need_update = false;

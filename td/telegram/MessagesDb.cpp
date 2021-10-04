@@ -34,7 +34,7 @@
 #include <array>
 #include <iterator>
 #include <limits>
-#include <tuple>
+#include <utility>
 
 namespace td {
 
@@ -194,8 +194,9 @@ class MessagesDbImpl final : public MessagesDbSyncInterface {
     TRY_RESULT_ASSIGN(delete_dialog_messages_from_user_stmt_,
                       db_.get_statement("DELETE FROM messages WHERE dialog_id = ?1 AND sender_user_id == ?2"));
 
-    TRY_RESULT_ASSIGN(get_message_stmt_,
-                      db_.get_statement("SELECT data FROM messages WHERE dialog_id = ?1 AND message_id = ?2"));
+    TRY_RESULT_ASSIGN(
+        get_message_stmt_,
+        db_.get_statement("SELECT message_id, data FROM messages WHERE dialog_id = ?1 AND message_id = ?2"));
     TRY_RESULT_ASSIGN(
         get_message_by_random_id_stmt_,
         db_.get_statement("SELECT message_id, data FROM messages WHERE dialog_id = ?1 AND random_id = ?2"));
@@ -257,10 +258,11 @@ class MessagesDbImpl final : public MessagesDbSyncInterface {
                       db_.get_statement("INSERT OR REPLACE INTO scheduled_messages VALUES(?1, ?2, ?3, ?4)"));
     TRY_RESULT_ASSIGN(
         get_scheduled_message_stmt_,
-        db_.get_statement("SELECT data FROM scheduled_messages WHERE dialog_id = ?1 AND message_id = ?2"));
+        db_.get_statement("SELECT message_id, data FROM scheduled_messages WHERE dialog_id = ?1 AND message_id = ?2"));
     TRY_RESULT_ASSIGN(
         get_scheduled_server_message_stmt_,
-        db_.get_statement("SELECT data FROM scheduled_messages WHERE dialog_id = ?1 AND server_message_id = ?2"));
+        db_.get_statement(
+            "SELECT message_id, data FROM scheduled_messages WHERE dialog_id = ?1 AND server_message_id = ?2"));
     TRY_RESULT_ASSIGN(delete_scheduled_message_stmt_,
                       db_.get_statement("DELETE FROM scheduled_messages WHERE dialog_id = ?1 AND message_id = ?2"));
     TRY_RESULT_ASSIGN(
@@ -462,7 +464,17 @@ class MessagesDbImpl final : public MessagesDbSyncInterface {
     if (!stmt.has_row()) {
       return Status::Error("Not found");
     }
-    return MessagesDbDialogMessage{message_id, BufferSlice(stmt.view_blob(0))};
+    MessageId received_message_id(stmt.view_int64(0));
+    MessagesDbDialogMessage result{received_message_id, BufferSlice(stmt.view_blob(1))};
+    if (is_scheduled_server) {
+      CHECK(received_message_id.is_scheduled());
+      CHECK(received_message_id.is_scheduled_server());
+      CHECK(received_message_id.get_scheduled_server_message_id() == message_id.get_scheduled_server_message_id());
+    } else {
+      LOG_CHECK(received_message_id == message_id)
+          << received_message_id << ' ' << message_id << ' ' << get_message_info(result, true).first;
+    }
+    return std::move(result);
   }
 
   Result<MessagesDbMessage> get_message_by_unique_message_id(ServerMessageId unique_message_id) final {
@@ -909,7 +921,7 @@ class MessagesDbImpl final : public MessagesDbSyncInterface {
     return std::move(result);
   }
 
-  static std::tuple<MessageId, int32> get_message_info(const MessagesDbDialogMessage &message) {
+  static std::pair<MessageId, int32> get_message_info(const MessagesDbDialogMessage &message, bool from_data = false) {
     LogEventParser message_date_parser(message.data.as_slice());
     int32 flags;
     int32 flags2 = 0;
@@ -932,7 +944,7 @@ class MessagesDbImpl final : public MessagesDbSyncInterface {
     td::parse(date, message_date_parser);
     LOG(INFO) << "Loaded " << message.message_id << "(aka " << message_id << ") sent at " << date << " by "
               << sender_user_id;
-    return std::make_tuple(message.message_id, date);
+    return {from_data ? message_id : message.message_id, date};
   }
 };
 
