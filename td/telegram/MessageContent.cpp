@@ -3582,12 +3582,22 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
   return false;
 }
 
+static bool can_be_animated_emoji(const FormattedText &text) {
+  return text.entities.empty() && is_emoji(text.text);
+}
+
 void register_message_content(Td *td, const MessageContent *content, FullMessageId full_message_id,
                               const char *source) {
   switch (content->get_type()) {
-    case MessageContentType::Text:
-      return td->web_pages_manager_->register_web_page(static_cast<const MessageText *>(content)->web_page_id,
-                                                       full_message_id, source);
+    case MessageContentType::Text: {
+      auto text = static_cast<const MessageText *>(content);
+      if (text->web_page_id.is_valid()) {
+        td->web_pages_manager_->register_web_page(text->web_page_id, full_message_id, source);
+      } else if (can_be_animated_emoji(text->text)) {
+        td->stickers_manager_->register_emoji(text->text.text, full_message_id, source);
+      }
+      return;
+    }
     case MessageContentType::Poll:
       return td->poll_manager_->register_poll(static_cast<const MessagePoll *>(content)->poll_id, full_message_id,
                                               source);
@@ -3606,12 +3616,16 @@ void reregister_message_content(Td *td, const MessageContent *old_content, const
   auto new_content_type = new_content->get_type();
   if (old_content_type == new_content_type) {
     switch (old_content_type) {
-      case MessageContentType::Text:
-        if (static_cast<const MessageText *>(old_content)->web_page_id ==
-            static_cast<const MessageText *>(new_content)->web_page_id) {
+      case MessageContentType::Text: {
+        auto old_text = static_cast<const MessageText *>(old_content);
+        auto new_text = static_cast<const MessageText *>(new_content);
+        if (old_text->web_page_id == new_text->web_page_id &&
+            (old_text->text == new_text->text ||
+             (!can_be_animated_emoji(old_text->text) && !can_be_animated_emoji(new_text->text)))) {
           return;
         }
         break;
+      }
       case MessageContentType::Poll:
         if (static_cast<const MessagePoll *>(old_content)->poll_id ==
             static_cast<const MessagePoll *>(new_content)->poll_id) {
@@ -3637,9 +3651,15 @@ void reregister_message_content(Td *td, const MessageContent *old_content, const
 void unregister_message_content(Td *td, const MessageContent *content, FullMessageId full_message_id,
                                 const char *source) {
   switch (content->get_type()) {
-    case MessageContentType::Text:
-      return td->web_pages_manager_->unregister_web_page(static_cast<const MessageText *>(content)->web_page_id,
-                                                         full_message_id, source);
+    case MessageContentType::Text: {
+      auto text = static_cast<const MessageText *>(content);
+      if (text->web_page_id.is_valid()) {
+        td->web_pages_manager_->unregister_web_page(text->web_page_id, full_message_id, source);
+      } else if (can_be_animated_emoji(text->text)) {
+        td->stickers_manager_->unregister_emoji(text->text.text, full_message_id, source);
+      }
+      return;
+    }
     case MessageContentType::Poll:
       return td->poll_manager_->unregister_poll(static_cast<const MessagePoll *>(content)->poll_id, full_message_id,
                                                 source);
@@ -4781,6 +4801,9 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     }
     case MessageContentType::Text: {
       const auto *m = static_cast<const MessageText *>(content);
+      if (can_be_animated_emoji(m->text) && !m->web_page_id.is_valid()) {
+        return td->stickers_manager_->get_message_content_animated_emoji_object(m->text.text);
+      }
       return make_tl_object<td_api::messageText>(
           get_formatted_text_object(m->text, skip_bot_commands, max_media_timestamp),
           td->web_pages_manager_->get_web_page_object(m->web_page_id));
@@ -5311,8 +5334,8 @@ void get_message_content_animated_emoji_click_sticker(const MessageContent *cont
     return promise.set_error(Status::Error(400, "Message is not an animated emoji message"));
   }
 
-  auto &text = static_cast<const MessageText *>(content)->text;
-  if (!text.entities.empty()) {
+  const auto &text = static_cast<const MessageText *>(content)->text;
+  if (!can_be_animated_emoji(text)) {
     return promise.set_error(Status::Error(400, "Message is not an animated emoji message"));
   }
   td->stickers_manager_->get_animated_emoji_click_sticker(text.text, full_message_id, std::move(promise));

@@ -1280,6 +1280,8 @@ void StickersManager::init() {
 
   on_update_dice_success_values();
 
+  load_special_sticker_set(add_special_sticker_set(SpecialStickerSetType::animated_emoji()));
+
   if (G()->parameters().use_file_db) {
     auto old_featured_sticker_set_count_str = G()->td_db()->get_binlog_pmc()->get("old_featured_sticker_set_count");
     if (!old_featured_sticker_set_count_str.empty()) {
@@ -1403,6 +1405,27 @@ void StickersManager::on_load_special_sticker_set(const SpecialStickerSetType &t
   auto sticker_set = get_sticker_set(special_sticker_set.id_);
   CHECK(sticker_set != nullptr);
   CHECK(sticker_set->was_loaded);
+
+  if (type.type_ == SpecialStickerSetType::animated_emoji()) {
+    for (auto sticker_it : sticker_set->sticker_emojis_map_) {
+      for (auto &emoji : sticker_it.second) {
+        auto it = emoji_messages_.find(emoji);
+        if (it == emoji_messages_.end()) {
+          continue;
+        }
+
+        vector<FullMessageId> full_message_ids;
+        for (auto full_message_id : it->second) {
+          full_message_ids.push_back(full_message_id);
+        }
+        CHECK(!full_message_ids.empty());
+        for (auto full_message_id : full_message_ids) {
+          td_->messages_manager_->on_external_update_message_content(full_message_id);
+        }
+      }
+    }
+    return;
+  }
 
   if (type.type_ == SpecialStickerSetType::animated_emoji_click()) {
     auto pending_get_requests = std::move(pending_get_animated_emoji_click_stickers_);
@@ -1891,6 +1914,13 @@ tl_object_ptr<td_api::stickerSetInfo> StickersManager::get_sticker_set_info_obje
       sticker_set->is_animated, sticker_set->is_masks, sticker_set->is_viewed,
       sticker_set->was_loaded ? narrow_cast<int32>(sticker_set->sticker_ids.size()) : sticker_set->sticker_count,
       std::move(stickers));
+}
+
+td_api::object_ptr<td_api::MessageContent> StickersManager::get_message_content_animated_emoji_object(
+    const string &emoji) {
+  return td_api::make_object<td_api::messageText>(
+      td_api::make_object<td_api::formattedText>(emoji, std::vector<td_api::object_ptr<td_api::textEntity>>()),
+      nullptr);
 }
 
 tl_object_ptr<telegram_api::InputStickerSet> StickersManager::get_input_sticker_set(StickerSetId sticker_set_id) const {
@@ -4025,6 +4055,51 @@ void StickersManager::unregister_dice(const string &emoji, int32 value, FullMess
 
   if (message_ids.empty()) {
     dice_messages_.erase(emoji);
+  }
+}
+
+void StickersManager::register_emoji(const string &emoji, FullMessageId full_message_id, const char *source) {
+  CHECK(!emoji.empty());
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  LOG(INFO) << "Register emoji " << emoji << " from " << full_message_id << " from " << source;
+  bool is_inserted = emoji_messages_[emoji].insert(full_message_id).second;
+  LOG_CHECK(is_inserted) << source << " " << emoji << " " << full_message_id;
+
+  auto &special_sticker_set = add_special_sticker_set(SpecialStickerSetType::animated_emoji());
+  bool need_load = false;
+  if (!special_sticker_set.id_.is_valid()) {
+    need_load = true;
+  } else {
+    auto sticker_set = get_sticker_set(special_sticker_set.id_);
+    CHECK(sticker_set != nullptr);
+    need_load = !sticker_set->was_loaded;
+  }
+
+  if (need_load) {
+    LOG(INFO) << "Waiting for the animated emoji sticker set needed in " << full_message_id;
+    load_special_sticker_set(special_sticker_set);
+  } else {
+    // TODO reload once in a while
+    // reload_special_sticker_set(special_sticker_set);
+  }
+}
+
+void StickersManager::unregister_emoji(const string &emoji, FullMessageId full_message_id, const char *source) {
+  CHECK(!emoji.empty());
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  LOG(INFO) << "Unregister emoji " << emoji << " from " << full_message_id << " from " << source;
+  auto &message_ids = emoji_messages_[emoji];
+  auto is_deleted = message_ids.erase(full_message_id) > 0;
+  LOG_CHECK(is_deleted) << source << " " << emoji << " " << full_message_id;
+
+  if (message_ids.empty()) {
+    emoji_messages_.erase(emoji);
   }
 }
 

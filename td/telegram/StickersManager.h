@@ -63,11 +63,17 @@ class StickersManager final : public Actor {
                                                              const vector<StickerSetId> &sticker_set_ids,
                                                              size_t covers_limit) const;
 
+  td_api::object_ptr<td_api::MessageContent> get_message_content_animated_emoji_object(const string &emoji);
+
   tl_object_ptr<telegram_api::InputStickerSet> get_input_sticker_set(StickerSetId sticker_set_id) const;
 
   void register_dice(const string &emoji, int32 value, FullMessageId full_message_id, const char *source);
 
   void unregister_dice(const string &emoji, int32 value, FullMessageId full_message_id, const char *source);
+
+  void register_emoji(const string &emoji, FullMessageId full_message_id, const char *source);
+
+  void unregister_emoji(const string &emoji, FullMessageId full_message_id, const char *source);
 
   void get_animated_emoji_click_sticker(const string &message_text, FullMessageId full_message_id,
                                         Promise<td_api::object_ptr<td_api::sticker>> &&promise);
@@ -795,6 +801,7 @@ class StickersManager final : public Actor {
   std::unordered_map<int64, string> emoji_suggestions_urls_;
 
   std::unordered_map<string, std::unordered_set<FullMessageId, FullMessageIdHash>> dice_messages_;
+  std::unordered_map<string, std::unordered_set<FullMessageId, FullMessageIdHash>> emoji_messages_;
 
   string dice_emojis_str_;
   vector<string> dice_emojis_;
