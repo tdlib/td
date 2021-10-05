@@ -88,6 +88,8 @@ class ConfigManager final : public NetQueryCallback {
 
   void get_app_config(Promise<td_api::object_ptr<td_api::JsonValue>> &&promise);
 
+  void reget_app_config(Promise<Unit> &&promise);
+
   void get_content_settings(Promise<Unit> &&promise);
 
   void set_content_settings(bool ignore_sensitive_content_restrictions, Promise<Unit> &&promise);
@@ -114,6 +116,7 @@ class ConfigManager final : public NetQueryCallback {
   FloodControlStrict lazy_request_flood_control_;
 
   vector<Promise<td_api::object_ptr<td_api::JsonValue>>> get_app_config_queries_;
+  vector<Promise<Unit>> reget_app_config_queries_;
 
   vector<Promise<Unit>> get_content_settings_queries_;
   vector<Promise<Unit>> set_content_settings_queries_[2];
@@ -141,6 +144,8 @@ class ConfigManager final : public NetQueryCallback {
 
   void request_config_from_dc_impl(DcId dc_id);
   void process_config(tl_object_ptr<telegram_api::config> config);
+
+  void try_request_app_config();
 
   void process_app_config(tl_object_ptr<telegram_api::JSONValue> &config);
 

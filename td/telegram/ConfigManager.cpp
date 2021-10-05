@@ -960,6 +960,16 @@ void ConfigManager::lazy_request_config() {
   set_timeout_at(expire_time_.at());
 }
 
+void ConfigManager::try_request_app_config() {
+  if (get_app_config_queries_.size() + reget_app_config_queries_.size() != 1) {
+    return;
+  }
+
+  auto query = G()->net_query_creator().create_unauth(telegram_api::help_getAppConfig());
+  query->total_timeout_limit_ = 60 * 60 * 24;
+  G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this, 1));
+}
+
 void ConfigManager::get_app_config(Promise<td_api::object_ptr<td_api::JsonValue>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
@@ -969,11 +979,21 @@ void ConfigManager::get_app_config(Promise<td_api::object_ptr<td_api::JsonValue>
   }
 
   get_app_config_queries_.push_back(std::move(promise));
-  if (get_app_config_queries_.size() == 1) {
-    auto query = G()->net_query_creator().create_unauth(telegram_api::help_getAppConfig());
-    query->total_timeout_limit_ = 60 * 60 * 24;
-    G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this, 1));
+  try_request_app_config();
+}
+
+void ConfigManager::reget_app_config(Promise<Unit> &&promise) {
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
   }
+
+  auto auth_manager = G()->td().get_actor_unsafe()->auth_manager_.get();
+  if (auth_manager != nullptr && auth_manager->is_bot()) {
+    return promise.set_value(Unit());
+  }
+
+  reget_app_config_queries_.push_back(std::move(promise));
+  try_request_app_config();
 }
 
 void ConfigManager::get_content_settings(Promise<Unit> &&promise) {
@@ -1066,7 +1086,7 @@ void ConfigManager::do_set_ignore_sensitive_content_restrictions(bool ignore_sen
                                           ignore_sensitive_content_restrictions);
   bool have_ignored_restriction_reasons = G()->shared_config().have_option("ignored_restriction_reasons");
   if (have_ignored_restriction_reasons != ignore_sensitive_content_restrictions) {
-    get_app_config(Auto());
+    reget_app_config(Auto());
   }
 }
 
@@ -1122,7 +1142,7 @@ void ConfigManager::on_result(NetQueryPtr res) {
       return;
     }
     remove_suggested_action(suggested_actions_, suggested_action);
-    get_app_config(Auto());
+    reget_app_config(Auto());
 
     for (auto &promise : promises) {
       promise.set_value(Unit());
@@ -1246,15 +1266,16 @@ void ConfigManager::on_result(NetQueryPtr res) {
   if (token == 1) {
     auto promises = std::move(get_app_config_queries_);
     get_app_config_queries_.clear();
-    CHECK(!promises.empty());
+    auto unit_promises = std::move(reget_app_config_queries_);
+    reget_app_config_queries_.clear();
+    CHECK(!promises.empty() || !unit_promises.empty());
     auto result_ptr = fetch_result<telegram_api::help_getAppConfig>(std::move(res));
     if (result_ptr.is_error()) {
       for (auto &promise : promises) {
-        if (!promise) {
-          promise.set_value(nullptr);
-        } else {
-          promise.set_error(result_ptr.error().clone());
-        }
+        promise.set_error(result_ptr.error().clone());
+      }
+      for (auto &promise : unit_promises) {
+        promise.set_error(result_ptr.error().clone());
       }
       return;
     }
@@ -1262,11 +1283,10 @@ void ConfigManager::on_result(NetQueryPtr res) {
     auto result = result_ptr.move_as_ok();
     process_app_config(result);
     for (auto &promise : promises) {
-      if (!promise) {
-        promise.set_value(nullptr);
-      } else {
-        promise.set_value(convert_json_value_object(result));
-      }
+      promise.set_value(convert_json_value_object(result));
+    }
+    for (auto &promise : unit_promises) {
+      promise.set_value(Unit());
     }
     return;
   }
@@ -1452,7 +1472,7 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
   //  shared_config.set_option_integer("push_chat_limit", config->push_chat_limit_);
 
   if (is_from_main_dc) {
-    get_app_config(Auto());
+    reget_app_config(Auto());
     if (!shared_config.have_option("can_ignore_sensitive_content_restrictions") ||
         !shared_config.have_option("ignore_sensitive_content_restrictions")) {
       get_content_settings(Auto());

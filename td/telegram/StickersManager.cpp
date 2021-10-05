@@ -4180,8 +4180,7 @@ void StickersManager::register_dice(const string &emoji, int32 value, FullMessag
   if (!td::contains(dice_emojis_, emoji)) {
     if (full_message_id.get_message_id().is_any_server() &&
         full_message_id.get_dialog_id().get_type() != DialogType::SecretChat) {
-      send_closure(G()->config_manager(), &ConfigManager::get_app_config,
-                   Promise<td_api::object_ptr<td_api::JsonValue>>());
+      send_closure(G()->config_manager(), &ConfigManager::reget_app_config, Promise<Unit>());
     }
     return;
   }

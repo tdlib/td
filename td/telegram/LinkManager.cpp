@@ -1156,14 +1156,14 @@ void LinkManager::get_external_link_info(string &&link, Promise<td_api::object_p
   }
 
   if (autologin_update_time_ < Time::now() - 10000) {
-    auto query_promise = PromiseCreator::lambda([link = std::move(link), promise = std::move(promise)](
-                                                    Result<td_api::object_ptr<td_api::JsonValue>> &&result) mutable {
-      if (result.is_error()) {
-        return promise.set_value(td_api::make_object<td_api::loginUrlInfoOpen>(link, false));
-      }
-      send_closure(G()->link_manager(), &LinkManager::get_external_link_info, std::move(link), std::move(promise));
-    });
-    return send_closure(G()->config_manager(), &ConfigManager::get_app_config, std::move(query_promise));
+    auto query_promise =
+        PromiseCreator::lambda([link = std::move(link), promise = std::move(promise)](Result<Unit> &&result) mutable {
+          if (result.is_error()) {
+            return promise.set_value(td_api::make_object<td_api::loginUrlInfoOpen>(link, false));
+          }
+          send_closure(G()->link_manager(), &LinkManager::get_external_link_info, std::move(link), std::move(promise));
+        });
+    return send_closure(G()->config_manager(), &ConfigManager::reget_app_config, std::move(query_promise));
   }
 
   if (autologin_token_.empty()) {
