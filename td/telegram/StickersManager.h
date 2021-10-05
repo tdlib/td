@@ -605,6 +605,8 @@ class StickersManager final : public Actor {
 
   static int get_emoji_number(Slice emoji);
 
+  const StickerSet *get_animated_emoji_sticker_set();
+
   static std::pair<FileId, int> get_animated_emoji_sticker(const StickerSet *sticker_set, const string &emoji);
 
   std::pair<FileId, int> get_animated_emoji_sticker(const string &emoji);
@@ -809,7 +811,12 @@ class StickersManager final : public Actor {
   std::unordered_map<int64, string> emoji_suggestions_urls_;
 
   std::unordered_map<string, std::unordered_set<FullMessageId, FullMessageIdHash>> dice_messages_;
-  std::unordered_map<string, std::unordered_set<FullMessageId, FullMessageIdHash>> emoji_messages_;
+
+  struct EmojiMessages {
+    std::unordered_set<FullMessageId, FullMessageIdHash> full_message_ids;
+    std::pair<FileId, int> animated_emoji_sticker;
+  };
+  std::unordered_map<string, EmojiMessages> emoji_messages_;
 
   string dice_emojis_str_;
   vector<string> dice_emojis_;
