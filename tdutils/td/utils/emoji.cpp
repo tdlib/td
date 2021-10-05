@@ -839,6 +839,18 @@ bool is_emoji(Slice str) {
   return emojis.count(str) != 0;
 }
 
+int get_fitzpatrick_modifier(Slice emoji) {
+  if (emoji.size() < 4 || emoji[emoji.size() - 4] != '\xF0' || emoji[emoji.size() - 3] != '\x9F' ||
+      emoji[emoji.size() - 2] != '\x8F') {
+    return 0;
+  }
+  auto c = static_cast<unsigned char>(emoji.back());
+  if (c < 0xBB || c > 0xBF) {
+    return 0;
+  }
+  return (c - 0xBB) + 2;
+}
+
 Slice remove_emoji_modifiers(Slice emoji) {
   static const Slice modifiers[] = {u8"\uFE0E" /* variation selector-15 */,
                                     u8"\uFE0F" /* variation selector-16 */,

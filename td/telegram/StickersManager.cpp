@@ -1360,6 +1360,7 @@ void StickersManager::load_special_sticker_set_by_type(const SpecialStickerSetTy
 }
 
 void StickersManager::load_special_sticker_set(SpecialStickerSet &sticker_set) {
+  CHECK(!td_->auth_manager_->is_bot());
   if (sticker_set.is_being_loaded_) {
     return;
   }
@@ -1407,22 +1408,16 @@ void StickersManager::on_load_special_sticker_set(const SpecialStickerSetType &t
   CHECK(sticker_set->was_loaded);
 
   if (type.type_ == SpecialStickerSetType::animated_emoji()) {
-    for (auto sticker_it : sticker_set->sticker_emojis_map_) {
-      for (auto &emoji : sticker_it.second) {
-        auto it = emoji_messages_.find(emoji);
-        if (it == emoji_messages_.end()) {
-          continue;
-        }
-
-        vector<FullMessageId> full_message_ids;
-        for (auto full_message_id : it->second) {
+    vector<FullMessageId> full_message_ids;
+    for (const auto &it : emoji_messages_) {
+      if (get_animated_emoji_sticker(sticker_set, it.first).first.is_valid()) {
+        for (auto full_message_id : it.second) {
           full_message_ids.push_back(full_message_id);
         }
-        CHECK(!full_message_ids.empty());
-        for (auto full_message_id : full_message_ids) {
-          td_->messages_manager_->on_external_update_message_content(full_message_id);
-        }
       }
+    }
+    for (auto full_message_id : full_message_ids) {
+      td_->messages_manager_->on_external_update_message_content(full_message_id);
     }
     return;
   }
@@ -1916,8 +1911,64 @@ tl_object_ptr<td_api::stickerSetInfo> StickersManager::get_sticker_set_info_obje
       std::move(stickers));
 }
 
+std::pair<FileId, int> StickersManager::get_animated_emoji_sticker(const StickerSet *sticker_set, const string &emoji) {
+  auto emoji_without_modifiers = remove_emoji_modifiers(emoji).str();
+  auto it = sticker_set->emoji_stickers_map_.find(emoji_without_modifiers);
+  if (it == sticker_set->emoji_stickers_map_.end()) {
+    return {};
+  }
+
+  // trying to find full emoji match
+  for (const auto &sticker_id : it->second) {
+    auto emoji_it = sticker_set->sticker_emojis_map_.find(sticker_id);
+    CHECK(emoji_it != sticker_set->sticker_emojis_map_.end());
+    if (td::contains(emoji_it->second, emoji)) {
+      return {sticker_id, 0};
+    }
+  }
+
+  // trying to find match without Fitzpatrick modifiers
+  int modifier_id = get_fitzpatrick_modifier(emoji);
+  if (modifier_id > 0) {
+    for (const auto &sticker_id : it->second) {
+      auto emoji_it = sticker_set->sticker_emojis_map_.find(sticker_id);
+      CHECK(emoji_it != sticker_set->sticker_emojis_map_.end());
+      if (td::contains(emoji_it->second, Slice(emoji).remove_suffix(4))) {
+        return {sticker_id, modifier_id};
+      }
+    }
+  }
+
+  // there is no match
+  return {};
+}
+
+std::pair<FileId, int> StickersManager::get_animated_emoji_sticker(const string &emoji) {
+  if (td_->auth_manager_->is_bot()) {
+    return {};
+  }
+  auto &special_sticker_set = add_special_sticker_set(SpecialStickerSetType::animated_emoji());
+  if (!special_sticker_set.id_.is_valid()) {
+    load_special_sticker_set(special_sticker_set);
+    return {};
+  }
+
+  auto sticker_set = get_sticker_set(special_sticker_set.id_);
+  CHECK(sticker_set != nullptr);
+  if (!sticker_set->was_loaded) {
+    load_special_sticker_set(special_sticker_set);
+    return {};
+  }
+
+  return get_animated_emoji_sticker(sticker_set, emoji);
+}
+
 td_api::object_ptr<td_api::MessageContent> StickersManager::get_message_content_animated_emoji_object(
     const string &emoji) {
+  auto animated_sticker = get_animated_emoji_sticker(emoji);
+  if (animated_sticker.first.is_valid()) {
+    return td_api::make_object<td_api::messageAnimatedEmoji>(get_sticker_object(animated_sticker.first), emoji);
+  }
   return td_api::make_object<td_api::messageText>(
       td_api::make_object<td_api::formattedText>(emoji, std::vector<td_api::object_ptr<td_api::textEntity>>()),
       nullptr);
@@ -4139,7 +4190,7 @@ int StickersManager::get_emoji_number(Slice emoji) {
   return emoji[0] - '0';
 }
 
-vector<FileId> StickersManager::get_animated_emoji_stickers(const StickerSet *sticker_set, Slice emoji) const {
+vector<FileId> StickersManager::get_animated_emoji_click_stickers(const StickerSet *sticker_set, Slice emoji) const {
   vector<FileId> result;
   for (auto sticker_id : sticker_set->sticker_ids) {
     auto s = get_sticker(sticker_id);
@@ -4151,7 +4202,7 @@ vector<FileId> StickersManager::get_animated_emoji_stickers(const StickerSet *st
   if (result.empty()) {
     const static vector<string> heart_emojis{"💛", "💙", "💚", "💜", "🧡", "🖤", "🤎", "🤍"};
     if (td::contains(heart_emojis, emoji)) {
-      return get_animated_emoji_stickers(sticker_set, Slice("❤"));
+      return get_animated_emoji_click_stickers(sticker_set, Slice("❤"));
     }
   }
   return result;
@@ -4172,7 +4223,7 @@ void StickersManager::choose_animated_emoji_click_sticker(const StickerSet *stic
     return promise.set_value(nullptr);
   }
 
-  auto all_sticker_ids = get_animated_emoji_stickers(sticker_set, message_text);
+  auto all_sticker_ids = get_animated_emoji_click_stickers(sticker_set, message_text);
   vector<std::pair<int, FileId>> found_stickers;
   for (auto sticker_id : all_sticker_ids) {
     auto it = sticker_set->sticker_emojis_map_.find(sticker_id);
@@ -4322,6 +4373,10 @@ bool StickersManager::is_sent_animated_emoji_click(DialogId dialog_id, Slice emo
 }
 
 Status StickersManager::on_animated_emoji_message_clicked(Slice emoji, FullMessageId full_message_id, string data) {
+  if (td_->auth_manager_->is_bot()) {
+    return Status::OK();
+  }
+
   TRY_RESULT(value, json_decode(data));
   if (value.type() != JsonValue::Type::Object) {
     return Status::Error("Expected an object");
@@ -4402,7 +4457,7 @@ void StickersManager::schedule_update_animated_emoji_clicked(const StickerSet *s
     return;
   }
 
-  auto all_sticker_ids = get_animated_emoji_stickers(sticker_set, emoji);
+  auto all_sticker_ids = get_animated_emoji_click_stickers(sticker_set, emoji);
   std::unordered_map<int, FileId> sticker_ids;
   for (auto sticker_id : all_sticker_ids) {
     auto it = sticker_set->sticker_emojis_map_.find(sticker_id);

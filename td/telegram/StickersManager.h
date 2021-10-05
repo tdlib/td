@@ -603,7 +603,11 @@ class StickersManager final : public Actor {
 
   static int get_emoji_number(Slice emoji);
 
-  vector<FileId> get_animated_emoji_stickers(const StickerSet *sticker_set, Slice emoji) const;
+  static std::pair<FileId, int> get_animated_emoji_sticker(const StickerSet *sticker_set, const string &emoji);
+
+  std::pair<FileId, int> get_animated_emoji_sticker(const string &emoji);
+
+  vector<FileId> get_animated_emoji_click_stickers(const StickerSet *sticker_set, Slice emoji) const;
 
   void choose_animated_emoji_click_sticker(const StickerSet *sticker_set, Slice message_text,
                                            FullMessageId full_message_id, double start_time,
