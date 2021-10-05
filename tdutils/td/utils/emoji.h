@@ -17,6 +17,9 @@ bool is_emoji(Slice str);
 // checks whether emoji ends on a Fitzpatrick modifier and returns it's number or 0
 int get_fitzpatrick_modifier(Slice emoji);
 
+// removes all Fitzpatrick modifier from the end of the string
+Slice remove_fitzpatrick_modifier(Slice emoji);
+
 // removes all emoji modifiers from the end of the string
 Slice remove_emoji_modifiers(Slice emoji);
 

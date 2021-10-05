@@ -47,6 +47,7 @@
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/crypto.h"
+#include "td/utils/emoji.h"
 #include "td/utils/format.h"
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
@@ -1478,6 +1479,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   vector<string> dice_emojis;
   std::unordered_map<string, size_t> dice_emoji_index;
   std::unordered_map<string, string> dice_emoji_success_value;
+  vector<string> emoji_sounds;
   string animation_search_provider;
   string animation_search_emojis;
   vector<SuggestedAction> suggested_actions;
@@ -1560,6 +1562,46 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
           }
         } else {
           LOG(ERROR) << "Receive unexpected emojies_send_dice_success " << to_string(*value);
+        }
+        continue;
+      }
+      if (key == "emojies_sounds") {
+        if (value->get_id() == telegram_api::jsonObject::ID) {
+          auto sounds = std::move(static_cast<telegram_api::jsonObject *>(value)->value_);
+          for (auto &sound : sounds) {
+            CHECK(sound != nullptr);
+            if (sound->value_->get_id() == telegram_api::jsonObject::ID) {
+              string id;
+              string access_hash;
+              string file_reference_base64;
+              for (auto &sound_key_value : static_cast<telegram_api::jsonObject *>(sound->value_.get())->value_) {
+                if (sound_key_value->value_->get_id() != telegram_api::jsonString::ID) {
+                  continue;
+                }
+                auto current_value = get_json_value_string(std::move(sound_key_value->value_), Slice());
+                if (sound_key_value->key_ == "id") {
+                  id = std::move(current_value);
+                }
+                if (sound_key_value->key_ == "access_hash") {
+                  access_hash = std::move(current_value);
+                }
+                if (sound_key_value->key_ == "file_reference_base64") {
+                  file_reference_base64 = std::move(current_value);
+                }
+              }
+              if (to_integer_safe<int64>(id).is_error() || to_integer_safe<int64>(access_hash).is_error() ||
+                  !is_base64url(file_reference_base64) || !is_emoji(sound->key_)) {
+                LOG(ERROR) << "Receive unexpected sound value " << to_string(sound);
+              } else {
+                emoji_sounds.push_back(sound->key_);
+                emoji_sounds.push_back(PSTRING() << id << ':' << access_hash << ':' << file_reference_base64);
+              }
+            } else {
+              LOG(ERROR) << "Receive unexpected emoji sound " << to_string(sound);
+            }
+          }
+        } else {
+          LOG(ERROR) << "Receive unexpected emojies_sounds " << to_string(*value);
         }
         continue;
       }
@@ -1721,6 +1763,8 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
     shared_config.set_option_string("dice_success_values", implode(dice_success_values, ','));
     shared_config.set_option_string("dice_emojis", implode(dice_emojis, '\x01'));
   }
+
+  shared_config.set_option_string("emoji_sounds", implode(emoji_sounds, ','));
 
   if (animation_search_provider.empty()) {
     shared_config.set_option_empty("animation_search_provider");

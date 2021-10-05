@@ -851,6 +851,13 @@ int get_fitzpatrick_modifier(Slice emoji) {
   return (c - 0xBB) + 2;
 }
 
+Slice remove_fitzpatrick_modifier(Slice emoji) {
+  while (get_fitzpatrick_modifier(emoji) != 0) {
+    emoji.remove_suffix(4);
+  }
+  return emoji;
+}
+
 Slice remove_emoji_modifiers(Slice emoji) {
   static const Slice modifiers[] = {u8"\uFE0E" /* variation selector-15 */,
                                     u8"\uFE0F" /* variation selector-16 */,

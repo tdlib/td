@@ -46,6 +46,7 @@
 #include "td/utils/format.h"
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
+#include "td/utils/MimeType.h"
 #include "td/utils/misc.h"
 #include "td/utils/PathView.h"
 #include "td/utils/Random.h"
@@ -1279,6 +1280,8 @@ void StickersManager::init() {
 
   on_update_dice_success_values();
 
+  on_update_emoji_sounds();
+
   on_update_disable_animated_emojis();
 
   if (!disable_animated_emojis_) {
@@ -1963,6 +1966,14 @@ std::pair<FileId, int> StickersManager::get_animated_emoji_sticker(const string 
   return get_animated_emoji_sticker(get_animated_emoji_sticker_set(), emoji);
 }
 
+FileId StickersManager::get_animated_emoji_sound_file_id(const string &emoji) const {
+  auto it = emoji_sounds_.find(remove_fitzpatrick_modifier(emoji).str());
+  if (it == emoji_sounds_.end()) {
+    return {};
+  }
+  return it->second;
+}
+
 vector<td_api::object_ptr<td_api::colorReplacement>> StickersManager::get_color_replacements_object(
     int fitzpatrick_modifier) {
   vector<td_api::object_ptr<td_api::colorReplacement>> result;
@@ -1996,8 +2007,11 @@ td_api::object_ptr<td_api::MessageContent> StickersManager::get_message_content_
   auto animated_sticker =
       it != emoji_messages_.end() ? it->second.animated_emoji_sticker : get_animated_emoji_sticker(emoji);
   if (animated_sticker.first.is_valid()) {
+    auto sound_file_id =
+        it != emoji_messages_.end() ? it->second.sound_file_id : get_animated_emoji_sound_file_id(emoji);
     return td_api::make_object<td_api::messageAnimatedEmoji>(
-        get_sticker_object(animated_sticker.first), get_color_replacements_object(animated_sticker.second), emoji);
+        emoji, get_sticker_object(animated_sticker.first), get_color_replacements_object(animated_sticker.second),
+        sound_file_id.is_valid() ? td_->file_manager_->get_file_object(sound_file_id) : nullptr);
   }
   return td_api::make_object<td_api::messageText>(
       td_api::make_object<td_api::formattedText>(emoji, std::vector<td_api::object_ptr<td_api::textEntity>>()),
@@ -4068,8 +4082,41 @@ void StickersManager::on_update_dice_success_values() {
   });
 }
 
+void StickersManager::on_update_emoji_sounds() {
+  if (G()->close_flag() || !is_inited_ || td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  auto emoji_sounds_str = G()->shared_config().get_option_string("emoji_sounds");
+  if (emoji_sounds_str == emoji_sounds_str_) {
+    return;
+  }
+
+  LOG(INFO) << "Change emoji sounds to " << emoji_sounds_str;
+  emoji_sounds_str_ = std::move(emoji_sounds_str);
+
+  emoji_sounds_.clear();
+  auto sounds = full_split(Slice(emoji_sounds_str_), ',');
+  CHECK(sounds.size() % 2 == 0);
+  for (size_t i = 0; i < sounds.size(); i += 2) {
+    vector<Slice> parts = full_split(sounds[i + 1], ':');
+    CHECK(parts.size() == 3);
+    auto id = to_integer<int64>(parts[0]);
+    auto access_hash = to_integer<int64>(parts[1]);
+    auto file_reference = base64url_decode(parts[2]).move_as_ok();
+    auto suggested_file_name = PSTRING() << static_cast<uint64>(id) << '.'
+                                         << MimeType::to_extension("audio/ogg", "oga");
+    auto file_id = td_->file_manager_->register_remote(
+        FullRemoteFileLocation(FileType::VoiceNote, id, access_hash, DcId::internal(2), std::move(file_reference)),
+        FileLocationSource::FromServer, DialogId(), 0, 0, std::move(suggested_file_name));
+    CHECK(file_id.is_valid());
+    emoji_sounds_.emplace(remove_fitzpatrick_modifier(sounds[i]).str(), file_id);
+  }
+  try_update_animated_emoji_messages();
+}
+
 void StickersManager::on_update_disable_animated_emojis() {
-  if (G()->close_flag() || td_->auth_manager_->is_bot() || !is_inited_) {
+  if (G()->close_flag() || !is_inited_ || td_->auth_manager_->is_bot()) {
     return;
   }
 
@@ -4100,8 +4147,11 @@ void StickersManager::try_update_animated_emoji_messages() {
   vector<FullMessageId> full_message_ids;
   for (auto &it : emoji_messages_) {
     auto new_animated_sticker = get_animated_emoji_sticker(sticker_set, it.first);
-    if (new_animated_sticker != it.second.animated_emoji_sticker) {
+    auto new_sound_file_id = get_animated_emoji_sound_file_id(it.first);
+    if (new_animated_sticker != it.second.animated_emoji_sticker ||
+        (new_animated_sticker.first.is_valid() && new_sound_file_id != it.second.sound_file_id)) {
       it.second.animated_emoji_sticker = new_animated_sticker;
+      it.second.sound_file_id = new_sound_file_id;
       for (auto full_message_id : it.second.full_message_ids) {
         full_message_ids.push_back(full_message_id);
       }
@@ -4180,6 +4230,7 @@ void StickersManager::register_emoji(const string &emoji, FullMessageId full_mes
   auto &emoji_messages = emoji_messages_[emoji];
   if (emoji_messages.full_message_ids.empty()) {
     emoji_messages.animated_emoji_sticker = get_animated_emoji_sticker(emoji);
+    emoji_messages.sound_file_id = get_animated_emoji_sound_file_id(emoji);
   }
   bool is_inserted = emoji_messages.full_message_ids.insert(full_message_id).second;
   LOG_CHECK(is_inserted) << source << ' ' << emoji << ' ' << full_message_id;

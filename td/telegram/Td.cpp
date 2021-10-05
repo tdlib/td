@@ -3275,7 +3275,7 @@ bool Td::is_internal_config_option(Slice name) {
     case 'd':
       return name == "dc_txt_domain_name" || name == "dice_emojis" || name == "dice_success_values";
     case 'e':
-      return name == "edit_time_limit";
+      return name == "edit_time_limit" || name == "emoji_sounds";
     case 'i':
       return name == "ignored_restriction_reasons";
     case 'l':
@@ -3377,6 +3377,8 @@ void Td::on_config_option_updated(const string &name) {
     return send_closure(stickers_manager_actor_, &StickersManager::on_update_dice_emojis);
   } else if (name == "dice_success_values") {
     return send_closure(stickers_manager_actor_, &StickersManager::on_update_dice_success_values);
+  } else if (name == "emoji_sounds") {
+    return send_closure(stickers_manager_actor_, &StickersManager::on_update_emoji_sounds);
   } else if (is_internal_config_option(name)) {
     return;
   }

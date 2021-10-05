@@ -154,6 +154,8 @@ class StickersManager final : public Actor {
 
   void on_update_dice_success_values();
 
+  void on_update_emoji_sounds();
+
   void on_update_sticker_sets();
 
   void on_update_sticker_sets_order(bool is_masks, const vector<StickerSetId> &sticker_set_ids);
@@ -611,6 +613,8 @@ class StickersManager final : public Actor {
 
   std::pair<FileId, int> get_animated_emoji_sticker(const string &emoji);
 
+  FileId get_animated_emoji_sound_file_id(const string &emoji) const;
+
   void try_update_animated_emoji_messages();
 
   static int get_emoji_number(Slice emoji);
@@ -817,6 +821,7 @@ class StickersManager final : public Actor {
   struct EmojiMessages {
     std::unordered_set<FullMessageId, FullMessageIdHash> full_message_ids;
     std::pair<FileId, int> animated_emoji_sticker;
+    FileId sound_file_id;
   };
   std::unordered_map<string, EmojiMessages> emoji_messages_;
 
@@ -825,6 +830,9 @@ class StickersManager final : public Actor {
 
   string dice_success_values_str_;
   vector<std::pair<int32, int32>> dice_success_values_;
+
+  string emoji_sounds_str_;
+  std::unordered_map<string, FileId> emoji_sounds_;
 
   bool disable_animated_emojis_ = false;
 };
