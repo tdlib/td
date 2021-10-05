@@ -148,6 +148,8 @@ class StickersManager final : public Actor {
 
   void on_uninstall_sticker_set(StickerSetId set_id);
 
+  void on_update_disable_animated_emojis();
+
   void on_update_dice_emojis();
 
   void on_update_dice_success_values();
@@ -607,6 +609,8 @@ class StickersManager final : public Actor {
 
   std::pair<FileId, int> get_animated_emoji_sticker(const string &emoji);
 
+  void try_update_animated_emoji_messages();
+
   vector<FileId> get_animated_emoji_click_stickers(const StickerSet *sticker_set, Slice emoji) const;
 
   void choose_animated_emoji_click_sticker(const StickerSet *sticker_set, Slice message_text,
@@ -812,6 +816,8 @@ class StickersManager final : public Actor {
 
   string dice_success_values_str_;
   vector<std::pair<int32, int32>> dice_success_values_;
+
+  bool disable_animated_emojis_ = false;
 };
 
 }  // namespace td

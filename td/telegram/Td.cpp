@@ -3321,6 +3321,8 @@ void Td::on_config_option_updated(const string &name) {
   } else if (name == "favorite_stickers_limit") {
     stickers_manager_->on_update_favorite_stickers_limit(
         narrow_cast<int32>(G()->shared_config().get_option_integer(name)));
+  } else if (name == "disable_animated_emoji") {
+    stickers_manager_->on_update_disable_animated_emojis();
   } else if (name == "my_id") {
     G()->set_my_id(G()->shared_config().get_option_integer(name));
   } else if (name == "session_count") {
@@ -7338,6 +7340,9 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
       }
       break;
     case 'd':
+      if (!is_bot && set_boolean_option("disable_animated_emoji")) {
+        return;
+      }
       if (!is_bot && set_boolean_option("disable_contact_registered_notifications")) {
         return;
       }
