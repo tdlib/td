@@ -52,8 +52,8 @@ class NetQueryDispatcher {
 
   void update_valid_dc(DcId dc_id);
 
-  DcId main_dc_id() const {
-    return DcId::internal(main_dc_id_.load());
+  DcId get_main_dc_id() const {
+    return DcId::internal(main_dc_id_.load(std::memory_order_relaxed));
   }
 
   void set_main_dc_id(int32 new_main_dc_id);

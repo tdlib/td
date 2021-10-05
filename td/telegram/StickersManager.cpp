@@ -25,6 +25,7 @@
 #include "td/telegram/misc.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/MtprotoHeader.h"
+#include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/secret_api.h"
 #include "td/telegram/StickerSetId.hpp"
 #include "td/telegram/StickersManager.hpp"
@@ -4103,12 +4104,14 @@ void StickersManager::on_update_emoji_sounds() {
     CHECK(parts.size() == 3);
     auto id = to_integer<int64>(parts[0]);
     auto access_hash = to_integer<int64>(parts[1]);
+    auto dc_id = G()->net_query_dispatcher().get_main_dc_id();
     auto file_reference = base64url_decode(parts[2]).move_as_ok();
+    int32 expected_size = 7000;
     auto suggested_file_name = PSTRING() << static_cast<uint64>(id) << '.'
                                          << MimeType::to_extension("audio/ogg", "oga");
     auto file_id = td_->file_manager_->register_remote(
-        FullRemoteFileLocation(FileType::VoiceNote, id, access_hash, DcId::internal(2), std::move(file_reference)),
-        FileLocationSource::FromServer, DialogId(), 0, 0, std::move(suggested_file_name));
+        FullRemoteFileLocation(FileType::VoiceNote, id, access_hash, dc_id, std::move(file_reference)),
+        FileLocationSource::FromServer, DialogId(), 0, expected_size, std::move(suggested_file_name));
     CHECK(file_id.is_valid());
     emoji_sounds_.emplace(remove_fitzpatrick_modifier(sounds[i]).str(), file_id);
   }

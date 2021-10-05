@@ -1319,7 +1319,7 @@ void ConfigManager::save_config_expire(Timestamp timestamp) {
 }
 
 void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
-  bool is_from_main_dc = G()->net_query_dispatcher().main_dc_id().get_value() == config->this_dc_;
+  bool is_from_main_dc = G()->net_query_dispatcher().get_main_dc_id().get_value() == config->this_dc_;
 
   LOG(INFO) << to_string(config);
   auto reload_in = clamp(config->expires_ - config->date_, 60, 86400);

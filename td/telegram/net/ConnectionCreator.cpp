@@ -295,7 +295,7 @@ ActorId<GetHostByNameActor> ConnectionCreator::get_dns_resolver() {
 void ConnectionCreator::ping_proxy(int32 proxy_id, Promise<double> promise) {
   CHECK(!close_flag_);
   if (proxy_id == 0) {
-    auto main_dc_id = G()->net_query_dispatcher().main_dc_id();
+    auto main_dc_id = G()->net_query_dispatcher().get_main_dc_id();
     bool prefer_ipv6 = G()->shared_config().get_option_boolean("prefer_ipv6");
     auto infos = dc_options_set_.find_all_connections(main_dc_id, false, false, prefer_ipv6, false);
     if (infos.empty()) {
@@ -361,7 +361,7 @@ void ConnectionCreator::ping_proxy_resolved(int32 proxy_id, IPAddress ip_address
     return promise.set_error(Status::Error(400, "Unknown proxy identifier"));
   }
   const Proxy &proxy = it->second;
-  auto main_dc_id = G()->net_query_dispatcher().main_dc_id();
+  auto main_dc_id = G()->net_query_dispatcher().get_main_dc_id();
   FindConnectionExtra extra;
   auto r_socket_fd = find_connection(proxy, ip_address, main_dc_id, false, extra);
   if (r_socket_fd.is_error()) {
