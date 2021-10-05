@@ -1963,13 +1963,41 @@ std::pair<FileId, int> StickersManager::get_animated_emoji_sticker(const string 
   return get_animated_emoji_sticker(get_animated_emoji_sticker_set(), emoji);
 }
 
+vector<td_api::object_ptr<td_api::colorReplacement>> StickersManager::get_color_replacements_object(
+    int fitzpatrick_modifier) {
+  vector<td_api::object_ptr<td_api::colorReplacement>> result;
+  switch (fitzpatrick_modifier) {
+    case 0:
+      break;
+    case 2:
+    case 3:
+    case 4:
+    case 5:
+    case 6: {
+      static int32 old_colors[] = {0xf77e41, 0xffb139, 0xffd140, 0xffdf79};
+      static int32 new_colors[] = {0xcb7b55, 0xf6b689, 0xffcda7, 0xffdfc5, 0xa45a38, 0xdf986b, 0xedb183,
+                                   0xf4c3a0, 0x703a17, 0xab673d, 0xc37f4e, 0xd89667, 0x4a2409, 0x7d3e0e,
+                                   0x965529, 0xa96337, 0x200f0a, 0x412924, 0x593d37, 0x63453f};
+      for (size_t i = 0; i < 4; i++) {
+        result.push_back(td_api::make_object<td_api::colorReplacement>(old_colors[i],
+                                                                       new_colors[(fitzpatrick_modifier - 2) * 4 + i]));
+      }
+      break;
+    }
+    default:
+      UNREACHABLE();
+  }
+  return result;
+}
+
 td_api::object_ptr<td_api::MessageContent> StickersManager::get_message_content_animated_emoji_object(
     const string &emoji) {
   auto it = emoji_messages_.find(emoji);
   auto animated_sticker =
       it != emoji_messages_.end() ? it->second.animated_emoji_sticker : get_animated_emoji_sticker(emoji);
   if (animated_sticker.first.is_valid()) {
-    return td_api::make_object<td_api::messageAnimatedEmoji>(get_sticker_object(animated_sticker.first), emoji);
+    return td_api::make_object<td_api::messageAnimatedEmoji>(
+        get_sticker_object(animated_sticker.first), get_color_replacements_object(animated_sticker.second), emoji);
   }
   return td_api::make_object<td_api::messageText>(
       td_api::make_object<td_api::formattedText>(emoji, std::vector<td_api::object_ptr<td_api::textEntity>>()),

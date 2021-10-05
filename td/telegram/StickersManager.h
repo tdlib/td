@@ -603,7 +603,7 @@ class StickersManager final : public Actor {
 
   bool update_sticker_set_cache(const StickerSet *sticker_set, Promise<Unit> &promise);
 
-  static int get_emoji_number(Slice emoji);
+  static vector<td_api::object_ptr<td_api::colorReplacement>> get_color_replacements_object(int fitzpatrick_modifier);
 
   const StickerSet *get_animated_emoji_sticker_set();
 
@@ -612,6 +612,8 @@ class StickersManager final : public Actor {
   std::pair<FileId, int> get_animated_emoji_sticker(const string &emoji);
 
   void try_update_animated_emoji_messages();
+
+  static int get_emoji_number(Slice emoji);
 
   vector<FileId> get_animated_emoji_click_stickers(const StickerSet *sticker_set, Slice emoji) const;
 
