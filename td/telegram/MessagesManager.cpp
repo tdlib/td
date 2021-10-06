@@ -2459,16 +2459,16 @@ class GetAllScheduledMessagesQuery final : public Td::ResultHandler {
 };
 
 class GetRecentLocationsQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
+  Promise<td_api::object_ptr<td_api::messages>> promise_;
   DialogId dialog_id_;
   int32 limit_;
-  int64 random_id_;
 
  public:
-  explicit GetRecentLocationsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit GetRecentLocationsQuery(Promise<td_api::object_ptr<td_api::messages>> &&promise)
+      : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, int32 limit, int64 random_id) {
+  void send(DialogId dialog_id, int32 limit) {
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
       return on_error(0, Status::Error(400, "Have no info about the chat"));
@@ -2476,7 +2476,6 @@ class GetRecentLocationsQuery final : public Td::ResultHandler {
 
     dialog_id_ = dialog_id;
     limit_ = limit;
-    random_id_ = random_id;
 
     send_query(
         G()->net_query_creator().create(telegram_api::messages_getRecentLocations(std::move(input_peer), limit, 0)));
@@ -2491,22 +2490,20 @@ class GetRecentLocationsQuery final : public Td::ResultHandler {
     auto info = td->messages_manager_->on_get_messages(result_ptr.move_as_ok(), "GetRecentLocationsQuery");
     td->messages_manager_->get_channel_difference_if_needed(
         dialog_id_, std::move(info),
-        PromiseCreator::lambda([td = td, dialog_id = dialog_id_, limit = limit_, random_id = random_id_,
+        PromiseCreator::lambda([td = td, dialog_id = dialog_id_, limit = limit_,
                                 promise = std::move(promise_)](Result<MessagesManager::MessagesInfo> &&result) mutable {
           if (result.is_error()) {
             promise.set_error(result.move_as_error());
           } else {
             auto info = result.move_as_ok();
-            td->messages_manager_->on_get_recent_locations(dialog_id, limit, random_id, info.total_count,
-                                                           std::move(info.messages));
-            promise.set_value(Unit());
+            td->messages_manager_->on_get_recent_locations(dialog_id, limit, info.total_count, std::move(info.messages),
+                                                           std::move(promise));
           }
         }));
   }
 
   void on_error(uint64 id, Status status) final {
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetRecentLocationsQuery");
-    td->messages_manager_->on_get_recent_locations_failed(random_id_);
     promise_.set_error(std::move(status));
   }
 };
@@ -9906,14 +9903,11 @@ void MessagesManager::on_get_scheduled_server_messages(DialogId dialog_id, uint3
   send_update_chat_has_scheduled_messages(d, false);
 }
 
-void MessagesManager::on_get_recent_locations(DialogId dialog_id, int32 limit, int64 random_id, int32 total_count,
-                                              vector<tl_object_ptr<telegram_api::Message>> &&messages) {
+void MessagesManager::on_get_recent_locations(DialogId dialog_id, int32 limit, int32 total_count,
+                                              vector<tl_object_ptr<telegram_api::Message>> &&messages,
+                                              Promise<td_api::object_ptr<td_api::messages>> &&promise) {
   LOG(INFO) << "Receive " << messages.size() << " recent locations in " << dialog_id;
-  auto it = found_dialog_recent_location_messages_.find(random_id);
-  CHECK(it != found_dialog_recent_location_messages_.end());
-
-  auto &result = it->second.second;
-  CHECK(result.empty());
+  vector<MessageId> result;
   for (auto &message : messages) {
     auto new_full_message_id = on_get_message(std::move(message), false, dialog_id.get_type() == DialogType::Channel,
                                               false, false, false, "get recent locations");
@@ -9942,13 +9936,7 @@ void MessagesManager::on_get_recent_locations(DialogId dialog_id, int32 limit, i
                << " messages";
     total_count = static_cast<int32>(result.size());
   }
-  it->second.first = total_count;
-}
-
-void MessagesManager::on_get_recent_locations_failed(int64 random_id) {
-  auto it = found_dialog_recent_location_messages_.find(random_id);
-  CHECK(it != found_dialog_recent_location_messages_.end());
-  found_dialog_recent_location_messages_.erase(it);
+  promise.set_value(get_messages_object(total_count, dialog_id, result, true, "on_get_recent_locations"));
 }
 
 void MessagesManager::on_get_message_public_forwards(int32 total_count,
@@ -21385,25 +21373,12 @@ std::pair<int32, vector<FullMessageId>> MessagesManager::search_call_messages(Me
   return result;
 }
 
-std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_recent_location_messages(DialogId dialog_id,
-                                                                                            int32 limit,
-                                                                                            int64 &random_id,
-                                                                                            Promise<Unit> &&promise) {
-  if (random_id != 0) {
-    // request has already been sent before
-    auto it = found_dialog_recent_location_messages_.find(random_id);
-    CHECK(it != found_dialog_recent_location_messages_.end());
-    auto result = std::move(it->second);
-    found_dialog_recent_location_messages_.erase(it);
-    promise.set_value(Unit());
-    return result;
-  }
+void MessagesManager::search_dialog_recent_location_messages(DialogId dialog_id, int32 limit,
+                                                             Promise<td_api::object_ptr<td_api::messages>> &&promise) {
   LOG(INFO) << "Search recent location messages in " << dialog_id << " with limit " << limit;
 
-  std::pair<int32, vector<MessageId>> result;
   if (limit <= 0) {
-    promise.set_error(Status::Error(400, "Parameter limit must be positive"));
-    return result;
+    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
   }
   if (limit > MAX_SEARCH_MESSAGES) {
     limit = MAX_SEARCH_MESSAGES;
@@ -21411,30 +21386,20 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_recent_locati
 
   const Dialog *d = get_dialog_force(dialog_id, "search_dialog_recent_location_messages");
   if (d == nullptr) {
-    promise.set_error(Status::Error(400, "Chat not found"));
-    return result;
+    return promise.set_error(Status::Error(400, "Chat not found"));
   }
-
-  do {
-    random_id = Random::secure_int64();
-  } while (random_id == 0 ||
-           found_dialog_recent_location_messages_.find(random_id) != found_dialog_recent_location_messages_.end());
-  found_dialog_recent_location_messages_[random_id];  // reserve place for result
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
     case DialogType::Chat:
     case DialogType::Channel:
-      td_->create_handler<GetRecentLocationsQuery>(std::move(promise))->send(dialog_id, limit, random_id);
-      break;
+      return td_->create_handler<GetRecentLocationsQuery>(std::move(promise))->send(dialog_id, limit);
     case DialogType::SecretChat:
-      promise.set_value(Unit());
-      break;
+      return promise.set_value(get_messages_object(0, vector<td_api::object_ptr<td_api::message>>(), true));
     default:
       UNREACHABLE();
       promise.set_error(Status::Error(500, "Search messages is not supported"));
   }
-  return result;
 }
 
 vector<FullMessageId> MessagesManager::get_active_live_location_messages(Promise<Unit> &&promise) {

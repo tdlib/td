@@ -224,9 +224,9 @@ class MessagesManager final : public Actor {
   void on_get_scheduled_server_messages(DialogId dialog_id, uint32 generation,
                                         vector<tl_object_ptr<telegram_api::Message>> &&messages, bool is_not_modified);
 
-  void on_get_recent_locations(DialogId dialog_id, int32 limit, int64 random_id, int32 total_count,
-                               vector<tl_object_ptr<telegram_api::Message>> &&messages);
-  void on_get_recent_locations_failed(int64 random_id);
+  void on_get_recent_locations(DialogId dialog_id, int32 limit, int32 total_count,
+                               vector<tl_object_ptr<telegram_api::Message>> &&messages,
+                               Promise<td_api::object_ptr<td_api::messages>> &&promise);
 
   void on_get_message_public_forwards(int32 total_count, vector<tl_object_ptr<telegram_api::Message>> &&messages,
                                       Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
@@ -718,8 +718,8 @@ class MessagesManager final : public Actor {
   std::pair<int32, vector<FullMessageId>> search_call_messages(MessageId from_message_id, int32 limit, bool only_missed,
                                                                int64 &random_id, bool use_db, Promise<Unit> &&promise);
 
-  std::pair<int32, vector<MessageId>> search_dialog_recent_location_messages(DialogId dialog_id, int32 limit,
-                                                                             int64 &random_id, Promise<Unit> &&promise);
+  void search_dialog_recent_location_messages(DialogId dialog_id, int32 limit,
+                                              Promise<td_api::object_ptr<td_api::messages>> &&promise);
 
   vector<FullMessageId> get_active_live_location_messages(Promise<Unit> &&promise);
 
@@ -3283,8 +3283,6 @@ class MessagesManager final : public Actor {
       found_messages_;  // random_id -> [total_count, [full_message_id]...]
   std::unordered_map<int64, std::pair<int32, vector<FullMessageId>>>
       found_call_messages_;  // random_id -> [total_count, [full_message_id]...]
-  std::unordered_map<int64, std::pair<int32, vector<MessageId>>>
-      found_dialog_recent_location_messages_;  // random_id -> [total_count, [message_id]...]
 
   std::unordered_map<int64, FoundMessages> found_fts_messages_;  // random_id -> FoundMessages
 

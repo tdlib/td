@@ -1516,29 +1516,6 @@ class SearchCallMessagesRequest final : public RequestActor<> {
   }
 };
 
-class SearchChatRecentLocationMessagesRequest final : public RequestActor<> {
-  DialogId dialog_id_;
-  int32 limit_;
-  int64 random_id_;
-
-  std::pair<int32, vector<MessageId>> messages_;
-
-  void do_run(Promise<Unit> &&promise) final {
-    messages_ = td->messages_manager_->search_dialog_recent_location_messages(dialog_id_, limit_, random_id_,
-                                                                              std::move(promise));
-  }
-
-  void do_send_result() final {
-    send_result(td->messages_manager_->get_messages_object(messages_.first, dialog_id_, messages_.second, true,
-                                                           "SearchChatRecentLocationMessagesRequest"));
-  }
-
- public:
-  SearchChatRecentLocationMessagesRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, int32 limit)
-      : RequestActor(std::move(td), request_id), dialog_id_(dialog_id), limit_(limit), random_id_(0) {
-  }
-};
-
 class GetActiveLiveLocationMessagesRequest final : public RequestActor<> {
   vector<FullMessageId> full_message_ids_;
 
@@ -5394,7 +5371,9 @@ void Td::on_request(uint64 id, const td_api::deleteAllCallMessages &request) {
 
 void Td::on_request(uint64 id, const td_api::searchChatRecentLocationMessages &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST(SearchChatRecentLocationMessagesRequest, request.chat_id_, request.limit_);
+  CREATE_REQUEST_PROMISE();
+  messages_manager_->search_dialog_recent_location_messages(DialogId(request.chat_id_), request.limit_,
+                                                            std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getActiveLiveLocationMessages &request) {
