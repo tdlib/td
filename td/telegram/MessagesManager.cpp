@@ -8138,6 +8138,10 @@ void MessagesManager::repair_dialog_active_group_call_id(DialogId dialog_id) {
 }
 
 void MessagesManager::do_repair_dialog_active_group_call_id(DialogId dialog_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
   bool need_repair_active_group_call_id = d->has_active_group_call && !d->active_group_call_id.is_valid();
@@ -17344,6 +17348,10 @@ void MessagesManager::get_dialog_info_full(DialogId dialog_id, Promise<Unit> &&p
 }
 
 void MessagesManager::reload_dialog_info_full(DialogId dialog_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   switch (dialog_id.get_type()) {
     case DialogType::User:
       send_closure_later(G()->contacts_manager(), &ContactsManager::reload_user_full, dialog_id.get_user_id());
@@ -30562,6 +30570,9 @@ uint64 MessagesManager::save_get_dialog_from_server_log_event(DialogId dialog_id
 
 void MessagesManager::send_get_dialog_query(DialogId dialog_id, Promise<Unit> &&promise, uint64 log_event_id,
                                             const char *source) {
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
   if (td_->auth_manager_->is_bot() || dialog_id.get_type() == DialogType::SecretChat) {
     if (log_event_id != 0) {
       binlog_erase(G()->td_db()->get_binlog(), log_event_id);

@@ -7478,6 +7478,10 @@ void ContactsManager::delete_chat_participant(ChatId chat_id, UserId user_id, bo
 void ContactsManager::restrict_channel_participant(ChannelId channel_id, DialogId participant_dialog_id,
                                                    DialogParticipantStatus status, DialogParticipantStatus old_status,
                                                    Promise<Unit> &&promise) {
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
+
   LOG(INFO) << "Restrict " << participant_dialog_id << " in " << channel_id << " from " << old_status << " to "
             << status;
   const Channel *c = get_channel(channel_id);
@@ -7535,22 +7539,22 @@ void ContactsManager::restrict_channel_participant(ChannelId channel_id, DialogI
 
   if (old_status.is_member() && !status.is_member() && !status.is_banned()) {
     // we can't make participant Left without kicking it first
-    auto on_result_promise = PromiseCreator::lambda([channel_id, participant_dialog_id, status,
-                                                     promise = std::move(promise)](Result<> result) mutable {
+    auto on_result_promise = PromiseCreator::lambda([actor_id = actor_id(this), channel_id, participant_dialog_id,
+                                                     status, promise = std::move(promise)](Result<> result) mutable {
       if (result.is_error()) {
         return promise.set_error(result.move_as_error());
       }
 
       create_actor<SleepActor>("RestrictChannelParticipantSleepActor", 1.0,
-                               PromiseCreator::lambda([channel_id, participant_dialog_id, status,
+                               PromiseCreator::lambda([actor_id, channel_id, participant_dialog_id, status,
                                                        promise = std::move(promise)](Result<> result) mutable {
                                  if (result.is_error()) {
                                    return promise.set_error(result.move_as_error());
                                  }
 
-                                 send_closure(G()->contacts_manager(), &ContactsManager::restrict_channel_participant,
-                                              channel_id, participant_dialog_id, status,
-                                              DialogParticipantStatus::Banned(0), std::move(promise));
+                                 send_closure(actor_id, &ContactsManager::restrict_channel_participant, channel_id,
+                                              participant_dialog_id, status, DialogParticipantStatus::Banned(0),
+                                              std::move(promise));
                                }))
           .release();
     });
