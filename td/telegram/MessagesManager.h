@@ -187,7 +187,7 @@ class MessagesManager final : public Actor {
     int32 total_count = 0;
     bool is_channel_messages = false;
   };
-  MessagesInfo on_get_messages(tl_object_ptr<telegram_api::messages_Messages> &&messages_ptr, const char *source);
+  MessagesInfo get_messages_info(tl_object_ptr<telegram_api::messages_Messages> &&messages_ptr, const char *source);
 
   void get_channel_difference_if_needed(DialogId dialog_id, MessagesInfo &&messages_info,
                                         Promise<MessagesInfo> &&promise);
@@ -195,7 +195,7 @@ class MessagesManager final : public Actor {
   void get_channel_differences_if_needed(MessagesInfo &&messages_info, Promise<MessagesInfo> &&promise);
 
   void on_get_messages(vector<tl_object_ptr<telegram_api::Message>> &&messages, bool is_channel_message,
-                       bool is_scheduled, const char *source);
+                       bool is_scheduled, Promise<Unit> &&promise, const char *source);
 
   void on_get_history(DialogId dialog_id, MessageId from_message_id, MessageId old_last_new_message_id, int32 offset,
                       int32 limit, bool from_the_end, vector<tl_object_ptr<telegram_api::Message>> &&messages,
@@ -209,7 +209,8 @@ class MessagesManager final : public Actor {
                                             MessageId from_message_id, int32 offset, int32 limit,
                                             MessageSearchFilter filter, MessageId top_thread_message_id,
                                             int64 random_id, int32 total_count,
-                                            vector<tl_object_ptr<telegram_api::Message>> &&messages);
+                                            vector<tl_object_ptr<telegram_api::Message>> &&messages,
+                                            Promise<Unit> &&promise);
   void on_failed_dialog_messages_search(DialogId dialog_id, int64 random_id);
 
   void on_get_dialog_message_count(DialogId dialog_id, MessageSearchFilter filter, int32 total_count,
@@ -218,7 +219,7 @@ class MessagesManager final : public Actor {
   void on_get_messages_search_result(const string &query, int32 offset_date, DialogId offset_dialog_id,
                                      MessageId offset_message_id, int32 limit, MessageSearchFilter filter,
                                      int32 min_date, int32 max_date, int64 random_id, int32 total_count,
-                                     vector<tl_object_ptr<telegram_api::Message>> &&messages);
+                                     vector<tl_object_ptr<telegram_api::Message>> &&messages, Promise<Unit> &&promise);
   void on_failed_messages_search(int64 random_id);
 
   void on_get_scheduled_server_messages(DialogId dialog_id, uint32 generation,
@@ -726,7 +727,8 @@ class MessagesManager final : public Actor {
   int64 get_dialog_message_by_date(DialogId dialog_id, int32 date, Promise<Unit> &&promise);
 
   void on_get_dialog_message_by_date_success(DialogId dialog_id, int32 date, int64 random_id,
-                                             vector<tl_object_ptr<telegram_api::Message>> &&messages);
+                                             vector<tl_object_ptr<telegram_api::Message>> &&messages,
+                                             Promise<Unit> &&promise);
 
   void on_get_dialog_message_by_date_fail(int64 random_id);
 
