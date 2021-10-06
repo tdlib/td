@@ -15204,9 +15204,9 @@ void ContactsManager::on_load_dialog_administrators_from_database(DialogId dialo
             << " from database";
 
   MultiPromiseActorSafe load_users_multipromise{"LoadUsersMultiPromiseActor"};
-  load_users_multipromise.add_promise(
-      PromiseCreator::lambda([dialog_id, administrators, promise = std::move(promise)](Result<> result) mutable {
-        send_closure(G()->contacts_manager(), &ContactsManager::on_load_administrator_users_finished, dialog_id,
+  load_users_multipromise.add_promise(PromiseCreator::lambda(
+      [actor_id = actor_id(this), dialog_id, administrators, promise = std::move(promise)](Result<> result) mutable {
+        send_closure(actor_id, &ContactsManager::on_load_administrator_users_finished, dialog_id,
                      std::move(administrators), std::move(result), std::move(promise));
       }));
 
@@ -15222,7 +15222,7 @@ void ContactsManager::on_load_dialog_administrators_from_database(DialogId dialo
 void ContactsManager::on_load_administrator_users_finished(DialogId dialog_id,
                                                            vector<DialogAdministrator> administrators, Result<> result,
                                                            Promise<Unit> promise) {
-  if (result.is_ok()) {
+  if (!G()->close_flag() && result.is_ok()) {
     dialog_administrators_.emplace(dialog_id, std::move(administrators));
   }
   promise.set_value(Unit());

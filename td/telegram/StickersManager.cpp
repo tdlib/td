@@ -2293,11 +2293,12 @@ StickerSetId StickersManager::on_get_input_sticker_set(FileId sticker_file_id,
       }
       auto set_id = search_sticker_set(set->short_name_, load_data_multipromise_ptr->get_promise());
       if (!set_id.is_valid()) {
-        load_data_multipromise_ptr->add_promise(
-            PromiseCreator::lambda([td = td_, sticker_file_id, short_name = set->short_name_](Result<Unit> result) {
+        load_data_multipromise_ptr->add_promise(PromiseCreator::lambda(
+            [actor_id = actor_id(this), sticker_file_id, short_name = set->short_name_](Result<Unit> result) {
               if (result.is_ok()) {
                 // just in case
-                td->stickers_manager_->on_resolve_sticker_set_short_name(sticker_file_id, short_name);
+                send_closure(actor_id, &StickersManager::on_resolve_sticker_set_short_name, sticker_file_id,
+                             short_name);
               }
             }));
       }
@@ -2317,6 +2318,10 @@ StickerSetId StickersManager::on_get_input_sticker_set(FileId sticker_file_id,
 }
 
 void StickersManager::on_resolve_sticker_set_short_name(FileId sticker_file_id, const string &short_name) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   LOG(INFO) << "Resolve sticker " << sticker_file_id << " set to " << short_name;
   StickerSetId set_id = search_sticker_set(short_name, Auto());
   if (set_id.is_valid()) {
