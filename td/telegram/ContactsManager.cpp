@@ -13824,7 +13824,7 @@ void ContactsManager::send_get_user_full_query(UserId user_id, tl_object_ptr<tel
   LOG(INFO) << "Get full " << user_id << " from " << source;
   auto send_query =
       PromiseCreator::lambda([td = td_, input_user = std::move(input_user)](Result<Promise<Unit>> &&promise) mutable {
-        if (promise.is_ok()) {
+        if (promise.is_ok() && !G()->close_flag()) {
           td->create_handler<GetFullUserQuery>(promise.move_as_ok())->send(std::move(input_user));
         }
       });
@@ -14108,7 +14108,7 @@ void ContactsManager::reload_chat_full(ChatId chat_id, Promise<Unit> &&promise) 
 void ContactsManager::send_get_chat_full_query(ChatId chat_id, Promise<Unit> &&promise, const char *source) {
   LOG(INFO) << "Get full " << chat_id << " from " << source;
   auto send_query = PromiseCreator::lambda([td = td_, chat_id](Result<Promise<Unit>> &&promise) {
-    if (promise.is_ok()) {
+    if (promise.is_ok() && !G()->close_flag()) {
       td->create_handler<GetFullChatQuery>(promise.move_as_ok())->send(chat_id);
     }
   });
@@ -14454,7 +14454,7 @@ void ContactsManager::send_get_channel_full_query(ChannelFull *channel_full, Cha
   LOG(INFO) << "Get full " << channel_id << " from " << source;
   auto send_query = PromiseCreator::lambda(
       [td = td_, channel_id, input_channel = std::move(input_channel)](Result<Promise<Unit>> &&promise) mutable {
-        if (promise.is_ok()) {
+        if (promise.is_ok() && !G()->close_flag()) {
           td->create_handler<GetFullChannelQuery>(promise.move_as_ok())->send(channel_id, std::move(input_channel));
         }
       });

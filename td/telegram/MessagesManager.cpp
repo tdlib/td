@@ -276,12 +276,12 @@ class GetDialogQuery final : public Td::ResultHandler {
     td->messages_manager_->on_get_dialogs(
         FolderId(), std::move(result->dialogs_), -1, std::move(result->messages_),
         PromiseCreator::lambda([td = td, dialog_id = dialog_id_](Result<> result) {
+          if (G()->close_flag()) {
+            return;
+          }
           if (result.is_ok()) {
             td->messages_manager_->on_get_dialog_query_finished(dialog_id, Status::OK());
           } else {
-            if (G()->close_flag()) {
-              return;
-            }
             td->messages_manager_->on_get_dialog_error(dialog_id, result.error(), "OnGetDialogs");
             td->messages_manager_->on_get_dialog_query_finished(dialog_id, result.move_as_error());
           }
@@ -510,6 +510,9 @@ class GetChannelMessagesQuery final : public Td::ResultHandler {
         DialogId(channel_id_), std::move(info),
         PromiseCreator::lambda(
             [td = td, promise = std::move(promise_)](Result<MessagesManager::MessagesInfo> &&result) mutable {
+              if (G()->close_flag()) {
+                result = Status::Error(500, "Request aborted");
+              }
               if (result.is_error()) {
                 promise.set_error(result.move_as_error());
               } else {
@@ -1976,6 +1979,9 @@ class GetDialogMessageByDateQuery final : public Td::ResultHandler {
         dialog_id_, std::move(info),
         PromiseCreator::lambda([td = td, dialog_id = dialog_id_, date = date_, random_id = random_id_,
                                 promise = std::move(promise_)](Result<MessagesManager::MessagesInfo> &&result) mutable {
+          if (G()->close_flag()) {
+            result = Status::Error(500, "Request aborted");
+          }
           if (result.is_error()) {
             promise.set_error(result.move_as_error());
           } else {
@@ -2055,6 +2061,9 @@ class GetHistoryQuery final : public Td::ResultHandler {
                                 old_last_new_message_id = old_last_new_message_id_, offset = offset_, limit = limit_,
                                 from_the_end = from_the_end_,
                                 promise = std::move(promise_)](Result<MessagesManager::MessagesInfo> &&result) mutable {
+          if (G()->close_flag()) {
+            result = Status::Error(500, "Request aborted");
+          }
           if (result.is_error()) {
             promise.set_error(result.move_as_error());
           } else {
@@ -2270,6 +2279,9 @@ class SearchMessagesQuery final : public Td::ResultHandler {
                                 offset = offset_, limit = limit_, filter = filter_,
                                 top_thread_message_id = top_thread_message_id_, random_id = random_id_,
                                 promise = std::move(promise_)](Result<MessagesManager::MessagesInfo> &&result) mutable {
+          if (G()->close_flag()) {
+            result = Status::Error(500, "Request aborted");
+          }
           if (result.is_error()) {
             promise.set_error(result.move_as_error());
           } else {
@@ -2492,6 +2504,9 @@ class GetRecentLocationsQuery final : public Td::ResultHandler {
         dialog_id_, std::move(info),
         PromiseCreator::lambda([td = td, dialog_id = dialog_id_, limit = limit_,
                                 promise = std::move(promise_)](Result<MessagesManager::MessagesInfo> &&result) mutable {
+          if (G()->close_flag()) {
+            result = Status::Error(500, "Request aborted");
+          }
           if (result.is_error()) {
             promise.set_error(result.move_as_error());
           } else {
@@ -2544,6 +2559,9 @@ class GetMessagePublicForwardsQuery final : public Td::ResultHandler {
     td->messages_manager_->get_channel_differences_if_needed(
         std::move(info), PromiseCreator::lambda([td = td, promise = std::move(promise_)](
                                                     Result<MessagesManager::MessagesInfo> &&result) mutable {
+          if (G()->close_flag()) {
+            result = Status::Error(500, "Request aborted");
+          }
           if (result.is_error()) {
             promise.set_error(result.move_as_error());
           } else {
@@ -9092,6 +9110,9 @@ void MessagesManager::after_get_difference() {
         if (message_id <= d->last_new_message_id) {
           get_message_from_server(
               it.first, PromiseCreator::lambda([this, full_message_id](Result<Unit> result) {
+                if (G()->close_flag()) {
+                  return;
+                }
                 if (result.is_error()) {
                   LOG(WARNING) << "Failed to get missing " << full_message_id << ": " << result.error();
                 } else {
@@ -9198,14 +9219,10 @@ void MessagesManager::get_channel_difference_if_needed(DialogId dialog_id, Messa
                                                        Promise<MessagesInfo> &&promise) {
   for (auto &message : messages_info.messages) {
     if (need_channel_difference_to_add_message(dialog_id, message)) {
-      return run_after_channel_difference(dialog_id,
-                                          PromiseCreator::lambda([messages_info = std::move(messages_info),
-                                                                  promise = std::move(promise)](Unit ignored) mutable {
-                                            if (G()->close_flag()) {
-                                              return promise.set_error(Status::Error(500, "Request aborted"));
-                                            }
-                                            promise.set_value(std::move(messages_info));
-                                          }));
+      return run_after_channel_difference(
+          dialog_id,
+          PromiseCreator::lambda([messages_info = std::move(messages_info), promise = std::move(promise)](
+                                     Unit ignored) mutable { promise.set_value(std::move(messages_info)); }));
     }
   }
   promise.set_value(std::move(messages_info));
