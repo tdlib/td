@@ -230,15 +230,19 @@ class MessagesDbImpl final : public MessagesDbSyncInterface {
                                         "ORDER BY rowid DESC LIMIT ?3) ORDER BY search_id DESC"));
 
     for (int32 i = 0; i < MESSAGES_DB_INDEX_COUNT; i++) {
-      TRY_RESULT_ASSIGN(get_messages_from_index_stmts_[i].desc_stmt_,
-                        db_.get_statement(PSLICE() << "SELECT data, message_id FROM messages WHERE dialog_id = ?1 "
-                                                      "AND message_id < ?2 AND (index_mask & "
-                                                   << (1 << i) << ") != 0 ORDER BY message_id DESC LIMIT ?3"));
+      TRY_RESULT_ASSIGN(
+          get_messages_from_index_stmts_[i].desc_stmt_,
+          db_.get_statement(
+              PSLICE()
+              << "SELECT data, message_id FROM messages WHERE dialog_id = ?1 AND message_id < ?2 AND (index_mask & "
+              << (1 << i) << ") != 0 ORDER BY message_id DESC LIMIT ?3"));
 
-      TRY_RESULT_ASSIGN(get_messages_from_index_stmts_[i].asc_stmt_,
-                        db_.get_statement(PSLICE() << "SELECT data, message_id FROM messages WHERE dialog_id = ?1 "
-                                                      "AND message_id > ?2 AND (index_mask & "
-                                                   << (1 << i) << ") != 0 ORDER BY message_id ASC LIMIT ?3"));
+      TRY_RESULT_ASSIGN(
+          get_messages_from_index_stmts_[i].asc_stmt_,
+          db_.get_statement(
+              PSLICE()
+              << "SELECT data, message_id FROM messages WHERE dialog_id = ?1 AND message_id > ?2 AND (index_mask & "
+              << (1 << i) << ") != 0 ORDER BY message_id ASC LIMIT ?3"));
 
       // LOG(ERROR) << get_messages_from_index_stmts_[i].desc_stmt_.explain().ok();
       // LOG(ERROR) << get_messages_from_index_stmts_[i].asc_stmt_.explain().ok();

@@ -952,8 +952,8 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
   } else if (path[0][0] == ' ' || path[0][0] == '+') {
     if (path[0].size() >= 2) {
       // /+<link>
-      return td::make_unique<InternalLinkDialogInvite>(
-          PSTRING() << "tg:join?invite=" + url_encode(get_url_query_hash(false, url_query)));
+      return td::make_unique<InternalLinkDialogInvite>(PSTRING() << "tg:join?invite="
+                                                                 << url_encode(get_url_query_hash(false, url_query)));
     }
   } else if (path[0] == "addstickers") {
     if (path.size() >= 2 && !path[1].empty()) {

@@ -858,7 +858,7 @@ Status SecretChatActor::do_inbound_message_encrypted(unique_ptr<log_event::Inbou
         send_update_secret_chat();
       }
       if (layer >= static_cast<int32>(SecretChatLayer::Mtproto2) && mtproto_version < 2) {
-        return Status::Error(PSLICE() << "MTProto 1.0 encryption is forbidden for this layer");
+        return Status::Error("MTProto 1.0 encryption is forbidden for this layer");
       }
       if (message_with_layer->in_seq_no_ < 0) {
         return Status::Error(PSLICE() << "Invalid seq_no: " << to_string(message_with_layer));

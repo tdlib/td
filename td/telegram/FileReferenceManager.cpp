@@ -98,7 +98,7 @@ FileSourceId FileReferenceManager::create_recent_stickers_file_source(bool is_at
 
 FileSourceId FileReferenceManager::create_favorite_stickers_file_source() {
   FileSourceFavoriteStickers source;
-  return add_file_source_id(source, PSLICE() << "favorite stickers");
+  return add_file_source_id(source, "favorite stickers");
 }
 
 FileSourceId FileReferenceManager::create_background_file_source(BackgroundId background_id, int64 access_hash) {
