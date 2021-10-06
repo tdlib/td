@@ -23524,7 +23524,8 @@ bool MessagesManager::is_message_auto_read(DialogId dialog_id, bool is_outgoing)
       if (user_id == td_->contacts_manager_->get_my_id()) {
         return true;
       }
-      if (is_outgoing && td_->contacts_manager_->is_user_bot(user_id)) {
+      if (is_outgoing && td_->contacts_manager_->is_user_bot(user_id) &&
+          !td_->contacts_manager_->is_user_support(user_id)) {
         return true;
       }
       return false;
