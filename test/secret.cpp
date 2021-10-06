@@ -562,7 +562,7 @@ class FakeSecretChatContext final : public SecretChatActor::Context {
 
   std::shared_ptr<SecretChatDb> secret_chat_db_;
 };
-NetQueryCreator FakeSecretChatContext::net_query_creator_;
+NetQueryCreator FakeSecretChatContext::net_query_creator_{nullptr};
 
 class Master final : public Actor {
  public:

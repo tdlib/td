@@ -108,6 +108,7 @@ class Global final : public ActorContext {
   }
 
   void set_net_query_stats(std::shared_ptr<NetQueryStats> net_query_stats);
+
   void set_net_query_dispatcher(unique_ptr<NetQueryDispatcher> net_query_dispatcher);
 
   NetQueryDispatcher &net_query_dispatcher() {

@@ -20,6 +20,11 @@
 
 namespace td {
 
+NetQueryCreator::NetQueryCreator(std::shared_ptr<NetQueryStats> net_query_stats)
+    : net_query_stats_(std::move(net_query_stats)) {
+  object_pool_.set_check_empty(true);
+}
+
 NetQueryPtr NetQueryCreator::create(const telegram_api::Function &function, DcId dc_id, NetQuery::Type type) {
   return create(UniqueId::next(), function, dc_id, type, NetQuery::AuthFlag::On);
 }
