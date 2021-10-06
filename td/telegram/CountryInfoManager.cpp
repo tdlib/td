@@ -128,7 +128,7 @@ void CountryInfoManager::tear_down() {
 
   std::lock_guard<std::mutex> country_lock(country_mutex_);
   manager_count_--;
-  if (manager_count_ == 0) {
+  if (manager_count_ == 0 && !countries_.empty()) {
     LOG(INFO) << "Clear country info";
     countries_.clear();
   }
