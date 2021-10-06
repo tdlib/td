@@ -345,17 +345,6 @@ inline void Scheduler::wakeup() {
 #endif
 }
 
-inline Timestamp Scheduler::run_events() {
-  Timestamp res;
-  VLOG(actor) << "Run events " << sched_id_ << " " << tag("pending", pending_events_.size())
-              << tag("actors", actor_count_);
-  do {
-    run_mailbox();
-    res = run_timeout();
-  } while (!ready_actors_list_.empty());
-  return res;
-}
-
 inline void Scheduler::run(Timestamp timeout) {
   auto guard = get_guard();
   run_no_guard(timeout);

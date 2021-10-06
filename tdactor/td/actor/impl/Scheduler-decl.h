@@ -196,7 +196,7 @@ class Scheduler {
 
   Timestamp run_timeout();
   void run_mailbox();
-  Timestamp run_events();
+  Timestamp run_events(Timestamp timeout);
   void run_poll(Timestamp timeout);
 
   template <class ActorT>

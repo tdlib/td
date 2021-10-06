@@ -487,18 +487,29 @@ Timestamp Scheduler::run_timeout() {
   return get_timeout();
 }
 
+Timestamp Scheduler::run_events(Timestamp timeout) {
+  Timestamp res;
+  VLOG(actor) << "Run events " << sched_id_ << " " << tag("pending", pending_events_.size())
+              << tag("actors", actor_count_);
+  do {
+    run_mailbox();
+    res = run_timeout();
+  } while (!ready_actors_list_.empty() && !timeout.is_in_past());
+  return res;
+}
+
 void Scheduler::run_no_guard(Timestamp timeout) {
   CHECK(has_guard_);
   SCOPE_EXIT {
     yield_flag_ = false;
   };
 
-  timeout.relax(run_events());
+  timeout.relax(run_events(timeout));
   if (yield_flag_) {
     return;
   }
   run_poll(timeout);
-  run_events();
+  run_events(timeout);
 }
 
 Timestamp Scheduler::get_timeout() {
