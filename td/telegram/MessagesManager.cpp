@@ -27736,12 +27736,16 @@ void MessagesManager::get_message_notifications_from_database(DialogId dialog_id
                       << dialog_id << " from " << from_notification_id << "/" << from_message_id;
   bool from_mentions = d->mention_notification_group.group_id == group_id;
   if (d->new_secret_chat_notification_id.is_valid()) {
-    CHECK(d->dialog_id.get_type() == DialogType::SecretChat);
+    CHECK(dialog_id.get_type() == DialogType::SecretChat);
     vector<Notification> notifications;
     if (!from_mentions && d->new_secret_chat_notification_id.get() < from_notification_id.get()) {
-      notifications.emplace_back(d->new_secret_chat_notification_id,
-                                 td_->contacts_manager_->get_secret_chat_date(d->dialog_id.get_secret_chat_id()), false,
-                                 create_new_secret_chat_notification());
+      auto date = td_->contacts_manager_->get_secret_chat_date(dialog_id.get_secret_chat_id());
+      if (date <= 0) {
+        remove_new_secret_chat_notification(d, true);
+      } else {
+        notifications.emplace_back(d->new_secret_chat_notification_id, date, false,
+                                   create_new_secret_chat_notification());
+      }
     }
     return promise.set_value(std::move(notifications));
   }
@@ -27884,6 +27888,7 @@ void MessagesManager::on_get_message_notifications_from_database(DialogId dialog
 
     if (is_correct) {
       // skip mention messages returned among unread messages
+      CHECK(m->date > 0);
       res.emplace_back(m->notification_id, m->date, m->disable_notification,
                        create_new_message_notification(m->message_id));
     } else {
