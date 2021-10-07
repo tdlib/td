@@ -9680,18 +9680,18 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
     }
   }
   if (u->is_name_changed) {
-    td_->messages_manager_->on_dialog_title_updated(DialogId(user_id));
-    for_each_secret_chat_with_user(user_id,
-                                   [messages_manager = td_->messages_manager_.get()](SecretChatId secret_chat_id) {
-                                     messages_manager->on_dialog_title_updated(DialogId(secret_chat_id));
-                                   });
+    auto messages_manager = td_->messages_manager_.get();
+    messages_manager->on_dialog_title_updated(DialogId(user_id));
+    for_each_secret_chat_with_user(user_id, [messages_manager](SecretChatId secret_chat_id) {
+      messages_manager->on_dialog_title_updated(DialogId(secret_chat_id));
+    });
   }
   if (u->is_photo_changed) {
-    td_->messages_manager_->on_dialog_photo_updated(DialogId(user_id));
-    for_each_secret_chat_with_user(user_id,
-                                   [messages_manager = td_->messages_manager_.get()](SecretChatId secret_chat_id) {
-                                     messages_manager->on_dialog_photo_updated(DialogId(secret_chat_id));
-                                   });
+    auto messages_manager = td_->messages_manager_.get();
+    messages_manager->on_dialog_photo_updated(DialogId(user_id));
+    for_each_secret_chat_with_user(user_id, [messages_manager](SecretChatId secret_chat_id) {
+      messages_manager->on_dialog_photo_updated(DialogId(secret_chat_id));
+    });
   }
   if (u->is_status_changed && user_id != get_my_id()) {
     auto left_time = get_user_was_online(u, user_id) - G()->server_time_cached();
