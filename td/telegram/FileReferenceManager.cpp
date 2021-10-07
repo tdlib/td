@@ -271,7 +271,13 @@ void FileReferenceManager::send_query(Destination dest, FileSourceId file_source
       [&](const FileSourceWallpapers &source) { promise.set_error(Status::Error("Can't repair old wallpapers")); },
       [&](const FileSourceWebPage &source) {
         send_closure_later(G()->web_pages_manager(), &WebPagesManager::reload_web_page_by_url, source.url,
-                           std::move(promise));
+                           PromiseCreator::lambda([promise = std::move(promise)](Result<WebPageId> &&result) mutable {
+                             if (result.is_error()) {
+                               promise.set_error(result.move_as_error());
+                             } else {
+                               promise.set_value(Unit());
+                             }
+                           }));
       },
       [&](const FileSourceSavedAnimations &source) {
         send_closure_later(G()->animations_manager(), &AnimationsManager::repair_saved_animations, std::move(promise));

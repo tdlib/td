@@ -3985,16 +3985,16 @@ unique_ptr<MessageContent> get_secret_message_content(
       }
       auto url = r_http_url.ok().get_url();
 
-      auto web_page_id = td->web_pages_manager_->get_web_page_by_url(url, load_data_multipromise.get_promise());
-      auto result = make_unique<MessageText>(FormattedText{std::move(message_text), std::move(entities)}, web_page_id);
-      if (!result->web_page_id.is_valid()) {
-        load_data_multipromise.add_promise(
-            PromiseCreator::lambda([td, url, &web_page_id = result->web_page_id](Result<Unit> result) {
-              if (result.is_ok()) {
-                web_page_id = td->web_pages_manager_->get_web_page_by_url(url);
-              }
-            }));
-      }
+      auto result = make_unique<MessageText>(FormattedText{std::move(message_text), std::move(entities)}, WebPageId());
+      td->web_pages_manager_->get_web_page_by_url(
+          url,
+          PromiseCreator::lambda([&web_page_id = result->web_page_id, promise = load_data_multipromise.get_promise()](
+                                     Result<WebPageId> r_web_page_id) mutable {
+            if (r_web_page_id.is_ok()) {
+              web_page_id = r_web_page_id.move_as_ok();
+            }
+            promise.set_value(Unit());
+          }));
       return std::move(result);
     }
     case secret_api::decryptedMessageMediaExternalDocument::ID: {

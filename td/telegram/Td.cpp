@@ -1595,15 +1595,22 @@ class GetWebPagePreviewRequest final : public RequestOnceActor {
   }
 };
 
-class GetWebPageInstantViewRequest final : public RequestActor<> {
+class GetWebPageInstantViewRequest final : public RequestActor<WebPageId> {
   string url_;
   bool force_full_;
 
   WebPageId web_page_id_;
 
-  void do_run(Promise<Unit> &&promise) final {
-    web_page_id_ =
-        td->web_pages_manager_->get_web_page_instant_view(url_, force_full_, get_tries() < 3, std::move(promise));
+  void do_run(Promise<WebPageId> &&promise) final {
+    if (get_tries() < 2) {
+      promise.set_value(std::move(web_page_id_));
+      return;
+    }
+    td->web_pages_manager_->get_web_page_instant_view(url_, force_full_, get_tries() < 3, std::move(promise));
+  }
+
+  void do_set_result(WebPageId &&result) final {
+    web_page_id_ = result;
   }
 
   void do_send_result() final {

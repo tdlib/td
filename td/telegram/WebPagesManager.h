@@ -65,13 +65,13 @@ class WebPagesManager final : public Actor {
 
   tl_object_ptr<td_api::webPage> get_web_page_preview_result(int64 request_id);
 
-  WebPageId get_web_page_instant_view(const string &url, bool force_full, bool force, Promise<Unit> &&promise);
+  void get_web_page_instant_view(const string &url, bool force_full, bool force, Promise<WebPageId> &&promise);
 
   WebPageId get_web_page_by_url(const string &url) const;
 
-  WebPageId get_web_page_by_url(const string &url, Promise<Unit> &&promise);
+  void get_web_page_by_url(const string &url, Promise<WebPageId> &&promise);
 
-  void reload_web_page_by_url(const string &url, Promise<Unit> &&promise);
+  void reload_web_page_by_url(const string &url, Promise<WebPageId> &&promise);
 
   void on_get_web_page_preview_success(int64 request_id, const string &url,
                                        tl_object_ptr<telegram_api::MessageMedia> &&message_media_ptr,
@@ -123,7 +123,7 @@ class WebPagesManager final : public Actor {
 
   const WebPageInstantView *get_web_page_instant_view(WebPageId web_page_id) const;
 
-  WebPageId get_web_page_instant_view(WebPageId web_page_id, bool force_full, Promise<Unit> &&promise);
+  void get_web_page_instant_view(WebPageId web_page_id, bool force_full, Promise<WebPageId> &&promise);
 
   tl_object_ptr<td_api::webPageInstantView> get_web_page_instant_view_object(
       WebPageId web_page_id, const WebPageInstantView *web_page_instant_view) const;
@@ -151,22 +151,23 @@ class WebPagesManager final : public Actor {
 
   static string get_web_page_instant_view_database_key(WebPageId web_page_id);
 
-  void load_web_page_instant_view(WebPageId web_page_id, bool force_full, Promise<Unit> &&promise);
+  void load_web_page_instant_view(WebPageId web_page_id, bool force_full, Promise<WebPageId> &&promise);
 
   void on_load_web_page_instant_view_from_database(WebPageId web_page_id, string value);
 
   void reload_web_page_instant_view(WebPageId web_page_id);
 
-  void update_web_page_instant_view_load_requests(WebPageId web_page_id, bool force_update, Result<> result);
+  void update_web_page_instant_view_load_requests(WebPageId web_page_id, bool force_update,
+                                                  Result<WebPageId> r_web_page_id);
 
   static string get_web_page_url_database_key(const string &url);
 
-  void load_web_page_by_url(const string &url, Promise<Unit> &&promise);
+  void load_web_page_by_url(const string &url, Promise<WebPageId> &&promise);
 
-  void on_load_web_page_id_by_url_from_database(const string &url, string value, Promise<Unit> &&promise);
+  void on_load_web_page_id_by_url_from_database(string url, string value, Promise<WebPageId> &&promise);
 
-  void on_load_web_page_by_url_from_database(WebPageId web_page_id, const string &url, Promise<Unit> &&promise,
-                                             Result<> result);
+  void on_load_web_page_by_url_from_database(WebPageId web_page_id, string url, Promise<WebPageId> &&promise,
+                                             Result<Unit> &&result);
 
   void tear_down() final;
 
@@ -184,8 +185,8 @@ class WebPagesManager final : public Actor {
   std::unordered_set<WebPageId, WebPageIdHash> loaded_from_database_web_pages_;
 
   struct PendingWebPageInstantViewQueries {
-    vector<Promise<Unit>> partial;
-    vector<Promise<Unit>> full;
+    vector<Promise<WebPageId>> partial;
+    vector<Promise<WebPageId>> full;
   };
   std::unordered_map<WebPageId, PendingWebPageInstantViewQueries, WebPageIdHash> load_web_page_instant_view_queries_;
 
