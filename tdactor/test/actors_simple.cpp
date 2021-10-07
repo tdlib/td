@@ -56,12 +56,12 @@ TEST(Actors, SendLater) {
     }
   };
   auto id = create_actor<Worker>("Worker");
-  scheduler.run_no_guard(Timestamp::now());
+  scheduler.run_no_guard(Timestamp::in(1));
   send_closure(id, &Worker::f);
   send_closure_later(id, &Worker::f);
   send_closure(id, &Worker::f);
   ASSERT_STREQ("A", sb.as_cslice().c_str());
-  scheduler.run_no_guard(Timestamp::now());
+  scheduler.run_no_guard(Timestamp::in(1));
   ASSERT_STREQ("AAA", sb.as_cslice().c_str());
 }
 
@@ -107,7 +107,7 @@ TEST(Actors, simple_pass_event_arguments) {
 
   auto guard = scheduler.get_guard();
   auto id = create_actor<XReceiver>("XR").release();
-  scheduler.run_no_guard(Timestamp::now());
+  scheduler.run_no_guard(Timestamp::in(1));
 
   X x;
 
@@ -128,7 +128,7 @@ TEST(Actors, simple_pass_event_arguments) {
   // Tmp-->ConstRef (Delayed)
   sb.clear();
   send_closure_later(id, &XReceiver::by_const_ref, X());
-  scheduler.run_no_guard(Timestamp::now());
+  scheduler.run_no_guard(Timestamp::in(1));
   // LOG(ERROR) << sb.as_cslice();
   ASSERT_STREQ("[cnstr_default][cnstr_move][by_const_ref]", sb.as_cslice().c_str());
 
@@ -140,7 +140,7 @@ TEST(Actors, simple_pass_event_arguments) {
   // Tmp-->LvalueRef (Delayed)
   sb.clear();
   send_closure_later(id, &XReceiver::by_lvalue_ref, X());
-  scheduler.run_no_guard(Timestamp::now());
+  scheduler.run_no_guard(Timestamp::in(1));
   ASSERT_STREQ("[cnstr_default][cnstr_move][by_lvalue_ref]", sb.as_cslice().c_str());
 
   // Tmp-->Value
@@ -151,7 +151,7 @@ TEST(Actors, simple_pass_event_arguments) {
   // Tmp-->Value (Delayed)
   sb.clear();
   send_closure_later(id, &XReceiver::by_value, X());
-  scheduler.run_no_guard(Timestamp::now());
+  scheduler.run_no_guard(Timestamp::in(1));
   ASSERT_STREQ("[cnstr_default][cnstr_move][cnstr_move][by_value]", sb.as_cslice().c_str());
 
   // Var-->ConstRef
@@ -162,7 +162,7 @@ TEST(Actors, simple_pass_event_arguments) {
   // Var-->ConstRef (Delayed)
   sb.clear();
   send_closure_later(id, &XReceiver::by_const_ref, x);
-  scheduler.run_no_guard(Timestamp::now());
+  scheduler.run_no_guard(Timestamp::in(1));
   ASSERT_STREQ("[cnstr_copy][by_const_ref]", sb.as_cslice().c_str());
 
   // Var-->LvalueRef
@@ -177,7 +177,7 @@ TEST(Actors, simple_pass_event_arguments) {
   // Var-->Value (Delayed)
   sb.clear();
   send_closure_later(id, &XReceiver::by_value, x);
-  scheduler.run_no_guard(Timestamp::now());
+  scheduler.run_no_guard(Timestamp::in(1));
   ASSERT_STREQ("[cnstr_copy][cnstr_move][by_value]", sb.as_cslice().c_str());
 }
 
@@ -219,7 +219,7 @@ TEST(Actors, simple_hand_yield) {
     create_actor<PrintChar>("PrintB", 'B', cnt).release();
     create_actor<PrintChar>("PrintC", 'C', cnt).release();
   }
-  scheduler.run(Timestamp::now());
+  scheduler.run(Timestamp::in(1));
   std::string expected;
   for (int i = 0; i < cnt; i++) {
     expected += "ABC";
@@ -368,7 +368,7 @@ TEST(Actors, call_after_destruct) {
     auto guard = scheduler.get_guard();
     create_actor<MasterActor>("Master").release();
   }
-  scheduler.run(Timestamp::now());
+  scheduler.run(Timestamp::in(1));
 }
 
 class LinkTokenSlave final : public Actor {
