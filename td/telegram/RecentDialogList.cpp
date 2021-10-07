@@ -129,6 +129,13 @@ void RecentDialogList::on_load_dialogs(vector<string> &&found_dialogs) {
   auto promises = std::move(load_list_queries_);
   CHECK(!promises.empty());
 
+  if (G()->close_flag()) {
+    for (auto &promise : promises) {
+      promise.set_error(Status::Error(500, "Request aborted"));
+    }
+    return;
+  }
+
   auto newly_found_dialogs = std::move(dialog_ids_);
   reset_to_empty(dialog_ids_);
 

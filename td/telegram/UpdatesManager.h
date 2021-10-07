@@ -267,6 +267,8 @@ class UpdatesManager final : public Actor {
   void on_pending_updates(vector<tl_object_ptr<telegram_api::Update>> &&updates, int32 seq_begin, int32 seq_end,
                           int32 date, double receive_time, Promise<Unit> &&promise, const char *source);
 
+  void on_pending_updates_processed(Result<Unit> &&result, Promise<Unit> &&promise);
+
   void process_updates(vector<tl_object_ptr<telegram_api::Update>> &&updates, bool force_apply,
                        Promise<Unit> &&promise);
 

@@ -9079,19 +9079,15 @@ void MessagesManager::after_get_difference() {
           dump_debug_message_op(get_dialog(dialog_id));
         }
         if (message_id <= d->last_new_message_id) {
-          get_message_from_server(
-              it.first, PromiseCreator::lambda([this, full_message_id](Result<Unit> result) {
-                if (G()->close_flag()) {
-                  return;
-                }
-                if (result.is_error()) {
-                  LOG(WARNING) << "Failed to get missing " << full_message_id << ": " << result.error();
-                } else {
-                  LOG(WARNING) << "Successfully get missing " << full_message_id << ": "
-                               << to_string(get_message_object(full_message_id, "after_get_difference"));
-                }
-              }),
-              "get missing");
+          get_message_from_server(it.first, PromiseCreator::lambda([full_message_id](Result<Unit> result) {
+                                    if (result.is_error()) {
+                                      LOG(WARNING)
+                                          << "Failed to get missing " << full_message_id << ": " << result.error();
+                                    } else {
+                                      LOG(WARNING) << "Successfully get missing " << full_message_id;
+                                    }
+                                  }),
+                                  "get missing");
         } else if (dialog_id.get_type() == DialogType::Channel) {
           LOG(INFO) << "Schedule getDifference in " << dialog_id.get_channel_id();
           channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(), 0.001);
@@ -11572,7 +11568,7 @@ void MessagesManager::on_get_secret_chat_total_count(DialogListId dialog_list_id
 }
 
 void MessagesManager::recalc_unread_count(DialogListId dialog_list_id, int32 old_dialog_total_count) {
-  if (td_->auth_manager_->is_bot() || !G()->parameters().use_message_db) {
+  if (G()->close_flag() || td_->auth_manager_->is_bot() || !G()->parameters().use_message_db) {
     return;
   }
 
@@ -13123,12 +13119,9 @@ void MessagesManager::add_secret_message(unique_ptr<PendingSecretMessage> pendin
   multipromise.set_ignore_errors(true);
   int64 token = pending_secret_messages_.add(std::move(pending_secret_message));
 
-  multipromise.add_promise(PromiseCreator::lambda([token, actor_id = actor_id(this),
-                                                   this](Result<Unit> result) mutable {
-    if (result.is_ok() && !G()->close_flag()) {  // if we aren't closing
-      this->pending_secret_messages_.finish(token, [actor_id](unique_ptr<PendingSecretMessage> pending_secret_message) {
-        send_closure_later(actor_id, &MessagesManager::finish_add_secret_message, std::move(pending_secret_message));
-      });
+  multipromise.add_promise(PromiseCreator::lambda([actor_id = actor_id(this), token](Result<Unit> result) {
+    if (result.is_ok()) {
+      send_closure(actor_id, &MessagesManager::on_add_secret_message_ready, token);
     }
   }));
 
@@ -13136,6 +13129,17 @@ void MessagesManager::add_secret_message(unique_ptr<PendingSecretMessage> pendin
     lock_promise = multipromise.get_promise();
   }
   lock_promise.set_value(Unit());
+}
+
+void MessagesManager::on_add_secret_message_ready(int64 token) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  pending_secret_messages_.finish(
+      token, [actor_id = actor_id(this)](unique_ptr<PendingSecretMessage> pending_secret_message) {
+        send_closure_later(actor_id, &MessagesManager::finish_add_secret_message, std::move(pending_secret_message));
+      });
 }
 
 void MessagesManager::finish_add_secret_message(unique_ptr<PendingSecretMessage> pending_secret_message) {
@@ -15539,6 +15543,9 @@ void MessagesManager::on_get_recommended_dialog_filters(
 void MessagesManager::on_load_recommended_dialog_filters(
     Result<Unit> &&result, vector<RecommendedDialogFilter> &&filters,
     Promise<td_api::object_ptr<td_api::recommendedChatFilters>> &&promise) {
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
   if (result.is_error()) {
     return promise.set_error(result.move_as_error());
   }
@@ -15740,6 +15747,10 @@ void MessagesManager::load_dialog_list(DialogList &list, int32 limit, Promise<Un
 }
 
 void MessagesManager::load_folder_dialog_list(FolderId folder_id, int32 limit, bool only_local) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   CHECK(!td_->auth_manager_->is_bot());
   auto &folder = *get_dialog_folder(folder_id);
   if (folder.folder_last_dialog_date_ == MAX_DIALOG_DATE) {
@@ -15762,7 +15773,7 @@ void MessagesManager::load_folder_dialog_list(FolderId folder_id, int32 limit, b
     return;
   }
   multipromise.add_promise(PromiseCreator::lambda([actor_id = actor_id(this), folder_id](Result<Unit> result) {
-    if (result.is_error() && !G()->close_flag()) {
+    if (result.is_error()) {
       send_closure(actor_id, &MessagesManager::on_load_folder_dialog_list_fail, folder_id, result.move_as_error());
     }
   }));
@@ -15799,6 +15810,10 @@ void MessagesManager::load_folder_dialog_list(FolderId folder_id, int32 limit, b
 }
 
 void MessagesManager::on_load_folder_dialog_list_fail(FolderId folder_id, Status error) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   LOG(WARNING) << "Failed to load chats in " << folder_id << ": " << error;
   CHECK(!td_->auth_manager_->is_bot());
   const auto &folder = *get_dialog_folder(folder_id);
@@ -17781,6 +17796,10 @@ void MessagesManager::get_message_link_info(Slice url, Promise<MessageLinkInfo> 
 }
 
 void MessagesManager::on_get_message_link_dialog(MessageLinkInfo &&info, Promise<MessageLinkInfo> &&promise) {
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
+
   DialogId dialog_id;
   if (info.username.empty()) {
     if (!td_->contacts_manager_->have_channel(info.channel_id)) {
@@ -17813,6 +17832,10 @@ void MessagesManager::on_get_message_link_dialog(MessageLinkInfo &&info, Promise
 
 void MessagesManager::on_get_message_link_message(MessageLinkInfo &&info, DialogId dialog_id,
                                                   Promise<MessageLinkInfo> &&promise) {
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
+
   Message *m = get_message_force({dialog_id, info.message_id}, "on_get_message_link_message");
   if (info.comment_message_id == MessageId() || m == nullptr || !is_broadcast_channel(dialog_id) ||
       !m->reply_info.is_comment || !is_active_message_reply_info(dialog_id, m->reply_info)) {
@@ -17840,6 +17863,10 @@ void MessagesManager::on_get_message_link_message(MessageLinkInfo &&info, Dialog
 
 void MessagesManager::on_get_message_link_discussion_message(MessageLinkInfo &&info, DialogId comment_dialog_id,
                                                              Promise<MessageLinkInfo> &&promise) {
+  if (G()->close_flag()) {
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
+
   CHECK(comment_dialog_id.is_valid());
   info.comment_dialog_id = comment_dialog_id;
 
@@ -27038,8 +27065,8 @@ void MessagesManager::start_import_messages(DialogId dialog_id, int64 import_id,
   } while (random_id == 0 || pending_message_imports_.find(random_id) != pending_message_imports_.end());
   pending_message_imports_[random_id] = std::move(pending_message_import);
 
-  multipromise.add_promise(PromiseCreator::lambda([random_id](Result<Unit> result) {
-    send_closure_later(G()->messages_manager(), &MessagesManager::on_imported_message_attachments_uploaded, random_id,
+  multipromise.add_promise(PromiseCreator::lambda([actor_id = actor_id(this), random_id](Result<Unit> result) {
+    send_closure_later(actor_id, &MessagesManager::on_imported_message_attachments_uploaded, random_id,
                        std::move(result));
   }));
   auto lock_promise = multipromise.get_promise();
@@ -28342,6 +28369,8 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
 
 void MessagesManager::flush_pending_new_message_notifications(DialogId dialog_id, bool from_mentions,
                                                               DialogId settings_dialog_id) {
+  // flush pending notifications even while closing
+
   auto d = get_dialog(dialog_id);
   CHECK(d != nullptr);
   auto &pending_notifications =
@@ -28361,10 +28390,8 @@ void MessagesManager::flush_pending_new_message_notifications(DialogId dialog_id
   auto it = pending_notifications.begin();
   while (it != pending_notifications.end() && it->first == DialogId()) {
     auto m = get_message(d, it->second);
-    if (m != nullptr) {
-      if (add_new_message_notification(d, m, true)) {
-        on_message_changed(d, m, false, "flush_pending_new_message_notifications");
-      }
+    if (m != nullptr && add_new_message_notification(d, m, true)) {
+      on_message_changed(d, m, false, "flush_pending_new_message_notifications");
     }
     ++it;
   }
@@ -33561,12 +33588,20 @@ void MessagesManager::do_delete_message_log_event(const DeleteMessageLogEvent &l
     }
 
     MultiPromiseActorSafe mpas{"DeleteMessageMultiPromiseActor"};
-    mpas.add_promise(PromiseCreator::lambda([log_event_id](Result<Unit> result) {
-      if (result.is_error() || G()->close_flag()) {
-        return;
-      }
-      binlog_erase(G()->td_db()->get_binlog(), log_event_id);
-    }));
+    mpas.add_promise(
+        PromiseCreator::lambda([log_event_id, context_weak_ptr = get_context_weak_ptr()](Result<Unit> result) {
+          auto context = context_weak_ptr.lock();
+          if (result.is_error() || context == nullptr) {
+            return;
+          }
+          CHECK(context->get_id() == Global::ID);
+          auto global = static_cast<Global *>(context.get());
+          if (global->close_flag()) {
+            return;
+          }
+
+          binlog_erase(global->td_db()->get_binlog(), log_event_id);
+        }));
 
     auto lock = mpas.get_promise();
     for (auto file_id : log_event.file_ids_) {

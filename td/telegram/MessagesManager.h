@@ -1743,6 +1743,8 @@ class MessagesManager final : public Actor {
 
   void add_secret_message(unique_ptr<PendingSecretMessage> pending_secret_message, Promise<Unit> lock_promise = Auto());
 
+  void on_add_secret_message_ready(int64 token);
+
   void finish_add_secret_message(unique_ptr<PendingSecretMessage> pending_secret_message);
 
   void finish_delete_secret_messages(DialogId dialog_id, std::vector<int64> random_ids, Promise<> promise);

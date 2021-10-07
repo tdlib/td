@@ -1656,7 +1656,9 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
   }
 
   MultiPromiseActorSafe mpas{"OnPendingUpdatesMultiPromiseActor"};
-  mpas.add_promise(std::move(promise));
+  mpas.add_promise([actor_id = actor_id(this), promise = std::move(promise)](Result<Unit> &&result) mutable {
+    send_closure(actor_id, &UpdatesManager::on_pending_updates_processed, std::move(result), std::move(promise));
+  });
   auto lock = mpas.get_promise();
 
   for (auto &update : updates) {
@@ -1773,6 +1775,10 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
       seq_begin, PendingSeqUpdates(seq_begin, seq_end, date, receive_time, std::move(updates), mpas.get_promise()));
   set_seq_gap_timeout(receive_time + MAX_UNFILLED_GAP_TIME - Time::now());
   lock.set_value(Unit());
+}
+
+void UpdatesManager::on_pending_updates_processed(Result<Unit> &&result, Promise<Unit> &&promise) {
+  promise.set_result(std::move(result));
 }
 
 void UpdatesManager::add_pending_qts_update(tl_object_ptr<telegram_api::Update> &&update, int32 qts,

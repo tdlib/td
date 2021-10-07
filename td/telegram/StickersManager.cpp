@@ -5313,9 +5313,8 @@ void StickersManager::create_new_sticker_set(UserId user_id, string &title, stri
   } while (random_id == 0 || pending_new_sticker_sets_.find(random_id) != pending_new_sticker_sets_.end());
   pending_new_sticker_sets_[random_id] = std::move(pending_new_sticker_set);
 
-  multipromise.add_promise(PromiseCreator::lambda([random_id](Result<Unit> result) {
-    send_closure_later(G()->stickers_manager(), &StickersManager::on_new_stickers_uploaded, random_id,
-                       std::move(result));
+  multipromise.add_promise(PromiseCreator::lambda([actor_id = actor_id(this), random_id](Result<Unit> result) {
+    send_closure_later(actor_id, &StickersManager::on_new_stickers_uploaded, random_id, std::move(result));
   }));
   auto lock_promise = multipromise.get_promise();
 
@@ -5453,6 +5452,9 @@ void StickersManager::on_new_stickers_uploaded(int64 random_id, Result<Unit> res
 
   pending_new_sticker_sets_.erase(it);
 
+  if (G()->close_flag()) {
+    result = Status::Error(500, "Request aborted");
+  }
   if (result.is_error()) {
     pending_new_sticker_set->promise.set_error(result.move_as_error());
     return;
@@ -6811,8 +6813,8 @@ void StickersManager::on_get_emoji_keywords(
     const string &language_code, Result<telegram_api::object_ptr<telegram_api::emojiKeywordsDifference>> &&result) {
   auto it = load_emoji_keywords_queries_.find(language_code);
   CHECK(it != load_emoji_keywords_queries_.end());
-  CHECK(!it->second.empty());
   auto promises = std::move(it->second);
+  CHECK(!promises.empty());
   load_emoji_keywords_queries_.erase(it);
 
   if (result.is_error()) {

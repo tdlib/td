@@ -228,17 +228,7 @@ void FileReferenceManager::send_query(Destination dest, FileSourceId file_source
 
   auto promise = PromiseCreator::lambda([dest, file_source_id, actor_id = actor_id(this),
                                          file_manager_actor_id = G()->file_manager()](Result<Unit> result) {
-    if (G()->close_flag()) {
-      VLOG(file_references) << "Ignore file reference repair from " << file_source_id << " during closing";
-      return;
-    }
-
     auto new_promise = PromiseCreator::lambda([dest, file_source_id, actor_id](Result<Unit> result) {
-      if (G()->close_flag()) {
-        VLOG(file_references) << "Ignore file reference repair from " << file_source_id << " during closing";
-        return;
-      }
-
       Status status;
       if (result.is_error()) {
         status = result.move_as_error();
@@ -304,6 +294,11 @@ void FileReferenceManager::send_query(Destination dest, FileSourceId file_source
 
 FileReferenceManager::Destination FileReferenceManager::on_query_result(Destination dest, FileSourceId file_source_id,
                                                                         Status status, int32 sub) {
+  if (G()->close_flag()) {
+    VLOG(file_references) << "Ignore file reference repair from " << file_source_id << " during closing";
+    return dest;
+  }
+
   VLOG(file_references) << "Receive result of file reference repair query for file " << dest.node_id
                         << " with generation " << dest.generation << " from " << file_source_id << ": " << status << " "
                         << sub;

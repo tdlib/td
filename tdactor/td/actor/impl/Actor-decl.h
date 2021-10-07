@@ -75,6 +75,7 @@ class Actor : public ObserverBase {
   void do_migrate(int32 sched_id);
 
   uint64 get_link_token();
+  std::weak_ptr<ActorContext> get_context_weak_ptr() const;
   std::shared_ptr<ActorContext> set_context(std::shared_ptr<ActorContext> context);
   string set_tag(string tag);
 

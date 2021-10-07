@@ -5474,11 +5474,12 @@ void ContactsManager::on_load_imported_contacts_from_database(string value) {
     LOG(INFO) << "Successfully loaded " << all_imported_contacts_.size() << " imported contacts from database";
   }
 
-  load_imported_contact_users_multipromise_.add_promise(PromiseCreator::lambda([](Result<> result) {
-    if (result.is_ok()) {
-      send_closure_later(G()->contacts_manager(), &ContactsManager::on_load_imported_contacts_finished);
-    }
-  }));
+  load_imported_contact_users_multipromise_.add_promise(
+      PromiseCreator::lambda([actor_id = actor_id(this)](Result<Unit> result) {
+        if (result.is_ok()) {
+          send_closure_later(actor_id, &ContactsManager::on_load_imported_contacts_finished);
+        }
+      }));
 
   auto lock_promise = load_imported_contact_users_multipromise_.get_promise();
 
@@ -7972,10 +7973,10 @@ void ContactsManager::on_load_contacts_from_database(string value) {
 
   LOG(INFO) << "Successfully loaded " << user_ids.size() << " contacts from database";
 
-  load_contact_users_multipromise_.add_promise(
-      PromiseCreator::lambda([expected_contact_count = user_ids.size()](Result<> result) {
+  load_contact_users_multipromise_.add_promise(PromiseCreator::lambda(
+      [actor_id = actor_id(this), expected_contact_count = user_ids.size()](Result<Unit> result) {
         if (result.is_ok()) {
-          send_closure(G()->contacts_manager(), &ContactsManager::on_get_contacts_finished, expected_contact_count);
+          send_closure(actor_id, &ContactsManager::on_get_contacts_finished, expected_contact_count);
         }
       }));
 
@@ -15204,8 +15205,9 @@ void ContactsManager::on_load_dialog_administrators_from_database(DialogId dialo
             << " from database";
 
   MultiPromiseActorSafe load_users_multipromise{"LoadUsersMultiPromiseActor"};
-  load_users_multipromise.add_promise(PromiseCreator::lambda(
-      [actor_id = actor_id(this), dialog_id, administrators, promise = std::move(promise)](Result<> result) mutable {
+  load_users_multipromise.add_promise(
+      PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, administrators,
+                              promise = std::move(promise)](Result<Unit> result) mutable {
         send_closure(actor_id, &ContactsManager::on_load_administrator_users_finished, dialog_id,
                      std::move(administrators), std::move(result), std::move(promise));
       }));

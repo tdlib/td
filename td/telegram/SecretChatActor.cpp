@@ -1379,7 +1379,7 @@ void SecretChatActor::on_save_changes_start(ChangesProcessor<StateChange>::Id sa
 }
 
 void SecretChatActor::on_inbound_save_message_finish(uint64 state_id) {
-  if (close_flag_) {
+  if (close_flag_ || context_->close_flag()) {
     return;
   }
   auto *state = inbound_message_states_.get(state_id);

@@ -1745,6 +1745,12 @@ void FileManager::change_files_source(FileSourceId file_source_id, const vector<
 
 void FileManager::on_file_reference_repaired(FileId file_id, FileSourceId file_source_id, Result<Unit> &&result,
                                              Promise<Unit> &&promise) {
+  if (G()->close_flag()) {
+    VLOG(file_references) << "Ignore file reference of file " << file_id << " repair from " << file_source_id
+                          << " during closing";
+    return promise.set_error(Status::Error(500, "Request aborted"));
+  }
+
   auto file_view = get_file_view(file_id);
   CHECK(!file_view.empty());
   if (result.is_ok() &&

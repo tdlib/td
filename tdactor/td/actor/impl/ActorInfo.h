@@ -156,6 +156,11 @@ inline std::shared_ptr<ActorContext> ActorInfo::set_context(std::shared_ptr<Acto
   Scheduler::on_context_updated();
   return context;
 }
+
+inline std::weak_ptr<ActorContext> ActorInfo::get_context_weak_ptr() const {
+  return context_;
+}
+
 inline const ActorContext *ActorInfo::get_context() const {
   return context_.get();
 }
