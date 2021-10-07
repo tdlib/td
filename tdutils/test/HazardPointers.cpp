@@ -50,7 +50,7 @@ TEST(HazardPointers, stress) {
   for (auto &thread : threads) {
     thread.join();
   }
-  LOG(ERROR) << "Undeleted pointers: " << hazard_pointers.to_delete_size_unsafe();
+  LOG(INFO) << "Undeleted pointers: " << hazard_pointers.to_delete_size_unsafe();
   CHECK(static_cast<int>(hazard_pointers.to_delete_size_unsafe()) <= threads_n * threads_n);
   for (int i = 0; i < threads_n; i++) {
     hazard_pointers.retire(i);
