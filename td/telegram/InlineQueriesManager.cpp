@@ -1786,6 +1786,7 @@ bool InlineQueriesManager::load_recently_used_bots(Promise<Unit> &promise) {
   resolve_recent_inline_bots_multipromise_.add_promise(std::move(promise));
   if (recently_used_bots_loaded_ == 0) {
     resolve_recent_inline_bots_multipromise_.set_ignore_errors(true);
+    auto lock = resolve_recent_inline_bots_multipromise_.get_promise();
     if (!G()->parameters().use_chat_info_db) {
       for (auto &bot_username : bot_usernames) {
         td_->messages_manager_->search_public_dialog(bot_username, false,
@@ -1797,6 +1798,7 @@ bool InlineQueriesManager::load_recently_used_bots(Promise<Unit> &promise) {
         td_->contacts_manager_->get_user(user_id, 3, resolve_recent_inline_bots_multipromise_.get_promise());
       }
     }
+    lock.set_value(Unit());
     recently_used_bots_loaded_ = 1;
   }
   return false;

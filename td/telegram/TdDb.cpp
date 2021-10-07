@@ -277,6 +277,8 @@ void TdDb::do_close(Promise<> on_finished, bool destroy_flag) {
     }
     binlog_.reset();
   }
+
+  lock.set_value(Unit());
 }
 
 Status TdDb::init_sqlite(int32 scheduler_id, const TdParameters &parameters, DbKey key, DbKey old_key,

@@ -1304,16 +1304,6 @@ Status SecretChatActor::do_inbound_message_decrypted(unique_ptr<log_event::Inbou
                              decrypted_message_service->random_id_, std::move(save_message_finish));
         break;
       default:
-        /*
-decryptedMessageActionResend#511110b0 start_seq_no:int end_seq_no:int = DecryptedMessageAction;
-decryptedMessageActionNotifyLayer#f3048883 layer:int = DecryptedMessageAction;
-decryptedMessageActionTyping#ccb27641 action:SendMessageAction = DecryptedMessageAction;
-decryptedMessageActionRequestKey#f3c9611b exchange_id:long g_a:bytes = DecryptedMessageAction;
-decryptedMessageActionAcceptKey#6fe1735b exchange_id:long g_b:bytes key_fingerprint:long = DecryptedMessageAction;
-decryptedMessageActionAbortKey#dd05ec6b exchange_id:long = DecryptedMessageAction;
-decryptedMessageActionCommitKey#ec2e0b9b exchange_id:long key_fingerprint:long = DecryptedMessageAction;
-decryptedMessageActionNoop#a82fdd63 = DecryptedMessageAction;
-        */
         save_message_finish.set_value(Unit());
         break;
     }
