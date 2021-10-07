@@ -121,7 +121,7 @@ class SqliteKeyValueAsync final : public SqliteKeyValueAsyncInterface {
       wakeup_at_ = 0;
       cnt_ = 0;
 
-      kv_->begin_transaction().ensure();
+      kv_->begin_write_transaction().ensure();
       for (auto &it : buffer_) {
         if (it.second) {
           kv_->set(it.first, it.second.value());

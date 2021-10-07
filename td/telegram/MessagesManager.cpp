@@ -27387,7 +27387,7 @@ MessagesManager::MessageNotificationGroup MessagesManager::get_message_notificat
     CHECK(d != nullptr);
   } else if (G()->parameters().use_message_db) {
     auto *dialog_db = G()->td_db()->get_dialog_db_sync();
-    dialog_db->begin_transaction().ensure();  // read transaction
+    dialog_db->begin_read_transaction().ensure();
     auto r_value = dialog_db->get_notification_group(group_id);
     if (r_value.is_ok()) {
       VLOG(notifications) << "Loaded " << r_value.ok() << " from database by " << group_id;
@@ -27682,7 +27682,7 @@ vector<NotificationGroupKey> MessagesManager::get_message_notification_group_key
                       << from_group_key;
 
   auto *dialog_db = G()->td_db()->get_dialog_db_sync();
-  dialog_db->begin_transaction().ensure();  // read transaction
+  dialog_db->begin_read_transaction().ensure();
   Result<vector<NotificationGroupKey>> r_notification_group_keys =
       dialog_db->get_notification_groups_by_last_notification_date(from_group_key, limit);
   r_notification_group_keys.ensure();

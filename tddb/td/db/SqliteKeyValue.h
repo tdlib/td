@@ -51,8 +51,11 @@ class SqliteKeyValue {
 
   SeqNo erase(Slice key);
 
-  Status begin_transaction() TD_WARN_UNUSED_RESULT {
-    return db_.begin_transaction();
+  Status begin_read_transaction() TD_WARN_UNUSED_RESULT {
+    return db_.begin_read_transaction();
+  }
+  Status begin_write_transaction() TD_WARN_UNUSED_RESULT {
+    return db_.begin_write_transaction();
   }
   Status commit_transaction() TD_WARN_UNUSED_RESULT {
     return db_.commit_transaction();

@@ -46,7 +46,9 @@ class SqliteDb {
   Result<bool> has_table(Slice table);
   Result<string> get_pragma(Slice name);
   Result<string> get_pragma_string(Slice name);
-  Status begin_transaction() TD_WARN_UNUSED_RESULT;
+
+  Status begin_read_transaction() TD_WARN_UNUSED_RESULT;
+  Status begin_write_transaction() TD_WARN_UNUSED_RESULT;
   Status commit_transaction() TD_WARN_UNUSED_RESULT;
 
   Result<int32> user_version();

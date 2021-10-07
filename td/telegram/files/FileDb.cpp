@@ -23,7 +23,6 @@
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
-#include "td/utils/ScopeGuard.h"
 #include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
@@ -78,10 +77,7 @@ class FileDb final : public FileDbInterface {
 
     void clear_file_data(FileDbId id, const string &remote_key, const string &local_key, const string &generate_key) {
       auto &pmc = file_pmc();
-      pmc.begin_transaction().ensure();
-      SCOPE_EXIT {
-        pmc.commit_transaction().ensure();
-      };
+      pmc.begin_write_transaction().ensure();
 
       if (id > current_pmc_id_) {
         pmc.set("file_id", to_string(id.get()));
@@ -102,14 +98,13 @@ class FileDb final : public FileDbInterface {
       if (!generate_key.empty()) {
         pmc.erase(generate_key);
       }
+
+      pmc.commit_transaction().ensure();
     }
     void store_file_data(FileDbId id, const string &file_data, const string &remote_key, const string &local_key,
                          const string &generate_key) {
       auto &pmc = file_pmc();
-      pmc.begin_transaction().ensure();
-      SCOPE_EXIT {
-        pmc.commit_transaction().ensure();
-      };
+      pmc.begin_write_transaction().ensure();
 
       if (id > current_pmc_id_) {
         pmc.set("file_id", to_string(id.get()));
@@ -127,13 +122,12 @@ class FileDb final : public FileDbInterface {
       if (!generate_key.empty()) {
         pmc.set(generate_key, to_string(id.get()));
       }
+
+      pmc.commit_transaction().ensure();
     }
     void store_file_data_ref(FileDbId id, FileDbId new_id) {
       auto &pmc = file_pmc();
-      pmc.begin_transaction().ensure();
-      SCOPE_EXIT {
-        pmc.commit_transaction().ensure();
-      };
+      pmc.begin_write_transaction().ensure();
 
       if (id > current_pmc_id_) {
         pmc.set("file_id", to_string(id.get()));
@@ -141,18 +135,18 @@ class FileDb final : public FileDbInterface {
       }
 
       do_store_file_data_ref(id, new_id);
+
+      pmc.commit_transaction().ensure();
     }
 
     void optimize_refs(const std::vector<FileDbId> ids, FileDbId main_id) {
       LOG(INFO) << "Optimize " << ids.size() << " ids in file database to " << main_id.get();
       auto &pmc = file_pmc();
-      pmc.begin_transaction().ensure();
-      SCOPE_EXIT {
-        pmc.commit_transaction().ensure();
-      };
+      pmc.begin_write_transaction().ensure();
       for (size_t i = 0; i + 1 < ids.size(); i++) {
         do_store_file_data_ref(ids[i], main_id);
       }
+      pmc.commit_transaction().ensure();
     }
 
    private:

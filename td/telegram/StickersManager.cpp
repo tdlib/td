@@ -6924,8 +6924,7 @@ void StickersManager::on_get_emoji_keywords_difference(
   }
   version = keywords->version_;
   auto *pmc = G()->td_db()->get_sqlite_sync_pmc();
-  pmc->begin_transaction().ensure();
-  // set must be the first operation to start a write transaction
+  pmc->begin_write_transaction().ensure();
   pmc->set(get_emoji_language_code_version_database_key(language_code), to_string(version));
   pmc->set(get_emoji_language_code_last_difference_time_database_key(language_code), to_string(G()->unix_time()));
   for (auto &keyword_ptr : keywords->keywords_) {

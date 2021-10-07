@@ -1313,7 +1313,7 @@ void LanguagePackManager::save_strings_to_database(SqliteKeyValue *kv, int32 new
     return;
   }
 
-  kv->begin_transaction().ensure();
+  kv->begin_write_transaction().ensure();
   for (auto str : strings) {
     if (!is_valid_key(str.first)) {
       LOG(ERROR) << "Have invalid key \"" << str.first << '"';

@@ -809,8 +809,8 @@ class MessagesDbImpl final : public MessagesDbSyncInterface {
     return std::move(result);
   }
 
-  Status begin_transaction() final {
-    return db_.begin_transaction();
+  Status begin_write_transaction() final {
+    return db_.begin_write_transaction();
   }
   Status commit_transaction() final {
     return db_.commit_transaction();
@@ -1176,7 +1176,7 @@ class MessagesDbAsync final : public MessagesDbAsyncInterface {
       if (pending_writes_.empty()) {
         return;
       }
-      sync_db_->begin_transaction().ensure();
+      sync_db_->begin_write_transaction().ensure();
       for (auto &query : pending_writes_) {
         query.set_value(Unit());
       }

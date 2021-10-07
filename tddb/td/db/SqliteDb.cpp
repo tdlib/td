@@ -175,9 +175,16 @@ Status SqliteDb::set_user_version(int32 version) {
   return exec(PSLICE() << "PRAGMA user_version = " << version);
 }
 
-Status SqliteDb::begin_transaction() {
+Status SqliteDb::begin_read_transaction() {
   if (raw_->on_begin()) {
     return exec("BEGIN");
+  }
+  return Status::OK();
+}
+
+Status SqliteDb::begin_write_transaction() {
+  if (raw_->on_begin()) {
+    return exec("BEGIN IMMEDIATE");
   }
   return Status::OK();
 }

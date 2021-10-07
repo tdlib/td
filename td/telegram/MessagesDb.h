@@ -100,7 +100,7 @@ class MessagesDbSyncInterface {
   virtual Result<MessagesDbCallsResult> get_calls(MessagesDbCallsQuery query) = 0;
   virtual Result<MessagesDbFtsResult> get_messages_fts(MessagesDbFtsQuery query) = 0;
 
-  virtual Status begin_transaction() = 0;
+  virtual Status begin_write_transaction() = 0;
   virtual Status commit_transaction() = 0;
 };
 
