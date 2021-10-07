@@ -132,7 +132,7 @@ void FileGcWorker::run_gc(const FileGcParameters &parameters, std::vector<FullFi
     return false;
   });
   if (token_) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
+    return promise.set_error(Global::request_aborted_error());
   }
 
   // sort by max(atime, mtime)
@@ -152,7 +152,7 @@ void FileGcWorker::run_gc(const FileGcParameters &parameters, std::vector<FullFi
   size_t pos = 0;
   while (pos < files.size() && (remove_count > 0 || remove_size > 0)) {
     if (token_) {
-      return promise.set_error(Status::Error(500, "Request aborted"));
+      return promise.set_error(Global::request_aborted_error());
     }
     if (remove_count > 0) {
       remove_by_count_cnt++;

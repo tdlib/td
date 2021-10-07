@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/Global.h"
 #include "td/telegram/net/NetQuery.h"
 
 #include "td/actor/actor.h"
@@ -40,7 +41,7 @@ class NetActor : public NetQueryCallback {
 
 class NetActorOnce : public NetActor {
   void hangup() override {
-    on_error(0, Status::Error(500, "Request aborted"));
+    on_error(0, Global::request_aborted_error());
     stop();
   }
 

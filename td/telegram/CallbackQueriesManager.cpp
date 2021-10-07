@@ -274,9 +274,7 @@ void CallbackQueriesManager::send_get_callback_answer_query(
     FullMessageId full_message_id, tl_object_ptr<td_api::CallbackQueryPayload> &&payload,
     tl_object_ptr<telegram_api::InputCheckPasswordSRP> &&password,
     Promise<td_api::object_ptr<td_api::callbackQueryAnswer>> &&promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
 
   auto dialog_id = full_message_id.get_dialog_id();
   if (!td_->messages_manager_->have_input_peer(dialog_id, AccessRights::Read)) {

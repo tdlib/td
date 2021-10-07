@@ -1184,13 +1184,11 @@ class TogglePrehistoryHiddenQuery final : public Td::ResultHandler {
 
     td->updates_manager_->on_get_updates(
         std::move(ptr),
-        PromiseCreator::lambda([promise = std::move(promise_), channel_id = channel_id_,
+        PromiseCreator::lambda([actor_id = G()->contacts_manager(), promise = std::move(promise_),
+                                channel_id = channel_id_,
                                 is_all_history_available = is_all_history_available_](Unit result) mutable {
-          if (G()->close_flag()) {
-            return promise.set_error(Status::Error(500, "Request aborted"));
-          }
-          send_closure(G()->contacts_manager(), &ContactsManager::on_update_channel_is_all_history_available,
-                       channel_id, is_all_history_available, std::move(promise));
+          send_closure(actor_id, &ContactsManager::on_update_channel_is_all_history_available, channel_id,
+                       is_all_history_available, std::move(promise));
         }));
   }
 
@@ -1416,13 +1414,11 @@ class ToggleSlowModeQuery final : public Td::ResultHandler {
     LOG(INFO) << "Receive result for ToggleSlowModeQuery: " << to_string(ptr);
 
     td->updates_manager_->on_get_updates(
-        std::move(ptr), PromiseCreator::lambda([promise = std::move(promise_), channel_id = channel_id_,
-                                                slow_mode_delay = slow_mode_delay_](Unit result) mutable {
-          if (G()->close_flag()) {
-            return promise.set_error(Status::Error(500, "Request aborted"));
-          }
-          send_closure(G()->contacts_manager(), &ContactsManager::on_update_channel_slow_mode_delay, channel_id,
-                       slow_mode_delay, std::move(promise));
+        std::move(ptr),
+        PromiseCreator::lambda([actor_id = G()->contacts_manager(), promise = std::move(promise_),
+                                channel_id = channel_id_, slow_mode_delay = slow_mode_delay_](Unit result) mutable {
+          send_closure(actor_id, &ContactsManager::on_update_channel_slow_mode_delay, channel_id, slow_mode_delay,
+                       std::move(promise));
         }));
   }
 
@@ -5326,9 +5322,7 @@ void ContactsManager::reload_contacts(bool force) {
 }
 
 void ContactsManager::add_contact(Contact contact, bool share_phone_number, Promise<Unit> &&promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
 
   if (!are_contacts_loaded_) {
     load_contacts(PromiseCreator::lambda([actor_id = actor_id(this), contact = std::move(contact), share_phone_number,
@@ -5729,9 +5723,7 @@ std::pair<int32, vector<UserId>> ContactsManager::search_contacts(const string &
 }
 
 void ContactsManager::share_phone_number(UserId user_id, Promise<Unit> &&promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
 
   if (!are_contacts_loaded_) {
     load_contacts(PromiseCreator::lambda(
@@ -6584,9 +6576,7 @@ void ContactsManager::get_channel_statistics_dc_id(DialogId dialog_id, bool for_
 
 void ContactsManager::get_channel_statistics_dc_id_impl(ChannelId channel_id, bool for_full_statistics,
                                                         Promise<DcId> &&promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
 
   auto channel_full = get_channel_full(channel_id, false, "get_channel_statistics_dc_id_impl");
   if (channel_full == nullptr) {
@@ -6615,9 +6605,8 @@ void ContactsManager::get_channel_statistics(DialogId dialog_id, bool is_dark,
 
 void ContactsManager::send_get_channel_stats_query(DcId dc_id, ChannelId channel_id, bool is_dark,
                                                    Promise<td_api::object_ptr<td_api::ChatStatistics>> &&promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
   const Channel *c = get_channel(channel_id);
   CHECK(c != nullptr);
   if (c->is_megagroup) {
@@ -6666,9 +6655,7 @@ void ContactsManager::get_channel_message_statistics(FullMessageId full_message_
 void ContactsManager::send_get_channel_message_stats_query(
     DcId dc_id, FullMessageId full_message_id, bool is_dark,
     Promise<td_api::object_ptr<td_api::messageStatistics>> &&promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
 
   auto dialog_id = full_message_id.get_dialog_id();
   if (!td_->messages_manager_->have_message_force(full_message_id, "send_get_channel_message_stats_query")) {
@@ -6697,9 +6684,7 @@ void ContactsManager::load_statistics_graph(DialogId dialog_id, const string &to
 
 void ContactsManager::send_load_async_graph_query(DcId dc_id, string token, int64 x,
                                                   Promise<td_api::object_ptr<td_api::StatisticalGraph>> &&promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
 
   td_->create_handler<LoadAsyncGraphQuery>(std::move(promise))->send(token, x, dc_id);
 }
@@ -7218,9 +7203,7 @@ void ContactsManager::transfer_dialog_ownership(DialogId dialog_id, UserId user_
 void ContactsManager::transfer_channel_ownership(
     ChannelId channel_id, UserId user_id, tl_object_ptr<telegram_api::InputCheckPasswordSRP> input_check_password,
     Promise<Unit> &&promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
 
   td_->create_handler<EditChannelCreatorQuery>(std::move(promise))
       ->send(channel_id, user_id, std::move(input_check_password));
@@ -7285,10 +7268,7 @@ void ContactsManager::export_dialog_invite_link(DialogId dialog_id, int32 expire
 void ContactsManager::export_dialog_invite_link_impl(DialogId dialog_id, int32 expire_date, int32 usage_limit,
                                                      bool is_permanent,
                                                      Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
-
+  TRY_STATUS_PROMISE(promise, G()->close_status());
   TRY_STATUS_PROMISE(promise, can_manage_dialog_invite_links(dialog_id));
 
   td_->create_handler<ExportChatInviteQuery>(std::move(promise))
@@ -7479,9 +7459,7 @@ void ContactsManager::delete_chat_participant(ChatId chat_id, UserId user_id, bo
 void ContactsManager::restrict_channel_participant(ChannelId channel_id, DialogId participant_dialog_id,
                                                    DialogParticipantStatus status, DialogParticipantStatus old_status,
                                                    Promise<Unit> &&promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
 
   LOG(INFO) << "Restrict " << participant_dialog_id << " in " << channel_id << " from " << old_status << " to "
             << status;
@@ -11689,9 +11667,7 @@ void ContactsManager::on_get_channel_participants(
     ChannelId channel_id, ChannelParticipantsFilter filter, int32 offset, int32 limit, string additional_query,
     int32 additional_limit, tl_object_ptr<telegram_api::channels_channelParticipants> &&channel_participants,
     Promise<DialogParticipants> &&promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
 
   on_get_users(std::move(channel_participants->users_), "on_get_channel_participants");
   on_get_chats(std::move(channel_participants->chats_), "on_get_channel_participants");
@@ -13319,9 +13295,8 @@ void ContactsManager::on_update_channel_location(ChannelId channel_id, const Dia
 
 void ContactsManager::on_update_channel_slow_mode_delay(ChannelId channel_id, int32 slow_mode_delay,
                                                         Promise<Unit> &&promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
   auto channel_full = get_channel_full_force(channel_id, true, "on_update_channel_slow_mode_delay");
   if (channel_full != nullptr) {
     on_update_channel_full_slow_mode_delay(channel_full, channel_id, slow_mode_delay, 0);
@@ -13368,9 +13343,7 @@ void ContactsManager::on_update_channel_full_bot_user_ids(ChannelFull *channel_f
 
 void ContactsManager::on_update_channel_is_all_history_available(ChannelId channel_id, bool is_all_history_available,
                                                                  Promise<Unit> &&promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
   CHECK(channel_id.is_valid());
   auto channel_full = get_channel_full_force(channel_id, true, "on_update_channel_is_all_history_available");
   if (channel_full != nullptr && channel_full->is_all_history_available != is_all_history_available) {
@@ -14754,9 +14727,7 @@ void ContactsManager::get_dialog_participant(DialogId dialog_id,
 
 void ContactsManager::finish_get_dialog_participant(DialogParticipant &&dialog_participant,
                                                     Promise<td_api::object_ptr<td_api::chatMember>> &&promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
 
   auto participant_dialog_id = dialog_participant.dialog_id;
   bool is_user = participant_dialog_id.get_type() == DialogType::User;
@@ -14967,9 +14938,7 @@ void ContactsManager::get_chat_participant(ChatId chat_id, UserId user_id, Promi
 
 void ContactsManager::finish_get_chat_participant(ChatId chat_id, UserId user_id,
                                                   Promise<DialogParticipant> &&promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
 
   const auto *participant = get_chat_participant(chat_id, user_id);
   if (participant == nullptr) {
@@ -15000,9 +14969,7 @@ void ContactsManager::search_chat_participants(ChatId chat_id, const string &que
 void ContactsManager::do_search_chat_participants(ChatId chat_id, const string &query, int32 limit,
                                                   DialogParticipantsFilter filter,
                                                   Promise<DialogParticipants> &&promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
 
   auto chat_full = get_chat_full(chat_id);
   if (chat_full == nullptr) {
@@ -15075,9 +15042,7 @@ void ContactsManager::get_channel_participant(ChannelId channel_id, DialogId par
 
 void ContactsManager::finish_get_channel_participant(ChannelId channel_id, DialogParticipant &&dialog_participant,
                                                      Promise<DialogParticipant> &&promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
 
   LOG(INFO) << "Receive a member " << dialog_participant.dialog_id << " of a channel " << channel_id;
 

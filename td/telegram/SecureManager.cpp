@@ -582,7 +582,7 @@ void SetSecureValue::loop() {
 }
 
 void SetSecureValue::hangup() {
-  on_error(Status::Error(406, "Request aborted"));
+  on_error(Status::Error(406, "Request canceled"));
 }
 
 void SetSecureValue::tear_down() {
@@ -1294,7 +1294,7 @@ void SecureManager::get_preferred_country_language(string country_code,
 
 void SecureManager::hangup() {
   container_.for_each(
-      [](auto id, Promise<NetQueryPtr> &promise) { promise.set_error(Status::Error(500, "Request aborted")); });
+      [](auto id, Promise<NetQueryPtr> &promise) { promise.set_error(Global::request_aborted_error()); });
   dec_refcnt();
 }
 

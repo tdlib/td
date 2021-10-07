@@ -63,8 +63,7 @@ void StorageManager::on_new_file(int64 size, int64 real_size, int32 cnt) {
 
 void StorageManager::get_storage_stats(bool need_all_files, int32 dialog_limit, Promise<FileStats> promise) {
   if (is_closed_) {
-    promise.set_error(Status::Error(500, "Request aborted"));
-    return;
+    return promise.set_error(Global::request_aborted_error());
   }
   if (pending_storage_stats_.size() != 0) {
     if (stats_dialog_limit_ == dialog_limit && need_all_files == stats_need_all_files_) {
@@ -111,7 +110,7 @@ void StorageManager::update_use_storage_optimizer() {
 void StorageManager::run_gc(FileGcParameters parameters, bool return_deleted_file_statistics,
                             Promise<FileStats> promise) {
   if (is_closed_) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
+    return promise.set_error(Global::request_aborted_error());
   }
   if (!pending_run_gc_[0].empty() || !pending_run_gc_[1].empty()) {
     close_gc_worker();
@@ -158,7 +157,7 @@ void StorageManager::create_stats_worker() {
 void StorageManager::on_all_files(FileGcParameters gc_parameters, Result<FileStats> r_file_stats) {
   int32 dialog_limit = gc_parameters.dialog_limit;
   if (is_closed_ && r_file_stats.is_ok()) {
-    r_file_stats = Status::Error(500, "Request aborted");
+    r_file_stats = Global::request_aborted_error();
   }
   if (r_file_stats.is_error()) {
     return on_gc_finished(dialog_limit, r_file_stats.move_as_error());
@@ -291,7 +290,7 @@ void StorageManager::close_stats_worker() {
   auto promises = std::move(pending_storage_stats_);
   pending_storage_stats_.clear();
   for (auto &promise : promises) {
-    promise.set_error(Status::Error(500, "Request aborted"));
+    promise.set_error(Global::request_aborted_error());
   }
   stats_generation_++;
   stats_worker_.reset();
@@ -304,7 +303,7 @@ void StorageManager::close_gc_worker() {
   pending_run_gc_[0].clear();
   pending_run_gc_[1].clear();
   for (auto &promise : promises) {
-    promise.set_error(Status::Error(500, "Request aborted"));
+    promise.set_error(Global::request_aborted_error());
   }
   gc_worker_.reset();
   gc_cancellation_token_source_.cancel();

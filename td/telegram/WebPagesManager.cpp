@@ -907,9 +907,7 @@ void WebPagesManager::reload_web_page_instant_view(WebPageId web_page_id) {
                  std::move(result));
   });
 
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
 
   td_->create_handler<GetWebPageQuery>(std::move(promise))
       ->send(web_page_id, web_page->url, web_page->instant_view.is_full ? web_page->instant_view.hash : 0);
@@ -967,7 +965,7 @@ void WebPagesManager::on_load_web_page_instant_view_from_database(WebPageId web_
 void WebPagesManager::update_web_page_instant_view_load_requests(WebPageId web_page_id, bool force_update,
                                                                  Result<WebPageId> r_web_page_id) {
   if (G()->close_flag()) {
-    r_web_page_id = Status::Error(500, "Request aborted");
+    r_web_page_id = Global::request_aborted_error();
   }
   LOG(INFO) << "Update load requests for " << web_page_id;
   auto it = load_web_page_instant_view_queries_.find(web_page_id);
@@ -1072,9 +1070,7 @@ void WebPagesManager::load_web_page_by_url(const string &url, Promise<WebPageId>
 }
 
 void WebPagesManager::on_load_web_page_id_by_url_from_database(string url, string value, Promise<WebPageId> &&promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
 
   LOG(INFO) << "Successfully loaded url \"" << url << "\" of size " << value.size() << " from database";
   //  G()->td_db()->get_sqlite_pmc()->erase(get_web_page_url_database_key(web_page_id), Auto());
@@ -1114,7 +1110,7 @@ void WebPagesManager::on_load_web_page_by_url_from_database(WebPageId web_page_i
                                                             Promise<WebPageId> &&promise, Result<Unit> &&result) {
   if (result.is_error()) {
     CHECK(G()->close_flag());
-    return promise.set_error(Status::Error(500, "Request aborted"));
+    return promise.set_error(Global::request_aborted_error());
   }
 
   const WebPage *web_page = get_web_page(web_page_id);
@@ -1130,11 +1126,7 @@ void WebPagesManager::on_load_web_page_by_url_from_database(WebPageId web_page_i
 }
 
 void WebPagesManager::reload_web_page_by_url(const string &url, Promise<WebPageId> &&promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
-
-  LOG(INFO) << "Reload url \"" << url << '"';
+  TRY_STATUS_PROMISE(promise, G()->close_status());
   td_->create_handler<GetWebPageQuery>(std::move(promise))->send(WebPageId(), url, 0);
 }
 

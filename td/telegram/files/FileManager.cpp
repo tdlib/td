@@ -1745,11 +1745,7 @@ void FileManager::change_files_source(FileSourceId file_source_id, const vector<
 
 void FileManager::on_file_reference_repaired(FileId file_id, FileSourceId file_source_id, Result<Unit> &&result,
                                              Promise<Unit> &&promise) {
-  if (G()->close_flag()) {
-    VLOG(file_references) << "Ignore file reference of file " << file_id << " repair from " << file_source_id
-                          << " during closing";
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
 
   auto file_view = get_file_view(file_id);
   CHECK(!file_view.empty());
@@ -2035,9 +2031,7 @@ void FileManager::get_content(FileId file_id, Promise<BufferSlice> promise) {
 
 void FileManager::read_file_part(FileId file_id, int32 offset, int32 count, int left_tries,
                                  Promise<td_api::object_ptr<td_api::filePart>> promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
 
   if (!file_id.is_valid()) {
     return promise.set_error(Status::Error(400, "File identifier is invalid"));
@@ -3877,7 +3871,7 @@ void FileManager::hangup() {
   while (!queries_container_.empty()) {
     auto ids = queries_container_.ids();
     for (auto id : ids) {
-      on_error(id, Status::Error(500, "Request aborted"));
+      on_error(id, Global::request_aborted_error());
     }
   }
   is_closed_ = true;

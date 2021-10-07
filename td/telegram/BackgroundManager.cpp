@@ -472,9 +472,8 @@ Result<string> BackgroundManager::get_background_url(const string &name,
 void BackgroundManager::reload_background_from_server(
     BackgroundId background_id, const string &background_name,
     telegram_api::object_ptr<telegram_api::InputWallPaper> &&input_wallpaper, Promise<Unit> &&promise) const {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
   td_->create_handler<GetBackgroundQuery>(std::move(promise))
       ->send(background_id, background_name, std::move(input_wallpaper));
 }

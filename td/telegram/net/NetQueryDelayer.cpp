@@ -116,7 +116,7 @@ void NetQueryDelayer::on_slot_event(uint64 id) {
 
 void NetQueryDelayer::tear_down() {
   container_.for_each([](auto id, auto &query_slot) {
-    query_slot.query_->set_error(Status::Error(500, "Request aborted"));
+    query_slot.query_->set_error(Global::request_aborted_error());
     G()->net_query_dispatcher().dispatch(std::move(query_slot.query_));
   });
 }

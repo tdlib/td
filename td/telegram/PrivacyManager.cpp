@@ -561,7 +561,7 @@ void PrivacyManager::send_with_promise(NetQueryPtr query, Promise<NetQueryPtr> p
 
 void PrivacyManager::hangup() {
   container_.for_each(
-      [](auto id, Promise<NetQueryPtr> &promise) { promise.set_error(Status::Error(500, "Request aborted")); });
+      [](auto id, Promise<NetQueryPtr> &promise) { promise.set_error(Global::request_aborted_error()); });
   stop();
 }
 

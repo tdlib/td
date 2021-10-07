@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/Global.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/td_api.h"
 
@@ -127,7 +128,7 @@ class RequestActor : public Actor {
   }
 
   void hangup() final {
-    do_send_error(Status::Error(500, "Request aborted"));
+    do_send_error(Global::request_aborted_error());
     stop();
   }
 

@@ -956,9 +956,7 @@ void ConfigManager::lazy_request_config() {
 }
 
 void ConfigManager::get_app_config(Promise<td_api::object_ptr<td_api::JsonValue>> &&promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
 
   auto auth_manager = G()->td().get_actor_unsafe()->auth_manager_.get();
   if (auth_manager != nullptr && auth_manager->is_bot()) {
@@ -974,9 +972,7 @@ void ConfigManager::get_app_config(Promise<td_api::object_ptr<td_api::JsonValue>
 }
 
 void ConfigManager::get_content_settings(Promise<Unit> &&promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
 
   auto auth_manager = G()->td().get_actor_unsafe()->auth_manager_.get();
   if (auth_manager == nullptr || !auth_manager->is_authorized() || auth_manager->is_bot()) {
@@ -991,9 +987,7 @@ void ConfigManager::get_content_settings(Promise<Unit> &&promise) {
 }
 
 void ConfigManager::set_content_settings(bool ignore_sensitive_content_restrictions, Promise<Unit> &&promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
 
   last_set_content_settings_ = ignore_sensitive_content_restrictions;
   auto &queries = set_content_settings_queries_[ignore_sensitive_content_restrictions];
@@ -1011,9 +1005,7 @@ void ConfigManager::set_content_settings(bool ignore_sensitive_content_restricti
 }
 
 void ConfigManager::get_global_privacy_settings(Promise<Unit> &&promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
 
   auto auth_manager = G()->td().get_actor_unsafe()->auth_manager_.get();
   if (auth_manager == nullptr || !auth_manager->is_authorized() || auth_manager->is_bot()) {
@@ -1028,9 +1020,8 @@ void ConfigManager::get_global_privacy_settings(Promise<Unit> &&promise) {
 }
 
 void ConfigManager::set_archive_and_mute(bool archive_and_mute, Promise<Unit> &&promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
   if (archive_and_mute) {
     remove_suggested_action(suggested_actions_, SuggestedAction{SuggestedAction::Type::EnableArchiveAndMuteNewChats});
   }

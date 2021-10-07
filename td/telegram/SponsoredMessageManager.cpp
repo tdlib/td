@@ -201,7 +201,7 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
   CHECK(messages->message_random_ids.empty());
 
   if (result.is_ok() && G()->close_flag()) {
-    result = Status::Error(500, "Request aborted");
+    result = Global::request_aborted_error();
   }
   if (result.is_error()) {
     dialog_sponsored_messages_.erase(dialog_id);

@@ -9218,9 +9218,7 @@ void MessagesManager::get_channel_differences_if_needed(MessagesInfo &&messages_
 
 void MessagesManager::on_get_messages(vector<tl_object_ptr<telegram_api::Message>> &&messages, bool is_channel_message,
                                       bool is_scheduled, Promise<Unit> &&promise, const char *source) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
 
   LOG(DEBUG) << "Receive " << messages.size() << " messages";
   for (auto &message : messages) {
@@ -9232,9 +9230,7 @@ void MessagesManager::on_get_messages(vector<tl_object_ptr<telegram_api::Message
 void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_id, MessageId old_last_new_message_id,
                                      int32 offset, int32 limit, bool from_the_end,
                                      vector<tl_object_ptr<telegram_api::Message>> &&messages, Promise<Unit> &&promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
 
   LOG(INFO) << "Receive " << messages.size() << " history messages " << (from_the_end ? "from the end " : "") << "in "
             << dialog_id << " from " << from_message_id << " with offset " << offset << " and limit " << limit;
@@ -9584,9 +9580,7 @@ void MessagesManager::on_get_dialog_messages_search_result(
     DialogId dialog_id, const string &query, DialogId sender_dialog_id, MessageId from_message_id, int32 offset,
     int32 limit, MessageSearchFilter filter, MessageId top_thread_message_id, int64 random_id, int32 total_count,
     vector<tl_object_ptr<telegram_api::Message>> &&messages, Promise<Unit> &&promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
 
   LOG(INFO) << "Receive " << messages.size() << " found messages in " << dialog_id;
   if (!dialog_id.is_valid()) {
@@ -9803,9 +9797,7 @@ void MessagesManager::on_get_messages_search_result(const string &query, int32 o
                                                     int64 random_id, int32 total_count,
                                                     vector<tl_object_ptr<telegram_api::Message>> &&messages,
                                                     Promise<Unit> &&promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
 
   LOG(INFO) << "Receive " << messages.size() << " found messages";
   auto it = found_messages_.find(random_id);
@@ -9900,9 +9892,7 @@ void MessagesManager::on_get_scheduled_server_messages(DialogId dialog_id, uint3
 void MessagesManager::on_get_recent_locations(DialogId dialog_id, int32 limit, int32 total_count,
                                               vector<tl_object_ptr<telegram_api::Message>> &&messages,
                                               Promise<td_api::object_ptr<td_api::messages>> &&promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
 
   LOG(INFO) << "Receive " << messages.size() << " recent locations in " << dialog_id;
   vector<MessageId> result;
@@ -9940,9 +9930,7 @@ void MessagesManager::on_get_recent_locations(DialogId dialog_id, int32 limit, i
 void MessagesManager::on_get_message_public_forwards(int32 total_count,
                                                      vector<tl_object_ptr<telegram_api::Message>> &&messages,
                                                      Promise<td_api::object_ptr<td_api::foundMessages>> &&promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
 
   LOG(INFO) << "Receive " << messages.size() << " forwarded messages";
   vector<td_api::object_ptr<td_api::message>> result;
@@ -10281,9 +10269,7 @@ bool MessagesManager::can_revoke_message(DialogId dialog_id, const Message *m) c
 
 void MessagesManager::delete_messages(DialogId dialog_id, const vector<MessageId> &input_message_ids, bool revoke,
                                       Promise<Unit> &&promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
   Dialog *d = get_dialog_force(dialog_id, "delete_messages");
   if (d == nullptr) {
     return promise.set_error(Status::Error(400, "Chat is not found"));
@@ -15543,9 +15529,7 @@ void MessagesManager::on_get_recommended_dialog_filters(
 void MessagesManager::on_load_recommended_dialog_filters(
     Result<Unit> &&result, vector<RecommendedDialogFilter> &&filters,
     Promise<td_api::object_ptr<td_api::recommendedChatFilters>> &&promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
   if (result.is_error()) {
     return promise.set_error(result.move_as_error());
   }
@@ -15852,9 +15836,7 @@ void MessagesManager::load_folder_dialog_list_from_database(FolderId folder_id, 
 
 void MessagesManager::on_get_dialogs_from_database(FolderId folder_id, int32 limit, DialogDbGetDialogsResult &&dialogs,
                                                    Promise<Unit> &&promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
   CHECK(!td_->auth_manager_->is_bot());
   auto &folder = *get_dialog_folder(folder_id);
   LOG(INFO) << "Receive " << dialogs.dialogs.size() << " from expected " << limit << " chats in " << folder_id
@@ -16037,13 +16019,9 @@ vector<DialogId> MessagesManager::get_pinned_dialog_ids(DialogListId dialog_list
 }
 
 void MessagesManager::reload_pinned_dialogs(DialogListId dialog_list_id, Promise<Unit> &&promise) {
-  if (td_->auth_manager_->is_bot()) {
-    // just in case
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  CHECK(!td_->auth_manager_->is_bot());
+
   if (dialog_list_id.is_folder()) {
     send_closure(td_->create_net_actor<GetPinnedDialogsActor>(std::move(promise)), &GetPinnedDialogsActor::send,
                  dialog_list_id.get_folder_id(), get_sequence_dispatcher_id(DialogId(), MessageContentType::None));
@@ -17055,9 +17033,7 @@ void MessagesManager::process_discussion_message_impl(
     telegram_api::object_ptr<telegram_api::messages_discussionMessage> &&result, DialogId dialog_id,
     MessageId message_id, DialogId expected_dialog_id, MessageId expected_message_id,
     Promise<MessageThreadInfo> promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
 
   MessageId max_message_id;
   MessageId last_read_inbox_message_id;
@@ -17104,9 +17080,8 @@ void MessagesManager::process_discussion_message_impl(
 void MessagesManager::on_get_discussion_message(DialogId dialog_id, MessageId message_id,
                                                 MessageThreadInfo &&message_thread_info,
                                                 Promise<MessageThreadInfo> &&promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
   Dialog *d = get_dialog_force(dialog_id, "on_get_discussion_message");
   CHECK(d != nullptr);
 
@@ -17458,9 +17433,8 @@ void MessagesManager::get_message_from_server(FullMessageId full_message_id, Pro
 void MessagesManager::get_messages_from_server(vector<FullMessageId> &&message_ids, Promise<Unit> &&promise,
                                                const char *source,
                                                tl_object_ptr<telegram_api::InputMessage> input_message) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
   if (message_ids.empty()) {
     LOG(ERROR) << "Empty message_ids from " << source;
     return promise.set_error(Status::Error(500, "There are no messages specified to fetch"));
@@ -17796,9 +17770,7 @@ void MessagesManager::get_message_link_info(Slice url, Promise<MessageLinkInfo> 
 }
 
 void MessagesManager::on_get_message_link_dialog(MessageLinkInfo &&info, Promise<MessageLinkInfo> &&promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
 
   DialogId dialog_id;
   if (info.username.empty()) {
@@ -17832,9 +17804,7 @@ void MessagesManager::on_get_message_link_dialog(MessageLinkInfo &&info, Promise
 
 void MessagesManager::on_get_message_link_message(MessageLinkInfo &&info, DialogId dialog_id,
                                                   Promise<MessageLinkInfo> &&promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
 
   Message *m = get_message_force({dialog_id, info.message_id}, "on_get_message_link_message");
   if (info.comment_message_id == MessageId() || m == nullptr || !is_broadcast_channel(dialog_id) ||
@@ -17863,9 +17833,7 @@ void MessagesManager::on_get_message_link_message(MessageLinkInfo &&info, Dialog
 
 void MessagesManager::on_get_message_link_discussion_message(MessageLinkInfo &&info, DialogId comment_dialog_id,
                                                              Promise<MessageLinkInfo> &&promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
 
   CHECK(comment_dialog_id.is_valid());
   info.comment_dialog_id = comment_dialog_id;
@@ -21807,9 +21775,8 @@ void MessagesManager::on_search_dialog_messages_db_result(int64 random_id, Dialo
                                                           MessageSearchFilter filter, int32 offset, int32 limit,
                                                           Result<vector<MessagesDbDialogMessage>> r_messages,
                                                           Promise<> promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
   if (r_messages.is_error()) {
     LOG(ERROR) << "Failed to get messages from the database: " << r_messages.error();
     if (first_db_message_id != MessageId::min() && dialog_id.get_type() != DialogType::SecretChat &&
@@ -21954,7 +21921,7 @@ MessagesManager::FoundMessages MessagesManager::offline_search_messages(DialogId
 void MessagesManager::on_messages_db_fts_result(Result<MessagesDbFtsResult> result, string offset, int32 limit,
                                                 int64 random_id, Promise<Unit> &&promise) {
   if (G()->close_flag()) {
-    result = Status::Error(500, "Request aborted");
+    result = Global::request_aborted_error();
   }
   if (result.is_error()) {
     found_fts_messages_.erase(random_id);
@@ -21987,7 +21954,7 @@ void MessagesManager::on_messages_db_calls_result(Result<MessagesDbCallsResult> 
                                                   Promise<> &&promise) {
   CHECK(!first_db_message_id.is_scheduled());
   if (G()->close_flag()) {
-    result = Status::Error(500, "Request aborted");
+    result = Global::request_aborted_error();
   }
   if (result.is_error()) {
     found_call_messages_.erase(random_id);
@@ -22146,9 +22113,8 @@ MessageId MessagesManager::find_message_by_date(const Message *m, int32 date) {
 void MessagesManager::on_get_dialog_message_by_date_from_database(DialogId dialog_id, int32 date, int64 random_id,
                                                                   Result<MessagesDbDialogMessage> result,
                                                                   Promise<Unit> promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
   if (result.is_ok()) {
@@ -22196,9 +22162,7 @@ void MessagesManager::get_dialog_message_by_date_from_server(const Dialog *d, in
 void MessagesManager::on_get_dialog_message_by_date_success(DialogId dialog_id, int32 date, int64 random_id,
                                                             vector<tl_object_ptr<telegram_api::Message>> &&messages,
                                                             Promise<Unit> &&promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
 
   auto it = get_dialog_message_by_date_results_.find(random_id);
   CHECK(it != get_dialog_message_by_date_results_.end());
@@ -22384,10 +22348,7 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
   CHECK(-limit < offset && offset <= 0);
   CHECK(offset < 0 || from_the_end);
   CHECK(!from_message_id.is_scheduled());
-
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
 
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
     LOG(WARNING) << "Ignore result of get_history_from_database in " << dialog_id;
@@ -22623,14 +22584,12 @@ void MessagesManager::get_history_from_the_end(DialogId dialog_id, bool from_dat
 void MessagesManager::get_history_from_the_end_impl(const Dialog *d, bool from_database, bool only_local,
                                                     Promise<Unit> &&promise) {
   CHECK(d != nullptr);
+  TRY_STATUS_PROMISE(promise, G()->close_status());
 
   auto dialog_id = d->dialog_id;
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
     // can't get history in dialogs without read access
     return promise.set_value(Unit());
-  }
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
   }
   if (!d->first_database_message_id.is_valid() && !d->have_full_history) {
     from_database = false;
@@ -22681,14 +22640,12 @@ void MessagesManager::get_history_impl(const Dialog *d, MessageId from_message_i
                                        bool from_database, bool only_local, Promise<Unit> &&promise) {
   CHECK(d != nullptr);
   CHECK(from_message_id.is_valid());
+  TRY_STATUS_PROMISE(promise, G()->close_status());
 
   auto dialog_id = d->dialog_id;
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
     // can't get history in dialogs without read access
     return promise.set_value(Unit());
-  }
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
   }
   if ((!d->first_database_message_id.is_valid() || from_message_id <= d->first_database_message_id) &&
       !d->have_full_history) {
@@ -22769,7 +22726,7 @@ vector<MessageId> MessagesManager::get_dialog_scheduled_messages(DialogId dialog
                                                                  Promise<Unit> &&promise) {
   LOG(INFO) << "Get scheduled messages in " << dialog_id;
   if (G()->close_flag()) {
-    promise.set_error(Status::Error(500, "Request aborted"));
+    promise.set_error(Global::request_aborted_error());
     return {};
   }
 
@@ -22872,7 +22829,7 @@ void MessagesManager::on_get_scheduled_messages_from_database(DialogId dialog_id
     load_scheduled_messages_from_database_queries_.erase(it);
 
     for (auto &promise : promises) {
-      promise.set_error(Status::Error(500, "Request aborted"));
+      promise.set_error(Global::request_aborted_error());
     }
     return;
   }
@@ -27046,10 +27003,7 @@ void MessagesManager::upload_imported_messages(DialogId dialog_id, FileId file_i
 
 void MessagesManager::start_import_messages(DialogId dialog_id, int64 import_id, vector<FileId> &&attached_file_ids,
                                             Promise<Unit> &&promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
-
+  TRY_STATUS_PROMISE(promise, G()->close_status());
   TRY_STATUS_PROMISE(promise, can_send_message(dialog_id));
 
   auto pending_message_import = make_unique<PendingMessageImport>();
@@ -27096,7 +27050,7 @@ void MessagesManager::upload_imported_message_attachment(DialogId dialog_id, int
 
 void MessagesManager::on_imported_message_attachments_uploaded(int64 random_id, Result<Unit> &&result) {
   if (G()->close_flag()) {
-    result = Status::Error(500, "Request aborted");
+    result = Global::request_aborted_error();
   }
 
   auto it = pending_message_imports_.find(random_id);
@@ -27827,7 +27781,7 @@ void MessagesManager::on_get_message_notifications_from_database(DialogId dialog
                                                                  Result<vector<MessagesDbDialogMessage>> result,
                                                                  Promise<vector<Notification>> promise) {
   if (G()->close_flag()) {
-    result = Status::Error(500, "Request aborted");
+    result = Global::request_aborted_error();
   }
   if (result.is_error()) {
     return promise.set_error(result.move_as_error());
@@ -30586,9 +30540,8 @@ uint64 MessagesManager::save_get_dialog_from_server_log_event(DialogId dialog_id
 
 void MessagesManager::send_get_dialog_query(DialogId dialog_id, Promise<Unit> &&promise, uint64 log_event_id,
                                             const char *source) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
   if (td_->auth_manager_->is_bot() || dialog_id.get_type() == DialogType::SecretChat) {
     if (log_event_id != 0) {
       binlog_erase(G()->td_db()->get_binlog(), log_event_id);

@@ -6,6 +6,8 @@
 //
 #include "td/telegram/net/NetQueryDispatcher.h"
 
+#include "td/telegram/ConfigShared.h"
+#include "td/telegram/Global.h"
 #include "td/telegram/net/AuthDataShared.h"
 #include "td/telegram/net/DcAuthManager.h"
 #include "td/telegram/net/NetQuery.h"
@@ -13,9 +15,6 @@
 #include "td/telegram/net/PublicRsaKeyShared.h"
 #include "td/telegram/net/PublicRsaKeyWatchdog.h"
 #include "td/telegram/net/SessionMultiProxy.h"
-
-#include "td/telegram/ConfigShared.h"
-#include "td/telegram/Global.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
@@ -44,7 +43,7 @@ void NetQueryDispatcher::complete_net_query(NetQueryPtr net_query) {
 void NetQueryDispatcher::dispatch(NetQueryPtr net_query) {
   // net_query->debug("dispatch");
   if (stop_flag_.load(std::memory_order_relaxed)) {
-    net_query->set_error(Status::Error(500, "Request aborted"));
+    net_query->set_error(Global::request_aborted_error());
     return complete_net_query(std::move(net_query));
   }
   if (G()->shared_config().get_option_boolean("test_flood_wait")) {
