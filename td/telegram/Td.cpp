@@ -1606,7 +1606,7 @@ class GetWebPageInstantViewRequest final : public RequestActor<WebPageId> {
       promise.set_value(std::move(web_page_id_));
       return;
     }
-    td->web_pages_manager_->get_web_page_instant_view(url_, force_full_, get_tries() < 3, std::move(promise));
+    td->web_pages_manager_->get_web_page_instant_view(url_, force_full_, std::move(promise));
   }
 
   void do_set_result(WebPageId &&result) final {
@@ -1620,7 +1620,6 @@ class GetWebPageInstantViewRequest final : public RequestActor<WebPageId> {
  public:
   GetWebPageInstantViewRequest(ActorShared<Td> td, uint64 request_id, string url, bool force_full)
       : RequestActor(std::move(td), request_id), url_(std::move(url)), force_full_(force_full) {
-    set_tries(3);
   }
 };
 

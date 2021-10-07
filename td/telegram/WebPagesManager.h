@@ -65,7 +65,7 @@ class WebPagesManager final : public Actor {
 
   tl_object_ptr<td_api::webPage> get_web_page_preview_result(int64 request_id);
 
-  void get_web_page_instant_view(const string &url, bool force_full, bool force, Promise<WebPageId> &&promise);
+  void get_web_page_instant_view(const string &url, bool force_full, Promise<WebPageId> &&promise);
 
   WebPageId get_web_page_by_url(const string &url) const;
 
