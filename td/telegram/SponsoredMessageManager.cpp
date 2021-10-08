@@ -7,12 +7,14 @@
 #include "td/telegram/SponsoredMessageManager.h"
 
 #include "td/telegram/ChannelId.h"
+#include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageContent.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/net/NetQueryCreator.h"
+#include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 
@@ -95,13 +97,16 @@ class ViewSponsoredMessageQuery final : public Td::ResultHandler {
 struct SponsoredMessageManager::SponsoredMessage {
   int32 local_id = 0;
   DialogId sponsor_dialog_id;
+  ServerMessageId server_message_id;
   string start_param;
   unique_ptr<MessageContent> content;
 
   SponsoredMessage() = default;
-  SponsoredMessage(int32 local_id, DialogId sponsor_dialog_id, string start_param, unique_ptr<MessageContent> content)
+  SponsoredMessage(int32 local_id, DialogId sponsor_dialog_id, ServerMessageId server_message_id, string start_param,
+                   unique_ptr<MessageContent> content)
       : local_id(local_id)
       , sponsor_dialog_id(sponsor_dialog_id)
+      , server_message_id(server_message_id)
       , start_param(std::move(start_param))
       , content(std::move(content)) {
   }
@@ -160,6 +165,13 @@ td_api::object_ptr<td_api::sponsoredMessage> SponsoredMessageManager::get_sponso
         break;
       }
       link = td_api::make_object<td_api::internalLinkTypeBotStart>(bot_username, sponsored_message.start_param);
+      break;
+    }
+    case DialogType::Channel: {
+      auto channel_id = sponsored_message.sponsor_dialog_id.get_channel_id();
+      auto t_me = G()->shared_config().get_option_string("t_me_url", "https://t.me/");
+      link = td_api::make_object<td_api::internalLinkTypeMessage>(
+          PSTRING() << t_me << "/c" << channel_id.get() << '/' << sponsored_message.server_message_id.get());
       break;
     }
     default:
@@ -239,6 +251,11 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
       LOG(ERROR) << "Receive unknown sponsor " << sponsor_dialog_id;
       continue;
     }
+    auto server_message_id = ServerMessageId(sponsored_message->channel_post_);
+    if (!server_message_id.is_valid() && server_message_id != ServerMessageId()) {
+      LOG(ERROR) << "Receive invalid channel post in " << to_string(sponsored_message);
+      server_message_id = ServerMessageId();
+    }
     td_->messages_manager_->force_create_dialog(sponsor_dialog_id, "on_get_dialog_sponsored_messages");
     auto message_text = get_message_text(td_->contacts_manager_.get(), std::move(sponsored_message->message_),
                                          std::move(sponsored_message->entities_), true, true, 0, false,
@@ -253,8 +270,8 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
     CHECK(current_sponsored_message_id_ < std::numeric_limits<int32>::max());
     auto local_id = ++current_sponsored_message_id_;
     messages->message_random_ids[local_id] = sponsored_message->random_id_.as_slice().str();
-    messages->messages.emplace_back(local_id, sponsor_dialog_id, std::move(sponsored_message->start_param_),
-                                    std::move(content));
+    messages->messages.emplace_back(local_id, sponsor_dialog_id, server_message_id,
+                                    std::move(sponsored_message->start_param_), std::move(content));
   }
 
   for (auto &promise : promises) {
