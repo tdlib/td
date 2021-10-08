@@ -148,8 +148,25 @@ void SponsoredMessageManager::delete_cached_sponsored_messages(DialogId dialog_i
 
 td_api::object_ptr<td_api::sponsoredMessage> SponsoredMessageManager::get_sponsored_message_object(
     DialogId dialog_id, const SponsoredMessage &sponsored_message) const {
+  td_api::object_ptr<td_api::InternalLinkType> link;
+  switch (sponsored_message.sponsor_dialog_id.get_type()) {
+    case DialogType::User: {
+      auto user_id = sponsored_message.sponsor_dialog_id.get_user_id();
+      if (!td_->contacts_manager_->is_user_bot(user_id)) {
+        break;
+      }
+      auto bot_username = td_->contacts_manager_->get_user_username(user_id);
+      if (bot_username.empty()) {
+        break;
+      }
+      link = td_api::make_object<td_api::internalLinkTypeBotStart>(bot_username, sponsored_message.start_param);
+      break;
+    }
+    default:
+      break;
+  }
   return td_api::make_object<td_api::sponsoredMessage>(
-      sponsored_message.local_id, sponsored_message.sponsor_dialog_id.get(), sponsored_message.start_param,
+      sponsored_message.local_id, sponsored_message.sponsor_dialog_id.get(), std::move(link),
       get_message_content_object(sponsored_message.content.get(), td_, dialog_id, 0, false, true, -1));
 }
 

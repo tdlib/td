@@ -789,8 +789,8 @@ foundMessages total_count:int32 messages:vector<message> next_offset:string = Fo
 
 
 //@description Describes a sponsored message @id Unique sponsored message identifier @sponsor_chat_id Chat identifier
-//@start_parameter Parameter for the bot start message if the sponsored chat is a chat with a bot @content Content of the message
-sponsoredMessage id:int32 sponsor_chat_id:int53 start_parameter:string content:MessageContent = SponsoredMessage;
+//@link An internal link to be opened when the sponsored message is clicked; may be null. If null, the sponsor chat needs to be opened instead @content Content of the message
+sponsoredMessage id:int32 sponsor_chat_id:int53 link:InternalLinkType content:MessageContent = SponsoredMessage;
 
 //@description Contains a list of sponsored messages @messages List of sponsored messages
 sponsoredMessages messages:vector<sponsoredMessage> = SponsoredMessages;
