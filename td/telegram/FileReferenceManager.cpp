@@ -8,6 +8,7 @@
 
 #include "td/telegram/AnimationsManager.h"
 #include "td/telegram/BackgroundManager.h"
+#include "td/telegram/ConfigManager.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
@@ -58,6 +59,7 @@ fileSourceFavoriteStickers = FileSource;                                 // repa
 fileSourceBackground background_id:int64 access_hash:int64 = FileSource; // repaired with account.getWallPaper
 fileSourceBasicGroupFull basic_group_id:int32 = FileSource;              // repaired with messages.getFullChat
 fileSourceSupergroupFull supergroup_id:int32 = FileSource;               // repaired with messages.getFullChannel
+fileSourceAppConfig = FileSource;                                        // repaired with help.getAppConfig, not reliable
 */
 
 FileSourceId FileReferenceManager::get_current_file_source_id() const {
@@ -115,6 +117,11 @@ FileSourceId FileReferenceManager::create_chat_full_file_source(ChatId chat_id) 
 FileSourceId FileReferenceManager::create_channel_full_file_source(ChannelId channel_id) {
   FileSourceChannelFull source{channel_id};
   return add_file_source_id(source, PSLICE() << "full " << channel_id);
+}
+
+FileSourceId FileReferenceManager::create_app_config_file_source() {
+  FileSourceAppConfig source;
+  return add_file_source_id(source, "app config");
 }
 
 bool FileReferenceManager::add_file_source(NodeId node_id, FileSourceId file_source_id) {
@@ -290,6 +297,9 @@ void FileReferenceManager::send_query(Destination dest, FileSourceId file_source
       [&](const FileSourceChannelFull &source) {
         send_closure_later(G()->contacts_manager(), &ContactsManager::reload_channel_full, source.channel_id,
                            std::move(promise), "repair file reference");
+      },
+      [&](const FileSourceAppConfig &source) {
+        send_closure_later(G()->config_manager(), &ConfigManager::reget_app_config, std::move(promise));
       }));
 }
 

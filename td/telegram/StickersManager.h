@@ -241,6 +241,8 @@ class StickersManager final : public Actor {
 
   void on_get_favorite_stickers_failed(bool is_repair, Status error);
 
+  FileSourceId get_app_config_file_source_id();
+
   FileSourceId get_favorite_stickers_file_source_id();
 
   vector<FileId> get_favorite_stickers(Promise<Unit> &&promise);
@@ -746,6 +748,8 @@ class StickersManager final : public Actor {
   FileSourceId recent_stickers_file_source_id_[2];
   vector<FileId> favorite_sticker_file_ids_;
   FileSourceId favorite_stickers_file_source_id_;
+
+  FileSourceId app_config_file_source_id_;
 
   vector<StickerSetId> archived_sticker_set_ids_[2];
   int32 total_archived_sticker_set_count_[2] = {-1, -1};

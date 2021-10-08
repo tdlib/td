@@ -4096,7 +4096,13 @@ void StickersManager::on_update_emoji_sounds() {
   LOG(INFO) << "Change emoji sounds to " << emoji_sounds_str;
   emoji_sounds_str_ = std::move(emoji_sounds_str);
 
+  vector<FileId> old_file_ids;
+  for (auto &emoji_sound : emoji_sounds_) {
+    old_file_ids.push_back(emoji_sound.second);
+  }
   emoji_sounds_.clear();
+
+  vector<FileId> new_file_ids;
   auto sounds = full_split(Slice(emoji_sounds_str_), ',');
   CHECK(sounds.size() % 2 == 0);
   for (size_t i = 0; i < sounds.size(); i += 2) {
@@ -4114,7 +4120,10 @@ void StickersManager::on_update_emoji_sounds() {
         FileLocationSource::FromServer, DialogId(), 0, expected_size, std::move(suggested_file_name));
     CHECK(file_id.is_valid());
     emoji_sounds_.emplace(remove_fitzpatrick_modifier(sounds[i]).str(), file_id);
+    new_file_ids.push_back(file_id);
   }
+  td_->file_manager_->change_files_source(get_app_config_file_source_id(), old_file_ids, new_file_ids);
+
   try_update_animated_emoji_messages();
 }
 
@@ -6608,6 +6617,13 @@ void StickersManager::on_get_favorite_stickers_failed(bool is_repair, Status err
 
 int64 StickersManager::get_favorite_stickers_hash() const {
   return get_recent_stickers_hash(favorite_sticker_ids_);
+}
+
+FileSourceId StickersManager::get_app_config_file_source_id() {
+  if (!app_config_file_source_id_.is_valid()) {
+    app_config_file_source_id_ = td_->file_reference_manager_->create_app_config_file_source();
+  }
+  return app_config_file_source_id_;
 }
 
 FileSourceId StickersManager::get_favorite_stickers_file_source_id() {
