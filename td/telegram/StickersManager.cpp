@@ -3914,7 +3914,12 @@ void StickersManager::on_update_dice_emojis() {
   for (auto &emoji : new_dice_emojis) {
     if (!td::contains(dice_emojis_, emoji)) {
       auto &special_sticker_set = add_special_sticker_set(SpecialStickerSetType::animated_dice(emoji));
-      CHECK(!special_sticker_set.id_.is_valid());
+      if (special_sticker_set.id_.is_valid()) {
+        // drop information about the sticker set to reload it
+        special_sticker_set.id_ = StickerSetId();
+        special_sticker_set.access_hash_ = 0;
+        special_sticker_set.short_name_.clear();
+      }
 
       if (G()->parameters().use_file_db) {
         LOG(INFO) << "Load new dice sticker set for emoji " << emoji;
