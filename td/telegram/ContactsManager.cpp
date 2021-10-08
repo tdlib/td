@@ -10403,7 +10403,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       if (chat->groupcall_default_join_as_ != nullptr) {
         default_join_group_call_as_dialog_id = DialogId(chat->groupcall_default_join_as_);
       }
-      // use send closure later to not crete synchronously default_join_group_call_as_dialog_id
+      // use send closure later to not create synchronously default_join_group_call_as_dialog_id
       send_closure_later(G()->messages_manager(),
                          &MessagesManager::on_update_dialog_default_join_group_call_as_dialog_id, DialogId(chat_id),
                          default_join_group_call_as_dialog_id, false);
@@ -10619,7 +10619,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       if (channel->groupcall_default_join_as_ != nullptr) {
         default_join_group_call_as_dialog_id = DialogId(channel->groupcall_default_join_as_);
       }
-      // use send closure later to not crete synchronously default_join_group_call_as_dialog_id
+      // use send closure later to not create synchronously default_join_group_call_as_dialog_id
       send_closure_later(G()->messages_manager(),
                          &MessagesManager::on_update_dialog_default_join_group_call_as_dialog_id, DialogId(channel_id),
                          default_join_group_call_as_dialog_id, false);
