@@ -4733,6 +4733,8 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       auto set_chat_theme = move_tl_object_as<telegram_api::messageActionSetChatTheme>(action);
       return td::make_unique<MessageChatSetTheme>(std::move(set_chat_theme->emoticon_));
     }
+    case telegram_api::messageActionChatJoinedByRequest::ID:
+      return make_unique<MessageChatJoinedByLink>();
     default:
       UNREACHABLE();
   }

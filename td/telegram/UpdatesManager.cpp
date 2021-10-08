@@ -676,6 +676,7 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
         case telegram_api::messageActionGroupCallScheduled::ID:
         case telegram_api::messageActionSetMessagesTTL::ID:
         case telegram_api::messageActionSetChatTheme::ID:
+        case telegram_api::messageActionChatJoinedByRequest::ID:
           break;
         case telegram_api::messageActionChatCreate::ID: {
           auto chat_create = static_cast<const telegram_api::messageActionChatCreate *>(action);
@@ -695,13 +696,9 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
           }
           break;
         }
-        case telegram_api::messageActionChatJoinedByLink::ID: {
-          auto chat_joined_by_link = static_cast<const telegram_api::messageActionChatJoinedByLink *>(action);
-          if (!is_acceptable_user(UserId(chat_joined_by_link->inviter_id_))) {
-            return false;
-          }
+        case telegram_api::messageActionChatJoinedByLink::ID:
+          // inviter_id_ isn't used
           break;
-        }
         case telegram_api::messageActionChatDeleteUser::ID: {
           auto chat_delete_user = static_cast<const telegram_api::messageActionChatDeleteUser *>(action);
           if (!is_acceptable_user(UserId(chat_delete_user->user_id_))) {
@@ -3216,5 +3213,12 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTheme> update, 
 }
 
 // unsupported updates
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePendingJoinRequests> update, Promise<Unit> &&promise) {
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotChatInviteRequester> update,
+                               Promise<Unit> &&promise) {
+}
 
 }  // namespace td

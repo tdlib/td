@@ -59,8 +59,7 @@ class ThemeManager final : public Actor {
 
   struct ChatTheme {
     string emoji;
-    int64 light_id = 0;
-    int64 dark_id = 0;
+    int64 id = 0;
     ThemeSettings light_theme;
     ThemeSettings dark_theme;
 
@@ -72,7 +71,7 @@ class ThemeManager final : public Actor {
   };
 
   struct ChatThemes {
-    int32 hash = 0;
+    int64 hash = 0;
     double next_reload_time = 0;
     vector<ChatTheme> themes;
 
@@ -89,7 +88,9 @@ class ThemeManager final : public Actor {
 
   void tear_down() final;
 
-  void on_get_chat_themes(Result<telegram_api::object_ptr<telegram_api::account_ChatThemes>> result);
+  static bool is_dark_base_theme(BaseTheme base_theme);
+
+  void on_get_chat_themes(Result<telegram_api::object_ptr<telegram_api::account_Themes>> result);
 
   td_api::object_ptr<td_api::themeSettings> get_theme_settings_object(const ThemeSettings &settings) const;
 

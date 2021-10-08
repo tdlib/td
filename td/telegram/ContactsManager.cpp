@@ -1629,7 +1629,7 @@ class ExportChatInviteQuery final : public Td::ResultHandler {
     }
 
     send_query(G()->net_query_creator().create(telegram_api::messages_exportChatInvite(
-        flags, false /*ignored*/, std::move(input_peer), expire_date, usage_limit)));
+        flags, false /*ignored*/, false /*ignored*/, std::move(input_peer), expire_date, usage_limit, string())));
   }
 
   void on_result(uint64 id, BufferSlice packet) final {
@@ -1679,7 +1679,7 @@ class EditChatInviteLinkQuery final : public Td::ResultHandler {
     int32 flags = telegram_api::messages_editExportedChatInvite::EXPIRE_DATE_MASK |
                   telegram_api::messages_editExportedChatInvite::USAGE_LIMIT_MASK;
     send_query(G()->net_query_creator().create(telegram_api::messages_editExportedChatInvite(
-        flags, false /*ignored*/, std::move(input_peer), invite_link, expire_date, usage_limit)));
+        flags, false /*ignored*/, std::move(input_peer), invite_link, expire_date, usage_limit, false, string())));
   }
 
   void on_result(uint64 id, BufferSlice packet) final {
@@ -1901,8 +1901,10 @@ class GetChatInviteImportersQuery final : public Td::ResultHandler {
       input_user = make_tl_object<telegram_api::inputUserEmpty>();
     }
 
-    send_query(G()->net_query_creator().create(telegram_api::messages_getChatInviteImporters(
-        std::move(input_peer), invite_link, offset_date, std::move(input_user), limit)));
+    int32 flags = telegram_api::messages_getChatInviteImporters::LINK_MASK;
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_getChatInviteImporters(flags, false /*ignored*/, std::move(input_peer), invite_link,
+                                                      string(), offset_date, std::move(input_user), limit)));
   }
 
   void on_result(uint64 id, BufferSlice packet) final {
@@ -1959,7 +1961,7 @@ class RevokeChatInviteLinkQuery final : public Td::ResultHandler {
 
     int32 flags = telegram_api::messages_editExportedChatInvite::REVOKED_MASK;
     send_query(G()->net_query_creator().create(telegram_api::messages_editExportedChatInvite(
-        flags, false /*ignored*/, std::move(input_peer), invite_link, 0, 0)));
+        flags, false /*ignored*/, std::move(input_peer), invite_link, 0, 0, false, string())));
   }
 
   void on_result(uint64 id, BufferSlice packet) final {

@@ -2589,7 +2589,7 @@ class DeleteHistoryQuery final : public Td::ResultHandler {
 
     send_query(G()->net_query_creator().create(
         telegram_api::messages_deleteHistory(flags, false /*ignored*/, false /*ignored*/, std::move(input_peer),
-                                             max_message_id_.get_server_message_id().get())));
+                                             max_message_id_.get_server_message_id().get(), 0, 0)));
   }
 
  public:
@@ -31689,6 +31689,8 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
       return make_tl_object<td_api::chatEventMemberJoinedByInviteLink>(
           invite_link.get_chat_invite_link_object(td_->contacts_manager_.get()));
     }
+    case telegram_api::channelAdminLogEventActionParticipantJoinByRequest::ID:
+      return nullptr;
     case telegram_api::channelAdminLogEventActionParticipantLeave::ID:
       return make_tl_object<td_api::chatEventMemberLeft>();
     case telegram_api::channelAdminLogEventActionParticipantInvite::ID: {
