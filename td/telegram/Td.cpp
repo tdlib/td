@@ -6285,20 +6285,20 @@ void Td::on_request(uint64 id, td_api::getChatAdministrators &request) {
 
 void Td::on_request(uint64 id, const td_api::replacePrimaryChatInviteLink &request) {
   CREATE_REQUEST_PROMISE();
-  contacts_manager_->export_dialog_invite_link(DialogId(request.chat_id_), 0, 0, true, std::move(promise));
+  contacts_manager_->export_dialog_invite_link(DialogId(request.chat_id_), 0, 0, false, true, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::createChatInviteLink &request) {
   CREATE_REQUEST_PROMISE();
   contacts_manager_->export_dialog_invite_link(DialogId(request.chat_id_), request.expire_date_, request.member_limit_,
-                                               false, std::move(promise));
+                                               request.requires_approval_, false, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::editChatInviteLink &request) {
   CLEAN_INPUT_STRING(request.invite_link_);
   CREATE_REQUEST_PROMISE();
   contacts_manager_->edit_dialog_invite_link(DialogId(request.chat_id_), request.invite_link_, request.expire_date_,
-                                             request.member_limit_, std::move(promise));
+                                             request.member_limit_, request.requires_approval_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getChatInviteLink &request) {

@@ -2939,16 +2939,19 @@ class CliClient final : public Actor {
       string chat_id;
       int32 expire_date;
       int32 member_limit;
-      get_args(args, chat_id, expire_date, member_limit);
-      send_request(td_api::make_object<td_api::createChatInviteLink>(as_chat_id(chat_id), expire_date, member_limit));
+      bool requires_approval;
+      get_args(args, chat_id, expire_date, member_limit, requires_approval);
+      send_request(td_api::make_object<td_api::createChatInviteLink>(as_chat_id(chat_id), expire_date, member_limit,
+                                                                     requires_approval));
     } else if (op == "ecil") {
       string chat_id;
       string invite_link;
       int32 expire_date;
       int32 member_limit;
-      get_args(args, chat_id, invite_link, expire_date, member_limit);
-      send_request(
-          td_api::make_object<td_api::editChatInviteLink>(as_chat_id(chat_id), invite_link, expire_date, member_limit));
+      bool requires_approval;
+      get_args(args, chat_id, invite_link, expire_date, member_limit, requires_approval);
+      send_request(td_api::make_object<td_api::editChatInviteLink>(as_chat_id(chat_id), invite_link, expire_date,
+                                                                   member_limit, requires_approval));
     } else if (op == "rcil") {
       string chat_id;
       string invite_link;
@@ -2981,7 +2984,8 @@ class CliClient final : public Actor {
       get_args(args, chat_id, invite_link, offset_user_id, offset_date, limit);
       send_request(td_api::make_object<td_api::getChatInviteLinkMembers>(
           as_chat_id(chat_id), invite_link,
-          td_api::make_object<td_api::chatInviteLinkMember>(as_user_id(offset_user_id), offset_date), as_limit(limit)));
+          td_api::make_object<td_api::chatInviteLinkMember>(as_user_id(offset_user_id), offset_date, 0),
+          as_limit(limit)));
     } else if (op == "drcil") {
       string chat_id;
       string invite_link;
