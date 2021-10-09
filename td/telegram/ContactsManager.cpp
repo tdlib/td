@@ -1931,8 +1931,16 @@ class GetChatInviteImportersQuery final : public Td::ResultHandler {
         total_count--;
         continue;
       }
+      UserId approver_user_id(importer->approved_by_);
+      if (!approver_user_id.is_valid() && approver_user_id != UserId()) {
+        LOG(ERROR) << "Receive invalid invite link approver " << approver_user_id << " for " << user_id << " in "
+                   << dialog_id_;
+        total_count--;
+        continue;
+      }
       invite_link_members.push_back(td_api::make_object<td_api::chatInviteLinkMember>(
-          td->contacts_manager_->get_user_id_object(user_id, "chatInviteLinkMember"), importer->date_));
+          td->contacts_manager_->get_user_id_object(user_id, "chatInviteLinkMember"), importer->date_,
+          td->contacts_manager_->get_user_id_object(approver_user_id, "chatInviteLinkMember")));
     }
     promise_.set_value(td_api::make_object<td_api::chatInviteLinkMembers>(total_count, std::move(invite_link_members)));
   }
