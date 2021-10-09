@@ -15718,6 +15718,7 @@ void MessagesManager::load_dialog_list(DialogList &list, int32 limit, Promise<Un
     }
   }
   if (is_request_sent) {
+    LOG(INFO) << "Wait for loading of " << limit << " chats in " << list.dialog_list_id;
     list.load_list_queries_.push_back(std::move(promise));
   } else {
     LOG(ERROR) << "There is nothing to load for " << list.dialog_list_id << " with folders "
@@ -16376,6 +16377,7 @@ std::pair<int32, vector<DialogId>> MessagesManager::search_dialogs(const string 
 }
 
 std::pair<int32, vector<DialogId>> MessagesManager::get_recently_opened_dialogs(int32 limit, Promise<Unit> &&promise) {
+  CHECK(!td_->auth_manager_->is_bot());
   return recently_opened_dialogs_.get_dialogs(limit, std::move(promise));
 }
 
@@ -18448,8 +18450,11 @@ void MessagesManager::edit_dialog_filter(unique_ptr<DialogFilter> new_dialog_fil
         get_dialogs_from_list(dialog_list_id, static_cast<int32>(old_list.pinned_dialogs_.size() + 2), Auto());
       }
 
-      for (auto &promise : load_list_promises) {
-        promise.set_value(Unit());  // try again
+      if (!load_list_promises.empty()) {
+        LOG(INFO) << "Retry loading of chats in " << dialog_list_id;
+        for (auto &promise : load_list_promises) {
+          promise.set_value(Unit());  // try again
+        }
       }
       return;
     }
@@ -19777,6 +19782,7 @@ void MessagesManager::on_animated_emoji_message_clicked(FullMessageId full_messa
 }
 
 void MessagesManager::open_dialog(Dialog *d) {
+  CHECK(!td_->auth_manager_->is_bot());
   DialogId dialog_id = d->dialog_id;
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
     return;
@@ -35284,6 +35290,7 @@ void MessagesManager::update_list_last_dialog_date(DialogList &list) {
   auto old_dialog_total_count = get_dialog_total_count(list);
   auto old_last_dialog_date = list.list_last_dialog_date_;
   if (!do_update_list_last_dialog_date(list, get_dialog_list_folder_ids(list))) {
+    LOG(INFO) << "Don't need to update last dialog date in " << list.dialog_list_id;
     return;
   }
 
@@ -35319,6 +35326,9 @@ void MessagesManager::update_list_last_dialog_date(DialogList &list) {
     recalc_unread_count(list.dialog_list_id, old_dialog_total_count);
   }
 
+  LOG(INFO) << "After updating last dialog date in " << list.dialog_list_id << " to " << list.list_last_dialog_date_
+            << " have is_list_further_loaded == " << is_list_further_loaded << " and " << list.load_list_queries_.size()
+            << " pending load list queries";
   if (is_list_further_loaded && !list.load_list_queries_.empty()) {
     auto promises = std::move(list.load_list_queries_);
     list.load_list_queries_.clear();
