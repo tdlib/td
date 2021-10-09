@@ -47,6 +47,7 @@ enum class Version : int32 {
   SupportBannedChannels,
   RemovePhotoVolumeAndLocalId,
   Support64BitIds,
+  AddInviteLinksRequiringApproval,
   Next
 };
 

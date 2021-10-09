@@ -1774,8 +1774,8 @@ messageChatDeletePhoto = MessageContent;
 //@description New chat members were added @member_user_ids User identifiers of the new members
 messageChatAddMembers member_user_ids:vector<int53> = MessageContent;
 
-//@description A new member joined the chat by invite link
-messageChatJoinByLink = MessageContent;
+//@description A new member joined the chat by invite link @is_approved True, if the join request was approved by a chat administrator
+messageChatJoinByLink is_approved:Bool = MessageContent;
 
 //@description A chat member was deleted @user_id User identifier of the deleted chat member
 messageChatDeleteMember user_id:int53 = MessageContent;

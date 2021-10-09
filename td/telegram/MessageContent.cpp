@@ -319,6 +319,12 @@ class MessageChatAddUsers final : public MessageContent {
 
 class MessageChatJoinedByLink final : public MessageContent {
  public:
+  bool is_approved = false;
+
+  MessageChatJoinedByLink() = default;
+  explicit MessageChatJoinedByLink(bool is_approved) : is_approved(is_approved) {
+  }
+
   MessageContentType get_type() const final {
     return MessageContentType::ChatJoinedByLink;
   }
@@ -866,8 +872,13 @@ static void store(const MessageContent *content, StorerT &storer) {
       store(m->user_ids, storer);
       break;
     }
-    case MessageContentType::ChatJoinedByLink:
+    case MessageContentType::ChatJoinedByLink: {
+      auto m = static_cast<const MessageChatJoinedByLink *>(content);
+      BEGIN_STORE_FLAGS();
+      STORE_FLAG(m->is_approved);
+      END_STORE_FLAGS();
       break;
+    }
     case MessageContentType::ChatDeleteUser: {
       const auto *m = static_cast<const MessageChatDeleteUser *>(content);
       store(m->user_id, storer);
@@ -1229,9 +1240,18 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       content = std::move(m);
       break;
     }
-    case MessageContentType::ChatJoinedByLink:
-      content = make_unique<MessageChatJoinedByLink>();
+    case MessageContentType::ChatJoinedByLink: {
+      auto m = make_unique<MessageChatJoinedByLink>();
+      if (parser.version() >= static_cast<int32>(Version::AddInviteLinksRequiringApproval)) {
+        BEGIN_PARSE_FLAGS();
+        PARSE_FLAG(m->is_approved);
+        END_PARSE_FLAGS();
+      } else {
+        m->is_approved = false;
+      }
+      content = std::move(m);
       break;
+    }
     case MessageContentType::ChatDeleteUser: {
       auto m = make_unique<MessageChatDeleteUser>();
       parse(m->user_id, parser);
@@ -3253,8 +3273,14 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       }
       break;
     }
-    case MessageContentType::ChatJoinedByLink:
+    case MessageContentType::ChatJoinedByLink: {
+      auto old_ = static_cast<const MessageChatJoinedByLink *>(old_content);
+      auto new_ = static_cast<const MessageChatJoinedByLink *>(new_content);
+      if (old_->is_approved != new_->is_approved) {
+        need_update = true;
+      }
       break;
+    }
     case MessageContentType::ChatDeleteUser: {
       const auto *old_ = static_cast<const MessageChatDeleteUser *>(old_content);
       const auto *new_ = static_cast<const MessageChatDeleteUser *>(new_content);
@@ -4538,7 +4564,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       return td::make_unique<MessageChatAddUsers>(std::move(user_ids));
     }
     case telegram_api::messageActionChatJoinedByLink::ID:
-      return make_unique<MessageChatJoinedByLink>();
+      return make_unique<MessageChatJoinedByLink>(false);
     case telegram_api::messageActionChatDeleteUser::ID: {
       auto chat_delete_user = move_tl_object_as<telegram_api::messageActionChatDeleteUser>(action);
 
@@ -4734,7 +4760,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       return td::make_unique<MessageChatSetTheme>(std::move(set_chat_theme->emoticon_));
     }
     case telegram_api::messageActionChatJoinedByRequest::ID:
-      return make_unique<MessageChatJoinedByLink>();
+      return make_unique<MessageChatJoinedByLink>(true);
     default:
       UNREACHABLE();
   }
@@ -4855,8 +4881,10 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
       return make_tl_object<td_api::messageChatAddMembers>(
           td->contacts_manager_->get_user_ids_object(m->user_ids, "MessageChatAddUsers"));
     }
-    case MessageContentType::ChatJoinedByLink:
-      return make_tl_object<td_api::messageChatJoinByLink>();
+    case MessageContentType::ChatJoinedByLink: {
+      const MessageChatJoinedByLink *m = static_cast<const MessageChatJoinedByLink *>(content);
+      return make_tl_object<td_api::messageChatJoinByLink>(m->is_approved);
+    }
     case MessageContentType::ChatDeleteUser: {
       const auto *m = static_cast<const MessageChatDeleteUser *>(content);
       return make_tl_object<td_api::messageChatDeleteMember>(
