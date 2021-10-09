@@ -1932,15 +1932,10 @@ class GetChatInviteImportersQuery final : public Td::ResultHandler {
     vector<td_api::object_ptr<td_api::chatInviteLinkMember>> invite_link_members;
     for (auto &importer : result->importers_) {
       UserId user_id(importer->user_id_);
-      if (!user_id.is_valid()) {
-        LOG(ERROR) << "Receive invalid invite link " << user_id << " in " << dialog_id_;
-        total_count--;
-        continue;
-      }
       UserId approver_user_id(importer->approved_by_);
-      if (!approver_user_id.is_valid() && approver_user_id != UserId()) {
-        LOG(ERROR) << "Receive invalid invite link approver " << approver_user_id << " for " << user_id << " in "
-                   << dialog_id_;
+      if (!user_id.is_valid() || (!approver_user_id.is_valid() && approver_user_id != UserId()) ||
+          importer->requested_) {
+        LOG(ERROR) << "Receive invalid invite link importer: " << to_string(importer);
         total_count--;
         continue;
       }
