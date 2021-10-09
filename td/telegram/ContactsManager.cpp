@@ -12542,8 +12542,10 @@ void ContactsManager::on_get_dialog_invite_link_info(const string &invite_link,
       invite_link_info->dialog_id = DialogId();
       invite_link_info->title = chat_invite->title_;
       invite_link_info->photo = get_photo(td_->file_manager_.get(), std::move(chat_invite->photo_), DialogId());
+      invite_link_info->description = std::move(chat_invite->about_);
       invite_link_info->participant_count = chat_invite->participants_count_;
       invite_link_info->participant_user_ids = std::move(participant_user_ids);
+      invite_link_info->requires_approval = std::move(chat_invite->request_needed_);
       invite_link_info->is_chat = (chat_invite->flags_ & CHAT_INVITE_FLAG_IS_CHANNEL) == 0;
       invite_link_info->is_channel = (chat_invite->flags_ & CHAT_INVITE_FLAG_IS_CHANNEL) != 0;
 
@@ -15953,8 +15955,7 @@ tl_object_ptr<td_api::secretChat> ContactsManager::get_secret_chat_object_const(
                                                  secret_chat->is_outbound, secret_chat->key_hash, secret_chat->layer);
 }
 
-tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_info_object(
-    const string &invite_link) const {
+tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_info_object(const string &invite_link) {
   auto it = invite_link_infos_.find(invite_link);
   if (it == invite_link_infos_.end()) {
     return nullptr;
@@ -15967,8 +15968,10 @@ tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_
   string title;
   const DialogPhoto *photo = nullptr;
   DialogPhoto invite_link_photo;
+  string description;
   int32 participant_count = 0;
   vector<int64> member_user_ids;
+  bool requires_approval = false;
   bool is_public = false;
   bool is_member = false;
   td_api::object_ptr<td_api::ChatType> chat_type;
@@ -16013,12 +16016,15 @@ tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_
       default:
         UNREACHABLE();
     }
+    description = get_dialog_about(dialog_id);
   } else {
     title = invite_link_info->title;
     invite_link_photo = as_fake_dialog_photo(invite_link_info->photo, dialog_id);
     photo = &invite_link_photo;
+    description = invite_link_info->description;
     participant_count = invite_link_info->participant_count;
     member_user_ids = get_user_ids_object(invite_link_info->participant_user_ids, "get_chat_invite_link_info_object");
+    requires_approval = invite_link_info->requires_approval;
     is_public = invite_link_info->is_public;
 
     if (invite_link_info->is_chat) {
@@ -16041,7 +16047,8 @@ tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_
 
   return make_tl_object<td_api::chatInviteLinkInfo>(dialog_id.get(), accessible_for, std::move(chat_type), title,
                                                     get_chat_photo_info_object(td_->file_manager_.get(), photo),
-                                                    participant_count, std::move(member_user_ids), is_public);
+                                                    description, participant_count, std::move(member_user_ids),
+                                                    requires_approval, is_public);
 }
 
 UserId ContactsManager::get_support_user(Promise<Unit> &&promise) {

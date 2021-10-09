@@ -566,7 +566,7 @@ class ContactsManager final : public Actor {
 
   tl_object_ptr<td_api::chatMember> get_chat_member_object(const DialogParticipant &dialog_participant) const;
 
-  tl_object_ptr<td_api::chatInviteLinkInfo> get_chat_invite_link_info_object(const string &invite_link) const;
+  tl_object_ptr<td_api::chatInviteLinkInfo> get_chat_invite_link_info_object(const string &invite_link);
 
   UserId get_support_user(Promise<Unit> &&promise);
 
@@ -927,8 +927,10 @@ class ContactsManager final : public Actor {
     // unknown dialog
     string title;
     Photo photo;
+    string description;
     int32 participant_count = 0;
     vector<UserId> participant_user_ids;
+    bool requires_approval = false;
     bool is_chat = false;
     bool is_channel = false;
     bool is_public = false;

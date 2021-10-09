@@ -592,10 +592,12 @@ chatInviteLinkMembers total_count:int32 members:vector<chatInviteLinkMember> = C
 //@type Contains information about the type of the chat
 //@title Title of the chat
 //@photo Chat photo; may be null
+//@param_description Chat description
 //@member_count Number of members in the chat
 //@member_user_ids User identifiers of some chat members that may be known to the current user
+//@requires_approval True, if the user will need to be approved by chat administrators
 //@is_public True, if the chat is a public supergroup or channel, i.e. it has a username or it is a location-based supergroup
-chatInviteLinkInfo chat_id:int53 accessible_for:int32 type:ChatType title:string photo:chatPhotoInfo member_count:int32 member_user_ids:vector<int53> is_public:Bool = ChatInviteLinkInfo;
+chatInviteLinkInfo chat_id:int53 accessible_for:int32 type:ChatType title:string photo:chatPhotoInfo description:string member_count:int32 member_user_ids:vector<int53> requires_approval:Bool is_public:Bool = ChatInviteLinkInfo;
 
 
 //@description Represents a basic group of 0-200 users (must be upgraded to a supergroup to accommodate more than 200 users)
