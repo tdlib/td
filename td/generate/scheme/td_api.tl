@@ -562,9 +562,11 @@ supergroupMembersFilterBots = SupergroupMembersFilter;
 //@expire_date Point in time (Unix timestamp) when the link will expire; 0 if never
 //@member_limit The maximum number of members, which can join the chat using the link simultaneously; 0 if not limited
 //@member_count Number of chat members, which joined the chat using the link
+//@pending_join_request_count Number of pending join requests, created using this link
+//@requires_approval True, if users joining the chat by the link need to be approved by chat administrators
 //@is_primary True, if the link is primary. Primary invite link can't have expire date or usage limit. There is exactly one primary invite link for each administrator with can_invite_users right at a given time
 //@is_revoked True, if the link was revoked
-chatInviteLink invite_link:string creator_user_id:int53 date:int32 edit_date:int32 expire_date:int32 member_limit:int32 member_count:int32 is_primary:Bool is_revoked:Bool = ChatInviteLink;
+chatInviteLink invite_link:string creator_user_id:int53 date:int32 edit_date:int32 expire_date:int32 member_limit:int32 member_count:int32 pending_join_request_count:int32 requires_approval:Bool is_primary:Bool is_revoked:Bool = ChatInviteLink;
 
 //@description Contains a list of chat invite links @total_count Approximate total count of chat invite links found @invite_links List of invite links
 chatInviteLinks total_count:int32 invite_links:vector<chatInviteLink> = ChatInviteLinks;
