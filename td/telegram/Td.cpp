@@ -1861,31 +1861,6 @@ class GetChatEventLogRequest final : public RequestOnceActor {
   }
 };
 
-class GetBlockedMessageSendersRequest final : public RequestActor<> {
-  int32 offset_;
-  int32 limit_;
-  int64 random_id_;
-
-  std::pair<int32, vector<DialogId>> message_senders_;
-
-  void do_run(Promise<Unit> &&promise) final {
-    message_senders_ = td->messages_manager_->get_blocked_dialogs(offset_, limit_, random_id_, std::move(promise));
-  }
-
-  void do_send_result() final {
-    auto senders =
-        transform(message_senders_.second, [messages_manager = td->messages_manager_.get()](DialogId dialog_id) {
-          return messages_manager->get_message_sender_object(dialog_id, "GetBlockedMessageSendersRequest");
-        });
-    send_result(td_api::make_object<td_api::messageSenders>(message_senders_.first, std::move(senders)));
-  }
-
- public:
-  GetBlockedMessageSendersRequest(ActorShared<Td> td, uint64 request_id, int32 offset, int32 limit)
-      : RequestActor(std::move(td), request_id), offset_(offset), limit_(limit), random_id_(0) {
-  }
-};
-
 class ImportContactsRequest final : public RequestActor<> {
   vector<Contact> contacts_;
   int64 random_id_;
@@ -6598,7 +6573,8 @@ void Td::on_request(uint64 id, const td_api::blockMessageSenderFromReplies &requ
 
 void Td::on_request(uint64 id, const td_api::getBlockedMessageSenders &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST(GetBlockedMessageSendersRequest, request.offset_, request.limit_);
+  CREATE_REQUEST_PROMISE();
+  messages_manager_->get_blocked_dialogs(request.offset_, request.limit_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::addContact &request) {
