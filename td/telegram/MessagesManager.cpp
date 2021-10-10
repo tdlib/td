@@ -11634,7 +11634,10 @@ void MessagesManager::recalc_unread_count(DialogListId dialog_list_id, int32 old
       need_save = true;
     }
   } else {
-    repair_server_dialog_total_count(dialog_list_id);
+    if (list.server_dialog_total_count_ == -1) {
+      // recalc_unread_count is called only after getDialogs request; it is unneeded to call it again
+      repair_server_dialog_total_count(dialog_list_id);
+    }
 
     if (list.secret_chat_total_count_ == -1) {
       repair_secret_chat_total_count(dialog_list_id);
@@ -14318,6 +14321,8 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
 
   if (from_get_dialog) {
     LOG(INFO) << "Process " << dialogs.size() << " chats";
+  } else if (from_pinned_dialog_list) {
+    LOG(INFO) << "Process " << dialogs.size() << " pinned chats in " << folder_id;
   } else {
     LOG(INFO) << "Process " << dialogs.size() << " chats out of " << total_count << " in " << folder_id;
   }
@@ -15967,8 +15972,8 @@ void MessagesManager::get_dialogs_from_list_impl(int64 task_id) {
   auto dialog_ids = get_dialogs(task.dialog_list_id, MIN_DIALOG_DATE, task.limit, true, false, std::move(promise));
   auto &list = *get_dialog_list(task.dialog_list_id);
   auto total_count = get_dialog_total_count(list);
-  LOG(INFO) << "Receive " << dialog_ids.size() << " chats out of " << total_count << "/" << task.limit << " in "
-            << task.dialog_list_id;
+  LOG(INFO) << "Receive " << dialog_ids.size() << " chats instead of " << task.limit << " out of " << total_count
+            << " in " << task.dialog_list_id;
   CHECK(dialog_ids.size() <= static_cast<size_t>(total_count));
   CHECK(dialog_ids.size() <= static_cast<size_t>(task.limit));
   if (dialog_ids.size() == static_cast<size_t>(min(total_count, task.limit)) ||
@@ -35229,7 +35234,7 @@ void MessagesManager::update_last_dialog_date(FolderId folder_id) {
                                                     << folder->last_server_dialog_date_.get_dialog_id().get();
     G()->td_db()->get_binlog_pmc()->set(PSTRING() << "last_server_dialog_date" << folder_id.get(),
                                         last_server_dialog_date_string);
-    LOG(INFO) << "Save last server dialog date " << last_server_dialog_date_string;
+    LOG(INFO) << "Save last server dialog date " << folder->last_server_dialog_date_;
     folder->last_database_server_dialog_date_ = folder->last_server_dialog_date_;
     folder->last_loaded_database_dialog_date_ = folder->last_server_dialog_date_;
   }
