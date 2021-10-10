@@ -667,3 +667,45 @@ TEST(Actors, send_from_other_threads) {
   scheduler.finish();
 }
 #endif
+
+class DelayedCall final : public Actor {
+ public:
+  void on_called(int *order) {
+    CHECK(*order == 0);
+    *order = 1;
+  }
+};
+
+class MultiPromiseSendClosureLaterTest final : public Actor {
+ public:
+  void start_up() final {
+    delayed_call_ = create_actor<DelayedCall>("DelayedCall").release();
+    mpa_.add_promise(PromiseCreator::lambda([this](Unit) {
+      CHECK(order_ == 1);
+      order_++;
+      Scheduler::instance()->finish();
+    }));
+    auto lock = mpa_.get_promise();
+    send_closure_later(delayed_call_, &DelayedCall::on_called, &order_);
+    lock.set_value(Unit());
+  }
+
+  void tear_down() final {
+    CHECK(order_ == 2);
+  }
+
+ private:
+  int order_ = 0;
+  MultiPromiseActor mpa_{"MultiPromiseActor"};
+  ActorId<DelayedCall> delayed_call_;
+};
+
+TEST(Actors, MultiPromiseSendClosureLater) {
+  ConcurrentScheduler scheduler;
+  scheduler.init(0);
+  scheduler.create_actor_unsafe<MultiPromiseSendClosureLaterTest>(0, "MultiPromiseSendClosureLaterTest").release();
+  scheduler.start();
+  while (scheduler.run_main(1)) {
+  }
+  scheduler.finish();
+}
