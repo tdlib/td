@@ -11479,6 +11479,7 @@ void MessagesManager::repair_server_dialog_total_count(DialogListId dialog_list_
     return;
   }
 
+  LOG(INFO) << "Repair total chat count in " << dialog_list_id;
   send_closure(td_->create_net_actor<GetDialogListActor>(Promise<Unit>()), &GetDialogListActor::send,
                dialog_list_id.get_folder_id(), 2147483647, ServerMessageId(), DialogId(), 1,
                get_sequence_dispatcher_id(DialogId(), MessageContentType::None));
@@ -14315,7 +14316,11 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     }
   }
 
-  LOG(INFO) << "Receive " << dialogs.size() << " chats out of " << total_count << " in " << folder_id;
+  if (from_get_dialog) {
+    LOG(INFO) << "Process " << dialogs.size() << " chats";
+  } else {
+    LOG(INFO) << "Process " << dialogs.size() << " chats out of " << total_count << " in " << folder_id;
+  }
   std::unordered_map<FullMessageId, DialogDate, FullMessageIdHash> full_message_id_to_dialog_date;
   std::unordered_map<FullMessageId, tl_object_ptr<telegram_api::Message>, FullMessageIdHash> full_message_id_to_message;
   for (auto &message : messages) {
@@ -14621,7 +14626,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
           }
         }
         if (need_new_get_dialog_list) {
-          LOG(INFO) << "Schedule chats list load in " << folder_id;
+          LOG(INFO) << "Schedule chat list load in " << folder_id;
           auto &multipromise = folder->load_folder_dialog_list_multipromise_;
           multipromise.add_promise(PromiseCreator::lambda([actor_id = actor_id(this), folder_id](Result<Unit> result) {
             if (result.is_ok()) {
@@ -14697,6 +14702,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
   promise.set_value(Unit());
 
   if (need_recalc_unread_count) {
+    CHECK(from_dialog_list || from_pinned_dialog_list);
     recalc_unread_count(DialogListId(folder_id));
   }
 }
@@ -15699,6 +15705,9 @@ vector<DialogId> MessagesManager::get_dialogs(DialogListId dialog_list_id, Dialo
     promise.set_value(Unit());
     return result;
   } else {
+    if (!result.empty()) {
+      LOG(INFO) << "Have only " << result.size() << " chats, but " << limit << " chats more are needed";
+    }
     load_dialog_list(list, limit, std::move(promise));
     return {};
   }
@@ -15744,15 +15753,17 @@ void MessagesManager::load_folder_dialog_list(FolderId folder_id, int32 limit, b
     return;
   }
 
-  LOG(INFO) << "Load dialog list in " << folder_id << " with limit " << limit;
   auto &multipromise = folder.load_folder_dialog_list_multipromise_;
   if (multipromise.promise_count() != 0) {
     // queries have already been sent, just wait for the result
+    LOG(INFO) << "Skip loading of dialog list in " << folder_id << " with limit " << limit
+              << ", because it is already being loaded";
     if (use_database && folder.load_dialog_list_limit_max_ != 0) {
       folder.load_dialog_list_limit_max_ = max(folder.load_dialog_list_limit_max_, limit);
     }
     return;
   }
+  LOG(INFO) << "Load dialog list in " << folder_id << " with limit " << limit;
   multipromise.add_promise(PromiseCreator::lambda([actor_id = actor_id(this), folder_id](Result<Unit> result) {
     if (result.is_error()) {
       send_closure(actor_id, &MessagesManager::on_load_folder_dialog_list_fail, folder_id, result.move_as_error());
@@ -15956,7 +15967,8 @@ void MessagesManager::get_dialogs_from_list_impl(int64 task_id) {
   auto dialog_ids = get_dialogs(task.dialog_list_id, MIN_DIALOG_DATE, task.limit, true, false, std::move(promise));
   auto &list = *get_dialog_list(task.dialog_list_id);
   auto total_count = get_dialog_total_count(list);
-  LOG(INFO) << "Receive " << dialog_ids.size() << " chats out of " << total_count << "/" << task.limit;
+  LOG(INFO) << "Receive " << dialog_ids.size() << " chats out of " << total_count << "/" << task.limit << " in "
+            << task.dialog_list_id;
   CHECK(dialog_ids.size() <= static_cast<size_t>(total_count));
   CHECK(dialog_ids.size() <= static_cast<size_t>(task.limit));
   if (dialog_ids.size() == static_cast<size_t>(min(total_count, task.limit)) ||
@@ -15974,11 +15986,13 @@ void MessagesManager::get_dialogs_from_list_impl(int64 task_id) {
 void MessagesManager::on_get_dialogs_from_list(int64 task_id, Result<Unit> &&result) {
   auto task_it = get_dialogs_tasks_.find(task_id);
   if (task_it == get_dialogs_tasks_.end()) {
-    // the task has already been completed successfully
+    // the task has already been completed
+    LOG(INFO) << "Chat list load task " << task_id << " has already been completed";
     return;
   }
   auto &task = task_it->second;
   if (result.is_error()) {
+    LOG(INFO) << "Chat list load task " << task_id << " failed with the error " << result.error();
     auto task_promise = std::move(task.promise);
     get_dialogs_tasks_.erase(task_it);
     return task_promise.set_error(result.move_as_error());

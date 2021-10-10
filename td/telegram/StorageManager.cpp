@@ -125,7 +125,7 @@ void StorageManager::run_gc(FileGcParameters parameters, bool return_deleted_fil
                                        std::move(file_stats));
                         }));
 
-  //NB: get_storage_stats will cancel all gc queries, so promise needs to be added after the call
+  //NB: get_storage_stats will cancel all garbage collection queries, so promise needs to be added after the call
   pending_run_gc_[return_deleted_file_statistics].push_back(std::move(promise));
 }
 
@@ -331,7 +331,7 @@ void StorageManager::schedule_next_gc() {
       !G()->parameters().enable_storage_optimizer) {
     next_gc_at_ = 0;
     cancel_timeout();
-    LOG(INFO) << "No next file gc is scheduled";
+    LOG(INFO) << "No next file clean up is scheduled";
     return;
   }
   auto sys_time = static_cast<uint32>(Clocks::system());
@@ -347,7 +347,7 @@ void StorageManager::schedule_next_gc() {
   CHECK(next_gc_at >= sys_time);
   auto next_gc_in = next_gc_at - sys_time;
 
-  LOG(INFO) << "Schedule next file gc in " << next_gc_in;
+  LOG(INFO) << "Schedule next file clean up in " << next_gc_in;
   next_gc_at_ = Time::now() + next_gc_in;
   set_timeout_at(next_gc_at_);
 }
@@ -363,7 +363,7 @@ void StorageManager::timeout_expired() {
   next_gc_at_ = 0;
   run_gc({}, false, PromiseCreator::lambda([actor_id = actor_id(this)](Result<FileStats> r_stats) {
            if (!r_stats.is_error() || r_stats.error().code() != 500) {
-             // do not save gc timestamp if request was canceled
+             // do not save garbage collection timestamp if request was canceled
              send_closure(actor_id, &StorageManager::save_last_gc_timestamp);
            }
            send_closure(actor_id, &StorageManager::schedule_next_gc);
