@@ -14620,28 +14620,6 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     if (folder->last_server_dialog_date_ < max_dialog_date) {
       folder->last_server_dialog_date_ = max_dialog_date;
       update_last_dialog_date(folder_id);
-
-      if (max_dialog_date != MAX_DIALOG_DATE) {
-        bool need_new_get_dialog_list = false;
-        for (const auto &list_it : dialog_lists_) {
-          auto &dialog_list = list_it.second;
-          if (!dialog_list.load_list_queries_.empty() && has_dialogs_from_folder(dialog_list, *folder)) {
-            LOG(INFO) << "Need to load more chats in " << folder_id << " for " << list_it.first;
-            need_new_get_dialog_list = true;
-          }
-        }
-        if (need_new_get_dialog_list) {
-          LOG(INFO) << "Schedule chat list load in " << folder_id;
-          auto &multipromise = folder->load_folder_dialog_list_multipromise_;
-          multipromise.add_promise(PromiseCreator::lambda([actor_id = actor_id(this), folder_id](Result<Unit> result) {
-            if (result.is_ok()) {
-              LOG(INFO) << "Continue to load chat list in " << folder_id;
-              send_closure_later(actor_id, &MessagesManager::load_folder_dialog_list, folder_id, int32{MAX_GET_DIALOGS},
-                                 false);
-            }
-          }));
-        }
-      }
     } else if (promise) {
       LOG(ERROR) << "Last server dialog date didn't increased from " << folder->last_server_dialog_date_ << " to "
                  << max_dialog_date << " after receiving " << dialogs.size() << " chats " << added_dialog_ids
@@ -15770,9 +15748,7 @@ void MessagesManager::load_folder_dialog_list(FolderId folder_id, int32 limit, b
   }
   LOG(INFO) << "Load dialog list in " << folder_id << " with limit " << limit;
   multipromise.add_promise(PromiseCreator::lambda([actor_id = actor_id(this), folder_id](Result<Unit> result) {
-    if (result.is_error()) {
-      send_closure(actor_id, &MessagesManager::on_load_folder_dialog_list_fail, folder_id, result.move_as_error());
-    }
+    send_closure_later(actor_id, &MessagesManager::on_load_folder_dialog_list, folder_id, std::move(result));
   }));
 
   bool is_query_sent = false;
@@ -15806,14 +15782,34 @@ void MessagesManager::load_folder_dialog_list(FolderId folder_id, int32 limit, b
   CHECK(is_query_sent);
 }
 
-void MessagesManager::on_load_folder_dialog_list_fail(FolderId folder_id, Status error) {
+void MessagesManager::on_load_folder_dialog_list(FolderId folder_id, Result<Unit> &&result) {
   if (G()->close_flag()) {
     return;
   }
-
-  LOG(WARNING) << "Failed to load chats in " << folder_id << ": " << error;
   CHECK(!td_->auth_manager_->is_bot());
+
   const auto &folder = *get_dialog_folder(folder_id);
+  if (result.is_ok()) {
+    LOG(INFO) << "Successfully loaded chats in " << folder_id;
+    if (folder.last_server_dialog_date_ == MAX_DIALOG_DATE) {
+      return;
+    }
+
+    bool need_new_get_dialog_list = false;
+    for (const auto &list_it : dialog_lists_) {
+      auto &list = list_it.second;
+      if (!list.load_list_queries_.empty() && has_dialogs_from_folder(list, folder)) {
+        LOG(INFO) << "Need to load more chats in " << folder_id << " for " << list_it.first;
+        need_new_get_dialog_list = true;
+      }
+    }
+    if (need_new_get_dialog_list) {
+      load_folder_dialog_list(folder_id, int32{MAX_GET_DIALOGS}, false);
+    }
+    return;
+  }
+
+  LOG(WARNING) << "Failed to load chats in " << folder_id << ": " << result.error();
   vector<Promise<Unit>> promises;
   for (auto &list_it : dialog_lists_) {
     auto &list = list_it.second;
@@ -15824,7 +15820,7 @@ void MessagesManager::on_load_folder_dialog_list_fail(FolderId folder_id, Status
   }
 
   for (auto &promise : promises) {
-    promise.set_error(error.clone());
+    promise.set_error(result.error().clone());
   }
 }
 
@@ -15967,6 +15963,7 @@ void MessagesManager::get_dialogs_from_list_impl(int64 task_id) {
   CHECK(task_it != get_dialogs_tasks_.end());
   auto &task = task_it->second;
   auto promise = PromiseCreator::lambda([actor_id = actor_id(this), task_id](Result<Unit> &&result) {
+    // on_get_dialogs_from_list can delete get_dialogs_tasks_[task_id], so it must be called later
     send_closure_later(actor_id, &MessagesManager::on_get_dialogs_from_list, task_id, std::move(result));
   });
   auto dialog_ids = get_dialogs(task.dialog_list_id, MIN_DIALOG_DATE, task.limit, true, false, std::move(promise));

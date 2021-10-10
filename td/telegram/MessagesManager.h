@@ -2133,7 +2133,7 @@ class MessagesManager final : public Actor {
 
   void load_folder_dialog_list(FolderId folder_id, int32 limit, bool only_local);
 
-  void on_load_folder_dialog_list_fail(FolderId folder_id, Status error);
+  void on_load_folder_dialog_list(FolderId folder_id, Result<Unit> &&result);
 
   void load_folder_dialog_list_from_database(FolderId folder_id, int32 limit, Promise<Unit> &&promise);
 
