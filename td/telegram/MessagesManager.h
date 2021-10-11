@@ -2376,7 +2376,7 @@ class MessagesManager final : public Actor {
 
   void on_get_secret_chat_total_count(DialogListId dialog_list_id, int32 total_count);
 
-  void recalc_unread_count(DialogListId dialog_list_id, int32 old_dialog_total_count = -1);
+  void recalc_unread_count(DialogListId dialog_list_id, int32 old_dialog_total_count, bool force);
 
   td_api::object_ptr<td_api::updateChatFilters> get_update_chat_filters_object() const;
 
