@@ -30058,7 +30058,7 @@ void MessagesManager::on_update_dialog_group_call(DialogId dialog_id, bool has_a
     d->is_group_call_empty = is_group_call_empty;
     on_dialog_updated(dialog_id, "on_update_dialog_group_call");
 
-    if (has_active_group_call && !d->active_group_call_id.is_valid()) {
+    if (has_active_group_call && !d->active_group_call_id.is_valid() && !td_->auth_manager_->is_bot()) {
       repair_dialog_active_group_call_id(dialog_id);
     }
   }
@@ -34466,7 +34466,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
     // asynchronously get action bar from the server
     reget_dialog_action_bar(dialog_id, "fix_new_dialog");
   }
-  if (d->has_active_group_call && !d->active_group_call_id.is_valid()) {
+  if (d->has_active_group_call && !d->active_group_call_id.is_valid() && !td_->auth_manager_->is_bot()) {
     repair_dialog_active_group_call_id(dialog_id);
   }
 
@@ -36635,7 +36635,7 @@ void MessagesManager::speculatively_update_active_group_call_id(Dialog *d, const
     }
   } else {
     d->expected_active_group_call_id = input_group_call_id;
-    if (d->active_group_call_id != input_group_call_id) {
+    if (d->active_group_call_id != input_group_call_id && !td_->auth_manager_->is_bot()) {
       repair_dialog_active_group_call_id(d->dialog_id);
     }
   }
