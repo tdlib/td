@@ -6177,7 +6177,8 @@ void ContactsManager::upload_profile_photo(FileId file_id, bool is_animation, do
   CHECK(uploaded_profile_photos_.find(file_id) == uploaded_profile_photos_.end());
   uploaded_profile_photos_.emplace(
       file_id, UploadedProfilePhoto{main_frame_timestamp, is_animation, reupload_count, std::move(promise)});
-  LOG(INFO) << "Ask to upload profile photo " << file_id << " with bad parts " << bad_parts;
+  LOG(INFO) << "Ask to upload " << (is_animation ? "animated" : "static") << " profile photo " << file_id
+            << " with bad parts " << bad_parts;
   // TODO use force_reupload if reupload_count >= 1, replace reupload_count with is_reupload
   td_->file_manager_->resume_upload(file_id, std::move(bad_parts), upload_profile_photo_callback_, 32, 0);
 }
@@ -15715,8 +15716,6 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, co
 }
 
 void ContactsManager::on_upload_profile_photo(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) {
-  LOG(INFO) << "File " << file_id << " has been uploaded";
-
   auto it = uploaded_profile_photos_.find(file_id);
   CHECK(it != uploaded_profile_photos_.end());
 
@@ -15727,6 +15726,8 @@ void ContactsManager::on_upload_profile_photo(FileId file_id, tl_object_ptr<tele
 
   uploaded_profile_photos_.erase(it);
 
+  LOG(INFO) << "Uploaded " << (is_animation ? "animated" : "static") << " profile photo " << file_id
+            << " with reupload_count = " << reupload_count;
   FileView file_view = td_->file_manager_->get_file_view(file_id);
   if (file_view.has_remote_location() && input_file == nullptr) {
     if (file_view.main_remote_location().is_web()) {
@@ -15739,8 +15740,10 @@ void ContactsManager::on_upload_profile_photo(FileId file_id, tl_object_ptr<tele
     // delete file reference and forcely reupload the file
     if (is_animation) {
       CHECK(file_view.get_type() == FileType::Animation);
+      LOG_CHECK(file_view.main_remote_location().is_common()) << file_view.main_remote_location();
     } else {
       CHECK(file_view.get_type() == FileType::Photo);
+      LOG_CHECK(file_view.main_remote_location().is_photo()) << file_view.main_remote_location();
     }
     auto file_reference =
         is_animation ? FileManager::extract_file_reference(file_view.main_remote_location().as_input_document())
