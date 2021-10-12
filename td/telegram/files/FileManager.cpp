@@ -2223,8 +2223,8 @@ void FileManager::run_download(FileNodePtr node, bool force_update_priority) {
 
   if (priority == 0) {
     node->set_download_priority(priority);
-    LOG(INFO) << "Cancel downloading of file " << node->main_file_id_;
     if (old_priority != 0) {
+      LOG(INFO) << "Cancel downloading of file " << node->main_file_id_;
       do_cancel_download(node);
     }
     return;
@@ -2639,7 +2639,7 @@ void FileManager::run_generate(FileNodePtr node) {
   }
   FileView file_view(node);
   if (!file_view.can_generate()) {
-    LOG(INFO) << "Skip run_generate, because file " << node->main_file_id_ << " can't be generated";
+    // LOG(INFO) << "Skip run_generate, because file " << node->main_file_id_ << " can't be generated";
     return;
   }
   if (file_view.has_local_location()) {
@@ -2731,8 +2731,6 @@ void FileManager::run_upload(FileNodePtr node, std::vector<int> bad_parts) {
     if (old_priority != 0) {
       LOG(INFO) << "Cancel file " << file_id << " uploading";
       do_cancel_upload(node);
-    } else {
-      LOG(INFO) << "File " << file_id << " upload priority is still 0";
     }
     return;
   }
