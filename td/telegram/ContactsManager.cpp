@@ -6022,6 +6022,7 @@ void ContactsManager::set_location_visibility_expire_date(int32 expire_date) {
   } else {
     G()->td_db()->get_binlog_pmc()->set("location_visibility_expire_date", to_string(expire_date));
   }
+  // the caller must call update_is_location_visible() itself
 }
 
 void ContactsManager::update_is_location_visible() {
