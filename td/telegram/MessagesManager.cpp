@@ -31743,10 +31743,23 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
         return nullptr;
       }
       return make_tl_object<td_api::chatEventMemberJoinedByInviteLink>(
-          invite_link.get_chat_invite_link_object(td_->contacts_manager_.get()));
+          invite_link.get_chat_invite_link_object(td_->contacts_manager_.get()), 0);
     }
-    case telegram_api::channelAdminLogEventActionParticipantJoinByRequest::ID:
-      return nullptr;
+    case telegram_api::channelAdminLogEventActionParticipantJoinByRequest::ID: {
+      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantJoinByRequest>(action_ptr);
+      DialogInviteLink invite_link(std::move(action->invite_));
+      if (!invite_link.is_valid()) {
+        LOG(ERROR) << "Wrong invite link: " << invite_link;
+        return nullptr;
+      }
+      UserId approver_user_id(action->approved_by_);
+      if (!approver_user_id.is_valid()) {
+        return nullptr;
+      }
+      return make_tl_object<td_api::chatEventMemberJoinedByInviteLink>(
+          invite_link.get_chat_invite_link_object(td_->contacts_manager_.get()),
+          td_->contacts_manager_->get_user_id_object(approver_user_id, "chatEventMemberJoinedByInviteLink"));
+    }
     case telegram_api::channelAdminLogEventActionParticipantLeave::ID:
       return make_tl_object<td_api::chatEventMemberLeft>();
     case telegram_api::channelAdminLogEventActionParticipantInvite::ID: {
