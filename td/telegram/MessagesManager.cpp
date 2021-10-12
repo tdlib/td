@@ -20147,7 +20147,7 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
   return make_tl_object<td_api::chat>(
       d->dialog_id.get(), get_chat_type_object(d->dialog_id), get_dialog_title(d->dialog_id),
       get_chat_photo_info_object(td_->file_manager_.get(), get_dialog_photo(d->dialog_id)),
-      get_dialog_permissions(d->dialog_id).get_chat_permissions_object(),
+      get_dialog_default_permissions(d->dialog_id).get_chat_permissions_object(),
       get_message_object(d->dialog_id, get_message(d, d->last_message_id), "get_chat_object"),
       get_chat_positions_object(d), d->is_marked_as_unread, d->is_blocked, get_dialog_has_scheduled_messages(d),
       can_delete_for_self, can_delete_for_all_users, can_report_dialog(d->dialog_id),
@@ -29904,6 +29904,36 @@ void MessagesManager::on_update_dialog_pending_join_request_count(DialogId dialo
 
 void MessagesManager::set_dialog_pending_join_request_count(Dialog *d, int32 pending_join_request_count) {
   CHECK(d != nullptr);
+  switch (d->dialog_id.get_type()) {
+    case DialogType::User:
+    case DialogType::SecretChat:
+      pending_join_request_count = -1;
+      break;
+    case DialogType::Chat: {
+      auto chat_id = d->dialog_id.get_chat_id();
+      auto status = td_->contacts_manager_->get_chat_status(chat_id);
+      if (!status.can_manage_invite_links()) {
+        pending_join_request_count = 0;
+      }
+      break;
+    }
+    case DialogType::Channel: {
+      auto channel_id = d->dialog_id.get_channel_id();
+      auto status = td_->contacts_manager_->get_channel_permissions(channel_id);
+      if (!status.can_manage_invite_links()) {
+        pending_join_request_count = 0;
+      }
+      break;
+    }
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+  }
+  if (pending_join_request_count < 0) {
+    LOG(ERROR) << "Receive " << pending_join_request_count << " pending join requests in " << d->dialog_id;
+    return;
+  }
+
   bool is_changed = d->pending_join_request_count != pending_join_request_count;
   if (!is_changed) {
     return;
@@ -30330,7 +30360,7 @@ void MessagesManager::on_dialog_permissions_updated(DialogId dialog_id) {
   if (d != nullptr && d->is_update_new_chat_sent) {
     send_closure(G()->td(), &Td::send_update,
                  td_api::make_object<td_api::updateChatPermissions>(
-                     dialog_id.get(), get_dialog_permissions(dialog_id).get_chat_permissions_object()));
+                     dialog_id.get(), get_dialog_default_permissions(dialog_id).get_chat_permissions_object()));
   }
 }
 
@@ -30777,7 +30807,7 @@ string MessagesManager::get_dialog_username(DialogId dialog_id) const {
   }
 }
 
-RestrictedRights MessagesManager::get_dialog_permissions(DialogId dialog_id) const {
+RestrictedRights MessagesManager::get_dialog_default_permissions(DialogId dialog_id) const {
   switch (dialog_id.get_type()) {
     case DialogType::User:
       return td_->contacts_manager_->get_user_default_permissions(dialog_id.get_user_id());
@@ -31430,7 +31460,7 @@ void MessagesManager::set_dialog_permissions(DialogId dialog_id,
   auto new_permissions = get_restricted_rights(permissions);
 
   // TODO this can be wrong if there was previous change permissions requests
-  if (get_dialog_permissions(dialog_id) == new_permissions) {
+  if (get_dialog_default_permissions(dialog_id) == new_permissions) {
     return promise.set_value(Unit());
   }
 

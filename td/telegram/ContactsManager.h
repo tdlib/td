@@ -726,6 +726,7 @@ class ContactsManager final : public Actor {
     bool is_title_changed = true;
     bool is_photo_changed = true;
     bool is_default_permissions_changed = true;
+    bool is_status_changed = true;
     bool is_is_active_changed = true;
     bool is_changed = true;             // have new changes that need to be sent to the client and database
     bool need_save_to_database = true;  // have new changes that need only to be saved to the database

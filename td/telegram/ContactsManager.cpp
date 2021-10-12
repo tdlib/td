@@ -9770,20 +9770,26 @@ void ContactsManager::update_chat(Chat *c, ChatId chat_id, bool from_binlog, boo
   if (c->is_photo_changed) {
     td_->messages_manager_->on_dialog_photo_updated(DialogId(chat_id));
     drop_chat_photos(chat_id, !c->photo.small_file_id.is_valid(), true, "update_chat");
+    c->is_photo_changed = false;
   }
   if (c->is_title_changed) {
     td_->messages_manager_->on_dialog_title_updated(DialogId(chat_id));
+    c->is_title_changed = false;
   }
   if (c->is_default_permissions_changed) {
     td_->messages_manager_->on_dialog_permissions_updated(DialogId(chat_id));
+    c->is_default_permissions_changed = false;
   }
   if (c->is_is_active_changed) {
     update_dialogs_for_discussion(DialogId(chat_id), c->is_active && c->status.is_creator());
+    c->is_is_active_changed = false;
   }
-  c->is_photo_changed = false;
-  c->is_title_changed = false;
-  c->is_default_permissions_changed = false;
-  c->is_is_active_changed = false;
+  if (c->is_status_changed) {
+    if (!c->status.can_manage_invite_links()) {
+      td_->messages_manager_->on_update_dialog_pending_join_request_count(DialogId(chat_id), 0);
+    }
+    c->is_status_changed = false;
+  }
 
   LOG(DEBUG) << "Update " << chat_id << ": need_save_to_database = " << c->need_save_to_database
              << ", is_changed = " << c->is_changed;
@@ -9819,9 +9825,11 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
   if (c->is_photo_changed) {
     td_->messages_manager_->on_dialog_photo_updated(DialogId(channel_id));
     drop_channel_photos(channel_id, !c->photo.small_file_id.is_valid(), true, "update_channel");
+    c->is_photo_changed = false;
   }
   if (c->is_title_changed) {
     td_->messages_manager_->on_dialog_title_updated(DialogId(channel_id));
+    c->is_title_changed = false;
   }
   if (c->is_status_changed) {
     c->status.update_restrictions();
@@ -9843,6 +9851,10 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
     if (!c->status.is_member()) {
       remove_inactive_channel(channel_id);
     }
+    if (!c->status.can_manage_invite_links()) {
+      td_->messages_manager_->on_update_dialog_pending_join_request_count(DialogId(channel_id), 0);
+    }
+    c->is_status_changed = false;
   }
   if (c->is_username_changed) {
     if (c->status.is_creator() && created_public_channels_inited_[0]) {
@@ -9854,6 +9866,7 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
         }
       }
     }
+    c->is_username_changed = false;
   }
   if (c->is_default_permissions_changed) {
     td_->messages_manager_->on_dialog_permissions_updated(DialogId(channel_id));
@@ -9861,6 +9874,7 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
         RestrictedRights(false, false, false, false, false, false, false, false, false, false, false)) {
       remove_dialog_suggested_action(SuggestedAction{SuggestedAction::Type::ConvertToGigagroup, DialogId(channel_id)});
     }
+    c->is_default_permissions_changed = false;
   }
   if (!td_->auth_manager_->is_bot()) {
     if (c->restriction_reasons.empty()) {
@@ -9869,12 +9883,6 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
       restricted_channel_ids_.insert(channel_id);
     }
   }
-
-  c->is_photo_changed = false;
-  c->is_title_changed = false;
-  c->is_default_permissions_changed = false;
-  c->is_status_changed = false;
-  c->is_username_changed = false;
 
   LOG(DEBUG) << "Update " << channel_id << ": need_save_to_database = " << c->need_save_to_database
              << ", is_changed = " << c->is_changed;
@@ -12824,6 +12832,7 @@ void ContactsManager::on_update_chat_status(Chat *c, ChatId chat_id, DialogParti
     bool need_drop_invite_link = c->status.can_manage_invite_links() && !status.can_manage_invite_links();
 
     c->status = std::move(status);
+    c->is_status_changed = true;
 
     if (c->status.is_left()) {
       c->participant_count = 0;

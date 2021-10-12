@@ -2827,7 +2827,7 @@ class MessagesManager final : public Actor {
 
   string get_dialog_username(DialogId dialog_id) const;
 
-  RestrictedRights get_dialog_permissions(DialogId dialog_id) const;
+  RestrictedRights get_dialog_default_permissions(DialogId dialog_id) const;
 
   bool get_dialog_has_scheduled_messages(const Dialog *d) const;
 
