@@ -5250,7 +5250,8 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   bool has_default_join_group_call_as_dialog_id = default_join_group_call_as_dialog_id.is_valid();
   bool store_has_bots = dialog_type == DialogType::Chat || dialog_type == DialogType::Channel;
   bool has_theme_name = !theme_name.empty();
-  bool has_flags3 = false;
+  bool has_flags3 = true;
+  bool has_pending_join_request_count = pending_join_request_count != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_draft_message);
   STORE_FLAG(has_last_database_message);
@@ -5318,6 +5319,11 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     STORE_FLAG(is_theme_name_inited);
     STORE_FLAG(has_theme_name);
     STORE_FLAG(has_flags3);
+    END_STORE_FLAGS();
+  }
+  if (has_flags3) {
+    BEGIN_STORE_FLAGS();
+    STORE_FLAG(has_pending_join_request_count);
     END_STORE_FLAGS();
   }
 
@@ -5414,6 +5420,9 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   if (has_theme_name) {
     store(theme_name, storer);
   }
+  if (has_pending_join_request_count) {
+    store(pending_join_request_count, storer);
+  }
 }
 
 // do not forget to resolve dialog dependencies including dependencies of last_message
@@ -5448,6 +5457,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   bool has_default_join_group_call_as_dialog_id = false;
   bool has_theme_name = false;
   bool has_flags3 = false;
+  bool has_pending_join_request_count = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_draft_message);
   PARSE_FLAG(has_last_database_message);
@@ -5541,6 +5551,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   }
   if (has_flags3) {
     BEGIN_PARSE_FLAGS();
+    PARSE_FLAG(has_pending_join_request_count);
     END_PARSE_FLAGS();
   }
 
@@ -5669,6 +5680,9 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   }
   if (has_theme_name) {
     parse(theme_name, parser);
+  }
+  if (has_pending_join_request_count) {
+    parse(pending_join_request_count, parser);
   }
 }
 
@@ -20141,7 +20155,8 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
       d->last_read_inbox_message_id.get(), d->last_read_outbox_message_id.get(), d->unread_mention_count,
       get_chat_notification_settings_object(&d->notification_settings),
       d->message_ttl_setting.get_message_ttl_setting_object(), get_dialog_theme_name(d), get_chat_action_bar_object(d),
-      get_voice_chat_object(d), d->reply_markup_message_id.get(), std::move(draft_message), d->client_data);
+      get_voice_chat_object(d), d->pending_join_request_count, d->reply_markup_message_id.get(),
+      std::move(draft_message), d->client_data);
 }
 
 tl_object_ptr<td_api::chat> MessagesManager::get_chat_object(DialogId dialog_id) const {
@@ -28834,6 +28849,20 @@ void MessagesManager::send_update_chat_theme(const Dialog *d) {
   send_update_secret_chats_with_user_theme(d);
 }
 
+void MessagesManager::send_update_chat_pending_join_request_count(const Dialog *d) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  CHECK(d != nullptr);
+  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id
+                                        << " in send_update_chat_pending_join_request_count";
+  on_dialog_updated(d->dialog_id, "send_update_chat_pending_join_request_count");
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateChatPendingJoinRequestCount>(d->dialog_id.get(),
+                                                                              d->pending_join_request_count));
+}
+
 void MessagesManager::send_update_chat_voice_chat(const Dialog *d) {
   CHECK(d != nullptr);
   LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_voice_chat";
@@ -29848,12 +29877,39 @@ void MessagesManager::set_dialog_theme_name(Dialog *d, string theme_name) {
   }
   d->theme_name = std::move(theme_name);
   d->is_theme_name_inited = true;
-  on_dialog_updated(d->dialog_id, "set_dialog_theme_name");
 
   if (is_changed) {
     LOG(INFO) << "Set " << d->dialog_id << " theme to \"" << theme_name << '"';
     send_update_chat_theme(d);
+  } else {
+    on_dialog_updated(d->dialog_id, "set_dialog_theme_name");
   }
+}
+
+void MessagesManager::on_update_dialog_pending_join_request_count(DialogId dialog_id,
+                                                                  int32 pending_join_request_count) {
+  if (!dialog_id.is_valid()) {
+    LOG(ERROR) << "Receive pending join request count in invalid " << dialog_id;
+    return;
+  }
+
+  auto d = get_dialog_force(dialog_id, "on_update_dialog_pending_join_request_count");
+  if (d == nullptr) {
+    // nothing to do
+    return;
+  }
+
+  set_dialog_pending_join_request_count(d, pending_join_request_count);
+}
+
+void MessagesManager::set_dialog_pending_join_request_count(Dialog *d, int32 pending_join_request_count) {
+  CHECK(d != nullptr);
+  bool is_changed = d->pending_join_request_count != pending_join_request_count;
+  if (!is_changed) {
+    return;
+  }
+  d->pending_join_request_count = pending_join_request_count;
+  send_update_chat_pending_join_request_count(d);
 }
 
 void MessagesManager::repair_dialog_scheduled_messages(Dialog *d) {

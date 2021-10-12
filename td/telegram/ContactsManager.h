@@ -1028,6 +1028,7 @@ class ContactsManager final : public Actor {
   static constexpr int32 CHAT_FULL_FLAG_HAS_FOLDER_ID = 1 << 11;
   static constexpr int32 CHAT_FULL_FLAG_HAS_ACTIVE_GROUP_CALL = 1 << 12;
   static constexpr int32 CHAT_FULL_FLAG_HAS_MESSAGE_TTL = 1 << 14;
+  static constexpr int32 CHAT_FULL_FLAG_HAS_PENDING_REQUEST_COUNT = 1 << 17;
 
   static constexpr int32 CHANNEL_FLAG_USER_IS_CREATOR = 1 << 0;
   static constexpr int32 CHANNEL_FLAG_USER_HAS_LEFT = 1 << 2;
@@ -1078,6 +1079,7 @@ class ContactsManager final : public Actor {
   static constexpr int32 CHANNEL_FULL_FLAG_IS_BLOCKED = 1 << 22;
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_EXPORTED_INVITE = 1 << 23;
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_MESSAGE_TTL = 1 << 24;
+  static constexpr int32 CHANNEL_FULL_FLAG_HAS_PENDING_REQUEST_COUNT = 1 << 28;
 
   static constexpr int32 CHAT_INVITE_FLAG_IS_CHANNEL = 1 << 0;
   static constexpr int32 CHAT_INVITE_FLAG_IS_BROADCAST = 1 << 1;

@@ -948,10 +948,11 @@ voiceChat group_call_id:int32 has_participants:Bool default_participant_id:Messa
 //@theme_name If non-empty, name of a theme, set for the chat
 //@action_bar Describes actions which must be possible to do through a chat action bar; may be null
 //@voice_chat Contains information about voice chat of the chat
+//@pending_join_request_count Number of pending join requests, waiting administrator's approval
 //@reply_markup_message_id Identifier of the message from which reply markup needs to be used; 0 if there is no default custom reply markup in the chat
 //@draft_message A draft of a message in the chat; may be null
 //@client_data Contains application-specific data associated with the chat. (For example, the chat scroll position or local chat notification settings can be stored here.) Persistent if the message database is used
-chat id:int53 type:ChatType title:string photo:chatPhotoInfo permissions:chatPermissions last_message:message positions:vector<chatPosition> is_marked_as_unread:Bool is_blocked:Bool has_scheduled_messages:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_reported:Bool default_disable_notification:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 notification_settings:chatNotificationSettings message_ttl_setting:int32 theme_name:string action_bar:ChatActionBar voice_chat:voiceChat reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
+chat id:int53 type:ChatType title:string photo:chatPhotoInfo permissions:chatPermissions last_message:message positions:vector<chatPosition> is_marked_as_unread:Bool is_blocked:Bool has_scheduled_messages:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_reported:Bool default_disable_notification:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 notification_settings:chatNotificationSettings message_ttl_setting:int32 theme_name:string action_bar:ChatActionBar voice_chat:voiceChat pending_join_request_count:int53 reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
 
 //@description Represents a list of chats @total_count Approximate total count of chats found @chat_ids List of chat identifiers
 chats total_count:int32 chat_ids:vector<int53> = Chats;
@@ -3703,6 +3704,9 @@ updateChatActionBar chat_id:int53 action_bar:ChatActionBar = Update;
 
 //@description The chat theme was changed @chat_id Chat identifier @theme_name The new name of the chat theme; may be empty if theme was reset to default
 updateChatTheme chat_id:int53 theme_name:string = Update;
+
+//@description The number of chat pending join requests was changed @chat_id Chat identifier @pending_join_request_count The new number of pending join requests
+updateChatPendingJoinRequestCount chat_id:int53 pending_join_request_count:int32 = Update;
 
 //@description The default chat reply markup was changed. Can occur because new messages with reply markup were received or because an old reply markup was hidden by the user
 //@chat_id Chat identifier @reply_markup_message_id Identifier of the message from which reply markup needs to be used; 0 if there is no default custom reply markup in the chat

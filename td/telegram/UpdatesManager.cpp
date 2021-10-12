@@ -3212,10 +3212,13 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTheme> update, 
   td_->theme_manager_->on_update_theme(std::move(update->theme_), std::move(promise));
 }
 
-// unsupported updates
-
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePendingJoinRequests> update, Promise<Unit> &&promise) {
+  td_->messages_manager_->on_update_dialog_pending_join_request_count(DialogId(update->peer_),
+                                                                      update->requests_pending_);
+  promise.set_value(Unit());
 }
+
+// unsupported updates
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotChatInviteRequester> update,
                                Promise<Unit> &&promise) {

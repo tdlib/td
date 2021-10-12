@@ -10454,6 +10454,8 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
 
     td_->messages_manager_->on_update_dialog_theme_name(DialogId(chat_id), std::move(chat->theme_emoticon_));
 
+    td_->messages_manager_->on_update_dialog_pending_join_request_count(DialogId(chat_id), chat->requests_pending_);
+
     auto bot_commands = get_bot_commands(std::move(chat->bot_info_), &chat_full->participants);
     if (chat_full->bot_commands != bot_commands) {
       chat_full->bot_commands = std::move(bot_commands);
@@ -10496,6 +10498,9 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
                                                              "on_get_channel_full");
 
     td_->messages_manager_->on_update_dialog_theme_name(DialogId(channel_id), std::move(channel->theme_emoticon_));
+
+    td_->messages_manager_->on_update_dialog_pending_join_request_count(DialogId(channel_id),
+                                                                        channel->requests_pending_);
 
     {
       MessageTtlSetting message_ttl_setting;

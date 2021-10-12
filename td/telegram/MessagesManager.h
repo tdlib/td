@@ -293,6 +293,8 @@ class MessagesManager final : public Actor {
 
   void on_update_dialog_theme_name(DialogId dialog_id, string theme_name);
 
+  void on_update_dialog_pending_join_request_count(DialogId dialog_id, int32 pending_join_request_count);
+
   void on_update_dialog_has_scheduled_server_messages(DialogId dialog_id, bool has_scheduled_server_messages);
 
   void on_update_dialog_folder_id(DialogId dialog_id, FolderId folder_id);
@@ -1178,6 +1180,7 @@ class MessagesManager final : public Actor {
     InputGroupCallId expected_active_group_call_id;
     DialogId default_join_group_call_as_dialog_id;
     string theme_name;
+    int32 pending_join_request_count = 0;
 
     FolderId folder_id;
     vector<DialogListId> dialog_list_ids;  // TODO replace with mask
@@ -2337,6 +2340,8 @@ class MessagesManager final : public Actor {
 
   void send_update_chat_theme(const Dialog *d);
 
+  void send_update_chat_pending_join_request_count(const Dialog *d);
+
   void send_update_chat_voice_chat(const Dialog *d);
 
   void send_update_chat_message_ttl_setting(const Dialog *d);
@@ -2435,6 +2440,8 @@ class MessagesManager final : public Actor {
   void drop_dialog_last_pinned_message_id(Dialog *d);
 
   void set_dialog_theme_name(Dialog *d, string theme_name);
+
+  void set_dialog_pending_join_request_count(Dialog *d, int32 pending_join_request_count);
 
   void repair_dialog_scheduled_messages(Dialog *d);
 
