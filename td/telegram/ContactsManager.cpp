@@ -5775,20 +5775,6 @@ void ContactsManager::search_dialogs_nearby(const Location &location,
   td_->create_handler<SearchDialogsNearbyQuery>(std::move(query_promise))->send(location, false, -1);
 }
 
-void ContactsManager::set_location(const Location &location, Promise<Unit> &&promise) {
-  if (location.empty()) {
-    return promise.set_error(Status::Error(400, "Invalid location specified"));
-  }
-  last_user_location_ = location;
-  try_send_set_location_visibility_query();
-
-  auto query_promise = PromiseCreator::lambda(
-      [promise = std::move(promise)](Result<tl_object_ptr<telegram_api::Updates>> result) mutable {
-        promise.set_value(Unit());
-      });
-  td_->create_handler<SearchDialogsNearbyQuery>(std::move(query_promise))->send(location, true, -1);
-}
-
 vector<td_api::object_ptr<td_api::chatNearby>> ContactsManager::get_chats_nearby_object(
     const vector<DialogNearby> &dialogs_nearby) {
   return transform(dialogs_nearby, [](const DialogNearby &dialog_nearby) {
@@ -5849,6 +5835,20 @@ void ContactsManager::on_get_dialogs_nearby(Result<tl_object_ptr<telegram_api::U
   }
   promise.set_value(td_api::make_object<td_api::chatsNearby>(get_chats_nearby_object(users_nearby_),
                                                              get_chats_nearby_object(channels_nearby_)));
+}
+
+void ContactsManager::set_location(const Location &location, Promise<Unit> &&promise) {
+  if (location.empty()) {
+    return promise.set_error(Status::Error(400, "Invalid location specified"));
+  }
+  last_user_location_ = location;
+  try_send_set_location_visibility_query();
+
+  auto query_promise = PromiseCreator::lambda(
+      [promise = std::move(promise)](Result<tl_object_ptr<telegram_api::Updates>> result) mutable {
+        promise.set_value(Unit());
+      });
+  td_->create_handler<SearchDialogsNearbyQuery>(std::move(query_promise))->send(location, true, -1);
 }
 
 void ContactsManager::set_location_visibility() {
@@ -5916,6 +5916,53 @@ void ContactsManager::on_set_location_visibility_expire_date(int32 set_expire_da
   G()->td_db()->get_binlog_pmc()->erase("pending_location_visibility_expire_date");
   pending_location_visibility_expire_date_ = -1;
   update_is_location_visible();
+}
+
+void ContactsManager::get_is_location_visible(Promise<Unit> &&promise) {
+  auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise)](
+                                                  Result<tl_object_ptr<telegram_api::Updates>> result) mutable {
+    send_closure(actor_id, &ContactsManager::on_get_is_location_visible, std::move(result), std::move(promise));
+  });
+  td_->create_handler<SearchDialogsNearbyQuery>(std::move(query_promise))->send(Location(), true, -1);
+}
+
+void ContactsManager::on_get_is_location_visible(Result<tl_object_ptr<telegram_api::Updates>> &&result,
+                                                 Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  if (result.is_error()) {
+    if (result.error().message() == "GEO_POINT_INVALID" && pending_location_visibility_expire_date_ == -1 &&
+        location_visibility_expire_date_ > 0) {
+      set_location_visibility_expire_date(0);
+      update_is_location_visible();
+    }
+    return promise.set_value(Unit());
+  }
+
+  auto updates_ptr = result.move_as_ok();
+  if (updates_ptr->get_id() != telegram_api::updates::ID) {
+    LOG(ERROR) << "Receive " << oneline(to_string(*updates_ptr)) << " instead of updates";
+    return promise.set_value(Unit());
+  }
+
+  auto updates = std::move(telegram_api::move_object_as<telegram_api::updates>(updates_ptr)->updates_);
+  if (updates.size() != 1 || updates[0]->get_id() != telegram_api::updatePeerLocated::ID) {
+    LOG(ERROR) << "Receive unexpected " << to_string(updates);
+    return promise.set_value(Unit());
+  }
+
+  auto peers = std::move(static_cast<telegram_api::updatePeerLocated *>(updates[0].get())->peers_);
+  if (peers.size() != 1 || peers[0]->get_id() != telegram_api::peerSelfLocated::ID) {
+    LOG(ERROR) << "Receive unexpected " << to_string(peers);
+    return promise.set_value(Unit());
+  }
+
+  auto location_visibility_expire_date = static_cast<telegram_api::peerSelfLocated *>(peers[0].get())->expires_;
+  if (location_visibility_expire_date != location_visibility_expire_date_) {
+    set_location_visibility_expire_date(location_visibility_expire_date);
+    update_is_location_visible();
+  }
+
+  promise.set_value(Unit());
 }
 
 int32 ContactsManager::on_update_peer_located(vector<tl_object_ptr<telegram_api::PeerLocated>> &&peers,

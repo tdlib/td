@@ -7209,6 +7209,14 @@ void Td::on_request(uint64 id, td_api::getOption &request) {
         send_closure_later(config_manager_, &ConfigManager::get_content_settings, std::move(promise));
         return;
       }
+      if (!is_bot && request.name_ == "is_location_visible") {
+        auto promise = PromiseCreator::lambda([actor_id = actor_id(this), id](Result<Unit> &&result) {
+          // the option is already updated on success, ignore errors
+          send_closure(actor_id, &Td::send_result, id, G()->shared_config().get_option_value("is_location_visible"));
+        });
+        send_closure_later(contacts_manager_actor_, &ContactsManager::get_is_location_visible, std::move(promise));
+        return;
+      }
       break;
     case 'o':
       if (request.name_ == "online") {

@@ -317,6 +317,8 @@ class ContactsManager final : public Actor {
 
   void set_location_visibility();
 
+  void get_is_location_visible(Promise<Unit> &&promise);
+
   FileId get_profile_photo_file_id(int64 photo_id) const;
 
   void set_profile_photo(const td_api::object_ptr<td_api::InputChatPhoto> &input_photo, Promise<Unit> &&promise);
@@ -1385,6 +1387,8 @@ class ContactsManager final : public Actor {
   void on_set_location_visibility_expire_date(int32 set_expire_date, int32 error_code);
 
   void set_location_visibility_expire_date(int32 expire_date);
+
+  void on_get_is_location_visible(Result<tl_object_ptr<telegram_api::Updates>> &&result, Promise<Unit> &&promise);
 
   void update_is_location_visible();
 
