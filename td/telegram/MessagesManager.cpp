@@ -5181,6 +5181,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     parse(max_reply_media_timestamp, parser);
   }
 
+  CHECK(content != nullptr);
   is_content_secret |=
       is_secret_message_content(ttl, content->get_type());  // repair is_content_secret for old messages
   if (hide_edit_date && content->get_type() == MessageContentType::LiveLocation) {
