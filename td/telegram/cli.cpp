@@ -2986,6 +2986,18 @@ class CliClient final : public Actor {
           as_chat_id(chat_id), invite_link,
           td_api::make_object<td_api::chatInviteLinkMember>(as_user_id(offset_user_id), offset_date, 0),
           as_limit(limit)));
+    } else if (op == "gcjr") {
+      string chat_id;
+      string invite_link;
+      string query;
+      string offset_user_id;
+      int32 offset_date;
+      string limit;
+      get_args(args, chat_id, invite_link, query, offset_user_id, offset_date, limit);
+      send_request(td_api::make_object<td_api::getChatJoinRequests>(
+          as_chat_id(chat_id), invite_link, query,
+          td_api::make_object<td_api::chatJoinRequest>(as_user_id(offset_user_id), offset_date, string()),
+          as_limit(limit)));
     } else if (op == "drcil") {
       string chat_id;
       string invite_link;

@@ -599,6 +599,12 @@ chatInviteLinkMembers total_count:int32 members:vector<chatInviteLinkMember> = C
 //@is_public True, if the chat is a public supergroup or channel, i.e. it has a username or it is a location-based supergroup
 chatInviteLinkInfo chat_id:int53 accessible_for:int32 type:ChatType title:string photo:chatPhotoInfo description:string member_count:int32 member_user_ids:vector<int53> requires_approval:Bool is_public:Bool = ChatInviteLinkInfo;
 
+//@description Describes a user waiting administrator approval to join a chat @user_id User identifier @request_date Point in time (Unix timestamp) when the user sent the chat join request @bio A short bio of the user
+chatJoinRequest user_id:int53 request_date:int32 bio:string = ChatJoinRequest;
+
+//@description Contains a list of chat join requests @total_count Approximate total count of requests found @requests List of the requests
+chatJoinRequests total_count:int32 requests:vector<chatJoinRequest> = ChatJoinRequests;
+
 
 //@description Represents a basic group of 0-200 users (must be upgraded to a supergroup to accommodate more than 200 users)
 //@id Group identifier
@@ -4927,6 +4933,14 @@ checkChatInviteLink invite_link:string = ChatInviteLinkInfo;
 
 //@description Uses an invite link to add the current user to the chat if possible @invite_link Invite link to use
 joinChatByInviteLink invite_link:string = Chat;
+
+//@description Returns pending join requests in a chat
+//@chat_id Chat identifier
+//@invite_link Invite link for which to return join requests. If empty, all join requests will be returned. Requires administrator privileges and can_invite_users right in the chat for own links and owner privileges for other links
+//@query A query to search for in the first names, last names and usernames of the users to return
+//@offset_request A chat join request from which to return next requests; pass null to get results from the beginning
+//@limit The maximum number of chat join requests to return
+getChatJoinRequests chat_id:int53 invite_link:string query:string offset_request:chatJoinRequest limit:int32 = ChatJoinRequests;
 
 
 //@description Creates a new call @user_id Identifier of the user to be called @protocol Description of the call protocols supported by the application @is_video True, if a video call needs to be created

@@ -1952,6 +1952,77 @@ class GetChatInviteImportersQuery final : public Td::ResultHandler {
   }
 };
 
+class GetChatJoinRequestsQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::chatJoinRequests>> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit GetChatJoinRequestsQuery(Promise<td_api::object_ptr<td_api::chatJoinRequests>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, const string &invite_link, const string &query, int32 offset_date,
+            UserId offset_user_id, int32 limit) {
+    dialog_id_ = dialog_id;
+    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    if (input_peer == nullptr) {
+      return on_error(0, Status::Error(400, "Can't access the chat"));
+    }
+
+    auto input_user = td->contacts_manager_->get_input_user(offset_user_id);
+    if (input_user == nullptr) {
+      input_user = make_tl_object<telegram_api::inputUserEmpty>();
+    }
+
+    int32 flags = telegram_api::messages_getChatInviteImporters::REQUESTED_MASK;
+    if (!invite_link.empty()) {
+      flags |= telegram_api::messages_getChatInviteImporters::LINK_MASK;
+    }
+    if (!query.empty()) {
+      flags |= telegram_api::messages_getChatInviteImporters::Q_MASK;
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_getChatInviteImporters(flags, false /*ignored*/, std::move(input_peer), invite_link,
+                                                      query, offset_date, std::move(input_user), limit)));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_getChatInviteImporters>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetChatJoinRequestsQuery: " << to_string(result);
+
+    td->contacts_manager_->on_get_users(std::move(result->users_), "GetChatJoinRequestsQuery");
+
+    int32 total_count = result->count_;
+    if (total_count < static_cast<int32>(result->importers_.size())) {
+      LOG(ERROR) << "Receive wrong total count of join requests " << total_count << " in " << dialog_id_;
+      total_count = static_cast<int32>(result->importers_.size());
+    }
+    vector<td_api::object_ptr<td_api::chatJoinRequest>> join_requests;
+    for (auto &request : result->importers_) {
+      UserId user_id(request->user_id_);
+      UserId approver_user_id(request->approved_by_);
+      if (!user_id.is_valid() || approver_user_id.is_valid() || !request->requested_) {
+        LOG(ERROR) << "Receive invalid join request: " << to_string(request);
+        total_count--;
+        continue;
+      }
+      join_requests.push_back(td_api::make_object<td_api::chatJoinRequest>(
+          td->contacts_manager_->get_user_id_object(user_id, "chatJoinRequest"), request->date_, request->about_));
+    }
+    promise_.set_value(td_api::make_object<td_api::chatJoinRequests>(total_count, std::move(join_requests)));
+  }
+
+  void on_error(uint64 id, Status status) final {
+    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetChatJoinRequestsQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class RevokeChatInviteLinkQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::chatInviteLinks>> promise_;
   DialogId dialog_id_;
@@ -7410,6 +7481,26 @@ void ContactsManager::get_dialog_invite_link_users(
 
   td_->create_handler<GetChatInviteImportersQuery>(std::move(promise))
       ->send(dialog_id, invite_link, offset_date, offset_user_id, limit);
+}
+
+void ContactsManager::get_dialog_join_requests(DialogId dialog_id, const string &invite_link, const string &query,
+                                               td_api::object_ptr<td_api::chatJoinRequest> offset_request, int32 limit,
+                                               Promise<td_api::object_ptr<td_api::chatJoinRequests>> &&promise) {
+  TRY_STATUS_PROMISE(promise, can_manage_dialog_invite_links(dialog_id));
+
+  if (limit <= 0) {
+    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
+  }
+
+  UserId offset_user_id;
+  int32 offset_date = 0;
+  if (offset_request != nullptr) {
+    offset_user_id = UserId(offset_request->user_id_);
+    offset_date = offset_request->request_date_;
+  }
+
+  td_->create_handler<GetChatJoinRequestsQuery>(std::move(promise))
+      ->send(dialog_id, invite_link, query, offset_date, offset_user_id, limit);
 }
 
 void ContactsManager::revoke_dialog_invite_link(DialogId dialog_id, const string &invite_link,
