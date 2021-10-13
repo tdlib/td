@@ -2023,6 +2023,51 @@ class GetChatJoinRequestsQuery final : public Td::ResultHandler {
   }
 };
 
+class HideChatJoinRequestQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit HideChatJoinRequestQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, UserId user_id, bool is_approved) {
+    dialog_id_ = dialog_id;
+    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    if (input_peer == nullptr) {
+      return on_error(0, Status::Error(400, "Can't access the chat"));
+    }
+
+    auto input_user = td->contacts_manager_->get_input_user(user_id);
+    if (input_user == nullptr) {
+      return on_error(0, Status::Error(400, "Can't find user"));
+    }
+
+    int32 flags = 0;
+    if (is_approved) {
+      flags |= telegram_api::messages_hideChatJoinRequest::APPROVED_MASK;
+    }
+    send_query(G()->net_query_creator().create(telegram_api::messages_hideChatJoinRequest(
+        flags, false /*ignored*/, std::move(input_peer), std::move(input_user))));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_hideChatJoinRequest>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for HideChatJoinRequestQuery: " << to_string(result);
+    td->updates_manager_->on_get_updates(std::move(result), std::move(promise_));
+  }
+
+  void on_error(uint64 id, Status status) final {
+    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "HideChatJoinRequestQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class RevokeChatInviteLinkQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::chatInviteLinks>> promise_;
   DialogId dialog_id_;
@@ -7501,6 +7546,12 @@ void ContactsManager::get_dialog_join_requests(DialogId dialog_id, const string 
 
   td_->create_handler<GetChatJoinRequestsQuery>(std::move(promise))
       ->send(dialog_id, invite_link, query, offset_date, offset_user_id, limit);
+}
+
+void ContactsManager::process_dialog_join_requests(DialogId dialog_id, UserId user_id, bool is_approved,
+                                                   Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, can_manage_dialog_invite_links(dialog_id));
+  td_->create_handler<HideChatJoinRequestQuery>(std::move(promise))->send(dialog_id, user_id, is_approved);
 }
 
 void ContactsManager::revoke_dialog_invite_link(DialogId dialog_id, const string &invite_link,

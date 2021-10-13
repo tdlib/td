@@ -4942,6 +4942,12 @@ joinChatByInviteLink invite_link:string = Chat;
 //@limit The maximum number of chat join requests to return
 getChatJoinRequests chat_id:int53 invite_link:string query:string offset_request:chatJoinRequest limit:int32 = ChatJoinRequests;
 
+//@description Approves pending join request in a chat @chat_id Chat identifier @user_id Identifier of the user, which request will be approved
+approveChatJoinRequest chat_id:int53 user_id:int53 = Ok;
+
+//@description Declines pending join request in a chat @chat_id Chat identifier @user_id Identifier of the user, which request will be declined
+declineChatJoinRequest chat_id:int53 user_id:int53 = Ok;
+
 
 //@description Creates a new call @user_id Identifier of the user to be called @protocol Description of the call protocols supported by the application @is_video True, if a video call needs to be created
 createCall user_id:int53 protocol:callProtocol is_video:Bool = CallId;

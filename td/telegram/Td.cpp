@@ -6341,6 +6341,18 @@ void Td::on_request(uint64 id, td_api::getChatJoinRequests &request) {
                                               std::move(request.offset_request_), request.limit_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::approveChatJoinRequest &request) {
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->process_dialog_join_requests(DialogId(request.chat_id_), UserId(request.user_id_), true,
+                                                  std::move(promise));
+}
+
+void Td::on_request(uint64 id, const td_api::declineChatJoinRequest &request) {
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->process_dialog_join_requests(DialogId(request.chat_id_), UserId(request.user_id_), false,
+                                                  std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::revokeChatInviteLink &request) {
   CLEAN_INPUT_STRING(request.invite_link_);
   CREATE_REQUEST_PROMISE();

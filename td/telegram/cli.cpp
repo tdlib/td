@@ -2998,6 +2998,16 @@ class CliClient final : public Actor {
           as_chat_id(chat_id), invite_link, query,
           td_api::make_object<td_api::chatJoinRequest>(as_user_id(offset_user_id), offset_date, string()),
           as_limit(limit)));
+    } else if (op == "acjr") {
+      string chat_id;
+      string user_id;
+      get_args(args, chat_id, user_id);
+      send_request(td_api::make_object<td_api::approveChatJoinRequest>(as_chat_id(chat_id), as_user_id(user_id)));
+    } else if (op == "dcjr") {
+      string chat_id;
+      string user_id;
+      get_args(args, chat_id, user_id);
+      send_request(td_api::make_object<td_api::declineChatJoinRequest>(as_chat_id(chat_id), as_user_id(user_id)));
     } else if (op == "drcil") {
       string chat_id;
       string invite_link;
