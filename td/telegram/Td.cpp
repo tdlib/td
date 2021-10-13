@@ -3265,7 +3265,8 @@ void Td::on_result(NetQueryPtr query) {
 bool Td::is_internal_config_option(Slice name) {
   switch (name[0]) {
     case 'a':
-      return name == "animation_search_emojis" || name == "animation_search_provider" || name == "auth";
+      return name == "animated_emoji_zoom" || name == "animation_search_emojis" ||
+             name == "animation_search_provider" || name == "auth";
     case 'b':
       return name == "base_language_pack_version";
     case 'c':
@@ -3315,6 +3316,9 @@ void Td::on_config_option_updated(const string &name) {
     return animations_manager_->on_update_animation_search_emojis(G()->shared_config().get_option_string(name));
   } else if (name == "animation_search_provider") {
     return animations_manager_->on_update_animation_search_provider(G()->shared_config().get_option_string(name));
+  } else if (name == "animated_emoji_zoom") {
+    // update animated emoji zoom only at launch
+    return;
   } else if (name == "recent_stickers_limit") {
     return stickers_manager_->on_update_recent_stickers_limit(
         narrow_cast<int32>(G()->shared_config().get_option_integer(name)));

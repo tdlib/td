@@ -1506,6 +1506,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   bool can_archive_and_mute_new_chats_from_unknown_users = false;
   int64 chat_read_mark_expire_period = 0;
   int64 chat_read_mark_size_threshold = 0;
+  double animated_emoji_zoom = 0.0;
   if (config->get_id() == telegram_api::jsonObject::ID) {
     for (auto &key_value : static_cast<telegram_api::jsonObject *>(config.get())->value_) {
       Slice key = key_value->key_;
@@ -1531,6 +1532,10 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         } else {
           LOG(ERROR) << "Receive unexpected ignore_restriction_reasons " << to_string(*value);
         }
+        continue;
+      }
+      if (key == "emojies_animated_zoom") {
+        animated_emoji_zoom = get_json_value_double(std::move(key_value->value_), "emojies_animated_zoom");
         continue;
       }
       if (key == "emojies_send_dice") {
@@ -1786,6 +1791,11 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
 
   shared_config.set_option_string("emoji_sounds", implode(emoji_sounds, ','));
 
+  if (animated_emoji_zoom <= 0 || animated_emoji_zoom > 2.0) {
+    shared_config.set_option_empty("animated_emoji_zoom");
+  } else {
+    shared_config.set_option_integer("animated_emoji_zoom", static_cast<int64>(animated_emoji_zoom * 1e9));
+  }
   if (animation_search_provider.empty()) {
     shared_config.set_option_empty("animation_search_provider");
   } else {

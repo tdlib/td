@@ -49,7 +49,8 @@ class StickersManager final : public Actor {
 
   void init();
 
-  tl_object_ptr<td_api::sticker> get_sticker_object(FileId file_id) const;
+  tl_object_ptr<td_api::sticker> get_sticker_object(FileId file_id, bool for_animated_emoji = false,
+                                                    bool for_clicked_animated_emoji = false) const;
 
   tl_object_ptr<td_api::stickers> get_stickers_object(const vector<FileId> &sticker_ids) const;
 
@@ -147,6 +148,8 @@ class StickersManager final : public Actor {
                               tl_object_ptr<telegram_api::messages_StickerSetInstallResult> &&result);
 
   void on_uninstall_sticker_set(StickerSetId set_id);
+
+  void on_update_animated_emoji_zoom();
 
   void on_update_disable_animated_emojis();
 
@@ -837,6 +840,8 @@ class StickersManager final : public Actor {
 
   string emoji_sounds_str_;
   std::unordered_map<string, FileId> emoji_sounds_;
+
+  double animated_emoji_zoom_ = 0.0;
 
   bool disable_animated_emojis_ = false;
 };

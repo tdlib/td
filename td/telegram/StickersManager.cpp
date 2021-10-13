@@ -1233,6 +1233,8 @@ class StickersManager::UploadStickerFileCallback final : public FileManager::Upl
 StickersManager::StickersManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
   upload_sticker_file_callback_ = std::make_shared<UploadStickerFileCallback>();
 
+  on_update_animated_emoji_zoom();
+
   on_update_recent_stickers_limit(
       narrow_cast<int32>(G()->shared_config().get_option_integer("recent_stickers_limit", 200)));
   on_update_favorite_stickers_limit(
@@ -1710,7 +1712,8 @@ vector<td_api::object_ptr<td_api::closedVectorPath>> StickersManager::get_sticke
   return result;
 }
 
-tl_object_ptr<td_api::sticker> StickersManager::get_sticker_object(FileId file_id) const {
+tl_object_ptr<td_api::sticker> StickersManager::get_sticker_object(FileId file_id, bool for_animated_emoji,
+                                                                   bool for_clicked_animated_emoji) const {
   if (!file_id.is_valid()) {
     return nullptr;
   }
@@ -1746,11 +1749,17 @@ tl_object_ptr<td_api::sticker> StickersManager::get_sticker_object(FileId file_i
     }
   }
   auto thumbnail_object = get_thumbnail_object(td_->file_manager_.get(), thumbnail, thumbnail_format);
+  int32 width = sticker->dimensions.width;
+  int32 height = sticker->dimensions.height;
+  if (sticker->is_animated && (for_animated_emoji || for_clicked_animated_emoji)) {
+    double zoom = for_clicked_animated_emoji ? 3 * animated_emoji_zoom_ : animated_emoji_zoom_;
+    width = static_cast<int32>(width * zoom + 0.5);
+    height = static_cast<int32>(height * zoom + 0.5);
+  }
   return make_tl_object<td_api::sticker>(
-      sticker->set_id.get(), sticker->dimensions.width, sticker->dimensions.height, sticker->alt, sticker->is_animated,
-      sticker->is_mask, std::move(mask_position),
-      get_sticker_minithumbnail(sticker->minithumbnail, sticker->set_id, document_id), std::move(thumbnail_object),
-      td_->file_manager_->get_file_object(file_id));
+      sticker->set_id.get(), width, height, sticker->alt, sticker->is_animated, sticker->is_mask,
+      std::move(mask_position), get_sticker_minithumbnail(sticker->minithumbnail, sticker->set_id, document_id),
+      std::move(thumbnail_object), td_->file_manager_->get_file_object(file_id));
 }
 
 tl_object_ptr<td_api::stickers> StickersManager::get_stickers_object(const vector<FileId> &sticker_ids) const {
@@ -1787,7 +1796,7 @@ tl_object_ptr<td_api::DiceStickers> StickersManager::get_dice_stickers_object(co
   }
 
   auto get_sticker = [&](int32 value) {
-    return get_sticker_object(sticker_set->sticker_ids[value]);
+    return get_sticker_object(sticker_set->sticker_ids[value], true);
   };
 
   if (emoji == "🎰") {
@@ -2011,7 +2020,7 @@ td_api::object_ptr<td_api::MessageContent> StickersManager::get_message_content_
     auto sound_file_id =
         it != emoji_messages_.end() ? it->second.sound_file_id : get_animated_emoji_sound_file_id(emoji);
     return td_api::make_object<td_api::messageAnimatedEmoji>(
-        emoji, get_sticker_object(animated_sticker.first), get_color_replacements_object(animated_sticker.second),
+        emoji, get_sticker_object(animated_sticker.first, true), get_color_replacements_object(animated_sticker.second),
         sound_file_id.is_valid() ? td_->file_manager_->get_file_object(sound_file_id) : nullptr);
   }
   return td_api::make_object<td_api::messageText>(
@@ -4380,7 +4389,7 @@ void StickersManager::choose_animated_emoji_click_sticker(const StickerSet *stic
   }
   if (now >= next_click_animated_emoji_message_time_) {
     next_click_animated_emoji_message_time_ = now + MIN_ANIMATED_EMOJI_CLICK_DELAY;
-    promise.set_value(get_sticker_object(result.second));
+    promise.set_value(get_sticker_object(result.second, false, true));
   } else {
     create_actor<SleepActor>("SendClickAnimatedEmojiMessageResponse", next_click_animated_emoji_message_time_ - now,
                              PromiseCreator::lambda([actor_id = actor_id(this), sticker_id = result.second,
@@ -4396,7 +4405,7 @@ void StickersManager::choose_animated_emoji_click_sticker(const StickerSet *stic
 void StickersManager::send_click_animated_emoji_message_response(
     FileId sticker_id, Promise<td_api::object_ptr<td_api::sticker>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
-  promise.set_value(get_sticker_object(sticker_id));
+  promise.set_value(get_sticker_object(sticker_id, false, true));
 }
 
 void StickersManager::timeout_expired() {
@@ -4614,9 +4623,10 @@ void StickersManager::send_update_animated_emoji_clicked(FullMessageId full_mess
     return;
   }
 
-  send_closure(G()->td(), &Td::send_update,
-               td_api::make_object<td_api::updateAnimatedEmojiMessageClicked>(
-                   dialog_id.get(), full_message_id.get_message_id().get(), get_sticker_object(sticker_id)));
+  send_closure(
+      G()->td(), &Td::send_update,
+      td_api::make_object<td_api::updateAnimatedEmojiMessageClicked>(
+          dialog_id.get(), full_message_id.get_message_id().get(), get_sticker_object(sticker_id, false, true)));
 }
 
 void StickersManager::view_featured_sticker_sets(const vector<StickerSetId> &sticker_set_ids) {
@@ -6427,6 +6437,11 @@ void StickersManager::save_recent_stickers_to_database(bool is_attached) {
     G()->td_db()->get_sqlite_pmc()->set(is_attached ? "ssr1" : "ssr0", log_event_store(log_event).as_slice().str(),
                                         Auto());
   }
+}
+
+void StickersManager::on_update_animated_emoji_zoom() {
+  animated_emoji_zoom_ =
+      static_cast<double>(G()->shared_config().get_option_integer("animated_emoji_zoom", 625000000)) * 1e-9;
 }
 
 void StickersManager::on_update_recent_stickers_limit(int32 recent_stickers_limit) {
