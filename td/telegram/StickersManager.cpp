@@ -1475,7 +1475,7 @@ tl_object_ptr<td_api::MaskPoint> StickersManager::get_mask_point_object(int32 po
 }
 
 vector<td_api::object_ptr<td_api::closedVectorPath>> StickersManager::get_sticker_minithumbnail(
-    CSlice path, StickerSetId sticker_set_id, int64 document_id) {
+    CSlice path, StickerSetId sticker_set_id, int64 document_id, double zoom) {
   if (path.empty()) {
     return {};
   }
@@ -1530,8 +1530,8 @@ vector<td_api::object_ptr<td_api::closedVectorPath>> StickersManager::get_sticke
     }
     return sign * res;
   };
-  auto make_point = [](double x, double y) {
-    return td_api::make_object<td_api::point>(x, y);
+  auto make_point = [zoom](double x, double y) {
+    return td_api::make_object<td_api::point>(x * zoom, y * zoom);
   };
 
   vector<td_api::object_ptr<td_api::closedVectorPath>> result;
@@ -1751,14 +1751,15 @@ tl_object_ptr<td_api::sticker> StickersManager::get_sticker_object(FileId file_i
   auto thumbnail_object = get_thumbnail_object(td_->file_manager_.get(), thumbnail, thumbnail_format);
   int32 width = sticker->dimensions.width;
   int32 height = sticker->dimensions.height;
+  double zoom = 1.0;
   if (sticker->is_animated && (for_animated_emoji || for_clicked_animated_emoji)) {
-    double zoom = for_clicked_animated_emoji ? 3 * animated_emoji_zoom_ : animated_emoji_zoom_;
+    zoom = for_clicked_animated_emoji ? 3 * animated_emoji_zoom_ : animated_emoji_zoom_;
     width = static_cast<int32>(width * zoom + 0.5);
     height = static_cast<int32>(height * zoom + 0.5);
   }
   return make_tl_object<td_api::sticker>(
       sticker->set_id.get(), width, height, sticker->alt, sticker->is_animated, sticker->is_mask,
-      std::move(mask_position), get_sticker_minithumbnail(sticker->minithumbnail, sticker->set_id, document_id),
+      std::move(mask_position), get_sticker_minithumbnail(sticker->minithumbnail, sticker->set_id, document_id, zoom),
       std::move(thumbnail_object), td_->file_manager_->get_file_object(file_id));
 }
 
@@ -1863,7 +1864,7 @@ tl_object_ptr<td_api::stickerSet> StickersManager::get_sticker_set_object(Sticke
                                         sticker_set->is_animated ? PhotoFormat::Tgs : PhotoFormat::Webp);
   return make_tl_object<td_api::stickerSet>(
       sticker_set->id.get(), sticker_set->title, sticker_set->short_name, std::move(thumbnail),
-      get_sticker_minithumbnail(sticker_set->minithumbnail, sticker_set->id, -2),
+      get_sticker_minithumbnail(sticker_set->minithumbnail, sticker_set->id, -2, 1.0),
       sticker_set->is_installed && !sticker_set->is_archived, sticker_set->is_archived, sticker_set->is_official,
       sticker_set->is_animated, sticker_set->is_masks, sticker_set->is_viewed, std::move(stickers), std::move(emojis));
 }
@@ -1909,7 +1910,7 @@ tl_object_ptr<td_api::stickerSetInfo> StickersManager::get_sticker_set_info_obje
                                         sticker_set->is_animated ? PhotoFormat::Tgs : PhotoFormat::Webp);
   return make_tl_object<td_api::stickerSetInfo>(
       sticker_set->id.get(), sticker_set->title, sticker_set->short_name, std::move(thumbnail),
-      get_sticker_minithumbnail(sticker_set->minithumbnail, sticker_set->id, -3),
+      get_sticker_minithumbnail(sticker_set->minithumbnail, sticker_set->id, -3, 1.0),
       sticker_set->is_installed && !sticker_set->is_archived, sticker_set->is_archived, sticker_set->is_official,
       sticker_set->is_animated, sticker_set->is_masks, sticker_set->is_viewed,
       sticker_set->was_loaded ? narrow_cast<int32>(sticker_set->sticker_ids.size()) : sticker_set->sticker_count,

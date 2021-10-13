@@ -442,7 +442,7 @@ class StickersManager final : public Actor {
 
   static vector<td_api::object_ptr<td_api::closedVectorPath>> get_sticker_minithumbnail(CSlice path,
                                                                                         StickerSetId sticker_set_id,
-                                                                                        int64 document_id);
+                                                                                        int64 document_id, double zoom);
 
   static tl_object_ptr<td_api::MaskPoint> get_mask_point_object(int32 point);
 
