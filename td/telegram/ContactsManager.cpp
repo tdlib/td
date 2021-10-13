@@ -9976,7 +9976,7 @@ void ContactsManager::update_chat(Chat *c, ChatId chat_id, bool from_binlog, boo
   }
   if (c->is_status_changed) {
     if (!c->status.can_manage_invite_links()) {
-      td_->messages_manager_->on_update_dialog_pending_join_request_count(DialogId(chat_id), 0);
+      td_->messages_manager_->drop_dialog_pending_join_request_count(DialogId(chat_id));
     }
     c->is_status_changed = false;
   }
@@ -10042,7 +10042,7 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
       remove_inactive_channel(channel_id);
     }
     if (!c->status.can_manage_invite_links()) {
-      td_->messages_manager_->on_update_dialog_pending_join_request_count(DialogId(channel_id), 0);
+      td_->messages_manager_->drop_dialog_pending_join_request_count(DialogId(channel_id));
     }
     c->is_status_changed = false;
   }

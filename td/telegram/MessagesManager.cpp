@@ -29887,6 +29887,14 @@ void MessagesManager::set_dialog_theme_name(Dialog *d, string theme_name) {
   }
 }
 
+void MessagesManager::drop_dialog_pending_join_request_count(DialogId dialog_id) {
+  CHECK(dialog_id.is_valid());
+  auto d = get_dialog(dialog_id);  // called from update_chat/channel, must not create the dialog
+  if (d != nullptr && d->is_update_new_chat_sent) {
+    set_dialog_pending_join_request_count(d, 0);
+  }
+}
+
 void MessagesManager::on_update_dialog_pending_join_request_count(DialogId dialog_id,
                                                                   int32 pending_join_request_count) {
   if (!dialog_id.is_valid()) {
@@ -29903,38 +29911,37 @@ void MessagesManager::on_update_dialog_pending_join_request_count(DialogId dialo
   set_dialog_pending_join_request_count(d, pending_join_request_count);
 }
 
-void MessagesManager::set_dialog_pending_join_request_count(Dialog *d, int32 pending_join_request_count) {
-  CHECK(d != nullptr);
-  switch (d->dialog_id.get_type()) {
+void MessagesManager::fix_pending_join_request_count(DialogId dialog_id, int32 &pending_join_request_count) const {
+  switch (dialog_id.get_type()) {
     case DialogType::User:
     case DialogType::SecretChat:
-      pending_join_request_count = -1;
-      break;
+      pending_join_request_count = 0;
+      return;
     case DialogType::Chat: {
-      auto chat_id = d->dialog_id.get_chat_id();
+      auto chat_id = dialog_id.get_chat_id();
       auto status = td_->contacts_manager_->get_chat_status(chat_id);
       if (!status.can_manage_invite_links()) {
         pending_join_request_count = 0;
       }
-      break;
+      return;
     }
     case DialogType::Channel: {
-      auto channel_id = d->dialog_id.get_channel_id();
+      auto channel_id = dialog_id.get_channel_id();
       auto status = td_->contacts_manager_->get_channel_permissions(channel_id);
       if (!status.can_manage_invite_links()) {
         pending_join_request_count = 0;
       }
-      break;
+      return;
     }
     case DialogType::None:
     default:
       UNREACHABLE();
   }
-  if (pending_join_request_count < 0) {
-    LOG(ERROR) << "Receive " << pending_join_request_count << " pending join requests in " << d->dialog_id;
-    return;
-  }
+}
 
+void MessagesManager::set_dialog_pending_join_request_count(Dialog *d, int32 pending_join_request_count) {
+  CHECK(d != nullptr);
+  fix_pending_join_request_count(d->dialog_id, pending_join_request_count);
   bool is_changed = d->pending_join_request_count != pending_join_request_count;
   if (!is_changed) {
     return;
@@ -34485,6 +34492,7 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
       on_dialog_updated(dialog_id, "pending update_dialog_group_call");
     }
   }
+  fix_pending_join_request_count(dialog_id, d->pending_join_request_count);
 
   if (!is_loaded_from_database) {
     CHECK(order == DEFAULT_ORDER);

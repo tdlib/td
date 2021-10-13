@@ -779,6 +779,8 @@ class MessagesManager final : public Actor {
   void on_dialog_linked_channel_updated(DialogId dialog_id, ChannelId old_linked_channel_id,
                                         ChannelId new_linked_channel_id) const;
 
+  void drop_dialog_pending_join_request_count(DialogId dialog_id);
+
   void on_resolved_username(const string &username, DialogId dialog_id);
   void drop_username(const string &username);
 
@@ -2440,6 +2442,8 @@ class MessagesManager final : public Actor {
   void drop_dialog_last_pinned_message_id(Dialog *d);
 
   void set_dialog_theme_name(Dialog *d, string theme_name);
+
+  void fix_pending_join_request_count(DialogId dialog_id, int32 &pending_join_request_count) const;
 
   void set_dialog_pending_join_request_count(Dialog *d, int32 pending_join_request_count);
 
