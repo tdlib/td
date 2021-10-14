@@ -12,17 +12,15 @@
 
 #include <utility>
 
-using namespace td;
-
-static void decode_encode(string str, string result = "") {
+static void decode_encode(td::string str, td::string result = "") {
   auto str_copy = str;
-  auto r_value = json_decode(str_copy);
+  auto r_value = td::json_decode(str_copy);
   ASSERT_TRUE(r_value.is_ok());
   if (r_value.is_error()) {
     LOG(INFO) << r_value.error();
     return;
   }
-  auto new_str = json_encode<string>(r_value.ok());
+  auto new_str = td::json_encode<td::string>(r_value.ok());
   if (result.empty()) {
     result = str;
   }
@@ -31,18 +29,19 @@ static void decode_encode(string str, string result = "") {
 
 TEST(JSON, array) {
   char tmp[1000];
-  StringBuilder sb(MutableSlice{tmp, sizeof(tmp)});
-  JsonBuilder jb(std::move(sb));
+  td::StringBuilder sb(td::MutableSlice{tmp, sizeof(tmp)});
+  td::JsonBuilder jb(std::move(sb));
   jb.enter_value().enter_array() << "Hello" << -123;
   ASSERT_EQ(jb.string_builder().is_error(), false);
   auto encoded = jb.string_builder().as_cslice().str();
   ASSERT_EQ("[\"Hello\",-123]", encoded);
   decode_encode(encoded);
 }
+
 TEST(JSON, object) {
   char tmp[1000];
-  StringBuilder sb(MutableSlice{tmp, sizeof(tmp)});
-  JsonBuilder jb(std::move(sb));
+  td::StringBuilder sb(td::MutableSlice{tmp, sizeof(tmp)});
+  td::JsonBuilder jb(std::move(sb));
   auto c = jb.enter_object();
   c("key", "value");
   c("1", 2);
@@ -55,8 +54,8 @@ TEST(JSON, object) {
 
 TEST(JSON, nested) {
   char tmp[1000];
-  StringBuilder sb(MutableSlice{tmp, sizeof(tmp)});
-  JsonBuilder jb(std::move(sb));
+  td::StringBuilder sb(td::MutableSlice{tmp, sizeof(tmp)});
+  td::JsonBuilder jb(std::move(sb));
   {
     auto a = jb.enter_array();
     a << 1;
