@@ -4984,19 +4984,19 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     case MessageContentType::GroupCall: {
       const auto *m = static_cast<const MessageGroupCall *>(content);
       if (m->duration >= 0) {
-        return make_tl_object<td_api::messageVoiceChatEnded>(m->duration);
+        return make_tl_object<td_api::messageVideoChatEnded>(m->duration);
       } else {
         auto group_call_id = td->group_call_manager_->get_group_call_id(m->input_group_call_id, DialogId()).get();
         if (m->schedule_date > 0) {
-          return make_tl_object<td_api::messageVoiceChatScheduled>(group_call_id, m->schedule_date);
+          return make_tl_object<td_api::messageVideoChatScheduled>(group_call_id, m->schedule_date);
         } else {
-          return make_tl_object<td_api::messageVoiceChatStarted>(group_call_id);
+          return make_tl_object<td_api::messageVideoChatStarted>(group_call_id);
         }
       }
     }
     case MessageContentType::InviteToGroupCall: {
       const auto *m = static_cast<const MessageInviteToGroupCall *>(content);
-      return make_tl_object<td_api::messageInviteVoiceChatParticipants>(
+      return make_tl_object<td_api::messageInviteVideoChatParticipants>(
           td->group_call_manager_->get_group_call_id(m->input_group_call_id, DialogId()).get(),
           td->contacts_manager_->get_user_ids_object(m->user_ids, "MessageInviteToGroupCall"));
     }

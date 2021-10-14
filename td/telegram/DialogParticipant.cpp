@@ -422,7 +422,7 @@ DialogParticipantStatus get_dialog_participant_status(const tl_object_ptr<td_api
       return DialogParticipantStatus::Administrator(
           st->is_anonymous_, custom_title, true /*st->can_be_edited_*/, st->can_manage_chat_, st->can_change_info_,
           st->can_post_messages_, st->can_edit_messages_, st->can_delete_messages_, st->can_invite_users_,
-          st->can_restrict_members_, st->can_pin_messages_, st->can_promote_members_, st->can_manage_voice_chats_);
+          st->can_restrict_members_, st->can_pin_messages_, st->can_promote_members_, st->can_manage_video_chats_);
     }
     case td_api::chatMemberStatusMember::ID:
       return DialogParticipantStatus::Member();

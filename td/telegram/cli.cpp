@@ -2780,19 +2780,19 @@ class CliClient final : public Actor {
     } else if (op == "scdi" || op == "SendCallDebugInformation") {
       send_request(td_api::make_object<td_api::sendCallDebugInformation>(as_call_id(args), "{}"));
     } else if (op == "gvcap") {
-      send_request(td_api::make_object<td_api::getVoiceChatAvailableParticipants>(as_chat_id(args)));
+      send_request(td_api::make_object<td_api::getVideoChatAvailableParticipants>(as_chat_id(args)));
     } else if (op == "svcdp") {
       string chat_id;
       string participant_id;
       get_args(args, chat_id, participant_id);
-      send_request(td_api::make_object<td_api::setVoiceChatDefaultParticipant>(as_chat_id(chat_id),
+      send_request(td_api::make_object<td_api::setVideoChatDefaultParticipant>(as_chat_id(chat_id),
                                                                                as_message_sender(participant_id)));
     } else if (op == "cvc") {
       string chat_id;
       string title;
       int32 start_date;
       get_args(args, chat_id, title, start_date);
-      send_request(td_api::make_object<td_api::createVoiceChat>(as_chat_id(chat_id), title, start_date));
+      send_request(td_api::make_object<td_api::createVideoChat>(as_chat_id(chat_id), title, start_date));
     } else if (op == "ggc") {
       send_request(td_api::make_object<td_api::getGroupCall>(as_group_call_id(args)));
     } else if (op == "ggcss") {

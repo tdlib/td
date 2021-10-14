@@ -5773,13 +5773,13 @@ void Td::on_request(uint64 id, td_api::sendCallDebugInformation &request) {
                std::move(request.debug_information_), std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::getVoiceChatAvailableParticipants &request) {
+void Td::on_request(uint64 id, const td_api::getVideoChatAvailableParticipants &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   group_call_manager_->get_group_call_join_as(DialogId(request.chat_id_), std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::setVoiceChatDefaultParticipant &request) {
+void Td::on_request(uint64 id, const td_api::setVideoChatDefaultParticipant &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   group_call_manager_->set_group_call_default_join_as(
@@ -5787,7 +5787,7 @@ void Td::on_request(uint64 id, const td_api::setVoiceChatDefaultParticipant &req
       std::move(promise));
 }
 
-void Td::on_request(uint64 id, td_api::createVoiceChat &request) {
+void Td::on_request(uint64 id, td_api::createVideoChat &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.title_);
   CREATE_REQUEST_PROMISE();

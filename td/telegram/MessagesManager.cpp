@@ -20075,13 +20075,13 @@ string MessagesManager::get_dialog_theme_name(const Dialog *d) const {
   return d->theme_name;
 }
 
-td_api::object_ptr<td_api::voiceChat> MessagesManager::get_voice_chat_object(const Dialog *d) const {
+td_api::object_ptr<td_api::videoChat> MessagesManager::get_video_chat_object(const Dialog *d) const {
   auto active_group_call_id = td_->group_call_manager_->get_group_call_id(d->active_group_call_id, d->dialog_id);
   auto default_participant_alias =
       d->default_join_group_call_as_dialog_id.is_valid()
-          ? get_message_sender_object_const(d->default_join_group_call_as_dialog_id, "get_voice_chat_object")
+          ? get_message_sender_object_const(d->default_join_group_call_as_dialog_id, "get_video_chat_object")
           : nullptr;
-  return make_tl_object<td_api::voiceChat>(active_group_call_id.get(),
+  return make_tl_object<td_api::videoChat>(active_group_call_id.get(),
                                            active_group_call_id.is_valid() ? !d->is_group_call_empty : false,
                                            std::move(default_participant_alias));
 }
@@ -20156,7 +20156,7 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
       d->last_read_inbox_message_id.get(), d->last_read_outbox_message_id.get(), d->unread_mention_count,
       get_chat_notification_settings_object(&d->notification_settings),
       d->message_ttl_setting.get_message_ttl_setting_object(), get_dialog_theme_name(d), get_chat_action_bar_object(d),
-      get_voice_chat_object(d), d->pending_join_request_count, d->reply_markup_message_id.get(),
+      get_video_chat_object(d), d->pending_join_request_count, d->reply_markup_message_id.get(),
       std::move(draft_message), d->client_data);
 }
 
@@ -28864,12 +28864,12 @@ void MessagesManager::send_update_chat_pending_join_request_count(const Dialog *
                                                                               d->pending_join_request_count));
 }
 
-void MessagesManager::send_update_chat_voice_chat(const Dialog *d) {
+void MessagesManager::send_update_chat_video_chat(const Dialog *d) {
   CHECK(d != nullptr);
-  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_voice_chat";
-  on_dialog_updated(d->dialog_id, "send_update_chat_voice_chat");
+  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_video_chat";
+  on_dialog_updated(d->dialog_id, "send_update_chat_video_chat");
   send_closure(G()->td(), &Td::send_update,
-               td_api::make_object<td_api::updateChatVoiceChat>(d->dialog_id.get(), get_voice_chat_object(d)));
+               td_api::make_object<td_api::updateChatVideoChat>(d->dialog_id.get(), get_video_chat_object(d)));
 }
 
 void MessagesManager::send_update_chat_message_ttl_setting(const Dialog *d) {
@@ -30144,10 +30144,10 @@ void MessagesManager::on_update_dialog_group_call(DialogId dialog_id, bool has_a
     d->active_group_call_id = InputGroupCallId();
     d->has_active_group_call = false;
     d->is_group_call_empty = false;
-    send_update_chat_voice_chat(d);
+    send_update_chat_video_chat(d);
   } else if (d->has_active_group_call && has_active_group_call) {
     d->is_group_call_empty = is_group_call_empty;
-    send_update_chat_voice_chat(d);
+    send_update_chat_video_chat(d);
   } else {
     d->has_active_group_call = has_active_group_call;
     d->is_group_call_empty = is_group_call_empty;
@@ -30176,7 +30176,7 @@ void MessagesManager::on_update_dialog_group_call_id(DialogId dialog_id, InputGr
         d->is_group_call_empty = false;
       }
     }
-    send_update_chat_voice_chat(d);
+    send_update_chat_video_chat(d);
   }
 }
 
@@ -30206,7 +30206,7 @@ void MessagesManager::on_update_dialog_default_join_group_call_as_dialog_id(Dial
 
   if (d->default_join_group_call_as_dialog_id != default_join_as_dialog_id) {
     d->default_join_group_call_as_dialog_id = default_join_as_dialog_id;
-    send_update_chat_voice_chat(d);
+    send_update_chat_video_chat(d);
   }
 }
 
@@ -31710,7 +31710,7 @@ tl_object_ptr<telegram_api::channelAdminLogEventsFilter> MessagesManager::get_ch
   if (filters->invite_link_changes_) {
     flags |= telegram_api::channelAdminLogEventsFilter::INVITES_MASK;
   }
-  if (filters->voice_chat_changes_) {
+  if (filters->video_chat_changes_) {
     flags |= telegram_api::channelAdminLogEventsFilter::GROUP_CALL_MASK;
   }
 
@@ -32029,7 +32029,7 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
       if (!input_group_call_id.is_valid()) {
         return nullptr;
       }
-      return make_tl_object<td_api::chatEventVoiceChatCreated>(
+      return make_tl_object<td_api::chatEventVideoChatCreated>(
           td_->group_call_manager_->get_group_call_id(input_group_call_id, DialogId(channel_id)).get());
     }
     case telegram_api::channelAdminLogEventActionDiscardGroupCall::ID: {
@@ -32038,7 +32038,7 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
       if (!input_group_call_id.is_valid()) {
         return nullptr;
       }
-      return make_tl_object<td_api::chatEventVoiceChatDiscarded>(
+      return make_tl_object<td_api::chatEventVideoChatDiscarded>(
           td_->group_call_manager_->get_group_call_id(input_group_call_id, DialogId(channel_id)).get());
     }
     case telegram_api::channelAdminLogEventActionParticipantMute::ID: {
@@ -32047,8 +32047,8 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
       if (!participant.is_valid()) {
         return nullptr;
       }
-      return make_tl_object<td_api::chatEventVoiceChatParticipantIsMutedToggled>(
-          get_message_sender_object(participant.dialog_id, "chatEventVoiceChatParticipantIsMutedToggled"), true);
+      return make_tl_object<td_api::chatEventVideoChatParticipantIsMutedToggled>(
+          get_message_sender_object(participant.dialog_id, "chatEventVideoChatParticipantIsMutedToggled"), true);
     }
     case telegram_api::channelAdminLogEventActionParticipantUnmute::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantUnmute>(action_ptr);
@@ -32056,8 +32056,8 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
       if (!participant.is_valid()) {
         return nullptr;
       }
-      return make_tl_object<td_api::chatEventVoiceChatParticipantIsMutedToggled>(
-          get_message_sender_object(participant.dialog_id, "chatEventVoiceChatParticipantIsMutedToggled"), false);
+      return make_tl_object<td_api::chatEventVideoChatParticipantIsMutedToggled>(
+          get_message_sender_object(participant.dialog_id, "chatEventVideoChatParticipantIsMutedToggled"), false);
     }
     case telegram_api::channelAdminLogEventActionParticipantVolume::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantVolume>(action_ptr);
@@ -32065,13 +32065,13 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
       if (!participant.is_valid()) {
         return nullptr;
       }
-      return make_tl_object<td_api::chatEventVoiceChatParticipantVolumeLevelChanged>(
-          get_message_sender_object(participant.dialog_id, "chatEventVoiceChatParticipantVolumeLevelChanged"),
+      return make_tl_object<td_api::chatEventVideoChatParticipantVolumeLevelChanged>(
+          get_message_sender_object(participant.dialog_id, "chatEventVideoChatParticipantVolumeLevelChanged"),
           participant.volume_level);
     }
     case telegram_api::channelAdminLogEventActionToggleGroupCallSetting::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionToggleGroupCallSetting>(action_ptr);
-      return make_tl_object<td_api::chatEventVoiceChatMuteNewParticipantsToggled>(action->join_muted_);
+      return make_tl_object<td_api::chatEventVideoChatMuteNewParticipantsToggled>(action->join_muted_);
     }
     case telegram_api::channelAdminLogEventActionChangeHistoryTTL::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeHistoryTTL>(action_ptr);

@@ -360,7 +360,7 @@ class LinkManager::InternalLinkVoiceChat final : public InternalLink {
   bool is_live_stream_;
 
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
-    return td_api::make_object<td_api::internalLinkTypeVoiceChat>(dialog_username_, invite_hash_, is_live_stream_);
+    return td_api::make_object<td_api::internalLinkTypeVideoChat>(dialog_username_, invite_hash_, is_live_stream_);
   }
 
  public:

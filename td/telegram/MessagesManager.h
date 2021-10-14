@@ -2344,7 +2344,7 @@ class MessagesManager final : public Actor {
 
   void send_update_chat_pending_join_request_count(const Dialog *d);
 
-  void send_update_chat_voice_chat(const Dialog *d);
+  void send_update_chat_video_chat(const Dialog *d);
 
   void send_update_chat_message_ttl_setting(const Dialog *d);
 
@@ -2539,7 +2539,7 @@ class MessagesManager final : public Actor {
 
   string get_dialog_theme_name(const Dialog *d) const;
 
-  td_api::object_ptr<td_api::voiceChat> get_voice_chat_object(const Dialog *d) const;
+  td_api::object_ptr<td_api::videoChat> get_video_chat_object(const Dialog *d) const;
 
   td_api::object_ptr<td_api::chat> get_chat_object(const Dialog *d) const;
 
