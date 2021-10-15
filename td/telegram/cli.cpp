@@ -2105,6 +2105,19 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::searchChatMessages>(as_chat_id(chat_id), query.query, nullptr,
                                                                    as_message_id(offset_message_id), 0, query.limit,
                                                                    as_search_messages_filter(op), 0));
+    } else if (op == "gcmbd") {
+      string chat_id;
+      int32 date;
+      get_args(args, chat_id, date);
+      send_request(td_api::make_object<td_api::getChatMessageByDate>(as_chat_id(chat_id), date));
+    } else if (op == "gcsmp") {
+      string chat_id;
+      string filter;
+      string from_message_id;
+      string limit;
+      get_args(args, chat_id, filter, from_message_id, limit);
+      send_request(td_api::make_object<td_api::getChatSparseMessagePositions>(
+          as_chat_id(chat_id), as_search_messages_filter(filter), as_message_id(from_message_id), as_limit(limit)));
     } else if (op == "gcmc") {
       string chat_id;
       string filter;
@@ -2640,11 +2653,6 @@ class CliClient final : public Actor {
                                                                         for_album));
     } else if (op == "gmli") {
       send_request(td_api::make_object<td_api::getMessageLinkInfo>(args));
-    } else if (op == "gcmbd") {
-      string chat_id;
-      int32 date;
-      get_args(args, chat_id, date);
-      send_request(td_api::make_object<td_api::getChatMessageByDate>(as_chat_id(chat_id), date));
     } else if (op == "gf" || op == "GetFile") {
       send_request(td_api::make_object<td_api::getFile>(as_file_id(args)));
     } else if (op == "gfdps") {

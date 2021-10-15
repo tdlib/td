@@ -5376,7 +5376,15 @@ void Td::on_request(uint64 id, const td_api::getChatMessageByDate &request) {
   CREATE_REQUEST(GetChatMessageByDateRequest, request.chat_id_, request.date_);
 }
 
-void Td::on_request(uint64 id, td_api::getChatMessageCount &request) {
+void Td::on_request(uint64 id, const td_api::getChatSparseMessagePositions &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  messages_manager_->get_dialog_sparse_message_positions(
+      DialogId(request.chat_id_), get_message_search_filter(request.filter_), MessageId(request.from_message_id_),
+      request.limit_, std::move(promise));
+}
+
+void Td::on_request(uint64 id, const td_api::getChatMessageCount &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<int32> result) mutable {

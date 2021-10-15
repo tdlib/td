@@ -733,6 +733,15 @@ class MessagesManager final : public Actor {
 
   void on_get_dialog_message_by_date_fail(int64 random_id);
 
+  void get_dialog_sparse_message_positions(DialogId dialog_id, MessageSearchFilter filter, MessageId from_message_id,
+                                           int32 limit,
+                                           Promise<td_api::object_ptr<td_api::messagePositions>> &&promise);
+
+  void on_get_dialog_sparse_message_positions(
+      DialogId dialog_id, MessageSearchFilter filter,
+      telegram_api::object_ptr<telegram_api::messages_searchResultsPositions> positions,
+      Promise<td_api::object_ptr<td_api::messagePositions>> &&promise);
+
   void get_dialog_message_count(DialogId dialog_id, MessageSearchFilter filter, bool return_local,
                                 Promise<int32> &&promise);
 

@@ -628,7 +628,9 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::getChatMessageByDate &request);
 
-  void on_request(uint64 id, td_api::getChatMessageCount &request);
+  void on_request(uint64 id, const td_api::getChatSparseMessagePositions &request);
+
+  void on_request(uint64 id, const td_api::getChatMessageCount &request);
 
   void on_request(uint64 id, const td_api::getChatScheduledMessages &request);
 

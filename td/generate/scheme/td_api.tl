@@ -801,6 +801,12 @@ messages total_count:int32 messages:vector<message> = Messages;
 //@description Contains a list of messages found by a search @total_count Approximate total count of messages found; -1 if unknown @messages List of messages @next_offset The offset for the next request. If empty, there are no more results
 foundMessages total_count:int32 messages:vector<message> next_offset:string = FoundMessages;
 
+//@description Contains information about a message in a specific position @position 1-based message position in the full list of suitable messages @message_id Message identifier @date Point in time (Unix timestamp) when the message was sent
+messagePosition position:int32 message_id:int53 date:int32 = MessagePosition;
+
+//@description Contains a list of message positions @total_count Total count of messages found @positions List of message positions
+messagePositions total_count:int32 positions:vector<messagePosition> = MessagePositions;
+
 
 //@description Describes a sponsored message @id Unique sponsored message identifier @sponsor_chat_id Chat identifier
 //@link An internal link to be opened when the sponsored message is clicked; may be null. If null, the sponsor chat needs to be opened instead @content Content of the message
@@ -4270,6 +4276,13 @@ getActiveLiveLocationMessages = Messages;
 
 //@description Returns the last message sent in a chat no later than the specified date @chat_id Chat identifier @date Point in time (Unix timestamp) relative to which to search for messages
 getChatMessageByDate chat_id:int53 date:int32 = Message;
+
+//@description Returns sparse positions of messages of the specified type in the chat to be used for shared media scroll implementation. Returns the results in reverse chronological order (i.e., in order of decreasing message_id)
+//@chat_id Identifier of the chat in which to return information about message positions
+//@filter Filter for message content. Filters searchMessagesFilterEmpty, searchMessagesFilterCall, searchMessagesFilterMissedCall, searchMessagesFilterMention, searchMessagesFilterUnreadMention and searchMessagesFilterFailedToSend are unsupported in this function
+//@from_message_id The message identifier from which to return information about message positions
+//@limit The expected number of message positions to be returned. A smaller number of positions can be returned, if there are not enough appropriate messages
+getChatSparseMessagePositions chat_id:int53 filter:SearchMessagesFilter from_message_id:int53 limit:int32 = MessagePositions;
 
 //@description Returns approximate number of messages of the specified type in the chat @chat_id Identifier of the chat in which to count messages @filter Filter for message content; searchMessagesFilterEmpty is unsupported in this function @return_local If true, returns count that is available locally without sending network requests, returning -1 if the number of messages is unknown
 getChatMessageCount chat_id:int53 filter:SearchMessagesFilter return_local:Bool = Count;

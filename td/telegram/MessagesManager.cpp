@@ -2272,6 +2272,45 @@ class SearchMessagesQuery final : public Td::ResultHandler {
   }
 };
 
+class GetSearchResultPositionsQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::messagePositions>> promise_;
+  DialogId dialog_id_;
+  MessageSearchFilter filter_;
+
+ public:
+  explicit GetSearchResultPositionsQuery(Promise<td_api::object_ptr<td_api::messagePositions>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, MessageSearchFilter filter, MessageId from_message_id, int32 limit) {
+    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    if (input_peer == nullptr) {
+      return promise_.set_error(Status::Error(400, "Can't access the chat"));
+    }
+    dialog_id_ = dialog_id;
+    filter_ = filter;
+
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_getSearchResultsPositions(std::move(input_peer), get_input_messages_filter(filter),
+                                                         from_message_id.get_server_message_id().get(), limit)));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_getSearchResultsPositions>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    td->messages_manager_->on_get_dialog_sparse_message_positions(dialog_id_, filter_, result_ptr.move_as_ok(),
+                                                                  std::move(promise_));
+  }
+
+  void on_error(uint64 id, Status status) final {
+    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetSearchResultPositionsQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetSearchCountersQuery final : public Td::ResultHandler {
   Promise<int32> promise_;
   DialogId dialog_id_;
@@ -22215,6 +22254,61 @@ tl_object_ptr<td_api::message> MessagesManager::get_dialog_message_by_date_objec
   return get_message_object(full_message_id, "get_dialog_message_by_date_object");
 }
 
+void MessagesManager::get_dialog_sparse_message_positions(
+    DialogId dialog_id, MessageSearchFilter filter, MessageId from_message_id, int32 limit,
+    Promise<td_api::object_ptr<td_api::messagePositions>> &&promise) {
+  const Dialog *d = get_dialog_force(dialog_id, "get_dialog_sparse_message_positions");
+  if (d == nullptr) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+
+  if (filter == MessageSearchFilter::Empty || filter == MessageSearchFilter::Call ||
+      filter == MessageSearchFilter::MissedCall || filter == MessageSearchFilter::Mention ||
+      filter == MessageSearchFilter::UnreadMention || filter == MessageSearchFilter::FailedToSend ||
+      filter == MessageSearchFilter::Pinned) {
+    return promise.set_error(Status::Error(400, "The filter is not supported"));
+  }
+
+  if (from_message_id.is_scheduled()) {
+    return promise.set_error(Status::Error(400, "Invalid from_message_id specified"));
+  }
+  if (!from_message_id.is_valid() || from_message_id > d->last_new_message_id) {
+    if (d->last_new_message_id.is_valid()) {
+      from_message_id = d->last_new_message_id.get_next_message_id(MessageType::Server);
+    } else {
+      from_message_id = MessageId::max();
+    }
+  } else {
+    from_message_id = from_message_id.get_next_server_message_id();
+  }
+
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+    case DialogType::Chat:
+    case DialogType::Channel:
+      td_->create_handler<GetSearchResultPositionsQuery>(std::move(promise))
+          ->send(dialog_id, filter, from_message_id, limit);
+      break;
+    case DialogType::SecretChat:
+      return promise.set_error(Status::Error(400, "Secret chats aren't supported"));
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+  }
+}
+
+void MessagesManager::on_get_dialog_sparse_message_positions(
+    DialogId dialog_id, MessageSearchFilter filter,
+    telegram_api::object_ptr<telegram_api::messages_searchResultsPositions> positions,
+    Promise<td_api::object_ptr<td_api::messagePositions>> &&promise) {
+  auto message_positions = transform(
+      positions->positions_, [](const telegram_api::object_ptr<telegram_api::searchResultPosition> &position) {
+        return td_api::make_object<td_api::messagePosition>(
+            position->offset_, MessageId(ServerMessageId(position->msg_id_)).get(), position->date_);
+      });
+  promise.set_value(td_api::make_object<td_api::messagePositions>(positions->count_, std::move(message_positions)));
+}
+
 void MessagesManager::get_dialog_message_count(DialogId dialog_id, MessageSearchFilter filter, bool return_local,
                                                Promise<int32> &&promise) {
   LOG(INFO) << "Get " << (return_local ? "local " : "") << "number of messages in " << dialog_id << " filtered by "
@@ -22241,7 +22335,7 @@ void MessagesManager::get_dialog_message_count(DialogId dialog_id, MessageSearch
 
   LOG(INFO) << "Get number of messages in " << dialog_id << " filtered by " << filter << " from the server";
 
-  switch (dialog_id.get_type()) {
+  switch (dialog_type) {
     case DialogType::User:
     case DialogType::Chat:
     case DialogType::Channel:
