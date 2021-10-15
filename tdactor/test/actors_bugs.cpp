@@ -13,31 +13,29 @@
 #include "td/utils/Random.h"
 #include "td/utils/tests.h"
 
-using namespace td;
-
 TEST(MultiTimeout, bug) {
-  ConcurrentScheduler sched;
+  td::ConcurrentScheduler sched;
   int threads_n = 0;
   sched.init(threads_n);
 
   sched.start();
-  unique_ptr<MultiTimeout> multi_timeout;
+  td::unique_ptr<td::MultiTimeout> multi_timeout;
   struct Data {
-    MultiTimeout *multi_timeout;
+    td::MultiTimeout *multi_timeout;
   };
   Data data;
 
   {
     auto guard = sched.get_main_guard();
-    multi_timeout = make_unique<MultiTimeout>("MultiTimeout");
+    multi_timeout = td::make_unique<td::MultiTimeout>("MultiTimeout");
     data.multi_timeout = multi_timeout.get();
-    multi_timeout->set_callback([](void *void_data, int64 key) {
+    multi_timeout->set_callback([](void *void_data, td::int64 key) {
       auto &data = *static_cast<Data *>(void_data);
       if (key == 1) {
         data.multi_timeout->cancel_timeout(key + 1);
         data.multi_timeout->set_timeout_in(key + 2, 1);
       } else {
-        Scheduler::instance()->finish();
+        td::Scheduler::instance()->finish();
       }
     });
     multi_timeout->set_callback_data(&data);
@@ -51,9 +49,9 @@ TEST(MultiTimeout, bug) {
   sched.finish();
 }
 
-class TimeoutManager final : public Actor {
+class TimeoutManager final : public td::Actor {
  public:
-  static int32 count;
+  static td::int32 count;
 
   TimeoutManager() {
     count++;
@@ -70,7 +68,7 @@ class TimeoutManager final : public Actor {
     LOG(INFO) << "Destroy TimeoutManager";
   }
 
-  static void on_test_timeout_callback(void *timeout_manager_ptr, int64 id) {
+  static void on_test_timeout_callback(void *timeout_manager_ptr, td::int64 id) {
     CHECK(count >= 0);
     if (count == 0) {
       LOG(ERROR) << "Receive timeout after manager was closed";
@@ -84,21 +82,21 @@ class TimeoutManager final : public Actor {
   void test_timeout() {
     CHECK(count > 0);
     // we must yield scheduler, so run_main breaks immediately, if timeouts are handled immediately
-    Scheduler::instance()->yield();
+    td::Scheduler::instance()->yield();
   }
 
-  MultiTimeout test_timeout_{"TestTimeout"};
+  td::MultiTimeout test_timeout_{"TestTimeout"};
 };
 
-int32 TimeoutManager::count;
+td::int32 TimeoutManager::count;
 
 TEST(MultiTimeout, Destroy) {
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(ERROR));
-  ConcurrentScheduler sched;
+  td::ConcurrentScheduler sched;
   int threads_n = 0;
   sched.init(threads_n);
 
-  ActorOwn<TimeoutManager> timeout_manager = sched.create_actor_unsafe<TimeoutManager>(0, "TimeoutManager");
+  auto timeout_manager = sched.create_actor_unsafe<TimeoutManager>(0, "TimeoutManager");
   TimeoutManager *manager = timeout_manager.get().get_actor_unsafe();
   sched.start();
   int cnt = 100;
@@ -107,12 +105,12 @@ TEST(MultiTimeout, Destroy) {
     cnt--;
     if (cnt > 0) {
       for (int i = 0; i < 2; i++) {
-        manager->test_timeout_.set_timeout_in(Random::fast(0, 1000000000), Random::fast(2, 5) / 1000.0);
+        manager->test_timeout_.set_timeout_in(td::Random::fast(0, 1000000000), td::Random::fast(2, 5) / 1000.0);
       }
     } else if (cnt == 0) {
       timeout_manager.reset();
     } else if (cnt == -10) {
-      Scheduler::instance()->finish();
+      td::Scheduler::instance()->finish();
     }
   }
   sched.finish();

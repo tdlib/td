@@ -19,18 +19,16 @@
 #include <memory>
 #include <utility>
 
-using namespace td;
-
 namespace {
 
 template <class ContainerT>
 static typename ContainerT::value_type &rand_elem(ContainerT &cont) {
   CHECK(0 < cont.size() && cont.size() <= static_cast<size_t>(std::numeric_limits<int>::max()));
-  return cont[Random::fast(0, static_cast<int>(cont.size()) - 1)];
+  return cont[td::Random::fast(0, static_cast<int>(cont.size()) - 1)];
 }
 
-static uint32 fast_pow_mod_uint32(uint32 x, uint32 p) {
-  uint32 res = 1;
+static td::uint32 fast_pow_mod_uint32(td::uint32 x, td::uint32 p) {
+  td::uint32 res = 1;
   while (p) {
     if (p & 1) {
       res *= x;
@@ -41,18 +39,18 @@ static uint32 fast_pow_mod_uint32(uint32 x, uint32 p) {
   return res;
 }
 
-static uint32 slow_pow_mod_uint32(uint32 x, uint32 p) {
-  uint32 res = 1;
-  for (uint32 i = 0; i < p; i++) {
+static td::uint32 slow_pow_mod_uint32(td::uint32 x, td::uint32 p) {
+  td::uint32 res = 1;
+  for (td::uint32 i = 0; i < p; i++) {
     res *= x;
   }
   return res;
 }
 
 struct Query {
-  uint32 query_id{};
-  uint32 result{};
-  std::vector<int> todo;
+  td::uint32 query_id{};
+  td::uint32 result{};
+  td::vector<int> todo;
   Query() = default;
   Query(const Query &) = delete;
   Query &operator=(const Query &) = delete;
@@ -72,25 +70,25 @@ struct Query {
   }
 };
 
-static uint32 fast_calc(Query &q) {
-  uint32 result = q.result;
+static td::uint32 fast_calc(Query &q) {
+  td::uint32 result = q.result;
   for (auto x : q.todo) {
     result = fast_pow_mod_uint32(result, x);
   }
   return result;
 }
 
-class Worker final : public Actor {
+class Worker final : public td::Actor {
  public:
   explicit Worker(int threads_n) : threads_n_(threads_n) {
   }
-  void query(PromiseActor<uint32> &&promise, uint32 x, uint32 p) {
-    uint32 result = slow_pow_mod_uint32(x, p);
+  void query(td::PromiseActor<td::uint32> &&promise, td::uint32 x, td::uint32 p) {
+    td::uint32 result = slow_pow_mod_uint32(x, p);
     promise.set_value(std::move(result));
 
     (void)threads_n_;
-    // if (threads_n_ > 1 && Random::fast(0, 9) == 0) {
-    // migrate(Random::fast(2, threads_n));
+    // if (threads_n_ > 1 && td::Random::fast(0, 9) == 0) {
+    // migrate(td::Random::fast(2, threads_n));
     //}
   }
 
@@ -98,7 +96,7 @@ class Worker final : public Actor {
   int threads_n_;
 };
 
-class QueryActor final : public Actor {
+class QueryActor final : public td::Actor {
  public:
   class Callback {
    public:
@@ -115,39 +113,39 @@ class QueryActor final : public Actor {
   explicit QueryActor(int threads_n) : threads_n_(threads_n) {
   }
 
-  void set_callback(unique_ptr<Callback> callback) {
+  void set_callback(td::unique_ptr<Callback> callback) {
     callback_ = std::move(callback);
   }
-  void set_workers(std::vector<ActorId<Worker>> workers) {
+  void set_workers(td::vector<td::ActorId<Worker>> workers) {
     workers_ = std::move(workers);
   }
 
   void query(Query &&query) {
-    uint32 x = query.result;
-    uint32 p = query.next_pow();
-    if (Random::fast(0, 3) && (p <= 1000 || workers_.empty())) {
+    td::uint32 x = query.result;
+    td::uint32 p = query.next_pow();
+    if (td::Random::fast(0, 3) && (p <= 1000 || workers_.empty())) {
       query.result = slow_pow_mod_uint32(x, p);
       callback_->on_result(std::move(query));
     } else {
-      auto future = Random::fast(0, 3) == 0
-                        ? send_promise<ActorSendType::Immediate>(rand_elem(workers_), &Worker::query, x, p)
-                        : send_promise<ActorSendType::Later>(rand_elem(workers_), &Worker::query, x, p);
+      auto future = td::Random::fast(0, 3) == 0
+                        ? td::send_promise<td::ActorSendType::Immediate>(rand_elem(workers_), &Worker::query, x, p)
+                        : td::send_promise<td::ActorSendType::Later>(rand_elem(workers_), &Worker::query, x, p);
       if (future.is_ready()) {
         query.result = future.move_as_ok();
         callback_->on_result(std::move(query));
       } else {
-        future.set_event(EventCreator::raw(actor_id(), query.query_id));
+        future.set_event(td::EventCreator::raw(actor_id(), query.query_id));
         auto query_id = query.query_id;
         pending_.emplace(query_id, std::make_pair(std::move(future), std::move(query)));
       }
     }
-    if (threads_n_ > 1 && Random::fast(0, 9) == 0) {
-      migrate(Random::fast(2, threads_n_));
+    if (threads_n_ > 1 && td::Random::fast(0, 9) == 0) {
+      migrate(td::Random::fast(2, threads_n_));
     }
   }
 
-  void raw_event(const Event::Raw &event) final {
-    uint32 id = event.u32;
+  void raw_event(const td::Event::Raw &event) final {
+    td::uint32 id = event.u32;
     auto it = pending_.find(id);
     auto future = std::move(it->second.first);
     auto query = std::move(it->second.second);
@@ -162,7 +160,7 @@ class QueryActor final : public Actor {
     stop();
   }
 
-  void on_start_migrate(int32 sched_id) final {
+  void on_start_migrate(td::int32 sched_id) final {
     for (auto &it : pending_) {
       start_migrate(it.second.first, sched_id);
     }
@@ -174,13 +172,13 @@ class QueryActor final : public Actor {
   }
 
  private:
-  unique_ptr<Callback> callback_;
-  std::map<uint32, std::pair<FutureActor<uint32>, Query>> pending_;
-  std::vector<ActorId<Worker>> workers_;
+  td::unique_ptr<Callback> callback_;
+  std::map<td::uint32, std::pair<td::FutureActor<td::uint32>, Query>> pending_;
+  td::vector<td::ActorId<Worker>> workers_;
   int threads_n_;
 };
 
-class MainQueryActor final : public Actor {
+class MainQueryActor final : public td::Actor {
   class QueryActorCallback final : public QueryActor::Callback {
    public:
     void on_result(Query &&query) final {
@@ -193,13 +191,13 @@ class MainQueryActor final : public Actor {
     void on_closed() final {
       send_closure(parent_id_, &MainQueryActor::on_closed);
     }
-    QueryActorCallback(ActorId<MainQueryActor> parent_id, ActorId<QueryActor> next_solver)
+    QueryActorCallback(td::ActorId<MainQueryActor> parent_id, td::ActorId<QueryActor> next_solver)
         : parent_id_(parent_id), next_solver_(next_solver) {
     }
 
    private:
-    ActorId<MainQueryActor> parent_id_;
-    ActorId<QueryActor> next_solver_;
+    td::ActorId<MainQueryActor> parent_id_;
+    td::ActorId<QueryActor> next_solver_;
   };
 
   const int ACTORS_CNT = 10;
@@ -212,22 +210,22 @@ class MainQueryActor final : public Actor {
   void start_up() final {
     actors_.resize(ACTORS_CNT);
     for (auto &actor : actors_) {
-      auto actor_ptr = make_unique<QueryActor>(threads_n_);
-      actor = register_actor("QueryActor", std::move(actor_ptr), threads_n_ > 1 ? Random::fast(2, threads_n_) : 0)
+      auto actor_ptr = td::make_unique<QueryActor>(threads_n_);
+      actor = register_actor("QueryActor", std::move(actor_ptr), threads_n_ > 1 ? td::Random::fast(2, threads_n_) : 0)
                   .release();
     }
 
     workers_.resize(WORKERS_CNT);
     for (auto &worker : workers_) {
-      auto actor_ptr = make_unique<Worker>(threads_n_);
-      worker =
-          register_actor("Worker", std::move(actor_ptr), threads_n_ > 1 ? Random::fast(2, threads_n_) : 0).release();
+      auto actor_ptr = td::make_unique<Worker>(threads_n_);
+      worker = register_actor("Worker", std::move(actor_ptr), threads_n_ > 1 ? td::Random::fast(2, threads_n_) : 0)
+                   .release();
     }
 
     for (int i = 0; i < ACTORS_CNT; i++) {
       ref_cnt_++;
       send_closure(actors_[i], &QueryActor::set_callback,
-                   make_unique<QueryActorCallback>(actor_id(this), actors_[(i + 1) % ACTORS_CNT]));
+                   td::make_unique<QueryActorCallback>(actor_id(this), actors_[(i + 1) % ACTORS_CNT]));
       send_closure(actors_[i], &QueryActor::set_workers, workers_);
     }
     yield();
@@ -252,14 +250,14 @@ class MainQueryActor final : public Actor {
   void on_closed() {
     ref_cnt_--;
     if (ref_cnt_ == 0) {
-      Scheduler::instance()->finish();
+      td::Scheduler::instance()->finish();
     }
   }
 
   void wakeup() final {
     int cnt = 100000;
     while (out_cnt_ < in_cnt_ + 100 && out_cnt_ < cnt) {
-      if (Random::fast_bool()) {
+      if (td::Random::fast_bool()) {
         send_closure(rand_elem(actors_), &QueryActor::query, create_query());
       } else {
         send_closure_later(rand_elem(actors_), &QueryActor::query, create_query());
@@ -276,9 +274,9 @@ class MainQueryActor final : public Actor {
   }
 
  private:
-  std::map<uint32, uint32> expected_;
-  std::vector<ActorId<QueryActor>> actors_;
-  std::vector<ActorId<Worker>> workers_;
+  std::map<td::uint32, td::uint32> expected_;
+  td::vector<td::ActorId<QueryActor>> actors_;
+  td::vector<td::ActorId<Worker>> workers_;
   int out_cnt_ = 0;
   int in_cnt_ = 0;
   int query_id_ = 1;
@@ -286,46 +284,47 @@ class MainQueryActor final : public Actor {
   int threads_n_;
 };
 
-class SimpleActor final : public Actor {
+class SimpleActor final : public td::Actor {
  public:
-  explicit SimpleActor(int32 threads_n) : threads_n_(threads_n) {
+  explicit SimpleActor(td::int32 threads_n) : threads_n_(threads_n) {
   }
   void start_up() final {
-    auto actor_ptr = make_unique<Worker>(threads_n_);
+    auto actor_ptr = td::make_unique<Worker>(threads_n_);
     worker_ =
-        register_actor("Worker", std::move(actor_ptr), threads_n_ > 1 ? Random::fast(2, threads_n_) : 0).release();
+        register_actor("Worker", std::move(actor_ptr), threads_n_ > 1 ? td::Random::fast(2, threads_n_) : 0).release();
     yield();
   }
 
   void wakeup() final {
     if (q_ == 100000) {
-      Scheduler::instance()->finish();
+      td::Scheduler::instance()->finish();
       stop();
       return;
     }
     q_++;
-    p_ = Random::fast_bool() ? 1 : 10000;
-    auto future = Random::fast(0, 3) == 0 ? send_promise<ActorSendType::Immediate>(worker_, &Worker::query, q_, p_)
-                                          : send_promise<ActorSendType::Later>(worker_, &Worker::query, q_, p_);
+    p_ = td::Random::fast_bool() ? 1 : 10000;
+    auto future = td::Random::fast(0, 3) == 0
+                      ? td::send_promise<td::ActorSendType::Immediate>(worker_, &Worker::query, q_, p_)
+                      : td::send_promise<td::ActorSendType::Later>(worker_, &Worker::query, q_, p_);
     if (future.is_ready()) {
       auto result = future.move_as_ok();
       CHECK(result == fast_pow_mod_uint32(q_, p_));
       yield();
     } else {
-      future.set_event(EventCreator::raw(actor_id(), nullptr));
+      future.set_event(td::EventCreator::raw(actor_id(), nullptr));
       future_ = std::move(future);
     }
-    // if (threads_n_ > 1 && Random::fast(0, 2) == 0) {
-    // migrate(Random::fast(1, threads_n));
+    // if (threads_n_ > 1 && td::Random::fast(0, 2) == 0) {
+    // migrate(td::Random::fast(1, threads_n));
     //}
   }
-  void raw_event(const Event::Raw &event) final {
+  void raw_event(const td::Event::Raw &event) final {
     auto result = future_.move_as_ok();
     CHECK(result == fast_pow_mod_uint32(q_, p_));
     yield();
   }
 
-  void on_start_migrate(int32 sched_id) final {
+  void on_start_migrate(td::int32 sched_id) final {
     start_migrate(future_, sched_id);
   }
   void on_finish_migrate() final {
@@ -333,25 +332,26 @@ class SimpleActor final : public Actor {
   }
 
  private:
-  int32 threads_n_;
-  ActorId<Worker> worker_;
-  FutureActor<uint32> future_;
-  uint32 q_ = 1;
-  uint32 p_ = 0;
+  td::int32 threads_n_;
+  td::ActorId<Worker> worker_;
+  td::FutureActor<td::uint32> future_;
+  td::uint32 q_ = 1;
+  td::uint32 p_ = 0;
 };
 }  // namespace
 
-class SendToDead final : public Actor {
+class SendToDead final : public td::Actor {
  public:
-  class Parent final : public Actor {
+  class Parent final : public td::Actor {
    public:
-    explicit Parent(ActorShared<> parent, int ttl = 3) : parent_(std::move(parent)), ttl_(ttl) {
+    explicit Parent(td::ActorShared<> parent, int ttl = 3) : parent_(std::move(parent)), ttl_(ttl) {
     }
     void start_up() final {
-      set_timeout_in(Random::fast_uint32() % 3 * 0.001);
+      set_timeout_in(td::Random::fast_uint32() % 3 * 0.001);
       if (ttl_ != 0) {
-        child_ = create_actor_on_scheduler<Parent>(
-            "Child", Random::fast_uint32() % Scheduler::instance()->sched_count(), actor_shared(this), ttl_ - 1);
+        child_ = td::create_actor_on_scheduler<Parent>(
+            "Child", td::Random::fast_uint32() % td::Scheduler::instance()->sched_count(), actor_shared(this),
+            ttl_ - 1);
       }
     }
     void timeout_expired() final {
@@ -359,29 +359,30 @@ class SendToDead final : public Actor {
     }
 
    private:
-    ActorOwn<Parent> child_;
-    ActorShared<> parent_;
+    td::ActorOwn<Parent> child_;
+    td::ActorShared<> parent_;
     int ttl_;
   };
 
   void start_up() final {
     for (int i = 0; i < 2000; i++) {
-      create_actor_on_scheduler<Parent>("Parent", Random::fast_uint32() % Scheduler::instance()->sched_count(),
-                                        create_reference(), 4)
+      td::create_actor_on_scheduler<Parent>(
+          "Parent", td::Random::fast_uint32() % td::Scheduler::instance()->sched_count(), create_reference(), 4)
           .release();
     }
   }
 
-  ActorShared<> create_reference() {
+  td::ActorShared<> create_reference() {
     ref_cnt_++;
     return actor_shared(this);
   }
+
   void hangup_shared() final {
     ref_cnt_--;
     if (ref_cnt_ == 0) {
       ttl_--;
       if (ttl_ <= 0) {
-        Scheduler::instance()->finish();
+        td::Scheduler::instance()->finish();
         stop();
       } else {
         start_up();
@@ -389,14 +390,14 @@ class SendToDead final : public Actor {
     }
   }
 
-  uint32 ttl_{50};
-  uint32 ref_cnt_{0};
+  td::uint32 ttl_{50};
+  td::uint32 ref_cnt_{0};
 };
 
 TEST(Actors, send_to_dead) {
   //TODO: fix CHECK(storage_count_.load() == 0)
   return;
-  ConcurrentScheduler sched;
+  td::ConcurrentScheduler sched;
   int threads_n = 5;
   sched.init(threads_n);
 
@@ -409,9 +410,7 @@ TEST(Actors, send_to_dead) {
 }
 
 TEST(Actors, main_simple) {
-  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(ERROR));
-
-  ConcurrentScheduler sched;
+  td::ConcurrentScheduler sched;
   int threads_n = 3;
   sched.init(threads_n);
 
@@ -424,9 +423,7 @@ TEST(Actors, main_simple) {
 }
 
 TEST(Actors, main) {
-  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(ERROR));
-
-  ConcurrentScheduler sched;
+  td::ConcurrentScheduler sched;
   int threads_n = 9;
   sched.init(threads_n);
 
@@ -438,23 +435,21 @@ TEST(Actors, main) {
   sched.finish();
 }
 
-class DoAfterStop final : public Actor {
+class DoAfterStop final : public td::Actor {
  public:
   void loop() final {
-    ptr = make_unique<int>(10);
+    ptr = td::make_unique<int>(10);
     stop();
     CHECK(*ptr == 10);
-    Scheduler::instance()->finish();
+    td::Scheduler::instance()->finish();
   }
 
  private:
-  unique_ptr<int> ptr;
+  td::unique_ptr<int> ptr;
 };
 
 TEST(Actors, do_after_stop) {
-  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(ERROR));
-
-  ConcurrentScheduler sched;
+  td::ConcurrentScheduler sched;
   int threads_n = 0;
   sched.init(threads_n);
 
@@ -466,9 +461,9 @@ TEST(Actors, do_after_stop) {
   sched.finish();
 }
 
-class XContext final : public ActorContext {
+class XContext final : public td::ActorContext {
  public:
-  int32 get_id() const final {
+  td::int32 get_id() const final {
     return 123456789;
   }
 
@@ -481,12 +476,12 @@ class XContext final : public ActorContext {
   int x = 1234;
 };
 
-class WithXContext final : public Actor {
+class WithXContext final : public td::Actor {
  public:
   void start_up() final {
     auto old_context = set_context(std::make_shared<XContext>());
   }
-  void f(unique_ptr<Guard> guard) {
+  void f(td::unique_ptr<td::Guard> guard) {
   }
   void close() {
     stop();
@@ -494,25 +489,23 @@ class WithXContext final : public Actor {
 };
 
 static void check_context() {
-  auto ptr = static_cast<XContext *>(Scheduler::context());
-  CHECK(ptr);
+  auto ptr = static_cast<XContext *>(td::Scheduler::context());
+  CHECK(ptr != nullptr);
   ptr->validate();
 }
 
 TEST(Actors, context_during_destruction) {
-  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(ERROR));
-
-  ConcurrentScheduler sched;
+  td::ConcurrentScheduler sched;
   int threads_n = 0;
   sched.init(threads_n);
 
   {
     auto guard = sched.get_main_guard();
-    auto with_context = create_actor<WithXContext>("WithXContext").release();
-    send_closure(with_context, &WithXContext::f, create_lambda_guard([] { check_context(); }));
+    auto with_context = td::create_actor<WithXContext>("WithXContext").release();
+    send_closure(with_context, &WithXContext::f, td::create_lambda_guard([] { check_context(); }));
     send_closure_later(with_context, &WithXContext::close);
-    send_closure(with_context, &WithXContext::f, create_lambda_guard([] { check_context(); }));
-    send_closure(with_context, &WithXContext::f, create_lambda_guard([] { Scheduler::instance()->finish(); }));
+    send_closure(with_context, &WithXContext::f, td::create_lambda_guard([] { check_context(); }));
+    send_closure(with_context, &WithXContext::f, td::create_lambda_guard([] { td::Scheduler::instance()->finish(); }));
   }
   sched.start();
   while (sched.run_main(10)) {
