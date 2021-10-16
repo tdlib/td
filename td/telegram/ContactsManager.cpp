@@ -11674,7 +11674,7 @@ void ContactsManager::on_get_channel_participants(
   on_get_chats(std::move(channel_participants->chats_), "on_get_channel_participants");
   int32 total_count = channel_participants->count_;
   auto participants = std::move(channel_participants->participants_);
-  LOG(INFO) << "Receive " << participants.size() << " members in " << channel_id;
+  LOG(INFO) << "Receive " << participants.size() << " " << filter << " members in " << channel_id;
 
   bool is_full = offset == 0 && static_cast<int32>(participants.size()) < limit && total_count < limit;
 
@@ -11705,11 +11705,12 @@ void ContactsManager::on_get_channel_participants(
   }
 
   if (total_count < narrow_cast<int32>(result.size())) {
-    LOG(ERROR) << "Receive total_count = " << total_count << ", but have at least " << result.size() << " members in "
-               << channel_id;
+    LOG(ERROR) << "Receive total_count = " << total_count << ", but have at least " << result.size() << " " << filter
+               << " members in " << channel_id;
     total_count = static_cast<int32>(result.size());
   } else if (is_full && total_count > static_cast<int32>(result.size())) {
-    LOG(ERROR) << "Fix total number of members from " << total_count << " to " << result.size() << " in " << channel_id;
+    LOG(ERROR) << "Fix total number of " << filter << " members from " << total_count << " to " << result.size()
+               << " in " << channel_id;
     total_count = static_cast<int32>(result.size());
   }
 
