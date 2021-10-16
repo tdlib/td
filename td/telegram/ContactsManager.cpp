@@ -11221,6 +11221,7 @@ void ContactsManager::add_profile_photo_to_cache(UserId user_id, Photo &&photo) 
       if (user_photos->photos.empty() || user_photos->photos[0].id.get() != photo.id.get()) {
         user_photos->photos.insert(user_photos->photos.begin(), photo);
         user_photos->count++;
+        register_user_photo(u, user_id, user_photos->photos[0]);
       }
     } else {
       user_photos->count++;
@@ -11234,6 +11235,7 @@ void ContactsManager::add_profile_photo_to_cache(UserId user_id, Photo &&photo) 
     if (user_full->photo != photo) {
       user_full->photo = photo;
       user_full->is_changed = true;
+      register_user_photo(u, user_id, photo);
     }
     update_user_full(user_full, user_id, "add_profile_photo_to_cache");
   }
@@ -12160,7 +12162,7 @@ void ContactsManager::on_update_chat_full_photo(ChatFull *chat_full, ChatId chat
     drop_chat_photos(chat_id, true, false, "on_update_chat_full_photo");
   }
 
-  auto photo_file_ids = photo_get_file_ids(photo);
+  auto photo_file_ids = photo_get_file_ids(chat_full->photo);
   if (chat_full->registered_photo_file_ids == photo_file_ids) {
     return;
   }
@@ -12197,7 +12199,7 @@ void ContactsManager::on_update_channel_full_photo(ChannelFull *channel_full, Ch
     drop_channel_photos(channel_id, true, false, "on_update_channel_full_photo");
   }
 
-  auto photo_file_ids = photo_get_file_ids(photo);
+  auto photo_file_ids = photo_get_file_ids(channel_full->photo);
   if (channel_full->registered_photo_file_ids == photo_file_ids) {
     return;
   }
