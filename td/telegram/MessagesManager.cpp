@@ -2189,9 +2189,7 @@ class SearchMessagesQuery final : public Td::ResultHandler {
             int32 limit, MessageSearchFilter filter, MessageId top_thread_message_id, int64 random_id) {
     auto input_peer = dialog_id.is_valid() ? td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read)
                                            : make_tl_object<telegram_api::inputPeerEmpty>();
-    if (input_peer == nullptr) {
-      return promise_.set_error(Status::Error(400, "Can't access the chat"));
-    }
+    CHECK(input_peer != nullptr);
 
     dialog_id_ = dialog_id;
     query_ = query;
@@ -9661,7 +9659,7 @@ void MessagesManager::on_get_dialog_messages_search_result(
   CHECK(d != nullptr);
   for (auto &message : messages) {
     auto new_full_message_id = on_get_message(std::move(message), false, dialog_id.get_type() == DialogType::Channel,
-                                              false, false, false, "SearchMessagesQuery");
+                                              false, false, false, "on_get_dialog_messages_search_result");
     if (new_full_message_id == FullMessageId()) {
       total_count--;
       continue;
@@ -21140,6 +21138,10 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
   if (d == nullptr) {
     promise.set_error(Status::Error(400, "Chat not found"));
     return result;
+  }
+  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+    promise.set_error(Status::Error(400, "Can't access the chat"));
+    return {};
   }
 
   DialogId sender_dialog_id;
