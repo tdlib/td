@@ -591,7 +591,7 @@ class QueueBenchmark2 final : public td::Benchmark {
 
   void server_process(qvalue_t value) {
     int no = value & 0x00FFFFFF;
-    int co = static_cast<int>(static_cast<unsigned int>(value) >> 24);
+    int co = static_cast<int>(static_cast<td::uint32>(value) >> 24);
     // std::fprintf(stderr, "-->%d %d\n", co, no);
     if (co < 0 || co >= connections_n || no != server_conn[co]++) {
       std::fprintf(stderr, "%d %d\n", co, no);
@@ -632,7 +632,7 @@ class QueueBenchmark2 final : public td::Benchmark {
 
   void client_process(qvalue_t value) {
     int no = value & 0x00FFFFFF;
-    int co = static_cast<int>(static_cast<unsigned int>(value) >> 24);
+    int co = static_cast<int>(static_cast<td::uint32>(value) >> 24);
     // std::fprintf(stderr, "<--%d %d\n", co, no);
     if (co < 0 || co >= connections_n || no != client_conn[co]++) {
       std::fprintf(stderr, "%d %d\n", co, no);

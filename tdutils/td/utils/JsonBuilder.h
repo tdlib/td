@@ -95,7 +95,7 @@ class JsonFloat {
 
 class JsonOneChar {
  public:
-  explicit JsonOneChar(unsigned int c) : c_(c) {
+  explicit JsonOneChar(uint32 c) : c_(c) {
   }
 
   friend StringBuilder &operator<<(StringBuilder &sb, const JsonOneChar &val) {
@@ -105,12 +105,12 @@ class JsonOneChar {
   }
 
  private:
-  unsigned int c_;
+  uint32 c_;
 };
 
 class JsonChar {
  public:
-  explicit JsonChar(unsigned int c) : c_(c) {
+  explicit JsonChar(uint32 c) : c_(c) {
   }
   friend StringBuilder &operator<<(StringBuilder &sb, const JsonChar &val) {
     auto c = val.c_;
@@ -129,7 +129,7 @@ class JsonChar {
   }
 
  private:
-  unsigned int c_;
+  uint32 c_;
 };
 
 class JsonRaw {

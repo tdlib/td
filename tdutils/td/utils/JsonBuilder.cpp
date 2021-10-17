@@ -96,11 +96,11 @@ StringBuilder &operator<<(StringBuilder &sb, const JsonString &val) {
           break;
         }
         if (128 <= ch) {
-          int a = s[pos];
+          uint32 a = ch;
           CHECK((a & 0x40) != 0);
 
           CHECK(pos + 1 < len);
-          int b = s[++pos];
+          uint32 b = static_cast<unsigned char>(s[++pos]);
           CHECK((b & 0xc0) == 0x80);
           if ((a & 0x20) == 0) {
             CHECK((a & 0x1e) > 0);
@@ -109,7 +109,7 @@ StringBuilder &operator<<(StringBuilder &sb, const JsonString &val) {
           }
 
           CHECK(pos + 1 < len);
-          int c = s[++pos];
+          uint32 c = static_cast<unsigned char>(s[++pos]);
           CHECK((c & 0xc0) == 0x80);
           if ((a & 0x10) == 0) {
             CHECK(((a & 0x0f) | (b & 0x20)) > 0);
@@ -118,7 +118,7 @@ StringBuilder &operator<<(StringBuilder &sb, const JsonString &val) {
           }
 
           CHECK(pos + 1 < len);
-          int d = s[++pos];
+          uint32 d = static_cast<unsigned char>(s[++pos]);
           CHECK((d & 0xc0) == 0x80);
           if ((a & 0x08) == 0) {
             CHECK(((a & 0x07) | (b & 0x30)) > 0);
