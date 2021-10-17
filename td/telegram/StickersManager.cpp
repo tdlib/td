@@ -1636,6 +1636,7 @@ vector<td_api::object_ptr<td_api::closedVectorPath>> StickersManager::get_sticke
           }
           if (!commands.empty()) {
             result.push_back(td_api::make_object<td_api::closedVectorPath>(std::move(commands)));
+            commands.clear();
           }
           is_closed = true;
           break;

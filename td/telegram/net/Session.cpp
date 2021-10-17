@@ -515,7 +515,7 @@ void Session::on_closed(Status status) {
       LOG(WARNING) << "Invalidate CDN tmp_key";
       auth_data_.drop_main_auth_key();
       on_auth_key_updated();
-      on_session_failed(std::move(status));
+      on_session_failed(status.clone());
     } else if (need_destroy_) {
       auth_data_.drop_main_auth_key();
       on_auth_key_updated();

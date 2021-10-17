@@ -71,8 +71,9 @@ inline Status from_json(int32 &to, JsonValue from) {
 }
 
 inline Status from_json(bool &to, JsonValue from) {
-  if (from.type() != JsonValue::Type::Boolean) {
-    if (from.type() == JsonValue::Type::Null) {
+  auto from_type = from.type();
+  if (from_type != JsonValue::Type::Boolean) {
+    if (from_type == JsonValue::Type::Null) {
       return Status::OK();
     }
     int32 x = 0;
@@ -81,7 +82,7 @@ inline Status from_json(bool &to, JsonValue from) {
       to = x != 0;
       return Status::OK();
     }
-    return Status::Error(PSLICE() << "Expected Boolean, got " << from.type());
+    return Status::Error(PSLICE() << "Expected Boolean, got " << from_type);
   }
   to = from.get_boolean();
   return Status::OK();

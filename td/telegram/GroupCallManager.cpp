@@ -2258,7 +2258,7 @@ std::pair<int32, int32> GroupCallManager::process_group_call_participant(InputGr
   }
   on_add_group_call_participant(input_group_call_id, participants->participants.back().dialog_id);
   on_participant_speaking_in_group_call(input_group_call_id, participants->participants.back());
-  return {diff, participant.video_diff};
+  return {diff, participants->participants.back().video_diff};
 }
 
 void GroupCallManager::on_add_group_call_participant(InputGroupCallId input_group_call_id,

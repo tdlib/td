@@ -94,6 +94,7 @@ class UdpReader {
     }
     if (status.is_error() && !UdpSocketFd::is_critical_read_error(status)) {
       queue.push(UdpMessage{{}, {}, std::move(status)});
+      status = Status::OK();
     }
     return status;
   }

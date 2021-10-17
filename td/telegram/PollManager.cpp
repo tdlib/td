@@ -616,7 +616,7 @@ PollId PollManager::create_poll(string &&question, vector<string> &&options, boo
   CHECK(is_local_poll_id(poll_id));
   bool is_inserted = polls_.emplace(poll_id, std::move(poll)).second;
   CHECK(is_inserted);
-  LOG(INFO) << "Created " << poll_id << " with question \"" << oneline(question) << '"';
+  LOG(INFO) << "Created " << poll_id << " with question \"" << oneline(poll->question) << '"';
   return poll_id;
 }
 

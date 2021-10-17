@@ -1877,7 +1877,6 @@ void UpdatesManager::process_updates(vector<tl_object_ptr<telegram_api::Update>>
     }
   }
   if (force_apply) {
-    // forcely process pts updates
     for (auto &update : updates) {
       if (update != nullptr && is_pts_update(update.get())) {
         auto constructor_id = update->get_id();

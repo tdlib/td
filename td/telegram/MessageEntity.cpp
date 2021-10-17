@@ -3010,8 +3010,8 @@ static Result<vector<MessageEntity>> do_parse_html(CSlice text, string &result) 
 
         if (tag_name == "a" && attribute_name == Slice("href")) {
           argument = std::move(attribute_value);
-        }
-        if (tag_name == "code" && attribute_name == Slice("class") && begins_with(attribute_value, "language-")) {
+        } else if (tag_name == "code" && attribute_name == Slice("class") &&
+                   begins_with(attribute_value, "language-")) {
           argument = attribute_value.substr(9);
         }
       }

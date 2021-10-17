@@ -4344,7 +4344,8 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
       }
 
       result->photo.photos.clear();
-      if (thumbnail.type != 0) {
+      bool has_thumbnail = thumbnail.type != 0;
+      if (has_thumbnail) {
         thumbnail.type = 't';
         result->photo.photos.push_back(std::move(thumbnail));
       }
@@ -4356,7 +4357,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
       }
 
       result->photo.photos.back().file_id = fix_file_id(result->photo.photos.back().file_id);
-      if (thumbnail.type != 0) {
+      if (has_thumbnail) {
         result->photo.photos[0].file_id = td->file_manager_->dup_file_id(result->photo.photos[0].file_id);
       }
       return std::move(result);

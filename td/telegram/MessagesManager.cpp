@@ -16029,8 +16029,7 @@ void MessagesManager::reload_pinned_dialogs(DialogListId dialog_list_id, Promise
   if (dialog_list_id.is_folder()) {
     send_closure(td_->create_net_actor<GetPinnedDialogsActor>(std::move(promise)), &GetPinnedDialogsActor::send,
                  dialog_list_id.get_folder_id(), get_sequence_dispatcher_id(DialogId(), MessageContentType::None));
-  }
-  if (dialog_list_id.is_filter()) {
+  } else if (dialog_list_id.is_filter()) {
     schedule_dialog_filters_reload(0.0);
     dialog_filter_reload_queries_.push_back(std::move(promise));
   }
@@ -23229,7 +23228,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
   }
   m->content = std::move(content);
   m->forward_info = std::move(forward_info);
-  m->is_copy = is_copy || forward_info != nullptr;
+  m->is_copy = is_copy || m->forward_info != nullptr;
 
   if (td_->auth_manager_->is_bot() || options.disable_notification ||
       G()->shared_config().get_option_boolean("ignore_default_disable_notification")) {

@@ -1041,13 +1041,12 @@ void ConfigManager::set_archive_and_mute(bool archive_and_mute, Promise<Unit> &&
 
 void ConfigManager::on_dc_options_update(DcOptions dc_options) {
   save_dc_options_update(dc_options);
-  send_closure(config_recoverer_, &ConfigRecoverer::on_dc_options_update, std::move(dc_options));
-  if (dc_options.dc_options.empty()) {
-    return;
+  if (!dc_options.dc_options.empty()) {
+    expire_time_ = Timestamp::now();
+    save_config_expire(expire_time_);
+    set_timeout_in(expire_time_.in());
   }
-  expire_time_ = Timestamp::now();
-  save_config_expire(expire_time_);
-  set_timeout_in(expire_time_.in());
+  send_closure(config_recoverer_, &ConfigRecoverer::on_dc_options_update, std::move(dc_options));
 }
 
 void ConfigManager::request_config_from_dc_impl(DcId dc_id) {
