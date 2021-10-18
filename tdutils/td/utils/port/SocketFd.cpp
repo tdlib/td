@@ -489,7 +489,7 @@ class SocketFdImpl {
       TRY_STATUS(get_pending_error());
     }
     int native_fd = get_native_fd().socket();
-    CHECK(slice.size() > 0);
+    CHECK(!slice.empty());
     auto read_res = detail::skip_eintr([&] { return ::read(native_fd, slice.begin(), slice.size()); });
     auto read_errno = errno;
     if (read_res >= 0) {

@@ -72,7 +72,8 @@ class ThreadPthread {
     return std::forward<T>(v);
   }
 
-  int do_pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine)(void *), void *arg);
+  static int do_pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine)(void *),
+                               void *arg);
 
   static void *run_thread(void *ptr) {
     ThreadIdGuard thread_id_guard;

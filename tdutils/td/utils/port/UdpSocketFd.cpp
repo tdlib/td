@@ -59,7 +59,7 @@ class UdpSocketReceiveHelper {
     message_header.dwFlags = 0;
   }
 
-  void from_native(WSAMSG &message_header, size_t message_size, UdpMessage &message) {
+  static void from_native(WSAMSG &message_header, size_t message_size, UdpMessage &message) {
     message.address.init_sockaddr(reinterpret_cast<sockaddr *>(message_header.name), message_header.namelen).ignore();
     message.error = Status::OK();
 
@@ -387,7 +387,7 @@ class UdpSocketReceiveHelper {
     message_header.msg_flags = 0;
   }
 
-  void from_native(msghdr &message_header, size_t message_size, UdpSocketFd::InboundMessage &message) {
+  static void from_native(msghdr &message_header, size_t message_size, UdpSocketFd::InboundMessage &message) {
 #if TD_LINUX
     cmsghdr *cmsg;
     sock_extended_err *ee = nullptr;
