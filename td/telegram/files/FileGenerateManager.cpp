@@ -365,8 +365,8 @@ class FileExternalGenerateActor final : public FileGenerateActor {
 };
 
 FileGenerateManager::Query::~Query() = default;
-FileGenerateManager::Query::Query(Query &&other) = default;
-FileGenerateManager::Query &FileGenerateManager::Query::operator=(Query &&other) = default;
+FileGenerateManager::Query::Query(Query &&other) noexcept = default;
+FileGenerateManager::Query &FileGenerateManager::Query::operator=(Query &&other) noexcept = default;
 
 static Status check_mtime(std::string &conversion, CSlice original_path) {
   if (original_path.empty()) {

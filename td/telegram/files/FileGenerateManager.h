@@ -51,8 +51,8 @@ class FileGenerateManager final : public Actor {
     Query() = default;
     Query(const Query &other) = delete;
     Query &operator=(const Query &other) = delete;
-    Query(Query &&other);
-    Query &operator=(Query &&other);
+    Query(Query &&other) noexcept;
+    Query &operator=(Query &&other) noexcept;
     ~Query();
 
     ActorOwn<FileGenerateActor> worker_;

@@ -130,7 +130,7 @@ ConnectionCreator::ConnectionCreator(ActorShared<> parent) : parent_(std::move(p
 
 ConnectionCreator::ConnectionCreator(ConnectionCreator &&other) = default;
 
-ConnectionCreator &ConnectionCreator::operator=(ConnectionCreator &&other) = default;
+ConnectionCreator &ConnectionCreator::operator=(ConnectionCreator &&other) noexcept = default;
 
 ConnectionCreator::~ConnectionCreator() = default;
 

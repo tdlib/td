@@ -115,10 +115,10 @@ class SharedPtr {
     reset(other.raw_);
     return *this;
   }
-  SharedPtr(SharedPtr &&other) : raw_(other.raw_) {
+  SharedPtr(SharedPtr &&other) noexcept : raw_(other.raw_) {
     other.raw_ = nullptr;
   }
-  SharedPtr &operator=(SharedPtr &&other) {
+  SharedPtr &operator=(SharedPtr &&other) noexcept {
     reset(other.raw_);
     other.raw_ = nullptr;
     return *this;

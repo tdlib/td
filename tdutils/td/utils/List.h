@@ -24,7 +24,7 @@ struct ListNode {
   ListNode(const ListNode &) = delete;
   ListNode &operator=(const ListNode &) = delete;
 
-  ListNode(ListNode &&other) {
+  ListNode(ListNode &&other) noexcept {
     if (other.empty()) {
       clear();
     } else {
@@ -32,7 +32,7 @@ struct ListNode {
     }
   }
 
-  ListNode &operator=(ListNode &&other) {
+  ListNode &operator=(ListNode &&other) noexcept {
     if (this == &other) {
       return *this;
     }

@@ -62,10 +62,10 @@ ActorOwn<ActorType> &ActorOwn<ActorType>::operator=(ActorOwn<OtherActorType> &&o
 }
 
 template <class ActorType>
-ActorOwn<ActorType>::ActorOwn(ActorOwn &&other) : id_(other.release()) {
+ActorOwn<ActorType>::ActorOwn(ActorOwn &&other) noexcept : id_(other.release()) {
 }
 template <class ActorType>
-ActorOwn<ActorType> &ActorOwn<ActorType>::operator=(ActorOwn &&other) {
+ActorOwn<ActorType> &ActorOwn<ActorType>::operator=(ActorOwn &&other) noexcept {
   reset(other.release());
   return *this;
 }
@@ -127,10 +127,10 @@ ActorShared<ActorType> &ActorShared<ActorType>::operator=(ActorShared<OtherActor
 }
 
 template <class ActorType>
-ActorShared<ActorType>::ActorShared(ActorShared &&other) : id_(other.release()), token_(other.token_) {
+ActorShared<ActorType>::ActorShared(ActorShared &&other) noexcept : id_(other.release()), token_(other.token_) {
 }
 template <class ActorType>
-ActorShared<ActorType> &ActorShared<ActorType>::operator=(ActorShared &&other) {
+ActorShared<ActorType> &ActorShared<ActorType>::operator=(ActorShared &&other) noexcept {
   reset(other.release());
   token_ = other.token_;
   return *this;

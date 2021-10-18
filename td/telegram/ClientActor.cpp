@@ -26,9 +26,9 @@ void ClientActor::request(uint64 id, td_api::object_ptr<td_api::Function> reques
 
 ClientActor::~ClientActor() = default;
 
-ClientActor::ClientActor(ClientActor &&other) = default;
+ClientActor::ClientActor(ClientActor &&other) noexcept = default;
 
-ClientActor &ClientActor::operator=(ClientActor &&other) = default;
+ClientActor &ClientActor::operator=(ClientActor &&other) noexcept = default;
 
 td_api::object_ptr<td_api::Object> ClientActor::execute(td_api::object_ptr<td_api::Function> request) {
   return Td::static_request(std::move(request));

@@ -20,8 +20,8 @@ class Gzip {
   Gzip();
   Gzip(const Gzip &) = delete;
   Gzip &operator=(const Gzip &) = delete;
-  Gzip(Gzip &&other);
-  Gzip &operator=(Gzip &&other);
+  Gzip(Gzip &&other) noexcept;
+  Gzip &operator=(Gzip &&other) noexcept;
   ~Gzip();
 
   enum class Mode { Empty, Encode, Decode };

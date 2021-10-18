@@ -118,10 +118,10 @@ class BufferSlice {
   }
   BufferSlice(const BufferSlice &other) = delete;
   BufferSlice &operator=(const BufferSlice &other) = delete;
-  BufferSlice(BufferSlice &&other) : BufferSlice(std::move(other.buffer_), other.begin_, other.end_) {
+  BufferSlice(BufferSlice &&other) noexcept : BufferSlice(std::move(other.buffer_), other.begin_, other.end_) {
     debug_untrack();  // yes, debug_untrack
   }
-  BufferSlice &operator=(BufferSlice &&other) {
+  BufferSlice &operator=(BufferSlice &&other) noexcept {
     if (this == &other) {
       return *this;
     }

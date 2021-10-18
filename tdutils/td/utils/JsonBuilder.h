@@ -459,10 +459,10 @@ class JsonValue final : private Jsonable {
   ~JsonValue() {
     destroy();
   }
-  JsonValue(JsonValue &&other) : JsonValue() {
+  JsonValue(JsonValue &&other) noexcept : JsonValue() {
     init(std::move(other));
   }
-  JsonValue &operator=(JsonValue &&other) {
+  JsonValue &operator=(JsonValue &&other) noexcept {
     if (&other == this) {
       return *this;
     }

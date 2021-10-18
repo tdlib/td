@@ -225,11 +225,11 @@ class ByteFlowSource final : public ByteFlowInterface {
   ByteFlowSource() = default;
   explicit ByteFlowSource(ChainBufferReader *buffer) : buffer_(buffer) {
   }
-  ByteFlowSource(ByteFlowSource &&other) : buffer_(other.buffer_), parent_(other.parent_) {
+  ByteFlowSource(ByteFlowSource &&other) noexcept : buffer_(other.buffer_), parent_(other.parent_) {
     other.buffer_ = nullptr;
     other.parent_ = nullptr;
   }
-  ByteFlowSource &operator=(ByteFlowSource &&other) {
+  ByteFlowSource &operator=(ByteFlowSource &&other) noexcept {
     buffer_ = other.buffer_;
     parent_ = other.parent_;
     other.buffer_ = nullptr;

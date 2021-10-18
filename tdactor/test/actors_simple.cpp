@@ -71,14 +71,14 @@ class X {
   X(const X &) {
     sb << "[cnstr_copy]";
   }
-  X(X &&) {
+  X(X &&) noexcept {
     sb << "[cnstr_move]";
   }
   X &operator=(const X &) {
     sb << "[set_copy]";
     return *this;
   }
-  X &operator=(X &&) {
+  X &operator=(X &&) noexcept {
     sb << "[set_move]";
     return *this;
   }

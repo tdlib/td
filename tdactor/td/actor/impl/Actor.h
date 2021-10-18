@@ -20,14 +20,14 @@
 
 namespace td {
 
-inline Actor::Actor(Actor &&other) {
+inline Actor::Actor(Actor &&other) noexcept {
   CHECK(info_.empty());
   info_ = std::move(other.info_);
   if (!empty()) {
     info_->on_actor_moved(this);
   }
 }
-inline Actor &Actor::operator=(Actor &&other) {
+inline Actor &Actor::operator=(Actor &&other) noexcept {
   CHECK(info_.empty());
   info_ = std::move(other.info_);
   if (!empty()) {

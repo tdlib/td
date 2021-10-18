@@ -38,8 +38,8 @@ struct UdpMessage {
 class UdpSocketFd {
  public:
   UdpSocketFd();
-  UdpSocketFd(UdpSocketFd &&);
-  UdpSocketFd &operator=(UdpSocketFd &&);
+  UdpSocketFd(UdpSocketFd &&) noexcept;
+  UdpSocketFd &operator=(UdpSocketFd &&) noexcept;
   ~UdpSocketFd();
 
   UdpSocketFd(const UdpSocketFd &) = delete;

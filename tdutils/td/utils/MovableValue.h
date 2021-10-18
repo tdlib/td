@@ -14,10 +14,10 @@ class MovableValue {
   MovableValue() = default;
   MovableValue(T val) : val_(val) {
   }
-  MovableValue(MovableValue &&other) : val_(other.val_) {
+  MovableValue(MovableValue &&other) noexcept : val_(other.val_) {
     other.clear();
   }
-  MovableValue &operator=(MovableValue &&other) {
+  MovableValue &operator=(MovableValue &&other) noexcept {
     if (this != &other) {
       val_ = other.val_;
       other.clear();

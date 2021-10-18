@@ -19,8 +19,8 @@ class SslStreamImpl;
 class SslStream {
  public:
   SslStream();
-  SslStream(SslStream &&);
-  SslStream &operator=(SslStream &&);
+  SslStream(SslStream &&) noexcept;
+  SslStream &operator=(SslStream &&) noexcept;
   ~SslStream();
 
   enum class VerifyPeer { On, Off };

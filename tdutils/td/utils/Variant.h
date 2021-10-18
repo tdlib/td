@@ -115,7 +115,7 @@ class Variant {
   Variant(const Variant &other) {
     other.visit([&](auto &&value) { this->init_empty(std::forward<decltype(value)>(value)); });
   }
-  Variant &operator=(Variant &&other) {
+  Variant &operator=(Variant &&other) noexcept {
     clear();
     other.visit([&](auto &&value) { this->init_empty(std::forward<decltype(value)>(value)); });
     return *this;

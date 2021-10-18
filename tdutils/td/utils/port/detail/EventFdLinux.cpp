@@ -33,8 +33,8 @@ class EventFdLinuxImpl {
 };
 
 EventFdLinux::EventFdLinux() = default;
-EventFdLinux::EventFdLinux(EventFdLinux &&) = default;
-EventFdLinux &EventFdLinux::operator=(EventFdLinux &&) = default;
+EventFdLinux::EventFdLinux(EventFdLinux &&) noexcept = default;
+EventFdLinux &EventFdLinux::operator=(EventFdLinux &&) noexcept = default;
 EventFdLinux::~EventFdLinux() = default;
 
 void EventFdLinux::init() {

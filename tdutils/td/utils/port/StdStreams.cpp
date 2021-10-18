@@ -229,8 +229,8 @@ void BufferedStdinImplDeleter::operator()(BufferedStdinImpl *impl) {
 
 BufferedStdin::BufferedStdin() : impl_(make_unique<detail::BufferedStdinImpl>().release()) {
 }
-BufferedStdin::BufferedStdin(BufferedStdin &&) = default;
-BufferedStdin &BufferedStdin::operator=(BufferedStdin &&) = default;
+BufferedStdin::BufferedStdin(BufferedStdin &&) noexcept = default;
+BufferedStdin &BufferedStdin::operator=(BufferedStdin &&) noexcept = default;
 BufferedStdin::~BufferedStdin() = default;
 
 ChainBufferReader &BufferedStdin::input_buffer() {

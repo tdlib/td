@@ -24,8 +24,8 @@ class Actor : public ObserverBase {
   Actor() = default;
   Actor(const Actor &) = delete;
   Actor &operator=(const Actor &) = delete;
-  Actor(Actor &&other);
-  Actor &operator=(Actor &&other);
+  Actor(Actor &&other) noexcept;
+  Actor &operator=(Actor &&other) noexcept;
   ~Actor() override {
     if (!empty()) {
       do_stop();

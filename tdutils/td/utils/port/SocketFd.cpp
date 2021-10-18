@@ -609,8 +609,8 @@ Status init_socket_options(NativeFd &native_fd) {
 }  // namespace detail
 
 SocketFd::SocketFd() = default;
-SocketFd::SocketFd(SocketFd &&) = default;
-SocketFd &SocketFd::operator=(SocketFd &&) = default;
+SocketFd::SocketFd(SocketFd &&) noexcept = default;
+SocketFd &SocketFd::operator=(SocketFd &&) noexcept = default;
 SocketFd::~SocketFd() = default;
 
 SocketFd::SocketFd(unique_ptr<detail::SocketFdImpl> impl) : impl_(impl.release()) {

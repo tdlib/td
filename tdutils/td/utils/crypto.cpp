@@ -396,8 +396,8 @@ struct AesState::Impl {
 };
 
 AesState::AesState() = default;
-AesState::AesState(AesState &&from) = default;
-AesState &AesState::operator=(AesState &&from) = default;
+AesState::AesState(AesState &&from) noexcept = default;
+AesState &AesState::operator=(AesState &&from) noexcept = default;
 AesState::~AesState() = default;
 
 void AesState::init(Slice key, bool encrypt) {
@@ -515,8 +515,8 @@ class AesIgeStateImpl {
 };
 
 AesIgeState::AesIgeState() = default;
-AesIgeState::AesIgeState(AesIgeState &&from) = default;
-AesIgeState &AesIgeState::operator=(AesIgeState &&from) = default;
+AesIgeState::AesIgeState(AesIgeState &&from) noexcept = default;
+AesIgeState &AesIgeState::operator=(AesIgeState &&from) noexcept = default;
 AesIgeState::~AesIgeState() = default;
 
 void AesIgeState::init(Slice key, Slice iv, bool encrypt) {
@@ -580,8 +580,8 @@ AesCbcState::AesCbcState(Slice key256, Slice iv128) : raw_{SecureString(key256),
   CHECK(raw_.iv.size() == 16);
 }
 
-AesCbcState::AesCbcState(AesCbcState &&from) = default;
-AesCbcState &AesCbcState::operator=(AesCbcState &&from) = default;
+AesCbcState::AesCbcState(AesCbcState &&from) noexcept = default;
+AesCbcState &AesCbcState::operator=(AesCbcState &&from) noexcept = default;
 AesCbcState::~AesCbcState() = default;
 
 void AesCbcState::encrypt(Slice from, MutableSlice to) {
@@ -634,8 +634,8 @@ struct AesCtrState::Impl {
 };
 
 AesCtrState::AesCtrState() = default;
-AesCtrState::AesCtrState(AesCtrState &&from) = default;
-AesCtrState &AesCtrState::operator=(AesCtrState &&from) = default;
+AesCtrState::AesCtrState(AesCtrState &&from) noexcept = default;
+AesCtrState &AesCtrState::operator=(AesCtrState &&from) noexcept = default;
 AesCtrState::~AesCtrState() = default;
 
 void AesCtrState::init(Slice key, Slice iv) {
@@ -762,13 +762,13 @@ class Sha256State::Impl {
 
 Sha256State::Sha256State() = default;
 
-Sha256State::Sha256State(Sha256State &&other) {
+Sha256State::Sha256State(Sha256State &&other) noexcept {
   impl_ = std::move(other.impl_);
   is_inited_ = other.is_inited_;
   other.is_inited_ = false;
 }
 
-Sha256State &Sha256State::operator=(Sha256State &&other) {
+Sha256State &Sha256State::operator=(Sha256State &&other) noexcept {
   Sha256State copy(std::move(other));
   using std::swap;
   swap(impl_, copy.impl_);

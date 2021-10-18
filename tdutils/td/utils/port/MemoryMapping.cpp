@@ -91,8 +91,8 @@ Result<MemoryMapping> MemoryMapping::create_from_file(const FileFd &file_fd, con
 #endif
 }
 
-MemoryMapping::MemoryMapping(MemoryMapping &&other) = default;
-MemoryMapping &MemoryMapping::operator=(MemoryMapping &&other) = default;
+MemoryMapping::MemoryMapping(MemoryMapping &&other) noexcept = default;
+MemoryMapping &MemoryMapping::operator=(MemoryMapping &&other) noexcept = default;
 MemoryMapping::~MemoryMapping() = default;
 
 MemoryMapping::MemoryMapping(unique_ptr<Impl> impl) : impl_(std::move(impl)) {

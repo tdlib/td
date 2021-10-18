@@ -423,14 +423,14 @@ class Result {
   }
   Result(const Result &) = delete;
   Result &operator=(const Result &) = delete;
-  Result(Result &&other) : status_(std::move(other.status_)) {
+  Result(Result &&other) noexcept : status_(std::move(other.status_)) {
     if (status_.is_ok()) {
       new (&value_) T(std::move(other.value_));
       other.value_.~T();
     }
     other.status_ = Status::Error<-2>();
   }
-  Result &operator=(Result &&other) {
+  Result &operator=(Result &&other) noexcept {
     CHECK(this != &other);
     if (status_.is_ok()) {
       value_.~T();

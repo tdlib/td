@@ -130,11 +130,11 @@ void Gzip::clear() {
 Gzip::Gzip() : impl_(make_unique<Impl>()) {
 }
 
-Gzip::Gzip(Gzip &&other) : Gzip() {
+Gzip::Gzip(Gzip &&other) noexcept : Gzip() {
   swap(other);
 }
 
-Gzip &Gzip::operator=(Gzip &&other) {
+Gzip &Gzip::operator=(Gzip &&other) noexcept {
   CHECK(this != &other);
   clear();
   swap(other);

@@ -780,10 +780,10 @@ struct PartialLocalFileLocationPtr {
     *location_ = *other.location_;
     return *this;
   }
-  PartialLocalFileLocationPtr(PartialLocalFileLocationPtr &&other)
+  PartialLocalFileLocationPtr(PartialLocalFileLocationPtr &&other) noexcept
       : location_(make_unique<PartialLocalFileLocation>(std::move(*other.location_))) {
   }
-  PartialLocalFileLocationPtr &operator=(PartialLocalFileLocationPtr &&other) {
+  PartialLocalFileLocationPtr &operator=(PartialLocalFileLocationPtr &&other) noexcept {
     *location_ = std::move(*other.location_);
     return *this;
   }

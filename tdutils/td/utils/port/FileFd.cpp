@@ -108,8 +108,8 @@ class FileFdImpl {
 }  // namespace detail
 
 FileFd::FileFd() = default;
-FileFd::FileFd(FileFd &&) = default;
-FileFd &FileFd::operator=(FileFd &&) = default;
+FileFd::FileFd(FileFd &&) noexcept = default;
+FileFd &FileFd::operator=(FileFd &&) noexcept = default;
 FileFd::~FileFd() = default;
 
 FileFd::FileFd(unique_ptr<detail::FileFdImpl> impl) : impl_(std::move(impl)) {

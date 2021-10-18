@@ -738,8 +738,8 @@ void UdpSocketFdImplDeleter::operator()(UdpSocketFdImpl *impl) {
 }  // namespace detail
 
 UdpSocketFd::UdpSocketFd() = default;
-UdpSocketFd::UdpSocketFd(UdpSocketFd &&) = default;
-UdpSocketFd &UdpSocketFd::operator=(UdpSocketFd &&) = default;
+UdpSocketFd::UdpSocketFd(UdpSocketFd &&) noexcept = default;
+UdpSocketFd &UdpSocketFd::operator=(UdpSocketFd &&) noexcept = default;
 UdpSocketFd::~UdpSocketFd() = default;
 PollableFdInfo &UdpSocketFd::get_poll_info() {
   return impl_->get_poll_info();

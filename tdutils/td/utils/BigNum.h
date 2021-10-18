@@ -21,8 +21,8 @@ class BigNumContext {
   BigNumContext();
   BigNumContext(const BigNumContext &other) = delete;
   BigNumContext &operator=(const BigNumContext &other) = delete;
-  BigNumContext(BigNumContext &&other);
-  BigNumContext &operator=(BigNumContext &&other);
+  BigNumContext(BigNumContext &&other) noexcept;
+  BigNumContext &operator=(BigNumContext &&other) noexcept;
   ~BigNumContext();
 
  private:
@@ -37,8 +37,8 @@ class BigNum {
   BigNum();
   BigNum(const BigNum &other);
   BigNum &operator=(const BigNum &other);
-  BigNum(BigNum &&other);
-  BigNum &operator=(BigNum &&other);
+  BigNum(BigNum &&other) noexcept;
+  BigNum &operator=(BigNum &&other) noexcept;
   ~BigNum();
 
   static BigNum from_binary(Slice str);

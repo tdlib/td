@@ -640,9 +640,9 @@ Client::Response Client::execute(Request &&request) {
   return response;
 }
 
+Client::Client(Client &&other) noexcept = default;
+Client &Client::operator=(Client &&other) noexcept = default;
 Client::~Client() = default;
-Client::Client(Client &&other) = default;
-Client &Client::operator=(Client &&other) = default;
 
 ClientManager::ClientManager() : impl_(std::make_unique<Impl>()) {
 }
@@ -682,9 +682,9 @@ void ClientManager::set_log_message_callback(int max_verbosity_level, LogMessage
   }
 }
 
+ClientManager::ClientManager(ClientManager &&other) noexcept = default;
+ClientManager &ClientManager::operator=(ClientManager &&other) noexcept = default;
 ClientManager::~ClientManager() = default;
-ClientManager::ClientManager(ClientManager &&other) = default;
-ClientManager &ClientManager::operator=(ClientManager &&other) = default;
 
 ClientManager *ClientManager::get_manager_singleton() {
   static ClientManager client_manager;

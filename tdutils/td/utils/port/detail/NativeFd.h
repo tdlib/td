@@ -34,8 +34,8 @@ class NativeFd {
 #endif
   NativeFd(const NativeFd &) = delete;
   NativeFd &operator=(const NativeFd &) = delete;
-  NativeFd(NativeFd &&other);
-  NativeFd &operator=(NativeFd &&other);
+  NativeFd(NativeFd &&other) noexcept;
+  NativeFd &operator=(NativeFd &&other) noexcept;
   ~NativeFd();
 
   explicit operator bool() const;

@@ -25,10 +25,10 @@ class ActorId {
   ActorId() = default;
   ActorId(const ActorId &other) = default;
   ActorId &operator=(const ActorId &other) = default;
-  ActorId(ActorId &&other) : ptr_(other.ptr_) {
+  ActorId(ActorId &&other) noexcept : ptr_(other.ptr_) {
     other.ptr_.clear();
   }
-  ActorId &operator=(ActorId &&other) {
+  ActorId &operator=(ActorId &&other) noexcept {
     if (&other == this) {
       return *this;
     }
@@ -85,8 +85,8 @@ class ActorOwn {
   explicit ActorOwn(ActorOwn<OtherActorType> &&other);
   template <class OtherActorType>
   ActorOwn &operator=(ActorOwn<OtherActorType> &&other);
-  ActorOwn(ActorOwn &&other);
-  ActorOwn &operator=(ActorOwn &&other);
+  ActorOwn(ActorOwn &&other) noexcept;
+  ActorOwn &operator=(ActorOwn &&other) noexcept;
   ActorOwn(const ActorOwn &other) = delete;
   ActorOwn &operator=(const ActorOwn &other) = delete;
   ~ActorOwn();
@@ -121,8 +121,8 @@ class ActorShared {
   ActorShared(ActorOwn<OtherActorType> &&other);
   template <class OtherActorType>
   ActorShared &operator=(ActorShared<OtherActorType> &&other);
-  ActorShared(ActorShared &&other);
-  ActorShared &operator=(ActorShared &&other);
+  ActorShared(ActorShared &&other) noexcept;
+  ActorShared &operator=(ActorShared &&other) noexcept;
   ActorShared(const ActorShared &other) = delete;
   ActorShared &operator=(const ActorShared &other) = delete;
   ~ActorShared();

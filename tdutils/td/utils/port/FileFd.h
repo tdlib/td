@@ -20,13 +20,13 @@
 namespace td {
 namespace detail {
 class FileFdImpl;
-}
+}  // namespace detail
 
 class FileFd {
  public:
   FileFd();
-  FileFd(FileFd &&);
-  FileFd &operator=(FileFd &&);
+  FileFd(FileFd &&) noexcept;
+  FileFd &operator=(FileFd &&) noexcept;
   ~FileFd();
   FileFd(const FileFd &) = delete;
   FileFd &operator=(const FileFd &) = delete;
