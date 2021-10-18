@@ -150,7 +150,7 @@ class SPSCBlockQueue {
   }
 };
 
-template <class T, class BlockQueueT = SPSCBlockQueue<T> >
+template <class T, class BlockQueueT = SPSCBlockQueue<T>>
 class SPSCChainQueue {
  public:
   using ValueType = T;
@@ -308,10 +308,10 @@ class BackoffQueue : public QueueT {
   }
 };
 
-template <class T, class QueueT = SPSCChainQueue<T> >
+template <class T, class QueueT = SPSCChainQueue<T>>
 using InfBackoffQueue = BackoffQueue<T, QueueT, detail::InfBackoff>;
 
-template <class T, class QueueT = BackoffQueue<T> >
+template <class T, class QueueT = BackoffQueue<T>>
 class PollQueue final : public QueueT {
  public:
   using ValueType = T;

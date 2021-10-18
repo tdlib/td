@@ -99,7 +99,7 @@ class TsFileLog final : public LogInterface {
 
 Result<unique_ptr<LogInterface>> TsFileLog::create(string path, int64 rotate_threshold, bool redirect_stderr) {
   auto res = make_unique<detail::TsFileLog>();
-  TRY_STATUS(res->init(path, rotate_threshold, redirect_stderr));
+  TRY_STATUS(res->init(std::move(path), rotate_threshold, redirect_stderr));
   return std::move(res);
 }
 

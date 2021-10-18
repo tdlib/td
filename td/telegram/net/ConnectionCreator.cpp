@@ -396,7 +396,7 @@ void ConnectionCreator::ping_proxy_socket_fd(IPAddress ip_address, SocketFd sock
   auto raw_connection =
       mtproto::RawConnection::create(ip_address, std::move(socket_fd), std::move(transport_type), nullptr);
   children_[token] = {
-      false, create_ping_actor(std::move(debug_str), std::move(raw_connection), nullptr,
+      false, create_ping_actor(debug_str, std::move(raw_connection), nullptr,
                                PromiseCreator::lambda([promise = std::move(promise)](
                                                           Result<unique_ptr<mtproto::RawConnection>> result) mutable {
                                  if (result.is_error()) {

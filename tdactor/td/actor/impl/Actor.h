@@ -52,7 +52,7 @@ inline void Actor::do_stop() {
   CHECK(empty());
 }
 inline bool Actor::has_timeout() const {
-  return Scheduler::instance()->has_actor_timeout(this);
+  return get_info()->get_heap_node()->in_heap();
 }
 inline double Actor::get_timeout() const {
   return Scheduler::instance()->get_actor_timeout(this);

@@ -139,7 +139,7 @@ class Sha256State {
 
   void feed(Slice data);
 
-  void extract(MutableSlice dest, bool destroy = false);
+  void extract(MutableSlice output, bool destroy = false);
 
  private:
   class Impl;

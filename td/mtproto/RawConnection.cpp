@@ -37,7 +37,7 @@ class RawConnectionDefault final : public RawConnection {
  public:
   RawConnectionDefault(SocketFd socket_fd, TransportType transport_type, unique_ptr<StatsCallback> stats_callback)
       : socket_fd_(std::move(socket_fd))
-      , transport_(create_transport(transport_type))
+      , transport_(create_transport(std::move(transport_type)))
       , stats_callback_(std::move(stats_callback)) {
     transport_->init(&socket_fd_.input_buffer(), &socket_fd_.output_buffer());
   }

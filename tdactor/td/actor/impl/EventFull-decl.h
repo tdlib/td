@@ -45,7 +45,7 @@ class EventFull {
     data_.link_token = actor_ref.token();
   }
   template <class T>
-  EventFull(ActorId<T> actor_id, Event &&data) : actor_id_(actor_id), data_(std::move(data)) {
+  EventFull(ActorId<T> actor_id, Event &&data) : actor_id_(std::move(actor_id)), data_(std::move(data)) {
   }
 
   ActorId<> actor_id_;

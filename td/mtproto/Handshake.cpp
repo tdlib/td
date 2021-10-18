@@ -95,7 +95,8 @@ Status AuthKeyHandshake::on_res_pq(Slice message, Callback *connection, PublicRs
   }
   auto rsa_key = r_rsa_key.move_as_ok();
 
-  string p, q;
+  string p;
+  string q;
   if (pq_factorize(res_pq->pq_, &p, &q) == -1) {
     return Status::Error("Failed to factorize");
   }
@@ -129,7 +130,7 @@ Status AuthKeyHandshake::on_res_pq(Slice message, Callback *connection, PublicRs
     string aes_key(32, '\0');
     Random::secure_bytes(MutableSlice(aes_key));
 
-    string data_with_hash = data + sha256(aes_key + data);
+    string data_with_hash = PSTRING() << data << sha256(aes_key + data);
     std::reverse(data_with_hash.begin(), data_with_hash.begin() + data.size());
 
     string decrypted_data(256, '\0');

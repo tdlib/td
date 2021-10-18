@@ -70,6 +70,9 @@ BigNum::BigNum(const BigNum &other) : BigNum() {
 }
 
 BigNum &BigNum::operator=(const BigNum &other) {
+  if (this == &other) {
+    return *this;
+  }
   CHECK(impl_ != nullptr);
   CHECK(other.impl_ != nullptr);
   BIGNUM *result = BN_copy(impl_->big_num, other.impl_->big_num);

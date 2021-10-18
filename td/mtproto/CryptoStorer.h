@@ -192,8 +192,9 @@ class CryptoImpl {
  public:
   CryptoImpl(const vector<MtprotoQuery> &to_send, Slice header, vector<int64> &&to_ack, int64 ping_id, int ping_timeout,
              int max_delay, int max_after, int max_wait, int future_salt_n, vector<int64> get_info,
-             vector<int64> resend, vector<int64> cancel, bool destroy_key, AuthData *auth_data, uint64 *container_id,
-             uint64 *get_info_id, uint64 *resend_id, uint64 *ping_message_id, uint64 *parent_message_id)
+             vector<int64> resend, const vector<int64> &cancel, bool destroy_key, AuthData *auth_data,
+             uint64 *container_id, uint64 *get_info_id, uint64 *resend_id, uint64 *ping_message_id,
+             uint64 *parent_message_id)
       : query_storer_(to_send, header)
       , ack_empty_(to_ack.empty())
       , ack_storer_(!ack_empty_, mtproto_api::msgs_ack(std::move(to_ack)), auth_data)
@@ -206,7 +207,7 @@ class CryptoImpl {
       , resend_storer_(resend_not_empty_, mtproto_api::msg_resend_req(std::move(resend)), auth_data, true)
       , cancel_not_empty_(!cancel.empty())
       , cancel_cnt_(static_cast<int32>(cancel.size()))
-      , cancel_storer_(cancel_not_empty_, std::move(cancel), auth_data, true)
+      , cancel_storer_(cancel_not_empty_, cancel, auth_data, true)
       , destroy_key_storer_(destroy_key, mtproto_api::destroy_auth_key(), auth_data, true)
       , tmp_storer_(query_storer_, ack_storer_)
       , tmp2_storer_(tmp_storer_, http_wait_storer_)

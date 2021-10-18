@@ -150,7 +150,7 @@ void Hints::add_search_results(vector<KeyT> &results, const string &word,
 vector<Hints::KeyT> Hints::search_word(const string &word) const {
   vector<KeyT> results;
   add_search_results(results, word, translit_word_to_keys_);
-  for (auto w : get_word_transliterations(word, true)) {
+  for (const auto &w : get_word_transliterations(word, true)) {
     add_search_results(results, w, word_to_keys_);
   }
 

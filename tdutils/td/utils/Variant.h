@@ -121,6 +121,9 @@ class Variant {
     return *this;
   }
   Variant &operator=(const Variant &other) {
+    if (this == &other) {
+      return *this;
+    }
     clear();
     other.visit([&](auto &&value) { this->init_empty(std::forward<decltype(value)>(value)); });
     return *this;

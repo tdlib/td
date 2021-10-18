@@ -212,7 +212,8 @@ class SessionConnection final
     };
   }
 
-  Status parse_message(TlParser &parser, MsgInfo *info, Slice *packet, bool crypto_flag = true) TD_WARN_UNUSED_RESULT;
+  static Status parse_message(TlParser &parser, MsgInfo *info, Slice *packet,
+                              bool crypto_flag = true) TD_WARN_UNUSED_RESULT;
   Status parse_packet(TlParser &parser) TD_WARN_UNUSED_RESULT;
   Status on_packet_container(const MsgInfo &info, Slice packet) TD_WARN_UNUSED_RESULT;
   Status on_packet_rpc_result(const MsgInfo &info, Slice packet) TD_WARN_UNUSED_RESULT;

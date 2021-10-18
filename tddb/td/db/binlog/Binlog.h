@@ -154,7 +154,7 @@ class Binlog {
   bool need_sync_{false};
   enum class State { Empty, Load, Reindex, Run } state_{State::Empty};
 
-  Result<FileFd> open_binlog(const string &path, int32 flags);
+  static Result<FileFd> open_binlog(const string &path, int32 flags);
   size_t flush_events_buffer(bool force);
   void do_add_event(BinlogEvent &&event);
   void do_event(BinlogEvent &&event);

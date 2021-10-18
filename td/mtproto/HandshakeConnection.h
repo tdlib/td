@@ -65,7 +65,7 @@ class HandshakeConnection final
   }
 
   Status on_raw_packet(const PacketInfo &packet_info, BufferSlice packet) final {
-    if (packet_info.no_crypto_flag == false) {
+    if (!packet_info.no_crypto_flag) {
       return Status::Error("Expected not encrypted packet");
     }
 

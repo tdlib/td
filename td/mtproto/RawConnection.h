@@ -48,7 +48,7 @@ class RawConnection {
   virtual bool can_send() const = 0;
   virtual TransportType get_transport_type() const = 0;
   virtual void send_crypto(const Storer &storer, int64 session_id, int64 salt, const AuthKey &auth_key,
-                           uint64 quick_ack_token = 0) = 0;
+                           uint64 quick_ack_token) = 0;
   virtual uint64 send_no_crypto(const Storer &storer) = 0;
 
   virtual PollableFdInfo &get_poll_info() = 0;

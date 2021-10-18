@@ -19,7 +19,7 @@
 namespace td {
 namespace mtproto {
 
-ActorOwn<> create_ping_actor(string debug, unique_ptr<RawConnection> raw_connection, unique_ptr<AuthData> auth_data,
+ActorOwn<> create_ping_actor(Slice actor_name, unique_ptr<RawConnection> raw_connection, unique_ptr<AuthData> auth_data,
                              Promise<unique_ptr<RawConnection>> promise, ActorShared<> parent) {
   class PingActor final : public Actor {
    public:
@@ -99,7 +99,7 @@ ActorOwn<> create_ping_actor(string debug, unique_ptr<RawConnection> raw_connect
       }
     }
   };
-  return ActorOwn<>(create_actor<PingActor>(PSLICE() << "PingActor<" << debug << ">", std::move(raw_connection),
+  return ActorOwn<>(create_actor<PingActor>(PSLICE() << "PingActor<" << actor_name << ">", std::move(raw_connection),
                                             std::move(auth_data), std::move(promise), std::move(parent)));
 }
 

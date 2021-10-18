@@ -62,7 +62,7 @@ bool HttpChunkedByteFlow::loop() {
 
     if (len_ == 0) {
       if (input_->size() < 2) {
-        need_size = 2;
+        set_need_size(2);
         break;
       }
       input_->advance(2);

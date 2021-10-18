@@ -893,7 +893,8 @@ void SessionConnection::flush_packet() {
     }
   }
 
-  size_t send_till = 0, send_size = 0;
+  size_t send_till = 0;
+  size_t send_size = 0;
   // send at most 1020 queries, of total size 2^15
   // don't send anything if have no salt
   if (has_salt) {

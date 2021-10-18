@@ -58,8 +58,7 @@ class RingBench final : public td::Benchmark {
           } else {
             // TODO: it is three times faster than send_event
             // maybe send event could be further optimized?
-            ::td::Scheduler::instance()->hack(static_cast<td::ActorId<Actor>>(next_actor),
-                                              td::Event::raw(static_cast<td::uint32>(n - 1)));
+            next_actor.get_actor_unsafe()->raw_event(td::Event::raw(static_cast<td::uint32>(n - 1)).data);
           }
         } else if (type == 4) {
           send_lambda(next_actor, [n, ptr = next_actor.get_actor_unsafe()] { ptr->pass(n - 1); });

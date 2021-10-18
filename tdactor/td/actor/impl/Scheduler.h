@@ -299,9 +299,6 @@ inline void Scheduler::finish_migrate_actor(Actor *actor) {
   register_migrated_actor(actor->get_info());
 }
 
-inline bool Scheduler::has_actor_timeout(const Actor *actor) const {
-  return has_actor_timeout(actor->get_info());
-}
 inline double Scheduler::get_actor_timeout(const Actor *actor) const {
   return get_actor_timeout(actor->get_info());
 }
@@ -313,11 +310,6 @@ inline void Scheduler::set_actor_timeout_at(Actor *actor, double timeout_at) {
 }
 inline void Scheduler::cancel_actor_timeout(Actor *actor) {
   cancel_actor_timeout(actor->get_info());
-}
-
-inline bool Scheduler::has_actor_timeout(const ActorInfo *actor_info) const {
-  const HeapNode *heap_node = actor_info->get_heap_node();
-  return heap_node->in_heap();
 }
 
 inline void Scheduler::cancel_actor_timeout(ActorInfo *actor_info) {

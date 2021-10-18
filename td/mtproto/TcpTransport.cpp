@@ -272,8 +272,8 @@ void ObfuscatedTransport::do_write_tls(BufferBuilder &&builder) {
   do_write(builder.extract());
 }
 
-void ObfuscatedTransport::do_write(BufferSlice &&slice) {
-  output_->append(std::move(slice));
+void ObfuscatedTransport::do_write(BufferSlice &&message) {
+  output_->append(std::move(message));
 }
 
 }  // namespace tcp

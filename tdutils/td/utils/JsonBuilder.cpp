@@ -394,7 +394,7 @@ Result<JsonValue> do_json_decode(Parser &parser, int32 max_depth) {
     case '{': {
       parser.skip('{');
       parser.skip_whitespaces();
-      std::vector<std::pair<MutableSlice, JsonValue> > res;
+      std::vector<std::pair<MutableSlice, JsonValue>> res;
       if (parser.try_skip('}')) {
         return JsonValue::make_object(std::move(res));
       }
@@ -408,7 +408,7 @@ Result<JsonValue> do_json_decode(Parser &parser, int32 max_depth) {
           return Status::Error("':' expected");
         }
         TRY_RESULT(value, do_json_decode(parser, max_depth - 1));
-        res.emplace_back(std::move(key), std::move(value));
+        res.emplace_back(key, std::move(value));
 
         parser.skip_whitespaces();
         if (parser.try_skip('}')) {

@@ -64,10 +64,11 @@ class RegressionTesterImpl final : public RegressionTester {
     unlink(db_path).ignore();
   }
 
-  RegressionTesterImpl(string db_path, string db_cache_dir) : db_path_(db_path), db_cache_dir_(db_cache_dir) {
-    load_db(db_path).ignore();
+  RegressionTesterImpl(string db_path, string db_cache_dir)
+      : db_path_(std::move(db_path)), db_cache_dir_(std::move(db_cache_dir)) {
+    load_db(db_path_).ignore();
     if (db_cache_dir_.empty()) {
-      db_cache_dir_ = PathView(db_path).without_extension().str() + ".cache/";
+      db_cache_dir_ = PathView(db_path_).without_extension().str() + ".cache/";
     }
     mkdir(db_cache_dir_).ensure();
   }
@@ -120,7 +121,7 @@ class RegressionTesterImpl final : public RegressionTester {
 
   void save_db(StringBuilder &sb) {
     sb << magic() << "\n";
-    for (auto it : tests_) {
+    for (const auto &it : tests_) {
       sb << it.second;
     }
   }
@@ -171,7 +172,7 @@ void TestsRunner::add_test(string name, std::function<unique_ptr<Test>()> test) 
       LOG(FATAL) << "Test name collision " << name;
     }
   }
-  tests_.emplace_back(name, TestInfo{std::move(test), nullptr});
+  tests_.emplace_back(std::move(name), TestInfo{std::move(test), nullptr});
 }
 
 void TestsRunner::add_substr_filter(string str) {

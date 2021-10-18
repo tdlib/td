@@ -612,7 +612,7 @@ class FastPingTestActor final : public Actor {
       }
       iteration_++;
       fast_ping_ = create_ping_actor(
-          "", std::move(connection_), std::move(auth_data),
+          td::Slice(), std::move(connection_), std::move(auth_data),
           PromiseCreator::lambda([self = actor_id(this)](Result<unique_ptr<mtproto::RawConnection>> r_raw_connection) {
             send_closure(self, &FastPingTestActor::got_raw_connection, std::move(r_raw_connection));
           }),

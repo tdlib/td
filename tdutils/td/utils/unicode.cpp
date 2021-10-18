@@ -1200,8 +1200,9 @@ static uint32 binary_search_ranges(const int32 (&ranges)[N], uint32 code) {
     return 0;
   }
 
-  int32 code_int = static_cast<int32>(code);
-  size_t l = 0, r = N;
+  auto code_int = static_cast<int32>(code);
+  size_t l = 0;
+  size_t r = N;
   while (l < r) {
     size_t m = ((l + r + 2) >> 2) << 1;
     if (ranges[m] <= code_int) {

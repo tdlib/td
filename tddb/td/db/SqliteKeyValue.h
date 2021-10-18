@@ -35,10 +35,6 @@ class SqliteKeyValue {
 
   Status init_with_connection(SqliteDb connection, string table_name) TD_WARN_UNUSED_RESULT;
 
-  Result<bool> try_regenerate_index() TD_WARN_UNUSED_RESULT {
-    return false;
-  }
-
   void close() {
     *this = SqliteKeyValue();
   }
@@ -118,7 +114,7 @@ class SqliteKeyValue {
   SqliteStatement get_by_prefix_stmt_;
   SqliteStatement get_by_prefix_rare_stmt_;
 
-  string next_prefix(Slice prefix);
+  static string next_prefix(Slice prefix);
 };
 
 }  // namespace td

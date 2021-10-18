@@ -100,7 +100,7 @@ std::vector<ServerSalt> AuthData::get_future_salts() const {
 
 int64 AuthData::next_message_id(double now) {
   double server_time = get_server_time(now);
-  int64 t = static_cast<int64>(server_time * (1ll << 32));
+  auto t = static_cast<int64>(server_time * (1ll << 32));
 
   // randomize lower bits for clocks with low precision
   // TODO(perf) do not do this for systems with good precision?..

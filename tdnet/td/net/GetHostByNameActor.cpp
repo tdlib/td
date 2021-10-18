@@ -62,7 +62,7 @@ class GoogleDnsResolver final : public Actor {
     }
     TRY_RESULT(answer, get_json_object_field(json_value.get_object(), "Answer", JsonValue::Type::Array, false));
     auto &array = answer.get_array();
-    if (array.size() == 0) {
+    if (array.empty()) {
       return Status::Error("Failed to parse DNS result: Answer is an empty array");
     }
     if (array[0].type() != JsonValue::Type::Object) {

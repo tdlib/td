@@ -128,8 +128,8 @@ class OldTransport final : public IStreamTransport {
 
 class ObfuscatedTransport final : public IStreamTransport {
  public:
-  ObfuscatedTransport(int16 dc_id, const ProxySecret &secret)
-      : dc_id_(dc_id), secret_(secret), impl_(secret_.use_random_padding()) {
+  ObfuscatedTransport(int16 dc_id, ProxySecret secret)
+      : dc_id_(dc_id), secret_(std::move(secret)), impl_(secret_.use_random_padding()) {
   }
 
   Result<size_t> read_next(BufferSlice *message, uint32 *quick_ack) final TD_WARN_UNUSED_RESULT;
@@ -172,6 +172,7 @@ class ObfuscatedTransport final : public IStreamTransport {
   TransportType get_type() const final {
     return TransportType{TransportType::ObfuscatedTcp, dc_id_, secret_};
   }
+
   bool use_random_padding() const final {
     return secret_.use_random_padding();
   }

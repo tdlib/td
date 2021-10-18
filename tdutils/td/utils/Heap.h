@@ -38,7 +38,7 @@ class KHeap {
   }
 
   KeyT get_key(const HeapNode *node) const {
-    size_t pos = static_cast<size_t>(node->pos_);
+    auto pos = static_cast<size_t>(node->pos_);
     CHECK(pos < array_.size());
     return array_[pos].key_;
   }
@@ -62,7 +62,7 @@ class KHeap {
   }
 
   void fix(KeyT key, HeapNode *node) {
-    size_t pos = static_cast<size_t>(node->pos_);
+    auto pos = static_cast<size_t>(node->pos_);
     CHECK(pos < array_.size());
     KeyT old_key = array_[pos].key_;
     array_[pos].key_ = key;
@@ -74,7 +74,7 @@ class KHeap {
   }
 
   void erase(HeapNode *node) {
-    size_t pos = static_cast<size_t>(node->pos_);
+    auto pos = static_cast<size_t>(node->pos_);
     node->remove();
     CHECK(pos < array_.size());
     erase(pos);

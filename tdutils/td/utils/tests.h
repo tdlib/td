@@ -122,7 +122,7 @@ template <class T>
 class RegisterTest {
  public:
   explicit RegisterTest(string name, TestsRunner &runner = TestsRunner::get_default()) {
-    runner.add_test(name, [] { return make_unique<T>(); });
+    runner.add_test(std::move(name), [] { return make_unique<T>(); });
   }
 };
 

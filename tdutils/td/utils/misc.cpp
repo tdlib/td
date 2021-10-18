@@ -16,7 +16,7 @@
 namespace td {
 
 char *str_dup(Slice str) {
-  char *res = static_cast<char *>(std::malloc(str.size() + 1));
+  auto *res = static_cast<char *>(std::malloc(str.size() + 1));
   if (res == nullptr) {
     return nullptr;
   }

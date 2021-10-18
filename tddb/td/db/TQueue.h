@@ -117,7 +117,7 @@ class TQueue {
   virtual void close(Promise<> promise) = 0;
 };
 
-StringBuilder &operator<<(StringBuilder &string_builder, const TQueue::EventId id);
+StringBuilder &operator<<(StringBuilder &string_builder, TQueue::EventId id);
 
 struct BinlogEvent;
 
@@ -131,7 +131,7 @@ class TQueueBinlog final : public TQueue::StorageCallback {
   void set_binlog(std::shared_ptr<BinlogT> binlog) {
     binlog_ = std::move(binlog);
   }
-  virtual void close(Promise<> promise) final;
+  void close(Promise<> promise) final;
 
  private:
   std::shared_ptr<BinlogT> binlog_;
@@ -143,7 +143,7 @@ class TQueueMemoryStorage final : public TQueue::StorageCallback {
   uint64 push(QueueId queue_id, const RawEvent &event) final;
   void pop(uint64 log_event_id) final;
   void replay(TQueue &q) const;
-  virtual void close(Promise<> promise) final;
+  void close(Promise<> promise) final;
 
  private:
   uint64 next_log_event_id_{1};

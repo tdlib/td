@@ -17,7 +17,7 @@
 namespace td {
 namespace mtproto {
 
-ActorOwn<> create_ping_actor(string debug, unique_ptr<RawConnection> raw_connection, unique_ptr<AuthData> auth_data,
+ActorOwn<> create_ping_actor(Slice actor_name, unique_ptr<RawConnection> raw_connection, unique_ptr<AuthData> auth_data,
                              Promise<unique_ptr<RawConnection>> promise, ActorShared<> parent);
 
 }  // namespace mtproto

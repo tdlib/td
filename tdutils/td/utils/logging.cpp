@@ -219,6 +219,9 @@ class DefaultLog final : public LogInterface {
       case VERBOSITY_NAME(INFO):
         color = Slice("\x1b[1;36m");  // cyan
         break;
+      default:
+        // no color
+        break;
     }
     Slice no_color("\x1b[0m");
     if (!slice.empty() && slice.back() == '\n') {

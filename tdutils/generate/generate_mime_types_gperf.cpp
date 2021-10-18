@@ -116,7 +116,7 @@ int main(int argc, char *argv[]) {
 
     std::vector<std::string> extensions;
     while (!extensions_string.empty()) {
-      extensions.push_back("");
+      extensions.emplace_back();
       std::tie(extensions.back(), extensions_string) = split(extensions_string);
     }
     assert(!extensions.empty());
