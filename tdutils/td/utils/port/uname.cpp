@@ -254,7 +254,7 @@ Slice get_operating_system_version() {
               }
               return "Windows Server 2016";
             }
-            if (os_version_info.dwBuildNumber >= 21900) { // build numbers between 21391 and 21999 aren't used
+            if (os_version_info.dwBuildNumber >= 21900) {  // build numbers between 21391 and 21999 aren't used
               return "Windows 11";
             }
             return "Windows 10";

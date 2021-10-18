@@ -11121,8 +11121,9 @@ void ContactsManager::on_update_user_full_common_chat_count(UserFull *user_full,
 void ContactsManager::on_update_user_full_commands(UserFull *user_full, UserId user_id,
                                                    vector<tl_object_ptr<telegram_api::botCommand>> &&bot_commands) {
   CHECK(user_full != nullptr);
-  auto commands =
-      transform(std::move(bot_commands), [](auto &&bot_command) { return BotCommand(std::move(bot_command)); });
+  auto commands = transform(std::move(bot_commands), [](tl_object_ptr<telegram_api::botCommand> &&bot_command) {
+    return BotCommand(std::move(bot_command));
+  });
   if (user_full->commands != commands) {
     user_full->commands = std::move(commands);
     user_full->is_changed = true;

@@ -517,7 +517,6 @@ static bool check_encrypted_secure_value(const EncryptedSecureValue &value) {
     case SecureValueType::TemporaryRegistration:
       return !has_encrypted_data && !has_plain_data && has_files && !has_front_side && !has_reverse_side && !has_selfie;
     case SecureValueType::PhoneNumber:
-      return has_plain_data && !has_files && !has_front_side && !has_reverse_side && !has_selfie && !has_translations;
     case SecureValueType::EmailAddress:
       return has_plain_data && !has_files && !has_front_side && !has_reverse_side && !has_selfie && !has_translations;
     case SecureValueType::None:

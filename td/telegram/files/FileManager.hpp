@@ -107,9 +107,7 @@ void FileManager::store_file(FileId file_id, StorerT &storer, int32 ttl) const {
     default:
       UNREACHABLE();
   }
-  if (has_encryption_key) {
-    store(file_view.encryption_key(), storer);
-  } else if (has_secure_key) {
+  if (has_encryption_key || has_secure_key) {
     store(file_view.encryption_key(), storer);
   }
 }
@@ -225,13 +223,10 @@ FileId FileManager::parse_file(ParserT &parser) {
     return FileId();
   }();
 
-  if (has_encryption_key) {
+  if (has_encryption_key || has_secure_key) {
+    auto key_type = has_encryption_key ? FileEncryptionKey::Type::Secret : FileEncryptionKey::Type::Secure;
     FileEncryptionKey encryption_key;
-    encryption_key.parse(FileEncryptionKey::Type::Secret, parser);
-    set_encryption_key(file_id, std::move(encryption_key));
-  } else if (has_secure_key) {
-    FileEncryptionKey encryption_key;
-    encryption_key.parse(FileEncryptionKey::Type::Secure, parser);
+    encryption_key.parse(key_type, parser);
     set_encryption_key(file_id, std::move(encryption_key));
   }
 

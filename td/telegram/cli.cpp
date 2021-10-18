@@ -1781,11 +1781,14 @@ class CliClient final : public Actor {
     } else if (op == "rreac") {
       send_request(td_api::make_object<td_api::resendRecoveryEmailAddressCode>());
     } else if (op == "spncc") {
-      send_request(td_api::make_object<td_api::sendPhoneNumberVerificationCode>(args, nullptr));
+      string hash;
+      string phone_number;
+      get_args(args, hash, phone_number);
+      send_request(td_api::make_object<td_api::sendPhoneNumberConfirmationCode>(hash, phone_number, nullptr));
     } else if (op == "cpncc") {
-      send_request(td_api::make_object<td_api::checkPhoneNumberVerificationCode>(args));
+      send_request(td_api::make_object<td_api::checkPhoneNumberConfirmationCode>(args));
     } else if (op == "rpncc") {
-      send_request(td_api::make_object<td_api::resendPhoneNumberVerificationCode>());
+      send_request(td_api::make_object<td_api::resendPhoneNumberConfirmationCode>());
     } else if (op == "rpr") {
       send_request(td_api::make_object<td_api::requestPasswordRecovery>());
     } else if (op == "cprc") {
@@ -3020,7 +3023,7 @@ class CliClient final : public Actor {
       execute(td_api::make_object<td_api::getJsonValue>("\"\\u0080\""));
       execute(td_api::make_object<td_api::getJsonValue>("\"\\uD800\""));
     } else if (op == "gjs") {
-      auto test_get_json_string = [&](auto &&json_value) {
+      auto test_get_json_string = [&](td_api::object_ptr<td_api::JsonValue> &&json_value) {
         execute(td_api::make_object<td_api::getJsonString>(std::move(json_value)));
       };
 
@@ -4477,7 +4480,7 @@ class CliClient final : public Actor {
     if (slice.empty()) {
       return EOF;
     }
-    int res = slice[0];
+    int res = static_cast<unsigned char>(slice[0]);
     stdin_.input_buffer().confirm_read(1);
     return res;
   }

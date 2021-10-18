@@ -136,7 +136,7 @@ class LambdaPromise : public PromiseInterface<ValueT> {
       , has_lambda_(true) {
   }
   template <class FromOkT>
-  LambdaPromise(FromOkT &&ok) : LambdaPromise(std::move(ok), Ignore(), true) {
+  LambdaPromise(FromOkT &&ok) : LambdaPromise(std::forward<FromOkT>(ok), Ignore(), true) {
   }
 
  private:
@@ -461,7 +461,7 @@ class SendClosure {
 template <class... ArgsT>
 auto promise_send_closure(ArgsT &&... args) {
   return [t = std::make_tuple(std::forward<ArgsT>(args)...)](auto &&res) mutable {
-    call_tuple(SendClosure(), std::tuple_cat(std::move(t), std::make_tuple(std::move(res))));
+    call_tuple(SendClosure(), std::tuple_cat(std::move(t), std::make_tuple(std::forward<decltype(res)>(res))));
   };
 }
 

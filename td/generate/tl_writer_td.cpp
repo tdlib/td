@@ -261,9 +261,8 @@ std::string TD_TL_writer::gen_constructor_parameter(int field_num, const std::st
   } else if (field_type == "UInt128 " || field_type == "UInt256 " || field_type == "string " ||
              (string_type == bytes_type && field_type == "bytes ")) {
     res += field_type + "const &";
-  } else if (field_type.compare(0, 5, "array") == 0 || field_type == "bytes ") {
-    res += field_type + "&&";
-  } else if (field_type.compare(0, 10, "object_ptr") == 0) {
+  } else if (field_type.compare(0, 5, "array") == 0 || field_type == "bytes " ||
+             field_type.compare(0, 10, "object_ptr") == 0) {
     res += field_type + "&&";
   } else {
     assert(false && "unreachable");

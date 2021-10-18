@@ -96,7 +96,6 @@ long strm_ctrl(BIO *b, int cmd, long num, void *ptr) {
     case BIO_CTRL_FLUSH:
       return 1;
     case BIO_CTRL_PUSH:
-      return 0;
     case BIO_CTRL_POP:
       return 0;
     default:
