@@ -23158,8 +23158,7 @@ int64 MessagesManager::generate_new_random_id() {
   int64 random_id;
   do {
     random_id = Random::secure_int64();
-  } while (random_id == 0 || message_random_ids_.find(random_id) != message_random_ids_.end());
-  message_random_ids_.insert(random_id);
+  } while (random_id == 0 || being_sent_messages_.find(random_id) != being_sent_messages_.end());
   return random_id;
 }
 
@@ -33468,10 +33467,6 @@ void MessagesManager::delete_message_from_database(Dialog *d, MessageId message_
     }
   }
 
-  if (m != nullptr && m->random_id != 0 && (m->is_outgoing || d->dialog_id == get_my_dialog_id())) {
-    message_random_ids_.erase(m->random_id);
-  }
-
   if (m != nullptr && m->notification_id.is_valid()) {
     CHECK(!message_id.is_scheduled());
     auto from_mentions = is_from_mention_notification_group(d, m);
@@ -36845,8 +36840,6 @@ MessagesManager::Message *MessagesManager::continue_send_message(DialogId dialog
   m->have_previous = true;
   m->have_next = true;
 
-  message_random_ids_.insert(m->random_id);
-
   bool need_update = false;
   bool need_update_dialog_pos = false;
   auto result_message =
@@ -37070,7 +37063,6 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
           m->have_previous = true;
           m->have_next = true;
 
-          message_random_ids_.insert(m->random_id);
           forwarded_messages.push_back(add_message_to_dialog(to_dialog, std::move(m), true, &need_update,
                                                              &need_update_dialog_pos, "forward message again"));
           send_update_new_message(to_dialog, forwarded_messages.back());

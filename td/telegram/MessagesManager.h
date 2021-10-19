@@ -3168,7 +3168,6 @@ class MessagesManager final : public Actor {
   bool ttl_db_has_query_;
   Slot ttl_db_slot_;
 
-  std::unordered_set<int64> message_random_ids_;
   std::unordered_map<int64, FullMessageId> being_sent_messages_;  // message_random_id -> message
 
   std::unordered_map<FullMessageId, MessageId, FullMessageIdHash>
