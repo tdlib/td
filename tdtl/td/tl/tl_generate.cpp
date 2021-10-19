@@ -857,7 +857,7 @@ bool write_tl_to_file(const tl_config &config, const std::string &file_name, con
   tl_string_outputer out;
   write_tl(config, out, w);
 
-  auto old_file_contents = get_file_contents(file_name, "rb");
+  std::string old_file_contents = get_file_contents(file_name, "rb");
   if (!w.is_documentation_generated()) {
     old_file_contents = remove_documentation(old_file_contents);
   }
