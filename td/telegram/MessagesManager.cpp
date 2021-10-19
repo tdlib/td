@@ -23154,6 +23154,15 @@ bool MessagesManager::is_anonymous_administrator(DialogId dialog_id, string *aut
   return true;
 }
 
+int64 MessagesManager::generate_new_random_id() {
+  int64 random_id;
+  do {
+    random_id = Random::secure_int64();
+  } while (random_id == 0 || message_random_ids_.find(random_id) != message_random_ids_.end());
+  message_random_ids_.insert(random_id);
+  return random_id;
+}
+
 unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
     Dialog *d, MessageId top_thread_message_id, MessageId reply_to_message_id, const MessageSendOptions &options,
     unique_ptr<MessageContent> &&content, bool suppress_reply_info, unique_ptr<MessageForwardInfo> forward_info,
@@ -23274,10 +23283,7 @@ MessagesManager::Message *MessagesManager::get_message_to_send(
   message->have_previous = true;
   message->have_next = true;
 
-  do {
-    message->random_id = Random::secure_int64();
-  } while (message->random_id == 0 || message_random_ids_.find(message->random_id) != message_random_ids_.end());
-  message_random_ids_.insert(message->random_id);
+  message->random_id = generate_new_random_id();
 
   bool need_update = false;
   CHECK(have_input_peer(d->dialog_id, AccessRights::Read));
@@ -29083,10 +29089,7 @@ void MessagesManager::on_send_message_file_part_missing(int64 random_id, int bad
     CHECK(d != nullptr);
 
     // need to change message random_id before resending
-    do {
-      m->random_id = Random::secure_int64();
-    } while (m->random_id == 0 || message_random_ids_.find(m->random_id) != message_random_ids_.end());
-    message_random_ids_.insert(m->random_id);
+    m->random_id = generate_new_random_id();
 
     delete_random_id_to_message_id_correspondence(d, random_id, m->message_id);
     add_random_id_to_message_id_correspondence(d, m->random_id, m->message_id);
@@ -29135,10 +29138,7 @@ void MessagesManager::on_send_message_file_reference_error(int64 random_id) {
     CHECK(d != nullptr);
 
     // need to change message random_id before resending
-    do {
-      m->random_id = Random::secure_int64();
-    } while (m->random_id == 0 || message_random_ids_.find(m->random_id) != message_random_ids_.end());
-    message_random_ids_.insert(m->random_id);
+    m->random_id = generate_new_random_id();
 
     delete_random_id_to_message_id_correspondence(d, random_id, m->message_id);
     add_random_id_to_message_id_correspondence(d, m->random_id, m->message_id);
