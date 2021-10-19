@@ -6631,7 +6631,7 @@ double StickersManager::get_emoji_language_code_last_difference_time(const strin
     return it->second;
   }
   auto &result = emoji_language_code_last_difference_times_[language_code];
-  int32 old_unix_time = to_integer<int32>(G()->td_db()->get_sqlite_sync_pmc()->get(
+  auto old_unix_time = to_integer<int32>(G()->td_db()->get_sqlite_sync_pmc()->get(
       get_emoji_language_code_last_difference_time_database_key(language_code)));
   int32 passed_time = max(static_cast<int32>(0), G()->unix_time() - old_unix_time);
   result = Time::now_cached() - passed_time;

@@ -191,7 +191,7 @@ StringBuilder &StringBuilder::operator<<(FixedDouble x) {
   ss->precision(x.precision);
   *ss << x.d;
 
-  int len = narrow_cast<int>(static_cast<std::streamoff>(ss->tellp()));
+  auto len = narrow_cast<int>(static_cast<std::streamoff>(ss->tellp()));
   auto left = end_ptr_ + RESERVED_SIZE - current_ptr_;
   if (unlikely(len >= left)) {
     error_flag_ = true;

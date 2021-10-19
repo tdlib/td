@@ -86,7 +86,7 @@ static void punycode(string &result, Slice part) {
 
       if (code == next_n) {
         // found next symbol, encode delta
-        int left = static_cast<int>(delta);
+        auto left = static_cast<int>(delta);
         while (true) {
           bias += 36;
           auto t = clamp(bias, 1, 26);

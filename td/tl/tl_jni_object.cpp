@@ -213,7 +213,7 @@ std::string fetch_string(JNIEnv *env, jobject o, jfieldID id) {
 
 std::string from_jstring(JNIEnv *env, jstring s) {
   if (!s) {
-    return "";
+    return std::string();
   }
   jsize s_len = env->GetStringLength(s);
   const jchar *p = env->GetStringChars(s, nullptr);
@@ -264,7 +264,7 @@ std::string from_bytes(JNIEnv *env, jbyteArray arr) {
 
 jbyteArray to_bytes(JNIEnv *env, const std::string &b) {
   static_assert(sizeof(char) == sizeof(jbyte), "Mismatched jbyte size");
-  jsize length = narrow_cast<jsize>(b.size());
+  auto length = narrow_cast<jsize>(b.size());
   jbyteArray arr = env->NewByteArray(length);
   if (arr != nullptr && length != 0) {
     env->SetByteArrayRegion(arr, 0, length, reinterpret_cast<const jbyte *>(b.data()));
@@ -274,7 +274,7 @@ jbyteArray to_bytes(JNIEnv *env, const std::string &b) {
 
 jintArray store_vector(JNIEnv *env, const std::vector<std::int32_t> &v) {
   static_assert(sizeof(std::int32_t) == sizeof(jint), "Mismatched jint size");
-  jsize length = narrow_cast<jsize>(v.size());
+  auto length = narrow_cast<jsize>(v.size());
   jintArray arr = env->NewIntArray(length);
   if (arr != nullptr && length != 0) {
     env->SetIntArrayRegion(arr, 0, length, reinterpret_cast<const jint *>(&v[0]));
@@ -284,7 +284,7 @@ jintArray store_vector(JNIEnv *env, const std::vector<std::int32_t> &v) {
 
 jlongArray store_vector(JNIEnv *env, const std::vector<std::int64_t> &v) {
   static_assert(sizeof(std::int64_t) == sizeof(jlong), "Mismatched jlong size");
-  jsize length = narrow_cast<jsize>(v.size());
+  auto length = narrow_cast<jsize>(v.size());
   jlongArray arr = env->NewLongArray(length);
   if (arr != nullptr && length != 0) {
     env->SetLongArrayRegion(arr, 0, length, reinterpret_cast<const jlong *>(&v[0]));
@@ -294,7 +294,7 @@ jlongArray store_vector(JNIEnv *env, const std::vector<std::int64_t> &v) {
 
 jdoubleArray store_vector(JNIEnv *env, const std::vector<double> &v) {
   static_assert(sizeof(double) == sizeof(jdouble), "Mismatched jdouble size");
-  jsize length = narrow_cast<jsize>(v.size());
+  auto length = narrow_cast<jsize>(v.size());
   jdoubleArray arr = env->NewDoubleArray(length);
   if (arr != nullptr && length != 0) {
     env->SetDoubleArrayRegion(arr, 0, length, reinterpret_cast<const jdouble *>(&v[0]));
@@ -303,7 +303,7 @@ jdoubleArray store_vector(JNIEnv *env, const std::vector<double> &v) {
 }
 
 jobjectArray store_vector(JNIEnv *env, const std::vector<std::string> &v) {
-  jsize length = narrow_cast<jsize>(v.size());
+  auto length = narrow_cast<jsize>(v.size());
   jobjectArray arr = env->NewObjectArray(length, StringClass, 0);
   if (arr != nullptr) {
     for (jsize i = 0; i < length; i++) {

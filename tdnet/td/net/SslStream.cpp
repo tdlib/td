@@ -486,7 +486,7 @@ int strm_read(BIO *b, char *buf, int len) {
   CHECK(stream != nullptr);
   BIO_clear_retry_flags(b);
   CHECK(buf != nullptr);
-  int res = narrow_cast<int>(stream->flow_read(MutableSlice(buf, len)));
+  auto res = narrow_cast<int>(stream->flow_read(MutableSlice(buf, len)));
   if (res == 0) {
     BIO_set_retry_read(b);
     return -1;

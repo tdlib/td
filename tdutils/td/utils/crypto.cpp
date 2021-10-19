@@ -466,7 +466,7 @@ class AesIgeStateImpl {
       }
 
       evp_.init_iv(encrypted_iv_.as_slice());
-      int inlen = static_cast<int>(AES_BLOCK_SIZE * count);
+      auto inlen = static_cast<int>(AES_BLOCK_SIZE * count);
       evp_.encrypt(data_xored[0].raw(), data_xored[0].raw(), inlen);
 
       data_xored[0] ^= plaintext_iv_;
@@ -850,7 +850,7 @@ static void pbkdf2_impl(Slice password, Slice salt, int iteration_count, Mutable
   HMAC_CTX ctx;
   HMAC_CTX_init(&ctx);
   unsigned char counter[4] = {0, 0, 0, 1};
-  int password_len = narrow_cast<int>(password.size());
+  auto password_len = narrow_cast<int>(password.size());
   HMAC_Init_ex(&ctx, password.data(), password_len, evp_md, nullptr);
   HMAC_Update(&ctx, salt.ubegin(), narrow_cast<int>(salt.size()));
   HMAC_Update(&ctx, counter, 4);

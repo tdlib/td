@@ -435,7 +435,7 @@ void Scheduler::set_actor_timeout_at(ActorInfo *actor_info, double timeout_at) {
 
 void Scheduler::run_poll(Timestamp timeout) {
   // we can't wait for less than 1ms
-  int timeout_ms = static_cast<int32>(clamp(timeout.in(), 0.0, 1000000.0) * 1000 + 1);
+  auto timeout_ms = static_cast<int>(clamp(timeout.in(), 0.0, 1000000.0) * 1000 + 1);
 #if TD_PORT_WINDOWS
   CHECK(inbound_queue_);
   inbound_queue_->reader_get_event_fd().wait(timeout_ms);

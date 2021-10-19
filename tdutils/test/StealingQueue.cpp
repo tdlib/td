@@ -131,9 +131,9 @@ TEST(StealingQueue, simple) {
       for (td::uint64 round = 1; round < 1000; round++) {
         if (id == 0) {
           sum = 0;
-          int n = static_cast<int>(rnd() % 5);
+          auto n = static_cast<int>(rnd() % 5);
           for (int j = 0; j < n; j++) {
-            int x = static_cast<int>(rnd() % XN);
+            auto x = static_cast<int>(rnd() % XN);
             sum += x_sum[x];
             gq.push(x, id);
           }

@@ -77,7 +77,7 @@ class StealingQueue {
       if (other_tail < other_head) {
         continue;
       }
-      size_t n = narrow_cast<size_t>(other_tail - other_head);
+      auto n = narrow_cast<size_t>(other_tail - other_head);
       if (n > N) {
         continue;
       }

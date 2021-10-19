@@ -58,7 +58,7 @@ static int fast_backtrace(void **buffer, int size) {
     void *ip;
   };
 
-  stack_frame *bp = reinterpret_cast<stack_frame *>(get_bp());
+  auto *bp = reinterpret_cast<stack_frame *>(get_bp());
   int i = 0;
   while (i < size &&
 #if TD_LINUX
@@ -153,7 +153,7 @@ std::size_t get_ht_size() {
 
 std::int32_t get_ht_pos(const Backtrace &bt, bool force = false) {
   auto hash = get_hash(bt);
-  std::int32_t pos = static_cast<std::int32_t>(hash % ht.size());
+  auto pos = static_cast<std::int32_t>(hash % ht.size());
   bool was_overflow = false;
   while (true) {
     auto pos_hash = ht[pos].hash.load();
@@ -237,7 +237,7 @@ static void *malloc_with_frame(std::size_t size, const Backtrace &frame) {
 }
 
 static malloc_info *get_info(void *data_void) {
-  char *data = static_cast<char *>(data_void);
+  auto *data = static_cast<char *>(data_void);
   auto *buf = data - RESERVED_SIZE;
 
   auto *info = reinterpret_cast<malloc_info *>(buf);

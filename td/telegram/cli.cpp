@@ -4314,7 +4314,7 @@ class CliClient final : public Actor {
                    << stats.virtual_size_ << ", peak VSZ = " << stats.virtual_size_peak_;
       }
     } else if (op == "cpu") {
-      uint32 inc_count = to_integer<uint32>(args);
+      auto inc_count = to_integer<uint32>(args);
       while (inc_count-- > 0) {
         cpu_counter_++;
       }

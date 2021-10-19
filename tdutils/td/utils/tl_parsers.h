@@ -178,7 +178,7 @@ class TlParser {
     if (!error.empty()) {
       return T();
     }
-    const char *result = reinterpret_cast<const char *>(data);
+    auto result = reinterpret_cast<const char *>(data);
     data += size;
     return T(result, size);
   }

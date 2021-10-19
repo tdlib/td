@@ -591,7 +591,7 @@ class QueueBenchmark2 final : public td::Benchmark {
 
   void server_process(qvalue_t value) {
     int no = value & 0x00FFFFFF;
-    int co = static_cast<int>(static_cast<td::uint32>(value) >> 24);
+    auto co = static_cast<int>(static_cast<td::uint32>(value) >> 24);
     // std::fprintf(stderr, "-->%d %d\n", co, no);
     if (co < 0 || co >= connections_n || no != server_conn[co]++) {
       std::fprintf(stderr, "%d %d\n", co, no);
@@ -632,7 +632,7 @@ class QueueBenchmark2 final : public td::Benchmark {
 
   void client_process(qvalue_t value) {
     int no = value & 0x00FFFFFF;
-    int co = static_cast<int>(static_cast<td::uint32>(value) >> 24);
+    auto co = static_cast<int>(static_cast<td::uint32>(value) >> 24);
     // std::fprintf(stderr, "<--%d %d\n", co, no);
     if (co < 0 || co >= connections_n || no != client_conn[co]++) {
       std::fprintf(stderr, "%d %d\n", co, no);
@@ -733,7 +733,7 @@ class QueueBenchmark final : public td::Benchmark {
     while (active_connections > 0) {
       qvalue_t value = server.get();
       int no = value & 0x00FFFFFF;
-      int co = static_cast<int>(value >> 24);
+      auto co = static_cast<int>(value >> 24);
       // std::fprintf(stderr, "-->%d %d\n", co, no);
       if (co < 0 || co >= connections_n || no != conn[co]++) {
         std::fprintf(stderr, "%d %d\n", co, no);
@@ -764,7 +764,7 @@ class QueueBenchmark final : public td::Benchmark {
     while (active_connections > 0) {
       qvalue_t value = client.get();
       int no = value & 0x00FFFFFF;
-      int co = static_cast<int>(value >> 24);
+      auto co = static_cast<int>(value >> 24);
       // std::fprintf(stderr, "<--%d %d\n", co, no);
       if (co < 0 || co >= connections_n || no != conn[co]++) {
         std::fprintf(stderr, "%d %d\n", co, no);
@@ -797,7 +797,7 @@ class QueueBenchmark final : public td::Benchmark {
       for (int i = 0; i < connections_n; i++) {
         qvalue_t value = client.get();
         int no = value & 0x00FFFFFF;
-        int co = static_cast<int>(value >> 24);
+        auto co = static_cast<int>(value >> 24);
         // std::fprintf(stderr, "<--%d %d\n", co, no);
         if (co < 0 || co >= connections_n || no != conn[co]++) {
           std::fprintf(stderr, "%d %d\n", co, no);

@@ -66,7 +66,7 @@ StringBuilder &operator<<(StringBuilder &sb, const Ext &ext) {
 Result<std::pair<FileFd, string>> open_temp_file(FileType file_type) {
   auto pmc = G()->td_db()->get_binlog_pmc();
   // TODO: CAS?
-  int32 file_id = to_integer<int32>(pmc->get("tmp_file_id"));
+  auto file_id = to_integer<int32>(pmc->get("tmp_file_id"));
   pmc->set("tmp_file_id", to_string(file_id + 1));
 
   auto temp_dir = get_files_temp_dir(file_type);
@@ -94,7 +94,7 @@ bool for_suggested_file_name(CSlice name, bool use_pmc, bool use_random, F &&cal
     }
   } else if (use_pmc) {
     auto pmc = G()->td_db()->get_binlog_pmc();
-    int32 file_id = to_integer<int32>(pmc->get("perm_file_id"));
+    auto file_id = to_integer<int32>(pmc->get("perm_file_id"));
     pmc->set("perm_file_id", to_string(file_id + 1));
     active = callback(PSLICE() << "file_" << file_id << Ext{ext});
     if (active) {

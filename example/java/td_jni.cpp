@@ -50,10 +50,10 @@ static jint Client_nativeClientReceive(JNIEnv *env, jclass clazz, jintArray clie
   auto *manager = get_manager();
   auto response = manager->receive(timeout);
   while (response.object) {
-    jint client_id = static_cast<jint>(response.client_id);
+    auto client_id = static_cast<jint>(response.client_id);
     env->SetIntArrayRegion(client_ids, result_size, 1, &client_id);
 
-    jlong request_id = static_cast<jlong>(response.request_id);
+    auto request_id = static_cast<jlong>(response.request_id);
     env->SetLongArrayRegion(ids, result_size, 1, &request_id);
 
     jobject object;

@@ -16389,7 +16389,7 @@ std::pair<int32, vector<DialogId>> MessagesManager::get_recently_opened_dialogs(
 
 vector<DialogId> MessagesManager::sort_dialogs_by_order(const vector<DialogId> &dialog_ids, int32 limit) const {
   CHECK(!td_->auth_manager_->is_bot());
-  int64 fake_order = static_cast<int64>(dialog_ids.size()) + 1;
+  auto fake_order = static_cast<int64>(dialog_ids.size()) + 1;
   auto dialog_dates = transform(dialog_ids, [this, &fake_order](DialogId dialog_id) {
     const Dialog *d = get_dialog(dialog_id);
     CHECK(d != nullptr);

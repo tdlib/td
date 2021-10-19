@@ -680,7 +680,7 @@ void Binlog::do_reindex() {
                                              << detail::file_size(new_path) << ' ' << fd_events_ << ' ' << path_;
   }
 
-  double ratio = static_cast<double>(start_size) / static_cast<double>(finish_size + 1);
+  auto ratio = static_cast<double>(start_size) / static_cast<double>(finish_size + 1);
 
   [&](Slice msg) {
     if (start_size > (10 << 20) || finish_time - start_time > 1) {
