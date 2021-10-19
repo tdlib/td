@@ -369,7 +369,7 @@ class Global final : public ActorContext {
   void set_dh_config(std::shared_ptr<DhConfig> new_dh_config) {
 #if !TD_HAVE_ATOMIC_SHARED_PTR
     std::lock_guard<std::mutex> guard(dh_config_mutex_);
-    dh_config_ = new_dh_config;
+    dh_config_ = std::move(new_dh_config);
 #else
     atomic_store(&dh_config_, std::move(new_dh_config));
 #endif

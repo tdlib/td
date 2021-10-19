@@ -173,7 +173,7 @@ class StickersManager final : public Actor {
 
   FileId upload_sticker_file(UserId user_id, tl_object_ptr<td_api::InputSticker> &&sticker, Promise<Unit> &&promise);
 
-  void get_suggested_sticker_set_name(string short_name, Promise<string> &&promise);
+  void get_suggested_sticker_set_name(string title, Promise<string> &&promise);
 
   enum class CheckStickerSetNameResult : uint8 { Ok, Invalid, Occupied };
   void check_sticker_set_name(const string &name, Promise<CheckStickerSetNameResult> &&promise);
@@ -282,7 +282,7 @@ class StickersManager final : public Actor {
   void on_uploaded_sticker_file(FileId file_id, tl_object_ptr<telegram_api::MessageMedia> media,
                                 Promise<Unit> &&promise);
 
-  void on_find_stickers_success(const string &emoji, tl_object_ptr<telegram_api::messages_Stickers> &&sticker_sets);
+  void on_find_stickers_success(const string &emoji, tl_object_ptr<telegram_api::messages_Stickers> &&stickers);
 
   void on_find_stickers_fail(const string &emoji, Status &&error);
 

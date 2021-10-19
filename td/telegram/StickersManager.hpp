@@ -165,7 +165,7 @@ void StickersManager::store_sticker_set(const StickerSet *sticker_set, bool with
       store(sticker_set->minithumbnail, storer);
     }
 
-    uint32 stored_sticker_count = narrow_cast<uint32>(is_full ? sticker_set->sticker_ids.size() : stickers_limit);
+    auto stored_sticker_count = narrow_cast<uint32>(is_full ? sticker_set->sticker_ids.size() : stickers_limit);
     store(stored_sticker_count, storer);
     for (uint32 i = 0; i < stored_sticker_count; i++) {
       auto sticker_id = sticker_set->sticker_ids[i];

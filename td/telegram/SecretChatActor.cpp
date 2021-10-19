@@ -132,8 +132,10 @@ void SecretChatActor::on_result_resendable(NetQueryPtr net_query, Promise<NetQue
         return on_read_history(std::move(net_query));
       case static_cast<uint8>(QueryType::Ignore):
         return Status::OK();
+      default:
+        UNREACHABLE();
+        return Status::OK();
     }
-    UNREACHABLE();
   }());
 
   loop();
@@ -963,8 +965,8 @@ Status SecretChatActor::do_inbound_message_decrypted_unchecked(unique_ptr<log_ev
       auto *action_resend =
           static_cast<secret_api::decryptedMessageActionResend *>(decrypted_message_service->action_.get());
 
-      uint32 start_seq_no = static_cast<uint32>(action_resend->start_seq_no_ / 2);
-      uint32 finish_seq_no = static_cast<uint32>(action_resend->end_seq_no_ / 2);
+      auto start_seq_no = static_cast<uint32>(action_resend->start_seq_no_ / 2);
+      auto finish_seq_no = static_cast<uint32>(action_resend->end_seq_no_ / 2);
       if (start_seq_no + MAX_RESEND_COUNT < finish_seq_no) {
         message->promise.set_value(Unit());
         return Status::Error(PSLICE() << "Won't resend more than " << MAX_RESEND_COUNT << " messages");
@@ -1976,29 +1978,36 @@ void SecretChatActor::on_outbound_action(secret_api::decryptedMessageActionSetMe
   context_->secret_chat_db()->set_value(config_state_);
   send_update_secret_chat();
 }
+
 void SecretChatActor::on_outbound_action(secret_api::decryptedMessageActionReadMessages &read_messages) {
   // TODO
 }
+
 void SecretChatActor::on_outbound_action(secret_api::decryptedMessageActionDeleteMessages &delete_messages) {
   // Corresponding log event won't be deleted before promise returned by add_changes is set.
   on_delete_messages(delete_messages.random_ids_).ensure();
 }
+
 void SecretChatActor::on_outbound_action(secret_api::decryptedMessageActionScreenshotMessages &screenshot) {
-  // noting to do
+  // nothing to do
 }
+
 void SecretChatActor::on_outbound_action(secret_api::decryptedMessageActionFlushHistory &flush_history) {
   on_flush_history(pfs_state_.message_id).ensure();
 }
+
 void SecretChatActor::on_outbound_action(secret_api::decryptedMessageActionResend &resend) {
   if (seq_no_state_.resend_end_seq_no < resend.end_seq_no_ / 2) {  // replay protection
     seq_no_state_.resend_end_seq_no = resend.end_seq_no_ / 2;
     on_seq_no_state_changed();
   }
 }
+
 void SecretChatActor::on_outbound_action(secret_api::decryptedMessageActionNotifyLayer &notify_layer) {
   config_state_.my_layer = notify_layer.layer_;
   context_->secret_chat_db()->set_value(config_state_);
 }
+
 void SecretChatActor::on_outbound_action(secret_api::decryptedMessageActionTyping &typing) {
   // noop
 }
@@ -2009,23 +2018,29 @@ Status SecretChatActor::on_inbound_action(secret_api::decryptedMessageActionSetM
   send_update_secret_chat();
   return Status::OK();
 }
+
 Status SecretChatActor::on_inbound_action(secret_api::decryptedMessageActionReadMessages &read_messages) {
   // TODO
   return Status::OK();
 }
+
 Status SecretChatActor::on_inbound_action(secret_api::decryptedMessageActionDeleteMessages &delete_messages) {
   return on_delete_messages(delete_messages.random_ids_);
 }
+
 Status SecretChatActor::on_inbound_action(secret_api::decryptedMessageActionScreenshotMessages &screenshot) {
   // TODO
   return Status::OK();
 }
+
 Status SecretChatActor::on_inbound_action(secret_api::decryptedMessageActionFlushHistory &screenshot) {
   return on_flush_history(pfs_state_.message_id);
 }
+
 Status SecretChatActor::on_inbound_action(secret_api::decryptedMessageActionResend &resend) {
   return Status::OK();
 }
+
 Status SecretChatActor::on_inbound_action(secret_api::decryptedMessageActionNotifyLayer &notify_layer) {
   if (notify_layer.layer_ > config_state_.his_layer) {
     config_state_.his_layer = notify_layer.layer_;
@@ -2034,6 +2049,7 @@ Status SecretChatActor::on_inbound_action(secret_api::decryptedMessageActionNoti
   }
   return Status::OK();
 }
+
 Status SecretChatActor::on_inbound_action(secret_api::decryptedMessageActionTyping &typing) {
   // noop
   return Status::OK();
@@ -2045,16 +2061,19 @@ void SecretChatActor::on_outbound_action(secret_api::decryptedMessageActionReque
   pfs_state_.state = PfsState::WaitRequestResponse;
   on_pfs_state_changed();
 }
+
 void SecretChatActor::on_outbound_action(secret_api::decryptedMessageActionAcceptKey &accept_key) {
   CHECK(pfs_state_.state == PfsState::WaitSendAccept || pfs_state_.state == PfsState::SendAccept);
   pfs_state_.state = PfsState::WaitAcceptResponse;
   pfs_state_.handshake = mtproto::DhHandshake();
   on_pfs_state_changed();
 }
+
 void SecretChatActor::on_outbound_action(secret_api::decryptedMessageActionAbortKey &abort_key) {
   // TODO
   LOG(FATAL) << "TODO";
 }
+
 void SecretChatActor::on_outbound_action(secret_api::decryptedMessageActionCommitKey &commit_key) {
   CHECK(pfs_state_.state == PfsState::WaitSendCommit || pfs_state_.state == PfsState::SendCommit);
 
@@ -2069,11 +2088,11 @@ void SecretChatActor::on_outbound_action(secret_api::decryptedMessageActionCommi
 
   on_pfs_state_changed();
 }
+
 void SecretChatActor::on_outbound_action(secret_api::decryptedMessageActionNoop &noop) {
   // noop
 }
 
-// decryptedMessageActionRequestKey#f3c9611b exchange_id:long g_a:bytes = DecryptedMessageAction;
 Status SecretChatActor::on_inbound_action(secret_api::decryptedMessageActionRequestKey &request_key) {
   if (pfs_state_.state == PfsState::WaitRequestResponse || pfs_state_.state == PfsState::SendRequest) {
     if (pfs_state_.exchange_id > request_key.exchange_id_) {
@@ -2112,7 +2131,6 @@ Status SecretChatActor::on_inbound_action(secret_api::decryptedMessageActionRequ
   return Status::OK();
 }
 
-// decryptedMessageActionAcceptKey#6fe1735b exchange_id:long g_b:bytes key_fingerprint:long = DecryptedMessageAction;
 Status SecretChatActor::on_inbound_action(secret_api::decryptedMessageActionAcceptKey &accept_key) {
   if (pfs_state_.state != PfsState::WaitRequestResponse) {
     return Status::Error("AcceptKey: unexpected");
@@ -2136,6 +2154,7 @@ Status SecretChatActor::on_inbound_action(secret_api::decryptedMessageActionAcce
   on_pfs_state_changed();
   return Status::OK();
 }
+
 Status SecretChatActor::on_inbound_action(secret_api::decryptedMessageActionAbortKey &abort_key) {
   if (pfs_state_.exchange_id != abort_key.exchange_id_) {
     LOG(INFO) << "AbortKey: exchange_id mismatch: " << tag("my exchange_id", pfs_state_.exchange_id)
@@ -2151,6 +2170,7 @@ Status SecretChatActor::on_inbound_action(secret_api::decryptedMessageActionAbor
   on_pfs_state_changed();
   return Status::OK();
 }
+
 Status SecretChatActor::on_inbound_action(secret_api::decryptedMessageActionCommitKey &commit_key) {
   if (pfs_state_.state != PfsState::WaitAcceptResponse) {
     return Status::Error("CommitKey: unexpected");
@@ -2174,6 +2194,7 @@ Status SecretChatActor::on_inbound_action(secret_api::decryptedMessageActionComm
   on_pfs_state_changed();
   return Status::OK();
 }
+
 Status SecretChatActor::on_inbound_action(secret_api::decryptedMessageActionNoop &noop) {
   // noop
   return Status::OK();
@@ -2224,7 +2245,6 @@ void SecretChatActor::on_outbound_action(secret_api::DecryptedMessageAction &act
   downcast_call(action, [&](auto &obj) { this->on_outbound_action(obj); });
 }
 
-// decryptedMessageActionRequestKey#f3c9611b exchange_id:long g_a:bytes = DecryptedMessageAction;
 void SecretChatActor::request_new_key() {
   CHECK(!auth_state_.dh_config.empty());
 

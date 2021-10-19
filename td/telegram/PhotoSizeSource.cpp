@@ -150,7 +150,7 @@ string PhotoSizeSource::get_unique_name(int64 photo_id) const {
       UNREACHABLE();
       break;
   }
-  return 0;
+  return string();
 }
 
 static bool operator==(const PhotoSizeSource::Legacy &lhs, const PhotoSizeSource::Legacy &rhs) {

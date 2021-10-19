@@ -847,8 +847,7 @@ static Status check_document_number(string &number) {
 }
 
 static Result<DatedFile> get_secure_file(FileManager *file_manager, td_api::object_ptr<td_api::InputFile> &&file) {
-  TRY_RESULT(file_id,
-             file_manager->get_input_file_id(FileType::Secure, std::move(file), DialogId(), false, false, false, true));
+  TRY_RESULT(file_id, file_manager->get_input_file_id(FileType::Secure, file, DialogId(), false, false, false, true));
   DatedFile result;
   result.file_id = file_id;
   result.date = G()->unix_time();
@@ -1293,7 +1292,7 @@ static EncryptedSecureFile encrypt_secure_file(FileManager *file_manager, const 
 
 static vector<EncryptedSecureFile> encrypt_secure_files(FileManager *file_manager,
                                                         const secure_storage::Secret &master_secret,
-                                                        vector<DatedFile> files, string &to_hash) {
+                                                        const vector<DatedFile> &files, string &to_hash) {
   return transform(
       files, [&](auto dated_file) { return encrypt_secure_file(file_manager, master_secret, dated_file, to_hash); });
   /*

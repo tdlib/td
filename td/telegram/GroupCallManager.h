@@ -233,8 +233,9 @@ class GroupCallManager final : public Actor {
   void on_sync_group_call_participants(InputGroupCallId input_group_call_id,
                                        Result<tl_object_ptr<telegram_api::phone_groupCall>> &&result);
 
-  GroupCallParticipantOrder get_real_participant_order(bool can_self_unmute, const GroupCallParticipant &participant,
-                                                       const GroupCallParticipants *participants) const;
+  static GroupCallParticipantOrder get_real_participant_order(bool can_self_unmute,
+                                                              const GroupCallParticipant &participant,
+                                                              const GroupCallParticipants *participants);
 
   void process_my_group_call_participant(InputGroupCallId input_group_call_id, GroupCallParticipant &&participant);
 
@@ -242,8 +243,8 @@ class GroupCallManager final : public Actor {
                                        vector<tl_object_ptr<telegram_api::groupCallParticipant>> &&participants,
                                        int32 version, const string &offset, bool is_load, bool is_sync);
 
-  bool update_group_call_participant_can_be_muted(bool can_manage, const GroupCallParticipants *participants,
-                                                  GroupCallParticipant &participant);
+  static bool update_group_call_participant_can_be_muted(bool can_manage, const GroupCallParticipants *participants,
+                                                         GroupCallParticipant &participant);
 
   void update_group_call_participants_can_be_muted(InputGroupCallId input_group_call_id, bool can_manage,
                                                    GroupCallParticipants *participants);
@@ -358,11 +359,11 @@ class GroupCallManager final : public Actor {
   vector<td_api::object_ptr<td_api::groupCallRecentSpeaker>> get_recent_speakers(const GroupCall *group_call,
                                                                                  bool for_update);
 
-  tl_object_ptr<td_api::updateGroupCall> get_update_group_call_object(
-      const GroupCall *group_call, vector<td_api::object_ptr<td_api::groupCallRecentSpeaker>> recent_speakers) const;
+  static tl_object_ptr<td_api::updateGroupCall> get_update_group_call_object(
+      const GroupCall *group_call, vector<td_api::object_ptr<td_api::groupCallRecentSpeaker>> recent_speakers);
 
-  tl_object_ptr<td_api::groupCall> get_group_call_object(
-      const GroupCall *group_call, vector<td_api::object_ptr<td_api::groupCallRecentSpeaker>> recent_speakers) const;
+  static tl_object_ptr<td_api::groupCall> get_group_call_object(
+      const GroupCall *group_call, vector<td_api::object_ptr<td_api::groupCallRecentSpeaker>> recent_speakers);
 
   tl_object_ptr<td_api::updateGroupCallParticipant> get_update_group_call_participant_object(
       GroupCallId group_call_id, const GroupCallParticipant &participant);

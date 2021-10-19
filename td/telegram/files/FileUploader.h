@@ -24,8 +24,8 @@ class FileUploader final : public FileLoader {
   class Callback : public FileLoader::Callback {
    public:
     virtual void on_hash(string hash) = 0;
-    virtual void on_partial_upload(const PartialRemoteFileLocation &partial_remote, int64 ready_size) = 0;
-    virtual void on_ok(FileType file_type, const PartialRemoteFileLocation &partial_remote, int64 size) = 0;
+    virtual void on_partial_upload(PartialRemoteFileLocation partial_remote, int64 ready_size) = 0;
+    virtual void on_ok(FileType file_type, PartialRemoteFileLocation partial_remote, int64 size) = 0;
     virtual void on_error(Status status) = 0;
   };
 

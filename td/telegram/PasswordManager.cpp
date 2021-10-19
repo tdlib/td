@@ -656,7 +656,7 @@ Result<PasswordManager::PasswordInputSettings> PasswordManager::get_password_inp
       new_password_hash = new_hash.move_as_ok();
       new_algo = make_tl_object<telegram_api::passwordKdfAlgoSHA256SHA256PBKDF2HMACSHA512iter100000SHA256ModPow>(
           std::move(new_client_salt), BufferSlice(state.server_salt), state.srp_g, BufferSlice(state.srp_p));
-      new_hint = std::move(update_settings.new_hint);
+      new_hint = update_settings.new_hint;
       if (have_secret) {
         update_secure_secret = true;
       }

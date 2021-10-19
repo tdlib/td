@@ -537,8 +537,8 @@ int64 PartsManager::get_unchecked_ready_prefix_size() {
 }
 
 Part PartsManager::get_part(int id) const {
-  int64 offset = narrow_cast<int64>(part_size_) * id;
-  int64 size = narrow_cast<int64>(part_size_);
+  auto size = narrow_cast<int64>(part_size_);
+  auto offset = size * id;
   auto total_size = unknown_size_flag_ ? max_size_ : get_size();
   if (total_size < offset) {
     size = 0;

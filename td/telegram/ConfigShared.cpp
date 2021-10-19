@@ -23,7 +23,7 @@ void ConfigShared::set_callback(unique_ptr<Callback> callback) {
     return;
   }
 
-  for (auto key_value : config_pmc_->get_all()) {
+  for (const auto &key_value : config_pmc_->get_all()) {
     on_option_updated(key_value.first);
   }
 }

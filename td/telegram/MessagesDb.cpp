@@ -902,8 +902,8 @@ class MessagesDbImpl final : public MessagesDbSyncInterface {
     return std::move(right);
   }
 
-  Result<vector<MessagesDbDialogMessage>> get_messages_inner(SqliteStatement &stmt, DialogId dialog_id,
-                                                             int64 from_message_id, int32 limit) {
+  static Result<vector<MessagesDbDialogMessage>> get_messages_inner(SqliteStatement &stmt, DialogId dialog_id,
+                                                                    int64 from_message_id, int32 limit) {
     SCOPE_EXIT {
       stmt.reset();
     };

@@ -1878,28 +1878,28 @@ void UpdatesManager::process_updates(vector<tl_object_ptr<telegram_api::Update>>
   }
   if (force_apply) {
     for (auto &update : updates) {
-      if (update != nullptr && is_pts_update(update.get())) {
-        auto constructor_id = update->get_id();
-        if (constructor_id == telegram_api::updateWebPage::ID) {
-          auto update_web_page = move_tl_object_as<telegram_api::updateWebPage>(update);
-          td_->web_pages_manager_->on_get_web_page(std::move(update_web_page->webpage_), DialogId());
-          continue;
+      if (update != nullptr) {
+        if (is_pts_update(update.get())) {
+          auto constructor_id = update->get_id();
+          if (constructor_id == telegram_api::updateWebPage::ID) {
+            auto update_web_page = move_tl_object_as<telegram_api::updateWebPage>(update);
+            td_->web_pages_manager_->on_get_web_page(std::move(update_web_page->webpage_), DialogId());
+            continue;
+          }
+
+          CHECK(constructor_id != telegram_api::updateFolderPeers::ID);
+
+          if (constructor_id == telegram_api::updateReadHistoryInbox::ID) {
+            static_cast<telegram_api::updateReadHistoryInbox *>(update.get())->still_unread_count_ = -1;
+          }
+
+          process_pts_update(std::move(update));
+        } else if (is_qts_update(update.get())) {
+          process_qts_update(std::move(update), 0, mpas.get_promise());
+        } else if (update->get_id() == telegram_api::updateChannelTooLong::ID) {
+          td_->messages_manager_->on_update_channel_too_long(
+              move_tl_object_as<telegram_api::updateChannelTooLong>(update), true);
         }
-
-        CHECK(constructor_id != telegram_api::updateFolderPeers::ID);
-
-        if (constructor_id == telegram_api::updateReadHistoryInbox::ID) {
-          static_cast<telegram_api::updateReadHistoryInbox *>(update.get())->still_unread_count_ = -1;
-        }
-
-        process_pts_update(std::move(update));
-      }
-      if (update != nullptr && is_qts_update(update.get())) {
-        process_qts_update(std::move(update), 0, mpas.get_promise());
-      }
-      if (update != nullptr && update->get_id() == telegram_api::updateChannelTooLong::ID) {
-        td_->messages_manager_->on_update_channel_too_long(
-            move_tl_object_as<telegram_api::updateChannelTooLong>(update), true);
       }
     }
   }
@@ -2101,8 +2101,7 @@ void UpdatesManager::process_qts_update(tl_object_ptr<telegram_api::Update> &&up
     }
     case telegram_api::updateBotStopped::ID: {
       auto update = move_tl_object_as<telegram_api::updateBotStopped>(update_ptr);
-      td_->contacts_manager_->on_update_bot_stopped(UserId(update->user_id_), update->date_,
-                                                    std::move(update->stopped_));
+      td_->contacts_manager_->on_update_bot_stopped(UserId(update->user_id_), update->date_, update->stopped_);
       add_qts(qts).set_value(Unit());
       break;
     }

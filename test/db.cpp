@@ -296,18 +296,18 @@ class QueryHandler {
 
 class SqliteKV {
  public:
-  string get(string key) {
+  string get(const string &key) {
     return kv_->get().get(key);
   }
-  SeqNo set(string key, string value) {
+  SeqNo set(const string &key, const string &value) {
     kv_->get().set(key, value);
     return 0;
   }
-  SeqNo erase(string key) {
+  SeqNo erase(const string &key) {
     kv_->get().erase(key);
     return 0;
   }
-  Status init(string name) {
+  Status init(const string &name) {
     auto sql_connection = std::make_shared<SqliteConnectionSafe>(name, DbKey::empty());
     kv_ = std::make_shared<SqliteKeyValueSafe>("kv", sql_connection);
     return Status::OK();

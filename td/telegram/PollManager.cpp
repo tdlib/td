@@ -616,7 +616,6 @@ PollId PollManager::create_poll(string &&question, vector<string> &&options, boo
   CHECK(is_local_poll_id(poll_id));
   bool is_inserted = polls_.emplace(poll_id, std::move(poll)).second;
   CHECK(is_inserted);
-  LOG(INFO) << "Created " << poll_id << " with question \"" << oneline(poll->question) << '"';
   return poll_id;
 }
 
@@ -978,7 +977,7 @@ void PollManager::get_poll_voters(PollId poll_id, FullMessageId full_message_id,
 
   auto query_promise =
       PromiseCreator::lambda([actor_id = actor_id(this), poll_id, option_id, offset = voters.next_offset,
-                              limit](Result<tl_object_ptr<telegram_api::messages_votesList>> &&result) {
+                              limit](Result<tl_object_ptr<telegram_api::messages_votesList>> &&result) mutable {
         send_closure(actor_id, &PollManager::on_get_poll_voters, poll_id, option_id, std::move(offset), limit,
                      std::move(result));
       });

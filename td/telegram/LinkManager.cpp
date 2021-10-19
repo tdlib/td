@@ -77,7 +77,7 @@ static string get_url_query_hash(bool is_tg, const HttpUrlQuery &url_query) {
       // /joinchat/<link>
       return path[1];
     }
-    if (path.size() >= 1 && path[0].size() >= 2 && (path[0][0] == ' ' || path[0][0] == '+')) {
+    if (!path.empty() && path[0].size() >= 2 && (path[0][0] == ' ' || path[0][0] == '+')) {
       // /+<link>
       return path[0].substr(1);
     }
@@ -811,7 +811,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
   } else if (path.size() == 1 && path[0] == "passport") {
     // passport?bot_id=<bot_user_id>&scope=<scope>&public_key=<public_key>&nonce=<nonce>
     return get_internal_link_passport(query, url_query.args_);
-  } else if (path.size() >= 1 && path[0] == "settings") {
+  } else if (!path.empty() && path[0] == "settings") {
     if (path.size() == 2 && path[1] == "change_number") {
       // settings/change_number
       return td::make_unique<InternalLinkChangePhoneNumber>();

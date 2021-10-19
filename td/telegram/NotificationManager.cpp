@@ -237,7 +237,7 @@ void NotificationManager::init() {
   last_loaded_notification_group_key_.last_notification_date = std::numeric_limits<int32>::max();
   if (max_notification_group_count_ != 0) {
     int32 loaded_groups = 0;
-    int32 needed_groups = static_cast<int32>(max_notification_group_count_);
+    auto needed_groups = static_cast<int32>(max_notification_group_count_);
     do {
       loaded_groups += load_message_notification_groups_from_database(needed_groups, false);
     } while (loaded_groups < needed_groups && last_loaded_notification_group_key_.last_notification_date != 0);
@@ -1765,7 +1765,7 @@ void NotificationManager::on_notifications_removed(
 
 void NotificationManager::remove_added_notifications_from_pending_updates(
     NotificationGroupId group_id,
-    std::function<bool(const td_api::object_ptr<td_api::notification> &notification)> is_removed) {
+    const std::function<bool(const td_api::object_ptr<td_api::notification> &notification)> &is_removed) {
   auto it = pending_updates_.find(group_id.get());
   if (it == pending_updates_.end()) {
     return;

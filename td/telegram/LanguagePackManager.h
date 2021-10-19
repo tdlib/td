@@ -108,7 +108,7 @@ class LanguagePackManager final : public NetQueryCallback {
   static std::mutex language_database_mutex_;
   static std::unordered_map<string, unique_ptr<LanguageDatabase>> language_databases_;
 
-  static LanguageDatabase *add_language_database(const string &path);
+  static LanguageDatabase *add_language_database(string path);
 
   static Language *get_language(LanguageDatabase *database, const string &language_pack, const string &language_code);
   static Language *get_language(LanguagePack *language_pack, const string &language_code);
@@ -160,25 +160,25 @@ class LanguagePackManager final : public NetQueryCallback {
   static bool is_valid_key(Slice key);
 
   void save_strings_to_database(SqliteKeyValue *kv, int32 new_version, bool new_is_full, int32 new_key_count,
-                                vector<std::pair<string, string>> strings);
+                                vector<std::pair<string, string>> &&strings);
 
   void load_empty_language_pack(const string &language_code);
 
   void on_get_language_pack_strings(string language_pack, string language_code, int32 version, bool is_diff,
-                                    vector<string> keys, vector<tl_object_ptr<telegram_api::LangPackString>> results,
+                                    vector<string> &&keys, vector<tl_object_ptr<telegram_api::LangPackString>> results,
                                     Promise<td_api::object_ptr<td_api::languagePackStrings>> promise);
 
   void on_get_all_language_pack_strings(string language_pack, string language_code,
                                         Result<td_api::object_ptr<td_api::languagePackStrings>> r_strings);
 
-  void send_language_get_difference_query(Language *language, const string &language_code, int32 version,
+  void send_language_get_difference_query(Language *language, string language_code, int32 version,
                                           Promise<Unit> &&promise);
 
   void on_failed_get_difference(string language_pack, string language_code, Status error);
 
   void on_get_language_info(const string &language_pack, td_api::languagePackInfo *language_pack_info);
 
-  void save_server_language_pack_infos(LanguagePack *pack);
+  static void save_server_language_pack_infos(LanguagePack *pack);
 
   void on_get_languages(vector<tl_object_ptr<telegram_api::langPackLanguage>> languages, string language_pack,
                         bool only_local, Promise<td_api::object_ptr<td_api::localizationTargetInfo>> promise);
@@ -186,7 +186,7 @@ class LanguagePackManager final : public NetQueryCallback {
   void on_get_language(tl_object_ptr<telegram_api::langPackLanguage> lang_pack_language, string language_pack,
                        string language_code, Promise<td_api::object_ptr<td_api::languagePackInfo>> promise);
 
-  Status do_delete_language(string language_code);
+  Status do_delete_language(const string &language_code);
 
   void on_result(NetQueryPtr query) final;
 

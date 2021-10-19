@@ -446,7 +446,7 @@ Result<FileLoader::CheckInfo> FileDownloader::check_loop(int64 checked_prefix_si
         }
         end_offset = ready_prefix_size;
       }
-      size_t size = narrow_cast<size_t>(end_offset - begin_offset);
+      auto size = narrow_cast<size_t>(end_offset - begin_offset);
       auto slice = BufferSlice(size);
       TRY_STATUS(acquire_fd());
       TRY_RESULT(read_size, fd_.pread(slice.as_slice(), begin_offset));

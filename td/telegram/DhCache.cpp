@@ -27,7 +27,7 @@ int DhCache::is_good_prime(Slice prime_str) const {
   if (value == "bad") {
     return 0;
   }
-  CHECK(value == "");
+  CHECK(value.empty());
   return -1;
 }
 

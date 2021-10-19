@@ -136,7 +136,7 @@ class NetStatsManager final : public Actor {
 
   void start_up() final;
   void update(NetStatsInfo &info, bool force_save);
-  void save_stats(NetStatsInfo &info, NetType net_type);
+  static void save_stats(NetStatsInfo &info, NetType net_type);
   void info_loop(NetStatsInfo &info);
 
   void on_stats_updated(size_t id);

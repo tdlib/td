@@ -458,7 +458,7 @@ DialogParticipantStatus get_dialog_participant_status(const tl_object_ptr<td_api
 }
 
 DialogParticipantStatus get_dialog_participant_status(bool can_be_edited,
-                                                      const tl_object_ptr<telegram_api::chatAdminRights> &admin_rights,
+                                                      tl_object_ptr<telegram_api::chatAdminRights> &&admin_rights,
                                                       string rank) {
   bool can_change_info = (admin_rights->flags_ & telegram_api::chatAdminRights::CHANGE_INFO_MASK) != 0;
   bool can_post_messages = (admin_rights->flags_ & telegram_api::chatAdminRights::POST_MESSAGES_MASK) != 0;
@@ -480,8 +480,8 @@ DialogParticipantStatus get_dialog_participant_status(bool can_be_edited,
                                                 can_pin_messages, can_promote_members, can_manage_calls);
 }
 
-DialogParticipantStatus get_dialog_participant_status(
-    bool is_member, const tl_object_ptr<telegram_api::chatBannedRights> &banned_rights) {
+DialogParticipantStatus get_dialog_participant_status(bool is_member,
+                                                      tl_object_ptr<telegram_api::chatBannedRights> &&banned_rights) {
   bool can_view_messages = (banned_rights->flags_ & telegram_api::chatBannedRights::VIEW_MESSAGES_MASK) == 0;
   if (!can_view_messages) {
     return DialogParticipantStatus::Banned(banned_rights->until_date_);
@@ -616,7 +616,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const RestrictedRights 
   return string_builder;
 }
 
-RestrictedRights get_restricted_rights(const tl_object_ptr<telegram_api::chatBannedRights> &banned_rights) {
+RestrictedRights get_restricted_rights(tl_object_ptr<telegram_api::chatBannedRights> &&banned_rights) {
   if (banned_rights == nullptr) {
     return RestrictedRights(false, false, false, false, false, false, false, false, false, false, false);
   }
@@ -657,14 +657,14 @@ RestrictedRights get_restricted_rights(const td_api::object_ptr<td_api::chatPerm
 
 DialogParticipant::DialogParticipant(DialogId dialog_id, UserId inviter_user_id, int32 joined_date,
                                      DialogParticipantStatus status)
-    : dialog_id(dialog_id), inviter_user_id(inviter_user_id), joined_date(joined_date), status(status) {
+    : dialog_id(dialog_id), inviter_user_id(inviter_user_id), joined_date(joined_date), status(std::move(status)) {
   if (!inviter_user_id.is_valid() && inviter_user_id != UserId()) {
     LOG(ERROR) << "Receive inviter " << inviter_user_id;
-    inviter_user_id = UserId();
+    this->inviter_user_id = UserId();
   }
   if (joined_date < 0) {
     LOG(ERROR) << "Receive date " << joined_date;
-    joined_date = 0;
+    this->joined_date = 0;
   }
 }
 

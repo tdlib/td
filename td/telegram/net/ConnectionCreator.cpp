@@ -672,7 +672,7 @@ Result<mtproto::TransportType> ConnectionCreator::get_transport_type(const Proxy
   if (G()->is_test_dc()) {
     int_dc_id += 10000;
   }
-  int16 raw_dc_id = narrow_cast<int16>(info.option->is_media_only() ? -int_dc_id : int_dc_id);
+  auto raw_dc_id = narrow_cast<int16>(info.option->is_media_only() ? -int_dc_id : int_dc_id);
 
   if (proxy.use_mtproto_proxy()) {
     return mtproto::TransportType{mtproto::TransportType::ObfuscatedTcp, raw_dc_id, proxy.secret()};
@@ -736,7 +736,7 @@ Result<SocketFd> ConnectionCreator::find_connection(const Proxy &proxy, const IP
 
 ActorOwn<> ConnectionCreator::prepare_connection(IPAddress ip_address, SocketFd socket_fd, const Proxy &proxy,
                                                  const IPAddress &mtproto_ip_address,
-                                                 mtproto::TransportType transport_type, Slice actor_name_prefix,
+                                                 const mtproto::TransportType &transport_type, Slice actor_name_prefix,
                                                  Slice debug_str,
                                                  unique_ptr<mtproto::RawConnection::StatsCallback> stats_callback,
                                                  ActorShared<> parent, bool use_connection_token,
@@ -934,13 +934,13 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
       client.checking_connections++;
     }
 
-    auto promise = PromiseCreator::lambda(
-        [actor_id = actor_id(this), check_mode, transport_type = extra.transport_type, hash = client.hash,
-         debug_str = extra.debug_str,
-         network_generation = network_generation_](Result<ConnectionData> r_connection_data) mutable {
-          send_closure(std::move(actor_id), &ConnectionCreator::client_create_raw_connection,
-                       std::move(r_connection_data), check_mode, transport_type, hash, debug_str, network_generation);
-        });
+    auto promise = PromiseCreator::lambda([actor_id = actor_id(this), check_mode, transport_type = extra.transport_type,
+                                           hash = client.hash, debug_str = extra.debug_str,
+                                           network_generation =
+                                               network_generation_](Result<ConnectionData> r_connection_data) mutable {
+      send_closure(std::move(actor_id), &ConnectionCreator::client_create_raw_connection, std::move(r_connection_data),
+                   check_mode, std::move(transport_type), hash, std::move(debug_str), network_generation);
+    });
 
     auto stats_callback =
         td::make_unique<detail::StatsCallback>(client.is_media ? media_net_stats_callback_ : common_net_stats_callback_,
@@ -1060,17 +1060,16 @@ void ConnectionCreator::on_dc_options(DcOptions new_dc_options) {
 }
 
 void ConnectionCreator::on_dc_update(DcId dc_id, string ip_port, Promise<> promise) {
-  promise.set_result([&]() -> Result<> {
-    if (!dc_id.is_exact()) {
-      return Status::Error("Invalid dc_id");
-    }
-    IPAddress ip_address;
-    TRY_STATUS(ip_address.init_host_port(ip_port));
-    DcOptions options;
-    options.dc_options.emplace_back(dc_id, ip_address);
-    send_closure(G()->config_manager(), &ConfigManager::on_dc_options_update, std::move(options));
-    return Unit();
-  }());
+  if (!dc_id.is_exact()) {
+    return promise.set_error(Status::Error("Invalid dc_id"));
+  }
+
+  IPAddress ip_address;
+  TRY_STATUS_PROMISE(promise, ip_address.init_host_port(ip_port));
+  DcOptions options;
+  options.dc_options.emplace_back(dc_id, ip_address);
+  send_closure(G()->config_manager(), &ConfigManager::on_dc_options_update, std::move(options));
+  promise.set_value(Unit());
 }
 
 void ConnectionCreator::update_mtproto_header(const Proxy &proxy) {
@@ -1129,13 +1128,13 @@ void ConnectionCreator::start_up() {
 
   for (auto &info : proxy_info) {
     if (begins_with(info.first, "_used")) {
-      int32 proxy_id = to_integer_safe<int32>(Slice(info.first).substr(5)).move_as_ok();
-      int32 last_used = to_integer_safe<int32>(info.second).move_as_ok();
+      auto proxy_id = to_integer_safe<int32>(Slice(info.first).substr(5)).move_as_ok();
+      auto last_used = to_integer_safe<int32>(info.second).move_as_ok();
       proxy_last_used_date_[proxy_id] = last_used;
       proxy_last_used_saved_date_[proxy_id] = last_used;
     } else {
       LOG_CHECK(!ends_with(info.first, "_max_id")) << info.first;
-      int32 proxy_id = info.first == "" ? 1 : to_integer_safe<int32>(info.first).move_as_ok();
+      auto proxy_id = info.first.empty() ? static_cast<int32>(1) : to_integer_safe<int32>(info.first).move_as_ok();
       CHECK(proxies_.count(proxy_id) == 0);
       log_event_parse(proxies_[proxy_id], info.second).ensure();
       if (proxies_[proxy_id].type() == Proxy::Type::None) {

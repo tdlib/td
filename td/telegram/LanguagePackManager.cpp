@@ -170,7 +170,7 @@ static string load_database_language_base_language_code(SqliteKeyValue *kv) {
   return kv->get("!base_language_code");
 }
 
-LanguagePackManager::LanguageDatabase *LanguagePackManager::add_language_database(const string &path) {
+LanguagePackManager::LanguageDatabase *LanguagePackManager::add_language_database(string path) {
   auto it = language_databases_.find(path);
   if (it != language_databases_.end()) {
     return it->second.get();
@@ -395,11 +395,11 @@ void LanguagePackManager::on_language_pack_version_changed(bool is_base, int32 n
 
   LOG(INFO) << (is_base ? "Base" : "Main") << " language pack " << language_code << " vesrion has changed to "
             << new_version;
-  send_language_get_difference_query(language, language_code, version, Auto());
+  send_language_get_difference_query(language, std::move(language_code), version, Auto());
 }
 
-void LanguagePackManager::send_language_get_difference_query(Language *language, const string &language_code,
-                                                             int32 version, Promise<Unit> &&promise) {
+void LanguagePackManager::send_language_get_difference_query(Language *language, string language_code, int32 version,
+                                                             Promise<Unit> &&promise) {
   std::lock_guard<std::mutex> lock(language->mutex_);
   language->get_difference_queries_.push_back(std::move(promise));
   if (language->has_get_difference_query_) {
@@ -1179,7 +1179,7 @@ void LanguagePackManager::synchronize_language_pack(string language_code, Promis
   if (version == -1) {
     version = 0;
   }
-  send_language_get_difference_query(language, language_code, version, std::move(promise));
+  send_language_get_difference_query(language, std::move(language_code), version, std::move(promise));
 }
 
 static td_api::object_ptr<td_api::LanguagePackStringValue> copy_language_pack_string_value(
@@ -1294,7 +1294,7 @@ bool LanguagePackManager::is_valid_key(Slice key) {
 }
 
 void LanguagePackManager::save_strings_to_database(SqliteKeyValue *kv, int32 new_version, bool new_is_full,
-                                                   int32 new_key_count, vector<std::pair<string, string>> strings) {
+                                                   int32 new_key_count, vector<std::pair<string, string>> &&strings) {
   LOG(DEBUG) << "Save to database a language pack with new version " << new_version << " and " << strings.size()
              << " new strings";
   if (new_version == -1 && strings.empty()) {
@@ -1314,7 +1314,7 @@ void LanguagePackManager::save_strings_to_database(SqliteKeyValue *kv, int32 new
   }
 
   kv->begin_write_transaction().ensure();
-  for (auto str : strings) {
+  for (const auto &str : strings) {
     if (!is_valid_key(str.first)) {
       LOG(ERROR) << "Have invalid key \"" << str.first << '"';
       continue;
@@ -1339,7 +1339,7 @@ void LanguagePackManager::save_strings_to_database(SqliteKeyValue *kv, int32 new
 }
 
 void LanguagePackManager::on_get_language_pack_strings(
-    string language_pack, string language_code, int32 version, bool is_diff, vector<string> keys,
+    string language_pack, string language_code, int32 version, bool is_diff, vector<string> &&keys,
     vector<tl_object_ptr<telegram_api::LangPackString>> results,
     Promise<td_api::object_ptr<td_api::languagePackStrings>> promise) {
   Language *language = get_language(database_, language_pack, language_code);
@@ -1370,7 +1370,7 @@ void LanguagePackManager::on_get_language_pack_strings(
         CHECK(result != nullptr);
         switch (result->get_id()) {
           case telegram_api::langPackString::ID: {
-            auto str = static_cast<telegram_api::langPackString *>(result.get());
+            auto str = telegram_api::move_object_as<telegram_api::langPackString>(result);
             auto it = language->ordinary_strings_.find(str->key_);
             if (it == language->ordinary_strings_.end()) {
               key_count_delta++;
@@ -1383,11 +1383,11 @@ void LanguagePackManager::on_get_language_pack_strings(
             if (is_diff) {
               strings.push_back(get_language_pack_string_object(*it));
             }
-            database_strings.emplace_back(str->key_, PSTRING() << '1' << it->second);
+            database_strings.emplace_back(std::move(str->key_), PSTRING() << '1' << it->second);
             break;
           }
           case telegram_api::langPackStringPluralized::ID: {
-            auto str = static_cast<const telegram_api::langPackStringPluralized *>(result.get());
+            auto str = telegram_api::move_object_as<telegram_api::langPackStringPluralized>(result);
             PluralizedString value{std::move(str->zero_value_), std::move(str->one_value_),
                                    std::move(str->two_value_),  std::move(str->few_value_),
                                    std::move(str->many_value_), std::move(str->other_value_)};
@@ -1404,20 +1404,21 @@ void LanguagePackManager::on_get_language_pack_strings(
               strings.push_back(get_language_pack_string_object(*it));
             }
             database_strings.emplace_back(
-                str->key_, PSTRING() << '2' << it->second.zero_value_ << '\x00' << it->second.one_value_ << '\x00'
-                                     << it->second.two_value_ << '\x00' << it->second.few_value_ << '\x00'
-                                     << it->second.many_value_ << '\x00' << it->second.other_value_);
+                std::move(str->key_), PSTRING()
+                                          << '2' << it->second.zero_value_ << '\x00' << it->second.one_value_ << '\x00'
+                                          << it->second.two_value_ << '\x00' << it->second.few_value_ << '\x00'
+                                          << it->second.many_value_ << '\x00' << it->second.other_value_);
             break;
           }
           case telegram_api::langPackStringDeleted::ID: {
-            auto str = static_cast<const telegram_api::langPackStringDeleted *>(result.get());
+            auto str = telegram_api::move_object_as<telegram_api::langPackStringDeleted>(result);
             key_count_delta -= static_cast<int32>(language->ordinary_strings_.erase(str->key_));
             key_count_delta -= static_cast<int32>(language->pluralized_strings_.erase(str->key_));
-            language->deleted_strings_.insert(std::move(str->key_));
+            language->deleted_strings_.insert(str->key_);
             if (is_diff) {
               strings.push_back(get_language_pack_string_object(str->key_));
             }
-            database_strings.emplace_back(str->key_, "3");
+            database_strings.emplace_back(std::move(str->key_), "3");
             break;
           }
           default:
@@ -1426,7 +1427,7 @@ void LanguagePackManager::on_get_language_pack_strings(
         }
       }
       if (!language->is_full_) {
-        for (auto &key : keys) {
+        for (const auto &key : keys) {
           if (!language_has_string_unsafe(language, key)) {
             LOG(ERROR) << "Doesn't receive key " << key << " from server";
             language->deleted_strings_.insert(key);
@@ -1822,7 +1823,7 @@ void LanguagePackManager::delete_language(string language_code, Promise<Unit> &&
   }
 }
 
-Status LanguagePackManager::do_delete_language(string language_code) {
+Status LanguagePackManager::do_delete_language(const string &language_code) {
   add_language(database_, language_pack_, language_code);
 
   std::lock_guard<std::mutex> packs_lock(database_->mutex_);

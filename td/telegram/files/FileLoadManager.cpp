@@ -192,14 +192,15 @@ void FileLoadManager::on_start_download() {
   }
 }
 
-void FileLoadManager::on_partial_download(const PartialLocalFileLocation &partial_local, int64 ready_size, int64 size) {
+void FileLoadManager::on_partial_download(PartialLocalFileLocation partial_local, int64 ready_size, int64 size) {
   auto node_id = get_link_token();
   auto node = nodes_container_.get(node_id);
   if (node == nullptr) {
     return;
   }
   if (!stop_flag_) {
-    send_closure(callback_, &Callback::on_partial_download, node->query_id_, partial_local, ready_size, size);
+    send_closure(callback_, &Callback::on_partial_download, node->query_id_, std::move(partial_local), ready_size,
+                 size);
   }
 }
 
@@ -214,51 +215,51 @@ void FileLoadManager::on_hash(string hash) {
   }
 }
 
-void FileLoadManager::on_partial_upload(const PartialRemoteFileLocation &partial_remote, int64 ready_size) {
+void FileLoadManager::on_partial_upload(PartialRemoteFileLocation partial_remote, int64 ready_size) {
   auto node_id = get_link_token();
   auto node = nodes_container_.get(node_id);
   if (node == nullptr) {
     return;
   }
   if (!stop_flag_) {
-    send_closure(callback_, &Callback::on_partial_upload, node->query_id_, partial_remote, ready_size);
+    send_closure(callback_, &Callback::on_partial_upload, node->query_id_, std::move(partial_remote), ready_size);
   }
 }
 
-void FileLoadManager::on_ok_download(const FullLocalFileLocation &local, int64 size, bool is_new) {
+void FileLoadManager::on_ok_download(FullLocalFileLocation local, int64 size, bool is_new) {
   auto node_id = get_link_token();
   auto node = nodes_container_.get(node_id);
   if (node == nullptr) {
     return;
   }
   if (!stop_flag_) {
-    send_closure(callback_, &Callback::on_download_ok, node->query_id_, local, size, is_new);
+    send_closure(callback_, &Callback::on_download_ok, node->query_id_, std::move(local), size, is_new);
   }
   close_node(node_id);
   loop();
 }
 
-void FileLoadManager::on_ok_upload(FileType file_type, const PartialRemoteFileLocation &remote, int64 size) {
+void FileLoadManager::on_ok_upload(FileType file_type, PartialRemoteFileLocation remote, int64 size) {
   auto node_id = get_link_token();
   auto node = nodes_container_.get(node_id);
   if (node == nullptr) {
     return;
   }
   if (!stop_flag_) {
-    send_closure(callback_, &Callback::on_upload_ok, node->query_id_, file_type, remote, size);
+    send_closure(callback_, &Callback::on_upload_ok, node->query_id_, file_type, std::move(remote), size);
   }
   close_node(node_id);
   loop();
 }
 
-void FileLoadManager::on_ok_upload_full(const FullRemoteFileLocation &remote) {
+void FileLoadManager::on_ok_upload_full(FullRemoteFileLocation remote) {
   auto node_id = get_link_token();
   auto node = nodes_container_.get(node_id);
   if (node == nullptr) {
     return;
   }
   if (!stop_flag_) {
-    send_closure(callback_, &Callback::on_upload_full_ok, node->query_id_, remote);
+    send_closure(callback_, &Callback::on_upload_full_ok, node->query_id_, std::move(remote));
   }
   close_node(node_id);
   loop();

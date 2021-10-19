@@ -98,34 +98,34 @@ TEST(Link, parse_internal_link) {
   auto active_sessions = [] {
     return td::td_api::make_object<td::td_api::internalLinkTypeActiveSessions>();
   };
-  auto authentication_code = [](td::string code) {
+  auto authentication_code = [](const td::string &code) {
     return td::td_api::make_object<td::td_api::internalLinkTypeAuthenticationCode>(code);
   };
-  auto background = [](td::string background_name) {
+  auto background = [](const td::string &background_name) {
     return td::td_api::make_object<td::td_api::internalLinkTypeBackground>(background_name);
   };
-  auto bot_start = [](td::string bot_username, td::string start_parameter) {
+  auto bot_start = [](const td::string &bot_username, const td::string &start_parameter) {
     return td::td_api::make_object<td::td_api::internalLinkTypeBotStart>(bot_username, start_parameter);
   };
-  auto bot_start_in_group = [](td::string bot_username, td::string start_parameter) {
+  auto bot_start_in_group = [](const td::string &bot_username, const td::string &start_parameter) {
     return td::td_api::make_object<td::td_api::internalLinkTypeBotStartInGroup>(bot_username, start_parameter);
   };
   auto change_phone_number = [] {
     return td::td_api::make_object<td::td_api::internalLinkTypeChangePhoneNumber>();
   };
-  auto chat_invite = [](td::string hash) {
+  auto chat_invite = [](const td::string &hash) {
     return td::td_api::make_object<td::td_api::internalLinkTypeChatInvite>("tg:join?invite=" + hash);
   };
   auto filter_settings = [] {
     return td::td_api::make_object<td::td_api::internalLinkTypeFilterSettings>();
   };
-  auto game = [](td::string bot_username, td::string game_short_name) {
+  auto game = [](const td::string &bot_username, const td::string &game_short_name) {
     return td::td_api::make_object<td::td_api::internalLinkTypeGame>(bot_username, game_short_name);
   };
-  auto language_pack = [](td::string language_pack_name) {
+  auto language_pack = [](const td::string &language_pack_name) {
     return td::td_api::make_object<td::td_api::internalLinkTypeLanguagePack>(language_pack_name);
   };
-  auto message = [](td::string url) {
+  auto message = [](const td::string &url) {
     return td::td_api::make_object<td::td_api::internalLinkTypeMessage>(url);
   };
   auto message_draft = [](td::string text, bool contains_url) {
@@ -133,23 +133,24 @@ TEST(Link, parse_internal_link) {
     formatted_text->text_ = std::move(text);
     return td::td_api::make_object<td::td_api::internalLinkTypeMessageDraft>(std::move(formatted_text), contains_url);
   };
-  auto passport_data_request = [](td::int32 bot_user_id, td::string scope, td::string public_key, td::string nonce,
-                                  td::string callback_url) {
+  auto passport_data_request = [](td::int32 bot_user_id, const td::string &scope, const td::string &public_key,
+                                  const td::string &nonce, const td::string &callback_url) {
     return td::td_api::make_object<td::td_api::internalLinkTypePassportDataRequest>(bot_user_id, scope, public_key,
                                                                                     nonce, callback_url);
   };
-  auto phone_number_confirmation = [](td::string hash, td::string phone_number) {
+  auto phone_number_confirmation = [](const td::string &hash, const td::string &phone_number) {
     return td::td_api::make_object<td::td_api::internalLinkTypePhoneNumberConfirmation>(hash, phone_number);
   };
-  auto proxy_mtproto = [](td::string server, td::int32 port, td::string secret) {
+  auto proxy_mtproto = [](const td::string &server, td::int32 port, const td::string &secret) {
     return td::td_api::make_object<td::td_api::internalLinkTypeProxy>(
         server, port, td::td_api::make_object<td::td_api::proxyTypeMtproto>(secret));
   };
-  auto proxy_socks = [](td::string server, td::int32 port, td::string username, td::string password) {
+  auto proxy_socks = [](const td::string &server, td::int32 port, const td::string &username,
+                        const td::string &password) {
     return td::td_api::make_object<td::td_api::internalLinkTypeProxy>(
         server, port, td::td_api::make_object<td::td_api::proxyTypeSocks5>(username, password));
   };
-  auto public_chat = [](td::string chat_username) {
+  auto public_chat = [](const td::string &chat_username) {
     return td::td_api::make_object<td::td_api::internalLinkTypePublicChat>(chat_username);
   };
   auto qr_code_authentication = [] {
@@ -158,19 +159,19 @@ TEST(Link, parse_internal_link) {
   auto settings = [] {
     return td::td_api::make_object<td::td_api::internalLinkTypeSettings>();
   };
-  auto sticker_set = [](td::string sticker_set_name) {
+  auto sticker_set = [](const td::string &sticker_set_name) {
     return td::td_api::make_object<td::td_api::internalLinkTypeStickerSet>(sticker_set_name);
   };
-  auto theme = [](td::string theme_name) {
+  auto theme = [](const td::string &theme_name) {
     return td::td_api::make_object<td::td_api::internalLinkTypeTheme>(theme_name);
   };
   auto theme_settings = [] {
     return td::td_api::make_object<td::td_api::internalLinkTypeThemeSettings>();
   };
-  auto unknown_deep_link = [](td::string link) {
+  auto unknown_deep_link = [](const td::string &link) {
     return td::td_api::make_object<td::td_api::internalLinkTypeUnknownDeepLink>(link);
   };
-  auto voice_chat = [](td::string chat_username, td::string invite_hash, bool is_live_stream) {
+  auto voice_chat = [](const td::string &chat_username, const td::string &invite_hash, bool is_live_stream) {
     return td::td_api::make_object<td::td_api::internalLinkTypeVoiceChat>(chat_username, invite_hash, is_live_stream);
   };
 

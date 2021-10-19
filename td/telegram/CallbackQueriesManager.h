@@ -42,16 +42,13 @@ class CallbackQueriesManager {
   void send_callback_query(FullMessageId full_message_id, tl_object_ptr<td_api::CallbackQueryPayload> &&payload,
                            Promise<td_api::object_ptr<td_api::callbackQueryAnswer>> &&promise);
 
-  void on_get_callback_query_answer(tl_object_ptr<telegram_api::messages_botCallbackAnswer> &&answer,
-                                    Promise<td_api::object_ptr<td_api::callbackQueryAnswer>> &&promise);
-
  private:
   static constexpr int32 BOT_CALLBACK_ANSWER_FLAG_HAS_MESSAGE = 1 << 0;
   static constexpr int32 BOT_CALLBACK_ANSWER_FLAG_NEED_SHOW_ALERT = 1 << 1;
   static constexpr int32 BOT_CALLBACK_ANSWER_FLAG_HAS_URL = 1 << 2;
 
-  tl_object_ptr<td_api::CallbackQueryPayload> get_query_payload(int32 flags, BufferSlice &&data,
-                                                                string &&game_short_name);
+  static tl_object_ptr<td_api::CallbackQueryPayload> get_query_payload(int32 flags, BufferSlice &&data,
+                                                                       string &&game_short_name);
 
   void send_get_callback_answer_query(FullMessageId full_message_id,
                                       tl_object_ptr<td_api::CallbackQueryPayload> &&payload,

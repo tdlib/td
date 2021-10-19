@@ -52,7 +52,7 @@ std::string get_sqlite_path(const TdParameters &parameters) {
 
 Result<TdDb::EncryptionInfo> check_encryption(string path) {
   Binlog binlog;
-  auto status = binlog.init(path, Binlog::Callback());
+  auto status = binlog.init(std::move(path), Binlog::Callback());
   if (status.is_error() && status.code() != Binlog::Error::WrongPassword) {
     LOG(WARNING) << "Failed to check binlog: " << status;
     return Status::Error(400, status.message());
@@ -281,7 +281,7 @@ void TdDb::do_close(Promise<> on_finished, bool destroy_flag) {
   lock.set_value(Unit());
 }
 
-Status TdDb::init_sqlite(int32 scheduler_id, const TdParameters &parameters, DbKey key, DbKey old_key,
+Status TdDb::init_sqlite(int32 scheduler_id, const TdParameters &parameters, const DbKey &key, const DbKey &old_key,
                          BinlogKeyValue<Binlog> &binlog_pmc) {
   CHECK(!parameters.use_message_db || parameters.use_chat_info_db);
   CHECK(!parameters.use_chat_info_db || parameters.use_file_db);
@@ -489,7 +489,7 @@ Status TdDb::destroy(const TdParameters &parameters) {
   return Status::OK();
 }
 
-void TdDb::with_db_path(std::function<void(CSlice)> callback) {
+void TdDb::with_db_path(const std::function<void(CSlice)> &callback) {
   SqliteDb::with_db_path(sqlite_path(), callback);
   callback(binlog_path());
 }

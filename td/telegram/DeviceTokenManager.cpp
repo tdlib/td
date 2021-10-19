@@ -129,7 +129,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const DeviceTokenManage
 }
 
 void DeviceTokenManager::register_device(tl_object_ptr<td_api::DeviceToken> device_token_ptr,
-                                         vector<UserId> other_user_ids,
+                                         const vector<UserId> &other_user_ids,
                                          Promise<td_api::object_ptr<td_api::pushReceiverId>> promise) {
   CHECK(device_token_ptr != nullptr);
   TokenType token_type;
@@ -259,7 +259,7 @@ void DeviceTokenManager::register_device(tl_object_ptr<td_api::DeviceToken> devi
   if (encrypt != info.encrypt) {
     if (encrypt) {
       constexpr size_t ENCRYPTION_KEY_LENGTH = 256;
-      constexpr int64 MIN_ENCRYPTION_KEY_ID = static_cast<int64>(10000000000000ll);
+      constexpr auto MIN_ENCRYPTION_KEY_ID = static_cast<int64>(10000000000000ll);
       info.encryption_key.resize(ENCRYPTION_KEY_LENGTH);
       while (true) {
         Random::secure_bytes(info.encryption_key);

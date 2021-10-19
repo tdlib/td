@@ -162,7 +162,7 @@ void AuthManager::check_bot_token(uint64 query_id, string bot_token) {
   }
 
   on_new_query(query_id);
-  bot_token_ = bot_token;
+  bot_token_ = std::move(bot_token);
   was_check_bot_token_ = true;
   start_net_query(NetQueryType::BotAuthentication,
                   G()->net_query_creator().create_unauth(
@@ -258,8 +258,8 @@ void AuthManager::set_phone_number(uint64 query_id, string phone_number,
 
   on_new_query(query_id);
 
-  start_net_query(NetQueryType::SendCode, G()->net_query_creator().create_unauth(
-                                              send_code_helper_.send_code(phone_number, settings, api_id_, api_hash_)));
+  start_net_query(NetQueryType::SendCode, G()->net_query_creator().create_unauth(send_code_helper_.send_code(
+                                              std::move(phone_number), settings, api_id_, api_hash_)));
 }
 
 void AuthManager::resend_authentication_code(uint64 query_id) {
@@ -425,8 +425,8 @@ void AuthManager::on_query_error(Status status) {
   on_query_error(id, std::move(status));
 }
 
-void AuthManager::on_query_error(uint64 id, Status status) {
-  send_closure(G()->td(), &Td::send_error, id, std::move(status));
+void AuthManager::on_query_error(uint64 query_id, Status status) {
+  send_closure(G()->td(), &Td::send_error, query_id, std::move(status));
 }
 
 void AuthManager::on_query_ok() {

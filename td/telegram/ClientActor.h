@@ -64,7 +64,7 @@ class ClientActor final : public Actor {
   /**
    * Destroys the ClientActor and the TDLib instance.
    */
-  ~ClientActor();
+  ~ClientActor() final;
 
   /**
    * Move constructor.

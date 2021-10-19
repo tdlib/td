@@ -53,9 +53,9 @@ telegram_api::object_ptr<telegram_api::codeSettings> SendCodeHelper::get_input_c
                                                                false /*ignored*/);
 }
 
-telegram_api::auth_sendCode SendCodeHelper::send_code(Slice phone_number, const Settings &settings, int32 api_id,
+telegram_api::auth_sendCode SendCodeHelper::send_code(string phone_number, const Settings &settings, int32 api_id,
                                                       const string &api_hash) {
-  phone_number_ = phone_number.str();
+  phone_number_ = std::move(phone_number);
   return telegram_api::auth_sendCode(phone_number_, api_id, api_hash, get_input_code_settings(settings));
 }
 
@@ -86,11 +86,11 @@ SendCodeHelper::AuthenticationCodeInfo SendCodeHelper::get_authentication_code_i
 
   switch (code_type_ptr->get_id()) {
     case telegram_api::auth_codeTypeSms::ID:
-      return {AuthenticationCodeInfo::Type::Sms, 0, ""};
+      return {AuthenticationCodeInfo::Type::Sms, 0, string()};
     case telegram_api::auth_codeTypeCall::ID:
-      return {AuthenticationCodeInfo::Type::Call, 0, ""};
+      return {AuthenticationCodeInfo::Type::Call, 0, string()};
     case telegram_api::auth_codeTypeFlashCall::ID:
-      return {AuthenticationCodeInfo::Type::FlashCall, 0, ""};
+      return {AuthenticationCodeInfo::Type::FlashCall, 0, string()};
     default:
       UNREACHABLE();
       return AuthenticationCodeInfo();

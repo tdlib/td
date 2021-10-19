@@ -168,7 +168,7 @@ void NetStatsManager::add_network_stats(const NetworkStatsEntry &entry) {
     return add_network_stats_impl(common_net_stats_, entry);
   }
   add_network_stats_impl(media_net_stats_, entry);
-  size_t file_type_n = static_cast<size_t>(entry.file_type);
+  auto file_type_n = static_cast<size_t>(entry.file_type);
   CHECK(file_type_n < static_cast<size_t>(MAX_FILE_TYPE));
   add_network_stats_impl(files_stats_[file_type_n], entry);
 }
@@ -256,7 +256,7 @@ std::shared_ptr<NetStatsCallback> NetStatsManager::get_media_stats_callback() co
 std::vector<std::shared_ptr<NetStatsCallback>> NetStatsManager::get_file_stats_callbacks() const {
   auto result = transform(files_stats_, [](auto &stat) { return stat.stats.get_callback(); });
   for (int32 i = 0; i < MAX_FILE_TYPE; i++) {
-    int32 main_file_type = static_cast<int32>(get_main_file_type(static_cast<FileType>(i)));
+    auto main_file_type = static_cast<int32>(get_main_file_type(static_cast<FileType>(i)));
     if (main_file_type != i) {
       result[i] = result[main_file_type];
     }

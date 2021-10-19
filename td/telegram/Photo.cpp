@@ -430,8 +430,8 @@ Variant<PhotoSize, string> get_photo_size(FileManager *file_manager, PhotoSizeSo
     source.thumbnail().thumbnail_type = res.type;
   }
 
-  res.file_id =
-      register_photo(file_manager, source, id, access_hash, file_reference, owner_dialog_id, res.size, dc_id, format);
+  res.file_id = register_photo(file_manager, source, id, access_hash, std::move(file_reference), owner_dialog_id,
+                               res.size, dc_id, format);
 
   if (!content.empty()) {
     file_manager->set_content(res.file_id, std::move(content));
@@ -463,8 +463,8 @@ AnimationSize get_animation_size(FileManager *file_manager, PhotoSizeSource sour
     source.thumbnail().thumbnail_type = res.type;
   }
 
-  res.file_id = register_photo(file_manager, source, id, access_hash, file_reference, owner_dialog_id, res.size, dc_id,
-                               PhotoFormat::Mpeg4);
+  res.file_id = register_photo(file_manager, source, id, access_hash, std::move(file_reference), owner_dialog_id,
+                               res.size, dc_id, PhotoFormat::Mpeg4);
   return res;
 }
 

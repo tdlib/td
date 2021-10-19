@@ -453,7 +453,7 @@ void BackgroundManager::get_backgrounds(bool for_dark_theme,
 }
 
 Result<string> BackgroundManager::get_background_url(const string &name,
-                                                     td_api::object_ptr<td_api::BackgroundType> background_type) const {
+                                                     td_api::object_ptr<td_api::BackgroundType> background_type) {
   TRY_RESULT(type, BackgroundType::get_background_type(background_type.get()));
   auto url = PSTRING() << G()->shared_config().get_option_string("t_me_url", "https://t.me/") << "bg/";
   auto link = type.get_link();
@@ -526,7 +526,7 @@ std::pair<BackgroundId, BackgroundType> BackgroundManager::search_background(con
     if (queries.size() == 1) {
       LOG(INFO) << "Trying to load background " << slug << " from database";
       G()->td_db()->get_sqlite_pmc()->get(
-          get_background_name_database_key(slug), PromiseCreator::lambda([slug](string value) {
+          get_background_name_database_key(slug), PromiseCreator::lambda([slug](string value) mutable {
             send_closure(G()->background_manager(), &BackgroundManager::on_load_background_from_database,
                          std::move(slug), std::move(value));
           }));
@@ -563,7 +563,7 @@ void BackgroundManager::on_load_background_from_database(string name, string val
     } else {
       if (background.name != name) {
         LOG(ERROR) << "Expected background " << name << ", but received " << background.name;
-        name_to_background_id_.emplace(name, background.id);
+        name_to_background_id_.emplace(std::move(name), background.id);
       }
       add_background(background, false);
     }

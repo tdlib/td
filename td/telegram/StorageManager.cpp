@@ -65,7 +65,7 @@ void StorageManager::get_storage_stats(bool need_all_files, int32 dialog_limit, 
   if (is_closed_) {
     return promise.set_error(Global::request_aborted_error());
   }
-  if (pending_storage_stats_.size() != 0) {
+  if (!pending_storage_stats_.empty()) {
     if (stats_dialog_limit_ == dialog_limit && need_all_files == stats_need_all_files_) {
       pending_storage_stats_.emplace_back(std::move(promise));
       return;
@@ -118,12 +118,12 @@ void StorageManager::run_gc(FileGcParameters parameters, bool return_deleted_fil
 
   bool split_by_owner_dialog_id = !parameters.owner_dialog_ids.empty() ||
                                   !parameters.exclude_owner_dialog_ids.empty() || parameters.dialog_limit != 0;
-  get_storage_stats(true /*need_all_files*/, split_by_owner_dialog_id,
-                    PromiseCreator::lambda(
-                        [actor_id = actor_id(this), parameters = std::move(parameters)](Result<FileStats> file_stats) {
-                          send_closure(actor_id, &StorageManager::on_all_files, std::move(parameters),
-                                       std::move(file_stats));
-                        }));
+  get_storage_stats(
+      true /*need_all_files*/, split_by_owner_dialog_id,
+      PromiseCreator::lambda(
+          [actor_id = actor_id(this), parameters = std::move(parameters)](Result<FileStats> file_stats) mutable {
+            send_closure(actor_id, &StorageManager::on_all_files, std::move(parameters), std::move(file_stats));
+          }));
 
   //NB: get_storage_stats will cancel all garbage collection queries, so promise needs to be added after the call
   pending_run_gc_[return_deleted_file_statistics].push_back(std::move(promise));

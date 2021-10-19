@@ -645,7 +645,7 @@ class SecretChatActor final : public NetQueryCallback {
   Status save_common_info(T &update);
 
   int32 current_layer() const {
-    int32 layer = static_cast<int32>(SecretChatLayer::Current);
+    auto layer = static_cast<int32>(SecretChatLayer::Current);
     if (config_state_.his_layer < layer) {
       layer = config_state_.his_layer;
     }

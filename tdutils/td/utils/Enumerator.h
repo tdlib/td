@@ -21,7 +21,7 @@ class Enumerator {
 
   Key add(ValueT v) {
     CHECK(arr_.size() < static_cast<size_t>(std::numeric_limits<int32>::max() - 1));
-    int32 next_id = static_cast<int32>(arr_.size() + 1);
+    auto next_id = static_cast<int32>(arr_.size() + 1);
     bool was_inserted;
     decltype(map_.begin()) it;
     std::tie(it, was_inserted) = map_.emplace(std::move(v), next_id);

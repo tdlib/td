@@ -379,7 +379,8 @@ ActorOwn<> get_simple_config_firebase_firestore(Promise<SimpleConfigResult> prom
                                 prefer_ipv6, std::move(get_config));
 }
 
-ActorOwn<> get_full_config(DcOption option, Promise<FullConfig> promise, ActorShared<> parent) {
+static ActorOwn<> get_full_config(DcOption option, Promise<tl_object_ptr<telegram_api::config>> promise,
+                                  ActorShared<> parent) {
   class SessionCallback final : public Session::Callback {
    public:
     SessionCallback(ActorShared<> parent, DcOption option) : parent_(std::move(parent)), option_(std::move(option)) {
@@ -496,7 +497,7 @@ ActorOwn<> get_full_config(DcOption option, Promise<FullConfig> promise, ActorSh
 
   class GetConfigActor final : public NetQueryCallback {
    public:
-    GetConfigActor(DcOption option, Promise<FullConfig> promise, ActorShared<> parent)
+    GetConfigActor(DcOption option, Promise<tl_object_ptr<telegram_api::config>> promise, ActorShared<> parent)
         : option_(std::move(option)), promise_(std::move(promise)), parent_(std::move(parent)) {
     }
 
@@ -542,11 +543,12 @@ ActorOwn<> get_full_config(DcOption option, Promise<FullConfig> promise, ActorSh
 
     DcOption option_;
     ActorOwn<Session> session_;
-    Promise<FullConfig> promise_;
+    Promise<tl_object_ptr<telegram_api::config>> promise_;
     ActorShared<> parent_;
   };
 
-  return ActorOwn<>(create_actor<GetConfigActor>("GetConfigActor", option, std::move(promise), std::move(parent)));
+  return ActorOwn<>(
+      create_actor<GetConfigActor>("GetConfigActor", std::move(option), std::move(promise), std::move(parent)));
 }
 
 class ConfigRecoverer final : public Actor {
@@ -556,7 +558,7 @@ class ConfigRecoverer final : public Actor {
   }
 
   void on_dc_options_update(DcOptions dc_options) {
-    dc_options_update_ = dc_options;
+    dc_options_update_ = std::move(dc_options);
     update_dc_options();
     loop();
   }
@@ -676,22 +678,22 @@ class ConfigRecoverer final : public Actor {
     }
   }
 
-  void on_full_config(Result<FullConfig> r_full_config, bool dummy) {
+  void on_full_config(Result<tl_object_ptr<telegram_api::config>> r_full_config, bool dummy) {
     full_config_query_.reset();
     if (r_full_config.is_ok()) {
       full_config_ = r_full_config.move_as_ok();
-      VLOG(config_recoverer) << "Got FullConfig " << to_string(full_config_);
+      VLOG(config_recoverer) << "Receive " << to_string(full_config_);
       full_config_expires_at_ = get_config_expire_time();
       send_closure(G()->connection_creator(), &ConnectionCreator::on_dc_options, DcOptions(full_config_->dc_options_));
     } else {
-      VLOG(config_recoverer) << "Get FullConfig error " << r_full_config.error();
-      full_config_ = FullConfig();
+      VLOG(config_recoverer) << "Failed to get config: " << r_full_config.error();
+      full_config_ = nullptr;
       full_config_expires_at_ = get_failed_config_expire_time();
     }
     loop();
   }
 
-  bool expect_blocking() const {
+  static bool expect_blocking() {
     return G()->shared_config().get_option_boolean("expect_blocking", true);
   }
 
@@ -729,7 +731,7 @@ class ConfigRecoverer final : public Actor {
 
   size_t date_option_i_{0};
 
-  FullConfig full_config_;
+  tl_object_ptr<telegram_api::config> full_config_;
   double full_config_expires_at_{0};
   ActorOwn<> full_config_query_;
 
@@ -760,6 +762,7 @@ class ConfigRecoverer final : public Actor {
   double max_connecting_delay() const {
     return expect_blocking() ? 5 : 20;
   }
+
   void loop() final {
     if (close_flag_) {
       return;
@@ -829,12 +832,13 @@ class ConfigRecoverer final : public Actor {
     if (need_full_config) {
       ref_cnt_++;
       VLOG(config_recoverer) << "Ask full config with dc_options_i_ = " << dc_options_i_;
-      full_config_query_ =
-          get_full_config(dc_options_.dc_options[dc_options_i_],
-                          PromiseCreator::lambda([actor_id = actor_id(this)](Result<FullConfig> r_full_config) {
-                            send_closure(actor_id, &ConfigRecoverer::on_full_config, std::move(r_full_config), false);
-                          }),
-                          actor_shared(this));
+      full_config_query_ = get_full_config(
+          dc_options_.dc_options[dc_options_i_],
+          PromiseCreator::lambda(
+              [actor_id = actor_id(this)](Result<tl_object_ptr<telegram_api::config>> r_full_config) {
+                send_closure(actor_id, &ConfigRecoverer::on_full_config, std::move(r_full_config), false);
+              }),
+          actor_shared(this));
       dc_options_i_ = (dc_options_i_ + 1) % dc_options_.dc_options.size();
     }
 
@@ -1282,7 +1286,7 @@ void ConfigManager::on_result(NetQueryPtr res) {
   }
 }
 
-void ConfigManager::save_dc_options_update(DcOptions dc_options) {
+void ConfigManager::save_dc_options_update(const DcOptions &dc_options) {
   if (dc_options.dc_options.empty()) {
     G()->td_db()->get_binlog_pmc()->erase("dc_options_update");
     return;

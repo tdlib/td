@@ -137,7 +137,7 @@ td_api::object_ptr<td_api::storageStatisticsByChat> FileStats::get_storage_stati
   auto stats = make_tl_object<td_api::storageStatisticsByChat>(dialog_id.get(), 0, 0, Auto());
   FileStats::StatByType aggregated_stats;
   for (int32 i = 0; i < MAX_FILE_TYPE; i++) {
-    size_t file_type = narrow_cast<size_t>(get_main_file_type(static_cast<FileType>(i)));
+    auto file_type = narrow_cast<size_t>(get_main_file_type(static_cast<FileType>(i)));
     aggregated_stats[file_type].size += stat_by_type_[i].size;
     aggregated_stats[file_type].cnt += stat_by_type_[i].cnt;
   }
@@ -150,7 +150,7 @@ td_api::object_ptr<td_api::storageStatisticsByChat> FileStats::get_storage_stati
       continue;
     }
 
-    FileType file_type = static_cast<FileType>(i);
+    auto file_type = static_cast<FileType>(i);
     stats->size_ += size;
     stats->count_ += cnt;
     stats->by_file_type_.push_back(

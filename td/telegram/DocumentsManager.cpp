@@ -573,7 +573,7 @@ SecretInputMedia DocumentsManager::get_secret_input_media(FileId document_file_i
     return SecretInputMedia{};
   }
   vector<tl_object_ptr<secret_api::DocumentAttribute>> attributes;
-  if (document->file_name.size()) {
+  if (!document->file_name.empty()) {
     attributes.push_back(make_tl_object<secret_api::documentAttributeFilename>(document->file_name));
   }
   return SecretInputMedia{
@@ -604,7 +604,7 @@ tl_object_ptr<telegram_api::InputMedia> DocumentsManager::get_input_media(
     CHECK(document != nullptr);
 
     vector<tl_object_ptr<telegram_api::DocumentAttribute>> attributes;
-    if (document->file_name.size()) {
+    if (!document->file_name.empty()) {
       attributes.push_back(make_tl_object<telegram_api::documentAttributeFilename>(document->file_name));
     }
     int32 flags = 0;

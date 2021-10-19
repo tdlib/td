@@ -2228,7 +2228,7 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
     }
     case telegram_api::pageBlockMap::ID: {
       auto page_block = move_tl_object_as<telegram_api::pageBlockMap>(page_block_ptr);
-      Location location(std::move(page_block->geo_));
+      Location location(page_block->geo_);
       auto zoom = page_block->zoom_;
       Dimensions dimensions = get_dimensions(page_block->w_, page_block->h_, "pageBlockMap");
       if (location.empty()) {

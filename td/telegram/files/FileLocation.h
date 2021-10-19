@@ -630,9 +630,9 @@ class RemoteFileLocation {
 
   RemoteFileLocation() : variant_{EmptyRemoteFileLocation{}} {
   }
-  explicit RemoteFileLocation(const FullRemoteFileLocation &full) : variant_(full) {
+  explicit RemoteFileLocation(FullRemoteFileLocation full) : variant_(std::move(full)) {
   }
-  explicit RemoteFileLocation(const PartialRemoteFileLocation &partial) : variant_(partial) {
+  explicit RemoteFileLocation(PartialRemoteFileLocation partial) : variant_(std::move(partial)) {
   }
 
  private:
@@ -771,13 +771,15 @@ struct PartialLocalFileLocationPtr {
   PartialLocalFileLocationPtr() : location_(make_unique<PartialLocalFileLocation>()) {
   }
   explicit PartialLocalFileLocationPtr(PartialLocalFileLocation location)
-      : location_(make_unique<PartialLocalFileLocation>(location)) {
+      : location_(make_unique<PartialLocalFileLocation>(std::move(location))) {
   }
   PartialLocalFileLocationPtr(const PartialLocalFileLocationPtr &other)
       : location_(make_unique<PartialLocalFileLocation>(*other.location_)) {
   }
   PartialLocalFileLocationPtr &operator=(const PartialLocalFileLocationPtr &other) {
-    *location_ = *other.location_;
+    if (this != &other) {
+      *location_ = *other.location_;
+    }
     return *this;
   }
   PartialLocalFileLocationPtr(PartialLocalFileLocationPtr &&other) noexcept
@@ -839,9 +841,10 @@ class LocalFileLocation {
 
   LocalFileLocation() : variant_{EmptyLocalFileLocation()} {
   }
-  explicit LocalFileLocation(const PartialLocalFileLocation &partial) : variant_(PartialLocalFileLocationPtr(partial)) {
+  explicit LocalFileLocation(PartialLocalFileLocation partial)
+      : variant_(PartialLocalFileLocationPtr(std::move(partial))) {
   }
-  explicit LocalFileLocation(const FullLocalFileLocation &full) : variant_(full) {
+  explicit LocalFileLocation(FullLocalFileLocation full) : variant_(std::move(full)) {
   }
   LocalFileLocation(FileType file_type, string path, uint64 mtime_nsec)
       : variant_(FullLocalFileLocation{file_type, std::move(path), mtime_nsec}) {

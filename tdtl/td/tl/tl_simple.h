@@ -22,19 +22,19 @@ namespace td {
 namespace tl {
 namespace simple {
 
-std::string gen_cpp_name(std::string name) {
+inline std::string gen_cpp_name(std::string name) {
   for (std::size_t i = 0; i < name.size(); i++) {
     if ((name[i] < '0' || '9' < name[i]) && (name[i] < 'a' || 'z' < name[i]) && (name[i] < 'A' || 'Z' < name[i])) {
       name[i] = '_';
     }
   }
-  assert(name.size() > 0);
+  assert(!name.empty());
   assert(name[name.size() - 1] != '_');
   return name;
 }
 
-std::string gen_cpp_field_name(std::string name) {
-  return gen_cpp_name(name) + "_";
+inline std::string gen_cpp_field_name(std::string name) {
+  return gen_cpp_name(name) + '_';
 }
 
 struct CustomType;

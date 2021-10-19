@@ -39,9 +39,13 @@ class SecureManager final : public NetQueryCallback {
   explicit SecureManager(ActorShared<> parent);
 
   void get_secure_value(std::string password, SecureValueType type, Promise<TdApiSecureValue> promise);
+
   void get_all_secure_values(std::string password, Promise<TdApiSecureValues> promise);
+
   void set_secure_value(string password, SecureValue secure_value, Promise<TdApiSecureValue> promise);
+
   void delete_secure_value(SecureValueType type, Promise<Unit> promise);
+
   void set_secure_value_errors(Td *td, tl_object_ptr<telegram_api::InputUser> input_user,
                                vector<tl_object_ptr<td_api::inputPassportElementError>> errors, Promise<Unit> promise);
 

@@ -33,7 +33,7 @@ class MtprotoHeader {
   }
 
   void set_proxy(Proxy proxy) {
-    options_.proxy = proxy;
+    options_.proxy = std::move(proxy);
     default_header_ = gen_header(options_, false);
   }
 
@@ -42,7 +42,7 @@ class MtprotoHeader {
       return false;
     }
 
-    options_.parameters = parameters;
+    options_.parameters = std::move(parameters);
     default_header_ = gen_header(options_, false);
     return true;
   }

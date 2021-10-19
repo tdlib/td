@@ -91,7 +91,7 @@ void NetQueryDispatcher::dispatch(NetQueryPtr net_query) {
     net_query->dispatch_ttl_--;
   }
 
-  size_t dc_pos = static_cast<size_t>(dest_dc_id.get_raw_id() - 1);
+  auto dc_pos = static_cast<size_t>(dest_dc_id.get_raw_id() - 1);
   CHECK(dc_pos < dcs_.size());
   switch (net_query->type()) {
     case NetQuery::Type::Common:
@@ -118,7 +118,7 @@ Status NetQueryDispatcher::wait_dc_init(DcId dc_id, bool force) {
   if (!dc_id.is_exact()) {
     return Status::Error("Not exact DC");
   }
-  size_t pos = static_cast<size_t>(dc_id.get_raw_id() - 1);
+  auto pos = static_cast<size_t>(dc_id.get_raw_id() - 1);
   if (pos >= dcs_.size()) {
     return Status::Error("Too big DC ID");
   }
@@ -276,7 +276,7 @@ bool NetQueryDispatcher::get_use_pfs() {
   return G()->shared_config().get_option_boolean("use_pfs") || get_session_count() > 1;
 }
 
-NetQueryDispatcher::NetQueryDispatcher(std::function<ActorShared<>()> create_reference) {
+NetQueryDispatcher::NetQueryDispatcher(const std::function<ActorShared<>()> &create_reference) {
   auto s_main_dc_id = G()->td_db()->get_binlog_pmc()->get("main_dc_id");
   if (!s_main_dc_id.empty()) {
     main_dc_id_ = to_integer<int32>(s_main_dc_id);

@@ -214,9 +214,9 @@ void CountryInfoManager::do_get_phone_number_info(string phone_number_prefix, st
                     }));
 }
 
-td_api::object_ptr<td_api::phoneNumberInfo> CountryInfoManager::get_phone_number_info_sync(string language_code,
+td_api::object_ptr<td_api::phoneNumberInfo> CountryInfoManager::get_phone_number_info_sync(const string &language_code,
                                                                                            string phone_number_prefix) {
-  td::remove_if(phone_number_prefix, [](char c) { return c < '0' || c > '9'; });
+  td::remove_if(phone_number_prefix, [](char c) { return !is_digit(c); });
   if (phone_number_prefix.empty()) {
     return td_api::make_object<td_api::phoneNumberInfo>(nullptr, string(), string());
   }
@@ -401,7 +401,7 @@ void CountryInfoManager::on_get_country_list_impl(const string &language_code,
         info.country_code = std::move(c->iso2_);
         info.default_name = std::move(c->default_name_);
         info.name = std::move(c->name_);
-        info.is_hidden = std::move(c->hidden_);
+        info.is_hidden = c->hidden_;
         for (auto &code : c->country_codes_) {
           auto r_calling_code = to_integer_safe<int32>(code->country_code_);
           if (r_calling_code.is_error() || r_calling_code.ok() <= 0) {

@@ -624,7 +624,7 @@ class ReorderStickerSetsQuery final : public Td::ResultHandler {
   bool is_masks_;
 
  public:
-  void send(bool is_masks, vector<StickerSetId> sticker_set_ids) {
+  void send(bool is_masks, const vector<StickerSetId> &sticker_set_ids) {
     is_masks_ = is_masks;
     int32 flags = 0;
     if (is_masks) {
@@ -833,7 +833,7 @@ class UninstallStickerSetQuery final : public Td::ResultHandler {
 
 class ReadFeaturedStickerSetsQuery final : public Td::ResultHandler {
  public:
-  void send(vector<StickerSetId> sticker_set_ids) {
+  void send(const vector<StickerSetId> &sticker_set_ids) {
     LOG(INFO) << "Read trending sticker sets " << format::as_array(sticker_set_ids);
     send_query(G()->net_query_creator().create(
         telegram_api::messages_readFeaturedStickers(StickersManager::convert_sticker_set_ids(sticker_set_ids))));
@@ -2340,11 +2340,11 @@ void StickersManager::add_sticker_thumbnail(Sticker *s, PhotoSize thumbnail) {
     return;
   }
   if (thumbnail.type == 'm') {
-    s->m_thumbnail = thumbnail;
+    s->m_thumbnail = std::move(thumbnail);
     return;
   }
   if (thumbnail.type == 's' || thumbnail.type == 't') {
-    s->s_thumbnail = thumbnail;
+    s->s_thumbnail = std::move(thumbnail);
     return;
   }
   LOG(ERROR) << "Receive sticker thumbnail of unsupported type " << thumbnail.type;
@@ -2364,7 +2364,7 @@ void StickersManager::create_sticker(FileId file_id, string minithumbnail, Photo
   if (!td_->auth_manager_->is_bot()) {
     s->minithumbnail = std::move(minithumbnail);
   }
-  add_sticker_thumbnail(s.get(), thumbnail);
+  add_sticker_thumbnail(s.get(), std::move(thumbnail));
   if (sticker != nullptr) {
     s->set_id = on_get_input_sticker_set(file_id, std::move(sticker->stickerset_), load_data_multipromise_ptr);
     s->alt = std::move(sticker->alt_);
@@ -4343,15 +4343,15 @@ void StickersManager::schedule_update_animated_emoji_clicked(const StickerSet *s
 
   auto now = Time::now();
   auto start_time = max(now, next_update_animated_emoji_clicked_time_);
-  for (size_t i = 0; i < clicks.size(); i++) {
-    auto index = clicks[i].first;
+  for (const auto &click : clicks) {
+    auto index = click.first;
     auto sticker_id = sticker_ids[index];
     if (!sticker_id.is_valid()) {
       LOG(INFO) << "Failed to find sticker for " << emoji << " with index " << index;
       return;
     }
     create_actor<SleepActor>(
-        "SendUpdateAnimatedEmojiClicked", start_time + clicks[i].second - now,
+        "SendUpdateAnimatedEmojiClicked", start_time + click.second - now,
         PromiseCreator::lambda([actor_id = actor_id(this), full_message_id, sticker_id](Result<Unit> result) {
           send_closure(actor_id, &StickersManager::send_update_animated_emoji_clicked, full_message_id, sticker_id);
         }))
@@ -5482,7 +5482,7 @@ void StickersManager::on_new_stickers_uploaded(int64 random_id, Result<Unit> res
 
   td_->create_handler<CreateNewStickerSetQuery>(std::move(pending_new_sticker_set->promise))
       ->send(std::move(input_user), pending_new_sticker_set->title, pending_new_sticker_set->short_name, is_masks,
-             is_animated, std::move(input_stickers), std::move(pending_new_sticker_set->software));
+             is_animated, std::move(input_stickers), pending_new_sticker_set->software);
 }
 
 void StickersManager::add_sticker_to_set(UserId user_id, string &short_name,

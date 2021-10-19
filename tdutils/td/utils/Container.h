@@ -106,8 +106,8 @@ class Container {
   }
 
   int32 decode_id(Id id) const {
-    int32 slot_id = static_cast<int32>(id >> 32);
-    uint32 generation = static_cast<uint32>(id);
+    auto slot_id = static_cast<int32>(id >> 32);
+    auto generation = static_cast<uint32>(id);
     if (slot_id < 0 || slot_id >= static_cast<int32>(slots_.size())) {
       return -1;
     }

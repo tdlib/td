@@ -162,7 +162,7 @@ class WebPagesManager final : public Actor {
 
   static string get_web_page_url_database_key(const string &url);
 
-  void load_web_page_by_url(const string &url, Promise<WebPageId> &&promise);
+  void load_web_page_by_url(string url, Promise<WebPageId> &&promise);
 
   void on_load_web_page_id_by_url_from_database(string url, string value, Promise<WebPageId> &&promise);
 

@@ -1228,7 +1228,7 @@ void send_payment_form(Td *td, FullMessageId full_message_id, int64 payment_form
       if (!clean_input_string(credentials_id)) {
         return promise.set_error(Status::Error(400, "Credentials identifier must be encoded in UTF-8"));
       }
-      auto temp_password_state = td->password_manager_->get_actor_unsafe()->get_temp_password_state_sync();
+      auto temp_password_state = PasswordManager::get_temp_password_state_sync();
       if (!temp_password_state.has_temp_password) {
         return promise.set_error(Status::Error(400, "Temporary password required to use saved credentials"));
       }

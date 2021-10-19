@@ -105,7 +105,8 @@ BENCH(NewObj, "new struct, then delete") {
 
 #if !TD_THREAD_UNSUPPORTED
 BENCH(ThreadNew, "new struct, then delete in 2 threads") {
-  NewObjBench a, b;
+  NewObjBench a;
+  NewObjBench b;
   td::thread ta([&] { a.run(n / 2); });
   td::thread tb([&] { b.run(n - n / 2); });
   ta.join();

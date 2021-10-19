@@ -1055,18 +1055,19 @@ void WebPagesManager::get_web_page_by_url(const string &url, Promise<WebPageId> 
   load_web_page_by_url(url, std::move(promise));
 }
 
-void WebPagesManager::load_web_page_by_url(const string &url, Promise<WebPageId> &&promise) {
+void WebPagesManager::load_web_page_by_url(string url, Promise<WebPageId> &&promise) {
   if (!G()->parameters().use_message_db) {
     return reload_web_page_by_url(url, std::move(promise));
   }
 
   LOG(INFO) << "Load \"" << url << '"';
-  G()->td_db()->get_sqlite_pmc()->get(
-      get_web_page_url_database_key(url),
-      PromiseCreator::lambda([actor_id = actor_id(this), url, promise = std::move(promise)](string value) mutable {
-        send_closure(actor_id, &WebPagesManager::on_load_web_page_id_by_url_from_database, std::move(url),
-                     std::move(value), std::move(promise));
-      }));
+  auto key = get_web_page_url_database_key(url);
+  G()->td_db()->get_sqlite_pmc()->get(key, PromiseCreator::lambda([actor_id = actor_id(this), url = std::move(url),
+                                                                   promise = std::move(promise)](string value) mutable {
+                                        send_closure(actor_id,
+                                                     &WebPagesManager::on_load_web_page_id_by_url_from_database,
+                                                     std::move(url), std::move(value), std::move(promise));
+                                      }));
 }
 
 void WebPagesManager::on_load_web_page_id_by_url_from_database(string url, string value, Promise<WebPageId> &&promise) {

@@ -26,8 +26,8 @@ class FileGenerateCallback {
   FileGenerateCallback &operator=(const FileGenerateCallback &) = delete;
   virtual ~FileGenerateCallback() = default;
 
-  virtual void on_partial_generate(const PartialLocalFileLocation &partial_local, int32 expected_size) = 0;
-  virtual void on_ok(const FullLocalFileLocation &local) = 0;
+  virtual void on_partial_generate(PartialLocalFileLocation partial_local, int32 expected_size) = 0;
+  virtual void on_ok(FullLocalFileLocation local) = 0;
   virtual void on_error(Status error) = 0;
 };
 

@@ -78,10 +78,6 @@ class HttpDate {
   static Result<int32> parse_http_date(std::string slice);
 };
 
-using FullConfig = tl_object_ptr<telegram_api::config>;
-
-ActorOwn<> get_full_config(DcId dc_id, IPAddress ip_address, Promise<FullConfig> promise);
-
 class ConfigRecoverer;
 class ConfigManager final : public NetQueryCallback {
  public:
@@ -155,7 +151,7 @@ class ConfigManager final : public NetQueryCallback {
 
   static Timestamp load_config_expire_time();
   static void save_config_expire(Timestamp timestamp);
-  static void save_dc_options_update(DcOptions dc_options);
+  static void save_dc_options_update(const DcOptions &dc_options);
   static DcOptions load_dc_options_update();
 
   ActorShared<> create_reference();

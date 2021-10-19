@@ -208,7 +208,7 @@ Secret Secret::create_new() {
   auto secret_slice = ::td::as_slice(secret);
   Random::secure_bytes(secret_slice);
   auto checksum_diff = secret_checksum(secret_slice);
-  uint8 new_byte = static_cast<uint8>((static_cast<uint32>(secret_slice.ubegin()[0]) + checksum_diff) % 255);
+  auto new_byte = static_cast<uint8>((static_cast<uint32>(secret_slice.ubegin()[0]) + checksum_diff) % 255);
   secret_slice.ubegin()[0] = new_byte;
   return create(secret_slice).move_as_ok();
 }
@@ -364,7 +364,7 @@ Result<BufferSlice> decrypt_value(const Secret &secret, const ValueHash &hash, S
   return std::move(decrypted_value);
 }
 
-Result<ValueHash> encrypt_file(const Secret &secret, std::string src, std::string dest) {
+Result<ValueHash> encrypt_file(const Secret &secret, const string &src, const string &dest) {
   TRY_RESULT(src_file, FileFd::open(src, FileFd::Flags::Read));
   TRY_RESULT(dest_file, FileFd::open(dest, FileFd::Flags::Truncate | FileFd::Flags::Write | FileFd::Create));
   TRY_RESULT(src_file_size, src_file.get_size());
@@ -382,7 +382,7 @@ Result<ValueHash> encrypt_file(const Secret &secret, std::string src, std::strin
   return std::move(hash);
 }
 
-Status decrypt_file(const Secret &secret, const ValueHash &hash, std::string src, std::string dest) {
+Status decrypt_file(const Secret &secret, const ValueHash &hash, const string &src, const string &dest) {
   TRY_RESULT(src_file, FileFd::open(src, FileFd::Flags::Read));
   TRY_RESULT(dest_file, FileFd::open(dest, FileFd::Flags::Truncate | FileFd::Flags::Write | FileFd::Create));
   TRY_RESULT(src_file_size, src_file.get_size());

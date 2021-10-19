@@ -20,7 +20,7 @@ GroupCallParticipant::GroupCallParticipant(const tl_object_ptr<telegram_api::gro
                                            int32 call_version) {
   CHECK(participant != nullptr);
   dialog_id = DialogId(participant->peer_);
-  about = std::move(participant->about_);
+  about = participant->about_;
   audio_source = participant->source_;
   server_is_muted_by_themselves = participant->can_self_unmute_;
   server_is_muted_by_admin = participant->muted_ && !participant->can_self_unmute_;

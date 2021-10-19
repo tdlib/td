@@ -220,7 +220,7 @@ int32 get_json_value_int(telegram_api::object_ptr<telegram_api::JSONValue> &&jso
 string get_json_value_string(telegram_api::object_ptr<telegram_api::JSONValue> &&json_value, Slice name) {
   CHECK(json_value != nullptr);
   if (json_value->get_id() == telegram_api::jsonString::ID) {
-    return std::move(static_cast<const telegram_api::jsonString *>(json_value.get())->value_);
+    return std::move(static_cast<telegram_api::jsonString *>(json_value.get())->value_);
   }
   LOG(ERROR) << "Expected String as " << name << ", but found " << to_string(json_value);
   return string();

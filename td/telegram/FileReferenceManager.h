@@ -54,7 +54,8 @@ class FileReferenceManager final : public Actor {
 
   using NodeId = FileId;
   void repair_file_reference(NodeId node_id, Promise<> promise);
-  void reload_photo(PhotoSizeSource source, Promise<Unit> promise);
+
+  static void reload_photo(PhotoSizeSource source, Promise<Unit> promise);
 
   bool add_file_source(NodeId node_id, FileSourceId file_source_id);
 

@@ -89,8 +89,9 @@ class ConnectionCreator final : public NetQueryCallback {
   static DcOptions get_default_dc_options(bool is_test);
 
   static ActorOwn<> prepare_connection(IPAddress ip_address, SocketFd socket_fd, const Proxy &proxy,
-                                       const IPAddress &mtproto_ip_address, mtproto::TransportType transport_type,
-                                       Slice actor_name_prefix, Slice debug_str,
+                                       const IPAddress &mtproto_ip_address,
+                                       const mtproto::TransportType &transport_type, Slice actor_name_prefix,
+                                       Slice debug_str,
                                        unique_ptr<mtproto::RawConnection::StatsCallback> stats_callback,
                                        ActorShared<> parent, bool use_connection_token,
                                        Promise<ConnectionData> promise);

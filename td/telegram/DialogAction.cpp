@@ -46,7 +46,7 @@ void DialogAction::init(Type type, string emoji) {
   }
 }
 
-void DialogAction::init(Type type, int32 message_id, string emoji, string data) {
+void DialogAction::init(Type type, int32 message_id, string emoji, const string &data) {
   if (ServerMessageId(message_id).is_valid() && is_valid_emoji(emoji) && check_utf8(data)) {
     type_ = type;
     progress_ = message_id;
@@ -199,7 +199,7 @@ DialogAction::DialogAction(telegram_api::object_ptr<telegram_api::SendMessageAct
     case telegram_api::sendMessageEmojiInteraction::ID: {
       auto emoji_interaction_action = move_tl_object_as<telegram_api::sendMessageEmojiInteraction>(action);
       init(Type::ClickingAnimatedEmoji, emoji_interaction_action->msg_id_,
-           std::move(emoji_interaction_action->emoticon_), std::move(emoji_interaction_action->interaction_->data_));
+           std::move(emoji_interaction_action->emoticon_), emoji_interaction_action->interaction_->data_);
       break;
     }
     default:

@@ -93,7 +93,7 @@ DcAuthManager::DcInfo *DcAuthManager::find_dc(int32 dc_id) {
 }
 
 void DcAuthManager::update_auth_key_state() {
-  int32 dc_id = narrow_cast<int32>(get_link_token());
+  auto dc_id = narrow_cast<int32>(get_link_token());
   auto &dc = get_dc(dc_id);
   dc.auth_key_state = dc.shared_auth_data->get_auth_key_state();
   VLOG(dc) << "Update " << dc_id << " auth key state from " << dc.auth_key_state << " to " << dc.auth_key_state;
@@ -102,7 +102,7 @@ void DcAuthManager::update_auth_key_state() {
 }
 
 void DcAuthManager::on_result(NetQueryPtr result) {
-  int32 dc_id = narrow_cast<int32>(get_link_token());
+  auto dc_id = narrow_cast<int32>(get_link_token());
   auto &dc = get_dc(dc_id);
   CHECK(dc.wait_id == result->id());
   dc.wait_id = std::numeric_limits<decltype(dc.wait_id)>::max();

@@ -142,8 +142,7 @@ void update_suggested_actions(vector<SuggestedAction> &suggested_actions,
   }
   CHECK(!added_actions.empty() || !removed_actions.empty());
   suggested_actions = std::move(new_suggested_actions);
-  send_closure(G()->td(), &Td::send_update,
-               get_update_suggested_actions_object(std::move(added_actions), std::move(removed_actions)));
+  send_closure(G()->td(), &Td::send_update, get_update_suggested_actions_object(added_actions, removed_actions));
 }
 
 void remove_suggested_action(vector<SuggestedAction> &suggested_actions, SuggestedAction suggested_action) {

@@ -61,14 +61,14 @@ class Session final
     virtual void request_raw_connection(unique_ptr<mtproto::AuthData> auth_data,
                                         Promise<unique_ptr<mtproto::RawConnection>>) = 0;
     virtual void on_tmp_auth_key_updated(mtproto::AuthKey auth_key) = 0;
-    virtual void on_server_salt_updated(std::vector<mtproto::ServerSalt> server_salts) = 0;
+    virtual void on_server_salt_updated(vector<mtproto::ServerSalt> server_salts) = 0;
     virtual void on_update(BufferSlice &&update) = 0;
     virtual void on_result(NetQueryPtr net_query) = 0;
   };
 
   Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> shared_auth_data, int32 raw_dc_id, int32 dc_id,
           bool is_main, bool use_pfs, bool is_cdn, bool need_destroy, const mtproto::AuthKey &tmp_auth_key,
-          std::vector<mtproto::ServerSalt> server_salts);
+          const vector<mtproto::ServerSalt> &server_salts);
   void send(NetQueryPtr &&query);
   void on_network(bool network_flag, uint32 network_generation);
   void on_online(bool online_flag);

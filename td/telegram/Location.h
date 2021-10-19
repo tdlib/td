@@ -34,7 +34,7 @@ class Location {
 
   void init(double latitude, double longitude, double horizontal_accuracy, int64 access_hash);
 
-  double fix_accuracy(double accuracy);
+  static double fix_accuracy(double accuracy);
 
  public:
   Location() = default;

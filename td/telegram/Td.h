@@ -328,7 +328,7 @@ class Td final : public Actor {
 
   void on_get_terms_of_service(Result<std::pair<int32, TermsOfService>> result, bool dummy);
 
-  void on_get_promo_data(Result<telegram_api::object_ptr<telegram_api::help_PromoData>> result, bool dummy);
+  void on_get_promo_data(Result<telegram_api::object_ptr<telegram_api::help_PromoData>> r_promo_data, bool dummy);
 
   template <class T>
   friend class RequestActor;        // uses send_result/send_error
@@ -346,7 +346,7 @@ class Td final : public Actor {
 
   void on_config_option_updated(const string &name);
 
-  void send(NetQueryPtr &&query);
+  static void send(NetQueryPtr &&query);
 
   class OnRequest;
 
