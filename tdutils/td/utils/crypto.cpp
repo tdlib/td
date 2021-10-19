@@ -723,6 +723,12 @@ void sha512(Slice data, MutableSlice output) {
 #endif
 }
 
+string sha1(Slice data) {
+  string result(20, '\0');
+  sha1(data, MutableSlice(result).ubegin());
+  return result;
+}
+
 string sha256(Slice data) {
   string result(32, '\0');
   sha256(data, result);
