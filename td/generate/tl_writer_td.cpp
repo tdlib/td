@@ -150,9 +150,9 @@ std::string TD_TL_writer::gen_field_name(std::string name) const {
       name[i] = '_';
     }
   }
-  assert(name.size() > 0);
+  assert(!name.empty());
   assert(name[name.size() - 1] != '_');
-  return name + "_";
+  return name + '_';
 }
 
 std::string TD_TL_writer::gen_var_name(const tl::var_description &desc) const {

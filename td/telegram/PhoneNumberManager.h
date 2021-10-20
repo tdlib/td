@@ -10,6 +10,7 @@
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/SendCodeHelper.h"
 #include "td/telegram/td_api.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/actor/actor.h"
 
@@ -46,23 +47,29 @@ class PhoneNumberManager final : public NetActor {
   SendCodeHelper send_code_helper_;
 
   void on_new_query(uint64 query_id);
-  void on_query_error(Status status);
-  static void on_query_error(uint64 id, Status status);
+
   void on_query_ok();
+
+  void on_query_error(Status status);
+
+  static void on_query_error(uint64 id, Status status);
+
   void start_net_query(NetQueryType net_query_type, NetQueryPtr net_query);
 
-  template <class T>
-  void process_send_code_result(uint64 query_id, const T &send_code);
+  void send_new_send_code_query(uint64 query_id, const telegram_api::Function &query);
 
-  template <class T>
-  void send_new_check_code_query(const T &query);
+  void send_new_check_code_query(const telegram_api::Function &query);
 
-  template <class T>
-  void process_check_code_result(T result);
+  void process_check_code_result(Result<tl_object_ptr<telegram_api::User>> &&result);
+
+  void process_check_code_result(Result<bool> &&result);
+
+  void on_result(NetQueryPtr result) final;
+
+  void on_send_code_result(NetQueryPtr &result);
 
   void on_check_code_result(NetQueryPtr &result);
-  void on_send_code_result(NetQueryPtr &result);
-  void on_result(NetQueryPtr result) final;
+
   void tear_down() final;
 };
 

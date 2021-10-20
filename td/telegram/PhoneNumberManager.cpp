@@ -7,6 +7,7 @@
 #include "td/telegram/PhoneNumberManager.h"
 
 #include "td/telegram/ConfigManager.h"
+#include "td/telegram/ContactsManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/SuggestedAction.h"
@@ -37,8 +38,7 @@ PhoneNumberManager::PhoneNumberManager(PhoneNumberManager::Type type, ActorShare
     : type_(type), parent_(std::move(parent)) {
 }
 
-template <class T>
-void PhoneNumberManager::process_send_code_result(uint64 query_id, const T &send_code) {
+void PhoneNumberManager::send_new_send_code_query(uint64 query_id, const telegram_api::Function &send_code) {
   on_new_query(query_id);
   start_net_query(NetQueryType::SendCode, G()->net_query_creator().create(send_code));
 }
@@ -52,9 +52,9 @@ void PhoneNumberManager::set_phone_number(uint64 query_id, string phone_number, 
     case Type::ChangePhone:
       send_closure(G()->config_manager(), &ConfigManager::hide_suggested_action,
                    SuggestedAction{SuggestedAction::Type::CheckPhoneNumber});
-      return process_send_code_result(query_id, send_code_helper_.send_change_phone_code(phone_number, settings));
+      return send_new_send_code_query(query_id, send_code_helper_.send_change_phone_code(phone_number, settings));
     case Type::VerifyPhone:
-      return process_send_code_result(query_id, send_code_helper_.send_verify_phone_code(phone_number, settings));
+      return send_new_send_code_query(query_id, send_code_helper_.send_verify_phone_code(phone_number, settings));
     case Type::ConfirmPhone:
     default:
       UNREACHABLE();
@@ -72,7 +72,7 @@ void PhoneNumberManager::set_phone_number_and_hash(uint64 query_id, string hash,
 
   switch (type_) {
     case Type::ConfirmPhone:
-      return process_send_code_result(query_id,
+      return send_new_send_code_query(query_id,
                                       send_code_helper_.send_confirm_phone_code(hash, phone_number, settings));
     case Type::ChangePhone:
     case Type::VerifyPhone:
@@ -96,8 +96,7 @@ void PhoneNumberManager::resend_authentication_code(uint64 query_id) {
   start_net_query(NetQueryType::SendCode, G()->net_query_creator().create_unauth(r_resend_code.move_as_ok()));
 }
 
-template <class T>
-void PhoneNumberManager::send_new_check_code_query(const T &query) {
+void PhoneNumberManager::send_new_check_code_query(const telegram_api::Function &query) {
   start_net_query(NetQueryType::CheckCode, G()->net_query_creator().create(query));
 }
 
@@ -162,8 +161,17 @@ void PhoneNumberManager::start_net_query(NetQueryType net_query_type, NetQueryPt
   G()->net_query_dispatcher().dispatch_with_callback(std::move(net_query), actor_shared(this));
 }
 
-template <class T>
-void PhoneNumberManager::process_check_code_result(T result) {
+void PhoneNumberManager::process_check_code_result(Result<tl_object_ptr<telegram_api::User>> &&result) {
+  if (result.is_error()) {
+    return on_query_error(result.move_as_error());
+  }
+  send_closure(G()->contacts_manager(), &ContactsManager::on_get_user, result.move_as_ok(), "process_check_code_result",
+               true, false);
+  state_ = State::Ok;
+  on_query_ok();
+}
+
+void PhoneNumberManager::process_check_code_result(Result<bool> &&result) {
   if (result.is_error()) {
     return on_query_error(result.move_as_error());
   }
