@@ -110,7 +110,8 @@ static void do_run_list_test(ListRootT &root, std::atomic<td::uint64> &id) {
     nodes[i] = std::move(nodes[j]);
   };
   auto validate = [&] {
-    std::multiset<td::uint64> in_list, not_in_list;
+    std::multiset<td::uint64> in_list;
+    std::multiset<td::uint64> not_in_list;
     for (auto &node : nodes) {
       if (get_data(node).in_list.get()) {
         in_list.insert(get_data(node).value.get());

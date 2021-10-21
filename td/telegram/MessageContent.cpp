@@ -4006,6 +4006,8 @@ unique_ptr<MessageContent> get_secret_message_content(
                                           FormattedText{std::move(message_text), std::move(entities)}, false,
                                           &load_data_multipromise);
     }
+    default:
+      break;
   }
   if (file == nullptr && !is_media_empty) {
     LOG(ERROR) << "Received secret message with media, but without a file";

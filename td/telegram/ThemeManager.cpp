@@ -19,6 +19,7 @@
 #include "td/utils/logging.h"
 #include "td/utils/Random.h"
 #include "td/utils/Time.h"
+#include "td/utils/tl_helpers.h"
 
 namespace td {
 

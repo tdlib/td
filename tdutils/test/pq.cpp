@@ -77,7 +77,8 @@ static void test_pq(td::uint64 first, td::uint64 second) {
   td::BigNum::mul(pq, p, q, context);
   td::string pq_str = pq.to_binary();
 
-  td::string p_str, q_str;
+  td::string p_str;
+  td::string q_str;
   int err = td::pq_factorize(pq_str, &p_str, &q_str);
   LOG_CHECK(err == 0) << first << " * " << second;
 

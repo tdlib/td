@@ -9,8 +9,8 @@
 #include "td/utils/logging.h"
 #include "td/utils/tests.h"
 
-static void check_vote_percentage(std::vector<td::int32> voter_counts, td::int32 total_count,
-                                  std::vector<td::int32> expected) {
+static void check_vote_percentage(const std::vector<td::int32> &voter_counts, td::int32 total_count,
+                                  const std::vector<td::int32> &expected) {
   auto result = td::PollManager::get_vote_percentage(voter_counts, total_count);
   if (result != expected) {
     LOG(FATAL) << "Have " << voter_counts << " and " << total_count << ", but received " << result << " instead of "

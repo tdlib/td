@@ -16,7 +16,7 @@ namespace td {
 
 ClientActor::ClientActor(unique_ptr<TdCallback> callback, Options options) {
   Td::Options td_options;
-  td_options.net_query_stats = options.net_query_stats;
+  td_options.net_query_stats = std::move(options.net_query_stats);
   td_ = create_actor<Td>("Td", std::move(callback), std::move(td_options));
 }
 

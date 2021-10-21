@@ -19,8 +19,6 @@
 #include <memory>
 #include <utility>
 
-namespace {
-
 template <class ContainerT>
 static typename ContainerT::value_type &rand_elem(ContainerT &cont) {
   CHECK(0 < cont.size() && cont.size() <= static_cast<size_t>(std::numeric_limits<int>::max()));
@@ -338,7 +336,6 @@ class SimpleActor final : public td::Actor {
   td::uint32 q_ = 1;
   td::uint32 p_ = 0;
 };
-}  // namespace
 
 class SendToDead final : public td::Actor {
  public:
@@ -470,7 +467,7 @@ class XContext final : public td::ActorContext {
   void validate() {
     CHECK(x == 1234);
   }
-  ~XContext() {
+  ~XContext() final {
     x = 0;
   }
   int x = 1234;

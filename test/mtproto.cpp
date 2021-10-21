@@ -95,11 +95,11 @@ TEST(Mtproto, GetHostByNameActor) {
                                       "2001:0db8:85a3:0000:0000:8a2e:0370:7334",
                                       "[2001:0db8:85a3:0000:0000:8a2e:0370:7334]",
                                       "[[2001:0db8:85a3:0000:0000:8a2e:0370:7334]]"};
-    for (auto types : {vector<GetHostByNameActor::ResolverType>{GetHostByNameActor::ResolverType::Native},
-                       vector<GetHostByNameActor::ResolverType>{GetHostByNameActor::ResolverType::Google},
-                       vector<GetHostByNameActor::ResolverType>{GetHostByNameActor::ResolverType::Google,
-                                                                GetHostByNameActor::ResolverType::Google,
-                                                                GetHostByNameActor::ResolverType::Native}}) {
+    for (const auto &types : {vector<GetHostByNameActor::ResolverType>{GetHostByNameActor::ResolverType::Native},
+                              vector<GetHostByNameActor::ResolverType>{GetHostByNameActor::ResolverType::Google},
+                              vector<GetHostByNameActor::ResolverType>{GetHostByNameActor::ResolverType::Google,
+                                                                       GetHostByNameActor::ResolverType::Google,
+                                                                       GetHostByNameActor::ResolverType::Native}}) {
       GetHostByNameActor::Options options;
       options.resolver_types = types;
       options.scheduler_id = threads_n;

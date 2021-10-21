@@ -34,6 +34,7 @@
 #include <array>
 #include <iterator>
 #include <limits>
+#include <tuple>
 #include <utility>
 
 namespace td {
@@ -850,8 +851,9 @@ class MessagesDbImpl final : public MessagesDbSyncInterface {
   SqliteStatement delete_scheduled_message_stmt_;
   SqliteStatement delete_scheduled_server_message_stmt_;
 
-  Result<vector<MessagesDbDialogMessage>> get_messages_impl(GetMessagesStmt &stmt, DialogId dialog_id,
-                                                            MessageId from_message_id, int32 offset, int32 limit) {
+  static Result<vector<MessagesDbDialogMessage>> get_messages_impl(GetMessagesStmt &stmt, DialogId dialog_id,
+                                                                   MessageId from_message_id, int32 offset,
+                                                                   int32 limit) {
     LOG_CHECK(dialog_id.is_valid()) << dialog_id;
     CHECK(from_message_id.is_valid());
 

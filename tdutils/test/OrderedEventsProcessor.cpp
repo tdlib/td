@@ -19,7 +19,7 @@ TEST(OrderedEventsProcessor, random) {
   std::vector<std::pair<int, int>> v;
   for (int i = 0; i < n; i++) {
     auto shift = td::Random::fast_bool() ? td::Random::fast(0, d) : td::Random::fast(0, 1) * d;
-    v.push_back({i + shift, i + offset});
+    v.emplace_back(i + shift, i + offset);
   }
   std::sort(v.begin(), v.end());
 

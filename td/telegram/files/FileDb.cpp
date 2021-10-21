@@ -139,7 +139,7 @@ class FileDb final : public FileDbInterface {
       pmc.commit_transaction().ensure();
     }
 
-    void optimize_refs(const std::vector<FileDbId> ids, FileDbId main_id) {
+    void optimize_refs(std::vector<FileDbId> ids, FileDbId main_id) {
       LOG(INFO) << "Optimize " << ids.size() << " ids in file database to " << main_id.get();
       auto &pmc = file_pmc();
       pmc.begin_write_transaction().ensure();

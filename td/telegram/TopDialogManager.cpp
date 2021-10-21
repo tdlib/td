@@ -21,15 +21,12 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/TdParameters.h"
-#include "td/telegram/telegram_api.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/port/Clocks.h"
-#include "td/utils/ScopeGuard.h"
-#include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
 #include "td/utils/tl_helpers.h"
@@ -124,10 +121,13 @@ class ResetTopPeerRatingQuery final : public Td::ResultHandler {
 
   void on_error(uint64 id, Status status) final {
     if (!td->messages_manager_->on_get_dialog_error(dialog_id_, status, "ResetTopPeerRatingQuery")) {
-      LOG(INFO) << "Receive error for resetTopPeerRating: " << status;
+      LOG(INFO) << "Receive error for ResetTopPeerRatingQuery: " << status;
     }
   }
 };
+
+TopDialogManager::TopDialogManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
+}
 
 void TopDialogManager::update_is_enabled(bool is_enabled) {
   if (td_->auth_manager_ == nullptr || !td_->auth_manager_->is_authorized() || td_->auth_manager_->is_bot()) {

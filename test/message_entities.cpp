@@ -1745,8 +1745,8 @@ TEST(MessageEntities, parse_markdown_v3) {
   }
 }
 
-static void check_get_markdown_v3(td::string result_text, td::vector<td::MessageEntity> result_entities,
-                                  const td::string &text, const td::vector<td::MessageEntity> &entities) {
+static void check_get_markdown_v3(const td::string &result_text, const td::vector<td::MessageEntity> &result_entities,
+                                  td::string text, td::vector<td::MessageEntity> entities) {
   auto markdown_text = td::get_markdown_v3({std::move(text), std::move(entities)});
   ASSERT_STREQ(result_text, markdown_text.text);
   ASSERT_EQ(result_entities, markdown_text.entities);

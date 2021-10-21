@@ -7,10 +7,9 @@
 #include "td/actor/actor.h"
 #include "td/actor/ConcurrentScheduler.h"
 
+#include "td/utils/common.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/tests.h"
-
-namespace {
 
 class PowerWorker final : public td::Actor {
  public:
@@ -125,7 +124,6 @@ static void test_workers(int threads_n, int workers_n, int queries_n, int query_
 
   // sched.test_one_thread_run();
 }
-}  // namespace
 
 TEST(Actors, workers_big_query_one_thread) {
   test_workers(0, 10, 1000, 300000);

@@ -54,9 +54,9 @@ class TQueue {
 
   struct Event {
     EventId id;
+    int32 expires_at{0};
     Slice data;
     int64 extra{0};
-    int32 expires_at{0};
   };
 
   struct RawEvent {

@@ -266,7 +266,7 @@ TEST(Misc, base64) {
 }
 
 template <class T>
-static void test_remove_if(td::vector<int> v, const T &func, td::vector<int> expected) {
+static void test_remove_if(td::vector<int> v, const T &func, const td::vector<int> &expected) {
   td::remove_if(v, func);
   if (expected != v) {
     LOG(FATAL) << "Receive " << v << ", expected " << expected << " in remove_if";
@@ -324,7 +324,7 @@ TEST(Misc, remove_if) {
   test_remove_if(v, none, v);
 }
 
-static void test_remove(td::vector<int> v, int value, td::vector<int> expected) {
+static void test_remove(td::vector<int> v, int value, const td::vector<int> &expected) {
   bool is_found = expected != v;
   ASSERT_EQ(is_found, td::remove(v, value));
   if (expected != v) {
@@ -349,7 +349,7 @@ TEST(Misc, remove) {
   test_remove(v, 1, v);
 }
 
-static void test_unique(td::vector<int> v, td::vector<int> expected) {
+static void test_unique(td::vector<int> v, const td::vector<int> &expected) {
   auto v_str = td::transform(v, &td::to_string<int>);
   auto expected_str = td::transform(expected, &td::to_string<int>);
 
@@ -516,7 +516,7 @@ TEST(Misc, print_uint) {
   ASSERT_STREQ("9223372036854775807", PSLICE() << 9223372036854775807u);
 }
 
-static void test_idn_to_ascii_one(td::string host, td::string result) {
+static void test_idn_to_ascii_one(const td::string &host, const td::string &result) {
   if (result != td::idn_to_ascii(host).ok()) {
     LOG(ERROR) << "Failed to convert " << host << " to " << result << ", got \"" << td::idn_to_ascii(host).ok() << "\"";
   }
@@ -557,7 +557,7 @@ TEST(Misc, idn_to_ascii) {
 }
 
 #if TD_WINDOWS
-static void test_to_wstring_one(td::string str) {
+static void test_to_wstring_one(const td::string &str) {
   ASSERT_STREQ(str, td::from_wstring(td::to_wstring(str).ok()).ok());
 }
 
@@ -589,7 +589,7 @@ TEST(Misc, to_wstring) {
 }
 #endif
 
-static void test_translit(td::string word, td::vector<td::string> result, bool allow_partial = true) {
+static void test_translit(const td::string &word, const td::vector<td::string> &result, bool allow_partial = true) {
   ASSERT_EQ(result, td::get_word_transliterations(word, allow_partial));
 }
 
@@ -679,7 +679,7 @@ TEST(Misc, IPAddress_get_ipv4) {
   test_get_ipv4(0xFFFFFFFF);
 }
 
-static void test_is_reserved(td::string ip, bool is_reserved) {
+static void test_is_reserved(const td::string &ip, bool is_reserved) {
   td::IPAddress ip_address;
   ip_address.init_ipv4_port(ip, 80).ensure();
   ASSERT_EQ(is_reserved, ip_address.is_reserved());
@@ -772,11 +772,11 @@ TEST(Misc, split) {
   test_split(" abcdef ", {"", "abcdef "});
 }
 
-static void test_full_split(td::Slice str, td::vector<td::Slice> expected) {
+static void test_full_split(td::Slice str, const td::vector<td::Slice> &expected) {
   ASSERT_EQ(expected, td::full_split(str));
 }
 
-static void test_full_split(td::Slice str, char c, std::size_t max_parts, td::vector<td::Slice> expected) {
+static void test_full_split(td::Slice str, char c, std::size_t max_parts, const td::vector<td::Slice> &expected) {
   ASSERT_EQ(expected, td::full_split(str, c, max_parts));
 }
 
@@ -804,11 +804,12 @@ TEST(Misc, StringBuilder) {
   using V = td::vector<td::string>;
   for (auto use_buf : {false, true}) {
     for (std::size_t initial_buffer_size : {0, 1, 5, 10, 100, 1000, 2000}) {
-      for (auto test : {V{small_str}, V{small_str, big_str, big_str, small_str}, V{big_str, small_str, big_str}}) {
+      for (const auto &test :
+           {V{small_str}, V{small_str, big_str, big_str, small_str}, V{big_str, small_str, big_str}}) {
         td::string buf(initial_buffer_size, '\0');
         td::StringBuilder sb(buf, use_buf);
         td::string res;
-        for (auto x : test) {
+        for (const auto &x : test) {
           res += x;
           sb << x;
         }
@@ -1046,9 +1047,11 @@ TEST(Misc, uint128) {
       if (b == 0) {
         continue;
       }
-      td::int64 q, r;
+      td::int64 q;
+      td::int64 r;
       a.divmod_signed(b, &q, &r);
-      td::int64 iq, ir;
+      td::int64 iq;
+      td::int64 ir;
       ia.divmod_signed(b, &iq, &ir);
       ASSERT_EQ(q, iq);
       ASSERT_EQ(r, ir);

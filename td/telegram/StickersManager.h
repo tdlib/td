@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/FullMessageId.h"
@@ -658,7 +659,7 @@ class StickersManager final : public Actor {
 
   void on_get_language_codes(const string &key, Result<vector<string>> &&result);
 
-  vector<string> search_language_emojis(const string &language_code, const string &text, bool exact_match) const;
+  static vector<string> search_language_emojis(const string &language_code, const string &text, bool exact_match);
 
   void load_emoji_keywords(const string &language_code, Promise<Unit> &&promise);
 

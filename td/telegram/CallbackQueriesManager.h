@@ -19,8 +19,6 @@
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 
-#include <unordered_map>
-
 namespace td {
 
 class Td;

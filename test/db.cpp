@@ -322,14 +322,14 @@ class SqliteKV {
 
 class BaselineKV {
  public:
-  string get(string key) {
+  string get(const string &key) {
     return map_[key];
   }
-  SeqNo set(string key, string value) {
-    map_[key] = value;
+  SeqNo set(const string &key, string value) {
+    map_[key] = std::move(value);
     return ++current_tid_;
   }
-  SeqNo erase(string key) {
+  SeqNo erase(const string &key) {
     map_.erase(key);
     return ++current_tid_;
   }

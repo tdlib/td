@@ -1308,17 +1308,17 @@ class ContactsManager final : public Actor {
   void load_secret_chat_from_database_impl(SecretChatId secret_chat_id, Promise<Unit> promise);
   void on_load_secret_chat_from_database(SecretChatId secret_chat_id, string value, bool force);
 
-  void save_user_full(const UserFull *user_full, UserId user_id);
+  static void save_user_full(const UserFull *user_full, UserId user_id);
   static string get_user_full_database_key(UserId user_id);
   static string get_user_full_database_value(const UserFull *user_full);
   void on_load_user_full_from_database(UserId user_id, string value);
 
-  void save_chat_full(const ChatFull *chat_full, ChatId chat_id);
+  static void save_chat_full(const ChatFull *chat_full, ChatId chat_id);
   static string get_chat_full_database_key(ChatId chat_id);
   static string get_chat_full_database_value(const ChatFull *chat_full);
   void on_load_chat_full_from_database(ChatId chat_id, string value);
 
-  void save_channel_full(const ChannelFull *channel_full, ChannelId channel_id);
+  static void save_channel_full(const ChannelFull *channel_full, ChannelId channel_id);
   static string get_channel_full_database_key(ChannelId channel_id);
   static string get_channel_full_database_value(const ChannelFull *channel_full);
   void on_load_channel_full_from_database(ChannelId channel_id, string value, const char *source);

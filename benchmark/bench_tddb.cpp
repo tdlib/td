@@ -11,6 +11,7 @@
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/UserId.h"
 
+#include "td/db/DbKey.h"
 #include "td/db/SqliteConnectionSafe.h"
 #include "td/db/SqliteDb.h"
 

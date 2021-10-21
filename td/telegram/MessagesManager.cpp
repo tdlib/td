@@ -18167,7 +18167,7 @@ void MessagesManager::on_reorder_dialog_filters(vector<DialogFilterId> dialog_fi
   if (result.is_error()) {
     // TODO rollback dialog_filters_ changes if error isn't 429
   } else {
-    if (set_dialog_filters_order(server_dialog_filters_, dialog_filter_ids)) {
+    if (set_dialog_filters_order(server_dialog_filters_, std::move(dialog_filter_ids))) {
       save_dialog_filters();
     }
   }

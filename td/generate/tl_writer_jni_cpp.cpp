@@ -126,7 +126,7 @@ std::string TD_TL_writer_jni_cpp::gen_type_fetch(const std::string &field_name, 
 
   if (!(tree_type->flags & tl::FLAG_BARE)) {
     if (is_type_bare(t)) {
-      if (field_name != "") {
+      if (!field_name.empty()) {
         std::fprintf(stderr, "Do not use non-bare fields with bare type %s\n", name.c_str());
         //        assert(false);
       }
@@ -174,7 +174,7 @@ std::string TD_TL_writer_jni_cpp::gen_type_fetch(const std::string &field_name, 
     const tl::tl_tree_type *child = static_cast<const tl::tl_tree_type *>(tree_type->children[0]);
     res = gen_vector_fetch(field_name, child, vars, parser_type);
   } else {
-    if (field_name == "") {
+    if (field_name.empty()) {
       return gen_main_class_name(tree_type->type) + "::fetch(env, p)";
     }
     res = "jni::fetch_tl_object<" + gen_main_class_name(tree_type->type) + ">(env, jni::fetch_object(env, p, " +
@@ -565,14 +565,14 @@ std::string TD_TL_writer_jni_cpp::gen_additional_function(const std::string &fun
       "  " +
       class_name_class + " = jni::get_jclass(env, " + gen_java_class_name(gen_class_name(t->name)) + ");\n";
 
-  if (t->args.size()) {
+  if (!t->args.empty()) {
     for (std::size_t i = 0; i < t->args.size(); i++) {
       const tl::arg &a = t->args[i];
       assert(a.type->get_type() == tl::NODE_TYPE_TYPE);
       const tl::tl_tree_type *tree_type = static_cast<tl::tl_tree_type *>(a.type);
 
       std::string field_name = gen_field_name(a.name);
-      assert(field_name.size());
+      assert(!field_name.empty());
       std::string java_field_name = gen_java_field_name(std::string(field_name, 0, field_name.size() - 1));
 
       std::string type_signature = gen_type_signature(tree_type);

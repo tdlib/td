@@ -17,7 +17,7 @@ TEST(OptionParser, run) {
   td::string exename = "exename";
   td::vector<td::string> args;
   auto run_option_parser = [&](td::string command_line) {
-    args = td::full_split(command_line, ' ');
+    args = td::full_split(std::move(command_line), ' ');
     td::vector<char *> argv;
     argv.push_back(&exename[0]);
     for (auto &arg : args) {
@@ -29,10 +29,11 @@ TEST(OptionParser, run) {
   td::uint64 chosen_options = 0;
   td::vector<td::string> chosen_parameters;
   auto test_success = [&](td::string command_line, td::uint64 expected_options,
-                          td::vector<td::string> expected_parameters, td::vector<td::string> expected_result) {
+                          const td::vector<td::string> &expected_parameters,
+                          const td::vector<td::string> &expected_result) {
     chosen_options = 0;
     chosen_parameters.clear();
-    auto result = run_option_parser(command_line);
+    auto result = run_option_parser(std::move(command_line));
     ASSERT_TRUE(result.is_ok());
     ASSERT_EQ(expected_options, chosen_options);
     ASSERT_EQ(expected_parameters, chosen_parameters);
@@ -42,7 +43,7 @@ TEST(OptionParser, run) {
     }
   };
   auto test_fail = [&](td::string command_line) {
-    auto result = run_option_parser(command_line);
+    auto result = run_option_parser(std::move(command_line));
     ASSERT_TRUE(result.is_error());
   };
 

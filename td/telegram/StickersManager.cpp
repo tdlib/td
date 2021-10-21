@@ -6643,7 +6643,7 @@ string StickersManager::get_language_emojis_database_key(const string &language_
 }
 
 vector<string> StickersManager::search_language_emojis(const string &language_code, const string &text,
-                                                       bool exact_match) const {
+                                                       bool exact_match) {
   LOG(INFO) << "Search for \"" << text << "\" in language " << language_code;
   auto key = get_language_emojis_database_key(language_code, text);
   if (exact_match) {

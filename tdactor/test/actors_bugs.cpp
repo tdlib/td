@@ -50,9 +50,9 @@ TEST(MultiTimeout, bug) {
 }
 
 class TimeoutManager final : public td::Actor {
- public:
   static td::int32 count;
 
+ public:
   TimeoutManager() {
     count++;
 

@@ -61,7 +61,8 @@ TEST(SharedSlice, Hands) {
 
   {
     td::Stage stage;
-    td::SharedSlice a, b;
+    td::SharedSlice a;
+    td::SharedSlice b;
     td::vector<td::thread> threads(2);
     for (int i = 0; i < 2; i++) {
       threads[i] = td::thread([i, &stage, &a, &b] {

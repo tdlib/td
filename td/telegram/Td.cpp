@@ -6,7 +6,6 @@
 //
 #include "td/telegram/Td.h"
 
-#include "td/telegram/AccessRights.h"
 #include "td/telegram/AnimationsManager.h"
 #include "td/telegram/AudiosManager.h"
 #include "td/telegram/AuthManager.h"
@@ -170,7 +169,7 @@ void Td::ResultHandler::on_result(NetQueryPtr query) {
 
 void Td::ResultHandler::send_query(NetQueryPtr query) {
   td->add_handler(query->id(), shared_from_this());
-  td->send(std::move(query));
+  send(std::move(query));
 }
 
 class GetPromoDataQuery final : public Td::ResultHandler {

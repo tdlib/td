@@ -12,7 +12,7 @@
 
 #include <utility>
 
-static void decode_encode(td::string str, td::string result = "") {
+static void decode_encode(const td::string &str, td::string result = td::string()) {
   auto str_copy = str;
   auto r_value = td::json_decode(str_copy);
   ASSERT_TRUE(r_value.is_ok());

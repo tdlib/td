@@ -453,9 +453,10 @@ class RawConnectionHttp final : public RawConnection {
 unique_ptr<RawConnection> RawConnection::create(IPAddress ip_address, SocketFd socket_fd, TransportType transport_type,
                                                 unique_ptr<StatsCallback> stats_callback) {
 #if TD_DARWIN_WATCH_OS
-  return td::make_unique<RawConnectionHttp>(ip_address, std::move(stats_callback));
+  return td::make_unique<RawConnectionHttp>(std::move(ip_address), std::move(stats_callback));
 #else
-  return td::make_unique<RawConnectionDefault>(std::move(socket_fd), transport_type, std::move(stats_callback));
+  return td::make_unique<RawConnectionDefault>(std::move(socket_fd), std::move(transport_type),
+                                               std::move(stats_callback));
 #endif
 }
 

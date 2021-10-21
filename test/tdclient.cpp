@@ -568,7 +568,8 @@ class TestFileGenerated final : public TestClinetTask {
     }
   };
 
-  void generate_file(td::int64 id, td::string original_path, td::string destination_path, td::string conversion) {
+  void generate_file(td::int64 id, const td::string &original_path, const td::string &destination_path,
+                     const td::string &conversion) {
     LOG(ERROR) << "Generate file " << td::tag("id", id) << td::tag("original_path", original_path)
                << td::tag("destination_path", destination_path) << td::tag("conversion", conversion);
     if (conversion == "square") {

@@ -764,15 +764,17 @@ class Master final : public Actor {
     bob_ = create_actor<SecretChatProxy>("SecretChatProxy bob", "bob", actor_shared(this, 2));
     send_closure(alice_->get_actor_unsafe()->actor_, &SecretChatActor::create_chat, UserId(static_cast<int64>(2)), 0,
                  123, PromiseCreator::lambda([actor_id = actor_id(this)](Result<SecretChatId> res) {
-                   send_closure(actor_id, &Master::got_secret_chat_id, std::move(res), 0);
+                   send_closure(actor_id, &Master::got_secret_chat_id, std::move(res), false);
                  }));
   }
-  void got_secret_chat_id(Result<SecretChatId> res, int) {  // second parameter is needed to workaround clang bug
+
+  void got_secret_chat_id(Result<SecretChatId> res, bool dummy) {
     CHECK(res.is_ok());
     auto id = res.move_as_ok();
     LOG(INFO) << "SecretChatId = " << id;
   }
-  bool can_fail(NetQueryPtr &query) {
+
+  static bool can_fail(NetQueryPtr &query) {
     static int cnt = 20;
     if (cnt > 0) {
       cnt--;
@@ -784,6 +786,7 @@ class Master final : public Actor {
     }
     return false;
   }
+
   void send_net_query(NetQueryPtr query, ActorShared<NetQueryCallback> callback, bool ordered) {
     if (can_fail(query) && Random::fast_bool()) {
       LOG(INFO) << "Fail query " << query;

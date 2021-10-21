@@ -9,13 +9,11 @@
 #include "td/actor/MultiPromise.h"
 #include "td/actor/PromiseFuture.h"
 #include "td/actor/SleepActor.h"
-#include "td/actor/Timeout.h"
 
 #include "td/utils/common.h"
 #include "td/utils/logging.h"
 #include "td/utils/MpscPollableQueue.h"
 #include "td/utils/Observer.h"
-#include "td/utils/port/detail/PollableFd.h"
 #include "td/utils/port/FileFd.h"
 #include "td/utils/port/thread.h"
 #include "td/utils/Slice.h"
@@ -26,8 +24,6 @@
 
 #include <memory>
 #include <tuple>
-
-namespace {
 
 static const size_t BUF_SIZE = 1024 * 1024;
 static char buf[BUF_SIZE];
@@ -199,7 +195,6 @@ class PrintChar final : public td::Actor {
   char char_;
   int cnt_;
 };
-}  // namespace
 
 //
 // Yield must add actor to the end of queue
@@ -315,7 +310,6 @@ TEST(Actors, open_close) {
   scheduler.finish();
 }
 
-namespace {
 class MsgActor : public td::Actor {
  public:
   virtual void msg() = 0;
@@ -353,7 +347,6 @@ class MasterActor final : public MsgActor {
   }
   td::uint64 alive_ = 123456789;
 };
-}  // namespace
 
 TEST(Actors, call_after_destruct) {
   td::Scheduler scheduler;
@@ -655,9 +648,9 @@ TEST(Actors, send_from_other_threads) {
 
 class DelayedCall final : public td::Actor {
  public:
-  void on_called(int *order) {
-    CHECK(*order == 0);
-    *order = 1;
+  void on_called(int *step) {
+    CHECK(*step == 0);
+    *step = 1;
   }
 };
 
@@ -666,21 +659,21 @@ class MultiPromiseSendClosureLaterTest final : public td::Actor {
   void start_up() final {
     delayed_call_ = td::create_actor<DelayedCall>("DelayedCall").release();
     mpa_.add_promise(td::PromiseCreator::lambda([this](td::Unit) {
-      CHECK(order_ == 1);
-      order_++;
+      CHECK(step_ == 1);
+      step_++;
       td::Scheduler::instance()->finish();
     }));
     auto lock = mpa_.get_promise();
-    td::send_closure_later(delayed_call_, &DelayedCall::on_called, &order_);
+    td::send_closure_later(delayed_call_, &DelayedCall::on_called, &step_);
     lock.set_value(td::Unit());
   }
 
   void tear_down() final {
-    CHECK(order_ == 2);
+    CHECK(step_ == 2);
   }
 
  private:
-  int order_ = 0;
+  int step_ = 0;
   td::MultiPromiseActor mpa_{"MultiPromiseActor"};
   td::ActorId<DelayedCall> delayed_call_;
 };

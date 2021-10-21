@@ -34,7 +34,7 @@ EMSCRIPTEN_KEEPALIVE double td_emscripten_get_timeout() {
 }
 }
 
-int main(void) {
+int main() {
   emscripten_exit_with_live_runtime();
   return 0;
 }

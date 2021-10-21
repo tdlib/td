@@ -35,6 +35,7 @@
 #include "td/telegram/MessageSearchFilter.h"
 #include "td/telegram/MessageThreadInfo.h"
 #include "td/telegram/MessageTtlSetting.h"
+#include "td/telegram/net/DcId.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/Notification.h"
 #include "td/telegram/NotificationGroupId.h"
@@ -1816,7 +1817,7 @@ class MessagesManager final : public Actor {
 
   void on_message_media_edited(DialogId dialog_id, MessageId message_id, FileId file_id, FileId thumbnail_file_id,
                                bool was_uploaded, bool was_thumbnail_uploaded, string file_reference,
-                               int32 scheduled_date, uint64 generation, Result<int32> &&result);
+                               int32 schedule_date, uint64 generation, Result<int32> &&result);
 
   static MessageId get_persistent_message_id(const Dialog *d, MessageId message_id);
 

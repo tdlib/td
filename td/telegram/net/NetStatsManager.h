@@ -132,12 +132,13 @@ class NetStatsManager final : public Actor {
     f(call_net_stats_, CALL_NET_STATS_ID, CSlice("calls"), FileType::None);
   }
 
-  void add_network_stats_impl(NetStatsInfo &info, const NetworkStatsEntry &entry);
+  static void add_network_stats_impl(NetStatsInfo &info, const NetworkStatsEntry &entry);
 
   void start_up() final;
-  void update(NetStatsInfo &info, bool force_save);
+
+  static void update(NetStatsInfo &info, bool force_save);
   static void save_stats(NetStatsInfo &info, NetType net_type);
-  void info_loop(NetStatsInfo &info);
+  static void info_loop(NetStatsInfo &info);
 
   void on_stats_updated(size_t id);
   void on_net_type_updated(NetType net_type);

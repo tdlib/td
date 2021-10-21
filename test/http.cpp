@@ -48,7 +48,7 @@
 
 using namespace td;
 
-static string make_chunked(string str) {
+static string make_chunked(const string &str) {
   auto v = rand_split(str);
   string res;
   for (auto &s : v) {
@@ -75,7 +75,7 @@ static string gen_http_content() {
 }
 
 static string make_http_query(string content, bool is_json, bool is_chunked, bool is_gzip, double gzip_k = 5,
-                              string zip_override = "") {
+                              string zip_override = string()) {
   HttpHeaderCreator hc;
   hc.init_post("/");
   hc.add_header("jfkdlsahhjk", rand_string('a', 'z', Random::fast(1, 2000)));

@@ -13,7 +13,7 @@
 #include "td/utils/misc.h"
 #include "td/utils/tests.h"
 
-static void check_find_urls(td::string url, bool is_valid) {
+static void check_find_urls(const td::string &url, bool is_valid) {
   auto url_lower = td::to_lower(url);
   {
     auto tg_urls = td::find_tg_urls(url);
@@ -35,7 +35,7 @@ static void check_find_urls(td::string url, bool is_valid) {
   }
 }
 
-static void check_link(td::string url, td::string expected) {
+static void check_link(const td::string &url, const td::string &expected) {
   auto result = td::LinkManager::check_link(url);
   if (result.is_ok()) {
     ASSERT_STREQ(expected, result.ok());
@@ -79,7 +79,7 @@ TEST(Link, check_link) {
   check_link("https://.", "");
 }
 
-static void parse_internal_link(td::string url, td::td_api::object_ptr<td::td_api::InternalLinkType> expected) {
+static void parse_internal_link(const td::string &url, td::td_api::object_ptr<td::td_api::InternalLinkType> expected) {
   auto result = td::LinkManager::parse_internal_link(url);
   if (result != nullptr) {
     auto object = result->get_internal_link_type_object();

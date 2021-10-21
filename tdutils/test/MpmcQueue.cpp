@@ -50,7 +50,7 @@ TEST(OneValue, stress) {
   std::vector<td::thread> threads;
   td::OneValue<std::string> value;
   for (size_t i = 0; i < 2; i++) {
-    threads.push_back(td::thread([&, id = i] {
+    threads.emplace_back([&, id = i] {
       for (td::uint64 round = 1; round < 100000; round++) {
         if (id == 0) {
           value.reset();
@@ -77,7 +77,7 @@ TEST(OneValue, stress) {
           }
         }
       }
-    }));
+    });
   }
   for (auto &thread : threads) {
     thread.join();

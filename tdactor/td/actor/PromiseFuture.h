@@ -407,10 +407,10 @@ class CancellablePromise final : public PromiseT {
   CancellablePromise(CancellationToken cancellation_token, ArgsT &&... args)
       : PromiseT(std::forward<ArgsT>(args)...), cancellation_token_(std::move(cancellation_token)) {
   }
-  virtual bool is_cancellable() const {
+  bool is_cancellable() const final {
     return true;
   }
-  virtual bool is_canceled() const {
+  bool is_canceled() const final {
     return static_cast<bool>(cancellation_token_);
   }
 
