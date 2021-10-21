@@ -910,7 +910,7 @@ chatPosition list:ChatList order:int64 is_pinned:Bool source:ChatSource = ChatPo
 
 
 //@description Describes a voice chat
-//@group_call_id Group call identifier of an active voice chat; 0 if none. Full informationa about the voice chat can be received through the method getGroupCall
+//@group_call_id Group call identifier of an active voice chat; 0 if none. Full information about the voice chat can be received through the method getGroupCall
 //@has_participants True, if the voice chat has participants
 //@default_participant_id Default group call participant identifier to join the voice chat; may be null
 voiceChat group_call_id:int32 has_participants:Bool default_participant_id:MessageSender = VoiceChat;
@@ -1372,7 +1372,7 @@ inputCredentialsGooglePay data:string = InputCredentials;
 paymentsProviderStripe publishable_key:string need_country:Bool need_postal_code:Bool need_cardholder_name:Bool = PaymentsProviderStripe;
 
 //@description Theme colors for a payment form @background_color A color of the payment form background in the RGB24 format @text_color A color of text in the RGB24 format
-//@hint_color A color of hints in the RGB24 format @link_color A color of links in the RGB24 format @button_color A color of thebuttons in the RGB24 format
+//@hint_color A color of hints in the RGB24 format @link_color A color of links in the RGB24 format @button_color A color of the buttons in the RGB24 format
 //@button_text_color A color of text on the buttons in the RGB24 format
 paymentFormTheme background_color:int32 text_color:int32 hint_color:int32 link_color:int32 button_color:int32 button_text_color:int32 = PaymentFormTheme;
 
