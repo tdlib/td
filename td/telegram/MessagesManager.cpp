@@ -28549,10 +28549,11 @@ void MessagesManager::send_update_chat_last_message_impl(const Dialog *d, const 
   LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_last_message from "
                                         << source;
   LOG(INFO) << "Send updateChatLastMessage in " << d->dialog_id << " to " << d->last_message_id << " from " << source;
-  auto update = make_tl_object<td_api::updateChatLastMessage>(
-      d->dialog_id.get(),
-      get_message_object(d->dialog_id, get_message(d, d->last_message_id), "send_update_chat_last_message_impl"),
-      get_chat_positions_object(d));
+  const auto *m = get_message(d, d->last_message_id);
+  auto message_object = get_message_object(d->dialog_id, m, "send_update_chat_last_message_impl");
+  auto positions_object = get_chat_positions_object(d);
+  auto update = td_api::make_object<td_api::updateChatLastMessage>(d->dialog_id.get(), std::move(message_object),
+                                                                   std::move(positions_object));
   send_closure(G()->td(), &Td::send_update, std::move(update));
 }
 
