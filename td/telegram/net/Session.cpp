@@ -500,9 +500,11 @@ void Session::on_closed(Status status) {
   raw_connection->close();
 
   if (status.is_error()) {
-    LOG(WARNING) << "Session closed: " << status << " " << current_info_->connection->get_name();
+    LOG(WARNING) << "Session with " << sent_queries_.size() << " pending requests was closed: " << status << " "
+                 << current_info_->connection->get_name();
   } else {
-    LOG(INFO) << "Session closed: " << status << " " << current_info_->connection->get_name();
+    LOG(INFO) << "Session with " << sent_queries_.size() << " pending requests was closed: " << status << " "
+              << current_info_->connection->get_name();
   }
 
   if (status.is_error() && status.code() == -404) {
