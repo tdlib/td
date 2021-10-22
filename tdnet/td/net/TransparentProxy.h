@@ -28,7 +28,7 @@ class TransparentProxy : public Actor {
     Callback &operator=(const Callback &) = delete;
     virtual ~Callback() = default;
 
-    virtual void set_result(Result<SocketFd>) = 0;
+    virtual void set_result(Result<BufferedFd<SocketFd>> r_buffered_socket_fd) = 0;
     virtual void on_connected() = 0;
   };
 

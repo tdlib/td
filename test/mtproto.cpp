@@ -217,7 +217,7 @@ class TestPingActor final : public Actor {
     }
 
     ping_connection_ = mtproto::PingConnection::create_req_pq(
-        mtproto::RawConnection::create(ip_address_, r_socket.move_as_ok(),
+        mtproto::RawConnection::create(ip_address_, BufferedFd<SocketFd>(r_socket.move_as_ok()),
                                        mtproto::TransportType{mtproto::TransportType::Tcp, 0, mtproto::ProxySecret()},
                                        nullptr),
         3);
@@ -339,7 +339,7 @@ class HandshakeTestActor final : public Actor {
       }
 
       raw_connection_ = mtproto::RawConnection::create(
-          ip_address, r_socket.move_as_ok(),
+          ip_address, BufferedFd<SocketFd>(r_socket.move_as_ok()),
           mtproto::TransportType{mtproto::TransportType::Tcp, 0, mtproto::ProxySecret()}, nullptr);
     }
     if (!wait_for_handshake_ && !handshake_) {
@@ -438,22 +438,22 @@ RegisterTest<Mtproto_handshake> mtproto_handshake("Mtproto_handshake");
 class Socks5TestActor final : public Actor {
  public:
   void start_up() final {
-    auto promise = PromiseCreator::lambda([actor_id = actor_id(this)](Result<SocketFd> res) {
+    auto promise = PromiseCreator::lambda([actor_id = actor_id(this)](Result<BufferedFd<SocketFd>> res) {
       send_closure(actor_id, &Socks5TestActor::on_result, std::move(res), false);
     });
 
     class Callback final : public TransparentProxy::Callback {
      public:
-      explicit Callback(Promise<SocketFd> promise) : promise_(std::move(promise)) {
+      explicit Callback(Promise<BufferedFd<SocketFd>> promise) : promise_(std::move(promise)) {
       }
-      void set_result(Result<SocketFd> result) final {
+      void set_result(Result<BufferedFd<SocketFd>> result) final {
         promise_.set_result(std::move(result));
       }
       void on_connected() final {
       }
 
      private:
-      Promise<SocketFd> promise_;
+      Promise<BufferedFd<SocketFd>> promise_;
     };
 
     IPAddress socks5_ip;
@@ -470,7 +470,7 @@ class Socks5TestActor final : public Actor {
   }
 
  private:
-  void on_result(Result<SocketFd> res, bool dummy) {
+  void on_result(Result<BufferedFd<SocketFd>> res, bool dummy) {
     res.ensure();
     Scheduler::instance()->finish();
   }
@@ -545,7 +545,7 @@ class FastPingTestActor final : public Actor {
     }
 
     auto raw_connection = mtproto::RawConnection::create(
-        ip_address, r_socket.move_as_ok(),
+        ip_address, BufferedFd<SocketFd>(r_socket.move_as_ok()),
         mtproto::TransportType{mtproto::TransportType::Tcp, 0, mtproto::ProxySecret()}, nullptr);
     auto handshake = make_unique<mtproto::AuthKeyHandshake>(get_default_dc_id(), 60 * 100 /*temp*/);
     create_actor<mtproto::HandshakeActor>(
@@ -676,7 +676,7 @@ TEST(Mtproto, TlsTransport) {
       void start_up() final {
         class Callback final : public TransparentProxy::Callback {
          public:
-          void set_result(Result<SocketFd> result) final {
+          void set_result(Result<BufferedFd<SocketFd>> result) final {
             if (result.is_ok()) {
               LOG(ERROR) << "Unexpectedly succeeded to connect to MTProto proxy";
             } else if (result.error().message() != "Response hash mismatch") {

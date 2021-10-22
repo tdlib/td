@@ -328,12 +328,12 @@ void ConnectionCreator::ping_proxy(int32 proxy_id, Promise<double> promise) {
         continue;
       }
 
-      ping_proxy_socket_fd(std::move(ip_address), r_socket_fd.move_as_ok(), r_transport_type.move_as_ok(),
-                           PSTRING() << info.option->get_ip_address(),
-                           PromiseCreator::lambda([actor_id = actor_id(this), token](Result<double> result) {
-                             send_closure(actor_id, &ConnectionCreator::on_ping_main_dc_result, token,
-                                          std::move(result));
-                           }));
+      ping_proxy_buffered_socket_fd(std::move(ip_address), BufferedFd<SocketFd>(r_socket_fd.move_as_ok()),
+                                    r_transport_type.move_as_ok(), PSTRING() << info.option->get_ip_address(),
+                                    PromiseCreator::lambda([actor_id = actor_id(this), token](Result<double> result) {
+                                      send_closure(actor_id, &ConnectionCreator::on_ping_main_dc_result, token,
+                                                   std::move(result));
+                                    }));
     }
     return;
   }
@@ -375,8 +375,9 @@ void ConnectionCreator::ping_proxy_resolved(int32 proxy_id, IPAddress ip_address
         if (r_connection_data.is_error()) {
           return promise.set_error(Status::Error(400, r_connection_data.error().public_message()));
         }
-        send_closure(actor_id, &ConnectionCreator::ping_proxy_socket_fd, ip_address,
-                     r_connection_data.move_as_ok().socket_fd, std::move(transport_type), std::move(debug_str),
+        auto connection_data = r_connection_data.move_as_ok();
+        send_closure(actor_id, &ConnectionCreator::ping_proxy_buffered_socket_fd, ip_address,
+                     std::move(connection_data.buffered_socket_fd), std::move(transport_type), std::move(debug_str),
                      std::move(promise));
       });
   CHECK(proxy.use_proxy());
@@ -389,12 +390,12 @@ void ConnectionCreator::ping_proxy_resolved(int32 proxy_id, IPAddress ip_address
   }
 }
 
-void ConnectionCreator::ping_proxy_socket_fd(IPAddress ip_address, SocketFd socket_fd,
-                                             mtproto::TransportType transport_type, string debug_str,
-                                             Promise<double> promise) {
+void ConnectionCreator::ping_proxy_buffered_socket_fd(IPAddress ip_address, BufferedFd<SocketFd> buffered_socket_fd,
+                                                      mtproto::TransportType transport_type, string debug_str,
+                                                      Promise<double> promise) {
   auto token = next_token();
   auto raw_connection =
-      mtproto::RawConnection::create(ip_address, std::move(socket_fd), std::move(transport_type), nullptr);
+      mtproto::RawConnection::create(ip_address, std::move(buffered_socket_fd), std::move(transport_type), nullptr);
   children_[token] = {
       false, create_ping_actor(debug_str, std::move(raw_connection), nullptr,
                                PromiseCreator::lambda([promise = std::move(promise)](
@@ -651,8 +652,9 @@ void ConnectionCreator::request_raw_connection_by_ip(IPAddress ip_address, mtpro
     if (r_connection_data.is_error()) {
       return promise.set_error(Status::Error(400, r_connection_data.error().public_message()));
     }
-    auto raw_connection =
-        mtproto::RawConnection::create(ip_address, r_connection_data.move_as_ok().socket_fd, transport_type, nullptr);
+    auto connection_data = r_connection_data.move_as_ok();
+    auto raw_connection = mtproto::RawConnection::create(ip_address, std::move(connection_data.buffered_socket_fd),
+                                                         transport_type, nullptr);
     raw_connection->extra().extra = network_generation;
     promise.set_value(std::move(raw_connection));
   });
@@ -754,19 +756,19 @@ ActorOwn<> ConnectionCreator::prepare_connection(IPAddress ip_address, SocketFd 
           , use_connection_token_(use_connection_token)
           , was_connected_(was_connected) {
       }
-      void set_result(Result<SocketFd> result) final {
-        if (result.is_error()) {
+      void set_result(Result<BufferedFd<SocketFd>> r_buffered_socket_fd) final {
+        if (r_buffered_socket_fd.is_error()) {
           if (use_connection_token_) {
             connection_token_ = mtproto::ConnectionManager::ConnectionToken();
           }
           if (was_connected_ && stats_callback_) {
             stats_callback_->on_error();
           }
-          promise_.set_error(Status::Error(400, result.error().public_message()));
+          promise_.set_error(Status::Error(400, r_buffered_socket_fd.error().public_message()));
         } else {
           ConnectionData data;
           data.ip_address = ip_address_;
-          data.socket_fd = result.move_as_ok();
+          data.buffered_socket_fd = r_buffered_socket_fd.move_as_ok();
           data.connection_token = std::move(connection_token_);
           data.stats_callback = std::move(stats_callback_);
           promise_.set_value(std::move(data));
@@ -785,7 +787,7 @@ ActorOwn<> ConnectionCreator::prepare_connection(IPAddress ip_address, SocketFd 
       mtproto::ConnectionManager::ConnectionToken connection_token_;
       IPAddress ip_address_;
       unique_ptr<mtproto::RawConnection::StatsCallback> stats_callback_;
-      bool use_connection_token_;
+      bool use_connection_token_{false};
       bool was_connected_{false};
     };
     VLOG(connections) << "Start "
@@ -814,7 +816,7 @@ ActorOwn<> ConnectionCreator::prepare_connection(IPAddress ip_address, SocketFd 
 
     ConnectionData data;
     data.ip_address = ip_address;
-    data.socket_fd = std::move(socket_fd);
+    data.buffered_socket_fd = BufferedFd<SocketFd>(std::move(socket_fd));
     data.stats_callback = std::move(stats_callback);
     promise.set_result(std::move(data));
     return {};
@@ -991,7 +993,7 @@ void ConnectionCreator::client_create_raw_connection(Result<ConnectionData> r_co
 
   auto connection_data = r_connection_data.move_as_ok();
   auto raw_connection =
-      mtproto::RawConnection::create(connection_data.ip_address, std::move(connection_data.socket_fd),
+      mtproto::RawConnection::create(connection_data.ip_address, std::move(connection_data.buffered_socket_fd),
                                      std::move(transport_type), std::move(connection_data.stats_callback));
   raw_connection->set_connection_token(std::move(connection_data.connection_token));
 

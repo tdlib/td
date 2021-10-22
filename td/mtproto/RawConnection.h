@@ -11,6 +11,7 @@
 #include "td/mtproto/TransportType.h"
 
 #include "td/utils/buffer.h"
+#include "td/utils/BufferedFd.h"
 #include "td/utils/common.h"
 #include "td/utils/port/detail/PollableFd.h"
 #include "td/utils/port/IPAddress.h"
@@ -40,8 +41,8 @@ class RawConnection {
   RawConnection &operator=(const RawConnection &) = delete;
   virtual ~RawConnection() = default;
 
-  static unique_ptr<RawConnection> create(IPAddress ip_address, SocketFd socket_fd, TransportType transport_type,
-                                          unique_ptr<StatsCallback> stats_callback);
+  static unique_ptr<RawConnection> create(IPAddress ip_address, BufferedFd<SocketFd> buffered_socket_fd,
+                                          TransportType transport_type, unique_ptr<StatsCallback> stats_callback);
 
   virtual void set_connection_token(ConnectionManager::ConnectionToken connection_token) = 0;
 

@@ -15,7 +15,6 @@
 #include "td/net/DarwinHttp.h"
 #endif
 
-#include "td/utils/BufferedFd.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
@@ -35,8 +34,9 @@ namespace mtproto {
 
 class RawConnectionDefault final : public RawConnection {
  public:
-  RawConnectionDefault(SocketFd socket_fd, TransportType transport_type, unique_ptr<StatsCallback> stats_callback)
-      : socket_fd_(std::move(socket_fd))
+  RawConnectionDefault(BufferedFd<SocketFd> buffered_socket_fd, TransportType transport_type,
+                       unique_ptr<StatsCallback> stats_callback)
+      : socket_fd_(std::move(buffered_socket_fd))
       , transport_(create_transport(std::move(transport_type)))
       , stats_callback_(std::move(stats_callback)) {
     transport_->init(&socket_fd_.input_buffer(), &socket_fd_.output_buffer());
@@ -450,12 +450,13 @@ class RawConnectionHttp final : public RawConnection {
 };
 #endif
 
-unique_ptr<RawConnection> RawConnection::create(IPAddress ip_address, SocketFd socket_fd, TransportType transport_type,
+unique_ptr<RawConnection> RawConnection::create(IPAddress ip_address, BufferedFd<SocketFd> buffered_socket_fd,
+                                                TransportType transport_type,
                                                 unique_ptr<StatsCallback> stats_callback) {
 #if TD_DARWIN_WATCH_OS
   return td::make_unique<RawConnectionHttp>(std::move(ip_address), std::move(stats_callback));
 #else
-  return td::make_unique<RawConnectionDefault>(std::move(socket_fd), std::move(transport_type),
+  return td::make_unique<RawConnectionDefault>(std::move(buffered_socket_fd), std::move(transport_type),
                                                std::move(stats_callback));
 #endif
 }
