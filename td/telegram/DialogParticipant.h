@@ -448,9 +448,10 @@ struct DialogParticipants {
 };
 
 class ChannelParticipantsFilter {
-  enum class Type : int32 { Recent, Contacts, Administrators, Search, Mention, Restricted, Banned, Bots } type;
-  string query;
-  MessageId top_thread_message_id;
+  enum class Type : int32 { Recent, Contacts, Administrators, Search, Mention, Restricted, Banned, Bots };
+  Type type_;
+  string query_;
+  MessageId top_thread_message_id_;
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const ChannelParticipantsFilter &filter);
 
@@ -460,31 +461,31 @@ class ChannelParticipantsFilter {
   tl_object_ptr<telegram_api::ChannelParticipantsFilter> get_input_channel_participants_filter() const;
 
   bool is_administrators() const {
-    return type == Type::Administrators;
+    return type_ == Type::Administrators;
   }
 
   bool is_bots() const {
-    return type == Type::Bots;
+    return type_ == Type::Bots;
   }
 
   bool is_recent() const {
-    return type == Type::Recent;
+    return type_ == Type::Recent;
   }
 
   bool is_contacts() const {
-    return type == Type::Contacts;
+    return type_ == Type::Contacts;
   }
 
   bool is_search() const {
-    return type == Type::Search;
+    return type_ == Type::Search;
   }
 
   bool is_restricted() const {
-    return type == Type::Restricted;
+    return type_ == Type::Restricted;
   }
 
   bool is_banned() const {
-    return type == Type::Banned;
+    return type_ == Type::Banned;
   }
 };
 
@@ -493,11 +494,11 @@ StringBuilder &operator<<(StringBuilder &string_builder, const ChannelParticipan
 class DialogParticipantsFilter {
  public:
   enum class Type : int32 { Contacts, Administrators, Members, Restricted, Banned, Mention, Bots };
-  Type type;
-  MessageId top_thread_message_id;
+  Type type_;
+  MessageId top_thread_message_id_;
 
   explicit DialogParticipantsFilter(Type type, MessageId top_thread_message_id = MessageId())
-      : type(type), top_thread_message_id(top_thread_message_id) {
+      : type_(type), top_thread_message_id_(top_thread_message_id) {
   }
 };
 

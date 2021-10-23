@@ -14801,7 +14801,7 @@ DialogParticipants ContactsManager::search_private_chat_participants(UserId my_u
                                                                      const string &query, int32 limit,
                                                                      DialogParticipantsFilter filter) const {
   vector<DialogId> dialog_ids;
-  switch (filter.type) {
+  switch (filter.type_) {
     case DialogParticipantsFilter::Type::Contacts:
       if (peer_user_id.is_valid() && is_user_contact(peer_user_id)) {
         dialog_ids.push_back(DialogId(peer_user_id));
@@ -14862,7 +14862,7 @@ void ContactsManager::search_dialog_participants(DialogId dialog_id, const strin
       td_api::object_ptr<td_api::SupergroupMembersFilter> request_filter;
       string additional_query;
       int32 additional_limit = 0;
-      switch (filter.type) {
+      switch (filter.type_) {
         case DialogParticipantsFilter::Type::Contacts:
           request_filter = td_api::make_object<td_api::supergroupMembersFilterContacts>();
           break;
@@ -14880,7 +14880,7 @@ void ContactsManager::search_dialog_participants(DialogId dialog_id, const strin
           break;
         case DialogParticipantsFilter::Type::Mention:
           request_filter =
-              td_api::make_object<td_api::supergroupMembersFilterMention>(query, filter.top_thread_message_id.get());
+              td_api::make_object<td_api::supergroupMembersFilterMention>(query, filter.top_thread_message_id_.get());
           break;
         case DialogParticipantsFilter::Type::Bots:
           request_filter = td_api::make_object<td_api::supergroupMembersFilterBots>();
@@ -14888,7 +14888,7 @@ void ContactsManager::search_dialog_participants(DialogId dialog_id, const strin
         default:
           UNREACHABLE();
       }
-      switch (filter.type) {
+      switch (filter.type_) {
         case DialogParticipantsFilter::Type::Contacts:
         case DialogParticipantsFilter::Type::Administrators:
         case DialogParticipantsFilter::Type::Bots:
@@ -14988,7 +14988,7 @@ void ContactsManager::do_search_chat_participants(ChatId chat_id, const string &
   }
 
   auto is_dialog_participant_suitable = [this, filter](const DialogParticipant &participant) {
-    switch (filter.type) {
+    switch (filter.type_) {
       case DialogParticipantsFilter::Type::Contacts:
         return participant.dialog_id.get_type() == DialogType::User &&
                is_user_contact(participant.dialog_id.get_user_id());
