@@ -145,7 +145,7 @@ Result<string> get_suggested_file_name(CSlice directory, Slice file_name) {
   file_name = cleaned_name;
 
   if (directory.empty()) {
-    directory = "./";
+    directory = CSlice("./");
   }
 
   auto dir_stat = stat(directory);

@@ -55,7 +55,7 @@ class ConnectionCreator final : public NetQueryCallback {
  public:
   explicit ConnectionCreator(ActorShared<> parent);
   ConnectionCreator(ConnectionCreator &&other);
-  ConnectionCreator &operator=(ConnectionCreator &&other) noexcept;
+  ConnectionCreator &operator=(ConnectionCreator &&other);
   ~ConnectionCreator() final;
 
   void on_dc_options(DcOptions new_dc_options);
