@@ -14758,17 +14758,18 @@ void ContactsManager::get_dialog_participant(DialogId dialog_id, DialogId partic
   }
 
   switch (dialog_id.get_type()) {
-    case DialogType::User:
-      if (participant_dialog_id == DialogId(get_my_id())) {
-        return promise.set_value(
-            DialogParticipant{participant_dialog_id, dialog_id.get_user_id(), 0, DialogParticipantStatus::Member()});
+    case DialogType::User: {
+      auto my_user_id = get_my_id();
+      auto peer_user_id = dialog_id.get_user_id();
+      if (participant_dialog_id == DialogId(my_user_id)) {
+        return promise.set_value(DialogParticipant::private_member(my_user_id, peer_user_id));
       }
       if (participant_dialog_id == dialog_id) {
-        return promise.set_value(
-            DialogParticipant{participant_dialog_id, get_my_id(), 0, DialogParticipantStatus::Member()});
+        return promise.set_value(DialogParticipant::private_member(peer_user_id, my_user_id));
       }
 
       return promise.set_error(Status::Error(400, "Member not found"));
+    }
     case DialogType::Chat:
       if (participant_dialog_id.get_type() != DialogType::User) {
         return promise.set_value(DialogParticipant::left(participant_dialog_id));
@@ -14777,15 +14778,13 @@ void ContactsManager::get_dialog_participant(DialogId dialog_id, DialogId partic
     case DialogType::Channel:
       return get_channel_participant(dialog_id.get_channel_id(), participant_dialog_id, std::move(promise));
     case DialogType::SecretChat: {
+      auto my_user_id = get_my_id();
       auto peer_user_id = get_secret_chat_user_id(dialog_id.get_secret_chat_id());
-      if (participant_dialog_id == DialogId(get_my_id())) {
-        return promise.set_value(DialogParticipant{participant_dialog_id,
-                                                   peer_user_id.is_valid() ? peer_user_id : get_my_id(), 0,
-                                                   DialogParticipantStatus::Member()});
+      if (participant_dialog_id == DialogId(my_user_id)) {
+        return promise.set_value(DialogParticipant::private_member(my_user_id, peer_user_id));
       }
-      if (participant_dialog_id == DialogId(peer_user_id)) {
-        return promise.set_value(
-            DialogParticipant{participant_dialog_id, get_my_id(), 0, DialogParticipantStatus::Member()});
+      if (peer_user_id.is_valid() && participant_dialog_id == DialogId(peer_user_id)) {
+        return promise.set_value(DialogParticipant::private_member(peer_user_id, my_user_id));
       }
 
       return promise.set_error(Status::Error(400, "Member not found"));
@@ -14834,9 +14833,8 @@ DialogParticipants ContactsManager::search_private_chat_participants(UserId my_u
 
   auto result = search_among_dialogs(dialog_ids, query, limit);
   return {result.first, transform(result.second, [&](DialogId dialog_id) {
-            return DialogParticipant(
-                dialog_id, dialog_id == DialogId(my_user_id) && peer_user_id.is_valid() ? peer_user_id : my_user_id, 0,
-                DialogParticipantStatus::Member());
+            auto user_id = dialog_id.get_user_id();
+            return DialogParticipant::private_member(user_id, user_id == my_user_id ? peer_user_id : my_user_id);
           })};
 }
 

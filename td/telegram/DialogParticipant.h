@@ -408,6 +408,11 @@ struct DialogParticipant {
     return {dialog_id, UserId(), 0, DialogParticipantStatus::Left()};
   }
 
+  static DialogParticipant private_member(UserId user_id, UserId other_user_id) {
+    auto inviter_user_id = other_user_id.is_valid() ? other_user_id : user_id;
+    return {DialogId(user_id), inviter_user_id, 0, DialogParticipantStatus::Member()};
+  }
+
   bool is_valid() const;
 
   template <class StorerT>
