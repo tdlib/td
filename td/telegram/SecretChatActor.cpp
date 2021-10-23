@@ -1565,8 +1565,8 @@ void SecretChatActor::on_outbound_send_message_result(NetQueryPtr query, Promise
       LOG(INFO) << "Outbound secret message [send_message] failed, rewrite it with dummy "
                 << tag("log_event_id", state->message->log_event_id()) << tag("error", error);
       state->send_result_ = [this, random_id = state->message->random_id, error_code = error.code(),
-                             error_message = error.message()](Promise<> promise) {
-        this->context_->on_send_message_error(random_id, Status::Error(error_code, error_message), std::move(promise));
+                             error_message = error.message().str()](Promise<> promise) {
+        context_->on_send_message_error(random_id, Status::Error(error_code, error_message), std::move(promise));
       };
       state->send_result_(std::move(send_message_error_promise));
     } else {
@@ -1598,7 +1598,7 @@ void SecretChatActor::on_outbound_send_message_result(NetQueryPtr query, Promise
         state->send_result_ = [this, random_id = state->message->random_id,
                                message_id = MessageId(ServerMessageId(state->message->message_id)),
                                date = sent->date_](Promise<> promise) {
-          this->context_->on_send_message_ok(random_id, message_id, date, nullptr, std::move(promise));
+          context_->on_send_message_ok(random_id, message_id, date, nullptr, std::move(promise));
         };
         state->send_result_(std::move(send_message_finish_promise));
         return;
@@ -1611,7 +1611,7 @@ void SecretChatActor::on_outbound_send_message_result(NetQueryPtr query, Promise
           state->send_result_ = [this, random_id = state->message->random_id,
                                  message_id = MessageId(ServerMessageId(state->message->message_id)),
                                  date = sent->date_](Promise<> promise) {
-            this->context_->on_send_message_ok(random_id, message_id, date, nullptr, std::move(promise));
+            context_->on_send_message_ok(random_id, message_id, date, nullptr, std::move(promise));
           };
         } else {
           state->message->file = log_event::EncryptedInputFile::from_input_encrypted_file(
@@ -1619,8 +1619,8 @@ void SecretChatActor::on_outbound_send_message_result(NetQueryPtr query, Promise
           state->send_result_ = [this, random_id = state->message->random_id,
                                  message_id = MessageId(ServerMessageId(state->message->message_id)),
                                  date = sent->date_, file = *file](Promise<> promise) {
-            this->context_->on_send_message_ok(random_id, message_id, date, make_unique<EncryptedFile>(file),
-                                               std::move(promise));
+            context_->on_send_message_ok(random_id, message_id, date, make_unique<EncryptedFile>(file),
+                                         std::move(promise));
           };
         }
         state->send_result_(std::move(send_message_finish_promise));

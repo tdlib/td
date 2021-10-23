@@ -544,7 +544,7 @@ class MessagesManager final : public Actor {
   std::pair<int32, vector<DialogId>> get_common_dialogs(UserId user_id, DialogId offset_dialog_id, int32 limit,
                                                         bool force, Promise<Unit> &&promise);
 
-  void block_message_sender_from_replies(MessageId message_id, bool delete_message, bool delete_all_messages,
+  void block_message_sender_from_replies(MessageId message_id, bool need_delete_message, bool need_delete_all_messages,
                                          bool report_spam, Promise<Unit> &&promise);
 
   void get_blocked_dialogs(int32 offset, int32 limit, Promise<td_api::object_ptr<td_api::messageSenders>> &&promise);
@@ -1986,8 +1986,9 @@ class MessagesManager final : public Actor {
 
   void delete_all_call_messages_from_server(bool revoke, uint64 log_event_id, Promise<Unit> &&promise);
 
-  void block_message_sender_from_replies_on_server(MessageId message_id, bool delete_message, bool delete_all_messages,
-                                                   bool report_spam, uint64 log_event_id, Promise<Unit> &&promise);
+  void block_message_sender_from_replies_on_server(MessageId message_id, bool need_delete_message,
+                                                   bool need_delete_all_messages, bool report_spam, uint64 log_event_id,
+                                                   Promise<Unit> &&promise);
 
   void delete_all_channel_messages_from_user_on_server(ChannelId channel_id, UserId user_id, uint64 log_event_id,
                                                        Promise<Unit> &&promise);
@@ -3052,8 +3053,10 @@ class MessagesManager final : public Actor {
 
   static uint64 save_delete_all_call_messages_from_server_log_event(bool revoke);
 
-  static uint64 save_block_message_sender_from_replies_on_server_log_event(MessageId message_id, bool delete_message,
-                                                                           bool delete_all_messages, bool report_spam);
+  static uint64 save_block_message_sender_from_replies_on_server_log_event(MessageId message_id,
+                                                                           bool need_delete_message,
+                                                                           bool need_delete_all_messages,
+                                                                           bool report_spam);
 
   static uint64 save_delete_all_channel_messages_from_user_on_server_log_event(ChannelId channel_id, UserId user_id);
 

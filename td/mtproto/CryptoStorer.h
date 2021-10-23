@@ -112,8 +112,7 @@ class QueryImpl {
   void do_store(StorerT &storer) const {
     storer.store_binary(query_.message_id);
     storer.store_binary(query_.seq_no);
-    Slice header = this->header_;
-    Slice invoke_header = Slice();
+    Slice invoke_header;
 
 // TODO(refactor):
 // invokeAfterMsg#cb9f372d {X:Type} msg_id:long query:!X = X;
@@ -138,7 +137,7 @@ class QueryImpl {
     const Storer &data_storer =
         query_.gzip_flag ? static_cast<const Storer &>(gzip_storer) : static_cast<const Storer &>(plain_storer);
     auto invoke_header_storer = create_storer(invoke_header);
-    auto header_storer = create_storer(header);
+    auto header_storer = create_storer(header_);
     auto suff_storer = create_storer(invoke_header_storer, data_storer);
     auto all_storer = create_storer(header_storer, suff_storer);
 

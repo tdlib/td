@@ -826,7 +826,7 @@ FileManager::FileManager(unique_ptr<Context> context) : context_(std::move(conte
 #endif
   };
 
-  G()->td_db()->with_db_path([this](CSlice path) { this->bad_paths_.insert(path.str()); });
+  G()->td_db()->with_db_path([bad_paths = &bad_paths_](CSlice path) { bad_paths->insert(path.str()); });
 }
 
 void FileManager::init_actor() {
@@ -3738,9 +3738,10 @@ void FileManager::on_error_impl(FileNodePtr node, Query::Type type, bool was_act
   if (FileReferenceManager::is_file_reference_error(status)) {
     string file_reference;
     Slice prefix = "#BASE64";
-    auto pos = status.message().rfind('#');
-    if (pos < status.message().size() && begins_with(status.message().substr(pos), prefix)) {
-      auto r_file_reference = base64_decode(status.message().substr(pos + prefix.size()));
+    Slice error_message = status.message();
+    auto pos = error_message.rfind('#');
+    if (pos < error_message.size() && begins_with(error_message.substr(pos), prefix)) {
+      auto r_file_reference = base64_decode(error_message.substr(pos + prefix.size()));
       if (r_file_reference.is_ok()) {
         file_reference = r_file_reference.move_as_ok();
       } else {

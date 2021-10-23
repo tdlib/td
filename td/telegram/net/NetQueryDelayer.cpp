@@ -28,16 +28,16 @@ void NetQueryDelayer::delay(NetQueryPtr query) {
   if (code < 0) {
     // skip
   } else if (code == 500) {
-    auto msg = query->error().message();
-    if (msg == "WORKER_BUSY_TOO_LONG_RETRY") {
+    auto error_message = query->error().message();
+    if (error_message == "WORKER_BUSY_TOO_LONG_RETRY") {
       timeout = 1;  // it is dangerous to resend query without timeout, so use 1
     }
   } else if (code == 420) {
-    auto msg = query->error().message();
+    auto error_message = query->error().message();
     for (auto prefix :
          {Slice("FLOOD_WAIT_"), Slice("SLOWMODE_WAIT_"), Slice("2FA_CONFIRM_WAIT_"), Slice("TAKEOUT_INIT_DELAY_")}) {
-      if (begins_with(msg, prefix)) {
-        timeout = clamp(to_integer<int>(msg.substr(prefix.size())), 1, 14 * 24 * 60 * 60);
+      if (begins_with(error_message, prefix)) {
+        timeout = clamp(to_integer<int>(error_message.substr(prefix.size())), 1, 14 * 24 * 60 * 60);
         break;
       }
     }

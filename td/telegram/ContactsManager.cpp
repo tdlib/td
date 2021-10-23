@@ -3128,20 +3128,23 @@ tl_object_ptr<td_api::chatStatisticsSupergroup> ContactsManager::convert_megagro
   td::remove_if(obj->top_inviters_,
                 [](auto &obj) { return !UserId(obj->user_id_).is_valid() || obj->invitations_ < 0; });
 
-  auto top_senders = transform(std::move(obj->top_posters_), [this](auto &&top_poster) {
-    return td_api::make_object<td_api::chatStatisticsMessageSenderInfo>(
-        this->get_user_id_object(UserId(top_poster->user_id_), "get_top_senders"), top_poster->messages_,
-        top_poster->avg_chars_);
-  });
-  auto top_administrators = transform(std::move(obj->top_admins_), [this](auto &&top_admin) {
-    return td_api::make_object<td_api::chatStatisticsAdministratorActionsInfo>(
-        this->get_user_id_object(UserId(top_admin->user_id_), "get_top_administrators"), top_admin->deleted_,
-        top_admin->kicked_, top_admin->banned_);
-  });
-  auto top_inviters = transform(std::move(obj->top_inviters_), [this](auto &&top_inviter) {
-    return td_api::make_object<td_api::chatStatisticsInviterInfo>(
-        this->get_user_id_object(UserId(top_inviter->user_id_), "get_top_inviters"), top_inviter->invitations_);
-  });
+  auto top_senders =
+      transform(std::move(obj->top_posters_), [this](tl_object_ptr<telegram_api::statsGroupTopPoster> &&top_poster) {
+        return td_api::make_object<td_api::chatStatisticsMessageSenderInfo>(
+            get_user_id_object(UserId(top_poster->user_id_), "get_top_senders"), top_poster->messages_,
+            top_poster->avg_chars_);
+      });
+  auto top_administrators =
+      transform(std::move(obj->top_admins_), [this](tl_object_ptr<telegram_api::statsGroupTopAdmin> &&top_admin) {
+        return td_api::make_object<td_api::chatStatisticsAdministratorActionsInfo>(
+            get_user_id_object(UserId(top_admin->user_id_), "get_top_administrators"), top_admin->deleted_,
+            top_admin->kicked_, top_admin->banned_);
+      });
+  auto top_inviters =
+      transform(std::move(obj->top_inviters_), [this](tl_object_ptr<telegram_api::statsGroupTopInviter> &&top_inviter) {
+        return td_api::make_object<td_api::chatStatisticsInviterInfo>(
+            get_user_id_object(UserId(top_inviter->user_id_), "get_top_inviters"), top_inviter->invitations_);
+      });
 
   return make_tl_object<td_api::chatStatisticsSupergroup>(
       convert_date_range(obj->period_), convert_stats_absolute_value(obj->members_),

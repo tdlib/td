@@ -294,15 +294,15 @@ NetQueryDispatcher::NetQueryDispatcher() = default;
 NetQueryDispatcher::~NetQueryDispatcher() = default;
 
 void NetQueryDispatcher::try_fix_migrate(NetQueryPtr &net_query) {
-  auto msg = net_query->error().message();
+  auto error_message = net_query->error().message();
   static constexpr CSlice prefixes[] = {"PHONE_MIGRATE_", "NETWORK_MIGRATE_", "USER_MIGRATE_"};
   for (auto &prefix : prefixes) {
-    if (msg.substr(0, prefix.size()) == prefix) {
-      auto new_main_dc_id = to_integer<int32>(msg.substr(prefix.size()));
+    if (error_message.substr(0, prefix.size()) == prefix) {
+      auto new_main_dc_id = to_integer<int32>(error_message.substr(prefix.size()));
       set_main_dc_id(new_main_dc_id);
 
       if (!net_query->dc_id().is_main()) {
-        LOG(ERROR) << msg << " from query to non-main dc " << net_query->dc_id();
+        LOG(ERROR) << "Receive " << error_message << " for query to non-main DC" << net_query->dc_id();
         net_query->resend(DcId::internal(new_main_dc_id));
       } else {
         net_query->resend();

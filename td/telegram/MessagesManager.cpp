@@ -2739,12 +2739,12 @@ class BlockFromRepliesQuery final : public Td::ResultHandler {
   explicit BlockFromRepliesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(MessageId message_id, bool delete_message, bool delete_all_messages, bool report_spam) {
+  void send(MessageId message_id, bool need_delete_message, bool need_delete_all_messages, bool report_spam) {
     int32 flags = 0;
-    if (delete_message) {
+    if (need_delete_message) {
       flags |= telegram_api::contacts_blockFromReplies::DELETE_MESSAGE_MASK;
     }
-    if (delete_all_messages) {
+    if (need_delete_all_messages) {
       flags |= telegram_api::contacts_blockFromReplies::DELETE_HISTORY_MASK;
     }
     if (report_spam) {
@@ -16623,8 +16623,8 @@ void MessagesManager::on_get_common_dialogs(UserId user_id, int64 offset_chat_id
   common_dialogs.total_count = total_count;
 }
 
-void MessagesManager::block_message_sender_from_replies(MessageId message_id, bool delete_message,
-                                                        bool delete_all_messages, bool report_spam,
+void MessagesManager::block_message_sender_from_replies(MessageId message_id, bool need_delete_message,
+                                                        bool need_delete_all_messages, bool report_spam,
                                                         Promise<Unit> &&promise) {
   auto dialog_id = DialogId(ContactsManager::get_replies_bot_user_id());
   Dialog *d = get_dialog_force(dialog_id, "block_message_sender_from_replies");
@@ -16649,20 +16649,19 @@ void MessagesManager::block_message_sender_from_replies(MessageId message_id, bo
   }
   bool need_update_dialog_pos = false;
   vector<int64> deleted_message_ids;
-  if (delete_message) {
-    auto p = this->delete_message(d, message_id, true, &need_update_dialog_pos, "block_message_sender_from_replies");
+  if (need_delete_message) {
+    auto p = delete_message(d, message_id, true, &need_update_dialog_pos, "block_message_sender_from_replies");
     CHECK(p.get() == m);
     deleted_message_ids.push_back(p->message_id.get());
   }
-  if (delete_all_messages && sender_user_id.is_valid()) {
+  if (need_delete_all_messages && sender_user_id.is_valid()) {
     vector<MessageId> message_ids;
     find_messages(d->messages.get(), message_ids, [sender_user_id](const Message *m) {
       return !m->is_outgoing && m->forward_info != nullptr && m->forward_info->sender_user_id == sender_user_id;
     });
 
     for (auto user_message_id : message_ids) {
-      auto p = this->delete_message(d, user_message_id, true, &need_update_dialog_pos,
-                                    "block_message_sender_from_replies 2");
+      auto p = delete_message(d, user_message_id, true, &need_update_dialog_pos, "block_message_sender_from_replies 2");
       deleted_message_ids.push_back(p->message_id.get());
     }
   }
@@ -16673,7 +16672,7 @@ void MessagesManager::block_message_sender_from_replies(MessageId message_id, bo
 
   send_update_delete_messages(dialog_id, std::move(deleted_message_ids), true, false);
 
-  block_message_sender_from_replies_on_server(message_id, delete_message, delete_all_messages, report_spam, 0,
+  block_message_sender_from_replies_on_server(message_id, need_delete_message, need_delete_all_messages, report_spam, 0,
                                               std::move(promise));
 }
 
@@ -16708,24 +16707,25 @@ class MessagesManager::BlockMessageSenderFromRepliesOnServerLogEvent {
 };
 
 uint64 MessagesManager::save_block_message_sender_from_replies_on_server_log_event(MessageId message_id,
-                                                                                   bool delete_message,
-                                                                                   bool delete_all_messages,
+                                                                                   bool need_delete_message,
+                                                                                   bool need_delete_all_messages,
                                                                                    bool report_spam) {
-  BlockMessageSenderFromRepliesOnServerLogEvent log_event{message_id, delete_message, delete_all_messages, report_spam};
+  BlockMessageSenderFromRepliesOnServerLogEvent log_event{message_id, need_delete_message, need_delete_all_messages,
+                                                          report_spam};
   return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::BlockMessageSenderFromRepliesOnServer,
                     get_log_event_storer(log_event));
 }
 
-void MessagesManager::block_message_sender_from_replies_on_server(MessageId message_id, bool delete_message,
-                                                                  bool delete_all_messages, bool report_spam,
+void MessagesManager::block_message_sender_from_replies_on_server(MessageId message_id, bool need_delete_message,
+                                                                  bool need_delete_all_messages, bool report_spam,
                                                                   uint64 log_event_id, Promise<Unit> &&promise) {
   if (log_event_id == 0) {
-    log_event_id = save_block_message_sender_from_replies_on_server_log_event(message_id, delete_message,
-                                                                              delete_all_messages, report_spam);
+    log_event_id = save_block_message_sender_from_replies_on_server_log_event(message_id, need_delete_message,
+                                                                              need_delete_all_messages, report_spam);
   }
 
   td_->create_handler<BlockFromRepliesQuery>(get_erase_log_event_promise(log_event_id, std::move(promise)))
-      ->send(message_id, delete_message, delete_all_messages, report_spam);
+      ->send(message_id, need_delete_message, need_delete_all_messages, report_spam);
 }
 
 void MessagesManager::get_blocked_dialogs(int32 offset, int32 limit,
