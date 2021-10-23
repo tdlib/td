@@ -975,4 +975,29 @@ bool DialogParticipantsFilter::has_query() const {
   }
 }
 
+bool DialogParticipantsFilter::is_dialog_participant_suitable(const Td *td,
+                                                              const DialogParticipant &participant) const {
+  switch (type_) {
+    case Type::Contacts:
+      return participant.dialog_id.get_type() == DialogType::User &&
+             td->contacts_manager_->is_user_contact(participant.dialog_id.get_user_id());
+    case Type::Administrators:
+      return participant.status.is_administrator();
+    case Type::Members:
+      return participant.status.is_member();
+    case Type::Restricted:
+      return participant.status.is_restricted();
+    case Type::Banned:
+      return participant.status.is_banned();
+    case Type::Mention:
+      return true;
+    case Type::Bots:
+      return participant.dialog_id.get_type() == DialogType::User &&
+             td->contacts_manager_->is_user_bot(participant.dialog_id.get_user_id());
+    default:
+      UNREACHABLE();
+      return false;
+  }
+}
+
 }  // namespace td

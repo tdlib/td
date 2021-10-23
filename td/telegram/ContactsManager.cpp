@@ -14946,32 +14946,9 @@ void ContactsManager::do_search_chat_participants(ChatId chat_id, const string &
     return promise.set_error(Status::Error(500, "Can't find basic group full info"));
   }
 
-  auto is_dialog_participant_suitable = [this, filter](const DialogParticipant &participant) {
-    switch (filter.type_) {
-      case DialogParticipantsFilter::Type::Contacts:
-        return participant.dialog_id.get_type() == DialogType::User &&
-               is_user_contact(participant.dialog_id.get_user_id());
-      case DialogParticipantsFilter::Type::Administrators:
-        return participant.status.is_administrator();
-      case DialogParticipantsFilter::Type::Members:
-        return participant.status.is_member();  // should be always true
-      case DialogParticipantsFilter::Type::Restricted:
-        return participant.status.is_restricted();  // should be always false
-      case DialogParticipantsFilter::Type::Banned:
-        return participant.status.is_banned();  // should be always false
-      case DialogParticipantsFilter::Type::Mention:
-        return true;
-      case DialogParticipantsFilter::Type::Bots:
-        return participant.dialog_id.get_type() == DialogType::User && is_user_bot(participant.dialog_id.get_user_id());
-      default:
-        UNREACHABLE();
-        return false;
-    }
-  };
-
   vector<DialogId> dialog_ids;
   for (const auto &participant : chat_full->participants) {
-    if (is_dialog_participant_suitable(participant)) {
+    if (filter.is_dialog_participant_suitable(td_, participant)) {
       dialog_ids.push_back(participant.dialog_id);
     }
   }

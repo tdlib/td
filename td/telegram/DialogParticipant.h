@@ -507,6 +507,8 @@ class DialogParticipantsFilter {
   td_api::object_ptr<td_api::SupergroupMembersFilter> get_supergroup_members_filter_object(const string &query) const;
 
   bool has_query() const;
+
+  bool is_dialog_participant_suitable(const Td *td, const DialogParticipant &participant) const;
 };
 
 StringBuilder &operator<<(StringBuilder &string_builder, const DialogParticipantsFilter &filter);
