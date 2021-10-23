@@ -6270,8 +6270,7 @@ void Td::on_request(uint64 id, td_api::searchChatMembers &request) {
         }
       });
   contacts_manager_->search_dialog_participants(DialogId(request.chat_id_), request.query_, request.limit_,
-                                                get_dialog_participants_filter(request.filter_),
-                                                std::move(query_promise));
+                                                DialogParticipantsFilter(request.filter_), std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, td_api::getChatAdministrators &request) {

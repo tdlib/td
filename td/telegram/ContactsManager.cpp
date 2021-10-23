@@ -14859,55 +14859,14 @@ void ContactsManager::search_dialog_participants(DialogId dialog_id, const strin
     case DialogType::Chat:
       return search_chat_participants(dialog_id.get_chat_id(), query, limit, filter, std::move(promise));
     case DialogType::Channel: {
-      td_api::object_ptr<td_api::SupergroupMembersFilter> request_filter;
-      string additional_query;
-      int32 additional_limit = 0;
-      switch (filter.type_) {
-        case DialogParticipantsFilter::Type::Contacts:
-          request_filter = td_api::make_object<td_api::supergroupMembersFilterContacts>();
-          break;
-        case DialogParticipantsFilter::Type::Administrators:
-          request_filter = td_api::make_object<td_api::supergroupMembersFilterAdministrators>();
-          break;
-        case DialogParticipantsFilter::Type::Members:
-          request_filter = td_api::make_object<td_api::supergroupMembersFilterSearch>(query);
-          break;
-        case DialogParticipantsFilter::Type::Restricted:
-          request_filter = td_api::make_object<td_api::supergroupMembersFilterRestricted>(query);
-          break;
-        case DialogParticipantsFilter::Type::Banned:
-          request_filter = td_api::make_object<td_api::supergroupMembersFilterBanned>(query);
-          break;
-        case DialogParticipantsFilter::Type::Mention:
-          request_filter =
-              td_api::make_object<td_api::supergroupMembersFilterMention>(query, filter.top_thread_message_id_.get());
-          break;
-        case DialogParticipantsFilter::Type::Bots:
-          request_filter = td_api::make_object<td_api::supergroupMembersFilterBots>();
-          break;
-        default:
-          UNREACHABLE();
+      auto channel_id = dialog_id.get_channel_id();
+      if (filter.has_query()) {
+        return get_channel_participants(channel_id, filter.get_supergroup_members_filter_object(query), string(), 0,
+                                        limit, 0, std::move(promise));
+      } else {
+        return get_channel_participants(channel_id, filter.get_supergroup_members_filter_object(string()), query, 0,
+                                        100, limit, std::move(promise));
       }
-      switch (filter.type_) {
-        case DialogParticipantsFilter::Type::Contacts:
-        case DialogParticipantsFilter::Type::Administrators:
-        case DialogParticipantsFilter::Type::Bots:
-          additional_query = query;
-          additional_limit = limit;
-          limit = 100;
-          break;
-        case DialogParticipantsFilter::Type::Members:
-        case DialogParticipantsFilter::Type::Restricted:
-        case DialogParticipantsFilter::Type::Banned:
-        case DialogParticipantsFilter::Type::Mention:
-          // query is passed to the server request
-          break;
-        default:
-          UNREACHABLE();
-      }
-
-      return get_channel_participants(dialog_id.get_channel_id(), std::move(request_filter),
-                                      std::move(additional_query), 0, limit, additional_limit, std::move(promise));
     }
     case DialogType::SecretChat: {
       auto peer_user_id = get_secret_chat_user_id(dialog_id.get_secret_chat_id());

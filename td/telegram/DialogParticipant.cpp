@@ -895,34 +895,83 @@ StringBuilder &operator<<(StringBuilder &string_builder, const DialogParticipant
   }
 }
 
-DialogParticipantsFilter get_dialog_participants_filter(const tl_object_ptr<td_api::ChatMembersFilter> &filter) {
+DialogParticipantsFilter::DialogParticipantsFilter(const tl_object_ptr<td_api::ChatMembersFilter> &filter) {
   if (filter == nullptr) {
-    return DialogParticipantsFilter{DialogParticipantsFilter::Type::Members};
+    type_ = Type::Members;
+    return;
   }
   switch (filter->get_id()) {
     case td_api::chatMembersFilterContacts::ID:
-      return DialogParticipantsFilter{DialogParticipantsFilter::Type::Contacts};
+      type_ = Type::Contacts;
+      break;
     case td_api::chatMembersFilterAdministrators::ID:
-      return DialogParticipantsFilter{DialogParticipantsFilter::Type::Administrators};
+      type_ = Type::Administrators;
+      break;
     case td_api::chatMembersFilterMembers::ID:
-      return DialogParticipantsFilter{DialogParticipantsFilter::Type::Members};
+      type_ = Type::Members;
+      break;
     case td_api::chatMembersFilterRestricted::ID:
-      return DialogParticipantsFilter{DialogParticipantsFilter::Type::Restricted};
+      type_ = Type::Restricted;
+      break;
     case td_api::chatMembersFilterBanned::ID:
-      return DialogParticipantsFilter{DialogParticipantsFilter::Type::Banned};
+      type_ = Type::Banned;
+      break;
     case td_api::chatMembersFilterMention::ID: {
       auto mention_filter = static_cast<const td_api::chatMembersFilterMention *>(filter.get());
-      auto top_thread_message_id = MessageId(mention_filter->message_thread_id_);
-      if (!top_thread_message_id.is_valid() || !top_thread_message_id.is_server()) {
-        top_thread_message_id = MessageId();
+      top_thread_message_id_ = MessageId(mention_filter->message_thread_id_);
+      if (!top_thread_message_id_.is_valid() || !top_thread_message_id_.is_server()) {
+        top_thread_message_id_ = MessageId();
       }
-      return DialogParticipantsFilter{DialogParticipantsFilter::Type::Mention, top_thread_message_id};
+      type_ = Type::Mention;
+      break;
     }
     case td_api::chatMembersFilterBots::ID:
-      return DialogParticipantsFilter{DialogParticipantsFilter::Type::Bots};
+      type_ = Type::Bots;
+      break;
     default:
       UNREACHABLE();
-      return DialogParticipantsFilter{DialogParticipantsFilter::Type::Members};
+      type_ = Type::Members;
+      break;
+  }
+}
+
+td_api::object_ptr<td_api::SupergroupMembersFilter> DialogParticipantsFilter::get_supergroup_members_filter_object(
+    const string &query) const {
+  switch (type_) {
+    case Type::Contacts:
+      return td_api::make_object<td_api::supergroupMembersFilterContacts>();
+    case Type::Administrators:
+      return td_api::make_object<td_api::supergroupMembersFilterAdministrators>();
+    case Type::Members:
+      return td_api::make_object<td_api::supergroupMembersFilterSearch>(query);
+    case Type::Restricted:
+      return td_api::make_object<td_api::supergroupMembersFilterRestricted>(query);
+    case Type::Banned:
+      return td_api::make_object<td_api::supergroupMembersFilterBanned>(query);
+    case Type::Mention:
+      return td_api::make_object<td_api::supergroupMembersFilterMention>(query, top_thread_message_id_.get());
+    case Type::Bots:
+      return td_api::make_object<td_api::supergroupMembersFilterBots>();
+    default:
+      UNREACHABLE();
+      return nullptr;
+  }
+}
+
+bool DialogParticipantsFilter::has_query() const {
+  switch (type_) {
+    case Type::Members:
+    case Type::Restricted:
+    case Type::Banned:
+    case Type::Mention:
+      return true;
+    case Type::Contacts:
+    case Type::Administrators:
+    case Type::Bots:
+      return false;
+    default:
+      UNREACHABLE();
+      return false;
   }
 }
 

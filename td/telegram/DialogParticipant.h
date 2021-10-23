@@ -492,19 +492,24 @@ class ChannelParticipantsFilter {
 StringBuilder &operator<<(StringBuilder &string_builder, const ChannelParticipantsFilter &filter);
 
 class DialogParticipantsFilter {
+  MessageId top_thread_message_id_;
+
  public:
   enum class Type : int32 { Contacts, Administrators, Members, Restricted, Banned, Mention, Bots };
   Type type_;
-  MessageId top_thread_message_id_;
 
   explicit DialogParticipantsFilter(Type type, MessageId top_thread_message_id = MessageId())
       : type_(type), top_thread_message_id_(top_thread_message_id) {
   }
+
+  explicit DialogParticipantsFilter(const tl_object_ptr<td_api::ChatMembersFilter> &filter);
+
+  td_api::object_ptr<td_api::SupergroupMembersFilter> get_supergroup_members_filter_object(const string &query) const;
+
+  bool has_query() const;
 };
 
 StringBuilder &operator<<(StringBuilder &string_builder, const DialogParticipantsFilter &filter);
-
-DialogParticipantsFilter get_dialog_participants_filter(const tl_object_ptr<td_api::ChatMembersFilter> &filter);
 
 DialogParticipantStatus get_dialog_participant_status(const tl_object_ptr<td_api::ChatMemberStatus> &status);
 
