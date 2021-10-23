@@ -14800,35 +14800,12 @@ DialogParticipants ContactsManager::search_private_chat_participants(UserId my_u
                                                                      const string &query, int32 limit,
                                                                      DialogParticipantsFilter filter) const {
   vector<DialogId> dialog_ids;
-  switch (filter.type_) {
-    case DialogParticipantsFilter::Type::Contacts:
-      if (peer_user_id.is_valid() && is_user_contact(peer_user_id)) {
-        dialog_ids.push_back(DialogId(peer_user_id));
-      }
-      break;
-    case DialogParticipantsFilter::Type::Administrators:
-      break;
-    case DialogParticipantsFilter::Type::Members:
-    case DialogParticipantsFilter::Type::Mention:
-      dialog_ids.push_back(DialogId(my_user_id));
-      if (peer_user_id.is_valid() && peer_user_id != my_user_id) {
-        dialog_ids.push_back(DialogId(peer_user_id));
-      }
-      break;
-    case DialogParticipantsFilter::Type::Restricted:
-      break;
-    case DialogParticipantsFilter::Type::Banned:
-      break;
-    case DialogParticipantsFilter::Type::Bots:
-      if (td_->auth_manager_->is_bot()) {
-        dialog_ids.push_back(DialogId(my_user_id));
-      }
-      if (peer_user_id.is_valid() && is_user_bot(peer_user_id) && peer_user_id != my_user_id) {
-        dialog_ids.push_back(DialogId(peer_user_id));
-      }
-      break;
-    default:
-      UNREACHABLE();
+  if (filter.is_dialog_participant_suitable(td_, DialogParticipant::private_member(my_user_id, peer_user_id))) {
+    dialog_ids.push_back(DialogId(my_user_id));
+  }
+  if (peer_user_id.is_valid() && peer_user_id != my_user_id &&
+      filter.is_dialog_participant_suitable(td_, DialogParticipant::private_member(peer_user_id, my_user_id))) {
+    dialog_ids.push_back(DialogId(peer_user_id));
   }
 
   auto result = search_among_dialogs(dialog_ids, query, limit);
