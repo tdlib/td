@@ -34,14 +34,12 @@
 #define MODE std::memory_order_relaxed
 
 // void set_affinity(int mask) {
-// int err, syscallres;
-// pid_t pid = gettid();
-// syscallres = syscall(__NR_sched_setaffinity, pid, sizeof(mask), &mask);
-// if (syscallres) {
-// err = errno;
-// perror("oppa");
-//}
-//}
+//   pid_t pid = gettid();
+//   int syscallres = syscall(__NR_sched_setaffinity, pid, sizeof(mask), &mask);
+//   if (syscallres) {
+//     perror("Failed to set affinity");
+//   }
+// }
 
 using qvalue_t = int;
 
@@ -901,7 +899,8 @@ class RingBenchmark final : public td::Benchmark {
   }
 };
 
-void test_queue() {
+#if !TD_THREAD_UNSUPPORTED && !TD_EVENTFD_UNSUPPORTED
+static void test_queue() {
   std::vector<td::thread> threads;
   static constexpr size_t THREAD_COUNT = 100;
   std::vector<td::MpscPollableQueue<int>> queues(THREAD_COUNT);
@@ -927,10 +926,13 @@ void test_queue() {
     }
   }
 }
+#endif
 
 int main() {
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(DEBUG));
-  //test_queue();
+#if !TD_THREAD_UNSUPPORTED && !TD_EVENTFD_UNSUPPORTED
+  // test_queue();
+#endif
 #define BENCH_Q2(Q, N)                      \
   std::fprintf(stderr, "!%s %d:\t", #Q, N); \
   td::bench(QueueBenchmark2<Q>(N));
@@ -945,12 +947,14 @@ int main() {
   //  BENCH_R(SemQueue);
   //  BENCH_R(td::PollQueue<qvalue_t>);
 
+#if !TD_THREAD_UNSUPPORTED && !TD_EVENTFD_UNSUPPORTED
   BENCH_Q2(td::PollQueue<qvalue_t>, 1);
   BENCH_Q2(td::MpscPollableQueue<qvalue_t>, 1);
   BENCH_Q2(td::PollQueue<qvalue_t>, 100);
   BENCH_Q2(td::MpscPollableQueue<qvalue_t>, 100);
   BENCH_Q2(td::PollQueue<qvalue_t>, 10);
   BENCH_Q2(td::MpscPollableQueue<qvalue_t>, 10);
+#endif
 
   BENCH_Q(VarQueue, 1);
   // BENCH_Q(FdQueue, 1);
@@ -959,12 +963,15 @@ int main() {
   BENCH_Q(SemCheatQueue, 1);
   BENCH_Q(SemQueue, 1);
 
+#if !TD_THREAD_UNSUPPORTED && !TD_EVENTFD_UNSUPPORTED
   // BENCH_Q2(td::PollQueue<qvalue_t>, 100);
   // BENCH_Q2(td::PollQueue<qvalue_t>, 10);
   // BENCH_Q2(td::PollQueue<qvalue_t>, 4);
   // BENCH_Q2(td::InfBackoffQueue<qvalue_t>, 100);
 
   // BENCH_Q2(td::InfBackoffQueue<qvalue_t>, 1);
+#endif
+
   // BENCH_Q(SemCheatQueue, 1);
 
   // BENCH_Q(BufferedFdQueue, 100);
