@@ -69,8 +69,13 @@ class SessionConnection final
     : public Named
     , private RawConnection::Callback {
  public:
-  enum class Mode { Tcp, Http, HttpLongPoll };
+  enum class Mode : int32 { Tcp, Http, HttpLongPoll };
   SessionConnection(Mode mode, unique_ptr<RawConnection> raw_connection, AuthData *auth_data);
+  SessionConnection(const SessionConnection &) = delete;
+  SessionConnection &operator=(const SessionConnection &) = delete;
+  SessionConnection(SessionConnection &&) = delete;
+  SessionConnection &operator=(SessionConnection &&) = delete;
+  ~SessionConnection() = default;
 
   PollableFdInfo &get_poll_info();
   unique_ptr<RawConnection> move_as_raw_connection();
@@ -87,7 +92,6 @@ class SessionConnection final
 
   void set_online(bool online_flag, bool is_main);
 
-  // Callback
   class Callback {
    public:
     Callback() = default;
@@ -132,6 +136,7 @@ class SessionConnection final
 
   bool online_flag_ = false;
   bool is_main_ = false;
+  bool was_moved_ = false;
 
   int rtt() const {
     return max(2, static_cast<int>(raw_connection_->extra().rtt * 1.5 + 1));

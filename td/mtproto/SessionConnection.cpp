@@ -173,6 +173,7 @@ namespace mtproto {
  */
 
 unique_ptr<RawConnection> SessionConnection::move_as_raw_connection() {
+  was_moved_ = true;
   return std::move(raw_connection_);
 }
 
@@ -1007,7 +1008,10 @@ void SessionConnection::send_before(double tm) {
 }
 
 Status SessionConnection::do_flush() {
-  CHECK(raw_connection_);
+  LOG_CHECK(raw_connection_) << was_moved_ << ' ' << state_ << ' ' << static_cast<int32>(mode_) << ' '
+                             << connected_flag_ << ' ' << is_main_ << ' ' << need_destroy_auth_key_ << ' '
+                             << sent_destroy_auth_key_ << ' ' << callback_ << ' ' << (Time::now() - created_at_) << ' '
+                             << (Time::now() - last_read_at_);
   CHECK(state_ != Closed);
   if (state_ == Init) {
     TRY_STATUS(init());

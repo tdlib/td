@@ -63,7 +63,7 @@ class RawConnection {
     virtual ~Callback() = default;
     virtual Status on_raw_packet(const PacketInfo &info, BufferSlice packet) = 0;
     virtual Status on_quick_ack(uint64 quick_ack_token) {
-      return Status::Error("Quick acks unsupported fully, but still used");
+      return Status::Error("Quick acknowledgements are unsupported by the callback");
     }
     virtual Status before_write() {
       return Status::OK();
