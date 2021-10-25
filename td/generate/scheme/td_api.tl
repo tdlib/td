@@ -4392,6 +4392,10 @@ deleteMessages chat_id:int53 message_ids:vector<int53> revoke:Bool = Ok;
 //@description Deletes all messages sent by the specified user to a chat. Supported only for supergroups; requires can_delete_messages administrator privileges @chat_id Chat identifier @user_id User identifier
 deleteChatMessagesFromUser chat_id:int53 user_id:int53 = Ok;
 
+//@description Deletes all messages between the specified dates in a chat. Supported only for private chats and basic groups. Messages sent in the last 30 seconds will not be deleted
+//@chat_id Chat identifier @min_date The minimum date of the messages to delete @max_date The maximum date of the messages to delete @revoke Pass true to try to delete chat messages for all users; private chats only
+deleteChatMessagesByDate chat_id:int53 min_date:int32 max_date:int32 revoke:Bool = Ok;
+
 
 //@description Edits the text of a message (or a text of a game message). Returns the edited message after the edit is completed on the server side
 //@chat_id The chat the message belongs to

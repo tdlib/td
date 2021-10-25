@@ -5440,6 +5440,13 @@ void Td::on_request(uint64 id, const td_api::deleteChatMessagesFromUser &request
                                                       std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::deleteChatMessagesByDate &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->delete_dialog_messages_by_date(DialogId(request.chat_id_), request.min_date_, request.max_date_,
+                                                    request.revoke_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::readAllChatMentions &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

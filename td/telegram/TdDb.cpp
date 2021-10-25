@@ -119,6 +119,7 @@ Status init_binlog(Binlog &binlog, string path, BinlogKeyValue<Binlog> &binlog_p
       case LogEvent::HandlerType::BlockMessageSenderFromRepliesOnServer:
       case LogEvent::HandlerType::UnpinAllDialogMessagesOnServer:
       case LogEvent::HandlerType::DeleteAllCallMessagesFromServer:
+      case LogEvent::HandlerType::DeleteDialogMessagesByDateOnServer:
         events.to_messages_manager.push_back(event.clone());
         break;
       case LogEvent::HandlerType::AddMessagePushNotification:

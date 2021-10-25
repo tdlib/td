@@ -365,6 +365,9 @@ class MessagesManager final : public Actor {
 
   void delete_dialog_messages_from_user(DialogId dialog_id, UserId user_id, Promise<Unit> &&promise);
 
+  void delete_dialog_messages_by_date(DialogId dialog_id, int32 min_date, int32 max_date, bool revoke,
+                                      Promise<Unit> &&promise);
+
   void on_dialog_deleted(DialogId dialog_id, Promise<Unit> &&promise);
 
   void on_update_dialog_group_call_rights(DialogId dialog_id);
@@ -1640,10 +1643,10 @@ class MessagesManager final : public Actor {
   };
 
   class BlockMessageSenderFromRepliesOnServerLogEvent;
-  class ToggleDialogReportSpamStateOnServerLogEvent;
+  class DeleteAllCallMessagesFromServerLogEvent;
   class DeleteAllChannelMessagesFromUserOnServerLogEvent;
   class DeleteDialogHistoryFromServerLogEvent;
-  class DeleteAllCallMessagesFromServerLogEvent;
+  class DeleteDialogMessagesByDateOnServerLogEvent;
   class DeleteMessageLogEvent;
   class DeleteMessagesFromServerLogEvent;
   class DeleteScheduledMessagesFromServerLogEvent;
@@ -1666,6 +1669,7 @@ class MessagesManager final : public Actor {
   class ToggleDialogIsBlockedOnServerLogEvent;
   class ToggleDialogIsMarkedAsUnreadOnServerLogEvent;
   class ToggleDialogIsPinnedOnServerLogEvent;
+  class ToggleDialogReportSpamStateOnServerLogEvent;
   class UnpinAllDialogMessagesOnServerLogEvent;
   class UpdateDialogNotificationSettingsOnServerLogEvent;
   class UpdateScopeNotificationSettingsOnServerLogEvent;
@@ -2007,11 +2011,16 @@ class MessagesManager final : public Actor {
   void delete_all_channel_messages_from_user_on_server(ChannelId channel_id, UserId user_id, uint64 log_event_id,
                                                        Promise<Unit> &&promise);
 
+  void delete_dialog_messages_by_date_on_server(DialogId dialog_id, int32 min_date, int32 max_date, bool revoke,
+                                                uint64 log_event_id, Promise<Unit> &&promise);
+
   void read_all_dialog_mentions_on_server(DialogId dialog_id, uint64 log_event_id, Promise<Unit> &&promise);
 
   void unpin_all_dialog_messages_on_server(DialogId dialog_id, uint64 log_event_id, Promise<Unit> &&promise);
 
   static MessageId find_message_by_date(const Message *m, int32 date);
+
+  static void find_messages_by_date(const Message *m, int32 min_date, int32 max_date, vector<MessageId> &message_ids);
 
   static void find_messages(const Message *m, vector<MessageId> &message_ids,
                             const std::function<bool(const Message *)> &condition);
@@ -3079,6 +3088,9 @@ class MessagesManager final : public Actor {
                                                                            bool report_spam);
 
   static uint64 save_delete_all_channel_messages_from_user_on_server_log_event(ChannelId channel_id, UserId user_id);
+
+  static uint64 save_delete_dialog_messages_by_date_on_server_log_event(DialogId dialog_id, int32 min_date,
+                                                                        int32 max_date, bool revoke);
 
   static uint64 save_read_all_dialog_mentions_on_server_log_event(DialogId dialog_id);
 

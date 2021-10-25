@@ -3711,6 +3711,14 @@ class CliClient final : public Actor {
       get_args(args, chat_id, remove_from_the_chat_list, revoke);
       send_request(
           td_api::make_object<td_api::deleteChatHistory>(as_chat_id(chat_id), remove_from_the_chat_list, revoke));
+    } else if (op == "dcmbd") {
+      string chat_id;
+      int32 min_date;
+      int32 max_date;
+      bool revoke;
+      get_args(args, chat_id, min_date, max_date, revoke);
+      send_request(
+          td_api::make_object<td_api::deleteChatMessagesByDate>(as_chat_id(chat_id), min_date, max_date, revoke));
     } else if (op == "dmfu") {
       string chat_id;
       string user_id;

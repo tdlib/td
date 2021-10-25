@@ -2715,6 +2715,74 @@ class DeleteChannelHistoryQuery final : public Td::ResultHandler {
   }
 };
 
+class DeleteMessagesByDateQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+  int32 min_date_;
+  int32 max_date_;
+  bool revoke_;
+
+  void send_request() {
+    auto input_peer = td->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    if (input_peer == nullptr) {
+      return promise_.set_error(Status::Error(400, "Chat is not accessible"));
+    }
+
+    int32 flags = telegram_api::messages_deleteHistory::JUST_CLEAR_MASK |
+                  telegram_api::messages_deleteHistory::MIN_DATE_MASK |
+                  telegram_api::messages_deleteHistory::MAX_DATE_MASK;
+    if (revoke_) {
+      flags |= telegram_api::messages_deleteHistory::REVOKE_MASK;
+    }
+
+    send_query(G()->net_query_creator().create(telegram_api::messages_deleteHistory(
+        flags, false /*ignored*/, false /*ignored*/, std::move(input_peer), 0, min_date_, max_date_)));
+  }
+
+ public:
+  explicit DeleteMessagesByDateQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, int32 min_date, int32 max_date, bool revoke) {
+    dialog_id_ = dialog_id;
+    min_date_ = min_date;
+    max_date_ = max_date;
+    revoke_ = revoke;
+
+    send_request();
+  }
+
+  void on_result(uint64 id, BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_deleteHistory>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto affected_history = result_ptr.move_as_ok();
+    CHECK(affected_history->get_id() == telegram_api::messages_affectedHistory::ID);
+
+    if (affected_history->pts_count_ > 0) {
+      affected_history->pts_count_ = 0;  // force receiving real updates from the server
+      auto promise = affected_history->offset_ > 0 ? Promise<Unit>() : std::move(promise_);
+      td->updates_manager_->add_pending_pts_update(make_tl_object<dummyUpdate>(), affected_history->pts_,
+                                                   affected_history->pts_count_, Time::now(), std::move(promise),
+                                                   "DeleteMessagesByDateQuery");
+    } else if (affected_history->offset_ <= 0) {
+      promise_.set_value(Unit());
+    }
+
+    if (affected_history->offset_ > 0) {
+      send_request();
+      return;
+    }
+  }
+
+  void on_error(uint64 id, Status status) final {
+    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "DeleteMessagesByDateQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class DeletePhoneCallHistoryQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   bool revoke_;
@@ -10806,8 +10874,6 @@ void MessagesManager::delete_dialog_messages_from_user(DialogId dialog_id, UserI
   bool is_bot = td_->auth_manager_->is_bot();
   CHECK(!is_bot);
 
-  LOG(INFO) << "Receive deleteChatMessagesFromUser request to delete all messages in " << dialog_id << " from the user "
-            << user_id;
   Dialog *d = get_dialog_force(dialog_id, "delete_dialog_messages_from_user");
   if (d == nullptr) {
     return promise.set_error(Status::Error(400, "Chat not found"));
@@ -10913,6 +10979,126 @@ void MessagesManager::delete_all_channel_messages_from_user_on_server(ChannelId 
 
   td_->create_handler<DeleteUserHistoryQuery>(get_erase_log_event_promise(log_event_id, std::move(promise)))
       ->send(channel_id, user_id);
+}
+
+void MessagesManager::delete_dialog_messages_by_date(DialogId dialog_id, int32 min_date, int32 max_date, bool revoke,
+                                                     Promise<Unit> &&promise) {
+  bool is_bot = td_->auth_manager_->is_bot();
+  CHECK(!is_bot);
+
+  Dialog *d = get_dialog_force(dialog_id, "delete_dialog_messages_by_date");
+  if (d == nullptr) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+
+  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+    return promise.set_error(Status::Error(400, "Can't access the chat"));
+  }
+
+  if (min_date > max_date) {
+    return promise.set_error(Status::Error(400, "Wrong date interval specified"));
+  }
+
+  const int32 telegram_launch_date = 1376438400;
+  if (max_date < telegram_launch_date) {
+    return promise.set_value(Unit());
+  }
+  if (min_date < telegram_launch_date) {
+    min_date = telegram_launch_date;
+  }
+
+  auto current_date = max(G()->unix_time(), 1635000000);
+  if (min_date >= current_date - 30) {
+    return promise.set_value(Unit());
+  }
+  if (max_date >= current_date - 30) {
+    max_date = current_date - 31;
+  }
+  CHECK(min_date <= max_date);
+
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      break;
+    case DialogType::Chat:
+      if (revoke) {
+        return promise.set_error(Status::Error(400, "Bulk message revocation is unsupported in basic group chats"));
+      }
+      break;
+    case DialogType::Channel:
+      return promise.set_error(Status::Error(400, "Bulk message deletion is unsupported in supergroup chats"));
+    case DialogType::SecretChat:
+      return promise.set_error(Status::Error(400, "Bulk message deletion is unsupported in secret chats"));
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+      break;
+  }
+
+  // TODO delete in database by dates
+
+  vector<MessageId> message_ids;
+  find_messages_by_date(d->messages.get(), min_date, max_date, message_ids);
+
+  bool need_update_dialog_pos = false;
+  vector<int64> deleted_message_ids;
+  for (auto message_id : message_ids) {
+    auto m = delete_message(d, message_id, true, &need_update_dialog_pos, DELETE_MESSAGE_USER_REQUEST_SOURCE);
+    CHECK(m != nullptr);
+    deleted_message_ids.push_back(m->message_id.get());
+  }
+
+  if (need_update_dialog_pos) {
+    send_update_chat_last_message(d, "delete_dialog_messages_by_date");
+  }
+  send_update_delete_messages(dialog_id, std::move(deleted_message_ids), true, false);
+
+  delete_dialog_messages_by_date_on_server(dialog_id, min_date, max_date, revoke, 0, std::move(promise));
+}
+
+class MessagesManager::DeleteDialogMessagesByDateOnServerLogEvent {
+ public:
+  DialogId dialog_id_;
+  int32 min_date_;
+  int32 max_date_;
+  bool revoke_;
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    BEGIN_STORE_FLAGS();
+    STORE_FLAG(revoke_);
+    END_STORE_FLAGS();
+    td::store(dialog_id_, storer);
+    td::store(min_date_, storer);
+    td::store(max_date_, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    BEGIN_PARSE_FLAGS();
+    PARSE_FLAG(revoke_);
+    END_PARSE_FLAGS();
+    td::parse(dialog_id_, parser);
+    td::parse(min_date_, parser);
+    td::parse(max_date_, parser);
+  }
+};
+
+uint64 MessagesManager::save_delete_dialog_messages_by_date_on_server_log_event(DialogId dialog_id, int32 min_date,
+                                                                                int32 max_date, bool revoke) {
+  DeleteDialogMessagesByDateOnServerLogEvent log_event{dialog_id, min_date, max_date, revoke};
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::DeleteDialogMessagesByDateOnServer,
+                    get_log_event_storer(log_event));
+}
+
+void MessagesManager::delete_dialog_messages_by_date_on_server(DialogId dialog_id, int32 min_date, int32 max_date,
+                                                               bool revoke, uint64 log_event_id,
+                                                               Promise<Unit> &&promise) {
+  if (log_event_id == 0 && G()->parameters().use_chat_info_db) {
+    log_event_id = save_delete_dialog_messages_by_date_on_server_log_event(dialog_id, min_date, max_date, revoke);
+  }
+
+  td_->create_handler<DeleteMessagesByDateQuery>(get_erase_log_event_promise(log_event_id, std::move(promise)))
+      ->send(dialog_id, min_date, max_date, revoke);
 }
 
 int32 MessagesManager::get_unload_dialog_delay() const {
@@ -20153,7 +20339,7 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
         }
         break;
       case DialogType::Chat:
-        // chats can't be deleted only for self with deleteChatHistory
+        // chats can be deleted only for self with deleteChatHistory
         can_delete_for_self = true;
         break;
       case DialogType::Channel:
@@ -22152,6 +22338,23 @@ MessageId MessagesManager::find_message_by_date(const Message *m, int32 date) {
   }
 
   return m->message_id;
+}
+
+void MessagesManager::find_messages_by_date(const Message *m, int32 min_date, int32 max_date,
+                                            vector<MessageId> &message_ids) {
+  if (m == nullptr) {
+    return;
+  }
+
+  if (m->date >= min_date) {
+    find_messages_by_date(m->left.get(), min_date, max_date, message_ids);
+    if (m->date <= max_date) {
+      message_ids.push_back(m->message_id);
+    }
+  }
+  if (m->date <= max_date) {
+    find_messages_by_date(m->right.get(), min_date, max_date, message_ids);
+  }
 }
 
 void MessagesManager::on_get_dialog_message_by_date_from_database(DialogId dialog_id, int32 date, int64 random_id,
@@ -37413,6 +37616,26 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         }
 
         delete_all_channel_messages_from_user_on_server(channel_id, user_id, event.id_, Auto());
+        break;
+      }
+      case LogEvent::HandlerType::DeleteDialogMessagesByDateOnServer: {
+        if (!G()->parameters().use_message_db) {
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+
+        DeleteDialogMessagesByDateOnServerLogEvent log_event;
+        log_event_parse(log_event, event.data_).ensure();
+
+        auto dialog_id = log_event.dialog_id_;
+        Dialog *d = get_dialog_force(dialog_id, "DeleteDialogMessagesByDateOnServerLogEvent");
+        if (d == nullptr || !have_input_peer(dialog_id, AccessRights::Read)) {
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+
+        delete_dialog_messages_by_date_on_server(dialog_id, log_event.min_date_, log_event.max_date_, log_event.revoke_,
+                                                 event.id_, Auto());
         break;
       }
       case LogEvent::HandlerType::ReadHistoryOnServer: {
