@@ -27,11 +27,6 @@
 
 namespace td {
 
-/*** ServiceActor ***/
-inline void Scheduler::ServiceActor::set_queue(std::shared_ptr<MpscPollableQueue<EventFull>> queues) {
-  inbound_ = std::move(queues);
-}
-
 /*** EventGuard ***/
 class EventGuard {
  public:

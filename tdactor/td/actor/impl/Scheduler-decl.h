@@ -149,11 +149,12 @@ class Scheduler {
   class ServiceActor final : public Actor {
    public:
     void set_queue(std::shared_ptr<MpscPollableQueue<EventFull>> queues);
-    void start_up() final;
 
    private:
     std::shared_ptr<MpscPollableQueue<EventFull>> inbound_;
     bool subscribed_{false};
+
+    void start_up() final;
     void loop() final;
     void tear_down() final;
   };

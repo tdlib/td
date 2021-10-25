@@ -54,6 +54,10 @@ void Scheduler::set_scheduler(Scheduler *scheduler) {
   scheduler_ = scheduler;
 }
 
+void Scheduler::ServiceActor::set_queue(std::shared_ptr<MpscPollableQueue<EventFull>> queues) {
+  inbound_ = std::move(queues);
+}
+
 void Scheduler::ServiceActor::start_up() {
 #if TD_THREAD_UNSUPPORTED || TD_EVENTFD_UNSUPPORTED
   CHECK(!inbound_);
