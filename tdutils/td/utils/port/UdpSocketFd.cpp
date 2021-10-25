@@ -35,7 +35,7 @@
 #if TD_LINUX
 #include <linux/errqueue.h>
 #endif
-#endif  // TD_PORT_POSIX
+#endif
 
 #include <array>
 #include <atomic>

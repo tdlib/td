@@ -140,4 +140,4 @@ TEST(MpmcEagerWaiter, stress_multi) {
 TEST(MpmcSleepyWaiter, stress_multi) {
   test_waiter_stress<td::MpmcSleepyWaiter>();
 }
-#endif  // !TD_THREAD_UNSUPPORTED
+#endif

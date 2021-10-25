@@ -65,4 +65,4 @@ TEST(EpochBaseMemoryReclamation, stress) {
   }
   CHECK(ebmr.to_delete_size_unsafe() == 0);
 }
-#endif  //!TD_THREAD_UNSUPPORTED
+#endif

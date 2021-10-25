@@ -83,7 +83,7 @@ TEST(OneValue, stress) {
     thread.join();
   }
 }
-#endif  //!TD_THREAD_UNSUPPORTED
+#endif
 
 TEST(MpmcQueueBlock, simple) {
   // Test doesn't work now and it is ok, try_pop, logic changed
@@ -204,4 +204,4 @@ TEST(MpmcQueue, multi_thread) {
   }
   LOG_CHECK(q.hazard_pointers_to_delele_size_unsafe() == 0) << q.hazard_pointers_to_delele_size_unsafe();
 }
-#endif  //!TD_THREAD_UNSUPPORTED
+#endif
