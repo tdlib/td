@@ -156,6 +156,7 @@ TEST(Misc, TsList) {
   }
 }
 
+#if !TD_THREAD_UNSUPPORTED
 TEST(Misc, TsListConcurrent) {
   td::TsList<ListData> root;
   td::vector<td::thread> threads;
@@ -165,3 +166,4 @@ TEST(Misc, TsListConcurrent) {
         [&] { do_run_list_test<td::TsListNode<ListData>, td::TsList<ListData>, td::TsListNode<ListData>>(root, id); });
   }
 }
+#endif
