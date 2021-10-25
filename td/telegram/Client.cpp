@@ -129,7 +129,7 @@ class ClientManager::Impl final {
     }
 
     auto response = receiver_.receive(0);
-    if (response.client_id == 0 && concurrent_scheduler_ != nullptr) {
+    if (response.client_id == 0 && response.request_id == 0 && concurrent_scheduler_ != nullptr) {
       concurrent_scheduler_->run_main(0);
       response = receiver_.receive(0);
     } else {
@@ -188,7 +188,9 @@ class ClientManager::Impl final {
     while (!tds_.empty() && !ExitGuard::is_exited()) {
       receive(0.1);
     }
-    concurrent_scheduler_->finish();
+    if (concurrent_scheduler_ != nullptr) {
+      concurrent_scheduler_->finish();
+    }
   }
 
  private:

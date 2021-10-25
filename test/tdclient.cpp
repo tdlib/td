@@ -936,7 +936,11 @@ TEST(Client, Multi) {
 TEST(Client, Manager) {
   td::vector<td::thread> threads;
   td::ClientManager client;
+#if !TD_EVENTFD_UNSUPPORTED // Client must be used from a single thread if there is no EventFd
   int threads_n = 4;
+#else
+  int threads_n = 1;
+#endif
   int clients_n = 1000;
   client.send(0, 3, td::make_tl_object<td::td_api::testSquareInt>(3));
   client.send(-1, 3, td::make_tl_object<td::td_api::testSquareInt>(3));
@@ -969,6 +973,7 @@ TEST(Client, Manager) {
   }
 }
 
+#if !TD_EVENTFD_UNSUPPORTED // Client must be used from a single thread if there is no EventFd
 TEST(Client, Close) {
   std::atomic<bool> stop_send{false};
   std::atomic<bool> can_stop_receive{false};
@@ -1092,6 +1097,7 @@ TEST(Client, ManagerClose) {
   ASSERT_EQ(send_count.load(), receive_count.load());
   ASSERT_TRUE(request_ids.empty());
 }
+#endif
 #endif
 
 TEST(Client, ManagerCloseOneThread) {
