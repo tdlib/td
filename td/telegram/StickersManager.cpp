@@ -1433,6 +1433,11 @@ void StickersManager::on_load_special_sticker_set(const SpecialStickerSetType &t
       schedule_update_animated_emoji_clicked(sticker_set, pending_request.emoji_, pending_request.full_message_id_,
                                              std::move(pending_request.clicks_));
     }
+    auto promises = std::move(pending_get_animated_emoji_queries_);
+    reset_to_empty(pending_get_animated_emoji_queries_);
+    for (auto &promise : promises) {
+      promise.set_value(Unit());
+    }
     return;
   }
 
@@ -4275,6 +4280,34 @@ void StickersManager::unregister_emoji(const string &emoji, FullMessageId full_m
   if (full_message_ids.empty()) {
     emoji_messages_.erase(it);
   }
+}
+
+void StickersManager::get_animated_emoji(string emoji, bool is_recursive,
+                                         Promise<td_api::object_ptr<td_api::animatedEmoji>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
+  auto &special_sticker_set = add_special_sticker_set(SpecialStickerSetType::animated_emoji());
+  auto sticker_set = get_sticker_set(special_sticker_set.id_);
+  if (sticker_set == nullptr || !sticker_set->was_loaded) {
+    if (is_recursive) {
+      return promise.set_value(nullptr);
+    }
+
+    pending_get_animated_emoji_queries_.push_back(
+        PromiseCreator::lambda([actor_id = actor_id(this), emoji = std::move(emoji),
+                                promise = std::move(promise)](Result<Unit> &&result) mutable {
+          if (result.is_error()) {
+            promise.set_error(result.move_as_error());
+          } else {
+            send_closure(actor_id, &StickersManager::get_animated_emoji, std::move(emoji), true, std::move(promise));
+          }
+        }));
+    load_special_sticker_set(special_sticker_set);
+    return;
+  }
+
+  promise.set_value(get_animated_emoji_object(get_animated_emoji_sticker(sticker_set, emoji),
+                                              get_animated_emoji_sound_file_id(emoji)));
 }
 
 void StickersManager::get_animated_emoji_click_sticker(const string &message_text, FullMessageId full_message_id,

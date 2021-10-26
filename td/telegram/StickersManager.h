@@ -76,6 +76,9 @@ class StickersManager final : public Actor {
 
   void unregister_emoji(const string &emoji, FullMessageId full_message_id, const char *source);
 
+  void get_animated_emoji(string emoji, bool is_recursive,
+                          Promise<td_api::object_ptr<td_api::animatedEmoji>> &&promise);
+
   void get_animated_emoji_click_sticker(const string &message_text, FullMessageId full_message_id,
                                         Promise<td_api::object_ptr<td_api::sticker>> &&promise);
 
@@ -621,7 +624,7 @@ class StickersManager final : public Actor {
   FileId get_animated_emoji_sound_file_id(const string &emoji) const;
 
   td_api::object_ptr<td_api::animatedEmoji> get_animated_emoji_object(std::pair<FileId, int> animated_sticker,
-                                                                             FileId sound_file_id) const;
+                                                                      FileId sound_file_id) const;
 
   void try_update_animated_emoji_messages();
 
@@ -797,6 +800,8 @@ class StickersManager final : public Actor {
   std::unordered_map<int64, unique_ptr<PendingAddStickerToSet>> pending_add_sticker_to_sets_;
 
   std::unordered_map<int64, unique_ptr<PendingSetStickerSetThumbnail>> pending_set_sticker_set_thumbnails_;
+
+  vector<Promise<Unit>> pending_get_animated_emoji_queries_;
 
   double next_click_animated_emoji_message_time_ = 0;
   double next_update_animated_emoji_clicked_time_ = 0;
