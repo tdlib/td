@@ -2012,21 +2012,17 @@ vector<td_api::object_ptr<td_api::colorReplacement>> StickersManager::get_color_
   return result;
 }
 
-td_api::object_ptr<td_api::MessageContent> StickersManager::get_message_content_animated_emoji_object(
-    const string &emoji) {
+td_api::object_ptr<td_api::animatedEmoji> StickersManager::get_animated_emoji_object(const string &emoji) {
   auto it = emoji_messages_.find(emoji);
   auto animated_sticker =
       it != emoji_messages_.end() ? it->second.animated_emoji_sticker : get_animated_emoji_sticker(emoji);
-  if (animated_sticker.first.is_valid()) {
-    auto sound_file_id =
-        it != emoji_messages_.end() ? it->second.sound_file_id : get_animated_emoji_sound_file_id(emoji);
-    return td_api::make_object<td_api::messageAnimatedEmoji>(
-        emoji, get_sticker_object(animated_sticker.first, true), get_color_replacements_object(animated_sticker.second),
-        sound_file_id.is_valid() ? td_->file_manager_->get_file_object(sound_file_id) : nullptr);
+  if (!animated_sticker.first.is_valid()) {
+    return nullptr;
   }
-  return td_api::make_object<td_api::messageText>(
-      td_api::make_object<td_api::formattedText>(emoji, std::vector<td_api::object_ptr<td_api::textEntity>>()),
-      nullptr);
+  auto sound_file_id = it != emoji_messages_.end() ? it->second.sound_file_id : get_animated_emoji_sound_file_id(emoji);
+  return td_api::make_object<td_api::animatedEmoji>(
+      get_sticker_object(animated_sticker.first, true), get_color_replacements_object(animated_sticker.second),
+      sound_file_id.is_valid() ? td_->file_manager_->get_file_object(sound_file_id) : nullptr);
 }
 
 tl_object_ptr<telegram_api::InputStickerSet> StickersManager::get_input_sticker_set(StickerSetId sticker_set_id) const {

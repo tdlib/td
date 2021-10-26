@@ -4830,7 +4830,10 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     case MessageContentType::Text: {
       const auto *m = static_cast<const MessageText *>(content);
       if (can_be_animated_emoji(m->text) && !m->web_page_id.is_valid()) {
-        return td->stickers_manager_->get_message_content_animated_emoji_object(m->text.text);
+        auto animated_emoji = td->stickers_manager_->get_animated_emoji_object(m->text.text);
+        if (animated_emoji != nullptr) {
+          return td_api::make_object<td_api::messageAnimatedEmoji>(std::move(animated_emoji), m->text.text);
+        }
       }
       return make_tl_object<td_api::messageText>(
           get_formatted_text_object(m->text, skip_bot_commands, max_media_timestamp),

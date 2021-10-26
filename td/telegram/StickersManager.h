@@ -64,7 +64,7 @@ class StickersManager final : public Actor {
                                                              const vector<StickerSetId> &sticker_set_ids,
                                                              size_t covers_limit) const;
 
-  td_api::object_ptr<td_api::MessageContent> get_message_content_animated_emoji_object(const string &emoji);
+  td_api::object_ptr<td_api::animatedEmoji> get_animated_emoji_object(const string &emoji);
 
   tl_object_ptr<telegram_api::InputStickerSet> get_input_sticker_set(StickerSetId sticker_set_id) const;
 
