@@ -3213,8 +3213,8 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTheme> update, 
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePendingJoinRequests> update, Promise<Unit> &&promise) {
-  td_->messages_manager_->on_update_dialog_pending_join_request_count(DialogId(update->peer_),
-                                                                      update->requests_pending_);
+  td_->messages_manager_->on_update_dialog_pending_join_requests(DialogId(update->peer_), update->requests_pending_,
+                                                                 std::move(update->recent_requesters_));
   promise.set_value(Unit());
 }
 

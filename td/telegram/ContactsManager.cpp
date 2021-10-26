@@ -9976,7 +9976,7 @@ void ContactsManager::update_chat(Chat *c, ChatId chat_id, bool from_binlog, boo
   }
   if (c->is_status_changed) {
     if (!c->status.can_manage_invite_links()) {
-      td_->messages_manager_->drop_dialog_pending_join_request_count(DialogId(chat_id));
+      td_->messages_manager_->drop_dialog_pending_join_requests(DialogId(chat_id));
     }
     c->is_status_changed = false;
   }
@@ -10042,7 +10042,7 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
       remove_inactive_channel(channel_id);
     }
     if (!c->status.can_manage_invite_links()) {
-      td_->messages_manager_->drop_dialog_pending_join_request_count(DialogId(channel_id));
+      td_->messages_manager_->drop_dialog_pending_join_requests(DialogId(channel_id));
     }
     c->is_status_changed = false;
   }
@@ -10652,7 +10652,8 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
 
     td_->messages_manager_->on_update_dialog_theme_name(DialogId(chat_id), std::move(chat->theme_emoticon_));
 
-    td_->messages_manager_->on_update_dialog_pending_join_request_count(DialogId(chat_id), chat->requests_pending_);
+    td_->messages_manager_->on_update_dialog_pending_join_requests(DialogId(chat_id), chat->requests_pending_,
+                                                                   std::move(chat->recent_requesters_));
 
     auto bot_commands = get_bot_commands(std::move(chat->bot_info_), &chat_full->participants);
     if (chat_full->bot_commands != bot_commands) {
@@ -10697,8 +10698,8 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
 
     td_->messages_manager_->on_update_dialog_theme_name(DialogId(channel_id), std::move(channel->theme_emoticon_));
 
-    td_->messages_manager_->on_update_dialog_pending_join_request_count(DialogId(channel_id),
-                                                                        channel->requests_pending_);
+    td_->messages_manager_->on_update_dialog_pending_join_requests(DialogId(channel_id), channel->requests_pending_,
+                                                                   std::move(channel->recent_requesters_));
 
     {
       MessageTtlSetting message_ttl_setting;

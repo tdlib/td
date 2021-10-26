@@ -293,7 +293,8 @@ class MessagesManager final : public Actor {
 
   void on_update_dialog_theme_name(DialogId dialog_id, string theme_name);
 
-  void on_update_dialog_pending_join_request_count(DialogId dialog_id, int32 pending_join_request_count);
+  void on_update_dialog_pending_join_requests(DialogId dialog_id, int32 pending_join_request_count,
+                                              vector<int64> pending_requesters);
 
   void on_update_dialog_has_scheduled_server_messages(DialogId dialog_id, bool has_scheduled_server_messages);
 
@@ -791,7 +792,7 @@ class MessagesManager final : public Actor {
   void on_dialog_linked_channel_updated(DialogId dialog_id, ChannelId old_linked_channel_id,
                                         ChannelId new_linked_channel_id) const;
 
-  void drop_dialog_pending_join_request_count(DialogId dialog_id);
+  void drop_dialog_pending_join_requests(DialogId dialog_id);
 
   void on_resolved_username(const string &username, DialogId dialog_id);
   void drop_username(const string &username);
@@ -1195,6 +1196,7 @@ class MessagesManager final : public Actor {
     DialogId default_join_group_call_as_dialog_id;
     string theme_name;
     int32 pending_join_request_count = 0;
+    vector<UserId> pending_join_request_user_ids;
 
     FolderId folder_id;
     vector<DialogListId> dialog_list_ids;  // TODO replace with mask
@@ -2360,7 +2362,7 @@ class MessagesManager final : public Actor {
 
   void send_update_chat_theme(const Dialog *d);
 
-  void send_update_chat_pending_join_request_count(const Dialog *d);
+  void send_update_chat_pending_join_requests(const Dialog *d);
 
   void send_update_chat_video_chat(const Dialog *d);
 
@@ -2461,9 +2463,11 @@ class MessagesManager final : public Actor {
 
   void set_dialog_theme_name(Dialog *d, string theme_name);
 
-  void fix_pending_join_request_count(DialogId dialog_id, int32 &pending_join_request_count) const;
+  void fix_pending_join_requests(DialogId dialog_id, int32 &pending_join_request_count,
+                                 vector<UserId> &pending_join_request_user_ids) const;
 
-  void set_dialog_pending_join_request_count(Dialog *d, int32 pending_join_request_count);
+  void set_dialog_pending_join_requests(Dialog *d, int32 pending_join_request_count,
+                                        vector<UserId> pending_join_request_user_ids);
 
   void repair_dialog_scheduled_messages(Dialog *d);
 
@@ -2556,6 +2560,8 @@ class MessagesManager final : public Actor {
                                                                        bool hide_unarchive = false) const;
 
   string get_dialog_theme_name(const Dialog *d) const;
+
+  td_api::object_ptr<td_api::chatJoinRequestsInfo> get_chat_join_requests_info_object(const Dialog *d) const;
 
   td_api::object_ptr<td_api::videoChat> get_video_chat_object(const Dialog *d) const;
 

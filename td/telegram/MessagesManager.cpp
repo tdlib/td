@@ -5359,7 +5359,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   bool store_has_bots = dialog_type == DialogType::Chat || dialog_type == DialogType::Channel;
   bool has_theme_name = !theme_name.empty();
   bool has_flags3 = true;
-  bool has_pending_join_request_count = pending_join_request_count != 0;
+  bool has_pending_join_requests = pending_join_request_count != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_draft_message);
   STORE_FLAG(has_last_database_message);
@@ -5431,7 +5431,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   }
   if (has_flags3) {
     BEGIN_STORE_FLAGS();
-    STORE_FLAG(has_pending_join_request_count);
+    STORE_FLAG(has_pending_join_requests);
     END_STORE_FLAGS();
   }
 
@@ -5528,8 +5528,9 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   if (has_theme_name) {
     store(theme_name, storer);
   }
-  if (has_pending_join_request_count) {
+  if (has_pending_join_requests) {
     store(pending_join_request_count, storer);
+    store(pending_join_request_user_ids, storer);
   }
 }
 
@@ -5565,7 +5566,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   bool has_default_join_group_call_as_dialog_id = false;
   bool has_theme_name = false;
   bool has_flags3 = false;
-  bool has_pending_join_request_count = false;
+  bool has_pending_join_requests = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_draft_message);
   PARSE_FLAG(has_last_database_message);
@@ -5659,7 +5660,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   }
   if (has_flags3) {
     BEGIN_PARSE_FLAGS();
-    PARSE_FLAG(has_pending_join_request_count);
+    PARSE_FLAG(has_pending_join_requests);
     END_PARSE_FLAGS();
   }
 
@@ -5789,8 +5790,9 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   if (has_theme_name) {
     parse(theme_name, parser);
   }
-  if (has_pending_join_request_count) {
+  if (has_pending_join_requests) {
     parse(pending_join_request_count, parser);
+    parse(pending_join_request_user_ids, parser);
   }
 }
 
@@ -20300,6 +20302,16 @@ string MessagesManager::get_dialog_theme_name(const Dialog *d) const {
   return d->theme_name;
 }
 
+td_api::object_ptr<td_api::chatJoinRequestsInfo> MessagesManager::get_chat_join_requests_info_object(
+    const Dialog *d) const {
+  if (d->pending_join_request_count == 0) {
+    return nullptr;
+  }
+  return td_api::make_object<td_api::chatJoinRequestsInfo>(
+      d->pending_join_request_count, td_->contacts_manager_->get_user_ids_object(d->pending_join_request_user_ids,
+                                                                                 "get_chat_join_requests_info_object"));
+}
+
 td_api::object_ptr<td_api::videoChat> MessagesManager::get_video_chat_object(const Dialog *d) const {
   auto active_group_call_id = td_->group_call_manager_->get_group_call_id(d->active_group_call_id, d->dialog_id);
   auto default_participant_alias =
@@ -20381,7 +20393,7 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
       d->last_read_inbox_message_id.get(), d->last_read_outbox_message_id.get(), d->unread_mention_count,
       get_chat_notification_settings_object(&d->notification_settings),
       d->message_ttl_setting.get_message_ttl_setting_object(), get_dialog_theme_name(d), get_chat_action_bar_object(d),
-      get_video_chat_object(d), d->pending_join_request_count, d->reply_markup_message_id.get(),
+      get_video_chat_object(d), get_chat_join_requests_info_object(d), d->reply_markup_message_id.get(),
       std::move(draft_message), d->client_data);
 }
 
@@ -29147,18 +29159,17 @@ void MessagesManager::send_update_chat_theme(const Dialog *d) {
   send_update_secret_chats_with_user_theme(d);
 }
 
-void MessagesManager::send_update_chat_pending_join_request_count(const Dialog *d) {
+void MessagesManager::send_update_chat_pending_join_requests(const Dialog *d) {
   if (td_->auth_manager_->is_bot()) {
     return;
   }
 
   CHECK(d != nullptr);
-  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id
-                                        << " in send_update_chat_pending_join_request_count";
-  on_dialog_updated(d->dialog_id, "send_update_chat_pending_join_request_count");
+  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_pending_join_requests";
+  on_dialog_updated(d->dialog_id, "send_update_chat_pending_join_requests");
   send_closure(G()->td(), &Td::send_update,
-               td_api::make_object<td_api::updateChatPendingJoinRequestCount>(d->dialog_id.get(),
-                                                                              d->pending_join_request_count));
+               td_api::make_object<td_api::updateChatPendingJoinRequests>(d->dialog_id.get(),
+                                                                          get_chat_join_requests_info_object(d)));
 }
 
 void MessagesManager::send_update_chat_video_chat(const Dialog *d) {
@@ -30184,16 +30195,16 @@ void MessagesManager::set_dialog_theme_name(Dialog *d, string theme_name) {
   }
 }
 
-void MessagesManager::drop_dialog_pending_join_request_count(DialogId dialog_id) {
+void MessagesManager::drop_dialog_pending_join_requests(DialogId dialog_id) {
   CHECK(dialog_id.is_valid());
   auto d = get_dialog(dialog_id);  // called from update_chat/channel, must not create the dialog
   if (d != nullptr && d->is_update_new_chat_sent) {
-    set_dialog_pending_join_request_count(d, 0);
+    set_dialog_pending_join_requests(d, 0, {});
   }
 }
 
-void MessagesManager::on_update_dialog_pending_join_request_count(DialogId dialog_id,
-                                                                  int32 pending_join_request_count) {
+void MessagesManager::on_update_dialog_pending_join_requests(DialogId dialog_id, int32 pending_join_request_count,
+                                                             vector<int64> pending_requesters) {
   if (!dialog_id.is_valid()) {
     LOG(ERROR) << "Receive pending join request count in invalid " << dialog_id;
     return;
@@ -30205,46 +30216,64 @@ void MessagesManager::on_update_dialog_pending_join_request_count(DialogId dialo
     return;
   }
 
-  set_dialog_pending_join_request_count(d, pending_join_request_count);
+  auto pending_join_request_user_ids = UserId::get_user_ids(pending_requesters);
+  td::remove_if(pending_join_request_user_ids, [](UserId user_id) { return !user_id.is_valid(); });
+  set_dialog_pending_join_requests(d, pending_join_request_count, std::move(pending_join_request_user_ids));
 }
 
-void MessagesManager::fix_pending_join_request_count(DialogId dialog_id, int32 &pending_join_request_count) const {
-  switch (dialog_id.get_type()) {
-    case DialogType::User:
-    case DialogType::SecretChat:
-      pending_join_request_count = 0;
-      return;
-    case DialogType::Chat: {
-      auto chat_id = dialog_id.get_chat_id();
-      auto status = td_->contacts_manager_->get_chat_status(chat_id);
-      if (!status.can_manage_invite_links()) {
-        pending_join_request_count = 0;
-      }
-      return;
+void MessagesManager::fix_pending_join_requests(DialogId dialog_id, int32 &pending_join_request_count,
+                                                vector<UserId> &pending_join_request_user_ids) const {
+  bool need_drop_pending_join_requests = [&] {
+    if (pending_join_request_count < 0) {
+      return true;
     }
-    case DialogType::Channel: {
-      auto channel_id = dialog_id.get_channel_id();
-      auto status = td_->contacts_manager_->get_channel_permissions(channel_id);
-      if (!status.can_manage_invite_links()) {
-        pending_join_request_count = 0;
+    switch (dialog_id.get_type()) {
+      case DialogType::User:
+      case DialogType::SecretChat:
+        return true;
+      case DialogType::Chat: {
+        auto chat_id = dialog_id.get_chat_id();
+        auto status = td_->contacts_manager_->get_chat_status(chat_id);
+        if (!status.can_manage_invite_links()) {
+          return true;
+        }
+        break;
       }
-      return;
+      case DialogType::Channel: {
+        auto channel_id = dialog_id.get_channel_id();
+        auto status = td_->contacts_manager_->get_channel_permissions(channel_id);
+        if (!status.can_manage_invite_links()) {
+          return true;
+        }
+        break;
+      }
+      case DialogType::None:
+      default:
+        UNREACHABLE();
     }
-    case DialogType::None:
-    default:
-      UNREACHABLE();
+    return false;
+  }();
+  if (need_drop_pending_join_requests) {
+    pending_join_request_count = 0;
+    pending_join_request_user_ids.clear();
+  } else if (static_cast<size_t>(pending_join_request_count) < pending_join_request_user_ids.size()) {
+    LOG(ERROR) << "Fix pending join request count from " << pending_join_request_count << " to "
+               << pending_join_request_user_ids.size();
+    pending_join_request_count = narrow_cast<int32>(pending_join_request_user_ids.size());
   }
 }
 
-void MessagesManager::set_dialog_pending_join_request_count(Dialog *d, int32 pending_join_request_count) {
+void MessagesManager::set_dialog_pending_join_requests(Dialog *d, int32 pending_join_request_count,
+                                                       vector<UserId> pending_join_request_user_ids) {
   CHECK(d != nullptr);
-  fix_pending_join_request_count(d->dialog_id, pending_join_request_count);
-  bool is_changed = d->pending_join_request_count != pending_join_request_count;
-  if (!is_changed) {
+  fix_pending_join_requests(d->dialog_id, pending_join_request_count, pending_join_request_user_ids);
+  if (d->pending_join_request_count == pending_join_request_count &&
+      d->pending_join_request_user_ids == pending_join_request_user_ids) {
     return;
   }
   d->pending_join_request_count = pending_join_request_count;
-  send_update_chat_pending_join_request_count(d);
+  d->pending_join_request_user_ids = std::move(pending_join_request_user_ids);
+  send_update_chat_pending_join_requests(d);
 }
 
 void MessagesManager::repair_dialog_scheduled_messages(Dialog *d) {
@@ -34789,7 +34818,7 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
       on_dialog_updated(dialog_id, "pending update_dialog_group_call");
     }
   }
-  fix_pending_join_request_count(dialog_id, d->pending_join_request_count);
+  fix_pending_join_requests(dialog_id, d->pending_join_request_count, d->pending_join_request_user_ids);
 
   if (!is_loaded_from_database) {
     CHECK(order == DEFAULT_ORDER);
@@ -35851,6 +35880,9 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
   }
   if (d->draft_message != nullptr) {
     add_formatted_text_dependencies(dependencies, &d->draft_message->input_message_text.text);
+  }
+  for (auto user_id : d->pending_join_request_user_ids) {
+    dependencies.user_ids.insert(user_id);
   }
   if (!resolve_dependencies_force(td_, dependencies, source)) {
     send_get_dialog_query(dialog_id, Auto(), 0, source);
