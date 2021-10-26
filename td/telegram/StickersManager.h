@@ -620,6 +620,9 @@ class StickersManager final : public Actor {
 
   FileId get_animated_emoji_sound_file_id(const string &emoji) const;
 
+  td_api::object_ptr<td_api::animatedEmoji> get_animated_emoji_object(std::pair<FileId, int> animated_sticker,
+                                                                             FileId sound_file_id) const;
+
   void try_update_animated_emoji_messages();
 
   static int get_emoji_number(Slice emoji);

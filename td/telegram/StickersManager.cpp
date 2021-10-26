@@ -2014,12 +2014,18 @@ vector<td_api::object_ptr<td_api::colorReplacement>> StickersManager::get_color_
 
 td_api::object_ptr<td_api::animatedEmoji> StickersManager::get_animated_emoji_object(const string &emoji) {
   auto it = emoji_messages_.find(emoji);
-  auto animated_sticker =
-      it != emoji_messages_.end() ? it->second.animated_emoji_sticker : get_animated_emoji_sticker(emoji);
+  if (it == emoji_messages_.end()) {
+    return get_animated_emoji_object(get_animated_emoji_sticker(emoji), get_animated_emoji_sound_file_id(emoji));
+  } else {
+    return get_animated_emoji_object(it->second.animated_emoji_sticker, it->second.sound_file_id);
+  }
+}
+
+td_api::object_ptr<td_api::animatedEmoji> StickersManager::get_animated_emoji_object(
+    std::pair<FileId, int> animated_sticker, FileId sound_file_id) const {
   if (!animated_sticker.first.is_valid()) {
     return nullptr;
   }
-  auto sound_file_id = it != emoji_messages_.end() ? it->second.sound_file_id : get_animated_emoji_sound_file_id(emoji);
   return td_api::make_object<td_api::animatedEmoji>(
       get_sticker_object(animated_sticker.first, true), get_color_replacements_object(animated_sticker.second),
       sound_file_id.is_valid() ? td_->file_manager_->get_file_object(sound_file_id) : nullptr);
