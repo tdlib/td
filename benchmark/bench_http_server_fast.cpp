@@ -93,7 +93,7 @@ class Server final : public TcpListener::Callback {
   void accept(SocketFd fd) final {
     pos_++;
     auto scheduler_id = pos_ % (N != 0 ? N : 1) + (N != 0);
-    create_actor_on_scheduler<HttpEchoConnection>("HttpInboundConnection", scheduler_id, std::move(fd)).release();
+    create_actor_on_scheduler<HttpEchoConnection>("HttpEchoConnection", scheduler_id, std::move(fd)).release();
   }
   void hangup() final {
     LOG(ERROR) << "Hanging up..";

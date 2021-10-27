@@ -16,7 +16,7 @@
 namespace td {
 namespace detail {
 
-HttpConnectionBase::HttpConnectionBase(State state, SocketFd fd, SslStream ssl_stream, size_t max_post_size,
+HttpConnectionBase::HttpConnectionBase(State state, BufferedFd<SocketFd> fd, SslStream ssl_stream, size_t max_post_size,
                                        size_t max_files, int32 idle_timeout, int32 slow_scheduler_id)
     : state_(state)
     , fd_(std::move(fd))

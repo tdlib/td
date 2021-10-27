@@ -5,7 +5,6 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/net/HttpHeaderCreator.h"
-#include "td/net/HttpInboundConnection.h"
 #include "td/net/TcpListener.h"
 
 #include "td/actor/actor.h"
@@ -22,7 +21,6 @@
 
 namespace td {
 
-// HttpInboundConnection header
 static int cnt = 0;
 class HelloWorld final : public Actor {
  public:
@@ -107,7 +105,7 @@ class Server final : public TcpListener::Callback {
     LOG(ERROR) << "ACCEPT " << cnt++;
     pos_++;
     auto scheduler_id = pos_ % (N != 0 ? N : 1) + (N != 0);
-    create_actor_on_scheduler<HelloWorld>("HttpInboundConnection", scheduler_id, std::move(fd)).release();
+    create_actor_on_scheduler<HelloWorld>("HelloWorld", scheduler_id, std::move(fd)).release();
   }
   void hangup() final {
     // may be it should be default?..
