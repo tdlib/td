@@ -1645,13 +1645,13 @@ class MessagesManager final : public Actor {
   };
 
   class BlockMessageSenderFromRepliesOnServerLogEvent;
-  class DeleteAllCallMessagesFromServerLogEvent;
+  class DeleteAllCallMessagesOnServerLogEvent;
   class DeleteAllChannelMessagesFromUserOnServerLogEvent;
-  class DeleteDialogHistoryFromServerLogEvent;
+  class DeleteDialogHistoryOnServerLogEvent;
   class DeleteDialogMessagesByDateOnServerLogEvent;
   class DeleteMessageLogEvent;
-  class DeleteMessagesFromServerLogEvent;
-  class DeleteScheduledMessagesFromServerLogEvent;
+  class DeleteMessagesOnServerLogEvent;
+  class DeleteScheduledMessagesOnServerLogEvent;
   class ForwardMessagesLogEvent;
   class GetChannelDifferenceLogEvent;
   class ReadAllDialogMentionsOnServerLogEvent;
@@ -1993,18 +1993,18 @@ class MessagesManager final : public Actor {
   void do_delete_all_dialog_messages(Dialog *d, unique_ptr<Message> &message, bool is_permanently_deleted,
                                      vector<int64> &deleted_message_ids);
 
-  void delete_sent_message_from_server(DialogId dialog_id, MessageId message_id);
+  void delete_sent_message_on_server(DialogId dialog_id, MessageId message_id);
 
-  void delete_messages_from_server(DialogId dialog_id, vector<MessageId> message_ids, bool revoke, uint64 log_event_id,
-                                   Promise<Unit> &&promise);
+  void delete_messages_on_server(DialogId dialog_id, vector<MessageId> message_ids, bool revoke, uint64 log_event_id,
+                                 Promise<Unit> &&promise);
 
-  void delete_scheduled_messages_from_server(DialogId dialog_id, vector<MessageId> message_ids, uint64 log_event_id,
-                                             Promise<Unit> &&promise);
+  void delete_scheduled_messages_on_server(DialogId dialog_id, vector<MessageId> message_ids, uint64 log_event_id,
+                                           Promise<Unit> &&promise);
 
-  void delete_dialog_history_from_server(DialogId dialog_id, MessageId max_message_id, bool remove_from_dialog_list,
-                                         bool revoke, bool allow_error, uint64 log_event_id, Promise<Unit> &&promise);
+  void delete_dialog_history_on_server(DialogId dialog_id, MessageId max_message_id, bool remove_from_dialog_list,
+                                       bool revoke, bool allow_error, uint64 log_event_id, Promise<Unit> &&promise);
 
-  void delete_all_call_messages_from_server(bool revoke, uint64 log_event_id, Promise<Unit> &&promise);
+  void delete_all_call_messages_on_server(bool revoke, uint64 log_event_id, Promise<Unit> &&promise);
 
   void block_message_sender_from_replies_on_server(MessageId message_id, bool need_delete_message,
                                                    bool need_delete_all_messages, bool report_spam, uint64 log_event_id,
@@ -3077,16 +3077,16 @@ class MessagesManager final : public Actor {
 
   static uint64 save_toggle_dialog_report_spam_state_on_server_log_event(DialogId dialog_id, bool is_spam_dialog);
 
-  static uint64 save_delete_messages_from_server_log_event(DialogId dialog_id, const vector<MessageId> &message_ids,
-                                                           bool revoke);
+  static uint64 save_delete_messages_on_server_log_event(DialogId dialog_id, const vector<MessageId> &message_ids,
+                                                         bool revoke);
 
-  static uint64 save_delete_scheduled_messages_from_server_log_event(DialogId dialog_id,
-                                                                     const vector<MessageId> &message_ids);
+  static uint64 save_delete_scheduled_messages_on_server_log_event(DialogId dialog_id,
+                                                                   const vector<MessageId> &message_ids);
 
-  static uint64 save_delete_dialog_history_from_server_log_event(DialogId dialog_id, MessageId max_message_id,
-                                                                 bool remove_from_dialog_list, bool revoke);
+  static uint64 save_delete_dialog_history_on_server_log_event(DialogId dialog_id, MessageId max_message_id,
+                                                               bool remove_from_dialog_list, bool revoke);
 
-  static uint64 save_delete_all_call_messages_from_server_log_event(bool revoke);
+  static uint64 save_delete_all_call_messages_on_server_log_event(bool revoke);
 
   static uint64 save_block_message_sender_from_replies_on_server_log_event(MessageId message_id,
                                                                            bool need_delete_message,

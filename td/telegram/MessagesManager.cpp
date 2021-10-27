@@ -10436,13 +10436,13 @@ void MessagesManager::delete_messages(DialogId dialog_id, const vector<MessageId
     }
   }
 
-  MultiPromiseActorSafe mpas{"DeleteMessagesFromServerMultiPromiseActor"};
+  MultiPromiseActorSafe mpas{"DeleteMessagesOnServerMultiPromiseActor"};
   mpas.add_promise(std::move(promise));
 
   auto lock = mpas.get_promise();
-  delete_messages_from_server(dialog_id, std::move(deleted_server_message_ids), revoke, 0, mpas.get_promise());
-  delete_scheduled_messages_from_server(dialog_id, std::move(deleted_scheduled_server_message_ids), 0,
-                                        mpas.get_promise());
+  delete_messages_on_server(dialog_id, std::move(deleted_server_message_ids), revoke, 0, mpas.get_promise());
+  delete_scheduled_messages_on_server(dialog_id, std::move(deleted_scheduled_server_message_ids), 0,
+                                      mpas.get_promise());
   lock.set_value(Unit());
 
   bool need_update_dialog_pos = false;
@@ -10468,7 +10468,7 @@ void MessagesManager::delete_messages(DialogId dialog_id, const vector<MessageId
   }
 }
 
-void MessagesManager::delete_sent_message_from_server(DialogId dialog_id, MessageId message_id) {
+void MessagesManager::delete_sent_message_on_server(DialogId dialog_id, MessageId message_id) {
   // being sent message was deleted by the user or is in an inaccessible channel
   // don't need to send an update to the user, because the message has already been deleted
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
@@ -10479,25 +10479,25 @@ void MessagesManager::delete_sent_message_from_server(DialogId dialog_id, Messag
   LOG(INFO) << "Delete already deleted sent " << message_id << " in " << dialog_id << " from server";
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
-  if (get_message_force(d, message_id, "delete_sent_message_from_server") != nullptr) {
+  if (get_message_force(d, message_id, "delete_sent_message_on_server") != nullptr) {
     delete_messages(dialog_id, {message_id}, true, Auto());
   } else {
     if (message_id.is_valid()) {
       CHECK(message_id.is_server());
-      delete_messages_from_server(dialog_id, {message_id}, true, 0, Auto());
+      delete_messages_on_server(dialog_id, {message_id}, true, 0, Auto());
     } else {
       CHECK(message_id.is_scheduled_server());
-      delete_scheduled_messages_from_server(dialog_id, {message_id}, 0, Auto());
+      delete_scheduled_messages_on_server(dialog_id, {message_id}, 0, Auto());
     }
 
     bool need_update_dialog_pos = false;
-    auto m = delete_message(d, message_id, true, &need_update_dialog_pos, "delete_sent_message_from_server");
+    auto m = delete_message(d, message_id, true, &need_update_dialog_pos, "delete_sent_message_on_server");
     CHECK(m == nullptr);
     CHECK(need_update_dialog_pos == false);
   }
 }
 
-class MessagesManager::DeleteMessagesFromServerLogEvent {
+class MessagesManager::DeleteMessagesOnServerLogEvent {
  public:
   DialogId dialog_id_;
   vector<MessageId> message_ids_;
@@ -10524,15 +10524,15 @@ class MessagesManager::DeleteMessagesFromServerLogEvent {
   }
 };
 
-uint64 MessagesManager::save_delete_messages_from_server_log_event(DialogId dialog_id,
-                                                                   const vector<MessageId> &message_ids, bool revoke) {
-  DeleteMessagesFromServerLogEvent log_event{dialog_id, message_ids, revoke};
-  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::DeleteMessagesFromServer,
+uint64 MessagesManager::save_delete_messages_on_server_log_event(DialogId dialog_id,
+                                                                 const vector<MessageId> &message_ids, bool revoke) {
+  DeleteMessagesOnServerLogEvent log_event{dialog_id, message_ids, revoke};
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::DeleteMessagesOnServer,
                     get_log_event_storer(log_event));
 }
 
-void MessagesManager::delete_messages_from_server(DialogId dialog_id, vector<MessageId> message_ids, bool revoke,
-                                                  uint64 log_event_id, Promise<Unit> &&promise) {
+void MessagesManager::delete_messages_on_server(DialogId dialog_id, vector<MessageId> message_ids, bool revoke,
+                                                uint64 log_event_id, Promise<Unit> &&promise) {
   if (message_ids.empty()) {
     return promise.set_value(Unit());
   }
@@ -10540,7 +10540,7 @@ void MessagesManager::delete_messages_from_server(DialogId dialog_id, vector<Mes
             << " from server";
 
   if (log_event_id == 0 && G()->parameters().use_message_db) {
-    log_event_id = save_delete_messages_from_server_log_event(dialog_id, message_ids, revoke);
+    log_event_id = save_delete_messages_on_server_log_event(dialog_id, message_ids, revoke);
   }
 
   auto new_promise = get_erase_log_event_promise(log_event_id, std::move(promise));
@@ -10557,7 +10557,7 @@ void MessagesManager::delete_messages_from_server(DialogId dialog_id, vector<Mes
       break;
     case DialogType::SecretChat: {
       vector<int64> random_ids;
-      auto d = get_dialog_force(dialog_id, "delete_messages_from_server");
+      auto d = get_dialog_force(dialog_id, "delete_messages_on_server");
       CHECK(d != nullptr);
       for (auto &message_id : message_ids) {
         auto *m = get_message(d, message_id);
@@ -10579,7 +10579,7 @@ void MessagesManager::delete_messages_from_server(DialogId dialog_id, vector<Mes
   }
 }
 
-class MessagesManager::DeleteScheduledMessagesFromServerLogEvent {
+class MessagesManager::DeleteScheduledMessagesOnServerLogEvent {
  public:
   DialogId dialog_id_;
   vector<MessageId> message_ids_;
@@ -10597,22 +10597,22 @@ class MessagesManager::DeleteScheduledMessagesFromServerLogEvent {
   }
 };
 
-uint64 MessagesManager::save_delete_scheduled_messages_from_server_log_event(DialogId dialog_id,
-                                                                             const vector<MessageId> &message_ids) {
-  DeleteScheduledMessagesFromServerLogEvent log_event{dialog_id, message_ids};
-  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::DeleteScheduledMessagesFromServer,
+uint64 MessagesManager::save_delete_scheduled_messages_on_server_log_event(DialogId dialog_id,
+                                                                           const vector<MessageId> &message_ids) {
+  DeleteScheduledMessagesOnServerLogEvent log_event{dialog_id, message_ids};
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::DeleteScheduledMessagesOnServer,
                     get_log_event_storer(log_event));
 }
 
-void MessagesManager::delete_scheduled_messages_from_server(DialogId dialog_id, vector<MessageId> message_ids,
-                                                            uint64 log_event_id, Promise<Unit> &&promise) {
+void MessagesManager::delete_scheduled_messages_on_server(DialogId dialog_id, vector<MessageId> message_ids,
+                                                          uint64 log_event_id, Promise<Unit> &&promise) {
   if (message_ids.empty()) {
     return promise.set_value(Unit());
   }
   LOG(INFO) << "Delete " << format::as_array(message_ids) << " in " << dialog_id << " from server";
 
   if (log_event_id == 0 && G()->parameters().use_message_db) {
-    log_event_id = save_delete_scheduled_messages_from_server_log_event(dialog_id, message_ids);
+    log_event_id = save_delete_scheduled_messages_on_server_log_event(dialog_id, message_ids);
   }
 
   auto new_promise = get_erase_log_event_promise(log_event_id, std::move(promise));
@@ -10695,11 +10695,11 @@ void MessagesManager::delete_dialog_history(DialogId dialog_id, bool remove_from
 
   set_dialog_max_unavailable_message_id(dialog_id, last_new_message_id, false, "delete_dialog_history");
 
-  delete_dialog_history_from_server(dialog_id, last_new_message_id, remove_from_dialog_list, revoke, allow_error, 0,
-                                    std::move(promise));
+  delete_dialog_history_on_server(dialog_id, last_new_message_id, remove_from_dialog_list, revoke, allow_error, 0,
+                                  std::move(promise));
 }
 
-class MessagesManager::DeleteDialogHistoryFromServerLogEvent {
+class MessagesManager::DeleteDialogHistoryOnServerLogEvent {
  public:
   DialogId dialog_id_;
   MessageId max_message_id_;
@@ -10729,21 +10729,21 @@ class MessagesManager::DeleteDialogHistoryFromServerLogEvent {
   }
 };
 
-uint64 MessagesManager::save_delete_dialog_history_from_server_log_event(DialogId dialog_id, MessageId max_message_id,
-                                                                         bool remove_from_dialog_list, bool revoke) {
-  DeleteDialogHistoryFromServerLogEvent log_event{dialog_id, max_message_id, remove_from_dialog_list, revoke};
-  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::DeleteDialogHistoryFromServer,
+uint64 MessagesManager::save_delete_dialog_history_on_server_log_event(DialogId dialog_id, MessageId max_message_id,
+                                                                       bool remove_from_dialog_list, bool revoke) {
+  DeleteDialogHistoryOnServerLogEvent log_event{dialog_id, max_message_id, remove_from_dialog_list, revoke};
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::DeleteDialogHistoryOnServer,
                     get_log_event_storer(log_event));
 }
 
-void MessagesManager::delete_dialog_history_from_server(DialogId dialog_id, MessageId max_message_id,
-                                                        bool remove_from_dialog_list, bool revoke, bool allow_error,
-                                                        uint64 log_event_id, Promise<Unit> &&promise) {
+void MessagesManager::delete_dialog_history_on_server(DialogId dialog_id, MessageId max_message_id,
+                                                      bool remove_from_dialog_list, bool revoke, bool allow_error,
+                                                      uint64 log_event_id, Promise<Unit> &&promise) {
   LOG(INFO) << "Delete history in " << dialog_id << " up to " << max_message_id << " from server";
 
   if (log_event_id == 0 && G()->parameters().use_message_db) {
     log_event_id =
-        save_delete_dialog_history_from_server_log_event(dialog_id, max_message_id, remove_from_dialog_list, revoke);
+        save_delete_dialog_history_on_server_log_event(dialog_id, max_message_id, remove_from_dialog_list, revoke);
   }
 
   auto new_promise = get_erase_log_event_promise(log_event_id, std::move(promise));
@@ -10771,10 +10771,10 @@ void MessagesManager::delete_dialog_history_from_server(DialogId dialog_id, Mess
 }
 
 void MessagesManager::delete_all_call_messages(bool revoke, Promise<Unit> &&promise) {
-  delete_all_call_messages_from_server(revoke, 0, std::move(promise));
+  delete_all_call_messages_on_server(revoke, 0, std::move(promise));
 }
 
-class MessagesManager::DeleteAllCallMessagesFromServerLogEvent {
+class MessagesManager::DeleteAllCallMessagesOnServerLogEvent {
  public:
   bool revoke_;
 
@@ -10793,15 +10793,15 @@ class MessagesManager::DeleteAllCallMessagesFromServerLogEvent {
   }
 };
 
-uint64 MessagesManager::save_delete_all_call_messages_from_server_log_event(bool revoke) {
-  DeleteAllCallMessagesFromServerLogEvent log_event{revoke};
-  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::DeleteAllCallMessagesFromServer,
+uint64 MessagesManager::save_delete_all_call_messages_on_server_log_event(bool revoke) {
+  DeleteAllCallMessagesOnServerLogEvent log_event{revoke};
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::DeleteAllCallMessagesOnServer,
                     get_log_event_storer(log_event));
 }
 
-void MessagesManager::delete_all_call_messages_from_server(bool revoke, uint64 log_event_id, Promise<Unit> &&promise) {
+void MessagesManager::delete_all_call_messages_on_server(bool revoke, uint64 log_event_id, Promise<Unit> &&promise) {
   if (log_event_id == 0) {
-    log_event_id = save_delete_all_call_messages_from_server_log_event(revoke);
+    log_event_id = save_delete_all_call_messages_on_server_log_event(revoke);
   }
 
   auto new_promise = get_erase_log_event_promise(log_event_id, std::move(promise));
@@ -13872,7 +13872,7 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
     unique_ptr<Message> old_message =
         delete_message(d, old_message_id, false, &need_update_dialog_pos, "add sent message");
     if (old_message == nullptr) {
-      delete_sent_message_from_server(dialog_id, new_message->message_id);
+      delete_sent_message_on_server(dialog_id, new_message->message_id);
       being_readded_message_id_ = FullMessageId();
       return FullMessageId();
     }
@@ -15680,7 +15680,7 @@ void MessagesManager::load_dialog_filter(const DialogFilter *filter, bool force,
 
   if (!input_dialog_ids.empty() && !force) {
     const size_t MAX_SLICE_SIZE = 100;
-    MultiPromiseActorSafe mpas{"GetFilterDialogsFromServerMultiPromiseActor"};
+    MultiPromiseActorSafe mpas{"GetFilterDialogsOnServerMultiPromiseActor"};
     mpas.add_promise(std::move(promise));
     mpas.set_ignore_errors(true);
     auto lock = mpas.get_promise();
@@ -17700,7 +17700,7 @@ void MessagesManager::get_messages_from_server(vector<FullMessageId> &&message_i
     }
   }
 
-  MultiPromiseActorSafe mpas{"GetMessagesFromServerMultiPromiseActor"};
+  MultiPromiseActorSafe mpas{"GetMessagesOnServerMultiPromiseActor"};
   mpas.add_promise(std::move(promise));
   auto lock = mpas.get_promise();
 
@@ -27414,7 +27414,7 @@ bool MessagesManager::on_update_message_id(int64 random_id, MessageId new_messag
   being_sent_messages_.erase(it);
 
   if (!have_message_force({dialog_id, old_message_id}, "on_update_message_id")) {
-    delete_sent_message_from_server(dialog_id, new_message_id);
+    delete_sent_message_on_server(dialog_id, new_message_id);
     return true;
   }
 
@@ -27444,7 +27444,7 @@ bool MessagesManager::on_update_scheduled_message_id(int64 random_id, ScheduledS
   being_sent_messages_.erase(it);
 
   if (!have_message_force({dialog_id, old_message_id}, "on_update_scheduled_message_id")) {
-    delete_sent_message_from_server(dialog_id, MessageId(new_message_id, std::numeric_limits<int32>::max()));
+    delete_sent_message_on_server(dialog_id, MessageId(new_message_id, std::numeric_limits<int32>::max()));
     return true;
   }
 
@@ -29324,7 +29324,7 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
   being_readded_message_id_ = {dialog_id, old_message_id};
   unique_ptr<Message> sent_message = delete_message(d, old_message_id, false, &need_update_dialog_pos, source);
   if (sent_message == nullptr) {
-    delete_sent_message_from_server(dialog_id, new_message_id);
+    delete_sent_message_on_server(dialog_id, new_message_id);
     being_readded_message_id_ = FullMessageId();
     return {};
   }
@@ -37542,17 +37542,17 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         do_delete_message_log_event(log_event);
         break;
       }
-      case LogEvent::HandlerType::DeleteMessagesFromServer: {
+      case LogEvent::HandlerType::DeleteMessagesOnServer: {
         if (!G()->parameters().use_message_db) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
 
-        DeleteMessagesFromServerLogEvent log_event;
+        DeleteMessagesOnServerLogEvent log_event;
         log_event_parse(log_event, event.data_).ensure();
 
         auto dialog_id = log_event.dialog_id_;
-        Dialog *d = get_dialog_force(dialog_id, "DeleteMessagesFromServerLogEvent");
+        Dialog *d = get_dialog_force(dialog_id, "DeleteMessagesOnServerLogEvent");
         if (d == nullptr || !have_input_peer(dialog_id, AccessRights::Read)) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
@@ -37560,20 +37560,20 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
 
         d->deleted_message_ids.insert(log_event.message_ids_.begin(), log_event.message_ids_.end());
 
-        delete_messages_from_server(dialog_id, std::move(log_event.message_ids_), log_event.revoke_, event.id_, Auto());
+        delete_messages_on_server(dialog_id, std::move(log_event.message_ids_), log_event.revoke_, event.id_, Auto());
         break;
       }
-      case LogEvent::HandlerType::DeleteScheduledMessagesFromServer: {
+      case LogEvent::HandlerType::DeleteScheduledMessagesOnServer: {
         if (!G()->parameters().use_message_db) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
 
-        DeleteScheduledMessagesFromServerLogEvent log_event;
+        DeleteScheduledMessagesOnServerLogEvent log_event;
         log_event_parse(log_event, event.data_).ensure();
 
         auto dialog_id = log_event.dialog_id_;
-        Dialog *d = get_dialog_force(dialog_id, "DeleteScheduledMessagesFromServerLogEvent");
+        Dialog *d = get_dialog_force(dialog_id, "DeleteScheduledMessagesOnServerLogEvent");
         if (d == nullptr || !have_input_peer(dialog_id, AccessRights::Read)) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
@@ -37584,34 +37584,34 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
           d->deleted_scheduled_server_message_ids.insert(message_id.get_scheduled_server_message_id());
         }
 
-        delete_scheduled_messages_from_server(dialog_id, std::move(log_event.message_ids_), event.id_, Auto());
+        delete_scheduled_messages_on_server(dialog_id, std::move(log_event.message_ids_), event.id_, Auto());
         break;
       }
-      case LogEvent::HandlerType::DeleteDialogHistoryFromServer: {
+      case LogEvent::HandlerType::DeleteDialogHistoryOnServer: {
         if (!G()->parameters().use_message_db) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
 
-        DeleteDialogHistoryFromServerLogEvent log_event;
+        DeleteDialogHistoryOnServerLogEvent log_event;
         log_event_parse(log_event, event.data_).ensure();
 
         auto dialog_id = log_event.dialog_id_;
-        Dialog *d = get_dialog_force(dialog_id, "DeleteDialogHistoryFromServerLogEvent");
+        Dialog *d = get_dialog_force(dialog_id, "DeleteDialogHistoryOnServerLogEvent");
         if (d == nullptr || !have_input_peer(dialog_id, AccessRights::Read)) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
 
-        delete_dialog_history_from_server(dialog_id, log_event.max_message_id_, log_event.remove_from_dialog_list_,
-                                          log_event.revoke_, true, event.id_, Auto());
+        delete_dialog_history_on_server(dialog_id, log_event.max_message_id_, log_event.remove_from_dialog_list_,
+                                        log_event.revoke_, true, event.id_, Auto());
         break;
       }
-      case LogEvent::HandlerType::DeleteAllCallMessagesFromServer: {
-        DeleteAllCallMessagesFromServerLogEvent log_event;
+      case LogEvent::HandlerType::DeleteAllCallMessagesOnServer: {
+        DeleteAllCallMessagesOnServerLogEvent log_event;
         log_event_parse(log_event, event.data_).ensure();
 
-        delete_all_call_messages_from_server(log_event.revoke_, event.id_, Auto());
+        delete_all_call_messages_on_server(log_event.revoke_, event.id_, Auto());
         break;
       }
       case LogEvent::HandlerType::BlockMessageSenderFromRepliesOnServer: {

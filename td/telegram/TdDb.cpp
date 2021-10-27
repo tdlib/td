@@ -91,14 +91,14 @@ Status init_binlog(Binlog &binlog, string path, BinlogKeyValue<Binlog> &binlog_p
         break;
       case LogEvent::HandlerType::SendMessage:
       case LogEvent::HandlerType::DeleteMessage:
-      case LogEvent::HandlerType::DeleteMessagesFromServer:
+      case LogEvent::HandlerType::DeleteMessagesOnServer:
       case LogEvent::HandlerType::ReadHistoryOnServer:
       case LogEvent::HandlerType::ReadMessageContentsOnServer:
       case LogEvent::HandlerType::ForwardMessages:
       case LogEvent::HandlerType::SendBotStartMessage:
       case LogEvent::HandlerType::SendScreenshotTakenNotificationMessage:
       case LogEvent::HandlerType::SendInlineQueryResultMessage:
-      case LogEvent::HandlerType::DeleteDialogHistoryFromServer:
+      case LogEvent::HandlerType::DeleteDialogHistoryOnServer:
       case LogEvent::HandlerType::ReadAllDialogMentionsOnServer:
       case LogEvent::HandlerType::DeleteAllChannelMessagesFromUserOnServer:
       case LogEvent::HandlerType::ToggleDialogIsPinnedOnServer:
@@ -113,12 +113,12 @@ Status init_binlog(Binlog &binlog, string path, BinlogKeyValue<Binlog> &binlog_p
       case LogEvent::HandlerType::ReadHistoryInSecretChat:
       case LogEvent::HandlerType::ToggleDialogIsMarkedAsUnreadOnServer:
       case LogEvent::HandlerType::SetDialogFolderIdOnServer:
-      case LogEvent::HandlerType::DeleteScheduledMessagesFromServer:
+      case LogEvent::HandlerType::DeleteScheduledMessagesOnServer:
       case LogEvent::HandlerType::ToggleDialogIsBlockedOnServer:
       case LogEvent::HandlerType::ReadMessageThreadHistoryOnServer:
       case LogEvent::HandlerType::BlockMessageSenderFromRepliesOnServer:
       case LogEvent::HandlerType::UnpinAllDialogMessagesOnServer:
-      case LogEvent::HandlerType::DeleteAllCallMessagesFromServer:
+      case LogEvent::HandlerType::DeleteAllCallMessagesOnServer:
       case LogEvent::HandlerType::DeleteDialogMessagesByDateOnServer:
         events.to_messages_manager.push_back(event.clone());
         break;
