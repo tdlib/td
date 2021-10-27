@@ -1654,12 +1654,12 @@ class MessagesManager final : public Actor {
   class DeleteScheduledMessagesFromServerLogEvent;
   class ForwardMessagesLogEvent;
   class GetChannelDifferenceLogEvent;
-  class GetDialogFromServerLogEvent;
   class ReadAllDialogMentionsOnServerLogEvent;
   class ReadHistoryInSecretChatLogEvent;
   class ReadHistoryOnServerLogEvent;
   class ReadMessageContentsOnServerLogEvent;
   class ReadMessageThreadHistoryOnServerLogEvent;
+  class RegetDialogLogEvent;
   class ReorderPinnedDialogsOnServerLogEvent;
   class ResetAllNotificationSettingsOnServerLogEvent;
   class SaveDialogDraftMessageOnServerLogEvent;
@@ -3116,7 +3116,7 @@ class MessagesManager final : public Actor {
 
   static uint64 save_reset_all_notification_settings_on_server_log_event();
 
-  static uint64 save_get_dialog_from_server_log_event(DialogId dialog_id);
+  static uint64 save_reget_dialog_log_event(DialogId dialog_id);
 
   static uint64 save_forward_messages_log_event(DialogId to_dialog_id, DialogId from_dialog_id,
                                                 const vector<Message *> &messages,

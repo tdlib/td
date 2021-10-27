@@ -108,7 +108,7 @@ Status init_binlog(Binlog &binlog, string path, BinlogKeyValue<Binlog> &binlog_p
       case LogEvent::HandlerType::UpdateScopeNotificationSettingsOnServer:
       case LogEvent::HandlerType::ResetAllNotificationSettingsOnServer:
       case LogEvent::HandlerType::ToggleDialogReportSpamStateOnServer:
-      case LogEvent::HandlerType::GetDialogFromServer:
+      case LogEvent::HandlerType::RegetDialog:
       case LogEvent::HandlerType::GetChannelDifference:
       case LogEvent::HandlerType::ReadHistoryInSecretChat:
       case LogEvent::HandlerType::ToggleDialogIsMarkedAsUnreadOnServer:

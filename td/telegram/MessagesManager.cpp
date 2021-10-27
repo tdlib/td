@@ -30925,7 +30925,7 @@ void MessagesManager::on_get_dialog_notification_settings_query_finished(DialogI
   }
 }
 
-class MessagesManager::GetDialogFromServerLogEvent {
+class MessagesManager::RegetDialogLogEvent {
  public:
   DialogId dialog_id_;
 
@@ -30940,10 +30940,9 @@ class MessagesManager::GetDialogFromServerLogEvent {
   }
 };
 
-uint64 MessagesManager::save_get_dialog_from_server_log_event(DialogId dialog_id) {
-  GetDialogFromServerLogEvent log_event{dialog_id};
-  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::GetDialogFromServer,
-                    get_log_event_storer(log_event));
+uint64 MessagesManager::save_reget_dialog_log_event(DialogId dialog_id) {
+  RegetDialogLogEvent log_event{dialog_id};
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::RegetDialog, get_log_event_storer(log_event));
 }
 
 void MessagesManager::send_get_dialog_query(DialogId dialog_id, Promise<Unit> &&promise, uint64 log_event_id,
@@ -30975,7 +30974,7 @@ void MessagesManager::send_get_dialog_query(DialogId dialog_id, Promise<Unit> &&
   }
 
   if (log_event_id == 0 && G()->parameters().use_message_db) {
-    log_event_id = save_get_dialog_from_server_log_event(dialog_id);
+    log_event_id = save_reget_dialog_log_event(dialog_id);
   }
   if (log_event_id != 0) {
     auto result = get_dialog_query_log_event_id_.emplace(dialog_id, log_event_id);
@@ -37963,28 +37962,28 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         set_dialog_folder_id_on_server(dialog_id, true);
         break;
       }
-      case LogEvent::HandlerType::GetDialogFromServer: {
+      case LogEvent::HandlerType::RegetDialog: {
         if (!G()->parameters().use_message_db) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
 
-        GetDialogFromServerLogEvent log_event;
+        RegetDialogLogEvent log_event;
         log_event_parse(log_event, event.data_).ensure();
 
         auto dialog_id = log_event.dialog_id_;
         Dependencies dependencies;
         add_dialog_dependencies(dependencies, dialog_id);
-        resolve_dependencies_force(td_, dependencies, "GetDialogFromServerLogEvent");
+        resolve_dependencies_force(td_, dependencies, "RegetDialogLogEvent");
 
-        get_dialog_force(dialog_id, "GetDialogFromServerLogEvent");  // load it if exists
+        get_dialog_force(dialog_id, "RegetDialogLogEvent");  // load it if exists
 
         if (!have_input_peer(dialog_id, AccessRights::Read)) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
 
-        send_get_dialog_query(dialog_id, Auto(), event.id_, "GetDialogFromServerLogEvent");
+        send_get_dialog_query(dialog_id, Auto(), event.id_, "RegetDialogLogEvent");
         break;
       }
       case LogEvent::HandlerType::UnpinAllDialogMessagesOnServer: {

@@ -89,7 +89,7 @@ class LogEvent {
     UpdateScopeNotificationSettingsOnServer = 0x110,
     ResetAllNotificationSettingsOnServer = 0x111,
     ToggleDialogReportSpamStateOnServer = 0x112,
-    GetDialogFromServer = 0x113,
+    RegetDialog = 0x113,
     ReadHistoryInSecretChat = 0x114,
     ToggleDialogIsMarkedAsUnreadOnServer = 0x115,
     SetDialogFolderIdOnServer = 0x116,
