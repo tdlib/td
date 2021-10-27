@@ -3159,7 +3159,8 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
                      old_file_view.main_remote_location().get_access_hash() !=
                          new_file_view.remote_location().get_access_hash()) {
             FileId file_id = td->file_manager_->register_remote(
-                FullRemoteFileLocation({FileType::Photo, 'i'}, new_file_view.remote_location().get_id(),
+                FullRemoteFileLocation(PhotoSizeSource::thumbnail(FileType::Photo, 'i'),
+                                       new_file_view.remote_location().get_id(),
                                        new_file_view.remote_location().get_access_hash(), DcId::invalid(),
                                        new_file_view.remote_location().get_file_reference().str()),
                 FileLocationSource::FromServer, dialog_id, old_photo->photos.back().size, 0, "");

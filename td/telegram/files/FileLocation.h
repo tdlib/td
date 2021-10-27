@@ -325,11 +325,11 @@ class FullRemoteFileLocation {
         return photo().source_;
       case LocationType::Common:
       case LocationType::Web:
-        return PhotoSizeSource(nullptr, 0, 0, 0);
+        return PhotoSizeSource::full_legacy(0, 0, 0);
       case LocationType::None:
       default:
         UNREACHABLE();
-        return PhotoSizeSource(nullptr, 0, 0, 0);
+        return PhotoSizeSource::full_legacy(0, 0, 0);
     }
   }
 

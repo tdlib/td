@@ -180,12 +180,12 @@ void parse(PhotoSizeSource::StickerSetThumbnailVersion &source, ParserT &parser)
 
 template <class StorerT>
 void PhotoSizeSource::store(StorerT &storer) const {
-  td::store(variant, storer);
+  td::store(variant_, storer);
 }
 
 template <class ParserT>
 void PhotoSizeSource::parse(ParserT &parser) {
-  td::parse(variant, parser);
+  td::parse(variant_, parser);
 }
 
 }  // namespace td

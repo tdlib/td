@@ -66,7 +66,7 @@ void PhotoRemoteFileLocation::parse(ParserT &parser) {
       int64 secret;
       parse(secret, parser);
       parse(local_id, parser);
-      source = PhotoSizeSource(nullptr, volume_id, local_id, secret);
+      source = PhotoSizeSource::full_legacy(volume_id, local_id, secret);
     }
 
     if (parser.get_error() != nullptr) {
@@ -75,7 +75,7 @@ void PhotoRemoteFileLocation::parse(ParserT &parser) {
 
     switch (source.get_type()) {
       case PhotoSizeSource::Type::Legacy:
-        source_ = PhotoSizeSource(nullptr, volume_id, local_id, source.legacy().secret);
+        source_ = PhotoSizeSource::full_legacy(volume_id, local_id, source.legacy().secret);
         break;
       case PhotoSizeSource::Type::FullLegacy:
       case PhotoSizeSource::Type::Thumbnail:
@@ -85,13 +85,14 @@ void PhotoRemoteFileLocation::parse(ParserT &parser) {
       case PhotoSizeSource::Type::DialogPhotoBig: {
         auto &dialog_photo = source.dialog_photo();
         bool is_big = source.get_type() == PhotoSizeSource::Type::DialogPhotoBig;
-        source_ = PhotoSizeSource(dialog_photo.dialog_id, dialog_photo.dialog_access_hash, is_big, volume_id, local_id);
+        source_ = PhotoSizeSource::dialog_photo_legacy(dialog_photo.dialog_id, dialog_photo.dialog_access_hash, is_big,
+                                                       volume_id, local_id);
         break;
       }
       case PhotoSizeSource::Type::StickerSetThumbnail: {
         auto &sticker_set_thumbnail = source.sticker_set_thumbnail();
-        source_ = PhotoSizeSource(sticker_set_thumbnail.sticker_set_id, sticker_set_thumbnail.sticker_set_access_hash,
-                                  volume_id, local_id);
+        source_ = PhotoSizeSource::sticker_set_thumbnail_legacy(
+            sticker_set_thumbnail.sticker_set_id, sticker_set_thumbnail.sticker_set_access_hash, volume_id, local_id);
         break;
       }
       default:
