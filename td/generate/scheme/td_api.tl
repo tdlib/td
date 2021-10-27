@@ -56,7 +56,7 @@ authenticationCodeTypeCall length:int32 = AuthenticationCodeType;
 authenticationCodeTypeFlashCall pattern:string = AuthenticationCodeType;
 
 
-//@description Information about the authentication code that was sent @phone_number A phone number that is being authenticated @type Describes the way the code was sent to the user @next_type Describes the way the next code will be sent to the user; may be null @timeout Timeout before the code can be re-sent, in seconds
+//@description Information about the authentication code that was sent @phone_number A phone number that is being authenticated @type The way the code was sent to the user @next_type The way the next code will be sent to the user; may be null @timeout Timeout before the code can be re-sent, in seconds
 authenticationCodeInfo phone_number:string type:AuthenticationCodeType next_type:AuthenticationCodeType timeout:int32 = AuthenticationCodeInfo;
 
 //@description Information about the email address authentication code that was sent @email_address_pattern Pattern of the email address to which an authentication code was sent @length Length of the code; 0 if unknown
@@ -500,7 +500,7 @@ chatMemberStatusLeft = ChatMemberStatus;
 chatMemberStatusBanned banned_until_date:int32 = ChatMemberStatus;
 
 
-//@description Information about a user or a chat as a member of another chat
+//@description Describes a user or a chat as a member of another chat
 //@member_id Identifier of the chat member. Currently, other chats can be only Left or Banned. Only supergroups and channels can have other chats as Left or Banned members and these chats must be supergroups or channels
 //@inviter_user_id Identifier of a user that invited/promoted/banned this member in the chat; 0 if unknown
 //@joined_chat_date Point in time (Unix timestamp) when the user joined the chat
@@ -598,7 +598,7 @@ chatInviteLinkMembers total_count:int32 members:vector<chatInviteLinkMember> = C
 //@description Contains information about a chat invite link
 //@chat_id Chat identifier of the invite link; 0 if the user has no access to the chat before joining
 //@accessible_for If non-zero, the amount of time for which read access to the chat will remain available, in seconds
-//@type Contains information about the type of the chat
+//@type Type of the chat
 //@title Title of the chat
 //@photo Chat photo; may be null
 //@param_description Chat description
@@ -757,7 +757,7 @@ messageReplyInfo reply_count:int32 recent_repliers:vector<MessageSender> last_re
 //@description Contains information about interactions with a message
 //@view_count Number of times the message was viewed
 //@forward_count Number of times the message was forwarded
-//@reply_info Contains information about direct or indirect replies to the message; may be null. Currently, available only in channels with a discussion supergroup and discussion supergroups for messages, which are not replies itself
+//@reply_info Information about direct or indirect replies to the message; may be null. Currently, available only in channels with a discussion supergroup and discussion supergroups for messages, which are not replies itself
 messageInteractionInfo view_count:int32 forward_count:int32 reply_info:messageReplyInfo = MessageInteractionInfo;
 
 
@@ -775,8 +775,8 @@ messageSendingStateFailed error_code:int32 error_message:string can_retry:Bool r
 //@id Message identifier; unique for the chat to which the message belongs
 //@sender The sender of the message
 //@chat_id Chat identifier
-//@sending_state Information about the sending state of the message; may be null
-//@scheduling_state Information about the scheduling state of the message; may be null
+//@sending_state The sending state of the message; may be null
+//@scheduling_state The scheduling state of the message; may be null
 //@is_outgoing True, if the message is outgoing
 //@is_pinned True, if the message is pinned
 //@can_be_edited True, if the message can be edited. For live location and poll messages this fields shows whether editMessageLiveLocation or stopPoll can be used with this message by the application
@@ -970,7 +970,7 @@ videoChat group_call_id:int32 has_participants:Bool default_participant_id:Messa
 //@notification_settings Notification settings for this chat
 //@message_ttl_setting Current message Time To Live setting (self-destruct timer) for the chat; 0 if not defined. TTL is counted from the time message or its content is viewed in secret chats and from the send date in other chats
 //@theme_name If non-empty, name of a theme, set for the chat
-//@action_bar Describes actions which must be possible to do through a chat action bar; may be null
+//@action_bar Information about actions which must be possible to do through the chat action bar; may be null
 //@video_chat Information about video chat of the chat
 //@pending_join_requests Information about pending join requests; may be null
 //@reply_markup_message_id Identifier of the message from which reply markup needs to be used; 0 if there is no default custom reply markup in the chat
@@ -1106,7 +1106,7 @@ loginUrlInfoRequestConfirmation url:string domain:string bot_user_id:int53 reque
 //@description Contains information about a message thread
 //@chat_id Identifier of the chat to which the message thread belongs
 //@message_thread_id Message thread identifier, unique within the chat
-//@reply_info Contains information about the message thread
+//@reply_info Information about the message thread
 //@unread_message_count Approximate number of unread messages in the message thread
 //@messages The messages from which the thread starts. The messages are returned in a reverse chronological order (i.e., in order of decreasing message_id)
 //@draft_message A draft of a message in the message thread; may be null
@@ -1392,7 +1392,7 @@ savedCredentials id:string title:string = SavedCredentials;
 //@description Applies if a user chooses some previously saved payment credentials. To use their previously saved credentials, the user must have a valid temporary password @saved_credentials_id Identifier of the saved credentials
 inputCredentialsSaved saved_credentials_id:string = InputCredentials;
 
-//@description Applies if a user enters new credentials on a payment provider website @data Contains JSON-encoded data with a credential identifier from the payment provider @allow_save True, if the credential identifier can be saved on the server side
+//@description Applies if a user enters new credentials on a payment provider website @data JSON-encoded data with the credential identifier from the payment provider @allow_save True, if the credential identifier can be saved on the server side
 inputCredentialsNew data:string allow_save:Bool = InputCredentials;
 
 //@description Applies if a user enters new credentials using Apple Pay @data JSON-encoded data with the credential identifier
@@ -1415,9 +1415,9 @@ paymentFormTheme background_color:int32 text_color:int32 hint_color:int32 link_c
 //@url Payment form URL
 //@seller_bot_user_id User identifier of the seller bot
 //@payments_provider_user_id User identifier of the payment provider bot
-//@payments_provider Contains information about the payment provider, if available, to support it natively without the need for opening the URL; may be null
+//@payments_provider Information about the payment provider, if available, to support it natively without the need for opening the URL; may be null
 //@saved_order_info Saved server-side order information; may be null
-//@saved_credentials Contains information about saved card credentials; may be null
+//@saved_credentials Information about saved card credentials; may be null
 //@can_save_credentials True, if the user can choose to save credentials
 //@need_password True, if the user will be able to save credentials protected by a password they set up
 paymentForm id:int64 invoice:invoice url:string seller_bot_user_id:int53 payments_provider_user_id:int53 payments_provider:paymentsProviderStripe saved_order_info:orderInfo saved_credentials:savedCredentials can_save_credentials:Bool need_password:Bool = PaymentForm;
@@ -1435,7 +1435,7 @@ paymentResult success:Bool verification_url:string = PaymentResult;
 //@date Point in time (Unix timestamp) when the payment was made
 //@seller_bot_user_id User identifier of the seller bot
 //@payments_provider_user_id User identifier of the payment provider bot
-//@invoice Contains information about the invoice
+//@invoice Information about the invoice
 //@order_info Order information; may be null
 //@shipping_option Chosen shipping option; may be null
 //@credentials_title Title of the saved credentials chosen by the buyer
@@ -1643,7 +1643,7 @@ passportSuitableElement type:PassportElementType is_selfie_required:Bool is_tran
 passportRequiredElement suitable_elements:vector<passportSuitableElement> = PassportRequiredElement;
 
 //@description Contains information about a Telegram Passport authorization form that was requested @id Unique identifier of the authorization form
-//@required_elements Information about the Telegram Passport elements that must be provided to complete the form
+//@required_elements Telegram Passport elements that must be provided to complete the form
 //@privacy_policy_url URL for the privacy policy of the service; may be empty
 passportAuthorizationForm id:int32 required_elements:vector<passportRequiredElement> privacy_policy_url:string = PassportAuthorizationForm;
 
@@ -1740,7 +1740,7 @@ messageVenue venue:venue = MessageContent;
 //@description A message with a user contact @contact The contact description
 messageContact contact:contact = MessageContent;
 
-//@description A message with an animated emoji @animated_emoji Description of the animated emoji @emoji The corresponding emoji
+//@description A message with an animated emoji @animated_emoji The animated emoji @emoji The corresponding emoji
 messageAnimatedEmoji animated_emoji:animatedEmoji emoji:string = MessageContent;
 
 //@description A dice message. The dice value is randomly generated by the server
@@ -2154,7 +2154,7 @@ stickerSet id:int64 title:string name:string thumbnail:thumbnail thumbnail_outli
 //@thumbnail_outline Sticker set thumbnail's outline represented as a list of closed vector paths; may be empty. The coordinate system origin is in the upper-left corner
 //@is_installed True, if the sticker set has been installed by the current user @is_archived True, if the sticker set has been archived. A sticker set can't be installed and archived simultaneously
 //@is_official True, if the sticker set is official @is_animated True, is the stickers in the set are animated @is_masks True, if the stickers in the set are masks @is_viewed True for already viewed trending sticker sets
-//@size Total number of stickers in the set @covers Contains up to the first 5 stickers from the set, depending on the context. If the application needs more stickers the full sticker set needs to be requested
+//@size Total number of stickers in the set @covers Up to the first 5 stickers from the set, depending on the context. If the application needs more stickers the full sticker set needs to be requested
 stickerSetInfo id:int64 title:string name:string thumbnail:thumbnail thumbnail_outline:vector<closedVectorPath> is_installed:Bool is_archived:Bool is_official:Bool is_animated:Bool is_masks:Bool is_viewed:Bool size:int32 covers:vector<sticker> = StickerSetInfo;
 
 //@description Represents a list of sticker sets @total_count Approximate total number of sticker sets found @sets List of sticker sets
@@ -2726,13 +2726,13 @@ backgroundFillFreeformGradient colors:vector<int32> = BackgroundFill;
 backgroundTypeWallpaper is_blurred:Bool is_moving:Bool = BackgroundType;
 
 //@description A PNG or TGV (gzipped subset of SVG with MIME type "application/x-tgwallpattern") pattern to be combined with the background fill chosen by the user
-//@fill Description of the background fill
+//@fill Fill of the background
 //@intensity Intensity of the pattern when it is shown above the filled background; 0-100.
 //@is_inverted True, if the background fill must be applied only to the pattern itself. All other pixels are black in this case. For dark themes only
 //@is_moving True, if the background needs to be slightly moved when device is tilted
 backgroundTypePattern fill:BackgroundFill intensity:int32 is_inverted:Bool is_moving:Bool = BackgroundType;
 
-//@description A filled background @fill Description of the background fill
+//@description A filled background @fill The background fill
 backgroundTypeFill fill:BackgroundFill = BackgroundType;
 
 
@@ -3639,11 +3639,11 @@ updateNewMessage message:message = Update;
 //@chat_id The chat identifier of the sent message @message_id A temporary message identifier
 updateMessageSendAcknowledged chat_id:int53 message_id:int53 = Update;
 
-//@description A message has been successfully sent @message Information about the sent message. Usually only the message identifier, date, and content are changed, but almost all other fields can also change @old_message_id The previous temporary message identifier
+//@description A message has been successfully sent @message The sent message. Usually only the message identifier, date, and content are changed, but almost all other fields can also change @old_message_id The previous temporary message identifier
 updateMessageSendSucceeded message:message old_message_id:int53 = Update;
 
 //@description A message failed to send. Be aware that some messages being sent can be irrecoverably deleted, in which case updateDeleteMessages will be received instead of this update
-//@message Contains information about the message which failed to send @old_message_id The previous temporary message identifier @error_code An error code @error_message Error message
+//@message The failed to send message @old_message_id The previous temporary message identifier @error_code An error code @error_message Error message
 updateMessageSendFailed message:message old_message_id:int53 error_code:int32 error_message:string = Update;
 
 //@description The message content has changed @chat_id Chat identifier @message_id Message identifier @new_content New message content
@@ -3892,7 +3892,7 @@ updateAnimationSearchParameters provider:string emojis:vector<string> = Update;
 updateSuggestedActions added_actions:vector<SuggestedAction> removed_actions:vector<SuggestedAction> = Update;
 
 //@description A new incoming inline query; for bots only @id Unique query identifier @sender_user_id Identifier of the user who sent the query @user_location User location; may be null
-//@chat_type Contains information about the type of the chat, from which the query originated; may be null if unknown @query Text of the query @offset Offset of the first entry to return
+//@chat_type The type of the chat, from which the query originated; may be null if unknown @query Text of the query @offset Offset of the first entry to return
 updateNewInlineQuery id:int64 sender_user_id:int53 user_location:location chat_type:ChatType query:string offset:string = Update;
 
 //@description The user has chosen a result of an inline query; for bots only @sender_user_id Identifier of the user who sent the query @user_location User location; may be null
@@ -4976,10 +4976,10 @@ approveChatJoinRequest chat_id:int53 user_id:int53 = Ok;
 declineChatJoinRequest chat_id:int53 user_id:int53 = Ok;
 
 
-//@description Creates a new call @user_id Identifier of the user to be called @protocol Description of the call protocols supported by the application @is_video True, if a video call needs to be created
+//@description Creates a new call @user_id Identifier of the user to be called @protocol The call protocols supported by the application @is_video True, if a video call needs to be created
 createCall user_id:int53 protocol:callProtocol is_video:Bool = CallId;
 
-//@description Accepts an incoming call @call_id Call identifier @protocol Description of the call protocols supported by the application
+//@description Accepts an incoming call @call_id Call identifier @protocol The call protocols supported by the application
 acceptCall call_id:int32 protocol:callProtocol = Ok;
 
 //@description Sends call signaling data @call_id Call identifier @data The data
