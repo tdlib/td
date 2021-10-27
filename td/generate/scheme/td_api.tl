@@ -4902,18 +4902,20 @@ replacePrimaryChatInviteLink chat_id:int53 = ChatInviteLink;
 
 //@description Creates a new invite link for a chat. Available for basic groups, supergroups, and channels. Requires administrator privileges and can_invite_users right in the chat
 //@chat_id Chat identifier
+//@title Invite link title; 0-32 characters
 //@expire_date Point in time (Unix timestamp) when the link will expire; pass 0 if never
 //@member_limit The maximum number of chat members that can join the chat by the link simultaneously; 0-99999; pass 0 if not limited
 //@requires_approval True, if users joining the chat by the link need to be approved by chat administrators
-createChatInviteLink chat_id:int53 expire_date:int32 member_limit:int32 requires_approval:Bool = ChatInviteLink;
+createChatInviteLink chat_id:int53 title:string expire_date:int32 member_limit:int32 requires_approval:Bool = ChatInviteLink;
 
 //@description Edits a non-primary invite link for a chat. Available for basic groups, supergroups, and channels. Requires administrator privileges and can_invite_users right in the chat for own links and owner privileges for other links
 //@chat_id Chat identifier
 //@invite_link Invite link to be edited
+//@title Invite link title; 0-32 characters
 //@expire_date Point in time (Unix timestamp) when the link will expire; pass 0 if never
 //@member_limit The maximum number of chat members that can join the chat by the link simultaneously; 0-99999; pass 0 if not limited
 //@requires_approval True, if users joining the chat by the link need to be approved by chat administrators
-editChatInviteLink chat_id:int53 invite_link:string expire_date:int32 member_limit:int32 requires_approval:Bool = ChatInviteLink;
+editChatInviteLink chat_id:int53 invite_link:string title:string expire_date:int32 member_limit:int32 requires_approval:Bool = ChatInviteLink;
 
 //@description Returns information about an invite link. Requires administrator privileges and can_invite_users right in the chat to get own links and owner privileges to get other links
 //@chat_id Chat identifier

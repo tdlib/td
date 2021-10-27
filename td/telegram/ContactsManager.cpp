@@ -1610,7 +1610,8 @@ class ExportChatInviteQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, int32 expire_date, int32 usage_limit, bool requires_approval, bool is_permanent) {
+  void send(DialogId dialog_id, const string &title, int32 expire_date, int32 usage_limit, bool requires_approval,
+            bool is_permanent) {
     dialog_id_ = dialog_id;
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
@@ -1630,9 +1631,12 @@ class ExportChatInviteQuery final : public Td::ResultHandler {
     if (is_permanent) {
       flags |= telegram_api::messages_exportChatInvite::LEGACY_REVOKE_PERMANENT_MASK;
     }
+    if (!title.empty()) {
+      flags |= telegram_api::messages_exportChatInvite::TITLE_MASK;
+    }
 
     send_query(G()->net_query_creator().create(telegram_api::messages_exportChatInvite(
-        flags, false /*ignored*/, false /*ignored*/, std::move(input_peer), expire_date, usage_limit, string())));
+        flags, false /*ignored*/, false /*ignored*/, std::move(input_peer), expire_date, usage_limit, title)));
   }
 
   void on_result(uint64 id, BufferSlice packet) final {
@@ -1672,7 +1676,7 @@ class EditChatInviteLinkQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, const string &invite_link, int32 expire_date, int32 usage_limit,
+  void send(DialogId dialog_id, const string &invite_link, const string &title, int32 expire_date, int32 usage_limit,
             bool requires_approval) {
     dialog_id_ = dialog_id;
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
@@ -1682,10 +1686,11 @@ class EditChatInviteLinkQuery final : public Td::ResultHandler {
 
     int32 flags = telegram_api::messages_editExportedChatInvite::EXPIRE_DATE_MASK |
                   telegram_api::messages_editExportedChatInvite::USAGE_LIMIT_MASK |
-                  telegram_api::messages_editExportedChatInvite::REQUEST_NEEDED_MASK;
+                  telegram_api::messages_editExportedChatInvite::REQUEST_NEEDED_MASK |
+                  telegram_api::messages_editExportedChatInvite::TITLE_MASK;
     send_query(G()->net_query_creator().create(
         telegram_api::messages_editExportedChatInvite(flags, false /*ignored*/, std::move(input_peer), invite_link,
-                                                      expire_date, usage_limit, requires_approval, string())));
+                                                      expire_date, usage_limit, requires_approval, title)));
   }
 
   void on_result(uint64 id, BufferSlice packet) final {
@@ -7432,32 +7437,34 @@ Status ContactsManager::can_manage_dialog_invite_links(DialogId dialog_id, bool 
   return Status::OK();
 }
 
-void ContactsManager::export_dialog_invite_link(DialogId dialog_id, int32 expire_date, int32 usage_limit,
+void ContactsManager::export_dialog_invite_link(DialogId dialog_id, string title, int32 expire_date, int32 usage_limit,
                                                 bool requires_approval, bool is_permanent,
                                                 Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise) {
-  get_me(PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, expire_date, usage_limit, requires_approval,
-                                 is_permanent, promise = std::move(promise)](Result<Unit> &&result) mutable {
+  get_me(PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, title = std::move(title), expire_date,
+                                 usage_limit, requires_approval, is_permanent,
+                                 promise = std::move(promise)](Result<Unit> &&result) mutable {
     if (result.is_error()) {
       promise.set_error(result.move_as_error());
     } else {
-      send_closure(actor_id, &ContactsManager::export_dialog_invite_link_impl, dialog_id, expire_date, usage_limit,
-                   requires_approval, is_permanent, std::move(promise));
+      send_closure(actor_id, &ContactsManager::export_dialog_invite_link_impl, dialog_id, std::move(title), expire_date,
+                   usage_limit, requires_approval, is_permanent, std::move(promise));
     }
   }));
 }
 
-void ContactsManager::export_dialog_invite_link_impl(DialogId dialog_id, int32 expire_date, int32 usage_limit,
-                                                     bool requires_approval, bool is_permanent,
+void ContactsManager::export_dialog_invite_link_impl(DialogId dialog_id, string title, int32 expire_date,
+                                                     int32 usage_limit, bool requires_approval, bool is_permanent,
                                                      Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
   TRY_STATUS_PROMISE(promise, can_manage_dialog_invite_links(dialog_id));
 
+  auto new_title = clean_name(std::move(title), MAX_INVITE_LINK_TITLE_LENGTH);
   td_->create_handler<ExportChatInviteQuery>(std::move(promise))
-      ->send(dialog_id, expire_date, usage_limit, requires_approval, is_permanent);
+      ->send(dialog_id, new_title, expire_date, usage_limit, requires_approval, is_permanent);
 }
 
-void ContactsManager::edit_dialog_invite_link(DialogId dialog_id, const string &invite_link, int32 expire_date,
-                                              int32 usage_limit, bool requires_approval,
+void ContactsManager::edit_dialog_invite_link(DialogId dialog_id, const string &invite_link, string title,
+                                              int32 expire_date, int32 usage_limit, bool requires_approval,
                                               Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise) {
   TRY_STATUS_PROMISE(promise, can_manage_dialog_invite_links(dialog_id));
 
@@ -7465,8 +7472,9 @@ void ContactsManager::edit_dialog_invite_link(DialogId dialog_id, const string &
     return promise.set_error(Status::Error(400, "Invite link must be non-empty"));
   }
 
+  auto new_title = clean_name(std::move(title), MAX_INVITE_LINK_TITLE_LENGTH);
   td_->create_handler<EditChatInviteLinkQuery>(std::move(promise))
-      ->send(dialog_id, invite_link, expire_date, requires_approval, usage_limit);
+      ->send(dialog_id, invite_link, new_title, expire_date, requires_approval, usage_limit);
 }
 
 void ContactsManager::get_dialog_invite_link(DialogId dialog_id, const string &invite_link,

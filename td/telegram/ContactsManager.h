@@ -384,11 +384,13 @@ class ContactsManager final : public Actor {
 
   void transfer_dialog_ownership(DialogId dialog_id, UserId user_id, const string &password, Promise<Unit> &&promise);
 
-  void export_dialog_invite_link(DialogId dialog_id, int32 expire_date, int32 usage_limit, bool requires_approval,
-                                 bool is_permanent, Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise);
+  void export_dialog_invite_link(DialogId dialog_id, string title, int32 expire_date, int32 usage_limit,
+                                 bool requires_approval, bool is_permanent,
+                                 Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise);
 
-  void edit_dialog_invite_link(DialogId dialog_id, const string &link, int32 expire_date, int32 usage_limit,
-                               bool requires_approval, Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise);
+  void edit_dialog_invite_link(DialogId dialog_id, const string &link, string title, int32 expire_date,
+                               int32 usage_limit, bool requires_approval,
+                               Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise);
 
   void get_dialog_invite_link(DialogId dialog_id, const string &invite_link,
                               Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise);
@@ -982,6 +984,7 @@ class ContactsManager final : public Actor {
   static constexpr size_t MAX_NAME_LENGTH = 64;               // server side limit for first/last name
   static constexpr size_t MAX_DESCRIPTION_LENGTH = 255;       // server side limit for chat/channel description
   static constexpr size_t MAX_BIO_LENGTH = 70;                // server side limit
+  static constexpr size_t MAX_INVITE_LINK_TITLE_LENGTH = 32;  // server side limit
   static constexpr int32 MAX_GET_CHANNEL_PARTICIPANTS = 200;  // server side limit
 
   static constexpr int32 CHANNEL_PARTICIPANT_CACHE_TIME = 1800;  // some reasonable limit
@@ -1400,8 +1403,9 @@ class ContactsManager final : public Actor {
 
   static bool is_channel_public(const Channel *c);
 
-  void export_dialog_invite_link_impl(DialogId dialog_id, int32 expire_date, int32 usage_limit, bool requires_approval,
-                                      bool is_permanent, Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise);
+  void export_dialog_invite_link_impl(DialogId dialog_id, string title, int32 expire_date, int32 usage_limit,
+                                      bool requires_approval, bool is_permanent,
+                                      Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise);
 
   void remove_dialog_access_by_invite_link(DialogId dialog_id);
 

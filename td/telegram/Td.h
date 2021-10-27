@@ -862,7 +862,7 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::replacePrimaryChatInviteLink &request);
 
-  void on_request(uint64 id, const td_api::createChatInviteLink &request);
+  void on_request(uint64 id, td_api::createChatInviteLink &request);
 
   void on_request(uint64 id, td_api::editChatInviteLink &request);
 
