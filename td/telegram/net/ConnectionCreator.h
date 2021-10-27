@@ -6,13 +6,12 @@
 //
 #pragma once
 
-#include "td/telegram/td_api.h"
-
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/DcOptions.h"
 #include "td/telegram/net/DcOptionsSet.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/net/Proxy.h"
+#include "td/telegram/td_api.h"
 
 #include "td/mtproto/AuthData.h"
 #include "td/mtproto/ConnectionManager.h"

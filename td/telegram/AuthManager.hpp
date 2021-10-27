@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/AuthManager.h"
+
 #include "td/telegram/logevent/LogEventHelper.h"
 #include "td/telegram/SendCodeHelper.hpp"
 #include "td/telegram/Version.h"

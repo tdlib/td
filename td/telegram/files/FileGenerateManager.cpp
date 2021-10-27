@@ -6,9 +6,6 @@
 //
 #include "td/telegram/files/FileGenerateManager.h"
 
-#include "td/telegram/td_api.h"
-#include "td/telegram/telegram_api.h"
-
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileLoaderUtils.h"
 #include "td/telegram/files/FileManager.h"
@@ -17,6 +14,8 @@
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/td_api.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/utils/common.h"
 #include "td/utils/format.h"

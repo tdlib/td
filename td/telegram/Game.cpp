@@ -6,9 +6,6 @@
 //
 #include "td/telegram/Game.h"
 
-#include "td/telegram/td_api.h"
-#include "td/telegram/telegram_api.h"
-
 #include "td/telegram/AnimationsManager.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Document.h"

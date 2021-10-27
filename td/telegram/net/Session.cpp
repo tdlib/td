@@ -6,8 +6,6 @@
 //
 #include "td/telegram/net/Session.h"
 
-#include "td/telegram/telegram_api.h"
-
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/DhCache.h"
 #include "td/telegram/Global.h"
@@ -18,6 +16,7 @@
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/net/NetType.h"
 #include "td/telegram/StateManager.h"
+#include "td/telegram/telegram_api.h"
 #include "td/telegram/UniqueId.h"
 
 #include "td/mtproto/DhCallback.h"

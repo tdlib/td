@@ -6,13 +6,12 @@
 //
 #pragma once
 
-#include "td/telegram/telegram_api.h"
-
 #include "td/telegram/files/FileEncryptionKey.h"
 #include "td/telegram/files/FileLoader.h"
 #include "td/telegram/files/FileLocation.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/NetQuery.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/utils/common.h"
 #include "td/utils/port/FileFd.h"

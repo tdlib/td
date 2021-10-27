@@ -6,9 +6,6 @@
 //
 #include "td/telegram/AuthManager.h"
 
-#include "td/telegram/td_api.h"
-#include "td/telegram/telegram_api.h"
-
 #include "td/telegram/AuthManager.hpp"
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/ConfigShared.h"

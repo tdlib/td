@@ -6,9 +6,6 @@
 //
 #include "td/telegram/UpdatesManager.h"
 
-#include "td/telegram/td_api.h"
-#include "td/telegram/telegram_api.hpp"
-
 #include "td/telegram/AnimationsManager.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/CallbackQueriesManager.h"
@@ -46,7 +43,9 @@
 #include "td/telegram/StickerSetId.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/td_api.h"
 #include "td/telegram/TdDb.h"
+#include "td/telegram/telegram_api.hpp"
 #include "td/telegram/ThemeManager.h"
 #include "td/telegram/WebPagesManager.h"
 

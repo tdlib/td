@@ -6,11 +6,10 @@
 //
 #pragma once
 
-#include "td/telegram/telegram_api.h"
-
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatId.h"
 #include "td/telegram/SecretChatId.h"
+#include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
 
 #include "td/utils/common.h"

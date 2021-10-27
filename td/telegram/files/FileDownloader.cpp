@@ -6,8 +6,6 @@
 //
 #include "td/telegram/files/FileDownloader.h"
 
-#include "td/telegram/telegram_api.h"
-
 #include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileLoaderUtils.h"
 #include "td/telegram/files/FileType.h"

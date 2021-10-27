@@ -6,11 +6,6 @@
 //
 #include "td/telegram/InlineQueriesManager.h"
 
-#include "td/telegram/td_api.h"
-#include "td/telegram/td_api.hpp"
-#include "td/telegram/telegram_api.h"
-#include "td/telegram/telegram_api.hpp"
-
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AnimationsManager.h"
 #include "td/telegram/AudiosManager.h"
@@ -30,18 +25,19 @@
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
+#include "td/telegram/net/DcId.h"
 #include "td/telegram/Payments.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/td_api.hpp"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/TdParameters.h"
+#include "td/telegram/telegram_api.hpp"
 #include "td/telegram/Venue.h"
 #include "td/telegram/VideosManager.h"
 #include "td/telegram/VoiceNotesManager.h"
-
-#include "td/telegram/net/DcId.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/base64.h"

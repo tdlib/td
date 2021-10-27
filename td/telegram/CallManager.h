@@ -8,7 +8,6 @@
 
 #include "td/telegram/CallActor.h"
 #include "td/telegram/CallId.h"
-
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 

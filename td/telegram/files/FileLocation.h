@@ -6,12 +6,11 @@
 //
 #pragma once
 
-#include "td/telegram/telegram_api.h"
-
 #include "td/telegram/files/FileBitmask.h"
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/PhotoSizeSource.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/utils/base64.h"
 #include "td/utils/buffer.h"

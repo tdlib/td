@@ -7,9 +7,8 @@
 #pragma once
 
 #include "td/telegram/Global.h"
-#include "td/telegram/SecretInputMedia.h"
-
 #include "td/telegram/secret_api.h"
+#include "td/telegram/SecretInputMedia.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 

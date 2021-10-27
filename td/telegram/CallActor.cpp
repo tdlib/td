@@ -6,10 +6,6 @@
 //
 #include "td/telegram/CallActor.h"
 
-#include "td/telegram/td_api.h"
-#include "td/telegram/telegram_api.h"
-#include "td/telegram/telegram_api.hpp"
-
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DhCache.h"
@@ -20,6 +16,7 @@
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/NotificationManager.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/telegram_api.hpp"
 #include "td/telegram/UpdatesManager.h"
 
 #include "td/utils/algorithm.h"
