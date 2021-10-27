@@ -36,11 +36,11 @@ DialogInviteLink::DialogInviteLink(tl_object_ptr<telegram_api::chatInviteExporte
     LOG(ERROR) << "Receive invalid " << creator_user_id_ << " as creator of a link " << invite_link_;
     creator_user_id_ = UserId();
   }
-  if (date_ < 1000000000) {
+  if (date_ != 0 && date_ < 1000000000) {
     LOG(ERROR) << "Receive wrong date " << date_ << " as a creation date of a link " << invite_link_;
     date_ = 0;
   }
-  if (expire_date_ < 1000000000) {
+  if (expire_date_ != 0 && expire_date_ < 1000000000) {
     LOG(ERROR) << "Receive wrong date " << expire_date_ << " as an expire date of a link " << invite_link_;
     expire_date_ = 0;
   }
@@ -52,7 +52,7 @@ DialogInviteLink::DialogInviteLink(tl_object_ptr<telegram_api::chatInviteExporte
     LOG(ERROR) << "Receive wrong usage count " << usage_count_ << " for a link " << invite_link_;
     usage_count_ = 0;
   }
-  if (edit_date_ < 1000000000) {
+  if (edit_date_ != 0 && edit_date_ < 1000000000) {
     LOG(ERROR) << "Receive wrong date " << edit_date_ << " as an edit date of a link " << invite_link_;
     edit_date_ = 0;
   }
