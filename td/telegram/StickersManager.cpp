@@ -1286,7 +1286,6 @@ void StickersManager::init() {
   on_update_emoji_sounds();
 
   on_update_disable_animated_emojis();
-
   if (!disable_animated_emojis_) {
     load_special_sticker_set(add_special_sticker_set(SpecialStickerSetType::animated_emoji()));
   }
@@ -1374,6 +1373,7 @@ void StickersManager::load_special_sticker_set(SpecialStickerSet &sticker_set) {
     return;
   }
   sticker_set.is_being_loaded_ = true;
+  LOG(INFO) << "Load " << sticker_set.type_.type_ << " " << sticker_set.id_;
   if (sticker_set.id_.is_valid()) {
     auto promise = PromiseCreator::lambda([actor_id = actor_id(this), type = sticker_set.type_](Result<Unit> &&result) {
       send_closure(actor_id, &StickersManager::on_load_special_sticker_set, type,
@@ -1412,6 +1412,11 @@ void StickersManager::on_load_special_sticker_set(const SpecialStickerSetType &t
   special_sticker_set.is_being_loaded_ = false;
 
   if (type.type_ == SpecialStickerSetType::animated_emoji()) {
+    auto promises = std::move(pending_get_animated_emoji_queries_);
+    reset_to_empty(pending_get_animated_emoji_queries_);
+    for (auto &promise : promises) {
+      promise.set_value(Unit());
+    }
     return;
   }
 
@@ -1432,11 +1437,6 @@ void StickersManager::on_load_special_sticker_set(const SpecialStickerSetType &t
     for (auto &pending_request : pending_click_requests) {
       schedule_update_animated_emoji_clicked(sticker_set, pending_request.emoji_, pending_request.full_message_id_,
                                              std::move(pending_request.clicks_));
-    }
-    auto promises = std::move(pending_get_animated_emoji_queries_);
-    reset_to_empty(pending_get_animated_emoji_queries_);
-    for (auto &promise : promises) {
-      promise.set_value(Unit());
     }
     return;
   }
