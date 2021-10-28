@@ -202,6 +202,8 @@ class ContactsManager final : public Actor {
   void on_update_channel_participant(ChannelId channel_id, UserId user_id, int32 date, DialogInviteLink invite_link,
                                      tl_object_ptr<telegram_api::ChannelParticipant> old_participant,
                                      tl_object_ptr<telegram_api::ChannelParticipant> new_participant);
+  void on_update_chat_invite_requester(DialogId dialog_id, UserId user_id, string about, int32 date,
+                                       DialogInviteLink invite_link);
 
   int32 on_update_peer_located(vector<tl_object_ptr<telegram_api::PeerLocated>> &&peers, bool from_update);
 

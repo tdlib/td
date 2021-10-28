@@ -13625,12 +13625,8 @@ void ContactsManager::on_update_bot_stopped(UserId user_id, int32 date, bool is_
     LOG(ERROR) << "Receive updateBotStopped by non-bot";
     return;
   }
-  if (!user_id.is_valid() || date <= 0) {
+  if (date <= 0 || !have_user_force(user_id)) {
     LOG(ERROR) << "Receive invalid updateBotStopped by " << user_id << " at " << date;
-    return;
-  }
-  if (!have_user_force(user_id)) {
-    LOG(ERROR) << "Receive updateBotStopped by unknown " << user_id;
     return;
   }
 
@@ -13744,6 +13740,22 @@ void ContactsManager::on_update_channel_participant(ChannelId channel_id, UserId
 
   send_update_chat_member(DialogId(channel_id), user_id, date, invite_link, old_dialog_participant,
                           new_dialog_participant);
+}
+
+void ContactsManager::on_update_chat_invite_requester(DialogId dialog_id, UserId user_id, string about, int32 date,
+                                                      DialogInviteLink invite_link) {
+  if (!td_->auth_manager_->is_bot() || date <= 0 || !have_user_force(user_id) ||
+      !td_->messages_manager_->have_dialog_info_force(dialog_id)) {
+    LOG(ERROR) << "Receive invalid updateBotChatInviteRequester by " << user_id << " in " << dialog_id << " at "
+               << date;
+    return;
+  }
+  td_->messages_manager_->force_create_dialog(dialog_id, "on_update_chat_invite_requester", true);
+
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateNewChatJoinRequest>(
+                   dialog_id.get(), get_user_id_object(user_id, "on_update_chat_invite_requester"), about, date,
+                   invite_link.get_chat_invite_link_object(this)));
 }
 
 void ContactsManager::update_contacts_hints(const User *u, UserId user_id, bool from_database) {

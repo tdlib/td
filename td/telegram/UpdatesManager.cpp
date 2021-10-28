@@ -2119,6 +2119,14 @@ void UpdatesManager::process_qts_update(tl_object_ptr<telegram_api::Update> &&up
       add_qts(qts).set_value(Unit());
       break;
     }
+    case telegram_api::updateBotChatInviteRequester::ID: {
+      auto update = move_tl_object_as<telegram_api::updateBotChatInviteRequester>(update_ptr);
+      td_->contacts_manager_->on_update_chat_invite_requester(DialogId(update->peer_), UserId(update->user_id_),
+                                                              std::move(update->about_), update->date_,
+                                                              DialogInviteLink(std::move(update->invite_)));
+      add_qts(qts).set_value(Unit());
+      break;
+    }
     default:
       UNREACHABLE();
       break;
@@ -2774,6 +2782,7 @@ bool UpdatesManager::is_qts_update(const telegram_api::Update *update) {
     case telegram_api::updateBotStopped::ID:
     case telegram_api::updateChatParticipant::ID:
     case telegram_api::updateChannelParticipant::ID:
+    case telegram_api::updateBotChatInviteRequester::ID:
       return true;
     default:
       return false;
@@ -2792,6 +2801,8 @@ int32 UpdatesManager::get_update_qts(const telegram_api::Update *update) {
       return static_cast<const telegram_api::updateChatParticipant *>(update)->qts_;
     case telegram_api::updateChannelParticipant::ID:
       return static_cast<const telegram_api::updateChannelParticipant *>(update)->qts_;
+    case telegram_api::updateBotChatInviteRequester::ID:
+      return static_cast<const telegram_api::updateBotChatInviteRequester *>(update)->qts_;
     default:
       return 0;
   }
@@ -3207,6 +3218,12 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelParticip
   add_pending_qts_update(std::move(update), qts, std::move(promise));
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotChatInviteRequester> update,
+                               Promise<Unit> &&promise) {
+  auto qts = update->qts_;
+  add_pending_qts_update(std::move(update), qts, std::move(promise));
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTheme> update, Promise<Unit> &&promise) {
   td_->theme_manager_->on_update_theme(std::move(update->theme_), std::move(promise));
 }
@@ -3218,9 +3235,5 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePendingJoinRequ
 }
 
 // unsupported updates
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotChatInviteRequester> update,
-                               Promise<Unit> &&promise) {
-}
 
 }  // namespace td
