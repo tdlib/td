@@ -323,7 +323,8 @@ class FileView {
       return false;
     }
     auto type = remote_location().get_source().get_type();
-    return type != PhotoSizeSource::Type::Legacy && type != PhotoSizeSource::Type::FullLegacy;
+    return type != PhotoSizeSource::Type::Legacy && type != PhotoSizeSource::Type::FullLegacy &&
+           type != PhotoSizeSource::Type::Thumbnail;
   }
 
   string get_persistent_file_id() const;
