@@ -354,6 +354,12 @@ class LinkManager::InternalLinkUnknownDeepLink final : public InternalLink {
   }
 };
 
+class LinkManager::InternalLinkUnsupportedProxy final : public InternalLink {
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeUnsupportedProxy>();
+  }
+};
+
 class LinkManager::InternalLinkVoiceChat final : public InternalLink {
   string dialog_username_;
   string invite_hash_;
@@ -863,6 +869,8 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
       if (0 < port && port < 65536) {
         return td::make_unique<InternalLinkProxy>(
             get_arg("server"), port, td_api::make_object<td_api::proxyTypeSocks5>(get_arg("user"), get_arg("pass")));
+      } else {
+        return td::make_unique<InternalLinkUnsupportedProxy>();
       }
     }
   } else if (path.size() == 1 && path[0] == "proxy") {
@@ -872,6 +880,8 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
       if (0 < port && port < 65536 && mtproto::ProxySecret::from_link(get_arg("secret")).is_ok()) {
         return td::make_unique<InternalLinkProxy>(get_arg("server"), port,
                                                   td_api::make_object<td_api::proxyTypeMtproto>(get_arg("secret")));
+      } else {
+        return td::make_unique<InternalLinkUnsupportedProxy>();
       }
     }
   } else if (path.size() == 1 && path[0] == "privatepost") {
@@ -982,6 +992,8 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
       if (0 < port && port < 65536) {
         return td::make_unique<InternalLinkProxy>(
             get_arg("server"), port, td_api::make_object<td_api::proxyTypeSocks5>(get_arg("user"), get_arg("pass")));
+      } else {
+        return td::make_unique<InternalLinkUnsupportedProxy>();
       }
     }
   } else if (path[0] == "proxy") {
@@ -991,6 +1003,8 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
       if (0 < port && port < 65536 && mtproto::ProxySecret::from_link(get_arg("secret")).is_ok()) {
         return td::make_unique<InternalLinkProxy>(get_arg("server"), port,
                                                   td_api::make_object<td_api::proxyTypeMtproto>(get_arg("secret")));
+      } else {
+        return td::make_unique<InternalLinkUnsupportedProxy>();
       }
     }
   } else if (path[0] == "bg") {

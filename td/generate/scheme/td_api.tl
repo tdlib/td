@@ -3216,6 +3216,9 @@ internalLinkTypeThemeSettings = InternalLinkType;
 //@description The link is an unknown tg: link. Call getDeepLinkInfo to process the link @link Link to be passed to getDeepLinkInfo
 internalLinkTypeUnknownDeepLink link:string = InternalLinkType;
 
+//@description The link is a link to an unsupported proxy. An alert can be shown to the user
+internalLinkTypeUnsupportedProxy = InternalLinkType;
+
 //@description The link is a link to a video chat. Call searchPublicChat with the given chat username, and then joinGoupCall with the given invite hash to process the link
 //@chat_username Username of the chat with the video chat @invite_hash If non-empty, invite hash to be used to join the video chat without being muted by administrators
 //@is_live_stream True, if the video chat is expected to be a live stream in a channel or a broadcast group

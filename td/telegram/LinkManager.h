@@ -98,6 +98,7 @@ class LinkManager final : public Actor {
   class InternalLinkTheme;
   class InternalLinkThemeSettings;
   class InternalLinkUnknownDeepLink;
+  class InternalLinkUnsupportedProxy;
   class InternalLinkVoiceChat;
 
   struct LinkInfo {

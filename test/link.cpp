@@ -171,6 +171,9 @@ TEST(Link, parse_internal_link) {
   auto unknown_deep_link = [](const td::string &link) {
     return td::td_api::make_object<td::td_api::internalLinkTypeUnknownDeepLink>(link);
   };
+  auto unsupported_proxy = [] {
+    return td::td_api::make_object<td::td_api::internalLinkTypeUnsupportedProxy>();
+  };
   auto video_chat = [](const td::string &chat_username, const td::string &invite_hash, bool is_live_stream) {
     return td::td_api::make_object<td::td_api::internalLinkTypeVideoChat>(chat_username, invite_hash, is_live_stream);
   };
@@ -468,17 +471,22 @@ TEST(Link, parse_internal_link) {
                       proxy_mtproto("1.2.3.4", 80, "1234567890abcdef1234567890ABCDEF"));
   parse_internal_link("t.me/proxy?server=1.2.3.4&port=80adasdas&secret=1234567890abcdef1234567890ABCDEF",
                       proxy_mtproto("1.2.3.4", 80, "1234567890abcdef1234567890ABCDEF"));
-  parse_internal_link("t.me/proxy?server=1.2.3.4&port=adasdas&secret=1234567890abcdef1234567890ABCDEF", nullptr);
-  parse_internal_link("t.me/proxy?server=1.2.3.4&port=65536&secret=1234567890abcdef1234567890ABCDEF", nullptr);
-  parse_internal_link("t.me/proxy?server=google.com&port=8%30&secret=", nullptr);
-  parse_internal_link("t.me/proxy?server=google.com&port=8%30&secret=12", nullptr);
+  parse_internal_link("t.me/proxy?server=1.2.3.4&port=adasdas&secret=1234567890abcdef1234567890ABCDEF",
+                      unsupported_proxy());
+  parse_internal_link("t.me/proxy?server=1.2.3.4&port=65536&secret=1234567890abcdef1234567890ABCDEF",
+                      unsupported_proxy());
+  parse_internal_link("t.me/proxy?server=google.com&port=8%30&secret=", unsupported_proxy());
+  parse_internal_link("t.me/proxy?server=google.com&port=8%30&secret=12", unsupported_proxy());
   parse_internal_link("t.me/proxy?server=google.com&port=8%30&secret=1234567890abcdef1234567890ABCDEF",
                       proxy_mtproto("google.com", 80, "1234567890abcdef1234567890ABCDEF"));
   parse_internal_link("t.me/proxy?server=google.com&port=8%30&secret=dd1234567890abcdef1234567890ABCDEF",
                       proxy_mtproto("google.com", 80, "dd1234567890abcdef1234567890ABCDEF"));
-  parse_internal_link("t.me/proxy?server=google.com&port=8%30&secret=de1234567890abcdef1234567890ABCDEF", nullptr);
-  parse_internal_link("t.me/proxy?server=google.com&port=8%30&secret=ee1234567890abcdef1234567890ABCDEF", nullptr);
-  parse_internal_link("t.me/proxy?server=google.com&port=8%30&secret=ee1234567890abcdef1234567890ABCDEF0", nullptr);
+  parse_internal_link("t.me/proxy?server=google.com&port=8%30&secret=de1234567890abcdef1234567890ABCDEF",
+                      unsupported_proxy());
+  parse_internal_link("t.me/proxy?server=google.com&port=8%30&secret=ee1234567890abcdef1234567890ABCDEF",
+                      unsupported_proxy());
+  parse_internal_link("t.me/proxy?server=google.com&port=8%30&secret=ee1234567890abcdef1234567890ABCDEF0",
+                      unsupported_proxy());
   parse_internal_link("t.me/proxy?server=google.com&port=8%30&secret=ee1234567890abcdef1234567890ABCDEF%30%30",
                       proxy_mtproto("google.com", 80, "ee1234567890abcdef1234567890ABCDEF00"));
   parse_internal_link(
@@ -491,24 +499,21 @@ TEST(Link, parse_internal_link) {
                       proxy_mtproto("1.2.3.4", 80, "1234567890abcdef1234567890ABCDEF"));
   parse_internal_link("tg:proxy?server=1.2.3.4&port=80adasdas&secret=1234567890abcdef1234567890ABCDEF",
                       proxy_mtproto("1.2.3.4", 80, "1234567890abcdef1234567890ABCDEF"));
-  parse_internal_link(
-      "tg:proxy?server=1.2.3.4&port=adasdas&secret=1234567890abcdef1234567890ABCDEF",
-      unknown_deep_link("tg://proxy?server=1.2.3.4&port=adasdas&secret=1234567890abcdef1234567890ABCDEF"));
-  parse_internal_link(
-      "tg:proxy?server=1.2.3.4&port=65536&secret=1234567890abcdef1234567890ABCDEF",
-      unknown_deep_link("tg://proxy?server=1.2.3.4&port=65536&secret=1234567890abcdef1234567890ABCDEF"));
+  parse_internal_link("tg:proxy?server=1.2.3.4&port=adasdas&secret=1234567890abcdef1234567890ABCDEF",
+                      unsupported_proxy());
+  parse_internal_link("tg:proxy?server=1.2.3.4&port=65536&secret=1234567890abcdef1234567890ABCDEF",
+                      unsupported_proxy());
   parse_internal_link("tg:proxy?server=google.com&port=8%30&secret=1234567890abcdef1234567890ABCDEF",
                       proxy_mtproto("google.com", 80, "1234567890abcdef1234567890ABCDEF"));
   parse_internal_link("tg:proxy?server=google.com&port=8%30&secret=dd1234567890abcdef1234567890ABCDEF",
                       proxy_mtproto("google.com", 80, "dd1234567890abcdef1234567890ABCDEF"));
-  parse_internal_link(
-      "tg:proxy?server=google.com&port=8%30&secret=de1234567890abcdef1234567890ABCDEF",
-      unknown_deep_link("tg://proxy?server=google.com&port=8%30&secret=de1234567890abcdef1234567890ABCDEF"));
+  parse_internal_link("tg:proxy?server=google.com&port=8%30&secret=de1234567890abcdef1234567890ABCDEF",
+                      unsupported_proxy());
 
   parse_internal_link("t.me/socks?server=1.2.3.4&port=80", proxy_socks("1.2.3.4", 80, "", ""));
   parse_internal_link("t.me/socks?server=1.2.3.4&port=80adasdas", proxy_socks("1.2.3.4", 80, "", ""));
-  parse_internal_link("t.me/socks?server=1.2.3.4&port=adasdas", nullptr);
-  parse_internal_link("t.me/socks?server=1.2.3.4&port=65536", nullptr);
+  parse_internal_link("t.me/socks?server=1.2.3.4&port=adasdas", unsupported_proxy());
+  parse_internal_link("t.me/socks?server=1.2.3.4&port=65536", unsupported_proxy());
   parse_internal_link("t.me/socks?server=google.com&port=8%30", proxy_socks("google.com", 80, "", ""));
   parse_internal_link("t.me/socks?server=google.com&port=8%30&user=1&pass=", proxy_socks("google.com", 80, "1", ""));
   parse_internal_link("t.me/socks?server=google.com&port=8%30&user=&pass=2", proxy_socks("google.com", 80, "", "2"));
@@ -516,9 +521,8 @@ TEST(Link, parse_internal_link) {
 
   parse_internal_link("tg:socks?server=1.2.3.4&port=80", proxy_socks("1.2.3.4", 80, "", ""));
   parse_internal_link("tg:socks?server=1.2.3.4&port=80adasdas", proxy_socks("1.2.3.4", 80, "", ""));
-  parse_internal_link("tg:socks?server=1.2.3.4&port=adasdas",
-                      unknown_deep_link("tg://socks?server=1.2.3.4&port=adasdas"));
-  parse_internal_link("tg:socks?server=1.2.3.4&port=65536", unknown_deep_link("tg://socks?server=1.2.3.4&port=65536"));
+  parse_internal_link("tg:socks?server=1.2.3.4&port=adasdas", unsupported_proxy());
+  parse_internal_link("tg:socks?server=1.2.3.4&port=65536", unsupported_proxy());
   parse_internal_link("tg:socks?server=google.com&port=8%30", proxy_socks("google.com", 80, "", ""));
   parse_internal_link("tg:socks?server=google.com&port=8%30&user=1&pass=", proxy_socks("google.com", 80, "1", ""));
   parse_internal_link("tg:socks?server=google.com&port=8%30&user=&pass=2", proxy_socks("google.com", 80, "", "2"));

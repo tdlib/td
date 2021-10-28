@@ -3364,7 +3364,8 @@ class CliClient final : public Actor {
       string bot_id;
       string query;
       get_args(args, bot_id, query);
-      send_request(td_api::make_object<td_api::getInlineQueryResults>(as_user_id(bot_id), 0, nullptr, query, ""));
+      send_request(td_api::make_object<td_api::getInlineQueryResults>(as_user_id(bot_id), as_chat_id(bot_id), nullptr,
+                                                                      query, ""));
     } else if (op == "giqro") {
       string bot_id;
       string offset;
