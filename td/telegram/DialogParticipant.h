@@ -390,10 +390,10 @@ bool operator!=(const DialogParticipantStatus &lhs, const DialogParticipantStatu
 StringBuilder &operator<<(StringBuilder &string_builder, const DialogParticipantStatus &status);
 
 struct DialogParticipant {
-  DialogId dialog_id;
-  UserId inviter_user_id;
-  int32 joined_date = 0;
-  DialogParticipantStatus status = DialogParticipantStatus::Left();
+  DialogId dialog_id_;
+  UserId inviter_user_id_;
+  int32 joined_date_ = 0;
+  DialogParticipantStatus status_ = DialogParticipantStatus::Left();
 
   DialogParticipant() = default;
 
@@ -417,24 +417,24 @@ struct DialogParticipant {
 
   template <class StorerT>
   void store(StorerT &storer) const {
-    td::store(dialog_id, storer);
-    td::store(inviter_user_id, storer);
-    td::store(joined_date, storer);
-    td::store(status, storer);
+    td::store(dialog_id_, storer);
+    td::store(inviter_user_id_, storer);
+    td::store(joined_date_, storer);
+    td::store(status_, storer);
   }
 
   template <class ParserT>
   void parse(ParserT &parser) {
     if (parser.version() >= static_cast<int32>(Version::SupportBannedChannels)) {
-      td::parse(dialog_id, parser);
+      td::parse(dialog_id_, parser);
     } else {
       UserId user_id;
       td::parse(user_id, parser);
-      dialog_id = DialogId(user_id);
+      dialog_id_ = DialogId(user_id);
     }
-    td::parse(inviter_user_id, parser);
-    td::parse(joined_date, parser);
-    td::parse(status, parser);
+    td::parse(inviter_user_id_, parser);
+    td::parse(joined_date_, parser);
+    td::parse(status_, parser);
   }
 };
 

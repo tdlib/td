@@ -2687,9 +2687,9 @@ void GroupCallManager::finish_load_group_call_administrators(InputGroupCallId in
   vector<DialogId> administrator_dialog_ids;
   auto participants = result.move_as_ok();
   for (auto &administrator : participants.participants_) {
-    if (administrator.status.can_manage_calls() &&
-        administrator.dialog_id != DialogId(td_->contacts_manager_->get_my_id())) {
-      administrator_dialog_ids.push_back(administrator.dialog_id);
+    if (administrator.status_.can_manage_calls() &&
+        administrator.dialog_id_ != DialogId(td_->contacts_manager_->get_my_id())) {
+      administrator_dialog_ids.push_back(administrator.dialog_id_);
     }
   }
 

@@ -656,14 +656,14 @@ RestrictedRights get_restricted_rights(const td_api::object_ptr<td_api::chatPerm
 
 DialogParticipant::DialogParticipant(DialogId dialog_id, UserId inviter_user_id, int32 joined_date,
                                      DialogParticipantStatus status)
-    : dialog_id(dialog_id), inviter_user_id(inviter_user_id), joined_date(joined_date), status(std::move(status)) {
-  if (!inviter_user_id.is_valid() && inviter_user_id != UserId()) {
-    LOG(ERROR) << "Receive inviter " << inviter_user_id;
-    this->inviter_user_id = UserId();
+    : dialog_id_(dialog_id), inviter_user_id_(inviter_user_id), joined_date_(joined_date), status_(std::move(status)) {
+  if (!inviter_user_id_.is_valid() && inviter_user_id_ != UserId()) {
+    LOG(ERROR) << "Receive inviter " << inviter_user_id_;
+    inviter_user_id_ = UserId();
   }
-  if (joined_date < 0) {
-    LOG(ERROR) << "Receive date " << joined_date;
-    this->joined_date = 0;
+  if (joined_date_ < 0) {
+    LOG(ERROR) << "Receive date " << joined_date_;
+    joined_date_ = 0;
   }
 }
 
@@ -743,18 +743,18 @@ DialogParticipant::DialogParticipant(tl_object_ptr<telegram_api::ChannelParticip
 }
 
 bool DialogParticipant::is_valid() const {
-  if (!dialog_id.is_valid() || joined_date < 0) {
+  if (!dialog_id_.is_valid() || joined_date_ < 0) {
     return false;
   }
-  if (status.is_restricted() || status.is_banned() || (status.is_administrator() && !status.is_creator())) {
-    return inviter_user_id.is_valid();
+  if (status_.is_restricted() || status_.is_banned() || (status_.is_administrator() && !status_.is_creator())) {
+    return inviter_user_id_.is_valid();
   }
   return true;
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const DialogParticipant &dialog_participant) {
-  return string_builder << '[' << dialog_participant.dialog_id << " invited by " << dialog_participant.inviter_user_id
-                        << " at " << dialog_participant.joined_date << " with status " << dialog_participant.status
+  return string_builder << '[' << dialog_participant.dialog_id_ << " invited by " << dialog_participant.inviter_user_id_
+                        << " at " << dialog_participant.joined_date_ << " with status " << dialog_participant.status_
                         << ']';
 }
 
@@ -979,21 +979,21 @@ bool DialogParticipantsFilter::is_dialog_participant_suitable(const Td *td,
                                                               const DialogParticipant &participant) const {
   switch (type_) {
     case Type::Contacts:
-      return participant.dialog_id.get_type() == DialogType::User &&
-             td->contacts_manager_->is_user_contact(participant.dialog_id.get_user_id());
+      return participant.dialog_id_.get_type() == DialogType::User &&
+             td->contacts_manager_->is_user_contact(participant.dialog_id_.get_user_id());
     case Type::Administrators:
-      return participant.status.is_administrator();
+      return participant.status_.is_administrator();
     case Type::Members:
-      return participant.status.is_member();
+      return participant.status_.is_member();
     case Type::Restricted:
-      return participant.status.is_restricted();
+      return participant.status_.is_restricted();
     case Type::Banned:
-      return participant.status.is_banned();
+      return participant.status_.is_banned();
     case Type::Mention:
       return true;
     case Type::Bots:
-      return participant.dialog_id.get_type() == DialogType::User &&
-             td->contacts_manager_->is_user_bot(participant.dialog_id.get_user_id());
+      return participant.dialog_id_.get_type() == DialogType::User &&
+             td->contacts_manager_->is_user_bot(participant.dialog_id_.get_user_id());
     default:
       UNREACHABLE();
       return false;
