@@ -56,9 +56,9 @@ class PhoneNumberManager final : public NetActor {
 
   void start_net_query(NetQueryType net_query_type, NetQueryPtr net_query);
 
-  void send_new_send_code_query(uint64 query_id, const telegram_api::Function &query);
+  void send_new_send_code_query(uint64 query_id, const telegram_api::Function &send_code);
 
-  void send_new_check_code_query(const telegram_api::Function &query);
+  void send_new_check_code_query(const telegram_api::Function &check_code);
 
   void process_check_code_result(Result<tl_object_ptr<telegram_api::User>> &&result);
 

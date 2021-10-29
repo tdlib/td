@@ -96,8 +96,8 @@ void PhoneNumberManager::resend_authentication_code(uint64 query_id) {
   start_net_query(NetQueryType::SendCode, G()->net_query_creator().create_unauth(r_resend_code.move_as_ok()));
 }
 
-void PhoneNumberManager::send_new_check_code_query(const telegram_api::Function &query) {
-  start_net_query(NetQueryType::CheckCode, G()->net_query_creator().create(query));
+void PhoneNumberManager::send_new_check_code_query(const telegram_api::Function &check_code) {
+  start_net_query(NetQueryType::CheckCode, G()->net_query_creator().create(check_code));
 }
 
 void PhoneNumberManager::check_code(uint64 query_id, string code) {
