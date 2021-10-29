@@ -135,7 +135,7 @@ class LambdaPromise : public PromiseInterface<ValueT> {
       , on_fail_(use_ok_as_fail ? OnFail::Ok : OnFail::Fail)
       , has_lambda_(true) {
   }
-  template <class FromOkT>
+  template <class FromOkT, std::enable_if_t<!std::is_same<std::decay_t<FromOkT>, LambdaPromise>::value, int> = 0>
   LambdaPromise(FromOkT &&ok) : LambdaPromise(std::forward<FromOkT>(ok), Ignore(), true) {
   }
 
@@ -307,7 +307,7 @@ class Promise {
   }
   Promise(SafePromise<T> &&other);
   Promise &operator=(SafePromise<T> &&other);
-  template <class F>
+  template <class F, std::enable_if_t<!std::is_same<std::decay_t<F>, Promise>::value, int> = 0>
   Promise(F &&f) : promise_(promise_interface_ptr<T>(std::forward<F>(f))) {
   }
 
