@@ -2167,6 +2167,70 @@ class ReadDiscussionQuery final : public Td::ResultHandler {
   }
 };
 
+class GetSearchResultCalendarQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+  MessageId from_message_id_;
+  MessageSearchFilter filter_;
+  int64 random_id_;
+
+ public:
+  explicit GetSearchResultCalendarQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, MessageId from_message_id, MessageSearchFilter filter, int64 random_id) {
+    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+
+    dialog_id_ = dialog_id;
+    from_message_id_ = from_message_id;
+    filter_ = filter;
+    random_id_ = random_id;
+
+    send_query(G()->net_query_creator().create(telegram_api::messages_getSearchResultsCalendar(
+        std::move(input_peer), get_input_messages_filter(filter), from_message_id.get_server_message_id().get(), 0)));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_getSearchResultsCalendar>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetSearchResultCalendarQuery: " << to_string(result);
+    td->contacts_manager_->on_get_users(std::move(result->users_), "GetSearchResultCalendarQuery");
+    td->contacts_manager_->on_get_chats(std::move(result->chats_), "GetSearchResultCalendarQuery");
+
+    MessagesManager::MessagesInfo info;
+    info.messages = std::move(result->messages_);
+    info.total_count = result->count_;
+    info.is_channel_messages = dialog_id_.get_type() == DialogType::Channel;
+
+    td->messages_manager_->get_channel_difference_if_needed(
+        dialog_id_, std::move(info),
+        PromiseCreator::lambda([actor_id = td->messages_manager_actor_.get(), dialog_id = dialog_id_,
+                                from_message_id = from_message_id_, filter = filter_, random_id = random_id_,
+                                periods = std::move(result->periods_),
+                                promise = std::move(promise_)](Result<MessagesManager::MessagesInfo> &&result) mutable {
+          if (result.is_error()) {
+            promise.set_error(result.move_as_error());
+          } else {
+            auto info = result.move_as_ok();
+            send_closure(actor_id, &MessagesManager::on_get_message_search_result_calendar, dialog_id, from_message_id,
+                         filter, random_id, info.total_count, std::move(info.messages), std::move(periods),
+                         std::move(promise));
+          }
+        }));
+  }
+
+  void on_error(uint64 id, Status status) final {
+    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "SearchMessagesQuery");
+    td->messages_manager_->on_failed_get_message_search_result_calendar(dialog_id_, random_id_);
+    promise_.set_error(std::move(status));
+  }
+};
+
 class SearchMessagesQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
@@ -9691,6 +9755,71 @@ void MessagesManager::on_failed_public_dialogs_search(const string &query, Statu
   for (auto &promise : promises) {
     promise.set_error(error.clone());
   }
+}
+
+void MessagesManager::on_get_message_search_result_calendar(
+    DialogId dialog_id, MessageId from_message_id, MessageSearchFilter filter, int64 random_id, int32 total_count,
+    vector<tl_object_ptr<telegram_api::Message>> &&messages,
+    vector<tl_object_ptr<telegram_api::searchResultsCalendarPeriod>> &&periods, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
+  auto it = found_dialog_message_calendars_.find(random_id);
+  CHECK(it != found_dialog_message_calendars_.end());
+
+  int32 received_message_count = 0;
+  for (auto &message : messages) {
+    auto new_full_message_id = on_get_message(std::move(message), false, dialog_id.get_type() == DialogType::Channel,
+                                              false, false, false, "on_get_message_search_result_calendar");
+    if (new_full_message_id == FullMessageId()) {
+      total_count--;
+      continue;
+    }
+
+    if (new_full_message_id.get_dialog_id() != dialog_id) {
+      LOG(ERROR) << "Receive " << new_full_message_id << " instead of a message in " << dialog_id;
+      total_count--;
+      continue;
+    }
+
+    received_message_count++;
+  }
+  if (total_count < received_message_count) {
+    LOG(ERROR) << "Receive " << received_message_count << " valid messages out of " << total_count << " in "
+               << messages.size() << " messages";
+    total_count = received_message_count;
+  }
+
+  Dialog *d = get_dialog(dialog_id);
+  CHECK(d != nullptr);
+  auto &old_message_count = d->message_count_by_index[message_search_filter_index(filter)];
+  if (old_message_count != total_count) {
+    old_message_count = total_count;
+    on_dialog_updated(dialog_id, "on_get_message_search_result_calendar");
+  }
+
+  vector<td_api::object_ptr<td_api::messageCalendarDay>> days;
+  for (auto &period : periods) {
+    auto message_id = MessageId(ServerMessageId(period->min_msg_id_));
+    const auto *m = get_message(d, message_id);
+    if (m == nullptr) {
+      LOG(ERROR) << "Failed to find " << message_id;
+      continue;
+    }
+    if (period->count_ <= 0) {
+      LOG(ERROR) << "Receive " << to_string(period);
+      continue;
+    }
+    days.push_back(td_api::make_object<td_api::messageCalendarDay>(
+        period->count_, get_message_object(dialog_id, m, "on_get_message_search_result_calendar")));
+  }
+  it->second = td_api::make_object<td_api::messageCalendar>(total_count, Clocks::tz_offset(), std::move(days));
+  promise.set_value(Unit());
+}
+
+void MessagesManager::on_failed_get_message_search_result_calendar(DialogId dialog_id, int64 random_id) {
+  auto it = found_dialog_message_calendars_.find(random_id);
+  CHECK(it != found_dialog_message_calendars_.end());
+  found_dialog_message_calendars_.erase(it);
 }
 
 void MessagesManager::on_get_dialog_messages_search_result(
@@ -21220,7 +21349,7 @@ std::pair<DialogId, vector<MessageId>> MessagesManager::get_message_thread_histo
     from_message_id = MessageId::max();
   }
   if (!from_message_id.is_valid()) {
-    promise.set_error(Status::Error(400, "Parameter from_message_id must be identifier of the chat message or 0"));
+    promise.set_error(Status::Error(400, "Parameter from_message_id must be identifier of a chat message or 0"));
     return {};
   }
 
@@ -21339,6 +21468,95 @@ std::pair<DialogId, vector<MessageId>> MessagesManager::get_message_thread_histo
   return {};
 }
 
+td_api::object_ptr<td_api::messageCalendar> MessagesManager::get_dialog_message_calendar(DialogId dialog_id,
+                                                                                         MessageId from_message_id,
+                                                                                         MessageSearchFilter filter,
+                                                                                         int64 &random_id, bool use_db,
+                                                                                         Promise<Unit> &&promise) {
+  if (random_id != 0) {
+    // request has already been sent before
+    auto it = found_dialog_message_calendars_.find(random_id);
+    if (it != found_dialog_message_calendars_.end()) {
+      auto result = std::move(it->second);
+      found_dialog_message_calendars_.erase(it);
+      promise.set_value(Unit());
+      return result;
+    }
+    random_id = 0;
+  }
+  LOG(INFO) << "Get message calendar in " << dialog_id << " filtered by " << filter << " from " << from_message_id;
+
+  if (from_message_id.get() > MessageId::max().get()) {
+    from_message_id = MessageId::max();
+  }
+
+  if (!from_message_id.is_valid() && from_message_id != MessageId()) {
+    promise.set_error(Status::Error(400, "Parameter from_message_id must be identifier of a chat message or 0"));
+    return {};
+  }
+  from_message_id = from_message_id.get_next_server_message_id();
+
+  const Dialog *d = get_dialog_force(dialog_id, "get_dialog_message_calendar");
+  if (d == nullptr) {
+    promise.set_error(Status::Error(400, "Chat not found"));
+    return {};
+  }
+  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+    promise.set_error(Status::Error(400, "Can't access the chat"));
+    return {};
+  }
+
+  do {
+    random_id = Random::secure_int64();
+  } while (random_id == 0 || found_dialog_message_calendars_.find(random_id) != found_dialog_message_calendars_.end());
+  found_dialog_message_calendars_[random_id];  // reserve place for result
+
+  if (filter == MessageSearchFilter::Empty || filter == MessageSearchFilter::Call ||
+      filter == MessageSearchFilter::MissedCall || filter == MessageSearchFilter::Mention ||
+      filter == MessageSearchFilter::UnreadMention) {
+    promise.set_error(Status::Error(400, "The filter is not supported"));
+    return {};
+  }
+
+  // Trying to use database
+  if (use_db && G()->parameters().use_message_db) {
+    MessageId first_db_message_id = get_first_database_message_id_by_index(d, filter);
+    int32 message_count = d->message_count_by_index[message_search_filter_index(filter)];
+    auto fixed_from_message_id = from_message_id;
+    if (fixed_from_message_id == MessageId()) {
+      fixed_from_message_id = MessageId::max();
+    }
+    LOG(INFO) << "Get message calendar in " << dialog_id << " from " << fixed_from_message_id << ", have up to "
+              << first_db_message_id << ", message_count = " << message_count;
+    if (first_db_message_id < fixed_from_message_id && message_count != -1) {
+      // TODO
+    }
+  }
+  if (filter == MessageSearchFilter::FailedToSend) {
+    promise.set_value(Unit());
+    return {};
+  }
+
+  LOG(DEBUG) << "Get message calendar from server in " << dialog_id << " from " << from_message_id;
+
+  switch (dialog_id.get_type()) {
+    case DialogType::None:
+    case DialogType::User:
+    case DialogType::Chat:
+    case DialogType::Channel:
+      td_->create_handler<GetSearchResultCalendarQuery>(std::move(promise))
+          ->send(dialog_id, from_message_id, filter, random_id);
+      break;
+    case DialogType::SecretChat:
+      promise.set_value(Unit());
+      break;
+    default:
+      UNREACHABLE();
+      promise.set_error(Status::Error(500, "Search messages is not supported"));
+  }
+  return {};
+}
+
 std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
     DialogId dialog_id, const string &query, const td_api::object_ptr<td_api::MessageSender> &sender,
     MessageId from_message_id, int32 offset, int32 limit, MessageSearchFilter filter, MessageId top_thread_message_id,
@@ -21381,7 +21599,7 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
   }
 
   if (!from_message_id.is_valid() && from_message_id != MessageId()) {
-    promise.set_error(Status::Error(400, "Parameter from_message_id must be identifier of the chat message or 0"));
+    promise.set_error(Status::Error(400, "Parameter from_message_id must be identifier of a chat message or 0"));
     return result;
   }
   from_message_id = from_message_id.get_next_server_message_id();
@@ -21569,7 +21787,7 @@ std::pair<int32, vector<FullMessageId>> MessagesManager::search_call_messages(Me
   }
 
   if (!from_message_id.is_valid() && from_message_id != MessageId()) {
-    promise.set_error(Status::Error(400, "Parameter from_message_id must be identifier of the chat message or 0"));
+    promise.set_error(Status::Error(400, "Parameter from_message_id must be identifier of a chat message or 0"));
     return result;
   }
   from_message_id = from_message_id.get_next_server_message_id();

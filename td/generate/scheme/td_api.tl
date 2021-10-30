@@ -819,6 +819,12 @@ messagePosition position:int32 message_id:int53 date:int32 = MessagePosition;
 //@description Contains a list of message positions @total_count Total count of messages found @positions List of message positions
 messagePositions total_count:int32 positions:vector<messagePosition> = MessagePositions;
 
+//@description Contains information about found messages sent in a specific day @total_count Total number of found messages sent in the day @message First message sent in the day
+messageCalendarDay total_count:int32 message:message = MessageCalendarDay;
+
+//@description Contains information about found messages, splitted by days @total_count Total number of found messages @utc_time_offset UTC time offset in seconds, used to split messages by days @days Information about messages sent 
+messageCalendar total_count:int32 utc_time_offset:int32 days:vector<messageCalendarDay> = MessageCalendar;
+
 
 //@description Describes a sponsored message @id Unique sponsored message identifier @sponsor_chat_id Chat identifier
 //@link An internal link to be opened when the sponsored message is clicked; may be null. If null, the sponsor chat needs to be opened instead @content Content of the message
@@ -4298,6 +4304,12 @@ getChatMessageByDate chat_id:int53 date:int32 = Message;
 //@from_message_id The message identifier from which to return information about message positions
 //@limit The expected number of message positions to be returned. A smaller number of positions can be returned, if there are not enough appropriate messages
 getChatSparseMessagePositions chat_id:int53 filter:SearchMessagesFilter from_message_id:int53 limit:int32 = MessagePositions;
+
+//@description Returns information about the next messages of the specified type in the chat splitted by days. Returns the results in reverse chronological order. Can return partial result for the last returned day
+//@chat_id Identifier of the chat in which to return information about messages
+//@filter Filter for message content. Filters searchMessagesFilterEmpty, searchMessagesFilterCall, searchMessagesFilterMissedCall, searchMessagesFilterMention, searchMessagesFilterUnreadMention and searchMessagesFilterFailedToSend are unsupported in this function
+//@from_message_id The message identifier from which to return information about messages; use 0 to get results from the last message
+getChatMessageCalendar chat_id:int53 filter:SearchMessagesFilter from_message_id:int53 = MessageCalendar;
 
 //@description Returns approximate number of messages of the specified type in the chat @chat_id Identifier of the chat in which to count messages @filter Filter for message content; searchMessagesFilterEmpty is unsupported in this function @return_local If true, returns count that is available locally without sending network requests, returning -1 if the number of messages is unknown
 getChatMessageCount chat_id:int53 filter:SearchMessagesFilter return_local:Bool = Count;

@@ -2097,6 +2097,13 @@ class CliClient final : public Actor {
       string limit;
       get_args(args, chat_id, limit);
       send_request(td_api::make_object<td_api::searchChatRecentLocationMessages>(as_chat_id(chat_id), as_limit(limit)));
+    } else if (op == "gcmca") {
+      string chat_id;
+      string filter;
+      string from_message_id;
+      get_args(args, chat_id, filter, from_message_id);
+      send_request(td_api::make_object<td_api::getChatMessageCalendar>(
+          as_chat_id(chat_id), as_search_messages_filter(filter), as_message_id(from_message_id)));
     } else if (op == "SearchAudio" || op == "SearchDocument" || op == "SearchPhoto" || op == "SearchChatPhoto") {
       string chat_id;
       string offset_message_id;

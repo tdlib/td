@@ -205,6 +205,13 @@ class MessagesManager final : public Actor {
                                            vector<tl_object_ptr<telegram_api::Peer>> &&peers);
   void on_failed_public_dialogs_search(const string &query, Status &&error);
 
+  void on_get_message_search_result_calendar(DialogId dialog_id, MessageId from_message_id, MessageSearchFilter filter,
+                                             int64 random_id, int32 total_count,
+                                             vector<tl_object_ptr<telegram_api::Message>> &&messages,
+                                             vector<tl_object_ptr<telegram_api::searchResultsCalendarPeriod>> &&periods,
+                                             Promise<Unit> &&promise);
+  void on_failed_get_message_search_result_calendar(DialogId dialog_id, int64 random_id);
+
   void on_get_dialog_messages_search_result(DialogId dialog_id, const string &query, DialogId sender_dialog_id,
                                             MessageId from_message_id, int32 offset, int32 limit,
                                             MessageSearchFilter filter, MessageId top_thread_message_id,
@@ -694,6 +701,10 @@ class MessagesManager final : public Actor {
                                                                     MessageId from_message_id, int32 offset,
                                                                     int32 limit, int64 &random_id,
                                                                     Promise<Unit> &&promise);
+
+  td_api::object_ptr<td_api::messageCalendar> get_dialog_message_calendar(DialogId dialog_id, MessageId from_message_id,
+                                                                          MessageSearchFilter filter, int64 &random_id,
+                                                                          bool use_db, Promise<Unit> &&promise);
 
   std::pair<int32, vector<MessageId>> search_dialog_messages(DialogId dialog_id, const string &query,
                                                              const td_api::object_ptr<td_api::MessageSender> &sender,
@@ -3324,6 +3335,7 @@ class MessagesManager final : public Actor {
 
   std::unordered_map<int64, FullMessageId> get_dialog_message_by_date_results_;
 
+  std::unordered_map<int64, td_api::object_ptr<td_api::messageCalendar>> found_dialog_message_calendars_;
   std::unordered_map<int64, std::pair<int32, vector<MessageId>>>
       found_dialog_messages_;                                            // random_id -> [total_count, [message_id]...]
   std::unordered_map<int64, DialogId> found_dialog_messages_dialog_id_;  // random_id -> dialog_id
