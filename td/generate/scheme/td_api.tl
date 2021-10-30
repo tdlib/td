@@ -4749,7 +4749,7 @@ getChatMember chat_id:int53 member_id:MessageSender = ChatMember;
 //@description Searches for a specified query in the first name, last name and username of the members of a specified chat. Requires administrator rights in channels
 //@chat_id Chat identifier
 //@query Query to search for
-//@limit The maximum number of users to be returned
+//@limit The maximum number of users to be returned; up to 200
 //@filter The type of users to search for; pass null to search among all chat members
 searchChatMembers chat_id:int53 query:string limit:int32 filter:ChatMembersFilter = ChatMembers;
 
@@ -4880,11 +4880,11 @@ getChatInviteLinkCounts chat_id:int53 = ChatInviteLinkCounts;
 //@is_revoked Pass true if revoked links needs to be returned instead of active or expired
 //@offset_date Creation date of an invite link starting after which to return invite links; use 0 to get results from the beginning
 //@offset_invite_link Invite link starting after which to return invite links; use empty string to get results from the beginning
-//@limit The maximum number of invite links to return
+//@limit The maximum number of invite links to return; up to 100
 getChatInviteLinks chat_id:int53 creator_user_id:int53 is_revoked:Bool offset_date:int32 offset_invite_link:string limit:int32 = ChatInviteLinks;
 
 //@description Returns chat members joined a chat by an invite link. Requires administrator privileges and can_invite_users right in the chat for own links and owner privileges for other links @chat_id Chat identifier @invite_link Invite link for which to return chat members
-//@offset_member A chat member from which to return next chat members; pass null to get results from the beginning @limit The maximum number of chat members to return
+//@offset_member A chat member from which to return next chat members; pass null to get results from the beginning @limit The maximum number of chat members to return; up to 100
 getChatInviteLinkMembers chat_id:int53 invite_link:string offset_member:chatInviteLinkMember limit:int32 = ChatInviteLinkMembers;
 
 //@description Revokes invite link for a chat. Available for basic groups, supergroups, and channels. Requires administrator privileges and can_invite_users right in the chat for own links and owner privileges for other links.
@@ -5022,7 +5022,7 @@ toggleGroupCallParticipantIsHandRaised group_call_id:int32 participant_id:Messag
 
 //@description Loads more participants of a group call. The loaded participants will be received through updates. Use the field groupCall.loaded_all_participants to check whether all participants has already been loaded
 //@group_call_id Group call identifier. The group call must be previously received through getGroupCall and must be joined or being joined
-//@limit The maximum number of participants to load
+//@limit The maximum number of participants to load; up to 100
 loadGroupCallParticipants group_call_id:int32 limit:int32 = Ok;
 
 //@description Leaves a group call @group_call_id Group call identifier
@@ -5098,12 +5098,12 @@ searchStickers emoji:string limit:int32 = Stickers;
 //@description Returns a list of installed sticker sets @is_masks Pass true to return mask sticker sets; pass false to return ordinary sticker sets
 getInstalledStickerSets is_masks:Bool = StickerSets;
 
-//@description Returns a list of archived sticker sets @is_masks Pass true to return mask stickers sets; pass false to return ordinary sticker sets @offset_sticker_set_id Identifier of the sticker set from which to return the result @limit The maximum number of sticker sets to return
+//@description Returns a list of archived sticker sets @is_masks Pass true to return mask stickers sets; pass false to return ordinary sticker sets @offset_sticker_set_id Identifier of the sticker set from which to return the result @limit The maximum number of sticker sets to return; up to 100
 getArchivedStickerSets is_masks:Bool offset_sticker_set_id:int64 limit:int32 = StickerSets;
 
 //@description Returns a list of trending sticker sets. For optimal performance, the number of returned sticker sets is chosen by TDLib
 //@offset The offset from which to return the sticker sets; must be non-negative
-//@limit The maximum number of sticker sets to be returned; must be non-negative. For optimal performance, the number of returned sticker sets is chosen by TDLib and can be smaller than the specified limit, even if the end of the list has not been reached
+//@limit The maximum number of sticker sets to be returned; up to 100. For optimal performance, the number of returned sticker sets is chosen by TDLib and can be smaller than the specified limit, even if the end of the list has not been reached
 getTrendingStickerSets offset:int32 limit:int32 = StickerSets;
 
 //@description Returns a list of sticker sets attached to a file. Currently only photos and videos can have attached sticker sets @file_id File identifier
