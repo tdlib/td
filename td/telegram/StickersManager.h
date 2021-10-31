@@ -537,7 +537,7 @@ class StickersManager final : public Actor {
 
   td_api::object_ptr<td_api::updateRecentStickers> get_update_recent_stickers_object(int is_attached) const;
 
-  void send_update_recent_stickers(bool from_database = false);
+  void send_update_recent_stickers(bool is_attached, bool from_database = false);
 
   void save_recent_stickers_to_database(bool is_attached);
 
@@ -704,7 +704,6 @@ class StickersManager final : public Actor {
 
   bool need_update_installed_sticker_sets_[2] = {false, false};
   bool need_update_featured_sticker_sets_ = false;
-  bool need_update_recent_stickers_[2] = {false, false};
 
   bool are_installed_sticker_sets_loaded_[2] = {false, false};
   bool are_featured_sticker_sets_loaded_ = false;

@@ -5910,8 +5910,7 @@ void StickersManager::on_load_recent_stickers_finished(bool is_attached, vector<
   }
   recent_sticker_ids_[is_attached] = std::move(recent_sticker_ids);
   are_recent_stickers_loaded_[is_attached] = true;
-  need_update_recent_stickers_[is_attached] = true;
-  send_update_recent_stickers(from_database);
+  send_update_recent_stickers(is_attached, from_database);
   auto promises = std::move(load_recent_stickers_queries_[is_attached]);
   load_recent_stickers_queries_[is_attached].clear();
   for (auto &promise : promises) {
@@ -6083,8 +6082,6 @@ void StickersManager::add_recent_sticker_impl(bool is_attached, FileId sticker_i
     return promise.set_error(Status::Error(400, "Can't save encrypted stickers"));
   }
 
-  need_update_recent_stickers_[is_attached] = true;
-
   auto it = std::find_if(sticker_ids.begin(), sticker_ids.end(), is_equal);
   if (it == sticker_ids.end()) {
     if (static_cast<int32>(sticker_ids.size()) == recent_stickers_limit_) {
@@ -6099,7 +6096,7 @@ void StickersManager::add_recent_sticker_impl(bool is_attached, FileId sticker_i
     sticker_ids[0] = sticker_id;
   }
 
-  send_update_recent_stickers();
+  send_update_recent_stickers(is_attached);
   if (add_on_server) {
     send_save_recent_sticker_query(is_attached, sticker_id, false, std::move(promise));
   }
@@ -6130,8 +6127,7 @@ void StickersManager::remove_recent_sticker(bool is_attached, const tl_object_pt
 
   send_save_recent_sticker_query(is_attached, file_id, true, std::move(promise));
 
-  need_update_recent_stickers_[is_attached] = true;
-  send_update_recent_stickers();
+  send_update_recent_stickers(is_attached);
 }
 
 void StickersManager::clear_recent_stickers(bool is_attached, Promise<Unit> &&promise) {
@@ -6150,8 +6146,7 @@ void StickersManager::clear_recent_stickers(bool is_attached, Promise<Unit> &&pr
 
   sticker_ids.clear();
 
-  need_update_recent_stickers_[is_attached] = true;
-  send_update_recent_stickers();
+  send_update_recent_stickers(is_attached);
 }
 
 td_api::object_ptr<td_api::updateRecentStickers> StickersManager::get_update_recent_stickers_object(
@@ -6160,30 +6155,27 @@ td_api::object_ptr<td_api::updateRecentStickers> StickersManager::get_update_rec
       is_attached != 0, td_->file_manager_->get_file_ids_object(recent_sticker_ids_[is_attached]));
 }
 
-void StickersManager::send_update_recent_stickers(bool from_database) {
-  for (int is_attached = 0; is_attached < 2; is_attached++) {
-    if (need_update_recent_stickers_[is_attached]) {
-      need_update_recent_stickers_[is_attached] = false;
-      if (are_recent_stickers_loaded_[is_attached]) {
-        vector<FileId> new_recent_sticker_file_ids;
-        for (auto &sticker_id : recent_sticker_ids_[is_attached]) {
-          append(new_recent_sticker_file_ids, get_sticker_file_ids(sticker_id));
-        }
-        std::sort(new_recent_sticker_file_ids.begin(), new_recent_sticker_file_ids.end());
-        if (new_recent_sticker_file_ids != recent_sticker_file_ids_[is_attached]) {
-          td_->file_manager_->change_files_source(get_recent_stickers_file_source_id(is_attached),
-                                                  recent_sticker_file_ids_[is_attached], new_recent_sticker_file_ids);
-          recent_sticker_file_ids_[is_attached] = std::move(new_recent_sticker_file_ids);
-        }
+void StickersManager::send_update_recent_stickers(bool is_attached, bool from_database) {
+  if (!are_recent_stickers_loaded_[is_attached]) {
+    return;
+  }
 
-        recent_stickers_hash_[is_attached] = get_recent_stickers_hash(recent_sticker_ids_[is_attached]);
-        send_closure(G()->td(), &Td::send_update, get_update_recent_stickers_object(is_attached));
+  vector<FileId> new_recent_sticker_file_ids;
+  for (auto &sticker_id : recent_sticker_ids_[is_attached]) {
+    append(new_recent_sticker_file_ids, get_sticker_file_ids(sticker_id));
+  }
+  std::sort(new_recent_sticker_file_ids.begin(), new_recent_sticker_file_ids.end());
+  if (new_recent_sticker_file_ids != recent_sticker_file_ids_[is_attached]) {
+    td_->file_manager_->change_files_source(get_recent_stickers_file_source_id(is_attached),
+                                            recent_sticker_file_ids_[is_attached], new_recent_sticker_file_ids);
+    recent_sticker_file_ids_[is_attached] = std::move(new_recent_sticker_file_ids);
+  }
 
-        if (!from_database) {
-          save_recent_stickers_to_database(is_attached != 0);
-        }
-      }
-    }
+  recent_stickers_hash_[is_attached] = get_recent_stickers_hash(recent_sticker_ids_[is_attached]);
+  send_closure(G()->td(), &Td::send_update, get_update_recent_stickers_object(is_attached));
+
+  if (!from_database) {
+    save_recent_stickers_to_database(is_attached != 0);
   }
 }
 
@@ -6204,8 +6196,7 @@ void StickersManager::on_update_recent_stickers_limit(int32 recent_stickers_limi
       for (int is_attached = 0; is_attached < 2; is_attached++) {
         if (static_cast<int32>(recent_sticker_ids_[is_attached].size()) > recent_stickers_limit) {
           recent_sticker_ids_[is_attached].resize(recent_stickers_limit);
-          need_update_recent_stickers_[is_attached] = true;
-          send_update_recent_stickers();
+          send_update_recent_stickers(is_attached);
         }
       }
     } else {
