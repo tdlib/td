@@ -2530,7 +2530,7 @@ chatEventInvitesToggled can_invite_users:Bool = ChatEventAction;
 //@description The linked chat of a supergroup was changed @old_linked_chat_id Previous supergroup linked chat identifier @new_linked_chat_id New supergroup linked chat identifier
 chatEventLinkedChatChanged old_linked_chat_id:int53 new_linked_chat_id:int53 = ChatEventAction;
 
-//@description The slow_mode_delay setting of a supergroup was changed @old_slow_mode_delay Previous value of slow_mode_delay @new_slow_mode_delay New value of slow_mode_delay
+//@description The slow_mode_delay setting of a supergroup was changed @old_slow_mode_delay Previous value of slow_mode_delay, in seconds @new_slow_mode_delay New value of slow_mode_delay, in seconds
 chatEventSlowModeDelayChanged old_slow_mode_delay:int32 new_slow_mode_delay:int32 = ChatEventAction;
 
 //@description The message TTL setting was changed @old_message_ttl_setting Previous value of message_ttl_setting @new_message_ttl_setting New value of message_ttl_setting
@@ -4694,7 +4694,7 @@ setChatDiscussionGroup chat_id:int53 discussion_chat_id:int53 = Ok;
 //@description Changes the location of a chat. Available only for some location-based supergroups, use supergroupFullInfo.can_set_location to check whether the method is allowed to use @chat_id Chat identifier @location New location for the chat; must be valid and not null
 setChatLocation chat_id:int53 location:chatLocation = Ok;
 
-//@description Changes the slow mode delay of a chat. Available only for supergroups; requires can_restrict_members rights @chat_id Chat identifier @slow_mode_delay New slow mode delay for the chat; must be one of 0, 10, 30, 60, 300, 900, 3600
+//@description Changes the slow mode delay of a chat. Available only for supergroups; requires can_restrict_members rights @chat_id Chat identifier @slow_mode_delay New slow mode delay for the chat, in seconds; must be one of 0, 10, 30, 60, 300, 900, 3600
 setChatSlowModeDelay chat_id:int53 slow_mode_delay:int32 = Ok;
 
 //@description Pins a message in a chat; requires can_pin_messages rights or can_edit_messages rights in the channel
