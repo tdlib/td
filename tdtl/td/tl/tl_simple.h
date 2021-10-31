@@ -23,9 +23,9 @@ namespace tl {
 namespace simple {
 
 inline std::string gen_cpp_name(std::string name) {
-  for (std::size_t i = 0; i < name.size(); i++) {
-    if ((name[i] < '0' || '9' < name[i]) && (name[i] < 'a' || 'z' < name[i]) && (name[i] < 'A' || 'Z' < name[i])) {
-      name[i] = '_';
+  for (auto &c : name) {
+    if ((c < '0' || '9' < c) && (c < 'a' || 'z' < c) && (c < 'A' || 'Z' < c)) {
+      c = '_';
     }
   }
   assert(!name.empty());

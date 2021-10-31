@@ -2223,8 +2223,8 @@ static FormattedText parse_text_url_entities_v3(Slice text, const vector<Message
     }
 
     size_t splittable_entity_pos[SPLITTABLE_ENTITY_TYPE_COUNT] = {};
-    for (size_t index = 0; index < SPLITTABLE_ENTITY_TYPE_COUNT; index++) {
-      check_non_intersecting(part_splittable_entities[index]);
+    for (const auto &splittable_entities : part_splittable_entities) {
+      check_non_intersecting(splittable_entities);
     }
     if (part_end != max_end) {
       // try to find text_url entities in the left part
