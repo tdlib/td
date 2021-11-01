@@ -24,6 +24,7 @@ class MtprotoHeader {
     string language_pack;
     string language_code;
     string parameters;
+    int32 tz_offset = 0;
     bool is_emulator = false;
     Proxy proxy;
   };

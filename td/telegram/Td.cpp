@@ -130,6 +130,7 @@
 #include "td/utils/MimeType.h"
 #include "td/utils/misc.h"
 #include "td/utils/PathView.h"
+#include "td/utils/port/Clocks.h"
 #include "td/utils/port/IPAddress.h"
 #include "td/utils/port/path.h"
 #include "td/utils/port/SocketFd.h"
@@ -3867,6 +3868,7 @@ Status Td::init(DbKey key) {
   options_.language_pack = G()->shared_config().get_option_string("localization_target");
   options_.language_code = G()->shared_config().get_option_string("language_pack_id");
   options_.parameters = G()->shared_config().get_option_string("connection_parameters");
+  options_.tz_offset = static_cast<int32>(G()->shared_config().get_option_integer("utc_time_offset"));
   options_.is_emulator = G()->shared_config().get_option_boolean("is_emulator");
   // options_.proxy = Proxy();
   G()->set_mtproto_header(make_unique<MtprotoHeader>(options_));
@@ -4023,6 +4025,7 @@ void Td::init_options_and_network() {
   if (!G()->shared_config().have_option("suggested_video_note_audio_bitrate")) {
     G()->shared_config().set_option_integer("suggested_video_note_audio_bitrate", 64);
   }
+  G()->shared_config().set_option_integer("utc_time_offset", Clocks::tz_offset());
 
   init_connection_creator();
 
@@ -4463,9 +4466,9 @@ Status Td::set_parameters(td_api::object_ptr<td_api::tdlibParameters> parameters
     options_.application_version += ", TDLib ";
     options_.application_version += TDLIB_VERSION;
   }
-  options_.language_pack = "";
-  options_.language_code = "";
-  options_.parameters = "";
+  options_.language_pack = string();
+  options_.language_code = string();
+  options_.parameters = string();
   options_.is_emulator = false;
   options_.proxy = Proxy();
 

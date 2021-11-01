@@ -67,7 +67,6 @@
 #include "td/utils/format.h"
 #include "td/utils/misc.h"
 #include "td/utils/PathView.h"
-#include "td/utils/port/Clocks.h"
 #include "td/utils/Random.h"
 #include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
@@ -9811,7 +9810,7 @@ void MessagesManager::on_get_message_search_result_calendar(
     days.push_back(td_api::make_object<td_api::messageCalendarDay>(
         period->count_, get_message_object(dialog_id, m, "on_get_message_search_result_calendar")));
   }
-  it->second = td_api::make_object<td_api::messageCalendar>(total_count, Clocks::tz_offset(), std::move(days));
+  it->second = td_api::make_object<td_api::messageCalendar>(total_count, std::move(days));
   promise.set_value(Unit());
 }
 
@@ -21540,7 +21539,7 @@ td_api::object_ptr<td_api::messageCalendar> MessagesManager::get_dialog_message_
       db_query.dialog_id = dialog_id;
       db_query.filter = filter;
       db_query.from_message_id = fixed_from_message_id;
-      db_query.tz_offset = Clocks::tz_offset();
+      db_query.tz_offset = static_cast<int32>(G()->shared_config().get_option_integer("utc_time_offset"));
       G()->td_db()->get_messages_db_async()->get_dialog_message_calendar(db_query, std::move(new_promise));
       return {};
     }
@@ -21619,7 +21618,7 @@ void MessagesManager::on_get_message_calendar_from_database(int64 random_id, Dia
       days.push_back(td_api::make_object<td_api::messageCalendarDay>(
           period.second, get_message_object(dialog_id, m, "on_get_message_calendar_from_database")));
     }
-    it->second = td_api::make_object<td_api::messageCalendar>(total_count, Clocks::tz_offset(), std::move(days));
+    it->second = td_api::make_object<td_api::messageCalendar>(total_count, std::move(days));
   }
   promise.set_value(Unit());
 }

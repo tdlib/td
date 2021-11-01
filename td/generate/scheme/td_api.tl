@@ -822,8 +822,8 @@ messagePositions total_count:int32 positions:vector<messagePosition> = MessagePo
 //@description Contains information about found messages sent in a specific day @total_count Total number of found messages sent in the day @message First message sent in the day
 messageCalendarDay total_count:int32 message:message = MessageCalendarDay;
 
-//@description Contains information about found messages, splitted by days @total_count Total number of found messages @utc_time_offset UTC time offset in seconds, used to split messages by days @days Information about messages sent 
-messageCalendar total_count:int32 utc_time_offset:int32 days:vector<messageCalendarDay> = MessageCalendar;
+//@description Contains information about found messages, splitted by days according to GetOption("utc_time_offset") @total_count Total number of found messages @days Information about messages sent
+messageCalendar total_count:int32 days:vector<messageCalendarDay> = MessageCalendar;
 
 
 //@description Describes a sponsored message @id Unique sponsored message identifier @sponsor_chat_id Chat identifier
