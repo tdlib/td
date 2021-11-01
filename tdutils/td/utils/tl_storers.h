@@ -257,6 +257,15 @@ class TlStorerToString {
     store_field_end();
   }
 
+  template <class ObjectT>
+  void store_object_field(const char *name, const ObjectT *value) {
+    if (value == nullptr) {
+      store_field(name, "null");
+    } else {
+      value->store(*this, name);
+    }
+  }
+
   void store_field(const char *name, const UInt128 &value) {
     store_field_begin(name);
     store_binary(as_slice(value));

@@ -322,8 +322,8 @@ std::string TD_TL_writer_jni_cpp::gen_type_store(const std::string &field_name, 
     res = gen_vector_store(field_name, child, vars, storer_type);
   } else {
     if (storer_type == 1) {
-      res = "if (" + field_name + " == nullptr) { s.store_field(\"" + get_pretty_field_name(field_name) +
-            "\", \"null\"); } else { " + field_name + "->store(s, \"" + get_pretty_field_name(field_name) + "\"); }";
+      res = "s.store_object_field(\"" + get_pretty_field_name(field_name) + "\", static_cast<const BaseObject *>(" +
+            field_name + ".get()));";
     } else {
       res = "if (" + field_name + " != nullptr) { jobject next; " + field_name +
             "->store(env, next); if (next) { env->SetObjectField(s, " + field_name +

@@ -404,8 +404,8 @@ std::string TD_TL_writer_cpp::gen_type_store(const std::string &field_name, cons
     return gen_vector_store(field_name, child, vars, storer_type);
   } else {
     assert(tree_type->children.empty());
-    return "if (" + field_name + " == nullptr) { s.store_field(\"" + get_pretty_field_name(field_name) +
-           "\", \"null\"); } else { " + field_name + "->store(s, \"" + get_pretty_field_name(field_name) + "\"); }";
+    return "s.store_object_field(\"" + get_pretty_field_name(field_name) + "\", static_cast<const BaseObject *>(" +
+           field_name + ".get()));";
   }
 }
 
