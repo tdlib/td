@@ -276,7 +276,6 @@ class TlWriterCCommon final : public tl::TL_writer {
            "#include \"td/utils/logging.h\"\n"
            "#include \"td/utils/misc.h\"\n"
            "#include \"td/utils/Slice.h\"\n"
-           "#include \"td/utils/tl_storers.h\"\n"
            "\n";
   }
   std::string gen_output_end() const final {
