@@ -1490,7 +1490,7 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
   }
 
   CHECK(poll_results != nullptr);
-  bool is_min = (poll_results->flags_ & telegram_api::pollResults::MIN_MASK) != 0;
+  bool is_min = poll_results->min_;
   bool has_total_voters = (poll_results->flags_ & telegram_api::pollResults::TOTAL_VOTERS_MASK) != 0;
   if (has_total_voters && poll_results->total_voters_ != poll->total_voter_count) {
     poll->total_voter_count = poll_results->total_voters_;
@@ -1509,14 +1509,14 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
         continue;
       }
       if (!is_min) {
-        bool is_chosen = (poll_result->flags_ & telegram_api::pollAnswerVoters::CHOSEN_MASK) != 0;
+        bool is_chosen = poll_result->chosen_;
         if (is_chosen != option.is_chosen) {
           option.is_chosen = is_chosen;
           is_changed = true;
         }
       }
       if (!is_min || poll_server_is_closed) {
-        bool is_correct = (poll_result->flags_ & telegram_api::pollAnswerVoters::CORRECT_MASK) != 0;
+        bool is_correct = poll_result->correct_;
         if (is_correct) {
           if (correct_option_id != -1) {
             LOG(ERROR) << "Receive more than 1 correct answers " << correct_option_id << " and " << option_index;

@@ -159,7 +159,7 @@ ProfilePhoto get_profile_photo(FileManager *file_manager, UserId user_id, int64 
       auto profile_photo = move_tl_object_as<telegram_api::userProfilePhoto>(profile_photo_ptr);
 
       auto dc_id = DcId::create(profile_photo->dc_id_);
-      result.has_animation = (profile_photo->flags_ & telegram_api::userProfilePhoto::HAS_VIDEO_MASK) != 0;
+      result.has_animation = profile_photo->has_video_;
       result.id = profile_photo->photo_id_;
       result.minithumbnail = profile_photo->stripped_thumb_.as_slice().str();
       result.small_file_id = register_photo(
@@ -221,7 +221,7 @@ DialogPhoto get_dialog_photo(FileManager *file_manager, DialogId dialog_id, int6
       auto chat_photo = move_tl_object_as<telegram_api::chatPhoto>(chat_photo_ptr);
 
       auto dc_id = DcId::create(chat_photo->dc_id_);
-      result.has_animation = (chat_photo->flags_ & telegram_api::chatPhoto::HAS_VIDEO_MASK) != 0;
+      result.has_animation = chat_photo->has_video_;
       result.minithumbnail = chat_photo->stripped_thumb_.as_slice().str();
       result.small_file_id =
           register_photo(file_manager, PhotoSizeSource::dialog_photo(dialog_id, dialog_access_hash, false),
@@ -702,7 +702,7 @@ Photo get_photo(FileManager *file_manager, tl_object_ptr<telegram_api::photo> &&
 
   res.id = photo->id_;
   res.date = photo->date_;
-  res.has_stickers = (photo->flags_ & telegram_api::photo::HAS_STICKERS_MASK) != 0;
+  res.has_stickers = photo->has_stickers_;
 
   if (res.is_empty()) {
     LOG(ERROR) << "Receive photo with identifier " << res.id.get();
@@ -977,12 +977,8 @@ tl_object_ptr<telegram_api::userProfilePhoto> convert_photo_to_profile_photo(
   if (!have_photo_small || !have_photo_big) {
     return nullptr;
   }
-  int32 flags = 0;
-  if (!photo->video_sizes_.empty()) {
-    flags |= telegram_api::userProfilePhoto::HAS_VIDEO_MASK;
-  }
-  return make_tl_object<telegram_api::userProfilePhoto>(flags, false /*ignored*/, photo->id_, BufferSlice(),
-                                                        photo->dc_id_);
+  bool has_video = !photo->video_sizes_.empty();
+  return make_tl_object<telegram_api::userProfilePhoto>(0, has_video, photo->id_, BufferSlice(), photo->dc_id_);
 }
 
 }  // namespace td

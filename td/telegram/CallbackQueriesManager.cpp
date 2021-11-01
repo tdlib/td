@@ -79,8 +79,8 @@ class GetBotCallbackAnswerQuery final : public Td::ResultHandler {
     }
 
     auto answer = result_ptr.move_as_ok();
-    bool show_alert = (answer->flags_ & telegram_api::messages_botCallbackAnswer::ALERT_MASK) != 0;
-    promise_.set_value(td_api::make_object<td_api::callbackQueryAnswer>(answer->message_, show_alert, answer->url_));
+    promise_.set_value(
+        td_api::make_object<td_api::callbackQueryAnswer>(answer->message_, answer->alert_, answer->url_));
   }
 
   void on_error(uint64 id, Status status) final {

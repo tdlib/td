@@ -150,6 +150,10 @@ class NotificationManager final : public Actor {
 
   static constexpr int32 ANNOUNCEMENT_ID_CACHE_TIME = 7 * 86400;
 
+  static constexpr int32 USER_FLAG_HAS_ACCESS_HASH = 1 << 0;
+  static constexpr int32 USER_FLAG_HAS_PHONE_NUMBER = 1 << 4;
+  static constexpr int32 USER_FLAG_IS_INACCESSIBLE = 1 << 20;
+
   class AddMessagePushNotificationLogEvent;
   class EditMessagePushNotificationLogEvent;
 

@@ -568,8 +568,7 @@ void AuthManager::on_get_password_result(NetQueryPtr &result) {
         wait_password_state_.srp_B_ = password->srp_B_.as_slice().str();
         wait_password_state_.srp_id_ = password->srp_id_;
         wait_password_state_.hint_ = std::move(password->hint_);
-        wait_password_state_.has_recovery_ =
-            (password->flags_ & telegram_api::account_password::HAS_RECOVERY_MASK) != 0;
+        wait_password_state_.has_recovery_ = password->has_recovery_;
         break;
       }
       default:

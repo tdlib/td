@@ -2039,8 +2039,8 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
     }
     case telegram_api::pageBlockVideo::ID: {
       auto page_block = move_tl_object_as<telegram_api::pageBlockVideo>(page_block_ptr);
-      bool need_autoplay = (page_block->flags_ & telegram_api::pageBlockVideo::AUTOPLAY_MASK) != 0;
-      bool is_looped = (page_block->flags_ & telegram_api::pageBlockVideo::LOOP_MASK) != 0;
+      bool need_autoplay = page_block->autoplay_;
+      bool is_looped = page_block->loop_;
       auto animations_it = animations.find(page_block->video_id_);
       if (animations_it != animations.end()) {
         LOG_IF(ERROR, !is_looped) << "Receive non-looped animation";
@@ -2067,8 +2067,8 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
     }
     case telegram_api::pageBlockEmbed::ID: {
       auto page_block = move_tl_object_as<telegram_api::pageBlockEmbed>(page_block_ptr);
-      bool is_full_width = (page_block->flags_ & telegram_api::pageBlockEmbed::FULL_WIDTH_MASK) != 0;
-      bool allow_scrolling = (page_block->flags_ & telegram_api::pageBlockEmbed::ALLOW_SCROLLING_MASK) != 0;
+      bool is_full_width = page_block->full_width_;
+      bool allow_scrolling = page_block->allow_scrolling_;
       bool has_dimensions = (page_block->flags_ & telegram_api::pageBlockEmbed::W_MASK) != 0;
       auto it = (page_block->flags_ & telegram_api::pageBlockEmbed::POSTER_PHOTO_ID_MASK) != 0
                     ? photos.find(page_block->poster_photo_id_)
@@ -2158,23 +2158,22 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
     }
     case telegram_api::pageBlockTable::ID: {
       auto page_block = move_tl_object_as<telegram_api::pageBlockTable>(page_block_ptr);
-      auto is_bordered = (page_block->flags_ & telegram_api::pageBlockTable::BORDERED_MASK) != 0;
-      auto is_striped = (page_block->flags_ & telegram_api::pageBlockTable::STRIPED_MASK) != 0;
+      auto is_bordered = page_block->bordered_;
+      auto is_striped = page_block->striped_;
       auto cells = transform(std::move(page_block->rows_), [&](tl_object_ptr<telegram_api::pageTableRow> &&row) {
         return transform(std::move(row->cells_), [&](tl_object_ptr<telegram_api::pageTableCell> &&table_cell) {
           WebPageBlockTableCell cell;
-          auto flags = table_cell->flags_;
-          cell.is_header = (flags & telegram_api::pageTableCell::HEADER_MASK) != 0;
-          cell.align_center = (flags & telegram_api::pageTableCell::ALIGN_CENTER_MASK) != 0;
+          cell.is_header = table_cell->header_;
+          cell.align_center = table_cell->align_center_;
           if (!cell.align_center) {
-            cell.align_right = (flags & telegram_api::pageTableCell::ALIGN_RIGHT_MASK) != 0;
+            cell.align_right = table_cell->align_right_;
             if (!cell.align_right) {
               cell.align_left = true;
             }
           }
-          cell.valign_middle = (flags & telegram_api::pageTableCell::VALIGN_MIDDLE_MASK) != 0;
+          cell.valign_middle = table_cell->valign_middle_;
           if (!cell.valign_middle) {
-            cell.valign_bottom = (flags & telegram_api::pageTableCell::VALIGN_BOTTOM_MASK) != 0;
+            cell.valign_bottom = table_cell->valign_bottom_;
             if (!cell.valign_bottom) {
               cell.valign_top = true;
             }
@@ -2182,10 +2181,10 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
           if (table_cell->text_ != nullptr) {
             cell.text = get_rich_text(std::move(table_cell->text_), documents);
           }
-          if ((flags & telegram_api::pageTableCell::COLSPAN_MASK) != 0) {
+          if ((table_cell->flags_ & telegram_api::pageTableCell::COLSPAN_MASK) != 0) {
             cell.colspan = table_cell->colspan_;
           }
-          if ((flags & telegram_api::pageTableCell::ROWSPAN_MASK) != 0) {
+          if ((table_cell->flags_ & telegram_api::pageTableCell::ROWSPAN_MASK) != 0) {
             cell.rowspan = table_cell->rowspan_;
           }
           return cell;
@@ -2196,7 +2195,7 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
     }
     case telegram_api::pageBlockDetails::ID: {
       auto page_block = move_tl_object_as<telegram_api::pageBlockDetails>(page_block_ptr);
-      auto is_open = (page_block->flags_ & telegram_api::pageBlockDetails::OPEN_MASK) != 0;
+      auto is_open = page_block->open_;
       return td::make_unique<WebPageBlockDetails>(get_rich_text(std::move(page_block->title_), documents),
                                                   get_web_page_blocks(td, std::move(page_block->blocks_), animations,
                                                                       audios, documents, photos, videos, voice_notes),

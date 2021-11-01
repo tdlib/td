@@ -32,7 +32,7 @@ GroupCallParticipant::GroupCallParticipant(const tl_object_ptr<telegram_api::gro
       LOG(ERROR) << "Receive " << to_string(participant);
       volume_level = 10000;
     }
-    is_volume_level_local = (participant->flags_ & telegram_api::groupCallParticipant::VOLUME_BY_ADMIN_MASK) == 0;
+    is_volume_level_local = !participant->volume_by_admin_;
   }
   if (!participant->left_) {
     joined_date = participant->date_;

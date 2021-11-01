@@ -1456,12 +1456,12 @@ void WebPagesManager::on_get_web_page_instant_view(WebPage *web_page, tl_object_
   web_page->instant_view.page_blocks =
       get_web_page_blocks(td_, std::move(page->blocks_), animations, audios, documents, photos, videos, voice_notes);
   web_page->instant_view.view_count = (page->flags_ & telegram_api::page::VIEWS_MASK) != 0 ? page->views_ : 0;
-  web_page->instant_view.is_v2 = (page->flags_ & telegram_api::page::V2_MASK) != 0;
-  web_page->instant_view.is_rtl = (page->flags_ & telegram_api::page::RTL_MASK) != 0;
+  web_page->instant_view.is_v2 = page->v2_;
+  web_page->instant_view.is_rtl = page->rtl_;
   web_page->instant_view.hash = hash;
   web_page->instant_view.url = std::move(page->url_);
   web_page->instant_view.is_empty = false;
-  web_page->instant_view.is_full = (page->flags_ & telegram_api::page::PART_MASK) == 0;
+  web_page->instant_view.is_full = !page->part_;
   web_page->instant_view.is_loaded = true;
 
   LOG(DEBUG) << "Receive web page instant view: "

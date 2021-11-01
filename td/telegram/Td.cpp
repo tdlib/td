@@ -2902,7 +2902,7 @@ void Td::on_get_promo_data(Result<telegram_api::object_ptr<telegram_api::help_Pr
     case telegram_api::help_promoData::ID: {
       auto promo = telegram_api::move_object_as<telegram_api::help_promoData>(promo_data_ptr);
       expires_at = promo->expires_;
-      bool is_proxy = (promo->flags_ & telegram_api::help_promoData::PROXY_MASK) != 0;
+      bool is_proxy = promo->proxy_;
       messages_manager_->on_get_sponsored_dialog(
           std::move(promo->peer_),
           is_proxy ? DialogSource::mtproto_proxy()

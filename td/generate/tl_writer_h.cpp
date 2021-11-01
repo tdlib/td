@@ -179,7 +179,7 @@ bool TD_TL_writer_h::need_arg_mask(const tl::arg &a, bool can_be_stored) const {
   const tl::tl_tree_type *tree_type = static_cast<tl::tl_tree_type *>(a.type);
   const std::string &name = tree_type->type->name;
 
-  if (!is_built_in_simple_type(name)) {
+  if (!is_built_in_simple_type(name) || name == "True") {
     return false;
   }
   return true;
@@ -201,7 +201,7 @@ std::string TD_TL_writer_h::gen_flags_definitions(const tl::tl_combinator *t, bo
   }
   std::string res;
   if (!flags.empty()) {
-    res += "  enum Flags : std::int32_t {";
+    res += "  enum Flags : std::int32_t { ";
     bool first = true;
     for (auto &p : flags) {
       if (first) {
@@ -211,7 +211,7 @@ std::string TD_TL_writer_h::gen_flags_definitions(const tl::tl_combinator *t, bo
       }
       res += p.first + "_MASK = " + int_to_string(1 << p.second);
     }
-    res += "};\n";
+    res += " };\n";
   }
   return res;
 }

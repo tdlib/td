@@ -304,9 +304,8 @@ class GetPaymentFormQuery final : public Td::ResultHandler {
       LOG(ERROR) << "Receive invalid seller " << seller_bot_user_id;
       return on_error(id, Status::Error(500, "Receive invalid seller identifier"));
     }
-    bool can_save_credentials =
-        (payment_form->flags_ & telegram_api::payments_paymentForm::CAN_SAVE_CREDENTIALS_MASK) != 0;
-    bool need_password = (payment_form->flags_ & telegram_api::payments_paymentForm::PASSWORD_MISSING_MASK) != 0;
+    bool can_save_credentials = payment_form->can_save_credentials_;
+    bool need_password = payment_form->password_missing_;
     promise_.set_value(make_tl_object<td_api::paymentForm>(
         payment_form->form_id_, convert_invoice(std::move(payment_form->invoice_)), std::move(payment_form->url_),
         td->contacts_manager_->get_user_id_object(seller_bot_user_id, "paymentForm seller"),
@@ -649,9 +648,8 @@ InputInvoice get_input_invoice(tl_object_ptr<telegram_api::messageMediaInvoice> 
   result.photo = get_web_document_photo(td->file_manager_.get(), std::move(message_invoice->photo_), owner_dialog_id);
   result.start_parameter = std::move(message_invoice->start_param_);
   result.invoice.currency = std::move(message_invoice->currency_);
-  result.invoice.is_test = (message_invoice->flags_ & telegram_api::messageMediaInvoice::TEST_MASK) != 0;
-  result.invoice.need_shipping_address =
-      (message_invoice->flags_ & telegram_api::messageMediaInvoice::SHIPPING_ADDRESS_REQUESTED_MASK) != 0;
+  result.invoice.is_test = message_invoice->test_;
+  result.invoice.need_shipping_address = message_invoice->shipping_address_requested_;
   // result.payload = string();
   // result.provider_token = string();
   // result.provider_data = string();
@@ -674,9 +672,8 @@ InputInvoice get_input_invoice(tl_object_ptr<telegram_api::botInlineMessageMedia
   result.photo = get_web_document_photo(td->file_manager_.get(), std::move(message_invoice->photo_), owner_dialog_id);
   // result.start_parameter = string();
   result.invoice.currency = std::move(message_invoice->currency_);
-  result.invoice.is_test = (message_invoice->flags_ & telegram_api::messageMediaInvoice::TEST_MASK) != 0;
-  result.invoice.need_shipping_address =
-      (message_invoice->flags_ & telegram_api::messageMediaInvoice::SHIPPING_ADDRESS_REQUESTED_MASK) != 0;
+  result.invoice.is_test = message_invoice->test_;
+  result.invoice.need_shipping_address = message_invoice->shipping_address_requested_;
   // result.payload = string();
   // result.provider_token = string();
   // result.provider_data = string();

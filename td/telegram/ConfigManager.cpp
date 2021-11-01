@@ -1369,8 +1369,7 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
   shared_config.set_option_integer("pinned_chat_count_max", config->pinned_dialogs_count_max_);
   shared_config.set_option_integer("pinned_archived_chat_count_max", config->pinned_infolder_count_max_);
   if (is_from_main_dc || !shared_config.have_option("expect_blocking")) {
-    shared_config.set_option_boolean("expect_blocking",
-                                     (config->flags_ & telegram_api::config::BLOCKED_MODE_MASK) != 0);
+    shared_config.set_option_boolean("expect_blocking", config->blocked_mode_);
   }
   if (is_from_main_dc || !shared_config.have_option("dc_txt_domain_name")) {
     shared_config.set_option_string("dc_txt_domain_name", config->dc_txt_domain_name_);
@@ -1404,8 +1403,7 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
 
   if (is_from_main_dc) {
     shared_config.set_option_integer("edit_time_limit", config->edit_time_limit_);
-    shared_config.set_option_boolean("revoke_pm_inbox",
-                                     (config->flags_ & telegram_api::config::REVOKE_PM_INBOX_MASK) != 0);
+    shared_config.set_option_boolean("revoke_pm_inbox", config->revoke_pm_inbox_);
     shared_config.set_option_integer("revoke_time_limit", config->revoke_time_limit_);
     shared_config.set_option_integer("revoke_pm_time_limit", config->revoke_pm_time_limit_);
 

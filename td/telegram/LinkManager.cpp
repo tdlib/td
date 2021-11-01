@@ -401,8 +401,6 @@ class GetDeepLinkInfoQuery final : public Td::ResultHandler {
         return promise_.set_value(nullptr);
       case telegram_api::help_deepLinkInfo::ID: {
         auto info = telegram_api::move_object_as<telegram_api::help_deepLinkInfo>(result);
-        bool need_update = (info->flags_ & telegram_api::help_deepLinkInfo::UPDATE_APP_MASK) != 0;
-
         auto entities = get_message_entities(nullptr, std::move(info->entities_), "GetDeepLinkInfoQuery");
         auto status = fix_formatted_text(info->message_, entities, true, true, true, true, true);
         if (status.is_error()) {
@@ -414,7 +412,7 @@ class GetDeepLinkInfoQuery final : public Td::ResultHandler {
         }
         FormattedText text{std::move(info->message_), std::move(entities)};
         return promise_.set_value(
-            td_api::make_object<td_api::deepLinkInfo>(get_formatted_text_object(text, true, -1), need_update));
+            td_api::make_object<td_api::deepLinkInfo>(get_formatted_text_object(text, true, -1), info->update_app_));
       }
       default:
         UNREACHABLE();
@@ -469,11 +467,9 @@ class RequestUrlAuthQuery final : public Td::ResultHandler {
           return on_error(id, Status::Error(500, "Receive invalid bot_user_id"));
         }
         td->contacts_manager_->on_get_user(std::move(request->bot_), "RequestUrlAuthQuery");
-        bool request_write_access =
-            (request->flags_ & telegram_api::urlAuthResultRequest::REQUEST_WRITE_ACCESS_MASK) != 0;
         promise_.set_value(td_api::make_object<td_api::loginUrlInfoRequestConfirmation>(
             url_, request->domain_, td->contacts_manager_->get_user_id_object(bot_user_id, "RequestUrlAuthQuery"),
-            request_write_access));
+            request->request_write_access_));
         break;
       }
       case telegram_api::urlAuthResultAccepted::ID: {

@@ -6667,7 +6667,7 @@ void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api:
                                      UserId(), &ttl);
   bool is_content_secret = is_secret_message_content(ttl, content->get_type());
 
-  if ((update->flags_ & telegram_api::updateServiceNotification::POPUP_MASK) != 0) {
+  if (update->popup_) {
     send_closure(G()->td(), &Td::send_update,
                  td_api::make_object<td_api::updateServiceNotification>(
                      update->type_, get_message_content_object(content.get(), td_, owner_dialog_id, date,
@@ -8474,10 +8474,8 @@ void MessagesManager::on_get_peer_settings(DialogId dialog_id,
                                            bool ignore_privacy_exception) {
   CHECK(peer_settings != nullptr);
   if (dialog_id.get_type() == DialogType::User && !ignore_privacy_exception) {
-    auto need_phone_number_privacy_exception =
-        (peer_settings->flags_ & telegram_api::peerSettings::NEED_CONTACTS_EXCEPTION_MASK) != 0;
     td_->contacts_manager_->on_update_user_need_phone_number_privacy_exception(dialog_id.get_user_id(),
-                                                                               need_phone_number_privacy_exception);
+                                                                               peer_settings->need_contacts_exception_);
   }
 
   Dialog *d = get_dialog_force(dialog_id, "on_get_peer_settings");
@@ -8485,15 +8483,15 @@ void MessagesManager::on_get_peer_settings(DialogId dialog_id,
     return;
   }
 
-  auto can_report_spam = (peer_settings->flags_ & telegram_api::peerSettings::REPORT_SPAM_MASK) != 0;
-  auto can_add_contact = (peer_settings->flags_ & telegram_api::peerSettings::ADD_CONTACT_MASK) != 0;
-  auto can_block_user = (peer_settings->flags_ & telegram_api::peerSettings::BLOCK_CONTACT_MASK) != 0;
-  auto can_share_phone_number = (peer_settings->flags_ & telegram_api::peerSettings::SHARE_CONTACT_MASK) != 0;
-  auto can_report_location = (peer_settings->flags_ & telegram_api::peerSettings::REPORT_GEO_MASK) != 0;
-  auto can_unarchive = (peer_settings->flags_ & telegram_api::peerSettings::AUTOARCHIVED_MASK) != 0;
+  auto can_report_spam = peer_settings->report_spam_;
+  auto can_add_contact = peer_settings->add_contact_;
+  auto can_block_user = peer_settings->block_contact_;
+  auto can_share_phone_number = peer_settings->share_contact_;
+  auto can_report_location = peer_settings->report_geo_;
+  auto can_unarchive = peer_settings->autoarchived_;
   auto distance =
       (peer_settings->flags_ & telegram_api::peerSettings::GEO_DISTANCE_MASK) != 0 ? peer_settings->geo_distance_ : -1;
-  auto can_invite_members = (peer_settings->flags_ & telegram_api::peerSettings::INVITE_MEMBERS_MASK) != 0;
+  auto can_invite_members = peer_settings->invite_members_;
   if (d->can_report_spam == can_report_spam && d->can_add_contact == can_add_contact &&
       d->can_block_user == can_block_user && d->can_share_phone_number == can_share_phone_number &&
       d->can_report_location == can_report_location && d->can_unarchive == can_unarchive && d->distance == distance &&
@@ -14875,7 +14873,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
         set_channel_pts(d, dialog->pts_, "get channel");
       }
     }
-    bool is_marked_as_unread = (dialog->flags_ & telegram_api::dialog::UNREAD_MARK_MASK) != 0;
+    bool is_marked_as_unread = dialog->unread_mark_;
     if (is_marked_as_unread != d->is_marked_as_unread) {
       set_dialog_is_marked_as_unread(d, is_marked_as_unread);
     }
@@ -37202,7 +37200,7 @@ void MessagesManager::on_get_channel_difference(
       on_update_dialog_notify_settings(dialog_id, std::move(dialog->notify_settings_),
                                        "updates.channelDifferenceTooLong");
 
-      bool is_marked_as_unread = (dialog->flags_ & telegram_api::dialog::UNREAD_MARK_MASK) != 0;
+      bool is_marked_as_unread = dialog->unread_mark_;
       if (is_marked_as_unread != d->is_marked_as_unread) {
         set_dialog_is_marked_as_unread(d, is_marked_as_unread);
       }

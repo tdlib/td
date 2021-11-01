@@ -5307,15 +5307,11 @@ void ContactsManager::get_account_ttl(Promise<int32> &&promise) const {
 td_api::object_ptr<td_api::session> ContactsManager::convert_authorization_object(
     tl_object_ptr<telegram_api::authorization> &&authorization) {
   CHECK(authorization != nullptr);
-  bool is_current = (authorization->flags_ & telegram_api::authorization::CURRENT_MASK) != 0;
-  bool is_official_application = (authorization->flags_ & telegram_api::authorization::OFFICIAL_APP_MASK) != 0;
-  bool is_password_pending = (authorization->flags_ & telegram_api::authorization::PASSWORD_PENDING_MASK) != 0;
-
   return td_api::make_object<td_api::session>(
-      authorization->hash_, is_current, is_password_pending, authorization->api_id_, authorization->app_name_,
-      authorization->app_version_, is_official_application, authorization->device_model_, authorization->platform_,
-      authorization->system_version_, authorization->date_created_, authorization->date_active_, authorization->ip_,
-      authorization->country_, authorization->region_);
+      authorization->hash_, authorization->current_, authorization->password_pending_, authorization->api_id_,
+      authorization->app_name_, authorization->app_version_, authorization->official_app_, authorization->device_model_,
+      authorization->platform_, authorization->system_version_, authorization->date_created_,
+      authorization->date_active_, authorization->ip_, authorization->country_, authorization->region_);
 }
 
 void ContactsManager::confirm_qr_code_authentication(const string &link,
@@ -8684,8 +8680,7 @@ ContactsManager::User *ContactsManager::get_user_force(UserId user_id) {
   if ((u == nullptr || !u->is_received) &&
       (user_id == get_service_notifications_user_id() || user_id == get_replies_bot_user_id() ||
        user_id == get_anonymous_bot_user_id())) {
-    int32 flags = telegram_api::user::ACCESS_HASH_MASK | telegram_api::user::FIRST_NAME_MASK |
-                  telegram_api::user::APPLY_MIN_PHOTO_MASK;
+    int32 flags = USER_FLAG_HAS_ACCESS_HASH | USER_FLAG_HAS_FIRST_NAME | USER_FLAG_NEED_APPLY_MIN_PHOTO;
     int64 profile_photo_id = 0;
     int32 profile_photo_dc_id = 1;
     string first_name;
@@ -8695,26 +8690,26 @@ ContactsManager::User *ContactsManager::get_user_force(UserId user_id) {
     int32 bot_info_version = 0;
 
     if (user_id == get_service_notifications_user_id()) {
-      flags |= telegram_api::user::PHONE_MASK | telegram_api::user::VERIFIED_MASK | telegram_api::user::SUPPORT_MASK;
+      flags |= USER_FLAG_HAS_PHONE_NUMBER | USER_FLAG_IS_VERIFIED | USER_FLAG_IS_SUPPORT;
       first_name = "Telegram";
       if (G()->is_test_dc()) {
-        flags |= telegram_api::user::LAST_NAME_MASK;
+        flags |= USER_FLAG_HAS_LAST_NAME;
         last_name = "Notifications";
       }
       phone_number = "42777";
       profile_photo_id = 3337190045231023;
     } else if (user_id == get_replies_bot_user_id()) {
-      flags |= telegram_api::user::USERNAME_MASK | telegram_api::user::BOT_MASK;
+      flags |= USER_FLAG_HAS_USERNAME | USER_FLAG_IS_BOT;
       if (!G()->is_test_dc()) {
-        flags |= telegram_api::user::BOT_NOCHATS_MASK;
+        flags |= USER_FLAG_IS_PRIVATE_BOT;
       }
       first_name = "Replies";
       username = "replies";
       bot_info_version = G()->is_test_dc() ? 1 : 3;
     } else if (user_id == get_anonymous_bot_user_id()) {
-      flags |= telegram_api::user::USERNAME_MASK | telegram_api::user::BOT_MASK;
+      flags |= USER_FLAG_HAS_USERNAME | USER_FLAG_IS_BOT;
       if (!G()->is_test_dc()) {
-        flags |= telegram_api::user::BOT_NOCHATS_MASK;
+        flags |= USER_FLAG_IS_PRIVATE_BOT;
       }
       first_name = "Group";
       username = G()->is_test_dc() ? "izgroupbot" : "GroupAnonymousBot";
@@ -10374,8 +10369,8 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
   }
 
   on_update_user_full_common_chat_count(user_full, user_id, user->common_chats_count_);
-  on_update_user_full_need_phone_number_privacy_exception(
-      user_full, user_id, (user->settings_->flags_ & telegram_api::peerSettings::NEED_CONTACTS_EXCEPTION_MASK) != 0);
+  on_update_user_full_need_phone_number_privacy_exception(user_full, user_id,
+                                                          user->settings_->need_contacts_exception_);
 
   bool can_pin_messages = user->can_pin_message_;
   if (user_full->can_pin_messages != can_pin_messages) {

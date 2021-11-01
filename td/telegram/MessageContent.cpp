@@ -1512,8 +1512,7 @@ InlineMessageContent create_inline_message_content(Td *td, FileId file_id,
         break;
       }
 
-      result.disable_web_page_preview =
-          (inline_message->flags_ & telegram_api::botInlineMessageText::NO_WEBPAGE_MASK) != 0;
+      result.disable_web_page_preview = inline_message->no_webpage_;
       WebPageId web_page_id;
       if (!result.disable_web_page_preview) {
         web_page_id = td->web_pages_manager_->get_web_page_by_url(get_first_url(inline_message->message_, entities));
@@ -4635,13 +4634,12 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       auto phone_call = move_tl_object_as<telegram_api::messageActionPhoneCall>(action);
       auto duration =
           (phone_call->flags_ & telegram_api::messageActionPhoneCall::DURATION_MASK) != 0 ? phone_call->duration_ : 0;
-      auto is_video = (phone_call->flags_ & telegram_api::messageActionPhoneCall::VIDEO_MASK) != 0;
       if (duration < 0) {
         LOG(ERROR) << "Receive invalid " << oneline(to_string(phone_call));
         break;
       }
       return make_unique<MessageCall>(phone_call->call_id_, duration, get_call_discard_reason(phone_call->reason_),
-                                      is_video);
+                                      phone_call->video_);
     }
     case telegram_api::messageActionPaymentSent::ID: {
       if (td->auth_manager_->is_bot()) {

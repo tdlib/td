@@ -778,9 +778,8 @@ void PasswordManager::do_get_state(Promise<PasswordState> promise) {
           state.current_srp_B = password->srp_B_.as_slice().str();
           state.current_srp_id = password->srp_id_;
           state.password_hint = std::move(password->hint_);
-          state.has_recovery_email_address =
-              (password->flags_ & telegram_api::account_password::HAS_RECOVERY_MASK) != 0;
-          state.has_secure_values = (password->flags_ & telegram_api::account_password::HAS_SECURE_VALUES_MASK) != 0;
+          state.has_recovery_email_address = password->has_recovery_;
+          state.has_secure_values = password->has_secure_values_;
         } else {
           state.has_password = false;
           send_closure(actor_id, &PasswordManager::drop_cached_secret);

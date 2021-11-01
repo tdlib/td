@@ -106,9 +106,8 @@ TermsOfService::TermsOfService(telegram_api::object_ptr<telegram_api::help_terms
     id_.clear();
   }
   text_ = FormattedText{std::move(terms->text_), std::move(entities)};
-  min_user_age_ =
-      ((terms->flags_ & telegram_api::help_termsOfService::MIN_AGE_CONFIRM_MASK) != 0 ? terms->min_age_confirm_ : 0);
-  show_popup_ = (terms->flags_ & telegram_api::help_termsOfService::POPUP_MASK) != 0;
+  min_user_age_ = terms->min_age_confirm_;
+  show_popup_ = terms->popup_;
 }
 
 void get_terms_of_service(Td *td, Promise<std::pair<int32, TermsOfService>> promise) {

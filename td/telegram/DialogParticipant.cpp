@@ -711,16 +711,15 @@ DialogParticipant::DialogParticipant(tl_object_ptr<telegram_api::ChannelParticip
     }
     case telegram_api::channelParticipantCreator::ID: {
       auto participant = move_tl_object_as<telegram_api::channelParticipantCreator>(participant_ptr);
-      bool is_anonymous = (participant->admin_rights_->flags_ & telegram_api::chatAdminRights::ANONYMOUS_MASK) != 0;
       *this = {DialogId(UserId(participant->user_id_)), UserId(), 0,
-               DialogParticipantStatus::Creator(true, is_anonymous, std::move(participant->rank_))};
+               DialogParticipantStatus::Creator(true, participant->admin_rights_->anonymous_,
+                                                std::move(participant->rank_))};
       break;
     }
     case telegram_api::channelParticipantAdmin::ID: {
       auto participant = move_tl_object_as<telegram_api::channelParticipantAdmin>(participant_ptr);
-      bool can_be_edited = (participant->flags_ & telegram_api::channelParticipantAdmin::CAN_EDIT_MASK) != 0;
       *this = {DialogId(UserId(participant->user_id_)), UserId(participant->promoted_by_), participant->date_,
-               get_dialog_participant_status(can_be_edited, std::move(participant->admin_rights_),
+               get_dialog_participant_status(participant->can_edit_, std::move(participant->admin_rights_),
                                              std::move(participant->rank_))};
       break;
     }
@@ -731,9 +730,8 @@ DialogParticipant::DialogParticipant(tl_object_ptr<telegram_api::ChannelParticip
     }
     case telegram_api::channelParticipantBanned::ID: {
       auto participant = move_tl_object_as<telegram_api::channelParticipantBanned>(participant_ptr);
-      auto is_member = (participant->flags_ & telegram_api::channelParticipantBanned::LEFT_MASK) == 0;
       *this = {DialogId(participant->peer_), UserId(participant->kicked_by_), participant->date_,
-               get_dialog_participant_status(is_member, std::move(participant->banned_rights_))};
+               get_dialog_participant_status(!participant->left_, std::move(participant->banned_rights_))};
       break;
     }
     default:

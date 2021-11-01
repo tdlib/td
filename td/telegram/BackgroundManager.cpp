@@ -1098,8 +1098,8 @@ std::pair<BackgroundId, BackgroundType> BackgroundManager::on_get_background(
     Background background;
     background.id = background_id;
     background.is_creator = false;
-    background.is_default = (wallpaper->flags_ & telegram_api::wallPaperNoFile::DEFAULT_MASK) != 0;
-    background.is_dark = (wallpaper->flags_ & telegram_api::wallPaperNoFile::DARK_MASK) != 0;
+    background.is_default = wallpaper->default_;
+    background.is_dark = wallpaper->dark_;
     background.type = BackgroundType(true, false, std::move(wallpaper->settings_));
     background.name = background.type.get_link();
     add_background(background, replace_type);
@@ -1124,8 +1124,7 @@ std::pair<BackgroundId, BackgroundType> BackgroundManager::on_get_background(
   }
   CHECK(document_id == telegram_api::document::ID);
 
-  int32 flags = wallpaper->flags_;
-  bool is_pattern = (flags & telegram_api::wallPaper::PATTERN_MASK) != 0;
+  bool is_pattern = wallpaper->pattern_;
 
   Document document = td_->documents_manager_->on_get_document(
       telegram_api::move_object_as<telegram_api::document>(wallpaper->document_), DialogId(), nullptr,
@@ -1139,9 +1138,9 @@ std::pair<BackgroundId, BackgroundType> BackgroundManager::on_get_background(
   Background background;
   background.id = background_id;
   background.access_hash = wallpaper->access_hash_;
-  background.is_creator = (flags & telegram_api::wallPaper::CREATOR_MASK) != 0;
-  background.is_default = (flags & telegram_api::wallPaper::DEFAULT_MASK) != 0;
-  background.is_dark = (flags & telegram_api::wallPaper::DARK_MASK) != 0;
+  background.is_creator = wallpaper->creator_;
+  background.is_default = wallpaper->default_;
+  background.is_dark = wallpaper->dark_;
   background.type = BackgroundType(false, is_pattern, std::move(wallpaper->settings_));
   background.name = std::move(wallpaper->slug_);
   background.file_id = document.file_id;

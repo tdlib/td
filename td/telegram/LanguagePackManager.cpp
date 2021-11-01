@@ -1605,9 +1605,9 @@ Result<LanguagePackManager::LanguageInfo> LanguagePackManager::get_language_info
   info.native_name_ = std::move(language->native_name_);
   info.base_language_code_ = std::move(language->base_lang_code_);
   info.plural_code_ = std::move(language->plural_code_);
-  info.is_official_ = (language->flags_ & telegram_api::langPackLanguage::OFFICIAL_MASK) != 0;
-  info.is_rtl_ = (language->flags_ & telegram_api::langPackLanguage::RTL_MASK) != 0;
-  info.is_beta_ = (language->flags_ & telegram_api::langPackLanguage::BETA_MASK) != 0;
+  info.is_official_ = language->official_;
+  info.is_rtl_ = language->rtl_;
+  info.is_beta_ = language->beta_;
   info.is_from_database_ = false;
   info.total_string_count_ = language->strings_count_;
   info.translated_string_count_ = language->translated_count_;
