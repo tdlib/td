@@ -25,7 +25,7 @@ std::string TD_TL_writer_cpp::gen_output_begin() const {
          "#include \"td/utils/logging.h\"\n"
          "#include \"td/utils/SliceBuilder.h\"\n"
          "#include \"td/utils/tl_parsers.h\"\n"
-         "#include \"td/utils/tl_storers.h\"\n\n"
+         "#include \"td/utils/tl_storers.h\"\n"
          "#include \"td/utils/TlStorerToString.h\"\n\n"
          "namespace td {\n"
          "namespace " +
@@ -324,7 +324,8 @@ std::string TD_TL_writer_cpp::gen_store_class_name(const tl::tl_tree_type *tree_
     return "TlStoreBool";
   }
   if (name == "True") {
-    return "TlStoreTrue";
+    assert(false);
+    return "";
   }
   if (name == "String" || name == "Bytes") {
     return "TlStoreString";
@@ -436,6 +437,13 @@ std::string TD_TL_writer_cpp::gen_field_store(const tl::arg &a, std::vector<tl::
     assert(vars[a.var_num].is_stored);
     assert(!vars[a.var_num].is_type);
     return "";
+  }
+
+  if (a.exist_var_num >= 0 && a.var_num < 0 && a.type->get_type() == tl::NODE_TYPE_TYPE) {
+    const tl::tl_tree_type *tree_type = static_cast<tl::tl_tree_type *>(a.type);
+    if (tree_type->type->name == "True") {
+      return "";
+    }
   }
 
   if (a.exist_var_num >= 0) {
