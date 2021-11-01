@@ -149,6 +149,14 @@ class TlStorerToString {
     store_field_end();
   }
 
+  void store_vector_begin(const char *field_name, size_t vector_size) {
+    store_field_begin(field_name);
+    result += "vector[";
+    result += (PSLICE() << vector_size).c_str();
+    result += "] {\n";
+    shift += 2;
+  }
+
   void store_class_begin(const char *field_name, const char *class_name) {
     store_field_begin(field_name);
     result += class_name;
