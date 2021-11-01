@@ -67,6 +67,7 @@
 #include "td/utils/format.h"
 #include "td/utils/misc.h"
 #include "td/utils/PathView.h"
+#include "td/utils/port/Clocks.h"
 #include "td/utils/Random.h"
 #include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
@@ -21529,7 +21530,21 @@ td_api::object_ptr<td_api::messageCalendar> MessagesManager::get_dialog_message_
     LOG(INFO) << "Get message calendar in " << dialog_id << " from " << fixed_from_message_id << ", have up to "
               << first_db_message_id << ", message_count = " << message_count;
     if (first_db_message_id < fixed_from_message_id && message_count != -1) {
-      // TODO
+      LOG(INFO) << "Get message calendar from database in " << dialog_id << " from " << fixed_from_message_id;
+      auto new_promise =
+          PromiseCreator::lambda([random_id, dialog_id, fixed_from_message_id, first_db_message_id, filter,
+                                  promise = std::move(promise)](Result<MessagesDbCalendar> r_calendar) mutable {
+            send_closure(G()->messages_manager(), &MessagesManager::on_get_message_calendar_from_database, random_id,
+                         dialog_id, fixed_from_message_id, first_db_message_id, filter, std::move(r_calendar),
+                         std::move(promise));
+          });
+      MessagesDbDialogCalendarQuery db_query;
+      db_query.dialog_id = dialog_id;
+      db_query.filter = filter;
+      db_query.from_message_id = fixed_from_message_id;
+      db_query.tz_offset = Clocks::tz_offset();
+      G()->td_db()->get_messages_db_async()->get_dialog_message_calendar(db_query, std::move(new_promise));
+      return {};
     }
   }
   if (filter == MessageSearchFilter::FailedToSend) {
@@ -21555,6 +21570,60 @@ td_api::object_ptr<td_api::messageCalendar> MessagesManager::get_dialog_message_
       promise.set_error(Status::Error(500, "Search messages is not supported"));
   }
   return {};
+}
+
+void MessagesManager::on_get_message_calendar_from_database(int64 random_id, DialogId dialog_id,
+                                                            MessageId from_message_id, MessageId first_db_message_id,
+                                                            MessageSearchFilter filter,
+                                                            Result<MessagesDbCalendar> r_calendar,
+                                                            Promise<Unit> promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
+  if (r_calendar.is_error()) {
+    LOG(ERROR) << "Failed to get message calendar from the database: " << r_calendar.error();
+    if (first_db_message_id != MessageId::min() && dialog_id.get_type() != DialogType::SecretChat &&
+        filter != MessageSearchFilter::FailedToSend) {
+      found_dialog_message_calendars_.erase(random_id);
+    }
+    return promise.set_value(Unit());
+  }
+  CHECK(!from_message_id.is_scheduled());
+  CHECK(!first_db_message_id.is_scheduled());
+
+  auto calendar = r_calendar.move_as_ok();
+
+  Dialog *d = get_dialog(dialog_id);
+  CHECK(d != nullptr);
+
+  auto it = found_dialog_message_calendars_.find(random_id);
+  CHECK(it != found_dialog_message_calendars_.end());
+  CHECK(it->second == nullptr);
+
+  vector<std::pair<MessageId, int32>> periods;
+  periods.reserve(calendar.messages.size());
+  for (size_t i = 0; i < calendar.messages.size(); i++) {
+    auto m = on_get_message_from_database(d, calendar.messages[i], false, "on_get_message_calendar_from_database");
+    if (m != nullptr && first_db_message_id <= m->message_id) {
+      CHECK(!m->message_id.is_scheduled());
+      periods.emplace_back(m->message_id, calendar.total_counts[i]);
+    }
+  }
+
+  if (periods.empty() && first_db_message_id != MessageId::min() && dialog_id.get_type() != DialogType::SecretChat) {
+    LOG(INFO) << "No messages found in database";
+    found_dialog_message_calendars_.erase(it);
+  } else {
+    auto total_count = d->message_count_by_index[message_search_filter_index(filter)];
+    vector<td_api::object_ptr<td_api::messageCalendarDay>> days;
+    for (auto &period : periods) {
+      const auto *m = get_message(d, period.first);
+      CHECK(m != nullptr);
+      days.push_back(td_api::make_object<td_api::messageCalendarDay>(
+          period.second, get_message_object(dialog_id, m, "on_get_message_calendar_from_database")));
+    }
+    it->second = td_api::make_object<td_api::messageCalendar>(total_count, Clocks::tz_offset(), std::move(days));
+  }
+  promise.set_value(Unit());
 }
 
 std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
@@ -22233,7 +22302,7 @@ void MessagesManager::on_search_dialog_messages_db_result(int64 random_id, Dialo
                                                           MessageId from_message_id, MessageId first_db_message_id,
                                                           MessageSearchFilter filter, int32 offset, int32 limit,
                                                           Result<vector<MessagesDbDialogMessage>> r_messages,
-                                                          Promise<> promise) {
+                                                          Promise<Unit> promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   if (r_messages.is_error()) {
@@ -22287,7 +22356,7 @@ void MessagesManager::on_search_dialog_messages_db_result(int64 random_id, Dialo
   }
   it->second.first = message_count;
   if (res.empty() && first_db_message_id != MessageId::min() && dialog_id.get_type() != DialogType::SecretChat) {
-    LOG(INFO) << "No messages in database found";
+    LOG(INFO) << "No messages found in database";
     found_dialog_messages_.erase(it);
   } else {
     LOG(INFO) << "Found " << res.size() << " messages out of " << message_count << " in database";
@@ -22437,7 +22506,7 @@ void MessagesManager::on_messages_db_calls_result(Result<MessagesDbCallsResult> 
   it->second.first = calls_db_state_.message_count_by_index[call_message_search_filter_index(filter)];
 
   if (res.empty() && first_db_message_id != MessageId::min()) {
-    LOG(INFO) << "No messages in database found";
+    LOG(INFO) << "No messages found in database";
     found_call_messages_.erase(it);
   }
 

@@ -46,6 +46,18 @@ struct MessagesDbMessage {
   BufferSlice data;
 };
 
+struct MessagesDbDialogCalendarQuery {
+  DialogId dialog_id;
+  MessageSearchFilter filter{MessageSearchFilter::Empty};
+  MessageId from_message_id;
+  int32 tz_offset{0};
+};
+
+struct MessagesDbCalendar {
+  vector<MessagesDbDialogMessage> messages;
+  vector<int32> total_counts;
+};
+
 struct MessagesDbFtsQuery {
   string query;
   DialogId dialog_id;
@@ -89,6 +101,8 @@ class MessagesDbSyncInterface {
   virtual Result<MessagesDbDialogMessage> get_message_by_random_id(DialogId dialog_id, int64 random_id) = 0;
   virtual Result<MessagesDbDialogMessage> get_dialog_message_by_date(DialogId dialog_id, MessageId first_message_id,
                                                                      MessageId last_message_id, int32 date) = 0;
+
+  virtual Result<MessagesDbCalendar> get_dialog_message_calendar(MessagesDbDialogCalendarQuery query) = 0;
 
   virtual Result<vector<MessagesDbDialogMessage>> get_messages(MessagesDbMessagesQuery query) = 0;
   virtual Result<vector<MessagesDbDialogMessage>> get_scheduled_messages(DialogId dialog_id, int32 limit) = 0;
@@ -140,6 +154,9 @@ class MessagesDbAsyncInterface {
                                         Promise<MessagesDbDialogMessage> promise) = 0;
   virtual void get_dialog_message_by_date(DialogId dialog_id, MessageId first_message_id, MessageId last_message_id,
                                           int32 date, Promise<MessagesDbDialogMessage> promise) = 0;
+
+  virtual void get_dialog_message_calendar(MessagesDbDialogCalendarQuery query,
+                                           Promise<MessagesDbCalendar> promise) = 0;
 
   virtual void get_messages(MessagesDbMessagesQuery query, Promise<vector<MessagesDbDialogMessage>> promise) = 0;
   virtual void get_scheduled_messages(DialogId dialog_id, int32 limit,

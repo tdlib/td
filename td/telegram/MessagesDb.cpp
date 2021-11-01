@@ -611,6 +611,38 @@ class MessagesDbImpl final : public MessagesDbSyncInterface {
     return std::make_pair(std::move(messages), next_expires_till);
   }
 
+  Result<MessagesDbCalendar> get_dialog_message_calendar(MessagesDbDialogCalendarQuery query) final {
+    auto &stmt = get_messages_from_index_stmts_[message_search_filter_index(query.filter)].desc_stmt_;
+    SCOPE_EXIT {
+      stmt.reset();
+    };
+    int32 limit = 1000;
+    stmt.bind_int64(1, query.dialog_id.get()).ensure();
+    stmt.bind_int64(2, query.from_message_id.get()).ensure();
+    stmt.bind_int32(3, limit).ensure();
+
+    vector<MessagesDbDialogMessage> messages;
+    vector<int32> total_counts;
+    stmt.step().ensure();
+    int32 current_day = std::numeric_limits<int32>::max();
+    while (stmt.has_row()) {
+      auto data_slice = stmt.view_blob(0);
+      MessageId message_id(stmt.view_int64(1));
+      auto info = get_message_info(message_id, data_slice, false);
+      auto day = (query.tz_offset + info.second) / 86400;
+      if (day >= current_day) {
+        CHECK(!total_counts.empty());
+        total_counts.back()++;
+      } else {
+        current_day = day;
+        messages.push_back(MessagesDbDialogMessage{message_id, BufferSlice(data_slice)});
+        total_counts.push_back(1);
+      }
+      stmt.step().ensure();
+    }
+    return MessagesDbCalendar{std::move(messages), std::move(total_counts)};
+  }
+
   Result<vector<MessagesDbDialogMessage>> get_messages(MessagesDbMessagesQuery query) final {
     if (query.filter != MessageSearchFilter::Empty) {
       return get_messages_from_index(query.dialog_id, query.from_message_id, query.filter, query.offset, query.limit);
@@ -892,7 +924,11 @@ class MessagesDbImpl final : public MessagesDbSyncInterface {
   }
 
   static std::pair<MessageId, int32> get_message_info(const MessagesDbDialogMessage &message, bool from_data = false) {
-    LogEventParser message_date_parser(message.data.as_slice());
+    return get_message_info(message.message_id, message.data.as_slice(), from_data);
+  }
+
+  static std::pair<MessageId, int32> get_message_info(MessageId message_id, Slice data, bool from_data) {
+    LogEventParser message_date_parser(data);
     int32 flags;
     int32 flags2 = 0;
     int32 flags3 = 0;
@@ -904,17 +940,17 @@ class MessagesDbImpl final : public MessagesDbSyncInterface {
       }
     }
     bool has_sender = (flags & (1 << 10)) != 0;
-    MessageId message_id;
-    td::parse(message_id, message_date_parser);
+    MessageId data_message_id;
+    td::parse(data_message_id, message_date_parser);
     UserId sender_user_id;
     if (has_sender) {
       td::parse(sender_user_id, message_date_parser);
     }
     int32 date;
     td::parse(date, message_date_parser);
-    LOG(INFO) << "Loaded " << message.message_id << "(aka " << message_id << ") sent at " << date << " by "
+    LOG(INFO) << "Loaded " << message_id << "(aka " << data_message_id << ") sent at " << date << " by "
               << sender_user_id;
-    return {from_data ? message_id : message.message_id, date};
+    return {from_data ? data_message_id : message_id, date};
   }
 };
 
@@ -978,6 +1014,10 @@ class MessagesDbAsync final : public MessagesDbAsyncInterface {
                                   Promise<MessagesDbDialogMessage> promise) final {
     send_closure_later(impl_, &Impl::get_dialog_message_by_date, dialog_id, first_message_id, last_message_id, date,
                        std::move(promise));
+  }
+
+  void get_dialog_message_calendar(MessagesDbDialogCalendarQuery query, Promise<MessagesDbCalendar> promise) final {
+    send_closure_later(impl_, &Impl::get_dialog_message_calendar, std::move(query), std::move(promise));
   }
 
   void get_messages(MessagesDbMessagesQuery query, Promise<vector<MessagesDbDialogMessage>> promise) final {
@@ -1069,6 +1109,11 @@ class MessagesDbAsync final : public MessagesDbAsyncInterface {
                                     int32 date, Promise<MessagesDbDialogMessage> promise) {
       add_read_query();
       promise.set_result(sync_db_->get_dialog_message_by_date(dialog_id, first_message_id, last_message_id, date));
+    }
+
+    void get_dialog_message_calendar(MessagesDbDialogCalendarQuery query, Promise<MessagesDbCalendar> promise) {
+      add_read_query();
+      promise.set_result(sync_db_->get_dialog_message_calendar(std::move(query)));
     }
 
     void get_messages(MessagesDbMessagesQuery query, Promise<vector<MessagesDbDialogMessage>> promise) {

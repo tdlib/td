@@ -2817,13 +2817,17 @@ class MessagesManager final : public Actor {
 
   static MessageId get_first_database_message_id_by_index(const Dialog *d, MessageSearchFilter filter);
 
+  void on_get_message_calendar_from_database(int64 random_id, DialogId dialog_id, MessageId from_message_id,
+                                             MessageId first_db_message_id, MessageSearchFilter filter,
+                                             Result<MessagesDbCalendar> r_calendar, Promise<Unit> promise);
+
   void on_search_dialog_messages_db_result(int64 random_id, DialogId dialog_id, MessageId from_message_id,
                                            MessageId first_db_message_id, MessageSearchFilter filter, int32 offset,
                                            int32 limit, Result<vector<MessagesDbDialogMessage>> r_messages,
-                                           Promise<> promise);
+                                           Promise<Unit> promise);
 
   void on_messages_db_fts_result(Result<MessagesDbFtsResult> result, string offset, int32 limit, int64 random_id,
-                                 Promise<> &&promise);
+                                 Promise<Unit> &&promise);
 
   void on_messages_db_calls_result(Result<MessagesDbCallsResult> result, int64 random_id, MessageId first_db_message_id,
                                    MessageSearchFilter filter, Promise<Unit> &&promise);
