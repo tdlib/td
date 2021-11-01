@@ -9,6 +9,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/FullMessageId.h"
 #include "td/telegram/MessageId.h"
+#include "td/telegram/MessageSearchFilter.h"
 #include "td/telegram/NotificationId.h"
 #include "td/telegram/ServerMessageId.h"
 
@@ -28,7 +29,7 @@ class SqliteDb;
 
 struct MessagesDbMessagesQuery {
   DialogId dialog_id;
-  int32 index_mask{0};
+  MessageSearchFilter filter{MessageSearchFilter::Empty};
   MessageId from_message_id;
   int32 offset{0};
   int32 limit{100};
@@ -48,7 +49,7 @@ struct MessagesDbMessage {
 struct MessagesDbFtsQuery {
   string query;
   DialogId dialog_id;
-  int32 index_mask{0};
+  MessageSearchFilter filter{MessageSearchFilter::Empty};
   int64 from_search_id{0};
   int32 limit{100};
 };
@@ -58,10 +59,11 @@ struct MessagesDbFtsResult {
 };
 
 struct MessagesDbCallsQuery {
-  int32 index_mask{0};
+  MessageSearchFilter filter{MessageSearchFilter::Empty};
   int32 from_unique_message_id{0};
   int32 limit{100};
 };
+
 struct MessagesDbCallsResult {
   vector<MessagesDbMessage> messages;
 };

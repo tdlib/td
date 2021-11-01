@@ -7,7 +7,6 @@
 #include "td/telegram/MessagesDb.h"
 
 #include "td/telegram/logevent/LogEvent.h"
-#include "td/telegram/MessageSearchFilter.h"
 #include "td/telegram/Version.h"
 
 #include "td/db/SqliteConnectionSafe.h"
@@ -335,7 +334,7 @@ class MessagesDbImpl final : public MessagesDbSyncInterface {
     if (search_id != 0) {
       // add dialog_id to text
       text += PSTRING() << " \a" << dialog_id.get();
-      if (index_mask) {
+      if (index_mask != 0) {
         for (int i = 0; i < MESSAGES_DB_INDEX_COUNT; i++) {
           if ((index_mask & (1 << i))) {
             text += PSTRING() << " \a\a" << i;
@@ -613,9 +612,8 @@ class MessagesDbImpl final : public MessagesDbSyncInterface {
   }
 
   Result<vector<MessagesDbDialogMessage>> get_messages(MessagesDbMessagesQuery query) final {
-    if (query.index_mask != 0) {
-      return get_messages_from_index(query.dialog_id, query.from_message_id, query.index_mask, query.offset,
-                                     query.limit);
+    if (query.filter != MessageSearchFilter::Empty) {
+      return get_messages_from_index(query.dialog_id, query.from_message_id, query.filter, query.offset, query.limit);
     }
     return get_messages_impl(get_messages_stmt_, query.dialog_id, query.from_message_id, query.offset, query.limit);
   }
@@ -699,7 +697,7 @@ class MessagesDbImpl final : public MessagesDbSyncInterface {
       get_messages_fts_stmt_.reset();
     };
 
-    LOG(INFO) << tag("query", query.query) << query.dialog_id << tag("index_mask", query.index_mask)
+    LOG(INFO) << tag("query", query.query) << query.dialog_id << tag("filter", query.filter)
               << tag("from_search_id", query.from_search_id) << tag("limit", query.limit);
     string words = prepare_query(query.query);
     LOG(INFO) << tag("from", query.query) << tag("to", words);
@@ -710,18 +708,8 @@ class MessagesDbImpl final : public MessagesDbSyncInterface {
     }
 
     // index_mask kludge
-    if (query.index_mask != 0) {
-      int index_i = -1;
-      for (int i = 0; i < MESSAGES_DB_INDEX_COUNT; i++) {
-        if (query.index_mask == (1 << i)) {
-          index_i = i;
-          break;
-        }
-      }
-      if (index_i == -1) {
-        return Status::Error("Union of index types is not supported");
-      }
-      words += PSTRING() << " \"\a\a" << index_i << "\"";
+    if (query.filter != MessageSearchFilter::Empty) {
+      words += PSTRING() << " \"\a\a" << message_search_filter_index(query.filter) << "\"";
     }
 
     auto &stmt = get_messages_fts_stmt_;
@@ -750,44 +738,20 @@ class MessagesDbImpl final : public MessagesDbSyncInterface {
   }
 
   Result<vector<MessagesDbDialogMessage>> get_messages_from_index(DialogId dialog_id, MessageId from_message_id,
-                                                                  int32 index_mask, int32 offset, int32 limit) {
-    CHECK(index_mask != 0);
-    LOG_CHECK(index_mask < (1 << MESSAGES_DB_INDEX_COUNT)) << tag("index_mask", index_mask);
-    int index_i = -1;
-    for (int i = 0; i < MESSAGES_DB_INDEX_COUNT; i++) {
-      if (index_mask == (1 << i)) {
-        index_i = i;
-        break;
-      }
-    }
-    if (index_i == -1) {
-      return Status::Error("Union is not supported");
-    }
-
-    auto &stmt = get_messages_from_index_stmts_[index_i];
+                                                                  MessageSearchFilter filter, int32 offset,
+                                                                  int32 limit) {
+    auto &stmt = get_messages_from_index_stmts_[message_search_filter_index(filter)];
     return get_messages_impl(stmt, dialog_id, from_message_id, offset, limit);
   }
 
   Result<MessagesDbCallsResult> get_calls(MessagesDbCallsQuery query) final {
-    CHECK(query.index_mask != 0);
-    LOG_CHECK(query.index_mask < (1 << MESSAGES_DB_INDEX_COUNT)) << tag("index_mask", query.index_mask);
-    int index_i = -1;
-    for (int i = 0; i < MESSAGES_DB_INDEX_COUNT; i++) {
-      if (query.index_mask == (1 << i)) {
-        index_i = i;
-        break;
-      }
-    }
-    if (index_i == -1) {
-      return Status::Error("Union is not supported");
-    }
     int32 pos;
-    if (index_i + 1 == static_cast<int>(MessageSearchFilter::Call)) {
+    if (query.filter == MessageSearchFilter::Call) {
       pos = 0;
-    } else if (index_i + 1 == static_cast<int>(MessageSearchFilter::MissedCall)) {
+    } else if (query.filter == MessageSearchFilter::MissedCall) {
       pos = 1;
     } else {
-      return Status::Error(PSLICE() << "Index mask is not Call or MissedCall " << query.index_mask);
+      return Status::Error(PSLICE() << "Filter is not Call or MissedCall: " << query.filter);
     }
 
     auto &stmt = get_calls_stmts_[pos];

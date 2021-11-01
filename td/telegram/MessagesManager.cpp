@@ -21717,7 +21717,7 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
           });
       MessagesDbMessagesQuery db_query;
       db_query.dialog_id = dialog_id;
-      db_query.index_mask = message_search_filter_index_mask(filter);
+      db_query.filter = filter;
       db_query.from_message_id = fixed_from_message_id;
       db_query.offset = offset;
       db_query.limit = limit;
@@ -21815,7 +21815,7 @@ std::pair<int32, vector<FullMessageId>> MessagesManager::search_call_messages(Me
       LOG(INFO) << "Search messages in database from " << fixed_from_message_id << " and with limit " << limit;
 
       MessagesDbCallsQuery db_query;
-      db_query.index_mask = message_search_filter_index_mask(filter);
+      db_query.filter = filter;
       db_query.from_unique_message_id = fixed_from_message_id.get_server_message_id().get();
       db_query.limit = limit;
       G()->td_db()->get_messages_db_async()->get_calls(
@@ -22351,7 +22351,7 @@ MessagesManager::FoundMessages MessagesManager::offline_search_messages(DialogId
   MessagesDbFtsQuery fts_query;
   fts_query.query = query;
   fts_query.dialog_id = dialog_id;
-  fts_query.index_mask = message_search_filter_index_mask(filter);
+  fts_query.filter = filter;
   if (!offset.empty()) {
     auto r_from_search_id = to_integer_safe<int64>(offset);
     if (r_from_search_id.is_error()) {
@@ -28181,7 +28181,7 @@ Result<vector<MessagesDbDialogMessage>> MessagesManager::do_get_message_notifica
     // ignore first_db_message_id, notifications can be nonconsecutive
     MessagesDbMessagesQuery db_query;
     db_query.dialog_id = d->dialog_id;
-    db_query.index_mask = message_search_filter_index_mask(MessageSearchFilter::UnreadMention);
+    db_query.filter = MessageSearchFilter::UnreadMention;
     db_query.from_message_id = from_message_id;
     db_query.offset = 0;
     db_query.limit = limit;
@@ -28303,7 +28303,7 @@ void MessagesManager::do_get_message_notifications_from_database(Dialog *d, bool
     // ignore first_db_message_id, notifications can be nonconsecutive
     MessagesDbMessagesQuery db_query;
     db_query.dialog_id = dialog_id;
-    db_query.index_mask = message_search_filter_index_mask(MessageSearchFilter::UnreadMention);
+    db_query.filter = MessageSearchFilter::UnreadMention;
     db_query.from_message_id = from_message_id;
     db_query.offset = 0;
     db_query.limit = limit;
