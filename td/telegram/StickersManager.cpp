@@ -4314,6 +4314,10 @@ void StickersManager::get_animated_emoji(string emoji, bool is_recursive,
 
 void StickersManager::get_animated_emoji_click_sticker(const string &message_text, FullMessageId full_message_id,
                                                        Promise<td_api::object_ptr<td_api::sticker>> &&promise) {
+  if (disable_animated_emojis_) {
+    return promise.set_value(nullptr);
+  }
+
   auto &special_sticker_set = add_special_sticker_set(SpecialStickerSetType::animated_emoji_click());
   if (!special_sticker_set.id_.is_valid()) {
     // don't wait for the first load of the sticker set from the server
@@ -4373,6 +4377,10 @@ void StickersManager::choose_animated_emoji_click_sticker(const StickerSet *stic
   message_text = remove_emoji_modifiers(message_text);
   if (message_text.empty()) {
     return promise.set_error(Status::Error(400, "Message is not an animated emoji message"));
+  }
+
+  if (disable_animated_emojis_) {
+    return promise.set_value(nullptr);
   }
 
   auto now = Time::now();
@@ -4531,7 +4539,7 @@ bool StickersManager::is_sent_animated_emoji_click(DialogId dialog_id, Slice emo
 }
 
 Status StickersManager::on_animated_emoji_message_clicked(Slice emoji, FullMessageId full_message_id, string data) {
-  if (td_->auth_manager_->is_bot()) {
+  if (td_->auth_manager_->is_bot() || disable_animated_emojis_) {
     return Status::OK();
   }
 
@@ -4649,7 +4657,7 @@ void StickersManager::schedule_update_animated_emoji_clicked(const StickerSet *s
 }
 
 void StickersManager::send_update_animated_emoji_clicked(FullMessageId full_message_id, FileId sticker_id) {
-  if (G()->close_flag()) {
+  if (G()->close_flag() || disable_animated_emojis_) {
     return;
   }
   if (td_->messages_manager_->is_message_edited_recently(full_message_id, 2)) {
