@@ -231,6 +231,12 @@ class MessagesDbImpl final : public MessagesDbSyncInterface {
 
     for (int32 i = 0; i < MESSAGES_DB_INDEX_COUNT; i++) {
       TRY_RESULT_ASSIGN(
+          get_message_ids_stmts_[i],
+          db_.get_statement(
+              PSLICE() << "SELECT message_id FROM messages WHERE dialog_id = ?1 AND message_id < ?2 AND (index_mask & "
+                       << (1 << i) << ") != 0 ORDER BY message_id DESC LIMIT 1000000"));
+
+      TRY_RESULT_ASSIGN(
           get_messages_from_index_stmts_[i].desc_stmt_,
           db_.get_statement(
               PSLICE()
@@ -469,16 +475,16 @@ class MessagesDbImpl final : public MessagesDbSyncInterface {
       return Status::Error("Not found");
     }
     MessageId received_message_id(stmt.view_int64(0));
-    MessagesDbDialogMessage result{received_message_id, BufferSlice(stmt.view_blob(1))};
+    Slice data = stmt.view_blob(1);
     if (is_scheduled_server) {
       CHECK(received_message_id.is_scheduled());
       CHECK(received_message_id.is_scheduled_server());
       CHECK(received_message_id.get_scheduled_server_message_id() == message_id.get_scheduled_server_message_id());
     } else {
       LOG_CHECK(received_message_id == message_id)
-          << received_message_id << ' ' << message_id << ' ' << get_message_info(result, true).first;
+          << received_message_id << ' ' << message_id << ' ' << get_message_info(received_message_id, data, true).first;
     }
-    return std::move(result);
+    return MessagesDbDialogMessage{received_message_id, BufferSlice(data)};
   }
 
   Result<MessagesDbMessage> get_message_by_unique_message_id(ServerMessageId unique_message_id) final {
@@ -641,6 +647,37 @@ class MessagesDbImpl final : public MessagesDbSyncInterface {
       stmt.step().ensure();
     }
     return MessagesDbCalendar{std::move(messages), std::move(total_counts)};
+  }
+
+  Result<MessagesDbMessagePositions> get_dialog_sparse_message_positions(
+      MessagesDbGetDialogSparseMessagePositionsQuery query) final {
+    auto &stmt = get_message_ids_stmts_[message_search_filter_index(query.filter)];
+    SCOPE_EXIT {
+      stmt.reset();
+    };
+    stmt.bind_int64(1, query.dialog_id.get()).ensure();
+    stmt.bind_int64(2, query.from_message_id.get()).ensure();
+
+    vector<MessageId> message_ids;
+    stmt.step().ensure();
+    while (stmt.has_row()) {
+      message_ids.push_back(MessageId(stmt.view_int64(0)));
+      stmt.step().ensure();
+    }
+
+    int32 limit = min(query.limit, static_cast<int32>(message_ids.size()));
+    double delta = static_cast<double>(message_ids.size()) / limit;
+    vector<MessagesDbMessagePosition> positions;
+    positions.reserve(limit);
+    for (int32 i = 0; i < limit; i++) {
+      auto position = static_cast<int32>((i + 0.5) * delta);
+      auto message_id = message_ids[position];
+      TRY_RESULT(message, get_message({query.dialog_id, message_id}));
+      auto date = get_message_info(message).second;
+      positions.push_back(MessagesDbMessagePosition{position, date, message_id});
+    }
+
+    return MessagesDbMessagePositions{static_cast<int32>(message_ids.size()), std::move(positions)};
   }
 
   Result<vector<MessagesDbDialogMessage>> get_messages(MessagesDbMessagesQuery query) final {
@@ -836,6 +873,7 @@ class MessagesDbImpl final : public MessagesDbSyncInterface {
   SqliteStatement get_scheduled_messages_stmt_;
   SqliteStatement get_messages_from_notification_id_stmt_;
 
+  std::array<SqliteStatement, MESSAGES_DB_INDEX_COUNT> get_message_ids_stmts_;
   std::array<GetMessagesStmt, MESSAGES_DB_INDEX_COUNT> get_messages_from_index_stmts_;
   std::array<SqliteStatement, 2> get_calls_stmts_;
 
@@ -1020,6 +1058,11 @@ class MessagesDbAsync final : public MessagesDbAsyncInterface {
     send_closure_later(impl_, &Impl::get_dialog_message_calendar, std::move(query), std::move(promise));
   }
 
+  void get_dialog_sparse_message_positions(MessagesDbGetDialogSparseMessagePositionsQuery query,
+                                           Promise<MessagesDbMessagePositions> promise) final {
+    send_closure_later(impl_, &Impl::get_dialog_sparse_message_positions, std::move(query), std::move(promise));
+  }
+
   void get_messages(MessagesDbMessagesQuery query, Promise<vector<MessagesDbDialogMessage>> promise) final {
     send_closure_later(impl_, &Impl::get_messages, std::move(query), std::move(promise));
   }
@@ -1114,6 +1157,12 @@ class MessagesDbAsync final : public MessagesDbAsyncInterface {
     void get_dialog_message_calendar(MessagesDbDialogCalendarQuery query, Promise<MessagesDbCalendar> promise) {
       add_read_query();
       promise.set_result(sync_db_->get_dialog_message_calendar(std::move(query)));
+    }
+
+    void get_dialog_sparse_message_positions(MessagesDbGetDialogSparseMessagePositionsQuery query,
+                                             Promise<MessagesDbMessagePositions> promise) {
+      add_read_query();
+      promise.set_result(sync_db_->get_dialog_sparse_message_positions(std::move(query)));
     }
 
     void get_messages(MessagesDbMessagesQuery query, Promise<vector<MessagesDbDialogMessage>> promise) {

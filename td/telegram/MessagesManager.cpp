@@ -22763,11 +22763,13 @@ void MessagesManager::get_dialog_sparse_message_positions(
   if (d == nullptr) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
+  if (limit < 50 || limit > 2000) {  // server-side limits
+    return promise.set_error(Status::Error(400, "Invalid limit specified"));
+  }
 
   if (filter == MessageSearchFilter::Empty || filter == MessageSearchFilter::Call ||
       filter == MessageSearchFilter::MissedCall || filter == MessageSearchFilter::Mention ||
-      filter == MessageSearchFilter::UnreadMention || filter == MessageSearchFilter::FailedToSend ||
-      filter == MessageSearchFilter::Pinned) {
+      filter == MessageSearchFilter::UnreadMention || filter == MessageSearchFilter::Pinned) {
     return promise.set_error(Status::Error(400, "The filter is not supported"));
   }
 
@@ -22784,6 +22786,34 @@ void MessagesManager::get_dialog_sparse_message_positions(
     from_message_id = from_message_id.get_next_server_message_id();
   }
 
+  if (filter == MessageSearchFilter::FailedToSend || dialog_id.get_type() == DialogType::SecretChat) {
+    if (!G()->parameters().use_message_db) {
+      return promise.set_error(Status::Error(400, "Unsupported without message database"));
+    }
+
+    LOG(INFO) << "Get sparse message positions from database";
+    auto new_promise =
+        PromiseCreator::lambda([promise = std::move(promise)](Result<MessagesDbMessagePositions> result) mutable {
+          if (result.is_error()) {
+            return promise.set_error(result.move_as_error());
+          }
+
+          auto positions = result.move_as_ok();
+          promise.set_value(td_api::make_object<td_api::messagePositions>(
+              positions.total_count, transform(positions.positions, [](const MessagesDbMessagePosition &position) {
+                return td_api::make_object<td_api::messagePosition>(position.position, position.message_id.get(),
+                                                                    position.date);
+              })));
+        });
+    MessagesDbGetDialogSparseMessagePositionsQuery db_query;
+    db_query.dialog_id = dialog_id;
+    db_query.filter = filter;
+    db_query.from_message_id = from_message_id;
+    db_query.limit = limit;
+    G()->td_db()->get_messages_db_async()->get_dialog_sparse_message_positions(db_query, std::move(new_promise));
+    return;
+  }
+
   switch (dialog_id.get_type()) {
     case DialogType::User:
     case DialogType::Chat:
@@ -22792,7 +22822,6 @@ void MessagesManager::get_dialog_sparse_message_positions(
           ->send(dialog_id, filter, from_message_id, limit);
       break;
     case DialogType::SecretChat:
-      return promise.set_error(Status::Error(400, "Secret chats aren't supported"));
     case DialogType::None:
     default:
       UNREACHABLE();
