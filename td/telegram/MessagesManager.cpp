@@ -1740,26 +1740,25 @@ class ToggleDialogUnreadMarkQuery final : public Td::ResultHandler {
   }
 };
 
-class ToggleDialogIsBlockedQuery final : public Td::ResultHandler {
+class ToggleDialogIsBlockedActor final : public NetActorOnce {
   Promise<Unit> promise_;
   DialogId dialog_id_;
   bool is_blocked_;
 
  public:
-  explicit ToggleDialogIsBlockedQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit ToggleDialogIsBlockedActor(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, bool is_blocked) {
+  void send(DialogId dialog_id, bool is_blocked, uint64 sequence_dispatcher_id) {
     dialog_id_ = dialog_id;
     is_blocked_ = is_blocked;
 
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Know);
     CHECK(input_peer != nullptr && input_peer->get_id() != telegram_api::inputPeerEmpty::ID);
-    if (is_blocked) {
-      send_query(G()->net_query_creator().create(telegram_api::contacts_block(std::move(input_peer))));
-    } else {
-      send_query(G()->net_query_creator().create(telegram_api::contacts_unblock(std::move(input_peer))));
-    }
+    auto query = is_blocked ? G()->net_query_creator().create(telegram_api::contacts_block(std::move(input_peer)))
+                            : G()->net_query_creator().create(telegram_api::contacts_unblock(std::move(input_peer)));
+    send_closure(td->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
+                 std::move(query), actor_shared(this), sequence_dispatcher_id);
   }
 
   void on_result(uint64 id, BufferSlice packet) final {
@@ -1777,13 +1776,13 @@ class ToggleDialogIsBlockedQuery final : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) final {
-    if (!td->messages_manager_->on_get_dialog_error(dialog_id_, status, "ToggleDialogIsBlockedQuery")) {
-      LOG(ERROR) << "Receive error for ToggleDialogIsBlockedQuery: " << status;
+    if (!td->messages_manager_->on_get_dialog_error(dialog_id_, status, "ToggleDialogIsBlockedActor")) {
+      LOG(ERROR) << "Receive error for ToggleDialogIsBlockedActor: " << status;
     }
     if (!G()->close_flag()) {
       td->messages_manager_->on_update_dialog_is_blocked(dialog_id_, !is_blocked_);
-      td->messages_manager_->get_dialog_info_full(dialog_id_, Auto(), "ToggleDialogIsBlockedQuery");
-      td->messages_manager_->reget_dialog_action_bar(dialog_id_, "ToggleDialogIsBlockedQuery");
+      td->messages_manager_->get_dialog_info_full(dialog_id_, Auto(), "ToggleDialogIsBlockedActor");
+      td->messages_manager_->reget_dialog_action_bar(dialog_id_, "ToggleDialogIsBlockedActor");
     }
     promise_.set_error(std::move(status));
   }
@@ -19188,8 +19187,9 @@ void MessagesManager::toggle_dialog_is_blocked_on_server(DialogId dialog_id, boo
     log_event_id = save_toggle_dialog_is_blocked_on_server_log_event(dialog_id, is_blocked);
   }
 
-  td_->create_handler<ToggleDialogIsBlockedQuery>(get_erase_log_event_promise(log_event_id))
-      ->send(dialog_id, is_blocked);
+  send_closure(td_->create_net_actor<ToggleDialogIsBlockedActor>(get_erase_log_event_promise(log_event_id)),
+               &ToggleDialogIsBlockedActor::send, dialog_id, is_blocked,
+               get_sequence_dispatcher_id(dialog_id, MessageContentType::Text));
 }
 
 Status MessagesManager::toggle_dialog_silent_send_message(DialogId dialog_id, bool silent_send_message) {
