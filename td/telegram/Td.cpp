@@ -3395,6 +3395,10 @@ void Td::on_config_option_updated(const string &name) {
     return send_closure(language_pack_manager_, &LanguagePackManager::on_language_pack_version_changed, false, -1);
   } else if (name == "base_language_pack_version") {
     return send_closure(language_pack_manager_, &LanguagePackManager::on_language_pack_version_changed, true, -1);
+  } else if (name == "utc_time_offset") {
+    if (G()->mtproto_header().set_tz_offset(static_cast<int32>(G()->shared_config().get_option_integer(name)))) {
+      G()->net_query_dispatcher().update_mtproto_header();
+    }
   } else if (name == "notification_group_count_max") {
     send_closure(notification_manager_actor_, &NotificationManager::on_notification_group_count_max_changed, true);
   } else if (name == "notification_group_size_max") {
@@ -7589,6 +7593,20 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
         return;
       }
       break;
+    case 'u':
+      if (set_boolean_option("use_pfs")) {
+        return;
+      }
+      if (set_boolean_option("use_quick_ack")) {
+        return;
+      }
+      if (set_boolean_option("use_storage_optimizer")) {
+        return;
+      }
+      if (set_integer_option("utc_time_offset", -12 * 60 * 60, 14 * 60 * 60)) {
+        return;
+      }
+      break;
     case 'X':
     case 'x': {
       if (request.name_.size() > 255) {
@@ -7615,17 +7633,6 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
       }
       return send_closure(actor_id(this), &Td::send_result, id, make_tl_object<td_api::ok>());
     }
-    case 'u':
-      if (set_boolean_option("use_pfs")) {
-        return;
-      }
-      if (set_boolean_option("use_quick_ack")) {
-        return;
-      }
-      if (set_boolean_option("use_storage_optimizer")) {
-        return;
-      }
-      break;
   }
 
   return send_error_raw(id, 400, "Option can't be set");

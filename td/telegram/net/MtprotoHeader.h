@@ -78,6 +78,16 @@ class MtprotoHeader {
     return true;
   }
 
+  bool set_tz_offset(int32 tz_offset) {
+    if (options_.tz_offset == tz_offset) {
+      return false;
+    }
+
+    options_.tz_offset = tz_offset;
+    default_header_ = gen_header(options_, false);
+    return true;
+  }
+
   Slice get_default_header() const {
     return default_header_;
   }
