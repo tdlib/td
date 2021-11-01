@@ -2933,6 +2933,9 @@ pushMessageContentChatDeleteMember member_name:string is_current_user:Bool is_le
 //@description A new member joined the chat by invite link
 pushMessageContentChatJoinByLink = PushMessageContent;
 
+//@description A new member was accepted to the chat by an administrator
+pushMessageContentChatJoinByRequest = PushMessageContent;
+
 //@description A forwarded messages @total_count Number of forwarded messages
 pushMessageContentMessageForwards total_count:int32 = PushMessageContent;
 

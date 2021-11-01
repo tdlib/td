@@ -2911,6 +2911,9 @@ string NotificationManager::convert_loc_key(const string &loc_key) {
       if (loc_key == "CHAT_ADD_YOU") {
         return "MESSAGE_CHAT_ADD_MEMBERS_YOU";
       }
+      if (loc_key == "CHAT_REQ_JOINED") {
+        return "MESSAGE_CHAT_JOIN_BY_REQUEST";
+      }
       break;
   }
   return string();
