@@ -2008,6 +2008,7 @@ class GetChatJoinRequestsQuery final : public Td::ResultHandler {
       total_count = static_cast<int32>(result->importers_.size());
     }
     vector<td_api::object_ptr<td_api::chatJoinRequest>> join_requests;
+    vector<int64> recent_requesters;
     for (auto &request : result->importers_) {
       UserId user_id(request->user_id_);
       UserId approver_user_id(request->approved_by_);
@@ -2016,9 +2017,14 @@ class GetChatJoinRequestsQuery final : public Td::ResultHandler {
         total_count--;
         continue;
       }
+      if (recent_requesters.size() < 3) {
+        recent_requesters.push_back(user_id.get());
+      }
       join_requests.push_back(td_api::make_object<td_api::chatJoinRequest>(
           td->contacts_manager_->get_user_id_object(user_id, "chatJoinRequest"), request->date_, request->about_));
     }
+    td->messages_manager_->on_update_dialog_pending_join_requests(dialog_id_, total_count,
+                                                                  std::move(recent_requesters));
     promise_.set_value(td_api::make_object<td_api::chatJoinRequests>(total_count, std::move(join_requests)));
   }
 
