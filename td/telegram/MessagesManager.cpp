@@ -26621,7 +26621,7 @@ unique_ptr<MessagesManager::MessageForwardInfo> MessagesManager::get_message_for
       message_id = MessageId();
     }
   }
-  if ((flags & telegram_api::messageFwdHeader::SAVED_FROM_PEER_MASK) != 0) {
+  if (forward_header->saved_from_peer_ != nullptr) {
     from_dialog_id = DialogId(forward_header->saved_from_peer_);
     from_message_id = MessageId(ServerMessageId(forward_header->saved_from_msg_id_));
     if (!from_dialog_id.is_valid() || !from_message_id.is_valid()) {

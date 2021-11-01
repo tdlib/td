@@ -3848,9 +3848,9 @@ static auto secret_to_telegram_document(secret_api::decryptedMessageMediaExterna
   }
   vector<telegram_api::object_ptr<telegram_api::PhotoSize>> thumbnails;
   thumbnails.push_back(secret_to_telegram<telegram_api::PhotoSize>(*from.thumb_));
-  return make_tl_object<telegram_api::document>(
-      telegram_api::document::THUMBS_MASK, from.id_, from.access_hash_, BufferSlice(), from.date_, from.mime_type_,
-      from.size_, std::move(thumbnails), Auto(), from.dc_id_, secret_to_telegram(from.attributes_));
+  return make_tl_object<telegram_api::document>(0, from.id_, from.access_hash_, BufferSlice(), from.date_,
+                                                from.mime_type_, from.size_, std::move(thumbnails), Auto(), from.dc_id_,
+                                                secret_to_telegram(from.attributes_));
 }
 
 template <class ToT, class FromT>
@@ -4116,7 +4116,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
       return make_unique<MessageText>(std::move(message), WebPageId());
     case telegram_api::messageMediaPhoto::ID: {
       auto message_photo = move_tl_object_as<telegram_api::messageMediaPhoto>(media);
-      if ((message_photo->flags_ & telegram_api::messageMediaPhoto::PHOTO_MASK) == 0) {
+      if (message_photo->photo_ == nullptr) {
         if ((message_photo->flags_ & telegram_api::messageMediaPhoto::TTL_SECONDS_MASK) == 0) {
           LOG(ERROR) << "Receive messageMediaPhoto without photo and TTL: " << oneline(to_string(message_photo));
           break;
@@ -4196,7 +4196,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
     }
     case telegram_api::messageMediaDocument::ID: {
       auto message_document = move_tl_object_as<telegram_api::messageMediaDocument>(media);
-      if ((message_document->flags_ & telegram_api::messageMediaDocument::DOCUMENT_MASK) == 0) {
+      if (message_document->document_ == nullptr) {
         if ((message_document->flags_ & telegram_api::messageMediaDocument::TTL_SECONDS_MASK) == 0) {
           LOG(ERROR) << "Receive messageMediaDocument without document and TTL: "
                      << oneline(to_string(message_document));

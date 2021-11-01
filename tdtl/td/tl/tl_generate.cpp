@@ -248,7 +248,7 @@ static void write_function(tl_outputer &out, const tl_combinator *t, const std::
   out.append(w.gen_class_begin(class_name, w.gen_base_function_class_name(), false));
 
   int required_args = gen_field_definitions(out, t, class_name, w);
-  out.append(w.gen_flags_definitions(t));
+  out.append(w.gen_flags_definitions(t, true));
 
   std::vector<var_description> vars(t->var_count);
   out.append(w.gen_function_vars(t, vars));
@@ -304,7 +304,6 @@ static void write_constructor(tl_outputer &out, const tl_combinator *t, const st
 
   out.append(w.gen_class_begin(class_name, base_class, is_proxy));
   int required_args = gen_field_definitions(out, t, class_name, w);
-  out.append(w.gen_flags_definitions(t));
 
   bool can_be_parsed = false;
   bool is_can_be_parsed_inited = false;
@@ -334,6 +333,7 @@ static void write_constructor(tl_outputer &out, const tl_combinator *t, const st
     can_be_stored = true;
   }
 
+  out.append(w.gen_flags_definitions(t, can_be_stored));
   if (w.is_default_constructor_generated(t, can_be_parsed, can_be_stored)) {
     write_class_constructor(out, t, class_name, true, w);
   }

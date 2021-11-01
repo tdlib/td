@@ -3280,9 +3280,6 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
       // set phone number flag to show that this is a full access hash
       flags |= telegram_api::user::ACCESS_HASH_MASK | telegram_api::user::PHONE_MASK;
     }
-    if (sender_photo != nullptr) {
-      flags |= telegram_api::user::PHOTO_MASK;
-    }
     auto user_name = sender_user_id.get() == 136817688 ? "Channel" : sender_name;
     auto user = telegram_api::make_object<telegram_api::user>(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,

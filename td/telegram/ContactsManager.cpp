@@ -8724,7 +8724,6 @@ ContactsManager::User *ContactsManager::get_user_force(UserId user_id) {
 
     telegram_api::object_ptr<telegram_api::userProfilePhoto> profile_photo;
     if (!G()->is_test_dc() && profile_photo_id != 0) {
-      flags |= telegram_api::user::PHOTO_MASK;
       profile_photo = telegram_api::make_object<telegram_api::userProfilePhoto>(0, false /*ignored*/, profile_photo_id,
                                                                                 BufferSlice(), profile_photo_dc_id);
     }

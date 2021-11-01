@@ -164,13 +164,34 @@ std::string TD_TL_writer_h::gen_function_vars(const tl::tl_combinator *t,
   return res;
 }
 
-std::string TD_TL_writer_h::gen_flags_definitions(const tl::tl_combinator *t) const {
+bool TD_TL_writer_h::need_arg_mask(const tl::arg &a, bool can_be_stored) const {
+  if (a.exist_var_num == -1) {
+    return false;
+  }
+
+  if (can_be_stored) {
+    return true;
+  }
+
+  if (a.type->get_type() != tl::NODE_TYPE_TYPE) {
+    return true;
+  }
+  const tl::tl_tree_type *tree_type = static_cast<tl::tl_tree_type *>(a.type);
+  const std::string &name = tree_type->type->name;
+
+  if (!is_built_in_simple_type(name)) {
+    return false;
+  }
+  return true;
+}
+
+std::string TD_TL_writer_h::gen_flags_definitions(const tl::tl_combinator *t, bool can_be_stored) const {
   std::vector<std::pair<std::string, std::int32_t>> flags;
 
   for (std::size_t i = 0; i < t->args.size(); i++) {
     const tl::arg &a = t->args[i];
 
-    if (a.exist_var_num != -1) {
+    if (need_arg_mask(a, can_be_stored)) {
       auto name = a.name;
       for (auto &c : name) {
         c = to_upper(c);
