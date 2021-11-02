@@ -464,14 +464,16 @@ class GetMessagesQuery final : public Td::ResultHandler {
 class GetChannelMessagesQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
+  MessageId last_new_message_id_;
 
  public:
   explicit GetChannelMessagesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
   void send(ChannelId channel_id, tl_object_ptr<telegram_api::InputChannel> &&input_channel,
-            vector<tl_object_ptr<telegram_api::InputMessage>> &&message_ids) {
+            vector<tl_object_ptr<telegram_api::InputMessage>> &&message_ids, MessageId last_new_message_id) {
     channel_id_ = channel_id;
+    last_new_message_id_ = last_new_message_id;
     CHECK(input_channel != nullptr);
     send_query(G()->net_query_creator().create(
         telegram_api::channels_getMessages(std::move(input_channel), std::move(message_ids))));
@@ -485,12 +487,14 @@ class GetChannelMessagesQuery final : public Td::ResultHandler {
 
     auto info = td->messages_manager_->get_messages_info(result_ptr.move_as_ok(), "GetChannelMessagesQuery");
     LOG_IF(ERROR, !info.is_channel_messages) << "Receive ordinary messages in GetChannelMessagesQuery";
-    if (!td->auth_manager_->is_bot()) {  // bots can receive messageEmpty because of their privacy mode
+    // messages with invalid big identifiers can be received as messageEmpty
+    // bots can receive messageEmpty because of their privacy mode
+    if (last_new_message_id_.is_valid() && !td->auth_manager_->is_bot()) {
       vector<MessageId> empty_message_ids;
       for (auto &message : info.messages) {
         if (message->get_id() == telegram_api::messageEmpty::ID) {
           auto message_id = MessagesManager::get_message_id(message, false);
-          if (message_id.is_valid()) {
+          if (message_id.is_valid() && message_id <= last_new_message_id_) {
             empty_message_ids.push_back(message_id);
           }
         }
@@ -17856,8 +17860,10 @@ void MessagesManager::get_messages_from_server(vector<FullMessageId> &&message_i
       mpas.get_promise().set_error(Status::Error(400, "Can't access the chat"));
       continue;
     }
+    const auto *d = get_dialog_force(DialogId(it.first));
     td_->create_handler<GetChannelMessagesQuery>(mpas.get_promise())
-        ->send(it.first, std::move(input_channel), std::move(it.second));
+        ->send(it.first, std::move(input_channel), std::move(it.second),
+               d == nullptr ? MessageId() : d->last_new_message_id);
   }
   lock.set_value(Unit());
 }
