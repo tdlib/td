@@ -380,6 +380,7 @@ void CountryInfoManager::on_get_country_list(const string &language_code,
 void CountryInfoManager::on_get_country_list_impl(const string &language_code,
                                                   tl_object_ptr<telegram_api::help_CountriesList> country_list) {
   CHECK(country_list != nullptr);
+  LOG(DEBUG) << "Receive " << to_string(country_list);
   auto &countries = countries_[language_code];
   switch (country_list->get_id()) {
     case telegram_api::help_countriesListNotModified::ID:
@@ -395,6 +396,8 @@ void CountryInfoManager::on_get_country_list_impl(const string &language_code,
       auto list = move_tl_object_as<telegram_api::help_countriesList>(country_list);
       if (countries == nullptr) {
         countries = make_unique<CountryList>();
+      } else {
+        countries->countries.clear();
       }
       for (auto &c : list->countries_) {
         CountryInfo info;
