@@ -13754,7 +13754,9 @@ void ContactsManager::on_update_chat_invite_requester(DialogId dialog_id, UserId
 
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateNewChatJoinRequest>(
-                   dialog_id.get(), get_user_id_object(user_id, "on_update_chat_invite_requester"), about, date,
+                   dialog_id.get(),
+                   td_api::make_object<td_api::chatJoinRequest>(
+                       get_user_id_object(user_id, "on_update_chat_invite_requester"), date, about),
                    invite_link.get_chat_invite_link_object(this)));
 }
 
