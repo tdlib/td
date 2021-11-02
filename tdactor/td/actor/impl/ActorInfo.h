@@ -41,10 +41,10 @@ inline void ActorInfo::init(int32 sched_id, Slice name, ObjectPool<ActorInfo>::O
   if (!is_lite) {
     context_ = Scheduler::context()->this_ptr_.lock();
     VLOG(actor) << "Set context " << context_.get() << " for " << name;
-#ifdef TD_DEBUG
-    name_ = name.str();
-#endif
   }
+#ifdef TD_DEBUG
+  name_.assign(name.data(), name.size());
+#endif
 
   actor_->init(std::move(this_ptr));
   deleter_ = deleter;
