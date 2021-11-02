@@ -32436,7 +32436,7 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
         return nullptr;
       }
       return make_tl_object<td_api::chatEventMemberJoinedByInviteLink>(
-          invite_link.get_chat_invite_link_object(td_->contacts_manager_.get()), 0);
+          invite_link.get_chat_invite_link_object(td_->contacts_manager_.get()));
     }
     case telegram_api::channelAdminLogEventActionParticipantJoinByRequest::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantJoinByRequest>(action_ptr);
@@ -32449,9 +32449,9 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
       if (!approver_user_id.is_valid()) {
         return nullptr;
       }
-      return make_tl_object<td_api::chatEventMemberJoinedByInviteLink>(
-          invite_link.get_chat_invite_link_object(td_->contacts_manager_.get()),
-          td_->contacts_manager_->get_user_id_object(approver_user_id, "chatEventMemberJoinedByInviteLink"));
+      return make_tl_object<td_api::chatEventMemberJoinedByRequest>(
+          td_->contacts_manager_->get_user_id_object(approver_user_id, "chatEventMemberJoinedByRequest"),
+          invite_link.get_chat_invite_link_object(td_->contacts_manager_.get()));
     }
     case telegram_api::channelAdminLogEventActionParticipantLeave::ID:
       return make_tl_object<td_api::chatEventMemberLeft>();

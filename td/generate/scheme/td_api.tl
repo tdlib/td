@@ -2539,8 +2539,11 @@ chatEventMessageUnpinned message:message = ChatEventAction;
 //@description A new member joined the chat
 chatEventMemberJoined = ChatEventAction;
 
-//@description A new member joined the chat by an invite link @invite_link Invite link used to join the chat @approver_user_id User identifier of the chat administrator, approved user join request; 0 if the approval wasn't needed
-chatEventMemberJoinedByInviteLink invite_link:chatInviteLink approver_user_id:int53 = ChatEventAction;
+//@description A new member joined the chat by an invite link @invite_link Invite link used to join the chat
+chatEventMemberJoinedByInviteLink invite_link:chatInviteLink = ChatEventAction;
+
+//@description A new member was accepted to the chat by an administrator @approver_user_id User identifier of the chat administrator, approved user join request @invite_link Invite link used to join the chat; may be null
+chatEventMemberJoinedByRequest approver_user_id:int53 invite_link:chatInviteLink = ChatEventAction;
 
 //@description A member left the chat
 chatEventMemberLeft = ChatEventAction;
