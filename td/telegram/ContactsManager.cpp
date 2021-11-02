@@ -7459,6 +7459,10 @@ void ContactsManager::export_dialog_invite_link_impl(DialogId dialog_id, string 
                                                      Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
   TRY_STATUS_PROMISE(promise, can_manage_dialog_invite_links(dialog_id));
+  if (requires_approval && usage_limit > 0) {
+    return promise.set_error(
+        Status::Error(400, "Member limit can't be specified for links requiring administrator approval"));
+  }
 
   auto new_title = clean_name(std::move(title), MAX_INVITE_LINK_TITLE_LENGTH);
   td_->create_handler<ExportChatInviteQuery>(std::move(promise))
@@ -7469,6 +7473,10 @@ void ContactsManager::edit_dialog_invite_link(DialogId dialog_id, const string &
                                               int32 expire_date, int32 usage_limit, bool requires_approval,
                                               Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise) {
   TRY_STATUS_PROMISE(promise, can_manage_dialog_invite_links(dialog_id));
+  if (requires_approval && usage_limit > 0) {
+    return promise.set_error(
+        Status::Error(400, "Member limit can't be specified for links requiring administrator approval"));
+  }
 
   if (invite_link.empty()) {
     return promise.set_error(Status::Error(400, "Invite link must be non-empty"));

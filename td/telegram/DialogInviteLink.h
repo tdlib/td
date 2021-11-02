@@ -146,6 +146,9 @@ class DialogInviteLink {
     if (has_title) {
       parse(title_, parser);
     }
+    if (requires_approval_) {
+      usage_limit_ = 0;
+    }
   }
 };
 

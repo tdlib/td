@@ -71,6 +71,10 @@ DialogInviteLink::DialogInviteLink(tl_object_ptr<telegram_api::chatInviteExporte
     request_count_ = 0;
     requires_approval_ = false;
   }
+  if (requires_approval_ && usage_limit_ > 0) {
+    LOG(ERROR) << "Receive wrong permanent " << *this;
+    usage_limit_ = 0;
+  }
 }
 
 bool DialogInviteLink::is_valid_invite_link(Slice invite_link) {
