@@ -822,7 +822,7 @@ messagePositions total_count:int32 positions:vector<messagePosition> = MessagePo
 //@description Contains information about found messages sent in a specific day @total_count Total number of found messages sent in the day @message First message sent in the day
 messageCalendarDay total_count:int32 message:message = MessageCalendarDay;
 
-//@description Contains information about found messages, splitted by days according to GetOption("utc_time_offset") @total_count Total number of found messages @days Information about messages sent
+//@description Contains information about found messages, splitted by days according to the option "utc_time_offset" @total_count Total number of found messages @days Information about messages sent
 messageCalendar total_count:int32 days:vector<messageCalendarDay> = MessageCalendar;
 
 
@@ -4312,7 +4312,7 @@ getChatMessageByDate chat_id:int53 date:int32 = Message;
 //@limit The expected number of message positions to be returned; 50-2000. A smaller number of positions can be returned, if there are not enough appropriate messages
 getChatSparseMessagePositions chat_id:int53 filter:SearchMessagesFilter from_message_id:int53 limit:int32 = MessagePositions;
 
-//@description Returns information about the next messages of the specified type in the chat splitted by days. Returns the results in reverse chronological order. Can return partial result for the last returned day
+//@description Returns information about the next messages of the specified type in the chat splitted by days. Returns the results in reverse chronological order. Can return partial result for the last returned day. Behavior of this method depends on the value of the option "utc_time_offset"
 //@chat_id Identifier of the chat in which to return information about messages
 //@filter Filter for message content. Filters searchMessagesFilterEmpty, searchMessagesFilterCall, searchMessagesFilterMissedCall, searchMessagesFilterMention and searchMessagesFilterUnreadMention are unsupported in this function
 //@from_message_id The message identifier from which to return information about messages; use 0 to get results from the last message
