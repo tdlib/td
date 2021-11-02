@@ -17532,14 +17532,14 @@ Status MessagesManager::can_get_message_viewers(FullMessageId full_message_id) {
 }
 
 Status MessagesManager::can_get_message_viewers(DialogId dialog_id, const Message *m) const {
+  if (td_->auth_manager_->is_bot()) {
+    return Status::Error(400, "User is bot");
+  }
   if (!m->is_outgoing) {
     return Status::Error(400, "Can't get viewers of incoming messages");
   }
   if (G()->unix_time() - m->date > G()->shared_config().get_option_integer("chat_read_mark_expire_period", 7 * 86400)) {
     return Status::Error(400, "Message is too old");
-  }
-  if (td_->auth_manager_->is_bot()) {
-    return Status::Error(400, "User is bot");
   }
 
   int32 participant_count = 0;
@@ -30481,6 +30481,9 @@ void MessagesManager::on_update_dialog_theme_name(DialogId dialog_id, string the
     LOG(ERROR) << "Receive theme in invalid " << dialog_id;
     return;
   }
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
 
   auto d = get_dialog_force(dialog_id, "on_update_dialog_theme_name");
   if (d == nullptr) {
@@ -30493,6 +30496,10 @@ void MessagesManager::on_update_dialog_theme_name(DialogId dialog_id, string the
 
 void MessagesManager::set_dialog_theme_name(Dialog *d, string theme_name) {
   CHECK(d != nullptr);
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
   bool is_changed = d->theme_name != theme_name;
   if (!is_changed && d->is_theme_name_inited) {
     return;
