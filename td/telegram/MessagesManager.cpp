@@ -30510,6 +30510,9 @@ void MessagesManager::set_dialog_theme_name(Dialog *d, string theme_name) {
 
 void MessagesManager::drop_dialog_pending_join_requests(DialogId dialog_id) {
   CHECK(dialog_id.is_valid());
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
   auto d = get_dialog(dialog_id);  // called from update_chat/channel, must not create the dialog
   if (d != nullptr && d->is_update_new_chat_sent) {
     set_dialog_pending_join_requests(d, 0, {});
@@ -30520,6 +30523,9 @@ void MessagesManager::on_update_dialog_pending_join_requests(DialogId dialog_id,
                                                              vector<int64> pending_requesters) {
   if (!dialog_id.is_valid()) {
     LOG(ERROR) << "Receive pending join request count in invalid " << dialog_id;
+    return;
+  }
+  if (td_->auth_manager_->is_bot()) {
     return;
   }
 
@@ -30578,6 +30584,10 @@ void MessagesManager::fix_pending_join_requests(DialogId dialog_id, int32 &pendi
 
 void MessagesManager::set_dialog_pending_join_requests(Dialog *d, int32 pending_join_request_count,
                                                        vector<UserId> pending_join_request_user_ids) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
   CHECK(d != nullptr);
   fix_pending_join_requests(d->dialog_id, pending_join_request_count, pending_join_request_user_ids);
   if (d->pending_join_request_count == pending_join_request_count &&
