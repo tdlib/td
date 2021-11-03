@@ -115,7 +115,8 @@ class Actor : public ObserverBase {
 template <class ActorT>
 class ActorTraits {
  public:
-  static constexpr bool is_lite = false;
+  static constexpr bool need_context = true;
+  static constexpr bool need_start_up = true;
 };
 
 }  // namespace td

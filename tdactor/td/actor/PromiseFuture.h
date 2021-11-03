@@ -469,7 +469,8 @@ class PromiseActor;
 template <class T>
 class ActorTraits<FutureActor<T>> {
  public:
-  static constexpr bool is_lite = true;
+  static constexpr bool need_context = false;
+  static constexpr bool need_start_up = false;
 };
 
 template <class T>

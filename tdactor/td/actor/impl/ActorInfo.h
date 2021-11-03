@@ -32,13 +32,13 @@ inline StringBuilder &operator<<(StringBuilder &sb, const ActorInfo &info) {
 }
 
 inline void ActorInfo::init(int32 sched_id, Slice name, ObjectPool<ActorInfo>::OwnerPtr &&this_ptr, Actor *actor_ptr,
-                            Deleter deleter, bool is_lite) {
+                            Deleter deleter, bool need_context, bool need_start_up) {
   CHECK(!is_running());
   CHECK(!is_migrating());
   sched_id_.store(sched_id, std::memory_order_relaxed);
   actor_ = actor_ptr;
 
-  if (!is_lite) {
+  if (need_context) {
     context_ = Scheduler::context()->this_ptr_.lock();
     VLOG(actor) << "Set context " << context_.get() << " for " << name;
   }
@@ -48,22 +48,32 @@ inline void ActorInfo::init(int32 sched_id, Slice name, ObjectPool<ActorInfo>::O
 
   actor_->init(std::move(this_ptr));
   deleter_ = deleter;
-  is_lite_ = is_lite;
+  need_context_ = need_context;
+  need_start_up_ = need_start_up;
   is_running_ = false;
   wait_generation_ = 0;
 }
-inline bool ActorInfo::is_lite() const {
-  return is_lite_;
+
+inline bool ActorInfo::need_context() const {
+  return need_context_;
 }
+
+inline bool ActorInfo::need_start_up() const {
+  return need_start_up_;
+}
+
 inline void ActorInfo::set_wait_generation(uint32 wait_generation) {
   wait_generation_ = wait_generation;
 }
+
 inline bool ActorInfo::must_wait(uint32 wait_generation) const {
   return wait_generation_ == wait_generation || (always_wait_for_mailbox_ && !mailbox_.empty());
 }
+
 inline void ActorInfo::always_wait_for_mailbox() {
   always_wait_for_mailbox_ = true;
 }
+
 inline void ActorInfo::on_actor_moved(Actor *actor_new_ptr) {
   actor_ = actor_new_ptr;
 }

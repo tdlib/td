@@ -18,24 +18,33 @@
 #pragma comment(linker, "/STACK:16777216")
 #endif
 
+struct TestActor final : public td::Actor {
+  static td::int32 actor_count_;
+
+  void start_up() final {
+    actor_count_++;
+    stop();
+  }
+
+  void tear_down() final {
+    if (--actor_count_ == 0) {
+      td::Scheduler::instance()->finish();
+    }
+  }
+};
+
+td::int32 TestActor::actor_count_;
+
+template <>
+class td::ActorTraits<TestActor> {
+ public:
+  static constexpr bool need_context = false;
+  static constexpr bool need_start_up = true;
+};
+
 class CreateActorBench final : public td::Benchmark {
  private:
   td::ConcurrentScheduler scheduler_;
-
-  struct TestActor final : public td::Actor {
-    static td::int32 actor_count_;
-
-    void start_up() final {
-      actor_count_++;
-      stop();
-    }
-
-    void tear_down() final {
-      if (--actor_count_ == 0) {
-        td::Scheduler::instance()->finish();
-      }
-    }
-  };
 
   void start_up() final {
     scheduler_.init(0);
@@ -60,8 +69,6 @@ class CreateActorBench final : public td::Benchmark {
     }
   }
 };
-
-td::int32 CreateActorBench::TestActor::actor_count_;
 
 template <int type>
 class RingBench final : public td::Benchmark {

@@ -168,10 +168,10 @@ EventGuard::~EventGuard() {
   }
   info->finish_run();
   swap_context(info);
-  CHECK(info->is_lite() || save_context_ == info->get_context());
+  CHECK(!info->need_context() || save_context_ == info->get_context());
 #ifdef TD_DEBUG
-  LOG_CHECK(info->is_lite() || save_log_tag2_ == info->get_name().c_str())
-      << info->is_lite() << " " << info->empty() << " " << info->is_migrating() << " " << save_log_tag2_ << " "
+  LOG_CHECK(!info->need_context() || save_log_tag2_ == info->get_name().c_str())
+      << info->need_context() << " " << info->empty() << " " << info->is_migrating() << " " << save_log_tag2_ << " "
       << info->get_name() << " " << scheduler_->close_flag_;
 #endif
   if (event_context_.flags & Scheduler::EventContext::Stop) {
@@ -186,7 +186,7 @@ EventGuard::~EventGuard() {
 void EventGuard::swap_context(ActorInfo *info) {
   std::swap(scheduler_->event_context_ptr_, event_context_ptr_);
 
-  if (info->is_lite()) {
+  if (!info->need_context()) {
     return;
   }
 
@@ -353,7 +353,7 @@ void Scheduler::do_stop_actor(ActorInfo *actor_info) {
   CHECK(!actor_info->is_migrating());
   LOG_CHECK(actor_info->migrate_dest() == sched_id_) << actor_info->migrate_dest() << " " << sched_id_;
   ObjectPool<ActorInfo>::OwnerPtr owner_ptr;
-  if (!actor_info->is_lite()) {
+  if (actor_info->need_start_up()) {
     EventGuard guard(this, actor_info);
     do_event(actor_info, Event::stop());
     owner_ptr = actor_info->get_actor_unsafe()->clear();
