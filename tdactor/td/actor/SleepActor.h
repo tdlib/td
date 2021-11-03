@@ -31,4 +31,11 @@ class SleepActor final : public Actor {
   }
 };
 
+template <>
+class ActorTraits<SleepActor> {
+ public:
+  static constexpr bool need_context = false;
+  static constexpr bool need_start_up = true;
+};
+
 }  // namespace td
