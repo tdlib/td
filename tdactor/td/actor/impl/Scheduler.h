@@ -10,7 +10,6 @@
 #include "td/actor/impl/Scheduler-decl.h"
 
 #include "td/utils/common.h"
-#include "td/utils/format.h"
 #include "td/utils/Heap.h"
 #include "td/utils/logging.h"
 #include "td/utils/MpscPollableQueue.h"
@@ -108,7 +107,7 @@ ActorOwn<ActorT> Scheduler::register_actor_impl(Slice name, ActorT *actor_ptr, A
   auto actor_info = info.get();
   actor_info->init(sched_id_, name, std::move(info), static_cast<Actor *>(actor_ptr), deleter,
                    ActorTraits<ActorT>::need_context, ActorTraits<ActorT>::need_start_up);
-  VLOG(actor) << "Create actor " << *actor_info << ": " << tag("actor_count", actor_count_);
+  VLOG(actor) << "Create actor " << *actor_info << " (actor_count = " << actor_count_ << ')';
 
   ActorId<ActorT> actor_id = weak_info->actor_id(actor_ptr);
   if (sched_id != sched_id_) {
@@ -133,7 +132,7 @@ ActorOwn<ActorT> Scheduler::register_existing_actor(unique_ptr<ActorT> actor_ptr
 }
 
 inline void Scheduler::destroy_actor(ActorInfo *actor_info) {
-  VLOG(actor) << "Destroy actor " << *actor_info << ": " << tag("actor_count", actor_count_);
+  VLOG(actor) << "Destroy actor " << *actor_info << " (actor_count = " << actor_count_ << ')';
 
   LOG_CHECK(actor_info->migrate_dest() == sched_id_) << actor_info->migrate_dest() << " " << sched_id_;
   cancel_actor_timeout(actor_info);

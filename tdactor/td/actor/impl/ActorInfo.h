@@ -11,7 +11,6 @@
 #include "td/actor/impl/Scheduler-decl.h"
 
 #include "td/utils/common.h"
-#include "td/utils/format.h"
 #include "td/utils/Heap.h"
 #include "td/utils/List.h"
 #include "td/utils/logging.h"
@@ -79,8 +78,6 @@ inline void ActorInfo::on_actor_moved(Actor *actor_new_ptr) {
 }
 
 inline void ActorInfo::clear() {
-  //  LOG_IF(WARNING, !mailbox_.empty()) << "Destroy actor with non-empty mailbox: " << get_name()
-  //                                     << format::as_array(mailbox_);
   CHECK(mailbox_.empty());
   CHECK(!actor_);
   CHECK(!is_running());
@@ -189,7 +186,7 @@ inline CSlice ActorInfo::get_name() const {
 
 inline void ActorInfo::start_run() {
   VLOG(actor) << "Start run actor: " << *this;
-  LOG_CHECK(!is_running_) << "Recursive call of actor " << tag("name", get_name());
+  LOG_CHECK(!is_running_) << "Recursive call of actor " << get_name();
   is_running_ = true;
 }
 inline void ActorInfo::finish_run() {
