@@ -6643,7 +6643,6 @@ void MessagesManager::save_auth_notification_ids() {
 
 void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api::updateServiceNotification> &&update,
                                                      bool skip_new_entities, Promise<Unit> &&promise) {
-  int32 ttl = 0;
   bool has_date = (update->flags_ & telegram_api::updateServiceNotification::INBOX_DATE_MASK) != 0;
   auto date = has_date ? update->inbox_date_ : G()->unix_time();
   if (date <= 0) {
@@ -6666,8 +6665,10 @@ void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api:
   auto message_text = get_message_text(contacts_manager, std::move(update->message_), std::move(update->entities_),
                                        skip_new_entities, !is_user, date, false, "on_update_service_notification");
   DialogId owner_dialog_id = is_user ? get_service_notifications_dialog()->dialog_id : DialogId();
+  int32 ttl = 0;
+  bool disable_web_page_preview = false;
   auto content = get_message_content(td_, std::move(message_text), std::move(update->media_), owner_dialog_id, false,
-                                     UserId(), &ttl);
+                                     UserId(), &ttl, &disable_web_page_preview);
   bool is_content_secret = is_secret_message_content(ttl, content->get_type());
 
   if (update->popup_) {
@@ -6687,6 +6688,7 @@ void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api:
     new_message->sender_user_id = dialog_id.get_user_id();
     new_message->date = date;
     new_message->ttl = ttl;
+    new_message->disable_web_page_preview = disable_web_page_preview;
     new_message->is_content_secret = is_content_secret;
     new_message->content = std::move(content);
     new_message->have_previous = true;
@@ -13593,7 +13595,7 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
                            message_info.forward_header ? message_info.forward_header->date_ : message_info.date,
                            message_info.media_album_id != 0, new_source.c_str()),
           std::move(message->media_), message_info.dialog_id, is_content_read, message_info.via_bot_user_id,
-          &message_info.ttl);
+          &message_info.ttl, &message_info.disable_web_page_preview);
       message_info.reply_markup =
           message->flags_ & MESSAGE_FLAG_HAS_REPLY_MARKUP ? std::move(message->reply_markup_) : nullptr;
       message_info.restriction_reasons = get_restriction_reasons(std::move(message->restriction_reason_));
@@ -13836,6 +13838,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   message->date = date;
   message->ttl_period = ttl_period;
   message->ttl = ttl;
+  message->disable_web_page_preview = message_info.disable_web_page_preview;
   message->edit_date = edit_date;
   message->random_id = message_info.random_id;
   message->forward_info = get_message_forward_info(std::move(message_info.forward_header));
@@ -14596,8 +14599,9 @@ void MessagesManager::on_update_sent_text_message(int64 random_id,
   FormattedText new_message_text = get_message_text(
       td_->contacts_manager_.get(), old_message_text->text, std::move(entities), true, td_->auth_manager_->is_bot(),
       m->forward_info ? m->forward_info->date : m->date, m->media_album_id != 0, "on_update_sent_text_message");
-  auto new_content = get_message_content(td_, std::move(new_message_text), std::move(message_media), dialog_id,
-                                         true /*likely ignored*/, UserId() /*likely ignored*/, nullptr /*ignored*/);
+  auto new_content =
+      get_message_content(td_, std::move(new_message_text), std::move(message_media), dialog_id,
+                          true /*likely ignored*/, UserId() /*likely ignored*/, nullptr /*ignored*/, nullptr);
   if (new_content->get_type() != MessageContentType::Text) {
     LOG(ERROR) << "Text message content has changed to " << new_content->get_type();
     return;
@@ -24755,7 +24759,7 @@ void MessagesManager::on_upload_message_media_success(DialogId dialog_id, Messag
 
   auto caption = get_message_content_caption(m->content.get());
   auto content = get_message_content(td_, caption == nullptr ? FormattedText() : *caption, std::move(media), dialog_id,
-                                     false, UserId(), nullptr);
+                                     false, UserId(), nullptr, nullptr);
 
   if (update_message_content(dialog_id, m, std::move(content), true, true, true) &&
       m->message_id == d->last_message_id) {
@@ -26469,14 +26473,13 @@ void MessagesManager::unregister_message_reply(const Dialog *d, const Message *m
 }
 
 bool MessagesManager::get_message_disable_web_page_preview(const Message *m) {
-  // m->disable_web_page_preview is known only for sent from this client messages
-  if (m->disable_web_page_preview) {
-    return true;
-  }
   if (m->content->get_type() != MessageContentType::Text) {
     return false;
   }
-  return !has_message_content_web_page(m->content.get());
+  if (has_message_content_web_page(m->content.get())) {
+    return false;
+  }
+  return m->disable_web_page_preview;
 }
 
 int32 MessagesManager::get_message_flags(const Message *m) {
@@ -34625,6 +34628,9 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     // disable_notification flag shouldn't be changed, because we are unable to show/hide message notification
     // old_message->disable_notification = new_message->disable_notification;
     // need_send_update = true;
+  }
+  if (old_message->disable_web_page_preview != new_message->disable_web_page_preview) {
+    old_message->disable_web_page_preview = new_message->disable_web_page_preview;
   }
 
   if (!is_scheduled &&

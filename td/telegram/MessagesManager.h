@@ -969,6 +969,7 @@ class MessagesManager final : public Actor {
     int32 date = 0;
     int32 ttl_period = 0;
     int32 ttl = 0;
+    bool disable_web_page_preview = false;
     int64 random_id = 0;
     tl_object_ptr<telegram_api::messageFwdHeader> forward_header;
     MessageId reply_to_message_id;

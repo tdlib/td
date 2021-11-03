@@ -261,11 +261,14 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
                                          std::move(sponsored_message->entities_), true, true, 0, false,
                                          "on_get_dialog_sponsored_messages");
     int32 ttl = 0;
-    auto content = get_message_content(td_, std::move(message_text), nullptr, sponsor_dialog_id, true, UserId(), &ttl);
+    bool disable_web_page_preview = false;
+    auto content = get_message_content(td_, std::move(message_text), nullptr, sponsor_dialog_id, true, UserId(), &ttl,
+                                       &disable_web_page_preview);
     if (ttl != 0) {
       LOG(ERROR) << "Receive sponsored message with TTL " << ttl;
       continue;
     }
+    CHECK(disable_web_page_preview);
 
     CHECK(current_sponsored_message_id_ < std::numeric_limits<int32>::max());
     auto local_id = ++current_sponsored_message_id_;

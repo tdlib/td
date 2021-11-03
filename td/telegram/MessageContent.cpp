@@ -4100,10 +4100,13 @@ unique_ptr<MessageContent> get_secret_message_content(
 unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
                                                tl_object_ptr<telegram_api::MessageMedia> &&media,
                                                DialogId owner_dialog_id, bool is_content_read, UserId via_bot_user_id,
-                                               int32 *ttl) {
+                                               int32 *ttl, bool *disable_web_page_preview) {
   if (!td->auth_manager_->was_authorized() && !G()->close_flag() && media != nullptr) {
     LOG(ERROR) << "Receive without authorization " << to_string(media);
     media = nullptr;
+  }
+  if (disable_web_page_preview != nullptr) {
+    *disable_web_page_preview = false;
   }
 
   int32 constructor_id = media == nullptr ? telegram_api::messageMediaEmpty::ID : media->get_id();
@@ -4111,6 +4114,9 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
     case telegram_api::messageMediaEmpty::ID:
       if (message.text.empty()) {
         LOG(ERROR) << "Receive empty message text and media for message from " << owner_dialog_id;
+      }
+      if (disable_web_page_preview != nullptr) {
+        *disable_web_page_preview = true;
       }
       return make_unique<MessageText>(std::move(message), WebPageId());
     case telegram_api::messageMediaPhoto::ID: {
@@ -4233,6 +4239,9 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
           get_input_invoice(move_tl_object_as<telegram_api::messageMediaInvoice>(media), td, owner_dialog_id));
     case telegram_api::messageMediaWebPage::ID: {
       auto media_web_page = move_tl_object_as<telegram_api::messageMediaWebPage>(media);
+      if (disable_web_page_preview != nullptr) {
+        *disable_web_page_preview = (media_web_page->webpage_ == nullptr);
+      }
       auto web_page_id = td->web_pages_manager_->on_get_web_page(std::move(media_web_page->webpage_), owner_dialog_id);
       return make_unique<MessageText>(std::move(message), web_page_id);
     }
@@ -4252,6 +4261,9 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
   }
 
   // explicit empty media message
+  if (disable_web_page_preview != nullptr) {
+    *disable_web_page_preview = true;
+  }
   return make_unique<MessageText>(std::move(message), WebPageId());
 }
 
