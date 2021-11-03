@@ -103,13 +103,12 @@ ActorOwn<ActorT> Scheduler::register_actor_impl(Slice name, ActorT *actor_ptr, A
   LOG_CHECK(sched_id == sched_id_ || (0 <= sched_id && sched_id < static_cast<int32>(outbound_queues_.size())))
       << sched_id;
   auto info = actor_info_pool_->create_empty();
-  VLOG(actor) << "Create actor: " << tag("name", name) << tag("ptr", *info) << tag("context", context())
-              << tag("this", this) << tag("actor_count", actor_count_);
   actor_count_++;
   auto weak_info = info.get_weak();
   auto actor_info = info.get();
   actor_info->init(sched_id_, name, std::move(info), static_cast<Actor *>(actor_ptr), deleter,
                    ActorTraits<ActorT>::need_context, ActorTraits<ActorT>::need_start_up);
+  VLOG(actor) << "Create actor " << *actor_info << ": " << tag("actor_count", actor_count_);
 
   ActorId<ActorT> actor_id = weak_info->actor_id(actor_ptr);
   if (sched_id != sched_id_) {
@@ -134,8 +133,7 @@ ActorOwn<ActorT> Scheduler::register_existing_actor(unique_ptr<ActorT> actor_ptr
 }
 
 inline void Scheduler::destroy_actor(ActorInfo *actor_info) {
-  VLOG(actor) << "Destroy actor: " << tag("name", *actor_info) << tag("ptr", actor_info)
-              << tag("actor_count", actor_count_);
+  VLOG(actor) << "Destroy actor " << *actor_info << ": " << tag("actor_count", actor_count_);
 
   LOG_CHECK(actor_info->migrate_dest() == sched_id_) << actor_info->migrate_dest() << " " << sched_id_;
   cancel_actor_timeout(actor_info);
