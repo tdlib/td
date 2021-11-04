@@ -564,7 +564,7 @@ supergroupMembersFilterBots = SupergroupMembersFilter;
 
 //@description Contains a chat invite link
 //@invite_link Chat invite link
-//@title Title of the chat invite link
+//@name Name of the chat invite link
 //@creator_user_id User identifier of an administrator created the link
 //@date Point in time (Unix timestamp) when the link was created
 //@edit_date Point in time (Unix timestamp) when the link was last edited; 0 if never or unknown
@@ -572,10 +572,10 @@ supergroupMembersFilterBots = SupergroupMembersFilter;
 //@member_limit The maximum number of members, which can join the chat using the link simultaneously; 0 if not limited. Always 0 if the link requires approval
 //@member_count Number of chat members, which joined the chat using the link
 //@pending_join_request_count Number of pending join requests, created using this link
-//@requires_approval True, if users joining the chat by the link need to be approved by chat administrators. If true, total number of joining members will be unlimited
-//@is_primary True, if the link is primary. Primary invite link can't have title, expire date or usage limit. There is exactly one primary invite link for each administrator with can_invite_users right at a given time
+//@creates_join_request True, if the link only creates join request. If true, total number of joining members will be unlimited
+//@is_primary True, if the link is primary. Primary invite link can't have name, expire date or usage limit. There is exactly one primary invite link for each administrator with can_invite_users right at a given time
 //@is_revoked True, if the link was revoked
-chatInviteLink invite_link:string title:string creator_user_id:int53 date:int32 edit_date:int32 expire_date:int32 member_limit:int32 member_count:int32 pending_join_request_count:int32 requires_approval:Bool is_primary:Bool is_revoked:Bool = ChatInviteLink;
+chatInviteLink invite_link:string name:string creator_user_id:int53 date:int32 edit_date:int32 expire_date:int32 member_limit:int32 member_count:int32 pending_join_request_count:int32 creates_join_request:Bool is_primary:Bool is_revoked:Bool = ChatInviteLink;
 
 //@description Contains a list of chat invite links @total_count Approximate total count of chat invite links found @invite_links List of invite links
 chatInviteLinks total_count:int32 invite_links:vector<chatInviteLink> = ChatInviteLinks;
@@ -604,9 +604,9 @@ chatInviteLinkMembers total_count:int32 members:vector<chatInviteLinkMember> = C
 //@param_description Chat description
 //@member_count Number of members in the chat
 //@member_user_ids User identifiers of some chat members that may be known to the current user
-//@requires_approval True, if the user will need to be approved by chat administrators
+//@creates_join_request True, if the link only creates join request
 //@is_public True, if the chat is a public supergroup or channel, i.e. it has a username or it is a location-based supergroup
-chatInviteLinkInfo chat_id:int53 accessible_for:int32 type:ChatType title:string photo:chatPhotoInfo description:string member_count:int32 member_user_ids:vector<int53> requires_approval:Bool is_public:Bool = ChatInviteLinkInfo;
+chatInviteLinkInfo chat_id:int53 accessible_for:int32 type:ChatType title:string photo:chatPhotoInfo description:string member_count:int32 member_user_ids:vector<int53> creates_join_request:Bool is_public:Bool = ChatInviteLinkInfo;
 
 //@description Describes a user waiting administrator approval to join a chat @user_id User identifier @request_date Point in time (Unix timestamp) when the user sent the chat join request @bio A short bio of the user
 chatJoinRequest user_id:int53 request_date:int32 bio:string = ChatJoinRequest;
@@ -4933,20 +4933,20 @@ replacePrimaryChatInviteLink chat_id:int53 = ChatInviteLink;
 
 //@description Creates a new invite link for a chat. Available for basic groups, supergroups, and channels. Requires administrator privileges and can_invite_users right in the chat
 //@chat_id Chat identifier
-//@title Invite link title; 0-32 characters
+//@name Invite link name; 0-32 characters
 //@expire_date Point in time (Unix timestamp) when the link will expire; pass 0 if never
 //@member_limit The maximum number of chat members that can join the chat by the link simultaneously; 0-99999; pass 0 if not limited
-//@requires_approval True, if users joining the chat by the link need to be approved by chat administrators. If true, member_limit must not be specified
-createChatInviteLink chat_id:int53 title:string expire_date:int32 member_limit:int32 requires_approval:Bool = ChatInviteLink;
+//@creates_join_request True, if the link only creates join request. If true, member_limit must not be specified
+createChatInviteLink chat_id:int53 name:string expire_date:int32 member_limit:int32 creates_join_request:Bool = ChatInviteLink;
 
 //@description Edits a non-primary invite link for a chat. Available for basic groups, supergroups, and channels. Requires administrator privileges and can_invite_users right in the chat for own links and owner privileges for other links
 //@chat_id Chat identifier
 //@invite_link Invite link to be edited
-//@title Invite link title; 0-32 characters
+//@name Invite link name; 0-32 characters
 //@expire_date Point in time (Unix timestamp) when the link will expire; pass 0 if never
 //@member_limit The maximum number of chat members that can join the chat by the link simultaneously; 0-99999; pass 0 if not limited
-//@requires_approval True, if users joining the chat by the link need to be approved by chat administrators. If true, member_limit must not be specified
-editChatInviteLink chat_id:int53 invite_link:string title:string expire_date:int32 member_limit:int32 requires_approval:Bool = ChatInviteLink;
+//@creates_join_request True, if the link only creates join request. If true, member_limit must not be specified
+editChatInviteLink chat_id:int53 invite_link:string name:string expire_date:int32 member_limit:int32 creates_join_request:Bool = ChatInviteLink;
 
 //@description Returns information about an invite link. Requires administrator privileges and can_invite_users right in the chat to get own links and owner privileges to get other links
 //@chat_id Chat identifier

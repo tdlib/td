@@ -27,7 +27,7 @@ DialogInviteLink::DialogInviteLink(tl_object_ptr<telegram_api::chatInviteExporte
   usage_count_ = exported_invite->usage_;
   edit_date_ = exported_invite->start_date_;
   request_count_ = exported_invite->requested_;
-  requires_approval_ = exported_invite->request_needed_;
+  creates_join_request_ = exported_invite->request_needed_;
   is_revoked_ = exported_invite->revoked_;
   is_permanent_ = exported_invite->permanent_;
 
@@ -62,16 +62,16 @@ DialogInviteLink::DialogInviteLink(tl_object_ptr<telegram_api::chatInviteExporte
   }
 
   if (is_permanent_ && (!title_.empty() || expire_date_ > 0 || usage_limit_ > 0 || edit_date_ > 0 ||
-                        request_count_ > 0 || requires_approval_)) {
+                        request_count_ > 0 || creates_join_request_)) {
     LOG(ERROR) << "Receive wrong permanent " << *this;
     title_.clear();
     expire_date_ = 0;
     usage_limit_ = 0;
     edit_date_ = 0;
     request_count_ = 0;
-    requires_approval_ = false;
+    creates_join_request_ = false;
   }
-  if (requires_approval_ && usage_limit_ > 0) {
+  if (creates_join_request_ && usage_limit_ > 0) {
     LOG(ERROR) << "Receive wrong permanent " << *this;
     usage_limit_ = 0;
   }
@@ -90,7 +90,7 @@ td_api::object_ptr<td_api::chatInviteLink> DialogInviteLink::get_chat_invite_lin
 
   return td_api::make_object<td_api::chatInviteLink>(
       invite_link_, title_, contacts_manager->get_user_id_object(creator_user_id_, "get_chat_invite_link_object"),
-      date_, edit_date_, expire_date_, usage_limit_, usage_count_, request_count_, requires_approval_, is_permanent_,
+      date_, edit_date_, expire_date_, usage_limit_, usage_count_, request_count_, creates_join_request_, is_permanent_,
       is_revoked_);
 }
 
@@ -99,7 +99,7 @@ bool operator==(const DialogInviteLink &lhs, const DialogInviteLink &rhs) {
          lhs.creator_user_id_ == rhs.creator_user_id_ && lhs.date_ == rhs.date_ && lhs.edit_date_ == rhs.edit_date_ &&
          lhs.expire_date_ == rhs.expire_date_ && lhs.usage_limit_ == rhs.usage_limit_ &&
          lhs.usage_count_ == rhs.usage_count_ && lhs.request_count_ == rhs.request_count_ &&
-         lhs.requires_approval_ == rhs.requires_approval_ && lhs.is_permanent_ == rhs.is_permanent_ &&
+         lhs.creates_join_request_ == rhs.creates_join_request_ && lhs.is_permanent_ == rhs.is_permanent_ &&
          lhs.is_revoked_ == rhs.is_revoked_;
 }
 
@@ -109,7 +109,7 @@ bool operator!=(const DialogInviteLink &lhs, const DialogInviteLink &rhs) {
 
 StringBuilder &operator<<(StringBuilder &string_builder, const DialogInviteLink &invite_link) {
   return string_builder << "ChatInviteLink[" << invite_link.invite_link_ << '(' << invite_link.title_ << ')'
-                        << (invite_link.requires_approval_ ? " requiring approval" : "") << " by "
+                        << (invite_link.creates_join_request_ ? " creating join request" : "") << " by "
                         << invite_link.creator_user_id_ << " created at " << invite_link.date_ << " edited at "
                         << invite_link.edit_date_ << " expiring at " << invite_link.expire_date_ << " used by "
                         << invite_link.usage_count_ << " with usage limit " << invite_link.usage_limit_ << " and "

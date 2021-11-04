@@ -1610,7 +1610,7 @@ class ExportChatInviteQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, const string &title, int32 expire_date, int32 usage_limit, bool requires_approval,
+  void send(DialogId dialog_id, const string &title, int32 expire_date, int32 usage_limit, bool creates_join_request,
             bool is_permanent) {
     dialog_id_ = dialog_id;
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
@@ -1625,7 +1625,7 @@ class ExportChatInviteQuery final : public Td::ResultHandler {
     if (usage_limit > 0) {
       flags |= telegram_api::messages_exportChatInvite::USAGE_LIMIT_MASK;
     }
-    if (requires_approval) {
+    if (creates_join_request) {
       flags |= telegram_api::messages_exportChatInvite::REQUEST_NEEDED_MASK;
     }
     if (is_permanent) {
@@ -1677,7 +1677,7 @@ class EditChatInviteLinkQuery final : public Td::ResultHandler {
   }
 
   void send(DialogId dialog_id, const string &invite_link, const string &title, int32 expire_date, int32 usage_limit,
-            bool requires_approval) {
+            bool creates_join_request) {
     dialog_id_ = dialog_id;
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
@@ -1690,7 +1690,7 @@ class EditChatInviteLinkQuery final : public Td::ResultHandler {
                   telegram_api::messages_editExportedChatInvite::TITLE_MASK;
     send_query(G()->net_query_creator().create(
         telegram_api::messages_editExportedChatInvite(flags, false /*ignored*/, std::move(input_peer), invite_link,
-                                                      expire_date, usage_limit, requires_approval, title)));
+                                                      expire_date, usage_limit, creates_join_request, title)));
   }
 
   void on_result(uint64 id, BufferSlice packet) final {
@@ -7440,40 +7440,40 @@ Status ContactsManager::can_manage_dialog_invite_links(DialogId dialog_id, bool 
 }
 
 void ContactsManager::export_dialog_invite_link(DialogId dialog_id, string title, int32 expire_date, int32 usage_limit,
-                                                bool requires_approval, bool is_permanent,
+                                                bool creates_join_request, bool is_permanent,
                                                 Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise) {
   get_me(PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, title = std::move(title), expire_date,
-                                 usage_limit, requires_approval, is_permanent,
+                                 usage_limit, creates_join_request, is_permanent,
                                  promise = std::move(promise)](Result<Unit> &&result) mutable {
     if (result.is_error()) {
       promise.set_error(result.move_as_error());
     } else {
       send_closure(actor_id, &ContactsManager::export_dialog_invite_link_impl, dialog_id, std::move(title), expire_date,
-                   usage_limit, requires_approval, is_permanent, std::move(promise));
+                   usage_limit, creates_join_request, is_permanent, std::move(promise));
     }
   }));
 }
 
 void ContactsManager::export_dialog_invite_link_impl(DialogId dialog_id, string title, int32 expire_date,
-                                                     int32 usage_limit, bool requires_approval, bool is_permanent,
+                                                     int32 usage_limit, bool creates_join_request, bool is_permanent,
                                                      Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
   TRY_STATUS_PROMISE(promise, can_manage_dialog_invite_links(dialog_id));
-  if (requires_approval && usage_limit > 0) {
+  if (creates_join_request && usage_limit > 0) {
     return promise.set_error(
         Status::Error(400, "Member limit can't be specified for links requiring administrator approval"));
   }
 
   auto new_title = clean_name(std::move(title), MAX_INVITE_LINK_TITLE_LENGTH);
   td_->create_handler<ExportChatInviteQuery>(std::move(promise))
-      ->send(dialog_id, new_title, expire_date, usage_limit, requires_approval, is_permanent);
+      ->send(dialog_id, new_title, expire_date, usage_limit, creates_join_request, is_permanent);
 }
 
 void ContactsManager::edit_dialog_invite_link(DialogId dialog_id, const string &invite_link, string title,
-                                              int32 expire_date, int32 usage_limit, bool requires_approval,
+                                              int32 expire_date, int32 usage_limit, bool creates_join_request,
                                               Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise) {
   TRY_STATUS_PROMISE(promise, can_manage_dialog_invite_links(dialog_id));
-  if (requires_approval && usage_limit > 0) {
+  if (creates_join_request && usage_limit > 0) {
     return promise.set_error(
         Status::Error(400, "Member limit can't be specified for links requiring administrator approval"));
   }
@@ -7484,7 +7484,7 @@ void ContactsManager::edit_dialog_invite_link(DialogId dialog_id, const string &
 
   auto new_title = clean_name(std::move(title), MAX_INVITE_LINK_TITLE_LENGTH);
   td_->create_handler<EditChatInviteLinkQuery>(std::move(promise))
-      ->send(dialog_id, invite_link, new_title, expire_date, requires_approval, usage_limit);
+      ->send(dialog_id, invite_link, new_title, expire_date, creates_join_request, usage_limit);
 }
 
 void ContactsManager::get_dialog_invite_link(DialogId dialog_id, const string &invite_link,
@@ -12774,7 +12774,7 @@ void ContactsManager::on_get_dialog_invite_link_info(const string &invite_link,
       invite_link_info->description = std::move(chat_invite->about_);
       invite_link_info->participant_count = chat_invite->participants_count_;
       invite_link_info->participant_user_ids = std::move(participant_user_ids);
-      invite_link_info->requires_approval = std::move(chat_invite->request_needed_);
+      invite_link_info->creates_join_request = std::move(chat_invite->request_needed_);
       invite_link_info->is_chat = (chat_invite->flags_ & CHAT_INVITE_FLAG_IS_CHANNEL) == 0;
       invite_link_info->is_channel = (chat_invite->flags_ & CHAT_INVITE_FLAG_IS_CHANNEL) != 0;
 
@@ -16215,7 +16215,7 @@ tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_
   string description;
   int32 participant_count = 0;
   vector<int64> member_user_ids;
-  bool requires_approval = false;
+  bool creates_join_request = false;
   bool is_public = false;
   bool is_member = false;
   td_api::object_ptr<td_api::ChatType> chat_type;
@@ -16268,7 +16268,7 @@ tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_
     description = invite_link_info->description;
     participant_count = invite_link_info->participant_count;
     member_user_ids = get_user_ids_object(invite_link_info->participant_user_ids, "get_chat_invite_link_info_object");
-    requires_approval = invite_link_info->requires_approval;
+    creates_join_request = invite_link_info->creates_join_request;
     is_public = invite_link_info->is_public;
 
     if (invite_link_info->is_chat) {
@@ -16292,7 +16292,7 @@ tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_
   return make_tl_object<td_api::chatInviteLinkInfo>(dialog_id.get(), accessible_for, std::move(chat_type), title,
                                                     get_chat_photo_info_object(td_->file_manager_.get(), photo),
                                                     description, participant_count, std::move(member_user_ids),
-                                                    requires_approval, is_public);
+                                                    creates_join_request, is_public);
 }
 
 UserId ContactsManager::get_support_user(Promise<Unit> &&promise) {

@@ -29,7 +29,7 @@ class DialogInviteLink {
   int32 usage_limit_ = 0;
   int32 usage_count_ = 0;
   int32 request_count_ = 0;
-  bool requires_approval_ = false;
+  bool creates_join_request_ = false;
   bool is_revoked_ = false;
   bool is_permanent_ = false;
 
@@ -79,7 +79,7 @@ class DialogInviteLink {
     STORE_FLAG(has_usage_count);
     STORE_FLAG(has_edit_date);
     STORE_FLAG(has_request_count);
-    STORE_FLAG(requires_approval_);
+    STORE_FLAG(creates_join_request_);
     STORE_FLAG(has_title);
     END_STORE_FLAGS();
     store(invite_link_, storer);
@@ -122,7 +122,7 @@ class DialogInviteLink {
     PARSE_FLAG(has_usage_count);
     PARSE_FLAG(has_edit_date);
     PARSE_FLAG(has_request_count);
-    PARSE_FLAG(requires_approval_);
+    PARSE_FLAG(creates_join_request_);
     PARSE_FLAG(has_title);
     END_PARSE_FLAGS();
     parse(invite_link_, parser);
@@ -146,7 +146,7 @@ class DialogInviteLink {
     if (has_title) {
       parse(title_, parser);
     }
-    if (requires_approval_) {
+    if (creates_join_request_) {
       usage_limit_ = 0;
     }
   }
