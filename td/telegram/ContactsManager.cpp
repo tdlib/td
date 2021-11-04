@@ -7559,7 +7559,7 @@ void ContactsManager::get_dialog_join_requests(DialogId dialog_id, const string 
   int32 offset_date = 0;
   if (offset_request != nullptr) {
     offset_user_id = UserId(offset_request->user_id_);
-    offset_date = offset_request->request_date_;
+    offset_date = offset_request->date_;
   }
 
   td_->create_handler<GetChatJoinRequestsQuery>(std::move(promise))

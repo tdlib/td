@@ -608,8 +608,8 @@ chatInviteLinkMembers total_count:int32 members:vector<chatInviteLinkMember> = C
 //@is_public True, if the chat is a public supergroup or channel, i.e. it has a username or it is a location-based supergroup
 chatInviteLinkInfo chat_id:int53 accessible_for:int32 type:ChatType title:string photo:chatPhotoInfo description:string member_count:int32 member_user_ids:vector<int53> creates_join_request:Bool is_public:Bool = ChatInviteLinkInfo;
 
-//@description Describes a user that sent a join request and waits for administrator approval @user_id User identifier @request_date Point in time (Unix timestamp) when the user sent the join request @bio A short bio of the user
-chatJoinRequest user_id:int53 request_date:int32 bio:string = ChatJoinRequest;
+//@description Describes a user that sent a join request and waits for administrator approval @user_id User identifier @date Point in time (Unix timestamp) when the user sent the join request @bio A short bio of the user
+chatJoinRequest user_id:int53 date:int32 bio:string = ChatJoinRequest;
 
 //@description Contains a list of chat join requests @total_count Approximate total count of requests found @requests List of the requests
 chatJoinRequests total_count:int32 requests:vector<chatJoinRequest> = ChatJoinRequests;
