@@ -32,6 +32,7 @@
 #include "td/actor/PromiseFuture.h"
 
 #include "td/utils/base64.h"
+#include "td/utils/BufferedFd.h"
 #include "td/utils/common.h"
 #include "td/utils/crypto.h"
 #include "td/utils/logging.h"

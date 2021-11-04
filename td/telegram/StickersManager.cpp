@@ -26,6 +26,7 @@
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/MtprotoHeader.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
+#include "td/telegram/PhotoSizeSource.h"
 #include "td/telegram/secret_api.h"
 #include "td/telegram/StickerSetId.hpp"
 #include "td/telegram/StickersManager.hpp"
@@ -43,6 +44,7 @@
 #include "td/actor/SleepActor.h"
 
 #include "td/utils/algorithm.h"
+#include "td/utils/base64.h"
 #include "td/utils/emoji.h"
 #include "td/utils/format.h"
 #include "td/utils/JsonBuilder.h"

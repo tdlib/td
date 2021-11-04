@@ -11,6 +11,7 @@
 #include "td/net/SslStream.h"
 
 #include "td/utils/buffer.h"
+#include "td/utils/BufferedFd.h"
 #include "td/utils/HttpUrl.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"

@@ -17,8 +17,6 @@
 // TODO: all return values must be checked
 
 #include <atomic>
-#include <cstdlib>
-#include <vector>
 
 #if TD_PORT_POSIX
 #include <pthread.h>

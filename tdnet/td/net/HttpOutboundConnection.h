@@ -12,6 +12,7 @@
 
 #include "td/actor/actor.h"
 
+#include "td/utils/BufferedFd.h"
 #include "td/utils/port/SocketFd.h"
 #include "td/utils/Status.h"
 

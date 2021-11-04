@@ -43,7 +43,6 @@ class td::ActorTraits<TestActor> {
 };
 
 class CreateActorBench final : public td::Benchmark {
- private:
   td::ConcurrentScheduler scheduler_;
 
   void start_up() final {

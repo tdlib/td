@@ -12,7 +12,6 @@
 #include "td/utils/common.h"
 #include "td/utils/Heap.h"
 #include "td/utils/logging.h"
-#include "td/utils/MpscPollableQueue.h"
 #include "td/utils/ObjectPool.h"
 #include "td/utils/port/detail/PollableFd.h"
 #include "td/utils/port/PollFlags.h"
@@ -20,7 +19,6 @@
 #include "td/utils/Time.h"
 
 #include <atomic>
-#include <memory>
 #include <tuple>
 #include <utility>
 

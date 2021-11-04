@@ -13,6 +13,7 @@
 #include "td/actor/ConcurrentScheduler.h"
 
 #include "td/utils/buffer.h"
+#include "td/utils/BufferedFd.h"
 #include "td/utils/logging.h"
 #include "td/utils/port/SocketFd.h"
 #include "td/utils/Slice.h"
