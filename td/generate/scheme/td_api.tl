@@ -564,14 +564,14 @@ supergroupMembersFilterBots = SupergroupMembersFilter;
 
 //@description Contains a chat invite link
 //@invite_link Chat invite link
-//@name Name of the chat invite link
+//@name Name of the link
 //@creator_user_id User identifier of an administrator created the link
 //@date Point in time (Unix timestamp) when the link was created
 //@edit_date Point in time (Unix timestamp) when the link was last edited; 0 if never or unknown
 //@expire_date Point in time (Unix timestamp) when the link will expire; 0 if never
 //@member_limit The maximum number of members, which can join the chat using the link simultaneously; 0 if not limited. Always 0 if the link requires approval
 //@member_count Number of chat members, which joined the chat using the link
-//@pending_join_request_count Number of pending join requests, created using this link
+//@pending_join_request_count Number of pending join requests created using this link
 //@creates_join_request True, if the link only creates join request. If true, total number of joining members will be unlimited
 //@is_primary True, if the link is primary. Primary invite link can't have name, expire date or usage limit. There is exactly one primary invite link for each administrator with can_invite_users right at a given time
 //@is_revoked True, if the link was revoked
@@ -608,13 +608,13 @@ chatInviteLinkMembers total_count:int32 members:vector<chatInviteLinkMember> = C
 //@is_public True, if the chat is a public supergroup or channel, i.e. it has a username or it is a location-based supergroup
 chatInviteLinkInfo chat_id:int53 accessible_for:int32 type:ChatType title:string photo:chatPhotoInfo description:string member_count:int32 member_user_ids:vector<int53> creates_join_request:Bool is_public:Bool = ChatInviteLinkInfo;
 
-//@description Describes a user waiting administrator approval to join a chat @user_id User identifier @request_date Point in time (Unix timestamp) when the user sent the chat join request @bio A short bio of the user
+//@description Describes a user that sent a join request and waits for administrator approval @user_id User identifier @request_date Point in time (Unix timestamp) when the user sent the join request @bio A short bio of the user
 chatJoinRequest user_id:int53 request_date:int32 bio:string = ChatJoinRequest;
 
 //@description Contains a list of chat join requests @total_count Approximate total count of requests found @requests List of the requests
 chatJoinRequests total_count:int32 requests:vector<chatJoinRequest> = ChatJoinRequests;
 
-//@description Contains information about pending chat join requests @total_count Number of pending join requests, which wait administrator approval @user_ids List of identifiers, of users with newest pending requests
+//@description Contains information about pending chat join requests @total_count Total number of pending join requests @user_ids Identifiers of users sent the newest pending join requests
 chatJoinRequestsInfo total_count:int32 user_ids:vector<int53> = ChatJoinRequestsInfo;
 
 
