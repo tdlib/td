@@ -176,6 +176,28 @@ void UpdatesManager::tear_down() {
   parent_.reset();
 }
 
+void UpdatesManager::hangup_shared() {
+  ref_cnt_--;
+  if (ref_cnt_ == 0) {
+    stop();
+  }
+}
+
+void UpdatesManager::hangup() {
+  pending_pts_updates_.clear();
+  postponed_pts_updates_.clear();
+  postponed_updates_.clear();
+  pending_seq_updates_.clear();
+  pending_qts_updates_.clear();
+
+  hangup_shared();
+}
+
+ActorShared<UpdatesManager> UpdatesManager::create_reference() {
+  ref_cnt_++;
+  return actor_shared(this, 1);
+}
+
 void UpdatesManager::fill_pts_gap(void *td) {
   CHECK(td != nullptr);
   if (G()->close_flag()) {
@@ -1652,7 +1674,7 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
   }
 
   MultiPromiseActorSafe mpas{"OnPendingUpdatesMultiPromiseActor"};
-  mpas.add_promise([actor_id = actor_id(this), promise = std::move(promise)](Result<Unit> &&result) mutable {
+  mpas.add_promise([actor_id = create_reference(), promise = std::move(promise)](Result<Unit> &&result) mutable {
     send_closure(actor_id, &UpdatesManager::on_pending_updates_processed, std::move(result), std::move(promise));
   });
   auto lock = mpas.get_promise();
@@ -1773,7 +1795,7 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
   lock.set_value(Unit());
 }
 
-void UpdatesManager::on_pending_updates_processed(Result<Unit> &&result, Promise<Unit> &&promise) {
+void UpdatesManager::on_pending_updates_processed(Result<Unit> result, Promise<Unit> promise) {
   promise.set_result(std::move(result));
 }
 

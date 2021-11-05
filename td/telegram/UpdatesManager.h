@@ -181,6 +181,7 @@ class UpdatesManager final : public Actor {
 
   Td *td_;
   ActorShared<> parent_;
+  int32 ref_cnt_ = 1;
 
   PtsManager pts_manager_;
   PtsManager qts_manager_;
@@ -225,6 +226,12 @@ class UpdatesManager final : public Actor {
 
   void tear_down() final;
 
+  void hangup_shared() final;
+
+  void hangup() final;
+
+  ActorShared<UpdatesManager> create_reference();
+
   int32 get_pts() const {
     return pts_manager_.mem_pts();
   }
@@ -268,7 +275,7 @@ class UpdatesManager final : public Actor {
   void on_pending_updates(vector<tl_object_ptr<telegram_api::Update>> &&updates, int32 seq_begin, int32 seq_end,
                           int32 date, double receive_time, Promise<Unit> &&promise, const char *source);
 
-  void on_pending_updates_processed(Result<Unit> &&result, Promise<Unit> &&promise);
+  void on_pending_updates_processed(Result<Unit> result, Promise<Unit> promise);
 
   void process_updates(vector<tl_object_ptr<telegram_api::Update>> &&updates, bool force_apply,
                        Promise<Unit> &&promise);
