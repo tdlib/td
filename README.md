@@ -140,6 +140,8 @@ If you need to support different `TDLib` versions, then you can use a value of t
 
 See [example/python/tdjson_example.py](https://github.com/tdlib/td/tree/master/example/python/tdjson_example.py) for an example of such usage.
 
+[Taas](https://www.t-a-a-s.ru/>) is a service that provides managed TDLib instances that you can use from any language via HTTP API. Taas is a commercial service, but has free plans available.
+
 <a name="license"></a>
 ## License
 `TDLib` is licensed under the terms of the Boost Software License. See [LICENSE_1_0.txt](http://www.boost.org/LICENSE_1_0.txt) for more information.
