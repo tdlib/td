@@ -75,7 +75,10 @@ Status mkpath(CSlice path, int32 mode) {
     }
   }
   if (last_error.is_error()) {
-    return first_error;
+    if (last_error.message() == first_error.message() && last_error.code() == first_error.code()) {
+      return first_error;
+    }
+    return last_error.move_as_error_suffix(PSLICE() << ": " << first_error);
   }
   return Status::OK();
 }
