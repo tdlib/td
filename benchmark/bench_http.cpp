@@ -21,50 +21,52 @@
 #include <atomic>
 #include <limits>
 
-namespace td {
-
 std::atomic<int> counter;
 
-class HttpClient final : public HttpOutboundConnection::Callback {
+class HttpClient final : public td::HttpOutboundConnection::Callback {
   void start_up() final {
-    IPAddress addr;
+    td::IPAddress addr;
     addr.init_ipv4_port("127.0.0.1", 8082).ensure();
-    auto fd = SocketFd::open(addr);
+    auto fd = td::SocketFd::open(addr);
     LOG_CHECK(fd.is_ok()) << fd.error();
-    connection_ = create_actor<HttpOutboundConnection>("Connect", BufferedFd<SocketFd>(fd.move_as_ok()), SslStream{},
-                                                       std::numeric_limits<size_t>::max(), 0, 0,
-                                                       ActorOwn<HttpOutboundConnection::Callback>(actor_id(this)));
+    connection_ = td::create_actor<td::HttpOutboundConnection>(
+        "Connect", td::BufferedFd<td::SocketFd>(fd.move_as_ok()), td::SslStream{}, std::numeric_limits<size_t>::max(),
+        0, 0, td::ActorOwn<td::HttpOutboundConnection::Callback>(actor_id(this)));
     yield();
     cnt_ = 100000;
     counter++;
   }
+
   void tear_down() final {
     if (--counter == 0) {
-      Scheduler::instance()->finish();
+      td::Scheduler::instance()->finish();
     }
   }
+
   void loop() final {
     if (cnt_-- < 0) {
       return stop();
     }
-    send_closure(connection_, &HttpOutboundConnection::write_next, BufferSlice("GET / HTTP/1.1\r\n\r\n"));
-    send_closure(connection_, &HttpOutboundConnection::write_ok);
+    send_closure(connection_, &td::HttpOutboundConnection::write_next, td::BufferSlice("GET / HTTP/1.1\r\n\r\n"));
+    send_closure(connection_, &td::HttpOutboundConnection::write_ok);
     LOG(INFO) << "SEND";
   }
-  void handle(unique_ptr<HttpQuery> result) final {
+
+  void handle(td::unique_ptr<td::HttpQuery> result) final {
     loop();
   }
-  void on_connection_error(Status error) final {
+
+  void on_connection_error(td::Status error) final {
     LOG(ERROR) << "ERROR: " << error;
   }
 
-  ActorOwn<HttpOutboundConnection> connection_;
+  td::ActorOwn<td::HttpOutboundConnection> connection_;
   int cnt_;
 };
 
 int main() {
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(ERROR));
-  auto scheduler = make_unique<ConcurrentScheduler>();
+  auto scheduler = td::make_unique<td::ConcurrentScheduler>();
   scheduler->init(0);
   scheduler->create_actor_unsafe<HttpClient>(0, "Client1").release();
   scheduler->create_actor_unsafe<HttpClient>(0, "Client2").release();
@@ -73,10 +75,4 @@ int main() {
     // empty
   }
   scheduler->finish();
-  return 0;
-}
-}  // namespace td
-
-int main() {
-  return td::main();
 }

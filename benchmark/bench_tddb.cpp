@@ -27,20 +27,18 @@
 
 #include <memory>
 
-namespace td {
-
-static Status init_db(SqliteDb &db) {
+static td::Status init_db(td::SqliteDb &db) {
   TRY_STATUS(db.exec("PRAGMA encoding=\"UTF-8\""));
   TRY_STATUS(db.exec("PRAGMA synchronous=NORMAL"));
   TRY_STATUS(db.exec("PRAGMA journal_mode=WAL"));
   TRY_STATUS(db.exec("PRAGMA temp_store=MEMORY"));
   TRY_STATUS(db.exec("PRAGMA secure_delete=1"));
-  return Status::OK();
+  return td::Status::OK();
 }
 
-class MessagesDbBench final : public Benchmark {
+class MessagesDbBench final : public td::Benchmark {
  public:
-  string get_description() const final {
+  td::string get_description() const final {
     return "MessagesDb";
   }
   void start_up() final {
@@ -51,20 +49,20 @@ class MessagesDbBench final : public Benchmark {
   void run(int n) final {
     auto guard = scheduler_->get_main_guard();
     for (int i = 0; i < n; i += 20) {
-      auto dialog_id = DialogId(UserId(static_cast<int64>(Random::fast(1, 100))));
-      auto message_id_raw = Random::fast(1, 100000);
+      auto dialog_id = td::DialogId(td::UserId(static_cast<td::int64>(td::Random::fast(1, 100))));
+      auto message_id_raw = td::Random::fast(1, 100000);
       for (int j = 0; j < 20; j++) {
-        auto message_id = MessageId{ServerMessageId{message_id_raw + j}};
-        auto unique_message_id = ServerMessageId{i + 1};
-        auto sender_user_id = UserId(static_cast<int64>(Random::fast(1, 1000)));
+        auto message_id = td::MessageId{td::ServerMessageId{message_id_raw + j}};
+        auto unique_message_id = td::ServerMessageId{i + 1};
+        auto sender_user_id = td::UserId(static_cast<td::int64>(td::Random::fast(1, 1000)));
         auto random_id = i + 1;
         auto ttl_expires_at = 0;
-        auto data = BufferSlice(Random::fast(100, 299));
+        auto data = td::BufferSlice(td::Random::fast(100, 299));
 
         // use async on same thread.
         messages_db_async_->add_message({dialog_id, message_id}, unique_message_id, sender_user_id, random_id,
-                                        ttl_expires_at, 0, 0, "", NotificationId(), MessageId(), std::move(data),
-                                        Promise<>());
+                                        ttl_expires_at, 0, 0, "", td::NotificationId(), td::MessageId(),
+                                        std::move(data), td::Promise<>());
       }
     }
   }
@@ -83,19 +81,19 @@ class MessagesDbBench final : public Benchmark {
   }
 
  private:
-  td::unique_ptr<ConcurrentScheduler> scheduler_;
-  std::shared_ptr<SqliteConnectionSafe> sql_connection_;
-  std::shared_ptr<MessagesDbSyncSafeInterface> messages_db_sync_safe_;
-  std::shared_ptr<MessagesDbAsyncInterface> messages_db_async_;
+  td::unique_ptr<td::ConcurrentScheduler> scheduler_;
+  std::shared_ptr<td::SqliteConnectionSafe> sql_connection_;
+  std::shared_ptr<td::MessagesDbSyncSafeInterface> messages_db_sync_safe_;
+  std::shared_ptr<td::MessagesDbAsyncInterface> messages_db_async_;
 
-  Status do_start_up() {
-    scheduler_ = make_unique<ConcurrentScheduler>();
+  td::Status do_start_up() {
+    scheduler_ = td::make_unique<td::ConcurrentScheduler>();
     scheduler_->init(1);
 
     auto guard = scheduler_->get_main_guard();
 
-    string sql_db_name = "testdb.sqlite";
-    sql_connection_ = std::make_shared<SqliteConnectionSafe>(sql_db_name, DbKey::empty());
+    td::string sql_db_name = "testdb.sqlite";
+    sql_connection_ = std::make_shared<td::SqliteConnectionSafe>(sql_db_name, td::DbKey::empty());
     auto &db = sql_connection_->get();
     TRY_STATUS(init_db(db));
 
@@ -104,14 +102,13 @@ class MessagesDbBench final : public Benchmark {
     TRY_STATUS(init_messages_db(db, 0));
     db.exec("COMMIT TRANSACTION").ensure();
 
-    messages_db_sync_safe_ = create_messages_db_sync(sql_connection_);
-    messages_db_async_ = create_messages_db_async(messages_db_sync_safe_, 0);
-    return Status::OK();
+    messages_db_sync_safe_ = td::create_messages_db_sync(sql_connection_);
+    messages_db_async_ = td::create_messages_db_async(messages_db_sync_safe_, 0);
+    return td::Status::OK();
   }
 };
-}  // namespace td
 
 int main() {
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(WARNING));
-  bench(td::MessagesDbBench());
+  td::bench(MessagesDbBench());
 }
