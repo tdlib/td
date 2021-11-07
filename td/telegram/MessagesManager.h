@@ -2789,8 +2789,12 @@ class MessagesManager final : public Actor {
   void on_message_ttl_expired_impl(Dialog *d, Message *m);
 
   void start_up() final;
+
   void loop() final;
+
   void tear_down() final;
+
+  void hangup() final;
 
   void create_folders();
   void init();
