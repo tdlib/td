@@ -7484,7 +7484,7 @@ void ContactsManager::edit_dialog_invite_link(DialogId dialog_id, const string &
 
   auto new_title = clean_name(std::move(title), MAX_INVITE_LINK_TITLE_LENGTH);
   td_->create_handler<EditChatInviteLinkQuery>(std::move(promise))
-      ->send(dialog_id, invite_link, new_title, expire_date, creates_join_request, usage_limit);
+      ->send(dialog_id, invite_link, new_title, expire_date, usage_limit, creates_join_request);
 }
 
 void ContactsManager::get_dialog_invite_link(DialogId dialog_id, const string &invite_link,
