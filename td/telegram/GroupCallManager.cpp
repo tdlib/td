@@ -52,22 +52,22 @@ class GetGroupCallStreamQuery final : public Td::ResultHandler {
     send_query(std::move(query));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::upload_getFile>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
     if (ptr->get_id() != telegram_api::upload_file::ID) {
-      return on_error(id, Status::Error(500, "Receive unexpected server response"));
+      return on_error(Status::Error(500, "Receive unexpected server response"));
     }
 
     auto file = move_tl_object_as<telegram_api::upload_file>(ptr);
     promise_.set_value(file->bytes_.as_slice().str());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -90,10 +90,10 @@ class GetGroupCallJoinAsQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::phone_getGroupCallJoinAs(std::move(input_peer))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::phone_getGroupCallJoinAs>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -121,7 +121,7 @@ class GetGroupCallJoinAsQuery final : public Td::ResultHandler {
                                                                    std::move(participant_aliaces)));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetGroupCallJoinAsQuery");
     promise_.set_error(std::move(status));
   }
@@ -145,10 +145,10 @@ class SaveDefaultGroupCallJoinAsQuery final : public Td::ResultHandler {
         telegram_api::phone_saveDefaultGroupCallJoinAs(std::move(input_peer), std::move(as_input_peer))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::phone_saveDefaultGroupCallJoinAs>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto success = result_ptr.move_as_ok();
@@ -157,7 +157,7 @@ class SaveDefaultGroupCallJoinAsQuery final : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     // td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetGroupCallJoinAsQuery");
     promise_.set_error(std::move(status));
   }
@@ -188,10 +188,10 @@ class CreateGroupCallQuery final : public Td::ResultHandler {
         telegram_api::phone_createGroupCall(flags, std::move(input_peer), Random::secure_int32(), title, start_date)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::phone_createGroupCall>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -200,13 +200,13 @@ class CreateGroupCallQuery final : public Td::ResultHandler {
     auto group_call_ids = td->updates_manager_->get_update_new_group_call_ids(ptr.get());
     if (group_call_ids.empty()) {
       LOG(ERROR) << "Receive wrong CreateGroupCallQuery response " << to_string(ptr);
-      return on_error(id, Status::Error(500, "Receive wrong response"));
+      return on_error(Status::Error(500, "Receive wrong response"));
     }
     auto group_call_id = group_call_ids[0];
     for (auto other_group_call_id : group_call_ids) {
       if (group_call_id != other_group_call_id) {
         LOG(ERROR) << "Receive wrong CreateGroupCallQuery response " << to_string(ptr);
-        return on_error(id, Status::Error(500, "Receive wrong response"));
+        return on_error(Status::Error(500, "Receive wrong response"));
       }
     }
 
@@ -216,7 +216,7 @@ class CreateGroupCallQuery final : public Td::ResultHandler {
         }));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "CreateGroupCallQuery");
     promise_.set_error(std::move(status));
   }
@@ -235,10 +235,10 @@ class GetGroupCallQuery final : public Td::ResultHandler {
         telegram_api::phone_getGroupCall(input_group_call_id.get_input_group_call(), limit)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::phone_getGroupCall>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -247,7 +247,7 @@ class GetGroupCallQuery final : public Td::ResultHandler {
     promise_.set_value(std::move(ptr));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -268,10 +268,10 @@ class GetGroupCallParticipantQuery final : public Td::ResultHandler {
         input_group_call_id.get_input_group_call(), std::move(input_peers), std::move(source_ids), string(), limit)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::phone_getGroupParticipants>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     td->group_call_manager_->on_get_group_call_participants(input_group_call_id_, result_ptr.move_as_ok(), false,
@@ -280,7 +280,7 @@ class GetGroupCallParticipantQuery final : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -302,10 +302,10 @@ class GetGroupCallParticipantsQuery final : public Td::ResultHandler {
         offset_, limit)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::phone_getGroupParticipants>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     td->group_call_manager_->on_get_group_call_participants(input_group_call_id_, result_ptr.move_as_ok(), true,
@@ -314,7 +314,7 @@ class GetGroupCallParticipantsQuery final : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -331,10 +331,10 @@ class StartScheduledGroupCallQuery final : public Td::ResultHandler {
         telegram_api::phone_startScheduledGroupCall(input_group_call_id.get_input_group_call())));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::phone_startScheduledGroupCall>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -342,7 +342,7 @@ class StartScheduledGroupCallQuery final : public Td::ResultHandler {
     td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (status.message() == "GROUPCALL_NOT_MODIFIED") {
       promise_.set_value(Unit());
       return;
@@ -393,10 +393,10 @@ class JoinGroupCallQuery final : public Td::ResultHandler {
     return join_query_ref;
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::phone_joinGroupCall>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -405,7 +405,7 @@ class JoinGroupCallQuery final : public Td::ResultHandler {
                                                               std::move(promise_));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -426,10 +426,10 @@ class JoinGroupCallPresentationQuery final : public Td::ResultHandler {
     return join_query_ref;
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::phone_joinGroupCallPresentation>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -439,7 +439,7 @@ class JoinGroupCallPresentationQuery final : public Td::ResultHandler {
                                                                            std::move(ptr), Status::OK());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     td->group_call_manager_->process_join_group_call_presentation_response(input_group_call_id_, generation_, nullptr,
                                                                            std::move(status));
   }
@@ -457,10 +457,10 @@ class LeaveGroupCallPresentationQuery final : public Td::ResultHandler {
         telegram_api::phone_leaveGroupCallPresentation(input_group_call_id.get_input_group_call())));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::phone_editGroupCallTitle>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -468,7 +468,7 @@ class LeaveGroupCallPresentationQuery final : public Td::ResultHandler {
     td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (status.message() == "PARTICIPANT_PRESENTATION_MISSING") {
       promise_.set_value(Unit());
       return;
@@ -489,10 +489,10 @@ class EditGroupCallTitleQuery final : public Td::ResultHandler {
         telegram_api::phone_editGroupCallTitle(input_group_call_id.get_input_group_call(), title)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::phone_editGroupCallTitle>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -500,7 +500,7 @@ class EditGroupCallTitleQuery final : public Td::ResultHandler {
     td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (status.message() == "GROUPCALL_NOT_MODIFIED") {
       promise_.set_value(Unit());
       return;
@@ -521,10 +521,10 @@ class ToggleGroupCallStartSubscriptionQuery final : public Td::ResultHandler {
         input_group_call_id.get_input_group_call(), start_subscribed)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::phone_toggleGroupCallStartSubscription>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -532,7 +532,7 @@ class ToggleGroupCallStartSubscriptionQuery final : public Td::ResultHandler {
     td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (status.message() == "GROUPCALL_NOT_MODIFIED") {
       promise_.set_value(Unit());
       return;
@@ -553,10 +553,10 @@ class ToggleGroupCallSettingsQuery final : public Td::ResultHandler {
         flags, false /*ignored*/, input_group_call_id.get_input_group_call(), join_muted)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::phone_toggleGroupCallSettings>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -564,7 +564,7 @@ class ToggleGroupCallSettingsQuery final : public Td::ResultHandler {
     td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (status.message() == "GROUPCALL_NOT_MODIFIED") {
       promise_.set_value(Unit());
       return;
@@ -585,10 +585,10 @@ class InviteToGroupCallQuery final : public Td::ResultHandler {
         telegram_api::phone_inviteToGroupCall(input_group_call_id.get_input_group_call(), std::move(input_users))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::phone_inviteToGroupCall>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -596,7 +596,7 @@ class InviteToGroupCallQuery final : public Td::ResultHandler {
     td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -617,17 +617,17 @@ class ExportGroupCallInviteQuery final : public Td::ResultHandler {
         flags, false /*ignored*/, input_group_call_id.get_input_group_call())));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::phone_exportGroupCallInvite>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
     promise_.set_value(std::move(ptr->link_));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -656,10 +656,10 @@ class ToggleGroupCallRecordQuery final : public Td::ResultHandler {
         use_portrait_orientation)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::phone_toggleGroupCallRecord>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -667,7 +667,7 @@ class ToggleGroupCallRecordQuery final : public Td::ResultHandler {
     td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (status.message() == "GROUPCALL_NOT_MODIFIED") {
       promise_.set_value(Unit());
       return;
@@ -689,7 +689,7 @@ class EditGroupCallParticipantQuery final : public Td::ResultHandler {
             bool presentation_is_paused) {
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Know);
     if (input_peer == nullptr) {
-      return on_error(0, Status::Error(400, "Can't access the chat"));
+      return on_error(Status::Error(400, "Can't access the chat"));
     }
 
     int32 flags = 0;
@@ -712,10 +712,10 @@ class EditGroupCallParticipantQuery final : public Td::ResultHandler {
         video_is_stopped, video_is_paused, presentation_is_paused)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::phone_editGroupCallParticipant>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -723,7 +723,7 @@ class EditGroupCallParticipantQuery final : public Td::ResultHandler {
     td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -743,10 +743,10 @@ class CheckGroupCallQuery final : public Td::ResultHandler {
         telegram_api::phone_checkGroupCall(input_group_call_id.get_input_group_call(), std::move(audio_sources))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::phone_checkGroupCall>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     vector<int32> active_audio_sources = result_ptr.move_as_ok();
@@ -759,7 +759,7 @@ class CheckGroupCallQuery final : public Td::ResultHandler {
     }
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -776,10 +776,10 @@ class LeaveGroupCallQuery final : public Td::ResultHandler {
         telegram_api::phone_leaveGroupCall(input_group_call_id.get_input_group_call(), audio_source)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::phone_leaveGroupCall>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -787,7 +787,7 @@ class LeaveGroupCallQuery final : public Td::ResultHandler {
     td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -804,10 +804,10 @@ class DiscardGroupCallQuery final : public Td::ResultHandler {
         telegram_api::phone_discardGroupCall(input_group_call_id.get_input_group_call())));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::phone_discardGroupCall>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -815,7 +815,7 @@ class DiscardGroupCallQuery final : public Td::ResultHandler {
     td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };

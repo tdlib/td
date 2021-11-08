@@ -30,10 +30,10 @@ class GetTermsOfServiceUpdateQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::help_getTermsOfServiceUpdate()));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::help_getTermsOfServiceUpdate>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto result = result_ptr.move_as_ok();
@@ -53,7 +53,7 @@ class GetTermsOfServiceUpdateQuery final : public Td::ResultHandler {
     }
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -70,10 +70,10 @@ class AcceptTermsOfServiceQuery final : public Td::ResultHandler {
         telegram_api::make_object<telegram_api::dataJSON>(terms_of_service_id))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::help_acceptTermsOfService>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto result = result_ptr.ok();
@@ -83,7 +83,7 @@ class AcceptTermsOfServiceQuery final : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };

@@ -50,7 +50,7 @@ class SetGameScoreActor final : public NetActorOnce {
 
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Edit);
     if (input_peer == nullptr) {
-      on_error(0, Status::Error(400, "Can't access the chat"));
+      on_error(Status::Error(400, "Can't access the chat"));
       stop();
       return;
     }
@@ -67,10 +67,10 @@ class SetGameScoreActor final : public NetActorOnce {
                  std::move(query), actor_shared(this), sequence_dispatcher_id);
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_setGameScore>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -78,7 +78,7 @@ class SetGameScoreActor final : public NetActorOnce {
     td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     LOG(INFO) << "Receive error for SetGameScore: " << status;
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "SetGameScoreActor");
     promise_.set_error(std::move(status));
@@ -112,10 +112,10 @@ class SetInlineGameScoreQuery final : public Td::ResultHandler {
         dc_id));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_setInlineGameScore>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     LOG_IF(ERROR, !result_ptr.ok()) << "Receive false in result of setInlineGameScore";
@@ -123,7 +123,7 @@ class SetInlineGameScoreQuery final : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     LOG(INFO) << "Receive error for SetInlineGameScoreQuery: " << status;
     promise_.set_error(std::move(status));
   }
@@ -149,16 +149,16 @@ class GetGameHighScoresQuery final : public Td::ResultHandler {
         std::move(input_peer), message_id.get_server_message_id().get(), std::move(input_user))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getGameHighScores>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     promise_.set_value(td->game_manager_->get_game_high_scores_object(result_ptr.move_as_ok()));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetGameHighScoresQuery");
     promise_.set_error(std::move(status));
   }
@@ -183,16 +183,16 @@ class GetInlineGameHighScoresQuery final : public Td::ResultHandler {
         dc_id));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getInlineGameHighScores>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     promise_.set_value(td->game_manager_->get_game_high_scores_object(result_ptr.move_as_ok()));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };

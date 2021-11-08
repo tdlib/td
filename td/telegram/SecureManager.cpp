@@ -141,10 +141,10 @@ class SetSecureValueErrorsQuery final : public Td::ResultHandler {
         telegram_api::users_setSecureValueErrors(std::move(input_user), std::move(input_errors))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::users_setSecureValueErrors>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     bool ptr = result_ptr.move_as_ok();
@@ -152,7 +152,7 @@ class SetSecureValueErrorsQuery final : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (status.code() != 0) {
       promise_.set_error(std::move(status));
     } else {

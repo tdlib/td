@@ -54,10 +54,10 @@ class GetBackgroundQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::account_getWallPaper(std::move(input_wallpaper))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::account_getWallPaper>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     td->background_manager_->on_get_background(background_id_, background_name_, result_ptr.move_as_ok(), true);
@@ -65,7 +65,7 @@ class GetBackgroundQuery final : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     LOG(INFO) << "Receive error for GetBackgroundQuery for " << background_id_ << "/" << background_name_ << ": "
               << status;
     promise_.set_error(std::move(status));
@@ -84,16 +84,16 @@ class GetBackgroundsQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::account_getWallPapers(0)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::account_getWallPapers>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     promise_.set_value(result_ptr.move_as_ok());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -110,17 +110,17 @@ class InstallBackgroundQuery final : public Td::ResultHandler {
         telegram_api::account_installWallPaper(std::move(input_wallpaper), type.get_input_wallpaper_settings())));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::account_installWallPaper>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     LOG_IF(INFO, !result_ptr.ok()) << "Receive false from account.installWallPaper";
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -145,17 +145,17 @@ class UploadBackgroundQuery final : public Td::ResultHandler {
         std::move(input_file), type_.get_mime_type(), type_.get_input_wallpaper_settings())));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::account_uploadWallPaper>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     td->background_manager_->on_uploaded_background_file(file_id_, type_, for_dark_theme_, result_ptr.move_as_ok(),
                                                          std::move(promise_));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     CHECK(status.is_error());
     CHECK(file_id_.is_valid());
     if (begins_with(status.message(), "FILE_PART_") && ends_with(status.message(), "_MISSING")) {
@@ -183,10 +183,10 @@ class UnsaveBackgroundQuery final : public Td::ResultHandler {
         std::move(input_wallpaper), true, telegram_api::make_object<telegram_api::wallPaperSettings>())));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::account_saveWallPaper>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     bool result = result_ptr.move_as_ok();
@@ -194,7 +194,7 @@ class UnsaveBackgroundQuery final : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for save background: " << status;
     }
@@ -213,10 +213,10 @@ class ResetBackgroundsQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::account_resetWallPapers()));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::account_resetWallPapers>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     bool result = result_ptr.move_as_ok();
@@ -224,7 +224,7 @@ class ResetBackgroundsQuery final : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for reset backgrounds: " << status;
     }

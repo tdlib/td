@@ -209,10 +209,12 @@ class Td final : public Actor {
     virtual ~ResultHandler() = default;
 
     virtual void on_result(NetQueryPtr query);
-    virtual void on_result(uint64 id, BufferSlice packet) {
+
+    virtual void on_result(BufferSlice packet) {
       UNREACHABLE();
     }
-    virtual void on_error(uint64 id, Status status) {
+
+    virtual void on_error(Status status) {
       UNREACHABLE();
     }
 

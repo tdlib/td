@@ -389,10 +389,10 @@ class GetDeepLinkInfoQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create_unauth(telegram_api::help_getDeepLinkInfo(link.str())));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::help_getDeepLinkInfo>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto result = result_ptr.move_as_ok();
@@ -419,7 +419,7 @@ class GetDeepLinkInfoQuery final : public Td::ResultHandler {
     }
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -451,10 +451,10 @@ class RequestUrlAuthQuery final : public Td::ResultHandler {
         url_)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_requestUrlAuth>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto result = result_ptr.move_as_ok();
@@ -464,7 +464,7 @@ class RequestUrlAuthQuery final : public Td::ResultHandler {
         auto request = telegram_api::move_object_as<telegram_api::urlAuthResultRequest>(result);
         UserId bot_user_id = ContactsManager::get_user_id(request->bot_);
         if (!bot_user_id.is_valid()) {
-          return on_error(id, Status::Error(500, "Receive invalid bot_user_id"));
+          return on_error(Status::Error(500, "Receive invalid bot_user_id"));
         }
         td->contacts_manager_->on_get_user(std::move(request->bot_), "RequestUrlAuthQuery");
         promise_.set_value(td_api::make_object<td_api::loginUrlInfoRequestConfirmation>(
@@ -483,7 +483,7 @@ class RequestUrlAuthQuery final : public Td::ResultHandler {
     }
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (!dialog_id_.is_valid() ||
         !td->messages_manager_->on_get_dialog_error(dialog_id_, status, "RequestUrlAuthQuery")) {
       LOG(INFO) << "RequestUrlAuthQuery returned " << status;
@@ -521,10 +521,10 @@ class AcceptUrlAuthQuery final : public Td::ResultHandler {
         button_id, url_)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_acceptUrlAuth>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto result = result_ptr.move_as_ok();
@@ -532,7 +532,7 @@ class AcceptUrlAuthQuery final : public Td::ResultHandler {
     switch (result->get_id()) {
       case telegram_api::urlAuthResultRequest::ID:
         LOG(ERROR) << "Receive unexpected " << to_string(result);
-        return on_error(id, Status::Error(500, "Receive unexpected urlAuthResultRequest"));
+        return on_error(Status::Error(500, "Receive unexpected urlAuthResultRequest"));
       case telegram_api::urlAuthResultAccepted::ID: {
         auto accepted = telegram_api::move_object_as<telegram_api::urlAuthResultAccepted>(result);
         promise_.set_value(td_api::make_object<td_api::httpUrl>(accepted->url_));
@@ -544,7 +544,7 @@ class AcceptUrlAuthQuery final : public Td::ResultHandler {
     }
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (!dialog_id_.is_valid() ||
         !td->messages_manager_->on_get_dialog_error(dialog_id_, status, "AcceptUrlAuthQuery")) {
       LOG(INFO) << "AcceptUrlAuthQuery returned " << status;

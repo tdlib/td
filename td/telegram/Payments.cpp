@@ -51,10 +51,10 @@ class SetBotShippingAnswerQuery final : public Td::ResultHandler {
         flags, shipping_query_id, error_message, std::move(shipping_options))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_setBotShippingResults>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     bool result = result_ptr.ok();
@@ -64,7 +64,7 @@ class SetBotShippingAnswerQuery final : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -88,10 +88,10 @@ class SetBotPreCheckoutAnswerQuery final : public Td::ResultHandler {
         flags, false /*ignored*/, pre_checkout_query_id, error_message)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_setBotPrecheckoutResults>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     bool result = result_ptr.ok();
@@ -101,7 +101,7 @@ class SetBotPreCheckoutAnswerQuery final : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -272,7 +272,7 @@ class GetPaymentFormQuery final : public Td::ResultHandler {
     dialog_id_ = dialog_id;
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
-      return on_error(0, Status::Error(400, "Can't access the chat"));
+      return on_error(Status::Error(400, "Can't access the chat"));
     }
 
     int32 flags = 0;
@@ -283,10 +283,10 @@ class GetPaymentFormQuery final : public Td::ResultHandler {
         flags, std::move(input_peer), server_message_id.get(), std::move(theme_parameters))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::payments_getPaymentForm>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto payment_form = result_ptr.move_as_ok();
@@ -297,12 +297,12 @@ class GetPaymentFormQuery final : public Td::ResultHandler {
     UserId payments_provider_user_id(payment_form->provider_id_);
     if (!payments_provider_user_id.is_valid()) {
       LOG(ERROR) << "Receive invalid payments provider " << payments_provider_user_id;
-      return on_error(id, Status::Error(500, "Receive invalid payments provider identifier"));
+      return on_error(Status::Error(500, "Receive invalid payments provider identifier"));
     }
     UserId seller_bot_user_id(payment_form->bot_id_);
     if (!seller_bot_user_id.is_valid()) {
       LOG(ERROR) << "Receive invalid seller " << seller_bot_user_id;
-      return on_error(id, Status::Error(500, "Receive invalid seller identifier"));
+      return on_error(Status::Error(500, "Receive invalid seller identifier"));
     }
     bool can_save_credentials = payment_form->can_save_credentials_;
     bool need_password = payment_form->password_missing_;
@@ -315,7 +315,7 @@ class GetPaymentFormQuery final : public Td::ResultHandler {
         convert_saved_credentials(std::move(payment_form->saved_credentials_)), can_save_credentials, need_password));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetPaymentFormQuery");
     promise_.set_error(std::move(status));
   }
@@ -335,7 +335,7 @@ class ValidateRequestedInfoQuery final : public Td::ResultHandler {
     dialog_id_ = dialog_id;
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
-      return on_error(0, Status::Error(400, "Can't access the chat"));
+      return on_error(Status::Error(400, "Can't access the chat"));
     }
 
     int32 flags = 0;
@@ -350,10 +350,10 @@ class ValidateRequestedInfoQuery final : public Td::ResultHandler {
         flags, false /*ignored*/, std::move(input_peer), server_message_id.get(), std::move(requested_info))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::payments_validateRequestedInfo>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto validated_order_info = result_ptr.move_as_ok();
@@ -364,7 +364,7 @@ class ValidateRequestedInfoQuery final : public Td::ResultHandler {
         transform(std::move(validated_order_info->shipping_options_), convert_shipping_option)));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "ValidateRequestedInfoQuery");
     promise_.set_error(std::move(status));
   }
@@ -387,7 +387,7 @@ class SendPaymentFormQuery final : public Td::ResultHandler {
     dialog_id_ = dialog_id;
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
-      return on_error(0, Status::Error(400, "Can't access the chat"));
+      return on_error(Status::Error(400, "Can't access the chat"));
     }
 
     int32 flags = 0;
@@ -405,10 +405,10 @@ class SendPaymentFormQuery final : public Td::ResultHandler {
         std::move(input_credentials), tip_amount)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::payments_sendPaymentForm>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto payment_result = result_ptr.move_as_ok();
@@ -433,7 +433,7 @@ class SendPaymentFormQuery final : public Td::ResultHandler {
     }
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "SendPaymentFormQuery");
     promise_.set_error(std::move(status));
   }
@@ -452,17 +452,17 @@ class GetPaymentReceiptQuery final : public Td::ResultHandler {
     dialog_id_ = dialog_id;
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
-      return on_error(0, Status::Error(400, "Can't access the chat"));
+      return on_error(Status::Error(400, "Can't access the chat"));
     }
 
     send_query(G()->net_query_creator().create(
         telegram_api::payments_getPaymentReceipt(std::move(input_peer), server_message_id.get())));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::payments_getPaymentReceipt>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto payment_receipt = result_ptr.move_as_ok();
@@ -473,12 +473,12 @@ class GetPaymentReceiptQuery final : public Td::ResultHandler {
     UserId payments_provider_user_id(payment_receipt->provider_id_);
     if (!payments_provider_user_id.is_valid()) {
       LOG(ERROR) << "Receive invalid payments provider " << payments_provider_user_id;
-      return on_error(id, Status::Error(500, "Receive invalid payments provider identifier"));
+      return on_error(Status::Error(500, "Receive invalid payments provider identifier"));
     }
     UserId seller_bot_user_id(payment_receipt->bot_id_);
     if (!seller_bot_user_id.is_valid()) {
       LOG(ERROR) << "Receive invalid seller " << seller_bot_user_id;
-      return on_error(id, Status::Error(500, "Receive invalid seller identifier"));
+      return on_error(Status::Error(500, "Receive invalid seller identifier"));
     }
     auto photo = get_web_document_photo(td->file_manager_.get(), std::move(payment_receipt->photo_), dialog_id_);
 
@@ -491,7 +491,7 @@ class GetPaymentReceiptQuery final : public Td::ResultHandler {
         payment_receipt->tip_amount_));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetPaymentReceiptQuery");
     promise_.set_error(std::move(status));
   }
@@ -508,10 +508,10 @@ class GetSavedInfoQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::payments_getSavedInfo()));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::payments_getSavedInfo>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto saved_info = result_ptr.move_as_ok();
@@ -519,7 +519,7 @@ class GetSavedInfoQuery final : public Td::ResultHandler {
     promise_.set_value(convert_order_info(std::move(saved_info->saved_info_)));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -544,16 +544,16 @@ class ClearSavedInfoQuery final : public Td::ResultHandler {
         telegram_api::payments_clearSavedInfo(flags, false /*ignored*/, false /*ignored*/)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::payments_clearSavedInfo>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -571,10 +571,10 @@ class GetBankCardInfoQuery final : public Td::ResultHandler {
                                                G()->get_webfile_dc_id()));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::payments_getBankCardData>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto response = result_ptr.move_as_ok();
@@ -584,7 +584,7 @@ class GetBankCardInfoQuery final : public Td::ResultHandler {
     promise_.set_value(td_api::make_object<td_api::bankCardInfo>(response->title_, std::move(actions)));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };

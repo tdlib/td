@@ -56,16 +56,16 @@ class GetTopPeersQuery final : public Td::ResultHandler {
         false /*ignored*/, false /*ignored*/, false /*ignored*/, 0 /*offset*/, 100 /*limit*/, hash)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::contacts_getTopPeers>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     promise_.set_value(result_ptr.move_as_ok());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -81,16 +81,16 @@ class ToggleTopPeersQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::contacts_toggleTopPeers(is_enabled)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::contacts_toggleTopPeers>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -110,16 +110,16 @@ class ResetTopPeerRatingQuery final : public Td::ResultHandler {
         telegram_api::contacts_resetTopPeerRating(get_input_top_peer_category(category), std::move(input_peer))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::contacts_resetTopPeerRating>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     // ignore the result
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (!td->messages_manager_->on_get_dialog_error(dialog_id_, status, "ResetTopPeerRatingQuery")) {
       LOG(INFO) << "Receive error for ResetTopPeerRatingQuery: " << status;
     }

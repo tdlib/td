@@ -79,16 +79,16 @@ class SetContactSignUpNotificationQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::account_setContactSignUpNotification(is_disabled)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::account_setContactSignUpNotification>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for set contact sign up notification: " << status;
     }
@@ -107,17 +107,17 @@ class GetContactSignUpNotificationQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::account_getContactSignUpNotification()));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::account_getContactSignUpNotification>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     td->notification_manager_->on_get_disable_contact_registered_notifications(result_ptr.ok());
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for get contact sign up notification: " << status;
     }

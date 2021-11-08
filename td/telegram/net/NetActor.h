@@ -22,14 +22,19 @@ class Td;
 class NetActor : public NetQueryCallback {
  public:
   NetActor();
+
   void set_parent(ActorShared<> parent);
+
   void on_result(NetQueryPtr query) override;
-  virtual void on_result(uint64 id, BufferSlice packet) {
+
+  virtual void on_result(BufferSlice packet) {
     UNREACHABLE();
   }
-  virtual void on_error(uint64 id, Status status) {
+
+  virtual void on_error(Status status) {
     UNREACHABLE();
   }
+
   virtual void on_result_finish() {
   }
 
@@ -41,7 +46,7 @@ class NetActor : public NetQueryCallback {
 
 class NetActorOnce : public NetActor {
   void hangup() override {
-    on_error(0, Global::request_aborted_error());
+    on_error(Global::request_aborted_error());
     stop();
   }
 

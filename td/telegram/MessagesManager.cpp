@@ -97,16 +97,16 @@ class GetDialogFiltersQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::messages_getDialogFilters()));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getDialogFilters>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     promise_.set_value(result_ptr.move_as_ok());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -127,17 +127,17 @@ class UpdateDialogFilterQuery final : public Td::ResultHandler {
         telegram_api::messages_updateDialogFilter(flags, dialog_filter_id.get(), std::move(filter))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_updateDialogFilter>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     LOG(INFO) << "Receive result for UpdateDialogFilterQuery: " << result_ptr.ok();
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     LOG(ERROR) << "Receive error for UpdateDialogFilterQuery: " << status;
     promise_.set_error(std::move(status));
   }
@@ -155,17 +155,17 @@ class UpdateDialogFiltersOrderQuery final : public Td::ResultHandler {
         transform(dialog_filter_ids, [](auto dialog_filter_id) { return dialog_filter_id.get(); }))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_updateDialogFiltersOrder>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     LOG(INFO) << "Receive result for UpdateDialogFiltersOrderQuery: " << result_ptr.ok();
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -182,16 +182,16 @@ class GetSuggestedDialogFiltersQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::messages_getSuggestedDialogFilters()));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getSuggestedDialogFilters>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     promise_.set_value(result_ptr.move_as_ok());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -205,23 +205,23 @@ class GetOnlinesQuery final : public Td::ResultHandler {
     CHECK(dialog_id.get_type() == DialogType::Channel);
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
-      return on_error(0, Status::Error(400, "Can't access the chat"));
+      return on_error(Status::Error(400, "Can't access the chat"));
     }
 
     send_query(G()->net_query_creator().create(telegram_api::messages_getOnlines(std::move(input_peer))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getOnlines>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto result = result_ptr.move_as_ok();
     td->messages_manager_->on_update_dialog_online_member_count(dialog_id_, result->onlines_, true);
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetOnlinesQuery");
     td->messages_manager_->on_update_dialog_online_member_count(dialog_id_, 0, true);
   }
@@ -233,10 +233,10 @@ class GetAllDraftsQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::messages_getAllDrafts()));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getAllDrafts>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -244,7 +244,7 @@ class GetAllDraftsQuery final : public Td::ResultHandler {
     td->updates_manager_->on_get_updates(std::move(ptr), Promise<Unit>());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for GetAllDraftsQuery: " << status;
     }
@@ -262,10 +262,10 @@ class GetDialogQuery final : public Td::ResultHandler {
         td->messages_manager_->get_input_dialog_peers({dialog_id}, AccessRights::Read))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getPeerDialogs>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto result = result_ptr.move_as_ok();
@@ -281,7 +281,7 @@ class GetDialogQuery final : public Td::ResultHandler {
         }));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetDialogQuery");
     td->messages_manager_->on_get_dialog_query_finished(dialog_id_, std::move(status));
   }
@@ -303,10 +303,10 @@ class GetDialogsQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::messages_getPeerDialogs(std::move(input_dialog_peers))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getPeerDialogs>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto result = result_ptr.move_as_ok();
@@ -318,7 +318,7 @@ class GetDialogsQuery final : public Td::ResultHandler {
                                           std::move(promise_));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -340,10 +340,10 @@ class GetPinnedDialogsActor final : public NetActorOnce {
     return result;
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getPinnedDialogs>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto result = result_ptr.move_as_ok();
@@ -355,7 +355,7 @@ class GetPinnedDialogsActor final : public NetActorOnce {
                                           std::move(promise_));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -366,10 +366,10 @@ class GetDialogUnreadMarksQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::messages_getDialogUnreadMarks()));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getDialogUnreadMarks>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto results = result_ptr.move_as_ok();
@@ -380,7 +380,7 @@ class GetDialogUnreadMarksQuery final : public Td::ResultHandler {
     G()->td_db()->get_binlog_pmc()->set("fetched_marks_as_unread", "1");
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for GetDialogUnreadMarksQuery: " << status;
     }
@@ -411,17 +411,17 @@ class GetDiscussionMessageQuery final : public Td::ResultHandler {
         telegram_api::messages_getDiscussionMessage(std::move(input_peer), message_id.get_server_message_id().get())));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getDiscussionMessage>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     td->messages_manager_->process_discussion_message(result_ptr.move_as_ok(), dialog_id_, message_id_,
                                                       expected_dialog_id_, expected_message_id_, std::move(promise_));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (expected_dialog_id_ == dialog_id_) {
       td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetDiscussionMessageQuery");
     }
@@ -440,10 +440,10 @@ class GetMessagesQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::messages_getMessages(std::move(message_ids))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getMessages>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto info = td->messages_manager_->get_messages_info(result_ptr.move_as_ok(), "GetMessagesQuery");
@@ -452,7 +452,7 @@ class GetMessagesQuery final : public Td::ResultHandler {
                                            std::move(promise_), "GetMessagesQuery");
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (status.message() == "MESSAGE_IDS_EMPTY") {
       promise_.set_value(Unit());
       return;
@@ -479,10 +479,10 @@ class GetChannelMessagesQuery final : public Td::ResultHandler {
         telegram_api::channels_getMessages(std::move(input_channel), std::move(message_ids))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::channels_getMessages>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto info = td->messages_manager_->get_messages_info(result_ptr.move_as_ok(), "GetChannelMessagesQuery");
@@ -515,7 +515,7 @@ class GetChannelMessagesQuery final : public Td::ResultHandler {
         }));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (status.message() == "MESSAGE_IDS_EMPTY") {
       promise_.set_value(Unit());
       return;
@@ -540,10 +540,10 @@ class GetScheduledMessagesQuery final : public Td::ResultHandler {
         telegram_api::messages_getScheduledMessages(std::move(input_peer), std::move(message_ids))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getScheduledMessages>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto info = td->messages_manager_->get_messages_info(result_ptr.move_as_ok(), "GetScheduledMessagesQuery");
@@ -553,7 +553,7 @@ class GetScheduledMessagesQuery final : public Td::ResultHandler {
                                            std::move(promise_), "GetScheduledMessagesQuery");
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (status.message() == "MESSAGE_IDS_EMPTY") {
       promise_.set_value(Unit());
       return;
@@ -576,7 +576,7 @@ class UpdateDialogPinnedMessageQuery final : public Td::ResultHandler {
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
       LOG(INFO) << "Can't update pinned message in " << dialog_id;
-      return on_error(0, Status::Error(400, "Can't update pinned message"));
+      return on_error(Status::Error(400, "Can't update pinned message"));
     }
 
     int32 flags = 0;
@@ -594,10 +594,10 @@ class UpdateDialogPinnedMessageQuery final : public Td::ResultHandler {
                                                    std::move(input_peer), message_id.get_server_message_id().get())));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_updatePinnedMessage>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -605,7 +605,7 @@ class UpdateDialogPinnedMessageQuery final : public Td::ResultHandler {
     td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "UpdateDialogPinnedMessageQuery");
     promise_.set_error(std::move(status));
   }
@@ -619,7 +619,7 @@ class UnpinAllMessagesQuery final : public Td::ResultHandler {
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id_, AccessRights::Write);
     if (input_peer == nullptr) {
       LOG(INFO) << "Can't unpin all messages in " << dialog_id_;
-      return on_error(0, Status::Error(400, "Can't unpin all messages"));
+      return on_error(Status::Error(400, "Can't unpin all messages"));
     }
 
     send_query(G()->net_query_creator().create(telegram_api::messages_unpinAllMessages(std::move(input_peer))));
@@ -635,10 +635,10 @@ class UnpinAllMessagesQuery final : public Td::ResultHandler {
     send_request();
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_unpinAllMessages>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto affected_history = result_ptr.move_as_ok();
@@ -666,7 +666,7 @@ class UnpinAllMessagesQuery final : public Td::ResultHandler {
     }
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "UnpinAllMessagesQuery");
     promise_.set_error(std::move(status));
   }
@@ -688,16 +688,16 @@ class GetMessageReadParticipantsQuery final : public Td::ResultHandler {
         std::move(input_peer), message_id.get_server_message_id().get())));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getMessageReadParticipants>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     promise_.set_value(UserId::get_user_ids(result_ptr.ok()));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetMessageReadParticipantsQuery");
     promise_.set_error(std::move(status));
   }
@@ -721,7 +721,7 @@ class ExportChannelMessageLinkQuery final : public Td::ResultHandler {
     ignore_result_ = ignore_result;
     auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
     if (input_channel == nullptr) {
-      return on_error(0, Status::Error(400, "Can't access the chat"));
+      return on_error(Status::Error(400, "Can't access the chat"));
     }
     int32 flags = 0;
     if (for_group) {
@@ -732,10 +732,10 @@ class ExportChannelMessageLinkQuery final : public Td::ResultHandler {
                                                  message_id.get_server_message_id().get())));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::channels_exportMessageLink>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -748,7 +748,7 @@ class ExportChannelMessageLinkQuery final : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (!ignore_result_) {
       td->contacts_manager_->on_get_channel_error(channel_id_, status, "ExportChannelMessageLinkQuery");
     }
@@ -779,10 +779,10 @@ class GetDialogListActor final : public NetActorOnce {
                  std::move(query), actor_shared(this), sequence_id);
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getDialogs>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -807,13 +807,13 @@ class GetDialogListActor final : public NetActorOnce {
       }
       case telegram_api::messages_dialogsNotModified::ID:
         LOG(ERROR) << "Receive " << to_string(ptr);
-        return on_error(id, Status::Error(500, "Receive wrong server response messages.dialogsNotModified"));
+        return on_error(Status::Error(500, "Receive wrong server response messages.dialogsNotModified"));
       default:
         UNREACHABLE();
     }
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -827,10 +827,10 @@ class SearchPublicDialogsQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::contacts_search(query, 3 /* ignored server-side */)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::contacts_search>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto dialogs = result_ptr.move_as_ok();
@@ -841,7 +841,7 @@ class SearchPublicDialogsQuery final : public Td::ResultHandler {
                                                                std::move(dialogs->results_));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for SearchPublicDialogsQuery: " << status;
     }
@@ -870,10 +870,10 @@ class GetCommonDialogsQuery final : public Td::ResultHandler {
         telegram_api::messages_getCommonChats(std::move(input_user), offset_chat_id, limit)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getCommonChats>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto chats_ptr = result_ptr.move_as_ok();
@@ -898,7 +898,7 @@ class GetCommonDialogsQuery final : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -920,10 +920,10 @@ class GetBlockedDialogsQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::contacts_getBlocked(offset, limit)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::contacts_getBlocked>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -954,7 +954,7 @@ class GetBlockedDialogsQuery final : public Td::ResultHandler {
     }
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -972,10 +972,10 @@ class CreateChatQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::messages_createChat(std::move(input_users), title)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_createChat>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -984,7 +984,7 @@ class CreateChatQuery final : public Td::ResultHandler {
                                                         std::move(promise_));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     td->messages_manager_->on_create_new_dialog_fail(random_id_, std::move(status), std::move(promise_));
   }
 };
@@ -1018,10 +1018,10 @@ class CreateChannelQuery final : public Td::ResultHandler {
                                              about, location.get_input_geo_point(), location.get_address())));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::channels_createChannel>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -1030,7 +1030,7 @@ class CreateChannelQuery final : public Td::ResultHandler {
                                                         std::move(promise_));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     td->messages_manager_->on_create_new_dialog_fail(random_id_, std::move(status), std::move(promise_));
   }
 };
@@ -1047,10 +1047,10 @@ class CheckHistoryImportQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::messages_checkHistoryImport(message_file_head)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_checkHistoryImport>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -1067,7 +1067,7 @@ class CheckHistoryImportQuery final : public Td::ResultHandler {
     promise_.set_value(std::move(file_type));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -1087,10 +1087,10 @@ class CheckHistoryImportPeerQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::messages_checkHistoryImportPeer(std::move(input_peer))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_checkHistoryImportPeer>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -1098,7 +1098,7 @@ class CheckHistoryImportPeerQuery final : public Td::ResultHandler {
     promise_.set_value(std::move(ptr->confirm_text_));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "CheckHistoryImportPeerQuery");
     promise_.set_error(std::move(status));
   }
@@ -1127,10 +1127,10 @@ class InitHistoryImportQuery final : public Td::ResultHandler {
         std::move(input_peer), std::move(input_file), narrow_cast<int32>(attached_file_ids_.size()))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_initHistoryImport>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     td->file_manager_->delete_partial_remote_location(file_id_);
@@ -1140,7 +1140,7 @@ class InitHistoryImportQuery final : public Td::ResultHandler {
                                                  std::move(promise_));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (FileReferenceManager::is_file_reference_error(status)) {
       LOG(ERROR) << "Receive file reference error " << status;
     }
@@ -1174,17 +1174,17 @@ class UploadImportedMediaQuery final : public Td::ResultHandler {
 
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
-      return on_error(0, Status::Error(400, "Can't access the chat"));
+      return on_error(Status::Error(400, "Can't access the chat"));
     }
 
     send_query(G()->net_query_creator().create(telegram_api::messages_uploadImportedMedia(
         std::move(input_peer), import_id, file_name, std::move(input_media))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_uploadImportedMedia>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     td->file_manager_->delete_partial_remote_location(file_id_);
@@ -1194,7 +1194,7 @@ class UploadImportedMediaQuery final : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (FileReferenceManager::is_file_reference_error(status)) {
       LOG(ERROR) << "Receive file reference error " << status;
     }
@@ -1226,19 +1226,19 @@ class StartImportHistoryQuery final : public Td::ResultHandler {
         G()->net_query_creator().create(telegram_api::messages_startHistoryImport(std::move(input_peer), import_id)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_startHistoryImport>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     if (!result_ptr.ok()) {
-      return on_error(id, Status::Error(500, "Import history returned false"));
+      return on_error(Status::Error(500, "Import history returned false"));
     }
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "StartImportHistoryQuery");
     promise_.set_error(std::move(status));
   }
@@ -1280,13 +1280,13 @@ class EditDialogPhotoQuery final : public Td::ResultHandler {
     }
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     static_assert(std::is_same<telegram_api::messages_editChatPhoto::ReturnType,
                                telegram_api::channels_editPhoto::ReturnType>::value,
                   "");
     auto result_ptr = fetch_result<telegram_api::messages_editChatPhoto>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -1299,7 +1299,7 @@ class EditDialogPhotoQuery final : public Td::ResultHandler {
     td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (file_id_.is_valid() && was_uploaded_) {
       td->file_manager_->delete_partial_remote_location(file_id_);
     }
@@ -1355,13 +1355,13 @@ class EditDialogTitleQuery final : public Td::ResultHandler {
     }
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     static_assert(std::is_same<telegram_api::messages_editChatTitle::ReturnType,
                                telegram_api::channels_editTitle::ReturnType>::value,
                   "");
     auto result_ptr = fetch_result<telegram_api::messages_editChatTitle>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -1369,7 +1369,7 @@ class EditDialogTitleQuery final : public Td::ResultHandler {
     td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     td->updates_manager_->get_difference("EditDialogTitleQuery");
 
     if (status.message() == "CHAT_NOT_MODIFIED") {
@@ -1399,10 +1399,10 @@ class SetChatThemeQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::messages_setChatTheme(std::move(input_peer), theme_name)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_setChatTheme>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -1410,7 +1410,7 @@ class SetChatThemeQuery final : public Td::ResultHandler {
     td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (status.message() == "CHAT_NOT_MODIFIED") {
       if (!td->auth_manager_->is_bot()) {
         promise_.set_value(Unit());
@@ -1440,10 +1440,10 @@ class SetHistoryTtlQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::messages_setHistoryTTL(std::move(input_peer), period)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_setHistoryTTL>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -1451,7 +1451,7 @@ class SetHistoryTtlQuery final : public Td::ResultHandler {
     td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (status.message() == "CHAT_NOT_MODIFIED") {
       if (!td->auth_manager_->is_bot()) {
         promise_.set_value(Unit());
@@ -1480,10 +1480,10 @@ class EditChatDefaultBannedRightsQuery final : public Td::ResultHandler {
         std::move(input_peer), permissions.get_chat_banned_rights())));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_editChatDefaultBannedRights>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -1491,7 +1491,7 @@ class EditChatDefaultBannedRightsQuery final : public Td::ResultHandler {
     td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (status.message() == "CHAT_NOT_MODIFIED") {
       if (!td->auth_manager_->is_bot()) {
         promise_.set_value(Unit());
@@ -1519,7 +1519,7 @@ class SaveDraftMessageQuery final : public Td::ResultHandler {
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
       LOG(INFO) << "Can't update draft message because have no write access to " << dialog_id;
-      return on_error(0, Status::Error(400, "Can't save draft message"));
+      return on_error(Status::Error(400, "Can't save draft message"));
     }
 
     int32 flags = 0;
@@ -1546,21 +1546,21 @@ class SaveDraftMessageQuery final : public Td::ResultHandler {
                                          "SaveDraftMessageQuery"))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_saveDraft>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     bool result = result_ptr.ok();
     if (!result) {
-      on_error(id, Status::Error(400, "Save draft failed"));
+      on_error(Status::Error(400, "Save draft failed"));
     }
 
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (!td->messages_manager_->on_get_dialog_error(dialog_id_, status, "SaveDraftMessageQuery")) {
       LOG(ERROR) << "Receive error for SaveDraftMessageQuery: " << status;
     }
@@ -1579,10 +1579,10 @@ class ClearAllDraftsQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::messages_clearAllDrafts()));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_clearAllDrafts>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     bool result = result_ptr.move_as_ok();
@@ -1595,7 +1595,7 @@ class ClearAllDraftsQuery final : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for ClearAllDraftsQuery: " << status;
     }
@@ -1618,7 +1618,7 @@ class ToggleDialogPinQuery final : public Td::ResultHandler {
 
     auto input_peer = td->messages_manager_->get_input_dialog_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
-      return on_error(0, Status::Error(400, "Can't access the chat"));
+      return on_error(Status::Error(400, "Can't access the chat"));
     }
 
     int32 flags = 0;
@@ -1629,21 +1629,21 @@ class ToggleDialogPinQuery final : public Td::ResultHandler {
         telegram_api::messages_toggleDialogPin(flags, false /*ignored*/, std::move(input_peer))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_toggleDialogPin>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     bool result = result_ptr.ok();
     if (!result) {
-      on_error(id, Status::Error(400, "Toggle dialog pin failed"));
+      on_error(Status::Error(400, "Toggle dialog pin failed"));
     }
 
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (!td->messages_manager_->on_get_dialog_error(dialog_id_, status, "ToggleDialogPinQuery")) {
       LOG(ERROR) << "Receive error for ToggleDialogPinQuery: " << status;
     }
@@ -1669,22 +1669,22 @@ class ReorderPinnedDialogsQuery final : public Td::ResultHandler {
         td->messages_manager_->get_input_dialog_peers(dialog_ids, AccessRights::Read))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_reorderPinnedDialogs>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     bool result = result_ptr.move_as_ok();
     if (!result) {
-      return on_error(id, Status::Error(400, "Result is false"));
+      return on_error(Status::Error(400, "Result is false"));
     }
     LOG(INFO) << "Pinned chats reordered in " << folder_id_;
 
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for ReorderPinnedDialogsQuery: " << status;
     }
@@ -1708,7 +1708,7 @@ class ToggleDialogUnreadMarkQuery final : public Td::ResultHandler {
 
     auto input_peer = td->messages_manager_->get_input_dialog_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
-      return on_error(0, Status::Error(400, "Can't access the chat"));
+      return on_error(Status::Error(400, "Can't access the chat"));
     }
 
     int32 flags = 0;
@@ -1719,21 +1719,21 @@ class ToggleDialogUnreadMarkQuery final : public Td::ResultHandler {
         telegram_api::messages_markDialogUnread(flags, false /*ignored*/, std::move(input_peer))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_markDialogUnread>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     bool result = result_ptr.ok();
     if (!result) {
-      on_error(id, Status::Error(400, "Toggle dialog mark failed"));
+      on_error(Status::Error(400, "Toggle dialog mark failed"));
     }
 
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (!td->messages_manager_->on_get_dialog_error(dialog_id_, status, "ToggleDialogUnreadMarkQuery")) {
       LOG(ERROR) << "Receive error for ToggleDialogUnreadMarkQuery: " << status;
     }
@@ -1765,12 +1765,12 @@ class ToggleDialogIsBlockedActor final : public NetActorOnce {
                  std::move(query), actor_shared(this), sequence_dispatcher_id);
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     static_assert(
         std::is_same<telegram_api::contacts_block::ReturnType, telegram_api::contacts_unblock::ReturnType>::value, "");
     auto result_ptr = fetch_result<telegram_api::contacts_block>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     bool result = result_ptr.ok();
@@ -1779,7 +1779,7 @@ class ToggleDialogIsBlockedActor final : public NetActorOnce {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (!td->messages_manager_->on_get_dialog_error(dialog_id_, status, "ToggleDialogIsBlockedActor")) {
       LOG(ERROR) << "Receive error for ToggleDialogIsBlockedActor: " << status;
     }
@@ -1803,7 +1803,7 @@ class GetMessagesViewsQuery final : public Td::ResultHandler {
 
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
-      return on_error(0, Status::Error(400, "Can't access the chat"));
+      return on_error(Status::Error(400, "Can't access the chat"));
     }
 
     LOG(INFO) << "View " << message_ids_.size() << " messages in " << dialog_id
@@ -1812,16 +1812,16 @@ class GetMessagesViewsQuery final : public Td::ResultHandler {
         std::move(input_peer), MessagesManager::get_server_message_ids(message_ids_), increment_view_counter)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getMessagesViews>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto result = result_ptr.move_as_ok();
     auto interaction_infos = std::move(result->views_);
     if (message_ids_.size() != interaction_infos.size()) {
-      return on_error(id, Status::Error(500, "Wrong number of message views returned"));
+      return on_error(Status::Error(500, "Wrong number of message views returned"));
     }
     td->contacts_manager_->on_get_users(std::move(result->users_), "GetMessagesViewsQuery");
     td->contacts_manager_->on_get_chats(std::move(result->chats_), "GetMessagesViewsQuery");
@@ -1837,7 +1837,7 @@ class GetMessagesViewsQuery final : public Td::ResultHandler {
     }
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (!td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetMessagesViewsQuery")) {
       LOG(ERROR) << "Receive error for GetMessagesViewsQuery: " << status;
     }
@@ -1858,10 +1858,10 @@ class ReadMessagesContentsQuery final : public Td::ResultHandler {
         telegram_api::messages_readMessageContents(MessagesManager::get_server_message_ids(message_ids))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_readMessageContents>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto affected_messages = result_ptr.move_as_ok();
@@ -1876,7 +1876,7 @@ class ReadMessagesContentsQuery final : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for read message contents: " << status;
     }
@@ -1898,7 +1898,7 @@ class ReadChannelMessagesContentsQuery final : public Td::ResultHandler {
     auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
     if (input_channel == nullptr) {
       LOG(ERROR) << "Have no input channel for " << channel_id;
-      return on_error(0, Status::Error(500, "Can't read channel message contents"));
+      return on_error(Status::Error(500, "Can't read channel message contents"));
     }
 
     LOG(INFO) << "Receive ReadChannelMessagesContentsQuery for messages " << format::as_array(message_ids) << " in "
@@ -1908,10 +1908,10 @@ class ReadChannelMessagesContentsQuery final : public Td::ResultHandler {
         std::move(input_channel), MessagesManager::get_server_message_ids(message_ids))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::channels_readMessageContents>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     bool result = result_ptr.ok();
@@ -1920,7 +1920,7 @@ class ReadChannelMessagesContentsQuery final : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (!td->contacts_manager_->on_get_channel_error(channel_id_, status, "ReadChannelMessagesContentsQuery")) {
       LOG(ERROR) << "Receive error for read messages contents in " << channel_id_ << ": " << status;
     }
@@ -1952,10 +1952,10 @@ class GetDialogMessageByDateQuery final : public Td::ResultHandler {
         telegram_api::messages_getHistory(std::move(input_peer), 0, date, -3, 5, 0, 0, 0)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getHistory>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto info = td->messages_manager_->get_messages_info(result_ptr.move_as_ok(), "GetDialogMessageByDateQuery");
@@ -1974,7 +1974,7 @@ class GetDialogMessageByDateQuery final : public Td::ResultHandler {
         }));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (!td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetDialogMessageByDateQuery")) {
       LOG(ERROR) << "Receive error for GetDialogMessageByDateQuery in " << dialog_id_ << ": " << status;
     }
@@ -2029,10 +2029,10 @@ class GetHistoryQuery final : public Td::ResultHandler {
         telegram_api::messages_getHistory(std::move(input_peer), 0, 0, 0, limit, 0, 0, 0)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getHistory>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto info = td->messages_manager_->get_messages_info(result_ptr.move_as_ok(), "GetHistoryQuery");
@@ -2054,7 +2054,7 @@ class GetHistoryQuery final : public Td::ResultHandler {
         }));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (!td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetHistoryQuery")) {
       LOG(ERROR) << "Receive error for GetHistoryQuery in " << dialog_id_ << ": " << status;
     }
@@ -2078,10 +2078,10 @@ class ReadHistoryQuery final : public Td::ResultHandler {
         telegram_api::messages_readHistory(std::move(input_peer), max_message_id.get_server_message_id().get())));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_readHistory>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto affected_messages = result_ptr.move_as_ok();
@@ -2097,7 +2097,7 @@ class ReadHistoryQuery final : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (!td->messages_manager_->on_get_dialog_error(dialog_id_, status, "ReadHistoryQuery")) {
       LOG(ERROR) << "Receive error for ReadHistoryQuery: " << status;
     }
@@ -2122,16 +2122,16 @@ class ReadChannelHistoryQuery final : public Td::ResultHandler {
         telegram_api::channels_readHistory(std::move(input_channel), max_message_id.get_server_message_id().get())));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::channels_readHistory>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (!td->contacts_manager_->on_get_channel_error(channel_id_, status, "ReadChannelHistoryQuery")) {
       LOG(ERROR) << "Receive error for ReadChannelHistoryQuery: " << status;
     }
@@ -2156,16 +2156,16 @@ class ReadDiscussionQuery final : public Td::ResultHandler {
         max_message_id.get_server_message_id().get())));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_readDiscussion>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "ReadDiscussionQuery");
     promise_.set_error(std::move(status));
   }
@@ -2195,10 +2195,10 @@ class GetSearchResultCalendarQuery final : public Td::ResultHandler {
         std::move(input_peer), get_input_messages_filter(filter), from_message_id.get_server_message_id().get(), 0)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getSearchResultsCalendar>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto result = result_ptr.move_as_ok();
@@ -2228,7 +2228,7 @@ class GetSearchResultCalendarQuery final : public Td::ResultHandler {
         }));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "SearchMessagesQuery");
     td->messages_manager_->on_failed_get_message_search_result_calendar(dialog_id_, random_id_);
     promise_.set_error(std::move(status));
@@ -2300,7 +2300,7 @@ class SearchMessagesQuery final : public Td::ResultHandler {
     }
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     static_assert(std::is_same<telegram_api::messages_getUnreadMentions::ReturnType,
                                telegram_api::messages_search::ReturnType>::value,
                   "");
@@ -2309,7 +2309,7 @@ class SearchMessagesQuery final : public Td::ResultHandler {
         "");
     auto result_ptr = fetch_result<telegram_api::messages_search>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto info = td->messages_manager_->get_messages_info(result_ptr.move_as_ok(), "SearchMessagesQuery");
@@ -2331,7 +2331,7 @@ class SearchMessagesQuery final : public Td::ResultHandler {
         }));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (handle_errors_) {
       td->messages_manager_->on_get_dialog_error(dialog_id_, status, "SearchMessagesQuery");
     }
@@ -2363,17 +2363,17 @@ class GetSearchResultPositionsQuery final : public Td::ResultHandler {
                                                          from_message_id.get_server_message_id().get(), limit)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getSearchResultsPositions>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     td->messages_manager_->on_get_dialog_sparse_message_positions(dialog_id_, filter_, result_ptr.move_as_ok(),
                                                                   std::move(promise_));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetSearchResultPositionsQuery");
     promise_.set_error(std::move(status));
   }
@@ -2406,23 +2406,23 @@ class GetSearchCountersQuery final : public Td::ResultHandler {
         telegram_api::messages_getSearchCounters(std::move(input_peer), std::move(filters))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getSearchCounters>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto result = result_ptr.move_as_ok();
     if (result.size() != 1 || result[0]->filter_->get_id() != get_input_messages_filter(filter_)->get_id()) {
       LOG(ERROR) << "Receive unexpected response for get message count in " << dialog_id_ << " with filter " << filter_
                  << ": " << to_string(result);
-      return on_error(id, Status::Error(500, "Receive wrong response"));
+      return on_error(Status::Error(500, "Receive wrong response"));
     }
 
     td->messages_manager_->on_get_dialog_message_count(dialog_id_, filter_, result[0]->count_, std::move(promise_));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetSearchCountersQuery");
     promise_.set_error(std::move(status));
   }
@@ -2469,10 +2469,10 @@ class SearchMessagesGlobalQuery final : public Td::ResultHandler {
         std::move(input_peer), offset_message_id.get_server_message_id().get(), limit)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_searchGlobal>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto info = td->messages_manager_->get_messages_info(result_ptr.move_as_ok(), "SearchMessagesGlobalQuery");
@@ -2494,7 +2494,7 @@ class SearchMessagesGlobalQuery final : public Td::ResultHandler {
         }));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     td->messages_manager_->on_failed_messages_search(random_id_);
     promise_.set_error(std::move(status));
   }
@@ -2520,10 +2520,10 @@ class GetAllScheduledMessagesQuery final : public Td::ResultHandler {
         G()->net_query_creator().create(telegram_api::messages_getScheduledHistory(std::move(input_peer), hash)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getScheduledHistory>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     if (result_ptr.ok()->get_id() == telegram_api::messages_messagesNotModified::ID) {
@@ -2536,7 +2536,7 @@ class GetAllScheduledMessagesQuery final : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetAllScheduledMessagesQuery");
     promise_.set_error(std::move(status));
   }
@@ -2555,7 +2555,7 @@ class GetRecentLocationsQuery final : public Td::ResultHandler {
   void send(DialogId dialog_id, int32 limit) {
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
-      return on_error(0, Status::Error(400, "Have no info about the chat"));
+      return on_error(Status::Error(400, "Have no info about the chat"));
     }
 
     dialog_id_ = dialog_id;
@@ -2565,10 +2565,10 @@ class GetRecentLocationsQuery final : public Td::ResultHandler {
         G()->net_query_creator().create(telegram_api::messages_getRecentLocations(std::move(input_peer), limit, 0)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getRecentLocations>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto info = td->messages_manager_->get_messages_info(result_ptr.move_as_ok(), "GetRecentLocationsQuery");
@@ -2586,7 +2586,7 @@ class GetRecentLocationsQuery final : public Td::ResultHandler {
         }));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetRecentLocationsQuery");
     promise_.set_error(std::move(status));
   }
@@ -2618,10 +2618,10 @@ class GetMessagePublicForwardsQuery final : public Td::ResultHandler {
                                         dc_id));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::stats_getMessagePublicForwards>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto info = td->messages_manager_->get_messages_info(result_ptr.move_as_ok(), "GetMessagePublicForwardsQuery");
@@ -2639,7 +2639,7 @@ class GetMessagePublicForwardsQuery final : public Td::ResultHandler {
         }));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetMessagePublicForwardsQuery");
     promise_.set_error(std::move(status));
   }
@@ -2656,16 +2656,16 @@ class HidePromoDataQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::help_hidePromoData(std::move(input_peer))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::help_hidePromoData>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     // we are not interested in the result
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (!td->messages_manager_->on_get_dialog_error(dialog_id_, status, "HidePromoDataQuery")) {
       LOG(ERROR) << "Receive error for sponsored chat hiding: " << status;
     }
@@ -2712,10 +2712,10 @@ class DeleteHistoryQuery final : public Td::ResultHandler {
     send_request();
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_deleteHistory>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto affected_history = result_ptr.move_as_ok();
@@ -2735,7 +2735,7 @@ class DeleteHistoryQuery final : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "DeleteHistoryQuery");
     promise_.set_error(std::move(status));
   }
@@ -2762,10 +2762,10 @@ class DeleteChannelHistoryQuery final : public Td::ResultHandler {
         telegram_api::channels_deleteHistory(std::move(input_channel), max_message_id.get_server_message_id().get())));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::channels_deleteHistory>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     bool result = result_ptr.ok();
@@ -2775,7 +2775,7 @@ class DeleteChannelHistoryQuery final : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (!td->contacts_manager_->on_get_channel_error(channel_id_, status, "DeleteChannelHistoryQuery")) {
       LOG(ERROR) << "Receive error for DeleteChannelHistoryQuery: " << status;
     }
@@ -2820,10 +2820,10 @@ class DeleteMessagesByDateQuery final : public Td::ResultHandler {
     send_request();
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_deleteHistory>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto affected_history = result_ptr.move_as_ok();
@@ -2845,7 +2845,7 @@ class DeleteMessagesByDateQuery final : public Td::ResultHandler {
     }
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "DeleteMessagesByDateQuery");
     promise_.set_error(std::move(status));
   }
@@ -2874,10 +2874,10 @@ class DeletePhoneCallHistoryQuery final : public Td::ResultHandler {
     send_request();
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_deletePhoneCallHistory>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto affected_messages = result_ptr.move_as_ok();
@@ -2901,7 +2901,7 @@ class DeletePhoneCallHistoryQuery final : public Td::ResultHandler {
     }
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -2928,10 +2928,10 @@ class BlockFromRepliesQuery final : public Td::ResultHandler {
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, message_id.get_server_message_id().get())));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::contacts_blockFromReplies>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -2939,7 +2939,7 @@ class BlockFromRepliesQuery final : public Td::ResultHandler {
     td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -2976,10 +2976,10 @@ class DeleteUserHistoryQuery final : public Td::ResultHandler {
     send_request();
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::channels_deleteUserHistory>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto affected_history = result_ptr.move_as_ok();
@@ -2999,7 +2999,7 @@ class DeleteUserHistoryQuery final : public Td::ResultHandler {
     }
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     td->contacts_manager_->on_get_channel_error(channel_id_, status, "DeleteUserHistoryQuery");
     promise_.set_error(std::move(status));
   }
@@ -3030,10 +3030,10 @@ class ReadMentionsQuery final : public Td::ResultHandler {
     send_request();
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_readMentions>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto affected_history = result_ptr.move_as_ok();
@@ -3059,7 +3059,7 @@ class ReadMentionsQuery final : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "ReadMentionsQuery");
     promise_.set_error(std::move(status));
   }
@@ -3129,7 +3129,7 @@ class SendMessageActor final : public NetActorOnce {
 
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
-      on_error(0, Status::Error(400, "Have no write access to the chat"));
+      on_error(Status::Error(400, "Have no write access to the chat"));
       stop();
       return;
     }
@@ -3155,10 +3155,10 @@ class SendMessageActor final : public NetActorOnce {
                  std::move(query), actor_shared(this), sequence_dispatcher_id);
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_sendMessage>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -3189,7 +3189,7 @@ class SendMessageActor final : public NetActorOnce {
                                                  Time::now(), Promise<Unit>(), "send message actor");
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     LOG(INFO) << "Receive error for SendMessage: " << status;
     if (G()->close_flag() && G()->parameters().use_message_db) {
       // do not send error, message will be re-sent
@@ -3226,10 +3226,10 @@ class StartBotQuery final : public Td::ResultHandler {
     return send_query_ref;
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_startBot>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -3239,7 +3239,7 @@ class StartBotQuery final : public Td::ResultHandler {
     td->updates_manager_->on_get_updates(std::move(ptr), Promise<Unit>());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     LOG(INFO) << "Receive error for StartBotQuery: " << status;
     if (G()->close_flag() && G()->parameters().use_message_db) {
       // do not send error, message should be re-sent
@@ -3271,10 +3271,10 @@ class SendInlineBotResultQuery final : public Td::ResultHandler {
     return send_query_ref;
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_sendInlineBotResult>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -3283,7 +3283,7 @@ class SendInlineBotResultQuery final : public Td::ResultHandler {
     td->updates_manager_->on_get_updates(std::move(ptr), Promise<Unit>());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     LOG(INFO) << "Receive error for SendInlineBotResultQuery: " << status;
     if (G()->close_flag() && G()->parameters().use_message_db) {
       // do not send error, message will be re-sent
@@ -3315,7 +3315,7 @@ class SendMultiMediaActor final : public NetActorOnce {
 
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
-      on_error(0, Status::Error(400, "Have no write access to the chat"));
+      on_error(Status::Error(400, "Have no write access to the chat"));
       stop();
       return;
     }
@@ -3329,10 +3329,10 @@ class SendMultiMediaActor final : public NetActorOnce {
                  std::move(query), actor_shared(this), sequence_dispatcher_id);
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_sendMultiMedia>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -3375,7 +3375,7 @@ class SendMultiMediaActor final : public NetActorOnce {
     td->updates_manager_->on_get_updates(std::move(ptr), Promise<Unit>());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     LOG(INFO) << "Receive error for SendMultiMedia: " << status;
     if (G()->close_flag() && G()->parameters().use_message_db) {
       // do not send error, message will be re-sent
@@ -3425,7 +3425,7 @@ class SendMediaActor final : public NetActorOnce {
 
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
-      on_error(0, Status::Error(400, "Have no write access to the chat"));
+      on_error(Status::Error(400, "Have no write access to the chat"));
       stop();
       return;
     }
@@ -3450,10 +3450,10 @@ class SendMediaActor final : public NetActorOnce {
                  std::move(query), actor_shared(this), sequence_dispatcher_id);
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_sendMedia>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     if (was_thumbnail_uploaded_) {
@@ -3469,7 +3469,7 @@ class SendMediaActor final : public NetActorOnce {
     td->updates_manager_->on_get_updates(std::move(ptr), Promise<Unit>());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     LOG(INFO) << "Receive error for SendMedia: " << status;
     if (G()->close_flag() && G()->parameters().use_message_db) {
       // do not send error, message will be re-sent
@@ -3532,17 +3532,17 @@ class UploadMediaQuery final : public Td::ResultHandler {
 
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
-      return on_error(0, Status::Error(400, "Have no write access to the chat"));
+      return on_error(Status::Error(400, "Have no write access to the chat"));
     }
 
     send_query(G()->net_query_creator().create(
         telegram_api::messages_uploadMedia(std::move(input_peer), std::move(input_media))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_uploadMedia>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     if (was_thumbnail_uploaded_) {
@@ -3557,7 +3557,7 @@ class UploadMediaQuery final : public Td::ResultHandler {
     td->messages_manager_->on_upload_message_media_success(dialog_id_, message_id_, std::move(ptr));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     LOG(INFO) << "Receive error for UploadMediaQuery for " << message_id_ << " in " << dialog_id_ << ": " << status;
     if (G()->close_flag() && G()->parameters().use_message_db) {
       // do not send error, message will be re-sent
@@ -3601,7 +3601,7 @@ class SendScheduledMessageActor final : public NetActorOnce {
 
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Edit);
     if (input_peer == nullptr) {
-      on_error(0, Status::Error(400, "Can't access the chat"));
+      on_error(Status::Error(400, "Can't access the chat"));
       stop();
       return;
     }
@@ -3617,10 +3617,10 @@ class SendScheduledMessageActor final : public NetActorOnce {
                  std::move(query), actor_shared(this), sequence_dispatcher_id);
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_sendScheduledMessages>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -3628,7 +3628,7 @@ class SendScheduledMessageActor final : public NetActorOnce {
     td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     LOG(INFO) << "Receive error for SendScheduledMessageActor: " << status;
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "SendScheduledMessageActor");
     promise_.set_error(std::move(status));
@@ -3660,14 +3660,14 @@ class EditMessageActor final : public NetActorOnce {
     dialog_id_ = dialog_id;
 
     if (false && input_media != nullptr) {
-      on_error(0, Status::Error(400, "FILE_PART_1_MISSING"));
+      on_error(Status::Error(400, "FILE_PART_1_MISSING"));
       stop();
       return;
     }
 
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Edit);
     if (input_peer == nullptr) {
-      on_error(0, Status::Error(400, "Can't access the chat"));
+      on_error(Status::Error(400, "Can't access the chat"));
       stop();
       return;
     }
@@ -3700,10 +3700,10 @@ class EditMessageActor final : public NetActorOnce {
                  std::move(query), actor_shared(this), sequence_dispatcher_id);
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_editMessage>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -3714,7 +3714,7 @@ class EditMessageActor final : public NetActorOnce {
     td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     LOG(INFO) << "Receive error for EditMessage: " << status;
     if (!td->auth_manager_->is_bot() && status.message() == "MESSAGE_NOT_MODIFIED") {
       return promise_.set_value(0);
@@ -3763,10 +3763,10 @@ class EditInlineMessageQuery final : public Td::ResultHandler {
         dc_id));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_editInlineBotMessage>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     LOG_IF(ERROR, !result_ptr.ok()) << "Receive false in result of editInlineMessage";
@@ -3774,7 +3774,7 @@ class EditInlineMessageQuery final : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     LOG(INFO) << "Receive error for EditInlineMessageQuery: " << status;
     promise_.set_error(std::move(status));
   }
@@ -3798,14 +3798,14 @@ class ForwardMessagesActor final : public NetActorOnce {
 
     auto to_input_peer = td->messages_manager_->get_input_peer(to_dialog_id, AccessRights::Write);
     if (to_input_peer == nullptr) {
-      on_error(0, Status::Error(400, "Have no write access to the chat"));
+      on_error(Status::Error(400, "Have no write access to the chat"));
       stop();
       return;
     }
 
     auto from_input_peer = td->messages_manager_->get_input_peer(from_dialog_id, AccessRights::Read);
     if (from_input_peer == nullptr) {
-      on_error(0, Status::Error(400, "Can't access the chat to forward messages from"));
+      on_error(Status::Error(400, "Can't access the chat to forward messages from"));
       stop();
       return;
     }
@@ -3827,10 +3827,10 @@ class ForwardMessagesActor final : public NetActorOnce {
                  std::move(query), actor_shared(this), sequence_dispatcher_id);
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_forwardMessages>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -3872,7 +3872,7 @@ class ForwardMessagesActor final : public NetActorOnce {
     td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     LOG(INFO) << "Receive error for forward messages: " << status;
     if (G()->close_flag() && G()->parameters().use_message_db) {
       // do not send error, messages should be re-sent
@@ -3907,10 +3907,10 @@ class SendScreenshotNotificationQuery final : public Td::ResultHandler {
     send_query(std::move(query));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_sendScreenshotNotification>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -3920,7 +3920,7 @@ class SendScreenshotNotificationQuery final : public Td::ResultHandler {
     td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     LOG(INFO) << "Receive error for SendScreenshotNotificationQuery: " << status;
     if (G()->close_flag() && G()->parameters().use_message_db) {
       // do not send error, messages should be re-sent
@@ -3958,10 +3958,10 @@ class SetTypingQuery final : public Td::ResultHandler {
     return result;
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_setTyping>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     // ignore result
@@ -3970,7 +3970,7 @@ class SetTypingQuery final : public Td::ResultHandler {
     send_closure_later(G()->messages_manager(), &MessagesManager::after_set_typing_query, dialog_id_, generation_);
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (status.code() == NetQuery::Canceled) {
       return promise_.set_value(Unit());
     }
@@ -4015,10 +4015,10 @@ class DeleteMessagesQuery final : public Td::ResultHandler {
     }
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_deleteMessages>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto affected_messages = result_ptr.move_as_ok();
@@ -4034,7 +4034,7 @@ class DeleteMessagesQuery final : public Td::ResultHandler {
     }
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (!G()->is_expected_error(status)) {
       // MESSAGE_DELETE_FORBIDDEN can be returned in group chats when administrator rights was removed
       // MESSAGE_DELETE_FORBIDDEN can be returned in private chats for bots when revoke time limit exceeded
@@ -4077,10 +4077,10 @@ class DeleteChannelMessagesQuery final : public Td::ResultHandler {
     }
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::channels_deleteMessages>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto affected_messages = result_ptr.move_as_ok();
@@ -4097,7 +4097,7 @@ class DeleteChannelMessagesQuery final : public Td::ResultHandler {
     }
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (!td->contacts_manager_->on_get_channel_error(channel_id_, status, "DeleteChannelMessagesQuery") &&
         status.message() != "MESSAGE_DELETE_FORBIDDEN") {
       LOG(ERROR) << "Receive error for delete channel messages: " << status;
@@ -4120,16 +4120,16 @@ class DeleteScheduledMessagesQuery final : public Td::ResultHandler {
 
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
-      return on_error(0, Status::Error(400, "Can't access the chat"));
+      return on_error(Status::Error(400, "Can't access the chat"));
     }
     send_query(G()->net_query_creator().create(telegram_api::messages_deleteScheduledMessages(
         std::move(input_peer), MessagesManager::get_scheduled_server_message_ids(message_ids))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_deleteScheduledMessages>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -4137,7 +4137,7 @@ class DeleteScheduledMessagesQuery final : public Td::ResultHandler {
     td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (!td->messages_manager_->on_get_dialog_error(dialog_id_, status, "DeleteScheduledMessagesQuery")) {
       LOG(ERROR) << "Receive error for delete scheduled messages: " << status;
     }
@@ -4156,10 +4156,10 @@ class GetDialogNotifySettingsQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::account_getNotifySettings(std::move(input_notify_peer))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::account_getNotifySettings>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -4167,7 +4167,7 @@ class GetDialogNotifySettingsQuery final : public Td::ResultHandler {
     td->messages_manager_->on_get_dialog_notification_settings_query_finished(dialog_id_, Status::OK());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetDialogNotifySettingsQuery");
     td->messages_manager_->on_get_dialog_notification_settings_query_finished(dialog_id_, std::move(status));
   }
@@ -4194,10 +4194,10 @@ class GetNotifySettingsExceptionsQuery final : public Td::ResultHandler {
         telegram_api::account_getNotifyExceptions(flags, false /* ignored */, std::move(input_notify_peer))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::account_getNotifyExceptions>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto updates_ptr = result_ptr.move_as_ok();
@@ -4230,7 +4230,7 @@ class GetNotifySettingsExceptionsQuery final : public Td::ResultHandler {
     td->updates_manager_->on_get_updates(std::move(updates_ptr), std::move(promise_));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -4250,10 +4250,10 @@ class GetScopeNotifySettingsQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::account_getNotifySettings(std::move(input_notify_peer))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::account_getNotifySettings>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -4262,7 +4262,7 @@ class GetScopeNotifySettingsQuery final : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -4280,7 +4280,7 @@ class UpdateDialogNotifySettingsQuery final : public Td::ResultHandler {
 
     auto input_notify_peer = td->messages_manager_->get_input_notify_peer(dialog_id);
     if (input_notify_peer == nullptr) {
-      return on_error(0, Status::Error(500, "Can't update chat notification settings"));
+      return on_error(Status::Error(500, "Can't update chat notification settings"));
     }
 
     int32 flags = 0;
@@ -4302,21 +4302,21 @@ class UpdateDialogNotifySettingsQuery final : public Td::ResultHandler {
                                           new_settings.mute_until, new_settings.sound))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::account_updateNotifySettings>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     bool result = result_ptr.ok();
     if (!result) {
-      return on_error(id, Status::Error(400, "Receive false as result"));
+      return on_error(Status::Error(400, "Receive false as result"));
     }
 
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (!td->messages_manager_->on_get_dialog_error(dialog_id_, status, "UpdateDialogNotifySettingsQuery")) {
       LOG(INFO) << "Receive error for set chat notification settings: " << status;
     }
@@ -4351,21 +4351,21 @@ class UpdateScopeNotifySettingsQuery final : public Td::ResultHandler {
     scope_ = scope;
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::account_updateNotifySettings>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     bool result = result_ptr.ok();
     if (!result) {
-      return on_error(id, Status::Error(400, "Receive false as result"));
+      return on_error(Status::Error(400, "Receive false as result"));
     }
 
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     LOG(INFO) << "Receive error for set notification settings: " << status;
 
     if (!td->auth_manager_->is_bot()) {
@@ -4388,21 +4388,21 @@ class ResetNotifySettingsQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::account_resetNotifySettings()));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::account_resetNotifySettings>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     bool result = result_ptr.ok();
     if (!result) {
-      return on_error(id, Status::Error(400, "Receive false as result"));
+      return on_error(Status::Error(400, "Receive false as result"));
     }
 
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for reset notification settings: " << status;
     }
@@ -4423,16 +4423,16 @@ class GetPeerSettingsQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::messages_getPeerSettings(std::move(input_peer))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getPeerSettings>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     td->messages_manager_->on_get_peer_settings(dialog_id_, result_ptr.move_as_ok());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     LOG(INFO) << "Receive error for get peer settings: " << status;
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetPeerSettingsQuery");
   }
@@ -4461,13 +4461,13 @@ class UpdatePeerSettingsQuery final : public Td::ResultHandler {
     }
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     static_assert(std::is_same<telegram_api::messages_reportSpam::ReturnType,
                                telegram_api::messages_hidePeerSettingsBar::ReturnType>::value,
                   "");
     auto result_ptr = fetch_result<telegram_api::messages_reportSpam>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     td->messages_manager_->on_get_peer_settings(dialog_id_, make_tl_object<telegram_api::peerSettings>(), true);
@@ -4475,7 +4475,7 @@ class UpdatePeerSettingsQuery final : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     LOG(INFO) << "Receive error for update peer settings: " << status;
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "UpdatePeerSettingsQuery");
     td->messages_manager_->reget_dialog_action_bar(dialog_id_, "UpdatePeerSettingsQuery");
@@ -4501,10 +4501,10 @@ class ReportEncryptedSpamQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::messages_reportEncryptedSpam(std::move(input_peer))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_reportEncryptedSpam>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     td->messages_manager_->on_get_peer_settings(dialog_id_, make_tl_object<telegram_api::peerSettings>(), true);
@@ -4512,7 +4512,7 @@ class ReportEncryptedSpamQuery final : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     LOG(INFO) << "Receive error for report encrypted spam: " << status;
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "ReportEncryptedSpamQuery");
     td->messages_manager_->reget_dialog_action_bar(
@@ -4546,24 +4546,24 @@ class ReportPeerQuery final : public Td::ResultHandler {
     }
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     static_assert(
         std::is_same<telegram_api::account_reportPeer::ReturnType, telegram_api::messages_report::ReturnType>::value,
         "");
     auto result_ptr = fetch_result<telegram_api::account_reportPeer>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     bool result = result_ptr.ok();
     if (!result) {
-      return on_error(id, Status::Error(400, "Receive false as result"));
+      return on_error(Status::Error(400, "Receive false as result"));
     }
 
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     LOG(INFO) << "Receive error for report peer: " << status;
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "ReportPeerQuery");
     td->messages_manager_->reget_dialog_action_bar(dialog_id_, "ReportPeerQuery");
@@ -4597,21 +4597,21 @@ class ReportProfilePhotoQuery final : public Td::ResultHandler {
         report_reason_.get_message())));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::account_reportProfilePhoto>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     bool result = result_ptr.ok();
     if (!result) {
-      return on_error(id, Status::Error(400, "Receive false as result"));
+      return on_error(Status::Error(400, "Receive false as result"));
     }
 
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     LOG(INFO) << "Receive error for report chat photo: " << status;
     if (!td->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(status)) {
       VLOG(file_references) << "Receive " << status << " for " << file_id_;
@@ -4655,10 +4655,10 @@ class EditPeerFoldersQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::folders_editPeerFolders(std::move(input_folder_peers))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::folders_editPeerFolders>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -4666,7 +4666,7 @@ class EditPeerFoldersQuery final : public Td::ResultHandler {
     td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (!td->messages_manager_->on_get_dialog_error(dialog_id_, status, "EditPeerFoldersQuery")) {
       LOG(INFO) << "Receive error for EditPeerFoldersQuery: " << status;
     }
@@ -4701,16 +4701,16 @@ class GetChannelDifferenceQuery final : public Td::ResultHandler {
         pts, limit)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::updates_getChannelDifference>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     td->messages_manager_->on_get_channel_difference(dialog_id_, pts_, limit_, result_ptr.move_as_ok());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (!td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetChannelDifferenceQuery")) {
       LOG(ERROR) << "Receive updates.getChannelDifference error for " << dialog_id_ << " with pts " << pts_
                  << " and limit " << limit_ << ": " << status;
@@ -4734,10 +4734,10 @@ class ResolveUsernameQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::contacts_resolveUsername(username)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::contacts_resolveUsername>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -4750,7 +4750,7 @@ class ResolveUsernameQuery final : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (status.message() == Slice("USERNAME_NOT_OCCUPIED")) {
       td->messages_manager_->drop_username(username_);
     }
@@ -4788,17 +4788,17 @@ class GetChannelAdminLogQuery final : public Td::ResultHandler {
         flags, std::move(input_channel), query, std::move(filter), std::move(input_users), from_event_id, 0, limit)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::channels_getAdminLog>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     td->messages_manager_->on_get_event_log(channel_id_, random_id_, result_ptr.move_as_ok());
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     td->contacts_manager_->on_get_channel_error(channel_id_, status, "GetChannelAdminLogQuery");
     td->messages_manager_->on_get_event_log(channel_id_, random_id_, nullptr);
     promise_.set_error(std::move(status));

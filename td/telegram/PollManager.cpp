@@ -72,16 +72,16 @@ class GetPollResultsQuery final : public Td::ResultHandler {
         G()->net_query_creator().create(telegram_api::messages_getPollResults(std::move(input_peer), message_id)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getPollResults>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     promise_.set_value(result_ptr.move_as_ok());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (!td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetPollResultsQuery") &&
         status.message() != "MESSAGE_ID_INVALID") {
       LOG(ERROR) << "Receive " << status << ", while trying to get results of " << poll_id_;
@@ -120,16 +120,16 @@ class GetPollVotersQuery final : public Td::ResultHandler {
         flags, std::move(input_peer), message_id, std::move(option), offset, limit)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getPollVotes>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     promise_.set_value(result_ptr.move_as_ok());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (!td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetPollVotersQuery") &&
         status.message() != "MESSAGE_ID_INVALID") {
       LOG(ERROR) << "Receive " << status << ", while trying to get voters of " << poll_id_;
@@ -151,7 +151,7 @@ class SetPollAnswerActor final : public NetActorOnce {
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     if (input_peer == nullptr) {
       LOG(INFO) << "Can't set poll answer, because have no read access to " << dialog_id_;
-      return on_error(0, Status::Error(400, "Can't access the chat"));
+      return on_error(Status::Error(400, "Can't access the chat"));
     }
 
     auto message_id = full_message_id.get_message_id().get_server_message_id().get();
@@ -163,10 +163,10 @@ class SetPollAnswerActor final : public NetActorOnce {
                  std::move(query), actor_shared(this), sequence_id);
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_sendVote>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto result = result_ptr.move_as_ok();
@@ -174,7 +174,7 @@ class SetPollAnswerActor final : public NetActorOnce {
     promise_.set_value(std::move(result));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "SetPollAnswerActor");
     promise_.set_error(std::move(status));
   }
@@ -193,7 +193,7 @@ class StopPollActor final : public NetActorOnce {
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id_, AccessRights::Edit);
     if (input_peer == nullptr) {
       LOG(INFO) << "Can't close poll, because have no edit access to " << dialog_id_;
-      return on_error(0, Status::Error(400, "Can't access the chat"));
+      return on_error(Status::Error(400, "Can't access the chat"));
     }
 
     int32 flags = telegram_api::messages_editMessage::MEDIA_MASK;
@@ -219,10 +219,10 @@ class StopPollActor final : public NetActorOnce {
     }
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_editMessage>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto result = result_ptr.move_as_ok();
@@ -230,7 +230,7 @@ class StopPollActor final : public NetActorOnce {
     td->updates_manager_->on_get_updates(std::move(result), std::move(promise_));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (!td->auth_manager_->is_bot() && status.message() == "MESSAGE_NOT_MODIFIED") {
       return promise_.set_value(Unit());
     }

@@ -22,9 +22,9 @@ void NetActor::set_parent(ActorShared<> parent) {
 void NetActor::on_result(NetQueryPtr query) {
   CHECK(query->is_ready());
   if (query->is_ok()) {
-    on_result(query->id(), query->move_as_ok());
+    on_result(query->move_as_ok());
   } else {
-    on_error(query->id(), query->move_as_error());
+    on_error(query->move_as_error());
   }
   on_result_finish();
 }
