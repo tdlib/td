@@ -45,7 +45,6 @@ class GetSavedGifsQuery final : public Td::ResultHandler {
  public:
   void send(bool is_repair, int64 hash) {
     is_repair_ = is_repair;
-    LOG(INFO) << "Send get saved animations request with hash = " << hash;
     send_query(G()->net_query_creator().create(telegram_api::messages_getSavedGifs(hash)));
   }
 

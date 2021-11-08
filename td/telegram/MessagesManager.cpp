@@ -269,7 +269,7 @@ class GetDialogQuery final : public Td::ResultHandler {
     }
 
     auto result = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive chat: " << to_string(result);
+    LOG(INFO) << "Receive result for GetDialogQuery: " << to_string(result);
 
     td_->contacts_manager_->on_get_users(std::move(result->users_), "GetDialogQuery");
     td_->contacts_manager_->on_get_chats(std::move(result->chats_), "GetDialogQuery");
@@ -296,7 +296,6 @@ class GetDialogsQuery final : public Td::ResultHandler {
   }
 
   void send(vector<InputDialogId> input_dialog_ids) {
-    LOG(INFO) << "Send GetDialogsQuery to get " << input_dialog_ids;
     CHECK(!input_dialog_ids.empty());
     CHECK(input_dialog_ids.size() <= 100);
     auto input_dialog_peers = InputDialogId::get_input_dialog_peers(input_dialog_ids);
@@ -311,7 +310,7 @@ class GetDialogsQuery final : public Td::ResultHandler {
     }
 
     auto result = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive chats: " << to_string(result);
+    LOG(INFO) << "Receive result for GetDialogsQuery: " << to_string(result);
 
     td_->contacts_manager_->on_get_users(std::move(result->users_), "GetDialogsQuery");
     td_->contacts_manager_->on_get_chats(std::move(result->chats_), "GetDialogsQuery");
@@ -862,7 +861,6 @@ class GetCommonDialogsQuery final : public Td::ResultHandler {
   void send(UserId user_id, int64 offset_chat_id, int32 limit) {
     user_id_ = user_id;
     offset_chat_id_ = offset_chat_id;
-    LOG(INFO) << "Get common dialogs with " << user_id << " from " << offset_chat_id << " with limit " << limit;
 
     auto input_user = td_->contacts_manager_->get_input_user(user_id);
     CHECK(input_user != nullptr);
@@ -1514,7 +1512,6 @@ class SaveDraftMessageQuery final : public Td::ResultHandler {
   }
 
   void send(DialogId dialog_id, const unique_ptr<DraftMessage> &draft_message) {
-    LOG(INFO) << "Save draft in " << dialog_id;
     dialog_id_ = dialog_id;
 
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
@@ -1680,8 +1677,6 @@ class ReorderPinnedDialogsQuery final : public Td::ResultHandler {
     if (!result) {
       return on_error(Status::Error(400, "Result is false"));
     }
-    LOG(INFO) << "Pinned chats reordered in " << folder_id_;
-
     promise_.set_value(Unit());
   }
 
@@ -1807,8 +1802,6 @@ class GetMessagesViewsQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
 
-    LOG(INFO) << "View " << message_ids_.size() << " messages in " << dialog_id
-              << ", increment = " << increment_view_counter;
     send_query(G()->net_query_creator().create(telegram_api::messages_getMessagesViews(
         std::move(input_peer), MessagesManager::get_server_message_ids(message_ids_), increment_view_counter)));
   }
@@ -1853,8 +1846,6 @@ class ReadMessagesContentsQuery final : public Td::ResultHandler {
   }
 
   void send(vector<MessageId> &&message_ids) {
-    LOG(INFO) << "Receive ReadMessagesContentsQuery for messages " << format::as_array(message_ids);
-
     send_query(G()->net_query_creator().create(
         telegram_api::messages_readMessageContents(MessagesManager::get_server_message_ids(message_ids))));
   }
@@ -1901,9 +1892,6 @@ class ReadChannelMessagesContentsQuery final : public Td::ResultHandler {
       LOG(ERROR) << "Have no input channel for " << channel_id;
       return on_error(Status::Error(500, "Can't read channel message contents"));
     }
-
-    LOG(INFO) << "Receive ReadChannelMessagesContentsQuery for messages " << format::as_array(message_ids) << " in "
-              << channel_id;
 
     send_query(G()->net_query_creator().create(telegram_api::channels_readMessageContents(
         std::move(input_channel), MessagesManager::get_server_message_ids(message_ids))));
@@ -2694,7 +2682,6 @@ class DeleteHistoryQuery final : public Td::ResultHandler {
     if (revoke_) {
       flags |= telegram_api::messages_deleteHistory::REVOKE_MASK;
     }
-    LOG(INFO) << "Delete " << dialog_id_ << " history up to " << max_message_id_ << " with flags " << flags;
 
     send_query(G()->net_query_creator().create(
         telegram_api::messages_deleteHistory(flags, false /*ignored*/, false /*ignored*/, std::move(input_peer),
@@ -2961,8 +2948,6 @@ class DeleteUserHistoryQuery final : public Td::ResultHandler {
       return promise_.set_error(Status::Error(400, "Usat is not accessible"));
     }
 
-    LOG(INFO) << "Delete all messages from " << user_id_ << " in " << channel_id_;
-
     send_query(G()->net_query_creator().create(
         telegram_api::channels_deleteUserHistory(std::move(input_channel), std::move(input_user))));
   }
@@ -3016,8 +3001,6 @@ class ReadMentionsQuery final : public Td::ResultHandler {
     if (input_peer == nullptr) {
       return promise_.set_error(Status::Error(400, "Chat is not accessible"));
     }
-
-    LOG(INFO) << "Read all mentions in " << dialog_id_;
 
     send_query(G()->net_query_creator().create(telegram_api::messages_readMentions(std::move(input_peer))));
   }
@@ -3609,8 +3592,6 @@ class SendScheduledMessageActor final : public NetActorOnce {
       return;
     }
 
-    LOG(DEBUG) << "Send " << FullMessageId{dialog_id, message_id};
-
     int32 server_message_id = message_id.get_scheduled_server_message_id().get();
     auto query = G()->net_query_creator().create(
         telegram_api::messages_sendScheduledMessages(std::move(input_peer), {server_message_id}));
@@ -3690,7 +3671,6 @@ class EditMessageActor final : public NetActorOnce {
     if (schedule_date != 0) {
       flags |= telegram_api::messages_editMessage::SCHEDULE_DATE_MASK;
     }
-    LOG(DEBUG) << "Edit message with flags " << flags;
 
     int32 server_message_id = schedule_date != 0 ? message_id.get_scheduled_server_message_id().get()
                                                  : message_id.get_server_message_id().get();
@@ -3756,7 +3736,6 @@ class EditInlineMessageQuery final : public Td::ResultHandler {
     if (input_media != nullptr) {
       flags |= telegram_api::messages_editInlineBotMessage::MEDIA_MASK;
     }
-    LOG(DEBUG) << "Edit inline message with flags " << flags;
 
     auto dc_id = DcId::internal(InlineQueriesManager::get_inline_message_dc_id(input_bot_inline_message_id));
     send_query(G()->net_query_creator().create(
@@ -3794,8 +3773,6 @@ class ForwardMessagesActor final : public NetActorOnce {
 
   void send(int32 flags, DialogId to_dialog_id, DialogId from_dialog_id, const vector<MessageId> &message_ids,
             vector<int64> &&random_ids, int32 schedule_date, uint64 sequence_dispatcher_id) {
-    LOG(INFO) << "Forward " << format::as_array(message_ids) << " from " << from_dialog_id << " to " << to_dialog_id;
-
     random_ids_ = random_ids;
     to_dialog_id_ = to_dialog_id;
 
@@ -3997,7 +3974,6 @@ class DeleteMessagesQuery final : public Td::ResultHandler {
   }
 
   void send(DialogId dialog_id, vector<MessageId> &&message_ids, bool revoke) {
-    LOG(INFO) << "Send deleteMessagesQuery to delete " << format::as_array(message_ids) << " in " << dialog_id;
     dialog_id_ = dialog_id;
     int32 flags = 0;
     if (revoke) {
@@ -4061,9 +4037,6 @@ class DeleteChannelMessagesQuery final : public Td::ResultHandler {
 
   void send(ChannelId channel_id, vector<MessageId> &&message_ids) {
     channel_id_ = channel_id;
-    LOG(INFO) << "Send deleteChannelMessagesQuery to delete " << format::as_array(message_ids) << " in the "
-              << channel_id;
-
     query_count_ = 0;
     auto server_message_ids = MessagesManager::get_server_message_ids(message_ids);
     const size_t MAX_SLICE_SIZE = 100;
@@ -4119,7 +4092,6 @@ class DeleteScheduledMessagesQuery final : public Td::ResultHandler {
 
   void send(DialogId dialog_id, vector<MessageId> &&message_ids) {
     dialog_id_ = dialog_id;
-    LOG(INFO) << "Send deleteScheduledMessagesQuery to delete " << format::as_array(message_ids);
 
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
@@ -4500,7 +4472,6 @@ class ReportEncryptedSpamQuery final : public Td::ResultHandler {
 
     auto input_peer = td_->messages_manager_->get_input_encrypted_chat(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
-    LOG(INFO) << "Report spam in " << to_string(input_peer);
 
     send_query(G()->net_query_creator().create(telegram_api::messages_reportEncryptedSpam(std::move(input_peer))));
   }
@@ -4733,8 +4704,6 @@ class ResolveUsernameQuery final : public Td::ResultHandler {
 
   void send(const string &username) {
     username_ = username;
-
-    LOG(INFO) << "Send ResolveUsernameQuery with username = " << username;
     send_query(G()->net_query_creator().create(telegram_api::contacts_resolveUsername(username)));
   }
 

@@ -60,8 +60,6 @@ class SetGameScoreActor final : public NetActorOnce {
         telegram_api::messages_setGameScore(flags, false /*ignored*/, false /*ignored*/, std::move(input_peer),
                                             message_id.get_server_message_id().get(), std::move(input_user), score));
 
-    LOG(INFO) << "Set game score to " << score;
-
     query->debug("send to MultiSequenceDispatcher");
     send_closure(td_->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
                  std::move(query), actor_shared(this), sequence_dispatcher_id);

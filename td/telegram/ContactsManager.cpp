@@ -392,7 +392,6 @@ class ResetWebAuthorizationsQuery final : public Td::ResultHandler {
 class GetContactsQuery final : public Td::ResultHandler {
  public:
   void send(int64 hash) {
-    LOG(INFO) << "Reload contacts with hash " << hash;
     send_query(G()->net_query_creator().create(telegram_api::contacts_getContacts(hash)));
   }
 
@@ -416,7 +415,6 @@ class GetContactsQuery final : public Td::ResultHandler {
 class GetContactsStatusesQuery final : public Td::ResultHandler {
  public:
   void send() {
-    LOG(INFO) << "Reload contacts statuses";
     send_query(G()->net_query_creator().create(telegram_api::contacts_getStatuses()));
   }
 
@@ -1445,8 +1443,6 @@ class ReportChannelSpamQuery final : public Td::ResultHandler {
   }
 
   void send(ChannelId channel_id, UserId user_id, const vector<MessageId> &message_ids) {
-    LOG(INFO) << "Send reportChannelSpamQuery in " << channel_id << " with messages " << format::as_array(message_ids)
-              << " and " << user_id;
     channel_id_ = channel_id;
 
     auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
@@ -2805,8 +2801,6 @@ class GetUserPhotosQuery final : public Td::ResultHandler {
     user_id_ = user_id;
     offset_ = offset;
     limit_ = limit;
-    LOG(INFO) << "Get " << user_id << " profile photos with offset " << offset << " and limit " << limit
-              << " from photo " << photo_id;
     send_query(G()->net_query_creator().create(
         telegram_api::photos_getUserPhotos(std::move(input_user), offset, photo_id, limit)));
   }
@@ -2895,7 +2889,6 @@ class GetFullChatQuery final : public Td::ResultHandler {
   }
 
   void send(ChatId chat_id) {
-    LOG(INFO) << "Send getFullChat query to get " << chat_id;
     send_query(G()->net_query_creator().create(telegram_api::messages_getFullChat(chat_id.get())));
   }
 

@@ -50,7 +50,6 @@ class GetBackgroundQuery final : public Td::ResultHandler {
             telegram_api::object_ptr<telegram_api::InputWallPaper> &&input_wallpaper) {
     background_id_ = background_id;
     background_name_ = background_name;
-    LOG(INFO) << "Load " << background_id_ << "/" << background_name_ << " from server";
     send_query(G()->net_query_creator().create(telegram_api::account_getWallPaper(std::move(input_wallpaper))));
   }
 

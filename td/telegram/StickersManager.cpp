@@ -251,15 +251,11 @@ class GetArchivedStickerSetsQuery final : public Td::ResultHandler {
   void send(bool is_masks, StickerSetId offset_sticker_set_id, int32 limit) {
     offset_sticker_set_id_ = offset_sticker_set_id;
     is_masks_ = is_masks;
-    LOG(INFO) << "Get archived " << (is_masks ? "mask" : "sticker") << " sets from " << offset_sticker_set_id
-              << " with limit " << limit;
 
     int32 flags = 0;
-    if (is_masks) {
+    if (is_masks_) {
       flags |= telegram_api::messages_getArchivedStickers::MASKS_MASK;
     }
-    is_masks_ = is_masks;
-
     send_query(G()->net_query_creator().create(
         telegram_api::messages_getArchivedStickers(flags, is_masks /*ignored*/, offset_sticker_set_id.get(), limit)));
   }
@@ -286,7 +282,6 @@ class GetArchivedStickerSetsQuery final : public Td::ResultHandler {
 class GetFeaturedStickerSetsQuery final : public Td::ResultHandler {
  public:
   void send(int64 hash) {
-    LOG(INFO) << "Get trending sticker sets with hash " << hash;
     send_query(G()->net_query_creator().create(telegram_api::messages_getFeaturedStickers(hash)));
   }
 
@@ -316,7 +311,6 @@ class GetOldFeaturedStickerSetsQuery final : public Td::ResultHandler {
     offset_ = offset;
     limit_ = limit;
     generation_ = generation;
-    LOG(INFO) << "Get old trending sticker sets with offset = " << offset << " and limit = " << limit;
     send_query(G()->net_query_creator().create(telegram_api::messages_getOldFeaturedStickers(offset, limit, 0)));
   }
 
@@ -541,7 +535,6 @@ class GetFavedStickersQuery final : public Td::ResultHandler {
  public:
   void send(bool is_repair, int64 hash) {
     is_repair_ = is_repair;
-    LOG(INFO) << "Send get favorite stickers request with hash = " << hash;
     send_query(G()->net_query_creator().create(telegram_api::messages_getFavedStickers(hash)));
   }
 
@@ -673,8 +666,6 @@ class GetStickerSetQuery final : public Td::ResultHandler {
       sticker_set_name_ =
           static_cast<const telegram_api::inputStickerSetShortName *>(input_sticker_set.get())->short_name_;
     }
-    // input_sticker_set = make_tl_object<telegram_api::inputStickerSetAnimatedEmoji>();
-    LOG(INFO) << "Load " << sticker_set_id << " from server: " << to_string(input_sticker_set);
     send_query(G()->net_query_creator().create(telegram_api::messages_getStickerSet(std::move(input_sticker_set))));
   }
 
@@ -838,7 +829,6 @@ class UninstallStickerSetQuery final : public Td::ResultHandler {
 class ReadFeaturedStickerSetsQuery final : public Td::ResultHandler {
  public:
   void send(const vector<StickerSetId> &sticker_set_ids) {
-    LOG(INFO) << "Read trending sticker sets " << format::as_array(sticker_set_ids);
     send_query(G()->net_query_creator().create(
         telegram_api::messages_readFeaturedStickers(StickersManager::convert_sticker_set_ids(sticker_set_ids))));
   }
