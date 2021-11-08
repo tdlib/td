@@ -208,8 +208,6 @@ class Td final : public Actor {
     ResultHandler &operator=(const ResultHandler &) = delete;
     virtual ~ResultHandler() = default;
 
-    virtual void on_result(NetQueryPtr query);
-
     virtual void on_result(BufferSlice packet) {
       UNREACHABLE();
     }

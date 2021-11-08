@@ -158,16 +158,6 @@ void Td::ResultHandler::set_td(Td *new_td) {
   td = new_td;
 }
 
-void Td::ResultHandler::on_result(NetQueryPtr query) {
-  CHECK(query->is_ready());
-  if (query->is_ok()) {
-    on_result(std::move(query->ok()));
-  } else {
-    on_error(std::move(query->error()));
-  }
-  query->clear();
-}
-
 void Td::ResultHandler::send_query(NetQueryPtr query) {
   td->add_handler(query->id(), shared_from_this());
   send(std::move(query));
@@ -3283,13 +3273,17 @@ void Td::on_result(NetQueryPtr query) {
   }
 
   auto handler = extract_handler(query->id());
-  if (handler == nullptr) {
-    query->clear();
-    LOG_IF(WARNING, !query->is_ok() || query->ok_tl_constructor() != telegram_api::upload_file::ID)
-        << tag("NetQuery", query) << " is ignored: no handlers found";
-    return;
+  if (handler != nullptr) {
+    CHECK(query->is_ready());
+    if (query->is_ok()) {
+      handler->on_result(std::move(query->ok()));
+    } else {
+      handler->on_error(std::move(query->error()));
+    }
+  } else if (!query->is_ok() || query->ok_tl_constructor() != telegram_api::upload_file::ID) {
+    LOG(WARNING) << query << " is ignored: no handlers found";
   }
-  handler->on_result(std::move(query));
+  query->clear();
 }
 
 bool Td::is_internal_config_option(Slice name) {
