@@ -1583,13 +1583,7 @@ class ClearAllDraftsQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    bool result = result_ptr.move_as_ok();
-    if (!result) {
-      LOG(INFO) << "Receive false for ClearAllDraftsQuery";
-    } else {
-      LOG(INFO) << "All draft messages has been cleared";
-    }
-
+    LOG(INFO) << "Receive result for ClearAllDraftsQuery: " << result_ptr.ok();
     promise_.set_value(Unit());
   }
 
@@ -31204,7 +31198,6 @@ void MessagesManager::send_get_dialog_notification_settings_query(DialogId dialo
     return promise.set_error(Status::Error(400, "Can't access the chat"));
   }
 
-  LOG(INFO) << "Send GetDialogNotifySettingsQuery for " << dialog_id;
   auto &promises = get_dialog_notification_settings_queries_[dialog_id];
   promises.push_back(std::move(promise));
   if (promises.size() != 1) {

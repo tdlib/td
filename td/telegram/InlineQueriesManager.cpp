@@ -106,7 +106,7 @@ class GetInlineBotResultsQuery final : public Td::ResultHandler {
     } else if (status.message() == "BOT_RESPONSE_TIMEOUT") {
       status = Status::Error(502, "The bot is not responding");
     }
-    LOG(INFO) << "Inline query returned error " << status;
+    LOG(INFO) << "Receive error for GetInlineBotResultsQuery: " << status;
 
     td_->inline_queries_manager_->on_get_inline_query_results(dialog_id_, bot_user_id_, query_hash_, nullptr);
     promise_.set_error(std::move(status));

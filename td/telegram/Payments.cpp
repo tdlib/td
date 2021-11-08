@@ -290,7 +290,7 @@ class GetPaymentFormQuery final : public Td::ResultHandler {
     }
 
     auto payment_form = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive payment form: " << to_string(payment_form);
+    LOG(INFO) << "Receive result for GetPaymentFormQuery: " << to_string(payment_form);
 
     td_->contacts_manager_->on_get_users(std::move(payment_form->users_), "GetPaymentFormQuery");
 
@@ -357,7 +357,7 @@ class ValidateRequestedInfoQuery final : public Td::ResultHandler {
     }
 
     auto validated_order_info = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive validated order info: " << to_string(validated_order_info);
+    LOG(INFO) << "Receive result for ValidateRequestedInfoQuery: " << to_string(validated_order_info);
 
     promise_.set_value(make_tl_object<td_api::validatedOrderInfo>(
         std::move(validated_order_info->id_),
@@ -412,7 +412,7 @@ class SendPaymentFormQuery final : public Td::ResultHandler {
     }
 
     auto payment_result = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive payment result: " << to_string(payment_result);
+    LOG(INFO) << "Receive result for SendPaymentFormQuery: " << to_string(payment_result);
 
     switch (payment_result->get_id()) {
       case telegram_api::payments_paymentResult::ID: {
@@ -466,7 +466,7 @@ class GetPaymentReceiptQuery final : public Td::ResultHandler {
     }
 
     auto payment_receipt = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive payment receipt: " << to_string(payment_receipt);
+    LOG(INFO) << "Receive result for GetPaymentReceiptQuery: " << to_string(payment_receipt);
 
     td_->contacts_manager_->on_get_users(std::move(payment_receipt->users_), "GetPaymentReceiptQuery");
 
@@ -515,7 +515,7 @@ class GetSavedInfoQuery final : public Td::ResultHandler {
     }
 
     auto saved_info = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive saved info: " << to_string(saved_info);
+    LOG(INFO) << "Receive result for GetSavedInfoQuery: " << to_string(saved_info);
     promise_.set_value(convert_order_info(std::move(saved_info->saved_info_)));
   }
 

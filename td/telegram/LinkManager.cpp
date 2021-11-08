@@ -458,7 +458,7 @@ class RequestUrlAuthQuery final : public Td::ResultHandler {
     }
 
     auto result = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive " << to_string(result);
+    LOG(INFO) << "Receive result for RequestUrlAuthQuery: " << to_string(result);
     switch (result->get_id()) {
       case telegram_api::urlAuthResultRequest::ID: {
         auto request = telegram_api::move_object_as<telegram_api::urlAuthResultRequest>(result);
@@ -486,7 +486,7 @@ class RequestUrlAuthQuery final : public Td::ResultHandler {
   void on_error(Status status) final {
     if (!dialog_id_.is_valid() ||
         !td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "RequestUrlAuthQuery")) {
-      LOG(INFO) << "RequestUrlAuthQuery returned " << status;
+      LOG(INFO) << "Receive error for RequestUrlAuthQuery: " << status;
     }
     promise_.set_value(td_api::make_object<td_api::loginUrlInfoOpen>(url_, false));
   }
@@ -547,7 +547,7 @@ class AcceptUrlAuthQuery final : public Td::ResultHandler {
   void on_error(Status status) final {
     if (!dialog_id_.is_valid() ||
         !td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "AcceptUrlAuthQuery")) {
-      LOG(INFO) << "AcceptUrlAuthQuery returned " << status;
+      LOG(INFO) << "Receive error for AcceptUrlAuthQuery: " << status;
     }
     promise_.set_error(std::move(status));
   }

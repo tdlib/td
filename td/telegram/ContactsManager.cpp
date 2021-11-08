@@ -2935,7 +2935,7 @@ class GetChannelsQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    //    LOG(INFO) << "Receive result for GetChannelsQuery query: " << to_string(result_ptr.ok());
+    //    LOG(INFO) << "Receive result for GetChannelsQuery: " << to_string(result_ptr.ok());
     auto chats_ptr = result_ptr.move_as_ok();
     int32 constructor_id = chats_ptr->get_id();
     switch (constructor_id) {

@@ -391,7 +391,7 @@ class UpdateStatusQuery final : public Td::ResultHandler {
     }
 
     bool result = result_ptr.ok();
-    LOG(INFO) << "UpdateStatus returned " << result;
+    LOG(INFO) << "Receive result for UpdateStatusQuery: " << result;
     td_->on_update_status_success(!is_offline_);
   }
 

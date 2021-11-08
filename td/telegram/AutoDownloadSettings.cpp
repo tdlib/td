@@ -104,7 +104,7 @@ class SaveAutoDownloadSettingsQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    LOG(INFO) << "SaveAutoDownloadSettingsQuery returned " << result_ptr.ok();
+    LOG(INFO) << "Receive result for SaveAutoDownloadSettingsQuery: " << result_ptr.ok();
     promise_.set_value(Unit());
   }
 

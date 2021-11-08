@@ -183,9 +183,12 @@ void HttpConnectionBase::loop() {
     state_ = State::Close;
   }
   if (state_ == State::Close) {
-    LOG_IF(INFO, fd_.need_flush_write()) << "Close nonempty connection";
-    LOG_IF(INFO, want_read && (!fd_.input_buffer().empty() || current_query_->type_ != HttpQuery::Type::Empty))
-        << "Close connection while reading request/response";
+    if (fd_.need_flush_write()) {
+      LOG(INFO) << "Close nonempty connection";
+    }
+    if (want_read && (!fd_.input_buffer().empty() || current_query_->type_ != HttpQuery::Type::Empty)) {
+      LOG(INFO) << "Close connection while reading request/response";
+    }
     return stop();
   }
 }
