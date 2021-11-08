@@ -4142,7 +4142,7 @@ getMessage chat_id:int53 message_id:int53 = Message;
 getMessageLocally chat_id:int53 message_id:int53 = Message;
 
 //@description Returns information about a message that is replied by a given message. Also returns the pinned message, the game message, and the invoice message for messages of the types messagePinMessage, messageGameScore, and messagePaymentSuccessful respectively
-//@chat_id Identifier of the chat the message belongs to @message_id Identifier of the message reply to which to get
+//@chat_id Identifier of the chat the message belongs to @message_id Identifier of the reply message
 getRepliedMessage chat_id:int53 message_id:int53 = Message;
 
 //@description Returns information about a newest pinned message in the chat @chat_id Identifier of the chat the message belongs to
