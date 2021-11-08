@@ -39,9 +39,10 @@ class NetActor : public NetQueryCallback {
   }
 
  protected:
+  Td *td_;
   ActorShared<> parent_;
+
   void send_query(NetQueryPtr query);
-  Td *td;
 };
 
 class NetActorOnce : public NetActor {

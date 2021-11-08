@@ -56,7 +56,7 @@ AuthManager::AuthManager(int32 api_id, const string &api_hash, ActorShared<> par
     } else {
       LOG(ERROR) << "Restore unknown my_id";
       ContactsManager::send_get_me_query(
-          td, PromiseCreator::lambda([this](Result<Unit> result) { update_state(State::Ok); }));
+          td_, PromiseCreator::lambda([this](Result<Unit> result) { update_state(State::Ok); }));
     }
   } else if (auth_str == "logout") {
     LOG(WARNING) << "Continue to log out";
@@ -208,7 +208,7 @@ void AuthManager::set_login_token_expires_at(double login_token_expires_at) {
   login_token_expires_at_ = login_token_expires_at;
   poll_export_login_code_timeout_.cancel_timeout();
   poll_export_login_code_timeout_.set_callback(std::move(on_update_login_token_static));
-  poll_export_login_code_timeout_.set_callback_data(static_cast<void *>(td));
+  poll_export_login_code_timeout_.set_callback_data(static_cast<void *>(td_));
   poll_export_login_code_timeout_.set_timeout_at(login_token_expires_at_);
 }
 
@@ -763,9 +763,9 @@ void AuthManager::on_get_authorization(tl_object_ptr<telegram_api::auth_Authoriz
   new_password_.clear();
   new_hint_.clear();
   state_ = State::Ok;
-  td->contacts_manager_->on_get_user(std::move(auth->user_), "on_get_authorization", true);
+  td_->contacts_manager_->on_get_user(std::move(auth->user_), "on_get_authorization", true);
   update_state(State::Ok, true);
-  if (!td->contacts_manager_->get_my_id().is_valid()) {
+  if (!td_->contacts_manager_->get_my_id().is_valid()) {
     LOG(ERROR) << "Server doesn't send proper authorization";
     if (query_id_ != 0) {
       on_query_error(Status::Error(500, "Server doesn't send proper authorization"));
@@ -776,19 +776,19 @@ void AuthManager::on_get_authorization(tl_object_ptr<telegram_api::auth_Authoriz
   if ((auth->flags_ & telegram_api::auth_authorization::TMP_SESSIONS_MASK) != 0) {
     G()->shared_config().set_option_integer("session_count", auth->tmp_sessions_);
   }
-  td->messages_manager_->on_authorization_success();
-  td->notification_manager_->init();
-  td->stickers_manager_->init();
-  td->theme_manager_->init();
-  td->top_dialog_manager_->init();
-  td->updates_manager_->get_difference("on_get_authorization");
-  td->on_online_updated(false, true);
+  td_->messages_manager_->on_authorization_success();
+  td_->notification_manager_->init();
+  td_->stickers_manager_->init();
+  td_->theme_manager_->init();
+  td_->top_dialog_manager_->init();
+  td_->updates_manager_->get_difference("on_get_authorization");
+  td_->on_online_updated(false, true);
   if (!is_bot()) {
-    td->schedule_get_terms_of_service(0);
-    td->schedule_get_promo_data(0);
+    td_->schedule_get_terms_of_service(0);
+    td_->schedule_get_promo_data(0);
     G()->td_db()->get_binlog_pmc()->set("fetched_marks_as_unread", "1");
   } else {
-    td->set_is_bot_online(true);
+    td_->set_is_bot_online(true);
   }
   send_closure(G()->config_manager(), &ConfigManager::request_config);
   if (query_id_ != 0) {

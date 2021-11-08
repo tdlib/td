@@ -61,7 +61,7 @@ class GetPollResultsQuery final : public Td::ResultHandler {
   void send(PollId poll_id, FullMessageId full_message_id) {
     poll_id_ = poll_id;
     dialog_id_ = full_message_id.get_dialog_id();
-    auto input_peer = td->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     if (input_peer == nullptr) {
       LOG(INFO) << "Can't reget poll, because have no read access to " << dialog_id_;
       return promise_.set_value(nullptr);
@@ -82,7 +82,7 @@ class GetPollResultsQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    if (!td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetPollResultsQuery") &&
+    if (!td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetPollResultsQuery") &&
         status.message() != "MESSAGE_ID_INVALID") {
       LOG(ERROR) << "Receive " << status << ", while trying to get results of " << poll_id_;
     }
@@ -103,7 +103,7 @@ class GetPollVotersQuery final : public Td::ResultHandler {
   void send(PollId poll_id, FullMessageId full_message_id, BufferSlice &&option, const string &offset, int32 limit) {
     poll_id_ = poll_id;
     dialog_id_ = full_message_id.get_dialog_id();
-    auto input_peer = td->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     if (input_peer == nullptr) {
       LOG(INFO) << "Can't get poll, because have no read access to " << dialog_id_;
       return promise_.set_error(Status::Error(400, "Chat is not accessible"));
@@ -130,7 +130,7 @@ class GetPollVotersQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    if (!td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetPollVotersQuery") &&
+    if (!td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetPollVotersQuery") &&
         status.message() != "MESSAGE_ID_INVALID") {
       LOG(ERROR) << "Receive " << status << ", while trying to get voters of " << poll_id_;
     }
@@ -148,7 +148,7 @@ class SetPollAnswerActor final : public NetActorOnce {
 
   void send(FullMessageId full_message_id, vector<BufferSlice> &&options, uint64 generation, NetQueryRef *query_ref) {
     dialog_id_ = full_message_id.get_dialog_id();
-    auto input_peer = td->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     if (input_peer == nullptr) {
       LOG(INFO) << "Can't set poll answer, because have no read access to " << dialog_id_;
       return on_error(Status::Error(400, "Can't access the chat"));
@@ -159,7 +159,7 @@ class SetPollAnswerActor final : public NetActorOnce {
         telegram_api::messages_sendVote(std::move(input_peer), message_id, std::move(options)));
     *query_ref = query.get_weak();
     auto sequence_id = -1;
-    send_closure(td->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
+    send_closure(td_->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
                  std::move(query), actor_shared(this), sequence_id);
   }
 
@@ -175,7 +175,7 @@ class SetPollAnswerActor final : public NetActorOnce {
   }
 
   void on_error(Status status) final {
-    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "SetPollAnswerActor");
+    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "SetPollAnswerActor");
     promise_.set_error(std::move(status));
   }
 };
@@ -190,7 +190,7 @@ class StopPollActor final : public NetActorOnce {
 
   void send(FullMessageId full_message_id, unique_ptr<ReplyMarkup> &&reply_markup) {
     dialog_id_ = full_message_id.get_dialog_id();
-    auto input_peer = td->messages_manager_->get_input_peer(dialog_id_, AccessRights::Edit);
+    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Edit);
     if (input_peer == nullptr) {
       LOG(INFO) << "Can't close poll, because have no edit access to " << dialog_id_;
       return on_error(Status::Error(400, "Can't access the chat"));
@@ -210,11 +210,11 @@ class StopPollActor final : public NetActorOnce {
     auto query = G()->net_query_creator().create(telegram_api::messages_editMessage(
         flags, false /*ignored*/, std::move(input_peer), message_id, string(), std::move(input_media),
         std::move(input_reply_markup), vector<tl_object_ptr<telegram_api::MessageEntity>>(), 0));
-    if (td->auth_manager_->is_bot()) {
+    if (td_->auth_manager_->is_bot()) {
       send_query(std::move(query));
     } else {
       auto sequence_id = -1;
-      send_closure(td->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
+      send_closure(td_->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
                    std::move(query), actor_shared(this), sequence_id);
     }
   }
@@ -227,14 +227,14 @@ class StopPollActor final : public NetActorOnce {
 
     auto result = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for StopPoll: " << to_string(result);
-    td->updates_manager_->on_get_updates(std::move(result), std::move(promise_));
+    td_->updates_manager_->on_get_updates(std::move(result), std::move(promise_));
   }
 
   void on_error(Status status) final {
-    if (!td->auth_manager_->is_bot() && status.message() == "MESSAGE_NOT_MODIFIED") {
+    if (!td_->auth_manager_->is_bot() && status.message() == "MESSAGE_NOT_MODIFIED") {
       return promise_.set_value(Unit());
     }
-    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "StopPollActor");
+    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "StopPollActor");
     promise_.set_error(std::move(status));
   }
 };

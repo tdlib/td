@@ -113,7 +113,7 @@ class GetContactSignUpNotificationQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td->notification_manager_->on_get_disable_contact_registered_notifications(result_ptr.ok());
+    td_->notification_manager_->on_get_disable_contact_registered_notifications(result_ptr.ok());
     promise_.set_value(Unit());
   }
 

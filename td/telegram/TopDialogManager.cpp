@@ -100,7 +100,7 @@ class ResetTopPeerRatingQuery final : public Td::ResultHandler {
 
  public:
   void send(TopDialogCategory category, DialogId dialog_id) {
-    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
       return;
     }
@@ -120,7 +120,7 @@ class ResetTopPeerRatingQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    if (!td->messages_manager_->on_get_dialog_error(dialog_id_, status, "ResetTopPeerRatingQuery")) {
+    if (!td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "ResetTopPeerRatingQuery")) {
       LOG(INFO) << "Receive error for ResetTopPeerRatingQuery: " << status;
     }
   }

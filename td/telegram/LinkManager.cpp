@@ -440,7 +440,7 @@ class RequestUrlAuthQuery final : public Td::ResultHandler {
     tl_object_ptr<telegram_api::InputPeer> input_peer;
     if (full_message_id.get_dialog_id().is_valid()) {
       dialog_id_ = full_message_id.get_dialog_id();
-      input_peer = td->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+      input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
       CHECK(input_peer != nullptr);
       flags |= telegram_api::messages_requestUrlAuth::PEER_MASK;
     } else {
@@ -466,9 +466,9 @@ class RequestUrlAuthQuery final : public Td::ResultHandler {
         if (!bot_user_id.is_valid()) {
           return on_error(Status::Error(500, "Receive invalid bot_user_id"));
         }
-        td->contacts_manager_->on_get_user(std::move(request->bot_), "RequestUrlAuthQuery");
+        td_->contacts_manager_->on_get_user(std::move(request->bot_), "RequestUrlAuthQuery");
         promise_.set_value(td_api::make_object<td_api::loginUrlInfoRequestConfirmation>(
-            url_, request->domain_, td->contacts_manager_->get_user_id_object(bot_user_id, "RequestUrlAuthQuery"),
+            url_, request->domain_, td_->contacts_manager_->get_user_id_object(bot_user_id, "RequestUrlAuthQuery"),
             request->request_write_access_));
         break;
       }
@@ -485,7 +485,7 @@ class RequestUrlAuthQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     if (!dialog_id_.is_valid() ||
-        !td->messages_manager_->on_get_dialog_error(dialog_id_, status, "RequestUrlAuthQuery")) {
+        !td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "RequestUrlAuthQuery")) {
       LOG(INFO) << "RequestUrlAuthQuery returned " << status;
     }
     promise_.set_value(td_api::make_object<td_api::loginUrlInfoOpen>(url_, false));
@@ -507,7 +507,7 @@ class AcceptUrlAuthQuery final : public Td::ResultHandler {
     tl_object_ptr<telegram_api::InputPeer> input_peer;
     if (full_message_id.get_dialog_id().is_valid()) {
       dialog_id_ = full_message_id.get_dialog_id();
-      input_peer = td->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+      input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
       CHECK(input_peer != nullptr);
       flags |= telegram_api::messages_acceptUrlAuth::PEER_MASK;
     } else {
@@ -546,7 +546,7 @@ class AcceptUrlAuthQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     if (!dialog_id_.is_valid() ||
-        !td->messages_manager_->on_get_dialog_error(dialog_id_, status, "AcceptUrlAuthQuery")) {
+        !td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "AcceptUrlAuthQuery")) {
       LOG(INFO) << "AcceptUrlAuthQuery returned " << status;
     }
     promise_.set_error(std::move(status));

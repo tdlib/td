@@ -153,13 +153,13 @@ namespace td {
 int VERBOSITY_NAME(td_init) = VERBOSITY_NAME(DEBUG) + 3;
 int VERBOSITY_NAME(td_requests) = VERBOSITY_NAME(INFO);
 
-void Td::ResultHandler::set_td(Td *new_td) {
-  CHECK(td == nullptr);
-  td = new_td;
+void Td::ResultHandler::set_td(Td *td) {
+  CHECK(td_ == nullptr);
+  td_ = td;
 }
 
 void Td::ResultHandler::send_query(NetQueryPtr query) {
-  td->add_handler(query->id(), shared_from_this());
+  td_->add_handler(query->id(), shared_from_this());
   send(std::move(query));
 }
 
@@ -208,8 +208,8 @@ class GetRecentMeUrlsQuery final : public Td::ResultHandler {
     }
 
     auto urls_full = result_ptr.move_as_ok();
-    td->contacts_manager_->on_get_users(std::move(urls_full->users_), "GetRecentMeUrlsQuery");
-    td->contacts_manager_->on_get_chats(std::move(urls_full->chats_), "GetRecentMeUrlsQuery");
+    td_->contacts_manager_->on_get_users(std::move(urls_full->users_), "GetRecentMeUrlsQuery");
+    td_->contacts_manager_->on_get_chats(std::move(urls_full->chats_), "GetRecentMeUrlsQuery");
 
     auto urls = std::move(urls_full->urls_);
     auto results = make_tl_object<td_api::tMeUrls>();
@@ -228,7 +228,7 @@ class GetRecentMeUrlsQuery final : public Td::ResultHandler {
             break;
           }
           result->type_ = make_tl_object<td_api::tMeUrlTypeUser>(
-              td->contacts_manager_->get_user_id_object(user_id, "tMeUrlTypeUser"));
+              td_->contacts_manager_->get_user_id_object(user_id, "tMeUrlTypeUser"));
           break;
         }
         case telegram_api::recentMeUrlChat::ID: {
@@ -241,15 +241,15 @@ class GetRecentMeUrlsQuery final : public Td::ResultHandler {
             break;
           }
           result->type_ = make_tl_object<td_api::tMeUrlTypeSupergroup>(
-              td->contacts_manager_->get_supergroup_id_object(channel_id, "tMeUrlTypeSupergroup"));
+              td_->contacts_manager_->get_supergroup_id_object(channel_id, "tMeUrlTypeSupergroup"));
           break;
         }
         case telegram_api::recentMeUrlChatInvite::ID: {
           auto url = move_tl_object_as<telegram_api::recentMeUrlChatInvite>(url_ptr);
           result->url_ = std::move(url->url_);
-          td->contacts_manager_->on_get_dialog_invite_link_info(result->url_, std::move(url->chat_invite_),
-                                                                Promise<Unit>());
-          auto info_object = td->contacts_manager_->get_chat_invite_link_info_object(result->url_);
+          td_->contacts_manager_->on_get_dialog_invite_link_info(result->url_, std::move(url->chat_invite_),
+                                                                 Promise<Unit>());
+          auto info_object = td_->contacts_manager_->get_chat_invite_link_info_object(result->url_);
           if (info_object == nullptr) {
             result = nullptr;
             break;
@@ -261,7 +261,7 @@ class GetRecentMeUrlsQuery final : public Td::ResultHandler {
           auto url = move_tl_object_as<telegram_api::recentMeUrlStickerSet>(url_ptr);
           result->url_ = std::move(url->url_);
           auto sticker_set_id =
-              td->stickers_manager_->on_get_sticker_set_covered(std::move(url->set_), false, "recentMeUrlStickerSet");
+              td_->stickers_manager_->on_get_sticker_set_covered(std::move(url->set_), false, "recentMeUrlStickerSet");
           if (!sticker_set_id.is_valid()) {
             LOG(ERROR) << "Receive invalid sticker set";
             result = nullptr;
@@ -392,7 +392,7 @@ class UpdateStatusQuery final : public Td::ResultHandler {
 
     bool result = result_ptr.ok();
     LOG(INFO) << "UpdateStatus returned " << result;
-    td->on_update_status_success(!is_offline_);
+    td_->on_update_status_success(!is_offline_);
   }
 
   void on_error(Status status) final {

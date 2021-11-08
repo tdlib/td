@@ -56,14 +56,14 @@ class GetSavedGifsQuery final : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    td->animations_manager_->on_get_saved_animations(is_repair_, std::move(ptr));
+    td_->animations_manager_->on_get_saved_animations(is_repair_, std::move(ptr));
   }
 
   void on_error(Status status) final {
     if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for get saved animations: " << status;
     }
-    td->animations_manager_->on_get_saved_animations_failed(is_repair_, std::move(status));
+    td_->animations_manager_->on_get_saved_animations_failed(is_repair_, std::move(status));
   }
 };
 
@@ -96,17 +96,17 @@ class SaveGifQuery final : public Td::ResultHandler {
     bool result = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for save GIF: " << result;
     if (!result) {
-      td->animations_manager_->reload_saved_animations(true);
+      td_->animations_manager_->reload_saved_animations(true);
     }
 
     promise_.set_value(Unit());
   }
 
   void on_error(Status status) final {
-    if (!td->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(status)) {
+    if (!td_->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(status)) {
       VLOG(file_references) << "Receive " << status << " for " << file_id_;
-      td->file_manager_->delete_file_reference(file_id_, file_reference_);
-      td->file_reference_manager_->repair_file_reference(
+      td_->file_manager_->delete_file_reference(file_id_, file_reference_);
+      td_->file_reference_manager_->repair_file_reference(
           file_id_, PromiseCreator::lambda([animation_id = file_id_, unsave = unsave_,
                                             promise = std::move(promise_)](Result<Unit> result) mutable {
             if (result.is_error()) {
@@ -122,7 +122,7 @@ class SaveGifQuery final : public Td::ResultHandler {
     if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for save GIF: " << status;
     }
-    td->animations_manager_->reload_saved_animations(true);
+    td_->animations_manager_->reload_saved_animations(true);
     promise_.set_error(std::move(status));
   }
 };

@@ -93,14 +93,14 @@ class GetAllStickersQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(DEBUG) << "Receive result for get all " << (is_masks_ ? "masks" : "stickers") << ": " << to_string(ptr);
-    td->stickers_manager_->on_get_installed_sticker_sets(is_masks_, std::move(ptr));
+    td_->stickers_manager_->on_get_installed_sticker_sets(is_masks_, std::move(ptr));
   }
 
   void on_error(Status status) final {
     if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for get all stickers: " << status;
     }
-    td->stickers_manager_->on_get_installed_sticker_sets_failed(is_masks_, std::move(status));
+    td_->stickers_manager_->on_get_installed_sticker_sets_failed(is_masks_, std::move(status));
   }
 };
 
@@ -121,14 +121,14 @@ class SearchStickersQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for search stickers: " << to_string(ptr);
-    td->stickers_manager_->on_find_stickers_success(emoji_, std::move(ptr));
+    td_->stickers_manager_->on_find_stickers_success(emoji_, std::move(ptr));
   }
 
   void on_error(Status status) final {
     if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for search stickers: " << status;
     }
-    td->stickers_manager_->on_find_stickers_fail(emoji_, std::move(status));
+    td_->stickers_manager_->on_find_stickers_fail(emoji_, std::move(status));
   }
 };
 
@@ -272,8 +272,8 @@ class GetArchivedStickerSetsQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetArchivedStickerSetsQuery: " << to_string(ptr);
-    td->stickers_manager_->on_get_archived_sticker_sets(is_masks_, offset_sticker_set_id_, std::move(ptr->sets_),
-                                                        ptr->count_);
+    td_->stickers_manager_->on_get_archived_sticker_sets(is_masks_, offset_sticker_set_id_, std::move(ptr->sets_),
+                                                         ptr->count_);
 
     promise_.set_value(Unit());
   }
@@ -298,11 +298,11 @@ class GetFeaturedStickerSetsQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(DEBUG) << "Receive result for GetFeaturedStickerSetsQuery: " << to_string(ptr);
-    td->stickers_manager_->on_get_featured_sticker_sets(-1, -1, 0, std::move(ptr));
+    td_->stickers_manager_->on_get_featured_sticker_sets(-1, -1, 0, std::move(ptr));
   }
 
   void on_error(Status status) final {
-    td->stickers_manager_->on_get_featured_sticker_sets_failed(-1, -1, 0, std::move(status));
+    td_->stickers_manager_->on_get_featured_sticker_sets_failed(-1, -1, 0, std::move(status));
   }
 };
 
@@ -328,11 +328,11 @@ class GetOldFeaturedStickerSetsQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(DEBUG) << "Receive result for GetOldFeaturedStickerSetsQuery: " << to_string(ptr);
-    td->stickers_manager_->on_get_featured_sticker_sets(offset_, limit_, generation_, std::move(ptr));
+    td_->stickers_manager_->on_get_featured_sticker_sets(offset_, limit_, generation_, std::move(ptr));
   }
 
   void on_error(Status status) final {
-    td->stickers_manager_->on_get_featured_sticker_sets_failed(offset_, limit_, generation_, std::move(status));
+    td_->stickers_manager_->on_get_featured_sticker_sets_failed(offset_, limit_, generation_, std::move(status));
   }
 };
 
@@ -359,16 +359,16 @@ class GetAttachedStickerSetsQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td->stickers_manager_->on_get_attached_sticker_sets(file_id_, result_ptr.move_as_ok());
+    td_->stickers_manager_->on_get_attached_sticker_sets(file_id_, result_ptr.move_as_ok());
 
     promise_.set_value(Unit());
   }
 
   void on_error(Status status) final {
-    if (!td->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(status)) {
+    if (!td_->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(status)) {
       VLOG(file_references) << "Receive " << status << " for " << file_id_;
-      td->file_manager_->delete_file_reference(file_id_, file_reference_);
-      td->file_reference_manager_->repair_file_reference(
+      td_->file_manager_->delete_file_reference(file_id_, file_reference_);
+      td_->file_reference_manager_->repair_file_reference(
           file_id_,
           PromiseCreator::lambda([file_id = file_id_, promise = std::move(promise_)](Result<Unit> result) mutable {
             if (result.is_error()) {
@@ -411,14 +411,14 @@ class GetRecentStickersQuery final : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(DEBUG) << "Receive result for get recent " << (is_attached_ ? "attached " : "")
                << "stickers: " << to_string(ptr);
-    td->stickers_manager_->on_get_recent_stickers(is_repair_, is_attached_, std::move(ptr));
+    td_->stickers_manager_->on_get_recent_stickers(is_repair_, is_attached_, std::move(ptr));
   }
 
   void on_error(Status status) final {
     if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for get recent " << (is_attached_ ? "attached " : "") << "stickers: " << status;
     }
-    td->stickers_manager_->on_get_recent_stickers_failed(is_repair_, is_attached_, std::move(status));
+    td_->stickers_manager_->on_get_recent_stickers_failed(is_repair_, is_attached_, std::move(status));
   }
 };
 
@@ -460,17 +460,17 @@ class SaveRecentStickerQuery final : public Td::ResultHandler {
     bool result = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for save recent " << (is_attached_ ? "attached " : "") << "sticker: " << result;
     if (!result) {
-      td->stickers_manager_->reload_recent_stickers(is_attached_, true);
+      td_->stickers_manager_->reload_recent_stickers(is_attached_, true);
     }
 
     promise_.set_value(Unit());
   }
 
   void on_error(Status status) final {
-    if (!td->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(status)) {
+    if (!td_->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(status)) {
       VLOG(file_references) << "Receive " << status << " for " << file_id_;
-      td->file_manager_->delete_file_reference(file_id_, file_reference_);
-      td->file_reference_manager_->repair_file_reference(
+      td_->file_manager_->delete_file_reference(file_id_, file_reference_);
+      td_->file_reference_manager_->repair_file_reference(
           file_id_, PromiseCreator::lambda([sticker_id = file_id_, is_attached = is_attached_, unsave = unsave_,
                                             promise = std::move(promise_)](Result<Unit> result) mutable {
             if (result.is_error()) {
@@ -486,7 +486,7 @@ class SaveRecentStickerQuery final : public Td::ResultHandler {
     if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for save recent " << (is_attached_ ? "attached " : "") << "sticker: " << status;
     }
-    td->stickers_manager_->reload_recent_stickers(is_attached_, true);
+    td_->stickers_manager_->reload_recent_stickers(is_attached_, true);
     promise_.set_error(std::move(status));
   }
 };
@@ -520,7 +520,7 @@ class ClearRecentStickersQuery final : public Td::ResultHandler {
     bool result = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for clear recent " << (is_attached_ ? "attached " : "") << "stickers: " << result;
     if (!result) {
-      td->stickers_manager_->reload_recent_stickers(is_attached_, true);
+      td_->stickers_manager_->reload_recent_stickers(is_attached_, true);
     }
 
     promise_.set_value(Unit());
@@ -530,7 +530,7 @@ class ClearRecentStickersQuery final : public Td::ResultHandler {
     if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for clear recent " << (is_attached_ ? "attached " : "") << "stickers: " << status;
     }
-    td->stickers_manager_->reload_recent_stickers(is_attached_, true);
+    td_->stickers_manager_->reload_recent_stickers(is_attached_, true);
     promise_.set_error(std::move(status));
   }
 };
@@ -552,14 +552,14 @@ class GetFavedStickersQuery final : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    td->stickers_manager_->on_get_favorite_stickers(is_repair_, std::move(ptr));
+    td_->stickers_manager_->on_get_favorite_stickers(is_repair_, std::move(ptr));
   }
 
   void on_error(Status status) final {
     if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for get favorite stickers: " << status;
     }
-    td->stickers_manager_->on_get_favorite_stickers_failed(is_repair_, std::move(status));
+    td_->stickers_manager_->on_get_favorite_stickers_failed(is_repair_, std::move(status));
   }
 };
 
@@ -593,17 +593,17 @@ class FaveStickerQuery final : public Td::ResultHandler {
     bool result = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for fave sticker: " << result;
     if (!result) {
-      td->stickers_manager_->reload_favorite_stickers(true);
+      td_->stickers_manager_->reload_favorite_stickers(true);
     }
 
     promise_.set_value(Unit());
   }
 
   void on_error(Status status) final {
-    if (!td->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(status)) {
+    if (!td_->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(status)) {
       VLOG(file_references) << "Receive " << status << " for " << file_id_;
-      td->file_manager_->delete_file_reference(file_id_, file_reference_);
-      td->file_reference_manager_->repair_file_reference(
+      td_->file_manager_->delete_file_reference(file_id_, file_reference_);
+      td_->file_reference_manager_->repair_file_reference(
           file_id_, PromiseCreator::lambda([sticker_id = file_id_, unsave = unsave_,
                                             promise = std::move(promise_)](Result<Unit> result) mutable {
             if (result.is_error()) {
@@ -619,7 +619,7 @@ class FaveStickerQuery final : public Td::ResultHandler {
     if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for fave sticker: " << status;
     }
-    td->stickers_manager_->reload_favorite_stickers(true);
+    td_->stickers_manager_->reload_favorite_stickers(true);
     promise_.set_error(std::move(status));
   }
 };
@@ -654,7 +654,7 @@ class ReorderStickerSetsQuery final : public Td::ResultHandler {
     if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for ReorderStickerSetsQuery: " << status;
     }
-    td->stickers_manager_->reload_installed_sticker_sets(is_masks_, true);
+    td_->stickers_manager_->reload_installed_sticker_sets(is_masks_, true);
   }
 };
 
@@ -696,14 +696,14 @@ class GetStickerSetQuery final : public Td::ResultHandler {
       }
     }
 
-    td->stickers_manager_->on_get_messages_sticker_set(sticker_set_id_, std::move(set), true, "GetStickerSetQuery");
+    td_->stickers_manager_->on_get_messages_sticker_set(sticker_set_id_, std::move(set), true, "GetStickerSetQuery");
 
     promise_.set_value(Unit());
   }
 
   void on_error(Status status) final {
     LOG(INFO) << "Receive error for GetStickerSetQuery: " << status;
-    td->stickers_manager_->on_load_sticker_set_fail(sticker_set_id_, status);
+    td_->stickers_manager_->on_load_sticker_set_fail(sticker_set_id_, status);
     promise_.set_error(std::move(status));
   }
 };
@@ -723,10 +723,10 @@ class ReloadSpecialStickerSetQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    auto sticker_set_id = td->stickers_manager_->on_get_messages_sticker_set(StickerSetId(), result_ptr.move_as_ok(),
-                                                                             true, "ReloadSpecialStickerSetQuery");
+    auto sticker_set_id = td_->stickers_manager_->on_get_messages_sticker_set(StickerSetId(), result_ptr.move_as_ok(),
+                                                                              true, "ReloadSpecialStickerSetQuery");
     if (sticker_set_id.is_valid()) {
-      td->stickers_manager_->on_get_special_sticker_set(type_, sticker_set_id);
+      td_->stickers_manager_->on_get_special_sticker_set(type_, sticker_set_id);
     } else {
       on_error(Status::Error(500, "Failed to add special sticker set"));
     }
@@ -734,7 +734,7 @@ class ReloadSpecialStickerSetQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     LOG(WARNING) << "Receive error for ReloadSpecialStickerSetQuery: " << status;
-    td->stickers_manager_->on_load_special_sticker_set(type_, std::move(status));
+    td_->stickers_manager_->on_load_special_sticker_set(type_, std::move(status));
   }
 };
 
@@ -756,14 +756,14 @@ class SearchStickerSetsQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for search sticker sets: " << to_string(ptr);
-    td->stickers_manager_->on_find_sticker_sets_success(query_, std::move(ptr));
+    td_->stickers_manager_->on_find_sticker_sets_success(query_, std::move(ptr));
   }
 
   void on_error(Status status) final {
     if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for search sticker sets: " << status;
     }
-    td->stickers_manager_->on_find_sticker_sets_fail(query_, std::move(status));
+    td_->stickers_manager_->on_find_sticker_sets_fail(query_, std::move(status));
   }
 };
 
@@ -789,7 +789,7 @@ class InstallStickerSetQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td->stickers_manager_->on_install_sticker_set(set_id_, is_archived_, result_ptr.move_as_ok());
+    td_->stickers_manager_->on_install_sticker_set(set_id_, is_archived_, result_ptr.move_as_ok());
 
     promise_.set_value(Unit());
   }
@@ -823,7 +823,7 @@ class UninstallStickerSetQuery final : public Td::ResultHandler {
     if (!result) {
       LOG(WARNING) << "Receive false in result to uninstallStickerSet";
     } else {
-      td->stickers_manager_->on_uninstall_sticker_set(set_id_);
+      td_->stickers_manager_->on_uninstall_sticker_set(set_id_);
     }
 
     promise_.set_value(Unit());
@@ -857,7 +857,7 @@ class ReadFeaturedStickerSetsQuery final : public Td::ResultHandler {
     if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for ReadFeaturedStickerSetsQuery: " << status;
     }
-    td->stickers_manager_->reload_featured_sticker_sets(true);
+    td_->stickers_manager_->reload_featured_sticker_sets(true);
   }
 };
 
@@ -886,7 +886,7 @@ class UploadStickerFileQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td->stickers_manager_->on_uploaded_sticker_file(file_id_, result_ptr.move_as_ok(), std::move(promise_));
+    td_->stickers_manager_->on_uploaded_sticker_file(file_id_, result_ptr.move_as_ok(), std::move(promise_));
   }
 
   void on_error(Status status) final {
@@ -894,17 +894,17 @@ class UploadStickerFileQuery final : public Td::ResultHandler {
     if (was_uploaded_) {
       CHECK(file_id_.is_valid());
       if (begins_with(status.message(), "FILE_PART_") && ends_with(status.message(), "_MISSING")) {
-        // TODO td->stickers_manager_->on_upload_sticker_file_part_missing(file_id_, to_integer<int32>(status.message().substr(10)));
+        // TODO td_->stickers_manager_->on_upload_sticker_file_part_missing(file_id_, to_integer<int32>(status.message().substr(10)));
         // return;
       } else {
         if (status.code() != 429 && status.code() < 500 && !G()->close_flag()) {
-          td->file_manager_->delete_partial_remote_location(file_id_);
+          td_->file_manager_->delete_partial_remote_location(file_id_);
         }
       }
     } else if (FileReferenceManager::is_file_reference_error(status)) {
       LOG(ERROR) << "Receive file reference error for UploadStickerFileQuery";
     }
-    td->file_manager_->cancel_upload(file_id_);
+    td_->file_manager_->cancel_upload(file_id_);
     promise_.set_error(std::move(status));
   }
 };
@@ -996,8 +996,8 @@ class CreateNewStickerSetQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td->stickers_manager_->on_get_messages_sticker_set(StickerSetId(), result_ptr.move_as_ok(), true,
-                                                       "CreateNewStickerSetQuery");
+    td_->stickers_manager_->on_get_messages_sticker_set(StickerSetId(), result_ptr.move_as_ok(), true,
+                                                        "CreateNewStickerSetQuery");
 
     promise_.set_value(Unit());
   }
@@ -1026,8 +1026,8 @@ class AddStickerToSetQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td->stickers_manager_->on_get_messages_sticker_set(StickerSetId(), result_ptr.move_as_ok(), true,
-                                                       "AddStickerToSetQuery");
+    td_->stickers_manager_->on_get_messages_sticker_set(StickerSetId(), result_ptr.move_as_ok(), true,
+                                                        "AddStickerToSetQuery");
 
     promise_.set_value(Unit());
   }
@@ -1056,8 +1056,8 @@ class SetStickerSetThumbnailQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td->stickers_manager_->on_get_messages_sticker_set(StickerSetId(), result_ptr.move_as_ok(), true,
-                                                       "SetStickerSetThumbnailQuery");
+    td_->stickers_manager_->on_get_messages_sticker_set(StickerSetId(), result_ptr.move_as_ok(), true,
+                                                        "SetStickerSetThumbnailQuery");
 
     promise_.set_value(Unit());
   }
@@ -1086,8 +1086,8 @@ class SetStickerPositionQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td->stickers_manager_->on_get_messages_sticker_set(StickerSetId(), result_ptr.move_as_ok(), true,
-                                                       "SetStickerPositionQuery");
+    td_->stickers_manager_->on_get_messages_sticker_set(StickerSetId(), result_ptr.move_as_ok(), true,
+                                                        "SetStickerPositionQuery");
 
     promise_.set_value(Unit());
   }
@@ -1115,8 +1115,8 @@ class DeleteStickerFromSetQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td->stickers_manager_->on_get_messages_sticker_set(StickerSetId(), result_ptr.move_as_ok(), true,
-                                                       "DeleteStickerFromSetQuery");
+    td_->stickers_manager_->on_get_messages_sticker_set(StickerSetId(), result_ptr.move_as_ok(), true,
+                                                        "DeleteStickerFromSetQuery");
 
     promise_.set_value(Unit());
   }
@@ -1154,11 +1154,11 @@ class SendAnimatedEmojiClicksQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    if (!td->messages_manager_->on_get_dialog_error(dialog_id_, status, "SendAnimatedEmojiClicksQuery")) {
+    if (!td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "SendAnimatedEmojiClicksQuery")) {
       LOG(INFO) << "Receive error for send animated emoji clicks: " << status;
     }
 
-    td->stickers_manager_->on_send_animated_emoji_clicks(dialog_id_, emoji_);
+    td_->stickers_manager_->on_send_animated_emoji_clicks(dialog_id_, emoji_);
   }
 };
 

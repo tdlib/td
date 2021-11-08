@@ -270,7 +270,7 @@ class GetPaymentFormQuery final : public Td::ResultHandler {
   void send(DialogId dialog_id, ServerMessageId server_message_id,
             tl_object_ptr<telegram_api::dataJSON> &&theme_parameters) {
     dialog_id_ = dialog_id;
-    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -292,7 +292,7 @@ class GetPaymentFormQuery final : public Td::ResultHandler {
     auto payment_form = result_ptr.move_as_ok();
     LOG(INFO) << "Receive payment form: " << to_string(payment_form);
 
-    td->contacts_manager_->on_get_users(std::move(payment_form->users_), "GetPaymentFormQuery");
+    td_->contacts_manager_->on_get_users(std::move(payment_form->users_), "GetPaymentFormQuery");
 
     UserId payments_provider_user_id(payment_form->provider_id_);
     if (!payments_provider_user_id.is_valid()) {
@@ -308,15 +308,15 @@ class GetPaymentFormQuery final : public Td::ResultHandler {
     bool need_password = payment_form->password_missing_;
     promise_.set_value(make_tl_object<td_api::paymentForm>(
         payment_form->form_id_, convert_invoice(std::move(payment_form->invoice_)), std::move(payment_form->url_),
-        td->contacts_manager_->get_user_id_object(seller_bot_user_id, "paymentForm seller"),
-        td->contacts_manager_->get_user_id_object(payments_provider_user_id, "paymentForm provider"),
+        td_->contacts_manager_->get_user_id_object(seller_bot_user_id, "paymentForm seller"),
+        td_->contacts_manager_->get_user_id_object(payments_provider_user_id, "paymentForm provider"),
         convert_payment_provider(payment_form->native_provider_, std::move(payment_form->native_params_)),
         convert_order_info(std::move(payment_form->saved_info_)),
         convert_saved_credentials(std::move(payment_form->saved_credentials_)), can_save_credentials, need_password));
   }
 
   void on_error(Status status) final {
-    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetPaymentFormQuery");
+    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetPaymentFormQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -333,7 +333,7 @@ class ValidateRequestedInfoQuery final : public Td::ResultHandler {
   void send(DialogId dialog_id, ServerMessageId server_message_id,
             tl_object_ptr<telegram_api::paymentRequestedInfo> requested_info, bool allow_save) {
     dialog_id_ = dialog_id;
-    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -365,7 +365,7 @@ class ValidateRequestedInfoQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "ValidateRequestedInfoQuery");
+    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "ValidateRequestedInfoQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -385,7 +385,7 @@ class SendPaymentFormQuery final : public Td::ResultHandler {
     CHECK(input_credentials != nullptr);
 
     dialog_id_ = dialog_id;
-    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -417,10 +417,10 @@ class SendPaymentFormQuery final : public Td::ResultHandler {
     switch (payment_result->get_id()) {
       case telegram_api::payments_paymentResult::ID: {
         auto result = move_tl_object_as<telegram_api::payments_paymentResult>(payment_result);
-        td->updates_manager_->on_get_updates(std::move(result->updates_),
-                                             PromiseCreator::lambda([promise = std::move(promise_)](Unit) mutable {
-                                               promise.set_value(make_tl_object<td_api::paymentResult>(true, string()));
-                                             }));
+        td_->updates_manager_->on_get_updates(
+            std::move(result->updates_), PromiseCreator::lambda([promise = std::move(promise_)](Unit) mutable {
+              promise.set_value(make_tl_object<td_api::paymentResult>(true, string()));
+            }));
         return;
       }
       case telegram_api::payments_paymentVerificationNeeded::ID: {
@@ -434,7 +434,7 @@ class SendPaymentFormQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "SendPaymentFormQuery");
+    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "SendPaymentFormQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -450,7 +450,7 @@ class GetPaymentReceiptQuery final : public Td::ResultHandler {
 
   void send(DialogId dialog_id, ServerMessageId server_message_id) {
     dialog_id_ = dialog_id;
-    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -468,7 +468,7 @@ class GetPaymentReceiptQuery final : public Td::ResultHandler {
     auto payment_receipt = result_ptr.move_as_ok();
     LOG(INFO) << "Receive payment receipt: " << to_string(payment_receipt);
 
-    td->contacts_manager_->on_get_users(std::move(payment_receipt->users_), "GetPaymentReceiptQuery");
+    td_->contacts_manager_->on_get_users(std::move(payment_receipt->users_), "GetPaymentReceiptQuery");
 
     UserId payments_provider_user_id(payment_receipt->provider_id_);
     if (!payments_provider_user_id.is_valid()) {
@@ -480,19 +480,19 @@ class GetPaymentReceiptQuery final : public Td::ResultHandler {
       LOG(ERROR) << "Receive invalid seller " << seller_bot_user_id;
       return on_error(Status::Error(500, "Receive invalid seller identifier"));
     }
-    auto photo = get_web_document_photo(td->file_manager_.get(), std::move(payment_receipt->photo_), dialog_id_);
+    auto photo = get_web_document_photo(td_->file_manager_.get(), std::move(payment_receipt->photo_), dialog_id_);
 
     promise_.set_value(make_tl_object<td_api::paymentReceipt>(
-        payment_receipt->title_, payment_receipt->description_, get_photo_object(td->file_manager_.get(), photo),
-        payment_receipt->date_, td->contacts_manager_->get_user_id_object(seller_bot_user_id, "paymentReceipt seller"),
-        td->contacts_manager_->get_user_id_object(payments_provider_user_id, "paymentReceipt provider"),
+        payment_receipt->title_, payment_receipt->description_, get_photo_object(td_->file_manager_.get(), photo),
+        payment_receipt->date_, td_->contacts_manager_->get_user_id_object(seller_bot_user_id, "paymentReceipt seller"),
+        td_->contacts_manager_->get_user_id_object(payments_provider_user_id, "paymentReceipt provider"),
         convert_invoice(std::move(payment_receipt->invoice_)), convert_order_info(std::move(payment_receipt->info_)),
         convert_shipping_option(std::move(payment_receipt->shipping_)), std::move(payment_receipt->credentials_title_),
         payment_receipt->tip_amount_));
   }
 
   void on_error(Status status) final {
-    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetPaymentReceiptQuery");
+    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetPaymentReceiptQuery");
     promise_.set_error(std::move(status));
   }
 };

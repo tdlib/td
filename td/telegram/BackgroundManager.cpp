@@ -60,7 +60,7 @@ class GetBackgroundQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td->background_manager_->on_get_background(background_id_, background_name_, result_ptr.move_as_ok(), true);
+    td_->background_manager_->on_get_background(background_id_, background_name_, result_ptr.move_as_ok(), true);
 
     promise_.set_value(Unit());
   }
@@ -151,22 +151,22 @@ class UploadBackgroundQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td->background_manager_->on_uploaded_background_file(file_id_, type_, for_dark_theme_, result_ptr.move_as_ok(),
-                                                         std::move(promise_));
+    td_->background_manager_->on_uploaded_background_file(file_id_, type_, for_dark_theme_, result_ptr.move_as_ok(),
+                                                          std::move(promise_));
   }
 
   void on_error(Status status) final {
     CHECK(status.is_error());
     CHECK(file_id_.is_valid());
     if (begins_with(status.message(), "FILE_PART_") && ends_with(status.message(), "_MISSING")) {
-      // TODO td->background_manager_->on_upload_background_file_part_missing(file_id_, to_integer<int32>(status.message().substr(10)));
+      // TODO td_->background_manager_->on_upload_background_file_part_missing(file_id_, to_integer<int32>(status.message().substr(10)));
       // return;
     } else {
       if (status.code() != 429 && status.code() < 500 && !G()->close_flag()) {
-        td->file_manager_->delete_partial_remote_location(file_id_);
+        td_->file_manager_->delete_partial_remote_location(file_id_);
       }
     }
-    td->file_manager_->cancel_upload(file_id_);
+    td_->file_manager_->cancel_upload(file_id_);
     promise_.set_error(std::move(status));
   }
 };

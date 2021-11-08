@@ -95,8 +95,8 @@ class GetInlineBotResultsQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td->inline_queries_manager_->on_get_inline_query_results(dialog_id_, bot_user_id_, query_hash_,
-                                                             result_ptr.move_as_ok());
+    td_->inline_queries_manager_->on_get_inline_query_results(dialog_id_, bot_user_id_, query_hash_,
+                                                              result_ptr.move_as_ok());
     promise_.set_value(Unit());
   }
 
@@ -108,7 +108,7 @@ class GetInlineBotResultsQuery final : public Td::ResultHandler {
     }
     LOG(INFO) << "Inline query returned error " << status;
 
-    td->inline_queries_manager_->on_get_inline_query_results(dialog_id_, bot_user_id_, query_hash_, nullptr);
+    td_->inline_queries_manager_->on_get_inline_query_results(dialog_id_, bot_user_id_, query_hash_, nullptr);
     promise_.set_error(std::move(status));
   }
 };

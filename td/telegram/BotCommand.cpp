@@ -31,7 +31,7 @@ class SetBotCommandsQuery final : public Td::ResultHandler {
 
   void send(BotCommandScope scope, const string &language_code, vector<BotCommand> &&commands) {
     send_query(G()->net_query_creator().create(telegram_api::bots_setBotCommands(
-        scope.get_input_bot_command_scope(td), language_code,
+        scope.get_input_bot_command_scope(td_), language_code,
         transform(commands, [](const BotCommand &command) { return command.get_input_bot_command(); }))));
   }
 
@@ -61,7 +61,7 @@ class ResetBotCommandsQuery final : public Td::ResultHandler {
 
   void send(BotCommandScope scope, const string &language_code) {
     send_query(G()->net_query_creator().create(
-        telegram_api::bots_resetBotCommands(scope.get_input_bot_command_scope(td), language_code)));
+        telegram_api::bots_resetBotCommands(scope.get_input_bot_command_scope(td_), language_code)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -88,7 +88,7 @@ class GetBotCommandsQuery final : public Td::ResultHandler {
 
   void send(BotCommandScope scope, const string &language_code) {
     send_query(G()->net_query_creator().create(
-        telegram_api::bots_getBotCommands(scope.get_input_bot_command_scope(td), language_code)));
+        telegram_api::bots_getBotCommands(scope.get_input_bot_command_scope(td_), language_code)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -97,8 +97,8 @@ class GetBotCommandsQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    BotCommands commands(td->contacts_manager_->get_my_id(), result_ptr.move_as_ok());
-    promise_.set_value(commands.get_bot_commands_object(td));
+    BotCommands commands(td_->contacts_manager_->get_my_id(), result_ptr.move_as_ok());
+    promise_.set_value(commands.get_bot_commands_object(td_));
   }
 
   void on_error(Status status) final {

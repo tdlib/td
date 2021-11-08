@@ -84,7 +84,7 @@ class GetGroupCallJoinAsQuery final : public Td::ResultHandler {
   void send(DialogId dialog_id) {
     dialog_id_ = dialog_id;
 
-    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
 
     send_query(G()->net_query_creator().create(telegram_api::phone_getGroupCallJoinAs(std::move(input_peer))));
@@ -99,8 +99,8 @@ class GetGroupCallJoinAsQuery final : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetGroupCallJoinAsQuery: " << to_string(ptr);
 
-    td->contacts_manager_->on_get_users(std::move(ptr->users_), "GetGroupCallJoinAsQuery");
-    td->contacts_manager_->on_get_chats(std::move(ptr->chats_), "GetGroupCallJoinAsQuery");
+    td_->contacts_manager_->on_get_users(std::move(ptr->users_), "GetGroupCallJoinAsQuery");
+    td_->contacts_manager_->on_get_chats(std::move(ptr->chats_), "GetGroupCallJoinAsQuery");
 
     vector<td_api::object_ptr<td_api::MessageSender>> participant_aliaces;
     for (auto &peer : ptr->peers_) {
@@ -110,11 +110,11 @@ class GetGroupCallJoinAsQuery final : public Td::ResultHandler {
         continue;
       }
       if (dialog_id.get_type() != DialogType::User) {
-        td->messages_manager_->force_create_dialog(dialog_id, "GetGroupCallJoinAsQuery");
+        td_->messages_manager_->force_create_dialog(dialog_id, "GetGroupCallJoinAsQuery");
       }
 
       participant_aliaces.push_back(
-          td->messages_manager_->get_message_sender_object(dialog_id, "GetGroupCallJoinAsQuery"));
+          td_->messages_manager_->get_message_sender_object(dialog_id, "GetGroupCallJoinAsQuery"));
     }
 
     promise_.set_value(td_api::make_object<td_api::messageSenders>(static_cast<int32>(participant_aliaces.size()),
@@ -122,7 +122,7 @@ class GetGroupCallJoinAsQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetGroupCallJoinAsQuery");
+    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetGroupCallJoinAsQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -135,10 +135,10 @@ class SaveDefaultGroupCallJoinAsQuery final : public Td::ResultHandler {
   }
 
   void send(DialogId dialog_id, DialogId as_dialog_id) {
-    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
 
-    auto as_input_peer = td->messages_manager_->get_input_peer(as_dialog_id, AccessRights::Read);
+    auto as_input_peer = td_->messages_manager_->get_input_peer(as_dialog_id, AccessRights::Read);
     CHECK(as_input_peer != nullptr);
 
     send_query(G()->net_query_creator().create(
@@ -158,7 +158,7 @@ class SaveDefaultGroupCallJoinAsQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    // td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetGroupCallJoinAsQuery");
+    // td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetGroupCallJoinAsQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -174,7 +174,7 @@ class CreateGroupCallQuery final : public Td::ResultHandler {
   void send(DialogId dialog_id, const string &title, int32 start_date) {
     dialog_id_ = dialog_id;
 
-    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
 
     int32 flags = 0;
@@ -197,7 +197,7 @@ class CreateGroupCallQuery final : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for CreateGroupCallQuery: " << to_string(ptr);
 
-    auto group_call_ids = td->updates_manager_->get_update_new_group_call_ids(ptr.get());
+    auto group_call_ids = td_->updates_manager_->get_update_new_group_call_ids(ptr.get());
     if (group_call_ids.empty()) {
       LOG(ERROR) << "Receive wrong CreateGroupCallQuery response " << to_string(ptr);
       return on_error(Status::Error(500, "Receive wrong response"));
@@ -210,14 +210,14 @@ class CreateGroupCallQuery final : public Td::ResultHandler {
       }
     }
 
-    td->updates_manager_->on_get_updates(
+    td_->updates_manager_->on_get_updates(
         std::move(ptr), PromiseCreator::lambda([promise = std::move(promise_), group_call_id](Unit) mutable {
           promise.set_value(std::move(group_call_id));
         }));
   }
 
   void on_error(Status status) final {
-    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "CreateGroupCallQuery");
+    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "CreateGroupCallQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -274,8 +274,8 @@ class GetGroupCallParticipantQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td->group_call_manager_->on_get_group_call_participants(input_group_call_id_, result_ptr.move_as_ok(), false,
-                                                            string());
+    td_->group_call_manager_->on_get_group_call_participants(input_group_call_id_, result_ptr.move_as_ok(), false,
+                                                             string());
 
     promise_.set_value(Unit());
   }
@@ -308,8 +308,8 @@ class GetGroupCallParticipantsQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td->group_call_manager_->on_get_group_call_participants(input_group_call_id_, result_ptr.move_as_ok(), true,
-                                                            offset_);
+    td_->group_call_manager_->on_get_group_call_participants(input_group_call_id_, result_ptr.move_as_ok(), true,
+                                                             offset_);
 
     promise_.set_value(Unit());
   }
@@ -339,7 +339,7 @@ class StartScheduledGroupCallQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for StartScheduledGroupCallQuery: " << to_string(ptr);
-    td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
   void on_error(Status status) final {
@@ -369,7 +369,7 @@ class JoinGroupCallQuery final : public Td::ResultHandler {
 
     tl_object_ptr<telegram_api::InputPeer> join_as_input_peer;
     if (as_dialog_id.is_valid()) {
-      join_as_input_peer = td->messages_manager_->get_input_peer(as_dialog_id, AccessRights::Read);
+      join_as_input_peer = td_->messages_manager_->get_input_peer(as_dialog_id, AccessRights::Read);
     } else {
       join_as_input_peer = make_tl_object<telegram_api::inputPeerSelf>();
     }
@@ -401,8 +401,8 @@ class JoinGroupCallQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for JoinGroupCallQuery with generation " << generation_ << ": " << to_string(ptr);
-    td->group_call_manager_->process_join_group_call_response(input_group_call_id_, generation_, std::move(ptr),
-                                                              std::move(promise_));
+    td_->group_call_manager_->process_join_group_call_response(input_group_call_id_, generation_, std::move(ptr),
+                                                               std::move(promise_));
   }
 
   void on_error(Status status) final {
@@ -435,13 +435,13 @@ class JoinGroupCallPresentationQuery final : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for JoinGroupCallPresentationQuery with generation " << generation_ << ": "
               << to_string(ptr);
-    td->group_call_manager_->process_join_group_call_presentation_response(input_group_call_id_, generation_,
-                                                                           std::move(ptr), Status::OK());
+    td_->group_call_manager_->process_join_group_call_presentation_response(input_group_call_id_, generation_,
+                                                                            std::move(ptr), Status::OK());
   }
 
   void on_error(Status status) final {
-    td->group_call_manager_->process_join_group_call_presentation_response(input_group_call_id_, generation_, nullptr,
-                                                                           std::move(status));
+    td_->group_call_manager_->process_join_group_call_presentation_response(input_group_call_id_, generation_, nullptr,
+                                                                            std::move(status));
   }
 };
 
@@ -465,7 +465,7 @@ class LeaveGroupCallPresentationQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for LeaveGroupCallPresentationQuery: " << to_string(ptr);
-    td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
   void on_error(Status status) final {
@@ -497,7 +497,7 @@ class EditGroupCallTitleQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for EditGroupCallTitleQuery: " << to_string(ptr);
-    td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
   void on_error(Status status) final {
@@ -529,7 +529,7 @@ class ToggleGroupCallStartSubscriptionQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for ToggleGroupCallStartSubscriptionQuery: " << to_string(ptr);
-    td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
   void on_error(Status status) final {
@@ -561,7 +561,7 @@ class ToggleGroupCallSettingsQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for ToggleGroupCallSettingsQuery: " << to_string(ptr);
-    td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
   void on_error(Status status) final {
@@ -593,7 +593,7 @@ class InviteToGroupCallQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for InviteToGroupCallQuery: " << to_string(ptr);
-    td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
   void on_error(Status status) final {
@@ -664,7 +664,7 @@ class ToggleGroupCallRecordQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for ToggleGroupCallRecordQuery: " << to_string(ptr);
-    td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
   void on_error(Status status) final {
@@ -687,7 +687,7 @@ class EditGroupCallParticipantQuery final : public Td::ResultHandler {
             int32 volume_level, bool set_raise_hand, bool raise_hand, bool set_video_is_stopped, bool video_is_stopped,
             bool set_video_is_paused, bool video_is_paused, bool set_presentation_is_paused,
             bool presentation_is_paused) {
-    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Know);
+    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Know);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -720,7 +720,7 @@ class EditGroupCallParticipantQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for EditGroupCallParticipantQuery: " << to_string(ptr);
-    td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
   void on_error(Status status) final {
@@ -784,7 +784,7 @@ class LeaveGroupCallQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for LeaveGroupCallQuery: " << to_string(ptr);
-    td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
   void on_error(Status status) final {
@@ -812,7 +812,7 @@ class DiscardGroupCallQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for DiscardGroupCallQuery: " << to_string(ptr);
-    td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
   void on_error(Status status) final {

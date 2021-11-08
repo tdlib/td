@@ -48,7 +48,7 @@ class SetGameScoreActor final : public NetActorOnce {
 
     dialog_id_ = dialog_id;
 
-    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Edit);
+    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Edit);
     if (input_peer == nullptr) {
       on_error(Status::Error(400, "Can't access the chat"));
       stop();
@@ -63,7 +63,7 @@ class SetGameScoreActor final : public NetActorOnce {
     LOG(INFO) << "Set game score to " << score;
 
     query->debug("send to MultiSequenceDispatcher");
-    send_closure(td->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
+    send_closure(td_->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
                  std::move(query), actor_shared(this), sequence_dispatcher_id);
   }
 
@@ -75,12 +75,12 @@ class SetGameScoreActor final : public NetActorOnce {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for SetGameScore: " << to_string(ptr);
-    td->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
   void on_error(Status status) final {
     LOG(INFO) << "Receive error for SetGameScore: " << status;
-    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "SetGameScoreActor");
+    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "SetGameScoreActor");
     promise_.set_error(std::move(status));
   }
 };
@@ -141,7 +141,7 @@ class GetGameHighScoresQuery final : public Td::ResultHandler {
   void send(DialogId dialog_id, MessageId message_id, tl_object_ptr<telegram_api::InputUser> input_user) {
     dialog_id_ = dialog_id;
 
-    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
 
     CHECK(input_user != nullptr);
@@ -155,11 +155,11 @@ class GetGameHighScoresQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    promise_.set_value(td->game_manager_->get_game_high_scores_object(result_ptr.move_as_ok()));
+    promise_.set_value(td_->game_manager_->get_game_high_scores_object(result_ptr.move_as_ok()));
   }
 
   void on_error(Status status) final {
-    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetGameHighScoresQuery");
+    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetGameHighScoresQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -189,7 +189,7 @@ class GetInlineGameHighScoresQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    promise_.set_value(td->game_manager_->get_game_high_scores_object(result_ptr.move_as_ok()));
+    promise_.set_value(td_->game_manager_->get_game_high_scores_object(result_ptr.move_as_ok()));
   }
 
   void on_error(Status status) final {

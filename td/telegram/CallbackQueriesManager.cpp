@@ -41,7 +41,7 @@ class GetBotCallbackAnswerQuery final : public Td::ResultHandler {
     dialog_id_ = dialog_id;
     message_id_ = message_id;
 
-    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
 
     int32 flags = 0;
@@ -85,15 +85,15 @@ class GetBotCallbackAnswerQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     if (status.message() == "DATA_INVALID" || status.message() == "MESSAGE_ID_INVALID") {
-      td->messages_manager_->get_message_from_server({dialog_id_, message_id_}, Auto(), "GetBotCallbackAnswerQuery");
+      td_->messages_manager_->get_message_from_server({dialog_id_, message_id_}, Auto(), "GetBotCallbackAnswerQuery");
     } else if (status.message() == "BOT_RESPONSE_TIMEOUT") {
       status = Status::Error(502, "The bot is not responding");
     }
-    if (status.code() == 502 && td->messages_manager_->is_message_edited_recently({dialog_id_, message_id_}, 31)) {
+    if (status.code() == 502 && td_->messages_manager_->is_message_edited_recently({dialog_id_, message_id_}, 31)) {
       return promise_.set_value(td_api::make_object<td_api::callbackQueryAnswer>());
     }
 
-    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetBotCallbackAnswerQuery");
+    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetBotCallbackAnswerQuery");
     promise_.set_error(std::move(status));
   }
 };

@@ -12,7 +12,7 @@
 
 namespace td {
 
-NetActor::NetActor() : td(static_cast<Td *>(G()->td().get_actor_unsafe())) {
+NetActor::NetActor() : td_(static_cast<Td *>(G()->td().get_actor_unsafe())) {
 }
 
 void NetActor::set_parent(ActorShared<> parent) {

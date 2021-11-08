@@ -40,7 +40,7 @@ class GetSponsoredMessagesQuery final : public Td::ResultHandler {
 
   void send(ChannelId channel_id) {
     channel_id_ = channel_id;
-    auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
+    auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
     if (input_channel == nullptr) {
       return promise_.set_error(Status::Error(400, "Chat info not found"));
     }
@@ -57,7 +57,7 @@ class GetSponsoredMessagesQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td->contacts_manager_->on_get_channel_error(channel_id_, status, "GetSponsoredMessagesQuery");
+    td_->contacts_manager_->on_get_channel_error(channel_id_, status, "GetSponsoredMessagesQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -72,7 +72,7 @@ class ViewSponsoredMessageQuery final : public Td::ResultHandler {
 
   void send(ChannelId channel_id, const string &message_id) {
     channel_id_ = channel_id;
-    auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
+    auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
     if (input_channel == nullptr) {
       return promise_.set_error(Status::Error(400, "Chat info not found"));
     }
@@ -90,7 +90,7 @@ class ViewSponsoredMessageQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td->contacts_manager_->on_get_channel_error(channel_id_, status, "ViewSponsoredMessageQuery");
+    td_->contacts_manager_->on_get_channel_error(channel_id_, status, "ViewSponsoredMessageQuery");
     promise_.set_error(std::move(status));
   }
 };

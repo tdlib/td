@@ -221,10 +221,10 @@ class Td final : public Actor {
    protected:
     void send_query(NetQueryPtr query);
 
-    Td *td = nullptr;
+    Td *td_ = nullptr;
 
    private:
-    void set_td(Td *new_td);
+    void set_td(Td *td);
   };
 
   template <class HandlerT, class... Args>
