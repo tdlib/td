@@ -30,6 +30,10 @@ class RequestActor : public Actor {
   }
 
   void loop() override {
+    if (G()->close_flag()) {
+      return do_send_error(Global::request_aborted_error());
+    }
+
     PromiseActor<T> promise_actor;
     FutureActor<T> future;
     init_promise_future(&promise_actor, &future);
@@ -65,9 +69,9 @@ class RequestActor : public Actor {
       auto error = future_.move_as_error();
       if (error == Status::Error<FutureActor<T>::HANGUP_ERROR_CODE>()) {
         // dropping query due to lost authorization or lost promise
-        // Td may be already closed, so we should check is auth_manager_ is empty
-        bool is_authorized = td_->auth_manager_ && td_->auth_manager_->is_authorized();
-        if (is_authorized) {
+        if (G()->close_flag()) {
+          do_send_error(Global::request_aborted_error());
+        } else if (!td_->auth_manager_->is_authorized()) {
           LOG(ERROR) << "Promise was lost";
           do_send_error(Status::Error(500, "Query can't be answered due to a bug in TDLib"));
         } else {
