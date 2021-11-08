@@ -11841,7 +11841,8 @@ bool ContactsManager::on_get_channel_error(ChannelId channel_id, const Status &s
 
     auto c = get_channel(channel_id);
     if (c == nullptr) {
-      if (td_->auth_manager_->is_bot() && source == "GetChannelsQuery") {
+      if (source == "GetChannelDifferenceQuery" || (td_->auth_manager_->is_bot() && source == "GetChannelsQuery")) {
+        // get channel difference after restart
         // get channel from server by its identifier
         return true;
       }

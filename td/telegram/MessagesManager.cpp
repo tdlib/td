@@ -4681,7 +4681,7 @@ class GetChannelDifferenceQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     if (!td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetChannelDifferenceQuery")) {
-      LOG(ERROR) << "Receive updates.getChannelDifference error for " << dialog_id_ << " with pts " << pts_
+      LOG(ERROR) << "Receive error for GetChannelDifferenceQuery for " << dialog_id_ << " with pts " << pts_
                  << " and limit " << limit_ << ": " << status;
     }
     td_->messages_manager_->on_get_channel_difference(dialog_id_, pts_, limit_, nullptr);
