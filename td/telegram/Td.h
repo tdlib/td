@@ -126,6 +126,11 @@ class Td final : public Actor {
 
   template <class ActorT, class... ArgsT>
   ActorId<ActorT> create_net_actor(ArgsT &&... args) {
+    LOG_CHECK(close_flag_ < 1) << close_flag_
+#if TD_CLANG || TD_GCC
+                               << ' ' << __PRETTY_FUNCTION__
+#endif
+        ;
     auto slot_id = request_actors_.create(ActorOwn<>(), RequestActorIdType);
     inc_request_actor_refcnt();
     auto actor = make_unique<ActorT>(std::forward<ArgsT>(args)...);
