@@ -11,6 +11,7 @@
 #include "td/telegram/DialogInviteLink.h"
 #include "td/telegram/DialogLocation.h"
 #include "td/telegram/DialogParticipant.h"
+#include "td/telegram/Global.h"
 #include "td/telegram/GroupCallManager.h"
 #include "td/telegram/GroupCallParticipant.h"
 #include "td/telegram/InputGroupCallId.h"
@@ -18,8 +19,12 @@
 #include "td/telegram/MessageTtlSetting.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/telegram_api.h"
 
+#include "td/utils/buffer.h"
+#include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/Status.h"
 
 namespace td {
 

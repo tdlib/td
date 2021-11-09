@@ -18,6 +18,7 @@
 #include "td/utils/List.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/MpscPollableQueue.h"
 #include "td/utils/ObjectPool.h"
 #include "td/utils/port/thread_local.h"
 #include "td/utils/ScopeGuard.h"
@@ -25,6 +26,7 @@
 
 #include <functional>
 #include <iterator>
+#include <memory>
 #include <utility>
 
 namespace td {
