@@ -26,6 +26,7 @@
 #include "td/telegram/DeviceTokenManager.h"
 #include "td/telegram/DialogAction.h"
 #include "td/telegram/DialogAdministrator.h"
+#include "td/telegram/DialogEventLog.h"
 #include "td/telegram/DialogFilter.h"
 #include "td/telegram/DialogFilterId.h"
 #include "td/telegram/DialogId.h"
@@ -1845,39 +1846,6 @@ class JoinChatByInviteLinkRequest final : public RequestActor<DialogId> {
  public:
   JoinChatByInviteLinkRequest(ActorShared<Td> td, uint64 request_id, string invite_link)
       : RequestActor(std::move(td), request_id), invite_link_(std::move(invite_link)) {
-  }
-};
-
-class GetChatEventLogRequest final : public RequestOnceActor {
-  DialogId dialog_id_;
-  string query_;
-  int64 from_event_id_;
-  int32 limit_;
-  tl_object_ptr<td_api::chatEventLogFilters> filters_;
-  vector<UserId> user_ids_;
-
-  int64 random_id_ = 0;
-
-  void do_run(Promise<Unit> &&promise) final {
-    random_id_ = td_->messages_manager_->get_dialog_event_log(dialog_id_, query_, from_event_id_, limit_, filters_,
-                                                              user_ids_, std::move(promise));
-  }
-
-  void do_send_result() final {
-    CHECK(random_id_ != 0);
-    send_result(td_->messages_manager_->get_chat_events_object(random_id_));
-  }
-
- public:
-  GetChatEventLogRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, string &&query, int64 from_event_id,
-                         int32 limit, tl_object_ptr<td_api::chatEventLogFilters> &&filters, vector<UserId> user_ids)
-      : RequestOnceActor(std::move(td), request_id)
-      , dialog_id_(dialog_id)
-      , query_(std::move(query))
-      , from_event_id_(from_event_id)
-      , limit_(limit)
-      , filters_(std::move(filters))
-      , user_ids_(std::move(user_ids)) {
   }
 };
 
@@ -6450,8 +6418,10 @@ void Td::on_request(uint64 id, td_api::joinChatByInviteLink &request) {
 void Td::on_request(uint64 id, td_api::getChatEventLog &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.query_);
-  CREATE_REQUEST(GetChatEventLogRequest, request.chat_id_, std::move(request.query_), request.from_event_id_,
-                 request.limit_, std::move(request.filters_), UserId::get_user_ids(request.user_ids_));
+  CREATE_REQUEST_PROMISE();
+  get_dialog_event_log(this, DialogId(request.chat_id_), std::move(request.query_), request.from_event_id_,
+                       request.limit_, std::move(request.filters_), UserId::get_user_ids(request.user_ids_),
+                       std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::clearAllDraftMessages &request) {

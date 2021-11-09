@@ -5628,10 +5628,6 @@ void on_sent_message_content(Td *td, const MessageContent *content) {
   }
 }
 
-StickerSetId add_sticker_set(Td *td, tl_object_ptr<telegram_api::InputStickerSet> &&input_sticker_set) {
-  return td->stickers_manager_->add_sticker_set(std::move(input_sticker_set));
-}
-
 bool is_unsent_animated_emoji_click(Td *td, DialogId dialog_id, const DialogAction &action) {
   auto emoji = action.get_watching_animations_emoji();
   if (emoji.empty()) {

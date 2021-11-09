@@ -302,6 +302,7 @@ set(TDLIB_SOURCE
   td/telegram/DialogAction.cpp
   td/telegram/DialogAdministrator.cpp
   td/telegram/DialogDb.cpp
+  td/telegram/DialogEventLog.cpp
   td/telegram/DialogFilter.cpp
   td/telegram/DialogId.cpp
   td/telegram/DialogInviteLink.cpp
@@ -483,6 +484,7 @@ set(TDLIB_SOURCE
   td/telegram/DialogAdministrator.h
   td/telegram/DialogDate.h
   td/telegram/DialogDb.h
+  td/telegram/DialogEventLog.h
   td/telegram/DialogFilter.h
   td/telegram/DialogFilterId.h
   td/telegram/DialogId.h

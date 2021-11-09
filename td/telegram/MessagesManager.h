@@ -510,15 +510,6 @@ class MessagesManager final : public Actor {
 
   void get_dialog_info_full(DialogId dialog_id, Promise<Unit> &&promise, const char *source);
 
-  int64 get_dialog_event_log(DialogId dialog_id, const string &query, int64 from_event_id, int32 limit,
-                             const tl_object_ptr<td_api::chatEventLogFilters> &filters, const vector<UserId> &user_ids,
-                             Promise<Unit> &&promise);
-
-  void on_get_event_log(ChannelId channel_id, int64 random_id,
-                        tl_object_ptr<telegram_api::channels_adminLogResults> &&events);
-
-  tl_object_ptr<td_api::chatEvents> get_chat_events_object(int64 random_id);
-
   string get_dialog_title(DialogId dialog_id) const;
 
   bool have_dialog(DialogId dialog_id) const;
@@ -766,6 +757,9 @@ class MessagesManager final : public Actor {
                                    Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
 
   tl_object_ptr<td_api::message> get_dialog_message_by_date_object(int64 random_id);
+
+  td_api::object_ptr<td_api::message> get_dialog_event_log_message_object(
+      DialogId dialog_id, tl_object_ptr<telegram_api::Message> &&message);
 
   tl_object_ptr<td_api::message> get_message_object(FullMessageId full_message_id, const char *source);
 
@@ -2999,12 +2993,6 @@ class MessagesManager final : public Actor {
 
   void load_secret_thumbnail(FileId thumbnail_file_id);
 
-  static tl_object_ptr<telegram_api::channelAdminLogEventsFilter> get_channel_admin_log_events_filter(
-      const tl_object_ptr<td_api::chatEventLogFilters> &filters);
-
-  tl_object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
-      ChannelId channel_id, tl_object_ptr<telegram_api::ChannelAdminLogEventAction> &&action_ptr);
-
   void on_upload_media(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file,
                        tl_object_ptr<telegram_api::InputEncryptedFile> input_encrypted_file);
   void on_upload_media_error(FileId file_id, Status status);
@@ -3361,8 +3349,6 @@ class MessagesManager final : public Actor {
     std::unordered_map<MessageId, string, MessageIdHash> embedding_codes_;
   };
   std::unordered_map<DialogId, MessageEmbeddingCodes, DialogIdHash> message_embedding_codes_[2];
-
-  std::unordered_map<int64, tl_object_ptr<td_api::chatEvents>> chat_events_;  // random_id -> chat events
 
   std::unordered_map<DialogId, vector<Promise<Unit>>, DialogIdHash> get_dialog_notification_settings_queries_;
 
