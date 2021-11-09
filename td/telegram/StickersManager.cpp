@@ -666,7 +666,7 @@ class GetStickerSetQuery final : public Td::ResultHandler {
       sticker_set_name_ =
           static_cast<const telegram_api::inputStickerSetShortName *>(input_sticker_set.get())->short_name_;
     }
-    send_query(G()->net_query_creator().create(telegram_api::messages_getStickerSet(std::move(input_sticker_set))));
+    send_query(G()->net_query_creator().create(telegram_api::messages_getStickerSet(std::move(input_sticker_set), 0)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -675,7 +675,11 @@ class GetStickerSetQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    auto set = result_ptr.move_as_ok();
+    auto set_ptr = result_ptr.move_as_ok();
+    if (set_ptr->get_id() == telegram_api::messages_stickerSetNotModified::ID) {
+      return on_error(Status::Error(500, "Receive unexpected stickerSetNotModified"));
+    }
+    auto set = move_tl_object_as<telegram_api::messages_stickerSet>(set_ptr);
 
     constexpr int64 GREAT_MINDS_COLOR_SET_ID = 151353307481243663;
     if (set->set_->id_ == GREAT_MINDS_COLOR_SET_ID) {
@@ -705,7 +709,7 @@ class ReloadSpecialStickerSetQuery final : public Td::ResultHandler {
  public:
   void send(SpecialStickerSetType type) {
     type_ = std::move(type);
-    send_query(G()->net_query_creator().create(telegram_api::messages_getStickerSet(type_.get_input_sticker_set())));
+    send_query(G()->net_query_creator().create(telegram_api::messages_getStickerSet(type_.get_input_sticker_set(), 0)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -2861,9 +2865,16 @@ StickerSetId StickersManager::on_get_sticker_set_covered(tl_object_ptr<telegram_
 }
 
 StickerSetId StickersManager::on_get_messages_sticker_set(StickerSetId sticker_set_id,
-                                                          tl_object_ptr<telegram_api::messages_stickerSet> &&set,
+                                                          tl_object_ptr<telegram_api::messages_StickerSet> &&set_ptr,
                                                           bool is_changed, const char *source) {
-  LOG(INFO) << "Receive sticker set " << to_string(set);
+  LOG(INFO) << "Receive sticker set " << to_string(set_ptr);
+  if (set_ptr->get_id() == telegram_api::messages_stickerSetNotModified::ID) {
+    if (!sticker_set_id.is_valid()) {
+      LOG(ERROR) << "Receive unexpected stickerSetNotModified from " << source;
+    }
+    return sticker_set_id;
+  }
+  auto set = move_tl_object_as<telegram_api::messages_stickerSet>(set_ptr);
 
   auto set_id = on_get_sticker_set(std::move(set->set_), is_changed, source);
   if (!set_id.is_valid()) {

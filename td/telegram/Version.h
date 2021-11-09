@@ -10,7 +10,7 @@
 
 namespace td {
 
-constexpr int32 MTPROTO_LAYER = 134;
+constexpr int32 MTPROTO_LAYER = 135;
 
 enum class Version : int32 {
   Initial,  // 0

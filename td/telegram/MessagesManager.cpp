@@ -2846,17 +2846,17 @@ class DeleteUserHistoryQuery final : public Td::ResultHandler {
     if (input_channel == nullptr) {
       return promise_.set_error(Status::Error(400, "Chat is not accessible"));
     }
-    auto input_user = td_->contacts_manager_->get_input_user(user_id);
-    if (input_user == nullptr) {
-      return promise_.set_error(Status::Error(400, "Usat is not accessible"));
+    auto input_peer = td_->contacts_manager_->get_input_peer_user(user_id, AccessRights::Know);
+    if (input_peer == nullptr) {
+      return promise_.set_error(Status::Error(400, "User is not accessible"));
     }
 
     send_query(G()->net_query_creator().create(
-        telegram_api::channels_deleteUserHistory(std::move(input_channel), std::move(input_user))));
+        telegram_api::channels_deleteParticipantHistory(std::move(input_channel), std::move(input_peer))));
   }
 
   void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::channels_deleteUserHistory>(packet);
+    auto result_ptr = fetch_result<telegram_api::channels_deleteParticipantHistory>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
     }
@@ -2981,7 +2981,7 @@ class SendMessageActor final : public NetActorOnce {
     auto query = G()->net_query_creator().create(telegram_api::messages_sendMessage(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_peer),
         reply_to_message_id.get_server_message_id().get(), text, random_id, std::move(reply_markup),
-        std::move(entities), schedule_date));
+        std::move(entities), schedule_date, nullptr));
     if (G()->shared_config().get_option_boolean("use_quick_ack")) {
       query->quick_ack_promise_ = PromiseCreator::lambda(
           [random_id](Unit) {
@@ -3105,7 +3105,7 @@ class SendInlineBotResultQuery final : public Td::ResultHandler {
 
     auto query = G()->net_query_creator().create(telegram_api::messages_sendInlineBotResult(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_peer),
-        reply_to_message_id.get_server_message_id().get(), random_id, query_id, result_id, schedule_date));
+        reply_to_message_id.get_server_message_id().get(), random_id, query_id, result_id, schedule_date, nullptr));
     auto send_query_ref = query.get_weak();
     send_query(std::move(query));
     return send_query_ref;
@@ -3162,7 +3162,7 @@ class SendMultiMediaActor final : public NetActorOnce {
 
     auto query = G()->net_query_creator().create(telegram_api::messages_sendMultiMedia(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_peer),
-        reply_to_message_id.get_server_message_id().get(), std::move(input_single_media), schedule_date));
+        reply_to_message_id.get_server_message_id().get(), std::move(input_single_media), schedule_date, nullptr));
     // no quick ack, because file reference errors are very likely to happen
     query->debug("send to MessagesManager::MultiSequenceDispatcher");
     send_closure(td_->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
@@ -3276,7 +3276,7 @@ class SendMediaActor final : public NetActorOnce {
     auto query = G()->net_query_creator().create(telegram_api::messages_sendMedia(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_peer),
         reply_to_message_id.get_server_message_id().get(), std::move(input_media), text, random_id,
-        std::move(reply_markup), std::move(entities), schedule_date));
+        std::move(reply_markup), std::move(entities), schedule_date, nullptr));
     if (G()->shared_config().get_option_boolean("use_quick_ack") && was_uploaded_) {
       query->quick_ack_promise_ = PromiseCreator::lambda(
           [random_id](Unit) {
@@ -3647,7 +3647,7 @@ class ForwardMessagesActor final : public NetActorOnce {
     auto query = G()->net_query_creator().create(telegram_api::messages_forwardMessages(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
         std::move(from_input_peer), MessagesManager::get_server_message_ids(message_ids), std::move(random_ids),
-        std::move(to_input_peer), schedule_date));
+        std::move(to_input_peer), schedule_date, nullptr));
     if (G()->shared_config().get_option_boolean("use_quick_ack")) {
       query->quick_ack_promise_ = PromiseCreator::lambda(
           [random_ids = random_ids_](Unit) {
@@ -4230,7 +4230,10 @@ class GetPeerSettingsQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td_->messages_manager_->on_get_peer_settings(dialog_id_, result_ptr.move_as_ok());
+    auto ptr = result_ptr.move_as_ok();
+    td_->contacts_manager_->on_get_users(std::move(ptr->users_), "GetPeerSettingsQuery");
+    td_->contacts_manager_->on_get_chats(std::move(ptr->chats_), "GetPeerSettingsQuery");
+    td_->messages_manager_->on_get_peer_settings(dialog_id_, std::move(ptr->settings_));
   }
 
   void on_error(Status status) final {

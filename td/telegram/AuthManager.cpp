@@ -672,9 +672,7 @@ void AuthManager::on_log_out_result(NetQueryPtr &result) {
   if (result->is_ok()) {
     auto r_log_out = fetch_result<telegram_api::auth_logOut>(result->ok());
     if (r_log_out.is_ok()) {
-      if (!r_log_out.ok()) {
-        status = Status::Error(500, "auth.logOut returned false!");
-      }
+      // auto logged_out = r_log_out.move_as_ok();
     } else {
       status = r_log_out.move_as_error();
     }

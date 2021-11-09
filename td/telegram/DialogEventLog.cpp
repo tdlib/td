@@ -161,6 +161,9 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
         return td_api::make_object<td_api::chatEventMessageUnpinned>(std::move(message));
       }
     }
+    case telegram_api::channelAdminLogEventActionSendMessage::ID: {
+      return nullptr;
+    }
     case telegram_api::channelAdminLogEventActionEditMessage::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionEditMessage>(action_ptr);
       auto old_message = td->messages_manager_->get_dialog_event_log_message_object(DialogId(channel_id),
@@ -326,6 +329,8 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
       return td_api::make_object<td_api::chatEventMessageTtlSettingChanged>(old_value.get_message_ttl_setting_object(),
                                                                             new_value.get_message_ttl_setting_object());
     }
+    case telegram_api::channelAdminLogEventActionToggleNoForwards::ID:
+      return nullptr;
     default:
       UNREACHABLE();
       return nullptr;
@@ -456,7 +461,7 @@ static telegram_api::object_ptr<telegram_api::channelAdminLogEventsFilter> get_i
   return telegram_api::make_object<telegram_api::channelAdminLogEventsFilter>(
       flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
       false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-      false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/);
+      false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/);
 }
 
 void get_dialog_event_log(Td *td, DialogId dialog_id, const string &query, int64 from_event_id, int32 limit,

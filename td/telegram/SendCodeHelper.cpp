@@ -49,8 +49,8 @@ telegram_api::object_ptr<telegram_api::codeSettings> SendCodeHelper::get_input_c
       flags |= telegram_api::codeSettings::ALLOW_APP_HASH_MASK;
     }
   }
-  return telegram_api::make_object<telegram_api::codeSettings>(flags, false /*ignored*/, false /*ignored*/,
-                                                               false /*ignored*/);
+  return telegram_api::make_object<telegram_api::codeSettings>(
+      flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, vector<BufferSlice>());
 }
 
 telegram_api::auth_sendCode SendCodeHelper::send_code(string phone_number, const Settings &settings, int32 api_id,
@@ -91,6 +91,8 @@ SendCodeHelper::AuthenticationCodeInfo SendCodeHelper::get_authentication_code_i
       return {AuthenticationCodeInfo::Type::Call, 0, string()};
     case telegram_api::auth_codeTypeFlashCall::ID:
       return {AuthenticationCodeInfo::Type::FlashCall, 0, string()};
+    case telegram_api::auth_codeTypeMissedCall::ID:
+      return {AuthenticationCodeInfo::Type::FlashCall, 0, string()};
     default:
       UNREACHABLE();
       return AuthenticationCodeInfo();
@@ -116,6 +118,10 @@ SendCodeHelper::AuthenticationCodeInfo SendCodeHelper::get_authentication_code_i
     case telegram_api::auth_sentCodeTypeFlashCall::ID: {
       auto code_type = move_tl_object_as<telegram_api::auth_sentCodeTypeFlashCall>(sent_code_type_ptr);
       return AuthenticationCodeInfo{AuthenticationCodeInfo::Type::FlashCall, 0, code_type->pattern_};
+    }
+    case telegram_api::auth_sentCodeTypeMissedCall::ID: {
+      //      auto code_type = move_tl_object_as<telegram_api::auth_sentCodeTypeFlashCall>(sent_code_type_ptr);
+      return AuthenticationCodeInfo{AuthenticationCodeInfo::Type::FlashCall, 0, string()};
     }
     default:
       UNREACHABLE();

@@ -1091,11 +1091,11 @@ class ReportChannelSpamQuery final : public Td::ResultHandler {
     auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
 
-    auto input_user = td_->contacts_manager_->get_input_user(user_id);
-    CHECK(input_user != nullptr);
+    auto input_peer = td_->contacts_manager_->get_input_peer_user(user_id, AccessRights::Know);
+    CHECK(input_peer != nullptr);
 
     send_query(G()->net_query_creator().create(telegram_api::channels_reportSpam(
-        std::move(input_channel), std::move(input_user), MessagesManager::get_server_message_ids(message_ids))));
+        std::move(input_channel), std::move(input_peer), MessagesManager::get_server_message_ids(message_ids))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -2425,8 +2425,11 @@ class GetFullUserQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    LOG(DEBUG) << "Receive result for GetFullUserQuery: " << to_string(result_ptr.ok());
-    td_->contacts_manager_->on_get_user_full(result_ptr.move_as_ok());
+    auto ptr = result_ptr.move_as_ok();
+    LOG(DEBUG) << "Receive result for GetFullUserQuery: " << to_string(ptr);
+    td_->contacts_manager_->on_get_users(std::move(ptr->users_), "GetFullUserQuery");
+    td_->contacts_manager_->on_get_chats(std::move(ptr->chats_), "GetFullUserQuery");
+    td_->contacts_manager_->on_get_user_full(std::move(ptr->full_user_));
     promise_.set_value(Unit());
   }
 
@@ -9992,15 +9995,10 @@ void ContactsManager::on_get_users(vector<tl_object_ptr<telegram_api::User>> &&u
 }
 
 void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&user) {
-  UserId user_id = get_user_id(user->user_);
-  if (!user_id.is_valid()) {
-    LOG(ERROR) << "Receive invalid " << user_id;
-    return;
-  }
-
-  on_get_user(std::move(user->user_), "on_get_user_full");
+  UserId user_id(user->id_);
   User *u = get_user(user_id);
   if (u == nullptr) {
+    LOG(ERROR) << "Failed to find " << user_id;
     return;
   }
 

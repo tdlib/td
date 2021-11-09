@@ -133,7 +133,7 @@ class StickersManager final : public Actor {
   void on_get_installed_sticker_sets_failed(bool is_masks, Status error);
 
   StickerSetId on_get_messages_sticker_set(StickerSetId sticker_set_id,
-                                           tl_object_ptr<telegram_api::messages_stickerSet> &&set, bool is_changed,
+                                           tl_object_ptr<telegram_api::messages_StickerSet> &&set_ptr, bool is_changed,
                                            const char *source);
 
   StickerSetId on_get_sticker_set(tl_object_ptr<telegram_api::stickerSet> &&set, bool is_changed, const char *source);
