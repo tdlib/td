@@ -3961,31 +3961,20 @@ class SetTypingQuery final : public Td::ResultHandler {
 class DeleteMessagesQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
-  int32 query_count_;
 
  public:
   explicit DeleteMessagesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, vector<MessageId> &&message_ids, bool revoke) {
+  void send(DialogId dialog_id, vector<int32> &&server_message_ids, bool revoke) {
     dialog_id_ = dialog_id;
     int32 flags = 0;
     if (revoke) {
       flags |= telegram_api::messages_deleteMessages::REVOKE_MASK;
     }
 
-    query_count_ = 0;
-    auto server_message_ids = MessagesManager::get_server_message_ids(message_ids);
-    const size_t MAX_SLICE_SIZE = 100;
-    for (size_t i = 0; i < server_message_ids.size(); i += MAX_SLICE_SIZE) {
-      auto end_i = i + MAX_SLICE_SIZE;
-      auto end = end_i < server_message_ids.size() ? server_message_ids.begin() + end_i : server_message_ids.end();
-      vector<int32> slice(server_message_ids.begin() + i, end);
-
-      query_count_++;
-      send_query(G()->net_query_creator().create(
-          telegram_api::messages_deleteMessages(flags, false /*ignored*/, std::move(slice))));
-    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_deleteMessages(flags, false /*ignored*/, std::move(server_message_ids))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -3995,14 +3984,11 @@ class DeleteMessagesQuery final : public Td::ResultHandler {
     }
 
     auto affected_messages = result_ptr.move_as_ok();
-    CHECK(affected_messages->get_id() == telegram_api::messages_affectedMessages::ID);
-
     if (affected_messages->pts_count_ > 0) {
       td_->updates_manager_->add_pending_pts_update(make_tl_object<dummyUpdate>(), affected_messages->pts_,
-                                                    affected_messages->pts_count_, Time::now(), Promise<Unit>(),
+                                                    affected_messages->pts_count_, Time::now(), std::move(promise_),
                                                     "delete messages query");
-    }
-    if (--query_count_ == 0) {
+    } else {
       promise_.set_value(Unit());
     }
   }
@@ -4022,29 +4008,18 @@ class DeleteMessagesQuery final : public Td::ResultHandler {
 
 class DeleteChannelMessagesQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
-  int32 query_count_;
   ChannelId channel_id_;
 
  public:
   explicit DeleteChannelMessagesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(ChannelId channel_id, vector<MessageId> &&message_ids) {
+  void send(ChannelId channel_id, vector<int32> &&server_message_ids) {
     channel_id_ = channel_id;
-    query_count_ = 0;
-    auto server_message_ids = MessagesManager::get_server_message_ids(message_ids);
-    const size_t MAX_SLICE_SIZE = 100;
-    for (size_t i = 0; i < server_message_ids.size(); i += MAX_SLICE_SIZE) {
-      auto end_i = i + MAX_SLICE_SIZE;
-      auto end = end_i < server_message_ids.size() ? server_message_ids.begin() + end_i : server_message_ids.end();
-      vector<int32> slice(server_message_ids.begin() + i, end);
-
-      query_count_++;
-      auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
-      CHECK(input_channel != nullptr);
-      send_query(G()->net_query_creator().create(
-          telegram_api::channels_deleteMessages(std::move(input_channel), std::move(slice))));
-    }
+    auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
+    CHECK(input_channel != nullptr);
+    send_query(G()->net_query_creator().create(
+        telegram_api::channels_deleteMessages(std::move(input_channel), std::move(server_message_ids))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -4054,15 +4029,11 @@ class DeleteChannelMessagesQuery final : public Td::ResultHandler {
     }
 
     auto affected_messages = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for DeleteChannelMessagesQuery: " << to_string(affected_messages);
-    CHECK(affected_messages->get_id() == telegram_api::messages_affectedMessages::ID);
-
     if (affected_messages->pts_count_ > 0) {
       td_->messages_manager_->add_pending_channel_update(DialogId(channel_id_), make_tl_object<dummyUpdate>(),
                                                          affected_messages->pts_, affected_messages->pts_count_,
-                                                         Promise<Unit>(), "DeleteChannelMessagesQuery");
-    }
-    if (--query_count_ == 0) {
+                                                         std::move(promise_), "DeleteChannelMessagesQuery");
+    } else {
       promise_.set_value(Unit());
     }
   }
@@ -10536,7 +10507,7 @@ void MessagesManager::delete_messages(DialogId dialog_id, const vector<MessageId
     }
   }
 
-  MultiPromiseActorSafe mpas{"DeleteMessagesOnServerMultiPromiseActor"};
+  MultiPromiseActorSafe mpas{"DeleteMessagesMultiPromiseActor"};
   mpas.add_promise(std::move(promise));
 
   auto lock = mpas.get_promise();
@@ -10565,6 +10536,12 @@ void MessagesManager::delete_messages(DialogId dialog_id, const vector<MessageId
 
   if (need_update_chat_has_scheduled_messages) {
     send_update_chat_has_scheduled_messages(d, true);
+  }
+}
+
+void MessagesManager::erase_delete_messages_log_event(uint64 log_event_id) {
+  if (!G()->close_flag()) {
+    binlog_erase(G()->td_db()->get_binlog(), log_event_id);
   }
 }
 
@@ -10643,18 +10620,35 @@ void MessagesManager::delete_messages_on_server(DialogId dialog_id, vector<Messa
     log_event_id = save_delete_messages_on_server_log_event(dialog_id, message_ids, revoke);
   }
 
-  auto new_promise = get_erase_log_event_promise(log_event_id, std::move(promise));
-  promise = std::move(new_promise);  // to prevent self-move
-
-  switch (dialog_id.get_type()) {
+  MultiPromiseActorSafe mpas{"DeleteMessagesOnServerMultiPromiseActor"};
+  mpas.add_promise(std::move(promise));
+  if (log_event_id != 0) {
+    mpas.add_promise(PromiseCreator::lambda([actor_id = actor_id(this), log_event_id](Unit) {
+      send_closure(actor_id, &MessagesManager::erase_delete_messages_log_event, log_event_id);
+    }));
+  }
+  mpas.set_ignore_errors(true);
+  auto lock = mpas.get_promise();
+  auto dialog_type = dialog_id.get_type();
+  switch (dialog_type) {
     case DialogType::User:
     case DialogType::Chat:
-      td_->create_handler<DeleteMessagesQuery>(std::move(promise))->send(dialog_id, std::move(message_ids), revoke);
+    case DialogType::Channel: {
+      auto server_message_ids = MessagesManager::get_server_message_ids(message_ids);
+      const size_t MAX_SLICE_SIZE = 100;  // server side limit
+      for (size_t i = 0; i < server_message_ids.size(); i += MAX_SLICE_SIZE) {
+        auto end_i = i + MAX_SLICE_SIZE;
+        auto end = end_i < server_message_ids.size() ? server_message_ids.begin() + end_i : server_message_ids.end();
+        if (dialog_type != DialogType::Channel) {
+          td_->create_handler<DeleteMessagesQuery>(mpas.get_promise())
+              ->send(dialog_id, {server_message_ids.begin() + i, end}, revoke);
+        } else {
+          td_->create_handler<DeleteChannelMessagesQuery>(mpas.get_promise())
+              ->send(dialog_id.get_channel_id(), {server_message_ids.begin() + i, end});
+        }
+      }
       break;
-    case DialogType::Channel:
-      td_->create_handler<DeleteChannelMessagesQuery>(std::move(promise))
-          ->send(dialog_id.get_channel_id(), std::move(message_ids));
-      break;
+    }
     case DialogType::SecretChat: {
       vector<int64> random_ids;
       auto d = get_dialog_force(dialog_id, "delete_messages_on_server");
@@ -10667,9 +10661,7 @@ void MessagesManager::delete_messages_on_server(DialogId dialog_id, vector<Messa
       }
       if (!random_ids.empty()) {
         send_closure(G()->secret_chats_manager(), &SecretChatsManager::delete_messages, dialog_id.get_secret_chat_id(),
-                     std::move(random_ids), std::move(promise));
-      } else {
-        promise.set_value(Unit());
+                     std::move(random_ids), mpas.get_promise());
       }
       break;
     }
@@ -10677,6 +10669,7 @@ void MessagesManager::delete_messages_on_server(DialogId dialog_id, vector<Messa
     default:
       UNREACHABLE();
   }
+  lock.set_value(Unit());
 }
 
 class MessagesManager::DeleteScheduledMessagesOnServerLogEvent {
@@ -15786,7 +15779,7 @@ void MessagesManager::load_dialog_filter(const DialogFilter *filter, bool force,
   }
 
   if (!input_dialog_ids.empty() && !force) {
-    const size_t MAX_SLICE_SIZE = 100;
+    const size_t MAX_SLICE_SIZE = 100;  // server side limit
     MultiPromiseActorSafe mpas{"GetFilterDialogsOnServerMultiPromiseActor"};
     mpas.add_promise(std::move(promise));
     mpas.set_ignore_errors(true);
