@@ -242,7 +242,7 @@ class TlWriterCCommon final : public tl::TL_writer {
              "TDC_VECTOR(Int,int)\n"
              "TDC_VECTOR(Long,long long)\n"
              "TDC_VECTOR(String,char *)\n"
-             "TDC_VECTOR(Bytes,TdBytes)\n"
+             "TDC_VECTOR(Bytes,struct TdBytes)\n"
              "struct TdStackStorerMethods {\n"
              "  void (*pack_string)(const char *s);\n"
              "  void (*pack_bytes)(const unsigned char *s, int len);\n"
