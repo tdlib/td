@@ -3635,7 +3635,7 @@ class EditMessageActor final : public NetActorOnce {
             uint64 sequence_dispatcher_id) {
     dialog_id_ = dialog_id;
 
-    if (false && input_media != nullptr) {
+    if (input_media != nullptr && false) {
       on_error(Status::Error(400, "FILE_PART_1_MISSING"));
       stop();
       return;

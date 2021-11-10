@@ -80,7 +80,7 @@ void NetStatsManager::get_network_stats(bool current, Promise<NetworkStats> prom
     NetStatsData total_files;
 
     for_each_stat([&](NetStatsInfo &info, size_t id, CSlice name, FileType file_type) {
-      auto type_stats = info.stats_by_type[net_type_i];
+      const auto &type_stats = info.stats_by_type[net_type_i];
       auto stats = current ? type_stats.mem_stats : type_stats.mem_stats + type_stats.db_stats;
       if (id == 0) {
       } else if (id == 1) {
@@ -96,7 +96,7 @@ void NetStatsManager::get_network_stats(bool current, Promise<NetworkStats> prom
       if (id == 1) {
         return;
       }
-      auto type_stats = info.stats_by_type[net_type_i];
+      const auto &type_stats = info.stats_by_type[net_type_i];
       auto stats = current ? type_stats.mem_stats : type_stats.mem_stats + type_stats.db_stats;
 
       NetworkStatsEntry entry;

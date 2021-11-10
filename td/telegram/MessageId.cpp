@@ -20,7 +20,8 @@ MessageId::MessageId(ScheduledServerMessageId server_message_id, int32 send_date
     LOG(ERROR) << "Scheduled message ID " << server_message_id.get() << " is invalid";
     return;
   }
-  id = (static_cast<int64>(send_date - (1 << 30)) << 21) | (server_message_id.get() << 3) | SCHEDULED_MASK;
+  id = (static_cast<int64>(send_date - (1 << 30)) << 21) | (static_cast<int64>(server_message_id.get()) << 3) |
+       SCHEDULED_MASK;
 }
 
 bool MessageId::is_valid() const {

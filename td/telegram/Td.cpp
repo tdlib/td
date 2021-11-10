@@ -6257,8 +6257,8 @@ void Td::on_request(uint64 id, td_api::setChatMemberStatus &request) {
 
 void Td::on_request(uint64 id, const td_api::banChatMember &request) {
   CREATE_OK_REQUEST_PROMISE();
-  contacts_manager_->ban_dialog_participant(DialogId(request.chat_id_), std::move(request.member_id_),
-                                            request.banned_until_date_, request.revoke_messages_, std::move(promise));
+  contacts_manager_->ban_dialog_participant(DialogId(request.chat_id_), request.member_id_, request.banned_until_date_,
+                                            request.revoke_messages_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::canTransferOwnership &request) {
@@ -8341,7 +8341,7 @@ td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getLangua
       request.language_pack_database_path_, request.localization_target_, request.language_pack_id_, request.key_);
 }
 
-td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getPhoneNumberInfoSync &request) {
+td_api::object_ptr<td_api::Object> Td::do_static_request(td_api::getPhoneNumberInfoSync &request) {
   // don't check language_code/phone number UTF-8 correctness
   return CountryInfoManager::get_phone_number_info_sync(request.language_code_,
                                                         std::move(request.phone_number_prefix_));

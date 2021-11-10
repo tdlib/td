@@ -3920,7 +3920,7 @@ void GroupCallManager::leave_group_call(GroupCallId group_call_id, Promise<Unit>
       process_group_call_after_join_requests(input_group_call_id, "leave_group_call 1");
       return promise.set_value(Unit());
     }
-    if (group_call->need_rejoin) {
+    if (group_call != nullptr && group_call->need_rejoin) {
       group_call->need_rejoin = false;
       send_update_group_call(group_call, "leave_group_call");
       if (try_clear_group_call_participants(input_group_call_id)) {

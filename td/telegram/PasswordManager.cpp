@@ -677,7 +677,7 @@ Result<PasswordManager::PasswordInputSettings> PasswordManager::get_password_inp
 
   tl_object_ptr<telegram_api::secureSecretSettings> new_secure_settings;
   if (update_secure_secret) {
-    auto secret = have_secret ? std::move(private_state->secret.value()) : secure_storage::Secret::create_new();
+    auto secret = have_secret ? private_state->secret.value() : secure_storage::Secret::create_new();
     auto algorithm =
         make_tl_object<telegram_api::securePasswordKdfAlgoPBKDF2HMACSHA512iter100000>(create_salt(state.secure_salt));
     auto encrypted_secret = secret.encrypt(
