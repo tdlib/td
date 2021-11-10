@@ -30,7 +30,7 @@ class HttpFile {
   HttpFile(const HttpFile &) = delete;
   HttpFile &operator=(const HttpFile &) = delete;
 
-  HttpFile(HttpFile &&other)
+  HttpFile(HttpFile &&other) noexcept
       : field_name(std::move(other.field_name))
       , name(std::move(other.name))
       , content_type(std::move(other.content_type))

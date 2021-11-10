@@ -223,7 +223,7 @@ class JsonScope {
     CHECK(is_active());
   }
   JsonScope(const JsonScope &other) = delete;
-  JsonScope(JsonScope &&other) : sb_(other.sb_), jb_(other.jb_), save_scope_(other.save_scope_) {
+  JsonScope(JsonScope &&other) noexcept : sb_(other.sb_), jb_(other.jb_), save_scope_(other.save_scope_) {
     other.jb_ = nullptr;
   }
   JsonScope &operator=(const JsonScope &) = delete;

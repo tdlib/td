@@ -50,7 +50,7 @@ PerfWarningTimer::PerfWarningTimer(string name, double max_duration)
     : name_(std::move(name)), start_at_(Time::now()), max_duration_(max_duration) {
 }
 
-PerfWarningTimer::PerfWarningTimer(PerfWarningTimer &&other)
+PerfWarningTimer::PerfWarningTimer(PerfWarningTimer &&other) noexcept
     : name_(std::move(other.name_)), start_at_(other.start_at_), max_duration_(other.max_duration_) {
   other.start_at_ = 0;
 }
