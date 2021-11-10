@@ -18065,7 +18065,8 @@ void MessagesManager::on_get_message_link_dialog(MessageLinkInfo &&info, Promise
     return promise.set_error(Status::Error(500, "Chat not found"));
   }
 
-  get_message_force_from_server(d, info.message_id,
+  auto message_id = info.message_id;
+  get_message_force_from_server(d, message_id,
                                 PromiseCreator::lambda([actor_id = actor_id(this), info = std::move(info), dialog_id,
                                                         promise = std::move(promise)](Result<Unit> &&result) mutable {
                                   if (result.is_error()) {
@@ -18080,7 +18081,8 @@ void MessagesManager::on_get_message_link_message(MessageLinkInfo &&info, Dialog
                                                   Promise<MessageLinkInfo> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
-  Message *m = get_message_force({dialog_id, info.message_id}, "on_get_message_link_message");
+  auto message_id = info.message_id;
+  Message *m = get_message_force({dialog_id, message_id}, "on_get_message_link_message");
   if (info.comment_message_id == MessageId() || m == nullptr || !is_broadcast_channel(dialog_id) ||
       !m->reply_info.is_comment || !is_active_message_reply_info(dialog_id, m->reply_info)) {
     return promise.set_value(std::move(info));
@@ -18102,7 +18104,7 @@ void MessagesManager::on_get_message_link_message(MessageLinkInfo &&info, Dialog
   });
 
   td_->create_handler<GetDiscussionMessageQuery>(std::move(query_promise))
-      ->send(dialog_id, info.message_id, DialogId(m->reply_info.channel_id), MessageId());
+      ->send(dialog_id, message_id, DialogId(m->reply_info.channel_id), MessageId());
 }
 
 void MessagesManager::on_get_message_link_discussion_message(MessageLinkInfo &&info, DialogId comment_dialog_id,
@@ -18117,8 +18119,9 @@ void MessagesManager::on_get_message_link_discussion_message(MessageLinkInfo &&i
     return promise.set_error(Status::Error(500, "Chat not found"));
   }
 
+  auto comment_message_id = info.comment_message_id;
   get_message_force_from_server(
-      d, info.comment_message_id,
+      d, comment_message_id,
       PromiseCreator::lambda([info = std::move(info), promise = std::move(promise)](Result<Unit> &&result) mutable {
         return promise.set_value(std::move(info));
       }));
@@ -30444,7 +30447,7 @@ void MessagesManager::set_dialog_theme_name(Dialog *d, string theme_name) {
   d->is_theme_name_inited = true;
 
   if (is_changed) {
-    LOG(INFO) << "Set " << d->dialog_id << " theme to \"" << theme_name << '"';
+    LOG(INFO) << "Set " << d->dialog_id << " theme to \"" << d->theme_name << '"';
     send_update_chat_theme(d);
   } else {
     on_dialog_updated(d->dialog_id, "set_dialog_theme_name");

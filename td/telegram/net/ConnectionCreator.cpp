@@ -371,7 +371,7 @@ void ConnectionCreator::ping_proxy_resolved(int32 proxy_id, IPAddress ip_address
 
   auto connection_promise = PromiseCreator::lambda(
       [ip_address, promise = std::move(promise), actor_id = actor_id(this), transport_type = extra.transport_type,
-       debug_str = std::move(extra.debug_str)](Result<ConnectionData> r_connection_data) mutable {
+       debug_str = extra.debug_str](Result<ConnectionData> r_connection_data) mutable {
         if (r_connection_data.is_error()) {
           return promise.set_error(Status::Error(400, r_connection_data.error().public_message()));
         }
