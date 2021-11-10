@@ -208,6 +208,7 @@ class DefaultLog final : public LogInterface {
     }
 #elif !TD_WINDOWS
     Slice color;
+    Slice no_color("\x1b[0m");
     switch (log_level) {
       case VERBOSITY_NAME(FATAL):
       case VERBOSITY_NAME(ERROR):
@@ -220,10 +221,9 @@ class DefaultLog final : public LogInterface {
         color = Slice("\x1b[1;36m");  // cyan
         break;
       default:
-        // no color
+        no_color = Slice();
         break;
     }
-    Slice no_color("\x1b[0m");
     if (!slice.empty() && slice.back() == '\n') {
       TsCerr() << color << slice.substr(0, slice.size() - 1) << no_color << "\n";
     } else {
