@@ -175,7 +175,7 @@ class RangeSet {
 
   vector<int32> as_vector(int32 part_size) const {
     vector<int32> res;
-    for (auto it : ranges_) {
+    for (const auto &it : ranges_) {
       auto begin = narrow_cast<int32>((it.begin + part_size - 1) / part_size);
       auto end = narrow_cast<int32>(it.end / part_size);
       while (begin < end) {

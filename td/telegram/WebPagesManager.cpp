@@ -1295,11 +1295,11 @@ void WebPagesManager::on_web_page_changed(WebPageId web_page_id, bool have_web_p
   auto it = web_page_messages_.find(web_page_id);
   if (it != web_page_messages_.end()) {
     vector<FullMessageId> full_message_ids;
-    for (auto full_message_id : it->second) {
+    for (const auto &full_message_id : it->second) {
       full_message_ids.push_back(full_message_id);
     }
     CHECK(!full_message_ids.empty());
-    for (auto full_message_id : full_message_ids) {
+    for (const auto &full_message_id : full_message_ids) {
       if (!have_web_page) {
         td_->messages_manager_->delete_pending_message_web_page(full_message_id);
       } else {
@@ -1354,7 +1354,7 @@ void WebPagesManager::on_pending_web_page_timeout(WebPageId web_page_id) {
   auto it = web_page_messages_.find(web_page_id);
   if (it != web_page_messages_.end()) {
     vector<FullMessageId> full_message_ids;
-    for (auto full_message_id : it->second) {
+    for (const auto &full_message_id : it->second) {
       if (full_message_id.get_dialog_id().get_type() != DialogType::SecretChat) {
         full_message_ids.push_back(full_message_id);
       }

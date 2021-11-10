@@ -6958,7 +6958,7 @@ void MessagesManager::on_update_some_live_location_viewed(Promise<Unit> &&promis
 
   // update all live locations, because it is unknown, which exactly was viewed
   auto active_live_location_message_ids = get_active_live_location_messages(Auto());
-  for (auto full_message_id : active_live_location_message_ids) {
+  for (const auto &full_message_id : active_live_location_message_ids) {
     send_update_message_live_location_viewed(full_message_id);
   }
 
@@ -9176,7 +9176,7 @@ void MessagesManager::after_get_difference() {
         break;
     }
   }
-  for (auto full_message_id : update_message_ids_to_delete) {
+  for (const auto &full_message_id : update_message_ids_to_delete) {
     update_message_ids_.erase(full_message_id);
   }
 
@@ -10018,7 +10018,7 @@ void MessagesManager::on_get_scheduled_server_messages(DialogId dialog_id, uint3
   }
   on_update_dialog_has_scheduled_server_messages(dialog_id, has_scheduled_server_messages);
 
-  for (auto it : old_server_message_ids) {
+  for (const auto &it : old_server_message_ids) {
     auto message_id = it.second;
     auto message = do_delete_scheduled_message(d, message_id, true, "on_get_scheduled_server_messages");
     CHECK(message != nullptr);
@@ -15707,7 +15707,7 @@ void MessagesManager::load_dialog_filter(const DialogFilter *filter, bool force,
   vector<InputDialogId> needed_dialog_ids;
   for (auto input_dialog_ids :
        {&filter->pinned_dialog_ids, &filter->excluded_dialog_ids, &filter->included_dialog_ids}) {
-    for (auto input_dialog_id : *input_dialog_ids) {
+    for (const auto &input_dialog_id : *input_dialog_ids) {
       if (!have_dialog(input_dialog_id.get_dialog_id())) {
         needed_dialog_ids.push_back(input_dialog_id);
       }
@@ -15715,7 +15715,7 @@ void MessagesManager::load_dialog_filter(const DialogFilter *filter, bool force,
   }
 
   vector<InputDialogId> input_dialog_ids;
-  for (auto &input_dialog_id : needed_dialog_ids) {
+  for (const auto &input_dialog_id : needed_dialog_ids) {
     auto dialog_id = input_dialog_id.get_dialog_id();
     // TODO load dialogs asynchronously
     if (!have_dialog_force(dialog_id, "load_dialog_filter")) {
@@ -18200,7 +18200,7 @@ void MessagesManager::sort_dialog_filter_input_dialog_ids(DialogFilter *dialog_f
   std::unordered_set<DialogId, DialogIdHash> all_dialog_ids;
   for (auto input_dialog_ids :
        {&dialog_filter->pinned_dialog_ids, &dialog_filter->excluded_dialog_ids, &dialog_filter->included_dialog_ids}) {
-    for (auto input_dialog_id : *input_dialog_ids) {
+    for (const auto &input_dialog_id : *input_dialog_ids) {
       LOG_CHECK(all_dialog_ids.insert(input_dialog_id.get_dialog_id()).second)
           << source << ' ' << input_dialog_id.get_dialog_id() << ' ' << dialog_filter;
     }
@@ -18211,7 +18211,7 @@ Result<unique_ptr<DialogFilter>> MessagesManager::create_dialog_filter(DialogFil
                                                                        td_api::object_ptr<td_api::chatFilter> filter) {
   CHECK(filter != nullptr);
   for (auto chat_ids : {&filter->pinned_chat_ids_, &filter->excluded_chat_ids_, &filter->included_chat_ids_}) {
-    for (auto chat_id : *chat_ids) {
+    for (const auto &chat_id : *chat_ids) {
       DialogId dialog_id(chat_id);
       if (!dialog_id.is_valid()) {
         return Status::Error(400, "Invalid chat identifier specified");
@@ -18234,7 +18234,7 @@ Result<unique_ptr<DialogFilter>> MessagesManager::create_dialog_filter(DialogFil
 
   std::unordered_set<int64> added_dialog_ids;
   auto add_chats = [this, &added_dialog_ids](vector<InputDialogId> &input_dialog_ids, const vector<int64> &chat_ids) {
-    for (auto &chat_id : chat_ids) {
+    for (const auto &chat_id : chat_ids) {
       if (!added_dialog_ids.insert(chat_id).second) {
         // do not allow duplicate chat_ids
         continue;
@@ -18296,7 +18296,7 @@ void MessagesManager::create_dialog_filter(td_api::object_ptr<td_api::chatFilter
   auto chat_filter_info = dialog_filter->get_chat_filter_info_object();
 
   bool at_beginning = false;
-  for (auto &recommended_dialog_filter : recommended_dialog_filters_) {
+  for (const auto &recommended_dialog_filter : recommended_dialog_filters_) {
     if (DialogFilter::are_similar(*recommended_dialog_filter.dialog_filter, *dialog_filter)) {
       at_beginning = true;
     }
@@ -18744,7 +18744,7 @@ void MessagesManager::edit_dialog_filter(unique_ptr<DialogFilter> new_dialog_fil
         save_unread_chat_count(old_list);
       }
 
-      for (auto it : updated_position_dialogs) {
+      for (const auto &it : updated_position_dialogs) {
         send_update_chat_position(dialog_list_id, it.second, source);
       }
 
@@ -21922,14 +21922,14 @@ void MessagesManager::on_load_active_live_location_full_message_ids_from_databas
 
   // TODO asynchronously load messages from database
   active_live_location_full_message_ids_.clear();
-  for (auto full_message_id : old_full_message_ids) {
+  for (const auto &full_message_id : old_full_message_ids) {
     Message *m = get_message_force(full_message_id, "on_load_active_live_location_full_message_ids_from_database");
     if (m != nullptr) {
       try_add_active_live_location(full_message_id.get_dialog_id(), m);
     }
   }
 
-  for (auto full_message_id : new_full_message_ids) {
+  for (const auto &full_message_id : new_full_message_ids) {
     add_active_live_location(full_message_id);
   }
 
@@ -22297,7 +22297,7 @@ td_api::object_ptr<td_api::foundMessages> MessagesManager::get_found_messages_ob
     const FoundMessages &found_messages, const char *source) {
   vector<tl_object_ptr<td_api::message>> result;
   result.reserve(found_messages.full_message_ids.size());
-  for (auto full_message_id : found_messages.full_message_ids) {
+  for (const auto &full_message_id : found_messages.full_message_ids) {
     auto message = get_message_object(full_message_id, source);
     if (message != nullptr) {
       result.push_back(std::move(message));
@@ -33618,7 +33618,7 @@ bool MessagesManager::need_delete_file(FullMessageId full_message_id, FileId fil
   auto full_message_ids = td_->file_reference_manager_->get_some_message_file_sources(main_file_id);
   LOG(INFO) << "Receive " << full_message_ids << " as sources for file " << main_file_id << "/" << file_id << " from "
             << full_message_id;
-  for (auto other_full_messsage_id : full_message_ids) {
+  for (const auto &other_full_messsage_id : full_message_ids) {
     if (other_full_messsage_id != full_message_id) {
       return false;
     }

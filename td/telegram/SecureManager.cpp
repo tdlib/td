@@ -1078,7 +1078,7 @@ void SecureManager::on_get_passport_authorization_form_secret(int32 authorizatio
   auto *file_manager = G()->td().get_actor_unsafe()->file_manager_.get();
   std::vector<TdApiSecureValue> values;
   std::map<SecureValueType, SecureValueCredentials> all_credentials;
-  for (auto suitable_type : it->second.options) {
+  for (const auto &suitable_type : it->second.options) {
     auto type = suitable_type.first;
     for (auto &value : it->second.values) {
       if (value == nullptr) {

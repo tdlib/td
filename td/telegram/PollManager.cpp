@@ -321,7 +321,7 @@ void PollManager::notify_on_poll_update(PollId poll_id) {
     return;
   }
 
-  for (auto full_message_id : it->second) {
+  for (const auto &full_message_id : it->second) {
     td_->messages_manager_->on_external_update_message_content(full_message_id);
   }
 }
@@ -455,8 +455,9 @@ vector<int32> PollManager::get_vote_percentage(const vector<int32> &voter_counts
     option.count++;
   }
   vector<Option> sorted_options;
-  for (auto option : options) {
-    auto pos = option.second.pos;
+  for (const auto &it : options) {
+    const auto &option = it.second;
+    auto pos = option.pos;
     if (gap[pos] > total_voter_count / 2) {
       // do not round to wrong direction
       continue;
@@ -465,7 +466,7 @@ vector<int32> PollManager::get_vote_percentage(const vector<int32> &voter_counts
       // round halves to the 50%
       continue;
     }
-    sorted_options.push_back(option.second);
+    sorted_options.push_back(option);
   }
   std::sort(sorted_options.begin(), sorted_options.end(), [&](const Option &lhs, const Option &rhs) {
     if (gap[lhs.pos] != gap[rhs.pos]) {

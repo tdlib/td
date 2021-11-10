@@ -111,7 +111,7 @@ TEST(CryptoPQ, generated_slow) {
     test_pq(2, 2);
   }
   auto queries = gen_pq_queries();
-  for (auto query : queries) {
+  for (const auto &query : queries) {
     test_pq(query.first, query.second);
   }
 }

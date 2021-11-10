@@ -1360,7 +1360,7 @@ void NotificationManager::flush_all_pending_updates(bool include_delayed_chats, 
   // flush groups in reverse order to not exceed max_notification_group_count_
   VLOG(notifications) << "Flush pending updates in " << ready_group_keys.size() << " notification groups";
   std::sort(ready_group_keys.begin(), ready_group_keys.end());
-  for (auto group_key : reversed(ready_group_keys)) {
+  for (const auto &group_key : reversed(ready_group_keys)) {
     force_flush_pending_updates(group_key.group_id, "flush_all_pending_updates");
   }
   if (include_delayed_chats) {

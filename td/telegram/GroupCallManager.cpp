@@ -203,7 +203,7 @@ class CreateGroupCallQuery final : public Td::ResultHandler {
       return on_error(Status::Error(500, "Receive wrong response"));
     }
     auto group_call_id = group_call_ids[0];
-    for (auto other_group_call_id : group_call_ids) {
+    for (const auto &other_group_call_id : group_call_ids) {
       if (group_call_id != other_group_call_id) {
         LOG(ERROR) << "Receive wrong CreateGroupCallQuery response " << to_string(ptr);
         return on_error(Status::Error(500, "Receive wrong response"));
@@ -2289,7 +2289,7 @@ void GroupCallManager::on_update_dialog_about(DialogId dialog_id, const string &
   }
   CHECK(!it->second.empty());
 
-  for (auto input_group_call_id : it->second) {
+  for (const auto &input_group_call_id : it->second) {
     auto participant = get_group_call_participant(input_group_call_id, dialog_id);
     CHECK(participant != nullptr);
     if ((from_server || participant->is_fake) && participant->about != about) {

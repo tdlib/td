@@ -1442,11 +1442,11 @@ void StickersManager::on_load_special_sticker_set(const SpecialStickerSetType &t
   }
 
   vector<FullMessageId> full_message_ids;
-  for (auto full_message_id : it->second) {
+  for (const auto &full_message_id : it->second) {
     full_message_ids.push_back(full_message_id);
   }
   CHECK(!full_message_ids.empty());
-  for (auto full_message_id : full_message_ids) {
+  for (const auto &full_message_id : full_message_ids) {
     td_->messages_manager_->on_external_update_message_content(full_message_id);
   }
 }
@@ -4175,12 +4175,12 @@ void StickersManager::try_update_animated_emoji_messages() {
         (new_animated_sticker.first.is_valid() && new_sound_file_id != it.second.sound_file_id)) {
       it.second.animated_emoji_sticker = new_animated_sticker;
       it.second.sound_file_id = new_sound_file_id;
-      for (auto full_message_id : it.second.full_message_ids) {
+      for (const auto &full_message_id : it.second.full_message_ids) {
         full_message_ids.push_back(full_message_id);
       }
     }
   }
-  for (auto full_message_id : full_message_ids) {
+  for (const auto &full_message_id : full_message_ids) {
     td_->messages_manager_->on_external_update_message_content(full_message_id);
   }
 }

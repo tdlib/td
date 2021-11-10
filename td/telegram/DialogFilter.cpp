@@ -273,27 +273,27 @@ unique_ptr<DialogFilter> DialogFilter::merge_dialog_filter_changes(const DialogF
 
     // merge additions and deletions from other clients to the local changes
     std::unordered_set<DialogId, DialogIdHash> deleted_dialog_ids;
-    for (auto old_dialog_id : old_server_dialog_ids) {
+    for (const auto &old_dialog_id : old_server_dialog_ids) {
       deleted_dialog_ids.insert(old_dialog_id.get_dialog_id());
     }
     std::unordered_set<DialogId, DialogIdHash> added_dialog_ids;
-    for (auto new_dialog_id : new_server_dialog_ids) {
+    for (const auto &new_dialog_id : new_server_dialog_ids) {
       auto dialog_id = new_dialog_id.get_dialog_id();
       if (deleted_dialog_ids.erase(dialog_id) == 0) {
         added_dialog_ids.insert(dialog_id);
       }
     }
     vector<InputDialogId> result;
-    for (auto input_dialog_id : new_dialog_ids) {
+    for (const auto &input_dialog_id : new_dialog_ids) {
       // do not add dialog twice
       added_dialog_ids.erase(input_dialog_id.get_dialog_id());
     }
-    for (auto new_dialog_id : new_server_dialog_ids) {
+    for (const auto &new_dialog_id : new_server_dialog_ids) {
       if (added_dialog_ids.count(new_dialog_id.get_dialog_id()) == 1) {
         result.push_back(new_dialog_id);
       }
     }
-    for (auto input_dialog_id : new_dialog_ids) {
+    for (const auto &input_dialog_id : new_dialog_ids) {
       if (deleted_dialog_ids.count(input_dialog_id.get_dialog_id()) == 0) {
         result.push_back(input_dialog_id);
       }
