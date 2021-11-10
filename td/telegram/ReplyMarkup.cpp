@@ -7,6 +7,7 @@
 #include "td/telegram/ReplyMarkup.h"
 
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/Dependencies.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/LinkManager.h"
 #include "td/telegram/misc.h"
@@ -89,6 +90,9 @@ static StringBuilder &operator<<(StringBuilder &string_builder, const InlineKeyb
       break;
     case InlineKeyboardButton::Type::CallbackWithPassword:
       string_builder << "CallbackWithPassword";
+      break;
+    case InlineKeyboardButton::Type::User:
+      string_builder << "User " << keyboard_button.user_id.get();
       break;
     default:
       UNREACHABLE();
@@ -264,9 +268,14 @@ static InlineKeyboardButton get_inline_keyboard_button(
       button.id = keyboard_button->button_id_;
       button.text = std::move(keyboard_button->text_);
       button.data = std::move(keyboard_button->url_);
-      if ((keyboard_button->flags_ & telegram_api::keyboardButtonUrlAuth::FWD_TEXT_MASK) != 0) {
-        button.forward_text = std::move(keyboard_button->fwd_text_);
-      }
+      button.forward_text = std::move(keyboard_button->fwd_text_);
+      break;
+    }
+    case telegram_api::keyboardButtonUserProfile::ID: {
+      auto keyboard_button = move_tl_object_as<telegram_api::keyboardButtonUserProfile>(keyboard_button_ptr);
+      button.type = InlineKeyboardButton::Type::User;
+      button.text = std::move(keyboard_button->text_);
+      button.user_id = UserId(keyboard_button->user_id_);
       break;
     }
     default:
@@ -434,42 +443,42 @@ static Result<InlineKeyboardButton> get_inline_keyboard_button(tl_object_ptr<td_
   int32 button_type_id = button->type_->get_id();
   switch (button_type_id) {
     case td_api::inlineKeyboardButtonTypeUrl::ID: {
-      current_button.type = InlineKeyboardButton::Type::Url;
-      auto r_url =
-          LinkManager::check_link(static_cast<const td_api::inlineKeyboardButtonTypeUrl *>(button->type_.get())->url_);
+      auto button_type = move_tl_object_as<td_api::inlineKeyboardButtonTypeUrl>(button->type_);
+      auto r_url = LinkManager::check_link(button_type->url_);
       if (r_url.is_error()) {
         return Status::Error(400, "Inline keyboard button URL is invalid");
       }
+      current_button.type = InlineKeyboardButton::Type::Url;
       current_button.data = r_url.move_as_ok();
       if (!clean_input_string(current_button.data)) {
         return Status::Error(400, "Inline keyboard button URL must be encoded in UTF-8");
       }
       break;
     }
-    case td_api::inlineKeyboardButtonTypeCallback::ID:
+    case td_api::inlineKeyboardButtonTypeCallback::ID: {
+      auto button_type = move_tl_object_as<td_api::inlineKeyboardButtonTypeCallback>(button->type_);
       current_button.type = InlineKeyboardButton::Type::Callback;
-      current_button.data =
-          std::move(static_cast<td_api::inlineKeyboardButtonTypeCallback *>(button->type_.get())->data_);
+      current_button.data = std::move(button_type->data_);
       break;
+    }
     case td_api::inlineKeyboardButtonTypeCallbackGame::ID:
       current_button.type = InlineKeyboardButton::Type::CallbackGame;
       break;
     case td_api::inlineKeyboardButtonTypeCallbackWithPassword::ID:
       return Status::Error(400, "Can't use CallbackWithPassword inline button");
     case td_api::inlineKeyboardButtonTypeSwitchInline::ID: {
-      auto switch_inline_button = move_tl_object_as<td_api::inlineKeyboardButtonTypeSwitchInline>(button->type_);
+      auto button_type = move_tl_object_as<td_api::inlineKeyboardButtonTypeSwitchInline>(button->type_);
       if (!switch_inline_buttons_allowed) {
         const char *button_name =
-            switch_inline_button->in_current_chat_ ? "switch_inline_query_current_chat" : "switch_inline_query";
+            button_type->in_current_chat_ ? "switch_inline_query_current_chat" : "switch_inline_query";
         return Status::Error(400, PSLICE() << "Can't use " << button_name
                                            << " in a channel chat, because a user will not be able to use the button "
                                               "without knowing bot's username");
       }
 
-      current_button.type = switch_inline_button->in_current_chat_
-                                ? InlineKeyboardButton::Type::SwitchInlineCurrentDialog
-                                : InlineKeyboardButton::Type::SwitchInline;
-      current_button.data = std::move(switch_inline_button->query_);
+      current_button.type = button_type->in_current_chat_ ? InlineKeyboardButton::Type::SwitchInlineCurrentDialog
+                                                          : InlineKeyboardButton::Type::SwitchInline;
+      current_button.data = std::move(button_type->query_);
       if (!clean_input_string(current_button.data)) {
         return Status::Error(400, "Inline keyboard button switch inline query must be encoded in UTF-8");
       }
@@ -479,23 +488,33 @@ static Result<InlineKeyboardButton> get_inline_keyboard_button(tl_object_ptr<td_
       current_button.type = InlineKeyboardButton::Type::Buy;
       break;
     case td_api::inlineKeyboardButtonTypeLoginUrl::ID: {
-      current_button.type = InlineKeyboardButton::Type::UrlAuth;
-      auto login_url = td_api::move_object_as<td_api::inlineKeyboardButtonTypeLoginUrl>(button->type_);
-      auto r_url = LinkManager::check_link(login_url->url_);
+      auto button_type = td_api::move_object_as<td_api::inlineKeyboardButtonTypeLoginUrl>(button->type_);
+      auto r_url = LinkManager::check_link(button_type->url_);
       if (r_url.is_error()) {
         return Status::Error(400, "Inline keyboard button login URL is invalid");
       }
+      current_button.type = InlineKeyboardButton::Type::UrlAuth;
       current_button.data = r_url.move_as_ok();
-      current_button.forward_text = std::move(login_url->forward_text_);
+      current_button.forward_text = std::move(button_type->forward_text_);
       if (!clean_input_string(current_button.data)) {
         return Status::Error(400, "Inline keyboard button login URL must be encoded in UTF-8");
       }
       if (!clean_input_string(current_button.forward_text)) {
         return Status::Error(400, "Inline keyboard button forward text must be encoded in UTF-8");
       }
-      current_button.id = login_url->id_;
-      if (current_button.id == 0 || current_button.id == std::numeric_limits<int64>::min()) {
+      current_button.id = button_type->id_;
+      if (current_button.id == std::numeric_limits<int64>::min() ||
+          !UserId(current_button.id >= 0 ? current_button.id : -current_button.id).is_valid()) {
         return Status::Error(400, "Invalid bot_user_id specified");
+      }
+      break;
+    }
+    case td_api::inlineKeyboardButtonTypeUser::ID: {
+      auto button_type = td_api::move_object_as<td_api::inlineKeyboardButtonTypeUser>(button->type_);
+      current_button.type = InlineKeyboardButton::Type::User;
+      current_button.user_id = UserId(button_type->user_id_);
+      if (!current_button.user_id.is_valid()) {
+        return Status::Error(400, "Invalid user_id specified");
       }
       break;
     }
@@ -683,6 +702,14 @@ static tl_object_ptr<telegram_api::KeyboardButton> get_inline_keyboard_button(
     case InlineKeyboardButton::Type::CallbackWithPassword:
       UNREACHABLE();
       break;
+    case InlineKeyboardButton::Type::User: {
+      auto input_user = G()->td().get_actor_unsafe()->contacts_manager_->get_input_user(keyboard_button.user_id);
+      if (input_user == nullptr) {
+        LOG(ERROR) << "Failed to get InputUser for " << keyboard_button.user_id;
+        input_user = make_tl_object<telegram_api::inputUserEmpty>();
+      }
+      return make_tl_object<telegram_api::inputKeyboardButtonUserProfile>(keyboard_button.text, std::move(input_user));
+    }
     default:
       UNREACHABLE();
       return nullptr;
@@ -796,6 +823,11 @@ static tl_object_ptr<td_api::inlineKeyboardButton> get_inline_keyboard_button_ob
     case InlineKeyboardButton::Type::CallbackWithPassword:
       type = make_tl_object<td_api::inlineKeyboardButtonTypeCallbackWithPassword>(keyboard_button.data);
       break;
+    case InlineKeyboardButton::Type::User:
+      type = make_tl_object<td_api::inlineKeyboardButtonTypeUser>(
+          G()->td().get_actor_unsafe()->contacts_manager_->get_user_id_object(keyboard_button.user_id,
+                                                                              "get_inline_keyboard_button_object"));
+      break;
     default:
       UNREACHABLE();
       return nullptr;
@@ -858,6 +890,19 @@ tl_object_ptr<td_api::ReplyMarkup> get_reply_markup_object(const unique_ptr<Repl
   }
 
   return reply_markup->get_reply_markup_object();
+}
+
+void add_reply_markup_dependencies(Dependencies &dependencies, const ReplyMarkup *reply_markup) {
+  if (reply_markup == nullptr) {
+    return;
+  }
+  for (auto &row : reply_markup->inline_keyboard) {
+    for (auto &button : row) {
+      if (button.user_id.is_valid()) {
+        dependencies.user_ids.insert(button.user_id);
+      }
+    }
+  }
 }
 
 }  // namespace td

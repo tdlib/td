@@ -23833,6 +23833,7 @@ void MessagesManager::add_message_dependencies(Dependencies &dependencies, const
     add_message_sender_dependencies(dependencies, recent_replier_dialog_id);
   }
   add_message_content_dependencies(dependencies, m->content.get());
+  add_reply_markup_dependencies(dependencies, m->reply_markup.get());
 }
 
 class MessagesManager::SendMessageLogEvent {

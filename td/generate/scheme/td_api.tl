@@ -1070,6 +1070,9 @@ inlineKeyboardButtonTypeSwitchInline query:string in_current_chat:Bool = InlineK
 //@description A button to buy something. This button must be in the first column and row of the keyboard and can be attached only to a message with content of the type messageInvoice
 inlineKeyboardButtonTypeBuy = InlineKeyboardButtonType;
 
+//@description A button to open a chat with a user @user_id User identifier
+inlineKeyboardButtonTypeUser user_id:int53 = InlineKeyboardButtonType;
+
 
 //@description Represents a single button in an inline keyboard @text Text of the button @type Type of the button
 inlineKeyboardButton text:string type:InlineKeyboardButtonType = InlineKeyboardButton;

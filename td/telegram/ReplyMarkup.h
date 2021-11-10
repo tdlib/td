@@ -8,12 +8,15 @@
 
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserId.h"
 
 #include "td/utils/common.h"
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 
 namespace td {
+
+struct Dependencies;
 
 struct KeyboardButton {
   // append only
@@ -39,10 +42,12 @@ struct InlineKeyboardButton {
     SwitchInlineCurrentDialog,
     Buy,
     UrlAuth,
-    CallbackWithPassword
+    CallbackWithPassword,
+    User
   };
   Type type;
-  int64 id = 0;  // UrlAuth only, button_id or (2 * request_write_access - 1) * bot_user_id
+  int64 id = 0;    // UrlAuth only, button_id or (2 * request_write_access - 1) * bot_user_id
+  UserId user_id;  // User only
   string text;
   string forward_text;  // UrlAuth only
   string data;
@@ -84,5 +89,7 @@ Result<unique_ptr<ReplyMarkup>> get_reply_markup(tl_object_ptr<td_api::ReplyMark
 tl_object_ptr<telegram_api::ReplyMarkup> get_input_reply_markup(const unique_ptr<ReplyMarkup> &reply_markup);
 
 tl_object_ptr<td_api::ReplyMarkup> get_reply_markup_object(const unique_ptr<ReplyMarkup> &reply_markup);
+
+void add_reply_markup_dependencies(Dependencies &dependencies, const ReplyMarkup *reply_markup);
 
 }  // namespace td

@@ -48,6 +48,7 @@ enum class Version : int32 {
   RemovePhotoVolumeAndLocalId,
   Support64BitIds,
   AddInviteLinksRequiringApproval,
+  AddKeyboardButtonFlags,  // 35
   Next
 };
 
