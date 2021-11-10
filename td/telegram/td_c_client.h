@@ -19,22 +19,22 @@ struct TdBytes TdCreateObjectBytes(unsigned char *data, int len);
 
 struct TdRequest {
   long long request_id;
-  TdFunction *function;
+  struct TdFunction *function;
 };
 
 struct TdResponse {
   long long request_id;
   int client_id;
-  TdObject *object;
+  struct TdObject *object;
 };
 
 int TdCClientCreateId();
 
 void TdCClientSend(int client_id, struct TdRequest request);
 
-TdResponse TdCClientReceive(double timeout);
+struct TdResponse TdCClientReceive(double timeout);
 
-TdObject *TdCClientExecute(TdFunction *function);
+struct TdObject *TdCClientExecute(struct TdFunction *function);
 
 #ifdef __cplusplus
 }
