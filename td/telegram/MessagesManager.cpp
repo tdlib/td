@@ -635,7 +635,7 @@ class UnpinAllMessagesQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    promise_.set_value(result_ptr.move_as_ok());
+    promise_.set_value(AffectedHistory(result_ptr.move_as_ok()));
   }
 
   void on_error(Status status) final {
@@ -2663,7 +2663,7 @@ class DeleteHistoryQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    promise_.set_value(result_ptr.move_as_ok());
+    promise_.set_value(AffectedHistory(result_ptr.move_as_ok()));
   }
 
   void on_error(Status status) final {
@@ -2747,7 +2747,7 @@ class DeleteMessagesByDateQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    promise_.set_value(result_ptr.move_as_ok());
+    promise_.set_value(AffectedHistory(result_ptr.move_as_ok()));
   }
 
   void on_error(Status status) final {
@@ -2879,7 +2879,7 @@ class DeleteUserHistoryQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    promise_.set_value(result_ptr.move_as_ok());
+    promise_.set_value(AffectedHistory(result_ptr.move_as_ok()));
   }
 
   void on_error(Status status) final {
@@ -2913,7 +2913,7 @@ class ReadMentionsQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    promise_.set_value(result_ptr.move_as_ok());
+    promise_.set_value(AffectedHistory(result_ptr.move_as_ok()));
   }
 
   void on_error(Status status) final {
@@ -22463,25 +22463,25 @@ void MessagesManager::on_get_affected_history(DialogId dialog_id, AffectedHistor
                                               Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
-  if (affected_history->pts_count_ > 0) {
+  if (affected_history.pts_count_ > 0) {
     if (get_affected_messages) {
-      affected_history->pts_count_ = 0;
+      affected_history.pts_count_ = 0;
     }
-    auto update_promise = affected_history->offset_ > 0 ? Promise<Unit>() : std::move(promise);
+    auto update_promise = affected_history.is_final_ ? std::move(promise) : Promise<Unit>();
     if (dialog_id.get_type() == DialogType::Channel) {
       td_->messages_manager_->add_pending_channel_update(dialog_id, make_tl_object<dummyUpdate>(),
-                                                         affected_history->pts_, affected_history->pts_count_,
+                                                         affected_history.pts_, affected_history.pts_count_,
                                                          std::move(update_promise), "on_get_affected_history");
     } else {
-      td_->updates_manager_->add_pending_pts_update(make_tl_object<dummyUpdate>(), affected_history->pts_,
-                                                    affected_history->pts_count_, Time::now(),
-                                                    std::move(update_promise), "on_get_affected_history");
+      td_->updates_manager_->add_pending_pts_update(make_tl_object<dummyUpdate>(), affected_history.pts_,
+                                                    affected_history.pts_count_, Time::now(), std::move(update_promise),
+                                                    "on_get_affected_history");
     }
-  } else if (affected_history->offset_ <= 0) {
+  } else if (affected_history.is_final_) {
     promise.set_value(Unit());
   }
 
-  if (affected_history->offset_ > 0) {
+  if (!affected_history.is_final_) {
     run_affected_history_query_until_complete(dialog_id, std::move(query), get_affected_messages, std::move(promise));
   }
 }

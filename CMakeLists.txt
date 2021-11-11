@@ -452,6 +452,7 @@ set(TDLIB_SOURCE
   td/mtproto/utils.h
 
   td/telegram/AccessRights.h
+  td/telegram/AffectedHistory.h
   td/telegram/AnimationsManager.h
   td/telegram/AudiosManager.h
   td/telegram/AuthManager.h

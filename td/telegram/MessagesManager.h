@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/AccessRights.h"
+#include "td/telegram/AffectedHistory.h"
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/DialogAction.h"
 #include "td/telegram/DialogDate.h"
@@ -91,8 +92,6 @@ struct InputMessageContent;
 class MessageContent;
 class MultiSequenceDispatcher;
 class Td;
-
-using AffectedHistory = tl_object_ptr<telegram_api::messages_affectedHistory>;
 
 class MessagesManager final : public Actor {
  public:
