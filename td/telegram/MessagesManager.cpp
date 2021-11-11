@@ -2757,26 +2757,19 @@ class DeleteMessagesByDateQuery final : public Td::ResultHandler {
 };
 
 class DeletePhoneCallHistoryQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
-  bool revoke_;
+  Promise<AffectedHistory> promise_;
 
-  void send_request() {
+ public:
+  explicit DeletePhoneCallHistoryQuery(Promise<AffectedHistory> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(bool revoke) {
     int32 flags = 0;
-    if (revoke_) {
+    if (revoke) {
       flags |= telegram_api::messages_deletePhoneCallHistory::REVOKE_MASK;
     }
     send_query(
         G()->net_query_creator().create(telegram_api::messages_deletePhoneCallHistory(flags, false /*ignored*/)));
-  }
-
- public:
-  explicit DeletePhoneCallHistoryQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(bool revoke) {
-    revoke_ = revoke;
-
-    send_request();
   }
 
   void on_result(BufferSlice packet) final {
@@ -2786,24 +2779,11 @@ class DeletePhoneCallHistoryQuery final : public Td::ResultHandler {
     }
 
     auto affected_messages = result_ptr.move_as_ok();
-    CHECK(affected_messages->get_id() == telegram_api::messages_affectedFoundMessages::ID);
-
-    if (affected_messages->pts_count_ > 0) {
-      auto promise = affected_messages->offset_ > 0 ? Promise<Unit>() : std::move(promise_);
-      auto pts = affected_messages->pts_;
-      auto pts_count = affected_messages->pts_count_;
-      auto update =
-          make_tl_object<telegram_api::updateDeleteMessages>(std::move(affected_messages->messages_), pts, pts_count);
-      td_->updates_manager_->add_pending_pts_update(std::move(update), pts, pts_count, Time::now(), std::move(promise),
-                                                    "delete phone call history query");
-    } else if (affected_messages->offset_ <= 0) {
-      promise_.set_value(Unit());
+    if (!affected_messages->messages_.empty()) {
+      td_->messages_manager_->process_pts_update(
+          make_tl_object<telegram_api::updateDeleteMessages>(std::move(affected_messages->messages_), 0, 0));
     }
-
-    if (affected_messages->offset_ > 0) {
-      send_request();
-      return;
-    }
+    promise_.set_value(AffectedHistory(std::move(affected_messages)));
   }
 
   void on_error(Status status) final {
@@ -10733,10 +10713,11 @@ void MessagesManager::delete_all_call_messages_on_server(bool revoke, uint64 log
     log_event_id = save_delete_all_call_messages_on_server_log_event(revoke);
   }
 
-  auto new_promise = get_erase_log_event_promise(log_event_id, std::move(promise));
-  promise = std::move(new_promise);  // to prevent self-move
-
-  td_->create_handler<DeletePhoneCallHistoryQuery>(std::move(promise))->send(revoke);
+  AffectedHistoryQuery query = [td = td_, revoke](DialogId /*dialog_id*/, Promise<AffectedHistory> &&query_promise) {
+    td->create_handler<DeletePhoneCallHistoryQuery>(std::move(query_promise))->send(revoke);
+  };
+  run_affected_history_query_until_complete(DialogId(), std::move(query), false,
+                                            get_erase_log_event_promise(log_event_id, std::move(promise)));
 }
 
 void MessagesManager::find_messages(const Message *m, vector<MessageId> &message_ids,

@@ -22,6 +22,12 @@ struct AffectedHistory {
       , pts_count_(affected_history->pts_count_)
       , is_final_(affected_history->offset_ <= 0) {
   }
+
+  explicit AffectedHistory(tl_object_ptr<telegram_api::messages_affectedFoundMessages> &&affected_history)
+      : pts_(affected_history->pts_)
+      , pts_count_(affected_history->pts_count_)
+      , is_final_(affected_history->offset_ <= 0) {
+  }
 };
 
 }  // namespace td
