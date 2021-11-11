@@ -92,6 +92,8 @@ class MessageContent;
 class MultiSequenceDispatcher;
 class Td;
 
+using AffectedHistory = tl_object_ptr<telegram_api::messages_affectedHistory>;
+
 class MessagesManager final : public Actor {
  public:
   //  static constexpr int32 MESSAGE_FLAG_IS_UNREAD = 1 << 0;
@@ -2026,6 +2028,14 @@ class MessagesManager final : public Actor {
   void read_all_dialog_mentions_on_server(DialogId dialog_id, uint64 log_event_id, Promise<Unit> &&promise);
 
   void unpin_all_dialog_messages_on_server(DialogId dialog_id, uint64 log_event_id, Promise<Unit> &&promise);
+
+  using AffectedHistoryQuery = std::function<void(DialogId, Promise<AffectedHistory>)>;
+
+  void run_affected_history_query_until_complete(DialogId dialog_id, AffectedHistoryQuery query,
+                                                 bool get_affected_messages, Promise<Unit> &&promise);
+
+  void on_get_affected_history(DialogId dialog_id, AffectedHistoryQuery query, bool get_affected_messages,
+                               AffectedHistory affected_history, Promise<Unit> &&promise);
 
   static MessageId find_message_by_date(const Message *m, int32 date);
 
