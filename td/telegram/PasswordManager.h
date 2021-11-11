@@ -112,10 +112,10 @@ class PasswordManager final : public NetQueryCallback {
 
     string current_client_salt;
     string current_server_salt;
-    int32 current_srp_g;
+    int32 current_srp_g = 0;
     string current_srp_p;
     string current_srp_B;
-    int64 current_srp_id;
+    int64 current_srp_id = 0;
 
     NewPasswordState new_state;
 

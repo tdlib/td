@@ -728,7 +728,7 @@ class ConfigRecoverer final : public Actor {
 
   DcOptions dc_options_;  // dc_options_update_ + simple_config_
   double dc_options_at_{0};
-  size_t dc_options_i_;
+  size_t dc_options_i_{0};
 
   size_t date_option_i_{0};
 

@@ -62,7 +62,7 @@ class GetHostByNameActor final : public Actor {
     ActorOwn<> query;
     size_t pos = 0;
     string real_host;
-    double begin_time;
+    double begin_time = 0.0;
     std::vector<std::pair<int, Promise<IPAddress>>> promises;
   };
   std::unordered_map<string, Query> active_queries_[2];

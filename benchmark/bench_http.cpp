@@ -61,7 +61,7 @@ class HttpClient final : public td::HttpOutboundConnection::Callback {
   }
 
   td::ActorOwn<td::HttpOutboundConnection> connection_;
-  int cnt_;
+  int cnt_ = 0;
 };
 
 int main() {

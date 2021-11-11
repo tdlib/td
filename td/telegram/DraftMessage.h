@@ -21,7 +21,7 @@ class ContactsManager;
 
 class DraftMessage {
  public:
-  int32 date;
+  int32 date = 0;
   MessageId reply_to_message_id;
   InputMessageText input_message_text;
 };

@@ -161,8 +161,8 @@ class ConnectionCreator final : public NetQueryCallback {
     bool inited{false};
     size_t hash{0};
     DcId dc_id;
-    bool allow_media_only;
-    bool is_media;
+    bool allow_media_only{false};
+    bool is_media{false};
     std::set<int64> session_ids_;
     unique_ptr<mtproto::AuthData> auth_data;
     uint64 auth_data_generation{0};

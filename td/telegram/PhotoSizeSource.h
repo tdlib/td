@@ -45,7 +45,7 @@ struct PhotoSizeSource {
     Thumbnail(FileType file_type, int32 thumbnail_type) : file_type(file_type), thumbnail_type(thumbnail_type) {
     }
 
-    FileType file_type;
+    FileType file_type = FileType::None;
     int32 thumbnail_type = 0;
   };
 

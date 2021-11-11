@@ -597,7 +597,7 @@ class FutureActor final : public Actor {
  private:
   EventFull event_;
   Result<T> result_ = Status::Error(500, "Empty FutureActor");
-  State state_;
+  State state_ = State::Waiting;
 
   void set_value(T &&value) {
     set_result(std::move(value));

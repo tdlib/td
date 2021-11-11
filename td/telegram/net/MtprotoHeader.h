@@ -16,7 +16,7 @@ namespace td {
 class MtprotoHeader {
  public:
   struct Options {
-    int32 api_id;
+    int32 api_id = -1;
     string system_language_code;
     string device_model;
     string system_version;

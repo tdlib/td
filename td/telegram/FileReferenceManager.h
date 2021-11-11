@@ -80,13 +80,13 @@ class FileReferenceManager final : public Actor {
       return node_id.empty();
     }
     NodeId node_id;
-    int64 generation;
+    int64 generation{0};
   };
   struct Query {
     std::vector<Promise<>> promises;
     int32 active_queries{0};
     Destination proxy;
-    int64 generation;
+    int64 generation{0};
   };
 
   struct Node {

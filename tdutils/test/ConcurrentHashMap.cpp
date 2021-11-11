@@ -186,9 +186,8 @@ class HashMapBenchmark final : public td::Benchmark {
   td::unique_ptr<HashMap> hash_map;
 
   size_t threads_n = 16;
-  int mod_;
   static constexpr size_t MUL = 7273;  //1000000000 + 7;
-  int n_;
+  int n_ = 0;
 
  public:
   explicit HashMapBenchmark(size_t threads_n) : threads_n(threads_n) {

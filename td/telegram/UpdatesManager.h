@@ -174,7 +174,7 @@ class UpdatesManager final : public Actor {
 
   class PendingQtsUpdate {
    public:
-    double receive_time;
+    double receive_time = 0.0;
     tl_object_ptr<telegram_api::Update> update;
     vector<Promise<Unit>> promises;
   };

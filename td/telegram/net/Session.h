@@ -140,8 +140,8 @@ class Session final
   ListNode sent_queries_list_;
 
   struct ConnectionInfo {
-    int8 connection_id;
-    Mode mode;
+    int8 connection_id = 0;
+    Mode mode = Mode::Tcp;
     enum class State : int8 { Empty, Connecting, Ready } state = State::Empty;
     CancellationTokenSource cancellation_token_source_;
     unique_ptr<mtproto::SessionConnection> connection;

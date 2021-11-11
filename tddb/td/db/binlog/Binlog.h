@@ -134,7 +134,7 @@ class Binlog {
 
   // AesCtrEncryption
   BufferSlice aes_ctr_key_salt_;
-  UInt256 aes_ctr_key_;
+  UInt256 aes_ctr_key_{};
   AesCtrState aes_ctr_state_;
 
   bool byte_flow_flag_ = false;

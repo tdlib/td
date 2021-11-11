@@ -42,7 +42,7 @@ class PhoneNumberManager final : public NetActor {
   ActorShared<> parent_;
   uint64 query_id_ = 0;
   uint64 net_query_id_ = 0;
-  NetQueryType net_query_type_;
+  NetQueryType net_query_type_ = NetQueryType::None;
 
   SendCodeHelper send_code_helper_;
 

@@ -78,7 +78,7 @@ class DcOptionsSet {
 
   struct DcOptionInfo {
     DcOption option;
-    int64 stat_id;
+    int64 stat_id = -1;
     size_t pos;
     size_t order = 0;
 

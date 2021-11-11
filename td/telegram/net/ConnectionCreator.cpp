@@ -936,13 +936,13 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
       client.checking_connections++;
     }
 
-    auto promise = PromiseCreator::lambda([actor_id = actor_id(this), check_mode, transport_type = extra.transport_type,
-                                           hash = client.hash, debug_str = extra.debug_str,
-                                           network_generation =
-                                               network_generation_](Result<ConnectionData> r_connection_data) mutable {
-      send_closure(std::move(actor_id), &ConnectionCreator::client_create_raw_connection, std::move(r_connection_data),
-                   check_mode, std::move(transport_type), hash, std::move(debug_str), network_generation);
-    });
+    auto promise = PromiseCreator::lambda(
+        [actor_id = actor_id(this), check_mode, transport_type = extra.transport_type, hash = client.hash,
+         debug_str = extra.debug_str,
+         network_generation = network_generation_](Result<ConnectionData> r_connection_data) mutable {
+          send_closure(actor_id, &ConnectionCreator::client_create_raw_connection, std::move(r_connection_data),
+                       check_mode, std::move(transport_type), hash, std::move(debug_str), network_generation);
+        });
 
     auto stats_callback =
         td::make_unique<detail::StatsCallback>(client.is_media ? media_net_stats_callback_ : common_net_stats_callback_,
@@ -983,7 +983,7 @@ void ConnectionCreator::client_create_raw_connection(Result<ConnectionData> r_co
       VLOG(connections) << "Failed connection (" << (check_mode ? "" : "un") << "checked) " << result.error() << ' '
                         << debug_str;
     }
-    send_closure(std::move(actor_id), &ConnectionCreator::client_add_connection, hash, std::move(result), check_mode,
+    send_closure(actor_id, &ConnectionCreator::client_add_connection, hash, std::move(result), check_mode,
                  auth_data_generation, session_id);
   });
 
@@ -1283,7 +1283,7 @@ void ConnectionCreator::loop() {
         send_closure(
             get_dns_resolver(), &GetHostByNameActor::run, proxy.server().str(), proxy.port(), prefer_ipv6,
             PromiseCreator::lambda([actor_id = create_reference(resolve_proxy_query_token_)](Result<IPAddress> result) {
-              send_closure(std::move(actor_id), &ConnectionCreator::on_proxy_resolved, std::move(result), false);
+              send_closure(actor_id, &ConnectionCreator::on_proxy_resolved, std::move(result), false);
             }));
       }
     } else {

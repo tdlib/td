@@ -79,7 +79,7 @@ class DialogAction {
   string get_watching_animations_emoji() const;
 
   struct ClickingAnimateEmojiInfo {
-    int32 message_id;
+    int32 message_id = 0;
     string emoji;
     string data;
   };

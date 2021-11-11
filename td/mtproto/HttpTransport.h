@@ -49,7 +49,7 @@ class Transport final : public IStreamTransport {
   string secret_;
   HttpReader reader_;
   HttpQuery http_query_;
-  ChainBufferWriter *output_;
+  ChainBufferWriter *output_ = nullptr;
   enum { Write, Read } turn_ = Write;
 };
 

@@ -157,12 +157,7 @@ Result<InputMessageLocation> process_input_message_location(
     return Status::Error(400, "Wrong live location proximity alert radius specified");
   }
 
-  InputMessageLocation result;
-  result.location = std::move(location);
-  result.live_period = period;
-  result.heading = heading;
-  result.proximity_alert_radius = proximity_alert_radius;
-  return std::move(result);
+  return InputMessageLocation(std::move(location), period, heading, proximity_alert_radius);
 }
 
 }  // namespace td

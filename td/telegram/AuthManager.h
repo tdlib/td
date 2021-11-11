@@ -211,7 +211,7 @@ class AuthManager final : public NetActor {
   bool was_check_bot_token_ = false;
   bool is_bot_ = false;
   uint64 net_query_id_ = 0;
-  NetQueryType net_query_type_;
+  NetQueryType net_query_type_ = NetQueryType::None;
 
   vector<uint64> pending_get_authorization_state_requests_;
 

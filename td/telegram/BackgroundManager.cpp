@@ -809,8 +809,9 @@ void BackgroundManager::save_local_backgrounds(bool for_dark_theme) {
 void BackgroundManager::upload_background_file(FileId file_id, const BackgroundType &type, bool for_dark_theme,
                                                Promise<Unit> &&promise) {
   auto upload_file_id = td_->file_manager_->dup_file_id(file_id);
-
-  being_uploaded_files_[upload_file_id] = {type, for_dark_theme, std::move(promise)};
+  bool is_inserted =
+      being_uploaded_files_.emplace(upload_file_id, UploadedFileInfo(type, for_dark_theme, std::move(promise))).second;
+  CHECK(is_inserted);
   LOG(INFO) << "Ask to upload background file " << upload_file_id;
   td_->file_manager_->upload(upload_file_id, upload_background_file_callback_, 1, 0);
 }
@@ -821,9 +822,9 @@ void BackgroundManager::on_upload_background_file(FileId file_id, tl_object_ptr<
   auto it = being_uploaded_files_.find(file_id);
   CHECK(it != being_uploaded_files_.end());
 
-  auto type = it->second.type;
-  auto for_dark_theme = it->second.for_dark_theme;
-  auto promise = std::move(it->second.promise);
+  auto type = it->second.type_;
+  auto for_dark_theme = it->second.for_dark_theme_;
+  auto promise = std::move(it->second.promise_);
 
   being_uploaded_files_.erase(it);
 
@@ -842,7 +843,7 @@ void BackgroundManager::on_upload_background_file_error(FileId file_id, Status s
   auto it = being_uploaded_files_.find(file_id);
   CHECK(it != being_uploaded_files_.end());
 
-  auto promise = std::move(it->second.promise);
+  auto promise = std::move(it->second.promise_);
 
   being_uploaded_files_.erase(it);
 

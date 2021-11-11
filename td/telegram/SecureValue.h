@@ -183,7 +183,7 @@ struct SecureFileCredentials {
 };
 
 struct SecureValueCredentials {
-  SecureValueType type;
+  SecureValueType type = SecureValueType::None;
   string hash;
   optional<SecureDataCredentials> data;
   std::vector<SecureFileCredentials> files;

@@ -42,7 +42,7 @@ class ThemeManager final : public Actor {
     int32 message_accent_color = 0;
     BackgroundId background_id;
     BackgroundType background_type;
-    BaseTheme base_theme;
+    BaseTheme base_theme = BaseTheme::Classic;
     vector<int32> message_colors;
     bool animate_message_colors = false;
 

@@ -907,7 +907,7 @@ class ContactsManager final : public Actor {
   struct SecretChat {
     int64 access_hash = 0;
     UserId user_id;
-    SecretChatState state;
+    SecretChatState state = SecretChatState::Unknown;
     string key_hash;
     int32 ttl = 0;
     int32 date = 0;

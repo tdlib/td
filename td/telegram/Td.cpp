@@ -2114,7 +2114,7 @@ class GetArchivedStickerSetsRequest final : public RequestActor<> {
   StickerSetId offset_sticker_set_id_;
   int32 limit_;
 
-  int32 total_count_;
+  int32 total_count_ = -1;
   vector<StickerSetId> sticker_set_ids_;
 
   void do_run(Promise<Unit> &&promise) final {
@@ -2555,7 +2555,7 @@ class GetEmojiSuggestionsUrlRequest final : public RequestOnceActor {
 
  public:
   GetEmojiSuggestionsUrlRequest(ActorShared<Td> td, uint64 request_id, string &&language_code)
-      : RequestOnceActor(std::move(td), request_id), language_code_(std::move(language_code)) {
+      : RequestOnceActor(std::move(td), request_id), language_code_(std::move(language_code)), random_id_(0) {
   }
 };
 

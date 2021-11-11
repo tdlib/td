@@ -396,8 +396,8 @@ class StickersManager final : public Actor {
     UserId user_id;
     string title;
     string short_name;
-    bool is_masks;
-    bool is_animated;
+    bool is_masks = false;
+    bool is_animated = false;
     vector<FileId> file_ids;
     vector<tl_object_ptr<td_api::InputSticker>> stickers;
     string software;
@@ -789,7 +789,7 @@ class StickersManager final : public Actor {
   struct StickerSetLoadRequest {
     Promise<Unit> promise;
     Status error;
-    size_t left_queries;
+    size_t left_queries = 0;
   };
 
   std::unordered_map<uint32, StickerSetLoadRequest> sticker_set_load_requests_;

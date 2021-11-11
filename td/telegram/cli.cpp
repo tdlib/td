@@ -675,7 +675,7 @@ class CliClient final : public Actor {
   }
 
   struct SearchQuery {
-    int32 limit;
+    int32 limit = 0;
     string query;
   };
 

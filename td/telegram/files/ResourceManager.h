@@ -35,7 +35,7 @@ class ResourceManager final : public Actor {
   Mode mode_;
   using NodeId = uint64;
   struct Node final : public HeapNode {
-    NodeId node_id;
+    NodeId node_id = 0;
 
     ResourceState resource_state_;
     ActorShared<FileLoaderActor> callback_;

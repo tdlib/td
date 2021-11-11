@@ -95,7 +95,7 @@ class ConcurrentScheduler final : private Scheduler::Callback {
   unique_ptr<detail::Iocp> iocp_;
   td::thread iocp_thread_;
 #endif
-  int32 extra_scheduler_;
+  int32 extra_scheduler_ = 0;
 
   void on_finish() final;
 

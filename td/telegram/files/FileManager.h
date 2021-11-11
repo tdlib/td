@@ -538,7 +538,7 @@ class FileManager final : public FileLoadManager::Callback {
     int8 download_priority_{0};
     int8 upload_priority_{0};
 
-    uint64 upload_order_;
+    uint64 upload_order_{0};
 
     std::shared_ptr<DownloadCallback> download_callback_;
     std::shared_ptr<UploadCallback> upload_callback_;

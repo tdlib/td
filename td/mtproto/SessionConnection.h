@@ -188,8 +188,8 @@ class SessionConnection final
   uint64 last_ping_message_id_ = 0;
   uint64 last_ping_container_id_ = 0;
 
-  bool need_destroy_auth_key_{false};
-  bool sent_destroy_auth_key_{false};
+  bool need_destroy_auth_key_ = false;
+  bool sent_destroy_auth_key_ = false;
 
   double wakeup_at_ = 0;
   double flush_packet_at_ = 0;
@@ -206,7 +206,7 @@ class SessionConnection final
   unique_ptr<RawConnection> raw_connection_;
   AuthData *auth_data_;
   SessionConnection::Callback *callback_ = nullptr;
-  BufferSlice *current_buffer_slice_;
+  BufferSlice *current_buffer_slice_ = nullptr;
 
   BufferSlice as_buffer_slice(Slice packet);
   auto set_buffer_slice(BufferSlice *buffer_slice) TD_WARN_UNUSED_RESULT {

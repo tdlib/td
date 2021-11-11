@@ -1035,7 +1035,7 @@ class MessagesManager final : public Actor {
 
   // Do not forget to update MessagesManager::update_message and all make_unique<Message> when this class is changed
   struct Message {
-    int32 random_y;
+    int32 random_y = 0;
 
     MessageId message_id;
     UserId sender_user_id;

@@ -182,9 +182,13 @@ class BackgroundManager final : public Actor {
   std::shared_ptr<UploadBackgroundFileCallback> upload_background_file_callback_;
 
   struct UploadedFileInfo {
-    BackgroundType type;
-    bool for_dark_theme;
-    Promise<Unit> promise;
+    BackgroundType type_;
+    bool for_dark_theme_;
+    Promise<Unit> promise_;
+
+    UploadedFileInfo(BackgroundType type, bool for_dark_theme, Promise<Unit> &&promise)
+        : type_(type), for_dark_theme_(for_dark_theme), promise_(std::move(promise)) {
+    }
   };
   std::unordered_map<FileId, UploadedFileInfo, FileIdHash> being_uploaded_files_;
 
