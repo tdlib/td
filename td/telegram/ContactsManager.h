@@ -1372,6 +1372,8 @@ class ContactsManager final : public Actor {
 
   void on_get_contacts_finished(size_t expected_contact_count);
 
+  void do_import_contacts(vector<Contact> contacts, int64 random_id, Promise<Unit> &&promise);
+
   void load_imported_contacts(Promise<Unit> &&promise);
 
   void on_load_imported_contacts_from_database(string value);

@@ -5500,8 +5500,12 @@ std::pair<vector<UserId>, vector<int32>> ContactsManager::import_contacts(const 
   } while (random_id == 0 || imported_contacts_.find(random_id) != imported_contacts_.end());
   imported_contacts_[random_id];  // reserve place for result
 
-  td_->create_handler<ImportContactsQuery>(std::move(promise))->send(contacts, random_id);
+  do_import_contacts(contacts, random_id, std::move(promise));
   return {};
+}
+
+void ContactsManager::do_import_contacts(vector<Contact> contacts, int64 random_id, Promise<Unit> &&promise) {
+  td_->create_handler<ImportContactsQuery>(std::move(promise))->send(std::move(contacts), random_id);
 }
 
 void ContactsManager::remove_contacts(const vector<UserId> &user_ids, Promise<Unit> &&promise) {
@@ -5759,7 +5763,7 @@ void ContactsManager::on_clear_imported_contacts(vector<Contact> &&contacts, vec
   imported_contacts_unique_id_ = std::move(contacts_unique_id);
   imported_contacts_pos_ = std::move(to_add.first);
 
-  td_->create_handler<ImportContactsQuery>(std::move(promise))->send(std::move(to_add.second), 0);
+  do_import_contacts(std::move(to_add.second), 0, std::move(promise));
 }
 
 void ContactsManager::clear_imported_contacts(Promise<Unit> &&promise) {
