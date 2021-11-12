@@ -389,6 +389,8 @@ class MessagesManager final : public Actor {
 
   void reload_voice_chat_on_search(const string &username);
 
+  void get_dialog_send_message_as(DialogId dialog_id, Promise<td_api::object_ptr<td_api::messageSenders>> &&promise);
+
   Result<td_api::object_ptr<td_api::message>> send_message(
       DialogId dialog_id, MessageId top_thread_message_id, MessageId reply_to_message_id,
       tl_object_ptr<td_api::messageSendOptions> &&options, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,

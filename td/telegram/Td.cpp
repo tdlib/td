@@ -5458,6 +5458,12 @@ void Td::on_request(uint64 id, const td_api::readAllChatMentions &request) {
   messages_manager_->read_all_dialog_mentions(DialogId(request.chat_id_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getChatAvailableMessageSenders &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  messages_manager_->get_dialog_send_message_as(DialogId(request.chat_id_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::sendMessage &request) {
   auto r_sent_message = messages_manager_->send_message(
       DialogId(request.chat_id_), MessageId(request.message_thread_id_), MessageId(request.reply_to_message_id_),

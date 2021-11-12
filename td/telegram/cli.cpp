@@ -3229,6 +3229,8 @@ class CliClient final : public Actor {
       schedule_date_ = std::move(args);
     } else if (op == "smti") {
       message_thread_id_ = std::move(args);
+    } else if (op == "gcams") {
+      send_request(td_api::make_object<td_api::getChatAvailableMessageSenders>(as_chat_id(args)));
     } else if (op == "sm" || op == "sms" || op == "smr" || op == "smf") {
       string chat_id;
       string reply_to_message_id;

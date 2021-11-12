@@ -4372,6 +4372,9 @@ getMessageEmbeddingCode chat_id:int53 message_id:int53 for_album:Bool = Text;
 getMessageLinkInfo url:string = MessageLinkInfo;
 
 
+//@description Returns list of message sender identifiers, which can be used to send messages in a chat @chat_id Chat identifier
+getChatAvailableMessageSenders chat_id:int53 = MessageSenders;
+
 //@description Sends a message. Returns the sent message
 //@chat_id Target chat
 //@message_thread_id If not 0, a message thread identifier in which the message will be sent
