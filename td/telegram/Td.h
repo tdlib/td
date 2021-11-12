@@ -227,6 +227,7 @@ class Td final : public Actor {
     void send_query(NetQueryPtr query);
 
     Td *td_ = nullptr;
+    bool is_query_sent_ = false;
 
    private:
     void set_td(Td *td);
