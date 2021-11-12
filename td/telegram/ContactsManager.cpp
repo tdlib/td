@@ -504,40 +504,14 @@ class AcceptContactQuery final : public Td::ResultHandler {
 };
 
 class ImportContactsQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
-  vector<Contact> input_contacts_;
-  vector<UserId> imported_user_ids_;
-  vector<int32> unimported_contact_invites_;
-  int64 random_id_;
+  int64 random_id_ = 0;
   size_t sent_size_ = 0;
 
  public:
-  explicit ImportContactsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(vector<Contact> input_contacts, int64 random_id) {
+  void send(vector<tl_object_ptr<telegram_api::inputPhoneContact>> &&input_phone_contacts, int64 random_id) {
     random_id_ = random_id;
-
-    size_t size = input_contacts.size();
-    if (size == 0) {
-      td_->contacts_manager_->on_imported_contacts(random_id, std::move(imported_user_ids_),
-                                                   std::move(unimported_contact_invites_));
-      promise_.set_value(Unit());
-      return;
-    }
-
-    imported_user_ids_.resize(size);
-    unimported_contact_invites_.resize(size);
-    input_contacts_ = std::move(input_contacts);
-
-    vector<tl_object_ptr<telegram_api::inputPhoneContact>> contacts;
-    contacts.reserve(size);
-    for (size_t i = 0; i < size; i++) {
-      contacts.push_back(input_contacts_[i].get_input_phone_contact(static_cast<int64>(i)));
-    }
-
-    sent_size_ = size;
-    send_query(G()->net_query_creator().create(telegram_api::contacts_importContacts(std::move(contacts))));
+    sent_size_ = input_phone_contacts.size();
+    send_query(G()->net_query_creator().create(telegram_api::contacts_importContacts(std::move(input_phone_contacts))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -548,61 +522,14 @@ class ImportContactsQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for ImportContactsQuery: " << to_string(ptr);
-
-    td_->contacts_manager_->on_get_users(std::move(ptr->users_), "ImportContactsQuery");
-    for (auto &imported_contact : ptr->imported_) {
-      int64 client_id = imported_contact->client_id_;
-      if (client_id < 0 || client_id >= static_cast<int64>(imported_user_ids_.size())) {
-        LOG(ERROR) << "Wrong client_id " << client_id << " returned";
-        continue;
-      }
-
-      imported_user_ids_[static_cast<size_t>(client_id)] = UserId(imported_contact->user_id_);
+    if (sent_size_ == ptr->retry_contacts_.size()) {
+      return on_error(Status::Error(429, "Too Many Requests: retry after 3600"));
     }
-    for (auto &popular_contact : ptr->popular_invites_) {
-      int64 client_id = popular_contact->client_id_;
-      if (client_id < 0 || client_id >= static_cast<int64>(unimported_contact_invites_.size())) {
-        LOG(ERROR) << "Wrong client_id " << client_id << " returned";
-        continue;
-      }
-      if (popular_contact->importers_ < 0) {
-        LOG(ERROR) << "Wrong number of importers " << popular_contact->importers_ << " returned";
-        continue;
-      }
-
-      unimported_contact_invites_[static_cast<size_t>(client_id)] = popular_contact->importers_;
-    }
-
-    if (!ptr->retry_contacts_.empty()) {
-      if (sent_size_ == ptr->retry_contacts_.size()) {
-        return promise_.set_error(Status::Error(429, "Too Many Requests: retry after 3600"));
-      }
-
-      auto total_size = static_cast<int64>(input_contacts_.size());
-      vector<tl_object_ptr<telegram_api::inputPhoneContact>> contacts;
-      contacts.reserve(ptr->retry_contacts_.size());
-      for (auto &client_id : ptr->retry_contacts_) {
-        if (client_id < 0 || client_id >= total_size) {
-          LOG(ERROR) << "Wrong client_id " << client_id << " returned";
-          continue;
-        }
-        auto i = static_cast<size_t>(client_id);
-        contacts.push_back(input_contacts_[i].get_input_phone_contact(client_id));
-      }
-
-      sent_size_ = contacts.size();
-      send_query(G()->net_query_creator().create(telegram_api::contacts_importContacts(std::move(contacts))));
-      return;
-    }
-
-    td_->contacts_manager_->on_imported_contacts(random_id_, std::move(imported_user_ids_),
-                                                 std::move(unimported_contact_invites_));
-    promise_.set_value(Unit());
+    td_->contacts_manager_->on_imported_contacts(random_id_, std::move(ptr));
   }
 
   void on_error(Status status) final {
-    promise_.set_error(std::move(status));
-    td_->contacts_manager_->reload_contacts(true);
+    td_->contacts_manager_->on_imported_contacts(random_id_, std::move(status));
   }
 };
 
@@ -5505,7 +5432,90 @@ std::pair<vector<UserId>, vector<int32>> ContactsManager::import_contacts(const 
 }
 
 void ContactsManager::do_import_contacts(vector<Contact> contacts, int64 random_id, Promise<Unit> &&promise) {
-  td_->create_handler<ImportContactsQuery>(std::move(promise))->send(std::move(contacts), random_id);
+  size_t size = contacts.size();
+  if (size == 0) {
+    on_import_contacts_finished(random_id, {}, {});
+    return promise.set_value(Unit());
+  }
+
+  vector<tl_object_ptr<telegram_api::inputPhoneContact>> input_phone_contacts;
+  input_phone_contacts.reserve(size);
+  for (size_t i = 0; i < size; i++) {
+    input_phone_contacts.push_back(contacts[i].get_input_phone_contact(static_cast<int64>(i)));
+  }
+
+  auto task = make_unique<ImportContactsTask>();
+  task->promise_ = std::move(promise);
+  task->input_contacts_ = std::move(contacts);
+  task->imported_user_ids_.resize(size);
+  task->unimported_contact_invites_.resize(size);
+
+  bool is_added = import_contact_tasks_.emplace(random_id, std::move(task)).second;
+  CHECK(is_added);
+
+  td_->create_handler<ImportContactsQuery>()->send(std::move(input_phone_contacts), random_id);
+}
+
+void ContactsManager::on_imported_contacts(int64 random_id,
+                                           Result<tl_object_ptr<telegram_api::contacts_importedContacts>> result) {
+  auto it = import_contact_tasks_.find(random_id);
+  CHECK(it != import_contact_tasks_.end());
+  CHECK(it->second != nullptr);
+
+  auto task = it->second.get();
+  if (result.is_error()) {
+    auto promise = std::move(task->promise_);
+    import_contact_tasks_.erase(it);
+    return promise.set_error(result.move_as_error());
+  }
+
+  auto imported_contacts = result.move_as_ok();
+  on_get_users(std::move(imported_contacts->users_), "on_imported_contacts");
+
+  for (auto &imported_contact : imported_contacts->imported_) {
+    int64 client_id = imported_contact->client_id_;
+    if (client_id < 0 || client_id >= static_cast<int64>(task->imported_user_ids_.size())) {
+      LOG(ERROR) << "Wrong client_id " << client_id << " returned";
+      continue;
+    }
+
+    task->imported_user_ids_[static_cast<size_t>(client_id)] = UserId(imported_contact->user_id_);
+  }
+  for (auto &popular_contact : imported_contacts->popular_invites_) {
+    int64 client_id = popular_contact->client_id_;
+    if (client_id < 0 || client_id >= static_cast<int64>(task->unimported_contact_invites_.size())) {
+      LOG(ERROR) << "Wrong client_id " << client_id << " returned";
+      continue;
+    }
+    if (popular_contact->importers_ < 0) {
+      LOG(ERROR) << "Wrong number of importers " << popular_contact->importers_ << " returned";
+      continue;
+    }
+
+    task->unimported_contact_invites_[static_cast<size_t>(client_id)] = popular_contact->importers_;
+  }
+
+  if (!imported_contacts->retry_contacts_.empty()) {
+    auto total_size = static_cast<int64>(task->input_contacts_.size());
+    vector<tl_object_ptr<telegram_api::inputPhoneContact>> input_phone_contacts;
+    input_phone_contacts.reserve(imported_contacts->retry_contacts_.size());
+    for (auto &client_id : imported_contacts->retry_contacts_) {
+      if (client_id < 0 || client_id >= total_size) {
+        LOG(ERROR) << "Wrong client_id " << client_id << " returned";
+        continue;
+      }
+      auto i = static_cast<size_t>(client_id);
+      input_phone_contacts.push_back(task->input_contacts_[i].get_input_phone_contact(client_id));
+    }
+    td_->create_handler<ImportContactsQuery>()->send(std::move(input_phone_contacts), random_id);
+    return;
+  }
+
+  auto promise = std::move(task->promise_);
+  on_import_contacts_finished(random_id, std::move(task->imported_user_ids_),
+                              std::move(task->unimported_contact_invites_));
+  import_contact_tasks_.erase(it);
+  promise.set_value(Unit());
 }
 
 void ContactsManager::remove_contacts(const vector<UserId> &user_ids, Promise<Unit> &&promise) {
@@ -7981,8 +7991,8 @@ void ContactsManager::on_dismiss_suggested_action(SuggestedAction action, Result
   }
 }
 
-void ContactsManager::on_imported_contacts(int64 random_id, vector<UserId> imported_contact_user_ids,
-                                           vector<int32> unimported_contact_invites) {
+void ContactsManager::on_import_contacts_finished(int64 random_id, vector<UserId> imported_contact_user_ids,
+                                                  vector<int32> unimported_contact_invites) {
   LOG(INFO) << "Contacts import with random_id " << random_id
             << " has finished: " << format::as_array(imported_contact_user_ids);
   if (random_id == 0) {
@@ -8004,7 +8014,7 @@ void ContactsManager::on_imported_contacts(int64 random_id, vector<UserId> impor
     std::unordered_map<size_t, int32> unique_id_to_unimported_contact_invites;
     for (size_t i = 0; i < add_size; i++) {
       auto unique_id = imported_contacts_pos_[i];
-      get_user_id_object(imported_contact_user_ids[i], "on_imported_contacts");  // to ensure updateUser
+      get_user_id_object(imported_contact_user_ids[i], "on_import_contacts_finished");  // to ensure updateUser
       all_imported_contacts_[unique_id].set_user_id(imported_contact_user_ids[i]);
       unique_id_to_unimported_contact_invites[unique_id] = unimported_contact_invites[i];
     }
