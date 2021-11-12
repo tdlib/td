@@ -10520,6 +10520,15 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
                          &MessagesManager::on_update_dialog_default_join_group_call_as_dialog_id, DialogId(channel_id),
                          default_join_group_call_as_dialog_id, false);
     }
+    {
+      DialogId default_send_message_as_dialog_id;
+      if (channel->default_send_as_ != nullptr) {
+        default_send_message_as_dialog_id = DialogId(channel->default_send_as_);
+      }
+      // use send closure later to not create synchronously default_send_message_as_dialog_id
+      send_closure_later(G()->messages_manager(), &MessagesManager::on_update_dialog_default_send_message_as_dialog_id,
+                         DialogId(channel_id), default_send_message_as_dialog_id, false);
+    }
 
     if (participant_count >= 190) {
       int32 online_member_count = 0;

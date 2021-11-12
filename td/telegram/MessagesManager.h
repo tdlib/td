@@ -305,6 +305,9 @@ class MessagesManager final : public Actor {
   void on_update_dialog_default_join_group_call_as_dialog_id(DialogId dialog_id, DialogId default_join_as_dialog_id,
                                                              bool force);
 
+  void on_update_dialog_default_send_message_as_dialog_id(DialogId dialog_id, DialogId default_send_as_dialog_id,
+                                                          bool force);
+
   void on_update_dialog_message_ttl_setting(DialogId dialog_id, MessageTtlSetting message_ttl_setting);
 
   void on_update_dialog_filters();
@@ -1193,6 +1196,7 @@ class MessagesManager final : public Actor {
     InputGroupCallId active_group_call_id;
     InputGroupCallId expected_active_group_call_id;
     DialogId default_join_group_call_as_dialog_id;
+    DialogId default_send_message_as_dialog_id;
     string theme_name;
     int32 pending_join_request_count = 0;
     vector<UserId> pending_join_request_user_ids;
@@ -2368,6 +2372,8 @@ class MessagesManager final : public Actor {
 
   void send_update_chat_video_chat(const Dialog *d);
 
+  void send_update_chat_default_sender_id(const Dialog *d);
+
   void send_update_chat_message_ttl_setting(const Dialog *d);
 
   void send_update_chat_has_scheduled_messages(Dialog *d, bool from_deletion);
@@ -2550,7 +2556,8 @@ class MessagesManager final : public Actor {
 
   void fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_database_message, MessageId last_database_message_id,
                       int64 order, int32 last_clear_history_date, MessageId last_clear_history_message_id,
-                      DialogId default_join_group_call_as_dialog_id, bool is_loaded_from_database);
+                      DialogId default_join_group_call_as_dialog_id, DialogId default_send_message_as_dialog_id,
+                      bool is_loaded_from_database);
 
   void add_dialog_last_database_message(Dialog *d, unique_ptr<Message> &&last_database_message);
 
@@ -2565,6 +2572,8 @@ class MessagesManager final : public Actor {
   td_api::object_ptr<td_api::chatJoinRequestsInfo> get_chat_join_requests_info_object(const Dialog *d) const;
 
   td_api::object_ptr<td_api::videoChat> get_video_chat_object(const Dialog *d) const;
+
+  td_api::object_ptr<td_api::MessageSender> get_default_sender_id_object(const Dialog *d) const;
 
   td_api::object_ptr<td_api::chat> get_chat_object(const Dialog *d) const;
 
@@ -3470,6 +3479,9 @@ class MessagesManager final : public Actor {
 
   std::unordered_map<DialogId, vector<DialogId>, DialogIdHash>
       pending_add_default_join_group_call_as_dialog_id_;  // dialog_id -> dependent dialogs
+
+  std::unordered_map<DialogId, vector<DialogId>, DialogIdHash>
+      pending_add_default_send_message_as_dialog_id_;  // dialog_id -> dependent dialogs
 
   struct MessageIds {
     std::unordered_set<MessageId, MessageIdHash> message_ids;
