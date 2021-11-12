@@ -351,8 +351,6 @@ class Td final : public Actor {
 
   void on_config_option_updated(const string &name);
 
-  static void send(NetQueryPtr &&query);
-
   class OnRequest;
 
   class DownloadFileCallback;

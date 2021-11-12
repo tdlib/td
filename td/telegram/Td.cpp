@@ -161,7 +161,8 @@ void Td::ResultHandler::set_td(Td *td) {
 
 void Td::ResultHandler::send_query(NetQueryPtr query) {
   td_->add_handler(query->id(), shared_from_this());
-  send(std::move(query));
+  query->debug("Send to NetQueryDispatcher");
+  G()->net_query_dispatcher().dispatch(std::move(query));
 }
 
 class GetPromoDataQuery final : public Td::ResultHandler {
@@ -3206,12 +3207,6 @@ std::shared_ptr<Td::ResultHandler> Td::extract_handler(uint64 id) {
   auto result = std::move(it->second);
   result_handlers_.erase(it);
   return result;
-}
-
-void Td::send(NetQueryPtr &&query) {
-  VLOG(net_query) << "Send " << query << " to dispatcher";
-  query->debug("Td: send to NetQueryDispatcher");
-  G()->net_query_dispatcher().dispatch(std::move(query));
 }
 
 void Td::on_update(BufferSlice &&update) {
