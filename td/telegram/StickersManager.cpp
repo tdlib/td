@@ -4691,6 +4691,10 @@ void StickersManager::view_featured_sticker_sets(const vector<StickerSetId> &sti
 }
 
 void StickersManager::read_featured_sticker_sets(void *td_void) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   CHECK(td_void != nullptr);
   auto td = static_cast<Td *>(td_void);
 

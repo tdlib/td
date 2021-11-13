@@ -127,7 +127,8 @@ class WebPagesManager final : public Actor {
   tl_object_ptr<td_api::webPageInstantView> get_web_page_instant_view_object(
       WebPageId web_page_id, const WebPageInstantView *web_page_instant_view) const;
 
-  static void on_pending_web_page_timeout_callback(void *web_pages_manager_ptr, int64 web_page_id);
+  static void on_pending_web_page_timeout_callback(void *web_pages_manager_ptr, int64 web_page_id_int);
+
   void on_pending_web_page_timeout(WebPageId web_page_id);
 
   void on_get_web_page_preview_success(int64 request_id, const string &url, WebPageId web_page_id,

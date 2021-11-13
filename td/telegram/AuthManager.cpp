@@ -213,6 +213,9 @@ void AuthManager::set_login_token_expires_at(double login_token_expires_at) {
 }
 
 void AuthManager::on_update_login_token_static(void *td) {
+  if (G()->close_flag()) {
+    return;
+  }
   static_cast<Td *>(td)->auth_manager_->on_update_login_token();
 }
 

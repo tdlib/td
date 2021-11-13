@@ -1341,12 +1341,18 @@ const WebPagesManager::WebPageInstantView *WebPagesManager::get_web_page_instant
   return &web_page->instant_view;
 }
 
-void WebPagesManager::on_pending_web_page_timeout_callback(void *web_pages_manager_ptr, int64 web_page_id) {
-  static_cast<WebPagesManager *>(web_pages_manager_ptr)->on_pending_web_page_timeout(WebPageId(web_page_id));
+void WebPagesManager::on_pending_web_page_timeout_callback(void *web_pages_manager_ptr, int64 web_page_id_int) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto web_pages_manager = static_cast<WebPagesManager *>(web_pages_manager_ptr);
+  send_closure_later(web_pages_manager->actor_id(web_pages_manager), &WebPagesManager::on_pending_web_page_timeout,
+                     WebPageId(web_page_id_int));
 }
 
 void WebPagesManager::on_pending_web_page_timeout(WebPageId web_page_id) {
-  if (have_web_page(web_page_id)) {
+  if (G()->close_flag() || have_web_page(web_page_id)) {
     return;
   }
 

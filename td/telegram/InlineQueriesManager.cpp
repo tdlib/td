@@ -173,6 +173,9 @@ void InlineQueriesManager::tear_down() {
 
 void InlineQueriesManager::on_drop_inline_query_result_timeout_callback(void *inline_queries_manager_ptr,
                                                                         int64 query_hash) {
+  if (G()->close_flag()) {
+    return;
+  }
   auto inline_queries_manager = static_cast<InlineQueriesManager *>(inline_queries_manager_ptr);
   auto it = inline_queries_manager->inline_query_results_.find(query_hash);
   CHECK(it != inline_queries_manager->inline_query_results_.end());

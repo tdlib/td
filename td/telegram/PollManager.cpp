@@ -1151,12 +1151,12 @@ double PollManager::get_polling_timeout() const {
 }
 
 void PollManager::on_update_poll_timeout(PollId poll_id) {
-  CHECK(!td_->auth_manager_->is_bot());
-  CHECK(!is_local_poll_id(poll_id));
-
   if (G()->close_flag()) {
     return;
   }
+  CHECK(!td_->auth_manager_->is_bot());
+  CHECK(!is_local_poll_id(poll_id));
+
   auto poll = get_poll(poll_id);
   CHECK(poll != nullptr);
   if (poll->is_closed && poll->is_updated_after_close) {
@@ -1182,11 +1182,10 @@ void PollManager::on_update_poll_timeout(PollId poll_id) {
 }
 
 void PollManager::on_close_poll_timeout(PollId poll_id) {
-  CHECK(!is_local_poll_id(poll_id));
-
   if (G()->close_flag()) {
     return;
   }
+  CHECK(!is_local_poll_id(poll_id));
 
   auto poll = get_poll_editable(poll_id);
   CHECK(poll != nullptr);

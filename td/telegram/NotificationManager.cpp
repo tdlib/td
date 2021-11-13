@@ -995,6 +995,7 @@ void NotificationManager::add_update_notification(NotificationGroupId notificati
 }
 
 void NotificationManager::flush_pending_updates(int32 group_id, const char *source) {
+  // no check for G()->close_flag() to flush pending notifications even while closing
   auto it = pending_updates_.find(group_id);
   if (it == pending_updates_.end()) {
     return;
@@ -1370,6 +1371,7 @@ void NotificationManager::flush_all_pending_updates(bool include_delayed_chats, 
 
 bool NotificationManager::do_flush_pending_notifications(NotificationGroupKey &group_key, NotificationGroup &group,
                                                          vector<PendingNotification> &pending_notifications) {
+  // no check for G()->close_flag() to flush pending notifications even while closing
   if (pending_notifications.empty()) {
     return false;
   }
