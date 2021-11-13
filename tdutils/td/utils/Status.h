@@ -363,7 +363,7 @@ class Status {
   }
 
   Status clone_static() const TD_WARN_UNUSED_RESULT {
-    CHECK(is_ok() || get_info().static_flag);
+    CHECK(ptr_ != nullptr && get_info().static_flag);
     Status result;
     result.ptr_ = std::unique_ptr<char[], Deleter>(ptr_.get());
     return result;
