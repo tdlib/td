@@ -362,7 +362,7 @@ void FileReferenceManager::repair_file_reference(NodeId node_id, Promise<> promi
 }
 
 void FileReferenceManager::reload_photo(PhotoSizeSource source, Promise<Unit> promise) {
-  switch (source.get_type()) {
+  switch (source.get_type("reload_photo")) {
     case PhotoSizeSource::Type::DialogPhotoBig:
     case PhotoSizeSource::Type::DialogPhotoSmall:
     case PhotoSizeSource::Type::DialogPhotoBigLegacy:

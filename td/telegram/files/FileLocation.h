@@ -334,7 +334,7 @@ class FullRemoteFileLocation {
 
   void set_source(PhotoSizeSource source) {
     CHECK(is_photo());
-    file_type_ = source.get_file_type();
+    file_type_ = source.get_file_type("set_source");
     photo().source_ = std::move(source);
   }
 
@@ -399,7 +399,7 @@ class FullRemoteFileLocation {
         const auto &id = photo().id_;
         const auto &access_hash = photo().access_hash_;
         const auto &source = photo().source_;
-        switch (source.get_type()) {
+        switch (source.get_type("as_input_file_location")) {
           case PhotoSizeSource::Type::Legacy:
             UNREACHABLE();
             break;
@@ -423,7 +423,7 @@ class FullRemoteFileLocation {
           case PhotoSizeSource::Type::DialogPhotoSmall:
           case PhotoSizeSource::Type::DialogPhotoBig: {
             auto &dialog_photo = source.dialog_photo();
-            bool is_big = source.get_type() == PhotoSizeSource::Type::DialogPhotoBig;
+            bool is_big = source.get_type("as_input_file_location 2") == PhotoSizeSource::Type::DialogPhotoBig;
             return make_tl_object<telegram_api::inputPeerPhotoFileLocation>(
                 is_big * telegram_api::inputPeerPhotoFileLocation::BIG_MASK, false /*ignored*/,
                 dialog_photo.get_input_peer(), id);
@@ -440,7 +440,7 @@ class FullRemoteFileLocation {
           case PhotoSizeSource::Type::DialogPhotoSmallLegacy:
           case PhotoSizeSource::Type::DialogPhotoBigLegacy: {
             auto &dialog_photo = source.dialog_photo_legacy();
-            bool is_big = source.get_type() == PhotoSizeSource::Type::DialogPhotoBigLegacy;
+            bool is_big = source.get_type("as_input_file_location 3") == PhotoSizeSource::Type::DialogPhotoBigLegacy;
             return make_tl_object<telegram_api::inputPeerPhotoFileLocationLegacy>(
                 is_big * telegram_api::inputPeerPhotoFileLocationLegacy::BIG_MASK, false /*ignored*/,
                 dialog_photo.get_input_peer(), dialog_photo.volume_id, dialog_photo.local_id);
@@ -510,7 +510,7 @@ class FullRemoteFileLocation {
   // photo
   FullRemoteFileLocation(const PhotoSizeSource &source, int64 id, int64 access_hash, DcId dc_id,
                          std::string file_reference)
-      : file_type_(source.get_file_type())
+      : file_type_(source.get_file_type("FullRemoteFileLocation"))
       , dc_id_(dc_id)
       , file_reference_(std::move(file_reference))
       , variant_(PhotoRemoteFileLocation{id, access_hash, source}) {

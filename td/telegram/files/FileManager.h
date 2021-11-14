@@ -321,7 +321,7 @@ class FileView {
     if (!remote_location().is_photo()) {
       return false;
     }
-    auto type = remote_location().get_source().get_type();
+    auto type = remote_location().get_source().get_type("may_reload_photo");
     return type != PhotoSizeSource::Type::Legacy && type != PhotoSizeSource::Type::FullLegacy &&
            type != PhotoSizeSource::Type::Thumbnail;
   }

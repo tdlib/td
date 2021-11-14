@@ -138,7 +138,8 @@ static StringBuilder &operator<<(StringBuilder &string_builder, PhotoFormat form
 static FileId register_photo(FileManager *file_manager, const PhotoSizeSource &source, int64 id, int64 access_hash,
                              std::string file_reference, DialogId owner_dialog_id, int32 file_size, DcId dc_id,
                              PhotoFormat format) {
-  LOG(DEBUG) << "Receive " << format << " photo " << id << " of type " << source.get_file_type() << " from " << dc_id;
+  LOG(DEBUG) << "Receive " << format << " photo " << id << " of type " << source.get_file_type("register_photo")
+             << " from " << dc_id;
   auto suggested_name = PSTRING() << source.get_unique_name(id) << '.' << format;
   auto file_location_source = owner_dialog_id.get_type() == DialogType::SecretChat ? FileLocationSource::FromUser
                                                                                    : FileLocationSource::FromServer;
@@ -429,7 +430,7 @@ Variant<PhotoSize, string> get_photo_size(FileManager *file_manager, PhotoSizeSo
       res.type = 0;
     }
   }
-  if (source.get_type() == PhotoSizeSource::Type::Thumbnail) {
+  if (source.get_type("get_photo_size") == PhotoSizeSource::Type::Thumbnail) {
     source.thumbnail().thumbnail_type = res.type;
   }
 
@@ -462,7 +463,7 @@ AnimationSize get_animation_size(FileManager *file_manager, PhotoSizeSource sour
     res.main_frame_timestamp = size->video_start_ts_;
   }
 
-  if (source.get_type() == PhotoSizeSource::Type::Thumbnail) {
+  if (source.get_type("get_animation_size") == PhotoSizeSource::Type::Thumbnail) {
     source.thumbnail().thumbnail_type = res.type;
   }
 

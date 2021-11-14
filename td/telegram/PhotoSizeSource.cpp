@@ -43,8 +43,8 @@ tl_object_ptr<telegram_api::InputPeer> PhotoSizeSource::DialogPhoto::get_input_p
   }
 }
 
-FileType PhotoSizeSource::get_file_type() const {
-  switch (get_type()) {
+FileType PhotoSizeSource::get_file_type(const char *source) const {
+  switch (get_type(source)) {
     case Type::Thumbnail:
       return thumbnail().file_type;
     case Type::DialogPhotoSmall:
@@ -68,7 +68,7 @@ string PhotoSizeSource::get_unique() const {
   auto ptr = StackAllocator::alloc(16);
   MutableSlice data = ptr.as_slice();
   TlStorerUnsafe storer(data.ubegin());
-  switch (get_type()) {
+  switch (get_type("get_unique")) {
     case Type::Legacy:
       UNREACHABLE();
       break;
@@ -129,7 +129,7 @@ string PhotoSizeSource::get_unique() const {
 }
 
 string PhotoSizeSource::get_unique_name(int64 photo_id) const {
-  switch (get_type()) {
+  switch (get_type("get_unique_name")) {
     case Type::Thumbnail:
       CHECK(0 <= thumbnail().thumbnail_type && thumbnail().thumbnail_type <= 127);
       return PSTRING() << photo_id << '_' << thumbnail().thumbnail_type;
@@ -226,7 +226,7 @@ bool operator!=(const PhotoSizeSource &lhs, const PhotoSizeSource &rhs) {
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const PhotoSizeSource &source) {
-  switch (source.get_type()) {
+  switch (source.get_type("operator<<")) {
     case PhotoSizeSource::Type::Legacy:
       return string_builder << "PhotoSizeSourceLegacy[]";
     case PhotoSizeSource::Type::Thumbnail:
