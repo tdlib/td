@@ -30,10 +30,10 @@ class GetTermsOfServiceUpdateQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::help_getTermsOfServiceUpdate()));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::help_getTermsOfServiceUpdate>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto result = result_ptr.move_as_ok();
@@ -53,7 +53,7 @@ class GetTermsOfServiceUpdateQuery final : public Td::ResultHandler {
     }
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -65,15 +65,15 @@ class AcceptTermsOfServiceQuery final : public Td::ResultHandler {
   explicit AcceptTermsOfServiceQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(string terms_of_service_id) {
+  void send(const string &terms_of_service_id) {
     send_query(G()->net_query_creator().create(telegram_api::help_acceptTermsOfService(
-        telegram_api::make_object<telegram_api::dataJSON>(std::move(terms_of_service_id)))));
+        telegram_api::make_object<telegram_api::dataJSON>(terms_of_service_id))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::help_acceptTermsOfService>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto result = result_ptr.ok();
@@ -83,7 +83,7 @@ class AcceptTermsOfServiceQuery final : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -106,9 +106,8 @@ TermsOfService::TermsOfService(telegram_api::object_ptr<telegram_api::help_terms
     id_.clear();
   }
   text_ = FormattedText{std::move(terms->text_), std::move(entities)};
-  min_user_age_ =
-      ((terms->flags_ & telegram_api::help_termsOfService::MIN_AGE_CONFIRM_MASK) != 0 ? terms->min_age_confirm_ : 0);
-  show_popup_ = (terms->flags_ & telegram_api::help_termsOfService::POPUP_MASK) != 0;
+  min_user_age_ = terms->min_age_confirm_;
+  show_popup_ = terms->popup_;
 }
 
 void get_terms_of_service(Td *td, Promise<std::pair<int32, TermsOfService>> promise) {
@@ -116,7 +115,7 @@ void get_terms_of_service(Td *td, Promise<std::pair<int32, TermsOfService>> prom
 }
 
 void accept_terms_of_service(Td *td, string &&terms_of_service_id, Promise<Unit> &&promise) {
-  td->create_handler<AcceptTermsOfServiceQuery>(std::move(promise))->send(std::move(terms_of_service_id));
+  td->create_handler<AcceptTermsOfServiceQuery>(std::move(promise))->send(terms_of_service_id);
 }
 
 }  // namespace td

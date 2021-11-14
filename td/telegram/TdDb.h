@@ -97,7 +97,7 @@ class TdDb {
 
   void change_key(DbKey key, Promise<> promise);
 
-  void with_db_path(std::function<void(CSlice)> callback);
+  void with_db_path(const std::function<void(CSlice)> &callback);
 
   Result<string> get_stats();
 
@@ -121,7 +121,7 @@ class TdDb {
   std::shared_ptr<ConcurrentBinlog> binlog_;
 
   Status init(int32 scheduler_id, const TdParameters &parameters, DbKey key, Events &events);
-  Status init_sqlite(int32 scheduler_id, const TdParameters &parameters, DbKey key, DbKey old_key,
+  Status init_sqlite(int32 scheduler_id, const TdParameters &parameters, const DbKey &key, const DbKey &old_key,
                      BinlogKeyValue<Binlog> &binlog_pmc);
 
   void do_close(Promise<> on_finished, bool destroy_flag);

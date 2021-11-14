@@ -34,7 +34,7 @@ class CountryInfoManager final : public Actor {
   void get_phone_number_info(string phone_number_prefix,
                              Promise<td_api::object_ptr<td_api::phoneNumberInfo>> &&promise);
 
-  static td_api::object_ptr<td_api::phoneNumberInfo> get_phone_number_info_sync(string language_code,
+  static td_api::object_ptr<td_api::phoneNumberInfo> get_phone_number_info_sync(const string &language_code,
                                                                                 string phone_number_prefix);
 
   CountryInfoManager(const CountryInfoManager &) = delete;

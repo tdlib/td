@@ -150,9 +150,9 @@ std::string TD_TL_writer::gen_field_name(std::string name) const {
       name[i] = '_';
     }
   }
-  assert(name.size() > 0);
+  assert(!name.empty());
   assert(name[name.size() - 1] != '_');
-  return name + "_";
+  return name + '_';
 }
 
 std::string TD_TL_writer::gen_var_name(const tl::var_description &desc) const {
@@ -261,9 +261,8 @@ std::string TD_TL_writer::gen_constructor_parameter(int field_num, const std::st
   } else if (field_type == "UInt128 " || field_type == "UInt256 " || field_type == "string " ||
              (string_type == bytes_type && field_type == "bytes ")) {
     res += field_type + "const &";
-  } else if (field_type.compare(0, 5, "array") == 0 || field_type == "bytes ") {
-    res += field_type + "&&";
-  } else if (field_type.compare(0, 10, "object_ptr") == 0) {
+  } else if (field_type.compare(0, 5, "array") == 0 || field_type == "bytes " ||
+             field_type.compare(0, 10, "object_ptr") == 0) {
     res += field_type + "&&";
   } else {
     assert(false && "unreachable");

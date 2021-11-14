@@ -47,6 +47,7 @@
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/crypto.h"
+#include "td/utils/emoji.h"
 #include "td/utils/format.h"
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
@@ -379,7 +380,8 @@ ActorOwn<> get_simple_config_firebase_firestore(Promise<SimpleConfigResult> prom
                                 prefer_ipv6, std::move(get_config));
 }
 
-ActorOwn<> get_full_config(DcOption option, Promise<FullConfig> promise, ActorShared<> parent) {
+static ActorOwn<> get_full_config(DcOption option, Promise<tl_object_ptr<telegram_api::config>> promise,
+                                  ActorShared<> parent) {
   class SessionCallback final : public Session::Callback {
    public:
     SessionCallback(ActorShared<> parent, DcOption option) : parent_(std::move(parent)), option_(std::move(option)) {
@@ -496,7 +498,7 @@ ActorOwn<> get_full_config(DcOption option, Promise<FullConfig> promise, ActorSh
 
   class GetConfigActor final : public NetQueryCallback {
    public:
-    GetConfigActor(DcOption option, Promise<FullConfig> promise, ActorShared<> parent)
+    GetConfigActor(DcOption option, Promise<tl_object_ptr<telegram_api::config>> promise, ActorShared<> parent)
         : option_(std::move(option)), promise_(std::move(promise)), parent_(std::move(parent)) {
     }
 
@@ -542,11 +544,12 @@ ActorOwn<> get_full_config(DcOption option, Promise<FullConfig> promise, ActorSh
 
     DcOption option_;
     ActorOwn<Session> session_;
-    Promise<FullConfig> promise_;
+    Promise<tl_object_ptr<telegram_api::config>> promise_;
     ActorShared<> parent_;
   };
 
-  return ActorOwn<>(create_actor<GetConfigActor>("GetConfigActor", option, std::move(promise), std::move(parent)));
+  return ActorOwn<>(
+      create_actor<GetConfigActor>("GetConfigActor", std::move(option), std::move(promise), std::move(parent)));
 }
 
 class ConfigRecoverer final : public Actor {
@@ -556,7 +559,7 @@ class ConfigRecoverer final : public Actor {
   }
 
   void on_dc_options_update(DcOptions dc_options) {
-    dc_options_update_ = dc_options;
+    dc_options_update_ = std::move(dc_options);
     update_dc_options();
     loop();
   }
@@ -676,22 +679,22 @@ class ConfigRecoverer final : public Actor {
     }
   }
 
-  void on_full_config(Result<FullConfig> r_full_config, bool dummy) {
+  void on_full_config(Result<tl_object_ptr<telegram_api::config>> r_full_config, bool dummy) {
     full_config_query_.reset();
     if (r_full_config.is_ok()) {
       full_config_ = r_full_config.move_as_ok();
-      VLOG(config_recoverer) << "Got FullConfig " << to_string(full_config_);
+      VLOG(config_recoverer) << "Receive " << to_string(full_config_);
       full_config_expires_at_ = get_config_expire_time();
       send_closure(G()->connection_creator(), &ConnectionCreator::on_dc_options, DcOptions(full_config_->dc_options_));
     } else {
-      VLOG(config_recoverer) << "Get FullConfig error " << r_full_config.error();
-      full_config_ = FullConfig();
+      VLOG(config_recoverer) << "Failed to get config: " << r_full_config.error();
+      full_config_ = nullptr;
       full_config_expires_at_ = get_failed_config_expire_time();
     }
     loop();
   }
 
-  bool expect_blocking() const {
+  static bool expect_blocking() {
     return G()->shared_config().get_option_boolean("expect_blocking", true);
   }
 
@@ -725,11 +728,11 @@ class ConfigRecoverer final : public Actor {
 
   DcOptions dc_options_;  // dc_options_update_ + simple_config_
   double dc_options_at_{0};
-  size_t dc_options_i_;
+  size_t dc_options_i_{0};
 
   size_t date_option_i_{0};
 
-  FullConfig full_config_;
+  tl_object_ptr<telegram_api::config> full_config_;
   double full_config_expires_at_{0};
   ActorOwn<> full_config_query_;
 
@@ -760,6 +763,7 @@ class ConfigRecoverer final : public Actor {
   double max_connecting_delay() const {
     return expect_blocking() ? 5 : 20;
   }
+
   void loop() final {
     if (close_flag_) {
       return;
@@ -829,12 +833,13 @@ class ConfigRecoverer final : public Actor {
     if (need_full_config) {
       ref_cnt_++;
       VLOG(config_recoverer) << "Ask full config with dc_options_i_ = " << dc_options_i_;
-      full_config_query_ =
-          get_full_config(dc_options_.dc_options[dc_options_i_],
-                          PromiseCreator::lambda([actor_id = actor_id(this)](Result<FullConfig> r_full_config) {
-                            send_closure(actor_id, &ConfigRecoverer::on_full_config, std::move(r_full_config), false);
-                          }),
-                          actor_shared(this));
+      full_config_query_ = get_full_config(
+          dc_options_.dc_options[dc_options_i_],
+          PromiseCreator::lambda(
+              [actor_id = actor_id(this)](Result<tl_object_ptr<telegram_api::config>> r_full_config) {
+                send_closure(actor_id, &ConfigRecoverer::on_full_config, std::move(r_full_config), false);
+              }),
+          actor_shared(this));
       dc_options_i_ = (dc_options_i_ + 1) % dc_options_.dc_options.size();
     }
 
@@ -955,10 +960,18 @@ void ConfigManager::lazy_request_config() {
   set_timeout_at(expire_time_.at());
 }
 
-void ConfigManager::get_app_config(Promise<td_api::object_ptr<td_api::JsonValue>> &&promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
+void ConfigManager::try_request_app_config() {
+  if (get_app_config_queries_.size() + reget_app_config_queries_.size() != 1) {
+    return;
   }
+
+  auto query = G()->net_query_creator().create_unauth(telegram_api::help_getAppConfig());
+  query->total_timeout_limit_ = 60 * 60 * 24;
+  G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this, 1));
+}
+
+void ConfigManager::get_app_config(Promise<td_api::object_ptr<td_api::JsonValue>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
 
   auto auth_manager = G()->td().get_actor_unsafe()->auth_manager_.get();
   if (auth_manager != nullptr && auth_manager->is_bot()) {
@@ -966,17 +979,25 @@ void ConfigManager::get_app_config(Promise<td_api::object_ptr<td_api::JsonValue>
   }
 
   get_app_config_queries_.push_back(std::move(promise));
-  if (get_app_config_queries_.size() == 1) {
-    auto query = G()->net_query_creator().create_unauth(telegram_api::help_getAppConfig());
-    query->total_timeout_limit_ = 60 * 60 * 24;
-    G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this, 1));
-  }
+  try_request_app_config();
 }
 
-void ConfigManager::get_content_settings(Promise<Unit> &&promise) {
+void ConfigManager::reget_app_config(Promise<Unit> &&promise) {
   if (G()->close_flag()) {
     return promise.set_error(Status::Error(500, "Request aborted"));
   }
+
+  auto auth_manager = G()->td().get_actor_unsafe()->auth_manager_.get();
+  if (auth_manager != nullptr && auth_manager->is_bot()) {
+    return promise.set_value(Unit());
+  }
+
+  reget_app_config_queries_.push_back(std::move(promise));
+  try_request_app_config();
+}
+
+void ConfigManager::get_content_settings(Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
 
   auto auth_manager = G()->td().get_actor_unsafe()->auth_manager_.get();
   if (auth_manager == nullptr || !auth_manager->is_authorized() || auth_manager->is_bot()) {
@@ -991,9 +1012,7 @@ void ConfigManager::get_content_settings(Promise<Unit> &&promise) {
 }
 
 void ConfigManager::set_content_settings(bool ignore_sensitive_content_restrictions, Promise<Unit> &&promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
 
   last_set_content_settings_ = ignore_sensitive_content_restrictions;
   auto &queries = set_content_settings_queries_[ignore_sensitive_content_restrictions];
@@ -1011,9 +1030,7 @@ void ConfigManager::set_content_settings(bool ignore_sensitive_content_restricti
 }
 
 void ConfigManager::get_global_privacy_settings(Promise<Unit> &&promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
 
   auto auth_manager = G()->td().get_actor_unsafe()->auth_manager_.get();
   if (auth_manager == nullptr || !auth_manager->is_authorized() || auth_manager->is_bot()) {
@@ -1028,9 +1045,8 @@ void ConfigManager::get_global_privacy_settings(Promise<Unit> &&promise) {
 }
 
 void ConfigManager::set_archive_and_mute(bool archive_and_mute, Promise<Unit> &&promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
   if (archive_and_mute) {
     remove_suggested_action(suggested_actions_, SuggestedAction{SuggestedAction::Type::EnableArchiveAndMuteNewChats});
   }
@@ -1050,13 +1066,12 @@ void ConfigManager::set_archive_and_mute(bool archive_and_mute, Promise<Unit> &&
 
 void ConfigManager::on_dc_options_update(DcOptions dc_options) {
   save_dc_options_update(dc_options);
-  send_closure(config_recoverer_, &ConfigRecoverer::on_dc_options_update, std::move(dc_options));
-  if (dc_options.dc_options.empty()) {
-    return;
+  if (!dc_options.dc_options.empty()) {
+    expire_time_ = Timestamp::now();
+    save_config_expire(expire_time_);
+    set_timeout_in(expire_time_.in());
   }
-  expire_time_ = Timestamp::now();
-  save_config_expire(expire_time_);
-  set_timeout_in(expire_time_.in());
+  send_closure(config_recoverer_, &ConfigRecoverer::on_dc_options_update, std::move(dc_options));
 }
 
 void ConfigManager::request_config_from_dc_impl(DcId dc_id) {
@@ -1071,7 +1086,7 @@ void ConfigManager::do_set_ignore_sensitive_content_restrictions(bool ignore_sen
                                           ignore_sensitive_content_restrictions);
   bool have_ignored_restriction_reasons = G()->shared_config().have_option("ignored_restriction_reasons");
   if (have_ignored_restriction_reasons != ignore_sensitive_content_restrictions) {
-    get_app_config(Auto());
+    reget_app_config(Auto());
   }
 }
 
@@ -1127,7 +1142,7 @@ void ConfigManager::on_result(NetQueryPtr res) {
       return;
     }
     remove_suggested_action(suggested_actions_, suggested_action);
-    get_app_config(Auto());
+    reget_app_config(Auto());
 
     for (auto &promise : promises) {
       promise.set_value(Unit());
@@ -1251,15 +1266,16 @@ void ConfigManager::on_result(NetQueryPtr res) {
   if (token == 1) {
     auto promises = std::move(get_app_config_queries_);
     get_app_config_queries_.clear();
-    CHECK(!promises.empty());
+    auto unit_promises = std::move(reget_app_config_queries_);
+    reget_app_config_queries_.clear();
+    CHECK(!promises.empty() || !unit_promises.empty());
     auto result_ptr = fetch_result<telegram_api::help_getAppConfig>(std::move(res));
     if (result_ptr.is_error()) {
       for (auto &promise : promises) {
-        if (!promise) {
-          promise.set_value(nullptr);
-        } else {
-          promise.set_error(result_ptr.error().clone());
-        }
+        promise.set_error(result_ptr.error().clone());
+      }
+      for (auto &promise : unit_promises) {
+        promise.set_error(result_ptr.error().clone());
       }
       return;
     }
@@ -1267,11 +1283,10 @@ void ConfigManager::on_result(NetQueryPtr res) {
     auto result = result_ptr.move_as_ok();
     process_app_config(result);
     for (auto &promise : promises) {
-      if (!promise) {
-        promise.set_value(nullptr);
-      } else {
-        promise.set_value(convert_json_value_object(result));
-      }
+      promise.set_value(convert_json_value_object(result));
+    }
+    for (auto &promise : unit_promises) {
+      promise.set_value(Unit());
     }
     return;
   }
@@ -1292,7 +1307,7 @@ void ConfigManager::on_result(NetQueryPtr res) {
   }
 }
 
-void ConfigManager::save_dc_options_update(DcOptions dc_options) {
+void ConfigManager::save_dc_options_update(const DcOptions &dc_options) {
   if (dc_options.dc_options.empty()) {
     G()->td_db()->get_binlog_pmc()->erase("dc_options_update");
     return;
@@ -1324,7 +1339,7 @@ void ConfigManager::save_config_expire(Timestamp timestamp) {
 }
 
 void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
-  bool is_from_main_dc = G()->net_query_dispatcher().main_dc_id().get_value() == config->this_dc_;
+  bool is_from_main_dc = G()->net_query_dispatcher().get_main_dc_id().get_value() == config->this_dc_;
 
   LOG(INFO) << to_string(config);
   auto reload_in = clamp(config->expires_ - config->date_, 60, 86400);
@@ -1354,8 +1369,7 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
   shared_config.set_option_integer("pinned_chat_count_max", config->pinned_dialogs_count_max_);
   shared_config.set_option_integer("pinned_archived_chat_count_max", config->pinned_infolder_count_max_);
   if (is_from_main_dc || !shared_config.have_option("expect_blocking")) {
-    shared_config.set_option_boolean("expect_blocking",
-                                     (config->flags_ & telegram_api::config::BLOCKED_MODE_MASK) != 0);
+    shared_config.set_option_boolean("expect_blocking", config->blocked_mode_);
   }
   if (is_from_main_dc || !shared_config.have_option("dc_txt_domain_name")) {
     shared_config.set_option_string("dc_txt_domain_name", config->dc_txt_domain_name_);
@@ -1389,8 +1403,7 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
 
   if (is_from_main_dc) {
     shared_config.set_option_integer("edit_time_limit", config->edit_time_limit_);
-    shared_config.set_option_boolean("revoke_pm_inbox",
-                                     (config->flags_ & telegram_api::config::REVOKE_PM_INBOX_MASK) != 0);
+    shared_config.set_option_boolean("revoke_pm_inbox", config->revoke_pm_inbox_);
     shared_config.set_option_integer("revoke_time_limit", config->revoke_time_limit_);
     shared_config.set_option_integer("revoke_pm_time_limit", config->revoke_pm_time_limit_);
 
@@ -1457,7 +1470,7 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
   //  shared_config.set_option_integer("push_chat_limit", config->push_chat_limit_);
 
   if (is_from_main_dc) {
-    get_app_config(Auto());
+    reget_app_config(Auto());
     if (!shared_config.have_option("can_ignore_sensitive_content_restrictions") ||
         !shared_config.have_option("ignore_sensitive_content_restrictions")) {
       get_content_settings(Auto());
@@ -1484,12 +1497,14 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   vector<string> dice_emojis;
   std::unordered_map<string, size_t> dice_emoji_index;
   std::unordered_map<string, string> dice_emoji_success_value;
+  vector<string> emoji_sounds;
   string animation_search_provider;
   string animation_search_emojis;
   vector<SuggestedAction> suggested_actions;
   bool can_archive_and_mute_new_chats_from_unknown_users = false;
   int64 chat_read_mark_expire_period = 0;
   int64 chat_read_mark_size_threshold = 0;
+  double animated_emoji_zoom = 0.0;
   if (config->get_id() == telegram_api::jsonObject::ID) {
     for (auto &key_value : static_cast<telegram_api::jsonObject *>(config.get())->value_) {
       Slice key = key_value->key_;
@@ -1515,6 +1530,10 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         } else {
           LOG(ERROR) << "Receive unexpected ignore_restriction_reasons " << to_string(*value);
         }
+        continue;
+      }
+      if (key == "emojies_animated_zoom") {
+        animated_emoji_zoom = get_json_value_double(std::move(key_value->value_), "emojies_animated_zoom");
         continue;
       }
       if (key == "emojies_send_dice") {
@@ -1566,6 +1585,44 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
           }
         } else {
           LOG(ERROR) << "Receive unexpected emojies_send_dice_success " << to_string(*value);
+        }
+        continue;
+      }
+      if (key == "emojies_sounds") {
+        if (value->get_id() == telegram_api::jsonObject::ID) {
+          auto sounds = std::move(static_cast<telegram_api::jsonObject *>(value)->value_);
+          for (auto &sound : sounds) {
+            CHECK(sound != nullptr);
+            if (sound->value_->get_id() == telegram_api::jsonObject::ID) {
+              string id;
+              string access_hash;
+              string file_reference_base64;
+              for (auto &sound_key_value : static_cast<telegram_api::jsonObject *>(sound->value_.get())->value_) {
+                if (sound_key_value->value_->get_id() != telegram_api::jsonString::ID) {
+                  continue;
+                }
+                auto current_value = get_json_value_string(std::move(sound_key_value->value_), Slice());
+                if (sound_key_value->key_ == "id") {
+                  id = std::move(current_value);
+                } else if (sound_key_value->key_ == "access_hash") {
+                  access_hash = std::move(current_value);
+                } else if (sound_key_value->key_ == "file_reference_base64") {
+                  file_reference_base64 = std::move(current_value);
+                }
+              }
+              if (to_integer_safe<int64>(id).is_error() || to_integer_safe<int64>(access_hash).is_error() ||
+                  !is_base64url(file_reference_base64) || !is_emoji(sound->key_)) {
+                LOG(ERROR) << "Receive unexpected sound value " << to_string(sound);
+              } else {
+                emoji_sounds.push_back(sound->key_);
+                emoji_sounds.push_back(PSTRING() << id << ':' << access_hash << ':' << file_reference_base64);
+              }
+            } else {
+              LOG(ERROR) << "Receive unexpected emoji sound " << to_string(sound);
+            }
+          }
+        } else {
+          LOG(ERROR) << "Receive unexpected emojies_sounds " << to_string(*value);
         }
         continue;
       }
@@ -1728,6 +1785,13 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
     shared_config.set_option_string("dice_emojis", implode(dice_emojis, '\x01'));
   }
 
+  shared_config.set_option_string("emoji_sounds", implode(emoji_sounds, ','));
+
+  if (animated_emoji_zoom <= 0 || animated_emoji_zoom > 2.0) {
+    shared_config.set_option_empty("animated_emoji_zoom");
+  } else {
+    shared_config.set_option_integer("animated_emoji_zoom", static_cast<int64>(animated_emoji_zoom * 1e9));
+  }
   if (animation_search_provider.empty()) {
     shared_config.set_option_empty("animation_search_provider");
   } else {

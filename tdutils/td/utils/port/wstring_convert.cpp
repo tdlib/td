@@ -29,14 +29,14 @@ Result<std::wstring> to_wstring(CSlice slice) {
   if (wstring_len) {
     wchar_t *res = &result[0];
     for (size_t i = 0; i < slice.size();) {
-      unsigned int a = static_cast<unsigned char>(slice[i++]);
+      uint32 a = static_cast<unsigned char>(slice[i++]);
       if (a >= 0x80) {
-        unsigned int b = static_cast<unsigned char>(slice[i++]);
+        uint32 b = static_cast<unsigned char>(slice[i++]);
         if (a >= 0xe0) {
-          unsigned int c = static_cast<unsigned char>(slice[i++]);
+          uint32 c = static_cast<unsigned char>(slice[i++]);
           if (a >= 0xf0) {
-            unsigned int d = static_cast<unsigned char>(slice[i++]);
-            unsigned int val = ((a & 0x07) << 18) + ((b & 0x3f) << 12) + ((c & 0x3f) << 6) + (d & 0x3f) - 0x10000;
+            uint32 d = static_cast<unsigned char>(slice[i++]);
+            uint32 val = ((a & 0x07) << 18) + ((b & 0x3f) << 12) + ((c & 0x3f) << 6) + (d & 0x3f) - 0x10000;
             *res++ = static_cast<wchar_t>(0xD800 + (val >> 10));
             *res++ = static_cast<wchar_t>(0xDC00 + (val & 0x3ff));
           } else {
@@ -57,10 +57,10 @@ Result<std::wstring> to_wstring(CSlice slice) {
 Result<string> from_wstring(const wchar_t *begin, size_t size) {
   size_t result_len = 0;
   for (size_t i = 0; i < size; i++) {
-    unsigned int cur = begin[i];
+    uint32 cur = begin[i];
     if ((cur & 0xF800) == 0xD800) {
       if (i < size) {
-        unsigned int next = begin[++i];
+        uint32 next = begin[++i];
         if ((next & 0xFC00) == 0xDC00 && (cur & 0x400) == 0) {
           result_len += 4;
           continue;
@@ -76,8 +76,8 @@ Result<string> from_wstring(const wchar_t *begin, size_t size) {
   if (result_len) {
     char *res = &result[0];
     for (size_t i = 0; i < size; i++) {
-      unsigned int cur = begin[i];
-      // TODO conversion unsigned int -> signed char is implementation defined
+      uint32 cur = begin[i];
+      // TODO conversion uint32 -> signed char is implementation defined
       if (cur <= 0x7f) {
         *res++ = static_cast<char>(cur);
       } else if (cur <= 0x7ff) {
@@ -88,8 +88,8 @@ Result<string> from_wstring(const wchar_t *begin, size_t size) {
         *res++ = static_cast<char>(0x80 | ((cur >> 6) & 0x3f));
         *res++ = static_cast<char>(0x80 | (cur & 0x3f));
       } else {
-        unsigned int next = begin[++i];
-        unsigned int val = ((cur - 0xD800) << 10) + next - 0xDC00 + 0x10000;
+        uint32 next = begin[++i];
+        uint32 val = ((cur - 0xD800) << 10) + next - 0xDC00 + 0x10000;
 
         *res++ = static_cast<char>(0xf0 | (val >> 18));
         *res++ = static_cast<char>(0x80 | ((val >> 12) & 0x3f));

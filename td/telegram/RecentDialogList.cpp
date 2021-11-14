@@ -106,13 +106,20 @@ void RecentDialogList::load_dialogs(Promise<Unit> &&promise) {
       dialog_ids.push_back(DialogId(to_integer<int64>(found_dialog)));
     }
   }
-  if (!dialog_ids.empty() && !G()->parameters().use_chat_info_db) {
-    td_->messages_manager_->get_dialogs_from_list(
-        DialogListId(FolderId::main()), 102,
-        PromiseCreator::lambda([promise = mpas.get_promise()](td_api::object_ptr<td_api::chats> &&chats) mutable {
-          promise.set_value(Unit());
-        }));
-    td_->contacts_manager_->search_contacts("", 1, mpas.get_promise());
+  if (!dialog_ids.empty()) {
+    if (G()->parameters().use_chat_info_db) {
+      td_->messages_manager_->load_dialogs(
+          std::move(dialog_ids),
+          PromiseCreator::lambda(
+              [promise = mpas.get_promise()](vector<DialogId> dialog_ids) mutable { promise.set_value(Unit()); }));
+    } else {
+      td_->messages_manager_->get_dialogs_from_list(
+          DialogListId(FolderId::main()), 102,
+          PromiseCreator::lambda([promise = mpas.get_promise()](td_api::object_ptr<td_api::chats> &&chats) mutable {
+            promise.set_value(Unit());
+          }));
+      td_->contacts_manager_->search_contacts("", 1, mpas.get_promise());
+    }
   }
 
   lock.set_value(Unit());
@@ -121,6 +128,13 @@ void RecentDialogList::load_dialogs(Promise<Unit> &&promise) {
 void RecentDialogList::on_load_dialogs(vector<string> &&found_dialogs) {
   auto promises = std::move(load_list_queries_);
   CHECK(!promises.empty());
+
+  if (G()->close_flag()) {
+    for (auto &promise : promises) {
+      promise.set_error(Global::request_aborted_error());
+    }
+    return;
+  }
 
   auto newly_found_dialogs = std::move(dialog_ids_);
   reset_to_empty(dialog_ids_);
@@ -245,7 +259,7 @@ std::pair<int32, vector<DialogId>> RecentDialogList::get_dialogs(int32 limit, Pr
   update_dialogs();
 
   CHECK(limit >= 0);
-  int32 total_count = narrow_cast<int32>(dialog_ids_.size());
+  auto total_count = narrow_cast<int32>(dialog_ids_.size());
   return {total_count, vector<DialogId>(dialog_ids_.begin(), dialog_ids_.begin() + min(limit, total_count))};
 }
 

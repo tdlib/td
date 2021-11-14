@@ -37,7 +37,7 @@ class EpochBasedMemoryReclamation {
       if (ebmr_) {
         retire_sync();
         unlock();
-        ebmr_.release();
+        (void)ebmr_.release();
       }
     }
     void lock() {

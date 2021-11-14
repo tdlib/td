@@ -302,8 +302,9 @@ void FileLoader::on_result(NetQueryPtr query) {
   if (next) {
     if (ordered_flag_) {
       auto seq_no = part.id;
-      ordered_parts_.add(seq_no, std::make_pair(part, std::move(query)),
-                         [this](auto seq_no, auto &&p) { this->on_part_query(p.first, std::move(p.second)); });
+      ordered_parts_.add(
+          seq_no, std::make_pair(part, std::move(query)),
+          [this](uint64 seq_no, std::pair<Part, NetQueryPtr> &&p) { on_part_query(p.first, std::move(p.second)); });
     } else {
       on_part_query(part, std::move(query));
     }

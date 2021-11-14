@@ -1595,7 +1595,7 @@ static void fix_entity_offsets(Slice text, vector<MessageEntity> &entities) {
     auto entity_begin = entity.offset;
     auto entity_end = entity.offset + entity.length;
 
-    int32 pos = static_cast<int32>(ptr - begin);
+    auto pos = static_cast<int32>(ptr - begin);
     if (entity_begin == pos) {
       cnt--;
       entity.offset = utf16_pos;
@@ -2223,8 +2223,8 @@ static FormattedText parse_text_url_entities_v3(Slice text, const vector<Message
     }
 
     size_t splittable_entity_pos[SPLITTABLE_ENTITY_TYPE_COUNT] = {};
-    for (size_t index = 0; index < SPLITTABLE_ENTITY_TYPE_COUNT; index++) {
-      check_non_intersecting(part_splittable_entities[index]);
+    for (const auto &splittable_entities : part_splittable_entities) {
+      check_non_intersecting(splittable_entities);
     }
     if (part_end != max_end) {
       // try to find text_url entities in the left part
@@ -3010,8 +3010,8 @@ static Result<vector<MessageEntity>> do_parse_html(CSlice text, string &result) 
 
         if (tag_name == "a" && attribute_name == Slice("href")) {
           argument = std::move(attribute_value);
-        }
-        if (tag_name == "code" && attribute_name == Slice("class") && begins_with(attribute_value, "language-")) {
+        } else if (tag_name == "code" && attribute_name == Slice("class") &&
+                   begins_with(attribute_value, "language-")) {
           argument = attribute_value.substr(9);
         }
       }
@@ -3631,7 +3631,7 @@ static Result<string> clean_input_string_with_entities(const string &text, vecto
           utf16_offset += 1 + (c >= 0xf0);  // >= 4 bytes in symbol => surrogate pair
         }
         if (c == 0xe2 && pos + 2 < text_size) {
-          unsigned char next = static_cast<unsigned char>(text[pos + 1]);
+          auto next = static_cast<unsigned char>(text[pos + 1]);
           if (next == 0x80) {
             next = static_cast<unsigned char>(text[pos + 2]);
             if (0xa8 <= next && next <= 0xae) {
@@ -3642,7 +3642,7 @@ static Result<string> clean_input_string_with_entities(const string &text, vecto
           }
         }
         if (c == 0xcc && pos + 1 < text_size) {
-          unsigned char next = static_cast<unsigned char>(text[pos + 1]);
+          auto next = static_cast<unsigned char>(text[pos + 1]);
           // remove vertical lines
           if (next == 0xb3 || next == 0xbf || next == 0x8a) {
             pos++;
@@ -4010,7 +4010,7 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
       first_non_whitespaces_pos++;
     }
     if (first_non_whitespaces_pos > 0) {
-      int32 offset = narrow_cast<int32>(first_non_whitespaces_pos);
+      auto offset = narrow_cast<int32>(first_non_whitespaces_pos);
       text = result.substr(first_non_whitespaces_pos);
       for (auto &entity : entities) {
         entity.offset -= offset;

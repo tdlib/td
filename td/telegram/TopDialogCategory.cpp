@@ -56,6 +56,7 @@ TopDialogCategory get_top_dialog_category(const td_api::object_ptr<td_api::TopCh
       return TopDialogCategory::Size;
   }
 }
+
 TopDialogCategory get_top_dialog_category(const telegram_api::object_ptr<telegram_api::TopPeerCategory> &category) {
   CHECK(category != nullptr);
   switch (category->get_id()) {

@@ -34,8 +34,8 @@ class BufferedStdin {
   BufferedStdin();
   BufferedStdin(const BufferedStdin &) = delete;
   BufferedStdin &operator=(const BufferedStdin &) = delete;
-  BufferedStdin(BufferedStdin &&);
-  BufferedStdin &operator=(BufferedStdin &&);
+  BufferedStdin(BufferedStdin &&) noexcept;
+  BufferedStdin &operator=(BufferedStdin &&) noexcept;
   ~BufferedStdin();
   ChainBufferReader &input_buffer();
   PollableFdInfo &get_poll_info();

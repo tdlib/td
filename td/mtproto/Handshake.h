@@ -97,7 +97,7 @@ class AuthKeyHandshake {
   static string store_object(const mtproto_api::Object &object);
 
   void send(Callback *connection, const Storer &storer);
-  void do_send(Callback *connection, const Storer &storer);
+  static void do_send(Callback *connection, const Storer &storer);
 
   Status on_start(Callback *connection) TD_WARN_UNUSED_RESULT;
   Status on_res_pq(Slice message, Callback *connection, PublicRsaKeyInterface *public_rsa_key) TD_WARN_UNUSED_RESULT;

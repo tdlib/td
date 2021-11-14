@@ -111,7 +111,7 @@ class NotificationManager final : public Actor {
 
   void process_push_notification(string payload, Promise<Unit> &&user_promise);
 
-  static Result<int64> get_push_receiver_id(string push);
+  static Result<int64> get_push_receiver_id(string payload);
 
   static Result<string> decrypt_push(int64 encryption_key_id, string encryption_key, string push);  // public for tests
 
@@ -149,6 +149,10 @@ class NotificationManager final : public Actor {
   static constexpr int32 MAX_UPDATE_DELAY_MS = 60000;
 
   static constexpr int32 ANNOUNCEMENT_ID_CACHE_TIME = 7 * 86400;
+
+  static constexpr int32 USER_FLAG_HAS_ACCESS_HASH = 1 << 0;
+  static constexpr int32 USER_FLAG_HAS_PHONE_NUMBER = 1 << 4;
+  static constexpr int32 USER_FLAG_IS_INACCESSIBLE = 1 << 20;
 
   class AddMessagePushNotificationLogEvent;
   class EditMessagePushNotificationLogEvent;
@@ -290,7 +294,7 @@ class NotificationManager final : public Actor {
 
   void remove_added_notifications_from_pending_updates(
       NotificationGroupId group_id,
-      std::function<bool(const td_api::object_ptr<td_api::notification> &notification)> is_removed);
+      const std::function<bool(const td_api::object_ptr<td_api::notification> &notification)> &is_removed);
 
   void flush_pending_updates(int32 group_id, const char *source);
 

@@ -42,10 +42,10 @@ class GetAutoDownloadSettingsQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::account_getAutoDownloadSettings()));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::account_getAutoDownloadSettings>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto settings = result_ptr.move_as_ok();
@@ -54,7 +54,7 @@ class GetAutoDownloadSettingsQuery final : public Td::ResultHandler {
         convert_auto_download_settings(settings->high_)));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -98,17 +98,17 @@ class SaveAutoDownloadSettingsQuery final : public Td::ResultHandler {
         flags, false /*ignored*/, false /*ignored*/, get_input_auto_download_settings(settings))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::account_saveAutoDownloadSettings>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
-    LOG(INFO) << "SaveAutoDownloadSettingsQuery returned " << result_ptr.ok();
+    LOG(INFO) << "Receive result for SaveAutoDownloadSettingsQuery: " << result_ptr.ok();
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };

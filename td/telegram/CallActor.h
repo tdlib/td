@@ -70,7 +70,7 @@ struct CallState {
   enum class Type : int32 { Empty, Pending, ExchangingKey, Ready, HangingUp, Discarded, Error } type{Type::Empty};
 
   CallProtocol protocol;
-  std::vector<CallConnection> connections;
+  vector<CallConnection> connections;
   CallDiscardReason discard_reason{CallDiscardReason::Empty};
   bool is_created{false};
   bool is_received{false};

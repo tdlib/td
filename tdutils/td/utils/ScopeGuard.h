@@ -42,11 +42,11 @@ class LambdaGuard final : public Guard {
   }
   LambdaGuard &operator=(LambdaGuard &&other) = delete;
 
-  void dismiss() {
+  void dismiss() final {
     dismissed_ = true;
   }
 
-  ~LambdaGuard() {
+  ~LambdaGuard() final {
     if (!dismissed_) {
       func_();
     }

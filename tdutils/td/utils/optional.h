@@ -31,6 +31,9 @@ class optional {
   }
 
   optional &operator=(const optional &other) {
+    if (this == &other) {
+      return *this;
+    }
     if (other) {
       impl_ = Result<T>(other.value());
     } else {

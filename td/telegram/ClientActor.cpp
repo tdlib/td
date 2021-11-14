@@ -6,8 +6,6 @@
 //
 #include "td/telegram/ClientActor.h"
 
-#include "td/telegram/td_api.h"
-
 #include "td/telegram/net/NetQueryCounter.h"
 #include "td/telegram/net/NetQueryStats.h"
 #include "td/telegram/Td.h"
@@ -16,7 +14,7 @@ namespace td {
 
 ClientActor::ClientActor(unique_ptr<TdCallback> callback, Options options) {
   Td::Options td_options;
-  td_options.net_query_stats = options.net_query_stats;
+  td_options.net_query_stats = std::move(options.net_query_stats);
   td_ = create_actor<Td>("Td", std::move(callback), std::move(td_options));
 }
 
@@ -26,9 +24,9 @@ void ClientActor::request(uint64 id, td_api::object_ptr<td_api::Function> reques
 
 ClientActor::~ClientActor() = default;
 
-ClientActor::ClientActor(ClientActor &&other) = default;
+ClientActor::ClientActor(ClientActor &&other) noexcept = default;
 
-ClientActor &ClientActor::operator=(ClientActor &&other) = default;
+ClientActor &ClientActor::operator=(ClientActor &&other) noexcept = default;
 
 td_api::object_ptr<td_api::Object> ClientActor::execute(td_api::object_ptr<td_api::Function> request) {
   return Td::static_request(std::move(request));

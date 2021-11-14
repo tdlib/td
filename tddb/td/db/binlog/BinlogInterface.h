@@ -66,7 +66,7 @@ class BinlogInterface {
 
   virtual void force_sync(Promise<> promise) = 0;
   virtual void force_flush() = 0;
-  virtual void change_key(DbKey db_key, Promise<> promise = Promise<>()) = 0;
+  virtual void change_key(DbKey db_key, Promise<> promise) = 0;
 
   virtual uint64 next_id() = 0;
   virtual uint64 next_id(int32 shift) = 0;

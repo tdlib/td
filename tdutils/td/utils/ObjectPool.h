@@ -84,11 +84,11 @@ class ObjectPool {
     OwnerPtr() = default;
     OwnerPtr(const OwnerPtr &) = delete;
     OwnerPtr &operator=(const OwnerPtr &) = delete;
-    OwnerPtr(OwnerPtr &&other) : storage_(other.storage_), parent_(other.parent_) {
+    OwnerPtr(OwnerPtr &&other) noexcept : storage_(other.storage_), parent_(other.parent_) {
       other.storage_ = nullptr;
       other.parent_ = nullptr;
     }
-    OwnerPtr &operator=(OwnerPtr &&other) {
+    OwnerPtr &operator=(OwnerPtr &&other) noexcept {
       if (this != &other) {
         storage_ = other.storage_;
         parent_ = other.parent_;

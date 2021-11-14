@@ -300,10 +300,10 @@ class NetQuery final : public TsListNode<NetQueryDebug> {
     movable_atomic() = default;
     movable_atomic(T &&x) : std::atomic<T>(std::forward<T>(x)) {
     }
-    movable_atomic(movable_atomic &&other) {
+    movable_atomic(movable_atomic &&other) noexcept {
       this->store(other.load(std::memory_order_relaxed), std::memory_order_relaxed);
     }
-    movable_atomic &operator=(movable_atomic &&other) {
+    movable_atomic &operator=(movable_atomic &&other) noexcept {
       this->store(other.load(std::memory_order_relaxed), std::memory_order_relaxed);
       return *this;
     }

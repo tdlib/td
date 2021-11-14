@@ -16,7 +16,7 @@ namespace td {
 class MtprotoHeader {
  public:
   struct Options {
-    int32 api_id;
+    int32 api_id = -1;
     string system_language_code;
     string device_model;
     string system_version;
@@ -24,6 +24,7 @@ class MtprotoHeader {
     string language_pack;
     string language_code;
     string parameters;
+    int32 tz_offset = 0;
     bool is_emulator = false;
     Proxy proxy;
   };
@@ -33,7 +34,7 @@ class MtprotoHeader {
   }
 
   void set_proxy(Proxy proxy) {
-    options_.proxy = proxy;
+    options_.proxy = std::move(proxy);
     default_header_ = gen_header(options_, false);
   }
 
@@ -42,7 +43,7 @@ class MtprotoHeader {
       return false;
     }
 
-    options_.parameters = parameters;
+    options_.parameters = std::move(parameters);
     default_header_ = gen_header(options_, false);
     return true;
   }
@@ -73,6 +74,16 @@ class MtprotoHeader {
     }
 
     options_.language_code = std::move(language_code);
+    default_header_ = gen_header(options_, false);
+    return true;
+  }
+
+  bool set_tz_offset(int32 tz_offset) {
+    if (options_.tz_offset == tz_offset) {
+      return false;
+    }
+
+    options_.tz_offset = tz_offset;
     default_header_ = gen_header(options_, false);
     return true;
   }

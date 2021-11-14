@@ -20,13 +20,13 @@
 namespace td {
 namespace detail {
 class FileFdImpl;
-}
+}  // namespace detail
 
 class FileFd {
  public:
   FileFd();
-  FileFd(FileFd &&);
-  FileFd &operator=(FileFd &&);
+  FileFd(FileFd &&) noexcept;
+  FileFd &operator=(FileFd &&) noexcept;
   ~FileFd();
   FileFd(const FileFd &) = delete;
   FileFd &operator=(const FileFd &) = delete;
@@ -45,7 +45,7 @@ class FileFd {
   Result<size_t> pread(MutableSlice slice, int64 offset) const TD_WARN_UNUSED_RESULT;
 
   enum class LockFlags { Write, Read, Unlock };
-  Status lock(const LockFlags flags, const string &path, int32 max_tries) TD_WARN_UNUSED_RESULT;
+  Status lock(LockFlags flags, const string &path, int32 max_tries) TD_WARN_UNUSED_RESULT;
   static void remove_local_lock(const string &path);
 
   PollableFdInfo &get_poll_info();

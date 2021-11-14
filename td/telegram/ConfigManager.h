@@ -10,7 +10,6 @@
 #include "td/telegram/net/DcOptions.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/SuggestedAction.h"
-
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -20,7 +19,6 @@
 #include "td/utils/common.h"
 #include "td/utils/FloodControlStrict.h"
 #include "td/utils/logging.h"
-#include "td/utils/port/IPAddress.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 #include "td/utils/Time.h"
@@ -78,10 +76,6 @@ class HttpDate {
   static Result<int32> parse_http_date(std::string slice);
 };
 
-using FullConfig = tl_object_ptr<telegram_api::config>;
-
-ActorOwn<> get_full_config(DcId dc_id, IPAddress ip_address, Promise<FullConfig> promise);
-
 class ConfigRecoverer;
 class ConfigManager final : public NetQueryCallback {
  public:
@@ -92,6 +86,8 @@ class ConfigManager final : public NetQueryCallback {
   void lazy_request_config();
 
   void get_app_config(Promise<td_api::object_ptr<td_api::JsonValue>> &&promise);
+
+  void reget_app_config(Promise<Unit> &&promise);
 
   void get_content_settings(Promise<Unit> &&promise);
 
@@ -119,6 +115,7 @@ class ConfigManager final : public NetQueryCallback {
   FloodControlStrict lazy_request_flood_control_;
 
   vector<Promise<td_api::object_ptr<td_api::JsonValue>>> get_app_config_queries_;
+  vector<Promise<Unit>> reget_app_config_queries_;
 
   vector<Promise<Unit>> get_content_settings_queries_;
   vector<Promise<Unit>> set_content_settings_queries_[2];
@@ -147,6 +144,8 @@ class ConfigManager final : public NetQueryCallback {
   void request_config_from_dc_impl(DcId dc_id);
   void process_config(tl_object_ptr<telegram_api::config> config);
 
+  void try_request_app_config();
+
   void process_app_config(tl_object_ptr<telegram_api::JSONValue> &config);
 
   void do_set_ignore_sensitive_content_restrictions(bool ignore_sensitive_content_restrictions);
@@ -155,7 +154,7 @@ class ConfigManager final : public NetQueryCallback {
 
   static Timestamp load_config_expire_time();
   static void save_config_expire(Timestamp timestamp);
-  static void save_dc_options_update(DcOptions dc_options);
+  static void save_dc_options_update(const DcOptions &dc_options);
   static DcOptions load_dc_options_update();
 
   ActorShared<> create_reference();

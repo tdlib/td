@@ -17,10 +17,12 @@
 #include <openssl/evp.h>
 #include <openssl/sha.h>
 
+#include <algorithm>
 #include <array>
 #include <atomic>
 #include <cstdint>
 #include <cstdlib>
+#include <iterator>
 #include <random>
 #include <string>
 #include <vector>
@@ -38,10 +40,7 @@ class SHA1Bench final : public td::Benchmark {
   }
 
   void start_up() final {
-    for (int i = 0; i < DATA_SIZE; i++) {
-      data[i] = 123;
-      data[i] = 0;
-    }
+    std::fill(std::begin(data), std::end(data), static_cast<unsigned char>(123));
   }
 
   void run(int n) final {
@@ -64,9 +63,7 @@ class AesEcbBench final : public td::Benchmark {
   }
 
   void start_up() final {
-    for (int i = 0; i < DATA_SIZE; i++) {
-      data[i] = 123;
-    }
+    std::fill(std::begin(data), std::end(data), static_cast<unsigned char>(123));
     td::Random::secure_bytes(key.raw, sizeof(key));
     td::Random::secure_bytes(iv.raw, sizeof(iv));
   }
@@ -95,9 +92,7 @@ class AesIgeEncryptBench final : public td::Benchmark {
   }
 
   void start_up() final {
-    for (int i = 0; i < DATA_SIZE; i++) {
-      data[i] = 123;
-    }
+    std::fill(std::begin(data), std::end(data), static_cast<unsigned char>(123));
     td::Random::secure_bytes(key.raw, sizeof(key));
     td::Random::secure_bytes(iv.raw, sizeof(iv));
   }
@@ -123,9 +118,7 @@ class AesIgeDecryptBench final : public td::Benchmark {
   }
 
   void start_up() final {
-    for (int i = 0; i < DATA_SIZE; i++) {
-      data[i] = 123;
-    }
+    std::fill(std::begin(data), std::end(data), static_cast<unsigned char>(123));
     td::Random::secure_bytes(key.raw, sizeof(key));
     td::Random::secure_bytes(iv.raw, sizeof(iv));
   }
@@ -151,9 +144,7 @@ class AesCtrBench final : public td::Benchmark {
   }
 
   void start_up() final {
-    for (int i = 0; i < DATA_SIZE; i++) {
-      data[i] = 123;
-    }
+    std::fill(std::begin(data), std::end(data), static_cast<unsigned char>(123));
     td::Random::secure_bytes(key.raw, sizeof(key));
     td::Random::secure_bytes(iv.raw, sizeof(iv));
   }
@@ -180,9 +171,7 @@ class AesCtrOpenSSLBench final : public td::Benchmark {
   }
 
   void start_up() final {
-    for (int i = 0; i < DATA_SIZE; i++) {
-      data[i] = 123;
-    }
+    std::fill(std::begin(data), std::end(data), static_cast<unsigned char>(123));
     td::Random::secure_bytes(key.raw, sizeof(key));
     td::Random::secure_bytes(iv.raw, sizeof(iv));
   }
@@ -216,9 +205,7 @@ class AesCbcDecryptBench final : public td::Benchmark {
   }
 
   void start_up() final {
-    for (int i = 0; i < DATA_SIZE; i++) {
-      data[i] = 123;
-    }
+    std::fill(std::begin(data), std::end(data), static_cast<unsigned char>(123));
     td::Random::secure_bytes(as_slice(key));
     td::Random::secure_bytes(as_slice(iv));
   }
@@ -242,9 +229,7 @@ class AesCbcEncryptBench final : public td::Benchmark {
   }
 
   void start_up() final {
-    for (int i = 0; i < DATA_SIZE; i++) {
-      data[i] = 123;
-    }
+    std::fill(std::begin(data), std::end(data), static_cast<unsigned char>(123));
     td::Random::secure_bytes(as_slice(key));
     td::Random::secure_bytes(as_slice(iv));
   }
@@ -269,9 +254,7 @@ class AesIgeShortBench final : public td::Benchmark {
   }
 
   void start_up() final {
-    for (int i = 0; i < SHORT_DATA_SIZE; i++) {
-      data[i] = 123;
-    }
+    std::fill(std::begin(data), std::end(data), static_cast<unsigned char>(123));
     td::Random::secure_bytes(as_slice(key));
     td::Random::secure_bytes(as_slice(iv));
   }
@@ -372,10 +355,7 @@ class Crc32Bench final : public td::Benchmark {
   }
 
   void start_up() final {
-    for (int i = 0; i < DATA_SIZE; i++) {
-      data[i] = 123;
-      data[i] = 0;
-    }
+    std::fill(std::begin(data), std::end(data), static_cast<unsigned char>(123));
   }
 
   void run(int n) final {
@@ -396,10 +376,7 @@ class Crc64Bench final : public td::Benchmark {
   }
 
   void start_up() final {
-    for (int i = 0; i < DATA_SIZE; i++) {
-      data[i] = 123;
-      data[i] = 0;
-    }
+    std::fill(std::begin(data), std::end(data), static_cast<unsigned char>(123));
   }
 
   void run(int n) final {

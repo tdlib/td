@@ -119,12 +119,12 @@ class Client final {
   /**
    * Move constructor.
    */
-  Client(Client &&other);
+  Client(Client &&other) noexcept;
 
   /**
    * Move assignment operator.
    */
-  Client &operator=(Client &&other);
+  Client &operator=(Client &&other) noexcept;
 
  private:
   class Impl;
@@ -267,12 +267,12 @@ class ClientManager final {
   /**
    * Move constructor.
    */
-  ClientManager(ClientManager &&other);
+  ClientManager(ClientManager &&other) noexcept;
 
   /**
    * Move assignment operator.
    */
-  ClientManager &operator=(ClientManager &&other);
+  ClientManager &operator=(ClientManager &&other) noexcept;
 
   /**
    * Returns a pointer to a singleton ClientManager instance.

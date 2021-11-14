@@ -44,6 +44,7 @@ class SqliteKeyValueAsync final : public SqliteKeyValueAsyncInterface {
    public:
     explicit Impl(std::shared_ptr<SqliteKeyValueSafe> kv_safe) : kv_safe_(std::move(kv_safe)) {
     }
+
     void set(string key, string value, Promise<> promise) {
       auto it = buffer_.find(key);
       if (it != buffer_.end()) {
@@ -57,6 +58,7 @@ class SqliteKeyValueAsync final : public SqliteKeyValueAsyncInterface {
       cnt_++;
       do_flush(false /*force*/);
     }
+
     void erase(string key, Promise<> promise) {
       auto it = buffer_.find(key);
       if (it != buffer_.end()) {
@@ -70,6 +72,7 @@ class SqliteKeyValueAsync final : public SqliteKeyValueAsyncInterface {
       cnt_++;
       do_flush(false /*force*/);
     }
+
     void erase_by_prefix(string key_prefix, Promise<> promise) {
       do_flush(true /*force*/);
       kv_->erase_by_prefix(key_prefix);
@@ -121,7 +124,7 @@ class SqliteKeyValueAsync final : public SqliteKeyValueAsyncInterface {
       wakeup_at_ = 0;
       cnt_ = 0;
 
-      kv_->begin_transaction().ensure();
+      kv_->begin_write_transaction().ensure();
       for (auto &it : buffer_) {
         if (it.second) {
           kv_->set(it.first, it.second.value());

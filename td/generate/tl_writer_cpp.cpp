@@ -25,7 +25,8 @@ std::string TD_TL_writer_cpp::gen_output_begin() const {
          "#include \"td/utils/logging.h\"\n"
          "#include \"td/utils/SliceBuilder.h\"\n"
          "#include \"td/utils/tl_parsers.h\"\n"
-         "#include \"td/utils/tl_storers.h\"\n\n"
+         "#include \"td/utils/tl_storers.h\"\n"
+         "#include \"td/utils/TlStorerToString.h\"\n\n"
          "namespace td {\n"
          "namespace " +
          tl_name +
@@ -33,7 +34,7 @@ std::string TD_TL_writer_cpp::gen_output_begin() const {
          "std::string to_string(const BaseObject &value) {\n"
          "  TlStorerToString storer;\n"
          "  value.store(storer, \"\");\n"
-         "  return storer.move_as_str();\n"
+         "  return storer.move_as_string();\n"
          "}\n";
 }
 
@@ -283,7 +284,7 @@ std::string TD_TL_writer_cpp::gen_var_type_fetch(const tl::arg &a) const {
 }
 
 std::string TD_TL_writer_cpp::get_pretty_field_name(std::string field_name) const {
-  if (!field_name.empty() && field_name.back() == ']') {
+  if (!field_name.empty() && field_name[0] == '_') {
     return "";
   }
   auto equals_pos = field_name.find('=');
@@ -305,16 +306,10 @@ std::string TD_TL_writer_cpp::get_pretty_class_name(std::string class_name) cons
 
 std::string TD_TL_writer_cpp::gen_vector_store(const std::string &field_name, const tl::tl_tree_type *t,
                                                const std::vector<tl::var_description> &vars, int storer_type) const {
-  std::string num = field_name.back() == ']' ? "2" : "";
-  return "{ const array<" + gen_type_name(t) + "> &v" + num + " = " + field_name +
-         "; const std::uint32_t multiplicity" + num + " = static_cast<std::uint32_t>(v" + num +
-         ".size()); const auto vector_name" + num + " = \"" + get_pretty_class_name("vector") +
-         "[\" + td::to_string(multiplicity" + num + ")+ \"]\"; s.store_class_begin(\"" +
-         get_pretty_field_name(field_name) + "\", vector_name" + num +
-         ".c_str()); "
-         "for (std::uint32_t i" +
-         num + " = 0; i" + num + " < multiplicity" + num + "; i" + num + "++) { " +
-         gen_type_store("v" + num + "[i" + num + "]", t, vars, storer_type) + " } s.store_class_end(); }";
+  std::string num = !field_name.empty() && field_name[0] == '_' ? "2" : "";
+  return "{ s.store_vector_begin(\"" + get_pretty_field_name(field_name) + "\", " + field_name +
+         ".size()); for (const auto &_value" + num + " : " + field_name + ") { " +
+         gen_type_store("_value" + num, t, vars, storer_type) + " } s.store_class_end(); }";
 }
 
 std::string TD_TL_writer_cpp::gen_store_class_name(const tl::tl_tree_type *tree_type) const {
@@ -329,7 +324,8 @@ std::string TD_TL_writer_cpp::gen_store_class_name(const tl::tl_tree_type *tree_
     return "TlStoreBool";
   }
   if (name == "True") {
-    return "TlStoreTrue";
+    assert(false);
+    return "";
   }
   if (name == "String" || name == "Bytes") {
     return "TlStoreString";
@@ -404,8 +400,8 @@ std::string TD_TL_writer_cpp::gen_type_store(const std::string &field_name, cons
     return gen_vector_store(field_name, child, vars, storer_type);
   } else {
     assert(tree_type->children.empty());
-    return "if (" + field_name + " == nullptr) { s.store_field(\"" + get_pretty_field_name(field_name) +
-           "\", \"null\"); } else { " + field_name + "->store(s, \"" + get_pretty_field_name(field_name) + "\"); }";
+    return "s.store_object_field(\"" + get_pretty_field_name(field_name) + "\", static_cast<const BaseObject *>(" +
+           field_name + ".get()));";
   }
 }
 
@@ -441,6 +437,13 @@ std::string TD_TL_writer_cpp::gen_field_store(const tl::arg &a, std::vector<tl::
     assert(vars[a.var_num].is_stored);
     assert(!vars[a.var_num].is_type);
     return "";
+  }
+
+  if (a.exist_var_num >= 0 && a.var_num < 0 && a.type->get_type() == tl::NODE_TYPE_TYPE) {
+    const tl::tl_tree_type *tree_type = static_cast<tl::tl_tree_type *>(a.type);
+    if (tree_type->type->name == "True") {
+      return "";
+    }
   }
 
   if (a.exist_var_num >= 0) {

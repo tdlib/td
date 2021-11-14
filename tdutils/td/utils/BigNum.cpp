@@ -40,9 +40,8 @@ class BigNumContext::Impl {
 BigNumContext::BigNumContext() : impl_(make_unique<Impl>()) {
 }
 
-BigNumContext::BigNumContext(BigNumContext &&other) = default;
-BigNumContext &BigNumContext::operator=(BigNumContext &&other) = default;
-
+BigNumContext::BigNumContext(BigNumContext &&other) noexcept = default;
+BigNumContext &BigNumContext::operator=(BigNumContext &&other) noexcept = default;
 BigNumContext::~BigNumContext() = default;
 
 class BigNum::Impl {
@@ -71,6 +70,9 @@ BigNum::BigNum(const BigNum &other) : BigNum() {
 }
 
 BigNum &BigNum::operator=(const BigNum &other) {
+  if (this == &other) {
+    return *this;
+  }
   CHECK(impl_ != nullptr);
   CHECK(other.impl_ != nullptr);
   BIGNUM *result = BN_copy(impl_->big_num, other.impl_->big_num);
@@ -78,10 +80,8 @@ BigNum &BigNum::operator=(const BigNum &other) {
   return *this;
 }
 
-BigNum::BigNum(BigNum &&other) = default;
-
-BigNum &BigNum::operator=(BigNum &&other) = default;
-
+BigNum::BigNum(BigNum &&other) noexcept = default;
+BigNum &BigNum::operator=(BigNum &&other) noexcept = default;
 BigNum::~BigNum() = default;
 
 BigNum BigNum::from_binary(Slice str) {

@@ -68,7 +68,7 @@ class Handshake {
     CHECK(pkey_private != nullptr);
     auto res = X25519_pem_from_PKEY(pkey_private, true);
     EVP_PKEY_free(pkey_private);
-    return std::move(res);
+    return res;
   }
 
   static td::Result<td::SecureString> calc_shared_secret(td::Slice private_key, td::Slice other_public_key) {
@@ -134,6 +134,7 @@ class Handshake {
     }
     return std::move(result);
   }
+
   static td::Result<td::SecureString> X25519_pem_from_PKEY(EVP_PKEY *pkey, bool is_private) {
     BIO *mem_bio = BIO_new(BIO_s_mem());
     SCOPE_EXIT {

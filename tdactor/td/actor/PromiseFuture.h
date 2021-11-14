@@ -135,8 +135,8 @@ class LambdaPromise : public PromiseInterface<ValueT> {
       , on_fail_(use_ok_as_fail ? OnFail::Ok : OnFail::Fail)
       , has_lambda_(true) {
   }
-  template <class FromOkT>
-  LambdaPromise(FromOkT &&ok) : LambdaPromise(std::move(ok), Ignore(), true) {
+  template <class FromOkT, std::enable_if_t<!std::is_same<std::decay_t<FromOkT>, LambdaPromise>::value, int> = 0>
+  LambdaPromise(FromOkT &&ok) : LambdaPromise(std::forward<FromOkT>(ok), Ignore(), true) {
   }
 
  private:
@@ -184,35 +184,29 @@ class SafePromise;
 template <class T = Unit>
 class Promise;
 
-constexpr std::false_type is_promise_interface(...) {
-  return {};
-}
+constexpr std::false_type is_promise_interface(...);
+
 template <class T>
-constexpr std::true_type is_promise_interface(const PromiseInterface<T> &promise) {
-  return {};
-}
+constexpr std::true_type is_promise_interface(const PromiseInterface<T> &promise);
+
 template <class T>
-constexpr std::true_type is_promise_interface(const Promise<T> &promise) {
-  return {};
-}
+constexpr std::true_type is_promise_interface(const Promise<T> &promise);
 
 template <class F>
 constexpr bool is_promise_interface() {
   return decltype(is_promise_interface(std::declval<F>()))::value;
 }
 
-constexpr std::false_type is_promise_interface_ptr(...) {
-  return {};
-}
+constexpr std::false_type is_promise_interface_ptr(...);
+
 template <class T>
-constexpr std::true_type is_promise_interface_ptr(const unique_ptr<T> &promise) {
-  return {};
-}
+constexpr std::true_type is_promise_interface_ptr(const unique_ptr<T> &promise);
 
 template <class F>
 constexpr bool is_promise_interface_ptr() {
   return decltype(is_promise_interface_ptr(std::declval<F>()))::value;
 }
+
 template <class T = void, class F = void, std::enable_if_t<std::is_same<T, void>::value, bool> has_t = false>
 auto lambda_promise(F &&f) {
   return detail::LambdaPromise<detail::drop_result_t<detail::get_arg_t<std::decay_t<F>>>, std::decay_t<F>>(
@@ -313,7 +307,7 @@ class Promise {
   }
   Promise(SafePromise<T> &&other);
   Promise &operator=(SafePromise<T> &&other);
-  template <class F>
+  template <class F, std::enable_if_t<!std::is_same<std::decay_t<F>, Promise>::value, int> = 0>
   Promise(F &&f) : promise_(promise_interface_ptr<T>(std::forward<F>(f))) {
   }
 
@@ -413,10 +407,10 @@ class CancellablePromise final : public PromiseT {
   CancellablePromise(CancellationToken cancellation_token, ArgsT &&... args)
       : PromiseT(std::forward<ArgsT>(args)...), cancellation_token_(std::move(cancellation_token)) {
   }
-  virtual bool is_cancellable() const {
+  bool is_cancellable() const final {
     return true;
   }
-  virtual bool is_canceled() const {
+  bool is_canceled() const final {
     return static_cast<bool>(cancellation_token_);
   }
 
@@ -461,7 +455,7 @@ class SendClosure {
 template <class... ArgsT>
 auto promise_send_closure(ArgsT &&... args) {
   return [t = std::make_tuple(std::forward<ArgsT>(args)...)](auto &&res) mutable {
-    call_tuple(SendClosure(), std::tuple_cat(std::move(t), std::make_tuple(std::move(res))));
+    call_tuple(SendClosure(), std::tuple_cat(std::move(t), std::make_tuple(std::forward<decltype(res)>(res))));
   };
 }
 
@@ -475,7 +469,8 @@ class PromiseActor;
 template <class T>
 class ActorTraits<FutureActor<T>> {
  public:
-  static constexpr bool is_lite = true;
+  static constexpr bool need_context = false;
+  static constexpr bool need_start_up = false;
 };
 
 template <class T>
@@ -602,7 +597,7 @@ class FutureActor final : public Actor {
  private:
   EventFull event_;
   Result<T> result_ = Status::Error(500, "Empty FutureActor");
-  State state_;
+  State state_ = State::Waiting;
 
   void set_value(T &&value) {
     set_result(std::move(value));

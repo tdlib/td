@@ -168,7 +168,7 @@ Result<HttpUrl> parse_url(Slice url, HttpUrl::Protocol default_protocol) {
     }
 
     // all other symbols aren't allowed
-    unsigned char uc = static_cast<unsigned char>(c);
+    auto uc = static_cast<unsigned char>(c);
     if (uc >= 128) {
       // but we allow plain UTF-8 symbols
       continue;

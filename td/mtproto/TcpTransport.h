@@ -122,14 +122,14 @@ class OldTransport final : public IStreamTransport {
 
  private:
   TransportImpl impl_{false};
-  ChainBufferReader *input_;
-  ChainBufferWriter *output_;
+  ChainBufferReader *input_{nullptr};
+  ChainBufferWriter *output_{nullptr};
 };
 
 class ObfuscatedTransport final : public IStreamTransport {
  public:
-  ObfuscatedTransport(int16 dc_id, const ProxySecret &secret)
-      : dc_id_(dc_id), secret_(secret), impl_(secret_.use_random_padding()) {
+  ObfuscatedTransport(int16 dc_id, ProxySecret secret)
+      : dc_id_(dc_id), secret_(std::move(secret)), impl_(secret_.use_random_padding()) {
   }
 
   Result<size_t> read_next(BufferSlice *message, uint32 *quick_ack) final TD_WARN_UNUSED_RESULT;
@@ -172,6 +172,7 @@ class ObfuscatedTransport final : public IStreamTransport {
   TransportType get_type() const final {
     return TransportType{TransportType::ObfuscatedTcp, dc_id_, secret_};
   }
+
   bool use_random_padding() const final {
     return secret_.use_random_padding();
   }
@@ -192,9 +193,9 @@ class ObfuscatedTransport final : public IStreamTransport {
   // TODO: use ByteFlow?
   // One problem is that BufferedFd owns output_buffer_
   // The other problem is that first 56 bytes must be sent unencrypted.
-  UInt256 output_key_;
+  UInt256 output_key_{};
   AesCtrState output_state_;
-  ChainBufferWriter *output_;
+  ChainBufferWriter *output_ = nullptr;
 
   void do_write_tls(BufferWriter &&message);
   void do_write_tls(BufferBuilder &&builder);

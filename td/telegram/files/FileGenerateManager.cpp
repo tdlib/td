@@ -6,9 +6,6 @@
 //
 #include "td/telegram/files/FileGenerateManager.h"
 
-#include "td/telegram/td_api.h"
-#include "td/telegram/telegram_api.h"
-
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileLoaderUtils.h"
 #include "td/telegram/files/FileManager.h"
@@ -17,6 +14,8 @@
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/td_api.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/utils/common.h"
 #include "td/utils/format.h"
@@ -99,7 +98,7 @@ class FileDownloadGenerateActor final : public FileGenerateActor {
                   if (file_view.has_local_location()) {
                     auto location = file_view.local_location();
                     location.file_type_ = file_type;
-                    callback->on_ok(location);
+                    callback->on_ok(std::move(location));
                   } else {
                     LOG(ERROR) << "Expected to have local location";
                     callback->on_error(Status::Error(500, "Unknown"));
@@ -365,8 +364,8 @@ class FileExternalGenerateActor final : public FileGenerateActor {
 };
 
 FileGenerateManager::Query::~Query() = default;
-FileGenerateManager::Query::Query(Query &&other) = default;
-FileGenerateManager::Query &FileGenerateManager::Query::operator=(Query &&other) = default;
+FileGenerateManager::Query::Query(Query &&other) noexcept = default;
+FileGenerateManager::Query &FileGenerateManager::Query::operator=(Query &&other) noexcept = default;
 
 static Status check_mtime(std::string &conversion, CSlice original_path) {
   if (original_path.empty()) {

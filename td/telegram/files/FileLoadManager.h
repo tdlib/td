@@ -33,17 +33,18 @@ class FileLoadManager final : public Actor {
   class Callback : public Actor {
    public:
     virtual void on_start_download(QueryId id) = 0;
-    virtual void on_partial_download(QueryId id, const PartialLocalFileLocation &partial_local, int64 ready_size,
+    virtual void on_partial_download(QueryId id, PartialLocalFileLocation partial_local, int64 ready_size,
                                      int64 size) = 0;
-    virtual void on_partial_upload(QueryId id, const PartialRemoteFileLocation &partial_remote, int64 ready_size) = 0;
+    virtual void on_partial_upload(QueryId id, PartialRemoteFileLocation partial_remote, int64 ready_size) = 0;
     virtual void on_hash(QueryId id, string hash) = 0;
-    virtual void on_upload_ok(QueryId id, FileType file_type, const PartialRemoteFileLocation &remtoe, int64 size) = 0;
-    virtual void on_upload_full_ok(QueryId id, const FullRemoteFileLocation &remote) = 0;
-    virtual void on_download_ok(QueryId id, const FullLocalFileLocation &local, int64 size, bool is_new) = 0;
+    virtual void on_upload_ok(QueryId id, FileType file_type, PartialRemoteFileLocation remtoe, int64 size) = 0;
+    virtual void on_upload_full_ok(QueryId id, FullRemoteFileLocation remote) = 0;
+    virtual void on_download_ok(QueryId id, FullLocalFileLocation local, int64 size, bool is_new) = 0;
     virtual void on_error(QueryId id, Status status) = 0;
   };
 
   explicit FileLoadManager(ActorShared<Callback> callback, ActorShared<> parent);
+
   void download(QueryId id, const FullRemoteFileLocation &remote_location, const LocalFileLocation &local, int64 size,
                 string name, const FileEncryptionKey &encryption_key, bool search_file, int64 offset, int64 limit,
                 int8 priority);
@@ -55,6 +56,7 @@ class FileLoadManager final : public Actor {
   void cancel(QueryId id);
   void update_local_file_location(QueryId id, const LocalFileLocation &local);
   void update_downloaded_part(QueryId id, int64 offset, int64 limit);
+
   void get_content(const FullLocalFileLocation &local_location, Promise<BufferSlice> promise);
 
  private:
@@ -84,12 +86,12 @@ class FileLoadManager final : public Actor {
   ActorOwn<ResourceManager> &get_download_resource_manager(bool is_small, DcId dc_id);
 
   void on_start_download();
-  void on_partial_download(const PartialLocalFileLocation &partial_local, int64 ready_size, int64 size);
-  void on_partial_upload(const PartialRemoteFileLocation &partial_remote, int64 ready_size);
+  void on_partial_download(PartialLocalFileLocation partial_local, int64 ready_size, int64 size);
+  void on_partial_upload(PartialRemoteFileLocation partial_remote, int64 ready_size);
   void on_hash(string hash);
-  void on_ok_download(const FullLocalFileLocation &local, int64 size, bool is_new);
-  void on_ok_upload(FileType file_type, const PartialRemoteFileLocation &remote, int64 size);
-  void on_ok_upload_full(const FullRemoteFileLocation &remote);
+  void on_ok_download(FullLocalFileLocation local, int64 size, bool is_new);
+  void on_ok_upload(FileType file_type, PartialRemoteFileLocation remote, int64 size);
+  void on_ok_upload_full(FullRemoteFileLocation remote);
   void on_error(Status status);
   void on_error_impl(NodeId node_id, Status status);
 
@@ -104,11 +106,11 @@ class FileLoadManager final : public Actor {
     void on_start_download() final {
       send_closure(actor_id_, &FileLoadManager::on_start_download);
     }
-    void on_partial_download(const PartialLocalFileLocation &partial_local, int64 ready_size, int64 size) final {
-      send_closure(actor_id_, &FileLoadManager::on_partial_download, partial_local, ready_size, size);
+    void on_partial_download(PartialLocalFileLocation partial_local, int64 ready_size, int64 size) final {
+      send_closure(actor_id_, &FileLoadManager::on_partial_download, std::move(partial_local), ready_size, size);
     }
-    void on_ok(const FullLocalFileLocation &full_local, int64 size, bool is_new) final {
-      send_closure(std::move(actor_id_), &FileLoadManager::on_ok_download, full_local, size, is_new);
+    void on_ok(FullLocalFileLocation full_local, int64 size, bool is_new) final {
+      send_closure(std::move(actor_id_), &FileLoadManager::on_ok_download, std::move(full_local), size, is_new);
     }
     void on_error(Status status) final {
       send_closure(std::move(actor_id_), &FileLoadManager::on_error, std::move(status));
@@ -126,11 +128,11 @@ class FileLoadManager final : public Actor {
     void on_hash(string hash) final {
       send_closure(actor_id_, &FileLoadManager::on_hash, std::move(hash));
     }
-    void on_partial_upload(const PartialRemoteFileLocation &partial_remote, int64 ready_size) final {
-      send_closure(actor_id_, &FileLoadManager::on_partial_upload, partial_remote, ready_size);
+    void on_partial_upload(PartialRemoteFileLocation partial_remote, int64 ready_size) final {
+      send_closure(actor_id_, &FileLoadManager::on_partial_upload, std::move(partial_remote), ready_size);
     }
-    void on_ok(FileType file_type, const PartialRemoteFileLocation &partial_remote, int64 size) final {
-      send_closure(std::move(actor_id_), &FileLoadManager::on_ok_upload, file_type, partial_remote, size);
+    void on_ok(FileType file_type, PartialRemoteFileLocation partial_remote, int64 size) final {
+      send_closure(std::move(actor_id_), &FileLoadManager::on_ok_upload, file_type, std::move(partial_remote), size);
     }
     void on_error(Status status) final {
       send_closure(std::move(actor_id_), &FileLoadManager::on_error, std::move(status));
@@ -144,8 +146,8 @@ class FileLoadManager final : public Actor {
    private:
     ActorShared<FileLoadManager> actor_id_;
 
-    void on_ok(const FullRemoteFileLocation &remote) final {
-      send_closure(std::move(actor_id_), &FileLoadManager::on_ok_upload_full, remote);
+    void on_ok(FullRemoteFileLocation remote) final {
+      send_closure(std::move(actor_id_), &FileLoadManager::on_ok_upload_full, std::move(remote));
     }
     void on_error(Status status) final {
       send_closure(std::move(actor_id_), &FileLoadManager::on_error, std::move(status));

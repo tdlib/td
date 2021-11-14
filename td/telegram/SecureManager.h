@@ -9,10 +9,9 @@
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/SecureStorage.h"
 #include "td/telegram/SecureValue.h"
-#include "td/telegram/UserId.h"
-
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserId.h"
 
 #include "td/actor/actor.h"
 #include "td/actor/PromiseFuture.h"
@@ -39,9 +38,13 @@ class SecureManager final : public NetQueryCallback {
   explicit SecureManager(ActorShared<> parent);
 
   void get_secure_value(std::string password, SecureValueType type, Promise<TdApiSecureValue> promise);
+
   void get_all_secure_values(std::string password, Promise<TdApiSecureValues> promise);
+
   void set_secure_value(string password, SecureValue secure_value, Promise<TdApiSecureValue> promise);
+
   void delete_secure_value(SecureValueType type, Promise<Unit> promise);
+
   void set_secure_value_errors(Td *td, tl_object_ptr<telegram_api::InputUser> input_user,
                                vector<tl_object_ptr<td_api::inputPassportElementError>> errors, Promise<Unit> promise);
 

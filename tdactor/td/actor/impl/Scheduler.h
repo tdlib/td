@@ -10,10 +10,8 @@
 #include "td/actor/impl/Scheduler-decl.h"
 
 #include "td/utils/common.h"
-#include "td/utils/format.h"
 #include "td/utils/Heap.h"
 #include "td/utils/logging.h"
-#include "td/utils/MpscPollableQueue.h"
 #include "td/utils/ObjectPool.h"
 #include "td/utils/port/detail/PollableFd.h"
 #include "td/utils/port/PollFlags.h"
@@ -21,16 +19,10 @@
 #include "td/utils/Time.h"
 
 #include <atomic>
-#include <memory>
 #include <tuple>
 #include <utility>
 
 namespace td {
-
-/*** ServiceActor ***/
-inline void Scheduler::ServiceActor::set_queue(std::shared_ptr<MpscPollableQueue<EventFull>> queues) {
-  inbound_ = std::move(queues);
-}
 
 /*** EventGuard ***/
 class EventGuard {
@@ -108,13 +100,12 @@ ActorOwn<ActorT> Scheduler::register_actor_impl(Slice name, ActorT *actor_ptr, A
   LOG_CHECK(sched_id == sched_id_ || (0 <= sched_id && sched_id < static_cast<int32>(outbound_queues_.size())))
       << sched_id;
   auto info = actor_info_pool_->create_empty();
-  VLOG(actor) << "Create actor: " << tag("name", name) << tag("ptr", *info) << tag("context", context())
-              << tag("this", this) << tag("actor_count", actor_count_);
   actor_count_++;
   auto weak_info = info.get_weak();
   auto actor_info = info.get();
   actor_info->init(sched_id_, name, std::move(info), static_cast<Actor *>(actor_ptr), deleter,
-                   ActorTraits<ActorT>::is_lite);
+                   ActorTraits<ActorT>::need_context, ActorTraits<ActorT>::need_start_up);
+  VLOG(actor) << "Create actor " << *actor_info << " (actor_count = " << actor_count_ << ')';
 
   ActorId<ActorT> actor_id = weak_info->actor_id(actor_ptr);
   if (sched_id != sched_id_) {
@@ -122,7 +113,7 @@ ActorOwn<ActorT> Scheduler::register_actor_impl(Slice name, ActorT *actor_ptr, A
     do_migrate_actor(actor_info, sched_id);
   } else {
     pending_actors_list_.put(weak_info->get_list_node());
-    if (!ActorTraits<ActorT>::is_lite) {
+    if (ActorTraits<ActorT>::need_start_up) {
       send<ActorSendType::LaterWeak>(actor_id, Event::start());
     }
   }
@@ -139,8 +130,7 @@ ActorOwn<ActorT> Scheduler::register_existing_actor(unique_ptr<ActorT> actor_ptr
 }
 
 inline void Scheduler::destroy_actor(ActorInfo *actor_info) {
-  VLOG(actor) << "Destroy actor: " << tag("name", *actor_info) << tag("ptr", actor_info)
-              << tag("actor_count", actor_count_);
+  VLOG(actor) << "Destroy actor " << *actor_info << " (actor_count = " << actor_count_ << ')';
 
   LOG_CHECK(actor_info->migrate_dest() == sched_id_) << actor_info->migrate_dest() << " " << sched_id_;
   cancel_actor_timeout(actor_info);
@@ -299,9 +289,6 @@ inline void Scheduler::finish_migrate_actor(Actor *actor) {
   register_migrated_actor(actor->get_info());
 }
 
-inline bool Scheduler::has_actor_timeout(const Actor *actor) const {
-  return has_actor_timeout(actor->get_info());
-}
 inline double Scheduler::get_actor_timeout(const Actor *actor) const {
   return get_actor_timeout(actor->get_info());
 }
@@ -313,11 +300,6 @@ inline void Scheduler::set_actor_timeout_at(Actor *actor, double timeout_at) {
 }
 inline void Scheduler::cancel_actor_timeout(Actor *actor) {
   cancel_actor_timeout(actor->get_info());
-}
-
-inline bool Scheduler::has_actor_timeout(const ActorInfo *actor_info) const {
-  const HeapNode *heap_node = actor_info->get_heap_node();
-  return heap_node->in_heap();
 }
 
 inline void Scheduler::cancel_actor_timeout(ActorInfo *actor_info) {
@@ -343,17 +325,6 @@ inline void Scheduler::wakeup() {
 #if !TD_THREAD_UNSUPPORTED && !TD_EVENTFD_UNSUPPORTED
   inbound_queue_->writer_put({});
 #endif
-}
-
-inline Timestamp Scheduler::run_events() {
-  Timestamp res;
-  VLOG(actor) << "Run events " << sched_id_ << " " << tag("pending", pending_events_.size())
-              << tag("actors", actor_count_);
-  do {
-    run_mailbox();
-    res = run_timeout();
-  } while (!ready_actors_list_.empty());
-  return res;
 }
 
 inline void Scheduler::run(Timestamp timeout) {

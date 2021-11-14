@@ -106,16 +106,19 @@ class SharedPtr {
   SharedPtr(const SharedPtr &other) : SharedPtr(other.raw_) {
   }
   SharedPtr &operator=(const SharedPtr &other) {
+    if (this == &other) {
+      return *this;
+    }
     if (other.raw_) {
       other.raw_->inc();
     }
     reset(other.raw_);
     return *this;
   }
-  SharedPtr(SharedPtr &&other) : raw_(other.raw_) {
+  SharedPtr(SharedPtr &&other) noexcept : raw_(other.raw_) {
     other.raw_ = nullptr;
   }
-  SharedPtr &operator=(SharedPtr &&other) {
+  SharedPtr &operator=(SharedPtr &&other) noexcept {
     reset(other.raw_);
     other.raw_ = nullptr;
     return *this;

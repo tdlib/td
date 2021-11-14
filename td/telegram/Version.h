@@ -10,7 +10,7 @@
 
 namespace td {
 
-constexpr int32 MTPROTO_LAYER = 133;
+constexpr int32 MTPROTO_LAYER = 134;
 
 enum class Version : int32 {
   Initial,  // 0
@@ -47,6 +47,7 @@ enum class Version : int32 {
   SupportBannedChannels,
   RemovePhotoVolumeAndLocalId,
   Support64BitIds,
+  AddInviteLinksRequiringApproval,
   Next
 };
 

@@ -11,7 +11,6 @@
 #include "td/actor/impl/Scheduler-decl.h"
 
 #include "td/utils/common.h"
-#include "td/utils/format.h"
 #include "td/utils/Heap.h"
 #include "td/utils/List.h"
 #include "td/utils/logging.h"
@@ -32,45 +31,53 @@ inline StringBuilder &operator<<(StringBuilder &sb, const ActorInfo &info) {
 }
 
 inline void ActorInfo::init(int32 sched_id, Slice name, ObjectPool<ActorInfo>::OwnerPtr &&this_ptr, Actor *actor_ptr,
-                            Deleter deleter, bool is_lite) {
+                            Deleter deleter, bool need_context, bool need_start_up) {
   CHECK(!is_running());
   CHECK(!is_migrating());
   sched_id_.store(sched_id, std::memory_order_relaxed);
   actor_ = actor_ptr;
 
-  if (!is_lite) {
+  if (need_context) {
     context_ = Scheduler::context()->this_ptr_.lock();
     VLOG(actor) << "Set context " << context_.get() << " for " << name;
-#ifdef TD_DEBUG
-    name_ = name.str();
-#endif
   }
+#ifdef TD_DEBUG
+  name_.assign(name.data(), name.size());
+#endif
 
   actor_->init(std::move(this_ptr));
   deleter_ = deleter;
-  is_lite_ = is_lite;
+  need_context_ = need_context;
+  need_start_up_ = need_start_up;
   is_running_ = false;
   wait_generation_ = 0;
 }
-inline bool ActorInfo::is_lite() const {
-  return is_lite_;
+
+inline bool ActorInfo::need_context() const {
+  return need_context_;
 }
+
+inline bool ActorInfo::need_start_up() const {
+  return need_start_up_;
+}
+
 inline void ActorInfo::set_wait_generation(uint32 wait_generation) {
   wait_generation_ = wait_generation;
 }
+
 inline bool ActorInfo::must_wait(uint32 wait_generation) const {
   return wait_generation_ == wait_generation || (always_wait_for_mailbox_ && !mailbox_.empty());
 }
+
 inline void ActorInfo::always_wait_for_mailbox() {
   always_wait_for_mailbox_ = true;
 }
+
 inline void ActorInfo::on_actor_moved(Actor *actor_new_ptr) {
   actor_ = actor_new_ptr;
 }
 
 inline void ActorInfo::clear() {
-  //  LOG_IF(WARNING, !mailbox_.empty()) << "Destroy actor with non-empty mailbox: " << get_name()
-  //                                     << format::as_array(mailbox_);
   CHECK(mailbox_.empty());
   CHECK(!actor_);
   CHECK(!is_running());
@@ -156,6 +163,11 @@ inline std::shared_ptr<ActorContext> ActorInfo::set_context(std::shared_ptr<Acto
   Scheduler::on_context_updated();
   return context;
 }
+
+inline std::weak_ptr<ActorContext> ActorInfo::get_context_weak_ptr() const {
+  return context_;
+}
+
 inline const ActorContext *ActorInfo::get_context() const {
   return context_.get();
 }
@@ -174,7 +186,7 @@ inline CSlice ActorInfo::get_name() const {
 
 inline void ActorInfo::start_run() {
   VLOG(actor) << "Start run actor: " << *this;
-  LOG_CHECK(!is_running_) << "Recursive call of actor " << tag("name", get_name());
+  LOG_CHECK(!is_running_) << "Recursive call of actor " << get_name();
   is_running_ = true;
 }
 inline void ActorInfo::finish_run() {

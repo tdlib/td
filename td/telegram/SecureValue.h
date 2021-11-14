@@ -6,11 +6,10 @@
 //
 #pragma once
 
-#include "td/telegram/td_api.h"
-#include "td/telegram/telegram_api.h"
-
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/SecureStorage.h"
+#include "td/telegram/td_api.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/utils/common.h"
 #include "td/utils/optional.h"
@@ -184,7 +183,7 @@ struct SecureFileCredentials {
 };
 
 struct SecureValueCredentials {
-  SecureValueType type;
+  SecureValueType type = SecureValueType::None;
   string hash;
   optional<SecureDataCredentials> data;
   std::vector<SecureFileCredentials> files;

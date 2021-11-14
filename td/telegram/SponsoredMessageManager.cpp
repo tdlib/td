@@ -7,18 +7,21 @@
 #include "td/telegram/SponsoredMessageManager.h"
 
 #include "td/telegram/ChannelId.h"
+#include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageContent.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/net/NetQueryCreator.h"
+#include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
 
 #include <limits>
@@ -37,24 +40,24 @@ class GetSponsoredMessagesQuery final : public Td::ResultHandler {
 
   void send(ChannelId channel_id) {
     channel_id_ = channel_id;
-    auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
+    auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
     if (input_channel == nullptr) {
       return promise_.set_error(Status::Error(400, "Chat info not found"));
     }
     send_query(G()->net_query_creator().create(telegram_api::channels_getSponsoredMessages(std::move(input_channel))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::channels_getSponsoredMessages>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     promise_.set_value(result_ptr.move_as_ok());
   }
 
-  void on_error(uint64 id, Status status) final {
-    td->contacts_manager_->on_get_channel_error(channel_id_, status, "GetSponsoredMessagesQuery");
+  void on_error(Status status) final {
+    td_->contacts_manager_->on_get_channel_error(channel_id_, status, "GetSponsoredMessagesQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -69,7 +72,7 @@ class ViewSponsoredMessageQuery final : public Td::ResultHandler {
 
   void send(ChannelId channel_id, const string &message_id) {
     channel_id_ = channel_id;
-    auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
+    auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
     if (input_channel == nullptr) {
       return promise_.set_error(Status::Error(400, "Chat info not found"));
     }
@@ -77,17 +80,17 @@ class ViewSponsoredMessageQuery final : public Td::ResultHandler {
         telegram_api::channels_viewSponsoredMessage(std::move(input_channel), BufferSlice(message_id))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::channels_viewSponsoredMessage>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
-    td->contacts_manager_->on_get_channel_error(channel_id_, status, "ViewSponsoredMessageQuery");
+  void on_error(Status status) final {
+    td_->contacts_manager_->on_get_channel_error(channel_id_, status, "ViewSponsoredMessageQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -95,13 +98,16 @@ class ViewSponsoredMessageQuery final : public Td::ResultHandler {
 struct SponsoredMessageManager::SponsoredMessage {
   int32 local_id = 0;
   DialogId sponsor_dialog_id;
+  ServerMessageId server_message_id;
   string start_param;
   unique_ptr<MessageContent> content;
 
   SponsoredMessage() = default;
-  SponsoredMessage(int32 local_id, DialogId sponsor_dialog_id, string start_param, unique_ptr<MessageContent> content)
+  SponsoredMessage(int32 local_id, DialogId sponsor_dialog_id, ServerMessageId server_message_id, string start_param,
+                   unique_ptr<MessageContent> content)
       : local_id(local_id)
       , sponsor_dialog_id(sponsor_dialog_id)
+      , server_message_id(server_message_id)
       , start_param(std::move(start_param))
       , content(std::move(content)) {
   }
@@ -148,8 +154,32 @@ void SponsoredMessageManager::delete_cached_sponsored_messages(DialogId dialog_i
 
 td_api::object_ptr<td_api::sponsoredMessage> SponsoredMessageManager::get_sponsored_message_object(
     DialogId dialog_id, const SponsoredMessage &sponsored_message) const {
+  td_api::object_ptr<td_api::InternalLinkType> link;
+  switch (sponsored_message.sponsor_dialog_id.get_type()) {
+    case DialogType::User: {
+      auto user_id = sponsored_message.sponsor_dialog_id.get_user_id();
+      if (!td_->contacts_manager_->is_user_bot(user_id)) {
+        break;
+      }
+      auto bot_username = td_->contacts_manager_->get_user_username(user_id);
+      if (bot_username.empty()) {
+        break;
+      }
+      link = td_api::make_object<td_api::internalLinkTypeBotStart>(bot_username, sponsored_message.start_param);
+      break;
+    }
+    case DialogType::Channel: {
+      auto channel_id = sponsored_message.sponsor_dialog_id.get_channel_id();
+      auto t_me = G()->shared_config().get_option_string("t_me_url", "https://t.me/");
+      link = td_api::make_object<td_api::internalLinkTypeMessage>(
+          PSTRING() << t_me << "/c" << channel_id.get() << '/' << sponsored_message.server_message_id.get());
+      break;
+    }
+    default:
+      break;
+  }
   return td_api::make_object<td_api::sponsoredMessage>(
-      sponsored_message.local_id, sponsored_message.sponsor_dialog_id.get(), sponsored_message.start_param,
+      sponsored_message.local_id, sponsored_message.sponsor_dialog_id.get(), std::move(link),
       get_message_content_object(sponsored_message.content.get(), td_, dialog_id, 0, false, true, -1));
 }
 
@@ -201,7 +231,7 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
   CHECK(messages->message_random_ids.empty());
 
   if (result.is_ok() && G()->close_flag()) {
-    result = Status::Error(500, "Request aborted");
+    result = Global::request_aborted_error();
   }
   if (result.is_error()) {
     dialog_sponsored_messages_.erase(dialog_id);
@@ -222,22 +252,30 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
       LOG(ERROR) << "Receive unknown sponsor " << sponsor_dialog_id;
       continue;
     }
+    auto server_message_id = ServerMessageId(sponsored_message->channel_post_);
+    if (!server_message_id.is_valid() && server_message_id != ServerMessageId()) {
+      LOG(ERROR) << "Receive invalid channel post in " << to_string(sponsored_message);
+      server_message_id = ServerMessageId();
+    }
     td_->messages_manager_->force_create_dialog(sponsor_dialog_id, "on_get_dialog_sponsored_messages");
     auto message_text = get_message_text(td_->contacts_manager_.get(), std::move(sponsored_message->message_),
                                          std::move(sponsored_message->entities_), true, true, 0, false,
                                          "on_get_dialog_sponsored_messages");
     int32 ttl = 0;
-    auto content = get_message_content(td_, std::move(message_text), nullptr, sponsor_dialog_id, true, UserId(), &ttl);
+    bool disable_web_page_preview = false;
+    auto content = get_message_content(td_, std::move(message_text), nullptr, sponsor_dialog_id, true, UserId(), &ttl,
+                                       &disable_web_page_preview);
     if (ttl != 0) {
       LOG(ERROR) << "Receive sponsored message with TTL " << ttl;
       continue;
     }
+    CHECK(disable_web_page_preview);
 
     CHECK(current_sponsored_message_id_ < std::numeric_limits<int32>::max());
     auto local_id = ++current_sponsored_message_id_;
     messages->message_random_ids[local_id] = sponsored_message->random_id_.as_slice().str();
-    messages->messages.emplace_back(local_id, sponsor_dialog_id, std::move(sponsored_message->start_param_),
-                                    std::move(content));
+    messages->messages.emplace_back(local_id, sponsor_dialog_id, server_message_id,
+                                    std::move(sponsored_message->start_param_), std::move(content));
   }
 
   for (auto &promise : promises) {

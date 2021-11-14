@@ -107,7 +107,7 @@ jobjectArray store_vector(JNIEnv *env, const std::vector<std::string> &v);
 
 template <class T>
 jobjectArray store_vector(JNIEnv *env, const std::vector<T> &v) {
-  jint length = static_cast<jint>(v.size());
+  auto length = static_cast<jint>(v.size());
   jobjectArray arr = env->NewObjectArray(length, T::element_type::Class, jobject());
   if (arr != nullptr) {
     for (jint i = 0; i < length; i++) {
@@ -155,7 +155,7 @@ class get_array_class<td_api::pageBlockTableCell> {
 
 template <class T>
 jobjectArray store_vector(JNIEnv *env, const std::vector<std::vector<T>> &v) {
-  jint length = static_cast<jint>(v.size());
+  auto length = static_cast<jint>(v.size());
   jobjectArray arr = env->NewObjectArray(length, get_array_class<typename T::element_type>::get(), 0);
   if (arr != nullptr) {
     for (jint i = 0; i < length; i++) {

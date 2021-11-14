@@ -63,7 +63,7 @@ class ActorInfo final
   ActorInfo &operator=(const ActorInfo &) = delete;
 
   void init(int32 sched_id, Slice name, ObjectPool<ActorInfo>::OwnerPtr &&this_ptr, Actor *actor_ptr, Deleter deleter,
-            bool is_lite);
+            bool need_context, bool need_start_up);
   void on_actor_moved(Actor *actor_new_ptr);
 
   template <class ActorT>
@@ -86,6 +86,7 @@ class ActorInfo final
   const Actor *get_actor_unsafe() const;
 
   std::shared_ptr<ActorContext> set_context(std::shared_ptr<ActorContext> context);
+  std::weak_ptr<ActorContext> get_context_weak_ptr() const;
   ActorContext *get_context();
   const ActorContext *get_context() const;
   CSlice get_name() const;
@@ -104,7 +105,8 @@ class ActorInfo final
 
   vector<Event> mailbox_;
 
-  bool is_lite() const;
+  bool need_context() const;
+  bool need_start_up() const;
 
   void set_wait_generation(uint32 wait_generation);
   bool must_wait(uint32 wait_generation) const;
@@ -112,7 +114,8 @@ class ActorInfo final
 
  private:
   Deleter deleter_ = Deleter::None;
-  bool is_lite_ = false;
+  bool need_context_ = true;
+  bool need_start_up_ = true;
   bool is_running_ = false;
   bool always_wait_for_mailbox_{false};
   uint32 wait_generation_{0};

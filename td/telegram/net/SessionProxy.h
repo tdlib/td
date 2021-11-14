@@ -40,7 +40,7 @@ class SessionProxy final : public Actor {
  private:
   unique_ptr<Callback> callback_;
   std::shared_ptr<AuthDataShared> auth_data_;
-  AuthKeyState auth_key_state_;
+  AuthKeyState auth_key_state_ = AuthKeyState::Empty;
   bool is_main_;
   bool allow_media_only_;
   bool is_media_;

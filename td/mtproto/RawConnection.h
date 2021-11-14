@@ -11,6 +11,7 @@
 #include "td/mtproto/TransportType.h"
 
 #include "td/utils/buffer.h"
+#include "td/utils/BufferedFd.h"
 #include "td/utils/common.h"
 #include "td/utils/port/detail/PollableFd.h"
 #include "td/utils/port/IPAddress.h"
@@ -40,15 +41,15 @@ class RawConnection {
   RawConnection &operator=(const RawConnection &) = delete;
   virtual ~RawConnection() = default;
 
-  static unique_ptr<RawConnection> create(IPAddress ip_address, SocketFd socket_fd, TransportType transport_type,
-                                          unique_ptr<StatsCallback> stats_callback);
+  static unique_ptr<RawConnection> create(IPAddress ip_address, BufferedFd<SocketFd> buffered_socket_fd,
+                                          TransportType transport_type, unique_ptr<StatsCallback> stats_callback);
 
   virtual void set_connection_token(ConnectionManager::ConnectionToken connection_token) = 0;
 
   virtual bool can_send() const = 0;
   virtual TransportType get_transport_type() const = 0;
   virtual void send_crypto(const Storer &storer, int64 session_id, int64 salt, const AuthKey &auth_key,
-                           uint64 quick_ack_token = 0) = 0;
+                           uint64 quick_ack_token) = 0;
   virtual uint64 send_no_crypto(const Storer &storer) = 0;
 
   virtual PollableFdInfo &get_poll_info() = 0;
@@ -62,7 +63,7 @@ class RawConnection {
     virtual ~Callback() = default;
     virtual Status on_raw_packet(const PacketInfo &info, BufferSlice packet) = 0;
     virtual Status on_quick_ack(uint64 quick_ack_token) {
-      return Status::Error("Quick acks unsupported fully, but still used");
+      return Status::Error("Quick acknowledgements are unsupported by the callback");
     }
     virtual Status before_write() {
       return Status::OK();

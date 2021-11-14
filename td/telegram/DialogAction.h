@@ -49,7 +49,7 @@ class DialogAction {
 
   void init(Type type, string emoji);
 
-  void init(Type type, int32 message_id, string emoji, string data);
+  void init(Type type, int32 message_id, string emoji, const string &data);
 
   static bool is_valid_emoji(string &emoji);
 
@@ -79,7 +79,7 @@ class DialogAction {
   string get_watching_animations_emoji() const;
 
   struct ClickingAnimateEmojiInfo {
-    int32 message_id;
+    int32 message_id = 0;
     string emoji;
     string data;
   };

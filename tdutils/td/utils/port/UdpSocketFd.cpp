@@ -35,7 +35,7 @@
 #if TD_LINUX
 #include <linux/errqueue.h>
 #endif
-#endif  // TD_PORT_POSIX
+#endif
 
 #include <array>
 #include <atomic>
@@ -59,7 +59,7 @@ class UdpSocketReceiveHelper {
     message_header.dwFlags = 0;
   }
 
-  void from_native(WSAMSG &message_header, size_t message_size, UdpMessage &message) {
+  static void from_native(WSAMSG &message_header, size_t message_size, UdpMessage &message) {
     message.address.init_sockaddr(reinterpret_cast<sockaddr *>(message_header.name), message_header.namelen).ignore();
     message.error = Status::OK();
 
@@ -79,6 +79,7 @@ class UdpSocketReceiveHelper {
   sockaddr_storage addr_;
   WSABUF buf_;
 };
+
 class UdpSocketSendHelper {
  public:
   void to_native(const UdpMessage &message, WSAMSG &message_header) {
@@ -295,7 +296,7 @@ class UdpSocketFdImpl final : private Iocp::Callback {
     VLOG(fd) << get_native_fd() << " on receive " << size;
     CHECK(is_receive_active_);
     is_receive_active_ = false;
-    receive_helper_.from_native(receive_message_, size, to_receive_);
+    UdpSocketReceiveHelper::from_native(receive_message_, size, to_receive_);
     receive_buffer_.confirm_read((to_receive_.data.size() + 7) & ~7);
     {
       auto lock = lock_.lock();
@@ -387,7 +388,7 @@ class UdpSocketReceiveHelper {
     message_header.msg_flags = 0;
   }
 
-  void from_native(msghdr &message_header, size_t message_size, UdpSocketFd::InboundMessage &message) {
+  static void from_native(msghdr &message_header, size_t message_size, UdpSocketFd::InboundMessage &message) {
 #if TD_LINUX
     cmsghdr *cmsg;
     sock_extended_err *ee = nullptr;
@@ -502,7 +503,7 @@ class UdpSocketFdImpl {
     auto recvmsg_res = detail::skip_eintr([&] { return recvmsg(native_fd, &message_header, flags); });
     auto recvmsg_errno = errno;
     if (recvmsg_res >= 0) {
-      helper.from_native(message_header, recvmsg_res, message);
+      UdpSocketReceiveHelper::from_native(message_header, recvmsg_res, message);
       is_received = true;
       return Status::OK();
     }
@@ -719,7 +720,7 @@ class UdpSocketFdImpl {
     if (recvmmsg_res >= 0) {
       cnt = narrow_cast<size_t>(recvmmsg_res);
       for (size_t i = 0; i < cnt; i++) {
-        helpers[i].from_native(headers[i].msg_hdr, headers[i].msg_len, messages[i]);
+        UdpSocketReceiveHelper::from_native(headers[i].msg_hdr, headers[i].msg_len, messages[i]);
       }
       return Status::OK();
     }
@@ -738,8 +739,8 @@ void UdpSocketFdImplDeleter::operator()(UdpSocketFdImpl *impl) {
 }  // namespace detail
 
 UdpSocketFd::UdpSocketFd() = default;
-UdpSocketFd::UdpSocketFd(UdpSocketFd &&) = default;
-UdpSocketFd &UdpSocketFd::operator=(UdpSocketFd &&) = default;
+UdpSocketFd::UdpSocketFd(UdpSocketFd &&) noexcept = default;
+UdpSocketFd &UdpSocketFd::operator=(UdpSocketFd &&) noexcept = default;
 UdpSocketFd::~UdpSocketFd() = default;
 PollableFdInfo &UdpSocketFd::get_poll_info() {
   return impl_->get_poll_info();

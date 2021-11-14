@@ -24,8 +24,8 @@ class Actor : public ObserverBase {
   Actor() = default;
   Actor(const Actor &) = delete;
   Actor &operator=(const Actor &) = delete;
-  Actor(Actor &&other);
-  Actor &operator=(Actor &&other);
+  Actor(Actor &&other) noexcept;
+  Actor &operator=(Actor &&other) noexcept;
   ~Actor() override {
     if (!empty()) {
       do_stop();
@@ -75,6 +75,7 @@ class Actor : public ObserverBase {
   void do_migrate(int32 sched_id);
 
   uint64 get_link_token();
+  std::weak_ptr<ActorContext> get_context_weak_ptr() const;
   std::shared_ptr<ActorContext> set_context(std::shared_ptr<ActorContext> context);
   string set_tag(string tag);
 
@@ -114,7 +115,8 @@ class Actor : public ObserverBase {
 template <class ActorT>
 class ActorTraits {
  public:
-  static constexpr bool is_lite = false;
+  static constexpr bool need_context = true;
+  static constexpr bool need_start_up = true;
 };
 
 }  // namespace td

@@ -73,7 +73,7 @@ Logger::Logger(LogInterface &log, const LogOptions &options, int log_level, Slic
 
   // log level
   sb_ << '[';
-  if (static_cast<unsigned int>(log_level) < 10) {
+  if (static_cast<uint32>(log_level) < 10) {
     sb_ << ' ' << static_cast<char>('0' + log_level);
   } else {
     sb_ << log_level;
@@ -83,7 +83,7 @@ Logger::Logger(LogInterface &log, const LogOptions &options, int log_level, Slic
   // thread id
   auto thread_id = get_thread_id();
   sb_ << "[t";
-  if (static_cast<unsigned int>(thread_id) < 10) {
+  if (static_cast<uint32>(thread_id) < 10) {
     sb_ << ' ' << static_cast<char>('0' + thread_id);
   } else {
     sb_ << thread_id;
@@ -109,7 +109,7 @@ Logger::Logger(LogInterface &log, const LogOptions &options, int log_level, Slic
       last_slash_--;
     }
     file_name = file_name.substr(last_slash_ + 1);
-    sb_ << '[' << file_name << ':' << static_cast<unsigned int>(line_num) << ']';
+    sb_ << '[' << file_name << ':' << static_cast<uint32>(line_num) << ']';
   }
 
   // context from tag_
@@ -208,6 +208,7 @@ class DefaultLog final : public LogInterface {
     }
 #elif !TD_WINDOWS
     Slice color;
+    Slice no_color("\x1b[0m");
     switch (log_level) {
       case VERBOSITY_NAME(FATAL):
       case VERBOSITY_NAME(ERROR):
@@ -219,8 +220,10 @@ class DefaultLog final : public LogInterface {
       case VERBOSITY_NAME(INFO):
         color = Slice("\x1b[1;36m");  // cyan
         break;
+      default:
+        no_color = Slice();
+        break;
     }
-    Slice no_color("\x1b[0m");
     if (!slice.empty() && slice.back() == '\n') {
       TsCerr() << color << slice.substr(0, slice.size() - 1) << no_color << "\n";
     } else {

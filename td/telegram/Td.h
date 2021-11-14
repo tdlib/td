@@ -126,6 +126,11 @@ class Td final : public Actor {
 
   template <class ActorT, class... ArgsT>
   ActorId<ActorT> create_net_actor(ArgsT &&... args) {
+    LOG_CHECK(close_flag_ < 1) << close_flag_
+#if TD_CLANG || TD_GCC
+                               << ' ' << __PRETTY_FUNCTION__
+#endif
+        ;
     auto slot_id = request_actors_.create(ActorOwn<>(), RequestActorIdType);
     inc_request_actor_refcnt();
     auto actor = make_unique<ActorT>(std::forward<ArgsT>(args)...);
@@ -208,11 +213,11 @@ class Td final : public Actor {
     ResultHandler &operator=(const ResultHandler &) = delete;
     virtual ~ResultHandler() = default;
 
-    virtual void on_result(NetQueryPtr query);
-    virtual void on_result(uint64 id, BufferSlice packet) {
+    virtual void on_result(BufferSlice packet) {
       UNREACHABLE();
     }
-    virtual void on_error(uint64 id, Status status) {
+
+    virtual void on_error(Status status) {
       UNREACHABLE();
     }
 
@@ -221,10 +226,11 @@ class Td final : public Actor {
    protected:
     void send_query(NetQueryPtr query);
 
-    Td *td = nullptr;
+    Td *td_ = nullptr;
+    bool is_query_sent_ = false;
 
    private:
-    void set_td(Td *new_td);
+    void set_td(Td *td);
   };
 
   template <class HandlerT, class... Args>
@@ -244,7 +250,7 @@ class Td final : public Actor {
   static td_api::object_ptr<td_api::Object> static_request(td_api::object_ptr<td_api::Function> function);
 
  private:
-  static constexpr const char *TDLIB_VERSION = "1.7.8";
+  static constexpr const char *TDLIB_VERSION = "1.7.9";
   static constexpr int64 ONLINE_ALARM_ID = 0;
   static constexpr int64 PING_SERVER_ALARM_ID = -1;
   static constexpr int32 PING_SERVER_TIMEOUT = 300;
@@ -291,7 +297,7 @@ class Td final : public Actor {
   enum class State : int32 { WaitParameters, Decrypt, Run, Close } state_ = State::WaitParameters;
   bool is_database_encrypted_ = false;
 
-  vector<std::pair<uint64, std::shared_ptr<ResultHandler>>> result_handlers_;
+  std::unordered_map<uint64, std::shared_ptr<ResultHandler>> result_handlers_;
   enum : int8 { RequestActorIdType = 1, ActorIdType = 2 };
   Container<ActorOwn<Actor>> request_actors_;
 
@@ -328,19 +334,15 @@ class Td final : public Actor {
 
   void on_get_terms_of_service(Result<std::pair<int32, TermsOfService>> result, bool dummy);
 
-  void on_get_promo_data(Result<telegram_api::object_ptr<telegram_api::help_PromoData>> result, bool dummy);
+  void on_get_promo_data(Result<telegram_api::object_ptr<telegram_api::help_PromoData>> r_promo_data, bool dummy);
 
   template <class T>
   friend class RequestActor;        // uses send_result/send_error
-  friend class TestQuery;           // uses send_result/send_error, TODO pass Promise<>
   friend class AuthManager;         // uses send_result/send_error, TODO pass Promise<>
   friend class PhoneNumberManager;  // uses send_result/send_error, TODO pass Promise<>
 
   void add_handler(uint64 id, std::shared_ptr<ResultHandler> handler);
   std::shared_ptr<ResultHandler> extract_handler(uint64 id);
-  void invalidate_handler(ResultHandler *handler);
-  void clear_handlers();
-  // void destroy_handler(ResultHandler *handler);
 
   void clear_requests();
 
@@ -349,8 +351,6 @@ class Td final : public Actor {
   static bool is_internal_config_option(Slice name);
 
   void on_config_option_updated(const string &name);
-
-  void send(NetQueryPtr &&query);
 
   class OnRequest;
 
@@ -616,6 +616,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::getMessageThreadHistory &request);
 
+  void on_request(uint64 id, td_api::getChatMessageCalendar &request);
+
   void on_request(uint64 id, td_api::searchChatMessages &request);
 
   void on_request(uint64 id, td_api::searchSecretMessages &request);
@@ -632,7 +634,9 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::getChatMessageByDate &request);
 
-  void on_request(uint64 id, td_api::getChatMessageCount &request);
+  void on_request(uint64 id, const td_api::getChatSparseMessagePositions &request);
+
+  void on_request(uint64 id, const td_api::getChatMessageCount &request);
 
   void on_request(uint64 id, const td_api::getChatScheduledMessages &request);
 
@@ -645,6 +649,8 @@ class Td final : public Actor {
   void on_request(uint64 id, const td_api::deleteMessages &request);
 
   void on_request(uint64 id, const td_api::deleteChatMessagesFromUser &request);
+
+  void on_request(uint64 id, const td_api::deleteChatMessagesByDate &request);
 
   void on_request(uint64 id, const td_api::readAllChatMentions &request);
 
@@ -728,11 +734,11 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::sendCallDebugInformation &request);
 
-  void on_request(uint64 id, const td_api::getVoiceChatAvailableParticipants &request);
+  void on_request(uint64 id, const td_api::getVideoChatAvailableParticipants &request);
 
-  void on_request(uint64 id, const td_api::setVoiceChatDefaultParticipant &request);
+  void on_request(uint64 id, const td_api::setVideoChatDefaultParticipant &request);
 
-  void on_request(uint64 id, td_api::createVoiceChat &request);
+  void on_request(uint64 id, td_api::createVideoChat &request);
 
   void on_request(uint64 id, const td_api::getGroupCall &request);
 
@@ -862,7 +868,7 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::replacePrimaryChatInviteLink &request);
 
-  void on_request(uint64 id, const td_api::createChatInviteLink &request);
+  void on_request(uint64 id, td_api::createChatInviteLink &request);
 
   void on_request(uint64 id, td_api::editChatInviteLink &request);
 
@@ -873,6 +879,12 @@ class Td final : public Actor {
   void on_request(uint64 id, td_api::getChatInviteLinks &request);
 
   void on_request(uint64 id, td_api::getChatInviteLinkMembers &request);
+
+  void on_request(uint64 id, td_api::getChatJoinRequests &request);
+
+  void on_request(uint64 id, const td_api::approveChatJoinRequest &request);
+
+  void on_request(uint64 id, const td_api::declineChatJoinRequest &request);
 
   void on_request(uint64 id, td_api::revokeChatInviteLink &request);
 
@@ -1035,6 +1047,8 @@ class Td final : public Actor {
   void on_request(uint64 id, td_api::getStickerEmojis &request);
 
   void on_request(uint64 id, td_api::searchEmojis &request);
+
+  void on_request(uint64 id, td_api::getAnimatedEmoji &request);
 
   void on_request(uint64 id, td_api::getEmojiSuggestionsUrl &request);
 
@@ -1295,7 +1309,7 @@ class Td final : public Actor {
   static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getFileExtension &request);
   static td_api::object_ptr<td_api::Object> do_static_request(const td_api::cleanFileName &request);
   static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getLanguagePackString &request);
-  static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getPhoneNumberInfoSync &request);
+  static td_api::object_ptr<td_api::Object> do_static_request(td_api::getPhoneNumberInfoSync &request);
   static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getPushReceiverId &request);
   static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getChatFilterDefaultIconName &request);
   static td_api::object_ptr<td_api::Object> do_static_request(td_api::getJsonValue &request);

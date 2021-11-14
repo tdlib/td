@@ -100,7 +100,7 @@ class TestTQueue {
     }
   }
 
-  EventId push(td::TQueue::QueueId queue_id, td::string data, td::int32 expires_at, EventId new_id = EventId()) {
+  EventId push(td::TQueue::QueueId queue_id, const td::string &data, td::int32 expires_at, EventId new_id = EventId()) {
     auto a_id = baseline_->push(queue_id, data, expires_at, 0, new_id).move_as_ok();
     auto b_id = memory_->push(queue_id, data, expires_at, 0, new_id).move_as_ok();
     auto c_id = binlog_->push(queue_id, data, expires_at, 0, new_id).move_as_ok();

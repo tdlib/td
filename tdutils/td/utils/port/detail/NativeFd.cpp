@@ -134,14 +134,14 @@ NativeFd::NativeFd(Socket socket) : fd_(reinterpret_cast<Fd>(socket)), is_socket
 }
 #endif
 
-NativeFd::NativeFd(NativeFd &&other) : fd_(other.fd_) {
+NativeFd::NativeFd(NativeFd &&other) noexcept : fd_(other.fd_) {
 #if TD_PORT_WINDOWS
   is_socket_ = other.is_socket_;
 #endif
   other.fd_ = empty_fd();
 }
 
-NativeFd &NativeFd::operator=(NativeFd &&other) {
+NativeFd &NativeFd::operator=(NativeFd &&other) noexcept {
   CHECK(this != &other);
   close();
   fd_ = other.fd_;

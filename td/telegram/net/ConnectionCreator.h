@@ -6,13 +6,12 @@
 //
 #pragma once
 
-#include "td/telegram/td_api.h"
-
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/DcOptions.h"
 #include "td/telegram/net/DcOptionsSet.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/net/Proxy.h"
+#include "td/telegram/td_api.h"
 
 #include "td/mtproto/AuthData.h"
 #include "td/mtproto/ConnectionManager.h"
@@ -25,6 +24,7 @@
 #include "td/actor/PromiseFuture.h"
 #include "td/actor/SignalSlot.h"
 
+#include "td/utils/BufferedFd.h"
 #include "td/utils/common.h"
 #include "td/utils/FloodControlStrict.h"
 #include "td/utils/logging.h"
@@ -81,7 +81,7 @@ class ConnectionCreator final : public NetQueryCallback {
 
   struct ConnectionData {
     IPAddress ip_address;
-    SocketFd socket_fd;
+    BufferedFd<SocketFd> buffered_socket_fd;
     mtproto::ConnectionManager::ConnectionToken connection_token;
     unique_ptr<mtproto::RawConnection::StatsCallback> stats_callback;
   };
@@ -89,8 +89,9 @@ class ConnectionCreator final : public NetQueryCallback {
   static DcOptions get_default_dc_options(bool is_test);
 
   static ActorOwn<> prepare_connection(IPAddress ip_address, SocketFd socket_fd, const Proxy &proxy,
-                                       const IPAddress &mtproto_ip_address, mtproto::TransportType transport_type,
-                                       Slice actor_name_prefix, Slice debug_str,
+                                       const IPAddress &mtproto_ip_address,
+                                       const mtproto::TransportType &transport_type, Slice actor_name_prefix,
+                                       Slice debug_str,
                                        unique_ptr<mtproto::RawConnection::StatsCallback> stats_callback,
                                        ActorShared<> parent, bool use_connection_token,
                                        Promise<ConnectionData> promise);
@@ -160,8 +161,8 @@ class ConnectionCreator final : public NetQueryCallback {
     bool inited{false};
     size_t hash{0};
     DcId dc_id;
-    bool allow_media_only;
-    bool is_media;
+    bool allow_media_only{false};
+    bool is_media{false};
     std::set<int64> session_ids_;
     unique_ptr<mtproto::AuthData> auth_data;
     uint64 auth_data_generation{0};
@@ -245,8 +246,8 @@ class ConnectionCreator final : public NetQueryCallback {
 
   void ping_proxy_resolved(int32 proxy_id, IPAddress ip_address, Promise<double> promise);
 
-  void ping_proxy_socket_fd(IPAddress ip_address, SocketFd socket_fd, mtproto::TransportType transport_type,
-                            string debug_str, Promise<double> promise);
+  void ping_proxy_buffered_socket_fd(IPAddress ip_address, BufferedFd<SocketFd> buffered_socket_fd,
+                                     mtproto::TransportType transport_type, string debug_str, Promise<double> promise);
 
   void on_ping_main_dc_result(uint64 token, Result<double> result);
 };

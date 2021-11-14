@@ -6,9 +6,6 @@
 //
 #include "td/telegram/Game.h"
 
-#include "td/telegram/td_api.h"
-#include "td/telegram/telegram_api.h"
-
 #include "td/telegram/AnimationsManager.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Document.h"
@@ -40,7 +37,7 @@ Game::Game(Td *td, string title, string description, tl_object_ptr<telegram_api:
   CHECK(photo != nullptr);
   photo_ = get_photo(td->file_manager_.get(), std::move(photo), owner_dialog_id);
   if (photo_.is_empty()) {
-    LOG(ERROR) << "Receive empty photo for game " << title;
+    LOG(ERROR) << "Receive empty photo for game " << title_;
     photo_.id = 0;  // to prevent null photo in td_api
   }
   if (document != nullptr) {

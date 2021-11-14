@@ -6,9 +6,6 @@
 //
 #include "td/telegram/PrivacyManager.h"
 
-#include "td/telegram/td_api.h"
-#include "td/telegram/telegram_api.h"
-
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatId.h"
 #include "td/telegram/ContactsManager.h"
@@ -561,7 +558,7 @@ void PrivacyManager::send_with_promise(NetQueryPtr query, Promise<NetQueryPtr> p
 
 void PrivacyManager::hangup() {
   container_.for_each(
-      [](auto id, Promise<NetQueryPtr> &promise) { promise.set_error(Status::Error(500, "Request aborted")); });
+      [](auto id, Promise<NetQueryPtr> &promise) { promise.set_error(Global::request_aborted_error()); });
   stop();
 }
 

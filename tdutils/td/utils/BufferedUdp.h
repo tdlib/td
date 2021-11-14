@@ -79,8 +79,8 @@ class UdpReader {
     }
   }
   Status read_once(UdpSocketFd &fd, VectorQueue<UdpMessage> &queue) TD_WARN_UNUSED_RESULT {
-    for (size_t i = 0; i < messages_.size(); i++) {
-      CHECK(messages_[i].data.size() == 2048);
+    for (auto &message : messages_) {
+      CHECK(message.data.size() == 2048);
     }
     size_t cnt = 0;
     auto status = fd.receive_messages(messages_, cnt);
@@ -94,6 +94,7 @@ class UdpReader {
     }
     if (status.is_error() && !UdpSocketFd::is_critical_read_error(status)) {
       queue.push(UdpMessage{{}, {}, std::move(status)});
+      status = Status::OK();
     }
     return status;
   }

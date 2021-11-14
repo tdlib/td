@@ -6,9 +6,6 @@
 //
 #include "td/telegram/AuthManager.h"
 
-#include "td/telegram/td_api.h"
-#include "td/telegram/telegram_api.h"
-
 #include "td/telegram/AuthManager.hpp"
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/ConfigShared.h"
@@ -59,7 +56,7 @@ AuthManager::AuthManager(int32 api_id, const string &api_hash, ActorShared<> par
     } else {
       LOG(ERROR) << "Restore unknown my_id";
       ContactsManager::send_get_me_query(
-          td, PromiseCreator::lambda([this](Result<Unit> result) { update_state(State::Ok); }));
+          td_, PromiseCreator::lambda([this](Result<Unit> result) { update_state(State::Ok); }));
     }
   } else if (auth_str == "logout") {
     LOG(WARNING) << "Continue to log out";
@@ -162,7 +159,7 @@ void AuthManager::check_bot_token(uint64 query_id, string bot_token) {
   }
 
   on_new_query(query_id);
-  bot_token_ = bot_token;
+  bot_token_ = std::move(bot_token);
   was_check_bot_token_ = true;
   start_net_query(NetQueryType::BotAuthentication,
                   G()->net_query_creator().create_unauth(
@@ -211,11 +208,14 @@ void AuthManager::set_login_token_expires_at(double login_token_expires_at) {
   login_token_expires_at_ = login_token_expires_at;
   poll_export_login_code_timeout_.cancel_timeout();
   poll_export_login_code_timeout_.set_callback(std::move(on_update_login_token_static));
-  poll_export_login_code_timeout_.set_callback_data(static_cast<void *>(td));
+  poll_export_login_code_timeout_.set_callback_data(static_cast<void *>(td_));
   poll_export_login_code_timeout_.set_timeout_at(login_token_expires_at_);
 }
 
 void AuthManager::on_update_login_token_static(void *td) {
+  if (G()->close_flag()) {
+    return;
+  }
   static_cast<Td *>(td)->auth_manager_->on_update_login_token();
 }
 
@@ -258,8 +258,8 @@ void AuthManager::set_phone_number(uint64 query_id, string phone_number,
 
   on_new_query(query_id);
 
-  start_net_query(NetQueryType::SendCode, G()->net_query_creator().create_unauth(
-                                              send_code_helper_.send_code(phone_number, settings, api_id_, api_hash_)));
+  start_net_query(NetQueryType::SendCode, G()->net_query_creator().create_unauth(send_code_helper_.send_code(
+                                              std::move(phone_number), settings, api_id_, api_hash_)));
 }
 
 void AuthManager::resend_authentication_code(uint64 query_id) {
@@ -425,8 +425,8 @@ void AuthManager::on_query_error(Status status) {
   on_query_error(id, std::move(status));
 }
 
-void AuthManager::on_query_error(uint64 id, Status status) {
-  send_closure(G()->td(), &Td::send_error, id, std::move(status));
+void AuthManager::on_query_error(uint64 query_id, Status status) {
+  send_closure(G()->td(), &Td::send_error, query_id, std::move(status));
 }
 
 void AuthManager::on_query_ok() {
@@ -571,8 +571,7 @@ void AuthManager::on_get_password_result(NetQueryPtr &result) {
         wait_password_state_.srp_B_ = password->srp_B_.as_slice().str();
         wait_password_state_.srp_id_ = password->srp_id_;
         wait_password_state_.hint_ = std::move(password->hint_);
-        wait_password_state_.has_recovery_ =
-            (password->flags_ & telegram_api::account_password::HAS_RECOVERY_MASK) != 0;
+        wait_password_state_.has_recovery_ = password->has_recovery_;
         break;
       }
       default:
@@ -767,9 +766,9 @@ void AuthManager::on_get_authorization(tl_object_ptr<telegram_api::auth_Authoriz
   new_password_.clear();
   new_hint_.clear();
   state_ = State::Ok;
-  td->contacts_manager_->on_get_user(std::move(auth->user_), "on_get_authorization", true);
+  td_->contacts_manager_->on_get_user(std::move(auth->user_), "on_get_authorization", true);
   update_state(State::Ok, true);
-  if (!td->contacts_manager_->get_my_id().is_valid()) {
+  if (!td_->contacts_manager_->get_my_id().is_valid()) {
     LOG(ERROR) << "Server doesn't send proper authorization";
     if (query_id_ != 0) {
       on_query_error(Status::Error(500, "Server doesn't send proper authorization"));
@@ -780,19 +779,19 @@ void AuthManager::on_get_authorization(tl_object_ptr<telegram_api::auth_Authoriz
   if ((auth->flags_ & telegram_api::auth_authorization::TMP_SESSIONS_MASK) != 0) {
     G()->shared_config().set_option_integer("session_count", auth->tmp_sessions_);
   }
-  td->messages_manager_->on_authorization_success();
-  td->notification_manager_->init();
-  td->stickers_manager_->init();
-  td->theme_manager_->init();
-  td->top_dialog_manager_->init();
-  td->updates_manager_->get_difference("on_get_authorization");
-  td->on_online_updated(false, true);
+  td_->messages_manager_->on_authorization_success();
+  td_->notification_manager_->init();
+  td_->stickers_manager_->init();
+  td_->theme_manager_->init();
+  td_->top_dialog_manager_->init();
+  td_->updates_manager_->get_difference("on_get_authorization");
+  td_->on_online_updated(false, true);
   if (!is_bot()) {
-    td->schedule_get_terms_of_service(0);
-    td->schedule_get_promo_data(0);
+    td_->schedule_get_terms_of_service(0);
+    td_->schedule_get_promo_data(0);
     G()->td_db()->get_binlog_pmc()->set("fetched_marks_as_unread", "1");
   } else {
-    td->set_is_bot_online(true);
+    td_->set_is_bot_online(true);
   }
   send_closure(G()->config_manager(), &ConfigManager::request_config);
   if (query_id_ != 0) {

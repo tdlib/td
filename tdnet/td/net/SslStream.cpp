@@ -96,7 +96,6 @@ long strm_ctrl(BIO *b, int cmd, long num, void *ptr) {
     case BIO_CTRL_FLUSH:
       return 1;
     case BIO_CTRL_PUSH:
-      return 0;
     case BIO_CTRL_POP:
       return 0;
     default:
@@ -487,7 +486,7 @@ int strm_read(BIO *b, char *buf, int len) {
   CHECK(stream != nullptr);
   BIO_clear_retry_flags(b);
   CHECK(buf != nullptr);
-  int res = narrow_cast<int>(stream->flow_read(MutableSlice(buf, len)));
+  auto res = narrow_cast<int>(stream->flow_read(MutableSlice(buf, len)));
   if (res == 0) {
     BIO_set_retry_read(b);
     return -1;
@@ -506,8 +505,8 @@ int strm_write(BIO *b, const char *buf, int len) {
 }  // namespace detail
 
 SslStream::SslStream() = default;
-SslStream::SslStream(SslStream &&) = default;
-SslStream &SslStream::operator=(SslStream &&) = default;
+SslStream::SslStream(SslStream &&) noexcept = default;
+SslStream &SslStream::operator=(SslStream &&) noexcept = default;
 SslStream::~SslStream() = default;
 
 Result<SslStream> SslStream::create(CSlice host, CSlice cert_file, VerifyPeer verify_peer,

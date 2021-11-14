@@ -6,12 +6,11 @@
 //
 #pragma once
 
-#include "td/telegram/telegram_api.h"
-
 #include "td/telegram/files/FileBitmask.h"
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/PhotoSizeSource.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/utils/base64.h"
 #include "td/utils/buffer.h"
@@ -325,17 +324,17 @@ class FullRemoteFileLocation {
         return photo().source_;
       case LocationType::Common:
       case LocationType::Web:
-        return PhotoSizeSource(nullptr, 0, 0, 0);
+        return PhotoSizeSource::full_legacy(0, 0, 0);
       case LocationType::None:
       default:
         UNREACHABLE();
-        return PhotoSizeSource(nullptr, 0, 0, 0);
+        return PhotoSizeSource::full_legacy(0, 0, 0);
     }
   }
 
   void set_source(PhotoSizeSource source) {
     CHECK(is_photo());
-    file_type_ = source.get_file_type();
+    file_type_ = source.get_file_type("set_source");
     photo().source_ = std::move(source);
   }
 
@@ -400,7 +399,7 @@ class FullRemoteFileLocation {
         const auto &id = photo().id_;
         const auto &access_hash = photo().access_hash_;
         const auto &source = photo().source_;
-        switch (source.get_type()) {
+        switch (source.get_type("as_input_file_location")) {
           case PhotoSizeSource::Type::Legacy:
             UNREACHABLE();
             break;
@@ -424,7 +423,7 @@ class FullRemoteFileLocation {
           case PhotoSizeSource::Type::DialogPhotoSmall:
           case PhotoSizeSource::Type::DialogPhotoBig: {
             auto &dialog_photo = source.dialog_photo();
-            bool is_big = source.get_type() == PhotoSizeSource::Type::DialogPhotoBig;
+            bool is_big = source.get_type("as_input_file_location 2") == PhotoSizeSource::Type::DialogPhotoBig;
             return make_tl_object<telegram_api::inputPeerPhotoFileLocation>(
                 is_big * telegram_api::inputPeerPhotoFileLocation::BIG_MASK, false /*ignored*/,
                 dialog_photo.get_input_peer(), id);
@@ -441,7 +440,7 @@ class FullRemoteFileLocation {
           case PhotoSizeSource::Type::DialogPhotoSmallLegacy:
           case PhotoSizeSource::Type::DialogPhotoBigLegacy: {
             auto &dialog_photo = source.dialog_photo_legacy();
-            bool is_big = source.get_type() == PhotoSizeSource::Type::DialogPhotoBigLegacy;
+            bool is_big = source.get_type("as_input_file_location 3") == PhotoSizeSource::Type::DialogPhotoBigLegacy;
             return make_tl_object<telegram_api::inputPeerPhotoFileLocationLegacy>(
                 is_big * telegram_api::inputPeerPhotoFileLocationLegacy::BIG_MASK, false /*ignored*/,
                 dialog_photo.get_input_peer(), dialog_photo.volume_id, dialog_photo.local_id);
@@ -511,7 +510,7 @@ class FullRemoteFileLocation {
   // photo
   FullRemoteFileLocation(const PhotoSizeSource &source, int64 id, int64 access_hash, DcId dc_id,
                          std::string file_reference)
-      : file_type_(source.get_file_type())
+      : file_type_(source.get_file_type("FullRemoteFileLocation"))
       , dc_id_(dc_id)
       , file_reference_(std::move(file_reference))
       , variant_(PhotoRemoteFileLocation{id, access_hash, source}) {
@@ -630,9 +629,9 @@ class RemoteFileLocation {
 
   RemoteFileLocation() : variant_{EmptyRemoteFileLocation{}} {
   }
-  explicit RemoteFileLocation(const FullRemoteFileLocation &full) : variant_(full) {
+  explicit RemoteFileLocation(FullRemoteFileLocation full) : variant_(std::move(full)) {
   }
-  explicit RemoteFileLocation(const PartialRemoteFileLocation &partial) : variant_(partial) {
+  explicit RemoteFileLocation(PartialRemoteFileLocation partial) : variant_(std::move(partial)) {
   }
 
  private:
@@ -771,19 +770,21 @@ struct PartialLocalFileLocationPtr {
   PartialLocalFileLocationPtr() : location_(make_unique<PartialLocalFileLocation>()) {
   }
   explicit PartialLocalFileLocationPtr(PartialLocalFileLocation location)
-      : location_(make_unique<PartialLocalFileLocation>(location)) {
+      : location_(make_unique<PartialLocalFileLocation>(std::move(location))) {
   }
   PartialLocalFileLocationPtr(const PartialLocalFileLocationPtr &other)
       : location_(make_unique<PartialLocalFileLocation>(*other.location_)) {
   }
   PartialLocalFileLocationPtr &operator=(const PartialLocalFileLocationPtr &other) {
-    *location_ = *other.location_;
+    if (this != &other) {
+      *location_ = *other.location_;
+    }
     return *this;
   }
-  PartialLocalFileLocationPtr(PartialLocalFileLocationPtr &&other)
+  PartialLocalFileLocationPtr(PartialLocalFileLocationPtr &&other) noexcept
       : location_(make_unique<PartialLocalFileLocation>(std::move(*other.location_))) {
   }
-  PartialLocalFileLocationPtr &operator=(PartialLocalFileLocationPtr &&other) {
+  PartialLocalFileLocationPtr &operator=(PartialLocalFileLocationPtr &&other) noexcept {
     *location_ = std::move(*other.location_);
     return *this;
   }
@@ -839,9 +840,10 @@ class LocalFileLocation {
 
   LocalFileLocation() : variant_{EmptyLocalFileLocation()} {
   }
-  explicit LocalFileLocation(const PartialLocalFileLocation &partial) : variant_(PartialLocalFileLocationPtr(partial)) {
+  explicit LocalFileLocation(PartialLocalFileLocation partial)
+      : variant_(PartialLocalFileLocationPtr(std::move(partial))) {
   }
-  explicit LocalFileLocation(const FullLocalFileLocation &full) : variant_(full) {
+  explicit LocalFileLocation(FullLocalFileLocation full) : variant_(std::move(full)) {
   }
   LocalFileLocation(FileType file_type, string path, uint64 mtime_nsec)
       : variant_(FullLocalFileLocation{file_type, std::move(path), mtime_nsec}) {

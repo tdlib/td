@@ -19,6 +19,7 @@
 #include "td/utils/port/path.h"
 #include "td/utils/SliceBuilder.h"
 
+#include <cstddef>
 #include <cstring>
 
 namespace td {
@@ -114,14 +115,14 @@ Result<size_t> HttpReader::read_next(HttpQuery *query, bool can_be_slow) {
             return Status::Error(400, "Bad Request: boundary not found");
           }
           p += 8;
-          ptrdiff_t offset = p - content_type_lowercased_.c_str();
+          std::ptrdiff_t offset = p - content_type_lowercased_.c_str();
           p = static_cast<const char *>(
               std::memchr(content_type_.begin() + offset, '=', content_type_.size() - offset));
           if (p == nullptr) {
             return Status::Error(400, "Bad Request: boundary value not found");
           }
           p++;
-          const char *end_p = static_cast<const char *>(std::memchr(p, ';', content_type_.end() - p));
+          auto end_p = static_cast<const char *>(std::memchr(p, ';', content_type_.end() - p));
           if (end_p == nullptr) {
             end_p = content_type_.end();
           }

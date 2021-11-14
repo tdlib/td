@@ -47,14 +47,6 @@ class TlStoreBool {
   }
 };
 
-class TlStoreTrue {
- public:
-  template <class StorerT>
-  static void store(const bool &x, StorerT &storer) {
-    // currently nothing to do
-  }
-};
-
 class TlStoreBinary {
  public:
   template <class T, class StorerT>

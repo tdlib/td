@@ -33,8 +33,8 @@ class EventFdLinuxImpl {
 };
 
 EventFdLinux::EventFdLinux() = default;
-EventFdLinux::EventFdLinux(EventFdLinux &&) = default;
-EventFdLinux &EventFdLinux::operator=(EventFdLinux &&) = default;
+EventFdLinux::EventFdLinux(EventFdLinux &&) noexcept = default;
+EventFdLinux &EventFdLinux::operator=(EventFdLinux &&) noexcept = default;
 EventFdLinux::~EventFdLinux() = default;
 
 void EventFdLinux::init() {
@@ -96,7 +96,7 @@ void EventFdLinux::acquire() {
   auto slice = MutableSlice(reinterpret_cast<char *>(&res), sizeof(res));
   auto native_fd = impl_->info.native_fd().fd();
   auto result = [&]() -> Result<size_t> {
-    CHECK(slice.size() > 0);
+    CHECK(!slice.empty());
     auto read_res = detail::skip_eintr([&] { return ::read(native_fd, slice.begin(), slice.size()); });
     auto read_errno = errno;
     if (read_res >= 0) {

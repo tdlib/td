@@ -128,12 +128,14 @@ class uint128_emulated {
     *mod_res = from;
   }
   uint128 div(uint128 other) const {
-    uint128 a, b;
+    uint128 a;
+    uint128 b;
     divmod(other, &a, &b);
     return a;
   }
   uint128 mod(uint128 other) const {
-    uint128 a, b;
+    uint128 a;
+    uint128 b;
     divmod(other, &a, &b);
     return b;
   }
@@ -151,7 +153,8 @@ class uint128_emulated {
       uy = uy.negate();
     }
 
-    uint128 t_quot, t_mod;
+    uint128 t_quot;
+    uint128 t_mod;
     x.divmod(uy, &t_quot, &t_mod);
     *quot = t_quot.lo();
     *rem = t_mod.lo();
@@ -266,8 +269,8 @@ class uint128_intrinsic {
   }
   void divmod_signed(int64 y, int64 *quot, int64 *rem) const {
     CHECK(y != 0);
-    *quot = (int64)(signed_value() / y);
-    *rem = (int64)(signed_value() % y);
+    *quot = static_cast<int64>(signed_value() / y);
+    *rem = static_cast<int64>(signed_value() % y);
   }
 
  private:

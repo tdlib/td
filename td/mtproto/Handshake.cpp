@@ -95,7 +95,8 @@ Status AuthKeyHandshake::on_res_pq(Slice message, Callback *connection, PublicRs
   }
   auto rsa_key = r_rsa_key.move_as_ok();
 
-  string p, q;
+  string p;
+  string q;
   if (pq_factorize(res_pq->pq_, &p, &q) == -1) {
     return Status::Error("Failed to factorize");
   }
@@ -129,7 +130,7 @@ Status AuthKeyHandshake::on_res_pq(Slice message, Callback *connection, PublicRs
     string aes_key(32, '\0');
     Random::secure_bytes(MutableSlice(aes_key));
 
-    string data_with_hash = data + sha256(aes_key + data);
+    string data_with_hash = PSTRING() << data << sha256(aes_key + data);
     std::reverse(data_with_hash.begin(), data_with_hash.begin() + data.size());
 
     string decrypted_data(256, '\0');
@@ -246,17 +247,32 @@ Status AuthKeyHandshake::on_server_dh_params(Slice message, Callback *connection
 Status AuthKeyHandshake::on_dh_gen_response(Slice message, Callback *connection) {
   TRY_RESULT(answer, fetch_result<mtproto_api::set_client_DH_params>(message, false));
   switch (answer->get_id()) {
-    case mtproto_api::dh_gen_ok::ID:
+    case mtproto_api::dh_gen_ok::ID: {
+      auto dh_gen_ok = move_tl_object_as<mtproto_api::dh_gen_ok>(answer);
+      if (dh_gen_ok->nonce_ != nonce_) {
+        return Status::Error("Nonce mismatch");
+      }
+      if (dh_gen_ok->server_nonce_ != server_nonce_) {
+        return Status::Error("Server nonce mismatch");
+      }
+
+      UInt<160> auth_key_sha1;
+      sha1(auth_key_.key(), auth_key_sha1.raw);
+      auto new_nonce_hash = sha1(PSLICE() << new_nonce_.as_slice() << '\x01' << auth_key_sha1.as_slice().substr(0, 8));
+      if (dh_gen_ok->new_nonce_hash1_.as_slice() != Slice(new_nonce_hash).substr(4)) {
+        return Status::Error("New nonce hash mismatch");
+      }
       state_ = Finish;
-      break;
+      return Status::OK();
+    }
     case mtproto_api::dh_gen_fail::ID:
       return Status::Error("DhGenFail");
     case mtproto_api::dh_gen_retry::ID:
       return Status::Error("DhGenRetry");
     default:
+      UNREACHABLE();
       return Status::Error("Unknown set_client_DH_params response");
   }
-  return Status::OK();
 }
 
 void AuthKeyHandshake::send(Callback *connection, const Storer &storer) {

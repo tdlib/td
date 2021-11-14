@@ -27,7 +27,8 @@ class FileHashUploader final : public FileLoaderActor {
     Callback(const Callback &) = delete;
     Callback &operator=(const Callback &) = delete;
     virtual ~Callback() = default;
-    virtual void on_ok(const FullRemoteFileLocation &locatioin) = 0;
+
+    virtual void on_ok(FullRemoteFileLocation location) = 0;
     virtual void on_error(Status status) = 0;
   };
 

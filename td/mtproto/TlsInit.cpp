@@ -128,7 +128,6 @@ class TlsHello {
           Op::string("\x03\x04\x03\x03\x03\x02\x03\x01"),
           Op::grease(3),
           Op::string("\x00\x01\x00\x00\x15")};
-      res.grease_size_ = 7;
 #else
       res.ops_ = {
           Op::string("\x16\x03\x01\x02\x00\x01\x00\x01\xfc\x03\x03"),
@@ -163,7 +162,6 @@ class TlsHello {
           Op::string("\x03\x04\x03\x03\x03\x02\x03\x01\x00\x1b\x00\x03\x02\x00\x02"),
           Op::grease(3),
           Op::string("\x00\x01\x00\x00\x15")};
-      res.grease_size_ = 7;
 #endif
       return res;
     }();
@@ -180,7 +178,7 @@ class TlsHello {
 
  private:
   std::vector<Op> ops_;
-  size_t grease_size_;
+  size_t grease_size_ = 7;
 };
 
 class TlsHelloContext {

@@ -49,8 +49,8 @@ class TsFileLog final : public LogInterface {
   };
 
   static constexpr size_t MAX_THREAD_ID = 128;
-  int64 rotate_threshold_;
-  bool redirect_stderr_;
+  int64 rotate_threshold_ = 0;
+  bool redirect_stderr_ = false;
   std::string path_;
   std::array<Info, MAX_THREAD_ID> logs_;
   std::mutex init_mutex_;
@@ -99,7 +99,7 @@ class TsFileLog final : public LogInterface {
 
 Result<unique_ptr<LogInterface>> TsFileLog::create(string path, int64 rotate_threshold, bool redirect_stderr) {
   auto res = make_unique<detail::TsFileLog>();
-  TRY_STATUS(res->init(path, rotate_threshold, redirect_stderr));
+  TRY_STATUS(res->init(std::move(path), rotate_threshold, redirect_stderr));
   return std::move(res);
 }
 

@@ -95,7 +95,7 @@ class JsonFloat {
 
 class JsonOneChar {
  public:
-  explicit JsonOneChar(unsigned int c) : c_(c) {
+  explicit JsonOneChar(uint32 c) : c_(c) {
   }
 
   friend StringBuilder &operator<<(StringBuilder &sb, const JsonOneChar &val) {
@@ -105,12 +105,12 @@ class JsonOneChar {
   }
 
  private:
-  unsigned int c_;
+  uint32 c_;
 };
 
 class JsonChar {
  public:
-  explicit JsonChar(unsigned int c) : c_(c) {
+  explicit JsonChar(uint32 c) : c_(c) {
   }
   friend StringBuilder &operator<<(StringBuilder &sb, const JsonChar &val) {
     auto c = val.c_;
@@ -129,7 +129,7 @@ class JsonChar {
   }
 
  private:
-  unsigned int c_;
+  uint32 c_;
 };
 
 class JsonRaw {
@@ -223,7 +223,7 @@ class JsonScope {
     CHECK(is_active());
   }
   JsonScope(const JsonScope &other) = delete;
-  JsonScope(JsonScope &&other) : sb_(other.sb_), jb_(other.jb_), save_scope_(other.save_scope_) {
+  JsonScope(JsonScope &&other) noexcept : sb_(other.sb_), jb_(other.jb_), save_scope_(other.save_scope_) {
     other.jb_ = nullptr;
   }
   JsonScope &operator=(const JsonScope &) = delete;
@@ -459,10 +459,10 @@ class JsonValue final : private Jsonable {
   ~JsonValue() {
     destroy();
   }
-  JsonValue(JsonValue &&other) : JsonValue() {
+  JsonValue(JsonValue &&other) noexcept : JsonValue() {
     init(std::move(other));
   }
-  JsonValue &operator=(JsonValue &&other) {
+  JsonValue &operator=(JsonValue &&other) noexcept {
     if (&other == this) {
       return *this;
     }

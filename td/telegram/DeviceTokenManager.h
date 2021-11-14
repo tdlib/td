@@ -26,7 +26,7 @@ class DeviceTokenManager final : public NetQueryCallback {
  public:
   explicit DeviceTokenManager(ActorShared<> parent) : parent_(std::move(parent)) {
   }
-  void register_device(tl_object_ptr<td_api::DeviceToken> device_token_ptr, vector<UserId> other_user_ids,
+  void register_device(tl_object_ptr<td_api::DeviceToken> device_token_ptr, const vector<UserId> &other_user_ids,
                        Promise<td_api::object_ptr<td_api::pushReceiverId>> promise);
 
   void reregister_device();

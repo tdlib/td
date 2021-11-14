@@ -37,9 +37,9 @@ class CancellationToken {
 class CancellationTokenSource {
  public:
   CancellationTokenSource() = default;
-  CancellationTokenSource(CancellationTokenSource &&other) : token_(std::move(other.token_)) {
+  CancellationTokenSource(CancellationTokenSource &&other) noexcept : token_(std::move(other.token_)) {
   }
-  CancellationTokenSource &operator=(CancellationTokenSource &&other) {
+  CancellationTokenSource &operator=(CancellationTokenSource &&other) noexcept {
     cancel();
     token_ = std::move(other.token_);
     return *this;

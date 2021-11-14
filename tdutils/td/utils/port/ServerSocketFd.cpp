@@ -282,8 +282,8 @@ void ServerSocketFdImplDeleter::operator()(ServerSocketFdImpl *impl) {
 }  // namespace detail
 
 ServerSocketFd::ServerSocketFd() = default;
-ServerSocketFd::ServerSocketFd(ServerSocketFd &&) = default;
-ServerSocketFd &ServerSocketFd::operator=(ServerSocketFd &&) = default;
+ServerSocketFd::ServerSocketFd(ServerSocketFd &&) noexcept = default;
+ServerSocketFd &ServerSocketFd::operator=(ServerSocketFd &&) noexcept = default;
 ServerSocketFd::~ServerSocketFd() = default;
 ServerSocketFd::ServerSocketFd(unique_ptr<detail::ServerSocketFdImpl> impl) : impl_(impl.release()) {
 }

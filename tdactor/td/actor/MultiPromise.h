@@ -91,6 +91,13 @@ class MultiPromiseActor final
   }
 };
 
+template <>
+class ActorTraits<MultiPromiseActor> {
+ public:
+  static constexpr bool need_context = false;
+  static constexpr bool need_start_up = true;
+};
+
 class MultiPromiseActorSafe final : public MultiPromiseInterface {
  public:
   void add_promise(Promise<Unit> &&promise) final;

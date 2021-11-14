@@ -6,11 +6,6 @@
 //
 #include "td/telegram/InlineQueriesManager.h"
 
-#include "td/telegram/td_api.h"
-#include "td/telegram/td_api.hpp"
-#include "td/telegram/telegram_api.h"
-#include "td/telegram/telegram_api.hpp"
-
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AnimationsManager.h"
 #include "td/telegram/AudiosManager.h"
@@ -30,18 +25,19 @@
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
+#include "td/telegram/net/DcId.h"
 #include "td/telegram/Payments.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/td_api.hpp"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/TdParameters.h"
+#include "td/telegram/telegram_api.hpp"
 #include "td/telegram/Venue.h"
 #include "td/telegram/VideosManager.h"
 #include "td/telegram/VoiceNotesManager.h"
-
-#include "td/telegram/net/DcId.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/base64.h"
@@ -93,26 +89,26 @@ class GetInlineBotResultsQuery final : public Td::ResultHandler {
     return result;
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getInlineBotResults>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
-    td->inline_queries_manager_->on_get_inline_query_results(dialog_id_, bot_user_id_, query_hash_,
-                                                             result_ptr.move_as_ok());
+    td_->inline_queries_manager_->on_get_inline_query_results(dialog_id_, bot_user_id_, query_hash_,
+                                                              result_ptr.move_as_ok());
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (status.code() == NetQuery::Canceled) {
       status = Status::Error(406, "Request canceled");
     } else if (status.message() == "BOT_RESPONSE_TIMEOUT") {
       status = Status::Error(502, "The bot is not responding");
     }
-    LOG(INFO) << "Inline query returned error " << status;
+    LOG(INFO) << "Receive error for GetInlineBotResultsQuery: " << status;
 
-    td->inline_queries_manager_->on_get_inline_query_results(dialog_id_, bot_user_id_, query_hash_, nullptr);
+    td_->inline_queries_manager_->on_get_inline_query_results(dialog_id_, bot_user_id_, query_hash_, nullptr);
     promise_.set_error(std::move(status));
   }
 };
@@ -147,10 +143,10 @@ class SetInlineBotResultsQuery final : public Td::ResultHandler {
         std::move(inline_bot_switch_pm))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_setInlineBotResults>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     bool result = result_ptr.ok();
@@ -160,7 +156,7 @@ class SetInlineBotResultsQuery final : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -177,6 +173,9 @@ void InlineQueriesManager::tear_down() {
 
 void InlineQueriesManager::on_drop_inline_query_result_timeout_callback(void *inline_queries_manager_ptr,
                                                                         int64 query_hash) {
+  if (G()->close_flag()) {
+    return;
+  }
   auto inline_queries_manager = static_cast<InlineQueriesManager *>(inline_queries_manager_ptr);
   auto it = inline_queries_manager->inline_query_results_.find(query_hash);
   CHECK(it != inline_queries_manager->inline_query_results_.end());
@@ -487,7 +486,11 @@ void InlineQueriesManager::answer_inline_query(int64 inline_query_id, bool is_pe
         if (first_name.empty()) {
           return promise.set_error(Status::Error(400, "Field \"first_name\" must be non-empty"));
         }
-        title = last_name.empty() ? first_name : first_name + " " + last_name;
+        if (last_name.empty()) {
+          title = std::move(first_name);
+        } else {
+          title = PSTRING() << first_name << ' ' << last_name;
+        }
         description = std::move(phone_number);
         thumbnail_url = std::move(contact->thumbnail_url_);
         if (!thumbnail_url.empty()) {
@@ -1459,7 +1462,7 @@ void InlineQueriesManager::on_get_inline_query_results(DialogId dialog_id, UserI
         if (result->type_ == "article") {
           auto article = make_tl_object<td_api::inlineQueryResultArticle>();
           article->id_ = std::move(result->id_);
-          article->url_ = get_web_document_url(std::move(result->content_));
+          article->url_ = get_web_document_url(result->content_);
           if (result->url_.empty()) {
             article->hide_url_ = true;
           } else {
@@ -1786,6 +1789,7 @@ bool InlineQueriesManager::load_recently_used_bots(Promise<Unit> &promise) {
   resolve_recent_inline_bots_multipromise_.add_promise(std::move(promise));
   if (recently_used_bots_loaded_ == 0) {
     resolve_recent_inline_bots_multipromise_.set_ignore_errors(true);
+    auto lock = resolve_recent_inline_bots_multipromise_.get_promise();
     if (!G()->parameters().use_chat_info_db) {
       for (auto &bot_username : bot_usernames) {
         td_->messages_manager_->search_public_dialog(bot_username, false,
@@ -1797,6 +1801,7 @@ bool InlineQueriesManager::load_recently_used_bots(Promise<Unit> &promise) {
         td_->contacts_manager_->get_user(user_id, 3, resolve_recent_inline_bots_multipromise_.get_promise());
       }
     }
+    lock.set_value(Unit());
     recently_used_bots_loaded_ = 1;
   }
   return false;

@@ -49,7 +49,7 @@ static string read_os_name(CSlice os_version_file_path, CSlice prefix, CSlice su
         auto end_pos = r_file.ok().find(suffix.c_str(), begin_pos);
         if (end_pos != string::npos) {
           auto os_version = trim(r_file.ok().substr(begin_pos, end_pos - begin_pos));
-          if (os_version.find("\n") == string::npos) {
+          if (os_version.find('\n') == string::npos) {
             return os_version;
           }
         }
@@ -150,7 +150,9 @@ Slice get_operating_system_version() {
         }
 
         var clientStrings = [
-          {s:'Windows 10', r:/(Windows 10.0|Windows NT 10.0)/},
+          {s:'Windows 11', r:/(Windows 11|Windows NT 11)/},
+          // there is no way to distinguish Windows 10 from newer versions, so report it as just Windows.
+          // {s:'Windows 10 or later', r:/(Windows 10|Windows NT 10)/},
           {s:'Windows 8.1', r:/(Windows 8.1|Windows NT 6.3)/},
           {s:'Windows 8', r:/(Windows 8|Windows NT 6.2)/},
           {s:'Windows 7', r:/(Windows 7|Windows NT 6.1)/},
@@ -242,7 +244,18 @@ Slice get_operating_system_version() {
 
           if (major == 10) {
             if (is_server) {
-              return os_version_info.dwBuildNumber >= 17623 ? "Windows Server 2019" : "Windows Server 2016";
+              if (os_version_info.dwBuildNumber >= 20201) {
+                // https://techcommunity.microsoft.com/t5/windows-server-insiders/announcing/m-p/1614436
+                return "Windows Server 2022";
+              }
+              if (os_version_info.dwBuildNumber >= 17623) {
+                // https://techcommunity.microsoft.com/t5/windows-server-insiders/announcing/m-p/173715
+                return "Windows Server 2019";
+              }
+              return "Windows Server 2016";
+            }
+            if (os_version_info.dwBuildNumber >= 21900) {  // build numbers between 21391 and 21999 aren't used
+              return "Windows 11";
             }
             return "Windows 10";
           }

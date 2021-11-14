@@ -121,10 +121,10 @@ void init_vars(JNIEnv *env, const char *td_api_java_package) {
 static size_t get_utf8_from_utf16_length(const jchar *p, jsize len) {
   size_t result = 0;
   for (jsize i = 0; i < len; i++) {
-    unsigned int cur = p[i];
+    uint32 cur = p[i];
     if ((cur & 0xF800) == 0xD800) {
       if (i < len) {
-        unsigned int next = p[++i];
+        uint32 next = p[++i];
         if ((next & 0xFC00) == 0xDC00 && (cur & 0x400) == 0) {
           result += 4;
           continue;
@@ -141,8 +141,8 @@ static size_t get_utf8_from_utf16_length(const jchar *p, jsize len) {
 
 static void utf16_to_utf8(const jchar *p, jsize len, char *res) {
   for (jsize i = 0; i < len; i++) {
-    unsigned int cur = p[i];
-    // TODO conversion unsigned int -> signed char is implementation defined
+    uint32 cur = p[i];
+    // TODO conversion uint32 -> signed char is implementation defined
     if (cur <= 0x7f) {
       *res++ = static_cast<char>(cur);
     } else if (cur <= 0x7ff) {
@@ -154,8 +154,8 @@ static void utf16_to_utf8(const jchar *p, jsize len, char *res) {
       *res++ = static_cast<char>(0x80 | (cur & 0x3f));
     } else {
       // correctness is already checked
-      unsigned int next = p[++i];
-      unsigned int val = ((cur - 0xD800) << 10) + next - 0xDC00 + 0x10000;
+      uint32 next = p[++i];
+      uint32 val = ((cur - 0xD800) << 10) + next - 0xDC00 + 0x10000;
 
       *res++ = static_cast<char>(0xf0 | (val >> 18));
       *res++ = static_cast<char>(0x80 | ((val >> 12) & 0x3f));
@@ -178,14 +178,14 @@ static jsize get_utf16_from_utf8_length(const char *p, size_t len, jsize *surrog
 static void utf8_to_utf16(const char *p, size_t len, jchar *res) {
   // UTF-8 correctness is supposed
   for (size_t i = 0; i < len;) {
-    unsigned int a = static_cast<unsigned char>(p[i++]);
+    uint32 a = static_cast<unsigned char>(p[i++]);
     if (a >= 0x80) {
-      unsigned int b = static_cast<unsigned char>(p[i++]);
+      uint32 b = static_cast<unsigned char>(p[i++]);
       if (a >= 0xe0) {
-        unsigned int c = static_cast<unsigned char>(p[i++]);
+        uint32 c = static_cast<unsigned char>(p[i++]);
         if (a >= 0xf0) {
-          unsigned int d = static_cast<unsigned char>(p[i++]);
-          unsigned int val = ((a & 0x07) << 18) + ((b & 0x3f) << 12) + ((c & 0x3f) << 6) + (d & 0x3f) - 0x10000;
+          uint32 d = static_cast<unsigned char>(p[i++]);
+          uint32 val = ((a & 0x07) << 18) + ((b & 0x3f) << 12) + ((c & 0x3f) << 6) + (d & 0x3f) - 0x10000;
           *res++ = static_cast<jchar>(0xD800 + (val >> 10));
           *res++ = static_cast<jchar>(0xDC00 + (val & 0x3ff));
         } else {
@@ -213,7 +213,7 @@ std::string fetch_string(JNIEnv *env, jobject o, jfieldID id) {
 
 std::string from_jstring(JNIEnv *env, jstring s) {
   if (!s) {
-    return "";
+    return std::string();
   }
   jsize s_len = env->GetStringLength(s);
   const jchar *p = env->GetStringChars(s, nullptr);
@@ -264,7 +264,7 @@ std::string from_bytes(JNIEnv *env, jbyteArray arr) {
 
 jbyteArray to_bytes(JNIEnv *env, const std::string &b) {
   static_assert(sizeof(char) == sizeof(jbyte), "Mismatched jbyte size");
-  jsize length = narrow_cast<jsize>(b.size());
+  auto length = narrow_cast<jsize>(b.size());
   jbyteArray arr = env->NewByteArray(length);
   if (arr != nullptr && length != 0) {
     env->SetByteArrayRegion(arr, 0, length, reinterpret_cast<const jbyte *>(b.data()));
@@ -274,7 +274,7 @@ jbyteArray to_bytes(JNIEnv *env, const std::string &b) {
 
 jintArray store_vector(JNIEnv *env, const std::vector<std::int32_t> &v) {
   static_assert(sizeof(std::int32_t) == sizeof(jint), "Mismatched jint size");
-  jsize length = narrow_cast<jsize>(v.size());
+  auto length = narrow_cast<jsize>(v.size());
   jintArray arr = env->NewIntArray(length);
   if (arr != nullptr && length != 0) {
     env->SetIntArrayRegion(arr, 0, length, reinterpret_cast<const jint *>(&v[0]));
@@ -284,7 +284,7 @@ jintArray store_vector(JNIEnv *env, const std::vector<std::int32_t> &v) {
 
 jlongArray store_vector(JNIEnv *env, const std::vector<std::int64_t> &v) {
   static_assert(sizeof(std::int64_t) == sizeof(jlong), "Mismatched jlong size");
-  jsize length = narrow_cast<jsize>(v.size());
+  auto length = narrow_cast<jsize>(v.size());
   jlongArray arr = env->NewLongArray(length);
   if (arr != nullptr && length != 0) {
     env->SetLongArrayRegion(arr, 0, length, reinterpret_cast<const jlong *>(&v[0]));
@@ -294,7 +294,7 @@ jlongArray store_vector(JNIEnv *env, const std::vector<std::int64_t> &v) {
 
 jdoubleArray store_vector(JNIEnv *env, const std::vector<double> &v) {
   static_assert(sizeof(double) == sizeof(jdouble), "Mismatched jdouble size");
-  jsize length = narrow_cast<jsize>(v.size());
+  auto length = narrow_cast<jsize>(v.size());
   jdoubleArray arr = env->NewDoubleArray(length);
   if (arr != nullptr && length != 0) {
     env->SetDoubleArrayRegion(arr, 0, length, reinterpret_cast<const jdouble *>(&v[0]));
@@ -303,7 +303,7 @@ jdoubleArray store_vector(JNIEnv *env, const std::vector<double> &v) {
 }
 
 jobjectArray store_vector(JNIEnv *env, const std::vector<std::string> &v) {
-  jsize length = narrow_cast<jsize>(v.size());
+  auto length = narrow_cast<jsize>(v.size());
   jobjectArray arr = env->NewObjectArray(length, StringClass, 0);
   if (arr != nullptr) {
     for (jsize i = 0; i < length; i++) {

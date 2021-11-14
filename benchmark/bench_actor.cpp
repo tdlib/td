@@ -18,6 +18,57 @@
 #pragma comment(linker, "/STACK:16777216")
 #endif
 
+struct TestActor final : public td::Actor {
+  static td::int32 actor_count_;
+
+  void start_up() final {
+    actor_count_++;
+    stop();
+  }
+
+  void tear_down() final {
+    if (--actor_count_ == 0) {
+      td::Scheduler::instance()->finish();
+    }
+  }
+};
+
+td::int32 TestActor::actor_count_;
+
+template <>
+class td::ActorTraits<TestActor> {
+ public:
+  static constexpr bool need_context = false;
+  static constexpr bool need_start_up = true;
+};
+
+class CreateActorBench final : public td::Benchmark {
+  td::ConcurrentScheduler scheduler_;
+
+  void start_up() final {
+    scheduler_.init(0);
+    scheduler_.start();
+  }
+
+  void tear_down() final {
+    scheduler_.finish();
+  }
+
+ public:
+  td::string get_description() const final {
+    return "CreateActor";
+  }
+
+  void run(int n) final {
+    for (int i = 0; i < n; i++) {
+      scheduler_.create_actor_unsafe<TestActor>(0, "TestActor").release();
+    }
+    while (scheduler_.run_main(10)) {
+      // empty
+    }
+  }
+};
+
 template <int type>
 class RingBench final : public td::Benchmark {
  public:
@@ -26,11 +77,11 @@ class RingBench final : public td::Benchmark {
  private:
   int actor_n_ = -1;
   int thread_n_ = -1;
-  std::vector<td::ActorId<PassActor>> actor_array_;
+  td::vector<td::ActorId<PassActor>> actor_array_;
   td::ConcurrentScheduler *scheduler_ = nullptr;
 
  public:
-  std::string get_description() const final {
+  td::string get_description() const final {
     static const char *types[] = {"later", "immediate", "raw", "tail", "lambda"};
     static_assert(0 <= type && type < 5, "");
     return PSTRING() << "Ring (send_" << types[type] << ") (threads_n = " << thread_n_ << ")";
@@ -58,8 +109,7 @@ class RingBench final : public td::Benchmark {
           } else {
             // TODO: it is three times faster than send_event
             // maybe send event could be further optimized?
-            ::td::Scheduler::instance()->hack(static_cast<td::ActorId<Actor>>(next_actor),
-                                              td::Event::raw(static_cast<td::uint32>(n - 1)));
+            next_actor.get_actor_unsafe()->raw_event(td::Event::raw(static_cast<td::uint32>(n - 1)).data);
           }
         } else if (type == 4) {
           send_lambda(next_actor, [n, ptr = next_actor.get_actor_unsafe()] { ptr->pass(n - 1); });
@@ -90,7 +140,7 @@ class RingBench final : public td::Benchmark {
     scheduler_ = new td::ConcurrentScheduler();
     scheduler_->init(thread_n_);
 
-    actor_array_ = std::vector<td::ActorId<PassActor>>(actor_n_);
+    actor_array_ = td::vector<td::ActorId<PassActor>>(actor_n_);
     for (int i = 0; i < actor_n_; i++) {
       actor_array_[i] =
           scheduler_->create_actor_unsafe<PassActor>(thread_n_ ? i % thread_n_ : 0, "PassActor").release();
@@ -119,7 +169,7 @@ class RingBench final : public td::Benchmark {
 template <int type>
 class QueryBench final : public td::Benchmark {
  public:
-  std::string get_description() const final {
+  td::string get_description() const final {
     static const char *types[] = {"callback", "immediate future", "delayed future", "dummy", "lambda", "lambda_future"};
     static_assert(0 <= type && type < 6, "");
     return PSTRING() << "QueryBench: " << types[type];
@@ -270,7 +320,7 @@ class QueryBench final : public td::Benchmark {
 int main() {
   td::init_openssl_threads();
 
-  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(DEBUG));
+  bench(CreateActorBench());
   bench(RingBench<4>(504, 0));
   bench(RingBench<3>(504, 0));
   bench(RingBench<0>(504, 0));

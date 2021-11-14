@@ -25,7 +25,7 @@ class MpmcEagerWaiter {
     int yields;
     uint32 worker_id;
   };
-  void init_slot(Slot &slot, uint32 worker_id) {
+  static void init_slot(Slot &slot, uint32 worker_id) {
     slot.yields = 0;
     slot.worker_id = worker_id;
   }
@@ -33,7 +33,6 @@ class MpmcEagerWaiter {
     if (slot.yields < RoundsTillSleepy) {
       td::this_thread::yield();
       slot.yields++;
-      return;
     } else if (slot.yields == RoundsTillSleepy) {
       auto state = state_.load(std::memory_order_relaxed);
       if (!State::has_worker(state)) {
@@ -50,7 +49,6 @@ class MpmcEagerWaiter {
       }
       td::this_thread::yield();
       slot.yields = 0;
-      return;
     } else if (slot.yields < RoundsTillAsleep) {
       auto state = state_.load(std::memory_order_acquire);
       if (State::still_sleepy(state, slot.worker_id)) {
@@ -59,7 +57,6 @@ class MpmcEagerWaiter {
         return;
       }
       slot.yields = 0;
-      return;
     } else {
       auto state = state_.load(std::memory_order_acquire);
       if (State::still_sleepy(state, slot.worker_id)) {
@@ -69,7 +66,6 @@ class MpmcEagerWaiter {
         }
       }
       slot.yields = 0;
-      return;
     }
   }
 
@@ -78,7 +74,6 @@ class MpmcEagerWaiter {
       notify_cold();
     }
     slot.yields = 0;
-    return;
   }
 
   void close() {
@@ -195,7 +190,7 @@ class MpmcSleepyWaiter {
   // If possible - in Search state
   //
 
-  void init_slot(Slot &slot, int32 worker_id) {
+  static void init_slot(Slot &slot, int32 worker_id) {
     slot.state_ = Slot::State::Work;
     slot.unpark_flag_ = false;
     slot.worker_id = worker_id;

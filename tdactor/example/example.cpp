@@ -35,7 +35,7 @@ class MainActor final : public td::Actor {
   td::ActorOwn<Worker> worker_;
 };
 
-int main(void) {
+int main() {
   td::ConcurrentScheduler scheduler;
   scheduler.init(4 /*threads_count*/);
   scheduler.start();

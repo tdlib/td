@@ -113,4 +113,4 @@ TEST(MpscLinkQueue, multi_thread) {
     thread.join();
   }
 }
-#endif  //!TD_THREAD_UNSUPPORTED
+#endif

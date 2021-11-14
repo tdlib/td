@@ -165,7 +165,7 @@ class PollManager final : public Actor {
 
   static string get_poll_database_key(PollId poll_id);
 
-  void save_poll(const Poll *poll, PollId poll_id);
+  static void save_poll(const Poll *poll, PollId poll_id);
 
   void on_load_poll_from_database(PollId poll_id, string value);
 

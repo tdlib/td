@@ -489,7 +489,7 @@ class SocketFdImpl {
       TRY_STATUS(get_pending_error());
     }
     int native_fd = get_native_fd().socket();
-    CHECK(slice.size() > 0);
+    CHECK(!slice.empty());
     auto read_res = detail::skip_eintr([&] { return ::read(native_fd, slice.begin(), slice.size()); });
     auto read_errno = errno;
     if (read_res >= 0) {
@@ -609,8 +609,8 @@ Status init_socket_options(NativeFd &native_fd) {
 }  // namespace detail
 
 SocketFd::SocketFd() = default;
-SocketFd::SocketFd(SocketFd &&) = default;
-SocketFd &SocketFd::operator=(SocketFd &&) = default;
+SocketFd::SocketFd(SocketFd &&) noexcept = default;
+SocketFd &SocketFd::operator=(SocketFd &&) noexcept = default;
 SocketFd::~SocketFd() = default;
 
 SocketFd::SocketFd(unique_ptr<detail::SocketFdImpl> impl) : impl_(impl.release()) {

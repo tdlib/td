@@ -26,7 +26,7 @@ namespace td {
 
 namespace {
 
-void print_backtrace(void) {
+void print_backtrace() {
 #if TD_PORT_WINDOWS
   void *buffer[128];
   USHORT nptrs = CaptureStackBackTrace(0, 128, buffer, nullptr);
@@ -48,7 +48,7 @@ void print_backtrace(void) {
   signal_safe_write("-------------------------------\n", false);
 }
 
-void print_backtrace_gdb(void) {
+void print_backtrace_gdb() {
 #if TD_LINUX || TD_FREEBSD
   char pid_buf[30];
   char *pid_buf_begin = pid_buf + sizeof(pid_buf);

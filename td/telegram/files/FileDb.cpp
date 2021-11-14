@@ -23,7 +23,6 @@
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
-#include "td/utils/ScopeGuard.h"
 #include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
@@ -78,10 +77,7 @@ class FileDb final : public FileDbInterface {
 
     void clear_file_data(FileDbId id, const string &remote_key, const string &local_key, const string &generate_key) {
       auto &pmc = file_pmc();
-      pmc.begin_transaction().ensure();
-      SCOPE_EXIT {
-        pmc.commit_transaction().ensure();
-      };
+      pmc.begin_write_transaction().ensure();
 
       if (id > current_pmc_id_) {
         pmc.set("file_id", to_string(id.get()));
@@ -89,27 +85,26 @@ class FileDb final : public FileDbInterface {
       }
 
       pmc.erase(PSTRING() << "file" << id.get());
-      LOG(DEBUG) << "ERASE " << format::as_hex_dump<4>(Slice(PSLICE() << "file" << id.get()));
+      // LOG(DEBUG) << "ERASE " << format::as_hex_dump<4>(Slice(PSLICE() << "file" << id.get()));
 
       if (!remote_key.empty()) {
         pmc.erase(remote_key);
-        LOG(DEBUG) << "ERASE remote " << format::as_hex_dump<4>(Slice(remote_key));
+        // LOG(DEBUG) << "ERASE remote " << format::as_hex_dump<4>(Slice(remote_key));
       }
       if (!local_key.empty()) {
         pmc.erase(local_key);
-        LOG(DEBUG) << "ERASE local " << format::as_hex_dump<4>(Slice(local_key));
+        // LOG(DEBUG) << "ERASE local " << format::as_hex_dump<4>(Slice(local_key));
       }
       if (!generate_key.empty()) {
         pmc.erase(generate_key);
       }
+
+      pmc.commit_transaction().ensure();
     }
     void store_file_data(FileDbId id, const string &file_data, const string &remote_key, const string &local_key,
                          const string &generate_key) {
       auto &pmc = file_pmc();
-      pmc.begin_transaction().ensure();
-      SCOPE_EXIT {
-        pmc.commit_transaction().ensure();
-      };
+      pmc.begin_write_transaction().ensure();
 
       if (id > current_pmc_id_) {
         pmc.set("file_id", to_string(id.get()));
@@ -127,13 +122,12 @@ class FileDb final : public FileDbInterface {
       if (!generate_key.empty()) {
         pmc.set(generate_key, to_string(id.get()));
       }
+
+      pmc.commit_transaction().ensure();
     }
     void store_file_data_ref(FileDbId id, FileDbId new_id) {
       auto &pmc = file_pmc();
-      pmc.begin_transaction().ensure();
-      SCOPE_EXIT {
-        pmc.commit_transaction().ensure();
-      };
+      pmc.begin_write_transaction().ensure();
 
       if (id > current_pmc_id_) {
         pmc.set("file_id", to_string(id.get()));
@@ -141,18 +135,18 @@ class FileDb final : public FileDbInterface {
       }
 
       do_store_file_data_ref(id, new_id);
+
+      pmc.commit_transaction().ensure();
     }
 
-    void optimize_refs(const std::vector<FileDbId> ids, FileDbId main_id) {
+    void optimize_refs(std::vector<FileDbId> ids, FileDbId main_id) {
       LOG(INFO) << "Optimize " << ids.size() << " ids in file database to " << main_id.get();
       auto &pmc = file_pmc();
-      pmc.begin_transaction().ensure();
-      SCOPE_EXIT {
-        pmc.commit_transaction().ensure();
-      };
+      pmc.begin_write_transaction().ensure();
       for (size_t i = 0; i + 1 < ids.size(); i++) {
         do_store_file_data_ref(ids[i], main_id);
       }
+      pmc.commit_transaction().ensure();
     }
 
    private:
@@ -221,10 +215,10 @@ class FileDb final : public FileDbInterface {
     if (file_data.generate_ != nullptr && new_generate) {
       generate_key = as_key(*file_data.generate_);
     }
-    LOG(DEBUG) << "SAVE " << id.get() << " -> " << file_data << " "
-               << tag("remote_key", format::as_hex_dump<4>(Slice(remote_key)))
-               << tag("local_key", format::as_hex_dump<4>(Slice(local_key)))
-               << tag("generate_key", format::as_hex_dump<4>(Slice(generate_key)));
+    // LOG(DEBUG) << "SAVE " << id.get() << " -> " << file_data << " "
+    //            << tag("remote_key", format::as_hex_dump<4>(Slice(remote_key)))
+    //            << tag("local_key", format::as_hex_dump<4>(Slice(local_key)))
+    //            << tag("generate_key", format::as_hex_dump<4>(Slice(generate_key)));
     send_closure(file_db_actor_, &FileDbActor::store_file_data, id, serialize(file_data), remote_key, local_key,
                  generate_key);
   }
@@ -243,7 +237,7 @@ class FileDb final : public FileDbInterface {
 
   static Result<FileData> load_file_data_impl(ActorId<FileDbActor> file_db_actor_id, SqliteKeyValue &pmc,
                                               const string &key, FileDbId current_pmc_id) {
-    //LOG(DEBUG) << "Load by key " << format::as_hex_dump<4>(Slice(key));
+    // LOG(DEBUG) << "Load by key " << format::as_hex_dump<4>(Slice(key));
     TRY_RESULT(id, get_id(pmc, key));
 
     vector<FileDbId> ids;
@@ -270,8 +264,8 @@ class FileDb final : public FileDbInterface {
     if (ids.size() > 1) {
       send_closure(file_db_actor_id, &FileDbActor::optimize_refs, std::move(ids), id);
     }
-    //LOG(DEBUG) << "By ID " << id.get() << " found data " << format::as_hex_dump<4>(Slice(data_str));
-    //LOG(INFO) << attempt_count;
+    // LOG(DEBUG) << "By ID " << id.get() << " found data " << format::as_hex_dump<4>(Slice(data_str));
+    // LOG(INFO) << attempt_count;
 
     log_event::WithVersion<TlParser> parser(data_str);
     parser.set_version(static_cast<int32>(Version::Initial));
@@ -287,7 +281,7 @@ class FileDb final : public FileDbInterface {
 
   static Result<FileDbId> get_id(SqliteKeyValue &pmc, const string &key) TD_WARN_UNUSED_RESULT {
     auto id_str = pmc.get(key);
-    //LOG(DEBUG) << "Found ID " << id_str << " by key " << format::as_hex_dump<4>(Slice(key));
+    // LOG(DEBUG) << "Found ID " << id_str << " by key " << format::as_hex_dump<4>(Slice(key));
     if (id_str.empty()) {
       return Status::Error("There is no such a key in database");
     }

@@ -23,10 +23,10 @@ class ParserImpl {
  public:
   explicit ParserImpl(SliceT data) : ptr_(data.begin()), end_(data.end()), status_() {
   }
-  ParserImpl(ParserImpl &&other) : ptr_(other.ptr_), end_(other.end_), status_(std::move(other.status_)) {
+  ParserImpl(ParserImpl &&other) noexcept : ptr_(other.ptr_), end_(other.end_), status_(std::move(other.status_)) {
     other.clear();
   }
-  ParserImpl &operator=(ParserImpl &&other) {
+  ParserImpl &operator=(ParserImpl &&other) noexcept {
     if (&other == this) {
       return *this;
     }

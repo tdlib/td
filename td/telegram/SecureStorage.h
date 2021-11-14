@@ -184,10 +184,12 @@ struct EncryptedValue {
 };
 
 Result<EncryptedValue> encrypt_value(const Secret &secret, Slice data);
-Result<ValueHash> encrypt_file(const Secret &secret, std::string src, std::string dest);
 
 Result<BufferSlice> decrypt_value(const Secret &secret, const ValueHash &hash, Slice data);
-Status decrypt_file(const Secret &secret, const ValueHash &hash, std::string src, std::string dest);
+
+Result<ValueHash> encrypt_file(const Secret &secret, const string &src, const string &dest);
+
+Status decrypt_file(const Secret &secret, const ValueHash &hash, const string &src, const string &dest);
 
 }  // namespace secure_storage
 }  // namespace td

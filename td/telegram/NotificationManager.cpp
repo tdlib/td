@@ -79,16 +79,16 @@ class SetContactSignUpNotificationQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::account_setContactSignUpNotification(is_disabled)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::account_setContactSignUpNotification>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for set contact sign up notification: " << status;
     }
@@ -107,17 +107,17 @@ class GetContactSignUpNotificationQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::account_getContactSignUpNotification()));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::account_getContactSignUpNotification>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
-    td->notification_manager_->on_get_disable_contact_registered_notifications(result_ptr.ok());
+    td_->notification_manager_->on_get_disable_contact_registered_notifications(result_ptr.ok());
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for get contact sign up notification: " << status;
     }
@@ -237,7 +237,7 @@ void NotificationManager::init() {
   last_loaded_notification_group_key_.last_notification_date = std::numeric_limits<int32>::max();
   if (max_notification_group_count_ != 0) {
     int32 loaded_groups = 0;
-    int32 needed_groups = static_cast<int32>(max_notification_group_count_);
+    auto needed_groups = static_cast<int32>(max_notification_group_count_);
     do {
       loaded_groups += load_message_notification_groups_from_database(needed_groups, false);
     } while (loaded_groups < needed_groups && last_loaded_notification_group_key_.last_notification_date != 0);
@@ -643,7 +643,7 @@ void NotificationManager::add_notifications_to_group_begin(NotificationGroups::i
       final_group_key.last_notification_date = notification.date;
     }
   }
-  CHECK(final_group_key.last_notification_date != 0);
+  LOG_CHECK(final_group_key.last_notification_date != 0) << final_group_key << ' ' << *group_it << ' ' << notifications;
 
   bool is_position_changed = final_group_key.last_notification_date != group_key.last_notification_date;
 
@@ -995,6 +995,7 @@ void NotificationManager::add_update_notification(NotificationGroupId notificati
 }
 
 void NotificationManager::flush_pending_updates(int32 group_id, const char *source) {
+  // no check for G()->close_flag() to flush pending notifications even while closing
   auto it = pending_updates_.find(group_id);
   if (it == pending_updates_.end()) {
     return;
@@ -1360,7 +1361,7 @@ void NotificationManager::flush_all_pending_updates(bool include_delayed_chats, 
   // flush groups in reverse order to not exceed max_notification_group_count_
   VLOG(notifications) << "Flush pending updates in " << ready_group_keys.size() << " notification groups";
   std::sort(ready_group_keys.begin(), ready_group_keys.end());
-  for (auto group_key : reversed(ready_group_keys)) {
+  for (const auto &group_key : reversed(ready_group_keys)) {
     force_flush_pending_updates(group_key.group_id, "flush_all_pending_updates");
   }
   if (include_delayed_chats) {
@@ -1370,6 +1371,7 @@ void NotificationManager::flush_all_pending_updates(bool include_delayed_chats, 
 
 bool NotificationManager::do_flush_pending_notifications(NotificationGroupKey &group_key, NotificationGroup &group,
                                                          vector<PendingNotification> &pending_notifications) {
+  // no check for G()->close_flag() to flush pending notifications even while closing
   if (pending_notifications.empty()) {
     return false;
   }
@@ -1765,7 +1767,7 @@ void NotificationManager::on_notifications_removed(
 
 void NotificationManager::remove_added_notifications_from_pending_updates(
     NotificationGroupId group_id,
-    std::function<bool(const td_api::object_ptr<td_api::notification> &notification)> is_removed) {
+    const std::function<bool(const td_api::object_ptr<td_api::notification> &notification)> &is_removed) {
   auto it = pending_updates_.find(group_id.get());
   if (it == pending_updates_.end()) {
     return;
@@ -2911,6 +2913,9 @@ string NotificationManager::convert_loc_key(const string &loc_key) {
       if (loc_key == "CHAT_ADD_YOU") {
         return "MESSAGE_CHAT_ADD_MEMBERS_YOU";
       }
+      if (loc_key == "CHAT_REQ_JOINED") {
+        return "MESSAGE_CHAT_JOIN_BY_REQUEST";
+      }
       break;
   }
   return string();
@@ -3272,13 +3277,10 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
       }
     }
 
-    int32 flags = telegram_api::user::FIRST_NAME_MASK | telegram_api::user::MIN_MASK;
+    int32 flags = USER_FLAG_IS_INACCESSIBLE;
     if (sender_access_hash != -1) {
       // set phone number flag to show that this is a full access hash
-      flags |= telegram_api::user::ACCESS_HASH_MASK | telegram_api::user::PHONE_MASK;
-    }
-    if (sender_photo != nullptr) {
-      flags |= telegram_api::user::PHOTO_MASK;
+      flags |= USER_FLAG_HAS_ACCESS_HASH | USER_FLAG_HAS_PHONE_NUMBER;
     }
     auto user_name = sender_user_id.get() == 136817688 ? "Channel" : sender_name;
     auto user = telegram_api::make_object<telegram_api::user>(
@@ -3616,7 +3618,7 @@ void NotificationManager::add_message_push_notification(DialogId dialog_id, Mess
   }
 
   if (sender_user_id.is_valid() && !td_->contacts_manager_->have_user_force(sender_user_id)) {
-    int32 flags = telegram_api::user::FIRST_NAME_MASK | telegram_api::user::MIN_MASK;
+    int32 flags = USER_FLAG_IS_INACCESSIBLE;
     auto user_name = sender_user_id.get() == 136817688 ? "Channel" : sender_name;
     auto user = telegram_api::make_object<telegram_api::user>(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,

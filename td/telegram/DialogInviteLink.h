@@ -21,12 +21,15 @@ class ContactsManager;
 
 class DialogInviteLink {
   string invite_link_;
+  string title_;
   UserId creator_user_id_;
   int32 date_ = 0;
   int32 edit_date_ = 0;
   int32 expire_date_ = 0;
   int32 usage_limit_ = 0;
   int32 usage_count_ = 0;
+  int32 request_count_ = 0;
+  bool creates_join_request_ = false;
   bool is_revoked_ = false;
   bool is_permanent_ = false;
 
@@ -66,6 +69,8 @@ class DialogInviteLink {
     bool has_usage_limit = usage_limit_ != 0;
     bool has_usage_count = usage_count_ != 0;
     bool has_edit_date = edit_date_ != 0;
+    bool has_request_count = request_count_ != 0;
+    bool has_title = !title_.empty();
     BEGIN_STORE_FLAGS();
     STORE_FLAG(is_revoked_);
     STORE_FLAG(is_permanent_);
@@ -73,6 +78,9 @@ class DialogInviteLink {
     STORE_FLAG(has_usage_limit);
     STORE_FLAG(has_usage_count);
     STORE_FLAG(has_edit_date);
+    STORE_FLAG(has_request_count);
+    STORE_FLAG(creates_join_request_);
+    STORE_FLAG(has_title);
     END_STORE_FLAGS();
     store(invite_link_, storer);
     store(creator_user_id_, storer);
@@ -89,6 +97,12 @@ class DialogInviteLink {
     if (has_edit_date) {
       store(edit_date_, storer);
     }
+    if (has_request_count) {
+      store(request_count_, storer);
+    }
+    if (has_title) {
+      store(title_, storer);
+    }
   }
 
   template <class ParserT>
@@ -98,6 +112,8 @@ class DialogInviteLink {
     bool has_usage_limit;
     bool has_usage_count;
     bool has_edit_date;
+    bool has_request_count;
+    bool has_title;
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(is_revoked_);
     PARSE_FLAG(is_permanent_);
@@ -105,6 +121,9 @@ class DialogInviteLink {
     PARSE_FLAG(has_usage_limit);
     PARSE_FLAG(has_usage_count);
     PARSE_FLAG(has_edit_date);
+    PARSE_FLAG(has_request_count);
+    PARSE_FLAG(creates_join_request_);
+    PARSE_FLAG(has_title);
     END_PARSE_FLAGS();
     parse(invite_link_, parser);
     parse(creator_user_id_, parser);
@@ -120,6 +139,15 @@ class DialogInviteLink {
     }
     if (has_edit_date) {
       parse(edit_date_, parser);
+    }
+    if (has_request_count) {
+      parse(request_count_, parser);
+    }
+    if (has_title) {
+      parse(title_, parser);
+    }
+    if (creates_join_request_) {
+      usage_limit_ = 0;
     }
   }
 };

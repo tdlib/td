@@ -319,6 +319,12 @@ class MessageChatAddUsers final : public MessageContent {
 
 class MessageChatJoinedByLink final : public MessageContent {
  public:
+  bool is_approved = false;
+
+  MessageChatJoinedByLink() = default;
+  explicit MessageChatJoinedByLink(bool is_approved) : is_approved(is_approved) {
+  }
+
   MessageContentType get_type() const final {
     return MessageContentType::ChatJoinedByLink;
   }
@@ -566,14 +572,14 @@ class MessageLiveLocation final : public MessageContent {
       , heading(heading)
       , proximity_alert_radius(proximity_alert_radius) {
     if (period < 0) {
-      period = 0;
+      this->period = 0;
     }
     if (heading < 0 || heading > 360) {
       LOG(ERROR) << "Receive wrong heading " << heading;
-      heading = 0;
+      this->heading = 0;
     }
     if (proximity_alert_radius < 0) {
-      proximity_alert_radius = 0;
+      this->proximity_alert_radius = 0;
     }
   }
 
@@ -750,41 +756,41 @@ static void store(const MessageContent *content, StorerT &storer) {
 
   switch (content_type) {
     case MessageContentType::Animation: {
-      auto m = static_cast<const MessageAnimation *>(content);
+      const auto *m = static_cast<const MessageAnimation *>(content);
       td->animations_manager_->store_animation(m->file_id, storer);
       store(m->caption, storer);
       break;
     }
     case MessageContentType::Audio: {
-      auto m = static_cast<const MessageAudio *>(content);
+      const auto *m = static_cast<const MessageAudio *>(content);
       td->audios_manager_->store_audio(m->file_id, storer);
       store(m->caption, storer);
       store(true, storer);
       break;
     }
     case MessageContentType::Contact: {
-      auto m = static_cast<const MessageContact *>(content);
+      const auto *m = static_cast<const MessageContact *>(content);
       store(m->contact, storer);
       break;
     }
     case MessageContentType::Document: {
-      auto m = static_cast<const MessageDocument *>(content);
+      const auto *m = static_cast<const MessageDocument *>(content);
       td->documents_manager_->store_document(m->file_id, storer);
       store(m->caption, storer);
       break;
     }
     case MessageContentType::Game: {
-      auto m = static_cast<const MessageGame *>(content);
+      const auto *m = static_cast<const MessageGame *>(content);
       store(m->game, storer);
       break;
     }
     case MessageContentType::Invoice: {
-      auto m = static_cast<const MessageInvoice *>(content);
+      const auto *m = static_cast<const MessageInvoice *>(content);
       store(m->input_invoice, storer);
       break;
     }
     case MessageContentType::LiveLocation: {
-      auto m = static_cast<const MessageLiveLocation *>(content);
+      const auto *m = static_cast<const MessageLiveLocation *>(content);
       store(m->location, storer);
       store(m->period, storer);
       store(m->heading, storer);
@@ -792,69 +798,69 @@ static void store(const MessageContent *content, StorerT &storer) {
       break;
     }
     case MessageContentType::Location: {
-      auto m = static_cast<const MessageLocation *>(content);
+      const auto *m = static_cast<const MessageLocation *>(content);
       store(m->location, storer);
       break;
     }
     case MessageContentType::Photo: {
-      auto m = static_cast<const MessagePhoto *>(content);
+      const auto *m = static_cast<const MessagePhoto *>(content);
       store(m->photo, storer);
       store(m->caption, storer);
       break;
     }
     case MessageContentType::Sticker: {
-      auto m = static_cast<const MessageSticker *>(content);
+      const auto *m = static_cast<const MessageSticker *>(content);
       td->stickers_manager_->store_sticker(m->file_id, false, storer, "MessageSticker");
       break;
     }
     case MessageContentType::Text: {
-      auto m = static_cast<const MessageText *>(content);
+      const auto *m = static_cast<const MessageText *>(content);
       store(m->text, storer);
       store(m->web_page_id, storer);
       break;
     }
     case MessageContentType::Unsupported: {
-      auto m = static_cast<const MessageUnsupported *>(content);
+      const auto *m = static_cast<const MessageUnsupported *>(content);
       store(m->version, storer);
       break;
     }
     case MessageContentType::Venue: {
-      auto m = static_cast<const MessageVenue *>(content);
+      const auto *m = static_cast<const MessageVenue *>(content);
       store(m->venue, storer);
       break;
     }
     case MessageContentType::Video: {
-      auto m = static_cast<const MessageVideo *>(content);
+      const auto *m = static_cast<const MessageVideo *>(content);
       td->videos_manager_->store_video(m->file_id, storer);
       store(m->caption, storer);
       break;
     }
     case MessageContentType::VideoNote: {
-      auto m = static_cast<const MessageVideoNote *>(content);
+      const auto *m = static_cast<const MessageVideoNote *>(content);
       td->video_notes_manager_->store_video_note(m->file_id, storer);
       store(m->is_viewed, storer);
       break;
     }
     case MessageContentType::VoiceNote: {
-      auto m = static_cast<const MessageVoiceNote *>(content);
+      const auto *m = static_cast<const MessageVoiceNote *>(content);
       td->voice_notes_manager_->store_voice_note(m->file_id, storer);
       store(m->caption, storer);
       store(m->is_listened, storer);
       break;
     }
     case MessageContentType::ChatCreate: {
-      auto m = static_cast<const MessageChatCreate *>(content);
+      const auto *m = static_cast<const MessageChatCreate *>(content);
       store(m->title, storer);
       store(m->participant_user_ids, storer);
       break;
     }
     case MessageContentType::ChatChangeTitle: {
-      auto m = static_cast<const MessageChatChangeTitle *>(content);
+      const auto *m = static_cast<const MessageChatChangeTitle *>(content);
       store(m->title, storer);
       break;
     }
     case MessageContentType::ChatChangePhoto: {
-      auto m = static_cast<const MessageChatChangePhoto *>(content);
+      const auto *m = static_cast<const MessageChatChangePhoto *>(content);
       store(m->photo, storer);
       break;
     }
@@ -862,40 +868,45 @@ static void store(const MessageContent *content, StorerT &storer) {
     case MessageContentType::ChatDeleteHistory:
       break;
     case MessageContentType::ChatAddUsers: {
-      auto m = static_cast<const MessageChatAddUsers *>(content);
+      const auto *m = static_cast<const MessageChatAddUsers *>(content);
       store(m->user_ids, storer);
       break;
     }
-    case MessageContentType::ChatJoinedByLink:
+    case MessageContentType::ChatJoinedByLink: {
+      auto m = static_cast<const MessageChatJoinedByLink *>(content);
+      BEGIN_STORE_FLAGS();
+      STORE_FLAG(m->is_approved);
+      END_STORE_FLAGS();
       break;
+    }
     case MessageContentType::ChatDeleteUser: {
-      auto m = static_cast<const MessageChatDeleteUser *>(content);
+      const auto *m = static_cast<const MessageChatDeleteUser *>(content);
       store(m->user_id, storer);
       break;
     }
     case MessageContentType::ChatMigrateTo: {
-      auto m = static_cast<const MessageChatMigrateTo *>(content);
+      const auto *m = static_cast<const MessageChatMigrateTo *>(content);
       store(m->migrated_to_channel_id, storer);
       break;
     }
     case MessageContentType::ChannelCreate: {
-      auto m = static_cast<const MessageChannelCreate *>(content);
+      const auto *m = static_cast<const MessageChannelCreate *>(content);
       store(m->title, storer);
       break;
     }
     case MessageContentType::ChannelMigrateFrom: {
-      auto m = static_cast<const MessageChannelMigrateFrom *>(content);
+      const auto *m = static_cast<const MessageChannelMigrateFrom *>(content);
       store(m->title, storer);
       store(m->migrated_from_chat_id, storer);
       break;
     }
     case MessageContentType::PinMessage: {
-      auto m = static_cast<const MessagePinMessage *>(content);
+      const auto *m = static_cast<const MessagePinMessage *>(content);
       store(m->message_id, storer);
       break;
     }
     case MessageContentType::GameScore: {
-      auto m = static_cast<const MessageGameScore *>(content);
+      const auto *m = static_cast<const MessageGameScore *>(content);
       store(m->game_message_id, storer);
       store(m->game_id, storer);
       store(m->score, storer);
@@ -904,12 +915,12 @@ static void store(const MessageContent *content, StorerT &storer) {
     case MessageContentType::ScreenshotTaken:
       break;
     case MessageContentType::ChatSetTtl: {
-      auto m = static_cast<const MessageChatSetTtl *>(content);
+      const auto *m = static_cast<const MessageChatSetTtl *>(content);
       store(m->ttl, storer);
       break;
     }
     case MessageContentType::Call: {
-      auto m = static_cast<const MessageCall *>(content);
+      const auto *m = static_cast<const MessageCall *>(content);
       BEGIN_STORE_FLAGS();
       STORE_FLAG(m->is_video);
       END_STORE_FLAGS();
@@ -919,7 +930,7 @@ static void store(const MessageContent *content, StorerT &storer) {
       break;
     }
     case MessageContentType::PaymentSuccessful: {
-      auto m = static_cast<const MessagePaymentSuccessful *>(content);
+      const auto *m = static_cast<const MessagePaymentSuccessful *>(content);
       bool has_payload = !m->invoice_payload.empty();
       bool has_shipping_option_id = !m->shipping_option_id.empty();
       bool has_order_info = m->order_info != nullptr;
@@ -970,46 +981,46 @@ static void store(const MessageContent *content, StorerT &storer) {
     case MessageContentType::ExpiredVideo:
       break;
     case MessageContentType::CustomServiceAction: {
-      auto m = static_cast<const MessageCustomServiceAction *>(content);
+      const auto *m = static_cast<const MessageCustomServiceAction *>(content);
       store(m->message, storer);
       break;
     }
     case MessageContentType::WebsiteConnected: {
-      auto m = static_cast<const MessageWebsiteConnected *>(content);
+      const auto *m = static_cast<const MessageWebsiteConnected *>(content);
       store(m->domain_name, storer);
       break;
     }
     case MessageContentType::PassportDataSent: {
-      auto m = static_cast<const MessagePassportDataSent *>(content);
+      const auto *m = static_cast<const MessagePassportDataSent *>(content);
       store(m->types, storer);
       break;
     }
     case MessageContentType::PassportDataReceived: {
-      auto m = static_cast<const MessagePassportDataReceived *>(content);
+      const auto *m = static_cast<const MessagePassportDataReceived *>(content);
       store(m->values, storer);
       store(m->credentials, storer);
       break;
     }
     case MessageContentType::Poll: {
-      auto m = static_cast<const MessagePoll *>(content);
+      const auto *m = static_cast<const MessagePoll *>(content);
       store(m->poll_id, storer);
       break;
     }
     case MessageContentType::Dice: {
-      auto m = static_cast<const MessageDice *>(content);
+      const auto *m = static_cast<const MessageDice *>(content);
       store(m->emoji, storer);
       store(m->dice_value, storer);
       break;
     }
     case MessageContentType::ProximityAlertTriggered: {
-      auto m = static_cast<const MessageProximityAlertTriggered *>(content);
+      const auto *m = static_cast<const MessageProximityAlertTriggered *>(content);
       store(m->traveler_dialog_id, storer);
       store(m->watcher_dialog_id, storer);
       store(m->distance, storer);
       break;
     }
     case MessageContentType::GroupCall: {
-      auto m = static_cast<const MessageGroupCall *>(content);
+      const auto *m = static_cast<const MessageGroupCall *>(content);
       bool has_duration = m->duration >= 0;
       bool has_schedule_date = m->schedule_date > 0;
       BEGIN_STORE_FLAGS();
@@ -1026,13 +1037,13 @@ static void store(const MessageContent *content, StorerT &storer) {
       break;
     }
     case MessageContentType::InviteToGroupCall: {
-      auto m = static_cast<const MessageInviteToGroupCall *>(content);
+      const auto *m = static_cast<const MessageInviteToGroupCall *>(content);
       store(m->input_group_call_id, storer);
       store(m->user_ids, storer);
       break;
     }
     case MessageContentType::ChatSetTheme: {
-      auto m = static_cast<const MessageChatSetTheme *>(content);
+      const auto *m = static_cast<const MessageChatSetTheme *>(content);
       store(m->emoji, storer);
       break;
     }
@@ -1229,9 +1240,18 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       content = std::move(m);
       break;
     }
-    case MessageContentType::ChatJoinedByLink:
-      content = make_unique<MessageChatJoinedByLink>();
+    case MessageContentType::ChatJoinedByLink: {
+      auto m = make_unique<MessageChatJoinedByLink>();
+      if (parser.version() >= static_cast<int32>(Version::AddInviteLinksRequiringApproval)) {
+        BEGIN_PARSE_FLAGS();
+        PARSE_FLAG(m->is_approved);
+        END_PARSE_FLAGS();
+      } else {
+        m->is_approved = false;
+      }
+      content = std::move(m);
       break;
+    }
     case MessageContentType::ChatDeleteUser: {
       auto m = make_unique<MessageChatDeleteUser>();
       parse(m->user_id, parser);
@@ -1492,8 +1512,7 @@ InlineMessageContent create_inline_message_content(Td *td, FileId file_id,
         break;
       }
 
-      result.disable_web_page_preview =
-          (inline_message->flags_ & telegram_api::botInlineMessageText::NO_WEBPAGE_MASK) != 0;
+      result.disable_web_page_preview = inline_message->no_webpage_;
       WebPageId web_page_id;
       if (!result.disable_web_page_preview) {
         web_page_id = td->web_pages_manager_->get_web_page_by_url(get_first_url(inline_message->message_, entities));
@@ -1708,7 +1727,7 @@ static Result<InputMessageContent> create_input_message_content(
       int32 type = 'i';
       if (file_view.has_remote_location() && !file_view.remote_location().is_web()) {
         auto photo_size_source = file_view.remote_location().get_source();
-        if (photo_size_source.get_type() == PhotoSizeSource::Type::Thumbnail) {
+        if (photo_size_source.get_type("create_input_message_content") == PhotoSizeSource::Type::Thumbnail) {
           auto old_type = photo_size_source.thumbnail().thumbnail_type;
           if (old_type != 't') {
             type = old_type;
@@ -2088,58 +2107,58 @@ SecretInputMedia get_secret_input_media(const MessageContent *content, Td *td,
                                         BufferSlice thumbnail) {
   switch (content->get_type()) {
     case MessageContentType::Animation: {
-      auto m = static_cast<const MessageAnimation *>(content);
+      const auto *m = static_cast<const MessageAnimation *>(content);
       return td->animations_manager_->get_secret_input_media(m->file_id, std::move(input_file), m->caption.text,
                                                              std::move(thumbnail));
     }
     case MessageContentType::Audio: {
-      auto m = static_cast<const MessageAudio *>(content);
+      const auto *m = static_cast<const MessageAudio *>(content);
       return td->audios_manager_->get_secret_input_media(m->file_id, std::move(input_file), m->caption.text,
                                                          std::move(thumbnail));
     }
     case MessageContentType::Contact: {
-      auto m = static_cast<const MessageContact *>(content);
+      const auto *m = static_cast<const MessageContact *>(content);
       return m->contact.get_secret_input_media_contact();
     }
     case MessageContentType::Document: {
-      auto m = static_cast<const MessageDocument *>(content);
+      const auto *m = static_cast<const MessageDocument *>(content);
       return td->documents_manager_->get_secret_input_media(m->file_id, std::move(input_file), m->caption.text,
                                                             std::move(thumbnail));
     }
     case MessageContentType::Location: {
-      auto m = static_cast<const MessageLocation *>(content);
+      const auto *m = static_cast<const MessageLocation *>(content);
       return m->location.get_secret_input_media_geo_point();
     }
     case MessageContentType::Photo: {
-      auto m = static_cast<const MessagePhoto *>(content);
+      const auto *m = static_cast<const MessagePhoto *>(content);
       return photo_get_secret_input_media(td->file_manager_.get(), m->photo, std::move(input_file), m->caption.text,
                                           std::move(thumbnail));
     }
     case MessageContentType::Sticker: {
-      auto m = static_cast<const MessageSticker *>(content);
+      const auto *m = static_cast<const MessageSticker *>(content);
       return td->stickers_manager_->get_secret_input_media(m->file_id, std::move(input_file), std::move(thumbnail));
     }
     case MessageContentType::Text: {
       CHECK(input_file == nullptr);
       CHECK(thumbnail.empty());
-      auto m = static_cast<const MessageText *>(content);
+      const auto *m = static_cast<const MessageText *>(content);
       return td->web_pages_manager_->get_secret_input_media(m->web_page_id);
     }
     case MessageContentType::Venue: {
-      auto m = static_cast<const MessageVenue *>(content);
+      const auto *m = static_cast<const MessageVenue *>(content);
       return m->venue.get_secret_input_media_venue();
     }
     case MessageContentType::Video: {
-      auto m = static_cast<const MessageVideo *>(content);
+      const auto *m = static_cast<const MessageVideo *>(content);
       return td->videos_manager_->get_secret_input_media(m->file_id, std::move(input_file), m->caption.text,
                                                          std::move(thumbnail));
     }
     case MessageContentType::VideoNote: {
-      auto m = static_cast<const MessageVideoNote *>(content);
+      const auto *m = static_cast<const MessageVideoNote *>(content);
       return td->video_notes_manager_->get_secret_input_media(m->file_id, std::move(input_file), std::move(thumbnail));
     }
     case MessageContentType::VoiceNote: {
-      auto m = static_cast<const MessageVoiceNote *>(content);
+      const auto *m = static_cast<const MessageVoiceNote *>(content);
       return td->voice_notes_manager_->get_secret_input_media(m->file_id, std::move(input_file), m->caption.text);
     }
     case MessageContentType::Call:
@@ -2191,35 +2210,35 @@ static tl_object_ptr<telegram_api::InputMedia> get_input_media_impl(
   }
   switch (content->get_type()) {
     case MessageContentType::Animation: {
-      auto m = static_cast<const MessageAnimation *>(content);
+      const auto *m = static_cast<const MessageAnimation *>(content);
       return td->animations_manager_->get_input_media(m->file_id, std::move(input_file), std::move(input_thumbnail));
     }
     case MessageContentType::Audio: {
-      auto m = static_cast<const MessageAudio *>(content);
+      const auto *m = static_cast<const MessageAudio *>(content);
       return td->audios_manager_->get_input_media(m->file_id, std::move(input_file), std::move(input_thumbnail));
     }
     case MessageContentType::Contact: {
-      auto m = static_cast<const MessageContact *>(content);
+      const auto *m = static_cast<const MessageContact *>(content);
       return m->contact.get_input_media_contact();
     }
     case MessageContentType::Dice: {
-      auto m = static_cast<const MessageDice *>(content);
+      const auto *m = static_cast<const MessageDice *>(content);
       return make_tl_object<telegram_api::inputMediaDice>(m->emoji);
     }
     case MessageContentType::Document: {
-      auto m = static_cast<const MessageDocument *>(content);
+      const auto *m = static_cast<const MessageDocument *>(content);
       return td->documents_manager_->get_input_media(m->file_id, std::move(input_file), std::move(input_thumbnail));
     }
     case MessageContentType::Game: {
-      auto m = static_cast<const MessageGame *>(content);
+      const auto *m = static_cast<const MessageGame *>(content);
       return m->game.get_input_media_game(td);
     }
     case MessageContentType::Invoice: {
-      auto m = static_cast<const MessageInvoice *>(content);
+      const auto *m = static_cast<const MessageInvoice *>(content);
       return get_input_media_invoice(m->input_invoice, td);
     }
     case MessageContentType::LiveLocation: {
-      auto m = static_cast<const MessageLiveLocation *>(content);
+      const auto *m = static_cast<const MessageLiveLocation *>(content);
       int32 flags = telegram_api::inputMediaGeoLive::PERIOD_MASK;
       if (m->heading != 0) {
         flags |= telegram_api::inputMediaGeoLive::HEADING_MASK;
@@ -2230,36 +2249,36 @@ static tl_object_ptr<telegram_api::InputMedia> get_input_media_impl(
                                                              m->proximity_alert_radius);
     }
     case MessageContentType::Location: {
-      auto m = static_cast<const MessageLocation *>(content);
+      const auto *m = static_cast<const MessageLocation *>(content);
       return m->location.get_input_media_geo_point();
     }
     case MessageContentType::Photo: {
-      auto m = static_cast<const MessagePhoto *>(content);
+      const auto *m = static_cast<const MessagePhoto *>(content);
       return photo_get_input_media(td->file_manager_.get(), m->photo, std::move(input_file), ttl);
     }
     case MessageContentType::Poll: {
-      auto m = static_cast<const MessagePoll *>(content);
+      const auto *m = static_cast<const MessagePoll *>(content);
       return td->poll_manager_->get_input_media(m->poll_id);
     }
     case MessageContentType::Sticker: {
-      auto m = static_cast<const MessageSticker *>(content);
+      const auto *m = static_cast<const MessageSticker *>(content);
       return td->stickers_manager_->get_input_media(m->file_id, std::move(input_file), std::move(input_thumbnail),
                                                     emoji);
     }
     case MessageContentType::Venue: {
-      auto m = static_cast<const MessageVenue *>(content);
+      const auto *m = static_cast<const MessageVenue *>(content);
       return m->venue.get_input_media_venue();
     }
     case MessageContentType::Video: {
-      auto m = static_cast<const MessageVideo *>(content);
+      const auto *m = static_cast<const MessageVideo *>(content);
       return td->videos_manager_->get_input_media(m->file_id, std::move(input_file), std::move(input_thumbnail), ttl);
     }
     case MessageContentType::VideoNote: {
-      auto m = static_cast<const MessageVideoNote *>(content);
+      const auto *m = static_cast<const MessageVideoNote *>(content);
       return td->video_notes_manager_->get_input_media(m->file_id, std::move(input_file), std::move(input_thumbnail));
     }
     case MessageContentType::VoiceNote: {
-      auto m = static_cast<const MessageVoiceNote *>(content);
+      const auto *m = static_cast<const MessageVoiceNote *>(content);
       return td->voice_notes_manager_->get_input_media(m->file_id, std::move(input_file));
     }
     case MessageContentType::Text:
@@ -2390,31 +2409,31 @@ tl_object_ptr<telegram_api::InputMedia> get_fake_input_media(Td *td, tl_object_p
 void delete_message_content_thumbnail(MessageContent *content, Td *td) {
   switch (content->get_type()) {
     case MessageContentType::Animation: {
-      auto m = static_cast<MessageAnimation *>(content);
+      auto *m = static_cast<MessageAnimation *>(content);
       return td->animations_manager_->delete_animation_thumbnail(m->file_id);
     }
     case MessageContentType::Audio: {
-      auto m = static_cast<MessageAudio *>(content);
+      auto *m = static_cast<MessageAudio *>(content);
       return td->audios_manager_->delete_audio_thumbnail(m->file_id);
     }
     case MessageContentType::Document: {
-      auto m = static_cast<MessageDocument *>(content);
+      auto *m = static_cast<MessageDocument *>(content);
       return td->documents_manager_->delete_document_thumbnail(m->file_id);
     }
     case MessageContentType::Photo: {
-      auto m = static_cast<MessagePhoto *>(content);
+      auto *m = static_cast<MessagePhoto *>(content);
       return photo_delete_thumbnail(m->photo);
     }
     case MessageContentType::Sticker: {
-      auto m = static_cast<MessageSticker *>(content);
+      auto *m = static_cast<MessageSticker *>(content);
       return td->stickers_manager_->delete_sticker_thumbnail(m->file_id);
     }
     case MessageContentType::Video: {
-      auto m = static_cast<MessageVideo *>(content);
+      auto *m = static_cast<MessageVideo *>(content);
       return td->videos_manager_->delete_video_thumbnail(m->file_id);
     }
     case MessageContentType::VideoNote: {
-      auto m = static_cast<MessageVideoNote *>(content);
+      auto *m = static_cast<MessageVideoNote *>(content);
       return td->video_notes_manager_->delete_video_note_thumbnail(m->file_id);
     }
     case MessageContentType::Contact:
@@ -2706,9 +2725,9 @@ static int32 get_message_content_media_index_mask(const MessageContent *content,
       return message_search_filter_index_mask(MessageSearchFilter::ChatPhoto);
     case MessageContentType::Call: {
       int32 index_mask = message_search_filter_index_mask(MessageSearchFilter::Call);
-      auto message_call = static_cast<const MessageCall *>(content);
-      if (!is_outgoing && (message_call->discard_reason == CallDiscardReason::Declined ||
-                           message_call->discard_reason == CallDiscardReason::Missed)) {
+      const auto *m = static_cast<const MessageCall *>(content);
+      if (!is_outgoing &&
+          (m->discard_reason == CallDiscardReason::Declined || m->discard_reason == CallDiscardReason::Missed)) {
         index_mask |= message_search_filter_index_mask(MessageSearchFilter::MissedCall);
       }
       return index_mask;
@@ -2802,8 +2821,8 @@ FullMessageId get_message_content_replied_message_id(DialogId dialog_id, const M
 
 std::pair<InputGroupCallId, bool> get_message_content_group_call_info(const MessageContent *content) {
   CHECK(content->get_type() == MessageContentType::GroupCall);
-  auto message_group_call = static_cast<const MessageGroupCall *>(content);
-  return {message_group_call->input_group_call_id, message_group_call->duration >= 0};
+  const auto *m = static_cast<const MessageGroupCall *>(content);
+  return {m->input_group_call_id, m->duration >= 0};
 }
 
 vector<UserId> get_message_content_added_user_ids(const MessageContent *content) {
@@ -2949,8 +2968,8 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
 
   switch (content_type) {
     case MessageContentType::Text: {
-      auto old_ = static_cast<const MessageText *>(old_content);
-      auto new_ = static_cast<const MessageText *>(new_content);
+      const auto *old_ = static_cast<const MessageText *>(old_content);
+      const auto *new_ = static_cast<const MessageText *>(new_content);
       auto get_content_object = [td, dialog_id](const MessageContent *content) {
         return to_string(
             get_message_content_object(content, td, dialog_id, -1, false, false, std::numeric_limits<int32>::max()));
@@ -2981,8 +3000,8 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       break;
     }
     case MessageContentType::Animation: {
-      auto old_ = static_cast<const MessageAnimation *>(old_content);
-      auto new_ = static_cast<const MessageAnimation *>(new_content);
+      const auto *old_ = static_cast<const MessageAnimation *>(old_content);
+      const auto *new_ = static_cast<const MessageAnimation *>(new_content);
       if (new_->file_id != old_->file_id) {
         if (need_merge_files) {
           td->animations_manager_->merge_animations(new_->file_id, old_->file_id, false);
@@ -2995,8 +3014,8 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       break;
     }
     case MessageContentType::Audio: {
-      auto old_ = static_cast<const MessageAudio *>(old_content);
-      auto new_ = static_cast<const MessageAudio *>(new_content);
+      const auto *old_ = static_cast<const MessageAudio *>(old_content);
+      const auto *new_ = static_cast<const MessageAudio *>(new_content);
       if (new_->file_id != old_->file_id) {
         if (need_merge_files) {
           td->audios_manager_->merge_audios(new_->file_id, old_->file_id, false);
@@ -3009,16 +3028,16 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       break;
     }
     case MessageContentType::Contact: {
-      auto old_ = static_cast<const MessageContact *>(old_content);
-      auto new_ = static_cast<const MessageContact *>(new_content);
+      const auto *old_ = static_cast<const MessageContact *>(old_content);
+      const auto *new_ = static_cast<const MessageContact *>(new_content);
       if (old_->contact != new_->contact) {
         need_update = true;
       }
       break;
     }
     case MessageContentType::Document: {
-      auto old_ = static_cast<const MessageDocument *>(old_content);
-      auto new_ = static_cast<const MessageDocument *>(new_content);
+      const auto *old_ = static_cast<const MessageDocument *>(old_content);
+      const auto *new_ = static_cast<const MessageDocument *>(new_content);
       if (new_->file_id != old_->file_id) {
         if (need_merge_files) {
           td->documents_manager_->merge_documents(new_->file_id, old_->file_id, false);
@@ -3031,24 +3050,24 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       break;
     }
     case MessageContentType::Game: {
-      auto old_ = static_cast<const MessageGame *>(old_content);
-      auto new_ = static_cast<const MessageGame *>(new_content);
+      const auto *old_ = static_cast<const MessageGame *>(old_content);
+      const auto *new_ = static_cast<const MessageGame *>(new_content);
       if (old_->game != new_->game) {
         need_update = true;
       }
       break;
     }
     case MessageContentType::Invoice: {
-      auto old_ = static_cast<const MessageInvoice *>(old_content);
-      auto new_ = static_cast<const MessageInvoice *>(new_content);
+      const auto *old_ = static_cast<const MessageInvoice *>(old_content);
+      const auto *new_ = static_cast<const MessageInvoice *>(new_content);
       if (old_->input_invoice != new_->input_invoice) {
         need_update = true;
       }
       break;
     }
     case MessageContentType::LiveLocation: {
-      auto old_ = static_cast<const MessageLiveLocation *>(old_content);
-      auto new_ = static_cast<const MessageLiveLocation *>(new_content);
+      const auto *old_ = static_cast<const MessageLiveLocation *>(old_content);
+      const auto *new_ = static_cast<const MessageLiveLocation *>(new_content);
       if (old_->location != new_->location) {
         need_update = true;
       }
@@ -3063,8 +3082,8 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       break;
     }
     case MessageContentType::Location: {
-      auto old_ = static_cast<const MessageLocation *>(old_content);
-      auto new_ = static_cast<const MessageLocation *>(new_content);
+      const auto *old_ = static_cast<const MessageLocation *>(old_content);
+      const auto *new_ = static_cast<const MessageLocation *>(new_content);
       if (old_->location != new_->location) {
         need_update = true;
       }
@@ -3075,8 +3094,8 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       break;
     }
     case MessageContentType::Photo: {
-      auto old_ = static_cast<const MessagePhoto *>(old_content);
-      auto new_ = static_cast<MessagePhoto *>(new_content);
+      const auto *old_ = static_cast<const MessagePhoto *>(old_content);
+      auto *new_ = static_cast<MessagePhoto *>(new_content);
       const Photo *old_photo = &old_->photo;
       Photo *new_photo = &new_->photo;
       if (old_photo->date != new_photo->date) {
@@ -3139,7 +3158,8 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
                      old_file_view.main_remote_location().get_access_hash() !=
                          new_file_view.remote_location().get_access_hash()) {
             FileId file_id = td->file_manager_->register_remote(
-                FullRemoteFileLocation({FileType::Photo, 'i'}, new_file_view.remote_location().get_id(),
+                FullRemoteFileLocation(PhotoSizeSource::thumbnail(FileType::Photo, 'i'),
+                                       new_file_view.remote_location().get_id(),
                                        new_file_view.remote_location().get_access_hash(), DcId::invalid(),
                                        new_file_view.remote_location().get_file_reference().str()),
                 FileLocationSource::FromServer, dialog_id, old_photo->photos.back().size, 0, "");
@@ -3150,8 +3170,8 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       break;
     }
     case MessageContentType::Sticker: {
-      auto old_ = static_cast<const MessageSticker *>(old_content);
-      auto new_ = static_cast<const MessageSticker *>(new_content);
+      const auto *old_ = static_cast<const MessageSticker *>(old_content);
+      const auto *new_ = static_cast<const MessageSticker *>(new_content);
       if (new_->file_id != old_->file_id) {
         if (need_merge_files) {
           td->stickers_manager_->merge_stickers(new_->file_id, old_->file_id, false);
@@ -3161,8 +3181,8 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       break;
     }
     case MessageContentType::Venue: {
-      auto old_ = static_cast<const MessageVenue *>(old_content);
-      auto new_ = static_cast<const MessageVenue *>(new_content);
+      const auto *old_ = static_cast<const MessageVenue *>(old_content);
+      const auto *new_ = static_cast<const MessageVenue *>(new_content);
       if (old_->venue != new_->venue) {
         need_update = true;
       }
@@ -3173,8 +3193,8 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       break;
     }
     case MessageContentType::Video: {
-      auto old_ = static_cast<const MessageVideo *>(old_content);
-      auto new_ = static_cast<const MessageVideo *>(new_content);
+      const auto *old_ = static_cast<const MessageVideo *>(old_content);
+      const auto *new_ = static_cast<const MessageVideo *>(new_content);
       if (new_->file_id != old_->file_id) {
         if (need_merge_files) {
           td->videos_manager_->merge_videos(new_->file_id, old_->file_id, false);
@@ -3187,8 +3207,8 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       break;
     }
     case MessageContentType::VideoNote: {
-      auto old_ = static_cast<const MessageVideoNote *>(old_content);
-      auto new_ = static_cast<const MessageVideoNote *>(new_content);
+      const auto *old_ = static_cast<const MessageVideoNote *>(old_content);
+      const auto *new_ = static_cast<const MessageVideoNote *>(new_content);
       if (new_->file_id != old_->file_id) {
         if (need_merge_files) {
           td->video_notes_manager_->merge_video_notes(new_->file_id, old_->file_id, false);
@@ -3201,8 +3221,8 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       break;
     }
     case MessageContentType::VoiceNote: {
-      auto old_ = static_cast<const MessageVoiceNote *>(old_content);
-      auto new_ = static_cast<const MessageVoiceNote *>(new_content);
+      const auto *old_ = static_cast<const MessageVoiceNote *>(old_content);
+      const auto *new_ = static_cast<const MessageVoiceNote *>(new_content);
       if (new_->file_id != old_->file_id) {
         if (need_merge_files) {
           td->voice_notes_manager_->merge_voice_notes(new_->file_id, old_->file_id, false);
@@ -3218,24 +3238,24 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       break;
     }
     case MessageContentType::ChatCreate: {
-      auto old_ = static_cast<const MessageChatCreate *>(old_content);
-      auto new_ = static_cast<const MessageChatCreate *>(new_content);
+      const auto *old_ = static_cast<const MessageChatCreate *>(old_content);
+      const auto *new_ = static_cast<const MessageChatCreate *>(new_content);
       if (old_->title != new_->title || old_->participant_user_ids != new_->participant_user_ids) {
         need_update = true;
       }
       break;
     }
     case MessageContentType::ChatChangeTitle: {
-      auto old_ = static_cast<const MessageChatChangeTitle *>(old_content);
-      auto new_ = static_cast<const MessageChatChangeTitle *>(new_content);
+      const auto *old_ = static_cast<const MessageChatChangeTitle *>(old_content);
+      const auto *new_ = static_cast<const MessageChatChangeTitle *>(new_content);
       if (old_->title != new_->title) {
         need_update = true;
       }
       break;
     }
     case MessageContentType::ChatChangePhoto: {
-      auto old_ = static_cast<const MessageChatChangePhoto *>(old_content);
-      auto new_ = static_cast<const MessageChatChangePhoto *>(new_content);
+      const auto *old_ = static_cast<const MessageChatChangePhoto *>(old_content);
+      const auto *new_ = static_cast<const MessageChatChangePhoto *>(new_content);
       if (old_->photo != new_->photo) {
         need_update = true;
       }
@@ -3246,58 +3266,64 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
     case MessageContentType::ChatDeleteHistory:
       break;
     case MessageContentType::ChatAddUsers: {
-      auto old_ = static_cast<const MessageChatAddUsers *>(old_content);
-      auto new_ = static_cast<const MessageChatAddUsers *>(new_content);
+      const auto *old_ = static_cast<const MessageChatAddUsers *>(old_content);
+      const auto *new_ = static_cast<const MessageChatAddUsers *>(new_content);
       if (old_->user_ids != new_->user_ids) {
         need_update = true;
       }
       break;
     }
-    case MessageContentType::ChatJoinedByLink:
+    case MessageContentType::ChatJoinedByLink: {
+      auto old_ = static_cast<const MessageChatJoinedByLink *>(old_content);
+      auto new_ = static_cast<const MessageChatJoinedByLink *>(new_content);
+      if (old_->is_approved != new_->is_approved) {
+        need_update = true;
+      }
       break;
+    }
     case MessageContentType::ChatDeleteUser: {
-      auto old_ = static_cast<const MessageChatDeleteUser *>(old_content);
-      auto new_ = static_cast<const MessageChatDeleteUser *>(new_content);
+      const auto *old_ = static_cast<const MessageChatDeleteUser *>(old_content);
+      const auto *new_ = static_cast<const MessageChatDeleteUser *>(new_content);
       if (old_->user_id != new_->user_id) {
         need_update = true;
       }
       break;
     }
     case MessageContentType::ChatMigrateTo: {
-      auto old_ = static_cast<const MessageChatMigrateTo *>(old_content);
-      auto new_ = static_cast<const MessageChatMigrateTo *>(new_content);
+      const auto *old_ = static_cast<const MessageChatMigrateTo *>(old_content);
+      const auto *new_ = static_cast<const MessageChatMigrateTo *>(new_content);
       if (old_->migrated_to_channel_id != new_->migrated_to_channel_id) {
         need_update = true;
       }
       break;
     }
     case MessageContentType::ChannelCreate: {
-      auto old_ = static_cast<const MessageChannelCreate *>(old_content);
-      auto new_ = static_cast<const MessageChannelCreate *>(new_content);
+      const auto *old_ = static_cast<const MessageChannelCreate *>(old_content);
+      const auto *new_ = static_cast<const MessageChannelCreate *>(new_content);
       if (old_->title != new_->title) {
         need_update = true;
       }
       break;
     }
     case MessageContentType::ChannelMigrateFrom: {
-      auto old_ = static_cast<const MessageChannelMigrateFrom *>(old_content);
-      auto new_ = static_cast<const MessageChannelMigrateFrom *>(new_content);
+      const auto *old_ = static_cast<const MessageChannelMigrateFrom *>(old_content);
+      const auto *new_ = static_cast<const MessageChannelMigrateFrom *>(new_content);
       if (old_->title != new_->title || old_->migrated_from_chat_id != new_->migrated_from_chat_id) {
         need_update = true;
       }
       break;
     }
     case MessageContentType::PinMessage: {
-      auto old_ = static_cast<const MessagePinMessage *>(old_content);
-      auto new_ = static_cast<const MessagePinMessage *>(new_content);
+      const auto *old_ = static_cast<const MessagePinMessage *>(old_content);
+      const auto *new_ = static_cast<const MessagePinMessage *>(new_content);
       if (old_->message_id != new_->message_id) {
         need_update = true;
       }
       break;
     }
     case MessageContentType::GameScore: {
-      auto old_ = static_cast<const MessageGameScore *>(old_content);
-      auto new_ = static_cast<const MessageGameScore *>(new_content);
+      const auto *old_ = static_cast<const MessageGameScore *>(old_content);
+      const auto *new_ = static_cast<const MessageGameScore *>(new_content);
       if (old_->game_message_id != new_->game_message_id || old_->game_id != new_->game_id ||
           old_->score != new_->score) {
         need_update = true;
@@ -3307,8 +3333,8 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
     case MessageContentType::ScreenshotTaken:
       break;
     case MessageContentType::ChatSetTtl: {
-      auto old_ = static_cast<const MessageChatSetTtl *>(old_content);
-      auto new_ = static_cast<const MessageChatSetTtl *>(new_content);
+      const auto *old_ = static_cast<const MessageChatSetTtl *>(old_content);
+      const auto *new_ = static_cast<const MessageChatSetTtl *>(new_content);
       if (old_->ttl != new_->ttl) {
         LOG(ERROR) << "Ttl has changed from " << old_->ttl << " to " << new_->ttl;
         need_update = true;
@@ -3316,8 +3342,8 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       break;
     }
     case MessageContentType::Call: {
-      auto old_ = static_cast<const MessageCall *>(old_content);
-      auto new_ = static_cast<const MessageCall *>(new_content);
+      const auto *old_ = static_cast<const MessageCall *>(old_content);
+      const auto *new_ = static_cast<const MessageCall *>(new_content);
       if (old_->call_id != new_->call_id || old_->is_video != new_->is_video) {
         is_content_changed = true;
       }
@@ -3327,8 +3353,8 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       break;
     }
     case MessageContentType::PaymentSuccessful: {
-      auto old_ = static_cast<const MessagePaymentSuccessful *>(old_content);
-      auto new_ = static_cast<const MessagePaymentSuccessful *>(new_content);
+      const auto *old_ = static_cast<const MessagePaymentSuccessful *>(old_content);
+      const auto *new_ = static_cast<const MessagePaymentSuccessful *>(new_content);
       if (old_->invoice_dialog_id != new_->invoice_dialog_id || old_->invoice_message_id != new_->invoice_message_id ||
           old_->currency != new_->currency || old_->total_amount != new_->total_amount ||
           old_->invoice_payload != new_->invoice_payload || old_->shipping_option_id != new_->shipping_option_id ||
@@ -3347,32 +3373,32 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
     case MessageContentType::ExpiredVideo:
       break;
     case MessageContentType::CustomServiceAction: {
-      auto old_ = static_cast<const MessageCustomServiceAction *>(old_content);
-      auto new_ = static_cast<const MessageCustomServiceAction *>(new_content);
+      const auto *old_ = static_cast<const MessageCustomServiceAction *>(old_content);
+      const auto *new_ = static_cast<const MessageCustomServiceAction *>(new_content);
       if (old_->message != new_->message) {
         need_update = true;
       }
       break;
     }
     case MessageContentType::WebsiteConnected: {
-      auto old_ = static_cast<const MessageWebsiteConnected *>(old_content);
-      auto new_ = static_cast<const MessageWebsiteConnected *>(new_content);
+      const auto *old_ = static_cast<const MessageWebsiteConnected *>(old_content);
+      const auto *new_ = static_cast<const MessageWebsiteConnected *>(new_content);
       if (old_->domain_name != new_->domain_name) {
         need_update = true;
       }
       break;
     }
     case MessageContentType::PassportDataSent: {
-      auto old_ = static_cast<const MessagePassportDataSent *>(old_content);
-      auto new_ = static_cast<const MessagePassportDataSent *>(new_content);
+      const auto *old_ = static_cast<const MessagePassportDataSent *>(old_content);
+      const auto *new_ = static_cast<const MessagePassportDataSent *>(new_content);
       if (old_->types != new_->types) {
         need_update = true;
       }
       break;
     }
     case MessageContentType::PassportDataReceived: {
-      auto old_ = static_cast<const MessagePassportDataReceived *>(old_content);
-      auto new_ = static_cast<const MessagePassportDataReceived *>(new_content);
+      const auto *old_ = static_cast<const MessagePassportDataReceived *>(old_content);
+      const auto *new_ = static_cast<const MessagePassportDataReceived *>(new_content);
       if (old_->values != new_->values) {
         need_update = true;
       }
@@ -3382,24 +3408,24 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       break;
     }
     case MessageContentType::Poll: {
-      auto old_ = static_cast<const MessagePoll *>(old_content);
-      auto new_ = static_cast<const MessagePoll *>(new_content);
+      const auto *old_ = static_cast<const MessagePoll *>(old_content);
+      const auto *new_ = static_cast<const MessagePoll *>(new_content);
       if (old_->poll_id != new_->poll_id) {
         need_update = true;
       }
       break;
     }
     case MessageContentType::Dice: {
-      auto old_ = static_cast<const MessageDice *>(old_content);
-      auto new_ = static_cast<const MessageDice *>(new_content);
+      const auto *old_ = static_cast<const MessageDice *>(old_content);
+      const auto *new_ = static_cast<const MessageDice *>(new_content);
       if (old_->emoji != new_->emoji || old_->dice_value != new_->dice_value) {
         need_update = true;
       }
       break;
     }
     case MessageContentType::ProximityAlertTriggered: {
-      auto old_ = static_cast<const MessageProximityAlertTriggered *>(old_content);
-      auto new_ = static_cast<const MessageProximityAlertTriggered *>(new_content);
+      const auto *old_ = static_cast<const MessageProximityAlertTriggered *>(old_content);
+      const auto *new_ = static_cast<const MessageProximityAlertTriggered *>(new_content);
       if (old_->traveler_dialog_id != new_->traveler_dialog_id || old_->watcher_dialog_id != new_->watcher_dialog_id ||
           old_->distance != new_->distance) {
         need_update = true;
@@ -3407,8 +3433,8 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       break;
     }
     case MessageContentType::GroupCall: {
-      auto old_ = static_cast<const MessageGroupCall *>(old_content);
-      auto new_ = static_cast<const MessageGroupCall *>(new_content);
+      const auto *old_ = static_cast<const MessageGroupCall *>(old_content);
+      const auto *new_ = static_cast<const MessageGroupCall *>(new_content);
       if (old_->input_group_call_id != new_->input_group_call_id || old_->duration != new_->duration ||
           old_->schedule_date != new_->schedule_date) {
         need_update = true;
@@ -3419,8 +3445,8 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       break;
     }
     case MessageContentType::InviteToGroupCall: {
-      auto old_ = static_cast<const MessageInviteToGroupCall *>(old_content);
-      auto new_ = static_cast<const MessageInviteToGroupCall *>(new_content);
+      const auto *old_ = static_cast<const MessageInviteToGroupCall *>(old_content);
+      const auto *new_ = static_cast<const MessageInviteToGroupCall *>(new_content);
       if (old_->input_group_call_id != new_->input_group_call_id || old_->user_ids != new_->user_ids) {
         need_update = true;
       }
@@ -3430,16 +3456,16 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       break;
     }
     case MessageContentType::ChatSetTheme: {
-      auto old_ = static_cast<const MessageChatSetTheme *>(old_content);
-      auto new_ = static_cast<const MessageChatSetTheme *>(new_content);
+      const auto *old_ = static_cast<const MessageChatSetTheme *>(old_content);
+      const auto *new_ = static_cast<const MessageChatSetTheme *>(new_content);
       if (old_->emoji != new_->emoji) {
         need_update = true;
       }
       break;
     }
     case MessageContentType::Unsupported: {
-      auto old_ = static_cast<const MessageUnsupported *>(old_content);
-      auto new_ = static_cast<const MessageUnsupported *>(new_content);
+      const auto *old_ = static_cast<const MessageUnsupported *>(old_content);
+      const auto *new_ = static_cast<const MessageUnsupported *>(new_content);
       if (old_->version != new_->version) {
         is_content_changed = true;
       }
@@ -3582,12 +3608,22 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
   return false;
 }
 
+static bool can_be_animated_emoji(const FormattedText &text) {
+  return text.entities.empty() && is_emoji(text.text);
+}
+
 void register_message_content(Td *td, const MessageContent *content, FullMessageId full_message_id,
                               const char *source) {
   switch (content->get_type()) {
-    case MessageContentType::Text:
-      return td->web_pages_manager_->register_web_page(static_cast<const MessageText *>(content)->web_page_id,
-                                                       full_message_id, source);
+    case MessageContentType::Text: {
+      auto text = static_cast<const MessageText *>(content);
+      if (text->web_page_id.is_valid()) {
+        td->web_pages_manager_->register_web_page(text->web_page_id, full_message_id, source);
+      } else if (can_be_animated_emoji(text->text)) {
+        td->stickers_manager_->register_emoji(text->text.text, full_message_id, source);
+      }
+      return;
+    }
     case MessageContentType::Poll:
       return td->poll_manager_->register_poll(static_cast<const MessagePoll *>(content)->poll_id, full_message_id,
                                               source);
@@ -3606,12 +3642,16 @@ void reregister_message_content(Td *td, const MessageContent *old_content, const
   auto new_content_type = new_content->get_type();
   if (old_content_type == new_content_type) {
     switch (old_content_type) {
-      case MessageContentType::Text:
-        if (static_cast<const MessageText *>(old_content)->web_page_id ==
-            static_cast<const MessageText *>(new_content)->web_page_id) {
+      case MessageContentType::Text: {
+        auto old_text = static_cast<const MessageText *>(old_content);
+        auto new_text = static_cast<const MessageText *>(new_content);
+        if (old_text->web_page_id == new_text->web_page_id &&
+            (old_text->text == new_text->text ||
+             (!can_be_animated_emoji(old_text->text) && !can_be_animated_emoji(new_text->text)))) {
           return;
         }
         break;
+      }
       case MessageContentType::Poll:
         if (static_cast<const MessagePoll *>(old_content)->poll_id ==
             static_cast<const MessagePoll *>(new_content)->poll_id) {
@@ -3637,9 +3677,15 @@ void reregister_message_content(Td *td, const MessageContent *old_content, const
 void unregister_message_content(Td *td, const MessageContent *content, FullMessageId full_message_id,
                                 const char *source) {
   switch (content->get_type()) {
-    case MessageContentType::Text:
-      return td->web_pages_manager_->unregister_web_page(static_cast<const MessageText *>(content)->web_page_id,
-                                                         full_message_id, source);
+    case MessageContentType::Text: {
+      auto text = static_cast<const MessageText *>(content);
+      if (text->web_page_id.is_valid()) {
+        td->web_pages_manager_->unregister_web_page(text->web_page_id, full_message_id, source);
+      } else if (can_be_animated_emoji(text->text)) {
+        td->stickers_manager_->unregister_emoji(text->text.text, full_message_id, source);
+      }
+      return;
+    }
     case MessageContentType::Poll:
       return td->poll_manager_->unregister_poll(static_cast<const MessagePoll *>(content)->poll_id, full_message_id,
                                                 source);
@@ -3759,7 +3805,7 @@ static auto telegram_documentAttributeAudio(bool is_voice_note, int duration, st
   if (!performer.empty()) {
     flags |= telegram_api::documentAttributeAudio::PERFORMER_MASK;
   }
-  if (waveform.size()) {
+  if (!waveform.empty()) {
     flags |= telegram_api::documentAttributeAudio::WAVEFORM_MASK;
   }
   return make_tl_object<telegram_api::documentAttributeAudio>(flags, is_voice_note, duration, std::move(title),
@@ -3801,9 +3847,9 @@ static auto secret_to_telegram_document(secret_api::decryptedMessageMediaExterna
   }
   vector<telegram_api::object_ptr<telegram_api::PhotoSize>> thumbnails;
   thumbnails.push_back(secret_to_telegram<telegram_api::PhotoSize>(*from.thumb_));
-  return make_tl_object<telegram_api::document>(
-      telegram_api::document::THUMBS_MASK, from.id_, from.access_hash_, BufferSlice(), from.date_, from.mime_type_,
-      from.size_, std::move(thumbnails), Auto(), from.dc_id_, secret_to_telegram(from.attributes_));
+  return make_tl_object<telegram_api::document>(0, from.id_, from.access_hash_, BufferSlice(), from.date_,
+                                                from.mime_type_, from.size_, std::move(thumbnails), Auto(), from.dc_id_,
+                                                secret_to_telegram(from.attributes_));
 }
 
 template <class ToT, class FromT>
@@ -3910,6 +3956,8 @@ unique_ptr<MessageContent> get_secret_message_content(
       constructor_id = secret_api::decryptedMessageMediaDocument::ID;
       break;
     }
+    default:
+      break;
   }
 
   bool is_media_empty = false;
@@ -3923,7 +3971,7 @@ unique_ptr<MessageContent> get_secret_message_content(
     case secret_api::decryptedMessageMediaGeoPoint::ID: {
       auto message_geo_point = move_tl_object_as<secret_api::decryptedMessageMediaGeoPoint>(media);
 
-      auto m = make_unique<MessageLocation>(Location(std::move(message_geo_point)));
+      auto m = make_unique<MessageLocation>(Location(message_geo_point));
       if (m->location.empty()) {
         is_media_empty = true;
         break;
@@ -3985,16 +4033,16 @@ unique_ptr<MessageContent> get_secret_message_content(
       }
       auto url = r_http_url.ok().get_url();
 
-      auto web_page_id = td->web_pages_manager_->get_web_page_by_url(url, load_data_multipromise.get_promise());
-      auto result = make_unique<MessageText>(FormattedText{std::move(message_text), std::move(entities)}, web_page_id);
-      if (!result->web_page_id.is_valid()) {
-        load_data_multipromise.add_promise(
-            PromiseCreator::lambda([td, url, &web_page_id = result->web_page_id](Result<Unit> result) {
-              if (result.is_ok()) {
-                web_page_id = td->web_pages_manager_->get_web_page_by_url(url);
-              }
-            }));
-      }
+      auto result = make_unique<MessageText>(FormattedText{std::move(message_text), std::move(entities)}, WebPageId());
+      td->web_pages_manager_->get_web_page_by_url(
+          url,
+          PromiseCreator::lambda([&web_page_id = result->web_page_id, promise = load_data_multipromise.get_promise()](
+                                     Result<WebPageId> r_web_page_id) mutable {
+            if (r_web_page_id.is_ok()) {
+              web_page_id = r_web_page_id.move_as_ok();
+            }
+            promise.set_value(Unit());
+          }));
       return std::move(result);
     }
     case secret_api::decryptedMessageMediaExternalDocument::ID: {
@@ -4004,6 +4052,8 @@ unique_ptr<MessageContent> get_secret_message_content(
                                           FormattedText{std::move(message_text), std::move(entities)}, false,
                                           &load_data_multipromise);
     }
+    default:
+      break;
   }
   if (file == nullptr && !is_media_empty) {
     LOG(ERROR) << "Received secret message with media, but without a file";
@@ -4050,10 +4100,13 @@ unique_ptr<MessageContent> get_secret_message_content(
 unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
                                                tl_object_ptr<telegram_api::MessageMedia> &&media,
                                                DialogId owner_dialog_id, bool is_content_read, UserId via_bot_user_id,
-                                               int32 *ttl) {
+                                               int32 *ttl, bool *disable_web_page_preview) {
   if (!td->auth_manager_->was_authorized() && !G()->close_flag() && media != nullptr) {
     LOG(ERROR) << "Receive without authorization " << to_string(media);
     media = nullptr;
+  }
+  if (disable_web_page_preview != nullptr) {
+    *disable_web_page_preview = false;
   }
 
   int32 constructor_id = media == nullptr ? telegram_api::messageMediaEmpty::ID : media->get_id();
@@ -4062,10 +4115,13 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
       if (message.text.empty()) {
         LOG(ERROR) << "Receive empty message text and media for message from " << owner_dialog_id;
       }
+      if (disable_web_page_preview != nullptr) {
+        *disable_web_page_preview = true;
+      }
       return make_unique<MessageText>(std::move(message), WebPageId());
     case telegram_api::messageMediaPhoto::ID: {
       auto message_photo = move_tl_object_as<telegram_api::messageMediaPhoto>(media);
-      if ((message_photo->flags_ & telegram_api::messageMediaPhoto::PHOTO_MASK) == 0) {
+      if (message_photo->photo_ == nullptr) {
         if ((message_photo->flags_ & telegram_api::messageMediaPhoto::TTL_SECONDS_MASK) == 0) {
           LOG(ERROR) << "Receive messageMediaPhoto without photo and TTL: " << oneline(to_string(message_photo));
           break;
@@ -4097,7 +4153,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
     case telegram_api::messageMediaGeo::ID: {
       auto message_geo_point = move_tl_object_as<telegram_api::messageMediaGeo>(media);
 
-      auto m = make_unique<MessageLocation>(Location(std::move(message_geo_point->geo_)));
+      auto m = make_unique<MessageLocation>(Location(message_geo_point->geo_));
       if (m->location.empty()) {
         break;
       }
@@ -4106,7 +4162,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
     }
     case telegram_api::messageMediaGeoLive::ID: {
       auto message_geo_point_live = move_tl_object_as<telegram_api::messageMediaGeoLive>(media);
-      auto location = Location(std::move(message_geo_point_live->geo_));
+      auto location = Location(message_geo_point_live->geo_);
       if (location.empty()) {
         break;
       }
@@ -4145,7 +4201,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
     }
     case telegram_api::messageMediaDocument::ID: {
       auto message_document = move_tl_object_as<telegram_api::messageMediaDocument>(media);
-      if ((message_document->flags_ & telegram_api::messageMediaDocument::DOCUMENT_MASK) == 0) {
+      if (message_document->document_ == nullptr) {
         if ((message_document->flags_ & telegram_api::messageMediaDocument::TTL_SECONDS_MASK) == 0) {
           LOG(ERROR) << "Receive messageMediaDocument without document and TTL: "
                      << oneline(to_string(message_document));
@@ -4183,6 +4239,9 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
           get_input_invoice(move_tl_object_as<telegram_api::messageMediaInvoice>(media), td, owner_dialog_id));
     case telegram_api::messageMediaWebPage::ID: {
       auto media_web_page = move_tl_object_as<telegram_api::messageMediaWebPage>(media);
+      if (disable_web_page_preview != nullptr) {
+        *disable_web_page_preview = (media_web_page->webpage_ == nullptr);
+      }
       auto web_page_id = td->web_pages_manager_->on_get_web_page(std::move(media_web_page->webpage_), owner_dialog_id);
       return make_unique<MessageText>(std::move(message), web_page_id);
     }
@@ -4202,6 +4261,9 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
   }
 
   // explicit empty media message
+  if (disable_web_page_preview != nullptr) {
+    *disable_web_page_preview = true;
+  }
   return make_unique<MessageText>(std::move(message), WebPageId());
 }
 
@@ -4344,7 +4406,8 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
       }
 
       result->photo.photos.clear();
-      if (thumbnail.type != 0) {
+      bool has_thumbnail = thumbnail.type != 0;
+      if (has_thumbnail) {
         thumbnail.type = 't';
         result->photo.photos.push_back(std::move(thumbnail));
       }
@@ -4356,7 +4419,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
       }
 
       result->photo.photos.back().file_id = fix_file_id(result->photo.photos.back().file_id);
-      if (thumbnail.type != 0) {
+      if (has_thumbnail) {
         result->photo.photos[0].file_id = td->file_manager_->dup_file_id(result->photo.photos[0].file_id);
       }
       return std::move(result);
@@ -4513,7 +4576,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       return td::make_unique<MessageChatAddUsers>(std::move(user_ids));
     }
     case telegram_api::messageActionChatJoinedByLink::ID:
-      return make_unique<MessageChatJoinedByLink>();
+      return make_unique<MessageChatJoinedByLink>(false);
     case telegram_api::messageActionChatDeleteUser::ID: {
       auto chat_delete_user = move_tl_object_as<telegram_api::messageActionChatDeleteUser>(action);
 
@@ -4583,13 +4646,12 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       auto phone_call = move_tl_object_as<telegram_api::messageActionPhoneCall>(action);
       auto duration =
           (phone_call->flags_ & telegram_api::messageActionPhoneCall::DURATION_MASK) != 0 ? phone_call->duration_ : 0;
-      auto is_video = (phone_call->flags_ & telegram_api::messageActionPhoneCall::VIDEO_MASK) != 0;
       if (duration < 0) {
         LOG(ERROR) << "Receive invalid " << oneline(to_string(phone_call));
         break;
       }
       return make_unique<MessageCall>(phone_call->call_id_, duration, get_call_discard_reason(phone_call->reason_),
-                                      is_video);
+                                      phone_call->video_);
     }
     case telegram_api::messageActionPaymentSent::ID: {
       if (td->auth_manager_->is_bot()) {
@@ -4708,6 +4770,8 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       auto set_chat_theme = move_tl_object_as<telegram_api::messageActionSetChatTheme>(action);
       return td::make_unique<MessageChatSetTheme>(std::move(set_chat_theme->emoticon_));
     }
+    case telegram_api::messageActionChatJoinedByRequest::ID:
+      return make_unique<MessageChatJoinedByLink>(true);
     default:
       UNREACHABLE();
   }
@@ -4722,37 +4786,37 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
   CHECK(content != nullptr);
   switch (content->get_type()) {
     case MessageContentType::Animation: {
-      const MessageAnimation *m = static_cast<const MessageAnimation *>(content);
+      const auto *m = static_cast<const MessageAnimation *>(content);
       return make_tl_object<td_api::messageAnimation>(
           td->animations_manager_->get_animation_object(m->file_id),
           get_formatted_text_object(m->caption, skip_bot_commands, max_media_timestamp), is_content_secret);
     }
     case MessageContentType::Audio: {
-      const MessageAudio *m = static_cast<const MessageAudio *>(content);
+      const auto *m = static_cast<const MessageAudio *>(content);
       return make_tl_object<td_api::messageAudio>(
           td->audios_manager_->get_audio_object(m->file_id),
           get_formatted_text_object(m->caption, skip_bot_commands, max_media_timestamp));
     }
     case MessageContentType::Contact: {
-      const MessageContact *m = static_cast<const MessageContact *>(content);
+      const auto *m = static_cast<const MessageContact *>(content);
       return make_tl_object<td_api::messageContact>(m->contact.get_contact_object());
     }
     case MessageContentType::Document: {
-      const MessageDocument *m = static_cast<const MessageDocument *>(content);
+      const auto *m = static_cast<const MessageDocument *>(content);
       return make_tl_object<td_api::messageDocument>(
           td->documents_manager_->get_document_object(m->file_id, PhotoFormat::Jpeg),
           get_formatted_text_object(m->caption, skip_bot_commands, max_media_timestamp));
     }
     case MessageContentType::Game: {
-      const MessageGame *m = static_cast<const MessageGame *>(content);
+      const auto *m = static_cast<const MessageGame *>(content);
       return make_tl_object<td_api::messageGame>(m->game.get_game_object(td, skip_bot_commands));
     }
     case MessageContentType::Invoice: {
-      const MessageInvoice *m = static_cast<const MessageInvoice *>(content);
+      const auto *m = static_cast<const MessageInvoice *>(content);
       return get_message_invoice_object(m->input_invoice, td);
     }
     case MessageContentType::LiveLocation: {
-      const MessageLiveLocation *m = static_cast<const MessageLiveLocation *>(content);
+      const auto *m = static_cast<const MessageLiveLocation *>(content);
       auto passed = max(G()->unix_time_cached() - message_date, 0);
       auto expires_in = max(0, m->period - passed);
       auto heading = expires_in == 0 ? 0 : m->heading;
@@ -4761,21 +4825,27 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
                                                      proximity_alert_radius);
     }
     case MessageContentType::Location: {
-      const MessageLocation *m = static_cast<const MessageLocation *>(content);
+      const auto *m = static_cast<const MessageLocation *>(content);
       return make_tl_object<td_api::messageLocation>(m->location.get_location_object(), 0, 0, 0, 0);
     }
     case MessageContentType::Photo: {
-      const MessagePhoto *m = static_cast<const MessagePhoto *>(content);
+      const auto *m = static_cast<const MessagePhoto *>(content);
       return make_tl_object<td_api::messagePhoto>(
           get_photo_object(td->file_manager_.get(), m->photo),
           get_formatted_text_object(m->caption, skip_bot_commands, max_media_timestamp), is_content_secret);
     }
     case MessageContentType::Sticker: {
-      const MessageSticker *m = static_cast<const MessageSticker *>(content);
+      const auto *m = static_cast<const MessageSticker *>(content);
       return make_tl_object<td_api::messageSticker>(td->stickers_manager_->get_sticker_object(m->file_id));
     }
     case MessageContentType::Text: {
-      const MessageText *m = static_cast<const MessageText *>(content);
+      const auto *m = static_cast<const MessageText *>(content);
+      if (can_be_animated_emoji(m->text) && !m->web_page_id.is_valid()) {
+        auto animated_emoji = td->stickers_manager_->get_animated_emoji_object(m->text.text);
+        if (animated_emoji != nullptr) {
+          return td_api::make_object<td_api::messageAnimatedEmoji>(std::move(animated_emoji), m->text.text);
+        }
+      }
       return make_tl_object<td_api::messageText>(
           get_formatted_text_object(m->text, skip_bot_commands, max_media_timestamp),
           td->web_pages_manager_->get_web_page_object(m->web_page_id));
@@ -4783,37 +4853,37 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     case MessageContentType::Unsupported:
       return make_tl_object<td_api::messageUnsupported>();
     case MessageContentType::Venue: {
-      const MessageVenue *m = static_cast<const MessageVenue *>(content);
+      const auto *m = static_cast<const MessageVenue *>(content);
       return make_tl_object<td_api::messageVenue>(m->venue.get_venue_object());
     }
     case MessageContentType::Video: {
-      const MessageVideo *m = static_cast<const MessageVideo *>(content);
+      const auto *m = static_cast<const MessageVideo *>(content);
       return make_tl_object<td_api::messageVideo>(
           td->videos_manager_->get_video_object(m->file_id),
           get_formatted_text_object(m->caption, skip_bot_commands, max_media_timestamp), is_content_secret);
     }
     case MessageContentType::VideoNote: {
-      const MessageVideoNote *m = static_cast<const MessageVideoNote *>(content);
+      const auto *m = static_cast<const MessageVideoNote *>(content);
       return make_tl_object<td_api::messageVideoNote>(td->video_notes_manager_->get_video_note_object(m->file_id),
                                                       m->is_viewed, is_content_secret);
     }
     case MessageContentType::VoiceNote: {
-      const MessageVoiceNote *m = static_cast<const MessageVoiceNote *>(content);
+      const auto *m = static_cast<const MessageVoiceNote *>(content);
       return make_tl_object<td_api::messageVoiceNote>(
           td->voice_notes_manager_->get_voice_note_object(m->file_id),
           get_formatted_text_object(m->caption, skip_bot_commands, max_media_timestamp), m->is_listened);
     }
     case MessageContentType::ChatCreate: {
-      const MessageChatCreate *m = static_cast<const MessageChatCreate *>(content);
+      const auto *m = static_cast<const MessageChatCreate *>(content);
       return make_tl_object<td_api::messageBasicGroupChatCreate>(
           m->title, td->contacts_manager_->get_user_ids_object(m->participant_user_ids, "MessageChatCreate"));
     }
     case MessageContentType::ChatChangeTitle: {
-      const MessageChatChangeTitle *m = static_cast<const MessageChatChangeTitle *>(content);
+      const auto *m = static_cast<const MessageChatChangeTitle *>(content);
       return make_tl_object<td_api::messageChatChangeTitle>(m->title);
     }
     case MessageContentType::ChatChangePhoto: {
-      const MessageChatChangePhoto *m = static_cast<const MessageChatChangePhoto *>(content);
+      const auto *m = static_cast<const MessageChatChangePhoto *>(content);
       return make_tl_object<td_api::messageChatChangePhoto>(get_chat_photo_object(td->file_manager_.get(), m->photo));
     }
     case MessageContentType::ChatDeletePhoto:
@@ -4821,53 +4891,58 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     case MessageContentType::ChatDeleteHistory:
       return make_tl_object<td_api::messageUnsupported>();
     case MessageContentType::ChatAddUsers: {
-      const MessageChatAddUsers *m = static_cast<const MessageChatAddUsers *>(content);
+      const auto *m = static_cast<const MessageChatAddUsers *>(content);
       return make_tl_object<td_api::messageChatAddMembers>(
           td->contacts_manager_->get_user_ids_object(m->user_ids, "MessageChatAddUsers"));
     }
-    case MessageContentType::ChatJoinedByLink:
+    case MessageContentType::ChatJoinedByLink: {
+      const MessageChatJoinedByLink *m = static_cast<const MessageChatJoinedByLink *>(content);
+      if (m->is_approved) {
+        return make_tl_object<td_api::messageChatJoinByRequest>();
+      }
       return make_tl_object<td_api::messageChatJoinByLink>();
+    }
     case MessageContentType::ChatDeleteUser: {
-      const MessageChatDeleteUser *m = static_cast<const MessageChatDeleteUser *>(content);
+      const auto *m = static_cast<const MessageChatDeleteUser *>(content);
       return make_tl_object<td_api::messageChatDeleteMember>(
           td->contacts_manager_->get_user_id_object(m->user_id, "MessageChatDeleteMember"));
     }
     case MessageContentType::ChatMigrateTo: {
-      const MessageChatMigrateTo *m = static_cast<const MessageChatMigrateTo *>(content);
+      const auto *m = static_cast<const MessageChatMigrateTo *>(content);
       return make_tl_object<td_api::messageChatUpgradeTo>(
           td->contacts_manager_->get_supergroup_id_object(m->migrated_to_channel_id, "MessageChatUpgradeTo"));
     }
     case MessageContentType::ChannelCreate: {
-      const MessageChannelCreate *m = static_cast<const MessageChannelCreate *>(content);
+      const auto *m = static_cast<const MessageChannelCreate *>(content);
       return make_tl_object<td_api::messageSupergroupChatCreate>(m->title);
     }
     case MessageContentType::ChannelMigrateFrom: {
-      const MessageChannelMigrateFrom *m = static_cast<const MessageChannelMigrateFrom *>(content);
+      const auto *m = static_cast<const MessageChannelMigrateFrom *>(content);
       return make_tl_object<td_api::messageChatUpgradeFrom>(
           m->title,
           td->contacts_manager_->get_basic_group_id_object(m->migrated_from_chat_id, "MessageChatUpgradeFrom"));
     }
     case MessageContentType::PinMessage: {
-      const MessagePinMessage *m = static_cast<const MessagePinMessage *>(content);
+      const auto *m = static_cast<const MessagePinMessage *>(content);
       return make_tl_object<td_api::messagePinMessage>(m->message_id.get());
     }
     case MessageContentType::GameScore: {
-      const MessageGameScore *m = static_cast<const MessageGameScore *>(content);
+      const auto *m = static_cast<const MessageGameScore *>(content);
       return make_tl_object<td_api::messageGameScore>(m->game_message_id.get(), m->game_id, m->score);
     }
     case MessageContentType::ScreenshotTaken:
       return make_tl_object<td_api::messageScreenshotTaken>();
     case MessageContentType::ChatSetTtl: {
-      const MessageChatSetTtl *m = static_cast<const MessageChatSetTtl *>(content);
+      const auto *m = static_cast<const MessageChatSetTtl *>(content);
       return make_tl_object<td_api::messageChatSetTtl>(m->ttl);
     }
     case MessageContentType::Call: {
-      const MessageCall *m = static_cast<const MessageCall *>(content);
+      const auto *m = static_cast<const MessageCall *>(content);
       return make_tl_object<td_api::messageCall>(m->is_video, get_call_discard_reason_object(m->discard_reason),
                                                  m->duration);
     }
     case MessageContentType::PaymentSuccessful: {
-      const MessagePaymentSuccessful *m = static_cast<const MessagePaymentSuccessful *>(content);
+      const auto *m = static_cast<const MessagePaymentSuccessful *>(content);
       if (td->auth_manager_->is_bot()) {
         return make_tl_object<td_api::messagePaymentSuccessfulBot>(
             m->currency, m->total_amount, m->invoice_payload, m->shipping_option_id,
@@ -4885,29 +4960,29 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     case MessageContentType::ExpiredVideo:
       return make_tl_object<td_api::messageExpiredVideo>();
     case MessageContentType::CustomServiceAction: {
-      const MessageCustomServiceAction *m = static_cast<const MessageCustomServiceAction *>(content);
+      const auto *m = static_cast<const MessageCustomServiceAction *>(content);
       return make_tl_object<td_api::messageCustomServiceAction>(m->message);
     }
     case MessageContentType::WebsiteConnected: {
-      const MessageWebsiteConnected *m = static_cast<const MessageWebsiteConnected *>(content);
+      const auto *m = static_cast<const MessageWebsiteConnected *>(content);
       return make_tl_object<td_api::messageWebsiteConnected>(m->domain_name);
     }
     case MessageContentType::PassportDataSent: {
-      const MessagePassportDataSent *m = static_cast<const MessagePassportDataSent *>(content);
+      const auto *m = static_cast<const MessagePassportDataSent *>(content);
       return make_tl_object<td_api::messagePassportDataSent>(get_passport_element_types_object(m->types));
     }
     case MessageContentType::PassportDataReceived: {
-      const MessagePassportDataReceived *m = static_cast<const MessagePassportDataReceived *>(content);
+      const auto *m = static_cast<const MessagePassportDataReceived *>(content);
       return make_tl_object<td_api::messagePassportDataReceived>(
           get_encrypted_passport_element_object(td->file_manager_.get(), m->values),
           get_encrypted_credentials_object(m->credentials));
     }
     case MessageContentType::Poll: {
-      const MessagePoll *m = static_cast<const MessagePoll *>(content);
+      const auto *m = static_cast<const MessagePoll *>(content);
       return make_tl_object<td_api::messagePoll>(td->poll_manager_->get_poll_object(m->poll_id));
     }
     case MessageContentType::Dice: {
-      const MessageDice *m = static_cast<const MessageDice *>(content);
+      const auto *m = static_cast<const MessageDice *>(content);
       auto initial_state = td->stickers_manager_->get_dice_stickers_object(m->emoji, 0);
       auto final_state =
           m->dice_value == 0 ? nullptr : td->stickers_manager_->get_dice_stickers_object(m->emoji, m->dice_value);
@@ -4917,33 +4992,33 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
                                                  m->dice_value, success_animation_frame_number);
     }
     case MessageContentType::ProximityAlertTriggered: {
-      const MessageProximityAlertTriggered *m = static_cast<const MessageProximityAlertTriggered *>(content);
+      const auto *m = static_cast<const MessageProximityAlertTriggered *>(content);
       return make_tl_object<td_api::messageProximityAlertTriggered>(
           td->messages_manager_->get_message_sender_object(m->traveler_dialog_id, "messageProximityAlertTriggered 1"),
           td->messages_manager_->get_message_sender_object(m->watcher_dialog_id, "messageProximityAlertTriggered 2"),
           m->distance);
     }
     case MessageContentType::GroupCall: {
-      auto *m = static_cast<const MessageGroupCall *>(content);
+      const auto *m = static_cast<const MessageGroupCall *>(content);
       if (m->duration >= 0) {
-        return make_tl_object<td_api::messageVoiceChatEnded>(m->duration);
+        return make_tl_object<td_api::messageVideoChatEnded>(m->duration);
       } else {
         auto group_call_id = td->group_call_manager_->get_group_call_id(m->input_group_call_id, DialogId()).get();
         if (m->schedule_date > 0) {
-          return make_tl_object<td_api::messageVoiceChatScheduled>(group_call_id, m->schedule_date);
+          return make_tl_object<td_api::messageVideoChatScheduled>(group_call_id, m->schedule_date);
         } else {
-          return make_tl_object<td_api::messageVoiceChatStarted>(group_call_id);
+          return make_tl_object<td_api::messageVideoChatStarted>(group_call_id);
         }
       }
     }
     case MessageContentType::InviteToGroupCall: {
-      auto *m = static_cast<const MessageInviteToGroupCall *>(content);
-      return make_tl_object<td_api::messageInviteVoiceChatParticipants>(
+      const auto *m = static_cast<const MessageInviteToGroupCall *>(content);
+      return make_tl_object<td_api::messageInviteVideoChatParticipants>(
           td->group_call_manager_->get_group_call_id(m->input_group_call_id, DialogId()).get(),
           td->contacts_manager_->get_user_ids_object(m->user_ids, "MessageInviteToGroupCall"));
     }
     case MessageContentType::ChatSetTheme: {
-      const MessageChatSetTheme *m = static_cast<const MessageChatSetTheme *>(content);
+      const auto *m = static_cast<const MessageChatSetTheme *>(content);
       return make_tl_object<td_api::messageChatSetTheme>(m->emoji);
     }
     default:
@@ -5222,36 +5297,36 @@ vector<FileId> get_message_content_file_ids(const MessageContent *content, const
 string get_message_content_search_text(const Td *td, const MessageContent *content) {
   switch (content->get_type()) {
     case MessageContentType::Text: {
-      auto *text = static_cast<const MessageText *>(content);
+      const auto *text = static_cast<const MessageText *>(content);
       if (!text->web_page_id.is_valid()) {
         return text->text.text;
       }
       return PSTRING() << text->text.text << " " << td->web_pages_manager_->get_web_page_search_text(text->web_page_id);
     }
     case MessageContentType::Animation: {
-      auto animation = static_cast<const MessageAnimation *>(content);
+      const auto *animation = static_cast<const MessageAnimation *>(content);
       return PSTRING() << td->animations_manager_->get_animation_search_text(animation->file_id) << " "
                        << animation->caption.text;
     }
     case MessageContentType::Audio: {
-      auto audio = static_cast<const MessageAudio *>(content);
+      const auto *audio = static_cast<const MessageAudio *>(content);
       return PSTRING() << td->audios_manager_->get_audio_search_text(audio->file_id) << " " << audio->caption.text;
     }
     case MessageContentType::Document: {
-      auto document = static_cast<const MessageDocument *>(content);
+      const auto *document = static_cast<const MessageDocument *>(content);
       return PSTRING() << td->documents_manager_->get_document_search_text(document->file_id) << " "
                        << document->caption.text;
     }
     case MessageContentType::Photo: {
-      auto photo = static_cast<const MessagePhoto *>(content);
+      const auto *photo = static_cast<const MessagePhoto *>(content);
       return photo->caption.text;
     }
     case MessageContentType::Video: {
-      auto video = static_cast<const MessageVideo *>(content);
+      const auto *video = static_cast<const MessageVideo *>(content);
       return PSTRING() << td->videos_manager_->get_video_search_text(video->file_id) << " " << video->caption.text;
     }
     case MessageContentType::Poll: {
-      auto poll = static_cast<const MessagePoll *>(content);
+      const auto *poll = static_cast<const MessagePoll *>(content);
       return td->poll_manager_->get_poll_search_text(poll->poll_id);
     }
     case MessageContentType::Contact:
@@ -5306,8 +5381,8 @@ void get_message_content_animated_emoji_click_sticker(const MessageContent *cont
     return promise.set_error(Status::Error(400, "Message is not an animated emoji message"));
   }
 
-  auto &text = static_cast<const MessageText *>(content)->text;
-  if (!text.entities.empty()) {
+  const auto &text = static_cast<const MessageText *>(content)->text;
+  if (!can_be_animated_emoji(text)) {
     return promise.set_error(Status::Error(400, "Message is not an animated emoji message"));
   }
   td->stickers_manager_->get_animated_emoji_click_sticker(text.text, full_message_id, std::move(promise));
@@ -5334,8 +5409,8 @@ bool need_reget_message_content(const MessageContent *content) {
   CHECK(content != nullptr);
   switch (content->get_type()) {
     case MessageContentType::Unsupported: {
-      auto message_unsupported = static_cast<const MessageUnsupported *>(content);
-      return message_unsupported->version != MessageUnsupported::CURRENT_VERSION;
+      const auto *m = static_cast<const MessageUnsupported *>(content);
+      return m->version != MessageUnsupported::CURRENT_VERSION;
     }
     default:
       return false;
@@ -5393,7 +5468,7 @@ void update_failed_to_send_message_content(Td *td, unique_ptr<MessageContent> &c
   // do not forget about failed to send message forwards
   switch (content->get_type()) {
     case MessageContentType::Poll: {
-      const MessagePoll *message_poll = static_cast<const MessagePoll *>(content.get());
+      const auto *message_poll = static_cast<const MessagePoll *>(content.get());
       if (PollManager::is_local_poll_id(message_poll->poll_id)) {
         td->poll_manager_->stop_local_poll(message_poll->poll_id);
       }
@@ -5408,7 +5483,7 @@ void update_failed_to_send_message_content(Td *td, unique_ptr<MessageContent> &c
 void add_message_content_dependencies(Dependencies &dependencies, const MessageContent *message_content) {
   switch (message_content->get_type()) {
     case MessageContentType::Text: {
-      auto content = static_cast<const MessageText *>(message_content);
+      const auto *content = static_cast<const MessageText *>(message_content);
       dependencies.web_page_ids.insert(content->web_page_id);
       break;
     }
@@ -5417,14 +5492,14 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
     case MessageContentType::Audio:
       break;
     case MessageContentType::Contact: {
-      auto content = static_cast<const MessageContact *>(message_content);
+      const auto *content = static_cast<const MessageContact *>(message_content);
       dependencies.user_ids.insert(content->contact.get_user_id());
       break;
     }
     case MessageContentType::Document:
       break;
     case MessageContentType::Game: {
-      auto content = static_cast<const MessageGame *>(message_content);
+      const auto *content = static_cast<const MessageGame *>(message_content);
       dependencies.user_ids.insert(content->game.get_bot_user_id());
       break;
     }
@@ -5447,7 +5522,7 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
     case MessageContentType::VoiceNote:
       break;
     case MessageContentType::ChatCreate: {
-      auto content = static_cast<const MessageChatCreate *>(message_content);
+      const auto *content = static_cast<const MessageChatCreate *>(message_content);
       dependencies.user_ids.insert(content->participant_user_ids.begin(), content->participant_user_ids.end());
       break;
     }
@@ -5460,26 +5535,26 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
     case MessageContentType::ChatDeleteHistory:
       break;
     case MessageContentType::ChatAddUsers: {
-      auto content = static_cast<const MessageChatAddUsers *>(message_content);
+      const auto *content = static_cast<const MessageChatAddUsers *>(message_content);
       dependencies.user_ids.insert(content->user_ids.begin(), content->user_ids.end());
       break;
     }
     case MessageContentType::ChatJoinedByLink:
       break;
     case MessageContentType::ChatDeleteUser: {
-      auto content = static_cast<const MessageChatDeleteUser *>(message_content);
+      const auto *content = static_cast<const MessageChatDeleteUser *>(message_content);
       dependencies.user_ids.insert(content->user_id);
       break;
     }
     case MessageContentType::ChatMigrateTo: {
-      auto content = static_cast<const MessageChatMigrateTo *>(message_content);
+      const auto *content = static_cast<const MessageChatMigrateTo *>(message_content);
       dependencies.channel_ids.insert(content->migrated_to_channel_id);
       break;
     }
     case MessageContentType::ChannelCreate:
       break;
     case MessageContentType::ChannelMigrateFrom: {
-      auto content = static_cast<const MessageChannelMigrateFrom *>(message_content);
+      const auto *content = static_cast<const MessageChannelMigrateFrom *>(message_content);
       dependencies.chat_ids.insert(content->migrated_from_chat_id);
       break;
     }
@@ -5496,7 +5571,7 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
     case MessageContentType::Call:
       break;
     case MessageContentType::PaymentSuccessful: {
-      auto content = static_cast<const MessagePaymentSuccessful *>(message_content);
+      const auto *content = static_cast<const MessagePaymentSuccessful *>(message_content);
       add_dialog_and_dependencies(dependencies, content->invoice_dialog_id);
       break;
     }
@@ -5520,7 +5595,7 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
     case MessageContentType::Dice:
       break;
     case MessageContentType::ProximityAlertTriggered: {
-      auto content = static_cast<const MessageProximityAlertTriggered *>(message_content);
+      const auto *content = static_cast<const MessageProximityAlertTriggered *>(message_content);
       add_message_sender_dependencies(dependencies, content->traveler_dialog_id);
       add_message_sender_dependencies(dependencies, content->watcher_dialog_id);
       break;
@@ -5528,7 +5603,7 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
     case MessageContentType::GroupCall:
       break;
     case MessageContentType::InviteToGroupCall: {
-      auto content = static_cast<const MessageInviteToGroupCall *>(message_content);
+      const auto *content = static_cast<const MessageInviteToGroupCall *>(message_content);
       dependencies.user_ids.insert(content->user_ids.begin(), content->user_ids.end());
       break;
     }
@@ -5551,10 +5626,6 @@ void on_sent_message_content(Td *td, const MessageContent *content) {
       // nothing to do
       return;
   }
-}
-
-StickerSetId add_sticker_set(Td *td, tl_object_ptr<telegram_api::InputStickerSet> &&input_sticker_set) {
-  return td->stickers_manager_->add_sticker_set(std::move(input_sticker_set));
 }
 
 bool is_unsent_animated_emoji_click(Td *td, DialogId dialog_id, const DialogAction &action) {

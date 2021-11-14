@@ -6,12 +6,10 @@
 //
 #pragma once
 
-#include "td/telegram/net/PublicRsaKeyShared.h"
-
 #include "td/telegram/net/NetActor.h"
 #include "td/telegram/net/NetQueryCreator.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
-
+#include "td/telegram/net/PublicRsaKeyShared.h"
 #include "td/telegram/telegram_api.h"
 
 #include "td/actor/actor.h"

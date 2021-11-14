@@ -74,7 +74,7 @@ vector<telegram_api::object_ptr<telegram_api::InputDialogPeer>> InputDialogId::g
     const vector<InputDialogId> &input_dialog_ids) {
   vector<telegram_api::object_ptr<telegram_api::InputDialogPeer>> result;
   result.reserve(input_dialog_ids.size());
-  for (auto input_dialog_id : input_dialog_ids) {
+  for (const auto &input_dialog_id : input_dialog_ids) {
     auto input_peer = input_dialog_id.get_input_peer();
     if (input_peer != nullptr) {
       result.push_back(telegram_api::make_object<telegram_api::inputDialogPeer>(std::move(input_peer)));
@@ -87,7 +87,7 @@ vector<telegram_api::object_ptr<telegram_api::InputPeer>> InputDialogId::get_inp
     const vector<InputDialogId> &input_dialog_ids) {
   vector<telegram_api::object_ptr<telegram_api::InputPeer>> result;
   result.reserve(input_dialog_ids.size());
-  for (auto input_dialog_id : input_dialog_ids) {
+  for (const auto &input_dialog_id : input_dialog_ids) {
     auto input_peer = input_dialog_id.get_input_peer();
     CHECK(input_peer != nullptr);
     result.push_back(std::move(input_peer));

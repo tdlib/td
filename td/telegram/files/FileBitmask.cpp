@@ -106,11 +106,11 @@ int64 Bitmask::get_total_size(int64 part_size, int64 file_size) const {
 
 bool Bitmask::get(int64 offset_part) const {
   if (offset_part < 0) {
-    return 0;
+    return false;
   }
   auto index = narrow_cast<size_t>(offset_part / 8);
   if (index >= data_.size()) {
-    return 0;
+    return false;
   }
   return (static_cast<uint8>(data_[index]) & (1 << static_cast<int>(offset_part % 8))) != 0;
 }
@@ -148,7 +148,7 @@ int64 Bitmask::size() const {
 }
 
 StringBuilder &operator<<(StringBuilder &sb, const Bitmask &mask) {
-  bool prev = 0;
+  bool prev = false;
   int32 cnt = 0;
   for (int64 i = 0; i <= mask.size(); i++) {
     bool cur = mask.get(i);

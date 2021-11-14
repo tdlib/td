@@ -33,7 +33,7 @@ bool find_boundary(ChainBufferReader range, Slice boundary, size_t &already_read
       range.advance(1);
       already_read++;
     } else {
-      const char *ptr = static_cast<const char *>(std::memchr(ready.data(), boundary[0], ready.size()));
+      const auto *ptr = static_cast<const char *>(std::memchr(ready.data(), boundary[0], ready.size()));
       size_t shift;
       if (ptr == nullptr) {
         shift = ready.size();

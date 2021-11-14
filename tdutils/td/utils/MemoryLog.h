@@ -47,8 +47,8 @@ class MemoryLog final : public LogInterface {
     CHECK(slice_size * 3 < buffer_size);
     size_t pad_size = ((slice_size + 15) & ~15) - slice_size;
     constexpr size_t MAGIC_SIZE = 16;
-    uint32 total_size = static_cast<uint32>(slice_size + pad_size + MAGIC_SIZE);
-    uint32 real_pos = pos_.fetch_add(total_size, std::memory_order_relaxed);
+    auto total_size = static_cast<uint32>(slice_size + pad_size + MAGIC_SIZE);
+    auto real_pos = pos_.fetch_add(total_size, std::memory_order_relaxed);
     CHECK((total_size & 15) == 0);
 
     uint32 start_pos = real_pos & (buffer_size - 1);

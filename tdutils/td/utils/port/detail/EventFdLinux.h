@@ -24,9 +24,9 @@ class EventFdLinux final : public EventFdBase {
 
  public:
   EventFdLinux();
-  EventFdLinux(EventFdLinux &&);
-  EventFdLinux &operator=(EventFdLinux &&);
-  ~EventFdLinux();
+  EventFdLinux(EventFdLinux &&) noexcept;
+  EventFdLinux &operator=(EventFdLinux &&) noexcept;
+  ~EventFdLinux() final;
 
   void init() final;
 

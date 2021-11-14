@@ -151,7 +151,7 @@ class PollableFdInfo final : private ListNode {
 #if TD_PORT_WINDOWS
     auto lock = observer_lock_.lock();
 #endif
-    CHECK(!observer_);
+    CHECK(observer_ == nullptr);
     observer_ = observer;
   }
   void clear_observer() {
@@ -165,7 +165,7 @@ class PollableFdInfo final : private ListNode {
     auto lock = observer_lock_.lock();
 #endif
     VLOG(fd) << native_fd() << " notify " << tag("observer", observer_);
-    if (observer_) {
+    if (observer_ != nullptr) {
       observer_->notify();
     }
   }

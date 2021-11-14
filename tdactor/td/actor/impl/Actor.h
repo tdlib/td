@@ -20,14 +20,14 @@
 
 namespace td {
 
-inline Actor::Actor(Actor &&other) {
+inline Actor::Actor(Actor &&other) noexcept {
   CHECK(info_.empty());
   info_ = std::move(other.info_);
   if (!empty()) {
     info_->on_actor_moved(this);
   }
 }
-inline Actor &Actor::operator=(Actor &&other) {
+inline Actor &Actor::operator=(Actor &&other) noexcept {
   CHECK(info_.empty());
   info_ = std::move(other.info_);
   if (!empty()) {
@@ -52,7 +52,7 @@ inline void Actor::do_stop() {
   CHECK(empty());
 }
 inline bool Actor::has_timeout() const {
-  return Scheduler::instance()->has_actor_timeout(this);
+  return get_info()->get_heap_node()->in_heap();
 }
 inline double Actor::get_timeout() const {
   return Scheduler::instance()->get_actor_timeout(this);
@@ -79,18 +79,26 @@ std::enable_if_t<std::is_base_of<Actor, ActorType>::value> start_migrate(ActorTy
     Scheduler::instance()->start_migrate_actor(&obj, sched_id);
   }
 }
+
 template <class ActorType>
 std::enable_if_t<std::is_base_of<Actor, ActorType>::value> finish_migrate(ActorType &obj) {
   if (!obj.empty()) {
     Scheduler::instance()->finish_migrate_actor(&obj);
   }
 }
+
 inline uint64 Actor::get_link_token() {
   return Scheduler::instance()->get_link_token(this);
 }
+
+inline std::weak_ptr<ActorContext> Actor::get_context_weak_ptr() const {
+  return info_->get_context_weak_ptr();
+}
+
 inline std::shared_ptr<ActorContext> Actor::set_context(std::shared_ptr<ActorContext> context) {
   return info_->set_context(std::move(context));
 }
+
 inline string Actor::set_tag(string tag) {
   auto *ctx = info_->get_context();
   string old_tag;
@@ -105,12 +113,14 @@ inline string Actor::set_tag(string tag) {
 inline void Actor::init(ObjectPool<ActorInfo>::OwnerPtr &&info) {
   info_ = std::move(info);
 }
+
 inline ActorInfo *Actor::get_info() {
   return &*info_;
 }
 inline const ActorInfo *Actor::get_info() const {
   return &*info_;
 }
+
 inline ObjectPool<ActorInfo>::OwnerPtr Actor::clear() {
   return std::move(info_);
 }

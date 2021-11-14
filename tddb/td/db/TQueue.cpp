@@ -68,7 +68,7 @@ bool EventId::operator<(const EventId &other) const {
   return id_ < other.id_;
 }
 
-StringBuilder &operator<<(StringBuilder &string_builder, const EventId id) {
+StringBuilder &operator<<(StringBuilder &string_builder, EventId id) {
   return string_builder << "EventId{" << id.value() << "}";
 }
 

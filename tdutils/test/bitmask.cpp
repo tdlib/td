@@ -78,8 +78,8 @@ class RangeSet {
 
       CHECK(it.begin % BIT_SIZE == 0);
       CHECK(it.end % BIT_SIZE == 0);
-      uint32 begin = narrow_cast<uint32>(it.begin / BIT_SIZE);
-      uint32 end = narrow_cast<uint32>(it.end / BIT_SIZE);
+      auto begin = narrow_cast<uint32>(it.begin / BIT_SIZE);
+      auto end = narrow_cast<uint32>(it.end / BIT_SIZE);
       if (sizes.empty()) {
         if (begin != 0) {
           sizes.push_back(0);
@@ -175,7 +175,7 @@ class RangeSet {
 
   vector<int32> as_vector(int32 part_size) const {
     vector<int32> res;
-    for (auto it : ranges_) {
+    for (const auto &it : ranges_) {
       auto begin = narrow_cast<int32>((it.begin + part_size - 1) / part_size);
       auto end = narrow_cast<int32>(it.end / part_size);
       while (begin < end) {

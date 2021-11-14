@@ -18,7 +18,6 @@
 #include "td/utils/misc.h"
 #include "td/utils/port/Clocks.h"
 #include "td/utils/port/path.h"
-#include "td/utils/Status.h"
 #include "td/utils/Time.h"
 
 #include <algorithm>
@@ -55,7 +54,7 @@ void FileGcWorker::run_gc(const FileGcParameters &parameters, std::vector<FullFi
     }
     for (int32 i = 0; i < MAX_FILE_TYPE; i++) {
       auto main_file_type = narrow_cast<size_t>(get_main_file_type(static_cast<FileType>(i)));
-      if (immune_types[main_file_type] == false) {
+      if (!immune_types[main_file_type]) {
         immune_types[i] = false;
       }
     }
@@ -132,7 +131,7 @@ void FileGcWorker::run_gc(const FileGcParameters &parameters, std::vector<FullFi
     return false;
   });
   if (token_) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
+    return promise.set_error(Global::request_aborted_error());
   }
 
   // sort by max(atime, mtime)
@@ -152,7 +151,7 @@ void FileGcWorker::run_gc(const FileGcParameters &parameters, std::vector<FullFi
   size_t pos = 0;
   while (pos < files.size() && (remove_count > 0 || remove_size > 0)) {
     if (token_) {
-      return promise.set_error(Status::Error(500, "Request aborted"));
+      return promise.set_error(Global::request_aborted_error());
     }
     if (remove_count > 0) {
       remove_by_count_cnt++;

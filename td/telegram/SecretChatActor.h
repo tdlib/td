@@ -520,7 +520,7 @@ class SecretChatActor final : public NetQueryCallback {
       return sb;
     }
 
-    int32 message_id;
+    int32 message_id = 0;
 
    private:
     std::string data;
@@ -537,7 +537,7 @@ class SecretChatActor final : public NetQueryCallback {
   };
 
   ChangesProcessor<StateChange> changes_processor_;
-  int32 saved_pfs_state_message_id_;
+  int32 saved_pfs_state_message_id_ = 0;
 
   SeqNoState seq_no_state_;
   bool seq_no_state_changed_ = false;
@@ -559,7 +559,7 @@ class SecretChatActor final : public NetQueryCallback {
     bool save_changes_finish = false;
     bool save_message_finish = false;
     LogEvent::Id log_event_id = 0;
-    int32 message_id;
+    int32 message_id = 0;
   };
   Container<InboundMessageState> inbound_message_states_;
 
@@ -645,7 +645,7 @@ class SecretChatActor final : public NetQueryCallback {
   Status save_common_info(T &update);
 
   int32 current_layer() const {
-    int32 layer = static_cast<int32>(SecretChatLayer::Current);
+    auto layer = static_cast<int32>(SecretChatLayer::Current);
     if (config_state_.his_layer < layer) {
       layer = config_state_.his_layer;
     }

@@ -26,8 +26,8 @@ class TsCerr {
  private:
   static std::atomic_flag lock_;
 
-  void enterCritical();
-  void exitCritical();
+  static void enterCritical();
+  static void exitCritical();
 };
 
 }  // namespace td

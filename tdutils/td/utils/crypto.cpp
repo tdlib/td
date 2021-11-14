@@ -396,8 +396,8 @@ struct AesState::Impl {
 };
 
 AesState::AesState() = default;
-AesState::AesState(AesState &&from) = default;
-AesState &AesState::operator=(AesState &&from) = default;
+AesState::AesState(AesState &&from) noexcept = default;
+AesState &AesState::operator=(AesState &&from) noexcept = default;
 AesState::~AesState() = default;
 
 void AesState::init(Slice key, bool encrypt) {
@@ -466,7 +466,7 @@ class AesIgeStateImpl {
       }
 
       evp_.init_iv(encrypted_iv_.as_slice());
-      int inlen = static_cast<int>(AES_BLOCK_SIZE * count);
+      auto inlen = static_cast<int>(AES_BLOCK_SIZE * count);
       evp_.encrypt(data_xored[0].raw(), data_xored[0].raw(), inlen);
 
       data_xored[0] ^= plaintext_iv_;
@@ -515,8 +515,8 @@ class AesIgeStateImpl {
 };
 
 AesIgeState::AesIgeState() = default;
-AesIgeState::AesIgeState(AesIgeState &&from) = default;
-AesIgeState &AesIgeState::operator=(AesIgeState &&from) = default;
+AesIgeState::AesIgeState(AesIgeState &&from) noexcept = default;
+AesIgeState &AesIgeState::operator=(AesIgeState &&from) noexcept = default;
 AesIgeState::~AesIgeState() = default;
 
 void AesIgeState::init(Slice key, Slice iv, bool encrypt) {
@@ -580,8 +580,8 @@ AesCbcState::AesCbcState(Slice key256, Slice iv128) : raw_{SecureString(key256),
   CHECK(raw_.iv.size() == 16);
 }
 
-AesCbcState::AesCbcState(AesCbcState &&from) = default;
-AesCbcState &AesCbcState::operator=(AesCbcState &&from) = default;
+AesCbcState::AesCbcState(AesCbcState &&from) noexcept = default;
+AesCbcState &AesCbcState::operator=(AesCbcState &&from) noexcept = default;
 AesCbcState::~AesCbcState() = default;
 
 void AesCbcState::encrypt(Slice from, MutableSlice to) {
@@ -634,8 +634,8 @@ struct AesCtrState::Impl {
 };
 
 AesCtrState::AesCtrState() = default;
-AesCtrState::AesCtrState(AesCtrState &&from) = default;
-AesCtrState &AesCtrState::operator=(AesCtrState &&from) = default;
+AesCtrState::AesCtrState(AesCtrState &&from) noexcept = default;
+AesCtrState &AesCtrState::operator=(AesCtrState &&from) noexcept = default;
 AesCtrState::~AesCtrState() = default;
 
 void AesCtrState::init(Slice key, Slice iv) {
@@ -723,6 +723,12 @@ void sha512(Slice data, MutableSlice output) {
 #endif
 }
 
+string sha1(Slice data) {
+  string result(20, '\0');
+  sha1(data, MutableSlice(result).ubegin());
+  return result;
+}
+
 string sha256(Slice data) {
   string result(32, '\0');
   sha256(data, result);
@@ -762,13 +768,13 @@ class Sha256State::Impl {
 
 Sha256State::Sha256State() = default;
 
-Sha256State::Sha256State(Sha256State &&other) {
+Sha256State::Sha256State(Sha256State &&other) noexcept {
   impl_ = std::move(other.impl_);
   is_inited_ = other.is_inited_;
   other.is_inited_ = false;
 }
 
-Sha256State &Sha256State::operator=(Sha256State &&other) {
+Sha256State &Sha256State::operator=(Sha256State &&other) noexcept {
   Sha256State copy(std::move(other));
   using std::swap;
   swap(impl_, copy.impl_);
@@ -844,7 +850,7 @@ static void pbkdf2_impl(Slice password, Slice salt, int iteration_count, Mutable
   HMAC_CTX ctx;
   HMAC_CTX_init(&ctx);
   unsigned char counter[4] = {0, 0, 0, 1};
-  int password_len = narrow_cast<int>(password.size());
+  auto password_len = narrow_cast<int>(password.size());
   HMAC_Init_ex(&ctx, password.data(), password_len, evp_md, nullptr);
   HMAC_Update(&ctx, salt.ubegin(), narrow_cast<int>(salt.size()));
   HMAC_Update(&ctx, counter, 4);

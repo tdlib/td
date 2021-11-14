@@ -390,14 +390,14 @@ bool operator!=(const DialogParticipantStatus &lhs, const DialogParticipantStatu
 StringBuilder &operator<<(StringBuilder &string_builder, const DialogParticipantStatus &status);
 
 struct DialogParticipant {
-  DialogId dialog_id;
-  UserId inviter_user_id;
-  int32 joined_date = 0;
-  DialogParticipantStatus status = DialogParticipantStatus::Left();
+  DialogId dialog_id_;
+  UserId inviter_user_id_;
+  int32 joined_date_ = 0;
+  DialogParticipantStatus status_ = DialogParticipantStatus::Left();
 
   DialogParticipant() = default;
 
-  DialogParticipant(DialogId user_id, UserId inviter_user_id, int32 joined_date, DialogParticipantStatus status);
+  DialogParticipant(DialogId dialog_id, UserId inviter_user_id, int32 joined_date, DialogParticipantStatus status);
 
   DialogParticipant(tl_object_ptr<telegram_api::ChatParticipant> &&participant_ptr, int32 chat_creation_date,
                     bool is_creator);
@@ -408,28 +408,33 @@ struct DialogParticipant {
     return {dialog_id, UserId(), 0, DialogParticipantStatus::Left()};
   }
 
+  static DialogParticipant private_member(UserId user_id, UserId other_user_id) {
+    auto inviter_user_id = other_user_id.is_valid() ? other_user_id : user_id;
+    return {DialogId(user_id), inviter_user_id, 0, DialogParticipantStatus::Member()};
+  }
+
   bool is_valid() const;
 
   template <class StorerT>
   void store(StorerT &storer) const {
-    td::store(dialog_id, storer);
-    td::store(inviter_user_id, storer);
-    td::store(joined_date, storer);
-    td::store(status, storer);
+    td::store(dialog_id_, storer);
+    td::store(inviter_user_id_, storer);
+    td::store(joined_date_, storer);
+    td::store(status_, storer);
   }
 
   template <class ParserT>
   void parse(ParserT &parser) {
     if (parser.version() >= static_cast<int32>(Version::SupportBannedChannels)) {
-      td::parse(dialog_id, parser);
+      td::parse(dialog_id_, parser);
     } else {
       UserId user_id;
       td::parse(user_id, parser);
-      dialog_id = DialogId(user_id);
+      dialog_id_ = DialogId(user_id);
     }
-    td::parse(inviter_user_id, parser);
-    td::parse(joined_date, parser);
-    td::parse(status, parser);
+    td::parse(inviter_user_id_, parser);
+    td::parse(joined_date_, parser);
+    td::parse(status_, parser);
   }
 };
 
@@ -448,9 +453,10 @@ struct DialogParticipants {
 };
 
 class ChannelParticipantsFilter {
-  enum class Type : int32 { Recent, Contacts, Administrators, Search, Mention, Restricted, Banned, Bots } type;
-  string query;
-  MessageId top_thread_message_id;
+  enum class Type : int32 { Recent, Contacts, Administrators, Search, Mention, Restricted, Banned, Bots };
+  Type type_;
+  string query_;
+  MessageId top_thread_message_id_;
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const ChannelParticipantsFilter &filter);
 
@@ -460,61 +466,65 @@ class ChannelParticipantsFilter {
   tl_object_ptr<telegram_api::ChannelParticipantsFilter> get_input_channel_participants_filter() const;
 
   bool is_administrators() const {
-    return type == Type::Administrators;
+    return type_ == Type::Administrators;
   }
 
   bool is_bots() const {
-    return type == Type::Bots;
+    return type_ == Type::Bots;
   }
 
   bool is_recent() const {
-    return type == Type::Recent;
+    return type_ == Type::Recent;
   }
 
   bool is_contacts() const {
-    return type == Type::Contacts;
+    return type_ == Type::Contacts;
   }
 
   bool is_search() const {
-    return type == Type::Search;
+    return type_ == Type::Search;
   }
 
   bool is_restricted() const {
-    return type == Type::Restricted;
+    return type_ == Type::Restricted;
   }
 
   bool is_banned() const {
-    return type == Type::Banned;
+    return type_ == Type::Banned;
   }
 };
 
 StringBuilder &operator<<(StringBuilder &string_builder, const ChannelParticipantsFilter &filter);
 
 class DialogParticipantsFilter {
- public:
   enum class Type : int32 { Contacts, Administrators, Members, Restricted, Banned, Mention, Bots };
-  Type type;
-  MessageId top_thread_message_id;
+  Type type_;
+  MessageId top_thread_message_id_;
 
-  explicit DialogParticipantsFilter(Type type, MessageId top_thread_message_id = MessageId())
-      : type(type), top_thread_message_id(top_thread_message_id) {
-  }
+  friend StringBuilder &operator<<(StringBuilder &string_builder, const DialogParticipantsFilter &filter);
+
+ public:
+  explicit DialogParticipantsFilter(const tl_object_ptr<td_api::ChatMembersFilter> &filter);
+
+  td_api::object_ptr<td_api::SupergroupMembersFilter> get_supergroup_members_filter_object(const string &query) const;
+
+  bool has_query() const;
+
+  bool is_dialog_participant_suitable(const Td *td, const DialogParticipant &participant) const;
 };
 
 StringBuilder &operator<<(StringBuilder &string_builder, const DialogParticipantsFilter &filter);
 
-DialogParticipantsFilter get_dialog_participants_filter(const tl_object_ptr<td_api::ChatMembersFilter> &filter);
-
 DialogParticipantStatus get_dialog_participant_status(const tl_object_ptr<td_api::ChatMemberStatus> &status);
 
 DialogParticipantStatus get_dialog_participant_status(bool can_be_edited,
-                                                      const tl_object_ptr<telegram_api::chatAdminRights> &admin_rights,
+                                                      tl_object_ptr<telegram_api::chatAdminRights> &&admin_rights,
                                                       string rank);
 
-DialogParticipantStatus get_dialog_participant_status(
-    bool is_member, const tl_object_ptr<telegram_api::chatBannedRights> &banned_rights);
+DialogParticipantStatus get_dialog_participant_status(bool is_member,
+                                                      tl_object_ptr<telegram_api::chatBannedRights> &&banned_rights);
 
-RestrictedRights get_restricted_rights(const tl_object_ptr<telegram_api::chatBannedRights> &banned_rights);
+RestrictedRights get_restricted_rights(tl_object_ptr<telegram_api::chatBannedRights> &&banned_rights);
 
 RestrictedRights get_restricted_rights(const td_api::object_ptr<td_api::chatPermissions> &permissions);
 

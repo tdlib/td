@@ -6,13 +6,12 @@
 //
 #pragma once
 
-#include "td/telegram/telegram_api.h"
-
 #include "td/telegram/files/FileEncryptionKey.h"
 #include "td/telegram/files/FileLoader.h"
 #include "td/telegram/files/FileLocation.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/NetQuery.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/utils/common.h"
 #include "td/utils/port/FileFd.h"
@@ -28,8 +27,8 @@ class FileDownloader final : public FileLoader {
   class Callback : public FileLoader::Callback {
    public:
     virtual void on_start_download() = 0;
-    virtual void on_partial_download(const PartialLocalFileLocation &partial_local, int64 ready_size, int64 size) = 0;
-    virtual void on_ok(const FullLocalFileLocation &full_local, int64 size, bool is_new) = 0;
+    virtual void on_partial_download(PartialLocalFileLocation partial_local, int64 ready_size, int64 size) = 0;
+    virtual void on_ok(FullLocalFileLocation full_local, int64 size, bool is_new) = 0;
     virtual void on_error(Status status) = 0;
   };
 

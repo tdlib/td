@@ -33,8 +33,8 @@ class SocketFd {
   SocketFd();
   SocketFd(const SocketFd &) = delete;
   SocketFd &operator=(const SocketFd &) = delete;
-  SocketFd(SocketFd &&);
-  SocketFd &operator=(SocketFd &&);
+  SocketFd(SocketFd &&) noexcept;
+  SocketFd &operator=(SocketFd &&) noexcept;
   ~SocketFd();
 
   static Result<SocketFd> open(const IPAddress &address) TD_WARN_UNUSED_RESULT;

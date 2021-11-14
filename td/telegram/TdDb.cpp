@@ -52,8 +52,9 @@ std::string get_sqlite_path(const TdParameters &parameters) {
 
 Result<TdDb::EncryptionInfo> check_encryption(string path) {
   Binlog binlog;
-  auto status = binlog.init(path, Binlog::Callback());
+  auto status = binlog.init(std::move(path), Binlog::Callback());
   if (status.is_error() && status.code() != Binlog::Error::WrongPassword) {
+    LOG(WARNING) << "Failed to check binlog: " << status;
     return Status::Error(400, status.message());
   }
   TdDb::EncryptionInfo info;
@@ -90,14 +91,14 @@ Status init_binlog(Binlog &binlog, string path, BinlogKeyValue<Binlog> &binlog_p
         break;
       case LogEvent::HandlerType::SendMessage:
       case LogEvent::HandlerType::DeleteMessage:
-      case LogEvent::HandlerType::DeleteMessagesFromServer:
+      case LogEvent::HandlerType::DeleteMessagesOnServer:
       case LogEvent::HandlerType::ReadHistoryOnServer:
       case LogEvent::HandlerType::ReadMessageContentsOnServer:
       case LogEvent::HandlerType::ForwardMessages:
       case LogEvent::HandlerType::SendBotStartMessage:
       case LogEvent::HandlerType::SendScreenshotTakenNotificationMessage:
       case LogEvent::HandlerType::SendInlineQueryResultMessage:
-      case LogEvent::HandlerType::DeleteDialogHistoryFromServer:
+      case LogEvent::HandlerType::DeleteDialogHistoryOnServer:
       case LogEvent::HandlerType::ReadAllDialogMentionsOnServer:
       case LogEvent::HandlerType::DeleteAllChannelMessagesFromUserOnServer:
       case LogEvent::HandlerType::ToggleDialogIsPinnedOnServer:
@@ -107,17 +108,18 @@ Status init_binlog(Binlog &binlog, string path, BinlogKeyValue<Binlog> &binlog_p
       case LogEvent::HandlerType::UpdateScopeNotificationSettingsOnServer:
       case LogEvent::HandlerType::ResetAllNotificationSettingsOnServer:
       case LogEvent::HandlerType::ToggleDialogReportSpamStateOnServer:
-      case LogEvent::HandlerType::GetDialogFromServer:
+      case LogEvent::HandlerType::RegetDialog:
       case LogEvent::HandlerType::GetChannelDifference:
       case LogEvent::HandlerType::ReadHistoryInSecretChat:
       case LogEvent::HandlerType::ToggleDialogIsMarkedAsUnreadOnServer:
       case LogEvent::HandlerType::SetDialogFolderIdOnServer:
-      case LogEvent::HandlerType::DeleteScheduledMessagesFromServer:
+      case LogEvent::HandlerType::DeleteScheduledMessagesOnServer:
       case LogEvent::HandlerType::ToggleDialogIsBlockedOnServer:
       case LogEvent::HandlerType::ReadMessageThreadHistoryOnServer:
       case LogEvent::HandlerType::BlockMessageSenderFromRepliesOnServer:
       case LogEvent::HandlerType::UnpinAllDialogMessagesOnServer:
-      case LogEvent::HandlerType::DeleteAllCallMessagesFromServer:
+      case LogEvent::HandlerType::DeleteAllCallMessagesOnServer:
+      case LogEvent::HandlerType::DeleteDialogMessagesByDateOnServer:
         events.to_messages_manager.push_back(event.clone());
         break;
       case LogEvent::HandlerType::AddMessagePushNotification:
@@ -276,9 +278,11 @@ void TdDb::do_close(Promise<> on_finished, bool destroy_flag) {
     }
     binlog_.reset();
   }
+
+  lock.set_value(Unit());
 }
 
-Status TdDb::init_sqlite(int32 scheduler_id, const TdParameters &parameters, DbKey key, DbKey old_key,
+Status TdDb::init_sqlite(int32 scheduler_id, const TdParameters &parameters, const DbKey &key, const DbKey &old_key,
                          BinlogKeyValue<Binlog> &binlog_pmc) {
   CHECK(!parameters.use_message_db || parameters.use_chat_info_db);
   CHECK(!parameters.use_chat_info_db || parameters.use_file_db);
@@ -486,7 +490,7 @@ Status TdDb::destroy(const TdParameters &parameters) {
   return Status::OK();
 }
 
-void TdDb::with_db_path(std::function<void(CSlice)> callback) {
+void TdDb::with_db_path(const std::function<void(CSlice)> &callback) {
   SqliteDb::with_db_path(sqlite_path(), callback);
   callback(binlog_path());
 }

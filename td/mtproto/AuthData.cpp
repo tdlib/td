@@ -78,7 +78,7 @@ bool AuthData::update_server_time_difference(double diff) {
   } else {
     return false;
   }
-  LOG(DEBUG) << "SERVER_TIME: " << format::as_hex(static_cast<int>(get_server_time(Time::now_cached())));
+  LOG(DEBUG) << "SERVER_TIME: " << format::as_hex(static_cast<int32>(get_server_time(Time::now_cached())));
   return true;
 }
 
@@ -100,7 +100,7 @@ std::vector<ServerSalt> AuthData::get_future_salts() const {
 
 int64 AuthData::next_message_id(double now) {
   double server_time = get_server_time(now);
-  int64 t = static_cast<int64>(server_time * (1ll << 32));
+  auto t = static_cast<int64>(server_time * (1ll << 32));
 
   // randomize lower bits for clocks with low precision
   // TODO(perf) do not do this for systems with good precision?..
@@ -119,13 +119,13 @@ int64 AuthData::next_message_id(double now) {
 
 bool AuthData::is_valid_outbound_msg_id(int64 id, double now) const {
   double server_time = get_server_time(now);
-  auto id_time = static_cast<double>(id / (1ll << 32));
-  return server_time - 300 / 2 < id_time && id_time < server_time + 60 / 2;
+  auto id_time = static_cast<double>(id) / static_cast<double>(1ll << 32);
+  return server_time - 150 < id_time && id_time < server_time + 30;
 }
 
 bool AuthData::is_valid_inbound_msg_id(int64 id, double now) const {
   double server_time = get_server_time(now);
-  auto id_time = static_cast<double>(id / (1ll << 32));
+  auto id_time = static_cast<double>(id) / static_cast<double>(1ll << 32);
   return server_time - 300 < id_time && id_time < server_time + 30;
 }
 

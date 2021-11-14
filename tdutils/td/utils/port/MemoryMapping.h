@@ -39,8 +39,8 @@ class MemoryMapping {
 
   MemoryMapping(const MemoryMapping &other) = delete;
   const MemoryMapping &operator=(const MemoryMapping &other) = delete;
-  MemoryMapping(MemoryMapping &&other);
-  MemoryMapping &operator=(MemoryMapping &&other);
+  MemoryMapping(MemoryMapping &&other) noexcept;
+  MemoryMapping &operator=(MemoryMapping &&other) noexcept;
   ~MemoryMapping();
 
  private:

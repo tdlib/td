@@ -18,11 +18,9 @@
 #include <limits>
 #include <utility>
 
-using namespace td;
-
 #if TD_HAVE_OPENSSL
-static bool is_prime(uint64 x) {
-  for (uint64 d = 2; d < x && d * d <= x; d++) {
+static bool is_prime(td::uint64 x) {
+  for (td::uint64 d = 2; d < x && d * d <= x; d++) {
     if (x % d == 0) {
       return false;
     }
@@ -30,8 +28,8 @@ static bool is_prime(uint64 x) {
   return true;
 }
 
-static std::vector<uint64> gen_primes(uint64 L, uint64 R, int limit = 0) {
-  std::vector<uint64> res;
+static td::vector<td::uint64> gen_primes(td::uint64 L, td::uint64 R, int limit = 0) {
+  td::vector<td::uint64> res;
   for (auto x = L; x <= R && (limit <= 0 || res.size() < static_cast<std::size_t>(limit)); x++) {
     if (is_prime(x)) {
       res.push_back(x);
@@ -40,21 +38,23 @@ static std::vector<uint64> gen_primes(uint64 L, uint64 R, int limit = 0) {
   return res;
 }
 
-static std::vector<uint64> gen_primes() {
-  std::vector<uint64> result;
-  append(result, gen_primes(1, 100));
-  append(result, gen_primes((1ull << 31) - 500000, std::numeric_limits<uint64>::max(), 5));
-  append(result, gen_primes((1ull << 32) - 500000, std::numeric_limits<uint64>::max(), 5));
-  append(result, gen_primes((1ull << 39) - 500000, std::numeric_limits<uint64>::max(), 1));
+static td::vector<td::uint64> gen_primes() {
+  td::vector<td::uint64> result;
+  td::append(result, gen_primes(1, 100));
+  td::append(result, gen_primes((1ull << 31) - 500000, std::numeric_limits<td::uint64>::max(), 5));
+  td::append(result, gen_primes((1ull << 32) - 500000, std::numeric_limits<td::uint64>::max(), 5));
+  td::append(result, gen_primes((1ull << 39) - 500000, std::numeric_limits<td::uint64>::max(), 1));
   return result;
 }
 
-using PqQuery = std::pair<uint64, uint64>;
+using PqQuery = std::pair<td::uint64, td::uint64>;
+
 static bool cmp(const PqQuery &a, const PqQuery &b) {
   return a.first * a.second < b.first * b.second;
 }
-static std::vector<PqQuery> gen_pq_queries() {
-  std::vector<PqQuery> res;
+
+static td::vector<PqQuery> gen_pq_queries() {
+  td::vector<PqQuery> res;
   auto primes = gen_primes();
   for (auto q : primes) {
     for (auto p : primes) {
@@ -68,21 +68,22 @@ static std::vector<PqQuery> gen_pq_queries() {
   return res;
 }
 
-static void test_pq(uint64 first, uint64 second) {
-  BigNum p = BigNum::from_decimal(PSLICE() << first).move_as_ok();
-  BigNum q = BigNum::from_decimal(PSLICE() << second).move_as_ok();
+static void test_pq(td::uint64 first, td::uint64 second) {
+  td::BigNum p = td::BigNum::from_decimal(PSLICE() << first).move_as_ok();
+  td::BigNum q = td::BigNum::from_decimal(PSLICE() << second).move_as_ok();
 
-  BigNum pq;
-  BigNumContext context;
-  BigNum::mul(pq, p, q, context);
-  std::string pq_str = pq.to_binary();
+  td::BigNum pq;
+  td::BigNumContext context;
+  td::BigNum::mul(pq, p, q, context);
+  td::string pq_str = pq.to_binary();
 
-  std::string p_str, q_str;
+  td::string p_str;
+  td::string q_str;
   int err = td::pq_factorize(pq_str, &p_str, &q_str);
   LOG_CHECK(err == 0) << first << " * " << second;
 
-  BigNum p_res = BigNum::from_binary(p_str);
-  BigNum q_res = BigNum::from_binary(q_str);
+  td::BigNum p_res = td::BigNum::from_binary(p_str);
+  td::BigNum q_res = td::BigNum::from_binary(q_str);
 
   LOG_CHECK(p_str == p.to_binary()) << td::tag("got", p_res.to_decimal()) << td::tag("expected", first);
   LOG_CHECK(q_str == q.to_binary()) << td::tag("got", q_res.to_decimal()) << td::tag("expected", second);
@@ -110,7 +111,7 @@ TEST(CryptoPQ, generated_slow) {
     test_pq(2, 2);
   }
   auto queries = gen_pq_queries();
-  for (auto query : queries) {
+  for (const auto &query : queries) {
     test_pq(query.first, query.second);
   }
 }

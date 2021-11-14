@@ -169,7 +169,7 @@ void SecretChatsManager::on_update_chat(tl_object_ptr<telegram_api::updateEncryp
     return;
   }
   bool chat_requested = update->chat_->get_id() == telegram_api::encryptedChatRequested::ID;
-  pending_chat_updates_.push_back({Timestamp::in(chat_requested ? 1 : 0), std::move(update)});
+  pending_chat_updates_.emplace_back(Timestamp::in(chat_requested ? 1 : 0), std::move(update));
   flush_pending_chat_updates();
 }
 

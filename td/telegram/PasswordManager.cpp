@@ -656,7 +656,7 @@ Result<PasswordManager::PasswordInputSettings> PasswordManager::get_password_inp
       new_password_hash = new_hash.move_as_ok();
       new_algo = make_tl_object<telegram_api::passwordKdfAlgoSHA256SHA256PBKDF2HMACSHA512iter100000SHA256ModPow>(
           std::move(new_client_salt), BufferSlice(state.server_salt), state.srp_g, BufferSlice(state.srp_p));
-      new_hint = std::move(update_settings.new_hint);
+      new_hint = update_settings.new_hint;
       if (have_secret) {
         update_secure_secret = true;
       }
@@ -677,7 +677,7 @@ Result<PasswordManager::PasswordInputSettings> PasswordManager::get_password_inp
 
   tl_object_ptr<telegram_api::secureSecretSettings> new_secure_settings;
   if (update_secure_secret) {
-    auto secret = have_secret ? std::move(private_state->secret.value()) : secure_storage::Secret::create_new();
+    auto secret = have_secret ? private_state->secret.value() : secure_storage::Secret::create_new();
     auto algorithm =
         make_tl_object<telegram_api::securePasswordKdfAlgoPBKDF2HMACSHA512iter100000>(create_salt(state.secure_salt));
     auto encrypted_secret = secret.encrypt(
@@ -778,9 +778,8 @@ void PasswordManager::do_get_state(Promise<PasswordState> promise) {
           state.current_srp_B = password->srp_B_.as_slice().str();
           state.current_srp_id = password->srp_id_;
           state.password_hint = std::move(password->hint_);
-          state.has_recovery_email_address =
-              (password->flags_ & telegram_api::account_password::HAS_RECOVERY_MASK) != 0;
-          state.has_secure_values = (password->flags_ & telegram_api::account_password::HAS_SECURE_VALUES_MASK) != 0;
+          state.has_recovery_email_address = password->has_recovery_;
+          state.has_secure_values = password->has_secure_values_;
         } else {
           state.has_password = false;
           send_closure(actor_id, &PasswordManager::drop_cached_secret);
@@ -839,7 +838,7 @@ void PasswordManager::start_up() {
 
 void PasswordManager::hangup() {
   container_.for_each(
-      [](auto id, Promise<NetQueryPtr> &promise) { promise.set_error(Status::Error(500, "Request aborted")); });
+      [](auto id, Promise<NetQueryPtr> &promise) { promise.set_error(Global::request_aborted_error()); });
   stop();
 }
 

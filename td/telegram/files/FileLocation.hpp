@@ -66,16 +66,16 @@ void PhotoRemoteFileLocation::parse(ParserT &parser) {
       int64 secret;
       parse(secret, parser);
       parse(local_id, parser);
-      source = PhotoSizeSource(nullptr, volume_id, local_id, secret);
+      source = PhotoSizeSource::full_legacy(volume_id, local_id, secret);
     }
 
     if (parser.get_error() != nullptr) {
       return;
     }
 
-    switch (source.get_type()) {
+    switch (source.get_type("PhotoRemoteFileLocation::parse")) {
       case PhotoSizeSource::Type::Legacy:
-        source_ = PhotoSizeSource(nullptr, volume_id, local_id, source.legacy().secret);
+        source_ = PhotoSizeSource::full_legacy(volume_id, local_id, source.legacy().secret);
         break;
       case PhotoSizeSource::Type::FullLegacy:
       case PhotoSizeSource::Type::Thumbnail:
@@ -84,14 +84,15 @@ void PhotoRemoteFileLocation::parse(ParserT &parser) {
       case PhotoSizeSource::Type::DialogPhotoSmall:
       case PhotoSizeSource::Type::DialogPhotoBig: {
         auto &dialog_photo = source.dialog_photo();
-        bool is_big = source.get_type() == PhotoSizeSource::Type::DialogPhotoBig;
-        source_ = PhotoSizeSource(dialog_photo.dialog_id, dialog_photo.dialog_access_hash, is_big, volume_id, local_id);
+        bool is_big = source.get_type("PhotoRemoteFileLocation::parse") == PhotoSizeSource::Type::DialogPhotoBig;
+        source_ = PhotoSizeSource::dialog_photo_legacy(dialog_photo.dialog_id, dialog_photo.dialog_access_hash, is_big,
+                                                       volume_id, local_id);
         break;
       }
       case PhotoSizeSource::Type::StickerSetThumbnail: {
         auto &sticker_set_thumbnail = source.sticker_set_thumbnail();
-        source_ = PhotoSizeSource(sticker_set_thumbnail.sticker_set_id, sticker_set_thumbnail.sticker_set_access_hash,
-                                  volume_id, local_id);
+        source_ = PhotoSizeSource::sticker_set_thumbnail_legacy(
+            sticker_set_thumbnail.sticker_set_id, sticker_set_thumbnail.sticker_set_access_hash, volume_id, local_id);
         break;
       }
       default:
@@ -105,7 +106,7 @@ template <class StorerT>
 void PhotoRemoteFileLocation::AsKey::store(StorerT &storer) const {
   using td::store;
   auto unique = key.source_.get_unique();
-  switch (key.source_.get_type()) {
+  switch (key.source_.get_type("PhotoRemoteFileLocation::AsKey::store")) {
     case PhotoSizeSource::Type::Legacy:
     case PhotoSizeSource::Type::StickerSetThumbnail:
       UNREACHABLE();
@@ -230,12 +231,12 @@ void FullRemoteFileLocation::parse(ParserT &parser) {
       if (parser.get_error() != nullptr) {
         return;
       }
-      switch (photo().source_.get_type()) {
+      switch (photo().source_.get_type("FullRemoteFileLocation::parse")) {
         case PhotoSizeSource::Type::Legacy:
         case PhotoSizeSource::Type::FullLegacy:
           break;
         case PhotoSizeSource::Type::Thumbnail:
-          if (photo().source_.get_file_type() != file_type_ ||
+          if (photo().source_.get_file_type("FullRemoteFileLocation::parse") != file_type_ ||
               (file_type_ != FileType::Photo && file_type_ != FileType::Thumbnail &&
                file_type_ != FileType::EncryptedThumbnail)) {
             parser.set_error("Invalid FileType in PhotoRemoteFileLocation Thumbnail");

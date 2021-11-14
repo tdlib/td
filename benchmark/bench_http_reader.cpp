@@ -22,7 +22,7 @@ class HttpReaderBench final : public td::Benchmark {
   }
 
   void run(int n) final {
-    int cnt = static_cast<int>(block_size / http_query.size());
+    auto cnt = static_cast<int>(block_size / http_query.size());
     td::HttpQuery q;
     int parsed = 0;
     int sent = 0;
@@ -58,7 +58,7 @@ class BufferBench final : public td::Benchmark {
   }
 
   void run(int n) final {
-    int cnt = static_cast<int>(block_size / http_query.size());
+    auto cnt = static_cast<int>(block_size / http_query.size());
     for (int i = 0; i < n; i += cnt) {
       for (int j = 0; j < cnt; j++) {
         writer_.append(http_query);
@@ -84,7 +84,7 @@ class FindBoundaryBench final : public td::Benchmark {
   }
 
   void run(int n) final {
-    int cnt = static_cast<int>(block_size / http_query.size());
+    auto cnt = static_cast<int>(block_size / http_query.size());
     for (int i = 0; i < n; i += cnt) {
       for (int j = 0; j < cnt; j++) {
         writer_.append(http_query);

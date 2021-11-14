@@ -49,14 +49,14 @@ class FileLoader : public FileLoaderActor {
     bool is_ready = false;
   };
   struct FileInfo {
-    int64 size;
+    int64 size{0};
     int64 expected_size{0};
-    bool is_size_final;
-    int32 part_size;
+    bool is_size_final{false};
+    int32 part_size{0};
     std::vector<int> ready_parts;
-    bool use_part_count_limit = true;
-    bool only_check = false;
-    bool need_delay = false;
+    bool use_part_count_limit{true};
+    bool only_check{false};
+    bool need_delay{false};
     int64 offset{0};
     int64 limit{0};
     bool is_upload{false};

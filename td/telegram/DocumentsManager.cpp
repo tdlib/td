@@ -17,6 +17,7 @@
 #include "td/telegram/misc.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/Photo.h"
+#include "td/telegram/PhotoSizeSource.h"
 #include "td/telegram/secret_api.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
@@ -270,9 +271,9 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
 
     if (document_type != Document::Type::VoiceNote) {
       for (auto &thumb : document->thumbs_) {
-        auto photo_size =
-            get_photo_size(td_->file_manager_.get(), {FileType::Thumbnail, 0}, id, access_hash, file_reference,
-                           DcId::create(dc_id), owner_dialog_id, std::move(thumb), thumbnail_format);
+        auto photo_size = get_photo_size(td_->file_manager_.get(), PhotoSizeSource::thumbnail(FileType::Thumbnail, 0),
+                                         id, access_hash, file_reference, DcId::create(dc_id), owner_dialog_id,
+                                         std::move(thumb), thumbnail_format);
         if (photo_size.get_offset() == 0) {
           if (!thumbnail.file_id.is_valid()) {
             thumbnail = std::move(photo_size.get<0>());
@@ -284,8 +285,9 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
     }
     for (auto &thumb : document->video_thumbs_) {
       if (thumb->type_ == "v") {
-        animated_thumbnail = get_animation_size(td_->file_manager_.get(), {FileType::Thumbnail, 0}, id, access_hash,
-                                                file_reference, DcId::create(dc_id), owner_dialog_id, std::move(thumb));
+        animated_thumbnail =
+            get_animation_size(td_->file_manager_.get(), PhotoSizeSource::thumbnail(FileType::Thumbnail, 0), id,
+                               access_hash, file_reference, DcId::create(dc_id), owner_dialog_id, std::move(thumb));
         if (animated_thumbnail.file_id.is_valid()) {
           break;
         }
@@ -573,7 +575,7 @@ SecretInputMedia DocumentsManager::get_secret_input_media(FileId document_file_i
     return SecretInputMedia{};
   }
   vector<tl_object_ptr<secret_api::DocumentAttribute>> attributes;
-  if (document->file_name.size()) {
+  if (!document->file_name.empty()) {
     attributes.push_back(make_tl_object<secret_api::documentAttributeFilename>(document->file_name));
   }
   return SecretInputMedia{
@@ -604,7 +606,7 @@ tl_object_ptr<telegram_api::InputMedia> DocumentsManager::get_input_media(
     CHECK(document != nullptr);
 
     vector<tl_object_ptr<telegram_api::DocumentAttribute>> attributes;
-    if (document->file_name.size()) {
+    if (!document->file_name.empty()) {
       attributes.push_back(make_tl_object<telegram_api::documentAttributeFilename>(document->file_name));
     }
     int32 flags = 0;

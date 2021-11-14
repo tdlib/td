@@ -24,7 +24,7 @@ namespace td {
 struct DatabaseStats {
   string debug;
   DatabaseStats() = default;
-  explicit DatabaseStats(string debug) : debug(debug) {
+  explicit DatabaseStats(string debug) : debug(std::move(debug)) {
   }
   tl_object_ptr<td_api::databaseStatistics> get_database_statistics_object() const;
 };
@@ -64,7 +64,7 @@ class StorageManager final : public Actor {
   void on_file_stats(Result<FileStats> r_file_stats, uint32 generation);
   void create_stats_worker();
   void update_fast_stats(const FileStats &stats);
-  void send_stats(FileStats &&stats, int32 dialog_limit, std::vector<Promise<FileStats>> &&promises);
+  static void send_stats(FileStats &&stats, int32 dialog_limit, std::vector<Promise<FileStats>> &&promises);
 
   void save_fast_stat();
   void load_fast_stat();

@@ -24,7 +24,7 @@ class ConnectionManager : public Actor {
     ConnectionToken(const ConnectionToken &) = delete;
     ConnectionToken &operator=(const ConnectionToken &) = delete;
     ConnectionToken(ConnectionToken &&) = default;
-    ConnectionToken &operator=(ConnectionToken &&other) {
+    ConnectionToken &operator=(ConnectionToken &&other) noexcept {
       reset();
       connection_manager_ = std::move(other.connection_manager_);
       return *this;

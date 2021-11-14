@@ -96,7 +96,7 @@ class TL_writer {
 
   virtual std::string gen_field_definition(const std::string &class_name, const std::string &type_name,
                                            const std::string &field_name) const = 0;
-  virtual std::string gen_flags_definitions(const tl_combinator *t) const {
+  virtual std::string gen_flags_definitions(const tl_combinator *t, bool can_be_stored) const {
     return "";
   }
 

@@ -108,8 +108,8 @@ class FileFdImpl {
 }  // namespace detail
 
 FileFd::FileFd() = default;
-FileFd::FileFd(FileFd &&) = default;
-FileFd &FileFd::operator=(FileFd &&) = default;
+FileFd::FileFd(FileFd &&) noexcept = default;
+FileFd &FileFd::operator=(FileFd &&) noexcept = default;
 FileFd::~FileFd() = default;
 
 FileFd::FileFd(unique_ptr<detail::FileFdImpl> impl) : impl_(std::move(impl)) {
@@ -407,7 +407,7 @@ static Status create_local_lock(const string &path, int32 &max_tries) {
   }
 }
 
-Status FileFd::lock(const LockFlags flags, const string &path, int32 max_tries) {
+Status FileFd::lock(LockFlags flags, const string &path, int32 max_tries) {
   if (max_tries <= 0) {
     return Status::Error("Can't lock file: wrong max_tries");
   }

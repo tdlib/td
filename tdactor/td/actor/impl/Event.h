@@ -97,7 +97,7 @@ class LambdaEvent final : public CustomEvent {
     LOG(FATAL) << "Not supported";
     return nullptr;
   }
-  template <class FromLambdaT>
+  template <class FromLambdaT, std::enable_if_t<!std::is_same<std::decay_t<FromLambdaT>, LambdaEvent>::value, int> = 0>
   explicit LambdaEvent(FromLambdaT &&lambda) : f_(std::forward<FromLambdaT>(lambda)) {
   }
 
@@ -166,10 +166,10 @@ class Event {
   }
   Event(const Event &other) = delete;
   Event &operator=(const Event &) = delete;
-  Event(Event &&other) : type(other.type), link_token(other.link_token), data(other.data) {
+  Event(Event &&other) noexcept : type(other.type), link_token(other.link_token), data(other.data) {
     other.type = Type::NoType;
   }
-  Event &operator=(Event &&other) {
+  Event &operator=(Event &&other) noexcept {
     destroy();
     type = other.type;
     link_token = other.link_token;

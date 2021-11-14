@@ -43,7 +43,7 @@ class LogBenchmark final : public td::Benchmark {
     threads_.resize(threads_n_);
   }
   void tear_down() final {
-    for (auto path : log_->get_file_paths()) {
+    for (const auto &path : log_->get_file_paths()) {
       td::unlink(path).ignore();
     }
     log_.reset();

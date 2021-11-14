@@ -26,11 +26,11 @@ class RwMutex {
   }
   RwMutex(const RwMutex &) = delete;
   RwMutex &operator=(const RwMutex &) = delete;
-  RwMutex(RwMutex &&other) {
+  RwMutex(RwMutex &&other) noexcept {
     init();
     other.clear();
   }
-  RwMutex &operator=(RwMutex &&other) {
+  RwMutex &operator=(RwMutex &&other) noexcept {
     other.clear();
     return *this;
   }

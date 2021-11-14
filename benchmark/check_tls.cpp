@@ -96,8 +96,8 @@ td::Result<TlsInfo> test_tls(const td::string &url) {
   const size_t MAX_GREASE = 7;
   char greases[MAX_GREASE];
   td::Random::secure_bytes(td::MutableSlice{greases, MAX_GREASE});
-  for (size_t i = 0; i < MAX_GREASE; i++) {
-    greases[i] = static_cast<char>((greases[i] & 0xF0) + 0x0A);
+  for (auto &grease : greases) {
+    grease = static_cast<char>((grease & 0xF0) + 0x0A);
   }
   for (size_t i = 1; i < MAX_GREASE; i += 2) {
     if (greases[i] == greases[i - 1]) {

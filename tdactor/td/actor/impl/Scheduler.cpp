@@ -18,6 +18,7 @@
 #include "td/utils/List.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/MpscPollableQueue.h"
 #include "td/utils/ObjectPool.h"
 #include "td/utils/port/thread_local.h"
 #include "td/utils/ScopeGuard.h"
@@ -25,6 +26,7 @@
 
 #include <functional>
 #include <iterator>
+#include <memory>
 #include <utility>
 
 namespace td {
@@ -52,6 +54,10 @@ void Scheduler::on_context_updated() {
 
 void Scheduler::set_scheduler(Scheduler *scheduler) {
   scheduler_ = scheduler;
+}
+
+void Scheduler::ServiceActor::set_queue(std::shared_ptr<MpscPollableQueue<EventFull>> queues) {
+  inbound_ = std::move(queues);
 }
 
 void Scheduler::ServiceActor::start_up() {
@@ -164,10 +170,10 @@ EventGuard::~EventGuard() {
   }
   info->finish_run();
   swap_context(info);
-  CHECK(info->is_lite() || save_context_ == info->get_context());
+  CHECK(!info->need_context() || save_context_ == info->get_context());
 #ifdef TD_DEBUG
-  LOG_CHECK(info->is_lite() || save_log_tag2_ == info->get_name().c_str())
-      << info->is_lite() << " " << info->empty() << " " << info->is_migrating() << " " << save_log_tag2_ << " "
+  LOG_CHECK(!info->need_context() || save_log_tag2_ == info->get_name().c_str())
+      << info->need_context() << " " << info->empty() << " " << info->is_migrating() << " " << save_log_tag2_ << " "
       << info->get_name() << " " << scheduler_->close_flag_;
 #endif
   if (event_context_.flags & Scheduler::EventContext::Stop) {
@@ -182,7 +188,7 @@ EventGuard::~EventGuard() {
 void EventGuard::swap_context(ActorInfo *info) {
   std::swap(scheduler_->event_context_ptr_, event_context_ptr_);
 
-  if (info->is_lite()) {
+  if (!info->need_context()) {
     return;
   }
 
@@ -349,7 +355,7 @@ void Scheduler::do_stop_actor(ActorInfo *actor_info) {
   CHECK(!actor_info->is_migrating());
   LOG_CHECK(actor_info->migrate_dest() == sched_id_) << actor_info->migrate_dest() << " " << sched_id_;
   ObjectPool<ActorInfo>::OwnerPtr owner_ptr;
-  if (!actor_info->is_lite()) {
+  if (actor_info->need_start_up()) {
     EventGuard guard(this, actor_info);
     do_event(actor_info, Event::stop());
     owner_ptr = actor_info->get_actor_unsafe()->clear();
@@ -435,7 +441,7 @@ void Scheduler::set_actor_timeout_at(ActorInfo *actor_info, double timeout_at) {
 
 void Scheduler::run_poll(Timestamp timeout) {
   // we can't wait for less than 1ms
-  int timeout_ms = static_cast<int32>(clamp(timeout.in(), 0.0, 1000000.0) * 1000 + 1);
+  auto timeout_ms = static_cast<int>(clamp(timeout.in(), 0.0, 1000000.0) * 1000 + 1);
 #if TD_PORT_WINDOWS
   CHECK(inbound_queue_);
   inbound_queue_->reader_get_event_fd().wait(timeout_ms);
@@ -487,18 +493,29 @@ Timestamp Scheduler::run_timeout() {
   return get_timeout();
 }
 
+Timestamp Scheduler::run_events(Timestamp timeout) {
+  Timestamp res;
+  VLOG(actor) << "Run events " << sched_id_ << " " << tag("pending", pending_events_.size())
+              << tag("actors", actor_count_);
+  do {
+    run_mailbox();
+    res = run_timeout();
+  } while (!ready_actors_list_.empty() && !timeout.is_in_past());
+  return res;
+}
+
 void Scheduler::run_no_guard(Timestamp timeout) {
   CHECK(has_guard_);
   SCOPE_EXIT {
     yield_flag_ = false;
   };
 
-  timeout.relax(run_events());
+  timeout.relax(run_events(timeout));
   if (yield_flag_) {
     return;
   }
   run_poll(timeout);
-  run_events();
+  run_events(timeout);
 }
 
 Timestamp Scheduler::get_timeout() {

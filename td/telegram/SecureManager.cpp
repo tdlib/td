@@ -104,11 +104,11 @@ class SetSecureValue final : public NetQueryCallback {
     void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) final;
     void on_upload_encrypted_ok(FileId file_id, tl_object_ptr<telegram_api::InputEncryptedFile> input_file) final;
     void on_upload_secure_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file) final;
-    void on_upload_error(FileId file_id, Status status) final;
+    void on_upload_error(FileId file_id, Status error) final;
   };
 
   void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file, uint32 upload_generation);
-  void on_upload_error(FileId file_id, Status status, uint32 upload_generation);
+  void on_upload_error(FileId file_id, Status error, uint32 upload_generation);
 
   void on_error(Status error);
 
@@ -125,7 +125,7 @@ class SetSecureValue final : public NetQueryCallback {
   void cancel_upload();
   void start_upload_all();
   void start_upload(FileManager *file_manager, FileId &file_id, SecureInputFile &info);
-  void merge(FileManager *file_manager, FileId file_id, EncryptedSecureFile &encrypted_file);
+  static void merge(FileManager *file_manager, FileId file_id, EncryptedSecureFile &encrypted_file);
 };
 
 class SetSecureValueErrorsQuery final : public Td::ResultHandler {
@@ -141,10 +141,10 @@ class SetSecureValueErrorsQuery final : public Td::ResultHandler {
         telegram_api::users_setSecureValueErrors(std::move(input_user), std::move(input_errors))));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::users_setSecureValueErrors>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     bool ptr = result_ptr.move_as_ok();
@@ -152,7 +152,7 @@ class SetSecureValueErrorsQuery final : public Td::ResultHandler {
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (status.code() != 0) {
       promise_.set_error(std::move(status));
     } else {
@@ -285,7 +285,7 @@ void GetAllSecureValues::loop() {
 
   auto secure_values = transform(r_secure_values.move_as_ok(),
                                  [](SecureValueWithCredentials &&value) { return std::move(value.value); });
-  promise_.set_value(get_passport_elements_object(file_manager, std::move(secure_values)));
+  promise_.set_value(get_passport_elements_object(file_manager, secure_values));
   stop();
 }
 
@@ -582,7 +582,7 @@ void SetSecureValue::loop() {
 }
 
 void SetSecureValue::hangup() {
-  on_error(Status::Error(406, "Request aborted"));
+  on_error(Status::Error(406, "Request canceled"));
 }
 
 void SetSecureValue::tear_down() {
@@ -959,7 +959,7 @@ void SecureManager::get_passport_authorization_form(UserId bot_user_id, string s
   form.bot_user_id = bot_user_id;
   form.scope = scope;
   form.public_key = public_key;
-  form.nonce = nonce;
+  form.nonce = std::move(nonce);
   auto new_promise = PromiseCreator::lambda(
       [actor_id = actor_id(this), authorization_form_id, promise = std::move(promise)](
           Result<telegram_api::object_ptr<telegram_api::account_authorizationForm>> r_authorization_form) mutable {
@@ -1078,7 +1078,7 @@ void SecureManager::on_get_passport_authorization_form_secret(int32 authorizatio
   auto *file_manager = G()->td().get_actor_unsafe()->file_manager_.get();
   std::vector<TdApiSecureValue> values;
   std::map<SecureValueType, SecureValueCredentials> all_credentials;
-  for (auto suitable_type : it->second.options) {
+  for (const auto &suitable_type : it->second.options) {
     auto type = suitable_type.first;
     for (auto &value : it->second.values) {
       if (value == nullptr) {
@@ -1100,7 +1100,7 @@ void SecureManager::on_get_passport_authorization_form_secret(int32 authorizatio
       on_get_secure_value(r_secure_value.ok());
 
       auto secure_value = r_secure_value.move_as_ok();
-      auto r_passport_element = get_passport_element_object(file_manager, std::move(secure_value.value));
+      auto r_passport_element = get_passport_element_object(file_manager, secure_value.value);
       if (r_passport_element.is_error()) {
         LOG(ERROR) << "Failed to get passport element object: " << r_passport_element.error();
         break;
@@ -1294,7 +1294,7 @@ void SecureManager::get_preferred_country_language(string country_code,
 
 void SecureManager::hangup() {
   container_.for_each(
-      [](auto id, Promise<NetQueryPtr> &promise) { promise.set_error(Status::Error(500, "Request aborted")); });
+      [](auto id, Promise<NetQueryPtr> &promise) { promise.set_error(Global::request_aborted_error()); });
   dec_refcnt();
 }
 

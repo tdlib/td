@@ -16,34 +16,36 @@
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
+#include "td/utils/emoji.h"
 #include "td/utils/logging.h"
 #include "td/utils/Random.h"
 #include "td/utils/Time.h"
+#include "td/utils/tl_helpers.h"
 
 namespace td {
 
 class GetChatThemesQuery final : public Td::ResultHandler {
-  Promise<telegram_api::object_ptr<telegram_api::account_ChatThemes>> promise_;
+  Promise<telegram_api::object_ptr<telegram_api::account_Themes>> promise_;
 
  public:
-  explicit GetChatThemesQuery(Promise<telegram_api::object_ptr<telegram_api::account_ChatThemes>> &&promise)
+  explicit GetChatThemesQuery(Promise<telegram_api::object_ptr<telegram_api::account_Themes>> &&promise)
       : promise_(std::move(promise)) {
   }
 
-  void send(int32 hash) {
+  void send(int64 hash) {
     send_query(G()->net_query_creator().create(telegram_api::account_getChatThemes(hash)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::account_getChatThemes>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     promise_.set_value(result_ptr.move_as_ok());
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -110,8 +112,7 @@ void ThemeManager::ChatTheme::store(StorerT &storer) const {
   BEGIN_STORE_FLAGS();
   END_STORE_FLAGS();
   td::store(emoji, storer);
-  td::store(light_id, storer);
-  td::store(dark_id, storer);
+  td::store(id, storer);
   td::store(light_theme, storer);
   td::store(dark_theme, storer);
 }
@@ -121,8 +122,7 @@ void ThemeManager::ChatTheme::parse(ParserT &parser) {
   BEGIN_PARSE_FLAGS();
   END_PARSE_FLAGS();
   td::parse(emoji, parser);
-  td::parse(light_id, parser);
-  td::parse(dark_id, parser);
+  td::parse(id, parser);
   td::parse(light_theme, parser);
   td::parse(dark_theme, parser);
 }
@@ -179,29 +179,57 @@ void ThemeManager::loop() {
   }
 
   auto request_promise = PromiseCreator::lambda(
-      [actor_id = actor_id(this)](Result<telegram_api::object_ptr<telegram_api::account_ChatThemes>> result) {
+      [actor_id = actor_id(this)](Result<telegram_api::object_ptr<telegram_api::account_Themes>> result) {
         send_closure(actor_id, &ThemeManager::on_get_chat_themes, std::move(result));
       });
 
   td_->create_handler<GetChatThemesQuery>(std::move(request_promise))->send(chat_themes_.hash);
 }
 
+bool ThemeManager::is_dark_base_theme(BaseTheme base_theme) {
+  switch (base_theme) {
+    case BaseTheme::Classic:
+    case BaseTheme::Day:
+    case BaseTheme::Arctic:
+      return false;
+    case BaseTheme::Night:
+    case BaseTheme::Tinted:
+      return true;
+    default:
+      UNREACHABLE();
+      return false;
+  }
+}
+
 void ThemeManager::on_update_theme(telegram_api::object_ptr<telegram_api::theme> &&theme, Promise<Unit> &&promise) {
   CHECK(theme != nullptr);
   bool is_changed = false;
+  bool was_light = false;
+  bool was_dark = false;
   for (auto &chat_theme : chat_themes_.themes) {
-    if (chat_theme.light_id == theme->id_ || chat_theme.dark_id == theme->id_) {
-      auto theme_settings = get_chat_theme_settings(std::move(theme->settings_));
-      if (theme_settings.message_colors.empty()) {
-        break;
-      }
-      if (chat_theme.light_id == theme->id_ && chat_theme.light_theme != theme_settings) {
-        chat_theme.light_theme = theme_settings;
-        is_changed = true;
-      }
-      if (chat_theme.dark_id == theme->id_ && chat_theme.dark_theme != theme_settings) {
-        chat_theme.dark_theme = theme_settings;
-        is_changed = true;
+    if (chat_theme.id == theme->id_) {
+      for (auto &settings : theme->settings_) {
+        auto theme_settings = get_chat_theme_settings(std::move(settings));
+        if (theme_settings.message_colors.empty()) {
+          continue;
+        }
+        if (is_dark_base_theme(theme_settings.base_theme)) {
+          if (!was_dark) {
+            was_dark = true;
+            if (chat_theme.dark_theme != theme_settings) {
+              chat_theme.dark_theme = std::move(theme_settings);
+              is_changed = true;
+            }
+          }
+        } else {
+          if (!was_light) {
+            was_light = true;
+            if (chat_theme.light_theme != theme_settings) {
+              chat_theme.light_theme = std::move(theme_settings);
+              is_changed = true;
+            }
+          }
+        }
       }
     }
   }
@@ -253,7 +281,7 @@ void ThemeManager::send_update_chat_themes() const {
   send_closure(G()->td(), &Td::send_update, get_update_chat_themes_object());
 }
 
-void ThemeManager::on_get_chat_themes(Result<telegram_api::object_ptr<telegram_api::account_ChatThemes>> result) {
+void ThemeManager::on_get_chat_themes(Result<telegram_api::object_ptr<telegram_api::account_Themes>> result) {
   if (result.is_error()) {
     set_timeout_in(Random::fast(40, 60));
     return;
@@ -264,29 +292,49 @@ void ThemeManager::on_get_chat_themes(Result<telegram_api::object_ptr<telegram_a
 
   auto chat_themes_ptr = result.move_as_ok();
   LOG(DEBUG) << "Receive " << to_string(chat_themes_ptr);
-  if (chat_themes_ptr->get_id() == telegram_api::account_chatThemesNotModified::ID) {
+  if (chat_themes_ptr->get_id() == telegram_api::account_themesNotModified::ID) {
     return;
   }
-  CHECK(chat_themes_ptr->get_id() == telegram_api::account_chatThemes::ID);
-  auto chat_themes = telegram_api::move_object_as<telegram_api::account_chatThemes>(chat_themes_ptr);
+  CHECK(chat_themes_ptr->get_id() == telegram_api::account_themes::ID);
+  auto chat_themes = telegram_api::move_object_as<telegram_api::account_themes>(chat_themes_ptr);
   chat_themes_.hash = chat_themes->hash_;
   chat_themes_.themes.clear();
-  for (auto &chat_theme : chat_themes->themes_) {
-    if (chat_theme->emoticon_.empty()) {
-      LOG(ERROR) << "Receive " << to_string(chat_theme);
+  for (auto &theme : chat_themes->themes_) {
+    if (!is_emoji(theme->emoticon_) || !theme->for_chat_) {
+      LOG(ERROR) << "Receive " << to_string(theme);
       continue;
     }
 
-    ChatTheme theme;
-    theme.emoji = std::move(chat_theme->emoticon_);
-    theme.light_id = chat_theme->theme_->id_;
-    theme.dark_id = chat_theme->dark_theme_->id_;
-    theme.light_theme = get_chat_theme_settings(std::move(chat_theme->theme_->settings_));
-    theme.dark_theme = get_chat_theme_settings(std::move(chat_theme->dark_theme_->settings_));
-    if (theme.light_theme.message_colors.empty() || theme.dark_theme.message_colors.empty()) {
+    bool was_light = false;
+    bool was_dark = false;
+    ChatTheme chat_theme;
+    chat_theme.emoji = std::move(theme->emoticon_);
+    chat_theme.id = theme->id_;
+    for (auto &settings : theme->settings_) {
+      auto theme_settings = get_chat_theme_settings(std::move(settings));
+      if (theme_settings.message_colors.empty()) {
+        continue;
+      }
+      if (is_dark_base_theme(theme_settings.base_theme)) {
+        if (!was_dark) {
+          was_dark = true;
+          if (chat_theme.dark_theme != theme_settings) {
+            chat_theme.dark_theme = std::move(theme_settings);
+          }
+        }
+      } else {
+        if (!was_light) {
+          was_light = true;
+          if (chat_theme.light_theme != theme_settings) {
+            chat_theme.light_theme = std::move(theme_settings);
+          }
+        }
+      }
+    }
+    if (chat_theme.light_theme.message_colors.empty() || chat_theme.dark_theme.message_colors.empty()) {
       continue;
     }
-    chat_themes_.themes.push_back(std::move(theme));
+    chat_themes_.themes.push_back(std::move(chat_theme));
   }
 
   save_chat_themes();

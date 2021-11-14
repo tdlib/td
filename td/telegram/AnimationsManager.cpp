@@ -45,25 +45,24 @@ class GetSavedGifsQuery final : public Td::ResultHandler {
  public:
   void send(bool is_repair, int64 hash) {
     is_repair_ = is_repair;
-    LOG(INFO) << "Send get saved animations request with hash = " << hash;
     send_query(G()->net_query_creator().create(telegram_api::messages_getSavedGifs(hash)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_getSavedGifs>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     auto ptr = result_ptr.move_as_ok();
-    td->animations_manager_->on_get_saved_animations(is_repair_, std::move(ptr));
+    td_->animations_manager_->on_get_saved_animations(is_repair_, std::move(ptr));
   }
 
-  void on_error(uint64 id, Status status) final {
+  void on_error(Status status) final {
     if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for get saved animations: " << status;
     }
-    td->animations_manager_->on_get_saved_animations_failed(is_repair_, std::move(status));
+    td_->animations_manager_->on_get_saved_animations_failed(is_repair_, std::move(status));
   }
 };
 
@@ -87,26 +86,26 @@ class SaveGifQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::messages_saveGif(std::move(input_document), unsave)));
   }
 
-  void on_result(uint64 id, BufferSlice packet) final {
+  void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::messages_saveGif>(packet);
     if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
+      return on_error(result_ptr.move_as_error());
     }
 
     bool result = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for save GIF: " << result;
     if (!result) {
-      td->animations_manager_->reload_saved_animations(true);
+      td_->animations_manager_->reload_saved_animations(true);
     }
 
     promise_.set_value(Unit());
   }
 
-  void on_error(uint64 id, Status status) final {
-    if (!td->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(status)) {
+  void on_error(Status status) final {
+    if (!td_->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(status)) {
       VLOG(file_references) << "Receive " << status << " for " << file_id_;
-      td->file_manager_->delete_file_reference(file_id_, file_reference_);
-      td->file_reference_manager_->repair_file_reference(
+      td_->file_manager_->delete_file_reference(file_id_, file_reference_);
+      td_->file_reference_manager_->repair_file_reference(
           file_id_, PromiseCreator::lambda([animation_id = file_id_, unsave = unsave_,
                                             promise = std::move(promise_)](Result<Unit> result) mutable {
             if (result.is_error()) {
@@ -122,7 +121,7 @@ class SaveGifQuery final : public Td::ResultHandler {
     if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for save GIF: " << status;
     }
-    td->animations_manager_->reload_saved_animations(true);
+    td_->animations_manager_->reload_saved_animations(true);
     promise_.set_error(std::move(status));
   }
 };
@@ -698,9 +697,7 @@ void AnimationsManager::add_saved_animation(const tl_object_ptr<td_api::InputFil
 }
 
 void AnimationsManager::send_save_gif_query(FileId animation_id, bool unsave, Promise<Unit> &&promise) {
-  if (G()->close_flag()) {
-    return promise.set_error(Status::Error(500, "Request aborted"));
-  }
+  TRY_STATUS_PROMISE(promise, G()->close_status());
 
   // TODO invokeAfter and log event
   auto file_view = td_->file_manager_->get_file_view(animation_id);

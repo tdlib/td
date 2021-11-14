@@ -24,8 +24,8 @@ class FileUploader final : public FileLoader {
   class Callback : public FileLoader::Callback {
    public:
     virtual void on_hash(string hash) = 0;
-    virtual void on_partial_upload(const PartialRemoteFileLocation &partial_remote, int64 ready_size) = 0;
-    virtual void on_ok(FileType file_type, const PartialRemoteFileLocation &partial_remote, int64 size) = 0;
+    virtual void on_partial_upload(PartialRemoteFileLocation partial_remote, int64 ready_size) = 0;
+    virtual void on_ok(FileType file_type, PartialRemoteFileLocation partial_remote, int64 size) = 0;
     virtual void on_error(Status status) = 0;
   };
 
@@ -47,7 +47,7 @@ class FileUploader final : public FileLoader {
   FileType file_type_ = FileType::Temp;
 
   std::vector<UInt256> iv_map_;
-  UInt256 iv_;
+  UInt256 iv_{};
   string generate_iv_;
   int64 generate_offset_ = 0;
   int64 next_offset_ = 0;
@@ -55,8 +55,8 @@ class FileUploader final : public FileLoader {
   FileFd fd_;
   string fd_path_;
   bool is_temp_ = false;
-  int64 file_id_;
-  bool big_flag_;
+  int64 file_id_ = 0;
+  bool big_flag_ = false;
 
   Result<FileInfo> init() final TD_WARN_UNUSED_RESULT;
   Status on_ok(int64 size) final TD_WARN_UNUSED_RESULT;

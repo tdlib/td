@@ -11,6 +11,7 @@
 #include "td/net/SslStream.h"
 
 #include "td/utils/buffer.h"
+#include "td/utils/BufferedFd.h"
 #include "td/utils/HttpUrl.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
@@ -79,14 +80,14 @@ Status Wget::try_init() {
     return Status::Error("Sockets are not supported");
   }
   if (url.protocol_ == HttpUrl::Protocol::Http) {
-    connection_ = create_actor<HttpOutboundConnection>("Connect", std::move(fd), SslStream{},
+    connection_ = create_actor<HttpOutboundConnection>("Connect", BufferedFd<SocketFd>(std::move(fd)), SslStream{},
                                                        std::numeric_limits<std::size_t>::max(), 0, 0,
                                                        ActorOwn<HttpOutboundConnection::Callback>(actor_id(this)));
   } else {
     TRY_RESULT(ssl_stream, SslStream::create(url.host_, CSlice() /* certificate */, verify_peer_));
-    connection_ = create_actor<HttpOutboundConnection>("Connect", std::move(fd), std::move(ssl_stream),
-                                                       std::numeric_limits<std::size_t>::max(), 0, 0,
-                                                       ActorOwn<HttpOutboundConnection::Callback>(actor_id(this)));
+    connection_ = create_actor<HttpOutboundConnection>(
+        "Connect", BufferedFd<SocketFd>(std::move(fd)), std::move(ssl_stream), std::numeric_limits<std::size_t>::max(),
+        0, 0, ActorOwn<HttpOutboundConnection::Callback>(actor_id(this)));
   }
 
   send_closure(connection_, &HttpOutboundConnection::write_next, BufferSlice(header));

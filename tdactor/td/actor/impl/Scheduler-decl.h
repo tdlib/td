@@ -107,9 +107,6 @@ class Scheduler {
   template <ActorSendType send_type>
   void send(ActorRef actor_ref, Event &&event);
 
-  void hack(const ActorId<> &actor_id, Event &&event) {
-    actor_id.get_actor_unsafe()->raw_event(event.data);
-  }
   void before_tail_send(const ActorId<> &actor_id);
 
   static void subscribe(PollableFd fd, PollFlags flags = PollFlags::ReadWrite());
@@ -125,7 +122,6 @@ class Scheduler {
   void start_migrate_actor(Actor *actor, int32 dest_sched_id);
   void finish_migrate_actor(Actor *actor);
 
-  bool has_actor_timeout(const Actor *actor) const;
   double get_actor_timeout(const Actor *actor) const;
   void set_actor_timeout_in(Actor *actor, double timeout);
   void set_actor_timeout_at(Actor *actor, double timeout_at);
@@ -153,11 +149,12 @@ class Scheduler {
   class ServiceActor final : public Actor {
    public:
     void set_queue(std::shared_ptr<MpscPollableQueue<EventFull>> queues);
-    void start_up() final;
 
    private:
     std::shared_ptr<MpscPollableQueue<EventFull>> inbound_;
     bool subscribed_{false};
+
+    void start_up() final;
     void loop() final;
     void tear_down() final;
   };
@@ -176,7 +173,6 @@ class Scheduler {
   void do_migrate_actor(ActorInfo *actor_info, int32 dest_sched_id);
   void start_migrate_actor(ActorInfo *actor_info, int32 dest_sched_id);
 
-  bool has_actor_timeout(const ActorInfo *actor_info) const;
   double get_actor_timeout(const ActorInfo *actor_info) const;
   void set_actor_timeout_in(ActorInfo *actor_info, double timeout);
   void set_actor_timeout_at(ActorInfo *actor_info, double timeout_at);
@@ -196,7 +192,7 @@ class Scheduler {
 
   Timestamp run_timeout();
   void run_mailbox();
-  Timestamp run_events();
+  Timestamp run_events(Timestamp timeout);
   void run_poll(Timestamp timeout);
 
   template <class ActorT>

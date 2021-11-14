@@ -222,7 +222,7 @@ bool BackgroundFill::is_dark() const {
              (fourth_color_ == -1 || (fourth_color_ & 0x808080) == 0);
     default:
       UNREACHABLE();
-      return 0;
+      return false;
   }
 }
 

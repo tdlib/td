@@ -23,6 +23,7 @@
 #include "td/utils/logging.h"
 #include "td/utils/Status.h"
 #include "td/utils/tl_storers.h"
+#include "td/utils/TlStorerToString.h"
 
 #include <map>
 #include <unordered_set>
@@ -173,13 +174,14 @@ class UpdatesManager final : public Actor {
 
   class PendingQtsUpdate {
    public:
-    double receive_time;
+    double receive_time = 0.0;
     tl_object_ptr<telegram_api::Update> update;
     vector<Promise<Unit>> promises;
   };
 
   Td *td_;
   ActorShared<> parent_;
+  int32 ref_cnt_ = 1;
 
   PtsManager pts_manager_;
   PtsManager qts_manager_;
@@ -224,6 +226,12 @@ class UpdatesManager final : public Actor {
 
   void tear_down() final;
 
+  void hangup_shared() final;
+
+  void hangup() final;
+
+  ActorShared<UpdatesManager> create_reference();
+
   int32 get_pts() const {
     return pts_manager_.mem_pts();
   }
@@ -266,6 +274,8 @@ class UpdatesManager final : public Actor {
 
   void on_pending_updates(vector<tl_object_ptr<telegram_api::Update>> &&updates, int32 seq_begin, int32 seq_end,
                           int32 date, double receive_time, Promise<Unit> &&promise, const char *source);
+
+  void on_pending_updates_processed(Result<Unit> result, Promise<Unit> promise);
 
   void process_updates(vector<tl_object_ptr<telegram_api::Update>> &&updates, bool force_apply,
                        Promise<Unit> &&promise);
@@ -485,8 +495,11 @@ class UpdatesManager final : public Actor {
   void on_update(tl_object_ptr<telegram_api::updateBotStopped> update, Promise<Unit> &&promise);
   void on_update(tl_object_ptr<telegram_api::updateChatParticipant> update, Promise<Unit> &&promise);
   void on_update(tl_object_ptr<telegram_api::updateChannelParticipant> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateBotChatInviteRequester> update, Promise<Unit> &&promise);
 
   void on_update(tl_object_ptr<telegram_api::updateTheme> update, Promise<Unit> &&promise);
+
+  void on_update(tl_object_ptr<telegram_api::updatePendingJoinRequests> update, Promise<Unit> &&promise);
 
   // unsupported updates
 };

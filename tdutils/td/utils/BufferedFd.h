@@ -66,8 +66,8 @@ class BufferedFd final : public BufferedFdBase<FdT> {
  public:
   BufferedFd();
   explicit BufferedFd(FdT &&fd_);
-  BufferedFd(BufferedFd &&);
-  BufferedFd &operator=(BufferedFd &&);
+  BufferedFd(BufferedFd &&) noexcept;
+  BufferedFd &operator=(BufferedFd &&) noexcept;
   BufferedFd(const BufferedFd &) = delete;
   BufferedFd &operator=(const BufferedFd &) = delete;
   ~BufferedFd();
@@ -163,12 +163,12 @@ BufferedFd<FdT>::BufferedFd(FdT &&fd_) : Parent(std::move(fd_)) {
 }
 
 template <class FdT>
-BufferedFd<FdT>::BufferedFd(BufferedFd &&from) {
+BufferedFd<FdT>::BufferedFd(BufferedFd &&from) noexcept {
   *this = std::move(from);
 }
 
 template <class FdT>
-BufferedFd<FdT> &BufferedFd<FdT>::operator=(BufferedFd &&from) {
+BufferedFd<FdT> &BufferedFd<FdT>::operator=(BufferedFd &&from) noexcept {
   FdT::operator=(std::move(static_cast<FdT &>(from)));
   input_reader_ = std::move(from.input_reader_);
   input_writer_ = std::move(from.input_writer_);

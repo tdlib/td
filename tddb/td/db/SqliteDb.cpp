@@ -73,10 +73,10 @@ SqliteDb::~SqliteDb() = default;
 
 Status SqliteDb::init(CSlice path, bool allow_creation) {
   // if database does not exist, delete all other files which could have been left from the old database
-  bool is_db_exists = stat(path).is_ok();
-  if (!is_db_exists) {
+  auto database_stat = stat(path);
+  if (database_stat.is_error()) {
     if (!allow_creation) {
-      LOG(FATAL) << "Database was deleted during execution and can't be recreated";
+      LOG(FATAL) << "Database was deleted during execution and can't be recreated: " << database_stat.error();
     }
     TRY_STATUS(destroy(path));
   }
@@ -175,9 +175,16 @@ Status SqliteDb::set_user_version(int32 version) {
   return exec(PSLICE() << "PRAGMA user_version = " << version);
 }
 
-Status SqliteDb::begin_transaction() {
+Status SqliteDb::begin_read_transaction() {
   if (raw_->on_begin()) {
     return exec("BEGIN");
+  }
+  return Status::OK();
+}
+
+Status SqliteDb::begin_write_transaction() {
+  if (raw_->on_begin()) {
+    return exec("BEGIN IMMEDIATE");
   }
   return Status::OK();
 }

@@ -128,6 +128,9 @@ struct LogOptions {
   }
 
   LogOptions &operator=(const LogOptions &other) {
+    if (this == &other) {
+      return *this;
+    }
     level = other.level.load();
     fix_newlines = other.fix_newlines;
     add_info = other.add_info;

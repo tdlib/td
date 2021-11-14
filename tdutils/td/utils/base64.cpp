@@ -185,13 +185,13 @@ static bool is_base64_impl(Slice input) {
   }
 
   if ((input.size() & 3) == 2) {
-    auto value = table[static_cast<int>(input.back())];
+    auto value = table[static_cast<unsigned char>(input.back())];
     if ((value & 15) != 0) {
       return false;
     }
   }
   if ((input.size() & 3) == 3) {
-    auto value = table[static_cast<int>(input.back())];
+    auto value = table[static_cast<unsigned char>(input.back())];
     if ((value & 3) != 0) {
       return false;
     }

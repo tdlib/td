@@ -30,30 +30,23 @@ namespace TdApp
             Td.Client.Execute(new TdApi.SetLogVerbosityLevel(0));
             Td.Client.Execute(new TdApi.SetLogStream(new TdApi.LogStreamFile(Path.Combine(Windows.Storage.ApplicationData.Current.LocalFolder.Path, "log"), 1 << 27, false)));
             Td.Client.SetLogMessageCallback(100, LogMessageCallback);
-
             System.Threading.Tasks.Task.Run(() =>
             {
-                try
-                {
-                    _client = Td.Client.Create(_handler);
-                    var parameters = new TdApi.TdlibParameters();
-                    parameters.DatabaseDirectory = Windows.Storage.ApplicationData.Current.LocalFolder.Path;
-                    parameters.UseSecretChats = true;
-                    parameters.UseMessageDatabase = true;
-                    parameters.ApiId = 94575;
-                    parameters.ApiHash = "a3406de8d171bb422bb6ddf3bbd800e2";
-                    parameters.SystemLanguageCode = "en";
-                    parameters.DeviceModel = "Desktop";
-                    parameters.ApplicationVersion = "1.0.0";
-                    _client.Send(new TdApi.SetTdlibParameters(parameters), null);
-                    _client.Send(new TdApi.CheckDatabaseEncryptionKey(), null);
-                    _client.Run();
-                }
-                catch (Exception ex)
-                {
-                    Print(ex.ToString());
-                }
+                Td.Client.Run();
             });
+
+            _client = Td.Client.Create(_handler);
+            var parameters = new TdApi.TdlibParameters();
+            parameters.DatabaseDirectory = Windows.Storage.ApplicationData.Current.LocalFolder.Path;
+            parameters.UseSecretChats = true;
+            parameters.UseMessageDatabase = true;
+            parameters.ApiId = 94575;
+            parameters.ApiHash = "a3406de8d171bb422bb6ddf3bbd800e2";
+            parameters.SystemLanguageCode = "en";
+            parameters.DeviceModel = "Desktop";
+            parameters.ApplicationVersion = "1.0.0";
+            _client.Send(new TdApi.SetTdlibParameters(parameters), null);
+            _client.Send(new TdApi.CheckDatabaseEncryptionKey(), null);
         }
 
         public void Print(String str)

@@ -69,8 +69,13 @@ class SessionConnection final
     : public Named
     , private RawConnection::Callback {
  public:
-  enum class Mode { Tcp, Http, HttpLongPoll };
+  enum class Mode : int32 { Tcp, Http, HttpLongPoll };
   SessionConnection(Mode mode, unique_ptr<RawConnection> raw_connection, AuthData *auth_data);
+  SessionConnection(const SessionConnection &) = delete;
+  SessionConnection &operator=(const SessionConnection &) = delete;
+  SessionConnection(SessionConnection &&) = delete;
+  SessionConnection &operator=(SessionConnection &&) = delete;
+  ~SessionConnection() = default;
 
   PollableFdInfo &get_poll_info();
   unique_ptr<RawConnection> move_as_raw_connection();
@@ -87,7 +92,6 @@ class SessionConnection final
 
   void set_online(bool online_flag, bool is_main);
 
-  // Callback
   class Callback {
    public:
     Callback() = default;
@@ -132,6 +136,7 @@ class SessionConnection final
 
   bool online_flag_ = false;
   bool is_main_ = false;
+  bool was_moved_ = false;
 
   int rtt() const {
     return max(2, static_cast<int>(raw_connection_->extra().rtt * 1.5 + 1));
@@ -183,8 +188,8 @@ class SessionConnection final
   uint64 last_ping_message_id_ = 0;
   uint64 last_ping_container_id_ = 0;
 
-  bool need_destroy_auth_key_{false};
-  bool sent_destroy_auth_key_{false};
+  bool need_destroy_auth_key_ = false;
+  bool sent_destroy_auth_key_ = false;
 
   double wakeup_at_ = 0;
   double flush_packet_at_ = 0;
@@ -201,7 +206,7 @@ class SessionConnection final
   unique_ptr<RawConnection> raw_connection_;
   AuthData *auth_data_;
   SessionConnection::Callback *callback_ = nullptr;
-  BufferSlice *current_buffer_slice_;
+  BufferSlice *current_buffer_slice_ = nullptr;
 
   BufferSlice as_buffer_slice(Slice packet);
   auto set_buffer_slice(BufferSlice *buffer_slice) TD_WARN_UNUSED_RESULT {
@@ -212,7 +217,8 @@ class SessionConnection final
     };
   }
 
-  Status parse_message(TlParser &parser, MsgInfo *info, Slice *packet, bool crypto_flag = true) TD_WARN_UNUSED_RESULT;
+  static Status parse_message(TlParser &parser, MsgInfo *info, Slice *packet,
+                              bool crypto_flag = true) TD_WARN_UNUSED_RESULT;
   Status parse_packet(TlParser &parser) TD_WARN_UNUSED_RESULT;
   Status on_packet_container(const MsgInfo &info, Slice packet) TD_WARN_UNUSED_RESULT;
   Status on_packet_rpc_result(const MsgInfo &info, Slice packet) TD_WARN_UNUSED_RESULT;

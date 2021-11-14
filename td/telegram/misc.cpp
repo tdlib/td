@@ -74,7 +74,7 @@ bool clean_input_string(string &str) {
   size_t str_size = str.size();
   size_t new_size = 0;
   for (size_t pos = 0; pos < str_size; pos++) {
-    unsigned char c = static_cast<unsigned char>(str[pos]);
+    auto c = static_cast<unsigned char>(str[pos]);
     switch (c) {
       // remove control characters
       case 0:
@@ -118,7 +118,7 @@ bool clean_input_string(string &str) {
       default:
         // remove \xe2\x80[\xa8-\xae]
         if (c == 0xe2 && pos + 2 < str_size) {
-          unsigned char next = static_cast<unsigned char>(str[pos + 1]);
+          auto next = static_cast<unsigned char>(str[pos + 1]);
           if (next == 0x80) {
             next = static_cast<unsigned char>(str[pos + 2]);
             if (0xa8 <= next && next <= 0xae) {
@@ -129,7 +129,7 @@ bool clean_input_string(string &str) {
         }
         // remove vertical lines \xcc[\xb3\xbf\x8a]
         if (c == 0xcc && pos + 1 < str_size) {
-          unsigned char next = static_cast<unsigned char>(str[pos + 1]);
+          auto next = static_cast<unsigned char>(str[pos + 1]);
           if (next == 0xb3 || next == 0xbf || next == 0x8a) {
             pos++;
             break;

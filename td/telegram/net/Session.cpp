@@ -6,8 +6,6 @@
 //
 #include "td/telegram/net/Session.h"
 
-#include "td/telegram/telegram_api.h"
-
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/DhCache.h"
 #include "td/telegram/Global.h"
@@ -18,6 +16,7 @@
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/net/NetType.h"
 #include "td/telegram/StateManager.h"
+#include "td/telegram/telegram_api.h"
 #include "td/telegram/UniqueId.h"
 
 #include "td/mtproto/DhCallback.h"
@@ -143,7 +142,7 @@ bool Session::PriorityQueue::empty() const {
 
 Session::Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> shared_auth_data, int32 raw_dc_id,
                  int32 dc_id, bool is_main, bool use_pfs, bool is_cdn, bool need_destroy,
-                 const mtproto::AuthKey &tmp_auth_key, std::vector<mtproto::ServerSalt> server_salts)
+                 const mtproto::AuthKey &tmp_auth_key, const vector<mtproto::ServerSalt> &server_salts)
     : raw_dc_id_(raw_dc_id), dc_id_(dc_id), is_main_(is_main), is_cdn_(is_cdn) {
   VLOG(dc) << "Start connection " << tag("need_destroy", need_destroy);
   need_destroy_ = need_destroy;
@@ -160,7 +159,7 @@ Session::Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> 
   auth_data_.set_future_salts(shared_auth_data_->get_future_salts(), Time::now());
   if (use_pfs && !tmp_auth_key.empty()) {
     auth_data_.set_tmp_auth_key(tmp_auth_key);
-    auth_data_.set_future_salts(std::move(server_salts), Time::now());
+    auth_data_.set_future_salts(server_salts, Time::now());
   }
   uint64 session_id = 0;
   do {
@@ -500,9 +499,11 @@ void Session::on_closed(Status status) {
   raw_connection->close();
 
   if (status.is_error()) {
-    LOG(WARNING) << "Session closed: " << status << " " << current_info_->connection->get_name();
+    LOG(WARNING) << "Session with " << sent_queries_.size() << " pending requests was closed: " << status << " "
+                 << current_info_->connection->get_name();
   } else {
-    LOG(INFO) << "Session closed: " << status << " " << current_info_->connection->get_name();
+    LOG(INFO) << "Session with " << sent_queries_.size() << " pending requests was closed: " << status << " "
+              << current_info_->connection->get_name();
   }
 
   if (status.is_error() && status.code() == -404) {
@@ -515,7 +516,7 @@ void Session::on_closed(Status status) {
       LOG(WARNING) << "Invalidate CDN tmp_key";
       auth_data_.drop_main_auth_key();
       on_auth_key_updated();
-      on_session_failed(std::move(status));
+      on_session_failed(status.clone());
     } else if (need_destroy_) {
       auth_data_.drop_main_auth_key();
       on_auth_key_updated();
@@ -1199,7 +1200,7 @@ bool Session::connection_send_bind_key(ConnectionInfo *info) {
 
   int64 perm_auth_key_id = auth_data_.get_main_auth_key().id();
   int64 nonce = Random::secure_int64();
-  int32 expires_at = static_cast<int32>(auth_data_.get_server_time(auth_data_.get_tmp_auth_key().expires_at()));
+  auto expires_at = static_cast<int32>(auth_data_.get_server_time(auth_data_.get_tmp_auth_key().expires_at()));
   int64 message_id;
   BufferSlice encrypted;
   std::tie(message_id, encrypted) = info->connection->encrypted_bind(perm_auth_key_id, nonce, expires_at);

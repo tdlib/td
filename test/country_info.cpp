@@ -9,9 +9,9 @@
 #include "td/utils/common.h"
 #include "td/utils/tests.h"
 
-static void check_phone_number_info(const td::string &phone_number_prefix, const td::string &country_code,
+static void check_phone_number_info(td::string phone_number_prefix, const td::string &country_code,
                                     const td::string &calling_code, const td::string &formatted_phone_number) {
-  auto result = td::CountryInfoManager::get_phone_number_info_sync(td::string(), phone_number_prefix);
+  auto result = td::CountryInfoManager::get_phone_number_info_sync(td::string(), std::move(phone_number_prefix));
   CHECK(result != nullptr);
   if (result->country_ == nullptr) {
     CHECK(country_code.empty());

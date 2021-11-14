@@ -7,12 +7,14 @@
 #pragma once
 
 #include "td/telegram/DialogId.h"
+#include "td/telegram/telegram_api.h"
 #include "td/telegram/TopDialogCategory.h"
 
 #include "td/actor/actor.h"
 #include "td/actor/PromiseFuture.h"
 
 #include "td/utils/common.h"
+#include "td/utils/Status.h"
 #include "td/utils/Time.h"
 
 #include <array>
@@ -24,8 +26,7 @@ class Td;
 
 class TopDialogManager final : public Actor {
  public:
-  TopDialogManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
-  }
+  TopDialogManager(Td *td, ActorShared<> parent);
 
   void init();
 
@@ -67,7 +68,7 @@ class TopDialogManager final : public Actor {
     size_t limit;
     Promise<vector<DialogId>> promise;
   };
-  std::vector<GetTopDialogsQuery> pending_get_top_dialogs_;
+  vector<GetTopDialogsQuery> pending_get_top_dialogs_;
 
   struct TopDialog {
     DialogId dialog_id;
@@ -80,7 +81,7 @@ class TopDialogManager final : public Actor {
   struct TopDialogs {
     bool is_dirty = false;
     double rating_timestamp = 0;
-    std::vector<TopDialog> dialogs;
+    vector<TopDialog> dialogs;
   };
   template <class StorerT>
   friend void store(const TopDialog &top_dialog, StorerT &storer);

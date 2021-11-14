@@ -16,7 +16,7 @@ class Signal {
  public:
   void emit();
 
-  explicit Signal(ActorId<Slot> slot_id) : slot_id_(slot_id) {
+  explicit Signal(ActorId<Slot> slot_id) : slot_id_(std::move(slot_id)) {
   }
 
  private:

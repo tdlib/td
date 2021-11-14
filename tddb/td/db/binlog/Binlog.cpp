@@ -54,7 +54,7 @@ struct AesCtrEncryptionEvent {
   BufferSlice iv_;
   BufferSlice key_hash_;
 
-  BufferSlice generate_key(const DbKey &db_key) {
+  BufferSlice generate_key(const DbKey &db_key) const {
     CHECK(!db_key.is_empty());
     BufferSlice key(key_size());
     size_t iteration_count = kdf_iteration_count();
@@ -64,7 +64,8 @@ struct AesCtrEncryptionEvent {
     pbkdf2_sha256(db_key.data(), key_salt_.as_slice(), narrow_cast<int>(iteration_count), key.as_slice());
     return key;
   }
-  BufferSlice generate_hash(Slice key) {
+
+  static BufferSlice generate_hash(Slice key) {
     BufferSlice hash(hash_size());
     hmac_sha256(key, "cucumbers everywhere", hash.as_slice());
     return hash;
@@ -354,11 +355,13 @@ void Binlog::do_event(BinlogEvent &&event) {
         key = encryption_event.generate_key(db_key_);
       }
 
-      if (encryption_event.generate_hash(key.as_slice()).as_slice() != encryption_event.key_hash_.as_slice()) {
+      if (detail::AesCtrEncryptionEvent::generate_hash(key.as_slice()).as_slice() !=
+          encryption_event.key_hash_.as_slice()) {
         CHECK(state_ == State::Load);
         if (!old_db_key_.is_empty()) {
           key = encryption_event.generate_key(old_db_key_);
-          if (encryption_event.generate_hash(key.as_slice()).as_slice() != encryption_event.key_hash_.as_slice()) {
+          if (detail::AesCtrEncryptionEvent::generate_hash(key.as_slice()).as_slice() !=
+              encryption_event.key_hash_.as_slice()) {
             info_.wrong_password = true;
           }
         } else {
@@ -610,7 +613,7 @@ void Binlog::reset_encryption() {
     key = event.generate_key(db_key_);
   }
 
-  event.key_hash_ = event.generate_hash(key.as_slice());
+  event.key_hash_ = EncryptionEvent::generate_hash(key.as_slice());
 
   do_event(BinlogEvent(
       BinlogEvent::create_raw(0, BinlogEvent::ServiceTypes::AesCtrEncryption, 0, create_default_storer(event)),
@@ -677,7 +680,7 @@ void Binlog::do_reindex() {
                                              << detail::file_size(new_path) << ' ' << fd_events_ << ' ' << path_;
   }
 
-  double ratio = static_cast<double>(start_size) / static_cast<double>(finish_size + 1);
+  auto ratio = static_cast<double>(start_size) / static_cast<double>(finish_size + 1);
 
   [&](Slice msg) {
     if (start_size > (10 << 20) || finish_time - start_time > 1) {
@@ -722,7 +725,7 @@ string Binlog::debug_get_binlog_data(int64 begin_offset, int64 end_offset) {
   SCOPE_EXIT {
     fd_.lock(FileFd::LockFlags::Write, path_, 1).ensure();
   };
-  size_t expected_data_length = narrow_cast<size_t>(end_offset - begin_offset);
+  auto expected_data_length = narrow_cast<size_t>(end_offset - begin_offset);
   string data(expected_data_length, '\0');
   auto r_data_size = fd.pread(data, begin_offset);
   if (r_data_size.is_error()) {

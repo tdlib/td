@@ -36,8 +36,8 @@ class BackgroundManager final : public Actor {
 
   void get_backgrounds(bool for_dark_theme, Promise<td_api::object_ptr<td_api::backgrounds>> &&promise);
 
-  Result<string> get_background_url(const string &name,
-                                    td_api::object_ptr<td_api::BackgroundType> background_type) const;
+  static Result<string> get_background_url(const string &name,
+                                           td_api::object_ptr<td_api::BackgroundType> background_type);
 
   void reload_background(BackgroundId background_id, int64 access_hash, Promise<Unit> &&promise);
 
@@ -182,9 +182,13 @@ class BackgroundManager final : public Actor {
   std::shared_ptr<UploadBackgroundFileCallback> upload_background_file_callback_;
 
   struct UploadedFileInfo {
-    BackgroundType type;
-    bool for_dark_theme;
-    Promise<Unit> promise;
+    BackgroundType type_;
+    bool for_dark_theme_;
+    Promise<Unit> promise_;
+
+    UploadedFileInfo(BackgroundType type, bool for_dark_theme, Promise<Unit> &&promise)
+        : type_(type), for_dark_theme_(for_dark_theme), promise_(std::move(promise)) {
+    }
   };
   std::unordered_map<FileId, UploadedFileInfo, FileIdHash> being_uploaded_files_;
 

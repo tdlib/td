@@ -40,7 +40,7 @@ void tl_config::add_type(tl_type *type) {
 }
 
 tl_type *tl_config::get_type(std::int32_t type_id) const {
-  auto it = id_to_type.find(type_id);
+  std::map<std::int32_t, tl_type *>::const_iterator it = id_to_type.find(type_id);
   assert(it != id_to_type.end());
   return it->second;
 }

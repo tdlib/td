@@ -108,6 +108,7 @@ class Global final : public ActorContext {
   }
 
   void set_net_query_stats(std::shared_ptr<NetQueryStats> net_query_stats);
+
   void set_net_query_dispatcher(unique_ptr<NetQueryDispatcher> net_query_dispatcher);
 
   NetQueryDispatcher &net_query_dispatcher() {
@@ -368,10 +369,14 @@ class Global final : public ActorContext {
   void set_dh_config(std::shared_ptr<DhConfig> new_dh_config) {
 #if !TD_HAVE_ATOMIC_SHARED_PTR
     std::lock_guard<std::mutex> guard(dh_config_mutex_);
-    dh_config_ = new_dh_config;
+    dh_config_ = std::move(new_dh_config);
 #else
     atomic_store(&dh_config_, std::move(new_dh_config));
 #endif
+  }
+
+  static Status request_aborted_error() {
+    return Status::Error(500, "Request aborted");
   }
 
   void set_close_flag() {
@@ -379,6 +384,10 @@ class Global final : public ActorContext {
   }
   bool close_flag() const {
     return close_flag_.load();
+  }
+
+  Status close_status() const {
+    return close_flag() ? request_aborted_error() : Status::OK();
   }
 
   bool is_expected_error(const Status &error) const {
@@ -443,8 +452,8 @@ class Global final : public ActorContext {
   unique_ptr<MtprotoHeader> mtproto_header_;
 
   TdParameters parameters_;
-  int32 gc_scheduler_id_;
-  int32 slow_net_scheduler_id_;
+  int32 gc_scheduler_id_ = 0;
+  int32 slow_net_scheduler_id_ = 0;
 
   std::atomic<bool> store_all_files_in_files_directory_{false};
 
@@ -487,7 +496,8 @@ class Global final : public ActorContext {
 
 inline Global *G_impl(const char *file, int line) {
   ActorContext *context = Scheduler::context();
-  LOG_CHECK(context != nullptr && context->get_id() == Global::ID) << "In " << file << " at " << line;
+  LOG_CHECK(context != nullptr && context->get_id() == Global::ID)
+      << "Context = " << context << " in " << file << " at " << line;
   return static_cast<Global *>(context);
 }
 

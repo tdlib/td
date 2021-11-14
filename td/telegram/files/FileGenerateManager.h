@@ -26,8 +26,8 @@ class FileGenerateCallback {
   FileGenerateCallback &operator=(const FileGenerateCallback &) = delete;
   virtual ~FileGenerateCallback() = default;
 
-  virtual void on_partial_generate(const PartialLocalFileLocation &partial_local, int32 expected_size) = 0;
-  virtual void on_ok(const FullLocalFileLocation &local) = 0;
+  virtual void on_partial_generate(PartialLocalFileLocation partial_local, int32 expected_size) = 0;
+  virtual void on_ok(FullLocalFileLocation local) = 0;
   virtual void on_error(Status error) = 0;
 };
 
@@ -51,8 +51,8 @@ class FileGenerateManager final : public Actor {
     Query() = default;
     Query(const Query &other) = delete;
     Query &operator=(const Query &other) = delete;
-    Query(Query &&other);
-    Query &operator=(Query &&other);
+    Query(Query &&other) noexcept;
+    Query &operator=(Query &&other) noexcept;
     ~Query();
 
     ActorOwn<FileGenerateActor> worker_;

@@ -6,6 +6,7 @@
 //
 #include "td/telegram/DraftMessage.h"
 
+#include "td/telegram/Global.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/ServerMessageId.h"
@@ -23,7 +24,7 @@ td_api::object_ptr<td_api::draftMessage> get_draft_message_object(const unique_p
 }
 
 unique_ptr<DraftMessage> get_draft_message(ContactsManager *contacts_manager,
-                                           tl_object_ptr<telegram_api::DraftMessage> &&draft_message_ptr) {
+                                           telegram_api::object_ptr<telegram_api::DraftMessage> &&draft_message_ptr) {
   if (draft_message_ptr == nullptr) {
     return nullptr;
   }
@@ -54,7 +55,7 @@ unique_ptr<DraftMessage> get_draft_message(ContactsManager *contacts_manager,
         entities = find_entities(draft->message_, false, true);
       }
       result->input_message_text.text = FormattedText{std::move(draft->message_), std::move(entities)};
-      result->input_message_text.disable_web_page_preview = (flags & telegram_api::draftMessage::NO_WEBPAGE_MASK) != 0;
+      result->input_message_text.disable_web_page_preview = draft->no_webpage_;
       result->input_message_text.clear_draft = false;
 
       return result;
@@ -63,6 +64,32 @@ unique_ptr<DraftMessage> get_draft_message(ContactsManager *contacts_manager,
       UNREACHABLE();
       return nullptr;
   }
+}
+
+Result<unique_ptr<DraftMessage>> get_draft_message(ContactsManager *contacts_manager, DialogId dialog_id,
+                                                   td_api::object_ptr<td_api::draftMessage> &&draft_message) {
+  if (draft_message == nullptr) {
+    return nullptr;
+  }
+
+  auto result = make_unique<DraftMessage>();
+  result->date = G()->unix_time();
+  result->reply_to_message_id = MessageId(draft_message->reply_to_message_id_);
+  if (result->reply_to_message_id != MessageId() && !result->reply_to_message_id.is_valid()) {
+    return Status::Error(400, "Invalid reply_to_message_id specified");
+  }
+
+  auto input_message_content = std::move(draft_message->input_message_text_);
+  if (input_message_content != nullptr) {
+    if (input_message_content->get_id() != td_api::inputMessageText::ID) {
+      return Status::Error(400, "Input message content type must be InputMessageText");
+    }
+    TRY_RESULT(message_content,
+               process_input_message_text(contacts_manager, dialog_id, std::move(input_message_content), false, true));
+    result->input_message_text = std::move(message_content);
+  }
+
+  return std::move(result);
 }
 
 }  // namespace td

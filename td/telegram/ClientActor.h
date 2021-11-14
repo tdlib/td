@@ -64,19 +64,20 @@ class ClientActor final : public Actor {
   /**
    * Destroys the ClientActor and the TDLib instance.
    */
-  ~ClientActor();
+  ~ClientActor() final;
 
   /**
    * Move constructor.
    */
-  ClientActor(ClientActor &&other);
+  ClientActor(ClientActor &&other) noexcept;
 
   /**
    * Move assignment operator.
    */
-  ClientActor &operator=(ClientActor &&other);
+  ClientActor &operator=(ClientActor &&other) noexcept;
 
   ClientActor(const ClientActor &other) = delete;
+
   ClientActor &operator=(const ClientActor &other) = delete;
 
  private:
