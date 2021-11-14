@@ -124,7 +124,8 @@ FileId StickersManager::parse_sticker(bool in_sticker_set, ParserT &parser) {
 }
 
 template <class StorerT>
-void StickersManager::store_sticker_set(const StickerSet *sticker_set, bool with_stickers, StorerT &storer) const {
+void StickersManager::store_sticker_set(const StickerSet *sticker_set, bool with_stickers, StorerT &storer,
+                                        const char *source) const {
   size_t stickers_limit = with_stickers ? sticker_set->sticker_ids.size() : 5;
   bool is_full = sticker_set->sticker_ids.size() <= stickers_limit;
   bool was_loaded = sticker_set->was_loaded && is_full;
@@ -169,7 +170,7 @@ void StickersManager::store_sticker_set(const StickerSet *sticker_set, bool with
     store(stored_sticker_count, storer);
     for (uint32 i = 0; i < stored_sticker_count; i++) {
       auto sticker_id = sticker_set->sticker_ids[i];
-      store_sticker(sticker_id, true, storer, "store_sticker_set");
+      store_sticker(sticker_id, true, storer, source);
 
       if (was_loaded) {
         auto it = sticker_set->sticker_emojis_map_.find(sticker_id);
