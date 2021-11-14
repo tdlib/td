@@ -142,17 +142,6 @@ class MessagesManager final : public Actor {
   MessagesManager &operator=(MessagesManager &&) = delete;
   ~MessagesManager() final;
 
-  td_api::object_ptr<td_api::MessageSender> get_message_sender_object_const(UserId user_id, DialogId dialog_id,
-                                                                            const char *source) const;
-
-  td_api::object_ptr<td_api::MessageSender> get_message_sender_object(UserId user_id, DialogId dialog_id,
-                                                                      const char *source);
-
-  td_api::object_ptr<td_api::MessageSender> get_message_sender_object_const(DialogId dialog_id,
-                                                                            const char *source) const;
-
-  td_api::object_ptr<td_api::MessageSender> get_message_sender_object(DialogId dialog_id, const char *source);
-
   static vector<MessageId> get_message_ids(const vector<int64> &input_message_ids);
 
   static vector<int32> get_server_message_ids(const vector<MessageId> &message_ids);

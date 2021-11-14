@@ -10,6 +10,7 @@
 #include "td/telegram/AudiosManager.h"
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
@@ -335,8 +336,8 @@ class NotificationTypePushMessage final : public NotificationType {
   }
 
   td_api::object_ptr<td_api::NotificationType> get_notification_type_object(DialogId dialog_id) const final {
-    auto sender = G()->td().get_actor_unsafe()->messages_manager_->get_message_sender_object(
-        sender_user_id_, sender_dialog_id_, "get_notification_type_object");
+    auto sender = get_message_sender_object(G()->td().get_actor_unsafe(), sender_user_id_, sender_dialog_id_,
+                                            "get_notification_type_object");
     return td_api::make_object<td_api::notificationTypeNewPushMessage>(
         message_id_.get(), std::move(sender), sender_name_, is_outgoing_,
         get_push_message_content_object(key_, arg_, photo_, document_));

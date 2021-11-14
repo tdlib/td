@@ -33,6 +33,7 @@
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageEntity.hpp"
 #include "td/telegram/MessagesDb.h"
+#include "td/telegram/MessageSender.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/NetActor.h"
@@ -2184,7 +2185,7 @@ class GetSearchResultCalendarQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "SearchMessagesQuery");
+    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetSearchResultCalendarQuery");
     td_->messages_manager_->on_failed_get_message_search_result_calendar(dialog_id_, random_id_);
     promise_.set_error(std::move(status));
   }
@@ -5857,49 +5858,6 @@ void MessagesManager::on_preload_folder_dialog_list_timeout_callback(void *messa
   auto messages_manager = static_cast<MessagesManager *>(messages_manager_ptr);
   send_closure_later(messages_manager->actor_id(messages_manager), &MessagesManager::preload_folder_dialog_list,
                      FolderId(narrow_cast<int32>(folder_id_int)));
-}
-
-td_api::object_ptr<td_api::MessageSender> MessagesManager::get_message_sender_object_const(UserId user_id,
-                                                                                           DialogId dialog_id,
-                                                                                           const char *source) const {
-  if (dialog_id.is_valid() && have_dialog(dialog_id)) {
-    return td_api::make_object<td_api::messageSenderChat>(dialog_id.get());
-  }
-  if (!user_id.is_valid()) {
-    // can happen only if the server sends a message with wrong sender
-    LOG(ERROR) << "Receive message with wrong sender " << user_id << '/' << dialog_id << " from " << source;
-    user_id = td_->contacts_manager_->add_service_notifications_user();
-  }
-  return td_api::make_object<td_api::messageSenderUser>(td_->contacts_manager_->get_user_id_object(user_id, source));
-}
-
-td_api::object_ptr<td_api::MessageSender> MessagesManager::get_message_sender_object(UserId user_id, DialogId dialog_id,
-                                                                                     const char *source) {
-  if (dialog_id.is_valid() && !have_dialog(dialog_id)) {
-    LOG(ERROR) << "Failed to find " << dialog_id;
-    force_create_dialog(dialog_id, source);
-  }
-  if (!user_id.is_valid() && td_->auth_manager_->is_bot()) {
-    td_->contacts_manager_->add_anonymous_bot_user();
-    td_->contacts_manager_->add_service_notifications_user();
-  }
-  return get_message_sender_object_const(user_id, dialog_id, source);
-}
-
-td_api::object_ptr<td_api::MessageSender> MessagesManager::get_message_sender_object_const(DialogId dialog_id,
-                                                                                           const char *source) const {
-  if (dialog_id.get_type() == DialogType::User) {
-    return get_message_sender_object_const(dialog_id.get_user_id(), DialogId(), source);
-  }
-  return get_message_sender_object_const(UserId(), dialog_id, source);
-}
-
-td_api::object_ptr<td_api::MessageSender> MessagesManager::get_message_sender_object(DialogId dialog_id,
-                                                                                     const char *source) {
-  if (dialog_id.get_type() == DialogType::User) {
-    return get_message_sender_object(dialog_id.get_user_id(), DialogId(), source);
-  }
-  return get_message_sender_object(UserId(), dialog_id, source);
 }
 
 BufferSlice MessagesManager::get_dialog_database_value(const Dialog *d) {
@@ -16940,8 +16898,8 @@ void MessagesManager::on_get_blocked_dialogs(int32 offset, int32 limit, int32 to
     total_count = offset + narrow_cast<int32>(dialog_ids.size());
   }
 
-  auto senders = transform(dialog_ids, [this](DialogId dialog_id) {
-    return get_message_sender_object(dialog_id, "on_get_blocked_dialogs");
+  auto senders = transform(dialog_ids, [td = td_](DialogId dialog_id) {
+    return get_message_sender_object(td, dialog_id, "on_get_blocked_dialogs");
   });
   promise.set_value(td_api::make_object<td_api::messageSenders>(total_count, std::move(senders)));
 }
@@ -20248,7 +20206,7 @@ td_api::object_ptr<td_api::videoChat> MessagesManager::get_video_chat_object(con
   auto active_group_call_id = td_->group_call_manager_->get_group_call_id(d->active_group_call_id, d->dialog_id);
   auto default_participant_alias =
       d->default_join_group_call_as_dialog_id.is_valid()
-          ? get_message_sender_object_const(d->default_join_group_call_as_dialog_id, "get_video_chat_object")
+          ? get_message_sender_object_const(td_, d->default_join_group_call_as_dialog_id, "get_video_chat_object")
           : nullptr;
   return make_tl_object<td_api::videoChat>(active_group_call_id.get(),
                                            active_group_call_id.is_valid() ? !d->is_group_call_empty : false,
@@ -23553,7 +23511,7 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   } else {
     ttl = 0;
   }
-  auto sender = get_message_sender_object_const(m->sender_user_id, m->sender_dialog_id, source);
+  auto sender = get_message_sender_object_const(td_, m->sender_user_id, m->sender_dialog_id, source);
   auto scheduling_state = is_scheduled ? get_message_scheduling_state_object(m->date) : nullptr;
   auto forward_info = get_message_forward_info_object(m->forward_info);
   auto interaction_info = get_message_interaction_info_object(dialog_id, m);

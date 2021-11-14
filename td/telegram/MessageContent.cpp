@@ -39,6 +39,7 @@
 #include "td/telegram/MessageEntity.hpp"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageSearchFilter.h"
+#include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/net/DcId.h"
@@ -4994,9 +4995,8 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     case MessageContentType::ProximityAlertTriggered: {
       const auto *m = static_cast<const MessageProximityAlertTriggered *>(content);
       return make_tl_object<td_api::messageProximityAlertTriggered>(
-          td->messages_manager_->get_message_sender_object(m->traveler_dialog_id, "messageProximityAlertTriggered 1"),
-          td->messages_manager_->get_message_sender_object(m->watcher_dialog_id, "messageProximityAlertTriggered 2"),
-          m->distance);
+          get_message_sender_object(td, m->traveler_dialog_id, "messageProximityAlertTriggered 1"),
+          get_message_sender_object(td, m->watcher_dialog_id, "messageProximityAlertTriggered 2"), m->distance);
     }
     case MessageContentType::GroupCall: {
       const auto *m = static_cast<const MessageGroupCall *>(content);

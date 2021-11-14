@@ -357,6 +357,7 @@ set(TDLIB_SOURCE
   td/telegram/MessageReplyInfo.cpp
   td/telegram/MessagesDb.cpp
   td/telegram/MessageSearchFilter.cpp
+  td/telegram/MessageSender.cpp
   td/telegram/MessagesManager.cpp
   td/telegram/MessageTtlSetting.cpp
   td/telegram/misc.cpp
@@ -558,6 +559,7 @@ set(TDLIB_SOURCE
   td/telegram/MessageThreadInfo.h
   td/telegram/MessagesDb.h
   td/telegram/MessageSearchFilter.h
+  td/telegram/MessageSender.h
   td/telegram/MessagesManager.h
   td/telegram/MessageTtlSetting.h
   td/telegram/misc.h

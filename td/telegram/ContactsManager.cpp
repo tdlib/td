@@ -24,6 +24,7 @@
 #include "td/telegram/LinkManager.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/logevent/LogEventHelper.h"
+#include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/MessageTtlSetting.h"
 #include "td/telegram/misc.h"
@@ -11833,7 +11834,7 @@ tl_object_ptr<td_api::chatMember> ContactsManager::get_chat_member_object(
     td_->messages_manager_->force_create_dialog(dialog_id, "get_chat_member_object", true);
   }
   return td_api::make_object<td_api::chatMember>(
-      td_->messages_manager_->get_message_sender_object_const(dialog_id, "get_chat_member_object"),
+      get_message_sender_object_const(td_, dialog_id, "get_chat_member_object"),
       get_user_id_object(dialog_participant.inviter_user_id_, "chatMember.inviter_user_id"),
       dialog_participant.joined_date_, dialog_participant.status_.get_chat_member_status_object());
 }

@@ -15,6 +15,7 @@
 #include "td/telegram/GroupCallManager.h"
 #include "td/telegram/GroupCallParticipant.h"
 #include "td/telegram/InputGroupCallId.h"
+#include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/MessageTtlSetting.h"
 #include "td/telegram/StickersManager.h"
@@ -86,8 +87,7 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
         return nullptr;
       }
       return td_api::make_object<td_api::chatEventMemberRestricted>(
-          td->messages_manager_->get_message_sender_object(old_dialog_participant.dialog_id_,
-                                                           "chatEventMemberRestricted"),
+          get_message_sender_object(td, old_dialog_participant.dialog_id_, "chatEventMemberRestricted"),
           old_dialog_participant.status_.get_chat_member_status_object(),
           new_dialog_participant.status_.get_chat_member_status_object());
     }
@@ -294,9 +294,7 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
         return nullptr;
       }
       return td_api::make_object<td_api::chatEventVideoChatParticipantIsMutedToggled>(
-          td->messages_manager_->get_message_sender_object(participant.dialog_id,
-                                                           "chatEventVideoChatParticipantIsMutedToggled"),
-          true);
+          get_message_sender_object(td, participant.dialog_id, "chatEventVideoChatParticipantIsMutedToggled"), true);
     }
     case telegram_api::channelAdminLogEventActionParticipantUnmute::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantUnmute>(action_ptr);
@@ -305,9 +303,7 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
         return nullptr;
       }
       return td_api::make_object<td_api::chatEventVideoChatParticipantIsMutedToggled>(
-          td->messages_manager_->get_message_sender_object(participant.dialog_id,
-                                                           "chatEventVideoChatParticipantIsMutedToggled"),
-          false);
+          get_message_sender_object(td, participant.dialog_id, "chatEventVideoChatParticipantIsMutedToggled"), false);
     }
     case telegram_api::channelAdminLogEventActionParticipantVolume::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantVolume>(action_ptr);
@@ -316,8 +312,7 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
         return nullptr;
       }
       return td_api::make_object<td_api::chatEventVideoChatParticipantVolumeLevelChanged>(
-          td->messages_manager_->get_message_sender_object(participant.dialog_id,
-                                                           "chatEventVideoChatParticipantVolumeLevelChanged"),
+          get_message_sender_object(td, participant.dialog_id, "chatEventVideoChatParticipantVolumeLevelChanged"),
           participant.volume_level);
     }
     case telegram_api::channelAdminLogEventActionToggleGroupCallSetting::ID: {
