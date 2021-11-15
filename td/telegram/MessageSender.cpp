@@ -54,4 +54,29 @@ td_api::object_ptr<td_api::MessageSender> get_message_sender_object(Td *td, Dial
   return get_message_sender_object(td, UserId(), dialog_id, source);
 }
 
+Result<DialogId> get_message_sender_dialog_id(const td_api::object_ptr<td_api::MessageSender> &message_sender_id) {
+  if (message_sender_id == nullptr) {
+    return Status::Error(400, "Member identifier is not specified");
+  }
+  switch (message_sender_id->get_id()) {
+    case td_api::messageSenderUser::ID: {
+      auto user_id = UserId(static_cast<const td_api::messageSenderUser *>(message_sender_id.get())->user_id_);
+      if (!user_id.is_valid()) {
+        return Status::Error(400, "Invalid user identifier specified");
+      }
+      return DialogId(user_id);
+    }
+    case td_api::messageSenderChat::ID: {
+      auto dialog_id = DialogId(static_cast<const td_api::messageSenderChat *>(message_sender_id.get())->chat_id_);
+      if (!dialog_id.is_valid()) {
+        return Status::Error(400, "Invalid chat identifier specified");
+      }
+      return dialog_id;
+    }
+    default:
+      UNREACHABLE();
+      return DialogId();
+  }
+}
+
 }  // namespace td

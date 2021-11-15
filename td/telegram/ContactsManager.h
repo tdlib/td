@@ -526,14 +526,14 @@ class ContactsManager final : public Actor {
 
   void add_dialog_participants(DialogId dialog_id, const vector<UserId> &user_ids, Promise<Unit> &&promise);
 
-  void set_dialog_participant_status(DialogId dialog_id, const tl_object_ptr<td_api::MessageSender> &participant_id,
+  void set_dialog_participant_status(DialogId dialog_id, DialogId participant_dialog_id,
                                      const tl_object_ptr<td_api::ChatMemberStatus> &chat_member_status,
                                      Promise<Unit> &&promise);
 
-  void ban_dialog_participant(DialogId dialog_id, const tl_object_ptr<td_api::MessageSender> &participant_id,
-                              int32 banned_until_date, bool revoke_messages, Promise<Unit> &&promise);
+  void ban_dialog_participant(DialogId dialog_id, DialogId participant_dialog_id, int32 banned_until_date,
+                              bool revoke_messages, Promise<Unit> &&promise);
 
-  void get_dialog_participant(DialogId dialog_id, const tl_object_ptr<td_api::MessageSender> &participant_id,
+  void get_dialog_participant(DialogId dialog_id, DialogId participant_dialog_id,
                               Promise<td_api::object_ptr<td_api::chatMember>> &&promise);
 
   void search_dialog_participants(DialogId dialog_id, const string &query, int32 limit, DialogParticipantsFilter filter,
@@ -1419,8 +1419,6 @@ class ContactsManager final : public Actor {
 
   bool update_permanent_invite_link(DialogInviteLink &invite_link, DialogInviteLink new_invite_link);
 
-  static Result<DialogId> get_participant_dialog_id(const td_api::object_ptr<td_api::MessageSender> &participant_id);
-
   void add_chat_participant(ChatId chat_id, UserId user_id, int32 forward_limit, Promise<Unit> &&promise);
 
   void add_channel_participant(ChannelId channel_id, UserId user_id, const DialogParticipantStatus &old_status,
@@ -1441,7 +1439,8 @@ class ContactsManager final : public Actor {
   DialogParticipants search_private_chat_participants(UserId my_user_id, UserId peer_user_id, const string &query,
                                                       int32 limit, DialogParticipantsFilter filter) const;
 
-  void get_dialog_participant(DialogId dialog_id, DialogId participant_dialog_id, Promise<DialogParticipant> &&promise);
+  void do_get_dialog_participant(DialogId dialog_id, DialogId participant_dialog_id,
+                                 Promise<DialogParticipant> &&promise);
 
   void finish_get_dialog_participant(DialogParticipant &&dialog_participant,
                                      Promise<td_api::object_ptr<td_api::chatMember>> &&promise);

@@ -852,7 +852,7 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::addChatMembers &request);
 
-  void on_request(uint64 id, td_api::setChatMemberStatus &request);
+  void on_request(uint64 id, const td_api::setChatMemberStatus &request);
 
   void on_request(uint64 id, const td_api::banChatMember &request);
 
@@ -860,11 +860,11 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::transferChatOwnership &request);
 
-  void on_request(uint64 id, td_api::getChatMember &request);
+  void on_request(uint64 id, const td_api::getChatMember &request);
 
   void on_request(uint64 id, td_api::searchChatMembers &request);
 
-  void on_request(uint64 id, td_api::getChatAdministrators &request);
+  void on_request(uint64 id, const td_api::getChatAdministrators &request);
 
   void on_request(uint64 id, const td_api::replacePrimaryChatInviteLink &request);
 
