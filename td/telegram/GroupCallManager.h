@@ -39,8 +39,6 @@ class GroupCallManager final : public Actor {
   GroupCallManager &operator=(GroupCallManager &&) = delete;
   ~GroupCallManager() final;
 
-  DialogId get_group_call_participant_id(const td_api::object_ptr<td_api::MessageSender> &message_sender);
-
   bool is_group_call_being_joined(InputGroupCallId input_group_call_id) const;
 
   bool is_group_call_joined(InputGroupCallId input_group_call_id) const;

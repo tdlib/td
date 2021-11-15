@@ -34,6 +34,8 @@ vector<DialogId> get_message_sender_dialog_ids(Td *td,
 td_api::object_ptr<td_api::messageSenders> convert_message_senders_object(
     Td *td, const vector<telegram_api::object_ptr<telegram_api::Peer>> &peers);
 
-Result<DialogId> get_message_sender_dialog_id(const td_api::object_ptr<td_api::MessageSender> &message_sender_id);
+Result<DialogId> get_message_sender_dialog_id(Td *td,
+                                              const td_api::object_ptr<td_api::MessageSender> &message_sender_id,
+                                              bool check_access, bool allow_empty);
 
 }  // namespace td

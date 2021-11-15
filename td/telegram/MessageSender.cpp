@@ -95,22 +95,39 @@ td_api::object_ptr<td_api::messageSenders> convert_message_senders_object(
   return td_api::make_object<td_api::messageSenders>(narrow_cast<int32>(dialog_ids.size()), std::move(message_senders));
 }
 
-Result<DialogId> get_message_sender_dialog_id(const td_api::object_ptr<td_api::MessageSender> &message_sender_id) {
+Result<DialogId> get_message_sender_dialog_id(Td *td,
+                                              const td_api::object_ptr<td_api::MessageSender> &message_sender_id,
+                                              bool check_access, bool allow_empty) {
   if (message_sender_id == nullptr) {
+    if (allow_empty) {
+      return DialogId();
+    }
     return Status::Error(400, "Member identifier is not specified");
   }
   switch (message_sender_id->get_id()) {
     case td_api::messageSenderUser::ID: {
       auto user_id = UserId(static_cast<const td_api::messageSenderUser *>(message_sender_id.get())->user_id_);
       if (!user_id.is_valid()) {
+        if (allow_empty && user_id == UserId()) {
+          return DialogId();
+        }
         return Status::Error(400, "Invalid user identifier specified");
+      }
+      if (check_access && !td->contacts_manager_->have_user_force(user_id)) {
+        return Status::Error(400, "Unknown user identifier specified");
       }
       return DialogId(user_id);
     }
     case td_api::messageSenderChat::ID: {
       auto dialog_id = DialogId(static_cast<const td_api::messageSenderChat *>(message_sender_id.get())->chat_id_);
       if (!dialog_id.is_valid()) {
+        if (allow_empty && dialog_id == DialogId()) {
+          return DialogId();
+        }
         return Status::Error(400, "Invalid chat identifier specified");
+      }
+      if (check_access && !td->messages_manager_->have_dialog_force(dialog_id, "get_message_sender_dialog_id")) {
+        return Status::Error(400, "Unknown chat identifier specified");
       }
       return dialog_id;
     }

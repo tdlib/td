@@ -1069,32 +1069,6 @@ void GroupCallManager::on_sync_participants_timeout(GroupCallId group_call_id) {
   sync_group_call_participants(input_group_call_id);
 }
 
-DialogId GroupCallManager::get_group_call_participant_id(
-    const td_api::object_ptr<td_api::MessageSender> &message_sender) {
-  if (message_sender == nullptr) {
-    return DialogId();
-  }
-  switch (message_sender->get_id()) {
-    case td_api::messageSenderUser::ID: {
-      UserId user_id(static_cast<const td_api::messageSenderUser *>(message_sender.get())->user_id_);
-      if (td_->contacts_manager_->have_user_force(user_id)) {
-        return DialogId(user_id);
-      }
-      break;
-    }
-    case td_api::messageSenderChat::ID: {
-      DialogId dialog_id(static_cast<const td_api::messageSenderChat *>(message_sender.get())->chat_id_);
-      if (td_->messages_manager_->have_dialog_force(dialog_id, "get_group_call_participant_id")) {
-        return dialog_id;
-      }
-      break;
-    }
-    default:
-      UNREACHABLE();
-  }
-  return DialogId();
-}
-
 bool GroupCallManager::is_group_call_being_joined(InputGroupCallId input_group_call_id) const {
   return pending_join_requests_.count(input_group_call_id) != 0;
 }
