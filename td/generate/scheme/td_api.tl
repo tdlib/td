@@ -748,11 +748,11 @@ messageForwardInfo origin:MessageForwardOrigin date:int32 public_service_announc
 
 //@description Contains information about replies to a message
 //@reply_count Number of times the message was directly or indirectly replied
-//@recent_repliers Recent repliers to the message; available in channels with a discussion supergroup
+//@recent_replier_ids Identifiers of recent repliers to the message; available in channels with a discussion supergroup
 //@last_read_inbox_message_id Identifier of the last read incoming reply to the message
 //@last_read_outbox_message_id Identifier of the last read outgoing reply to the message
 //@last_message_id Identifier of the last reply to the message
-messageReplyInfo reply_count:int32 recent_repliers:vector<MessageSender> last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 last_message_id:int53 = MessageReplyInfo;
+messageReplyInfo reply_count:int32 recent_replier_ids:vector<MessageSender> last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 last_message_id:int53 = MessageReplyInfo;
 
 //@description Contains information about interactions with a message
 //@view_count Number of times the message was viewed
@@ -773,7 +773,7 @@ messageSendingStateFailed error_code:int32 error_message:string can_retry:Bool r
 
 //@description Describes a message
 //@id Message identifier; unique for the chat to which the message belongs
-//@sender The sender of the message
+//@sender_id Identifier of the sender of the message
 //@chat_id Chat identifier
 //@sending_state The sending state of the message; may be null
 //@scheduling_state The scheduling state of the message; may be null
@@ -805,7 +805,7 @@ messageSendingStateFailed error_code:int32 error_message:string can_retry:Bool r
 //@restriction_reason If non-empty, contains a human-readable description of the reason why access to this message must be restricted
 //@content Content of the message
 //@reply_markup Reply markup for the message; may be null
-message id:int53 sender:MessageSender chat_id:int53 sending_state:MessageSendingState scheduling_state:MessageSchedulingState is_outgoing:Bool is_pinned:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_get_statistics:Bool can_get_message_thread:Bool can_get_viewers:Bool can_get_media_timestamp_links:Bool has_timestamped_media:Bool is_channel_post:Bool contains_unread_mention:Bool date:int32 edit_date:int32 forward_info:messageForwardInfo interaction_info:messageInteractionInfo reply_in_chat_id:int53 reply_to_message_id:int53 message_thread_id:int53 ttl:int32 ttl_expires_in:double via_bot_user_id:int53 author_signature:string media_album_id:int64 restriction_reason:string content:MessageContent reply_markup:ReplyMarkup = Message;
+message id:int53 sender_id:MessageSender chat_id:int53 sending_state:MessageSendingState scheduling_state:MessageSchedulingState is_outgoing:Bool is_pinned:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_get_statistics:Bool can_get_message_thread:Bool can_get_viewers:Bool can_get_media_timestamp_links:Bool has_timestamped_media:Bool is_channel_post:Bool contains_unread_mention:Bool date:int32 edit_date:int32 forward_info:messageForwardInfo interaction_info:messageInteractionInfo reply_in_chat_id:int53 reply_to_message_id:int53 message_thread_id:int53 ttl:int32 ttl_expires_in:double via_bot_user_id:int53 author_signature:string media_album_id:int64 restriction_reason:string content:MessageContent reply_markup:ReplyMarkup = Message;
 
 //@description Contains a list of messages @total_count Approximate total count of messages found @messages List of messages; messages may be null
 messages total_count:int32 messages:vector<message> = Messages;
@@ -962,7 +962,7 @@ videoChat group_call_id:int32 has_participants:Bool default_participant_id:Messa
 //@permissions Actions that non-administrator chat members are allowed to take in the chat
 //@last_message Last message in the chat; may be null
 //@positions Positions of the chat in chat lists
-//@default_message_sender_id Default message sender that is chosen to send messages in the chat; may be null if the user can't change message sender
+//@default_message_sender_id Default identifier of a user or chat that is chosen to send messages in the chat; may be null if the user can't change message sender
 //@is_marked_as_unread True, if the chat is marked as unread
 //@is_blocked True, if the chat is blocked by the current user and private messages from the chat can't be received
 //@has_scheduled_messages True, if the chat has scheduled messages
@@ -1858,8 +1858,8 @@ messagePassportDataSent types:vector<PassportElementType> = MessageContent;
 //@description Telegram Passport data has been received; for bots only @elements List of received Telegram Passport elements @credentials Encrypted data credentials
 messagePassportDataReceived elements:vector<encryptedPassportElement> credentials:encryptedCredentials = MessageContent;
 
-//@description A user in the chat came within proximity alert range @traveler The user or chat, which triggered the proximity alert @watcher The user or chat, which subscribed for the proximity alert @distance The distance between the users
-messageProximityAlertTriggered traveler:MessageSender watcher:MessageSender distance:int32 = MessageContent;
+//@description A user in the chat came within proximity alert range @traveler_id The identifier of a user or chat that triggered the proximity alert @watcher_id The identifier of a user or chat that subscribed for the proximity alert @distance The distance between the users
+messageProximityAlertTriggered traveler_id:MessageSender watcher_id:MessageSender distance:int32 = MessageContent;
 
 //@description Message content that is not supported in the current TDLib version
 messageUnsupported = MessageContent;
@@ -2967,11 +2967,11 @@ notificationTypeNewCall call_id:int32 = NotificationType;
 
 //@description New message was received through a push notification
 //@message_id The message identifier. The message will not be available in the chat history, but the ID can be used in viewMessages, or as reply_to_message_id
-//@sender The sender of the message. Corresponding user or chat may be inaccessible
+//@sender_id Identifier of the sender of the message. Corresponding user or chat may be inaccessible
 //@sender_name Name of the sender
 //@is_outgoing True, if the message is outgoing
 //@content Push message content
-notificationTypeNewPushMessage message_id:int53 sender:MessageSender sender_name:string is_outgoing:Bool content:PushMessageContent = NotificationType;
+notificationTypeNewPushMessage message_id:int53 sender_id:MessageSender sender_name:string is_outgoing:Bool content:PushMessageContent = NotificationType;
 
 
 //@class NotificationGroupType @description Describes the type of notifications in a notification group
@@ -4267,13 +4267,13 @@ deleteChat chat_id:int53 = Ok;
 //-(searchSecretMessages must be used instead), or without an enabled message database. For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
 //@chat_id Identifier of the chat in which to search messages
 //@query Query to search for
-//@sender Sender of messages to search for; pass null to search for messages from any sender. Not supported in secret chats
+//@sender_id Identifier of the sender of messages to search for; pass null to search for messages from any sender. Not supported in secret chats
 //@from_message_id Identifier of the message starting from which history must be fetched; use 0 to get results from the last message
 //@offset Specify 0 to get results from exactly the from_message_id or a negative offset to get the specified message and some newer messages
 //@limit The maximum number of messages to be returned; must be positive and can't be greater than 100. If the offset is negative, the limit must be greater than -offset. For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
 //@filter Additional filter for messages to search; pass null to search for all messages
 //@message_thread_id If not 0, only messages in the specified thread will be returned; supergroups only
-searchChatMessages chat_id:int53 query:string sender:MessageSender from_message_id:int53 offset:int32 limit:int32 filter:SearchMessagesFilter message_thread_id:int53 = Messages;
+searchChatMessages chat_id:int53 query:string sender_id:MessageSender from_message_id:int53 offset:int32 limit:int32 filter:SearchMessagesFilter message_thread_id:int53 = Messages;
 
 //@description Searches for messages in all chats except secret chats. Returns the results in reverse chronological order (i.e., in order of decreasing (date, chat_id, message_id)).
 //-For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
@@ -4429,11 +4429,11 @@ sendChatScreenshotTakenNotification chat_id:int53 = Ok;
 
 //@description Adds a local message to a chat. The message is persistent across application restarts only if the message database is used. Returns the added message
 //@chat_id Target chat
-//@sender The sender of the message
+//@sender_id Identifier of the sender of the message
 //@reply_to_message_id Identifier of the message to reply to or 0
 //@disable_notification Pass true to disable notification for the message
 //@input_message_content The content of the message to be added
-addLocalMessage chat_id:int53 sender:MessageSender reply_to_message_id:int53 disable_notification:Bool input_message_content:InputMessageContent = Message;
+addLocalMessage chat_id:int53 sender_id:MessageSender reply_to_message_id:int53 disable_notification:Bool input_message_content:InputMessageContent = Message;
 
 //@description Deletes messages @chat_id Chat identifier @message_ids Identifiers of the messages to be deleted @revoke Pass true to try to delete messages for all chat members. Always true for supergroups, channels and secret chats
 deleteMessages chat_id:int53 message_ids:vector<int53> revoke:Bool = Ok;
@@ -5149,8 +5149,8 @@ discardGroupCall group_call_id:int32 = Ok;
 getGroupCallStreamSegment group_call_id:int32 time_offset:int53 scale:int32 channel_id:int32 video_quality:GroupCallVideoQuality = FilePart;
 
 
-//@description Changes the block state of a message sender. Currently, only users and supergroup chats can be blocked @sender Message Sender @is_blocked New value of is_blocked
-toggleMessageSenderIsBlocked sender:MessageSender is_blocked:Bool = Ok;
+//@description Changes the block state of a message sender. Currently, only users and supergroup chats can be blocked @sender_id Identifier of a message sender to block/unblock @is_blocked New value of is_blocked
+toggleMessageSenderIsBlocked sender_id:MessageSender is_blocked:Bool = Ok;
 
 //@description Blocks an original sender of a message in the Replies chat
 //@message_id The identifier of an incoming message in the Replies chat

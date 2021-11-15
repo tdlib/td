@@ -1379,7 +1379,7 @@ class GetChatMessageCalendarRequest final : public RequestActor<> {
 class SearchChatMessagesRequest final : public RequestActor<> {
   DialogId dialog_id_;
   string query_;
-  td_api::object_ptr<td_api::MessageSender> sender_;
+  td_api::object_ptr<td_api::MessageSender> sender_id_;
   MessageId from_message_id_;
   int32 offset_;
   int32 limit_;
@@ -1390,9 +1390,9 @@ class SearchChatMessagesRequest final : public RequestActor<> {
   std::pair<int32, vector<MessageId>> messages_;
 
   void do_run(Promise<Unit> &&promise) final {
-    messages_ = td_->messages_manager_->search_dialog_messages(dialog_id_, query_, sender_, from_message_id_, offset_,
-                                                               limit_, filter_, top_thread_message_id_, random_id_,
-                                                               get_tries() == 3, std::move(promise));
+    messages_ = td_->messages_manager_->search_dialog_messages(dialog_id_, query_, sender_id_, from_message_id_,
+                                                               offset_, limit_, filter_, top_thread_message_id_,
+                                                               random_id_, get_tries() == 3, std::move(promise));
   }
 
   void do_send_result() final {
@@ -1411,12 +1411,12 @@ class SearchChatMessagesRequest final : public RequestActor<> {
 
  public:
   SearchChatMessagesRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, string query,
-                            td_api::object_ptr<td_api::MessageSender> sender, int64 from_message_id, int32 offset,
+                            td_api::object_ptr<td_api::MessageSender> sender_id, int64 from_message_id, int32 offset,
                             int32 limit, tl_object_ptr<td_api::SearchMessagesFilter> filter, int64 message_thread_id)
       : RequestActor(std::move(td), request_id)
       , dialog_id_(dialog_id)
       , query_(std::move(query))
-      , sender_(std::move(sender))
+      , sender_id_(std::move(sender_id))
       , from_message_id_(from_message_id)
       , offset_(offset)
       , limit_(limit)
@@ -5329,7 +5329,7 @@ void Td::on_request(uint64 id, td_api::getChatMessageCalendar &request) {
 void Td::on_request(uint64 id, td_api::searchChatMessages &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.query_);
-  CREATE_REQUEST(SearchChatMessagesRequest, request.chat_id_, std::move(request.query_), std::move(request.sender_),
+  CREATE_REQUEST(SearchChatMessagesRequest, request.chat_id_, std::move(request.query_), std::move(request.sender_id_),
                  request.from_message_id_, request.offset_, request.limit_, std::move(request.filter_),
                  request.message_thread_id_);
 }
@@ -5536,7 +5536,7 @@ void Td::on_request(uint64 id, td_api::addLocalMessage &request) {
 
   DialogId dialog_id(request.chat_id_);
   auto r_new_message_id = messages_manager_->add_local_message(
-      dialog_id, std::move(request.sender_), MessageId(request.reply_to_message_id_), request.disable_notification_,
+      dialog_id, std::move(request.sender_id_), MessageId(request.reply_to_message_id_), request.disable_notification_,
       std::move(request.input_message_content_));
   if (r_new_message_id.is_error()) {
     return send_closure(actor_id(this), &Td::send_error, id, r_new_message_id.move_as_error());
@@ -6162,7 +6162,7 @@ void Td::on_request(uint64 id, const td_api::toggleChatIsMarkedAsUnread &request
 
 void Td::on_request(uint64 id, const td_api::toggleMessageSenderIsBlocked &request) {
   CHECK_IS_USER();
-  answer_ok_query(id, messages_manager_->toggle_message_sender_is_blocked(request.sender_, request.is_blocked_));
+  answer_ok_query(id, messages_manager_->toggle_message_sender_is_blocked(request.sender_id_, request.is_blocked_));
 }
 
 void Td::on_request(uint64 id, const td_api::toggleChatDefaultDisableNotification &request) {
