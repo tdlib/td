@@ -19202,51 +19202,29 @@ void MessagesManager::toggle_dialog_is_marked_as_unread_on_server(DialogId dialo
 
 Status MessagesManager::toggle_message_sender_is_blocked(const td_api::object_ptr<td_api::MessageSender> &sender,
                                                          bool is_blocked) {
-  if (sender == nullptr) {
-    return Status::Error(400, "Message sender must be non-empty");
-  }
-
-  UserId sender_user_id;
-  DialogId dialog_id;
-  switch (sender->get_id()) {
-    case td_api::messageSenderUser::ID:
-      sender_user_id = UserId(static_cast<const td_api::messageSenderUser *>(sender.get())->user_id_);
+  TRY_RESULT(dialog_id, get_message_sender_dialog_id(td_, sender, true, false));
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      if (dialog_id == get_my_dialog_id()) {
+        return Status::Error(400, is_blocked ? Slice("Can't block self") : Slice("Can't unblock self"));
+      }
       break;
-    case td_api::messageSenderChat::ID: {
-      auto sender_dialog_id = DialogId(static_cast<const td_api::messageSenderChat *>(sender.get())->chat_id_);
-      if (!have_dialog_force(sender_dialog_id, "toggle_message_sender_is_blocked")) {
-        return Status::Error(400, "Sender chat not found");
+    case DialogType::Chat:
+      return Status::Error(400, "Basic group chats can't be blocked");
+    case DialogType::Channel:
+      // ok
+      break;
+    case DialogType::SecretChat: {
+      auto user_id = td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
+      if (!user_id.is_valid() || !td_->contacts_manager_->have_user_force(user_id)) {
+        return Status::Error(400, "The secret chat can't be blocked");
       }
-
-      switch (sender_dialog_id.get_type()) {
-        case DialogType::User:
-          sender_user_id = sender_dialog_id.get_user_id();
-          break;
-        case DialogType::Chat:
-          return Status::Error(400, "Basic group chats can't be blocked");
-        case DialogType::Channel:
-          dialog_id = sender_dialog_id;
-          break;
-        case DialogType::SecretChat:
-          sender_user_id = td_->contacts_manager_->get_secret_chat_user_id(sender_dialog_id.get_secret_chat_id());
-          break;
-        case DialogType::None:
-        default:
-          UNREACHABLE();
-      }
+      dialog_id = DialogId(user_id);
       break;
     }
+    case DialogType::None:
     default:
       UNREACHABLE();
-  }
-  if (!dialog_id.is_valid()) {
-    if (!td_->contacts_manager_->have_user_force(sender_user_id)) {
-      return Status::Error(400, "Sender user not found");
-    }
-    dialog_id = DialogId(sender_user_id);
-  }
-  if (dialog_id == get_my_dialog_id()) {
-    return Status::Error(400, is_blocked ? Slice("Can't block self") : Slice("Can't unblock self"));
   }
 
   Dialog *d = get_dialog_force(dialog_id, "toggle_message_sender_is_blocked");

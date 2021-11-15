@@ -102,7 +102,7 @@ Result<DialogId> get_message_sender_dialog_id(Td *td,
     if (allow_empty) {
       return DialogId();
     }
-    return Status::Error(400, "Member identifier is not specified");
+    return Status::Error(400, "Message sender must be non-empty");
   }
   switch (message_sender_id->get_id()) {
     case td_api::messageSenderUser::ID: {
@@ -126,8 +126,12 @@ Result<DialogId> get_message_sender_dialog_id(Td *td,
         }
         return Status::Error(400, "Invalid chat identifier specified");
       }
-      if (check_access && !td->messages_manager_->have_dialog_force(dialog_id, "get_message_sender_dialog_id")) {
-        return Status::Error(400, "Unknown chat identifier specified");
+      if (check_access) {
+        bool is_user = dialog_id.get_type() == DialogType::User;
+        if (is_user ? !td->contacts_manager_->have_user_force(dialog_id.get_user_id())
+                    : !td->messages_manager_->have_dialog_force(dialog_id, "get_message_sender_dialog_id")) {
+          return Status::Error(400, "Unknown chat identifier specified");
+        }
       }
       return dialog_id;
     }
