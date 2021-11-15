@@ -21401,44 +21401,18 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
   }
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
     promise.set_error(Status::Error(400, "Can't access the chat"));
-    return {};
+    return result;
   }
 
-  DialogId sender_dialog_id;
-  if (sender != nullptr) {
-    switch (sender->get_id()) {
-      case td_api::messageSenderUser::ID:
-        sender_dialog_id = DialogId(UserId(static_cast<const td_api::messageSenderUser *>(sender.get())->user_id_));
-        break;
-      case td_api::messageSenderChat::ID:
-        sender_dialog_id = DialogId(static_cast<const td_api::messageSenderChat *>(sender.get())->chat_id_);
-        switch (sender_dialog_id.get_type()) {
-          case DialogType::User:
-          case DialogType::Chat:
-          case DialogType::Channel:
-            // ok
-            break;
-          case DialogType::SecretChat:
-            promise.set_value(Unit());
-            return result;
-          case DialogType::None:
-            if (sender_dialog_id == DialogId()) {
-              break;
-            }
-            promise.set_error(Status::Error(400, "Invalid sender chat identifier specified"));
-            return result;
-          default:
-            UNREACHABLE();
-            return result;
-        }
-        break;
-      default:
-        UNREACHABLE();
-    }
-    if (sender_dialog_id != DialogId() && !have_input_peer(sender_dialog_id, AccessRights::Read)) {
-      promise.set_error(Status::Error(400, "Invalid message sender specified"));
-      return result;
-    }
+  auto r_sender_dialog_id = get_message_sender_dialog_id(td_, sender, true, true);
+  if (r_sender_dialog_id.is_error()) {
+    promise.set_error(r_sender_dialog_id.move_as_error());
+    return result;
+  }
+  auto sender_dialog_id = r_sender_dialog_id.move_as_ok();
+  if (sender_dialog_id != DialogId() && !have_input_peer(sender_dialog_id, AccessRights::Read)) {
+    promise.set_error(Status::Error(400, "Invalid message sender specified"));
+    return result;
   }
   if (sender_dialog_id == dialog_id && is_broadcast_channel(dialog_id)) {
     sender_dialog_id = DialogId();
@@ -21461,6 +21435,11 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
       promise.set_error(Status::Error(400, "Can't filter by message thread ID in the chat"));
       return result;
     }
+  }
+
+  if (sender_dialog_id.get_type() == DialogType::SecretChat) {
+    promise.set_value(Unit());
+    return result;
   }
 
   do {
@@ -27201,24 +27180,13 @@ Result<MessageId> MessagesManager::add_local_message(
   UserId sender_user_id;
   DialogId sender_dialog_id;
   if (sender != nullptr) {
-    switch (sender->get_id()) {
-      case td_api::messageSenderUser::ID:
-        sender_user_id = UserId(static_cast<const td_api::messageSenderUser *>(sender.get())->user_id_);
-        if (!td_->contacts_manager_->have_user_force(sender_user_id)) {
-          return Status::Error(400, "Sender user not found");
-        }
-        break;
-      case td_api::messageSenderChat::ID:
-        sender_dialog_id = DialogId(static_cast<const td_api::messageSenderChat *>(sender.get())->chat_id_);
-        if (sender_dialog_id.get_type() != DialogType::Channel) {
-          return Status::Error(400, "Sender chat must be a supergroup or channel");
-        }
-        if (!have_dialog_force(sender_dialog_id, "add_local_message")) {
-          return Status::Error(400, "Sender chat not found");
-        }
-        break;
-      default:
-        UNREACHABLE();
+    TRY_RESULT_ASSIGN(sender_dialog_id, get_message_sender_dialog_id(td_, sender, true, false));
+    auto sender_dialog_type = sender_dialog_id.get_type();
+    if (sender_dialog_type == DialogType::User) {
+      sender_user_id = sender_dialog_id.get_user_id();
+      sender_dialog_id = DialogId();
+    } else if (sender_dialog_type != DialogType::Channel) {
+      return Status::Error(400, "Sender chat must be a supergroup or channel");
     }
   } else if (is_channel_post) {
     sender_dialog_id = dialog_id;
