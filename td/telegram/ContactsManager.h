@@ -527,8 +527,7 @@ class ContactsManager final : public Actor {
   void add_dialog_participants(DialogId dialog_id, const vector<UserId> &user_ids, Promise<Unit> &&promise);
 
   void set_dialog_participant_status(DialogId dialog_id, DialogId participant_dialog_id,
-                                     const tl_object_ptr<td_api::ChatMemberStatus> &chat_member_status,
-                                     Promise<Unit> &&promise);
+                                     DialogParticipantStatus &&status, Promise<Unit> &&promise);
 
   void ban_dialog_participant(DialogId dialog_id, DialogId participant_dialog_id, int32 banned_until_date,
                               bool revoke_messages, Promise<Unit> &&promise);

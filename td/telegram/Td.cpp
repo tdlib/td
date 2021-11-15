@@ -6221,7 +6221,7 @@ void Td::on_request(uint64 id, const td_api::joinChat &request) {
 void Td::on_request(uint64 id, const td_api::leaveChat &request) {
   CREATE_OK_REQUEST_PROMISE();
   DialogId dialog_id(request.chat_id_);
-  td_api::object_ptr<td_api::ChatMemberStatus> new_status = td_api::make_object<td_api::chatMemberStatusLeft>();
+  auto new_status = DialogParticipantStatus::Left();
   if (dialog_id.get_type() == DialogType::Channel && messages_manager_->have_dialog_force(dialog_id, "leaveChat")) {
     auto status = contacts_manager_->get_channel_status(dialog_id.get_channel_id());
     if (status.is_creator()) {
@@ -6229,12 +6229,11 @@ void Td::on_request(uint64 id, const td_api::leaveChat &request) {
         return promise.set_value(Unit());
       }
 
-      new_status =
-          td_api::make_object<td_api::chatMemberStatusCreator>(status.get_rank(), status.is_anonymous(), false);
+      new_status = DialogParticipantStatus::Creator(false, status.is_anonymous(), status.get_rank());
     }
   }
-  contacts_manager_->set_dialog_participant_status(dialog_id, DialogId(contacts_manager_->get_my_id()), new_status,
-                                                   std::move(promise));
+  contacts_manager_->set_dialog_participant_status(dialog_id, DialogId(contacts_manager_->get_my_id()),
+                                                   std::move(new_status), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::addChatMember &request) {
@@ -6255,8 +6254,8 @@ void Td::on_request(uint64 id, const td_api::setChatMemberStatus &request) {
   CREATE_OK_REQUEST_PROMISE();
   TRY_RESULT_PROMISE(promise, participant_dialog_id,
                      get_message_sender_dialog_id(this, request.member_id_, false, false));
-  contacts_manager_->set_dialog_participant_status(DialogId(request.chat_id_), participant_dialog_id, request.status_,
-                                                   std::move(promise));
+  contacts_manager_->set_dialog_participant_status(DialogId(request.chat_id_), participant_dialog_id,
+                                                   get_dialog_participant_status(request.status_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::banChatMember &request) {

@@ -14890,9 +14890,7 @@ void ContactsManager::add_dialog_participants(DialogId dialog_id, const vector<U
 }
 
 void ContactsManager::set_dialog_participant_status(DialogId dialog_id, DialogId participant_dialog_id,
-                                                    const tl_object_ptr<td_api::ChatMemberStatus> &chat_member_status,
-                                                    Promise<Unit> &&promise) {
-  auto status = get_dialog_participant_status(chat_member_status);
+                                                    DialogParticipantStatus &&status, Promise<Unit> &&promise) {
   if (!td_->messages_manager_->have_dialog_force(dialog_id, "set_dialog_participant_status")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
