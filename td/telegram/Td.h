@@ -656,6 +656,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::getChatAvailableMessageSenders &request);
 
+  void on_request(uint64 id, const td_api::setChatDefaultMessageSender &request);
+
   void on_request(uint64 id, td_api::sendMessage &request);
 
   void on_request(uint64 id, td_api::sendMessageAlbum &request);

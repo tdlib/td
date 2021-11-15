@@ -389,7 +389,11 @@ class MessagesManager final : public Actor {
 
   void reload_voice_chat_on_search(const string &username);
 
-  void get_dialog_send_message_as(DialogId dialog_id, Promise<td_api::object_ptr<td_api::messageSenders>> &&promise);
+  void get_dialog_send_message_as_dialog_ids(DialogId dialog_id,
+                                             Promise<td_api::object_ptr<td_api::messageSenders>> &&promise);
+
+  void set_dialog_default_send_message_as_dialog_id(DialogId dialog_id, DialogId message_sender_dialog_id,
+                                                    Promise<Unit> &&promise);
 
   Result<td_api::object_ptr<td_api::message>> send_message(
       DialogId dialog_id, MessageId top_thread_message_id, MessageId reply_to_message_id,
@@ -2374,7 +2378,7 @@ class MessagesManager final : public Actor {
 
   void send_update_chat_video_chat(const Dialog *d);
 
-  void send_update_chat_default_sender_id(const Dialog *d);
+  void send_update_chat_default_message_sender_id(const Dialog *d);
 
   void send_update_chat_message_ttl_setting(const Dialog *d);
 

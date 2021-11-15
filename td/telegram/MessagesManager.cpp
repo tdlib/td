@@ -2945,6 +2945,42 @@ class GetSendAsQuery final : public Td::ResultHandler {
   }
 };
 
+class SaveDefaultSendAsQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit SaveDefaultSendAsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, DialogId send_as_dialog_id) {
+    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+
+    auto send_as_input_peer = td_->messages_manager_->get_input_peer(send_as_dialog_id, AccessRights::Read);
+    CHECK(send_as_input_peer != nullptr);
+
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_saveDefaultSendAs(std::move(input_peer), std::move(send_as_input_peer))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_saveDefaultSendAs>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto success = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for SaveDefaultSendAsQuery: " << success;
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    // td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "SaveDefaultSendAsQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class SendSecretMessageActor final : public NetActor {
   int64 random_id_;
 
@@ -22306,9 +22342,8 @@ void MessagesManager::on_get_affected_history(DialogId dialog_id, AffectedHistor
     }
     auto update_promise = affected_history.is_final_ ? std::move(promise) : Promise<Unit>();
     if (dialog_id.get_type() == DialogType::Channel) {
-      td_->messages_manager_->add_pending_channel_update(dialog_id, make_tl_object<dummyUpdate>(),
-                                                         affected_history.pts_, affected_history.pts_count_,
-                                                         std::move(update_promise), "on_get_affected_history");
+      add_pending_channel_update(dialog_id, make_tl_object<dummyUpdate>(), affected_history.pts_,
+                                 affected_history.pts_count_, std::move(update_promise), "on_get_affected_history");
     } else {
       td_->updates_manager_->add_pending_pts_update(make_tl_object<dummyUpdate>(), affected_history.pts_,
                                                     affected_history.pts_count_, Time::now(), std::move(update_promise),
@@ -23894,8 +23929,8 @@ void MessagesManager::add_message_dependencies(Dependencies &dependencies, const
   add_reply_markup_dependencies(dependencies, m->reply_markup.get());
 }
 
-void MessagesManager::get_dialog_send_message_as(DialogId dialog_id,
-                                                 Promise<td_api::object_ptr<td_api::messageSenders>> &&promise) {
+void MessagesManager::get_dialog_send_message_as_dialog_ids(
+    DialogId dialog_id, Promise<td_api::object_ptr<td_api::messageSenders>> &&promise) {
   const Dialog *d = get_dialog_force(dialog_id, "get_group_call_join_as");
   if (d == nullptr) {
     return promise.set_error(Status::Error(400, "Chat not found"));
@@ -23909,6 +23944,55 @@ void MessagesManager::get_dialog_send_message_as(DialogId dialog_id,
   CHECK(d->dialog_id.get_type() == DialogType::Channel);
 
   td_->create_handler<GetSendAsQuery>(std::move(promise))->send(dialog_id);
+}
+
+void MessagesManager::set_dialog_default_send_message_as_dialog_id(DialogId dialog_id,
+                                                                   DialogId message_sender_dialog_id,
+                                                                   Promise<Unit> &&promise) {
+  Dialog *d = get_dialog_force(dialog_id, "set_dialog_default_send_message_as_dialog_id");
+  if (d == nullptr) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+  if (!d->default_send_message_as_dialog_id.is_valid()) {
+    return promise.set_error(Status::Error(400, "Can't change message sender in the chat"));
+  }
+  // checked in on_update_dialog_default_send_message_as_dialog_id
+  CHECK(dialog_id.get_type() == DialogType::Channel && !is_broadcast_channel(dialog_id));
+  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+    return promise.set_error(Status::Error(400, "Can't access the chat"));
+  }
+
+  bool is_anonymous = is_anonymous_administrator(dialog_id, nullptr);
+  switch (message_sender_dialog_id.get_type()) {
+    case DialogType::User:
+      if (message_sender_dialog_id != DialogId(td_->contacts_manager_->get_my_id())) {
+        return promise.set_error(Status::Error(400, "Can't send messages as another user"));
+      }
+      if (is_anonymous) {
+        return promise.set_error(Status::Error(400, "Can't send messages as self"));
+      }
+      break;
+    case DialogType::Chat:
+    case DialogType::Channel:
+    case DialogType::SecretChat:
+      if (is_anonymous && dialog_id == message_sender_dialog_id) {
+        break;
+      }
+      if (!is_broadcast_channel(message_sender_dialog_id) ||
+          td_->contacts_manager_->get_channel_username(dialog_id.get_channel_id()).empty()) {
+        return promise.set_error(Status::Error(400, "Message sender chat must be a public channel"));
+      }
+      break;
+    default:
+      UNREACHABLE();
+      return promise.set_error(Status::Error(400, "Invalid default participant identifier specified"));
+  }
+  if (!have_input_peer(message_sender_dialog_id, AccessRights::Read)) {
+    return promise.set_error(Status::Error(400, "Can't access specified default message sender chat"));
+  }
+
+  td_->create_handler<SaveDefaultSendAsQuery>(std::move(promise))->send(dialog_id, message_sender_dialog_id);
+  on_update_dialog_default_send_message_as_dialog_id(dialog_id, message_sender_dialog_id, true);
 }
 
 class MessagesManager::SendMessageLogEvent {
@@ -29217,14 +29301,14 @@ void MessagesManager::send_update_chat_video_chat(const Dialog *d) {
                td_api::make_object<td_api::updateChatVideoChat>(d->dialog_id.get(), get_video_chat_object(d)));
 }
 
-void MessagesManager::send_update_chat_default_sender_id(const Dialog *d) {
+void MessagesManager::send_update_chat_default_message_sender_id(const Dialog *d) {
   CHECK(!td_->auth_manager_->is_bot());
   CHECK(d != nullptr);
-  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_default_sender_id";
-  on_dialog_updated(d->dialog_id, "send_update_chat_default_sender_id");
-  send_closure(
-      G()->td(), &Td::send_update,
-      td_api::make_object<td_api::updateChatDefaultSenderId>(d->dialog_id.get(), get_default_sender_id_object(d)));
+  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_default_message_sender_id";
+  on_dialog_updated(d->dialog_id, "send_update_chat_default_message_sender_id");
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateChatDefaultMessageSenderId>(d->dialog_id.get(),
+                                                                             get_default_sender_id_object(d)));
 }
 
 void MessagesManager::send_update_chat_message_ttl_setting(const Dialog *d) {
@@ -30626,7 +30710,7 @@ void MessagesManager::on_update_dialog_default_send_message_as_dialog_id(DialogI
 
   if (d->default_send_message_as_dialog_id != default_send_as_dialog_id) {
     d->default_send_message_as_dialog_id = default_send_as_dialog_id;
-    send_update_chat_default_sender_id(d);
+    send_update_chat_default_message_sender_id(d);
   }
 }
 
