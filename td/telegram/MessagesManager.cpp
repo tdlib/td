@@ -2945,22 +2945,25 @@ class GetSendAsQuery final : public Td::ResultHandler {
   }
 };
 
-class SaveDefaultSendAsQuery final : public Td::ResultHandler {
+class SaveDefaultSendAsActor final : public NetActorOnce {
   Promise<Unit> promise_;
 
  public:
-  explicit SaveDefaultSendAsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit SaveDefaultSendAsActor(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, DialogId send_as_dialog_id) {
+  void send(DialogId dialog_id, DialogId send_as_dialog_id, uint64 sequence_dispatcher_id) {
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
 
     auto send_as_input_peer = td_->messages_manager_->get_input_peer(send_as_dialog_id, AccessRights::Read);
     CHECK(send_as_input_peer != nullptr);
 
-    send_query(G()->net_query_creator().create(
-        telegram_api::messages_saveDefaultSendAs(std::move(input_peer), std::move(send_as_input_peer))));
+    auto query = G()->net_query_creator().create(
+        telegram_api::messages_saveDefaultSendAs(std::move(input_peer), std::move(send_as_input_peer)));
+    query->debug("send to MessagesManager::MultiSequenceDispatcher");
+    send_closure(td_->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
+                 std::move(query), actor_shared(this), sequence_dispatcher_id);
   }
 
   void on_result(BufferSlice packet) final {
@@ -2970,13 +2973,13 @@ class SaveDefaultSendAsQuery final : public Td::ResultHandler {
     }
 
     auto success = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for SaveDefaultSendAsQuery: " << success;
+    LOG(INFO) << "Receive result for SaveDefaultSendAsActor: " << success;
 
     promise_.set_value(Unit());
   }
 
   void on_error(Status status) final {
-    // td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "SaveDefaultSendAsQuery");
+    // td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "SaveDefaultSendAsActor");
     promise_.set_error(std::move(status));
   }
 };
@@ -23991,7 +23994,10 @@ void MessagesManager::set_dialog_default_send_message_as_dialog_id(DialogId dial
     return promise.set_error(Status::Error(400, "Can't access specified default message sender chat"));
   }
 
-  td_->create_handler<SaveDefaultSendAsQuery>(std::move(promise))->send(dialog_id, message_sender_dialog_id);
+  // TODO save order with all types of messages
+  send_closure(td_->create_net_actor<SaveDefaultSendAsActor>(std::move(promise)), &SaveDefaultSendAsActor::send,
+               dialog_id, message_sender_dialog_id, get_sequence_dispatcher_id(dialog_id, MessageContentType::Text));
+
   on_update_dialog_default_send_message_as_dialog_id(dialog_id, message_sender_dialog_id, true);
 }
 
