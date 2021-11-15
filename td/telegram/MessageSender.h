@@ -28,6 +28,12 @@ td_api::object_ptr<td_api::MessageSender> get_message_sender_object(Td *td, User
 
 td_api::object_ptr<td_api::MessageSender> get_message_sender_object(Td *td, DialogId dialog_id, const char *source);
 
+vector<DialogId> get_message_sender_dialog_ids(Td *td,
+                                               const vector<telegram_api::object_ptr<telegram_api::Peer>> &peers);
+
+td_api::object_ptr<td_api::messageSenders> convert_message_senders_object(
+    Td *td, const vector<telegram_api::object_ptr<telegram_api::Peer>> &peers);
+
 Result<DialogId> get_message_sender_dialog_id(const td_api::object_ptr<td_api::MessageSender> &message_sender_id);
 
 }  // namespace td

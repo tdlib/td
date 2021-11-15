@@ -16872,27 +16872,10 @@ void MessagesManager::on_get_blocked_dialogs(int32 offset, int32 limit, int32 to
                                              Promise<td_api::object_ptr<td_api::messageSenders>> &&promise) {
   LOG(INFO) << "Receive " << blocked_peers.size() << " blocked chats from offset " << offset << " out of "
             << total_count;
-  vector<DialogId> dialog_ids;
-  for (auto &blocked_peer : blocked_peers) {
-    CHECK(blocked_peer != nullptr);
-    DialogId dialog_id(blocked_peer->peer_id_);
-    if (dialog_id.get_type() == DialogType::User) {
-      if (td_->contacts_manager_->have_user(dialog_id.get_user_id())) {
-        dialog_ids.push_back(dialog_id);
-      } else {
-        LOG(ERROR) << "Have no info about " << dialog_id.get_user_id();
-      }
-    } else {
-      if (have_dialog_info(dialog_id)) {
-        force_create_dialog(dialog_id, "on_get_blocked_dialogs");
-        if (have_dialog(dialog_id)) {
-          dialog_ids.push_back(dialog_id);
-        }
-      } else {
-        LOG(ERROR) << "Have no info about " << dialog_id;
-      }
-    }
-  }
+  auto peers = transform(std::move(blocked_peers), [](tl_object_ptr<telegram_api::peerBlocked> &&blocked_peer) {
+    return std::move(blocked_peer->peer_id_);
+  });
+  auto dialog_ids = get_message_sender_dialog_ids(td_, std::move(peers));
   if (!dialog_ids.empty() && offset + dialog_ids.size() > static_cast<size_t>(total_count)) {
     LOG(ERROR) << "Fix total count of blocked chats from " << total_count << " to " << offset + dialog_ids.size();
     total_count = offset + narrow_cast<int32>(dialog_ids.size());

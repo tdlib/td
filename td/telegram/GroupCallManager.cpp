@@ -103,22 +103,7 @@ class GetGroupCallJoinAsQuery final : public Td::ResultHandler {
     td_->contacts_manager_->on_get_users(std::move(ptr->users_), "GetGroupCallJoinAsQuery");
     td_->contacts_manager_->on_get_chats(std::move(ptr->chats_), "GetGroupCallJoinAsQuery");
 
-    vector<td_api::object_ptr<td_api::MessageSender>> participant_aliaces;
-    for (auto &peer : ptr->peers_) {
-      DialogId dialog_id(peer);
-      if (!dialog_id.is_valid()) {
-        LOG(ERROR) << "Receive invalid " << dialog_id << " as join as peer for " << dialog_id_;
-        continue;
-      }
-      if (dialog_id.get_type() != DialogType::User) {
-        td_->messages_manager_->force_create_dialog(dialog_id, "GetGroupCallJoinAsQuery");
-      }
-
-      participant_aliaces.push_back(get_message_sender_object(td_, dialog_id, "GetGroupCallJoinAsQuery"));
-    }
-
-    promise_.set_value(td_api::make_object<td_api::messageSenders>(static_cast<int32>(participant_aliaces.size()),
-                                                                   std::move(participant_aliaces)));
+    promise_.set_value(convert_message_senders_object(td_, ptr->peers_));
   }
 
   void on_error(Status status) final {

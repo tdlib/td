@@ -11,6 +11,9 @@
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/Td.h"
 
+#include "td/utils/algorithm.h"
+#include "td/utils/misc.h"
+
 namespace td {
 
 td_api::object_ptr<td_api::MessageSender> get_message_sender_object_const(Td *td, UserId user_id, DialogId dialog_id,
@@ -52,6 +55,44 @@ td_api::object_ptr<td_api::MessageSender> get_message_sender_object(Td *td, Dial
     return get_message_sender_object(td, dialog_id.get_user_id(), DialogId(), source);
   }
   return get_message_sender_object(td, UserId(), dialog_id, source);
+}
+
+vector<DialogId> get_message_sender_dialog_ids(Td *td,
+                                               const vector<telegram_api::object_ptr<telegram_api::Peer>> &peers) {
+  vector<DialogId> message_sender_dialog_ids;
+  message_sender_dialog_ids.reserve(peers.size());
+  for (auto &peer : peers) {
+    DialogId dialog_id(peer);
+    if (!dialog_id.is_valid()) {
+      LOG(ERROR) << "Receive invalid " << dialog_id << " as message sender";
+      continue;
+    }
+    if (dialog_id.get_type() == DialogType::User) {
+      if (!td->contacts_manager_->have_user(dialog_id.get_user_id())) {
+        LOG(ERROR) << "Have no info about " << dialog_id.get_user_id();
+        continue;
+      }
+    } else {
+      if (!td->messages_manager_->have_dialog_info(dialog_id)) {
+        continue;
+      }
+      td->messages_manager_->force_create_dialog(dialog_id, "get_message_sender_dialog_ids");
+      if (!td->messages_manager_->have_dialog(dialog_id)) {
+        continue;
+      }
+    }
+    message_sender_dialog_ids.push_back(dialog_id);
+  }
+  return message_sender_dialog_ids;
+}
+
+td_api::object_ptr<td_api::messageSenders> convert_message_senders_object(
+    Td *td, const vector<telegram_api::object_ptr<telegram_api::Peer>> &peers) {
+  auto dialog_ids = get_message_sender_dialog_ids(td, peers);
+  auto message_senders = transform(dialog_ids, [td](DialogId dialog_id) {
+    return get_message_sender_object(td, dialog_id, "convert_message_senders_object");
+  });
+  return td_api::make_object<td_api::messageSenders>(narrow_cast<int32>(dialog_ids.size()), std::move(message_senders));
 }
 
 Result<DialogId> get_message_sender_dialog_id(const td_api::object_ptr<td_api::MessageSender> &message_sender_id) {
