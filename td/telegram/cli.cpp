@@ -2248,6 +2248,11 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::terminateSession>(to_integer<int64>(args)));
     } else if (op == "TerminateAllOtherSessions") {
       send_request(td_api::make_object<td_api::terminateAllOtherSessions>());
+    } else if (op == "sscasc") {
+      int64 session_id;
+      bool can_accept_secret_chats;
+      get_args(args, session_id, can_accept_secret_chats);
+      send_request(td_api::make_object<td_api::toggleSessionCanAcceptSecretChats>(session_id, can_accept_secret_chats));
     } else if (op == "gcw") {
       send_request(td_api::make_object<td_api::getConnectedWebsites>());
     } else if (op == "dw") {

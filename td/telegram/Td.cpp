@@ -4789,6 +4789,13 @@ void Td::on_request(uint64 id, const td_api::terminateAllOtherSessions &request)
   terminate_all_other_sessions(this, std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::toggleSessionCanAcceptSecretChats &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  toggle_session_can_accept_secret_chats(this, request.session_id_, request.can_accept_secret_chats_,
+                                         std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getConnectedWebsites &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

@@ -5360,6 +5360,9 @@ terminateSession session_id:int64 = Ok;
 //@description Terminates all other sessions of the current user
 terminateAllOtherSessions = Ok;
 
+//@description Toggles whether a session can accept incoming secret chats @session_id Session identifier @can_accept_secret_chats True, if incoming secret chats can be accepted by the session
+toggleSessionCanAcceptSecretChats session_id:int64 can_accept_secret_chats:Bool = Ok;
+
 
 //@description Returns all website where the current user used Telegram to log in
 getConnectedWebsites = ConnectedWebsites;
@@ -5377,7 +5380,7 @@ setSupergroupUsername supergroup_id:int53 username:string = Ok;
 //@description Changes the sticker set of a supergroup; requires can_change_info administrator right @supergroup_id Identifier of the supergroup @sticker_set_id New value of the supergroup sticker set identifier. Use 0 to remove the supergroup sticker set
 setSupergroupStickerSet supergroup_id:int53 sticker_set_id:int64 = Ok;
 
-//@description Toggles sender signatures messages sent in a channel; requires can_change_info administrator right @supergroup_id Identifier of the channel @sign_messages New value of sign_messages
+//@description Toggles whether sender signature is added to sent messages in a channel; requires can_change_info administrator right @supergroup_id Identifier of the channel @sign_messages New value of sign_messages
 toggleSupergroupSignMessages supergroup_id:int53 sign_messages:Bool = Ok;
 
 //@description Toggles whether the message history of a supergroup is available to new members; requires can_change_info administrator right @supergroup_id The identifier of the supergroup @is_all_history_available The new value of is_all_history_available
