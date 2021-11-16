@@ -94,7 +94,9 @@ void parse(Document &document, ParserT &parser) {
       break;
     case Document::Type::Unknown:
     default:
-      UNREACHABLE();
+      LOG(ERROR) << "Have invalid Document type " << static_cast<int32>(document.type);
+      document = Document();
+      return;
   }
   if (!document.file_id.is_valid()) {
     LOG(ERROR) << "Parse invalid document.file_id";
