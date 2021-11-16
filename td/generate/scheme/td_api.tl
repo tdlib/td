@@ -322,7 +322,7 @@ game id:int64 short_name:string title:string text:formattedText description:stri
 //@description Describes a poll @id Unique poll identifier @question Poll question; 1-300 characters @options List of poll answer options
 //@total_voter_count Total number of voters, participating in the poll @recent_voter_user_ids User identifiers of recent voters, if the poll is non-anonymous
 //@is_anonymous True, if the poll is anonymous @type Type of the poll
-//@open_period Amount of time the poll will be active after creation, in seconds @close_date Point in time (Unix timestamp) when the poll will be automatically closed @is_closed True, if the poll is closed
+//@open_period Amount of time the poll will be active after creation, in seconds @close_date Point in time (Unix timestamp) when the poll will automatically be closed @is_closed True, if the poll is closed
 poll id:int64 question:string options:vector<pollOption> total_voter_count:int32 recent_voter_user_ids:vector<int53> is_anonymous:Bool type:PollType open_period:int32 close_date:int32 is_closed:Bool = Poll;
 
 
@@ -2012,7 +2012,7 @@ inputMessageInvoice invoice:invoice title:string description:string photo_url:st
 //@description A message with a poll. Polls can't be sent to secret chats. Polls can be sent only to a private chat with a bot @question Poll question; 1-255 characters (up to 300 characters for bots) @options List of poll answer options, 2-10 strings 1-100 characters each
 //@is_anonymous True, if the poll voters are anonymous. Non-anonymous polls can't be sent or forwarded to channels @type Type of the poll
 //@open_period Amount of time the poll will be active after creation, in seconds; for bots only
-//@close_date Point in time (Unix timestamp) when the poll will be automatically closed; for bots only
+//@close_date Point in time (Unix timestamp) when the poll will automatically be closed; for bots only
 //@is_closed True, if the poll needs to be sent already closed; for bots only
 inputMessagePoll question:string options:vector<string> is_anonymous:Bool type:PollType open_period:int32 close_date:int32 is_closed:Bool = InputMessageContent;
 
@@ -3110,8 +3110,8 @@ accountTtl days:int32 = AccountTtl;
 //@country A two-letter country code for the country from which the session was created, based on the IP address @region Region code from which the session was created, based on the IP address
 session id:int64 is_current:Bool is_password_pending:Bool can_accept_secret_chats:Bool api_id:int32 application_name:string application_version:string is_official_application:Bool device_model:string platform:string system_version:string log_in_date:int32 last_active_date:int32 ip:string country:string region:string = Session;
 
-//@description Contains a list of sessions @sessions List of sessions @inactive_sessions_ttl_days Number of days of inactivity before sessions will be automatically terminated; 1-366 days
-sessions sessions:vector<session> inactive_sessions_ttl_days:int32 = Sessions;
+//@description Contains a list of sessions @sessions List of sessions @inactive_session_ttl_days Number of days of inactivity before sessions will automatically be terminated; 1-366 days
+sessions sessions:vector<session> inactive_session_ttl_days:int32 = Sessions;
 
 
 //@description Contains information about one website the current user is logged in with Telegram
@@ -3973,7 +3973,7 @@ logStreamDefault = LogStream;
 
 //@description The log is written to a file
 //@path Path to the file to where the internal TDLib log will be written
-//@max_file_size The maximum size of the file to where the internal TDLib log is written before the file will be auto-rotated, in bytes
+//@max_file_size The maximum size of the file to where the internal TDLib log is written before the file will automatically be rotated, in bytes
 //@redirect_stderr Pass true to additionally redirect stderr to the log file. Ignored on Windows
 logStreamFile path:string max_file_size:int53 redirect_stderr:Bool = LogStream;
 
@@ -4880,7 +4880,7 @@ setPinnedChats chat_list:ChatList chat_ids:vector<int53> = Ok;
 //@file_id Identifier of the file to download
 //@priority Priority of the download (1-32). The higher the priority, the earlier the file will be downloaded. If the priorities of two files are equal, then the last one for which downloadFile was called will be downloaded first
 //@offset The starting position from which the file needs to be downloaded
-//@limit Number of bytes which need to be downloaded starting from the "offset" position before the download will be automatically canceled; use 0 to download without a limit
+//@limit Number of bytes which need to be downloaded starting from the "offset" position before the download will automatically be canceled; use 0 to download without a limit
 //@synchronous If false, this request returns file state just after the download has been started. If true, this request returns file state only after
 //-the download has succeeded, has failed, has been canceled or a new downloadFile request with different offset/limit parameters was sent
 downloadFile file_id:int32 priority:int32 offset:int32 limit:int32 synchronous:Bool = File;
@@ -5362,6 +5362,9 @@ terminateAllOtherSessions = Ok;
 
 //@description Toggles whether a session can accept incoming secret chats @session_id Session identifier @can_accept_secret_chats True, if incoming secret chats can be accepted by the session
 toggleSessionCanAcceptSecretChats session_id:int64 can_accept_secret_chats:Bool = Ok;
+
+//@description Changes the period of inactivity after which sessions will automatically be terminated @inactive_session_ttl_days New number of days of inactivity before sessions will be automatically terminated; 1-366 days
+setInactiveSessionsTtl inactive_session_ttl_days:int32 = Ok;
 
 
 //@description Returns all website where the current user used Telegram to log in

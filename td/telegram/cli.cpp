@@ -2242,17 +2242,19 @@ class CliClient final : public Actor {
           td_api::make_object<td_api::setAccountTtl>(td_api::make_object<td_api::accountTtl>(to_integer<int32>(args))));
     } else if (op == "gattl") {
       send_request(td_api::make_object<td_api::getAccountTtl>());
-    } else if (op == "GetActiveSessions") {
+    } else if (op == "GetActiveSessions" || op == "devices" || op == "sessions") {
       send_request(td_api::make_object<td_api::getActiveSessions>());
     } else if (op == "TerminateSession") {
       send_request(td_api::make_object<td_api::terminateSession>(to_integer<int64>(args)));
     } else if (op == "TerminateAllOtherSessions") {
       send_request(td_api::make_object<td_api::terminateAllOtherSessions>());
-    } else if (op == "sscasc") {
+    } else if (op == "tscasc") {
       int64 session_id;
       bool can_accept_secret_chats;
       get_args(args, session_id, can_accept_secret_chats);
       send_request(td_api::make_object<td_api::toggleSessionCanAcceptSecretChats>(session_id, can_accept_secret_chats));
+    } else if (op == "sist") {
+      send_request(td_api::make_object<td_api::setInactiveSessionsTtl>(to_integer<int32>(args)));
     } else if (op == "gcw") {
       send_request(td_api::make_object<td_api::getConnectedWebsites>());
     } else if (op == "dw") {

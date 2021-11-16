@@ -31,6 +31,8 @@ void terminate_all_other_sessions(Td *td, Promise<Unit> &&promise);
 void toggle_session_can_accept_secret_chats(Td *td, int64 session_id, bool can_accept_secret_chats,
                                             Promise<Unit> &&promise);
 
+void set_inactive_session_ttl_days(Td *td, int32 authorization_ttl_days, Promise<Unit> &&promise);
+
 void get_connected_websites(Td *td, Promise<td_api::object_ptr<td_api::connectedWebsites>> &&promise);
 
 void disconnect_website(Td *td, int64 website_id, Promise<Unit> &&promise);

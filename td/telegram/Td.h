@@ -482,6 +482,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::toggleSessionCanAcceptSecretChats &request);
 
+  void on_request(uint64 id, const td_api::setInactiveSessionsTtl &request);
+
   void on_request(uint64 id, const td_api::getConnectedWebsites &request);
 
   void on_request(uint64 id, const td_api::disconnectWebsite &request);

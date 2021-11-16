@@ -4796,6 +4796,12 @@ void Td::on_request(uint64 id, const td_api::toggleSessionCanAcceptSecretChats &
                                          std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::setInactiveSessionsTtl &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  set_inactive_session_ttl_days(this, request.inactive_session_ttl_days_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getConnectedWebsites &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

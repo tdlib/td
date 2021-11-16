@@ -248,7 +248,34 @@ class ChangeAuthorizationSettingsQuery final : public Td::ResultHandler {
     }
 
     bool result = result_ptr.move_as_ok();
-    LOG_IF(WARNING, !result) << "Failed to change authorization settings";
+    LOG_IF(WARNING, !result) << "Failed to change session settings";
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class SetAuthorizationTtlQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit SetAuthorizationTtlQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(int32 authorization_ttl_days) {
+    send_query(G()->net_query_creator().create(telegram_api::account_setAuthorizationTTL(authorization_ttl_days)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_setAuthorizationTTL>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    bool result = result_ptr.move_as_ok();
+    LOG_IF(WARNING, !result) << "Failed to set inactive session TTL";
     promise_.set_value(Unit());
   }
 
@@ -395,6 +422,10 @@ void terminate_all_other_sessions(Td *td, Promise<Unit> &&promise) {
 void toggle_session_can_accept_secret_chats(Td *td, int64 session_id, bool can_accept_secret_chats,
                                             Promise<Unit> &&promise) {
   td->create_handler<ChangeAuthorizationSettingsQuery>(std::move(promise))->send(session_id, !can_accept_secret_chats);
+}
+
+void set_inactive_session_ttl_days(Td *td, int32 authorization_ttl_days, Promise<Unit> &&promise) {
+  td->create_handler<SetAuthorizationTtlQuery>(std::move(promise))->send(authorization_ttl_days);
 }
 
 void get_connected_websites(Td *td, Promise<td_api::object_ptr<td_api::connectedWebsites>> &&promise) {
