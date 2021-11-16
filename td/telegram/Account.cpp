@@ -146,8 +146,14 @@ class GetAuthorizationsQuery final : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetAuthorizationsQuery: " << to_string(ptr);
 
-    auto results =
-        td_api::make_object<td_api::sessions>(transform(std::move(ptr->authorizations_), convert_authorization_object));
+    auto ttl_days = ptr->authorization_ttl_days_;
+    if (ttl_days <= 0 || ttl_days > 366) {
+      LOG(ERROR) << "Receive invalid inactive sessions TTL " << ttl_days;
+      ttl_days = 180;
+    }
+
+    auto results = td_api::make_object<td_api::sessions>(
+        transform(std::move(ptr->authorizations_), convert_authorization_object), ttl_days);
     std::sort(results->sessions_.begin(), results->sessions_.end(),
               [](const td_api::object_ptr<td_api::session> &lhs, const td_api::object_ptr<td_api::session> &rhs) {
                 if (lhs->is_current_ != rhs->is_current_) {

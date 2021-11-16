@@ -3110,8 +3110,8 @@ accountTtl days:int32 = AccountTtl;
 //@country A two-letter country code for the country from which the session was created, based on the IP address @region Region code from which the session was created, based on the IP address
 session id:int64 is_current:Bool is_password_pending:Bool can_accept_secret_chats:Bool api_id:int32 application_name:string application_version:string is_official_application:Bool device_model:string platform:string system_version:string log_in_date:int32 last_active_date:int32 ip:string country:string region:string = Session;
 
-//@description Contains a list of sessions @sessions List of sessions
-sessions sessions:vector<session> = Sessions;
+//@description Contains a list of sessions @sessions List of sessions @inactive_sessions_ttl_days Number of days of inactivity before sessions will be automatically terminated; 1-366 days
+sessions sessions:vector<session> inactive_sessions_ttl_days:int32 = Sessions;
 
 
 //@description Contains information about one website the current user is logged in with Telegram
