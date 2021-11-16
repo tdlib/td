@@ -6,6 +6,7 @@
 //
 #include "td/telegram/Td.h"
 
+#include "td/telegram/Account.h"
 #include "td/telegram/AnimationsManager.h"
 #include "td/telegram/AudiosManager.h"
 #include "td/telegram/AuthManager.h"
@@ -4538,7 +4539,7 @@ void Td::on_request(uint64 id, td_api::checkAuthenticationBotToken &request) {
 void Td::on_request(uint64 id, td_api::confirmQrCodeAuthentication &request) {
   CLEAN_INPUT_STRING(request.link_);
   CREATE_REQUEST_PROMISE();
-  contacts_manager_->confirm_qr_code_authentication(request.link_, std::move(promise));
+  confirm_qr_code_authentication(this, request.link_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getCurrentState &request) {
@@ -4733,7 +4734,7 @@ void Td::on_request(uint64 id, const td_api::getAccountTtl &request) {
       promise.set_value(td_api::make_object<td_api::accountTtl>(result.ok()));
     }
   });
-  contacts_manager_->get_account_ttl(std::move(query_promise));
+  get_account_ttl(this, std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, const td_api::setAccountTtl &request) {
@@ -4742,7 +4743,7 @@ void Td::on_request(uint64 id, const td_api::setAccountTtl &request) {
     return send_error_raw(id, 400, "New account TTL must be non-empty");
   }
   CREATE_OK_REQUEST_PROMISE();
-  contacts_manager_->set_account_ttl(request.ttl_->days_, std::move(promise));
+  set_account_ttl(this, request.ttl_->days_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::deleteAccount &request) {
@@ -4772,19 +4773,19 @@ void Td::on_request(uint64 id, td_api::resendChangePhoneNumberCode &request) {
 void Td::on_request(uint64 id, const td_api::getActiveSessions &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  contacts_manager_->get_active_sessions(std::move(promise));
+  get_active_sessions(this, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::terminateSession &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  contacts_manager_->terminate_session(request.session_id_, std::move(promise));
+  terminate_session(this, request.session_id_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::terminateAllOtherSessions &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  contacts_manager_->terminate_all_other_sessions(std::move(promise));
+  terminate_all_other_sessions(this, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getConnectedWebsites &request) {

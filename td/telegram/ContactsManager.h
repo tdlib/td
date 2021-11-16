@@ -273,18 +273,6 @@ class ContactsManager final : public Actor {
   static td_api::object_ptr<td_api::CheckChatUsernameResult> get_check_chat_username_result_object(
       CheckDialogUsernameResult result);
 
-  void set_account_ttl(int32 account_ttl, Promise<Unit> &&promise) const;
-  void get_account_ttl(Promise<int32> &&promise) const;
-
-  static td_api::object_ptr<td_api::session> convert_authorization_object(
-      tl_object_ptr<telegram_api::authorization> &&authorization);
-
-  void confirm_qr_code_authentication(const string &link, Promise<td_api::object_ptr<td_api::session>> &&promise);
-
-  void get_active_sessions(Promise<tl_object_ptr<td_api::sessions>> &&promise) const;
-  void terminate_session(int64 session_id, Promise<Unit> &&promise) const;
-  void terminate_all_other_sessions(Promise<Unit> &&promise) const;
-
   void get_connected_websites(Promise<tl_object_ptr<td_api::connectedWebsites>> &&promise) const;
   void disconnect_website(int64 website_id, Promise<Unit> &&promise) const;
   void disconnect_all_websites(Promise<Unit> &&promise) const;
