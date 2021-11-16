@@ -273,10 +273,6 @@ class ContactsManager final : public Actor {
   static td_api::object_ptr<td_api::CheckChatUsernameResult> get_check_chat_username_result_object(
       CheckDialogUsernameResult result);
 
-  void get_connected_websites(Promise<tl_object_ptr<td_api::connectedWebsites>> &&promise) const;
-  void disconnect_website(int64 website_id, Promise<Unit> &&promise) const;
-  void disconnect_all_websites(Promise<Unit> &&promise) const;
-
   void add_contact(Contact contact, bool share_phone_number, Promise<Unit> &&promise);
 
   std::pair<vector<UserId>, vector<int32>> import_contacts(const vector<Contact> &contacts, int64 &random_id,

@@ -28,4 +28,10 @@ void terminate_session(Td *td, int64 session_id, Promise<Unit> &&promise);
 
 void terminate_all_other_sessions(Td *td, Promise<Unit> &&promise);
 
+void get_connected_websites(Td *td, Promise<td_api::object_ptr<td_api::connectedWebsites>> &&promise);
+
+void disconnect_website(Td *td, int64 website_id, Promise<Unit> &&promise);
+
+void disconnect_all_websites(Td *td, Promise<Unit> &&promise);
+
 }  // namespace td

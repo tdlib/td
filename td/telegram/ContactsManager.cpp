@@ -105,108 +105,6 @@ class DismissSuggestionQuery final : public Td::ResultHandler {
   }
 };
 
-class GetWebAuthorizationsQuery final : public Td::ResultHandler {
-  Promise<tl_object_ptr<td_api::connectedWebsites>> promise_;
-
- public:
-  explicit GetWebAuthorizationsQuery(Promise<tl_object_ptr<td_api::connectedWebsites>> &&promise)
-      : promise_(std::move(promise)) {
-  }
-
-  void send() {
-    send_query(G()->net_query_creator().create(telegram_api::account_getWebAuthorizations()));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::account_getWebAuthorizations>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for GetWebAuthorizationsQuery: " << to_string(ptr);
-
-    td_->contacts_manager_->on_get_users(std::move(ptr->users_), "GetWebAuthorizationsQuery");
-
-    auto results = make_tl_object<td_api::connectedWebsites>();
-    results->websites_.reserve(ptr->authorizations_.size());
-    for (auto &authorization : ptr->authorizations_) {
-      CHECK(authorization != nullptr);
-      UserId bot_user_id(authorization->bot_id_);
-      if (!bot_user_id.is_valid()) {
-        LOG(ERROR) << "Receive invalid bot " << bot_user_id;
-        bot_user_id = UserId();
-      }
-
-      results->websites_.push_back(make_tl_object<td_api::connectedWebsite>(
-          authorization->hash_, authorization->domain_,
-          td_->contacts_manager_->get_user_id_object(bot_user_id, "GetWebAuthorizationsQuery"), authorization->browser_,
-          authorization->platform_, authorization->date_created_, authorization->date_active_, authorization->ip_,
-          authorization->region_));
-    }
-
-    promise_.set_value(std::move(results));
-  }
-
-  void on_error(Status status) final {
-    promise_.set_error(std::move(status));
-  }
-};
-
-class ResetWebAuthorizationQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
-
- public:
-  explicit ResetWebAuthorizationQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(int64 hash) {
-    send_query(G()->net_query_creator().create(telegram_api::account_resetWebAuthorization(hash)));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::account_resetWebAuthorization>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    bool result = result_ptr.move_as_ok();
-    LOG_IF(WARNING, !result) << "Failed to disconnect website";
-    promise_.set_value(Unit());
-  }
-
-  void on_error(Status status) final {
-    promise_.set_error(std::move(status));
-  }
-};
-
-class ResetWebAuthorizationsQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
-
- public:
-  explicit ResetWebAuthorizationsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send() {
-    send_query(G()->net_query_creator().create(telegram_api::account_resetWebAuthorizations()));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::account_resetWebAuthorizations>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    bool result = result_ptr.move_as_ok();
-    LOG_IF(WARNING, !result) << "Failed to disconnect all websites";
-    promise_.set_value(Unit());
-  }
-
-  void on_error(Status status) final {
-    promise_.set_error(std::move(status));
-  }
-};
-
 class GetContactsQuery final : public Td::ResultHandler {
  public:
   void send(int64 hash) {
@@ -5038,18 +4936,6 @@ td_api::object_ptr<td_api::CheckChatUsernameResult> ContactsManager::get_check_c
       UNREACHABLE();
       return nullptr;
   }
-}
-
-void ContactsManager::get_connected_websites(Promise<tl_object_ptr<td_api::connectedWebsites>> &&promise) const {
-  td_->create_handler<GetWebAuthorizationsQuery>(std::move(promise))->send();
-}
-
-void ContactsManager::disconnect_website(int64 website_id, Promise<Unit> &&promise) const {
-  td_->create_handler<ResetWebAuthorizationQuery>(std::move(promise))->send(website_id);
-}
-
-void ContactsManager::disconnect_all_websites(Promise<Unit> &&promise) const {
-  td_->create_handler<ResetWebAuthorizationsQuery>(std::move(promise))->send();
 }
 
 bool ContactsManager::is_valid_username(const string &username) {

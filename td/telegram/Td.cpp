@@ -4791,19 +4791,19 @@ void Td::on_request(uint64 id, const td_api::terminateAllOtherSessions &request)
 void Td::on_request(uint64 id, const td_api::getConnectedWebsites &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  contacts_manager_->get_connected_websites(std::move(promise));
+  get_connected_websites(this, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::disconnectWebsite &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  contacts_manager_->disconnect_website(request.website_id_, std::move(promise));
+  disconnect_website(this, request.website_id_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::disconnectAllWebsites &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  contacts_manager_->disconnect_all_websites(std::move(promise));
+  disconnect_all_websites(this, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getMe &request) {
