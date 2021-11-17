@@ -7,76 +7,78 @@
 #pragma once
 
 #include "td/utils/common.h"
-#include "td/utils/MovableValue.h"
 #include "td/utils/Slice.h"
 
 #include <array>
 #include <cstdlib>
-#include <memory>
 
 namespace td {
 
 class StackAllocator {
-  class Deleter {
-   public:
-    void operator()(char *ptr) {
-      free_ptr(ptr);
-    }
-  };
-
   // TODO: alloc memory with mmap and unload unused pages
   // memory still can be corrupted, but it is better than explicit free function
-  // TODO: use pointer that can't be even copied
-  using PtrImpl = std::unique_ptr<char, Deleter>;
   class Ptr {
    public:
-    Ptr(char *ptr, size_t size) : ptr_(ptr), size_(size) {
+    Ptr(char *ptr, size_t size) : slice_(ptr, size) {
+    }
+    Ptr(const Ptr &other) = delete;
+    Ptr &operator=(const Ptr &other) = delete;
+    Ptr(Ptr &&other) noexcept : slice_(other.slice_) {
+      other.slice_ = MutableSlice();
+    }
+    Ptr &operator=(Ptr &&other) = delete;
+    ~Ptr() {
+      if (!slice_.empty()) {
+        free_ptr(slice_.data(), slice_.size());
+      }
     }
 
     MutableSlice as_slice() const {
-      return MutableSlice(ptr_.get(), size_.get());
+      return slice_;
     }
 
    private:
-    PtrImpl ptr_;
-    MovableValue<size_t> size_;
+    MutableSlice slice_;
   };
-
-  static void free_ptr(char *ptr) {
-    impl().free_ptr(ptr);
-  }
 
   struct Impl {
     static const size_t MEM_SIZE = 1024 * 1024;
     std::array<char, MEM_SIZE> mem;
 
     size_t pos{0};
-    char *alloc(size_t size) {
+    Ptr alloc(size_t size) {
       if (size == 0) {
-        size = 1;
+        size = 8;
+      } else {
+        if (size > MEM_SIZE) {
+          std::abort();  // too much memory requested
+        }
+        size = (size + 7) & -8;
       }
       char *res = mem.data() + pos;
-      size = (size + 7) & -8;
       pos += size;
       if (pos > MEM_SIZE) {
         std::abort();  // memory is over
       }
-      return res;
+      return Ptr(res, size);
     }
-    void free_ptr(char *ptr) {
-      size_t new_pos = ptr - mem.data();
-      if (new_pos >= pos) {
+    void free_ptr(char *ptr, size_t size) {
+      if (size > pos || ptr != mem.data() + (pos - size)) {
         std::abort();  // shouldn't happen
       }
-      pos = new_pos;
+      pos -= size;
     }
   };
 
   static Impl &impl();
 
+  static void free_ptr(char *ptr, size_t size) {
+    impl().free_ptr(ptr, size);
+  }
+
  public:
   static Ptr alloc(size_t size) {
-    return Ptr(impl().alloc(size), size);
+    return impl().alloc(size);
   }
 };
 
