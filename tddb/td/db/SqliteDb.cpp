@@ -244,7 +244,7 @@ optional<int32> SqliteDb::get_cipher_version() const {
 
 Result<SqliteDb> SqliteDb::change_key(CSlice path, bool allow_creation, const DbKey &new_db_key,
                                       const DbKey &old_db_key) {
-  PerfWarningTimer perf("change key", 0.001);
+  PerfWarningTimer perf("change key", 0.05);
 
   // fast path
   {
