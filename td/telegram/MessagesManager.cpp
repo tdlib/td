@@ -6970,7 +6970,7 @@ void MessagesManager::on_update_delete_scheduled_messages(DialogId dialog_id,
 void MessagesManager::on_user_dialog_action(DialogId dialog_id, MessageId top_thread_message_id,
                                             DialogId typing_dialog_id, DialogAction action, int32 date,
                                             MessageContentType message_content_type) {
-  if (td_->auth_manager_->is_bot() || !typing_dialog_id.is_valid() || is_broadcast_channel(dialog_id)) {
+  if (td_->auth_manager_->is_bot() || !typing_dialog_id.is_valid()) {
     return;
   }
   if (top_thread_message_id != MessageId() && !top_thread_message_id.is_valid()) {
@@ -6989,6 +6989,10 @@ void MessagesManager::on_user_dialog_action(DialogId dialog_id, MessageId top_th
       auto group_call_id = td_->group_call_manager_->get_group_call_id(d->active_group_call_id, dialog_id);
       td_->group_call_manager_->on_user_speaking_in_group_call(group_call_id, typing_dialog_id, date);
     }
+    return;
+  }
+
+  if (is_broadcast_channel(dialog_id)) {
     return;
   }
 
