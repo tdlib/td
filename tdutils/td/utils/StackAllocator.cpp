@@ -19,16 +19,11 @@ class ArrayAllocator final : public StackAllocator::AllocatorImpl {
   size_t pos{0};
 
   MutableSlice allocate(size_t size) final {
-    if (size == 0) {
-      size = 8;
-    } else {
-      if (size > MEM_SIZE) {
-        std::abort();  // too much memory requested
-      }
-      size = (size + 7) & -8;
+    if (size > MEM_SIZE) {
+      std::abort();  // too much memory requested
     }
     char *res = mem.data() + pos;
-    pos += size;
+    pos += (size + 7) & -8;
     if (pos > MEM_SIZE) {
       std::abort();  // memory is over
     }
@@ -36,6 +31,7 @@ class ArrayAllocator final : public StackAllocator::AllocatorImpl {
   }
 
   void free_ptr(char *ptr, size_t size) final {
+    size = (size + 7) & -8;
     if (size > pos || ptr != mem.data() + (pos - size)) {
       std::abort();  // shouldn't happen
     }
