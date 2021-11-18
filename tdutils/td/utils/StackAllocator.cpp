@@ -49,6 +49,19 @@ class ArrayAllocator final : public StackAllocator::AllocatorImpl {
     }
   }
 };
+
+class NewAllocator final : public StackAllocator::AllocatorImpl {
+  MutableSlice allocate(size_t size) final {
+    return {new char[size], size};
+  }
+
+  void free_ptr(char *ptr, size_t size) final {
+    delete[] ptr;
+  }
+
+ public:
+  ~NewAllocator() final = default;
+};
 }  // namespace
 
 StackAllocator::Ptr::~Ptr() {
@@ -58,9 +71,14 @@ StackAllocator::Ptr::~Ptr() {
 }
 
 StackAllocator::AllocatorImpl *StackAllocator::impl() {
-  static TD_THREAD_LOCAL ArrayAllocator *array_allocator;  // static zero-initialized
-  init_thread_local<ArrayAllocator>(array_allocator);
-  return array_allocator;
+  if (get_thread_id() != 0) {
+    static TD_THREAD_LOCAL ArrayAllocator *array_allocator;  // static zero-initialized
+    init_thread_local<ArrayAllocator>(array_allocator);
+    return array_allocator;
+  } else {
+    static NewAllocator new_allocator;
+    return &new_allocator;
+  }
 }
 
 }  // namespace td
