@@ -8,6 +8,7 @@
 #include "td/utils/crypto.h"
 #include "td/utils/logging.h"
 #include "td/utils/OptionParser.h"
+#include "td/utils/port/detail/ThreadIdGuard.h"
 #include "td/utils/Slice.h"
 #include "td/utils/tests.h"
 
@@ -16,6 +17,7 @@
 #endif
 
 int main(int argc, char **argv) {
+  td::detail::ThreadIdGuard thread_id_guard;
   td::init_openssl_threads();
 
   td::TestsRunner &runner = td::TestsRunner::get_default();

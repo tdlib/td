@@ -11,6 +11,7 @@
 #include "td/utils/common.h"
 #include "td/utils/crypto.h"
 #include "td/utils/logging.h"
+#include "td/utils/port/detail/ThreadIdGuard.h"
 #include "td/utils/ScopeGuard.h"
 #include "td/utils/SharedSlice.h"
 #include "td/utils/Slice.h"
@@ -274,6 +275,7 @@ static HandshakeTest pregenerated_test() {
 }
 
 int main() {
+  td::detail::ThreadIdGuard thread_id_guard;
   auto test = gen_test();
   run_test(test);
   run_test(pregenerated_test());

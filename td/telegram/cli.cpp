@@ -31,6 +31,7 @@
 #include "td/utils/misc.h"
 #include "td/utils/NullLog.h"
 #include "td/utils/OptionParser.h"
+#include "td/utils/port/detail/ThreadIdGuard.h"
 #include "td/utils/port/FileFd.h"
 #include "td/utils/port/PollFlags.h"
 #include "td/utils/port/signals.h"
@@ -4593,6 +4594,7 @@ static void on_log_message(int verbosity_level, const char *message) {
 
 void main(int argc, char **argv) {
   ExitGuard exit_guard;
+  detail::ThreadIdGuard thread_id_guard;
   ignore_signal(SignalType::HangUp).ensure();
   ignore_signal(SignalType::Pipe).ensure();
   set_signal_handler(SignalType::Error, fail_signal).ensure();
