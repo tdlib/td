@@ -13,8 +13,7 @@ import sys
 # load shared library
 tdjson_path = find_library('tdjson') or 'tdjson.dll'
 if tdjson_path is None:
-    print('can\'t find tdjson library')
-    quit()
+    sys.exit("Can't find 'tdjson' library")
 tdjson = CDLL(tdjson_path)
 
 # load TDLib functions from shared library
@@ -43,8 +42,7 @@ _td_set_log_message_callback.argtypes = [c_int, log_message_callback_type]
 # initialize TDLib log with desired parameters
 def on_log_message_callback(verbosity_level, message):
     if verbosity_level == 0:
-        print('TDLib fatal error: ', message)
-        sys.stdout.flush()
+        sys.exit('TDLib fatal error: %r' % message)
 
 def td_execute(query):
     query = json.dumps(query).encode('utf-8')
