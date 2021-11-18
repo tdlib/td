@@ -9,76 +9,52 @@
 #include "td/utils/common.h"
 #include "td/utils/Slice.h"
 
-#include <array>
-#include <cstdlib>
-
 namespace td {
 
 class StackAllocator {
-  // TODO: alloc memory with mmap and unload unused pages
-  // memory still can be corrupted, but it is better than explicit free function
+ public:
+  class AllocatorImpl {
+   public:
+    AllocatorImpl() = default;
+    AllocatorImpl(const AllocatorImpl &) = delete;
+    AllocatorImpl &operator=(const AllocatorImpl &) = delete;
+    AllocatorImpl(AllocatorImpl &&) = delete;
+    AllocatorImpl &operator=(AllocatorImpl &&) = delete;
+    virtual ~AllocatorImpl() = default;
+
+    virtual MutableSlice allocate(size_t size) = 0;
+
+    virtual void free_ptr(char *ptr, size_t size) = 0;
+  };
+
+ private:
   class Ptr {
    public:
-    Ptr(char *ptr, size_t size) : slice_(ptr, size) {
+    Ptr(AllocatorImpl *allocator, size_t size) : allocator_(allocator), slice_(allocator_->allocate(size)) {
     }
     Ptr(const Ptr &other) = delete;
     Ptr &operator=(const Ptr &other) = delete;
-    Ptr(Ptr &&other) noexcept : slice_(other.slice_) {
+    Ptr(Ptr &&other) noexcept : allocator_(other.allocator_), slice_(other.slice_) {
+      other.allocator_ = nullptr;
       other.slice_ = MutableSlice();
     }
     Ptr &operator=(Ptr &&other) = delete;
-    ~Ptr() {
-      if (!slice_.empty()) {
-        free_ptr(slice_.data(), slice_.size());
-      }
-    }
+    ~Ptr();
 
     MutableSlice as_slice() const {
       return slice_;
     }
 
    private:
+    AllocatorImpl *allocator_;
     MutableSlice slice_;
   };
 
-  struct Impl {
-    static const size_t MEM_SIZE = 1024 * 1024;
-    std::array<char, MEM_SIZE> mem;
-
-    size_t pos{0};
-    Ptr alloc(size_t size) {
-      if (size == 0) {
-        size = 8;
-      } else {
-        if (size > MEM_SIZE) {
-          std::abort();  // too much memory requested
-        }
-        size = (size + 7) & -8;
-      }
-      char *res = mem.data() + pos;
-      pos += size;
-      if (pos > MEM_SIZE) {
-        std::abort();  // memory is over
-      }
-      return Ptr(res, size);
-    }
-    void free_ptr(char *ptr, size_t size) {
-      if (size > pos || ptr != mem.data() + (pos - size)) {
-        std::abort();  // shouldn't happen
-      }
-      pos -= size;
-    }
-  };
-
-  static Impl &impl();
-
-  static void free_ptr(char *ptr, size_t size) {
-    impl().free_ptr(ptr, size);
-  }
+  static AllocatorImpl *impl();
 
  public:
   static Ptr alloc(size_t size) {
-    return impl().alloc(size);
+    return Ptr(impl(), size);
   }
 };
 
