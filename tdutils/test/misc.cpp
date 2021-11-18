@@ -69,7 +69,6 @@ struct CheckExitGuard {
 
 static CheckExitGuard check_exit_guard_true{true};
 static td::ExitGuard exit_guard;
-static CheckExitGuard check_exit_guard_false{false};
 
 #if TD_LINUX || TD_DARWIN
 TEST(Misc, update_atime_saves_mtime) {
@@ -1242,4 +1241,8 @@ TEST(Misc, serialize) {
   ASSERT_EQ(td::base64_encode(td::serialize(x)), td::base64_encode(td::string("\x01\x00\x00\x00", 4)));
   td::int64 y = -2;
   ASSERT_EQ(td::base64_encode(td::serialize(y)), td::base64_encode(td::string("\xfe\xff\xff\xff\xff\xff\xff\xff", 8)));
+}
+
+TEST(Misc, check_reset_guard) {
+  CheckExitGuard check_exit_guard{false};
 }
