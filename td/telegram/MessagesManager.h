@@ -1646,7 +1646,7 @@ class MessagesManager final : public Actor {
 
   class BlockMessageSenderFromRepliesOnServerLogEvent;
   class DeleteAllCallMessagesOnServerLogEvent;
-  class DeleteAllChannelMessagesFromUserOnServerLogEvent;
+  class DeleteAllChannelMessagesFromSenderOnServerLogEvent;
   class DeleteDialogHistoryOnServerLogEvent;
   class DeleteDialogMessagesByDateOnServerLogEvent;
   class DeleteMessageLogEvent;

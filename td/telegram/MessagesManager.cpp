@@ -10810,9 +10810,9 @@ void MessagesManager::delete_dialog_messages_by_sender(DialogId dialog_id, Dialo
     return promise.set_value(Unit());
   }
 
-  if (G()->parameters().use_message_db && sender_dialog_id.get_type() == DialogType::User) {
+  if (G()->parameters().use_message_db) {
     LOG(INFO) << "Delete all messages from " << sender_dialog_id << " in " << dialog_id << " from database";
-    G()->td_db()->get_messages_db_async()->delete_dialog_messages_from_user(dialog_id, sender_dialog_id.get_user_id(),
+    G()->td_db()->get_messages_db_async()->delete_dialog_messages_by_sender(dialog_id, sender_dialog_id,
                                                                             Auto());  // TODO Promise
   }
 
@@ -10843,7 +10843,7 @@ void MessagesManager::delete_dialog_messages_by_sender(DialogId dialog_id, Dialo
   delete_all_channel_messages_by_sender_on_server(channel_id, sender_dialog_id, 0, std::move(promise));
 }
 
-class MessagesManager::DeleteAllChannelMessagesFromUserOnServerLogEvent {
+class MessagesManager::DeleteAllChannelMessagesFromSenderOnServerLogEvent {
  public:
   ChannelId channel_id_;
   DialogId sender_dialog_id_;
@@ -10869,8 +10869,8 @@ class MessagesManager::DeleteAllChannelMessagesFromUserOnServerLogEvent {
 
 uint64 MessagesManager::save_delete_all_channel_messages_by_sender_on_server_log_event(ChannelId channel_id,
                                                                                        DialogId sender_dialog_id) {
-  DeleteAllChannelMessagesFromUserOnServerLogEvent log_event{channel_id, sender_dialog_id};
-  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::DeleteAllChannelMessagesFromUserOnServer,
+  DeleteAllChannelMessagesFromSenderOnServerLogEvent log_event{channel_id, sender_dialog_id};
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::DeleteAllChannelMessagesFromSenderOnServer,
                     get_log_event_storer(log_event));
 }
 
@@ -33447,7 +33447,8 @@ void MessagesManager::add_message_to_database(const Dialog *d, const Message *m,
   if (m->ttl_period != 0 && (ttl_expires_at == 0 || m->date + m->ttl_period < ttl_expires_at)) {
     ttl_expires_at = m->date + m->ttl_period;
   }
-  G()->td_db()->get_messages_db_async()->add_message({d->dialog_id, message_id}, unique_message_id, m->sender_user_id,
+  auto sender_dialog_id = m->sender_dialog_id.is_valid() ? m->sender_dialog_id : DialogId(m->sender_user_id);
+  G()->td_db()->get_messages_db_async()->add_message({d->dialog_id, message_id}, unique_message_id, sender_dialog_id,
                                                      random_id, ttl_expires_at, get_message_index_mask(d->dialog_id, m),
                                                      search_id, text, m->notification_id, m->top_thread_message_id,
                                                      log_event_store(*m),
@@ -37389,13 +37390,13 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
                                                     Auto());
         break;
       }
-      case LogEvent::HandlerType::DeleteAllChannelMessagesFromUserOnServer: {
+      case LogEvent::HandlerType::DeleteAllChannelMessagesFromSenderOnServer: {
         if (!G()->parameters().use_chat_info_db) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
 
-        DeleteAllChannelMessagesFromUserOnServerLogEvent log_event;
+        DeleteAllChannelMessagesFromSenderOnServerLogEvent log_event;
         log_event_parse(log_event, event.data_).ensure();
 
         auto channel_id = log_event.channel_id_;

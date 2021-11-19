@@ -81,7 +81,7 @@ class LogEvent {
     SendInlineQueryResultMessage = 0x108,
     DeleteDialogHistoryOnServer = 0x109,
     ReadAllDialogMentionsOnServer = 0x10a,
-    DeleteAllChannelMessagesFromUserOnServer = 0x10b,
+    DeleteAllChannelMessagesFromSenderOnServer = 0x10b,
     ToggleDialogIsPinnedOnServer = 0x10c,
     ReorderPinnedDialogsOnServer = 0x10d,
     SaveDialogDraftMessageOnServer = 0x10e,

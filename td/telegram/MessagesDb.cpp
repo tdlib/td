@@ -191,7 +191,7 @@ class MessagesDbImpl final : public MessagesDbSyncInterface {
                       db_.get_statement("DELETE FROM messages WHERE dialog_id = ?1 AND message_id = ?2"));
     TRY_RESULT_ASSIGN(delete_all_dialog_messages_stmt_,
                       db_.get_statement("DELETE FROM messages WHERE dialog_id = ?1 AND message_id <= ?2"));
-    TRY_RESULT_ASSIGN(delete_dialog_messages_from_user_stmt_,
+    TRY_RESULT_ASSIGN(delete_dialog_messages_by_sender_stmt_,
                       db_.get_statement("DELETE FROM messages WHERE dialog_id = ?1 AND sender_user_id == ?2"));
 
     TRY_RESULT_ASSIGN(
@@ -292,7 +292,7 @@ class MessagesDbImpl final : public MessagesDbSyncInterface {
     return Status::OK();
   }
 
-  Status add_message(FullMessageId full_message_id, ServerMessageId unique_message_id, UserId sender_user_id,
+  Status add_message(FullMessageId full_message_id, ServerMessageId unique_message_id, DialogId sender_dialog_id,
                      int64 random_id, int32 ttl_expires_at, int32 index_mask, int64 search_id, string text,
                      NotificationId notification_id, MessageId top_thread_message_id, BufferSlice data) final {
     LOG(INFO) << "Add " << full_message_id << " to database";
@@ -312,8 +312,8 @@ class MessagesDbImpl final : public MessagesDbSyncInterface {
       add_message_stmt_.bind_null(3).ensure();
     }
 
-    if (sender_user_id.is_valid()) {
-      add_message_stmt_.bind_int64(4, sender_user_id.get()).ensure();
+    if (sender_dialog_id.is_valid()) {
+      add_message_stmt_.bind_int64(4, sender_dialog_id.get()).ensure();
     } else {
       add_message_stmt_.bind_null(4).ensure();
     }
@@ -438,16 +438,16 @@ class MessagesDbImpl final : public MessagesDbSyncInterface {
     return status;
   }
 
-  Status delete_dialog_messages_from_user(DialogId dialog_id, UserId sender_user_id) final {
-    LOG(INFO) << "Delete all messages in " << dialog_id << " sent by " << sender_user_id << " from database";
+  Status delete_dialog_messages_by_sender(DialogId dialog_id, DialogId sender_dialog_id) final {
+    LOG(INFO) << "Delete all messages in " << dialog_id << " sent by " << sender_dialog_id << " from database";
     CHECK(dialog_id.is_valid());
-    CHECK(sender_user_id.is_valid());
+    CHECK(sender_dialog_id.is_valid());
     SCOPE_EXIT {
-      delete_dialog_messages_from_user_stmt_.reset();
+      delete_dialog_messages_by_sender_stmt_.reset();
     };
-    delete_dialog_messages_from_user_stmt_.bind_int64(1, dialog_id.get()).ensure();
-    delete_dialog_messages_from_user_stmt_.bind_int64(2, sender_user_id.get()).ensure();
-    delete_dialog_messages_from_user_stmt_.step().ensure();
+    delete_dialog_messages_by_sender_stmt_.bind_int64(1, dialog_id.get()).ensure();
+    delete_dialog_messages_by_sender_stmt_.bind_int64(2, sender_dialog_id.get()).ensure();
+    delete_dialog_messages_by_sender_stmt_.step().ensure();
     return Status::OK();
   }
 
@@ -857,7 +857,7 @@ class MessagesDbImpl final : public MessagesDbSyncInterface {
 
   SqliteStatement delete_message_stmt_;
   SqliteStatement delete_all_dialog_messages_stmt_;
-  SqliteStatement delete_dialog_messages_from_user_stmt_;
+  SqliteStatement delete_dialog_messages_by_sender_stmt_;
 
   SqliteStatement get_message_stmt_;
   SqliteStatement get_message_by_random_id_stmt_;
@@ -1017,11 +1017,11 @@ class MessagesDbAsync final : public MessagesDbAsyncInterface {
     impl_ = create_actor_on_scheduler<Impl>("MessagesDbActor", scheduler_id, std::move(sync_db));
   }
 
-  void add_message(FullMessageId full_message_id, ServerMessageId unique_message_id, UserId sender_user_id,
+  void add_message(FullMessageId full_message_id, ServerMessageId unique_message_id, DialogId sender_dialog_id,
                    int64 random_id, int32 ttl_expires_at, int32 index_mask, int64 search_id, string text,
                    NotificationId notification_id, MessageId top_thread_message_id, BufferSlice data,
                    Promise<> promise) final {
-    send_closure_later(impl_, &Impl::add_message, full_message_id, unique_message_id, sender_user_id, random_id,
+    send_closure_later(impl_, &Impl::add_message, full_message_id, unique_message_id, sender_dialog_id, random_id,
                        ttl_expires_at, index_mask, search_id, std::move(text), notification_id, top_thread_message_id,
                        std::move(data), std::move(promise));
   }
@@ -1035,8 +1035,8 @@ class MessagesDbAsync final : public MessagesDbAsyncInterface {
   void delete_all_dialog_messages(DialogId dialog_id, MessageId from_message_id, Promise<> promise) final {
     send_closure_later(impl_, &Impl::delete_all_dialog_messages, dialog_id, from_message_id, std::move(promise));
   }
-  void delete_dialog_messages_from_user(DialogId dialog_id, UserId sender_user_id, Promise<> promise) final {
-    send_closure_later(impl_, &Impl::delete_dialog_messages_from_user, dialog_id, sender_user_id, std::move(promise));
+  void delete_dialog_messages_by_sender(DialogId dialog_id, DialogId sender_dialog_id, Promise<> promise) final {
+    send_closure_later(impl_, &Impl::delete_dialog_messages_by_sender, dialog_id, sender_dialog_id, std::move(promise));
   }
 
   void get_message(FullMessageId full_message_id, Promise<MessagesDbDialogMessage> promise) final {
@@ -1098,15 +1098,15 @@ class MessagesDbAsync final : public MessagesDbAsyncInterface {
    public:
     explicit Impl(std::shared_ptr<MessagesDbSyncSafeInterface> sync_db_safe) : sync_db_safe_(std::move(sync_db_safe)) {
     }
-    void add_message(FullMessageId full_message_id, ServerMessageId unique_message_id, UserId sender_user_id,
+    void add_message(FullMessageId full_message_id, ServerMessageId unique_message_id, DialogId sender_dialog_id,
                      int64 random_id, int32 ttl_expires_at, int32 index_mask, int64 search_id, string text,
                      NotificationId notification_id, MessageId top_thread_message_id, BufferSlice data,
                      Promise<> promise) {
-      add_write_query([this, full_message_id, unique_message_id, sender_user_id, random_id, ttl_expires_at, index_mask,
-                       search_id, text = std::move(text), notification_id, top_thread_message_id,
+      add_write_query([this, full_message_id, unique_message_id, sender_dialog_id, random_id, ttl_expires_at,
+                       index_mask, search_id, text = std::move(text), notification_id, top_thread_message_id,
                        data = std::move(data), promise = std::move(promise)](Unit) mutable {
         on_write_result(std::move(promise),
-                        sync_db_->add_message(full_message_id, unique_message_id, sender_user_id, random_id,
+                        sync_db_->add_message(full_message_id, unique_message_id, sender_dialog_id, random_id,
                                               ttl_expires_at, index_mask, search_id, std::move(text), notification_id,
                                               top_thread_message_id, std::move(data)));
       });
@@ -1131,9 +1131,9 @@ class MessagesDbAsync final : public MessagesDbAsyncInterface {
       add_read_query();
       promise.set_result(sync_db_->delete_all_dialog_messages(dialog_id, from_message_id));
     }
-    void delete_dialog_messages_from_user(DialogId dialog_id, UserId sender_user_id, Promise<> promise) {
+    void delete_dialog_messages_by_sender(DialogId dialog_id, DialogId sender_dialog_id, Promise<> promise) {
       add_read_query();
-      promise.set_result(sync_db_->delete_dialog_messages_from_user(dialog_id, sender_user_id));
+      promise.set_result(sync_db_->delete_dialog_messages_by_sender(dialog_id, sender_dialog_id));
     }
 
     void get_message(FullMessageId full_message_id, Promise<MessagesDbDialogMessage> promise) {
