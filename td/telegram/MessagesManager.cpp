@@ -10814,8 +10814,8 @@ void MessagesManager::delete_dialog_messages_by_sender(DialogId dialog_id, Dialo
   }
 
   vector<MessageId> message_ids;
-  find_messages(d->messages.get(), message_ids, [sender_dialog_id](const Message *m) {
-    return sender_dialog_id == (m->sender_dialog_id.is_valid() ? m->sender_dialog_id : DialogId(m->sender_user_id));
+  find_messages(d->messages.get(), message_ids, [this, sender_dialog_id](const Message *m) {
+    return sender_dialog_id == MessagesManager::get_message_sender(m);
   });
 
   vector<int64> deleted_message_ids;
@@ -27754,12 +27754,10 @@ Result<MessagesManager::MessagePushNotificationInfo> MessagesManager::get_messag
   DialogId settings_dialog_id = dialog_id;
   Dialog *settings_dialog = d;
   if (contains_mention) {
-    if (sender_user_id.is_valid()) {
-      settings_dialog_id = DialogId(sender_user_id);
-      settings_dialog = get_dialog_force(settings_dialog_id, "get_message_push_notification_info 2");
-    } else if (sender_dialog_id.is_valid()) {
-      settings_dialog_id = sender_dialog_id;
-      settings_dialog = get_dialog_force(settings_dialog_id, "get_message_push_notification_info 3");
+    auto real_sender_dialog_id = sender_dialog_id.is_valid() ? sender_dialog_id : DialogId(sender_user_id);
+    if (real_sender_dialog_id.is_valid()) {
+      settings_dialog_id = real_sender_dialog_id;
+      settings_dialog = get_dialog_force(settings_dialog_id, "get_message_push_notification_info");
     }
   }
 
@@ -28669,12 +28667,10 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
   Dialog *settings_dialog = d;
   if (m->contains_mention && !m->is_mention_notification_disabled) {
     // have a mention, so use notification settings from the dialog with the sender
-    if (m->sender_user_id.is_valid()) {
-      settings_dialog_id = DialogId(m->sender_user_id);
-      settings_dialog = get_dialog_force(settings_dialog_id, "add_new_message_notification 1");
-    } else if (m->sender_dialog_id.is_valid()) {
-      settings_dialog_id = m->sender_dialog_id;
-      settings_dialog = get_dialog_force(settings_dialog_id, "add_new_message_notification 2");
+    auto sender_dialog_id = get_message_sender(m);
+    if (sender_dialog_id.is_valid()) {
+      settings_dialog_id = sender_dialog_id;
+      settings_dialog = get_dialog_force(settings_dialog_id, "add_new_message_notification");
     }
   }
 
@@ -33456,11 +33452,10 @@ void MessagesManager::add_message_to_database(const Dialog *d, const Message *m,
   if (m->ttl_period != 0 && (ttl_expires_at == 0 || m->date + m->ttl_period < ttl_expires_at)) {
     ttl_expires_at = m->date + m->ttl_period;
   }
-  auto sender_dialog_id = m->sender_dialog_id.is_valid() ? m->sender_dialog_id : DialogId(m->sender_user_id);
-  G()->td_db()->get_messages_db_async()->add_message({d->dialog_id, message_id}, unique_message_id, sender_dialog_id,
-                                                     random_id, ttl_expires_at, get_message_index_mask(d->dialog_id, m),
-                                                     search_id, text, m->notification_id, m->top_thread_message_id,
-                                                     log_event_store(*m),
+  G()->td_db()->get_messages_db_async()->add_message({d->dialog_id, message_id}, unique_message_id,
+                                                     get_message_sender(m), random_id, ttl_expires_at,
+                                                     get_message_index_mask(d->dialog_id, m), search_id, text,
+                                                     m->notification_id, m->top_thread_message_id, log_event_store(*m),
                                                      Auto());  // TODO Promise
 }
 
