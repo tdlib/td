@@ -704,12 +704,15 @@ class GetStickerSetQuery final : public Td::ResultHandler {
 };
 
 class ReloadSpecialStickerSetQuery final : public Td::ResultHandler {
+  StickerSetId sticker_set_id_;
   SpecialStickerSetType type_;
 
  public:
-  void send(SpecialStickerSetType type) {
+  void send(StickerSetId sticker_set_id, SpecialStickerSetType type, int32 hash) {
+    sticker_set_id_ = sticker_set_id;
     type_ = std::move(type);
-    send_query(G()->net_query_creator().create(telegram_api::messages_getStickerSet(type_.get_input_sticker_set(), 0)));
+    send_query(
+        G()->net_query_creator().create(telegram_api::messages_getStickerSet(type_.get_input_sticker_set(), hash)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -718,10 +721,17 @@ class ReloadSpecialStickerSetQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    auto sticker_set_id = td_->stickers_manager_->on_get_messages_sticker_set(StickerSetId(), result_ptr.move_as_ok(),
-                                                                              true, "ReloadSpecialStickerSetQuery");
-    if (sticker_set_id.is_valid()) {
-      td_->stickers_manager_->on_get_special_sticker_set(type_, sticker_set_id);
+    auto set_ptr = result_ptr.move_as_ok();
+    if (set_ptr->get_id() == telegram_api::messages_stickerSet::ID) {
+      // sticker_set_id_ needs to be replaced always
+      sticker_set_id_ = td_->stickers_manager_->on_get_messages_sticker_set(StickerSetId(), std::move(set_ptr), true,
+                                                                            "ReloadSpecialStickerSetQuery");
+    } else if (sticker_set_id_.is_valid()) {
+      td_->stickers_manager_->on_get_messages_sticker_set(sticker_set_id_, std::move(set_ptr), false,
+                                                          "ReloadSpecialStickerSetQuery");
+    }
+    if (sticker_set_id_.is_valid()) {
+      td_->stickers_manager_->on_get_special_sticker_set(type_, sticker_set_id_);
     } else {
       on_error(Status::Error(500, "Failed to add special sticker set"));
     }
@@ -1382,7 +1392,14 @@ void StickersManager::load_special_sticker_set(SpecialStickerSet &sticker_set) {
 }
 
 void StickersManager::reload_special_sticker_set(SpecialStickerSet &sticker_set) {
-  td_->create_handler<ReloadSpecialStickerSetQuery>()->send(sticker_set.type_);
+  int32 hash = 0;
+  if (sticker_set.id_.is_valid()) {
+    const auto *s = get_sticker_set(sticker_set.id_);
+    if (s != nullptr && s->is_inited && s->is_loaded) {
+      hash = s->hash;
+    }
+  }
+  td_->create_handler<ReloadSpecialStickerSetQuery>()->send(sticker_set.id_, sticker_set.type_, hash);
 }
 
 void StickersManager::on_load_special_sticker_set(const SpecialStickerSetType &type, Status result) {
