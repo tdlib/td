@@ -4339,13 +4339,12 @@ class CliClient final : public Actor {
         send_request(td_api::make_object<td_api::getLoginUrl>(as_chat_id(chat_id), as_message_id(message_id),
                                                               as_button_id(button_id), op == "glua"));
       }
-    } else if (op == "rsgs" || op == "rchs") {
+    } else if (op == "rsgs") {
       string supergroup_id;
-      string user_id;
       string message_ids;
-      get_args(args, supergroup_id, user_id, message_ids);
+      get_args(args, supergroup_id, message_ids);
       send_request(td_api::make_object<td_api::reportSupergroupSpam>(as_supergroup_id(supergroup_id),
-                                                                     as_user_id(user_id), as_message_ids(message_ids)));
+                                                                     as_message_ids(message_ids)));
     } else if (op == "gdiff") {
       send_request(td_api::make_object<td_api::testGetDifference>());
     } else if (op == "dproxy") {

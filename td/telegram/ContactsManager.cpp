@@ -1085,13 +1085,13 @@ class ReportChannelSpamQuery final : public Td::ResultHandler {
   explicit ReportChannelSpamQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(ChannelId channel_id, UserId user_id, const vector<MessageId> &message_ids) {
+  void send(ChannelId channel_id, DialogId sender_dialog_id, const vector<MessageId> &message_ids) {
     channel_id_ = channel_id;
 
     auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
 
-    auto input_peer = td_->contacts_manager_->get_input_peer_user(user_id, AccessRights::Know);
+    auto input_peer = td_->messages_manager_->get_input_peer(sender_dialog_id, AccessRights::Know);
     CHECK(input_peer != nullptr);
 
     send_query(G()->net_query_creator().create(telegram_api::channels_reportSpam(
@@ -1105,13 +1105,13 @@ class ReportChannelSpamQuery final : public Td::ResultHandler {
     }
 
     bool result = result_ptr.move_as_ok();
-    LOG_IF(INFO, !result) << "Report spam has failed";
+    LOG_IF(INFO, !result) << "Report spam has failed in " << channel_id_;
 
     promise_.set_value(Unit());
   }
 
   void on_error(Status status) final {
-    td_->contacts_manager_->on_get_channel_error(channel_id_, status, "ReportChannelSpamQuery");
+    // td_->contacts_manager_->on_get_channel_error(channel_id_, status, "ReportChannelSpamQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -6554,7 +6554,7 @@ void ContactsManager::send_load_async_graph_query(DcId dc_id, string token, int6
   td_->create_handler<LoadAsyncGraphQuery>(std::move(promise))->send(token, x, dc_id);
 }
 
-void ContactsManager::report_channel_spam(ChannelId channel_id, UserId user_id, const vector<MessageId> &message_ids,
+void ContactsManager::report_channel_spam(ChannelId channel_id, const vector<MessageId> &message_ids,
                                           Promise<Unit> &&promise) {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
@@ -6564,17 +6564,11 @@ void ContactsManager::report_channel_spam(ChannelId channel_id, UserId user_id, 
     return promise.set_error(Status::Error(400, "Spam can be reported only in supergroups"));
   }
 
-  if (!have_input_user(user_id)) {
-    return promise.set_error(Status::Error(400, "Have no access to the user"));
-  }
-  if (user_id == get_my_id()) {
-    return promise.set_error(Status::Error(400, "Can't report self"));
-  }
-
   if (message_ids.empty()) {
     return promise.set_error(Status::Error(400, "Message list is empty"));
   }
 
+  DialogId sender_dialog_id;
   vector<MessageId> server_message_ids;
   for (auto &message_id : message_ids) {
     if (message_id.is_valid_scheduled()) {
@@ -6585,15 +6579,38 @@ void ContactsManager::report_channel_spam(ChannelId channel_id, UserId user_id, 
       return promise.set_error(Status::Error(400, "Message not found"));
     }
 
-    if (message_id.is_server()) {
-      server_message_ids.push_back(message_id);
+    if (!message_id.is_server()) {
+      continue;
     }
+
+    auto current_sender_dialog_id = td_->messages_manager_->get_message_sender({DialogId(channel_id), message_id});
+    if (!current_sender_dialog_id.is_valid()) {
+      continue;
+    }
+    if (sender_dialog_id.is_valid()) {
+      if (current_sender_dialog_id != sender_dialog_id) {
+        return promise.set_error(Status::Error(400, "All messages nust be from the same sender"));
+      }
+    } else {
+      sender_dialog_id = current_sender_dialog_id;
+    }
+
+    server_message_ids.push_back(message_id);
   }
   if (server_message_ids.empty()) {
     return promise.set_value(Unit());
   }
+  CHECK(sender_dialog_id.is_valid());
 
-  td_->create_handler<ReportChannelSpamQuery>(std::move(promise))->send(channel_id, user_id, server_message_ids);
+  if (!td_->messages_manager_->have_input_peer(sender_dialog_id, AccessRights::Know)) {
+    return promise.set_error(Status::Error(400, "Have no access to the user"));
+  }
+  if (sender_dialog_id == DialogId(get_my_id())) {
+    return promise.set_error(Status::Error(400, "Can't report self"));
+  }
+
+  td_->create_handler<ReportChannelSpamQuery>(std::move(promise))
+      ->send(channel_id, sender_dialog_id, server_message_ids);
 }
 
 void ContactsManager::delete_chat(ChatId chat_id, Promise<Unit> &&promise) {

@@ -5392,8 +5392,8 @@ toggleSupergroupIsAllHistoryAvailable supergroup_id:int53 is_all_history_availab
 //@description Upgrades supergroup to a broadcast group; requires owner privileges in the supergroup @supergroup_id Identifier of the supergroup
 toggleSupergroupIsBroadcastGroup supergroup_id:int53 = Ok;
 
-//@description Reports some messages from a user in a supergroup as spam; requires administrator rights in the supergroup @supergroup_id Supergroup identifier @user_id User identifier @message_ids Identifiers of messages sent in the supergroup by the user. This list must be non-empty
-reportSupergroupSpam supergroup_id:int53 user_id:int53 message_ids:vector<int53> = Ok;
+//@description Reports some messages from a message sender in a supergroup as spam; requires administrator rights in the supergroup @supergroup_id Supergroup identifier @message_ids Identifiers of messages sent in the supergroup. All messages must be sent by the same sender. This list must be non-empty
+reportSupergroupSpam supergroup_id:int53 message_ids:vector<int53> = Ok;
 
 //@description Returns information about members or banned users in a supergroup or channel. Can be used only if supergroupFullInfo.can_get_members == true; additionally, administrator privileges may be required for some filters @supergroup_id Identifier of the supergroup or channel
 //@filter The type of users to return; pass null to use supergroupMembersFilterRecent @offset Number of users to skip @limit The maximum number of users be returned; up to 200
