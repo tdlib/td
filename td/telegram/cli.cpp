@@ -3771,11 +3771,12 @@ class CliClient final : public Actor {
       get_args(args, chat_id, min_date, max_date, revoke);
       send_request(
           td_api::make_object<td_api::deleteChatMessagesByDate>(as_chat_id(chat_id), min_date, max_date, revoke));
-    } else if (op == "dmfu") {
+    } else if (op == "dcmbs") {
       string chat_id;
-      string user_id;
-      get_args(args, chat_id, user_id);
-      send_request(td_api::make_object<td_api::deleteChatMessagesFromUser>(as_chat_id(chat_id), as_user_id(user_id)));
+      string sender_id;
+      get_args(args, chat_id, sender_id);
+      send_request(
+          td_api::make_object<td_api::deleteChatMessagesBySender>(as_chat_id(chat_id), as_message_sender(sender_id)));
     } else if (op == "cnbgc") {
       string user_ids_string;
       string title;

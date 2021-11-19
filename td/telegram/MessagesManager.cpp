@@ -2831,24 +2831,24 @@ class BlockFromRepliesQuery final : public Td::ResultHandler {
   }
 };
 
-class DeleteUserHistoryQuery final : public Td::ResultHandler {
+class DeleteParticipantHistoryQuery final : public Td::ResultHandler {
   Promise<AffectedHistory> promise_;
   ChannelId channel_id_;
 
  public:
-  explicit DeleteUserHistoryQuery(Promise<AffectedHistory> &&promise) : promise_(std::move(promise)) {
+  explicit DeleteParticipantHistoryQuery(Promise<AffectedHistory> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(ChannelId channel_id, UserId user_id) {
+  void send(ChannelId channel_id, DialogId sender_dialog_id) {
     channel_id_ = channel_id;
 
     auto input_channel = td_->contacts_manager_->get_input_channel(channel_id_);
     if (input_channel == nullptr) {
       return promise_.set_error(Status::Error(400, "Chat is not accessible"));
     }
-    auto input_peer = td_->contacts_manager_->get_input_peer_user(user_id, AccessRights::Know);
+    auto input_peer = td_->messages_manager_->get_input_peer(sender_dialog_id, AccessRights::Know);
     if (input_peer == nullptr) {
-      return promise_.set_error(Status::Error(400, "User is not accessible"));
+      return promise_.set_error(Status::Error(400, "Message sender is not accessible"));
     }
 
     send_query(G()->net_query_creator().create(
@@ -2865,7 +2865,7 @@ class DeleteUserHistoryQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->contacts_manager_->on_get_channel_error(channel_id_, status, "DeleteUserHistoryQuery");
+    td_->contacts_manager_->on_get_channel_error(channel_id_, status, "DeleteParticipantHistoryQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -10760,11 +10760,12 @@ void MessagesManager::find_unloadable_messages(const Dialog *d, int32 unload_bef
   find_unloadable_messages(d, unload_before_date, m->right.get(), message_ids, left_to_unload);
 }
 
-void MessagesManager::delete_dialog_messages_from_user(DialogId dialog_id, UserId user_id, Promise<Unit> &&promise) {
+void MessagesManager::delete_dialog_messages_by_sender(DialogId dialog_id, DialogId sender_dialog_id,
+                                                       Promise<Unit> &&promise) {
   bool is_bot = td_->auth_manager_->is_bot();
   CHECK(!is_bot);
 
-  Dialog *d = get_dialog_force(dialog_id, "delete_dialog_messages_from_user");
+  Dialog *d = get_dialog_force(dialog_id, "delete_dialog_messages_by_sender");
   if (d == nullptr) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
@@ -10773,8 +10774,8 @@ void MessagesManager::delete_dialog_messages_from_user(DialogId dialog_id, UserI
     return promise.set_error(Status::Error(400, "Not enough rights"));
   }
 
-  if (!td_->contacts_manager_->have_input_user(user_id)) {
-    return promise.set_error(Status::Error(400, "User not found"));
+  if (!have_input_peer(sender_dialog_id, AccessRights::Know)) {
+    return promise.set_error(Status::Error(400, "Message sender not found"));
   }
 
   ChannelId channel_id;
@@ -10783,7 +10784,8 @@ void MessagesManager::delete_dialog_messages_from_user(DialogId dialog_id, UserI
     case DialogType::User:
     case DialogType::Chat:
     case DialogType::SecretChat:
-      return promise.set_error(Status::Error(400, "All messages from a user can be deleted only in supergroup chats"));
+      return promise.set_error(
+          Status::Error(400, "All messages from a sender can be deleted only in supergroup chats"));
     case DialogType::Channel: {
       channel_id = dialog_id.get_channel_id();
       auto channel_type = td_->contacts_manager_->get_channel_type(channel_id);
@@ -10804,73 +10806,87 @@ void MessagesManager::delete_dialog_messages_from_user(DialogId dialog_id, UserI
   }
   CHECK(channel_id.is_valid());
 
-  if (G()->parameters().use_message_db) {
-    LOG(INFO) << "Delete all messages from " << user_id << " in " << dialog_id << " from database";
-    G()->td_db()->get_messages_db_async()->delete_dialog_messages_from_user(dialog_id, user_id,
+  if (sender_dialog_id.get_type() == DialogType::SecretChat) {
+    return promise.set_value(Unit());
+  }
+
+  if (G()->parameters().use_message_db && sender_dialog_id.get_type() == DialogType::User) {
+    LOG(INFO) << "Delete all messages from " << sender_dialog_id << " in " << dialog_id << " from database";
+    G()->td_db()->get_messages_db_async()->delete_dialog_messages_from_user(dialog_id, sender_dialog_id.get_user_id(),
                                                                             Auto());  // TODO Promise
   }
 
   vector<MessageId> message_ids;
-  find_messages(d->messages.get(), message_ids, [user_id](const Message *m) { return m->sender_user_id == user_id; });
+  find_messages(d->messages.get(), message_ids, [sender_dialog_id](const Message *m) {
+    return sender_dialog_id == (m->sender_dialog_id.is_valid() ? m->sender_dialog_id : DialogId(m->sender_user_id));
+  });
 
   vector<int64> deleted_message_ids;
   bool need_update_dialog_pos = false;
   for (auto message_id : message_ids) {
     auto m = get_message(d, message_id);
     CHECK(m != nullptr);
-    CHECK(m->sender_user_id == user_id);
     CHECK(m->message_id == message_id);
     if (can_delete_channel_message(channel_status, m, is_bot)) {
-      auto p = delete_message(d, message_id, true, &need_update_dialog_pos, "delete messages from user");
+      auto p = delete_message(d, message_id, true, &need_update_dialog_pos, "delete_dialog_messages_by_sender");
       CHECK(p.get() == m);
       deleted_message_ids.push_back(p->message_id.get());
     }
   }
 
   if (need_update_dialog_pos) {
-    send_update_chat_last_message(d, "delete_messages_from_user");
+    send_update_chat_last_message(d, "delete_dialog_messages_by_sender");
   }
 
   send_update_delete_messages(dialog_id, std::move(deleted_message_ids), true, false);
 
-  delete_all_channel_messages_from_user_on_server(channel_id, user_id, 0, std::move(promise));
+  delete_all_channel_messages_by_sender_on_server(channel_id, sender_dialog_id, 0, std::move(promise));
 }
 
 class MessagesManager::DeleteAllChannelMessagesFromUserOnServerLogEvent {
  public:
   ChannelId channel_id_;
-  UserId user_id_;
+  DialogId sender_dialog_id_;
 
   template <class StorerT>
   void store(StorerT &storer) const {
     td::store(channel_id_, storer);
-    td::store(user_id_, storer);
+    td::store(sender_dialog_id_, storer);
   }
 
   template <class ParserT>
   void parse(ParserT &parser) {
     td::parse(channel_id_, parser);
-    td::parse(user_id_, parser);
+    if (parser.version() >= static_cast<int32>(Version::AddKeyboardButtonFlags)) {
+      td::parse(sender_dialog_id_, parser);
+    } else {
+      UserId user_id;
+      td::parse(user_id, parser);
+      sender_dialog_id_ = DialogId(user_id);
+    }
   }
 };
 
-uint64 MessagesManager::save_delete_all_channel_messages_from_user_on_server_log_event(ChannelId channel_id,
-                                                                                       UserId user_id) {
-  DeleteAllChannelMessagesFromUserOnServerLogEvent log_event{channel_id, user_id};
+uint64 MessagesManager::save_delete_all_channel_messages_by_sender_on_server_log_event(ChannelId channel_id,
+                                                                                       DialogId sender_dialog_id) {
+  DeleteAllChannelMessagesFromUserOnServerLogEvent log_event{channel_id, sender_dialog_id};
   return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::DeleteAllChannelMessagesFromUserOnServer,
                     get_log_event_storer(log_event));
 }
 
-void MessagesManager::delete_all_channel_messages_from_user_on_server(ChannelId channel_id, UserId user_id,
+void MessagesManager::delete_all_channel_messages_by_sender_on_server(ChannelId channel_id, DialogId sender_dialog_id,
                                                                       uint64 log_event_id, Promise<Unit> &&promise) {
   if (log_event_id == 0 && G()->parameters().use_chat_info_db) {
-    log_event_id = save_delete_all_channel_messages_from_user_on_server_log_event(channel_id, user_id);
+    log_event_id = save_delete_all_channel_messages_by_sender_on_server_log_event(channel_id, sender_dialog_id);
   }
 
-  AffectedHistoryQuery query = [td = td_, user_id](DialogId dialog_id, Promise<AffectedHistory> &&query_promise) {
-    td->create_handler<DeleteUserHistoryQuery>(std::move(query_promise))->send(dialog_id.get_channel_id(), user_id);
+  AffectedHistoryQuery query = [td = td_, sender_dialog_id](DialogId dialog_id,
+                                                            Promise<AffectedHistory> &&query_promise) {
+    td->create_handler<DeleteParticipantHistoryQuery>(std::move(query_promise))
+        ->send(dialog_id.get_channel_id(), sender_dialog_id);
   };
-  run_affected_history_query_until_complete(DialogId(channel_id), std::move(query), false,
+  run_affected_history_query_until_complete(DialogId(channel_id), std::move(query),
+                                            sender_dialog_id.get_type() != DialogType::User,
                                             get_erase_log_event_promise(log_event_id, std::move(promise)));
 }
 
@@ -37389,14 +37405,15 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
           break;
         }
 
-        auto user_id = log_event.user_id_;
-        if (!td_->contacts_manager_->have_user_force(user_id)) {
-          LOG(ERROR) << "Can't find user " << user_id;
+        auto sender_dialog_id = log_event.sender_dialog_id_;
+        if (!td_->messages_manager_->have_dialog_info_force(sender_dialog_id) ||
+            !td_->messages_manager_->have_input_peer(sender_dialog_id, AccessRights::Know)) {
+          LOG(ERROR) << "Can't find " << sender_dialog_id;
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
 
-        delete_all_channel_messages_from_user_on_server(channel_id, user_id, event.id_, Auto());
+        delete_all_channel_messages_by_sender_on_server(channel_id, sender_dialog_id, event.id_, Auto());
         break;
       }
       case LogEvent::HandlerType::DeleteDialogMessagesByDateOnServer: {

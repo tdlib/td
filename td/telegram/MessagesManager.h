@@ -364,7 +364,7 @@ class MessagesManager final : public Actor {
 
   void delete_all_call_messages(bool revoke, Promise<Unit> &&promise);
 
-  void delete_dialog_messages_from_user(DialogId dialog_id, UserId user_id, Promise<Unit> &&promise);
+  void delete_dialog_messages_by_sender(DialogId dialog_id, DialogId sender_dialog_id, Promise<Unit> &&promise);
 
   void delete_dialog_messages_by_date(DialogId dialog_id, int32 min_date, int32 max_date, bool revoke,
                                       Promise<Unit> &&promise);
@@ -2012,8 +2012,8 @@ class MessagesManager final : public Actor {
                                                    bool need_delete_all_messages, bool report_spam, uint64 log_event_id,
                                                    Promise<Unit> &&promise);
 
-  void delete_all_channel_messages_from_user_on_server(ChannelId channel_id, UserId user_id, uint64 log_event_id,
-                                                       Promise<Unit> &&promise);
+  void delete_all_channel_messages_by_sender_on_server(ChannelId channel_id, DialogId sender_dialog_id,
+                                                       uint64 log_event_id, Promise<Unit> &&promise);
 
   void delete_dialog_messages_by_date_on_server(DialogId dialog_id, int32 min_date, int32 max_date, bool revoke,
                                                 uint64 log_event_id, Promise<Unit> &&promise);
@@ -3111,7 +3111,8 @@ class MessagesManager final : public Actor {
                                                                            bool need_delete_all_messages,
                                                                            bool report_spam);
 
-  static uint64 save_delete_all_channel_messages_from_user_on_server_log_event(ChannelId channel_id, UserId user_id);
+  static uint64 save_delete_all_channel_messages_by_sender_on_server_log_event(ChannelId channel_id,
+                                                                               DialogId sender_dialog_id);
 
   static uint64 save_delete_dialog_messages_by_date_on_server_log_event(DialogId dialog_id, int32 min_date,
                                                                         int32 max_date, bool revoke);

@@ -652,7 +652,7 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::deleteMessages &request);
 
-  void on_request(uint64 id, const td_api::deleteChatMessagesFromUser &request);
+  void on_request(uint64 id, const td_api::deleteChatMessagesBySender &request);
 
   void on_request(uint64 id, const td_api::deleteChatMessagesByDate &request);
 

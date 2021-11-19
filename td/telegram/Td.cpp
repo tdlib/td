@@ -5451,10 +5451,12 @@ void Td::on_request(uint64 id, const td_api::deleteMessages &request) {
                                      request.revoke_, std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::deleteChatMessagesFromUser &request) {
+void Td::on_request(uint64 id, const td_api::deleteChatMessagesBySender &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->delete_dialog_messages_from_user(DialogId(request.chat_id_), UserId(request.user_id_),
+  TRY_RESULT_PROMISE(promise, participant_dialog_id,
+                     get_message_sender_dialog_id(this, request.sender_id_, false, false));
+  messages_manager_->delete_dialog_messages_by_sender(DialogId(request.chat_id_), participant_dialog_id,
                                                       std::move(promise));
 }
 
