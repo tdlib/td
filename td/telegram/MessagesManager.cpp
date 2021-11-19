@@ -2833,16 +2833,13 @@ class BlockFromRepliesQuery final : public Td::ResultHandler {
 
 class DeleteParticipantHistoryQuery final : public Td::ResultHandler {
   Promise<AffectedHistory> promise_;
-  ChannelId channel_id_;
 
  public:
   explicit DeleteParticipantHistoryQuery(Promise<AffectedHistory> &&promise) : promise_(std::move(promise)) {
   }
 
   void send(ChannelId channel_id, DialogId sender_dialog_id) {
-    channel_id_ = channel_id;
-
-    auto input_channel = td_->contacts_manager_->get_input_channel(channel_id_);
+    auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
     if (input_channel == nullptr) {
       return promise_.set_error(Status::Error(400, "Chat is not accessible"));
     }
@@ -2865,7 +2862,7 @@ class DeleteParticipantHistoryQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->contacts_manager_->on_get_channel_error(channel_id_, status, "DeleteParticipantHistoryQuery");
+    // td_->contacts_manager_->on_get_channel_error(channel_id_, status, "DeleteParticipantHistoryQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -16923,6 +16920,14 @@ void MessagesManager::on_get_blocked_dialogs(int32 offset, int32 limit, int32 to
   promise.set_value(td_api::make_object<td_api::messageSenders>(total_count, std::move(senders)));
 }
 
+DialogId MessagesManager::get_message_sender(FullMessageId full_message_id) {
+  const auto *m = get_message_force(full_message_id, "get_message_sender");
+  if (m == nullptr) {
+    return DialogId();
+  }
+  return get_message_sender(m);
+}
+
 bool MessagesManager::have_message_force(FullMessageId full_message_id, const char *source) {
   return get_message_force(full_message_id, source) != nullptr;
 }
@@ -25477,6 +25482,7 @@ bool MessagesManager::is_deleted_secret_chat(const Dialog *d) const {
 }
 
 int32 MessagesManager::get_message_schedule_date(const Message *m) {
+  CHECK(m != nullptr);
   if (!m->message_id.is_scheduled()) {
     return 0;
   }
@@ -25487,6 +25493,7 @@ int32 MessagesManager::get_message_schedule_date(const Message *m) {
 }
 
 DialogId MessagesManager::get_message_original_sender(const Message *m) {
+  CHECK(m != nullptr);
   if (m->forward_info != nullptr) {
     auto forward_info = m->forward_info.get();
     if (forward_info->is_imported || is_forward_info_sender_hidden(forward_info)) {
@@ -25497,10 +25504,12 @@ DialogId MessagesManager::get_message_original_sender(const Message *m) {
     }
     return DialogId(forward_info->sender_user_id);
   }
-  if (m->sender_dialog_id.is_valid()) {
-    return m->sender_dialog_id;
-  }
-  return DialogId(m->sender_user_id);
+  return get_message_sender(m);
+}
+
+DialogId MessagesManager::get_message_sender(const Message *m) {
+  CHECK(m != nullptr);
+  return m->sender_dialog_id.is_valid() ? m->sender_dialog_id : DialogId(m->sender_user_id);
 }
 
 void MessagesManager::edit_message_text(FullMessageId full_message_id,

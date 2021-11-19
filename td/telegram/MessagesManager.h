@@ -558,6 +558,8 @@ class MessagesManager final : public Actor {
 
   bool can_get_message_statistics(FullMessageId full_message_id);
 
+  DialogId get_message_sender(FullMessageId full_message_id);
+
   bool have_message_force(FullMessageId full_message_id, const char *source);
 
   void get_message(FullMessageId full_message_id, Promise<Unit> &&promise);
@@ -3159,6 +3161,8 @@ class MessagesManager final : public Actor {
   static int32 get_message_schedule_date(const Message *m);
 
   static DialogId get_message_original_sender(const Message *m);
+
+  static DialogId get_message_sender(const Message *m);
 
   RecentDialogList recently_found_dialogs_;
   RecentDialogList recently_opened_dialogs_;
