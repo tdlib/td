@@ -17316,7 +17316,7 @@ Status MessagesManager::can_get_message_viewers(DialogId dialog_id, const Messag
   if (participant_count == 0) {
     return Status::Error(400, "Chat is empty or have unknown number of members");
   }
-  if (participant_count > G()->shared_config().get_option_integer("chat_read_mark_size_threshold", 50)) {
+  if (participant_count > G()->shared_config().get_option_integer("chat_read_mark_size_threshold", 100)) {
     return Status::Error(400, "Chat is too big");
   }
 
