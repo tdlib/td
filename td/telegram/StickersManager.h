@@ -495,7 +495,7 @@ class StickersManager final : public Actor {
   void update_load_request(uint32 load_request_id, const Status &status);
 
   void do_reload_sticker_set(StickerSetId sticker_set_id,
-                             tl_object_ptr<telegram_api::InputStickerSet> &&input_sticker_set,
+                             tl_object_ptr<telegram_api::InputStickerSet> &&input_sticker_set, int32 hash,
                              Promise<Unit> &&promise) const;
 
   static void read_featured_sticker_sets(void *td_void);
