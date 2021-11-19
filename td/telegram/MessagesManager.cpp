@@ -17280,6 +17280,7 @@ Status MessagesManager::can_get_message_viewers(DialogId dialog_id, const Messag
   if (td_->auth_manager_->is_bot()) {
     return Status::Error(400, "User is bot");
   }
+  CHECK(m != nullptr);
   if (!m->is_outgoing) {
     return Status::Error(400, "Can't get viewers of incoming messages");
   }
@@ -17330,6 +17331,10 @@ Status MessagesManager::can_get_message_viewers(DialogId dialog_id, const Messag
     return Status::Error(400, "Local messages can't have viewers");
   }
   CHECK(m->message_id.is_server());
+
+  if (m->content->get_type() == MessageContentType::Poll &&
+      get_message_content_poll_is_anonymous(td_, m->content.get())) {
+  }
 
   return Status::OK();
 }

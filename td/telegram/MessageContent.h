@@ -147,6 +147,8 @@ UserId get_message_content_deleted_user_id(const MessageContent *content);
 
 int32 get_message_content_live_location_period(const MessageContent *content);
 
+bool get_message_content_poll_is_anonymous(const Td *td, const MessageContent *content);
+
 bool get_message_content_poll_is_closed(const Td *td, const MessageContent *content);
 
 bool has_message_content_web_page(const MessageContent *content);

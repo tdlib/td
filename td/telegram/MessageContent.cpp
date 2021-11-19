@@ -2849,6 +2849,15 @@ int32 get_message_content_live_location_period(const MessageContent *content) {
   }
 }
 
+bool get_message_content_poll_is_anonymous(const Td *td, const MessageContent *content) {
+  switch (content->get_type()) {
+    case MessageContentType::Poll:
+      return td->poll_manager_->get_poll_is_anonymous(static_cast<const MessagePoll *>(content)->poll_id);
+    default:
+      return false;
+  }
+}
+
 bool get_message_content_poll_is_closed(const Td *td, const MessageContent *content) {
   switch (content->get_type()) {
     case MessageContentType::Poll:
