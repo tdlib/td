@@ -2,202 +2,202 @@
 <html>
 
 <head>
-    <title>TDLib build instructions</title>
-    <style>
-        :root {
-            --background: #fafafa;
-            --color: black;
-            --color-primary: #0088ff;
-            --color-code-block: #ebf9ff;
-            --color-select-border: rgb(211, 211, 211);
-            --color-checkbox-background: rgb(211, 211, 211);
-            --color-checkbox-tick: #ffffff;
-            --color-copy-success-background: #c1ffc6;
-            --color-copy-success-border: rgb(0, 255, 0);
-            --color-copy-fail-background: #ffcbcb;
-            --color-copy-fail-border: rgb(255, 0, 0);
-            --color-copy-warning: orange;
+  <title>TDLib build instructions</title>
+  <style>
+    :root {
+      --background: #fafafa;
+      --color: black;
+      --color-primary: #0088ff;
+      --color-code-block: #ebf9ff;
+      --color-select-border: rgb(211, 211, 211);
+      --color-checkbox-background: rgb(211, 211, 211);
+      --color-checkbox-tick: #ffffff;
+      --color-copy-success-background: #c1ffc6;
+      --color-copy-success-border: rgb(0, 255, 0);
+      --color-copy-fail-background: #ffcbcb;
+      --color-copy-fail-border: rgb(255, 0, 0);
+      --color-copy-warning: orange;
 
-            color: var(--color);
-            background: var(--background);
-        }
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --background: #0e0e0e;
-                --color: rgb(190, 190, 190);
-                --color-primary: #0088ff;
-                --color-code-block: #101315;
-                --color-select-border: rgb(54, 54, 54);
-                --color-checkbox-background: rgb(51, 51, 51);
-                --color-checkbox-tick: #ffffff;
-                --color-copy-success-background: #001f00;
-                --color-copy-success-border: rgb(0, 255, 0);
-                --color-copy-fail-background: #1f0000;
-                --color-copy-fail-border: rgb(255, 0, 0);
-            }
-        }
-        body {
-            font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
-        }
-        :focus {
-            outline: none;
-        }
-        .hide { 
-            display: none; 
-        }
-        div.main { 
-            max-width: 1250px; 
-            padding: 25px;
-            margin: auto; 
-            font-size: 16px; 
-        }
+      color: var(--color);
+      background: var(--background);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --background: #0e0e0e;
+        --color: rgb(190, 190, 190);
+        --color-primary: #0088ff;
+        --color-code-block: #101315;
+        --color-select-border: rgb(54, 54, 54);
+        --color-checkbox-background: rgb(51, 51, 51);
+        --color-checkbox-tick: #ffffff;
+        --color-copy-success-background: #001f00;
+        --color-copy-success-border: rgb(0, 255, 0);
+        --color-copy-fail-background: #1f0000;
+        --color-copy-fail-border: rgb(255, 0, 0);
+      }
+    }
+    body {
+      font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
+    }
+    :focus {
+      outline: none;
+    }
+    .hide {
+      display: none;
+    }
+    div.main {
+      max-width: 1250px;
+      padding: 25px;
+      margin: auto;
+      font-size: 16px;
+    }
 
-        p {
-            margin: 0;
-        }
-        .main > div {
-            margin-bottom: 20px;
-        }
+    p {
+      margin: 0;
+    }
+    .main > div {
+      margin-bottom: 20px;
+    }
 
-        #buildCommands {
-            font-family: Consolas, monospace;
-            margin-left: 40px;
-            background: var(--color-code-block);
-            padding: 5px;
-            margin-bottom: 0;
-            display: block;
-        }
-        #buildCommands ul {
-          list-style: none;
-        }
-        #buildCommands ul li::before {
-          content: "$"; 
-          color: var(--color-copy-warning);
-          font-weight: bold;
-          display: inline-block;
-          width: 1em;
-          margin-left: -1em;
-            opacity: .4;
-        }
+    #buildCommands {
+      font-family: Consolas, monospace;
+      margin-left: 40px;
+      background: var(--color-code-block);
+      padding: 5px;
+      margin-bottom: 0;
+      display: block;
+    }
+    #buildCommands ul {
+      list-style: none;
+    }
+    #buildCommands ul li::before {
+      content: "$";
+      color: var(--color-copy-warning);
+      font-weight: bold;
+      display: inline-block;
+      width: 1em;
+      margin-left: -1em;
+      opacity: .4;
+    }
 
-        a {
-            color: var(--color-primary);
-            text-decoration-color: transparent;
-            transition: text-decoration-color 200ms;
-        }
-        a:hover {
-            text-decoration: underline;
-        }
-        select, button {
-            border: 1px solid var(--color-select-border);
-            background-color: var(--background);
-            color: var(--color);
-            padding: 5px;
-            margin-top: 5px;
-            transition: border 200ms, padding 200ms;
-            border-radius: 999em;
-            font-size: 16px; 
-            cursor: pointer;
-        }
+    a {
+      color: var(--color-primary);
+      text-decoration-color: transparent;
+      transition: text-decoration-color 200ms;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    select, button {
+      border: 1px solid var(--color-select-border);
+      background-color: var(--background);
+      color: var(--color);
+      padding: 5px;
+      margin-top: 5px;
+      transition: border 200ms, padding 200ms;
+      border-radius: 999em;
+      font-size: 16px;
+      cursor: pointer;
+    }
 
-        select:focus, button:focus {
-            border-color: var(--color-primary);
-            border-width: 2px;
-            padding: 4px;
-        }
+    select:focus, button:focus {
+      border-color: var(--color-primary);
+      border-width: 2px;
+      padding: 4px;
+    }
 
-        label * {
-            vertical-align: middle;
-        }
+    label * {
+      vertical-align: middle;
+    }
 
-        input[type=checkbox] {
-            margin-right: 5px;
-            appearance: none;
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            background-color: var(--color-checkbox-background);
-            height: 20px;
-            width: 20px;
-            border-radius: 3px;
-            position: relative;
-            transition: background-color 200ms;
-        }
-        input[type=checkbox]::after {
-            content: "";
-            transition: border-color 200ms;
-            position: absolute;
-            left: 6px;
-            top: 2px;
-            width: 5px;
-            height: 10px;
-            border: solid transparent;
-            border-width: 0 3px 3px 0;
-            -webkit-transform: rotate(45deg);
-            -ms-transform: rotate(45deg);
-            transform: rotate(45deg);
-        }
-        input[type=checkbox]:checked {
-            background-color: var(--color-primary);
-        }
-        input[type=checkbox]:checked::after {
-            border-color: var(--color-checkbox-tick);
-        }
+    input[type=checkbox] {
+      margin-right: 5px;
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      background-color: var(--color-checkbox-background);
+      height: 20px;
+      width: 20px;
+      border-radius: 3px;
+      position: relative;
+      transition: background-color 200ms;
+    }
+    input[type=checkbox]::after {
+      content: "";
+      transition: border-color 200ms;
+      position: absolute;
+      left: 6px;
+      top: 2px;
+      width: 5px;
+      height: 10px;
+      border: solid transparent;
+      border-width: 0 3px 3px 0;
+      -webkit-transform: rotate(45deg);
+      -ms-transform: rotate(45deg);
+      transform: rotate(45deg);
+    }
+    input[type=checkbox]:checked {
+      background-color: var(--color-primary);
+    }
+    input[type=checkbox]:checked::after {
+      border-color: var(--color-checkbox-tick);
+    }
 
-        input[type=radio] {
-            margin-right: 5px;
-            appearance: none;
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            background-color: var(--color-checkbox-background);
-            height: 20px;
-            width: 20px;
-            border-radius: 100%;
-            position: relative;
-            transition: background-color 200ms;
-        }
-        input[type=radio]::after {
-            content: "";
-            transition: border-color 200ms;
-            position: absolute;
-            left: 10px;
-            top: 10px;
-            width: 0;
-            height: 0;
-            border-radius: 100%;
-            background-color: transparent;
-            transition: width 200ms, height 200ms, left 200ms, top 200ms, background-color 100ms;
-        }
-        input[type=radio]:checked::after {
-            background-color: var(--color-primary);
-            left: 2px;
-            top: 2px;
-            width: 16px;
-            height: 16px;
-        }
+    input[type=radio] {
+      margin-right: 5px;
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      background-color: var(--color-checkbox-background);
+      height: 20px;
+      width: 20px;
+      border-radius: 100%;
+      position: relative;
+      transition: background-color 200ms;
+    }
+    input[type=radio]::after {
+      content: "";
+      transition: border-color 200ms;
+      position: absolute;
+      left: 10px;
+      top: 10px;
+      width: 0;
+      height: 0;
+      border-radius: 100%;
+      background-color: transparent;
+      transition: width 200ms, height 200ms, left 200ms, top 200ms, background-color 100ms;
+    }
+    input[type=radio]:checked::after {
+      background-color: var(--color-primary);
+      left: 2px;
+      top: 2px;
+      width: 16px;
+      height: 16px;
+    }
 
-        #copyBuildCommandsButton {
-          margin-left: 40px;
-        }
-        #copyBuildCommandsButton.success {
-          background: var(--color-copy-success-background);
-          border-color: var(--color-copy-success-border);
-        }
-        #copyBuildCommandsButton.fail {
-          background: var(--color-copy-fail-background);
-          border-color: var(--color-copy-fail-border);
-        }
-        #copyBuildCommandsButton .notice {
-          font-size: 14px;
-          font-weight: bold;
-          margin-left: 5px;
-          color: var(--color-copy-warning);
-          display: none;
-        }
-        #copyBuildCommandsButton:hover .notice,
-        #copyBuildCommandsButton:focus .notice {
-          display: inline;
-        }
-    </style>
+    #copyBuildCommandsButton {
+      margin-left: 40px;
+    }
+    #copyBuildCommandsButton.success {
+      background: var(--color-copy-success-background);
+      border-color: var(--color-copy-success-border);
+    }
+    #copyBuildCommandsButton.fail {
+      background: var(--color-copy-fail-background);
+      border-color: var(--color-copy-fail-border);
+    }
+    #copyBuildCommandsButton .notice {
+      font-size: 14px;
+      font-weight: bold;
+      margin-left: 5px;
+      color: var(--color-copy-warning);
+      display: none;
+    }
+    #copyBuildCommandsButton:hover .notice,
+    #copyBuildCommandsButton:focus .notice {
+      display: inline;
+    }
+  </style>
 </head>
 
 <body onload="onLoad(true)" onpopstate="onLoad(false)">
@@ -1096,25 +1096,25 @@ function onOptionsChanged() {
     }
     commands.push((use_powershell ? 'dir ' : 'ls -l ') + install_dir);
   }
-  document.getElementById('buildCommands').innerHTML = '<ul><li>' + commands.join('</li><li>') + '</li></ul>'
+  document.getElementById('buildCommands').innerHTML = '<ul><li>' + commands.join('</li><li>') + '</li></ul>';
 }
 
 function copyBuildInstructions() {
-  var text= document.getElementById('buildCommands').innerText;
+  var text = document.getElementById('buildCommands').innerText;
 
   function resetButtonState (state) {
     document.getElementById('copyBuildCommandsButton').classList.remove(state);
-    document.getElementById('copyBuildCommandsText').innerText= "Copy"
+    document.getElementById('copyBuildCommandsText').innerText = "Copy";
   }
-  
+
   navigator.clipboard.writeText(text).then(result => {
     document.getElementById('copyBuildCommandsButton').classList.add('success');
-    document.getElementById('copyBuildCommandsText').innerText= "Copied!"
-    setTimeout(()=> resetButtonState('success'), 5000);
+    document.getElementById('copyBuildCommandsText').innerText = "Copied!";
+    setTimeout(() => resetButtonState('success'), 5000);
   }, error => {
     document.getElementById('copyBuildCommandsButton').classList.add('fail');
-    document.getElementById('copyBuildCommandsText').innerText= "Couldn't copy :("
-    setTimeout(()=> resetButtonState('fail'), 5000);
+    document.getElementById('copyBuildCommandsText').innerText = "Couldn't copy :(";
+    setTimeout(() => resetButtonState('fail'), 5000);
   })
 }
 
