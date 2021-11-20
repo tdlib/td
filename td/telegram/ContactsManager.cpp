@@ -3594,6 +3594,7 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   bool has_photo = !photo.is_empty();
   bool has_description = !description.empty();
   bool has_commands = !commands.empty();
+  bool has_private_forward_name = !private_forward_name.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_about);
   STORE_FLAG(is_blocked);
@@ -3605,6 +3606,7 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   STORE_FLAG(supports_video_calls);
   STORE_FLAG(has_description);
   STORE_FLAG(has_commands);
+  STORE_FLAG(has_private_forward_name);
   END_STORE_FLAGS();
   if (has_about) {
     store(about, storer);
@@ -3620,6 +3622,9 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   if (has_commands) {
     store(commands, storer);
   }
+  if (has_private_forward_name) {
+    store(private_forward_name, storer);
+  }
 }
 
 template <class ParserT>
@@ -3629,6 +3634,7 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   bool has_photo;
   bool has_description;
   bool has_commands;
+  bool has_private_forward_name;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_about);
   PARSE_FLAG(is_blocked);
@@ -3640,6 +3646,7 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   PARSE_FLAG(supports_video_calls);
   PARSE_FLAG(has_description);
   PARSE_FLAG(has_commands);
+  PARSE_FLAG(has_private_forward_name);
   END_PARSE_FLAGS();
   if (has_about) {
     parse(about, parser);
@@ -3654,6 +3661,9 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   }
   if (has_commands) {
     parse(commands, parser);
+  }
+  if (has_private_forward_name) {
+    parse(private_forward_name, parser);
   }
 }
 
@@ -10071,10 +10081,12 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
   bool supports_video_calls = user->video_calls_available_ && !user->phone_calls_private_;
   bool has_private_calls = user->phone_calls_private_;
   if (user_full->can_be_called != can_be_called || user_full->supports_video_calls != supports_video_calls ||
-      user_full->has_private_calls != has_private_calls) {
+      user_full->has_private_calls != has_private_calls ||
+      user_full->private_forward_name != user->private_forward_name_) {
     user_full->can_be_called = can_be_called;
     user_full->supports_video_calls = supports_video_calls;
     user_full->has_private_calls = has_private_calls;
+    user_full->private_forward_name = std::move(user->private_forward_name_);
 
     user_full->is_changed = true;
   }
@@ -11303,6 +11315,7 @@ void ContactsManager::drop_user_full(UserId user_id) {
   user_full->description = string();
   user_full->commands.clear();
   user_full->common_chat_count = 0;
+  user_full->private_forward_name.clear();
   user_full->is_changed = true;
 
   update_user_full(user_full, user_id, "drop_user_full");
@@ -15680,9 +15693,9 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
   return make_tl_object<td_api::userFullInfo>(
       get_chat_photo_object(td_->file_manager_.get(), user_full->photo), user_full->is_blocked,
       user_full->can_be_called, user_full->supports_video_calls, user_full->has_private_calls,
-      user_full->need_phone_number_privacy_exception, is_bot ? string() : user_full->about,
-      is_bot ? user_full->about : string(), is_bot ? user_full->description : string(), user_full->common_chat_count,
-      std::move(commands));
+      !user_full->private_forward_name.empty(), user_full->need_phone_number_privacy_exception,
+      is_bot ? string() : user_full->about, is_bot ? user_full->about : string(),
+      is_bot ? user_full->description : string(), user_full->common_chat_count, std::move(commands));
 }
 
 td_api::object_ptr<td_api::updateBasicGroup> ContactsManager::get_update_unknown_basic_group_object(ChatId chat_id) {

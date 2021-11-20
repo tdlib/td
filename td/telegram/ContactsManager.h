@@ -666,6 +666,7 @@ class ContactsManager final : public Actor {
 
     string about;
     string description;
+    string private_forward_name;
 
     vector<BotCommand> commands;
 
@@ -1006,6 +1007,7 @@ class ContactsManager final : public Actor {
   static constexpr int32 USER_FULL_FLAG_HAS_FOLDER_ID = 1 << 11;
   static constexpr int32 USER_FULL_FLAG_HAS_SCHEDULED_MESSAGES = 1 << 12;
   static constexpr int32 USER_FULL_FLAG_HAS_MESSAGE_TTL = 1 << 14;
+  static constexpr int32 USER_FULL_FLAG_HAS_PRIVATE_FORWARD_NAME = 1 << 16;
 
   static constexpr int32 CHAT_FLAG_USER_IS_CREATOR = 1 << 0;
   static constexpr int32 CHAT_FLAG_USER_WAS_KICKED = 1 << 1;
