@@ -39,9 +39,6 @@
     body {
       font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
     }
-    :focus {
-      outline: none;
-    }
     .hide {
       display: none;
     }
@@ -68,16 +65,7 @@
       display: block;
     }
     #buildCommands ul {
-      list-style: none;
-    }
-    #buildCommands ul li::before {
-      content: "$";
-      color: var(--color-copy-warning);
-      font-weight: bold;
-      display: inline-block;
-      width: 1em;
-      margin-left: -1em;
-      opacity: .4;
+      list-style: '$ ';
     }
 
     a {
@@ -101,6 +89,7 @@
     }
 
     select:focus, button:focus {
+      outline: none;
       border-color: var(--color-primary);
       border-width: 2px;
       padding: 4px;
