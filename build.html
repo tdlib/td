@@ -16,7 +16,6 @@
       --color-copy-success-border: rgb(0, 255, 0);
       --color-copy-fail-background: #ffcbcb;
       --color-copy-fail-border: rgb(255, 0, 0);
-      --color-copy-warning: orange;
 
       color: var(--color);
       background: var(--background);
@@ -175,17 +174,6 @@
       background: var(--color-copy-fail-background);
       border-color: var(--color-copy-fail-border);
     }
-    #copyBuildCommandsButton .notice {
-      font-size: 14px;
-      font-weight: bold;
-      margin-left: 5px;
-      color: var(--color-copy-warning);
-      display: none;
-    }
-    #copyBuildCommandsButton:hover .notice,
-    #copyBuildCommandsButton:focus .notice {
-      display: inline;
-    }
   </style>
 </head>
 
@@ -322,7 +310,6 @@
     <code id="buildCommands">Empty commands</code>
     <button id="copyBuildCommandsButton" onclick="copyBuildInstructions()">
         <span id="copyBuildCommandsText">Copy</span>
-        <span class="notice">Notice: Not all build instructions can be just copied and pasted</span>
     </button>
   </div>
 </div>
@@ -1086,6 +1073,7 @@ function onOptionsChanged() {
     commands.push((use_powershell ? 'dir ' : 'ls -l ') + install_dir);
   }
   document.getElementById('buildCommands').innerHTML = '<ul><li>' + commands.join('</li><li>') + '</li></ul>';
+  document.getElementById('copyBuildCommandsButton').style.display = commands.includes('exit') ? 'none' : 'block';
 }
 
 function copyBuildInstructions() {
