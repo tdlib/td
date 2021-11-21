@@ -72,7 +72,6 @@ static td::ExitGuard exit_guard;
 
 #if TD_LINUX || TD_DARWIN
 TEST(Misc, update_atime_saves_mtime) {
-  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(ERROR));
   td::string name = "test_file";
   td::unlink(name).ignore();
   auto r_file = td::FileFd::open(name, td::FileFd::Read | td::FileFd::Flags::Create | td::FileFd::Flags::Truncate);
@@ -102,7 +101,6 @@ TEST(Misc, update_atime_saves_mtime) {
 }
 
 TEST(Misc, update_atime_change_atime) {
-  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(ERROR));
   td::string name = "test_file";
   td::unlink(name).ignore();
   auto r_file = td::FileFd::open(name, td::FileFd::Read | td::FileFd::Flags::Create | td::FileFd::Flags::Truncate);

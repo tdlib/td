@@ -140,7 +140,6 @@ TEST(Http, reader) {
   return;
 #endif
   clear_thread_locals();
-  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(ERROR));
   auto start_mem = BufferAllocator::get_buffer_mem();
   auto start_size = BufferAllocator::get_buffer_slice_size();
   {

@@ -1001,7 +1001,6 @@ void FakeSecretChatContext::on_read_message(int64, Promise<> promise) {
 
 TEST(Secret, go) {
   return;
-  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(ERROR));
   ConcurrentScheduler sched;
   int threads_n = 0;
   sched.init(threads_n);

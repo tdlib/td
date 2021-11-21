@@ -828,7 +828,6 @@ class Tdclient_login final : public td::Test {
   using Test::Test;
   bool step() final {
     if (!is_inited_) {
-      SET_VERBOSITY_LEVEL(VERBOSITY_NAME(DEBUG) + 2);
       sched_.init(4);
       sched_.create_actor_unsafe<LoginTestActor>(0, "LoginTestActor", &result_).release();
       sched_.start();
@@ -936,7 +935,7 @@ TEST(Client, Multi) {
 TEST(Client, Manager) {
   td::vector<td::thread> threads;
   td::ClientManager client;
-#if !TD_EVENTFD_UNSUPPORTED // Client must be used from a single thread if there is no EventFd
+#if !TD_EVENTFD_UNSUPPORTED  // Client must be used from a single thread if there is no EventFd
   int threads_n = 4;
 #else
   int threads_n = 1;
@@ -973,7 +972,7 @@ TEST(Client, Manager) {
   }
 }
 
-#if !TD_EVENTFD_UNSUPPORTED // Client must be used from a single thread if there is no EventFd
+#if !TD_EVENTFD_UNSUPPORTED  // Client must be used from a single thread if there is no EventFd
 TEST(Client, Close) {
   std::atomic<bool> stop_send{false};
   std::atomic<bool> can_stop_receive{false};

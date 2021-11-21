@@ -91,7 +91,6 @@ class TimeoutManager final : public td::Actor {
 td::int32 TimeoutManager::count;
 
 TEST(MultiTimeout, Destroy) {
-  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(ERROR));
   td::ConcurrentScheduler sched;
   int threads_n = 0;
   sched.init(threads_n);
