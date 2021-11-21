@@ -301,6 +301,13 @@ std::string TD_TL_writer_cpp::get_pretty_field_name(std::string field_name) cons
 }
 
 std::string TD_TL_writer_cpp::get_pretty_class_name(std::string class_name) const {
+  if (tl_name != "mtproto_api") {
+    for (std::size_t i = 0; i < class_name.size(); i++) {
+      if (class_name[i] == '_') {
+        class_name[i] = '.';
+      }
+    }
+  }
   return class_name;
 }
 
