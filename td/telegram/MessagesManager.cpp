@@ -33883,7 +33883,17 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
         need_send_update = true;
       }
       if (*old_message->forward_info != *new_message->forward_info) {
-        if (!is_forward_info_sender_hidden(new_message->forward_info.get()) && !replace_legacy) {
+        bool need_warning = [&] {
+          if (replace_legacy) {
+            return false;
+          }
+          if (!is_scheduled && !message_id.is_yet_unsent()) {
+            return true;
+          }
+          return !is_forward_info_sender_hidden(new_message->forward_info.get()) &&
+                 !is_forward_info_sender_hidden(old_message->forward_info.get());
+        }();
+        if (need_warning) {
           LOG(ERROR) << message_id << " in " << dialog_id << " has changed forward info from "
                      << *old_message->forward_info << " to " << *new_message->forward_info << ", really forwarded from "
                      << old_message->real_forward_from_message_id << " in " << old_message->real_forward_from_dialog_id
