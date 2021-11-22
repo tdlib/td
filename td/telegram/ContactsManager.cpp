@@ -4629,6 +4629,14 @@ RestrictedRights ContactsManager::get_secret_chat_default_permissions(SecretChat
   return RestrictedRights(true, true, true, true, true, true, true, true, false, false, false);
 }
 
+string ContactsManager::get_user_private_forward_name(UserId user_id) {
+  auto user_full = get_user_full_force(user_id);
+  if (user_full != nullptr) {
+    return user_full->private_forward_name;
+  }
+  return string();
+}
+
 string ContactsManager::get_dialog_about(DialogId dialog_id) {
   switch (dialog_id.get_type()) {
     case DialogType::User: {

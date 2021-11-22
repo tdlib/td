@@ -26964,6 +26964,15 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
 
     auto content = std::move(forwarded_message_contents[j].content);
     auto forward_info = create_message_forward_info(from_dialog_id, to_dialog_id, forwarded_message);
+    if (forward_info != nullptr && !forward_info->is_imported && !is_forward_info_sender_hidden(forward_info.get()) &&
+        !forward_info->message_id.is_valid() && !forward_info->sender_dialog_id.is_valid() &&
+        forward_info->sender_user_id.is_valid()) {
+      auto private_forward_name = td_->contacts_manager_->get_user_private_forward_name(forward_info->sender_user_id);
+      if (!private_forward_name.empty()) {
+        forward_info->sender_user_id = UserId();
+        forward_info->sender_name = std::move(private_forward_name);
+      }
+    }
 
     unique_ptr<Message> message;
     Message *m;

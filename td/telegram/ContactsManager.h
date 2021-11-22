@@ -107,6 +107,8 @@ class ContactsManager final : public Actor {
   RestrictedRights get_channel_default_permissions(ChannelId channel_id) const;
   RestrictedRights get_secret_chat_default_permissions(SecretChatId secret_chat_id) const;
 
+  string get_user_private_forward_name(UserId user_id);
+
   string get_dialog_about(DialogId dialog_id);
 
   bool is_update_about_username_change_received(UserId user_id) const;
