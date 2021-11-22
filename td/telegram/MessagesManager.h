@@ -1230,9 +1230,8 @@ class MessagesManager final : public Actor {
 
     bool is_last_message_deleted_locally = false;
 
-    bool know_can_report_spam = false;
-    bool can_report_spam = false;
     bool know_action_bar = false;
+    bool can_report_spam = false;
     bool can_add_contact = false;
     bool can_block_user = false;
     bool can_share_phone_number = false;

@@ -5181,10 +5181,10 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_draft_message);
   STORE_FLAG(has_last_database_message);
-  STORE_FLAG(know_can_report_spam);
+  STORE_FLAG(false);  // legacy_know_can_report_spam
   STORE_FLAG(can_report_spam);
   STORE_FLAG(has_first_database_message_id);
-  STORE_FLAG(false);
+  STORE_FLAG(false);  // legacy_is_pinned
   STORE_FLAG(has_first_database_message_id_by_index);
   STORE_FLAG(has_message_count_by_index);
   STORE_FLAG(has_client_data);
@@ -5358,6 +5358,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   using td::parse;
   bool has_draft_message;
   bool has_last_database_message;
+  bool legacy_know_can_report_spam;
   bool has_first_database_message_id;
   bool legacy_is_pinned;
   bool has_first_database_message_id_by_index;
@@ -5388,7 +5389,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_draft_message);
   PARSE_FLAG(has_last_database_message);
-  PARSE_FLAG(know_can_report_spam);
+  PARSE_FLAG(legacy_know_can_report_spam);
   PARSE_FLAG(can_report_spam);
   PARSE_FLAG(has_first_database_message_id);
   PARSE_FLAG(legacy_is_pinned);
@@ -5611,6 +5612,9 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   if (has_pending_join_requests) {
     parse(pending_join_request_count, parser);
     parse(pending_join_request_user_ids, parser);
+  }
+  if (legacy_know_can_report_spam && !know_action_bar) {
+    can_report_spam = false;
   }
 }
 
@@ -7936,7 +7940,7 @@ void MessagesManager::hide_dialog_action_bar(DialogId dialog_id) {
 
 void MessagesManager::hide_dialog_action_bar(Dialog *d) {
   CHECK(d->dialog_id.get_type() != DialogType::SecretChat);
-  if (!d->know_can_report_spam) {
+  if (!d->know_action_bar) {
     return;
   }
   if (!d->can_report_spam && !d->can_add_contact && !d->can_block_user && !d->can_share_phone_number &&
@@ -7976,10 +7980,9 @@ void MessagesManager::remove_dialog_action_bar(DialogId dialog_id, Promise<Unit>
     }
   }
 
-  if (!d->know_can_report_spam) {
+  if (!d->know_action_bar) {
     return promise.set_error(Status::Error(400, "Can't update chat action bar"));
   }
-
   if (!d->can_report_spam && !d->can_add_contact && !d->can_block_user && !d->can_share_phone_number &&
       !d->can_report_location && !d->can_unarchive && d->distance < 0 && !d->can_invite_members) {
     return promise.set_value(Unit());
@@ -8120,10 +8123,10 @@ void MessagesManager::report_dialog(DialogId dialog_id, const vector<MessageId> 
         return promise.set_error(Status::Error(400, "Chat with the user not found"));
       }
 
-      is_dialog_spam_report = user_d->know_can_report_spam;
+      is_dialog_spam_report = user_d->know_action_bar;
       can_report_spam = user_d->can_report_spam;
     } else {
-      is_dialog_spam_report = d->know_can_report_spam;
+      is_dialog_spam_report = d->know_action_bar;
     }
   }
 
@@ -8212,15 +8215,13 @@ void MessagesManager::on_get_peer_settings(DialogId dialog_id,
       d->can_block_user == can_block_user && d->can_share_phone_number == can_share_phone_number &&
       d->can_report_location == can_report_location && d->can_unarchive == can_unarchive && d->distance == distance &&
       d->can_invite_members == can_invite_members) {
-    if (!d->know_action_bar || !d->know_can_report_spam) {
-      d->know_can_report_spam = true;
+    if (!d->know_action_bar) {
       d->know_action_bar = true;
       on_dialog_updated(d->dialog_id, "on_get_peer_settings");
     }
     return;
   }
 
-  d->know_can_report_spam = true;
   d->know_action_bar = true;
   d->can_report_spam = can_report_spam;
   d->can_add_contact = can_add_contact;
@@ -20102,9 +20103,6 @@ td_api::object_ptr<td_api::ChatActionBar> MessagesManager::get_chat_action_bar_o
   }
 
   if (!d->know_action_bar) {
-    if (d->know_can_report_spam && d->dialog_id.get_type() != DialogType::SecretChat && d->can_report_spam) {
-      return td_api::make_object<td_api::chatActionBarReportSpam>(false);
-    }
     return nullptr;
   }
 
