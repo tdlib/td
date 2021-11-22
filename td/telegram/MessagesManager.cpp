@@ -11,6 +11,7 @@
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Dependencies.h"
+#include "td/telegram/DialogActionBar.h"
 #include "td/telegram/DialogDb.h"
 #include "td/telegram/DialogFilter.h"
 #include "td/telegram/DialogFilter.hpp"
@@ -5622,10 +5623,10 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     action_bar_can_report_spam = false;
   }
   if (know_action_bar) {
-    action_bar =
-        create_action_bar(action_bar_can_report_spam, action_bar_can_add_contact, action_bar_can_block_user,
-                          action_bar_can_share_phone_number, action_bar_can_report_location, action_bar_can_unarchive,
-                          hide_distance ? -1 : action_bar_distance, action_bar_can_invite_members);
+    action_bar = DialogActionBar::create(action_bar_can_report_spam, action_bar_can_add_contact,
+                                         action_bar_can_block_user, action_bar_can_share_phone_number,
+                                         action_bar_can_report_location, action_bar_can_unarchive,
+                                         hide_distance ? -1 : action_bar_distance, action_bar_can_invite_members);
   }
 }
 
@@ -8206,40 +8207,6 @@ void MessagesManager::report_dialog_photo(DialogId dialog_id, FileId file_id, Re
       ->send(dialog_id, file_id, file_view.remote_location().as_input_photo(), std::move(reason));
 }
 
-unique_ptr<MessagesManager::DialogActionBar> MessagesManager::create_action_bar(
-    bool can_report_spam, bool can_add_contact, bool can_block_user, bool can_share_phone_number,
-    bool can_report_location, bool can_unarchive, int32 distance, bool can_invite_members) {
-  if (!can_report_spam && !can_add_contact && !can_block_user && !can_share_phone_number && !can_report_location &&
-      !can_unarchive && distance < 0 && !can_invite_members) {
-    return nullptr;
-  }
-
-  auto action_bar = td::make_unique<DialogActionBar>();
-  action_bar->can_report_spam = can_report_spam;
-  action_bar->can_add_contact = can_add_contact;
-  action_bar->can_block_user = can_block_user;
-  action_bar->can_share_phone_number = can_share_phone_number;
-  action_bar->can_report_location = can_report_location;
-  action_bar->can_unarchive = can_unarchive;
-  action_bar->distance = distance >= 0 ? distance : -1;
-  action_bar->can_invite_members = can_invite_members;
-  return action_bar;
-}
-
-bool MessagesManager::cmp_dialog_action_bar(const unique_ptr<DialogActionBar> &lhs,
-                                            const unique_ptr<DialogActionBar> &rhs) {
-  if (lhs == nullptr) {
-    return rhs == nullptr;
-  }
-  if (rhs == nullptr) {
-    return false;
-  }
-  return lhs->can_report_spam == rhs->can_report_spam && lhs->can_add_contact == rhs->can_add_contact &&
-         lhs->can_block_user == rhs->can_block_user && lhs->can_share_phone_number == rhs->can_share_phone_number &&
-         lhs->can_report_location == rhs->can_report_location && lhs->can_unarchive == rhs->can_unarchive &&
-         lhs->distance == rhs->distance && lhs->can_invite_members == rhs->can_invite_members;
-}
-
 void MessagesManager::on_get_peer_settings(DialogId dialog_id,
                                            tl_object_ptr<telegram_api::peerSettings> &&peer_settings,
                                            bool ignore_privacy_exception) {
@@ -8260,11 +8227,11 @@ void MessagesManager::on_get_peer_settings(DialogId dialog_id,
     distance = -1;
   }
   auto action_bar =
-      create_action_bar(peer_settings->report_spam_, peer_settings->add_contact_, peer_settings->block_contact_,
-                        peer_settings->share_contact_, peer_settings->report_geo_, peer_settings->autoarchived_,
-                        distance, peer_settings->invite_members_);
+      DialogActionBar::create(peer_settings->report_spam_, peer_settings->add_contact_, peer_settings->block_contact_,
+                              peer_settings->share_contact_, peer_settings->report_geo_, peer_settings->autoarchived_,
+                              distance, peer_settings->invite_members_);
 
-  if (cmp_dialog_action_bar(d->action_bar, action_bar)) {
+  if (d->action_bar == action_bar) {
     if (!d->know_action_bar || d->need_repair_action_bar) {
       d->know_action_bar = true;
       d->need_repair_action_bar = false;
@@ -20137,63 +20104,25 @@ td_api::object_ptr<td_api::ChatType> MessagesManager::get_chat_type_object(Dialo
   }
 }
 
-td_api::object_ptr<td_api::ChatActionBar> MessagesManager::get_chat_action_bar_object(const Dialog *d,
-                                                                                      bool hide_unarchive) const {
+td_api::object_ptr<td_api::ChatActionBar> MessagesManager::get_chat_action_bar_object(const Dialog *d) const {
   CHECK(d != nullptr);
-  if (d->dialog_id.get_type() == DialogType::SecretChat) {
+  auto dialog_type = d->dialog_id.get_type();
+  if (dialog_type == DialogType::SecretChat) {
     auto user_id = td_->contacts_manager_->get_secret_chat_user_id(d->dialog_id.get_secret_chat_id());
     if (!user_id.is_valid()) {
       return nullptr;
     }
     const Dialog *user_d = get_dialog(DialogId(user_id));
-    if (user_d == nullptr) {
+    if (user_d == nullptr || user_d->action_bar == nullptr) {
       return nullptr;
     }
-    return get_chat_action_bar_object(user_d, d->folder_id != FolderId::archive());
+    return user_d->action_bar->get_chat_action_bar_object(DialogType::User, d->folder_id != FolderId::archive());
   }
 
-  auto action_bar = d->action_bar.get();
-  if (action_bar == nullptr) {
+  if (d->action_bar == nullptr) {
     return nullptr;
   }
-
-  if (action_bar->can_report_location) {
-    CHECK(d->dialog_id.get_type() == DialogType::Channel);
-    CHECK(!action_bar->can_share_phone_number && !action_bar->can_block_user && !action_bar->can_add_contact &&
-          !action_bar->can_report_spam && !action_bar->can_invite_members);
-    return td_api::make_object<td_api::chatActionBarReportUnrelatedLocation>();
-  }
-  if (action_bar->can_invite_members) {
-    CHECK(!action_bar->can_share_phone_number && !action_bar->can_block_user && !action_bar->can_add_contact &&
-          !action_bar->can_report_spam);
-    return td_api::make_object<td_api::chatActionBarInviteMembers>();
-  }
-  if (action_bar->can_share_phone_number) {
-    CHECK(d->dialog_id.get_type() == DialogType::User);
-    CHECK(!action_bar->can_block_user && !action_bar->can_add_contact && !action_bar->can_report_spam);
-    return td_api::make_object<td_api::chatActionBarSharePhoneNumber>();
-  }
-  if (hide_unarchive) {
-    if (action_bar->can_add_contact) {
-      return td_api::make_object<td_api::chatActionBarAddContact>();
-    } else {
-      return nullptr;
-    }
-  }
-  if (action_bar->can_block_user) {
-    CHECK(d->dialog_id.get_type() == DialogType::User);
-    CHECK(action_bar->can_report_spam && action_bar->can_add_contact);
-    return td_api::make_object<td_api::chatActionBarReportAddBlock>(action_bar->can_unarchive, action_bar->distance);
-  }
-  if (action_bar->can_add_contact) {
-    CHECK(d->dialog_id.get_type() == DialogType::User);
-    CHECK(!action_bar->can_report_spam);
-    return td_api::make_object<td_api::chatActionBarAddContact>();
-  }
-  if (action_bar->can_report_spam) {
-    return td_api::make_object<td_api::chatActionBarReportSpam>(action_bar->can_unarchive);
-  }
-  return nullptr;
+  return d->action_bar->get_chat_action_bar_object(dialog_type, false);
 }
 
 string MessagesManager::get_dialog_theme_name(const Dialog *d) const {

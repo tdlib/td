@@ -86,6 +86,7 @@ namespace td {
 
 struct BinlogEvent;
 struct Dependencies;
+struct DialogActionBar;
 class DialogFilter;
 class DraftMessage;
 struct InputMessageContent;
@@ -1152,18 +1153,6 @@ class MessagesManager final : public Actor {
 
     template <class ParserT>
     void parse(ParserT &parser);
-  };
-
-  struct DialogActionBar {
-    int32 distance = -1;  // distance to the peer
-
-    bool can_report_spam = false;
-    bool can_add_contact = false;
-    bool can_block_user = false;
-    bool can_share_phone_number = false;
-    bool can_report_location = false;
-    bool can_unarchive = false;
-    bool can_invite_members = false;
   };
 
   struct Dialog {
@@ -2561,18 +2550,11 @@ class MessagesManager final : public Actor {
 
   void add_dialog_last_database_message(Dialog *d, unique_ptr<Message> &&last_database_message);
 
-  static unique_ptr<DialogActionBar> create_action_bar(bool can_report_spam, bool can_add_contact, bool can_block_user,
-                                                       bool can_share_phone_number, bool can_report_location,
-                                                       bool can_unarchive, int32 distance, bool can_invite_members);
-
-  static bool cmp_dialog_action_bar(const unique_ptr<DialogActionBar> &lhs, const unique_ptr<DialogActionBar> &rhs);
-
   void fix_dialog_action_bar(Dialog *d);
 
   td_api::object_ptr<td_api::ChatType> get_chat_type_object(DialogId dialog_id) const;
 
-  td_api::object_ptr<td_api::ChatActionBar> get_chat_action_bar_object(const Dialog *d,
-                                                                       bool hide_unarchive = false) const;
+  td_api::object_ptr<td_api::ChatActionBar> get_chat_action_bar_object(const Dialog *d) const;
 
   string get_dialog_theme_name(const Dialog *d) const;
 
