@@ -143,10 +143,9 @@ bool Session::PriorityQueue::empty() const {
 Session::Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> shared_auth_data, int32 raw_dc_id,
                  int32 dc_id, bool is_main, bool use_pfs, bool is_cdn, bool need_destroy,
                  const mtproto::AuthKey &tmp_auth_key, const vector<mtproto::ServerSalt> &server_salts)
-    : raw_dc_id_(raw_dc_id), dc_id_(dc_id), is_main_(is_main), is_cdn_(is_cdn) {
-  VLOG(dc) << "Start connection " << tag("need_destroy", need_destroy);
-  need_destroy_ = need_destroy;
-  if (need_destroy) {
+    : raw_dc_id_(raw_dc_id), dc_id_(dc_id), is_main_(is_main), is_cdn_(is_cdn), need_destroy_(need_destroy) {
+  VLOG(dc) << "Start connection " << tag("need_destroy", need_destroy_);
+  if (need_destroy_) {
     use_pfs = false;
     CHECK(!is_cdn);
   }
@@ -790,21 +789,38 @@ void Session::on_message_result_error(uint64 id, int error_code, string message)
 
   // UNAUTHORIZED
   if (error_code == 401 && message != "SESSION_PASSWORD_NEEDED") {
-    if (auth_data_.use_pfs() && message == CSlice("AUTH_KEY_PERM_EMPTY")) {
-      LOG(INFO) << "Receive AUTH_KEY_PERM_EMPTY in session " << auth_data_.get_session_id() << " for auth key "
+    if (auth_data_.use_pfs() && (message == CSlice("AUTH_KEY_PERM_EMPTY") || !is_main_)) {
+      LOG(INFO) << "Receive 401, " << message << " in session " << auth_data_.get_session_id() << " for auth key "
                 << auth_data_.get_tmp_auth_key().id();
+      // temporary key can be dropped any time
       auth_data_.drop_tmp_auth_key();
       on_tmp_auth_key_updated();
       error_code = 500;
     } else {
-      if (message == "USER_DEACTIVATED_BAN") {
-        LOG(PLAIN) << "Your account was suspended for suspicious activity. If you think that this is a mistake, please "
-                      "write to recover@telegram.org your phone number and other details to recover the account.";
+      bool can_drop_main_auth_key_without_logging_out = is_cdn_;
+      if (!is_main_) {
+        CHECK(!auth_data_.use_pfs());
+        if (G()->net_query_dispatcher().get_main_dc_id().get_raw_id() != raw_dc_id_) {
+          can_drop_main_auth_key_without_logging_out = true;
+        }
       }
-      auth_data_.set_auth_flag(false);
-      G()->shared_config().set_option_string("auth", message);
-      shared_auth_data_->set_auth_key(auth_data_.get_main_auth_key());
-      on_session_failed(Status::OK());
+      if (can_drop_main_auth_key_without_logging_out) {
+        LOG(INFO) << "Receive 401, " << message << " in session " << auth_data_.get_session_id() << " for auth key "
+                  << auth_data_.get_auth_key().id();
+        auth_data_.drop_main_auth_key();
+        on_auth_key_updated();
+        error_code = 500;
+      } else {
+        if (message == "USER_DEACTIVATED_BAN") {
+          LOG(PLAIN)
+              << "Your account was suspended for suspicious activity. If you think that this is a mistake, please "
+                 "write to recover@telegram.org your phone number and other details to recover the account.";
+        }
+        auth_data_.set_auth_flag(false);
+        G()->shared_config().set_option_string("auth", message);
+        shared_auth_data_->set_auth_key(auth_data_.get_main_auth_key());
+        on_session_failed(Status::OK());
+      }
     }
   }
 
@@ -975,17 +991,23 @@ void Session::connection_send_query(ConnectionInfo *info, NetQueryPtr &&net_quer
     }
   }
 
-  // net_query->debug("Session: send to mtproto::connection");
-  auto r_message_id =
-      info->connection->send_query(net_query->query().clone(), net_query->gzip_flag() == NetQuery::GzipFlag::On,
-                                   message_id, invoke_after_id, static_cast<bool>(net_query->quick_ack_promise_));
+  bool immediately_fail_query = false;
+  if (!immediately_fail_query) {
+    auto r_message_id =
+        info->connection->send_query(net_query->query().clone(), net_query->gzip_flag() == NetQuery::GzipFlag::On,
+                                     message_id, invoke_after_id, static_cast<bool>(net_query->quick_ack_promise_));
 
-  net_query->on_net_write(net_query->query().size());
+    net_query->on_net_write(net_query->query().size());
 
-  if (r_message_id.is_error()) {
-    LOG(FATAL) << "Failed to send query: " << r_message_id.error();
+    if (r_message_id.is_error()) {
+      LOG(FATAL) << "Failed to send query: " << r_message_id.error();
+    }
+    message_id = r_message_id.ok();
+  } else {
+    if (message_id == 0) {
+      message_id = auth_data_.next_message_id(Time::now_cached());
+    }
   }
-  message_id = r_message_id.ok();
   VLOG(net_query) << "Send query to connection " << net_query << " [msg_id:" << format::as_hex(message_id) << "]"
                   << tag("invoke_after", format::as_hex(invoke_after_id));
   net_query->set_message_id(message_id);
@@ -1005,6 +1027,9 @@ void Session::connection_send_query(ConnectionInfo *info, NetQueryPtr &&net_quer
   sent_queries_list_.put(status.first->second.get_list_node());
   if (!status.second) {
     LOG(FATAL) << "Duplicate message_id [message_id = " << message_id << "]";
+  }
+  if (immediately_fail_query) {
+    on_message_result_error(message_id, 401, "TEST_ERROR");
   }
 }
 
