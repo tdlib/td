@@ -5250,6 +5250,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   if (has_flags3) {
     BEGIN_STORE_FLAGS();
     STORE_FLAG(has_pending_join_requests);
+    STORE_FLAG(need_repair_action_bar);
     END_STORE_FLAGS();
   }
 
@@ -5480,7 +5481,10 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   if (has_flags3) {
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(has_pending_join_requests);
+    PARSE_FLAG(need_repair_action_bar);
     END_PARSE_FLAGS();
+  } else {
+    need_repair_action_bar = false;
   }
 
   parse(last_new_message_id, parser);
@@ -7890,9 +7894,19 @@ bool MessagesManager::update_dialog_silent_send_message(Dialog *d, bool silent_s
   return true;
 }
 
-void MessagesManager::reget_dialog_action_bar(DialogId dialog_id, const char *source) {
+void MessagesManager::reget_dialog_action_bar(DialogId dialog_id, const char *source, bool is_repair) {
   if (G()->close_flag() || !dialog_id.is_valid() || td_->auth_manager_->is_bot()) {
     return;
+  }
+
+  Dialog *d = get_dialog_force(dialog_id, source);
+  if (d == nullptr) {
+    return;
+  }
+
+  if (is_repair && !d->need_repair_action_bar) {
+    d->need_repair_action_bar = true;
+    on_dialog_updated(dialog_id, source);
   }
 
   LOG(INFO) << "Reget action bar in " << dialog_id << " from " << source;
@@ -7917,12 +7931,12 @@ void MessagesManager::reget_dialog_action_bar(DialogId dialog_id, const char *so
 void MessagesManager::repair_dialog_action_bar(Dialog *d, const char *source) {
   CHECK(d != nullptr);
   auto dialog_id = d->dialog_id;
-  d->know_action_bar = false;
+  d->need_repair_action_bar = true;
   if (have_input_peer(dialog_id, AccessRights::Read)) {
     create_actor<SleepActor>(
         "RepairChatActionBarActor", 1.0,
         PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, source](Result<Unit> result) {
-          send_closure(actor_id, &MessagesManager::reget_dialog_action_bar, dialog_id, source);
+          send_closure(actor_id, &MessagesManager::reget_dialog_action_bar, dialog_id, source, true);
         }))
         .release();
   }
@@ -7942,6 +7956,10 @@ void MessagesManager::hide_dialog_action_bar(Dialog *d) {
   CHECK(d->dialog_id.get_type() != DialogType::SecretChat);
   if (!d->know_action_bar) {
     return;
+  }
+  if (d->need_repair_action_bar) {
+    d->need_repair_action_bar = false;
+    on_dialog_updated(d->dialog_id, "hide_dialog_action_bar");
   }
   if (!d->can_report_spam && !d->can_add_contact && !d->can_block_user && !d->can_share_phone_number &&
       !d->can_report_location && !d->can_unarchive && d->distance < 0 && !d->can_invite_members) {
@@ -7982,6 +8000,10 @@ void MessagesManager::remove_dialog_action_bar(DialogId dialog_id, Promise<Unit>
 
   if (!d->know_action_bar) {
     return promise.set_error(Status::Error(400, "Can't update chat action bar"));
+  }
+  if (d->need_repair_action_bar) {
+    d->need_repair_action_bar = false;
+    on_dialog_updated(dialog_id, "remove_dialog_action_bar");
   }
   if (!d->can_report_spam && !d->can_add_contact && !d->can_block_user && !d->can_share_phone_number &&
       !d->can_report_location && !d->can_unarchive && d->distance < 0 && !d->can_invite_members) {
@@ -8215,14 +8237,16 @@ void MessagesManager::on_get_peer_settings(DialogId dialog_id,
       d->can_block_user == can_block_user && d->can_share_phone_number == can_share_phone_number &&
       d->can_report_location == can_report_location && d->can_unarchive == can_unarchive && d->distance == distance &&
       d->can_invite_members == can_invite_members) {
-    if (!d->know_action_bar) {
+    if (!d->know_action_bar || d->need_repair_action_bar) {
       d->know_action_bar = true;
+      d->need_repair_action_bar = false;
       on_dialog_updated(d->dialog_id, "on_get_peer_settings");
     }
     return;
   }
 
   d->know_action_bar = true;
+  d->need_repair_action_bar = false;
   d->can_report_spam = can_report_spam;
   d->can_add_contact = can_add_contact;
   d->can_block_user = can_block_user;
@@ -19936,7 +19960,7 @@ void MessagesManager::open_dialog(Dialog *d) {
       break;
     case DialogType::Chat:
       td_->contacts_manager_->repair_chat_participants(dialog_id.get_chat_id());
-      reget_dialog_action_bar(dialog_id, "open_dialog");
+      reget_dialog_action_bar(dialog_id, "open_dialog", false);
       break;
     case DialogType::Channel:
       if (!is_broadcast_channel(dialog_id)) {
@@ -19948,7 +19972,7 @@ void MessagesManager::open_dialog(Dialog *d) {
         }
       }
       get_channel_difference(dialog_id, d->pts, true, "open_dialog");
-      reget_dialog_action_bar(dialog_id, "open_dialog");
+      reget_dialog_action_bar(dialog_id, "open_dialog", false);
       break;
     case DialogType::SecretChat: {
       // to repair dialog action bar
@@ -34511,10 +34535,11 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
     // asynchronously get dialog message TTL setting from the server
     get_dialog_info_full(dialog_id, Auto(), "fix_new_dialog init message_ttl_setting");
   }
-  if (!d->know_action_bar && !td_->auth_manager_->is_bot() && dialog_type != DialogType::SecretChat &&
-      dialog_id != get_my_dialog_id() && have_input_peer(dialog_id, AccessRights::Read)) {
+  if ((!d->know_action_bar || d->need_repair_action_bar) && !td_->auth_manager_->is_bot() &&
+      dialog_type != DialogType::SecretChat && dialog_id != get_my_dialog_id() &&
+      have_input_peer(dialog_id, AccessRights::Read)) {
     // asynchronously get action bar from the server
-    reget_dialog_action_bar(dialog_id, "fix_new_dialog");
+    reget_dialog_action_bar(dialog_id, "fix_new_dialog", false);
   }
   if (d->has_active_group_call && !d->active_group_call_id.is_valid() && !td_->auth_manager_->is_bot()) {
     repair_dialog_active_group_call_id(dialog_id);

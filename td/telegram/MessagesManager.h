@@ -804,7 +804,7 @@ class MessagesManager final : public Actor {
 
   void remove_dialog_action_bar(DialogId dialog_id, Promise<Unit> &&promise);
 
-  void reget_dialog_action_bar(DialogId dialog_id, const char *source);
+  void reget_dialog_action_bar(DialogId dialog_id, const char *source, bool is_repair = true);
 
   void report_dialog(DialogId dialog_id, const vector<MessageId> &message_ids, ReportReason &&reason,
                      Promise<Unit> &&promise);
@@ -1230,6 +1230,7 @@ class MessagesManager final : public Actor {
 
     bool is_last_message_deleted_locally = false;
 
+    bool need_repair_action_bar = false;
     bool know_action_bar = false;
     bool can_report_spam = false;
     bool can_add_contact = false;
