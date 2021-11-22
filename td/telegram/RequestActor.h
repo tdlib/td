@@ -6,7 +6,6 @@
 //
 #pragma once
 
-#include "td/telegram/AuthManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/td_api.h"
@@ -68,14 +67,12 @@ class RequestActor : public Actor {
     if (future_.is_error()) {
       auto error = future_.move_as_error();
       if (error == Status::Error<FutureActor<T>::HANGUP_ERROR_CODE>()) {
-        // dropping query due to lost authorization or lost promise
+        // dropping query due to closing or lost promise
         if (G()->close_flag()) {
           do_send_error(Global::request_aborted_error());
-        } else if (!td_->auth_manager_->is_authorized()) {
+        } else {
           LOG(ERROR) << "Promise was lost";
           do_send_error(Status::Error(500, "Query can't be answered due to a bug in TDLib"));
-        } else {
-          do_send_error(Status::Error(401, "Unauthorized"));
         }
         return stop();
       }
