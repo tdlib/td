@@ -5169,7 +5169,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
       max_notification_message_id.is_valid() && max_notification_message_id > last_new_message_id;
   bool has_folder_id = folder_id != FolderId();
   bool has_pending_read_channel_inbox = pending_read_channel_inbox_pts != 0;
-  bool has_distance = distance >= 0;
+  bool action_bar_has_distance = action_bar == nullptr ? false : action_bar->distance >= 0;
   bool has_last_yet_unsent_message = last_message_id.is_valid() && last_message_id.is_yet_unsent();
   bool has_active_group_call_id = active_group_call_id.is_valid();
   bool has_message_ttl_setting = !message_ttl_setting.is_empty();
@@ -5182,7 +5182,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   STORE_FLAG(has_draft_message);
   STORE_FLAG(has_last_database_message);
   STORE_FLAG(false);  // legacy_know_can_report_spam
-  STORE_FLAG(can_report_spam);
+  STORE_FLAG(action_bar == nullptr ? false : action_bar->can_report_spam);
   STORE_FLAG(has_first_database_message_id);
   STORE_FLAG(false);  // legacy_is_pinned
   STORE_FLAG(has_first_database_message_id_by_index);
@@ -5220,15 +5220,15 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     STORE_FLAG(is_folder_id_inited);
     STORE_FLAG(has_pending_read_channel_inbox);
     STORE_FLAG(know_action_bar);
-    STORE_FLAG(can_add_contact);
-    STORE_FLAG(can_block_user);
-    STORE_FLAG(can_share_phone_number);
-    STORE_FLAG(can_report_location);
+    STORE_FLAG(action_bar == nullptr ? false : action_bar->can_add_contact);
+    STORE_FLAG(action_bar == nullptr ? false : action_bar->can_block_user);
+    STORE_FLAG(action_bar == nullptr ? false : action_bar->can_share_phone_number);
+    STORE_FLAG(action_bar == nullptr ? false : action_bar->can_report_location);
     STORE_FLAG(has_scheduled_server_messages);
     STORE_FLAG(has_scheduled_database_messages);
     STORE_FLAG(need_repair_channel_server_unread_count);
-    STORE_FLAG(can_unarchive);
-    STORE_FLAG(has_distance);
+    STORE_FLAG(action_bar == nullptr ? false : action_bar->can_unarchive);
+    STORE_FLAG(action_bar_has_distance);
     STORE_FLAG(hide_distance);
     STORE_FLAG(has_last_yet_unsent_message);
     STORE_FLAG(is_blocked);
@@ -5236,7 +5236,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     STORE_FLAG(has_active_group_call);
     STORE_FLAG(is_group_call_empty);
     STORE_FLAG(has_active_group_call_id);
-    STORE_FLAG(can_invite_members);
+    STORE_FLAG(action_bar == nullptr ? false : action_bar->can_invite_members);
     STORE_FLAG(has_message_ttl_setting);
     STORE_FLAG(is_message_ttl_setting_inited);
     STORE_FLAG(has_default_join_group_call_as_dialog_id);
@@ -5332,8 +5332,8 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     store(pending_read_channel_inbox_max_message_id, storer);
     store(pending_read_channel_inbox_server_unread_count, storer);
   }
-  if (has_distance) {
-    store(distance, storer);
+  if (action_bar_has_distance) {
+    store(action_bar->distance, storer);
   }
   if (has_active_group_call_id) {
     store(active_group_call_id, storer);
@@ -5380,18 +5380,25 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   bool has_max_notification_message_id = false;
   bool has_folder_id = false;
   bool has_pending_read_channel_inbox = false;
-  bool has_distance = false;
   bool has_active_group_call_id = false;
   bool has_message_ttl_setting = false;
   bool has_default_join_group_call_as_dialog_id = false;
   bool has_theme_name = false;
   bool has_flags3 = false;
   bool has_pending_join_requests = false;
+  bool action_bar_can_report_spam = false;
+  bool action_bar_can_add_contact = false;
+  bool action_bar_can_block_user = false;
+  bool action_bar_can_share_phone_number = false;
+  bool action_bar_can_report_location = false;
+  bool action_bar_can_unarchive = false;
+  bool action_bar_has_distance = false;
+  bool action_bar_can_invite_members = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_draft_message);
   PARSE_FLAG(has_last_database_message);
   PARSE_FLAG(legacy_know_can_report_spam);
-  PARSE_FLAG(can_report_spam);
+  PARSE_FLAG(action_bar_can_report_spam);
   PARSE_FLAG(has_first_database_message_id);
   PARSE_FLAG(legacy_is_pinned);
   PARSE_FLAG(has_first_database_message_id_by_index);
@@ -5429,15 +5436,15 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     PARSE_FLAG(is_folder_id_inited);
     PARSE_FLAG(has_pending_read_channel_inbox);
     PARSE_FLAG(know_action_bar);
-    PARSE_FLAG(can_add_contact);
-    PARSE_FLAG(can_block_user);
-    PARSE_FLAG(can_share_phone_number);
-    PARSE_FLAG(can_report_location);
+    PARSE_FLAG(action_bar_can_add_contact);
+    PARSE_FLAG(action_bar_can_block_user);
+    PARSE_FLAG(action_bar_can_share_phone_number);
+    PARSE_FLAG(action_bar_can_report_location);
     PARSE_FLAG(has_scheduled_server_messages);
     PARSE_FLAG(has_scheduled_database_messages);
     PARSE_FLAG(need_repair_channel_server_unread_count);
-    PARSE_FLAG(can_unarchive);
-    PARSE_FLAG(has_distance);
+    PARSE_FLAG(action_bar_can_unarchive);
+    PARSE_FLAG(action_bar_has_distance);
     PARSE_FLAG(hide_distance);
     PARSE_FLAG(had_last_yet_unsent_message);
     PARSE_FLAG(is_blocked);
@@ -5445,7 +5452,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     PARSE_FLAG(has_active_group_call);
     PARSE_FLAG(is_group_call_empty);
     PARSE_FLAG(has_active_group_call_id);
-    PARSE_FLAG(can_invite_members);
+    PARSE_FLAG(action_bar_can_invite_members);
     PARSE_FLAG(has_message_ttl_setting);
     PARSE_FLAG(is_message_ttl_setting_inited);
     PARSE_FLAG(has_default_join_group_call_as_dialog_id);
@@ -5457,22 +5464,15 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     END_PARSE_FLAGS();
   } else {
     is_folder_id_inited = false;
-    know_action_bar = false;
-    can_add_contact = false;
-    can_block_user = false;
-    can_share_phone_number = false;
-    can_report_location = false;
     has_scheduled_server_messages = false;
     has_scheduled_database_messages = false;
     need_repair_channel_server_unread_count = false;
-    can_unarchive = false;
     hide_distance = false;
     had_last_yet_unsent_message = false;
     is_blocked = false;
     is_is_blocked_inited = false;
     has_active_group_call = false;
     is_group_call_empty = false;
-    can_invite_members = false;
     is_message_ttl_setting_inited = false;
     has_bots = false;
     is_has_bots_inited = false;
@@ -5598,8 +5598,9 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     parse(pending_read_channel_inbox_max_message_id, parser);
     parse(pending_read_channel_inbox_server_unread_count, parser);
   }
-  if (has_distance) {
-    parse(distance, parser);
+  int32 action_bar_distance = -1;
+  if (action_bar_has_distance) {
+    parse(action_bar_distance, parser);
   }
   if (has_active_group_call_id) {
     parse(active_group_call_id, parser);
@@ -5618,7 +5619,13 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     parse(pending_join_request_user_ids, parser);
   }
   if (legacy_know_can_report_spam && !know_action_bar) {
-    can_report_spam = false;
+    action_bar_can_report_spam = false;
+  }
+  if (know_action_bar) {
+    action_bar =
+        create_action_bar(action_bar_can_report_spam, action_bar_can_add_contact, action_bar_can_block_user,
+                          action_bar_can_share_phone_number, action_bar_can_report_location, action_bar_can_unarchive,
+                          hide_distance ? -1 : action_bar_distance, action_bar_can_invite_members);
   }
 }
 
@@ -7961,19 +7968,11 @@ void MessagesManager::hide_dialog_action_bar(Dialog *d) {
     d->need_repair_action_bar = false;
     on_dialog_updated(d->dialog_id, "hide_dialog_action_bar");
   }
-  if (!d->can_report_spam && !d->can_add_contact && !d->can_block_user && !d->can_share_phone_number &&
-      !d->can_report_location && !d->can_unarchive && d->distance < 0 && !d->can_invite_members) {
+  if (d->action_bar == nullptr) {
     return;
   }
 
-  d->can_report_spam = false;
-  d->can_add_contact = false;
-  d->can_block_user = false;
-  d->can_share_phone_number = false;
-  d->can_report_location = false;
-  d->can_unarchive = false;
-  d->distance = -1;
-  d->can_invite_members = false;
+  d->action_bar = nullptr;
   send_update_chat_action_bar(d);
 }
 
@@ -8005,12 +8004,12 @@ void MessagesManager::remove_dialog_action_bar(DialogId dialog_id, Promise<Unit>
     d->need_repair_action_bar = false;
     on_dialog_updated(dialog_id, "remove_dialog_action_bar");
   }
-  if (!d->can_report_spam && !d->can_add_contact && !d->can_block_user && !d->can_share_phone_number &&
-      !d->can_report_location && !d->can_unarchive && d->distance < 0 && !d->can_invite_members) {
+  if (d->action_bar == nullptr) {
     return promise.set_value(Unit());
   }
 
-  hide_dialog_action_bar(d);
+  d->action_bar = nullptr;
+  send_update_chat_action_bar(d);
 
   toggle_dialog_report_spam_state_on_server(dialog_id, false, 0, std::move(promise));
 }
@@ -8135,7 +8134,7 @@ void MessagesManager::report_dialog(DialogId dialog_id, const vector<MessageId> 
 
   Dialog *user_d = d;
   bool is_dialog_spam_report = false;
-  bool can_report_spam = d->can_report_spam;
+  bool can_report_spam = false;
   if (reason.is_spam() && message_ids.empty()) {
     // report from action bar
     if (dialog_id.get_type() == DialogType::SecretChat) {
@@ -8144,12 +8143,9 @@ void MessagesManager::report_dialog(DialogId dialog_id, const vector<MessageId> 
       if (user_d == nullptr) {
         return promise.set_error(Status::Error(400, "Chat with the user not found"));
       }
-
-      is_dialog_spam_report = user_d->know_action_bar;
-      can_report_spam = user_d->can_report_spam;
-    } else {
-      is_dialog_spam_report = d->know_action_bar;
     }
+    is_dialog_spam_report = user_d->know_action_bar;
+    can_report_spam = user_d->action_bar != nullptr && user_d->action_bar->can_report_spam;
   }
 
   if (is_dialog_spam_report && can_report_spam) {
@@ -8210,6 +8206,40 @@ void MessagesManager::report_dialog_photo(DialogId dialog_id, FileId file_id, Re
       ->send(dialog_id, file_id, file_view.remote_location().as_input_photo(), std::move(reason));
 }
 
+unique_ptr<MessagesManager::DialogActionBar> MessagesManager::create_action_bar(
+    bool can_report_spam, bool can_add_contact, bool can_block_user, bool can_share_phone_number,
+    bool can_report_location, bool can_unarchive, int32 distance, bool can_invite_members) {
+  if (!can_report_spam && !can_add_contact && !can_block_user && !can_share_phone_number && !can_report_location &&
+      !can_unarchive && distance < 0 && !can_invite_members) {
+    return nullptr;
+  }
+
+  auto action_bar = td::make_unique<DialogActionBar>();
+  action_bar->can_report_spam = can_report_spam;
+  action_bar->can_add_contact = can_add_contact;
+  action_bar->can_block_user = can_block_user;
+  action_bar->can_share_phone_number = can_share_phone_number;
+  action_bar->can_report_location = can_report_location;
+  action_bar->can_unarchive = can_unarchive;
+  action_bar->distance = distance >= 0 ? distance : -1;
+  action_bar->can_invite_members = can_invite_members;
+  return action_bar;
+}
+
+bool MessagesManager::cmp_dialog_action_bar(const unique_ptr<DialogActionBar> &lhs,
+                                            const unique_ptr<DialogActionBar> &rhs) {
+  if (lhs == nullptr) {
+    return rhs == nullptr;
+  }
+  if (rhs == nullptr) {
+    return false;
+  }
+  return lhs->can_report_spam == rhs->can_report_spam && lhs->can_add_contact == rhs->can_add_contact &&
+         lhs->can_block_user == rhs->can_block_user && lhs->can_share_phone_number == rhs->can_share_phone_number &&
+         lhs->can_report_location == rhs->can_report_location && lhs->can_unarchive == rhs->can_unarchive &&
+         lhs->distance == rhs->distance && lhs->can_invite_members == rhs->can_invite_members;
+}
+
 void MessagesManager::on_get_peer_settings(DialogId dialog_id,
                                            tl_object_ptr<telegram_api::peerSettings> &&peer_settings,
                                            bool ignore_privacy_exception) {
@@ -8224,19 +8254,17 @@ void MessagesManager::on_get_peer_settings(DialogId dialog_id,
     return;
   }
 
-  auto can_report_spam = peer_settings->report_spam_;
-  auto can_add_contact = peer_settings->add_contact_;
-  auto can_block_user = peer_settings->block_contact_;
-  auto can_share_phone_number = peer_settings->share_contact_;
-  auto can_report_location = peer_settings->report_geo_;
-  auto can_unarchive = peer_settings->autoarchived_;
   auto distance =
       (peer_settings->flags_ & telegram_api::peerSettings::GEO_DISTANCE_MASK) != 0 ? peer_settings->geo_distance_ : -1;
-  auto can_invite_members = peer_settings->invite_members_;
-  if (d->can_report_spam == can_report_spam && d->can_add_contact == can_add_contact &&
-      d->can_block_user == can_block_user && d->can_share_phone_number == can_share_phone_number &&
-      d->can_report_location == can_report_location && d->can_unarchive == can_unarchive && d->distance == distance &&
-      d->can_invite_members == can_invite_members) {
+  if (distance < -1 || d->hide_distance) {
+    distance = -1;
+  }
+  auto action_bar =
+      create_action_bar(peer_settings->report_spam_, peer_settings->add_contact_, peer_settings->block_contact_,
+                        peer_settings->share_contact_, peer_settings->report_geo_, peer_settings->autoarchived_,
+                        distance, peer_settings->invite_members_);
+
+  if (cmp_dialog_action_bar(d->action_bar, action_bar)) {
     if (!d->know_action_bar || d->need_repair_action_bar) {
       d->know_action_bar = true;
       d->need_repair_action_bar = false;
@@ -8247,14 +8275,7 @@ void MessagesManager::on_get_peer_settings(DialogId dialog_id,
 
   d->know_action_bar = true;
   d->need_repair_action_bar = false;
-  d->can_report_spam = can_report_spam;
-  d->can_add_contact = can_add_contact;
-  d->can_block_user = can_block_user;
-  d->can_share_phone_number = can_share_phone_number;
-  d->can_report_location = can_report_location;
-  d->can_unarchive = can_unarchive;
-  d->distance = distance < 0 ? -1 : distance;
-  d->can_invite_members = can_invite_members;
+  d->action_bar = std::move(action_bar);
 
   fix_dialog_action_bar(d);
 
@@ -8263,48 +8284,51 @@ void MessagesManager::on_get_peer_settings(DialogId dialog_id,
 
 void MessagesManager::fix_dialog_action_bar(Dialog *d) {
   CHECK(d != nullptr);
-  if (!d->know_action_bar) {
+  auto action_bar = d->action_bar.get();
+  if (action_bar == nullptr) {
     return;
   }
 
   auto dialog_type = d->dialog_id.get_type();
-  if (d->distance >= 0 && dialog_type != DialogType::User) {
-    LOG(ERROR) << "Receive distance " << d->distance << " to " << d->dialog_id;
-    d->distance = -1;
+  if (action_bar->distance >= 0 && dialog_type != DialogType::User) {
+    LOG(ERROR) << "Receive distance " << action_bar->distance << " to " << d->dialog_id;
+    action_bar->distance = -1;
   }
 
-  if (d->can_report_location) {
+  if (action_bar->can_report_location) {
     if (dialog_type != DialogType::Channel) {
       LOG(ERROR) << "Receive can_report_location in " << d->dialog_id;
-      d->can_report_location = false;
-    } else if (d->can_report_spam || d->can_add_contact || d->can_block_user || d->can_share_phone_number ||
-               d->can_unarchive || d->can_invite_members) {
-      LOG(ERROR) << "Receive action bar " << d->can_report_spam << "/" << d->can_add_contact << "/" << d->can_block_user
-                 << "/" << d->can_share_phone_number << "/" << d->can_report_location << "/" << d->can_unarchive << "/"
-                 << d->can_invite_members;
-      d->can_report_spam = false;
-      d->can_add_contact = false;
-      d->can_block_user = false;
-      d->can_share_phone_number = false;
-      d->can_unarchive = false;
-      d->can_invite_members = false;
-      CHECK(d->distance == -1);
+      action_bar->can_report_location = false;
+    } else if (action_bar->can_report_spam || action_bar->can_add_contact || action_bar->can_block_user ||
+               action_bar->can_share_phone_number || action_bar->can_unarchive || action_bar->can_invite_members) {
+      LOG(ERROR) << "Receive action bar " << action_bar->can_report_spam << "/" << action_bar->can_add_contact << "/"
+                 << action_bar->can_block_user << "/" << action_bar->can_share_phone_number << "/"
+                 << action_bar->can_report_location << "/" << action_bar->can_unarchive << "/"
+                 << action_bar->can_invite_members;
+      action_bar->can_report_spam = false;
+      action_bar->can_add_contact = false;
+      action_bar->can_block_user = false;
+      action_bar->can_share_phone_number = false;
+      action_bar->can_unarchive = false;
+      action_bar->can_invite_members = false;
+      CHECK(action_bar->distance == -1);
     }
   }
-  if (d->can_invite_members) {
+  if (action_bar->can_invite_members) {
     if (dialog_type != DialogType::Chat && (dialog_type != DialogType::Channel || is_broadcast_channel(d->dialog_id))) {
       LOG(ERROR) << "Receive can_invite_members in " << d->dialog_id;
-      d->can_invite_members = false;
-    } else if (d->can_report_spam || d->can_add_contact || d->can_block_user || d->can_share_phone_number ||
-               d->can_unarchive) {
-      LOG(ERROR) << "Receive action bar " << d->can_report_spam << "/" << d->can_add_contact << "/" << d->can_block_user
-                 << "/" << d->can_share_phone_number << "/" << d->can_unarchive << "/" << d->can_invite_members;
-      d->can_report_spam = false;
-      d->can_add_contact = false;
-      d->can_block_user = false;
-      d->can_share_phone_number = false;
-      d->can_unarchive = false;
-      CHECK(d->distance == -1);
+      action_bar->can_invite_members = false;
+    } else if (action_bar->can_report_spam || action_bar->can_add_contact || action_bar->can_block_user ||
+               action_bar->can_share_phone_number || action_bar->can_unarchive) {
+      LOG(ERROR) << "Receive action bar " << action_bar->can_report_spam << "/" << action_bar->can_add_contact << "/"
+                 << action_bar->can_block_user << "/" << action_bar->can_share_phone_number << "/"
+                 << action_bar->can_unarchive << "/" << action_bar->can_invite_members;
+      action_bar->can_report_spam = false;
+      action_bar->can_add_contact = false;
+      action_bar->can_block_user = false;
+      action_bar->can_share_phone_number = false;
+      action_bar->can_unarchive = false;
+      CHECK(action_bar->distance == -1);
     }
   }
   if (dialog_type == DialogType::User) {
@@ -8314,69 +8338,71 @@ void MessagesManager::fix_dialog_action_bar(Dialog *d) {
     bool is_deleted = td_->contacts_manager_->is_user_deleted(user_id);
     bool is_contact = td_->contacts_manager_->is_user_contact(user_id);
     if (is_me || is_blocked) {
-      d->can_report_spam = false;
-      d->can_unarchive = false;
+      action_bar->can_report_spam = false;
+      action_bar->can_unarchive = false;
     }
     if (is_me || is_blocked || is_deleted) {
-      d->can_share_phone_number = false;
+      action_bar->can_share_phone_number = false;
     }
     if (is_me || is_blocked || is_deleted || is_contact) {
-      d->can_block_user = false;
-      d->can_add_contact = false;
+      action_bar->can_block_user = false;
+      action_bar->can_add_contact = false;
     }
   }
   if (d->folder_id != FolderId::archive()) {
-    d->can_unarchive = false;
+    action_bar->can_unarchive = false;
   }
-  if (d->can_share_phone_number) {
-    CHECK(!d->can_report_location);
-    CHECK(!d->can_invite_members);
+  if (action_bar->can_share_phone_number) {
+    CHECK(!action_bar->can_report_location);
+    CHECK(!action_bar->can_invite_members);
     if (dialog_type != DialogType::User) {
       LOG(ERROR) << "Receive can_share_phone_number in " << d->dialog_id;
-      d->can_share_phone_number = false;
-    } else if (d->can_report_spam || d->can_add_contact || d->can_block_user || d->can_unarchive || d->distance >= 0) {
-      LOG(ERROR) << "Receive action bar " << d->can_report_spam << "/" << d->can_add_contact << "/" << d->can_block_user
-                 << "/" << d->can_share_phone_number << "/" << d->can_unarchive << "/" << d->distance;
-      d->can_report_spam = false;
-      d->can_add_contact = false;
-      d->can_block_user = false;
-      d->can_unarchive = false;
+      action_bar->can_share_phone_number = false;
+    } else if (action_bar->can_report_spam || action_bar->can_add_contact || action_bar->can_block_user ||
+               action_bar->can_unarchive || action_bar->distance >= 0) {
+      LOG(ERROR) << "Receive action bar " << action_bar->can_report_spam << "/" << action_bar->can_add_contact << "/"
+                 << action_bar->can_block_user << "/" << action_bar->can_share_phone_number << "/"
+                 << action_bar->can_unarchive << "/" << action_bar->distance;
+      action_bar->can_report_spam = false;
+      action_bar->can_add_contact = false;
+      action_bar->can_block_user = false;
+      action_bar->can_unarchive = false;
     }
   }
-  if (d->can_block_user) {
-    CHECK(!d->can_report_location);
-    CHECK(!d->can_invite_members);
-    CHECK(!d->can_share_phone_number);
+  if (action_bar->can_block_user) {
+    CHECK(!action_bar->can_report_location);
+    CHECK(!action_bar->can_invite_members);
+    CHECK(!action_bar->can_share_phone_number);
     if (dialog_type != DialogType::User) {
       LOG(ERROR) << "Receive can_block_user in " << d->dialog_id;
-      d->can_block_user = false;
-    } else if (!d->can_report_spam || !d->can_add_contact) {
-      LOG(ERROR) << "Receive action bar " << d->can_report_spam << "/" << d->can_add_contact << "/"
-                 << d->can_block_user;
-      d->can_report_spam = true;
-      d->can_add_contact = true;
+      action_bar->can_block_user = false;
+    } else if (!action_bar->can_report_spam || !action_bar->can_add_contact) {
+      LOG(ERROR) << "Receive action bar " << action_bar->can_report_spam << "/" << action_bar->can_add_contact << "/"
+                 << action_bar->can_block_user;
+      action_bar->can_report_spam = true;
+      action_bar->can_add_contact = true;
     }
   }
-  if (d->can_add_contact) {
-    CHECK(!d->can_report_location);
-    CHECK(!d->can_invite_members);
-    CHECK(!d->can_share_phone_number);
+  if (action_bar->can_add_contact) {
+    CHECK(!action_bar->can_report_location);
+    CHECK(!action_bar->can_invite_members);
+    CHECK(!action_bar->can_share_phone_number);
     if (dialog_type != DialogType::User) {
       LOG(ERROR) << "Receive can_add_contact in " << d->dialog_id;
-      d->can_add_contact = false;
-    } else if (d->can_report_spam != d->can_block_user) {
-      LOG(ERROR) << "Receive action bar " << d->can_report_spam << "/" << d->can_add_contact << "/"
-                 << d->can_block_user;
-      d->can_report_spam = false;
-      d->can_block_user = false;
-      d->can_unarchive = false;
+      action_bar->can_add_contact = false;
+    } else if (action_bar->can_report_spam != action_bar->can_block_user) {
+      LOG(ERROR) << "Receive action bar " << action_bar->can_report_spam << "/" << action_bar->can_add_contact << "/"
+                 << action_bar->can_block_user;
+      action_bar->can_report_spam = false;
+      action_bar->can_block_user = false;
+      action_bar->can_unarchive = false;
     }
   }
-  if (!d->can_block_user) {
-    d->distance = -1;
+  if (!action_bar->can_block_user) {
+    action_bar->distance = -1;
   }
-  if (!d->can_report_spam) {
-    d->can_unarchive = false;
+  if (!action_bar->can_report_spam) {
+    action_bar->can_unarchive = false;
   }
 }
 
@@ -20126,45 +20152,46 @@ td_api::object_ptr<td_api::ChatActionBar> MessagesManager::get_chat_action_bar_o
     return get_chat_action_bar_object(user_d, d->folder_id != FolderId::archive());
   }
 
-  if (!d->know_action_bar) {
+  auto action_bar = d->action_bar.get();
+  if (action_bar == nullptr) {
     return nullptr;
   }
 
-  if (d->can_report_location) {
+  if (action_bar->can_report_location) {
     CHECK(d->dialog_id.get_type() == DialogType::Channel);
-    CHECK(!d->can_share_phone_number && !d->can_block_user && !d->can_add_contact && !d->can_report_spam &&
-          !d->can_invite_members);
+    CHECK(!action_bar->can_share_phone_number && !action_bar->can_block_user && !action_bar->can_add_contact &&
+          !action_bar->can_report_spam && !action_bar->can_invite_members);
     return td_api::make_object<td_api::chatActionBarReportUnrelatedLocation>();
   }
-  if (d->can_invite_members) {
-    CHECK(!d->can_share_phone_number && !d->can_block_user && !d->can_add_contact && !d->can_report_spam);
+  if (action_bar->can_invite_members) {
+    CHECK(!action_bar->can_share_phone_number && !action_bar->can_block_user && !action_bar->can_add_contact &&
+          !action_bar->can_report_spam);
     return td_api::make_object<td_api::chatActionBarInviteMembers>();
   }
-  if (d->can_share_phone_number) {
+  if (action_bar->can_share_phone_number) {
     CHECK(d->dialog_id.get_type() == DialogType::User);
-    CHECK(!d->can_block_user && !d->can_add_contact && !d->can_report_spam);
+    CHECK(!action_bar->can_block_user && !action_bar->can_add_contact && !action_bar->can_report_spam);
     return td_api::make_object<td_api::chatActionBarSharePhoneNumber>();
   }
   if (hide_unarchive) {
-    if (d->can_add_contact) {
+    if (action_bar->can_add_contact) {
       return td_api::make_object<td_api::chatActionBarAddContact>();
     } else {
       return nullptr;
     }
   }
-  if (d->can_block_user) {
+  if (action_bar->can_block_user) {
     CHECK(d->dialog_id.get_type() == DialogType::User);
-    CHECK(d->can_report_spam && d->can_add_contact);
-    auto distance = d->hide_distance ? -1 : d->distance;
-    return td_api::make_object<td_api::chatActionBarReportAddBlock>(d->can_unarchive, distance);
+    CHECK(action_bar->can_report_spam && action_bar->can_add_contact);
+    return td_api::make_object<td_api::chatActionBarReportAddBlock>(action_bar->can_unarchive, action_bar->distance);
   }
-  if (d->can_add_contact) {
+  if (action_bar->can_add_contact) {
     CHECK(d->dialog_id.get_type() == DialogType::User);
-    CHECK(!d->can_report_spam);
+    CHECK(!action_bar->can_report_spam);
     return td_api::make_object<td_api::chatActionBarAddContact>();
   }
-  if (d->can_report_spam) {
-    return td_api::make_object<td_api::chatActionBarReportSpam>(d->can_unarchive);
+  if (action_bar->can_report_spam) {
+    return td_api::make_object<td_api::chatActionBarReportSpam>(action_bar->can_unarchive);
   }
   return nullptr;
 }
@@ -30175,14 +30202,8 @@ void MessagesManager::set_dialog_is_blocked(Dialog *d, bool is_blocked) {
 
     if (d->know_action_bar) {
       if (is_blocked) {
-        if (d->can_report_spam || d->can_share_phone_number || d->can_block_user || d->can_add_contact ||
-            d->can_unarchive || d->distance >= 0) {
-          d->can_report_spam = false;
-          d->can_share_phone_number = false;
-          d->can_block_user = false;
-          d->can_add_contact = false;
-          d->can_unarchive = false;
-          d->distance = -1;
+        if (d->action_bar != nullptr) {
+          d->action_bar = nullptr;
           send_update_chat_action_bar(d);
         }
       } else {
@@ -30525,17 +30546,17 @@ void MessagesManager::do_set_dialog_folder_id(Dialog *d, FolderId folder_id) {
     auto user_id = td_->contacts_manager_->get_secret_chat_user_id(d->dialog_id.get_secret_chat_id());
     if (d->is_update_new_chat_sent && user_id.is_valid()) {
       const Dialog *user_d = get_dialog(DialogId(user_id));
-      if (user_d != nullptr && user_d->can_unarchive && user_d->know_action_bar) {
+      if (user_d != nullptr && user_d->action_bar != nullptr && user_d->action_bar->can_unarchive) {
         send_closure(
             G()->td(), &Td::send_update,
             td_api::make_object<td_api::updateChatActionBar>(d->dialog_id.get(), get_chat_action_bar_object(d)));
       }
     }
-  } else if (d->can_unarchive && folder_id != FolderId::archive()) {
-    d->can_unarchive = false;
-    d->can_report_spam = false;
-    d->can_block_user = false;
-    // keep d->can_add_contact
+  } else if (d->action_bar != nullptr && d->action_bar->can_unarchive && folder_id != FolderId::archive()) {
+    d->action_bar->can_unarchive = false;
+    d->action_bar->can_report_spam = false;
+    d->action_bar->can_block_user = false;
+    // keep d->action_bar->can_add_contact
     send_update_chat_action_bar(d);
   }
 
@@ -30810,11 +30831,11 @@ void MessagesManager::on_dialog_user_is_contact_updated(DialogId dialog_id, bool
   if (d != nullptr && d->is_update_new_chat_sent) {
     if (d->know_action_bar) {
       if (is_contact) {
-        if (d->can_block_user || d->can_add_contact) {
-          d->can_block_user = false;
-          d->can_add_contact = false;
-          // keep d->can_unarchive
-          d->distance = -1;
+        if (d->action_bar != nullptr && (d->action_bar->can_block_user || d->action_bar->can_add_contact)) {
+          d->action_bar->can_block_user = false;
+          d->action_bar->can_add_contact = false;
+          // keep d->action_bar->can_unarchive
+          d->action_bar->distance = -1;
           send_update_chat_action_bar(d);
         }
       } else {
@@ -30842,11 +30863,12 @@ void MessagesManager::on_dialog_user_is_deleted_updated(DialogId dialog_id, bool
   if (d != nullptr && d->is_update_new_chat_sent) {
     if (d->know_action_bar) {
       if (is_deleted) {
-        if (d->can_share_phone_number || d->can_block_user || d->can_add_contact || d->distance >= 0) {
-          d->can_share_phone_number = false;
-          d->can_block_user = false;
-          d->can_add_contact = false;
-          d->distance = -1;
+        if (d->action_bar != nullptr && (d->action_bar->can_share_phone_number || d->action_bar->can_block_user ||
+                                         d->action_bar->can_add_contact || d->action_bar->distance >= 0)) {
+          d->action_bar->can_share_phone_number = false;
+          d->action_bar->can_block_user = false;
+          d->action_bar->can_add_contact = false;
+          d->action_bar->distance = -1;
           send_update_chat_action_bar(d);
         }
       } else {
@@ -36888,7 +36910,8 @@ void MessagesManager::try_hide_distance(DialogId dialog_id, const Message *m) {
   d->hide_distance = true;
   on_dialog_updated(dialog_id, "try_hide_distance");
 
-  if (d->distance != -1) {
+  if (d->action_bar->distance != -1) {
+    d->action_bar->distance = -1;
     send_update_chat_action_bar(d);
   }
 }

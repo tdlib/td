@@ -1154,6 +1154,18 @@ class MessagesManager final : public Actor {
     void parse(ParserT &parser);
   };
 
+  struct DialogActionBar {
+    int32 distance = -1;  // distance to the peer
+
+    bool can_report_spam = false;
+    bool can_add_contact = false;
+    bool can_block_user = false;
+    bool can_share_phone_number = false;
+    bool can_report_location = false;
+    bool can_unarchive = false;
+    bool can_invite_members = false;
+  };
+
   struct Dialog {
     DialogId dialog_id;
     MessageId last_new_message_id;  // identifier of the last known server message received from update, there should be
@@ -1181,6 +1193,7 @@ class MessagesManager final : public Actor {
     DialogNotificationSettings notification_settings;
     MessageTtlSetting message_ttl_setting;
     unique_ptr<DraftMessage> draft_message;
+    unique_ptr<DialogActionBar> action_bar;
     LogEventIdWithGeneration save_draft_message_log_event_id;
     LogEventIdWithGeneration save_notification_settings_log_event_id;
     std::unordered_map<int64, LogEventIdWithGeneration> read_history_log_event_ids;
@@ -1200,8 +1213,6 @@ class MessagesManager final : public Actor {
         last_read_all_mentions_message_id;  // all mentions with a message identifier not greater than it are implicitly read
     MessageId
         max_unavailable_message_id;  // maximum unavailable message identifier for dialogs with cleared/unavailable history
-
-    int32 distance = -1;  // distance to the peer
 
     int32 last_clear_history_date = 0;
     MessageId last_clear_history_message_id;
@@ -1232,14 +1243,7 @@ class MessagesManager final : public Actor {
 
     bool need_repair_action_bar = false;
     bool know_action_bar = false;
-    bool can_report_spam = false;
-    bool can_add_contact = false;
-    bool can_block_user = false;
-    bool can_share_phone_number = false;
-    bool can_report_location = false;
-    bool can_unarchive = false;
     bool hide_distance = false;
-    bool can_invite_members = false;
 
     bool is_opened = false;
     bool was_opened = false;
@@ -2556,6 +2560,12 @@ class MessagesManager final : public Actor {
                       DialogId default_join_group_call_as_dialog_id, bool is_loaded_from_database);
 
   void add_dialog_last_database_message(Dialog *d, unique_ptr<Message> &&last_database_message);
+
+  static unique_ptr<DialogActionBar> create_action_bar(bool can_report_spam, bool can_add_contact, bool can_block_user,
+                                                       bool can_share_phone_number, bool can_report_location,
+                                                       bool can_unarchive, int32 distance, bool can_invite_members);
+
+  static bool cmp_dialog_action_bar(const unique_ptr<DialogActionBar> &lhs, const unique_ptr<DialogActionBar> &rhs);
 
   void fix_dialog_action_bar(Dialog *d);
 
