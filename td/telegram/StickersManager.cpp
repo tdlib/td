@@ -2003,33 +2003,6 @@ FileId StickersManager::get_animated_emoji_sound_file_id(const string &emoji) co
   return it->second;
 }
 
-vector<td_api::object_ptr<td_api::colorReplacement>> StickersManager::get_color_replacements_object(
-    int fitzpatrick_modifier) {
-  vector<td_api::object_ptr<td_api::colorReplacement>> result;
-  switch (fitzpatrick_modifier) {
-    case 0:
-      break;
-    case 2:
-    case 3:
-    case 4:
-    case 5:
-    case 6: {
-      static int32 old_colors[] = {0xf77e41, 0xffb139, 0xffd140, 0xffdf79};
-      static int32 new_colors[] = {0xcb7b55, 0xf6b689, 0xffcda7, 0xffdfc5, 0xa45a38, 0xdf986b, 0xedb183,
-                                   0xf4c3a0, 0x703a17, 0xab673d, 0xc37f4e, 0xd89667, 0x4a2409, 0x7d3e0e,
-                                   0x965529, 0xa96337, 0x200f0a, 0x412924, 0x593d37, 0x63453f};
-      for (size_t i = 0; i < 4; i++) {
-        result.push_back(td_api::make_object<td_api::colorReplacement>(old_colors[i],
-                                                                       new_colors[(fitzpatrick_modifier - 2) * 4 + i]));
-      }
-      break;
-    }
-    default:
-      UNREACHABLE();
-  }
-  return result;
-}
-
 td_api::object_ptr<td_api::animatedEmoji> StickersManager::get_animated_emoji_object(const string &emoji) {
   auto it = emoji_messages_.find(emoji);
   if (it == emoji_messages_.end()) {
@@ -2045,7 +2018,7 @@ td_api::object_ptr<td_api::animatedEmoji> StickersManager::get_animated_emoji_ob
     return nullptr;
   }
   return td_api::make_object<td_api::animatedEmoji>(
-      get_sticker_object(animated_sticker.first, true), get_color_replacements_object(animated_sticker.second),
+      get_sticker_object(animated_sticker.first, true), animated_sticker.second,
       sound_file_id.is_valid() ? td_->file_manager_->get_file_object(sound_file_id) : nullptr);
 }
 
