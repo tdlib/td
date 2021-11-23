@@ -30366,11 +30366,7 @@ void MessagesManager::do_set_dialog_folder_id(Dialog *d, FolderId folder_id) {
             td_api::make_object<td_api::updateChatActionBar>(d->dialog_id.get(), get_chat_action_bar_object(d)));
       }
     }
-  } else if (d->action_bar != nullptr && d->action_bar->can_unarchive && folder_id != FolderId::archive()) {
-    d->action_bar->can_unarchive = false;
-    d->action_bar->can_report_spam = false;
-    d->action_bar->can_block_user = false;
-    // keep d->action_bar->can_add_contact
+  } else if (folder_id != FolderId::archive() && d->action_bar != nullptr && d->action_bar->on_dialog_unarchived()) {
     send_update_chat_action_bar(d);
   }
 
@@ -30645,11 +30641,7 @@ void MessagesManager::on_dialog_user_is_contact_updated(DialogId dialog_id, bool
   if (d != nullptr && d->is_update_new_chat_sent) {
     if (d->know_action_bar) {
       if (is_contact) {
-        if (d->action_bar != nullptr && (d->action_bar->can_block_user || d->action_bar->can_add_contact)) {
-          d->action_bar->can_block_user = false;
-          d->action_bar->can_add_contact = false;
-          // keep d->action_bar->can_unarchive
-          d->action_bar->distance = -1;
+        if (d->action_bar != nullptr && d->action_bar->on_user_contact_added()) {
           send_update_chat_action_bar(d);
         }
       } else {
@@ -30677,12 +30669,7 @@ void MessagesManager::on_dialog_user_is_deleted_updated(DialogId dialog_id, bool
   if (d != nullptr && d->is_update_new_chat_sent) {
     if (d->know_action_bar) {
       if (is_deleted) {
-        if (d->action_bar != nullptr && (d->action_bar->can_share_phone_number || d->action_bar->can_block_user ||
-                                         d->action_bar->can_add_contact || d->action_bar->distance >= 0)) {
-          d->action_bar->can_share_phone_number = false;
-          d->action_bar->can_block_user = false;
-          d->action_bar->can_add_contact = false;
-          d->action_bar->distance = -1;
+        if (d->action_bar != nullptr && d->action_bar->on_user_deleted()) {
           send_update_chat_action_bar(d);
         }
       } else {
@@ -36724,8 +36711,7 @@ void MessagesManager::try_hide_distance(DialogId dialog_id, const Message *m) {
   d->hide_distance = true;
   on_dialog_updated(dialog_id, "try_hide_distance");
 
-  if (d->action_bar->distance != -1) {
-    d->action_bar->distance = -1;
+  if (d->action_bar != nullptr && d->action_bar->on_outgoing_message()) {
     send_update_chat_action_bar(d);
   }
 }

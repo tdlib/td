@@ -182,6 +182,51 @@ td_api::object_ptr<td_api::ChatActionBar> DialogActionBar::get_chat_action_bar_o
   return nullptr;
 }
 
+bool DialogActionBar::on_dialog_unarchived() {
+  if (!can_unarchive) {
+    return false;
+  }
+
+  can_unarchive = false;
+  can_report_spam = false;
+  can_block_user = false;
+  // keep can_add_contact
+  return true;
+}
+
+bool DialogActionBar::on_user_contact_added() {
+  if (!can_block_user && !can_add_contact) {
+    return false;
+  }
+
+  can_block_user = false;
+  can_add_contact = false;
+  // keep can_unarchive
+  distance = -1;
+  return true;
+}
+
+bool DialogActionBar::on_user_deleted() {
+  if (!can_share_phone_number && !can_block_user && !can_add_contact && distance < 0) {
+    return false;
+  }
+
+  can_share_phone_number = false;
+  can_block_user = false;
+  can_add_contact = false;
+  distance = -1;
+  return true;
+}
+
+bool DialogActionBar::on_outgoing_message() {
+  if (distance < 0) {
+    return false;
+  }
+
+  distance = -1;
+  return true;
+}
+
 bool operator==(const unique_ptr<DialogActionBar> &lhs, const unique_ptr<DialogActionBar> &rhs) {
   if (lhs == nullptr) {
     return rhs == nullptr;

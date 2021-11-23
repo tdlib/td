@@ -35,6 +35,14 @@ struct DialogActionBar {
                                                                        bool hide_unarchive) const;
 
   void fix(Td *td, DialogId dialog_id, bool is_dialog_blocked, FolderId folder_id);
+
+  bool on_dialog_unarchived();
+
+  bool on_user_contact_added();
+
+  bool on_user_deleted();
+
+  bool on_outgoing_message();
 };
 
 bool operator==(const unique_ptr<DialogActionBar> &lhs, const unique_ptr<DialogActionBar> &rhs);
