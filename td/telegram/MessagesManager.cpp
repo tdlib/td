@@ -8151,7 +8151,7 @@ void MessagesManager::report_dialog(DialogId dialog_id, const vector<MessageId> 
       }
     }
     is_dialog_spam_report = user_d->know_action_bar;
-    can_report_spam = user_d->action_bar != nullptr && user_d->action_bar->can_report_spam;
+    can_report_spam = user_d->action_bar != nullptr && user_d->action_bar->can_report_spam();
   }
 
   if (is_dialog_spam_report && can_report_spam) {
@@ -30372,7 +30372,7 @@ void MessagesManager::do_set_dialog_folder_id(Dialog *d, FolderId folder_id) {
     auto user_id = td_->contacts_manager_->get_secret_chat_user_id(d->dialog_id.get_secret_chat_id());
     if (d->is_update_new_chat_sent && user_id.is_valid()) {
       const Dialog *user_d = get_dialog(DialogId(user_id));
-      if (user_d != nullptr && user_d->action_bar != nullptr && user_d->action_bar->can_unarchive) {
+      if (user_d != nullptr && user_d->action_bar != nullptr && user_d->action_bar->can_unarchive()) {
         send_closure(
             G()->td(), &Td::send_update,
             td_api::make_object<td_api::updateChatActionBar>(d->dialog_id.get(), get_chat_action_bar_object(d)));
