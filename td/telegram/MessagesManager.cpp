@@ -5721,7 +5721,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     action_bar = DialogActionBar::create(
         action_bar_can_report_spam, action_bar_can_add_contact, action_bar_can_block_user,
         action_bar_can_share_phone_number, action_bar_can_report_location, action_bar_can_unarchive,
-        has_outgoing_messages ? -1 : action_bar_distance, action_bar_can_invite_members);
+        has_outgoing_messages ? -1 : action_bar_distance, action_bar_can_invite_members, string(), false, 0);
   }
 }
 
@@ -8328,7 +8328,8 @@ void MessagesManager::on_get_peer_settings(DialogId dialog_id,
   auto action_bar =
       DialogActionBar::create(peer_settings->report_spam_, peer_settings->add_contact_, peer_settings->block_contact_,
                               peer_settings->share_contact_, peer_settings->report_geo_, peer_settings->autoarchived_,
-                              distance, peer_settings->invite_members_);
+                              distance, peer_settings->invite_members_, peer_settings->request_chat_title_,
+                              peer_settings->request_chat_broadcast_, peer_settings->request_chat_date_);
 
   fix_dialog_action_bar(d, action_bar.get());
 

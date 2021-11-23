@@ -1015,7 +1015,7 @@ chatActionBarReportSpam can_unarchive:Bool = ChatActionBar;
 //@description The chat is a location-based supergroup, which can be reported as having unrelated location using the method reportChat with the reason chatReportReasonUnrelatedLocation
 chatActionBarReportUnrelatedLocation = ChatActionBar;
 
-//@description The chat is a recently created group chat, to which new members can be invited
+//@description The chat is a recently created group chat to which new members can be invited
 chatActionBarInviteMembers = ChatActionBar;
 
 //@description The chat is a private or secret chat, which can be reported using the method reportChat, or the other user can be blocked using the method toggleMessageSenderIsBlocked, or the other user can be added to the contact list using the method addContact
@@ -1028,6 +1028,12 @@ chatActionBarAddContact = ChatActionBar;
 
 //@description The chat is a private or secret chat with a mutual contact and the user's phone number can be shared with the other user using the method sharePhoneNumber
 chatActionBarSharePhoneNumber = ChatActionBar;
+
+//@description The chat is a private chat with an administrator of a chat to which the user sent join request
+//@title Title of the chat to which the join request was sent
+//@is_channel True, if the join request was sent to a channel chat
+//@request_date Point in time (Unix timestamp) when the join request was sent
+chatActionBarJoinRequest title:string is_channel:Bool request_date:int32 = ChatActionBar;
 
 
 //@class KeyboardButtonType @description Describes a keyboard button type
