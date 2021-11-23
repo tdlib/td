@@ -352,9 +352,9 @@ class MessagesManager final : public Actor {
 
   void on_update_delete_scheduled_messages(DialogId dialog_id, vector<ScheduledServerMessageId> &&server_message_ids);
 
-  void on_user_dialog_action(DialogId dialog_id, MessageId top_thread_message_id, DialogId typing_dialog_id,
-                             DialogAction action, int32 date,
-                             MessageContentType message_content_type = MessageContentType::None);
+  void on_dialog_action(DialogId dialog_id, MessageId top_thread_message_id, DialogId typing_dialog_id,
+                        DialogAction action, int32 date,
+                        MessageContentType message_content_type = MessageContentType::None);
 
   void read_history_inbox(DialogId dialog_id, MessageId max_message_id, int32 unread_count, const char *source);
 
@@ -2386,8 +2386,8 @@ class MessagesManager final : public Actor {
 
   void send_update_chat_has_scheduled_messages(Dialog *d, bool from_deletion);
 
-  void send_update_user_chat_action(DialogId dialog_id, MessageId top_thread_message_id, UserId user_id,
-                                    const DialogAction &action);
+  void send_update_chat_action(DialogId dialog_id, MessageId top_thread_message_id, DialogId typing_dialog_id,
+                               const DialogAction &action);
 
   void repair_dialog_action_bar(Dialog *d, const char *source);
 
@@ -2552,7 +2552,7 @@ class MessagesManager final : public Actor {
 
   void clear_active_dialog_actions(DialogId dialog_id);
 
-  void cancel_user_dialog_action(DialogId dialog_id, const Message *m);
+  void cancel_dialog_action(DialogId dialog_id, const Message *m);
 
   Dialog *get_dialog_by_message_id(MessageId message_id);
 
@@ -3037,8 +3037,6 @@ class MessagesManager final : public Actor {
   void send_get_message_public_forwards_query(DcId dc_id, FullMessageId full_message_id, string offset, int32 limit,
                                               Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
 
-  void on_animated_emoji_message_clicked(FullMessageId full_message_id, UserId user_id, Slice emoji, string data);
-
   void add_sponsored_dialog(const Dialog *d, DialogSource source);
 
   void save_sponsored_dialog();
@@ -3377,13 +3375,14 @@ class MessagesManager final : public Actor {
 
   struct ActiveDialogAction {
     MessageId top_thread_message_id;
-    UserId user_id;
+    DialogId typing_dialog_id;
     DialogAction action;
     double start_time;
 
-    ActiveDialogAction(MessageId top_thread_message_id, UserId user_id, DialogAction action, double start_time)
+    ActiveDialogAction(MessageId top_thread_message_id, DialogId typing_dialog_id, DialogAction action,
+                       double start_time)
         : top_thread_message_id(top_thread_message_id)
-        , user_id(user_id)
+        , typing_dialog_id(typing_dialog_id)
         , action(std::move(action))
         , start_time(start_time) {
     }

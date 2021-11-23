@@ -2850,15 +2850,14 @@ int32 UpdatesManager::get_update_qts(const telegram_api::Update *update) {
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateUserTyping> update, Promise<Unit> &&promise) {
   DialogId dialog_id(UserId(update->user_id_));
-  td_->messages_manager_->on_user_dialog_action(dialog_id, MessageId(), dialog_id,
-                                                DialogAction(std::move(update->action_)), get_short_update_date());
+  td_->messages_manager_->on_dialog_action(dialog_id, MessageId(), dialog_id, DialogAction(std::move(update->action_)),
+                                           get_short_update_date());
   promise.set_value(Unit());
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChatUserTyping> update, Promise<Unit> &&promise) {
-  td_->messages_manager_->on_user_dialog_action(DialogId(ChatId(update->chat_id_)), MessageId(),
-                                                DialogId(update->from_id_), DialogAction(std::move(update->action_)),
-                                                get_short_update_date());
+  td_->messages_manager_->on_dialog_action(DialogId(ChatId(update->chat_id_)), MessageId(), DialogId(update->from_id_),
+                                           DialogAction(std::move(update->action_)), get_short_update_date());
   promise.set_value(Unit());
 }
 
@@ -2867,17 +2866,17 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelUserTypi
   if ((update->flags_ & telegram_api::updateChannelUserTyping::TOP_MSG_ID_MASK) != 0) {
     top_thread_message_id = MessageId(ServerMessageId(update->top_msg_id_));
   }
-  td_->messages_manager_->on_user_dialog_action(DialogId(ChannelId(update->channel_id_)), top_thread_message_id,
-                                                DialogId(update->from_id_), DialogAction(std::move(update->action_)),
-                                                get_short_update_date());
+  td_->messages_manager_->on_dialog_action(DialogId(ChannelId(update->channel_id_)), top_thread_message_id,
+                                           DialogId(update->from_id_), DialogAction(std::move(update->action_)),
+                                           get_short_update_date());
   promise.set_value(Unit());
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateEncryptedChatTyping> update, Promise<Unit> &&promise) {
   SecretChatId secret_chat_id(update->chat_id_);
   UserId user_id = td_->contacts_manager_->get_secret_chat_user_id(secret_chat_id);
-  td_->messages_manager_->on_user_dialog_action(DialogId(secret_chat_id), MessageId(), DialogId(user_id),
-                                                DialogAction::get_typing_action(), get_short_update_date());
+  td_->messages_manager_->on_dialog_action(DialogId(secret_chat_id), MessageId(), DialogId(user_id),
+                                           DialogAction::get_typing_action(), get_short_update_date());
   promise.set_value(Unit());
 }
 

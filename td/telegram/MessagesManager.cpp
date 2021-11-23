@@ -7078,9 +7078,8 @@ void MessagesManager::on_update_delete_scheduled_messages(DialogId dialog_id,
   send_update_chat_has_scheduled_messages(d, true);
 }
 
-void MessagesManager::on_user_dialog_action(DialogId dialog_id, MessageId top_thread_message_id,
-                                            DialogId typing_dialog_id, DialogAction action, int32 date,
-                                            MessageContentType message_content_type) {
+void MessagesManager::on_dialog_action(DialogId dialog_id, MessageId top_thread_message_id, DialogId typing_dialog_id,
+                                       DialogAction action, int32 date, MessageContentType message_content_type) {
   if (td_->auth_manager_->is_bot() || !typing_dialog_id.is_valid()) {
     return;
   }
@@ -7095,7 +7094,7 @@ void MessagesManager::on_user_dialog_action(DialogId dialog_id, MessageId top_th
       LOG(ERROR) << "Receive " << action << " in thread of " << top_thread_message_id << " in " << dialog_id;
       return;
     }
-    const Dialog *d = get_dialog_force(dialog_id, "on_user_dialog_action");
+    const Dialog *d = get_dialog_force(dialog_id, "on_dialog_action");
     if (d != nullptr && d->active_group_call_id.is_valid()) {
       auto group_call_id = td_->group_call_manager_->get_group_call_id(d->active_group_call_id, dialog_id);
       td_->group_call_manager_->on_user_speaking_in_group_call(group_call_id, typing_dialog_id, date);
@@ -7107,11 +7106,11 @@ void MessagesManager::on_user_dialog_action(DialogId dialog_id, MessageId top_th
     return;
   }
 
-  if (typing_dialog_id.get_type() != DialogType::User) {
+  auto typing_dialog_type = typing_dialog_id.get_type();
+  if (typing_dialog_type != DialogType::User && dialog_type != DialogType::Chat && dialog_type != DialogType::Channel) {
     LOG(ERROR) << "Ignore " << action << " of " << typing_dialog_id << " in " << dialog_id;
     return;
   }
-  auto user_id = typing_dialog_id.get_user_id();
 
   {
     auto message_import_progress = action.get_importing_messages_action_progress();
@@ -7124,11 +7123,13 @@ void MessagesManager::on_user_dialog_action(DialogId dialog_id, MessageId top_th
   {
     auto clicking_info = action.get_clicking_animated_emoji_action_info();
     if (!clicking_info.data.empty()) {
-      auto message_id = MessageId(ServerMessageId(clicking_info.message_id));
-      CHECK(message_id.is_valid());
-      if (date > G()->unix_time() - 10) {
-        on_animated_emoji_message_clicked({dialog_id, message_id}, user_id, clicking_info.emoji,
-                                          std::move(clicking_info.data));
+      if (date > G()->unix_time() - 10 && dialog_type == DialogType::User && dialog_id == typing_dialog_id) {
+        FullMessageId full_message_id{dialog_id, MessageId(ServerMessageId(clicking_info.message_id))};
+        auto *m = get_message_force(full_message_id, "on_dialog_action");
+        if (m != nullptr) {
+          on_message_content_animated_emoji_clicked(m->content.get(), full_message_id, td_, clicking_info.emoji,
+                                                    std::move(clicking_info.data));
+        }
       }
       return;
     }
@@ -7139,21 +7140,36 @@ void MessagesManager::on_user_dialog_action(DialogId dialog_id, MessageId top_th
     return;
   }
 
-  if (!td_->contacts_manager_->have_min_user(user_id)) {
-    LOG(DEBUG) << "Ignore " << action << " of unknown " << user_id;
-    return;
-  }
   if (!have_dialog(dialog_id)) {
     LOG(DEBUG) << "Ignore " << action << " in unknown " << dialog_id;
     return;
   }
 
+  if (typing_dialog_type == DialogType::User) {
+    if (!td_->contacts_manager_->have_min_user(typing_dialog_id.get_user_id())) {
+      LOG(DEBUG) << "Ignore " << action << " of unknown " << typing_dialog_id.get_user_id();
+      return;
+    }
+  } else {
+    if (!have_dialog_info_force(typing_dialog_id)) {
+      LOG(DEBUG) << "Ignore " << action << " of unknown " << typing_dialog_id;
+      return;
+    }
+    force_create_dialog(typing_dialog_id, "on_dialog_action", true);
+    if (!have_dialog(typing_dialog_id)) {
+      LOG(ERROR) << "Failed to create typing " << typing_dialog_id;
+      return;
+    }
+  }
+
   bool is_canceled = action == DialogAction();
-  if (!is_canceled || message_content_type != MessageContentType::None) {
-    td_->contacts_manager_->on_update_user_local_was_online(user_id, date);
+  if ((!is_canceled || message_content_type != MessageContentType::None) && typing_dialog_type == DialogType::User) {
+    td_->contacts_manager_->on_update_user_local_was_online(typing_dialog_id.get_user_id(), date);
   }
 
   if (dialog_type == DialogType::User || dialog_type == DialogType::SecretChat) {
+    CHECK(typing_dialog_type == DialogType::User);
+    auto user_id = typing_dialog_id.get_user_id();
     if (!td_->contacts_manager_->is_user_bot(user_id) && !td_->contacts_manager_->is_user_status_exact(user_id) &&
         !get_dialog(dialog_id)->is_opened && !is_canceled) {
       return;
@@ -7167,18 +7183,20 @@ void MessagesManager::on_user_dialog_action(DialogId dialog_id, MessageId top_th
     }
 
     auto &active_actions = actions_it->second;
-    auto it = std::find_if(active_actions.begin(), active_actions.end(),
-                           [user_id](const ActiveDialogAction &action) { return action.user_id == user_id; });
+    auto it = std::find_if(
+        active_actions.begin(), active_actions.end(),
+        [typing_dialog_id](const ActiveDialogAction &action) { return action.typing_dialog_id == typing_dialog_id; });
     if (it == active_actions.end()) {
       return;
     }
 
-    if (!td_->contacts_manager_->is_user_bot(user_id) &&
+    if (!(typing_dialog_type == DialogType::User &&
+          td_->contacts_manager_->is_user_bot(typing_dialog_id.get_user_id())) &&
         !it->action.is_canceled_by_message_of_type(message_content_type)) {
       return;
     }
 
-    LOG(DEBUG) << "Cancel action of " << user_id << " in " << dialog_id;
+    LOG(DEBUG) << "Cancel action of " << typing_dialog_id << " in " << dialog_id;
     top_thread_message_id = it->top_thread_message_id;
     active_actions.erase(it);
     if (active_actions.empty()) {
@@ -7188,29 +7206,30 @@ void MessagesManager::on_user_dialog_action(DialogId dialog_id, MessageId top_th
     }
   } else {
     if (date < G()->unix_time_cached() - DIALOG_ACTION_TIMEOUT - 60) {
-      LOG(DEBUG) << "Ignore too old action of " << user_id << " in " << dialog_id << " sent at " << date;
+      LOG(DEBUG) << "Ignore too old action of " << typing_dialog_id << " in " << dialog_id << " sent at " << date;
       return;
     }
     auto &active_actions = active_dialog_actions_[dialog_id];
-    auto it = std::find_if(active_actions.begin(), active_actions.end(),
-                           [user_id](const ActiveDialogAction &action) { return action.user_id == user_id; });
+    auto it = std::find_if(
+        active_actions.begin(), active_actions.end(),
+        [typing_dialog_id](const ActiveDialogAction &action) { return action.typing_dialog_id == typing_dialog_id; });
     MessageId prev_top_thread_message_id;
     DialogAction prev_action;
     if (it != active_actions.end()) {
-      LOG(DEBUG) << "Re-add action of " << user_id << " in " << dialog_id;
+      LOG(DEBUG) << "Re-add action of " << typing_dialog_id << " in " << dialog_id;
       prev_top_thread_message_id = it->top_thread_message_id;
       prev_action = it->action;
       active_actions.erase(it);
     } else {
-      LOG(DEBUG) << "Add action of " << user_id << " in " << dialog_id;
+      LOG(DEBUG) << "Add action of " << typing_dialog_id << " in " << dialog_id;
     }
 
-    active_actions.emplace_back(top_thread_message_id, user_id, action, Time::now());
+    active_actions.emplace_back(top_thread_message_id, typing_dialog_id, action, Time::now());
     if (top_thread_message_id == prev_top_thread_message_id && action == prev_action) {
       return;
     }
     if (top_thread_message_id != prev_top_thread_message_id && prev_top_thread_message_id.is_valid()) {
-      send_update_user_chat_action(dialog_id, prev_top_thread_message_id, user_id, DialogAction());
+      send_update_chat_action(dialog_id, prev_top_thread_message_id, typing_dialog_id, DialogAction());
     }
     if (active_actions.size() == 1u) {
       LOG(DEBUG) << "Set action timeout in " << dialog_id;
@@ -7219,20 +7238,19 @@ void MessagesManager::on_user_dialog_action(DialogId dialog_id, MessageId top_th
   }
 
   if (top_thread_message_id.is_valid()) {
-    send_update_user_chat_action(dialog_id, MessageId(), user_id, action);
+    send_update_chat_action(dialog_id, MessageId(), typing_dialog_id, action);
   }
-  send_update_user_chat_action(dialog_id, top_thread_message_id, user_id, action);
+  send_update_chat_action(dialog_id, top_thread_message_id, typing_dialog_id, action);
 }
 
-void MessagesManager::cancel_user_dialog_action(DialogId dialog_id, const Message *m) {
+void MessagesManager::cancel_dialog_action(DialogId dialog_id, const Message *m) {
   CHECK(m != nullptr);
   if (td_->auth_manager_->is_bot() || m->forward_info != nullptr || m->had_forward_info ||
       m->via_bot_user_id.is_valid() || m->hide_via_bot || m->is_channel_post || m->message_id.is_scheduled()) {
     return;
   }
 
-  on_user_dialog_action(dialog_id, MessageId(), DialogId(m->sender_user_id), DialogAction(), m->date,
-                        m->content->get_type());
+  on_dialog_action(dialog_id, MessageId(), get_message_sender(m), DialogAction(), m->date, m->content->get_type());
 }
 
 void MessagesManager::add_postponed_channel_update(DialogId dialog_id, tl_object_ptr<telegram_api::Update> &&update,
@@ -19918,20 +19936,6 @@ void MessagesManager::click_animated_emoji_message(FullMessageId full_message_id
   get_message_content_animated_emoji_click_sticker(m->content.get(), full_message_id, td_, std::move(promise));
 }
 
-void MessagesManager::on_animated_emoji_message_clicked(FullMessageId full_message_id, UserId user_id, Slice emoji,
-                                                        string data) {
-  CHECK(full_message_id.get_message_id().is_server());
-  auto *m = get_message_force(full_message_id, "on_animated_emoji_message_clicked");
-  if (m == nullptr) {
-    return;
-  }
-  if (full_message_id.get_dialog_id().get_type() != DialogType::User ||
-      full_message_id.get_dialog_id().get_user_id() != user_id) {
-    return;
-  }
-  on_message_content_animated_emoji_clicked(m->content.get(), full_message_id, td_, emoji, std::move(data));
-}
-
 void MessagesManager::open_dialog(Dialog *d) {
   CHECK(!td_->auth_manager_->is_bot());
   DialogId dialog_id = d->dialog_id;
@@ -28947,7 +28951,7 @@ void MessagesManager::send_update_message_content_impl(DialogId dialog_id, const
 
 void MessagesManager::send_update_message_edited(DialogId dialog_id, const Message *m) {
   CHECK(m != nullptr);
-  cancel_user_dialog_action(dialog_id, m);
+  cancel_dialog_action(dialog_id, m);
   auto edit_date = m->hide_edit_date ? 0 : m->edit_date;
   send_closure(G()->td(), &Td::send_update,
                make_tl_object<td_api::updateMessageEdited>(dialog_id.get(), m->message_id.get(), edit_date,
@@ -29396,18 +29400,18 @@ void MessagesManager::send_update_chat_has_scheduled_messages(Dialog *d, bool fr
                td_api::make_object<td_api::updateChatHasScheduledMessages>(d->dialog_id.get(), has_scheduled_messages));
 }
 
-void MessagesManager::send_update_user_chat_action(DialogId dialog_id, MessageId top_thread_message_id, UserId user_id,
-                                                   const DialogAction &action) {
+void MessagesManager::send_update_chat_action(DialogId dialog_id, MessageId top_thread_message_id,
+                                              DialogId typing_dialog_id, const DialogAction &action) {
   if (td_->auth_manager_->is_bot()) {
     return;
   }
 
-  LOG(DEBUG) << "Send " << action << " of " << user_id << " in thread of " << top_thread_message_id << " in "
+  LOG(DEBUG) << "Send " << action << " of " << typing_dialog_id << " in thread of " << top_thread_message_id << " in "
              << dialog_id;
   send_closure(G()->td(), &Td::send_update,
-               make_tl_object<td_api::updateUserChatAction>(
+               make_tl_object<td_api::updateChatAction>(
                    dialog_id.get(), top_thread_message_id.get(),
-                   td_->contacts_manager_->get_user_id_object(user_id, "send_update_user_chat_action"),
+                   get_message_sender_object(td_, typing_dialog_id, "send_update_chat_action"),
                    action.get_chat_action_object()));
 }
 
@@ -31533,12 +31537,12 @@ void MessagesManager::on_active_dialog_action_timeout(DialogId dialog_id) {
   CHECK(!actions_it->second.empty());
 
   auto now = Time::now();
-  UserId prev_user_id;
+  DialogId prev_typing_dialog_id;
   while (actions_it->second[0].start_time + DIALOG_ACTION_TIMEOUT < now + 0.1) {
-    CHECK(actions_it->second[0].user_id != prev_user_id);
-    prev_user_id = actions_it->second[0].user_id;
-    on_user_dialog_action(dialog_id, actions_it->second[0].top_thread_message_id,
-                          DialogId(actions_it->second[0].user_id), DialogAction(), 0);
+    CHECK(actions_it->second[0].typing_dialog_id != prev_typing_dialog_id);
+    prev_typing_dialog_id = actions_it->second[0].typing_dialog_id;
+    on_dialog_action(dialog_id, actions_it->second[0].top_thread_message_id, actions_it->second[0].typing_dialog_id,
+                     DialogAction(), 0);
 
     actions_it = active_dialog_actions_.find(dialog_id);
     if (actions_it == active_dialog_actions_.end()) {
@@ -31557,8 +31561,8 @@ void MessagesManager::clear_active_dialog_actions(DialogId dialog_id) {
   auto actions_it = active_dialog_actions_.find(dialog_id);
   while (actions_it != active_dialog_actions_.end()) {
     CHECK(!actions_it->second.empty());
-    on_user_dialog_action(dialog_id, actions_it->second[0].top_thread_message_id,
-                          DialogId(actions_it->second[0].user_id), DialogAction(), 0);
+    on_dialog_action(dialog_id, actions_it->second[0].top_thread_message_id, actions_it->second[0].typing_dialog_id,
+                     DialogAction(), 0);
     actions_it = active_dialog_actions_.find(dialog_id);
   }
 }
@@ -33137,7 +33141,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     update_sent_message_contents(dialog_id, m);
     update_used_hashtags(dialog_id, m);
     update_top_dialogs(dialog_id, m);
-    cancel_user_dialog_action(dialog_id, m);
+    cancel_dialog_action(dialog_id, m);
     update_has_outgoing_messages(dialog_id, m);
 
     if (!td_->auth_manager_->is_bot() && d->messages == nullptr && !m->is_outgoing && dialog_id != get_my_dialog_id()) {
