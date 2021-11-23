@@ -24020,6 +24020,16 @@ void MessagesManager::set_dialog_default_send_message_as_dialog_id(DialogId dial
     return promise.set_error(Status::Error(400, "Can't access specified default message sender chat"));
   }
 
+  {
+    auto it = set_typing_query_.find(dialog_id);
+    if (it != set_typing_query_.end()) {
+      if (!it->second.empty()) {
+        cancel_query(it->second);
+      }
+      set_typing_query_.erase(it);
+    }
+  }
+
   // TODO save order with all types of messages
   send_closure(td_->create_net_actor<SaveDefaultSendAsActor>(std::move(promise)), &SaveDefaultSendAsActor::send,
                dialog_id, message_sender_dialog_id, get_sequence_dispatcher_id(dialog_id, MessageContentType::Text));
