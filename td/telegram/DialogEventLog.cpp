@@ -329,8 +329,10 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
       return td_api::make_object<td_api::chatEventMessageTtlSettingChanged>(old_value.get_message_ttl_setting_object(),
                                                                             new_value.get_message_ttl_setting_object());
     }
-    case telegram_api::channelAdminLogEventActionToggleNoForwards::ID:
-      return nullptr;
+    case telegram_api::channelAdminLogEventActionToggleNoForwards::ID: {
+      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionToggleNoForwards>(action_ptr);
+      return td_api::make_object<td_api::chatEventAllowSavingContentToggled>(action->new_value_);
+    }
     default:
       UNREACHABLE();
       return nullptr;

@@ -2598,6 +2598,9 @@ chatEventMessageTtlSettingChanged old_message_ttl_setting:int32 new_message_ttl_
 //@description The sign_messages setting of a channel was toggled @sign_messages New value of sign_messages
 chatEventSignMessagesToggled sign_messages:Bool = ChatEventAction;
 
+//@description The allow_saving_content setting of a channel was toggled @allow_saving_content New value of allow_saving_content
+chatEventAllowSavingContentToggled allow_saving_content:Bool = ChatEventAction;
+
 //@description The supergroup sticker set was changed @old_sticker_set_id Previous identifier of the chat sticker set; 0 if none @new_sticker_set_id New identifier of the chat sticker set; 0 if none
 chatEventStickerSetChanged old_sticker_set_id:int64 new_sticker_set_id:int64 = ChatEventAction;
 
