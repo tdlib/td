@@ -42,6 +42,9 @@ telegram_api::object_ptr<telegram_api::codeSettings> SendCodeHelper::get_input_c
     if (settings->allow_flash_call_) {
       flags |= telegram_api::codeSettings::ALLOW_FLASHCALL_MASK;
     }
+    if (settings->allow_missed_call_) {
+      flags |= telegram_api::codeSettings::ALLOW_MISSED_CALL_MASK;
+    }
     if (settings->is_current_phone_number_) {
       flags |= telegram_api::codeSettings::CURRENT_NUMBER_MASK;
     }
@@ -92,7 +95,7 @@ SendCodeHelper::AuthenticationCodeInfo SendCodeHelper::get_authentication_code_i
     case telegram_api::auth_codeTypeFlashCall::ID:
       return {AuthenticationCodeInfo::Type::FlashCall, 0, string()};
     case telegram_api::auth_codeTypeMissedCall::ID:
-      return {AuthenticationCodeInfo::Type::FlashCall, 0, string()};
+      return {AuthenticationCodeInfo::Type::MissedCall, 0, string()};
     default:
       UNREACHABLE();
       return AuthenticationCodeInfo();
@@ -117,11 +120,12 @@ SendCodeHelper::AuthenticationCodeInfo SendCodeHelper::get_authentication_code_i
     }
     case telegram_api::auth_sentCodeTypeFlashCall::ID: {
       auto code_type = move_tl_object_as<telegram_api::auth_sentCodeTypeFlashCall>(sent_code_type_ptr);
-      return AuthenticationCodeInfo{AuthenticationCodeInfo::Type::FlashCall, 0, code_type->pattern_};
+      return AuthenticationCodeInfo{AuthenticationCodeInfo::Type::FlashCall, 0, std::move(code_type->pattern_)};
     }
     case telegram_api::auth_sentCodeTypeMissedCall::ID: {
-      //      auto code_type = move_tl_object_as<telegram_api::auth_sentCodeTypeFlashCall>(sent_code_type_ptr);
-      return AuthenticationCodeInfo{AuthenticationCodeInfo::Type::FlashCall, 0, string()};
+      auto code_type = move_tl_object_as<telegram_api::auth_sentCodeTypeMissedCall>(sent_code_type_ptr);
+      return AuthenticationCodeInfo{AuthenticationCodeInfo::Type::MissedCall, code_type->length_,
+                                    std::move(code_type->prefix_)};
     }
     default:
       UNREACHABLE();
@@ -142,6 +146,9 @@ td_api::object_ptr<td_api::AuthenticationCodeType> SendCodeHelper::get_authentic
       return td_api::make_object<td_api::authenticationCodeTypeCall>(authentication_code_info.length);
     case AuthenticationCodeInfo::Type::FlashCall:
       return td_api::make_object<td_api::authenticationCodeTypeFlashCall>(authentication_code_info.pattern);
+    case AuthenticationCodeInfo::Type::MissedCall:
+      return td_api::make_object<td_api::authenticationCodeTypeMissedCall>(authentication_code_info.pattern,
+                                                                           authentication_code_info.length);
     default:
       UNREACHABLE();
       return nullptr;

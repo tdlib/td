@@ -52,8 +52,11 @@ authenticationCodeTypeSms length:int32 = AuthenticationCodeType;
 //@description An authentication code is delivered via a phone call to the specified phone number @length Length of the code
 authenticationCodeTypeCall length:int32 = AuthenticationCodeType;
 
-//@description An authentication code is delivered by an immediately canceled call to the specified phone number. The number from which the call was made is the code @pattern Pattern of the phone number from which the call will be made
+//@description An authentication code is delivered by an immediately canceled call to the specified phone number. The phone number from which the call was made is the code that should be entered automatically @pattern Pattern of the phone number from which the call will be made
 authenticationCodeTypeFlashCall pattern:string = AuthenticationCodeType;
+
+//@description An authentication code is delivered by an immediately canceled call to the specified phone number. The phone number from which the call was made is the code that should be entered manually by the user @phone_number_prefix Prefix of the phone number from which the call will be made @length Number of digits in the code, excluding the prefix
+authenticationCodeTypeMissedCall phone_number_prefix:string length:int32 = AuthenticationCodeType;
 
 
 //@description Information about the authentication code that was sent @phone_number A phone number that is being authenticated @type The way the code was sent to the user @next_type The way the next code will be sent to the user; may be null @timeout Timeout before the code can be re-sent, in seconds
@@ -2346,10 +2349,11 @@ call id:int32 user_id:int53 is_outgoing:Bool is_video:Bool state:CallState = Cal
 
 
 //@description Contains settings for the authentication of the user's phone number
-//@allow_flash_call Pass true if the authentication code may be sent via flash call to the specified phone number
+//@allow_flash_call Pass true if the authentication code may be sent via a flash call to the specified phone number
+//@allow_missed_call Pass true if the authentication code may be sent via a missed call to the specified phone number
 //@is_current_phone_number Pass true if the authenticated phone number is used on the current device
 //@allow_sms_retriever_api For official applications only. True, if the application can use Android SMS Retriever API (requires Google Play Services >= 10.2) to automatically receive the authentication code from the SMS. See https://developers.google.com/identity/sms-retriever/ for more details
-phoneNumberAuthenticationSettings allow_flash_call:Bool is_current_phone_number:Bool allow_sms_retriever_api:Bool = PhoneNumberAuthenticationSettings;
+phoneNumberAuthenticationSettings allow_flash_call:Bool allow_missed_call:Bool is_current_phone_number:Bool allow_sms_retriever_api:Bool = PhoneNumberAuthenticationSettings;
 
 
 //@description Represents a list of animations @animations List of animations
@@ -4026,7 +4030,7 @@ setAuthenticationPhoneNumber phone_number:string settings:phoneNumberAuthenticat
 //@description Re-sends an authentication code to the user. Works only when the current authorization state is authorizationStateWaitCode, the next_code_type of the result is not null and the server-specified timeout has passed
 resendAuthenticationCode = Ok;
 
-//@description Checks the authentication code. Works only when the current authorization state is authorizationStateWaitCode @code The verification code received via SMS, Telegram message, phone call, or flash call
+//@description Checks the authentication code. Works only when the current authorization state is authorizationStateWaitCode @code Authentication code to check
 checkAuthenticationCode code:string = Ok;
 
 //@description Requests QR code authentication by scanning a QR code on another logged in device. Works only when the current authorization state is authorizationStateWaitPhoneNumber,
@@ -4090,7 +4094,7 @@ getRecoveryEmailAddress password:string = RecoveryEmailAddress;
 //-If new_recovery_email_address is the same as the email address that is currently set up, this call succeeds immediately and aborts all other requests waiting for an email confirmation @password Password of the current user @new_recovery_email_address New recovery email address
 setRecoveryEmailAddress password:string new_recovery_email_address:string = PasswordState;
 
-//@description Checks the 2-step verification recovery email address verification code @code Verification code
+//@description Checks the 2-step verification recovery email address verification code @code Verification code to check
 checkRecoveryEmailAddressCode code:string = PasswordState;
 
 //@description Resends the 2-step verification recovery email address verification code
@@ -5333,7 +5337,7 @@ changePhoneNumber phone_number:string settings:phoneNumberAuthenticationSettings
 //@description Re-sends the authentication code sent to confirm a new phone number for the current user. Works only if the previously received authenticationCodeInfo next_code_type was not null and the server-specified timeout has passed
 resendChangePhoneNumberCode = AuthenticationCodeInfo;
 
-//@description Checks the authentication code sent to confirm a new phone number of the user @code Verification code received by SMS, phone call or flash call
+//@description Checks the authentication code sent to confirm a new phone number of the user @code Authentication code to check
 checkChangePhoneNumberCode code:string = Ok;
 
 
@@ -5633,7 +5637,7 @@ sendPhoneNumberVerificationCode phone_number:string settings:phoneNumberAuthenti
 //@description Re-sends the code to verify a phone number to be added to a user's Telegram Passport
 resendPhoneNumberVerificationCode = AuthenticationCodeInfo;
 
-//@description Checks the phone number verification code for Telegram Passport @code Verification code
+//@description Checks the phone number verification code for Telegram Passport @code Verification code to check
 checkPhoneNumberVerificationCode code:string = Ok;
 
 
@@ -5643,7 +5647,7 @@ sendEmailAddressVerificationCode email_address:string = EmailAddressAuthenticati
 //@description Re-sends the code to verify an email address to be added to a user's Telegram Passport
 resendEmailAddressVerificationCode = EmailAddressAuthenticationCodeInfo;
 
-//@description Checks the email address verification code for Telegram Passport @code Verification code
+//@description Checks the email address verification code for Telegram Passport @code Verification code to check
 checkEmailAddressVerificationCode code:string = Ok;
 
 
@@ -5664,7 +5668,7 @@ sendPhoneNumberConfirmationCode hash:string phone_number:string settings:phoneNu
 //@description Resends phone number confirmation code
 resendPhoneNumberConfirmationCode = AuthenticationCodeInfo;
 
-//@description Checks phone number confirmation code @code The phone number confirmation code
+//@description Checks phone number confirmation code @code Confirmation code to check
 checkPhoneNumberConfirmationCode code:string = Ok;
 
 

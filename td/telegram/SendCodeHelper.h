@@ -53,7 +53,7 @@ class SendCodeHelper {
   static constexpr int32 SENT_CODE_FLAG_HAS_TIMEOUT = 1 << 2;
 
   struct AuthenticationCodeInfo {
-    enum class Type : int32 { None, Message, Sms, Call, FlashCall };
+    enum class Type : int32 { None, Message, Sms, Call, FlashCall, MissedCall };
     Type type = Type::None;
     int32 length = 0;
     string pattern;
