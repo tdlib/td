@@ -5170,7 +5170,6 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
       max_notification_message_id.is_valid() && max_notification_message_id > last_new_message_id;
   bool has_folder_id = folder_id != FolderId();
   bool has_pending_read_channel_inbox = pending_read_channel_inbox_pts != 0;
-  bool action_bar_has_distance = action_bar == nullptr ? false : action_bar->distance >= 0;
   bool has_last_yet_unsent_message = last_message_id.is_valid() && last_message_id.is_yet_unsent();
   bool has_active_group_call_id = active_group_call_id.is_valid();
   bool has_message_ttl_setting = !message_ttl_setting.is_empty();
@@ -5179,11 +5178,12 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   bool has_theme_name = !theme_name.empty();
   bool has_flags3 = true;
   bool has_pending_join_requests = pending_join_request_count != 0;
+  bool has_action_bar = action_bar != nullptr;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_draft_message);
   STORE_FLAG(has_last_database_message);
   STORE_FLAG(false);  // legacy_know_can_report_spam
-  STORE_FLAG(action_bar == nullptr ? false : action_bar->can_report_spam);
+  STORE_FLAG(false);  // action_bar->can_report_spam
   STORE_FLAG(has_first_database_message_id);
   STORE_FLAG(false);  // legacy_is_pinned
   STORE_FLAG(has_first_database_message_id_by_index);
@@ -5221,15 +5221,15 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     STORE_FLAG(is_folder_id_inited);
     STORE_FLAG(has_pending_read_channel_inbox);
     STORE_FLAG(know_action_bar);
-    STORE_FLAG(action_bar == nullptr ? false : action_bar->can_add_contact);
-    STORE_FLAG(action_bar == nullptr ? false : action_bar->can_block_user);
-    STORE_FLAG(action_bar == nullptr ? false : action_bar->can_share_phone_number);
-    STORE_FLAG(action_bar == nullptr ? false : action_bar->can_report_location);
+    STORE_FLAG(false);  // action_bar->can_add_contact
+    STORE_FLAG(false);  // action_bar->can_block_user
+    STORE_FLAG(false);  // action_bar->can_share_phone_number
+    STORE_FLAG(false);  // action_bar->can_report_location
     STORE_FLAG(has_scheduled_server_messages);
     STORE_FLAG(has_scheduled_database_messages);
     STORE_FLAG(need_repair_channel_server_unread_count);
-    STORE_FLAG(action_bar == nullptr ? false : action_bar->can_unarchive);
-    STORE_FLAG(action_bar_has_distance);
+    STORE_FLAG(false);  // action_bar->can_unarchive
+    STORE_FLAG(false);  // action_bar_has_distance
     STORE_FLAG(hide_distance);
     STORE_FLAG(has_last_yet_unsent_message);
     STORE_FLAG(is_blocked);
@@ -5237,7 +5237,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     STORE_FLAG(has_active_group_call);
     STORE_FLAG(is_group_call_empty);
     STORE_FLAG(has_active_group_call_id);
-    STORE_FLAG(action_bar == nullptr ? false : action_bar->can_invite_members);
+    STORE_FLAG(false);  // action_bar->can_invite_members
     STORE_FLAG(has_message_ttl_setting);
     STORE_FLAG(is_message_ttl_setting_inited);
     STORE_FLAG(has_default_join_group_call_as_dialog_id);
@@ -5252,6 +5252,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     BEGIN_STORE_FLAGS();
     STORE_FLAG(has_pending_join_requests);
     STORE_FLAG(need_repair_action_bar);
+    STORE_FLAG(has_action_bar);
     END_STORE_FLAGS();
   }
 
@@ -5333,9 +5334,6 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     store(pending_read_channel_inbox_max_message_id, storer);
     store(pending_read_channel_inbox_server_unread_count, storer);
   }
-  if (action_bar_has_distance) {
-    store(action_bar->distance, storer);
-  }
   if (has_active_group_call_id) {
     store(active_group_call_id, storer);
   }
@@ -5351,6 +5349,9 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   if (has_pending_join_requests) {
     store(pending_join_request_count, storer);
     store(pending_join_request_user_ids, storer);
+  }
+  if (has_action_bar) {
+    store(action_bar, storer);
   }
 }
 
@@ -5395,6 +5396,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   bool action_bar_can_unarchive = false;
   bool action_bar_has_distance = false;
   bool action_bar_can_invite_members = false;
+  bool has_action_bar = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_draft_message);
   PARSE_FLAG(has_last_database_message);
@@ -5483,6 +5485,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(has_pending_join_requests);
     PARSE_FLAG(need_repair_action_bar);
+    PARSE_FLAG(has_action_bar);
     END_PARSE_FLAGS();
   } else {
     need_repair_action_bar = false;
@@ -5619,10 +5622,12 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     parse(pending_join_request_count, parser);
     parse(pending_join_request_user_ids, parser);
   }
-  if (legacy_know_can_report_spam && !know_action_bar) {
-    action_bar_can_report_spam = false;
+  if (has_action_bar) {
+    parse(action_bar, parser);
   }
-  if (know_action_bar) {
+
+  (void)legacy_know_can_report_spam;
+  if (know_action_bar && !has_action_bar) {
     action_bar = DialogActionBar::create(action_bar_can_report_spam, action_bar_can_add_contact,
                                          action_bar_can_block_user, action_bar_can_share_phone_number,
                                          action_bar_can_report_location, action_bar_can_unarchive,

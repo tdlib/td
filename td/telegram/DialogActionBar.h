@@ -11,6 +11,7 @@
 #include "td/telegram/td_api.h"
 
 #include "td/utils/common.h"
+#include "td/utils/tl_helpers.h"
 
 namespace td {
 
@@ -45,6 +46,42 @@ struct DialogActionBar {
   bool on_user_deleted();
 
   bool on_outgoing_message();
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    bool has_distance = distance >= 0;
+    BEGIN_STORE_FLAGS();
+    STORE_FLAG(can_report_spam);
+    STORE_FLAG(can_add_contact);
+    STORE_FLAG(can_block_user);
+    STORE_FLAG(can_share_phone_number);
+    STORE_FLAG(can_report_location);
+    STORE_FLAG(can_unarchive);
+    STORE_FLAG(can_invite_members);
+    STORE_FLAG(has_distance);
+    END_STORE_FLAGS();
+    if (has_distance) {
+      td::store(distance, storer);
+    }
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    bool has_distance;
+    BEGIN_PARSE_FLAGS();
+    PARSE_FLAG(can_report_spam);
+    PARSE_FLAG(can_add_contact);
+    PARSE_FLAG(can_block_user);
+    PARSE_FLAG(can_share_phone_number);
+    PARSE_FLAG(can_report_location);
+    PARSE_FLAG(can_unarchive);
+    PARSE_FLAG(can_invite_members);
+    PARSE_FLAG(has_distance);
+    END_PARSE_FLAGS();
+    if (has_distance) {
+      td::parse(distance, parser);
+    }
+  }
 };
 
 bool operator==(const unique_ptr<DialogActionBar> &lhs, const unique_ptr<DialogActionBar> &rhs);
