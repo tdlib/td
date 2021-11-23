@@ -31,6 +31,11 @@ unique_ptr<DialogActionBar> DialogActionBar::create(bool can_report_spam, bool c
   return action_bar;
 }
 
+bool DialogActionBar::is_empty() const {
+  return !can_report_spam && !can_add_contact && !can_block_user && !can_share_phone_number && !can_report_location &&
+         !can_invite_members;
+}
+
 void DialogActionBar::fix(Td *td, DialogId dialog_id, bool is_dialog_blocked, FolderId folder_id) {
   auto dialog_type = dialog_id.get_type();
   if (distance >= 0 && dialog_type != DialogType::User) {

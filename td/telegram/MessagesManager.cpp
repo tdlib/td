@@ -8211,6 +8211,10 @@ void MessagesManager::on_get_peer_settings(DialogId dialog_id,
                                            tl_object_ptr<telegram_api::peerSettings> &&peer_settings,
                                            bool ignore_privacy_exception) {
   CHECK(peer_settings != nullptr);
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
   if (dialog_id.get_type() == DialogType::User && !ignore_privacy_exception) {
     td_->contacts_manager_->on_update_user_need_phone_number_privacy_exception(dialog_id.get_user_id(),
                                                                                peer_settings->need_contacts_exception_);
@@ -29040,9 +29044,12 @@ void MessagesManager::send_update_secret_chats_with_user_action_bar(const Dialog
       });
 }
 
-void MessagesManager::send_update_chat_action_bar(const Dialog *d) {
+void MessagesManager::send_update_chat_action_bar(Dialog *d) {
   if (td_->auth_manager_->is_bot()) {
     return;
+  }
+  if (d->action_bar != nullptr && d->action_bar->is_empty()) {
+    d->action_bar = nullptr;
   }
 
   CHECK(d != nullptr);

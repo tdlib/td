@@ -2354,7 +2354,7 @@ class MessagesManager final : public Actor {
 
   void send_update_secret_chats_with_user_action_bar(const Dialog *d) const;
 
-  void send_update_chat_action_bar(const Dialog *d);
+  void send_update_chat_action_bar(Dialog *d);
 
   void send_update_secret_chats_with_user_theme(const Dialog *d) const;
 

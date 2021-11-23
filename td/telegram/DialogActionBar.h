@@ -31,6 +31,8 @@ struct DialogActionBar {
                                             bool can_share_phone_number, bool can_report_location, bool can_unarchive,
                                             int32 distance, bool can_invite_members);
 
+  bool is_empty() const;
+
   td_api::object_ptr<td_api::ChatActionBar> get_chat_action_bar_object(DialogType dialog_type,
                                                                        bool hide_unarchive) const;
 
