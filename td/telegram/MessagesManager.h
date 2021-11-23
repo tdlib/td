@@ -1232,7 +1232,7 @@ class MessagesManager final : public Actor {
 
     bool need_repair_action_bar = false;
     bool know_action_bar = false;
-    bool hide_distance = false;
+    bool has_outgoing_messages = false;
 
     bool is_opened = false;
     bool was_opened = false;
@@ -3052,7 +3052,7 @@ class MessagesManager final : public Actor {
 
   void update_forward_count(DialogId dialog_id, MessageId message_id, int32 update_date);
 
-  void try_hide_distance(DialogId dialog_id, const Message *m);
+  void update_has_outgoing_messages(DialogId dialog_id, const Message *m);
 
   string get_message_search_text(const Message *m) const;
 
