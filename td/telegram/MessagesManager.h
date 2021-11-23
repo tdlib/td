@@ -2550,7 +2550,7 @@ class MessagesManager final : public Actor {
 
   void add_dialog_last_database_message(Dialog *d, unique_ptr<Message> &&last_database_message);
 
-  void fix_dialog_action_bar(Dialog *d);
+  void fix_dialog_action_bar(const Dialog *d, DialogActionBar *action_bar);
 
   td_api::object_ptr<td_api::ChatType> get_chat_type_object(DialogId dialog_id) const;
 

@@ -7,11 +7,14 @@
 #pragma once
 
 #include "td/telegram/DialogId.h"
+#include "td/telegram/FolderId.h"
 #include "td/telegram/td_api.h"
 
 #include "td/utils/common.h"
 
 namespace td {
+
+class Td;
 
 struct DialogActionBar {
   int32 distance = -1;  // distance to the peer
@@ -30,6 +33,8 @@ struct DialogActionBar {
 
   td_api::object_ptr<td_api::ChatActionBar> get_chat_action_bar_object(DialogType dialog_type,
                                                                        bool hide_unarchive) const;
+
+  void fix(Td *td, DialogId dialog_id, bool is_dialog_blocked, FolderId folder_id);
 };
 
 bool operator==(const unique_ptr<DialogActionBar> &lhs, const unique_ptr<DialogActionBar> &rhs);
