@@ -35,6 +35,8 @@
 #include "td/utils/StringBuilder.h"
 #include "td/utils/Time.h"
 
+#include <tuple>
+
 namespace td {
 
 static bool is_valid_start_parameter(Slice start_parameter) {
@@ -1231,6 +1233,48 @@ string LinkManager::get_dialog_invite_link_hash(Slice invite_link) {
   }
   const auto url_query = parse_url_query(link_info.query_);
   return get_url_query_hash(link_info.is_tg_, url_query);
+}
+
+UserId LinkManager::get_link_user_id(Slice url) {
+  string lower_cased_url = to_lower(url);
+  url = lower_cased_url;
+
+  Slice link_scheme("tg:");
+  if (!begins_with(url, link_scheme)) {
+    return UserId();
+  }
+  url.remove_prefix(link_scheme.size());
+  if (begins_with(url, "//")) {
+    url.remove_prefix(2);
+  }
+
+  Slice host("user");
+  if (!begins_with(url, host)) {
+    return UserId();
+  }
+  url.remove_prefix(host.size());
+  if (begins_with(url, "/")) {
+    url.remove_prefix(1);
+  }
+  if (!begins_with(url, "?")) {
+    return UserId();
+  }
+  url.remove_prefix(1);
+  url.truncate(url.find('#'));
+
+  for (auto parameter : full_split(url, '&')) {
+    Slice key;
+    Slice value;
+    std::tie(key, value) = split(parameter, '=');
+    if (key == Slice("id")) {
+      auto r_user_id = to_integer_safe<int64>(value);
+      if (r_user_id.is_error()) {
+        return UserId();
+      }
+      return UserId(r_user_id.ok());
+    }
+  }
+  return UserId();
 }
 
 Result<MessageLinkInfo> LinkManager::get_message_link_info(Slice url) {

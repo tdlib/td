@@ -1773,48 +1773,6 @@ string get_first_url(Slice text, const vector<MessageEntity> &entities) {
   return string();
 }
 
-static UserId get_link_user_id(Slice url) {
-  string lower_cased_url = to_lower(url);
-  url = lower_cased_url;
-
-  Slice link_scheme("tg:");
-  if (!begins_with(url, link_scheme)) {
-    return UserId();
-  }
-  url.remove_prefix(link_scheme.size());
-  if (begins_with(url, "//")) {
-    url.remove_prefix(2);
-  }
-
-  Slice host("user");
-  if (!begins_with(url, host)) {
-    return UserId();
-  }
-  url.remove_prefix(host.size());
-  if (begins_with(url, "/")) {
-    url.remove_prefix(1);
-  }
-  if (!begins_with(url, "?")) {
-    return UserId();
-  }
-  url.remove_prefix(1);
-  url.truncate(url.find('#'));
-
-  for (auto parameter : full_split(url, '&')) {
-    Slice key;
-    Slice value;
-    std::tie(key, value) = split(parameter, '=');
-    if (key == Slice("id")) {
-      auto r_user_id = to_integer_safe<int64>(value);
-      if (r_user_id.is_error()) {
-        return UserId();
-      }
-      return UserId(r_user_id.ok());
-    }
-  }
-  return UserId();
-}
-
 Result<vector<MessageEntity>> parse_markdown(string &text) {
   string result;
   vector<MessageEntity> entities;
@@ -1900,7 +1858,7 @@ Result<vector<MessageEntity>> parse_markdown(string &text) {
               url.push_back(text[i++]);
             }
           }
-          auto user_id = get_link_user_id(url);
+          auto user_id = LinkManager::get_link_user_id(url);
           if (user_id.is_valid()) {
             entities.emplace_back(entity_offset, entity_length, user_id);
           } else {
@@ -2106,7 +2064,7 @@ static Result<vector<MessageEntity>> do_parse_markdown_v2(CSlice text, string &r
               return Status::Error(400, PSLICE() << "Can't find end of a URL at byte offset " << url_begin_pos);
             }
           }
-          user_id = get_link_user_id(url);
+          user_id = LinkManager::get_link_user_id(url);
           if (!user_id.is_valid()) {
             auto r_url = LinkManager::check_link(url);
             if (r_url.is_error()) {
@@ -3056,7 +3014,7 @@ static Result<vector<MessageEntity>> do_parse_html(CSlice text, string &result) 
           if (url.empty()) {
             url = result.substr(nested_entities.back().entity_begin_pos);
           }
-          auto user_id = get_link_user_id(url);
+          auto user_id = LinkManager::get_link_user_id(url);
           if (user_id.is_valid()) {
             entities.emplace_back(entity_offset, entity_length, user_id);
           } else {
