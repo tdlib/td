@@ -28,13 +28,10 @@ td_api::object_ptr<td_api::authenticationCodeInfo> SendCodeHelper::get_authentic
       max(static_cast<int32>(next_code_timestamp_.in() + 1 - 1e-9), 0));
 }
 
-Result<telegram_api::auth_resendCode> SendCodeHelper::resend_code() {
+Result<telegram_api::auth_resendCode> SendCodeHelper::resend_code() const {
   if (next_code_info_.type == AuthenticationCodeInfo::Type::None) {
     return Status::Error(400, "Authentication code can't be resend");
   }
-  sent_code_info_ = next_code_info_;
-  next_code_info_ = {};
-  next_code_timestamp_ = {};
   return telegram_api::auth_resendCode(phone_number_, phone_code_hash_);
 }
 

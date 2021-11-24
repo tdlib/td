@@ -19,9 +19,12 @@ namespace td {
 class SendCodeHelper {
  public:
   void on_sent_code(telegram_api::object_ptr<telegram_api::auth_sentCode> sent_code);
+
   td_api::object_ptr<td_api::authorizationStateWaitCode> get_authorization_state_wait_code() const;
+
   td_api::object_ptr<td_api::authenticationCodeInfo> get_authentication_code_info_object() const;
-  Result<telegram_api::auth_resendCode> resend_code();
+
+  Result<telegram_api::auth_resendCode> resend_code() const;
 
   using Settings = td_api::object_ptr<td_api::phoneNumberAuthenticationSettings>;
 
