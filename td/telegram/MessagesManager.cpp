@@ -26813,6 +26813,13 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
   if (from_dialog_id.get_type() == DialogType::SecretChat) {
     return Status::Error(400, "Can't forward messages from secret chats");
   }
+  if (!get_dialog_allow_saving_content(from_dialog_id)) {
+    for (const auto &copy_option : copy_options) {
+      if (!copy_option.send_copy || !td_->auth_manager_->is_bot()) {
+        return Status::Error(400, "Administrators of the chat restricted message forwarding");
+      }
+    }
+  }
 
   Dialog *to_dialog = get_dialog_force(to_dialog_id, "forward_messages to");
   if (to_dialog == nullptr) {
