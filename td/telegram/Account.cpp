@@ -33,10 +33,10 @@ static td_api::object_ptr<td_api::session> convert_authorization_object(
   CHECK(authorization != nullptr);
   return td_api::make_object<td_api::session>(
       authorization->hash_, authorization->current_, authorization->password_pending_,
-      !authorization->encrypted_requests_disabled_, authorization->api_id_, authorization->app_name_,
-      authorization->app_version_, authorization->official_app_, authorization->device_model_, authorization->platform_,
-      authorization->system_version_, authorization->date_created_, authorization->date_active_, authorization->ip_,
-      authorization->country_, authorization->region_);
+      !authorization->encrypted_requests_disabled_, !authorization->call_requests_disabled_, authorization->api_id_,
+      authorization->app_name_, authorization->app_version_, authorization->official_app_, authorization->device_model_,
+      authorization->platform_, authorization->system_version_, authorization->date_created_,
+      authorization->date_active_, authorization->ip_, authorization->country_, authorization->region_);
 }
 
 class SetAccountTtlQuery final : public Td::ResultHandler {
