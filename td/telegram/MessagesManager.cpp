@@ -3696,6 +3696,7 @@ class EditInlineMessageQuery final : public Td::ResultHandler {
 class ForwardMessagesActor final : public NetActorOnce {
   Promise<Unit> promise_;
   vector<int64> random_ids_;
+  DialogId from_dialog_id_;
   DialogId to_dialog_id_;
 
  public:
@@ -3705,6 +3706,7 @@ class ForwardMessagesActor final : public NetActorOnce {
   void send(int32 flags, DialogId to_dialog_id, DialogId from_dialog_id, const vector<MessageId> &message_ids,
             vector<int64> &&random_ids, int32 schedule_date, uint64 sequence_dispatcher_id) {
     random_ids_ = random_ids;
+    from_dialog_id_ = from_dialog_id;
     to_dialog_id_ = to_dialog_id;
 
     auto to_input_peer = td_->messages_manager_->get_input_peer(to_dialog_id, AccessRights::Write);
@@ -3790,6 +3792,9 @@ class ForwardMessagesActor final : public NetActorOnce {
       return;
     }
     // no on_get_dialog_error call, because two dialogs are involved
+    if (status.code() == 400 && status.message() == "CHAT_FORWARDS_RESTRICTED") {
+      td_->contacts_manager_->reload_dialog_info(from_dialog_id_, Promise<Unit>());
+    }
     for (auto &random_id : random_ids_) {
       td_->messages_manager_->on_send_message_fail(random_id, status.clone());
     }
