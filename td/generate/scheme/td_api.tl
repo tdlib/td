@@ -5377,7 +5377,7 @@ terminateAllOtherSessions = Ok;
 toggleSessionCanAcceptSecretChats session_id:int64 can_accept_secret_chats:Bool = Ok;
 
 //@description Changes the period of inactivity after which sessions will automatically be terminated @inactive_session_ttl_days New number of days of inactivity before sessions will be automatically terminated; 1-366 days
-setInactiveSessionsTtl inactive_session_ttl_days:int32 = Ok;
+setInactiveSessionTtl inactive_session_ttl_days:int32 = Ok;
 
 
 //@description Returns all website where the current user used Telegram to log in

@@ -2254,7 +2254,7 @@ class CliClient final : public Actor {
       get_args(args, session_id, can_accept_secret_chats);
       send_request(td_api::make_object<td_api::toggleSessionCanAcceptSecretChats>(session_id, can_accept_secret_chats));
     } else if (op == "sist") {
-      send_request(td_api::make_object<td_api::setInactiveSessionsTtl>(to_integer<int32>(args)));
+      send_request(td_api::make_object<td_api::setInactiveSessionTtl>(to_integer<int32>(args)));
     } else if (op == "gcw") {
       send_request(td_api::make_object<td_api::getConnectedWebsites>());
     } else if (op == "dw") {
