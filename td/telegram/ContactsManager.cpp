@@ -7463,7 +7463,7 @@ void ContactsManager::restrict_channel_participant(ChannelId channel_id, DialogI
       return promise.set_error(Status::Error(400, "Not in the chat"));
     }
   }
-  auto input_peer = td_->messages_manager_->get_input_peer(participant_dialog_id, AccessRights::Read);
+  auto input_peer = td_->messages_manager_->get_input_peer(participant_dialog_id, AccessRights::Know);
   if (input_peer == nullptr) {
     return promise.set_error(Status::Error(400, "Member not found"));
   }
