@@ -890,9 +890,7 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::getChatJoinRequests &request);
 
-  void on_request(uint64 id, const td_api::approveChatJoinRequest &request);
-
-  void on_request(uint64 id, const td_api::declineChatJoinRequest &request);
+  void on_request(uint64 id, const td_api::processChatJoinRequest &request);
 
   void on_request(uint64 id, td_api::revokeChatInviteLink &request);
 
