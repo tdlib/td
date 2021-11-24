@@ -6,6 +6,8 @@
 //
 #include "td/telegram/SendCodeHelper.h"
 
+#include "td/utils/base64.h"
+
 namespace td {
 
 void SendCodeHelper::on_sent_code(telegram_api::object_ptr<telegram_api::auth_sentCode> sent_code) {
@@ -38,6 +40,7 @@ Result<telegram_api::auth_resendCode> SendCodeHelper::resend_code() {
 
 telegram_api::object_ptr<telegram_api::codeSettings> SendCodeHelper::get_input_code_settings(const Settings &settings) {
   int32 flags = 0;
+  vector<BufferSlice> logout_tokens;
   if (settings != nullptr) {
     if (settings->allow_flash_call_) {
       flags |= telegram_api::codeSettings::ALLOW_FLASHCALL_MASK;
@@ -51,9 +54,22 @@ telegram_api::object_ptr<telegram_api::codeSettings> SendCodeHelper::get_input_c
     if (settings->allow_sms_retriever_api_) {
       flags |= telegram_api::codeSettings::ALLOW_APP_HASH_MASK;
     }
+    constexpr size_t MAX_LOGOUT_TOKENS = 20;  // server-side limit
+    for (const auto &token : settings->authentication_tokens_) {
+      auto r_logout_token = base64url_decode(token);
+      if (r_logout_token.is_ok()) {
+        logout_tokens.push_back(BufferSlice(r_logout_token.ok()));
+        if (logout_tokens.size() >= MAX_LOGOUT_TOKENS) {
+          break;
+        }
+      }
+    }
+    if (!logout_tokens.empty()) {
+      flags |= telegram_api::codeSettings::LOGOUT_TOKENS_MASK;
+    }
   }
   return telegram_api::make_object<telegram_api::codeSettings>(
-      flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, vector<BufferSlice>());
+      flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(logout_tokens));
 }
 
 telegram_api::auth_sendCode SendCodeHelper::send_code(string phone_number, const Settings &settings, int32 api_id,

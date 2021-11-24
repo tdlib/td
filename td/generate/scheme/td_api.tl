@@ -2353,7 +2353,8 @@ call id:int32 user_id:int53 is_outgoing:Bool is_video:Bool state:CallState = Cal
 //@allow_missed_call Pass true if the authentication code may be sent via a missed call to the specified phone number
 //@is_current_phone_number Pass true if the authenticated phone number is used on the current device
 //@allow_sms_retriever_api For official applications only. True, if the application can use Android SMS Retriever API (requires Google Play Services >= 10.2) to automatically receive the authentication code from the SMS. See https://developers.google.com/identity/sms-retriever/ for more details
-phoneNumberAuthenticationSettings allow_flash_call:Bool allow_missed_call:Bool is_current_phone_number:Bool allow_sms_retriever_api:Bool = PhoneNumberAuthenticationSettings;
+//@authentication_tokens List of authentication tokens, received in updateOption("authentication_token") in previously logged out sessions
+phoneNumberAuthenticationSettings allow_flash_call:Bool allow_missed_call:Bool is_current_phone_number:Bool allow_sms_retriever_api:Bool authentication_tokens:vector<string> = PhoneNumberAuthenticationSettings;
 
 
 //@description Represents a list of animations @animations List of animations

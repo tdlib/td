@@ -241,6 +241,8 @@ class CliClient final : public Actor {
   std::unordered_map<int64, User> users_;
   std::unordered_map<string, int64> username_to_user_id_;
 
+  vector<string> authentication_tokens_;
+
   void register_user(const td_api::user &user) {
     User &new_user = users_[user.id_];
     new_user.first_name = user.first_name_;
@@ -279,6 +281,10 @@ class CliClient final : public Actor {
     if (option.name_ == "my_id" && option.value_->get_id() == td_api::optionValueInteger::ID) {
       my_id_ = static_cast<const td_api::optionValueInteger *>(option.value_.get())->value_;
       LOG(INFO) << "Set my user identifier to " << my_id_;
+    }
+    if (option.name_ == "authentication_token" && option.value_->get_id() == td_api::optionValueString::ID) {
+      authentication_tokens_.insert(authentication_tokens_.begin(),
+                                    static_cast<const td_api::optionValueString *>(option.value_.get())->value_);
     }
   }
 
@@ -1576,6 +1582,11 @@ class CliClient final : public Actor {
     return td_api::make_object<td_api::backgroundTypeFill>(get_background_fill(std::move(colors)));
   }
 
+  td_api::object_ptr<td_api::phoneNumberAuthenticationSettings> get_phone_number_authentication_settings() const {
+    return td_api::make_object<td_api::phoneNumberAuthenticationSettings>(false, true, false, false,
+                                                                          vector<string>(authentication_tokens_));
+  }
+
   static td_api::object_ptr<td_api::Object> execute(td_api::object_ptr<td_api::Function> f) {
     if (combined_log.get_first_verbosity_level() < get_log_tag_verbosity_level("td_requests")) {
       LOG(ERROR) << "Execute request: " << to_string(f);
@@ -1641,8 +1652,9 @@ class CliClient final : public Actor {
 
     if (op == "gas") {
       send_request(td_api::make_object<td_api::getAuthorizationState>());
-    } else if (op == "sap") {
-      send_request(td_api::make_object<td_api::setAuthenticationPhoneNumber>(args, nullptr));
+    } else if (op == "sap" || op == "sapn") {
+      send_request(
+          td_api::make_object<td_api::setAuthenticationPhoneNumber>(args, get_phone_number_authentication_settings()));
     } else if (op == "rac") {
       send_request(td_api::make_object<td_api::resendAuthenticationCode>());
     } else if (op == "cdek" || op == "CheckDatabaseEncryptionKey") {

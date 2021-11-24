@@ -672,7 +672,11 @@ void AuthManager::on_log_out_result(NetQueryPtr &result) {
   if (result->is_ok()) {
     auto r_log_out = fetch_result<telegram_api::auth_logOut>(result->ok());
     if (r_log_out.is_ok()) {
-      // auto logged_out = r_log_out.move_as_ok();
+      auto logged_out = r_log_out.move_as_ok();
+      if (!logged_out->future_auth_token_.empty()) {
+        G()->shared_config().set_option_string("authentication_token",
+                                               base64url_encode(logged_out->future_auth_token_.as_slice()));
+      }
     } else {
       status = r_log_out.move_as_error();
     }
@@ -811,7 +815,8 @@ void AuthManager::on_result(NetQueryPtr result) {
     type = net_query_type_;
     net_query_type_ = NetQueryType::None;
     if (result->is_error()) {
-      if ((type == NetQueryType::SignIn || type == NetQueryType::RequestQrCode || type == NetQueryType::ImportQrCode) &&
+      if ((type == NetQueryType::SendCode || type == NetQueryType::SignIn || type == NetQueryType::RequestQrCode ||
+           type == NetQueryType::ImportQrCode) &&
           result->error().code() == 401 && result->error().message() == CSlice("SESSION_PASSWORD_NEEDED")) {
         auto dc_id = DcId::main();
         if (type == NetQueryType::ImportQrCode) {
