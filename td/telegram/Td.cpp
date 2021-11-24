@@ -6409,8 +6409,16 @@ void Td::on_request(uint64 id, td_api::getChatJoinRequests &request) {
 
 void Td::on_request(uint64 id, const td_api::processChatJoinRequest &request) {
   CREATE_OK_REQUEST_PROMISE();
-  contacts_manager_->process_dialog_join_requests(DialogId(request.chat_id_), UserId(request.user_id_),
-                                                  request.approve_, std::move(promise));
+  contacts_manager_->process_dialog_join_request(DialogId(request.chat_id_), UserId(request.user_id_), request.approve_,
+                                                 std::move(promise));
+}
+
+void Td::on_request(uint64 id, td_api::processChatJoinRequests &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.invite_link_);
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->process_dialog_join_requests(DialogId(request.chat_id_), request.invite_link_, request.approve_,
+                                                  std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::revokeChatInviteLink &request) {

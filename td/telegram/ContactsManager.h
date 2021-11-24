@@ -396,7 +396,10 @@ class ContactsManager final : public Actor {
                                 td_api::object_ptr<td_api::chatJoinRequest> offset_request, int32 limit,
                                 Promise<td_api::object_ptr<td_api::chatJoinRequests>> &&promise);
 
-  void process_dialog_join_requests(DialogId dialog_id, UserId user_id, bool is_approved, Promise<Unit> &&promise);
+  void process_dialog_join_request(DialogId dialog_id, UserId user_id, bool approve, Promise<Unit> &&promise);
+
+  void process_dialog_join_requests(DialogId dialog_id, const string &invite_link, bool approve,
+                                    Promise<Unit> &&promise);
 
   void revoke_dialog_invite_link(DialogId dialog_id, const string &link,
                                  Promise<td_api::object_ptr<td_api::chatInviteLinks>> &&promise);

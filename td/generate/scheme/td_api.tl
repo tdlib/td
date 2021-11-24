@@ -5024,6 +5024,12 @@ getChatJoinRequests chat_id:int53 invite_link:string query:string offset_request
 //@description Handles a pending join request in a chat @chat_id Chat identifier @user_id Identifier of the user that sent the request @approve True, if the request is approved. Otherwise the request is declived
 processChatJoinRequest chat_id:int53 user_id:int53 approve:Bool = Ok;
 
+//@description Handles all pending join requests for a given link in a chat
+//@chat_id Chat identifier
+//@invite_link Invite link for which to process join requests. If empty, all join requests will be processed. Requires administrator privileges and can_invite_users right in the chat for own links and owner privileges for other links
+//@approve True, if the requests are approved. Otherwise the requests are declived
+processChatJoinRequests chat_id:int53 invite_link:string approve:Bool = Ok;
+
 
 //@description Creates a new call @user_id Identifier of the user to be called @protocol The call protocols supported by the application @is_video True, if a video call needs to be created
 createCall user_id:int53 protocol:callProtocol is_video:Bool = CallId;

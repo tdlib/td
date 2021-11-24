@@ -3048,6 +3048,12 @@ class CliClient final : public Actor {
       get_args(args, chat_id, user_id, approve);
       send_request(
           td_api::make_object<td_api::processChatJoinRequest>(as_chat_id(chat_id), as_user_id(user_id), approve));
+    } else if (op == "pcjrs") {
+      string chat_id;
+      string invite_link;
+      bool approve;
+      get_args(args, chat_id, invite_link, approve);
+      send_request(td_api::make_object<td_api::processChatJoinRequests>(as_chat_id(chat_id), invite_link, approve));
     } else if (op == "drcil") {
       string chat_id;
       string invite_link;
