@@ -2260,6 +2260,11 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::terminateSession>(to_integer<int64>(args)));
     } else if (op == "TerminateAllOtherSessions") {
       send_request(td_api::make_object<td_api::terminateAllOtherSessions>());
+    } else if (op == "tscac") {
+      int64 session_id;
+      bool can_accept_calls;
+      get_args(args, session_id, can_accept_calls);
+      send_request(td_api::make_object<td_api::toggleSessionCanAcceptCalls>(session_id, can_accept_calls));
     } else if (op == "tscasc") {
       int64 session_id;
       bool can_accept_secret_chats;

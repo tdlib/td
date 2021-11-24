@@ -480,6 +480,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::terminateAllOtherSessions &request);
 
+  void on_request(uint64 id, const td_api::toggleSessionCanAcceptCalls &request);
+
   void on_request(uint64 id, const td_api::toggleSessionCanAcceptSecretChats &request);
 
   void on_request(uint64 id, const td_api::setInactiveSessionTtl &request);

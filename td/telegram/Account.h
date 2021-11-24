@@ -28,6 +28,8 @@ void terminate_session(Td *td, int64 session_id, Promise<Unit> &&promise);
 
 void terminate_all_other_sessions(Td *td, Promise<Unit> &&promise);
 
+void toggle_session_can_accept_calls(Td *td, int64 session_id, bool can_accept_calls, Promise<Unit> &&promise);
+
 void toggle_session_can_accept_secret_chats(Td *td, int64 session_id, bool can_accept_secret_chats,
                                             Promise<Unit> &&promise);
 

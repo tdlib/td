@@ -5375,6 +5375,9 @@ terminateSession session_id:int64 = Ok;
 //@description Terminates all other sessions of the current user
 terminateAllOtherSessions = Ok;
 
+//@description Toggles whether a session can accept incoming calls @session_id Session identifier @can_accept_calls True, if incoming calls can be accepted by the session
+toggleSessionCanAcceptCalls session_id:int64 can_accept_calls:Bool = Ok;
+
 //@description Toggles whether a session can accept incoming secret chats @session_id Session identifier @can_accept_secret_chats True, if incoming secret chats can be accepted by the session
 toggleSessionCanAcceptSecretChats session_id:int64 can_accept_secret_chats:Bool = Ok;
 

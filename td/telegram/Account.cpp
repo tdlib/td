@@ -235,10 +235,17 @@ class ChangeAuthorizationSettingsQuery final : public Td::ResultHandler {
   explicit ChangeAuthorizationSettingsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(int64 hash, bool encrypted_requests_disabled) {
-    int32 flags = telegram_api::account_changeAuthorizationSettings::ENCRYPTED_REQUESTS_DISABLED_MASK;
-    send_query(G()->net_query_creator().create(
-        telegram_api::account_changeAuthorizationSettings(flags, hash, encrypted_requests_disabled, false)));
+  void send(int64 hash, bool set_encrypted_requests_disabled, bool encrypted_requests_disabled,
+            bool set_call_requests_disabled, bool call_requests_disabled) {
+    int32 flags = 0;
+    if (set_encrypted_requests_disabled) {
+      flags |= telegram_api::account_changeAuthorizationSettings::ENCRYPTED_REQUESTS_DISABLED_MASK;
+    }
+    if (set_call_requests_disabled) {
+      flags |= telegram_api::account_changeAuthorizationSettings::CALL_REQUESTS_DISABLED_MASK;
+    }
+    send_query(G()->net_query_creator().create(telegram_api::account_changeAuthorizationSettings(
+        flags, hash, encrypted_requests_disabled, call_requests_disabled)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -419,9 +426,15 @@ void terminate_all_other_sessions(Td *td, Promise<Unit> &&promise) {
   td->create_handler<ResetAuthorizationsQuery>(std::move(promise))->send();
 }
 
+void toggle_session_can_accept_calls(Td *td, int64 session_id, bool can_accept_calls, Promise<Unit> &&promise) {
+  td->create_handler<ChangeAuthorizationSettingsQuery>(std::move(promise))
+      ->send(session_id, false, false, true, !can_accept_calls);
+}
+
 void toggle_session_can_accept_secret_chats(Td *td, int64 session_id, bool can_accept_secret_chats,
                                             Promise<Unit> &&promise) {
-  td->create_handler<ChangeAuthorizationSettingsQuery>(std::move(promise))->send(session_id, !can_accept_secret_chats);
+  td->create_handler<ChangeAuthorizationSettingsQuery>(std::move(promise))
+      ->send(session_id, true, !can_accept_secret_chats, false, false);
 }
 
 void set_inactive_session_ttl_days(Td *td, int32 authorization_ttl_days, Promise<Unit> &&promise) {
