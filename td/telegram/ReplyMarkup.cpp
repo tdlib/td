@@ -444,6 +444,12 @@ static Result<InlineKeyboardButton> get_inline_keyboard_button(tl_object_ptr<td_
   switch (button_type_id) {
     case td_api::inlineKeyboardButtonTypeUrl::ID: {
       auto button_type = move_tl_object_as<td_api::inlineKeyboardButtonTypeUrl>(button->type_);
+      auto user_id = LinkManager::get_link_user_id(button_type->url_);
+      if (user_id.is_valid()) {
+        current_button.type = InlineKeyboardButton::Type::User;
+        current_button.user_id = user_id;
+        break;
+      }
       auto r_url = LinkManager::check_link(button_type->url_);
       if (r_url.is_error()) {
         return Status::Error(400, "Inline keyboard button URL is invalid");
@@ -489,6 +495,10 @@ static Result<InlineKeyboardButton> get_inline_keyboard_button(tl_object_ptr<td_
       break;
     case td_api::inlineKeyboardButtonTypeLoginUrl::ID: {
       auto button_type = td_api::move_object_as<td_api::inlineKeyboardButtonTypeLoginUrl>(button->type_);
+      auto user_id = LinkManager::get_link_user_id(button_type->url_);
+      if (user_id.is_valid()) {
+        return Status::Error(400, "Link to a user can't be used in login URL buttons");
+      }
       auto r_url = LinkManager::check_link(button_type->url_);
       if (r_url.is_error()) {
         return Status::Error(400, "Inline keyboard button login URL is invalid");
