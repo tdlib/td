@@ -792,7 +792,8 @@ class MessagesManager final : public Actor {
   void on_dialog_photo_updated(DialogId dialog_id);
   void on_dialog_title_updated(DialogId dialog_id);
   void on_dialog_username_updated(DialogId dialog_id, const string &old_username, const string &new_username);
-  void on_dialog_permissions_updated(DialogId dialog_id);
+  void on_dialog_default_permissions_updated(DialogId dialog_id);
+  void on_dialog_allow_saving_content_updated(DialogId dialog_id);
 
   void on_dialog_user_is_contact_updated(DialogId dialog_id, bool is_contact);
   void on_dialog_user_is_deleted_updated(DialogId dialog_id, bool is_deleted);
@@ -2882,6 +2883,8 @@ class MessagesManager final : public Actor {
   string get_dialog_username(DialogId dialog_id) const;
 
   RestrictedRights get_dialog_default_permissions(DialogId dialog_id) const;
+
+  bool get_dialog_allow_saving_content(DialogId dialog_id) const;
 
   bool get_dialog_has_scheduled_messages(const Dialog *d) const;
 

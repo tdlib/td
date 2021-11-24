@@ -20260,9 +20260,9 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
       get_chat_photo_info_object(td_->file_manager_.get(), get_dialog_photo(d->dialog_id)),
       get_dialog_default_permissions(d->dialog_id).get_chat_permissions_object(),
       get_message_object(d->dialog_id, get_message(d, d->last_message_id), "get_chat_object"),
-      get_chat_positions_object(d), get_default_sender_id_object(d), d->is_marked_as_unread, d->is_blocked,
-      get_dialog_has_scheduled_messages(d), can_delete_for_self, can_delete_for_all_users,
-      can_report_dialog(d->dialog_id), d->notification_settings.silent_send_message,
+      get_chat_positions_object(d), get_default_sender_id_object(d), get_dialog_allow_saving_content(d->dialog_id),
+      d->is_marked_as_unread, d->is_blocked, get_dialog_has_scheduled_messages(d), can_delete_for_self,
+      can_delete_for_all_users, can_report_dialog(d->dialog_id), d->notification_settings.silent_send_message,
       d->server_unread_count + d->local_unread_count, d->last_read_inbox_message_id.get(),
       d->last_read_outbox_message_id.get(), d->unread_mention_count,
       get_chat_notification_settings_object(&d->notification_settings),
@@ -30492,10 +30492,7 @@ void MessagesManager::repair_dialog_scheduled_messages(Dialog *d) {
 
 void MessagesManager::on_update_dialog_has_scheduled_server_messages(DialogId dialog_id,
                                                                      bool has_scheduled_server_messages) {
-  if (!dialog_id.is_valid()) {
-    LOG(ERROR) << "Receive has_scheduled_server_messages in invalid " << dialog_id;
-    return;
-  }
+  CHECK(dialog_id.is_valid());
   if (td_->auth_manager_->is_bot() || dialog_id.get_type() == DialogType::SecretChat) {
     return;
   }
@@ -30918,12 +30915,21 @@ void MessagesManager::on_dialog_title_updated(DialogId dialog_id) {
   }
 }
 
-void MessagesManager::on_dialog_permissions_updated(DialogId dialog_id) {
+void MessagesManager::on_dialog_default_permissions_updated(DialogId dialog_id) {
   auto d = get_dialog(dialog_id);  // called from update_user, must not create the dialog
   if (d != nullptr && d->is_update_new_chat_sent) {
     send_closure(G()->td(), &Td::send_update,
                  td_api::make_object<td_api::updateChatPermissions>(
                      dialog_id.get(), get_dialog_default_permissions(dialog_id).get_chat_permissions_object()));
+  }
+}
+
+void MessagesManager::on_dialog_allow_saving_content_updated(DialogId dialog_id) {
+  auto d = get_dialog(dialog_id);  // called from update_chat, must not create the dialog
+  if (d != nullptr && d->is_update_new_chat_sent) {
+    send_closure(G()->td(), &Td::send_update,
+                 td_api::make_object<td_api::updateChatAllowSavingContent>(dialog_id.get(),
+                                                                           get_dialog_allow_saving_content(dialog_id)));
   }
 }
 
@@ -31374,6 +31380,23 @@ RestrictedRights MessagesManager::get_dialog_default_permissions(DialogId dialog
     default:
       UNREACHABLE();
       return RestrictedRights(false, false, false, false, false, false, false, false, false, false, false);
+  }
+}
+
+bool MessagesManager::get_dialog_allow_saving_content(DialogId dialog_id) const {
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      return true;
+    case DialogType::Chat:
+      return td_->contacts_manager_->get_chat_allow_saving_content(dialog_id.get_chat_id());
+    case DialogType::Channel:
+      return td_->contacts_manager_->get_channel_allow_saving_content(dialog_id.get_channel_id());
+    case DialogType::SecretChat:
+      return true;
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+      return false;
   }
 }
 
