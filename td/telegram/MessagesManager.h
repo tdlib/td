@@ -501,6 +501,8 @@ class MessagesManager final : public Actor {
   void set_dialog_permissions(DialogId dialog_id, const td_api::object_ptr<td_api::chatPermissions> &permissions,
                               Promise<Unit> &&promise);
 
+  void toggle_dialog_allow_saving_content(DialogId dialog_id, bool allow_saving_content, Promise<Unit> &&promise);
+
   void set_dialog_theme(DialogId dialog_id, const string &theme_name, Promise<Unit> &&promise);
 
   void pin_dialog_message(DialogId dialog_id, MessageId message_id, bool disable_notification, bool only_for_self,

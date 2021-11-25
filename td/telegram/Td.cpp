@@ -6167,6 +6167,13 @@ void Td::on_request(uint64 id, td_api::setChatDraftMessage &request) {
                                                       std::move(request.draft_message_)));
 }
 
+void Td::on_request(uint64 id, const td_api::toggleChatAllowSavingContent &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->toggle_dialog_allow_saving_content(DialogId(request.chat_id_), request.allow_saving_content_,
+                                                        std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::toggleChatIsPinned &request) {
   CHECK_IS_USER();
   answer_ok_query(id, messages_manager_->toggle_dialog_is_pinned(DialogListId(request.chat_list_),

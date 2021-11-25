@@ -3187,6 +3187,12 @@ class CliClient final : public Actor {
           as_chat_id(chat_id), as_message_thread_id(message_thread_id), std::move(draft_message)));
     } else if (op == "cadm") {
       send_request(td_api::make_object<td_api::clearAllDraftMessages>());
+    } else if (op == "tcasc") {
+      string chat_id;
+      bool allow_saving_content;
+      get_args(args, chat_id, allow_saving_content);
+      send_request(
+          td_api::make_object<td_api::toggleChatAllowSavingContent>(as_chat_id(chat_id), allow_saving_content));
     } else if (op == "tcip" || op == "tcipa" || begins_with(op, "tcip-")) {
       string chat_id;
       bool is_pinned;

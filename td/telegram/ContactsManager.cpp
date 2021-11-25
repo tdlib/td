@@ -3731,7 +3731,7 @@ void ContactsManager::Chat::store(StorerT &storer) const {
   STORE_FLAG(has_default_permissions_version);
   STORE_FLAG(has_pinned_message_version);
   STORE_FLAG(has_cache_version);
-  STORE_FLAG(allow_saving_content);
+  STORE_FLAG(noforwards);
   END_STORE_FLAGS();
 
   store(title, storer);
@@ -3782,7 +3782,7 @@ void ContactsManager::Chat::parse(ParserT &parser) {
   PARSE_FLAG(has_default_permissions_version);
   PARSE_FLAG(has_pinned_message_version);
   PARSE_FLAG(has_cache_version);
-  PARSE_FLAG(allow_saving_content);
+  PARSE_FLAG(noforwards);
   END_PARSE_FLAGS();
 
   parse(title, parser);
@@ -3942,7 +3942,7 @@ void ContactsManager::Channel::store(StorerT &storer) const {
   STORE_FLAG(legacy_has_active_group_call);
   STORE_FLAG(is_fake);
   STORE_FLAG(is_gigagroup);
-  STORE_FLAG(allow_saving_content);
+  STORE_FLAG(noforwards);
   END_STORE_FLAGS();
 
   store(status, storer);
@@ -4012,7 +4012,7 @@ void ContactsManager::Channel::parse(ParserT &parser) {
   PARSE_FLAG(legacy_has_active_group_call);
   PARSE_FLAG(is_fake);
   PARSE_FLAG(is_gigagroup);
-  PARSE_FLAG(allow_saving_content);
+  PARSE_FLAG(noforwards);
   END_PARSE_FLAGS();
 
   if (use_new_rights) {
@@ -4681,7 +4681,7 @@ bool ContactsManager::get_chat_allow_saving_content(ChatId chat_id) const {
   if (c == nullptr) {
     return false;
   }
-  return c->allow_saving_content;
+  return !c->noforwards;
 }
 
 bool ContactsManager::get_channel_allow_saving_content(ChannelId channel_id) const {
@@ -4689,7 +4689,7 @@ bool ContactsManager::get_channel_allow_saving_content(ChannelId channel_id) con
   if (c == nullptr) {
     return false;
   }
-  return c->allow_saving_content;
+  return !c->noforwards;
 }
 
 string ContactsManager::get_user_private_forward_name(UserId user_id) {
@@ -9763,9 +9763,9 @@ void ContactsManager::update_chat(Chat *c, ChatId chat_id, bool from_binlog, boo
     }
     c->is_status_changed = false;
   }
-  if (c->is_allow_saving_content_changed) {
+  if (c->is_noforwards_changed) {
     td_->messages_manager_->on_dialog_allow_saving_content_updated(DialogId(chat_id));
-    c->is_allow_saving_content_changed = false;
+    c->is_noforwards_changed = false;
   }
 
   LOG(DEBUG) << "Update " << chat_id << ": need_save_to_database = " << c->need_save_to_database
@@ -9853,9 +9853,9 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
     }
     c->is_default_permissions_changed = false;
   }
-  if (c->is_allow_saving_content_changed) {
+  if (c->is_noforwards_changed) {
     td_->messages_manager_->on_dialog_allow_saving_content_updated(DialogId(channel_id));
-    c->is_allow_saving_content_changed = false;
+    c->is_noforwards_changed = false;
   }
 
   if (!td_->auth_manager_->is_bot()) {
@@ -12909,12 +12909,11 @@ void ContactsManager::on_update_chat_default_permissions(Chat *c, ChatId chat_id
   }
 }
 
-void ContactsManager::on_update_chat_allow_saving_content(Chat *c, ChatId chat_id, bool allow_saving_content) {
-  if (c->allow_saving_content != allow_saving_content) {
-    LOG(INFO) << "Update " << chat_id << " allow_saving_content from " << c->allow_saving_content << " to "
-              << allow_saving_content;
-    c->allow_saving_content = allow_saving_content;
-    c->is_allow_saving_content_changed = true;
+void ContactsManager::on_update_chat_noforwards(Chat *c, ChatId chat_id, bool noforwards) {
+  if (c->noforwards != noforwards) {
+    LOG(INFO) << "Update " << chat_id << " noforwards from " << c->noforwards << " to " << noforwards;
+    c->noforwards = noforwards;
+    c->is_noforwards_changed = true;
     c->need_save_to_database = true;
   }
 }
@@ -13240,13 +13239,11 @@ void ContactsManager::on_update_channel_default_permissions(Channel *c, ChannelI
   }
 }
 
-void ContactsManager::on_update_channel_allow_saving_content(Channel *c, ChannelId channel_id,
-                                                             bool allow_saving_content) {
-  if (c->allow_saving_content != allow_saving_content) {
-    LOG(INFO) << "Update " << channel_id << " allow_saving_content from " << c->allow_saving_content << " to "
-              << allow_saving_content;
-    c->allow_saving_content = allow_saving_content;
-    c->is_allow_saving_content_changed = true;
+void ContactsManager::on_update_channel_noforwards(Channel *c, ChannelId channel_id, bool noforwards) {
+  if (c->noforwards != noforwards) {
+    LOG(INFO) << "Update " << channel_id << " noforwards from " << c->noforwards << " to " << noforwards;
+    c->noforwards = noforwards;
+    c->is_noforwards_changed = true;
     c->need_save_to_database = true;
   }
 }
@@ -15298,7 +15295,7 @@ void ContactsManager::on_chat_update(telegram_api::chat &chat, const char *sourc
                                      chat.version_);
   on_update_chat_photo(c, chat_id, std::move(chat.photo_));
   on_update_chat_active(c, chat_id, is_active);
-  on_update_chat_allow_saving_content(c, chat_id, !chat.noforwards_);
+  on_update_chat_noforwards(c, chat_id, chat.noforwards_);
   on_update_chat_migrated_to_channel_id(c, chat_id, migrated_to_channel_id);
   LOG_IF(INFO, !is_active && !migrated_to_channel_id.is_valid()) << chat_id << " is deactivated" << debug_str;
   if (c->cache_version != Chat::CACHE_VERSION) {
@@ -15435,7 +15432,7 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
       on_update_channel_photo(c, channel_id, std::move(channel.photo_));
       on_update_channel_default_permissions(c, channel_id,
                                             get_restricted_rights(std::move(channel.default_banned_rights_)));
-      on_update_channel_allow_saving_content(c, channel_id, !channel.noforwards_);
+      on_update_channel_noforwards(c, channel_id, channel.noforwards_);
 
       if (c->has_linked_channel != has_linked_channel || c->has_location != has_location ||
           c->is_slow_mode_enabled != is_slow_mode_enabled || c->is_megagroup != is_megagroup ||
@@ -15494,7 +15491,7 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
   on_update_channel_username(c, channel_id, std::move(channel.username_));  // uses status, must be called after
   on_update_channel_default_permissions(c, channel_id,
                                         get_restricted_rights(std::move(channel.default_banned_rights_)));
-  on_update_channel_allow_saving_content(c, channel_id, !channel.noforwards_);
+  on_update_channel_noforwards(c, channel_id, channel.noforwards_);
 
   bool need_update_participant_count = have_participant_count && participant_count != c->participant_count;
   if (need_update_participant_count) {
@@ -15588,7 +15585,7 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, co
   // on_update_channel_username(c, channel_id, "");  // don't know if channel username is empty, so don't update it
   tl_object_ptr<telegram_api::chatBannedRights> banned_rights;  // == nullptr
   on_update_channel_default_permissions(c, channel_id, get_restricted_rights(std::move(banned_rights)));
-  on_update_channel_allow_saving_content(c, channel_id, true);
+  on_update_channel_noforwards(c, channel_id, false);
   td_->messages_manager_->on_update_dialog_group_call(DialogId(channel_id), false, false, "receive channelForbidden");
 
   bool sign_messages = false;

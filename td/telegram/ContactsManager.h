@@ -723,14 +723,14 @@ class ContactsManager final : public Actor {
     uint32 cache_version = 0;
 
     bool is_active = false;
-    bool allow_saving_content = true;
+    bool noforwards = true;
 
     bool is_title_changed = true;
     bool is_photo_changed = true;
     bool is_default_permissions_changed = true;
     bool is_status_changed = true;
     bool is_is_active_changed = true;
-    bool is_allow_saving_content_changed = true;
+    bool is_noforwards_changed = true;
     bool is_changed = true;             // have new changes that need to be sent to the client and database
     bool need_save_to_database = true;  // have new changes that need only to be saved to the database
     bool is_update_basic_group_sent = false;
@@ -799,7 +799,7 @@ class ContactsManager final : public Actor {
     bool has_location = false;
     bool sign_messages = false;
     bool is_slow_mode_enabled = false;
-    bool allow_saving_content = true;
+    bool noforwards = true;
 
     bool is_megagroup = false;
     bool is_gigagroup = false;
@@ -812,7 +812,7 @@ class ContactsManager final : public Actor {
     bool is_photo_changed = true;
     bool is_default_permissions_changed = true;
     bool is_status_changed = true;
-    bool is_allow_saving_content_changed = true;
+    bool is_noforwards_changed = true;
     bool had_read_access = true;
     bool was_member = false;
     bool is_changed = true;             // have new changes that need to be sent to the client and database
@@ -1216,7 +1216,7 @@ class ContactsManager final : public Actor {
   static void on_update_chat_title(Chat *c, ChatId chat_id, string &&title);
   static void on_update_chat_active(Chat *c, ChatId chat_id, bool is_active);
   static void on_update_chat_migrated_to_channel_id(Chat *c, ChatId chat_id, ChannelId migrated_to_channel_id);
-  static void on_update_chat_allow_saving_content(Chat *c, ChatId chat_id, bool allow_saving_content);
+  static void on_update_chat_noforwards(Chat *c, ChatId chat_id, bool noforwards);
 
   void on_update_chat_full_photo(ChatFull *chat_full, ChatId chat_id, Photo photo);
   bool on_update_chat_full_participants_short(ChatFull *chat_full, ChatId chat_id, int32 version);
@@ -1232,7 +1232,7 @@ class ContactsManager final : public Actor {
   void on_update_channel_status(Channel *c, ChannelId channel_id, DialogParticipantStatus &&status);
   static void on_update_channel_default_permissions(Channel *c, ChannelId channel_id,
                                                     RestrictedRights default_permissions);
-  static void on_update_channel_allow_saving_content(Channel *c, ChannelId channel_id, bool allow_saving_content);
+  static void on_update_channel_noforwards(Channel *c, ChannelId channel_id, bool noforwards);
 
   void on_update_channel_bot_user_ids(ChannelId channel_id, vector<UserId> &&bot_user_ids);
 

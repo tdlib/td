@@ -1477,6 +1477,44 @@ class EditChatDefaultBannedRightsQuery final : public Td::ResultHandler {
   }
 };
 
+class ToggleNoForwardsQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit ToggleNoForwardsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, bool allow_saving_content) {
+    dialog_id_ = dialog_id;
+    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_toggleNoForwards(std::move(input_peer), !allow_saving_content)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_toggleNoForwards>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for ToggleNoForwardsQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    if (status.message() == "CHAT_NOT_MODIFIED") {
+      promise_.set_value(Unit());
+      return;
+    } else {
+      td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "ToggleNoForwardsQuery");
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
 class SaveDraftMessageQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
@@ -31927,7 +31965,7 @@ void MessagesManager::set_dialog_title(DialogId dialog_id, const string &title, 
       UNREACHABLE();
   }
 
-  // TODO this can be wrong if there was previous change title requests
+  // TODO this can be wrong if there were previous change title requests
   if (get_dialog_title(dialog_id) == new_title) {
     return promise.set_value(Unit());
   }
@@ -32005,9 +32043,6 @@ void MessagesManager::set_dialog_message_ttl_setting(DialogId dialog_id, int32 t
 void MessagesManager::set_dialog_permissions(DialogId dialog_id,
                                              const td_api::object_ptr<td_api::chatPermissions> &permissions,
                                              Promise<Unit> &&promise) {
-  LOG(INFO) << "Receive setChatPermissions request to change permissions of " << dialog_id << " to "
-            << to_string(permissions);
-
   if (!have_dialog_force(dialog_id, "set_dialog_permissions")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
@@ -32049,7 +32084,7 @@ void MessagesManager::set_dialog_permissions(DialogId dialog_id,
 
   auto new_permissions = get_restricted_rights(permissions);
 
-  // TODO this can be wrong if there was previous change permissions requests
+  // TODO this can be wrong if there were previous change permissions requests
   if (get_dialog_default_permissions(dialog_id) == new_permissions) {
     return promise.set_value(Unit());
   }
@@ -32058,9 +32093,49 @@ void MessagesManager::set_dialog_permissions(DialogId dialog_id,
   td_->create_handler<EditChatDefaultBannedRightsQuery>(std::move(promise))->send(dialog_id, new_permissions);
 }
 
-void MessagesManager::set_dialog_theme(DialogId dialog_id, const string &theme_name, Promise<Unit> &&promise) {
-  LOG(INFO) << "Receive setChatTheme request to change theme of " << dialog_id << " to " << theme_name;
+void MessagesManager::toggle_dialog_allow_saving_content(DialogId dialog_id, bool allow_saving_content,
+                                                         Promise<Unit> &&promise) {
+  if (!have_dialog_force(dialog_id, "toggle_dialog_allow_saving_content")) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+    return promise.set_error(Status::Error(400, "Can't access the chat"));
+  }
 
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+    case DialogType::SecretChat:
+      return promise.set_error(Status::Error(400, "Can't restrict saving content in the chat"));
+    case DialogType::Chat: {
+      auto chat_id = dialog_id.get_chat_id();
+      auto status = td_->contacts_manager_->get_chat_status(chat_id);
+      if (!status.is_creator()) {
+        return promise.set_error(Status::Error(400, "Only owner can restrict saving content"));
+      }
+      break;
+    }
+    case DialogType::Channel: {
+      auto status = td_->contacts_manager_->get_channel_status(dialog_id.get_channel_id());
+      if (!status.is_creator()) {
+        return promise.set_error(Status::Error(400, "Only owner can restrict saving content"));
+      }
+      break;
+    }
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+  }
+
+  // TODO this can be wrong if there were previous toggle_dialog_allow_saving_content requests
+  if (get_dialog_allow_saving_content(dialog_id) == allow_saving_content) {
+    return promise.set_value(Unit());
+  }
+
+  // TODO invoke after
+  td_->create_handler<ToggleNoForwardsQuery>(std::move(promise))->send(dialog_id, allow_saving_content);
+}
+
+void MessagesManager::set_dialog_theme(DialogId dialog_id, const string &theme_name, Promise<Unit> &&promise) {
   auto d = get_dialog_force(dialog_id, "set_dialog_theme");
   if (d == nullptr) {
     return promise.set_error(Status::Error(400, "Chat not found"));
@@ -32088,7 +32163,7 @@ void MessagesManager::set_dialog_theme(DialogId dialog_id, const string &theme_n
       UNREACHABLE();
   }
 
-  // TODO this can be wrong if there was previous change theme requests
+  // TODO this can be wrong if there were previous change theme requests
   if (d->theme_name == theme_name) {
     return promise.set_value(Unit());
   }

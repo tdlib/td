@@ -828,6 +828,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::setChatDraftMessage &request);
 
+  void on_request(uint64 id, const td_api::toggleChatAllowSavingContent &request);
+
   void on_request(uint64 id, const td_api::toggleChatIsPinned &request);
 
   void on_request(uint64 id, const td_api::toggleChatIsMarkedAsUnread &request);

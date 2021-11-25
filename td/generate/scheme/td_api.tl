@@ -4783,6 +4783,10 @@ setChatDraftMessage chat_id:int53 message_thread_id:int53 draft_message:draftMes
 //@chat_id Chat identifier @notification_settings New notification settings for the chat. If the chat is muted for more than 1 week, it is considered to be muted forever
 setChatNotificationSettings chat_id:int53 notification_settings:chatNotificationSettings = Ok;
 
+//@description Changes the ability of users to save, forward, or copy chat content. Supported only for basic groups, supergroups and channels. Requires owner privileges
+//@chat_id Chat identifier @allow_saving_content True, if chat content can be saved locally, forwarded, or copied
+toggleChatAllowSavingContent chat_id:int53 allow_saving_content:Bool = Ok;
+
 //@description Changes the marked as unread state of a chat @chat_id Chat identifier @is_marked_as_unread New value of is_marked_as_unread
 toggleChatIsMarkedAsUnread chat_id:int53 is_marked_as_unread:Bool = Ok;
 
