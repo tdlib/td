@@ -134,6 +134,7 @@ class MessagesManager final : public Actor {
   static constexpr int32 SEND_MESSAGE_FLAG_GROUP_MEDIA = 1 << 9;
   static constexpr int32 SEND_MESSAGE_FLAG_HAS_SCHEDULE_DATE = 1 << 10;
   static constexpr int32 SEND_MESSAGE_FLAG_HAS_MESSAGE = 1 << 11;
+  static constexpr int32 SEND_MESSAGE_FLAG_HAS_SEND_AS = 1 << 13;
 
   static constexpr int32 ONLINE_MEMBER_COUNT_CACHE_EXPIRE_TIME = 30 * 60;
 
@@ -1085,6 +1086,7 @@ class MessagesManager final : public Actor {
     bool are_media_timestamp_entities_found = false;
     bool noforwards = false;
 
+    bool has_explicit_sender = false;       // for send_message
     bool is_copy = false;                   // for send_message
     bool from_background = false;           // for send_message
     bool disable_web_page_preview = false;  // for send_message
@@ -2775,6 +2777,8 @@ class MessagesManager final : public Actor {
   static bool get_message_disable_web_page_preview(const Message *m);
 
   static int32 get_message_flags(const Message *m);
+
+  tl_object_ptr<telegram_api::InputPeer> get_send_message_as_input_peer(const Message *m) const;
 
   static bool is_forward_info_sender_hidden(const MessageForwardInfo *forward_info);
 

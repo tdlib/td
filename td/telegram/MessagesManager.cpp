@@ -3075,8 +3075,8 @@ class SendMessageActor final : public NetActorOnce {
   DialogId dialog_id_;
 
  public:
-  void send(int32 flags, DialogId dialog_id, MessageId reply_to_message_id, int32 schedule_date,
-            tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup,
+  void send(int32 flags, DialogId dialog_id, tl_object_ptr<telegram_api::InputPeer> as_input_peer,
+            MessageId reply_to_message_id, int32 schedule_date, tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup,
             vector<tl_object_ptr<telegram_api::MessageEntity>> &&entities, const string &text, int64 random_id,
             NetQueryRef *send_query_ref, uint64 sequence_dispatcher_id) {
     random_id_ = random_id;
@@ -3092,11 +3092,14 @@ class SendMessageActor final : public NetActorOnce {
     if (!entities.empty()) {
       flags |= MessagesManager::SEND_MESSAGE_FLAG_HAS_ENTITIES;
     }
+    if (as_input_peer != nullptr) {
+      flags |= MessagesManager::SEND_MESSAGE_FLAG_HAS_SEND_AS;
+    }
 
     auto query = G()->net_query_creator().create(telegram_api::messages_sendMessage(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_peer),
         reply_to_message_id.get_server_message_id().get(), text, random_id, std::move(reply_markup),
-        std::move(entities), schedule_date, nullptr));
+        std::move(entities), schedule_date, std::move(as_input_peer)));
     if (G()->shared_config().get_option_boolean("use_quick_ack")) {
       query->quick_ack_promise_ = PromiseCreator::lambda(
           [random_id](Unit) {
@@ -3210,17 +3213,23 @@ class SendInlineBotResultQuery final : public Td::ResultHandler {
   DialogId dialog_id_;
 
  public:
-  NetQueryRef send(int32 flags, DialogId dialog_id, MessageId reply_to_message_id, int32 schedule_date, int64 random_id,
-                   int64 query_id, const string &result_id) {
+  NetQueryRef send(int32 flags, DialogId dialog_id, tl_object_ptr<telegram_api::InputPeer> as_input_peer,
+                   MessageId reply_to_message_id, int32 schedule_date, int64 random_id, int64 query_id,
+                   const string &result_id) {
     random_id_ = random_id;
     dialog_id_ = dialog_id;
 
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
     CHECK(input_peer != nullptr);
 
+    if (as_input_peer != nullptr) {
+      flags |= MessagesManager::SEND_MESSAGE_FLAG_HAS_SEND_AS;
+    }
+
     auto query = G()->net_query_creator().create(telegram_api::messages_sendInlineBotResult(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_peer),
-        reply_to_message_id.get_server_message_id().get(), random_id, query_id, result_id, schedule_date, nullptr));
+        reply_to_message_id.get_server_message_id().get(), random_id, query_id, result_id, schedule_date,
+        std::move(as_input_peer)));
     auto send_query_ref = query.get_weak();
     send_query(std::move(query));
     return send_query_ref;
@@ -3256,9 +3265,9 @@ class SendMultiMediaActor final : public NetActorOnce {
   DialogId dialog_id_;
 
  public:
-  void send(int32 flags, DialogId dialog_id, MessageId reply_to_message_id, int32 schedule_date,
-            vector<FileId> &&file_ids, vector<tl_object_ptr<telegram_api::inputSingleMedia>> &&input_single_media,
-            uint64 sequence_dispatcher_id) {
+  void send(int32 flags, DialogId dialog_id, tl_object_ptr<telegram_api::InputPeer> as_input_peer,
+            MessageId reply_to_message_id, int32 schedule_date, vector<FileId> &&file_ids,
+            vector<tl_object_ptr<telegram_api::inputSingleMedia>> &&input_single_media, uint64 sequence_dispatcher_id) {
     for (auto &single_media : input_single_media) {
       random_ids_.push_back(single_media->random_id_);
       CHECK(FileManager::extract_was_uploaded(single_media->media_) == false);
@@ -3275,9 +3284,14 @@ class SendMultiMediaActor final : public NetActorOnce {
       return;
     }
 
-    auto query = G()->net_query_creator().create(telegram_api::messages_sendMultiMedia(
-        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_peer),
-        reply_to_message_id.get_server_message_id().get(), std::move(input_single_media), schedule_date, nullptr));
+    if (as_input_peer != nullptr) {
+      flags |= MessagesManager::SEND_MESSAGE_FLAG_HAS_SEND_AS;
+    }
+
+    auto query = G()->net_query_creator().create(
+        telegram_api::messages_sendMultiMedia(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+                                              std::move(input_peer), reply_to_message_id.get_server_message_id().get(),
+                                              std::move(input_single_media), schedule_date, std::move(as_input_peer)));
     // no quick ack, because file reference errors are very likely to happen
     query->debug("send to MessagesManager::MultiSequenceDispatcher");
     send_closure(td_->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
@@ -3365,8 +3379,9 @@ class SendMediaActor final : public NetActorOnce {
   bool was_thumbnail_uploaded_ = false;
 
  public:
-  void send(FileId file_id, FileId thumbnail_file_id, int32 flags, DialogId dialog_id, MessageId reply_to_message_id,
-            int32 schedule_date, tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup,
+  void send(FileId file_id, FileId thumbnail_file_id, int32 flags, DialogId dialog_id,
+            tl_object_ptr<telegram_api::InputPeer> as_input_peer, MessageId reply_to_message_id, int32 schedule_date,
+            tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup,
             vector<tl_object_ptr<telegram_api::MessageEntity>> &&entities, const string &text,
             tl_object_ptr<telegram_api::InputMedia> &&input_media, int64 random_id, NetQueryRef *send_query_ref,
             uint64 sequence_dispatcher_id) {
@@ -3384,14 +3399,18 @@ class SendMediaActor final : public NetActorOnce {
       stop();
       return;
     }
+
     if (!entities.empty()) {
       flags |= telegram_api::messages_sendMedia::ENTITIES_MASK;
+    }
+    if (as_input_peer != nullptr) {
+      flags |= MessagesManager::SEND_MESSAGE_FLAG_HAS_SEND_AS;
     }
 
     auto query = G()->net_query_creator().create(telegram_api::messages_sendMedia(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_peer),
         reply_to_message_id.get_server_message_id().get(), std::move(input_media), text, random_id,
-        std::move(reply_markup), std::move(entities), schedule_date, nullptr));
+        std::move(reply_markup), std::move(entities), schedule_date, std::move(as_input_peer)));
     if (G()->shared_config().get_option_boolean("use_quick_ack") && was_uploaded_) {
       query->quick_ack_promise_ = PromiseCreator::lambda(
           [random_id](Unit) {
@@ -3741,7 +3760,8 @@ class ForwardMessagesActor final : public NetActorOnce {
   explicit ForwardMessagesActor(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(int32 flags, DialogId to_dialog_id, DialogId from_dialog_id, const vector<MessageId> &message_ids,
+  void send(int32 flags, DialogId to_dialog_id, DialogId from_dialog_id,
+            tl_object_ptr<telegram_api::InputPeer> as_input_peer, const vector<MessageId> &message_ids,
             vector<int64> &&random_ids, int32 schedule_date, uint64 sequence_dispatcher_id) {
     random_ids_ = random_ids;
     from_dialog_id_ = from_dialog_id;
@@ -3761,10 +3781,14 @@ class ForwardMessagesActor final : public NetActorOnce {
       return;
     }
 
+    if (as_input_peer != nullptr) {
+      flags |= MessagesManager::SEND_MESSAGE_FLAG_HAS_SEND_AS;
+    }
+
     auto query = G()->net_query_creator().create(telegram_api::messages_forwardMessages(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
         std::move(from_input_peer), MessagesManager::get_server_message_ids(message_ids), std::move(random_ids),
-        std::move(to_input_peer), schedule_date, nullptr));
+        std::move(to_input_peer), schedule_date, std::move(as_input_peer)));
     if (G()->shared_config().get_option_boolean("use_quick_ack")) {
       query->quick_ack_promise_ = PromiseCreator::lambda(
           [random_ids = random_ids_](Unit) {
@@ -4880,6 +4904,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   if (has_flags3) {
     BEGIN_STORE_FLAGS();
     STORE_FLAG(noforwards);
+    STORE_FLAG(has_explicit_sender);
     END_STORE_FLAGS();
   }
 
@@ -5110,6 +5135,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   if (has_flags3) {
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(noforwards);
+    PARSE_FLAG(has_explicit_sender);
     END_PARSE_FLAGS();
   }
 
@@ -23658,10 +23684,19 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
     }
     m->sender_dialog_id = dialog_id;
   } else {
-    if (is_anonymous_administrator(dialog_id, &m->author_signature)) {
-      m->sender_dialog_id = dialog_id;
+    if (d->default_send_message_as_dialog_id.is_valid()) {
+      if (d->default_send_message_as_dialog_id.get_type() == DialogType::User) {
+        m->sender_user_id = my_id;
+      } else {
+        m->sender_dialog_id = d->default_send_message_as_dialog_id;
+      }
+      m->has_explicit_sender = true;
     } else {
-      m->sender_user_id = my_id;
+      if (is_anonymous_administrator(dialog_id, &m->author_signature)) {
+        m->sender_dialog_id = dialog_id;
+      } else {
+        m->sender_user_id = my_id;
+      }
     }
   }
   m->send_date = G()->unix_time();
@@ -24556,8 +24591,8 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, const Messag
           int64 random_id = begin_send_message(dialog_id, m);
           send_closure(
               td_->create_net_actor<SendMediaActor>(), &SendMediaActor::send, file_id, thumbnail_file_id,
-              get_message_flags(m), dialog_id, m->reply_to_message_id, get_message_schedule_date(m),
-              get_input_reply_markup(m->reply_markup),
+              get_message_flags(m), dialog_id, get_send_message_as_input_peer(m), m->reply_to_message_id,
+              get_message_schedule_date(m), get_input_reply_markup(m->reply_markup),
               get_input_message_entities(td_->contacts_manager_.get(), caption, "on_message_media_uploaded"),
               caption == nullptr ? "" : caption->text, std::move(input_media), random_id, &m->send_query_ref,
               get_sequence_dispatcher_id(dialog_id, m->is_copy ? MessageContentType::None : m->content->get_type()));
@@ -24808,6 +24843,7 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
   vector<FileId> file_ids;
   vector<int64> random_ids;
   vector<tl_object_ptr<telegram_api::inputSingleMedia>> input_single_media;
+  tl_object_ptr<telegram_api::InputPeer> as_input_peer;
   MessageId reply_to_message_id;
   int32 flags = 0;
   int32 schedule_date = 0;
@@ -24824,6 +24860,7 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
     flags = get_message_flags(m);
     schedule_date = get_message_schedule_date(m);
     is_copy = m->is_copy;
+    as_input_peer = get_send_message_as_input_peer(m);
 
     file_ids.push_back(get_message_content_any_file_id(m->content.get()));
     random_ids.push_back(begin_send_message(dialog_id, m));
@@ -24886,7 +24923,8 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
     LOG(INFO) << "Media group " << media_album_id << " from " << dialog_id << " is empty";
   }
   send_closure(td_->create_net_actor<SendMultiMediaActor>(), &SendMultiMediaActor::send, flags, dialog_id,
-               reply_to_message_id, schedule_date, std::move(file_ids), std::move(input_single_media),
+               std::move(as_input_peer), reply_to_message_id, schedule_date, std::move(file_ids),
+               std::move(input_single_media),
                get_sequence_dispatcher_id(dialog_id, is_copy ? MessageContentType::None : MessageContentType::Photo));
 }
 
@@ -24918,7 +24956,8 @@ void MessagesManager::on_text_message_ready_to_send(DialogId dialog_id, MessageI
                  m->media_album_id, m->disable_notification, random_id);
   } else {
     send_closure(td_->create_net_actor<SendMessageActor>(), &SendMessageActor::send, get_message_flags(m), dialog_id,
-                 m->reply_to_message_id, get_message_schedule_date(m), get_input_reply_markup(m->reply_markup),
+                 get_send_message_as_input_peer(m), m->reply_to_message_id, get_message_schedule_date(m),
+                 get_input_reply_markup(m->reply_markup),
                  get_input_message_entities(td_->contacts_manager_.get(), message_text->entities, "do_send_message"),
                  message_text->text, random_id, &m->send_query_ref,
                  get_sequence_dispatcher_id(dialog_id, content_type));
@@ -25289,7 +25328,8 @@ void MessagesManager::do_send_inline_query_result_message(DialogId dialog_id, co
     flags |= telegram_api::messages_sendInlineBotResult::HIDE_VIA_MASK;
   }
   m->send_query_ref = td_->create_handler<SendInlineBotResultQuery>()->send(
-      flags, dialog_id, m->reply_to_message_id, get_message_schedule_date(m), random_id, query_id, result_id);
+      flags, dialog_id, get_send_message_as_input_peer(m), m->reply_to_message_id, get_message_schedule_date(m),
+      random_id, query_id, result_id);
 }
 
 bool MessagesManager::can_overflow_message_id(DialogId dialog_id) {
@@ -26414,6 +26454,14 @@ int32 MessagesManager::get_message_flags(const Message *m) {
   return flags;
 }
 
+tl_object_ptr<telegram_api::InputPeer> MessagesManager::get_send_message_as_input_peer(const Message *m) const {
+  if (!m->has_explicit_sender) {
+    return nullptr;
+  }
+  auto sender_dialog_id = get_message_sender(m);
+  return get_input_peer(sender_dialog_id, AccessRights::Write);
+}
+
 bool MessagesManager::can_set_game_score(FullMessageId full_message_id) const {
   return can_set_game_score(full_message_id.get_dialog_id(), get_message(full_message_id));
 }
@@ -26710,12 +26758,16 @@ void MessagesManager::do_forward_messages(DialogId to_dialog_id, DialogId from_d
   if (schedule_date != 0) {
     flags |= SEND_MESSAGE_FLAG_HAS_SCHEDULE_DATE;
   }
+  if (messages[0]->has_explicit_sender) {
+    flags |= SEND_MESSAGE_FLAG_HAS_SEND_AS;
+  }
 
   vector<int64> random_ids =
       transform(messages, [this, to_dialog_id](const Message *m) { return begin_send_message(to_dialog_id, m); });
   send_closure(td_->create_net_actor<ForwardMessagesActor>(get_erase_log_event_promise(log_event_id)),
-               &ForwardMessagesActor::send, flags, to_dialog_id, from_dialog_id, message_ids, std::move(random_ids),
-               schedule_date, get_sequence_dispatcher_id(to_dialog_id, MessageContentType::None));
+               &ForwardMessagesActor::send, flags, to_dialog_id, from_dialog_id,
+               get_send_message_as_input_peer(messages[0]), message_ids, std::move(random_ids), schedule_date,
+               get_sequence_dispatcher_id(to_dialog_id, MessageContentType::None));
 }
 
 Result<td_api::object_ptr<td_api::message>> MessagesManager::forward_message(
