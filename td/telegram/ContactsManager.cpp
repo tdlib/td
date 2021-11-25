@@ -9530,6 +9530,7 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
   CHECK(u != nullptr);
   if (u->is_name_changed || u->is_username_changed || u->is_is_contact_changed) {
     update_contacts_hints(u, user_id, from_database);
+    u->is_username_changed = false;
   }
   if (u->is_is_contact_changed) {
     td_->messages_manager_->on_dialog_user_is_contact_updated(DialogId(user_id), u->is_contact);
@@ -9540,6 +9541,7 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
         update_user_full(user_full, user_id, "update_user");
       }
     }
+    u->is_is_contact_changed = false;
   }
   if (u->is_is_deleted_changed) {
     td_->messages_manager_->on_dialog_user_is_deleted_updated(DialogId(user_id), u->is_deleted);
@@ -9549,6 +9551,7 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
         drop_user_full(user_id);
       }
     }
+    u->is_is_deleted_changed = false;
   }
   if (u->is_name_changed) {
     auto messages_manager = td_->messages_manager_.get();
@@ -9556,6 +9559,7 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
     for_each_secret_chat_with_user(user_id, [messages_manager](SecretChatId secret_chat_id) {
       messages_manager->on_dialog_title_updated(DialogId(secret_chat_id));
     });
+    u->is_name_changed = false;
   }
   if (u->is_photo_changed) {
     auto messages_manager = td_->messages_manager_.get();
@@ -9563,6 +9567,7 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
     for_each_secret_chat_with_user(user_id, [messages_manager](SecretChatId secret_chat_id) {
       messages_manager->on_dialog_photo_updated(DialogId(secret_chat_id));
     });
+    u->is_photo_changed = false;
   }
   if (u->is_status_changed && user_id != get_my_id()) {
     auto left_time = get_user_was_online(u, user_id) - G()->server_time_cached();
@@ -9575,9 +9580,6 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
       user_online_timeout_.cancel_timeout(user_id.get());
     }
   }
-  if (u->is_default_permissions_changed) {
-    td_->messages_manager_->on_dialog_permissions_updated(DialogId(user_id));
-  }
   if (!td_->auth_manager_->is_bot()) {
     if (u->restriction_reasons.empty()) {
       restricted_user_ids_.erase(user_id);
@@ -9585,13 +9587,6 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
       restricted_user_ids_.insert(user_id);
     }
   }
-
-  u->is_name_changed = false;
-  u->is_username_changed = false;
-  u->is_photo_changed = false;
-  u->is_is_contact_changed = false;
-  u->is_is_deleted_changed = false;
-  u->is_default_permissions_changed = false;
 
   if (u->is_deleted) {
     td_->inline_queries_manager_->remove_recent_inline_bot(user_id, Promise<>());
