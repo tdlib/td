@@ -120,6 +120,7 @@ class MessagesManager final : public Actor {
   static constexpr int32 MESSAGE_FLAG_HAS_REPLY_INFO = 1 << 23;
   static constexpr int32 MESSAGE_FLAG_IS_PINNED = 1 << 24;
   static constexpr int32 MESSAGE_FLAG_HAS_TTL_PERIOD = 1 << 25;
+  static constexpr int32 MESSAGE_FLAG_NOFORWARDS = 1 << 26;
 
   static constexpr int32 SEND_MESSAGE_FLAG_IS_REPLY = 1 << 0;
   static constexpr int32 SEND_MESSAGE_FLAG_DISABLE_WEB_PAGE_PREVIEW = 1 << 1;
@@ -1082,6 +1083,7 @@ class MessagesManager final : public Actor {
     bool is_from_scheduled = false;
     bool is_pinned = false;
     bool are_media_timestamp_entities_found = false;
+    bool noforwards = false;
 
     bool is_copy = false;                   // for send_message
     bool from_background = false;           // for send_message

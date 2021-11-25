@@ -4810,7 +4810,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool has_ttl_period = ttl_period != 0;
   bool has_max_reply_media_timestamp = max_reply_media_timestamp >= 0;
   bool are_message_media_timestamp_entities_found = true;
-  bool has_flags3 = false;
+  bool has_flags3 = true;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_channel_post);
   STORE_FLAG(is_outgoing);
@@ -4875,6 +4875,11 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(has_max_reply_media_timestamp);
     STORE_FLAG(are_message_media_timestamp_entities_found);
     STORE_FLAG(has_flags3);
+    END_STORE_FLAGS();
+  }
+  if (has_flags3) {
+    BEGIN_STORE_FLAGS();
+    STORE_FLAG(noforwards);
     END_STORE_FLAGS();
   }
 
@@ -5104,6 +5109,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   }
   if (has_flags3) {
     BEGIN_PARSE_FLAGS();
+    PARSE_FLAG(noforwards);
     END_PARSE_FLAGS();
   }
 
@@ -12371,6 +12377,7 @@ void MessagesManager::on_message_ttl_expired_impl(Dialog *d, Message *m) {
   remove_message_notification_id(d, m, true, true);
   update_message_contains_unread_mention(d, m, false, "on_message_ttl_expired_impl");
   unregister_message_reply(d, m);
+  m->noforwards = false;
   m->contains_mention = false;
   m->reply_to_message_id = MessageId();
   m->max_reply_media_timestamp = -1;
@@ -13545,6 +13552,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   bool hide_edit_date = (flags & MESSAGE_FLAG_HIDE_EDIT_DATE) != 0;
   bool is_from_scheduled = (flags & MESSAGE_FLAG_IS_FROM_SCHEDULED) != 0;
   bool is_pinned = (flags & MESSAGE_FLAG_IS_PINNED) != 0;
+  bool noforwards = (flags & MESSAGE_FLAG_NOFORWARDS) != 0;
 
   LOG_IF(ERROR, is_channel_message != (dialog_type == DialogType::Channel))
       << "is_channel_message is wrong for " << message_id << " received in the " << dialog_id;
@@ -13707,6 +13715,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   message->hide_edit_date = hide_edit_date;
   message->is_from_scheduled = is_from_scheduled;
   message->is_pinned = is_pinned;
+  message->noforwards = noforwards;
   message->view_count = view_count;
   message->forward_count = forward_count;
   message->reply_info = std::move(reply_info);
@@ -23520,8 +23529,9 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   auto scheduling_state = is_scheduled ? get_message_scheduling_state_object(m->date) : nullptr;
   auto forward_info = get_message_forward_info_object(m->forward_info);
   auto interaction_info = get_message_interaction_info_object(dialog_id, m);
+  auto can_be_saved = !m->noforwards && get_dialog_allow_saving_content(dialog_id) && !m->is_content_secret;
   auto can_be_edited = for_event_log ? false : can_edit_message(dialog_id, m, false, td_->auth_manager_->is_bot());
-  auto can_be_forwarded = for_event_log ? false : can_forward_message(dialog_id, m);
+  auto can_be_forwarded = for_event_log ? false : can_forward_message(dialog_id, m) && can_be_saved;
   auto can_get_statistics = for_event_log ? false : can_get_message_statistics(dialog_id, m);
   auto can_get_message_thread = for_event_log ? false : get_top_thread_full_message_id(dialog_id, m).is_ok();
   auto can_get_viewers = for_event_log ? false : can_get_message_viewers(dialog_id, m).is_ok();
@@ -23547,11 +23557,11 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
                                             skip_bot_commands, max_media_timestamp);
   return make_tl_object<td_api::message>(
       m->message_id.get(), std::move(sender), dialog_id.get(), std::move(sending_state), std::move(scheduling_state),
-      is_outgoing, is_pinned, can_be_edited, can_be_forwarded, can_delete_for_self, can_delete_for_all_users,
-      can_get_statistics, can_get_message_thread, can_get_viewers, can_get_media_timestamp_links, has_timestamped_media,
-      m->is_channel_post, contains_unread_mention, date, edit_date, std::move(forward_info),
-      std::move(interaction_info), reply_in_dialog_id.get(), reply_to_message_id, top_thread_message_id, ttl,
-      ttl_expires_in, via_bot_user_id, m->author_signature, media_album_id,
+      is_outgoing, is_pinned, can_be_edited, can_be_forwarded, can_be_saved, can_delete_for_self,
+      can_delete_for_all_users, can_get_statistics, can_get_message_thread, can_get_viewers,
+      can_get_media_timestamp_links, has_timestamped_media, m->is_channel_post, contains_unread_mention, date,
+      edit_date, std::move(forward_info), std::move(interaction_info), reply_in_dialog_id.get(), reply_to_message_id,
+      top_thread_message_id, ttl, ttl_expires_in, via_bot_user_id, m->author_signature, media_album_id,
       get_restriction_reason_description(m->restriction_reasons), std::move(content), std::move(reply_markup));
 }
 
@@ -34178,8 +34188,13 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
                                       std::move(new_message->reply_info), "update_message")) {
     need_send_update = true;
   }
+  if (old_message->noforwards != new_message->noforwards) {
+    old_message->noforwards = new_message->noforwards;
+    need_send_update = true;
+  }
   if (old_message->restriction_reasons != new_message->restriction_reasons) {
     old_message->restriction_reasons = std::move(new_message->restriction_reasons);
+    need_send_update = true;
   }
   if (old_message->legacy_layer != new_message->legacy_layer) {
     old_message->legacy_layer = new_message->legacy_layer;
