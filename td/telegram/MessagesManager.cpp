@@ -3854,8 +3854,11 @@ class ForwardMessagesActor final : public NetActorOnce {
       return;
     }
     // no on_get_dialog_error call, because two dialogs are involved
-    if (status.code() == 400 && status.message() == "CHAT_FORWARDS_RESTRICTED") {
+    if (status.code() == 400 && status.message() == CSlice("CHAT_FORWARDS_RESTRICTED")) {
       td_->contacts_manager_->reload_dialog_info(from_dialog_id_, Promise<Unit>());
+    }
+    if (status.code() == 400 && status.message() == CSlice("SEND_AS_PEER_INVALID")) {
+      td_->messages_manager_->reload_dialog_info_full(to_dialog_id_);
     }
     for (auto &random_id : random_ids_) {
       td_->messages_manager_->on_send_message_fail(random_id, status.clone());
@@ -27745,6 +27748,10 @@ bool MessagesManager::on_get_dialog_error(DialogId dialog_id, const Status &stat
     return true;
   }
   if (G()->is_expected_error(status)) {
+    return true;
+  }
+  if (status.message() == CSlice("SEND_AS_PEER_INVALID")) {
+    reload_dialog_info_full(dialog_id);
     return true;
   }
 
