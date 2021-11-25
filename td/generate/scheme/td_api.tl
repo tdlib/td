@@ -767,8 +767,10 @@ messageInteractionInfo view_count:int32 forward_count:int32 reply_info:messageRe
 messageSendingStatePending = MessageSendingState;
 
 //@description The message failed to be sent @error_code An error code; 0 if unknown @error_message Error message
-//@can_retry True, if the message can be re-sent @retry_after Time left before the message can be re-sent, in seconds. No update is sent when this field changes
-messageSendingStateFailed error_code:int32 error_message:string can_retry:Bool retry_after:double = MessageSendingState;
+//@can_retry True, if the message can be re-sent
+//@need_another_sender True, if the message can be re-sent only on behalf of a different sender
+//@retry_after Time left before the message can be re-sent, in seconds. No update is sent when this field changes
+messageSendingStateFailed error_code:int32 error_message:string can_retry:Bool need_another_sender:Bool retry_after:double = MessageSendingState;
 
 
 //@description Describes a message

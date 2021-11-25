@@ -23456,8 +23456,10 @@ tl_object_ptr<td_api::MessageSendingState> MessagesManager::get_message_sending_
     return td_api::make_object<td_api::messageSendingStatePending>();
   }
   if (m->is_failed_to_send) {
+    auto can_retry = can_resend_message(m);
+    auto need_another_sender = can_retry && m->send_error_code == 400 && m->send_error_message == CSlice("SEND_AS_PEER_INVALID");
     return td_api::make_object<td_api::messageSendingStateFailed>(
-        m->send_error_code, m->send_error_message, can_resend_message(m), max(m->try_resend_at - Time::now(), 0.0));
+        m->send_error_code, m->send_error_message, can_retry, need_another_sender, max(m->try_resend_at - Time::now(), 0.0));
   }
   return nullptr;
 }
