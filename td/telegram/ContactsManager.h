@@ -719,11 +719,11 @@ class ContactsManager final : public Actor {
     DialogParticipantStatus status = DialogParticipantStatus::Banned(0);
     RestrictedRights default_permissions{false, false, false, false, false, false, false, false, false, false, false};
 
-    static constexpr uint32 CACHE_VERSION = 3;
+    static constexpr uint32 CACHE_VERSION = 4;
     uint32 cache_version = 0;
 
     bool is_active = false;
-    bool noforwards = true;
+    bool noforwards = false;
 
     bool is_title_changed = true;
     bool is_photo_changed = true;
@@ -792,14 +792,14 @@ class ContactsManager final : public Actor {
     int32 date = 0;
     int32 participant_count = 0;
 
-    static constexpr uint32 CACHE_VERSION = 7;
+    static constexpr uint32 CACHE_VERSION = 8;
     uint32 cache_version = 0;
 
     bool has_linked_channel = false;
     bool has_location = false;
     bool sign_messages = false;
     bool is_slow_mode_enabled = false;
-    bool noforwards = true;
+    bool noforwards = false;
 
     bool is_megagroup = false;
     bool is_gigagroup = false;
