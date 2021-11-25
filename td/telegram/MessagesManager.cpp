@@ -23457,9 +23457,11 @@ tl_object_ptr<td_api::MessageSendingState> MessagesManager::get_message_sending_
   }
   if (m->is_failed_to_send) {
     auto can_retry = can_resend_message(m);
-    auto need_another_sender = can_retry && m->send_error_code == 400 && m->send_error_message == CSlice("SEND_AS_PEER_INVALID");
-    return td_api::make_object<td_api::messageSendingStateFailed>(
-        m->send_error_code, m->send_error_message, can_retry, need_another_sender, max(m->try_resend_at - Time::now(), 0.0));
+    auto need_another_sender =
+        can_retry && m->send_error_code == 400 && m->send_error_message == CSlice("SEND_AS_PEER_INVALID");
+    return td_api::make_object<td_api::messageSendingStateFailed>(m->send_error_code, m->send_error_message, can_retry,
+                                                                  need_another_sender,
+                                                                  max(m->try_resend_at - Time::now(), 0.0));
   }
   return nullptr;
 }
@@ -23669,7 +23671,7 @@ int64 MessagesManager::generate_new_random_id() {
 unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
     Dialog *d, MessageId top_thread_message_id, MessageId reply_to_message_id, const MessageSendOptions &options,
     unique_ptr<MessageContent> &&content, bool suppress_reply_info, unique_ptr<MessageForwardInfo> forward_info,
-    bool is_copy) const {
+    bool is_copy, DialogId send_as_dialog_id) const {
   CHECK(d != nullptr);
   CHECK(!reply_to_message_id.is_scheduled());
   CHECK(content != nullptr);
@@ -23689,7 +23691,13 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
     }
     m->sender_dialog_id = dialog_id;
   } else {
-    if (d->default_send_message_as_dialog_id.is_valid()) {
+    if (send_as_dialog_id.is_valid()) {
+      if (send_as_dialog_id.get_type() == DialogType::User) {
+        m->sender_user_id = send_as_dialog_id.get_user_id();
+      } else {
+        m->sender_dialog_id = send_as_dialog_id;
+      }
+    } else if (d->default_send_message_as_dialog_id.is_valid()) {
       if (d->default_send_message_as_dialog_id.get_type() == DialogType::User) {
         m->sender_user_id = my_id;
       } else {
@@ -23782,11 +23790,11 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
 MessagesManager::Message *MessagesManager::get_message_to_send(
     Dialog *d, MessageId top_thread_message_id, MessageId reply_to_message_id, const MessageSendOptions &options,
     unique_ptr<MessageContent> &&content, bool *need_update_dialog_pos, bool suppress_reply_info,
-    unique_ptr<MessageForwardInfo> forward_info, bool is_copy) {
+    unique_ptr<MessageForwardInfo> forward_info, bool is_copy, DialogId send_as_dialog_id) {
   d->was_opened = true;
 
   auto message = create_message_to_send(d, top_thread_message_id, reply_to_message_id, options, std::move(content),
-                                        suppress_reply_info, std::move(forward_info), is_copy);
+                                        suppress_reply_info, std::move(forward_info), is_copy, send_as_dialog_id);
 
   MessageId message_id = options.schedule_date != 0 ? get_next_yet_unsent_scheduled_message_id(d, options.schedule_date)
                                                     : get_next_yet_unsent_message_id(d);
@@ -27110,7 +27118,8 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
     Message *m;
     if (only_preview) {
       message = create_message_to_send(to_dialog, MessageId(), MessageId(), message_send_options, std::move(content),
-                                       j + 1 != forwarded_message_contents.size(), std::move(forward_info), false);
+                                       j + 1 != forwarded_message_contents.size(), std::move(forward_info), false,
+                                       DialogId());
       MessageId new_message_id =
           message_send_options.schedule_date != 0
               ? get_next_yet_unsent_scheduled_message_id(to_dialog, message_send_options.schedule_date)
@@ -27145,9 +27154,9 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
     unique_ptr<Message> message;
     Message *m;
     if (only_preview) {
-      message =
-          create_message_to_send(to_dialog, copied_message.top_thread_message_id, copied_message.reply_to_message_id,
-                                 message_send_options, std::move(copied_message.content), false, nullptr, true);
+      message = create_message_to_send(to_dialog, copied_message.top_thread_message_id,
+                                       copied_message.reply_to_message_id, message_send_options,
+                                       std::move(copied_message.content), false, nullptr, true, DialogId());
       MessageId new_message_id =
           message_send_options.schedule_date != 0
               ? get_next_yet_unsent_scheduled_message_id(to_dialog, message_send_options.schedule_date)
@@ -27267,12 +27276,15 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
     CHECK(message != nullptr);
     send_update_delete_messages(dialog_id, {message->message_id.get()}, true, false);
 
+    auto need_another_sender =
+        message->send_error_code == 400 && message->send_error_message == CSlice("SEND_AS_PEER_INVALID");
     MessageSendOptions options(message->disable_notification, message->from_background,
                                get_message_schedule_date(message.get()));
     Message *m = get_message_to_send(
         d, message->top_thread_message_id,
         get_reply_to_message_id(d, message->top_thread_message_id, message->reply_to_message_id, false), options,
-        std::move(new_contents[i]), &need_update_dialog_pos, false, nullptr, message->is_copy);
+        std::move(new_contents[i]), &need_update_dialog_pos, false, nullptr, message->is_copy,
+        need_another_sender ? DialogId() : get_message_sender(message.get()));
     m->reply_markup = std::move(message->reply_markup);
     m->via_bot_user_id = message->via_bot_user_id;
     m->disable_web_page_preview = message->disable_web_page_preview;
@@ -27281,6 +27293,7 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
     m->is_content_secret = message->is_content_secret;
     m->media_album_id = new_media_album_ids[message->media_album_id].first;
     m->send_emoji = message->send_emoji;
+    m->has_explicit_sender |= message->has_explicit_sender;
 
     save_send_message_log_event(dialog_id, m);
     do_send_message(dialog_id, m);
