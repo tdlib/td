@@ -7,6 +7,8 @@
 #include "td/telegram/SuggestedAction.h"
 
 #include "td/telegram/ChannelId.h"
+#include "td/telegram/ConfigManager.h"
+#include "td/telegram/ContactsManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/Td.h"
 
@@ -148,6 +150,25 @@ void update_suggested_actions(vector<SuggestedAction> &suggested_actions,
 void remove_suggested_action(vector<SuggestedAction> &suggested_actions, SuggestedAction suggested_action) {
   if (td::remove(suggested_actions, suggested_action)) {
     send_closure(G()->td(), &Td::send_update, get_update_suggested_actions_object({}, {suggested_action}));
+  }
+}
+
+void dismiss_suggested_action(SuggestedAction action, Promise<Unit> &&promise) {
+  switch (action.type_) {
+    case SuggestedAction::Type::Empty:
+      return promise.set_error(Status::Error(400, "Action must be non-empty"));
+    case SuggestedAction::Type::EnableArchiveAndMuteNewChats:
+    case SuggestedAction::Type::CheckPassword:
+    case SuggestedAction::Type::CheckPhoneNumber:
+    case SuggestedAction::Type::SeeTicksHint:
+      return send_closure_later(G()->config_manager(), &ConfigManager::dismiss_suggested_action, std::move(action),
+                                std::move(promise));
+    case SuggestedAction::Type::ConvertToGigagroup:
+      return send_closure_later(G()->contacts_manager(), &ContactsManager::dismiss_dialog_suggested_action,
+                                std::move(action), std::move(promise));
+    default:
+      UNREACHABLE();
+      return;
   }
 }
 

@@ -9,6 +9,8 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/td_api.h"
 
+#include "td/actor/PromiseFuture.h"
+
 #include "td/utils/common.h"
 #include "td/utils/Slice.h"
 
@@ -69,5 +71,7 @@ void update_suggested_actions(vector<SuggestedAction> &suggested_actions,
                               vector<SuggestedAction> &&new_suggested_actions);
 
 void remove_suggested_action(vector<SuggestedAction> &suggested_actions, SuggestedAction suggested_action);
+
+void dismiss_suggested_action(SuggestedAction action, Promise<Unit> &&promise);
 
 }  // namespace td

@@ -418,7 +418,7 @@ class ContactsManager final : public Actor {
 
   vector<DialogId> get_inactive_channels(Promise<Unit> &&promise);
 
-  void dismiss_suggested_action(SuggestedAction action, Promise<Unit> &&promise);
+  void dismiss_dialog_suggested_action(SuggestedAction action, Promise<Unit> &&promise);
 
   bool is_user_contact(UserId user_id, bool is_mutual = false) const;
 

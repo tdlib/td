@@ -7594,17 +7594,8 @@ void ContactsManager::remove_dialog_suggested_action(SuggestedAction action) {
   }
 }
 
-void ContactsManager::dismiss_suggested_action(SuggestedAction action, Promise<Unit> &&promise) {
-  if (action.is_empty()) {
-    return promise.set_error(Status::Error(400, "Action must be non-empty"));
-  }
+void ContactsManager::dismiss_dialog_suggested_action(SuggestedAction action, Promise<Unit> &&promise) {
   auto dialog_id = action.dialog_id_;
-  if (dialog_id == DialogId()) {
-    send_closure_later(G()->config_manager(), &ConfigManager::dismiss_suggested_action, std::move(action),
-                       std::move(promise));
-    return;
-  }
-
   if (!td_->messages_manager_->have_dialog(dialog_id)) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
