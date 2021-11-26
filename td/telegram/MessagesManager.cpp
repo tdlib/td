@@ -10200,6 +10200,13 @@ bool MessagesManager::can_forward_message(DialogId from_dialog_id, const Message
   return can_forward_message_content(m->content.get());
 }
 
+bool MessagesManager::can_save_message(DialogId dialog_id, const Message *m) const {
+  if (m == nullptr || m->noforwards || m->is_content_secret) {
+    return false;
+  }
+  return get_dialog_allow_saving_content(dialog_id);
+}
+
 bool MessagesManager::can_get_message_statistics(FullMessageId full_message_id) {
   return can_get_message_statistics(full_message_id.get_dialog_id(),
                                     get_message_force(full_message_id, "can_get_message_statistics"));
@@ -23562,7 +23569,7 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   auto scheduling_state = is_scheduled ? get_message_scheduling_state_object(m->date) : nullptr;
   auto forward_info = get_message_forward_info_object(m->forward_info);
   auto interaction_info = get_message_interaction_info_object(dialog_id, m);
-  auto can_be_saved = !m->noforwards && get_dialog_allow_saving_content(dialog_id) && !m->is_content_secret;
+  auto can_be_saved = can_save_message(dialog_id, m);
   auto can_be_edited = for_event_log ? false : can_edit_message(dialog_id, m, false, td_->auth_manager_->is_bot());
   auto can_be_forwarded = for_event_log ? false : can_forward_message(dialog_id, m) && can_be_saved;
   auto can_get_statistics = for_event_log ? false : can_get_message_statistics(dialog_id, m);
@@ -24266,6 +24273,9 @@ Result<InputMessageContent> MessagesManager::process_input_message_content(
     }
     if (!can_forward_message(from_dialog_id, copied_message)) {
       return Status::Error(400, "Can't copy message");
+    }
+    if (!can_save_message(from_dialog_id, copied_message) && !td_->auth_manager_->is_bot()) {
+      return Status::Error(400, "Message copying is restricted");
     }
 
     unique_ptr<MessageContent> content = dup_message_content(td_, dialog_id, copied_message->content.get(),
@@ -26988,6 +26998,11 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
     }
 
     bool need_copy = !message_id.is_server() || to_secret || copy_options[i].send_copy;
+    if (!(need_copy && td_->auth_manager_->is_bot()) && !can_save_message(from_dialog_id, forwarded_message)) {
+      LOG(INFO) << "Forward of " << message_id << " is restricted";
+      continue;
+    }
+
     auto type = need_copy ? MessageContentDupType::Copy : MessageContentDupType::Forward;
     auto top_thread_message_id = copy_options[i].top_thread_message_id;
     auto reply_to_message_id = copy_options[i].reply_to_message_id;

@@ -1971,6 +1971,8 @@ class MessagesManager final : public Actor {
 
   static bool can_forward_message(DialogId from_dialog_id, const Message *m);
 
+  bool can_save_message(DialogId dialog_id, const Message *m) const;
+
   bool can_get_message_statistics(DialogId dialog_id, const Message *m) const;
 
   static bool can_delete_channel_message(const DialogParticipantStatus &status, const Message *m, bool is_bot);
