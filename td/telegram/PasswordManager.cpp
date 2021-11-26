@@ -7,6 +7,7 @@
 #include "td/telegram/PasswordManager.h"
 
 #include "td/telegram/ConfigManager.h"
+#include "td/telegram/ConfigShared.h"
 #include "td/telegram/DhCache.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
@@ -747,6 +748,8 @@ void PasswordManager::do_get_state(Promise<PasswordState> promise) {
   send_with_promise(
       std::move(query), PromiseCreator::lambda([actor_id = actor_id(this), code_length = last_code_length_,
                                                 promise = std::move(promise)](Result<NetQueryPtr> r_query) mutable {
+        TRY_STATUS_PROMISE(promise, G()->close_status());
+
         auto r_result = fetch_result<telegram_api::account_getPassword>(std::move(r_query));
         if (r_result.is_error()) {
           return promise.set_error(r_result.move_as_error());
@@ -780,6 +783,12 @@ void PasswordManager::do_get_state(Promise<PasswordState> promise) {
           state.password_hint = std::move(password->hint_);
           state.has_recovery_email_address = password->has_recovery_;
           state.has_secure_values = password->has_secure_values_;
+
+          auto days = narrow_cast<int32>(G()->shared_config().get_option_integer("otherwise_relogin_days"));
+          if (days > 0) {
+            dismiss_suggested_action(SuggestedAction{SuggestedAction::Type::SetPassword, DialogId(), days},
+                                     Promise<Unit>());
+          }
         } else {
           state.has_password = false;
           send_closure(actor_id, &PasswordManager::drop_cached_secret);
