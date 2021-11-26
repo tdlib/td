@@ -3280,7 +3280,7 @@ bool Td::is_internal_config_option(Slice name) {
     case 'n':
       return name == "notification_cloud_delay_ms" || name == "notification_default_delay_ms";
     case 'o':
-      return name == "online_update_period_ms" || name == "online_cloud_timeout_ms";
+      return name == "online_update_period_ms" || name == "online_cloud_timeout_ms" || name == "otherwise_relogin_days";
     case 'r':
       return name == "revoke_pm_inbox" || name == "revoke_time_limit" || name == "revoke_pm_time_limit" ||
              name == "rating_e_decay" || name == "recent_stickers_limit";
@@ -3323,6 +3323,13 @@ void Td::on_config_option_updated(const string &name) {
     stickers_manager_->on_update_disable_animated_emojis();
   } else if (name == "my_id") {
     G()->set_my_id(G()->shared_config().get_option_integer(name));
+  } else if (name == "otherwise_relogin_days") {
+    auto days = narrow_cast<int32>(G()->shared_config().get_option_integer(name));
+    if (days > 0) {
+      vector<SuggestedAction> added_actions{SuggestedAction{SuggestedAction::Type::SetPassword, DialogId(), days}};
+      send_closure(G()->td(), &Td::send_update, get_update_suggested_actions_object(added_actions, {}));
+    }
+    return;
   } else if (name == "session_count") {
     G()->net_query_dispatcher().update_session_count();
   } else if (name == "use_pfs") {

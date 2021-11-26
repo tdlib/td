@@ -23,16 +23,19 @@ struct SuggestedAction {
     CheckPhoneNumber,
     SeeTicksHint,
     ConvertToGigagroup,
-    CheckPassword
+    CheckPassword,
+    SetPassword
   };
   Type type_ = Type::Empty;
   DialogId dialog_id_;
+  int32 otherwise_relogin_days_ = 0;
 
   void init(Type type);
 
   SuggestedAction() = default;
 
-  explicit SuggestedAction(Type type, DialogId dialog_id = DialogId()) : type_(type), dialog_id_(dialog_id) {
+  explicit SuggestedAction(Type type, DialogId dialog_id = DialogId(), int32 otherwise_relogin_days = 0)
+      : type_(type), dialog_id_(dialog_id), otherwise_relogin_days_(otherwise_relogin_days) {
   }
 
   explicit SuggestedAction(Slice action_str);

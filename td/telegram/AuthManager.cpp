@@ -783,6 +783,9 @@ void AuthManager::on_get_authorization(tl_object_ptr<telegram_api::auth_Authoriz
   if ((auth->flags_ & telegram_api::auth_authorization::TMP_SESSIONS_MASK) != 0) {
     G()->shared_config().set_option_integer("session_count", auth->tmp_sessions_);
   }
+  if (auth->setup_password_required_ && auth->otherwise_relogin_days_ > 0) {
+    G()->shared_config().set_option_integer("otherwise_relogin_days", auth->otherwise_relogin_days_);
+  }
   td_->messages_manager_->on_authorization_success();
   td_->notification_manager_->init();
   td_->stickers_manager_->init();

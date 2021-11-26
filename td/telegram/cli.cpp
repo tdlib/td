@@ -1407,6 +1407,9 @@ class CliClient final : public Actor {
     if (begins_with(action, "giga")) {
       return td_api::make_object<td_api::suggestedActionConvertToBroadcastGroup>(as_supergroup_id(action.substr(4)));
     }
+    if (begins_with(action, "spass")) {
+      return td_api::make_object<td_api::suggestedActionSetPassword>(to_integer<int32>(action.substr(5)));
+    }
     return nullptr;
   }
 
