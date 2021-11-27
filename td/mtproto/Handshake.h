@@ -82,7 +82,8 @@ class AuthKeyHandshake {
   int32 expires_in_ = 0;
   double expires_at_ = 0;
 
-  double timeout_at_ = 0;
+  double start_time_ = 0;
+  double timeout_in_ = 0;
 
   AuthKey auth_key_;
   double server_time_diff_ = 0;

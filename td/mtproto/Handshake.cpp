@@ -50,17 +50,20 @@ AuthKeyHandshake::AuthKeyHandshake(int32 dc_id, int32 expires_in)
     : mode_(expires_in == 0 ? Mode::Main : Mode::Temp)
     , dc_id_(dc_id)
     , expires_in_(expires_in)
-    , timeout_at_(Time::now() + 1e9) {
+    , start_time_(Time::now())
+    , timeout_in_(1e9) {
 }
 
 void AuthKeyHandshake::set_timeout_in(double timeout_in) {
-  timeout_at_ = Time::now() + timeout_in;
+  start_time_ = Time::now();
+  timeout_in_ = timeout_in;
 }
 
 void AuthKeyHandshake::clear() {
   last_query_ = BufferSlice();
   state_ = Start;
-  timeout_at_ = Time::now() + 1e9;
+  start_time_ = Time::now();
+  timeout_in_ = 1e9;
 }
 
 bool AuthKeyHandshake::is_ready_for_finish() const {
@@ -81,6 +84,10 @@ string AuthKeyHandshake::store_object(const mtproto_api::Object &object) {
 }
 
 Status AuthKeyHandshake::on_res_pq(Slice message, Callback *connection, PublicRsaKeyInterface *public_rsa_key) {
+  if (Time::now() >= start_time_ + timeout_in_ * 0.6) {
+    return Status::Error("Handshake ResPQ timeout expired");
+  }
+
   TRY_RESULT(res_pq, fetch_result<mtproto_api::req_pq_multi>(message, false));
   if (res_pq->nonce_ != nonce_) {
     return Status::Error("Nonce mismatch");
@@ -155,6 +162,10 @@ Status AuthKeyHandshake::on_res_pq(Slice message, Callback *connection, PublicRs
 }
 
 Status AuthKeyHandshake::on_server_dh_params(Slice message, Callback *connection, DhCallback *dh_callback) {
+  if (Time::now() >= start_time_ + timeout_in_ * 0.8) {
+    return Status::Error("Handshake DH params timeout expired");
+  }
+
   TRY_RESULT(dh_params, fetch_result<mtproto_api::req_DH_params>(message, false));
 
   // server_DH_params_ok#d0e8075c nonce:int128 server_nonce:int128 encrypted_answer:string = Server_DH_Params;
@@ -318,10 +329,6 @@ Status AuthKeyHandshake::on_start(Callback *connection) {
 
 Status AuthKeyHandshake::on_message(Slice message, Callback *connection, AuthKeyHandshakeContext *context) {
   Status status = [&] {
-    if (Time::now() >= timeout_at_) {
-      return Status::Error("Handshake timeout expired");
-    }
-
     switch (state_) {
       case ResPQ:
         return on_res_pq(message, connection, context->get_public_rsa_key_interface());
