@@ -440,6 +440,9 @@ class CliClient final : public Actor {
     if (str == "me") {
       return my_id_;
     }
+    if (str == ".") {
+      return opened_chat_id_;
+    }
     if (str[0] == '@') {
       str.remove_prefix(1);
     }
@@ -2593,7 +2596,9 @@ class CliClient final : public Actor {
     } else if (op == "gdialog" || op == "gd") {
       send_request(td_api::make_object<td_api::getChat>(as_chat_id(args)));
     } else if (op == "open") {
-      send_request(td_api::make_object<td_api::openChat>(as_chat_id(args)));
+      auto chat_id = as_chat_id(args);
+      opened_chat_id_ = chat_id;
+      send_request(td_api::make_object<td_api::openChat>(chat_id));
     } else if (op == "close") {
       send_request(td_api::make_object<td_api::closeChat>(as_chat_id(args)));
     } else if (op == "gm") {
@@ -4551,6 +4556,7 @@ class CliClient final : public Actor {
   int64 my_id_ = 0;
   string schedule_date_;
   string message_thread_id_;
+  int64 opened_chat_id_ = 0;
 
   ConcurrentScheduler *scheduler_{nullptr};
 
