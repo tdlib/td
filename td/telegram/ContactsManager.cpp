@@ -1599,6 +1599,7 @@ class GetChatInviteImportersQuery final : public Td::ResultHandler {
 class GetChatJoinRequestsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::chatJoinRequests>> promise_;
   DialogId dialog_id_;
+  bool is_full_list_ = false;
 
  public:
   explicit GetChatJoinRequestsQuery(Promise<td_api::object_ptr<td_api::chatJoinRequests>> &&promise)
@@ -1608,6 +1609,8 @@ class GetChatJoinRequestsQuery final : public Td::ResultHandler {
   void send(DialogId dialog_id, const string &invite_link, const string &query, int32 offset_date,
             UserId offset_user_id, int32 limit) {
     dialog_id_ = dialog_id;
+    is_full_list_ = invite_link.empty() && query.empty() && offset_date == 0 && !offset_user_id.is_valid() && limit >= 3;
+
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
@@ -1662,8 +1665,10 @@ class GetChatJoinRequestsQuery final : public Td::ResultHandler {
       join_requests.push_back(td_api::make_object<td_api::chatJoinRequest>(
           td_->contacts_manager_->get_user_id_object(user_id, "chatJoinRequest"), request->date_, request->about_));
     }
-    td_->messages_manager_->on_update_dialog_pending_join_requests(dialog_id_, total_count,
-                                                                   std::move(recent_requesters));
+    if (is_full_list_) {
+      td_->messages_manager_->on_update_dialog_pending_join_requests(dialog_id_, total_count,
+                                                                     std::move(recent_requesters));
+    }
     promise_.set_value(td_api::make_object<td_api::chatJoinRequests>(total_count, std::move(join_requests)));
   }
 
