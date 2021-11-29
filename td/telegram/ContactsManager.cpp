@@ -6851,15 +6851,24 @@ void ContactsManager::set_channel_participant_status(ChannelId channel_id, Dialo
     return promise.set_error(Status::Error(400, "Chat info not found"));
   }
 
-  auto input_peer = td_->messages_manager_->get_input_peer(participant_dialog_id, AccessRights::Read);
-  if (input_peer == nullptr) {
-    return promise.set_error(Status::Error(400, "Member not found"));
-  }
-
   if (participant_dialog_id == DialogId(get_my_id())) {
     // fast path is needed, because get_channel_status may return Creator, while GetChannelParticipantQuery returning Left
     return set_channel_participant_status_impl(channel_id, participant_dialog_id, std::move(status),
                                                get_channel_status(c), std::move(promise));
+  }
+  if (participant_dialog_id.get_type() != DialogType::User) {
+    if (status.is_administrator() || status.is_member() || status.is_restricted()) {
+      return promise.set_error(Status::Error(400, "Other chats can be only banned or unbanned"));
+    }
+    // always pretend that old_status is different
+    return restrict_channel_participant(
+        channel_id, participant_dialog_id, std::move(status),
+        status.is_banned() ? DialogParticipantStatus::Left() : DialogParticipantStatus::Banned(0), std::move(promise));
+  }
+
+  auto input_peer = td_->messages_manager_->get_input_peer(participant_dialog_id, AccessRights::Read);
+  if (input_peer == nullptr) {
+    return promise.set_error(Status::Error(400, "Member not found"));
   }
 
   auto on_result_promise =
@@ -7507,7 +7516,7 @@ void ContactsManager::restrict_channel_participant(ChannelId channel_id, DialogI
       // ok;
       break;
     case DialogType::Channel:
-      if (!status.is_banned() && !status.is_left()) {
+      if (status.is_administrator() || status.is_member() || status.is_restricted()) {
         return promise.set_error(Status::Error(400, "Other chats can be only banned or unbanned"));
       }
       break;
