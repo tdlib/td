@@ -34937,7 +34937,9 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
   }
 
   auto folder_ptr = get_dialog_folder(d->folder_id);
-  CHECK(folder_ptr != nullptr);
+  LOG_CHECK(folder_ptr != nullptr) << is_inited_ << ' ' << G()->close_flag() << ' ' << dialog_id << ' ' << d->folder_id
+                                   << ' ' << is_loaded_from_database << ' ' << td_->auth_manager_->is_authorized()
+                                   << ' ' << td_->auth_manager_->was_authorized() << ' ' << source;
   auto &folder = *folder_ptr;
   if (old_date == new_date) {
     if (new_order == DEFAULT_ORDER) {
