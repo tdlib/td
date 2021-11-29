@@ -35830,7 +35830,9 @@ MessagesManager::Dialog *MessagesManager::get_dialog_force(DialogId dialog_id, c
 
   auto it = dialogs_.find(dialog_id);
   if (it != dialogs_.end()) {
-    return it->second.get();
+    Dialog *d = it->second.get();
+    LOG_CHECK(d->dialog_id == dialog_id) << d->dialog_id << ' ' << dialog_id;
+    return d;
   }
 
   if (!dialog_id.is_valid() || !G()->parameters().use_message_db || loaded_dialogs_.count(dialog_id) > 0) {
@@ -35841,7 +35843,7 @@ MessagesManager::Dialog *MessagesManager::get_dialog_force(DialogId dialog_id, c
   if (r_value.is_ok()) {
     LOG(INFO) << "Loaded " << dialog_id << " from database from " << source;
     auto d = on_load_dialog_from_database(dialog_id, r_value.move_as_ok(), source);
-    LOG_CHECK(d == nullptr || d->dialog_id == dialog_id) << d->dialog_id << " " << dialog_id;
+    LOG_CHECK(d == nullptr || d->dialog_id == dialog_id) << d->dialog_id << ' ' << dialog_id;
     return d;
   } else {
     LOG(INFO) << "Failed to load " << dialog_id << " from database from " << source << ": "
