@@ -25539,7 +25539,7 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
 
 bool MessagesManager::can_resend_message(const Message *m) const {
   if (m->send_error_code != 429 && m->send_error_message != "Message is too old to be re-sent automatically" &&
-      m->send_error_message != "SCHEDULE_TOO_MUCH") {
+      m->send_error_message != "SCHEDULE_TOO_MUCH" && m->send_error_message != "SEND_AS_PEER_INVALID") {
     return false;
   }
   if (m->is_bot_start_message) {
