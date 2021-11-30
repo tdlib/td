@@ -331,7 +331,7 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
     }
     case telegram_api::channelAdminLogEventActionToggleNoForwards::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionToggleNoForwards>(action_ptr);
-      return td_api::make_object<td_api::chatEventAllowSavingContentToggled>(action->new_value_);
+      return td_api::make_object<td_api::chatEventAllowSavingContentToggled>(!action->new_value_);
     }
     default:
       UNREACHABLE();
