@@ -9420,20 +9420,18 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
   //  LOG_IF(ERROR, d->first_message_id.is_valid() && d->first_message_id > first_received_message_id)
   //      << "Receive " << first_received_message_id << ", but first chat message is " << d->first_message_id;
 
+  if (from_the_end && !d->last_new_message_id.is_valid()) {
+    set_dialog_last_new_message_id(
+        d, last_added_message_id.is_valid() ? last_added_message_id : last_received_message_id, "on_get_history");
+  }
   bool intersect_last_database_message_ids =
       last_added_message_id >= d->first_database_message_id && d->last_database_message_id >= first_added_message_id;
   bool need_update_database_message_ids =
       last_added_message_id.is_valid() && (from_the_end || intersect_last_database_message_ids);
-  if (from_the_end) {
-    if (!d->last_new_message_id.is_valid()) {
-      set_dialog_last_new_message_id(
-          d, last_added_message_id.is_valid() ? last_added_message_id : last_received_message_id, "on_get_history");
-    }
-    if (last_added_message_id.is_valid() && last_added_message_id > d->last_message_id) {
-      CHECK(d->last_new_message_id.is_valid());
-      set_dialog_last_message_id(d, last_added_message_id, "on_get_history");
-      send_update_chat_last_message(d, "on_get_history");
-    }
+  if (from_the_end && last_added_message_id.is_valid() && last_added_message_id > d->last_message_id) {
+    CHECK(d->last_new_message_id.is_valid());
+    set_dialog_last_message_id(d, last_added_message_id, "on_get_history");
+    send_update_chat_last_message(d, "on_get_history");
   }
 
   if (need_update_database_message_ids) {
@@ -9443,7 +9441,11 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
         set_dialog_last_database_message_id(d, MessageId(), "on_get_history 1");
       } else {
         auto min_message_id = td::min(d->first_database_message_id, d->last_message_id);
-        CHECK(last_added_message_id < min_message_id);
+        LOG_CHECK(last_added_message_id < min_message_id)
+            << need_update_database_message_ids << ' ' << first_added_message_id << ' ' << last_added_message_id << ' '
+            << d->first_database_message_id << ' ' << d->last_database_message_id << ' ' << d->last_new_message_id
+            << ' ' << d->last_message_id << ' ' << prev_first_database_message_id << ' '
+            << prev_last_database_message_id << ' ' << prev_last_new_message_id << ' ' << prev_last_message_id;
         if (min_message_id <= last_added_message_id.get_next_message_id(MessageType::Server)) {
           // connect local messages with last received server message
           set_dialog_first_database_message_id(d, last_added_message_id, "on_get_history 2");
