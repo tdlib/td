@@ -2280,7 +2280,7 @@ class SearchMessagesQuery final : public Td::ResultHandler {
       tl_object_ptr<telegram_api::InputPeer> sender_input_peer;
       if (sender_dialog_id.is_valid()) {
         flags |= telegram_api::messages_search::FROM_ID_MASK;
-        sender_input_peer = td_->messages_manager_->get_input_peer(sender_dialog_id, AccessRights::Read);
+        sender_input_peer = td_->messages_manager_->get_input_peer(sender_dialog_id, AccessRights::Know);
         CHECK(sender_input_peer != nullptr);
       }
       if (top_thread_message_id.is_valid()) {
@@ -6221,14 +6221,14 @@ int32 MessagesManager::get_message_index_mask(DialogId dialog_id, const Message 
 }
 
 void MessagesManager::update_reply_count_by_message(Dialog *d, int diff, const Message *m) {
+  CHECK(d != nullptr);
+  CHECK(m != nullptr);
   if (td_->auth_manager_->is_bot() || !m->top_thread_message_id.is_valid() ||
       m->top_thread_message_id == m->message_id || !m->message_id.is_valid() || !m->message_id.is_server()) {
     return;
   }
 
-  auto replier_dialog_id =
-      has_message_sender_user_id(d->dialog_id, m) ? DialogId(m->sender_user_id) : m->sender_dialog_id;
-  update_message_reply_count(d, m->top_thread_message_id, replier_dialog_id, m->message_id,
+  update_message_reply_count(d, m->top_thread_message_id, get_message_sender(m), m->message_id,
                              diff < 0 ? G()->unix_time() : m->date, diff);
 }
 
@@ -21523,7 +21523,7 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
     return result;
   }
   auto sender_dialog_id = r_sender_dialog_id.move_as_ok();
-  if (sender_dialog_id != DialogId() && !have_input_peer(sender_dialog_id, AccessRights::Read)) {
+  if (sender_dialog_id != DialogId() && !have_input_peer(sender_dialog_id, AccessRights::Know)) {
     promise.set_error(Status::Error(400, "Invalid message sender specified"));
     return result;
   }
@@ -26483,8 +26483,7 @@ tl_object_ptr<telegram_api::InputPeer> MessagesManager::get_send_message_as_inpu
   if (!m->has_explicit_sender) {
     return nullptr;
   }
-  auto sender_dialog_id = get_message_sender(m);
-  return get_input_peer(sender_dialog_id, AccessRights::Write);
+  return get_input_peer(get_message_sender(m), AccessRights::Write);
 }
 
 bool MessagesManager::can_set_game_score(FullMessageId full_message_id) const {

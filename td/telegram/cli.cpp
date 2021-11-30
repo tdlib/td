@@ -2087,10 +2087,12 @@ class CliClient final : public Actor {
     } else if (op == "SMU" || op == "SMC") {
       string chat_id;
       string sender_id;
+      string from_message_id;
       string limit;
-      get_args(args, chat_id, sender_id, limit);
+      get_args(args, chat_id, sender_id, from_message_id, limit);
       send_request(td_api::make_object<td_api::searchChatMessages>(
-          as_chat_id(chat_id), "", as_message_sender(sender_id), 0, 0, as_limit(limit), nullptr, 0));
+          as_chat_id(chat_id), "", as_message_sender(sender_id), as_message_id(from_message_id), 0, as_limit(limit),
+          nullptr, 0));
     } else if (op == "SM") {
       string chat_id;
       string filter;
