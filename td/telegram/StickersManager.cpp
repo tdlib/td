@@ -1270,7 +1270,6 @@ void StickersManager::init() {
       init_special_sticker_set(sticker_set, 1258816259751983, 5100237018658464041, "AnimatedEmojies");
     }
     load_special_sticker_set_info_from_binlog(sticker_set);
-    G()->shared_config().set_option_string(PSLICE() << sticker_set.type_.type_ << "_name", sticker_set.short_name_);
   }
   if (!G()->is_test_dc()) {
     // add animated emoji click sticker set
@@ -1309,8 +1308,9 @@ void StickersManager::init() {
     G()->td_db()->get_binlog_pmc()->erase("invalidate_old_featured_sticker_sets");
   }
 
-  G()->td_db()->get_binlog_pmc()->erase("animated_dice_sticker_set");       // legacy
-  G()->shared_config().set_option_empty("animated_dice_sticker_set_name");  // legacy
+  G()->td_db()->get_binlog_pmc()->erase("animated_dice_sticker_set");        // legacy
+  G()->shared_config().set_option_empty("animated_dice_sticker_set_name");   // legacy
+  G()->shared_config().set_option_empty("animated_emoji_sticker_set_name");  // legacy
 }
 
 StickersManager::SpecialStickerSet &StickersManager::add_special_sticker_set(const SpecialStickerSetType &type) {
@@ -3032,7 +3032,6 @@ void StickersManager::on_get_special_sticker_set(const SpecialStickerSetType &ty
   G()->td_db()->get_binlog_pmc()->set(type.type_, PSTRING() << sticker_set.id_.get() << ' ' << sticker_set.access_hash_
                                                             << ' ' << sticker_set.short_name_);
   if (type == SpecialStickerSetType::animated_emoji()) {
-    G()->shared_config().set_option_string(PSLICE() << type.type_ << "_name", sticker_set.short_name_);
     try_update_animated_emoji_messages();
   } else if (!type.get_dice_emoji().empty()) {
     sticker_set.is_being_loaded_ = true;
