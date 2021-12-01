@@ -193,7 +193,7 @@ class ObfuscatedTransport final : public IStreamTransport {
   // TODO: use ByteFlow?
   // One problem is that BufferedFd owns output_buffer_
   // The other problem is that first 56 bytes must be sent unencrypted.
-  UInt256 output_key_{};
+  UInt256 output_key_;
   AesCtrState output_state_;
   ChainBufferWriter *output_ = nullptr;
 

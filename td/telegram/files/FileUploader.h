@@ -47,7 +47,7 @@ class FileUploader final : public FileLoader {
   FileType file_type_ = FileType::Temp;
 
   std::vector<UInt256> iv_map_;
-  UInt256 iv_{};
+  UInt256 iv_;
   string generate_iv_;
   int64 generate_offset_ = 0;
   int64 next_offset_ = 0;
