@@ -8012,11 +8012,15 @@ void ContactsManager::on_update_phone_number_privacy() {
 
 void ContactsManager::invalidate_user_full(UserId user_id) {
   auto user_full = get_user_full_force(user_id);
-  if (user_full != nullptr && !user_full->is_expired()) {
-    user_full->expires_at = 0.0;
-    user_full->need_save_to_database = true;
+  if (user_full != nullptr) {
+    td_->messages_manager_->on_dialog_info_full_invalidated(DialogId(user_id));
 
-    update_user_full(user_full, user_id, "invalidate_user_full");
+    if (!user_full->is_expired()) {
+      user_full->expires_at = 0.0;
+      user_full->need_save_to_database = true;
+
+      update_user_full(user_full, user_id, "invalidate_user_full");
+    }
   }
 }
 
@@ -9591,7 +9595,7 @@ void ContactsManager::on_load_channel_full_from_database(ChannelId channel_id, s
 
   if (invalidated_channels_full_.erase(channel_id) > 0 ||
       (!c->is_slow_mode_enabled && channel_full->slow_mode_delay != 0)) {
-    do_invalidate_channel_full(channel_full, !c->is_slow_mode_enabled);
+    do_invalidate_channel_full(channel_full, channel_id, !c->is_slow_mode_enabled);
   }
 
   td_->group_call_manager_->on_update_dialog_about(DialogId(channel_id), channel_full->description, false);
@@ -12162,15 +12166,17 @@ void ContactsManager::invalidate_channel_full(ChannelId channel_id, bool need_dr
   LOG(INFO) << "Invalidate supergroup full for " << channel_id;
   auto channel_full = get_channel_full(channel_id, true, "invalidate_channel_full");  // must not load ChannelFull
   if (channel_full != nullptr) {
-    do_invalidate_channel_full(channel_full, need_drop_slow_mode_delay);
+    do_invalidate_channel_full(channel_full, channel_id, need_drop_slow_mode_delay);
     update_channel_full(channel_full, channel_id, "invalidate_channel_full");
   } else {
     invalidated_channels_full_.insert(channel_id);
   }
 }
 
-void ContactsManager::do_invalidate_channel_full(ChannelFull *channel_full, bool need_drop_slow_mode_delay) {
+void ContactsManager::do_invalidate_channel_full(ChannelFull *channel_full, ChannelId channel_id,
+                                                 bool need_drop_slow_mode_delay) {
   CHECK(channel_full != nullptr);
+  td_->messages_manager_->on_dialog_info_full_invalidated(DialogId(channel_id));
   if (channel_full->expires_at >= Time::now()) {
     channel_full->expires_at = 0.0;
     channel_full->need_save_to_database = true;
@@ -13195,7 +13201,7 @@ void ContactsManager::on_channel_status_changed(const Channel *c, ChannelId chan
     auto channel_full = get_channel_full(channel_id, true, "on_channel_status_changed");
     if (channel_full != nullptr) {  // otherwise invite_link will be dropped when the channel is loaded
       on_update_channel_full_invite_link(channel_full, nullptr);
-      do_invalidate_channel_full(channel_full, !c->is_slow_mode_enabled);
+      do_invalidate_channel_full(channel_full, channel_id, !c->is_slow_mode_enabled);
       update_channel_full(channel_full, channel_id, "on_channel_status_changed");
     }
   } else {

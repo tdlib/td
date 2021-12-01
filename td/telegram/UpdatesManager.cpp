@@ -2513,7 +2513,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateServiceNotifica
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChat> update, Promise<Unit> &&promise) {
-  // nothing to do
+  td_->messages_manager_->on_dialog_info_full_invalidated(DialogId(ChatId(update->chat_id_)));
   promise.set_value(Unit());
 }
 

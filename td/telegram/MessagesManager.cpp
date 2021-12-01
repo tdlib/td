@@ -17589,6 +17589,13 @@ void MessagesManager::reload_dialog_info_full(DialogId dialog_id) {
   }
 }
 
+void MessagesManager::on_dialog_info_full_invalidated(DialogId dialog_id) {
+  Dialog *d = get_dialog(dialog_id);
+  if (d != nullptr && d->is_opened) {
+    reload_dialog_info_full(dialog_id);
+  }
+}
+
 MessageId MessagesManager::get_dialog_pinned_message(DialogId dialog_id, Promise<Unit> &&promise) {
   Dialog *d = get_dialog_force(dialog_id, "get_dialog_pinned_message");
   if (d == nullptr) {

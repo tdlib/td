@@ -1269,7 +1269,7 @@ class ContactsManager final : public Actor {
 
   void drop_channel_photos(ChannelId channel_id, bool is_empty, bool drop_channel_full_photo, const char *source);
 
-  static void do_invalidate_channel_full(ChannelFull *channel_full, bool need_drop_slow_mode_delay);
+  void do_invalidate_channel_full(ChannelFull *channel_full, ChannelId channel_id, bool need_drop_slow_mode_delay);
 
   void update_user_online_member_count(User *u);
   void update_chat_online_member_count(const ChatFull *chat_full, ChatId chat_id, bool is_from_server);
