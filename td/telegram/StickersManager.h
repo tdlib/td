@@ -436,6 +436,7 @@ class StickersManager final : public Actor {
     string short_name_;
     SpecialStickerSetType type_;
     bool is_being_loaded_ = false;
+    bool is_being_reloaded_ = false;
   };
 
   class StickerListLogEvent;
@@ -661,11 +662,13 @@ class StickersManager final : public Actor {
 
   void load_special_sticker_set_info_from_binlog(SpecialStickerSet &sticker_set);
 
-  void load_special_sticker_set_by_type(const SpecialStickerSetType &type);
+  void load_special_sticker_set_by_type(SpecialStickerSetType type);
 
   void load_special_sticker_set(SpecialStickerSet &sticker_set);
 
-  void reload_special_sticker_set(SpecialStickerSet &sticker_set);
+  void reload_special_sticker_set_by_type(SpecialStickerSetType type);
+
+  void reload_special_sticker_set(SpecialStickerSet &sticker_set, int32 hash);
 
   static void add_sticker_thumbnail(Sticker *s, PhotoSize thumbnail);
 

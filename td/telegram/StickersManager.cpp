@@ -1362,7 +1362,7 @@ void StickersManager::load_special_sticker_set_info_from_binlog(SpecialStickerSe
   short_name_to_sticker_set_id_.emplace(sticker_set.short_name_, sticker_set.id_);
 }
 
-void StickersManager::load_special_sticker_set_by_type(const SpecialStickerSetType &type) {
+void StickersManager::load_special_sticker_set_by_type(SpecialStickerSetType type) {
   if (G()->close_flag()) {
     return;
   }
@@ -1387,18 +1387,35 @@ void StickersManager::load_special_sticker_set(SpecialStickerSet &sticker_set) {
     });
     load_sticker_sets({sticker_set.id_}, std::move(promise));
   } else {
-    reload_special_sticker_set(sticker_set);
+    reload_special_sticker_set(sticker_set, 0);
   }
 }
 
-void StickersManager::reload_special_sticker_set(SpecialStickerSet &sticker_set) {
-  int32 hash = 0;
-  if (sticker_set.id_.is_valid()) {
-    const auto *s = get_sticker_set(sticker_set.id_);
-    if (s != nullptr && s->is_inited && s->is_loaded) {
-      hash = s->hash;
+void StickersManager::reload_special_sticker_set_by_type(SpecialStickerSetType type) {
+  auto &sticker_set = add_special_sticker_set(type);
+  if (sticker_set.is_being_reloaded_) {
+    return;
+  }
+
+  if (!sticker_set.id_.is_valid()) {
+    return reload_special_sticker_set(sticker_set, 0);
+  }
+
+  const auto *s = get_sticker_set(sticker_set.id_);
+  if (s != nullptr && s->is_inited) {
+    if (s->was_loaded) {
+      return reload_special_sticker_set(sticker_set, s->is_loaded ? s->hash : 0);
     }
   }
+
+  reload_special_sticker_set(sticker_set, 0);
+}
+
+void StickersManager::reload_special_sticker_set(SpecialStickerSet &sticker_set, int32 hash) {
+  if (sticker_set.is_being_reloaded_) {
+    return;
+  }
+  sticker_set.is_being_reloaded_ = true;
   td_->create_handler<ReloadSpecialStickerSetQuery>()->send(sticker_set.id_, sticker_set.type_, hash);
 }
 
@@ -1408,6 +1425,7 @@ void StickersManager::on_load_special_sticker_set(const SpecialStickerSetType &t
   }
 
   auto &special_sticker_set = add_special_sticker_set(type);
+  special_sticker_set.is_being_reloaded_ = false;
   if (!special_sticker_set.is_being_loaded_) {
     return;
   }
@@ -1415,8 +1433,9 @@ void StickersManager::on_load_special_sticker_set(const SpecialStickerSetType &t
   if (result.is_error()) {
     // failed to load the special sticker set; repeat after some time
     create_actor<SleepActor>("RetryLoadSpecialStickerSetActor", Random::fast(300, 600),
-                             PromiseCreator::lambda([actor_id = actor_id(this), type](Result<Unit> result) {
-                               send_closure(actor_id, &StickersManager::load_special_sticker_set_by_type, type);
+                             PromiseCreator::lambda([actor_id = actor_id(this), type](Result<Unit> result) mutable {
+                               send_closure(actor_id, &StickersManager::load_special_sticker_set_by_type,
+                                            std::move(type));
                              }))
         .release();
     return;
@@ -4218,10 +4237,11 @@ void StickersManager::register_dice(const string &emoji, int32 value, FullMessag
 
   auto &special_sticker_set = add_special_sticker_set(SpecialStickerSetType::animated_dice(emoji));
   bool need_load = false;
+  StickerSet *sticker_set = nullptr;
   if (!special_sticker_set.id_.is_valid()) {
     need_load = true;
   } else {
-    auto sticker_set = get_sticker_set(special_sticker_set.id_);
+    sticker_set = get_sticker_set(special_sticker_set.id_);
     CHECK(sticker_set != nullptr);
     need_load = !sticker_set->was_loaded;
   }
@@ -4231,7 +4251,7 @@ void StickersManager::register_dice(const string &emoji, int32 value, FullMessag
     load_special_sticker_set(special_sticker_set);
   } else {
     // TODO reload once in a while
-    // reload_special_sticker_set(special_sticker_set);
+    // reload_special_sticker_set(special_sticker_set, sticker_set->is_loaded ? sticker_set->hash : 0);
   }
 }
 
@@ -7396,8 +7416,8 @@ void StickersManager::after_get_difference() {
     get_recent_stickers(true, Auto());
     get_favorite_stickers(Auto());
 
-    reload_special_sticker_set(add_special_sticker_set(SpecialStickerSetType::animated_emoji()));
-    reload_special_sticker_set(add_special_sticker_set(SpecialStickerSetType::animated_emoji_click()));
+    reload_special_sticker_set_by_type(SpecialStickerSetType::animated_emoji());
+    reload_special_sticker_set_by_type(SpecialStickerSetType::animated_emoji_click());
   }
 }
 
