@@ -62,6 +62,7 @@ AuthManager::AuthManager(int32 api_id, const string &api_hash, ActorShared<> par
     LOG(WARNING) << "Continue to log out";
     update_state(State::LoggingOut);
   } else if (auth_str == "destroy") {
+    LOG(WARNING) << "Continue to destroy auth keys";
     update_state(State::DestroyingKeys);
   } else {
     if (!load_state()) {
@@ -74,7 +75,8 @@ void AuthManager::start_up() {
   if (state_ == State::LoggingOut) {
     send_log_out_query();
   } else if (state_ == State::DestroyingKeys) {
-    destroy_auth_keys();
+    G()->net_query_dispatcher().destroy_auth_keys(
+        PromiseCreator::lambda([](Unit) { send_closure_later(G()->td(), &Td::destroy); }, PromiseCreator::Ignore()));
   }
 }
 void AuthManager::tear_down() {
