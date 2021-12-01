@@ -666,7 +666,7 @@ class StickersManager final : public Actor {
 
   void load_special_sticker_set(SpecialStickerSet &sticker_set);
 
-  void reload_special_sticker_set_by_type(SpecialStickerSetType type);
+  void reload_special_sticker_set_by_type(SpecialStickerSetType type, bool is_recursive = false);
 
   void reload_special_sticker_set(SpecialStickerSet &sticker_set, int32 hash);
 

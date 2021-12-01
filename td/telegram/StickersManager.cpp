@@ -1391,7 +1391,11 @@ void StickersManager::load_special_sticker_set(SpecialStickerSet &sticker_set) {
   }
 }
 
-void StickersManager::reload_special_sticker_set_by_type(SpecialStickerSetType type) {
+void StickersManager::reload_special_sticker_set_by_type(SpecialStickerSetType type, bool is_recursive) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   auto &sticker_set = add_special_sticker_set(type);
   if (sticker_set.is_being_reloaded_) {
     return;
@@ -1402,10 +1406,14 @@ void StickersManager::reload_special_sticker_set_by_type(SpecialStickerSetType t
   }
 
   const auto *s = get_sticker_set(sticker_set.id_);
-  if (s != nullptr && s->is_inited) {
-    if (s->was_loaded) {
-      return reload_special_sticker_set(sticker_set, s->is_loaded ? s->hash : 0);
-    }
+  if (s != nullptr && s->is_inited && s->was_loaded) {
+    return reload_special_sticker_set(sticker_set, s->is_loaded ? s->hash : 0);
+  }
+  if (!is_recursive) {
+    auto promise = PromiseCreator::lambda([actor_id = actor_id(this), type = std::move(type)](Unit result) mutable {
+      send_closure(actor_id, &StickersManager::reload_special_sticker_set_by_type, std::move(type), true);
+    });
+    return load_sticker_sets({sticker_set.id_}, std::move(promise));
   }
 
   reload_special_sticker_set(sticker_set, 0);
@@ -4179,7 +4187,8 @@ void StickersManager::on_update_disable_animated_emojis() {
   }
   disable_animated_emojis_ = disable_animated_emojis;
   if (!disable_animated_emojis_) {
-    load_special_sticker_set(add_special_sticker_set(SpecialStickerSetType::animated_emoji()));
+    reload_special_sticker_set_by_type(SpecialStickerSetType::animated_emoji());
+    reload_special_sticker_set_by_type(SpecialStickerSetType::animated_emoji_click());
   }
   try_update_animated_emoji_messages();
 }
@@ -7416,8 +7425,10 @@ void StickersManager::after_get_difference() {
     get_recent_stickers(true, Auto());
     get_favorite_stickers(Auto());
 
-    reload_special_sticker_set_by_type(SpecialStickerSetType::animated_emoji());
-    reload_special_sticker_set_by_type(SpecialStickerSetType::animated_emoji_click());
+    if (!disable_animated_emojis_) {
+      reload_special_sticker_set_by_type(SpecialStickerSetType::animated_emoji());
+      reload_special_sticker_set_by_type(SpecialStickerSetType::animated_emoji_click());
+    }
   }
 }
 
