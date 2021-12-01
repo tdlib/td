@@ -654,7 +654,7 @@ class StickersManager final : public Actor {
 
   void tear_down() final;
 
-  SpecialStickerSet &add_special_sticker_set(const string &type);
+  SpecialStickerSet &add_special_sticker_set(const SpecialStickerSetType &type);
 
   static void init_special_sticker_set(SpecialStickerSet &sticker_set, int64 sticker_set_id, int64 access_hash,
                                        string name);
@@ -782,7 +782,7 @@ class StickersManager final : public Actor {
   int32 recent_stickers_limit_ = 200;
   int32 favorite_stickers_limit_ = 5;
 
-  std::unordered_map<string, SpecialStickerSet> special_sticker_sets_;
+  std::unordered_map<SpecialStickerSetType, SpecialStickerSet, SpecialStickerSetTypeHash> special_sticker_sets_;
 
   struct StickerSetLoadRequest {
     Promise<Unit> promise;

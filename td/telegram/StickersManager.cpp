@@ -1313,12 +1313,12 @@ void StickersManager::init() {
   G()->shared_config().set_option_empty("animated_dice_sticker_set_name");  // legacy
 }
 
-StickersManager::SpecialStickerSet &StickersManager::add_special_sticker_set(const string &type) {
+StickersManager::SpecialStickerSet &StickersManager::add_special_sticker_set(const SpecialStickerSetType &type) {
   auto &result = special_sticker_sets_[type];
-  if (result.type_.type_.empty()) {
-    result.type_.type_ = type;
+  if (result.type_.is_empty()) {
+    result.type_ = type;
   } else {
-    CHECK(result.type_.type_ == type);
+    CHECK(result.type_ == type);
   }
   return result;
 }
@@ -1367,7 +1367,7 @@ void StickersManager::load_special_sticker_set_by_type(const SpecialStickerSetTy
     return;
   }
 
-  auto &sticker_set = add_special_sticker_set(type.type_);
+  auto &sticker_set = add_special_sticker_set(type);
   CHECK(sticker_set.is_being_loaded_);
   sticker_set.is_being_loaded_ = false;
   load_special_sticker_set(sticker_set);
@@ -1407,7 +1407,7 @@ void StickersManager::on_load_special_sticker_set(const SpecialStickerSetType &t
     return;
   }
 
-  auto &special_sticker_set = add_special_sticker_set(type.type_);
+  auto &special_sticker_set = add_special_sticker_set(type);
   if (!special_sticker_set.is_being_loaded_) {
     return;
   }
@@ -1424,7 +1424,7 @@ void StickersManager::on_load_special_sticker_set(const SpecialStickerSetType &t
 
   special_sticker_set.is_being_loaded_ = false;
 
-  if (type.type_ == SpecialStickerSetType::animated_emoji()) {
+  if (type == SpecialStickerSetType::animated_emoji()) {
     auto promises = std::move(pending_get_animated_emoji_queries_);
     reset_to_empty(pending_get_animated_emoji_queries_);
     for (auto &promise : promises) {
@@ -1438,7 +1438,7 @@ void StickersManager::on_load_special_sticker_set(const SpecialStickerSetType &t
   CHECK(sticker_set != nullptr);
   CHECK(sticker_set->was_loaded);
 
-  if (type.type_ == SpecialStickerSetType::animated_emoji_click()) {
+  if (type == SpecialStickerSetType::animated_emoji_click()) {
     auto pending_get_requests = std::move(pending_get_animated_emoji_click_stickers_);
     reset_to_empty(pending_get_animated_emoji_click_stickers_);
     for (auto &pending_request : pending_get_requests) {
@@ -2222,7 +2222,7 @@ StickerSetId StickersManager::get_sticker_set_id(const tl_object_ptr<telegram_ap
     case telegram_api::inputStickerSetAnimatedEmoji::ID:
     case telegram_api::inputStickerSetAnimatedEmojiAnimations::ID:
       LOG(ERROR) << "Receive special sticker set " << to_string(set_ptr);
-      return add_special_sticker_set(SpecialStickerSetType(set_ptr).type_).id_;
+      return add_special_sticker_set(SpecialStickerSetType(set_ptr)).id_;
     case telegram_api::inputStickerSetDice::ID:
       LOG(ERROR) << "Receive special sticker set " << to_string(set_ptr);
       return StickerSetId();
@@ -2251,7 +2251,7 @@ StickerSetId StickersManager::add_sticker_set(tl_object_ptr<telegram_api::InputS
     case telegram_api::inputStickerSetAnimatedEmoji::ID:
     case telegram_api::inputStickerSetAnimatedEmojiAnimations::ID:
       LOG(ERROR) << "Receive special sticker set " << to_string(set_ptr);
-      return add_special_sticker_set(SpecialStickerSetType(set_ptr).type_).id_;
+      return add_special_sticker_set(SpecialStickerSetType(set_ptr)).id_;
     case telegram_api::inputStickerSetDice::ID:
       LOG(ERROR) << "Receive special sticker set " << to_string(set_ptr);
       return StickerSetId();
@@ -2438,7 +2438,7 @@ StickerSetId StickersManager::on_get_input_sticker_set(FileId sticker_file_id,
     }
     case telegram_api::inputStickerSetAnimatedEmoji::ID:
     case telegram_api::inputStickerSetAnimatedEmojiAnimations::ID:
-      return add_special_sticker_set(SpecialStickerSetType(set_ptr).type_).id_;
+      return add_special_sticker_set(SpecialStickerSetType(set_ptr)).id_;
     case telegram_api::inputStickerSetDice::ID:
       return StickerSetId();
     default:
@@ -3017,7 +3017,7 @@ void StickersManager::on_get_special_sticker_set(const SpecialStickerSetType &ty
 
   LOG(INFO) << "Receive special sticker set " << type.type_ << ": " << sticker_set_id << ' ' << s->access_hash << ' '
             << s->short_name;
-  auto &sticker_set = add_special_sticker_set(type.type_);
+  auto &sticker_set = add_special_sticker_set(type);
   if (sticker_set_id == sticker_set.id_ && s->access_hash == sticker_set.access_hash_ &&
       s->short_name == sticker_set.short_name_ && !s->short_name.empty()) {
     on_load_special_sticker_set(type, Status::OK());
@@ -3031,7 +3031,7 @@ void StickersManager::on_get_special_sticker_set(const SpecialStickerSetType &ty
 
   G()->td_db()->get_binlog_pmc()->set(type.type_, PSTRING() << sticker_set.id_.get() << ' ' << sticker_set.access_hash_
                                                             << ' ' << sticker_set.short_name_);
-  if (type.type_ == SpecialStickerSetType::animated_emoji()) {
+  if (type == SpecialStickerSetType::animated_emoji()) {
     G()->shared_config().set_option_string(PSLICE() << type.type_ << "_name", sticker_set.short_name_);
     try_update_animated_emoji_messages();
   } else if (!type.get_dice_emoji().empty()) {

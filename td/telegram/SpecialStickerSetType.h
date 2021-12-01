@@ -10,24 +10,50 @@
 
 #include "td/utils/common.h"
 
+#include <functional>
+
 namespace td {
 
-struct SpecialStickerSetType {
+class SpecialStickerSetType {
+  explicit SpecialStickerSetType(string type) : type_(type) {
+  }
+
+  friend struct SpecialStickerSetTypeHash;
+
+ public:
   string type_;
 
-  static string animated_emoji();
+  static SpecialStickerSetType animated_emoji();
 
-  static string animated_emoji_click();
+  static SpecialStickerSetType animated_emoji_click();
 
-  static string animated_dice(const string &emoji);
+  static SpecialStickerSetType animated_dice(const string &emoji);
 
   string get_dice_emoji() const;
+
+  bool is_empty() const {
+    return type_.empty();
+  }
 
   SpecialStickerSetType() = default;
 
   explicit SpecialStickerSetType(const telegram_api::object_ptr<telegram_api::InputStickerSet> &input_sticker_set);
 
   telegram_api::object_ptr<telegram_api::InputStickerSet> get_input_sticker_set() const;
+};
+
+inline bool operator==(const SpecialStickerSetType &lhs, const SpecialStickerSetType &rhs) {
+  return lhs.type_ == rhs.type_;
+}
+
+inline bool operator!=(const SpecialStickerSetType &lhs, const SpecialStickerSetType &rhs) {
+  return !(lhs == rhs);
+}
+
+struct SpecialStickerSetTypeHash {
+  std::size_t operator()(SpecialStickerSetType type) const {
+    return std::hash<string>()(type.type_);
+  }
 };
 
 }  // namespace td
