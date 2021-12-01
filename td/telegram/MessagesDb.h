@@ -66,8 +66,8 @@ struct MessagesDbGetDialogSparseMessagePositionsQuery {
 };
 
 struct MessagesDbMessagePosition {
-  int32 position{0};
-  int32 date{0};
+  int32 position;
+  int32 date;
   MessageId message_id;
 };
 

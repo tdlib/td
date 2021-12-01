@@ -173,8 +173,8 @@ void FileReferenceManager::merge(NodeId to_node_id, NodeId from_node_id) {
   auto &from = from_it->second;
   VLOG(file_references) << "Merge " << to.file_source_ids.size() << " and " << from.file_source_ids.size()
                         << " sources of files " << to_node_id << " and " << from_node_id;
-  CHECK(!to.query || to.query->proxy.empty());
-  CHECK(!from.query || from.query->proxy.empty());
+  CHECK(!to.query || to.query->proxy.is_empty());
+  CHECK(!from.query || from.query->proxy.is_empty());
   if (to.query || from.query) {
     if (!to.query) {
       to.query = make_unique<Query>();
@@ -183,7 +183,7 @@ void FileReferenceManager::merge(NodeId to_node_id, NodeId from_node_id) {
     if (from.query) {
       combine(to.query->promises, std::move(from.query->promises));
       to.query->active_queries += from.query->active_queries;
-      from.query->proxy = {to_node_id, to.query->generation};
+      from.query->proxy = Destination(to_node_id, to.query->generation);
     }
   }
   to.file_source_ids.merge(std::move(from.file_source_ids));
@@ -225,7 +225,7 @@ void FileReferenceManager::run_node(NodeId node_id) {
     return;
   }
   auto file_source_id = node.file_source_ids.next();
-  send_query({node_id, node.query->generation}, file_source_id);
+  send_query(Destination(node_id, node.query->generation), file_source_id);
 }
 
 void FileReferenceManager::send_query(Destination dest, FileSourceId file_source_id) {
@@ -325,7 +325,7 @@ FileReferenceManager::Destination FileReferenceManager::on_query_result(Destinat
   query->active_queries--;
   CHECK(query->active_queries >= 0);
 
-  if (!query->proxy.empty()) {
+  if (!query->proxy.is_empty()) {
     query->active_queries -= sub;
     CHECK(query->active_queries >= 0);
     auto new_proxy = on_query_result(query->proxy, file_source_id, std::move(status), query->active_queries);

@@ -76,11 +76,15 @@ class FileReferenceManager final : public Actor {
 
  private:
   struct Destination {
-    bool empty() const {
-      return node_id.empty();
-    }
     NodeId node_id;
     int64 generation{0};
+
+    Destination() = default;
+    Destination(NodeId node_id, int64 generation) : node_id(node_id), generation(generation) {
+    }
+    bool is_empty() const {
+      return node_id.empty();
+    }
   };
   struct Query {
     std::vector<Promise<>> promises;
