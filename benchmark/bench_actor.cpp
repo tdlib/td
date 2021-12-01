@@ -35,12 +35,14 @@ struct TestActor final : public td::Actor {
 
 td::int32 TestActor::actor_count_;
 
+namespace td {
 template <>
-class td::ActorTraits<TestActor> {
+class ActorTraits<TestActor> {
  public:
   static constexpr bool need_context = false;
   static constexpr bool need_start_up = true;
 };
+}  // namespace td
 
 class CreateActorBench final : public td::Benchmark {
   td::ConcurrentScheduler scheduler_;
