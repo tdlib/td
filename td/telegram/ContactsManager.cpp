@@ -9897,6 +9897,10 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
     }
     c->is_has_location_changed = false;
   }
+  if (c->is_creator_changed) {
+    update_created_public_channels(c, channel_id);
+    c->is_creator_changed = false;
+  }
   if (c->is_noforwards_changed) {
     td_->messages_manager_->on_dialog_allow_saving_content_updated(DialogId(channel_id));
     c->is_noforwards_changed = false;
@@ -13216,7 +13220,7 @@ void ContactsManager::on_update_channel_status(Channel *c, ChannelId channel_id,
   }
 }
 
-void ContactsManager::on_channel_status_changed(const Channel *c, ChannelId channel_id,
+void ContactsManager::on_channel_status_changed(Channel *c, ChannelId channel_id,
                                                 const DialogParticipantStatus &old_status,
                                                 const DialogParticipantStatus &new_status) {
   CHECK(c->is_update_supergroup_sent);
@@ -13235,10 +13239,7 @@ void ContactsManager::on_channel_status_changed(const Channel *c, ChannelId chan
   }
 
   if (old_status.is_creator() != new_status.is_creator()) {
-    for (size_t i = 0; i < 2; i++) {
-      created_public_channels_inited_[i] = false;
-      created_public_channels_[i].clear();
-    }
+    c->is_creator_changed = true;
 
     send_get_channel_full_query(nullptr, channel_id, Auto(), "update channel owner");
     reload_dialog_administrators(DialogId(channel_id), 0, Auto());

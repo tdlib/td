@@ -814,6 +814,7 @@ class ContactsManager final : public Actor {
     bool is_status_changed = true;
     bool is_has_location_changed = true;
     bool is_noforwards_changed = true;
+    bool is_creator_changed = true;
     bool had_read_access = true;
     bool was_member = false;
     bool is_changed = true;             // have new changes that need to be sent to the client and database
@@ -1251,7 +1252,7 @@ class ContactsManager final : public Actor {
   static void on_update_channel_full_bot_user_ids(ChannelFull *channel_full, ChannelId channel_id,
                                                   vector<UserId> &&bot_user_ids);
 
-  void on_channel_status_changed(const Channel *c, ChannelId channel_id, const DialogParticipantStatus &old_status,
+  void on_channel_status_changed(Channel *c, ChannelId channel_id, const DialogParticipantStatus &old_status,
                                  const DialogParticipantStatus &new_status);
   void on_channel_username_changed(const Channel *c, ChannelId channel_id, const string &old_username,
                                    const string &new_username);
