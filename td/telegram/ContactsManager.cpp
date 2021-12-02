@@ -7634,6 +7634,37 @@ vector<DialogId> ContactsManager::get_created_public_dialogs(PublicDialogType ty
   return {};
 }
 
+void ContactsManager::update_created_public_channels(Channel *c, ChannelId channel_id) {
+  if (created_public_channels_inited_[0]) {
+    bool was_changed = false;
+    if (c->username.empty() || !c->status.is_creator()) {
+      was_changed = td::remove(created_public_channels_[0], channel_id);
+    } else {
+      if (!td::contains(created_public_channels_[0], channel_id)) {
+        created_public_channels_[0].push_back(channel_id);
+        was_changed = true;
+      }
+    }
+    if (was_changed) {
+      // TODO reload the list
+    }
+  }
+  if (created_public_channels_inited_[1]) {
+    bool was_changed = false;
+    if (!c->has_location || !c->status.is_creator()) {
+      was_changed = td::remove(created_public_channels_[1], channel_id);
+    } else {
+      if (!td::contains(created_public_channels_[1], channel_id)) {
+        created_public_channels_[1].push_back(channel_id);
+        was_changed = true;
+      }
+    }
+    if (was_changed) {
+      // TODO reload the list
+    }
+  }
+}
+
 void ContactsManager::on_get_created_public_channels(PublicDialogType type,
                                                      vector<tl_object_ptr<telegram_api::Chat>> &&chats) {
   auto index = static_cast<int32>(type);
@@ -9847,14 +9878,8 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
     c->is_status_changed = false;
   }
   if (c->is_username_changed) {
-    if (c->status.is_creator() && created_public_channels_inited_[0]) {
-      if (c->username.empty()) {
-        td::remove(created_public_channels_[0], channel_id);
-      } else {
-        if (!td::contains(created_public_channels_[0], channel_id)) {
-          created_public_channels_[0].push_back(channel_id);
-        }
-      }
+    if (c->status.is_creator()) {
+      update_created_public_channels(c, channel_id);
     }
     c->is_username_changed = false;
   }
@@ -9865,6 +9890,12 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
       remove_dialog_suggested_action(SuggestedAction{SuggestedAction::Type::ConvertToGigagroup, DialogId(channel_id)});
     }
     c->is_default_permissions_changed = false;
+  }
+  if (c->is_has_location_changed) {
+    if (c->status.is_creator()) {
+      update_created_public_channels(c, channel_id);
+    }
+    c->is_has_location_changed = false;
   }
   if (c->is_noforwards_changed) {
     td_->messages_manager_->on_dialog_allow_saving_content_updated(DialogId(channel_id));
@@ -11670,15 +11701,13 @@ bool ContactsManager::on_get_channel_error(ChannelId channel_id, const Status &s
       if (!c->username.empty()) {
         LOG(INFO) << "Drop username of " << channel_id;
         on_update_channel_username(c, channel_id, "");
-        update_channel(c, channel_id);
       }
 
-      if (c->has_location) {
-        LOG(INFO) << "Drop location of " << channel_id;
-        c->has_location = false;
-        update_channel(c, channel_id);
-      }
+      on_update_channel_has_location(c, channel_id, false);
+
       on_update_channel_linked_channel_id(channel_id, ChannelId());
+
+      update_channel(c, channel_id);
 
       remove_dialog_access_by_invite_link(DialogId(channel_id));
     }
@@ -12432,11 +12461,8 @@ void ContactsManager::on_update_channel_full_location(ChannelFull *channel_full,
 
   Channel *c = get_channel(channel_id);
   CHECK(c != nullptr);
-  if (location.empty() == c->has_location) {
-    c->has_location = !location.empty();
-    c->is_changed = true;
-    update_channel(c, channel_id);
-  }
+  on_update_channel_has_location(c, channel_id, !location.empty());
+  update_channel(c, channel_id);
 }
 
 void ContactsManager::on_update_channel_full_slow_mode_delay(ChannelFull *channel_full, ChannelId channel_id,
@@ -13251,6 +13277,15 @@ void ContactsManager::on_update_channel_default_permissions(Channel *c, ChannelI
     c->default_permissions = default_permissions;
     c->is_default_permissions_changed = true;
     c->need_save_to_database = true;
+  }
+}
+
+void ContactsManager::on_update_channel_has_location(Channel *c, ChannelId channel_id, bool has_location) {
+  if (c->has_location != has_location) {
+    LOG(INFO) << "Update " << channel_id << " has_location from " << c->has_location << " to " << has_location;
+    c->has_location = has_location;
+    c->is_has_location_changed = true;
+    c->is_changed = true;
   }
 }
 
@@ -15379,7 +15414,6 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
   auto access_hash = has_access_hash ? channel.access_hash_ : 0;
 
   bool has_linked_channel = (channel.flags_ & CHANNEL_FLAG_HAS_LINKED_CHAT) != 0;
-  bool has_location = (channel.flags_ & CHANNEL_FLAG_HAS_LOCATION) != 0;
   bool sign_messages = (channel.flags_ & CHANNEL_FLAG_SIGN_MESSAGES) != 0;
   bool is_slow_mode_enabled = (channel.flags_ & CHANNEL_FLAG_IS_SLOW_MODE_ENABLED) != 0;
   bool is_megagroup = (channel.flags_ & CHANNEL_FLAG_IS_MEGAGROUP) != 0;
@@ -15447,14 +15481,13 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
       on_update_channel_photo(c, channel_id, std::move(channel.photo_));
       on_update_channel_default_permissions(c, channel_id,
                                             get_restricted_rights(std::move(channel.default_banned_rights_)));
+      on_update_channel_has_location(c, channel_id, channel.has_geo_);
       on_update_channel_noforwards(c, channel_id, channel.noforwards_);
 
-      if (c->has_linked_channel != has_linked_channel || c->has_location != has_location ||
-          c->is_slow_mode_enabled != is_slow_mode_enabled || c->is_megagroup != is_megagroup ||
-          c->restriction_reasons != restriction_reasons || c->is_scam != is_scam || c->is_fake != is_fake ||
-          c->is_gigagroup != is_gigagroup) {
+      if (c->has_linked_channel != has_linked_channel || c->is_slow_mode_enabled != is_slow_mode_enabled ||
+          c->is_megagroup != is_megagroup || c->restriction_reasons != restriction_reasons || c->is_scam != is_scam ||
+          c->is_fake != is_fake || c->is_gigagroup != is_gigagroup) {
         c->has_linked_channel = has_linked_channel;
-        c->has_location = has_location;
         c->is_slow_mode_enabled = is_slow_mode_enabled;
         c->is_megagroup = is_megagroup;
         c->restriction_reasons = std::move(restriction_reasons);
@@ -15506,6 +15539,7 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
   on_update_channel_username(c, channel_id, std::move(channel.username_));  // uses status, must be called after
   on_update_channel_default_permissions(c, channel_id,
                                         get_restricted_rights(std::move(channel.default_banned_rights_)));
+  on_update_channel_has_location(c, channel_id, channel.has_geo_);
   on_update_channel_noforwards(c, channel_id, channel.noforwards_);
 
   bool need_update_participant_count = have_participant_count && participant_count != c->participant_count;
@@ -15515,12 +15549,10 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
   }
 
   bool need_invalidate_channel_full = false;
-  if (c->has_linked_channel != has_linked_channel || c->has_location != has_location ||
-      c->is_slow_mode_enabled != is_slow_mode_enabled || c->is_megagroup != is_megagroup ||
-      c->restriction_reasons != restriction_reasons || c->is_scam != is_scam || c->is_fake != is_fake ||
-      c->is_gigagroup != is_gigagroup) {
+  if (c->has_linked_channel != has_linked_channel || c->is_slow_mode_enabled != is_slow_mode_enabled ||
+      c->is_megagroup != is_megagroup || c->restriction_reasons != restriction_reasons || c->is_scam != is_scam ||
+      c->is_fake != is_fake || c->is_gigagroup != is_gigagroup) {
     c->has_linked_channel = has_linked_channel;
-    c->has_location = has_location;
     c->is_slow_mode_enabled = is_slow_mode_enabled;
     c->is_megagroup = is_megagroup;
     c->restriction_reasons = std::move(restriction_reasons);
@@ -15600,6 +15632,7 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, co
   // on_update_channel_username(c, channel_id, "");  // don't know if channel username is empty, so don't update it
   tl_object_ptr<telegram_api::chatBannedRights> banned_rights;  // == nullptr
   on_update_channel_default_permissions(c, channel_id, get_restricted_rights(std::move(banned_rights)));
+  // on_update_channel_has_location(c, channel_id, false);
   on_update_channel_noforwards(c, channel_id, false);
   td_->messages_manager_->on_update_dialog_group_call(DialogId(channel_id), false, false, "receive channelForbidden");
 
@@ -15625,7 +15658,6 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, co
   if (c->is_slow_mode_enabled != is_slow_mode_enabled || c->is_megagroup != is_megagroup ||
       !c->restriction_reasons.empty() || c->is_scam != is_scam || c->is_fake != is_fake) {
     // c->has_linked_channel = has_linked_channel;
-    // c->has_location = has_location;
     c->is_slow_mode_enabled = is_slow_mode_enabled;
     c->is_megagroup = is_megagroup;
     c->restriction_reasons.clear();

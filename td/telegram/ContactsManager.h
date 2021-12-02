@@ -812,6 +812,7 @@ class ContactsManager final : public Actor {
     bool is_photo_changed = true;
     bool is_default_permissions_changed = true;
     bool is_status_changed = true;
+    bool is_has_location_changed = true;
     bool is_noforwards_changed = true;
     bool had_read_access = true;
     bool was_member = false;
@@ -1232,6 +1233,7 @@ class ContactsManager final : public Actor {
   void on_update_channel_status(Channel *c, ChannelId channel_id, DialogParticipantStatus &&status);
   static void on_update_channel_default_permissions(Channel *c, ChannelId channel_id,
                                                     RestrictedRights default_permissions);
+  static void on_update_channel_has_location(Channel *c, ChannelId channel_id, bool has_location);
   static void on_update_channel_noforwards(Channel *c, ChannelId channel_id, bool noforwards);
 
   void on_update_channel_bot_user_ids(ChannelId channel_id, vector<UserId> &&bot_user_ids);
@@ -1406,6 +1408,8 @@ class ContactsManager final : public Actor {
   void update_is_location_visible();
 
   static bool is_channel_public(const Channel *c);
+
+  void update_created_public_channels(Channel *c, ChannelId channel_id);
 
   void export_dialog_invite_link_impl(DialogId dialog_id, string title, int32 expire_date, int32 usage_limit,
                                       bool creates_join_request, bool is_permanent,
