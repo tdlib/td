@@ -2047,7 +2047,7 @@ FileId StickersManager::on_get_sticker(unique_ptr<Sticker> new_sticker, bool rep
   } else if (replace) {
     CHECK(s->file_id == file_id);
     if (s->dimensions != new_sticker->dimensions && new_sticker->dimensions.width != 0) {
-      LOG(DEBUG) << "Sticker " << file_id << " dimensions has changed";
+      LOG(DEBUG) << "Sticker " << file_id << " dimensions have changed";
       s->dimensions = new_sticker->dimensions;
     }
     if (s->set_id != new_sticker->set_id && new_sticker->set_id.is_valid()) {
@@ -6131,7 +6131,7 @@ void StickersManager::reload_recent_stickers(bool is_attached, bool force) {
 
 void StickersManager::repair_recent_stickers(bool is_attached, Promise<Unit> &&promise) {
   if (td_->auth_manager_->is_bot()) {
-    return promise.set_error(Status::Error(400, "Bots has no recent stickers"));
+    return promise.set_error(Status::Error(400, "Bots have no recent stickers"));
   }
 
   repair_recent_stickers_queries_[is_attached].push_back(std::move(promise));
@@ -6536,7 +6536,7 @@ void StickersManager::reload_favorite_stickers(bool force) {
 
 void StickersManager::repair_favorite_stickers(Promise<Unit> &&promise) {
   if (td_->auth_manager_->is_bot()) {
-    return promise.set_error(Status::Error(400, "Bots has no favorite stickers"));
+    return promise.set_error(Status::Error(400, "Bots have no favorite stickers"));
   }
 
   repair_favorite_stickers_queries_.push_back(std::move(promise));

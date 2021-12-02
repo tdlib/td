@@ -188,7 +188,7 @@ FileId AnimationsManager::on_get_animation(unique_ptr<Animation> new_animation, 
       a->file_name = std::move(new_animation->file_name);
     }
     if (a->dimensions != new_animation->dimensions) {
-      LOG(DEBUG) << "Animation " << file_id << " dimensions has changed";
+      LOG(DEBUG) << "Animation " << file_id << " dimensions have changed";
       a->dimensions = new_animation->dimensions;
     }
     if (a->duration != new_animation->duration) {
@@ -518,7 +518,7 @@ void AnimationsManager::reload_saved_animations(bool force) {
 
 void AnimationsManager::repair_saved_animations(Promise<Unit> &&promise) {
   if (td_->auth_manager_->is_bot()) {
-    return promise.set_error(Status::Error(400, "Bots has no saved animations"));
+    return promise.set_error(Status::Error(400, "Bots have no saved animations"));
   }
 
   repair_saved_animations_queries_.push_back(std::move(promise));

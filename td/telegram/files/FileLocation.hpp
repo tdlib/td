@@ -127,7 +127,7 @@ void PhotoRemoteFileLocation::AsKey::store(StorerT &storer) const {
       storer.store_slice(unique);
       break;
     case PhotoSizeSource::Type::StickerSetThumbnailVersion:  // 13 bytes
-      // sticker set thumbnails has no photo_id or document_id
+      // sticker set thumbnails have no photo_id or document_id
       storer.store_slice(unique);
       break;
     default:

@@ -27816,7 +27816,7 @@ vector<Notification> MessagesManager::get_message_notifications_from_database_fo
 
       bool is_correct = true;
       if (notification_id.get() >= from_notification_id.get()) {
-        // possible if two messages has the same notification_id
+        // possible if two messages have the same notification_id
         LOG(ERROR) << "Have nonmonotonic notification identifiers: " << d->dialog_id << " " << m->message_id << " "
                    << notification_id << " " << from_message_id << " " << from_notification_id;
         is_correct = false;
