@@ -69,9 +69,9 @@ class Session final
   Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> shared_auth_data, int32 raw_dc_id, int32 dc_id,
           bool is_main, bool use_pfs, bool is_cdn, bool need_destroy, const mtproto::AuthKey &tmp_auth_key,
           const vector<mtproto::ServerSalt> &server_salts);
+
   void send(NetQueryPtr &&query);
-  void on_network(bool network_flag, uint32 network_generation);
-  void on_online(bool online_flag);
+
   void close();
 
  private:
@@ -111,6 +111,7 @@ class Session final
   bool was_on_network_ = false;
   bool network_flag_ = false;
   bool online_flag_ = false;
+  bool logging_out_flag_ = false;
   bool connection_online_flag_ = false;
   uint32 network_generation_ = 0;
   uint64 being_binded_tmp_auth_key_id_ = 0;
@@ -194,6 +195,10 @@ class Session final
   void on_closed(Status status) final;
 
   Status on_pong() final;
+
+  void on_network(bool network_flag, uint32 network_generation);
+  void on_online(bool online_flag);
+  void on_logging_out(bool logging_out_flag);
 
   void on_auth_key_updated() final;
   void on_tmp_auth_key_updated() final;

@@ -201,6 +201,10 @@ void Session::start_up() {
       send_closure(session_, &Session::on_online, online_flag);
       return session_.is_alive();
     }
+    bool on_logging_out(bool logging_out_flag) final {
+      send_closure(session_, &Session::on_logging_out, logging_out_flag);
+      return session_.is_alive();
+    }
 
    private:
     ActorId<Session> session_;
@@ -235,9 +239,15 @@ void Session::on_online(bool online_flag) {
   loop();
 }
 
+void Session::on_logging_out(bool logging_out_flag) {
+  logging_out_flag_ = logging_out_flag;
+  connection_online_update(true);
+  loop();
+}
+
 void Session::connection_online_update(bool force) {
-  bool new_connection_online_flag =
-      online_flag_ && (has_queries() || last_activity_timestamp_ + 10 > Time::now_cached() || is_main_);
+  bool new_connection_online_flag = (online_flag_ || logging_out_flag_) &&
+                                    (has_queries() || last_activity_timestamp_ + 10 > Time::now_cached() || is_main_);
   if (connection_online_flag_ == new_connection_online_flag && !force) {
     return;
   }
