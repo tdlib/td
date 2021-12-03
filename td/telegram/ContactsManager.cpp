@@ -7633,10 +7633,53 @@ void ContactsManager::return_created_public_dialogs(Promise<td_api::object_ptr<t
 }
 
 void ContactsManager::get_created_public_dialogs(PublicDialogType type,
-                                                 Promise<td_api::object_ptr<td_api::chats>> &&promise) {
+                                                 Promise<td_api::object_ptr<td_api::chats>> &&promise,
+                                                 bool from_binlog) {
   auto index = static_cast<int32>(type);
   if (created_public_channels_inited_[index]) {
     return return_created_public_dialogs(std::move(promise), created_public_channels_[index]);
+  }
+
+  if (get_created_public_channels_queries_[index].empty() && G()->parameters().use_chat_info_db) {
+    auto pmc_key = PSTRING() << "public_channels" << index;
+    auto str = G()->td_db()->get_binlog_pmc()->get(pmc_key);
+    if (!str.empty()) {
+      auto r_channel_ids = transform(full_split(Slice(str), ','), [](Slice str) -> Result<ChannelId> {
+        TRY_RESULT(channel_id_int, to_integer_safe<int64>(str));
+        ChannelId channel_id(channel_id_int);
+        if (!channel_id.is_valid()) {
+          return Status::Error("Have invalid channel ID");
+        }
+        return channel_id;
+      });
+      if (std::any_of(r_channel_ids.begin(), r_channel_ids.end(),
+                      [](auto &r_channel_id) { return r_channel_id.is_error(); })) {
+        LOG(ERROR) << "Can't parse " << str;
+        G()->td_db()->get_binlog_pmc()->erase(pmc_key);
+      } else {
+        Dependencies dependencies;
+        vector<ChannelId> channel_ids;
+        for (auto &r_channel_id : r_channel_ids) {
+          auto channel_id = r_channel_id.move_as_ok();
+          add_dialog_and_dependencies(dependencies, DialogId(channel_id));
+          channel_ids.push_back(channel_id);
+        }
+        if (!resolve_dependencies_force(td_, dependencies, "get_created_public_dialogs")) {
+          G()->td_db()->get_binlog_pmc()->erase(pmc_key);
+        } else {
+          created_public_channels_[index] = std::move(channel_ids);
+          created_public_channels_inited_[index] = true;
+
+          if (type == PublicDialogType::HasUsername) {
+            update_created_public_broadcasts();
+          }
+
+          if (from_binlog) {
+            return return_created_public_dialogs(std::move(promise), created_public_channels_[index]);
+          }
+        }
+      }
+    }
   }
 
   get_created_public_channels_queries_[index].push_back(std::move(promise));
@@ -7684,6 +7727,8 @@ void ContactsManager::update_created_public_channels(Channel *c, ChannelId chann
         update_created_public_broadcasts();
       }
 
+      save_created_public_channels(PublicDialogType::HasUsername);
+
       // TODO reload the list
     }
   }
@@ -7698,6 +7743,8 @@ void ContactsManager::update_created_public_channels(Channel *c, ChannelId chann
       }
     }
     if (was_changed) {
+      save_created_public_channels(PublicDialogType::IsLocationBased);
+
       // TODO reload the list
     }
   }
@@ -7718,6 +7765,20 @@ void ContactsManager::on_get_created_public_channels(PublicDialogType type,
 
   if (type == PublicDialogType::HasUsername) {
     update_created_public_broadcasts();
+  }
+
+  save_created_public_channels(type);
+}
+
+void ContactsManager::save_created_public_channels(PublicDialogType type) {
+  auto index = static_cast<int32>(type);
+  CHECK(created_public_channels_inited_[index]);
+  if (G()->parameters().use_chat_info_db) {
+    G()->td_db()->get_binlog_pmc()->set(
+        PSTRING() << "public_channels" << index,
+        implode(
+            transform(created_public_channels_[index], [](auto channel_id) { return PSTRING() << channel_id.get(); }),
+            ','));
   }
 }
 
@@ -16191,7 +16252,7 @@ void ContactsManager::after_get_difference() {
   get_user(get_my_id(), 3, Promise<Unit>());
 
   if (td_->is_online()) {
-    get_created_public_dialogs(PublicDialogType::HasUsername, Promise<td_api::object_ptr<td_api::chats>>());
+    get_created_public_dialogs(PublicDialogType::HasUsername, Promise<td_api::object_ptr<td_api::chats>>(), false);
   }
 }
 

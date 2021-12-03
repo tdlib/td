@@ -417,7 +417,8 @@ class ContactsManager final : public Actor {
 
   ChannelId migrate_chat_to_megagroup(ChatId chat_id, Promise<Unit> &promise);
 
-  void get_created_public_dialogs(PublicDialogType type, Promise<td_api::object_ptr<td_api::chats>> &&promise);
+  void get_created_public_dialogs(PublicDialogType type, Promise<td_api::object_ptr<td_api::chats>> &&promise,
+                                  bool from_binlog);
 
   void check_created_public_dialogs_limit(PublicDialogType type, Promise<Unit> &&promise);
 
@@ -1416,6 +1417,8 @@ class ContactsManager final : public Actor {
   void finish_get_created_public_dialogs(PublicDialogType type, Result<Unit> &&result);
 
   void update_created_public_channels(Channel *c, ChannelId channel_id);
+
+  void save_created_public_channels(PublicDialogType type);
 
   void update_created_public_broadcasts();
 

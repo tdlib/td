@@ -2939,47 +2939,6 @@ class ReadMentionsQuery final : public Td::ResultHandler {
   }
 };
 
-class GetSendAsQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::messageSenders>> promise_;
-  DialogId dialog_id_;
-
- public:
-  explicit GetSendAsQuery(Promise<td_api::object_ptr<td_api::messageSenders>> &&promise)
-      : promise_(std::move(promise)) {
-  }
-
-  void send(DialogId dialog_id) {
-    dialog_id_ = dialog_id;
-
-    auto input_peer = td_->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
-    if (input_peer == nullptr) {
-      return promise_.set_error(Status::Error(400, "Chat is not accessible"));
-    }
-
-    send_query(G()->net_query_creator().create(telegram_api::channels_getSendAs(std::move(input_peer))));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::channels_getSendAs>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for GetSendAsQuery: " << to_string(ptr);
-
-    td_->contacts_manager_->on_get_users(std::move(ptr->users_), "GetSendAsQuery");
-    td_->contacts_manager_->on_get_chats(std::move(ptr->chats_), "GetSendAsQuery");
-
-    promise_.set_value(convert_message_senders_object(td_, ptr->peers_));
-  }
-
-  void on_error(Status status) final {
-    td_->messages_manager_->on_get_dialog_error(dialog_id_, status, "ReadMentionsQuery");
-    promise_.set_error(std::move(status));
-  }
-};
-
 class SaveDefaultSendAsActor final : public NetActorOnce {
   Promise<Unit> promise_;
 
@@ -24095,7 +24054,9 @@ void MessagesManager::add_message_dependencies(Dependencies &dependencies, const
 }
 
 void MessagesManager::get_dialog_send_message_as_dialog_ids(
-    DialogId dialog_id, Promise<td_api::object_ptr<td_api::messageSenders>> &&promise) {
+    DialogId dialog_id, Promise<td_api::object_ptr<td_api::messageSenders>> &&promise, bool is_recursive) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
   const Dialog *d = get_dialog_force(dialog_id, "get_group_call_join_as");
   if (d == nullptr) {
     return promise.set_error(Status::Error(400, "Chat not found"));
@@ -24127,9 +24088,17 @@ void MessagesManager::get_dialog_send_message_as_dialog_ids(
     return promise.set_value(std::move(senders));
   }
 
-  td_->contacts_manager_->get_created_public_dialogs(PublicDialogType::HasUsername,
-                                                     Promise<td_api::object_ptr<td_api::chats>>());
-  td_->create_handler<GetSendAsQuery>(std::move(promise))->send(dialog_id);
+  CHECK(!is_recursive);
+  auto new_promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, promise = std::move(promise)](
+                                                Result<td_api::object_ptr<td_api::chats>> &&result) mutable {
+    if (result.is_error()) {
+      promise.set_error(result.move_as_error());
+    } else {
+      send_closure_later(actor_id, &MessagesManager::get_dialog_send_message_as_dialog_ids, dialog_id,
+                         std::move(promise), true);
+    }
+  });
+  td_->contacts_manager_->get_created_public_dialogs(PublicDialogType::HasUsername, std::move(new_promise), true);
 }
 
 void MessagesManager::set_dialog_default_send_message_as_dialog_id(DialogId dialog_id,

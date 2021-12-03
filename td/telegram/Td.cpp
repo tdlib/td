@@ -5207,7 +5207,7 @@ void Td::on_request(uint64 id, td_api::checkChatUsername &request) {
 void Td::on_request(uint64 id, const td_api::getCreatedPublicChats &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  contacts_manager_->get_created_public_dialogs(get_public_dialog_type(request.type_), std::move(promise));
+  contacts_manager_->get_created_public_dialogs(get_public_dialog_type(request.type_), std::move(promise), false);
 }
 
 void Td::on_request(uint64 id, const td_api::checkCreatedPublicChatsLimit &request) {
