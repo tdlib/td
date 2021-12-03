@@ -7166,6 +7166,7 @@ void MessagesManager::on_update_created_public_broadcasts(vector<ChannelId> chan
     return;
   }
 
+  LOG(INFO) << "Update create public channels to " << channel_ids;
   for (auto channel_id : channel_ids) {
     force_create_dialog(DialogId(channel_id), "on_update_created_public_broadcasts");
   }
@@ -24105,8 +24106,28 @@ void MessagesManager::get_dialog_send_message_as_dialog_ids(
   if (!d->default_send_message_as_dialog_id.is_valid()) {
     return promise.set_value(td_api::make_object<td_api::messageSenders>());
   }
-  CHECK(d->dialog_id.get_type() == DialogType::Channel);
+  CHECK(dialog_id.get_type() == DialogType::Channel);
 
+  if (created_public_broadcasts_inited_) {
+    auto senders = td_api::make_object<td_api::messageSenders>();
+    if (!created_public_broadcasts_.empty()) {
+      auto add_sender = [&senders, td = td_](DialogId dialog_id) {
+        senders->total_count_++;
+        senders->senders_.push_back(get_message_sender_object_const(td, dialog_id, "add_sender"));
+      };
+      if (is_anonymous_administrator(dialog_id, nullptr)) {
+        add_sender(dialog_id);
+      } else {
+        add_sender(get_my_dialog_id());
+      }
+      for (auto channel_id : created_public_broadcasts_) {
+        add_sender(DialogId(channel_id));
+      }
+    }
+    return promise.set_value(std::move(senders));
+  }
+
+  td_->contacts_manager_->get_created_public_dialogs(PublicDialogType::HasUsername, Promise<Unit>());
   td_->create_handler<GetSendAsQuery>(std::move(promise))->send(dialog_id);
 }
 
@@ -30932,6 +30953,7 @@ void MessagesManager::on_update_dialog_default_send_message_as_dialog_id(DialogI
   }
 
   if (d->default_send_message_as_dialog_id != default_send_as_dialog_id) {
+    LOG(INFO) << "Set default message sender in " << dialog_id << " to " << default_send_as_dialog_id;
     d->default_send_message_as_dialog_id = default_send_as_dialog_id;
     send_update_chat_default_message_sender_id(d);
   }
@@ -34802,11 +34824,15 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
   d->last_clear_history_date = 0;
   d->last_clear_history_message_id = MessageId();
   DialogId default_join_group_call_as_dialog_id = d->default_join_group_call_as_dialog_id;
-  if (default_join_group_call_as_dialog_id != dialog_id && !have_dialog(default_join_group_call_as_dialog_id)) {
+  if (default_join_group_call_as_dialog_id != dialog_id &&
+      default_join_group_call_as_dialog_id.get_type() != DialogType::User &&
+      !have_dialog(default_join_group_call_as_dialog_id)) {
     d->default_join_group_call_as_dialog_id = DialogId();
   }
   DialogId default_send_message_as_dialog_id = d->default_send_message_as_dialog_id;
-  if (default_send_message_as_dialog_id != dialog_id && !have_dialog(default_send_message_as_dialog_id)) {
+  if (default_send_message_as_dialog_id != dialog_id &&
+      default_send_message_as_dialog_id.get_type() != DialogType::User &&
+      !have_dialog(default_send_message_as_dialog_id)) {
     d->default_send_message_as_dialog_id = DialogId();
   }
 
