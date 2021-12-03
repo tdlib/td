@@ -16189,6 +16189,10 @@ void ContactsManager::after_get_difference() {
     return;
   }
   get_user(get_my_id(), 3, Promise<Unit>());
+
+  if (td_->is_online()) {
+    get_created_public_dialogs(PublicDialogType::HasUsername, Promise<td_api::object_ptr<td_api::chats>>());
+  }
 }
 
 void ContactsManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
