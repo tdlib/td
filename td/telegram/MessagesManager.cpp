@@ -24127,7 +24127,8 @@ void MessagesManager::get_dialog_send_message_as_dialog_ids(
     return promise.set_value(std::move(senders));
   }
 
-  td_->contacts_manager_->get_created_public_dialogs(PublicDialogType::HasUsername, Promise<Unit>());
+  td_->contacts_manager_->get_created_public_dialogs(PublicDialogType::HasUsername,
+                                                     Promise<td_api::object_ptr<td_api::chats>>());
   td_->create_handler<GetSendAsQuery>(std::move(promise))->send(dialog_id);
 }
 

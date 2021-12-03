@@ -417,7 +417,7 @@ class ContactsManager final : public Actor {
 
   ChannelId migrate_chat_to_megagroup(ChatId chat_id, Promise<Unit> &promise);
 
-  vector<DialogId> get_created_public_dialogs(PublicDialogType type, Promise<Unit> &&promise);
+  void get_created_public_dialogs(PublicDialogType type, Promise<td_api::object_ptr<td_api::chats>> &&promise);
 
   void check_created_public_dialogs_limit(PublicDialogType type, Promise<Unit> &&promise);
 
@@ -1410,6 +1410,11 @@ class ContactsManager final : public Actor {
 
   static bool is_channel_public(const Channel *c);
 
+  static void return_created_public_dialogs(Promise<td_api::object_ptr<td_api::chats>> &&promise,
+                                            const vector<ChannelId> &channel_ids);
+
+  void finish_get_created_public_dialogs(PublicDialogType type, Result<Unit> &&result);
+
   void update_created_public_channels(Channel *c, ChannelId channel_id);
 
   void update_created_public_broadcasts();
@@ -1643,6 +1648,7 @@ class ContactsManager final : public Actor {
 
   bool created_public_channels_inited_[2] = {false, false};
   vector<ChannelId> created_public_channels_[2];
+  vector<Promise<td_api::object_ptr<td_api::chats>>> get_created_public_channels_queries_[2];
 
   bool dialogs_for_discussion_inited_ = false;
   vector<DialogId> dialogs_for_discussion_;

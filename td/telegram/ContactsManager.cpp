@@ -2377,7 +2377,7 @@ class GetGroupsForDiscussionQuery final : public Td::ResultHandler {
       }
       case telegram_api::messages_chatsSlice::ID: {
         auto chats = move_tl_object_as<telegram_api::messages_chatsSlice>(chats_ptr);
-        LOG(ERROR) << "Receive chatsSlice in result of GetCreatedPublicChannelsQuery";
+        LOG(ERROR) << "Receive chatsSlice in result of GetGroupsForDiscussionQuery";
         td_->contacts_manager_->on_get_dialogs_for_discussion(std::move(chats->chats_));
         break;
       }
@@ -7621,19 +7621,51 @@ vector<DialogId> ContactsManager::get_dialog_ids(vector<tl_object_ptr<telegram_a
   return dialog_ids;
 }
 
-vector<DialogId> ContactsManager::get_created_public_dialogs(PublicDialogType type, Promise<Unit> &&promise) {
-  auto index = static_cast<int32>(type);
-  if (created_public_channels_inited_[index]) {
-    promise.set_value(Unit());
-    return transform(created_public_channels_[index], [&](ChannelId channel_id) {
-      DialogId dialog_id(channel_id);
-      td_->messages_manager_->force_create_dialog(dialog_id, "get_created_public_dialogs");
-      return dialog_id;
-    });
+void ContactsManager::return_created_public_dialogs(Promise<td_api::object_ptr<td_api::chats>> &&promise,
+                                                    const vector<ChannelId> &channel_ids) {
+  if (!promise) {
+    return;
   }
 
-  td_->create_handler<GetCreatedPublicChannelsQuery>(std::move(promise))->send(type, false);
-  return {};
+  auto total_count = narrow_cast<int32>(channel_ids.size());
+  promise.set_value(td_api::make_object<td_api::chats>(
+      total_count, transform(channel_ids, [](ChannelId channel_id) { return DialogId(channel_id).get(); })));
+}
+
+void ContactsManager::get_created_public_dialogs(PublicDialogType type,
+                                                 Promise<td_api::object_ptr<td_api::chats>> &&promise) {
+  auto index = static_cast<int32>(type);
+  if (created_public_channels_inited_[index]) {
+    return return_created_public_dialogs(std::move(promise), created_public_channels_[index]);
+  }
+
+  get_created_public_channels_queries_[index].push_back(std::move(promise));
+  if (get_created_public_channels_queries_[index].size() == 1) {
+    auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), type](Result<Unit> &&result) {
+      send_closure(actor_id, &ContactsManager::finish_get_created_public_dialogs, type, std::move(result));
+    });
+    td_->create_handler<GetCreatedPublicChannelsQuery>(std::move(query_promise))->send(type, false);
+  }
+}
+
+void ContactsManager::finish_get_created_public_dialogs(PublicDialogType type, Result<Unit> &&result) {
+  auto index = static_cast<int32>(type);
+  auto promises = std::move(get_created_public_channels_queries_[index]);
+  reset_to_empty(get_created_public_channels_queries_[index]);
+  if (G()->close_flag()) {
+    result = G()->close_status();
+  }
+  if (result.is_error()) {
+    for (auto &promise : promises) {
+      promise.set_error(result.error().clone());
+    }
+    return;
+  }
+
+  CHECK(created_public_channels_inited_[index]);
+  for (auto &promise : promises) {
+    return_created_public_dialogs(std::move(promise), created_public_channels_[index]);
+  }
 }
 
 void ContactsManager::update_created_public_channels(Channel *c, ChannelId channel_id) {
@@ -7677,6 +7709,9 @@ void ContactsManager::on_get_created_public_channels(PublicDialogType type,
   auto channel_ids = get_channel_ids(std::move(chats), "on_get_created_public_channels");
   if (created_public_channels_inited_[index] && created_public_channels_[index] == channel_ids) {
     return;
+  }
+  for (auto channel_id : channel_ids) {
+    td_->messages_manager_->force_create_dialog(DialogId(channel_id), "on_get_created_public_channels");
   }
   created_public_channels_[index] = std::move(channel_ids);
   created_public_channels_inited_[index] = true;
