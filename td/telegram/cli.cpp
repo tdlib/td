@@ -2211,6 +2211,9 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::setCustomLanguagePackString>(language_code, std::move(str)));
     } else if (op == "dlp") {
       send_request(td_api::make_object<td_api::deleteLanguagePack>(args));
+    } else if (op == "on" || op == "off") {
+      send_request(td_api::make_object<td_api::setOption>("online",
+                                                          td_api::make_object<td_api::optionValueBoolean>(op == "on")));
     } else if (op == "go") {
       send_request(td_api::make_object<td_api::getOption>(args));
     } else if (op == "sob") {
