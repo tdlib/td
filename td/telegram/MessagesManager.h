@@ -354,6 +354,8 @@ class MessagesManager final : public Actor {
 
   void on_update_delete_scheduled_messages(DialogId dialog_id, vector<ScheduledServerMessageId> &&server_message_ids);
 
+  void on_update_created_public_broadcasts(vector<ChannelId> channel_ids);
+
   void on_dialog_action(DialogId dialog_id, MessageId top_thread_message_id, DialogId typing_dialog_id,
                         DialogAction action, int32 date,
                         MessageContentType message_content_type = MessageContentType::None);
@@ -3324,6 +3326,9 @@ class MessagesManager final : public Actor {
 
   std::unordered_map<MessageId, DialogId, MessageIdHash> message_id_to_dialog_id_;
   std::unordered_map<MessageId, DialogId, MessageIdHash> last_clear_history_message_id_to_dialog_id_;
+
+  bool created_public_broadcasts_inited_ = false;
+  vector<ChannelId> created_public_broadcasts_;
 
   std::unordered_map<int64, DialogId> created_dialogs_;                                // random_id -> dialog_id
   std::unordered_map<DialogId, Promise<Unit>, DialogIdHash> pending_created_dialogs_;  // dialog_id -> promise

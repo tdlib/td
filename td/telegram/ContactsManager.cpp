@@ -7591,10 +7591,12 @@ vector<ChannelId> ContactsManager::get_channel_ids(vector<tl_object_ptr<telegram
     auto channel_id = get_channel_id(chat);
     if (!channel_id.is_valid()) {
       LOG(ERROR) << "Receive invalid " << channel_id << " from " << source << " in " << to_string(chat);
-    } else {
-      channel_ids.push_back(channel_id);
+      continue;
     }
     on_get_chat(std::move(chat), source);
+    if (have_channel(channel_id)) {
+      channel_ids.push_back(channel_id);
+    }
   }
   return channel_ids;
 }
@@ -7646,6 +7648,10 @@ void ContactsManager::update_created_public_channels(Channel *c, ChannelId chann
       }
     }
     if (was_changed) {
+      if (!c->is_megagroup) {
+        update_created_public_broadcasts();
+      }
+
       // TODO reload the list
     }
   }
@@ -7668,8 +7674,29 @@ void ContactsManager::update_created_public_channels(Channel *c, ChannelId chann
 void ContactsManager::on_get_created_public_channels(PublicDialogType type,
                                                      vector<tl_object_ptr<telegram_api::Chat>> &&chats) {
   auto index = static_cast<int32>(type);
-  created_public_channels_[index] = get_channel_ids(std::move(chats), "on_get_created_public_channels");
+  auto channel_ids = get_channel_ids(std::move(chats), "on_get_created_public_channels");
+  if (created_public_channels_inited_[index] && created_public_channels_[index] == channel_ids) {
+    return;
+  }
+  created_public_channels_[index] = std::move(channel_ids);
   created_public_channels_inited_[index] = true;
+
+  if (type == PublicDialogType::HasUsername) {
+    update_created_public_broadcasts();
+  }
+}
+
+void ContactsManager::update_created_public_broadcasts() {
+  CHECK(created_public_channels_inited_[0]);
+  vector<ChannelId> channel_ids;
+  for (auto &channel_id : created_public_channels_[0]) {
+    auto c = get_channel(channel_id);
+    if (!c->is_megagroup) {
+      channel_ids.push_back(channel_id);
+    }
+  }
+  send_closure_later(G()->messages_manager(), &MessagesManager::on_update_created_public_broadcasts,
+                     std::move(channel_ids));
 }
 
 void ContactsManager::check_created_public_dialogs_limit(PublicDialogType type, Promise<Unit> &&promise) {

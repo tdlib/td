@@ -7156,6 +7156,24 @@ void MessagesManager::on_update_delete_scheduled_messages(DialogId dialog_id,
   send_update_chat_has_scheduled_messages(d, true);
 }
 
+void MessagesManager::on_update_created_public_broadcasts(vector<ChannelId> channel_ids) {
+  if (td_->auth_manager_->is_bot()) {
+    // just in case
+    return;
+  }
+
+  if (created_public_broadcasts_inited_ && created_public_broadcasts_ == channel_ids) {
+    return;
+  }
+
+  for (auto channel_id : channel_ids) {
+    force_create_dialog(DialogId(channel_id), "on_update_created_public_broadcasts");
+  }
+
+  created_public_broadcasts_inited_ = true;
+  created_public_broadcasts_ = std::move(channel_ids);
+}
+
 void MessagesManager::on_dialog_action(DialogId dialog_id, MessageId top_thread_message_id, DialogId typing_dialog_id,
                                        DialogAction action, int32 date, MessageContentType message_content_type) {
   if (td_->auth_manager_->is_bot() || !typing_dialog_id.is_valid()) {

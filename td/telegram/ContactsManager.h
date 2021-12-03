@@ -1412,6 +1412,8 @@ class ContactsManager final : public Actor {
 
   void update_created_public_channels(Channel *c, ChannelId channel_id);
 
+  void update_created_public_broadcasts();
+
   void export_dialog_invite_link_impl(DialogId dialog_id, string title, int32 expire_date, int32 usage_limit,
                                       bool creates_join_request, bool is_permanent,
                                       Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise);
