@@ -7682,6 +7682,12 @@ void ContactsManager::get_created_public_dialogs(PublicDialogType type,
     }
   }
 
+  reload_created_public_dialogs(type, std::move(promise));
+}
+
+void ContactsManager::reload_created_public_dialogs(PublicDialogType type,
+                                                    Promise<td_api::object_ptr<td_api::chats>> &&promise) {
+  auto index = static_cast<int32>(type);
   get_created_public_channels_queries_[index].push_back(std::move(promise));
   if (get_created_public_channels_queries_[index].size() == 1) {
     auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), type](Result<Unit> &&result) {
@@ -7729,7 +7735,7 @@ void ContactsManager::update_created_public_channels(Channel *c, ChannelId chann
 
       save_created_public_channels(PublicDialogType::HasUsername);
 
-      // TODO reload the list
+      reload_created_public_dialogs(PublicDialogType::HasUsername, Promise<td_api::object_ptr<td_api::chats>>());
     }
   }
   if (created_public_channels_inited_[1]) {
@@ -7745,7 +7751,7 @@ void ContactsManager::update_created_public_channels(Channel *c, ChannelId chann
     if (was_changed) {
       save_created_public_channels(PublicDialogType::IsLocationBased);
 
-      // TODO reload the list
+      reload_created_public_dialogs(PublicDialogType::IsLocationBased, Promise<td_api::object_ptr<td_api::chats>>());
     }
   }
 }
@@ -16252,7 +16258,8 @@ void ContactsManager::after_get_difference() {
   get_user(get_my_id(), 3, Promise<Unit>());
 
   if (td_->is_online()) {
-    get_created_public_dialogs(PublicDialogType::HasUsername, Promise<td_api::object_ptr<td_api::chats>>(), false);
+    reload_created_public_dialogs(PublicDialogType::HasUsername, Promise<td_api::object_ptr<td_api::chats>>());
+    reload_created_public_dialogs(PublicDialogType::IsLocationBased, Promise<td_api::object_ptr<td_api::chats>>());
   }
 }
 

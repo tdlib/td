@@ -1414,6 +1414,8 @@ class ContactsManager final : public Actor {
   static void return_created_public_dialogs(Promise<td_api::object_ptr<td_api::chats>> &&promise,
                                             const vector<ChannelId> &channel_ids);
 
+  void reload_created_public_dialogs(PublicDialogType type, Promise<td_api::object_ptr<td_api::chats>> &&promise);
+
   void finish_get_created_public_dialogs(PublicDialogType type, Result<Unit> &&result);
 
   void update_created_public_channels(Channel *c, ChannelId channel_id);
