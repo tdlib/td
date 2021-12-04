@@ -9220,6 +9220,11 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
     }
   }
 
+  if (from_the_end && last_added_message_id != last_received_message_id) {
+    CHECK(last_added_message_id < last_received_message_id);
+    delete_newer_server_messages_at_the_end(d, last_added_message_id);
+  }
+
   if (have_full_history) {
     d->have_full_history = true;
     on_dialog_updated(dialog_id, "set have_full_history 2");
