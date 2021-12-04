@@ -2100,6 +2100,8 @@ class MessagesManager final : public Actor {
 
   void on_update_dialog_online_member_count_timeout(DialogId dialog_id);
 
+  bool delete_newer_server_messages_at_the_end(Dialog *d, MessageId max_message_id);
+
   template <class T, class It>
   vector<MessageId> get_message_history_slice(const T &begin, It it, const T &end, MessageId from_message_id,
                                               int32 offset, int32 limit);

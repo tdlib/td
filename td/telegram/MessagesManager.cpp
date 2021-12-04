@@ -9035,6 +9035,48 @@ void MessagesManager::on_get_messages(vector<tl_object_ptr<telegram_api::Message
   promise.set_value(Unit());
 }
 
+bool MessagesManager::delete_newer_server_messages_at_the_end(Dialog *d, MessageId max_message_id) {
+  vector<MessageId> message_ids;
+  find_newer_messages(d->messages.get(), max_message_id, message_ids);
+  if (message_ids.empty()) {
+    return false;
+  }
+
+  bool need_update_dialog_pos = false;
+  vector<int64> deleted_message_ids;
+  for (auto message_id : message_ids) {
+    CHECK(message_id > max_message_id);
+    if (message_id.is_server()) {
+      auto message =
+          delete_message(d, message_id, true, &need_update_dialog_pos, "delete_newer_server_messages_at_the_end 1");
+      CHECK(message != nullptr);
+      deleted_message_ids.push_back(message->message_id.get());
+    }
+  }
+  if (need_update_dialog_pos) {
+    send_update_chat_last_message(d, "delete_newer_server_messages_at_the_end 2");
+  }
+
+  if (!deleted_message_ids.empty()) {
+    send_update_delete_messages(d->dialog_id, std::move(deleted_message_ids), true, false);
+
+    message_ids.clear();
+    find_newer_messages(d->messages.get(), max_message_id, message_ids);
+  }
+
+  // connect all messages with ID > max_message_id
+  for (size_t i = 0; i + 1 < message_ids.size(); i++) {
+    auto m = get_message(d, message_ids[i]);
+    CHECK(m != nullptr);
+    if (!m->have_next) {
+      m->have_next = true;
+      attach_message_to_next(d, message_ids[i], "delete_newer_server_messages_at_the_end 3");
+    }
+  }
+
+  return !message_ids.empty();
+}
+
 void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_id, MessageId old_last_new_message_id,
                                      int32 offset, int32 limit, bool from_the_end,
                                      vector<tl_object_ptr<telegram_api::Message>> &&messages, Promise<Unit> &&promise) {
@@ -9133,43 +9175,8 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
   if (from_the_end) {
     // delete all server messages with ID > last_received_message_id
     // there were no new messages received after the getHistory request was sent, so they are already deleted message
-    vector<MessageId> message_ids;
-    find_newer_messages(d->messages.get(), last_received_message_id, message_ids);
-    if (!message_ids.empty()) {
-      bool need_update_dialog_pos = false;
-      vector<int64> deleted_message_ids;
-      for (auto message_id : message_ids) {
-        CHECK(message_id > last_received_message_id);
-        if (message_id.is_server()) {
-          auto message = delete_message(d, message_id, true, &need_update_dialog_pos, "on_get_gistory 1");
-          CHECK(message != nullptr);
-          deleted_message_ids.push_back(message->message_id.get());
-        }
-      }
-      if (need_update_dialog_pos) {
-        send_update_chat_last_message(d, "on_get_gistory 2");
-      }
-
-      if (!deleted_message_ids.empty()) {
-        send_update_delete_messages(dialog_id, std::move(deleted_message_ids), true, false);
-
-        message_ids.clear();
-        find_newer_messages(d->messages.get(), last_received_message_id, message_ids);
-      }
-
-      // connect all messages with ID > last_received_message_id
-      for (size_t i = 0; i + 1 < message_ids.size(); i++) {
-        auto m = get_message(d, message_ids[i]);
-        CHECK(m != nullptr);
-        if (!m->have_next) {
-          m->have_next = true;
-          attach_message_to_next(d, message_ids[i], "on_get_history 3");
-        }
-      }
-
-      if (!message_ids.empty()) {
-        have_next = true;
-      }
+    if (delete_newer_server_messages_at_the_end(d, last_received_message_id)) {
+      have_next = true;
     }
   }
 
@@ -9327,7 +9334,6 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
         << prev_have_full_history << " " << d->debug_last_new_message_id << " " << d->debug_first_database_message_id
         << " " << d->debug_last_database_message_id << " " << from_message_id << " " << offset << " " << limit << " "
         << messages.size() << " " << last_received_message_id << " " << d->debug_set_dialog_last_database_message_id;
-
     CHECK(d->last_database_message_id.is_valid());
 
     for (auto &first_message_id : d->first_database_message_id_by_index) {
