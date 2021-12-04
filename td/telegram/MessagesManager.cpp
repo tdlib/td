@@ -9220,7 +9220,7 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
     }
   }
 
-  if (from_the_end && last_added_message_id != last_received_message_id) {
+  if (from_the_end && last_added_message_id.is_valid() && last_added_message_id != last_received_message_id) {
     CHECK(last_added_message_id < last_received_message_id);
     delete_newer_server_messages_at_the_end(d, last_added_message_id);
   }
