@@ -107,8 +107,8 @@ class ContactsManager final : public Actor {
   RestrictedRights get_channel_default_permissions(ChannelId channel_id) const;
   RestrictedRights get_secret_chat_default_permissions(SecretChatId secret_chat_id) const;
 
-  bool get_chat_allow_saving_content(ChatId chat_id) const;
-  bool get_channel_allow_saving_content(ChannelId channel_id) const;
+  bool get_chat_has_protected_content(ChatId chat_id) const;
+  bool get_channel_has_protected_content(ChannelId channel_id) const;
 
   string get_user_private_forward_name(UserId user_id);
 

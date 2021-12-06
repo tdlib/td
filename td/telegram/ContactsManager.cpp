@@ -4676,20 +4676,20 @@ RestrictedRights ContactsManager::get_secret_chat_default_permissions(SecretChat
   return RestrictedRights(true, true, true, true, true, true, true, true, false, false, false);
 }
 
-bool ContactsManager::get_chat_allow_saving_content(ChatId chat_id) const {
+bool ContactsManager::get_chat_has_protected_content(ChatId chat_id) const {
   auto c = get_chat(chat_id);
   if (c == nullptr) {
     return false;
   }
-  return !c->noforwards;
+  return c->noforwards;
 }
 
-bool ContactsManager::get_channel_allow_saving_content(ChannelId channel_id) const {
+bool ContactsManager::get_channel_has_protected_content(ChannelId channel_id) const {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
     return false;
   }
-  return !c->noforwards;
+  return c->noforwards;
 }
 
 string ContactsManager::get_user_private_forward_name(UserId user_id) {
@@ -9937,7 +9937,7 @@ void ContactsManager::update_chat(Chat *c, ChatId chat_id, bool from_binlog, boo
     c->is_status_changed = false;
   }
   if (c->is_noforwards_changed) {
-    td_->messages_manager_->on_dialog_allow_saving_content_updated(DialogId(chat_id));
+    td_->messages_manager_->on_dialog_has_protected_content_updated(DialogId(chat_id));
     c->is_noforwards_changed = false;
   }
 
@@ -10031,7 +10031,7 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
     c->is_creator_changed = false;
   }
   if (c->is_noforwards_changed) {
-    td_->messages_manager_->on_dialog_allow_saving_content_updated(DialogId(channel_id));
+    td_->messages_manager_->on_dialog_has_protected_content_updated(DialogId(channel_id));
     c->is_noforwards_changed = false;
   }
 
@@ -13085,7 +13085,7 @@ void ContactsManager::on_update_chat_default_permissions(Chat *c, ChatId chat_id
 
 void ContactsManager::on_update_chat_noforwards(Chat *c, ChatId chat_id, bool noforwards) {
   if (c->noforwards != noforwards) {
-    LOG(INFO) << "Update " << chat_id << " noforwards from " << c->noforwards << " to " << noforwards;
+    LOG(INFO) << "Update " << chat_id << " has_protected_content from " << c->noforwards << " to " << noforwards;
     c->noforwards = noforwards;
     c->is_noforwards_changed = true;
     c->need_save_to_database = true;
@@ -13421,7 +13421,7 @@ void ContactsManager::on_update_channel_has_location(Channel *c, ChannelId chann
 
 void ContactsManager::on_update_channel_noforwards(Channel *c, ChannelId channel_id, bool noforwards) {
   if (c->noforwards != noforwards) {
-    LOG(INFO) << "Update " << channel_id << " noforwards from " << c->noforwards << " to " << noforwards;
+    LOG(INFO) << "Update " << channel_id << " has_protected_content from " << c->noforwards << " to " << noforwards;
     c->noforwards = noforwards;
     c->is_noforwards_changed = true;
     c->need_save_to_database = true;

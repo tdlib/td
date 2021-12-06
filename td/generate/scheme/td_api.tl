@@ -966,7 +966,7 @@ videoChat group_call_id:int32 has_participants:Bool default_participant_id:Messa
 //@last_message Last message in the chat; may be null
 //@positions Positions of the chat in chat lists
 //@default_message_sender_id Default identifier of a user or chat that is chosen to send messages in the chat; may be null if the user can't change message sender
-//@allow_saving_content True, if chat content can be saved locally, forwarded, or copied
+//@has_protected_content True, if chat content can't be saved locally, forwarded, or copied
 //@is_marked_as_unread True, if the chat is marked as unread
 //@is_blocked True, if the chat is blocked by the current user and private messages from the chat can't be received
 //@has_scheduled_messages True, if the chat has scheduled messages
@@ -987,7 +987,7 @@ videoChat group_call_id:int32 has_participants:Bool default_participant_id:Messa
 //@reply_markup_message_id Identifier of the message from which reply markup needs to be used; 0 if there is no default custom reply markup in the chat
 //@draft_message A draft of a message in the chat; may be null
 //@client_data Application-specific data associated with the chat. (For example, the chat scroll position or local chat notification settings can be stored here.) Persistent if the message database is used
-chat id:int53 type:ChatType title:string photo:chatPhotoInfo permissions:chatPermissions last_message:message positions:vector<chatPosition> default_message_sender_id:MessageSender allow_saving_content:Bool is_marked_as_unread:Bool is_blocked:Bool has_scheduled_messages:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_reported:Bool default_disable_notification:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 notification_settings:chatNotificationSettings message_ttl_setting:int32 theme_name:string action_bar:ChatActionBar video_chat:videoChat pending_join_requests:chatJoinRequestsInfo reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
+chat id:int53 type:ChatType title:string photo:chatPhotoInfo permissions:chatPermissions last_message:message positions:vector<chatPosition> default_message_sender_id:MessageSender has_protected_content:Bool is_marked_as_unread:Bool is_blocked:Bool has_scheduled_messages:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_reported:Bool default_disable_notification:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 notification_settings:chatNotificationSettings message_ttl_setting:int32 theme_name:string action_bar:ChatActionBar video_chat:videoChat pending_join_requests:chatJoinRequestsInfo reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
 
 //@description Represents a list of chats @total_count Approximate total count of chats found @chat_ids List of chat identifiers
 chats total_count:int32 chat_ids:vector<int53> = Chats;
@@ -2603,8 +2603,8 @@ chatEventMessageTtlSettingChanged old_message_ttl_setting:int32 new_message_ttl_
 //@description The sign_messages setting of a channel was toggled @sign_messages New value of sign_messages
 chatEventSignMessagesToggled sign_messages:Bool = ChatEventAction;
 
-//@description The allow_saving_content setting of a channel was toggled @allow_saving_content New value of allow_saving_content
-chatEventAllowSavingContentToggled allow_saving_content:Bool = ChatEventAction;
+//@description The has_protected_content setting of a channel was toggled @has_protected_content New value of has_protected_content
+chatEventHasProtectedContentToggled has_protected_content:Bool = ChatEventAction;
 
 //@description The supergroup sticker set was changed @old_sticker_set_id Previous identifier of the chat sticker set; 0 if none @new_sticker_set_id New identifier of the chat sticker set; 0 if none
 chatEventStickerSetChanged old_sticker_set_id:int64 new_sticker_set_id:int64 = ChatEventAction;
@@ -3731,8 +3731,8 @@ updateChatPosition chat_id:int53 position:chatPosition = Update;
 //@description The default message sender that is chosen to send messages in a chat has changed @chat_id Chat identifier @default_message_sender_id New value of default_message_sender_id; may be null if the user can't change message sender
 updateChatDefaultMessageSenderId chat_id:int53 default_message_sender_id:MessageSender = Update;
 
-//@description A chat content was allowed or restricted for saving @chat_id Chat identifier @allow_saving_content New value of allow_saving_content
-updateChatAllowSavingContent chat_id:int53 allow_saving_content:Bool = Update;
+//@description A chat content was allowed or restricted for saving @chat_id Chat identifier @has_protected_content New value of has_protected_content
+updateChatHasProtectedContent chat_id:int53 has_protected_content:Bool = Update;
 
 //@description A chat was marked as unread or was read @chat_id Chat identifier @is_marked_as_unread New value of is_marked_as_unread
 updateChatIsMarkedAsUnread chat_id:int53 is_marked_as_unread:Bool = Update;
@@ -4790,8 +4790,8 @@ setChatDraftMessage chat_id:int53 message_thread_id:int53 draft_message:draftMes
 setChatNotificationSettings chat_id:int53 notification_settings:chatNotificationSettings = Ok;
 
 //@description Changes the ability of users to save, forward, or copy chat content. Supported only for basic groups, supergroups and channels. Requires owner privileges
-//@chat_id Chat identifier @allow_saving_content True, if chat content can be saved locally, forwarded, or copied
-toggleChatAllowSavingContent chat_id:int53 allow_saving_content:Bool = Ok;
+//@chat_id Chat identifier @has_protected_content True, if chat content can't be saved locally, forwarded, or copied
+toggleChatHasProtectedContent chat_id:int53 has_protected_content:Bool = Ok;
 
 //@description Changes the marked as unread state of a chat @chat_id Chat identifier @is_marked_as_unread New value of is_marked_as_unread
 toggleChatIsMarkedAsUnread chat_id:int53 is_marked_as_unread:Bool = Ok;

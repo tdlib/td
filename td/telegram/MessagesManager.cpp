@@ -1485,12 +1485,12 @@ class ToggleNoForwardsQuery final : public Td::ResultHandler {
   explicit ToggleNoForwardsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, bool allow_saving_content) {
+  void send(DialogId dialog_id, bool has_protected_content) {
     dialog_id_ = dialog_id;
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_toggleNoForwards(std::move(input_peer), !allow_saving_content)));
+        telegram_api::messages_toggleNoForwards(std::move(input_peer), has_protected_content)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -10184,7 +10184,7 @@ bool MessagesManager::can_save_message(DialogId dialog_id, const Message *m) con
   if (m == nullptr || m->noforwards || m->is_content_secret) {
     return false;
   }
-  return get_dialog_allow_saving_content(dialog_id);
+  return !get_dialog_has_protected_content(dialog_id);
 }
 
 bool MessagesManager::can_get_message_statistics(FullMessageId full_message_id) {
@@ -20335,7 +20335,7 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
       get_chat_photo_info_object(td_->file_manager_.get(), get_dialog_photo(d->dialog_id)),
       get_dialog_default_permissions(d->dialog_id).get_chat_permissions_object(),
       get_message_object(d->dialog_id, get_message(d, d->last_message_id), "get_chat_object"),
-      get_chat_positions_object(d), get_default_sender_id_object(d), get_dialog_allow_saving_content(d->dialog_id),
+      get_chat_positions_object(d), get_default_sender_id_object(d), get_dialog_has_protected_content(d->dialog_id),
       d->is_marked_as_unread, d->is_blocked, get_dialog_has_scheduled_messages(d), can_delete_for_self,
       can_delete_for_all_users, can_report_dialog(d->dialog_id), d->notification_settings.silent_send_message,
       d->server_unread_count + d->local_unread_count, d->last_read_inbox_message_id.get(),
@@ -26953,7 +26953,7 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
   if (from_dialog_id.get_type() == DialogType::SecretChat) {
     return Status::Error(400, "Can't forward messages from secret chats");
   }
-  if (!get_dialog_allow_saving_content(from_dialog_id)) {
+  if (get_dialog_has_protected_content(from_dialog_id)) {
     for (const auto &copy_option : copy_options) {
       if (!copy_option.send_copy || !td_->auth_manager_->is_bot()) {
         return Status::Error(400, "Administrators of the chat restricted message forwarding");
@@ -31091,12 +31091,12 @@ void MessagesManager::on_dialog_default_permissions_updated(DialogId dialog_id) 
   }
 }
 
-void MessagesManager::on_dialog_allow_saving_content_updated(DialogId dialog_id) {
+void MessagesManager::on_dialog_has_protected_content_updated(DialogId dialog_id) {
   auto d = get_dialog(dialog_id);  // called from update_chat, must not create the dialog
   if (d != nullptr && d->is_update_new_chat_sent) {
     send_closure(G()->td(), &Td::send_update,
-                 td_api::make_object<td_api::updateChatAllowSavingContent>(dialog_id.get(),
-                                                                           get_dialog_allow_saving_content(dialog_id)));
+                 td_api::make_object<td_api::updateChatHasProtectedContent>(
+                     dialog_id.get(), get_dialog_has_protected_content(dialog_id)));
   }
 }
 
@@ -31550,20 +31550,20 @@ RestrictedRights MessagesManager::get_dialog_default_permissions(DialogId dialog
   }
 }
 
-bool MessagesManager::get_dialog_allow_saving_content(DialogId dialog_id) const {
+bool MessagesManager::get_dialog_has_protected_content(DialogId dialog_id) const {
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      return true;
+      return false;
     case DialogType::Chat:
-      return td_->contacts_manager_->get_chat_allow_saving_content(dialog_id.get_chat_id());
+      return td_->contacts_manager_->get_chat_has_protected_content(dialog_id.get_chat_id());
     case DialogType::Channel:
-      return td_->contacts_manager_->get_channel_allow_saving_content(dialog_id.get_channel_id());
+      return td_->contacts_manager_->get_channel_has_protected_content(dialog_id.get_channel_id());
     case DialogType::SecretChat:
-      return true;
+      return false;
     case DialogType::None:
     default:
       UNREACHABLE();
-      return false;
+      return true;
   }
 }
 
@@ -32210,9 +32210,9 @@ void MessagesManager::set_dialog_permissions(DialogId dialog_id,
   td_->create_handler<EditChatDefaultBannedRightsQuery>(std::move(promise))->send(dialog_id, new_permissions);
 }
 
-void MessagesManager::toggle_dialog_allow_saving_content(DialogId dialog_id, bool allow_saving_content,
-                                                         Promise<Unit> &&promise) {
-  if (!have_dialog_force(dialog_id, "toggle_dialog_allow_saving_content")) {
+void MessagesManager::toggle_dialog_has_protected_content(DialogId dialog_id, bool has_protected_content,
+                                                          Promise<Unit> &&promise) {
+  if (!have_dialog_force(dialog_id, "toggle_dialog_has_protected_content")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
@@ -32243,13 +32243,13 @@ void MessagesManager::toggle_dialog_allow_saving_content(DialogId dialog_id, boo
       UNREACHABLE();
   }
 
-  // TODO this can be wrong if there were previous toggle_dialog_allow_saving_content requests
-  if (get_dialog_allow_saving_content(dialog_id) == allow_saving_content) {
+  // TODO this can be wrong if there were previous toggle_dialog_has_protected_content requests
+  if (get_dialog_has_protected_content(dialog_id) == has_protected_content) {
     return promise.set_value(Unit());
   }
 
   // TODO invoke after
-  td_->create_handler<ToggleNoForwardsQuery>(std::move(promise))->send(dialog_id, allow_saving_content);
+  td_->create_handler<ToggleNoForwardsQuery>(std::move(promise))->send(dialog_id, has_protected_content);
 }
 
 void MessagesManager::set_dialog_theme(DialogId dialog_id, const string &theme_name, Promise<Unit> &&promise) {

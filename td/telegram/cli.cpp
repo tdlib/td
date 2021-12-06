@@ -3194,10 +3194,10 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::clearAllDraftMessages>());
     } else if (op == "tcasc") {
       string chat_id;
-      bool allow_saving_content;
-      get_args(args, chat_id, allow_saving_content);
+      bool has_protected_content;
+      get_args(args, chat_id, has_protected_content);
       send_request(
-          td_api::make_object<td_api::toggleChatAllowSavingContent>(as_chat_id(chat_id), allow_saving_content));
+          td_api::make_object<td_api::toggleChatHasProtectedContent>(as_chat_id(chat_id), has_protected_content));
     } else if (op == "tcip" || op == "tcipa" || begins_with(op, "tcip-")) {
       string chat_id;
       bool is_pinned;

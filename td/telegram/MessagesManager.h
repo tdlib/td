@@ -506,7 +506,7 @@ class MessagesManager final : public Actor {
   void set_dialog_permissions(DialogId dialog_id, const td_api::object_ptr<td_api::chatPermissions> &permissions,
                               Promise<Unit> &&promise);
 
-  void toggle_dialog_allow_saving_content(DialogId dialog_id, bool allow_saving_content, Promise<Unit> &&promise);
+  void toggle_dialog_has_protected_content(DialogId dialog_id, bool has_protected_content, Promise<Unit> &&promise);
 
   void set_dialog_theme(DialogId dialog_id, const string &theme_name, Promise<Unit> &&promise);
 
@@ -802,7 +802,7 @@ class MessagesManager final : public Actor {
   void on_dialog_title_updated(DialogId dialog_id);
   void on_dialog_username_updated(DialogId dialog_id, const string &old_username, const string &new_username);
   void on_dialog_default_permissions_updated(DialogId dialog_id);
-  void on_dialog_allow_saving_content_updated(DialogId dialog_id);
+  void on_dialog_has_protected_content_updated(DialogId dialog_id);
 
   void on_dialog_user_is_contact_updated(DialogId dialog_id, bool is_contact);
   void on_dialog_user_is_deleted_updated(DialogId dialog_id, bool is_deleted);
@@ -2900,7 +2900,7 @@ class MessagesManager final : public Actor {
 
   RestrictedRights get_dialog_default_permissions(DialogId dialog_id) const;
 
-  bool get_dialog_allow_saving_content(DialogId dialog_id) const;
+  bool get_dialog_has_protected_content(DialogId dialog_id) const;
 
   bool get_dialog_has_scheduled_messages(const Dialog *d) const;
 
