@@ -1609,7 +1609,8 @@ class GetChatJoinRequestsQuery final : public Td::ResultHandler {
   void send(DialogId dialog_id, const string &invite_link, const string &query, int32 offset_date,
             UserId offset_user_id, int32 limit) {
     dialog_id_ = dialog_id;
-    is_full_list_ = invite_link.empty() && query.empty() && offset_date == 0 && !offset_user_id.is_valid() && limit >= 3;
+    is_full_list_ =
+        invite_link.empty() && query.empty() && offset_date == 0 && !offset_user_id.is_valid() && limit >= 3;
 
     auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
@@ -14010,7 +14011,7 @@ void ContactsManager::send_get_chat_full_query(ChatId chat_id, Promise<Unit> &&p
     }
   });
 
-  get_chat_full_queries_.add_query(chat_id.get(), std::move(send_query), std::move(promise));
+  get_chat_full_queries_.add_query(DialogId(chat_id).get(), std::move(send_query), std::move(promise));
 }
 
 int32 ContactsManager::get_chat_participant_count(ChatId chat_id) const {
@@ -14355,7 +14356,7 @@ void ContactsManager::send_get_channel_full_query(ChannelFull *channel_full, Cha
           td->create_handler<GetFullChannelQuery>(promise.move_as_ok())->send(channel_id, std::move(input_channel));
         }
       });
-  get_channel_full_queries_.add_query(channel_id.get(), std::move(send_query), std::move(promise));
+  get_chat_full_queries_.add_query(DialogId(channel_id).get(), std::move(send_query), std::move(promise));
 }
 
 bool ContactsManager::have_secret_chat(SecretChatId secret_chat_id) const {

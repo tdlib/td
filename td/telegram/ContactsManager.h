@@ -1644,7 +1644,6 @@ class ContactsManager final : public Actor {
 
   QueryCombiner get_user_full_queries_{"GetUserFullCombiner", 2.0};
   QueryCombiner get_chat_full_queries_{"GetChatFullCombiner", 2.0};
-  QueryCombiner get_channel_full_queries_{"GetChannelFullCombiner", 2.0};
 
   std::unordered_map<DialogId, vector<DialogAdministrator>, DialogIdHash> dialog_administrators_;
 
