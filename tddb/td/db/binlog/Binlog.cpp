@@ -16,6 +16,7 @@
 #include "td/utils/port/FileFd.h"
 #include "td/utils/port/path.h"
 #include "td/utils/port/PollFlags.h"
+#include "td/utils/port/sleep.h"
 #include "td/utils/port/Stat.h"
 #include "td/utils/Random.h"
 #include "td/utils/ScopeGuard.h"
@@ -670,14 +671,19 @@ void Binlog::do_reindex() {
   auto finish_time = Clocks::monotonic();
   auto finish_size = fd_size_;
   auto finish_events = fd_events_;
-  {
+  for (size_t i = 10; i > 0; i--) {
     auto r_stat = stat(path_);
     if (r_stat.is_error()) {
+      if (i != 1) {
+        usleep_for(200000 / i);
+        continue;
+      }
       LOG(FATAL) << "Failed to rename binlog of size " << fd_size_ << " to " << path_ << ": " << r_stat.error()
-                 << ". Old file size is " << detail::file_size(new_path);
+                 << ". Temp file size is " << detail::file_size(new_path) << ", new size " << detail::file_size(path_);
     }
     LOG_CHECK(fd_size_ == r_stat.ok().size_) << fd_size_ << ' ' << r_stat.ok().size_ << ' '
                                              << detail::file_size(new_path) << ' ' << fd_events_ << ' ' << path_;
+    break;
   }
 
   auto ratio = static_cast<double>(start_size) / static_cast<double>(finish_size + 1);
