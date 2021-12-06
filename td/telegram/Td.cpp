@@ -2709,7 +2709,8 @@ Td::Td(unique_ptr<TdCallback> callback, Options options)
     : callback_(std::move(callback)), td_options_(std::move(options)) {
   CHECK(callback_ != nullptr);
   LOG(INFO) << "Create Td with layer " << MTPROTO_LAYER << ", database version " << current_db_version()
-            << " and version " << static_cast<int32>(Version::Next) - 1;
+            << " and version " << static_cast<int32>(Version::Next) - 1 << " on "
+            << Scheduler::instance()->sched_count() << " threads";
 }
 
 Td::~Td() = default;
