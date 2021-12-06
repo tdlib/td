@@ -36,7 +36,7 @@ class HttpReader {
   HttpReader &operator=(HttpReader &&other) = delete;
   ~HttpReader() {
     if (!temp_file_.empty()) {
-      temp_file_.close();
+      clean_temporary_file();
     }
   }
 
