@@ -671,11 +671,11 @@ void Binlog::do_reindex() {
   auto finish_time = Clocks::monotonic();
   auto finish_size = fd_size_;
   auto finish_events = fd_events_;
-  for (size_t i = 10; i > 0; i--) {
+  for (int left_tries = 10; left_tries > 0; left_tries--) {
     auto r_stat = stat(path_);
     if (r_stat.is_error()) {
-      if (i != 1) {
-        usleep_for(200000 / i);
+      if (left_tries != 1) {
+        usleep_for(200000 / left_tries);
         continue;
       }
       LOG(FATAL) << "Failed to rename binlog of size " << fd_size_ << " to " << path_ << ": " << r_stat.error()
