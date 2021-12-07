@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.4 FATAL_ERROR)
 
 project(TdExample VERSION 1.0 LANGUAGES CXX)
 
-find_package(Td 1.7.9 REQUIRED)
+find_package(Td 1.7.10 REQUIRED)
 
 add_executable(tdjson_example tdjson_example.cpp)
 target_link_libraries(tdjson_example PRIVATE Td::TdJson)
