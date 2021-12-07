@@ -19512,6 +19512,11 @@ DialogId MessagesManager::migrate_dialog_to_megagroup(DialogId dialog_id, Promis
   return new_dialog_id;
 }
 
+bool MessagesManager::is_dialog_opened(DialogId dialog_id) const {
+  const Dialog *d = get_dialog(dialog_id);
+  return d != nullptr && d->is_opened;
+}
+
 Status MessagesManager::open_dialog(DialogId dialog_id) {
   Dialog *d = get_dialog_force(dialog_id, "open_dialog");
   if (d == nullptr) {

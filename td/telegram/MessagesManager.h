@@ -636,6 +636,8 @@ class MessagesManager final : public Actor {
 
   DialogId migrate_dialog_to_megagroup(DialogId dialog_id, Promise<Unit> &&promise);
 
+  bool is_dialog_opened(DialogId dialog_id) const;
+
   Status open_dialog(DialogId dialog_id) TD_WARN_UNUSED_RESULT;
 
   Status close_dialog(DialogId dialog_id) TD_WARN_UNUSED_RESULT;

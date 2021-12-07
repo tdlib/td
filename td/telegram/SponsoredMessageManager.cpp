@@ -290,6 +290,9 @@ void SponsoredMessageManager::view_sponsored_message(DialogId dialog_id, int32 s
   if (!td_->messages_manager_->have_dialog_force(dialog_id, "view_sponsored_message")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
+  if (!td_->messages_manager_->is_dialog_opened(dialog_id)) {
+    return promise.set_value(Unit());
+  }
 
   auto it = dialog_sponsored_messages_.find(dialog_id);
   if (it == dialog_sponsored_messages_.end()) {
