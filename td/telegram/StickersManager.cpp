@@ -1381,6 +1381,13 @@ void StickersManager::load_special_sticker_set(SpecialStickerSet &sticker_set) {
   sticker_set.is_being_loaded_ = true;
   LOG(INFO) << "Load " << sticker_set.type_.type_ << " " << sticker_set.id_;
   if (sticker_set.id_.is_valid()) {
+    auto s = get_sticker_set(sticker_set.id_);
+    CHECK(s != nullptr);
+    if (s->was_loaded) {
+      reload_special_sticker_set(sticker_set, s->is_loaded ? s->hash : 0);
+      return;
+    }
+
     auto promise = PromiseCreator::lambda([actor_id = actor_id(this), type = sticker_set.type_](Result<Unit> &&result) {
       send_closure(actor_id, &StickersManager::on_load_special_sticker_set, type,
                    result.is_ok() ? Status::OK() : result.move_as_error());
