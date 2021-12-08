@@ -17458,6 +17458,7 @@ Status MessagesManager::can_get_message_viewers(DialogId dialog_id, const Messag
 
   if (m->content->get_type() == MessageContentType::Poll &&
       get_message_content_poll_is_anonymous(td_, m->content.get())) {
+    return Status::Error(400, "Anonymous poll viewers are unavailable");
   }
 
   return Status::OK();
