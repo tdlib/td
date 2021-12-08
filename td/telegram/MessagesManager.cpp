@@ -21603,7 +21603,6 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
              << " and with limit " << limit;
 
   switch (dialog_id.get_type()) {
-    case DialogType::None:
     case DialogType::User:
     case DialogType::Chat:
     case DialogType::Channel:
@@ -21618,6 +21617,7 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
         promise.set_error(Status::Error(500, "Search messages in secret chats is not supported"));
       }
       break;
+    case DialogType::None:
     default:
       UNREACHABLE();
       promise.set_error(Status::Error(500, "Search messages is not supported"));
