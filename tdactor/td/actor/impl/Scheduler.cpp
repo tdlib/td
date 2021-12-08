@@ -519,6 +519,9 @@ void Scheduler::run_no_guard(Timestamp timeout) {
 }
 
 Timestamp Scheduler::get_timeout() {
+  if (!ready_actors_list_.empty()) {
+    return Timestamp::in(0);
+  }
   if (timeout_queue_.empty()) {
     return Timestamp::in(10000);
   }
