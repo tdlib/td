@@ -1,4 +1,5 @@
 #!/bin/sh
+cd $(dirname $0)
 commit=$(git rev-parse HEAD)
 git diff-index --quiet HEAD
 dirty=$?

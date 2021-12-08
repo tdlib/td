@@ -1,4 +1,5 @@
 #!/bin/sh
+cd $(dirname $0)
 td_path=$(grealpath ../..)
 
 rm -rf build
