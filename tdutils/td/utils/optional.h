@@ -75,7 +75,7 @@ class optional {
   }
 
   template <class... ArgsT>
-  void emplace(ArgsT &&... args) {
+  void emplace(ArgsT &&...args) {
     impl_.emplace(std::forward<ArgsT>(args)...);
   }
 

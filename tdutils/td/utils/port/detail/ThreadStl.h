@@ -34,7 +34,7 @@ class ThreadStl {
     join();
   }
   template <class Function, class... Args>
-  explicit ThreadStl(Function &&f, Args &&... args) {
+  explicit ThreadStl(Function &&f, Args &&...args) {
     thread_ = std::thread([args = std::make_tuple(decay_copy(std::forward<Function>(f)),
                                                   decay_copy(std::forward<Args>(args))...)]() mutable {
       ThreadIdGuard thread_id_guard;

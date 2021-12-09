@@ -146,12 +146,12 @@ ActorShared<SelfT> Actor::actor_shared(SelfT *self, uint64 id) {
 }
 
 template <class FuncT, class... ArgsT>
-auto Actor::self_closure(FuncT &&func, ArgsT &&... args) {
+auto Actor::self_closure(FuncT &&func, ArgsT &&...args) {
   return self_closure(this, std::forward<FuncT>(func), std::forward<ArgsT>(args)...);
 }
 
 template <class SelfT, class FuncT, class... ArgsT>
-auto Actor::self_closure(SelfT *self, FuncT &&func, ArgsT &&... args) {
+auto Actor::self_closure(SelfT *self, FuncT &&func, ArgsT &&...args) {
   return EventCreator::closure(actor_id(self), std::forward<FuncT>(func), std::forward<ArgsT>(args)...);
 }
 

@@ -301,7 +301,7 @@ StringBuilder &operator<<(StringBuilder &sb, const Concat<T> &concat) {
 }
 
 template <class... ArgsT>
-auto concat(const ArgsT &... args) {
+auto concat(const ArgsT &...args) {
   return Concat<decltype(std::tie(args...))>{std::tie(args...)};
 }
 

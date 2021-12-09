@@ -56,7 +56,7 @@ class EventFull {
 class EventCreator {
  public:
   template <class ActorIdT, class FunctionT, class... ArgsT>
-  static EventFull closure(ActorIdT &&actor_id, FunctionT function, ArgsT &&... args) {
+  static EventFull closure(ActorIdT &&actor_id, FunctionT function, ArgsT &&...args) {
     using ActorT = typename std::decay_t<ActorIdT>::ActorT;
     using FunctionClassT = member_function_class_t<FunctionT>;
     static_assert(std::is_base_of<FunctionClassT, ActorT>::value, "unsafe send_closure");

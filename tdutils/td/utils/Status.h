@@ -416,7 +416,7 @@ class Result {
   }
   struct emplace_t {};
   template <class... ArgsT>
-  Result(emplace_t, ArgsT &&... args) : status_(), value_(std::forward<ArgsT>(args)...) {
+  Result(emplace_t, ArgsT &&...args) : status_(), value_(std::forward<ArgsT>(args)...) {
   }
   Result(Status &&status) : status_(std::move(status)) {
     CHECK(status_.is_error());
@@ -451,7 +451,7 @@ class Result {
     return *this;
   }
   template <class... ArgsT>
-  void emplace(ArgsT &&... args) {
+  void emplace(ArgsT &&...args) {
     if (status_.is_ok()) {
       value_.~T();
     }

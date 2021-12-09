@@ -404,7 +404,7 @@ template <class PromiseT>
 class CancellablePromise final : public PromiseT {
  public:
   template <class... ArgsT>
-  CancellablePromise(CancellationToken cancellation_token, ArgsT &&... args)
+  CancellablePromise(CancellationToken cancellation_token, ArgsT &&...args)
       : PromiseT(std::forward<ArgsT>(args)...), cancellation_token_(std::move(cancellation_token)) {
   }
   bool is_cancellable() const final {
@@ -421,7 +421,7 @@ class CancellablePromise final : public PromiseT {
 template <class... ArgsT>
 class JoinPromise final : public PromiseInterface<Unit> {
  public:
-  explicit JoinPromise(ArgsT &&... arg) : promises_(std::forward<ArgsT>(arg)...) {
+  explicit JoinPromise(ArgsT &&...arg) : promises_(std::forward<ArgsT>(arg)...) {
   }
   void set_value(Unit &&) final {
     tuple_for_each(promises_, [](auto &promise) { promise.set_value(Unit()); });
@@ -438,7 +438,7 @@ class JoinPromise final : public PromiseInterface<Unit> {
 class SendClosure {
  public:
   template <class... ArgsT>
-  void operator()(ArgsT &&... args) const {
+  void operator()(ArgsT &&...args) const {
     send_closure(std::forward<ArgsT>(args)...);
   }
 };
@@ -453,7 +453,7 @@ class SendClosure {
 //}
 
 template <class... ArgsT>
-auto promise_send_closure(ArgsT &&... args) {
+auto promise_send_closure(ArgsT &&...args) {
   return [t = std::make_tuple(std::forward<ArgsT>(args)...)](auto &&res) mutable {
     call_tuple(SendClosure(), std::tuple_cat(std::move(t), std::make_tuple(std::forward<decltype(res)>(res))));
   };
@@ -679,7 +679,7 @@ class PromiseFuture {
 template <ActorSendType send_type, class T, class ActorAT, class ActorBT, class ResultT, class... DestArgsT,
           class... ArgsT>
 FutureActor<T> send_promise(ActorId<ActorAT> actor_id, ResultT (ActorBT::*func)(PromiseActor<T> &&, DestArgsT...),
-                            ArgsT &&... args) {
+                            ArgsT &&...args) {
   PromiseFuture<T> pf;
   Scheduler::instance()->send_closure<send_type>(
       std::move(actor_id), create_immediate_closure(func, pf.move_promise(), std::forward<ArgsT>(args)...));
@@ -716,7 +716,7 @@ class PromiseCreator {
   }
 
   template <class... ArgsT>
-  static Promise<> join(ArgsT &&... args) {
+  static Promise<> join(ArgsT &&...args) {
     return Promise<>(td::make_unique<detail::JoinPromise<ArgsT...>>(std::forward<ArgsT>(args)...));
   }
 

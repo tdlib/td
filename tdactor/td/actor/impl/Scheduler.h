@@ -69,12 +69,12 @@ inline int32 Scheduler::sched_count() const {
 }
 
 template <class ActorT, class... Args>
-ActorOwn<ActorT> Scheduler::create_actor(Slice name, Args &&... args) {
+ActorOwn<ActorT> Scheduler::create_actor(Slice name, Args &&...args) {
   return register_actor_impl(name, new ActorT(std::forward<Args>(args)...), Actor::Deleter::Destroy, sched_id_);
 }
 
 template <class ActorT, class... Args>
-ActorOwn<ActorT> Scheduler::create_actor_on_scheduler(Slice name, int32 sched_id, Args &&... args) {
+ActorOwn<ActorT> Scheduler::create_actor_on_scheduler(Slice name, int32 sched_id, Args &&...args) {
   return register_actor_impl(name, new ActorT(std::forward<Args>(args)...), Actor::Deleter::Destroy, sched_id);
 }
 
@@ -334,12 +334,12 @@ inline void Scheduler::run(Timestamp timeout) {
 
 /*** Interface to current scheduler ***/
 template <class ActorT, class... Args>
-ActorOwn<ActorT> create_actor(Slice name, Args &&... args) {
+ActorOwn<ActorT> create_actor(Slice name, Args &&...args) {
   return Scheduler::instance()->create_actor<ActorT>(name, std::forward<Args>(args)...);
 }
 
 template <class ActorT, class... Args>
-ActorOwn<ActorT> create_actor_on_scheduler(Slice name, int32 sched_id, Args &&... args) {
+ActorOwn<ActorT> create_actor_on_scheduler(Slice name, int32 sched_id, Args &&...args) {
   return Scheduler::instance()->create_actor_on_scheduler<ActorT>(name, sched_id, std::forward<Args>(args)...);
 }
 

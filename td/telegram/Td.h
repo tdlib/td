@@ -125,7 +125,7 @@ class Td final : public Actor {
   void set_is_bot_online(bool is_bot_online);
 
   template <class ActorT, class... ArgsT>
-  ActorId<ActorT> create_net_actor(ArgsT &&... args) {
+  ActorId<ActorT> create_net_actor(ArgsT &&...args) {
     LOG_CHECK(close_flag_ < 1) << close_flag_
 #if TD_CLANG || TD_GCC
                                << ' ' << __PRETTY_FUNCTION__
@@ -234,7 +234,7 @@ class Td final : public Actor {
   };
 
   template <class HandlerT, class... Args>
-  std::shared_ptr<HandlerT> create_handler(Args &&... args) {
+  std::shared_ptr<HandlerT> create_handler(Args &&...args) {
     LOG_CHECK(close_flag_ < 2) << close_flag_
 #if TD_CLANG || TD_GCC
                                << ' ' << __PRETTY_FUNCTION__

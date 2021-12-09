@@ -30,8 +30,8 @@
 
 #define REF_NEW ref new
 #define CLRCALL
-#define DEPRECATED_ATTRIBUTE(message) ::Windows::Foundation::Metadata::Deprecated(message,\
-                                      ::Windows::Foundation::Metadata::DeprecationType::Deprecate, 0x0)
+#define DEPRECATED_ATTRIBUTE(message) \
+  ::Windows::Foundation::Metadata::Deprecated(message, ::Windows::Foundation::Metadata::DeprecationType::Deprecate, 0x0)
 
 namespace CxCli {
 
@@ -49,7 +49,7 @@ using Platform::NullReferenceException;
 
 template <class Key, class Value>
 class ConcurrentDictionary {
-public:
+ public:
   bool TryGetValue(Key key, Value &value) {
     std::lock_guard<std::mutex> guard(mutex_);
     auto it = impl_.find(key);
@@ -69,11 +69,12 @@ public:
     impl_.erase(it);
     return true;
   }
-  Value &operator [] (Key key) {
+  Value &operator[](Key key) {
     std::lock_guard<std::mutex> guard(mutex_);
     return impl_[key];
   }
-private:
+
+ private:
   std::mutex mutex_;
   std::map<Key, Value> impl_;
 };
@@ -82,7 +83,7 @@ inline std::int64_t Increment(volatile std::int64_t &value) {
   return InterlockedIncrement64(&value);
 }
 
-inline std::string string_to_unmanaged(String^ str) {
+inline std::string string_to_unmanaged(String ^ str) {
   if (!str) {
     return std::string();
   }
@@ -93,12 +94,12 @@ inline std::string string_to_unmanaged(String^ str) {
   return r_unmanaged_str.move_as_ok();
 }
 
-inline String^ string_from_unmanaged(const std::string &from) {
+inline String ^ string_from_unmanaged(const std::string &from) {
   auto tmp = td::to_wstring(from).ok();
   return REF_NEW String(tmp.c_str(), static_cast<unsigned>(tmp.size()));
 }
 
-} // namespace CxCli
+}  // namespace CxCli
 
 #elif TD_CLI
 
@@ -128,27 +129,27 @@ using System::NullReferenceException;
 
 using System::Collections::Concurrent::ConcurrentDictionary;
 
-inline std::int64_t Increment(std::int64_t %value) {
+inline std::int64_t Increment(std::int64_t % value) {
   return System::Threading::Interlocked::Increment(value);
 }
 
-inline std::string string_to_unmanaged(String^ str) {
+inline std::string string_to_unmanaged(String ^ str) {
   if (!str || str->Length == 0) {
     return std::string();
   }
 
-  Array<System::Byte>^ bytes = System::Text::Encoding::UTF8->GetBytes(str);
+  Array<System::Byte> ^ bytes = System::Text::Encoding::UTF8->GetBytes(str);
   cli::pin_ptr<System::Byte> pinned_ptr = &bytes[0];
   std::string result(reinterpret_cast<const char *>(&pinned_ptr[0]), bytes->Length);
   return result;
 }
 
-inline String^ string_from_unmanaged(const std::string &from) {
+inline String ^ string_from_unmanaged(const std::string &from) {
   if (from.empty()) {
     return String::Empty;
   }
 
-  Array<System::Byte>^ bytes = REF_NEW Vector<System::Byte>(static_cast<ArrayIndexType>(from.size()));
+  Array<System::Byte> ^ bytes = REF_NEW Vector<System::Byte>(static_cast<ArrayIndexType>(from.size()));
   cli::pin_ptr<System::Byte> pinned_ptr = &bytes[0];
   for (size_t i = 0; i < from.size(); ++i) {
     pinned_ptr[i] = from[i];
@@ -156,6 +157,6 @@ inline String^ string_from_unmanaged(const std::string &from) {
   return System::Text::Encoding::UTF8->GetString(bytes);
 }
 
-} // namespace CxCli
+}  // namespace CxCli
 
 #endif

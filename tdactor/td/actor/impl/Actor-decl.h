@@ -90,10 +90,10 @@ class Actor : public ObserverBase {
   bool empty() const;
 
   template <class FuncT, class... ArgsT>
-  auto self_closure(FuncT &&func, ArgsT &&... args);
+  auto self_closure(FuncT &&func, ArgsT &&...args);
 
   template <class SelfT, class FuncT, class... ArgsT>
-  auto self_closure(SelfT *self, FuncT &&func, ArgsT &&... args);
+  auto self_closure(SelfT *self, FuncT &&func, ArgsT &&...args);
 
   template <class LambdaT>
   auto self_lambda(LambdaT &&lambda);

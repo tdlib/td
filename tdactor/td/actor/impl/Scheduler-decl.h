@@ -84,9 +84,9 @@ class Scheduler {
   int32 sched_count() const;
 
   template <class ActorT, class... Args>
-  TD_WARN_UNUSED_RESULT ActorOwn<ActorT> create_actor(Slice name, Args &&... args);
+  TD_WARN_UNUSED_RESULT ActorOwn<ActorT> create_actor(Slice name, Args &&...args);
   template <class ActorT, class... Args>
-  TD_WARN_UNUSED_RESULT ActorOwn<ActorT> create_actor_on_scheduler(Slice name, int32 sched_id, Args &&... args);
+  TD_WARN_UNUSED_RESULT ActorOwn<ActorT> create_actor_on_scheduler(Slice name, int32 sched_id, Args &&...args);
   template <class ActorT>
   TD_WARN_UNUSED_RESULT ActorOwn<ActorT> register_actor(Slice name, ActorT *actor_ptr, int32 sched_id = -1);
   template <class ActorT>
@@ -244,9 +244,9 @@ class Scheduler {
 
 /*** Interface to current scheduler ***/
 template <class ActorT, class... Args>
-TD_WARN_UNUSED_RESULT ActorOwn<ActorT> create_actor(Slice name, Args &&... args);
+TD_WARN_UNUSED_RESULT ActorOwn<ActorT> create_actor(Slice name, Args &&...args);
 template <class ActorT, class... Args>
-TD_WARN_UNUSED_RESULT ActorOwn<ActorT> create_actor_on_scheduler(Slice name, int32 sched_id, Args &&... args);
+TD_WARN_UNUSED_RESULT ActorOwn<ActorT> create_actor_on_scheduler(Slice name, int32 sched_id, Args &&...args);
 template <class ActorT>
 TD_WARN_UNUSED_RESULT ActorOwn<ActorT> register_actor(Slice name, ActorT *actor_ptr, int32 sched_id = -1);
 template <class ActorT>
@@ -256,7 +256,7 @@ template <class ActorT>
 TD_WARN_UNUSED_RESULT ActorOwn<ActorT> register_existing_actor(unique_ptr<ActorT> actor_ptr);
 
 template <class ActorIdT, class FunctionT, class... ArgsT>
-void send_closure(ActorIdT &&actor_id, FunctionT function, ArgsT &&... args) {
+void send_closure(ActorIdT &&actor_id, FunctionT function, ArgsT &&...args) {
   using ActorT = typename std::decay_t<ActorIdT>::ActorT;
   using FunctionClassT = member_function_class_t<FunctionT>;
   static_assert(std::is_base_of<FunctionClassT, ActorT>::value, "unsafe send_closure");
@@ -266,7 +266,7 @@ void send_closure(ActorIdT &&actor_id, FunctionT function, ArgsT &&... args) {
 }
 
 template <class ActorIdT, class FunctionT, class... ArgsT>
-void send_closure_later(ActorIdT &&actor_id, FunctionT function, ArgsT &&... args) {
+void send_closure_later(ActorIdT &&actor_id, FunctionT function, ArgsT &&...args) {
   using ActorT = typename std::decay_t<ActorIdT>::ActorT;
   using FunctionClassT = member_function_class_t<FunctionT>;
   static_assert(std::is_base_of<FunctionClassT, ActorT>::value, "unsafe send_closure");
@@ -276,17 +276,17 @@ void send_closure_later(ActorIdT &&actor_id, FunctionT function, ArgsT &&... arg
 }
 
 template <class... ArgsT>
-void send_lambda(ActorRef actor_ref, ArgsT &&... args) {
+void send_lambda(ActorRef actor_ref, ArgsT &&...args) {
   Scheduler::instance()->send_lambda<ActorSendType::Immediate>(actor_ref, std::forward<ArgsT>(args)...);
 }
 
 template <class... ArgsT>
-void send_event(ActorRef actor_ref, ArgsT &&... args) {
+void send_event(ActorRef actor_ref, ArgsT &&...args) {
   Scheduler::instance()->send<ActorSendType::Immediate>(actor_ref, std::forward<ArgsT>(args)...);
 }
 
 template <class... ArgsT>
-void send_event_later(ActorRef actor_ref, ArgsT &&... args) {
+void send_event_later(ActorRef actor_ref, ArgsT &&...args) {
   Scheduler::instance()->send<ActorSendType::Later>(actor_ref, std::forward<ArgsT>(args)...);
 }
 

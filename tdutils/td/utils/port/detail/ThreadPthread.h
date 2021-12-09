@@ -40,7 +40,7 @@ class ThreadPthread {
     return *this;
   }
   template <class Function, class... Args>
-  explicit ThreadPthread(Function &&f, Args &&... args) {
+  explicit ThreadPthread(Function &&f, Args &&...args) {
     auto func = create_destructor([args = std::make_tuple(decay_copy(std::forward<Function>(f)),
                                                           decay_copy(std::forward<Args>(args))...)]() mutable {
       invoke_tuple(std::move(args));

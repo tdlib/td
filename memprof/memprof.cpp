@@ -45,9 +45,9 @@ extern void *__libc_stack_end;
 static void *get_bp() {
   void *bp;
 #if defined(__i386__)
-  __asm__ volatile("movl %%ebp, %[r]" : [ r ] "=r"(bp));
+  __asm__ volatile("movl %%ebp, %[r]" : [r] "=r"(bp));
 #elif defined(__x86_64__)
-  __asm__ volatile("movq %%rbp, %[r]" : [ r ] "=r"(bp));
+  __asm__ volatile("movq %%rbp, %[r]" : [r] "=r"(bp));
 #endif
   return bp;
 }

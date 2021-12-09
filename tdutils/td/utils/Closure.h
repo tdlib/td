@@ -83,7 +83,7 @@ class ImmediateClosure {
 
 template <class ActorT, class ResultT, class... DestArgsT, class... SrcArgsT>
 ImmediateClosure<ActorT, ResultT (ActorT::*)(DestArgsT...), SrcArgsT &&...> create_immediate_closure(
-    ResultT (ActorT::*func)(DestArgsT...), SrcArgsT &&... args) {
+    ResultT (ActorT::*func)(DestArgsT...), SrcArgsT &&...args) {
   return ImmediateClosure<ActorT, ResultT (ActorT::*)(DestArgsT...), SrcArgsT &&...>(func,
                                                                                      std::forward<SrcArgsT>(args)...);
 }
@@ -160,7 +160,7 @@ DelayedClosure<ArgsT...> to_delayed_closure(DelayedClosure<ArgsT...> &&other) {
 }
 
 template <class ActorT, class ResultT, class... DestArgsT, class... SrcArgsT>
-auto create_delayed_closure(ResultT (ActorT::*func)(DestArgsT...), SrcArgsT &&... args) {
+auto create_delayed_closure(ResultT (ActorT::*func)(DestArgsT...), SrcArgsT &&...args) {
   return DelayedClosure<ActorT, ResultT (ActorT::*)(DestArgsT...), SrcArgsT &&...>(func,
                                                                                    std::forward<SrcArgsT>(args)...);
 }

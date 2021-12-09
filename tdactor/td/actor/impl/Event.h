@@ -66,7 +66,7 @@ class ClosureEvent final : public CustomEvent {
     return new ClosureEvent<ClosureT>(closure_.clone());
   }
   template <class... ArgsT>
-  explicit ClosureEvent(ArgsT &&... args) : closure_(std::forward<ArgsT>(args)...) {
+  explicit ClosureEvent(ArgsT &&...args) : closure_(std::forward<ArgsT>(args)...) {
   }
 
   void start_migrate(int32 sched_id) final {
@@ -152,7 +152,7 @@ class Event {
         new ClosureEvent<typename FromImmediateClosureT::Delayed>(std::forward<FromImmediateClosureT>(closure)));
   }
   template <class... ArgsT>
-  static Event delayed_closure(ArgsT &&... args) {
+  static Event delayed_closure(ArgsT &&...args) {
     using DelayedClosureT = decltype(create_delayed_closure(std::forward<ArgsT>(args)...));
     return custom(new ClosureEvent<DelayedClosureT>(std::forward<ArgsT>(args)...));
   }
