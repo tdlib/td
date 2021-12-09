@@ -13756,10 +13756,12 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
 
   if (message_info.media_album_id != 0) {
     if (!is_allowed_media_group_content(content_type)) {
-      LOG(ERROR) << "Receive media group identifier " << message_info.media_album_id << " in " << message_id << " from "
-                 << dialog_id << " with content "
-                 << oneline(to_string(get_message_content_object(message->content.get(), td_, dialog_id, message->date,
-                                                                 is_content_secret, false, -1)));
+      if (content_type != MessageContentType::Unsupported) {
+        LOG(ERROR) << "Receive media group identifier " << message_info.media_album_id << " in " << message_id
+                   << " from " << dialog_id << " with content "
+                   << oneline(to_string(get_message_content_object(message->content.get(), td_, dialog_id,
+                                                                   message->date, is_content_secret, false, -1)));
+      }
     } else {
       message->media_album_id = message_info.media_album_id;
     }
