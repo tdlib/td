@@ -9,6 +9,8 @@
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Td.h"
 
+#include "td/utils/logging.h"
+
 namespace td {
 
 unique_ptr<DialogActionBar> DialogActionBar::create(bool can_report_spam, bool can_add_contact, bool can_block_user,
@@ -290,7 +292,6 @@ bool operator==(const unique_ptr<DialogActionBar> &lhs, const unique_ptr<DialogA
          lhs->join_request_dialog_title_ == rhs->join_request_dialog_title_ &&
          lhs->is_join_request_broadcast_ == lhs->is_join_request_broadcast_ &&
          lhs->join_request_date_ == rhs->join_request_date_;
-  ;
 }
 
 }  // namespace td

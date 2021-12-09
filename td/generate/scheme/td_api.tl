@@ -52,10 +52,10 @@ authenticationCodeTypeSms length:int32 = AuthenticationCodeType;
 //@description An authentication code is delivered via a phone call to the specified phone number @length Length of the code
 authenticationCodeTypeCall length:int32 = AuthenticationCodeType;
 
-//@description An authentication code is delivered by an immediately canceled call to the specified phone number. The phone number from which the call was made is the code that should be entered automatically @pattern Pattern of the phone number from which the call will be made
+//@description An authentication code is delivered by an immediately canceled call to the specified phone number. The phone number from which the call was made is the code that must be entered automatically @pattern Pattern of the phone number from which the call will be made
 authenticationCodeTypeFlashCall pattern:string = AuthenticationCodeType;
 
-//@description An authentication code is delivered by an immediately canceled call to the specified phone number. The phone number from which the call was made is the code that should be entered manually by the user @phone_number_prefix Prefix of the phone number from which the call will be made @length Number of digits in the code, excluding the prefix
+//@description An authentication code is delivered by an immediately canceled call to the specified phone number. The phone number from which the call was made is the code that is supposed to be entered manually by the user @phone_number_prefix Prefix of the phone number from which the call will be made @length Number of digits in the code, excluding the prefix
 authenticationCodeTypeMissedCall phone_number_prefix:string length:int32 = AuthenticationCodeType;
 
 

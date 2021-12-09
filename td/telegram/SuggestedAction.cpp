@@ -16,6 +16,8 @@
 #include "td/actor/actor.h"
 
 #include "td/utils/algorithm.h"
+#include "td/utils/misc.h"
+#include "td/utils/Status.h"
 
 #include <algorithm>
 

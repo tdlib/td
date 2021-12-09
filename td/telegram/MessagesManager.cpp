@@ -43,6 +43,7 @@
 #include "td/telegram/NotificationManager.h"
 #include "td/telegram/NotificationSettings.hpp"
 #include "td/telegram/NotificationType.h"
+#include "td/telegram/PublicDialogType.h"
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/ReplyMarkup.hpp"
 #include "td/telegram/SecretChatsManager.h"
@@ -37687,8 +37688,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         }
 
         auto sender_dialog_id = log_event.sender_dialog_id_;
-        if (!td_->messages_manager_->have_dialog_info_force(sender_dialog_id) ||
-            !td_->messages_manager_->have_input_peer(sender_dialog_id, AccessRights::Know)) {
+        if (!have_dialog_info_force(sender_dialog_id) || !have_input_peer(sender_dialog_id, AccessRights::Know)) {
           LOG(ERROR) << "Can't find " << sender_dialog_id;
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;

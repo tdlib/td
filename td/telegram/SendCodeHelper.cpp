@@ -7,6 +7,7 @@
 #include "td/telegram/SendCodeHelper.h"
 
 #include "td/utils/base64.h"
+#include "td/utils/buffer.h"
 
 namespace td {
 

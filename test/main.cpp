@@ -12,6 +12,7 @@
 #include "td/utils/port/detail/ThreadIdGuard.h"
 #include "td/utils/port/stacktrace.h"
 #include "td/utils/Slice.h"
+#include "td/utils/Status.h"
 #include "td/utils/tests.h"
 
 #if TD_EMSCRIPTEN
