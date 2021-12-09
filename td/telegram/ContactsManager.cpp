@@ -10414,8 +10414,8 @@ void ContactsManager::on_get_user_photos(UserId user_id, int32 offset, int32 lim
   auto photo_count = narrow_cast<int32>(photos.size());
   int32 min_total_count = (offset >= 0 && photo_count > 0 ? offset : 0) + photo_count;
   if (total_count < min_total_count) {
-    LOG(ERROR) << "Wrong photos total_count " << total_count << ". Receive " << photo_count << " photos with offset "
-               << offset;
+    LOG(ERROR) << "Receive wrong photos total_count " << total_count << " for user " << user_id << ": receive "
+               << photo_count << " photos with offset " << offset;
     total_count = min_total_count;
   }
   LOG_IF(ERROR, limit < photo_count) << "Requested not more than " << limit << " photos, but " << photo_count
