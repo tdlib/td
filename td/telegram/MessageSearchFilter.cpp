@@ -78,10 +78,6 @@ MessageSearchFilter get_message_search_filter(const tl_object_ptr<td_api::Search
       return MessageSearchFilter::Url;
     case td_api::searchMessagesFilterChatPhoto::ID:
       return MessageSearchFilter::ChatPhoto;
-    case td_api::searchMessagesFilterCall::ID:
-      return MessageSearchFilter::Call;
-    case td_api::searchMessagesFilterMissedCall::ID:
-      return MessageSearchFilter::MissedCall;
     case td_api::searchMessagesFilterVideoNote::ID:
       return MessageSearchFilter::VideoNote;
     case td_api::searchMessagesFilterVoiceAndVideoNote::ID:

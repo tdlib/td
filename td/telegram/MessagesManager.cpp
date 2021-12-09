@@ -21332,8 +21332,8 @@ td_api::object_ptr<td_api::messageCalendar> MessagesManager::get_dialog_message_
   } while (random_id == 0 || found_dialog_message_calendars_.find(random_id) != found_dialog_message_calendars_.end());
   found_dialog_message_calendars_[random_id];  // reserve place for result
 
-  if (filter == MessageSearchFilter::Empty || filter == MessageSearchFilter::Call ||
-      filter == MessageSearchFilter::MissedCall || filter == MessageSearchFilter::Mention ||
+  CHECK(filter != MessageSearchFilter::Call && filter != MessageSearchFilter::MissedCall);
+  if (filter == MessageSearchFilter::Empty || filter == MessageSearchFilter::Mention ||
       filter == MessageSearchFilter::UnreadMention) {
     promise.set_error(Status::Error(400, "The filter is not supported"));
     return {};
@@ -22350,8 +22350,8 @@ std::pair<int32, vector<FullMessageId>> MessagesManager::search_messages(
     return {};
   }
 
-  if (filter == MessageSearchFilter::Call || filter == MessageSearchFilter::MissedCall ||
-      filter == MessageSearchFilter::Mention || filter == MessageSearchFilter::UnreadMention ||
+  CHECK(filter != MessageSearchFilter::Call && filter != MessageSearchFilter::MissedCall);
+  if (filter == MessageSearchFilter::Mention || filter == MessageSearchFilter::UnreadMention ||
       filter == MessageSearchFilter::FailedToSend || filter == MessageSearchFilter::Pinned) {
     promise.set_error(Status::Error(400, "The filter is not supported"));
     return {};
@@ -22608,8 +22608,8 @@ void MessagesManager::get_dialog_sparse_message_positions(
     return promise.set_error(Status::Error(400, "Invalid limit specified"));
   }
 
-  if (filter == MessageSearchFilter::Empty || filter == MessageSearchFilter::Call ||
-      filter == MessageSearchFilter::MissedCall || filter == MessageSearchFilter::Mention ||
+  CHECK(filter != MessageSearchFilter::Call && filter != MessageSearchFilter::MissedCall);
+  if (filter == MessageSearchFilter::Empty || filter == MessageSearchFilter::Mention ||
       filter == MessageSearchFilter::UnreadMention || filter == MessageSearchFilter::Pinned) {
     return promise.set_error(Status::Error(400, "The filter is not supported"));
   }

@@ -1151,12 +1151,6 @@ class CliClient final : public Actor {
     if (filter == "cp" || filter == "chatphoto") {
       return td_api::make_object<td_api::searchMessagesFilterChatPhoto>();
     }
-    if (filter == "c" || filter == "call") {
-      return td_api::make_object<td_api::searchMessagesFilterCall>();
-    }
-    if (filter == "mc" || filter == "missedcall") {
-      return td_api::make_object<td_api::searchMessagesFilterMissedCall>();
-    }
     if (filter == "vn" || filter == "videonote") {
       return td_api::make_object<td_api::searchMessagesFilterVideoNote>();
     }
