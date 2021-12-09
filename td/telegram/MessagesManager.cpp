@@ -13544,6 +13544,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
         td_->contacts_manager_->add_anonymous_bot_user();
       } else {
         td_->contacts_manager_->add_service_notifications_user();
+        td_->contacts_manager_->add_channel_bot_user();
       }
     }
   }

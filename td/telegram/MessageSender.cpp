@@ -45,6 +45,7 @@ td_api::object_ptr<td_api::MessageSender> get_message_sender_object(Td *td, User
   }
   if (!user_id.is_valid() && td->auth_manager_->is_bot()) {
     td->contacts_manager_->add_anonymous_bot_user();
+    td->contacts_manager_->add_channel_bot_user();
     td->contacts_manager_->add_service_notifications_user();
   }
   return get_message_sender_object_const(td, user_id, dialog_id, source);

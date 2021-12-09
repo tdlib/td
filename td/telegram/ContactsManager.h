@@ -263,7 +263,11 @@ class ContactsManager final : public Actor {
 
   static UserId get_anonymous_bot_user_id();
 
+  static UserId get_channel_bot_user_id();
+
   UserId add_anonymous_bot_user();
+
+  UserId add_channel_bot_user();
 
   void on_update_online_status_privacy();
 

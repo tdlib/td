@@ -3190,6 +3190,7 @@ ContactsManager::ContactsManager(Td *td, ActorShared<> parent) : td_(td), parent
                                           DialogId(get_service_notifications_user_id()).get());
   G()->shared_config().set_option_integer("replies_bot_chat_id", DialogId(get_replies_bot_user_id()).get());
   G()->shared_config().set_option_integer("group_anonymous_bot_user_id", get_anonymous_bot_user_id().get());
+  G()->shared_config().set_option_integer("channel_bot_user_id", get_channel_bot_user_id().get());
 
   if (G()->parameters().use_chat_info_db) {
     auto next_contacts_sync_date_string = G()->td_db()->get_binlog_pmc()->get("next_contacts_sync_date");
@@ -4921,10 +4922,22 @@ UserId ContactsManager::get_anonymous_bot_user_id() {
   return UserId(static_cast<int64>(G()->is_test_dc() ? 552888 : 1087968824));
 }
 
+UserId ContactsManager::get_channel_bot_user_id() {
+  return UserId(static_cast<int64>(G()->is_test_dc() ? 936174 : 136817688));
+}
+
 UserId ContactsManager::add_anonymous_bot_user() {
   auto user_id = get_anonymous_bot_user_id();
   if (!have_user_force(user_id)) {
     LOG(FATAL) << "Failed to load anonymous bot user";
+  }
+  return user_id;
+}
+
+UserId ContactsManager::add_channel_bot_user() {
+  auto user_id = get_channel_bot_user_id();
+  if (!have_user_force(user_id)) {
+    LOG(FATAL) << "Failed to load channel bot user";
   }
   return user_id;
 }
@@ -8638,7 +8651,7 @@ ContactsManager::User *ContactsManager::get_user_force(UserId user_id) {
   auto u = get_user_force_impl(user_id);
   if ((u == nullptr || !u->is_received) &&
       (user_id == get_service_notifications_user_id() || user_id == get_replies_bot_user_id() ||
-       user_id == get_anonymous_bot_user_id())) {
+       user_id == get_anonymous_bot_user_id() || user_id == get_channel_bot_user_id())) {
     int32 flags = USER_FLAG_HAS_ACCESS_HASH | USER_FLAG_HAS_FIRST_NAME | USER_FLAG_NEED_APPLY_MIN_PHOTO;
     int64 profile_photo_id = 0;
     int32 profile_photo_dc_id = 1;
@@ -8674,6 +8687,15 @@ ContactsManager::User *ContactsManager::get_user_force(UserId user_id) {
       username = G()->is_test_dc() ? "izgroupbot" : "GroupAnonymousBot";
       bot_info_version = G()->is_test_dc() ? 1 : 3;
       profile_photo_id = 5159307831025969322;
+    } else if (user_id == get_channel_bot_user_id()) {
+      flags |= USER_FLAG_HAS_USERNAME | USER_FLAG_IS_BOT;
+      if (!G()->is_test_dc()) {
+        flags |= USER_FLAG_IS_PRIVATE_BOT;
+      }
+      first_name = G()->is_test_dc() ? "Channels" : "Channel";
+      username = G()->is_test_dc() ? "channelsbot" : "Channel_Bot";
+      bot_info_version = G()->is_test_dc() ? 1 : 4;
+      profile_photo_id = 587627495930570665;
     }
 
     telegram_api::object_ptr<telegram_api::userProfilePhoto> profile_photo;
@@ -13922,7 +13944,7 @@ bool ContactsManager::get_user(UserId user_id, int left_tries, Promise<Unit> &&p
   }
 
   if (user_id == get_service_notifications_user_id() || user_id == get_replies_bot_user_id() ||
-      user_id == get_anonymous_bot_user_id()) {
+      user_id == get_anonymous_bot_user_id() || user_id == get_channel_bot_user_id()) {
     get_user_force(user_id);
   }
 
