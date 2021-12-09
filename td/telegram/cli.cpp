@@ -3186,7 +3186,7 @@ class CliClient final : public Actor {
           as_chat_id(chat_id), as_message_thread_id(message_thread_id), std::move(draft_message)));
     } else if (op == "cadm") {
       send_request(td_api::make_object<td_api::clearAllDraftMessages>());
-    } else if (op == "tcasc") {
+    } else if (op == "tchpc") {
       string chat_id;
       bool has_protected_content;
       get_args(args, chat_id, has_protected_content);
