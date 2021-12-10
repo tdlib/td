@@ -219,7 +219,7 @@ function split_file($file, $chunks, $undo) {
         $new_content = $common.$namespace_begin.$f.$namespace_end;
 
         $std_methods = array();
-        preg_match_all('/std::[a-z_0-9]*/', $new_content, $std_methods);
+        preg_match_all('/std::[a-z_0-9]*|td::unique(?!_)/', $new_content, $std_methods);
         $std_methods = array_unique($std_methods[0]);
 
         $needed_std_headers = array();
@@ -230,6 +230,7 @@ function split_file($file, $chunks, $undo) {
             'std::uint32_t' => '',
             'std::int32_t' => '',
             'std::int64_t' => '',
+            'td::unique' => 'algorithm',
             'std::fill' => 'algorithm',
             'std::find' => 'algorithm',
             'std::max' => 'algorithm',
