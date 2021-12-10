@@ -1078,6 +1078,7 @@ class ToggleSlowModeQuery final : public Td::ResultHandler {
 class ReportChannelSpamQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
+  DialogId sender_dialog_id_;
 
  public:
   explicit ReportChannelSpamQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
@@ -1085,6 +1086,7 @@ class ReportChannelSpamQuery final : public Td::ResultHandler {
 
   void send(ChannelId channel_id, DialogId sender_dialog_id, const vector<MessageId> &message_ids) {
     channel_id_ = channel_id;
+    sender_dialog_id_ = sender_dialog_id;
 
     auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
@@ -1109,7 +1111,9 @@ class ReportChannelSpamQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    // td_->contacts_manager_->on_get_channel_error(channel_id_, status, "ReportChannelSpamQuery");
+    if (sender_dialog_id_.get_type() != DialogType::Channel) {
+      td_->contacts_manager_->on_get_channel_error(channel_id_, status, "ReportChannelSpamQuery");
+    }
     promise_.set_error(std::move(status));
   }
 };
@@ -2126,14 +2130,16 @@ class EditChannelAdminQuery final : public Td::ResultHandler {
 class EditChannelBannedQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
+  DialogId participant_dialog_id_;
 
  public:
   explicit EditChannelBannedQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(ChannelId channel_id, tl_object_ptr<telegram_api::InputPeer> &&input_peer,
+  void send(ChannelId channel_id, DialogId participant_dialog_id, tl_object_ptr<telegram_api::InputPeer> &&input_peer,
             const DialogParticipantStatus &status) {
     channel_id_ = channel_id;
+    participant_dialog_id_ = participant_dialog_id;
     auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
     send_query(G()->net_query_creator().create(telegram_api::channels_editBanned(
@@ -2153,7 +2159,9 @@ class EditChannelBannedQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->contacts_manager_->on_get_channel_error(channel_id_, status, "EditChannelBannedQuery");
+    if (participant_dialog_id_.get_type() != DialogType::Channel) {
+      td_->contacts_manager_->on_get_channel_error(channel_id_, status, "EditChannelBannedQuery");
+    }
     promise_.set_error(std::move(status));
     td_->updates_manager_->get_difference("EditChannelBannedQuery");
   }
@@ -2736,7 +2744,9 @@ class GetChannelParticipantQuery final : public Td::ResultHandler {
       return;
     }
 
-    // td_->contacts_manager_->on_get_channel_error(channel_id_, status, "GetChannelParticipantQuery");
+    if (participant_dialog_id_.get_type() != DialogType::Channel) {
+      td_->contacts_manager_->on_get_channel_error(channel_id_, status, "GetChannelParticipantQuery");
+    }
     promise_.set_error(std::move(status));
   }
 };
@@ -7572,7 +7582,8 @@ void ContactsManager::restrict_channel_participant(ChannelId channel_id, DialogI
   if (participant_dialog_id.get_type() == DialogType::User) {
     speculative_add_channel_user(channel_id, participant_dialog_id.get_user_id(), status, old_status);
   }
-  td_->create_handler<EditChannelBannedQuery>(std::move(promise))->send(channel_id, std::move(input_peer), status);
+  td_->create_handler<EditChannelBannedQuery>(std::move(promise))
+      ->send(channel_id, participant_dialog_id, std::move(input_peer), status);
 }
 
 ChannelId ContactsManager::migrate_chat_to_megagroup(ChatId chat_id, Promise<Unit> &promise) {

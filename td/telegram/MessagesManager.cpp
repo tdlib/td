@@ -2872,12 +2872,17 @@ class BlockFromRepliesQuery final : public Td::ResultHandler {
 
 class DeleteParticipantHistoryQuery final : public Td::ResultHandler {
   Promise<AffectedHistory> promise_;
+  ChannelId channel_id_;
+  DialogId sender_dialog_id_;
 
  public:
   explicit DeleteParticipantHistoryQuery(Promise<AffectedHistory> &&promise) : promise_(std::move(promise)) {
   }
 
   void send(ChannelId channel_id, DialogId sender_dialog_id) {
+    channel_id_ = channel_id;
+    sender_dialog_id_ = sender_dialog_id;
+
     auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
     if (input_channel == nullptr) {
       return promise_.set_error(Status::Error(400, "Chat is not accessible"));
@@ -2901,7 +2906,9 @@ class DeleteParticipantHistoryQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    // td_->contacts_manager_->on_get_channel_error(channel_id_, status, "DeleteParticipantHistoryQuery");
+    if (sender_dialog_id_.get_type() != DialogType::Channel) {
+      td_->contacts_manager_->on_get_channel_error(channel_id_, status, "DeleteParticipantHistoryQuery");
+    }
     promise_.set_error(std::move(status));
   }
 };
