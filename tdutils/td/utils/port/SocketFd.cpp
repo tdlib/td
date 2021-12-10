@@ -283,7 +283,12 @@ class SocketFdImpl final : private Iocp::Callback {
     if (overlapped == reinterpret_cast<WSAOVERLAPPED *>(&close_overlapped_)) {
       return on_close();
     }
-    UNREACHABLE();
+    LOG(ERROR) << this << ' ' << overlapped << ' ' << &read_overlapped_ << ' ' << &write_overlapped_ << ' '
+               << reinterpret_cast<WSAOVERLAPPED *>(&close_overlapped_) << ' ' << size;
+    LOG(FATAL) << get_native_fd() << ' ' << info_.get_flags_local() << ' ' << refcnt_.load() << ' ' << close_flag_
+               << ' ' << need_close_after_write_ << ' ' << is_connected_ << ' ' << is_read_active_ << ' '
+               << is_write_active_ << ' ' << is_write_waiting_.load() << ' ' << input_reader_.size() << ' '
+               << output_reader_.size();
   }
 
   void on_error(Status status) {
