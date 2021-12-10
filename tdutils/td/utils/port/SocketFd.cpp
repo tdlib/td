@@ -43,7 +43,7 @@ namespace detail {
 #if TD_PORT_WINDOWS
 class SocketFdImpl final : private Iocp::Callback {
  public:
-  explicit SocketFdImpl(NativeFd native_fd) : info(std::move(native_fd)) {
+  explicit SocketFdImpl(NativeFd native_fd) : info_(std::move(native_fd)) {
     VLOG(fd) << get_native_fd() << " create from native_fd";
     get_poll_info().add_flags(PollFlags::Write());
     Iocp::get()->subscribe(get_native_fd(), this);
@@ -51,7 +51,7 @@ class SocketFdImpl final : private Iocp::Callback {
     notify_iocp_connected();
   }
 
-  SocketFdImpl(NativeFd native_fd, const IPAddress &addr) : info(std::move(native_fd)) {
+  SocketFdImpl(NativeFd native_fd, const IPAddress &addr) : info_(std::move(native_fd)) {
     VLOG(fd) << get_native_fd() << " create from native_fd and connect";
     get_poll_info().add_flags(PollFlags::Write());
     Iocp::get()->subscribe(get_native_fd(), this);
@@ -88,14 +88,14 @@ class SocketFdImpl final : private Iocp::Callback {
   }
 
   PollableFdInfo &get_poll_info() {
-    return info;
+    return info_;
   }
   const PollableFdInfo &get_poll_info() const {
-    return info;
+    return info_;
   }
 
   const NativeFd &get_native_fd() const {
-    return info.native_fd();
+    return info_.native_fd();
   }
 
   Result<size_t> write(Slice data) {
@@ -161,7 +161,7 @@ class SocketFdImpl final : private Iocp::Callback {
   }
 
  private:
-  PollableFdInfo info;
+  PollableFdInfo info_;
   SpinLock lock_;
 
   std::atomic<int> refcnt_{1};
@@ -335,7 +335,7 @@ class SocketFdImpl final : private Iocp::Callback {
   void on_close() {
     VLOG(fd) << get_native_fd() << " on close";
     close_flag_ = true;
-    info.set_native_fd({});
+    info_.set_native_fd({});
   }
   bool dec_refcnt() {
     VLOG(fd) << get_native_fd() << " dec_refcnt from " << refcnt_;
@@ -386,18 +386,18 @@ static InitWSA init_wsa;
 #else
 class SocketFdImpl {
  public:
-  PollableFdInfo info;
-  explicit SocketFdImpl(NativeFd fd) : info(std::move(fd)) {
+  PollableFdInfo info_;
+  explicit SocketFdImpl(NativeFd fd) : info_(std::move(fd)) {
   }
   PollableFdInfo &get_poll_info() {
-    return info;
+    return info_;
   }
   const PollableFdInfo &get_poll_info() const {
-    return info;
+    return info_;
   }
 
   const NativeFd &get_native_fd() const {
-    return info.native_fd();
+    return info_.native_fd();
   }
 
   Result<size_t> writev(Span<IoSlice> slices) {

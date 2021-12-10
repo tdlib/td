@@ -29,7 +29,7 @@ namespace td {
 namespace detail {
 class EventFdLinuxImpl {
  public:
-  PollableFdInfo info;
+  PollableFdInfo info_;
 };
 
 EventFdLinux::EventFdLinux() = default;
@@ -42,7 +42,7 @@ void EventFdLinux::init() {
   auto eventfd_errno = errno;
   LOG_IF(FATAL, !fd) << Status::PosixError(eventfd_errno, "eventfd call failed");
   impl_ = make_unique<EventFdLinuxImpl>();
-  impl_->info.set_native_fd(std::move(fd));
+  impl_->info_.set_native_fd(std::move(fd));
 }
 
 bool EventFdLinux::empty() {
@@ -58,14 +58,14 @@ Status EventFdLinux::get_pending_error() {
 }
 
 PollableFdInfo &EventFdLinux::get_poll_info() {
-  return impl_->info;
+  return impl_->info_;
 }
 
 // NB: will be called from multiple threads
 void EventFdLinux::release() {
   const uint64 value = 1;
   auto slice = Slice(reinterpret_cast<const char *>(&value), sizeof(value));
-  auto native_fd = impl_->info.native_fd().fd();
+  auto native_fd = impl_->info_.native_fd().fd();
 
   auto result = [&]() -> Result<size_t> {
     auto write_res = detail::skip_eintr([&] { return write(native_fd, slice.begin(), slice.size()); });
@@ -86,7 +86,7 @@ void EventFdLinux::release() {
 }
 
 void EventFdLinux::acquire() {
-  impl_->info.sync_with_poll();
+  impl_->info_.sync_with_poll();
   SCOPE_EXIT {
     // Clear flags without EAGAIN and EWOULDBLOCK
     // Looks like it is safe thing to do with eventfd
@@ -94,7 +94,7 @@ void EventFdLinux::acquire() {
   };
   uint64 res;
   auto slice = MutableSlice(reinterpret_cast<char *>(&res), sizeof(res));
-  auto native_fd = impl_->info.native_fd().fd();
+  auto native_fd = impl_->info_.native_fd().fd();
   auto result = [&]() -> Result<size_t> {
     CHECK(!slice.empty());
     auto read_res = detail::skip_eintr([&] { return ::read(native_fd, slice.begin(), slice.size()); });
