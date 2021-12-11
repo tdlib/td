@@ -20,16 +20,16 @@ struct FileGcParameters {
   FileGcParameters(int64 size, int32 ttl, int32 count, int32 immunity_delay, vector<FileType> file_types,
                    vector<DialogId> owner_dialog_ids, vector<DialogId> exclude_owner_dialog_ids, int32 dialog_limit);
 
-  int64 max_files_size;
-  uint32 max_time_from_last_access;
-  uint32 max_file_count;
-  uint32 immunity_delay;
+  int64 max_files_size_;
+  uint32 max_time_from_last_access_;
+  uint32 max_file_count_;
+  uint32 immunity_delay_;
 
-  vector<FileType> file_types;
-  vector<DialogId> owner_dialog_ids;
-  vector<DialogId> exclude_owner_dialog_ids;
+  vector<FileType> file_types_;
+  vector<DialogId> owner_dialog_ids_;
+  vector<DialogId> exclude_owner_dialog_ids_;
 
-  int32 dialog_limit;
+  int32 dialog_limit_;
 };
 
 StringBuilder &operator<<(StringBuilder &string_builder, const FileGcParameters &parameters);

@@ -47,9 +47,9 @@ void FileGcWorker::run_gc(const FileGcParameters &parameters, std::vector<FullFi
     immune_types[narrow_cast<size_t>(FileType::Background)] = true;
   }
 
-  if (!parameters.file_types.empty()) {
+  if (!parameters.file_types_.empty()) {
     std::fill(immune_types.begin(), immune_types.end(), true);
-    for (auto file_type : parameters.file_types) {
+    for (auto file_type : parameters.file_types_) {
       immune_types[narrow_cast<size_t>(file_type)] = false;
     }
     for (int32 i = 0; i < MAX_FILE_TYPE; i++) {
@@ -81,8 +81,8 @@ void FileGcWorker::run_gc(const FileGcParameters &parameters, std::vector<FullFi
     total_size += info.size;
   }
 
-  FileStats new_stats(false, parameters.dialog_limit != 0);
-  FileStats removed_stats(false, parameters.dialog_limit != 0);
+  FileStats new_stats(false, parameters.dialog_limit_ != 0);
+  FileStats removed_stats(false, parameters.dialog_limit_ != 0);
 
   auto do_remove_file = [&removed_stats](const FullFileInfo &info) {
     removed_stats.add_copy(info);
@@ -105,24 +105,24 @@ void FileGcWorker::run_gc(const FileGcParameters &parameters, std::vector<FullFi
       new_stats.add_copy(info);
       return true;
     }
-    if (td::contains(parameters.exclude_owner_dialog_ids, info.owner_dialog_id)) {
+    if (td::contains(parameters.exclude_owner_dialog_ids_, info.owner_dialog_id)) {
       exclude_owner_dialog_id_ignored_cnt++;
       new_stats.add_copy(info);
       return true;
     }
-    if (!parameters.owner_dialog_ids.empty() && !td::contains(parameters.owner_dialog_ids, info.owner_dialog_id)) {
+    if (!parameters.owner_dialog_ids_.empty() && !td::contains(parameters.owner_dialog_ids_, info.owner_dialog_id)) {
       owner_dialog_id_ignored_cnt++;
       new_stats.add_copy(info);
       return true;
     }
-    if (static_cast<double>(info.mtime_nsec) * 1e-9 > now - parameters.immunity_delay) {
+    if (static_cast<double>(info.mtime_nsec) * 1e-9 > now - parameters.immunity_delay_) {
       // new files are immune to gc
       time_immunity_ignored_cnt++;
       new_stats.add_copy(info);
       return true;
     }
 
-    if (static_cast<double>(info.atime_nsec) * 1e-9 < now - parameters.max_time_from_last_access) {
+    if (static_cast<double>(info.atime_nsec) * 1e-9 < now - parameters.max_time_from_last_access_) {
       do_remove_file(info);
       total_removed_size += info.size;
       remove_by_atime_cnt++;
@@ -137,13 +137,13 @@ void FileGcWorker::run_gc(const FileGcParameters &parameters, std::vector<FullFi
   // sort by max(atime, mtime)
   std::sort(files.begin(), files.end(), [](const auto &a, const auto &b) { return a.atime_nsec < b.atime_nsec; });
 
-  // 1. Total size must be less than parameters.max_files_size
-  // 2. Total file count must be less than parameters.max_file_count
+  // 1. Total size must be less than parameters.max_files_size_
+  // 2. Total file count must be less than parameters.max_file_count_
   size_t remove_count = 0;
-  if (files.size() > parameters.max_file_count) {
-    remove_count = files.size() - parameters.max_file_count;
+  if (files.size() > parameters.max_file_count_) {
+    remove_count = files.size() - parameters.max_file_count_;
   }
-  int64 remove_size = -parameters.max_files_size;
+  int64 remove_size = -parameters.max_files_size_;
   for (auto &file : files) {
     remove_size += file.size;
   }
