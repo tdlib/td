@@ -1037,6 +1037,7 @@ class ContactsManager final : public Actor {
   static constexpr int32 CHAT_FLAG_WAS_MIGRATED = 1 << 6;
   static constexpr int32 CHAT_FLAG_HAS_ACTIVE_GROUP_CALL = 1 << 23;
   static constexpr int32 CHAT_FLAG_IS_GROUP_CALL_NON_EMPTY = 1 << 24;
+  static constexpr int32 CHAT_FLAG_NOFORWARDS = 1 << 25;
 
   static constexpr int32 CHAT_FULL_FLAG_HAS_PINNED_MESSAGE = 1 << 6;
   static constexpr int32 CHAT_FULL_FLAG_HAS_SCHEDULED_MESSAGES = 1 << 8;
@@ -1068,6 +1069,7 @@ class ContactsManager final : public Actor {
   static constexpr int32 CHANNEL_FLAG_IS_GROUP_CALL_NON_EMPTY = 1 << 24;
   static constexpr int32 CHANNEL_FLAG_IS_FAKE = 1 << 25;
   static constexpr int32 CHANNEL_FLAG_IS_GIGAGROUP = 1 << 26;
+  static constexpr int32 CHANNEL_FLAG_NOFORWARDS = 1 << 27;
 
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_PARTICIPANT_COUNT = 1 << 0;
   static constexpr int32 CHANNEL_FULL_FLAG_HAS_ADMINISTRATOR_COUNT = 1 << 1;
