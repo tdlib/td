@@ -57,8 +57,15 @@ void SqliteKeyValue::set(Slice key, Slice value) {
   if (status.is_error()) {
     LOG(FATAL) << "Failed to set \"" << base64_encode(key) << "\": " << status.error();
   }
-  // set_stmt_.step().ensure();
   set_stmt_.reset();
+}
+
+void SqliteKeyValue::set_all(const std::unordered_map<string, string> &key_values) {
+  begin_write_transaction().ensure();
+  for (auto &key_value : key_values) {
+    set(key_value.first, key_value.second);
+  }
+  commit_transaction().ensure();
 }
 
 string SqliteKeyValue::get(Slice key) {

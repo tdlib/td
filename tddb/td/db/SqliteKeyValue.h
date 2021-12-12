@@ -41,6 +41,8 @@ class SqliteKeyValue {
 
   void set(Slice key, Slice value);
 
+  void set_all(const std::unordered_map<string, string> &key_values);
+
   string get(Slice key);
 
   void erase(Slice key);
@@ -48,9 +50,11 @@ class SqliteKeyValue {
   Status begin_read_transaction() TD_WARN_UNUSED_RESULT {
     return db_.begin_read_transaction();
   }
+
   Status begin_write_transaction() TD_WARN_UNUSED_RESULT {
     return db_.begin_write_transaction();
   }
+
   Status commit_transaction() TD_WARN_UNUSED_RESULT {
     return db_.commit_transaction();
   }

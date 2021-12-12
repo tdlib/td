@@ -34,6 +34,7 @@
 #include <limits>
 #include <map>
 #include <memory>
+#include <unordered_map>
 
 using namespace td;
 
@@ -376,7 +377,7 @@ TEST(DB, key_value) {
     values.push_back(rand_string('a', 'b', Random::fast(1, 10)));
   }
 
-  int queries_n = 6000;
+  int queries_n = 3000;
   std::vector<DbQuery> queries(queries_n);
   for (auto &q : queries) {
     int op = Random::fast(0, 2);
@@ -426,11 +427,51 @@ TEST(DB, key_value) {
     ASSERT_EQ(a.value, c.value);
     ASSERT_EQ(a.value, d.value);
     ASSERT_EQ(a.value, e.value);
-    if (cnt++ % 1000 == 0) {
+    if (cnt++ % 500 == 0) {
       new_kv.impl().init(new_kv_name.str()).ensure();
     }
   }
   SqliteDb::destroy(path).ignore();
+  Binlog::destroy(new_kv_name).ignore();
+}
+
+TEST(DB, key_value_set_all) {
+  std::vector<std::string> keys;
+  std::vector<std::string> values;
+
+  for (int i = 0; i < 100; i++) {
+    keys.push_back(rand_string('a', 'b', Random::fast(1, 10)));
+  }
+  for (int i = 0; i < 10; i++) {
+    values.push_back(rand_string('a', 'b', Random::fast(1, 10)));
+  }
+
+  SqliteKeyValue sqlite_kv;
+  CSlice sqlite_kv_name = "test_sqlite_kv";
+  SqliteDb::destroy(sqlite_kv_name).ignore();
+  auto db = SqliteDb::open_with_key(sqlite_kv_name, true, DbKey::empty()).move_as_ok();
+  sqlite_kv.init_with_connection(std::move(db), "KV").ensure();
+
+  BaselineKV kv;
+
+  int queries_n = 100;
+  while (queries_n-- > 0) {
+    int cnt = Random::fast(0, 10);
+    std::unordered_map<string, string> key_values;
+    for (int i = 0; i < cnt; i++) {
+      auto key = rand_elem(keys);
+      auto value = rand_elem(values);
+      key_values[key] = value;
+      kv.set(key, value);
+    }
+
+    sqlite_kv.set_all(key_values);
+
+    for (auto &key : keys) {
+      CHECK(kv.get(key) == sqlite_kv.get(key));
+    }
+  }
+  SqliteDb::destroy(sqlite_kv_name).ignore();
 }
 
 #if !TD_THREAD_UNSUPPORTED
