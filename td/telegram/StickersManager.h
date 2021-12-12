@@ -706,6 +706,8 @@ class StickersManager final : public Actor {
       const string &language_code, int32 from_version,
       Result<telegram_api::object_ptr<telegram_api::emojiKeywordsDifference>> &&result);
 
+  void finish_get_emoji_keywords_difference(string language_code, int32 version);
+
   void on_get_emoji_suggestions_url(int64 random_id, Promise<Unit> &&promise,
                                     Result<telegram_api::object_ptr<telegram_api::emojiURL>> &&r_emoji_url);
 

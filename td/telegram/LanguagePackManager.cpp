@@ -312,8 +312,8 @@ vector<string> LanguagePackManager::get_used_language_codes() {
     result.push_back(language_code_);
   }
   if (info == nullptr) {
-    LOG(WARNING) << "Failed to find information about chosen language " << language_code_
-                 << ", ensure that valid language pack ID is used";
+    LOG(INFO) << "Failed to find information about chosen language " << language_code_
+              << ", ensure that valid language pack ID is used";
     if (!is_custom_language_code(language_code_)) {
       search_language_info(language_code_, Auto());
     }
