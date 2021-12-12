@@ -282,6 +282,32 @@ class QueryHandler {
         query.value = impl_.get(query.key);
         return;
       case DbQuery::Type::Set:
+        impl_.set(query.key, query.value);
+        query.tid = 1;
+        return;
+      case DbQuery::Type::Erase:
+        impl_.erase(query.key);
+        query.tid = 1;
+        return;
+    }
+  }
+
+ private:
+  ImplT impl_;
+};
+
+template <class ImplT>
+class SeqQueryHandler {
+ public:
+  ImplT &impl() {
+    return impl_;
+  }
+  void do_query(DbQuery &query) {
+    switch (query.type) {
+      case DbQuery::Type::Get:
+        query.value = impl_.get(query.key);
+        return;
+      case DbQuery::Type::Set:
         query.tid = impl_.set(query.key, query.value);
         return;
       case DbQuery::Type::Erase:
@@ -346,11 +372,11 @@ TEST(DB, key_value) {
   for (int i = 0; i < 100; i++) {
     keys.push_back(rand_string('a', 'b', Random::fast(1, 10)));
   }
-  for (int i = 0; i < 1000; i++) {
+  for (int i = 0; i < 10; i++) {
     values.push_back(rand_string('a', 'b', Random::fast(1, 10)));
   }
 
-  int queries_n = 30000;
+  int queries_n = 6000;
   std::vector<DbQuery> queries(queries_n);
   for (auto &q : queries) {
     int op = Random::fast(0, 2);
@@ -400,7 +426,7 @@ TEST(DB, key_value) {
     ASSERT_EQ(a.value, c.value);
     ASSERT_EQ(a.value, d.value);
     ASSERT_EQ(a.value, e.value);
-    if (cnt++ % 5000 == 0) {
+    if (cnt++ % 1000 == 0) {
       new_kv.impl().init(new_kv_name.str()).ensure();
     }
   }
@@ -443,12 +469,12 @@ TEST(DB, thread_key_value) {
   }
 
   QueryHandler<BaselineKV> baseline;
-  QueryHandler<TsSeqKeyValue> ts_kv;
+  SeqQueryHandler<TsSeqKeyValue> ts_kv;
 
-  std::vector<thread> threads(threads_n);
+  std::vector<td::thread> threads(threads_n);
   std::vector<std::vector<DbQuery>> res(threads_n);
   for (int i = 0; i < threads_n; i++) {
-    threads[i] = thread([&ts_kv, &queries, &res, i] {
+    threads[i] = td::thread([&ts_kv, &queries, &res, i] {
       for (auto q : queries[i]) {
         ts_kv.do_query(q);
         res[i].push_back(q);
@@ -558,7 +584,7 @@ TEST(DB, persistent_key_value) {
     std::vector<std::vector<DbQuery>> res(threads_n);
     class Worker final : public Actor {
      public:
-      Worker(ActorShared<> parent, std::shared_ptr<QueryHandler<KeyValue>> kv, const std::vector<DbQuery> *queries,
+      Worker(ActorShared<> parent, std::shared_ptr<SeqQueryHandler<KeyValue>> kv, const std::vector<DbQuery> *queries,
              std::vector<DbQuery> *res)
           : parent_(std::move(parent)), kv_(std::move(kv)), queries_(queries), res_(res) {
       }
@@ -572,7 +598,7 @@ TEST(DB, persistent_key_value) {
 
      private:
       ActorShared<> parent_;
-      std::shared_ptr<QueryHandler<KeyValue>> kv_;
+      std::shared_ptr<SeqQueryHandler<KeyValue>> kv_;
       const std::vector<DbQuery> *queries_;
       std::vector<DbQuery> *res_;
     };
@@ -613,7 +639,7 @@ TEST(DB, persistent_key_value) {
       const std::vector<std::vector<DbQuery>> *queries_;
       std::vector<std::vector<DbQuery>> *res_;
 
-      std::shared_ptr<QueryHandler<KeyValue>> kv_{new QueryHandler<KeyValue>()};
+      std::shared_ptr<SeqQueryHandler<KeyValue>> kv_{new SeqQueryHandler<KeyValue>()};
       int ref_cnt_;
     };
 
