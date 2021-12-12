@@ -27,8 +27,6 @@ class SqliteKeyValue {
     return connection.exec(PSLICE() << "CREATE TABLE IF NOT EXISTS " << table_name << " (k BLOB PRIMARY KEY, v BLOB)");
   }
 
-  using SeqNo = uint64;
-
   bool empty() const {
     return db_.empty();
   }
@@ -41,11 +39,11 @@ class SqliteKeyValue {
 
   Status drop();
 
-  SeqNo set(Slice key, Slice value);
+  void set(Slice key, Slice value);
 
   string get(Slice key);
 
-  SeqNo erase(Slice key);
+  void erase(Slice key);
 
   Status begin_read_transaction() TD_WARN_UNUSED_RESULT {
     return db_.begin_read_transaction();

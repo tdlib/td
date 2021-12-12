@@ -50,7 +50,7 @@ Status SqliteKeyValue::drop() {
   return result;
 }
 
-SqliteKeyValue::SeqNo SqliteKeyValue::set(Slice key, Slice value) {
+void SqliteKeyValue::set(Slice key, Slice value) {
   set_stmt_.bind_blob(1, key).ensure();
   set_stmt_.bind_blob(2, value).ensure();
   auto status = set_stmt_.step();
@@ -59,7 +59,6 @@ SqliteKeyValue::SeqNo SqliteKeyValue::set(Slice key, Slice value) {
   }
   // set_stmt_.step().ensure();
   set_stmt_.reset();
-  return 0;
 }
 
 string SqliteKeyValue::get(Slice key) {
@@ -76,11 +75,10 @@ string SqliteKeyValue::get(Slice key) {
   return data;
 }
 
-SqliteKeyValue::SeqNo SqliteKeyValue::erase(Slice key) {
+void SqliteKeyValue::erase(Slice key) {
   erase_stmt_.bind_blob(1, key).ensure();
   erase_stmt_.step().ensure();
   erase_stmt_.reset();
-  return 0;
 }
 
 void SqliteKeyValue::erase_by_prefix(Slice prefix) {

@@ -62,9 +62,6 @@ class SeqKeyValue {
     return map_.size();
   }
 
-  void reset_seq_no() {
-    current_id_ = 0;
-  }
   std::unordered_map<string, string> get_all() const {
     return map_;
   }
