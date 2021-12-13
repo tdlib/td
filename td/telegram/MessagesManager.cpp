@@ -24128,8 +24128,14 @@ void MessagesManager::get_dialog_send_message_as_dialog_ids(
       } else {
         add_sender(get_my_dialog_id());
       }
-      for (auto channel_id : created_public_broadcasts_) {
-        add_sender(DialogId(channel_id));
+      auto sorted_channel_ids = transform(created_public_broadcasts_, [&](ChannelId channel_id) {
+        auto participant_count = td_->contacts_manager_->get_channel_participant_count(channel_id);
+        return std::make_pair(-participant_count, channel_id.get());
+      });
+      std::sort(sorted_channel_ids.begin(), sorted_channel_ids.end());
+
+      for (auto channel_id : sorted_channel_ids) {
+        add_sender(DialogId(ChannelId(channel_id.second)));
       }
     }
     return promise.set_value(std::move(senders));
