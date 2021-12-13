@@ -15659,9 +15659,9 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
         c->is_changed = true;
         invalidate_channel_full(channel_id, !c->is_slow_mode_enabled);
       }
-      if (c->is_verified != is_verified || c->sign_messages != sign_messages) {
+      // sign_messages isn't known for min-channels
+      if (c->is_verified != is_verified) {
         c->is_verified = is_verified;
-        c->sign_messages = sign_messages;
 
         c->is_changed = true;
       }
