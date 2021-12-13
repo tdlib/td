@@ -10831,22 +10831,28 @@ void MessagesManager::find_newer_messages(const Message *m, MessageId min_messag
 }
 
 void MessagesManager::find_unloadable_messages(const Dialog *d, int32 unload_before_date, const Message *m,
-                                               vector<MessageId> &message_ids, int32 &left_to_unload) const {
+                                               vector<MessageId> &message_ids,
+                                               bool &has_left_to_unload_messages) const {
   if (m == nullptr) {
     return;
   }
 
-  find_unloadable_messages(d, unload_before_date, m->left.get(), message_ids, left_to_unload);
+  find_unloadable_messages(d, unload_before_date, m->left.get(), message_ids, has_left_to_unload_messages);
 
   if (can_unload_message(d, m)) {
     if (m->last_access_date <= unload_before_date) {
       message_ids.push_back(m->message_id);
     } else {
-      left_to_unload++;
+      has_left_to_unload_messages = true;
     }
   }
 
-  find_unloadable_messages(d, unload_before_date, m->right.get(), message_ids, left_to_unload);
+  if (has_left_to_unload_messages && m->date > unload_before_date) {
+    // we aren't interested in unloading too new messages
+    return;
+  }
+
+  find_unloadable_messages(d, unload_before_date, m->right.get(), message_ids, has_left_to_unload_messages);
 }
 
 void MessagesManager::delete_dialog_messages_by_sender(DialogId dialog_id, DialogId sender_dialog_id,
@@ -11135,9 +11141,9 @@ void MessagesManager::unload_dialog(DialogId dialog_id) {
   }
 
   vector<MessageId> to_unload_message_ids;
-  int32 left_to_unload = 0;
+  bool has_left_to_unload_messages = false;
   find_unloadable_messages(d, G()->unix_time_cached() - get_unload_dialog_delay() + 2, d->messages.get(),
-                           to_unload_message_ids, left_to_unload);
+                           to_unload_message_ids, has_left_to_unload_messages);
 
   vector<int64> unloaded_message_ids;
   for (auto message_id : to_unload_message_ids) {
@@ -11155,8 +11161,8 @@ void MessagesManager::unload_dialog(DialogId dialog_id) {
         make_tl_object<td_api::updateDeleteMessages>(dialog_id.get(), std::move(unloaded_message_ids), false, true));
   }
 
-  if (left_to_unload > 0) {
-    LOG(DEBUG) << "Need to unload " << left_to_unload << " messages more in " << dialog_id;
+  if (has_left_to_unload_messages) {
+    LOG(DEBUG) << "Need to unload more messages in " << dialog_id;
     pending_unload_dialog_timeout_.add_timeout_in(d->dialog_id.get(), get_unload_dialog_delay());
   } else {
     d->has_unload_timeout = false;
