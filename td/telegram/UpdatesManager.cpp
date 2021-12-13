@@ -1652,16 +1652,16 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
         return promise.set_value(Unit());
       }
     }
+  }
 
-    if (date > 0 && updates.size() == 1 && updates[0] != nullptr &&
-        updates[0]->get_id() == telegram_api::updateReadHistoryOutbox::ID) {
-      auto update = static_cast<const telegram_api::updateReadHistoryOutbox *>(updates[0].get());
-      DialogId dialog_id(update->peer_);
-      if (dialog_id.get_type() == DialogType::User) {
-        auto user_id = dialog_id.get_user_id();
-        if (user_id.is_valid()) {
-          td_->contacts_manager_->on_update_user_local_was_online(user_id, date);
-        }
+  if (date > 0 && updates.size() == 1 && updates[0] != nullptr &&
+      updates[0]->get_id() == telegram_api::updateReadHistoryOutbox::ID) {
+    auto update = static_cast<const telegram_api::updateReadHistoryOutbox *>(updates[0].get());
+    DialogId dialog_id(update->peer_);
+    if (dialog_id.get_type() == DialogType::User) {
+      auto user_id = dialog_id.get_user_id();
+      if (user_id.is_valid()) {
+        td_->contacts_manager_->on_update_user_local_was_online(user_id, date);
       }
     }
   }
