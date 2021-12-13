@@ -2029,6 +2029,14 @@ void UpdatesManager::add_pending_pts_update(tl_object_ptr<telegram_api::Update> 
     return;
   }
 
+  // is_acceptable_update check was skipped for postponed pts updates
+  if (Slice(source) == "after get difference" && !is_acceptable_update(update.get())) {
+    LOG(INFO) << "Postpone again unacceptable pending update";
+    postpone_pts_update(std::move(update), new_pts, pts_count, receive_time, std::move(promise));
+    set_pts_gap_timeout(0.001);
+    return;
+  }
+
   if (old_pts > new_pts - pts_count) {
     LOG(WARNING) << "Have old_pts (= " << old_pts << ") + pts_count (= " << pts_count << ") > new_pts (= " << new_pts
                  << "). Logged in " << G()->shared_config().get_option_integer("authorization_date") << ". Update from "
