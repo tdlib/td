@@ -233,18 +233,18 @@ TEST(Link, parse_internal_link) {
                       unknown_deep_link("tg://privatepost?domain=username/12345&single"));
   parse_internal_link("tg:privatepost?channel=username/12345&single",
                       unknown_deep_link("tg://privatepost?channel=username/12345&single"));
-  parse_internal_link("tg:privatepost?channel=username&msg_id=12345",
-                      message("tg:privatepost?channel=username&msg_id=12345"));
+  parse_internal_link("tg:privatepost?channel=username&post=12345",
+                      message("tg:privatepost?channel=username&post=12345"));
 
   parse_internal_link("t.me/c/12345?single", nullptr);
   parse_internal_link("t.me/c/1/c?single", nullptr);
   parse_internal_link("t.me/c/c/1?single", nullptr);
   parse_internal_link("t.me/c//1?single", nullptr);
-  parse_internal_link("t.me/c/12345/123", message("tg:privatepost?channel=12345&msg_id=123"));
-  parse_internal_link("t.me/c/12345/123?single", message("tg:privatepost?channel=12345&msg_id=123&single"));
-  parse_internal_link("t.me/c/12345/123/asd/asd////?single", message("tg:privatepost?channel=12345&msg_id=123&single"));
+  parse_internal_link("t.me/c/12345/123", message("tg:privatepost?channel=12345&post=123"));
+  parse_internal_link("t.me/c/12345/123?single", message("tg:privatepost?channel=12345&post=123&single"));
+  parse_internal_link("t.me/c/12345/123/asd/asd////?single", message("tg:privatepost?channel=12345&post=123&single"));
   parse_internal_link("t.me/c/%312345/%3123?comment=456&t=789&single&thread=123%20%31",
-                      message("tg:privatepost?channel=12345&msg_id=123&single&thread=123%201&comment=456&t=789"));
+                      message("tg:privatepost?channel=12345&post=123&single&thread=123%201&comment=456&t=789"));
 
   parse_internal_link("tg:bg?color=111111#asdasd", background("111111"));
   parse_internal_link("tg:bg?color=11111%31", background("111111"));
