@@ -24170,7 +24170,7 @@ void MessagesManager::set_dialog_default_send_message_as_dialog_id(DialogId dial
         break;
       }
       if (!is_broadcast_channel(message_sender_dialog_id) ||
-          td_->contacts_manager_->get_channel_username(dialog_id.get_channel_id()).empty()) {
+          td_->contacts_manager_->get_channel_username(message_sender_dialog_id.get_channel_id()).empty()) {
         return promise.set_error(Status::Error(400, "Message sender chat must be a public channel"));
       }
       break;
