@@ -2003,6 +2003,8 @@ class MessagesManager final : public Actor {
 
   int32 get_unload_dialog_delay() const;
 
+  int32 get_next_unload_dialog_delay() const;
+
   void unload_dialog(DialogId dialog_id);
 
   void delete_all_dialog_messages(Dialog *d, bool remove_from_dialog_list, bool is_permanently_deleted);

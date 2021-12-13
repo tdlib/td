@@ -11119,6 +11119,11 @@ int32 MessagesManager::get_unload_dialog_delay() const {
   return narrow_cast<int32>(G()->shared_config().get_option_integer("message_unload_delay", default_unload_delay));
 }
 
+int32 MessagesManager::get_next_unload_dialog_delay() const {
+  auto delay = get_unload_dialog_delay();
+  return Random::fast(delay / 4, delay / 2);
+}
+
 void MessagesManager::unload_dialog(DialogId dialog_id) {
   if (G()->close_flag()) {
     return;
@@ -11163,7 +11168,7 @@ void MessagesManager::unload_dialog(DialogId dialog_id) {
 
   if (has_left_to_unload_messages) {
     LOG(DEBUG) << "Need to unload more messages in " << dialog_id;
-    pending_unload_dialog_timeout_.add_timeout_in(d->dialog_id.get(), get_unload_dialog_delay());
+    pending_unload_dialog_timeout_.add_timeout_in(d->dialog_id.get(), get_next_unload_dialog_delay());
   } else {
     d->has_unload_timeout = false;
   }
@@ -20185,8 +20190,8 @@ void MessagesManager::close_dialog(Dialog *d) {
 
   if (is_message_unload_enabled()) {
     CHECK(!d->has_unload_timeout);
+    pending_unload_dialog_timeout_.set_timeout_in(dialog_id.get(), get_next_unload_dialog_delay());
     d->has_unload_timeout = true;
-    pending_unload_dialog_timeout_.set_timeout_in(dialog_id.get(), get_unload_dialog_delay());
   }
 
   for (auto &it : d->pending_viewed_live_locations) {
@@ -33104,7 +33109,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 
   if (!d->is_opened && d->messages != nullptr && is_message_unload_enabled() && !d->has_unload_timeout) {
     LOG(INFO) << "Schedule unload of " << dialog_id;
-    pending_unload_dialog_timeout_.add_timeout_in(dialog_id.get(), get_unload_dialog_delay());
+    pending_unload_dialog_timeout_.add_timeout_in(dialog_id.get(), get_next_unload_dialog_delay());
     d->has_unload_timeout = true;
   }
 
