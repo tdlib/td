@@ -5565,11 +5565,11 @@ deleteAccount reason:string = Ok;
 //@description Removes a chat action bar without any other action @chat_id Chat identifier
 removeChatActionBar chat_id:int53 = Ok;
 
-//@description Reports a chat to the Telegram moderators. A chat can be reported only from the chat action bar, or if this is a private chat with a bot, a private chat with a user sharing their location, a supergroup, or a channel, since other chats can't be checked by moderators
+//@description Reports a chat to the Telegram moderators. A chat can be reported only from the chat action bar, or if chat.can_be_reported
 //@chat_id Chat identifier @message_ids Identifiers of reported messages, if any @reason The reason for reporting the chat @text Additional report details; 0-1024 characters
 reportChat chat_id:int53 message_ids:vector<int53> reason:ChatReportReason text:string = Ok;
 
-//@description Reports a chat photo to the Telegram moderators. A chat photo can be reported only if this is a private chat with a bot, a private chat with a user sharing their location, a supergroup, or a channel, since other chats can't be checked by moderators
+//@description Reports a chat photo to the Telegram moderators. A chat photo can be reported only if chat.can_be_reported
 //@chat_id Chat identifier @file_id Identifier of the photo to report. Only full photos from chatPhoto can be reported @reason The reason for reporting the chat photo @text Additional report details; 0-1024 characters
 reportChatPhoto chat_id:int53 file_id:int32 reason:ChatReportReason text:string = Ok;
 
