@@ -10912,7 +10912,7 @@ void MessagesManager::delete_dialog_messages_by_sender(DialogId dialog_id, Dialo
   }
 
   vector<MessageId> message_ids;
-  find_messages(d->messages.get(), message_ids, [this, sender_dialog_id](const Message *m) {
+  find_messages(d->messages.get(), message_ids, [sender_dialog_id](const Message *m) {
     return sender_dialog_id == MessagesManager::get_message_sender(m);
   });
 
