@@ -690,7 +690,7 @@ void AuthManager::on_log_out_result(NetQueryPtr &result) {
     on_query_ok();
   }
 }
-void AuthManager::on_authorization_lost(const string &source) {
+void AuthManager::on_authorization_lost(string source) {
   LOG(WARNING) << "Lost authorization because of " << source;
   destroy_auth_keys();
 }
