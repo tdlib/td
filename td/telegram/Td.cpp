@@ -3267,7 +3267,7 @@ bool Td::is_internal_config_option(Slice name) {
       return name == "revoke_pm_inbox" || name == "revoke_time_limit" || name == "revoke_pm_time_limit" ||
              name == "rating_e_decay" || name == "recent_stickers_limit";
     case 's':
-      return name == "saved_animations_limit";
+      return name == "saved_animations_limit" || name == "session_count";
     case 'v':
       return name == "video_note_size_max";
     case 'w':
@@ -7641,9 +7641,6 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
       }
       break;
     case 's':
-      if (set_integer_option("session_count", 0, 50)) {
-        return;
-      }
       if (set_integer_option("storage_max_files_size")) {
         return;
       }
