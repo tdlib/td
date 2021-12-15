@@ -3284,23 +3284,22 @@ void Td::on_config_option_updated(const string &name) {
   switch (name[0]) {
     case 'a':
       if (name == "animated_emoji_zoom") {
-        // update animated emoji zoom only at launch
-        return;
+        // nothing to do: animated emoji zoom is updated only at launch
       }
       if (name == "animation_search_emojis") {
-        return animations_manager_->on_update_animation_search_emojis(G()->shared_config().get_option_string(name));
+        animations_manager_->on_update_animation_search_emojis(G()->shared_config().get_option_string(name));
       }
       if (name == "animation_search_provider") {
-        return animations_manager_->on_update_animation_search_provider(G()->shared_config().get_option_string(name));
+        animations_manager_->on_update_animation_search_provider(G()->shared_config().get_option_string(name));
       }
       if (name == "auth") {
-        return send_closure(auth_manager_actor_, &AuthManager::on_authorization_lost,
-                            G()->shared_config().get_option_string(name));
+        send_closure(auth_manager_actor_, &AuthManager::on_authorization_lost,
+                     G()->shared_config().get_option_string(name));
       }
       break;
     case 'b':
       if (name == "base_language_pack_version") {
-        return send_closure(language_pack_manager_, &LanguagePackManager::on_language_pack_version_changed, true, -1);
+        send_closure(language_pack_manager_, &LanguagePackManager::on_language_pack_version_changed, true, -1);
       }
       break;
     case 'c':
@@ -3312,10 +3311,10 @@ void Td::on_config_option_updated(const string &name) {
       break;
     case 'd':
       if (name == "dice_emojis") {
-        return send_closure(stickers_manager_actor_, &StickersManager::on_update_dice_emojis);
+        send_closure(stickers_manager_actor_, &StickersManager::on_update_dice_emojis);
       }
       if (name == "dice_success_values") {
-        return send_closure(stickers_manager_actor_, &StickersManager::on_update_dice_success_values);
+        send_closure(stickers_manager_actor_, &StickersManager::on_update_dice_success_values);
       }
       if (name == "disable_animated_emoji") {
         stickers_manager_->on_update_disable_animated_emojis();
@@ -3331,7 +3330,7 @@ void Td::on_config_option_updated(const string &name) {
       break;
     case 'e':
       if (name == "emoji_sounds") {
-        return send_closure(stickers_manager_actor_, &StickersManager::on_update_emoji_sounds);
+        send_closure(stickers_manager_actor_, &StickersManager::on_update_emoji_sounds);
       }
       break;
     case 'f':
@@ -3342,7 +3341,7 @@ void Td::on_config_option_updated(const string &name) {
       break;
     case 'i':
       if (name == "ignored_restriction_reasons") {
-        return send_closure(contacts_manager_actor_, &ContactsManager::on_ignored_restriction_reasons_changed);
+        send_closure(contacts_manager_actor_, &ContactsManager::on_ignored_restriction_reasons_changed);
       }
       if (name == "is_emulator") {
         if (G()->mtproto_header().set_is_emulator(G()->shared_config().get_option_boolean(name))) {
@@ -3358,7 +3357,7 @@ void Td::on_config_option_updated(const string &name) {
         }
       }
       if (name == "language_pack_version") {
-        return send_closure(language_pack_manager_, &LanguagePackManager::on_language_pack_version_changed, false, -1);
+        send_closure(language_pack_manager_, &LanguagePackManager::on_language_pack_version_changed, false, -1);
       }
       if (name == "localization_target") {
         send_closure(language_pack_manager_, &LanguagePackManager::on_language_pack_changed);
@@ -3374,10 +3373,10 @@ void Td::on_config_option_updated(const string &name) {
       break;
     case 'n':
       if (name == "notification_cloud_delay_ms") {
-        return send_closure(notification_manager_actor_, &NotificationManager::on_notification_cloud_delay_changed);
+        send_closure(notification_manager_actor_, &NotificationManager::on_notification_cloud_delay_changed);
       }
       if (name == "notification_default_delay_ms") {
-        return send_closure(notification_manager_actor_, &NotificationManager::on_notification_default_delay_changed);
+        send_closure(notification_manager_actor_, &NotificationManager::on_notification_default_delay_changed);
       }
       if (name == "notification_group_count_max") {
         send_closure(notification_manager_actor_, &NotificationManager::on_notification_group_count_max_changed, true);
@@ -3388,7 +3387,7 @@ void Td::on_config_option_updated(const string &name) {
       break;
     case 'o':
       if (name == "online_cloud_timeout_ms") {
-        return send_closure(notification_manager_actor_, &NotificationManager::on_online_cloud_timeout_changed);
+        send_closure(notification_manager_actor_, &NotificationManager::on_online_cloud_timeout_changed);
       }
       if (name == "otherwise_relogin_days") {
         auto days = narrow_cast<int32>(G()->shared_config().get_option_integer(name));
@@ -3396,21 +3395,20 @@ void Td::on_config_option_updated(const string &name) {
           vector<SuggestedAction> added_actions{SuggestedAction{SuggestedAction::Type::SetPassword, DialogId(), days}};
           send_closure(G()->td(), &Td::send_update, get_update_suggested_actions_object(added_actions, {}));
         }
-        return;
       }
       break;
     case 'r':
       if (name == "rating_e_decay") {
-        return send_closure(top_dialog_manager_actor_, &TopDialogManager::update_rating_e_decay);
+        send_closure(top_dialog_manager_actor_, &TopDialogManager::update_rating_e_decay);
       }
       if (name == "recent_stickers_limit") {
-        return stickers_manager_->on_update_recent_stickers_limit(
+        stickers_manager_->on_update_recent_stickers_limit(
             narrow_cast<int32>(G()->shared_config().get_option_integer(name)));
       }
       break;
     case 's':
       if (name == "saved_animations_limit") {
-        return animations_manager_->on_update_saved_animations_limit(
+        animations_manager_->on_update_saved_animations_limit(
             narrow_cast<int32>(G()->shared_config().get_option_integer(name)));
       }
       if (name == "session_count") {
