@@ -6,9 +6,12 @@
 //
 #pragma once
 
+#include "td/telegram/td_api.h"
+
 #include "td/actor/actor.h"
 
 #include "td/utils/common.h"
+#include "td/utils/Slice.h"
 
 namespace td {
 
@@ -24,8 +27,16 @@ class OptionManager final : public Actor {
   OptionManager &operator=(OptionManager &&) = delete;
   ~OptionManager() final;
 
+  void on_option_updated(const string &name);
+
+  static void clear_options();
+
+  static void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates);
+
  private:
   void tear_down() final;
+
+  static bool is_internal_option(Slice name);
 
   Td *td_;
   ActorShared<> parent_;

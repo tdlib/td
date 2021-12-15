@@ -351,10 +351,6 @@ class Td final : public Actor {
 
   void on_file_download_finished(FileId file_id);
 
-  static bool is_internal_config_option(Slice name);
-
-  void on_config_option_updated(const string &name);
-
   class OnRequest;
 
   class DownloadFileCallback;

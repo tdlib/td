@@ -3239,208 +3239,6 @@ void Td::on_result(NetQueryPtr query) {
   query->clear();
 }
 
-bool Td::is_internal_config_option(Slice name) {
-  switch (name[0]) {
-    case 'a':
-      return name == "animated_emoji_zoom" || name == "animation_search_emojis" ||
-             name == "animation_search_provider" || name == "auth";
-    case 'b':
-      return name == "base_language_pack_version";
-    case 'c':
-      return name == "call_ring_timeout_ms" || name == "call_receive_timeout_ms" ||
-             name == "channels_read_media_period" || name == "chat_read_mark_expire_period" ||
-             name == "chat_read_mark_size_threshold";
-    case 'd':
-      return name == "dc_txt_domain_name" || name == "dice_emojis" || name == "dice_success_values";
-    case 'e':
-      return name == "edit_time_limit" || name == "emoji_sounds";
-    case 'i':
-      return name == "ignored_restriction_reasons";
-    case 'l':
-      return name == "language_pack_version";
-    case 'm':
-      return name == "my_phone_number";
-    case 'n':
-      return name == "notification_cloud_delay_ms" || name == "notification_default_delay_ms";
-    case 'o':
-      return name == "online_update_period_ms" || name == "online_cloud_timeout_ms" || name == "otherwise_relogin_days";
-    case 'r':
-      return name == "revoke_pm_inbox" || name == "revoke_time_limit" || name == "revoke_pm_time_limit" ||
-             name == "rating_e_decay" || name == "recent_stickers_limit";
-    case 's':
-      return name == "saved_animations_limit" || name == "session_count";
-    case 'v':
-      return name == "video_note_size_max";
-    case 'w':
-      return name == "webfile_dc_id";
-    default:
-      return false;
-  }
-}
-
-void Td::on_config_option_updated(const string &name) {
-  if (close_flag_) {
-    return;
-  }
-  switch (name[0]) {
-    case 'a':
-      if (name == "animated_emoji_zoom") {
-        // nothing to do: animated emoji zoom is updated only at launch
-      }
-      if (name == "animation_search_emojis") {
-        animations_manager_->on_update_animation_search_emojis(G()->shared_config().get_option_string(name));
-      }
-      if (name == "animation_search_provider") {
-        animations_manager_->on_update_animation_search_provider(G()->shared_config().get_option_string(name));
-      }
-      if (name == "auth") {
-        send_closure(auth_manager_actor_, &AuthManager::on_authorization_lost,
-                     G()->shared_config().get_option_string(name));
-      }
-      break;
-    case 'b':
-      if (name == "base_language_pack_version") {
-        send_closure(language_pack_manager_, &LanguagePackManager::on_language_pack_version_changed, true, -1);
-      }
-      break;
-    case 'c':
-      if (name == "connection_parameters") {
-        if (G()->mtproto_header().set_parameters(G()->shared_config().get_option_string(name))) {
-          G()->net_query_dispatcher().update_mtproto_header();
-        }
-      }
-      break;
-    case 'd':
-      if (name == "dice_emojis") {
-        send_closure(stickers_manager_actor_, &StickersManager::on_update_dice_emojis);
-      }
-      if (name == "dice_success_values") {
-        send_closure(stickers_manager_actor_, &StickersManager::on_update_dice_success_values);
-      }
-      if (name == "disable_animated_emoji") {
-        stickers_manager_->on_update_disable_animated_emojis();
-      }
-      if (name == "disable_contact_registered_notifications") {
-        send_closure(notification_manager_actor_,
-                     &NotificationManager::on_disable_contact_registered_notifications_changed);
-      }
-      if (name == "disable_top_chats") {
-        send_closure(top_dialog_manager_actor_, &TopDialogManager::update_is_enabled,
-                     !G()->shared_config().get_option_boolean(name));
-      }
-      break;
-    case 'e':
-      if (name == "emoji_sounds") {
-        send_closure(stickers_manager_actor_, &StickersManager::on_update_emoji_sounds);
-      }
-      break;
-    case 'f':
-      if (name == "favorite_stickers_limit") {
-        stickers_manager_->on_update_favorite_stickers_limit(
-            narrow_cast<int32>(G()->shared_config().get_option_integer(name)));
-      }
-      break;
-    case 'i':
-      if (name == "ignored_restriction_reasons") {
-        send_closure(contacts_manager_actor_, &ContactsManager::on_ignored_restriction_reasons_changed);
-      }
-      if (name == "is_emulator") {
-        if (G()->mtproto_header().set_is_emulator(G()->shared_config().get_option_boolean(name))) {
-          G()->net_query_dispatcher().update_mtproto_header();
-        }
-      }
-      break;
-    case 'l':
-      if (name == "language_pack_id") {
-        send_closure(language_pack_manager_, &LanguagePackManager::on_language_code_changed);
-        if (G()->mtproto_header().set_language_code(G()->shared_config().get_option_string(name))) {
-          G()->net_query_dispatcher().update_mtproto_header();
-        }
-      }
-      if (name == "language_pack_version") {
-        send_closure(language_pack_manager_, &LanguagePackManager::on_language_pack_version_changed, false, -1);
-      }
-      if (name == "localization_target") {
-        send_closure(language_pack_manager_, &LanguagePackManager::on_language_pack_changed);
-        if (G()->mtproto_header().set_language_pack(G()->shared_config().get_option_string(name))) {
-          G()->net_query_dispatcher().update_mtproto_header();
-        }
-      }
-      break;
-    case 'm':
-      if (name == "my_id") {
-        G()->set_my_id(G()->shared_config().get_option_integer(name));
-      }
-      break;
-    case 'n':
-      if (name == "notification_cloud_delay_ms") {
-        send_closure(notification_manager_actor_, &NotificationManager::on_notification_cloud_delay_changed);
-      }
-      if (name == "notification_default_delay_ms") {
-        send_closure(notification_manager_actor_, &NotificationManager::on_notification_default_delay_changed);
-      }
-      if (name == "notification_group_count_max") {
-        send_closure(notification_manager_actor_, &NotificationManager::on_notification_group_count_max_changed, true);
-      }
-      if (name == "notification_group_size_max") {
-        send_closure(notification_manager_actor_, &NotificationManager::on_notification_group_size_max_changed);
-      }
-      break;
-    case 'o':
-      if (name == "online_cloud_timeout_ms") {
-        send_closure(notification_manager_actor_, &NotificationManager::on_online_cloud_timeout_changed);
-      }
-      if (name == "otherwise_relogin_days") {
-        auto days = narrow_cast<int32>(G()->shared_config().get_option_integer(name));
-        if (days > 0) {
-          vector<SuggestedAction> added_actions{SuggestedAction{SuggestedAction::Type::SetPassword, DialogId(), days}};
-          send_closure(G()->td(), &Td::send_update, get_update_suggested_actions_object(added_actions, {}));
-        }
-      }
-      break;
-    case 'r':
-      if (name == "rating_e_decay") {
-        send_closure(top_dialog_manager_actor_, &TopDialogManager::update_rating_e_decay);
-      }
-      if (name == "recent_stickers_limit") {
-        stickers_manager_->on_update_recent_stickers_limit(
-            narrow_cast<int32>(G()->shared_config().get_option_integer(name)));
-      }
-      break;
-    case 's':
-      if (name == "saved_animations_limit") {
-        animations_manager_->on_update_saved_animations_limit(
-            narrow_cast<int32>(G()->shared_config().get_option_integer(name)));
-      }
-      if (name == "session_count") {
-        G()->net_query_dispatcher().update_session_count();
-      }
-      break;
-    case 'u':
-      if (name == "use_pfs") {
-        G()->net_query_dispatcher().update_use_pfs();
-      }
-      if (name == "use_storage_optimizer") {
-        send_closure(storage_manager_, &StorageManager::update_use_storage_optimizer);
-      }
-      if (name == "utc_time_offset") {
-        if (G()->mtproto_header().set_tz_offset(static_cast<int32>(G()->shared_config().get_option_integer(name)))) {
-          G()->net_query_dispatcher().update_mtproto_header();
-        }
-      }
-      break;
-    default:
-      break;
-  }
-
-  if (is_internal_config_option(name)) {
-    return;
-  }
-
-  // send_closure was already used in the callback
-  send_update(make_tl_object<td_api::updateOption>(name, G()->shared_config().get_option_value(name)));
-}
-
 void Td::on_connection_state_changed(ConnectionState new_state) {
   if (new_state == connection_state_) {
     LOG(ERROR) << "State manager sends update about unchanged state " << static_cast<int32>(new_state);
@@ -3655,11 +3453,7 @@ void Td::clear() {
 
   Timer timer;
   if (destroy_flag_) {
-    for (auto &option : G()->shared_config().get_options()) {
-      if (!is_internal_config_option(option.first)) {
-        send_update(make_tl_object<td_api::updateOption>(option.first, make_tl_object<td_api::optionValueEmpty>()));
-      }
-    }
+    OptionManager::clear_options();
     if (!auth_manager_->is_bot()) {
       notification_manager_->destroy_all_notifications();
     }
@@ -3668,11 +3462,10 @@ void Td::clear() {
       notification_manager_->flush_all_notifications();
     }
   }
-  LOG(DEBUG) << "Options was cleared" << timer;
 
   G()->net_query_creator().stop_check();
   result_handlers_.clear();
-  LOG(DEBUG) << "Handlers was cleared" << timer;
+  LOG(DEBUG) << "Handlers were cleared" << timer;
   G()->net_query_dispatcher().stop();
   LOG(DEBUG) << "NetQueryDispatcher was stopped" << timer;
   state_manager_.reset();
@@ -3685,7 +3478,7 @@ void Td::clear() {
   alarm_timeout_.cancel_timeout(PING_SERVER_ALARM_ID);
   alarm_timeout_.cancel_timeout(TERMS_OF_SERVICE_ALARM_ID);
   alarm_timeout_.cancel_timeout(PROMO_DATA_ALARM_ID);
-  LOG(DEBUG) << "Requests was answered" << timer;
+  LOG(DEBUG) << "Requests were answered" << timer;
 
   // close all pure actors
   call_manager_.reset();
@@ -4065,7 +3858,7 @@ void Td::init_options_and_network() {
   class ConfigSharedCallback final : public ConfigShared::Callback {
    public:
     void on_option_updated(const string &name, const string &value) const final {
-      send_closure(G()->td(), &Td::on_config_option_updated, name);
+      send_closure(G()->option_manager(), &OptionManager::on_option_updated, name);
     }
     ~ConfigSharedCallback() final {
       LOG(INFO) << "Destroy ConfigSharedCallback";
@@ -4217,6 +4010,7 @@ void Td::init_managers() {
   G()->set_notification_manager(notification_manager_actor_.get());
   option_manager_ = make_unique<OptionManager>(this, create_reference());
   option_manager_actor_ = register_actor("OptionManager", option_manager_.get());
+  G()->set_option_manager(option_manager_actor_.get());
   poll_manager_ = make_unique<PollManager>(this, create_reference());
   poll_manager_actor_ = register_actor("PollManager", poll_manager_.get());
   sponsored_message_manager_ = make_unique<SponsoredMessageManager>(this, create_reference());
@@ -4610,12 +4404,8 @@ void Td::on_request(uint64 id, const td_api::getCurrentState &request) {
       "unix_time", make_tl_object<td_api::optionValueInteger>(G()->unix_time())));
   updates.push_back(td_api::make_object<td_api::updateOption>(
       "version", td_api::make_object<td_api::optionValueString>(TDLIB_VERSION)));
-  for (auto &option : G()->shared_config().get_options()) {
-    if (!is_internal_config_option(option.first)) {
-      updates.push_back(td_api::make_object<td_api::updateOption>(
-          option.first, ConfigShared::get_option_value_object(option.second)));
-    }
-  }
+
+  OptionManager::get_current_state(updates);
 
   auto state = auth_manager_->get_current_authorization_state_object();
   if (state != nullptr) {

@@ -46,6 +46,7 @@ class MessagesManager;
 class MtprotoHeader;
 class NetQueryDispatcher;
 class NotificationManager;
+class OptionManager;
 class PasswordManager;
 class SecretChatsManager;
 class SponsoredMessageManager;
@@ -260,6 +261,13 @@ class Global final : public ActorContext {
     notification_manager_ = notification_manager;
   }
 
+  ActorId<OptionManager> option_manager() const {
+    return option_manager_;
+  }
+  void set_option_manager(ActorId<OptionManager> option_manager) {
+    option_manager_ = option_manager;
+  }
+
   ActorId<PasswordManager> password_manager() const {
     return password_manager_;
   }
@@ -437,6 +445,7 @@ class Global final : public ActorContext {
   ActorId<LinkManager> link_manager_;
   ActorId<MessagesManager> messages_manager_;
   ActorId<NotificationManager> notification_manager_;
+  ActorId<OptionManager> option_manager_;
   ActorId<PasswordManager> password_manager_;
   ActorId<SecretChatsManager> secret_chats_manager_;
   ActorId<SponsoredMessageManager> sponsored_message_manager_;
