@@ -567,7 +567,7 @@ class MessagesManager final : public Actor {
 
   bool can_get_message_statistics(FullMessageId full_message_id);
 
-  DialogId get_message_sender(FullMessageId full_message_id);
+  DialogId get_dialog_message_sender(FullMessageId full_message_id);
 
   bool have_message_force(FullMessageId full_message_id, const char *source);
 

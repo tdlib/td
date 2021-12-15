@@ -10912,9 +10912,8 @@ void MessagesManager::delete_dialog_messages_by_sender(DialogId dialog_id, Dialo
   }
 
   vector<MessageId> message_ids;
-  find_messages(d->messages.get(), message_ids, [sender_dialog_id](const Message *m) {
-    return sender_dialog_id == MessagesManager::get_message_sender(m);
-  });
+  find_messages(d->messages.get(), message_ids,
+                [sender_dialog_id](const Message *m) { return sender_dialog_id == get_message_sender(m); });
 
   vector<int64> deleted_message_ids;
   bool need_update_dialog_pos = false;
@@ -17053,8 +17052,8 @@ void MessagesManager::on_get_blocked_dialogs(int32 offset, int32 limit, int32 to
   promise.set_value(td_api::make_object<td_api::messageSenders>(total_count, std::move(senders)));
 }
 
-DialogId MessagesManager::get_message_sender(FullMessageId full_message_id) {
-  const auto *m = get_message_force(full_message_id, "get_message_sender");
+DialogId MessagesManager::get_dialog_message_sender(FullMessageId full_message_id) {
+  const auto *m = get_message_force(full_message_id, "get_dialog_message_sender");
   if (m == nullptr) {
     return DialogId();
   }

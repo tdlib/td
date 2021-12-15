@@ -6685,7 +6685,8 @@ void ContactsManager::report_channel_spam(ChannelId channel_id, const vector<Mes
       continue;
     }
 
-    auto current_sender_dialog_id = td_->messages_manager_->get_message_sender({DialogId(channel_id), message_id});
+    auto current_sender_dialog_id =
+        td_->messages_manager_->get_dialog_message_sender({DialogId(channel_id), message_id});
     if (!current_sender_dialog_id.is_valid()) {
       continue;
     }
