@@ -32,9 +32,9 @@ class Random {
   static uint32 fast_uint32();
   static uint64 fast_uint64();
 
-  // distribution is not uniform, min and max are included
-  static int fast(int min, int max);
-  static double fast(double min, double max);
+  // distribution is not uniform, min_value and max_value are included
+  static int fast(int min_value, int max_value);
+  static double fast(double min_value, double max_value);
   static bool fast_bool();
 
   class Fast {
@@ -48,8 +48,8 @@ class Random {
     explicit Xorshift128plus(uint64 seed);
     Xorshift128plus(uint64 seed_a, uint64 seed_b);
     uint64 operator()();
-    int fast(int min, int max);
-    int64 fast64(int64 min, int64 max);
+    int fast(int min_value, int max_value);
+    int64 fast64(int64 min_value, int64 max_value);
     void bytes(MutableSlice dest);
 
    private:

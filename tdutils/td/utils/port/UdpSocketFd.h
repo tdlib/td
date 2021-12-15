@@ -45,8 +45,8 @@ class UdpSocketFd {
   UdpSocketFd(const UdpSocketFd &) = delete;
   UdpSocketFd &operator=(const UdpSocketFd &) = delete;
 
-  Result<uint32> maximize_snd_buffer(uint32 max_buffer_size = 0);
-  Result<uint32> maximize_rcv_buffer(uint32 max_buffer_size = 0);
+  Result<uint32> maximize_snd_buffer(uint32 max_size = 0);
+  Result<uint32> maximize_rcv_buffer(uint32 max_size = 0);
 
   static Result<UdpSocketFd> open(const IPAddress &address) TD_WARN_UNUSED_RESULT;
 

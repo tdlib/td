@@ -134,18 +134,18 @@ uint64 Random::fast_uint64() {
   return static_cast<uint64>((*gen)());
 }
 
-int Random::fast(int min, int max) {
-  if (min == std::numeric_limits<int>::min() && max == std::numeric_limits<int>::max()) {
+int Random::fast(int min_value, int max_value) {
+  if (min_value == std::numeric_limits<int>::min() && max_value == std::numeric_limits<int>::max()) {
     // to prevent integer overflow and division by zero
-    min++;
+    min_value++;
   }
-  DCHECK(min <= max);
-  return static_cast<int>(min + fast_uint32() % (max - min + 1));  // TODO signed_cast
+  DCHECK(min_value <= max_value);
+  return static_cast<int>(min_value + fast_uint32() % (max_value - min_value + 1));  // TODO signed_cast
 }
 
-double Random::fast(double min, double max) {
-  DCHECK(min <= max);
-  return min + fast_uint32() * 1.0 / std::numeric_limits<uint32>::max() * (max - min);
+double Random::fast(double min_value, double max_value) {
+  DCHECK(min_value <= max_value);
+  return min_value + fast_uint32() * 1.0 / std::numeric_limits<uint32>::max() * (max_value - min_value);
 }
 
 bool Random::fast_bool() {
@@ -179,11 +179,11 @@ uint64 Random::Xorshift128plus::operator()() {
   return seed_[1] + y;
 }
 
-int Random::Xorshift128plus::fast(int min, int max) {
-  return static_cast<int>((*this)() % (max - min + 1) + min);
+int Random::Xorshift128plus::fast(int min_value, int max_value) {
+  return static_cast<int>((*this)() % (max_value - min_value + 1) + min_value);
 }
-int64 Random::Xorshift128plus::fast64(int64 min, int64 max) {
-  return static_cast<int64>((*this)() % (max - min + 1) + min);
+int64 Random::Xorshift128plus::fast64(int64 min_value, int64 max_value) {
+  return static_cast<int64>((*this)() % (max_value - min_value + 1) + min_value);
 }
 
 void Random::Xorshift128plus::bytes(MutableSlice dest) {

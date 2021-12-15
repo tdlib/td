@@ -7347,7 +7347,7 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
 
   LOG(INFO) << "Set option " << request.name_;
 
-  auto set_integer_option = [&](Slice name, int64 min = 0, int64 max = std::numeric_limits<int32>::max()) {
+  auto set_integer_option = [&](Slice name, int64 min_value = 0, int64 max_value = std::numeric_limits<int32>::max()) {
     if (request.name_ != name) {
       return false;
     }
@@ -7360,13 +7360,13 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
       G()->shared_config().set_option_empty(name);
     } else {
       int64 value = static_cast<td_api::optionValueInteger *>(request.value_.get())->value_;
-      if (value < min || value > max) {
+      if (value < min_value || value > max_value) {
         send_error_raw(id, 400,
                        PSLICE() << "Option's \"" << name << "\" value " << value << " is outside of a valid range ["
-                                << min << ", " << max << "]");
+                                << min_value << ", " << max_value << "]");
         return true;
       }
-      G()->shared_config().set_option_integer(name, clamp(value, min, max));
+      G()->shared_config().set_option_integer(name, clamp(value, min_value, max_value));
     }
     send_closure(actor_id(this), &Td::send_result, id, make_tl_object<td_api::ok>());
     return true;
