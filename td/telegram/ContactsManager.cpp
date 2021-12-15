@@ -6666,12 +6666,7 @@ void ContactsManager::report_channel_spam(ChannelId channel_id, const vector<Mes
     return promise.set_error(Status::Error(400, "Spam can be reported only in supergroups"));
   }
 
-  if (message_ids.empty()) {
-    return promise.set_error(Status::Error(400, "Message list is empty"));
-  }
-
-  DialogId sender_dialog_id;
-  vector<MessageId> server_message_ids;
+  std::unordered_map<DialogId, vector<MessageId>, DialogIdHash> server_message_ids;
   for (auto &message_id : message_ids) {
     if (message_id.is_valid_scheduled()) {
       return promise.set_error(Status::Error(400, "Can't report scheduled messages"));
@@ -6685,35 +6680,25 @@ void ContactsManager::report_channel_spam(ChannelId channel_id, const vector<Mes
       continue;
     }
 
-    auto current_sender_dialog_id =
-        td_->messages_manager_->get_dialog_message_sender({DialogId(channel_id), message_id});
-    if (!current_sender_dialog_id.is_valid()) {
-      continue;
+    auto sender_dialog_id = td_->messages_manager_->get_dialog_message_sender({DialogId(channel_id), message_id});
+    if (sender_dialog_id.is_valid() && sender_dialog_id != DialogId(get_my_id()) &&
+        td_->messages_manager_->have_input_peer(sender_dialog_id, AccessRights::Know)) {
+      server_message_ids[sender_dialog_id].push_back(message_id);
     }
-    if (sender_dialog_id.is_valid()) {
-      if (current_sender_dialog_id != sender_dialog_id) {
-        return promise.set_error(Status::Error(400, "All messages nust be from the same sender"));
-      }
-    } else {
-      sender_dialog_id = current_sender_dialog_id;
-    }
-
-    server_message_ids.push_back(message_id);
   }
   if (server_message_ids.empty()) {
     return promise.set_value(Unit());
   }
-  CHECK(sender_dialog_id.is_valid());
 
-  if (!td_->messages_manager_->have_input_peer(sender_dialog_id, AccessRights::Know)) {
-    return promise.set_error(Status::Error(400, "Have no access to the user"));
-  }
-  if (sender_dialog_id == DialogId(get_my_id())) {
-    return promise.set_error(Status::Error(400, "Can't report self"));
+  MultiPromiseActorSafe mpas{"ReportSupergroupSpamMultiPromiseActor"};
+  mpas.add_promise(std::move(promise));
+  auto lock_promise = mpas.get_promise();
+
+  for (auto &it : server_message_ids) {
+    td_->create_handler<ReportChannelSpamQuery>(mpas.get_promise())->send(channel_id, it.first, it.second);
   }
 
-  td_->create_handler<ReportChannelSpamQuery>(std::move(promise))
-      ->send(channel_id, sender_dialog_id, server_message_ids);
+  lock_promise.set_value(Unit());
 }
 
 void ContactsManager::delete_chat(ChatId chat_id, Promise<Unit> &&promise) {
