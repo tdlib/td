@@ -6665,6 +6665,9 @@ void ContactsManager::report_channel_spam(ChannelId channel_id, const vector<Mes
   if (!c->is_megagroup) {
     return promise.set_error(Status::Error(400, "Spam can be reported only in supergroups"));
   }
+  if (!c->status.is_administrator()) {
+    return promise.set_error(Status::Error(400, "Spam can be reported only by chat administrators"));
+  }
 
   std::unordered_map<DialogId, vector<MessageId>, DialogIdHash> server_message_ids;
   for (auto &message_id : message_ids) {
