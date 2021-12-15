@@ -80,6 +80,7 @@
 #include "td/telegram/NotificationId.h"
 #include "td/telegram/NotificationManager.h"
 #include "td/telegram/NotificationSettings.h"
+#include "td/telegram/OptionManager.h"
 #include "td/telegram/PasswordManager.h"
 #include "td/telegram/Payments.h"
 #include "td/telegram/PhoneNumberManager.h"
@@ -3556,6 +3557,8 @@ void Td::dec_actor_refcnt() {
       LOG(DEBUG) << "MessagesManager was cleared" << timer;
       notification_manager_.reset();
       LOG(DEBUG) << "NotificationManager was cleared" << timer;
+      option_manager_.reset();
+      LOG(DEBUG) << "OptionManager was cleared" << timer;
       poll_manager_.reset();
       LOG(DEBUG) << "PollManager was cleared" << timer;
       sponsored_message_manager_.reset();
@@ -3746,6 +3749,8 @@ void Td::clear() {
   LOG(DEBUG) << "MessagesManager actor was cleared" << timer;
   notification_manager_actor_.reset();
   LOG(DEBUG) << "NotificationManager actor was cleared" << timer;
+  option_manager_actor_.reset();
+  LOG(DEBUG) << "OptionManager actor was cleared" << timer;
   poll_manager_actor_.reset();
   LOG(DEBUG) << "PollManager actor was cleared" << timer;
   sponsored_message_manager_actor_.reset();
@@ -4209,9 +4214,11 @@ void Td::init_managers() {
   G()->set_messages_manager(messages_manager_actor_.get());
   notification_manager_ = make_unique<NotificationManager>(this, create_reference());
   notification_manager_actor_ = register_actor("NotificationManager", notification_manager_.get());
+  G()->set_notification_manager(notification_manager_actor_.get());
+  option_manager_ = make_unique<OptionManager>(this, create_reference());
+  option_manager_actor_ = register_actor("OptionManager", option_manager_.get());
   poll_manager_ = make_unique<PollManager>(this, create_reference());
   poll_manager_actor_ = register_actor("PollManager", poll_manager_.get());
-  G()->set_notification_manager(notification_manager_actor_.get());
   sponsored_message_manager_ = make_unique<SponsoredMessageManager>(this, create_reference());
   sponsored_message_manager_actor_ = register_actor("SponsoredMessageManager", sponsored_message_manager_.get());
   G()->set_sponsored_message_manager(sponsored_message_manager_actor_.get());
