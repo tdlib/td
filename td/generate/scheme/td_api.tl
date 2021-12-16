@@ -829,8 +829,11 @@ messageCalendarDay total_count:int32 message:message = MessageCalendarDay;
 messageCalendar total_count:int32 days:vector<messageCalendarDay> = MessageCalendar;
 
 
-//@description Describes a sponsored message @id Unique sponsored message identifier @sponsor_chat_id Chat identifier
-//@link An internal link to be opened when the sponsored message is clicked; may be null. If null, the sponsor chat needs to be opened instead @content Content of the message. Currently, can be only of the type messageText
+//@description Describes a sponsored message
+//@id Unique sponsored message identifier
+//@sponsor_chat_id Chat identifier
+//@link An internal link to be opened when the sponsored message is clicked; may be null. If null, the sponsor chat needs to be opened instead
+//@content Content of the message. Currently, can be only of the type messageText
 sponsoredMessage id:int32 sponsor_chat_id:int53 link:InternalLinkType content:MessageContent = SponsoredMessage;
 
 //@description Contains a list of sponsored messages @messages List of sponsored messages
