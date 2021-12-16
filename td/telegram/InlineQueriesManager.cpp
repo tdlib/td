@@ -876,17 +876,17 @@ void InlineQueriesManager::loop() {
   auto now = Time::now();
   if (now >= next_inline_query_time_) {
     LOG(INFO) << "Send inline query " << pending_inline_query_->query_hash;
-    auto bot_input_user = td_->contacts_manager_->get_input_user(pending_inline_query_->bot_user_id);
-    if (bot_input_user != nullptr) {
+    auto r_bot_input_user = td_->contacts_manager_->get_input_user(pending_inline_query_->bot_user_id);
+    if (r_bot_input_user.is_ok()) {
       if (!sent_query_.empty()) {
         LOG(INFO) << "Cancel inline query request";
         cancel_query(sent_query_);
       }
-      sent_query_ =
-          td_->create_handler<GetInlineBotResultsQuery>(std::move(pending_inline_query_->promise))
-              ->send(pending_inline_query_->bot_user_id, pending_inline_query_->dialog_id, std::move(bot_input_user),
-                     std::move(pending_inline_query_->input_peer), pending_inline_query_->user_location,
-                     pending_inline_query_->query, pending_inline_query_->offset, pending_inline_query_->query_hash);
+      sent_query_ = td_->create_handler<GetInlineBotResultsQuery>(std::move(pending_inline_query_->promise))
+                        ->send(pending_inline_query_->bot_user_id, pending_inline_query_->dialog_id,
+                               r_bot_input_user.move_as_ok(), std::move(pending_inline_query_->input_peer),
+                               pending_inline_query_->user_location, pending_inline_query_->query,
+                               pending_inline_query_->offset, pending_inline_query_->query_hash);
 
       next_inline_query_time_ = now + INLINE_QUERY_DELAY_MS * 1e-3;
     }

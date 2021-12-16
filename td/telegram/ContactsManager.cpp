@@ -1431,8 +1431,8 @@ class GetExportedChatInvitesQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
 
-    auto input_user = td_->contacts_manager_->get_input_user(creator_user_id);
-    CHECK(input_user != nullptr);
+    auto r_input_user = td_->contacts_manager_->get_input_user(creator_user_id);
+    CHECK(r_input_user.is_ok());
 
     int32 flags = 0;
     if (!offset_invite_link.empty() || offset_date != 0) {
@@ -1442,9 +1442,9 @@ class GetExportedChatInvitesQuery final : public Td::ResultHandler {
     if (is_revoked) {
       flags |= telegram_api::messages_getExportedChatInvites::REVOKED_MASK;
     }
-    send_query(G()->net_query_creator().create(
-        telegram_api::messages_getExportedChatInvites(flags, false /*ignored*/, std::move(input_peer),
-                                                      std::move(input_user), offset_date, offset_invite_link, limit)));
+    send_query(G()->net_query_creator().create(telegram_api::messages_getExportedChatInvites(
+        flags, false /*ignored*/, std::move(input_peer), r_input_user.move_as_ok(), offset_date, offset_invite_link,
+        limit)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1548,15 +1548,15 @@ class GetChatInviteImportersQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
 
-    auto input_user = td_->contacts_manager_->get_input_user(offset_user_id);
-    if (input_user == nullptr) {
-      input_user = make_tl_object<telegram_api::inputUserEmpty>();
+    auto r_input_user = td_->contacts_manager_->get_input_user(offset_user_id);
+    if (r_input_user.is_error()) {
+      r_input_user = make_tl_object<telegram_api::inputUserEmpty>();
     }
 
     int32 flags = telegram_api::messages_getChatInviteImporters::LINK_MASK;
     send_query(G()->net_query_creator().create(
         telegram_api::messages_getChatInviteImporters(flags, false /*ignored*/, std::move(input_peer), invite_link,
-                                                      string(), offset_date, std::move(input_user), limit)));
+                                                      string(), offset_date, r_input_user.move_as_ok(), limit)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1619,9 +1619,9 @@ class GetChatJoinRequestsQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
 
-    auto input_user = td_->contacts_manager_->get_input_user(offset_user_id);
-    if (input_user == nullptr) {
-      input_user = make_tl_object<telegram_api::inputUserEmpty>();
+    auto r_input_user = td_->contacts_manager_->get_input_user(offset_user_id);
+    if (r_input_user.is_error()) {
+      r_input_user = make_tl_object<telegram_api::inputUserEmpty>();
     }
 
     int32 flags = telegram_api::messages_getChatInviteImporters::REQUESTED_MASK;
@@ -1633,7 +1633,7 @@ class GetChatJoinRequestsQuery final : public Td::ResultHandler {
     }
     send_query(G()->net_query_creator().create(
         telegram_api::messages_getChatInviteImporters(flags, false /*ignored*/, std::move(input_peer), invite_link,
-                                                      query, offset_date, std::move(input_user), limit)));
+                                                      query, offset_date, r_input_user.move_as_ok(), limit)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1696,9 +1696,9 @@ class HideChatJoinRequestQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
 
-    auto input_user = td_->contacts_manager_->get_input_user(user_id);
-    if (input_user == nullptr) {
-      return on_error(Status::Error(400, "Can't find user"));
+    auto r_input_user = td_->contacts_manager_->get_input_user(user_id);
+    if (r_input_user.is_error()) {
+      return on_error(r_input_user.move_as_error());
     }
 
     int32 flags = 0;
@@ -1706,7 +1706,7 @@ class HideChatJoinRequestQuery final : public Td::ResultHandler {
       flags |= telegram_api::messages_hideChatJoinRequest::APPROVED_MASK;
     }
     send_query(G()->net_query_creator().create(telegram_api::messages_hideChatJoinRequest(
-        flags, false /*ignored*/, std::move(input_peer), std::move(input_user))));
+        flags, false /*ignored*/, std::move(input_peer), r_input_user.move_as_ok())));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1893,11 +1893,11 @@ class DeleteRevokedExportedChatInvitesQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
 
-    auto input_user = td_->contacts_manager_->get_input_user(creator_user_id);
-    CHECK(input_user != nullptr);
+    auto r_input_user = td_->contacts_manager_->get_input_user(creator_user_id);
+    CHECK(r_input_user.is_ok());
 
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_deleteRevokedExportedChatInvites(std::move(input_peer), std::move(input_user))));
+        telegram_api::messages_deleteRevokedExportedChatInvites(std::move(input_peer), r_input_user.move_as_ok())));
   }
 
   void on_result(BufferSlice packet) final {
@@ -2208,10 +2208,10 @@ class CanEditChannelCreatorQuery final : public Td::ResultHandler {
   }
 
   void send() {
-    auto input_user = td_->contacts_manager_->get_input_user(td_->contacts_manager_->get_my_id());
-    CHECK(input_user != nullptr);
+    auto r_input_user = td_->contacts_manager_->get_input_user(td_->contacts_manager_->get_my_id());
+    CHECK(r_input_user.is_ok());
     send_query(G()->net_query_creator().create(telegram_api::channels_editCreator(
-        telegram_api::make_object<telegram_api::inputChannelEmpty>(), std::move(input_user),
+        telegram_api::make_object<telegram_api::inputChannelEmpty>(), r_input_user.move_as_ok(),
         make_tl_object<telegram_api::inputCheckPasswordEmpty>())));
   }
 
@@ -2246,12 +2246,12 @@ class EditChannelCreatorQuery final : public Td::ResultHandler {
     if (input_channel == nullptr) {
       return promise_.set_error(Status::Error(400, "Have no access to the chat"));
     }
-    auto input_user = td_->contacts_manager_->get_input_user(user_id);
-    if (input_user == nullptr) {
-      return promise_.set_error(Status::Error(400, "Have no access to the user"));
+    auto r_input_user = td_->contacts_manager_->get_input_user(user_id);
+    if (r_input_user.is_error()) {
+      return promise_.set_error(r_input_user.move_as_error());
     }
     send_query(G()->net_query_creator().create(telegram_api::channels_editCreator(
-        std::move(input_channel), std::move(input_user), std::move(input_check_password))));
+        std::move(input_channel), r_input_user.move_as_ok(), std::move(input_check_password))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -4359,17 +4359,20 @@ void ContactsManager::SecretChat::parse(ParserT &parser) {
   }
 }
 
-tl_object_ptr<telegram_api::InputUser> ContactsManager::get_input_user(UserId user_id) const {
+Result<tl_object_ptr<telegram_api::InputUser>> ContactsManager::get_input_user(UserId user_id) const {
   if (user_id == get_my_id()) {
     return make_tl_object<telegram_api::inputUserSelf>();
   }
 
   const User *u = get_user(user_id);
-  if (u == nullptr || u->access_hash == -1 || u->is_min_access_hash) {
+  if (u == nullptr) {
+    return Status::Error(400, "User not found");
+  }
+  if (u->access_hash == -1 || u->is_min_access_hash) {
     if (td_->auth_manager_->is_bot() && user_id.is_valid()) {
       return make_tl_object<telegram_api::inputUser>(user_id.get(), 0);
     }
-    return nullptr;
+    return Status::Error(400, "Have no access to the user");
   }
 
   return make_tl_object<telegram_api::inputUser>(user_id.get(), u->access_hash);
@@ -5166,13 +5169,13 @@ void ContactsManager::add_contact(Contact contact, bool share_phone_number, Prom
   LOG(INFO) << "Add " << contact << " with share_phone_number = " << share_phone_number;
 
   auto user_id = contact.get_user_id();
-  auto input_user = get_input_user(user_id);
-  if (input_user == nullptr) {
-    return promise.set_error(Status::Error(400, "User not found"));
+  auto r_input_user = get_input_user(user_id);
+  if (r_input_user.is_error()) {
+    return promise.set_error(r_input_user.move_as_error());
   }
 
   td_->create_handler<AddContactQuery>(std::move(promise))
-      ->send(user_id, std::move(input_user), contact, share_phone_number);
+      ->send(user_id, r_input_user.move_as_ok(), contact, share_phone_number);
 }
 
 std::pair<vector<UserId>, vector<int32>> ContactsManager::import_contacts(const vector<Contact> &contacts,
@@ -5302,10 +5305,10 @@ void ContactsManager::remove_contacts(const vector<UserId> &user_ids, Promise<Un
   for (auto &user_id : user_ids) {
     const User *u = get_user(user_id);
     if (u != nullptr && u->is_contact) {
-      auto input_user = get_input_user(user_id);
-      if (input_user != nullptr) {
+      auto r_input_user = get_input_user(user_id);
+      if (r_input_user.is_ok()) {
         to_delete_user_ids.push_back(user_id);
-        input_users.push_back(std::move(input_user));
+        input_users.push_back(r_input_user.move_as_ok());
       }
     }
   }
@@ -5652,14 +5655,14 @@ void ContactsManager::share_phone_number(UserId user_id, Promise<Unit> &&promise
   }
 
   LOG(INFO) << "Share phone number with " << user_id;
-  auto input_user = get_input_user(user_id);
-  if (input_user == nullptr) {
-    return promise.set_error(Status::Error(400, "User not found"));
+  auto r_input_user = get_input_user(user_id);
+  if (r_input_user.is_error()) {
+    return promise.set_error(r_input_user.move_as_error());
   }
 
   td_->messages_manager_->hide_dialog_action_bar(DialogId(user_id));
 
-  td_->create_handler<AcceptContactQuery>(std::move(promise))->send(user_id, std::move(input_user));
+  td_->create_handler<AcceptContactQuery>(std::move(promise))->send(user_id, r_input_user.move_as_ok());
 }
 
 void ContactsManager::search_dialogs_nearby(const Location &location,
@@ -6773,13 +6776,13 @@ void ContactsManager::add_chat_participant(ChatId chat_id, UserId user_id, int32
   }
   // TODO upper bound on forward_limit
 
-  auto input_user = get_input_user(user_id);
-  if (input_user == nullptr) {
-    return promise.set_error(Status::Error(400, "User not found"));
+  auto r_input_user = get_input_user(user_id);
+  if (r_input_user.is_error()) {
+    return promise.set_error(r_input_user.move_as_error());
   }
 
   // TODO invoke after
-  td_->create_handler<AddChatUserQuery>(std::move(promise))->send(chat_id, std::move(input_user), forward_limit);
+  td_->create_handler<AddChatUserQuery>(std::move(promise))->send(chat_id, r_input_user.move_as_ok(), forward_limit);
 }
 
 void ContactsManager::add_channel_participant(ChannelId channel_id, UserId user_id,
@@ -6792,9 +6795,9 @@ void ContactsManager::add_channel_participant(ChannelId channel_id, UserId user_
   if (c == nullptr) {
     return promise.set_error(Status::Error(400, "Chat info not found"));
   }
-  auto input_user = get_input_user(user_id);
-  if (input_user == nullptr) {
-    return promise.set_error(Status::Error(400, "User not found"));
+  auto r_input_user = get_input_user(user_id);
+  if (r_input_user.is_error()) {
+    return promise.set_error(r_input_user.move_as_error());
   }
 
   if (user_id == get_my_id()) {
@@ -6814,7 +6817,7 @@ void ContactsManager::add_channel_participant(ChannelId channel_id, UserId user_
 
   speculative_add_channel_user(channel_id, user_id, DialogParticipantStatus::Member(), old_status);
   vector<tl_object_ptr<telegram_api::InputUser>> input_users;
-  input_users.push_back(std::move(input_user));
+  input_users.push_back(r_input_user.move_as_ok());
   td_->create_handler<InviteToChannelQuery>(std::move(promise))->send(channel_id, std::move(input_users));
 }
 
@@ -6835,16 +6838,16 @@ void ContactsManager::add_channel_participants(ChannelId channel_id, const vecto
 
   vector<tl_object_ptr<telegram_api::InputUser>> input_users;
   for (auto user_id : user_ids) {
-    auto input_user = get_input_user(user_id);
-    if (input_user == nullptr) {
-      return promise.set_error(Status::Error(400, "User not found"));
+    auto r_input_user = get_input_user(user_id);
+    if (r_input_user.is_error()) {
+      return promise.set_error(r_input_user.move_as_error());
     }
 
     if (user_id == get_my_id()) {
       // can't invite self
       continue;
     }
-    input_users.push_back(std::move(input_user));
+    input_users.push_back(r_input_user.move_as_ok());
   }
 
   if (input_users.empty()) {
@@ -6921,9 +6924,10 @@ void ContactsManager::set_channel_participant_status_impl(ChannelId channel_id, 
     }
     if (status.is_member() == old_status.is_member()) {
       // change rank and is_anonymous
-      auto input_user = get_input_user(get_my_id());
-      CHECK(input_user != nullptr);
-      td_->create_handler<EditChannelAdminQuery>(std::move(promise))->send(channel_id, std::move(input_user), status);
+      auto r_input_user = get_input_user(get_my_id());
+      CHECK(r_input_user.is_ok());
+      td_->create_handler<EditChannelAdminQuery>(std::move(promise))
+          ->send(channel_id, r_input_user.move_as_ok(), status);
       return;
     }
     if (status.is_member()) {
@@ -7002,13 +7006,13 @@ void ContactsManager::promote_channel_participant(ChannelId channel_id, UserId u
     CHECK(!status.is_creator());
   }
 
-  auto input_user = get_input_user(user_id);
-  if (input_user == nullptr) {
-    return promise.set_error(Status::Error(400, "User not found"));
+  auto r_input_user = get_input_user(user_id);
+  if (r_input_user.is_error()) {
+    return promise.set_error(r_input_user.move_as_error());
   }
 
   speculative_add_channel_user(channel_id, user_id, status, old_status);
-  td_->create_handler<EditChannelAdminQuery>(std::move(promise))->send(channel_id, std::move(input_user), status);
+  td_->create_handler<EditChannelAdminQuery>(std::move(promise))->send(channel_id, r_input_user.move_as_ok(), status);
 }
 
 void ContactsManager::set_chat_participant_status(ChatId chat_id, UserId user_id, DialogParticipantStatus status,
@@ -7080,12 +7084,13 @@ void ContactsManager::set_chat_participant_status(ChatId chat_id, UserId user_id
 
 void ContactsManager::send_edit_chat_admin_query(ChatId chat_id, UserId user_id, bool is_administrator,
                                                  Promise<Unit> &&promise) {
-  auto input_user = get_input_user(user_id);
-  if (input_user == nullptr) {
-    return promise.set_error(Status::Error(400, "User not found"));
+  auto r_input_user = get_input_user(user_id);
+  if (r_input_user.is_error()) {
+    return promise.set_error(r_input_user.move_as_error());
   }
 
-  td_->create_handler<EditChatAdminQuery>(std::move(promise))->send(chat_id, std::move(input_user), is_administrator);
+  td_->create_handler<EditChatAdminQuery>(std::move(promise))
+      ->send(chat_id, r_input_user.move_as_ok(), is_administrator);
 }
 
 void ContactsManager::can_transfer_ownership(Promise<CanTransferOwnershipResult> &&promise) {
@@ -7472,13 +7477,14 @@ void ContactsManager::delete_chat_participant(ChatId chat_id, UserId user_id, bo
       }
     }
   }
-  auto input_user = get_input_user(user_id);
-  if (input_user == nullptr) {
-    return promise.set_error(Status::Error(400, "User not found"));
+  auto r_input_user = get_input_user(user_id);
+  if (r_input_user.is_error()) {
+    return promise.set_error(r_input_user.move_as_error());
   }
 
   // TODO invoke after
-  td_->create_handler<DeleteChatUserQuery>(std::move(promise))->send(chat_id, std::move(input_user), revoke_messages);
+  td_->create_handler<DeleteChatUserQuery>(std::move(promise))
+      ->send(chat_id, r_input_user.move_as_ok(), revoke_messages);
 }
 
 void ContactsManager::restrict_channel_participant(ChannelId channel_id, DialogId participant_dialog_id,
@@ -13956,14 +13962,14 @@ bool ContactsManager::get_user(UserId user_id, int left_tries, Promise<Unit> &&p
                          std::move(promise));
       return false;
     }
-    auto input_user = get_input_user(user_id);
-    if (left_tries == 1 || input_user == nullptr) {
-      promise.set_error(Status::Error(400, "User not found"));
+    auto r_input_user = get_input_user(user_id);
+    if (left_tries == 1 || r_input_user.is_error()) {
+      promise.set_error(r_input_user.move_as_error());
       return false;
     }
 
     vector<tl_object_ptr<telegram_api::InputUser>> users;
-    users.push_back(std::move(input_user));
+    users.push_back(r_input_user.move_as_ok());
     td_->create_handler<GetUsersQuery>(std::move(promise))->send(std::move(users));
     return false;
   }
@@ -14014,14 +14020,14 @@ void ContactsManager::reload_user(UserId user_id, Promise<Unit> &&promise) {
   }
 
   have_user_force(user_id);
-  auto input_user = get_input_user(user_id);
-  if (input_user == nullptr) {
-    return promise.set_error(Status::Error(400, "User info not found"));
+  auto r_input_user = get_input_user(user_id);
+  if (r_input_user.is_error()) {
+    return promise.set_error(r_input_user.move_as_error());
   }
 
   // there is no much reason to combine different requests into one request
   vector<tl_object_ptr<telegram_api::InputUser>> users;
-  users.push_back(std::move(input_user));
+  users.push_back(r_input_user.move_as_ok());
   td_->create_handler<GetUsersQuery>(std::move(promise))->send(std::move(users));
 }
 
@@ -14033,30 +14039,30 @@ void ContactsManager::load_user_full(UserId user_id, bool force, Promise<Unit> &
 
   auto user_full = get_user_full_force(user_id);
   if (user_full == nullptr) {
-    auto input_user = get_input_user(user_id);
-    if (input_user == nullptr) {
-      return promise.set_error(Status::Error(400, "Can't get info about inaccessible user"));
+    auto r_input_user = get_input_user(user_id);
+    if (r_input_user.is_error()) {
+      return promise.set_error(r_input_user.move_as_error());
     }
 
-    return send_get_user_full_query(user_id, std::move(input_user), std::move(promise), source);
+    return send_get_user_full_query(user_id, r_input_user.move_as_ok(), std::move(promise), source);
   }
   if (user_full->is_expired()) {
-    auto input_user = get_input_user(user_id);
-    CHECK(input_user != nullptr);
+    auto r_input_user = get_input_user(user_id);
+    CHECK(r_input_user.is_ok());
     if (td_->auth_manager_->is_bot() && !force) {
-      return send_get_user_full_query(user_id, std::move(input_user), std::move(promise), "load expired user_full");
+      return send_get_user_full_query(user_id, r_input_user.move_as_ok(), std::move(promise), "load expired user_full");
     }
 
-    send_get_user_full_query(user_id, std::move(input_user), Auto(), "load expired user_full");
+    send_get_user_full_query(user_id, r_input_user.move_as_ok(), Auto(), "load expired user_full");
   }
 
   promise.set_value(Unit());
 }
 
 void ContactsManager::reload_user_full(UserId user_id) {
-  auto input_user = get_input_user(user_id);
-  if (input_user != nullptr) {
-    send_get_user_full_query(user_id, std::move(input_user), Auto(), "reload_user_full");
+  auto r_input_user = get_input_user(user_id);
+  if (r_input_user.is_ok()) {
+    send_get_user_full_query(user_id, r_input_user.move_as_ok(), Auto(), "reload_user_full");
   }
 }
 
@@ -14089,9 +14095,9 @@ std::pair<int32, vector<const Photo *>> ContactsManager::get_user_profile_photos
     limit = MAX_GET_PROFILE_PHOTOS;
   }
 
-  auto input_user = get_input_user(user_id);
-  if (input_user == nullptr) {
-    promise.set_error(Status::Error(400, "User not found"));
+  auto r_input_user = get_input_user(user_id);
+  if (r_input_user.is_error()) {
+    promise.set_error(r_input_user.move_as_error());
     return result;
   }
 
@@ -14141,20 +14147,22 @@ std::pair<int32, vector<const Photo *>> ContactsManager::get_user_profile_photos
     limit = MAX_GET_PROFILE_PHOTOS / 5;  // make limit reasonable
   }
 
-  td_->create_handler<GetUserPhotosQuery>(std::move(promise))->send(user_id, std::move(input_user), offset, limit, 0);
+  td_->create_handler<GetUserPhotosQuery>(std::move(promise))
+      ->send(user_id, r_input_user.move_as_ok(), offset, limit, 0);
   return result;
 }
 
 void ContactsManager::reload_user_profile_photo(UserId user_id, int64 photo_id, Promise<Unit> &&promise) {
   get_user_force(user_id);
-  auto input_user = get_input_user(user_id);
-  if (input_user == nullptr) {
-    return promise.set_error(Status::Error(400, "User info not found"));
+  auto r_input_user = get_input_user(user_id);
+  if (r_input_user.is_error()) {
+    return promise.set_error(r_input_user.move_as_error());
   }
 
   // this request will be needed only to download the photo,
   // so there is no reason to combine different requests for a photo into one request
-  td_->create_handler<GetUserPhotosQuery>(std::move(promise))->send(user_id, std::move(input_user), -1, 1, photo_id);
+  td_->create_handler<GetUserPhotosQuery>(std::move(promise))
+      ->send(user_id, r_input_user.move_as_ok(), -1, 1, photo_id);
 }
 
 FileSourceId ContactsManager::get_user_profile_photo_file_source_id(UserId user_id, int64 photo_id) {
@@ -15154,9 +15162,9 @@ void ContactsManager::get_channel_participant(ChannelId channel_id, DialogId par
                                               Promise<DialogParticipant> &&promise) {
   LOG(INFO) << "Trying to get " << participant_dialog_id << " as member of " << channel_id;
 
-  auto input_peer = td_->messages_manager_->get_input_peer(participant_dialog_id, AccessRights::Read);
+  auto input_peer = td_->messages_manager_->get_input_peer(participant_dialog_id, AccessRights::Know);
   if (input_peer == nullptr) {
-    return promise.set_error(Status::Error(400, "User not found"));
+    return promise.set_error(Status::Error(400, "Member not found"));
   }
 
   if (have_channel_participant_cache(channel_id)) {

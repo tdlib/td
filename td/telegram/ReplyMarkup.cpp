@@ -700,25 +700,26 @@ static tl_object_ptr<telegram_api::KeyboardButton> get_inline_keyboard_button(
       if (!keyboard_button.forward_text.empty()) {
         flags |= telegram_api::inputKeyboardButtonUrlAuth::FWD_TEXT_MASK;
       }
-      auto input_user = G()->td().get_actor_unsafe()->contacts_manager_->get_input_user(UserId(bot_user_id));
-      if (input_user == nullptr) {
-        LOG(ERROR) << "Failed to get InputUser for " << bot_user_id;
+      auto r_input_user = G()->td().get_actor_unsafe()->contacts_manager_->get_input_user(UserId(bot_user_id));
+      if (r_input_user.is_error()) {
+        LOG(ERROR) << "Failed to get InputUser for " << bot_user_id << ": " << r_input_user.error();
         return make_tl_object<telegram_api::keyboardButtonUrl>(keyboard_button.text, keyboard_button.data);
       }
       return make_tl_object<telegram_api::inputKeyboardButtonUrlAuth>(flags, false /*ignored*/, keyboard_button.text,
                                                                       keyboard_button.forward_text,
-                                                                      keyboard_button.data, std::move(input_user));
+                                                                      keyboard_button.data, r_input_user.move_as_ok());
     }
     case InlineKeyboardButton::Type::CallbackWithPassword:
       UNREACHABLE();
       break;
     case InlineKeyboardButton::Type::User: {
-      auto input_user = G()->td().get_actor_unsafe()->contacts_manager_->get_input_user(keyboard_button.user_id);
-      if (input_user == nullptr) {
-        LOG(ERROR) << "Failed to get InputUser for " << keyboard_button.user_id;
-        input_user = make_tl_object<telegram_api::inputUserEmpty>();
+      auto r_input_user = G()->td().get_actor_unsafe()->contacts_manager_->get_input_user(keyboard_button.user_id);
+      if (r_input_user.is_error()) {
+        LOG(ERROR) << "Failed to get InputUser for " << keyboard_button.user_id << ": " << r_input_user.error();
+        r_input_user = make_tl_object<telegram_api::inputUserEmpty>();
       }
-      return make_tl_object<telegram_api::inputKeyboardButtonUserProfile>(keyboard_button.text, std::move(input_user));
+      return make_tl_object<telegram_api::inputKeyboardButtonUserProfile>(keyboard_button.text,
+                                                                          r_input_user.move_as_ok());
     }
     default:
       UNREACHABLE();

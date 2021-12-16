@@ -5606,9 +5606,9 @@ void Td::on_request(uint64 id, const td_api::createCall &request) {
   }
 
   UserId user_id(request.user_id_);
-  auto input_user = contacts_manager_->get_input_user(user_id);
-  if (input_user == nullptr) {
-    return send_error_raw(id, 400, "User not found");
+  auto r_input_user = contacts_manager_->get_input_user(user_id);
+  if (r_input_user.is_error()) {
+    return send_error_raw(id, r_input_user.error().code(), r_input_user.error().message());
   }
 
   if (!G()->shared_config().get_option_boolean("calls_enabled")) {
@@ -5623,7 +5623,7 @@ void Td::on_request(uint64 id, const td_api::createCall &request) {
       promise.set_value(result.ok().get_call_id_object());
     }
   });
-  send_closure(G()->call_manager(), &CallManager::create_call, user_id, std::move(input_user),
+  send_closure(G()->call_manager(), &CallManager::create_call, user_id, r_input_user.move_as_ok(),
                CallProtocol(*request.protocol_), request.is_video_, std::move(query_promise));
 }
 
@@ -7317,13 +7317,12 @@ void Td::on_request(uint64 id, const td_api::deletePassportElement &request) {
 
 void Td::on_request(uint64 id, td_api::setPassportElementErrors &request) {
   CHECK_IS_BOT();
-  UserId user_id(request.user_id_);
-  auto input_user = contacts_manager_->get_input_user(user_id);
-  if (input_user == nullptr) {
-    return send_error_raw(id, 400, "User not found");
+  auto r_input_user = contacts_manager_->get_input_user(UserId(request.user_id_));
+  if (r_input_user.is_error()) {
+    return send_error_raw(id, r_input_user.error().code(), r_input_user.error().message());
   }
   CREATE_OK_REQUEST_PROMISE();
-  send_closure(secure_manager_, &SecureManager::set_secure_value_errors, this, std::move(input_user),
+  send_closure(secure_manager_, &SecureManager::set_secure_value_errors, this, r_input_user.move_as_ok(),
                std::move(request.errors_), std::move(promise));
 }
 

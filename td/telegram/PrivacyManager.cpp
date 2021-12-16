@@ -318,9 +318,9 @@ Result<PrivacyManager::UserPrivacySettingRule> PrivacyManager::UserPrivacySettin
 vector<tl_object_ptr<telegram_api::InputUser>> PrivacyManager::UserPrivacySettingRule::get_input_users() const {
   vector<tl_object_ptr<telegram_api::InputUser>> result;
   for (auto user_id : user_ids_) {
-    auto input_user = G()->td().get_actor_unsafe()->contacts_manager_->get_input_user(user_id);
-    if (input_user != nullptr) {
-      result.push_back(std::move(input_user));
+    auto r_input_user = G()->td().get_actor_unsafe()->contacts_manager_->get_input_user(user_id);
+    if (r_input_user.is_ok()) {
+      result.push_back(r_input_user.move_as_ok());
     } else {
       LOG(ERROR) << "Have no access to " << user_id;
     }

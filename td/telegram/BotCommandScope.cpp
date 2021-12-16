@@ -100,7 +100,9 @@ telegram_api::object_ptr<telegram_api::BotCommandScope> BotCommandScope::get_inp
     const Td *td) const {
   auto input_peer =
       dialog_id_.is_valid() ? td->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read) : nullptr;
-  auto input_user = user_id_.is_valid() ? td->contacts_manager_->get_input_user(user_id_) : nullptr;
+  auto input_user = td->contacts_manager_->have_input_user(user_id_)
+                        ? td->contacts_manager_->get_input_user(user_id_).move_as_ok()
+                        : nullptr;
   switch (type_) {
     case Type::Default:
       return telegram_api::make_object<telegram_api::botCommandScopeDefault>();

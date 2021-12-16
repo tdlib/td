@@ -5453,15 +5453,9 @@ FileId StickersManager::upload_sticker_file(UserId user_id, tl_object_ptr<td_api
     user_id = td_->contacts_manager_->get_my_id();
   }
 
-  auto input_user = td_->contacts_manager_->get_input_user(user_id);
-  if (input_user == nullptr) {
-    promise.set_error(Status::Error(400, "User not found"));
-    return FileId();
-  }
-  DialogId dialog_id(user_id);
-  auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
-  if (input_peer == nullptr) {
-    promise.set_error(Status::Error(400, "Have no access to the user"));
+  auto r_input_user = td_->contacts_manager_->get_input_user(user_id);
+  if (r_input_user.is_error()) {
+    promise.set_error(r_input_user.move_as_error());
     return FileId();
   }
 
@@ -5579,15 +5573,8 @@ void StickersManager::create_new_sticker_set(UserId user_id, string &title, stri
   if (!is_bot) {
     user_id = td_->contacts_manager_->get_my_id();
   }
-  auto input_user = td_->contacts_manager_->get_input_user(user_id);
-  if (input_user == nullptr) {
-    return promise.set_error(Status::Error(400, "User not found"));
-  }
-  DialogId dialog_id(user_id);
-  auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
-  if (input_peer == nullptr) {
-    return promise.set_error(Status::Error(400, "Have no access to the user"));
-  }
+
+  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
 
   title = strip_empty_characters(title, MAX_STICKER_SET_TITLE_LENGTH);
   if (title.empty()) {
@@ -5804,10 +5791,8 @@ void StickersManager::on_new_stickers_uploaded(int64 random_id, Result<Unit> res
 
   CHECK(pending_new_sticker_set->upload_files_multipromise.promise_count() == 0);
 
-  auto input_user = td_->contacts_manager_->get_input_user(pending_new_sticker_set->user_id);
-  if (input_user == nullptr) {
-    return pending_new_sticker_set->promise.set_error(Status::Error(400, "User not found"));
-  }
+  auto &promise = pending_new_sticker_set->promise;
+  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(pending_new_sticker_set->user_id));
 
   bool is_masks = pending_new_sticker_set->is_masks;
   bool is_animated = pending_new_sticker_set->is_animated;
@@ -5827,15 +5812,7 @@ void StickersManager::on_new_stickers_uploaded(int64 random_id, Result<Unit> res
 
 void StickersManager::add_sticker_to_set(UserId user_id, string &short_name,
                                          tl_object_ptr<td_api::InputSticker> &&sticker, Promise<Unit> &&promise) {
-  auto input_user = td_->contacts_manager_->get_input_user(user_id);
-  if (input_user == nullptr) {
-    return promise.set_error(Status::Error(400, "User not found"));
-  }
-  DialogId dialog_id(user_id);
-  auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
-  if (input_peer == nullptr) {
-    return promise.set_error(Status::Error(400, "Have no access to the user"));
-  }
+  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
 
   short_name = strip_empty_characters(short_name, MAX_STICKER_SET_SHORT_NAME_LENGTH);
   if (short_name.empty()) {
@@ -5896,15 +5873,7 @@ void StickersManager::on_added_sticker_uploaded(int64 random_id, Result<Unit> re
 
 void StickersManager::set_sticker_set_thumbnail(UserId user_id, string &short_name,
                                                 tl_object_ptr<td_api::InputFile> &&thumbnail, Promise<Unit> &&promise) {
-  auto input_user = td_->contacts_manager_->get_input_user(user_id);
-  if (input_user == nullptr) {
-    return promise.set_error(Status::Error(400, "User not found"));
-  }
-  DialogId dialog_id(user_id);
-  auto input_peer = td_->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
-  if (input_peer == nullptr) {
-    return promise.set_error(Status::Error(400, "Have no access to the user"));
-  }
+  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
 
   short_name = clean_username(strip_empty_characters(short_name, MAX_STICKER_SET_SHORT_NAME_LENGTH));
   if (short_name.empty()) {

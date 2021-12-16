@@ -4171,10 +4171,10 @@ vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(co
             make_tl_object<telegram_api::messageEntityTextUrl>(entity.offset, entity.length, entity.argument));
         break;
       case MessageEntity::Type::MentionName: {
-        auto input_user = contacts_manager->get_input_user(entity.user_id);
-        LOG_CHECK(input_user != nullptr) << source;
+        auto r_input_user = contacts_manager->get_input_user(entity.user_id);
+        LOG_CHECK(r_input_user.is_ok()) << source << ' ' << r_input_user.error();
         result.push_back(make_tl_object<telegram_api::inputMessageEntityMentionName>(entity.offset, entity.length,
-                                                                                     std::move(input_user)));
+                                                                                     r_input_user.move_as_ok()));
         break;
       }
       default:
