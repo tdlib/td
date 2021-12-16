@@ -9,12 +9,16 @@
 #   OS - the default, used to build for iPhone and iPad physical devices, which have an arm arch.
 #   SIMULATOR - used to build for the Simulator platforms, which have an x86 arch.
 #
+# IOS_ARCH = automatic(default) or "arch1;arch2" (e.q. "x86_64;arm64")
+#   By default this value will be automatically chosen based on the IOS_PLATFORM value above.
+#   If set manually, it will override the default and force to build those architectures only.
+#
 # CMAKE_IOS_DEVELOPER_ROOT = automatic(default) or /path/to/platform/Developer folder
-#   By default this location is automatcially chosen based on the IOS_PLATFORM value above.
+#   By default this location is automatically chosen based on the IOS_PLATFORM value above.
 #   If set manually, it will override the default location and force the user of a particular Developer Platform
 #
 # CMAKE_IOS_SDK_ROOT = automatic(default) or /path/to/platform/Developer/SDKs/SDK folder
-#   By default this location is automatcially chosen based on the CMAKE_IOS_DEVELOPER_ROOT value.
+#   By default this location is automatically chosen based on the CMAKE_IOS_DEVELOPER_ROOT value.
 #   In this case it will always be the most up-to-date SDK found in the CMAKE_IOS_DEVELOPER_ROOT path.
 #   If set manually, this will force the use of a specific SDK version
 
@@ -191,23 +195,23 @@ set (CMAKE_IOS_SDK_ROOT ${CMAKE_IOS_SDK_ROOT} CACHE PATH "Location of the select
 # Set the sysroot default to the most recent SDK
 set (CMAKE_OSX_SYSROOT ${CMAKE_IOS_SDK_ROOT} CACHE PATH "Sysroot used for iOS support")
 
-# set the architecture for iOS
-if (IOS_PLATFORM STREQUAL "OS")
-    set (IOS_ARCH "armv7;armv7s;arm64")
-elseif (IOS_PLATFORM STREQUAL "SIMULATOR")
-    set (IOS_ARCH "i386;x86_64;arm64")
-elseif (IOS_PLATFORM STREQUAL "WATCHOS")
-    set (IOS_ARCH "armv7k;arm64_32")
-elseif (IOS_PLATFORM STREQUAL "WATCHSIMULATOR")
-    set (IOS_ARCH "i386;x86_64;arm64")
-elseif (IOS_PLATFORM STREQUAL "TVOS")
-    set (IOS_ARCH "arm64")
-elseif (IOS_PLATFORM STREQUAL "TVSIMULATOR")
-    set (IOS_ARCH "x86_64;arm64")
-else()
-    message (WARNING "Unknown IOS_PLATFORM=<${IOS_PLATFORM}>")
+# Set the architectures unless specified manually with IOS_ARCH
+if (NOT DEFINED IOS_ARCH)
+    if (IOS_PLATFORM STREQUAL "OS")
+        set (IOS_ARCH "armv7;armv7s;arm64")
+    elseif (IOS_PLATFORM STREQUAL "SIMULATOR")
+        set (IOS_ARCH "i386;x86_64;arm64")
+    elseif (IOS_PLATFORM STREQUAL "WATCHOS")
+        set (IOS_ARCH "armv7k;arm64_32")
+    elseif (IOS_PLATFORM STREQUAL "WATCHSIMULATOR")
+        set (IOS_ARCH "i386;x86_64;arm64")
+    elseif (IOS_PLATFORM STREQUAL "TVOS")
+        set (IOS_ARCH "arm64")
+    elseif (IOS_PLATFORM STREQUAL "TVSIMULATOR")
+        set (IOS_ARCH "x86_64;arm64")
+    endif()
 endif()
-message (STATUS ${IOS_ARCH})
+message (STATUS "The iOS architectures: ${IOS_ARCH}")
 
 set (CMAKE_OSX_ARCHITECTURES ${IOS_ARCH} CACHE STRING "Build architecture for iOS")
 
