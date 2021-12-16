@@ -32,6 +32,8 @@ class OptionManager final : public Actor {
 
   void get_option(const string &name, Promise<td_api::object_ptr<td_api::OptionValue>> &&promise);
 
+  void set_option(const string &name, td_api::object_ptr<td_api::OptionValue> &&value, Promise<Unit> &&promise);
+
   static void clear_options();
 
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;

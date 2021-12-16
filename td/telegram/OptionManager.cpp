@@ -12,17 +12,23 @@
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/JsonValue.h"
 #include "td/telegram/LanguagePackManager.h"
 #include "td/telegram/net/MtprotoHeader.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/NotificationManager.h"
+#include "td/telegram/StateManager.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/StorageManager.h"
 #include "td/telegram/SuggestedAction.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/TdDb.h"
 #include "td/telegram/TopDialogManager.h"
 
 #include "td/utils/misc.h"
+#include "td/utils/SliceBuilder.h"
+
+#include <limits>
 
 namespace td {
 
@@ -302,12 +308,306 @@ void OptionManager::get_option(const string &name, Promise<td_api::object_ptr<td
   wrap_promise().set_value(Unit());
 }
 
+void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::OptionValue> &&value,
+                               Promise<Unit> &&promise) {
+  int32 value_constructor_id = value == nullptr ? td_api::optionValueEmpty::ID : value->get_id();
+
+  auto set_integer_option = [&](Slice option_name, int64 min_value = 0,
+                                int64 max_value = std::numeric_limits<int32>::max()) {
+    if (name != option_name) {
+      return false;
+    }
+    if (value_constructor_id != td_api::optionValueInteger::ID &&
+        value_constructor_id != td_api::optionValueEmpty::ID) {
+      promise.set_error(Status::Error(400, PSLICE() << "Option \"" << name << "\" must have integer value"));
+      return true;
+    }
+    if (value_constructor_id == td_api::optionValueEmpty::ID) {
+      G()->shared_config().set_option_empty(option_name);
+    } else {
+      int64 int_value = static_cast<td_api::optionValueInteger *>(value.get())->value_;
+      if (int_value < min_value || int_value > max_value) {
+        promise.set_error(Status::Error(400, PSLICE() << "Option's \"" << name << "\" value " << int_value
+                                                      << " is outside of the valid range [" << min_value << ", "
+                                                      << max_value << "]"));
+        return true;
+      }
+      G()->shared_config().set_option_integer(name, int_value);
+    }
+    promise.set_value(Unit());
+    return true;
+  };
+
+  auto set_boolean_option = [&](Slice option_name) {
+    if (name != option_name) {
+      return false;
+    }
+    if (value_constructor_id != td_api::optionValueBoolean::ID &&
+        value_constructor_id != td_api::optionValueEmpty::ID) {
+      promise.set_error(Status::Error(400, PSLICE() << "Option \"" << name << "\" must have boolean value"));
+      return true;
+    }
+    if (value_constructor_id == td_api::optionValueEmpty::ID) {
+      G()->shared_config().set_option_empty(name);
+    } else {
+      bool bool_value = static_cast<td_api::optionValueBoolean *>(value.get())->value_;
+      G()->shared_config().set_option_boolean(name, bool_value);
+    }
+    promise.set_value(Unit());
+    return true;
+  };
+
+  auto set_string_option = [&](Slice option_name, auto check_value) {
+    if (name != option_name) {
+      return false;
+    }
+    if (value_constructor_id != td_api::optionValueString::ID && value_constructor_id != td_api::optionValueEmpty::ID) {
+      promise.set_error(Status::Error(400, PSLICE() << "Option \"" << name << "\" must have string value"));
+      return true;
+    }
+    if (value_constructor_id == td_api::optionValueEmpty::ID) {
+      G()->shared_config().set_option_empty(name);
+    } else {
+      const string &str_value = static_cast<td_api::optionValueString *>(value.get())->value_;
+      if (str_value.empty()) {
+        G()->shared_config().set_option_empty(name);
+      } else {
+        if (check_value(str_value)) {
+          G()->shared_config().set_option_string(name, str_value);
+        } else {
+          promise.set_error(Status::Error(400, PSLICE() << "Option \"" << name << "\" can't have specified value"));
+          return true;
+        }
+      }
+    }
+    promise.set_value(Unit());
+    return true;
+  };
+
+  bool is_bot = td_->auth_manager_ != nullptr && td_->auth_manager_->is_authorized() && td_->auth_manager_->is_bot();
+  switch (name[0]) {
+    case 'a':
+      if (set_boolean_option("always_parse_markdown")) {
+        return;
+      }
+      if (!is_bot && name == "archive_and_mute_new_chats_from_unknown_users") {
+        if (value_constructor_id != td_api::optionValueBoolean::ID &&
+            value_constructor_id != td_api::optionValueEmpty::ID) {
+          return promise.set_error(
+              Status::Error(400, "Option \"archive_and_mute_new_chats_from_unknown_users\" must have boolean value"));
+        }
+
+        auto archive_and_mute = value_constructor_id == td_api::optionValueBoolean::ID &&
+                                static_cast<td_api::optionValueBoolean *>(value.get())->value_;
+        send_closure_later(td_->config_manager_, &ConfigManager::set_archive_and_mute, archive_and_mute,
+                           std::move(promise));
+        return;
+      }
+      break;
+    case 'c':
+      if (!is_bot && set_string_option("connection_parameters", [](Slice value) {
+            string value_copy = value.str();
+            auto r_json_value = get_json_value(value_copy);
+            if (r_json_value.is_error()) {
+              return false;
+            }
+            return r_json_value.ok()->get_id() == td_api::jsonValueObject::ID;
+          })) {
+        return;
+      }
+      break;
+    case 'd':
+      if (!is_bot && set_boolean_option("disable_animated_emoji")) {
+        return;
+      }
+      if (!is_bot && set_boolean_option("disable_contact_registered_notifications")) {
+        return;
+      }
+      if (!is_bot && set_boolean_option("disable_sent_scheduled_message_notifications")) {
+        return;
+      }
+      if (!is_bot && set_boolean_option("disable_top_chats")) {
+        return;
+      }
+      if (set_boolean_option("disable_persistent_network_statistics")) {
+        return;
+      }
+      if (set_boolean_option("disable_time_adjustment_protection")) {
+        return;
+      }
+      if (name == "drop_notification_ids") {
+        G()->td_db()->get_binlog_pmc()->erase("notification_id_current");
+        G()->td_db()->get_binlog_pmc()->erase("notification_group_id_current");
+        return promise.set_value(Unit());
+      }
+      break;
+    case 'i':
+      if (set_boolean_option("ignore_background_updates")) {
+        return;
+      }
+      if (set_boolean_option("ignore_default_disable_notification")) {
+        return;
+      }
+      if (set_boolean_option("ignore_inline_thumbnails")) {
+        return;
+      }
+      if (set_boolean_option("ignore_platform_restrictions")) {
+        return;
+      }
+      if (set_boolean_option("is_emulator")) {
+        return;
+      }
+      if (!is_bot && name == "ignore_sensitive_content_restrictions") {
+        if (!G()->shared_config().get_option_boolean("can_ignore_sensitive_content_restrictions")) {
+          return promise.set_error(
+              Status::Error(400, "Option \"ignore_sensitive_content_restrictions\" can't be changed by the user"));
+        }
+
+        if (value_constructor_id != td_api::optionValueBoolean::ID &&
+            value_constructor_id != td_api::optionValueEmpty::ID) {
+          return promise.set_error(
+              Status::Error(400, "Option \"ignore_sensitive_content_restrictions\" must have boolean value"));
+        }
+
+        auto ignore_sensitive_content_restrictions = value_constructor_id == td_api::optionValueBoolean::ID &&
+                                                     static_cast<td_api::optionValueBoolean *>(value.get())->value_;
+        send_closure_later(td_->config_manager_, &ConfigManager::set_content_settings,
+                           ignore_sensitive_content_restrictions, std::move(promise));
+        return;
+      }
+      if (!is_bot && set_boolean_option("is_location_visible")) {
+        td_->contacts_manager_->set_location_visibility();
+        return;
+      }
+      break;
+    case 'l':
+      if (!is_bot && set_string_option("language_pack_database_path", [](Slice value) { return true; })) {
+        return;
+      }
+      if (!is_bot && set_string_option("localization_target", LanguagePackManager::check_language_pack_name)) {
+        return;
+      }
+      if (!is_bot && set_string_option("language_pack_id", LanguagePackManager::check_language_code_name)) {
+        return;
+      }
+      break;
+    case 'm':
+      if (set_integer_option("message_unload_delay", 60, 86400)) {
+        return;
+      }
+      break;
+    case 'n':
+      if (!is_bot &&
+          set_integer_option("notification_group_count_max", NotificationManager::MIN_NOTIFICATION_GROUP_COUNT_MAX,
+                             NotificationManager::MAX_NOTIFICATION_GROUP_COUNT_MAX)) {
+        return;
+      }
+      if (!is_bot &&
+          set_integer_option("notification_group_size_max", NotificationManager::MIN_NOTIFICATION_GROUP_SIZE_MAX,
+                             NotificationManager::MAX_NOTIFICATION_GROUP_SIZE_MAX)) {
+        return;
+      }
+      break;
+    case 'o':
+      if (name == "online") {
+        if (value_constructor_id != td_api::optionValueBoolean::ID &&
+            value_constructor_id != td_api::optionValueEmpty::ID) {
+          return promise.set_error(Status::Error(400, "Option \"online\" must have boolean value"));
+        }
+        bool is_online = value_constructor_id == td_api::optionValueEmpty::ID ||
+                         static_cast<const td_api::optionValueBoolean *>(value.get())->value_;
+        if (!is_bot) {
+          send_closure(td_->state_manager_, &StateManager::on_online, is_online);
+        }
+        td_->set_is_online(is_online);
+        return promise.set_value(Unit());
+      }
+      break;
+    case 'p':
+      if (set_boolean_option("prefer_ipv6")) {
+        send_closure(td_->state_manager_, &StateManager::on_network_updated);
+        return;
+      }
+      break;
+    case 'r':
+      // temporary option
+      if (set_boolean_option("reuse_uploaded_photos_by_hash")) {
+        return;
+      }
+      break;
+    case 's':
+      if (set_integer_option("storage_max_files_size")) {
+        return;
+      }
+      if (set_integer_option("storage_max_time_from_last_access")) {
+        return;
+      }
+      if (set_integer_option("storage_max_file_count")) {
+        return;
+      }
+      if (set_integer_option("storage_immunity_delay")) {
+        return;
+      }
+      if (set_boolean_option("store_all_files_in_files_directory")) {
+        return;
+      }
+      break;
+    case 't':
+      if (set_boolean_option("test_flood_wait")) {
+        return;
+      }
+      break;
+    case 'u':
+      if (set_boolean_option("use_pfs")) {
+        return;
+      }
+      if (set_boolean_option("use_quick_ack")) {
+        return;
+      }
+      if (set_boolean_option("use_storage_optimizer")) {
+        return;
+      }
+      if (set_integer_option("utc_time_offset", -12 * 60 * 60, 14 * 60 * 60)) {
+        return;
+      }
+      break;
+    case 'X':
+    case 'x': {
+      if (name.size() > 255) {
+        return promise.set_error(Status::Error(400, "Option name is too long"));
+      }
+      switch (value_constructor_id) {
+        case td_api::optionValueBoolean::ID:
+          G()->shared_config().set_option_boolean(name,
+                                                  static_cast<const td_api::optionValueBoolean *>(value.get())->value_);
+          break;
+        case td_api::optionValueEmpty::ID:
+          G()->shared_config().set_option_empty(name);
+          break;
+        case td_api::optionValueInteger::ID:
+          G()->shared_config().set_option_integer(name,
+                                                  static_cast<const td_api::optionValueInteger *>(value.get())->value_);
+          break;
+        case td_api::optionValueString::ID:
+          G()->shared_config().set_option_string(name,
+                                                 static_cast<const td_api::optionValueString *>(value.get())->value_);
+          break;
+        default:
+          UNREACHABLE();
+      }
+      return promise.set_value(Unit());
+    }
+  }
+
+  promise.set_error(Status::Error(400, "Option can't be set"));
+}
+
 void OptionManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
   updates.push_back(td_api::make_object<td_api::updateOption>(
       "version", td_api::make_object<td_api::optionValueString>(Td::TDLIB_VERSION)));
 
-  updates.push_back(
-      td_api::make_object<td_api::updateOption>("online", td_api::make_object<td_api::optionValueBoolean>(td_->is_online())));
+  updates.push_back(td_api::make_object<td_api::updateOption>(
+      "online", td_api::make_object<td_api::optionValueBoolean>(td_->is_online())));
   updates.push_back(td_api::make_object<td_api::updateOption>(
       "unix_time", td_api::make_object<td_api::optionValueInteger>(G()->unix_time())));
 

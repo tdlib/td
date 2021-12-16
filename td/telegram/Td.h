@@ -121,9 +121,12 @@ class Td final : public Actor {
   void on_update_server_time_difference();
 
   void on_online_updated(bool force, bool send_update);
+
   void on_update_status_success(bool is_online);
 
   bool is_online() const;
+
+  void set_is_online(bool is_online);
 
   void set_is_bot_online(bool is_bot_online);
 
