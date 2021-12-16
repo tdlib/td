@@ -34,7 +34,7 @@ class OptionManager final : public Actor {
 
   static void clear_options();
 
-  static void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates);
+  void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
   void tear_down() final;

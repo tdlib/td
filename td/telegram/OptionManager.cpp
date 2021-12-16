@@ -302,7 +302,15 @@ void OptionManager::get_option(const string &name, Promise<td_api::object_ptr<td
   wrap_promise().set_value(Unit());
 }
 
-void OptionManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) {
+void OptionManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
+  updates.push_back(td_api::make_object<td_api::updateOption>(
+      "version", td_api::make_object<td_api::optionValueString>(Td::TDLIB_VERSION)));
+
+  updates.push_back(
+      td_api::make_object<td_api::updateOption>("online", td_api::make_object<td_api::optionValueBoolean>(td_->is_online())));
+  updates.push_back(td_api::make_object<td_api::updateOption>(
+      "unix_time", td_api::make_object<td_api::optionValueInteger>(G()->unix_time())));
+
   for (const auto &option : G()->shared_config().get_options()) {
     if (!is_internal_option(option.first)) {
       updates.push_back(td_api::make_object<td_api::updateOption>(
