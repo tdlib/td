@@ -9,6 +9,7 @@
 #include "td/telegram/td_api.h"
 
 #include "td/actor/actor.h"
+#include "td/actor/PromiseFuture.h"
 
 #include "td/utils/common.h"
 #include "td/utils/Slice.h"
@@ -28,6 +29,8 @@ class OptionManager final : public Actor {
   ~OptionManager() final;
 
   void on_option_updated(const string &name);
+
+  void get_option(const string &name, Promise<td_api::object_ptr<td_api::OptionValue>> &&promise);
 
   static void clear_options();
 

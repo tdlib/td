@@ -4398,12 +4398,13 @@ void Td::on_request(uint64 id, td_api::confirmQrCodeAuthentication &request) {
 void Td::on_request(uint64 id, const td_api::getCurrentState &request) {
   vector<td_api::object_ptr<td_api::Update>> updates;
 
+  updates.push_back(td_api::make_object<td_api::updateOption>(
+      "version", td_api::make_object<td_api::optionValueString>(TDLIB_VERSION)));
+
   updates.push_back(
       td_api::make_object<td_api::updateOption>("online", make_tl_object<td_api::optionValueBoolean>(is_online_)));
   updates.push_back(td_api::make_object<td_api::updateOption>(
       "unix_time", make_tl_object<td_api::optionValueInteger>(G()->unix_time())));
-  updates.push_back(td_api::make_object<td_api::updateOption>(
-      "version", td_api::make_object<td_api::optionValueString>(TDLIB_VERSION)));
 
   OptionManager::get_current_state(updates);
 
@@ -7120,84 +7121,8 @@ void Td::on_request(uint64 id, td_api::deleteLanguagePack &request) {
 
 void Td::on_request(uint64 id, td_api::getOption &request) {
   CLEAN_INPUT_STRING(request.name_);
-
-  tl_object_ptr<td_api::OptionValue> option_value;
-  bool is_bot = auth_manager_ != nullptr && auth_manager_->is_authorized() && auth_manager_->is_bot();
-  switch (request.name_[0]) {
-    // all these options should be added to getCurrentState
-    case 'a':
-      if (!is_bot && request.name_ == "archive_and_mute_new_chats_from_unknown_users") {
-        auto promise = PromiseCreator::lambda([actor_id = actor_id(this), id](Result<Unit> &&result) {
-          // the option is already updated on success, ignore errors
-          send_closure(actor_id, &Td::send_result, id,
-                       G()->shared_config().get_option_value("archive_and_mute_new_chats_from_unknown_users"));
-        });
-        send_closure_later(config_manager_, &ConfigManager::get_global_privacy_settings, std::move(promise));
-        return;
-      }
-      break;
-    case 'c':
-      if (!is_bot && request.name_ == "can_ignore_sensitive_content_restrictions") {
-        auto promise = PromiseCreator::lambda([actor_id = actor_id(this), id](Result<Unit> &&result) {
-          // the option is already updated on success, ignore errors
-          send_closure(actor_id, &Td::send_result, id,
-                       G()->shared_config().get_option_value("can_ignore_sensitive_content_restrictions"));
-        });
-        send_closure_later(config_manager_, &ConfigManager::get_content_settings, std::move(promise));
-        return;
-      }
-      break;
-    case 'd':
-      if (!is_bot && request.name_ == "disable_contact_registered_notifications") {
-        auto promise = PromiseCreator::lambda([actor_id = actor_id(this), id](Result<Unit> &&result) {
-          // the option is already updated on success, ignore errors
-          send_closure(actor_id, &Td::send_result, id,
-                       G()->shared_config().get_option_value("disable_contact_registered_notifications"));
-        });
-        send_closure_later(notification_manager_actor_,
-                           &NotificationManager::get_disable_contact_registered_notifications, std::move(promise));
-        return;
-      }
-      break;
-    case 'i':
-      if (!is_bot && request.name_ == "ignore_sensitive_content_restrictions") {
-        auto promise = PromiseCreator::lambda([actor_id = actor_id(this), id](Result<Unit> &&result) {
-          // the option is already updated on success, ignore errors
-          send_closure(actor_id, &Td::send_result, id,
-                       G()->shared_config().get_option_value("ignore_sensitive_content_restrictions"));
-        });
-        send_closure_later(config_manager_, &ConfigManager::get_content_settings, std::move(promise));
-        return;
-      }
-      if (!is_bot && request.name_ == "is_location_visible") {
-        auto promise = PromiseCreator::lambda([actor_id = actor_id(this), id](Result<Unit> &&result) {
-          // the option is already updated on success, ignore errors
-          send_closure(actor_id, &Td::send_result, id, G()->shared_config().get_option_value("is_location_visible"));
-        });
-        send_closure_later(contacts_manager_actor_, &ContactsManager::get_is_location_visible, std::move(promise));
-        return;
-      }
-      break;
-    case 'o':
-      if (request.name_ == "online") {
-        option_value = make_tl_object<td_api::optionValueBoolean>(is_online_);
-      }
-      break;
-    case 'u':
-      if (request.name_ == "unix_time") {
-        option_value = make_tl_object<td_api::optionValueInteger>(G()->unix_time());
-      }
-      break;
-    case 'v':
-      if (request.name_ == "version") {
-        option_value = make_tl_object<td_api::optionValueString>(TDLIB_VERSION);
-      }
-      break;
-  }
-  if (option_value == nullptr) {
-    option_value = G()->shared_config().get_option_value(request.name_);
-  }
-  send_closure(actor_id(this), &Td::send_result, id, std::move(option_value));
+  CREATE_REQUEST_PROMISE();
+  option_manager_->get_option(request.name_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setOption &request) {

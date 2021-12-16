@@ -8,6 +8,7 @@
 
 #include "td/telegram/AnimationsManager.h"
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/ConfigManager.h"
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Global.h"
@@ -245,6 +246,60 @@ void OptionManager::on_option_updated(const string &name) {
 
   // send_closure was already used in the callback
   td_->send_update(td_api::make_object<td_api::updateOption>(name, G()->shared_config().get_option_value(name)));
+}
+
+void OptionManager::get_option(const string &name, Promise<td_api::object_ptr<td_api::OptionValue>> &&promise) {
+  bool is_bot = td_->auth_manager_ != nullptr && td_->auth_manager_->is_authorized() && td_->auth_manager_->is_bot();
+  auto wrap_promise = [&] {
+    return PromiseCreator::lambda([promise = std::move(promise), name](Unit result) mutable {
+      // the option is already updated on success, ignore errors
+      promise.set_value(G()->shared_config().get_option_value(name));
+    });
+  };
+  switch (name[0]) {
+    // all these options should be added to getCurrentState
+    case 'a':
+      if (!is_bot && name == "archive_and_mute_new_chats_from_unknown_users") {
+        return send_closure_later(td_->config_manager_, &ConfigManager::get_global_privacy_settings, wrap_promise());
+      }
+      break;
+    case 'c':
+      if (!is_bot && name == "can_ignore_sensitive_content_restrictions") {
+        return send_closure_later(td_->config_manager_, &ConfigManager::get_content_settings, wrap_promise());
+      }
+      break;
+    case 'd':
+      if (!is_bot && name == "disable_contact_registered_notifications") {
+        return send_closure_later(td_->notification_manager_actor_,
+                                  &NotificationManager::get_disable_contact_registered_notifications, wrap_promise());
+      }
+      break;
+    case 'i':
+      if (!is_bot && name == "ignore_sensitive_content_restrictions") {
+        return send_closure_later(td_->config_manager_, &ConfigManager::get_content_settings, wrap_promise());
+      }
+      if (!is_bot && name == "is_location_visible") {
+        return send_closure_later(td_->contacts_manager_actor_, &ContactsManager::get_is_location_visible,
+                                  wrap_promise());
+      }
+      break;
+    case 'o':
+      if (name == "online") {
+        return promise.set_value(td_api::make_object<td_api::optionValueBoolean>(td_->is_online()));
+      }
+      break;
+    case 'u':
+      if (name == "unix_time") {
+        return promise.set_value(td_api::make_object<td_api::optionValueInteger>(G()->unix_time()));
+      }
+      break;
+    case 'v':
+      if (name == "version") {
+        return promise.set_value(td_api::make_object<td_api::optionValueString>(Td::TDLIB_VERSION));
+      }
+      break;
+  }
+  wrap_promise().set_value(Unit());
 }
 
 void OptionManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) {
