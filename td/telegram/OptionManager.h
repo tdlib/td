@@ -47,6 +47,8 @@ class OptionManager final : public Actor {
 
   static td_api::object_ptr<td_api::OptionValue> get_unix_time_option_value_object();
 
+  static td_api::object_ptr<td_api::OptionValue> get_option_value_object(Slice value);
+
   void send_unix_time_update();
 
   Td *td_;

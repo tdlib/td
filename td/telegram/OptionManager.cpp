@@ -63,7 +63,7 @@ void OptionManager::on_update_server_time_difference() {
 }
 
 void OptionManager::clear_options() {
-  for (auto &option : G()->shared_config().get_options()) {
+  for (const auto &option : G()->shared_config().get_options()) {
     if (!is_internal_option(option.first)) {
       send_closure(
           G()->td(), &Td::send_update,
@@ -272,7 +272,8 @@ void OptionManager::on_option_updated(const string &name) {
   }
 
   // send_closure was already used in the callback
-  td_->send_update(td_api::make_object<td_api::updateOption>(name, G()->shared_config().get_option_value(name)));
+  td_->send_update(
+      td_api::make_object<td_api::updateOption>(name, get_option_value_object(G()->shared_config().get_option(name))));
 }
 
 void OptionManager::get_option(const string &name, Promise<td_api::object_ptr<td_api::OptionValue>> &&promise) {
@@ -280,7 +281,7 @@ void OptionManager::get_option(const string &name, Promise<td_api::object_ptr<td
   auto wrap_promise = [&] {
     return PromiseCreator::lambda([promise = std::move(promise), name](Unit result) mutable {
       // the option is already updated on success, ignore errors
-      promise.set_value(G()->shared_config().get_option_value(name));
+      promise.set_value(get_option_value_object(G()->shared_config().get_option(name)));
     });
   };
   switch (name[0]) {
@@ -623,6 +624,29 @@ void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::Op
   promise.set_error(Status::Error(400, "Option can't be set"));
 }
 
+td_api::object_ptr<td_api::OptionValue> OptionManager::get_option_value_object(Slice value) {
+  if (value.empty()) {
+    return td_api::make_object<td_api::optionValueEmpty>();
+  }
+
+  switch (value[0]) {
+    case 'B':
+      if (value == "Btrue") {
+        return td_api::make_object<td_api::optionValueBoolean>(true);
+      }
+      if (value == "Bfalse") {
+        return td_api::make_object<td_api::optionValueBoolean>(false);
+      }
+      break;
+    case 'I':
+      return td_api::make_object<td_api::optionValueInteger>(to_integer<int64>(value.substr(1)));
+    case 'S':
+      return td_api::make_object<td_api::optionValueString>(value.substr(1).str());
+  }
+
+  return td_api::make_object<td_api::optionValueString>(value.str());
+}
+
 void OptionManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
   updates.push_back(td_api::make_object<td_api::updateOption>(
       "version", td_api::make_object<td_api::optionValueString>(Td::TDLIB_VERSION)));
@@ -634,8 +658,8 @@ void OptionManager::get_current_state(vector<td_api::object_ptr<td_api::Update>>
 
   for (const auto &option : G()->shared_config().get_options()) {
     if (!is_internal_option(option.first)) {
-      updates.push_back(td_api::make_object<td_api::updateOption>(
-          option.first, ConfigShared::get_option_value_object(option.second)));
+      updates.push_back(
+          td_api::make_object<td_api::updateOption>(option.first, get_option_value_object(option.second)));
     }
   }
 }

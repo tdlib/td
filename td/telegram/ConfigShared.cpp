@@ -101,39 +101,12 @@ string ConfigShared::get_option_string(Slice name, string default_value) const {
   return str_value.substr(1);
 }
 
-tl_object_ptr<td_api::OptionValue> ConfigShared::get_option_value(Slice name) const {
-  return get_option_value_object(get_option(name));
-}
-
 bool ConfigShared::set_option(Slice name, Slice value) {
   if (value.empty()) {
     return config_pmc_->erase(name.str()) != 0;
   } else {
     return config_pmc_->set(name.str(), value.str()) != 0;
   }
-}
-
-tl_object_ptr<td_api::OptionValue> ConfigShared::get_option_value_object(Slice value) {
-  if (value.empty()) {
-    return make_tl_object<td_api::optionValueEmpty>();
-  }
-
-  switch (value[0]) {
-    case 'B':
-      if (value == "Btrue") {
-        return make_tl_object<td_api::optionValueBoolean>(true);
-      }
-      if (value == "Bfalse") {
-        return make_tl_object<td_api::optionValueBoolean>(false);
-      }
-      break;
-    case 'I':
-      return make_tl_object<td_api::optionValueInteger>(to_integer<int64>(value.substr(1)));
-    case 'S':
-      return make_tl_object<td_api::optionValueString>(value.substr(1).str());
-  }
-
-  return make_tl_object<td_api::optionValueString>(value.str());
 }
 
 void ConfigShared::on_option_updated(Slice name) const {
