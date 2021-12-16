@@ -11,6 +11,7 @@
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/DialogId.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/JsonValue.h"
 #include "td/telegram/LanguagePackManager.h"
@@ -27,6 +28,7 @@
 
 #include "td/utils/misc.h"
 #include "td/utils/SliceBuilder.h"
+#include "td/utils/Status.h"
 
 #include <cmath>
 #include <limits>

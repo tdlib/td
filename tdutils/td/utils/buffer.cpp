@@ -30,7 +30,6 @@ int64 BufferAllocator::get_buffer_slice_size() {
 }
 
 void BufferAllocator::track_buffer_slice(int64 size) {
-  return;
 }
 
 size_t BufferAllocator::get_buffer_mem() {

@@ -10,6 +10,8 @@
 
 #include "td/actor/PromiseFuture.h"
 
+#include "td/utils/common.h"
+
 #include <memory>
 #include <unordered_map>
 
