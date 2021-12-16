@@ -11,8 +11,8 @@
 #include "td/telegram/net/MtprotoHeader.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/net/TempAuthKeyWatchdog.h"
+#include "td/telegram/OptionManager.h"
 #include "td/telegram/StateManager.h"
-#include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 
 #include "td/actor/PromiseFuture.h"
@@ -149,7 +149,7 @@ void Global::update_server_time_difference(double diff) {
     do_save_server_time_difference();
 
     CHECK(Scheduler::instance());
-    send_closure(td(), &Td::on_update_server_time_difference);
+    send_closure(option_manager(), &OptionManager::on_update_server_time_difference);
   }
 }
 

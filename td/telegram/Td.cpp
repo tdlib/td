@@ -147,7 +147,6 @@
 #include "td/utils/tl_parsers.h"
 #include "td/utils/utf8.h"
 
-#include <cmath>
 #include <limits>
 #include <tuple>
 #include <type_traits>
@@ -2704,17 +2703,6 @@ void Td::on_alarm_timeout_callback(void *td_ptr, int64 alarm_id) {
   send_closure_later(td_id, &Td::on_alarm_timeout, alarm_id);
 }
 
-void Td::on_update_server_time_difference() {
-  auto diff = G()->get_server_time_difference();
-  if (std::abs(diff - last_sent_server_time_difference_) < 0.5) {
-    return;
-  }
-
-  last_sent_server_time_difference_ = diff;
-  send_update(td_api::make_object<td_api::updateOption>(
-      "unix_time", td_api::make_object<td_api::optionValueInteger>(G()->unix_time())));
-}
-
 void Td::on_alarm_timeout(int64 alarm_id) {
   if (alarm_id == ONLINE_ALARM_ID) {
     on_online_updated(false, true);
@@ -3677,9 +3665,6 @@ Status Td::init(DbKey key) {
   VLOG(td_init) << "Successfully inited database";
 
   G()->init(parameters_, actor_id(this), r_td_db.move_as_ok()).ensure();
-  last_sent_server_time_difference_ = G()->get_server_time_difference();
-  send_update(td_api::make_object<td_api::updateOption>(
-      "unix_time", td_api::make_object<td_api::optionValueInteger>(G()->unix_time())));
 
   init_options_and_network();
 
@@ -3865,11 +3850,16 @@ void Td::init_options_and_network() {
   config_manager_ = create_actor<ConfigManager>("ConfigManager", create_reference());
   G()->set_config_manager(config_manager_.get());
 
+  VLOG(td_init) << "Create OptionManager";
+  option_manager_ = make_unique<OptionManager>(this, create_reference());
+  option_manager_actor_ = register_actor("OptionManager", option_manager_.get());
+  G()->set_option_manager(option_manager_actor_.get());
+
   VLOG(td_init) << "Set ConfigShared callback";
   class ConfigSharedCallback final : public ConfigShared::Callback {
    public:
     void on_option_updated(const string &name, const string &value) const final {
-      send_closure(G()->option_manager(), &OptionManager::on_option_updated, name);
+      send_closure_later(G()->option_manager(), &OptionManager::on_option_updated, name);
     }
     ~ConfigSharedCallback() final {
       LOG(INFO) << "Destroy ConfigSharedCallback";
@@ -4019,9 +4009,6 @@ void Td::init_managers() {
   notification_manager_ = make_unique<NotificationManager>(this, create_reference());
   notification_manager_actor_ = register_actor("NotificationManager", notification_manager_.get());
   G()->set_notification_manager(notification_manager_actor_.get());
-  option_manager_ = make_unique<OptionManager>(this, create_reference());
-  option_manager_actor_ = register_actor("OptionManager", option_manager_.get());
-  G()->set_option_manager(option_manager_actor_.get());
   poll_manager_ = make_unique<PollManager>(this, create_reference());
   poll_manager_actor_ = register_actor("PollManager", poll_manager_.get());
   sponsored_message_manager_ = make_unique<SponsoredMessageManager>(this, create_reference());

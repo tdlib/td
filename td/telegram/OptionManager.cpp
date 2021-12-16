@@ -28,11 +28,13 @@
 #include "td/utils/misc.h"
 #include "td/utils/SliceBuilder.h"
 
+#include <cmath>
 #include <limits>
 
 namespace td {
 
 OptionManager::OptionManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
+  send_unix_time_update();
 }
 
 void OptionManager::tear_down() {
@@ -40,6 +42,23 @@ void OptionManager::tear_down() {
 }
 
 OptionManager::~OptionManager() = default;
+
+td_api::object_ptr<td_api::OptionValue> OptionManager::get_unix_time_option_value_object() {
+  return td_api::make_object<td_api::optionValueInteger>(G()->unix_time());
+}
+
+void OptionManager::send_unix_time_update() {
+  last_sent_server_time_difference_ = G()->get_server_time_difference();
+  td_->send_update(td_api::make_object<td_api::updateOption>("unix_time", get_unix_time_option_value_object()));
+}
+
+void OptionManager::on_update_server_time_difference() {
+  if (std::abs(G()->get_server_time_difference() - last_sent_server_time_difference_) < 0.5) {
+    return;
+  }
+
+  send_unix_time_update();
+}
 
 void OptionManager::clear_options() {
   for (auto &option : G()->shared_config().get_options()) {
@@ -296,7 +315,7 @@ void OptionManager::get_option(const string &name, Promise<td_api::object_ptr<td
       break;
     case 'u':
       if (name == "unix_time") {
-        return promise.set_value(td_api::make_object<td_api::optionValueInteger>(G()->unix_time()));
+        return promise.set_value(get_unix_time_option_value_object());
       }
       break;
     case 'v':
@@ -608,8 +627,8 @@ void OptionManager::get_current_state(vector<td_api::object_ptr<td_api::Update>>
 
   updates.push_back(td_api::make_object<td_api::updateOption>(
       "online", td_api::make_object<td_api::optionValueBoolean>(td_->is_online())));
-  updates.push_back(td_api::make_object<td_api::updateOption>(
-      "unix_time", td_api::make_object<td_api::optionValueInteger>(G()->unix_time())));
+
+  updates.push_back(td_api::make_object<td_api::updateOption>("unix_time", get_unix_time_option_value_object()));
 
   for (const auto &option : G()->shared_config().get_options()) {
     if (!is_internal_option(option.first)) {

@@ -118,8 +118,6 @@ class Td final : public Actor {
 
   void on_result(NetQueryPtr query);
 
-  void on_update_server_time_difference();
-
   void on_online_updated(bool force, bool send_update);
 
   void on_update_status_success(bool is_online);
@@ -317,8 +315,6 @@ class Td final : public Actor {
   MultiTimeout alarm_timeout_{"AlarmTimeout"};
 
   TermsOfService pending_terms_of_service_;
-
-  double last_sent_server_time_difference_ = 1e100;
 
   struct DownloadInfo {
     int32 offset = -1;

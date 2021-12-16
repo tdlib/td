@@ -28,6 +28,8 @@ class OptionManager final : public Actor {
   OptionManager &operator=(OptionManager &&) = delete;
   ~OptionManager() final;
 
+  void on_update_server_time_difference();
+
   void on_option_updated(const string &name);
 
   void get_option(const string &name, Promise<td_api::object_ptr<td_api::OptionValue>> &&promise);
@@ -43,8 +45,14 @@ class OptionManager final : public Actor {
 
   static bool is_internal_option(Slice name);
 
+  static td_api::object_ptr<td_api::OptionValue> get_unix_time_option_value_object();
+
+  void send_unix_time_update();
+
   Td *td_;
   ActorShared<> parent_;
+
+  double last_sent_server_time_difference_ = 1e100;
 };
 
 }  // namespace td
