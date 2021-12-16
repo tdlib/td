@@ -78,11 +78,13 @@ class SocketFdImpl final : private Iocp::Callback {
   }
 
   void close() {
-    if (!is_write_waiting_) {
+    if (!is_write_waiting_ && is_connected_) {
       VLOG(fd) << get_native_fd() << " will close after ongoing write";
       auto lock = lock_.lock();
-      need_close_after_write_ = true;
-      return;
+      if (!is_write_waiting_) {
+        need_close_after_write_ = true;
+        return;
+      }
     }
     notify_iocp_close();
   }
@@ -168,7 +170,7 @@ class SocketFdImpl final : private Iocp::Callback {
   bool close_flag_{false};
   bool need_close_after_write_{false};
 
-  bool is_connected_{false};
+  std::atomic<bool> is_connected_{false};
   bool is_read_active_{false};
   ChainBufferWriter input_writer_;
   ChainBufferReader input_reader_ = input_writer_.extract_reader();
