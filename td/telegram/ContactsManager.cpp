@@ -10305,6 +10305,8 @@ void ContactsManager::on_get_users(vector<tl_object_ptr<telegram_api::User>> &&u
 }
 
 void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&user) {
+  LOG(INFO) << "Receive " << to_string(user);
+
   UserId user_id(user->id_);
   User *u = get_user(user_id);
   if (u == nullptr) {
