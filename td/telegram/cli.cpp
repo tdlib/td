@@ -1002,8 +1002,6 @@ class CliClient final : public Actor {
       bad_parameters->api_id_ = api_id_;
       bad_parameters->api_hash_ = api_hash_;
       send_request(td_api::make_object<td_api::setTdlibParameters>(std::move(bad_parameters)));
-
-      send_closure_later(actor_id(this), &CliClient::create_td, Slice("ClientActor3"));
     }
   }
 
