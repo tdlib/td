@@ -4055,9 +4055,10 @@ class CliClient final : public Actor {
     } else if (op == "log") {
       string chat_id;
       string limit;
-      get_args(args, chat_id, limit);
+      string user_ids;
+      get_args(args, chat_id, limit, user_ids);
       send_request(td_api::make_object<td_api::getChatEventLog>(as_chat_id(chat_id), "", 0, as_limit(limit), nullptr,
-                                                                vector<int64>()));
+                                                                as_user_ids(user_ids)));
     } else if (op == "join") {
       send_request(td_api::make_object<td_api::joinChat>(as_chat_id(args)));
     } else if (op == "leave") {
