@@ -19,7 +19,7 @@ cd <path to vcpkg>
 ```
 powershell -ExecutionPolicy ByPass .\build.ps1 -vcpkg_root C:\vcpkg
 ```
-If you need to restart the build from scratch, call `.\build.ps1 -vcpkg_root ../../vcpkg -mode clean` first.
+If you need to restart the build from scratch, call `.\build.ps1 -vcpkg_root C:\vcpkg -mode clean` first.
 * Install Visual Studio Extension "TDLib for Universal Windows Platform" located at `build-uwp\vsix\tdlib.vsix`, which was created on the previous step by `build.ps1` script.
 
 Now `TDLib` can be used from any UWP project, built in Visual Studio.
