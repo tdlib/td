@@ -282,6 +282,13 @@
       <p></p>
     </div>
 
+    <div id="buildMacOsHostDiv" class="hide">
+      <span>Choose host architecture:</span><br>
+      <label><input type="radio" id="buildMacOsHostRadioAppleSilicon" name="buildMacOsHostRadio" onchange="onOptionsChanged()" checked/>Apple silicon</label>
+      <label><input type="radio" id="buildMacOsHostRadioIntel" name="buildMacOsHostRadio" onchange="onOptionsChanged()"/>Intel</label>
+      <p></p>
+    </div>
+
     <div id="buildBitnessDiv" class="hide">
       <span>Choose for which bitness you want to build TDLib:</span><br>
       <label><input type="radio" id="buildBitnessRadio32" name="buildBitnessRadio" onchange="onOptionsChanged()" checked/>32</label>
@@ -586,6 +593,8 @@ function onOptionsChanged() {
   var use_powershell = false;
   var use_cmd = false;
   var use_csh = false;
+  var homebrew_install_dir = '';
+  var os_mac_host_name = '';
   if (os_windows) {
     document.getElementById('buildShellDiv').style.display = 'block';
     use_powershell = document.getElementById('buildShellRadioPowerShell').checked;
@@ -597,6 +606,18 @@ function onOptionsChanged() {
     use_csh = document.getElementById('buildShellBsdRadioCsh').checked;
   } else {
     document.getElementById('buildShellBsdDiv').style.display = 'none';
+  }
+  if (os_mac) {
+    document.getElementById('buildMacOsHostDiv').style.display = 'block';
+    if (document.getElementById('buildMacOsHostRadioAppleSilicon').checked) {
+      homebrew_install_dir = '/opt/homebrew';
+      os_mac_host_name = 'Apple silicon';
+    } else {
+      homebrew_install_dir = '/usr/local';
+      os_mac_host_name = 'Intel';
+    }
+  } else {
+    document.getElementById('buildMacOsHostDiv').style.display = 'none';
   }
 
   var use_msvc = os_windows;
@@ -713,7 +734,7 @@ function onOptionsChanged() {
     pre_text.push('Note that the following instruction is for NetBSD 8.0 and default SH shell.');
   }
   if (os_mac) {
-    pre_text.push('Note that the following instruction will build TDLib only for the current architecture (x64 or Apple silicon).');
+    pre_text.push('Note that the following instruction will build TDLib only for ' + os_mac_host_name + '.');
     pre_text.push('If you want to create a universal XCFramework, take a look at our <a href="https://github.com/tdlib/td/tree/master/example/ios">example</a> instead.');
   }
 
@@ -773,7 +794,7 @@ function onOptionsChanged() {
   var cmake = 'cmake';
   if (os_mac) {
     commands.push('xcode-select --install');
-    commands.push('/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"');
+    commands.push('/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"');
     commands.push('brew install gperf cmake openssl' + (target === 'JNI' ? ' coreutils' : ''));
     if (target === 'JNI') {
       commands.push('brew install openjdk');
@@ -926,7 +947,7 @@ function onOptionsChanged() {
         options.push('-DJAVA_HOME=/usr/local/openjdk7/');
       }
       if (os_mac) {
-        options.push('-DJAVA_HOME=/usr/local/opt/openjdk/libexec/openjdk.jdk/Contents/Home/');
+        options.push('-DJAVA_HOME=' + homebrew_install_dir + '/opt/openjdk/libexec/openjdk.jdk/Contents/Home/');
       }
     }
     return options;
@@ -957,7 +978,7 @@ function onOptionsChanged() {
 
     cmake_init_options = getBacicCmakeInitOptions();
     if (os_mac) {
-      cmake_init_options.push('-DOPENSSL_ROOT_DIR=/usr/local/opt/openssl/');
+      cmake_init_options.push('-DOPENSSL_ROOT_DIR=' + homebrew_install_dir + '/opt/openssl/');
     }
     if (install_dir) {
       cmake_init_options.push('-DCMAKE_INSTALL_PREFIX:PATH=' + install_dir);

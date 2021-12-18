@@ -36,7 +36,7 @@ cd <path to TDLib sources>/example/ios
 ./build.sh
 ```
 This may take a while, because TDLib will be built about 16 times.
-Resulting XCFramework will work on any architecture and even on a simulator (x64, Apple silicon).
+Resulting XCFramework will work on any architecture and even on a simulator.
 We use [CMake/iOS.cmake](https://github.com/tdlib/td/blob/master/CMake/iOS.cmake) toolchain, other toolchains may work too.
 
 Built libraries and XCFramework will be stored in `tdjson` directory.
