@@ -1764,30 +1764,6 @@ class UpgradeGroupChatToSupergroupChatRequest final : public RequestActor<> {
   }
 };
 
-class GetChatAdministratorsRequest final : public RequestActor<> {
-  DialogId dialog_id_;
-
-  vector<DialogAdministrator> administrators_;
-
-  void do_run(Promise<Unit> &&promise) final {
-    administrators_ = td_->contacts_manager_->get_dialog_administrators(dialog_id_, get_tries(), std::move(promise));
-  }
-
-  void do_send_result() final {
-    auto administrator_objects = transform(
-        administrators_, [contacts_manager = td_->contacts_manager_.get()](const DialogAdministrator &administrator) {
-          return administrator.get_chat_administrator_object(contacts_manager);
-        });
-    send_result(td_api::make_object<td_api::chatAdministrators>(std::move(administrator_objects)));
-  }
-
- public:
-  GetChatAdministratorsRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id)
-      : RequestActor(std::move(td), request_id), dialog_id_(dialog_id) {
-    set_tries(3);
-  }
-};
-
 class CheckChatInviteLinkRequest final : public RequestActor<> {
   string invite_link_;
 
@@ -6194,7 +6170,8 @@ void Td::on_request(uint64 id, td_api::searchChatMembers &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::getChatAdministrators &request) {
-  CREATE_REQUEST(GetChatAdministratorsRequest, request.chat_id_);
+  CREATE_REQUEST_PROMISE();
+  contacts_manager_->get_dialog_administrators(DialogId(request.chat_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::replacePrimaryChatInviteLink &request) {

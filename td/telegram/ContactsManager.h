@@ -534,7 +534,7 @@ class ContactsManager final : public Actor {
   void search_dialog_participants(DialogId dialog_id, const string &query, int32 limit, DialogParticipantsFilter filter,
                                   Promise<DialogParticipants> &&promise);
 
-  vector<DialogAdministrator> get_dialog_administrators(DialogId dialog_id, int left_tries, Promise<Unit> &&promise);
+  void get_dialog_administrators(DialogId dialog_id, Promise<td_api::object_ptr<td_api::chatAdministrators>> &&promise);
 
   void get_channel_participants(ChannelId channel_id, tl_object_ptr<td_api::SupergroupMembersFilter> &&filter,
                                 string additional_query, int32 offset, int32 limit, int32 additional_limit,
@@ -1476,16 +1476,23 @@ class ContactsManager final : public Actor {
   void finish_get_channel_participant(ChannelId channel_id, DialogParticipant &&dialog_participant,
                                       Promise<DialogParticipant> &&promise);
 
+  td_api::object_ptr<td_api::chatAdministrators> ContactsManager::get_chat_administrators_object(
+      const vector<DialogAdministrator> &dialog_administrators);
+
   static string get_dialog_administrators_database_key(DialogId dialog_id);
 
-  void load_dialog_administrators(DialogId dialog_id, Promise<Unit> &&promise);
-
-  void on_load_dialog_administrators_from_database(DialogId dialog_id, string value, Promise<Unit> &&promise);
+  void on_load_dialog_administrators_from_database(DialogId dialog_id, string value,
+                                                   Promise<td_api::object_ptr<td_api::chatAdministrators>> &&promise);
 
   void on_load_administrator_users_finished(DialogId dialog_id, vector<DialogAdministrator> administrators,
-                                            Result<> result, Promise<Unit> promise);
+                                            Result<> result,
+                                            Promise<td_api::object_ptr<td_api::chatAdministrators>> &&promise);
 
-  void reload_dialog_administrators(DialogId dialog_id, int64 hash, Promise<Unit> &&promise);
+  void reload_dialog_administrators(DialogId dialog_id, const vector<DialogAdministrator> &dialog_administrators,
+                                    Promise<td_api::object_ptr<td_api::chatAdministrators>> &&promise);
+
+  void on_reload_dialog_administrators(DialogId dialog_id,
+                                       Promise<td_api::object_ptr<td_api::chatAdministrators>> &&promise);
 
   void remove_dialog_suggested_action(SuggestedAction action);
 

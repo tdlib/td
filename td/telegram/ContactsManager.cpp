@@ -13399,7 +13399,7 @@ void ContactsManager::on_channel_status_changed(Channel *c, ChannelId channel_id
     c->is_creator_changed = true;
 
     send_get_channel_full_query(nullptr, channel_id, Auto(), "update channel owner");
-    reload_dialog_administrators(DialogId(channel_id), 0, Auto());
+    reload_dialog_administrators(DialogId(channel_id), {}, Auto());
     remove_dialog_suggested_action(SuggestedAction{SuggestedAction::Type::ConvertToGigagroup, DialogId(channel_id)});
   }
 
@@ -15234,60 +15234,39 @@ void ContactsManager::get_channel_participants(ChannelId channel_id,
       ->send(channel_id, participants_filter, offset, limit);
 }
 
-vector<DialogAdministrator> ContactsManager::get_dialog_administrators(DialogId dialog_id, int left_tries,
-                                                                       Promise<Unit> &&promise) {
-  LOG(INFO) << "Receive GetChatAdministrators request in " << dialog_id << " with " << left_tries << " left tries";
+td_api::object_ptr<td_api::chatAdministrators> ContactsManager::get_chat_administrators_object(
+    const vector<DialogAdministrator> &dialog_administrators) {
+  auto administrator_objects = transform(dialog_administrators, [this](const DialogAdministrator &administrator) {
+    return administrator.get_chat_administrator_object(this);
+  });
+  return td_api::make_object<td_api::chatAdministrators>(std::move(administrator_objects));
+}
+
+void ContactsManager::get_dialog_administrators(DialogId dialog_id,
+                                                Promise<td_api::object_ptr<td_api::chatAdministrators>> &&promise) {
   if (!td_->messages_manager_->have_dialog_force(dialog_id, "get_dialog_administrators")) {
-    promise.set_error(Status::Error(400, "Chat not found"));
-    return {};
+    return promise.set_error(Status::Error(400, "Chat not found"));
   }
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
     case DialogType::SecretChat:
-      promise.set_value(Unit());
-      return {};
+      return promise.set_value(td_api::make_object<td_api::chatAdministrators>());
     case DialogType::Chat:
     case DialogType::Channel:
       break;
     case DialogType::None:
     default:
       UNREACHABLE();
-      return {};
+      return;
   }
 
   auto it = dialog_administrators_.find(dialog_id);
   if (it != dialog_administrators_.end()) {
-    promise.set_value(Unit());
-    if (left_tries >= 2) {
-      auto hash = get_vector_hash(transform(it->second, [](const DialogAdministrator &administrator) {
-        return static_cast<uint64>(administrator.get_user_id().get());
-      }));
-      reload_dialog_administrators(dialog_id, hash, Auto());  // update administrators cache
-    }
-    return it->second;
+    reload_dialog_administrators(dialog_id, it->second, Auto());  // update administrators cache
+    return promise.set_value(get_chat_administrators_object(it->second));
   }
 
-  if (left_tries >= 3) {
-    load_dialog_administrators(dialog_id, std::move(promise));
-    return {};
-  }
-
-  if (left_tries >= 2) {
-    reload_dialog_administrators(dialog_id, 0, std::move(promise));
-    return {};
-  }
-
-  LOG(ERROR) << "Have no known administrators in " << dialog_id;
-  promise.set_value(Unit());
-  return {};
-}
-
-string ContactsManager::get_dialog_administrators_database_key(DialogId dialog_id) {
-  return PSTRING() << "adm" << (-dialog_id.get());
-}
-
-void ContactsManager::load_dialog_administrators(DialogId dialog_id, Promise<Unit> &&promise) {
   if (G()->parameters().use_chat_info_db) {
     LOG(INFO) << "Load administrators of " << dialog_id << " from database";
     G()->td_db()->get_sqlite_pmc()->get(get_dialog_administrators_database_key(dialog_id),
@@ -15297,16 +15276,22 @@ void ContactsManager::load_dialog_administrators(DialogId dialog_id, Promise<Uni
                                                        &ContactsManager::on_load_dialog_administrators_from_database,
                                                        dialog_id, std::move(value), std::move(promise));
                                         }));
-  } else {
-    promise.set_value(Unit());
+    return;
   }
+
+  reload_dialog_administrators(dialog_id, {}, std::move(promise));
 }
 
-void ContactsManager::on_load_dialog_administrators_from_database(DialogId dialog_id, string value,
-                                                                  Promise<Unit> &&promise) {
-  if (value.empty() || G()->close_flag()) {
-    promise.set_value(Unit());
-    return;
+string ContactsManager::get_dialog_administrators_database_key(DialogId dialog_id) {
+  return PSTRING() << "adm" << (-dialog_id.get());
+}
+
+void ContactsManager::on_load_dialog_administrators_from_database(
+    DialogId dialog_id, string value, Promise<td_api::object_ptr<td_api::chatAdministrators>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
+  if (value.empty()) {
+    return reload_dialog_administrators(dialog_id, {}, std::move(promise));
   }
 
   vector<DialogAdministrator> administrators;
@@ -15332,13 +15317,18 @@ void ContactsManager::on_load_dialog_administrators_from_database(DialogId dialo
   lock_promise.set_value(Unit());
 }
 
-void ContactsManager::on_load_administrator_users_finished(DialogId dialog_id,
-                                                           vector<DialogAdministrator> administrators, Result<> result,
-                                                           Promise<Unit> promise) {
-  if (!G()->close_flag() && result.is_ok()) {
-    dialog_administrators_.emplace(dialog_id, std::move(administrators));
+void ContactsManager::on_load_administrator_users_finished(
+    DialogId dialog_id, vector<DialogAdministrator> administrators, Result<> result,
+    Promise<td_api::object_ptr<td_api::chatAdministrators>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
+  if (result.is_error()) {
+    return reload_dialog_administrators(dialog_id, {}, std::move(promise));
   }
-  promise.set_value(Unit());
+
+  auto it = dialog_administrators_.emplace(dialog_id, std::move(administrators)).first;
+  reload_dialog_administrators(dialog_id, it->second, Auto());  // update administrators cache
+  promise.set_value(get_chat_administrators_object(it->second));
 }
 
 void ContactsManager::on_update_channel_administrator_count(ChannelId channel_id, int32 administrator_count) {
@@ -15394,17 +15384,47 @@ void ContactsManager::on_update_dialog_administrators(DialogId dialog_id, vector
   }
 }
 
-void ContactsManager::reload_dialog_administrators(DialogId dialog_id, int64 hash, Promise<Unit> &&promise) {
+void ContactsManager::reload_dialog_administrators(DialogId dialog_id,
+                                                   const vector<DialogAdministrator> &dialog_administrators,
+                                                   Promise<td_api::object_ptr<td_api::chatAdministrators>> &&promise) {
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), dialog_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
+        if (promise) {
+          if (result.is_ok()) {
+            send_closure(actor_id, &ContactsManager::on_reload_dialog_administrators, dialog_id, std::move(promise));
+          } else {
+            promise.set_error(result.move_as_error());
+          }
+        }
+      });
   switch (dialog_id.get_type()) {
     case DialogType::Chat:
-      load_chat_full(dialog_id.get_chat_id(), false, std::move(promise), "reload_dialog_administrators");
+      load_chat_full(dialog_id.get_chat_id(), false, std::move(query_promise), "reload_dialog_administrators");
       break;
-    case DialogType::Channel:
-      td_->create_handler<GetChannelAdministratorsQuery>(std::move(promise))->send(dialog_id.get_channel_id(), hash);
+    case DialogType::Channel: {
+      auto hash = get_vector_hash(transform(dialog_administrators, [](const DialogAdministrator &administrator) {
+        return static_cast<uint64>(administrator.get_user_id().get());
+      }));
+      td_->create_handler<GetChannelAdministratorsQuery>(std::move(query_promise))
+          ->send(dialog_id.get_channel_id(), hash);
       break;
+    }
     default:
       UNREACHABLE();
   }
+}
+
+void ContactsManager::on_reload_dialog_administrators(
+    DialogId dialog_id, Promise<td_api::object_ptr<td_api::chatAdministrators>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
+  auto it = dialog_administrators_.find(dialog_id);
+  if (it != dialog_administrators_.end()) {
+    return promise.set_value(get_chat_administrators_object(it->second));
+  }
+
+  LOG(ERROR) << "Failed to load administrators in " << dialog_id;
+  promise.set_error(Status::Error(500, "Failed to find chat administrators"));
 }
 
 void ContactsManager::on_chat_update(telegram_api::chatEmpty &chat, const char *source) {
