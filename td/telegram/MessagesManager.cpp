@@ -13930,7 +13930,7 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
     need_update = false;
 
     if (old_message_id.is_valid() && message_id.is_valid() && message_id < old_message_id &&
-        !can_overflow_message_id(dialog_id)) {
+        !has_qts_messages(dialog_id)) {
       LOG(ERROR) << "Sent " << old_message_id << " to " << dialog_id << " as " << message_id;
     }
 
@@ -23957,7 +23957,7 @@ void MessagesManager::fix_server_reply_to_message_id(DialogId dialog_id, Message
   }
 
   if (!message_id.is_scheduled() && !reply_in_dialog_id.is_valid() && reply_to_message_id >= message_id) {
-    if (!can_overflow_message_id(dialog_id)) {
+    if (!has_qts_messages(dialog_id)) {
       LOG(ERROR) << "Receive reply to wrong " << reply_to_message_id << " in " << message_id << " in " << dialog_id;
     }
     reply_to_message_id = MessageId();
@@ -25428,7 +25428,7 @@ void MessagesManager::do_send_inline_query_result_message(DialogId dialog_id, co
       random_id, query_id, result_id);
 }
 
-bool MessagesManager::can_overflow_message_id(DialogId dialog_id) {
+bool MessagesManager::has_qts_messages(DialogId dialog_id) {
   switch (dialog_id.get_type()) {
     case DialogType::User:
     case DialogType::Chat:
@@ -29760,7 +29760,7 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
     send_update_message_content(d, sent_message.get(), false, source);
   }
 
-  if (old_message_id.is_valid() && new_message_id < old_message_id && !can_overflow_message_id(dialog_id)) {
+  if (old_message_id.is_valid() && new_message_id < old_message_id && !has_qts_messages(dialog_id)) {
     LOG(ERROR) << "Sent " << old_message_id << " to " << dialog_id << " as " << new_message_id;
   }
 
@@ -32856,9 +32856,11 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
           LOG(FATAL) << "Force restart because of message_id overflow in " << dialog_id << " from "
                      << d->last_new_message_id << " to " << message_id;
         }
-        LOG(ERROR) << "New " << message_id << " in " << dialog_id << " from " << source
-                   << " has identifier less than last_new_message_id = " << d->last_new_message_id;
-        dump_debug_message_op(d);
+        if (!has_qts_messages(dialog_id)) {
+          LOG(ERROR) << "New " << message_id << " in " << dialog_id << " from " << source
+                     << " has identifier less than last_new_message_id = " << d->last_new_message_id;
+          dump_debug_message_op(d);
+        }
       }
     }
   }
@@ -33226,7 +33228,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
           ++it;
           auto next_message = *it;
           if (next_message != nullptr) {
-            if (next_message->message_id.is_server()) {
+            if (next_message->message_id.is_server() && !has_qts_messages(dialog_id)) {
               LOG(ERROR) << "Attach " << message_id << " from " << source << " before " << next_message->message_id
                          << " and after " << previous_message_id << " in " << dialog_id;
               dump_debug_message_op(d);

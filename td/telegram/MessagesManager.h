@@ -1836,7 +1836,7 @@ class MessagesManager final : public Actor {
 
   bool can_edit_message(DialogId dialog_id, const Message *m, bool is_editing, bool only_reply_markup = false) const;
 
-  static bool can_overflow_message_id(DialogId dialog_id);
+  static bool has_qts_messages(DialogId dialog_id);
 
   bool can_report_dialog(DialogId dialog_id) const;
 
