@@ -1476,7 +1476,7 @@ class ContactsManager final : public Actor {
   void finish_get_channel_participant(ChannelId channel_id, DialogParticipant &&dialog_participant,
                                       Promise<DialogParticipant> &&promise);
 
-  td_api::object_ptr<td_api::chatAdministrators> ContactsManager::get_chat_administrators_object(
+  td_api::object_ptr<td_api::chatAdministrators> get_chat_administrators_object(
       const vector<DialogAdministrator> &dialog_administrators);
 
   static string get_dialog_administrators_database_key(DialogId dialog_id);
