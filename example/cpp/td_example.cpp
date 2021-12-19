@@ -210,7 +210,7 @@ class TdExample {
                      [this](td_api::updateNewMessage &update_new_message) {
                        auto chat_id = update_new_message.message_->chat_id_;
                        std::string sender_name;
-                       td_api::downcast_call(*update_new_message.message_->sender_,
+                       td_api::downcast_call(*update_new_message.message_->sender_id_,
                                              overloaded(
                                                  [this, &sender_name](td_api::messageSenderUser &user) {
                                                    sender_name = get_user_name(user.user_id_);
