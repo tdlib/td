@@ -48,6 +48,9 @@ MessageReplyInfo::MessageReplyInfo(tl_object_ptr<telegram_api::messageReplies> &
         LOG(ERROR) << "Receive " << dialog_id << " as a recent replier";
       }
     }
+    if (recent_replier_dialog_ids.size() > MAX_RECENT_REPLIERS) {
+      recent_replier_dialog_ids.resize(MAX_RECENT_REPLIERS);
+    }
   }
   if ((reply_info->flags_ & telegram_api::messageReplies::MAX_ID_MASK) != 0 &&
       ServerMessageId(reply_info->max_id_).is_valid()) {
@@ -120,7 +123,7 @@ bool MessageReplyInfo::add_reply(DialogId replier_dialog_id, MessageId reply_mes
     td::remove(recent_replier_dialog_ids, replier_dialog_id);
     if (diff > 0) {
       recent_replier_dialog_ids.insert(recent_replier_dialog_ids.begin(), replier_dialog_id);
-      if (recent_replier_dialog_ids.size() > 3) {
+      if (recent_replier_dialog_ids.size() > MAX_RECENT_REPLIERS) {
         recent_replier_dialog_ids.pop_back();
       }
     } else {

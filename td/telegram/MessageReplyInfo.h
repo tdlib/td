@@ -31,6 +31,8 @@ struct MessageReplyInfo {
   MessageId last_read_outbox_message_id;
   bool is_comment = false;
 
+  static constexpr size_t MAX_RECENT_REPLIERS = 3;
+
   MessageReplyInfo() = default;
 
   MessageReplyInfo(tl_object_ptr<telegram_api::messageReplies> &&reply_info, bool is_bot);
@@ -120,6 +122,9 @@ struct MessageReplyInfo {
     }
     if (channel_id.get() == 777) {
       *this = MessageReplyInfo();
+    }
+    if (recent_replier_dialog_ids.size() > MAX_RECENT_REPLIERS) {
+      recent_replier_dialog_ids.resize(MAX_RECENT_REPLIERS);
     }
   }
 };
