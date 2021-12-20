@@ -30110,7 +30110,9 @@ void MessagesManager::on_send_message_fail(int64 random_id, Status error) {
                  << *m->reply_markup;
     }
   }
-  LOG_IF(WARNING, error_code != 403) << "Fail to send " << full_message_id << " with the error " << error;
+  if (error_code != 403 && !(error_code == 500 && G()->close_flag())) {
+    LOG(WARNING) << "Fail to send " << full_message_id << " with the error " << error;
+  }
   if (error_code <= 0) {
     error_code = 500;
   }
