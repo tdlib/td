@@ -5304,7 +5304,8 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   bool has_flags3 = true;
   bool has_pending_join_requests = pending_join_request_count != 0;
   bool has_action_bar = action_bar != nullptr;
-  bool has_default_send_message_as_dialog_id = default_send_message_as_dialog_id.is_valid();
+  bool has_default_send_message_as_dialog_id =
+      default_send_message_as_dialog_id.is_valid() && !need_drop_default_send_message_as_dialog_id;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_draft_message);
   STORE_FLAG(has_last_database_message);
@@ -20100,6 +20101,13 @@ void MessagesManager::open_dialog(Dialog *d) {
   if (d->active_group_call_id.is_valid()) {
     td_->group_call_manager_->reload_group_call(d->active_group_call_id, Auto());
   }
+  if (d->need_drop_default_send_message_as_dialog_id) {
+    CHECK(d->default_send_message_as_dialog_id.is_valid());
+    d->need_drop_default_send_message_as_dialog_id = false;
+    d->default_send_message_as_dialog_id = DialogId();
+    LOG(INFO) << "Set default message sender in " << d->dialog_id << " to " << d->default_send_message_as_dialog_id;
+    send_update_chat_default_message_sender_id(d);
+  }
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
@@ -30983,9 +30991,18 @@ void MessagesManager::on_update_dialog_default_send_message_as_dialog_id(DialogI
   }
 
   if (d->default_send_message_as_dialog_id != default_send_as_dialog_id) {
-    LOG(INFO) << "Set default message sender in " << dialog_id << " to " << default_send_as_dialog_id;
-    d->default_send_message_as_dialog_id = default_send_as_dialog_id;
-    send_update_chat_default_message_sender_id(d);
+    if (force || default_send_as_dialog_id.is_valid() || created_public_broadcasts_.empty()) {
+      LOG(INFO) << "Set default message sender in " << dialog_id << " to " << default_send_as_dialog_id;
+      d->need_drop_default_send_message_as_dialog_id = false;
+      d->default_send_message_as_dialog_id = default_send_as_dialog_id;
+      send_update_chat_default_message_sender_id(d);
+    } else {
+      d->need_drop_default_send_message_as_dialog_id = true;
+      on_dialog_updated(d->dialog_id, "on_update_dialog_default_send_message_as_dialog_id");
+    }
+  } else if (default_send_as_dialog_id.is_valid() && d->need_drop_default_send_message_as_dialog_id) {
+    d->need_drop_default_send_message_as_dialog_id = false;
+    on_dialog_updated(d->dialog_id, "on_update_dialog_default_send_message_as_dialog_id");
   }
 }
 
@@ -34865,6 +34882,7 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
   if (default_send_message_as_dialog_id != dialog_id &&
       default_send_message_as_dialog_id.get_type() != DialogType::User &&
       !have_dialog(default_send_message_as_dialog_id)) {
+    d->need_drop_default_send_message_as_dialog_id = false;
     d->default_send_message_as_dialog_id = DialogId();
   }
 
