@@ -3296,7 +3296,7 @@ void Td::dec_actor_refcnt() {
       create_reference();
       close_flag_ = 3;
     } else if (close_flag_ == 3) {
-      LOG(WARNING) << "ON_ACTORS_CLOSED";
+      LOG(INFO) << "All actors were closed";
       Timer timer;
       animations_manager_.reset();
       LOG(DEBUG) << "AnimationsManager was cleared" << timer;
@@ -3371,7 +3371,6 @@ void Td::dec_actor_refcnt() {
 }
 
 void Td::on_closed() {
-  LOG(WARNING) << "ON_CLOSED";
   close_flag_ = 5;
   send_update(
       td_api::make_object<td_api::updateAuthorizationState>(td_api::make_object<td_api::authorizationStateClosed>()));
@@ -3381,7 +3380,7 @@ void Td::on_closed() {
 void Td::dec_stop_cnt() {
   stop_cnt_--;
   if (stop_cnt_ == 0) {
-    LOG(WARNING) << "Stop Td";
+    LOG(INFO) << "Stop Td";
     set_context(std::move(old_context_));
     stop();
   }
@@ -3395,7 +3394,7 @@ void Td::dec_request_actor_refcnt() {
   request_actor_refcnt_--;
   LOG(DEBUG) << "Decrease request actor count to " << request_actor_refcnt_;
   if (request_actor_refcnt_ == 0) {
-    LOG(WARNING) << "Have no request actors";
+    LOG(INFO) << "Have no request actors";
     clear();
     dec_actor_refcnt();  // remove guard
   }
