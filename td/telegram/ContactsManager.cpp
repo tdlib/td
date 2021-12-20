@@ -15213,7 +15213,7 @@ void ContactsManager::get_channel_participants(ChannelId channel_id,
     return promise.set_error(Status::Error(400, "Parameter offset must be non-negative"));
   }
 
-  auto channel_full = get_channel_full_force(channel_id, false, "get_channel_participants");
+  auto channel_full = get_channel_full_force(channel_id, true, "get_channel_participants");
   if (channel_full != nullptr && !channel_full->is_expired() && !channel_full->can_get_participants) {
     return promise.set_error(Status::Error(400, "Member list is inaccessible"));
   }
