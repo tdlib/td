@@ -1368,7 +1368,9 @@ void StickersManager::load_special_sticker_set_by_type(SpecialStickerSetType typ
   }
 
   auto &sticker_set = add_special_sticker_set(type);
-  CHECK(sticker_set.is_being_loaded_);
+  if (!sticker_set.is_being_loaded_) {
+    return;
+  }
   sticker_set.is_being_loaded_ = false;
   load_special_sticker_set(sticker_set);
 }
@@ -1446,6 +1448,8 @@ void StickersManager::on_load_special_sticker_set(const SpecialStickerSetType &t
   }
 
   if (result.is_error()) {
+    LOG(INFO) << "Failed to load special sticker set " << type.type_ << ": " << result.error();
+
     // failed to load the special sticker set; repeat after some time
     create_actor<SleepActor>("RetryLoadSpecialStickerSetActor", Random::fast(300, 600),
                              PromiseCreator::lambda([actor_id = actor_id(this), type](Result<Unit> result) mutable {
