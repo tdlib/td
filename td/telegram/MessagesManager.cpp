@@ -30626,13 +30626,13 @@ void MessagesManager::on_update_dialog_pending_join_requests(DialogId dialog_id,
     return;
   }
 
-  auto pending_join_request_user_ids = UserId::get_user_ids(pending_requesters);
-  td::remove_if(pending_join_request_user_ids, [](UserId user_id) { return !user_id.is_valid(); });
-  set_dialog_pending_join_requests(d, pending_join_request_count, std::move(pending_join_request_user_ids));
+  set_dialog_pending_join_requests(d, pending_join_request_count, UserId::get_user_ids(pending_requesters));
 }
 
 void MessagesManager::fix_pending_join_requests(DialogId dialog_id, int32 &pending_join_request_count,
                                                 vector<UserId> &pending_join_request_user_ids) const {
+  td::remove_if(pending_join_request_user_ids, [](UserId user_id) { return !user_id.is_valid(); });
+
   bool need_drop_pending_join_requests = [&] {
     if (pending_join_request_count < 0) {
       return true;
@@ -30670,6 +30670,11 @@ void MessagesManager::fix_pending_join_requests(DialogId dialog_id, int32 &pendi
     LOG(ERROR) << "Fix pending join request count from " << pending_join_request_count << " to "
                << pending_join_request_user_ids.size();
     pending_join_request_count = narrow_cast<int32>(pending_join_request_user_ids.size());
+  }
+
+  static constexpr size_t MAX_PENDING_JOIN_REQUESTS = 3;
+  if (pending_join_request_user_ids.size() > MAX_PENDING_JOIN_REQUESTS) {
+    pending_join_request_user_ids.resize(MAX_PENDING_JOIN_REQUESTS);
   }
 }
 
