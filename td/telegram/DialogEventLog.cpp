@@ -17,7 +17,7 @@
 #include "td/telegram/InputGroupCallId.h"
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
-#include "td/telegram/MessageTtlSetting.h"
+#include "td/telegram/MessageTtl.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
@@ -324,10 +324,10 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
     }
     case telegram_api::channelAdminLogEventActionChangeHistoryTTL::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeHistoryTTL>(action_ptr);
-      auto old_value = MessageTtlSetting(clamp(action->prev_value_, 0, 86400 * 366));
-      auto new_value = MessageTtlSetting(clamp(action->new_value_, 0, 86400 * 366));
-      return td_api::make_object<td_api::chatEventMessageTtlSettingChanged>(old_value.get_message_ttl_setting_object(),
-                                                                            new_value.get_message_ttl_setting_object());
+      auto old_value = MessageTtl(clamp(action->prev_value_, 0, 86400 * 366));
+      auto new_value = MessageTtl(clamp(action->new_value_, 0, 86400 * 366));
+      return td_api::make_object<td_api::chatEventMessageTtlChanged>(old_value.get_message_ttl_object(),
+                                                                     new_value.get_message_ttl_object());
     }
     case telegram_api::channelAdminLogEventActionToggleNoForwards::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionToggleNoForwards>(action_ptr);

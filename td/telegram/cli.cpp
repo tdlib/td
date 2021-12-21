@@ -3905,11 +3905,11 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::setChatPhoto>(
           as_chat_id(chat_id), td_api::make_object<td_api::inputChatPhotoAnimation>(as_input_file(animation),
                                                                                     to_double(main_frame_timestamp))));
-    } else if (op == "scmts") {
+    } else if (op == "scmt") {
       string chat_id;
       int32 ttl;
       get_args(args, chat_id, ttl);
-      send_request(td_api::make_object<td_api::setChatMessageTtlSetting>(as_chat_id(chat_id), ttl));
+      send_request(td_api::make_object<td_api::setChatMessageTtl>(as_chat_id(chat_id), ttl));
     } else if (op == "scperm") {
       string chat_id;
       string permissions;

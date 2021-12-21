@@ -361,7 +361,7 @@ set(TDLIB_SOURCE
   td/telegram/MessageSearchFilter.cpp
   td/telegram/MessageSender.cpp
   td/telegram/MessagesManager.cpp
-  td/telegram/MessageTtlSetting.cpp
+  td/telegram/MessageTtl.cpp
   td/telegram/misc.cpp
   td/telegram/net/AuthDataShared.cpp
   td/telegram/net/ConnectionCreator.cpp
@@ -566,7 +566,7 @@ set(TDLIB_SOURCE
   td/telegram/MessageSearchFilter.h
   td/telegram/MessageSender.h
   td/telegram/MessagesManager.h
-  td/telegram/MessageTtlSetting.h
+  td/telegram/MessageTtl.h
   td/telegram/misc.h
   td/telegram/net/AuthDataShared.h
   td/telegram/net/ConnectionCreator.h

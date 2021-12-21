@@ -24,7 +24,7 @@
 #include "td/telegram/logevent/LogEventHelper.h"
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
-#include "td/telegram/MessageTtlSetting.h"
+#include "td/telegram/MessageTtl.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/NotificationManager.h"
@@ -10132,8 +10132,8 @@ void ContactsManager::update_secret_chat(SecretChat *c, SecretChatId secret_chat
       c->is_state_changed = false;
     }
     if (c->is_ttl_changed) {
-      send_closure_later(G()->messages_manager(), &MessagesManager::on_update_dialog_message_ttl_setting,
-                         DialogId(secret_chat_id), MessageTtlSetting(c->ttl));
+      send_closure_later(G()->messages_manager(), &MessagesManager::on_update_dialog_message_ttl,
+                         DialogId(secret_chat_id), MessageTtl(c->ttl));
       c->is_ttl_changed = false;
     }
   }
@@ -10342,11 +10342,11 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
   td_->messages_manager_->on_update_dialog_has_scheduled_server_messages(
       DialogId(user_id), (user->flags_ & USER_FULL_FLAG_HAS_SCHEDULED_MESSAGES) != 0);
   {
-    MessageTtlSetting message_ttl_setting;
+    MessageTtl message_ttl;
     if ((user->flags_ & USER_FULL_FLAG_HAS_MESSAGE_TTL) != 0) {
-      message_ttl_setting = MessageTtlSetting(user->ttl_period_);
+      message_ttl = MessageTtl(user->ttl_period_);
     }
-    td_->messages_manager_->on_update_dialog_message_ttl_setting(DialogId(user_id), message_ttl_setting);
+    td_->messages_manager_->on_update_dialog_message_ttl(DialogId(user_id), message_ttl);
   }
 
   UserFull *user_full = add_user_full(user_id);
@@ -10619,11 +10619,11 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
                          default_join_group_call_as_dialog_id, false);
     }
     {
-      MessageTtlSetting message_ttl_setting;
+      MessageTtl message_ttl;
       if ((chat->flags_ & CHAT_FULL_FLAG_HAS_MESSAGE_TTL) != 0) {
-        message_ttl_setting = MessageTtlSetting(chat->ttl_period_);
+        message_ttl = MessageTtl(chat->ttl_period_);
       }
-      td_->messages_manager_->on_update_dialog_message_ttl_setting(DialogId(chat_id), message_ttl_setting);
+      td_->messages_manager_->on_update_dialog_message_ttl(DialogId(chat_id), message_ttl);
     }
 
     ChatFull *chat_full = add_chat_full(chat_id);
@@ -10696,11 +10696,11 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
                                                                    std::move(channel->recent_requesters_));
 
     {
-      MessageTtlSetting message_ttl_setting;
+      MessageTtl message_ttl;
       if ((channel->flags_ & CHANNEL_FULL_FLAG_HAS_MESSAGE_TTL) != 0) {
-        message_ttl_setting = MessageTtlSetting(channel->ttl_period_);
+        message_ttl = MessageTtl(channel->ttl_period_);
       }
-      td_->messages_manager_->on_update_dialog_message_ttl_setting(DialogId(channel_id), message_ttl_setting);
+      td_->messages_manager_->on_update_dialog_message_ttl(DialogId(channel_id), message_ttl);
     }
 
     auto c = get_channel(channel_id);

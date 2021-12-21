@@ -27,7 +27,7 @@
 #include "td/telegram/Location.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesManager.h"
-#include "td/telegram/MessageTtlSetting.h"
+#include "td/telegram/MessageTtl.h"
 #include "td/telegram/net/DcOptions.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/NotificationManager.h"
@@ -2673,11 +2673,11 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePeerSettings> u
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePeerHistoryTTL> update, Promise<Unit> &&promise) {
-  MessageTtlSetting message_ttl_setting;
+  MessageTtl message_ttl;
   if ((update->flags_ & telegram_api::updatePeerHistoryTTL::TTL_PERIOD_MASK) != 0) {
-    message_ttl_setting = MessageTtlSetting(update->ttl_period_);
+    message_ttl = MessageTtl(update->ttl_period_);
   }
-  td_->messages_manager_->on_update_dialog_message_ttl_setting(DialogId(update->peer_), message_ttl_setting);
+  td_->messages_manager_->on_update_dialog_message_ttl(DialogId(update->peer_), message_ttl);
   promise.set_value(Unit());
 }
 
