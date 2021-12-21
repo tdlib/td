@@ -21,6 +21,7 @@
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
+#include "td/utils/Random.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
 
@@ -114,7 +115,7 @@ struct SponsoredMessageManager::SponsoredMessage {
 };
 
 struct SponsoredMessageManager::DialogSponsoredMessages {
-  vector<Promise<td_api::object_ptr<td_api::sponsoredMessages>>> promises;
+  vector<Promise<td_api::object_ptr<td_api::sponsoredMessage>>> promises;
   vector<SponsoredMessage> messages;
   std::unordered_map<int32, string> message_random_ids;
 };
@@ -184,27 +185,25 @@ td_api::object_ptr<td_api::sponsoredMessage> SponsoredMessageManager::get_sponso
       get_message_content_object(sponsored_message.content.get(), td_, dialog_id, 0, false, true, -1));
 }
 
-td_api::object_ptr<td_api::sponsoredMessages> SponsoredMessageManager::get_sponsored_messages_object(
+td_api::object_ptr<td_api::sponsoredMessage> SponsoredMessageManager::get_sponsored_message_object(
     DialogId dialog_id, const DialogSponsoredMessages &sponsored_messages) const {
-  return td_api::make_object<td_api::sponsoredMessages>(
-      transform(sponsored_messages.messages, [this, dialog_id](const SponsoredMessage &sponsored_message) {
-        return get_sponsored_message_object(dialog_id, sponsored_message);
-      }));
+  auto pos = Random::fast(0, static_cast<int>(sponsored_messages.messages.size()) - 1);
+  return get_sponsored_message_object(dialog_id, sponsored_messages.messages[pos]);
 }
 
-void SponsoredMessageManager::get_dialog_sponsored_messages(
-    DialogId dialog_id, Promise<td_api::object_ptr<td_api::sponsoredMessages>> &&promise) {
-  if (!td_->messages_manager_->have_dialog_force(dialog_id, "get_sponsored_messages")) {
+void SponsoredMessageManager::get_dialog_sponsored_message(
+    DialogId dialog_id, Promise<td_api::object_ptr<td_api::sponsoredMessage>> &&promise) {
+  if (!td_->messages_manager_->have_dialog_force(dialog_id, "get_dialog_sponsored_message")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
   if (dialog_id.get_type() != DialogType::Channel ||
       td_->contacts_manager_->get_channel_type(dialog_id.get_channel_id()) != ContactsManager::ChannelType::Broadcast) {
-    return promise.set_value(td_api::make_object<td_api::sponsoredMessages>());
+    return promise.set_value(nullptr);
   }
 
   auto &messages = dialog_sponsored_messages_[dialog_id];
   if (messages != nullptr && messages->promises.empty()) {
-    return promise.set_value(get_sponsored_messages_object(dialog_id, *messages));
+    return promise.set_value(get_sponsored_message_object(dialog_id, *messages));
   }
 
   if (messages == nullptr) {
@@ -280,7 +279,7 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
   }
 
   for (auto &promise : promises) {
-    promise.set_value(get_sponsored_messages_object(dialog_id, *messages));
+    promise.set_value(get_sponsored_message_object(dialog_id, *messages));
   }
   delete_cached_sponsored_messages_timeout_.set_timeout_in(dialog_id.get(), 300.0);
 }

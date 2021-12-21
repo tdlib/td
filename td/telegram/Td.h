@@ -525,7 +525,7 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::getMessages &request);
 
-  void on_request(uint64 id, const td_api::getChatSponsoredMessages &request);
+  void on_request(uint64 id, const td_api::getChatSponsoredMessage &request);
 
   void on_request(uint64 id, const td_api::viewSponsoredMessage &request);
 

@@ -836,9 +836,6 @@ messageCalendar total_count:int32 days:vector<messageCalendarDay> = MessageCalen
 //@content Content of the message. Currently, can be only of the type messageText
 sponsoredMessage id:int32 sponsor_chat_id:int53 link:InternalLinkType content:MessageContent = SponsoredMessage;
 
-//@description Contains a list of sponsored messages @messages List of sponsored messages
-sponsoredMessages messages:vector<sponsoredMessage> = SponsoredMessages;
-
 
 //@class NotificationSettingsScope @description Describes the types of chats to which notification settings are relevant
 
@@ -4360,8 +4357,8 @@ getChatScheduledMessages chat_id:int53 = Messages;
 //@limit The maximum number of messages to be returned; must be positive and can't be greater than 100. For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
 getMessagePublicForwards chat_id:int53 message_id:int53 offset:string limit:int32 = FoundMessages;
 
-//@description Returns sponsored messages to be shown in a chat; for channel chats only @chat_id Identifier of the chat
-getChatSponsoredMessages chat_id:int53 = SponsoredMessages;
+//@description Returns sponsored message to be shown in a chat; for channel chats only. Returns a 404 error if there is no sponsored message in the chat @chat_id Identifier of the chat
+getChatSponsoredMessage chat_id:int53 = SponsoredMessage;
 
 //@description Informs TDLib that a sponsored message was viewed by the user @chat_id Identifier of the chat with the sponsored message @sponsored_message_id The identifier of the sponsored message being viewed
 viewSponsoredMessage chat_id:int53 sponsored_message_id:int32 = Ok;
