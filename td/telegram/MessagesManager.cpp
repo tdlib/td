@@ -20106,7 +20106,7 @@ void MessagesManager::open_dialog(Dialog *d) {
     CHECK(d->default_send_message_as_dialog_id.is_valid());
     d->need_drop_default_send_message_as_dialog_id = false;
     d->default_send_message_as_dialog_id = DialogId();
-    LOG(INFO) << "Set default message sender in " << d->dialog_id << " to " << d->default_send_message_as_dialog_id;
+    LOG(INFO) << "Set message sender in " << d->dialog_id << " to " << d->default_send_message_as_dialog_id;
     on_dialog_updated(dialog_id, "open_dialog");
     send_update_chat_default_message_sender_id(d);
   }
@@ -24204,11 +24204,10 @@ void MessagesManager::set_dialog_default_send_message_as_dialog_id(DialogId dial
       }
       break;
     default:
-      UNREACHABLE();
-      return promise.set_error(Status::Error(400, "Invalid default participant identifier specified"));
+      return promise.set_error(Status::Error(400, "Invalid message sender specified"));
   }
   if (!have_input_peer(message_sender_dialog_id, AccessRights::Read)) {
-    return promise.set_error(Status::Error(400, "Can't access specified default message sender chat"));
+    return promise.set_error(Status::Error(400, "Can't access specified message sender chat"));
   }
 
   {
@@ -30969,7 +30968,7 @@ void MessagesManager::on_update_dialog_default_send_message_as_dialog_id(DialogI
   auto dialog_type = dialog_id.get_type();
   if (dialog_type != DialogType::Channel || is_broadcast_channel(dialog_id)) {
     if (default_send_as_dialog_id != DialogId()) {
-      LOG(ERROR) << "Receive default sender " << default_send_as_dialog_id << " in " << dialog_id;
+      LOG(ERROR) << "Receive message sender " << default_send_as_dialog_id << " in " << dialog_id;
     }
     return;
   }
@@ -30994,16 +30993,19 @@ void MessagesManager::on_update_dialog_default_send_message_as_dialog_id(DialogI
   }
 
   if (d->default_send_message_as_dialog_id != default_send_as_dialog_id) {
-    if (force || default_send_as_dialog_id.is_valid() || created_public_broadcasts_.empty()) {
-      LOG(INFO) << "Set default message sender in " << dialog_id << " to " << default_send_as_dialog_id;
+    if (force || default_send_as_dialog_id.is_valid() ||
+        (created_public_broadcasts_inited_ && !created_public_broadcasts_.empty())) {
+      LOG(INFO) << "Set message sender in " << dialog_id << " to " << default_send_as_dialog_id;
       d->need_drop_default_send_message_as_dialog_id = false;
       d->default_send_message_as_dialog_id = default_send_as_dialog_id;
       send_update_chat_default_message_sender_id(d);
     } else {
+      LOG(INFO) << "Postpone removal of message sender in " << dialog_id;
       d->need_drop_default_send_message_as_dialog_id = true;
     }
     on_dialog_updated(d->dialog_id, "on_update_dialog_default_send_message_as_dialog_id");
   } else if (default_send_as_dialog_id.is_valid() && d->need_drop_default_send_message_as_dialog_id) {
+    LOG(INFO) << "Don't remove message sender in " << dialog_id;
     d->need_drop_default_send_message_as_dialog_id = false;
     on_dialog_updated(d->dialog_id, "on_update_dialog_default_send_message_as_dialog_id");
   }
@@ -35096,7 +35098,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
         if (!pending_d->default_send_message_as_dialog_id.is_valid()) {
           LOG(INFO) << "Set postponed message sender in " << pending_dialog_id << " to " << dialog_id;
           pending_d->need_drop_default_send_message_as_dialog_id = pending_dialog_id.second;
-          pending_d->default_send_message_as_dialog_id = pending_dialog_id.first;
+          pending_d->default_send_message_as_dialog_id = dialog_id;
           send_update_chat_default_message_sender_id(pending_d);
         }
       }
