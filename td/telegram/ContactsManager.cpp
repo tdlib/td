@@ -13406,7 +13406,7 @@ void ContactsManager::on_channel_status_changed(Channel *c, ChannelId channel_id
   if (old_status.is_member() != new_status.is_member() || new_status.is_banned()) {
     remove_dialog_access_by_invite_link(DialogId(channel_id));
 
-    if (new_status.is_member()) {
+    if (new_status.is_member() || new_status.is_creator()) {
       reload_channel_full(channel_id, Promise<Unit>(), "on_channel_status_changed");
     }
   }
