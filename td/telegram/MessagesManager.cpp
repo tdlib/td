@@ -20108,7 +20108,7 @@ void MessagesManager::open_dialog(Dialog *d) {
     d->default_send_message_as_dialog_id = DialogId();
     LOG(INFO) << "Set message sender in " << d->dialog_id << " to " << d->default_send_message_as_dialog_id;
     on_dialog_updated(dialog_id, "open_dialog");
-    send_update_chat_default_message_sender_id(d);
+    send_update_chat_message_sender(d);
   }
 
   switch (dialog_id.get_type()) {
@@ -20324,10 +20324,11 @@ td_api::object_ptr<td_api::videoChat> MessagesManager::get_video_chat_object(con
                                            std::move(default_participant_alias));
 }
 
-td_api::object_ptr<td_api::MessageSender> MessagesManager::get_default_sender_id_object(const Dialog *d) const {
+td_api::object_ptr<td_api::MessageSender> MessagesManager::get_default_message_sender_object(const Dialog *d) const {
   auto as_dialog_id = d->default_send_message_as_dialog_id;
-  return as_dialog_id.is_valid() ? get_message_sender_object_const(td_, as_dialog_id, "get_default_sender_id_object")
-                                 : nullptr;
+  return as_dialog_id.is_valid()
+             ? get_message_sender_object_const(td_, as_dialog_id, "get_default_message_sender_object")
+             : nullptr;
 }
 
 td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *d) const {
@@ -20394,9 +20395,10 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
       get_chat_photo_info_object(td_->file_manager_.get(), get_dialog_photo(d->dialog_id)),
       get_dialog_default_permissions(d->dialog_id).get_chat_permissions_object(),
       get_message_object(d->dialog_id, get_message(d, d->last_message_id), "get_chat_object"),
-      get_chat_positions_object(d), get_default_sender_id_object(d), get_dialog_has_protected_content(d->dialog_id),
-      d->is_marked_as_unread, d->is_blocked, get_dialog_has_scheduled_messages(d), can_delete_for_self,
-      can_delete_for_all_users, can_report_dialog(d->dialog_id), d->notification_settings.silent_send_message,
+      get_chat_positions_object(d), get_default_message_sender_object(d),
+      get_dialog_has_protected_content(d->dialog_id), d->is_marked_as_unread, d->is_blocked,
+      get_dialog_has_scheduled_messages(d), can_delete_for_self, can_delete_for_all_users,
+      can_report_dialog(d->dialog_id), d->notification_settings.silent_send_message,
       d->server_unread_count + d->local_unread_count, d->last_read_inbox_message_id.get(),
       d->last_read_outbox_message_id.get(), d->unread_mention_count,
       get_chat_notification_settings_object(&d->notification_settings),
@@ -29582,13 +29584,13 @@ void MessagesManager::send_update_chat_video_chat(const Dialog *d) {
                td_api::make_object<td_api::updateChatVideoChat>(d->dialog_id.get(), get_video_chat_object(d)));
 }
 
-void MessagesManager::send_update_chat_default_message_sender_id(const Dialog *d) {
+void MessagesManager::send_update_chat_message_sender(const Dialog *d) {
   CHECK(!td_->auth_manager_->is_bot());
   CHECK(d != nullptr);
-  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_default_message_sender_id";
-  send_closure(G()->td(), &Td::send_update,
-               td_api::make_object<td_api::updateChatDefaultMessageSenderId>(d->dialog_id.get(),
-                                                                             get_default_sender_id_object(d)));
+  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_message_sender";
+  send_closure(
+      G()->td(), &Td::send_update,
+      td_api::make_object<td_api::updateChatMessageSender>(d->dialog_id.get(), get_default_message_sender_object(d)));
 }
 
 void MessagesManager::send_update_chat_message_ttl_setting(const Dialog *d) {
@@ -30998,7 +31000,7 @@ void MessagesManager::on_update_dialog_default_send_message_as_dialog_id(DialogI
       LOG(INFO) << "Set message sender in " << dialog_id << " to " << default_send_as_dialog_id;
       d->need_drop_default_send_message_as_dialog_id = false;
       d->default_send_message_as_dialog_id = default_send_as_dialog_id;
-      send_update_chat_default_message_sender_id(d);
+      send_update_chat_message_sender(d);
     } else {
       LOG(INFO) << "Postpone removal of message sender in " << dialog_id;
       d->need_drop_default_send_message_as_dialog_id = true;
@@ -35099,7 +35101,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
           LOG(INFO) << "Set postponed message sender in " << pending_dialog_id << " to " << dialog_id;
           pending_d->need_drop_default_send_message_as_dialog_id = pending_dialog_id.second;
           pending_d->default_send_message_as_dialog_id = dialog_id;
-          send_update_chat_default_message_sender_id(pending_d);
+          send_update_chat_message_sender(pending_d);
         }
       }
     }
@@ -35214,7 +35216,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
       LOG(INFO) << "Set message sender in " << dialog_id << " to " << default_send_message_as_dialog_id;
       d->need_drop_default_send_message_as_dialog_id = need_drop_default_send_message_as_dialog_id;
       d->default_send_message_as_dialog_id = default_send_message_as_dialog_id;
-      send_update_chat_default_message_sender_id(d);
+      send_update_chat_message_sender(d);
     }
   }
 

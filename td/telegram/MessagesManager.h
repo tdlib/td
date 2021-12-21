@@ -2398,7 +2398,7 @@ class MessagesManager final : public Actor {
 
   void send_update_chat_video_chat(const Dialog *d);
 
-  void send_update_chat_default_message_sender_id(const Dialog *d);
+  void send_update_chat_message_sender(const Dialog *d);
 
   void send_update_chat_message_ttl_setting(const Dialog *d);
 
@@ -2599,7 +2599,7 @@ class MessagesManager final : public Actor {
 
   td_api::object_ptr<td_api::videoChat> get_video_chat_object(const Dialog *d) const;
 
-  td_api::object_ptr<td_api::MessageSender> get_default_sender_id_object(const Dialog *d) const;
+  td_api::object_ptr<td_api::MessageSender> get_default_message_sender_object(const Dialog *d) const;
 
   td_api::object_ptr<td_api::chat> get_chat_object(const Dialog *d) const;
 

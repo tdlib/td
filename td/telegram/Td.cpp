@@ -5298,11 +5298,11 @@ void Td::on_request(uint64 id, const td_api::getChatAvailableMessageSenders &req
   messages_manager_->get_dialog_send_message_as_dialog_ids(DialogId(request.chat_id_), std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::setChatDefaultMessageSender &request) {
+void Td::on_request(uint64 id, const td_api::setChatMessageSender &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   TRY_RESULT_PROMISE(promise, message_sender_dialog_id,
-                     get_message_sender_dialog_id(this, request.default_message_sender_id_, true, false));
+                     get_message_sender_dialog_id(this, request.message_sender_id_, true, false));
   messages_manager_->set_dialog_default_send_message_as_dialog_id(DialogId(request.chat_id_), message_sender_dialog_id,
                                                                   std::move(promise));
 }

@@ -3261,12 +3261,12 @@ class CliClient final : public Actor {
       message_thread_id_ = std::move(args);
     } else if (op == "gcams") {
       send_request(td_api::make_object<td_api::getChatAvailableMessageSenders>(as_chat_id(args)));
-    } else if (op == "scdms") {
+    } else if (op == "scmsr") {
       string chat_id;
       string sender_id;
       get_args(args, chat_id, sender_id);
       send_request(
-          td_api::make_object<td_api::setChatDefaultMessageSender>(as_chat_id(chat_id), as_message_sender(sender_id)));
+          td_api::make_object<td_api::setChatMessageSender>(as_chat_id(chat_id), as_message_sender(sender_id)));
     } else if (op == "sm" || op == "sms" || op == "smr" || op == "smf") {
       string chat_id;
       string reply_to_message_id;
