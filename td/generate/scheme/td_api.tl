@@ -3722,50 +3722,26 @@ updateChatLastMessage chat_id:int53 last_message:message positions:vector<chatPo
 //@description The position of a chat in a chat list has changed. Instead of this update updateChatLastMessage or updateChatDraftMessage might be sent @chat_id Chat identifier @position New chat position. If new order is 0, then the chat needs to be removed from the list
 updateChatPosition chat_id:int53 position:chatPosition = Update;
 
-//@description The message sender that is selected to send messages in a chat has changed @chat_id Chat identifier @message_sender_id New value of message_sender_id; may be null if the user can't change message sender
-updateChatMessageSender chat_id:int53 message_sender_id:MessageSender = Update;
-
-//@description A chat content was allowed or restricted for saving @chat_id Chat identifier @has_protected_content New value of has_protected_content
-updateChatHasProtectedContent chat_id:int53 has_protected_content:Bool = Update;
-
-//@description A chat was marked as unread or was read @chat_id Chat identifier @is_marked_as_unread New value of is_marked_as_unread
-updateChatIsMarkedAsUnread chat_id:int53 is_marked_as_unread:Bool = Update;
-
-//@description A chat was blocked or unblocked @chat_id Chat identifier @is_blocked New value of is_blocked
-updateChatIsBlocked chat_id:int53 is_blocked:Bool = Update;
-
-//@description A chat's has_scheduled_messages field has changed @chat_id Chat identifier @has_scheduled_messages New value of has_scheduled_messages
-updateChatHasScheduledMessages chat_id:int53 has_scheduled_messages:Bool = Update;
-
-//@description A chat video chat state has changed @chat_id Chat identifier @video_chat New value of video_chat
-updateChatVideoChat chat_id:int53 video_chat:videoChat = Update;
-
-//@description The value of the default disable_notification parameter, used when a message is sent to the chat, was changed @chat_id Chat identifier @default_disable_notification The new default_disable_notification value
-updateChatDefaultDisableNotification chat_id:int53 default_disable_notification:Bool = Update;
-
 //@description Incoming messages were read or the number of unread messages has been changed @chat_id Chat identifier @last_read_inbox_message_id Identifier of the last read incoming message @unread_count The number of unread messages left in the chat
 updateChatReadInbox chat_id:int53 last_read_inbox_message_id:int53 unread_count:int32 = Update;
 
 //@description Outgoing messages were read @chat_id Chat identifier @last_read_outbox_message_id Identifier of last read outgoing message
 updateChatReadOutbox chat_id:int53 last_read_outbox_message_id:int53 = Update;
 
-//@description The chat unread_mention_count has changed @chat_id Chat identifier @unread_mention_count The number of unread mention messages left in the chat
-updateChatUnreadMentionCount chat_id:int53 unread_mention_count:int32 = Update;
+//@description The chat action bar was changed @chat_id Chat identifier @action_bar The new value of the action bar; may be null
+updateChatActionBar chat_id:int53 action_bar:ChatActionBar = Update;
 
-//@description Notification settings for a chat were changed @chat_id Chat identifier @notification_settings The new notification settings
-updateChatNotificationSettings chat_id:int53 notification_settings:chatNotificationSettings = Update;
+//@description A chat draft has changed. Be aware that the update may come in the currently opened chat but with old content of the draft. If the user has changed the content of the draft, this update mustn't be applied @chat_id Chat identifier @draft_message The new draft message; may be null @positions The new chat positions in the chat lists
+updateChatDraftMessage chat_id:int53 draft_message:draftMessage positions:vector<chatPosition> = Update;
 
-//@description Notification settings for some type of chats were updated @scope Types of chats for which notification settings were updated @notification_settings The new notification settings
-updateScopeNotificationSettings scope:NotificationSettingsScope notification_settings:scopeNotificationSettings = Update;
+//@description The message sender that is selected to send messages in a chat has changed @chat_id Chat identifier @message_sender_id New value of message_sender_id; may be null if the user can't change message sender
+updateChatMessageSender chat_id:int53 message_sender_id:MessageSender = Update;
 
 //@description The message Time To Live setting for a chat was changed @chat_id Chat identifier @message_ttl New value of message_ttl
 updateChatMessageTtl chat_id:int53 message_ttl:int32 = Update;
 
-//@description The chat action bar was changed @chat_id Chat identifier @action_bar The new value of the action bar; may be null
-updateChatActionBar chat_id:int53 action_bar:ChatActionBar = Update;
-
-//@description The chat theme was changed @chat_id Chat identifier @theme_name The new name of the chat theme; may be empty if theme was reset to default
-updateChatTheme chat_id:int53 theme_name:string = Update;
+//@description Notification settings for a chat were changed @chat_id Chat identifier @notification_settings The new notification settings
+updateChatNotificationSettings chat_id:int53 notification_settings:chatNotificationSettings = Update;
 
 //@description The chat pending join requests were changed @chat_id Chat identifier @pending_join_requests The new data about pending join requests; may be null
 updateChatPendingJoinRequests chat_id:int53 pending_join_requests:chatJoinRequestsInfo = Update;
@@ -3774,14 +3750,38 @@ updateChatPendingJoinRequests chat_id:int53 pending_join_requests:chatJoinReques
 //@chat_id Chat identifier @reply_markup_message_id Identifier of the message from which reply markup needs to be used; 0 if there is no default custom reply markup in the chat
 updateChatReplyMarkup chat_id:int53 reply_markup_message_id:int53 = Update;
 
-//@description A chat draft has changed. Be aware that the update may come in the currently opened chat but with old content of the draft. If the user has changed the content of the draft, this update mustn't be applied @chat_id Chat identifier @draft_message The new draft message; may be null @positions The new chat positions in the chat lists
-updateChatDraftMessage chat_id:int53 draft_message:draftMessage positions:vector<chatPosition> = Update;
+//@description The chat theme was changed @chat_id Chat identifier @theme_name The new name of the chat theme; may be empty if theme was reset to default
+updateChatTheme chat_id:int53 theme_name:string = Update;
+
+//@description The chat unread_mention_count has changed @chat_id Chat identifier @unread_mention_count The number of unread mention messages left in the chat
+updateChatUnreadMentionCount chat_id:int53 unread_mention_count:int32 = Update;
+
+//@description A chat video chat state has changed @chat_id Chat identifier @video_chat New value of video_chat
+updateChatVideoChat chat_id:int53 video_chat:videoChat = Update;
+
+//@description The value of the default disable_notification parameter, used when a message is sent to the chat, was changed @chat_id Chat identifier @default_disable_notification The new default_disable_notification value
+updateChatDefaultDisableNotification chat_id:int53 default_disable_notification:Bool = Update;
+
+//@description A chat content was allowed or restricted for saving @chat_id Chat identifier @has_protected_content New value of has_protected_content
+updateChatHasProtectedContent chat_id:int53 has_protected_content:Bool = Update;
+
+//@description A chat's has_scheduled_messages field has changed @chat_id Chat identifier @has_scheduled_messages New value of has_scheduled_messages
+updateChatHasScheduledMessages chat_id:int53 has_scheduled_messages:Bool = Update;
+
+//@description A chat was blocked or unblocked @chat_id Chat identifier @is_blocked New value of is_blocked
+updateChatIsBlocked chat_id:int53 is_blocked:Bool = Update;
+
+//@description A chat was marked as unread or was read @chat_id Chat identifier @is_marked_as_unread New value of is_marked_as_unread
+updateChatIsMarkedAsUnread chat_id:int53 is_marked_as_unread:Bool = Update;
 
 //@description The list of chat filters or a chat filter has changed @chat_filters The new list of chat filters
 updateChatFilters chat_filters:vector<chatFilterInfo> = Update;
 
 //@description The number of online group members has changed. This update with non-zero count is sent only for currently opened chats. There is no guarantee that it will be sent just after the count has changed @chat_id Identifier of the chat @online_member_count New number of online members in the chat, or 0 if unknown
 updateChatOnlineMemberCount chat_id:int53 online_member_count:int32 = Update;
+
+//@description Notification settings for some type of chats were updated @scope Types of chats for which notification settings were updated @notification_settings The new notification settings
+updateScopeNotificationSettings scope:NotificationSettingsScope notification_settings:scopeNotificationSettings = Update;
 
 //@description A notification was changed @notification_group_id Unique notification group identifier @notification Changed notification
 updateNotification notification_group_id:int32 notification:notification = Update;
