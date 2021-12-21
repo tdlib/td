@@ -13407,7 +13407,9 @@ void ContactsManager::on_channel_status_changed(Channel *c, ChannelId channel_id
     remove_dialog_access_by_invite_link(DialogId(channel_id));
 
     if (new_status.is_member() || new_status.is_creator()) {
-      reload_channel_full(channel_id, Promise<Unit>(), "on_channel_status_changed");
+      reload_channel_full(channel_id,
+                          PromiseCreator::lambda([channel_id](Unit) { LOG(INFO) << "Reloaded full " << channel_id; }),
+                          "on_channel_status_changed");
     }
   }
   if (need_reload_group_call) {
