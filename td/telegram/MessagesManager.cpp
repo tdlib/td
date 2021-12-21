@@ -11413,8 +11413,10 @@ bool MessagesManager::read_message_content(Dialog *d, Message *m, bool is_local_
   LOG_CHECK(m != nullptr) << source;
   CHECK(!m->message_id.is_scheduled());
   bool is_mention_read = update_message_contains_unread_mention(d, m, false, "read_message_content");
-  bool is_content_read =
-      update_opened_message_content(m->content.get()) | ttl_on_open(d, m, Time::now(), is_local_read);
+  bool is_content_read = update_opened_message_content(m->content.get());
+  if (ttl_on_open(d, m, Time::now(), is_local_read)) {
+    is_content_read = true;
+  }
 
   LOG(INFO) << "Read message content of " << m->message_id << " in " << d->dialog_id
             << ": is_mention_read = " << is_mention_read << ", is_content_read = " << is_content_read;
