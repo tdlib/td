@@ -23529,14 +23529,15 @@ tl_object_ptr<td_api::MessageSchedulingState> MessagesManager::get_message_sched
 }
 
 td_api::object_ptr<td_api::message> MessagesManager::get_dialog_event_log_message_object(
-    DialogId dialog_id, tl_object_ptr<telegram_api::Message> &&message) {
+    DialogId dialog_id, tl_object_ptr<telegram_api::Message> &&message, DialogId &sender_dialog_id) {
   auto dialog_message = create_message(parse_telegram_api_message(std::move(message), false, "dialog_event_log"),
                                        dialog_id.get_type() == DialogType::Channel);
   if (dialog_message.second == nullptr || dialog_message.first != dialog_id) {
     LOG(ERROR) << "Failed to create event log message in " << dialog_id;
     return nullptr;
   }
-  return get_message_object(dialog_id, dialog_message.second.get(), "admin log", true);
+  sender_dialog_id = get_message_sender(dialog_message.second.get());
+  return get_message_object(dialog_id, dialog_message.second.get(), "get_dialog_event_log_message_object", true);
 }
 
 tl_object_ptr<td_api::message> MessagesManager::get_message_object(FullMessageId full_message_id, const char *source) {

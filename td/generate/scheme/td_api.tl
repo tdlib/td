@@ -2633,8 +2633,8 @@ chatEventVideoChatParticipantVolumeLevelChanged participant_id:MessageSender vol
 //@description The mute_new_participants setting of a video chat was toggled @mute_new_participants New value of the mute_new_participants setting
 chatEventVideoChatMuteNewParticipantsToggled mute_new_participants:Bool = ChatEventAction;
 
-//@description Represents a chat event @id Chat event identifier @date Point in time (Unix timestamp) when the event happened @user_id Identifier of the user who performed the action that triggered the event @action Action performed by the user
-chatEvent id:int64 date:int32 user_id:int53 action:ChatEventAction = ChatEvent;
+//@description Represents a chat event @id Chat event identifier @date Point in time (Unix timestamp) when the event happened @member_id Identifier of the user or chat who performed the action @action The action
+chatEvent id:int64 date:int32 member_id:MessageSender action:ChatEventAction = ChatEvent;
 
 //@description Contains a list of chat events @events List of events
 chatEvents events:vector<chatEvent> = ChatEvents;

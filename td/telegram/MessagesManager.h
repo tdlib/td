@@ -772,7 +772,7 @@ class MessagesManager final : public Actor {
   tl_object_ptr<td_api::message> get_dialog_message_by_date_object(int64 random_id);
 
   td_api::object_ptr<td_api::message> get_dialog_event_log_message_object(
-      DialogId dialog_id, tl_object_ptr<telegram_api::Message> &&message);
+      DialogId dialog_id, tl_object_ptr<telegram_api::Message> &&message, DialogId &sender_dialog_id);
 
   tl_object_ptr<td_api::message> get_message_object(FullMessageId full_message_id, const char *source);
 
