@@ -25,6 +25,7 @@
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/MessageTtl.h"
+#include "td/telegram/MinChannel.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/NotificationManager.h"
@@ -14552,6 +14553,14 @@ bool ContactsManager::have_min_channel(ChannelId channel_id) const {
   return min_channels_.count(channel_id) > 0;
 }
 
+const MinChannel *ContactsManager::get_min_channel(ChannelId channel_id) const {
+  auto it = min_channels_.find(channel_id);
+  if (it == min_channels_.end()) {
+    return nullptr;
+  }
+  return it->second.get();
+}
+
 const ContactsManager::Channel *ContactsManager::get_channel(ChannelId channel_id) const {
   auto p = channels_.find(channel_id);
   if (p == channels_.end()) {
@@ -15585,8 +15594,8 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
     Channel *c = get_channel_force(channel_id);
     LOG(ERROR) << "Receive empty " << to_string(channel) << " from " << source << ", have "
                << to_string(get_supergroup_object(channel_id, c));
-    if (c == nullptr) {
-      min_channels_.insert(channel_id);
+    if (c == nullptr && !have_min_channel(channel_id)) {
+      min_channels_[channel_id] = td::make_unique<MinChannel>();
     }
     return;
   }
@@ -15654,7 +15663,6 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
   }();
 
   if (is_min) {
-    // TODO there can be better support for min channels
     Channel *c = get_channel_force(channel_id);
     if (c != nullptr) {
       LOG(DEBUG) << "Receive known min " << channel_id;
@@ -15689,7 +15697,15 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
 
       update_channel(c, channel_id);
     } else {
-      min_channels_.insert(channel_id);
+      auto min_channel = td::make_unique<MinChannel>();
+      min_channel->photo_ =
+          get_dialog_photo(td_->file_manager_.get(), DialogId(channel_id), access_hash, std::move(channel.photo_));
+      if (td_->auth_manager_->is_bot()) {
+        min_channel->photo_.minithumbnail.clear();
+      }
+      min_channel->title_ = std::move(channel.title_);
+
+      min_channels_[channel_id] = std::move(min_channel);
     }
     return;
   }
@@ -15789,8 +15805,8 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, co
     Channel *c = get_channel_force(channel_id);
     LOG(ERROR) << "Receive empty " << to_string(channel) << " from " << source << ", have "
                << to_string(get_supergroup_object(channel_id, c));
-    if (c == nullptr) {
-      min_channels_.insert(channel_id);
+    if (c == nullptr && !have_min_channel(channel_id)) {
+      min_channels_[channel_id] = td::make_unique<MinChannel>();
     }
     return;
   }

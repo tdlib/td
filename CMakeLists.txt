@@ -567,6 +567,7 @@ set(TDLIB_SOURCE
   td/telegram/MessageSender.h
   td/telegram/MessagesManager.h
   td/telegram/MessageTtl.h
+  td/telegram/MinChannel.h
   td/telegram/misc.h
   td/telegram/net/AuthDataShared.h
   td/telegram/net/ConnectionCreator.h
