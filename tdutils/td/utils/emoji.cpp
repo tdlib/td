@@ -688,8 +688,7 @@ Slice remove_fitzpatrick_modifier(Slice emoji) {
 }
 
 Slice remove_emoji_modifiers(Slice emoji) {
-  static const Slice modifiers[] = {u8"\uFE0E" /* variation selector-15 */,
-                                    u8"\uFE0F" /* variation selector-16 */,
+  static const Slice modifiers[] = {u8"\uFE0F" /* variation selector-16 */,
                                     u8"\u200D\u2640" /* zero width joiner + female sign */,
                                     u8"\u200D\u2642" /* zero width joiner + male sign */,
                                     u8"\U0001F3FB" /* emoji modifier fitzpatrick type-1-2 */,
@@ -712,6 +711,23 @@ Slice remove_emoji_modifiers(Slice emoji) {
 
 void remove_emoji_modifiers_in_place(string &emoji) {
   emoji.resize(remove_emoji_modifiers(emoji).size());
+}
+
+string remove_emoji_selectors(Slice emoji) {
+  if (!is_emoji(emoji)) {
+    return emoji.str();
+  }
+  string str;
+  for (size_t i = 0; i < emoji.size(); i++) {
+    if (i + 3 <= emoji.size() && emoji[i] == '\xEF' && emoji[i + 1] == '\xB8' && emoji[i + 2] == '\x8F') {
+      // skip \uFE0F
+      i += 2;
+    } else {
+      str += emoji[i];
+    }
+  }
+  CHECK(is_emoji(str));
+  return str;
 }
 
 }  // namespace td

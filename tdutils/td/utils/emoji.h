@@ -26,4 +26,7 @@ Slice remove_emoji_modifiers(Slice emoji);
 // removes all emoji modifiers from the end of the string in place
 void remove_emoji_modifiers_in_place(string &emoji);
 
+// removes all emoji selectors from the string if it is an emoji
+string remove_emoji_selectors(Slice emoji);
+
 }  // namespace td

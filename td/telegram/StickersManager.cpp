@@ -2004,23 +2004,28 @@ std::pair<FileId, int> StickersManager::get_animated_emoji_sticker(const Sticker
     return {};
   }
 
+  auto emoji_without_selectors = remove_emoji_selectors(emoji);
   // trying to find full emoji match
   for (const auto &sticker_id : it->second) {
     auto emoji_it = sticker_set->sticker_emojis_map_.find(sticker_id);
     CHECK(emoji_it != sticker_set->sticker_emojis_map_.end());
-    if (td::contains(emoji_it->second, emoji)) {
-      return {sticker_id, 0};
+    for (auto &sticker_emoji : emoji_it->second) {
+      if (remove_emoji_selectors(sticker_emoji) == emoji_without_selectors) {
+        return {sticker_id, 0};
+      }
     }
   }
 
   // trying to find match without Fitzpatrick modifiers
-  int modifier_id = get_fitzpatrick_modifier(emoji);
+  int modifier_id = get_fitzpatrick_modifier(emoji_without_selectors);
   if (modifier_id > 0) {
     for (const auto &sticker_id : it->second) {
       auto emoji_it = sticker_set->sticker_emojis_map_.find(sticker_id);
       CHECK(emoji_it != sticker_set->sticker_emojis_map_.end());
-      if (td::contains(emoji_it->second, Slice(emoji).remove_suffix(4))) {
-        return {sticker_id, modifier_id};
+      for (auto &sticker_emoji : emoji_it->second) {
+        if (remove_emoji_selectors(sticker_emoji) == Slice(emoji_without_selectors).remove_suffix(4)) {
+          return {sticker_id, modifier_id};
+        }
       }
     }
   }
