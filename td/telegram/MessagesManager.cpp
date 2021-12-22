@@ -13618,9 +13618,11 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   bool noforwards = (flags & MESSAGE_FLAG_NOFORWARDS) != 0;
 
   LOG_IF(ERROR, is_channel_message != (dialog_type == DialogType::Channel))
-      << "is_channel_message is wrong for " << message_id << " received in the " << dialog_id;
-  LOG_IF(ERROR, is_channel_post && !is_broadcast_channel(dialog_id))
-      << "is_channel_post is true for " << message_id << " received in the " << dialog_id;
+      << "Receive wrong is_channel_message for " << message_id << " in " << dialog_id;
+  if (is_channel_post && !is_broadcast_channel(dialog_id)) {
+    LOG(ERROR) << "Receive is_channel_post for " << message_id << " in " << dialog_id;
+    is_channel_post = false;
+  }
 
   UserId my_id = td_->contacts_manager_->get_my_id();
   DialogId my_dialog_id = DialogId(my_id);
