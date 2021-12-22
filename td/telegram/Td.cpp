@@ -26,7 +26,6 @@
 #include "td/telegram/CountryInfoManager.h"
 #include "td/telegram/DeviceTokenManager.h"
 #include "td/telegram/DialogAction.h"
-#include "td/telegram/DialogAdministrator.h"
 #include "td/telegram/DialogEventLog.h"
 #include "td/telegram/DialogFilter.h"
 #include "td/telegram/DialogFilterId.h"

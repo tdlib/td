@@ -36,7 +36,6 @@
 #include "td/telegram/MessageReplyInfo.hpp"
 #include "td/telegram/MessagesDb.h"
 #include "td/telegram/MessageSender.h"
-#include "td/telegram/MinChannel.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/NetActor.h"

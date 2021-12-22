@@ -8,7 +8,6 @@
 
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/MessagesManager.h"
-#include "td/telegram/MinChannel.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
 
