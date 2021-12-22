@@ -33,6 +33,7 @@
 #include "td/telegram/MessageContent.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageEntity.hpp"
+#include "td/telegram/MessageReplyInfo.hpp"
 #include "td/telegram/MessagesDb.h"
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/MinChannel.h"

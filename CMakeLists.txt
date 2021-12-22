@@ -675,6 +675,8 @@ set(TDLIB_SOURCE
   td/telegram/Game.hpp
   td/telegram/InputMessageText.hpp
   td/telegram/MessageEntity.hpp
+  td/telegram/MessageReplyInfo.hpp
+  td/telegram/MinChannel.hpp
   td/telegram/NotificationSettings.hpp
   td/telegram/Payments.hpp
   td/telegram/Photo.hpp

@@ -7,10 +7,8 @@
 #pragma once
 
 #include "td/telegram/Photo.h"
-#include "td/telegram/Photo.hpp"
 
 #include "td/utils/common.h"
-#include "td/utils/tl_helpers.h"
 
 namespace td {
 
@@ -18,42 +16,6 @@ struct MinChannel {
   string title_;
   DialogPhoto photo_;
   bool is_megagroup_ = false;
-
-  template <class StorerT>
-  void store(StorerT &storer) const {
-    using td::store;
-    bool has_title = !title_.empty();
-    bool has_photo = photo_.small_file_id.is_valid();
-    BEGIN_STORE_FLAGS();
-    STORE_FLAG(has_title);
-    STORE_FLAG(has_photo);
-    STORE_FLAG(is_megagroup_);
-    END_STORE_FLAGS();
-    if (has_title) {
-      store(title_, storer);
-    }
-    if (has_photo) {
-      store(photo_, storer);
-    }
-  }
-
-  template <class ParserT>
-  void parse(ParserT &parser) {
-    using td::parse;
-    bool has_title;
-    bool has_photo;
-    BEGIN_PARSE_FLAGS();
-    PARSE_FLAG(has_title);
-    PARSE_FLAG(has_photo);
-    PARSE_FLAG(is_megagroup_);
-    END_PARSE_FLAGS();
-    if (has_title) {
-      parse(title_, parser);
-    }
-    if (has_photo) {
-      parse(photo_, parser);
-    }
-  }
 };
 
 }  // namespace td
