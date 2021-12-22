@@ -16,6 +16,7 @@ namespace td {
 struct MinChannel {
   string title_;
   DialogPhoto photo_;
+  bool is_megagroup_ = false;
 
   template <class StorerT>
   void store(StorerT &storer) const {
@@ -25,6 +26,7 @@ struct MinChannel {
     BEGIN_STORE_FLAGS();
     STORE_FLAG(has_title);
     STORE_FLAG(has_photo);
+    STORE_FLAG(is_megagroup_);
     END_STORE_FLAGS();
     if (has_title) {
       store(title_, storer);
@@ -42,6 +44,7 @@ struct MinChannel {
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(has_title);
     PARSE_FLAG(has_photo);
+    PARSE_FLAG(is_megagroup_);
     END_PARSE_FLAGS();
     if (has_title) {
       parse(title_, parser);

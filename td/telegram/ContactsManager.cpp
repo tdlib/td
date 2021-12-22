@@ -4606,6 +4606,10 @@ const DialogPhoto *ContactsManager::get_chat_dialog_photo(ChatId chat_id) const 
 const DialogPhoto *ContactsManager::get_channel_dialog_photo(ChannelId channel_id) const {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
+    auto min_channel = get_min_channel(channel_id);
+    if (min_channel != nullptr) {
+      return &min_channel->photo_;
+    }
     return nullptr;
   }
   return &c->photo;
@@ -4644,6 +4648,10 @@ string ContactsManager::get_chat_title(ChatId chat_id) const {
 string ContactsManager::get_channel_title(ChannelId channel_id) const {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
+    auto min_channel = get_min_channel(channel_id);
+    if (min_channel != nullptr) {
+      return min_channel->title_;
+    }
     return string();
   }
   return c->title;
@@ -14441,6 +14449,10 @@ bool ContactsManager::is_channel_public(const Channel *c) {
 ContactsManager::ChannelType ContactsManager::get_channel_type(ChannelId channel_id) const {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
+    auto min_channel = get_min_channel(channel_id);
+    if (min_channel != nullptr) {
+      return min_channel->is_megagroup_ ? ChannelType::Megagroup : ChannelType::Broadcast;
+    }
     return ChannelType::Unknown;
   }
   return get_channel_type(c);
@@ -15704,6 +15716,7 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
         min_channel->photo_.minithumbnail.clear();
       }
       min_channel->title_ = std::move(channel.title_);
+      min_channel->is_megagroup_ = is_megagroup;
 
       min_channels_[channel_id] = std::move(min_channel);
     }
@@ -16104,15 +16117,21 @@ tl_object_ptr<td_api::basicGroupFullInfo> ContactsManager::get_basic_group_full_
 }
 
 td_api::object_ptr<td_api::updateSupergroup> ContactsManager::get_update_unknown_supergroup_object(
-    ChannelId channel_id) {
+    ChannelId channel_id) const {
+  auto min_channel = get_min_channel(channel_id);
   return td_api::make_object<td_api::updateSupergroup>(td_api::make_object<td_api::supergroup>(
       channel_id.get(), string(), 0, DialogParticipantStatus::Banned(0).get_chat_member_status_object(), 0, false,
-      false, false, false, true, false, false, string(), false, false));
+      false, false, false, true, min_channel == nullptr ? false : !min_channel->is_megagroup_, false, string(), false,
+      false));
 }
 
 int64 ContactsManager::get_supergroup_id_object(ChannelId channel_id, const char *source) const {
   if (channel_id.is_valid() && get_channel(channel_id) == nullptr && unknown_channels_.count(channel_id) == 0) {
-    LOG(ERROR) << "Have no info about " << channel_id << " received from " << source;
+    if (have_min_channel(channel_id)) {
+      LOG(INFO) << "Have only min " << channel_id << " received from " << source;
+    } else {
+      LOG(ERROR) << "Have no info about " << channel_id << " received from " << source;
+    }
     unknown_channels_.insert(channel_id);
     send_closure(G()->td(), &Td::send_update, get_update_unknown_supergroup_object(channel_id));
   }
