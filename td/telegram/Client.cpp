@@ -274,11 +274,16 @@ class TdReceiver {
     output_queue_->init();
   }
 
-  ClientManager::Response receive(double timeout) {
+  ClientManager::Response receive(double timeout, bool from_manager) {
     VLOG(td_requests) << "Begin to wait for updates with timeout " << timeout;
     auto is_locked = receive_lock_.exchange(true);
     if (is_locked) {
-      LOG(FATAL) << "Receive is called after Client destroy, or simultaneously from different threads";
+      if (from_manager) {
+        LOG(FATAL) << "Receive must not be called simultaneously from two different threads, but this has just "
+                      "happened. Call it from a fixed thread, dedicated for updates and response processing.";
+      } else {
+        LOG(FATAL) << "Receive is called after Client destroy, or simultaneously from different threads";
+      }
     }
     auto response = receive_unlocked(clamp(timeout, 0.0, 1000000.0));
     is_locked = receive_lock_.exchange(false);
@@ -505,7 +510,7 @@ class ClientManager::Impl final {
   }
 
   Response receive(double timeout) {
-    auto response = receiver_.receive(timeout);
+    auto response = receiver_.receive(timeout, true);
     if (response.request_id == 0 && response.object != nullptr &&
         response.object->get_id() == td_api::updateAuthorizationState::ID &&
         static_cast<const td_api::updateAuthorizationState *>(response.object.get())->authorization_state_->get_id() ==
@@ -594,7 +599,7 @@ class Client::Impl final {
   }
 
   Response receive(double timeout) {
-    auto response = receiver_.receive(timeout);
+    auto response = receiver_.receive(timeout, false);
 
     Response old_response;
     old_response.id = response.request_id;
@@ -609,7 +614,7 @@ class Client::Impl final {
   ~Impl() {
     multi_impl_->close(td_id_);
     while (!ExitGuard::is_exited()) {
-      auto response = receiver_.receive(0.1);
+      auto response = receiver_.receive(0.1, false);
       if (response.object == nullptr && response.client_id != 0 && response.request_id == 0) {
         break;
       }
