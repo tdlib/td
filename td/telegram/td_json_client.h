@@ -110,7 +110,7 @@ TDJSON_EXPORT void td_set_log_message_callback(int max_verbosity_level, td_log_m
 
 /**
  * \file
- * Alternatively, you can use old TDLib JSON interface, which will be removed at TDLib 2.0.0.
+ * Alternatively, you can use old TDLib JSON interface, which will be removed in TDLib 2.0.0.
  *
  * Objects and functions serialization to JSON is the same for both JSON interfaces.
  *
