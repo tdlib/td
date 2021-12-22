@@ -8,7 +8,9 @@
 
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/MinChannel.h"
 #include "td/telegram/ServerMessageId.h"
+#include "td/telegram/Td.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/logging.h"
@@ -16,7 +18,7 @@
 
 namespace td {
 
-MessageReplyInfo::MessageReplyInfo(tl_object_ptr<telegram_api::messageReplies> &&reply_info, bool is_bot) {
+MessageReplyInfo::MessageReplyInfo(Td *td, tl_object_ptr<telegram_api::messageReplies> &&reply_info, bool is_bot) {
   if (reply_info == nullptr || is_bot || reply_info->channel_id_ == 777) {
     return;
   }
@@ -41,15 +43,39 @@ MessageReplyInfo::MessageReplyInfo(tl_object_ptr<telegram_api::messageReplies> &
   if (is_comment) {
     for (const auto &peer : reply_info->recent_repliers_) {
       DialogId dialog_id(peer);
-      if (dialog_id.is_valid()) {
-        // save all valid dialog_id, despite we can have no info about some of them
-        recent_replier_dialog_ids.push_back(dialog_id);
-      } else {
+      if (!dialog_id.is_valid()) {
         LOG(ERROR) << "Receive " << dialog_id << " as a recent replier";
+        continue;
       }
-    }
-    if (recent_replier_dialog_ids.size() > MAX_RECENT_REPLIERS) {
-      recent_replier_dialog_ids.resize(MAX_RECENT_REPLIERS);
+      if (td::contains(recent_replier_dialog_ids, dialog_id)) {
+        LOG(ERROR) << "Receive duplicate " << dialog_id << " as a recent replier";
+        continue;
+      }
+      if (!td->messages_manager_->have_dialog_info(dialog_id)) {
+        auto dialog_type = dialog_id.get_type();
+        if (dialog_type == DialogType::User) {
+          auto replier_user_id = dialog_id.get_user_id();
+          if (!td->contacts_manager_->have_min_user(replier_user_id)) {
+            LOG(ERROR) << "Have no info about replied " << replier_user_id;
+            continue;
+          }
+        } else if (dialog_type == DialogType::Channel) {
+          auto replier_channel_id = dialog_id.get_channel_id();
+          auto min_channel = td->contacts_manager_->get_min_channel(replier_channel_id);
+          if (min_channel == nullptr) {
+            LOG(ERROR) << "Have no info about replied " << replier_channel_id;
+            continue;
+          }
+          replier_min_channels.emplace_back(replier_channel_id, *min_channel);
+        } else {
+          LOG(ERROR) << "Have no info about replied " << dialog_id;
+          continue;
+        }
+      }
+      recent_replier_dialog_ids.push_back(dialog_id);
+      if (recent_replier_dialog_ids.size() == MAX_RECENT_REPLIERS) {
+        break;
+      }
     }
   }
   if ((reply_info->flags_ & telegram_api::messageReplies::MAX_ID_MASK) != 0 &&
@@ -75,7 +101,8 @@ bool MessageReplyInfo::need_update_to(const MessageReplyInfo &other) const {
     return false;
   }
   return reply_count != other.reply_count || recent_replier_dialog_ids != other.recent_replier_dialog_ids ||
-         is_comment != other.is_comment || channel_id != other.channel_id;
+         replier_min_channels.size() != other.replier_min_channels.size() || is_comment != other.is_comment ||
+         channel_id != other.channel_id;
 }
 
 bool MessageReplyInfo::update_max_message_ids(const MessageReplyInfo &other) {
@@ -120,6 +147,16 @@ bool MessageReplyInfo::add_reply(DialogId replier_dialog_id, MessageId reply_mes
 
   reply_count += diff;
   if (is_comment && replier_dialog_id.is_valid()) {
+    if (replier_dialog_id.get_type() == DialogType::Channel) {
+      // the replier_dialog_id is never min, because it is the sender of a message
+      for (auto it = replier_min_channels.begin(); it != replier_min_channels.end(); ++it) {
+        if (it->first == replier_dialog_id.get_channel_id()) {
+          replier_min_channels.erase(it);
+          break;
+        }
+      }
+    }
+
     td::remove(recent_replier_dialog_ids, replier_dialog_id);
     if (diff > 0) {
       recent_replier_dialog_ids.insert(recent_replier_dialog_ids.begin(), replier_dialog_id);
@@ -140,23 +177,48 @@ bool MessageReplyInfo::add_reply(DialogId replier_dialog_id, MessageId reply_mes
   return true;
 }
 
-td_api::object_ptr<td_api::messageReplyInfo> MessageReplyInfo::get_message_reply_info_object(
-    ContactsManager *contacts_manager, const MessagesManager *messages_manager) const {
+bool MessageReplyInfo::need_reget(const Td *td) const {
+  for (auto &dialog_id : recent_replier_dialog_ids) {
+    if (dialog_id.get_type() != DialogType::User && !td->messages_manager_->have_dialog_info(dialog_id)) {
+      if (dialog_id.get_type() == DialogType::Channel &&
+          td->contacts_manager_->have_min_channel(dialog_id.get_channel_id())) {
+        return false;
+      }
+      LOG(INFO) << "Reget a message because of replied " << dialog_id;
+      return true;
+    }
+  }
+  return false;
+}
+
+td_api::object_ptr<td_api::messageReplyInfo> MessageReplyInfo::get_message_reply_info_object(Td *td) const {
   if (is_empty()) {
     return nullptr;
   }
 
   vector<td_api::object_ptr<td_api::MessageSender>> recent_repliers;
-  for (auto recent_replier_dialog_id : recent_replier_dialog_ids) {
-    if (recent_replier_dialog_id.get_type() == DialogType::User) {
-      auto user_id = recent_replier_dialog_id.get_user_id();
-      if (contacts_manager->have_min_user(user_id)) {
+  for (auto dialog_id : recent_replier_dialog_ids) {
+    auto dialog_type = dialog_id.get_type();
+    if (dialog_type == DialogType::User) {
+      auto user_id = dialog_id.get_user_id();
+      if (td->contacts_manager_->have_min_user(user_id)) {
         recent_repliers.push_back(td_api::make_object<td_api::messageSenderUser>(
-            contacts_manager->get_user_id_object(user_id, "get_message_reply_info_object")));
+            td->contacts_manager_->get_user_id_object(user_id, "get_message_reply_info_object")));
+      } else {
+        LOG(ERROR) << "Skip unknown replied " << user_id;
       }
     } else {
-      if (messages_manager->have_dialog(recent_replier_dialog_id)) {
-        recent_repliers.push_back(td_api::make_object<td_api::messageSenderChat>(recent_replier_dialog_id.get()));
+      if (!td->messages_manager_->have_dialog(dialog_id) &&
+          (td->messages_manager_->have_dialog_info(dialog_id) ||
+           (dialog_type == DialogType::Channel &&
+            td->contacts_manager_->have_min_channel(dialog_id.get_channel_id())))) {
+        LOG(INFO) << "Force creation of " << dialog_id;
+        td->messages_manager_->force_create_dialog(dialog_id, "get_message_reply_info_object", true);
+      }
+      if (td->messages_manager_->have_dialog(dialog_id)) {
+        recent_repliers.push_back(td_api::make_object<td_api::messageSenderChat>(dialog_id.get()));
+      } else {
+        LOG(ERROR) << "Skip unknown replied " << dialog_id;
       }
     }
   }

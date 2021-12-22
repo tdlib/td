@@ -494,6 +494,7 @@ class ContactsManager final : public Actor {
 
   bool have_min_channel(ChannelId channel_id) const;
   const MinChannel *get_min_channel(ChannelId channel_id) const;
+  void add_min_channel(ChannelId channel_id, const MinChannel &min_channel);
 
   bool have_channel(ChannelId channel_id) const;
   bool have_channel_force(ChannelId channel_id);

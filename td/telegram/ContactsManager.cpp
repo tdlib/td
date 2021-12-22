@@ -14573,6 +14573,13 @@ const MinChannel *ContactsManager::get_min_channel(ChannelId channel_id) const {
   return it->second.get();
 }
 
+void ContactsManager::add_min_channel(ChannelId channel_id, const MinChannel &min_channel) {
+  if (have_channel(channel_id) || have_min_channel(channel_id)) {
+    return;
+  }
+  min_channels_[channel_id] = td::make_unique<MinChannel>(min_channel);
+}
+
 const ContactsManager::Channel *ContactsManager::get_channel(ChannelId channel_id) const {
   auto p = channels_.find(channel_id);
   if (p == channels_.end()) {
@@ -16121,7 +16128,7 @@ td_api::object_ptr<td_api::updateSupergroup> ContactsManager::get_update_unknown
   auto min_channel = get_min_channel(channel_id);
   return td_api::make_object<td_api::updateSupergroup>(td_api::make_object<td_api::supergroup>(
       channel_id.get(), string(), 0, DialogParticipantStatus::Banned(0).get_chat_member_status_object(), 0, false,
-      false, false, false, true, min_channel == nullptr ? false : !min_channel->is_megagroup_, false, string(), false,
+      false, false, false, min_channel == nullptr ? true : !min_channel->is_megagroup_, false, false, string(), false,
       false));
 }
 

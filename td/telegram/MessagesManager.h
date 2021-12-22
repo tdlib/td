@@ -3109,9 +3109,9 @@ class MessagesManager final : public Actor {
     return !LOG_IS_STRIPPED(ERROR) && false;
   }
 
-  static void dump_debug_message_op(const Dialog *d, int priority = 0);
+  void add_message_dependencies(Dependencies &dependencies, const Message *m);
 
-  static void add_message_dependencies(Dependencies &dependencies, const Message *m);
+  static void dump_debug_message_op(const Dialog *d, int priority = 0);
 
   static void save_send_message_log_event(DialogId dialog_id, const Message *m);
 

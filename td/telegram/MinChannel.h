@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/Photo.h"
+#include "td/telegram/Photo.hpp"
 
 #include "td/utils/common.h"
 #include "td/utils/tl_helpers.h"

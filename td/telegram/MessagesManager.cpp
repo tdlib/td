@@ -35,6 +35,7 @@
 #include "td/telegram/MessageEntity.hpp"
 #include "td/telegram/MessagesDb.h"
 #include "td/telegram/MessageSender.h"
+#include "td/telegram/MinChannel.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/NetActor.h"
@@ -6760,7 +6761,7 @@ void MessagesManager::update_message_interaction_info(FullMessageId full_message
     forward_count = m->forward_count;
   }
   bool is_empty_reply_info = reply_info == nullptr;
-  MessageReplyInfo new_reply_info(std::move(reply_info), td_->auth_manager_->is_bot());
+  MessageReplyInfo new_reply_info(td_, std::move(reply_info), td_->auth_manager_->is_bot());
   if (new_reply_info.is_empty() && !is_empty_reply_info) {
     has_reply_info = false;
   }
@@ -6842,7 +6843,7 @@ td_api::object_ptr<td_api::messageInteractionInfo> MessagesManager::get_message_
 
   td_api::object_ptr<td_api::messageReplyInfo> reply_info;
   if (is_visible_reply_info) {
-    reply_info = m->reply_info.get_message_reply_info_object(td_->contacts_manager_.get(), this);
+    reply_info = m->reply_info.get_message_reply_info_object(td_);
     CHECK(reply_info != nullptr);
   }
 
@@ -13732,7 +13733,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     LOG(ERROR) << "Wrong forward_count = " << forward_count << " received in " << message_id << " in " << dialog_id;
     forward_count = 0;
   }
-  MessageReplyInfo reply_info(std::move(message_info.reply_info), td_->auth_manager_->is_bot());
+  MessageReplyInfo reply_info(td_, std::move(message_info.reply_info), td_->auth_manager_->is_bot());
   if (!top_thread_message_id.is_valid() && !is_broadcast_channel(dialog_id) &&
       is_active_message_reply_info(dialog_id, reply_info) && !message_id.is_scheduled()) {
     top_thread_message_id = message_id;
@@ -17410,7 +17411,7 @@ td_api::object_ptr<td_api::messageThreadInfo> MessagesManager::get_message_threa
     auto message = get_message_object(d->dialog_id, m, "get_message_thread_info_object");
     if (message != nullptr) {
       if (message->interaction_info_ != nullptr && message->interaction_info_->reply_info_ != nullptr) {
-        reply_info = m->reply_info.get_message_reply_info_object(td_->contacts_manager_.get(), this);
+        reply_info = m->reply_info.get_message_reply_info_object(td_);
         CHECK(reply_info != nullptr);
       }
       messages.push_back(std::move(message));
@@ -24112,8 +24113,14 @@ void MessagesManager::add_message_dependencies(Dependencies &dependencies, const
     add_dialog_and_dependencies(dependencies, m->forward_info->sender_dialog_id);
     add_dialog_and_dependencies(dependencies, m->forward_info->from_dialog_id);
   }
+  for (const auto &replier_min_channel : m->reply_info.replier_min_channels) {
+    LOG(INFO) << "Add min " << replier_min_channel.first;
+    td_->contacts_manager_->add_min_channel(replier_min_channel.first, replier_min_channel.second);
+  }
   for (auto recent_replier_dialog_id : m->reply_info.recent_replier_dialog_ids) {
-    add_message_sender_dependencies(dependencies, recent_replier_dialog_id);
+    // don't load the dialog itself
+    // it will be created in get_message_reply_info_object if needed
+    add_dialog_dependencies(dependencies, recent_replier_dialog_id);
   }
   add_message_content_dependencies(dependencies, m->content.get());
   add_reply_markup_dependencies(dependencies, m->reply_markup.get());
@@ -34764,7 +34771,13 @@ void MessagesManager::force_create_dialog(DialogId dialog_id, const char *source
     }
     if (!have_input_peer(dialog_id, AccessRights::Read)) {
       if (!have_dialog_info(dialog_id)) {
-        LOG(ERROR) << "Have no info about " << dialog_id << " received from " << source << ", but forced to create it";
+        if (expect_no_access && dialog_id.get_type() == DialogType::Channel &&
+            td_->contacts_manager_->have_min_channel(dialog_id.get_channel_id())) {
+          LOG(INFO) << "Created " << dialog_id << " for min-channel from " << source;
+        } else {
+          LOG(ERROR) << "Have no info about " << dialog_id << " received from " << source
+                     << ", but forced to create it";
+        }
       } else if (!expect_no_access) {
         LOG(ERROR) << "Have no access to " << dialog_id << " received from " << source << ", but forced to create it";
       }
@@ -37194,7 +37207,8 @@ void MessagesManager::reget_message_from_server_if_needed(DialogId dialog_id, co
     return;
   }
 
-  if (need_reget_message_content(m->content.get()) || (m->legacy_layer != 0 && m->legacy_layer < MTPROTO_LAYER)) {
+  if (need_reget_message_content(m->content.get()) || (m->legacy_layer != 0 && m->legacy_layer < MTPROTO_LAYER) ||
+      m->reply_info.need_reget(td_)) {
     FullMessageId full_message_id{dialog_id, m->message_id};
     LOG(INFO) << "Reget from server " << full_message_id;
     get_message_from_server(full_message_id, Auto(), "reget_message_from_server_if_needed");

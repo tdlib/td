@@ -67,6 +67,10 @@ bool resolve_dependencies_force(Td *td, const Dependencies &dependencies, const 
   }
   for (auto channel_id : dependencies.channel_ids) {
     if (channel_id.is_valid() && !td->contacts_manager_->have_channel_force(channel_id)) {
+      if (td->contacts_manager_->have_min_channel(channel_id)) {
+        LOG(INFO) << "Can't find " << channel_id << " from " << source << ", but have it as a min-channel";
+        continue;
+      }
       LOG(ERROR) << "Can't find " << channel_id << " from " << source;
       success = false;
     }

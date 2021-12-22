@@ -748,7 +748,7 @@ messageForwardInfo origin:MessageForwardOrigin date:int32 public_service_announc
 
 //@description Contains information about replies to a message
 //@reply_count Number of times the message was directly or indirectly replied
-//@recent_replier_ids Identifiers of at most 3 recent repliers to the message; available in channels with a discussion supergroup
+//@recent_replier_ids Identifiers of at most 3 recent repliers to the message; available in channels with a discussion supergroup. The users and chats are expected to be inaccessible: only their photo and name will be available
 //@last_read_inbox_message_id Identifier of the last read incoming reply to the message
 //@last_read_outbox_message_id Identifier of the last read outgoing reply to the message
 //@last_message_id Identifier of the last reply to the message

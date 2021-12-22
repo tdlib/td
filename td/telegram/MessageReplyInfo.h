@@ -9,6 +9,7 @@
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/MessageId.h"
+#include "td/telegram/MinChannel.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -16,16 +17,18 @@
 #include "td/utils/StringBuilder.h"
 #include "td/utils/tl_helpers.h"
 
+#include <utility>
+
 namespace td {
 
-class ContactsManager;
-class MessagesManager;
+class Td;
 
 struct MessageReplyInfo {
   int32 reply_count = -1;
   int32 pts = -1;
-  vector<DialogId> recent_replier_dialog_ids;  // comments only
-  ChannelId channel_id;                        // comments only
+  vector<DialogId> recent_replier_dialog_ids;                     // comments only
+  vector<std::pair<ChannelId, MinChannel>> replier_min_channels;  // comments only
+  ChannelId channel_id;                                           // comments only
   MessageId max_message_id;
   MessageId last_read_inbox_message_id;
   MessageId last_read_outbox_message_id;
@@ -35,7 +38,7 @@ struct MessageReplyInfo {
 
   MessageReplyInfo() = default;
 
-  MessageReplyInfo(tl_object_ptr<telegram_api::messageReplies> &&reply_info, bool is_bot);
+  MessageReplyInfo(Td *td, tl_object_ptr<telegram_api::messageReplies> &&reply_info, bool is_bot);
 
   bool is_empty() const {
     return reply_count < 0;
@@ -50,8 +53,9 @@ struct MessageReplyInfo {
 
   bool add_reply(DialogId replier_dialog_id, MessageId reply_message_id, int diff);
 
-  td_api::object_ptr<td_api::messageReplyInfo> get_message_reply_info_object(
-      ContactsManager *contacts_manager, const MessagesManager *messages_manager) const;
+  bool need_reget(const Td *td) const;
+
+  td_api::object_ptr<td_api::messageReplyInfo> get_message_reply_info_object(Td *td) const;
 
   template <class StorerT>
   void store(StorerT &storer) const {
@@ -61,6 +65,7 @@ struct MessageReplyInfo {
     bool has_max_message_id = max_message_id.is_valid();
     bool has_last_read_inbox_message_id = last_read_inbox_message_id.is_valid();
     bool has_last_read_outbox_message_id = last_read_outbox_message_id.is_valid();
+    bool has_replier_min_channels = !replier_min_channels.empty();
     BEGIN_STORE_FLAGS();
     STORE_FLAG(is_comment);
     STORE_FLAG(has_recent_replier_dialog_ids);
@@ -68,6 +73,7 @@ struct MessageReplyInfo {
     STORE_FLAG(has_max_message_id);
     STORE_FLAG(has_last_read_inbox_message_id);
     STORE_FLAG(has_last_read_outbox_message_id);
+    STORE_FLAG(has_replier_min_channels);
     END_STORE_FLAGS();
     td::store(reply_count, storer);
     td::store(pts, storer);
@@ -86,6 +92,9 @@ struct MessageReplyInfo {
     if (has_last_read_outbox_message_id) {
       td::store(last_read_outbox_message_id, storer);
     }
+    if (has_replier_min_channels) {
+      td::store(replier_min_channels, storer);
+    }
   }
 
   template <class ParserT>
@@ -95,6 +104,7 @@ struct MessageReplyInfo {
     bool has_max_message_id;
     bool has_last_read_inbox_message_id;
     bool has_last_read_outbox_message_id;
+    bool has_replier_min_channels;
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(is_comment);
     PARSE_FLAG(has_recent_replier_dialog_ids);
@@ -102,6 +112,7 @@ struct MessageReplyInfo {
     PARSE_FLAG(has_max_message_id);
     PARSE_FLAG(has_last_read_inbox_message_id);
     PARSE_FLAG(has_last_read_outbox_message_id);
+    PARSE_FLAG(has_replier_min_channels);
     END_PARSE_FLAGS();
     td::parse(reply_count, parser);
     td::parse(pts, parser);
@@ -120,6 +131,10 @@ struct MessageReplyInfo {
     if (has_last_read_outbox_message_id) {
       td::parse(last_read_outbox_message_id, parser);
     }
+    if (has_replier_min_channels) {
+      td::parse(replier_min_channels, parser);
+    }
+
     if (channel_id.get() == 777) {
       *this = MessageReplyInfo();
     }
