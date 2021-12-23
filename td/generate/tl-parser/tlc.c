@@ -85,14 +85,14 @@ void print_backtrace (void) {
 }
 #else
 void print_backtrace (void) {
-  if (fwrite ("No libexec. Backtrace disabled\n", 32, 1, stderr) < 0) {
+  if (fwrite ("No libexec. Backtrace disabled\n", 32, 1, stderr) != 1) {
     // Sad thing
   }
 }
 #endif
 
 void sig_segv_handler (int signum __attribute__ ((unused))) {
-  if (fwrite ("SIGSEGV received\n", 18, 1, stderr) < 0) { 
+  if (fwrite ("SIGSEGV received\n", 18, 1, stderr) != 1) {
     // Sad thing
   }
   print_backtrace ();
@@ -100,7 +100,7 @@ void sig_segv_handler (int signum __attribute__ ((unused))) {
 }
 
 void sig_abrt_handler (int signum __attribute__ ((unused))) {
-  if (fwrite ("SIGABRT received\n", 18, 1, stderr) < 0) { 
+  if (fwrite ("SIGABRT received\n", 18, 1, stderr) != 1) {
     // Sad thing
   }
   print_backtrace ();
