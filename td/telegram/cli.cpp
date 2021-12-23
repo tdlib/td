@@ -2985,8 +2985,8 @@ class CliClient final : public Actor {
           td_api::make_object<td_api::loadGroupCallParticipants>(as_group_call_id(group_call_id), as_limit(limit)));
     } else if (op == "lgc") {
       send_request(td_api::make_object<td_api::leaveGroupCall>(as_group_call_id(args)));
-    } else if (op == "dgc") {
-      send_request(td_api::make_object<td_api::discardGroupCall>(as_group_call_id(args)));
+    } else if (op == "egc") {
+      send_request(td_api::make_object<td_api::endGroupCall>(as_group_call_id(args)));
     } else if (op == "rpcil") {
       const string &chat_id = args;
       send_request(td_api::make_object<td_api::replacePrimaryChatInviteLink>(as_chat_id(chat_id)));

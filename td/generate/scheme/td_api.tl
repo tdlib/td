@@ -5161,8 +5161,8 @@ loadGroupCallParticipants group_call_id:int32 limit:int32 = Ok;
 //@description Leaves a group call @group_call_id Group call identifier
 leaveGroupCall group_call_id:int32 = Ok;
 
-//@description Discards a group call. Requires groupCall.can_be_managed @group_call_id Group call identifier
-discardGroupCall group_call_id:int32 = Ok;
+//@description Ends a group call. Requires groupCall.can_be_managed @group_call_id Group call identifier
+endGroupCall group_call_id:int32 = Ok;
 
 //@description Returns a file with a segment of a group call stream in a modified OGG format for audio or MPEG-4 format for video
 //@group_call_id Group call identifier

@@ -5856,7 +5856,7 @@ void Td::on_request(uint64 id, const td_api::leaveGroupCall &request) {
   group_call_manager_->leave_group_call(GroupCallId(request.group_call_id_), std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::discardGroupCall &request) {
+void Td::on_request(uint64 id, const td_api::endGroupCall &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   group_call_manager_->discard_group_call(GroupCallId(request.group_call_id_), std::move(promise));

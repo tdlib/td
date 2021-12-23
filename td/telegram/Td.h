@@ -793,7 +793,7 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::leaveGroupCall &request);
 
-  void on_request(uint64 id, const td_api::discardGroupCall &request);
+  void on_request(uint64 id, const td_api::endGroupCall &request);
 
   void on_request(uint64 id, td_api::getGroupCallStreamSegment &request);
 
