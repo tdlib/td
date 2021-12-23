@@ -27,13 +27,9 @@
 
 #	define htobe32(x) OSSwapHostToBigInt32(x)
 #	define htole32(x) OSSwapHostToLittleInt32(x)
-#	define be32toh(x) OSSwapBigToHostInt32(x)
-#	define le32toh(x) OSSwapLittleToHostInt32(x)
  
 #	define htobe64(x) OSSwapHostToBigInt64(x)
 #	define htole64(x) OSSwapHostToLittleInt64(x)
-#	define be64toh(x) OSSwapBigToHostInt64(x)
-#	define le64toh(x) OSSwapLittleToHostInt64(x)
 
 #	define __BYTE_ORDER    BYTE_ORDER
 #	define __BIG_ENDIAN    BIG_ENDIAN
@@ -48,12 +44,6 @@
 
 #	include <sys/endian.h>
 
-#	define be32toh(x) betoh32(x)
-#	define le32toh(x) letoh32(x)
-
-#	define be64toh(x) betoh64(x)
-#	define le64toh(x) letoh64(x)
-
 #elif defined(__WINDOWS__)
 
 #	include <winsock2.h>
@@ -65,26 +55,18 @@
 
 #		define htobe32(x) htonl(x)
 #		define htole32(x) (x)
-#		define be32toh(x) ntohl(x)
-#		define le32toh(x) (x)
  
 #		define htobe64(x) htonll(x)
 #		define htole64(x) (x)
-#		define be64toh(x) ntohll(x)
-#		define le64toh(x) (x)
 
 #	elif BYTE_ORDER == BIG_ENDIAN
 
 		/* that would be xbox 360 */
 #		define htobe32(x) (x)
 #		define htole32(x) __builtin_bswap32(x)
-#		define be32toh(x) (x)
-#		define le32toh(x) __builtin_bswap32(x)
  
 #		define htobe64(x) (x)
 #		define htole64(x) __builtin_bswap64(x)
-#		define be64toh(x) (x)
-#		define le64toh(x) __builtin_bswap64(x)
 
 #	else
 
