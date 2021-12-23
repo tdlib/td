@@ -1,10 +1,10 @@
 if (APPLE)
-  find_path(READLINE_INCLUDE_DIR readline/readline.h /usr/local/opt/readline/include /opt/local/include /opt/include /usr/local/include /usr/include NO_DEFAULT_PATH)
+  find_path(READLINE_INCLUDE_DIR readline/readline.h /opt/homebrew/opt/readline/include /usr/local/opt/readline/include /opt/local/include /opt/include /usr/local/include /usr/include NO_DEFAULT_PATH)
 endif()
 find_path(READLINE_INCLUDE_DIR readline/readline.h)
 
 if (APPLE)
-  find_library(READLINE_LIBRARY readline /usr/local/opt/readline/lib /opt/local/lib /opt/lib /usr/local/lib /usr/lib NO_DEFAULT_PATH)
+  find_library(READLINE_LIBRARY readline /opt/homebrew/opt/readline/lib /usr/local/opt/readline/lib /opt/local/lib /opt/lib /usr/local/lib /usr/lib NO_DEFAULT_PATH)
 endif()
 find_library(READLINE_LIBRARY readline)
 
