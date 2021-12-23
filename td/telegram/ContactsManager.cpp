@@ -1974,7 +1974,7 @@ class ImportChatInviteQuery final : public Td::ResultHandler {
     auto dialog_ids = UpdatesManager::get_chat_dialog_ids(ptr.get());
     if (dialog_ids.size() != 1u) {
       LOG(ERROR) << "Receive wrong result for ImportChatInviteQuery: " << to_string(ptr);
-      return on_error(Status::Error(500, "Internal Server Error: failed to join chat by invite link"));
+      return on_error(Status::Error(500, "Internal Server Error: failed to join chat via invite link"));
     }
     auto dialog_id = dialog_ids[0];
 

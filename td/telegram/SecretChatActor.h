@@ -140,7 +140,7 @@ class SecretChatActor final : public NetQueryCallback {
   static constexpr int32 MAX_RESEND_COUNT = 1000;
 
   // We have git state that should be synchronized with the database.
-  // It is splitted into several parts because:
+  // It is split into several parts because:
   // 1. Some parts are BIG (auth_key, for example) and are rarely updated.
   // 2. Other are frequently updated, so probably should be as small as possible.
   // 3. Some parts must be updated atomically.

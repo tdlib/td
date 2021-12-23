@@ -29,25 +29,25 @@ TEST(Buffer, buffer_builder) {
   }
   {
     auto str = td::rand_string('a', 'z', 10000);
-    auto splitted_str = td::rand_split(str);
+    auto split_str = td::rand_split(str);
 
-    int l = td::Random::fast(0, static_cast<int>(splitted_str.size() - 1));
+    int l = td::Random::fast(0, static_cast<int>(split_str.size() - 1));
     int r = l;
-    td::BufferBuilder builder(splitted_str[l], 123, 1000);
-    while (l != 0 || r != static_cast<int>(splitted_str.size()) - 1) {
-      if (l == 0 || (td::Random::fast_bool() && r != static_cast<int>(splitted_str.size() - 1))) {
+    td::BufferBuilder builder(split_str[l], 123, 1000);
+    while (l != 0 || r != static_cast<int>(split_str.size()) - 1) {
+      if (l == 0 || (td::Random::fast_bool() && r != static_cast<int>(split_str.size() - 1))) {
         r++;
         if (td::Random::fast_bool()) {
-          builder.append(splitted_str[r]);
+          builder.append(split_str[r]);
         } else {
-          builder.append(td::BufferSlice(splitted_str[r]));
+          builder.append(td::BufferSlice(split_str[r]));
         }
       } else {
         l--;
         if (td::Random::fast_bool()) {
-          builder.prepend(splitted_str[l]);
+          builder.prepend(split_str[l]);
         } else {
-          builder.prepend(td::BufferSlice(splitted_str[l]));
+          builder.prepend(td::BufferSlice(split_str[l]));
         }
       }
     }

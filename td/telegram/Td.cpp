@@ -1801,7 +1801,7 @@ class JoinChatByInviteLinkRequest final : public RequestActor<DialogId> {
 
   void do_send_result() final {
     CHECK(dialog_id_.is_valid());
-    td_->messages_manager_->force_create_dialog(dialog_id_, "join chat by invite link");
+    td_->messages_manager_->force_create_dialog(dialog_id_, "join chat via an invite link");
     send_result(td_->messages_manager_->get_chat_object(dialog_id_));
   }
 
