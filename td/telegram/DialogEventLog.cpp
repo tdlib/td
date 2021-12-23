@@ -294,7 +294,7 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
       if (!input_group_call_id.is_valid()) {
         return nullptr;
       }
-      return td_api::make_object<td_api::chatEventVideoChatDiscarded>(
+      return td_api::make_object<td_api::chatEventVideoChatEnded>(
           td->group_call_manager_->get_group_call_id(input_group_call_id, DialogId(channel_id)).get());
     }
     case telegram_api::channelAdminLogEventActionParticipantMute::ID: {

@@ -2621,8 +2621,8 @@ chatEventInviteLinkDeleted invite_link:chatInviteLink = ChatEventAction;
 //@description A video chat was created @group_call_id Identifier of the video chat. The video chat can be received through the method getGroupCall
 chatEventVideoChatCreated group_call_id:int32 = ChatEventAction;
 
-//@description A video chat was discarded @group_call_id Identifier of the video chat. The video chat can be received through the method getGroupCall
-chatEventVideoChatDiscarded group_call_id:int32 = ChatEventAction;
+//@description A video chat was ended @group_call_id Identifier of the video chat. The video chat can be received through the method getGroupCall
+chatEventVideoChatEnded group_call_id:int32 = ChatEventAction;
 
 //@description A video chat participant was muted or unmuted @participant_id Identifier of the affected group call participant @is_muted New value of is_muted
 chatEventVideoChatParticipantIsMutedToggled participant_id:MessageSender is_muted:Bool = ChatEventAction;
