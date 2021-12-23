@@ -35,7 +35,7 @@ SuggestedAction::SuggestedAction(Slice action_str) {
   } else if (action_str == Slice("VALIDATE_PHONE_NUMBER")) {
     init(Type::CheckPhoneNumber);
   } else if (action_str == Slice("NEWCOMER_TICKS")) {
-    init(Type::SeeTicksHint);
+    init(Type::ViewChecksHint);
   }
 }
 
@@ -61,8 +61,8 @@ SuggestedAction::SuggestedAction(const td_api::object_ptr<td_api::SuggestedActio
     case td_api::suggestedActionCheckPhoneNumber::ID:
       init(Type::CheckPhoneNumber);
       break;
-    case td_api::suggestedActionSeeTicksHint::ID:
-      init(Type::SeeTicksHint);
+    case td_api::suggestedActionViewChecksHint::ID:
+      init(Type::ViewChecksHint);
       break;
     case td_api::suggestedActionConvertToBroadcastGroup::ID: {
       auto action = static_cast<const td_api::suggestedActionConvertToBroadcastGroup *>(suggested_action.get());
@@ -92,7 +92,7 @@ string SuggestedAction::get_suggested_action_str() const {
       return "VALIDATE_PASSWORD";
     case Type::CheckPhoneNumber:
       return "VALIDATE_PHONE_NUMBER";
-    case Type::SeeTicksHint:
+    case Type::ViewChecksHint:
       return "NEWCOMER_TICKS";
     case Type::ConvertToGigagroup:
       return "CONVERT_GIGAGROUP";
@@ -111,8 +111,8 @@ td_api::object_ptr<td_api::SuggestedAction> SuggestedAction::get_suggested_actio
       return td_api::make_object<td_api::suggestedActionCheckPassword>();
     case Type::CheckPhoneNumber:
       return td_api::make_object<td_api::suggestedActionCheckPhoneNumber>();
-    case Type::SeeTicksHint:
-      return td_api::make_object<td_api::suggestedActionSeeTicksHint>();
+    case Type::ViewChecksHint:
+      return td_api::make_object<td_api::suggestedActionViewChecksHint>();
     case Type::ConvertToGigagroup:
       return td_api::make_object<td_api::suggestedActionConvertToBroadcastGroup>(dialog_id_.get_channel_id().get());
     case Type::SetPassword:
@@ -171,7 +171,7 @@ void dismiss_suggested_action(SuggestedAction action, Promise<Unit> &&promise) {
     case SuggestedAction::Type::EnableArchiveAndMuteNewChats:
     case SuggestedAction::Type::CheckPassword:
     case SuggestedAction::Type::CheckPhoneNumber:
-    case SuggestedAction::Type::SeeTicksHint:
+    case SuggestedAction::Type::ViewChecksHint:
       return send_closure_later(G()->config_manager(), &ConfigManager::dismiss_suggested_action, std::move(action),
                                 std::move(promise));
     case SuggestedAction::Type::ConvertToGigagroup:

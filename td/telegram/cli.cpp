@@ -1393,8 +1393,8 @@ class CliClient final : public Actor {
     if (action == "number") {
       return td_api::make_object<td_api::suggestedActionCheckPhoneNumber>();
     }
-    if (action == "ticks") {
-      return td_api::make_object<td_api::suggestedActionSeeTicksHint>();
+    if (action == "checks") {
+      return td_api::make_object<td_api::suggestedActionViewChecksHint>();
     }
     if (begins_with(action, "giga")) {
       return td_api::make_object<td_api::suggestedActionConvertToBroadcastGroup>(as_supergroup_id(action.substr(4)));

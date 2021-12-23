@@ -21,7 +21,7 @@ struct SuggestedAction {
     Empty,
     EnableArchiveAndMuteNewChats,
     CheckPhoneNumber,
-    SeeTicksHint,
+    ViewChecksHint,
     ConvertToGigagroup,
     CheckPassword,
     SetPassword

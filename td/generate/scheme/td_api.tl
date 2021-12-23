@@ -3470,8 +3470,8 @@ suggestedActionCheckPassword = SuggestedAction;
 //@description Suggests the user to check whether authorization phone number is correct and change the phone number if it is inaccessible
 suggestedActionCheckPhoneNumber = SuggestedAction;
 
-//@description Suggests the user to see a hint about the meaning of one and two ticks on sent messages
-suggestedActionSeeTicksHint = SuggestedAction;
+//@description Suggests the user to view a hint about the meaning of one and two check marks on sent messages
+suggestedActionViewChecksHint = SuggestedAction;
 
 //@description Suggests the user to convert specified supergroup to a broadcast group @supergroup_id Supergroup identifier
 suggestedActionConvertToBroadcastGroup supergroup_id:int53 = SuggestedAction;
