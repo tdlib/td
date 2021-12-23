@@ -184,23 +184,33 @@ class SafePromise;
 template <class T = Unit>
 class Promise;
 
-constexpr std::false_type is_promise_interface(...);
+constexpr inline std::false_type is_promise_interface(...) {
+  return {};
+}
 
 template <class T>
-constexpr std::true_type is_promise_interface(const PromiseInterface<T> &promise);
+constexpr std::true_type is_promise_interface(const PromiseInterface<T> &promise) {
+  return {};
+}
 
 template <class T>
-constexpr std::true_type is_promise_interface(const Promise<T> &promise);
+constexpr std::true_type is_promise_interface(const Promise<T> &promise) {
+  return {};
+}
 
 template <class F>
 constexpr bool is_promise_interface() {
   return decltype(is_promise_interface(std::declval<F>()))::value;
 }
 
-constexpr std::false_type is_promise_interface_ptr(...);
+constexpr inline std::false_type is_promise_interface_ptr(...) {
+  return {};
+}
 
 template <class T>
-constexpr std::true_type is_promise_interface_ptr(const unique_ptr<T> &promise);
+constexpr std::true_type is_promise_interface_ptr(const unique_ptr<T> &promise) {
+  return {};
+}
 
 template <class F>
 constexpr bool is_promise_interface_ptr() {
@@ -231,6 +241,7 @@ template <class T, class F, std::enable_if_t<is_promise_interface_ptr<F>(), bool
 auto promise_interface_ptr(F &&f) {
   return std::forward<F>(f);
 }
+
 template <class T, class F, std::enable_if_t<!is_promise_interface_ptr<F>(), bool> from_promise_interface = false>
 auto promise_interface_ptr(F &&f) {
   return td::make_unique<std::decay_t<decltype(promise_interface<T>(std::forward<F>(f)))>>(
