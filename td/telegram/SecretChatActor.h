@@ -494,7 +494,8 @@ class SecretChatActor final : public NetQueryCallback {
   template <class StateT>
   class Change {
    public:
-    Change() = default;
+    Change() : message_id() {
+    }
     explicit operator bool() const {
       return !data.empty();
     }
@@ -520,7 +521,7 @@ class SecretChatActor final : public NetQueryCallback {
       return sb;
     }
 
-    int32 message_id = 0;
+    int32 message_id;
 
    private:
     std::string data;
