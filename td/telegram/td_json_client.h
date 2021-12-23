@@ -18,8 +18,6 @@
  * Fields of Bool type are stored as Boolean, fields of int32, int53, and double types are stored as Number, fields of
  * int64 and string types are stored as String, fields of bytes type are base64 encoded and then stored as String,
  * fields of array type are stored as Array.
- * The main TDLib interface is asynchronous. To match requests with a corresponding response a field "@extra" can
- * be added to the request object. The corresponding response will have an "@extra" field with exactly the same value.
  *
  * The main TDLib interface is asynchronous. To match requests with a corresponding response, the field "@extra" can
  * be added to the request object. The corresponding response will have an "@extra" field with exactly the same value.
@@ -113,6 +111,9 @@ TDJSON_EXPORT void td_set_log_message_callback(int max_verbosity_level, td_log_m
  * Alternatively, you can use old TDLib JSON interface, which will be removed in TDLib 2.0.0.
  *
  * Objects and functions serialization to JSON is the same for both JSON interfaces.
+ *
+ * The main TDLib interface is asynchronous. To match requests with a corresponding response a field "@extra" can
+ * be added to the request object. The corresponding response will have an "@extra" field with exactly the same value.
  *
  * A TDLib client instance can be created through td_json_client_create.
  * Requests then can be sent using td_json_client_send from any thread.
