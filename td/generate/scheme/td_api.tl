@@ -52,10 +52,10 @@ authenticationCodeTypeSms length:int32 = AuthenticationCodeType;
 //@description An authentication code is delivered via a phone call to the specified phone number @length Length of the code
 authenticationCodeTypeCall length:int32 = AuthenticationCodeType;
 
-//@description An authentication code is delivered by an immediately canceled call to the specified phone number. The phone number, from which the call was made, is the code that must be entered automatically @pattern Pattern of the phone number from which the call will be made
+//@description An authentication code is delivered by an immediately canceled call to the specified phone number. The phone number that calls is the code that must be entered automatically @pattern Pattern of the phone number from which the call will be made
 authenticationCodeTypeFlashCall pattern:string = AuthenticationCodeType;
 
-//@description An authentication code is delivered by an immediately canceled call to the specified phone number. The phone number, from which the call was made, is the code that is supposed to be entered manually by the user @phone_number_prefix Prefix of the phone number from which the call will be made @length Number of digits in the code, excluding the prefix
+//@description An authentication code is delivered by an immediately canceled call to the specified phone number. The last digits of the phone number that calls are the code that must be entered manually by the user @phone_number_prefix Prefix of the phone number from which the call will be made @length Number of digits in the code, excluding the prefix
 authenticationCodeTypeMissedCall phone_number_prefix:string length:int32 = AuthenticationCodeType;
 
 
@@ -589,10 +589,10 @@ chatInviteLinkCount user_id:int53 invite_link_count:int32 revoked_invite_link_co
 //@description Contains a list of chat invite link counts @invite_link_counts List of invite link counts
 chatInviteLinkCounts invite_link_counts:vector<chatInviteLinkCount> = ChatInviteLinkCounts;
 
-//@description Describes a chat member joined a chat by an invite link @user_id User identifier @joined_chat_date Point in time (Unix timestamp) when the user joined the chat @approver_user_id User identifier of the chat administrator, approved user join request
+//@description Describes a chat member joined a chat via an invite link @user_id User identifier @joined_chat_date Point in time (Unix timestamp) when the user joined the chat @approver_user_id User identifier of the chat administrator, approved user join request
 chatInviteLinkMember user_id:int53 joined_chat_date:int32 approver_user_id:int53 = ChatInviteLinkMember;
 
-//@description Contains a list of chat members joined a chat by an invite link @total_count Approximate total count of chat members found @members List of chat members, joined a chat by an invite link
+//@description Contains a list of chat members joined a chat via an invite link @total_count Approximate total count of chat members found @members List of chat members, joined a chat via an invite link
 chatInviteLinkMembers total_count:int32 members:vector<chatInviteLinkMember> = ChatInviteLinkMembers;
 
 //@description Contains information about a chat invite link
@@ -611,10 +611,10 @@ chatInviteLinkInfo chat_id:int53 accessible_for:int32 type:ChatType title:string
 //@description Describes a user that sent a join request and waits for administrator approval @user_id User identifier @date Point in time (Unix timestamp) when the user sent the join request @bio A short bio of the user
 chatJoinRequest user_id:int53 date:int32 bio:string = ChatJoinRequest;
 
-//@description Contains a list of chat join requests @total_count Approximate total count of requests found @requests List of the requests
+//@description Contains a list of requests to join a chat @total_count Approximate total count of requests found @requests List of the requests
 chatJoinRequests total_count:int32 requests:vector<chatJoinRequest> = ChatJoinRequests;
 
-//@description Contains information about pending chat join requests @total_count Total number of pending join requests @user_ids Identifiers of at most 3 users sent the newest pending join requests
+//@description Contains information about pending join requests for a chat @total_count Total number of pending join requests @user_ids Identifiers of at most 3 users sent the newest pending join requests
 chatJoinRequestsInfo total_count:int32 user_ids:vector<int53> = ChatJoinRequestsInfo;
 
 
@@ -647,7 +647,7 @@ basicGroupFullInfo photo:chatPhoto description:string creator_user_id:int53 memb
 //@sign_messages True, if messages sent to the channel need to contain information about the sender. This field is only applicable to channels
 //@is_slow_mode_enabled True, if the slow mode is enabled in the supergroup
 //@is_channel True, if the supergroup is a channel
-//@is_broadcast_group True, if the supergroup is a broadcast group, i.e. only administrators can send messages and there is no limit on number of members
+//@is_broadcast_group True, if the supergroup is a broadcast group, i.e. only administrators can send messages and there is no limit on the number of members
 //@is_verified True, if the supergroup or channel is verified
 //@restriction_reason If non-empty, contains a human-readable description of the reason why access to this supergroup or channel must be restricted
 //@is_scam True, if many users reported this supergroup or channel as a scam
@@ -822,10 +822,10 @@ messagePosition position:int32 message_id:int53 date:int32 = MessagePosition;
 //@description Contains a list of message positions @total_count Total count of messages found @positions List of message positions
 messagePositions total_count:int32 positions:vector<messagePosition> = MessagePositions;
 
-//@description Contains information about found messages sent in a specific day @total_count Total number of found messages sent in the day @message First message sent in the day
+//@description Contains information about found messages sent on a specific day @total_count Total number of found messages sent on the day @message First message sent on the day
 messageCalendarDay total_count:int32 message:message = MessageCalendarDay;
 
-//@description Contains information about found messages, splitted by days according to the option "utc_time_offset" @total_count Total number of found messages @days Information about messages sent
+//@description Contains information about found messages, split by days according to the option "utc_time_offset" @total_count Total number of found messages @days Information about messages sent
 messageCalendar total_count:int32 days:vector<messageCalendarDay> = MessageCalendar;
 
 
@@ -1815,7 +1815,7 @@ messageChatDeletePhoto = MessageContent;
 //@description New chat members were added @member_user_ids User identifiers of the new members
 messageChatAddMembers member_user_ids:vector<int53> = MessageContent;
 
-//@description A new member joined the chat by invite link
+//@description A new member joined the chat via an invite link
 messageChatJoinByLink = MessageContent;
 
 //@description A new member was accepted to the chat by an administrator
@@ -2549,7 +2549,7 @@ chatEventMessageUnpinned message:message = ChatEventAction;
 //@description A new member joined the chat
 chatEventMemberJoined = ChatEventAction;
 
-//@description A new member joined the chat by an invite link @invite_link Invite link used to join the chat
+//@description A new member joined the chat via an invite link @invite_link Invite link used to join the chat
 chatEventMemberJoinedByInviteLink invite_link:chatInviteLink = ChatEventAction;
 
 //@description A new member was accepted to the chat by an administrator @approver_user_id User identifier of the chat administrator, approved user join request @invite_link Invite link used to join the chat; may be null
@@ -2949,7 +2949,7 @@ pushMessageContentChatSetTheme theme_name:string = PushMessageContent;
 //@is_left True, if the user has left the group themselves
 pushMessageContentChatDeleteMember member_name:string is_current_user:Bool is_left:Bool = PushMessageContent;
 
-//@description A new member joined the chat by invite link
+//@description A new member joined the chat via an invite link
 pushMessageContentChatJoinByLink = PushMessageContent;
 
 //@description A new member was accepted to the chat by an administrator
@@ -3464,13 +3464,13 @@ tMeUrls urls:vector<tMeUrl> = TMeUrls;
 //@description Suggests the user to enable "archive_and_mute_new_chats_from_unknown_users" option
 suggestedActionEnableArchiveAndMuteNewChats = SuggestedAction;
 
-//@description Suggests the user to check whether 2-step verification password is still remembered
+//@description Suggests the user to check whether they still remember their 2-step verification password
 suggestedActionCheckPassword = SuggestedAction;
 
 //@description Suggests the user to check whether authorization phone number is correct and change the phone number if it is inaccessible
 suggestedActionCheckPhoneNumber = SuggestedAction;
 
-//@description Suggests the user to see a hint about meaning of one and two ticks on sent messages
+//@description Suggests the user to see a hint about the meaning of one and two ticks on sent messages
 suggestedActionSeeTicksHint = SuggestedAction;
 
 //@description Suggests the user to convert specified supergroup to a broadcast group @supergroup_id Supergroup identifier
@@ -4338,7 +4338,7 @@ getChatMessageByDate chat_id:int53 date:int32 = Message;
 //@limit The expected number of message positions to be returned; 50-2000. A smaller number of positions can be returned, if there are not enough appropriate messages
 getChatSparseMessagePositions chat_id:int53 filter:SearchMessagesFilter from_message_id:int53 limit:int32 = MessagePositions;
 
-//@description Returns information about the next messages of the specified type in the chat splitted by days. Returns the results in reverse chronological order. Can return partial result for the last returned day. Behavior of this method depends on the value of the option "utc_time_offset"
+//@description Returns information about the next messages of the specified type in the chat split by days. Returns the results in reverse chronological order. Can return partial result for the last returned day. Behavior of this method depends on the value of the option "utc_time_offset"
 //@chat_id Identifier of the chat in which to return information about messages
 //@filter Filter for message content. Filters searchMessagesFilterEmpty, searchMessagesFilterMention and searchMessagesFilterUnreadMention are unsupported in this function
 //@from_message_id The message identifier from which to return information about messages; use 0 to get results from the last message
@@ -4969,7 +4969,7 @@ replacePrimaryChatInviteLink chat_id:int53 = ChatInviteLink;
 //@chat_id Chat identifier
 //@name Invite link name; 0-32 characters
 //@expiration_date Point in time (Unix timestamp) when the link will expire; pass 0 if never
-//@member_limit The maximum number of chat members that can join the chat by the link simultaneously; 0-99999; pass 0 if not limited
+//@member_limit The maximum number of chat members that can join the chat via the link simultaneously; 0-99999; pass 0 if not limited
 //@creates_join_request True, if the link only creates join request. If true, member_limit must not be specified
 createChatInviteLink chat_id:int53 name:string expiration_date:int32 member_limit:int32 creates_join_request:Bool = ChatInviteLink;
 
@@ -4978,7 +4978,7 @@ createChatInviteLink chat_id:int53 name:string expiration_date:int32 member_limi
 //@invite_link Invite link to be edited
 //@name Invite link name; 0-32 characters
 //@expiration_date Point in time (Unix timestamp) when the link will expire; pass 0 if never
-//@member_limit The maximum number of chat members that can join the chat by the link simultaneously; 0-99999; pass 0 if not limited
+//@member_limit The maximum number of chat members that can join the chat via the link simultaneously; 0-99999; pass 0 if not limited
 //@creates_join_request True, if the link only creates join request. If true, member_limit must not be specified
 editChatInviteLink chat_id:int53 invite_link:string name:string expiration_date:int32 member_limit:int32 creates_join_request:Bool = ChatInviteLink;
 
@@ -4999,7 +4999,7 @@ getChatInviteLinkCounts chat_id:int53 = ChatInviteLinkCounts;
 //@limit The maximum number of invite links to return; up to 100
 getChatInviteLinks chat_id:int53 creator_user_id:int53 is_revoked:Bool offset_date:int32 offset_invite_link:string limit:int32 = ChatInviteLinks;
 
-//@description Returns chat members joined a chat by an invite link. Requires administrator privileges and can_invite_users right in the chat for own links and owner privileges for other links @chat_id Chat identifier @invite_link Invite link for which to return chat members
+//@description Returns chat members joined a chat via an invite link. Requires administrator privileges and can_invite_users right in the chat for own links and owner privileges for other links @chat_id Chat identifier @invite_link Invite link for which to return chat members
 //@offset_member A chat member from which to return next chat members; pass null to get results from the beginning @limit The maximum number of chat members to return; up to 100
 getChatInviteLinkMembers chat_id:int53 invite_link:string offset_member:chatInviteLinkMember limit:int32 = ChatInviteLinkMembers;
 
@@ -5028,7 +5028,7 @@ joinChatByInviteLink invite_link:string = Chat;
 //@invite_link Invite link for which to return join requests. If empty, all join requests will be returned. Requires administrator privileges and can_invite_users right in the chat for own links and owner privileges for other links
 //@query A query to search for in the first names, last names and usernames of the users to return
 //@offset_request A chat join request from which to return next requests; pass null to get results from the beginning
-//@limit The maximum number of chat join requests to return
+//@limit The maximum number of requests to join the chat to return
 getChatJoinRequests chat_id:int53 invite_link:string query:string offset_request:chatJoinRequest limit:int32 = ChatJoinRequests;
 
 //@description Handles a pending join request in a chat @chat_id Chat identifier @user_id Identifier of the user that sent the request @approve True, if the request is approved. Otherwise the request is declived
@@ -5060,10 +5060,10 @@ sendCallRating call_id:int32 rating:int32 comment:string problems:vector<CallPro
 sendCallDebugInformation call_id:int32 debug_information:string = Ok;
 
 
-//@description Returns list of participant identifiers, which can be used to join video chats in a chat @chat_id Chat identifier
+//@description Returns list of participant identifiers, on whose behalf a video chat in the chat can be joined @chat_id Chat identifier
 getVideoChatAvailableParticipants chat_id:int53 = MessageSenders;
 
-//@description Changes default participant identifier, which can be used to join video chats in a chat @chat_id Chat identifier @default_participant_id Default group call participant identifier to join the video chats
+//@description Changes default participant identifier, on whose behalf a video chat in the chat will be joined @chat_id Chat identifier @default_participant_id Default group call participant identifier to join the video chats
 setVideoChatDefaultParticipant chat_id:int53 default_participant_id:MessageSender = Ok;
 
 //@description Creates a video chat (a group call bound to a chat). Available only for basic groups, supergroups and channels; requires can_manage_video_chats rights
