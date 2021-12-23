@@ -3108,6 +3108,7 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       const Photo *old_photo = &old_->photo;
       Photo *new_photo = &new_->photo;
       if (old_photo->date != new_photo->date) {
+        LOG(DEBUG) << "Photo date has changed from " << old_photo->date << " to " << new_photo->date;
         is_content_changed = true;
       }
       if (old_photo->id.get() != new_photo->id.get() || old_->caption != new_->caption) {
@@ -3131,6 +3132,7 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
           }
           new_photo->photos.push_back(old_photo->photos.back());
           need_merge = true;
+          need_update = true;
         } else {
           // get sent photo again
           if (old_photos_size == 2 + new_photos_size && old_photo->photos[new_photos_size].type == 't') {
