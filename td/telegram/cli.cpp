@@ -54,7 +54,6 @@
 
 #include <algorithm>
 #include <atomic>
-#include <clocale>
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
@@ -4669,8 +4668,7 @@ void main(int argc, char **argv) {
   ClientManager::set_log_message_callback(0, on_log_message);
   init_openssl_threads();
 
-  const char *locale_name = (std::setlocale(LC_ALL, "fr-FR") == nullptr ? "C" : "fr-FR");
-  std::locale new_locale(locale_name);
+  std::locale new_locale("C");
   std::locale::global(new_locale);
   SCOPE_EXIT {
     std::locale::global(std::locale::classic());

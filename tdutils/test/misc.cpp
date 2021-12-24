@@ -43,7 +43,6 @@
 
 #include <algorithm>
 #include <atomic>
-#include <clocale>
 #include <limits>
 #include <locale>
 #include <unordered_map>
@@ -476,8 +475,7 @@ static void test_to_double() {
 
 TEST(Misc, to_double) {
   test_to_double();
-  const char *locale_name = (std::setlocale(LC_ALL, "fr-FR") == nullptr ? "C" : "fr-FR");
-  std::locale new_locale(locale_name);
+  std::locale new_locale("C");
   auto host_locale = std::locale::global(new_locale);
   test_to_double();
   new_locale = std::locale::global(std::locale::classic());
