@@ -12604,11 +12604,15 @@ void MessagesManager::init() {
         auto *folder = get_dialog_folder(folder_id);
         CHECK(folder != nullptr);
         DialogDate dialog_date(r_order.ok(), DialogId(r_dialog_id.ok()));
-        if (folder->last_database_server_dialog_date_ < dialog_date) {
-          folder->last_database_server_dialog_date_ = dialog_date;
+        if (dialog_date.get_date() == 0 && dialog_date != MAX_DIALOG_DATE) {
+          LOG(ERROR) << "Ignore incorrect last database server dialog date " << dialog_date << " in " << folder_id;
+        } else {
+          if (folder->last_database_server_dialog_date_ < dialog_date) {
+            folder->last_database_server_dialog_date_ = dialog_date;
+          }
+          LOG(INFO) << "Loaded last_database_server_dialog_date_ " << folder->last_database_server_dialog_date_
+                    << " in " << folder_id;
         }
-        LOG(INFO) << "Loaded last_database_server_dialog_date_ " << folder->last_database_server_dialog_date_ << " in "
-                  << folder_id;
       }
     }
 
@@ -16167,13 +16171,6 @@ void MessagesManager::on_get_dialogs_from_database(FolderId folder_id, int32 lim
   if (!have_more_dialogs_in_database) {
     folder.last_loaded_database_dialog_date_ = MAX_DIALOG_DATE;
     LOG(INFO) << "Set last loaded database dialog date to " << folder.last_loaded_database_dialog_date_;
-    if (folder.last_database_server_dialog_date_.get_date() == 0 &&
-        folder.last_database_server_dialog_date_ != MAX_DIALOG_DATE) {
-      // replace definitely wrong folder.last_database_server_dialog_date_ with max_dialog_date
-      LOG(ERROR) << "Fix last database server dialog date from " << folder.last_database_server_dialog_date_ << " to "
-                 << max_dialog_date;
-      folder.last_database_server_dialog_date_ = max_dialog_date;
-    }
     folder.last_server_dialog_date_ = max(folder.last_server_dialog_date_, folder.last_database_server_dialog_date_);
     LOG(INFO) << "Set last server dialog date to " << folder.last_server_dialog_date_;
     update_last_dialog_date(folder_id);
