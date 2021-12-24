@@ -2691,38 +2691,38 @@ localizationTargetInfo language_packs:vector<languagePackInfo> = LocalizationTar
 
 //@class DeviceToken @description Represents a data needed to subscribe for push notifications through registerDevice method. To use specific push notification service, the correct application platform must be specified and a valid server authentication data must be uploaded at https://my.telegram.org
 
-//@description A token for Firebase Cloud Messaging @token Device registration token; may be empty to de-register a device @encrypt True, if push notifications must be additionally encrypted
+//@description A token for Firebase Cloud Messaging @token Device registration token; may be empty to deregister a device @encrypt True, if push notifications must be additionally encrypted
 deviceTokenFirebaseCloudMessaging token:string encrypt:Bool = DeviceToken;
 
-//@description A token for Apple Push Notification service @device_token Device token; may be empty to de-register a device @is_app_sandbox True, if App Sandbox is enabled
+//@description A token for Apple Push Notification service @device_token Device token; may be empty to deregister a device @is_app_sandbox True, if App Sandbox is enabled
 deviceTokenApplePush device_token:string is_app_sandbox:Bool = DeviceToken;
 
-//@description A token for Apple Push Notification service VoIP notifications @device_token Device token; may be empty to de-register a device @is_app_sandbox True, if App Sandbox is enabled @encrypt True, if push notifications must be additionally encrypted
+//@description A token for Apple Push Notification service VoIP notifications @device_token Device token; may be empty to deregister a device @is_app_sandbox True, if App Sandbox is enabled @encrypt True, if push notifications must be additionally encrypted
 deviceTokenApplePushVoIP device_token:string is_app_sandbox:Bool encrypt:Bool = DeviceToken;
 
-//@description A token for Windows Push Notification Services @access_token The access token that will be used to send notifications; may be empty to de-register a device
+//@description A token for Windows Push Notification Services @access_token The access token that will be used to send notifications; may be empty to deregister a device
 deviceTokenWindowsPush access_token:string = DeviceToken;
 
-//@description A token for Microsoft Push Notification Service @channel_uri Push notification channel URI; may be empty to de-register a device
+//@description A token for Microsoft Push Notification Service @channel_uri Push notification channel URI; may be empty to deregister a device
 deviceTokenMicrosoftPush channel_uri:string = DeviceToken;
 
-//@description A token for Microsoft Push Notification Service VoIP channel @channel_uri Push notification channel URI; may be empty to de-register a device
+//@description A token for Microsoft Push Notification Service VoIP channel @channel_uri Push notification channel URI; may be empty to deregister a device
 deviceTokenMicrosoftPushVoIP channel_uri:string = DeviceToken;
 
-//@description A token for web Push API @endpoint Absolute URL exposed by the push service where the application server can send push messages; may be empty to de-register a device
+//@description A token for web Push API @endpoint Absolute URL exposed by the push service where the application server can send push messages; may be empty to deregister a device
 //@p256dh_base64url Base64url-encoded P-256 elliptic curve Diffie-Hellman public key @auth_base64url Base64url-encoded authentication secret
 deviceTokenWebPush endpoint:string p256dh_base64url:string auth_base64url:string = DeviceToken;
 
-//@description A token for Simple Push API for Firefox OS @endpoint Absolute URL exposed by the push service where the application server can send push messages; may be empty to de-register a device
+//@description A token for Simple Push API for Firefox OS @endpoint Absolute URL exposed by the push service where the application server can send push messages; may be empty to deregister a device
 deviceTokenSimplePush endpoint:string = DeviceToken;
 
-//@description A token for Ubuntu Push Client service @token Token; may be empty to de-register a device
+//@description A token for Ubuntu Push Client service @token Token; may be empty to deregister a device
 deviceTokenUbuntuPush token:string = DeviceToken;
 
-//@description A token for BlackBerry Push Service @token Token; may be empty to de-register a device
+//@description A token for BlackBerry Push Service @token Token; may be empty to deregister a device
 deviceTokenBlackBerryPush token:string = DeviceToken;
 
-//@description A token for Tizen Push Service @reg_id Push service registration identifier; may be empty to de-register a device
+//@description A token for Tizen Push Service @reg_id Push service registration identifier; may be empty to deregister a device
 deviceTokenTizenPush reg_id:string = DeviceToken;
 
 
