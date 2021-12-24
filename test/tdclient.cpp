@@ -868,7 +868,7 @@ TEST(Client, Simple) {
 }
 
 TEST(Client, SimpleMulti) {
-  std::vector<td::Client> clients(40);
+  std::vector<td::Client> clients(7);
   //for (auto &client : clients) {
   //client.execute({1, td::td_api::make_object<td::td_api::setLogTagVerbosityLevel>("td_requests", 1)});
   //}
