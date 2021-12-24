@@ -665,17 +665,19 @@ class MessagesDbImpl final : public MessagesDbSyncInterface {
       stmt.step().ensure();
     }
 
-    int32 limit = min(query.limit, static_cast<int32>(message_ids.size()));
-    double delta = static_cast<double>(message_ids.size()) / limit;
     MessagesDbMessagePositions positions;
-    positions.total_count = static_cast<int32>(message_ids.size());
-    positions.positions.reserve(limit);
-    for (int32 i = 0; i < limit; i++) {
-      auto position = static_cast<int32>((i + 0.5) * delta);
-      auto message_id = message_ids[position];
-      TRY_RESULT(message, get_message({query.dialog_id, message_id}));
-      auto date = get_message_info(message).second;
-      positions.positions.push_back(MessagesDbMessagePosition{position, date, message_id});
+    int32 limit = min(query.limit, static_cast<int32>(message_ids.size()));
+    if (limit > 0) {
+      double delta = static_cast<double>(message_ids.size()) / limit;
+      positions.total_count = static_cast<int32>(message_ids.size());
+      positions.positions.reserve(limit);
+      for (int32 i = 0; i < limit; i++) {
+        auto position = static_cast<int32>((i + 0.5) * delta);
+        auto message_id = message_ids[position];
+        TRY_RESULT(message, get_message({query.dialog_id, message_id}));
+        auto date = get_message_info(message).second;
+        positions.positions.push_back(MessagesDbMessagePosition{position, date, message_id});
+      }
     }
     return positions;
   }
