@@ -252,6 +252,8 @@ class DialogDbImpl final : public DialogDbSyncInterface {
     get_dialogs_stmt_.bind_int32(4, limit).ensure();
 
     DialogDbGetDialogsResult result;
+    result.next_dialog_id = dialog_id;
+    result.next_order = order;
     TRY_STATUS(get_dialogs_stmt_.step());
     while (get_dialogs_stmt_.has_row()) {
       BufferSlice data(get_dialogs_stmt_.view_blob(0));
