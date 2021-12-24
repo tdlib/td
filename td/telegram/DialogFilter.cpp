@@ -131,6 +131,44 @@ string DialogFilter::get_icon_name() const {
   return string();
 }
 
+string DialogFilter::get_chosen_or_default_icon_name() const {
+  auto icon_name = get_icon_name();
+  if (!icon_name.empty()) {
+    return icon_name;
+  }
+
+  if (!pinned_dialog_ids.empty() || !included_dialog_ids.empty() || !excluded_dialog_ids.empty()) {
+    return "Custom";
+  }
+
+  if (include_contacts || include_non_contacts) {
+    if (!include_bots && !include_groups && !include_channels) {
+      return "Private";
+    }
+  } else {
+    if (!include_bots && !include_channels) {
+      if (!include_groups) {
+        // just in case
+        return "Custom";
+      }
+      return "Groups";
+    }
+    if (!include_bots && !include_groups) {
+      return "Channels";
+    }
+    if (!include_groups && !include_channels) {
+      return "Bots";
+    }
+  }
+  if (exclude_read && !exclude_muted) {
+    return "Unread";
+  }
+  if (exclude_muted && !exclude_read) {
+    return "Unmuted";
+  }
+  return "Custom";
+}
+
 string DialogFilter::get_default_icon_name(const td_api::chatFilter *filter) {
   if (!filter->icon_name_.empty() && !get_emoji_by_icon_name(filter->icon_name_).empty()) {
     return filter->icon_name_;
@@ -206,7 +244,7 @@ telegram_api::object_ptr<telegram_api::dialogFilter> DialogFilter::get_input_dia
 }
 
 td_api::object_ptr<td_api::chatFilterInfo> DialogFilter::get_chat_filter_info_object() const {
-  return td_api::make_object<td_api::chatFilterInfo>(dialog_filter_id.get(), title, get_icon_name());
+  return td_api::make_object<td_api::chatFilterInfo>(dialog_filter_id.get(), title, get_chosen_or_default_icon_name());
 }
 
 // merges changes from old_server_filter to new_server_filter in old_filter

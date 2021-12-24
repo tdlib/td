@@ -79,6 +79,8 @@ class DialogFilter {
   static std::unordered_map<string, string> icon_name_to_emoji_;
 
   static void init_icon_names();
+
+  string get_chosen_or_default_icon_name() const;
 };
 
 inline bool operator==(const DialogFilter &lhs, const DialogFilter &rhs) {
