@@ -187,6 +187,9 @@ td_api::object_ptr<td_api::sponsoredMessage> SponsoredMessageManager::get_sponso
 
 td_api::object_ptr<td_api::sponsoredMessage> SponsoredMessageManager::get_sponsored_message_object(
     DialogId dialog_id, const DialogSponsoredMessages &sponsored_messages) const {
+  if (sponsored_messages.messages.empty()) {
+    return nullptr;
+  }
   auto pos = Random::fast(0, static_cast<int>(sponsored_messages.messages.size()) - 1);
   return get_sponsored_message_object(dialog_id, sponsored_messages.messages[pos]);
 }
