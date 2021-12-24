@@ -83,7 +83,7 @@ Status init_dialog_db(SqliteDb &db, int32 version, KeyValueSyncInterface &binlog
   if (version < static_cast<int32>(DbVersion::StorePinnedDialogsInBinlog)) {
     // 9221294780217032704 == get_dialog_order(Auto(), MIN_PINNED_DIALOG_DATE - 1)
     TRY_RESULT(get_pinned_dialogs_stmt,
-               db.get_statement("SELECT dialog_id FROM dialogs WHERE folder_id == ?1 AND dialog_order > "
+               db.get_statement("SELECT dialog_id FROM dialogs WHERE folder_id = ?1 AND dialog_order > "
                                 "9221294780217032704 ORDER BY dialog_order DESC, dialog_id DESC"));
     for (auto folder_id = 0; folder_id < 2; folder_id++) {
       vector<string> pinned_dialog_ids;
@@ -137,7 +137,7 @@ class DialogDbImpl final : public DialogDbSyncInterface {
     TRY_RESULT_ASSIGN(
         get_dialogs_stmt_,
         db_.get_statement("SELECT data, dialog_id, dialog_order FROM dialogs WHERE "
-                          "folder_id == ?1 AND (dialog_order < ?2 OR (dialog_order = ?2 AND dialog_id < ?3)) ORDER "
+                          "folder_id = ?1 AND (dialog_order < ?2 OR (dialog_order = ?2 AND dialog_id < ?3)) ORDER "
                           "BY dialog_order DESC, dialog_id DESC LIMIT ?4"));
     TRY_RESULT_ASSIGN(
         get_notification_groups_by_last_notification_date_stmt_,

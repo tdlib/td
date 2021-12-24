@@ -192,7 +192,7 @@ class MessagesDbImpl final : public MessagesDbSyncInterface {
     TRY_RESULT_ASSIGN(delete_all_dialog_messages_stmt_,
                       db_.get_statement("DELETE FROM messages WHERE dialog_id = ?1 AND message_id <= ?2"));
     TRY_RESULT_ASSIGN(delete_dialog_messages_by_sender_stmt_,
-                      db_.get_statement("DELETE FROM messages WHERE dialog_id = ?1 AND sender_user_id == ?2"));
+                      db_.get_statement("DELETE FROM messages WHERE dialog_id = ?1 AND sender_user_id = ?2"));
 
     TRY_RESULT_ASSIGN(
         get_message_stmt_,
