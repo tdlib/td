@@ -431,7 +431,7 @@ class MultiImplPool {
 
       auto max_client_threads = clamp(thread::hardware_concurrency(), 8u, 20u) * 5 / 4;
 #if TD_OPENBSD
-      max_client_threads = td::min(max_client_threads, 7u);
+      max_client_threads = td::min(max_client_threads, 4u);
 #endif
       impls_.resize(max_client_threads);
       CHECK(impls_.size() * (1 + MultiImpl::ADDITIONAL_THREAD_COUNT + 1 /* IOCP */) < 128);
