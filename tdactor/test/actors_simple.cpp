@@ -301,11 +301,7 @@ class OpenClose final : public td::Actor {
 TEST(Actors, open_close) {
   td::ConcurrentScheduler scheduler;
   scheduler.init(2);
-  int cnt = 1000000;
-#if TD_WINDOWS || TD_ANDROID
-  // TODO(perf) optimize
-  cnt = 100;
-#endif
+  int cnt = 10000; // TODO(perf) optimize
   scheduler.create_actor_unsafe<OpenClose>(1, "A", cnt).release();
   scheduler.create_actor_unsafe<OpenClose>(2, "B", cnt).release();
   scheduler.start();
