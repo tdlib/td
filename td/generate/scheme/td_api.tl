@@ -720,9 +720,9 @@ messageSenders total_count:int32 senders:vector<MessageSender> = MessageSenders;
 //@description The message was originally sent by a known user @sender_user_id Identifier of the user that originally sent the message
 messageForwardOriginUser sender_user_id:int53 = MessageForwardOrigin;
 
-//@description The message was originally sent by an anonymous chat administrator on behalf of the chat
+//@description The message was originally sent on behalf of a chat
 //@sender_chat_id Identifier of the chat that originally sent the message
-//@author_signature Original message author signature
+//@author_signature For messages originally sent by an anonymous chat administrator, original message author signature
 messageForwardOriginChat sender_chat_id:int53 author_signature:string = MessageForwardOrigin;
 
 //@description The message was originally sent by a user, which is hidden by their privacy settings @sender_name Name of the sender
