@@ -49,6 +49,7 @@
 #include "td/telegram/ReplyMarkup.hpp"
 #include "td/telegram/SecretChatsManager.h"
 #include "td/telegram/SequenceDispatcher.h"
+#include "td/telegram/SponsoredMessageManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/TdParameters.h"
@@ -19819,6 +19820,12 @@ Status MessagesManager::view_messages(DialogId dialog_id, MessageId top_thread_m
   }
   for (auto message_id : message_ids) {
     if (!message_id.is_valid() && !message_id.is_valid_scheduled()) {
+      if (message_id.is_valid_sponsored()) {
+        if (d->is_opened) {
+          td_->sponsored_message_manager_->view_sponsored_message(dialog_id, message_id);
+        }
+        continue;
+      }
       return Status::Error(400, "Invalid message identifier");
     }
   }

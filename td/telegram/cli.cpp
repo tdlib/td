@@ -2671,12 +2671,6 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getMessages>(as_chat_id(chat_id), as_message_ids(message_ids)));
     } else if (op == "gsm") {
       send_request(td_api::make_object<td_api::getChatSponsoredMessage>(as_chat_id(args)));
-    } else if (op == "vsm") {
-      string chat_id;
-      string sponsored_message_id;
-      get_args(args, chat_id, sponsored_message_id);
-      send_request(td_api::make_object<td_api::viewSponsoredMessage>(as_chat_id(chat_id),
-                                                                     to_integer<int64>(sponsored_message_id)));
     } else if (op == "gmlink") {
       string chat_id;
       string message_id;

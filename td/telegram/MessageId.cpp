@@ -43,6 +43,14 @@ bool MessageId::is_valid_scheduled() const {
   return type == SCHEDULED_MASK || type == (SCHEDULED_MASK | TYPE_YET_UNSENT) || type == (SCHEDULED_MASK | TYPE_LOCAL);
 }
 
+bool MessageId::is_valid_sponsored() const {
+  if (id <= max().get() || id > (static_cast<int64>(1) << 51)) {
+    return false;
+  }
+  int32 type = (id & TYPE_MASK);
+  return type == TYPE_LOCAL;
+}
+
 MessageType MessageId::get_type() const {
   if (id <= 0 || id > (static_cast<int64>(1) << 51)) {
     return MessageType::None;

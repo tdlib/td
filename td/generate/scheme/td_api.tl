@@ -830,11 +830,11 @@ messageCalendar total_count:int32 days:vector<messageCalendarDay> = MessageCalen
 
 
 //@description Describes a sponsored message
-//@id Unique sponsored message identifier
+//@message_id Message identifier; unique for the chat to which the sponsored message belongs among both ordinary and sponsored messages
 //@sponsor_chat_id Chat identifier
 //@link An internal link to be opened when the sponsored message is clicked; may be null. If null, the sponsor chat needs to be opened instead
 //@content Content of the message. Currently, can be only of the type messageText
-sponsoredMessage id:int53 sponsor_chat_id:int53 link:InternalLinkType content:MessageContent = SponsoredMessage;
+sponsoredMessage message_id:int53 sponsor_chat_id:int53 link:InternalLinkType content:MessageContent = SponsoredMessage;
 
 
 //@class NotificationSettingsScope @description Describes the types of chats to which notification settings are relevant
@@ -4360,9 +4360,6 @@ getMessagePublicForwards chat_id:int53 message_id:int53 offset:string limit:int3
 //@description Returns sponsored message to be shown in a chat; for channel chats only. Returns a 404 error if there is no sponsored message in the chat @chat_id Identifier of the chat
 getChatSponsoredMessage chat_id:int53 = SponsoredMessage;
 
-//@description Informs TDLib that a sponsored message was viewed by the user @chat_id Identifier of the chat with the sponsored message @sponsored_message_id The identifier of the sponsored message being viewed
-viewSponsoredMessage chat_id:int53 sponsored_message_id:int53 = Ok;
-
 
 //@description Removes an active notification from notification list. Needs to be called only if the notification is removed by the current user @notification_group_id Identifier of notification group to which the notification belongs @notification_id Identifier of removed notification
 removeNotification notification_group_id:int32 notification_id:int32 = Ok;
@@ -4669,7 +4666,7 @@ openChat chat_id:int53 = Ok;
 //@description Informs TDLib that the chat is closed by the user. Many useful activities depend on the chat being opened or closed @chat_id Chat identifier
 closeChat chat_id:int53 = Ok;
 
-//@description Informs TDLib that messages are being viewed by the user. Many useful activities depend on whether the messages are currently being viewed or not (e.g., marking messages as read, incrementing a view counter, updating a view counter, removing deleted messages in supergroups and channels)
+//@description Informs TDLib that messages are being viewed by the user. Sponsored messages must be marked as viewed only when the entire text of the message is shown on the screen (excluding the button). Many useful activities depend on whether the messages are currently being viewed or not (e.g., marking messages as read, incrementing a view counter, updating a view counter, removing deleted messages in supergroups and channels)
 //@chat_id Chat identifier
 //@message_thread_id If not 0, a message thread identifier in which the messages are being viewed
 //@message_ids The identifiers of the messages being viewed
