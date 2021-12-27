@@ -97,14 +97,14 @@ class ViewSponsoredMessageQuery final : public Td::ResultHandler {
 };
 
 struct SponsoredMessageManager::SponsoredMessage {
-  int32 local_id = 0;
+  int64 local_id = 0;
   DialogId sponsor_dialog_id;
   ServerMessageId server_message_id;
   string start_param;
   unique_ptr<MessageContent> content;
 
   SponsoredMessage() = default;
-  SponsoredMessage(int32 local_id, DialogId sponsor_dialog_id, ServerMessageId server_message_id, string start_param,
+  SponsoredMessage(int64 local_id, DialogId sponsor_dialog_id, ServerMessageId server_message_id, string start_param,
                    unique_ptr<MessageContent> content)
       : local_id(local_id)
       , sponsor_dialog_id(sponsor_dialog_id)
@@ -117,7 +117,7 @@ struct SponsoredMessageManager::SponsoredMessage {
 struct SponsoredMessageManager::DialogSponsoredMessages {
   vector<Promise<td_api::object_ptr<td_api::sponsoredMessage>>> promises;
   vector<SponsoredMessage> messages;
-  std::unordered_map<int32, string> message_random_ids;
+  std::unordered_map<int64, string> message_random_ids;
 };
 
 SponsoredMessageManager::SponsoredMessageManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
@@ -274,8 +274,13 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
     }
     CHECK(disable_web_page_preview);
 
-    CHECK(current_sponsored_message_id_ < std::numeric_limits<int32>::max());
-    auto local_id = ++current_sponsored_message_id_;
+    auto local_id = ++current_sponsored_message_id_ + MessageId::max().get();
+    if (local_id >= (1ll << 52)) {
+      LOG(ERROR) << "Sponsored message ID overflowed";
+      current_sponsored_message_id_ = 1;
+      local_id = MessageId::max().get() + 1;
+    }
+    CHECK(messages->message_random_ids.count(local_id) == 0);
     messages->message_random_ids[local_id] = sponsored_message->random_id_.as_slice().str();
     messages->messages.emplace_back(local_id, sponsor_dialog_id, server_message_id,
                                     std::move(sponsored_message->start_param_), std::move(content));
@@ -287,7 +292,7 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
   delete_cached_sponsored_messages_timeout_.set_timeout_in(dialog_id.get(), 300.0);
 }
 
-void SponsoredMessageManager::view_sponsored_message(DialogId dialog_id, int32 sponsored_message_id,
+void SponsoredMessageManager::view_sponsored_message(DialogId dialog_id, int64 sponsored_message_id,
                                                      Promise<Unit> &&promise) {
   if (!td_->messages_manager_->have_dialog_force(dialog_id, "view_sponsored_message")) {
     return promise.set_error(Status::Error(400, "Chat not found"));

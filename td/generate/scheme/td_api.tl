@@ -834,7 +834,7 @@ messageCalendar total_count:int32 days:vector<messageCalendarDay> = MessageCalen
 //@sponsor_chat_id Chat identifier
 //@link An internal link to be opened when the sponsored message is clicked; may be null. If null, the sponsor chat needs to be opened instead
 //@content Content of the message. Currently, can be only of the type messageText
-sponsoredMessage id:int32 sponsor_chat_id:int53 link:InternalLinkType content:MessageContent = SponsoredMessage;
+sponsoredMessage id:int53 sponsor_chat_id:int53 link:InternalLinkType content:MessageContent = SponsoredMessage;
 
 
 //@class NotificationSettingsScope @description Describes the types of chats to which notification settings are relevant
@@ -4361,7 +4361,7 @@ getMessagePublicForwards chat_id:int53 message_id:int53 offset:string limit:int3
 getChatSponsoredMessage chat_id:int53 = SponsoredMessage;
 
 //@description Informs TDLib that a sponsored message was viewed by the user @chat_id Identifier of the chat with the sponsored message @sponsored_message_id The identifier of the sponsored message being viewed
-viewSponsoredMessage chat_id:int53 sponsored_message_id:int32 = Ok;
+viewSponsoredMessage chat_id:int53 sponsored_message_id:int53 = Ok;
 
 
 //@description Removes an active notification from notification list. Needs to be called only if the notification is removed by the current user @notification_group_id Identifier of notification group to which the notification belongs @notification_id Identifier of removed notification

@@ -35,7 +35,7 @@ class SponsoredMessageManager final : public Actor {
   void get_dialog_sponsored_message(DialogId dialog_id,
                                     Promise<td_api::object_ptr<td_api::sponsoredMessage>> &&promise);
 
-  void view_sponsored_message(DialogId dialog_id, int32 sponsored_message_id, Promise<Unit> &&promise);
+  void view_sponsored_message(DialogId dialog_id, int64 sponsored_message_id, Promise<Unit> &&promise);
 
  private:
   struct SponsoredMessage;
