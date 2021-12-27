@@ -266,7 +266,8 @@ class LinkManager::InternalLinkProxy final : public InternalLink {
 
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
     CHECK(type_ != nullptr);
-    auto proxy_type = [type = type_.get()]() -> td_api::object_ptr<td_api::ProxyType> {
+    auto type = type_.get();
+    auto proxy_type = [type]() -> td_api::object_ptr<td_api::ProxyType> {
       switch (type->get_id()) {
         case td_api::proxyTypeSocks5::ID: {
           auto type_socks = static_cast<const td_api::proxyTypeSocks5 *>(type);
