@@ -52,7 +52,7 @@ def td_execute(query):
     return result
 
 c_on_log_message_callback = log_message_callback_type(on_log_message_callback)
-_td_set_log_message_callback(2, c_on_log_message_callback)
+_td_set_log_message_callback(0, c_on_log_message_callback)
 
 # setting TDLib log verbosity level to 1 (errors)
 print(str(td_execute({'@type': 'setLogVerbosityLevel', 'new_verbosity_level': 1, '@extra': 1.01234})).encode('utf-8'))
