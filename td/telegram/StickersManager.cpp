@@ -6519,7 +6519,7 @@ void StickersManager::on_update_recent_stickers_limit(int32 recent_stickers_limi
       for (int is_attached = 0; is_attached < 2; is_attached++) {
         if (static_cast<int32>(recent_sticker_ids_[is_attached].size()) > recent_stickers_limit) {
           recent_sticker_ids_[is_attached].resize(recent_stickers_limit);
-          send_update_recent_stickers(is_attached);
+          send_update_recent_stickers(is_attached != 0);
         }
       }
     } else {
