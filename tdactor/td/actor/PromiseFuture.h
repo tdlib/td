@@ -184,38 +184,20 @@ class SafePromise;
 template <class T = Unit>
 class Promise;
 
-constexpr inline std::false_type is_promise_interface(...) {
-  return {};
-}
+template <class T>
+struct is_promise_interface : std::false_type {};
+
+template <class U>
+struct is_promise_interface<PromiseInterface<U>> : std::true_type {};
+
+template <class U>
+struct is_promise_interface<Promise<U>> : std::true_type {};
 
 template <class T>
-constexpr std::true_type is_promise_interface(const PromiseInterface<T> &promise) {
-  return {};
-}
+struct is_promise_interface_ptr : std::false_type {};
 
-template <class T>
-constexpr std::true_type is_promise_interface(const Promise<T> &promise) {
-  return {};
-}
-
-template <class F>
-constexpr bool is_promise_interface() {
-  return decltype(is_promise_interface(std::declval<F>()))::value;
-}
-
-constexpr inline std::false_type is_promise_interface_ptr(...) {
-  return {};
-}
-
-template <class T>
-constexpr std::true_type is_promise_interface_ptr(const unique_ptr<T> &promise) {
-  return {};
-}
-
-template <class F>
-constexpr bool is_promise_interface_ptr() {
-  return decltype(is_promise_interface_ptr(std::declval<F>()))::value;
-}
+template <class U>
+struct is_promise_interface_ptr<unique_ptr<U>> : std::true_type {};
 
 template <class T = void, class F = void, std::enable_if_t<std::is_same<T, void>::value, bool> has_t = false>
 auto lambda_promise(F &&f) {
@@ -227,22 +209,26 @@ auto lambda_promise(F &&f) {
   return detail::LambdaPromise<T, std::decay_t<F>>(std::forward<F>(f));
 }
 
-template <class T, class F, std::enable_if_t<is_promise_interface<F>(), bool> from_promise_interface = true>
+template <class T, class F,
+          std::enable_if_t<is_promise_interface<std::decay_t<F>>::value, bool> from_promise_interface = true>
 auto &&promise_interface(F &&f) {
   return std::forward<F>(f);
 }
 
-template <class T, class F, std::enable_if_t<!is_promise_interface<F>(), bool> from_promise_interface = false>
+template <class T, class F,
+          std::enable_if_t<!is_promise_interface<std::decay_t<F>>::value, bool> from_promise_interface = false>
 auto promise_interface(F &&f) {
   return lambda_promise<T>(std::forward<F>(f));
 }
 
-template <class T, class F, std::enable_if_t<is_promise_interface_ptr<F>(), bool> from_promise_interface = true>
+template <class T, class F,
+          std::enable_if_t<is_promise_interface_ptr<std::decay_t<F>>::value, bool> from_promise_interface = true>
 auto promise_interface_ptr(F &&f) {
   return std::forward<F>(f);
 }
 
-template <class T, class F, std::enable_if_t<!is_promise_interface_ptr<F>(), bool> from_promise_interface = false>
+template <class T, class F,
+          std::enable_if_t<!is_promise_interface_ptr<std::decay_t<F>>::value, bool> from_promise_interface = false>
 auto promise_interface_ptr(F &&f) {
   return td::make_unique<std::decay_t<decltype(promise_interface<T>(std::forward<F>(f)))>>(
       promise_interface<T>(std::forward<F>(f)));
