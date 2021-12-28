@@ -73,7 +73,7 @@ def td_receive():
     return result
 
 # another test for TDLib execute method
-print(str(td_execute({'@type': 'getTextEntities', 'text': '@telegram /test_command https://telegram.org telegram.me', '@extra': ['5', 7.0, 'ä']})).encode('utf-8'))
+print(str(td_execute({'@type': 'getTextEntities', 'text': '@telegram /test_command https://telegram.org telegram.me', '@extra': ['5', 7.0, 'a']})).encode('utf-8'))
 
 # start the client by sending request to it
 td_send({'@type': 'getAuthorizationState', '@extra': 1.01234})
