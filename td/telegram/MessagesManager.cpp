@@ -23799,6 +23799,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
   m->is_channel_post = is_channel_post;
   m->is_outgoing = is_scheduled || dialog_id != DialogId(my_id);
   m->from_background = options.from_background;
+  m->noforwards = options.protect_content;
   m->view_count = is_channel_post && !is_scheduled ? 1 : 0;
   m->forward_count = 0;
   if ([&] {
@@ -24433,6 +24434,7 @@ Result<MessagesManager::MessageSendOptions> MessagesManager::process_message_sen
   if (options != nullptr) {
     result.disable_notification = options->disable_notification_;
     result.from_background = options->from_background_;
+    result.protect_content = options->protect_content_;
     TRY_RESULT_ASSIGN(result.schedule_date, get_message_schedule_date(std::move(options->scheduling_state_)));
   }
 
@@ -24452,6 +24454,10 @@ Result<MessagesManager::MessageSendOptions> MessagesManager::process_message_sen
     if (dialog_id == get_my_dialog_id()) {
       return Status::Error(400, "Can't scheduled till online messages in chat with self");
     }
+  }
+
+  if (result.protect_content && !td_->auth_manager_->is_bot()) {
+    result.protect_content = false;
   }
 
   return result;
@@ -26581,6 +26587,9 @@ int32 MessagesManager::get_message_flags(const Message *m) {
   if (m->message_id.is_scheduled()) {
     flags |= SEND_MESSAGE_FLAG_HAS_SCHEDULE_DATE;
   }
+  if (m->noforwards) {
+    flags |= SEND_MESSAGE_FLAG_NOFORWARDS;
+  }
   return flags;
 }
 
@@ -26889,6 +26898,9 @@ void MessagesManager::do_forward_messages(DialogId to_dialog_id, DialogId from_d
   }
   if (messages[0]->has_explicit_sender) {
     flags |= SEND_MESSAGE_FLAG_HAS_SEND_AS;
+  }
+  if (messages[0]->noforwards) {
+    flags |= SEND_MESSAGE_FLAG_NOFORWARDS;
   }
 
   vector<int64> random_ids =
@@ -27399,7 +27411,7 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
 
     auto need_another_sender =
         message->send_error_code == 400 && message->send_error_message == CSlice("SEND_AS_PEER_INVALID");
-    MessageSendOptions options(message->disable_notification, message->from_background,
+    MessageSendOptions options(message->disable_notification, message->from_background, message->noforwards,
                                get_message_schedule_date(message.get()));
     Message *m = get_message_to_send(
         d, message->top_thread_message_id,

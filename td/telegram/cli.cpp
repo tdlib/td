@@ -1618,14 +1618,15 @@ class CliClient final : public Actor {
     auto chat = as_chat_id(chat_id);
     auto id = send_request(td_api::make_object<td_api::sendMessage>(
         chat, as_message_thread_id(message_thread_id_), reply_to_message_id,
-        td_api::make_object<td_api::messageSendOptions>(disable_notification, from_background,
+        td_api::make_object<td_api::messageSendOptions>(disable_notification, from_background, true,
                                                         as_message_scheduling_state(schedule_date_)),
         nullptr, std::move(input_message_content)));
     query_id_to_send_message_info_[id].start_time = Time::now();
   }
 
   td_api::object_ptr<td_api::messageSendOptions> default_message_send_options() const {
-    return td_api::make_object<td_api::messageSendOptions>(false, false, as_message_scheduling_state(schedule_date_));
+    return td_api::make_object<td_api::messageSendOptions>(false, false, false,
+                                                           as_message_scheduling_state(schedule_date_));
   }
 
   void send_get_background_url(td_api::object_ptr<td_api::BackgroundType> &&background_type) {

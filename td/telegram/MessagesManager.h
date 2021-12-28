@@ -135,6 +135,7 @@ class MessagesManager final : public Actor {
   static constexpr int32 SEND_MESSAGE_FLAG_HAS_SCHEDULE_DATE = 1 << 10;
   static constexpr int32 SEND_MESSAGE_FLAG_HAS_MESSAGE = 1 << 11;
   static constexpr int32 SEND_MESSAGE_FLAG_HAS_SEND_AS = 1 << 13;
+  static constexpr int32 SEND_MESSAGE_FLAG_NOFORWARDS = 1 << 14;
 
   static constexpr int32 ONLINE_MEMBER_COUNT_CACHE_EXPIRE_TIME = 30 * 60;
 
@@ -1651,11 +1652,15 @@ class MessagesManager final : public Actor {
   struct MessageSendOptions {
     bool disable_notification = false;
     bool from_background = false;
+    bool protect_content = false;
     int32 schedule_date = 0;
 
     MessageSendOptions() = default;
-    MessageSendOptions(bool disable_notification, bool from_background, int32 schedule_date)
-        : disable_notification(disable_notification), from_background(from_background), schedule_date(schedule_date) {
+    MessageSendOptions(bool disable_notification, bool from_background, bool protect_content, int32 schedule_date)
+        : disable_notification(disable_notification)
+        , from_background(from_background)
+        , protect_content(protect_content)
+        , schedule_date(schedule_date) {
     }
   };
 
