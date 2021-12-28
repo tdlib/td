@@ -243,6 +243,10 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
   td_->contacts_manager_->on_get_chats(std::move(sponsored_messages->chats_), "on_get_dialog_sponsored_messages");
 
   for (auto &sponsored_message : sponsored_messages->messages_) {
+    if (sponsored_message->from_id_ == nullptr) {
+      continue;
+    }
+
     DialogId sponsor_dialog_id(sponsored_message->from_id_);
     if (!sponsor_dialog_id.is_valid() || !td_->messages_manager_->have_dialog_info_force(sponsor_dialog_id)) {
       LOG(ERROR) << "Receive unknown sponsor " << sponsor_dialog_id;

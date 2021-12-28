@@ -3319,6 +3319,8 @@ vector<MessageEntity> get_message_entities(const ContactsManager *contacts_manag
         entities.emplace_back(MessageEntity::Type::Strikethrough, entity->offset_, entity->length_);
         break;
       }
+      case telegram_api::messageEntitySpoiler::ID:
+        break;
       case telegram_api::messageEntityBlockquote::ID: {
         auto entity = static_cast<const telegram_api::messageEntityBlockquote *>(server_entity.get());
         entities.emplace_back(MessageEntity::Type::BlockQuote, entity->offset_, entity->length_);
