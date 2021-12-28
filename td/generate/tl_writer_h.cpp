@@ -255,7 +255,7 @@ std::string TD_TL_writer_h::gen_forward_class_declaration(const std::string &cla
 }
 
 std::string TD_TL_writer_h::gen_class_begin(const std::string &class_name, const std::string &base_class_name,
-                                            bool is_proxy) const {
+                                            bool is_proxy, const std::string &func_return_class_name) const {
   return "class " + class_name + (!is_proxy ? " final " : "") + ": public " + base_class_name +
          " {\n"
          " public:\n";
