@@ -29,7 +29,7 @@
 namespace td {
 
 int MessageEntity::get_type_priority(Type type) {
-  static const int types[] = {50, 50, 50, 50, 50, 90, 91, 20, 11, 10, 49, 49, 50, 50, 92, 93, 0, 50, 50};
+  static const int types[] = {50, 50, 50, 50, 50, 90, 91, 20, 11, 10, 49, 49, 50, 50, 92, 93, 0, 50, 50, 94};
   static_assert(sizeof(types) / sizeof(types[0]) == static_cast<size_t>(MessageEntity::Type::Size), "");
   return types[static_cast<int32>(type)];
 }
@@ -74,6 +74,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, const MessageEntity::Ty
       return string_builder << "BankCardNumber";
     case MessageEntity::Type::MediaTimestamp:
       return string_builder << "MediaTimestamp";
+    case MessageEntity::Type::Spoiler:
+      return string_builder << "Spoiler";
     default:
       UNREACHABLE();
       return string_builder << "Impossible";
@@ -137,6 +139,8 @@ tl_object_ptr<td_api::TextEntityType> MessageEntity::get_text_entity_type_object
       return make_tl_object<td_api::textEntityTypeBankCardNumber>();
     case MessageEntity::Type::MediaTimestamp:
       return make_tl_object<td_api::textEntityTypeMediaTimestamp>(media_timestamp);
+    case MessageEntity::Type::Spoiler:
+      return make_tl_object<td_api::textEntityTypeSpoiler>();
     default:
       UNREACHABLE();
       return nullptr;
@@ -1395,7 +1399,7 @@ static constexpr int32 get_entity_type_mask(MessageEntity::Type type) {
 static constexpr int32 get_splittable_entities_mask() {
   return get_entity_type_mask(MessageEntity::Type::Bold) | get_entity_type_mask(MessageEntity::Type::Italic) |
          get_entity_type_mask(MessageEntity::Type::Underline) |
-         get_entity_type_mask(MessageEntity::Type::Strikethrough);
+         get_entity_type_mask(MessageEntity::Type::Strikethrough) | get_entity_type_mask(MessageEntity::Type::Spoiler);
 }
 
 static constexpr int32 get_blockquote_entities_mask() {
@@ -1449,15 +1453,18 @@ static int32 is_hidden_data_entity(MessageEntity::Type type) {
            get_pre_entities_mask())) != 0;
 }
 
-static constexpr size_t SPLITTABLE_ENTITY_TYPE_COUNT = 4;
+static constexpr size_t SPLITTABLE_ENTITY_TYPE_COUNT = 5;
 
 static size_t get_splittable_entity_type_index(MessageEntity::Type type) {
   if (static_cast<int32>(type) <= static_cast<int32>(MessageEntity::Type::Bold) + 1) {
     // Bold or Italic
     return static_cast<int32>(type) - static_cast<int32>(MessageEntity::Type::Bold);
-  } else {
+  } else if (static_cast<int32>(type) <= static_cast<int32>(MessageEntity::Type::Underline) + 1) {
     // Underline or Strikethrough
     return static_cast<int32>(type) - static_cast<int32>(MessageEntity::Type::Underline) + 2;
+  } else {
+    CHECK(type == MessageEntity::Type::Spoiler);
+    return 4;
   }
 }
 
@@ -1765,6 +1772,8 @@ string get_first_url(Slice text, const vector<MessageEntity> &entities) {
         break;
       case MessageEntity::Type::MediaTimestamp:
         break;
+      case MessageEntity::Type::Spoiler:
+        break;
       default:
         UNREACHABLE();
     }
@@ -1963,6 +1972,8 @@ static Result<vector<MessageEntity>> do_parse_markdown_v2(CSlice text, string &r
             return c == '_' && text[i + 1] == '_';
           case MessageEntity::Type::Strikethrough:
             return c == '~';
+          case MessageEntity::Type::Spoiler:
+            return c == '|' && text[i + 1] == '|';
           default:
             UNREACHABLE();
             return false;
@@ -1989,6 +2000,15 @@ static Result<vector<MessageEntity>> do_parse_markdown_v2(CSlice text, string &r
           break;
         case '~':
           type = MessageEntity::Type::Strikethrough;
+          break;
+        case '|':
+          if (text[i + 1] == '|') {
+            i++;
+            type = MessageEntity::Type::Spoiler;
+          } else {
+            return Status::Error(400, PSLICE() << "Character '" << text[i]
+                                               << "' is reserved and must be escaped with the preceding '\\'");
+          }
           break;
         case '[':
           type = MessageEntity::Type::TextUrl;
@@ -2038,6 +2058,7 @@ static Result<vector<MessageEntity>> do_parse_markdown_v2(CSlice text, string &r
         case MessageEntity::Type::Strikethrough:
           break;
         case MessageEntity::Type::Underline:
+        case MessageEntity::Type::Spoiler:
           i++;
           break;
         case MessageEntity::Type::Pre:
@@ -2364,14 +2385,28 @@ static vector<MessageEntity> find_splittable_entities_v3(Slice text, const vecto
     if (is_utf8_character_first_code_unit(c)) {
       utf16_offset += 1 + (c >= 0xf0);  // >= 4 bytes in symbol => surrogate pair
     }
-    if ((c == '_' || c == '*' || c == '~') && text[i] == text[i + 1] && unallowed_boundaries.count(utf16_offset) == 0) {
+    if ((c == '_' || c == '*' || c == '~' || c == '|') && text[i] == text[i + 1] &&
+        unallowed_boundaries.count(utf16_offset) == 0) {
       auto j = i + 2;
       while (j != text.size() && text[j] == text[i] && unallowed_boundaries.count(utf16_offset + j - i - 1) == 0) {
         j++;
       }
       if (j == i + 2) {
-        auto type = c == '_' ? MessageEntity::Type::Italic
-                             : (c == '*' ? MessageEntity::Type::Bold : MessageEntity::Type::Strikethrough);
+        auto type = [c] {
+          switch (c) {
+            case '_':
+              return MessageEntity::Type::Italic;
+            case '*':
+              return MessageEntity::Type::Bold;
+            case '~':
+              return MessageEntity::Type::Strikethrough;
+            case '|':
+              return MessageEntity::Type::Spoiler;
+            default:
+              UNREACHABLE();
+              return MessageEntity::Type::Size;
+          }
+        }();
         auto index = get_splittable_entity_type_index(type);
         if (splittable_entity_offset[index] != 0) {
           auto length = utf16_offset - splittable_entity_offset[index] - 1;
@@ -2391,7 +2426,7 @@ static vector<MessageEntity> find_splittable_entities_v3(Slice text, const vecto
 }
 
 // entities must be valid and can contain only splittable and continuous entities
-// __italic__ ~~strikethrough~~ **bold** and [text_url](telegram.org) entities are left to be parsed
+// __italic__ ~~strikethrough~~ **bold** ||spoiler|| and [text_url](telegram.org) entities are left to be parsed
 static FormattedText parse_markdown_v3_without_pre(Slice text, vector<MessageEntity> entities) {
   check_is_sorted(entities);
 
@@ -2405,7 +2440,7 @@ static FormattedText parse_markdown_v3_without_pre(Slice text, vector<MessageEnt
 
   bool have_splittable_entities = false;
   for (size_t i = 0; i + 1 < text.size(); i++) {
-    if ((text[i] == '_' || text[i] == '*' || text[i] == '~') && text[i] == text[i + 1]) {
+    if ((text[i] == '_' || text[i] == '*' || text[i] == '~' || text[i] == '|') && text[i] == text[i + 1]) {
       have_splittable_entities = true;
       break;
     }
@@ -2719,6 +2754,10 @@ FormattedText get_markdown_v3(FormattedText text) {
             result.text += "~~";
             utf16_added += 2;
             break;
+          case MessageEntity::Type::Spoiler:
+            result.text += "||";
+            utf16_added += 2;
+            break;
           case MessageEntity::Type::TextUrl:
             result.text += "](";
             result.text += entity->argument;
@@ -2755,6 +2794,10 @@ FormattedText get_markdown_v3(FormattedText text) {
             break;
           case MessageEntity::Type::Strikethrough:
             result.text += "~~";
+            utf16_added += 2;
+            break;
+          case MessageEntity::Type::Spoiler:
+            result.text += "||";
             utf16_added += 2;
             break;
           case MessageEntity::Type::TextUrl:
@@ -2895,7 +2938,7 @@ static Result<vector<MessageEntity>> do_parse_html(CSlice text, string &result) 
       string tag_name = to_lower(text.substr(begin_pos + 1, i - begin_pos - 1));
       if (tag_name != "a" && tag_name != "b" && tag_name != "strong" && tag_name != "i" && tag_name != "em" &&
           tag_name != "s" && tag_name != "strike" && tag_name != "del" && tag_name != "u" && tag_name != "ins" &&
-          tag_name != "pre" && tag_name != "code") {
+          tag_name != "span" && tag_name != "pre" && tag_name != "code") {
         return Status::Error(400, PSLICE()
                                       << "Unsupported start tag \"" << tag_name << "\" at byte offset " << begin_pos);
       }
@@ -2971,7 +3014,14 @@ static Result<vector<MessageEntity>> do_parse_html(CSlice text, string &result) 
         } else if (tag_name == "code" && attribute_name == Slice("class") &&
                    begins_with(attribute_value, "language-")) {
           argument = attribute_value.substr(9);
+        } else if (tag_name == "span" && attribute_name == Slice("class") && begins_with(attribute_value, "tg-")) {
+          argument = attribute_value.substr(3);
         }
+      }
+
+      if (tag_name == "span" && argument != "spoiler") {
+        return Status::Error(400, PSLICE()
+                                      << "Tag \"span\" must have class \"tg-spoiler\" at byte offset " << begin_pos);
       }
 
       nested_entities.emplace_back(std::move(tag_name), std::move(argument), utf16_offset, result.size());
@@ -3009,6 +3059,9 @@ static Result<vector<MessageEntity>> do_parse_html(CSlice text, string &result) 
           entities.emplace_back(MessageEntity::Type::Strikethrough, entity_offset, entity_length);
         } else if (tag_name == "u" || tag_name == "ins") {
           entities.emplace_back(MessageEntity::Type::Underline, entity_offset, entity_length);
+        } else if (tag_name == "span") {
+          CHECK(nested_entities.back().argument == "spoiler");
+          entities.emplace_back(MessageEntity::Type::Spoiler, entity_offset, entity_length);
         } else if (tag_name == "a") {
           auto url = std::move(nested_entities.back().argument);
           if (url.empty()) {
@@ -3139,6 +3192,8 @@ vector<tl_object_ptr<secret_api::MessageEntity>> get_input_secret_message_entiti
         break;
       case MessageEntity::Type::MediaTimestamp:
         break;
+      case MessageEntity::Type::Spoiler:
+        break;
       default:
         UNREACHABLE();
     }
@@ -3239,6 +3294,9 @@ Result<vector<MessageEntity>> get_message_entities(const ContactsManager *contac
         entities.emplace_back(MessageEntity::Type::MediaTimestamp, offset, length, entity->media_timestamp_);
         break;
       }
+      case td_api::textEntityTypeSpoiler::ID:
+        entities.emplace_back(MessageEntity::Type::Spoiler, offset, length);
+        break;
       default:
         UNREACHABLE();
     }
@@ -3319,8 +3377,11 @@ vector<MessageEntity> get_message_entities(const ContactsManager *contacts_manag
         entities.emplace_back(MessageEntity::Type::Strikethrough, entity->offset_, entity->length_);
         break;
       }
-      case telegram_api::messageEntitySpoiler::ID:
+      case telegram_api::messageEntitySpoiler::ID: {
+        auto entity = static_cast<const telegram_api::messageEntitySpoiler *>(server_entity.get());
+        entities.emplace_back(MessageEntity::Type::Spoiler, entity->offset_, entity->length_);
         break;
+      }
       case telegram_api::messageEntityBlockquote::ID: {
         auto entity = static_cast<const telegram_api::messageEntityBlockquote *>(server_entity.get());
         entities.emplace_back(MessageEntity::Type::BlockQuote, entity->offset_, entity->length_);
@@ -3736,7 +3797,7 @@ static void split_entities(vector<MessageEntity> &entities, const vector<Message
   auto add_entities = [&](int32 end_offset) {
     auto flush_entities = [&](int32 offset) {
       for (auto type : {MessageEntity::Type::Bold, MessageEntity::Type::Italic, MessageEntity::Type::Underline,
-                        MessageEntity::Type::Strikethrough}) {
+                        MessageEntity::Type::Strikethrough, MessageEntity::Type::Spoiler}) {
         auto index = get_splittable_entity_type_index(type);
         if (end_pos[index] != 0 && begin_pos[index] < offset) {
           if (end_pos[index] <= offset) {
@@ -4193,6 +4254,9 @@ vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(co
         break;
       case MessageEntity::Type::Strikethrough:
         result.push_back(make_tl_object<telegram_api::messageEntityStrike>(entity.offset, entity.length));
+        break;
+      case MessageEntity::Type::Spoiler:
+        result.push_back(make_tl_object<telegram_api::messageEntitySpoiler>(entity.offset, entity.length));
         break;
       default:
         UNREACHABLE();

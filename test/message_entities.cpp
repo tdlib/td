@@ -979,7 +979,7 @@ TEST(MessageEntities, fix_formatted_text) {
                             {td::MessageEntity::Type::Mention, 7, 6},
                             {td::MessageEntity::Type::Italic, 7, 6}});
 
-  // _a*b*_
+  // __a~b~__
   check_fix_formatted_text(
       "ab", {{td::MessageEntity::Type::Underline, 0, 2}, {td::MessageEntity::Type::Strikethrough, 1, 1}}, "ab",
       {{td::MessageEntity::Type::Underline, 0, 1},
@@ -1007,41 +1007,41 @@ TEST(MessageEntities, fix_formatted_text) {
                             {td::MessageEntity::Type::Underline, 1, 1},
                             {td::MessageEntity::Type::Strikethrough, 1, 1}});
 
-  // _*a*b_
-  check_fix_formatted_text(
-      "ab", {{td::MessageEntity::Type::Underline, 0, 2}, {td::MessageEntity::Type::Strikethrough, 0, 1}}, "ab",
-      {{td::MessageEntity::Type::Underline, 0, 2}, {td::MessageEntity::Type::Strikethrough, 0, 1}});
-  check_fix_formatted_text(
-      "ab",
-      {{td::MessageEntity::Type::Underline, 0, 1},
-       {td::MessageEntity::Type::Underline, 1, 1},
-       {td::MessageEntity::Type::Strikethrough, 0, 1}},
-      "ab", {{td::MessageEntity::Type::Underline, 0, 2}, {td::MessageEntity::Type::Strikethrough, 0, 1}});
+  // __||a||b__
+  check_fix_formatted_text("ab", {{td::MessageEntity::Type::Underline, 0, 2}, {td::MessageEntity::Type::Spoiler, 0, 1}},
+                           "ab",
+                           {{td::MessageEntity::Type::Underline, 0, 2}, {td::MessageEntity::Type::Spoiler, 0, 1}});
+  check_fix_formatted_text("ab",
+                           {{td::MessageEntity::Type::Underline, 0, 1},
+                            {td::MessageEntity::Type::Underline, 1, 1},
+                            {td::MessageEntity::Type::Spoiler, 0, 1}},
+                           "ab",
+                           {{td::MessageEntity::Type::Underline, 0, 2}, {td::MessageEntity::Type::Spoiler, 0, 1}});
 
   // _*a*_\r_*b*_
   check_fix_formatted_text("a\rb",
                            {{td::MessageEntity::Type::Bold, 0, 1},
-                            {td::MessageEntity::Type::Strikethrough, 0, 1},
+                            {td::MessageEntity::Type::Italic, 0, 1},
                             {td::MessageEntity::Type::Bold, 2, 1},
-                            {td::MessageEntity::Type::Strikethrough, 2, 1}},
-                           "ab",
-                           {{td::MessageEntity::Type::Bold, 0, 2}, {td::MessageEntity::Type::Strikethrough, 0, 2}});
+                            {td::MessageEntity::Type::Italic, 2, 1}},
+                           "ab", {{td::MessageEntity::Type::Bold, 0, 2}, {td::MessageEntity::Type::Italic, 0, 2}});
   check_fix_formatted_text("a\nb",
                            {{td::MessageEntity::Type::Bold, 0, 1},
-                            {td::MessageEntity::Type::Strikethrough, 0, 1},
+                            {td::MessageEntity::Type::Italic, 0, 1},
                             {td::MessageEntity::Type::Bold, 2, 1},
-                            {td::MessageEntity::Type::Strikethrough, 2, 1}},
+                            {td::MessageEntity::Type::Italic, 2, 1}},
                            "a\nb",
                            {{td::MessageEntity::Type::Bold, 0, 1},
-                            {td::MessageEntity::Type::Strikethrough, 0, 1},
+                            {td::MessageEntity::Type::Italic, 0, 1},
                             {td::MessageEntity::Type::Bold, 2, 1},
-                            {td::MessageEntity::Type::Strikethrough, 2, 1}});
+                            {td::MessageEntity::Type::Italic, 2, 1}});
 
-  // _`a`_
-  check_fix_formatted_text("a", {{td::MessageEntity::Type::Pre, 0, 1}, {td::MessageEntity::Type::Strikethrough, 0, 1}},
-                           "a", {{td::MessageEntity::Type::Pre, 0, 1}});
-  check_fix_formatted_text("a", {{td::MessageEntity::Type::Strikethrough, 0, 1}, {td::MessageEntity::Type::Pre, 0, 1}},
-                           "a", {{td::MessageEntity::Type::Pre, 0, 1}});
+  // ||`a`||
+  check_fix_formatted_text("a", {{td::MessageEntity::Type::Pre, 0, 1}, {td::MessageEntity::Type::Spoiler, 0, 1}}, "a",
+                           {{td::MessageEntity::Type::Pre, 0, 1}});
+  check_fix_formatted_text("a", {{td::MessageEntity::Type::Spoiler, 0, 1}, {td::MessageEntity::Type::Pre, 0, 1}}, "a",
+                           {{td::MessageEntity::Type::Pre, 0, 1}});
+
   check_fix_formatted_text("abc",
                            {{td::MessageEntity::Type::Pre, 0, 3}, {td::MessageEntity::Type::Strikethrough, 1, 1}},
                            "abc", {{td::MessageEntity::Type::Pre, 0, 3}});
@@ -1259,6 +1259,14 @@ TEST(MessageEntities, parse_html) {
   check_parse_html("<i>\t</i>", "\t", {{td::MessageEntity::Type::Italic, 0, 1}});
   check_parse_html("<i>\r</i>", "\r", {{td::MessageEntity::Type::Italic, 0, 1}});
   check_parse_html("<i>\n</i>", "\n", {{td::MessageEntity::Type::Italic, 0, 1}});
+  check_parse_html("➡️ ➡️<span class = \"tg-spoiler\">➡️ ➡️</span><b>➡️ ➡️</b>",
+                   "➡️ ➡️➡️ ➡️➡️ ➡️",
+                   {{td::MessageEntity::Type::Spoiler, 5, 5}, {td::MessageEntity::Type::Bold, 10, 5}});
+  check_parse_html("🏟 🏟<span class=\"tg-spoiler\">🏟 &lt🏟</span>", "🏟 🏟🏟 <🏟",
+                   {{td::MessageEntity::Type::Spoiler, 5, 6}});
+  check_parse_html("🏟 🏟<span class=\"tg-spoiler\">🏟 &gt;<b aba   =   caba>&lt🏟</b></span>",
+                   "🏟 🏟🏟 ><🏟",
+                   {{td::MessageEntity::Type::Spoiler, 5, 7}, {td::MessageEntity::Type::Bold, 9, 3}});
   check_parse_html("<a href=telegram.org>\t</a>", "\t",
                    {{td::MessageEntity::Type::TextUrl, 0, 1, "http://telegram.org/"}});
   check_parse_html("<a href=telegram.org>\r</a>", "\r",
@@ -1360,6 +1368,7 @@ TEST(MessageEntities, parse_markdown) {
   check_parse_markdown("[telegram\\.org](asd", "Can't find end of a URL at byte offset 16");
   check_parse_markdown("🏟 🏟__🏟 _🏟___", "Can't find end of Italic entity at byte offset 23");
   check_parse_markdown("🏟 🏟__", "Can't find end of Underline entity at byte offset 9");
+  check_parse_markdown("🏟 🏟||test\\|", "Can't find end of Spoiler entity at byte offset 9");
 
   check_parse_markdown("", "", {});
   check_parse_markdown("\\\\", "\\", {});
@@ -1401,6 +1410,7 @@ TEST(MessageEntities, parse_markdown) {
   check_parse_markdown("🏟 🏟```🏟 \\\\\\`🏟```", "🏟 🏟 \\`🏟",
                        {{td::MessageEntity::Type::PreCode, 5, 5, "🏟"}});
   check_parse_markdown("🏟 🏟**", "🏟 🏟", {});
+  check_parse_markdown("||test||", "test", {{td::MessageEntity::Type::Spoiler, 0, 4}});
   check_parse_markdown("🏟 🏟``", "🏟 🏟", {});
   check_parse_markdown("🏟 🏟``````", "🏟 🏟", {});
   check_parse_markdown("🏟 🏟____", "🏟 🏟", {});
@@ -1569,6 +1579,9 @@ TEST(MessageEntities, parse_markdown_v3) {
       "[text](example.com)",
       {{td::MessageEntity::Type::Strikethrough, 0, 1}, {td::MessageEntity::Type::Strikethrough, 5, 14}}, "text",
       {{td::MessageEntity::Type::TextUrl, 0, 4, "http://example.com/"}});
+  check_parse_markdown_v3("[text](example.com)",
+                          {{td::MessageEntity::Type::Spoiler, 0, 1}, {td::MessageEntity::Type::Spoiler, 5, 14}}, "text",
+                          {{td::MessageEntity::Type::TextUrl, 0, 4, "http://example.com/"}});
 
   check_parse_markdown_v3("🏟[🏟](t.me) `🏟` [🏟](t.me) `a`", "🏟🏟 🏟 🏟 a",
                           {{td::MessageEntity::Type::TextUrl, 2, 2, "http://t.me/"},
@@ -1580,14 +1593,16 @@ TEST(MessageEntities, parse_markdown_v3) {
   check_parse_markdown_v3("__\n__", "\n", {{td::MessageEntity::Type::Italic, 0, 1}});
   check_parse_markdown_v3("__ __a", " a", {}, true);
   check_parse_markdown_v3("__\n__a", "\na", {}, true);
-  check_parse_markdown_v3("**** __a__ **b** ~~c~~", "**** a b c",
+  check_parse_markdown_v3("**** __a__ **b** ~~c~~ ||d||", "**** a b c d",
                           {{td::MessageEntity::Type::Italic, 5, 1},
                            {td::MessageEntity::Type::Bold, 7, 1},
-                           {td::MessageEntity::Type::Strikethrough, 9, 1}});
-  check_parse_markdown_v3("тест __аааа__ **бббб** ~~вввв~~", "тест аааа бббб вввв",
+                           {td::MessageEntity::Type::Strikethrough, 9, 1},
+                           {td::MessageEntity::Type::Spoiler, 11, 1}});
+  check_parse_markdown_v3("тест __аааа__ **бббб** ~~вввв~~ ||гггг||", "тест аааа бббб вввв гггг",
                           {{td::MessageEntity::Type::Italic, 5, 4},
                            {td::MessageEntity::Type::Bold, 10, 4},
-                           {td::MessageEntity::Type::Strikethrough, 15, 4}});
+                           {td::MessageEntity::Type::Strikethrough, 15, 4},
+                           {td::MessageEntity::Type::Spoiler, 20, 4}});
   check_parse_markdown_v3("___a___ ***b** ~c~~", "___a___ ***b** ~c~~", {});
   check_parse_markdown_v3(
       "__asd[ab__cd](t.me)", "asdabcd",
@@ -1614,6 +1629,18 @@ TEST(MessageEntities, parse_markdown_v3) {
   check_parse_markdown_v3("__#test__test", {{td::MessageEntity::Type::Strikethrough, 0, 2}}, "#testtest",
                           {{td::MessageEntity::Type::Italic, 0, 5}});
 
+  check_parse_markdown_v3(
+      "~~**~~||**a||", {{td::MessageEntity::Type::Strikethrough, 2, 1}, {td::MessageEntity::Type::Bold, 6, 1}},
+      "**||**a||", {{td::MessageEntity::Type::Strikethrough, 0, 2}, {td::MessageEntity::Type::Bold, 2, 1}}, true);
+  check_parse_markdown_v3("**||**a||",
+                          {{td::MessageEntity::Type::Strikethrough, 0, 2}, {td::MessageEntity::Type::Bold, 2, 1}},
+                          "||a||", {{td::MessageEntity::Type::Bold, 0, 2}}, true);
+  check_parse_markdown_v3("||a||", {{td::MessageEntity::Type::Bold, 0, 2}}, "a",
+                          {{td::MessageEntity::Type::Spoiler, 0, 1}}, true);
+  check_parse_markdown_v3("~~||~~#test||test", "#testtest", {{td::MessageEntity::Type::Spoiler, 0, 5}});
+  check_parse_markdown_v3("||#test||test", {{td::MessageEntity::Type::Strikethrough, 0, 2}}, "#testtest",
+                          {{td::MessageEntity::Type::Spoiler, 0, 5}});
+
   check_parse_markdown_v3("__[ab_](t.me)_", "__ab__", {{td::MessageEntity::Type::TextUrl, 2, 3, "http://t.me/"}});
   check_parse_markdown_v3(
       "__[ab__](t.me)_", "ab_",
@@ -1626,6 +1653,20 @@ TEST(MessageEntities, parse_markdown_v3) {
   check_parse_markdown_v3("`a` __ab__", {{td::MessageEntity::Type::Bold, 6, 3}}, "a __ab__",
                           {{td::MessageEntity::Type::Code, 0, 1}, {td::MessageEntity::Type::Bold, 4, 3}});
   check_parse_markdown_v3("`a` __ab__", {{td::MessageEntity::Type::Underline, 5, 1}}, "a __ab__",
+                          {{td::MessageEntity::Type::Code, 0, 1}, {td::MessageEntity::Type::Underline, 3, 1}});
+
+  check_parse_markdown_v3("||[ab|](t.me)|", "||ab||", {{td::MessageEntity::Type::TextUrl, 2, 3, "http://t.me/"}});
+  check_parse_markdown_v3(
+      "||[ab||](t.me)|", "ab|",
+      {{td::MessageEntity::Type::TextUrl, 0, 2, "http://t.me/"}, {td::MessageEntity::Type::Spoiler, 0, 2}});
+  check_parse_markdown_v3("||[||ab||](t.me)||", "||||ab||||",
+                          {{td::MessageEntity::Type::TextUrl, 2, 6, "http://t.me/"}});
+  check_parse_markdown_v3(
+      "||[||ab||](t.me)a||", "||||aba",
+      {{td::MessageEntity::Type::TextUrl, 2, 4, "http://t.me/"}, {td::MessageEntity::Type::Spoiler, 6, 1}});
+  check_parse_markdown_v3("`a` ||ab||", {{td::MessageEntity::Type::Bold, 6, 3}}, "a ||ab||",
+                          {{td::MessageEntity::Type::Code, 0, 1}, {td::MessageEntity::Type::Bold, 4, 3}});
+  check_parse_markdown_v3("`a` ||ab||", {{td::MessageEntity::Type::Underline, 5, 1}}, "a ||ab||",
                           {{td::MessageEntity::Type::Code, 0, 1}, {td::MessageEntity::Type::Underline, 3, 1}});
 
   check_parse_markdown_v3("`a` @test__test__test", "a @test__test__test", {{td::MessageEntity::Type::Code, 0, 1}});
@@ -1652,13 +1693,17 @@ TEST(MessageEntities, parse_markdown_v3) {
                           {{td::MessageEntity::Type::Italic, 0, 6},
                            {td::MessageEntity::Type::Bold, 2, 6},
                            {td::MessageEntity::Type::Strikethrough, 4, 6}});
-  check_parse_markdown_v3("__ab**cd~~ef__gh**ij~~", "abcdefghij",
+  check_parse_markdown_v3("__ab**cd~~ef||gh__ij**kl~~mn||", "abcdefghijklmn",
                           {{td::MessageEntity::Type::Italic, 0, 2},
                            {td::MessageEntity::Type::Bold, 2, 2},
                            {td::MessageEntity::Type::Italic, 2, 2},
-                           {td::MessageEntity::Type::Strikethrough, 4, 6},
-                           {td::MessageEntity::Type::Bold, 4, 4},
-                           {td::MessageEntity::Type::Italic, 4, 2}},
+                           {td::MessageEntity::Type::Bold, 4, 2},
+                           {td::MessageEntity::Type::Italic, 4, 2},
+                           {td::MessageEntity::Type::Strikethrough, 4, 2},
+                           {td::MessageEntity::Type::Spoiler, 6, 8},
+                           {td::MessageEntity::Type::Strikethrough, 6, 6},
+                           {td::MessageEntity::Type::Bold, 6, 4},
+                           {td::MessageEntity::Type::Italic, 6, 2}},
                           true);
   check_parse_markdown_v3("__ab**[cd~~ef__](t.me)gh**ij~~", "abcdefghij",
                           {{td::MessageEntity::Type::Italic, 0, 6},
@@ -1682,9 +1727,9 @@ TEST(MessageEntities, parse_markdown_v3) {
   check_parse_markdown_v3(
       "__italic__ ~~strikethrough~~ **bold** `code` ```pre``` __[italic__ text_url](telegram.org) __italic**bold "
       "italic__bold**__italic__ ~~strikethrough~~ **bold** `code` ```pre``` __[italic__ text_url](telegram.org) "
-      "__italic**bold italic__bold**",
+      "__italic**bold italic__bold** ||spoiler||",
       "italic strikethrough bold code pre italic text_url italicbold italicbolditalic strikethrough bold code pre "
-      "italic text_url italicbold italicbold",
+      "italic text_url italicbold italicbold spoiler",
       {{td::MessageEntity::Type::Italic, 0, 6},
        {td::MessageEntity::Type::Strikethrough, 7, 13},
        {td::MessageEntity::Type::Bold, 21, 4},
@@ -1702,14 +1747,15 @@ TEST(MessageEntities, parse_markdown_v3) {
        {td::MessageEntity::Type::TextUrl, 107, 15, "http://telegram.org/"},
        {td::MessageEntity::Type::Italic, 107, 6},
        {td::MessageEntity::Type::Italic, 123, 17},
-       {td::MessageEntity::Type::Bold, 129, 15}});
+       {td::MessageEntity::Type::Bold, 129, 15},
+       {td::MessageEntity::Type::Spoiler, 145, 7}});
 
-  td::vector<td::string> parts{"a", " #test__a", "__", "**", "~~", "[", "](t.me)", "`"};
+  td::vector<td::string> parts{"a", " #test__a", "__", "**", "~~", "||", "[", "](t.me)", "`"};
   td::vector<td::MessageEntity::Type> types{
       td::MessageEntity::Type::Bold,          td::MessageEntity::Type::Italic,  td::MessageEntity::Type::Underline,
-      td::MessageEntity::Type::Strikethrough, td::MessageEntity::Type::Code,    td::MessageEntity::Type::Pre,
-      td::MessageEntity::Type::PreCode,       td::MessageEntity::Type::TextUrl, td::MessageEntity::Type::MentionName,
-      td::MessageEntity::Type::Cashtag};
+      td::MessageEntity::Type::Strikethrough, td::MessageEntity::Type::Spoiler, td::MessageEntity::Type::Code,
+      td::MessageEntity::Type::Pre,           td::MessageEntity::Type::PreCode, td::MessageEntity::Type::TextUrl,
+      td::MessageEntity::Type::MentionName,   td::MessageEntity::Type::Cashtag};
   for (size_t test_n = 0; test_n < 1000; test_n++) {
     td::string str;
     int part_n = td::Random::fast(1, 200);
@@ -1767,11 +1813,13 @@ TEST(MessageEntities, get_markdown_v3) {
   check_get_markdown_v3("__ __", {}, " ", {{td::MessageEntity::Type::Italic, 0, 1}});
   check_get_markdown_v3("** **", {}, " ", {{td::MessageEntity::Type::Bold, 0, 1}});
   check_get_markdown_v3("~~ ~~", {}, " ", {{td::MessageEntity::Type::Strikethrough, 0, 1}});
-  check_get_markdown_v3("__a__ **b** ~~c~~ d", {{td::MessageEntity::Type::PreCode, 18, 1, "C++"}}, "a b c d",
+  check_get_markdown_v3("|| ||", {}, " ", {{td::MessageEntity::Type::Spoiler, 0, 1}});
+  check_get_markdown_v3("__a__ **b** ~~c~~ ||d|| e", {{td::MessageEntity::Type::PreCode, 24, 1, "C++"}}, "a b c d e",
                         {{td::MessageEntity::Type::Italic, 0, 1},
                          {td::MessageEntity::Type::Bold, 2, 1},
                          {td::MessageEntity::Type::Strikethrough, 4, 1},
-                         {td::MessageEntity::Type::PreCode, 6, 1, "C++"}});
+                         {td::MessageEntity::Type::Spoiler, 6, 1},
+                         {td::MessageEntity::Type::PreCode, 8, 1, "C++"}});
   check_get_markdown_v3("`ab` ```cd``` ef", {{td::MessageEntity::Type::PreCode, 14, 2, "C++"}}, "ab cd ef",
                         {{td::MessageEntity::Type::Code, 0, 2},
                          {td::MessageEntity::Type::Pre, 3, 2},

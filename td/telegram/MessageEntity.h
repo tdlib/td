@@ -48,6 +48,7 @@ class MessageEntity {
     BlockQuote,
     BankCardNumber,
     MediaTimestamp,
+    Spoiler,
     Size
   };
   Type type = Type::Size;
