@@ -98,7 +98,7 @@ class Td final : public Actor {
   Td &operator=(Td &&) = delete;
   ~Td() final;
 
-  static constexpr const char *TDLIB_VERSION = "1.7.12";
+  static constexpr const char *TDLIB_VERSION = "1.8.0";
 
   struct Options {
     std::shared_ptr<NetQueryStats> net_query_stats;
