@@ -1,3 +1,405 @@
+Changes in 1.8.0 (29 Dec 2021):
+
+* Changed the type of user, basic group and supergroup identifiers from `int32` to `int53`.
+* Simplified chat list loading and removed the ability to misuse the method `getChats`:
+  - Renamed the method `getChats` to `loadChats`.
+  - Removed the parameters `offset_order` and `offset_chat_id` from the method `loadChats`. Chats are now always loaded
+    from the last known chat in the list.
+  - Changed the type of the result in the method `loadChats` to `ok`. If no chats were loaded, a 404 error is returned.
+    The order of chats in the list must be maintained using the updates `updateChatPosition`, `updateChatLastMessage`,
+    and `updateChatDraftMessage`.
+  - Added the convenience method `getChats`, which returns the requested number of chats from the beginning of a chat
+    list and can be used if the list of chats doesn't need to be maintained in a consistent state.
+* Added the ability to hook TDLib log messages:
+  - Added the function `td_set_log_message_callback` to JSON interface.
+  - Added the function `set_log_message_callback` to the class `ClientManager`.
+  - Added the function `SetLogMessageCallback` to the UWP native wrapper through C++/CX.
+  - Deprecated the function `td_set_log_fatal_error_callback` in JSON interface in favor of
+    the function `td_set_log_message_callback`.
+  - Deprecated the function `Log::set_fatal_error_callback` in favor of
+    the function `ClientManager::set_log_message_callback`.
+* Added support for sending messages on behalf of public channels owned by the user:
+  - Added the field `message_sender_id` to the class `chat`, containing the identifier of the currently selected
+    message sender.
+  - Added the update `updateChatMessageSender`.
+  - Added the method `getChatAvailableMessageSenders`, returning the list of available message senders for the chat.
+  - Added the method `setChatMessageSender`, changing the currently selected message sender.
+  - Added the field `need_another_sender` to the class `messageSendingStateFailed`. If it is true, an alert needs
+    to be shown to the user that the message will be re-sent on behalf of another sender.
+  - Replaced the method `deleteChatMessagesFromUser` with the method `deleteChatMessagesBySender`, expecting
+    a `MessageSender` instead of a user identifier.
+  - Replaced the update `updateUserChatAction` with the update `updateChatAction`, containing a `MessageSender`
+    instead of a user identifier as a source of the chat action.
+* Added the ability to ban supergroups and channels in other supergroups and channels:
+  - Replaced the fields `user_id` with the fields `member_id` in the classes `chatMember` and
+    `chatEventMemberRestricted`.
+  - Replaced the parameters `user_id` with the parameters `member_id` in the methods `setChatMemberStatus` and
+    `getChatMember`.
+* Improved support for animated emoji:
+  - Added the class `animatedEmoji`, containing information about an animated emoji.
+  - Added the class `messageAnimatedEmoji` to the types of message content.
+  - Added the method `clickAnimatedEmojiMessage` to be called when an animated emoji is clicked.
+  - Added the update `updateAnimatedEmojiMessageClicked`, received when a big animated sticker must be played.
+  - Added the class `chatActionWatchingAnimations` to the types of chat action.
+  - Added the method `getAnimatedEmoji`, returning an animated emoji corresponding to a given emoji.
+  - Added the writable option "disable_animated_emoji".
+  - Removed the option "animated_emoji_sticker_set_name".
+* Added support for automatic message deletion in all chat types:
+  - Added the field `message_ttl` to the class `chat`.
+  - Added the update `updateChatMessageTtl`.
+  - Added the method `setChatMessageTtl`.
+  - Added the class `chatEventMessageTtlChanged`, representing change of the field `message_ttl` in the chat event log.
+  - Removed the field `ttl` from the class `secretChat` in favor of the field `message_ttl` in the class `chat`.
+  - Removed the method `sendChatSetTtlMessage` in favor of the method `setChatMessageTtl`.
+* Improved names of the fields of the type `MessageSender`:
+  - Renamed the fields `sender` to `sender_id` in the classes `message` and `notificationTypeNewPushMessage`.
+  - Renamed the parameter `sender` to `sender_id` in the methods `searchChatMessages`, `addLocalMessage`, and
+    `toggleMessageSenderIsBlocked`.
+  - Renamed the field `recent_repliers` to `recent_replier_ids` in the class `messageReplyInfo`.
+  - Renamed the field `traveler` to `traveler_id` in the class `messageProximityAlertTriggered`.
+  - Renamed the field `watcher` to `watcher_id` in the class `messageProximityAlertTriggered`.
+* The field `formatted_phone_number` in the class `phoneNumberInfo` now contains the character '-' at the places of
+  expected digits.
+* Added the synchronous method `getPhoneNumberInfoSync` that can be used instead of the method `getPhoneNumberInfo`
+  to synchronously receive information about a phone number by its prefix.
+* Replaced the field `user_id` in the class `chatEvent` with the field `member_id` of the type `MessageSender`.
+* Improved support for bot payments:
+  - Allowed sending invoices as results of inline queries by allowing bots to use the class `inputMessageInvoice` as
+    the value of the field `input_message_content` in the classes `inputInlineQueryResultAnimation`,
+    `inputInlineQueryResultArticle`, `inputInlineQueryResultAudio`, `inputInlineQueryResultContact`,
+    `inputInlineQueryResultDocument`, `inputInlineQueryResultLocation`, `inputInlineQueryResultPhoto`,
+    `inputInlineQueryResultSticker`, `inputInlineQueryResultVenue`, `inputInlineQueryResultVideo`, and
+    `inputInlineQueryResultVoiceNote`.
+  - Allowed sending invoice messages to basic group, supergroup and channel chats.
+  - Allowed bots to send forwardable invoices by specifying an empty field `start_parameter` in
+    the class `inputMessageInvoice`.
+  - Added the field `invoice_chat_id` to the class `messagePaymentSuccessful`.
+  - Added the field `id` to the class `paymentForm`, containing a unique payment form identifier.
+  - Added the parameter `payment_form_id` to the method `sendPaymentForm`.
+  - Added the field `seller_bot_user_id` to the class `paymentForm`, containing the user identifier of the seller bot.
+  - Added the field `payments_provider_user_id` to the class `paymentForm`, containing the user identifier of
+    the payment provider bot.
+  - Added the fields `title`, `description`, `photo`, and `seller_bot_user_id` to the class `paymentReceipt`.
+  - Added the fields `max_tip_amount` and `suggested_tip_amounts` to the class `invoice`.
+  - Added the parameter `tip_amount` to the method `sendPaymentForm`.
+  - Added the field `tip_amount` to the class `paymentReceipt`.
+  - Renamed the class `inputCredentialsAndroidPay` to `inputCredentialsGooglePay`.
+  - Added the class `paymentFormTheme`, containing the desired colors for a payment form.
+  - Added the parameter `theme` to the method `getPaymentForm`.
+  - Removed the field `invoice_message_id` from the class `messagePaymentSuccessfulBot`.
+* Added the method `deleteChat`, which can be used to completely delete a chat along with all messages.
+* Removed the method `deleteSupergroup` in favor of the method `deleteChat`.
+* Changed the type of the result in the method `getProxyLink` to the class `httpUrl` instead of the class `text`.
+* Removed support for secret chat layers before 73.
+* Added support for sponsored messages:
+  - Added the class `sponsoredMessage`.
+  - Added the method `getChatSponsoredMessage`.
+  - Added the ability to pass identifiers of sponsored messages to `viewMessages`. The method must be called when
+    the entire text of the sponsored message is shown on the screen (excluding the button).
+* Added support for video chats:
+  - Added the class `groupCall`, representing a group call.
+  - Added the method `getGroupCall` for fetching information about a group call.
+  - Added the update `updateGroupCall`.
+  - Added the class `videoChat`, representing a video chat, i.e. group call bound to a chat.
+  - Added the field `video_chat` to the class `chat`.
+  - Added the update `updateChatVideoChat`.
+  - Added the classes `messageVideoChatScheduled`, `messageVideoChatStarted`, and `messageVideoChatEnded` to
+    the types of message content.
+  - Added the class `messageInviteVideoChatParticipants` to the types of message content.
+  - Added the field `can_manage_video_chats` to the class `chatMemberStatusAdministrator`.
+  - Added the class `groupCallId`.
+  - Added the method `createVideoChat` for video chat creation.
+  - Added the method `startScheduledGroupCall`.
+  - Added the method `toggleGroupCallEnabledStartNotification`.
+  - Added the method `joinGroupCall`.
+  - Added the method `leaveGroupCall`.
+  - Added the method `endGroupCall`.
+  - Added the method `toggleGroupCallIsMyVideoEnabled`.
+  - Added the method `toggleGroupCallIsMyVideoPaused`.
+  - Added the methods `startGroupCallScreenSharing`, `toggleGroupCallScreenSharingIsPaused`,
+    `endGroupCallScreenSharing` for managing screen sharing during group calls.
+  - Added the method `setGroupCallTitle`.
+  - Added the method `toggleGroupCallMuteNewParticipants`.
+  - Added the classes `groupCallVideoSourceGroup` and `groupCallParticipantVideoInfo`, describing available
+    video streams.
+  - Added the class `groupCallParticipant`.
+  - Added the update `updateGroupCallParticipant`.
+  - Added the method `loadGroupCallParticipants`.
+  - Added the method `toggleGroupCallParticipantIsHandRaised`.
+  - Added the method `setGroupCallParticipantIsSpeaking`.
+  - Added the methods `toggleGroupCallParticipantIsMuted` and `setGroupCallParticipantVolumeLevel` for managing
+    the volume level of group call participants.
+  - Added the method `inviteGroupCallParticipants`.
+  - Added the method `getGroupCallInviteLink` and `revokeGroupCallInviteLink` for managing group call invite links.
+  - Added the methods `startGroupCallRecording` and `endGroupCallRecording` for managing group call recordings.
+  - Added the method `getVideoChatAvailableParticipants`, returning the list of participants, on whose behalf
+    a video chat in the chat can be joined.
+  - Added the method `setVideoChatDefaultParticipant` for changing the default participant on whose behalf a video chat
+    will be joined.
+  - Added the class `GroupCallVideoQuality` and the method `getGroupCallStreamSegment` for downloading segments of
+    live streams.
+  - Added the class `groupCallRecentSpeaker`, representing a group call participant that was recently speaking.
+  - Added the field `video_chat_changes` to the class `chatEventLogFilters`.
+  - Added the class `chatEventVideoChatCreated`, representing a video chat being created in the chat event log.
+  - Added the class `chatEventVideoChatEnded`, representing a video chat being ended in the chat event log.
+  - Added the class `chatEventVideoChatMuteNewParticipantsToggled`, representing changes of
+    the setting `mute_new_participants` of a video chat in the chat event log.
+  - Added the class `chatEventVideoChatParticipantIsMutedToggled`, representing a video chat participant being muted or
+    unmuted in the chat event log.
+  - Added the class `chatEventVideoChatParticipantVolumeLevelChanged`, representing a video chat participant's
+    volume level being changed in the chat event log.
+* Added "; pass null" documentation for all TDLib method parameters, for which null is an expected value.
+* Added support for link processing:
+  - Added the method `getInternalLinkType`, which can parse internal links and return the exact link type and actions
+    to be done when the link is clicked.
+  - Added the classes `internalLinkTypeActiveSessions`, `internalLinkTypeAuthenticationCode`,
+    `internalLinkTypeBackground`, `internalLinkTypeBotStart`, `internalLinkTypeBotStartInGroup`,
+    `internalLinkTypeChangePhoneNumber`, `internalLinkTypeChatInvite`, `internalLinkTypeFilterSettings`,
+    `internalLinkTypeGame`, `internalLinkTypeLanguagePack`, `internalLinkTypeMessage`, `internalLinkTypeMessageDraft`,
+    `internalLinkTypePassportDataRequest`, `internalLinkTypePhoneNumberConfirmation`, `internalLinkTypeProxy`,
+    `internalLinkTypePublicChat`, `internalLinkTypeQrCodeAuthentication`, `internalLinkTypeSettings`,
+    `internalLinkTypeStickerSet`, `internalLinkTypeTheme`, `internalLinkTypeThemeSettings`,
+    `internalLinkTypeUnknownDeepLink`, `internalLinkTypeUnsupportedProxy`, and `internalLinkTypeVideoChat` to represent
+    different types of internal links.
+  - Added the method `getExternalLinkInfo`, which needs to be called if the clicked link wasn't recognized as
+    an internal link.
+  - Added the method `getExternalLink`, which needs to be called after the method `getExternalLinkInfo` if the user
+    confirms automatic authorization on the website.
+* Added support for expiring chat invite links:
+  - Added the field `is_primary` to the class `chatInviteLink`. The primary invite link can't have a name,
+    expiration date, or usage limit. There is exactly one primary invite link for each administrator with
+    the can_invite_users right at any given time.
+  - Added the field `name` to the class `chatInviteLink`.
+  - Added the field `creator_user_id` to the class `chatInviteLink`.
+  - Added the field `date` to the class `chatInviteLink`, containing the link creation date.
+  - Added the field `edit_date` to the class `chatInviteLink`, containing the date the link was last edited.
+  - Added the fields `expiration_date` and `member_limit` to the class `chatInviteLink`, limiting link usage.
+  - Added the field `member_count` to the class `chatInviteLink`.
+  - Added the field `is_revoked` to the class `chatInviteLink`.
+  - Changed the type of the fields `invite_link` in the classes `basicGroupFullInfo` and `supergroupFullInfo` to
+    `chatInviteLink`.
+  - Added the field `description` to the class `chatInviteLinkInfo`, containing the description of the chat.
+  - Replaced the method `generateChatInviteLink` with the method `replacePrimaryChatInviteLink`.
+  - Added the method `createChatInviteLink` for creating new invite links.
+  - Added the method `editChatInviteLink` for editing non-primary invite links.
+  - Added the method `revokeChatInviteLink`.
+  - Added the method `deleteRevokedChatInviteLink`.
+  - Added the method `deleteAllRevokedChatInviteLink`.
+  - Added the method `getChatInviteLink`.
+  - Added the class `chatInviteLinks`, containing a list of chat invite links.
+  - Added the method `getChatInviteLinks`.
+  - Added the classes `chatInviteLinkCount` and `chatInviteLinkCounts`.
+  - Added the method `getChatInviteLinkCounts`, returning the number of invite links created by chat administrators.
+  - Added the classes `chatInviteLinkMember` and `chatInviteLinkMembers`.
+  - Added the method `getChatInviteLinkMembers`.
+  - Added the field `invite_link_changes` to the class `chatEventLogFilters`.
+  - Added the class `chatEventMemberJoinedByInviteLink`, representing a user joining the chat via invite link in
+    the chat event log.
+  - Added the class `chatEventInviteLinkEdited` to the types of chat event.
+  - Added the class `chatEventInviteLinkRevoked` to the types of chat event.
+  - Added the class `chatEventInviteLinkDeleted` to the types of chat event.
+  - Added the class `chatActionBarInviteMembers` to the types of chat action bar.
+* Added support for chat invite links that create join requests:
+  - Added the class `messageChatJoinByRequest` to the types of message content.
+  - Added the class `pushMessageContentChatJoinByRequest` to the types of push message content.
+  - Added the field `pending_join_requests` to the class `chat`.
+  - Added the class `chatJoinRequestsInfo`, containing basic information about pending join requests for the chat.
+  - Added the update `updateChatPendingJoinRequests`.
+  - Added the fields `creates_join_request` to the classes `chatInviteLink` and `chatInviteLinkInfo`.
+  - Added the field `pending_join_request_count` to the class `chatInviteLink`.
+  - Added the class `chatJoinRequest`, describing a user that sent a join request.
+  - Added the class `chatJoinRequests`, containing a list of requests to join the chat.
+  - Added the method `getChatJoinRequests`.
+  - Added the method `processChatJoinRequest` for processing a request to join the chat.
+  - Added the method `processChatJoinRequests` for processing all requests to join the chat.
+  - Added the class `chatActionBarJoinRequest` to the types of chat action bar.
+  - Added the class `chatEventMemberJoinedByRequest`, representing a user approved to join the chat after
+    a join request in the chat event log.
+  - Added the update `updateNewChatJoinRequest` for bots.
+* Added the ability to see viewers of outgoing messages in small group chats:
+  - Added the method `getMessageViewers`.
+  - Added the field `can_get_viewers` to the class `message`.
+* Added the parameter `only_preview` to the method `forwardMessages`, which can be used to receive a preview of
+  forwarded messages.
+* Added the method `getRecentlyOpenedChats`, returning the list of recently opened chats.
+* Increased number of recently found chats that are stored to 50.
+* Added the ability to get information about chat messages, which are split by days:
+  - Added the class `messageCalendarDay`, representing found messages, sent on a specific day.
+  - Added the class `messageCalendar`, representing found messages, split by days.
+  - Added the writable option "utc_time_offset", which contains a UTC time offset used for splitting messages by days.
+    The option is reset automatically on each TDLib instance launch, so it needs to be set manually only if
+    the time offset is changed during execution.
+  - Added the method `getChatMessageCalendar`, returning information about chat messages, which are split by days.
+* Added the ability to get messages of the specified type in sparse positions for hyper-speed scrolling implementation:
+  - Added the class `messagePosition`, containing an identifier and send date of a message in
+    a specific chat history position.
+  - Added the class `messagePositions`, containing a list of message positions.
+  - Added the method `getChatSparseMessagePositions`.
+* Added the field `can_manage_chat` to the class `chatMemberStatusAdministrator` to allow promoting chat administrators
+  without additional rights.
+* Improved support for bot commands:
+  - Bot command entities in chats without bots are now automatically hidden.
+  - Added the class `botCommands`, representing a list of bot commands.
+  - Added the field `commands` to the class `userFullInfo`, containing the list of commands to be used in
+    the private chat with the bot.
+  - Added the fields `bot_commands` to the classes `basicGroupFullInfo` and `supergroupFullInfo`.
+  - Removed the class `botInfo`.
+  - Removed the fields `bot_info` from the classes `userFullInfo` and `chatMember`.
+  - Added the class `BotCommandScope`.
+  - Added the methods `setCommands`, `deleteCommands`, `getCommands` for bots.
+* Added the read-only options "suggested_video_note_length", "suggested_video_note_video_bitrate", and
+  "suggested_video_note_audio_bitrate", containing suggested video note encoding parameters.
+* Added the read-only option "channel_bot_user_id", containing the identifier of the bot which is shown in
+  outdated clients as the sender of messages sent on behalf of channels.
+* Added the ability to fetch the actual value of the option "is_location_visible" using the method `getOption` in case
+  the value of the option was changed from another device.
+* Added the field `minithumbnail` to the class `profilePhoto`, representing a profile photo minithumbnail.
+* Added the field `minithumbnail` to the class `chatPhotoInfo`, representing a chat photo minithumbnail.
+* Added support for sticker outlines:
+  - Added the field `outline` to the class `sticker`.
+  - Added the fields `thumbnail_outline` to the classes `stickerSet` and `stickerSetInfo`.
+  - Added the class `closedVectorPath`, representing a closed vector path.
+  - Added the class `VectorPathCommand`, representing one edge of a closed vector path.
+  - Added the class `point`, representing a point on a Cartesian plane.
+* Added support for chats and messages with protected content:
+  - Added the field `has_protected_content` to the class `chat`.
+  - Added the update `updateChatHasProtectedContent`.
+  - Added the method `toggleChatHasProtectedContent`.
+  - Added the class `chatEventHasProtectedContentToggled`, representing a change of the setting `has_protected_content`
+    in the chat event log.
+  - Added the field `can_be_saved` to the class `message`.
+* Added support for broadcast groups, i.e. supergroups without a limit on the number of members in which
+  only administrators can send messages:
+  - Added the field `is_broadcast_group` to the class `supergroup`.
+  - Added the method `toggleSupergroupIsBroadcastGroup`. Conversion of a supergroup to a broadcast group
+    can't be undone.
+  - Added the class `suggestedActionConvertToBroadcastGroup`, representing a suggestion to convert a supergroup to
+    a broadcast group.
+* Improved chat reports:
+  - Added the parameter `text` to the method `reportChat`, allowing to add additional details to all
+    chat reporting reasons.
+  - Removed the field `text` from the class `chatReportReasonCustom`.
+  - Added the method `reportChatPhoto` for reporting chat photos.
+* Added support for users and chats reported as fake:
+  - Added the field `is_fake` to the class `user`.
+  - Added the field `is_fake` to the class `supergroup`.
+  - Added the class `chatReportReasonFake` to the types of chat reporting reasons.
+* Added the class `inlineKeyboardButtonTypeUser` to the types of inline keyboard buttons.
+* Added the field `input_field_placeholder` to the classes `replyMarkupForceReply` and `replyMarkupShowKeyboard`.
+* Added support for media timestamp entities in messages:
+  - Added the class `textEntityTypeMediaTimestamp` to the types of text entities.
+  - Added the field `has_timestamped_media` to the class `message`, describing whether media timestamp entities refer
+    to the message itself or to the replied message.
+  - Added the parameter `media_timestamp` to the method `getMessageLink` to support creating message links with
+    a given media timestamp.
+  - Added the field `can_get_media_timestamp_links` to the class `message`.
+  - Added the field `media_timestamp` to the class `messageLinkInfo` for handling of message links with
+    a specified media timestamp.
+* Added the ability to change properties of active sessions:
+  - Added the field `can_accept_secret_chats` to the class `session`.
+  - Added the method `toggleSessionCanAcceptSecretChats`.
+  - Added the field `can_accept_calls` to the class `session`.
+  - Added the method `toggleSessionCanAcceptCalls`.
+  - Added the field `inactive_session_ttl_days` to the class `sessions`.
+  - Added the method `setInactiveSessionTtl`.
+* Added new ways for phone number verification:
+  - Added the class `authenticationCodeTypeMissedCall`, describing an authentication code delivered by
+    a canceled phone call to the given number. The last digits of the phone number that calls are the code that
+    must be entered manually by the user.
+  - Added the field `allow_missed_call` to the class `phoneNumberAuthenticationSettings`.
+  - Added the read-only option "authentication_token", which can be received when logging out and contains
+    an authentication token to be used on subsequent authorizations.
+  - Added the field `authentication_tokens` to the class `phoneNumberAuthenticationSettings`.
+* Added support for resetting the password from an active session:
+  - Added the class `ResetPasswordResult` and the method `resetPassword`.
+  - Added the method `cancelPasswordReset`, which can be used to cancel a pending password reset.
+  - Added the field `pending_reset_date` to the class `passwordState`.
+* Added the ability to set a new 2-step verification password after recovering a lost password using
+  a recovery email address:
+  - Added the parameters `new_password` and `new_hint` to the methods `recoverAuthenticationPassword` and
+    `recoverPassword`.
+  - Added the method `checkAuthenticationPasswordRecoveryCode`.
+  - Added the method `checkPasswordRecoveryCode`.
+* Added the class `chatActionChoosingSticker` to the types of chat action.
+* Added the class `backgroundFillFreeformGradient` to the types of background fill.
+* Added the field `is_inverted` to the class `backgroundTypePattern` for inverted patterns for dark themes.
+* Added support for chat themes:
+  - Added the field `theme_name` to the class `chat`.
+  - Added the method `setChatTheme`.
+  - Added the update `updateChatTheme`, received when a theme was changed in a chat.
+  - Added the class `messageChatSetTheme` to the types of message content.
+  - Added the class `pushMessageContentChatSetTheme` to the types of push message content.
+  - Added the class `themeSettings`, representing basic theme settings.
+  - Added the class `chatTheme`, representing a chat theme.
+  - Added the update `updateChatThemes`, received when the list of available chat themes changes.
+* Added the ability for regular users to create sticker sets:
+  - Allowed to use the methods `uploadStickerFile` and `createNewStickerSet` as regular users.
+  - Replaced the parameter `png_sticker` in the method `uploadStickerFile` with the parameter `sticker` of
+    the type `InputSticker`.
+  - Added the parameter `source` to the method `createNewStickerSet`.
+  - Added the method `getSuggestedStickerSetName`.
+  - Added the class `CheckStickerSetNameResult` and the method `checkStickerSetName` for checking a sticker set name
+    before creating a sticker set.
+* Added support for importing chat history from an external source:
+  - Added the method `importMessages`.
+  - Added the method `getMessageImportConfirmationText`.
+  - Added the class `MessageFileType` and the method `getMessageFileType`, which can be used to check whether
+    the format of a file with exported message history is supported.
+  - Added the class `messageForwardOriginMessageImport` to the types of forwarded message origins for
+    imported messages.
+  - Added the parameter `for_import` to the method `createNewSupergroupChat`, which needs to be set to true whenever
+    the chat is created for a subsequent message history import.
+* Added new types of suggested actions:
+  - Added the class `suggestedActionSetPassword`, suggesting the user to set a 2-step verification password to be able
+    to log in again before the specified number of days pass.
+  - Added the class `suggestedActionCheckPassword`, suggesting the user to check whether they still remember
+    their 2-step verification password.
+  - Added the class `suggestedActionViewChecksHint`, suggesting the user to see a hint about the meaning of
+    one and two check marks on sent messages.
+* Added the method `getSuggestedFileName`, which returns a suggested name for saving a file in a given directory.
+* Added the method `deleteAllCallMessages`.
+* Added the method `deleteChatMessagesByDate`, which can be used to delete all messages between the specified dates in
+  a chat.
+* Added the field `unread_message_count` to the class `messageThreadInfo`.
+* Added the field `has_private_forwards` to the class `userFullInfo`.
+* Added the field `description` to the class `userFullInfo`, containing description of the bot.
+* Added the field `emoji` to the class `inputMessageSticker`, allowing to specify the emoji that was used to choose
+  the sent sticker.
+* Added the method `banChatMember` that can be used to ban chat members instead of the method `setChatMemberStatus` and
+  allows to revoke messages from the banned user in basic groups.
+* Allowed to use the method `setChatMemberStatus` for adding chat members.
+* Removed the parameter `user_id` from the method `reportSupergroupSpam`. Messages from different senders can now
+  be reported simultaneously.
+* Added the field `feedback_link` to the class `webPageInstantView`.
+* Added the method `getApplicationDownloadLink`, returning the link for downloading official Telegram applications.
+* Removed unusable search message filters `searchMessagesFilterCall` and `searchMessagesFilterMissedCall`.
+* Removed the method `getChatStatisticsUrl`.
+* Removed the method `getInviteText` in favor of the method `getApplicationDownloadLink`.
+* Added the field `chat_type` to the update `updateNewInlineQuery` for bots.
+* Added the update `updateChatMember` for bots.
+* Improved the appearance of the [TDLib build instructions generator](https://tdlib.github.io/td/build.html).
+* Added support for the illumos operating system.
+* Added support for network access on real watchOS devices.
+* Added support for OpenSSL 3.0.
+* Improved the iOS/watchOS/tvOS build example to generate a universal XCFramework.
+* Added support for ARM64 simulators in the iOS/watchOS/tvOS build example.
+* Added the option `-release_only` to the build script for Universal Windows Platform, allowing to build
+  TDLib SDK for Universal Windows Platform in release-only mode.
+* Rewritten the native .NET binding using the new `ClientManager` interface:
+  - Replaced the method `Client.send` with a static method that must be called exactly once in a dedicated thread.
+    The callbacks `ClientResultHandler` will be called in this thread for all clients.
+  - Removed the function `Client.Dispose()` from the C++/CLI native binding. The objects of the type `Client`
+    don't need to be explicitly disposed anymore.
+* Rewritten the C binding using the new `ClientManager` interface:
+  - Renamed the fields `id` in the structs `TdRequest` and `TdResponse` to `request_id`.
+  - Added the field `client_id` to the struct `TdResponse`.
+  - Replaced the method `TdCClientCreate` with the method `TdCClientCreateId`.
+  - Replaced the parameter `instance` with the parameter `client_id` in the function `TdCClientSend`.
+  - Added the methods `TdCClientReceive` and `TdCClientExecute`.
+  - Removed the methods `TdCClientSendCommandSync`, `TdCClientDestroy`, and `TdCClientSetVerbosity`.
+
+-----------------------------------------------------------------------------------------------------------------------
+
 Changes in 1.7.0 (28 Nov 2020):
 
 * Added a new simplified JSON interface in which updates and responses to requests from all TDLib instances
