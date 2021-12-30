@@ -157,7 +157,7 @@ EOT
 EOT
 );
 
-        $this->addDocumentation('    public abstract static class Function extends Object {', <<<EOT
+        $this->addDocumentation('    public abstract static class Function<R extends Object> extends Object {', <<<EOT
     /**
      * This class is a base class for all TDLib interface function-classes.
      */
@@ -181,7 +181,7 @@ EOT
 
     protected function addAbstractClassDocumentation($class_name, $documentation)
     {
-        $this->addDocumentation("    public abstract static class ".(($class_name == "Function") ? "Function<R extends Object>" : $class_name)." extends Object {", <<<EOT
+        $this->addDocumentation("    public abstract static class $class_name extends Object {", <<<EOT
     /**
      * This class is an abstract base class.
      * $documentation
