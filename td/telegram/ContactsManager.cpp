@@ -13976,7 +13976,11 @@ bool ContactsManager::get_user(UserId user_id, int left_tries, Promise<Unit> &&p
     }
     auto r_input_user = get_input_user(user_id);
     if (left_tries == 1 || r_input_user.is_error()) {
-      promise.set_error(r_input_user.move_as_error());
+      if (r_input_user.is_error()) {
+        promise.set_error(r_input_user.move_as_error());
+      } else {
+        promise.set_error(Status::Error(400, "User not found"));
+      }
       return false;
     }
 
