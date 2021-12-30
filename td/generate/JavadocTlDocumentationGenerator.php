@@ -181,7 +181,7 @@ EOT
 
     protected function addAbstractClassDocumentation($class_name, $documentation)
     {
-        $this->addDocumentation("    public abstract static class ".($class_name == "Function" ? "Function<R extends Object>" : $class_name)." extends Object {", <<<EOT
+        $this->addDocumentation("    public abstract static class ".(($class_name == "Function") ? "Function<R extends Object>" : $class_name)." extends Object {", <<<EOT
     /**
      * This class is an abstract base class.
      * $documentation
