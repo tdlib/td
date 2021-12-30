@@ -389,7 +389,7 @@ EOT
         return PHP_EOL.$shift.'*'.PHP_EOL.$shift."* Returns $return_type.";
     }
 
-    protected function addClassDocumentation($class_name, $base_class_name, $description)
+    protected function addClassDocumentation($class_name, $base_class_name, $return_type, $description)
     {
         $this->addDocumentation("class $class_name final : public $base_class_name {", <<<EOT
 /**

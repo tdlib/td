@@ -104,7 +104,7 @@ class JavadocTlDocumentationGenerator extends TlDocumentationGenerator
     protected function extractClassName($line)
     {
         if (strpos($line, 'public static class ') > 0) {
-            return explode(' ', trim($line))[3];
+            return preg_split('/( |<|>)/', trim($line))[3];
         }
         return '';
     }
@@ -196,9 +196,9 @@ EOT
         return PHP_EOL.$shift.'*'.PHP_EOL.$shift."* <p> Returns {@link $return_type $return_type} </p>";
     }
 
-    protected function addClassDocumentation($class_name, $base_class_name, $description)
+    protected function addClassDocumentation($class_name, $base_class_name, $return_type, $description)
     {
-        $this->addDocumentation("    public static class $class_name extends $base_class_name {", <<<EOT
+        $this->addDocumentation("    public static class $class_name extends ".($base_class_name == "Function" ? "Function<R extends Object>" : $base_class_name).(empty($return_type) ? "" : "<".$return_type.">")." {", <<<EOT
     /**
      * $description
      */
