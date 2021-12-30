@@ -4366,14 +4366,15 @@ Result<tl_object_ptr<telegram_api::InputUser>> ContactsManager::get_input_user(U
   }
 
   const User *u = get_user(user_id);
-  if (u == nullptr) {
-    return Status::Error(400, "User not found");
-  }
-  if (u->access_hash == -1 || u->is_min_access_hash) {
+  if (u == nullptr || u->access_hash == -1 || u->is_min_access_hash) {
     if (td_->auth_manager_->is_bot() && user_id.is_valid()) {
       return make_tl_object<telegram_api::inputUser>(user_id.get(), 0);
     }
-    return Status::Error(400, "Have no access to the user");
+    if (u == nullptr) {
+      return Status::Error(400, "User not found");
+    } else {
+      return Status::Error(400, "Have no access to the user");
+    }
   }
 
   return make_tl_object<telegram_api::inputUser>(user_id.get(), u->access_hash);
