@@ -181,7 +181,7 @@ EOT
 
     protected function addAbstractClassDocumentation($class_name, $documentation)
     {
-        $this->addDocumentation("    public abstract static class $class_name extends Object {", <<<EOT
+        $this->addDocumentation("    public abstract static class ".($class_name == "Function" ? "Function<R extends Object>" : $class_name)." extends Object {", <<<EOT
     /**
      * This class is an abstract base class.
      * $documentation
@@ -198,7 +198,7 @@ EOT
 
     protected function addClassDocumentation($class_name, $base_class_name, $return_type, $description)
     {
-        $this->addDocumentation("    public static class ".($class_name == "Function" ? "Function<R extends Object>" : $class_name)." extends ".$base_class_name.(empty($return_type) ? "" : "<".$return_type.">")." {", <<<EOT
+        $this->addDocumentation("    public static class $class_name extends ".$base_class_name.(empty($return_type) ? "" : "<".$return_type.">")." {", <<<EOT
     /**
      * $description
      */
