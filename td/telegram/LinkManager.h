@@ -70,6 +70,8 @@ class LinkManager final : public Actor {
 
   static string get_dialog_invite_link_hash(Slice invite_link);
 
+  static string get_dialog_invite_link(Slice hash, bool is_internal);
+
   static UserId get_link_user_id(Slice url);
 
   static Result<MessageLinkInfo> get_message_link_info(Slice url);
