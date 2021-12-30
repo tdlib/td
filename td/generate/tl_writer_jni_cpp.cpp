@@ -57,7 +57,7 @@ std::string TD_TL_writer_jni_cpp::gen_base_tl_class_name() const {
 }
 
 std::string TD_TL_writer_jni_cpp::gen_class_begin(const std::string &class_name, const std::string &base_class_name,
-                                                  bool is_proxy) const {
+                                                  bool is_proxy, const tl::tl_tree *result) const {
   return "\n"
          "jclass " +
          class_name + "::Class;\n";

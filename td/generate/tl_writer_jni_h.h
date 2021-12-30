@@ -35,7 +35,7 @@ class TD_TL_writer_jni_h final : public TD_TL_writer_h {
   std::string gen_output_begin() const final;
 
   std::string gen_class_begin(const std::string &class_name, const std::string &base_class_name,
-                              bool is_proxy) const final;
+                              bool is_proxy, const tl::tl_tree *result) const final;
 
   std::string gen_field_definition(const std::string &class_name, const std::string &type_name,
                                    const std::string &field_name) const final;
