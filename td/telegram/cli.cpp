@@ -2247,14 +2247,17 @@ class CliClient final : public Actor {
     } else if (op == "me") {
       send_request(td_api::make_object<td_api::getMe>());
     } else if (op == "sattl") {
-      send_request(
-          td_api::make_object<td_api::setAccountTtl>(td_api::make_object<td_api::accountTtl>(to_integer<int32>(args))));
+      int32 days;
+      get_args(args, days);
+      send_request(td_api::make_object<td_api::setAccountTtl>(td_api::make_object<td_api::accountTtl>(days)));
     } else if (op == "gattl") {
       send_request(td_api::make_object<td_api::getAccountTtl>());
     } else if (op == "GetActiveSessions" || op == "devices" || op == "sessions") {
       send_request(td_api::make_object<td_api::getActiveSessions>());
     } else if (op == "TerminateSession") {
-      send_request(td_api::make_object<td_api::terminateSession>(to_integer<int64>(args)));
+      int64 session_id;
+      get_args(args, session_id);
+      send_request(td_api::make_object<td_api::terminateSession>(session_id));
     } else if (op == "TerminateAllOtherSessions") {
       send_request(td_api::make_object<td_api::terminateAllOtherSessions>());
     } else if (op == "tscac") {
@@ -2268,11 +2271,15 @@ class CliClient final : public Actor {
       get_args(args, session_id, can_accept_secret_chats);
       send_request(td_api::make_object<td_api::toggleSessionCanAcceptSecretChats>(session_id, can_accept_secret_chats));
     } else if (op == "sist") {
-      send_request(td_api::make_object<td_api::setInactiveSessionTtl>(to_integer<int32>(args)));
+      int32 inactive_session_ttl_days;
+      get_args(args, inactive_session_ttl_days);
+      send_request(td_api::make_object<td_api::setInactiveSessionTtl>(inactive_session_ttl_days));
     } else if (op == "gcw") {
       send_request(td_api::make_object<td_api::getConnectedWebsites>());
     } else if (op == "dw") {
-      send_request(td_api::make_object<td_api::disconnectWebsite>(to_integer<int64>(args)));
+      int64 website_id;
+      get_args(args, website_id);
+      send_request(td_api::make_object<td_api::disconnectWebsite>(website_id));
     } else if (op == "daw") {
       send_request(td_api::make_object<td_api::disconnectAllWebsites>());
     } else if (op == "gbgs") {
@@ -2359,7 +2366,9 @@ class CliClient final : public Actor {
           td_api::make_object<td_api::inputBackgroundRemote>(background_id),
           get_solid_pattern_background(0xabcdef, 49, true), op == "sbgpidd"));
     } else if (op == "rbg") {
-      send_request(td_api::make_object<td_api::removeBackground>(to_integer<int64>(args)));
+      int64 background_id;
+      get_args(args, background_id);
+      send_request(td_api::make_object<td_api::removeBackground>(background_id));
     } else if (op == "rbgs") {
       send_request(td_api::make_object<td_api::resetBackgrounds>());
     } else if (op == "gcos") {
@@ -2396,7 +2405,9 @@ class CliClient final : public Actor {
       get_args(args, query);
       send_request(td_api::make_object<td_api::searchStickers>(query.query, query.limit));
     } else if (op == "gss") {
-      send_request(td_api::make_object<td_api::getStickerSet>(to_integer<int64>(args)));
+      int64 sticker_set_id;
+      get_args(args, sticker_set_id);
+      send_request(td_api::make_object<td_api::getStickerSet>(sticker_set_id));
     } else if (op == "giss") {
       send_request(td_api::make_object<td_api::getInstalledStickerSets>(as_bool(args)));
     } else if (op == "gass") {
@@ -2414,7 +2425,9 @@ class CliClient final : public Actor {
     } else if (op == "gatss") {
       send_request(td_api::make_object<td_api::getAttachedStickerSets>(as_file_id(args)));
     } else if (op == "storage") {
-      send_request(td_api::make_object<td_api::getStorageStatistics>(to_integer<int32>(args)));
+      int32 chat_limit;
+      get_args(args, chat_limit);
+      send_request(td_api::make_object<td_api::getStorageStatistics>(chat_limit));
     } else if (op == "storage_fast") {
       send_request(td_api::make_object<td_api::getStorageStatisticsFast>());
     } else if (op == "database") {
@@ -2718,9 +2731,9 @@ class CliClient final : public Actor {
                                                                     width, height, scale, as_chat_id(chat_id)));
     } else if (op == "df" || op == "DownloadFile" || op == "dff" || op == "dfs") {
       string file_id;
-      int32 priority;
       int32 offset;
-      string limit;
+      int32 limit;
+      int32 priority;
       get_args(args, file_id, offset, limit, priority);
       if (priority <= 0) {
         priority = 1;
@@ -2728,8 +2741,7 @@ class CliClient final : public Actor {
       int32 max_file_id = as_file_id(file_id);
       int32 min_file_id = (op == "dff" ? 1 : max_file_id);
       for (int32 i = min_file_id; i <= max_file_id; i++) {
-        send_request(
-            td_api::make_object<td_api::downloadFile>(i, priority, offset, to_integer<int32>(limit), op == "dfs"));
+        send_request(td_api::make_object<td_api::downloadFile>(i, priority, offset, limit, op == "dfs"));
       }
     } else if (op == "cdf") {
       send_request(td_api::make_object<td_api::cancelDownloadFile>(as_file_id(args), false));
@@ -4189,8 +4201,10 @@ class CliClient final : public Actor {
       get_args(args, url, force_full);
       send_request(td_api::make_object<td_api::getWebPageInstantView>(url, force_full));
     } else if (op == "sppp") {
+      int64 profile_photo_id;
+      get_args(args, profile_photo_id);
       send_request(td_api::make_object<td_api::setProfilePhoto>(
-          td_api::make_object<td_api::inputChatPhotoPrevious>(to_integer<int64>(args))));
+          td_api::make_object<td_api::inputChatPhotoPrevious>(profile_photo_id)));
     } else if (op == "spp") {
       send_request(td_api::make_object<td_api::setProfilePhoto>(
           td_api::make_object<td_api::inputChatPhotoStatic>(as_input_file(args))));
@@ -4243,7 +4257,9 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::testReturnError>(
           args.empty() ? nullptr : td_api::make_object<td_api::error>(-1, args)));
     } else if (op == "dpp") {
-      send_request(td_api::make_object<td_api::deleteProfilePhoto>(to_integer<int64>(args)));
+      int64 profile_photo_id;
+      get_args(args, profile_photo_id);
+      send_request(td_api::make_object<td_api::deleteProfilePhoto>(profile_photo_id));
     } else if (op == "gcnse" || op == "gcnses") {
       send_request(td_api::make_object<td_api::getChatNotificationSettingsExceptions>(
           get_notification_settings_scope(args), op == "gcnses"));
@@ -4454,7 +4470,9 @@ class CliClient final : public Actor {
     } else if (op == "gls") {
       execute(td_api::make_object<td_api::getLogStream>());
     } else if (op == "slvl") {
-      execute(td_api::make_object<td_api::setLogVerbosityLevel>(to_integer<int32>(args)));
+      int32 new_verbosity_level;
+      get_args(args, new_verbosity_level);
+      execute(td_api::make_object<td_api::setLogVerbosityLevel>(new_verbosity_level));
     } else if (op == "glvl") {
       execute(td_api::make_object<td_api::getLogVerbosityLevel>());
     } else if (op == "gtags" || op == "glt") {
