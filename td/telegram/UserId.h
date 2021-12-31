@@ -20,7 +20,7 @@ class UserId {
   int64 id = 0;
 
  public:
-  static constexpr int64 MAX_USER_ID = (1ll << 40) - 1;
+  static constexpr int64 MAX_USER_ID = (static_cast<int64>(1) << 40) - 1;
 
   UserId() = default;
 

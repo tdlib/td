@@ -4890,10 +4890,10 @@ void Td::on_request(uint64 id, td_api::addNetworkStatistics &request) {
   if (entry.net_type == NetType::None) {
     return send_error_raw(id, 400, "Network statistics entry can't be increased for NetworkTypeNone");
   }
-  if (entry.rx > (1ll << 40) || entry.rx < 0) {
+  if (entry.rx > (static_cast<int64>(1) << 40) || entry.rx < 0) {
     return send_error_raw(id, 400, "Wrong received bytes value");
   }
-  if (entry.tx > (1ll << 40) || entry.tx < 0) {
+  if (entry.tx > (static_cast<int64>(1) << 40) || entry.tx < 0) {
     return send_error_raw(id, 400, "Wrong sent bytes value");
   }
   if (entry.count > (1 << 30) || entry.count < 0) {
