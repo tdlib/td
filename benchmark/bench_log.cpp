@@ -11,7 +11,6 @@
 #include <cstdio>
 #include <fstream>
 #include <iostream>
-#include <mutex>
 #include <ostream>
 #include <streambuf>
 #include <string>
@@ -150,8 +149,6 @@ class LogWriteBench final : public td::Benchmark {
     std::cerr.rdbuf(old_buf);
   }
 };
-
-std::mutex mutex;
 
 int main() {
   td::bench(LogWriteBench());
