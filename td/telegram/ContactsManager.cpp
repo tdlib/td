@@ -13976,8 +13976,7 @@ bool ContactsManager::get_user(UserId user_id, int left_tries, Promise<Unit> &&p
     get_user_force(user_id);
   }
 
-  // TODO support loading user from database and merging it with min-user in memory
-  if (!have_min_user(user_id)) {
+  if (!have_min_user(user_id) || td_->auth_manager_->is_bot()) {
     // TODO UserLoader
     if (left_tries > 2 && G()->parameters().use_chat_info_db) {
       send_closure_later(actor_id(this), &ContactsManager::load_user_from_database, nullptr, user_id,
