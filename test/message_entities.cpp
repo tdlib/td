@@ -1267,6 +1267,13 @@ TEST(MessageEntities, parse_html) {
   check_parse_html("🏟 🏟<span class=\"tg-spoiler\">🏟 &gt;<b aba   =   caba>&lt🏟</b></span>",
                    "🏟 🏟🏟 ><🏟",
                    {{td::MessageEntity::Type::Spoiler, 5, 7}, {td::MessageEntity::Type::Bold, 9, 3}});
+  check_parse_html("➡️ ➡️<tg-spoiler>➡️ ➡️</tg-spoiler><b>➡️ ➡️</b>",
+                   "➡️ ➡️➡️ ➡️➡️ ➡️",
+                   {{td::MessageEntity::Type::Spoiler, 5, 5}, {td::MessageEntity::Type::Bold, 10, 5}});
+  check_parse_html("🏟 🏟<tg-spoiler>🏟 &lt🏟</tg-spoiler>", "🏟 🏟🏟 <🏟",
+                   {{td::MessageEntity::Type::Spoiler, 5, 6}});
+  check_parse_html("🏟 🏟<tg-spoiler>🏟 &gt;<b aba   =   caba>&lt🏟</b></tg-spoiler>", "🏟 🏟🏟 ><🏟",
+                   {{td::MessageEntity::Type::Spoiler, 5, 7}, {td::MessageEntity::Type::Bold, 9, 3}});
   check_parse_html("<a href=telegram.org>\t</a>", "\t",
                    {{td::MessageEntity::Type::TextUrl, 0, 1, "http://telegram.org/"}});
   check_parse_html("<a href=telegram.org>\r</a>", "\r",
