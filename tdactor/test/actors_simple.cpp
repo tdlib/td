@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2021
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -301,7 +301,7 @@ class OpenClose final : public td::Actor {
 TEST(Actors, open_close) {
   td::ConcurrentScheduler scheduler;
   scheduler.init(2);
-  int cnt = 10000; // TODO(perf) optimize
+  int cnt = 10000;  // TODO(perf) optimize
   scheduler.create_actor_unsafe<OpenClose>(1, "A", cnt).release();
   scheduler.create_actor_unsafe<OpenClose>(2, "B", cnt).release();
   scheduler.start();

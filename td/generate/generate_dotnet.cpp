@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2021
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2022
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -18,6 +18,5 @@ int main(int argc, char *argv[]) {
 
   td::tl::write_tl_to_file(config_td, "auto/td/telegram/TdDotNetApi.cpp",
                            td::tl::TlWriterDotNet("TdApi", false, "#include \"td/telegram/TdDotNetApi.h\"\n\n"));
-  td::tl::write_tl_to_file(config_td, "auto/td/telegram/TdDotNetApi.h",
-                           td::tl::TlWriterDotNet("TdApi", true, ""));
+  td::tl::write_tl_to_file(config_td, "auto/td/telegram/TdDotNetApi.h", td::tl::TlWriterDotNet("TdApi", true, ""));
 }
