@@ -389,8 +389,9 @@ class CliClient final : public Actor {
     }
   }
 
-  void on_update_autorization_state(const td_api::AuthorizationState &state) {
-    switch (state.get_id()) {
+  void on_update_autorization_state(td_api::object_ptr<td_api::AuthorizationState> &&state) {
+    authorization_state_ = std::move(state);
+    switch (authorization_state_->get_id()) {
       case td_api::authorizationStateWaitTdlibParameters::ID: {
         auto parameters = td_api::make_object<td_api::tdlibParameters>();
         parameters->use_test_dc_ = use_test_dc_;
@@ -854,7 +855,7 @@ class CliClient final : public Actor {
         break;
       case td_api::updateAuthorizationState::ID:
         on_update_autorization_state(
-            *(static_cast<const td_api::updateAuthorizationState *>(result.get())->authorization_state_));
+            std::move(static_cast<td_api::updateAuthorizationState *>(result.get())->authorization_state_));
         break;
       case td_api::updateChatLastMessage::ID: {
         auto message = static_cast<const td_api::updateChatLastMessage *>(result.get())->last_message_.get();
@@ -1681,7 +1682,7 @@ class CliClient final : public Actor {
     int32 op_not_found_count = 0;
 
     if (op == "gas") {
-      send_request(td_api::make_object<td_api::getAuthorizationState>());
+      LOG(ERROR) << to_string(authorization_state_);
     } else if (op == "sap" || op == "sapn") {
       send_request(
           td_api::make_object<td_api::setAuthenticationPhoneNumber>(args, get_phone_number_authentication_settings()));
@@ -4670,6 +4671,7 @@ class CliClient final : public Actor {
   std::unordered_map<int32, double> being_downloaded_files_;
 
   int64 my_id_ = 0;
+  td_api::object_ptr<td_api::AuthorizationState> authorization_state_;
   string schedule_date_;
   string message_thread_id_;
   int64 opened_chat_id_ = 0;
