@@ -3900,11 +3900,12 @@ class SetTypingQuery final : public Td::ResultHandler {
     if (message_id.is_valid()) {
       flags |= telegram_api::messages_setTyping::TOP_MSG_ID_MASK;
     }
-    auto net_query = G()->net_query_creator().create(telegram_api::messages_setTyping(
+    auto query = G()->net_query_creator().create(telegram_api::messages_setTyping(
         flags, std::move(input_peer), message_id.get_server_message_id().get(), std::move(action)));
-    auto result = net_query.get_weak();
+    query->total_timeout_limit_ = 2;
+    auto result = query.get_weak();
     generation_ = result.generation();
-    send_query(std::move(net_query));
+    send_query(std::move(query));
     return result;
   }
 
