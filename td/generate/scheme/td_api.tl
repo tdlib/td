@@ -2543,14 +2543,14 @@ chatEventMessageEdited old_message:message new_message:message = ChatEventAction
 //@description A message was deleted @message Deleted message
 chatEventMessageDeleted message:message = ChatEventAction;
 
-//@description A poll in a message was stopped @message The message with the poll
-chatEventPollStopped message:message = ChatEventAction;
-
 //@description A message was pinned @message Pinned message
 chatEventMessagePinned message:message = ChatEventAction;
 
 //@description A message was unpinned @message Unpinned message
 chatEventMessageUnpinned message:message = ChatEventAction;
+
+//@description A poll in a message was stopped @message The message with the poll
+chatEventPollStopped message:message = ChatEventAction;
 
 //@description A new member joined the chat
 chatEventMemberJoined = ChatEventAction;
@@ -2561,11 +2561,11 @@ chatEventMemberJoinedByInviteLink invite_link:chatInviteLink = ChatEventAction;
 //@description A new member was accepted to the chat by an administrator @approver_user_id User identifier of the chat administrator, approved user join request @invite_link Invite link used to join the chat; may be null
 chatEventMemberJoinedByRequest approver_user_id:int53 invite_link:chatInviteLink = ChatEventAction;
 
-//@description A member left the chat
-chatEventMemberLeft = ChatEventAction;
-
 //@description A new chat member was invited @user_id New member user identifier @status New member status
 chatEventMemberInvited user_id:int53 status:ChatMemberStatus = ChatEventAction;
+
+//@description A member left the chat
+chatEventMemberLeft = ChatEventAction;
 
 //@description A chat member has gained/lost administrator status, or the list of their administrator privileges has changed @user_id Affected chat member user identifier @old_status Previous status of the chat member @new_status New status of the chat member
 chatEventMemberPromoted user_id:int53 old_status:ChatMemberStatus new_status:ChatMemberStatus = ChatEventAction;
@@ -2573,47 +2573,47 @@ chatEventMemberPromoted user_id:int53 old_status:ChatMemberStatus new_status:Cha
 //@description A chat member was restricted/unrestricted or banned/unbanned, or the list of their restrictions has changed @member_id Affected chat member identifier @old_status Previous status of the chat member @new_status New status of the chat member
 chatEventMemberRestricted member_id:MessageSender old_status:ChatMemberStatus new_status:ChatMemberStatus = ChatEventAction;
 
-//@description The chat title was changed @old_title Previous chat title @new_title New chat title
-chatEventTitleChanged old_title:string new_title:string = ChatEventAction;
-
-//@description The chat permissions was changed @old_permissions Previous chat permissions @new_permissions New chat permissions
-chatEventPermissionsChanged old_permissions:chatPermissions new_permissions:chatPermissions = ChatEventAction;
-
 //@description The chat description was changed @old_description Previous chat description @new_description New chat description
 chatEventDescriptionChanged old_description:string new_description:string = ChatEventAction;
-
-//@description The chat username was changed @old_username Previous chat username @new_username New chat username
-chatEventUsernameChanged old_username:string new_username:string = ChatEventAction;
-
-//@description The chat photo was changed @old_photo Previous chat photo value; may be null @new_photo New chat photo value; may be null
-chatEventPhotoChanged old_photo:chatPhoto new_photo:chatPhoto = ChatEventAction;
-
-//@description The can_invite_users permission of a supergroup chat was toggled @can_invite_users New value of can_invite_users permission
-chatEventInvitesToggled can_invite_users:Bool = ChatEventAction;
 
 //@description The linked chat of a supergroup was changed @old_linked_chat_id Previous supergroup linked chat identifier @new_linked_chat_id New supergroup linked chat identifier
 chatEventLinkedChatChanged old_linked_chat_id:int53 new_linked_chat_id:int53 = ChatEventAction;
 
-//@description The slow_mode_delay setting of a supergroup was changed @old_slow_mode_delay Previous value of slow_mode_delay, in seconds @new_slow_mode_delay New value of slow_mode_delay, in seconds
-chatEventSlowModeDelayChanged old_slow_mode_delay:int32 new_slow_mode_delay:int32 = ChatEventAction;
+//@description The supergroup location was changed @old_location Previous location; may be null @new_location New location; may be null
+chatEventLocationChanged old_location:chatLocation new_location:chatLocation = ChatEventAction;
 
 //@description The message TTL was changed @old_message_ttl Previous value of message_ttl @new_message_ttl New value of message_ttl
 chatEventMessageTtlChanged old_message_ttl:int32 new_message_ttl:int32 = ChatEventAction;
 
-//@description The sign_messages setting of a channel was toggled @sign_messages New value of sign_messages
-chatEventSignMessagesToggled sign_messages:Bool = ChatEventAction;
+//@description The chat permissions was changed @old_permissions Previous chat permissions @new_permissions New chat permissions
+chatEventPermissionsChanged old_permissions:chatPermissions new_permissions:chatPermissions = ChatEventAction;
 
-//@description The has_protected_content setting of a channel was toggled @has_protected_content New value of has_protected_content
-chatEventHasProtectedContentToggled has_protected_content:Bool = ChatEventAction;
+//@description The chat photo was changed @old_photo Previous chat photo value; may be null @new_photo New chat photo value; may be null
+chatEventPhotoChanged old_photo:chatPhoto new_photo:chatPhoto = ChatEventAction;
+
+//@description The slow_mode_delay setting of a supergroup was changed @old_slow_mode_delay Previous value of slow_mode_delay, in seconds @new_slow_mode_delay New value of slow_mode_delay, in seconds
+chatEventSlowModeDelayChanged old_slow_mode_delay:int32 new_slow_mode_delay:int32 = ChatEventAction;
 
 //@description The supergroup sticker set was changed @old_sticker_set_id Previous identifier of the chat sticker set; 0 if none @new_sticker_set_id New identifier of the chat sticker set; 0 if none
 chatEventStickerSetChanged old_sticker_set_id:int64 new_sticker_set_id:int64 = ChatEventAction;
 
-//@description The supergroup location was changed @old_location Previous location; may be null @new_location New location; may be null
-chatEventLocationChanged old_location:chatLocation new_location:chatLocation = ChatEventAction;
+//@description The chat title was changed @old_title Previous chat title @new_title New chat title
+chatEventTitleChanged old_title:string new_title:string = ChatEventAction;
+
+//@description The chat username was changed @old_username Previous chat username @new_username New chat username
+chatEventUsernameChanged old_username:string new_username:string = ChatEventAction;
+
+//@description The has_protected_content setting of a channel was toggled @has_protected_content New value of has_protected_content
+chatEventHasProtectedContentToggled has_protected_content:Bool = ChatEventAction;
+
+//@description The can_invite_users permission of a supergroup chat was toggled @can_invite_users New value of can_invite_users permission
+chatEventInvitesToggled can_invite_users:Bool = ChatEventAction;
 
 //@description The is_all_history_available setting of a supergroup was toggled @is_all_history_available New value of is_all_history_available
 chatEventIsAllHistoryAvailableToggled is_all_history_available:Bool = ChatEventAction;
+
+//@description The sign_messages setting of a channel was toggled @sign_messages New value of sign_messages
+chatEventSignMessagesToggled sign_messages:Bool = ChatEventAction;
 
 //@description A chat invite link was edited @old_invite_link Previous information about the invite link @new_invite_link New information about the invite link
 chatEventInviteLinkEdited old_invite_link:chatInviteLink new_invite_link:chatInviteLink = ChatEventAction;
@@ -2630,14 +2630,14 @@ chatEventVideoChatCreated group_call_id:int32 = ChatEventAction;
 //@description A video chat was ended @group_call_id Identifier of the video chat. The video chat can be received through the method getGroupCall
 chatEventVideoChatEnded group_call_id:int32 = ChatEventAction;
 
+//@description The mute_new_participants setting of a video chat was toggled @mute_new_participants New value of the mute_new_participants setting
+chatEventVideoChatMuteNewParticipantsToggled mute_new_participants:Bool = ChatEventAction;
+
 //@description A video chat participant was muted or unmuted @participant_id Identifier of the affected group call participant @is_muted New value of is_muted
 chatEventVideoChatParticipantIsMutedToggled participant_id:MessageSender is_muted:Bool = ChatEventAction;
 
 //@description A video chat participant volume level was changed @participant_id Identifier of the affected group call participant @volume_level New value of volume_level; 1-20000 in hundreds of percents
 chatEventVideoChatParticipantVolumeLevelChanged participant_id:MessageSender volume_level:int32 = ChatEventAction;
-
-//@description The mute_new_participants setting of a video chat was toggled @mute_new_participants New value of the mute_new_participants setting
-chatEventVideoChatMuteNewParticipantsToggled mute_new_participants:Bool = ChatEventAction;
 
 //@description Represents a chat event @id Chat event identifier @date Point in time (Unix timestamp) when the event happened @member_id Identifier of the user or chat who performed the action @action The action
 chatEvent id:int64 date:int32 member_id:MessageSender action:ChatEventAction = ChatEvent;
