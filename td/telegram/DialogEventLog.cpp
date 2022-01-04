@@ -340,8 +340,16 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionToggleNoForwards>(action_ptr);
       return td_api::make_object<td_api::chatEventHasProtectedContentToggled>(action->new_value_);
     }
-    case telegram_api::channelAdminLogEventActionChangeAvailableReactions::ID:
-      return nullptr;
+    case telegram_api::channelAdminLogEventActionChangeAvailableReactions::ID: {
+      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeAvailableReactions>(action_ptr);
+      auto old_value = td->stickers_manager_->get_active_reactions(std::move(action->prev_value_));
+      auto new_value = td->stickers_manager_->get_active_reactions(std::move(action->new_value_));
+      if (old_value == new_value) {
+        return nullptr;
+      }
+      return td_api::make_object<td_api::chatEventAvailableReactionsChanged>(std::move(old_value),
+                                                                             std::move(new_value));
+    }
     default:
       UNREACHABLE();
       return nullptr;
