@@ -248,6 +248,8 @@ void on_sent_message_content(Td *td, const MessageContent *content);
 
 bool is_unsent_animated_emoji_click(Td *td, DialogId dialog_id, const DialogAction &action);
 
+vector<string> get_active_reactions(Td *td, const vector<string> &available_reactions);
+
 void on_dialog_used(TopDialogCategory category, DialogId dialog_id, int32 date);
 
 void update_used_hashtags(Td *td, const MessageContent *content);

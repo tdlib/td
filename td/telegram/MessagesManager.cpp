@@ -5308,6 +5308,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   bool has_pending_join_requests = pending_join_request_count != 0;
   bool has_action_bar = action_bar != nullptr;
   bool has_default_send_message_as_dialog_id = default_send_message_as_dialog_id.is_valid();
+  bool has_available_reactions = !available_reactions.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_draft_message);
   STORE_FLAG(has_last_database_message);
@@ -5384,6 +5385,8 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     STORE_FLAG(has_action_bar);
     STORE_FLAG(has_default_send_message_as_dialog_id);
     STORE_FLAG(need_drop_default_send_message_as_dialog_id);
+    STORE_FLAG(has_available_reactions);
+    STORE_FLAG(is_available_reactions_inited);
     END_STORE_FLAGS();
   }
 
@@ -5487,6 +5490,9 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   if (has_default_send_message_as_dialog_id) {
     store(default_send_message_as_dialog_id, storer);
   }
+  if (has_available_reactions) {
+    store(available_reactions, storer);
+  }
 }
 
 // do not forget to resolve dialog dependencies including dependencies of last_message
@@ -5532,6 +5538,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   bool action_bar_can_invite_members = false;
   bool has_action_bar = false;
   bool has_default_send_message_as_dialog_id = false;
+  bool has_available_reactions = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_draft_message);
   PARSE_FLAG(has_last_database_message);
@@ -5623,9 +5630,12 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     PARSE_FLAG(has_action_bar);
     PARSE_FLAG(has_default_send_message_as_dialog_id);
     PARSE_FLAG(need_drop_default_send_message_as_dialog_id);
+    PARSE_FLAG(has_available_reactions);
+    PARSE_FLAG(is_available_reactions_inited);
     END_PARSE_FLAGS();
   } else {
     need_repair_action_bar = false;
+    is_available_reactions_inited = false;
   }
 
   parse(last_new_message_id, parser);
@@ -5764,6 +5774,9 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   }
   if (has_default_send_message_as_dialog_id) {
     parse(default_send_message_as_dialog_id, parser);
+  }
+  if (has_available_reactions) {
+    parse(available_reactions, parser);
   }
 
   (void)legacy_know_can_report_spam;
@@ -8059,6 +8072,43 @@ void MessagesManager::on_update_scope_notify_settings(
   }
 
   update_scope_notification_settings(scope, old_notification_settings, notification_settings);
+}
+
+void MessagesManager::on_update_dialog_available_reactions(DialogId dialog_id, vector<string> &&available_reactions) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  Dialog *d = get_dialog_force(dialog_id, "on_update_dialog_available_reactions");
+  if (d == nullptr) {
+    return;
+  }
+
+  set_dialog_available_reactions(d, std::move(available_reactions));
+}
+
+void MessagesManager::set_dialog_available_reactions(Dialog *d, vector<string> &&available_reactions) {
+  CHECK(!td_->auth_manager_->is_bot());
+  if (d->available_reactions == available_reactions) {
+    if (!d->is_available_reactions_inited) {
+      d->is_available_reactions_inited = true;
+      on_dialog_updated(d->dialog_id, "set_dialog_available_reactions");
+    }
+    return;
+  }
+
+  VLOG(notifications) << "Update available reactions in " << d->dialog_id << " to " << available_reactions;
+
+  bool need_update =
+      get_active_reactions(td_, d->available_reactions) != get_active_reactions(td_, available_reactions);
+
+  d->available_reactions = std::move(available_reactions);
+  d->is_available_reactions_inited = true;
+  on_dialog_updated(d->dialog_id, "set_dialog_available_reactions");
+
+  if (need_update) {
+    send_update_chat_available_reactions(d);
+  }
 }
 
 bool MessagesManager::update_dialog_silent_send_message(Dialog *d, bool silent_send_message) {
@@ -14778,6 +14828,9 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     } else if (!d->is_last_pinned_message_id_inited && !td_->auth_manager_->is_bot()) {
       // asynchronously get dialog pinned message from the server
       get_dialog_pinned_message(dialog_id, Auto());
+    } else if (!d->is_available_reactions_inited && !td_->auth_manager_->is_bot()) {
+      // asynchronously get dialog available reactions from the server
+      get_dialog_info_full(dialog_id, Auto(), "on_get_dialogs init available_reactions");
     }
 
     need_update_dialog_pos |= update_dialog_draft_message(
@@ -20418,7 +20471,8 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
       can_report_dialog(d->dialog_id), d->notification_settings.silent_send_message,
       d->server_unread_count + d->local_unread_count, d->last_read_inbox_message_id.get(),
       d->last_read_outbox_message_id.get(), d->unread_mention_count,
-      get_chat_notification_settings_object(&d->notification_settings), d->message_ttl.get_message_ttl_object(),
+      get_chat_notification_settings_object(&d->notification_settings),
+      get_active_reactions(td_, d->available_reactions), d->message_ttl.get_message_ttl_object(),
       get_dialog_theme_name(d), get_chat_action_bar_object(d), get_video_chat_object(d),
       get_chat_join_requests_info_object(d), d->reply_markup_message_id.get(), std::move(draft_message),
       d->client_data);
@@ -29564,6 +29618,18 @@ void MessagesManager::send_update_chat_action_bar(Dialog *d) {
   send_update_secret_chats_with_user_action_bar(d);
 }
 
+void MessagesManager::send_update_chat_available_reactions(const Dialog *d) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  CHECK(d != nullptr);
+  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_available_reactions";
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateChatAvailableReactions>(
+                   d->dialog_id.get(), get_active_reactions(td_, d->available_reactions)));
+}
+
 void MessagesManager::send_update_secret_chats_with_user_theme(const Dialog *d) const {
   if (td_->auth_manager_->is_bot()) {
     return;
@@ -34900,6 +34966,7 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
       d->has_bots = td_->contacts_manager_->is_user_bot(
           td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id()));
       d->is_has_bots_inited = true;
+      d->is_available_reactions_inited = true;
 
       break;
     case DialogType::None:
@@ -35038,6 +35105,10 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
              have_input_peer(dialog_id, AccessRights::Write)) {
     // asynchronously get dialog message TTL from the server
     get_dialog_info_full(dialog_id, Auto(), "fix_new_dialog init message_ttl");
+  } else if (being_added_dialog_id_ != dialog_id && !d->is_available_reactions_inited &&
+             !td_->auth_manager_->is_bot()) {
+    // asynchronously get dialog available reactions from the server
+    get_dialog_info_full(dialog_id, Auto(), "fix_new_dialog init available_reactions");
   }
   if ((!d->know_action_bar || d->need_repair_action_bar) && !td_->auth_manager_->is_bot() &&
       dialog_type != DialogType::SecretChat && dialog_id != get_my_dialog_id() &&

@@ -4723,6 +4723,10 @@ void StickersManager::send_update_animated_emoji_clicked(FullMessageId full_mess
           dialog_id.get(), full_message_id.get_message_id().get(), get_sticker_object(sticker_id, false, true)));
 }
 
+vector<string> StickersManager::get_active_reactions(const vector<string> &available_reactions) {
+  return available_reactions;
+}
+
 void StickersManager::view_featured_sticker_sets(const vector<StickerSetId> &sticker_set_ids) {
   for (auto sticker_set_id : sticker_set_ids) {
     auto set = get_sticker_set(sticker_set_id);

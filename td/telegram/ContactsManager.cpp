@@ -10664,6 +10664,9 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     td_->messages_manager_->on_update_dialog_notify_settings(DialogId(chat_id), std::move(chat->notify_settings_),
                                                              "on_get_chat_full");
 
+    td_->messages_manager_->on_update_dialog_available_reactions(DialogId(chat_id),
+                                                                 std::move(chat->available_reactions_));
+
     td_->messages_manager_->on_update_dialog_theme_name(DialogId(chat_id), std::move(chat->theme_emoticon_));
 
     td_->messages_manager_->on_update_dialog_pending_join_requests(DialogId(chat_id), chat->requests_pending_,
@@ -10709,6 +10712,9 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
 
     td_->messages_manager_->on_update_dialog_notify_settings(DialogId(channel_id), std::move(channel->notify_settings_),
                                                              "on_get_channel_full");
+
+    td_->messages_manager_->on_update_dialog_available_reactions(DialogId(channel_id),
+                                                                 std::move(channel->available_reactions_));
 
     td_->messages_manager_->on_update_dialog_theme_name(DialogId(channel_id), std::move(channel->theme_emoticon_));
 

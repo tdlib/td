@@ -88,6 +88,8 @@ class StickersManager final : public Actor {
 
   Status on_animated_emoji_message_clicked(Slice emoji, FullMessageId full_message_id, string data);
 
+  vector<string> get_active_reactions(const vector<string> &available_reactions);
+
   void create_sticker(FileId file_id, string minithumbnail, PhotoSize thumbnail, Dimensions dimensions,
                       tl_object_ptr<telegram_api::documentAttributeSticker> sticker, bool is_animated,
                       MultiPromiseActor *load_data_multipromise_ptr);

@@ -825,6 +825,8 @@ class MessagesManager final : public Actor {
   void on_update_scope_notify_settings(NotificationSettingsScope scope,
                                        tl_object_ptr<telegram_api::peerNotifySettings> &&peer_notify_settings);
 
+  void on_update_dialog_available_reactions(DialogId dialog_id, vector<string> &&available_reactions);
+
   void hide_dialog_action_bar(DialogId dialog_id);
 
   void remove_dialog_action_bar(DialogId dialog_id, Promise<Unit> &&promise);
@@ -1206,6 +1208,7 @@ class MessagesManager final : public Actor {
     MessageId last_pinned_message_id;
     MessageId reply_markup_message_id;
     DialogNotificationSettings notification_settings;
+    vector<string> available_reactions;
     MessageTtl message_ttl;
     unique_ptr<DraftMessage> draft_message;
     unique_ptr<DialogActionBar> action_bar;
@@ -1293,6 +1296,7 @@ class MessagesManager final : public Actor {
     bool has_bots = false;
     bool is_has_bots_inited = false;
     bool is_theme_name_inited = false;
+    bool is_available_reactions_inited = false;
 
     bool increment_view_counter = false;
 
@@ -2395,6 +2399,8 @@ class MessagesManager final : public Actor {
 
   void send_update_chat_action_bar(Dialog *d);
 
+  void send_update_chat_available_reactions(const Dialog *d);
+
   void send_update_secret_chats_with_user_theme(const Dialog *d) const;
 
   void send_update_chat_theme(const Dialog *d);
@@ -2566,6 +2572,8 @@ class MessagesManager final : public Actor {
   void on_scope_unmute(NotificationSettingsScope scope);
 
   bool update_dialog_silent_send_message(Dialog *d, bool silent_send_message);
+
+  void set_dialog_available_reactions(Dialog *d, vector<string> &&available_reactions);
 
   bool is_dialog_action_unneeded(DialogId dialog_id) const;
 
