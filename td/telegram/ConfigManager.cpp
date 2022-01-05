@@ -1505,6 +1505,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   int64 chat_read_mark_expire_period = 0;
   int64 chat_read_mark_size_threshold = 0;
   double animated_emoji_zoom = 0.0;
+  string default_reaction;
   if (config->get_id() == telegram_api::jsonObject::ID) {
     for (auto &key_value : static_cast<telegram_api::jsonObject *>(config.get())->value_) {
       Slice key = key_value->key_;
@@ -1745,6 +1746,10 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
             get_json_value_int(std::move(key_value->value_), "chat_read_mark_size_threshold");
         continue;
       }
+      if (key == "reactions_default") {
+        default_reaction = get_json_value_string(std::move(key_value->value_), "reactions_default");
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
@@ -1818,6 +1823,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   } else {
     shared_config.set_option_integer("chat_read_mark_size_threshold", chat_read_mark_size_threshold);
   }
+  shared_config.set_option_string("default_reaction", default_reaction);
 
   shared_config.set_option_empty("default_ton_blockchain_config");
   shared_config.set_option_empty("default_ton_blockchain_name");
